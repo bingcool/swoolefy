@@ -1,12 +1,11 @@
 <?php
 include_once "../vendor/autoload.php";
 
-$sukit = new Swoolefy\AutoReload\autoReload();
-$sukit->monitorShellFile = __DIR__."/Shell/swoole_monitor.sh";
-$sukit->afterNSeconds = 5;
-$sukit->isOnline = true;
+$daemon = new Swoolefy\AutoReload\autoReload();
+$daemon->afterNSeconds = 5;
+$daemon->isOnline = true;
 
-$sukit->smtpTransport = [
+$daemon->smtpTransport = [
 	"server_host"=>"smtp.163.com",
 	"port"      =>25,
 	"security"  =>null,
@@ -14,7 +13,7 @@ $sukit->smtpTransport = [
 	"pass_word" =>"************"
 ];
 
-$sukit->message = [
+$daemon->message = [
 	//邮箱主题
 	"subject"=>"test",
 	//发送者邮箱与定义的名称，邮箱与上面定义的user_name这里必须一致
@@ -30,10 +29,10 @@ $sukit->message = [
 ];
 
 // 初始化配置
-$sukit->init();
+$daemon->init();
 // 开始监听
-$sukit->watch('/home/wwwroot/default');
+$daemon->watch('/home/wwwroot/default');
 // EVENTLOOP
-$sukit->run();
+$daemon->run();
 
 
