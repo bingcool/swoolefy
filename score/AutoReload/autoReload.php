@@ -87,7 +87,7 @@ class autoReload {
      * $monitorShellFile
      * @var [type]
      */
-    public $monitorShellFile = null;
+    public $monitorShellFile = __DIR__."/../Shell/swoole_monitor.sh";
 
     /**
      * $logChannel，日志显示的频道主题
@@ -234,7 +234,7 @@ class autoReload {
      */
     public function sendEmail(array $msg) {
         if($this->isOnline) {
-            // 根据需要可能在不同的场景下发送不同的邮件主题以及通知内容信息，所以这里设置两个变量
+            // 根据需要可能在不同的场景下发送不同的邮件主题以及通知内容信息，所以这里设置$msg变量
             // 邮件发送是一个耗时过程，fork一个进程专门处理邮件发送业务
             $process_mail = new swoole_process(function($process_mail_worker) use($msg) {
                 $swiftmail = new Swiftmail();
@@ -267,8 +267,7 @@ class autoReload {
      * 重启
      * @return [type] [description]
      */
-    private function reload()
-    {
+    private function reload() {
         // 调试模式，打印信息在终端
         $this->putLog("reloading",'info');
         //向主进程发送信号
@@ -290,8 +289,7 @@ class autoReload {
      * 添加文件类型
      * @param $type
      */
-    public function addFileType($type)
-    {
+    public function addFileType($type) {
         $type = trim($type, '.');
         $this->reloadFileTypes['.' . $type] = true;
     }
@@ -300,16 +298,14 @@ class autoReload {
      * 添加事件
      * @param $inotifyEvent
      */
-    public function addEvent($inotifyEvent)
-    {
+    public function addEvent($inotifyEvent) {
         $this->events |= $inotifyEvent;
     }
 
     /**
      * 清理所有inotify监听
      */
-    private function clearWatch()
-    {
+    private function clearWatch() {
         foreach($this->watchFiles as $wd)
         {
             inotify_rm_watch($this->inotify, $wd);
@@ -324,8 +320,7 @@ class autoReload {
      * @return bool
      * @throws NotFound
      */
-    public function watch($dir, $root = true)
-    {
+    public function watch($dir, $root = true) {
         //目录不存在
         if (!is_dir($dir))
         {
