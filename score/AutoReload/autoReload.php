@@ -167,12 +167,8 @@ class autoReload {
                             }, true);
 
                             $process_pid = $process->start();
-
                             $this->swoole_pid = intval($process->read());
-                            var_dump($this->swoole_pid);
                             swoole_process::wait();
-
-                            // 测试是否可以发邮件
 
                             if(!is_int($this->swoole_pid) || !$this->swoole_pid) {
                                 // 线上记录日志模式和调试模式
@@ -182,7 +178,8 @@ class autoReload {
                                     "body"   =>"swoole可能发送错误已经停止，请手动启动"
                                 ]);
                                 return;
-                            } 
+                            }
+
                         }catch(Exception $e) {
                             // 线上环境这里可以写发邮件通知
                             $this->putLog("无法检测swoole_pid，无法重启",'error');
