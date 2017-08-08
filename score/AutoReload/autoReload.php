@@ -90,6 +90,11 @@ class autoReload {
     public $monitorShellFile = __DIR__."/../Shell/swoole_monitor.sh";
 
     /**
+     * $monitorPort
+     * @var [type]
+     */
+    public $monitorPort = 9501;
+    /**
      * $logChannel，日志显示的频道主题
      * @var string
      */
@@ -158,7 +163,7 @@ class autoReload {
                     {   
                         try {
                             $process = new swoole_process(function($process_worker){
-                                $process_worker->exec('/bin/bash', array($this->monitorShellFile)); 
+                                $process_worker->exec('/bin/bash', array($this->monitorShellFile,$this->monitorPort)); 
                             }, true);
 
                             $process_pid = $process->start();

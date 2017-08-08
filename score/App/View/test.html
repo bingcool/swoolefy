@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>测试swoole的开启</title>
+</head>
+<body>
+<div>
+	<h2>hello,swoole test</h2>
+</div>
+<div id="text">
+	
+</div>
+<script type="text/javascript">
+	ws = new WebSocket("ws://192.168.44.128:9502");
+	ws.onopen = function(){  
+	  console.log('success!');	
+	};
+
+	ws.onmessage = function(evt){
+		console.log(evt.data);
+	};
+
+	ws.onclose = function(evt){
+	  console.log("WebSocketClosed!");
+	};
+
+	ws.onerror = function(evt){
+	  console.log("WebSocketError!");
+	};
+
+	window.onbeforeunload = function() {
+		ws.close();
+	};
+
+</script>
+</body>
+</html>
