@@ -267,7 +267,7 @@ class autoReload {
      * 重启
      * @return [type] [description]
      */
-    private function reload() {
+    public function reload() {
         // 调试模式，打印信息在终端
         $this->putLog("reloading",'info');
         //向主进程发送信号
@@ -308,7 +308,8 @@ class autoReload {
     private function clearWatch() {
         foreach($this->watchFiles as $wd)
         {
-            inotify_rm_watch($this->inotify, $wd);
+            // 忽略返回的警告信息
+            @inotify_rm_watch($this->inotify, $wd);
         }
         $this->watchFiles = [];
     }
