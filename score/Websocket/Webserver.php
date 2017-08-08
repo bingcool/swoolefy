@@ -22,7 +22,7 @@ class Webserver {
 	public $conf = [
 		'reactor_num' => 1, //reactor thread num
 		'worker_num' => 2,    //worker process num
-		'max_request' => 2,
+		'max_request' => 1,
 		'daemonize' => 0
 	];
 
@@ -52,7 +52,7 @@ class Webserver {
 	 */
 	public $monitorPort = 9501;
 
-	public $dir = __DIR__;
+	static $test = 0;
 
 	public function __construct(array $config=[]) {
 
@@ -96,6 +96,8 @@ class Webserver {
 			if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
             		return $response->end();
        		}
+       		self::$test++;
+       		var_dump(self::$test);
        		// 请求调度
 			call_user_func_array(array(new Dispatch(), "dispatch"), array($request, $response));
 		});
