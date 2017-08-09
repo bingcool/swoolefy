@@ -4,7 +4,9 @@ include_once "../../vendor/autoload.php";
 
 use Swoole\WebSocket\Server as WebSockServer;
 use Swoole\Process as swoole_process;
-use Swoolefy\Core\Dispatch;
+use Swoolefy\Core\App;
+use Swoole\Http\Request;
+use Swoole\Http\Response;
 
 class Webserver {
 
@@ -21,8 +23,8 @@ class Webserver {
 	 */
 	public $conf = [
 		'reactor_num' => 1, //reactor thread num
-		'worker_num' => 2,    //worker process num
-		'max_request' => 1,
+		'worker_num' => 1,    //worker process num
+		'max_request' => 1000,
 		'daemonize' => 0
 	];
 
@@ -68,38 +70,49 @@ class Webserver {
 		 * start回调
 		 */
 		$this->webserver->on('Start',function(WebSockServer $server) {
-			$this->setMasterProcessName();
+			self::setMasterProcessName();
 		});
 
 		/**
 		 * managerstart回调
 		 */
 		$this->webserver->on('ManagerStart',function(WebSockServer $server) {
-			$this->setManagerProcessName();
+			self::setManagerProcessName();
 		});
 
 		/**
 		 * 启动worker进程监听回调，设置定时器
 		 */
 		$this->webserver->on('WorkerStart',function(WebSockServer $server, $worker_id){
+			// 加载文件
+			self::startInclude();
+			// 重新设置进程名称
+			self::setWorkerProcessName($worker_id);
 			// 创建定时器
 			$this->timer_id = swoole_timer_tick(3000,[$this,"timer_callback"]);
-			// 重新设置进程名称
-			$this->setWorkerProcessName($worker_id);
+			
 
 		});
 
 		/**
 		 * 接受http请求
 		 */
-		$this->webserver->on('request',function($request, $response) {
+		$this->webserver->on('request',function(Request $request, Response $response) {
+			// google浏览器会自动发一次请求/favicon.ico
 			if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
             		return $response->end();
        		}
-       		self::$test++;
-       		var_dump(self::$test);
-       		// 请求调度
-			call_user_func_array(array(new Dispatch(), "dispatch"), array($request, $response));
+       		// // 请求调度
+       		// $process_test = new swoole_process(function() use($request, $response) {
+       		// 	call_user_func_array(array(new App(), "dispatch"), array($request, $response));
+       		// },false);
+
+       		// $process_pid = $process_test->start();
+
+       		// swoole_process::wait();
+       		// $response->end("<h3>jjjjjjjjjjjjjjjjjjjjjj</h3>");
+       		call_user_func_array(array(new App(), "dispatch"), array($request, $response));
+       		
 		});
 
 		$this->webserver->on('message', function (WebSockServer $server, $frame) {
@@ -154,7 +167,7 @@ class Webserver {
 	/**
 	 * setWorkerProcessName设置worker进程名称
 	 */
-	private function setWorkerProcessName($worker_id) {
+	public function setWorkerProcessName($worker_id) {
 		// 设置worker的进程
 		if($worker_id >= $this->conf['worker_num']) {
             swoole_set_process_name("php-monitor-task_worker".$worker_id);
@@ -167,15 +180,28 @@ class Webserver {
 	/**
 	 * setMasterProcessName设置主进程名称
 	 */
-	private function setMasterProcessName() {
+	public function setMasterProcessName() {
 		swoole_set_process_name("php-monitor-master");
 	}
 
 	/**
 	 * setManagerProcessName设置管理进程名称
 	 */
-	private function setManagerProcessName() {
+	public function setManagerProcessName() {
 		swoole_set_process_name("php-monitor-manager");
+	}
+
+	/**
+	 * startInclude设置需要在workerstart启动时加载的配置文件
+	 */
+	public static function startInclude() {
+		$includes = [
+			__DIR__."/Config/web_socket.php",
+		];
+
+		foreach($includes as $filePath) {
+			include_once $filePath;
+		}
 	}
 
 }
