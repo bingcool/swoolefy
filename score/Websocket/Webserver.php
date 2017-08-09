@@ -4,7 +4,7 @@ include_once "../../vendor/autoload.php";
 
 use Swoole\WebSocket\Server as WebSockServer;
 use Swoole\Process as swoole_process;
-use Swoolefy\Websocket\Dispatch;
+use Swoolefy\Core\Dispatch;
 
 class Webserver {
 

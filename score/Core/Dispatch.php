@@ -1,5 +1,5 @@
 <?php
-namespace Swoolefy\Websocket;
+namespace Swoolefy\Core;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use Smarty;
@@ -7,7 +7,7 @@ use Smarty;
 
 $config = require_once __DIR__."/../App/Config/config.php";
 
-class Dispatch {
+class Dispatch extends App {
 
 	public $require_uri = null;
 

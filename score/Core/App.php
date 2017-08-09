@@ -1,2 +1,6 @@
 <?php
-namespace 
+namespace Swoolefy\Core;
+
+class App {
+	
+}
