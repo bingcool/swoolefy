@@ -5,11 +5,27 @@ include_once "../../vendor/autoload.php";
 use Swoole\WebSocket\Server as WebSockServer;
 use Swoole\Process as swoole_process;
 use Swoolefy\Core\App;
+use Swoolefy\Core\Base;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 
-class Webserver {
+class Webserver extends Base {
 
+	/**
+	 * 定义进程名称
+	 */
+	const MASTER_PROCESS_NAME = 'php-monitor-master';
+
+	const MANAGER_PROCESS_NAME = 'php-monitor-manager';
+
+	const WORKER_PROCESS_NAME = 'php-monitor';
+
+	const INCLUDES = [
+		__DIR__.'/../Websocket/Config/web_socket.php',
+	];
+	/**
+	 * websocket连接状态
+	 */
 	const WEBSOCKET_STATUS = 3;
 	/**
 	 * $webserver
@@ -21,7 +37,7 @@ class Webserver {
 	 * $conf
 	 * @var array
 	 */
-	public $conf = [
+	static $conf = [
 		'reactor_num' => 1, //reactor thread num
 		'worker_num' => 1,    //worker process num
 		'max_request' => 1000,
@@ -58,11 +74,11 @@ class Webserver {
 
 	public function __construct(array $config=[]) {
 
-		$this->conf = array_merge($this->conf,$config);
+		self::$conf = array_merge(self::$conf,$config);
 
 		$this->webserver = new WebSockServer($this->host, $this->webPort);
 
-		$this->webserver->set($this->conf);
+		$this->webserver->set(self::$conf);
 	}
 
 	public function start() {
@@ -70,14 +86,14 @@ class Webserver {
 		 * start回调
 		 */
 		$this->webserver->on('Start',function(WebSockServer $server) {
-			self::setMasterProcessName();
+			self::setMasterProcessName(self::MASTER_PROCESS_NAME);
 		});
 
 		/**
 		 * managerstart回调
 		 */
 		$this->webserver->on('ManagerStart',function(WebSockServer $server) {
-			self::setManagerProcessName();
+			self::setManagerProcessName(self::MANAGER_PROCESS_NAME);
 		});
 
 		/**
@@ -85,9 +101,9 @@ class Webserver {
 		 */
 		$this->webserver->on('WorkerStart',function(WebSockServer $server, $worker_id){
 			// 加载文件
-			self::startInclude();
+			self::startInclude(self::INCLUDES);
 			// 重新设置进程名称
-			self::setWorkerProcessName($worker_id);
+			self::setWorkerProcessName(self::WORKER_PROCESS_NAME, $worker_id, self::$conf['worker_num']);
 			// 创建定时器
 			$this->timer_id = swoole_timer_tick(3000,[$this,"timer_callback"]);
 			
@@ -162,46 +178,6 @@ class Webserver {
 	 */
 	public function callback_function(swoole_process $worker) {
 	    $worker->exec('/bin/bash', array($this->monitorShellFile,$this->monitorPort));
-	}
-
-	/**
-	 * setWorkerProcessName设置worker进程名称
-	 */
-	public function setWorkerProcessName($worker_id) {
-		// 设置worker的进程
-		if($worker_id >= $this->conf['worker_num']) {
-            swoole_set_process_name("php-monitor-task_worker".$worker_id);
-        }else {
-            swoole_set_process_name("php-monitor-worker".$worker_id);
-        }
-
-	}
-
-	/**
-	 * setMasterProcessName设置主进程名称
-	 */
-	public function setMasterProcessName() {
-		swoole_set_process_name("php-monitor-master");
-	}
-
-	/**
-	 * setManagerProcessName设置管理进程名称
-	 */
-	public function setManagerProcessName() {
-		swoole_set_process_name("php-monitor-manager");
-	}
-
-	/**
-	 * startInclude设置需要在workerstart启动时加载的配置文件
-	 */
-	public static function startInclude() {
-		$includes = [
-			__DIR__."/Config/web_socket.php",
-		];
-
-		foreach($includes as $filePath) {
-			include_once $filePath;
-		}
 	}
 
 }

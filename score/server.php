@@ -1,7 +1,7 @@
 <?php
 $http = new swoole_http_server("0.0.0.0", 9501);
 $http->set([
-	'daemonize'=>0,
+	'daemonize'=>1,
     'pid_file' => __DIR__.'/server.pid',
 ]);
 
