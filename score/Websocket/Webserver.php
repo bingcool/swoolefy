@@ -129,6 +129,7 @@ class Webserver extends Base {
        		// $response->end("<h3>jjjjjjjjjjjjjjjjjjjjjj</h3>");
        		call_user_func_array(array(new App(), "dispatch"), array($request, $response));
        		
+       		
 		});
 
 		$this->webserver->on('message', function (WebSockServer $server, $frame) {
