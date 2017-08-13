@@ -39,7 +39,7 @@ class Webserver extends Base {
 	 */
 	static $conf = [
 		'reactor_num' => 1, //reactor thread num
-		'worker_num' => 1,    //worker process num
+		'worker_num' => 2,    //worker process num
 		'max_request' => 1000,
 		'daemonize' => 0
 	];
@@ -70,7 +70,7 @@ class Webserver extends Base {
 	 */
 	public $monitorPort = 9501;
 
-	static $test = 0;
+	public static $App = null;
 
 	public function __construct(array $config=[]) {
 
@@ -104,9 +104,12 @@ class Webserver extends Base {
 			self::startInclude(self::INCLUDES);
 			// 重新设置进程名称
 			self::setWorkerProcessName(self::WORKER_PROCESS_NAME, $worker_id, self::$conf['worker_num']);
-			// 创建定时器
-			$this->timer_id = swoole_timer_tick(3000,[$this,"timer_callback"]);
-			
+			// 创建定时器,只在第一个worker中创建，否则会有多个worker推送信息
+			if($worker_id == 0) {
+				$this->timer_id = swoole_timer_tick(3000,[$this,"timer_callback"]);
+			}
+
+			self::$App = swoole_pack(new App);
 
 		});
 
@@ -114,21 +117,18 @@ class Webserver extends Base {
 		 * 接受http请求
 		 */
 		$this->webserver->on('request',function(Request $request, Response $response) {
-			// google浏览器会自动发一次请求/favicon.ico
+			// google浏览器会自动发一次请求/favicon.ico,在这里过滤掉
 			if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
             		return $response->end();
        		}
-       		// // 请求调度
-       		// $process_test = new swoole_process(function() use($request, $response) {
-       		// 	call_user_func_array(array(new App(), "dispatch"), array($request, $response));
+       		//请求调度
+       		// $process_test = new swoole_process(function(swoole_process $process_worker) use($request, $response) {
+       		// 	call_user_func_array(array(new App, "dispatch"), array($request, $response));
        		// },false);
-
        		// $process_pid = $process_test->start();
-
        		// swoole_process::wait();
-       		// $response->end("<h3>jjjjjjjjjjjjjjjjjjjjjj</h3>");
-       		call_user_func_array(array(new App(), "dispatch"), array($request, $response));
        		
+       		swoole_unpack(self::$App)->dispatch($request, $response);
 		});
 
 		$this->webserver->on('message', function (WebSockServer $server, $frame) {
