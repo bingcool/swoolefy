@@ -127,7 +127,7 @@ class Webserver extends Base {
        		// },false);
        		// $process_pid = $process_test->start();
        		// swoole_process::wait();
-       		
+
 			swoole_unpack(self::$App)->dispatch($request, $response);
 
 		});
@@ -137,7 +137,7 @@ class Webserver extends Base {
 		});
 
 		$this->webserver->on('close', function (WebSockServer $server, $fd) {
-		    
+
 		});
 
 		$this->webserver->start();
@@ -148,7 +148,7 @@ class Webserver extends Base {
 	 */
 	public function timer_callback() {
 		$process_timer = new swoole_process([$this,'callback_function'], true);
-		$process_pid = $process_timer->start();	
+		$process_pid = $process_timer->start();
 		$pid = intval($process_timer->read());
 		swoole_process::wait();
 
@@ -158,7 +158,7 @@ class Webserver extends Base {
 				// 判断是否是websocket连接
 				if($fdInfo["websocket_status"] == self::WEBSOCKET_STATUS) {
 					$this->webserver->push($fd,json_encode(['code'=>"01",'msg'=>"swoole停止",'pid'=>'']));
-				}	
+				}
 			}
 			return;
 		}
@@ -169,8 +169,8 @@ class Webserver extends Base {
 			// 判断是否是websocket连接
 			if($fdInfo["websocket_status"] == self::WEBSOCKET_STATUS) {
 				$this->webserver->push($fd,json_encode(['code'=>'00','msg'=>"swoole正常",'pid'=>$pid]));
-			}	
-		}		
+			}
+		}
 	}
 
 	/**
@@ -184,5 +184,5 @@ class Webserver extends Base {
 }
 
 $websock = new Webserver();
-
 $websock->start();
+
