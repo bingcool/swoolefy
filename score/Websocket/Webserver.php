@@ -4,7 +4,7 @@ include_once "../../vendor/autoload.php";
 
 use Swoole\WebSocket\Server as WebSockServer;
 use Swoole\Process as swoole_process;
-use Swoolefy\Core\App;
+use Swoolefy\App\Application;
 use Swoolefy\Core\Base;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
@@ -108,9 +108,9 @@ class Webserver extends Base {
 			if($worker_id == 0) {
 				$this->timer_id = swoole_timer_tick(3000,[$this,"timer_callback"]);
 			}
-
-			self::$App = swoole_pack(new App);
-
+			// 
+			$config = Application::init();
+			self::$App = swoole_pack(Application::getInstance($config));
 		});
 
 		/**
@@ -129,7 +129,6 @@ class Webserver extends Base {
        		// swoole_process::wait();
 
 			swoole_unpack(self::$App)->dispatch($request, $response);
-
 		});
 
 		$this->webserver->on('message', function (WebSockServer $server, $frame) {
@@ -185,4 +184,3 @@ class Webserver extends Base {
 
 $websock = new Webserver();
 $websock->start();
-
