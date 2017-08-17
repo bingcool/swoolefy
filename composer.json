@@ -13,7 +13,8 @@
     "require": {
         "monolog/monolog": "1.23.0",
         "swiftmailer/swiftmailer":"6.0.1",
-        "smarty/smarty": "3.1.30"
+        "smarty/smarty": "3.1.30",
+        "symfony/var-dumper":"3.3.6"
     },
     "autoload":{
 	    "psr-4":{
