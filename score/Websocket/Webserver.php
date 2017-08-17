@@ -6,6 +6,7 @@ use Swoole\WebSocket\Server as WebSockServer;
 use Swoole\Process as swoole_process;
 use Swoolefy\App\Application;
 use Swoolefy\Core\Base;
+use Swoolefy\Core\Swfy;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 
@@ -108,7 +109,7 @@ class Webserver extends Base {
 			if($worker_id == 0) {
 				$this->timer_id = swoole_timer_tick(3000,[$this,"timer_callback"]);
 			}
-			// 
+			// 初始化整个应用对象
 			$config = Application::init();
 			self::$App = swoole_pack(Application::getInstance($config));
 		});
@@ -127,8 +128,8 @@ class Webserver extends Base {
        		// },false);
        		// $process_pid = $process_test->start();
        		// swoole_process::wait();
-
-			swoole_unpack(self::$App)->dispatch($request, $response);
+       		Swfy::$server = $this->webserver;
+			call_user_func_array([swoole_unpack(self::$App),"dispatch"],[$request, $response]);
 		});
 
 		$this->webserver->on('message', function (WebSockServer $server, $frame) {

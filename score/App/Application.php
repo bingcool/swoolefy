@@ -8,6 +8,7 @@ defined('SW_ENV') or define('SW_ENV', 'dev');
 class Application implements \Swoolefy\Core\AppInterface{
 	// 初始化配置
 	public static function init() {
+		require(__DIR__.'/../Core/Swfy.php');
 
 		require(__DIR__."/Config/defines.php");
 
