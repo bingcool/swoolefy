@@ -42,6 +42,19 @@ class Base {
 	}
 
 	/**
+	 * 设置worker进程的工作组，默认是root
+	 */
+	public static function setWorkerUserGroup($worker_user=null) {
+		if($worker_user) {
+			$userInfo = posix_getpwnam($worker_user);
+			if($userInfo) {
+				posix_setuid($userInfo['uid']);
+				posix_setgid($userInfo['gid']);
+			}	
+		}		
+	}
+
+	/**
 	 * restart
 	 */
 	public static function restart() {

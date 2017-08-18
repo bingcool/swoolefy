@@ -21,8 +21,11 @@ class Webserver extends Base {
 
 	const WORKER_PROCESS_NAME = 'php-monitor';
 
+	const WWW_USER = 'www';
+
 	const INCLUDES = [
-		__DIR__.'/../Websocket/Config/web_socket.php',
+		__DIR__.'/Config/config.php',
+
 	];
 	/**
 	 * websocket连接状态
@@ -105,10 +108,13 @@ class Webserver extends Base {
 			self::startInclude(self::INCLUDES);
 			// 重新设置进程名称
 			self::setWorkerProcessName(self::WORKER_PROCESS_NAME, $worker_id, self::$conf['worker_num']);
+			// 设置worker工作的进程组
+			self::setWorkerUserGroup(self::WWW_USER);
 			// 创建定时器,只在第一个worker中创建，否则会有多个worker推送信息
 			if($worker_id == 0) {
 				$this->timer_id = swoole_timer_tick(3000,[$this,"timer_callback"]);
 			}
+
 			// 初始化整个应用对象
 			$config = Application::init();
 			self::$App = swoole_pack(Application::getInstance($config));
@@ -129,7 +135,9 @@ class Webserver extends Base {
        		// $process_pid = $process_test->start();
        		// swoole_process::wait();
        		Swfy::$server = $this->webserver;
-			call_user_func_array([swoole_unpack(self::$App),"dispatch"],[$request, $response]);
+       		// var_dump(Swfy::$server);
+			swoole_unpack(self::$App)->dispatch($request, $response);
+			// call_user_func_array([swoole_unpack(self::$App), "dispatch"], [$request, $response]);
 		});
 
 		$this->webserver->on('message', function (WebSockServer $server, $frame) {

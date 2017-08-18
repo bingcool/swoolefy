@@ -2,7 +2,6 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
-
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use Swoolefy\Tool\ArrayHelper\ArrayForHelp;
@@ -17,6 +16,8 @@ class App {
 	public $response = null;
 
 	public static $config = null;
+
+	public static $num = 0;
 	/**
 	 * __construct
 	 * @param 
@@ -27,15 +28,14 @@ class App {
 		self::$config = ArrayForHelp::merge(
 			require(__DIR__."/../Websocket/Config/config.php"),$config
 		);
-
-		var_dump(Swfy::$server->setting);
-
 		self::$app = $this;
+		self::$num = (new Test)->setNum();
 	}
 
 	public function dispatch($request, $response) {
-		self::$response = $response;
-		self::$response = $response;
+		var_dump((new Test)->setNum());
+		// var_dump(Swfy::$server->setting['worker_num']);
+		$response->end('<h3>hello!</h3>');
 
 	}
 
