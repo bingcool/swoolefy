@@ -69,7 +69,7 @@ class Route {
 					$controller = $route_arr[1];
 					$action = $route_arr[2];
 				}
-			}	
+			}
 		}
 
 		if($module) {

@@ -4,6 +4,23 @@ namespace Swoolefy\Core;
 class Base {
 
 	/**
+	 * $webserver
+	 * @var null
+	 */
+	public $webserver = null;
+
+	/**
+	 * $conf
+	 * @var array
+	 */
+	public static $conf = [
+		'reactor_num' => 1, //reactor thread num
+		'worker_num' => 2,    //worker process num
+		'max_request' => 1000,
+		'daemonize' => 0
+	];
+
+	/**
 	 * [__construct description]
 	 * @Author   huangzengbing
 	 * @DateTime 2017-08-25
@@ -11,6 +28,7 @@ class Base {
 	 */
 	public function __construct() {
 		self::checkVersion();
+		self::$conf['max_request'] =  500;
 	}
 	/**
 	 * setMasterProcessName设置主进程名称
@@ -59,8 +77,8 @@ class Base {
 			if($userInfo) {
 				posix_setuid($userInfo['uid']);
 				posix_setgid($userInfo['gid']);
-			}	
-		}		
+			}
+		}
 	}
 
 	/**
@@ -68,7 +86,7 @@ class Base {
 	 */
 	public static function checkVersion() {
 		if(version_compare(phpversion(), '5.6.0', '<')) {
-			throw new \Exception("php version must be > 5.6.0,we suggest use php7.0+ version", 1);	
+			throw new \Exception("php version must be > 5.6.0,we suggest use php7.0+ version", 1);
 		}
 
 		if(!extension_loaded('swoole')) {
@@ -92,7 +110,7 @@ class Base {
 	 * restart
 	 */
 	public static function restart() {
-		
+
 	}
 
 }

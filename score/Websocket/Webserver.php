@@ -75,8 +75,16 @@ class Webserver extends Base {
 	 */
 	public $monitorPort = 9501;
 
+	/**
+	 * $App
+	 * @var null
+	 */
 	public static $App = null;
 
+	/**
+	 * __construct
+	 * @param array $config
+	 */
 	public function __construct(array $config=[]) {
 		parent::__construct();
 
