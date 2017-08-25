@@ -4,11 +4,12 @@ include_once "../../vendor/autoload.php";
 
 use Swoole\WebSocket\Server as WebSockServer;
 use Swoole\Process as swoole_process;
-use Swoolefy\App\Application;
 use Swoolefy\Core\Base;
 use Swoolefy\Core\Swfy;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
+
+use Swoolefy\App\Application;
 
 class Webserver extends Base {
 
@@ -77,6 +78,7 @@ class Webserver extends Base {
 	public static $App = null;
 
 	public function __construct(array $config=[]) {
+		parent::__construct();
 
 		self::$conf = array_merge(self::$conf,$config);
 
