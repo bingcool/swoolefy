@@ -10,7 +10,7 @@ interface AppInterface {
 
 	/**
 	 * getInstance
-	 * @param    array         $config
+	 * @param    $config
 	 * @return   obj
 	 */
 	static public function getInstance(array $config);

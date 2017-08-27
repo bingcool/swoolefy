@@ -154,7 +154,7 @@ class HttpRoute extends Dispatch {
 	}
 
 	/**
-	 * getMethod 
+	 * getMethod
 	 * @return string
 	 */
 	public function getMethod() {
