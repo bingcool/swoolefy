@@ -52,7 +52,7 @@ class Application {
 	 * @return boolean
 	 */
 	public function isAjax() {
-		return (isset($request->header['x_requested_with']) && strtolower($request->header['x_requested_with']) === 'xmlhttprequest') ? true : false;
+		return (isset(self::$app->request->header['x_requested_with']) && strtolower(self::$app->request->header['x_requested_with']) === 'xmlhttprequest') ? true : false;
 	}
 
 	/**
