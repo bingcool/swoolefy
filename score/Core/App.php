@@ -6,7 +6,7 @@ use Swoolefy\Core\Application;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use Swoolefy\Tool\ArrayHelper\ArrayForHelp;
-use Swoolefy\Core\Route;
+use Swoolefy\Core\HttpRoute;
 
 class App {
 
@@ -28,12 +28,20 @@ class App {
 		
 	}
 
+	public function init() {
+		if(!isset($_SESSION)) {
+			session_start();
+		}
+	}
+
 	public function dispatch($request, $response) {
+		$this->init();
+
 		$this->request = $request;
 		$this->response = $response;
 		Application::$app = $this;
 		
-		$route = new Route();
+		$route = new HttpRoute();
 		$route->invoke();
 	}
 

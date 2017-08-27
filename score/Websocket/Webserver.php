@@ -42,7 +42,7 @@ class Webserver extends Base {
 	 * $conf
 	 * @var array
 	 */
-	static $conf = [
+	public static $conf = [
 		'reactor_num' => 1, //reactor thread num
 		'worker_num' => 2,    //worker process num
 		'max_request' => 1000,
@@ -90,7 +90,7 @@ class Webserver extends Base {
 
 		self::$conf = array_merge(self::$conf,$config);
 
-		$this->webserver = new WebSockServer($this->host, $this->webPort);
+		self::$server = $this->webserver = new WebSockServer($this->host, $this->webPort);
 
 		$this->webserver->set(self::$conf);
 	}
@@ -102,7 +102,6 @@ class Webserver extends Base {
 		$this->webserver->on('Start',function(WebSockServer $server) {
 			self::setMasterProcessName(self::MASTER_PROCESS_NAME);
 		});
-
 		/**
 		 * managerstart回调
 		 */
@@ -138,14 +137,7 @@ class Webserver extends Base {
 			if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
             		return $response->end();
        		}
-       		//请求调度
-       		// $process_test = new swoole_process(function(swoole_process $process_worker) use($request, $response) {
-       		// 	call_user_func_array(array(new App, "dispatch"), array($request, $response));
-       		// },false);
-       		// $process_pid = $process_test->start();
-       		// swoole_process::wait();
        		Swfy::$server = $this->webserver;
-       		// var_dump(Swfy::$server);
 			swoole_unpack(self::$App)->dispatch($request, $response);
 			// call_user_func_array([swoole_unpack(self::$App), "dispatch"], [$request, $response]);
 		});

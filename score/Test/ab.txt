@@ -1,1 +1,126 @@
 ab -n 100 -c 10 http://192.168.44.128:9502/
+curl -d "param1=value1&param2=value2" "http://192.168.80.128:9502/Test/test?kk=yyyy&&name=hhhhhh"
+
+curl -d "param1=value1&param2=value2" "http://192.168.80.128/test.php?kk=yyyy&&name=hhhhhh"
+
+object(swoole_http_request)#14 (5) {
+  ["fd"]=>
+  int(1)
+  ["header"]=>
+  array(5) {
+    ["user-agent"]=>
+    string(11) "curl/7.29.0"
+    ["host"]=>
+    string(19) "192.168.80.128:9502"
+    ["accept"]=>
+    string(3) "*/*"
+    ["content-length"]=>
+    string(2) "27"
+    ["content-type"]=>
+    string(33) "application/x-www-form-urlencoded"
+  }
+  ["server"]=>
+  array(11) {
+    ["query_string"]=>
+    string(20) "kk=yyyy&&name=hhhhhh"
+    ["request_method"]=>
+    string(4) "POST"
+    ["request_uri"]=>
+    string(10) "/Test/test"
+    ["path_info"]=>
+    string(10) "/Test/test"
+    ["request_time"]=>
+    int(1503801233)
+    ["request_time_float"]=>
+    float(1503801233.473)
+    ["server_port"]=>
+    int(9502)
+    ["remote_port"]=>
+    int(57690)
+    ["remote_addr"]=>
+    string(14) "192.168.80.128"
+    ["server_protocol"]=>
+    string(8) "HTTP/1.1"
+    ["server_software"]=>
+    string(18) "swoole-http-server"
+  }
+  ["get"]=>
+  array(2) {
+    ["kk"]=>
+    string(4) "yyyy"
+    ["name"]=>
+    string(6) "hhhhhh"
+  }
+  ["post"]=>
+  array(2) {
+    ["param1"]=>
+    string(6) "value1"
+    ["param2"]=>
+    string(6) "value2"
+  }
+}
+
+["USER"]=>
+  string(3) "www"
+  ["HOME"]=>
+  string(9) "/home/www"
+  ["HTTP_CONTENT_TYPE"]=>
+  string(33) "application/x-www-form-urlencoded"
+  ["HTTP_CONTENT_LENGTH"]=>
+  string(2) "27"
+  ["HTTP_ACCEPT"]=>
+  string(3) "*/*"
+  ["HTTP_HOST"]=>
+  string(14) "192.168.80.128"
+  ["HTTP_USER_AGENT"]=>
+  string(11) "curl/7.29.0"
+  ["PHP_ADMIN_VALUE"]=>
+  string(48) "open_basedir=/home/wwwroot/default/:/tmp/:/proc/"
+  ["REDIRECT_STATUS"]=>
+  string(3) "200"
+  ["SERVER_NAME"]=>
+  string(1) "_"
+  ["SERVER_PORT"]=>
+  string(2) "80"
+  ["SERVER_ADDR"]=>
+  string(14) "192.168.80.128"
+  ["REMOTE_PORT"]=>
+  string(5) "36468"
+  ["REMOTE_ADDR"]=>
+  string(14) "192.168.80.128"
+  ["SERVER_SOFTWARE"]=>
+  string(12) "nginx/1.12.1"
+  ["GATEWAY_INTERFACE"]=>
+  string(7) "CGI/1.1"
+  ["REQUEST_SCHEME"]=>
+  string(4) "http"
+  ["SERVER_PROTOCOL"]=>
+  string(8) "HTTP/1.1"
+  ["DOCUMENT_ROOT"]=>
+  string(21) "/home/wwwroot/default"
+  ["DOCUMENT_URI"]=>
+  string(9) "/test.php"
+  ["REQUEST_URI"]=>
+  string(30) "/test.php?kk=yyyy&&name=hhhhhh"
+  ["SCRIPT_NAME"]=>
+  string(9) "/test.php"
+  ["CONTENT_LENGTH"]=>
+  string(2) "27"
+  ["CONTENT_TYPE"]=>
+  string(33) "application/x-www-form-urlencoded"
+  ["REQUEST_METHOD"]=>
+  string(4) "POST"
+  ["QUERY_STRING"]=>
+  string(20) "kk=yyyy&&name=hhhhhh"
+  ["SCRIPT_FILENAME"]=>
+  string(30) "/home/wwwroot/default/test.php"
+  ["FCGI_ROLE"]=>
+  string(9) "RESPONDER"
+  ["PHP_SELF"]=>
+  string(9) "/test.php"
+  ["REQUEST_TIME_FLOAT"]=>
+  float(1503801897.5946)
+  ["REQUEST_TIME"]=>
+  int(1503801897)
+}
+

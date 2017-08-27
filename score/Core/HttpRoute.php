@@ -3,8 +3,9 @@ namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
+use Swoolefy\Core\Dispatch;
 
-class Route {
+class HttpRoute extends Dispatch {
 	/**
 	 * $request请求对象
 	 * @var null
@@ -33,6 +34,8 @@ class Route {
 	 * __construct
 	 */
 	public function __construct() {
+		// 执行父类
+		parent::__construct();
 		// 获取请求对象
 		$this->request = Application::$app->request;
 		$this->require_uri = $this->request->server['path_info'];
@@ -71,7 +74,8 @@ class Route {
 				}
 			}
 		}
-
+		var_dump($_REQUEST);
+		
 		if($module) {
 			$this->isHasMethod($module,$controller,$action);
 		}else {
@@ -82,23 +86,44 @@ class Route {
 	}
 
 	public function getRequestUri() {
+		return $this->request->server['path_info'];
+	}
 
+	public function getRoute() {
+		$require_uri = $this->getRequestUri();
+		$route_uri = substr($this->require_uri,1);
+		$route_arr = explode('/',$route_uri);
+		if(count($route_arr) == 1){
+			$route_arr[1] = 'index';
+		}
+		return $route_arr;
 	}
 
 	public function getModel() {
-
+		$route_arr = $this->getRoute();
+		if(count($route_arr) === 3) {
+			return $route_arr[0];
+		}else {
+			return null;
+		}
 	}
 
 	public function getController() {
-
+		$route_arr = $this->getRoute();
+		if(count($route_arr) === 3) {
+			return $route_arr[1];
+		}else {
+			return $route_arr[0];
+		}
 	}
 
 	public function getAction() {
-
+		$route_arr = $this->getRoute();
+		return $route_arr[2];
 	}
 
 	public function getQuery() {
-
+		return $this->request->get;
 	}
 
 	public function isHasMethod($module=null,$controller=null,$action=null) {
@@ -145,7 +170,7 @@ class Route {
 			if($method->isPublic() && !$method->isStatic()) {
 				try{
            	 		$method->invoke($controllerInstance);
-		        }catch (\ReflectionException $e) { 
+		        }catch (\ReflectionException $e) {
 		            // 方法调用发生异常后 引导到__call方法处理
 		            $method = new \ReflectionMethod($controllerInstance,'__call');
 		            $method->invokeArgs($controllerInstance,array($action,''));
@@ -168,8 +193,6 @@ class Route {
 				$this->response->end($tpl404);
 			}
 		}
-		
-		
 	}
 
 }

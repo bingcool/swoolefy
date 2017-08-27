@@ -4,10 +4,10 @@ namespace Swoolefy\Core;
 class Base {
 
 	/**
-	 * $webserver
+	 * $server
 	 * @var null
 	 */
-	public $webserver = null;
+	public static $server = null;
 
 	/**
 	 * $conf
@@ -21,14 +21,10 @@ class Base {
 	];
 
 	/**
-	 * [__construct description]
-	 * @Author   huangzengbing
-	 * @DateTime 2017-08-25
-	 * @param    {String}
+	 * __construct
 	 */
 	public function __construct() {
 		self::checkVersion();
-		self::$conf['max_request'] =  500;
 	}
 	/**
 	 * setMasterProcessName设置主进程名称
@@ -62,7 +58,6 @@ class Base {
 	 * startInclude设置需要在workerstart启动时加载的配置文件
 	 */
 	public static function startInclude($includes) {
-
 		foreach($includes as $filePath) {
 			include_once $filePath;
 		}
@@ -72,11 +67,13 @@ class Base {
 	 * 设置worker进程的工作组，默认是root
 	 */
 	public static function setWorkerUserGroup($worker_user=null) {
-		if($worker_user) {
-			$userInfo = posix_getpwnam($worker_user);
-			if($userInfo) {
-				posix_setuid($userInfo['uid']);
-				posix_setgid($userInfo['gid']);
+		if(!isset(static::$conf['user'])) {
+			if($worker_user) {
+				$userInfo = posix_getpwnam($worker_user);
+				if($userInfo) {
+					posix_setuid($userInfo['uid']);
+					posix_setgid($userInfo['gid']);
+				}
 			}
 		}
 	}
@@ -110,7 +107,7 @@ class Base {
 	 * restart
 	 */
 	public static function restart() {
-
+		var_dump(self::$server);
 	}
 
 }
