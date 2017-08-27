@@ -2,6 +2,7 @@
 <html>
 <head>
 	<title>测试swoole的开启</title>
+	<script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
 </head>
 <body>
 <div>
@@ -10,6 +11,7 @@
 <div id="text">
 	
 </div>
+<button id="btn">点击ajax</button>
 <script type="text/javascript">
 	ws = new WebSocket("ws://192.168.44.128:9502");
 	ws.onopen = function(){  
@@ -32,6 +34,17 @@
 		ws.close();
 	};
 
+</script>
+<script type="text/javascript">
+	$("#btn").click(function() {
+		$.ajax({
+			url:'/Test/testajax?name=bingcool',
+			type:'get',
+			success:function($data) {
+				console.log(data);
+			}
+		});
+	});
 </script>
 </body>
 </html>

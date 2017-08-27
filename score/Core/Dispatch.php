@@ -23,7 +23,6 @@ class Dispatch {
 		// 设置在最后执行
 		self::resetRequest($request);
 	}
-
 	/**
 	 * resetServer重置SERVER超全局数组
 	 * @param  $request 请求对象

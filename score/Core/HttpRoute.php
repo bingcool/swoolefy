@@ -154,6 +154,23 @@ class HttpRoute extends Dispatch {
 	}
 
 	/**
+	 * getMethod 
+	 * @return string
+	 */
+	public function getMethod() {
+		// 获取请求的方法
+        if($method = $this->request->server['request_method']) {
+        	switch($method) {
+        		case 'GET':return 'get';break;
+        		case 'POST':return 'post';break;
+        		case 'PUT':return 'put';break;
+        		case 'DELETE':return 'delete';break;
+        	}
+        }
+        return false;
+	}
+
+	/**
 	 * isHasMethod
 	 * @param  $module
 	 * @param  $controller
