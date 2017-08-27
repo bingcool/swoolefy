@@ -68,4 +68,44 @@ class App {
 		$route->dispatch();
 	}
 
+	/**
+	 * isGet
+	 * @return boolean
+	 */
+	public function isGet() {
+		return ($this->request->server['request_method'] === 'GET') ? true :false;
+	}
+
+	/**
+	 * isPost
+	 * @return boolean
+	 */
+	public function isPost() {
+		return ($this->request->server['request_method'] === 'POST') ? true :false;
+	}
+
+	/**
+	 * isPut
+	 * @return boolean
+	 */
+	public function isPut() {
+		return ($this->request->server['request_method'] === 'PUT') ? true :false;
+	}
+
+	/**
+	 * isDelete
+	 * @return boolean
+	 */
+	public function isDelete() {
+		return ($this->request->server['request_method'] === 'DELETE') ? true :false;
+	}
+
+	/**
+	 * isAjax
+	 * @return boolean
+	 */
+	public function isAjax() {
+		return (isset($this->request->header['x_requested_with']) && strtolower($this->request->header['x_requested_with']) === 'xmlhttprequest') ? true : false;
+	}
+
 }
