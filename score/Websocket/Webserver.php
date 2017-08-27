@@ -138,7 +138,7 @@ class Webserver extends Base {
             		return $response->end();
        		}
        		Swfy::$server = $this->webserver;
-			swoole_unpack(self::$App)->dispatch($request, $response);
+			swoole_unpack(self::$App)->run($request, $response);
 			// call_user_func_array([swoole_unpack(self::$App), "dispatch"], [$request, $response]);
 		});
 

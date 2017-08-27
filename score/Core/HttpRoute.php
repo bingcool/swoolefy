@@ -44,7 +44,11 @@ class HttpRoute extends Dispatch {
 		$this->config = Application::$app->config; 
 	}
 
-	public function invoke() {
+	/**
+	 * dispatch
+	 * @return [type] [description]
+	 */
+	public function dispatch() {
 		// 采用默认路由
 		if($this->require_uri === '/' || $this->require_uri === '//') {
 			$this->require_uri = '/'.$this->config['default_route'];
@@ -74,7 +78,6 @@ class HttpRoute extends Dispatch {
 				}
 			}
 		}
-		var_dump($_REQUEST);
 		
 		if($module) {
 			$this->isHasMethod($module,$controller,$action);
@@ -85,10 +88,18 @@ class HttpRoute extends Dispatch {
 		@$this->response->end();
 	}
 
+	/**
+	 * getRequestUri
+	 * @return string
+	 */
 	public function getRequestUri() {
 		return $this->request->server['path_info'];
 	}
 
+	/**
+	 * getRoute
+	 * @return array
+	 */
 	public function getRoute() {
 		$require_uri = $this->getRequestUri();
 		$route_uri = substr($this->require_uri,1);
@@ -99,6 +110,10 @@ class HttpRoute extends Dispatch {
 		return $route_arr;
 	}
 
+	/**
+	 * getModel 
+	 * @return string|null
+	 */
 	public function getModel() {
 		$route_arr = $this->getRoute();
 		if(count($route_arr) === 3) {
@@ -108,6 +123,10 @@ class HttpRoute extends Dispatch {
 		}
 	}
 
+	/**
+	 * getController
+	 * @return string
+	 */
 	public function getController() {
 		$route_arr = $this->getRoute();
 		if(count($route_arr) === 3) {
@@ -117,15 +136,30 @@ class HttpRoute extends Dispatch {
 		}
 	}
 
+	/**
+	 * getAction
+	 * @return string
+	 */
 	public function getAction() {
 		$route_arr = $this->getRoute();
 		return $route_arr[2];
 	}
 
+	/**
+	 * getQuery
+	 * @return string
+	 */
 	public function getQuery() {
 		return $this->request->get;
 	}
 
+	/**
+	 * isHasMethod
+	 * @param  $module
+	 * @param  $controller
+	 * @param  $action
+	 * @return boolean
+	 */
 	public function isHasMethod($module=null,$controller=null,$action=null) {
 		// 判断是否存在这个类文件
 		if($module) {

@@ -9,15 +9,26 @@ use Swoolefy\Tool\ArrayHelper\ArrayForHelp;
 use Swoolefy\Core\HttpRoute;
 
 class App {
-
+	/**
+	 * $request 当前请求的对象
+	 * @var null
+	 */
 	public $request = null;
-
+	
+	/**
+	 * $response 当前请求的响应对象
+	 * @var null
+	 */
 	public $response = null;
 
+	/**
+	 * $config 当前应用层的配置 
+	 * @var null
+	 */
 	public $config = null;
 	/**
 	 * __construct
-	 * @param 
+	 * @param $config 应用层配置
 	 */
 	public function __construct(array $config=[]) {
 		include(__DIR__."/../Websocket/Config/defines.php");
@@ -25,24 +36,36 @@ class App {
 		$this->config = ArrayForHelp::merge(
 			require(__DIR__."/../Websocket/Config/config.php"),$config
 		);
-		
 	}
 
+	/**
+	 * init 初始化函数
+	 * @return void
+	 */
 	public function init() {
-		if(!isset($_SESSION)) {
-			session_start();
+		// 初始化启动session
+		if(!isset($this->config['session_start']) || (isset($this->config['session_start']) && $this->config['session_start'] === true)) {
+			if(!isset($_SESSION)) {
+				session_start();
+			}
 		}
 	}
 
-	public function dispatch($request, $response) {
+	/**
+	 * run
+	 * @param  $request
+	 * @param  $response
+	 * @return void
+	 */
+	public function run($request, $response) {
 		$this->init();
 
 		$this->request = $request;
 		$this->response = $response;
 		Application::$app = $this;
-		
+
 		$route = new HttpRoute();
-		$route->invoke();
+		$route->dispatch();
 	}
 
 }
