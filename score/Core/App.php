@@ -62,8 +62,8 @@ class App {
 
 		$this->request = $request;
 		$this->response = $response;
-		Application::$app = $this;
 
+		Application::$app = $this;
 		$route = new HttpRoute();
 		$route->dispatch();
 	}
@@ -73,7 +73,7 @@ class App {
 	 * @return boolean
 	 */
 	public function isGet() {
-		return ($this->request->server['request_method'] === 'GET') ? true :false;
+		return ($this->request->server['request_method'] == 'GET') ? true :false;
 	}
 
 	/**
@@ -81,7 +81,7 @@ class App {
 	 * @return boolean
 	 */
 	public function isPost() {
-		return ($this->request->server['request_method'] === 'POST') ? true :false;
+		return ($this->request->server['request_method'] == 'POST') ? true :false;
 	}
 
 	/**
@@ -89,7 +89,7 @@ class App {
 	 * @return boolean
 	 */
 	public function isPut() {
-		return ($this->request->server['request_method'] === 'PUT') ? true :false;
+		return ($this->request->server['request_method'] == 'PUT') ? true :false;
 	}
 
 	/**
@@ -97,7 +97,7 @@ class App {
 	 * @return boolean
 	 */
 	public function isDelete() {
-		return ($this->request->server['request_method'] === 'DELETE') ? true :false;
+		return ($this->request->server['request_method'] == 'DELETE') ? true :false;
 	}
 
 	/**
@@ -105,7 +105,8 @@ class App {
 	 * @return boolean
 	 */
 	public function isAjax() {
-		return (isset($this->request->header['x_requested_with']) && strtolower($this->request->header['x_requested_with']) === 'xmlhttprequest') ? true : false;
+		dump($this->request->header['x-requested-with']);
+		return (isset($this->request->header['x-requested-with']) && strtolower($this->request->header['x-requested-with']) == 'xmlhttprequest') ? true : false;
 	}
 
 }

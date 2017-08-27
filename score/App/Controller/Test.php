@@ -23,6 +23,8 @@ class Test {
 
 	public function testajax() {
 		$res = ['name'=>'bingcool','age'=>26,'sex'=>1,'info'=>['cloth'=>'red','phone'=>'12222']];
-		Application::$app->response->end(json_encode($res));
+		if(Application::$app->isAjax()) {
+			Application::$app->response->end(json_encode($res));
+		}
 	}
 }
