@@ -12,13 +12,11 @@ class Application {
 	 * __construct
 	 */
 	public function __construct() {
-		self::$app = null;
 	}
 
 	/**
 	 * __destruct
 	 */
 	public function __destruct() {
-		self::$app = null;
 	}
 }

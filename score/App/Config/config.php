@@ -4,5 +4,5 @@ return [
 	'default_route' => 'site/index',
 	'default_namespace' => 'App',
 	'not_found_template' => '404.html', //默认是在View文件夹下面
-	// 'session_start' => true,
+	// 'catch_all_info' => ['code'=>'01','msg'=>"正在维护中"],
 ];

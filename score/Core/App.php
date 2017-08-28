@@ -59,13 +59,17 @@ class App {
 	 */
 	public function run($request, $response) {
 		$this->init();
-
+		// 赋值对象
 		$this->request = $request;
 		$this->response = $response;
 
-		Application::$app = $this;
-		$route = new HttpRoute();
-		$route->dispatch();
+		// 判断是否是在维护模式
+		if(!$this->catch()) {
+			// 执行应用
+			Application::$app = $this;
+			$route = new HttpRoute();
+			$route->dispatch();
+		}
 	}
 
 	/**
@@ -105,8 +109,36 @@ class App {
 	 * @return boolean
 	 */
 	public function isAjax() {
-		dump($this->request->header['x-requested-with']);
 		return (isset($this->request->header['x-requested-with']) && strtolower($this->request->header['x-requested-with']) == 'xmlhttprequest') ? true : false;
+	}
+
+	/**
+	 * getMethod 
+	 * @return   string
+	 */
+	public function getMethod() {
+		return $this->request->server['request_method'];
+	}
+
+	/**
+	 * catch 
+	 * @return void
+	 */
+	public function catch() {
+		// 获取配置信息
+		if(isset($this->config['catch_all_info']) && $info = $this->config['catch_all_info']) {
+			if(is_array($info)) {
+				$this->response->header('Content-Type','application/json; charset=UTF-8');
+				$this->response->end(json_encode($info));
+			}else {
+				$this->response->header('Content-Type','text/html; charset=UTF-8');
+				$this->response->end($info);
+			}
+
+			return true;
+		}
+
+		return false;
 	}
 
 }

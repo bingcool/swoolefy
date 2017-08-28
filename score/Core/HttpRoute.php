@@ -50,7 +50,7 @@ class HttpRoute extends Dispatch {
 	 */
 	public function dispatch() {
 		// 采用默认路由
-		if($this->require_uri === '/' || $this->require_uri === '//') {
+		if($this->require_uri == '/' || $this->require_uri == '//') {
 			$this->require_uri = '/'.$this->config['default_route'];
 		}
 		// pathinfo的模式
