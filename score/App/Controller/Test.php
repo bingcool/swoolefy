@@ -12,13 +12,11 @@ class Test {
 		$request = Application::$app->request;
 		$response = Application::$app->response;
 
-		$smarty = new \Smarty;
+		$view = new \Swoolefy\Core\View;
 
-		$smarty->setTemplateDir(TEMPLATE_PATH);
-		$smarty->assign('name','NKLC');
-		$tpl = $smarty->fetch('test.html');
-
-		$response->end($tpl);
+		$view->assign('name','NKLC');
+		$view->display('test.html');
+		// $view->returnJson(['name'=>'bing','age'=>1222]);
 	}
 
 	public function testajax() {

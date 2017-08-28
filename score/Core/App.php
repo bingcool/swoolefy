@@ -131,6 +131,7 @@ class App {
 				$this->response->header('Content-Type','application/json; charset=UTF-8');
 				$this->response->end(json_encode($info));
 			}else {
+				$this->response->gzip(1);
 				$this->response->header('Content-Type','text/html; charset=UTF-8');
 				$this->response->end($info);
 			}
@@ -139,6 +140,71 @@ class App {
 		}
 
 		return false;
+	}
+
+	/**
+	 * getRequestUri
+	 * @return string
+	 */
+	public function getRequestUri() {
+		return $this->request->server['path_info'];
+	}
+
+	/**
+	 * getRoute
+	 * @return array
+	 */
+	public function getRoute() {
+		$require_uri = $this->getRequestUri();
+		$route_uri = substr($require_uri,1);
+		$route_arr = explode('/',$route_uri);
+		if(count($route_arr) == 1){
+			$route_arr[1] = 'index';
+		}
+		return $route_arr;
+	}
+
+	/**
+	 * getModel 
+	 * @return string|null
+	 */
+	public function getModel() {
+		$route_arr = $this->getRoute();
+		if(count($route_arr) == 3) {
+			return $route_arr[0];
+		}else {
+			return null;
+		}
+	}
+
+	/**
+	 * getController
+	 * @return string
+	 */
+	public function getController() {
+		$route_arr = $this->getRoute();
+		if(count($route_arr) == 3) {
+			return $route_arr[1];
+		}else {
+			return $route_arr[0];
+		}
+	}
+
+	/**
+	 * getAction
+	 * @return string
+	 */
+	public function getAction() {
+		$route_arr = $this->getRoute();
+		return array_pop($route_arr);
+	}
+
+	/**
+	 * getQuery
+	 * @return string
+	 */
+	public function getQuery() {
+		return $this->request->get;
 	}
 
 }
