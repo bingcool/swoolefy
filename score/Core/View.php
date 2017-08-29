@@ -65,7 +65,7 @@ class View {
 		}else {
 			$tpl = $template_file;
 		}
-
+		Application::$app->response->gzip(1);
 		Application::$app->response->header('Content-Type',$this->content_type.'; charset=UTF-8');
 		Application::$app->response->end($tpl);
 	}
@@ -91,7 +91,7 @@ class View {
 				case 'json':$json_string = json_encode($data);break;
 				default:$json_string = json_encode($data);break;
 			}
-
+			Application::$app->response->gzip(1);
 			Application::$app->response->end($json_string);
 		}
 	}
