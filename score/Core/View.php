@@ -5,16 +5,26 @@ use Smarty;
 use Swoolefy\Core\Application;
 
 class View {
-
+	/**
+	 * $view
+	 * @var null
+	 */
 	public $view = null;
+
+	/**
+	 * $content_type
+	 * @var null
+	 */
+	public $content_type = null;
 	/**
 	 * __construct
 	 */
-	public function __construct() {
+	public function __construct($contentType='text/html') {
 		$smarty = new Smarty;
 		$smarty->setCompileDir(SMARTY_COMPILE_DIR);
 		$smarty->setCacheDir(SMARTY_CACHE_DIR);
 
+		$this->content_type = $contentType;
 		$this->view = $smarty;
 	}
 
@@ -55,7 +65,8 @@ class View {
 		}else {
 			$tpl = $template_file;
 		}
-		
+
+		Application::$app->response->header('Content-Type',$this->content_type.'; charset=UTF-8');
 		Application::$app->response->end($tpl);
 	}
 

@@ -9,7 +9,6 @@ class site extends BController {
 	 * @return   [type]        [description]
 	 */
 	public function index() {
-
 		$this->response->end('<h3>welcome to use swoolefy!</h3>');
 	}
 }
