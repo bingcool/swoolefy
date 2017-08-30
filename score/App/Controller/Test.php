@@ -14,7 +14,8 @@ class Test extends BController {
 	public function test() {
 		// $this->assign('name','NKLC');
 		// $this->display('test.html');
-		$this->returnJson(['name'=>'bing','age'=>1222]);
+		// var_dump('hello');
+		$this->returnJson(['name'=>'bing','age'=>5656]);
 	}
 
 	public function testajax() {

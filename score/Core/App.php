@@ -26,16 +26,18 @@ class App {
 	 * @var null
 	 */
 	public $config = null;
+
+	/**
+	 * $route
+	 * @var null
+	 */
+	public  $route = null;
 	/**
 	 * __construct
 	 * @param $config 应用层配置
 	 */
 	public function __construct(array $config=[]) {
-		include(__DIR__."/../Websocket/Config/defines.php");
-
-		$this->config = ArrayForHelp::merge(
-			require(__DIR__."/../Websocket/Config/config.php"),$config
-		);
+		$this->config = $config;
 	}
 
 	/**

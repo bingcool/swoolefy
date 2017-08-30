@@ -28,6 +28,20 @@ class BController {
 		$this->config = Application::$app->config;
 	}
 
+	/**
+	 * __call
+	 * @return   [type]
+	 */
+	public function __call($action,$args = []) {
+		if(SW_DEBUG) {
+			$this->response->end('call method '.$action.' is not exist!');
+		}else {
+			$tpl404 = file_get_contents(TEMPLATE_PATH.DIRECTORY_SEPARATOR.$this->config['not_found_template']);
+			$this->response->end($tpl404);
+		}
+		
+	}
+
 	//使用trait的复用特性
 	use \Swoolefy\Core\AppTrait;
 }

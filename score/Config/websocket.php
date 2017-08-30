@@ -4,5 +4,3 @@ return [
 	'default_route' => 'site/index',
 	'default_namespace' => 'App',
 ];
-
-

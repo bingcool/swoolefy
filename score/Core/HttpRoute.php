@@ -49,12 +49,13 @@ class HttpRoute extends Dispatch {
 	 * @return [type] [description]
 	 */
 	public function dispatch() {
-		// 采用默认路由
-		if($this->require_uri == '/' || $this->require_uri == '//') {
-			$this->require_uri = '/'.$this->config['default_route'];
-		}
+		
 		// pathinfo的模式
-		if($this->config['route_module'] == 1) {
+		if($this->config['route_model'] == 1) {
+			// 采用默认路由
+			if($this->require_uri == '/' || $this->require_uri == '//') {
+				$this->require_uri = '/'.$this->config['default_route'];
+			}
 			// 去掉开头的'/'
 			$route_uri = substr($this->require_uri,1);
 			if($route_uri) {
@@ -77,25 +78,38 @@ class HttpRoute extends Dispatch {
 					$action = $route_arr[2];
 				}
 			}
-		}
-		
-		if($module) {
-			$this->isHasMethod($module,$controller,$action);
-		}else {
-			$this->isHasMethod($module=null,$controller,$action);
+		}else if($this->config['route_model'] == 2) {
+			$module = (isset($this->request->get['m']) && !$this->request->get['m']) ? $this->request->get['m'] : null;
+			$controller = $this->request->get['c'];
+			$action = isset($this->request->get['t']) ? $this->request->get['t'] : 'index';
+			if($module) {
+				$this->require_uri = '/'.$module.'/'.$controller.'/'.$action;
+			}else {
+				$this->require_uri = '/'.$controller.'/'.$action;
+			}
 		}
 
+		// 重新设置一个route
+		$this->request->server['route'] = $this->require_uri;
+		
+		if($module) {
+			$this->invoke($module,$controller,$action);
+		}else {
+			$this->invoke($module=null,$controller,$action);
+		}
+
+		// 设置一个异常结束
 		@$this->response->end();
 	}
 
 	/**
-	 * isHasMethod
+	 * invoke
 	 * @param  $module
 	 * @param  $controller
 	 * @param  $action
 	 * @return boolean
 	 */
-	public function isHasMethod($module=null,$controller=null,$action=null) {
+	public function invoke($module=null,$controller=null,$action=null) {
 		// 判断是否存在这个类文件
 		if($module) {
 			$filePath = APP_PATH.DIRECTORY_SEPARATOR.'Module'.DIRECTORY_SEPARATOR.$module.DIRECTORY_SEPARATOR.'Controller'.DIRECTORY_SEPARATOR.$controller.'.php';
@@ -128,7 +142,6 @@ class HttpRoute extends Dispatch {
 
 			// 访问类的命名空间
 			$class = $this->config['default_namespace'].'\\'.'Controller'.'\\'.$controller;
-
 		}
 		// 创建控制器实例
 		$controllerInstance = new $class();

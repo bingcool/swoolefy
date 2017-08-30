@@ -45,7 +45,7 @@ class Webserver extends Base {
 	public static $conf = [
 		'reactor_num' => 1, //reactor thread num
 		'worker_num' => 2,    //worker process num
-		'max_request' => 1000,
+		'max_request' => 10000,
 		'daemonize' => 0
 	];
 
@@ -125,8 +125,7 @@ class Webserver extends Base {
 			}
 
 			// 初始化整个应用对象
-			$config = Application::init();
-			self::$App = swoole_pack(Application::getInstance($config));
+			self::$App = swoole_pack(Application::getInstance($config=[]));
 		});
 
 		/**
@@ -141,6 +140,16 @@ class Webserver extends Base {
 			swoole_unpack(self::$App)->run($request, $response);
 			// call_user_func_array([swoole_unpack(self::$App), "dispatch"], [$request, $response]);
 		});
+
+		/**
+		 * 停止worker进程
+		 */
+		$this->webserver->on('WorkerStop',function(WebSockServer $server, $worker_id) {
+			if($worker_id == 0) {
+				$this->timer_id = null;
+			}
+		});
+
 
 		$this->webserver->on('message', function (WebSockServer $server, $frame) {
 
