@@ -5,6 +5,7 @@ namespace Swoolefy\App;
 use Swoolefy\Core\App;
 use Swoolefy\Tool\ArrayHelper\ArrayForHelp;
 
+// 上线必须设置为false
 defined('SW_DEBUG') or define('SW_DEBUG', true);
 defined('SW_ENV') or define('SW_ENV', 'dev');
 

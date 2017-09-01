@@ -181,6 +181,8 @@ trait AppTrait {
 		return $this->request->get;
 	}
 
+
+
 	/**
 	 * assign
 	 * @param   $name
@@ -221,6 +223,10 @@ trait AppTrait {
 		$view->returnJson($data,$formater);
 	}
 
+	public function sendfile($filename, $offset = 0, $length = 0) {
+		$this->response->sendfile($filename, $offset = 0, $length = 0);
+	}
+
 	/**
 	 * redirect
 	 * @param    $url
@@ -245,7 +251,52 @@ trait AppTrait {
 			}
 		}
 		$this->status($code);
-		$this->response->header('Location: '.$url.$query_string,'');
+		$this->response->header('Location', $url.$query_string);
+	}
+
+	/**
+	 * header,使用链式作用域
+	 * @param    $name
+	 * @param    $value
+	 * @return   object
+	 */
+	public function header($name,$value) {
+		$this->response->header($name, $value);
+		return $this->response;
+	}
+
+	/**
+	 * dump，调试函数
+	 * @param    $var
+	 * @param    $echo
+	 * @param    $label
+	 * @param    $strict
+	 * @return   string            
+	 */
+	public function dump($var, $echo=true, $label=null, $strict=true) {
+	    $label = ($label === null) ? '' : rtrim($label) . ' ';
+	    if (!$strict) {
+	        if (ini_get('html_errors')) {
+	            $output = print_r($var, true);
+	            $output = '<pre>' . $label . htmlspecialchars($output, ENT_QUOTES) . '</pre>';
+	        } else {
+	            $output = $label . print_r($var, true);
+	        }
+	    } else {
+	        ob_start();
+	        var_dump($var);
+	        $output = ob_get_clean();
+	        if (!extension_loaded('xdebug')) {
+	            $output = preg_replace('/\]\=\>\n(\s+)/m', '] => ', $output);
+	            $output = '<pre>' . $label . htmlspecialchars($output, ENT_QUOTES) . '</pre>';
+	        }
+	    }
+	    if ($echo) {
+	    	// 调试环境这个函数使用
+	        if(SW_DEBUG) $this->response->write($output);
+	        return null;
+	    }else
+	        return $output;
 	}
 
 	/**
@@ -312,9 +363,8 @@ trait AppTrait {
 			$this->response->status($code);
 		}else {
 			if(SW_DEBUG) {
-				$this->response->end('error: '.$code .'is not a standard http code!');
+				$this->response->write('error: '.$code .'is not a standard http code!');
 			}
-			
 		}
 	}	
 }

@@ -12,10 +12,10 @@ class Test extends BController {
 	}
 
 	public function test() {
-		// $this->assign('name','NKLC');
-		// $this->display('test.html');
-		// var_dump('hello');
-		$this->returnJson(['name'=>'bing','age'=>5656]);
+		$this->assign('name','NKLC');
+		$this->display('test.html');
+
+		// $this->returnJson(['name'=>'bing','age'=>5656]);
 	}
 
 	public function testajax() {
@@ -23,5 +23,10 @@ class Test extends BController {
 		if($this->isAjax()) {
 			$this->response->end(json_encode($res));
 		}
+	}
+
+	public function book() {
+		$this->assign('name','NKLC');
+		$this->display('test.html');
 	}
 }

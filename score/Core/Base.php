@@ -101,6 +101,10 @@ class Base {
 		if(!extension_loaded('posix')) {
 			throw new \Exception("you are not install posix extentions,please install it", 1);
 		}
+
+		if(!extension_loaded('zlib')) {
+			throw new \Exception("you are not install zlib extentions,please install it", 1);
+		}
 	}
 
 	/**
