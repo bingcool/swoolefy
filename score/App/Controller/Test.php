@@ -12,6 +12,10 @@ class Test extends BController {
 	}
 
 	public function test() {
+		// $Log = new \Swoolefy\Tool\Log('Application',APP_PATH.'/runtime.log');
+  //       $Log->addError('this is a error test!');
+
+		$this->dump($this->getIp());
 		$this->assign('name','NKLC');
 		$this->display('test.html');
 
@@ -25,8 +29,17 @@ class Test extends BController {
 		}
 	}
 
-	public function book() {
+	public function getQuery() {
+		var_dump('lllll');
 		$this->assign('name','NKLC');
 		$this->display('test.html');
+	}
+
+	public function _beforeAction() {
+		var_dump('huagzengbing');
+	}
+
+	public function _afterAction() {
+		var_dump($this->request);
 	}
 }

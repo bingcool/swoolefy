@@ -7,6 +7,22 @@ trait AppTrait {
 	 * @var null
 	 */
 	public $view = null;
+
+	/**
+	 * _beforeAction 
+	 * @return   mixed
+	 */
+	public function _beforeAction() {
+
+	}
+
+	/**
+	 * _afterAction
+	 * @return   mixed
+	 */
+	public function _afterAction() {
+
+	}
 	/**
 	 * isGet
 	 * @return boolean
@@ -81,18 +97,25 @@ trait AppTrait {
 
 	/**
 	 * getFd
-	 * @return   [type]        [description]
+	 * @return  int
 	 */
 	public function getFd() {
 		return $this->request->fd;
 	}
 
 	/**
-	 * getLocalIp
+	 * getIp
 	 * @return   string
 	 */
-	public function getLocalIp() {
-		return $this->request->server['remote_addr'];
+	public function getIp() {
+		// 通过nginx的代理
+		if(isset($this->request->header['x-real-ip'])) 
+	        $ip = $this->request->header['x-real-ip'];
+	    else if($this->request->server['remote_addr']) 
+	    	 //没通过代理，或者通过代理而没设置x-real-ip的 
+	        $ip = $this->request->server['remote_addr'];
+	    else $ip = "Unknow";  
+	    return $ip;  
 	}
 
 	/**
@@ -112,7 +135,7 @@ trait AppTrait {
 	}
 
 	/**
-	 * [getHomeUrl description]
+	 * getHomeUrl
 	 * @param    $ssl
 	 * @return   string
 	 */
@@ -265,6 +288,8 @@ trait AppTrait {
 		return $this->response;
 	}
 
+	// public function 
+
 	/**
 	 * dump，调试函数
 	 * @param    $var
@@ -293,7 +318,7 @@ trait AppTrait {
 	    }
 	    if ($echo) {
 	    	// 调试环境这个函数使用
-	        if(SW_DEBUG) $this->response->write($output);
+	        if(SW_DEBUG) @$this->response->write($output);
 	        return null;
 	    }else
 	        return $output;

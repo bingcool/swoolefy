@@ -30,6 +30,7 @@ class HttpRoute extends Dispatch {
 	 */
 	public $config = null;
 
+	public $deny_actions = ['__construct','_beforeAction','_afterAction','__destruct'];
 	/**
 	 * __construct
 	 */
@@ -91,6 +92,10 @@ class HttpRoute extends Dispatch {
 
 		// 重新设置一个route
 		$this->request->server['route'] = $this->require_uri;
+		// 定义禁止直接外部访问的方法
+		if(in_array($action, $this->deny_actions)) {
+			$this->response->end($action.' method is not be exec!');
+		}
 		
 		if($module) {
 			$this->invoke($module,$controller,$action);

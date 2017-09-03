@@ -12,7 +12,10 @@ class Application {
 	 * __construct
 	 */
 	public function __construct() {
+		
 	}
+
+
 
 	/**
 	 * __destruct

@@ -46,7 +46,8 @@ class Webserver extends Base {
 		'reactor_num' => 1, //reactor thread num
 		'worker_num' => 2,    //worker process num
 		'max_request' => 10000,
-		'daemonize' => 0
+		'daemonize' => 0,
+		'log_file' => __DIR__.'/log.txt',
 	];
 
 	public $host = "0.0.0.0";

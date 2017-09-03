@@ -38,6 +38,9 @@ class App {
 	 */
 	public function __construct(array $config=[]) {
 		$this->config = $config;
+		// 注册错误处理事件
+		register_shutdown_function('Swoolefy\Core\App::fatalError');
+      	set_exception_handler('Swoolefy\Core\App::appException');
 	}
 
 	/**
@@ -51,6 +54,13 @@ class App {
 				session_start();
 			}
 		}
+
+		try {
+
+		}catch(\Exception $e) {
+
+		}
+
 	}
 
 	/**
@@ -75,7 +85,7 @@ class App {
 	}
 
 	/**
-	 * catch 
+	 * catch 捕捉拦截所有请求，进入维护模式
 	 * @return void
 	 */
 	public function catch() {
@@ -95,6 +105,54 @@ class App {
 
 		return false;
 	}
+
+	/**
+	 * 致命错误捕获
+	 * @return 
+	 */
+    public static function fatalError() {
+        if ($e = error_get_last()) {
+            switch($e['type']){
+              case E_ERROR:
+              case E_PARSE:
+              case E_CORE_ERROR:
+              case E_COMPILE_ERROR:
+              case E_USER_ERROR:  
+                @ob_end_clean();
+                self::halt($e);
+                break;
+            }
+        }
+    }
+
+    /**
+     * 错误输出
+     * @param  $error 错误
+     * @return void
+     */
+    public static function halt($error) {
+        $Log = new \Swoolefy\Tool\Log('Application',APP_PATH.'/runtime.log');
+        $Log->addError($error['message']);
+    }
+
+	/**
+     * 自定义异常处理
+     * @param mixed $e 异常对象
+     */
+    public static function appException($e) {
+        $error = array();
+        $error['message']   =   $e->getMessage();
+        $trace              =   $e->getTrace();
+        if('E'==$trace[0]['function']) {
+            $error['file']  =   $trace[0]['file'];
+            $error['line']  =   $trace[0]['line'];
+        }else{
+            $error['file']  =   $e->getFile();
+            $error['line']  =   $e->getLine();
+        }
+        $error['trace']     =   $e->getTraceAsString();
+        self::halt($error);
+    }
 
 	//使用trait的复用特性
 	use \Swoolefy\Core\AppTrait;

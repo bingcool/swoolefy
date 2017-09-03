@@ -65,10 +65,10 @@ class View {
 		}else {
 			$tpl = $template_file;
 		}
-		Application::$app->response->header('Content-Type',$this->content_type.'; charset=UTF-8');
+		@Application::$app->response->header('Content-Type',$this->content_type.'; charset=UTF-8');
 		// 线上环境压缩
 		if(!SW_DEBUG) Application::$app->response->gzip(1);
-		Application::$app->response->end($tpl);
+		@Application::$app->response->end($tpl);
 	}
 
 	/**
@@ -94,7 +94,7 @@ class View {
 			}
 			// 线上环境压缩
 			if(!SW_DEBUG) Application::$app->response->gzip(1);
-			Application::$app->response->end($json_string);
+			@Application::$app->response->end($json_string);
 		}
 	}
 
