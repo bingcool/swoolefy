@@ -12,11 +12,7 @@ class Test extends BController {
 	}
 
 	public function test() {
-		// $Log = new \Swoolefy\Tool\Log('Application',APP_PATH.'/runtime.log');
-  //       $Log->addError('this is a error test!');
-
-		$this->dump($this->getIp());
-		$this->assign('name','NKLC');
+		$this->assign('name','hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh');
 		$this->display('test.html');
 
 		// $this->returnJson(['name'=>'bing','age'=>5656]);
@@ -30,16 +26,12 @@ class Test extends BController {
 	}
 
 	public function getQuery() {
-		var_dump('lllll');
+		self::rememberUrl('mytest','/Test/test');
+		
 		$this->assign('name','NKLC');
+		$url = (self::getPreviousUrl('mytest'));
+		$this->redirect($url);
+		
 		$this->display('test.html');
-	}
-
-	public function _beforeAction() {
-		var_dump('huagzengbing');
-	}
-
-	public function _afterAction() {
-		var_dump($this->request);
 	}
 }

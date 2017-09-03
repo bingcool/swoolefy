@@ -87,15 +87,24 @@ class View {
 	 * @return        
 	 */
 	public function returnJson($data,$formater = 'json') {
-		if(is_array($data)) {
-			switch($formater) {
-				case 'json':$json_string = json_encode($data);break;
-				default:$json_string = json_encode($data);break;
+			$response = Application::$app->response;
+			switch(strtoupper($formater)) {
+				case 'JSON':
+					$response->header('Content-Type','application/json; charset=utf-8');
+					$string = json_encode($data,0);
+				break;
+				case 'XML':
+					$response->header('Content-Type','text/xml; charset=utf-8');
+               		$string = xml_encode($data);
+                break;
+                case 'EVAL':
+                	$response->header('Content-Type','text/xml; charset=utf-8');
+                	$string = $data;
+				default:$string = json_encode($data,0);break;
 			}
 			// 线上环境压缩
-			if(!SW_DEBUG) Application::$app->response->gzip(1);
-			@Application::$app->response->end($json_string);
-		}
+			if(!SW_DEBUG) $response->gzip(1);
+			@$response->end($string);
 	}
 
 }

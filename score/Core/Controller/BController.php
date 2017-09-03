@@ -21,6 +21,10 @@ class BController {
 	 */
 	public $config = null;
 
+	/**
+	 * __construct
+	 * @param    {String}
+	 */
 	public function __construct() {
 		// 初始化请求对象和响应对象
 		$this->request = Application::$app->request;
@@ -67,6 +71,8 @@ class BController {
 		if(method_exists($this,'_afterAction')) {
 			static::_afterAction();
 		}
+		// 初始化这个变量
+		static::$previousUrl = [];
 	}
 
 	//使用trait的复用特性

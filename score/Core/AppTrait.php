@@ -9,6 +9,11 @@ trait AppTrait {
 	public $view = null;
 
 	/**
+	 * $previousUrl,记录url
+	 * @var array
+	 */
+	public static $previousUrl = [];
+	/**
 	 * _beforeAction 
 	 * @return   mixed
 	 */
@@ -146,6 +151,40 @@ trait AppTrait {
 		}
 		return $protocol.$this->getHostName().$this->getRequestUri().'?'.$this->getQueryString();
 	}
+
+	/**
+	 * rememberUrl
+	 * @param    $url
+	 * @return       
+	 */
+	public function rememberUrl($name=null,$url=null,$ssl=false) {
+		if($url && $name) {
+			static::$previousUrl[$name] = $url;
+		}else {
+			// 获取当前的url保存
+			static::$previousUrl['swoolefy_current_home_url'] = $this->getHomeUrl($ssl);
+		}
+	}
+
+	/**
+	 * getPreviousUrl
+	 * @param    $name
+	 * @return   mixed
+	 */
+	public function getPreviousUrl($name=null) {
+		if($name) {
+			if(isset(static::$previousUrl[$name])) {
+				return static::$previousUrl[$name];
+			}
+			return null;
+		}else {
+			if(isset(static::$previousUrl['swoolefy_current_home_url'])) {
+				return static::$previousUrl['swoolefy_current_home_url'];
+			}
+
+			return null;
+		}
+	} 
 
 	/**
 	 * getRoute
