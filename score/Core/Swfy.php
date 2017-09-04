@@ -8,6 +8,6 @@ class Swfy {
 	 */
 	public static $server;
 
-	public static $Di;
+	public static $Di = [];
 
 }

@@ -3,12 +3,6 @@ namespace Swoolefy\Core;
 
 trait AppTrait {
 	/**
-	 * $view
-	 * @var null
-	 */
-	public $view = null;
-
-	/**
 	 * $previousUrl,记录url
 	 * @var array
 	 */
@@ -252,8 +246,7 @@ trait AppTrait {
 	 * @return       
 	 */
 	public function assign($name,$value) {
-		$this->view = new \Swoolefy\Core\View;
-		$this->view->assign($name,$value);
+		Application::$app->view->assign($name,$value);
 	}
 
 	/**
@@ -262,7 +255,7 @@ trait AppTrait {
 	 * @return                 
 	 */
 	public function display($template_file=null) {
-		$this->view->display($template_file);
+		Application::$app->view->display($template_file);
 	}
 
 	/**
@@ -271,7 +264,7 @@ trait AppTrait {
 	 * @return                 
 	 */
 	public function fetch($template_file=null) {
-		$this->view->display($template_file);
+		Application::$app->view->display($template_file);
 	}
 
 	/**

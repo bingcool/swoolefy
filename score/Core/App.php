@@ -32,15 +32,61 @@ class App {
 	 * @var null
 	 */
 	public  $route = null;
+
+	/**
+	 * $components
+	 * @var array
+	 */
+	public static $components = [];
 	/**
 	 * __construct
 	 * @param $config 应用层配置
 	 */
 	public function __construct(array $config=[]) {
 		$this->config = $config;
+		$this->creatObj();
 		// 注册错误处理事件
 		register_shutdown_function('Swoolefy\Core\App::fatalError');
       	set_exception_handler('Swoolefy\Core\App::appException');
+	}
+
+	/**
+	 * creatObj
+	 * @return
+	 */
+	public function creatObj() {
+		foreach($this->config['components'] as $key=>$component) {
+			if(isset($component['class']) && $component['class'] != '') {
+				$class = $component['class'];
+				self::$components[$key] = Swfy::$Di[$key] = new $class();
+			}
+		}
+
+	}
+
+	/**
+	 * __set
+	 * @param    $name 
+	 * @param    $value
+	 * @return   
+	 */
+	public function __set($name,$value) {
+		if(!isset($name) && $value !='') {
+			self::$components[$name] = $value;
+		}
+	}
+
+	/**
+	 * __get
+	 * @param    $name
+	 * @return   
+	 */
+	public function __get($name) {
+		if(!isset($this ->$name)) {
+			if(isset(self::$components[$name])) {
+				return self::$components[$name];
+			}	
+		}
 	}
 
 	/**
@@ -54,13 +100,6 @@ class App {
 				session_start();
 			}
 		}
-
-		try {
-
-		}catch(\Exception $e) {
-
-		}
-
 	}
 
 	/**

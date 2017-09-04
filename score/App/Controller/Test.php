@@ -12,10 +12,14 @@ class Test extends BController {
 	}
 
 	public function test() {
-		$this->assign('name','hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh');
-		$this->display('test.html');
+		// $view = Swfy::$Di['view'];
 
-		// $this->returnJson(['name'=>'bing','age'=>5656]);
+		$view = Application::$app->view;
+		// $this->assign('name','hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh');
+		// $this->display('test.html');
+
+		$view->assign('name','hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh'.rand(1,100));
+		$view->display('test.html');
 	}
 
 	public function testajax() {
@@ -31,7 +35,7 @@ class Test extends BController {
 		$this->assign('name','NKLC');
 		$url = (self::getPreviousUrl('mytest'));
 		$this->redirect($url);
-		
+
 		$this->display('test.html');
 	}
 }

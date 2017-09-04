@@ -9,4 +9,10 @@ return [
 		'Origin' => ['*'],
         'Access-Control-Request-Method' => ['GET','POST','PUT','DELETE'],
 	],
+
+	'components' => [
+		'view' => [
+			'class' => 'Swoolefy\Core\View',
+		],
+	],
 ];
