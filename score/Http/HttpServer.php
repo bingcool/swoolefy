@@ -15,11 +15,6 @@ class Webserver extends Base {
 	 * @var null
 	 */
 	public static $config = null;
-	/**
-	 * $webserver
-	 * @var null
-	 */
-	public $webserver = null;
 
 	/**
 	 * $conf
@@ -38,6 +33,12 @@ class Webserver extends Base {
 	 * @var null
 	 */
 	public static $App = null;
+
+	/**
+	 * $webserver
+	 * @var null
+	 */
+	public $webserver = null;
 
 	/**
 	 * $startctrl

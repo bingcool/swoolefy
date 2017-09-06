@@ -4,7 +4,6 @@ namespace Swoolefy\Websocket;
 include_once "../../vendor/autoload.php";
 
 use Swoole\WebSocket\Server as WebSockServer;
-use Swoole\Process as swoole_process;
 use Swoolefy\Core\Base;
 use Swoolefy\Core\Swfy;
 use Swoole\Http\Request;
@@ -17,11 +16,6 @@ class Webserver extends Base {
 	 * @var null
 	 */
 	public static $config = null;
-	/**
-	 * $webserver
-	 * @var null
-	 */
-	public $webserver = null;
 
 	/**
 	 * $conf
@@ -40,6 +34,12 @@ class Webserver extends Base {
 	 * @var null
 	 */
 	public static $App = null;
+
+	/**
+	 * $webserver
+	 * @var null
+	 */
+	public $webserver = null;
 
 	/**
 	 * $startctrl
@@ -69,6 +69,7 @@ class Webserver extends Base {
 		// 初始化启动类
 		$startClass = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Http\\StartInit';
 		$this->startctrl = new $startClass;
+
 	}
 
 	public function start() {
@@ -111,15 +112,17 @@ class Webserver extends Base {
 		/**
 		 * 接受http请求
 		 */
-		$this->webserver->on('request',function(Request $request, Response $response) {
-			// google浏览器会自动发一次请求/favicon.ico,在这里过滤掉
-			if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
-            		return $response->end();
-       		}
-       		// 超全局变量server
-       		Swfy::$server = $this->webserver;
-			swoole_unpack(self::$App)->run($request, $response);
-		});
+		if(!isset(self::$config['accept_http']) || self::$config['accept_http'] || self::$config['accept_http'] == 'true') {
+			$this->webserver->on('request',function(Request $request, Response $response) {
+				// google浏览器会自动发一次请求/favicon.ico,在这里过滤掉
+				if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
+	            		return $response->end();
+	       		}
+	       		// 超全局变量server
+	       		Swfy::$server = $this->webserver;
+				swoole_unpack(self::$App)->run($request, $response);
+			});
+		}
 
 		/**
 		 * 停止worker进程
@@ -128,8 +131,12 @@ class Webserver extends Base {
 			
 		});
 
+		$this->webserver->on('open', function (WebSockServer $server, $request) {
 
-		$this->webserver->on('message', function (WebSockServer $server, $frame) {			
+		});
+
+		$this->webserver->on('message', function (WebSockServer $server, $frame) {
+			var_dump($server->data);
 		});
 
 		$this->webserver->on('close', function (WebSockServer $server, $fd) {
@@ -142,4 +149,5 @@ class Webserver extends Base {
 }
 
 $websock = new Webserver();
+
 $websock->start();

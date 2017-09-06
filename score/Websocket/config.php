@@ -9,6 +9,8 @@ return [
 	'www_user' => 'www',
 	'host' => '0.0.0.0',
 	'port' => '9503',
+	'accept_http' => true,
+	'time_zone' => 'PRC', 
 	'setting' => [
 
 	]

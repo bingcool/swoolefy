@@ -354,7 +354,6 @@ trait AppTrait {
 	    }else
 	        return $output;
 	}
-
 	/**
 	 * sendHttpStatus,参考tp的
 	 * @param    {String}

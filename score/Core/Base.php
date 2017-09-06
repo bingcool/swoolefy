@@ -10,21 +10,22 @@ class Base {
 	public static $server = null;
 
 	/**
-	 * $conf
-	 * @var array
+	 * $_startTime 进程启动时间
+	 * @var integer
 	 */
-	public static $conf = [
-		'reactor_num' => 1, //reactor thread num
-		'worker_num' => 2,    //worker process num
-		'max_request' => 1000,
-		'daemonize' => 0
-	];
+	protected static $_startTime = 0;
 
 	/**
 	 * __construct
 	 */
 	public function __construct() {
+		// check extensions
 		self::checkVersion();
+		// set timeZone
+		self::setTimeZone(); 
+		// record start time
+		self::$_startTime = date('Y-m-d H:i:s',strtotime('now'));
+		
 	}
 	/**
 	 * setMasterProcessName设置主进程名称
@@ -106,6 +107,39 @@ class Base {
 
 		if(!extension_loaded('zlib')) {
 			throw new \Exception("you are not install zlib extentions,please install it", 1);
+		}
+	}
+
+	/**
+	 * getStartTime 服务启动时间
+	 * @return   time
+	 */
+	public static function getStartTime() {
+		return self::$_startTime;
+	}
+
+	/**
+	 * getConfig 获取服务的全部配置
+	 * @return   [type]        [description]
+	 */
+	public static function getConfig() {
+		static::$config['setting'] = self::getSetting();
+		return static::$config;
+	}
+	/**
+	 * getSetting 获取swoole的配置项
+	 * @return   array
+	 */
+	public static function getSetting() {
+		return static::$setting;
+	}
+
+	/**
+	 * setTimeZone 设置时区
+	 */
+	public static function setTimeZone() {
+		if(isset(static::$config['time_zone'])) {
+			date_default_timezone_set(static::$config['time_zone']);
 		}
 	}
 
