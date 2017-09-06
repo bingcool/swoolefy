@@ -274,8 +274,7 @@ trait AppTrait {
 	 * @return            
 	 */
 	public function returnJson($data,$formater = 'json') {
-		$view = new \Swoolefy\Core\View;
-		$view->returnJson($data,$formater);
+		Application::$app->view->returnJson($data,$formater);
 	}
 
 	public function sendfile($filename, $offset = 0, $length = 0) {

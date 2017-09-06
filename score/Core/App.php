@@ -44,7 +44,7 @@ class App {
 	 */
 	public function __construct(array $config=[]) {
 		$this->config = $config;
-		$this->creatObj();
+		$this->creatObject();
 		// 注册错误处理事件
 		register_shutdown_function('Swoolefy\Core\App::fatalError');
       	set_exception_handler('Swoolefy\Core\App::appException');
@@ -52,9 +52,25 @@ class App {
 
 	/**
 	 * creatObj
-	 * @return
+	 * @param    $config
+	 * $config = [
+	 * 	   type=>'view',
+	 * 	   class=>'Swoolefy\Core\View',
+	 * 	   ......
+	 * ];
+	 * @return   
 	 */
-	public function creatObj() {
+	public function creatObject(array $config=[]) {
+		// 动态创建公用组件
+		if($config) {
+			$com_name = $config['type'];
+			if(!isset(self::$components[$com_name])) {
+				$class = $config['class'];
+				self::$components[$com_name] = Swfy::$Di[$com_name] = new $class();
+			}
+			return self::$components[$com_name];
+		}
+		// 配置文件初始化创建公用对象
 		foreach($this->config['components'] as $key=>$component) {
 			if(isset($component['class']) && $component['class'] != '') {
 				$class = $component['class'];
@@ -82,7 +98,7 @@ class App {
 	 * @return   
 	 */
 	public function __get($name) {
-		if(!isset($this ->$name)) {
+		if(!isset($this->$name)) {
 			if(isset(self::$components[$name])) {
 				return self::$components[$name];
 			}	

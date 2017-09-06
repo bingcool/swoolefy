@@ -21,7 +21,7 @@ class Application implements \Swoolefy\Core\AppInterface{
 
 		// 加载App应用层配置和对应的协议配置
 		$config = ArrayForHelp::merge(
-			include(__DIR__.'/../Config/http.php'),
+			include(__DIR__.'/../Config/common.php'),
 			include(__DIR__.'/Config/config.php')
 		);
 

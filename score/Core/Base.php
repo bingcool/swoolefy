@@ -57,9 +57,11 @@ class Base {
 	/**
 	 * startInclude设置需要在workerstart启动时加载的配置文件
 	 */
-	public static function startInclude($includes) {
-		foreach($includes as $filePath) {
-			include_once $filePath;
+	public static function startInclude($includes = []) {
+		if($includes) {
+			foreach($includes as $filePath) {
+				include_once $filePath;
+			}
 		}
 	}
 
@@ -107,11 +109,5 @@ class Base {
 		}
 	}
 
-	/**
-	 * restart
-	 */
-	public static function restart() {
-		var_dump(self::$server);
-	}
 
 }

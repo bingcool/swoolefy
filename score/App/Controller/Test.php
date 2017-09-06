@@ -12,14 +12,9 @@ class Test extends BController {
 	}
 
 	public function test() {
-		// $view = Swfy::$Di['view'];
-
-		$view = Application::$app->view;
-		// $this->assign('name','hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh');
-		// $this->display('test.html');
-
-		$view->assign('name','hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh'.rand(1,100));
-		$view->display('test.html');
+		
+		$this->assign('name','hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh'.rand(1,100));
+		$this->display('test.html');
 	}
 
 	public function testajax() {

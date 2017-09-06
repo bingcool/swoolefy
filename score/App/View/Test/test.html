@@ -20,6 +20,7 @@
 
 	ws.onmessage = function(evt){
 		console.log(evt.data);
+		ws.send('hello!');
 	};
 
 	ws.onclose = function(evt){
