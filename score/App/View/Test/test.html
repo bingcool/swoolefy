@@ -15,12 +15,12 @@
 <script type="text/javascript">
 	ws = new WebSocket("ws://192.168.44.128:9503");
 	ws.onopen = function(){  
-	  console.log('success!');	
+	  console.log('success!');
+	  ws.send('hello!');	
 	};
 
 	ws.onmessage = function(evt){
 		console.log(evt.data);
-		ws.send('hello!');
 	};
 
 	ws.onclose = function(evt){

@@ -93,7 +93,7 @@ class Webserver extends Base {
 		/**
 		 * 启动worker进程监听回调，设置定时器
 		 */
-		$this->webserver->on('WorkerStart',function(HttpServer $server, $worker_id){
+		$this->webserver->on('WorkerStart',function(HttpServer $server, $worker_id) {
 			// 启动时提前加载文件
 			$includeFiles = isset(self::$config['include_files']) ? self::$config['include_files'] : [];
 			self::startInclude($includeFiles);

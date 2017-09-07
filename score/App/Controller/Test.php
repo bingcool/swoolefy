@@ -12,9 +12,8 @@ class Test extends BController {
 	}
 
 	public function test() {
-		$date = \Swoolefy\Websocket\Webserver::getConfig();
-		var_dump($date);
-
+		$data = Swfy::$server->stats();
+		var_dump($data);
 		$this->assign('name','hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh'.rand(1,100));
 		$this->display('test.html');
 	}

@@ -26,7 +26,6 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 * @return   
 	 */
 	public function onWorkerStart($server,$worker_id){
-		
 	}
 
 	/**

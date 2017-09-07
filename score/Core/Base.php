@@ -21,6 +21,8 @@ class Base {
 	public function __construct() {
 		// check extensions
 		self::checkVersion();
+		// check is run on cli
+		self::checkSapiEnv();
 		// set timeZone
 		self::setTimeZone(); 
 		// record start time
@@ -67,10 +69,10 @@ class Base {
 	}
 
 	/**
-	 * 设置worker进程的工作组，默认是root
+	 * setWorkerUserGroup 设置worker进程的工作组，默认是root
 	 */
 	public static function setWorkerUserGroup($worker_user=null) {
-		if(!isset(static::$conf['user'])) {
+		if(!isset(static::$setting['user'])) {
 			if($worker_user) {
 				$userInfo = posix_getpwnam($worker_user);
 				if($userInfo) {
@@ -82,7 +84,7 @@ class Base {
 	}
 
 	/**
-	 * 检查是否安装基础扩展
+	 * checkVersion 检查是否安装基础扩展
 	 */
 	public static function checkVersion() {
 		if(version_compare(phpversion(), '5.6.0', '<')) {
@@ -135,6 +137,55 @@ class Base {
 	}
 
 	/**
+	 * getSwooleVersion
+	 * @return   string
+	 */
+	public static function getSwooleVersion() {
+    	return swoole_version();
+    }
+
+	/**
+	 * getLastError 返回最后一次的错误代码
+	 * @return   int
+	 */
+	public static function getLastError() {
+		return self::$server->getLastError();
+	}
+
+	/**
+	 * getLastErrorMsg
+	 * @return   string
+	 */
+	public static function getLastErrorMsg() {
+		$code = swoole_errno();
+		return swoole_strerror($code);
+	}
+
+	/**
+	 * getLocalIp
+	 * @return   string
+	 */
+	public static function getLocalIp() {
+		return swoole_get_local_ip();	
+	}
+
+	/**
+	 * getLocalMac 获取本机mac地址
+	 * @return   arra
+	 */
+	public static function getLocalMac() {
+		return swoole_get_local_mac();
+	}
+
+	/**
+	 * getStatus 获取swoole的状态信息
+	 * @return   array
+	 */
+	public static function getStats() {
+		return self::$server->stats();
+	}
+
+	/**
 	 * setTimeZone 设置时区
 	 */
 	public static function setTimeZone() {
@@ -142,6 +193,18 @@ class Base {
 			date_default_timezone_set(static::$config['time_zone']);
 		}
 	}
+
+	/**
+	 * checkSapiEnv
+	 * @return
+	 */
+	public static function checkSapiEnv() {
+        // Only for cli.
+        if (php_sapi_name() != "cli") {
+            throw new \Exception("only run in command line mode \n", 1);
+        }
+    }
+
 
 
 }

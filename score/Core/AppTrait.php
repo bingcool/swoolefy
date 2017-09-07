@@ -134,6 +134,14 @@ trait AppTrait {
 	}
 
 	/**
+	 * getLocalIp 获取ip,不包括端口
+	 * @return   array
+	 */
+	public function getLocalIp() {
+		return swoole_get_local_ip();
+	}
+
+	/**
 	 * getHomeUrl
 	 * @param    $ssl
 	 * @return   string
@@ -317,6 +325,22 @@ trait AppTrait {
 	public function header($name,$value) {
 		$this->response->header($name, $value);
 		return $this->response;
+	}
+
+	/**
+	 * getLastError 返回最近一次的错误代码
+	 * @return   int 
+	 */
+	public function getLastError() {
+		return Swfy::$server->getLastError();
+	}
+
+	/**
+	 * getStats 获取swoole的状态
+	 * @return   [type]        [description]
+	 */
+	public function getSwooleStats() {
+		return Swfy::$server->stats();
 	}
 
 	// public function 

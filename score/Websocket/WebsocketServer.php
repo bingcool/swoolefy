@@ -136,7 +136,7 @@ class Webserver extends Base {
 		});
 
 		$this->webserver->on('message', function (WebSockServer $server, $frame) {
-			var_dump($server->data);
+			$server->push($frame->fd,'hello welcome to websocket!');
 		});
 
 		$this->webserver->on('close', function (WebSockServer $server, $fd) {
