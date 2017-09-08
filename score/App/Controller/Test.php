@@ -12,8 +12,8 @@ class Test extends BController {
 	}
 
 	public function test() {
-		$data = Swfy::$server->stats();
-		var_dump($data);
+		$tasks = Swfy::$server->_tasks;
+		var_dump($tasks);
 		$this->assign('name','hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh'.rand(1,100));
 		$this->display('test.html');
 	}
@@ -33,5 +33,9 @@ class Test extends BController {
 		$this->redirect($url);
 
 		$this->display('test.html');
+	}
+
+	public function mytest() {
+		echo "hello";
 	}
 }

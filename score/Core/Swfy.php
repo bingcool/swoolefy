@@ -10,6 +10,4 @@ class Swfy {
 
 	public static $Di = [];
 
-	public static $APP = null;
-
 }
