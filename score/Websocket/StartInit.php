@@ -1,5 +1,5 @@
 <?php
-namespace Swoolefy\Http;
+namespace Swoolefy\Websocket;
 
 class StartInit extends \Swoolefy\Core\StartCtrl {
 	/**

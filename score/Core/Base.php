@@ -16,6 +16,11 @@ class Base {
 	protected static $_startTime = 0;
 
 	/**
+	 * $_tasks 线上正在运行的任务
+	 * @var null
+	 */
+	public  static $_tasks = null;
+	/**
 	 * __construct
 	 */
 	public function __construct() {

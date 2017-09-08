@@ -21,7 +21,7 @@ class Tick {
      * @param    $params       
      * @return   int              
      */
-	public static function tickTimer($time_interval, $func, $params) {
+	public static function tickTimer($time_interval, $func, $params=[]) {
 		if($time_interval <= 0) {
             throw new \Exception("time_interval is less 0");
             return false;
@@ -44,7 +44,7 @@ class Tick {
      * @param    $user_params  
      * @return   boolean              
      */
-    public static function tick($time_interval,$func,$user_params) {
+    public static function tick($time_interval,$func,$user_params=[]) {
         $tid = swoole_timer_tick($time_interval, function($timer_id,$user_params) use($func) {
             array_push($user_params,$timer_id);
             call_user_func_array($func, $user_params);
@@ -92,7 +92,7 @@ class Tick {
      * @param    $params       
      * @return   int              
      */
-    public static function afterTimer($time_interval, $func, $params) {
+    public static function afterTimer($time_interval, $func, $params=[]) {
         if($time_interval <= 0) {
             throw new \Exception("time_interval is less 0");
             return false;
@@ -112,7 +112,7 @@ class Tick {
      * after
      * @return  boolean
      */
-    public static function after() {
+    public static function after($time_interval,$func,$params=[]) {
         $tid = swoole_timer_after($time_interval, function($timer_id,$user_params) use($func) {
             array_push($user_params,$timer_id);
             call_user_func_array($func, $user_params);

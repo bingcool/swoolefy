@@ -2,13 +2,13 @@
 namespace Swoolefy\Http;
 include_once "../../vendor/autoload.php";
 
-use Swoole\Http\Server as httpServer;
+use Swoole\Http\Server as http_server;
 use Swoolefy\Core\Base;
 use Swoolefy\Core\Swfy;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 
-class Webserver extends Base {
+class HttpServer extends Base {
 
 	/**
 	 * $config
@@ -61,20 +61,20 @@ class Webserver extends Base {
 
 		self::$setting = array_merge(self::$setting, self::$config['setting']);
 
-		self::$server = $this->webserver = new httpServer(self::$config['host'], self::$config['port']);
+		self::$server = $this->webserver = new http_server(self::$config['host'], self::$config['port']);
 
 		$this->webserver->set(self::$setting);
 
 		// 初始化启动类
 		$startClass = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Http\\StartInit';
-		$this->startctrl = new $startClass;
+		$this->startctrl = new $startClass();
 	}
 
 	public function start() {
 		/**
 		 * start回调
 		 */
-		$this->webserver->on('Start',function(HttpServer $server) {
+		$this->webserver->on('Start',function(http_server $server) {
 			// 重新设置进程名称
 			self::setMasterProcessName(self::$config['master_process_name']);
 			// 启动的初始化函数
@@ -83,7 +83,7 @@ class Webserver extends Base {
 		/**
 		 * managerstart回调
 		 */
-		$this->webserver->on('ManagerStart',function(HttpServer $server) {
+		$this->webserver->on('ManagerStart',function(http_server $server) {
 			// 重新设置进程名称
 			self::setManagerProcessName(self::$config['manager_process_name']);
 			// 启动的初始化函数
@@ -93,7 +93,7 @@ class Webserver extends Base {
 		/**
 		 * 启动worker进程监听回调，设置定时器
 		 */
-		$this->webserver->on('WorkerStart',function(HttpServer $server, $worker_id) {
+		$this->webserver->on('WorkerStart',function(http_server $server, $worker_id) {
 			// 启动时提前加载文件
 			$includeFiles = isset(self::$config['include_files']) ? self::$config['include_files'] : [];
 			self::startInclude($includeFiles);
@@ -110,7 +110,7 @@ class Webserver extends Base {
 		/**
 		 * worker进程停止回调函数
 		 */
-		$this->webserver->on('WorkerStop',function(HttpServer $server, $worker_id) {
+		$this->webserver->on('WorkerStop',function(http_server $server, $worker_id) {
 			// worker停止的触发函数
 			$this->startctrl->workerStop($server,$worker_id);
 		});
@@ -133,5 +133,5 @@ class Webserver extends Base {
 
 }
 
-$websock = new Webserver();
-$websock->start();
+$http = new HttpServer();
+$http->start();

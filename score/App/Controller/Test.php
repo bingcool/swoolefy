@@ -12,7 +12,7 @@ class Test extends BController {
 	}
 
 	public function test() {
-		$tasks = Swfy::$server->_tasks;
+		$tasks = \Swoolefy\Http\HttpServer::$_tasks;
 		var_dump($tasks);
 		$this->assign('name','hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh'.rand(1,100));
 		$this->display('test.html');

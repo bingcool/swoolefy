@@ -3,13 +3,13 @@ namespace Swoolefy\Websocket;
 
 include_once "../../vendor/autoload.php";
 
-use Swoole\WebSocket\Server as WebSockServer;
+use Swoole\WebSocket\Server as websocket_server;
 use Swoolefy\Core\Base;
 use Swoolefy\Core\Swfy;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 
-class Webserver extends Base {
+class WebsocketServer extends Base {
 
 	/**
 	 * $config
@@ -62,13 +62,13 @@ class Webserver extends Base {
 
 		self::$setting = array_merge(self::$setting, self::$config['setting']);
 
-		self::$server = $this->webserver = new WebSockServer(self::$config['host'], self::$config['port']);
+		self::$server = $this->webserver = new websocket_server(self::$config['host'], self::$config['port']);
 
 		$this->webserver->set(self::$setting);
 
 		// 初始化启动类
 		$startClass = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Http\\StartInit';
-		$this->startctrl = new $startClass;
+		$this->startctrl = new $startClass();
 
 	}
 
@@ -76,7 +76,7 @@ class Webserver extends Base {
 		/**
 		 * start回调
 		 */
-		$this->webserver->on('Start',function(WebSockServer $server) {
+		$this->webserver->on('Start',function(websocket_server $server) {
 			// 重新设置进程名称
 			self::setMasterProcessName(self::$config['master_process_name']);
 			// 启动的初始化函数
@@ -85,7 +85,7 @@ class Webserver extends Base {
 		/**
 		 * managerstart回调
 		 */
-		$this->webserver->on('ManagerStart',function(WebSockServer $server) {
+		$this->webserver->on('ManagerStart',function(websocket_server $server) {
 			// 重新设置进程名称
 			self::setManagerProcessName(self::$config['manager_process_name']);
 			// 启动的初始化函数
@@ -95,7 +95,7 @@ class Webserver extends Base {
 		/**
 		 * 启动worker进程监听回调，设置定时器
 		 */
-		$this->webserver->on('WorkerStart',function(WebSockServer $server, $worker_id){
+		$this->webserver->on('WorkerStart',function(websocket_server $server, $worker_id){
 			// 启动时提前加载文件
 			$includeFiles = isset(self::$config['include_files']) ? self::$config['include_files'] : [];
 			self::startInclude($includeFiles);
@@ -127,19 +127,19 @@ class Webserver extends Base {
 		/**
 		 * 停止worker进程
 		 */
-		$this->webserver->on('WorkerStop',function(WebSockServer $server, $worker_id) {
+		$this->webserver->on('WorkerStop',function(websocket_server $server, $worker_id) {
 			
 		});
 
-		$this->webserver->on('open', function (WebSockServer $server, $request) {
+		$this->webserver->on('open', function (websocket_server $server, $request) {
 
 		});
 
-		$this->webserver->on('message', function (WebSockServer $server, $frame) {
+		$this->webserver->on('message', function (websocket_server $server, $frame) {
 			$server->push($frame->fd,'hello welcome to websocket!');
 		});
 
-		$this->webserver->on('close', function (WebSockServer $server, $fd) {
+		$this->webserver->on('close', function (websocket_server $server, $fd) {
 
 		});
 
@@ -148,6 +148,6 @@ class Webserver extends Base {
 
 }
 
-$websock = new Webserver();
+$websock = new WebsocketServer();
 
 $websock->start();
