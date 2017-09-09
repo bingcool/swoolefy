@@ -12,6 +12,21 @@ return [
 	'accept_http' => true,
 	'time_zone' => 'PRC', 
 	'setting' => [
-
-	]
+		'dispatch_mode' => 3
+	],
+	'table_tick_task' => true,
+	'table' => [
+		'table1' => [
+			'size' => 1024,
+			'fields'=> [
+				['tick_tasks','string',512]
+			]
+		],
+		'table2' => [
+			'size' => 1024,
+			'fields'=> [
+				['after_tasks','string',512]
+			]
+		],
+	],
 ];

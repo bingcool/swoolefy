@@ -12,8 +12,12 @@ class Test extends BController {
 	}
 
 	public function test() {
-		$tasks = \Swoolefy\Http\HttpServer::$_tasks;
-		var_dump($tasks);
+		
+		$task1 = Swfy::$server->table_ticker->get('tick_timer_task','tick_tasks');
+		// $task2 = Swfy::$server->table_after->get('after_timer_task','after_tasks');
+		var_dump($task1);
+		// var_dump(json_decode($task2,true));
+
 		$this->assign('name','hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh'.rand(1,100));
 		$this->display('test.html');
 	}
@@ -35,7 +39,13 @@ class Test extends BController {
 		$this->display('test.html');
 	}
 
-	public function mytest() {
-		echo "hello";
+	public function mytest($timer_id) {
+		echo "task1";
+		\Swoolefy\Core\Timer\Tick::delTicker($timer_id);
+	}
+
+	public function mytest1($timer_id) {
+		echo "task2";
+		\Swoolefy\Core\Timer\Tick::delTicker($timer_id);
 	}
 }

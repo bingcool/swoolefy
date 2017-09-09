@@ -10,4 +10,5 @@ class Swfy {
 
 	public static $Di = [];
 
+	public static $config = null;
 }

@@ -57,14 +57,10 @@ class HttpServer extends Base {
 					$config
 			);
 
-		parent::__construct();
-
-		self::$setting = array_merge(self::$setting, self::$config['setting']);
-
 		self::$server = $this->webserver = new http_server(self::$config['host'], self::$config['port']);
-
+		self::$setting = array_merge(self::$setting, self::$config['setting']);
 		$this->webserver->set(self::$setting);
-
+		parent::__construct();
 		// 初始化启动类
 		$startClass = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Http\\StartInit';
 		$this->startctrl = new $startClass();
@@ -103,7 +99,10 @@ class HttpServer extends Base {
 			self::setWorkerUserGroup(self::$config['www_user']);
 			// 初始化整个应用对象
 			self::$App = swoole_pack(self::$config['application_index']::getInstance($config=[]));
-			// 启动的初始化函数
+			// 超全局变量server
+       		Swfy::$server = $this->webserver;
+       		Swfy::$config = self::$config;
+       		// 启动的初始化函数
 			$this->startctrl->workerStart($server,$worker_id);
 		});
 
@@ -123,8 +122,7 @@ class HttpServer extends Base {
 			if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
             		return $response->end();
        		}
-       		// 超全局变量server
-       		Swfy::$server = $this->webserver;
+       		
 			swoole_unpack(self::$App)->run($request, $response);
 		});
 
