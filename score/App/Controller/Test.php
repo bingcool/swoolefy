@@ -11,7 +11,7 @@ class Test extends BController {
 		parent::__construct();
 	}
 	public function test() {		
-		$this->assign('name','bingcool'.rand(1,100));
+		$this->assign('name','bingcoolhuang'.rand(1,100));
 		$this->display('test.html');
 	}
 

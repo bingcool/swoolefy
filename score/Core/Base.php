@@ -11,7 +11,7 @@ class Base {
 
 	/**
 	 * $_startTime 进程启动时间
-	 * @var integer
+	 * @var int
 	 */
 	protected static $_startTime = 0;
 
@@ -50,7 +50,8 @@ class Base {
 		
 	}
 	/**
-	 * setMasterProcessName设置主进程名称
+	 * setMasterProcessName 设置主进程名称
+	 * @param    $master_process_name
 	 */
 	public static function setMasterProcessName($master_process_name) {
 
@@ -58,7 +59,8 @@ class Base {
 	}
 
 	/**
-	 * setManagerProcessName设置管理进程名称
+	 * setManagerProcessName 设置管理进程的名称
+	 * @param    $manager_process_name
 	 */
 	public static function setManagerProcessName($manager_process_name) {
 		swoole_set_process_name($manager_process_name);
@@ -66,6 +68,9 @@ class Base {
 
 	/**
 	 * setWorkerProcessName设置worker进程名称
+	 * @param    $worker_process_name
+	 * @param    $worker_id          
+	 * @param    $worker_num         
 	 */
 	public static function setWorkerProcessName($worker_process_name, $worker_id, $worker_num=1) {
 		// 设置worker的进程
@@ -79,6 +84,8 @@ class Base {
 
 	/**
 	 * startInclude设置需要在workerstart启动时加载的配置文件
+	 * @param    $includes 
+	 * @return   void
 	 */
 	public static function startInclude($includes = []) {
 		if($includes) {
@@ -90,6 +97,7 @@ class Base {
 
 	/**
 	 * setWorkerUserGroup 设置worker进程的工作组，默认是root
+	 * @param    $worker_user
 	 */
 	public static function setWorkerUserGroup($worker_user=null) {
 		if(!isset(static::$setting['user'])) {
@@ -105,6 +113,7 @@ class Base {
 
 	/**
 	 * checkVersion 检查是否安装基础扩展
+	 * @return   void
 	 */
 	public static function checkVersion() {
 		if(version_compare(phpversion(), '5.6.0', '<')) {
@@ -201,7 +210,7 @@ class Base {
 
 	/**
 	 * getLocalMac 获取本机mac地址
-	 * @return   arra
+	 * @return   array
 	 */
 	public static function getLocalMac() {
 		return swoole_get_local_mac();
@@ -217,6 +226,7 @@ class Base {
 
 	/**
 	 * setTimeZone 设置时区
+	 * @return   void
 	 */
 	public static function setTimeZone() {
 		if(isset(static::$config['time_zone'])) {
@@ -226,7 +236,7 @@ class Base {
 
 	/**
 	 * clearCache
-	 * @return  
+	 * @return  void
 	 */
 	public static function clearCache() {
 		if(function_exists('apc_clear_cache')){
@@ -238,9 +248,22 @@ class Base {
 	}
 
 	/**
-	 * createTables
-	 * @param    
-	 * @return  
+	 * getIncludeFiles
+	 * @return   void
+	 */
+	public static function getIncludeFiles() {
+		$filePath = __DIR__.'/includes.json';
+		$includes = get_included_files();
+		if(is_file($filePath)) {
+			@unlink($filePath);	
+		}
+		@file_put_contents($filePath, json_encode($includes));
+		@chmod($filePath,0766);
+	}
+
+	/**
+	 * createTables 默认创建定时器任务的内存表    
+	 * @return  void
 	 */
 	public static function createTables() {
 			if(!isset(static::$config['table']) || !is_array(static::$config['table'])) {
@@ -275,7 +298,7 @@ class Base {
 
 	/**
 	 * checkSapiEnv
-	 * @return
+	 * @return void
 	 */
 	public static function checkSapiEnv() {
         // Only for cli.

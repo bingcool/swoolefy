@@ -66,7 +66,7 @@ class HttpServer extends Base {
 		parent::__construct();
 		// 初始化启动类
 		$startClass = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Http\\StartInit';
-		$this->startctrl = new $startClass();
+		$this->startctrl = new $startClass;
 	}
 
 	public function start() {
@@ -93,6 +93,8 @@ class HttpServer extends Base {
 		 * 启动worker进程监听回调，设置定时器
 		 */
 		$this->webserver->on('WorkerStart',function(http_server $server, $worker_id) {
+			// 记录主进程加载的公共files,worker重启不会在加载的
+			self::getIncludeFiles();
 			// 重启worker时，刷新字节cache
 			self::clearCache();
 			// 启动时提前加载文件

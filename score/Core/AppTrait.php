@@ -157,7 +157,7 @@ trait AppTrait {
 	/**
 	 * rememberUrl
 	 * @param    $url
-	 * @return       
+	 * @return   void   
 	 */
 	public function rememberUrl($name=null,$url=null,$ssl=false) {
 		if($url && $name) {
@@ -251,7 +251,7 @@ trait AppTrait {
 	 * assign
 	 * @param   $name
 	 * @param   $value
-	 * @return       
+	 * @return  void   
 	 */
 	public function assign($name,$value) {
 		Application::$app->view->assign($name,$value);
@@ -260,7 +260,7 @@ trait AppTrait {
 	/**
 	 * display
 	 * @param    $template_file
-	 * @return                 
+	 * @return   void             
 	 */
 	public function display($template_file=null) {
 		Application::$app->view->display($template_file);
@@ -269,7 +269,7 @@ trait AppTrait {
 	/**
 	 * fetch
 	 * @param    $template_file
-	 * @return                 
+	 * @return   void              
 	 */
 	public function fetch($template_file=null) {
 		Application::$app->view->display($template_file);
@@ -279,7 +279,7 @@ trait AppTrait {
 	 * returnJson
 	 * @param    $data    
 	 * @param    $formater
-	 * @return            
+	 * @return   void         
 	 */
 	public function returnJson($data,$formater = 'json') {
 		Application::$app->view->returnJson($data,$formater);
@@ -294,7 +294,7 @@ trait AppTrait {
 	 * @param    $url
 	 * @param    $params eg:['name'=>'ming','age'=>18]
 	 * @param    $code default 302
-	 * @return   
+	 * @return   void
 	 */
 	public function redirect($url,array $params=[],$code=302) {
 		$query_string = '';
@@ -337,10 +337,28 @@ trait AppTrait {
 
 	/**
 	 * getStats 获取swoole的状态
-	 * @return   [type]        [description]
+	 * @return   array
 	 */
 	public function getSwooleStats() {
 		return Swfy::$server->stats();
+	}
+
+	/**
+	 * getIncludeFiles description
+	 * @return   array|boolean
+	 */
+	public function getIncludeFiles() {
+		$filePath = __DIR__.'/includes.json';
+		if(is_file($filePath)) {
+			$includes_string = file_get_contents();
+			if($includes_string) {
+				return json_decode($includes_string);
+			}else {
+				return false;
+			}
+		}
+		return false;
+		
 	}
 
 	// public function 
@@ -380,9 +398,8 @@ trait AppTrait {
 	}
 	/**
 	 * sendHttpStatus,参考tp的
-	 * @param    {String}
-	 * @param    [type]        $code [description]
-	 * @return   [type]              [description]
+	 * @param    $code
+	 * @return   void     
 	 */
 	public function status($code) {
 		$http_status = array(
