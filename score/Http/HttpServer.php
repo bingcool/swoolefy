@@ -1,6 +1,7 @@
 <?php
 namespace Swoolefy\Http;
-include_once "../../vendor/autoload.php";
+
+include_once "/home/wwwroot/default/swoolefy/vendor/autoload.php";
 
 use Swoole\Http\Server as http_server;
 use Swoolefy\Core\Base;
@@ -51,6 +52,8 @@ class HttpServer extends Base {
 	 * @param array $config
 	 */
 	public function __construct(array $config=[]) {
+		// 刷新字节缓存
+		self::clearCache();
 
 		self::$config = array_merge(
 					include(__DIR__.'/config.php'),
@@ -90,6 +93,8 @@ class HttpServer extends Base {
 		 * 启动worker进程监听回调，设置定时器
 		 */
 		$this->webserver->on('WorkerStart',function(http_server $server, $worker_id) {
+			// 重启worker时，刷新字节cache
+			self::clearCache();
 			// 启动时提前加载文件
 			$includeFiles = isset(self::$config['include_files']) ? self::$config['include_files'] : [];
 			self::startInclude($includeFiles);
@@ -112,18 +117,24 @@ class HttpServer extends Base {
 		$this->webserver->on('WorkerStop',function(http_server $server, $worker_id) {
 			// worker停止的触发函数
 			$this->startctrl->workerStop($server,$worker_id);
+			
 		});
 
 		/**
 		 * 接受http请求
 		 */
 		$this->webserver->on('request',function(Request $request, Response $response) {
-			// google浏览器会自动发一次请求/favicon.ico,在这里过滤掉
-			if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
+			try{
+				// google浏览器会自动发一次请求/favicon.ico,在这里过滤掉
+				if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
             		return $response->end();
-       		}
-       		
-			swoole_unpack(self::$App)->run($request, $response);
+       			}
+				swoole_unpack(self::$App)->run($request, $response);
+
+			}catch(\Exception $e) {
+				var_dump('error');
+			}
+			
 		});
 
 		$this->webserver->start();

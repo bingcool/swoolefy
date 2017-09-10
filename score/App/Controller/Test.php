@@ -10,15 +10,8 @@ class Test extends BController {
 	public function __construct() {
 		parent::__construct();
 	}
-
-	public function test() {
-		
-		$task1 = Swfy::$server->table_ticker->get('tick_timer_task','tick_tasks');
-		// $task2 = Swfy::$server->table_after->get('after_timer_task','after_tasks');
-		var_dump($task1);
-		// var_dump(json_decode($task2,true));
-
-		$this->assign('name','hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh'.rand(1,100));
+	public function test() {		
+		$this->assign('name','bingcool'.rand(1,100));
 		$this->display('test.html');
 	}
 

@@ -111,11 +111,11 @@ class App {
 	 */
 	public function init() {
 		// 初始化启动session
-		if(!isset($this->config['session_start']) || (isset($this->config['session_start']) && $this->config['session_start'] === true)) {
-			if(!isset($_SESSION)) {
-				session_start();
-			}
-		}
+		// if(!isset($this->config['session_start']) || (isset($this->config['session_start']) && $this->config['session_start'] === true)) {
+		// 	if(!isset($_SESSION)) {
+		// 		session_start();
+		// 	}
+		// }
 	}
 
 	/**

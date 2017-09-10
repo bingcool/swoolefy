@@ -21,15 +21,15 @@ class Base {
 	 */
 	public static $_table_tasks = [
 		'table_ticker' => [
-			'size' => 1024,
+			'size' => 8096,
 			'fields'=> [
-				['tick_tasks','string',512]
+				['tick_tasks','string',8096]
 			]
 		],
 		'table_after' => [
-			'size' => 1024,
+			'size' => 8096,
 			'fields'=> [
-				['after_tasks','string',512]
+				['after_tasks','string',8096]
 			]
 		],
 	];
@@ -133,6 +133,16 @@ class Base {
 	}
 
 	/**
+	 * filterFaviconIcon google浏览器会自动发一次请求/favicon.ico,在这里过滤掉
+	 * @return  void
+	 */
+	public static function filterFaviconIcon($request,$response) {
+		if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
+            return $response->end();
+       	}
+	}
+
+	/**
 	 * getStartTime 服务启动时间
 	 * @return   time
 	 */
@@ -142,7 +152,7 @@ class Base {
 
 	/**
 	 * getConfig 获取服务的全部配置
-	 * @return   [type]        [description]
+	 * @return   array
 	 */
 	public static function getConfig() {
 		static::$config['setting'] = self::getSetting();
@@ -212,6 +222,19 @@ class Base {
 		if(isset(static::$config['time_zone'])) {
 			date_default_timezone_set(static::$config['time_zone']);
 		}
+	}
+
+	/**
+	 * clearCache
+	 * @return  
+	 */
+	public static function clearCache() {
+		if(function_exists('apc_clear_cache')){
+        	apc_clear_cache();
+    	}
+	    if(function_exists('opcache_reset')){
+	        opcache_reset();
+	    }
 	}
 
 	/**

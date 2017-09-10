@@ -13,8 +13,9 @@ class daemon {
 	 */
 	public function autoReload() {
 		$autoReload = new autoReload();
-		$autoReload->afterNSeconds = 5;
-		$autoReload->isOnline = true;
+		$autoReload->afterNSeconds = 3;
+		$autoReload->isOnline = false;
+		$autoReload->monitorPort = 9502;
 
 		$autoReload->smtpTransport = [
 			"server_host"=>"smtp.163.com",
@@ -42,7 +43,7 @@ class daemon {
 		// 初始化配置
 		$autoReload->init();
 		// 开始监听
-		$autoReload->watch('/home/wwwroot/default');
+		$autoReload->watch('/home/wwwroot/default/');
 	}
 
 	// 启动服务的eventloop

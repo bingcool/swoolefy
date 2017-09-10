@@ -26,9 +26,9 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 * @return   
 	 */
 	public function onWorkerStart($server,$worker_id){
-		if($worker_id == 0) {
-			$tid = \Swoolefy\Core\Timer\Tick::afterTimer(10000,['App\\Controller\\Test','mytest'],[['name'=>'bing']]);
-		}
+		// if($worker_id == 0) {
+		// 	$tid = \Swoolefy\Core\Timer\Tick::afterTimer(10000,['App\\Controller\\Test','mytest'],[['name'=>'bing']]);
+		// }
 	}
 
 	/**

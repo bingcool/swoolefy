@@ -127,6 +127,7 @@ class HttpRoute extends Dispatch {
 					$tpl404 = file_get_contents(TEMPLATE_PATH.DIRECTORY_SEPARATOR.$this->config['not_found_template']);
 					$this->response->end($tpl404);
 				}
+				return;
 			}
 
 			// 访问类的命名空间
@@ -139,9 +140,11 @@ class HttpRoute extends Dispatch {
 				$this->response->header('Content-Type','text/html; charset=UTF-8');
 				if(SW_DEBUG) {
 					$this->response->end($filePath.' is not exit!');
+					return;
 				}else {
 					$tpl404 = file_get_contents(TEMPLATE_PATH.DIRECTORY_SEPARATOR.$this->config['not_found_template']);
 					$this->response->end($tpl404);
+					return;
 				}
 			}
 
@@ -169,6 +172,7 @@ class HttpRoute extends Dispatch {
 					$tpl404 = file_get_contents(TEMPLATE_PATH.DIRECTORY_SEPARATOR.$this->config['not_found_template']);
 					$this->response->end($tpl404);
 				}
+				return;
 			}
 		}else {
 			$this->response->status(404);
@@ -179,6 +183,7 @@ class HttpRoute extends Dispatch {
 				$tpl404 = file_get_contents(TEMPLATE_PATH.DIRECTORY_SEPARATOR.$this->config['not_found_template']);
 				$this->response->end($tpl404);
 			}
+			return;
 		}
 	}
 
