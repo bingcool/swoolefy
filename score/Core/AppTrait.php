@@ -347,10 +347,12 @@ trait AppTrait {
 	 * getIncludeFiles description
 	 * @return   array|boolean
 	 */
-	public function getIncludeFiles() {
-		$filePath = __DIR__.'/includes.json';
+	public function getIncludeFiles($dir='http') {
+		$dir = ucfirst($dir);
+		var_dump($dir);
+		$filePath = __DIR__.'/../'.$dir.'/'.$dir.'_'.'includes.json';
 		if(is_file($filePath)) {
-			$includes_string = file_get_contents();
+			$includes_string = file_get_contents($filePath);
 			if($includes_string) {
 				return json_decode($includes_string);
 			}else {

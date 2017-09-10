@@ -251,8 +251,9 @@ class Base {
 	 * getIncludeFiles
 	 * @return   void
 	 */
-	public static function getIncludeFiles() {
-		$filePath = __DIR__.'/includes.json';
+	public static function getIncludeFiles($dir='Http') {
+		$dir = ucfirst($dir);
+		$filePath = __DIR__.'/../'.$dir.'/'.$dir.'_'.'includes.json';
 		$includes = get_included_files();
 		if(is_file($filePath)) {
 			@unlink($filePath);	

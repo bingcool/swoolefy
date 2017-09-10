@@ -97,9 +97,6 @@ class HttpServer extends Base {
 			self::getIncludeFiles();
 			// 重启worker时，刷新字节cache
 			self::clearCache();
-			// 启动时提前加载文件
-			$includeFiles = isset(self::$config['include_files']) ? self::$config['include_files'] : [];
-			self::startInclude($includeFiles);
 			// 重新设置进程名称
 			self::setWorkerProcessName(self::$config['worker_process_name'], $worker_id, self::$setting['worker_num']);
 			// 设置worker工作的进程组
@@ -109,6 +106,9 @@ class HttpServer extends Base {
 			// 超全局变量server
        		Swfy::$server = $this->webserver;
        		Swfy::$config = self::$config;
+       		// 启动时提前加载文件
+			$includeFiles = isset(self::$config['include_files']) ? self::$config['include_files'] : [];
+			self::startInclude($includeFiles);
        		// 启动的初始化函数
 			$this->startctrl->workerStart($server,$worker_id);
 		});

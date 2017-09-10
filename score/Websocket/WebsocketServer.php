@@ -93,11 +93,10 @@ class WebsocketServer extends Base {
 		 * 启动worker进程监听回调，设置定时器
 		 */
 		$this->webserver->on('WorkerStart',function(websocket_server $server, $worker_id) {
+			// 记录主进程加载的公共files,worker重启不会在加载的
+			self::getIncludeFiles('websocket');
 			// 重启worker时，清空字节cache
 			self::clearCache();
-			// 启动时提前加载文件
-			$includeFiles = isset(self::$config['include_files']) ? self::$config['include_files'] : [];
-			self::startInclude($includeFiles);
 			// 重新设置进程名称
 			self::setWorkerProcessName(self::$config['worker_process_name'], $worker_id, self::$setting['worker_num']);
 			// 设置worker工作的进程组
@@ -107,6 +106,9 @@ class WebsocketServer extends Base {
 			// 超全局变量server
 	       	Swfy::$server = $this->webserver;
 	       	Swfy::$config = self::$config;
+	       	// 启动时提前加载文件
+			$includeFiles = isset(self::$config['include_files']) ? self::$config['include_files'] : [];
+			self::startInclude($includeFiles);
 			// 启动的初始化函数
 			$this->startctrl->workerStart($server,$worker_id);
 		});

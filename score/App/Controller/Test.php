@@ -10,7 +10,10 @@ class Test extends BController {
 	public function __construct() {
 		parent::__construct();
 	}
-	public function test() {		
+	public function test() {
+		$includes = $this->getIncludeFiles();
+		$this->dump($includes);
+			
 		$this->assign('name','bingcoolhuang'.rand(1,100));
 		$this->display('test.html');
 	}
