@@ -1,7 +1,7 @@
 <?php
 namespace Swoolefy\Core;
 
-class Base {
+class BaseServer {
 
 	/**
 	 * $server

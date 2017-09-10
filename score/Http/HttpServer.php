@@ -1,15 +1,15 @@
 <?php
 namespace Swoolefy\Http;
 
-include_once "/home/wwwroot/default/swoolefy/vendor/autoload.php";
+include_once '../../vendor/autoload.php';
 
 use Swoole\Http\Server as http_server;
-use Swoolefy\Core\Base;
+use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Swfy;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 
-class HttpServer extends Base {
+class HttpServer extends BaseServer {
 
 	/**
 	 * $config

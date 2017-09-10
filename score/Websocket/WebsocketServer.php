@@ -1,15 +1,15 @@
 <?php
 namespace Swoolefy\Websocket;
 
-include_once "../../vendor/autoload.php";
+include_once '../../vendor/autoload.php';
 
 use Swoole\WebSocket\Server as websocket_server;
-use Swoolefy\Core\Base;
+use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Swfy;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 
-class WebsocketServer extends Base {
+class WebsocketServer extends BaseServer {
 
 	/**
 	 * $config
