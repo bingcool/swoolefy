@@ -4,17 +4,16 @@ namespace App\Controller;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
+use Swoolefy\Http\HttpServer;
 
-class Test extends BController {
+class TestController extends BController {
 
 	public function __construct() {
 		parent::__construct();
 	}
 	public function test() {
-		$includes = $this->getIncludeFiles();
-		$this->dump($includes);
-			
-		$this->assign('name','bingcoolhuang'.rand(1,100));
+		var_dump($this->getIncludeFiles());
+		$this->assign('name','bingcool'.rand(1,100));
 		$this->display('test.html');
 	}
 

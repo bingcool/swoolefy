@@ -148,7 +148,7 @@ class HttpRoute extends Dispatch {
 			}
 
 			// 访问类的命名空间
-			$class = $this->config['default_namespace'].'\\'.'Controller'.'\\'.$controller;
+			$class = $this->config['default_namespace'].'\\'.'Controller'.'\\'.$controller.'Controller';
 		}
 		// 创建控制器实例
 		$controllerInstance = new $class();

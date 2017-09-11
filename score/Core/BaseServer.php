@@ -49,6 +49,37 @@ class BaseServer {
 		self::createTables();
 		
 	}
+
+	/**
+	 * checkVersion 检查是否安装基础扩展
+	 * @return   void
+	 */
+	public static function checkVersion() {
+		if(version_compare(phpversion(), '5.6.0', '<')) {
+			throw new \Exception("php version must be > 5.6.0,we suggest use php7.0+ version", 1);
+		}
+
+		if(!extension_loaded('swoole')) {
+			throw new \Exception("you are not install swoole extentions,please install it where version >= 1.9.17 or >=2.0.5 from https://github.com/swoole/swoole-src", 1);
+		}
+
+		if(!extension_loaded('swoole_serialize')) {
+			throw new \Exception("you are not install swoole_serialize extentions,please install it where from https://github.com/swoole/swoole_serialize", 1);
+		}
+
+		if(!extension_loaded('pcntl')) {
+			throw new \Exception("you are not install pcntl extentions,please install it", 1);
+		}
+
+		if(!extension_loaded('posix')) {
+			throw new \Exception("you are not install posix extentions,please install it", 1);
+		}
+
+		if(!extension_loaded('zlib')) {
+			throw new \Exception("you are not install zlib extentions,please install it", 1);
+		}
+	}
+
 	/**
 	 * setMasterProcessName 设置主进程名称
 	 * @param    $master_process_name
@@ -87,9 +118,10 @@ class BaseServer {
 	 * @param    $includes 
 	 * @return   void
 	 */
-	public static function startInclude($includes = []) {
-		if($includes) {
-			foreach($includes as $filePath) {
+	public static function startInclude() {
+		$includeFiles = isset(static::$config['include_files']) ? static::$config['include_files'] : [];
+		if($includeFiles) {
+			foreach($includeFiles as $filePath) {
 				include_once $filePath;
 			}
 		}
@@ -108,36 +140,6 @@ class BaseServer {
 					posix_setgid($userInfo['gid']);
 				}
 			}
-		}
-	}
-
-	/**
-	 * checkVersion 检查是否安装基础扩展
-	 * @return   void
-	 */
-	public static function checkVersion() {
-		if(version_compare(phpversion(), '5.6.0', '<')) {
-			throw new \Exception("php version must be > 5.6.0,we suggest use php7.0+ version", 1);
-		}
-
-		if(!extension_loaded('swoole')) {
-			throw new \Exception("you are not install swoole extentions,please install it where version >= 1.9.17 or >=2.0.5 from https://github.com/swoole/swoole-src", 1);
-		}
-
-		if(!extension_loaded('swoole_serialize')) {
-			throw new \Exception("you are not install swoole_serialize extentions,please install it where from https://github.com/swoole/swoole_serialize", 1);
-		}
-
-		if(!extension_loaded('pcntl')) {
-			throw new \Exception("you are not install pcntl extentions,please install it", 1);
-		}
-
-		if(!extension_loaded('posix')) {
-			throw new \Exception("you are not install posix extentions,please install it", 1);
-		}
-
-		if(!extension_loaded('zlib')) {
-			throw new \Exception("you are not install zlib extentions,please install it", 1);
 		}
 	}
 

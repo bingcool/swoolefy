@@ -107,8 +107,7 @@ class WebsocketServer extends BaseServer {
 	       	Swfy::$server = $this->webserver;
 	       	Swfy::$config = self::$config;
 	       	// 启动时提前加载文件
-			$includeFiles = isset(self::$config['include_files']) ? self::$config['include_files'] : [];
-			self::startInclude($includeFiles);
+			self::startInclude();
 			// 启动的初始化函数
 			$this->startctrl->workerStart($server,$worker_id);
 		});

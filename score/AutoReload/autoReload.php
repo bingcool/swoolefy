@@ -21,7 +21,7 @@ class autoReload {
 	 * $reloadFileTypes,定义哪些文件的改动将触发swoole服务重启
 	 * @var array
 	 */
-	protected $reloadFileTypes = ['.php' => true];
+	protected $reloadFileTypes = ['.php'];
 
 	/**
 	 * $watchFiles,保存监听的文件句柄
@@ -153,7 +153,7 @@ class autoReload {
                         // 获取改动文件文件的后缀名
                         $fileType = '.'.pathinfo($ev['name'], PATHINFO_EXTENSION);
                         //非重启类型
-                        if (!isset($this->reloadFileTypes[$fileType]))
+                        if(!in_array($fileType, $this->reloadFileTypes))
                         {
                             continue;
                         }
@@ -293,7 +293,8 @@ class autoReload {
      */
     public function addFileType($type) {
         $type = trim($type, '.');
-        $this->reloadFileTypes['.' . $type] = true;
+        $fileType = '.'.$type;
+        array_push($this->reloadFileTypes,$fileType);
     }
 
     /**
@@ -360,7 +361,7 @@ class autoReload {
             //检测文件类型
             $fileType = '.'.pathinfo($f, PATHINFO_EXTENSION);
 
-            if (isset($this->reloadFileTypes[$fileType]))
+            if(in_array($fileType, $this->reloadFileTypes))
             {
                 $wd = inotify_add_watch($this->inotify, $path, $this->events);
                 $this->watchFiles[$path] = $wd;
