@@ -12,9 +12,9 @@ class TestController extends BController {
 		parent::__construct();
 	}
 	public function test() {
-		var_dump($this->getIncludeFiles());
 		$this->assign('name','bingcool'.rand(1,100));
 		$this->display('test.html');
+
 	}
 
 	public function testajax() {
@@ -28,7 +28,7 @@ class TestController extends BController {
 		self::rememberUrl('mytest','/Test/test');
 		
 		$this->assign('name','NKLC');
-		$url = (self::getPreviousUrl('mytest'));
+		$url = (parent::getPreviousUrl('mytest'));
 		$this->redirect($url);
 
 		$this->display('test.html');

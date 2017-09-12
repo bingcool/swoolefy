@@ -8,7 +8,7 @@ use Monolog\Handler\StreamHandler;
 use Swoolefy\Tool\ArrayHelper\ArrayForHelp;
 use Swoolefy\Core\HttpRoute;
 
-class App {
+class App extends \Swoolefy\Core\Component {
 	/**
 	 * $request 当前请求的对象
 	 * @var null
@@ -37,72 +37,17 @@ class App {
 	 * $components
 	 * @var array
 	 */
-	public static $components = [];
+	public static $_components = [];
 	/**
 	 * __construct
 	 * @param $config 应用层配置
 	 */
 	public function __construct(array $config=[]) {
 		$this->config = $config;
-		$this->creatObject();
+		parent::creatObject();
 		// 注册错误处理事件
 		register_shutdown_function('Swoolefy\Core\App::fatalError');
       	set_exception_handler('Swoolefy\Core\App::appException');
-	}
-
-	/**
-	 * creatObj
-	 * @param    $config
-	 * $config = [
-	 * 	   type=>'view',
-	 * 	   class=>'Swoolefy\Core\View',
-	 * 	   ......
-	 * ];
-	 * @return   
-	 */
-	public function creatObject(array $config=[]) {
-		// 动态创建公用组件
-		if($config) {
-			$com_name = $config['type'];
-			if(!isset(self::$components[$com_name])) {
-				$class = $config['class'];
-				self::$components[$com_name] = Swfy::$Di[$com_name] = new $class();
-			}
-			return self::$components[$com_name];
-		}
-		// 配置文件初始化创建公用对象
-		foreach($this->config['components'] as $key=>$component) {
-			if(isset($component['class']) && $component['class'] != '') {
-				$class = $component['class'];
-				self::$components[$key] = Swfy::$Di[$key] = new $class();
-			}
-		}
-
-	}
-
-	/**
-	 * __set
-	 * @param    $name 
-	 * @param    $value
-	 * @return   
-	 */
-	public function __set($name,$value) {
-		if(!isset($name) && $value !='') {
-			self::$components[$name] = $value;
-		}
-	}
-
-	/**
-	 * __get
-	 * @param    $name
-	 * @return   
-	 */
-	public function __get($name) {
-		if(!isset($this->$name)) {
-			if(isset(self::$components[$name])) {
-				return self::$components[$name];
-			}	
-		}
 	}
 
 	/**

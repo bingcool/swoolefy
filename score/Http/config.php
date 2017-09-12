@@ -5,7 +5,7 @@ return [
 	'start_init' => 'Swoolefy\\Http\\StartInit',
 	'master_process_name' => 'php-http-master',
 	'manager_process_name' => 'php-http-manager',
-	'worker_process_name' => 'php-http-monitor',
+	'worker_process_name' => 'php-http-worker',
 	'www_user' => 'www',
 	'host' => '0.0.0.0',
 	'port' => '9502',

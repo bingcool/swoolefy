@@ -13,6 +13,7 @@ return [
 	'components' => [
 		'view' => [
 			'class' => 'Swoolefy\Core\View',
+			'constructor' => ['text/html','jkjkkkkkkkkkkkkkkkkkkkkk'],
 		],
 	],
 ];

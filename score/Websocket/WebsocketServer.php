@@ -103,11 +103,11 @@ class WebsocketServer extends BaseServer {
 			self::setWorkerUserGroup(self::$config['www_user']);
 			// 初始化整个应用对象
 			self::$App = swoole_pack(self::$config['application_index']::getInstance($config=[]));
+	       	// 启动时提前加载文件
+			self::startInclude();
 			// 超全局变量server
 	       	Swfy::$server = $this->webserver;
 	       	Swfy::$config = self::$config;
-	       	// 启动时提前加载文件
-			self::startInclude();
 			// 启动的初始化函数
 			$this->startctrl->workerStart($server,$worker_id);
 		});
