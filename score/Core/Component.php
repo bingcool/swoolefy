@@ -2,6 +2,13 @@
 namespace Swoolefy\Core;
 
 class Component {
+
+	/**
+	 * $components
+	 * @var array
+	 */
+	public static $_components = [];
+
 	/**
 	 * __set
 	 * @param    $name 
@@ -31,7 +38,7 @@ class Component {
 	}
 
 	/**
-	 * [creatObject description]
+	 * creatObject 创建组件对象
 	 * @param    $type
 	 * @param    $defination
 	 * @return   array
@@ -41,24 +48,32 @@ class Component {
 		if($type) {
 			$com_name = $type;
 			if(!isset(static::$_components[$com_name])) {
-				$class = $defination['class'];
-				unset($defination['class']);
-				$params = [];
-				if(isset($defination['constructor'])){
-					$params = $defination['constructor'];
-					unset($defination['constructor']);
+				if(isset($defination['class'])) {
+					$class = $defination['class'];
+					unset($defination['class']);
+					$params = [];
+					if(isset($defination['constructor'])){
+						$params = $defination['constructor'];
+						unset($defination['constructor']);
+					}
+					return static::$_components[$com_name] = Swfy::$Di[$com_name] = $this->build($class, $defination, $params);
+				}else {
+					throw new \Exception("component:".$com_name.'must be set class', 1);
 				}
-				return static::$_components[$key] = Swfy::$Di[$key] = $this->build($class, $defination, $params);
+				
 			}else {
 				return static::$_components[$com_name];
 			}
 			
 		}
-
 		// 配置文件初始化创建公用对象
 		$coreComponents = $this->coreComponents();
 		$components = array_merge($coreComponents,$this->config['components']);
 		foreach($components as $key=>$component) {
+			// 如果存在直接跳过，下一个
+			if(isset(static::$_components[$key])) {
+				continue;
+			}
 			if(isset($component['class']) && $component['class'] != '') {
 				$class = $component['class'];
 				unset($component['class']);
@@ -69,8 +84,12 @@ class Component {
 				}
 				$defination = $component;
 				static::$_components[$key] = Swfy::$Di[$key] = $this->build($class, $defination, $params);
+			}else {
+				throw new \Exception("component:".$key.'must be set class', 1);
+				  
 			}
-		}	
+		}
+		return static::$_components;
 
 	}
 
