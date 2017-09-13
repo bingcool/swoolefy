@@ -32,8 +32,9 @@ class Component {
 				if(is_object(static::$_components[$name])) {
 					return static::$_components[$name];
 				}
-				return false;	
-			}	
+				return false;
+			}
+			return false;	
 		}
 	}
 
@@ -43,11 +44,10 @@ class Component {
 	 * @param    $defination
 	 * @return   array
 	 */
-	public function creatObject($type=null,array $defination=[]) {
+	public function creatObject($com_alias_name=null,array $defination=[]) {
 		// 动态创建公用组件
-		if($type) {
-			$com_name = $type;
-			if(!isset(static::$_components[$com_name])) {
+		if($com_alias_name) {
+			if(!isset(static::$_components[$com_alias_name])) {
 				if(isset($defination['class'])) {
 					$class = $defination['class'];
 					unset($defination['class']);
@@ -56,13 +56,13 @@ class Component {
 						$params = $defination['constructor'];
 						unset($defination['constructor']);
 					}
-					return static::$_components[$com_name] = Swfy::$Di[$com_name] = $this->build($class, $defination, $params);
+					return static::$_components[$com_alias_name] = Swfy::$Di[$com_alias_name] = $this->buildObject($class, $defination, $params);
 				}else {
-					throw new \Exception("component:".$com_name.'must be set class', 1);
+					throw new \Exception("component:".$com_alias_name.'must be set class', 1);
 				}
 				
 			}else {
-				return static::$_components[$com_name];
+				return static::$_components[$com_alias_name];
 			}
 			
 		}
@@ -83,7 +83,7 @@ class Component {
 					unset($component['constructor']);
 				}
 				$defination = $component;
-				static::$_components[$key] = Swfy::$Di[$key] = $this->build($class, $defination, $params);
+				static::$_components[$key] = Swfy::$Di[$key] = $this->buildObject($class, $defination, $params);
 			}else {
 				throw new \Exception("component:".$key.'must be set class', 1);
 				  
@@ -116,10 +116,10 @@ class Component {
     }
 
     /**
-     * build
+     * buildObject
      * @return  object
      */
-	public function build($class, $config, $params) {
+	protected function buildObject($class, $defination, $params) {
 		list ($reflection, $dependencies) = $this->getDependencies($class);
 
         foreach ($params as $index => $param) {
@@ -128,12 +128,12 @@ class Component {
         if(!$reflection->isInstantiable()) {
             throw new \Exception($reflection->name);
         }
-        if(empty($config)) {
+        if(empty($defination)) {
             return $reflection->newInstanceArgs($dependencies);
         }
 
         $object = $reflection->newInstanceArgs($dependencies);
-        foreach ($config as $name => $value) {
+        foreach ($defination as $name => $value) {
             $object->$name = $value;
         }
         return $object;
@@ -146,6 +146,19 @@ class Component {
 	public function getComponents() {
 		return static::$_components;
 	}
+
+	/**
+	 * clearComponent
+	 * @param    $component_alias_name
+	 * @return   boolean
+	 */
+	public function clearComponent($com_alias_name=null) {    
+       if($com_alias_name) {
+       		unset(static::$_components[$com_alias_name]);
+       		return true;
+       }
+       return false;
+    }
 
 	/**
 	 * coreComponents 定义核心组件

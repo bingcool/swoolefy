@@ -114,18 +114,18 @@ class App extends \Swoolefy\Core\Component {
               case E_COMPILE_ERROR:
               case E_USER_ERROR:  
                 @ob_end_clean();
-                self::halt($e);
+                self::shutHalt($e);
                 break;
             }
         }
     }
 
     /**
-     * 错误输出
+     * 错误输出日志
      * @param  $error 错误
      * @return void
      */
-    public static function halt($error) {
+    public static function shutHalt($error) {
         $Log = new \Swoolefy\Tool\Log('Application',APP_PATH.'/runtime.log');
         $Log->addError($error['message']);
     }
@@ -146,7 +146,7 @@ class App extends \Swoolefy\Core\Component {
             $error['line']  =   $e->getLine();
         }
         $error['trace']     =   $e->getTraceAsString();
-        self::halt($error);
+        self::shutHalt($error);
     }
 
 	//使用trait的复用特性
