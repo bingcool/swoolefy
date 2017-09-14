@@ -9,25 +9,25 @@ class Log {
 	 * $formatter,格式化对象
 	 * @var null
 	 */
-	private $formatter = null;
+	public $formatter = null;
 
 	/**
 	 * $channel,日志的通过主题，关于那方面的日志
 	 * @var null
 	 */
-	private $channel = null;
+	public $channel = null;
 
 	/**
 	 * $logFilePath
 	 * @var null
 	 */
-	private $logFilePath = null;
+	public $logFilePath = null;
 
 	/**
 	 * $output,默认定义输出日志的文本格式
 	 * @var string
 	 */
-	const output = "[%datetime%] %channel% > %level_name% : %message% \n";
+	public $output = "[%datetime%] %channel% > %level_name% : %message% \n";
 	
 	/**
 	 * __construct
@@ -35,9 +35,40 @@ class Log {
 	public function __construct($channel=null,$logFilePath=null,$output=null,$dateformat=null) {
 		$this->channel = $channel;
 		$this->logFilePath = $logFilePath;
-		$outputfomat = $output ? $output : self::output;
+		$output && $this->output = $output;
 		//$formatter对象
-		$this->formatter = new LineFormatter($outputfomat,$dateformat);
+		$this->formatter = new LineFormatter($this->output,$dateformat);
+	}
+
+	/**
+	 * setChannel
+	 * @param    $channel 
+	 * @return   this 
+	 */
+	public function setChannel($channel) {
+		$this->channel = $channel;
+		return $this;
+	}
+
+	/**
+	 * setLogFilePath
+	 * @param   $logFilePath
+	 * @return  this
+	 */
+	public function setLogFilePath($logFilePath) {
+		$this->logFilePath = $logFilePath;
+		return $this;
+	}
+
+	/**
+	 * setOutputFormat
+	 * @param    $output
+	 * @return   this
+	 */
+	public function setOutputFormat($output) {
+		$this->output = $output;
+		$this->formatter = new LineFormatter($this->output,$dateformat=null);
+		return $this;
 	}
 
 	/**

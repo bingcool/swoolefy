@@ -8,7 +8,15 @@ class Swfy {
 	 */
 	public static $server;
 
+	/**
+	 * $Di
+	 * @var array
+	 */
 	public static $Di = [];
 
+	/**
+	 * $config
+	 * @var null
+	 */
 	public static $config = null;
 }

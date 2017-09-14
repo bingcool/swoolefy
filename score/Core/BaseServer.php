@@ -43,11 +43,10 @@ class BaseServer {
 		self::checkSapiEnv();
 		// set timeZone
 		self::setTimeZone(); 
-		// record start time
-		self::$_startTime = date('Y-m-d H:i:s',strtotime('now'));
 		// create table
 		self::createTables();
-		
+		// record start time
+		self::$_startTime = date('Y-m-d H:i:s',strtotime('now'));
 	}
 
 	/**

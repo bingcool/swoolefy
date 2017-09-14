@@ -1,6 +1,7 @@
 <?php
 namespace Swoolefy\Core\Controller;
 
+use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 
 class BController {
@@ -32,7 +33,7 @@ class BController {
 		$this->config = Application::$app->config;
 
 		//执行具体方法之前执行,在子类可以重写这个方法
-		static::_beforeAction();
+		call_user_func([$this,'_beforeAction']);
 	}
 
 	/**
@@ -69,12 +70,12 @@ class BController {
 	 */
 	public function __destruct() {
 		if(method_exists($this,'_afterAction')) {
-			static::_afterAction();
+			call_user_func([$this,'_afterAction']);
 		}
 		// 初始化这个变量
 		static::$previousUrl = [];
 	}
-
+	
 	//使用trait的复用特性
 	use \Swoolefy\Core\AppTrait;
 }

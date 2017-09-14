@@ -11,6 +11,7 @@ class TestController extends BController {
 	public function __construct() {
 		parent::__construct();
 	}
+
 	public function test() {
 		$this->assign('name','bingcool'.rand(1,100));
 		$this->display('test.html');
@@ -20,7 +21,7 @@ class TestController extends BController {
 	public function testajax() {
 		$res = ['name'=>'bingcool','age'=>26,'sex'=>1,'info'=>['cloth'=>'red','phone'=>'12222']];
 		if($this->isAjax()) {
-			$this->response->end(json_encode($res));
+			$this->returnJson($res);
 		}
 	}
 

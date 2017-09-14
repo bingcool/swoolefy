@@ -56,7 +56,7 @@ class Component {
 						$params = $defination['constructor'];
 						unset($defination['constructor']);
 					}
-					return static::$_components[$com_alias_name] = Swfy::$Di[$com_alias_name] = $this->buildObject($class, $defination, $params);
+					return static::$_components[$com_alias_name] = Swfy::$Di[$com_alias_name] = $this->buildInstance($class, $defination, $params);
 				}else {
 					throw new \Exception("component:".$com_alias_name.'must be set class', 1);
 				}
@@ -83,7 +83,7 @@ class Component {
 					unset($component['constructor']);
 				}
 				$defination = $component;
-				static::$_components[$key] = Swfy::$Di[$key] = $this->buildObject($class, $defination, $params);
+				static::$_components[$key] = Swfy::$Di[$key] = $this->buildInstance($class, $defination, $params);
 			}else {
 				throw new \Exception("component:".$key.'must be set class', 1);
 				  
@@ -116,10 +116,10 @@ class Component {
     }
 
     /**
-     * buildObject
+     * buildInstance
      * @return  object
      */
-	protected function buildObject($class, $defination, $params) {
+	protected function buildInstance($class, $defination, $params) {
 		list ($reflection, $dependencies) = $this->getDependencies($class);
 
         foreach ($params as $index => $param) {

@@ -13,7 +13,9 @@ return [
 	'components' => [
 		'view' => [
 			'class' => 'Swoolefy\Core\View',
-			'constructor' => ['text/html','jkjkkkkkkkkkkkkkkkkkkkkk'],
+		],
+		'log' => [
+			'class' => 'Swoolefy\Tool\Log',
 		],
 	],
 ];
