@@ -77,6 +77,10 @@ class App extends \Swoolefy\Core\Component {
 			$route = new HttpRoute();
 			$route->dispatch();
 		}
+
+		$this->end();
+
+		return true;
 	}
 
 	/**
@@ -99,6 +103,17 @@ class App extends \Swoolefy\Core\Component {
 		}
 
 		return false;
+	}
+
+	/**
+	 * end 请求结束
+	 * @return  
+	 */
+	public function end() {
+		// Model的实例化对象初始化为[]
+		if(@isset(ZModel::$_model_instances)) {
+			ZModel::$_model_instances = [];
+		}
 	}
 
 	//使用trait的复用特性

@@ -131,6 +131,7 @@ class HttpServer extends BaseServer {
             		return $response->end();
        			}
 				swoole_unpack(self::$App)->run($request, $response);
+				return ;
 
 			}catch(\Exception $e) {
 				print $e->getMessage();

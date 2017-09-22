@@ -1,4 +1,8 @@
 <?php
+/*************自定义命名空间加载类**************/
+/**
+ * @author  bingcool
+ */
 
 namespace App;
 

@@ -63,6 +63,19 @@ trait AppTrait {
 	}
 
 	/**
+	 * isSsl
+	 * @return   boolean
+	 */
+	public function isSsl() {
+	    if(isset($_SERVER['HTTPS']) && ('1' == $_SERVER['HTTPS'] || 'on' == strtolower($_SERVER['HTTPS']))){
+	        return true;
+	    }elseif(isset($_SERVER['SERVER_PORT']) && ('443' == $_SERVER['SERVER_PORT'] )) {
+	        return true;
+	    }
+	    return false;
+	}
+
+	/**
 	 * getMethod 
 	 * @return   string
 	 */
@@ -164,7 +177,7 @@ trait AppTrait {
 			static::$previousUrl[$name] = $url;
 		}else {
 			// 获取当前的url保存
-			static::$previousUrl['swoolefy_current_home_url'] = $this->getHomeUrl($ssl);
+			static::$previousUrl['home_url'] = $this->getHomeUrl($ssl);
 		}
 	}
 
@@ -245,6 +258,13 @@ trait AppTrait {
 		return $this->request->get;
 	}
 
+	/**
+	 * getView
+	 * @return   object
+	 */
+	public function getView() {
+		return Application::$app->view;
+	}
 
 
 	/**
@@ -362,8 +382,6 @@ trait AppTrait {
 		
 	}
 
-	// public function 
-
 	/**
 	 * dump，调试函数
 	 * @param    $var
@@ -398,6 +416,7 @@ trait AppTrait {
 	    }else
 	        return $output;
 	}
+
 	/**
 	 * sendHttpStatus,参考tp的
 	 * @param    $code

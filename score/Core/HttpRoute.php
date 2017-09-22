@@ -30,6 +30,10 @@ class HttpRoute extends Dispatch {
 	 */
 	public $config = null;
 
+	/**
+	 * $deny_actions 
+	 * @var array
+	 */
 	public $deny_actions = ['__construct','_beforeAction','_afterAction','__destruct'];
 	/**
 	 * __construct

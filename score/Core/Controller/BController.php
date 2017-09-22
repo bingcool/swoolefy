@@ -33,7 +33,7 @@ class BController {
 		$this->config = Application::$app->config;
 
 		//执行具体方法之前执行,在子类可以重写这个方法
-		call_user_func([$this,'_beforeAction']);
+		$result = call_user_func([$this,'_beforeAction']);
 	}
 
 	/**
@@ -75,7 +75,7 @@ class BController {
 		// 初始化这个变量
 		static::$previousUrl = [];
 	}
-	
+
 	//使用trait的复用特性
 	use \Swoolefy\Core\AppTrait;
 }

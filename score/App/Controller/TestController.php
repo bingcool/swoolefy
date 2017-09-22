@@ -3,6 +3,7 @@ namespace App\Controller;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
+use Swoolefy\Core\ZModel;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Http\HttpServer;
 
@@ -12,10 +13,18 @@ class TestController extends BController {
 		parent::__construct();
 	}
 
+	public function _beforeAction() {
+		$test = ZModel::getInstance('App\Model\Test');
+		$data = $test->record();
+	}
+
 	public function test() {
+		$test = ZModel::getInstance('App\Model\Test');
+		$data = $test->record();
+
+
 		$this->assign('name','bingcool'.rand(1,100));
 		$this->display('test.html');
-
 	}
 
 	public function testajax() {
