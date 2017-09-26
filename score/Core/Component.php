@@ -39,6 +39,23 @@ class Component {
 	}
 
 	/**
+	 * __isset
+	 * @param    $name
+	 * @return   boolean
+	 */
+	public function __isset($name) {
+		return isset($this->$name);
+	}
+
+	/**
+	 * __unset
+	 * @param    $name
+	 */
+	public function __unset($name) {
+		unset($this->$name);
+	}
+
+	/**
 	 * creatObject 创建组件对象
 	 * @param    $type
 	 * @param    $defination

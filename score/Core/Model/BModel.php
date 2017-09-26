@@ -1,26 +1,12 @@
 <?php
 namespace Swoolefy\Core\Model;
 
-class BModel {
-	/**
-	 * $_instance 
-	 * @var object
-	 */
-	protected static $_instance = null;
-
-	/**
-	 * __construct 
-	 * @param  
-	 */
-	protected function __construct() {
-
-	}
-
+class BModel extends \Swoolefy\Core\Component {
 	/**
 	 * getInstance
 	 * @return   
 	 */
-	public static function getInstance() {
+	public function getInstance() {
 
 	}
 }

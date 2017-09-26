@@ -1,5 +1,6 @@
 <?php
-namespace Swoolefy;
+namespace Swoolefy\AutoReload;
+
 use Swoolefy\AutoReload\autoReload;
 
 class daemon {

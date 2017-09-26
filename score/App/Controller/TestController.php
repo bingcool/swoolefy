@@ -14,15 +14,11 @@ class TestController extends BController {
 	}
 
 	public function _beforeAction() {
-		$test = ZModel::getInstance('App\Model\Test');
-		$data = $test->record();
 	}
 
 	public function test() {
 		$test = ZModel::getInstance('App\Model\Test');
 		$data = $test->record();
-
-
 		$this->assign('name','bingcool'.rand(1,100));
 		$this->display('test.html');
 	}

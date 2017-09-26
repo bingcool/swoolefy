@@ -8,7 +8,7 @@ class Dispatch {
 	 * __construct
 	 */
 	public function __construct() {
-		// 每一次请求清空,在初始化
+		// 每一次请求清空,再初始化
 		$_COOKIE = [];
 		$_POST = [];
 		$_GET = [];
