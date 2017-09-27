@@ -1,9 +1,11 @@
 <?php
 namespace Swoolefy\AutoReload;
+
 use Swoole\Process as swoole_process;
 use Swoolefy\Tool\Log;
 use Swoolefy\Tool\Swiftmail;
 use Exception;
+
 class autoReload {
 	/**
 	 * $inotify

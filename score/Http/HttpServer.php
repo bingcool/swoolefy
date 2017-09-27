@@ -1,16 +1,18 @@
 <?php
 namespace Swoolefy\Http;
 
-include_once '../../vendor/autoload.php';
-
 use Swoole\Http\Server as http_server;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Swfy;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 
-class HttpServer extends BaseServer {
+// 如果直接通过php HttpServer.php启动时，必须include的vendor/autoload.php
+if(isset($argv) && $argv[0] == basename(__FILE__)) {
+	include_once '../../vendor/autoload.php';
+}
 
+class HttpServer extends BaseServer {
 	/**
 	 * $config
 	 * @var null
@@ -27,6 +29,7 @@ class HttpServer extends BaseServer {
 		'max_request' => 10000,
 		'daemonize' => 0,
 		'log_file' => __DIR__.'/log.txt',
+		'pid_file' => __DIR__.'/server.pid',
 	];
 
 	/**
@@ -59,7 +62,6 @@ class HttpServer extends BaseServer {
 					include(__DIR__.'/config.php'),
 					$config
 			);
-
 		self::$server = $this->webserver = new http_server(self::$config['host'], self::$config['port']);
 		self::$setting = array_merge(self::$setting, self::$config['setting']);
 		$this->webserver->set(self::$setting);
@@ -144,5 +146,7 @@ class HttpServer extends BaseServer {
 
 }
 
-$http = new HttpServer();
-$http->start();
+if(isset($argv) && $argv[0] == basename(__FILE__)) {
+	$http = new HttpServer();
+	$http->start();
+}
