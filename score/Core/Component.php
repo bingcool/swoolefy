@@ -102,7 +102,12 @@ class Component {
 				$defination = $component;
 				static::$_components[$key] = Swfy::$Di[$key] = $this->buildInstance($class, $defination, $params);
 			}else {
-				throw new \Exception("component:".$key.'must be set class', 1);
+				if(SW_DEBUG) {
+					
+				}else {
+					throw new \Exception("component:".$key.'must be set class', 1);
+				}
+				
 				  
 			}
 		}

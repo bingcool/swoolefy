@@ -30,6 +30,9 @@ class HttpServer extends BaseServer {
 		'daemonize' => 0,
 		'log_file' => __DIR__.'/log.txt',
 		'pid_file' => __DIR__.'/server.pid',
+		// 使用ssl必须在编译swoole时加入--enable-openssl选项
+		'ssl_cert_file' => __DIR__.'/../ssl/ssl.crt',
+    	'ssl_key_file' => __DIR__.'/../ssl/ssl.key',
 	];
 
 	/**
@@ -138,6 +141,7 @@ class HttpServer extends BaseServer {
 			}catch(\Exception $e) {
 				print $e->getMessage();
 			}
+			
 			
 		});
 

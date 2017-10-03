@@ -12,7 +12,8 @@ return [
 	'time_zone' => 'America/New_York',
 	'include_files' =>[],
 	'setting' => [
-		'dispatch_mode' => 3
+		'dispatch_mode' => 3,
+		'reload_async' => true,
 	],
 	'table_tick_task' => true,
 	'table' => [

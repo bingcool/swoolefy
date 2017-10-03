@@ -1,9 +1,5 @@
 <?php
-
 namespace Swoolefy\App;
-
-use Swoolefy\Core\App;
-use Swoolefy\Tool\ArrayHelper\ArrayForHelp;
 
 // 上线必须设置为false
 defined('SW_DEBUG') or define('SW_DEBUG', true);
@@ -20,7 +16,7 @@ class Application implements \Swoolefy\Core\AppInterface{
 		include(__DIR__."/Config/defines.php");
 
 		// 加载App应用层配置和对应的协议配置
-		$config = ArrayForHelp::merge(
+		$config = array_merge(
 			include(__DIR__.'/../Config/common.php'),
 			include(__DIR__.'/Config/config.php')
 		);
@@ -30,8 +26,8 @@ class Application implements \Swoolefy\Core\AppInterface{
 
 	// 获取应用实例，完成各种配置以及初始化，不涉及具体业务
 	public static function getInstance(array $config=[]) {
-		$config = ArrayForHelp::merge(self::init(), $config);
-		return new App($config);
+		$config = array_merge(self::init(), $config);
+		return new \Swoolefy\Core\App($config);
 	}
 }
 

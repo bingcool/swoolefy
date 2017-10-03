@@ -59,25 +59,42 @@ class App extends \Swoolefy\Core\Component {
 	}
 
 	/**
+	 * cors 
+	 * @return  
+	 */
+	public function cors() {
+		if(isset($this->config['cors']) && is_array($this->config['cors'])) {
+			$cors = $this->config['cors'];
+			foreach($cors as $k=>$value) {
+				if(is_array($value)) {
+					$this->response->header($k,implode(',',$value));
+				}else {
+					$this->response->header($k,$value);
+				}
+			}
+		}
+	}
+
+	/**
 	 * run
 	 * @param  $request
 	 * @param  $response
 	 * @return void
 	 */
 	public function run($request, $response) {
-		$this->init();
 		// 赋值对象
 		$this->request = $request;
 		$this->response = $response;
-
+		$this->init();
 		// 判断是否是在维护模式
+		// ob_start();
 		if(!$this->catch()) {
 			// 执行应用
 			Application::$app = $this;
 			$route = new HttpRoute();
 			$route->dispatch();
 		}
-
+		// ob_end_clean();
 		$this->end();
 
 		return true;

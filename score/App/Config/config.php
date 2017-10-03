@@ -8,14 +8,47 @@ return [
 	'cors' =>[
 		'Origin' => ['*'],
         'Access-Control-Request-Method' => ['GET','POST','PUT','DELETE'],
+        'Access-Control-Request-Headers' => ['X-Wsse'],
+		'Access-Control-Allow-Credentials' => true,
+		'Access-Control-Max-Age' => 86400,
+		'Access-Control-Expose-Headers' => ['X-Pagination-Current-Page'],
 	],
 
 	'components' => [
 		'view' => [
 			'class' => 'Swoolefy\Core\View',
 		],
+
 		'log' => [
 			'class' => 'Swoolefy\Tool\Log',
+		],
+
+		'session'=>[
+
+		],
+
+		'mysql' => [
+			'config' =>[
+				'type'=>'mysql',
+				'master_host' =>[],
+				'slave_host' =>[],
+				'dbname' => '',
+				'username' =>'',
+				'password' =>'',
+				'port' =>'',
+				'params' => [], // 数据库连接参数        
+	        	'charset' => 'utf8',
+	        	'deploy'  => 0 //是否启用分布式的主从
+        	]
+		],
+
+		'mongodb'=>[
+
+		],
+
+		
+		'redis' =>[
+
 		],
 	],
 ];
