@@ -13,11 +13,7 @@ class TestController extends BController {
 		parent::__construct();
 	}
 
-	public function _beforeAction() {
-	}
-
 	public function test() {
-		var_dump('jjjjj');
 		$this->assign('name','bingcoolhuang'.rand(1,100));
 		$this->display('test.html');
 	}

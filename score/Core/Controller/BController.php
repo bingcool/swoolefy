@@ -31,9 +31,6 @@ class BController {
 		$this->request = Application::$app->request;
 		$this->response = Application::$app->response;
 		$this->config = Application::$app->config;
-
-		//执行具体方法之前执行,在子类可以重写这个方法
-		$result = call_user_func([$this,'_beforeAction']);
 	}
 
 	/**
@@ -41,6 +38,7 @@ class BController {
 	 * @return   mixed
 	 */
 	public function _beforeAction() {
+		return true;
 	}
 
 	/**
@@ -48,6 +46,7 @@ class BController {
 	 * @return   mixed
 	 */
 	public function _afterAction() {
+		
 	}
 
 	/**
