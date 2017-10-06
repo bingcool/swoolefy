@@ -14,10 +14,10 @@ class TestController extends BController {
 	}
 
 	public function _beforeAction() {
-		
 	}
 
 	public function test() {
+		var_dump('jjjjj');
 		$this->assign('name','bingcoolhuang'.rand(1,100));
 		$this->display('test.html');
 	}

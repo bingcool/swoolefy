@@ -6,8 +6,16 @@ use PDOStatement;
 
 abstract class Driver {
 
+	/**
+	 * $PDOStatement 执行语句对象
+	 * @var null
+	 */
 	protected $PDOStatement = null;
 
+	/**
+	 * $config 默认的配置值
+	 * @var [type]
+	 */
 	public $config = [
 		'master_host' => [],
 		'slave_host' => [],
@@ -19,10 +27,6 @@ abstract class Driver {
 		'charset' => 'utf8',
 		'deploy'  => 0 //是否启用分布式的主从
 	];
-
-	protected $master_host = null;
-
-	protected $slave_host = null;
 
 	/**
 	 * $master_link 主服务器的连接池
@@ -61,6 +65,18 @@ abstract class Driver {
         PDO::ATTR_PERSISTENT        => true
     ];
 
+    /**
+     * $attrCase
+     * @var [type]
+     */
+   	protected $attrCase = PDO::CASE_LOWER;
+
+   	/**
+   	 * $bind
+   	 * @var array
+   	 */
+    protected $bind = [];
+
    	/**
    	 * __construct 初始化函数
    	 * @param    $config
@@ -71,6 +87,10 @@ abstract class Driver {
         }
 	}
 
+	/**
+	 * connect
+	 * @return  void
+	 */
 	public function connect() {
 		// 创建主服务连接对象
 		$config = $this->config;
@@ -80,6 +100,9 @@ abstract class Driver {
         }else {
             $params = [];
         }
+
+       	$this->attrCase = $params[PDO::ATTR_CASE];
+
         try{
         	// 创建主服务连接对象
         	$master_dsn = $this->parseMasterDsn($config);
@@ -151,6 +174,10 @@ abstract class Driver {
 		return false;
 	}
 
+	/**
+	 * getMasterHost
+	 * @return   string
+	 */
 	protected function getMasterHost() {
 		if(is_array($this->config['master_host'])) {
 			return $this->master_host = $this->config['master_host'][0];
@@ -159,6 +186,10 @@ abstract class Driver {
 		}
 	}
 
+	/**
+	 * getSlaveHost
+	 * @return   array
+	 */
 	protected function getSlaveHost() {
 		if(is_array($this->config['slave_host'])) {
 			return $this->slave_host = $this->config['slave_host'];
@@ -196,6 +227,104 @@ abstract class Driver {
 			return false;
 		}
 	}
+
+	/**
+	 * getConfig
+	 * @return   array
+	 */
+	public function getConfig($config = '') {
+		return $config ? $this->config[$config] : $this->config;
+	}
+
+	 /**
+	  * free 释放查询结果
+	  * @return   void
+	  */
+    public function free() {
+        $this->PDOStatement = null;
+    }
+
+    /**
+     * fieldCase 对返数据表字段信息进行大小写转换出来6
+     * @param    $info
+     * @return   array
+     */
+    public function fieldCase($info)
+    {
+        // 字段大小写转换
+        switch ($this->attrCase) {
+            case PDO::CASE_LOWER:
+                $info = array_change_key_case($info);
+                break;
+            case PDO::CASE_UPPER:
+                $info = array_change_key_case($info, CASE_UPPER);
+                break;
+            case PDO::CASE_NATURAL:
+            default:
+                // 不做转换
+        }
+        return $info;
+    }
+
+   	/**
+   	 * query
+   	 * @param    $sql
+   	 * @param    $bind
+   	 * @param    $master
+   	 * @param    $pdo
+   	 * @return   
+   	 */
+    public function query($sql, $bind = []) {
+        if(!$this->$master_link) {
+            return false;
+        }
+
+        // 记录SQL语句
+        $this->queryStr = $sql;
+        if($bind) {
+            $this->bind = $bind;
+        }
+
+        // 释放前次的查询结果
+        if (!empty($this->PDOStatement)) {
+            $this->free();
+        }
+
+        Db::$queryTimes++;
+        try {
+            // 调试开始
+            $this->debug(true);
+            // 预处理
+            if (empty($this->PDOStatement)) {
+                $this->PDOStatement = $this->linkID->prepare($sql);
+            }
+            // 是否为存储过程调用
+            $procedure = in_array(strtolower(substr(trim($sql), 0, 4)), ['call', 'exec']);
+            // 参数绑定
+            if ($procedure) {
+                $this->bindParam($bind);
+            } else {
+                $this->bindValue($bind);
+            }
+            // 执行查询
+            $this->PDOStatement->execute();
+            // 调试结束
+            $this->debug(false);
+            // 返回结果集
+            return $this->getResult($pdo, $procedure);
+        } catch (\PDOException $e) {
+            if ($this->isBreak($e)) {
+                return $this->close()->query($sql, $bind, $master, $pdo);
+            }
+            throw new PDOException($e, $this->config, $this->getLastsql());
+        } catch (\Exception $e) {
+            if ($this->isBreak($e)) {
+                return $this->close()->query($sql, $bind, $master, $pdo);
+            }
+            throw $e;
+        }
+    }
+
 
 	
 

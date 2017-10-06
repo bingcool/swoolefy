@@ -98,7 +98,7 @@ class HttpRoute extends Dispatch {
 		$this->request->server['route'] = $this->require_uri;
 		// 定义禁止直接外部访问的方法
 		if(in_array($action, $this->deny_actions)) {
-			$this->response->end($action.' method is not be exec!');
+			return $this->response->end($action.' method is not be exec!');
 		}
 		
 		if($module) {
@@ -126,12 +126,11 @@ class HttpRoute extends Dispatch {
 				$this->response->status(404);
 				$this->response->header('Content-Type','text/html; charset=UTF-8');
 				if(SW_DEBUG) {
-					  $this->response->end($filePath.' is not exit!');
+					return $this->response->end($filePath.' is not exit!');
 				}else {
 					$tpl404 = file_get_contents(TEMPLATE_PATH.DIRECTORY_SEPARATOR.$this->config['not_found_template']);
-					$this->response->end($tpl404);
+					return $this->response->end($tpl404);
 				}
-				return;
 			}
 
 			// 访问类的命名空间
@@ -143,12 +142,12 @@ class HttpRoute extends Dispatch {
 				$this->response->status(404);
 				$this->response->header('Content-Type','text/html; charset=UTF-8');
 				if(SW_DEBUG) {
-					$this->response->end($filePath.' is not exit!');
+					return $this->response->end($filePath.' is not exit!');
 				}else {
 					$tpl404 = file_get_contents(TEMPLATE_PATH.DIRECTORY_SEPARATOR.$this->config['not_found_template']);
-					$this->response->end($tpl404);
+					return $this->response->end($tpl404);
 				}
-				return;
+				
 			}
 
 			// 访问类的命名空间
@@ -156,6 +155,12 @@ class HttpRoute extends Dispatch {
 		}
 		// 创建控制器实例
 		$controllerInstance = new $class();
+
+		// 提前执行_beforeAction函数
+		if($controllerInstance->_beforeAction() === false || is_null($controllerInstance->_beforeAction())) {
+			$this->response->status(403);
+			return $this->response->write(json_encode(['status'=>403,'msg'=>'_beforeAction is forbidden']));
+		}
 		// 如果存在该类和对应的方法
 		$reflector = new \ReflectionClass($controllerInstance);
 		if($reflector->hasMethod($action)) {
@@ -170,23 +175,21 @@ class HttpRoute extends Dispatch {
 		        }
 			}else {
 				if(SW_DEBUG) {
-					$this->response->end('class method '.$action.' is static property,can not be object call!');
+					return $this->response->end('class method '.$action.' is static property,can not be object call!');
 				}else {
 					$tpl404 = file_get_contents(TEMPLATE_PATH.DIRECTORY_SEPARATOR.$this->config['not_found_template']);
-					$this->response->end($tpl404);
+					return $this->response->end($tpl404);
 				}
-				return;
 			}
 		}else {
 			$this->response->status(404);
 			$this->response->header('Content-Type','text/html; charset=UTF-8');
 			if(SW_DEBUG) {
-				$this->response->end('Class file for '.$filePath.' is exit, but'.$controller.'.php'.' has not '.'"'.$action.' method!"');
+				return $this->response->end('Class file for '.$filePath.' is exit, but the file:'.$controller.'.php'.' has not define '.'"'.$action.'()'.'"'.' method');
 			}else {
 				$tpl404 = file_get_contents(TEMPLATE_PATH.DIRECTORY_SEPARATOR.$this->config['not_found_template']);
-				$this->response->end($tpl404);
+				return $this->response->end($tpl404);
 			}
-			return;
 		}
 	}
 
