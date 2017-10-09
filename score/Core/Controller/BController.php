@@ -69,7 +69,7 @@ class BController {
 	 */
 	public function __destruct() {
 		if(method_exists($this,'_afterAction')) {
-			call_user_func([$this,'_afterAction']);
+			static::_afterAction();
 		}
 		// 初始化这个变量
 		static::$previousUrl = [];

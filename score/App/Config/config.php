@@ -4,7 +4,7 @@ return [
 	'default_route' => 'site/index',
 	'default_namespace' => 'App',
 	'not_found_template' => '404.html', //默认是在View文件夹下面
-	'not_found_function' => [''],
+	// 'not_found_function' => ['App\Controller\NotFound','page404'],
 	// 'catch_all_info' => '网站维护中',
 	'cors' =>[
 		'Origin' => ['*'],

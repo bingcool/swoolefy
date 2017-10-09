@@ -128,13 +128,22 @@ class HttpRoute extends Dispatch {
 				if(SW_DEBUG) {
 					return $this->response->end($filePath.' is not exit!');
 				}else {
-					$tpl404 = file_get_contents(TEMPLATE_PATH.DIRECTORY_SEPARATOR.$this->config['not_found_template']);
-					return $this->response->end($tpl404);
+					// 使用配置的NotFound类
+					if(isset($this->config['not_found_function']) && is_array($this->config['not_found_function'])) {
+						list($controller, $action) = $this->redirectNotFound();
+						// 访问类的命名空间
+						$class = $this->config['default_namespace'].'\\'.'Controller'.'\\'.$controller.'Controller';
+					}else {
+						// 使用默认配置的NotFound类
+						list($controller, $action) = $this->redirectNotFound(['Swoolefy\Core\Controller\NotFound','page404']);
+						// 访问类的命名空间
+						$class = 'Swoolefy\\Core\Controller'.'\\'.$controller;
+					}
 				}
+			}else {
+				// 访问类的命名空间
+				$class = $this->config['default_namespace'].'\\'.'Module'.'\\'.$module.'\\'.'Controller'.'\\'.$controller;
 			}
-
-			// 访问类的命名空间
-			$class = $this->config['default_namespace'].'\\'.'Module'.'\\'.$module.'\\'.'Controller'.'\\'.$controller;
 
 		}else {
 			$filePath = APP_PATH.DIRECTORY_SEPARATOR.'Controller'.DIRECTORY_SEPARATOR.$controller.'.php';
@@ -144,15 +153,25 @@ class HttpRoute extends Dispatch {
 				if(SW_DEBUG) {
 					return $this->response->end($filePath.' is not exit!');
 				}else {
-					$tpl404 = file_get_contents(TEMPLATE_PATH.DIRECTORY_SEPARATOR.$this->config['not_found_template']);
-					return $this->response->end($tpl404);
-				}
-				
+					// 使用配置的NotFound类
+					if(isset($this->config['not_found_function']) && is_array($this->config['not_found_function'])) {
+						list($controller, $action) = $this->redirectNotFound();
+						// 访问类的命名空间
+						$class = $this->config['default_namespace'].'\\'.'Controller'.'\\'.$controller.'Controller';
+					}else {
+						// 使用默认配置的404类
+						list($controller, $action) = $this->redirectNotFound(['Swoolefy\Core\Controller\NotFound','page404']);
+						// 访问类的命名空间
+						$class = 'Swoolefy\\Core\Controller'.'\\'.$controller;
+					}
+					
+				}	
+			}else {
+				// 访问类的命名空间
+				$class = $this->config['default_namespace'].'\\'.'Controller'.'\\'.$controller.'Controller';
 			}
-
-			// 访问类的命名空间
-			$class = $this->config['default_namespace'].'\\'.'Controller'.'\\'.$controller.'Controller';
 		}
+
 		// 创建控制器实例
 		$controllerInstance = new $class();
 
@@ -176,9 +195,6 @@ class HttpRoute extends Dispatch {
 			}else {
 				if(SW_DEBUG) {
 					return $this->response->end('class method '.$action.' is static property,can not be object call!');
-				}else {
-					$tpl404 = file_get_contents(TEMPLATE_PATH.DIRECTORY_SEPARATOR.$this->config['not_found_template']);
-					return $this->response->end($tpl404);
 				}
 			}
 		}else {
@@ -186,11 +202,30 @@ class HttpRoute extends Dispatch {
 			$this->response->header('Content-Type','text/html; charset=UTF-8');
 			if(SW_DEBUG) {
 				return $this->response->end('Class file for '.$filePath.' is exit, but the file:'.$controller.'.php'.' has not define '.'"'.$action.'()'.'"'.' method');
-			}else {
-				$tpl404 = file_get_contents(TEMPLATE_PATH.DIRECTORY_SEPARATOR.$this->config['not_found_template']);
-				return $this->response->end($tpl404);
 			}
 		}
+	}
+
+	/**
+	 * redirectNotFound 找不到文件或者对应action时,重定向至NotFound类
+	 * @return   array
+	 */
+	public function redirectNotFound($call_func=null) {
+		if(isset($this->config['not_found_function'])) {
+			// 重定向至NotFound类
+			list($namespace,$action) = $this->config['not_found_function'];
+			$controller = @array_pop(explode('\\',$namespace));
+			// 重新设置一个NotFound类的route
+			$this->request->server['route'] = '/'.$controller.'/'.$action;
+		}else {
+			// 默认重定向至NotFound类
+			list($namespace,$action) = $call_func;
+			$controller = @array_pop(explode('\\',$namespace));
+			// 重新设置一个NotFound类的route
+			$this->request->server['route'] = '/'.$controller.'/'.$action;
+		}
+
+		return [$controller,$action];
 	}
 
 }

@@ -109,13 +109,13 @@ class App extends \Swoolefy\Core\Component {
 		if(isset($this->config['catch_all_info']) && $info = $this->config['catch_all_info']) {
 			if(is_array($info)) {
 				$this->response->header('Content-Type','application/json; charset=UTF-8');
-				$this->response->end(json_encode($info));
+				return $this->response->end(json_encode($info));
 			}else {
 				$this->response->gzip(1);
 				$this->response->header('Content-Type','text/html; charset=UTF-8');
 				$this->response->end($info);
 			}
-
+			
 			return true;
 		}
 

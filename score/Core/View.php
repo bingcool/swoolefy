@@ -47,7 +47,6 @@ class View {
 		$controller = Application::$app->getController();
 		
 		$action = Application::$app->getAction();
-
 		$TemplateDir = SMARTY_TEMPLATE_PATH.$controller.'/';
 		if(is_dir($TemplateDir)) {
 			$this->view->setTemplateDir($TemplateDir);
