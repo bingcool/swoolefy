@@ -23,7 +23,7 @@ class autoReload {
 	 * $reloadFileTypes,定义哪些文件的改动将触发swoole服务重启
 	 * @var array
 	 */
-	protected $reloadFileTypes = ['.php'];
+	protected $reloadFileTypes = ['.php','.html','.js'];
 
 	/**
 	 * $watchFiles,保存监听的文件句柄

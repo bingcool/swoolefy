@@ -193,8 +193,8 @@ trait AppTrait {
 			}
 			return null;
 		}else {
-			if(isset(static::$previousUrl['swoolefy_current_home_url'])) {
-				return static::$previousUrl['swoolefy_current_home_url'];
+			if(isset(static::$previousUrl['home_url'])) {
+				return static::$previousUrl['home_url'];
 			}
 
 			return null;
@@ -216,10 +216,10 @@ trait AppTrait {
 	}
 
 	/**
-	 * getModel 
+	 * getModule 
 	 * @return string|null
 	 */
-	public function getModel() {
+	public function getModule() {
 		$route_arr = $this->getRouteParams();
 		if(count($route_arr) == 3) {
 			return $route_arr[0];
@@ -305,6 +305,13 @@ trait AppTrait {
 		Application::$app->view->returnJson($data,$formater);
 	}
 
+	/**
+	 * sendfile
+	 * @param    $filename 
+	 * @param    $offset   
+	 * @param    $length   
+	 * @return             
+	 */
 	public function sendfile($filename, $offset = 0, $length = 0) {
 		$this->response->sendfile($filename, $offset = 0, $length = 0);
 	}
@@ -348,6 +355,91 @@ trait AppTrait {
 	}
 
 	/**
+	 * getIncludeFiles description
+	 * @return   array|boolean
+	 */
+	public function getInitIncludeFiles($dir='http') {
+		// 获取当前的处理的worker_id
+		$workerId = $this->getCurrentWorkerId();
+
+		$dir = ucfirst($dir);
+		$filePath = __DIR__.'/../'.$dir.'/'.$dir.'_'.'includes.json';
+		if(is_file($filePath)) {
+			$includes_string = file_get_contents($filePath);
+			if($includes_string) {
+				return [
+					'worker_id' => $workerId,
+					'include_files' => json_decode($includes_string,true),
+				];
+			}else {
+				return false;
+			}
+		}
+
+		return false;
+		
+	}
+
+	/**
+	 * getMomeryIncludeFiles 获取执行到目前action为止，swoole server中的该worker中内存中已经加载的class文件
+	 * @return   
+	 */
+	public function getMomeryIncludeFiles() {
+		$includeFiles = get_included_files();
+		$workerId = $this->getCurrentWorkerId();
+		return [
+			'worker_id' => $workerId,
+			'include_files' => $includeFiles,
+		];
+	}
+
+	/**
+	 * getMasterId 获取当前服务器主进程的PID
+	 * @return   int
+	 */
+	public function getMasterPid() {
+		return \Swoolefy\Core\Swfy::$server->master_pid;
+	}
+
+	/**
+	 * getManagerId 当前服务器管理进程的PID
+	 * @return   int
+	 */
+	public function getManagerPid() {
+		return \Swoolefy\Core\Swfy::$server->manager_pid;
+	}
+
+	/**
+	 * getCurrentWorkerPid 获取当前worker的进程PID 
+	 * @return int  
+	 */
+	public function getCurrentWorkerPid() {
+		$workerPid = \Swoolefy\Core\Swfy::$server->worker_pid;
+		if($workerPid) {
+			return $workerPid;
+		}else {
+			return posix_getpid();
+		}
+	}
+
+	/**
+	 * getCurrentWorkerId 获取当前处理的worker_id
+	 * @return   int
+	 */
+	public function getCurrentWorkerId() {
+		$workerId = \Swoolefy\Core\Swfy::$server->worker_id;
+		return $workerId;
+	}
+
+	/**
+	 * getConnections 服务器当前所有的连接
+	 * @return  object 
+	 */
+	public function getConnections() {
+		return \Swoolefy\Core\Swfy::$server->connections;
+	}
+
+	/**
 	 * getLastError 返回最近一次的错误代码
 	 * @return   int 
 	 */
@@ -361,25 +453,6 @@ trait AppTrait {
 	 */
 	public function getSwooleStats() {
 		return Swfy::$server->stats();
-	}
-
-	/**
-	 * getIncludeFiles description
-	 * @return   array|boolean
-	 */
-	public function getIncludeFiles($dir='http') {
-		$dir = ucfirst($dir);
-		$filePath = __DIR__.'/../'.$dir.'/'.$dir.'_'.'includes.json';
-		if(is_file($filePath)) {
-			$includes_string = file_get_contents($filePath);
-			if($includes_string) {
-				return json_decode($includes_string);
-			}else {
-				return false;
-			}
-		}
-		return false;
-		
 	}
 
 	/**
