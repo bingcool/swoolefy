@@ -444,7 +444,7 @@ trait AppTrait {
 	 * @return   int 
 	 */
 	public function getLastError() {
-		return Swfy::$server->getLastError();
+		return \Swoolefy\Core\Swfy::$server->getLastError();
 	}
 
 	/**
@@ -452,7 +452,7 @@ trait AppTrait {
 	 * @return   array
 	 */
 	public function getSwooleStats() {
-		return Swfy::$server->stats();
+		return \Swoolefy\Core\Swfy::$server->stats();
 	}
 
 	/**
