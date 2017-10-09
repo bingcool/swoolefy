@@ -33,7 +33,7 @@ class SwoolefyException {
     	if($logFilesSize > 1024 * 50) {
     		@file_put_contents($logFilePath,'');
     	}
-        Application::$app->log->setChannel('Application')->setLogFilePath(APP_PATH.'/runtime.log')->addError($error['message']);
+      Application::$app->log->setChannel('Application')->setLogFilePath(APP_PATH.'/runtime.log')->addError($error['file'].' in line'.$error['line'].':'.$error['message']);
     }
 
 	/**

@@ -9,7 +9,7 @@ return [
 	'www_user' => 'www',
 	'host' => '0.0.0.0',
 	'port' => '9502',
-	'time_zone' => 'America/New_York',
+	'time_zone' => 'Asia/Shanghai',
 	'include_files' =>[],
 	'setting' => [
 		'dispatch_mode' => 3,

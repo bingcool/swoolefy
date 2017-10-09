@@ -350,7 +350,7 @@ class autoReload {
         $files = scandir($dir);
         foreach ($files as $f)
         {
-            if ($f == '.' or $f == '..')
+            if ($f == '.' || $f == '..')
             {
                 continue;
             }
