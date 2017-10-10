@@ -323,7 +323,7 @@ trait AppTrait {
 	 * @param    $code default 302
 	 * @return   void
 	 */
-	public function redirect($url,array $params=[],$code=302) {
+	public function redirect($url,array $params=[], $code=301) {
 		$query_string = '';
 		if(strpos($url, 'http') === false || strpos($url, 'https') === false) {
 			if(strpos($url, '/') != 0) {

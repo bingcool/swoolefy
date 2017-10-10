@@ -59,8 +59,7 @@ class BController {
 			'msg' => 'Calling unknown method: ' . get_class($this) . "::$action()",
 		]));
 		// 直接停止往下执行
-		throw new \Exception('Calling unknown method: ' . get_class($this) . "::$action()");
-		
+		throw new \Exception('Calling unknown method: ' . get_class($this) . "::$action()");	
 	}
 
 	/**
