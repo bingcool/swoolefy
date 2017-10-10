@@ -325,6 +325,7 @@ trait AppTrait {
 	 */
 	public function redirect($url,array $params=[], $code=301) {
 		$query_string = '';
+		trim($url);
 		if(strpos($url, 'http') === false || strpos($url, 'https') === false) {
 			if(strpos($url, '/') != 0) {
 				$url = '/'.$url;
