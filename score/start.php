@@ -82,11 +82,13 @@ function stopServer($server) {
     while(true){
         usleep(1000);
         if(!swoole_process::kill($pid,0)){
+            echo "------------stop info------------\n";
             echo "successful: server stop at ".date("Y-m-d H:i:s")."\n";
             @unlink($pid_file);
             break;
         }else {
             if(time() - $nowtime > 2){
+                echo "-----------stop info------------\n";
                 echo "warnning: stop server failed. please try again \n";
                 break;
             }

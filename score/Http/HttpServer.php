@@ -27,7 +27,7 @@ class HttpServer extends BaseServer {
 		'reactor_num' => 1, //reactor thread num
 		'worker_num' => 2,    //worker process num
 		'max_request' => 10000,
-		'daemonize' => 1,
+		'daemonize' => 0,
 		'log_file' => __DIR__.'/log.txt',
 		'pid_file' => __DIR__.'/server.pid',
 		// 使用ssl必须在编译swoole时加入--enable-openssl选项

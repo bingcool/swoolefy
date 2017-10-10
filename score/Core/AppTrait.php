@@ -341,6 +341,7 @@ trait AppTrait {
 		}
 		$this->status($code);
 		$this->response->header('Location', $url.$query_string);
+		return;
 	}
 
 	/**

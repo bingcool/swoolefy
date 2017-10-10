@@ -25,19 +25,17 @@ class TestController extends BController {
 		}
 	}
 
-	public function getQuery() {
-		self::rememberUrl('mytest','/Test/test');
-		
+	public function testRedirect() {
+		self::rememberUrl('mytest','/Test/mytest');
 		$this->assign('name','NKLC');
 		$url = (parent::getPreviousUrl('mytest'));
 		$this->redirect($url);
-
-		$this->display('test.html');
+		return;
 	}
 
-	public function mytest($timer_id) {
-		echo "task1";
-		\Swoolefy\Core\Timer\Tick::delTicker($timer_id);
+	public function mytest() {
+		dump('jjjjjjjjjjjjjjj');
+		$this->display('test.html');
 	}
 
 	public function mytest1($timer_id) {
