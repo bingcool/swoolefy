@@ -4,7 +4,7 @@ namespace Swoolefy\Core\Controller;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 
-class BController {
+class BController extends \Swoolefy\Core\Object {
 	/**
 	 * $request
 	 * @var null
@@ -47,19 +47,6 @@ class BController {
 	 */
 	public function _afterAction() {
 		
-	}
-
-	/**
-	 * __call
-	 * @return   mixed
-	 */
-	public function __call($action,$args = []) {
-		$this->response->end(json_encode([
-			'status' => 404,
-			'msg' => 'Calling unknown method: ' . get_class($this) . "::$action()",
-		]));
-		// 直接停止程序往下执行
-		throw new \Exception('Calling unknown method: ' . get_class($this) . "::$action()");	
 	}
 
 	/**
