@@ -43,6 +43,7 @@ class App extends \Swoolefy\Core\Component {
 		// 注册错误处理事件
 		register_shutdown_function('Swoolefy\Core\SwoolefyException::fatalError');
       	set_exception_handler('Swoolefy\Core\SwoolefyException::appException');
+      	set_error_handler('Swoolefy\Core\SwoolefyException::appError');
 	}
 
 	/**

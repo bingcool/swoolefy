@@ -54,12 +54,12 @@ class BController {
 	 * @return   mixed
 	 */
 	public function __call($action,$args = []) {
-		if(SW_DEBUG) {
-			$this->response->end('call method '.$action.' is not exist!');
-		}else {
-			$tpl404 = file_get_contents(TEMPLATE_PATH.DIRECTORY_SEPARATOR.$this->config['not_found_template']);
-			$this->response->end($tpl404);
-		}
+		$this->response->end(json_encode([
+			'status' => 404,
+			'msg' => 'Calling unknown method: ' . get_class($this) . "::$action()",
+		]));
+		// 直接停止往下执行
+		throw new \Exception('Calling unknown method: ' . get_class($this) . "::$action()");
 		
 	}
 

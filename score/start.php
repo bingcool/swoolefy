@@ -49,13 +49,14 @@ function startServer($server) {
 }
 
 function stopServer($server) {
+    $dir = __DIR__;
 	switch(strtolower($server)) {
 		case 'http': {
-            $pid_file = './Http/server.pid';  
+            $pid_file = $dir.'/Http/server.pid';  
 		    break;
         }
 		case 'websocket': {
-			$pid_file = './Websocket/server.pid';
+			$pid_file = $dir.'/Websocket/server.pid';
 		    break;
         }
         default:{
@@ -73,14 +74,16 @@ function stopServer($server) {
         return;
     }
     // 发送信号，终止进程
-    swoole_process::kill($pid,SIGKILL);
+    swoole_process::kill($pid,SIGTERM);
+    // 回收master创建的子进程（manager,worker,taskworker）
+    swoole_process::wait();
     //等待2秒
     $nowtime = time();
     while(true){
         usleep(1000);
         if(!swoole_process::kill($pid,0)){
             echo "successful: server stop at ".date("Y-m-d H:i:s")."\n";
-            unlink($pid_file);
+            @unlink($pid_file);
             break;
         }else {
             if(time() - $nowtime > 2){
@@ -88,7 +91,7 @@ function stopServer($server) {
                 break;
             }
         }
-    }
+    }  
 }
 
 function help($command) {

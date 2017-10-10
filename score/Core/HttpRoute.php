@@ -106,9 +106,8 @@ class HttpRoute extends Dispatch {
 		}else {
 			$this->invoke($module=null,$controller,$action);
 		}
-
 		// 设置一个异常结束
-		@$this->response->end();
+		// @$this->response->end();
 	}
 
 	/**

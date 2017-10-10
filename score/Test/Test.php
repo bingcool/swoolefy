@@ -1,54 +1,45 @@
 <?php
-namespace Swoolefy\Test;
-use Monolog\Logger;
-use Monolog\Handler\StreamHandler;
-class Test {
-	public function run() {
-		echo "hello swoolefy";
-	}
 
-	public function log() {
-		$log = new Logger('name');
-		$log->pushHandler(new StreamHandler(__DIR__.'/test.log', Logger::WARNING));
+swoole_set_process_name('php-process-worker');
 
-		// add records to the log
-		$log->warning('Foo');
-		$log->error('Bar');
-	}
+$workers = [];
+$worker_num = 10;
 
-	public function testMail() {
-		$transport = (new \Swift_SmtpTransport('smtp.163.com', 25))
-		->setUsername('13560491950@163.com')
-		->setPassword('aa2437667702');
+function onReceive($pipe) {
+    global $workers;
+    $worker = $workers[$pipe];
+    $data = $worker->read();
+    echo "RECV: " . $data;
+}
 
-		$mailer = new \Swift_Mailer($transport);
+//循环创建进程
+for($i = 0; $i < $worker_num; $i++)
+{
+    
+    $process = new swoole_process(function(swoole_process $process) {
+        $process->write("Worker#{$process->id}: hello master\n");
+        // $process->exit();
+    });
 
-		$message = (new \Swift_Message())
-		 // Give the message a subject
-		  ->setSubject('Your subject')
+    $process->id = $i;
+    $pid = $process->start();
+    $workers[$process->pipe] = $process;
+}
 
-		  // Set the From address with an associative array
-		  ->setFrom(['13560491950@163.com' => 'bingbing'])
+swoole_process::signal(SIGCHLD, function(){
+    //表示子进程已关闭，回收它
+    while($status = swoole_process::wait(false)) {
+        echo "Worker#{$status['pid']} exit\n";
+    };
+   
+});
 
-		  // Set the To addresses with an associative array (setTo/setCc/setBcc)
-		  ->setTo(['2437667702@qq.com'=>"bingcool","bingcoolhuang@gmail.com"=>"dabing"])
+// swoole_timer_tick(2000, function ($timer_id) {
+//     echo "tick-2000ms\n";
+// });
 
-		  // Give it a body
-		  ->setBody('Here is the message itself')
-
-		  // And optionally an alternative body
-		  ->addPart('<q>Here is the messaggggggggggggggggge itself</q>', 'text/html')
-		  
-		  ->attach(\Swift_Attachment::fromPath("/home/wwwroot/default/swoolefy/score/Test/test.docx")->setFilename('my.docx'))
-
-		  ->attach(\Swift_Attachment::fromPath("/home/wwwroot/default/swoolefy/score/Test/test.log")->setFilename('my.log'));
-		  
-		  try{
-		  		$mailer->send($message);
-		  }catch(\Swift_IoException $e) {
-		  		echo "failed";
-		  }
-		  
-		  
-	}
+//将子进程的管道加入EventLoop
+foreach($workers as $process)
+{
+    swoole_event_add($process->pipe, 'onReceive');
 }

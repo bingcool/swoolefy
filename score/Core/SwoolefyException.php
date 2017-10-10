@@ -33,7 +33,8 @@ class SwoolefyException {
     	if($logFilesSize > 1024 * 50) {
     		@file_put_contents($logFilePath,'');
     	}
-      Application::$app->log->setChannel('Application')->setLogFilePath(APP_PATH.'/runtime.log')->addError($error['file'].' in line'.$error['line'].':'.$error['message']);
+      Application::$app->log->setChannel('Application')->setLogFilePath(APP_PATH.'/runtime.log')->addError($error);
+      return;
     }
 
 	/**
@@ -52,6 +53,31 @@ class SwoolefyException {
             $error['line']  =   $e->getLine();
         }
         $error['trace']     =   $e->getTraceAsString();
-        self::shutHalt($error);
+        self::shutHalt($error['file'].' in line'.$error['line'].':'.$error['message']);
+    }
+
+    /**
+     * appError 获取用户程序错误
+     * @param    $errno  
+     * @param    $errstr 
+     * @param    $errfile
+     * @param    $errline
+     * @return           
+     */
+    public static function appError($errno, $errstr, $errfile, $errline) {
+      switch ($errno) {
+          case E_ERROR:
+          case E_PARSE:
+          case E_CORE_ERROR:
+          case E_COMPILE_ERROR:
+          case E_USER_ERROR:
+            ob_end_clean();
+            $errorStr = "$errstr ".$errfile." 第 $errline 行.";
+            self::shutHalt($errorStr);
+            break;
+          default:
+            break;
+      }
+      return ;
     }
 }
