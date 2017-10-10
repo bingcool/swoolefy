@@ -4,6 +4,6 @@ namespace Swoolefy\Core\Controller;
 class NotFound extends \Swoolefy\Core\Controller\BController {
 
 	public function page404() {
-		return $this->response->end('404 not found!');
+		return $this->response->end('<body style="text-align:center"><div style="margin:300px auto; width:800px; height:100px;"><h1>SORRY!  404 NOT FOUND!</h1></div></body>');
 	}
 }

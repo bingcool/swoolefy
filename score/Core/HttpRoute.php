@@ -159,7 +159,7 @@ class HttpRoute extends Dispatch {
 						$class = $this->config['default_namespace'].'\\'.'Controller'.'\\'.$controller.'Controller';
 					}else {
 						// 使用默认配置的404类
-						list($controller, $action) = $this->redirectNotFound(['Swoolefy\Core\Controller\NotFoundv','page404']);
+						list($controller, $action) = $this->redirectNotFound(['Swoolefy\Core\Controller\NotFound','page404']);
 						// 访问类的命名空间
 						$class = 'Swoolefy\\Core\Controller'.'\\'.$controller;
 					}
