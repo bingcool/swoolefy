@@ -149,7 +149,7 @@ class HttpRoute extends Dispatch {
 			if(!is_file($filePath)) {
 				$this->response->status(404);
 				$this->response->header('Content-Type','text/html; charset=UTF-8');
-				if(!SW_DEBUG) {
+				if(SW_DEBUG) {
 					return $this->response->end($filePath.' is not exit!');
 				}else {
 					// 使用配置的NotFound类
