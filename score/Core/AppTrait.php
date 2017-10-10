@@ -317,7 +317,7 @@ trait AppTrait {
 	}
 
 	/**
-	 * redirect
+	 * redirect 重定向,使用这个函数后,要return,停止程序执行
 	 * @param    $url
 	 * @param    $params eg:['name'=>'ming','age'=>18]
 	 * @param    $code default 302
@@ -325,6 +325,12 @@ trait AppTrait {
 	 */
 	public function redirect($url,array $params=[],$code=302) {
 		$query_string = '';
+		if(strpos($url, 'http') === false || strpos($url, 'https') === false) {
+			if(strpos($url, '/') != 0) {
+				$url = '/'.$url;
+			}
+		}
+		
 		if($params) {
 			if(strpos($url,'?') > 0) {
 				foreach($params as $name=>$value) {
