@@ -15,26 +15,10 @@ class SwoolefyException {
               case E_COMPILE_ERROR:
               case E_USER_ERROR:  
                 @ob_end_clean();
-                self::shutHalt($e);
+                self::shutHalt($e['message']);
                 break;
             }
         }
-    }
-
-    /**
-     * 错误输出日志
-     * @param  $error 错误
-     * @return void
-     */
-    public static function shutHalt($error) {
-    	$logFilePath = APP_PATH.'/runtime.log';
-    	if(is_file($logFilePath)) $logFilesSize = filesize($logFilePath);
-    	// 定时清除这个log文件
-    	if($logFilesSize > 1024 * 50) {
-    		@file_put_contents($logFilePath,'');
-    	}
-      Application::$app->log->setChannel('Application')->setLogFilePath(APP_PATH.'/runtime.log')->addError($error);
-      return;
     }
 
 	/**
@@ -53,7 +37,8 @@ class SwoolefyException {
             $error['line']  =   $e->getLine();
         }
         $error['trace']     =   $e->getTraceAsString();
-        self::shutHalt($error['file'].' in line'.$error['line'].':'.$error['message']);
+        $errorStr = $error['file'].' 第'.$error['line'].'行:'.$error['message'];
+        self::shutHalt($errorStr);
     }
 
     /**
@@ -79,5 +64,21 @@ class SwoolefyException {
             break;
       }
       return ;
+    }
+
+    /**
+     * 错误输出日志
+     * @param  $error 错误
+     * @return void
+     */
+    public static function shutHalt($errorMsg) {
+      $logFilePath = APP_PATH.'/runtime.log';
+      if(is_file($logFilePath)) $logFilesSize = filesize($logFilePath);
+      // 定时清除这个log文件
+      if($logFilesSize > 1024 * 50) {
+        @file_put_contents($logFilePath,'');
+      }
+      Application::$app->log->setChannel('Application')->setLogFilePath(APP_PATH.'/runtime.log')->addError($errorMsg);
+      return;
     }
 }

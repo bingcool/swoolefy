@@ -149,7 +149,7 @@ class HttpRoute extends Dispatch {
 			if(!is_file($filePath)) {
 				$this->response->status(404);
 				$this->response->header('Content-Type','text/html; charset=UTF-8');
-				if(SW_DEBUG) {
+				if(!SW_DEBUG) {
 					return $this->response->end($filePath.' is not exit!');
 				}else {
 					// 使用配置的NotFound类
@@ -159,7 +159,7 @@ class HttpRoute extends Dispatch {
 						$class = $this->config['default_namespace'].'\\'.'Controller'.'\\'.$controller.'Controller';
 					}else {
 						// 使用默认配置的404类
-						list($controller, $action) = $this->redirectNotFound(['Swoolefy\Core\Controller\NotFound','page404']);
+						list($controller, $action) = $this->redirectNotFound(['Swoolefy\Core\Controller\NotFoundv','page404']);
 						// 访问类的命名空间
 						$class = 'Swoolefy\\Core\Controller'.'\\'.$controller;
 					}

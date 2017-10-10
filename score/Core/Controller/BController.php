@@ -58,13 +58,12 @@ class BController {
 			'status' => 404,
 			'msg' => 'Calling unknown method: ' . get_class($this) . "::$action()",
 		]));
-		// 直接停止往下执行
+		// 直接停止程序往下执行
 		throw new \Exception('Calling unknown method: ' . get_class($this) . "::$action()");	
 	}
 
 	/**
-	 * __destruct 返回数据之前执行
-	 * @param    {String}
+	 * __destruct 返回数据之前执行,重新初始化一些静态变量
 	 */
 	public function __destruct() {
 		if(method_exists($this,'_afterAction')) {
