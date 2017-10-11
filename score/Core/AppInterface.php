@@ -6,12 +6,12 @@ interface AppInterface {
 	 * init config
 	 * @return   array
 	 */
-	static public function init();
+	public static function init();
 
 	/**
 	 * getInstance
 	 * @param    $config
 	 * @return   object
 	 */
-	static public function getInstance(array $config);
+	public static function getInstance(array $config);
 } 
