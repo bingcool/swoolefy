@@ -281,7 +281,7 @@ class BaseServer {
 			foreach($tables as $k=>$row) {
 				$table = new \swoole_table($row['size']);
 				foreach($row['fields'] as $p=>$field) {
-					switch($field[1]) {
+					switch(strtolower($field[1])) {
 						case 'int':
 							$table->column($field[0],\swoole_table::TYPE_INT,(int)$field[2]);
 						break;

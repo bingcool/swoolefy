@@ -25,12 +25,12 @@ class Tick {
      */
 	public static function tickTimer($time_interval, $func, $params=[]) {
 		if($time_interval <= 0 || $time_interval > 86400000) {
-            throw new \Exception("time_interval is less than 0 or more than 86400000");
+            throw new \Exception(get_called_class()."::tickTimer() the first params 'time_interval' is requested 0-86400000");
             return false;
         }
 
         if(!is_callable($func)) {
-            throw new \Exception("not callable");
+            throw new \Exception(get_called_class()."::tickTimer() the seconed params 'func' is not callable");
             return false;
         }
 
@@ -94,12 +94,12 @@ class Tick {
      */
     public static function afterTimer($time_interval, $func, $params=[]) {
         if($time_interval <= 0 || $time_interval > 86400000) {
-            throw new \Exception("time_interval is less than 0 or more than 86400000");
+            throw new \Exception(get_called_class()."::afterTimer() the first params 'time_interval' is requested 0-86400000");
             return false;
         }
 
         if(!is_callable($func)) {
-            throw new \Exception("not callable");
+            throw new \Exception(get_called_class()."::afterTimer() the seconed params 'func' is not callable");
             return false;
         }
 
@@ -130,7 +130,7 @@ class Tick {
     }
 
     /**
-     * getRunAfterTick
+     * updateRunAfterTick
      * @return  array
      */
     public static function updateRunAfterTick() {
