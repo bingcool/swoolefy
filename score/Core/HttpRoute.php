@@ -118,6 +118,7 @@ class HttpRoute extends Dispatch {
 	 * @return boolean
 	 */
 	public function invoke($module=null,$controller=null,$action=null) {
+		$controller = $controller.'Controller';
 		// 判断是否存在这个类文件
 		if($module) {
 			$filePath = APP_PATH.DIRECTORY_SEPARATOR.'Module'.DIRECTORY_SEPARATOR.$module.DIRECTORY_SEPARATOR.'Controller'.DIRECTORY_SEPARATOR.$controller.'.php';
@@ -156,7 +157,7 @@ class HttpRoute extends Dispatch {
 					if(isset($this->config['not_found_function']) && is_array($this->config['not_found_function'])) {
 						list($controller, $action) = $this->redirectNotFound();
 						// 访问类的命名空间
-						$class = $this->config['default_namespace'].'\\'.'Controller'.'\\'.$controller.'Controller';
+						$class = $this->config['default_namespace'].'\\'.'Controller'.'\\'.$controller;
 					}else {
 						// 使用默认配置的404类
 						list($controller, $action) = $this->redirectNotFound(['Swoolefy\Core\Controller\NotFound','page404']);
@@ -167,7 +168,7 @@ class HttpRoute extends Dispatch {
 				}	
 			}else {
 				// 访问类的命名空间
-				$class = $this->config['default_namespace'].'\\'.'Controller'.'\\'.$controller.'Controller';
+				$class = $this->config['default_namespace'].'\\'.'Controller'.'\\'.$controller;
 			}
 		}
 
