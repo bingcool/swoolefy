@@ -1,0 +1,50 @@
+site_name: PHP-ML - Machine Learning library for PHP
+pages:
+  - Home: index.md
+  - Machine Learning:
+    - Association rule learning:
+      - Apriori: machine-learning/association/apriori.md
+    - Classification:
+      - SVC: machine-learning/classification/svc.md
+      - KNearestNeighbors: machine-learning/classification/k-nearest-neighbors.md
+      - NaiveBayes: machine-learning/classification/naive-bayes.md
+    - Regression:
+      - LeastSquares: machine-learning/regression/least-squares.md
+      - SVR: machine-learning/regression/svr.md
+    - Clustering:
+      - KMeans: machine-learning/clustering/k-means.md
+      - DBSCAN: machine-learning/clustering/dbscan.md
+    - Metric:
+      - Accuracy: machine-learning/metric/accuracy.md
+      - Confusion Matrix: machine-learning/metric/confusion-matrix.md
+      - Classification Report: machine-learning/metric/classification-report.md
+    - Workflow:
+      - Pipeline: machine-learning/workflow/pipeline.md
+    - Neural Network:
+      - Multilayer Perceptron: machine-learning/neural-network/multilayer-perceptron.md
+      - Backpropagation training: machine-learning/neural-network/backpropagation.md
+    - Cross Validation:
+      - RandomSplit: machine-learning/cross-validation/random-split.md
+      - Stratified Random Split: machine-learning/cross-validation/stratified-random-split.md
+    - Preprocessing:
+      - Normalization: machine-learning/preprocessing/normalization.md
+      - Imputation missing values: machine-learning/preprocessing/imputation-missing-values.md
+    - Feature Extraction:
+      - Token Count Vectorizer: machine-learning/feature-extraction/token-count-vectorizer.md
+      - Tf-idf Transformer: machine-learning/feature-extraction/tf-idf-transformer.md
+    - Datasets:
+      - Array Dataset: machine-learning/datasets/array-dataset.md
+      - CSV Dataset: machine-learning/datasets/csv-dataset.md
+      - Files Dataset: machine-learning/datasets/files-dataset.md
+      - Ready to use datasets:
+        - Iris: machine-learning/datasets/demo/iris.md
+        - Wine: machine-learning/datasets/demo/wine.md
+        - Glass: machine-learning/datasets/demo/glass.md
+    - Models management:
+        - Persistency: machine-learning/model-manager/persistency.md
+  - Math:
+    - Distance: math/distance.md
+    - Matrix: math/matrix.md
+    - Set: math/set.md
+    - Statistic: math/statistic.md
+theme: readthedocs

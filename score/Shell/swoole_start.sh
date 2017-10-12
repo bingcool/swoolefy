@@ -2,7 +2,9 @@
 
 CURRENT_DIR=$(dirname $(pwd))
 START_FILE=$CURRENT_DIR"/server.php"
+
 PORT=9501
+
 PHP=/usr/bin/php
 
 start() {

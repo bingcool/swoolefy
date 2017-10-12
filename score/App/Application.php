@@ -11,6 +11,8 @@ class Application implements \Swoolefy\Core\AppInterface{
 		// 完成App应用层的命名空间的自动注册
 		include(__DIR__.'/autoloader.php');
 		
+		include(__DIR__.'/function.php');
+
 		include(__DIR__.'/../Core/Swfy.php');
 
 		include(__DIR__."/Config/defines.php");

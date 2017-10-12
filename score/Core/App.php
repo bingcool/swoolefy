@@ -28,12 +28,6 @@ class App extends \Swoolefy\Core\Component {
 	public $config = null;
 
 	/**
-	 * $route
-	 * @var null
-	 */
-	public  $route = null;
-
-	/**
 	 * __construct
 	 * @param $config 应用层配置
 	 */

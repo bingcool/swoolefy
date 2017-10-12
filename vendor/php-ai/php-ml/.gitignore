@@ -1,0 +1,5 @@
+/vendor/
+humbuglog.*
+/bin/phpunit
+.coverage
+.php_cs.cache

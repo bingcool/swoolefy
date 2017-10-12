@@ -6,7 +6,7 @@ class Swfy extends \Swoolefy\Core\Object {
 	 * $server swoole服务超全局变量
 	 * @var obj
 	 */
-	public static $server;
+	public static $server = null;
 
 	/**
 	 * $Di

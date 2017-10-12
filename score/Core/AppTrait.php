@@ -206,13 +206,13 @@ trait AppTrait {
 	 * @return array
 	 */
 	public function getRouteParams() {
-		$require_uri = $this->getRoute();
-		$route_uri = substr($require_uri,1);
-		$route_arr = explode('/',$route_uri);
-		if(count($route_arr) == 1){
-			$route_arr[1] = 'index';
+		$route = $this->getRoute();
+		$route = substr($route,1);
+		$routeParams = explode('/',$route);
+		if(count($routeParams) == 1){
+			array_push($routeParams,'index');
 		}
-		return $route_arr;
+		return $routeParams;
 	}
 
 	/**
@@ -220,9 +220,9 @@ trait AppTrait {
 	 * @return string|null
 	 */
 	public function getModule() {
-		$route_arr = $this->getRouteParams();
-		if(count($route_arr) == 3) {
-			return $route_arr[0];
+		$routeParams = $this->getRouteParams();
+		if(count($routeParams) == 3) {
+			return $routeParams[0];
 		}else {
 			return null;
 		}
@@ -233,11 +233,11 @@ trait AppTrait {
 	 * @return string
 	 */
 	public function getController() {
-		$route_arr = $this->getRouteParams();
-		if(count($route_arr) == 3) {
-			return $route_arr[1];
+		$routeParams = $this->getRouteParams();
+		if(count($routeParams) == 3) {
+			return $routeParams[1];
 		}else {
-			return $route_arr[0];
+			return $routeParams[0];
 		}
 	}
 
@@ -246,8 +246,8 @@ trait AppTrait {
 	 * @return string
 	 */
 	public function getAction() {
-		$route_arr = $this->getRouteParams();
-		return array_pop($route_arr);
+		$routeParams = $this->getRouteParams();
+		return array_pop($routeParams);
 	}
 
 	/**
