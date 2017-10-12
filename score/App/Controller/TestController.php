@@ -14,7 +14,7 @@ class TestController extends BController {
 	}
 
 	public function test() {
-		debug('kkkk');
+		var_dump('vvvvvvvvvvvvvvvvvvvv');
 		$this->assign('name','bingcool'.rand(1,100));
 		$this->display('test.html');
 	}

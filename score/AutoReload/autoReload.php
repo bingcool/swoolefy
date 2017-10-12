@@ -171,7 +171,7 @@ class autoReload {
                             $process_pid = $process->start();
                             $this->swoole_pid = intval($process->read());
                             swoole_process::wait();
-                            var_dump($swoole_pid);
+                            
                             if(!is_int($this->swoole_pid) || !$this->swoole_pid) {
                                 // 线上记录日志模式和调试模式
                                 $this->putLog("swoole已经停止....,请手动启动swoole!",'error');
