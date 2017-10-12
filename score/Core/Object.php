@@ -10,10 +10,10 @@ class Object {
 	public function __call($action,$args = []) {
 		Application::$app->response->end(json_encode([
 			'status' => 404,
-			'msg' => 'Calling unknown method: ' . get_class($this) . "::$action()",
+			'msg' => 'Calling unknown method: ' . get_called_class() . "::$action()",
 		]));
 		// 直接停止程序往下执行
-		throw new \Exception('Calling unknown method: ' . get_class($this) . "::$action()");	
+		throw new \Exception('Calling unknown method: ' . get_called_class() . "::$action()");	
 	}
 
 	/**

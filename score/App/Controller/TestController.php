@@ -11,19 +11,20 @@ class TestController extends BController {
 
 	public function __construct() {
 		parent::__construct();
+		$class = \Swoolefy\Core\HttpRoute::$RoutefileMap;
+		var_dump($class);
 	}
 
 	public function test() {
-		var_dump('vvvvvvvvvvvvvvvvvvvv');
+		
 		$this->assign('name','bingcool'.rand(1,100));
 		$this->display('test.html');
 	}
 
 	public function testajax() {
 		$res = ['name'=>'bingcool','age'=>26,'sex'=>1,'info'=>['cloth'=>'red','phone'=>'12222']];
-		if($this->isAjax()) {
-			$this->returnJson($res);
-		}
+		$this->returnJson($res);
+
 	}
 
 	public function testRedirect() {
@@ -35,7 +36,6 @@ class TestController extends BController {
 	}
 
 	public function mytest() {
-		dump('jjjjjjjjjjjjjjj');
 		$this->display('test.html');
 	}
 
