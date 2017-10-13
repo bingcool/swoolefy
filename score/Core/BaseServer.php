@@ -20,14 +20,17 @@ class BaseServer {
 	 * @var null
 	 */
 	public static $_table_tasks = [
+		// 内存表名
 		'table_ticker' => [
-			'size' => 8096,
+			// 每个内存表建立的行数
+			'size' => 512,
+			// 字段
 			'fields'=> [
 				['tick_tasks','string',8096]
 			]
 		],
 		'table_after' => [
-			'size' => 8096,
+			'size' => 512,
 			'fields'=> [
 				['after_tasks','string',8096]
 			]
@@ -38,7 +41,7 @@ class BaseServer {
 	 */
 	public function __construct() {
 		// include common function
-		self::setCoommonFunction();
+		self::setCommonFunction();
 		// check extensions
 		self::checkVersion();
 		// check is run on cli
@@ -300,7 +303,7 @@ class BaseServer {
 			}
 	}
 
-	public static function setCoommonFunction() {
+	public static function setCommonFunction() {
 		// 包含核心公共的函数库
 		include_once __DIR__.'/Func/function.php';
 	}
