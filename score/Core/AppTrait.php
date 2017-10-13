@@ -502,7 +502,7 @@ trait AppTrait {
 	 * cors 
 	 * @return  
 	 */
-	public function cors() {
+	public function setCors() {
 		if(isset($this->config['cors']) && is_array($this->config['cors'])) {
 			$cors = $this->config['cors'];
 			foreach($cors as $k=>$value) {

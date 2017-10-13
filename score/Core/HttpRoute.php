@@ -242,14 +242,14 @@ class HttpRoute extends Dispatch {
 	 * @return   boolean
 	 */
 	public static function isExistRouteFile($route) {
-		return self::$RoutefileMap[$route];
+		return self::$routeFileMap[$route];
 	}
 
 	/**
 	 * setRouteFileMap
 	 */
 	public static function setRouteFileMap($route) {
-		self::$RoutefileMap[$route] = true;
+		self::$routeFileMap[$route] = true;
 	}
 
 }

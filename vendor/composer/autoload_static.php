@@ -68,13 +68,6 @@ class ComposerStaticInit9ffbbe95a7a6a28015af98a86173c7b2
     );
 
     public static $prefixesPsr0 = array (
-        'P' => 
-        array (
-            'Phpml' => 
-            array (
-                0 => __DIR__ . '/..' . '/php-ai/php-ml/src',
-            ),
-        ),
         'D' => 
         array (
             'Doctrine\\Common\\Lexer\\' => 

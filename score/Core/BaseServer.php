@@ -37,6 +37,8 @@ class BaseServer {
 	 * __construct
 	 */
 	public function __construct() {
+		// include common function
+		self::setCoommonFunction();
 		// check extensions
 		self::checkVersion();
 		// check is run on cli
@@ -298,6 +300,11 @@ class BaseServer {
 			}
 	}
 
+	public static function setCoommonFunction() {
+		// 包含核心公共的函数库
+		include_once __DIR__.'/Func/function.php';
+	}
+
 	/**
 	 * checkSapiEnv
 	 * @return void
@@ -308,7 +315,4 @@ class BaseServer {
             throw new \Exception("only run in command line mode \n", 1);
         }
     }
-
-
-
 }

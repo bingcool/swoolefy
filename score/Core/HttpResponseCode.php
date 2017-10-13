@@ -1,5 +1,4 @@
 <?php
-
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Application;

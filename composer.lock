@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "content-hash": "e67e2105b37666488baf16cf2c575f7d",
+    "content-hash": "86ea51a90c1bb9062f6eaeda1cb16e3c",
     "packages": [
         {
             "name": "doctrine/lexer",
@@ -247,55 +247,6 @@
                 "time"
             ],
             "time": "2017-01-16T07:55:07+00:00"
-        },
-        {
-            "name": "php-ai/php-ml",
-            "version": "0.4.1",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/php-ai/php-ml.git",
-                "reference": "39747efdc1ff781939c45f321475f00f71ef3172"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://files.phpcomposer.com/files/php-ai/php-ml/39747efdc1ff781939c45f321475f00f71ef3172.zip",
-                "reference": "39747efdc1ff781939c45f321475f00f71ef3172",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=7.0.0"
-            },
-            "require-dev": {
-                "phpunit/phpunit": "^6.0"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-0": {
-                    "Phpml": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Arkadiusz Kondas",
-                    "email": "arkadiusz.kondas@gmail.com"
-                }
-            ],
-            "description": "PHP-ML - Machine Learning library for PHP",
-            "homepage": "https://github.com/php-ai/php-ml",
-            "keywords": [
-                "Neural network",
-                "artificial intelligence",
-                "computational learning theory",
-                "data science",
-                "feature extraction",
-                "machine learning",
-                "pattern recognition"
-            ],
-            "time": "2017-03-05T15:45:48+00:00"
         },
         {
             "name": "psr/log",

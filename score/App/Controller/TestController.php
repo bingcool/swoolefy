@@ -11,12 +11,9 @@ class TestController extends BController {
 
 	public function __construct() {
 		parent::__construct();
-		$class = \Swoolefy\Core\HttpRoute::$RoutefileMap;
-		var_dump($class);
 	}
 
 	public function test() {
-		
 		$this->assign('name','bingcool'.rand(1,100));
 		$this->display('test.html');
 	}
@@ -39,8 +36,5 @@ class TestController extends BController {
 		$this->display('test.html');
 	}
 
-	public function mytest1($timer_id) {
-		echo "task2";
-		\Swoolefy\Core\Timer\Tick::delTicker($timer_id);
-	}
+	
 }

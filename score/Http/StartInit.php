@@ -16,7 +16,7 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 * @param    $server
 	 * @return          
 	 */
-	public function onManagerStart($server){
+	public function onManagerStart($server) {
 		
 	}
 
@@ -25,14 +25,14 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 * @param    $server
 	 * @return   
 	 */
-	public function onWorkerStart($server,$worker_id){
-		// if($worker_id == 0) {
-		// 	\Swoolefy\Core\Timer\Tick::tickTimer(10000,['App\\Controller\\Test','mytest'],[]);
-		// 	\Swoolefy\Core\Timer\Tick::tickTimer(20000,['App\\Controller\\Test','mytest1'],[]);
-		// 	\Swoolefy\Core\Timer\Tick::tickTimer(15000,['App\\Controller\\Test','mytest1'],[]);
-		// 	\Swoolefy\Core\Timer\Tick::tickTimer(18000,['App\\Controller\\Test','mytest1'],[]);
-		// 	// $tid1 = \Swoolefy\Core\Timer\Tick::afterTimer(5000,['App\\Controller\\Test','mytest'],[]);
-		// }
+	public function onWorkerStart($server,$worker_id) {
+		if($worker_id == 0) {
+			// \Swoolefy\Core\Timer\Tick::tickTimer(10000,['App\\Controller\\Test','mytest'],[]);
+			// \Swoolefy\Core\Timer\Tick::tickTimer(20000,['App\\Controller\\TickTasksController','mytest1'],[]);
+			// \Swoolefy\Core\Timer\Tick::tickTimer(15000,['App\\Controller\\TickTasksController','mytest1'],[]);
+			// \Swoolefy\Core\Timer\Tick::tickTimer(18000,['App\\Controller\\TickTasksController','mytest1'],[]);
+			// $tid1 = \Swoolefy\Core\Timer\Tick::afterTimer(5000,['App\\Controller\\Test','mytest'],[]);
+		}
 	}
 
 	/**
@@ -41,7 +41,7 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 * @param    $worker_id
 	 * @return             
 	 */
-	public function onWorkerStop($server,$worker_id){
+	public function onWorkerStop($server,$worker_id) {
 		
 	}
 
@@ -50,7 +50,7 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 * @param    $server
 	 * @return          
 	 */
-	public function onManagerStop($server){
+	public function onManagerStop($server) {
 		
 	}
 }
