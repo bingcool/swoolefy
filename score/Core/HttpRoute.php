@@ -123,10 +123,10 @@ class HttpRoute extends Dispatch {
 		// 判断是否存在这个类文件
 		if($module) {
 			// 访问类的命名空间
-			$class = $this->config['default_namespace'].'\\'.'Module'.'\\'.$module.'\\'.'Controller'.'\\'.$controller;
+			$class = $this->config['default_namespace'].'\\'.'Module'.'\\'.$module.'\\'.$controller;
 			// 不存在请求类文件
 			if(!self::isExistRouteFile($class)) {
-				$filePath = APP_PATH.DIRECTORY_SEPARATOR.'Module'.DIRECTORY_SEPARATOR.$module.DIRECTORY_SEPARATOR.'Controller'.DIRECTORY_SEPARATOR.$controller.'.php';
+				$filePath = APP_PATH.DIRECTORY_SEPARATOR.'Module'.DIRECTORY_SEPARATOR.$module.DIRECTORY_SEPARATOR.$controller.'.php';
 				if(!is_file($filePath)) {
 					$this->response->status(404);
 					$this->response->header('Content-Type','text/html; charset=UTF-8');

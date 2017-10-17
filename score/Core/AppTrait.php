@@ -7,6 +7,12 @@ trait AppTrait {
 	 * @var array
 	 */
 	public static $previousUrl = [];
+
+	/**
+	 * $selfModel 控制器对应的自身model
+	 * @var array
+	 */
+	public static $selfModel = [];
 	/**
 	 * _beforeAction 
 	 * @return   mixed
@@ -248,6 +254,45 @@ trait AppTrait {
 	public function getAction() {
 		$routeParams = $this->getRouteParams();
 		return array_pop($routeParams);
+	}
+
+	/**
+	 * getModel 默认获取当前module下的控制器对应的module
+	 * @param    string        $model [description]
+	 * @return   [type]               [description]
+	 */
+	public function getModel($model='') {
+		$module = $this->getModule();
+		$controller = $this->getController();
+		// 如果存在module
+		if(!empty($module)) {
+			// model的类文件对应控制器
+			if(!empty($model)) {
+				$modelClass = $this->config['default_namespace'].'\\'.'Module'.'\\'.$module.'\\'.'Model'.'\\'.$model;
+			}else {
+				$modelClass = $this->config['default_namespace'].'\\'.'Module'.'\\'.$module.'\\'.'Model'.'\\'.$controller;
+			}
+		}else {
+			// model的类文件对应控制器
+			if(!empty($model)) {
+				$modelClass = $this->config['default_namespace'].'\\'.'Model'.'\\'.$model;
+				
+			}else {
+				$modelClass = $this->config['default_namespace'].'\\'.'Model'.'\\'.$controller;
+			}
+		}
+		// 从内存数组中返回
+		if(isset(static::$selfModel[$modelClass]) && is_object(static::$selfModel[$modelClass])) {
+			return static::$selfModel[$modelClass];
+		}else {
+			try{
+				$modelInstance = new $modelClass;
+				return static::$selfModel[$modelClass] = $modelInstance;
+			}catch(\Exception $e) {
+				dump($e->getMessage());
+			}
+		}
+
 	}
 
 	/**

@@ -58,6 +58,8 @@ class BController extends \Swoolefy\Core\Object {
 		}
 		// 初始化这个变量
 		static::$previousUrl = [];
+		// 初始化
+		static::$selfModel = [];
 	}
 
 	//使用trait的复用特性
