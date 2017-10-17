@@ -15,10 +15,7 @@ class Dispatch {
 	 */
 	public function __construct() {
 		// 每一次请求清空,再初始化
-		$_COOKIE = [];
-		$_POST = [];
-		$_GET = [];
-		$_REQUEST = [];
+		$_COOKIE = $_POST = $_GET = $_REQUEST = [];
 		//请求对象
 		$request = Application::$app->request;
 		self::resetServer($request);

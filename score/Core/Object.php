@@ -62,4 +62,14 @@ class Object {
 		throw new \Exception('Calling unknown static method: ' . get_called_class() . "::$action()");
 	}
 
+	/**
+	 * _die 异常终端程序执行
+	 * @param    $msg
+	 * @param    $code
+	 * @return   mixed
+	 */
+	public static function _die($msg='',$code=1) {
+		throw new \Exception($msg, $code);
+	}
+
 }

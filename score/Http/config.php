@@ -10,6 +10,7 @@ return [
 	'host' => '0.0.0.0',
 	'port' => '9502',
 	'time_zone' => 'Asia/Shanghai',
+	'gzip_level' => 2,
 	'include_files' =>[],
 	'setting' => [
 		'dispatch_mode' => 3,
@@ -17,5 +18,6 @@ return [
 	],
 
 	// 是否内存化线上实时任务
-	'table_tick_task' => true,	
+	'table_tick_task' => true,
+	
 ];
