@@ -58,7 +58,7 @@ class BController extends \Swoolefy\Core\Object {
 		}
 		// 初始化这个变量
 		static::$previousUrl = [];
-		// 初始化
+		// 初始化清除所有得单例model实例
 		static::$selfModel = [];
 	}
 

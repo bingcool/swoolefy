@@ -32,5 +32,30 @@ class BModel extends \Swoolefy\Core\Component {
 		$this->config = Application::$app->config;
 	}
 
-	
+	/**
+	 * beforeAction 在处理实际action之前执行
+	 * @return   mixed
+	 */
+	public function _beforeAction() {
+		return true;
+	}
+
+	/**
+	 * afterAction 在返回数据之前执行
+	 * @return   mixed
+	 */
+	public function _afterAction() {
+		return true;
+	}
+
+	/**
+	 * __destruct 对象销毁前处理一些静态变量
+	 * @param    
+	 */
+	public function __destruct() {
+		static::_afterAction();
+	}
+
+	// model的多路复用trait
+	use \Swoolefy\Core\ModelTrait;
 }

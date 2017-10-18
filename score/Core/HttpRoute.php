@@ -96,14 +96,23 @@ class HttpRoute extends Dispatch {
 
 		// 重新设置一个route
 		$this->request->server['route'] = $this->require_uri;
+		// route参数组数
+		$this->request->server['route_params'] = [];
 		// 定义禁止直接外部访问的方法
 		if(in_array($action, $this->deny_actions)) {
 			return $this->response->end($action.' method is not be exec!');
 		}
 		
 		if($module) {
+			// route参数数组
+			$this->request->server['route_params'] = [3,[$module,$controller,$action]];	
+			// 调用
 			$this->invoke($module,$controller,$action);
+			
 		}else {
+			// route参数数组
+			$this->request->server['route_params'] = [2,[$controller,$action]];
+			// 调用 
 			$this->invoke($module=null,$controller,$action);
 		}
 		// 必须设置设置一个异常结束

@@ -212,13 +212,7 @@ trait AppTrait {
 	 * @return array
 	 */
 	public function getRouteParams() {
-		$route = $this->getRoute();
-		$route = substr($route,1);
-		$routeParams = explode('/',$route);
-		if(count($routeParams) == 1){
-			array_push($routeParams,'index');
-		}
-		return $routeParams;
+		return $this->request->server['route_params'];
 	}
 
 	/**
@@ -226,8 +220,8 @@ trait AppTrait {
 	 * @return string|null
 	 */
 	public function getModule() {
-		$routeParams = $this->getRouteParams();
-		if(count($routeParams) == 3) {
+		list($count,$routeParams) = $this->getRouteParams();
+		if($count == 3) {
 			return $routeParams[0];
 		}else {
 			return null;
@@ -239,8 +233,8 @@ trait AppTrait {
 	 * @return string
 	 */
 	public function getController() {
-		$routeParams = $this->getRouteParams();
-		if(count($routeParams) == 3) {
+		list($count,$routeParams) = $this->getRouteParams();
+		if($count == 3) {
 			return $routeParams[1];
 		}else {
 			return $routeParams[0];
@@ -282,12 +276,12 @@ trait AppTrait {
 			}
 		}
 		// 从内存数组中返回
-		if(isset(static::$selfModel[$modelClass]) && is_object(static::$selfModel[$modelClass])) {
-			return static::$selfModel[$modelClass];
+		if(isset(self::$selfModel[$modelClass])) {
+			return self::$selfModel[$modelClass];
 		}else {
 			try{
 				$modelInstance = new $modelClass;
-				return static::$selfModel[$modelClass] = $modelInstance;
+				return self::$selfModel[$modelClass] = $modelInstance;
 			}catch(\Exception $e) {
 				dump($e->getMessage());
 			}

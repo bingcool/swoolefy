@@ -21,7 +21,7 @@ class View {
 	 * $gzip_level
 	 * @var integer
 	 */
-	public $gzip_level = 1;
+	public $gzip_level = 2;
 	
 	/**
 	 * __construct
