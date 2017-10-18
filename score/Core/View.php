@@ -101,25 +101,25 @@ class View {
 	 * @return        
 	 */
 	public function returnJson($data,$formater = 'json') {
-			$response = Application::$app->response;
-			switch(strtoupper($formater)) {
-				case 'JSON':
-					$response->header('Content-Type','application/json; charset=utf-8');
-					$string = json_encode($data,0);
-				break;
-				case 'XML':
-					$response->header('Content-Type','text/xml; charset=utf-8');
-               		$string = xml_encode($data);
-                break;
-                case 'EVAL':
-                	$response->header('Content-Type','text/xml; charset=utf-8');
-                	$string = $data;
-				default:$string = json_encode($data,0);break;
-			}
-			// 线上环境压缩
-			$response->gzip($this->gzip_level);
-			@$response->write($string);
-			@$response->end();
+		$response = Application::$app->response;
+		switch(strtoupper($formater)) {
+			case 'JSON':
+				$response->header('Content-Type','application/json; charset=utf-8');
+				$string = json_encode($data,0);
+			break;
+			case 'XML':
+				$response->header('Content-Type','text/xml; charset=utf-8');
+           		$string = xml_encode($data);
+            break;
+            case 'EVAL':
+            	$response->header('Content-Type','text/xml; charset=utf-8');
+            	$string = $data;
+			default:$string = json_encode($data,0);break;
+		}
+		// 线上环境压缩
+		$response->gzip($this->gzip_level);
+		@$response->write($string);
+		@$response->end();
 	}
 
 }
