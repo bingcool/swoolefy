@@ -28,7 +28,6 @@ class BModel extends \Swoolefy\Core\Component {
 	public $struct = null;
 	/**
 	 * __construct
-	 * @param    {String}
 	 */
 	public function __construct() {
 		// 初始化请求对象和响应对象

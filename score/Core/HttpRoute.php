@@ -54,7 +54,6 @@ class HttpRoute extends Dispatch {
 	 * @return void
 	 */
 	public function dispatch() {
-		
 		// pathinfo的模式
 		if($this->config['route_model'] == 1) {
 			// 采用默认路由
@@ -65,22 +64,27 @@ class HttpRoute extends Dispatch {
 			$route_uri = substr($this->require_uri,1);
 			if($route_uri) {
 				// 分割出route
-				$route_arr = explode('/',$route_uri);
-				if(count($route_arr) == 1){
-					$module = null;
-					$controller = $route_arr[0];
-					$action = 'index';
-					$route_uri = $controller.'/'.'index';
-				}elseif(count($route_arr) == 2) {
-					$module = null;
-					// Controller/Action模式
-					$controller = $route_arr[0];
-					$action = $route_arr[1];
-				}elseif(count($route_arr) == 3) {
-					// Model/Controller/Action模式
-					$module = $route_arr[0];
-					$controller = $route_arr[1];
-					$action = $route_arr[2];
+				$route_params = explode('/',$route_uri);
+				$count = count($route_params);
+				switch($count) {
+					case 1 : 
+						$module = null;
+						$controller = $route_params[0];
+						$action = 'index';
+						$route_uri = $controller.'/'.'index';
+					break;
+					case 2 : 
+						$module = null;
+						// Controller/Action模式
+						$controller = $route_params[0];
+						$action = $route_params[1];
+					break;
+					case 3 : 
+						// Model/Controller/Action模式
+						$module = $route_params[0];
+						$controller = $route_params[1];
+						$action = $route_params[2];
+					break;	
 				}
 			}
 		}else if($this->config['route_model'] == 2) {
