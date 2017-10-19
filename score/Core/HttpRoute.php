@@ -220,6 +220,9 @@ class HttpRoute extends Dispatch {
 			$this->response->header('Content-Type','text/html; charset=UTF-8');
 			if(SW_DEBUG) {
 				return $this->response->end('Class file for '.$filePath.' is exit, but the file:'.$controller.'.php'.' has not define '.'"'.$action.'()'.'"'.' method');
+			}else {
+				$method = new \ReflectionMethod($controllerInstance,'__call');
+		        $method->invokeArgs($controllerInstance,array($action,''));
 			}
 		}
 	}
