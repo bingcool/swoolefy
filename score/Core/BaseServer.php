@@ -35,19 +35,30 @@ class BaseServer {
 				['after_tasks','string',8096]
 			]
 		],
+
+		//$_workers_pids 记录映射进程worker_pid和worker_id的关系 
+		'table_workers_pid' => [
+			'size' => 1,
+			'fields'=> [
+				['workers_pid','string',512]
+			]
+		],
 	];
+
+	public static $_workers_pid_temp = [];
+
 	/**
 	 * __construct
 	 */
 	public function __construct() {
+		// set timeZone
+		self::setTimeZone(); 
 		// include common function
 		self::setCommonFunction();
 		// check extensions
 		self::checkVersion();
 		// check is run on cli
 		self::checkSapiEnv();
-		// set timeZone
-		self::setTimeZone(); 
 		// create table
 		self::createTables();
 		// record start time
@@ -266,6 +277,25 @@ class BaseServer {
 		}
 		@file_put_contents($filePath, json_encode($includes));
 		@chmod($filePath,0766);
+	}
+
+	/**
+	 * setWorkersPid 记录worker对应的进程worker_pid与worker_id的映射
+	 * @param    $worker_id  
+	 * @param    $worker_pid 
+	 */
+	public static function setWorkersPid($worker_id, $worker_pid) {
+		$workers_pid = self::getWorkersPid();
+		$workers_pid[$worker_id] = $worker_pid;
+		self::$server->table_workers_pid->set('workers_pid',['workers_pid'=>json_encode($workers_pid)]);
+	}
+
+	/**
+	 * getWorkersPid 获取线上的实时的进程worker_pid与worker_id的映射
+	 * @return   
+	 */
+	public static function getWorkersPid() {
+		return json_decode(self::$server->table_workers_pid->get('workers_pid')['workers_pid'], true);
 	}
 
 	/**

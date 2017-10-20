@@ -487,6 +487,17 @@ trait AppTrait {
 	}
 
 	/**
+	 * getWorkersPid 获取当前所有worker_pid与worker的映射
+	 * @Author   huangzengbing
+	 * @DateTime 2017-10-20
+	 * @param    {String}
+	 * @return   [type]        [description]
+	 */
+	public function getWorkersPid() {
+		return \Swoolefy\Core\BaseServer::getWorkersPid();
+	}
+
+	/**
 	 * getLastError 返回最近一次的错误代码
 	 * @return   int 
 	 */

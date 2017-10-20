@@ -105,6 +105,8 @@ class HttpServer extends BaseServer {
 			self::setWorkerUserGroup(self::$config['www_user']);
 			// 启动时提前加载文件
 			self::startInclude();
+			// 记录worker的进程worker_pid与worker_id的映射
+			self::setWorkersPid($worker_id,$server->worker_pid);
 			// 初始化整个应用对象
 			is_null(self::$App) && self::$App = swoole_pack(self::$config['application_index']::getInstance($config=[]));
 			// 超全局变量server
@@ -112,6 +114,7 @@ class HttpServer extends BaseServer {
        		is_null(Swfy::$config) && Swfy::$config = self::$config;
        		// 启动的初始化函数
 			$this->startctrl->workerStart($server,$worker_id);
+			
 		});
 
 		/**
