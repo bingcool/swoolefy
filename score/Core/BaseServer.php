@@ -45,8 +45,6 @@ class BaseServer {
 		],
 	];
 
-	public static $_workers_pid_temp = [];
-
 	/**
 	 * __construct
 	 */
