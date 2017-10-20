@@ -38,3 +38,7 @@ function dump($var, $echo=true, $label=null, $strict=true) {
     }else
         return $output;
 }
+
+function get_used_memory() {
+   return memory_get_usage();
+}

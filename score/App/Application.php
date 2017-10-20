@@ -2,7 +2,7 @@
 namespace Swoolefy\App;
 
 // 上线必须设置为false
-defined('SW_DEBUG') or define('SW_DEBUG', false);
+defined('SW_DEBUG') or define('SW_DEBUG', true);
 defined('SW_ENV') or define('SW_ENV', 'dev');
 
 class Application implements \Swoolefy\Core\AppInterface{

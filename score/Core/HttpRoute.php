@@ -104,7 +104,7 @@ class HttpRoute extends Dispatch {
 		$this->request->server['route_params'] = [];
 		// 定义禁止直接外部访问的方法
 		if(in_array($action, $this->deny_actions)) {
-			return $this->response->end($action.' method is not be exec!');
+			return $this->response->end($action.'() method is not be called!');
 		}
 		
 		if($module) {
