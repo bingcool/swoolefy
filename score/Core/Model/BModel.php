@@ -106,5 +106,5 @@ class BModel extends \Swoolefy\Core\Component {
 	}
 
 	// model的多路复用trait
-	use \Swoolefy\Core\ModelTrait;
+	use \Swoolefy\Core\ModelTrait,\Swoolefy\Core\ServiceTrait;
 }

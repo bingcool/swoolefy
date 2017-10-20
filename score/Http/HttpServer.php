@@ -25,7 +25,7 @@ class HttpServer extends BaseServer {
 	 */
 	public static $setting = [
 		'reactor_num' => 1, //reactor thread num
-		'worker_num' => 4,    //worker process num
+		'worker_num' => 1,    //worker process num
 		'max_request' => 100000,
 		'daemonize' => 0,
 		'log_file' => __DIR__.'/log.txt',

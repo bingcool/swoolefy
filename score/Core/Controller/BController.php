@@ -63,5 +63,5 @@ class BController extends \Swoolefy\Core\Object {
 	}
 
 	//使用trait的复用特性
-	use \Swoolefy\Core\AppTrait;
+	use \Swoolefy\Core\AppTrait,\Swoolefy\Core\ServiceTrait;
 }

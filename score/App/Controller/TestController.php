@@ -12,9 +12,14 @@ class TestController extends BController {
 	public function __construct() {
 		parent::__construct();
 	}
-
 	public function test() {
-		$this->assign('name','bingcool'.rand(1,100));
+		$Test = $this->getModel();
+		$data = $Test->record();
+		$data1 = $Test->getTest();
+		dump($data1);
+		dump($this->getInitIncludeFiles());
+		dump($this->getMomeryIncludeFiles());
+		$this->assign('name',$data['name']);
 		$this->display('test.html');
 	}
 
@@ -33,7 +38,8 @@ class TestController extends BController {
 	}
 
 	public function mytest() {
-		$this->display('test.html');
+		$data = $this->getModel()->getTest();
+		return $data;
 	}
 
 	
