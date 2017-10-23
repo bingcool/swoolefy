@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>测试swoole的开启</title>
+	<script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+</head>
+<body>
+<div>
+	<h2>hello,swoole test vvvvvvvvvvvv!{$name}</h2>
+</div>
+<div id="text">
+	
+</div>
+<button id="btn">点击ajax</button>
+<div id="showtext"></div>
+<!-- <script type="text/javascript">
+	ws = new WebSocket("ws://192.168.44.128:9503");
+	ws.onopen = function(){  
+	  ws.send('hello!');	
+	};
+
+	ws.onmessage = function(evt){
+		console.log(evt.data);
+		$('#showtext').text(evt.data);
+	};
+
+	ws.onclose = function(evt){
+	  console.log("WebSocketClosed!");
+	};
+
+	ws.onerror = function(evt){
+	  console.log("WebSocketError!");
+	};
+
+	window.onbeforeunload = function() {
+		ws.close();
+	};
+
+</script> -->
+<script type="text/javascript">
+	$("#btn").click(function() {
+		$.ajax({
+			url:'/Test/testajax?name=bingcool',
+			type:'get',
+			success:function(data) {
+				console.log(data);
+			}
+		});
+	});
+</script>
+
+<!-- <script type="text/javascript">
+ var ttConversionOptions = ttConversionOptions || [];
+ ttConversionOptions.push({
+  type: 'sales',
+  campaignID: '16937',
+  productID: '567834567', 
+  transactionID: '7654321', 
+  transactionAmount: '1.00', 
+  quantity: '1', 
+  email: '', 
+  descrMerchant: 'Samsung UE55HU7500', 
+  descrAffiliate: 'Samsung-Ultra-HD-TV',
+  currency: 'USD', 
+  trackingGroupID: ''
+ });
+</script>
+<noscript>
+ <img src="//ts.tradetracker.net/?cid=16937&pid=35490&tid=567893455&tam=56.00&data=&qty=1&eml=&descrMerchant=Samsung UE55HU7500&descrAffiliate=Samsung-Ultra-HD-TV&event=sales&currency=USD" alt="" />
+</noscript>
+<script type="text/javascript">
+  // No editing needed below this line.
+ (function(ttConversionOptions) {
+  var campaignID = 'campaignID' in ttConversionOptions ? ttConversionOptions.campaignID : ('length' in ttConversionOptions && ttConversionOptions.length ? ttConversionOptions[0].campaignID : null);
+  var tt = document.createElement('script'); tt.type = 'text/javascript'; tt.async = true; tt.src = '//tm.tradetracker.net/conversion?s=' + encodeURIComponent(campaignID) + '&t=m';
+  var s = document.getElementsByTagName('script'); s = s[s.length - 1]; s.parentNode.insertBefore(tt, s);
+ })(ttConversionOptions);
+</script> -->
+
+</body>
+</html>
