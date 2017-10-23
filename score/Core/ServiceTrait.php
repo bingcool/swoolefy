@@ -93,17 +93,21 @@ trait ServiceTrait {
 
 	/**
 	 * getIp
-	 * @return   string
+	 * @param   $type 返回类型 0:返回IP地址,1:返回IPV4地址数字
+	 * @return  string
 	 */
-	public function getIp() {
+	public function getIp($type=0) {
 		// 通过nginx的代理
 		if(isset($this->request->header['x-real-ip'])) 
 	        $ip = $this->request->header['x-real-ip'];
 	    else if($this->request->server['remote_addr']) 
 	    	 //没通过代理，或者通过代理而没设置x-real-ip的 
 	        $ip = $this->request->server['remote_addr'];
-	    else $ip = "Unknow";  
-	    return $ip;  
+	    else $ip = "Unknow";
+	    // IP地址合法验证 
+	    $long = sprintf("%u", ip2long($ip));
+        $ip   = $long ? [$ip, $long] : ['0.0.0.0', 0];
+        return $ip[$type];
 	}
 
 	/**

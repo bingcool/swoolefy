@@ -71,19 +71,15 @@ class HttpRoute extends Dispatch {
 						$module = null;
 						$controller = $route_params[0];
 						$action = 'index';
-						$route_uri = $controller.'/'.'index';
 					break;
 					case 2 : 
 						$module = null;
 						// Controller/Action模式
-						$controller = $route_params[0];
-						$action = $route_params[1];
+						list($controller, $action) = $route_params;
 					break;
 					case 3 : 
 						// Model/Controller/Action模式
-						$module = $route_params[0];
-						$controller = $route_params[1];
-						$action = $route_params[2];
+						list($module, $controller, $action) = $route_params;
 					break;	
 				}
 			}
@@ -200,7 +196,7 @@ class HttpRoute extends Dispatch {
 		// 提前执行_beforeAction函数
 		if($controllerInstance->_beforeAction() === false || is_null($controllerInstance->_beforeAction())) {
 			$this->response->status(403);
-			return $this->response->write(json_encode(['status'=>403,'msg'=>'_beforeAction is forbidden']));
+			return $this->response->write(json_encode(['status'=>403,'msg'=>'_beforeAction is forbidden calling']));
 		}
 		// 如果存在该类和对应的方法
 		$reflector = new \ReflectionClass($controllerInstance);
