@@ -21,26 +21,26 @@ class BaseServer {
 	protected static $_startTime = 0;
 
 	/**
-	 * $_tasks 线上正在运行的任务
+	 * $_tasks 实时内存表保存数据,所有worker共享
 	 * @var null
 	 */
 	public static $_table_tasks = [
-		// 内存表名
+		// 循环定时器内存表
 		'table_ticker' => [
 			// 每个内存表建立的行数
-			'size' => 512,
+			'size' => 4,
 			// 字段
 			'fields'=> [
 				['tick_tasks','string',8096]
 			]
 		],
+		// 一次性定时器内存表
 		'table_after' => [
-			'size' => 512,
+			'size' => 4,
 			'fields'=> [
 				['after_tasks','string',8096]
 			]
 		],
-
 		//$_workers_pids 记录映射进程worker_pid和worker_id的关系 
 		'table_workers_pid' => [
 			'size' => 1,
@@ -249,9 +249,13 @@ class BaseServer {
 	 * @return   void
 	 */
 	public static function setTimeZone() {
+		// 默认
+		$timezone = 'PRC';
 		if(isset(static::$config['time_zone'])) {
-			date_default_timezone_set(static::$config['time_zone']);
+			$timezone = static::$config['time_zone'];
 		}
+		date_default_timezone_set($timezone);
+		return;
 	}
 
 	/**

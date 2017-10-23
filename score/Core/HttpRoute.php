@@ -132,7 +132,7 @@ class HttpRoute extends Dispatch {
 		// 判断是否存在这个类文件
 		if($module) {
 			// 访问类的命名空间
-			$class = $this->config['default_namespace'].'\\'.'Module'.'\\'.$module.'\\'.$controller;
+			$class = $this->config['app_namespace'].'\\'.'Module'.'\\'.$module.'\\'.$controller;
 			// 不存在请求类文件
 			if(!self::isExistRouteFile($class)) {
 				$filePath = APP_PATH.DIRECTORY_SEPARATOR.'Module'.DIRECTORY_SEPARATOR.$module.DIRECTORY_SEPARATOR.$controller.'.php';
@@ -146,7 +146,7 @@ class HttpRoute extends Dispatch {
 						if(isset($this->config['not_found_function']) && is_array($this->config['not_found_function'])) {
 							list($controller, $action) = $this->redirectNotFound();
 							// 访问类的命名空间
-							$class = $this->config['default_namespace'].'\\'.'Controller'.'\\'.$controller.'Controller';
+							$class = $this->config['app_namespace'].'\\'.'Controller'.'\\'.$controller.'Controller';
 						}else {
 							// 使用默认配置的NotFound类
 							list($controller, $action) = $this->redirectNotFound(['Swoolefy\Core\Controller\NotFound','page404']);
@@ -161,7 +161,7 @@ class HttpRoute extends Dispatch {
 
 		}else {
 			// 访问类的命名空间
-			$class = $this->config['default_namespace'].'\\'.'Controller'.'\\'.$controller;
+			$class = $this->config['app_namespace'].'\\'.'Controller'.'\\'.$controller;
 			// 不存在请求类文件
 			if(!self::isExistRouteFile($class)) {
 				$filePath = APP_PATH.DIRECTORY_SEPARATOR.'Controller'.DIRECTORY_SEPARATOR.$controller.'.php';
@@ -175,7 +175,7 @@ class HttpRoute extends Dispatch {
 						if(isset($this->config['not_found_function']) && is_array($this->config['not_found_function'])) {
 							list($controller, $action) = $this->redirectNotFound();
 							// 访问类的命名空间
-							$class = $this->config['default_namespace'].'\\'.'Controller'.'\\'.$controller;
+							$class = $this->config['app_namespace'].'\\'.'Controller'.'\\'.$controller;
 						}else {
 							// 使用默认配置的404类
 							list($controller, $action) = $this->redirectNotFound(['Swoolefy\Core\Controller\NotFound','page404']);
