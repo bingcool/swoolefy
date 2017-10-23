@@ -14,18 +14,12 @@ if(isset($argv) && $argv[0] == basename(__FILE__)) {
 
 class HttpServer extends BaseServer {
 	/**
-	 * $config
-	 * @var null
-	 */
-	public static $config = null;
-
-	/**
-	 * $conf
+	 * $setting
 	 * @var array
 	 */
 	public static $setting = [
 		'reactor_num' => 1, //reactor thread num
-		'worker_num' => 1,    //worker process num
+		'worker_num' => 2,    //worker process num
 		'max_request' => 100000,
 		'daemonize' => 0,
 		'log_file' => __DIR__.'/log.txt',

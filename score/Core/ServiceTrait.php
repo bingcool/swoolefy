@@ -142,7 +142,7 @@ trait ServiceTrait {
 
 	/**
 	 * getMomeryIncludeFiles 获取执行到目前action为止，swoole server中的该worker中内存中已经加载的class文件
-	 * @return   
+	 * @return  array 
 	 */
 	public function getMomeryIncludeFiles() {
 		$includeFiles = get_included_files();
@@ -151,5 +151,26 @@ trait ServiceTrait {
 			'current_worker_id' => $workerId,
 			'include_momery_files' => $includeFiles,
 		];
+	}
+
+	/**
+	 * getConf 获取协议层对应的配置
+	 * @param    $protocol
+	 * @return   array
+	 */
+	public function getConf($protocol='http') {
+		$protocol = strtolower($protocol);
+		switch($protocol) {
+			case 'http':
+				return \Swoolefy\Http\HttpServer::getConf();
+			break;
+			case 'websocket':
+				return \Swoolefy\Websocket\WebsocketServer::getConf();
+			break;
+			case 'tcp':
+				return \Swoolefy\TcpServer::getConf();
+			break;
+			default:return \Swoolefy\Http\HttpServer::getConf();
+		}	
 	}
 }

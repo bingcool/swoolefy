@@ -2,6 +2,11 @@
 namespace Swoolefy\Core;
 
 class BaseServer {
+	/**
+	 * $config
+	 * @var null
+	 */
+	public static $config = [];
 
 	/**
 	 * $server
@@ -178,7 +183,7 @@ class BaseServer {
 	 * getConfig 获取服务的全部配置
 	 * @return   array
 	 */
-	public static function getConfig() {
+	public static function getConf() {
 		static::$config['setting'] = self::getSetting();
 		return static::$config;
 	}
