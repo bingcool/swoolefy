@@ -30,6 +30,8 @@ class View {
 		$smarty = new Smarty;
 		$smarty->setCompileDir(SMARTY_COMPILE_DIR);
 		$smarty->setCacheDir(SMARTY_CACHE_DIR);
+		$smarty_template_path = rtrim(SMARTY_TEMPLATE_PATH).'/';
+		$smarty->setTemplateDir($smarty_template_path);
 
 		$this->content_type = $contentType;
 		$this->view = $smarty;
@@ -49,29 +51,46 @@ class View {
 	/**
 	 * display
 	 * @param    $template_file
+	 * @param    $isCall 是否是跨模块调用
 	 * @return                 
 	 */
 	public function display($template_file=null) {
-		$controller = Application::$app->getController();
-		
-		$action = Application::$app->getAction();
-		$TemplateDir = SMARTY_TEMPLATE_PATH.$controller.'/';
-		if(is_dir($TemplateDir)) {
-			$this->view->setTemplateDir($TemplateDir);
+		$template_file = ltrim($template_file);
+		if(stripos($template_file,'@') === 0) {
+			$template_file = substr($template_file,1);
+			$this->callFetch($template_file);
 		}else {
-			$this->view->setTemplateDir(SMARTY_TEMPLATE_PATH);
-		}
+			$this->redirectFetch($template_file);
+		}	
+	}
 
+	/**
+	 * redirectFetch 
+	 * @param    $template_file
+	 * @return   html
+	 */
+	protected function redirectFetch($template_file) {
+		$module = Application::$app->getModule();
+		$controller = Application::$app->getController();
+		$action = Application::$app->getAction();
+		
 		if(!$template_file) {
 			$template_file = $action.'.html';
 		}
 
-		$filePath = $TemplateDir.$template_file;
+		$filePath = SMARTY_TEMPLATE_PATH.$controller.'/'.$template_file;
+		$fetchFile = $controller.'/'.$template_file;
+		if(!is_null($module)) {
+			$filePath = SMARTY_TEMPLATE_PATH.$module.'_'.$controller.'/'.$template_file;
+			$fetchFile = $module.'_'.$controller.'/'.$template_file;
+		}
+		
 		if(is_file($filePath)) {
-			$tpl = $this->view->fetch($template_file);
+			$tpl = $this->view->fetch($fetchFile);
 		}else {
 			$tpl = $template_file;
 		}
+
 		@Application::$app->response->header('Content-Type',$this->content_type.'; charset=utf-8');
 		// 线上环境压缩
 		Application::$app->response->gzip($this->gzip_level);
@@ -83,6 +102,34 @@ class View {
              $response->write($data);
         }
 		@Application::$app->response->end();
+	}
+
+	/**
+	 * callFetch
+	 * @param    $template_file
+	 * @return   html
+	 */
+	protected function callFetch($template_file) {
+		$filePath = SMARTY_TEMPLATE_PATH.$template_file;
+		$fetchFile = $template_file;
+		if(is_file($filePath)) {
+			$tpl = $this->view->fetch($fetchFile);
+		}else {
+			$tpl = $template_file;
+		}
+
+		@Application::$app->response->header('Content-Type',$this->content_type.'; charset=utf-8');
+		// 线上环境压缩
+		Application::$app->response->gzip($this->gzip_level);
+		// 分段返回数据,2M左右一段
+		$response = @Application::$app->response;
+		$p = 0;
+		$size = 2000000;
+		while($data = substr($tpl, $p++ * $size, $size)) {
+             $response->write($data);
+        }
+		@Application::$app->response->end();
+
 	}
 
 	/**
