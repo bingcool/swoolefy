@@ -1,0 +1,1 @@
+github上clone下来的这个shell文件可能是以dos编码结尾的，这样在linux系统上回出现错误，所以要确保在linux系统上这个两个shell脚本是以unix编码结束符的。
