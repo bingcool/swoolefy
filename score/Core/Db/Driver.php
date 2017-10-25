@@ -290,7 +290,7 @@ abstract class Driver {
         if(!$this->_master_link_pdo) {
             return false;
         }
-        if(!empty($this->slave_link) && !$this->_slave_link_pdo) {
+        if(empty($this->slave_link) && !$this->_slave_link_pdo) {
         	return false;
         }
 

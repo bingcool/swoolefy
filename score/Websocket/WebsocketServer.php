@@ -123,7 +123,8 @@ class WebsocketServer extends BaseServer {
 					swoole_unpack(self::$App)->run($request, $response);
 
 				}catch(\Exception $e) {
-					var_dump('error');
+					// 捕捉异常
+					\Swoolefy\Core\SwoolefyException::appException($e);
 				}
 			});
 		}

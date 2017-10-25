@@ -7,7 +7,7 @@ class SwoolefyException {
 	 * @return 
 	 */
     public static function fatalError() {
-        if ($e = error_get_last()) {
+        if($e = error_get_last()) {
             switch($e['type']){
               case E_ERROR:
               case E_PARSE:
@@ -50,6 +50,7 @@ class SwoolefyException {
      * @return           
      */
     public static function appError($errno, $errstr, $errfile, $errline) {
+
       switch ($errno) {
           case E_ERROR:
           case E_PARSE:

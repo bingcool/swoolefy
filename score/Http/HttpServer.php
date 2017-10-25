@@ -133,7 +133,8 @@ class HttpServer extends BaseServer {
 				return ;
 
 			}catch(\Exception $e) {
-				print $e->getMessage();
+				// 捕捉异常
+				\Swoolefy\Core\SwoolefyException::appException($e);
 			}
 			
 			
