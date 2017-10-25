@@ -150,7 +150,12 @@ class Component extends \Swoolefy\Core\Object {
 
         $object = $reflection->newInstanceArgs($dependencies);
         foreach ($defination as $name => $value) {
-            $object->$name = $value;
+        	if(is_array($object->$name)) {
+        		$object->$name = array_merge($object->$name,$value);
+        		continue;
+        	}
+        	$object->$name = $value;
+            
         }
         return $object;
 	}

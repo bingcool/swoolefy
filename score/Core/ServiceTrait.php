@@ -175,6 +175,7 @@ trait ServiceTrait {
 				return \Swoolefy\TcpServer::getConf();
 			break;
 			default:return \Swoolefy\Http\HttpServer::getConf();
+			break;
 		}	
 	}
 }

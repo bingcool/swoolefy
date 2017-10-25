@@ -23,34 +23,45 @@ abstract class Driver {
 		'username' =>'',
 		'password' =>'',
 		'port' => 3306,
-		'params' => [], // 数据库连接参数        
 		'charset' => 'utf8',
-		'deploy'  => 0 //是否启用分布式的主从
+		'deploy'  => 0, //是否启用分布式的主从
+		'break_reconnect' => 1,//是否断线重连
 	];
 
+	/**
+	 * $master_host
+	 * @var array
+	 */
+	protected $master_host = null;
 	/**
 	 * $master_link 主服务器的连接池
 	 * @var array
 	 */
-	public $master_link = [];
+	protected $master_link = [];
 
 	/**
 	 * $_master_link_id 当前使用的主服务
 	 * @var null
 	 */
-	public $_master_link_id = null;
+	protected $_master_link_pdo = null;
+
+	/**
+	 * $slave_host 
+	 * @var array
+	 */
+	protected $slave_host = [];
 
 	/**
 	 * $slave_link 从服务器的连接池
 	 * @var array
 	 */
-	public $slave_link = [];
+	protected $slave_link = [];
 
 	/**
 	 * $_slave_link_id 当前连接的从服务
 	 * @var null
 	 */
-	public $_slave_link_id = null;
+	protected $_slave_link_pdo = null;
 
 	/**
 	 * $params 参数对象
@@ -71,6 +82,11 @@ abstract class Driver {
      */
    	protected $attrCase = PDO::CASE_LOWER;
 
+   	/**
+   	 * $queryStr 查询的sql字符串
+   	 * @var null
+   	 */
+   	protected $queryStr = null;
    	/**
    	 * $bind
    	 * @var array
@@ -93,30 +109,23 @@ abstract class Driver {
 	 */
 	public function connect() {
 		// 创建主服务连接对象
-		$config = $this->config;
-		// 连接参数
-        if(isset($this->config['params']) && is_array($this->config['params'])) {
-            $params = $this->config['params'];
-        }else {
-            $params = [];
-        }
-
-       	$this->attrCase = $params[PDO::ATTR_CASE];
+       	$this->attrCase = $this->params[PDO::ATTR_CASE];
 
         try{
         	// 创建主服务连接对象
-        	$master_dsn = $this->parseMasterDsn($config);
-       		$this->master_link[0] = new PDO($master_dsn, $config['username'], $config['password'], $params);
-
+        	$master_dsn = $this->parseMasterDsn($this->config);
+       		$this->master_link[0] = new PDO($master_dsn, $this->config['username'], $this->config['password'], $this->params);
        		// 如果设置分布式的主从模式，则创建从服务连接对象
         	if($this->isDeploy()) {
-	        	$slave_dsn = $this->parseSlaveDsn($config);
-	        	foreach($slave_dsn as $k=>$dsn) {
-	        		$this->slave_link[$k] = new PDO($dsn, $config['username'], $config['password'], $params);
+	        	$slave_dsn = $this->parseSlaveDsn($this->config);
+	        	if(!empty($slave_dsn)) {
+		        	foreach($slave_dsn as $k=>$dsn) {
+		        		$this->slave_link[$k] = new PDO($dsn, $this->config['username'], $this->config['password'], $this->params);
+		        	}
 	        	}
         	}
         }catch (\PDOException $e) {
-        	 throw $e;
+        	 dump($e->getMessage());
         }
         
         
@@ -204,7 +213,7 @@ abstract class Driver {
 	 */
 	public function getMasterPdo() {
 		if(!empty($this->master_link)) {
-			return $this->master_link[0];
+			return $this->_master_link_pdo = $this->master_link[0];
 		}else {
 			return false;
 		}
@@ -218,9 +227,9 @@ abstract class Driver {
 		if(!empty($this->slave_link)) {
 			$count = count($this->slave_link);
 			if(!$slave_num && is_int($slave_num) && $slave_num <= $count) {
-				return $this->slave_link[$slave_num-1];
+				return $this->_slave_link_pdo = $this->slave_link[$slave_num-1];
 			}else {
-				return array_rand($this->slave_link);
+				return $this->_slave_link_pdo = mt_rand(0, $count-1);
 			}
 			
 		}else {
@@ -245,7 +254,7 @@ abstract class Driver {
     }
 
     /**
-     * fieldCase 对返数据表字段信息进行大小写转换出来6
+     * fieldCase 对返数据表字段信息进行大小写转换
      * @param    $info
      * @return   array
      */
@@ -275,8 +284,14 @@ abstract class Driver {
    	 * @return   
    	 */
     public function query($sql, $bind = []) {
-        if(!$this->$master_link) {
+    	// 初始化连接
+    	$this->initConnect();
+
+        if(!$this->_master_link_pdo) {
             return false;
+        }
+        if(!empty($this->slave_link) && !$this->_slave_link_pdo) {
+        	return false;
         }
 
         // 记录SQL语句
@@ -289,11 +304,9 @@ abstract class Driver {
         if (!empty($this->PDOStatement)) {
             $this->free();
         }
-
-        Db::$queryTimes++;
         try {
             // 调试开始
-            $this->debug(true);
+            // $this->debug(true);
             // 预处理
             if (empty($this->PDOStatement)) {
                 $this->PDOStatement = $this->linkID->prepare($sql);
@@ -309,7 +322,7 @@ abstract class Driver {
             // 执行查询
             $this->PDOStatement->execute();
             // 调试结束
-            $this->debug(false);
+            // $this->debug(false);
             // 返回结果集
             return $this->getResult($pdo, $procedure);
         } catch (\PDOException $e) {
@@ -323,6 +336,47 @@ abstract class Driver {
             }
             throw $e;
         }
+    }
+
+    /**
+     * isBreak 判断是否断线
+     * @param \PDOException|\Exception  $e 异常对象
+     * @return boolean
+     */
+    protected function isBreak($e)
+    {
+        if (!$this->config['break_reconnect']) {
+            return false;
+        }
+
+        $info = [
+            'server has gone away',
+            'no connection to the server',
+            'Lost connection',
+            'is dead or not enabled',
+            'Error while sending',
+            'decryption failed or bad record mac',
+            'server closed the connection unexpectedly',
+            'SSL connection has been closed unexpectedly',
+            'Error writing data to the connection',
+            'Resource deadlock avoided',
+        ];
+
+        $error = $e->getMessage();
+
+        foreach ($info as $msg) {
+            if (false !== stripos($error, $msg)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    protected function initConnect() {
+    	$this->connect();
+    	$this->getMasterPdo();
+    	$this->getSlavePdo();
+    	
     }
 
 

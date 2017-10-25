@@ -2,7 +2,7 @@
 return [
 	'route_model' => 1, //1代表pathinfo,2代表普通url模式
 	'default_route' => 'site/index',
-	'default_namespace' => 'App',
+	'app_namespace' => 'App',
 	'not_found_template' => '404.html', //默认是在View文件夹下面
 	// 'not_found_function' => ['App\Controller\NotFound','page404'],
 	// 'catch_all_info' => '网站维护中',
@@ -28,16 +28,16 @@ return [
 
 		],
 
-		'mysql' => [
+		'db' => [
+			'class' => 'Swoolefy\Core\Db\Mysql',
 			'config' =>[
 				'type'=>'mysql',
-				'master_host' =>[],
-				'slave_host' =>[],
-				'dbname' => '',
-				'username' =>'',
-				'password' =>'',
-				'port' =>'',
-				'params' => [], // 数据库连接参数        
+				'master_host' =>['localhost'],
+				'slave_host' =>['localhost'],
+				'dbname' => 'bingcool',
+				'username' =>'root',
+				'password' =>'root',
+				'port' =>3306,
 	        	'charset' => 'utf8',
 	        	'deploy'  => 0 //是否启用分布式的主从
         	]

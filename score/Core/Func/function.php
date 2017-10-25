@@ -1,5 +1,4 @@
 <?php
-
 /**
  * dump，调试函数
  * @param    $var
@@ -9,6 +8,9 @@
  * @return   string            
  */
 function dump($var, $echo=true, $label=null, $strict=true) {
+    // 判断是否存在访问的应用对象
+    $app = \Swoolefy\Core\Application::$app;
+
     $label = ($label === null) ? '' : rtrim($label) . ' ';
     if (!$strict) {
         if (ini_get('html_errors')) {
@@ -22,21 +24,33 @@ function dump($var, $echo=true, $label=null, $strict=true) {
         var_dump($var);
         // 获取终端输出
         $output = ob_get_clean();
-        if (!extension_loaded('xdebug')) {
+        if(!extension_loaded('xdebug')) {
             $output = preg_replace('/\]\=\>\n(\s+)/m', '] => ', $output);
             $output = '<pre>' . $label . htmlspecialchars($output, ENT_QUOTES, 'UTF-8') . '</pre>';
         }
+
+        if(is_object($app)) {     
+        }else {
+          \Swoolefy\Core\Application::$dump = $output; 
+        }
     }
     if($echo) {
-    	// 调试环境这个函数使用
+        // 调试环境这个函数使用
         if(SW_DEBUG) {
-            $response = \Swoolefy\Core\Application::$app->response;
-            $response->header('Content-Type','text/html; charset=utf-8');
-            $response->write($output);
+            if(is_object($app)) {
+                $app->response->header('Content-Type','text/html; charset=utf-8');
+                // worker启动时打印的信息，在下一次请求到来时打印出来
+                if(!empty($output)) {
+                    $app->response->write($output);
+                }
+                $app->response->write();
+            }  
         }
         return null;
-    }else
+    }else {
         return $output;
+    }
+        
 }
 
 function get_used_memory() {

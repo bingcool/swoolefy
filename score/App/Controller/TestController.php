@@ -13,12 +13,7 @@ class TestController extends BController {
 		parent::__construct();
 	}
 	public function test() {
-		$Test = $this->getModel();
-		$data = $Test->record();
-		$data1 = $Test->getTest();
-		dump($data1);
-		dump($this->getInitIncludeFiles());
-		dump($this->getMomeryIncludeFiles());
+		Application::$app->db->test();
 		$this->assign('name',$data['name']);
 		$this->display('test.html');
 	}

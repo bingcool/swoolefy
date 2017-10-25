@@ -22,6 +22,12 @@ class View {
 	 * @var integer
 	 */
 	public $gzip_level = 2;
+
+	/**
+	 * $write_size 分段返回的大小，默认20000字(稍微小于2M)
+	 * @var integer
+	 */
+	public $write_size = 20000;
 	
 	/**
 	 * __construct
@@ -65,7 +71,7 @@ class View {
 	}
 
 	/**
-	 * redirectFetch 
+	 * redirectFetch 直接渲染对应的模块的模板
 	 * @param    $template_file
 	 * @return   html
 	 */
@@ -97,7 +103,7 @@ class View {
 		// 分段返回数据,2M左右一段
 		$response = @Application::$app->response;
 		$p = 0;
-		$size = 2000000;
+		$size = $this->write_size;
 		while($data = substr($tpl, $p++ * $size, $size)) {
              $response->write($data);
         }
@@ -105,7 +111,7 @@ class View {
 	}
 
 	/**
-	 * callFetch
+	 * callFetch 跨模块调用渲染模板
 	 * @param    $template_file
 	 * @return   html
 	 */
@@ -124,7 +130,7 @@ class View {
 		// 分段返回数据,2M左右一段
 		$response = @Application::$app->response;
 		$p = 0;
-		$size = 2000000;
+		$size = $this->write_size;
 		while($data = substr($tpl, $p++ * $size, $size)) {
              $response->write($data);
         }

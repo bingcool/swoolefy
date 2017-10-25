@@ -69,6 +69,9 @@ class App extends \Swoolefy\Core\Component {
 		if(!$this->catch()) {
 			// 执行应用
 			Application::$app = $this;
+
+			$this->debug();
+
 			$route = new HttpRoute();
 			$route->dispatch();
 		}
@@ -76,6 +79,20 @@ class App extends \Swoolefy\Core\Component {
 		$this->end();
 
 		return true;
+	}
+
+	/**
+	 * debug 调试函数
+	 * @return 
+	 */
+	protected function debug() {
+		if(SW_DEBUG) {
+			$dumpInfo = \Swoolefy\Core\Application::$dump;
+			if(!is_null($dumpInfo)) {
+				$this->response->header('Content-Type','text/html; charset=UTF-8');
+				$this->response->write($dumpInfo);
+			}
+		}
 	}
 
 	/**
@@ -112,5 +129,5 @@ class App extends \Swoolefy\Core\Component {
 	}
 
 	//使用trait的复用特性
-	use \Swoolefy\Core\AppTrait;
+	use \Swoolefy\Core\AppTrait,\Swoolefy\Core\ServiceTrait;
 }
