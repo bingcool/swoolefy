@@ -237,128 +237,134 @@ trait ServiceTrait {
     }
 
     /**
-     * getOS 获取操作系统
+     * getOS 客户端操作系统信息
      * @return  string
      */
-    public function getOS() {
+    public function getClientOS() {
         $agent = $this->request->server['HTTP_USER_AGENT'];
         if (preg_match('/win/i', $agent) && strpos($agent, '95'))
         {
-            $os = 'Windows 95';
+            $clientOS = 'Windows 95';
         }
         elseif (preg_match('/win 9x/i', $agent) && strpos($agent, '4.90'))
         {
-            $os = 'Windows ME';
+            $clientOS = 'Windows ME';
         }
         elseif (preg_match('/win/i', $agent) && preg_match('/98/i', $agent))
         {
-            $os = 'Windows 98';
+            $clientOS = 'Windows 98';
         }
         elseif (preg_match('/win/i', $agent) && preg_match('/nt 6.0/i', $agent))
         {
-            $os = 'Windows Vista';
+            $clientOS = 'Windows Vista';
         }
         elseif (preg_match('/win/i', $agent) && preg_match('/nt 6.1/i', $agent))
         {
-            $os = 'Windows 7';
+            $clientOS = 'Windows 7';
         }
         elseif (preg_match('/win/i', $agent) && preg_match('/nt 6.2/i', $agent))
         {
-            $os = 'Windows 8';
+            $clientOS = 'Windows 8';
         }
         elseif (preg_match('/win/i', $agent) && preg_match('/nt 10.0/i', $agent))
         {
-            $os = 'Windows 10';
+            $clientOS = 'Windows 10';
         }
         elseif (preg_match('/win/i', $agent) && preg_match('/nt 5.1/i', $agent))
         {
-            $os = 'Windows XP';
+            $clientOS = 'Windows XP';
         }
         elseif (preg_match('/win/i', $agent) && preg_match('/nt 5/i', $agent))
         {
-            $os = 'Windows 2000';
+            $clientOS = 'Windows 2000';
         }
         elseif (preg_match('/win/i', $agent) && preg_match('/nt/i', $agent))
         {
-            $os = 'Windows NT';
+            $clientOS = 'Windows NT';
         }
         elseif (preg_match('/win/i', $agent) && preg_match('/32/i', $agent))
         {
-            $os = 'Windows 32';
+            $clientOS = 'Windows 32';
+        }
+        elseif (preg_match('/linux/i', $agent) && preg_match('/android/i', $agent)) 
+        {
+        	$clientOS = 'Android';
+        }elseif(preg_match('/iPhone/i', $agent)) {
+        	$clientOS = 'Ios';
         }
         elseif (preg_match('/linux/i', $agent))
         {
-            $os = 'Linux';
+            $clientOS = 'Linux';
         }
         elseif (preg_match('/unix/i', $agent))
         {
-            $os = 'Unix';
+            $clientOS = 'Unix';
         }
         elseif (preg_match('/sun/i', $agent) && preg_match('/os/i', $agent))
         {
-            $os = 'SunOS';
+            $clientOS = 'SunOS';
         }
         elseif (preg_match('/ibm/i', $agent) && preg_match('/os/i', $agent))
         {
-            $os = 'IBM OS/2';
+            $clientOS = 'IBM OS/2';
         }
         elseif (preg_match('/Mac/i', $agent) && preg_match('/PC/i', $agent))
         {
-            $os = 'Macintosh';
+            $clientOS = 'Macintosh';
         }
         elseif (preg_match('/PowerPC/i', $agent))
         {
-            $os = 'PowerPC';
+            $clientOS = 'PowerPC';
         }
         elseif (preg_match('/AIX/i', $agent))
         {
-            $os = 'AIX';
+            $clientOS = 'AIX';
         }
         elseif (preg_match('/HPUX/i', $agent))
         {
-            $os = 'HPUX';
+            $clientOS = 'HPUX';
         }
         elseif (preg_match('/NetBSD/i', $agent))
         {
-            $os = 'NetBSD';
+            $clientOS = 'NetBSD';
         }
         elseif (preg_match('/BSD/i', $agent))
         {
-            $os = 'BSD';
+            $clientOS = 'BSD';
         }
         elseif (preg_match('/OSF1/i', $agent))
         {
-            $os = 'OSF1';
+            $clientOS = 'OSF1';
         }
         elseif (preg_match('/IRIX/i', $agent))
         {
-            $os = 'IRIX';
+            $clientOS = 'IRIX';
         }
         elseif (preg_match('/FreeBSD/i', $agent))
         {
-            $os = 'FreeBSD';
+            $clientOS = 'FreeBSD';
         }
         elseif (preg_match('/teleport/i', $agent))
         {
-            $os = 'teleport';
+            $clientOS = 'teleport';
         }
         elseif (preg_match('/flashget/i', $agent))
         {
-            $os = 'flashget';
+            $clientOS = 'flashget';
         }
         elseif (preg_match('/webzip/i', $agent))
         {
-            $os = 'webzip';
+            $clientOS = 'webzip';
         }
         elseif (preg_match('/offline/i', $agent))
         {
-            $os = 'offline';
+            $clientOS = 'offline';
         }
         else
         {
-            $os = 'Unknown';
+            $clientOS = 'Unknown';
         }
 
-        return $os;
+        return $clientOS;
     }
 }
