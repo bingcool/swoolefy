@@ -335,6 +335,25 @@ trait AppTrait {
 	}
 
 	/**
+	 * parseUri 解析URI
+	 * @param    $url
+	 * @return   array
+	 */
+	public function parseUri($url)
+    {
+        $res = parse_url($url);
+        $return['protocol'] = $res['scheme'];
+        $return['host'] = $res['host'];
+        $return['port'] = $res['port'];
+        $return['user'] = $res['user'];
+        $return['pass'] = $res['pass'];
+        $return['path'] = $res['path'];
+        $return['id'] = $res['fragment'];
+        parse_str($res['query'], $return['params']);
+        return $return;
+    }
+
+	/**
 	 * redirect 重定向,使用这个函数后,要return,停止程序执行
 	 * @param    $url
 	 * @param    $params eg:['name'=>'ming','age'=>18]

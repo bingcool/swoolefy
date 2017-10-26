@@ -8,6 +8,6 @@ class Test {
 	}
 
 	public function getData() {
-		return 'hello model';
+		return ['name'=>'hello model'];
 	}
 }

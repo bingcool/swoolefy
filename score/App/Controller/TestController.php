@@ -13,15 +13,15 @@ class TestController extends BController {
 		parent::__construct();
 	}
 	public function test() {
-		Application::$app->db->test();
+		// Application::$app->db->test();
+		$data = $this->getModel()->getTest();
 		$this->assign('name',$data['name']);
 		$this->display('test.html');
 	}
 
 	public function testajax() {
 		$res = ['name'=>'bingcool','age'=>26,'sex'=>1,'info'=>['cloth'=>'red','phone'=>'12222']];
-		$this->returnJson($res);
-
+		if($this->isAjax()) $this->returnJson($res);
 	}
 
 	public function testRedirect() {
