@@ -7,7 +7,7 @@ trait ModelTrait {
 	 * @return boolean
 	 */
 	public function isGet() {
-		return ($this->request->server['request_method'] == 'GET') ? true :false;
+		return ($this->request->server['REQUEST_METHOD'] == 'GET') ? true :false;
 	}
 
 	/**
@@ -15,7 +15,7 @@ trait ModelTrait {
 	 * @return boolean
 	 */
 	public function isPost() {
-		return ($this->request->server['request_method'] == 'POST') ? true :false;
+		return ($this->request->server['REQUEST_METHOD'] == 'POST') ? true :false;
 	}
 
 	/**
@@ -23,7 +23,7 @@ trait ModelTrait {
 	 * @return boolean
 	 */
 	public function isPut() {
-		return ($this->request->server['request_method'] == 'PUT') ? true :false;
+		return ($this->request->server['REQUEST_METHOD'] == 'PUT') ? true :false;
 	}
 
 	/**
@@ -31,7 +31,7 @@ trait ModelTrait {
 	 * @return boolean
 	 */
 	public function isDelete() {
-		return ($this->request->server['request_method'] == 'DELETE') ? true :false;
+		return ($this->request->server['REQUEST_METHOD'] == 'DELETE') ? true :false;
 	}
 
 	/**

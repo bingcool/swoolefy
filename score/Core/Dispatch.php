@@ -32,7 +32,15 @@ class Dispatch {
 	 * @return void
 	 */
 	public static function resetServer($request) {
-		$_SERVER = array_merge($_SERVER,$request->server);
+		foreach($request->server as $p=>$val) {
+			$request->server[strtoupper($p)] = $val;
+			unset($request->server[$p]);
+		}
+		foreach ($request->header as $key => $value) {
+            $_key = 'HTTP_' . strtoupper(str_replace('-', '_', $key));
+            $request->server[$_key] = $value;
+        }
+        $_SERVER = array_merge($_SERVER,$request->server);
 	}
 
 	/**

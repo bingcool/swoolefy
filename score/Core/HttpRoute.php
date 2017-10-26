@@ -43,7 +43,7 @@ class HttpRoute extends Dispatch {
 		parent::__construct();
 		// 获取请求对象
 		$this->request = Application::$app->request;
-		$this->require_uri = $this->request->server['path_info'];
+		$this->require_uri = $this->request->server['PATH_INFO'];
 
 		$this->response = Application::$app->response;
 		$this->config = Application::$app->config; 
@@ -95,9 +95,9 @@ class HttpRoute extends Dispatch {
 		}
 
 		// 重新设置一个route
-		$this->request->server['route'] = $this->require_uri;
+		$this->request->server['ROUTE'] = $_SERVER['ROUTE'] = $this->require_uri;
 		// route参数组数
-		$this->request->server['route_params'] = [];
+		$this->request->server['ROUTE_PARAMS'] = $_SERVER['ROUTE_PARAMS'] = [];
 		// 定义禁止直接外部访问的方法
 		if(in_array($action, $this->deny_actions)) {
 			return $this->response->end($action.'() method is not be called!');
@@ -105,13 +105,13 @@ class HttpRoute extends Dispatch {
 		
 		if($module) {
 			// route参数数组
-			$this->request->server['route_params'] = [3,[$module,$controller,$action]];	
+			$this->request->server['ROUTE_PARAMS'] = $_SERVER['ROUTE_PARAMS'] = [3,[$module,$controller,$action]];	
 			// 调用
 			$this->invoke($module,$controller,$action);
 			
 		}else {
 			// route参数数组
-			$this->request->server['route_params'] = [2,[$controller,$action]];
+			$this->request->server['ROUTE_PARAMS'] = $_SERVER['ROUTE_PARAMS'] = [2,[$controller,$action]];
 			// 调用 
 			$this->invoke($module=null,$controller,$action);
 		}
@@ -237,13 +237,13 @@ class HttpRoute extends Dispatch {
 			list($namespace,$action) = $this->config['not_found_function'];
 			$controller = @array_pop(explode('\\',$namespace));
 			// 重新设置一个NotFound类的route
-			$this->request->server['route'] = '/'.$controller.'/'.$action;
+			$this->request->server['ROUTE'] = '/'.$controller.'/'.$action;
 		}else {
 			// 默认重定向至NotFound类
 			list($namespace,$action) = $call_func;
 			$controller = @array_pop(explode('\\',$namespace));
 			// 重新设置一个NotFound类的route
-			$this->request->server['route'] = '/'.$controller.'/'.$action;
+			$this->request->server['ROUTE'] = '/'.$controller.'/'.$action;
 		}
 
 		return [$controller,$action];

@@ -33,7 +33,7 @@ trait AppTrait {
 	 * @return boolean
 	 */
 	public function isGet() {
-		return ($this->request->server['request_method'] == 'GET') ? true :false;
+		return ($this->request->server['REQUEST_METHOD'] == 'GET') ? true :false;
 	}
 
 	/**
@@ -41,7 +41,7 @@ trait AppTrait {
 	 * @return boolean
 	 */
 	public function isPost() {
-		return ($this->request->server['request_method'] == 'POST') ? true :false;
+		return ($this->request->server['REQUEST_METHOD'] == 'POST') ? true :false;
 	}
 
 	/**
@@ -49,7 +49,7 @@ trait AppTrait {
 	 * @return boolean
 	 */
 	public function isPut() {
-		return ($this->request->server['request_method'] == 'PUT') ? true :false;
+		return ($this->request->server['REQUEST_METHOD'] == 'PUT') ? true :false;
 	}
 
 	/**
@@ -57,7 +57,7 @@ trait AppTrait {
 	 * @return boolean
 	 */
 	public function isDelete() {
-		return ($this->request->server['request_method'] == 'DELETE') ? true :false;
+		return ($this->request->server['REQUEST_METHOD'] == 'DELETE') ? true :false;
 	}
 
 	/**
@@ -104,7 +104,7 @@ trait AppTrait {
 	 * @return   string
 	 */
 	public function getMethod() {
-		return $this->request->server['request_method'];
+		return $this->request->server['REQUEST_METHOD'];
 	}
 
 	/**
@@ -112,7 +112,7 @@ trait AppTrait {
 	 * @return string
 	 */
 	public function getRequestUri() {
-		return $this->request->server['path_info'];
+		return $this->request->server['PATH_INFO'];
 	}
 
 	/**
@@ -120,7 +120,7 @@ trait AppTrait {
 	 * @return  string
 	 */
 	public function getRoute() {
-		return $this->request->server['route'];
+		return $this->request->server['ROUTE'];
 	}
 
 	/**
@@ -128,7 +128,7 @@ trait AppTrait {
 	 * @return   string
 	 */
 	public function getQueryString() {
-		return $this->request->server['query_string'];
+		return $this->request->server['QUERY_STRING'];
 	}
 
 	/**
@@ -136,7 +136,7 @@ trait AppTrait {
 	 * @return   string
 	 */
 	public function getProtocol() {
-		return $this->request->server['server_protocol'];
+		return $this->request->server['SERVER_PROTOCOL'];
 	}
 
 	/**
@@ -191,7 +191,7 @@ trait AppTrait {
 	 * @return array
 	 */
 	public function getRouteParams() {
-		return $this->request->server['route_params'];
+		return $this->request->server['ROUTE_PARAMS'];
 	}
 
 	/**
@@ -262,7 +262,7 @@ trait AppTrait {
 				$modelInstance = new $modelClass;
 				return self::$selfModel[$modelClass] = $modelInstance;
 			}catch(\Exception $e) {
-				dump($e->getMessage());
+				throw new \Exception($e->getMessage(), 1);
 			}
 		}
 
