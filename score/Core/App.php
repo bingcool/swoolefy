@@ -45,7 +45,7 @@ class App extends \Swoolefy\Core\Component {
 	 * init 初始化函数
 	 * @return void
 	 */
-	public function init() {
+	protected function init() {
 		// 初始化超全局变量数组和对象
 		\Swoolefy\Core\Init::_init();
 		// 初始化启动session

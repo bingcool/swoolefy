@@ -1,190 +1,113 @@
 <?php
 namespace Swoolefy\Core;
 
-trait ServiceTrait {
+class MGeneral extends \Swoolefy\Core\Object {
 	/**
-	 * getMasterId 获取当前服务器主进程的PID
-	 * @return   int
+	 * isSsl
+	 * @return   boolean
 	 */
-	public function getMasterPid() {
-		return \Swoolefy\Core\Swfy::$server->master_pid;
+	public static function isSsl() {
+	    if(isset($_SERVER['HTTPS']) && ('1' == $_SERVER['HTTPS'] || 'on' == strtolower($_SERVER['HTTPS']))){
+	        return true;
+	    }elseif(isset($_SERVER['SERVER_PORT']) && ('443' == $_SERVER['SERVER_PORT'] )) {
+	        return true;
+	    }
+	    return false;
 	}
 
 	/**
-	 * getManagerId 当前服务器管理进程的PID
-	 * @return   int
+	 * isMobile 
+	 * @return   boolean
 	 */
-	public function getManagerPid() {
-		return \Swoolefy\Core\Swfy::$server->manager_pid;
-	}
+    public static function isMobile() {
+        if (isset($_SERVER['HTTP_VIA']) && stristr($_SERVER['HTTP_VIA'], "wap")) {
+            return true;
+        } elseif (isset($_SERVER['HTTP_ACCEPT']) && strpos(strtoupper($_SERVER['HTTP_ACCEPT']), "VND.WAP.WML")) {
+            return true;
+        } elseif (isset($_SERVER['HTTP_X_WAP_PROFILE']) || isset($_SERVER['HTTP_PROFILE'])) {
+            return true;
+        } elseif (isset($_SERVER['HTTP_USER_AGENT']) && preg_match('/(blackberry|configuration\/cldc|hp |hp-|htc |htc_|htc-|iemobile|kindle|midp|mmp|motorola|mobile|nokia|opera mini|opera |Googlebot-Mobile|YahooSeeker\/M1A1-R2D2|android|iphone|ipod|mobi|palm|palmos|pocket|portalmmm|ppc;|smartphone|sonyericsson|sqh|spv|symbian|treo|up.browser|up.link|vodafone|windows ce|xda |xda_)/i', $_SERVER['HTTP_USER_AGENT'])) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 
-	/**
-	 * getCurrentWorkerPid 获取当前worker的进程PID 
-	 * @return int  
-	 */
-	public function getCurrentWorkerPid() {
-		$workerPid = \Swoolefy\Core\Swfy::$server->worker_pid;
-		if($workerPid) {
-			return $workerPid;
-		}else {
-			return posix_getpid();
-		}
-	}
-
-	/**
-	 * getCurrentWorkerId 获取当前处理的worker_id
-	 * @return   int
-	 */
-	public function getCurrentWorkerId() {
-		$workerId = \Swoolefy\Core\Swfy::$server->worker_id;
-		return $workerId;
-	}
-
-	/**
-	 * getConnections 服务器当前所有的连接
-	 * @return  object 
-	 */
-	public function getConnections() {
-		return \Swoolefy\Core\Swfy::$server->connections;
-	}
-
-	/**
-	 * getWorkersPid 获取当前所有worker_pid与worker的映射
-	 * @Author   huangzengbing
-	 * @DateTime 2017-10-20
-	 * @param    {String}
-	 * @return   [type]        [description]
-	 */
-	public function getWorkersPid() {
-		return \Swoolefy\Core\BaseServer::getWorkersPid();
-	}
-
-	/**
-	 * getLastError 返回最近一次的错误代码
-	 * @return   int 
-	 */
-	public function getLastError() {
-		return \Swoolefy\Core\Swfy::$server->getLastError();
-	}
-
-	/**
-	 * getStats 获取swoole的状态
-	 * @return   array
-	 */
-	public function getSwooleStats() {
-		return \Swoolefy\Core\Swfy::$server->stats();
-	}
-
-	/**
-	 * getHostName
-	 * @return   string
-	 */
-	public function getHostName() {
-		return $this->request->header['host'];
-	}
-
-	/**
+    /**
 	 * getLocalIp 获取ip,不包括端口
 	 * @return   array
 	 */
-	public function getLocalIp() {
+	public static function getLocalIp() {
 		return swoole_get_local_ip();
 	}
 
 	/**
-     * getClientIP 获取客户端ip
-     * @param   $type 返回类型 0:返回IP地址,1:返回IPV4地址数字
-     * @return  string
-     */
-    public static function getClientIP($type=0) {
-        // 通过nginx的代理
-        if(isset($_SERVER['HTTP_X_REAL_IP']) && strcasecmp($_SERVER['HTTP_X_REAL_IP'], "unknown")) {
-            $ip = $_SERVER['HTTP_X_REAL_IP'];
-        }
-        if(isset($_SERVER['HTTP_CLIENT_IP']) && strcasecmp($_SERVER['HTTP_CLIENT_IP'], "unknown")) {
-            $ip = $_SERVER["HTTP_CLIENT_IP"];
-        }
-        if (isset($_SERVER['HTTP_X_FORWARDED_FOR']) and strcasecmp($_SERVER['HTTP_X_FORWARDED_FOR'], "unknown"))
+	 * getClientIP 获取客户端ip
+	 * @param   $type 返回类型 0:返回IP地址,1:返回IPV4地址数字
+	 * @return  string
+	 */
+	public static function getClientIP($type=0) {
+		// 通过nginx的代理
+		if(isset($_SERVER['HTTP_X_REAL_IP']) && strcasecmp($_SERVER['HTTP_X_REAL_IP'], "unknown")) {
+			$ip = $_SERVER['HTTP_X_REAL_IP'];
+		}
+		if(isset($_SERVER['HTTP_CLIENT_IP']) && strcasecmp($_SERVER['HTTP_CLIENT_IP'], "unknown")) {
+	    	$ip = $_SERVER["HTTP_CLIENT_IP"];
+	    }
+	    if (isset($_SERVER['HTTP_X_FORWARDED_FOR']) and strcasecmp($_SERVER['HTTP_X_FORWARDED_FOR'], "unknown"))
         {
             return $_SERVER['HTTP_X_FORWARDED_FOR'];
         }
-        if(isset($_SERVER['REMOTE_ADDR'])) {
-            //没通过代理，或者通过代理而没设置x-real-ip的 
-            $ip = $_SERVER['REMOTE_ADDR'];
-        }
-        // IP地址合法验证 
-        $long = sprintf("%u", ip2long($ip));
+	    if(isset($_SERVER['REMOTE_ADDR'])) {
+	    	//没通过代理，或者通过代理而没设置x-real-ip的 
+	    	$ip = $_SERVER['REMOTE_ADDR'];
+	    }
+	    // IP地址合法验证 
+	    $long = sprintf("%u", ip2long($ip));
         $ip   = $long ? [$ip, $long] : ['0.0.0.0', 0];
         return $ip[$type];
-    }
-
-	/**
-	 * getFd
-	 * @return  int
-	 */
-	public function getFd() {
-		return $this->request->fd;
 	}
 
 	/**
-	 * getIncludeFiles description
-	 * @return   array|boolean
+	 * isValidateEmail 判断是否是合法的邮箱
+	 * @param    $email 
+	 * @return   boolean
 	 */
-	public function getInitIncludeFiles($dir='http') {
-		// 获取当前的处理的worker_id
-		$workerId = $this->getCurrentWorkerId();
+	public static function isValidateEmail($email) {
+		return filter_var($email, FILTER_VALIDATE_EMAIL);
+	}
 
-		$dir = ucfirst($dir);
-		$filePath = __DIR__.'/../'.$dir.'/'.$dir.'_'.'includes.json';
-		if(is_file($filePath)) {
-			$includes_string = file_get_contents($filePath);
-			if($includes_string) {
-				return [
-					'current_worker_id' => $workerId,
-					'include_init_files' => json_decode($includes_string,true),
-				];
-			}else {
-				return false;
+	/**
+	 * roundByPrecision 四舍五入
+	 * @param    $number    数值
+	 * @param    $precision 精度
+	 * @return   float
+	 */
+	public static function roundByPrecision($number, $precision) {
+		if (strpos($number, '.') && (strlen(substr($number, strpos($number, '.')+1)) > $precision))
+		{
+			$number = substr($number, 0, strpos($number, '.') + 1 + $precision + 1);
+			if (substr($number, -1) >= 5)
+			{
+				if ($precision > 1)
+				{
+					$number = substr($number, 0, -1) + ('0.' . str_repeat(0, $precision-1) . '1');
+				}
+				elseif ($precision == 1)
+				{
+					$number = substr($number, 0, -1) + 0.1;
+				}
+				else
+				{
+					$number = substr($number, 0, -1) + 1;
+				}
+			}
+			else
+			{
+				$number = substr($number, 0, -1);
 			}
 		}
-
-		return false;
-		
-	}
-
-	/**
-	 * getMomeryIncludeFiles 获取执行到目前action为止，swoole server中的该worker中内存中已经加载的class文件
-	 * @return  array 
-	 */
-	public function getMomeryIncludeFiles() {
-		$includeFiles = get_included_files();
-		$workerId = $this->getCurrentWorkerId();
-		return [
-			'current_worker_id' => $workerId,
-			'include_momery_files' => $includeFiles,
-		];
-	}
-
-	/**
-	 * getConf 获取协议层对应的配置
-	 * @param    $protocol
-	 * @return   array
-	 */
-	public function getConf($protocol='http') {
-		$protocol = strtolower($protocol);
-		switch($protocol) {
-			case 'http':
-				return \Swoolefy\Http\HttpServer::getConf();
-			break;
-			case 'websocket':
-				return \Swoolefy\Websocket\WebsocketServer::getConf();
-			break;
-			case 'tcp':
-				return \Swoolefy\TcpServer::getConf();
-			break;
-			default:return \Swoolefy\Http\HttpServer::getConf();
-			break;
-		}	
+		return $number;
 	}
 
 	/**

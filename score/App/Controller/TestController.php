@@ -6,6 +6,7 @@ use Swoolefy\Core\Application;
 use Swoolefy\Core\ZModel;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Http\HttpServer;
+use Swoolefy\Core\MGeneral;
 
 class TestController extends BController {
 
@@ -15,6 +16,12 @@ class TestController extends BController {
 
 	public function test() {
 		// Application::$app->db->test();
+		$ip = MGeneral::getClientIP();
+		dump($ip);
+		$localIp = MGeneral::getClientIP();
+		dump($localIp);
+		$brower = MGeneral::getBrowser();
+		dump($brower);
 		$data = $this->getModel()->getTest();
 		$this->assign('name',$data['name']);
 		$this->display('test.html');
