@@ -46,6 +46,8 @@ class App extends \Swoolefy\Core\Component {
 	 * @return void
 	 */
 	public function init() {
+		// 初始化超全局变量数组和对象
+		\Swoolefy\Core\Init::_init();
 		// 初始化启动session
 		// if(!isset($this->config['session_start']) || (isset($this->config['session_start']) && $this->config['session_start'] === true)) {
 		// 	if(!isset($_SESSION)) {
@@ -64,19 +66,19 @@ class App extends \Swoolefy\Core\Component {
 		// 赋值对象
 		$this->request = $request;
 		$this->response = $response;
+		Application::$app = $this;
+		// 初始化
 		$this->init();
 		// 判断是否是在维护模式
-		// ob_start();
 		if(!$this->catch()) {
-			// 执行应用
-			Application::$app = $this;
-
+			// 调试模式，将打印出一些信息
 			$this->debug();
-
+			// 路由调度执行
 			$route = new HttpRoute();
 			$route->dispatch();
 		}
-		// ob_end_clean();
+
+		// 请求结束
 		$this->end();
 
 		return true;

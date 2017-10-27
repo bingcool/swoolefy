@@ -24,7 +24,7 @@ class View {
 	public $gzip_level = 2;
 
 	/**
-	 * $write_size 分段返回的大小，默认20000字(稍微小于2M)
+	 * $write_size 分段返回的大小，默认20000字节(稍微小于2M)
 	 * @var integer
 	 */
 	public $write_size = 20000;
