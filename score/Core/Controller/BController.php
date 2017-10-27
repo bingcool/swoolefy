@@ -46,7 +46,7 @@ class BController extends \Swoolefy\Core\Object {
 	 * @return   mixed
 	 */
 	public function _afterAction() {
-		
+		return true;
 	}
 
 	/**
