@@ -1,4 +1,5 @@
 <?php
+use Swoolefy\Core\Application;
 /**
  * dump，调试函数
  * @param    $var
@@ -9,7 +10,7 @@
  */
 function dump($var, $echo=true, $label=null, $strict=true) {
     // 判断是否存在访问的应用对象
-    $app = \Swoolefy\Core\Application::$app;
+    $app = Application::$app;
 
     $label = ($label === null) ? '' : rtrim($label) . ' ';
     if (!$strict) {
@@ -31,7 +32,7 @@ function dump($var, $echo=true, $label=null, $strict=true) {
 
         if(is_object($app)) {     
         }else {
-          \Swoolefy\Core\Application::$dump = $output; 
+          Application::$dump = $output; 
         }
     }
     if($echo) {
@@ -53,6 +54,13 @@ function dump($var, $echo=true, $label=null, $strict=true) {
         
 }
 
-function get_used_memory() {
-   return memory_get_usage();
+/**
+ * _die 异常终端程序执行
+ * @param    $msg
+ * @param    $code
+ * @return   mixed
+ */
+function _die($msg='') {
+    Application::$app->response->end();
+    throw new \Exception($msg);
 }

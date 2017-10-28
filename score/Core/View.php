@@ -55,6 +55,23 @@ class View {
 	}
 
 	/**
+	 * Massign 批量赋值
+	 * @param    $arr
+	 * @return   boolean|null
+	 */
+	public function Massign($arr=[]) {
+		if(!empty($arr)) {
+			if(is_string($arr)) {
+				return false;
+			}
+			foreach($arr as $name=>$value) {
+				$this->assign($name,$value);
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * display
 	 * @param    $template_file
 	 * @param    $isCall 是否是跨模块调用

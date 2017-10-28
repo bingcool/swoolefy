@@ -68,8 +68,10 @@ class Object {
 	 * @param    $code
 	 * @return   mixed
 	 */
-	public static function _die($msg='',$code=1) {
-		throw new \Exception($msg, $code);
+	public static function _die($msg='') {
+		// 直接结束请求
+		Application::$app->response->end();
+		throw new \Exception($msg);
 	}
 
 }

@@ -122,6 +122,18 @@ class MGeneral extends \Swoolefy\Core\Object {
             $exp[0] = "Firefox";
             $exp[1] = $b[1];
         }
+        elseif (stripos($sys, "Chrome") > 0)
+        {
+            preg_match("/Chrome\/([\d\.]+)/", $sys, $google);
+            $exp[0] = "Chrome";
+            $exp[1] = $google[1];
+        }
+        elseif (stripos($sys, "Edge") > 0)
+        {
+            preg_match("/Edge\/([\d\.]+)/", $sys, $Edge);
+            $exp[0] = "Edge";
+            $exp[1] = $Edge[1];
+        }
         elseif (stripos($sys, "Maxthon") > 0)
         {
             preg_match("/Maxthon\/([\d\.]+)/", $sys, $aoyou);
@@ -139,18 +151,6 @@ class MGeneral extends \Swoolefy\Core\Object {
             preg_match("/OPR\/([\d\.]+)/", $sys, $opera);
             $exp[0] = "Opera";
             $exp[1] = $opera[1];
-        }
-        elseif (stripos($sys, "Edge") > 0)
-        {
-            preg_match("/Edge\/([\d\.]+)/", $sys, $Edge);
-            $exp[0] = "Edge";
-            $exp[1] = $Edge[1];
-        }
-        elseif (stripos($sys, "Chrome") > 0)
-        {
-            preg_match("/Chrome\/([\d\.]+)/", $sys, $google);
-            $exp[0] = "Chrome";
-            $exp[1] = $google[1];
         }
         elseif (stripos($sys, 'rv:') > 0 && stripos($sys, 'Gecko') > 0)
         {
@@ -173,7 +173,37 @@ class MGeneral extends \Swoolefy\Core\Object {
      */
     public function getClientOS() {
         $agent = $_SERVER['HTTP_USER_AGENT'];
-        if (preg_match('/win/i', $agent) && strpos($agent, '95'))
+        if (preg_match('/win/i', $agent) && preg_match('/nt 6.1/i', $agent))
+        {
+            $clientOS = 'Windows 7';
+        }
+        elseif (preg_match('/win/i', $agent) && preg_match('/nt 10.0/i', $agent))
+        {
+            $clientOS = 'Windows 10';
+        }
+        elseif (preg_match('/win/i', $agent) && preg_match('/nt 6.2/i', $agent))
+        {
+            $clientOS = 'Windows 8';
+        }
+        elseif (preg_match('/linux/i', $agent) && preg_match('/android/i', $agent)) 
+        {
+        	$clientOS = 'Android';
+        }elseif(preg_match('/iPhone/i', $agent)) {
+        	$clientOS = 'Ios';
+        }
+        elseif (preg_match('/linux/i', $agent))
+        {
+            $clientOS = 'Linux';
+        }
+        elseif (preg_match('/unix/i', $agent))
+        {
+            $clientOS = 'Unix';
+        }
+        elseif (preg_match('/win/i', $agent) && preg_match('/nt 5.1/i', $agent))
+        {
+            $clientOS = 'Windows XP';
+        }
+        elseif(preg_match('/win/i', $agent) && strpos($agent, '95'))
         {
             $clientOS = 'Windows 95';
         }
@@ -188,22 +218,6 @@ class MGeneral extends \Swoolefy\Core\Object {
         elseif (preg_match('/win/i', $agent) && preg_match('/nt 6.0/i', $agent))
         {
             $clientOS = 'Windows Vista';
-        }
-        elseif (preg_match('/win/i', $agent) && preg_match('/nt 6.1/i', $agent))
-        {
-            $clientOS = 'Windows 7';
-        }
-        elseif (preg_match('/win/i', $agent) && preg_match('/nt 6.2/i', $agent))
-        {
-            $clientOS = 'Windows 8';
-        }
-        elseif (preg_match('/win/i', $agent) && preg_match('/nt 10.0/i', $agent))
-        {
-            $clientOS = 'Windows 10';
-        }
-        elseif (preg_match('/win/i', $agent) && preg_match('/nt 5.1/i', $agent))
-        {
-            $clientOS = 'Windows XP';
         }
         elseif (preg_match('/win/i', $agent) && preg_match('/nt 5/i', $agent))
         {
