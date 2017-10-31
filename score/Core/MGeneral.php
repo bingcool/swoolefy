@@ -77,6 +77,19 @@ class MGeneral extends \Swoolefy\Core\Object {
 		return filter_var($email, FILTER_VALIDATE_EMAIL);
 	}
 
+    /**
+     * isValidateIp 判断是否是合法的的ip地址
+     * @param    $ip
+     * @return   boolean
+     */
+    public static function isValidateIp($ip) {
+        $ipv4 = ip2long($ip);
+        if(is_numeric($ipv4)) {
+            return true;
+        }
+        return false;
+    }
+
 	/**
 	 * roundByPrecision 四舍五入
 	 * @param    $number    数值

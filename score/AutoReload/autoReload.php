@@ -56,7 +56,7 @@ class autoReload {
     protected $events = IN_MODIFY | IN_DELETE | IN_CREATE | IN_MOVE;
 
     /**
-     * 根目录
+     * $rootDirs 根目录
      * @var array
      */
     protected $rootDirs = [];
@@ -269,7 +269,7 @@ class autoReload {
 
     /**
      * 重启
-     * @return [type] [description]
+     * @return void
      */
     public function reload() {
         // 调试模式，打印信息在终端
@@ -290,7 +290,7 @@ class autoReload {
     }
 
     /**
-     * 添加文件类型
+     * addFileType 添加文件类型
      * @param $type
      */
     public function addFileType($type) {
@@ -300,7 +300,7 @@ class autoReload {
     }
 
     /**
-     * 添加事件
+     * addEvent 添加事件
      * @param $inotifyEvent
      */
     public function addEvent($inotifyEvent) {
@@ -308,7 +308,7 @@ class autoReload {
     }
 
     /**
-     * 清理所有inotify监听
+     * clearWatch 清理所有inotify监听
      */
     private function clearWatch() {
         foreach($this->watchFiles as $wd)
@@ -321,6 +321,7 @@ class autoReload {
 
 
     /**
+     * watch 监听文件目录
      * @param $dir
      * @param bool $root
      * @return bool

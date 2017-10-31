@@ -357,7 +357,7 @@ trait AppTrait {
 	 * redirect 重定向,使用这个函数后,要return,停止程序执行
 	 * @param    $url
 	 * @param    $params eg:['name'=>'ming','age'=>18]
-	 * @param    $code default 302
+	 * @param    $code default 301
 	 * @return   void
 	 */
 	public function redirect($url,array $params=[], $code=301) {
