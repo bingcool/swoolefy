@@ -104,8 +104,8 @@ class WebsocketServer extends BaseServer {
 			// 初始化整个应用对象
 			is_null(self::$App) && self::$App = swoole_pack(self::$config['application_index']::getInstance($config=[]));
 			// 超全局变量server
-       		is_null(Swfy::$server) && Swfy::$server = $this->webserver;
-       		is_null(Swfy::$config) && Swfy::$config = self::$config;
+       		Swfy::$server = $this->webserver;
+       		Swfy::$config = self::$config;
 			// 启动的初始化函数
 			$this->startctrl->workerStart($server,$worker_id);
 		});
