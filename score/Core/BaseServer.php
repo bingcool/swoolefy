@@ -3,13 +3,13 @@ namespace Swoolefy\Core;
 
 class BaseServer {
 	/**
-	 * $config
+	 * $config 
 	 * @var null
 	 */
 	public static $config = [];
 
 	/**
-	 * $server
+	 * $server swoole服务
 	 * @var null
 	 */
 	public static $server = null;
@@ -51,7 +51,7 @@ class BaseServer {
 	];
 
 	/**
-	 * __construct
+	 * __construct 初始化swoole的内置服务与检查
 	 */
 	public function __construct() {
 		// set timeZone
@@ -116,7 +116,7 @@ class BaseServer {
 	}
 
 	/**
-	 * setWorkerProcessName设置worker进程名称
+	 * setWorkerProcessName 设置worker进程名称
 	 * @param    $worker_process_name
 	 * @param    $worker_id          
 	 * @param    $worker_num         
@@ -132,7 +132,7 @@ class BaseServer {
 	}
 
 	/**
-	 * startInclude设置需要在workerstart启动时加载的配置文件
+	 * startInclude 设置需要在workerstart启动时加载的配置文件
 	 * @param    $includes 
 	 * @return   void
 	 */
@@ -196,7 +196,7 @@ class BaseServer {
 	}
 
 	/**
-	 * getSwooleVersion
+	 * getSwooleVersion 获取swoole的版本
 	 * @return   string
 	 */
 	public static function getSwooleVersion() {
@@ -212,7 +212,7 @@ class BaseServer {
 	}
 
 	/**
-	 * getLastErrorMsg
+	 * getLastErrorMsg 获取swoole最后一次的错误信息
 	 * @return   string
 	 */
 	public static function getLastErrorMsg() {
@@ -221,7 +221,7 @@ class BaseServer {
 	}
 
 	/**
-	 * getLocalIp
+	 * getLocalIp 获取本地ip
 	 * @return   string
 	 */
 	public static function getLocalIp() {
@@ -259,7 +259,7 @@ class BaseServer {
 	}
 
 	/**
-	 * clearCache
+	 * clearCache 清空字节缓存
 	 * @return  void
 	 */
 	public static function clearCache() {
@@ -272,7 +272,7 @@ class BaseServer {
 	}
 
 	/**
-	 * getIncludeFiles
+	 * getIncludeFiles 获取woker启动前已经加载的文件
 	 * @return   void
 	 */
 	public static function getIncludeFiles($dir='Http') {
@@ -340,13 +340,17 @@ class BaseServer {
 			}
 	}
 
+	/**
+	 * setCommonFunction 底层的公共函数库
+	 * @return  void
+	 */
 	public static function setCommonFunction() {
 		// 包含核心公共的函数库
 		include_once __DIR__.'/Func/function.php';
 	}
 
 	/**
-	 * checkSapiEnv
+	 * checkSapiEnv 判断是否是cli模式启动
 	 * @return void
 	 */
 	public static function checkSapiEnv() {

@@ -5,7 +5,7 @@ use Swoolefy\Core\Application;
 
 class Init {
 	/**
-	 * _init
+	 * _init 初始化一下超全局变量,兼容php-fpm的web模式
 	 */
 	public static function _init() {
 		// 每一次请求清空,再初始化
@@ -21,7 +21,7 @@ class Init {
 		self::resetRequest($request);
 	}
 	/**
-	 * resetServer重置SERVER超全局数组
+	 * resetServer 重置SERVER超全局数组
 	 * @param  $request 请求对象
 	 * @return void
 	 */
@@ -38,7 +38,7 @@ class Init {
 	}
 
 	/**
-	 * resetPost重置POST超全局数组
+	 * resetPost 重置POST超全局数组
 	 * @param  $request 请求对象
 	 * @return void
 	 */
@@ -49,7 +49,7 @@ class Init {
 	}
 
 	/**
-	 * resetGet重置GET超全局数组
+	 * resetGet 重置GET超全局数组
 	 * @param  $request 请求对象
 	 * @return void
 	 */
@@ -60,7 +60,7 @@ class Init {
 	}
 
 	/**
-	 * resetCookie
+	 * resetCookie 重置COOKIE超全局数组
 	 * @param  $request 请求对象
 	 * @return void
 	 */
@@ -71,7 +71,7 @@ class Init {
 	}
 
 	/**
-	 * resetFile 
+	 * resetFile 重置FILE超全局数组
 	 * @param  $request 请求对象
 	 * @return void
 	 */
@@ -82,7 +82,7 @@ class Init {
 	}
 
 	/**
-	 * resetRequest
+	 * resetRequest 重置REQUEST超全局数组
 	 * @param  $request 请求对象
 	 * @return void
 	 */

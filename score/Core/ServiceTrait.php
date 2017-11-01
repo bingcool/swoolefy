@@ -119,7 +119,7 @@ trait ServiceTrait {
     }
 
 	/**
-	 * getFd
+	 * getFd 获取当前请求的fd
 	 * @return  int
 	 */
 	public function getFd() {
@@ -127,7 +127,7 @@ trait ServiceTrait {
 	}
 
 	/**
-	 * getIncludeFiles description
+	 * getIncludeFiles 获取swoole启动时,worker启动前已经include内存的文件
 	 * @return   array|boolean
 	 */
 	public function getInitIncludeFiles($dir='http') {

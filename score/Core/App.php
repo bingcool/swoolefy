@@ -57,7 +57,7 @@ class App extends \Swoolefy\Core\Component {
 	}
 
 	/**
-	 * run
+	 * run 执行
 	 * @param  $request
 	 * @param  $response
 	 * @return void

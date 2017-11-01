@@ -21,8 +21,6 @@ class Application {
 		
 	}
 
-
-
 	/**
 	 * __destruct
 	 */

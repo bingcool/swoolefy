@@ -3,7 +3,7 @@ namespace Swoolefy\Core;
 
 class SwoolefyException {
 	/**
-	 * 致命错误捕获
+	 * fatalError 致命错误捕获
 	 * @return 
 	 */
     public static function fatalError() {
@@ -22,7 +22,7 @@ class SwoolefyException {
     }
 
 	/**
-     * 自定义异常处理
+     * appException 自定义异常处理
      * @param mixed $e 异常对象
      */
     public static function appException($e) {
@@ -68,7 +68,7 @@ class SwoolefyException {
     }
 
     /**
-     * 错误输出日志
+     * shutHalt 错误输出日志
      * @param  $error 错误
      * @return void
      */

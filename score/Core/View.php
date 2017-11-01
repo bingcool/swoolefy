@@ -6,19 +6,19 @@ use Swoolefy\Core\Application;
 
 class View {
 	/**
-	 * $view
+	 * $view smarty对象
 	 * @var null
 	 */
 	public $view = null;
 
 	/**
-	 * $content_type
+	 * $content_type 响应文档类型
 	 * @var null
 	 */
 	public $content_type = null;
 
 	/**
-	 * $gzip_level
+	 * $gzip_level 压缩等级
 	 * @var integer
 	 */
 	public $gzip_level = 2;
@@ -45,7 +45,7 @@ class View {
 	}
 
 	/**
-	 * assign
+	 * assign 赋值
 	 * @param    $name
 	 * @param    $value
 	 * @return   
@@ -72,7 +72,7 @@ class View {
 	}
 
 	/**
-	 * display
+	 * display 渲染视图成字符串
 	 * @param    $template_file
 	 * @param    $isCall 是否是跨模块调用
 	 * @return                 
@@ -156,7 +156,7 @@ class View {
 	}
 
 	/**
-	 * fetch
+	 * fetch 渲染输出模板
 	 * @param    $template_file
 	 * @return                 
 	 */
@@ -165,7 +165,7 @@ class View {
 	}
 
 	/**
-	 * json
+	 * json 输出json
 	 * @param    $data
 	 * @param    $formater
 	 * @return        

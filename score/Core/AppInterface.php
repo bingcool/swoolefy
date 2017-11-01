@@ -3,13 +3,13 @@ namespace Swoolefy\Core;
 
 interface AppInterface {
 	/**
-	 * init config
+	 * init 初始化配置
 	 * @return   array
 	 */
 	public static function init();
 
 	/**
-	 * getInstance
+	 * getInstance 获取应用对象实例
 	 * @param    $config
 	 * @return   object
 	 */

@@ -9,13 +9,13 @@ class Swfy extends \Swoolefy\Core\Object {
 	public static $server = null;
 
 	/**
-	 * $Di
+	 * $Di Di容器的静态变量数组
 	 * @var array
 	 */
 	public static $Di = [];
 
 	/**
-	 * $config
+	 * $config swoole服务对应协议层的配置,(注意：不是应用层的配置)
 	 * @var null
 	 */
 	public static $config = null;

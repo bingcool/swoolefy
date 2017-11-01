@@ -7,6 +7,7 @@ use Swoolefy\Core\ZModel;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Http\HttpServer;
 use Swoolefy\Core\MGeneral;
+use Swoolefy\Core\MTime;
 
 class TestController extends BController {
 
@@ -16,28 +17,14 @@ class TestController extends BController {
 
 	public function test() {
 		// Application::$app->db->test();
-		$ip = MGeneral::getClientIP();
-		dump($ip);
-		$localIp = MGeneral::getClientIP();
-		dump($localIp);
-		$brower = MGeneral::getBrowser();
-		dump($brower);
 		$data = $this->getModel()->getTest();
-		$this->assign('name',$data['name']);
+		$this->assign('name',$data['name'].rand(1,1000));
 		$this->display('test.html');
 	}
 
 	public function testajax() {
 		$res = ['name'=>'bingcool','age'=>26,'sex'=>1,'info'=>['cloth'=>'red','phone'=>'12222']];
-		var_dump($res);
-	}
-
-	public function testRedirect() {
-		self::rememberUrl('mytest','/Test/mytest');
-		$this->assign('name','NKLC');
-		$url = (parent::getPreviousUrl('mytest'));
-		$this->redirect($url);
-		return;
+		dump($res);
 	}
 
 	public function mytest() {

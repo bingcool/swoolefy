@@ -7,7 +7,7 @@ use Swoolefy\Core\Dispatch;
 
 class HttpRoute extends Dispatch {
 	/**
-	 * $request请求对象
+	 * $request 请求对象
 	 * @var null
 	 */
 	public $request = null;
@@ -19,19 +19,19 @@ class HttpRoute extends Dispatch {
 	public $response = null;
 
 	/**
-	 * $require_uri请求的url
+	 * $require_uri 请求的url
 	 * @var null
 	 */
 	public $require_uri = null;
 
 	/**
-	 * $config配置值
+	 * $config 配置值
 	 * @var null
 	 */
 	public $config = null;
 
 	/**
-	 * $deny_actions 
+	 * $deny_actions 禁止外部直接访问的action
 	 * @var array
 	 */
 	public $deny_actions = ['__construct','_beforeAction','_afterAction','__destruct'];
@@ -50,7 +50,7 @@ class HttpRoute extends Dispatch {
 	}
 
 	/**
-	 * dispatch
+	 * dispatch 路由调度
 	 * @return void
 	 */
 	public function dispatch() {
@@ -120,7 +120,7 @@ class HttpRoute extends Dispatch {
 	}
 
 	/**
-	 * invoke
+	 * invoke 路由与请求实例处理
 	 * @param  $module
 	 * @param  $controller
 	 * @param  $action
@@ -258,7 +258,7 @@ class HttpRoute extends Dispatch {
 	}
 
 	/**
-	 * setRouteFileMap
+	 * setRouteFileMap 缓存路由的映射
 	 */
 	public static function setRouteFileMap($route) {
 		self::$routeFileMap[$route] = true;

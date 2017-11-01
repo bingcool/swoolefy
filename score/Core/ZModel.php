@@ -3,7 +3,7 @@ namespace Swoolefy\Core;
 
 class ZModel {
 	/**
-	 * $_instance 
+	 * $_instance 工厂模式的单实例
 	 * @var object
 	 */
 	protected static $_model_instances = [];
