@@ -18,7 +18,7 @@ class Struct {
 	 * @return   string
 	 */
 	public function get($property, $default = null) {
-		if (isset($this->$property))
+		if(isset($this->$property))
 		{
 			return $this->$property;
 		}
@@ -62,7 +62,7 @@ class Struct {
 	 */
 	public function setProperties($properties) {
 		$properties = (array)$properties;
-		if (is_array($properties)) {
+		if(is_array($properties)) {
 			foreach ($properties as $k => $v) {
 				$this->$k = $v;
 			}

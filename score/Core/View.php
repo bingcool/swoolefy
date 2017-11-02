@@ -30,6 +30,12 @@ class View {
 	public $write_size = 20000;
 	
 	/**
+	 * $enable_gzip 是否开启压缩,可能要与nginx配合使用gzip,否则分段返回数据乱码
+	 * @var boolean
+	 */
+	public $enable_gzip = false;
+
+	/**
 	 * __construct
 	 */
 	public function __construct($contentType='text/html') {
@@ -114,17 +120,19 @@ class View {
 			$tpl = $template_file;
 		}
 
-		@Application::$app->response->header('Content-Type',$this->content_type.'; charset=utf-8');
-		// 线上环境压缩
-		Application::$app->response->gzip($this->gzip_level);
-		// 分段返回数据,2M左右一段
 		$response = @Application::$app->response;
+		$response->header('Content-Type',$this->content_type.'; charset=utf-8');
+		// 线上环境压缩,可能要与nginx配合使用gzip,否则分段返回数据乱码
+		if($this->enable_gzip) {
+			$response->gzip($this->gzip_level);
+		}
+		// 分段返回数据,2M左右一段
 		$p = 0;
 		$size = $this->write_size;
-		while($data = substr($tpl, $p++ * $size, $size)) {
+		while($data = mb_substr($tpl, $p++ * $size, $size, 'utf-8')) {
              $response->write($data);
         }
-		@Application::$app->response->end();
+		@$response->end();
 	}
 
 	/**
@@ -141,17 +149,19 @@ class View {
 			$tpl = $template_file;
 		}
 
-		@Application::$app->response->header('Content-Type',$this->content_type.'; charset=utf-8');
-		// 线上环境压缩
-		Application::$app->response->gzip($this->gzip_level);
-		// 分段返回数据,2M左右一段
 		$response = @Application::$app->response;
+		$response->header('Content-Type',$this->content_type.'; charset=utf-8');
+		// 线上环境压缩,可能要与nginx配合使用gzip,否则分段返回数据乱码
+		if($this->enable_gzip) {
+			$response->gzip($this->gzip_level);
+		}
+		// 分段返回数据,2M左右一段
 		$p = 0;
 		$size = $this->write_size;
-		while($data = substr($tpl, $p++ * $size, $size)) {
-             $response->write($data);
+		while($data = mb_substr($tpl, $p++ * $size, $size, 'utf-8')) {
+            $response->write($data);
         }
-		@Application::$app->response->end();
+		@$response->end();
 
 	}
 
@@ -186,8 +196,10 @@ class View {
             	$string = $data;
 			default:$string = json_encode($data,0);break;
 		}
-		// 线上环境压缩
-		$response->gzip($this->gzip_level);
+		// 线上环境压缩,可能要与nginx配合使用gzip,否则分段返回数据乱码
+		if($this->enable_gzip) {
+			$response->gzip($this->gzip_level);
+		}
 		@$response->write($string);
 		@$response->end();
 	}

@@ -389,17 +389,6 @@ trait AppTrait {
 	}
 
 	/**
-	 * header,使用链式作用域
-	 * @param    $name
-	 * @param    $value
-	 * @return   object
-	 */
-	public function header($name,$value) {
-		$this->response->header($name, $value);
-		return $this->response;
-	}
-
-	/**
 	 * dump，调试函数
 	 * @param    $var
 	 * @param    $echo

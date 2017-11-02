@@ -259,6 +259,7 @@ class HttpRoute extends Dispatch {
 
 	/**
 	 * setRouteFileMap 缓存路由的映射
+	 * @param   $route
 	 */
 	public static function setRouteFileMap($route) {
 		self::$routeFileMap[$route] = true;
