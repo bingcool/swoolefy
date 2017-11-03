@@ -96,6 +96,10 @@ class BaseServer {
 		if(!extension_loaded('zlib')) {
 			throw new \Exception("you are not install zlib extentions,please install it", 1);
 		}
+
+		if(!extension_loaded('mbstring')) {
+			throw new \Exception("you are not install mbstring extentions,please install it", 1);
+		}
 	}
 
 	/**

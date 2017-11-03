@@ -18,7 +18,7 @@ class View {
 	public $content_type = null;
 
 	/**
-	 * $gzip_level 压缩等级
+	 * $gzip_level 压缩等级,与$enable_gzip相关联
 	 * @var integer
 	 */
 	public $gzip_level = 2;
@@ -30,7 +30,8 @@ class View {
 	public $write_size = 20000;
 	
 	/**
-	 * $enable_gzip 是否开启压缩,可能要与nginx配合使用gzip,否则分段返回数据乱码
+	 * $enable_gzip 是否开启压缩,压缩功能由nginx实现即可gzip,不要增加swoole的开销，而且数据分多段返回时会出现数据乱码
+	 * 建议不要开启这个压缩功能,这样$write_size无论设置多大分段(当然<2M)返回都不会乱码
 	 * @var boolean
 	 */
 	public $enable_gzip = false;
@@ -122,7 +123,6 @@ class View {
 
 		$response = @Application::$app->response;
 		$response->header('Content-Type',$this->content_type.'; charset=utf-8');
-		// 线上环境压缩,可能要与nginx配合使用gzip,否则分段返回数据乱码
 		if($this->enable_gzip) {
 			$response->gzip($this->gzip_level);
 		}
@@ -132,7 +132,7 @@ class View {
 		while($data = mb_substr($tpl, $p++ * $size, $size, 'utf-8')) {
              $response->write($data);
         }
-		@$response->end();
+		$response->end();
 	}
 
 	/**
@@ -151,7 +151,6 @@ class View {
 
 		$response = @Application::$app->response;
 		$response->header('Content-Type',$this->content_type.'; charset=utf-8');
-		// 线上环境压缩,可能要与nginx配合使用gzip,否则分段返回数据乱码
 		if($this->enable_gzip) {
 			$response->gzip($this->gzip_level);
 		}
@@ -161,7 +160,7 @@ class View {
 		while($data = mb_substr($tpl, $p++ * $size, $size, 'utf-8')) {
             $response->write($data);
         }
-		@$response->end();
+		$response->end();
 
 	}
 
@@ -196,12 +195,11 @@ class View {
             	$string = $data;
 			default:$string = json_encode($data,0);break;
 		}
-		// 线上环境压缩,可能要与nginx配合使用gzip,否则分段返回数据乱码
 		if($this->enable_gzip) {
 			$response->gzip($this->gzip_level);
 		}
-		@$response->write($string);
-		@$response->end();
+		$response->write($string);
+		$response->end();
 	}
 
 }

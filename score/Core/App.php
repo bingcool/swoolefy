@@ -129,6 +129,8 @@ class App extends \Swoolefy\Core\Component {
 		if(@isset(ZModel::$_model_instances)) {
 			ZModel::$_model_instances = [];
 		}
+		// 销毁应用对象
+		Application::$app = null;
 		// 初始化静态变量
 		MTime::clear();
 	}

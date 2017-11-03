@@ -441,6 +441,43 @@ trait AppTrait {
 	}
 
 	/**
+	 * asyncHttpClient 简单的模拟http异步并发请求
+	 * @param    $urls 
+	 * @param    $timeout 单位ms
+	 * @author   huangzengbing
+	 * @return   
+	 */
+	public function asyncHttpClient($urls=[],$timeout=500) {
+		if(!empty($urls)) {
+			$conn = [];
+			$mh = curl_multi_init();
+			foreach($urls as $i => $url) {
+				$conn[$i] = curl_init($url);
+					curl_setopt($conn[$i], CURLOPT_CUSTOMREQUEST, "GET");
+				  	curl_setopt($conn[$i], CURLOPT_HEADER ,0);
+				  	curl_setopt($conn[$i], CURLOPT_SSL_VERIFYPEER, FALSE);
+					curl_setopt($conn[$i], CURLOPT_SSL_VERIFYHOST, FALSE);
+					curl_setopt($conn[$i], CURLOPT_NOSIGNAL, 1);
+					curl_setopt($conn[$i], CURLOPT_TIMEOUT_MS,$timeout);   
+				  	curl_setopt($conn[$i],CURLOPT_RETURNTRANSFER,true);
+				  	curl_multi_add_handle($mh,$conn[$i]);
+			}
+
+			do {   
+  				curl_multi_exec($mh,$active);   
+			}while ($active);
+
+			foreach ($urls as $i => $url) {   
+  				curl_multi_remove_handle($mh,$conn[$i]);   
+  				curl_close($conn[$i]);   
+			}
+			curl_multi_close($mh);
+			return true;
+		}
+		return false;
+	}
+
+	/**
 	 * sendHttpStatus,参考tp的
 	 * @param    $code
 	 * @return   void     
