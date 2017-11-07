@@ -149,7 +149,7 @@ class View {
 			$tpl = $template_file;
 		}
 
-		$response = @Application::$app->response;
+		$response = Application::$app->response;
 		$response->header('Content-Type',$this->content_type.'; charset=utf-8');
 		if($this->enable_gzip) {
 			$response->gzip($this->gzip_level);

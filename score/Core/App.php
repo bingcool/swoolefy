@@ -109,7 +109,6 @@ class App extends \Swoolefy\Core\Component {
 				$this->response->header('Content-Type','application/json; charset=UTF-8');
 				return $this->response->end(json_encode($info));
 			}else {
-				$this->response->gzip(1);
 				$this->response->header('Content-Type','text/html; charset=UTF-8');
 				$this->response->end($info);
 			}

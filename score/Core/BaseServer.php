@@ -107,7 +107,6 @@ class BaseServer {
 	 * @param    $master_process_name
 	 */
 	public static function setMasterProcessName($master_process_name) {
-
 		swoole_set_process_name($master_process_name);
 	}
 
@@ -314,34 +313,34 @@ class BaseServer {
 	 * @return  void
 	 */
 	public static function createTables() {
-			if(!isset(static::$config['table']) || !is_array(static::$config['table'])) {
-				static::$config['table'] = [];
-			}
+		if(!isset(static::$config['table']) || !is_array(static::$config['table'])) {
+			static::$config['table'] = [];
+		}
 
-			if(isset(static::$config['table_tick_task']) && static::$config['table_tick_task'] == true) {
-				$tables = array_merge(self::$_table_tasks,static::$config['table']);
-			}else {
-				$tables = static::$config['table'];
-			}
-			
-			foreach($tables as $k=>$row) {
-				$table = new \swoole_table($row['size']);
-				foreach($row['fields'] as $p=>$field) {
-					switch(strtolower($field[1])) {
-						case 'int':
-							$table->column($field[0],\swoole_table::TYPE_INT,(int)$field[2]);
-						break;
-						case 'string':
-							$table->column($field[0],\swoole_table::TYPE_STRING,(int)$field[2]);
-						break;
-						case 'float':
-							$table->column($field[0],\swoole_table::TYPE_FLOAT,(int)$field[2]);
-						break;
-					}
+		if(isset(static::$config['table_tick_task']) && static::$config['table_tick_task'] == true) {
+			$tables = array_merge(self::$_table_tasks,static::$config['table']);
+		}else {
+			$tables = static::$config['table'];
+		}
+		
+		foreach($tables as $k=>$row) {
+			$table = new \swoole_table($row['size']);
+			foreach($row['fields'] as $p=>$field) {
+				switch(strtolower($field[1])) {
+					case 'int':
+						$table->column($field[0],\swoole_table::TYPE_INT,(int)$field[2]);
+					break;
+					case 'string':
+						$table->column($field[0],\swoole_table::TYPE_STRING,(int)$field[2]);
+					break;
+					case 'float':
+						$table->column($field[0],\swoole_table::TYPE_FLOAT,(int)$field[2]);
+					break;
 				}
-				$table->create();
-				self::$server->$k = $table; 
 			}
+			$table->create();
+			self::$server->$k = $table; 
+		}
 	}
 
 	/**
