@@ -129,9 +129,10 @@ class HttpServer extends BaseServer {
 				if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
             		return $response->end();
        			}
+       			
 				swoole_unpack(self::$App)->run($request, $response);
-				return ;
 
+				return ;
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);

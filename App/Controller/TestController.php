@@ -18,7 +18,7 @@ class TestController extends BController {
 	public function test() {
 		// Application::$app->db->test();
 		$data = $this->getModel()->getTest();
-		$this->assign('name',$data['name'].rand(1,1000));
+		$this->assign('name',$data['name']);
 		$this->display('test.html');
 	}
 

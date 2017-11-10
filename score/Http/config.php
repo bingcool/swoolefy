@@ -1,7 +1,7 @@
 <?php
 // httpserver的配置
 return [
-	'application_index' => 'Swoolefy\\App\\Application',
+	'application_index' => 'App\\Application',
 	'start_init' => 'Swoolefy\\Http\\StartInit',
 	'master_process_name' => 'php-http-master',
 	'manager_process_name' => 'php-http-manager',

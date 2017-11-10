@@ -444,7 +444,6 @@ trait AppTrait {
 	 * asyncHttpClient 简单的模拟http异步并发请求
 	 * @param    $urls 
 	 * @param    $timeout 单位ms
-	 * @author   huangzengbing
 	 * @return   
 	 */
 	public function asyncHttpClient($urls=[],$timeout=500) {

@@ -6,12 +6,12 @@ use Swoolefy\Core\ZModel;
 
 class Test extends BModel {
 	public static $num = 0;
+	public $count = 0;
 	public function record() {
 		global $count;
-		$count++ ;
 		self::$num++;
-		$name = $_GET['name'];
-		return ['name'=>'bingcoolhuang'.rand(1,100).'-'.$name.'-'.self::$num.'-'.$count];
+		++$this->count;
+		return ['name'=>'kkk'.rand(1,100).'-count:'.$this->count.'-num:'.self::$num];
 	}
 
 	public function getTest() {
@@ -21,8 +21,8 @@ class Test extends BModel {
 
 	public function _afterAction() {
 		//定义的静态变量和全局变量 
-		self::$num = 0;
-		global $count;
-		$count = 0;
+		// self::$num = 0;
+		// global $count;
+		// $count = 0;
 	}
 }
