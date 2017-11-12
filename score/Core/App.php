@@ -80,7 +80,7 @@ class App extends \Swoolefy\Core\Component {
 
 		// 请求结束
 		$this->end();
-
+		
 		return true;
 	}
 

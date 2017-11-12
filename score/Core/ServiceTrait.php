@@ -1,13 +1,16 @@
 <?php
 namespace Swoolefy\Core;
 
+use Swoolefy\Core\Swfy;
+use Swoolefy\Core\BaseServer;
+
 trait ServiceTrait {
 	/**
 	 * getMasterId 获取当前服务器主进程的PID
 	 * @return   int
 	 */
 	public function getMasterPid() {
-		return \Swoolefy\Core\Swfy::$server->master_pid;
+		return Swfy::$server->master_pid;
 	}
 
 	/**
@@ -15,7 +18,7 @@ trait ServiceTrait {
 	 * @return   int
 	 */
 	public function getManagerPid() {
-		return \Swoolefy\Core\Swfy::$server->manager_pid;
+		return Swfy::$server->manager_pid;
 	}
 
 	/**
@@ -23,7 +26,7 @@ trait ServiceTrait {
 	 * @return int  
 	 */
 	public function getCurrentWorkerPid() {
-		$workerPid = \Swoolefy\Core\Swfy::$server->worker_pid;
+		$workerPid = Swfy::$server->worker_pid;
 		if($workerPid) {
 			return $workerPid;
 		}else {
@@ -36,7 +39,7 @@ trait ServiceTrait {
 	 * @return   int
 	 */
 	public function getCurrentWorkerId() {
-		$workerId = \Swoolefy\Core\Swfy::$server->worker_id;
+		$workerId = Swfy::$server->worker_id;
 		return $workerId;
 	}
 
@@ -45,7 +48,7 @@ trait ServiceTrait {
 	 * @return  object 
 	 */
 	public function getConnections() {
-		return \Swoolefy\Core\Swfy::$server->connections;
+		return Swfy::$server->connections;
 	}
 
 	/**
@@ -56,7 +59,7 @@ trait ServiceTrait {
 	 * @return   [type]        [description]
 	 */
 	public function getWorkersPid() {
-		return \Swoolefy\Core\BaseServer::getWorkersPid();
+		return BaseServer::getWorkersPid();
 	}
 
 	/**
@@ -64,7 +67,7 @@ trait ServiceTrait {
 	 * @return   int 
 	 */
 	public function getLastError() {
-		return \Swoolefy\Core\Swfy::$server->getLastError();
+		return Swfy::$server->getLastError();
 	}
 
 	/**
@@ -72,7 +75,7 @@ trait ServiceTrait {
 	 * @return   array
 	 */
 	public function getSwooleStats() {
-		return \Swoolefy\Core\Swfy::$server->stats();
+		return Swfy::$server->stats();
 	}
 
 	/**
