@@ -1,13 +1,13 @@
-提示：要使用这个框架学习，必须要有掌握swoole基础，了解swoole的工作原理，了解mvc,ioc,超全局变量，静态绑定，特别是内存共享和进程，不然，有些问题永远无法解释的明白。另外只是一个学习的框架，没有任何的组件功能，只是完成了mvc三层的架构，是用来学习swoole和测试swoole的一些功能特性。
+提示：要使用这个框架学习，必须要有掌握swoole基础，了解swoole的工作原理，了解mvc,ioc,超全局变量，静态绑定，特别是内存共享和进程，不然，有些问题永远无法解释的明白。另外只是一个学习的框架，没有任何的组件功能，只是完成了mvc三层的架构，是用来学习swoole和测试swoole的一些功能特性。     
 （1）下载目前最新版的swoolefy代码
-https://github.com/bingcool/swoolefy，可以看到里面有几个文件夹，App这个是应用层文件夹类似thinkphp的mvc三层，直接在了里面编码，实现业务。score这个目录是框架的核心代码，一般不需要改动的，当然想要学习可能的看里面的代码。
-（2）搭建linux环境和php环境
+https://github.com/bingcool/swoolefy，可以看到里面有几个文件夹，App这个是应用层文件夹类似thinkphp的mvc三层，直接在了里面编码，实现业务。score这个目录是框架的核心代码，一般不需要改动的，当然想要学习可能的看里面的代码。     
+（2）搭建linux环境和php环境    
 要求：
-linux版本：由于swoolefy这个框架是使用centos7.0测试开发的，建议安装centos7.0以上版本
-php版本：php7.0版本以上
-所需php扩展：pcntl，posix，zlib，mbstring，swoole，swoole_serializel
+a、linux版本：由于swoolefy这个框架是使用centos7.0测试开发的，建议安装centos7.0以上版本
+b、php版本：php7.0版本以上
+c、所需php扩展：pcntl，posix，zlib，mbstring，swoole，swoole_serializel   
 可以通过php -m 查看是否安装了这些模块，没安装，请自行安装
-swoole_serializel：https://github.com/swoole/swoole_serialize可以下载这个安装
+swoole_serializel：https://github.com/swoole/swoole_serialize可以下载这个安装    
 注意：必须自行百度安装以上扩展，否则框架运行会出错，因为核心代码里用到了这些扩展
 
 （3）将swoolefy代码放到一个linux环境的目录下。比如直接放在/usr/local/下
