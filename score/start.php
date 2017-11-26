@@ -2,7 +2,7 @@
 // include composer的自动加载类完成命名空间的注册
 include_once '../vendor/autoload.php';
 // include App应用层的自定义的自动加载类命名空间
-include_once '../App/autoloader.php';
+include_once '../autoloader.php'; 
 
 function initCheck(){
     if(phpversion() < 5.6){
