@@ -54,6 +54,14 @@ class App extends \Swoolefy\Core\Component {
 		// 		session_start();
 		// 	}
 		// }
+		self::boostrap();
+	}
+
+	/**
+	 * boostrap 初始化引导
+	 */
+	public function boostrap() {
+		Swfy::$config['application_index']::boostrap();	
 	}
 
 	/**

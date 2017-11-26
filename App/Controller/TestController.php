@@ -15,7 +15,7 @@ class TestController extends BController {
 		parent::__construct();
 	}	
 
-	public function test($name,$num) {		
+	public function test($name,$num) {	
 		// Application::$app->db->test();
 		$data = $this->getModel()->getTest();
 		$this->assign('name',$data['name']);

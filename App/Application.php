@@ -29,5 +29,14 @@ class Application implements \Swoolefy\Core\AppInterface{
 		$config = array_merge(self::init(), $config);
 		return new \Swoolefy\Core\App($config);
 	}
+
+	
+	/**
+	 * boostrap  完成程序的引导和环境变量的设置
+	 * @return   
+	 */
+	public static function boostrap() {
+		
+	}
 }
 
