@@ -1,10 +1,6 @@
 <?php
 namespace App;
 
-// 上线必须设置为false
-defined('SW_DEBUG') or define('SW_DEBUG', true);
-defined('SW_ENV') or define('SW_ENV', 'dev');
-
 class Application implements \Swoolefy\Core\AppInterface{
 	// 初始化配置
 	public static function init() {
@@ -36,7 +32,10 @@ class Application implements \Swoolefy\Core\AppInterface{
 	 * @return   
 	 */
 	public static function boostrap() {
-		
+		// 上线必须设置为false
+		defined('SW_DEBUG') or define('SW_DEBUG', true);
+		defined('SW_ENV') or define('SW_ENV', 'dev');
+		// \Swoolefy\Core\HttpRoute::resetRouteDispatch('Test/testajax');
 	}
 }
 

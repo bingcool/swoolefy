@@ -129,9 +129,9 @@ class MGeneral extends \Swoolefy\Core\Object {
      * @param    $code
      * @return   mixed
      */
-    public static function _die($msg='') {
+    public static function _die($html='',$msg='') {
         // 直接结束请求
-        Application::$app->response->end();
+        Application::$app->response->end($html);
         throw new \Exception($msg);
     }
 

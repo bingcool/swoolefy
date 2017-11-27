@@ -54,7 +54,6 @@ class App extends \Swoolefy\Core\Component {
 		// 		session_start();
 		// 	}
 		// }
-		self::boostrap();
 	}
 
 	/**
@@ -77,6 +76,8 @@ class App extends \Swoolefy\Core\Component {
 		Application::$app = $this;
 		// 初始化
 		$this->init();
+		// 引导程序与环境变量的设置
+		$this->boostrap();
 		// 判断是否是在维护模式
 		if(!$this->catch()) {
 			// 调试模式，将打印出一些信息
