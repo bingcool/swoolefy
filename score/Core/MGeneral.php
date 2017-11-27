@@ -135,6 +135,21 @@ class MGeneral extends \Swoolefy\Core\Object {
         throw new \Exception($msg);
     }
 
+    /**
+     * xhprof 性能分析函数
+     * @return  
+     */
+    public static function xhprof($host='192.168.44.128:81') {
+        $xhprof_data = xhprof_disable();
+        include_once ROOT_PATH.'/xhprof_lib/utils/xhprof_lib.php';
+        include_once ROOT_PATH.'/xhprof_lib/utils/xhprof_runs.php';
+        $xhprof_runs = new \XHProfRuns_Default();
+        $run_id = $xhprof_runs->save_run($xhprof_data, "xhprof_test");
+
+        $url= "http://{$host}/xhprof_html/index.php?run={$run_id}&source=xhprof_test";
+        dump($url);
+    }
+
 	/**
 	 * getBrowser 获取浏览器
 	 * @return   string
