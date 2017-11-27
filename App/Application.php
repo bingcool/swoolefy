@@ -35,7 +35,6 @@ class Application implements \Swoolefy\Core\AppInterface{
 		// 上线必须设置为false
 		defined('SW_DEBUG') or define('SW_DEBUG', true);
 		defined('SW_ENV') or define('SW_ENV', 'dev');
-		// \Swoolefy\Core\HttpRoute::resetRouteDispatch('Test/testajax');
 	}
 }
 

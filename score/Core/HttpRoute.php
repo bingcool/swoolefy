@@ -269,7 +269,11 @@ class HttpRoute extends Dispatch {
 	 * resetRouteDispatch 重置路由调度,将实际的路由改变请求,主要用在boostrap()中
 	 */
 	public static function resetRouteDispatch($route) {
-		Application::$app->request->server['PATH_INFO'] = '/'.$route;
+		if(strpos($route, '/') != 0) {
+			Application::$app->request->server['PATH_INFO'] = '/'.$route;
+		}
+		Application::$app->request->server['PATH_INFO'] = $route;
+		
 	}
 
 }
