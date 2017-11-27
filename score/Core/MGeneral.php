@@ -139,13 +139,23 @@ class MGeneral extends \Swoolefy\Core\Object {
      * xhprof 性能分析函数
      * @return  
      */
-    public static function xhprof($host='192.168.44.128:81') {
-        $xhprof_data = xhprof_disable();
-        include_once ROOT_PATH.'/xhprof_lib/utils/xhprof_lib.php';
-        include_once ROOT_PATH.'/xhprof_lib/utils/xhprof_runs.php';
-        $xhprof_runs = new \XHProfRuns_Default();
-        $run_id = $xhprof_runs->save_run($xhprof_data, "xhprof_test");
+    public static function xhprof($force=false) {
+        if(SW_DEBUG) {
+            $xhprof_data = xhprof_disable();
+            include_once ROOT_PATH.'/xhprof_lib/utils/xhprof_lib.php';
+            include_once ROOT_PATH.'/xhprof_lib/utils/xhprof_runs.php';
+            $xhprof_runs = new \XHProfRuns_Default();
+            $run_id = $xhprof_runs->save_run($xhprof_data, "xhprof_test");
+        }elseif($force) {
+            // 是否强制打印调试,在预发布和正式环境
+            $xhprof_data = xhprof_disable();
+            include_once ROOT_PATH.'/xhprof_lib/utils/xhprof_lib.php';
+            include_once ROOT_PATH.'/xhprof_lib/utils/xhprof_runs.php';
+            $xhprof_runs = new \XHProfRuns_Default();
+            $run_id = $xhprof_runs->save_run($xhprof_data, "xhprof_test");
+        }
 
+        $host = $_SERVER['HTTP_HOST'];
         $url= "http://{$host}/xhprof_html/index.php?run={$run_id}&source=xhprof_test";
         dump($url);
     }
