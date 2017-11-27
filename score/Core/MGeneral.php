@@ -123,11 +123,23 @@ class MGeneral extends \Swoolefy\Core\Object {
 		return $number;
 	}
 
+    /**
+     * _die 异常终端程序执行
+     * @param    $msg
+     * @param    $code
+     * @return   mixed
+     */
+    public static function _die($msg='') {
+        // 直接结束请求
+        Application::$app->response->end();
+        throw new \Exception($msg);
+    }
+
 	/**
 	 * getBrowser 获取浏览器
 	 * @return   string
 	 */
-	public function getBrowser() {
+	public static function getBrowser() {
         $sys = $_SERVER['HTTP_USER_AGENT'];
         if (stripos($sys, "Firefox/") > 0)
  		{
@@ -184,7 +196,7 @@ class MGeneral extends \Swoolefy\Core\Object {
      * getOS 客户端操作系统信息
      * @return  string
      */
-    public function getClientOS() {
+    public static function getClientOS() {
         $agent = $_SERVER['HTTP_USER_AGENT'];
         if (preg_match('/win/i', $agent) && preg_match('/nt 6.1/i', $agent))
         {

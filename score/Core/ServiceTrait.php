@@ -53,10 +53,7 @@ trait ServiceTrait {
 
 	/**
 	 * getWorkersPid 获取当前所有worker_pid与worker的映射
-	 * @Author   huangzengbing
-	 * @DateTime 2017-10-20
-	 * @param    {String}
-	 * @return   [type]        [description]
+	 * @return   array
 	 */
 	public function getWorkersPid() {
 		return BaseServer::getWorkersPid();
