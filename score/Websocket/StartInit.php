@@ -7,7 +7,7 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 * @param    $server
 	 * @return          
 	 */
-	public function onStart($server) {
+	public static function onStart($server) {
 		
 	}
 
@@ -16,7 +16,7 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 * @param    $server
 	 * @return          
 	 */
-	public function onManagerStart($server){
+	public static function onManagerStart($server){
 		
 	}
 
@@ -25,7 +25,7 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 * @param    $server
 	 * @return   
 	 */
-	public function onWorkerStart($server,$worker_id){
+	public static function onWorkerStart($server,$worker_id){
 		// if($worker_id == 0) {
 		// 	$tid = \Swoolefy\Core\Timer\Tick::afterTimer(10000,['App\\Controller\\Test','mytest'],[['name'=>'bing']]);
 		// }
@@ -37,8 +37,31 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 * @param    $worker_id
 	 * @return             
 	 */
-	public function onWorkerStop($server,$worker_id){
+	public static function onWorkerStop($server,$worker_id){
 		
+	}
+
+	/**
+	 * workerError 
+	 * @param    $server    
+	 * @param    $worker_id 
+	 * @param    $worker_pid
+	 * @param    $exit_code 
+	 * @param    $signal    
+	 * @return              
+	 */
+	public static function onWorkerError($server, $worker_id, $worker_pid, $exit_code, $signal) {
+
+	}
+
+	/**
+	 * workerExit 1.9.17+版本支持
+	 * @param    $server   
+	 * @param    $worker_id
+	 * @return                 
+	 */
+	public static function onWorkerExit($server, $worker_id) {
+
 	}
 
 	/**
@@ -46,7 +69,7 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 * @param    $server
 	 * @return          
 	 */
-	public function onManagerStop($server){
+	public static function onManagerStop($server){
 		
 	}
 }

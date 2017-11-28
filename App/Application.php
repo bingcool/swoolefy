@@ -32,9 +32,9 @@ class Application implements \Swoolefy\Core\AppInterface{
 	 * @return   
 	 */
 	public static function bootstrap() {
-		// if(function_exists('xhprof_enable')) {
-		// 	xhprof_enable(XHPROF_FLAGS_MEMORY);
-		// }
+		if(function_exists('xhprof_enable')) {
+			xhprof_enable(XHPROF_FLAGS_MEMORY);
+		}
 		// 上线必须设置为false
 		defined('SW_DEBUG') or define('SW_DEBUG', true);
 		defined('SW_ENV') or define('SW_ENV', 'dev');

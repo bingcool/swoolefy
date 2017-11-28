@@ -353,6 +353,25 @@ class BaseServer {
 	}
 
 	/**
+	 * swooleVersion 判断swoole是否大于某个版本
+	 * @Author   huangzengbing
+	 * @DateTime 2017-11-28
+	 * @param    {String}
+	 * @param    string        $version [description]
+	 * @return   [type]                 [description]
+	 */
+	public static function compareSwooleVersion($version = '1.9.15') {
+		if(isset(static::$config['swoole_version']) && !empty(static::$config['swoole_version'])) {
+			$version = static::$config['swoole_version'] ;
+		}
+		if(version_compare(swoole_version(), $version, '>')) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
 	 * checkSapiEnv 判断是否是cli模式启动
 	 * @return void
 	 */

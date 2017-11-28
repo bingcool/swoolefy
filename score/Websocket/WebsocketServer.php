@@ -42,7 +42,7 @@ class WebsocketServer extends BaseServer {
 	 * $startctrl
 	 * @var null
 	 */
-	public $startctrl = null;
+	public static $startCtrl = null;
 
 
 	/**
@@ -60,9 +60,8 @@ class WebsocketServer extends BaseServer {
 		$this->webserver->set(self::$setting);
 		parent::__construct();
 		// 初始化启动类
-		$startClass = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Websocket\\StartInit';
-		$this->startctrl = new $startClass();
-
+		self::$startCtrl = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Websocket\\StartInit';
+		
 	}
 
 	public function start() {
@@ -73,7 +72,7 @@ class WebsocketServer extends BaseServer {
 			// 重新设置进程名称
 			self::setMasterProcessName(self::$config['master_process_name']);
 			// 启动的初始化函数
-			$this->startctrl->start($server);
+			self::$startCtrl::start($server);
 		});
 		/**
 		 * managerstart回调
@@ -82,7 +81,7 @@ class WebsocketServer extends BaseServer {
 			// 重新设置进程名称
 			self::setManagerProcessName(self::$config['manager_process_name']);
 			// 启动的初始化函数
-			$this->startctrl->managerStart($server);
+			self::$startCtrl::managerStart($server);
 		});
 
 		/**
@@ -107,7 +106,7 @@ class WebsocketServer extends BaseServer {
        		Swfy::$server = $this->webserver;
        		Swfy::$config = self::$config;
 			// 启动的初始化函数
-			$this->startctrl->workerStart($server,$worker_id);
+			self::$startCtrl::workerStart($server,$worker_id);
 		});
 
 		/**
@@ -133,7 +132,27 @@ class WebsocketServer extends BaseServer {
 		 * 停止worker进程
 		 */
 		$this->webserver->on('WorkerStop',function(websocket_server $server, $worker_id) {
+			// worker停止时的回调处理
+			self::$startCtrl::workerStop($server, $worker_id);
 		});
+
+		/**
+		 * worker进程异常错误回调函数
+		 */
+		$this->webserver->on('WorkerError',function(http_server $server, $worker_id, $worker_pid, $exit_code, $signal) {
+			// worker停止的触发函数
+			self::$startCtrl::workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
+		});
+
+		/**
+		 * worker进程退出回调函数，1.9.17+版本
+		 */
+		if(static::compareSwooleVersion()) {
+			$this->webserver->on('WorkerExit',function(http_server $server, $worker_id) {
+				// worker退出的触发函数
+				self::$startCtrl::workerExit($server, $worker_id);
+			});
+		}
 
 		$this->webserver->on('open', function (websocket_server $server, $request) {
 

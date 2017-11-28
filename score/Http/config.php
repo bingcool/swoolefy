@@ -10,6 +10,7 @@ return [
 	'host' => '0.0.0.0',
 	'port' => '9502',
 	'time_zone' => 'Asia/Shanghai',
+	'swoole_version' => '1.9.15', //要求swoole的最低版本
 	'gzip_level' => 2,
 	'include_files' =>[],
 	'setting' => [
