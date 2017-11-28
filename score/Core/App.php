@@ -59,8 +59,8 @@ class App extends \Swoolefy\Core\Component {
 	/**
 	 * boostrap 初始化引导
 	 */
-	public function boostrap() {
-		Swfy::$config['application_index']::boostrap();	
+	public function bootstrap() {
+		Swfy::$config['application_index']::bootstrap();	
 	}
 
 	/**
@@ -77,7 +77,7 @@ class App extends \Swoolefy\Core\Component {
 		// 初始化
 		$this->init();
 		// 引导程序与环境变量的设置
-		$this->boostrap();
+		$this->bootstrap();
 		// 判断是否是在维护模式
 		if(!$this->catch()) {
 			// 调试模式，将打印出一些信息
