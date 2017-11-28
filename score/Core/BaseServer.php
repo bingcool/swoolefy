@@ -354,11 +354,8 @@ class BaseServer {
 
 	/**
 	 * swooleVersion 判断swoole是否大于某个版本
-	 * @Author   huangzengbing
-	 * @DateTime 2017-11-28
-	 * @param    {String}
-	 * @param    string        $version [description]
-	 * @return   [type]                 [description]
+	 * @param    $version
+	 * @return   boolean
 	 */
 	public static function compareSwooleVersion($version = '1.9.15') {
 		if(isset(static::$config['swoole_version']) && !empty(static::$config['swoole_version'])) {
@@ -377,7 +374,7 @@ class BaseServer {
 	 */
 	public static function checkSapiEnv() {
         // Only for cli.
-        if (php_sapi_name() != "cli") {
+        if(php_sapi_name() != 'cli') {
             throw new \Exception("only run in command line mode \n", 1);
         }
     }

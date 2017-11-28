@@ -31,10 +31,16 @@ class HttpRoute extends Dispatch {
 	public $config = null;
 
 	/**
+	 * $reflector reflector对象
+	 * @var null
+	 */
+	public static $reflector = null;
+
+	/**
 	 * $deny_actions 禁止外部直接访问的action
 	 * @var array
 	 */
-	public $deny_actions = ['__construct','_beforeAction','_afterAction','__destruct'];
+	public static $deny_actions = ['__construct','_beforeAction','_afterAction','__destruct'];
 	/**
 	 * __construct
 	 */
@@ -60,8 +66,8 @@ class HttpRoute extends Dispatch {
 			if($this->require_uri == '/' || $this->require_uri == '//') {
 				$this->require_uri = '/'.$this->config['default_route'];
 			}
-			// 去掉开头的'/'
-			$route_uri = substr($this->require_uri,1);
+			// 去掉两端的'/'
+			$route_uri = trim($this->require_uri,'/');
 			if($route_uri) {
 				// 分割出route
 				$route_params = explode('/',$route_uri);
@@ -99,7 +105,7 @@ class HttpRoute extends Dispatch {
 		// route参数组数
 		$this->request->server['ROUTE_PARAMS'] = $_SERVER['ROUTE_PARAMS'] = [];
 		// 定义禁止直接外部访问的方法
-		if(in_array($action, $this->deny_actions)) {
+		if(in_array($action, self::$deny_actions)) {
 			return $this->response->end($action.'() method is not be called!');
 		}
 		
@@ -139,9 +145,7 @@ class HttpRoute extends Dispatch {
 				if(!is_file($filePath)) {
 					$this->response->status(404);
 					$this->response->header('Content-Type','text/html; charset=UTF-8');
-					if(SW_DEBUG) {
-						return $this->response->end($filePath.' is not exit!');
-					}else {
+					if(!SW_DEBUG) {
 						// 使用配置的NotFound类
 						if(isset($this->config['not_found_function']) && is_array($this->config['not_found_function'])) {
 							list($controller, $action) = $this->redirectNotFound();
@@ -153,7 +157,10 @@ class HttpRoute extends Dispatch {
 							// 访问类的命名空间
 							$class = 'Swoolefy\\Core\Controller'.'\\'.$controller;
 						}
-					}
+
+					}else {
+						return $this->response->end($filePath.' is not exit!');
+					} 
 				}else {
 					self::setRouteFileMap($class);
 				}
@@ -168,9 +175,7 @@ class HttpRoute extends Dispatch {
 				if(!is_file($filePath)) {
 					$this->response->status(404);
 					$this->response->header('Content-Type','text/html; charset=UTF-8');
-					if(SW_DEBUG) {
-						return $this->response->end($filePath.' is not exit!');
-					}else {
+					if(!SW_DEBUG) {
 						// 使用配置的NotFound类
 						if(isset($this->config['not_found_function']) && is_array($this->config['not_found_function'])) {
 							list($controller, $action) = $this->redirectNotFound();
@@ -183,6 +188,8 @@ class HttpRoute extends Dispatch {
 							$class = 'Swoolefy\\Core\Controller'.'\\'.$controller;
 						}
 						
+					}else {
+						return $this->response->end($filePath.' is not exit!');
 					}	
 				}else {
 					self::setRouteFileMap($class);
@@ -198,9 +205,12 @@ class HttpRoute extends Dispatch {
 			$this->response->status(403);
 			return $this->response->write(json_encode(['status'=>403,'msg'=>'_beforeAction is forbidden calling']));
 		}
+		// 直接读静态变量,减少每次访问都创建reflector对象开销
+		if(!is_object(self::$reflector)) {
+			self::$reflector = new \ReflectionClass($controllerInstance);
+		}
 		// 如果存在该类和对应的方法
-		$reflector = new \ReflectionClass($controllerInstance);
-		if($reflector->hasMethod($action)) {
+		if(self::$reflector->hasMethod($action)) {
 			$method = new \ReflectionMethod($controllerInstance, $action);
 			if($method->isPublic() && !$method->isStatic()) {
 				try{
@@ -218,11 +228,11 @@ class HttpRoute extends Dispatch {
 		}else {
 			$this->response->status(404);
 			$this->response->header('Content-Type','text/html; charset=UTF-8');
-			if(SW_DEBUG) {
-				return $this->response->end('Class file for '.$filePath.' is exit, but the file:'.$controller.'.php'.' has not define '.'"'.$action.'()'.'"'.' method');
-			}else {
+			if(!SW_DEBUG) {
 				$method = new \ReflectionMethod($controllerInstance,'__call');
 		        $method->invokeArgs($controllerInstance,array($action,''));
+			}else {
+		        return $this->response->end('Class file for '.$filePath.' is exit, but the file:'.$controller.'.php'.' has not define '.'"'.$action.'()'.'"'.' method');
 			}
 		}
 	}
