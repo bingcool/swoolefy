@@ -134,7 +134,7 @@ class App extends \Swoolefy\Core\Component {
 	 */
 	public function end() {
 		// Model的实例化对象初始化为[]
-		if(@isset(ZModel::$_model_instances)) {
+		if(!empty(ZModel::$_model_instances)) {
 			ZModel::$_model_instances = [];
 		}
 		// 销毁应用对象

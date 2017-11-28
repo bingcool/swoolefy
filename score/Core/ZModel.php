@@ -6,7 +6,7 @@ class ZModel {
 	 * $_instance 工厂模式的单实例
 	 * @var object
 	 */
-	protected static $_model_instances = [];
+	public static $_model_instances = [];
 
 	/**
 	 * getInstance
