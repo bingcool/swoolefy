@@ -1,5 +1,6 @@
 <?php
 namespace Swoolefy\Tool;
+
 use Swift_SmtpTransport;
 use Swift_Mailer;
 use Swift_Message;
@@ -52,20 +53,26 @@ class Swiftmail {
 	}
 
 	/**
-	 * setSmtpTransport
-	 * @return [type] [description]
+	 * setSmtpTransport 动态设置smtp的信息
+	 * @param   $smtpTransport
+	 * @return  void
 	 */
 	public function setSmtpTransport($smtpTransport) {
 		is_array($smtpTransport) && $this->smtpTransport = $smtpTransport;
 	}
 
+	/**
+	 * setMessage 动态设置message发送信息
+	 * @param    $message
+	 * @return   void
+	 */
 	public function setMessage($message) {
 		is_array($message) && $this->message = $message;
 	}
 
 	/**
 	 * initSmtpTransport
-	 * @return [type] [description]
+	 * @return onject
 	 */
 	private function initSmtpTransport() {
 		if(is_array($this->smtpTransport)) {
@@ -78,7 +85,7 @@ class Swiftmail {
 
 	/**
 	 * initMessage
-	 * @return [type] [description]
+	 * @return object
 	 */
 	private function initMessage() {
 		if(is_array($this->message)) {
@@ -116,7 +123,7 @@ class Swiftmail {
 
 	/**
 	 * setSubject
-	 * @return [type] [description]
+	 * @return void
 	 */
 	public function setSubject($subject) {
 		$this->message["subject"] = $subject;
@@ -124,7 +131,7 @@ class Swiftmail {
 
 	/**
 	 * setFrom
-	 * @return [type] [description]
+	 * @return void
 	 */
 	public function setFrom(array $from) {
 		$this->message["from"] = $from;
@@ -140,7 +147,7 @@ class Swiftmail {
 
 	/**
 	 * setBody
-	 * @return [type] [description]
+	 * @return void
 	 */
 	public function setBody($body) {
 		$this->message["body"] = $body;
@@ -148,7 +155,7 @@ class Swiftmail {
 
 	/**
 	 * setAttach
-	 * @return [type] [description]
+	 * @return void
 	 */
 	public function setAttach(array $attach) {
 		$this->message["attach"] = $attach;
@@ -156,7 +163,7 @@ class Swiftmail {
 
 	/**
 	 * sendEmail
-	 * @return [type] [description]
+	 * @return void
 	 */
 	public function sendEmail() {
 		$transport = $this->initSmtpTransport();

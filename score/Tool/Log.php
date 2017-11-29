@@ -88,7 +88,7 @@ class Log {
 	/**
 	 * Notice
 	 * @param  $loginfo 
-	 * @return 
+	 * @return void
 	 */
 	public function addNotice($logInfo) {
 		$log = new Logger($this->channel);
@@ -102,7 +102,7 @@ class Log {
 	/**
 	 * Warning
 	 * @param  $loginfo 
-	 * @return 
+	 * @return void
 	 */
 	public function addWarning($logInfo) {
 		$log = new Logger($this->channel);
@@ -116,7 +116,7 @@ class Log {
 	/**
 	 * Error
 	 * @param  $loginfo 
-	 * @return 
+	 * @return void
 	 */
 	public function addError($logInfo) {
 		$log = new Logger($this->channel);
