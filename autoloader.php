@@ -17,8 +17,8 @@ class autoloader {
      * @param string $className 
      * @return boolean
      */
-    public function autoload($className) {
-        foreach(self::$root_namespace as $namespace) {
+    public static function autoload($className) {
+        foreach(self::$root_namespace as $k=>$namespace) {
             // 判断如果以\命名空间访问的格式符合
             if (0 === strpos($className, $namespace)) {
                 //分隔出$this->prefixLength个字符串以后的字符返回，再以\为分隔符分隔
@@ -37,10 +37,10 @@ class autoloader {
      * 注册自动加载
      */     
     public static function register($prepend=false) { 
-        if (function_exists('__autoload')) {        
-            trigger_error('spl_autoload_register() which will bypass your __autoload() and may break your autoloading', E_USER_WARNING);    
+        if(!function_exists('__autoload')) { 
+            spl_autoload_register(array('autoloader', 'autoload'), true, $prepend);     
         }else {
-            spl_autoload_register(array('autoloader', 'autoload'), true, $prepend);
+            trigger_error('spl_autoload_register() which will bypass your __autoload() and may break your autoloading', E_USER_WARNING);
         }
     }
 }
