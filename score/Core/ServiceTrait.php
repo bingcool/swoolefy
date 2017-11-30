@@ -96,21 +96,21 @@ trait ServiceTrait {
      * @param   $type 返回类型 0:返回IP地址,1:返回IPV4地址数字
      * @return  string
      */
-    public static function getClientIP($type=0) {
+    public function getClientIP($type=0) {
         // 通过nginx的代理
-        if(isset($_SERVER['HTTP_X_REAL_IP']) && strcasecmp($_SERVER['HTTP_X_REAL_IP'], "unknown")) {
-            $ip = $_SERVER['HTTP_X_REAL_IP'];
+        if(isset($this->request->server['HTTP_X_REAL_IP']) && strcasecmp($this->request->server['HTTP_X_REAL_IP'], "unknown")) {
+            $ip = $this->request->server['HTTP_X_REAL_IP'];
         }
-        if(isset($_SERVER['HTTP_CLIENT_IP']) && strcasecmp($_SERVER['HTTP_CLIENT_IP'], "unknown")) {
-            $ip = $_SERVER["HTTP_CLIENT_IP"];
+        if(isset($this->request->server['HTTP_CLIENT_IP']) && strcasecmp($this->request->server['HTTP_CLIENT_IP'], "unknown")) {
+            $ip = $this->request->server["HTTP_CLIENT_IP"];
         }
-        if (isset($_SERVER['HTTP_X_FORWARDED_FOR']) and strcasecmp($_SERVER['HTTP_X_FORWARDED_FOR'], "unknown"))
+        if (isset($this->request->server['HTTP_X_FORWARDED_FOR']) and strcasecmp($this->request->server['HTTP_X_FORWARDED_FOR'], "unknown"))
         {
-            return $_SERVER['HTTP_X_FORWARDED_FOR'];
+            return $this->request->server['HTTP_X_FORWARDED_FOR'];
         }
-        if(isset($_SERVER['REMOTE_ADDR'])) {
+        if(isset($this->request->server['REMOTE_ADDR'])) {
             //没通过代理，或者通过代理而没设置x-real-ip的 
-            $ip = $_SERVER['REMOTE_ADDR'];
+            $ip = $this->request->server['REMOTE_ADDR'];
         }
         // IP地址合法验证 
         $long = sprintf("%u", ip2long($ip));
@@ -219,7 +219,7 @@ trait ServiceTrait {
 	 * @return   string
 	 */
 	public function getBrowser() {
-        $sys = $_SERVER['HTTP_USER_AGENT'];
+        $sys = $this->request->server['HTTP_USER_AGENT'];
         if (stripos($sys, "Firefox/") > 0)
  		{
             preg_match("/Firefox\/([^;)]+)+/i", $sys, $b);
@@ -276,7 +276,7 @@ trait ServiceTrait {
      * @return  string
      */
     public function getClientOS() {
-        $agent = $_SERVER['HTTP_USER_AGENT'];
+        $agent = $this->request->server['HTTP_USER_AGENT'];
         if (preg_match('/win/i', $agent) && strpos($agent, '95'))
         {
             $clientOS = 'Windows 95';

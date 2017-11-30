@@ -7,9 +7,11 @@ class MGeneral extends \Swoolefy\Core\Object {
 	 * @return   boolean
 	 */
 	public static function isSsl() {
-	    if(isset($_SERVER['HTTPS']) && ('1' == $_SERVER['HTTPS'] || 'on' == strtolower($_SERVER['HTTPS']))){
+        $request = Application::$app->request;
+
+	    if(isset($request->server['HTTPS']) && ('1' == $request->server['HTTPS'] || 'on' == strtolower($request->server['HTTPS']))){
 	        return true;
-	    }elseif(isset($_SERVER['SERVER_PORT']) && ('443' == $_SERVER['SERVER_PORT'] )) {
+	    }elseif(isset($request->server['SERVER_PORT']) && ('443' == $request->server['SERVER_PORT'] )) {
 	        return true;
 	    }
 	    return false;
@@ -20,13 +22,15 @@ class MGeneral extends \Swoolefy\Core\Object {
 	 * @return   boolean
 	 */
     public static function isMobile() {
-        if (isset($_SERVER['HTTP_VIA']) && stristr($_SERVER['HTTP_VIA'], "wap")) {
+        $request = Application::$app->request;
+
+        if (isset($request->server['HTTP_VIA']) && stristr($request->server['HTTP_VIA'], "wap")) {
             return true;
-        } elseif (isset($_SERVER['HTTP_ACCEPT']) && strpos(strtoupper($_SERVER['HTTP_ACCEPT']), "VND.WAP.WML")) {
+        } elseif (isset($request->server['HTTP_ACCEPT']) && strpos(strtoupper($request->server['HTTP_ACCEPT']), "VND.WAP.WML")) {
             return true;
-        } elseif (isset($_SERVER['HTTP_X_WAP_PROFILE']) || isset($_SERVER['HTTP_PROFILE'])) {
+        } elseif (isset($request->server['HTTP_X_WAP_PROFILE']) || isset($request->server['HTTP_PROFILE'])) {
             return true;
-        } elseif (isset($_SERVER['HTTP_USER_AGENT']) && preg_match('/(blackberry|configuration\/cldc|hp |hp-|htc |htc_|htc-|iemobile|kindle|midp|mmp|motorola|mobile|nokia|opera mini|opera |Googlebot-Mobile|YahooSeeker\/M1A1-R2D2|android|iphone|ipod|mobi|palm|palmos|pocket|portalmmm|ppc;|smartphone|sonyericsson|sqh|spv|symbian|treo|up.browser|up.link|vodafone|windows ce|xda |xda_)/i', $_SERVER['HTTP_USER_AGENT'])) {
+        } elseif (isset($request->server['HTTP_USER_AGENT']) && preg_match('/(blackberry|configuration\/cldc|hp |hp-|htc |htc_|htc-|iemobile|kindle|midp|mmp|motorola|mobile|nokia|opera mini|opera |Googlebot-Mobile|YahooSeeker\/M1A1-R2D2|android|iphone|ipod|mobi|palm|palmos|pocket|portalmmm|ppc;|smartphone|sonyericsson|sqh|spv|symbian|treo|up.browser|up.link|vodafone|windows ce|xda |xda_)/i', $request->server['HTTP_USER_AGENT'])) {
             return true;
         } else {
             return false;
@@ -47,20 +51,22 @@ class MGeneral extends \Swoolefy\Core\Object {
 	 * @return  string
 	 */
 	public static function getClientIP($type=0) {
+        $request = Application::$app->request;
+        
 		// 通过nginx的代理
-		if(isset($_SERVER['HTTP_X_REAL_IP']) && strcasecmp($_SERVER['HTTP_X_REAL_IP'], "unknown")) {
-			$ip = $_SERVER['HTTP_X_REAL_IP'];
+		if(isset($request->server['HTTP_X_REAL_IP']) && strcasecmp($request->server['HTTP_X_REAL_IP'], "unknown")) {
+			$ip = $request->server['HTTP_X_REAL_IP'];
 		}
-		if(isset($_SERVER['HTTP_CLIENT_IP']) && strcasecmp($_SERVER['HTTP_CLIENT_IP'], "unknown")) {
-	    	$ip = $_SERVER["HTTP_CLIENT_IP"];
+		if(isset($request->server['HTTP_CLIENT_IP']) && strcasecmp($request->server['HTTP_CLIENT_IP'], "unknown")) {
+	    	$ip = $request->server["HTTP_CLIENT_IP"];
 	    }
-	    if (isset($_SERVER['HTTP_X_FORWARDED_FOR']) and strcasecmp($_SERVER['HTTP_X_FORWARDED_FOR'], "unknown"))
+	    if (isset($request->server['HTTP_X_FORWARDED_FOR']) and strcasecmp($request->server['HTTP_X_FORWARDED_FOR'], "unknown"))
         {
-            return $_SERVER['HTTP_X_FORWARDED_FOR'];
+            return $request->server['HTTP_X_FORWARDED_FOR'];
         }
-	    if(isset($_SERVER['REMOTE_ADDR'])) {
+	    if(isset($request->server['REMOTE_ADDR'])) {
 	    	//没通过代理，或者通过代理而没设置x-real-ip的 
-	    	$ip = $_SERVER['REMOTE_ADDR'];
+	    	$ip = $request->server['REMOTE_ADDR'];
 	    }
 	    // IP地址合法验证 
 	    $long = sprintf("%u", ip2long($ip));
@@ -140,7 +146,8 @@ class MGeneral extends \Swoolefy\Core\Object {
      * @return  
      */
     public static function xhprof($force=false) {
-        $host = $_SERVER['HTTP_HOST'];
+        $host = Application::$app->request->server['HTTP_HOST'];
+
         if(SW_DEBUG) {
             $xhprof_data = xhprof_disable();
             include_once ROOT_PATH.'/xhprof_lib/utils/xhprof_lib.php';
@@ -167,7 +174,8 @@ class MGeneral extends \Swoolefy\Core\Object {
 	 * @return   string
 	 */
 	public static function getBrowser() {
-        $sys = $_SERVER['HTTP_USER_AGENT'];
+        $sys = Application::$app->request->server['HTTP_USER_AGENT'];
+
         if (stripos($sys, "Firefox/") > 0)
  		{
             preg_match("/Firefox\/([^;)]+)+/i", $sys, $b);
@@ -224,7 +232,8 @@ class MGeneral extends \Swoolefy\Core\Object {
      * @return  string
      */
     public static function getClientOS() {
-        $agent = $_SERVER['HTTP_USER_AGENT'];
+        $agent = Application::$app->request->server['HTTP_USER_AGENT'];
+
         if (preg_match('/win/i', $agent) && preg_match('/nt 6.1/i', $agent))
         {
             $clientOS = 'Windows 7';

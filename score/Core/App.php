@@ -48,12 +48,7 @@ class App extends \Swoolefy\Core\Component {
 	protected function init() {
 		// 初始化超全局变量数组和对象
 		\Swoolefy\Core\Init::_init();
-		// 初始化启动session
-		// if(!isset($this->config['session_start']) || (isset($this->config['session_start']) && $this->config['session_start'] === true)) {
-		// 	if(!isset($_SESSION)) {
-		// 		session_start();
-		// 	}
-		// }
+		
 	}
 
 	/**

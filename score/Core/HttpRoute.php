@@ -101,9 +101,9 @@ class HttpRoute extends Dispatch {
 		}
 
 		// 重新设置一个route
-		$this->request->server['ROUTE'] = $_SERVER['ROUTE'] = $this->require_uri;
+		$this->request->server['ROUTE'] = $this->require_uri;
 		// route参数组数
-		$this->request->server['ROUTE_PARAMS'] = $_SERVER['ROUTE_PARAMS'] = [];
+		$this->request->server['ROUTE_PARAMS'] = [];
 		// 定义禁止直接外部访问的方法
 		if(in_array($action, self::$deny_actions)) {
 			return $this->response->end($action.'() method is not be called!');
@@ -111,13 +111,13 @@ class HttpRoute extends Dispatch {
 		
 		if($module) {
 			// route参数数组
-			$this->request->server['ROUTE_PARAMS'] = $_SERVER['ROUTE_PARAMS'] = [3,[$module,$controller,$action]];	
+			$this->request->server['ROUTE_PARAMS'] = [3,[$module,$controller,$action]];	
 			// 调用
 			$this->invoke($module,$controller,$action);
 			
 		}else {
 			// route参数数组
-			$this->request->server['ROUTE_PARAMS'] = $_SERVER['ROUTE_PARAMS'] = [2,[$controller,$action]];
+			$this->request->server['ROUTE_PARAMS'] = [2,[$controller,$action]];
 			// 调用 
 			$this->invoke($module=null,$controller,$action);
 		}
