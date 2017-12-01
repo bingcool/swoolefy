@@ -34,6 +34,8 @@ class Init {
             $_key = 'HTTP_' . strtoupper(str_replace('-', '_', $key));
             $request->server[$_key] = $value;
         }
+
+        $_SERVER = $request->server = array_merge($_SERVER, $request->server);
 	}
 
 	/**

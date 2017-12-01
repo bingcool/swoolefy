@@ -24,7 +24,7 @@ class BController extends \Swoolefy\Core\Object {
 
 	/**
 	 * __construct
-	 * @param    {String}
+	 * @param void
 	 */
 	public function __construct() {
 		// 初始化请求对象和响应对象
