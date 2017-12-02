@@ -140,12 +140,16 @@ trait AppTrait {
 	}
 
 	/**
-	 * getHomeUrl
+	 * getHomeUrl 获取当前请求的url
 	 * @param    $ssl
 	 * @return   string
 	 */
 	public function getHomeUrl($ssl=false) {
-		$protocol = 'http://';
+		$protocol_version = $this->getProtocol();
+		list($protocol, $version) = explode('/', $protocol_version);
+		
+		$protocol = strtolower($protocol).'://';
+
 		if($ssl) {
 			$protocol = 'https://';
 		}

@@ -80,8 +80,20 @@ trait ServiceTrait {
 	 * @return   string
 	 */
 	public function getHostName() {
-		return $this->request->header['host'];
+		return $this->request->server['HTTP_HOST'];
 	}
+
+    /**
+     * getRefererUrl 获取当前页面的上一级页面的来源url
+     * @return string | boolean
+     */
+    public function getRefererUrl() {
+        $referer = $this->request->server['HTTP_REFERER'];
+        if($referer) {
+            return $referer;
+        }
+        return false;
+    }
 
 	/**
 	 * getLocalIp 获取ip,不包括端口
