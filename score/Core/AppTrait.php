@@ -154,7 +154,9 @@ trait AppTrait {
 
 	/**
 	 * rememberUrl
-	 * @param    $url
+	 * @param  string  $name
+	 * @param  string  $url
+	 * @param  boolean $ssl
 	 * @return   void   
 	 */
 	public function rememberUrl($name=null,$url=null,$ssl=false) {
@@ -168,7 +170,7 @@ trait AppTrait {
 
 	/**
 	 * getPreviousUrl
-	 * @param    $name
+	 * @param  string  $name
 	 * @return   mixed
 	 */
 	public function getPreviousUrl($name=null) {
@@ -231,8 +233,8 @@ trait AppTrait {
 
 	/**
 	 * getModel 默认获取当前module下的控制器对应的module
-	 * @param    $model
-	 * @return   object
+	 * @param  string  $model
+	 * @return object
 	 */
 	public function getModel($model='') {
 		$module = $this->getModule();
@@ -287,8 +289,8 @@ trait AppTrait {
 
 	/**
 	 * assign
-	 * @param   $name
-	 * @param   $value
+	 * @param   string  $name
+	 * @param   string|array  $value
 	 * @return  void   
 	 */
 	public function assign($name,$value) {
@@ -297,7 +299,7 @@ trait AppTrait {
 
 	/**
 	 * display
-	 * @param    $template_file
+	 * @param    string  $template_file
 	 * @return   void             
 	 */
 	public function display($template_file=null) {
@@ -306,7 +308,7 @@ trait AppTrait {
 
 	/**
 	 * fetch
-	 * @param    $template_file
+	 * @param    string  $template_file
 	 * @return   void              
 	 */
 	public function fetch($template_file=null) {
@@ -315,8 +317,8 @@ trait AppTrait {
 
 	/**
 	 * returnJson
-	 * @param    $data    
-	 * @param    $formater
+	 * @param    array  $data    
+	 * @param    string  $formater
 	 * @return   void         
 	 */
 	public function returnJson($data,$formater = 'json') {
@@ -325,10 +327,10 @@ trait AppTrait {
 
 	/**
 	 * sendfile
-	 * @param    $filename 
-	 * @param    $offset   
-	 * @param    $length   
-	 * @return             
+	 * @param    string  $filename 
+	 * @param    int     $offset   
+	 * @param    string  $length   
+	 * @return   void          
 	 */
 	public function sendfile($filename, $offset = 0, $length = 0) {
 		$this->response->sendfile($filename, $offset = 0, $length = 0);
@@ -336,7 +338,7 @@ trait AppTrait {
 
 	/**
 	 * parseUri 解析URI
-	 * @param    $url
+	 * @param    string  $url
 	 * @return   array
 	 */
 	public function parseUri($url)
@@ -355,9 +357,9 @@ trait AppTrait {
 
 	/**
 	 * redirect 重定向,使用这个函数后,要return,停止程序执行
-	 * @param    $url
-	 * @param    $params eg:['name'=>'ming','age'=>18]
-	 * @param    $code default 301
+	 * @param    string  $url
+	 * @param    array   $params eg:['name'=>'ming','age'=>18]
+	 * @param    int     $code default 301
 	 * @return   void
 	 */
 	public function redirect($url,array $params=[], $code=301) {
@@ -390,8 +392,8 @@ trait AppTrait {
 
 	/**
 	 * dump，调试函数
-	 * @param    $var
-	 * @param    $echo
+	 * @param    string|array  $var
+	 * @param    boolean       $echo
 	 * @param    $label
 	 * @param    $strict
 	 * @return   string            
@@ -442,8 +444,8 @@ trait AppTrait {
 
 	/**
 	 * asyncHttpClient 简单的模拟http异步并发请求
-	 * @param    $urls 
-	 * @param    $timeout 单位ms
+	 * @param    array   $urls 
+	 * @param    int     $timeout 单位ms
 	 * @return   
 	 */
 	public function asyncHttpClient($urls=[],$timeout=500) {
@@ -478,7 +480,7 @@ trait AppTrait {
 
 	/**
 	 * sendHttpStatus,参考tp的
-	 * @param    $code
+	 * @param    int  $code
 	 * @return   void     
 	 */
 	public function status($code) {

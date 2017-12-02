@@ -47,7 +47,7 @@ class MGeneral extends \Swoolefy\Core\Object {
 
 	/**
 	 * getClientIP 获取客户端ip
-	 * @param   $type 返回类型 0:返回IP地址,1:返回IPV4地址数字
+	 * @param   int  $type 返回类型 0:返回IP地址,1:返回IPV4地址数字
 	 * @return  string
 	 */
 	public static function getClientIP($type=0) {
@@ -76,7 +76,7 @@ class MGeneral extends \Swoolefy\Core\Object {
 
 	/**
 	 * isValidateEmail 判断是否是合法的邮箱
-	 * @param    $email 
+	 * @param    string  $email 
 	 * @return   boolean
 	 */
 	public static function isValidateEmail($email) {
@@ -85,7 +85,7 @@ class MGeneral extends \Swoolefy\Core\Object {
 
     /**
      * isValidateIp 判断是否是合法的的ip地址
-     * @param    $ip
+     * @param    string  $ip
      * @return   boolean
      */
     public static function isValidateIp($ip) {
@@ -98,8 +98,8 @@ class MGeneral extends \Swoolefy\Core\Object {
 
 	/**
 	 * roundByPrecision 四舍五入
-	 * @param    $number    数值
-	 * @param    $precision 精度
+	 * @param    float  $number    数值
+	 * @param    int    $precision 精度
 	 * @return   float
 	 */
 	public static function roundByPrecision($number, $precision) {
@@ -131,8 +131,8 @@ class MGeneral extends \Swoolefy\Core\Object {
 
     /**
      * _die 异常终端程序执行
-     * @param    $msg
-     * @param    $code
+     * @param    string   $msg
+     * @param    int      $code
      * @return   mixed
      */
     public static function _die($html='',$msg='') {
@@ -143,7 +143,8 @@ class MGeneral extends \Swoolefy\Core\Object {
 
     /**
      * xhprof 性能分析函数
-     * @return  
+     * @param   boolean  $force  是否强制输出
+     * @return  boolean
      */
     public static function xhprof($force=false) {
         $host = Application::$app->request->server['HTTP_HOST'];

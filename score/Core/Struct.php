@@ -13,9 +13,9 @@ class Struct {
 
 	/**
 	 * get 获取数据结构属性值
-	 * @param    $property
-	 * @param    $default 
-	 * @return   string
+	 * @param   string  $property
+	 * @param   mixed   $default 
+	 * @return  string
 	 */
 	public function get($property, $default = null) {
 		if(isset($this->$property))
@@ -27,7 +27,7 @@ class Struct {
 
 	/**
 	 * getProperties 获取所有设置数据结构属性
-	 * @param    $public
+	 * @param    boolean  $public
 	 * @return   array
 	 */
 	public function getProperties($public = true) {
@@ -47,8 +47,8 @@ class Struct {
 
 	/**
 	 * set 设置数据结构属性值
-	 * @param    $property
-	 * @param    $value
+	 * @param   string  $property
+	 * @param   mixed   $value
 	 */
 	public function set($property, $value = null) {
 		$previous = isset($this->$property) ? $this->$property : null;
@@ -58,7 +58,7 @@ class Struct {
 
 	/**
 	 * setProperties 批量设置
-	 * @param   $properties
+	 * @param  array  $properties
 	 */
 	public function setProperties($properties) {
 		$properties = (array)$properties;

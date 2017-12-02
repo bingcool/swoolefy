@@ -11,9 +11,9 @@ class Component extends \Swoolefy\Core\Object {
 
 	/**
 	 * __set
-	 * @param    $name 
-	 * @param    $value
-	 * @return   
+	 * @param    string  $name 
+	 * @param    object  $value
+	 * @return   object
 	 */
 	public function __set($name,$value) {
 		if(!isset($name) && $value !='') {
@@ -23,8 +23,8 @@ class Component extends \Swoolefy\Core\Object {
 
 	/**
 	 * __get
-	 * @param    $name
-	 * @return   
+	 * @param    string  $name
+	 * @return   object | boolean
 	 */
 	public function __get($name) {
 		if(!isset($this->$name)) {
@@ -40,7 +40,7 @@ class Component extends \Swoolefy\Core\Object {
 
 	/**
 	 * __isset
-	 * @param    $name
+	 * @param    string  $name
 	 * @return   boolean
 	 */
 	public function __isset($name) {
@@ -49,7 +49,7 @@ class Component extends \Swoolefy\Core\Object {
 
 	/**
 	 * __unset
-	 * @param    $name
+	 * @param   string  $name
 	 */
 	public function __unset($name) {
 		unset($this->$name);
@@ -57,8 +57,8 @@ class Component extends \Swoolefy\Core\Object {
 
 	/**
 	 * creatObject 创建组件对象
-	 * @param    $type
-	 * @param    $defination
+	 * @param    string  $com_alias_name 组件别名
+	 * @param    array   $defination     组件定义类
 	 * @return   array
 	 */
 	public function creatObject($com_alias_name=null,array $defination=[]) {
@@ -111,7 +111,7 @@ class Component extends \Swoolefy\Core\Object {
 
 	/**
 	 * getDependencies
-	 * @param    $class
+	 * @param    string  $class
 	 * @return   array      
 	 */
 	protected function getDependencies($class)
@@ -170,7 +170,7 @@ class Component extends \Swoolefy\Core\Object {
 
 	/**
 	 * clearComponent
-	 * @param    $component_alias_name
+	 * @param    string  $component_alias_name
 	 * @return   boolean
 	 */
 	public function clearComponent($com_alias_name=null) {    

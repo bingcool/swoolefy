@@ -104,7 +104,7 @@ class BaseServer {
 
 	/**
 	 * setMasterProcessName 设置主进程名称
-	 * @param    $master_process_name
+	 * @param  string  $master_process_name
 	 */
 	public static function setMasterProcessName($master_process_name) {
 		swoole_set_process_name($master_process_name);
@@ -112,7 +112,7 @@ class BaseServer {
 
 	/**
 	 * setManagerProcessName 设置管理进程的名称
-	 * @param    $manager_process_name
+	 * @param  string  $manager_process_name
 	 */
 	public static function setManagerProcessName($manager_process_name) {
 		swoole_set_process_name($manager_process_name);
@@ -120,9 +120,9 @@ class BaseServer {
 
 	/**
 	 * setWorkerProcessName 设置worker进程名称
-	 * @param    $worker_process_name
-	 * @param    $worker_id          
-	 * @param    $worker_num         
+	 * @param  string  $worker_process_name
+	 * @param  int  $worker_id          
+	 * @param  int  $worker_num         
 	 */
 	public static function setWorkerProcessName($worker_process_name, $worker_id, $worker_num=1) {
 		// 设置worker的进程
@@ -136,7 +136,7 @@ class BaseServer {
 
 	/**
 	 * startInclude 设置需要在workerstart启动时加载的配置文件
-	 * @param    $includes 
+	 * @param  array  $includes 
 	 * @return   void
 	 */
 	public static function startInclude() {
@@ -150,7 +150,7 @@ class BaseServer {
 
 	/**
 	 * setWorkerUserGroup 设置worker进程的工作组，默认是root
-	 * @param    $worker_user
+	 * @param  string $worker_user
 	 */
 	public static function setWorkerUserGroup($worker_user=null) {
 		if(!isset(static::$setting['user'])) {
@@ -276,6 +276,7 @@ class BaseServer {
 
 	/**
 	 * getIncludeFiles 获取woker启动前已经加载的文件
+	 * @param   string $dir
 	 * @return   void
 	 */
 	public static function getIncludeFiles($dir='Http') {

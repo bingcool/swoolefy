@@ -80,9 +80,8 @@ class View {
 
 	/**
 	 * display 渲染视图成字符串
-	 * @param    $template_file
-	 * @param    $isCall 是否是跨模块调用
-	 * @return                 
+	 * @param   string  $template_file
+	 * @return  html               
 	 */
 	public function display($template_file=null) {
 		$template_file = ltrim($template_file);
@@ -137,7 +136,7 @@ class View {
 
 	/**
 	 * callFetch 跨模块调用渲染模板
-	 * @param    $template_file
+	 * @param    string  $template_file
 	 * @return   html
 	 */
 	protected function callFetch($template_file) {
@@ -166,7 +165,7 @@ class View {
 
 	/**
 	 * fetch 渲染输出模板
-	 * @param    $template_file
+	 * @param    string  $template_file
 	 * @return                 
 	 */
 	public function fetch($template_file=null) {
@@ -175,8 +174,8 @@ class View {
 
 	/**
 	 * json 输出json
-	 * @param    $data
-	 * @param    $formater
+	 * @param    array   $data
+	 * @param    string  $formater
 	 * @return        
 	 */
 	public function returnJson($data,$formater = 'json') {

@@ -40,8 +40,8 @@ class BModel extends \Swoolefy\Core\Component {
 
 	/**
 	 * setStruct 
-	 * @param    $property
-	 * @param    $value
+	 * @param   string  $property
+	 * @param   mixed   $value
 	 */
 	public function setStruct($property, $value=null) {
 		$this->struct->set($property, $value);
@@ -49,7 +49,7 @@ class BModel extends \Swoolefy\Core\Component {
 
 	/**
 	 * MsetStruct 批量设置 
-	 * @param    $array
+	 * @param    array  $array
 	 * @return   boolean
 	 */
 	public function MsetStruct($array) {
@@ -65,8 +65,8 @@ class BModel extends \Swoolefy\Core\Component {
 
 	/**
 	 * getStruct 
-	 * @param    $property
-	 * @param    $default
+	 * @param    string  $property
+	 * @param    mixed   $default
 	 * @return   mixed
 	 */
 	public function getStruct($property, $default = null) {

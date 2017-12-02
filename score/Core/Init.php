@@ -22,7 +22,7 @@ class Init {
 	}
 	/**
 	 * resetServer 重置SERVER超全局数组
-	 * @param  $request 请求对象
+	 * @param  object  $request 请求对象
 	 * @return void
 	 */
 	public static function resetServer($request) {

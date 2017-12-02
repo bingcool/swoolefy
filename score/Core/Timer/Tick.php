@@ -17,11 +17,11 @@ class Tick {
     protected static $_after_tasks = [];
 
     /**
-     * tickTimer
-     * @param    $time_interval
-     * @param    $func         
-     * @param    $params       
-     * @return   int              
+     * tickTimer  循环定时器
+     * @param   int      $time_interval
+     * @param   callable $func         
+     * @param   array    $params       
+     * @return  int              
      */
 	public static function tickTimer($time_interval, $func, $params=[]) {
 		if($time_interval <= 0 || $time_interval > 86400000) {
@@ -40,11 +40,11 @@ class Tick {
 	}
 
     /**
-     * tick
-     * @param    $time_interval
-     * @param    $func         
-     * @param    $user_params  
-     * @return   boolean              
+     * tick  循环定时器执行
+     * @param   int       $time_interval
+     * @param   callable  $func         
+     * @param   array     $user_params  
+     * @return  boolean              
      */
     public static function tick($time_interval,$func,$user_params=[]) {
         $tid = swoole_timer_tick($time_interval, function($timer_id,$user_params) use($func) {
@@ -64,8 +64,8 @@ class Tick {
     }
 
     /**
-     * delTicker
-     * @param    $timer_id
+     * delTicker 删除循环定时器
+     * @param    int  $timer_id
      * @return   boolean         
      */
     public static function delTicker($timer_id) {
@@ -86,10 +86,10 @@ class Tick {
     }
 
     /**
-     * afterTimer
-     * @param    $time_interval
-     * @param    $func         
-     * @param    $params       
+     * afterTimer 一次性定时器
+     * @param    int       $time_interval
+     * @param    callable  $func         
+     * @param    array     $params       
      * @return   int              
      */
     public static function afterTimer($time_interval, $func, $params=[]) {
@@ -109,7 +109,7 @@ class Tick {
     }
 
     /**
-     * after
+     * after 一次性定时器执行
      * @return  boolean
      */
     public static function after($time_interval,$func,$user_params=[]) {
@@ -130,7 +130,7 @@ class Tick {
     }
 
     /**
-     * updateRunAfterTick
+     * updateRunAfterTick 更新一次定时器
      * @return  array
      */
     public static function updateRunAfterTick() {

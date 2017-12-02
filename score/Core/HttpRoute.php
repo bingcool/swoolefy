@@ -127,9 +127,9 @@ class HttpRoute extends Dispatch {
 
 	/**
 	 * invoke 路由与请求实例处理
-	 * @param  $module
-	 * @param  $controller
-	 * @param  $action
+	 * @param  string  $module
+	 * @param  string  $controller
+	 * @param  string  $action
 	 * @return boolean
 	 */
 	public function invoke($module=null,$controller=null,$action=null) {
@@ -261,6 +261,7 @@ class HttpRoute extends Dispatch {
 
 	/**
 	 * isExistRouteFile 判断是否存在请求的route文件
+	 * @param    string  $route  请求的路由uri
 	 * @return   boolean
 	 */
 	public static function isExistRouteFile($route) {
@@ -269,7 +270,8 @@ class HttpRoute extends Dispatch {
 
 	/**
 	 * setRouteFileMap 缓存路由的映射
-	 * @param   $route
+	 * @param   string  $route  请求的路由uri
+	 * @return  void
 	 */
 	public static function setRouteFileMap($route) {
 		self::$routeCacheFileMap[$route] = true;
@@ -277,6 +279,8 @@ class HttpRoute extends Dispatch {
 
 	/**
 	 * resetRouteDispatch 重置路由调度,将实际的路由改变请求,主要用在boostrap()中
+	 * @param   string  $route  请求的路由uri
+	 * @return  void
 	 */
 	public static function resetRouteDispatch($route) {
 		if(strpos($route, '/') != 0) {
