@@ -21,6 +21,12 @@ class Swfy extends \Swoolefy\Core\Object {
 	public static $config = null;
 
 	/**
+	 * $app_config 应用层的配置
+	 * @var null
+	 */
+	public static $app_config = null;
+
+	/**
 	 * __call
 	 * @return   mixed
 	 */

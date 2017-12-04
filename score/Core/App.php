@@ -32,7 +32,8 @@ class App extends \Swoolefy\Core\Component {
 	 * @param $config 应用层配置
 	 */
 	public function __construct(array $config=[]) {
-		$this->config = $config;
+		// 将应用层配置保存在上下文的服务
+		$this->config = Swfy::$app_config = $config;
 		parent::creatObject();
 		// 注册错误处理事件
 		register_shutdown_function('Swoolefy\Core\SwoolefyException::fatalError');
