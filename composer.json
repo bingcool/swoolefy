@@ -14,7 +14,8 @@
         "monolog/monolog": "1.23.0",
         "swiftmailer/swiftmailer":"6.0.1",
         "smarty/smarty": "3.1.30",
-		"nesbot/carbon": "^1.22"
+		"nesbot/carbon": "^1.22",
+		"predis/predis": "1.1.1"
     },
     "autoload":{
 	    "psr-4":{

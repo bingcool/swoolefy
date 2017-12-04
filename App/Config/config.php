@@ -47,8 +47,14 @@ return [
 
 		],
 
-		
 		'redis' =>[
+			'class' => 'Swoolefy\Core\Cache\Redis',
+			'constructor'=> [
+				'tcp://127.0.0.1:6379',
+				[
+					'profile' => '3.2'
+				]
+			]
 
 		],
 	],
