@@ -30,9 +30,25 @@ class Component extends \Swoolefy\Core\Object {
 		if(!isset($this->$name)) {
 			if(isset(static::$_components[$name])) {
 				if(is_object(static::$_components[$name])) {
+					// 以下组件需要做特殊处理,redis的timeout设置为0
+					switch($name) {
+						case 'redis': 
+							$isConnected = static::$_components[$name]->isConnected();
+							if(!$isConnected) {
+								self::clearComponent($name);
+								self::creatObject($name, $this->config['components'][$name]);
+							}
+						break;		
+					}
+
 					return static::$_components[$name];
+					
+				}else {
+					self::clearComponent($name);
+					return false;
 				}
-				return false;
+			}elseif(in_array($name, array_keys($this->config['components']))) {
+				return self::creatObject($name, $this->config['components'][$name]);
 			}
 			return false;	
 		}
@@ -170,14 +186,19 @@ class Component extends \Swoolefy\Core\Object {
 
 	/**
 	 * clearComponent
-	 * @param    string  $component_alias_name
+	 * @param    string|array  $component_alias_name
 	 * @return   boolean
 	 */
 	public function clearComponent($com_alias_name=null) {    
-       if($com_alias_name) {
-       		unset(static::$_components[$com_alias_name]);
+        if(!is_null($com_alias_name) && is_string($com_alias_name)) {
+       		unset(static::$_components[$com_alias_name], Swfy::$Di[$com_alias_name]);
        		return true;
-       }
+        }elseif(is_array($com_alias_name)) {
+       		foreach($com_alias_name as $alias_name) {
+       			unset(static::$_components[$alias_name], Swfy::$Di[$alias_name]);
+       		}
+       		return true;
+        }
        return false;
     }
 
