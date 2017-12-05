@@ -64,6 +64,12 @@ abstract class Driver {
 	protected $_slave_link_pdo = null;
 
 	/**
+	 * $fetchType 查询结果后返回的数据类型
+	 * @var [type]
+	 */
+	protected $fetchType = PDO::FETCH_ASSOC;
+
+	/**
 	 * $params 参数对象
 	 * @var [type]
 	 */
@@ -124,8 +130,9 @@ abstract class Driver {
 		        	}
 	        	}
         	}
+
         }catch (\PDOException $e) {
-        	 dump($e->getMessage());
+        	$e->getMessage();
         }
         
         
@@ -177,7 +184,7 @@ abstract class Driver {
 	 * @return   boolean
 	 */
 	protected function isDeploy() {
-		if(isset($this->config['deploy']) && $this->config['deploy'] == 1) {
+		if(isset($this->config['deploy']) && ($this->config['deploy'] == 1 || $this->config['deploy'] == true)) {
 			return true;
 		}
 		return false;
@@ -213,7 +220,8 @@ abstract class Driver {
 	 */
 	public function getMasterPdo() {
 		if(!empty($this->master_link)) {
-			return $this->_master_link_pdo = $this->master_link[0];
+			$this->_master_link_pdo = $this->master_link[0];
+			return $this->_master_link_pdo;
 		}else {
 			return false;
 		}
@@ -227,9 +235,12 @@ abstract class Driver {
 		if(!empty($this->slave_link)) {
 			$count = count($this->slave_link);
 			if(!$slave_num && is_int($slave_num) && $slave_num <= $count) {
-				return $this->_slave_link_pdo = $this->slave_link[$slave_num-1];
+				$this->_slave_link_pdo = $this->slave_link[$slave_num-1];
+				return $this->_slave_link_pdo;
 			}else {
-				return $this->_slave_link_pdo = mt_rand(0, $count-1);
+				$this->_slave_link_pdo = mt_rand(0, $count-1);
+
+				return $this->_slave_link_pdo;
 			}
 			
 		}else {
@@ -242,7 +253,7 @@ abstract class Driver {
 	 * @return   array
 	 */
 	public function getConfig($config = '') {
-		return $config ? $this->config[$config] : $this->config;
+		return $this->config;
 	}
 
 	 /**
@@ -290,8 +301,11 @@ abstract class Driver {
         if(!$this->_master_link_pdo) {
             return false;
         }
-        if(empty($this->slave_link) && !$this->_slave_link_pdo) {
-        	return false;
+
+        if($this->isDeploy()) {
+        	if(empty($this->slave_link) && !$this->_slave_link_pdo) {
+        		throw new \Exception('If DB for mysql set isDeploy = 1 or true, so slave_host must be set!');
+        	}
         }
 
         // 记录SQL语句
@@ -299,7 +313,7 @@ abstract class Driver {
         if($bind) {
             $this->bind = $bind;
         }
-
+        
         // 释放前次的查询结果
         if (!empty($this->PDOStatement)) {
             $this->free();
@@ -308,15 +322,17 @@ abstract class Driver {
             // 调试开始
             // $this->debug(true);
             // 预处理
-            if (empty($this->PDOStatement)) {
-                $this->PDOStatement = $this->linkID->prepare($sql);
+            if(empty($this->PDOStatement)) {
+                $this->PDOStatement = $this->_master_link_pdo->prepare($sql);
             }
+            
             // 是否为存储过程调用
             $procedure = in_array(strtolower(substr(trim($sql), 0, 4)), ['call', 'exec']);
             // 参数绑定
             if ($procedure) {
                 $this->bindParam($bind);
-            } else {
+            }else {
+ 
                 $this->bindValue($bind);
             }
             // 执行查询
@@ -325,16 +341,125 @@ abstract class Driver {
             // $this->debug(false);
             // 返回结果集
             return $this->getResult($pdo, $procedure);
-        } catch (\PDOException $e) {
-            if ($this->isBreak($e)) {
-                return $this->close()->query($sql, $bind, $master, $pdo);
+
+        }catch (\PDOException $e) {
+        	// 如果断线，尝试重连
+            if($this->isBreak($e)) {
+
             }
-            throw new PDOException($e, $this->config, $this->getLastsql());
-        } catch (\Exception $e) {
-            if ($this->isBreak($e)) {
-                return $this->close()->query($sql, $bind, $master, $pdo);
+            throw new \PDOException($e, $this->config, $this->getLastsql());
+        }catch (\Exception $e) {
+        	// 如果断线，尝试重连
+            if($this->isBreak($e)) {
+
             }
             throw $e;
+        }
+    }
+
+    /**
+     * 获得数据集数组
+     * @param bool   $pdo 是否返回PDOStatement
+     * @param bool   $procedure 是否存储过程
+     * @return PDOStatement|array
+     */
+    protected function getResult($pdo = false, $procedure = false) {
+        if($pdo) {
+            // 返回PDOStatement对象处理
+            return $this->PDOStatement;
+        }
+        if($procedure) {
+            // 存储过程返回结果
+            return $this->procedure();
+        }
+        $result        = $this->PDOStatement->fetchAll($this->fetchType);
+        $this->numRows = count($result);
+        return $result;
+    }
+
+    /**
+     * 获取最近一次查询的sql语句
+     * @return string
+     */
+    public function getLastSql()
+    {
+        return $this->getRealSql($this->queryStr, $this->bind);
+    }
+
+    /**
+     * 根据参数绑定组装最终的SQL语句 便于调试
+     * @param string    $sql 带参数绑定的sql语句
+     * @param array     $bind 参数绑定列表
+     * @return string
+     */
+    public function getRealSql($sql, array $bind = [])
+    {
+        foreach ($bind as $key => $val) {
+            $value = is_array($val) ? $val[0] : $val;
+            $type  = is_array($val) ? $val[1] : PDO::PARAM_STR;
+            if (PDO::PARAM_STR == $type) {
+                $value = $this->quote($value);
+            } elseif (PDO::PARAM_INT == $type) {
+                $value = (float) $value;
+            }
+            // 判断占位符
+            $sql = is_numeric($key) ?
+            substr_replace($sql, $value, strpos($sql, '?'), 1) :
+            str_replace(
+                [':' . $key . ')', ':' . $key . ',', ':' . $key . ' '],
+                [$value . ')', $value . ',', $value . ' '],
+                $sql . ' ');
+        }
+        return rtrim($sql);
+    }
+
+    /**
+     * 参数绑定
+     * 支持 ['name'=>'value','id'=>123] 对应命名占位符
+     * 或者 ['value',123] 对应问号占位符
+     * @param array $bind 要绑定的参数列表
+     * @return void
+     * @throws BindParamException
+     */
+    protected function bindValue(array $bind = [])
+    {
+        foreach ($bind as $key => $val) {
+            // 占位符
+            $param = is_numeric($key) ? $key + 1 : ':' . $key;
+            if (is_array($val)) {
+                if (PDO::PARAM_INT == $val[1] && '' === $val[0]) {
+                    $val[0] = 0;
+                }
+                $result = $this->PDOStatement->bindValue($param, $val[0], $val[1]);
+            } else {
+                $result = $this->PDOStatement->bindValue($param, $val);
+            }
+            if (!$result) {
+                throw new \Exception("Error occurred  when binding parameters '{$param}':".$this->getLastsql());
+            }
+        }
+    }
+
+    /**
+     * 存储过程的输入输出参数绑定
+     * @param array $bind 要绑定的参数列表
+     * @return void
+     * @throws BindParamException
+     */
+    protected function bindParam($bind)
+    {
+        foreach ($bind as $key => $val) {
+            $param = is_numeric($key) ? $key + 1 : ':' . $key;
+            if (is_array($val)) {
+                array_unshift($val, $param);
+                $result = call_user_func_array([$this->PDOStatement, 'bindParam'], $val);
+            } else {
+                $result = $this->PDOStatement->bindValue($param, $val);
+            }
+            if (!$result) {
+                $param = array_shift($val);
+                throw new \Exception("Error occurred  when binding parameters '{$param}':".$this->getLastsql());
+            }
         }
     }
 
@@ -343,8 +468,7 @@ abstract class Driver {
      * @param \PDOException|\Exception  $e 异常对象
      * @return boolean
      */
-    protected function isBreak($e)
-    {
+    protected function isBreak($e) {
         if (!$this->config['break_reconnect']) {
             return false;
         }
@@ -372,11 +496,41 @@ abstract class Driver {
         return false;
     }
 
-    protected function initConnect() {
+    public function initConnect() {
     	$this->connect();
     	$this->getMasterPdo();
     	$this->getSlavePdo();
-    	
+  
+    }
+
+    /**
+     * 调用Query类的查询方法
+     * @param string    $method 方法名称
+     * @param array     $args 调用参数
+     * @return mixed
+     */
+    public function __call($method, $args)
+    {
+        return call_user_func_array([$this->getQuery(), $method], $args);
+    }
+
+    /**
+     * 获取新的查询对象
+     * @return Query
+     */
+    protected function getQuery()
+    {
+        $class = '\\Swoolefy\\Core\\Db\\Query';
+        return new $class($this);
+    }
+
+    /**
+     * 获取当前连接器类对应的Builder类
+     * @return string
+     */
+    public function getBuilder()
+    {
+        
     }
 
 
