@@ -151,8 +151,8 @@ class MGeneral extends \Swoolefy\Core\Object {
 
         if(SW_DEBUG) {
             $xhprof_data = xhprof_disable();
-            include_once ROOT_PATH.'/xhprof_lib/utils/xhprof_lib.php';
-            include_once ROOT_PATH.'/xhprof_lib/utils/xhprof_runs.php';
+            include_once ROOT_PATH.'/xhprof/xhprof_lib/utils/xhprof_lib.php';
+            include_once ROOT_PATH.'/xhprof/xhprof_lib/utils/xhprof_runs.php';
             $xhprof_runs = new \XHProfRuns_Default();
             $run_id = $xhprof_runs->save_run($xhprof_data, "xhprof_test");
             $url= "http://{$host}/xhprof_html/index.php?run={$run_id}&source=xhprof_test";

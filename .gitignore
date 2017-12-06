@@ -1,2 +1,10 @@
 #sftp文件
 sftp-config.json
+#log
+*.txt
+#runtime
+*.json
+#server.pid
+*.pid
+#dir
+/App/Runtime/
