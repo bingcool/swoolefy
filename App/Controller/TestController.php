@@ -15,20 +15,9 @@ class TestController extends BController {
 	}	
 
 	public function test($name,$num) {
-		dump('kkkk');
-		// $data = $redis->pipeline()->get('foo')->execute();
-		// dump($data);
-
-		// $response = $redis->pipeline(function ($pipe) {
-		//     for ($i = 0; $i < 10; $i++) {
-		//         $pipe->set("key:$i", 'key'.$i);
-		//         // $pipe->get("key:$i");
-		//     }
-		// });
-
+		dump('kjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj');
 		$this->assign('name', $value);
 		$this->assign('books', $books);
-		Application::$app->view->test = 9; 
 		MGeneral::xhprof();
 		$this->display('test.html');
 	}
