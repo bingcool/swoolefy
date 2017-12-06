@@ -15,7 +15,7 @@ class TestController extends BController {
 	}	
 
 	public function test($name,$num) {
-		dump('kjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj');
+		dump('khhhhhhh');
 		$this->assign('name', $value);
 		$this->assign('books', $books);
 		MGeneral::xhprof();
