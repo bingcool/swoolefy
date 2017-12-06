@@ -32,11 +32,12 @@ return [
 			'class' => 'Swoolefy\Core\Db\Mysql',
 			'config' =>[
 				'type'=>'mysql',
-				'master_host' =>['localhost'],
-				'slave_host' =>['localhost'],
+				'master_host' =>['127.0.0.1'],
+				'slave_host' =>['127.0.0.1'],
 				'dbname' => 'bingcool',
 				'username' =>'root',
 				'password' =>'root',
+				'prefix' => '',
 				'port' =>3306,
 	        	'charset' => 'utf8',
 	        	'deploy'  => 0 //是否启用分布式的主从

@@ -14,6 +14,15 @@
 <a href="/Test/testajax">TEST</a>
 <button id="btn">点击ajax</button>
 <div id="showtext"></div>
+<table border=1> 
+      {foreach key=key1 item=item1 from=$books} 
+      <tr> 
+        <td>{$key1}</td> 
+        <td>{$item1.name}</td>
+        <td>{$item1.desc}</td> 
+      </tr> 
+      {/foreach} 
+</table> 
 <!-- <script type="text/javascript">
 	ws = new WebSocket("ws://192.168.44.128:9503");
 	ws.onopen = function(){  

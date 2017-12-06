@@ -43,7 +43,7 @@ class Mysql {
 	];
 
 	public function __construct(array $config=[]) {
-		$this->config=array_merge($this->config, $config);
+		$this->config = array_merge($this->config, $config);
 	}
 
 	public function connect($name=false) {
@@ -62,24 +62,12 @@ class Mysql {
             if (true === $name) {
                 $name = md5(serialize($config));
             }
-            
+
             self::$instance[$name] = new $class($options);
         }
 
         return self::$instance[$name];
 	}
-
-	/**
-	 * __callStatic 
-	 * @param    string  $method
-	 * @param    mixed   $params
-	 * @return   mixed               
-	 */
-    public static function __callStatic($method, $params)
-    {
-        // 自动初始化数据库
-        return call_user_func_array([self::connect(), $method], $params);
-    }
 
     /**
 	 * __call
@@ -89,6 +77,6 @@ class Mysql {
 	 */
 	public function __call($method, $params) {
 		// 自动初始化数据库
-        return call_user_func_array([self::connect(), $method], $params);
+        return call_user_func_array([$this->connect(), $method], $params);
 	}
 }

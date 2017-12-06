@@ -21,8 +21,8 @@ class Test extends BModel {
 
 	public function _afterAction() {
 		//定义的静态变量和全局变量 
-		// self::$num = 0;
-		// global $count;
-		// $count = 0;
+		self::$num = 0;
+		global $count;
+		$count = 0;
 	}
 }
