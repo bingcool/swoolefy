@@ -138,7 +138,7 @@ class App extends \Swoolefy\Core\Component {
 		// 初始化静态变量
 		MTime::clear();
 		// 清空某些组件,每次请求重新创建
-		// self::clearComponent(['redis']);
+		self::clearComponent(['mongodb']);
 	}
 
 	//使用trait的复用特性

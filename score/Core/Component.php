@@ -140,7 +140,9 @@ class Component extends \Swoolefy\Core\Object {
             foreach ($constructor->getParameters() as $param) {
                 if ($param->isDefaultValueAvailable()) {
                     $dependencies[] = $param->getDefaultValue();
-                }
+                }else {
+					$dependencies[] = null;
+				}
             }
         }
 

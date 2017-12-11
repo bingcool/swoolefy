@@ -8,3 +8,5 @@ sftp-config.json
 *.pid
 #dir
 /App/Runtime/
+#runtime.log
+runtime.log
