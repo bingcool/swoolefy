@@ -14,6 +14,36 @@ class MongodbCollection {
      */
     public $filter = [];
 
+    public static $builders = [
+        'NOT' => 'buildNotMap',
+        'AND' => 'buildAndMap',
+        'OR' => 'buildOrMap',
+        'IN' => 'buildInMap',
+        'NOT IN' => 'buildNotInMap',
+        'BETWEEN' => 'buildBetweenMap',
+        'NOT BETWEEN' => 'buildNotBetWeenMap',
+        'LIKE' => 'buildLikeMap',
+        'GT' => 'buildGtMap',
+        'EQ' => 'buildEqMap',
+        'LT' => 'buildLtMap',
+        'GTE' => 'buildGteMap',
+        'LTE' => 'buildLteMap',
+
+        'not' => 'buildNotMap',
+        'and' => 'buildAndMap',
+        'or' => 'buildOrMap',
+        'in' => 'buildInMap',
+        'not in' => 'buildNotInMap',
+        'between' => 'buildBetweenMap',
+        'not between' => 'buildNotBetWeenMap',
+        'like' => 'buildLikeMap',
+        'gt' => 'buildGtMap',
+        'eq' => 'buildEqMap',
+        'lt' => 'buildLtMap',
+        'get' => 'buildGteMap',
+        'lte' => 'buildLteMap',
+    ];
+
     /**
      * $options 其他选项
      * @var array
@@ -120,7 +150,7 @@ class MongodbCollection {
     /**
      * insertMany 插入多条数据
      * @param   array   $insertData
-     * @return    object
+     * @return    int
      */
     public function insert($insertData) {
         if(count($insertData) == count($insertData, 1)) {
@@ -137,7 +167,7 @@ class MongodbCollection {
     /**
      * insertOne 插入一条数据
      * @param   array   $insertData
-     * @return    object
+     * @return    int
      */
     public function insertOne($insertData) {
         $writeResult = $this->collectionInstance->insertOne($insertData, $this->options);
@@ -150,7 +180,7 @@ class MongodbCollection {
 
     /**
      * deleteMany 删除多条数据
-     * @return void
+     * @return int
      */
     public function delete() {
         $deleteResult = $this->collectionInstance->deleteMany($this->filter, $this->options);
@@ -163,7 +193,7 @@ class MongodbCollection {
 
     /**
      * deleteMany 删除一条数据
-     * @return 
+     * @return  int 
      */
     public function deleteOne() {
         $deleteResult = $this->collectionInstance->deleteOne($this->filter, $this->options);
@@ -176,7 +206,7 @@ class MongodbCollection {
 
     /**
      * updateMany 更新多条数据
-     * @return void
+     * @return int
      */
     public function update() {
         $updateResult = $this->collectionInstance->updateMany($this->filter, $this->options);
@@ -189,7 +219,7 @@ class MongodbCollection {
 
     /**
      * deleteMany 更新一条数据
-     * @return 
+     * @return int
      */
     public function updateOne() {
         $updateResult = $this->collectionInstance->updateOne($this->filter, $this->options);
@@ -211,10 +241,10 @@ class MongodbCollection {
     /**
      * distinct 
      * @param   string   $filedName
-     * @return    void
+     * @return    mixed
      */
     public function distinct($filedName) {
-        return $this->collectionInstance->count($filedName, $this->filter, $this->options);
+        return $this->collectionInstance->distinct($filedName, $this->filter, $this->options);
     }
 
     /**
@@ -225,5 +255,15 @@ class MongodbCollection {
     public function option($options) {
         $this->options = array_merge($this->options, $options);
         return $this;
+    }
+
+    /**
+     * 本类找不到函数时,自动调用collection类的原始函数
+     * @param [type] $method
+     * @param [type] $argc
+     * @return mixed
+     */
+    public function __call($method, $argc) {
+        return call_user_func_array([$this->collectionInstance, $method], $argc);
     }
 }

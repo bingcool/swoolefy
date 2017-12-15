@@ -74,7 +74,7 @@ class MongodbModel {
     /**
      *  collection 创建collection对象
      * @param   string  $collection
-     * @return    void
+     * @return    object
      */
     public function collection($collection) {
         if(!is_object($this->mongodbClient)) {
