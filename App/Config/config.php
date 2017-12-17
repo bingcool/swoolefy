@@ -50,7 +50,8 @@ return [
 			'uri'=>'mongodb://127.0.0.1:27017',
 			'driverOptions'=> [
 					'typeMap' => [ 'array' => 'MongoDB\Model\BSONArray', 'document' => 'MongoDB\Model\BSONArray', 'root' => 'MongoDB\Model\BSONArray']
-				]
+			],
+			// '_id' => 'pid'
 		],
 
 		'redis' =>[

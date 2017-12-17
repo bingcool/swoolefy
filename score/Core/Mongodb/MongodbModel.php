@@ -1,6 +1,9 @@
 <?php
 namespace Swoolefy\Core\Mongodb;
 
+/**
+ * return call_user_func_array([$this->collectionInstance, $method], $argc);
+ */
 use MongoDB\Client;
 use Swoolefy\Core\Mongodb\MongodbCollection;
 
@@ -37,6 +40,12 @@ class MongodbModel {
      */
     public static $collectionModels = [];
 
+    /**
+     * _id 将默认设置成id
+     * @var string
+     */
+    public $_id = null;
+
     public function __construct($uri='mongodb=127.0.0.1:27017', $uriOptions = [], $driverOptions=[]) {
         $this->uri = $uri;
         $this->uriOptions = $uriOptions;
@@ -69,6 +78,14 @@ class MongodbModel {
         }
         $db = $this->setDatabase($db);
         return self::$databaseObject = $this->mongodbClient->$db;
+    }
+
+     /**
+     * 返回数据库对象实例
+     * @return mixed
+     */
+    public function Db() {
+       return $this->dbInstance();
     }
 
     /**

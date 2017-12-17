@@ -1,6 +1,8 @@
 <?php
 namespace Swoolefy\Core\Mongodb;
 
+use Swoolefy\Core\Application;
+
 class MongodbCollection {
     /**
      * $collectionInstance  collection实例
@@ -49,9 +51,15 @@ class MongodbCollection {
      * @var array
      */
     public $options = [];
+
+    /**
+     * _id 将默认设置成id
+     */
+    public $_id = null;
     
     public function __construct($collection) {
         $this->collectionInstance = MongodbModel::$databaseObject->$collection;
+        $this->_id =Application::$app->mongodb->_id;
     }
 
     /**
@@ -141,7 +149,12 @@ class MongodbCollection {
         foreach($result as $k => $document) {
             $return[$k] = iterator_to_array($document);
             if(isset($return[$k]['_id'])) {
-                $return[$k]['_id'] = (string) $return[$k]['_id'];
+                if(!is_null($this->_id) &&  ($this->_id != '_id')) {
+                    $return[$k][$this->_id] = (string) $return[$k]['_id'];
+                    unset($return[$k]['_id']);
+                }else {
+                    $return[$k]['_id'] = (string) $return[$k]['_id'];
+                }  
             }
         }        
         return $return;
@@ -259,9 +272,9 @@ class MongodbCollection {
 
     /**
      * 本类找不到函数时,自动调用collection类的原始函数
-     * @param [type] $method
-     * @param [type] $argc
-     * @return mixed
+     * @param   string    $method
+     * @param   mixed    $argc
+     * @return    mixed
      */
     public function __call($method, $argc) {
         return call_user_func_array([$this->collectionInstance, $method], $argc);
