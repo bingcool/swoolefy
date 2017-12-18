@@ -84,8 +84,11 @@ class MongodbModel {
      * 返回数据库对象实例
      * @return mixed
      */
-    public function Db() {
-       return $this->dbInstance();
+    public function db() {
+        if(!is_object($this->mongodbClient)) {
+            $this->mongodbClient = new Client($this->uri, $this->uriOptions, $this->driverOptions);
+        }
+       return $this->dbInstance($db=null);
     }
 
     /**

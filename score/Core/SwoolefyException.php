@@ -3,7 +3,10 @@ namespace Swoolefy\Core;
 
 class SwoolefyException {
 	/**
-	 * fatalError 致命错误捕获
+	 * fatalError 致命错误捕获,两种情况触发
+     * a)代码中执行exit(),die()原生函数，在swoole中是禁止使用这个两个函数的，因为会导致worker退出
+     * b)代码中发生异常，throw
+     * c)代码执行完毕，由于在这里是worker常驻内存的，register_shutdown_function所注册是在worker进程中的，所以代码执行完毕不会触发，在php-fpm中代码会执行
 	 * @return 
 	 */
     public static function fatalError() {
