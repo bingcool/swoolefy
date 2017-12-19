@@ -81,7 +81,7 @@ class MongodbModel {
     }
 
      /**
-     * 返回数据库对象实例
+     * db 返回数据库对象实例
      * @return mixed
      */
     public function db() {
@@ -89,6 +89,18 @@ class MongodbModel {
             $this->mongodbClient = new Client($this->uri, $this->uriOptions, $this->driverOptions);
         }
        return $this->dbInstance($db=null);
+    }
+
+    /**
+     * ping 测试是否能够连接mongodb server
+     *
+     * @return void
+     */
+    public function ping() {
+        $cursor = $this->db()->command([
+            'ping' => 1,
+        ]);
+        return $cursor->toArray()[0]['ok'];
     }
 
     /**
