@@ -27,8 +27,12 @@ class Init {
 	 */
 	public static function resetServer($request) {
 		foreach($request->server as $p=>$val) {
-			$request->server[strtoupper($p)] = $val;
-			unset($request->server[$p]);
+			$upper = strtoupper($p);
+			// 判断是否已经是大写，不然异步任务进程在这里会将原来大写的删除
+			if($upper != $p) {
+				$request->server[$upper] = $val;
+				unset($request->server[$p]);
+			}	
 		}
 		foreach ($request->header as $key => $value) {
             $_key = 'HTTP_' . strtoupper(str_replace('-', '_', $key));

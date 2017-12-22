@@ -6,6 +6,7 @@ use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Swfy;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
+use Swoolefy\Core\Application;
 
 // 如果直接通过php HttpServer.php启动时，必须include的vendor/autoload.php
 if(isset($argv) && $argv[0] == basename(__FILE__)) {
@@ -21,6 +22,8 @@ class HttpServer extends BaseServer {
 		'reactor_num' => 1, //reactor thread num
 		'worker_num' => 2,    //worker process num
 		'max_request' => 100000,
+		'task_worker_num' =>2,
+		'task_tmpdir' => '/dev/shm',
 		'daemonize' => 0,
 		'log_file' => __DIR__.'/log.txt',
 		'pid_file' => __DIR__.'/server.pid',
@@ -128,12 +131,36 @@ class HttpServer extends BaseServer {
 				if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
             		return $response->end();
        			}
+				
 				swoole_unpack(self::$App)->run($request, $response);
+				// self::$server->task([$request, $response]);
 				return true;
+				// 
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);
 			}
+		});
+
+		$this->webserver->on('task', function(http_server $server, $task_id, $from_id, $data) {
+			try {
+				$route = array_pop($data);
+				foreach($data as $k=>$value) {
+					$data[$k] = swoole_unpack($value);
+				}
+				list($request, $response) = $data;
+				$request->server['PATH_INFO']  = $request->server['REQUEST_URI'] = $route;
+				swoole_unpack(self::$App)->run($request, $response);
+			}catch(\Exception $e) {
+				// 捕捉异常
+				\Swoolefy\Core\SwoolefyException::appException($e);
+			}
+			
+		});
+
+		//处理异步任务的结果
+		$this->webserver->on('finish', function (http_server $server, $task_id, $data) {
+			echo "AsyncTask[$task_id] Finish:$data".PHP_EOL;
 		});
 
 		/**

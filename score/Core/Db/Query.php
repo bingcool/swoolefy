@@ -6,7 +6,7 @@ use Swoolefy\Core\Db\Mysql;
 class Query {
 
 	// 数据库Connection对象实例
-    protected $connection;
+    protected $Driver;
     // 数据库Builder对象实例
     protected $builder;
     // 当前模型类名称
@@ -29,27 +29,22 @@ class Query {
     private static $event = [];
 	/**
      * 构造函数
-     * @param Connection $connection 数据库对象实例
+     * @param Driver $Driver 数据库对象实例
      * @param string     $model      模型名
      */
-    public function __construct(Connection $connection = null, $model = '')
+    public function __construct(Driver $Driver = null, $model = '')
     {
-        $this->connection = $connection;
-        $this->prefix     = $this->connection->getConfig('prefix');
-        $this->model      = $model;
+        $this->Driver = $Driver;
+        $this->prefix    = $this->Driver->getConfig('prefix');
     }
 
     /**
-     * 获取当前的数据库Connection对象
-     * @return Connection
+     * 获取当前的数据库Driver对象
+     * @return Driver
      */
-    public function getConnection()
+    public function getDriver()
     {
-        return $this->connection;
-    }
-
-    public function __call($method, $args) {
-
+        return $this->Driver;
     }
 
     /**
@@ -64,7 +59,7 @@ class Query {
      */
     public function query($sql, $bind = [], $master = false, $class = false)
     {
-        return $this->connection->query($sql, $bind, $master, $class);
+        return $this->Driver->query($sql, $bind, $master, $class);
     }
 
     /**
@@ -73,47 +68,45 @@ class Query {
      * @param mixed $table 表名
      * @return $this
      */
-    public function table($table)
-    {
-        if (is_string($table)) {
-            if (strpos($table, ')')) {
-                // 子查询
-            } elseif (strpos($table, ',')) {
-                $tables = explode(',', $table);
-                $table  = [];
-                foreach ($tables as $item) {
-                    list($item, $alias) = explode(' ', trim($item));
-                    if ($alias) {
-                        $this->alias([$item => $alias]);
-                        $table[$item] = $alias;
-                    } else {
-                        $table[] = $item;
-                    }
-                }
-            } elseif (strpos($table, ' ')) {
-                list($table, $alias) = explode(' ', $table);
-
-                $table = [$table => $alias];
-                $this->alias($table);
-            }
-        } else {
-            $tables = $table;
-            $table  = [];
-            foreach ($tables as $key => $val) {
-                if (is_numeric($key)) {
-                    $table[] = $val;
-                } else {
-                    $this->alias([$key => $val]);
-                    $table[$key] = $val;
-                }
-            }
+    public function table($table) {
+        if(is_string($table)) {
+            $this->options['table'] = $table;
+        }else {
+            return false;
         }
-        $this->options['table'] = $table;
         return $this;
     }
 
-    public function where($map = []) {
-    	
+    public function field($fields) {
+        if(is_string($fields)) {
+
+        }elseif(is_array($fields)) {
+
+        }elseif($fields == '*') {
+
+        }
+    }
+
+    public function where($map = [], $op="AND") {
+    	if(is_array($map)) {
+
+        }
+    }
+
+    public function limit() {
+
+    }
+
+    public function group() {
+
+    }
+
+    public function order() {
+
+    }
+
+    public function __call($method, $args) {
+        
     }
 
 
