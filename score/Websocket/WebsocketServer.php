@@ -56,7 +56,7 @@ class WebsocketServer extends BaseServer {
 					$config
 			);
 		self::$server = $this->webserver = new websocket_server(self::$config['host'], self::$config['port']);
-		self::$setting = array_merge(self::$setting, self::$config['setting']);
+		self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
 		$this->webserver->set(self::$setting);
 		parent::__construct();
 		// 初始化启动类

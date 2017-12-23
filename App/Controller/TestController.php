@@ -7,8 +7,11 @@ use Swoolefy\Core\ZModel;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\MGeneral;
 use Swoolefy\Core\MTime;
+use Swoolefy\Core\Task\AsyncTask;
 
 class TestController extends BController {
+
+	public $test;
 
 	public function __construct() {
 		parent::__construct();
@@ -77,6 +80,7 @@ class TestController extends BController {
 
 	public function testajax() {
 		$collection1 = Application::$app->mongodb->collection('user');
+
 		// $collection1->bulkWrite($insert);
 
 		// $insert = [
@@ -93,16 +97,24 @@ class TestController extends BController {
 		// ];
 		$filter = ['score' => ['$exists'=>true]];
 		$res = $collection1->clear()->where($filter)->find();
-		// dump($res);
-		// foreach($res[0]['score'] as $k=>$value) {
-		// 	dump($k);
-		// 	dump($value);
-		// }
+		foreach($res[0]['score'] as $k=>$value) {
+			var_dump($value);
+		}
 
-		$res = $collection1->clear()->getTypeMap();
-		dump($res);
-		
+	}
 
+	public function mytest() {
+		$data = $this->getModel()->getTest();
+		$res1 = yield $this->test1();
+		dump($res1);
+		$res2 = yield 'mmm';
+		dump($res2);
+	}
+
+	public function test1() {
+		sleep(2);
+		$collection1 = Application::$app->mongodb->collection('user');
+		$this->test = $collection1;
 	}
 
 	public function insertOne() {
@@ -122,9 +134,15 @@ class TestController extends BController {
 
 	}
 
+	public function task() {
+		dump('jjjjj'.rand(1,100));
 
-	public function mytest() {
-		$data = $this->getModel()->getTest();
-		return $data;
+		$request = swoole_pack($this->request);
+		$response = swoole_pack($this->response);
+		dump(Swfy::$config['setting']['worker_num']);
+		AsyncTask::registerTask('AsyncTask/test', [$request, $response]);
 	}
+
+
+	
 }

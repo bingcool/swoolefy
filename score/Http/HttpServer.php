@@ -60,7 +60,7 @@ class HttpServer extends BaseServer {
 					$config
 			);
 		self::$server = $this->webserver = new http_server(self::$config['host'], self::$config['port']);
-		self::$setting = array_merge(self::$setting, self::$config['setting']);
+		self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
 		$this->webserver->set(self::$setting);
 		parent::__construct();
 		// 初始化启动类
@@ -131,11 +131,8 @@ class HttpServer extends BaseServer {
 				if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
             		return $response->end();
        			}
-				
 				swoole_unpack(self::$App)->run($request, $response);
-				// self::$server->task([$request, $response]);
 				return true;
-				// 
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);

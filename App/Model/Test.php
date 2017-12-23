@@ -7,7 +7,10 @@ use Swoolefy\Core\ZModel;
 class Test extends BModel {
 	public static $num = 0;
 	public $count = 0;
+
+	private $name = 'hhhhhhhhhhhhhhh';
 	public function record() {
+
 		global $count;
 		self::$num++;
 		++$this->count;
