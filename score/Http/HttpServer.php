@@ -139,14 +139,19 @@ class HttpServer extends BaseServer {
 			}
 		});
 
+		/**
+		 * 异步任务
+		 */
 		$this->webserver->on('task', function(http_server $server, $task_id, $from_id, $data) {
 			try {
-				$route = array_pop($data);
-				foreach($data as $k=>$value) {
-					$data[$k] = swoole_unpack($value);
+				list($taskMeta, $taskData) = $data;
+				$route = array_pop($taskMeta);
+				foreach($taskMeta as $k=>$value) {
+					$taskMeta[$k] = swoole_unpack($value);
 				}
-				list($request, $response) = $data;
+				list($request, $response) = $taskMeta;
 				$request->server['PATH_INFO']  = $request->server['REQUEST_URI'] = $route;
+				$request->taskData = $taskData;
 				swoole_unpack(self::$App)->run($request, $response);
 			}catch(\Exception $e) {
 				// 捕捉异常
@@ -155,9 +160,21 @@ class HttpServer extends BaseServer {
 			
 		});
 
-		//处理异步任务的结果
+		/**
+		 * 处理异步任务的结果
+		 */
 		$this->webserver->on('finish', function (http_server $server, $task_id, $data) {
-			echo "AsyncTask[$task_id] Finish:$data".PHP_EOL;
+			try {
+				list($callable, $taskData) = $data;
+				if(!is_array($callable) || !is_array($taskData)) {
+					return false;
+				}
+				call_user_func_array($callable, $taskData);
+			}catch(\Exception $e) {
+				// 捕捉异常
+				\Swoolefy\Core\SwoolefyException::appException($e);
+			}
+			
 		});
 
 		/**

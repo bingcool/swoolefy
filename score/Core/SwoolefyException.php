@@ -79,7 +79,7 @@ class SwoolefyException {
       $logFilePath = APP_PATH.'/runtime.log';
       if(is_file($logFilePath)) $logFilesSize = filesize($logFilePath);
       // 定时清除这个log文件
-      if($logFilesSize > 1024 * 50) {
+      if($logFilesSize > 1024 * 20) {
         @file_put_contents($logFilePath,'');
       }
       Application::$app->log->setChannel('Application')->setLogFilePath(APP_PATH.'/runtime.log')->addError($errorMsg);

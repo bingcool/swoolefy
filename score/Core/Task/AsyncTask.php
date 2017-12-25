@@ -2,6 +2,7 @@
 namespace Swoolefy\Core\Task;
 
 use Swoolefy\Core\Swfy;
+use Swoolefy\Core\Application;
 
 class AsyncTask {
 
@@ -11,17 +12,21 @@ class AsyncTask {
      * @param   array   $data
      * @return    int|boolean
      */
-    public static function registerTask($route, $data) {
+    public static function registerTask($route, $data=[]) {
         if($route == '' || !is_string($route)) {
             throw new \Exception(__NAMESPACE__.'::'.__METHOD__.' the param $route must be string');	
         }
         $route = '/'.trim($route,'/');
-        array_push($data, $route);
-
-        dump(self::isWorkerProcess());
+        if(is_string($data)) {
+            $data = (array) $data;
+        }
+        $request = swoole_pack(Application::$app->request);
+        $response = swoole_pack(Application::$app->response);
+        $context = [$request, $response];
+        array_push($context, $route);
         // 只有在worker进程中可以调用异步任务进程，异步任务进程中不能调用异步进程
         if(self::isWorkerProcess()) {
-            $task_id = Swfy::$server->task($data);
+            $task_id = Swfy::$server->task([$context, $data]);
             return $task_id;
         }
         return false;
@@ -32,8 +37,8 @@ class AsyncTask {
      * @param   mixed  $data
      * @return    void
      */
-    public static function finish($data) {
-        Swfy::$server->finish($data);
+    public static function registerTaskfinish($callable, $data) {
+        Swfy::$server->finish([$callable, $data]);
     }
 
     /**
@@ -50,9 +55,7 @@ class AsyncTask {
      */
     public static function isWorkerProcess() {
         $worker_id = self::getCurrentWorkerId();
-        dump($worker_id);
         $max_worker_id = (Swfy::$config['setting']['worker_num']) - 1;
-        dump(Swfy::$config);
         return ($worker_id <= $max_worker_id) ? true : false;
     }
 

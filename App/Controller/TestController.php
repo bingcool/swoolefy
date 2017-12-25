@@ -135,12 +135,9 @@ class TestController extends BController {
 	}
 
 	public function task() {
-		dump('jjjjj'.rand(1,100));
-
-		$request = swoole_pack($this->request);
-		$response = swoole_pack($this->response);
-		dump(Swfy::$config['setting']['worker_num']);
-		AsyncTask::registerTask('AsyncTask/test', [$request, $response]);
+		dump('jjjj');
+		AsyncTask::registerTask('AsyncTask/test',['hello']);
+		dump('kkmkkkk');
 	}
 
 
