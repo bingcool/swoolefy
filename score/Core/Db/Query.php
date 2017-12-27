@@ -73,8 +73,11 @@ class Query {
         return $this->Driver->execute($sql, $bind);
     }
 
-    public function getFields($tableName) {
-        return ;
+    public function getFields($tableName=null) {
+        if(!$tableName) {
+            $tableName = $this->options['table'];
+        }
+        return $this->Driver->getFields($tableName);
     }
 
     /**
@@ -93,13 +96,36 @@ class Query {
     }
 
     public function field($fields) {
-        if(is_string($fields)) {
-
-        }elseif(is_array($fields)) {
-
-        }elseif($fields == '*') {
-
+        $this->options['fields'] = '*';
+        if($fields == '*') {
+            $this->options['fields'] = $fileds;
+            return $this;
         }
+        $tables_fields = $this->getFields();
+        if(is_string($fields)) {
+            $fields = explode(',', $fields);
+            foreach($fields as $k=>$field) {
+                if(strpos($field,' ')) {
+                    $field = substr($field, 0, 8);
+                }
+                if(!in_array($field, $tables_fields)) {
+                    unset($fields[$k]);
+                }
+            }
+            if($fields) {
+                $this->options['fields'] = implode(',', $fields);
+            }
+        }elseif(is_array($fields)) {
+            foreach($fields as $k=>$field) {
+                if(!in_array($field, $tables_fields)) {
+                    unset($fields[$k]);
+                }
+            }
+            if($fields) {
+                $this->options['fields'] = implode(',', $fields);
+            }
+        }
+        return $this;
     }
 
     public function where($map = [], $op="AND") {

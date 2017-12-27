@@ -197,9 +197,12 @@ class TestController extends BController {
 
 	public function mysql() {
 		$db = Application::$app->db;
+		// $fields = $db->getFields('test');
+		// dump($fields);
 		// dump($db);
-		$num = $db->query('INSERT INTO test(name,sex,phone)  VALUES("cool","1","66666666666") ');
-		dump($num);
+		// $num = $db->query('INSERT INTO test(name,sex,phone)  VALUES("cool","1","66666666666") ');
+		// dump($num);
+		
 		$res = $db->query('select name from test');
 		dump($res);
 	}

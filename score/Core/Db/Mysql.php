@@ -71,9 +71,9 @@ class Mysql {
 
     /**
 	 * __call
-	 * @param    string  $method
+	 * @param    string    $method
 	 * @param    mixed   $params
-	 * @return   mixed               
+	 * @return    mixed               
 	 */
 	public function __call($method, $params) {
 		// 自动初始化数据库

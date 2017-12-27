@@ -337,7 +337,7 @@ abstract class Driver {
             // 调试结束
             // $this->debug(false);
             // 返回结果集
-            return $this->getResult(false, $procedure);
+            return $this->getResult($pdo, $procedure);
 
         }catch (\PDOException $e) {
         	// 如果断线，尝试重连

@@ -35,7 +35,7 @@ return [
 				"port"      =>25,
 				"security"  =>null,
 				"user_name" =>"13560491950@163.com",
-				"pass_word" =>"xxxxxxxxxxxxxxxxxx",
+				"pass_word" =>"aa2437667702",
 			],
 		],
 
