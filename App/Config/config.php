@@ -28,6 +28,17 @@ return [
 
 		],
 
+		'mailer' =>[
+			'class'=> 'Swoolefy\Tool\Swiftmail',
+			'smtpTransport' => [
+				"server_host"=>"smtp.163.com",
+				"port"      =>25,
+				"security"  =>null,
+				"user_name" =>"13560491950@163.com",
+				"pass_word" =>"xxxxxxxxxxxxxxxxxx",
+			],
+		],
+
 		'db' => [
 			'class' => 'Swoolefy\Core\Db\Mysql',
 			'config' =>[

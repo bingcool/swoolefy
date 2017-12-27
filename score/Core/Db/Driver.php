@@ -294,7 +294,7 @@ abstract class Driver {
    	 * @param    $pdo
    	 * @return   
    	 */
-    public function query($sql, $bind = []) {
+    public function query($sql, $bind = [], $master = false, $pdo = false) {
     	// 初始化连接
     	$this->initConnect();
 
@@ -313,7 +313,6 @@ abstract class Driver {
         if($bind) {
             $this->bind = $bind;
         }
-        
         // 释放前次的查询结果
         if (!empty($this->PDOStatement)) {
             $this->free();
@@ -325,14 +324,12 @@ abstract class Driver {
             if(empty($this->PDOStatement)) {
                 $this->PDOStatement = $this->_master_link_pdo->prepare($sql);
             }
-            
             // 是否为存储过程调用
             $procedure = in_array(strtolower(substr(trim($sql), 0, 4)), ['call', 'exec']);
             // 参数绑定
             if ($procedure) {
                 $this->bindParam($bind);
             }else {
- 
                 $this->bindValue($bind);
             }
             // 执行查询
@@ -340,14 +337,14 @@ abstract class Driver {
             // 调试结束
             // $this->debug(false);
             // 返回结果集
-            return $this->getResult($pdo, $procedure);
+            return $this->getResult(false, $procedure);
 
         }catch (\PDOException $e) {
         	// 如果断线，尝试重连
             if($this->isBreak($e)) {
 
             }
-            throw new \PDOException($e, $this->config, $this->getLastsql());
+            throw new \PDOException($e);
         }catch (\Exception $e) {
         	// 如果断线，尝试重连
             if($this->isBreak($e)) {
@@ -372,7 +369,7 @@ abstract class Driver {
             // 存储过程返回结果
             return $this->procedure();
         }
-        $result        = $this->PDOStatement->fetchAll($this->fetchType);
+        $result  = $this->PDOStatement->fetchAll($this->fetchType);
         $this->numRows = count($result);
         return $result;
     }
@@ -531,6 +528,35 @@ abstract class Driver {
     public function getBuilder()
     {
         
+    }
+
+    /**
+     * getFields 取得数据表的字段信息
+     * @param string $tableName
+     * @return array
+     */
+    public function getFields($tableName) {
+        if (false === strpos($tableName, '`')) {
+            $tableName = '`' . $tableName . '`';
+        }
+        $sql    = 'SHOW COLUMNS FROM ' . $tableName;
+        $pdo    = $this->query($sql, [], false, true);
+        $result = $pdo->fetchAll(PDO::FETCH_ASSOC);
+        $info   = [];
+        if ($result) {
+            foreach ($result as $key => $val) {
+                $val  = array_change_key_case($val);
+                $info[$val['field']] = [
+                    'name'    => $val['field'],
+                    'type'    => $val['type'],
+                    'notnull' => (bool) ('' === $val['null']), // not null is empty, null is yes
+                    'default' => $val['default'],
+                    'primary' => (strtolower($val['key']) == 'pri'),
+                    'autoinc' => (strtolower($val['extra']) == 'auto_increment'),
+                ];
+            }
+        }
+        return $this->fieldCase($info);
     }
 
 

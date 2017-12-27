@@ -21,7 +21,7 @@ class Swiftmail {
 	 * 		"pass_word" =>"*******"
 	 * 	]
 	 */
-	public $smtpTransport = null;
+	public $smtpTransport = [];
 
 	/**
 	 * $message
@@ -43,7 +43,7 @@ class Swiftmail {
 	 *	
 	 * ]
 	 */
-	public $message = null;
+	public $message = [];
 	/**
 	 * __construct	 
 	 */

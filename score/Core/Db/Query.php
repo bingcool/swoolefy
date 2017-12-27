@@ -57,9 +57,24 @@ class Query {
      * @throws BindParamException
      * @throws PDOException
      */
-    public function query($sql, $bind = [], $master = false, $class = false)
-    {
-        return $this->Driver->query($sql, $bind, $master, $class);
+    public function query($sql, $bind = [], $master = false, $class = false) {
+        return $this->Driver->query($sql, $bind);
+    }
+
+     /**
+     * 执行语句
+     * @param string $sql  sql指令
+     * @param array  $bind 参数绑定
+     * @return int
+     * @throws BindParamException
+     * @throws PDOException
+     */
+    public function execute($sql, $bind = []) {
+        return $this->Driver->execute($sql, $bind);
+    }
+
+    public function getFields($tableName) {
+        return ;
     }
 
     /**

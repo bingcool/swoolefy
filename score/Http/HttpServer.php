@@ -22,7 +22,7 @@ class HttpServer extends BaseServer {
 		'reactor_num' => 1, //reactor thread num
 		'worker_num' => 2,    //worker process num
 		'max_request' => 100000,
-		'task_worker_num' =>2,
+		'task_worker_num' =>1,
 		'task_tmpdir' => '/dev/shm',
 		'daemonize' => 0,
 		'log_file' => __DIR__.'/log.txt',
@@ -144,15 +144,8 @@ class HttpServer extends BaseServer {
 		 */
 		$this->webserver->on('task', function(http_server $server, $task_id, $from_id, $data) {
 			try {
-				list($taskMeta, $taskData) = $data;
-				$route = array_pop($taskMeta);
-				foreach($taskMeta as $k=>$value) {
-					$taskMeta[$k] = swoole_unpack($value);
-				}
-				list($request, $response) = $taskMeta;
-				$request->server['PATH_INFO']  = $request->server['REQUEST_URI'] = $route;
-				$request->taskData = $taskData;
-				swoole_unpack(self::$App)->run($request, $response);
+				self::onTask($task_id, $from_id, $data);
+				return true;
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);
@@ -165,11 +158,8 @@ class HttpServer extends BaseServer {
 		 */
 		$this->webserver->on('finish', function (http_server $server, $task_id, $data) {
 			try {
-				list($callable, $taskData) = $data;
-				if(!is_array($callable) || !is_array($taskData)) {
-					return false;
-				}
-				call_user_func_array($callable, $taskData);
+				self::onFinish($task_id, $data);
+				return true;
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);
@@ -196,6 +186,48 @@ class HttpServer extends BaseServer {
 		}
 		
 		$this->webserver->start();
+	}
+
+	/**
+	 * onTask 任务处理函数调度
+	 * @param    object   $server
+	 * @param    int         $task_id
+	 * @param    int         $from_id
+	 * @param    mixed    $data
+	 * @return    void
+	 */
+	public function onTask($task_id, $from_id, $data) {
+		list($taskMeta, $taskData) = $data;
+		// 实例任务
+		if(count($taskMeta) == 3)  {
+			$route = array_pop($taskMeta);
+			foreach($taskMeta as $k=>$value) {
+				$taskMeta[$k] = swoole_unpack($value);
+			}
+			list($request, $response) = $taskMeta;
+			$request->server['PATH_INFO']  = $request->server['REQUEST_URI'] = $route;
+			$request->taskData = $taskData;
+			swoole_unpack(self::$App)->run($request, $response);
+		}else {
+			// 类静态方法调用任务
+			call_user_func_array($taskMeta, [$taskData]);
+		}	
+		return ;
+	}
+
+	/**
+	 * onFinish 异步任务完成后调用
+	 * @param    int          $task_id
+	 * @param    mixed    $data
+	 * @return void
+	 */
+	public function onFinish($task_id, $data) {
+		list($callable, $taskData) = $data;
+		if(!is_array($callable) || !is_array($taskData)) {
+			return false;
+		}
+		call_user_func_array($callable, [$taskData]);
+		return ;
 	}
 
 }
