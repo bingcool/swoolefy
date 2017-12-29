@@ -13,4 +13,9 @@
 9、基于inotify实现自动监测swoole服务的文件变动，实现自动重载，检测，智能邮件通知的服务      
 10、封装启动停止控制的脚本,简单命令即可管理整个框架,使用文档手册将在后期整理
 
+### 安装
+(1)git clone https://github.com/bingcool/swoolefy.git         
+(2)composer install
+
+
 
