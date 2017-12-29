@@ -9,7 +9,7 @@ class Init {
 	 */
 	public static function _init() {
 		// 每一次请求清空,再初始化
-		$_POST = $_GET = $_REQUEST = [];
+		$_POST = $_GET = $_REQUEST = $_SESSION = [];
 		//请求对象
 		$request = Application::$app->request;
 		self::resetServer($request);

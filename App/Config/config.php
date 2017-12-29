@@ -25,7 +25,20 @@ return [
 		],
 
 		'session'=>[
+			'class' => 'Swoolefy\Core\Session',
+			'cache_driver'=>'redis_session',
+			'cookie_domain' => '.swoolefy.com'
+		],
 
+		'redis_session' => [
+			'isDelay' => true,
+			'class' => 'Swoolefy\Core\Cache\Redis',
+			'constructor'=> [
+				'tcp://127.0.0.1:6379',
+				[
+					'profile' => '3.2'
+				]
+			]
 		],
 
 		'mailer' =>[

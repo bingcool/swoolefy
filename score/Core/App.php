@@ -49,7 +49,8 @@ class App extends \Swoolefy\Core\Component {
 	protected function init() {
 		// 初始化超全局变量数组和对象
 		\Swoolefy\Core\Init::_init();
-		
+		// session start
+		$this->session->start();
 	}
 
 	/**
@@ -138,7 +139,7 @@ class App extends \Swoolefy\Core\Component {
 		// 初始化静态变量
 		MTime::clear();
 		// 清空某些组件,每次请求重新创建
-		self::clearComponent(['mongodb']);
+		self::clearComponent(['mongodb','session']);
 	}
 
 	//使用trait的复用特性

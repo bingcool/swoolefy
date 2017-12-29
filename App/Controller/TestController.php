@@ -192,7 +192,6 @@ class TestController extends BController {
 	public function stats() {
 		$arr = ['34565'=>'kkkkk','7777'=>'kllllllll'];
 		$arr1= array();
-		dump(strlen('E627211694951201505N'));
 	}
 
 	public function mysql() {

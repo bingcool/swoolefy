@@ -33,12 +33,13 @@ class Component extends \Swoolefy\Core\Object {
 					// 以下组件需要做特殊处理,redis的timeout设置为0
 					switch($name) {
 						case 'redis': 
+						case 'redis_session':
 							$isConnected = static::$_components[$name]->isConnected();
 							if(!$isConnected) {
 								self::clearComponent($name);
 								self::creatObject($name, $this->config['components'][$name]);
 							}
-						break;		
+						break;
 					}
 
 					return static::$_components[$name];
@@ -104,7 +105,7 @@ class Component extends \Swoolefy\Core\Object {
 		$components = array_merge($coreComponents,$this->config['components']);
 		foreach($components as $key=>$component) {
 			// 如果存在直接跳过，下一个
-			if(isset(static::$_components[$key])) {
+			if(isset(static::$_components[$key]) || (isset($component['isDelay']) && $component['isDelay'])) {
 				continue;
 			}
 			if(isset($component['class']) && $component['class'] != '') {
