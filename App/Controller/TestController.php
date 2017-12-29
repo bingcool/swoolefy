@@ -205,9 +205,6 @@ class TestController extends BController {
 		$res = $db->query('select name from test');
 		$start = 1;
 		$offset =10;
-		$limit = "limit$start,$offset";
-		$arr = explode(' ', $limit);
-		dump($arr);
 		
 		dump($res);
 	}
