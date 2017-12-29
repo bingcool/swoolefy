@@ -202,8 +202,13 @@ class TestController extends BController {
 		// dump($db);
 		// $num = $db->query('INSERT INTO test(name,sex,phone)  VALUES("cool","1","66666666666") ');
 		// dump($num);
-		
 		$res = $db->query('select name from test');
+		$start = 1;
+		$offset =10;
+		$limit = "limit$start,$offset";
+		$arr = explode(' ', $limit);
+		dump($arr);
+		
 		dump($res);
 	}
 

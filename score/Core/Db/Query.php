@@ -25,8 +25,8 @@ class Query {
     protected $bind = [];
     // 数据表信息
     protected static $info = [];
-    // 回调事件
-    private static $event = [];
+    // 数据表子段
+    protected static $tables_fields = [];
 	/**
      * 构造函数
      * @param Driver $Driver 数据库对象实例
@@ -77,7 +77,17 @@ class Query {
         if(!$tableName) {
             $tableName = $this->options['table'];
         }
-        return $this->Driver->getFields($tableName);
+        if(!empty(self::$tables_fields[$tableName])) {
+            return self::$tables_fields[$tableName];
+        }
+        $fields_info = $this->Driver->getFields($tableName);
+        if($fields_info) {
+            return self::$tables_fields[$tableName];
+        }
+    }
+
+    public function getTable() {
+        return $this->options['table'];
     }
 
     /**
@@ -88,7 +98,7 @@ class Query {
      */
     public function table($table) {
         if(is_string($table)) {
-            $this->options['table'] = $table;
+            $this->options['table'] = "FROM $table";
         }else {
             return false;
         }
@@ -101,7 +111,10 @@ class Query {
             $this->options['fields'] = $fileds;
             return $this;
         }
-        $tables_fields = $this->getFields();
+        if(empty($fields)) {
+            return false;
+        }
+        $tables_fields = array_keys($this->getFields());
         if(is_string($fields)) {
             $fields = explode(',', $fields);
             foreach($fields as $k=>$field) {
@@ -128,26 +141,80 @@ class Query {
         return $this;
     }
 
-    public function where($map = [], $op="AND") {
-    	if(is_array($map)) {
-
+    public function where($mapSql, $bind=[]) {
+    	if(is_string($mapSql)) {
+           $this->options['where'] = $mapSql;
         }
+        $this->bind = array_merge($this->bind, $bind);
+        return $this;
     }
 
-    public function limit() {
+    public function limit($start, $offset=20) {
+        if(!is_int($start) || !is_int($offset)) {
+            throw new \Exception(__NAMESPACE__.'::'.__FUNCTION__.'()'.' the params must be int');
+        }
+        $this->options['limit'] = "limit $start,$offset";
+        return $this;
+    }
+
+    public function group($groupField) {
+        if(is_string($groupField)) {
+            $groupField = explode(',', $groupField);
+        }
+
+        $tables_fields = array_keys($this->getFields());
+        foreach($groupField as $group) {
+            if(!in_array($group, $tables_fields)) {
+                throw new \Exception(__NAMESPACE__.'::'.__FUNCTION__.'()'.' the field:'.$group.' is not in table');
+            }
+        }
+        $groupField = implode($groupField);
+        $this->options['group'] = "GROUP BY $groupField";
+        return $this;
+    }
+
+    public function order($field) {
+        $tables_fields = array_keys($this->getFields());
+        if(is_string($field)) {
+            $fields = explode(' ', $field);
+            if(!in_array($fields[0], $tables_fields)) {
+                throw new \Exception(__NAMESPACE__.'::'.__FUNCTION__.'()'.' the field:'.$group.' is not in table');
+            }
+            if(isset($fields[1]) && !in_array($fields[1], ['DESC', 'desc'])) {
+                throw new \Exception(__NAMESPACE__.'::'.__FUNCTION__.'()'.' the order commend must be DESC or desc');
+            }
+
+            $this->options['order'] = $field;
+        }
+        return $this;
+    }
+
+    public function join() {
 
     }
 
-    public function group() {
+    public function findAll() {
+        $sql = $this->parseSql();
+
+        $result = $this->query($sql, $this->bind);
+        return $result;
 
     }
 
-    public function order() {
-
+    public function parseSql() {
+        $sql = "SELECT";
+        $sql .= $this->options['fields'];
+        $sql .= $this->options['table'];
+        $sql .= $this->options['join'];
+        return $sql;
     }
 
     public function __call($method, $args) {
         
+    }
+
+    public function __destruct() {
+        self::$tables_fields = [];
     }
 
 

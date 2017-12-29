@@ -227,7 +227,7 @@ class HttpServer extends BaseServer {
 			return false;
 		}
 		call_user_func_array($callable, [$taskData]);
-		return ;
+		return true;
 	}
 
 }
