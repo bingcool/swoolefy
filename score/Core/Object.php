@@ -72,6 +72,13 @@ class Object {
 		// 直接结束请求
 		Application::$app->response->end($html);
 		throw new \Exception($msg);
+	}	
+
+	/**
+	 * 直接获取component组件实例
+	 */
+	public function __get($name) {
+		return Application::$app->$name;
 	}
 
 }
