@@ -28,6 +28,13 @@ class App extends \Swoolefy\Core\Component {
 	public $config = null;
 
 	/**
+	 * $hooks 保存钩子执行函数
+	 * @var array
+	 */
+	public $hooks = [];
+ 	const HOOK_AFTER_REQUEST = 1;
+
+	/**
 	 * __construct
 	 * @param $config 应用层配置
 	 */
@@ -126,10 +133,54 @@ class App extends \Swoolefy\Core\Component {
 	}
 
 	/**
+	 * afterRequest 请求结束后注册钩子执行操作
+	 * @param	mixed   $callback 
+	 * @param	boolean $prepend
+	 * @return	void
+	 */
+	public function afterRequest(callable $callback, $prepend=false) {
+		if(is_callable($callback)) {
+			$this->addHook(self::HOOK_AFTER_REQUEST, $callback, $prepend);
+		}else {
+			throw new \Exception(__NAMESPACE__.'::'.__function__.' the first param of type is callable');
+		}
+		
+	}
+
+	/**
+	 * addHook 添加钩子函数
+	 * @param    int   $type
+	 * @param 	 mixed $func
+	 * @param    boolean $prepend
+	 * @return     void
+	 */
+	protected function addHook($type, $func, $prepend=false) {
+		if($prepend) {
+			array_unshift($this->hooks[$type], $func);
+		}else {
+			$this->hooks[$type][] = $func;
+		}
+	}
+
+	/**
+	 * callhook 调用钩子函数
+	 * @param [type] $type
+	 * @return  void
+	 */
+	protected function callHook($type) {
+		if(isset($this->hooks[$type])) {
+			foreach($this->hooks[$type] as $func) {
+				$func();
+			}
+		}
+	}
+
+	/**
 	 * end 请求结束
 	 * @return  
 	 */
 	public function end() {
+		$this->callHook(self::HOOK_AFTER_REQUEST);
 		// Model的实例化对象初始化为[]
 		if(!empty(ZModel::$_model_instances)) {
 			ZModel::$_model_instances = [];

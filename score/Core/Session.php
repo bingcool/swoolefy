@@ -54,6 +54,7 @@ class Session {
         if(isset($config['cache_driver'])) {
             $this->cookie_domain = $config['cookie_domain'];
         }
+       
     }
 
     /**
@@ -62,6 +63,9 @@ class Session {
      * @return void
      */
     public function start($readonly = false) {
+         /**注册钩子程序，在请求结束后保存sesion */
+        Application::$app->afterRequest([$this,'save']);
+    
         $driver_class = $this->cache_driver;
         $this->driver = Application::$app->$driver_class;
         $this->isStart = true;
@@ -99,15 +103,47 @@ class Session {
      * 保存Session
      * @return bool
      */
-    public function save($data=[]) {
+    public function save() {
         if (!$this->isStart || $this->readonly) {
             return true;
         }
         //设置为Session关闭状态
         $this->isStart = false;
         $key = $this->cache_prefix . $this->session_id;
+        // 如果没有设置SESSION,则不保存,防止覆盖
+        if(empty($_SESSION)) {
+            return false;
+        }
         return $this->driver->setex($key, $this->session_lifetime, serialize($_SESSION));
     }
 
+    /**
+     * getSessionId 获取session_id
+     * @return string
+     */
+    public function getSessionId() {
+        return $this->session_id;
+    }
 
+    /**
+     * set 设置session保存数据
+     *
+     * @param   string   $key
+     * @param   mixed  $data
+     * @return    true
+     */
+    public function set($key, $data) {
+        $_SESSION[$key] = $data;
+        return true;
+    }
+
+    /**
+     * get 获取session的数据
+     * @param   string  $key
+     * @return   mixed
+     */
+    public function get($key) {
+        return $_SESSION[$key];
+    }
+    
 }

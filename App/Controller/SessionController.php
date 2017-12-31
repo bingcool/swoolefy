@@ -6,9 +6,8 @@ use Swoolefy\Core\Controller\BController;
 
 class SessionController extends BController{
     public function test() {
-        dump($_SESSION);
         $_SESSION['app'.rand(1,1000)] = 'android';
-        Application::$app->session->save();
+        dump($_SESSION);
     }
 
     public function getSession() {
