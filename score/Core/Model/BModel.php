@@ -16,6 +16,12 @@ class BModel extends \Swoolefy\Core\Component {
 	public $response = null;
 
 	/**
+	 * $session
+	 * @var [type]
+	 */
+	public $session = null;
+
+	/**
 	 * $config
 	 * @var null
 	 */
@@ -33,6 +39,7 @@ class BModel extends \Swoolefy\Core\Component {
 		// 初始化请求对象和响应对象
 		$this->request = Application::$app->request;
 		$this->response = Application::$app->response;
+		$this->session = Application::$app->session;
 		$this->config = Application::$app->config;
 		// 数据结构模型对象
 		$this->struct = new \Swoolefy\Core\Struct();

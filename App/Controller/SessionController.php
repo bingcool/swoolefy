@@ -13,5 +13,16 @@ class SessionController extends BController{
     public function getSession() {
         dump($_SESSION);
     }
+
+    public function setTest() {
+        $key = $_GET['key'].rand(1,9999);
+        $res = $this->session->set($key,'ioscool');
+        dump($res);
+    }
+
+    public function getTest() {
+        $data = $this->session->get();
+        dump($data);
+    }
     
 }

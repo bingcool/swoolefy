@@ -17,6 +17,12 @@ class BController extends \Swoolefy\Core\Object {
 	public $response = null;
 
 	/**
+	 * $session
+	 * @var [type]
+	 */
+	public $session = null;
+
+	/**
 	 * $config
 	 * @var null
 	 */
@@ -30,6 +36,7 @@ class BController extends \Swoolefy\Core\Object {
 		// 初始化请求对象和响应对象
 		$this->request = Application::$app->request;
 		$this->response = Application::$app->response;
+		$this->session = Application::$app->session;
 		$this->config = Application::$app->config;
 	}
 

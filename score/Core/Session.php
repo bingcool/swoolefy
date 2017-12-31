@@ -6,22 +6,49 @@ use Swoolefy\Core\MGeneral;
 
 class Session {
 
-    const SESSION_CACHE = 'redis_session';
-
+    /**
+     * $cache_prefix session_id的key的前缀
+     * @var string
+     */
     public $cache_prefix = 'phpsess_';
 
+    /**
+     * $cookie_key cookie的session的key
+     * @var string
+     */
     public $cookie_key = 'PHPSESSID';
 
+    /**
+     * $cache_driver session的 缓存驱动
+     * @var string
+     */
     public $cache_driver = 'redis';
+    
+    /**
+     * $driver 缓存驱动的实例
+     * @var [type]
+     */
     public $driver = null;
 
+    /**
+     * cookie的设置
+     * @var integer
+     */
     public  $cookie_lifetime = 7776000;
     public  $session_lifetime = 0;
     public  $cookie_domain = '*';
     public  $cookie_path = '/';
 
+    /**
+     * $isStart 是否已经启动session
+     * @var boolean
+     */
     public $isStart = false;
 
+    /**
+     * $session_id sessio_id 
+     * @var string
+     */
     public $session_id;
 
     /**
@@ -127,14 +154,16 @@ class Session {
 
     /**
      * set 设置session保存数据
-     *
      * @param   string   $key
      * @param   mixed  $data
      * @return    true
      */
     public function set($key, $data) {
-        $_SESSION[$key] = $data;
-        return true;
+        if(is_string($key) && isset($data)) {
+            $_SESSION[$key] = $data;
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -142,7 +171,10 @@ class Session {
      * @param   string  $key
      * @return   mixed
      */
-    public function get($key) {
+    public function get($key =null) {
+        if(is_null($key)) {
+            return $_SESSION;
+        }
         return $_SESSION[$key];
     }
     
