@@ -3,6 +3,7 @@ namespace App\Controller;
 
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
+use Swoolefy\Core\MGeneral;
 
 class SessionController extends BController{
     public function test() {
@@ -21,6 +22,7 @@ class SessionController extends BController{
     }
 
     public function getTest() {
+        MGeneral::xhprof();
         $data = $this->session->get();
         dump($data);
     }

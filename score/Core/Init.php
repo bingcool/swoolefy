@@ -9,7 +9,7 @@ class Init {
 	 */
 	public static function _init() {
 		// 每一次请求清空,再初始化
-		$_POST = $_GET = $_REQUEST = $_SESSION = [];
+		$_POST = $_GET = $_REQUEST = $_COOKIE = $_SESSION = [];
 		//请求对象
 		$request = Application::$app->request;
 		self::resetServer($request);
@@ -65,13 +65,15 @@ class Init {
 	}
 
 	/**
-	 * resetCookie 重置COOKIE超全局数组,由于COOKIE是一个常驻内存的全局变量,每个请求设置的cookie可能会被覆盖
-	 * 这里不需要重新设置合并,每个请求通过request->cookie获取cookie的值，而不要通过$_COOKIE
+	 * resetCookie 重置COOKIE超全局数组
 	 * @param  $request 请求对象
 	 * @return void
 	 */
 	public static function resetCookie($request) {
-		
+		if(isset($request->cookie)) {
+			$_COOKIE = array_merge($_COOKIE, $request->cookie);
+		}
+			
 	}
 
 	/**

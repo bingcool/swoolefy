@@ -55,7 +55,7 @@ class App extends \Swoolefy\Core\Component {
 	 */
 	protected function init() {
 		// 初始化超全局变量数组和对象
-		\Swoolefy\Core\Init::_init();
+		Init::_init();
 		// session start
 		$this->session->start();
 	}
@@ -63,7 +63,7 @@ class App extends \Swoolefy\Core\Component {
 	/**
 	 * boostrap 初始化引导
 	 */
-	public function bootstrap() {
+	protected function bootstrap() {
 		Swfy::$config['application_index']::bootstrap();	
 	}
 
@@ -98,20 +98,6 @@ class App extends \Swoolefy\Core\Component {
 	}
 
 	/**
-	 * debug 调试函数
-	 * @return 
-	 */
-	protected function debug() {
-		if(SW_DEBUG) {
-			$dumpInfo = \Swoolefy\Core\Application::$dump;
-			if(!is_null($dumpInfo)) {
-				$this->response->header('Content-Type','text/html; charset=UTF-8');
-				$this->response->write($dumpInfo);
-			}
-		}
-	}
-
-	/**
 	 * catch 捕捉拦截所有请求，进入维护模式
 	 * @return void
 	 */
@@ -128,7 +114,6 @@ class App extends \Swoolefy\Core\Component {
 			
 			return true;
 		}
-
 		return false;
 	}
 
@@ -171,6 +156,20 @@ class App extends \Swoolefy\Core\Component {
 		if(isset($this->hooks[$type])) {
 			foreach($this->hooks[$type] as $func) {
 				$func();
+			}
+		}
+	}
+
+	/**
+	 * debug 调试函数
+	 * @return 
+	 */
+	protected function debug() {
+		if(SW_DEBUG) {
+			$dumpInfo = \Swoolefy\Core\Application::$dump;
+			if(!is_null($dumpInfo)) {
+				$this->response->header('Content-Type','text/html; charset=UTF-8');
+				$this->response->write($dumpInfo);
 			}
 		}
 	}
