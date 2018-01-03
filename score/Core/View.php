@@ -36,6 +36,8 @@ class View {
 	 */
 	public $enable_gzip = false;
 
+	protected $test = null;
+
 	/**
 	 * __construct
 	 */
@@ -199,6 +201,25 @@ class View {
 		}
 		$response->write($string);
 		$response->end();
+	}
+
+	/**
+	 * 私有或者受保护的属性赋值时会自动调用
+	 * @param   string   $name
+	 * @param   mixed   $value
+	 */
+	public function __set($name, $value) {
+		$this->$name = $value;
+		return;
+	}
+
+	/**
+	 * 获取私有或者受保护的属性赋值时会自动调用
+	 * @param   string   $name
+	 * @return    mixed
+	 */
+	public function __get($name) {
+		return $this->$name;
 	}
 
 }

@@ -208,6 +208,10 @@ class TestController extends BController {
 		dump($res);
 	}
 
+	public function viewtest() {
+		dump($this->view->test);
+	}
+
 
 	
 }
