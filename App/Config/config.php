@@ -6,6 +6,7 @@ return [
 	'not_found_template' => '404.html', //默认是在View文件夹下面
 	// 'not_found_function' => ['App\Controller\NotFound','page404'],
 	// 'catch_all_info' => '网站维护中',
+	'session_start' => true,
 	'cors' =>[
 		'Origin' => ['*'],
         'Access-Control-Request-Method' => ['GET','POST','PUT','DELETE'],
@@ -31,7 +32,7 @@ return [
 		],
 
 		'redis_session' => [
-			'isDelay' => true,
+			'isDelay' => true,//延迟创建实例，请求时候再创建
 			'class' => 'Swoolefy\Core\Cache\Redis',
 			'constructor'=> [
 				'tcp://127.0.0.1:6379',
