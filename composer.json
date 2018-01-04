@@ -1,32 +1,38 @@
 {
-	"name":            "bingcool/swoolefy",
-	"description":     "swoole auto relaod and monitor",
-    "keywords":         ["swoole", "auto relaod", "monitor"],
-    "time":             "2017-08-01",
-    "license":          "MIT",
-    "type":             "project",
-    "authors": [{
-        "name":         "bingcool",
-        "email":        "bingcoolhuang@gmail.com",
-        "role":         "Engineer of php"
-    }],
+    "name": "bingcool/swoolefy",
+    "description": "swoole auto relaod and monitor",
+    "keywords": [
+        "swoole",
+        "auto relaod",
+        "monitor"
+    ],
+    "time": "2017-08-01",
+    "license": "MIT",
+    "type": "project",
+    "authors": [
+        {
+            "name": "bingcool",
+            "email": "bingcoolhuang@gmail.com",
+            "role": "Engineer of php"
+        }
+    ],
     "require": {
         "monolog/monolog": "1.23.0",
-        "swiftmailer/swiftmailer":"6.0.1",
+        "swiftmailer/swiftmailer": "6.0.1",
         "smarty/smarty": "3.1.30",
-		"nesbot/carbon": "^1.22",
-		"predis/predis": "1.1.1",
-		"mongodb/mongodb": "1.2.0"
+        "nesbot/carbon": "^1.22",
+        "predis/predis": "1.1.1",
+        "mongodb/mongodb": "1.2.0"
     },
-    "autoload":{
-	    "psr-4":{
-	        "Swoolefy\\":"score/"
-	    }
-	},
-	"repositories": {
-		"packagist": {
-			"type": "composer",
-			"url": "https://packagist.phpcomposer.com"
-		}
-	}
+    "autoload": {
+        "psr-4": {
+            "Swoolefy\\": "score/"
+        }
+    },
+    "repositories": {
+        "packagist": {
+            "type": "composer",
+            "url": "https://packagist.phpcomposer.com"
+        }
+    }
 }
