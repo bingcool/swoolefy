@@ -133,7 +133,6 @@ class View {
 		while($data = mb_substr($tpl, $p++ * $size, $size, 'utf-8')) {
              $response->write($data);
         }
-		$response->end();
 	}
 
 	/**
@@ -161,8 +160,6 @@ class View {
 		while($data = mb_substr($tpl, $p++ * $size, $size, 'utf-8')) {
             $response->write($data);
         }
-		$response->end();
-
 	}
 
 	/**
@@ -200,7 +197,6 @@ class View {
 			$response->gzip($this->gzip_level);
 		}
 		$response->write($string);
-		$response->end();
 	}
 
 	/**

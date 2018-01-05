@@ -92,11 +92,8 @@ class App extends \Swoolefy\Core\Component {
 			$route = new HttpRoute();
 			$route->dispatch();
 		}
-
 		// 请求结束
-		$this->end();
-		
-		return true;
+		return $this->end();
 	}
 
 	/**
@@ -186,12 +183,14 @@ class App extends \Swoolefy\Core\Component {
 		if(!empty(ZModel::$_model_instances)) {
 			ZModel::$_model_instances = [];
 		}
-		// 销毁应用对象
-		Application::$app = null;
 		// 初始化静态变量
 		MTime::clear();
 		// 清空某些组件,每次请求重新创建
 		self::clearComponent(['mongodb','session']);
+		//清空全局变量
+		$_POST = $_GET = $_REQUEST = $_COOKIE = $_SESSION = [];
+		// 必须设置一个异常结束
+		@$this->response->end();
 	}
 
 	//使用trait的复用特性

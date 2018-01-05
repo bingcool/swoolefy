@@ -121,8 +121,7 @@ class HttpRoute extends Dispatch {
 			// 调用 
 			$this->invoke($module=null,$controller,$action);
 		}
-		// 必须设置设置一个异常结束
-		return @$this->response->end();
+		return;
 	}
 
 	/**
@@ -218,7 +217,7 @@ class HttpRoute extends Dispatch {
 		        }catch (\ReflectionException $e) {
 		            // 方法调用发生异常后 引导到__call方法处理
 		            $method = new \ReflectionMethod($controllerInstance,'__call');
-		            $method->invokeArgs($controllerInstance,array($action,''));
+		            $method->invokeArgs($controllerInstance, array($action,''));
 		        }
 			}else {
 				if(SW_DEBUG) {
@@ -230,7 +229,7 @@ class HttpRoute extends Dispatch {
 			$this->response->header('Content-Type','text/html; charset=UTF-8');
 			if(!SW_DEBUG) {
 				$method = new \ReflectionMethod($controllerInstance,'__call');
-		        $method->invokeArgs($controllerInstance,array($action,''));
+		        $method->invokeArgs($controllerInstance, array($action,''));
 			}else {
 		        return $this->response->end('Class file for '.$filePath.' is exit, but the file:'.$controller.'.php'.' has not define '.'"'.$action.'()'.'"'.' method');
 			}
