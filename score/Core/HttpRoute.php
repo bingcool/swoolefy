@@ -31,12 +31,6 @@ class HttpRoute extends Dispatch {
 	public $config = null;
 
 	/**
-	 * $reflector reflector对象
-	 * @var null
-	 */
-	public static $reflector = null;
-
-	/**
 	 * $deny_actions 禁止外部直接访问的action
 	 * @var array
 	 */
@@ -204,12 +198,10 @@ class HttpRoute extends Dispatch {
 			$this->response->status(403);
 			return $this->response->write(json_encode(['status'=>403,'msg'=>'_beforeAction is forbidden calling']));
 		}
-		// 直接读静态变量,减少每次访问都创建reflector对象开销
-		if(!is_object(self::$reflector)) {
-			self::$reflector = new \ReflectionClass($controllerInstance);
-		}
+		// 创建reflector对象实例
+		$reflector = new \ReflectionClass($controllerInstance);
 		// 如果存在该类和对应的方法
-		if(self::$reflector->hasMethod($action)) {
+		if($reflector->hasMethod($action)) {
 			$method = new \ReflectionMethod($controllerInstance, $action);
 			if($method->isPublic() && !$method->isStatic()) {
 				try{
