@@ -25,14 +25,14 @@
 (2)composer install(需要安装composer)
 
 ### 启动
-1、启动文件自动监控程序，进入swoolefy/score/AutoReload
-php  start.php -d
+1、启动文件自动监控程序，进入swoolefy/score/AutoReload     
+php  start.php -d            
 
-监控程序自动监控php的文件变动，然后swoole的worker自动重启，这个文件其实是通过调用代码Shell文件夹的swoole_monitor.sh来监控9502端口(这个是swoole的http服务的默认端口)
+监控程序自动监控php的文件变动，然后swoole的worker自动重启，这个文件其实是通过调用代码Shell文件夹的swoole_monitor.sh来监控9502端口(这个是swoole的http服务的默认端口)           
 
-2、启动swoole的http服务，进入swoole/score/Http
-启动：php start.php start http
-停止：php start.php stop http
+2、启动swoole的http服务，进入swoole/score/Http       
+启动：php start.php start http          
+停止：php start.php stop http              
 
 默认端口是9502，当然可以在配置文件中更改,同时对应的swoolefy/score/AutoReload下的daemon.php中对应更改。
 注意文件权限问题
