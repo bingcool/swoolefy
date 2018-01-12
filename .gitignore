@@ -11,3 +11,4 @@ sftp-config.json
 /vendor
 #runtime.log
 runtime.log
+docker-compose.yml

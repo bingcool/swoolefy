@@ -6,13 +6,12 @@
 </head>
 <body>
 <div>
-	<h2>hello,swoole test!{$name}</h2>
+	<h2>{$name}</h2>
 </div>
 <div id="text">
 	
 </div>
-<a href="/Test/testajax">TEST</a>
-<button id="btn">点击ajax</button>
+
 <div id="showtext"></div>
 <table border=1> 
       {foreach key=key1 item=item1 from=$books} 
@@ -23,6 +22,7 @@
       </tr> 
       {/foreach} 
 </table> 
+<a href="/Test/testajax">测试ajax</a>
 <!-- <script type="text/javascript">
 	ws = new WebSocket("ws://192.168.44.128:9503");
 	ws.onopen = function(){  
@@ -58,34 +58,6 @@
 		});
 	});
 </script>
-
-<!-- <script type="text/javascript">
- var ttConversionOptions = ttConversionOptions || [];
- ttConversionOptions.push({
-  type: 'sales',
-  campaignID: '16937',
-  productID: '567834567', 
-  transactionID: '7654321', 
-  transactionAmount: '1.00', 
-  quantity: '1', 
-  email: '', 
-  descrMerchant: 'Samsung UE55HU7500', 
-  descrAffiliate: 'Samsung-Ultra-HD-TV',
-  currency: 'USD', 
-  trackingGroupID: ''
- });
-</script>
-<noscript>
- <img src="//ts.tradetracker.net/?cid=16937&pid=35490&tid=567893455&tam=56.00&data=&qty=1&eml=&descrMerchant=Samsung UE55HU7500&descrAffiliate=Samsung-Ultra-HD-TV&event=sales&currency=USD" alt="" />
-</noscript>
-<script type="text/javascript">
-  // No editing needed below this line.
- (function(ttConversionOptions) {
-  var campaignID = 'campaignID' in ttConversionOptions ? ttConversionOptions.campaignID : ('length' in ttConversionOptions && ttConversionOptions.length ? ttConversionOptions[0].campaignID : null);
-  var tt = document.createElement('script'); tt.type = 'text/javascript'; tt.async = true; tt.src = '//tm.tradetracker.net/conversion?s=' + encodeURIComponent(campaignID) + '&t=m';
-  var s = document.getElementsByTagName('script'); s = s[s.length - 1]; s.parentNode.insertBefore(tt, s);
- })(ttConversionOptions);
-</script> -->
 
 </body>
 </html>
