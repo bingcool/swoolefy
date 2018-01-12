@@ -40,7 +40,7 @@ php  start.php -d
 ### 访问test
 在App/Controller中就可以编码测试，基本和thinkphp的mvc那样操作。
 比如在App/Controller/TestController.php
-那么直接在浏览器输入http://ip/Test/test, 对应的路由规则domain/controller/action
+那么直接在浏览器输入http://ip:9502/Test/test, 对应的路由规则domain/controller/action
 具体的可以参考App/Controller/的例子
 
 如果需要使用mysql，redis，mongodb这些组件功能，请安装并在App/Config/config.php中配置。这个与Yii2的Component相似.
