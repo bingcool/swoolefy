@@ -20,7 +20,7 @@
 3、安装php必要的扩展，本框架需要的扩展包括swoole(1.9.17+), swoole_serialize(https://github.com/swoole/swoole_serialize), inotify, pcntl, posix, zlib, mbstring,可以通过php-m查看是否安装了这些扩展，如果通过lnmp1.4一健安装包安装的，已经默认安装好这四个pcntl, posix, zlib, mbstring扩展的，只需要在安装swoole和swoole_serialize, inotify即可，具体安装过程参考官方文档
 
 ### 下载框架和安装
-在某一个web目录下
+在某一个web目录下                   
 (1)git clone https://github.com/bingcool/swoolefy.git         
 (2)composer install(需要安装composer)
 
