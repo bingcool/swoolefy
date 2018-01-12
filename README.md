@@ -15,8 +15,8 @@
 10、封装启动停止控制的脚本,简单命令即可管理整个框架,使用文档手册将在后期整理
 
 ### 配置环境
-1、支持php7.0+
-2、搭建lnmp环境，建议使用lnmp一健安装包，https://lnmp.org, 建议安装lnmp1.4
+1、支持php7.0+       
+2、搭建lnmp环境，建议使用lnmp一健安装包，https://lnmp.org, 建议安装lnmp1.4     
 3、安装php必要的扩展，本框架需要的扩展包括swoole(1.9.17+), swoole_serialize(https://github.com/swoole/swoole_serialize), inotify, pcntl, posix, zlib, mbstring,可以通过php-m查看是否安装了这些扩展，如果通过lnmp1.4一健安装包安装的，已经默认安装好这四个pcntl, posix, zlib, mbstring扩展的，只需要在安装swoole和swoole_serialize, inotify即可，具体安装过程参考官方文档
 
 ### 下载框架和安装
@@ -40,7 +40,7 @@ php  start.php -d
 ### 访问test
 在App/Controller中就可以编码测试，基本和thinkphp的mvc那样操作。
 比如在App/Controller/TestController.php
-那么直接在浏览器输入http://ip/Test/test，对应的路由规则http://domain/controller/action
+那么直接在浏览器输入http://ip/Test/test, 对应的路由规则domain/controller/action
 具体的可以参考App/Controller/的例子
 
 如果需要使用mysql，redis，mongodb这些组件功能，请安装并在App/Config/config.php中配置。这个与Yii2的Component相似.
