@@ -70,7 +70,7 @@ class Mysql {
 	}
 
     /**
-	 * __call
+	 * __call 自动聪载
 	 * @param    string    $method
 	 * @param    mixed   $params
 	 * @return   mixed               
