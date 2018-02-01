@@ -69,6 +69,12 @@ abstract class Driver {
 	 */
 	protected $fetchType = PDO::FETCH_ASSOC;
 
+    /**
+     * $numRows 返回影响数据的记录数
+     * @var integer
+     */
+    protected $numRows = 0;
+
 	/**
 	 * $params 参数对象
 	 * @var [type]
@@ -302,12 +308,77 @@ abstract class Driver {
             return false;
         }
 
+        // 如果设置主从的话，必须设置从库
         if($this->isDeploy()) {
         	if(empty($this->slave_link) && !$this->_slave_link_pdo) {
         		throw new \Exception('If DB for mysql set isDeploy = 1 or true, so slave_host must be set!');
         	}
+        }else {
+            // 如果没有设置主从数据库，则主数据也是从库，可以查询
+            $this->_slave_link_pdo = $this->_master_link_pdo;
         }
 
+        // 记录SQL语句
+        $this->queryStr = $sql;
+        if($bind) {
+            $this->bind = $bind;
+        }
+        // 释放前次的查询结果
+        if (!empty($this->PDOStatement)) {
+            $this->free();
+        }
+        try {
+            // 调试开始
+            // $this->debug(true);
+            // 预处理
+            if(empty($this->PDOStatement)) {
+                $this->PDOStatement = $this->_slave_link_pdo->prepare($sql);
+            }
+            // 是否为存储过程调用
+            $procedure = in_array(strtolower(substr(trim($sql), 0, 4)), ['call', 'exec']);
+            // 参数绑定
+            if ($procedure) {
+                $this->bindParam($bind);
+            }else {
+                $this->bindValue($bind);
+            }
+            // 执行查询
+            $this->PDOStatement->execute();
+            // 调试结束
+            // $this->debug(false);
+            // 返回结果集
+            return $this->getResult($pdo, $procedure);
+
+        }catch (\PDOException $e) {
+        	// 如果断线，尝试重连
+            if($this->isBreak($e)) {
+
+            }
+            throw new \PDOException($e);
+        }catch (\Exception $e) {
+        	// 如果断线，尝试重连
+            if($this->isBreak($e)) {
+
+            }
+            throw $e;
+        }
+    }
+
+    /**
+     * execute
+     * @param    $sql
+     * @param    $bind
+     * @param    $master
+     * @param    $pdo
+     * @return   
+     */
+    public function execute($sql, $bind = []) {
+        // 初始化连接
+        $this->initConnect();
+
+        if(!$this->_master_link_pdo) {
+            return false;
+        }
         // 记录SQL语句
         $this->queryStr = $sql;
         if($bind) {
@@ -336,17 +407,17 @@ abstract class Driver {
             $this->PDOStatement->execute();
             // 调试结束
             // $this->debug(false);
-            // 返回结果集
-            return $this->getResult($pdo, $procedure);
+            $this->numRows = $this->PDOStatement->rowCount();
+            return $this->numRows;
 
         }catch (\PDOException $e) {
-        	// 如果断线，尝试重连
+            // 如果断线，尝试重连
             if($this->isBreak($e)) {
 
             }
             throw new \PDOException($e);
         }catch (\Exception $e) {
-        	// 如果断线，尝试重连
+            // 如果断线，尝试重连
             if($this->isBreak($e)) {
 
             }

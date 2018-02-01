@@ -35,7 +35,7 @@ class Query {
     public function __construct(Driver $Driver = null, $model = '')
     {
         $this->Driver = $Driver;
-        $this->prefix    = $this->Driver->getConfig('prefix');
+        $this->prefix = $this->Driver->getConfig('prefix');
     }
 
     /**
@@ -73,6 +73,11 @@ class Query {
         return $this->Driver->execute($sql, $bind);
     }
 
+    /**
+     * getFields 获取表的所有字段
+     * @param    $tableName 
+     * @return   array
+     */
     public function getFields($tableName=null) {
         if(!$tableName) {
             $tableName = $this->options['table'];
@@ -86,6 +91,10 @@ class Query {
         }
     }
 
+    /**
+     * getTable 获取当前表
+     * @return   string
+     */
     public function getTable() {
         return $this->options['table'];
     }
