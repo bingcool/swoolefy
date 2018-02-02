@@ -98,12 +98,12 @@ class Session {
         $this->isStart = true;
         $this->readonly = $readonly;
         $sess_id = $this->session_id;
-        if (empty($sessid)){
+        if(empty($sess_id)){
             $sess_id = Application::$app->request->cookie[$this->cookie_key];
-            if (empty($sess_id)) {
+            if(empty($sess_id)) {
                 $sess_id = MGeneral::randmd5(40);
                 Application::$app->response->cookie($this->cookie_key, $sess_id, time() + $this->cookie_lifetime, $this->cookie_path, $this->cookie_domain);
-                $sess_id = $this->session_id;
+                $this->session_id = $sess_id;
             }
         }
         $_SESSION = $this->load($sess_id);
@@ -112,11 +112,13 @@ class Session {
 
     /**
      * load 加载获取session数据
-     * @param  string  $sessid
+     * @param    string  $sess_id
      * @return   array
      */
     public function load($sess_id) {
-        $this->session_id = $sess_id;
+        if(!$this->session_id) {
+            $this->session_id = $sess_id;
+        }
         $data = $this->driver->get($this->cache_prefix . $sess_id);
         //先读数据，如果没有，就初始化一个
         if (!empty($data)) {
@@ -136,12 +138,12 @@ class Session {
         }
         //设置为Session关闭状态
         $this->isStart = false;
-        $key = $this->cache_prefix . $this->session_id;
+        $session_key = $this->cache_prefix . $this->session_id;
         // 如果没有设置SESSION,则不保存,防止覆盖
         if(empty($_SESSION)) {
             return false;
         }
-        return $this->driver->setex($key, $this->session_lifetime, serialize($_SESSION));
+        return $this->driver->setex($session_key, $this->session_lifetime, serialize($_SESSION));
     }
 
     /**
@@ -171,11 +173,71 @@ class Session {
      * @param   string  $key
      * @return   mixed
      */
-    public function get($key =null) {
+    public function get($key = null) {
         if(is_null($key)) {
             return $_SESSION;
         }
         return $_SESSION[$key];
+    }
+
+    /**
+     * has 是否存在某个key
+     * @param    string  $key 
+     * @return   boolean
+     */
+    public function has($key) {
+        if(!$key) {
+            return false;
+        }
+        return isset($_SESSION[$key]);
+    }
+
+    /**
+     * delete 删除某个key
+     * @param    $key [description]
+     * @return   boolean
+     */
+    public function delete($key) {
+        if($this->has($key)) {
+            unset($_SESSION[$key]);
+            return true;
+        }
+        return false;      
+    }
+
+    /**
+     * clear 清空某个session
+     * @param    
+     * @return  
+     */
+    public function destroy() {
+        if(!empty($_SESSION)) {
+            $_SESSION = [];
+            // 使cookie失效
+            setcookie($this->cookie_key, $this->session_id, time() - 600, $this->cookie_path, $this->cookie_domain);
+            // redis中完全删除session_key
+            $session_key = $this->cache_prefix . $this->session_id;
+            return $this->driver->del($session_key);
+        }
+        return false;
+    }
+
+    /**
+     * reGenerateSessionId 重新生成session_id
+     * @param    boolean   $ismerge  生成新的session_id是否继承合并当前session的数据，默认true,如需要产生一个完全新的空的$_SESSION，可以设置false
+     * @return   void
+     */
+    public function reGenerateSessionId($ismerge=true) {
+        $session_data = $_SESSION;
+        // 先cookie的session_id失效
+        setcookie($this->cookie_key, $this->session_id, time() - 600, $this->cookie_path, $this->cookie_domain);
+        // 设置session_id=null
+        $this->session_id = null;
+        // 产生新的session_id和返回空的$_SESSION数组
+        $this->start();
+        if($ismerge) {
+            $_SESSION = array_merge($_SESSION,$session_data);
+        }
     }
     
 }
