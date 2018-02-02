@@ -90,9 +90,13 @@ class Session {
      * @return void
      */
     public function start($readonly = false) {
-         /**注册钩子程序，在请求结束后保存sesion */
-        Application::$app->afterRequest([$this,'save']);
-    
+         /**
+          * 注册钩子程序，在请求结束后保存sesion,防止多次注册
+          */
+        if(!$this->isStart) {
+            Application::$app->afterRequest([$this,'save']);
+        }
+        
         $driver_class = $this->cache_driver;
         $this->driver = Application::$app->$driver_class;
         $this->isStart = true;
