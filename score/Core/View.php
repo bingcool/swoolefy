@@ -36,8 +36,6 @@ class View {
 	 */
 	public $enable_gzip = false;
 
-	protected $test = null;
-
 	/**
 	 * __construct
 	 */
@@ -64,11 +62,11 @@ class View {
 	}
 
 	/**
-	 * Massign 批量赋值
+	 * mAssign 批量赋值
 	 * @param    $arr
 	 * @return   boolean|null
 	 */
-	public function Massign($arr=[]) {
+	public function mAssign($arr=[]) {
 		if(!empty($arr)) {
 			if(is_string($arr)) {
 				return false;
