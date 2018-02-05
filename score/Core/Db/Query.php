@@ -42,8 +42,7 @@ class Query {
      * 获取当前的数据库Driver对象
      * @return Driver
      */
-    public function getDriver()
-    {
+    public function getDriver() {
         return $this->Driver;
     }
 
@@ -96,7 +95,12 @@ class Query {
      * @return   string
      */
     public function getTable() {
-        return $this->options['table'];
+        $table = $this->options['table'];
+        $table = trim($table);
+        if(strpos($table,' ') !== false) {
+            list($tale,) = explode(' ', $table);
+        }
+        return $table;
     }
 
     /**
@@ -107,65 +111,111 @@ class Query {
      */
     public function table($table) {
         if(is_string($table)) {
-            $this->options['table'] = "FROM $table";
+            $table = trim($table);
+            $this->options['table'] = "FROM $table ";
         }else {
             return false;
         }
         return $this;
     }
 
+    /**
+     * field 获取必要的字段
+     * @param    string|array  $fields 
+     * @return   $this
+     */
     public function field($fields) {
         $this->options['fields'] = '*';
         if($fields == '*') {
-            $this->options['fields'] = $fileds;
+            $this->options['fields'] = $fileds.' ';
             return $this;
         }
         if(empty($fields)) {
             return false;
         }
+
         $tables_fields = array_keys($this->getFields());
+
         if(is_string($fields)) {
             $fields = explode(',', $fields);
-            foreach($fields as $k=>$field) {
-                if(strpos($field,' ')) {
-                    $field = substr($field, 0, 8);
-                }
-                if(!in_array($field, $tables_fields)) {
-                    unset($fields[$k]);
-                }
+            foreach($fields as $k => $field) {
+                $field = trim($field);
             }
             if($fields) {
-                $this->options['fields'] = implode(',', $fields);
+                $this->options['fields'] = implode(',', $fields).' ';
             }
         }elseif(is_array($fields)) {
             foreach($fields as $k=>$field) {
+                $field = trim($field);
                 if(!in_array($field, $tables_fields)) {
                     unset($fields[$k]);
                 }
             }
             if($fields) {
-                $this->options['fields'] = implode(',', $fields);
+                $this->options['fields'] = implode(',', $fields).' ';
             }
         }
         return $this;
     }
 
+    /**
+     * where 多条件查询
+     * @param    $mapSql
+     * @param    $bind
+     * @return   $this
+     */
     public function where($mapSql, $bind=[]) {
     	if(is_string($mapSql)) {
-           $this->options['where'] = $mapSql;
+            // 第一次设置where条件时
+            if(!isset($this->options['where']) && empty($this->options['where'])) {
+                $this->options['where'] .= $mapSql.' ';
+            }else {
+                // AND 多次设置条件时
+                $this->options['where'] = $this->options['where'].' AND '.$mapSql.' ';
+            }   
+        }
+
+        $this->bind = array_merge($this->bind, $bind);
+        return $this;
+    }
+
+    /**
+     * whereOr Or 查询设置
+     * @param    string  $mapSql 
+     * @param    array   $bind
+     * @return   $this
+     */
+    public function whereOr($mapSql, $bind=[]) {
+        if(is_string($mapSql)) {
+            if(isset($this->options['where']) && !empty($this->options['where'])) {
+                $this->options['where'] = $this->options['where'].' OR '.$mapSql.' ';
+            }else {
+                $this->options['where'] = $mapSql.' '; 
+            }
         }
         $this->bind = array_merge($this->bind, $bind);
         return $this;
     }
 
+    /**
+     * limit 限制
+     * @param    $start
+     * @param    $offset
+     * @return   $this
+     */
     public function limit($start, $offset=20) {
         if(!is_int($start) || !is_int($offset)) {
             throw new \Exception(__NAMESPACE__.'::'.__FUNCTION__.'()'.' the params must be int');
         }
-        $this->options['limit'] = "limit $start,$offset";
+        $this->options['limit'] = "limit $start,$offset ";
         return $this;
     }
 
+    /**
+     * group 分组
+     * @param    string|array  $groupField
+     * @return   $this                  
+     */
     public function group($groupField) {
         if(is_string($groupField)) {
             $groupField = explode(',', $groupField);
@@ -177,11 +227,16 @@ class Query {
                 throw new \Exception(__NAMESPACE__.'::'.__FUNCTION__.'()'.' the field:'.$group.' is not in table');
             }
         }
-        $groupField = implode($groupField);
-        $this->options['group'] = "GROUP BY $groupField";
+        $groupField = implode(',', $groupField);
+        $this->options['group'] = "GROUP BY $groupField ";
         return $this;
     }
 
+    /**
+     * order 排序
+     * @param    string  $field
+     * @return   $this        
+     */
     public function order($field) {
         $tables_fields = array_keys($this->getFields());
         if(is_string($field)) {
@@ -193,28 +248,106 @@ class Query {
                 throw new \Exception(__NAMESPACE__.'::'.__FUNCTION__.'()'.' the order commend must be DESC or desc');
             }
 
-            $this->options['order'] = $field;
+            $this->options['order'] = $field.' ';
         }
         return $this;
     }
 
-    public function join() {
-
+    /**
+     * having 
+     * @param    string $having
+     * @return   $this
+     */
+    public function having($having) {
+       if(!empty($having)) {
+            $thin->options['having'] = "HAVING $having ";
+       }
+       return $this;  
     }
 
+
+    /**
+     * join 
+     * @param    $join_table
+     * @return   $this
+     */
+    public function join($join_table) {
+        if(is_string($join_table)) {
+            $join_table = trim($join_table);
+            $this->options['join'] = "INNER JOIN $join_table ";
+        }else {
+            return false;
+        }
+        return $this;
+    }
+
+    /**
+     * ljoin 
+     * @param    $join_table
+     * @return   $this
+     */
+    public function ljoin($join_table) {
+        if(is_string($join_table)) {
+            $join_table = trim($join_table);
+            $this->options['join'] = "LEFT JOIN $join_table ";
+        }else {
+            return false;
+        }
+        return $this;
+    }
+
+     /**
+     * rjoin 
+     * @param    $join_table
+     * @return   $this
+     */
+    public function rjoin($join_table) {
+        if(is_string($join_table)) {
+            $join_table = trim($join_table);
+            $this->options['join'] = "RIGHT JOIN $join_table ";
+        }else {
+            return false;
+        }
+        return $this;
+    }
+
+    /**
+     * bind 绑定参数设置
+     * @param    array   $bind
+     * @return   $this
+     */
+    public function bind($bind = []) {
+        if(is_array($bind) && !$bind) {
+            $this->bind = array_merge($this->bind, $bind);
+        }
+        return $this;
+    }
+
+    /**
+     * findAll   获取所有的查询数据
+     * @return   mixed
+     */
     public function findAll() {
         $sql = $this->parseSql();
-
         $result = $this->query($sql, $this->bind);
         return $result;
 
     }
 
+    /**
+     * parseSql  组合分析sql
+     * @return   string
+     */
     public function parseSql() {
-        $sql = "SELECT";
+        $sql = "SELECT ";
         $sql .= $this->options['fields'];
         $sql .= $this->options['table'];
         $sql .= $this->options['join'];
+        $sql .= $this->options['where'];
+        $sql .= $this->options['group'];
+        $sql .= $this->options['order'];
+        $sql .= $this->options['limit'];
+        $sql .= $this->options['having'];
         return $sql;
     }
 
@@ -225,7 +358,5 @@ class Query {
     public function __destruct() {
         self::$tables_fields = [];
     }
-
-
 
 }

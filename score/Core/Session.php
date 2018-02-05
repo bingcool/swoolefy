@@ -96,7 +96,7 @@ class Session {
         if(!$this->isStart) {
             Application::$app->afterRequest([$this,'save']);
         }
-        
+
         $driver_class = $this->cache_driver;
         $this->driver = Application::$app->$driver_class;
         $this->isStart = true;
@@ -240,7 +240,7 @@ class Session {
         // 产生新的session_id和返回空的$_SESSION数组
         $this->start();
         if($ismerge) {
-            $_SESSION = array_merge($_SESSION,$session_data);
+            $_SESSION = array_merge($_SESSION, $session_data);
         }
     }
     
