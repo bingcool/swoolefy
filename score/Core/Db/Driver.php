@@ -125,7 +125,7 @@ abstract class Driver {
 
         try{
         	// 创建主服务连接对象
-        	$master_dsn = $this->parseMasterDsn($this->config);
+        	$master_dsn = $this->parseMasterDsn($this->config);            
        		$this->master_link[0] = new PDO($master_dsn, $this->config['username'], $this->config['password'], $this->params);
        		// 如果设置分布式的主从模式，则创建从服务连接对象
         	if($this->isDeploy()) {
@@ -138,7 +138,7 @@ abstract class Driver {
         	}
 
         }catch (\PDOException $e) {
-        	$e->getMessage();
+        	var_dump($e->getMessage());
         }
         
         
@@ -303,7 +303,6 @@ abstract class Driver {
     public function query($sql, $bind = [], $master = false, $pdo = false) {
     	// 初始化连接
     	$this->initConnect();
-
         if(!$this->_master_link_pdo) {
             return false;
         }
@@ -317,7 +316,6 @@ abstract class Driver {
             // 如果没有设置主从数据库，则主数据也是从库，可以查询
             $this->_slave_link_pdo = $this->_master_link_pdo;
         }
-
         // 记录SQL语句
         $this->queryStr = $sql;
         if($bind) {

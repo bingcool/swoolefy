@@ -79,14 +79,15 @@ class Query {
      */
     public function getFields($tableName=null) {
         if(!$tableName) {
-            $tableName = $this->options['table'];
+            $tableName = $this->getTable();
         }
         if(!empty(self::$tables_fields[$tableName])) {
             return self::$tables_fields[$tableName];
         }
         $fields_info = $this->Driver->getFields($tableName);
         if($fields_info) {
-            return self::$tables_fields[$tableName];
+            self::$tables_fields[$tableName] = $fields_info;
+            return $fields_info;
         }
     }
 
@@ -98,9 +99,9 @@ class Query {
         $table = $this->options['table'];
         $table = trim($table);
         if(strpos($table,' ') !== false) {
-            list($tale,) = explode(' ', $table);
+            $table = end(explode(' ', $table));
         }
-        return $table;
+        return trim($table);
     }
 
     /**
