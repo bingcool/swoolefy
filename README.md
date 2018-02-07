@@ -20,9 +20,12 @@
 3、安装php必要的扩展，本框架需要的扩展包括swoole(1.9.17+), swoole_serialize(https://github.com/swoole/swoole_serialize), inotify, pcntl, posix, zlib, mbstring,可以通过php-m查看是否安装了这些扩展，如果通过lnmp1.4一健安装包安装的，已经默认安装好这四个pcntl, posix, zlib, mbstring扩展的，只需要在安装swoole和swoole_serialize, inotify即可，具体安装过程参考官方文档
 
 ### 下载框架和安装
-在某一个web目录下                   
+需要在linux环境下，在某一个web目录下,                   
 (1)git clone https://github.com/bingcool/swoolefy.git         
-(2)composer install(需要安装composer)
+(2)composer install(需要安装composer)    
+注意，composer install时，可能或提示说要求安装mongodb的扩展才能install,有两种处理方式：     
+a)安装mongodb扩展,然后再执行composer install安装      
+b)可能暂时不需要用到mongodb的，可以删除文件的composer.lock文件和将composer.json的require中的"mongodb/mongodb": "1.2.0"删除或者屏蔽掉，然后再执行composer install安装
 
 ### 启动
 1、启动文件自动监控程序，进入swoolefy/score/AutoReload     
@@ -43,7 +46,7 @@ php  start.php -d
 那么直接在浏览器输入http://ip:9502/Test/test, 对应的路由规则domain/controller/action
 具体的可以参考App/Controller/的例子
 
-如果需要使用mysql，redis，mongodb这些组件功能，请安装并在App/Config/config.php中配置。这个与Yii2的Component相似.
+如果需要使用mysql，redis，mongodb这些组件功能，请安装对应的扩展和服务，并在App/Config/config.php中配置。这个与Yii2的Component相似.
 
 
 
