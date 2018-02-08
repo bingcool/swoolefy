@@ -373,7 +373,6 @@ abstract class Driver {
     public function execute($sql, $bind = []) {
         // 初始化连接
         $this->initConnect();
-
         if(!$this->_master_link_pdo) {
             return false;
         }
@@ -409,12 +408,14 @@ abstract class Driver {
             return $this->numRows;
 
         }catch (\PDOException $e) {
+            var_dump($e->getMessage());
             // 如果断线，尝试重连
             if($this->isBreak($e)) {
 
             }
             throw new \PDOException($e);
         }catch (\Exception $e) {
+            var_dump($e->getMessage());
             // 如果断线，尝试重连
             if($this->isBreak($e)) {
 

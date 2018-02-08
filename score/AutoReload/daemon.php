@@ -44,7 +44,7 @@ class daemon {
 		// 初始化配置
 		$autoReload->init();
 		// 开始监听
-		$autoReload->watch('/home/wwwroot/');
+		$autoReload->watch('/home/wwwroot/swoolefy');
 	}
 
 	// 启动服务的eventloop

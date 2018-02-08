@@ -35,7 +35,12 @@ return [
 			'isDelay' => true,//延迟创建实例，请求时候再创建
 			'class' => 'Swoolefy\Core\Cache\Redis',
 			'constructor'=> [
-				'tcp://127.0.0.1:6379',
+				[
+					'scheme' => 'tcp',
+    				'host'   => '192.168.99.102',
+    				'port'   => 6379,
+    				'password' => '123456'
+				],
 				[
 					'profile' => '3.2'
 				]
@@ -57,11 +62,11 @@ return [
 			'class' => 'Swoolefy\Core\Db\Mysql',
 			'config' =>[
 				'type'=>'mysql',
-				'master_host' =>['127.0.0.1'],
-				'slave_host' =>['127.0.0.1'],
+				'master_host' =>['192.168.99.102'],
+				'slave_host' =>['192.168.99.102'],
 				'dbname' => 'bingcool',
-				'username' =>'root',
-				'password' =>'root',
+				'username' =>'swoole',
+				'password' =>'123456',
 				'prefix' => '',
 				'port' =>3306,
 	        	'charset' => 'utf8',
@@ -72,7 +77,7 @@ return [
 		'mongodb'=>[
 			'class'=>'Swoolefy\Core\Mongodb\MongodbModel',
 			'database'=>'mytest',
-			'uri'=>'mongodb://127.0.0.1:27018',
+			'uri'=>'mongodb://192.168.99.102:27017',
 			'driverOptions'=> [
 					'typeMap' => [ 'array' => 'MongoDB\Model\BSONArray', 'document' => 'MongoDB\Model\BSONArray', 'root' => 'MongoDB\Model\BSONArray']
 			],
@@ -82,12 +87,13 @@ return [
 		'redis' =>[
 			'class' => 'Swoolefy\Core\Cache\Redis',
 			'constructor'=> [
-				'tcp://127.0.0.1:6379',
 				[
-					'profile' => '3.2'
-				]
+					'scheme' => 'tcp',
+    				'host'   => '192.168.99.102',
+    				'port'   => 6379,
+    				'password' => '123456'
+				],
 			]
-
 		],
 	],
 ];

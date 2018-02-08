@@ -2,6 +2,7 @@
 namespace Swoolefy\Core\Db;
 
 use Swoolefy\Core\Db\Mysql;
+use PDO;
 
 class Query {
 
@@ -128,14 +129,12 @@ class Query {
     public function field($fields) {
         $this->options['fields'] = '*';
         if($fields == '*') {
-            $this->options['fields'] = $fileds.' ';
+            $this->options['fields'] = $fields.' ';
             return $this;
         }
         if(empty($fields)) {
             return false;
         }
-
-        $tables_fields = array_keys($this->getFields());
 
         if(is_string($fields)) {
             $fields = explode(',', $fields);
@@ -148,9 +147,6 @@ class Query {
         }elseif(is_array($fields)) {
             foreach($fields as $k=>$field) {
                 $field = trim($field);
-                if(!in_array($field, $tables_fields)) {
-                    unset($fields[$k]);
-                }
             }
             if($fields) {
                 $this->options['fields'] = implode(',', $fields).' ';
@@ -169,7 +165,7 @@ class Query {
     	if(is_string($mapSql)) {
             // 第一次设置where条件时
             if(!isset($this->options['where']) && empty($this->options['where'])) {
-                $this->options['where'] .= $mapSql.' ';
+                $this->options['where'] .= "WHERE $mapSql ";
             }else {
                 // AND 多次设置条件时
                 $this->options['where'] = $this->options['where'].' AND '.$mapSql.' ';
@@ -191,7 +187,7 @@ class Query {
             if(isset($this->options['where']) && !empty($this->options['where'])) {
                 $this->options['where'] = $this->options['where'].' OR '.$mapSql.' ';
             }else {
-                $this->options['where'] = $mapSql.' '; 
+                $this->options['where'] = "WHERE $mapSql "; 
             }
         }
         $this->bind = array_merge($this->bind, $bind);
@@ -222,11 +218,8 @@ class Query {
             $groupField = explode(',', $groupField);
         }
 
-        $tables_fields = array_keys($this->getFields());
-        foreach($groupField as $group) {
-            if(!in_array($group, $tables_fields)) {
-                throw new \Exception(__NAMESPACE__.'::'.__FUNCTION__.'()'.' the field:'.$group.' is not in table');
-            }
+        foreach($groupField as $k=>$group) {
+           $groupField[$k] = trim($group);
         }
         $groupField = implode(',', $groupField);
         $this->options['group'] = "GROUP BY $groupField ";
@@ -240,16 +233,8 @@ class Query {
      */
     public function order($field) {
         $tables_fields = array_keys($this->getFields());
-        if(is_string($field)) {
-            $fields = explode(' ', $field);
-            if(!in_array($fields[0], $tables_fields)) {
-                throw new \Exception(__NAMESPACE__.'::'.__FUNCTION__.'()'.' the field:'.$group.' is not in table');
-            }
-            if(isset($fields[1]) && !in_array($fields[1], ['DESC', 'desc'])) {
-                throw new \Exception(__NAMESPACE__.'::'.__FUNCTION__.'()'.' the order commend must be DESC or desc');
-            }
-
-            $this->options['order'] = $field.' ';
+        if(is_string($field)) {   
+            $this->options['order'] = "ORDER BY $field ";
         }
         return $this;
     }
@@ -261,6 +246,7 @@ class Query {
      */
     public function having($having) {
        if(!empty($having)) {
+            $having = trim($having);
             $thin->options['having'] = "HAVING $having ";
        }
        return $this;  
@@ -272,10 +258,10 @@ class Query {
      * @param    $join_table
      * @return   $this
      */
-    public function join($join_table) {
+    public function join($join_table,$map) {
         if(is_string($join_table)) {
             $join_table = trim($join_table);
-            $this->options['join'] = "INNER JOIN $join_table ";
+            $this->options['join'] = "INNER JOIN $join_table ON $map ";
         }else {
             return false;
         }
@@ -287,10 +273,10 @@ class Query {
      * @param    $join_table
      * @return   $this
      */
-    public function ljoin($join_table) {
+    public function ljoin($join_table,$map) {
         if(is_string($join_table)) {
             $join_table = trim($join_table);
-            $this->options['join'] = "LEFT JOIN $join_table ";
+            $this->options['join'] = "LEFT JOIN $join_table ON $map ";
         }else {
             return false;
         }
@@ -302,10 +288,10 @@ class Query {
      * @param    $join_table
      * @return   $this
      */
-    public function rjoin($join_table) {
+    public function rjoin($join_table,$map) {
         if(is_string($join_table)) {
             $join_table = trim($join_table);
-            $this->options['join'] = "RIGHT JOIN $join_table ";
+            $this->options['join'] = "RIGHT JOIN $join_table ON $map ";
         }else {
             return false;
         }
@@ -325,6 +311,79 @@ class Query {
     }
 
     /**
+     * findOne 查询一条记录
+     * @return   array
+     */
+    public function find() {
+        $sql = $this->parseSql();
+        $PDOStatement = $this->Driver->query($sql, $this->bind, $master = false, $pdo = true);
+        $result  = $PDOStatement->fetch(PDO::FETCH_ASSOC);
+        return $result;
+    }
+
+    /**
+     * getColumn 获取某一列的值
+     * @param    string  $field 字段名 多个字段用逗号分隔
+     * @param    string  $key 索引
+     * @return   array
+     */
+    public function getColumn($field='', $key='') {
+        $result = false;
+        $sql = $this->parseSql();
+        $PDOStatement = $this->Driver->query($sql, $this->bind, $master = false, $pdo = true);
+        if(false === $result) {
+
+            if(isset($this->options['fields'])) {
+                unset($this->options['fields']);
+            }
+
+            if(is_null($field)) {
+                $field = '*';
+            } elseif ($key && '*' != $field) {
+                $field = $key . ',' . $field;
+            }
+
+            if(1 == $PDOStatement->columnCount()) {
+                $result = $PDOStatement->fetchAll(PDO::FETCH_COLUMN);
+            }else {
+                $resultSet = $PDOStatement->fetchAll(PDO::FETCH_ASSOC);
+                if($resultSet) {
+                        $fields = array_keys($resultSet[0]);
+                        $count  = count($fields);
+                        $key1   = array_shift($fields);
+                        $key2   = $fields ? array_shift($fields) : '';
+                        $key    = $key ?: $key1;
+                        if (strpos($key, '.')) {
+                            list($alias, $key) = explode('.', $key);
+                        }
+                        foreach ($resultSet as $val) {
+                            if ($count > 2) {
+                                $result[$val[$key]] = $val;
+                            } elseif (2 == $count) {
+                                $result[$val[$key]] = $val[$key2];
+                            } elseif (1 == $count) {
+                                $result[$val[$key]] = $val[$key1];
+                            }
+                        }
+                } else {
+                    $result = [];
+                }
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * select   获取所有的查询数据
+     * @return   mixed
+     */
+    public function select() {
+        $sql = $this->parseSql();
+        $result = $this->query($sql, $this->bind);
+        return $result;
+    }
+
+    /**
      * findAll   获取所有的查询数据
      * @return   mixed
      */
@@ -332,7 +391,6 @@ class Query {
         $sql = $this->parseSql();
         $result = $this->query($sql, $this->bind);
         return $result;
-
     }
 
     /**

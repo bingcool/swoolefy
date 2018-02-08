@@ -26,7 +26,7 @@ class TestController extends BController {
 		];
 		$this->assign('name', $name);
 		$this->assign('books', $books);
-		dump('dump()这是一个打印输出调试函数');
+		dump('dump()nnnnnnvvv');
 		// MGeneral::xhprof();
 		$this->display('test.html');
 	}
