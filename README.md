@@ -48,5 +48,16 @@ php  start.php -d
 
 如果需要使用mysql，redis，mongodb这些组件功能，请安装对应的扩展和服务，并在App/Config/config.php中配置。这个与Yii2的Component相似.
 
+### nginx代理      
+为了使用更好支持的HTTP协议，建议前端使用nginx作为代理,更多功能可以看proxy模块来设置   
+```
+location / {
+            proxy_http_version 1.1;
+            proxy_set_header Connection "keep-alive";
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_pass http://127.0.0.1:9502;
+        }
+```
 
+那么在浏览器输入http://domain/Test/test，可以直接访问
 
