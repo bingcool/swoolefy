@@ -142,9 +142,9 @@ class HttpServer extends BaseServer {
 		/**
 		 * 异步任务
 		 */
-		$this->webserver->on('task', function(http_server $server, $task_id, $from_id, $data) {
+		$this->webserver->on('task', function(http_server $server, $task_id, $from_worker_id, $data) {
 			try {
-				self::onTask($task_id, $from_id, $data);
+				self::onTask($task_id, $from_worker_id, $data);
 				return true;
 			}catch(\Exception $e) {
 				// 捕捉异常
