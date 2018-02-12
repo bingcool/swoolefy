@@ -5,7 +5,7 @@ return [
 	'start_init' => 'Swoolefy\\Websocket\\StartInit',
 	'master_process_name' => 'php-websocket-master',
 	'manager_process_name' => 'php-websocket-manager',
-	'worker_process_name' => 'php-websocket-monitor',
+	'worker_process_name' => 'php-websocket-worker',
 	'www_user' => 'www',
 	'host' => '0.0.0.0',
 	'port' => '9503',
