@@ -19,4 +19,11 @@ class MongoController extends BController {
 		dump($user);
 	}
 
+	public function get() {
+		$user = $this->mongodb->collection('user');
+		$data = $user->field('*')->find();
+		dump($data);
+
+	}
+
 }

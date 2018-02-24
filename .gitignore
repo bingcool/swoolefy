@@ -8,7 +8,9 @@ sftp-config.json
 *.pid
 #dir
 /App/Runtime/
+/App/Config/
 /vendor
 #runtime.log
 runtime.log
 docker-compose.yml
+/APP/View/Test/test.html
