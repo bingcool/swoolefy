@@ -394,6 +394,23 @@ class Query {
     }
 
     /**
+     * insert 
+     * @param    array  $data 
+     * @return   
+     */
+    public function insert($data = []) {
+        if(is_array($data) && !$data) {
+           $fields = array_keys($this->getFields());
+           foreach($data as $k=>&$value) {
+                if(!in_array($k,$fields)) {
+                    throw new \Exception($k.' field is not a field in table');
+                }
+                
+           }
+        }
+    }
+
+    /**
      * parseSql  组合分析sql
      * @return   string
      */

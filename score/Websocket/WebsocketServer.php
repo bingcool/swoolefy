@@ -3,6 +3,7 @@ namespace Swoolefy\Websocket;
 
 use Swoole\WebSocket\Server as websocket_server;
 use Swoolefy\Core\BaseServer;
+use Swoole\Server as tcp_server;
 use Swoolefy\Core\Swfy;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
@@ -50,13 +51,18 @@ class WebsocketServer extends BaseServer {
 	 * $tcpclient 
 	 * @var null
 	 */
-	public $tcpclient = null;
+	public $tcp_client = null;
 
 	/**
 	 * $gateway_config 
 	 * @var array
 	 */
-	public $rpc_config = [''];
+	public $rpc_config = [
+		['host'=>'127.0.0.1','port'=>9999]
+	];
+
+
+	public $channel = null;
 
 	/**
 	 * $startctrl
@@ -80,8 +86,11 @@ class WebsocketServer extends BaseServer {
 		parent::__construct();
 
 		// 监听多一个内部的TCP端口
-		$this->tcpserver = $this->webserver->addListener('0.0.0.0', 9999, SWOOLE_SOCK_TCP);
-		$this->tcpserver->set(array());
+		$this->tcpserver = $this->webserver->addListener('0.0.0.0', self::$config['tcp_port'], SWOOLE_SOCK_TCP);
+		$this->tcpserver->set(self::$config['tcp_setting']);
+
+		// 创建一个channel通道
+		$this->channel = new \Swoole\Channel(1024 * 256);
 
 		// 初始化启动类
 		self::$startCtrl = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Websocket\\StartInit';
@@ -127,13 +136,14 @@ class WebsocketServer extends BaseServer {
 			// 超全局变量server
        		Swfy::$server = $this->webserver;
        		Swfy::$config = self::$config;
+       		// 初始化整个应用对象,http请求设置
+       		if(self::$config['accept_http'] || self::$config['accept_http'] == 'true') {
+       			is_null(self::$App) && self::$App = swoole_pack(self::$config['application_index']::getInstance($config=[]));
+       		}
 			// 启动的初始化函数
 			self::$startCtrl::workerStart($server,$worker_id);
-
-			//tcp的client连接tcp的server,只能是在worker进程中
-			if($worker_id < self::$setting['worker_num']) {
-				self::registerRpc();
-			}
+			//tcp的异步client连接tcp的server,只能是在worker进程中
+			self::isWorkerProcess($worker_id) && self::registerRpc();
 			
 		});
 
@@ -148,7 +158,7 @@ class WebsocketServer extends BaseServer {
 
 		$this->webserver->on('message', function(websocket_server $server, $frame) {
 			try{
-				$data = [$frame->fd,'hello'.rand(1,100)];
+				$data = [$frame->fd, $frame->data];
 				$server->task($data);
 			}catch(\Exception $e) {
 				// 捕捉异常
@@ -173,7 +183,15 @@ class WebsocketServer extends BaseServer {
 
 		$this->webserver->on('finish', function(websocket_server $server, $task_id, $data) {
 			try{
-				$this->tcpclient->send(json_encode($data));
+				if($this->tcp_client->isConnected()) {
+					$this->tcp_client->send(swoole_pack($data).self::$config['tcp_setting']['package_eof']);
+					while($text = $this->channel->pop()) {
+						$this->tcp_client->send(swoole_pack($text).self::$config['tcp_setting']['package_eof']);
+					}
+				}else {
+					self::registerRpc();
+					$this->channel->push($data);
+				}
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);
@@ -182,10 +200,9 @@ class WebsocketServer extends BaseServer {
 		});
 
 		//监听数据接收事件
-		$this->tcpserver->on('receive', function($server, $fd, $from_worker_id, $data) {
-			list($websocket_fd, $mydata) = json_decode($data);
-
-		    $this->webserver->push($websocket_fd, $mydata);
+		$this->tcpserver->on('receive', function(tcp_server $server, $fd, $from_worker_id, $data) {
+			list($websocket_fd, $mydata) = swoole_unpack($data);
+			$this->webserver->push($websocket_fd, $mydata);
 		});
 
 
@@ -246,27 +263,31 @@ class WebsocketServer extends BaseServer {
 		$this->webserver->start();
 	}
 
+	/**
+	 * registerRpc 
+	 * @return   [type]        [description]
+	 */
 	public function registerRpc() {
-		$this->tcpclient = new \swoole_client(SWOOLE_SOCK_TCP, SWOOLE_SOCK_ASYNC);
+		$this->tcp_client = new \swoole_client(SWOOLE_SOCK_TCP, SWOOLE_SOCK_ASYNC);
 		//注册连接成功回调
-		$this->tcpclient->on("connect", function($cli){
+		$this->tcp_client->on("connect", function($cli){
 		    // 
 		});
 
 		//注册数据接收回调
-		$this->tcpclient->on("receive", function($cli, $data){
+		$this->tcp_client->on("receive", function($cli, $data){
 		});
 
 		//注册连接失败回调
-		$this->tcpclient->on("error", function($cli){
+		$this->tcp_client->on("error", function($cli){
 		});
 
 		//注册连接关闭回调
-		$this->tcpclient->on("close", function($cli){
+		$this->tcp_client->on("close", function($cli){
 		});
 
 		//发起连接
-		$this->tcpclient->connect('127.0.0.1', 9999, 0.5);
+		$this->tcp_client->connect('127.0.0.1', 9999, 0.5);
 	}
 
 }

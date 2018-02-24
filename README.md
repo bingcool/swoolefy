@@ -59,5 +59,5 @@ location / {
         }
 ```
 
-那么在浏览器输入http://domain/Test/test，可以直接访问
+那么在浏览器输入http://domain/Test/test,可以直接访问
 

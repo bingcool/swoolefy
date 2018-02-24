@@ -26,9 +26,6 @@ class HttpController extends BController {
 	        var_dump($cli->body);
 	    });
 
-	    $data = (new Collection($cli))->getIterator();
-	    dump($data);
-
 	    dump('kkkk'.rand(1,100));
 	    // $res = $cli->close();
 	    // dump($res);

@@ -30,4 +30,12 @@ return [
 			]
 		],
 	],
+
+	// tcp端口配置
+	'tcp_port' => 9999,
+	'tcp_setting' => [
+		'open_eof_check' => true, //打开EOF检测
+		'open_eof_split' => true,
+		'package_eof' => "\r\n", //设置EOF
+	],
 ];

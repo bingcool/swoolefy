@@ -345,6 +345,27 @@ class BaseServer {
 	}
 
 	/**
+	 * isWorkerProcess 进程是否是worker进程
+	 * @param    $worker_id
+	 * @return   boolean
+	 */
+	public static function isWorkerProcess($worker_id) {
+		if($worker_id < static::$setting['worker_num']) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * isTaskProcess 进程是否是task进程
+	 * @param    $worker_id
+	 * @return   boolean
+	 */
+	public static function isTaskProcess($worker_id) {
+		return static::isWorkerProcess($worker_id) ? false : true;
+	}
+
+	/**
 	 * setCommonFunction 底层的公共函数库
 	 * @return  void
 	 */
