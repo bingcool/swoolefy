@@ -23,10 +23,14 @@
       {/foreach} 
 </table> 
 <a href="/Test/testajax">测试ajax</a>
-<!-- <script type="text/javascript">
-	ws = new WebSocket("ws://192.168.44.128:9503");
+<div>
+	<input type="text" id="settext" />
+</div>
+<button id="set_btn">设置websocket</button>
+<script type="text/javascript">
+	ws = new WebSocket("ws://192.168.99.102:9503");
 	ws.onopen = function(){  
-	  ws.send('hello!');	
+	  ws.send('test'+Math.floor(Math.random() * 100 + 1));	
 	};
 
 	ws.onmessage = function(evt){
@@ -42,11 +46,11 @@
 	  console.log("WebSocketError!");
 	};
 
-	window.onbeforeunload = function() {
-		ws.close();
-	};
+	// window.onbeforeunload = function() {
+	// 	ws.close();
+	// };
 
-</script> -->
+</script>
 <script type="text/javascript">
 	$("#btn").click(function() {
 		$.ajax({
@@ -57,6 +61,13 @@
 			}
 		});
 	});
+</script>
+
+<script type="text/javascript">
+	$("#set_btn").click(function() {
+		$text = $("#settext").val();
+		ws.send('test'+ $text);
+	}); 
 </script>
 
 </body>
