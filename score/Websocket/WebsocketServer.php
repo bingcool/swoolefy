@@ -21,7 +21,7 @@ class WebsocketServer extends BaseServer {
 	public static $setting = [
 		'reactor_num' => 1, //reactor thread num
 		'worker_num' => 2,    //worker process num
-		'max_request' => 5,
+		// 'max_request' => 5,
 		'task_worker_num' =>1,
 		'task_tmpdir' => '/dev/shm',
 		'daemonize' => 0,
@@ -183,14 +183,25 @@ class WebsocketServer extends BaseServer {
 
 		$this->webserver->on('finish', function(websocket_server $server, $task_id, $data) {
 			try{
+				$sendStr = json_encode($data);
+
+    			$sendData = pack('Na30', strlen($sendStr),'bingcool黄') . $sendStr;
+				
 				if($this->tcp_client->isConnected()) {
-					$this->tcp_client->send(swoole_pack($data).self::$config['tcp_setting']['package_eof']);
-					while($text = $this->channel->pop()) {
-						$this->tcp_client->send(swoole_pack($text).self::$config['tcp_setting']['package_eof']);
+
+					// $this->tcp_client->send(serialize($data).self::$config['tcp_setting']['package_eof']);
+
+					// while($msg = $this->channel->pop()) {
+					// 	$this->tcp_client->send($msg.self::$config['tcp_setting']['package_eof']);
+					// }
+					
+					$this->tcp_client->send($sendData);
+
+					while($msg = $this->channel->pop()) {
+						$this->tcp_client->send($msg);
 					}
 				}else {
-					self::registerRpc();
-					$this->channel->push($data);
+					$this->channel->push($sendData);
 				}
 			}catch(\Exception $e) {
 				// 捕捉异常
@@ -201,8 +212,10 @@ class WebsocketServer extends BaseServer {
 
 		//监听数据接收事件
 		$this->tcpserver->on('receive', function(tcp_server $server, $fd, $from_worker_id, $data) {
-			list($websocket_fd, $mydata) = swoole_unpack($data);
-			$this->webserver->push($websocket_fd, $mydata);
+			$pack_header = unpack('Nlen/a30name', mb_substr($data, 0, 34));
+			$username = trim($pack_header['name']);
+			list($websocket_fd, $mydata) = json_decode(substr($data, 34),true);
+			$this->webserver->push($websocket_fd, $mydata.'-'.$username);
 		});
 
 
