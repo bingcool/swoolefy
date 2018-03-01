@@ -56,8 +56,11 @@ class Pack {
 	];
 
 	const DECODE_JSON = 1;
+
     const DECODE_PHP = 2;
+
     const DECODE_SWOOLE = 3;
+    
 	/**
 	 * $_header_size 包头固定大小
 	 * @var integer
@@ -188,7 +191,7 @@ class Pack {
 	public static function enpack($data, $header, $seralize_type = self::DECODE_JSON) {
 		if(is_string($seralize_type)) {
 			$seralize_type = self::SERIALIZE_TYPE[$seralize_type];
-		} 
+		}
         switch($seralize_type) {
         		// json
             case 1:
@@ -227,7 +230,7 @@ class Pack {
 	public static function decode($data, $unseralize_type = self::DECODE_JSON) {
 		if(is_string($unseralize_type)) {
 			$unseralize_type = self::SERIALIZE_TYPE[$unseralize_type];
-		} 
+		}
         switch($unseralize_type) {
         		// json
             case 1:
