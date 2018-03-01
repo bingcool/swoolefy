@@ -68,7 +68,21 @@ class Pack {
 	public static $_header_size = 34;
 
 	/**
+	 * $_pack_eof eof分包时设置
+	 * @var string
+	 */
+	public static $_pack_eof = "\r\n\r\n";
+
+	/**
 	 * decodePack 接收数据解包处理
+	 * usages:
+	 	Pack::$_header_struct = ['length'=>'N','name'=>'a30']  包头定义的字段与对应类型
+	 	Pack::$pack_length_key = 'length'   包头的记录包体长度的key,要与$_header_struct的key一致
+	 	Pack::$_header_size = 34            固定包头字节大小
+		$Pack = new Pack();
+		$Pack->serialize_type = Pack::DECODE_SWOOLE;
+		$res = $Pack->depack($server, $fd, $reactor_id, $data);
+
 	 * @param    \Swoole\Server $server
 	 * @param    int            $fd
 	 * @param    int         $reactor_id
@@ -94,7 +108,6 @@ class Pack {
 				// 返回包头和包体数据
 				return $request;
 			}
-
 
 		}else {
 			// 设置unpack包类型
@@ -182,31 +195,21 @@ class Pack {
 	}
 
 	/**
-	 * encode 数据序列化
-	 * @param    string  $data
+	 * encode 数据封包
+	 * usages:
+	 	$header = ['length'=>'','name'=>'bingcool'];头部字段信息,'length'字段可以为空
+		$Pack = new Pack();
+		$sendData = $Pack->enpack($data, $header, Pack::DECODE_SWOOLE);
+
+	 * @param    mixed  $data
 	 * @param    array  $header
 	 * @param    string  $seralize_type
 	 * @return   string
 	 */
 	public static function enpack($data, $header, $seralize_type = self::DECODE_JSON) {
-		if(is_string($seralize_type)) {
-			$seralize_type = self::SERIALIZE_TYPE[$seralize_type];
-		}
-        switch($seralize_type) {
-        		// json
-            case 1:
-                $body = json_encode($data);
-                // serialize
-            case 2:
-            	$body = serialize($data);
-            case 3;
-            default:
-            	// swoole
-            	$body = swoole_pack($data);  
-        }
-
+		$body = self::encode($data, $seralize_type);
         $bin_header_data = '';
-
+        
         foreach(self::$_header_struct as $key=>$value) {
         	// 计算包体长度
         	if($key == self::$pack_length_key) {
@@ -219,6 +222,30 @@ class Pack {
         }
 
         return $bin_header_data . $body;
+	}
+
+	/**
+	 * encode 数据序列化
+	 * @param   mixed   $data
+	 * @param   int     $seralize_type
+	 * @return  string
+	 */
+	public static function encode($data, $seralize_type = self::DECODE_JSON) {
+		if(is_string($seralize_type)) {
+			$seralize_type = self::SERIALIZE_TYPE[$seralize_type];
+		}
+        switch($seralize_type) {
+        		// json
+            case 1:
+                return json_encode($data);
+                // serialize
+            case 2:
+            	return serialize($data);
+            case 3;
+            default:
+            	// swoole
+            	return swoole_pack($data);  
+        }
 	}
 
 	/**
@@ -243,6 +270,42 @@ class Pack {
             	// swoole
             	return swoole_unpack($data);   
         }
+    }
+
+    /**
+     * enpackeof eof协议封包,包体中不能含有eof的结尾符号，否则出错
+     * usages:
+     	Pack::$_pack_eof = "\r\n\r\n";
+		$Pack = new Pack();
+		$sendData = $Pack->enpackeof($data, Pack::DECODE_JSON);
+					
+     * @param  mixed $data
+     * @param  int   $seralize_type
+     * @param  string $eof
+     * @return string
+     */
+    public function enpackeof($data, $seralize_type = self::DECODE_JSON, $eof ='') {
+    	if(empty($eof)) {
+    		$eof = self::$_pack_eof;
+    	}
+    	$data = self::encode($data, $seralize_type).$eof;
+    	
+    	return $data;
+    }
+
+    /**
+     * depackeof  eof协议解包,每次收到一个完整的包
+     * usages:
+    	Pack::$_pack_eof = "\r\n\r\n";
+		$Pack = new Pack();
+		$res = $Pack->depackeof($data, Pack::DECODE_JSON);
+     
+     * @param   string  $data
+     * @param   int     $unseralize_type
+     * @return  mixed 
+     */
+    public function depackeof($data, $unseralize_type = self::DECODE_JSON) {
+    	return self::decode($data, $unseralize_type);
     }
 
 }

@@ -22,7 +22,7 @@ class WebsocketServer extends BaseServer {
 	public static $setting = [
 		'reactor_num' => 1, //reactor thread num
 		'worker_num' => 2,    //worker process num
-		// 'max_request' => 5,
+		'max_request' => 5,
 		'task_worker_num' =>1,
 		'task_tmpdir' => '/dev/shm',
 		'daemonize' => 0,
@@ -158,7 +158,7 @@ class WebsocketServer extends BaseServer {
 
 		$this->webserver->on('message', function(websocket_server $server, $frame) {
 			try{
-				$data = [$frame->fd, $frame->data.'肿瘤规律'];
+				$data = [$frame->fd, $frame->data];
 				$server->task($data);
 			}catch(\Exception $e) {
 				// 捕捉异常
@@ -184,9 +184,14 @@ class WebsocketServer extends BaseServer {
 		$this->webserver->on('finish', function(websocket_server $server, $task_id, $data) {
 			try{
 				
-				$header = ['length'=>'','name'=>'黄增冰'];
+				// $header = ['length'=>'','name'=>'黄增冰'];
+				// $Pack = new Pack();
+				// $sendData = $Pack->enpack($data, $header, Pack::DECODE_SWOOLE);
+				
+				Pack::$_pack_eof = "\r\n\r\n";
 				$Pack = new Pack();
-				$sendData = $Pack->enpack($data, $header, Pack::DECODE_SWOOLE);
+				$sendData = $Pack->enpackeof($data, Pack::DECODE_JSON);
+					
 				if($this->tcp_client->isConnected()) {
 
 					$this->tcp_client->send($sendData);
@@ -206,19 +211,26 @@ class WebsocketServer extends BaseServer {
 
 		//监听数据接收事件
 		$this->tcpserver->on('receive', function(tcp_server $server, $fd, $reactor_id, $data) {
-		  
+		  	
+		 	// Pack::$_header_size = 34;
+			// $Pack = new Pack();
+			// $Pack->serialize_type = Pack::DECODE_SWOOLE;
+			// $res = $Pack->depack($server, $fd, $reactor_id, $data);
+			// if($res) {
+			// 	list($header, $data) = $res;
+
+			// 	$username = $header['name'];
+
+			// 	list($websocket_fd, $mydata) = $data;
+			// 	$this->webserver->push($websocket_fd, $mydata.'-'.$username);
+			// }
+
+			Pack::$_pack_eof = "\r\n\r\n";
 			$Pack = new Pack();
-			$Pack->serialize_type = Pack::DECODE_SWOOLE;
-			$res = $Pack->depack($server, $fd, $reactor_id, $data);
-			if($res) {
-				list($header, $data) = $res;
-
-				$username = $header['name'];
-
-				list($websocket_fd, $mydata) = $data;
-				$this->webserver->push($websocket_fd, $mydata.'-'.$username);
-			}
-			
+			$res = $Pack->depackeof($data, Pack::DECODE_JSON);
+			list($websocket_fd, $mydata) = $res;
+			$this->webserver->push($websocket_fd, $mydata);
+	
 		});
 
 
