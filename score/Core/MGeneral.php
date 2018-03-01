@@ -232,6 +232,28 @@ class MGeneral extends \Swoolefy\Core\Object {
         return substr(md5($seed . rand(111111, 999999)), 0, $length);
     }
 
+    /**
+     * mbstrlen 计算某个混合字符串的长度总数，包含英文或者中文的字符串,如果安装mb_string扩展的话，可以直接使用mb_strlen()函数，遇着函数等效
+     * @param    string  $str 
+     * @return   int
+     */
+    public static function mbStrlen($str) {
+        // strlen()计算的是字节
+        $len = strlen($str);
+        if ($len <= 0) {
+            return 0;
+        }
+        
+        $count = 0;
+        for($i = 0; $i < $len; $i++) {
+            $count++;
+            if(ord($str{$i}) >= 0x80) {
+                $i += 2;
+            }
+        }
+        return $count;
+    }
+
 	/**
 	 * getBrowser 获取浏览器
 	 * @return   string

@@ -7,6 +7,7 @@ use Swoole\Server as tcp_server;
 use Swoolefy\Core\Swfy;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
+use Swoolefy\Core\Pack;
 
 // 如果直接通过php WebsocketServer.php启动时，必须include的vendor/autoload.php
 if(isset($argv) && $argv[0] == basename(__FILE__)) {
@@ -93,8 +94,7 @@ class WebsocketServer extends BaseServer {
 		$this->channel = new \Swoole\Channel(1024 * 256);
 
 		// 初始化启动类
-		self::$startCtrl = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Websocket\\StartInit';
-		
+		self::$startCtrl = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Websocket\\StartInit';	
 	}
 
 	public function start() {
@@ -158,7 +158,7 @@ class WebsocketServer extends BaseServer {
 
 		$this->webserver->on('message', function(websocket_server $server, $frame) {
 			try{
-				$data = [$frame->fd, $frame->data];
+				$data = [$frame->fd, $frame->data.'肿瘤规律'];
 				$server->task($data);
 			}catch(\Exception $e) {
 				// 捕捉异常
@@ -183,18 +183,12 @@ class WebsocketServer extends BaseServer {
 
 		$this->webserver->on('finish', function(websocket_server $server, $task_id, $data) {
 			try{
-				$sendStr = json_encode($data);
-
-    			$sendData = pack('Na30', strlen($sendStr),'bingcool黄') . $sendStr;
 				
+				$header = ['length'=>'','name'=>'黄增冰'];
+				$Pack = new Pack();
+				$sendData = $Pack->enpack($data, $header, Pack::DECODE_SWOOLE);
 				if($this->tcp_client->isConnected()) {
 
-					// $this->tcp_client->send(serialize($data).self::$config['tcp_setting']['package_eof']);
-
-					// while($msg = $this->channel->pop()) {
-					// 	$this->tcp_client->send($msg.self::$config['tcp_setting']['package_eof']);
-					// }
-					
 					$this->tcp_client->send($sendData);
 
 					while($msg = $this->channel->pop()) {
@@ -211,17 +205,26 @@ class WebsocketServer extends BaseServer {
 		});
 
 		//监听数据接收事件
-		$this->tcpserver->on('receive', function(tcp_server $server, $fd, $from_worker_id, $data) {
-			$pack_header = unpack('Nlen/a30name', mb_substr($data, 0, 34));
-			$username = trim($pack_header['name']);
-			list($websocket_fd, $mydata) = json_decode(substr($data, 34),true);
-			$this->webserver->push($websocket_fd, $mydata.'-'.$username);
+		$this->tcpserver->on('receive', function(tcp_server $server, $fd, $reactor_id, $data) {
+		  
+			$Pack = new Pack();
+			$Pack->serialize_type = Pack::DECODE_SWOOLE;
+			$res = $Pack->depack($server, $fd, $reactor_id, $data);
+			if($res) {
+				list($header, $data) = $res;
+
+				$username = $header['name'];
+
+				list($websocket_fd, $mydata) = $data;
+				$this->webserver->push($websocket_fd, $mydata.'-'.$username);
+			}
+			
 		});
 
 
 		$this->webserver->on('close', function(websocket_server $server, $fd) {
 			try{
-
+				var_dump('close');
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);
