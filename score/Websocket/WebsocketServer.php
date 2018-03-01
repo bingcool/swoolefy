@@ -62,8 +62,17 @@ class WebsocketServer extends BaseServer {
 		['host'=>'127.0.0.1','port'=>9999]
 	];
 
-
+	/**
+	 * $channel 进程共享内存信道队列
+	 * @var null
+	 */
 	public $channel = null;
+
+	/**
+	 * $pack 封解包对象
+	 * @var null
+	 */
+	public $pack = null;
 
 	/**
 	 * $startctrl
@@ -90,7 +99,7 @@ class WebsocketServer extends BaseServer {
 		$this->tcpserver = $this->webserver->addListener('0.0.0.0', self::$config['tcp_port'], SWOOLE_SOCK_TCP);
 		$this->tcpserver->set(self::$config['tcp_setting']);
 
-		// 创建一个channel通道
+		// 创建一个channel通道,worker进程共享内存
 		$this->channel = new \Swoole\Channel(1024 * 256);
 
 		// 初始化启动类
@@ -140,6 +149,10 @@ class WebsocketServer extends BaseServer {
        		if(self::$config['accept_http'] || self::$config['accept_http'] == 'true') {
        			is_null(self::$App) && self::$App = swoole_pack(self::$config['application_index']::getInstance($config=[]));
        		}
+
+       		// 设置Pack包处理对象
+			$this->pack = new Pack();
+
 			// 启动的初始化函数
 			self::$startCtrl::workerStart($server,$worker_id);
 			//tcp的异步client连接tcp的server,只能是在worker进程中
@@ -184,13 +197,10 @@ class WebsocketServer extends BaseServer {
 		$this->webserver->on('finish', function(websocket_server $server, $task_id, $data) {
 			try{
 				
-				// $header = ['length'=>'','name'=>'黄增冰'];
-				// $Pack = new Pack();
-				// $sendData = $Pack->enpack($data, $header, Pack::DECODE_SWOOLE);
+				$header = ['length'=>'','name'=>'黄增冰'];
+				$sendData = $this->pack->enpack($data, $header, Pack::DECODE_SWOOLE);
 				
-				Pack::$_pack_eof = "\r\n\r\n";
-				$Pack = new Pack();
-				$sendData = $Pack->enpackeof($data, Pack::DECODE_JSON);
+				// $sendData = $this->pack->enpackeof($data, Pack::DECODE_JSON);
 					
 				if($this->tcp_client->isConnected()) {
 
@@ -212,22 +222,17 @@ class WebsocketServer extends BaseServer {
 		//监听数据接收事件
 		$this->tcpserver->on('receive', function(tcp_server $server, $fd, $reactor_id, $data) {
 		  	
-		 	// Pack::$_header_size = 34;
-			// $Pack = new Pack();
-			// $Pack->serialize_type = Pack::DECODE_SWOOLE;
-			// $res = $Pack->depack($server, $fd, $reactor_id, $data);
-			// if($res) {
-			// 	list($header, $data) = $res;
+			$this->pack->serialize_type = Pack::DECODE_SWOOLE;
+			$res = $this->pack->depack($server, $fd, $reactor_id, $data);
+			if($res) {
+				list($header, $data) = $res;
+				$username = $header['name'];
+				list($websocket_fd, $mydata) = $data;
+				$this->webserver->push($websocket_fd, $mydata.'-'.$username);
+			}
 
-			// 	$username = $header['name'];
+			// $res = $this->pack->depackeof($data, Pack::DECODE_JSON);
 
-			// 	list($websocket_fd, $mydata) = $data;
-			// 	$this->webserver->push($websocket_fd, $mydata.'-'.$username);
-			// }
-
-			Pack::$_pack_eof = "\r\n\r\n";
-			$Pack = new Pack();
-			$res = $Pack->depackeof($data, Pack::DECODE_JSON);
 			list($websocket_fd, $mydata) = $res;
 			$this->webserver->push($websocket_fd, $mydata);
 	
@@ -236,6 +241,8 @@ class WebsocketServer extends BaseServer {
 
 		$this->webserver->on('close', function(websocket_server $server, $fd) {
 			try{
+				// 删除缓存的不完整的僵尸式数据包
+				$this->pack->delete($fd);
 				var_dump('close');
 			}catch(\Exception $e) {
 				// 捕捉异常
@@ -266,8 +273,10 @@ class WebsocketServer extends BaseServer {
 		 * 停止worker进程
 		 */
 		$this->webserver->on('WorkerStop',function(websocket_server $server, $worker_id) {
+			$this->pack->destroy($server, $worker_id);
 			// worker停止时的回调处理
 			self::$startCtrl::workerStop($server, $worker_id);
+
 		});
 
 		/**

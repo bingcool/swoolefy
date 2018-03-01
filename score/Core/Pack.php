@@ -104,7 +104,7 @@ class Pack {
 				$data = $this->decode($pack_body, $this->serialize_type);
 
 				$request = [$this->_headers[$fd], $data];
-				unset($this->_buffer[$fd], $this->_headers[$fd]);
+				unset($this->_buffers[$fd], $this->_headers[$fd]);
 				// 返回包头和包体数据
 				return $request;
 			}
@@ -129,7 +129,7 @@ class Pack {
 				$data = $this->decode($pack_body, $this->serialize_type);
 
 				$request = [$this->_headers[$fd], $data];
-				unset($this->_buffer[$fd], $this->_headers[$fd]);
+				unset($this->_buffers[$fd], $this->_headers[$fd]);
 				// 返回包头和包体数据
 				return $request;
 			}else {
@@ -270,6 +270,29 @@ class Pack {
             	// swoole
             	return swoole_unpack($data);   
         }
+    }
+
+    /**
+     * delete 删除缓存的不完整的僵尸式数据包，可以在onclose回调中执行,防止内存偷偷溢增
+     * @return void
+     */
+    public function delete($fd) {
+    	unset($this->_buffers[$fd], $this->_headers[$fd]);
+    	return;
+    }
+
+    /**
+     * destroy 当workerstop时,删除缓冲的不完整的僵尸式数据包，并强制断开这些链接
+     * @return void
+     */
+    public function destroy($server, $worker_id) {
+    	if(!empty($this->_buffers)) {
+    		foreach($this->_buffers as $fd=>$data) {
+    			$server->close($fd, true);
+    			unset($this->_buffers[$fd], $this->_headers[$fd]);
+    		}
+    		return;	
+    	}
     }
 
     /**
