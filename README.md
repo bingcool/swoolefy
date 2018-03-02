@@ -34,26 +34,26 @@ php  start.php -d
 监控程序自动监控php的文件变动，然后swoole的worker自动重启，这个文件其实是通过调用代码Shell文件夹的swoole_monitor.sh来监控9502端口(这个是swoole的http服务的默认端口)，根据端口监听，可以设置不同端口，监听不同协议服务      
 
 ### HTTP   
-2、启动swoole的http服务，进入swoole/score/Http       
+2、启动swoole的http服务，进入swoolefy/score/Http       
 启动：php start.php start http          
 停止：php start.php stop http              
 
-默认端口是9502，可以在配置文件swoole/score/Http/config.php中更改，当然可以在配置文件中更改,同时对应的swoolefy/score/AutoReload下的daemon.php中对应更改。
+默认端口是9502，可以在配置文件swoolefy/score/Http/config.php中更改，当然可以在配置文件中更改,同时对应的swoolefy/score/AutoReload下的daemon.php中对应更改。
 注意文件权限问题
 
 ### WETSOCKET    
-1、启动swoole的websocket服务，进入swoole/score/Websocket    
+1、启动swoole的websocket服务，进入swoolefy/score/Websocket    
 启动：php start.php start websocket
 停止：php start.php stop websocket
 
-默认端口9503，可以在配置文件swoole/score/Websocket/config.php中更改     
+默认端口9503，可以在配置文件swoolefy/score/Websocket/config.php中更改     
 
 ### TCP    
-1、启动swoole的tcp服务，进入swoole/score/Tcp         
+1、启动swoole的tcp服务，进入swoolefy/score/Tcp         
 启动：php start.php start tcp    
 停止：php start.php stop tcp
 
-默认端口9504，可以在配置文件swoole/score/Tcp/config.php中更改  
+默认端口9504，可以在配置文件swoolefy/score/Tcp/config.php中更改  
 
 ### 访问test     
 在App/Controller中就可以编码测试，基本和thinkphp的mvc那样操作。
