@@ -3,13 +3,26 @@ namespace App\Controller;
 
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
-use Swoolefy\Core\Task\AsyncTask;
+use Swoolefy\Core\Task\AppAsyncTask;
 
+/**
+ * 异步任务处理类，在worker中执行
+ */
 class AsyncTaskController extends BController {
 		public $name = null;
+
+		// 异步任务
 		public function test() {
-				$taskData = $this->request->taskData;
-				AsyncTask::registerTaskfinish([$this, 'finish'], ['hhhhhhhhh']);
+			$taskData = $this->request->taskData;
+			var_dump($taskData);
+			// 异步任务完成，退出task进程
+			// AppAsyncTask::registerTaskfinish([$this, 'finish'], ['hhhhhhhhh']);	
+		}
+
+		public function asyncTaskTest() {
+			var_dump('swoole');
+			// 异步任务完成，退出task进程
+			AppAsyncTask::registerTaskfinish([$this, 'finish'], ['hhhhhhhhh']);
 		}
 
 		public function anyncMail() {
@@ -33,8 +46,7 @@ class AsyncTaskController extends BController {
 		}
 
 		public function  finish($name) {
-			// $this->name = $name;
-			var_dump($this->name);
+			var_dump($name);
 			return ;
 		}
 

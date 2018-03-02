@@ -3,7 +3,6 @@ namespace App\Controller;
 
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
-use Swoolefy\Core\Task\AsyncTask;
 use Swoolefy\Core\Collection;
 
 class HttpController extends BController {

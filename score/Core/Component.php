@@ -1,7 +1,7 @@
 <?php
 namespace Swoolefy\Core;
 
-class Component extends \Swoolefy\Core\Object {
+class Component extends \Swoolefy\Core\AppObject {
 
 	/**
 	 * $components

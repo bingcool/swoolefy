@@ -136,11 +136,9 @@ class TcpServer extends BaseServer {
 			// 超全局变量server
        		Swfy::$server = $this->tcpserver;
        		Swfy::$config = self::$config;
-       		// 初始化整个应用对象,http请求设置
-       		if(self::$config['accept_http'] || self::$config['accept_http'] == 'true') {
-       			is_null(self::$App) && self::$App = swoole_pack(self::$config['application_index']::getInstance($config=[]));
-       		}
 
+       		// is_null(self::$App) && self::$App = swoole_pack(self::$config['application_index']::getInstance($config=[]));
+       		
 			// 启动的初始化函数
 			self::$startCtrl::workerStart($server,$worker_id);
 			//tcp的异步client连接tcp的server,只能是在worker进程中

@@ -7,7 +7,6 @@ use Swoolefy\Core\ZModel;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\MGeneral;
 use Swoolefy\Core\MTime;
-use Swoolefy\Core\Task\AsyncTask;
 use swoole_process;
 
 class MysqlController extends BController {

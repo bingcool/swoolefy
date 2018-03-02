@@ -1,7 +1,7 @@
 <?php
 namespace Swoolefy\Core;
 
-class MGeneral extends \Swoolefy\Core\Object {
+class MGeneral extends \Swoolefy\Core\AppObject {
 	/**
 	 * isSsl
 	 * @return   boolean

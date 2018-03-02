@@ -13,24 +13,7 @@ class AsyncTask {
      * @return    int|boolean
      */
     public static function registerTask($route, $data=[]) {
-        if($route == '' || !is_string($route)) {
-            _die(__NAMESPACE__.'::'.__METHOD__.' the param $route must be string');	
-        }
-        $route = '/'.trim($route,'/');
-        if(is_string($data)) {
-            $data = (array) $data;
-        }
-        $request = swoole_pack(Application::$app->request);
-        $response = swoole_pack(Application::$app->response);
-        $context = [$request, $response];
-        array_push($context, $route);
-        // 只有在worker进程中可以调用异步任务进程，异步任务进程中不能调用异步进程
-        if(self::isWorkerProcess()) {
-            $task_id = Swfy::$server->task([$context, $data]);
-            unset($context);
-            return $task_id;
-        }
-        return false;
+
     }
 
     /**

@@ -3,7 +3,7 @@ namespace Swoolefy\Core;
 
 use Swoolefy\Core\Application;
 
-class Init {
+class AppInit {
 	/**
 	 * _init 初始化一下超全局变量,兼容php-fpm的web模式
 	 */

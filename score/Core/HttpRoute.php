@@ -3,9 +3,9 @@ namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
-use Swoolefy\Core\Dispatch;
+use Swoolefy\Core\AppDispatch;
 
-class HttpRoute extends Dispatch {
+class HttpRoute extends AppDispatch {
 	/**
 	 * $request 请求对象
 	 * @var null

@@ -9,8 +9,7 @@ return [
 	'www_user' => 'www',
 	'host' => '0.0.0.0',
 	'port' => '9504',
-	// websocket独有
-	'accept_http' => true,
+
 	'time_zone' => 'PRC', 
 	'setting' => [
 		// TCP使用固定的worker，使用2或4

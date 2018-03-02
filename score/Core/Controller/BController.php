@@ -4,7 +4,7 @@ namespace Swoolefy\Core\Controller;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 
-class BController extends \Swoolefy\Core\Object {
+class BController extends \Swoolefy\Core\AppObject {
 	/**
 	 * $request
 	 * @var null

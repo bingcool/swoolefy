@@ -7,7 +7,7 @@ use Swoolefy\Core\ZModel;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\MGeneral;
 use Swoolefy\Core\MTime;
-use Swoolefy\Core\Task\AsyncTask;
+use Swoolefy\Core\Task\AppAsyncTask;
 use swoole_process;
 
 class TestController extends BController {
@@ -18,7 +18,7 @@ class TestController extends BController {
 		parent::__construct();
 	}	
 
-	public function test() {
+	public function test() {		
 		$name = 'hello,swoolefy!';		
 		$books = [
 			['name'=>'西游记', 'desc'=>'讲述唐曾四人西天取经的故事'],
@@ -33,6 +33,14 @@ class TestController extends BController {
 	public function testajax() {
 		$return = ['name'=>'李四'];
 		return $this->returnJson($return);
+	}
+
+	// 测试投递注册异步任务
+	public function asyncTask() {
+		$this->test();
+		// 注册任务并执行
+		AppAsyncTask::registerTask('AsyncTask/test', ['swoole']);
+		return ;
 	}
 
 }
