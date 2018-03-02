@@ -102,6 +102,9 @@ class WebsocketServer extends BaseServer {
 		// 创建一个channel通道,worker进程共享内存
 		$this->channel = new \Swoole\Channel(1024 * 256);
 
+		// 设置Pack包处理对象
+		$this->pack = new Pack(self::$server);
+
 		// 初始化启动类
 		self::$startCtrl = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Websocket\\StartInit';	
 	}
@@ -149,9 +152,6 @@ class WebsocketServer extends BaseServer {
        		if(self::$config['accept_http'] || self::$config['accept_http'] == 'true') {
        			is_null(self::$App) && self::$App = swoole_pack(self::$config['application_index']::getInstance($config=[]));
        		}
-
-       		// 设置Pack包处理对象
-			$this->pack = new Pack();
 
 			// 启动的初始化函数
 			self::$startCtrl::workerStart($server,$worker_id);
@@ -313,6 +313,7 @@ class WebsocketServer extends BaseServer {
 
 		//注册数据接收回调
 		$this->tcp_client->on("receive", function($cli, $data){
+
 		});
 
 		//注册连接失败回调

@@ -4,6 +4,12 @@ namespace Swoolefy\Core;
 class Pack {
 
 	/**
+	 * $server 
+	 * @var null
+	 */
+	public $server = null;
+
+	/**
 	 * $_buffer 对于一个连接没有收到完整数据包的数据进行暂时的缓存，等待此链接的数据包接收完整在处理
 	 * @var array
 	 */
@@ -14,6 +20,12 @@ class Pack {
 	 * @var array
 	 */
 	protected $_headers = [];
+
+	/**
+	 * $_pack_size 包的大小，实际应用应设置与package_max_length设置保持一致，默认2M
+	 * @var [type]
+	 */
+	public $_packet_maxlen = 2 * 1024 * 1024;
 
 	/**
 	 * $_header_struct 析包结构,包含包头结构，key代表的是包头的字段，value代表的pack的类型
@@ -56,10 +68,12 @@ class Pack {
 	];
 
 	const DECODE_JSON = 1;
-
     const DECODE_PHP = 2;
-
     const DECODE_SWOOLE = 3;
+
+    const ERR_HEADER            = 9001;   //错误的包头
+    const ERR_TOOBIG            = 9002;   //请求包体长度超过允许的范围
+    const ERR_SERVER_BUSY       = 9003;   //服务器繁忙，超过处理能力
     
 	/**
 	 * $_header_size 包头固定大小
@@ -74,6 +88,14 @@ class Pack {
 	public static $_pack_eof = "\r\n\r\n";
 
 	/**
+	 * __construct 
+	 * @param    \Swoole\Server $server
+	 */
+	public function __construct(\Swoole\Server $server) {
+		$this->server = $server;
+	}
+
+	/**
 	 * decodePack 接收数据解包处理
 	 * usages:
 	 	Pack::$_header_struct = ['length'=>'N','name'=>'a30']  包头定义的字段与对应类型
@@ -81,6 +103,7 @@ class Pack {
 	 	Pack::$_header_size = 34            固定包头字节大小
 		$Pack = new Pack();
 		$Pack->serialize_type = Pack::DECODE_SWOOLE;
+		$Pack->_packet_maxlen = 2 * 1024 * 1024 包的最大长度，与package_max_length设置保持一致
 		$res = $Pack->depack($server, $fd, $reactor_id, $data);
 
 	 * @param    \Swoole\Server $server
@@ -95,7 +118,16 @@ class Pack {
 			// 每次再接收的数据是属于上一个不完整的包的，已经没有包头了，直接包体数据
 			$this->_buffers[$fd] .= $data;
 
-			if(strlen($this->_buffers[$fd]) < $this->_headers[$fd][self::$pack_length_key]) {
+			$buffer_fd_data_length = strlen($this->_buffers[$fd]);
+
+			// 长度错误时
+			if($buffer_fd_data_length > $this->_packet_maxlen) {
+				$this->sendErrorMessage($fd, self::ERR_TOOBIG);
+				unset($this->_buffers[$fd], $this->_headers[$fd]);
+				return false;
+			}
+
+			if($buffer_fd_data_length < $this->_headers[$fd][self::$pack_length_key]) {
 				return false;
 			}else {
 				// 数据包已接收完整
@@ -180,6 +212,16 @@ class Pack {
 		self::$unpack_length_type = trim($pack_length_type, '/');
 		return $pack_length_type;
 	}
+
+	/**
+	 * sendErrorMessage 
+	 * @param    int  $fd
+	 * @param    mixed  $errno
+	 * @return   boolean
+	 */
+	public function sendErrorMessage($fd, $errno) {
+        return $this->server->send($fd, self::encode(['errcode' => $errno,'msg'=>'packet length more than packet_maxlen'], $this->serialize_type));
+    }
 
     /**
      * filterHeader  去掉头部空格|null
@@ -285,10 +327,10 @@ class Pack {
      * destroy 当workerstop时,删除缓冲的不完整的僵尸式数据包，并强制断开这些链接
      * @return void
      */
-    public function destroy($server, $worker_id) {
+    public function destroy($server = null, $worker_id = null) {
     	if(!empty($this->_buffers)) {
     		foreach($this->_buffers as $fd=>$data) {
-    			$server->close($fd, true);
+    			$this->server->close($fd, true);
     			unset($this->_buffers[$fd], $this->_headers[$fd]);
     		}
     		return;	
