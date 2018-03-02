@@ -12,7 +12,9 @@
 8、封装View,Log,Mysql,Redis,Mongodb,Swiftmail,Session邮件等常用组件，其他组件根据业务按照约定即可封装成组件     
 9、支持udp,tcp,http多种方式接入graylog    
 10、基于inotify实现自动监测swoole服务的文件变动，实现自动重载，检测，智能邮件通知的服务      
-11、封装启动停止控制的脚本,简单命令即可管理整个框架,使用文档手册将在后期整理
+11、封装启动停止控制的脚本,简单命令即可管理整个框架,
+
+### 文档手册将在后期整理     
 
 ### 配置环境
 1、支持php7.0+       
@@ -41,7 +43,7 @@ php  start.php -d
 默认端口是9502，可以在配置文件swoolefy/score/Http/config.php中更改，当然可以在配置文件中更改,同时对应的swoolefy/score/AutoReload下的daemon.php中对应更改。
 注意文件权限问题
 
-### WETSOCKET    
+### WEBSOCKET    
 1、启动swoole的websocket服务，进入swoolefy/score/Websocket    
 启动：php start.php start websocket
 停止：php start.php stop websocket
