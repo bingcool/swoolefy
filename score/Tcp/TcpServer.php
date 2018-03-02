@@ -1,12 +1,9 @@
 <?php
-namespace Swoolefy\Websocket;
+namespace Swoolefy\Tcp;
 
-use Swoole\WebSocket\Server as websocket_server;
-use Swoolefy\Core\BaseServer;
 use Swoole\Server as tcp_server;
+use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Swfy;
-use Swoole\Http\Request;
-use Swoole\Http\Response;
 use Swoolefy\Core\Pack;
 
 // 如果直接通过php WebsocketServer.php启动时，必须include的vendor/autoload.php
@@ -14,7 +11,7 @@ if(isset($argv) && $argv[0] == basename(__FILE__)) {
 	include_once '../../vendor/autoload.php';
 }
 
-class WebsocketServer extends BaseServer {
+class TcpServer extends BaseServer {
 	/**
 	 * $setting
 	 * @var array
@@ -37,12 +34,6 @@ class WebsocketServer extends BaseServer {
 	public static $App = null;
 
 	/**
-	 * $webserver
-	 * @var null
-	 */
-	public $webserver = null;
-
-	/**
 	 * $tcpserver 
 	 * @var null
 	 */
@@ -59,7 +50,7 @@ class WebsocketServer extends BaseServer {
 	 * @var array
 	 */
 	public $rpc_config = [
-		['host'=>'127.0.0.1','port'=>9999]
+		['host'=>'127.0.0.1','port'=>9998]
 	];
 
 	/**
@@ -90,20 +81,17 @@ class WebsocketServer extends BaseServer {
 					include(__DIR__.'/config.php'),
 					$config
 			);
-		self::$server = $this->webserver = new websocket_server(self::$config['host'], self::$config['port']);
+		self::$server = $this->tcpserver = new tcp_server(self::$config['host'], self::$config['port']);
 		self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
-		$this->webserver->set(self::$setting);
+		$this->tcpserver->set(self::$setting);
 		parent::__construct();
-
-		// 监听多一个内部的TCP端口
-		$this->tcpserver = $this->webserver->addListener('0.0.0.0', self::$config['tcp_port'], SWOOLE_SOCK_TCP);
-		$this->tcpserver->set(self::$config['tcp_setting']);
 
 		// 创建一个channel通道,worker进程共享内存
 		$this->channel = new \Swoole\Channel(1024 * 256);
 
 		// 设置Pack包处理对象
 		$this->pack = new Pack(self::$server);
+		$this->pack->serialize_type = Pack::DECODE_JSON;
 
 		// 初始化启动类
 		self::$startCtrl = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Websocket\\StartInit';	
@@ -113,7 +101,7 @@ class WebsocketServer extends BaseServer {
 		/**
 		 * start回调
 		 */
-		$this->webserver->on('Start',function(websocket_server $server) {
+		$this->tcpserver->on('Start',function(tcp_server $server) {
 			// 重新设置进程名称
 			self::setMasterProcessName(self::$config['master_process_name']);
 			// 启动的初始化函数
@@ -122,7 +110,7 @@ class WebsocketServer extends BaseServer {
 		/**
 		 * managerstart回调
 		 */
-		$this->webserver->on('ManagerStart',function(websocket_server $server) {
+		$this->tcpserver->on('ManagerStart',function(tcp_server $server) {
 			// 重新设置进程名称
 			self::setManagerProcessName(self::$config['manager_process_name']);
 			// 启动的初始化函数
@@ -132,9 +120,9 @@ class WebsocketServer extends BaseServer {
 		/**
 		 * 启动worker进程监听回调，设置定时器
 		 */
-		$this->webserver->on('WorkerStart',function(websocket_server $server, $worker_id) {
+		$this->tcpserver->on('WorkerStart',function(tcp_server $server, $worker_id) {
 			// 记录主进程加载的公共files,worker重启不会在加载的
-			self::getIncludeFiles('websocket');
+			self::getIncludeFiles('Tcp');
 			// 重启worker时，清空字节cache
 			self::clearCache();
 			// 重新设置进程名称
@@ -146,7 +134,7 @@ class WebsocketServer extends BaseServer {
 			// 记录worker的进程worker_pid与worker_id的映射
 			self::setWorkersPid($worker_id,$server->worker_pid);
 			// 超全局变量server
-       		Swfy::$server = $this->webserver;
+       		Swfy::$server = $this->tcpserver;
        		Swfy::$config = self::$config;
        		// 初始化整个应用对象,http请求设置
        		if(self::$config['accept_http'] || self::$config['accept_http'] == 'true') {
@@ -156,32 +144,43 @@ class WebsocketServer extends BaseServer {
 			// 启动的初始化函数
 			self::$startCtrl::workerStart($server,$worker_id);
 			//tcp的异步client连接tcp的server,只能是在worker进程中
-			self::isWorkerProcess($worker_id) && self::registerRpc();
+			// self::isWorkerProcess($worker_id) && self::registerRpc();
 			
 		});
 
-		$this->webserver->on('open', function(websocket_server $server, $request) {
-			try{
+		// tcp连接
+		$this->tcpserver->on('connect', function (tcp_server $server, $fd) {  
+    		try{
 
-			}catch(\Exception $e) {
-				// 捕捉异常
+    		}catch(\Exception $e) {
+    			// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);
-			}
+    		}
 		});
 
-		$this->webserver->on('message', function(websocket_server $server, $frame) {
+		//监听数据接收事件
+		$this->tcpserver->on('receive', function(tcp_server $server, $fd, $reactor_id, $data) {
 			try{
-				$data = [$frame->fd, $frame->data];
-				$server->task($data);
-			}catch(\Exception $e) {
-				// 捕捉异常
-				\Swoolefy\Core\SwoolefyException::appException($e);
-			}
-		});
+				$res = $this->pack->depack($server, $fd, $reactor_id, $data);
+				if($res) {
+					list($header, $data) = $res;
+				}
 
+				// 打包数据返回给客户端
+				$sendData = $this->pack->enpack($data, $header, Pack::DECODE_JSON);
+				$server->send($fd, $sendData);
+				return;
+
+    		}catch(\Exception $e) {
+    			// 捕捉异常
+				\Swoolefy\Core\SwoolefyException::appException($e);
+    		}
+			
+	
+		});
 
 		//处理异步任务
-		$this->webserver->on('task', function(websocket_server $server, $task_id, $from_worker_id, $data) {
+		$this->tcpserver->on('task', function(tcp_server $server, $task_id, $from_worker_id, $data) {
 			try{
 				// list($fd,$data) = $data;
 		    	//返回任务执行的结果
@@ -193,24 +192,10 @@ class WebsocketServer extends BaseServer {
 		    
 		});
 
-		// 异步任务完成
-		$this->webserver->on('finish', function(websocket_server $server, $task_id, $data) {
+		// 异步任务完成 
+		$this->tcpserver->on('finish', function(tcp_server $server, $task_id, $data) {
 			try{
-				$header = ['length'=>'','name'=>'bingcool'];
-				$sendData = $this->pack->enpack($data, $header, Pack::DECODE_SWOOLE);
 				
-				// $sendData = $this->pack->enpackeof($data, Pack::DECODE_JSON);
-					
-				if($this->tcp_client->isConnected()) {
-
-					$this->tcp_client->send($sendData);
-
-					while($msg = $this->channel->pop()) {
-						$this->tcp_client->send($msg);
-					}
-				}else {
-					$this->channel->push($sendData);
-				}
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);
@@ -218,27 +203,8 @@ class WebsocketServer extends BaseServer {
     		
 		});
 
-		//监听数据接收事件
-		$this->tcpserver->on('receive', function(tcp_server $server, $fd, $reactor_id, $data) {
-		  	
-			$this->pack->serialize_type = Pack::DECODE_SWOOLE;
-			$res = $this->pack->depack($server, $fd, $reactor_id, $data);
-			if($res) {
-				list($header, $data) = $res;
-				$username = $header['name'];
-				list($websocket_fd, $mydata) = $data;
-				$this->webserver->push($websocket_fd, $mydata.'-'.$username);
-			}
-
-			// $res = $this->pack->depackeof($data, Pack::DECODE_JSON);
-
-			list($websocket_fd, $mydata) = $res;
-			$this->webserver->push($websocket_fd, $mydata);
-	
-		});
-
-
-		$this->webserver->on('close', function(websocket_server $server, $fd) {
+		// 关闭连接
+		$this->tcpserver->on('close', function(tcp_server $server, $fd) {
 			try{
 				// 删除缓存的不完整的僵尸式数据包
 				$this->pack->delete($fd);
@@ -249,28 +215,10 @@ class WebsocketServer extends BaseServer {
 		});
 
 		/**
-		 * 接受http请求
-		 */
-		if(!isset(self::$config['accept_http']) || self::$config['accept_http'] || self::$config['accept_http'] == 'true') {
-			$this->webserver->on('request',function(Request $request, Response $response) {
-				try{
-					// google浏览器会自动发一次请求/favicon.ico,在这里过滤掉
-					if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
-	            		return $response->end();
-	       			}
-					swoole_unpack(self::$App)->run($request, $response);
-
-				}catch(\Exception $e) {
-					// 捕捉异常
-					\Swoolefy\Core\SwoolefyException::appException($e);
-				}
-			});
-		}
-
-		/**
 		 * 停止worker进程
 		 */
-		$this->webserver->on('WorkerStop',function(websocket_server $server, $worker_id) {
+		$this->tcpserver->on('WorkerStop',function(tcp_server $server, $worker_id) {
+			// 销毁不完整数据以及
 			$this->pack->destroy($server, $worker_id);
 			// worker停止时的回调处理
 			self::$startCtrl::workerStop($server, $worker_id);
@@ -280,7 +228,7 @@ class WebsocketServer extends BaseServer {
 		/**
 		 * worker进程异常错误回调函数
 		 */
-		$this->webserver->on('WorkerError',function(websocket_server $server, $worker_id, $worker_pid, $exit_code, $signal) {
+		$this->tcpserver->on('WorkerError',function(tcp_server $server, $worker_id, $worker_pid, $exit_code, $signal) {
 			// worker停止的触发函数
 			self::$startCtrl::workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
 		});
@@ -289,13 +237,13 @@ class WebsocketServer extends BaseServer {
 		 * worker进程退出回调函数，1.9.17+版本
 		 */
 		if(static::compareSwooleVersion()) {
-			$this->webserver->on('WorkerExit',function(websocket_server $server, $worker_id) {
+			$this->tcpserver->on('WorkerExit',function(tcp_server $server, $worker_id) {
 				// worker退出的触发函数
 				self::$startCtrl::workerExit($server, $worker_id);
 			});
 		}
 
-		$this->webserver->start();
+		$this->tcpserver->start();
 	}
 
 	/**
@@ -311,7 +259,7 @@ class WebsocketServer extends BaseServer {
 
 		//注册数据接收回调
 		$this->tcp_client->on("receive", function($cli, $data){
-			var_dump(swoole_unpack($data));
+
 		});
 
 		//注册连接失败回调
@@ -323,12 +271,12 @@ class WebsocketServer extends BaseServer {
 		});
 
 		//发起连接
-		$this->tcp_client->connect('127.0.0.1', 9999, 0.5);
+		$this->tcp_client->connect('127.0.0.1', 9998, 0.5);
 	}
 
 }
 
 if(isset($argv) && $argv[0] == basename(__FILE__)) {
-	$websock = new WebsocketServer();
-	$websock->start();
+	$tcpserver = new TcpServer();
+	$tcpserver->start();
 }

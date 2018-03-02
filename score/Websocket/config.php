@@ -13,7 +13,8 @@ return [
 	'accept_http' => true,
 	'time_zone' => 'PRC', 
 	'setting' => [
-		'dispatch_mode' => 3
+		// websocket使用固定的worker，使用2或4
+		'dispatch_mode' => 2
 	],
 	'table_tick_task' => true,
 	'table' => [

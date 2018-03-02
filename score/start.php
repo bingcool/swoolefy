@@ -47,6 +47,11 @@ function startServer($server) {
             $websocket->start();
             break;
         }
+        case 'tcp':{
+            $websocket = new \Swoolefy\Tcp\TcpServer();
+            $websocket->start();
+            break;
+        }
         default:{
             help($command='help');
         }
@@ -64,6 +69,10 @@ function stopServer($server) {
 		case 'websocket': {
 			$pid_file = $dir.'/Websocket/server.pid';
 		    break;
+        }
+        case 'tcp': {
+            $pid_file = $dir.'/Tcp/server.pid';
+            break;
         }
         default:{
             help($command='help');

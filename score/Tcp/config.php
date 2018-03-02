@@ -8,12 +8,13 @@ return [
 	'worker_process_name' => 'php-tcp-worker',
 	'www_user' => 'www',
 	'host' => '0.0.0.0',
-	'port' => '9503',
+	'port' => '9504',
 	// websocket独有
 	'accept_http' => true,
 	'time_zone' => 'PRC', 
 	'setting' => [
-		'dispatch_mode' => 3
+		// TCP使用固定的worker，使用2或4
+		'dispatch_mode' => 2
 	],
 	'table_tick_task' => true,
 	'table' => [

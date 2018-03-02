@@ -14,6 +14,7 @@ return [
 	'gzip_level' => 2,
 	'include_files' =>[],
 	'setting' => [
+		// http无状态，使用1或3
 		'dispatch_mode' => 3,
 		'reload_async' => true,
 	],
