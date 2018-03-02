@@ -27,20 +27,35 @@
 a)安装mongodb扩展,然后再执行composer install安装      
 b)可能暂时不需要用到mongodb的，可以删除文件的composer.lock文件和将composer.json的require中的"mongodb/mongodb": "1.2.0"删除或者屏蔽掉，然后再执行composer install安装
 
-### 启动
+### 监控程序   
 1、启动文件自动监控程序，进入swoolefy/score/AutoReload     
-php  start.php -d            
+php  start.php -d  
 
-监控程序自动监控php的文件变动，然后swoole的worker自动重启，这个文件其实是通过调用代码Shell文件夹的swoole_monitor.sh来监控9502端口(这个是swoole的http服务的默认端口)           
+监控程序自动监控php的文件变动，然后swoole的worker自动重启，这个文件其实是通过调用代码Shell文件夹的swoole_monitor.sh来监控9502端口(这个是swoole的http服务的默认端口)，根据端口监听，可以设置不同端口，监听不同协议服务      
 
+### HTTP   
 2、启动swoole的http服务，进入swoole/score/Http       
 启动：php start.php start http          
 停止：php start.php stop http              
 
-默认端口是9502，当然可以在配置文件中更改,同时对应的swoolefy/score/AutoReload下的daemon.php中对应更改。
+默认端口是9502，可以在配置文件swoole/score/Http/config.php中更改，当然可以在配置文件中更改,同时对应的swoolefy/score/AutoReload下的daemon.php中对应更改。
 注意文件权限问题
 
-### 访问test
+### WETSOCKET    
+1、启动swoole的websocket服务，进入swoole/score/Websocket    
+启动：php start.php start websocket
+停止：php start.php stop websocket
+
+默认端口9503，可以在配置文件swoole/score/Websocket/config.php中更改     
+
+### TCP    
+1、启动swoole的tcp服务，进入swoole/score/Tcp         
+启动：php start.php start tcp    
+停止：php start.php stop tcp
+
+默认端口9504，可以在配置文件swoole/score/Tcp/config.php中更改  
+
+### 访问test     
 在App/Controller中就可以编码测试，基本和thinkphp的mvc那样操作。
 比如在App/Controller/TestController.php
 那么直接在浏览器输入http://ip:9502/Test/test, 对应的路由规则domain/controller/action
