@@ -4,11 +4,17 @@ namespace App;
 class Application implements \Swoolefy\Core\AppInterface{
 	// 初始化配置
 	public static function init() {
-		$runtime = __DIR__.'/Runtime';
-		if(!is_dir($runtime)) {
-			@mkdir($runtime,0777);
+		$runtime_path = __DIR__.'/Runtime';
+		if(!is_dir($runtime_path)) {
+			@mkdir($runtime_path, 0777);
 		}
-		
+
+		$log_path = __DIR__.'/Log';
+
+		if(!is_dir($log_path)) {
+			@mkdir($log_path, 0777);
+		}
+
 		include(__DIR__."/Config/defines.php");
 
 		// 加载App应用层配置和对应的协议配置
