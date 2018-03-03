@@ -245,22 +245,29 @@ class Pack {
 
 	 * @param    mixed  $data
 	 * @param    array  $header
-	 * @param    string  $seralize_type
+	 * @param    string  $seralize_type 
+	 * @param    array  $heder_struct
 	 * @return   string
 	 */
-	public static function enpack($data, $header, $seralize_type = self::DECODE_JSON) {
+	public static function enpack($data, $header, $seralize_type = self::DECODE_JSON, array $heder_struct = []) {
 		$body = self::encode($data, $seralize_type);
         $bin_header_data = '';
-        
-        foreach(self::$_header_struct as $key=>$value) {
-        	// 计算包体长度
-        	if($key == self::$pack_length_key) {
-        		$bin_header_data .= pack($value, strlen($body));
-        	}else {
-        		// 其他的包头
-        		$bin_header_data .= pack($value, $header[$key]);
-        	}
-        	 
+
+        // 如果没有设置，客户端的包头结构体与服务端一致
+        if(empty($heder_struct)) {
+        	$heder_struct = self::$_header_struct;
+        }
+
+        foreach($heder_struct as $key=>$value) {
+        	if(isset($header[$key])) {
+        		// 计算包体长度
+	        	if($key == self::$pack_length_key) {
+	        		$bin_header_data .= pack($value, strlen($body));
+	        	}else {
+	        		// 其他的包头
+	        		$bin_header_data .= pack($value, $header[$key]);
+	        	}
+        	} 
         }
 
         return $bin_header_data . $body;
