@@ -1,5 +1,5 @@
 <?php
-// httpserver的配置
+// tcpserver的配置
 return [
 	'application_index' => 'Service\\Application',
 	'start_init' => 'Swoolefy\\Tcp\\StartInit',

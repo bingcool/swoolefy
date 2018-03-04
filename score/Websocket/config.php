@@ -1,5 +1,5 @@
 <?php
-// httpserver的配置
+// websocketserver的配置
 return [
 	'application_index' => 'App\\Application',
 	'start_init' => 'Swoolefy\\Websocket\\StartInit',
