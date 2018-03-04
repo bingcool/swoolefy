@@ -3,7 +3,7 @@ namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
 
-class Service extends Object {
+class Swoole extends Object {
 
 	/**
 	 * $config 当前应用层的配置 
