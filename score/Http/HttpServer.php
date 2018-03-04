@@ -197,22 +197,13 @@ class HttpServer extends BaseServer {
 	 * @return    void
 	 */
 	public function onTask($task_id, $from_id, $data) {
-		list($taskMeta, $taskData) = $data;
-		Application::$app = swoole_unpack(self::$App);
-		
+		list($class, $taskData) = $data;		
 		// 实例任务
-		if(count($taskMeta) == 3)  {
-			$route = array_pop($taskMeta);
-			foreach($taskMeta as $k=>$value) {
-				$taskMeta[$k] = swoole_unpack($value);
-			}
-			list($request, $response) = $taskMeta;
-			$request->server['PATH_INFO']  = $request->server['REQUEST_URI'] = $route;
-			$request->taskData = $taskData;
-			swoole_unpack(self::$App)->run($request, $response);
-		}else {
+		if(is_string($class))  {
+			
+		}else if(is_array($class)) {
 			// 类静态方法调用任务
-			call_user_func_array($taskMeta, [$taskData]);
+			call_user_func_array($class, [$taskData]);
 		}	
 		return ;
 	}

@@ -168,14 +168,14 @@ class TcpController extends BController {
 
 		// 打包数据,服务端使用pack_length方式
 		// 发送给服务端，按照服务端的pack协议打包数据,不一定是和客户端pack协议相同的
-		$data = 'swoole是一个优秀的框架,很多开发者都使用这个框架'.rand(1,100);
-		$header = ['length'=>'','name'=>'bingcool'];
-		$send_data = Synclient::enpack($data, $header, $seralize_type = 'json', $heder_struct = ['length'=>'N','name'=>'a30'],'length');
+		// $data = 'swoole是一个优秀的框架,很多开发者都使用这个框架'.rand(1,100);
+		// $header = ['length'=>'','name'=>'bingcool'];
+		// $send_data = Synclient::enpack($data, $header, $seralize_type = 'json', $heder_struct = ['length'=>'N','name'=>'a30'],'length');
 
 		// 打包数据,服务端使用eof方式
 		// 发送给服务端，按照服务端的pack协议打包数据,不一定是和客户端pack协议相同的
-		// $data = 'swoole是一个优秀的框架,很多开发者都使用这个框架'.rand(1,100);
-		// $send_data = $client->enpackeof($data,'json');
+		$data = 'swoole是一个优秀的框架,很多开发者都使用这个框架'.rand(1,100);
+		$send_data = $client->enpackeof($data,'json');
 
 		$client->connect();
 
