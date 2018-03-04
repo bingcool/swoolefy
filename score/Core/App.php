@@ -2,11 +2,12 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
+use Swoolefy\Core\AppInit;
+use Swoolefy\Core\HttpRoute;
 use Swoolefy\Core\Application;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use Swoolefy\Tool\ArrayHelper\ArrayForHelp;
-use Swoolefy\Core\HttpRoute;
 
 class App extends \Swoolefy\Core\Component {
 	/**
@@ -41,6 +42,7 @@ class App extends \Swoolefy\Core\Component {
 	public function __construct(array $config=[]) {
 		// 将应用层配置保存在上下文的服务
 		$this->config = Swfy::$appConfig = $config;
+		// Component组件创建
 		parent::creatObject();
 		// 注册错误处理事件
 		register_shutdown_function('Swoolefy\Core\SwoolefyException::fatalError');

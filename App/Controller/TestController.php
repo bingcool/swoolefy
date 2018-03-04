@@ -37,9 +37,12 @@ class TestController extends BController {
 
 	// 测试投递注册异步任务
 	public function asyncTask() {
-		$this->test();
+		// $this->test();
 		// 注册任务并执行
-		AppAsyncTask::registerTask('AsyncTask/test', ['swoole']);
+		// AppAsyncTask::registerTask('AsyncTask/test', ['swoole']);
+		
+		AppAsyncTask::registerStaticCallTask(['App/Controller/AsyncTaskController','asyncStaticTest'], ['hello']);
+
 		return ;
 	}
 

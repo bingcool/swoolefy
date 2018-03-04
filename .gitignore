@@ -9,6 +9,7 @@ sftp-config.json
 #dir
 /App/Runtime/
 /App/Config/
+/Service/Runtime/
 /vendor
 #runtime.log
 runtime.log

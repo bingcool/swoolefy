@@ -25,13 +25,13 @@ class Pack {
 	 * $_pack_size 包的大小，实际应用应设置与package_max_length设置保持一致，默认2M
 	 * @var [type]
 	 */
-	public $_packet_maxlen = 2 * 1024 * 1024;
+	public $packet_maxlen = 2 * 1024 * 1024;
 
 	/**
-	 * $_header_struct 析包结构,包含包头结构，key代表的是包头的字段，value代表的pack的类型
+	 * $header_struct 析包结构,包含包头结构，key代表的是包头的字段，value代表的pack的类型
 	 * @var string
 	 */
-	public static $_header_struct = ['length'=>'N','name'=>'a30'];
+	public static $header_struct = ['length'=>'N','name'=>'a30'];
 
 	/**
 	 * $pack_length_type pack包数据的类型, 默认null
@@ -47,7 +47,7 @@ class Pack {
 	protected static $unpack_length_type = null;
 
 	/**
-	 * $pack_length_key 包的长度设定的key，与$_header_struct里设置的长度的key一致
+	 * $pack_length_key 包的长度设定的key，与$header_struct里设置的长度的key一致
 	 * @var string
 	 */
 	public static $pack_length_key = 'length';
@@ -76,16 +76,16 @@ class Pack {
     const ERR_SERVER_BUSY       = 9003;   //服务器繁忙，超过处理能力
     
 	/**
-	 * $_header_size 包头固定大小
+	 * $header_length 包头固定长度，单位字节,等于package_body_offset设置的值
 	 * @var integer
 	 */
-	public static $_header_size = 34;
+	public static $header_length = 30;
 
 	/**
-	 * $_pack_eof eof分包时设置
+	 * $pack_eof eof分包时设置
 	 * @var string
 	 */
-	public static $_pack_eof = "\r\n\r\n";
+	public static $pack_eof = "\r\n\r\n";
 
 	/**
 	 * __construct 
@@ -98,14 +98,20 @@ class Pack {
 	/**
 	 * decodePack 接收数据解包处理
 	 * usages:
-	 	Pack::$_header_struct = ['length'=>'N','name'=>'a30']  包头定义的字段与对应类型
-	 	Pack::$pack_length_key = 'length'   包头的记录包体长度的key,要与$_header_struct的key一致
-	 	Pack::$_header_size = 34            固定包头字节大小
-		$Pack = new Pack();
-		$Pack->serialize_type = Pack::DECODE_SWOOLE;
-		$Pack->_packet_maxlen = 2 * 1024 * 1024 包的最大长度，与package_max_length设置保持一致
-		$res = $Pack->depack($server, $fd, $reactor_id, $data);
-
+	 *	Pack::$header_struct = ['length'=>'N','name'=>'a30']  包头定义的字段与对应类型
+	 *	Pack::$pack_length_key = 'length'   包头的记录包体长度的key,要与$header_struct的key一致
+	 *	Pack::$header_length = 34            固定包头字节大小，与package_body_offset一致
+	 *
+	 * 
+	 *  $Pack = new Pack();
+	 *  又或者先这样设置
+	 *  $Pack->header_struct = ['length'=>'N','name'=>'a30']
+	 *  $Pack->pack_length_key = 'length'
+	 *  $Pack->header_length = 34
+	 *  
+	 *	$Pack->serialize_type = Pack::DECODE_SWOOLE;
+	 * 	$Pack->packet_maxlen = 2 * 1024 * 1024 包的最大长度，与package_max_length设置保持一致
+	 *  $res = $Pack->depack($server, $fd, $reactor_id, $data);
 	 * @param    \Swoole\Server $server
 	 * @param    int            $fd
 	 * @param    int         $reactor_id
@@ -121,7 +127,7 @@ class Pack {
 			$buffer_fd_data_length = strlen($this->_buffers[$fd]);
 
 			// 长度错误时
-			if($buffer_fd_data_length > $this->_packet_maxlen) {
+			if($buffer_fd_data_length > $this->packet_maxlen) {
 				$this->sendErrorMessage($fd, self::ERR_TOOBIG);
 				unset($this->_buffers[$fd], $this->_headers[$fd]);
 				return false;
@@ -145,7 +151,7 @@ class Pack {
 			// 设置unpack包类型
 			$this->setUnpackLengthType();
 			// 解析包头
-			$header = unpack(self::$unpack_length_type, mb_strcut($data, 0, self::$_header_size, 'UTF-8'));
+			$header = unpack(self::$unpack_length_type, mb_strcut($data, 0, self::$header_length, 'UTF-8'));
 
 			$this->filterHeader($header);
 			// 包头包含的包体长度值
@@ -154,7 +160,7 @@ class Pack {
 			$header['fd'] = $fd;
 			$this->_headers[$fd] = $header;
 
-			$pack_body = mb_strcut($data, self::$_header_size, null, 'UTF-8');
+			$pack_body = mb_strcut($data, self::$header_length, null, 'UTF-8');
 			// 接收数据包完整
 			if(strlen($pack_body) == $length) {
 				// 数据解包
@@ -183,8 +189,8 @@ class Pack {
 		}
 
 		$pack_length_type = '';
-		if(self::$_header_struct) {
-			foreach(self::$_header_struct as $key=>$value) {
+		if(self::$header_struct) {
+			foreach(self::$header_struct as $key=>$value) {
 				$pack_length_type .= $value;
 			}
 		}
@@ -203,13 +209,14 @@ class Pack {
 		}
 
 		$pack_length_type = '';
-		if(self::$_header_struct) {
-			foreach(self::$_header_struct as $key=>$value) {
+		if(self::$header_struct) {
+			foreach(self::$header_struct as $key=>$value) {
 				$pack_length_type .= ($value.$key).'/';
 			}
 		}
+		$pack_length_type = trim($pack_length_type, '/');
 		// 赋值
-		self::$unpack_length_type = trim($pack_length_type, '/');
+		self::$unpack_length_type = $pack_length_type;
 		return $pack_length_type;
 	}
 
@@ -249,19 +256,19 @@ class Pack {
 	 * @param    array  $heder_struct
 	 * @return   string
 	 */
-	public static function enpack($data, $header, $seralize_type = self::DECODE_JSON, array $heder_struct = []) {
+	public static function enpack($data, $header, $seralize_type = self::DECODE_JSON, array $heder_struct = [],$pack_length_key='length') {
 		$body = self::encode($data, $seralize_type);
         $bin_header_data = '';
 
         // 如果没有设置，客户端的包头结构体与服务端一致
         if(empty($heder_struct)) {
-        	$heder_struct = self::$_header_struct;
+        	$heder_struct = self::$header_struct;
         }
 
         foreach($heder_struct as $key=>$value) {
         	if(isset($header[$key])) {
         		// 计算包体长度
-	        	if($key == self::$pack_length_key) {
+	        	if($key == $pack_length_key) {
 	        		$bin_header_data .= pack($value, strlen($body));
 	        	}else {
 	        		// 其他的包头
@@ -347,10 +354,9 @@ class Pack {
     /**
      * enpackeof eof协议封包,包体中不能含有eof的结尾符号，否则出错
      * usages:
-     	Pack::$_pack_eof = "\r\n\r\n";
-		$Pack = new Pack();
-		$sendData = $Pack->enpackeof($data, Pack::DECODE_JSON);
-					
+     *	Pack::$pack_eof = "\r\n\r\n";
+	 *	$Pack = new Pack();
+	 *	$sendData = $Pack->enpackeof($data, Pack::DECODE_JSON);				
      * @param  mixed $data
      * @param  int   $seralize_type
      * @param  string $eof
@@ -358,7 +364,7 @@ class Pack {
      */
     public function enpackeof($data, $seralize_type = self::DECODE_JSON, $eof ='') {
     	if(empty($eof)) {
-    		$eof = self::$_pack_eof;
+    		$eof = self::$pack_eof;
     	}
     	$data = self::encode($data, $seralize_type).$eof;
     	
@@ -368,16 +374,61 @@ class Pack {
     /**
      * depackeof  eof协议解包,每次收到一个完整的包
      * usages:
-    	Pack::$_pack_eof = "\r\n\r\n";
-		$Pack = new Pack();
-		$res = $Pack->depackeof($data, Pack::DECODE_JSON);
-     
+     *	Pack::$pack_eof = "\r\n\r\n";
+	 *	$Pack = new Pack();
+	 *	$res = $Pack->depackeof($data, Pack::DECODE_JSON);
      * @param   string  $data
      * @param   int     $unseralize_type
      * @return  mixed 
      */
     public function depackeof($data, $unseralize_type = self::DECODE_JSON) {
     	return self::decode($data, $unseralize_type);
+    }
+
+    /**
+     * __set 利用魔术方法设置静态变量
+     * 	$Pack = new Pack();
+	 *  $Pack->header_struct = ['length'=>'N','name'=>'a30']
+	 *  $Pack->pack_length_key = 'length'
+	 *  $Pack->header_length = 34
+	 *  
+     * @param  $name 
+     * @param  $value
+     */
+    public function __set($name, $value) {
+	 	switch($name) {
+	 		case "header_struct" :
+	 			if(is_array($value)) {
+	 				self::$header_struct = $value;
+	 				return true;
+	 			}
+	 			return false;
+
+	 		break;
+	 		case "pack_length_key" :
+	 			if(is_string($value)) {
+	 				self::$pack_length_key = $value;
+	 				return true;
+	 			}
+	 			return false;
+	 		break;
+	 		case "header_length" :
+	 			if(is_int($value)) {
+	 				self::$header_length  = $value;
+	 				return true;
+	 			}
+	 			return false;
+	 		break;
+	 		case 'pack_eof':
+	 			if(is_string($value)) {
+	 				self::$pack_eof = $value;
+	 				return true;
+	 			}
+	 			return false;
+	 		break;
+	 		default:
+	 		return false;
+	 	}
     }
 
 }

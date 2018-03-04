@@ -198,6 +198,8 @@ class HttpServer extends BaseServer {
 	 */
 	public function onTask($task_id, $from_id, $data) {
 		list($taskMeta, $taskData) = $data;
+		Application::$app = swoole_unpack(self::$App);
+		
 		// 实例任务
 		if(count($taskMeta) == 3)  {
 			$route = array_pop($taskMeta);

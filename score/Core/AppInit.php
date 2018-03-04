@@ -1,9 +1,10 @@
 <?php
 namespace Swoolefy\Core;
 
+use Swoolefy\Core\Init;
 use Swoolefy\Core\Application;
 
-class AppInit {
+class AppInit extends Init {
 	/**
 	 * _init 初始化一下超全局变量,兼容php-fpm的web模式
 	 */

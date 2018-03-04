@@ -9,10 +9,26 @@ class BaseServer {
 	public static $config = [];
 
 	/**
-	 * $server swoole服务
+	 * $server swoole服务器对象实例
 	 * @var null
 	 */
 	public static $server = null;
+
+	/**
+	 * $Service 
+	 * @var null 服务实例，适用于TCP,UDP,RPC
+	 */
+	public static $service = null;
+
+	/**
+	 * $pack_check_type pack检查的方式
+	 * @var [type]
+	 */
+	protected static $pack_check_type = null;
+
+	const PACK_CHECK_EOF = 'eof';
+
+	const PACK_CHECK_LENGTH = 'length';
 
 	/**
 	 * $_startTime 进程启动时间
@@ -64,8 +80,11 @@ class BaseServer {
 		self::checkSapiEnv();
 		// create table
 		self::createTables();
+		// check pack type
+		self::checkPackType();
 		// record start time
 		self::$_startTime = date('Y-m-d H:i:s',strtotime('now'));
+		
 	}
 
 	/**
@@ -399,5 +418,39 @@ class BaseServer {
         if(php_sapi_name() != 'cli') {
             throw new \Exception("only run in command line mode \n", 1);
         }
+    }
+
+    /**
+     * checkPackType 设置pack检查类型
+     * @return void
+     */
+    protected static function checkPackType() {
+    	if(isset(static::$setting['open_eof_check']) || isset(static::$setting['package_eof']) || isset(static::$setting['open_eof_split'])) {
+    		self::$pack_check_type = self::PACK_CHECK_EOF;
+    	}else {
+    		self::$pack_check_type = self::PACK_CHECK_LENGTH;
+    	}
+    }
+
+    /**
+     * usePackEof 是否是pack的eof
+     * @return boolean
+     */
+    protected static function isPackEof() {
+    	if(self::$pack_check_type == self::PACK_CHECK_EOF) {
+    		return true;
+    	}
+    	return false;
+    }
+
+    /**
+     * isPackLength 是否是pack的length
+     * @return boolean
+     */
+    protected static function isPackLength() {
+    	if(self::$pack_check_type == self::PACK_CHECK_LENGTH) {
+    		return true;
+    	}
+    	return false;
     }
 }

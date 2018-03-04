@@ -28,12 +28,6 @@ class TcpServer extends BaseServer {
 	];
 
 	/**
-	 * $App
-	 * @var null
-	 */
-	public static $App = null;
-
-	/**
 	 * $tcpserver 
 	 * @var null
 	 */
@@ -92,9 +86,10 @@ class TcpServer extends BaseServer {
 		// 设置Pack包处理对象
 		$this->pack = new Pack(self::$server);
 		$this->pack->serialize_type = Pack::DECODE_JSON;
+		$this->pack->header_length = 34;
 
 		// 初始化启动类
-		self::$startCtrl = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Websocket\\StartInit';	
+		self::$startCtrl = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Tcp\\StartInit';	
 	}
 
 	public function start() {
@@ -137,7 +132,8 @@ class TcpServer extends BaseServer {
        		Swfy::$server = $this->tcpserver;
        		Swfy::$config = self::$config;
 
-       		// is_null(self::$App) && self::$App = swoole_pack(self::$config['application_index']::getInstance($config=[]));
+       		// 单例服务处理实例
+       		is_null(self::$service) && self::$service = swoole_pack(self::$config['application_index']::getInstance($config=[]));
        		
 			// 启动的初始化函数
 			self::$startCtrl::workerStart($server,$worker_id);
@@ -159,13 +155,25 @@ class TcpServer extends BaseServer {
 		//监听数据接收事件
 		$this->tcpserver->on('receive', function(tcp_server $server, $fd, $reactor_id, $data) {
 			try{
-				$res = $this->pack->depack($server, $fd, $reactor_id, $data);
-				if($res) {
-					list($header, $data) = $res;
+				// 服务端为length检查包
+				if(self::isPackLength()) {
+					$res = $this->pack->depack($server, $fd, $reactor_id, $data);
+					if($res) {
+						list($header, $data) = $res;
+					}
+				}else {
+					// 服务端为eof检查包
+					$data = $this->pack->depackeof($data, 'json').'bingcool';
+
 				}
 
-				// 打包数据返回给客户端
-				$sendData = $this->pack->enpack($data, $header, Pack::DECODE_JSON);
+				// 客户端定义的包头结构体为length，打包数据返回给客户端
+				// $sendData = $this->pack->enpack($data, $header, Pack::DECODE_JSON, ['name'=>'a30','length'=>'N'],'length');
+				// }
+
+				// 根据客户端定义的包头结构体为eof,打包数据返回给客户端
+				$sendData = $this->pack->enpackeof($data, 'json');
+
 				$server->send($fd, $sendData);
 				return;
 

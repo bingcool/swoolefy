@@ -19,13 +19,14 @@ class AppAsyncTask extends AsyncTask {
         $route = '/'.trim($route,'/');
         if(is_string($data)) {
             $data = (array) $data;
-        }        
-        $request = swoole_pack(Application::$app->request);
-        $response = swoole_pack(Application::$app->response);
-        $context = [$request, $response];
-        array_push($context, $route);
-        
-        var_dump(swoole_unpack($request));
+        }    
+
+
+        // $request = swoole_pack(Application::$app->request);
+
+        // $context = [$request, $response];
+        // array_push($context, $route);
+        // var_dump($request);
 
         // 只有在worker进程中可以调用异步任务进程，异步任务进程中不能调用异步进程
         // if(self::isWorkerProcess()) {
