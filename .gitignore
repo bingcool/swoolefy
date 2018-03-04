@@ -10,6 +10,7 @@ sftp-config.json
 /App/Runtime/
 /App/Config/
 /Service/Runtime/
+/Service/Config/
 /vendor
 #runtime.log
 runtime.log
