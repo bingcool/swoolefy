@@ -22,8 +22,8 @@
 2、搭建lnmp环境，建议使用lnmp一健安装包，https://lnmp.org, 建议安装lnmp1.4     
 3、安装php必要的扩展，本框架需要的扩展包括swoole(1.9.17+), swoole_serialize(https://github.com/swoole/swoole_serialize), inotify, pcntl, posix, zlib, mbstring,可以通过php-m查看是否安装了这些扩展，如果通过lnmp1.4一健安装包安装的，已经默认安装好这四个pcntl, posix, zlib, mbstring扩展的，只需要在安装swoole和swoole_serialize, inotify即可，具体安装过程参考官方文档
     
-##### 利用docker容器已经配置好的php环境(开发测试)
-为了方便开发和测试，我打包了一个基于alpine基础镜像搭建的php7.1环境容器bingcool/php2swoole，这个image已经非常小了，已经安装所有的必须扩展，其中swoole时1.10.1版本，可以通过php --ri swoole 查看信息。     
+##### docker容器已经配置好的php环境(开发测试)
+为了方便开发和测试，我打包了一个基于alpine基础镜像搭建的php7.1环境容器bingcool/php2swoole，这个image已经非常小了，已经安装所有的必须扩展，其中swoole是1.10.1版本，可以通过php --ri swoole 查看信息。     
 alpine的官网：https://pkgs.alpinelinux.org/packages    
 
 ```
@@ -78,7 +78,7 @@ Zend OPcache
 ### 下载框架和安装
 1、如果是自己安装的php环境（需在linux环境下），最好先创建一个不能登录伪用户www   
 ```
-useradd www-d /home/www -s /sbin/nologin
+useradd www -d /home/www -s /sbin/nologin
 ```
 则在某一个web目录，例如/home/www下                     
 (1)git clone https://github.com/bingcool/swoolefy.git         
@@ -86,6 +86,8 @@ useradd www-d /home/www -s /sbin/nologin
 注意，composer install时，可能或提示说要求安装mongodb的扩展才能install,有两种处理方式：     
 a)安装mongodb扩展,然后再执行composer install安装      
 b)可能暂时不需要用到mongodb的，可以删除文件的composer.lock文件和将composer.json的require中的"mongodb/mongodb": "1.2.0"删除或者屏蔽掉，然后再执行composer install安装。   
+
+   
 2、如果是通过bingcool/php2swoole容器启动php开发环境的，同样需要composer install下载整个完整代码，然后复制到缩主机的/home/www/目录下。   下面是简单使用,首先是启动容器      
 ```   
 docker run -it -d --name swoole -p 9502:9502 -v /home/www/:/home/www/ bingcool/php2swoole   
