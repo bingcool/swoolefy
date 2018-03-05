@@ -108,13 +108,13 @@ php  start.php -d
 启动：php start.php start http          
 停止：php start.php stop http              
 
-默认端口是9502，可以在配置文件swoolefy/score/Http/config.php中更改，当然可以在配置文件中更改,同时对应的swoolefy/score/AutoReload下的daemon.php中对应更改。
+默认端口是9502，可以在配置文件swoolefy/score/Http/config.php中更改，同时对应的swoolefy/score/AutoReload下的daemon.php中对应更改。
 注意文件权限问题
 
 ### WEBSOCKET    
 1、启动swoole的websocket服务，进入swoolefy/score/Websocket    
-启动：php start.php start websocket
-停止：php start.php stop websocket
+启动：php start.php start websocket        
+停止：php start.php stop websocket      
 
 默认端口9503，可以在配置文件swoolefy/score/Websocket/config.php中更改     
 
