@@ -39,7 +39,7 @@ class Swoole extends Object {
 	 * @return void
 	 */
 	protected function init() {
-		// 初始化超全局变量数组和对象
+		// 初始化处理
 		Init::_init();
 		
 	} 
@@ -57,7 +57,7 @@ class Swoole extends Object {
 	 * @return [type] [description]
 	 */
 	public function call($request) {
-		// 初始化超全局变量数组和对象
+		// 初始化处理
 		self::init();
 	}
 

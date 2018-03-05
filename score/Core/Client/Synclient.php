@@ -90,6 +90,7 @@ class Synclient {
         }else {
         	// 使用eof方式分包
         	$this->is_pack_length_type = false;
+            self::$pack_eof = $this->pack_setting['package_eof'];
         }
     }
 

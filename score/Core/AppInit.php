@@ -9,6 +9,7 @@ class AppInit extends Init {
 	 * _init 初始化一下超全局变量,兼容php-fpm的web模式
 	 */
 	public static function _init() {
+		parent::_init();
 		// 每一次请求清空,再初始化
 		$_POST = $_GET = $_REQUEST = $_COOKIE = $_SESSION = [];
 		//请求对象
