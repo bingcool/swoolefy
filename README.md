@@ -113,7 +113,8 @@ docker exec -it swoole /bin/sh
 1、启动文件自动监控程序，进入swoolefy/score/AutoReload     
 php  start.php -d  
 
-监控程序自动监控php的文件变动，然后swoole的worker自动重启，这个文件其实是通过调用代码Shell文件夹的swoole_monitor.sh来监控9502端口(这个是swoole的http服务的默认端口)，根据端口监听，可以设置不同端口，监听不同协议服务。  需要注意的是，由于在容器中/home/www的目录是挂载与缩主机的，inotify是无法监听到文件变动的，所以这个监控程序在容器环境中是无效的，每次修改代码必须重启      
+监控程序自动监控php的文件变动，然后swoole的worker自动重启，这个文件其实是通过调用代码Shell文件夹的swoole_monitor.sh来监控9502端口(这个是swoole的http服务的默认端口)，根据端口监听，可以设置不同端口，监听不同协议服务。   
+  需要注意的是，由于在容器中/home/www的目录是挂载与缩主机的，inotify是无法监听到文件变动的，所以这个监控程序在容器环境中是无效的，每次修改代码必须重启      
 
 ### http服务   
 2、启动swoole的http服务，进入swoolefy/score/Http       
@@ -142,7 +143,7 @@ php  start.php -d
 比如在App/Controller/TestController.php
 那么直接在浏览器输入http://ip:9502/Test/test, 对应的路由规则
 ```
-domain/controller/action 
+controller/action 
 ```
    
 如果存在module模块      
