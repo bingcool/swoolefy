@@ -17,20 +17,90 @@
 ### 文档手册将在后期整理     
 
 ### 配置环境
+#### 安装实际环境(建议)
 1、支持php7.0+       
 2、搭建lnmp环境，建议使用lnmp一健安装包，https://lnmp.org, 建议安装lnmp1.4     
 3、安装php必要的扩展，本框架需要的扩展包括swoole(1.9.17+), swoole_serialize(https://github.com/swoole/swoole_serialize), inotify, pcntl, posix, zlib, mbstring,可以通过php-m查看是否安装了这些扩展，如果通过lnmp1.4一健安装包安装的，已经默认安装好这四个pcntl, posix, zlib, mbstring扩展的，只需要在安装swoole和swoole_serialize, inotify即可，具体安装过程参考官方文档
+    
+##### docker容器已经配置好的php环境(开发测试)
+为了方便开发和测试，我打包了一个基于alpine基础镜像搭建的php7.1环境容器bingcool/php2swoole，这个image已经非常小了，已经安装所有的必须扩展，其中swoole是1.10.1版本，可以通过php --ri swoole 查看信息。     
+alpine的官网：https://pkgs.alpinelinux.org/packages    
+
+```
+docker pull bingcool/php2swoole     
+```
+已安装的扩展如下：  
+```    
+bz2    
+Core    
+curl   
+date   
+fileinfo    
+filter    
+ftp    
+gd    
+hash     
+imagick    
+inotify    
+json   
+libxml    
+mbstring    
+mcrypt  
+memcached  
+mongodb  
+mysqlnd   
+openssl  
+pcntl  
+pcre   
+PDO   
+pdo_mysql  
+posix   
+readline   
+redis   
+Reflection   
+session   
+SimpleXML   
+soap    
+sockets   
+SPL    
+standard    
+swoole   
+swoole_serialize    
+xml    
+xmlrpc   
+Zend OPcache    
+zip    
+zlib    
+[Zend Modules]     
+Zend OPcache    
+```
 
 ### 下载框架和安装
-需要在linux环境下，在某一个web目录下,                   
+1、如果是自己安装的php环境（需在linux环境下），最好先创建一个不能登录伪用户www   
+```
+useradd www -d /home/www -s /sbin/nologin
+```
+则在某一个web目录，例如/home/www下                     
 (1)git clone https://github.com/bingcool/swoolefy.git         
 (2)composer install(需要安装composer)    
 注意，composer install时，可能或提示说要求安装mongodb的扩展才能install,有两种处理方式：     
 a)安装mongodb扩展,然后再执行composer install安装      
-b)可能暂时不需要用到mongodb的，可以删除文件的composer.lock文件和将composer.json的require中的"mongodb/mongodb": "1.2.0"删除或者屏蔽掉，然后再执行composer install安装
+b)可能暂时不需要用到mongodb的，可以删除文件的composer.lock文件和将composer.json的require中的"mongodb/mongodb": "1.2.0"删除或者屏蔽掉，然后再执行composer install安装。   
+
+   
+2、如果是通过bingcool/php2swoole容器启动php开发环境的，同样需要composer install下载整个完整代码，然后复制到缩主机的/home/www/目录下。   下面是简单使用,首先是启动容器      
+```   
+docker run -it -d --name swoole -p 9502:9502 -v /home/www/:/home/www/ bingcool/php2swoole   
+```
+-v /home/www/:/home/www/ 是将缩主机的/home/www目录挂载到容器的/home/www  
+
+(1)然后进入容器  
+```
+docker exec -it swoole /bin/sh
+```
 
 ### 监控程序   
-1、启动文件自动监控程序，进入swoolefy/score/AutoReload     
+1、启动文件自动监控程序(在容器中此监控程序是无效的)，进入swoolefy/score/AutoReload     
 php  start.php -d  
 
 监控程序自动监控php的文件变动，然后swoole的worker自动重启，这个文件其实是通过调用代码Shell文件夹的swoole_monitor.sh来监控9502端口(这个是swoole的http服务的默认端口)，根据端口监听，可以设置不同端口，监听不同协议服务      
@@ -76,5 +146,5 @@ location / {
         }
 ```
 
-那么在浏览器输入http://domain/Test/test,可以直接访问
+那么在浏览器输入http://domain/Test/test     
 
