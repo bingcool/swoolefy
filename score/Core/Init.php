@@ -2,13 +2,14 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
+use Swoolefy\Core\AppObject;
 
-class Init {
+class Init extends AppObject {
 	/**
 	 * _init 初始化
 	 * @return   
 	 */
-	public function _init() {
+	public static function _init() {
 		
 	}
 }
