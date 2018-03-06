@@ -83,13 +83,26 @@ class TcpServer extends BaseServer {
 		// 创建一个channel通道,worker进程共享内存
 		$this->channel = new \Swoole\Channel(1024 * 256);
 
-		// 设置Pack包处理对象
-		$this->pack = new Pack(self::$server);
-		$this->pack->serialize_type = Pack::DECODE_JSON;
-		$this->pack->header_length = 34;
-
 		// 初始化启动类
-		self::$startCtrl = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Tcp\\StartInit';	
+		self::$startCtrl = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Tcp\\StartInit';
+		
+		/**
+		 * 设置Pack包处理对象
+		 */
+		$this->pack = new Pack(self::$server);
+		if(self::isPackLength()) {
+			// packet_langth_check
+			$this->pack->header_struct = self::$config['packet']['pack_header_strct'];
+			$this->pack->pack_length_key = self::$config['packet']['pack_length_key'];
+			$this->pack->serialize_type = Pack::DECODE_JSON;
+			$this->pack->header_length = self::$setting['package_body_offset'];
+			$this->pack->packet_maxlen = self::$setting['package_max_length'];
+		}else {
+			// packet_eof_check
+			$this->pack->pack_eof = self::$setting['package_eof'];
+			$this->pack->serialize_type = Pack::DECODE_JSON;
+		}
+		
 	}
 
 	public function start() {
@@ -163,10 +176,9 @@ class TcpServer extends BaseServer {
 					}
 				}else {
 					// 服务端为eof检查包
-					$data = $this->pack->depackeof($data, 'json').'bingcool';
+					$data = $this->pack->depackeof($data);
 
 				}
-
 				// 客户端定义的包头结构体为length，打包数据返回给客户端
 				// $sendData = $this->pack->enpack($data, $header, Pack::DECODE_JSON, ['name'=>'a30','length'=>'N'],'length');
 				// }

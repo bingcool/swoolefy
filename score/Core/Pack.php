@@ -381,8 +381,11 @@ class Pack {
      * @param   int     $unseralize_type
      * @return  mixed 
      */
-    public function depackeof($data, $unseralize_type = self::DECODE_JSON) {
-    	return self::decode($data, $unseralize_type);
+    public function depackeof($data, $unseralize_type = '') {
+    	if($unseralize_type) {
+    		$this->serialize_type = $unseralize_type;
+    	}
+    	return self::decode($data, $this->serialize_type);
     }
 
     /**

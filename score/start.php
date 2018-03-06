@@ -12,9 +12,9 @@ function initCheck(){
         die("swoole version must >= 1.9.15");
     }
     // 暂不支持swoole2.0
-    if(version_compare(swoole_version(),'2.0.1','>')) {
-        die("swoole version must < 2.0");
-    }
+    // if(version_compare(swoole_version(),'2.0.1','>')) {
+    //     die("swoole version must < 2.0");
+    // }
 
 }
 

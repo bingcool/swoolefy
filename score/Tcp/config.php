@@ -15,15 +15,15 @@ return [
 		// TCP使用固定的worker，使用2或4
 		'dispatch_mode' => 2,
 
-		'open_eof_check' => true, //打开EOF检测
-		'open_eof_split' => true, //打开EOF_SPLIT检测
-		'package_eof' => "\r\n\r\n", //设置EOF
+		// 'open_eof_check' => true, //打开EOF检测
+		// 'open_eof_split' => true, //打开EOF_SPLIT检测
+		// 'package_eof' => "\r\n\r\n", //设置EOF
 		
-		// 'open_length_check'     => 1,
-  //   	'package_length_type'   => 'N',
-  //   	'package_length_offset' => 0,       //第N个字节是包长度的值
-  //   	'package_body_offset'   => 34,       //第几个字节开始计算长度
-  //   	'package_max_length'    => 2000000,  //协议最大长度
+		'open_length_check'     => 1,
+    	'package_length_type'   => 'N',
+    	'package_length_offset' => 0,       //第N个字节是包长度的值
+    	'package_body_offset'   => 34,       //第几个字节开始计算长度
+    	'package_max_length'    => 2000000,  //协议最大长度
 
 	],
 	'table_tick_task' => true,
@@ -41,4 +41,11 @@ return [
 			]
 		],
 	],
+
+	// 长度检查packet时，设置包头结构体
+	'packet'=>[
+		'pack_header_strct' => ['length'=>'N','name'=>'a30'],
+		'pack_length_key' => 'length',
+	]
+
 ];

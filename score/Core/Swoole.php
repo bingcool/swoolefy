@@ -38,10 +38,9 @@ class Swoole extends Object {
 	 * init 初始化函数
 	 * @return void
 	 */
-	protected function init() {
+	protected function init($request) {
 		// 初始化处理
-		Init::_init();
-		
+		Init::_init();	
 	} 
 
 	/**
@@ -58,7 +57,9 @@ class Swoole extends Object {
 	 */
 	public function call($request) {
 		// 初始化处理
-		self::init();
+		self::init($request);
+		
+
 	}
 
  	/**
