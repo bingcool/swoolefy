@@ -12,6 +12,13 @@ return [
 
 	'time_zone' => 'PRC', 
 	'setting' => [
+		'reactor_num' => 1, //reactor thread num
+		'worker_num' => 1,    //worker process num
+		'max_request' => 5,
+		'task_worker_num' =>5,
+		'task_tmpdir' => '/dev/shm',
+		'daemonize' => 0,
+		
 		// TCP使用固定的worker，使用2或4
 		'dispatch_mode' => 2,
 
@@ -24,6 +31,9 @@ return [
     	'package_length_offset' => 0,       //第N个字节是包长度的值
     	'package_body_offset'   => 34,       //第几个字节开始计算长度
     	'package_max_length'    => 2000000,  //协议最大长度
+
+    	'log_file' => __DIR__.'/log.txt',
+		'pid_file' => __DIR__.'/server.pid',
 
 	],
 	'table_tick_task' => true,
@@ -46,6 +56,8 @@ return [
 	'packet'=>[
 		'pack_header_strct' => ['length'=>'N','name'=>'a30'],
 		'pack_length_key' => 'length',
-	]
+	],
+	// 
+	'async_hander' => 1,
 
 ];

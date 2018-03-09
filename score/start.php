@@ -48,8 +48,13 @@ function startServer($server) {
             break;
         }
         case 'tcp':{
-            $websocket = new \Swoolefy\Tcp\TcpServer();
-            $websocket->start();
+            $tcp = new \Swoolefy\Tcp\TcpServer();
+            $tcp->start();
+            break;
+        }
+        case 'rpc': {
+            $rpc = new \Swoolefy\Rpc\RpcServer();
+            $rpc->start();
             break;
         }
         default:{

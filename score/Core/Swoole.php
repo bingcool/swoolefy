@@ -12,6 +12,12 @@ class Swoole extends Object {
 	public $config = null;
 
 	/**
+	 * $fd fd连接句柄标志
+	 * @var null
+	 */
+	public $fd = null;
+
+	/**
 	 * $hooks 保存钩子执行函数
 	 * @var array
 	 */
@@ -38,7 +44,7 @@ class Swoole extends Object {
 	 * init 初始化函数
 	 * @return void
 	 */
-	protected function init($request) {
+	protected function init($request = null) {
 		// 初始化处理
 		Init::_init();	
 	} 
@@ -55,12 +61,20 @@ class Swoole extends Object {
 	 * call 调用创建处理实例
 	 * @return [type] [description]
 	 */
-	public function call($request) {
+	public function run($fd, $recv) {
 		// 初始化处理
-		self::init($request);
+		self::init();
+		Application::$app = $this;
+		$this->fd = $fd;
+		// 引导程序与环境变量的设置
+		$this->bootstrap($recv);
 		
+		$return_data = Pack::enpackeof($recv,1);
+		Swfy::$server->send($fd,$return_data);
+		return;
 
 	}
+
 
  	/**
 	 * afterRequest 请求结束后注册钩子执行操作

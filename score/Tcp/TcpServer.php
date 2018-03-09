@@ -6,25 +6,18 @@ use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Pack;
 
-// 如果直接通过php WebsocketServer.php启动时，必须include的vendor/autoload.php
-if(isset($argv) && $argv[0] == basename(__FILE__)) {
-	include_once '../../vendor/autoload.php';
-}
-
-class TcpServer extends BaseServer {
+abstract class TcpServer extends BaseServer {
 	/**
 	 * $setting
 	 * @var array
 	 */
 	public static $setting = [
 		'reactor_num' => 1, //reactor thread num
-		'worker_num' => 2,    //worker process num
+		'worker_num' => 1,    //worker process num
 		'max_request' => 5,
-		'task_worker_num' =>1,
+		'task_worker_num' =>5,
 		'task_tmpdir' => '/dev/shm',
 		'daemonize' => 0,
-		'log_file' => __DIR__.'/log.txt',
-		'pid_file' => __DIR__.'/server.pid',
 	];
 
 	/**
@@ -32,20 +25,6 @@ class TcpServer extends BaseServer {
 	 * @var null
 	 */
 	public $tcpserver = null;
-
-	/**
-	 * $tcpclient 
-	 * @var null
-	 */
-	public $tcp_client = null;
-
-	/**
-	 * $gateway_config 
-	 * @var array
-	 */
-	public $rpc_config = [
-		['host'=>'127.0.0.1','port'=>9998]
-	];
 
 	/**
 	 * $channel 进程共享内存信道队列
@@ -66,15 +45,18 @@ class TcpServer extends BaseServer {
 	public static $startCtrl = null;
 
 	/**
+	 * $serverName 默认的server服务名称
+	 * @var string
+	 */
+	public $serverName = 'Tcp';
+
+	/**
 	 * __construct
 	 * @param array $config
 	 */
 	public function __construct(array $config=[]) {
 		self::clearCache();
-		self::$config = array_merge(
-					include(__DIR__.'/config.php'),
-					$config
-			);
+		self::$config = $config;
 		self::$server = $this->tcpserver = new tcp_server(self::$config['host'], self::$config['port']);
 		self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
 		$this->tcpserver->set(self::$setting);
@@ -130,7 +112,7 @@ class TcpServer extends BaseServer {
 		 */
 		$this->tcpserver->on('WorkerStart',function(tcp_server $server, $worker_id) {
 			// 记录主进程加载的公共files,worker重启不会在加载的
-			self::getIncludeFiles('Tcp');
+			self::getIncludeFiles($this->serverName);
 			// 重启worker时，清空字节cache
 			self::clearCache();
 			// 重新设置进程名称
@@ -147,18 +129,18 @@ class TcpServer extends BaseServer {
 
        		// 单例服务处理实例
        		is_null(self::$service) && self::$service = swoole_pack(self::$config['application_index']::getInstance($config=[]));
-       		
 			// 启动的初始化函数
 			self::$startCtrl::workerStart($server,$worker_id);
-			//tcp的异步client连接tcp的server,只能是在worker进程中
-			// self::isWorkerProcess($worker_id) && self::registerRpc();
-			
+			// 延迟绑定
+			static::onWorkerStart($server, $worker_id);
+
 		});
 
 		// tcp连接
 		$this->tcpserver->on('connect', function (tcp_server $server, $fd) {  
     		try{
-
+    			// 延迟绑定
+    			static::onConnet($server, $fd);
     		}catch(\Exception $e) {
     			// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);
@@ -170,39 +152,28 @@ class TcpServer extends BaseServer {
 			try{
 				// 服务端为length检查包
 				if(self::isPackLength()) {
-					$res = $this->pack->depack($server, $fd, $reactor_id, $data);
-					if($res) {
-						list($header, $data) = $res;
-					}
+					$recv = $this->pack->depack($server, $fd, $reactor_id, $data);
 				}else {
 					// 服务端为eof检查包
-					$data = $this->pack->depackeof($data);
-
+					$recv = $this->pack->depackeof($data);
 				}
-				// 客户端定义的包头结构体为length，打包数据返回给客户端
-				// $sendData = $this->pack->enpack($data, $header, Pack::DECODE_JSON, ['name'=>'a30','length'=>'N'],'length');
-				// }
-
-				// 根据客户端定义的包头结构体为eof,打包数据返回给客户端
-				$sendData = $this->pack->enpackeof($data, 'json');
-
-				$server->send($fd, $sendData);
+				// 延迟绑定，服务处理实例
+				static::onReceive($server, $fd, $reactor_id, $recv);
 				return;
-
     		}catch(\Exception $e) {
     			// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);
     		}
 			
-	
 		});
 
 		//处理异步任务
 		$this->tcpserver->on('task', function(tcp_server $server, $task_id, $from_worker_id, $data) {
 			try{
-				// list($fd,$data) = $data;
-		    	//返回任务执行的结果
-		    	return $data;
+				$taskdata = swoole_unpack($data);
+				// 延迟绑定
+				static::onTask($task_id, $from_worker_id, $taskdata);
+		    	return;
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);
@@ -213,12 +184,13 @@ class TcpServer extends BaseServer {
 		// 异步任务完成 
 		$this->tcpserver->on('finish', function(tcp_server $server, $task_id, $data) {
 			try{
-				
+				$data = swoole_unpack($data);
+				static::onFinish($server, $task_id, $data);
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);
 			}
-    		
+
 		});
 
 		// 关闭连接
@@ -226,6 +198,8 @@ class TcpServer extends BaseServer {
 			try{
 				// 删除缓存的不完整的僵尸式数据包
 				$this->pack->delete($fd);
+				// 延迟绑定
+				static::onClose($server, $fd);
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);
@@ -260,41 +234,7 @@ class TcpServer extends BaseServer {
 				self::$startCtrl::workerExit($server, $worker_id);
 			});
 		}
-
 		$this->tcpserver->start();
 	}
-
-	/**
-	 * registerRpc 
-	 * @return   [type]        [description]
-	 */
-	public function registerRpc() {
-		$this->tcp_client = new \swoole_client(SWOOLE_SOCK_TCP, SWOOLE_SOCK_ASYNC);
-		//注册连接成功回调
-		$this->tcp_client->on("connect", function($cli){
-		    // 
-		});
-
-		//注册数据接收回调
-		$this->tcp_client->on("receive", function($cli, $data){
-
-		});
-
-		//注册连接失败回调
-		$this->tcp_client->on("error", function($cli){
-		});
-
-		//注册连接关闭回调
-		$this->tcp_client->on("close", function($cli){
-		});
-
-		//发起连接
-		$this->tcp_client->connect('127.0.0.1', 9998, 0.5);
-	}
-
 }
 
-if(isset($argv) && $argv[0] == basename(__FILE__)) {
-	$tcpserver = new TcpServer();
-	$tcpserver->start();
-}
