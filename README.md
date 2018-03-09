@@ -131,12 +131,12 @@ php  start.php -d
 
 默认端口9503，可以在配置文件swoolefy/score/Websocket/config.php中更改     
 
-### tcp服务   
-1、启动swoole的tcp服务，进入swoolefy/score/Tcp         
-启动：php start.php start tcp    
-停止：php start.php stop tcp
+### rpc服务   
+1、启动swoole的rpc服务，进入swoolefy/score/rpc         
+启动：php start.php start rpc    
+停止：php start.php stop rpc
 
-默认端口9504，可以在配置文件swoolefy/score/Tcp/config.php中更改  
+默认端口9504，可以在配置文件swoolefy/score/Tcp/config.php中更改。rpc服务类继承与tcp的抽象服务类，底层完成了数据的解封包，rpc直接处理业务逻辑。 
 
 ### 访问test     
 在App/Controller中就可以编码测试，基本和thinkphp的mvc那样操作。
