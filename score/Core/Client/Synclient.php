@@ -224,7 +224,7 @@ class Synclient {
 	 * @param  string $pack_length_key
 	 * @return mixed                 
 	 */
-	public static function enpack($data, $header, $seralize_type = self::DECODE_JSON, array $heder_struct = [], $pack_length_key ='length') {
+	public static function enpack($data, $header, array $heder_struct = [], $pack_length_key ='length', $seralize_type = self::DECODE_JSON) {
 
 		$body = self::encode($data, $seralize_type);
         $bin_header_data = '';
