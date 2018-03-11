@@ -2,7 +2,7 @@
 // tcpserver的配置
 return [
 	'application_index' => 'Service\\Application',
-	'start_init' => 'Swoolefy\\Tcp\\StartInit',
+	'start_init' => 'Swoolefy\\Rpc\\StartInit',
 	'master_process_name' => 'php-tcp-master',
 	'manager_process_name' => 'php-tcp-manager',
 	'worker_process_name' => 'php-tcp-worker',
@@ -52,12 +52,28 @@ return [
 		],
 	],
 
-	// 长度检查packet时，设置包头结构体
+	// packet的设置
 	'packet'=>[
-		'pack_header_strct' => ['length'=>'N','name'=>'a30'],
-		'pack_length_key' => 'length',
+		// 服务端使用长度检查packet时，设置包头结构体，如果使用eof时，不需要设置，底层会读取package_eof
+		'server'=>[
+			'pack_header_strct' => ['length'=>'N','name'=>'a30'],
+			'pack_length_key' => 'length',
+		],
+		// 客户端的分包设置，eof分包
+		'client'=> [
+			'pack_check_type' => 'eof',
+			'pack_eof'=>"\r\n\r\n",
+			'seralize_type' => 'json'
+		]
+		// 
+		// client => [
+				// 'pack_check_type' => 'length',
+				// 'pack_header_strct' => ['length'=>'N','name'=>'a30'],
+				// 'pack_length_key' => 'length',
+				// 'seralize_type' => 'json'
+		// ]
+
 	],
-	// 
-	'async_hander' => 1,
+
 
 ];

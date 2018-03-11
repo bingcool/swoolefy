@@ -74,8 +74,8 @@ abstract class TcpServer extends BaseServer {
 		$this->pack = new Pack(self::$server);
 		if(self::isPackLength()) {
 			// packet_langth_check
-			$this->pack->header_struct = self::$config['packet']['pack_header_strct'];
-			$this->pack->pack_length_key = self::$config['packet']['pack_length_key'];
+			$this->pack->header_struct = self::$config['packet']['server']['pack_header_strct'];
+			$this->pack->pack_length_key = self::$config['packet']['server']['pack_length_key'];
 			$this->pack->serialize_type = Pack::DECODE_JSON;
 			$this->pack->header_length = self::$setting['package_body_offset'];
 			$this->pack->packet_maxlen = self::$setting['package_max_length'];

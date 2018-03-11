@@ -14,7 +14,7 @@ class TcpController extends BController {
 		$pack = new Pack(Swfy::$server);
 		$data = 'swoole是一个优秀的框架'.rand(1,100);
 		$header = ['length'=>'','name'=>'bingcool'];
-		$sendData = $pack->enpack($data, $header, Pack::DECODE_JSON);
+		$sendData = $pack->enpack($data, $header);
 
 		if(self::$tcp_client instanceof \swoole_client) {
 			if(self::$tcp_client->isConnected()) {
@@ -72,7 +72,7 @@ class TcpController extends BController {
 
 		$data = 'swoole是一个优秀的框架'.rand(1,100);
 		$header = ['length'=>'','name'=>'bingcool'];
-		$sendData = Pack::enpack($data, $header, Pack::DECODE_JSON);
+		$sendData = Pack::enpack($data, $header);
 
 		$client = new \swoole_client(SWOOLE_TCP | SWOOLE_KEEP);
 
@@ -135,7 +135,7 @@ class TcpController extends BController {
 		$data = 'swoole是一个优秀的框架,很多开发者都使用这个框架'.rand(1,100);
 		$header = ['length'=>'','name'=>'bingcool'];
 
-		$send_data = Synclient::enpack($data, $header, $seralize_type = 'json', $heder_struct = ['length'=>'N','name'=>'a30'],'length');
+		$send_data = Synclient::enpack($data, $header, $heder_struct = ['length'=>'N','name'=>'a30'],'length','json');
 
 		dump('gggg');
 
@@ -167,9 +167,11 @@ class TcpController extends BController {
 
 		// 打包数据,服务端使用pack_length方式
 		// 发送给服务端，按照服务端的pack协议打包数据,不一定是和客户端pack协议相同的
-		$data = 'swoole是一个优秀的框架,很多开发者都使用这个框架'.rand(1,100);
+		$callenable = ['Service/Coms/Book/Bookmanage','test'];
+		$params = ['swoole是一个优秀的框架,很多开发者都使用这个框架'.rand(1,100),'hello'];
+		$data = [$callenable, $params];
 		$header = ['length'=>'','name'=>'bingcool'];
-		$send_data = Synclient::enpack($data, $header, $seralize_type = 'json', $heder_struct = ['length'=>'N','name'=>'a30'],'length');
+		$send_data = Synclient::enpack($data, $header,  $heder_struct = ['length'=>'N','name'=>'a30'],'length',$seralize_type = 'json');
 
 		// 打包数据,服务端使用eof方式
 		// 发送给服务端，按照服务端的pack协议打包数据,不一定是和客户端pack协议相同的
@@ -182,7 +184,10 @@ class TcpController extends BController {
 
 
 		$res = $client->recv();
+		// 每次执行完断开长连接
+		$client->close(true);
 		dump($res);
+		dump('test');
 		
 			
 	}

@@ -430,6 +430,10 @@ class BaseServer {
     	}else {
     		self::$pack_check_type = self::PACK_CHECK_LENGTH;
     	}
+    	if(self::$pack_check_type) {
+    		self::$server->pack_check_type = self::$pack_check_type;
+    	}
+    	
     }
 
     /**
@@ -449,6 +453,10 @@ class BaseServer {
      */
     protected static function isPackLength() {
     	if(self::$pack_check_type == self::PACK_CHECK_LENGTH) {
+    		if(!isset(static::$config['packet']['server'])) {
+    			throw new \Exception("you must set ['packet']['server'] in the config", 1);
+    			
+    		}
     		return true;
     	}
     	return false;
