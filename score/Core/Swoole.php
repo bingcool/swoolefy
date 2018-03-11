@@ -44,37 +44,32 @@ class Swoole extends Object {
 	 * init 初始化函数
 	 * @return void
 	 */
-	protected function init($request = null) {
+	protected function _init($recv = null) {
 		// 初始化处理
-		Init::_init();	
-	} 
+		Init::_init();
+		static::init($recv);	
+	}
 
 	/**
 	 * boostrap 初始化引导
 	 */
-	protected function bootstrap() {
-		Swfy::$config['application_index']::bootstrap();	
+	protected function _bootstrap($recv = null) {
+		static::bootstrap($recv);
+		Swfy::$config['application_index']::bootstrap($recv = null);
 	}
-
 
 	/**
 	 * call 调用创建处理实例
 	 * @return [type] [description]
 	 */
 	public function run($fd, $recv) {
-		// 初始化处理
-		self::init();
 		Application::$app = $this;
 		$this->fd = $fd;
+		// 初始化处理
+		$this->_init($recv);
 		// 引导程序与环境变量的设置
-		$this->bootstrap($recv);
-		
-		$return_data = Pack::enpackeof($recv,1);
-		Swfy::$server->send($fd,$return_data);
-		return;
-
+		$this->_bootstrap($recv);
 	}
-
 
  	/**
 	 * afterRequest 请求结束后注册钩子执行操作
@@ -133,7 +128,6 @@ class Swoole extends Object {
 		MTime::clear();
 		// 清空某些组件,每次请求重新创建
 		self::clearComponent(['mongodb']);
-
 	}
 
  	use \Swoolefy\Core\ComponentTrait;

@@ -3,14 +3,18 @@ namespace Swoolefy\Rpc;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Tcp\TcpServer;
+use Swoolefy\Core\EventInterface;
 
 // 如果直接通过php RpcServer.php启动时，必须include的vendor/autoload.php
 if(isset($argv) && $argv[0] == basename(__FILE__)) {
 	include_once '../../vendor/autoload.php';
 }
 
-class RpcServer extends TcpServer implements \Swoolefy\Core\EventInterface {
-
+class RpcServer extends TcpServer implements EventInterface {
+	/**
+	 * __construct 初始化
+	 * @param array $config
+	 */
 	public function __construct(array $config=[]) {
 		// 获取当前服务文件配置
 		$config = array_merge(
@@ -18,29 +22,45 @@ class RpcServer extends TcpServer implements \Swoolefy\Core\EventInterface {
 				$config
 			);
 		parent::__construct($config);
-
+		// 设置当前的服务名称
 		$this->serverName = 'Rpc';
 	}
 
-	public function onWorkerStart($server, $worker_id) {
+	/**
+	 * onWorkerStart worker进程启动时回调处理
+	 * @param  object $server
+	 * @param  int    $worker_id
+	 * @return void       
+	 */
+	public function onWorkerStart($server, $worker_id) {}
 
-	}
+	/**
+	 * onConnet socket连接上时回调函数
+	 * @param  object $server
+	 * @param  int    $fd    
+	 * @return void        
+	 */
+	public function onConnet($server, $fd) {}
 
-	public function onConnet($server, $fd) {
-
-	}
-
+	/**
+	 * onReceive 接收数据时的回调处理，$data是一个完整的数据包，底层已经封装好，只需要配置好，直接使用即可
+	 * @param  object $server
+	 * @param  int    $fd
+	 * @param  int    $reactor_id
+	 * @param  mixed  $data
+	 * @return mixed
+	 */
 	public function onReceive($server, $fd, $reactor_id, $data) {
 		swoole_unpack(self::$service)->run($fd, $data);
 	}
 
 	/**
 	 * onTask 任务处理函数调度
-	 * @param    object   $server
-	 * @param    int      $task_id
-	 * @param    int      $from_id
-	 * @param    mixed    $data
-	 * @return   void
+	 * @param   object  $server
+	 * @param   int     $task_id
+	 * @param   int     $from_id
+	 * @param   mixed   $data
+	 * @return  void
 	 */
 	public function onTask($task_id, $from_id, $data) {
 		list($class, $taskData) = $data;		
@@ -59,8 +79,8 @@ class RpcServer extends TcpServer implements \Swoolefy\Core\EventInterface {
 
 	/**
 	 * onFinish 异步任务完成后调用
-	 * @param    int      $task_id
-	 * @param    mixed    $data
+	 * @param    int     $task_id
+	 * @param    mixed   $data
 	 * @return   void
 	 */
 	public function onFinish($task_id, $data) {
@@ -72,6 +92,12 @@ class RpcServer extends TcpServer implements \Swoolefy\Core\EventInterface {
 		return true;
 	}
 
+	/**
+	 * onClose tcp连接关闭时回调函数
+	 * @param  object $server
+	 * @param  int    $fd    
+	 * @return void
+	 */
 	public function onClose($server, $fd) {
 
 	}

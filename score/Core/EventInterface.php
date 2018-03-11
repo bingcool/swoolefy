@@ -15,3 +15,11 @@ interface EventInterface {
 
 	public function onClose($server, $fd);
 }
+
+interface HanderInterface {
+	public function init($recv);
+
+	public function bootstrap($recv);
+
+	public function run($fd, $recv);
+}

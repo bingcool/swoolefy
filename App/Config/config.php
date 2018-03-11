@@ -37,7 +37,7 @@ return [
 			'constructor'=> [
 				[
 					'scheme' => 'tcp',
-    				'host'   => '192.168.99.102',
+    				'host'   => '192.168.56.101',
     				'port'   => 6379,
     				'password' => '123456'
 				],
@@ -62,8 +62,8 @@ return [
 			'class' => 'Swoolefy\Core\Db\Mysql',
 			'config' =>[
 				'type'=>'mysql',
-				'master_host' =>['192.168.99.102'],
-				'slave_host' =>['192.168.99.102'],
+				'master_host' =>['192.168.56.101'],
+				'slave_host' =>['192.168.56.101'],
 				'dbname' => 'bingcool',
 				'username' =>'swoole',
 				'password' =>'123456',
@@ -77,7 +77,7 @@ return [
 		'mongodb'=>[
 			'class'=>'Swoolefy\Core\Mongodb\MongodbModel',
 			'database'=>'mytest',
-			'uri'=>'mongodb://192.168.99.102:27017',
+			'uri'=>'mongodb://192.168.56.101:27017',
 			'driverOptions'=> [
 					'typeMap' => [ 'array' => 'MongoDB\Model\BSONArray', 'document' => 'MongoDB\Model\BSONArray', 'root' => 'MongoDB\Model\BSONArray']
 			],
@@ -89,7 +89,7 @@ return [
 			'constructor'=> [
 				[
 					'scheme' => 'tcp',
-    				'host'   => '192.168.99.102',
+    				'host'   => '192.168.56.101',
     				'port'   => 6379,
     				'password' => '123456'
 				],

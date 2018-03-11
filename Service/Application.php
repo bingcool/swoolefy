@@ -29,7 +29,7 @@ class Application implements \Swoolefy\Core\AppInterface{
 	// 获取应用实例，完成各种配置以及初始化，不涉及具体业务
 	public static function getInstance(array $config=[]) {
 		$config = array_merge(self::init(), $config);
-		return new \Swoolefy\Core\Swoole($config);
+		return new \Swoolefy\Rpc\RpcHander($config);
 	}
 
 	
