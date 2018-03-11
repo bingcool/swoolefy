@@ -43,10 +43,9 @@ class RpcDispatch extends AppDispatch {
 		if(!self::$routeCacheFileMap[$class]) {
 			// 类文件不存在
 			if(!$this->checkClass($class)){
-				// Swfy::$server->
+				
 			}
 		}
-
 		$class = str_replace('/','\\', $class);
 		$serviceInstance = new $class();
 		try{
@@ -57,6 +56,11 @@ class RpcDispatch extends AppDispatch {
 		
 	}
 
+	/**
+	 * checkClass 检查请求实例文件是否存在
+	 * @param  string  $class
+	 * @return boolean
+	 */
 	public function checkClass($class) {
 		$class = trim($class, '/');
 		$file = APP_PATH.DIRECTORY_SEPARATOR.$class.DIRECTORY_SEPARATOR.'.php';

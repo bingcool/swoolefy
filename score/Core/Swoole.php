@@ -71,6 +71,32 @@ class Swoole extends Object {
 		$this->_bootstrap($recv);
 	}
 
+	/**
+     * getCurrentWorkerId 获取当前执行进程的id
+     * @return int
+     */
+    public static function getCurrentWorkerId() {
+        return Swfy::$server->worker_id;
+    }
+
+    /**
+     * isWorkerProcess 判断当前进程是否是worker进程
+     * @return boolean
+     */
+    public static function isWorkerProcess() {
+        $worker_id = self::getCurrentWorkerId();
+        $max_worker_id = (Swfy::$config['setting']['worker_num']) - 1;
+        return ($worker_id <= $max_worker_id) ? true : false;
+    }
+
+    /**
+     * isTaskProcess 判断当前进程是否是异步task进程
+     * @return boolean
+     */
+    public static function isTaskProcess() {
+        return (self::isWorkerProcess()) ? false : true;
+    }
+
  	/**
 	 * afterRequest 请求结束后注册钩子执行操作
 	 * @param	mixed   $callback 

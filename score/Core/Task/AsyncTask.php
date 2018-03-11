@@ -3,40 +3,25 @@ namespace Swoolefy\Core\Task;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
+use Swoolefy\Core\Task\AsyncTaskInterface;
 
-class AsyncTask {
+class AsyncTask implements AsyncTaskInterface {
 
     /**
-     * registerTask 注册实例任务并调用异步任务，创建一个访问实例，相当于浏览器发出的一个请求，用于处理复杂业务
+     * registerTask 注册实例任务并调用异步任务，创建一个访问实例，用于处理复杂业务
      * @param   string  $route
      * @param   array   $data
      * @return    int|boolean
      */
-    public static function registerTask($route, $data=[]) {
-
-    }
-
-    /**
-     * registerStaticCallTask 注册静态类调用形式任务，不用创建实例，用于处理简单业务或者日志发送等
-     * @param    array   $class
-     * @param    array   $data
-     * @return    int|boolean
-     */
-    public static function registerStaticCallTask($class, $data=[]) {
-        if(!is_array($class) || !is_array($data)) {
-            _die(__NAMESPACE__.'::'.__METHOD__.' the param $class and $data must be array');	
+    public static function registerTask($callable, $data = []) {
+        if(is_string($callable)) {
+            throw new \Exception("$callable must be array", 1);
         }
-        if(count($class) != 2) {
-            _die(__NAMESPACE__.'::'.__METHOD__.' the param $class only need to 2 elements');
-        }
-        if(is_string($data)) {
-            $data = (array) $data;
-        }
-        $class[0] = str_replace('/','\\', $class[0]);
-        $class[0] = trim($class[0], '\\'); 
+        $fd = Application::$app->fd;
+        // 只有在worker进程中可以调用异步任务进程，异步任务进程中不能调用异步进程
         if(self::isWorkerProcess()) {
-            $task_id = Swfy::$server->task([$class, $data]);
-            unset($class, $data);
+            $task_id = Swfy::$server->task(swoole_pack([$callable, [$data], $fd]));
+            unset($callable, $data);
             return $task_id;
         }
         return false;
