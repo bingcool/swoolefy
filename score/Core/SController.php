@@ -46,24 +46,24 @@ class SController extends Object {
 		if($this->isClientPackEof()) {
 			list($data) = $args;
 			$eof = Swfy::$config['packet']['client']['pack_eof'];
-			$seralize_type = Swfy::$config['packet']['client']['seralize_type'];
+			$serialize_type = Swfy::$config['packet']['client']['seralize_type'];
 			if($eof) {
-				$return_data = Pack::enpackeof($data, $seralize_type, $eof);
+				$return_data = Pack::enpackeof($data, $serialize_type, $eof);
 			}else {
-				$return_data = Pack::enpackeof($data, $seralize_type);
+				$return_data = Pack::enpackeof($data, $serialize_type);
 			}
 			Swfy::$server->send($this->fd, $return_data);
 
 		}else {
 			// 客户端是length方式分包
 			list($data, $header) = $args; 
-			$heder_struct = Swfy::$config['packet']['client']['pack_header_strct'];
+			$header_struct = Swfy::$config['packet']['client']['pack_header_strct'];
 			$pack_length_key = Swfy::$config['packet']['client']['pack_length_key'];
-			$seralize_type = Swfy::$config['packet']['client']['seralize_type'];
+			$serialize_type = Swfy::$config['packet']['client']['seralize_type'];
 
 			$header[$pack_length_key] = '';
 
-			$return_data = Pack::enpack($data, $header, $heder_struct, $pack_length_key, $seralize_type);
+			$return_data = Pack::enpack($data, $header, $header_struct, $pack_length_key, $serialize_type);
 			Swfy::$server->send($this->fd, $return_data);
 		}	
 	}

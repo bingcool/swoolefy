@@ -219,22 +219,22 @@ class Synclient {
 	 * enpack 
 	 * @param  array $data
 	 * @param  array $header
-	 * @param  mixed $seralize_type
+	 * @param  mixed $serialize_type
 	 * @param  array  $heder_struct
 	 * @param  string $pack_length_key
 	 * @return mixed                 
 	 */
-	public static function enpack($data, $header, array $heder_struct = [], $pack_length_key ='length', $seralize_type = self::DECODE_JSON) {
+	public static function enpack($data, $header, array $header_struct = [], $pack_length_key ='length', $serialize_type = self::DECODE_JSON) {
 
-		$body = self::encode($data, $seralize_type);
+		$body = self::encode($data, $serialize_type);
         $bin_header_data = '';
 
         // 如果没有设置，客户端的包头结构体与服务端一致
-        if(empty($heder_struct)) {
-        	$heder_struct = self::$header_struct;
+        if(empty($header_struct)) {
+        	$header_struct = self::$header_struct;
         }
 
-        foreach($heder_struct as $key=>$value) {
+        foreach($header_struct as $key=>$value) {
         	if(isset($header[$key])) {
         		// 计算包体长度
 	        	if($key == $pack_length_key) {
@@ -285,11 +285,11 @@ class Synclient {
 	 * @param   int     $seralize_type
 	 * @return  string
 	 */
-	public static function encode($data, $seralize_type = self::DECODE_JSON) {
-		if(is_string($seralize_type)) {
-			$seralize_type = self::SERIALIZE_TYPE[$seralize_type];
+	public static function encode($data, $serialize_type = self::DECODE_JSON) {
+		if(is_string($serialize_type)) {
+			$serialize_type = self::SERIALIZE_TYPE[$serialize_type];
 		}
-        switch($seralize_type) {
+        switch($serialize_type) {
         		// json
             case 1:
                 return json_encode($data);
@@ -309,11 +309,11 @@ class Synclient {
 	 * @param    mixed    $unseralize_type
 	 * @return   mixed
 	 */
-	public static function decode($data, $unseralize_type = self::DECODE_JSON) {
-		if(is_string($unseralize_type)) {
-			$unseralize_type = self::SERIALIZE_TYPE[$unseralize_type];
+	public static function decode($data, $unserialize_type = self::DECODE_JSON) {
+		if(is_string($unserialize_type)) {
+			$unserialize_type = self::SERIALIZE_TYPE[$unserialize_type];
 		}
-        switch($unseralize_type) {
+        switch($unserialize_type) {
         		// json
             case 1:
                 return json_decode($data, true);
@@ -338,11 +338,11 @@ class Synclient {
      * @param  string $eof
      * @return string
      */
-    public function enpackeof($data, $seralize_type = self::DECODE_JSON, $eof ='') {
+    public function enpackeof($data, $serialize_type = self::DECODE_JSON, $eof ='') {
     	if(empty($eof)) {
     		$eof = self::$pack_eof;
     	}
-    	$data = self::encode($data, $seralize_type).$eof;
+    	$data = self::encode($data, $serialize_type).$eof;
     	
     	return $data;
     }
@@ -357,8 +357,8 @@ class Synclient {
      * @param   int     $unseralize_type
      * @return  mixed 
      */
-    public function depackeof($data, $unseralize_type = self::DECODE_JSON) {
-    	return self::decode($data, $unseralize_type);
+    public function depackeof($data, $unserialize_type = self::DECODE_JSON) {
+    	return self::decode($data, $unserialize_type);
     }
 
     /**

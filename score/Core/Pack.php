@@ -252,20 +252,20 @@ class Pack {
 
 	 * @param    mixed  $data
 	 * @param    array  $header
-	 * @param    string  $seralize_type 
+	 * @param    string  $serialize_type
 	 * @param    array  $heder_struct
 	 * @return   string
 	 */
-	public static function enpack($data, array $header, array $heder_struct = [], $pack_length_key ='length', $seralize_type = self::DECODE_JSON) {
-		$body = self::encode($data, $seralize_type);
+	public static function enpack($data, array $header, array $header_struct = [], $pack_length_key ='length', $serialize_type = self::DECODE_JSON) {
+		$body = self::encode($data, $serialize_type);
         $bin_header_data = '';
 
         // 如果没有设置，客户端的包头结构体与服务端一致
-        if(empty($heder_struct)) {
-        	$heder_struct = self::$header_struct;
+        if(empty($header_struct)) {
+        	$header_struct = self::$header_struct;
         }
 
-        foreach($heder_struct as $key=>$value) {
+        foreach($header_struct as $key=>$value) {
         	if(isset($header[$key])) {
         		// 计算包体长度
 	        	if($key == $pack_length_key) {
@@ -283,14 +283,14 @@ class Pack {
 	/**
 	 * encode 数据序列化
 	 * @param   mixed   $data
-	 * @param   int     $seralize_type
+	 * @param   int     $serialize_type
 	 * @return  string
 	 */
-	public static function encode($data, $seralize_type = self::DECODE_JSON) {
-		if(is_string($seralize_type)) {
-			$seralize_type = self::SERIALIZE_TYPE[$seralize_type];
+	public static function encode($data, $serialize_type = self::DECODE_JSON) {
+		if(is_string($serialize_type)) {
+			$serialize_type = self::SERIALIZE_TYPE[$serialize_type];
 		}
-        switch($seralize_type) {
+        switch($serialize_type) {
         		// json
             case 1:
                 return json_encode($data);
@@ -310,11 +310,11 @@ class Pack {
 	 * @param    mixed    $unseralize_type
 	 * @return   mixed
 	 */
-	public static function decode($data, $unseralize_type = self::DECODE_JSON) {
-		if(is_string($unseralize_type)) {
-			$unseralize_type = self::SERIALIZE_TYPE[$unseralize_type];
+	public static function decode($data, $unserialize_type = self::DECODE_JSON) {
+		if(is_string($unserialize_type)) {
+			$unserialize_type = self::SERIALIZE_TYPE[$unserialize_type];
 		}
-        switch($unseralize_type) {
+        switch($unserialize_type) {
         		// json
             case 1:
                 return json_decode($data, true);
@@ -362,11 +362,11 @@ class Pack {
      * @param  string $eof
      * @return string
      */
-    public function enpackeof($data, $seralize_type = self::DECODE_JSON, $eof ='') {
+    public function enpackeof($data, $serialize_type = self::DECODE_JSON, $eof ='') {
     	if(empty($eof)) {
     		$eof = self::$pack_eof;
     	}
-    	$data = self::encode($data, $seralize_type).$eof;
+    	$data = self::encode($data, $serialize_type).$eof;
     	
     	return $data;
     }
@@ -381,9 +381,9 @@ class Pack {
      * @param   int     $unseralize_type
      * @return  mixed 
      */
-    public function depackeof($data, $unseralize_type = '') {
-    	if($unseralize_type) {
-    		$this->serialize_type = $unseralize_type;
+    public function depackeof($data, $unserialize_type = '') {
+    	if($unserialize_type) {
+    		$this->serialize_type = $unserialize_type;
     	}
     	return self::decode($data, $this->serialize_type);
     }
