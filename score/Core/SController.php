@@ -46,7 +46,7 @@ class SController extends Object {
 		if($this->isClientPackEof()) {
 			list($data) = $args;
 			$eof = Swfy::$config['packet']['client']['pack_eof'];
-			$serialize_type = Swfy::$config['packet']['client']['seralize_type'];
+			$serialize_type = Swfy::$config['packet']['client']['serialize_type'];
 			if($eof) {
 				$return_data = Pack::enpackeof($data, $serialize_type, $eof);
 			}else {
@@ -59,7 +59,7 @@ class SController extends Object {
 			list($data, $header) = $args; 
 			$header_struct = Swfy::$config['packet']['client']['pack_header_strct'];
 			$pack_length_key = Swfy::$config['packet']['client']['pack_length_key'];
-			$serialize_type = Swfy::$config['packet']['client']['seralize_type'];
+			$serialize_type = Swfy::$config['packet']['client']['serialize_type'];
 
 			$header[$pack_length_key] = '';
 

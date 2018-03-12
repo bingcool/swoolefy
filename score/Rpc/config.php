@@ -63,14 +63,14 @@ return [
 		'client'=> [
 			'pack_check_type' => 'eof',
 			'pack_eof'=>"\r\n\r\n",
-			'seralize_type' => 'json'
+			'serialize_type' => 'json'
 		]
 		// 
 		// client => [
 				// 'pack_check_type' => 'length',
 				// 'pack_header_strct' => ['length'=>'N','name'=>'a30'],
 				// 'pack_length_key' => 'length',
-				// 'seralize_type' => 'json'
+				// 'serialize_type' => 'json'
 		// ]
 
 	],
