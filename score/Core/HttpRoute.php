@@ -31,6 +31,12 @@ class HttpRoute extends AppDispatch {
 	public $config = null;
 
 	/**
+	 * $extend_data 额外请求数据
+	 * @var null
+	 */
+	public $extend_data = null;
+
+	/**
 	 * $deny_actions 禁止外部直接访问的action
 	 * @var array
 	 */
@@ -38,7 +44,7 @@ class HttpRoute extends AppDispatch {
 	/**
 	 * __construct
 	 */
-	public function __construct() {
+	public function __construct($extend_data = null) {
 		// 执行父类
 		parent::__construct();
 		// 获取请求对象
@@ -46,7 +52,9 @@ class HttpRoute extends AppDispatch {
 		$this->require_uri = $this->request->server['PATH_INFO'];
 
 		$this->response = Application::$app->response;
-		$this->config = Application::$app->config; 
+		$this->config = Application::$app->config;
+
+		$this->extend_data = $extend_data; 
 	}
 
 	/**
@@ -205,7 +213,12 @@ class HttpRoute extends AppDispatch {
 			$method = new \ReflectionMethod($controllerInstance, $action);
 			if($method->isPublic() && !$method->isStatic()) {
 				try{
-           	 		$method->invoke($controllerInstance);
+					if($this->extend_data) {
+						$method->invoke($controllerInstance, $this->extend_data);
+					}else {
+						$method->invoke($controllerInstance);
+					}
+           	 		
 		        }catch (\ReflectionException $e) {
 		            // 方法调用发生异常后 引导到__call方法处理
 		            $method = new \ReflectionMethod($controllerInstance,'__call');

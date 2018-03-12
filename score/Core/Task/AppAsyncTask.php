@@ -3,6 +3,7 @@ namespace Swoolefy\Core\Task;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
+use Swoolefy\Core\Collection;
 
 class AppAsyncTask extends AsyncTask {
 	/**
@@ -13,6 +14,15 @@ class AppAsyncTask extends AsyncTask {
      * @return    int|boolean
      */
     public static function registerTask($callable, $data=[]) {
-        
+     
+        $request = new Collection(Application::$app->request);
+        $requestItems = $request->all();
+        // 只有在worker进程中可以调用异步任务进程，异步任务进程中不能调用异步进程
+        if(self::isWorkerProcess()) {
+            $task_id = Swfy::$server->task(swoole_pack([$callable, $data, $requestItems]));
+            unset($callable, $data);
+            return $task_id;
+        }
+        return false;
     }
 }

@@ -13,7 +13,7 @@ class AsyncTaskController extends BController {
 		// 测试投递注册异步任务
 	public function asyncTask() {
 		// 注册任务并执行
-		AppAsyncTask::registerTask('App/Task/AsyncTask/test', ['swoole']);
+		AppAsyncTask::registerTask(['App/Task/AsyncTask', 'asyncTaskTest'], ['swoole']);
 
 		return ;
 	}
@@ -22,5 +22,7 @@ class AsyncTaskController extends BController {
 	public function asyncStaticTask() {
 		AppAsyncTask::registerStaticCallTask(['App/Task/AsyncTask','asyncStaticTest'], ['hello']);
 		return ;
-}
+	}
+
+	
 }

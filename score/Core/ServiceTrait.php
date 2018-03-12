@@ -144,4 +144,27 @@ trait ServiceTrait {
 		}	
 	}
 
+	/**
+	 * isWorkerProcess 进程是否是worker进程
+	 * @param    $worker_id
+	 * @return   boolean
+	 */
+	public static function isWorkerProcess() {
+		$worker_id = self::getCurrentWorkerId();
+		if($worker_id < Swfy::$config['setting']['worker_num']) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * isTaskProcess 进程是否是task进程
+	 * @param    $worker_id
+	 * @return   boolean
+	 */
+	public static function isTaskProcess() {
+		$worker_id = self::getCurrentWorkerId();
+		return self::isWorkerProcess($worker_id) ? false : true;
+	}
+
 }

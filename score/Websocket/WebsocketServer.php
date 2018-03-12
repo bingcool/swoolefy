@@ -144,7 +144,7 @@ class WebsocketServer extends BaseServer {
 			// 启动时提前加载文件
 			self::startInclude();
 			// 记录worker的进程worker_pid与worker_id的映射
-			self::setWorkersPid($worker_id,$server->worker_pid);
+			self::setWorkersPid($worker_id, $server->worker_pid);
 			// 超全局变量server
        		Swfy::$server = $this->webserver;
        		Swfy::$config = self::$config;
@@ -154,9 +154,7 @@ class WebsocketServer extends BaseServer {
        		}
 
 			// 启动的初始化函数
-			self::$startCtrl::workerStart($server,$worker_id);
-			//tcp的异步client连接tcp的server,只能是在worker进程中
-			self::isWorkerProcess($worker_id) && self::registerRpc();
+			self::$startCtrl::workerStart($server, $worker_id);
 			
 		});
 
@@ -296,34 +294,6 @@ class WebsocketServer extends BaseServer {
 		}
 
 		$this->webserver->start();
-	}
-
-	/**
-	 * registerRpc 
-	 * @return   [type]        [description]
-	 */
-	public function registerRpc() {
-		$this->tcp_client = new \swoole_client(SWOOLE_SOCK_TCP, SWOOLE_SOCK_ASYNC);
-		//注册连接成功回调
-		$this->tcp_client->on("connect", function($cli){
-		    // 
-		});
-
-		//注册数据接收回调
-		$this->tcp_client->on("receive", function($cli, $data){
-			var_dump(swoole_unpack($data));
-		});
-
-		//注册连接失败回调
-		$this->tcp_client->on("error", function($cli){
-		});
-
-		//注册连接关闭回调
-		$this->tcp_client->on("close", function($cli){
-		});
-
-		//发起连接
-		$this->tcp_client->connect('127.0.0.1', 9999, 0.5);
 	}
 
 }

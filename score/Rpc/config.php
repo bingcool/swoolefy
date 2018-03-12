@@ -13,8 +13,8 @@ return [
 	'time_zone' => 'PRC', 
 	'setting' => [
 		'reactor_num' => 1, //reactor thread num
-		'worker_num' => 1,    //worker process num
-		'max_request' => 5,
+		'worker_num' => 3,    //worker process num
+		'max_request' => 1000,
 		'task_worker_num' =>5,
 		'task_tmpdir' => '/dev/shm',
 		'daemonize' => 0,

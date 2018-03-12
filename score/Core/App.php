@@ -60,7 +60,10 @@ class App extends \Swoolefy\Core\Component {
 		AppInit::_init();
 		// session start,在一些微服务中无需session
 		if(isset($this->config['session_start']) && $this->config['session_start']) {
-			$this->session->start();
+			// worker进程才启动session
+			if(self::isWorkerProcess()) {
+				$this->session->start();
+			}
 		}
 	} 
 
@@ -77,7 +80,7 @@ class App extends \Swoolefy\Core\Component {
 	 * @param  $response
 	 * @return void
 	 */
-	public function run($request, $response) {
+	public function run($request, $response, $extend_data = null) {
 		// 赋值对象
 		$this->request = $request;
 		$this->response = $response;
@@ -91,7 +94,7 @@ class App extends \Swoolefy\Core\Component {
 			// 调试模式，将打印出一些信息
 			$this->debug();
 			// 路由调度执行
-			$route = new HttpRoute();
+			$route = new HttpRoute($extend_data);
 			$route->dispatch();
 		}
 		// 请求结束

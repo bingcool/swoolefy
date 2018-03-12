@@ -8,17 +8,20 @@ class AsyncTask extends Object {
 	public $name = null;
 
 	// 异步任务
-	public function test() {
-		$taskData = $this->request->taskData;
-		var_dump($taskData);
+	public function test($data, $request) {
+		
+		var_dump($data);
+		var_dump($request);
 		// 异步任务完成，退出task进程
 		// AppAsyncTask::registerTaskfinish([$this, 'finish'], ['hhhhhhhhh']);	
 	}
 
-	public function asyncTaskTest() {
+	public function asyncTaskTest($data, $request) {
 		var_dump('swoole');
+		var_dump($data);
+		var_dump($request);
 		// 异步任务完成，退出task进程
-		AppAsyncTask::registerTaskfinish([$this, 'finish'], ['hhhhhhhhh']);
+		// AppAsyncTask::registerTaskfinish([$this, 'finish'], ['hhhhhhhhh']);
 	}
 
 	public function anyncMail() {

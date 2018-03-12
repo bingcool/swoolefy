@@ -71,7 +71,7 @@ class HttpServer extends BaseServer {
 		/**
 		 * start回调
 		 */
-		$this->webserver->on('Start',function(http_server $server) {
+		$this->webserver->on('Start', function(http_server $server) {
 			// 重新设置进程名称
 			self::setMasterProcessName(self::$config['master_process_name']);
 			// 启动的初始化函数
@@ -80,7 +80,7 @@ class HttpServer extends BaseServer {
 		/**
 		 * managerstart回调
 		 */
-		$this->webserver->on('ManagerStart',function(http_server $server) {
+		$this->webserver->on('ManagerStart', function(http_server $server) {
 			// 重新设置进程名称
 			self::setManagerProcessName(self::$config['manager_process_name']);
 			// 启动的初始化函数
@@ -90,7 +90,7 @@ class HttpServer extends BaseServer {
 		/**
 		 * 启动worker进程监听回调，设置定时器
 		 */
-		$this->webserver->on('WorkerStart',function(http_server $server, $worker_id) {
+		$this->webserver->on('WorkerStart', function(http_server $server, $worker_id) {
 			// 记录主进程加载的公共files,worker重启不会在加载的
 			self::getIncludeFiles();
 			// 重启worker时，刷新字节cache
@@ -102,21 +102,21 @@ class HttpServer extends BaseServer {
 			// 启动时提前加载文件
 			self::startInclude();
 			// 记录worker的进程worker_pid与worker_id的映射
-			self::setWorkersPid($worker_id,$server->worker_pid);
+			self::setWorkersPid($worker_id, $server->worker_pid);
 			// 超全局变量server
        		Swfy::$server = $this->webserver;
        		Swfy::$config = self::$config;
        		// 初始化整个应用对象
 			is_null(self::$App) && self::$App = swoole_pack(self::$config['application_index']::getInstance($config=[]));
        		// 启动的初始化函数
-			self::$startCtrl::workerStart($server,$worker_id);
+			self::$startCtrl::workerStart($server, $worker_id);
 			
 		});
 
 		/**
 		 * worker进程停止回调函数
 		 */
-		$this->webserver->on('WorkerStop',function(http_server $server, $worker_id) {
+		$this->webserver->on('WorkerStop', function(http_server $server, $worker_id) {
 			// worker停止的触发函数
 			self::$startCtrl::workerStop($server,$worker_id);
 			
@@ -125,7 +125,7 @@ class HttpServer extends BaseServer {
 		/**
 		 * 接受http请求
 		 */
-		$this->webserver->on('request',function(Request $request, Response $response) {
+		$this->webserver->on('request', function(Request $request, Response $response) {
 			try{
 				// google浏览器会自动发一次请求/favicon.ico,在这里过滤掉
 				if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
@@ -143,8 +143,9 @@ class HttpServer extends BaseServer {
 		 * 异步任务
 		 */
 		$this->webserver->on('task', function(http_server $server, $task_id, $from_worker_id, $data) {
-			try {
-				self::onTask($task_id, $from_worker_id, $data);
+			try{
+				$taskData = swoole_unpack($data);
+				self::onTask($task_id, $from_worker_id, $taskData);
 				return true;
 			}catch(\Exception $e) {
 				// 捕捉异常
@@ -156,7 +157,7 @@ class HttpServer extends BaseServer {
 		/**
 		 * 处理异步任务的结果
 		 */
-		$this->webserver->on('finish', function (http_server $server, $task_id, $data) {
+		$this->webserver->on('finish', function(http_server $server, $task_id, $data) {
 			try {
 				self::onFinish($task_id, $data);
 				return true;
@@ -170,7 +171,7 @@ class HttpServer extends BaseServer {
 		/**
 		 * worker进程异常错误回调函数
 		 */
-		$this->webserver->on('WorkerError',function(http_server $server, $worker_id, $worker_pid, $exit_code, $signal) {
+		$this->webserver->on('WorkerError', function(http_server $server, $worker_id, $worker_pid, $exit_code, $signal) {
 			// worker停止的触发函数
 			self::$startCtrl::workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
 		});
@@ -179,7 +180,7 @@ class HttpServer extends BaseServer {
 		 * worker进程退出回调函数，1.9.17+版本
 		 */
 		if(static::compareSwooleVersion()) {
-			$this->webserver->on('WorkerExit',function(http_server $server, $worker_id) {
+			$this->webserver->on('WorkerExit', function(http_server $server, $worker_id) {
 				// worker退出的触发函数
 				self::$startCtrl::workerExit($server, $worker_id);
 			});
@@ -188,39 +189,22 @@ class HttpServer extends BaseServer {
 		$this->webserver->start();
 	}
 
-	/**
-	 * onTask 任务处理函数调度
-	 * @param    object   $server
-	 * @param    int         $task_id
-	 * @param    int         $from_id
-	 * @param    mixed    $data
-	 * @return    void
-	 */
-	public function onTask($task_id, $from_id, $data) {
-		list($class, $taskData) = $data;		
-		// 实例任务
-		if(is_string($class))  {
-			
-		}else if(is_array($class)) {
-			// 类静态方法调用任务
-			call_user_func_array($class, [$taskData]);
-		}	
-		return ;
+	public function onTask($task_id, $from_worker_id, $data) {
+		list($callable, $extend_data, $requestItems) = $data;
+
+		list($class, $action) = $callable;
+		$class = str_replace('/', '\\', $class);
+		
+		$request = (object)$requestItems;
+
+		$taskInstance = new $class;
+
+		call_user_func_array([$taskInstance, $action], [$extend_data, $request]);
+
 	}
 
-	/**
-	 * onFinish 异步任务完成后调用
-	 * @param    int          $task_id
-	 * @param    mixed    $data
-	 * @return void
-	 */
 	public function onFinish($task_id, $data) {
-		list($callable, $taskData) = $data;
-		if(!is_array($callable) || !is_array($taskData)) {
-			return false;
-		}
-		call_user_func_array($callable, [$taskData]);
-		return true;
+
 	}
 
 }
