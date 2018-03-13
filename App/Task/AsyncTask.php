@@ -3,8 +3,10 @@ namespace App\Task;
 
 use Swoolefy\Core\Object;
 use Swoolefy\Core\Swfy;
+use Swoolefy\Core\Application;
+use Swoolefy\Core\Controller\TaskController;
 
-class AsyncTask extends Object {
+class AsyncTask extends TaskController {
 	public $name = null;
 
 	// 异步任务
@@ -16,7 +18,7 @@ class AsyncTask extends Object {
 
 	public function asyncTaskTest($data, $request) {
 		var_dump($data);
-		var_dump($request);
+		var_dump($request->get);
 		// 异步任务完成，退出task进程
 		// AppAsyncTask::registerTaskfinish([$this, 'finish'], ['hhhhhhhhh']);
 	}
@@ -38,7 +40,7 @@ class AsyncTask extends Object {
 			"attach" =>["/home/wwwroot/default/swoolefy/score/Test/test.docx"=>"my.docx"],
 		];
 
-		$mailer->sendEmail();
+		// $mailer->sendEmail();
 	}
 
 	public function  finish($name) {

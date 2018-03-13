@@ -12,9 +12,11 @@ class AsyncTaskController extends BController {
 		
 		// 测试投递注册异步任务
 	public function asyncTask() {
+		dump('测试异步任务');
 		// 注册任务并执行
 		AppAsyncTask::registerTask(['App/Task/AsyncTask', 'asyncTaskTest'], ['swoole']);
-
+		// 注册任务发送邮件并执行
+		AppAsyncTask::registerTask(['App/Task/AsyncTask', 'anyncMail'], ['swoole']);
 		return ;
 	}
 

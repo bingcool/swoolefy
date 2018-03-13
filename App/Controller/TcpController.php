@@ -185,7 +185,7 @@ class TcpController extends BController {
 
 		$res = $client->recv();
 		// 每次执行完断开长连接
-		$client->close(true);
+		// $client->close(true);
 		dump($res);
 		dump('test');
 		

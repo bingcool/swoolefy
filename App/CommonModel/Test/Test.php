@@ -7,6 +7,6 @@ class Test {
 	}
 
 	public function getData() {
-		return ['name'=>'黄增冰hello swoolefy-'.rand(1,100)];
+		return ['name'=>'hello swoolefy-'.rand(1,100)];
 	}
 }
