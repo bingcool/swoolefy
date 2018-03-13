@@ -8,7 +8,8 @@ sftp-config.json
 *.pid
 #dir
 /App/Runtime/
-/App/Config/
+/App/Config/config.php
+/App/Config/defines.php
 /Service/Runtime/
 /Service/Config/
 /vendor

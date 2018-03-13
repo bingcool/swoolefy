@@ -8,16 +8,13 @@ class AsyncTask extends Object {
 	public $name = null;
 
 	// 异步任务
-	public function test($data, $request) {
-		
+	public function test($data) {
 		var_dump($data);
 		var_dump($request);
-		// 异步任务完成，退出task进程
-		// AppAsyncTask::registerTaskfinish([$this, 'finish'], ['hhhhhhhhh']);	
+
 	}
 
 	public function asyncTaskTest($data, $request) {
-		var_dump('swoole');
 		var_dump($data);
 		var_dump($request);
 		// 异步任务完成，退出task进程
@@ -49,7 +46,4 @@ class AsyncTask extends Object {
 		return ;
 	}
 
-	public static function  asyncStaticTest($data) {
-		var_dump($data);
-	}
 }

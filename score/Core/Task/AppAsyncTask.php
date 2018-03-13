@@ -13,14 +13,17 @@ class AppAsyncTask extends AsyncTask {
      * @param   array   $data
      * @return    int|boolean
      */
-    public static function registerTask($callable, $data=[]) {
-     
+    public static function registerTask($callable, $data = []) {
+        if(is_string($callable)) {
+            throw new \Exception("$callable must be array", 1);
+        }
+        $callable[0] = str_replace('/', '\\', trim($callable[0],'/'));
         $request = new Collection(Application::$app->request);
         $requestItems = $request->all();
         // 只有在worker进程中可以调用异步任务进程，异步任务进程中不能调用异步进程
         if(self::isWorkerProcess()) {
             $task_id = Swfy::$server->task(swoole_pack([$callable, $data, $requestItems]));
-            unset($callable, $data);
+            unset($callable, $data, $requestItems);
             return $task_id;
         }
         return false;

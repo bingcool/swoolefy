@@ -49,20 +49,6 @@ class WebsocketServer extends BaseServer {
 	public $tcpserver = null;
 
 	/**
-	 * $tcpclient 
-	 * @var null
-	 */
-	public $tcp_client = null;
-
-	/**
-	 * $gateway_config 
-	 * @var array
-	 */
-	public $rpc_config = [
-		['host'=>'127.0.0.1','port'=>9999]
-	];
-
-	/**
 	 * $channel 进程共享内存信道队列
 	 * @var null
 	 */
@@ -94,10 +80,6 @@ class WebsocketServer extends BaseServer {
 		self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
 		$this->webserver->set(self::$setting);
 		parent::__construct();
-
-		// 监听多一个内部的TCP端口
-		$this->tcpserver = $this->webserver->addListener('0.0.0.0', self::$config['tcp_port'], SWOOLE_SOCK_TCP);
-		$this->tcpserver->set(self::$config['tcp_setting']);
 
 		// 创建一个channel通道,worker进程共享内存
 		$this->channel = new \Swoole\Channel(1024 * 256);
@@ -169,8 +151,7 @@ class WebsocketServer extends BaseServer {
 
 		$this->webserver->on('message', function(websocket_server $server, $frame) {
 			try{
-				$data = [$frame->fd, $frame->data];
-				$server->task($data);
+				
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);
@@ -181,9 +162,7 @@ class WebsocketServer extends BaseServer {
 		//处理异步任务
 		$this->webserver->on('task', function(websocket_server $server, $task_id, $from_worker_id, $data) {
 			try{
-				// list($fd,$data) = $data;
-		    	//返回任务执行的结果
-		    	return $data;
+				
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);
@@ -194,47 +173,13 @@ class WebsocketServer extends BaseServer {
 		// 异步任务完成
 		$this->webserver->on('finish', function(websocket_server $server, $task_id, $data) {
 			try{
-				$header = ['length'=>'','name'=>'bingcool'];
-				$sendData = $this->pack->enpack($data, $header, Pack::DECODE_SWOOLE);
 				
-				// $sendData = $this->pack->enpackeof($data, Pack::DECODE_JSON);
-					
-				if($this->tcp_client->isConnected()) {
-
-					$this->tcp_client->send($sendData);
-
-					while($msg = $this->channel->pop()) {
-						$this->tcp_client->send($msg);
-					}
-				}else {
-					$this->channel->push($sendData);
-				}
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);
 			}
     		
 		});
-
-		//监听数据接收事件
-		$this->tcpserver->on('receive', function(tcp_server $server, $fd, $reactor_id, $data) {
-		  	
-			$this->pack->serialize_type = Pack::DECODE_SWOOLE;
-			$res = $this->pack->depack($server, $fd, $reactor_id, $data);
-			if($res) {
-				list($header, $data) = $res;
-				$username = $header['name'];
-				list($websocket_fd, $mydata) = $data;
-				$this->webserver->push($websocket_fd, $mydata.'-'.$username);
-			}
-
-			// $res = $this->pack->depackeof($data, Pack::DECODE_JSON);
-
-			list($websocket_fd, $mydata) = $res;
-			$this->webserver->push($websocket_fd, $mydata);
-	
-		});
-
 
 		$this->webserver->on('close', function(websocket_server $server, $fd) {
 			try{

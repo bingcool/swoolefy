@@ -146,7 +146,6 @@ class HttpServer extends BaseServer {
 			try{
 				$taskData = swoole_unpack($data);
 				self::onTask($task_id, $from_worker_id, $taskData);
-				return true;
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);
@@ -189,23 +188,28 @@ class HttpServer extends BaseServer {
 		$this->webserver->start();
 	}
 
+	/**
+	 * onTask 异步任务处理
+	 * @param    int  $task_id
+	 * @param    int  $from_worker_id
+	 * @param    mixed $data
+	 * @return   void
+	 */
 	public function onTask($task_id, $from_worker_id, $data) {
 		list($callable, $extend_data, $requestItems) = $data;
-
 		list($class, $action) = $callable;
-		$class = str_replace('/', '\\', $class);
-		
 		$request = (object)$requestItems;
-
 		$taskInstance = new $class;
-
 		call_user_func_array([$taskInstance, $action], [$extend_data, $request]);
-
 	}
 
-	public function onFinish($task_id, $data) {
-
-	}
+	/**
+	 * onFinish 
+	 * @param    int   $task_id
+	 * @param    mixed $data
+	 * @return   void
+	 */
+	public function onFinish($task_id, $data) {}
 
 }
 

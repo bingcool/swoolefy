@@ -49,7 +49,7 @@ class RpcDispatch extends AppDispatch {
 		$class = str_replace('/','\\', $class);
 		$serviceInstance = new $class();
 		try{
-			call_user_func_array([$serviceInstance, $action], $this->params);
+			call_user_func_array([$serviceInstance, $action], [$this->params]);
 		}catch(\Exception $e) {
 
 		}

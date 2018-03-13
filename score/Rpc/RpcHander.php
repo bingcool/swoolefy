@@ -8,8 +8,16 @@ use Swoolefy\Core\HanderInterface;
 
 class RpcHander extends Swoole implements HanderInterface {
 
+	/**
+	 * $header length方式packet检测时，可以寄存请求包的信息，用于认证等
+	 * @var array
+	 */
 	public $header = [];
 
+	/**
+	 * __construct 初始化
+	 * @param    array  $config
+	 */
 	public function __construct(array $config=[]) {
 		parent::__construct($config);
 	}
@@ -52,7 +60,7 @@ class RpcHander extends Swoole implements HanderInterface {
 					list($callable, $params) = $recv;
 				}
 			}else {
-
+				// 其他方式处理
 			}
 		}else {
 			// 任务task进程
