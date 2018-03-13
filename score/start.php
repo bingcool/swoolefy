@@ -47,11 +47,6 @@ function startServer($server) {
             $websocket->start();
             break;
         }
-        case 'tcp':{
-            $tcp = new \Swoolefy\Tcp\TcpServer();
-            $tcp->start();
-            break;
-        }
         case 'rpc': {
             $rpc = new \Swoolefy\Rpc\RpcServer();
             $rpc->start();
@@ -104,12 +99,14 @@ function stopServer($server) {
         if(!swoole_process::kill($pid,0)){
             echo "------------stop info------------\n";
             echo "successful: server stop at ".date("Y-m-d H:i:s")."\n";
+            echo "\n";
             @unlink($pid_file);
             break;
         }else {
             if(time() - $nowtime > 2){
                 echo "-----------stop info------------\n";
                 echo "warnning: stop server failed. please try again \n";
+                echo "\n";
                 break;
             }
         }
@@ -122,12 +119,16 @@ function help($command) {
             echo "------------swoolefy启动服务命令------------\n";
             echo "1、执行php start.php start http 即可启动http server服务\n";
             echo "2、执行php start.php start websocket 即可启动websocket server服务\n\n";
+            echo "3、执行php start.php start rpc 即可启动rpc server服务\n\n";
+            echo "\n";
             break;
         }
         case 'stop-help':{
             echo "------------swoolefy终止服务命令------------\n";
             echo "1、执行php start.php stop http 即可终止http server服务\n";
             echo "2、执行php start.php stop websocket 即可终止websocket server服务\n\n";
+            echo "3、执行php start.php stop rpc 即可终止rpc server服务\n\n";
+            echo "\n";
             break;
         }
         default:{
