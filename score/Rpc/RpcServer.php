@@ -23,7 +23,7 @@ class RpcServer extends TcpServer implements EventInterface {
 			);
 		parent::__construct($config);
 		// 设置当前的服务名称
-		$this->serverName = 'Rpc';
+		self::$serverName = 'rpc';
 	}
 
 	/**

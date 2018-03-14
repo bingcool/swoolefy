@@ -48,6 +48,12 @@ class HttpServer extends BaseServer {
 	public static $startCtrl = null;
 
 	/**
+	 * $serverName server服务名称
+	 * @var string
+	 */
+	public static $serverName = SWOOLEFY_HTTP;
+
+	/**
 	 * __construct
 	 * @param array $config
 	 */
@@ -92,7 +98,7 @@ class HttpServer extends BaseServer {
 		 */
 		$this->webserver->on('WorkerStart', function(http_server $server, $worker_id) {
 			// 记录主进程加载的公共files,worker重启不会在加载的
-			self::getIncludeFiles();
+			self::getIncludeFiles(static::$serverName);
 			// 重启worker时，刷新字节cache
 			self::clearCache();
 			// 重新设置进程名称

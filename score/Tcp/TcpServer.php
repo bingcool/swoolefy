@@ -45,10 +45,10 @@ abstract class TcpServer extends BaseServer {
 	public static $startCtrl = null;
 
 	/**
-	 * $serverName 默认的server服务名称
+	 * $serverName server服务名称
 	 * @var string
 	 */
-	public $serverName = 'Tcp';
+	public static $serverName = SWOOLEFY_TCP;
 
 	/**
 	 * __construct
@@ -109,7 +109,7 @@ abstract class TcpServer extends BaseServer {
 		 */
 		$this->tcpserver->on('WorkerStart',function(tcp_server $server, $worker_id) {
 			// 记录主进程加载的公共files,worker重启不会在加载的
-			self::getIncludeFiles($this->serverName);
+			self::getIncludeFiles(static::$serverName);
 			// 重启worker时，清空字节cache
 			self::clearCache();
 			// 重新设置进程名称

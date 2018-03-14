@@ -3,6 +3,8 @@
 include_once '../vendor/autoload.php';
 // include App应用层的自定义的自动加载类命名空间
 include_once '../autoloader.php'; 
+// include 记载框架的整体定义常量
+include_once './MPHP.php';
 
 function initCheck(){
     if(version_compare(phpversion(),'7.0.0','<')) {
