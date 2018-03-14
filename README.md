@@ -179,7 +179,7 @@ use Swoolefy\Core\Controller\BController;
 class IndexController extends BController {
 
     public function index() {
-        $this->assign($name,'bingcool');
+        $this->assign('name','hello word!');
         $this->display('index.html');
 
 }
