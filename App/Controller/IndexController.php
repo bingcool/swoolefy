@@ -7,7 +7,8 @@ use Swoolefy\Core\Controller\BController;
 class IndexController extends BController {
 
 	public function index() {
-		$this->response->end('hello word!');
+		$this->assign('name', 'hello word!');
+		$this->display('index.html');
 	}
 
 }

@@ -167,12 +167,28 @@ class IndexController extends BController {
 }
 ```
 
-那么直接在浏览器输入http://ip:9502/Index/index, 对应的路由规则
+那么直接在浏览器输入http://ip:9502/Index/index     
+若需要渲染模板
+```
+<?php
+namespace App\Controller;
+
+use Swoolefy\Core\Application;
+use Swoolefy\Core\Controller\BController;
+
+class IndexController extends BController {
+
+    public function index() {
+        $this->assign($name,'bingcool');
+        $this->display('index.html');
+
+}
+```
+对应的路由规则:    
 ```
 controller/action 
 ```
-   
-如果存在module模块      
+如果存在module模块:          
 ```
 module/controller/action
 ```
