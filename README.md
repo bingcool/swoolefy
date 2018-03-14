@@ -148,10 +148,26 @@ docker exec -it swoole /bin/sh
 
 默认端口9504，可以在配置文件swoolefy/score/Rpc/config.php中更改。rpc服务类继承与tcp的抽象服务类，底层完成了数据的解封包，rpc直接处理业务逻辑。 
 
-### 访问test     
+### 访问Index     
 在App/Controller中就可以编码测试，基本和thinkphp的mvc那样操作。
-比如在App/Controller/TestController.php
-那么直接在浏览器输入http://ip:9502/Test/test, 对应的路由规则
+比如在App/Controller/IndexController.php
+```
+<?php
+namespace App\Controller;
+
+use Swoolefy\Core\Application;
+use Swoolefy\Core\Controller\BController;
+
+class IndexController extends BController {
+
+    public function index() {
+        $this->response->end('hello word!');
+    }
+
+}
+```
+
+那么直接在浏览器输入http://ip:9502/Index/index, 对应的路由规则
 ```
 controller/action 
 ```
@@ -174,6 +190,3 @@ location / {
             proxy_pass http://127.0.0.1:9502;
         }
 ```
-
-那么在浏览器输入http://domain/Test/test     
-
