@@ -3,7 +3,7 @@ namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Object;
-use Swoolefy\Core\Pack;
+use Swoolefy\Tcp\TcpServer;
 use Swoolefy\Core\Application;
 
 class SController extends Object {
@@ -42,47 +42,26 @@ class SController extends Object {
 	 */
 	public function return() {
 		$args = func_get_args();
-		// 客户端是eof方式分包
-		if($this->isClientPackEof()) {
-			list($data) = $args;
-			$eof = Swfy::$config['packet']['client']['pack_eof'];
-			$serialize_type = Swfy::$config['packet']['client']['serialize_type'];
-			if($eof) {
-				$return_data = Pack::enpackeof($data, $serialize_type, $eof);
-			}else {
-				$return_data = Pack::enpackeof($data, $serialize_type);
-			}
-			Swfy::$server->send($this->fd, $return_data);
-
-		}else {
-			// 客户端是length方式分包
-			list($data, $header) = $args; 
-			$header_struct = Swfy::$config['packet']['client']['pack_header_strct'];
-			$pack_length_key = Swfy::$config['packet']['client']['pack_length_key'];
-			$serialize_type = Swfy::$config['packet']['client']['serialize_type'];
-
-			$header[$pack_length_key] = '';
-
-			$return_data = Pack::enpack($data, $header, $header_struct, $pack_length_key, $serialize_type);
-			Swfy::$server->send($this->fd, $return_data);
-		}	
+		TcpServer::pack($args, $this->fd);
 	}
 
 	/**
-	 * isClientPackEof 
-	 * @return boolean [description]
+	 * isClientPackEof  根据设置判断客户端的分包方式eof
+	 * @return boolean
 	 */
 	public function isClientPackEof() {
-		if(isset(Swfy::$config['packet']['client']['pack_check_type'])) {
-			if(Swfy::$config['packet']['client']['pack_check_type'] == 'eof') {
-				//$client_check是eof方式
-				return true;
-			}
+		return TcpServer::isClientPackEof();
+	}
+
+	/**
+	 * isClientPackLength 根据设置判断客户端的分包方式length
+	 * @return   boolean       [description]
+	 */
+	public function isClientPackLength() {
+		if($this->isClientPackEof()) {
 			return false;
-		}else {
-			throw new \Exception("you must set ['packet']['client']  in the config file", 1);	
 		}
-		
+		return true;
 	}
 
 	/**

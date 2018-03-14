@@ -62,14 +62,11 @@ abstract class TcpServer extends BaseServer {
 		$this->tcpserver->set(self::$setting);
 		parent::__construct();
 
-		// 创建一个channel通道,worker进程共享内存
-		$this->channel = new \Swoole\Channel(1024 * 256);
-
 		// 初始化启动类
 		self::$startCtrl = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Tcp\\StartInit';
 		
 		/**
-		 * 设置Pack包处理对象
+		 * 设置客户端Pack包处理对象
 		 */
 		$this->pack = new Pack(self::$server);
 		if(self::isPackLength()) {
@@ -235,6 +232,66 @@ abstract class TcpServer extends BaseServer {
 			});
 		}
 		$this->tcpserver->start();
+	}
+
+	/**
+	 * isClientPackEof 根据设置判断客户端的分包方式
+	 * @return boolean
+	 */
+	public static function isClientPackEof() {
+		if(isset(Swfy::$config['packet']['client']['pack_check_type'])) {
+			if(Swfy::$config['packet']['client']['pack_check_type'] == 'eof') {
+				//$client_check是eof方式
+				return true;
+			}
+			return false;
+		}else {
+			throw new \Exception("you must set ['packet']['client']  in the config file", 1);	
+		}
+		
+	}
+
+	/**
+	 * isClientPackLength 根据设置判断客户端的分包方式
+	 * @return boolean
+	 */
+	public static function isClientPackLength() {
+		if(static::isClientPackEof()) {
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * pack  根据配置设置，按照客户端的接受数据方式，打包数据发回给客户端
+	 * @param    mixed    $data
+	 * @param    int   $fd
+	 * @return   void
+	 */
+	public static function pack($data, $fd) {
+		if(static::isClientPackEof()) {
+			list($data) = $data;
+			$eof = Swfy::$config['packet']['client']['pack_eof'];
+			$serialize_type = Swfy::$config['packet']['client']['serialize_type'];
+			if($eof) {
+				$return_data = Pack::enpackeof($data, $serialize_type, $eof);
+			}else {
+				$return_data = Pack::enpackeof($data, $serialize_type);
+			}
+			Swfy::$server->send($fd, $return_data);
+
+		}else {
+			// 客户端是length方式分包
+			list($data, $header) = $data; 
+			$header_struct = Swfy::$config['packet']['client']['pack_header_strct'];
+			$pack_length_key = Swfy::$config['packet']['client']['pack_length_key'];
+			$serialize_type = Swfy::$config['packet']['client']['serialize_type'];
+
+			$header[$pack_length_key] = '';
+
+			$return_data = Pack::enpack($data, $header, $header_struct, $pack_length_key, $serialize_type);
+			Swfy::$server->send($fd, $return_data);
+		}	
 	}
 }
 

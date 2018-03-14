@@ -35,6 +35,8 @@ function start() {
 	global $argv;
 	if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
 		swoole_process::daemon(true,false);
+        // 将当前进程绑定至CPU0上
+        swoole_process::setaffinity([0]);
 	}
 
 	$pid = posix_getpid();
