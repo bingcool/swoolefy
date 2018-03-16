@@ -62,7 +62,7 @@ class RpcServer extends TcpServer implements EventInterface {
 	 * @param   mixed   $data
 	 * @return  void
 	 */
-	public function onTask($task_id, $from_id, $data) {
+	public function onTask($server, $task_id, $from_id, $data) {
 		list($callable, $taskData, $fd) = $data;		
 		swoole_unpack(self::$service)->run($fd, [$callable, $taskData]);
 		return ;
@@ -74,7 +74,7 @@ class RpcServer extends TcpServer implements EventInterface {
 	 * @param    mixed   $data
 	 * @return   void
 	 */
-	public function onFinish($task_id, $data) {}
+	public function onFinish($server, $task_id, $data) {}
 
 	/**
 	 * onClose tcp连接关闭时回调函数

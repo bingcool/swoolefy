@@ -1,7 +1,7 @@
 <?php
 // websocketserver的配置
 return [
-	'application_index' => 'App\\Application',
+	'application_index' => 'Service\\Application1',
 	'start_init' => 'Swoolefy\\Websocket\\StartInit',
 	'master_process_name' => 'php-websocket-master',
 	'manager_process_name' => 'php-websocket-manager',
@@ -13,36 +13,29 @@ return [
 	'accept_http' => true,
 	'time_zone' => 'PRC', 
 	'setting' => [
+		'reactor_num' => 1, //reactor thread num
+		'worker_num' => 3,    //worker process num
+		'max_request' => 1000,
+		'task_worker_num' =>5,
+		'task_tmpdir' => '/dev/shm',
+		'daemonize' => 0,
 		// websocket使用固定的worker，使用2或4
-		'dispatch_mode' => 2
+		'dispatch_mode' => 3
 	],
 	'table_tick_task' => true,
-	'table' => [
-		'table1' => [
-			'size' => 1024,
-			'fields'=> [
-				['tick_tasks','string',512]
-			]
-		],
-		'table2' => [
-			'size' => 1024,
-			'fields'=> [
-				['after_tasks','string',512]
-			]
-		],
-	],
+	// 'table' => [
+	// 	'table1' => [
+	// 		'size' => 1024,
+	// 		'fields'=> [
+	// 			['tick_tasks','string',512]
+	// 		]
+	// 	],
+	// 	'table2' => [
+	// 		'size' => 1024,
+	// 		'fields'=> [
+	// 			['after_tasks','string',512]
+	// 		]
+	// 	],
+	// ],
 
-	// tcp端口配置
-	'tcp_port' => 9999,
-	'tcp_setting' => [
-		// 'open_eof_check' => true, //打开EOF检测
-		// 'open_eof_split' => true,
-		// 'package_eof' => "\r\n", //设置EOF
-		// 'reload_async' => true,
-		'open_length_check'     => 1,
-	    'package_length_type'   => 'N',
-	    'package_length_offset' => 0,       //第N个字节是包长度的值
-	    'package_body_offset'   => 34,       //第几个字节开始计算长度
-	    'package_max_length'    => 2000000,  //协议最大长度
-	],
 ];

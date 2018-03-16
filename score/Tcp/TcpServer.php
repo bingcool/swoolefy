@@ -169,8 +169,7 @@ abstract class TcpServer extends BaseServer {
 			try{
 				$taskdata = swoole_unpack($data);
 				// 延迟绑定
-				static::onTask($task_id, $from_worker_id, $taskdata);
-		    	return;
+				static::onTask($server, $task_id, $from_worker_id, $taskdata);
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);

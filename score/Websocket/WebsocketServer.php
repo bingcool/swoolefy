@@ -9,19 +9,14 @@ use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoolefy\Core\Pack;
 
-// 如果直接通过php WebsocketServer.php启动时，必须include的vendor/autoload.php
-if(isset($argv) && $argv[0] == basename(__FILE__)) {
-	include_once '../../vendor/autoload.php';
-}
-
-class WebsocketServer extends BaseServer {
+abstract class WebsocketServer extends BaseServer {
 	/**
 	 * $setting
 	 * @var array
 	 */
 	public static $setting = [
-		'reactor_num' => 1, //reactor thread num
-		'worker_num' => 2,    //worker process num
+		'reactor_num' => 1,
+		'worker_num' => 2,
 		'max_request' => 5,
 		'task_worker_num' =>1,
 		'task_tmpdir' => '/dev/shm',
@@ -78,10 +73,7 @@ class WebsocketServer extends BaseServer {
 	 */
 	public function __construct(array $config=[]) {
 		self::clearCache();
-		self::$config = array_merge(
-					include(__DIR__.'/config.php'),
-					$config
-			);
+		self::$config = $config;
 		self::$server = $this->webserver = new websocket_server(self::$config['host'], self::$config['port']);
 		self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
 		$this->webserver->set(self::$setting);
@@ -143,12 +135,14 @@ class WebsocketServer extends BaseServer {
 
 			// 启动的初始化函数
 			self::$startCtrl::workerStart($server, $worker_id);
+			static::onWorkerStart($server, $worker_id);
 			
 		});
 
 		$this->webserver->on('open', function(websocket_server $server, $request) {
 			try{
-
+				static::onOpen($server, $request);
+				return true;
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);
@@ -157,7 +151,8 @@ class WebsocketServer extends BaseServer {
 
 		$this->webserver->on('message', function(websocket_server $server, $frame) {
 			try{
-				
+				static::onMessage($server, $frame);
+				return true;
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);
@@ -168,7 +163,7 @@ class WebsocketServer extends BaseServer {
 		//处理异步任务
 		$this->webserver->on('task', function(websocket_server $server, $task_id, $from_worker_id, $data) {
 			try{
-				
+				static::onTask($server, $task_id, $from_worker_id, $data);
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);
@@ -179,7 +174,8 @@ class WebsocketServer extends BaseServer {
 		// 异步任务完成
 		$this->webserver->on('finish', function(websocket_server $server, $task_id, $data) {
 			try{
-				
+				static::onFinish($server, $task_id, $data);
+				return true;
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);
@@ -191,6 +187,7 @@ class WebsocketServer extends BaseServer {
 			try{
 				// 删除缓存的不完整的僵尸式数据包
 				$this->pack->delete($fd);
+				static::onClose($server, $fd);
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);
@@ -207,8 +204,8 @@ class WebsocketServer extends BaseServer {
 					if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
 	            		return $response->end();
 	       			}
-					swoole_unpack(self::$App)->run($request, $response);
-
+					static::onRequest($request, $response);
+					return true;
 				}catch(\Exception $e) {
 					// 捕捉异常
 					\Swoolefy\Core\SwoolefyException::appException($e);
@@ -219,7 +216,7 @@ class WebsocketServer extends BaseServer {
 		/**
 		 * 停止worker进程
 		 */
-		$this->webserver->on('WorkerStop',function(websocket_server $server, $worker_id) {
+		$this->webserver->on('WorkerStop', function(websocket_server $server, $worker_id) {
 			$this->pack->destroy($server, $worker_id);
 			// worker停止时的回调处理
 			self::$startCtrl::workerStop($server, $worker_id);
@@ -229,7 +226,7 @@ class WebsocketServer extends BaseServer {
 		/**
 		 * worker进程异常错误回调函数
 		 */
-		$this->webserver->on('WorkerError',function(websocket_server $server, $worker_id, $worker_pid, $exit_code, $signal) {
+		$this->webserver->on('WorkerError', function(websocket_server $server, $worker_id, $worker_pid, $exit_code, $signal) {
 			// worker停止的触发函数
 			self::$startCtrl::workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
 		});
@@ -238,7 +235,7 @@ class WebsocketServer extends BaseServer {
 		 * worker进程退出回调函数，1.9.17+版本
 		 */
 		if(static::compareSwooleVersion()) {
-			$this->webserver->on('WorkerExit',function(websocket_server $server, $worker_id) {
+			$this->webserver->on('WorkerExit', function(websocket_server $server, $worker_id) {
 				// worker退出的触发函数
 				self::$startCtrl::workerExit($server, $worker_id);
 			});
@@ -247,9 +244,4 @@ class WebsocketServer extends BaseServer {
 		$this->webserver->start();
 	}
 
-}
-
-if(isset($argv) && $argv[0] == basename(__FILE__)) {
-	$websock = new WebsocketServer();
-	$websock->start();
 }

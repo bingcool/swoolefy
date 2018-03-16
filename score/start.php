@@ -1,8 +1,13 @@
 <?php
+
+defined('SCORE_ROOT') or define('SCORE_ROOT',__DIR__);
+
+$DIR = dirname(SCORE_ROOT);
+
 // include composer的自动加载类完成命名空间的注册
-include_once '../vendor/autoload.php';
+include_once $DIR.'/vendor/autoload.php';
 // include App应用层的自定义的自动加载类命名空间
-include_once '../autoloader.php'; 
+include_once $DIR.'/autoloader.php'; 
 // include 记载框架的整体定义常量
 include_once './MPHP.php';
 
@@ -45,7 +50,7 @@ function startServer($server) {
             break;
         }
 		case 'websocket':{
-			$websocket = new \Swoolefy\Websocket\WebsocketServer();
+			$websocket = new \Swoolefy\Websocket\WebsocketEventServer();
             $websocket->start();
             break;
         }
@@ -72,8 +77,8 @@ function stopServer($server) {
 			$pid_file = $dir.'/Websocket/server.pid';
 		    break;
         }
-        case 'tcp': {
-            $pid_file = $dir.'/Tcp/server.pid';
+        case 'rpc': {
+            $pid_file = $dir.'/Rpc/server.pid';
             break;
         }
         default:{

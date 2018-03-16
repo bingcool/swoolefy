@@ -1,13 +1,15 @@
 <?php
 namespace Swoolefy\Core;
 
-interface EventInterface {
+interface WebsocketEventInterface {
 	
 	public function onWorkerStart($server, $worker_id);
 
-	public function onConnet($server, $fd);
+	public function onOpen($server, $request);
 
-	public function onReceive($server, $fd, $reactor_id, $data);
+	public function onRequest($request, $response);
+
+	public function onMessage($server, $frame);
 
 	public function onTask($server, $task_id, $from_worker_id, $data);
 
@@ -15,4 +17,3 @@ interface EventInterface {
 
 	public function onClose($server, $fd);
 }
-
