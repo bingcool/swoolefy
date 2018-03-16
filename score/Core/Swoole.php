@@ -60,7 +60,7 @@ class Swoole extends Object {
 
 	/**
 	 * call 调用创建处理实例
-	 * @return [type] [description]
+	 * @return void
 	 */
 	public function run($fd, $recv) {
 		Application::$app = $this;

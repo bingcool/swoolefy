@@ -30,20 +30,31 @@ class WebsocketEventServer extends WebsocketServer implements WebsocketEventInte
 
 	}
 
-	public function onOpen($server, $request) {
-
-	}
+	public function onOpen($server, $request) {}
 
 	public function onRequest($request, $response) {
-
+		swoole_unpack(self::$App)->run($request, $response);
 	}
 
 	public function onMessage($server, $frame) {
-
+		$fd = $frame->fd;
+		$data = $frame->data;
+		$opcode = $frame->opcode;
+		$finish = $frame->finish;
+		if($finish) {
+			// 数据接收是否完整
+			swoole_unpack(self::$service)->run($fd, $data);
+		}else {
+			// 断开连接
+			
+		}
+		
 	}
 
 	public function onTask($server, $task_id, $from_worker_id, $data) {
-
+		list($callable, $taskData, $fd) = $data;		
+		swoole_unpack(self::$service)->run($fd, [$callable, $taskData]);
+		return ;
 	}
 
 	public function onFinish($server, $task_id, $data) {

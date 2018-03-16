@@ -16,7 +16,7 @@ class Bookmanage extends SController {
 	}
 
 	public function asyncTest() {
-		$data = ['name'=>'bingcool','sex'=>'男','num'=>rand(20,100)];
+		$data = ['name'=>'bingcool','sex'=>'男','num'=>rand(20,100),'params'=>$params];
 		$this->return($data);
 
 		$callable = ['Service/Task/AsyncTaskTest','asyncTaskTest'];

@@ -1,7 +1,8 @@
 <?php
 // websocketserver的配置
 return [
-	'application_index' => 'Service\\Application1',
+	'application_index' => 'App\\Application',
+	'application_service' => 'Service\\Application1',
 	'start_init' => 'Swoolefy\\Websocket\\StartInit',
 	'master_process_name' => 'php-websocket-master',
 	'manager_process_name' => 'php-websocket-manager',

@@ -133,6 +133,9 @@ abstract class WebsocketServer extends BaseServer {
        			is_null(self::$App) && self::$App = swoole_pack(self::$config['application_index']::getInstance($config=[]));
        		}
 
+       		// 单例服务处理实例
+       		is_null(self::$service) && self::$service = swoole_pack(self::$config['application_service']::getInstance($config=[]));
+
 			// 启动的初始化函数
 			self::$startCtrl::workerStart($server, $worker_id);
 			static::onWorkerStart($server, $worker_id);
