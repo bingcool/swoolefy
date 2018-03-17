@@ -25,22 +25,44 @@ class WebsocketEventServer extends WebsocketServer implements WebsocketEventInte
 		// 设置当前的服务名称
 	}
 
+	/**
+	 * onWorkerStart worker启动函数处理
+	 * @param    object  $server
+	 * @param    int    $worker_id
+	 * @return   void
+	 */
+	public function onWorkerStart($server, $worker_id) {}
 
-	public function onWorkerStart($server, $worker_id) {
-
-	}
-
+	/**
+	 * onOpen 
+	 * @param    object  $server
+	 * @param    object  $request
+	 * @return   void
+	 */
 	public function onOpen($server, $request) {}
 
+	/**
+	 * onRequest 接受http请求处理
+	 * @param    object  $request
+	 * @param    object  $response
+	 * @return   void
+	 */
 	public function onRequest($request, $response) {
 		swoole_unpack(self::$App)->run($request, $response);
 	}
 
+	/**
+	 * onMessage 接受信息并处理信息
+	 * @param    object  $server
+	 * @param    object  $frame
+	 * @return   void
+	 */
 	public function onMessage($server, $frame) {
 		$fd = $frame->fd;
 		$data = $frame->data;
 		$opcode = $frame->opcode;
 		$finish = $frame->finish;
+		// 数据接收是否完整
 		if($finish) {
 			// 数据接收是否完整
 			swoole_unpack(self::$service)->run($fd, $data);
@@ -51,19 +73,36 @@ class WebsocketEventServer extends WebsocketServer implements WebsocketEventInte
 		
 	}
 
+	/**
+	 * onTask 异步任务处理
+	 * @param    object  $server
+	 * @param    int     $task_id
+	 * @param    int     $from_worker_id
+	 * @param    mixed   $data
+	 * @return   void
+	 */
 	public function onTask($server, $task_id, $from_worker_id, $data) {
 		list($callable, $taskData, $fd) = $data;		
 		swoole_unpack(self::$service)->run($fd, [$callable, $taskData]);
 		return ;
 	}
 
-	public function onFinish($server, $task_id, $data) {
+	/**
+	 * onFinish 任务完成
+	 * @param    object  $server
+	 * @param    int     $task_id
+	 * @param    mixed   $data
+	 * @return   void
+	 */
+	public function onFinish($server, $task_id, $data) {}
 
-	}
-
-	public function onClose($server, $fd) {
-
-	}
+	/**
+	 * onClose 连接断开处理
+	 * @param    object  $server
+	 * @param    int     $fd
+	 * @return   void
+	 */
+	public function onClose($server, $fd) {}
 
 }
 

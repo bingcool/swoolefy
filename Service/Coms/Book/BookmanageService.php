@@ -6,7 +6,7 @@ use Swoolefy\Core\SController;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Task\AsyncTask;
 
-class Bookmanage extends SController {
+class BookmanageService extends SController {
 
 	public function test($params) {
 		var_dump($params);

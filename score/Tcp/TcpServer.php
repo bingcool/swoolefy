@@ -125,7 +125,7 @@ abstract class TcpServer extends BaseServer {
        		Swfy::$config = self::$config;
 
        		// 单例服务处理实例
-       		is_null(self::$service) && self::$service = swoole_pack(self::$config['application_index']::getInstance($config=[]));
+       		is_null(self::$service) && self::$service = swoole_pack(self::$config['application_service']::getInstance($config=[]));
 			// 启动的初始化函数
 			self::$startCtrl::workerStart($server,$worker_id);
 			// 延迟绑定

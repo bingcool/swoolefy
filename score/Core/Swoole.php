@@ -154,6 +154,8 @@ class Swoole extends Object {
 		MTime::clear();
 		// 清空某些组件,每次请求重新创建
 		self::clearComponent(['mongodb']);
+		// 清空当前的请求应用对象
+		Application::$app = null;
 	}
 
  	use \Swoolefy\Core\ComponentTrait;

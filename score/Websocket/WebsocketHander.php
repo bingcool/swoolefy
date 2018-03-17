@@ -3,6 +3,7 @@ namespace Swoolefy\Websocket;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Swoole;
+use Swoolefy\Rpc\RpcDispatch;
 use Swoolefy\Core\HanderInterface;
 
 class WebsocketHander extends Swoole implements HanderInterface {
@@ -38,18 +39,27 @@ class WebsocketHander extends Swoole implements HanderInterface {
 	public function run($fd, $recv) {
 		// 必须要执行父类的run方法
 		parent::run($fd, $recv);
-		var_dump($recv);
-		// if(is_array($recv) && count($recv) == 2) {
-		// 	list($callable, $params) = $recv;
-		// }
-		// if($callable && $params) {
-		// 	$Dispatch = new RpcDispatch($callable, $params);
-		// 	$Dispatch->dispatch();
-		// }
+		$recv = array_values(json_decode($recv, true));
+		if(is_array($recv) && count($recv) == 3) {
+			list($service, $event, $params) = $recv;
+		}
+		if($service && $event && $params) {
+			$callable = [$service, $event];
+			$Dispatch = new RpcDispatch($callable, $params);
+			$Dispatch->dispatch();
+		}
 
 		// 必须执行
 		parent::end();
 		return;
+	}
+
+	/**
+	 * author 认证
+	 * @return 
+	 */
+	public function author() {
+
 	}
 }
 

@@ -1,7 +1,7 @@
 <?php
 // tcpserver的配置
 return [
-	'application_index' => 'Service\\Application',
+	'application_service' => 'Service\\Application',
 	'start_init' => 'Swoolefy\\Rpc\\StartInit',
 	'master_process_name' => 'php-tcp-master',
 	'manager_process_name' => 'php-tcp-manager',

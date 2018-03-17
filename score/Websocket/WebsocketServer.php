@@ -142,6 +142,20 @@ abstract class WebsocketServer extends BaseServer {
 			
 		});
 
+		/**
+		 * 自定义handshake,如果子类设置了onHandshake()，函数中必须要"自定义"握手过程,否则将不会建立websockdet连接
+		 * @see https://wiki.swoole.com/wiki/page/409.html
+		 */
+		if(method_exists($this, 'onHandshake')) {
+			$this->webserver->on('handshake', function (request $request, response $response) {
+			// 自定义handshake函数
+				static::onHandshake($request, $response);
+			}); 
+		} 
+		
+		/**
+		 * open 函数处理
+		 */
 		$this->webserver->on('open', function(websocket_server $server, $request) {
 			try{
 				static::onOpen($server, $request);
@@ -152,6 +166,9 @@ abstract class WebsocketServer extends BaseServer {
 			}
 		});
 
+		/**
+		 * message 函数
+		 */
 		$this->webserver->on('message', function(websocket_server $server, $frame) {
 			try{
 				static::onMessage($server, $frame);
@@ -163,7 +180,9 @@ abstract class WebsocketServer extends BaseServer {
 		});
 
 
-		//处理异步任务
+		/**
+		 * task 函数,处理异步任务
+		 */
 		$this->webserver->on('task', function(websocket_server $server, $task_id, $from_worker_id, $data) {
 			try{
 				static::onTask($server, $task_id, $from_worker_id, $data);
@@ -174,7 +193,9 @@ abstract class WebsocketServer extends BaseServer {
 		    
 		});
 
-		// 异步任务完成
+		/**
+		 * finish 函数,异步任务完成
+		 */
 		$this->webserver->on('finish', function(websocket_server $server, $task_id, $data) {
 			try{
 				static::onFinish($server, $task_id, $data);
@@ -186,6 +207,9 @@ abstract class WebsocketServer extends BaseServer {
     		
 		});
 
+		/**
+		 * close 函数,关闭连接
+		 */
 		$this->webserver->on('close', function(websocket_server $server, $fd) {
 			try{
 				// 删除缓存的不完整的僵尸式数据包
@@ -199,6 +223,7 @@ abstract class WebsocketServer extends BaseServer {
 
 		/**
 		 * 接受http请求
+		 * @see https://wiki.swoole.com/wiki/page/397.html
 		 */
 		if(!isset(self::$config['accept_http']) || self::$config['accept_http'] || self::$config['accept_http'] == 'true') {
 			$this->webserver->on('request',function(Request $request, Response $response) {
@@ -246,5 +271,6 @@ abstract class WebsocketServer extends BaseServer {
 
 		$this->webserver->start();
 	}
+
 
 }
