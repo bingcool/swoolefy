@@ -7,7 +7,20 @@ use Swoolefy\Core\MTime;
 use Swoolefy\Core\Application;
 
 class TaskController extends Object {
+	/**
+	 * $from_worker_id 记录当前任务由那个woker投递
+	 * @see https://wiki.swoole.com/wiki/page/134.html
+	 * @var null
+	 */
+	public $from_worker_id = null;
 
+	/**
+	 * $task_id 任务的ID
+	 * @see  https://wiki.swoole.com/wiki/page/134.html
+	 * @var null
+	 */
+	public $task_id = null;
+	
 	/**
 	 * $previousUrl,记录url
 	 * @var array

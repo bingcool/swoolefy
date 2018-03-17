@@ -35,14 +35,42 @@ class SController extends Object {
 	}
 
 	/**
-	 * return 返回数据
+	 * return tcp 发送数据
 	 * @param  mixed  $data
 	 * @param  string $encode
 	 * @return void
 	 */
-	public function return() {
-		$args = func_get_args();
-		TcpServer::pack($args, $this->fd);
+	public function send($fd, $data, $header = []) {
+		if(Swfy::$server instanceof \Swoole\Server) {
+			$args = [$data, $header];
+			$data = TcpServer::pack($args);
+			Swfy::$server->send($fd, $data);
+		}else {
+			throw new \Exception("this method only can be called by tcp or rpc server!");
+		}
+		
+	}
+
+	/**
+	 * push websocket的发送数据
+	 * @param  int    $fd
+	 * @param  mixed  $data
+	 * @param  int    $opcode
+	 * @param  boolean $finish
+	 * @return boolean
+	 */
+	public function push($fd, $data, $opcode = 1, $finish = true) {
+		// 只能由websoccket调用
+		if(Swfy::$server instanceof \Swoole\WebSocket\Server) {
+			if(is_array($data)){
+				$data = json_encode($data);
+			}
+			$result = Swfy::$server->push($fd, $data, $opcode, $finish);
+			return $result;
+		}else {
+			throw new \Exception("this method only can be called by websocket server!");
+		}
+		
 	}
 
 	/**

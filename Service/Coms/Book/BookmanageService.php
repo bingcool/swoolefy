@@ -11,7 +11,7 @@ class BookmanageService extends SController {
 	public function test($params) {
 		var_dump($params);
 		$data = ['name'=>'bingcool','sex'=>'男','num'=>rand(20,100),'params'=>$params];
-		$this->return($data);
+		$this->send($this->fd, $data);
 
 	}
 

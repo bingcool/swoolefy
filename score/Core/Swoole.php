@@ -158,5 +158,5 @@ class Swoole extends Object {
 		Application::$app = null;
 	}
 
- 	use \Swoolefy\Core\ComponentTrait;
+ 	use \Swoolefy\Core\ComponentTrait,\Swoolefy\Core\ServiceTrait;
 }

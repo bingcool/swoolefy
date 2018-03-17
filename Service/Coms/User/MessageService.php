@@ -10,6 +10,10 @@ class MessageService extends SController {
 
 	public function sendToAll($data) {
 		var_dump($data);
+		$connections = $this->getConnections();
+		foreach($connections as $fd) {
+			$this->push($fd, $data);
+		} 
 		
 	}
 

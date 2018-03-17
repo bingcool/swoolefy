@@ -69,7 +69,6 @@ class WebsocketEventServer extends WebsocketServer implements WebsocketEventInte
 				swoole_unpack(self::$service)->run($fd, $data);
 			}else if($opcode == WEBSOCKET_OPCODE_BINARY) {
 				// 二进制数据
-				var_dump($data);
 			}
 			
 		}else {

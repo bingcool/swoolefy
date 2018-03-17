@@ -167,7 +167,7 @@ class TcpController extends BController {
 
 		// 打包数据,服务端使用pack_length方式
 		// 发送给服务端，按照服务端的pack协议打包数据,不一定是和客户端pack协议相同的
-		$callenable = ['Service/Coms/Book/Bookmanage','test'];
+		$callenable = ['Service/Coms/Book/BookmanageService','test'];
 		$params = ['swoole是一个优秀的框架,很多开发者都使用这个框架'.rand(1,100),'hello'];
 		$data = [$callenable, $params];
 		$header = ['length'=>'','name'=>'bingcool'];

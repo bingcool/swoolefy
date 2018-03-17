@@ -267,7 +267,7 @@ abstract class TcpServer extends BaseServer {
 	 * @param    int   $fd
 	 * @return   void
 	 */
-	public static function pack($data, $fd) {
+	public static function pack($data) {
 		if(static::isClientPackEof()) {
 			list($data) = $data;
 			$eof = Swfy::$config['packet']['client']['pack_eof'];
@@ -277,7 +277,7 @@ abstract class TcpServer extends BaseServer {
 			}else {
 				$return_data = Pack::enpackeof($data, $serialize_type);
 			}
-			Swfy::$server->send($fd, $return_data);
+			return $return_data;
 
 		}else {
 			// 客户端是length方式分包
@@ -289,7 +289,7 @@ abstract class TcpServer extends BaseServer {
 			$header[$pack_length_key] = '';
 
 			$return_data = Pack::enpack($data, $header, $header_struct, $pack_length_key, $serialize_type);
-			Swfy::$server->send($fd, $return_data);
+			return $return_data;
 		}	
 	}
 }
