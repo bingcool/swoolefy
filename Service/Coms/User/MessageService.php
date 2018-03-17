@@ -9,10 +9,7 @@ use Swoolefy\Core\Task\AsyncTask;
 class MessageService extends SController {
 
 	public function sendToAll($data) {
-		foreach(Swfy::$server->connections as $fd)
-		{	
-    		Swfy::$server->push($fd, $data['name']);
-		}
+		var_dump($data);
 		
 	}
 

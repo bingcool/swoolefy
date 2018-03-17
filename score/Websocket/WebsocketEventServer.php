@@ -64,8 +64,14 @@ class WebsocketEventServer extends WebsocketServer implements WebsocketEventInte
 		$finish = $frame->finish;
 		// 数据接收是否完整
 		if($finish) {
-			// 数据接收是否完整
-			swoole_unpack(self::$service)->run($fd, $data);
+			// utf-8文本数据
+			if($opcode == WEBSOCKET_OPCODE_TEXT) {
+				swoole_unpack(self::$service)->run($fd, $data);
+			}else if($opcode == WEBSOCKET_OPCODE_BINARY) {
+				// 二进制数据
+				var_dump($data);
+			}
+			
 		}else {
 			// 断开连接
 			

@@ -55,7 +55,7 @@ class Swoole extends Object {
 	 */
 	protected function _bootstrap($recv = null) {
 		static::bootstrap($recv);
-		Swfy::$config['application_index']::bootstrap($recv = null);
+		Swfy::$config['application_service']::bootstrap($recv = null);
 	}
 
 	/**
