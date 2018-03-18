@@ -22,6 +22,12 @@ class TaskController extends Object {
 	public $task_id = null;
 	
 	/**
+	 * $config 应用层配置
+	 * @var null
+	 */
+	public $config = null;
+
+	/**
 	 * $previousUrl,记录url
 	 * @var array
 	 */
@@ -40,6 +46,8 @@ class TaskController extends Object {
 		Application::$app = $this;
 		// 将在启动worker时创建好的实例重新赋值于当前实例的组件变量
 		self::$_components = Swfy::$Di;
+		// 应用层配置
+		$this->config = Swfy::$appConfig;
 	}
 
 	/**
@@ -76,6 +84,6 @@ class TaskController extends Object {
 
 	}
 
-	use \Swoolefy\Core\ComponentTrait;
+	use \Swoolefy\Core\ComponentTrait,\Swoolefy\Core\ServiceTrait;
 	
 }

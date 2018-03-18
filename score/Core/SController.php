@@ -9,6 +9,12 @@ use Swoolefy\Core\Application;
 class SController extends Object {
 
 	/**
+	 * $config 应用层配置
+	 * @var null
+	 */
+	public $config = null;
+
+	/**
 	 * $previousUrl,记录url
 	 * @var array
 	 */
@@ -30,8 +36,8 @@ class SController extends Object {
 	 * __construct
 	 */
 	public function __construct() {
-
 		$this->fd = Application::$app->fd;
+		$this->config = Application::$app->config;
 	}
 
 	/**
