@@ -18,10 +18,7 @@ class Application implements \Swoolefy\Core\AppInterface{
 		include(__DIR__."/Config/defines.php");
 
 		// 加载App应用层配置和对应的协议配置
-		$config = array_merge(
-			include(__DIR__.'/../score/Config/common.php'),
-			include(__DIR__.'/Config/config.php')
-		);
+		$config = include(__DIR__.'/Config/config.php');
 
 		return $config;
 	}
