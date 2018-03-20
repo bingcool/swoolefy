@@ -299,8 +299,15 @@ class BaseServer {
 	 * @return   void
 	 */
 	public static function getIncludeFiles($dir='Http') {
-		$dir = ucfirst($dir);
-		$filePath = __DIR__.'/../'.$dir.'/'.$dir.'_'.'includes.json';
+		if(isset(static::$setting['log_file'])) {
+			$path = pathinfo(static::$setting['log_file'], PATHINFO_DIRNAME);
+			$dir = strtolower($dir);
+			$filePath = $path.'/'.$dir.'_'.'includes.json';
+		}else {
+			$dir = ucfirst($dir);
+			$filePath = __DIR__.'/../'.$dir.'/'.$dir.'_'.'includes.json';
+		}
+		
 		$includes = get_included_files();
 		if(is_file($filePath)) {
 			@unlink($filePath);	

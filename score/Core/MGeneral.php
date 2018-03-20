@@ -233,7 +233,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
     }
 
     /**
-     * mbstrlen 计算某个混合字符串的长度总数，包含英文或者中文的字符串,如果安装mb_string扩展的话，可以直接使用mb_strlen()函数，遇着函数等效
+     * mbstrlen 计算某个混合字符串的长度总数，包含英文或者中文的字符串,如果安装mb_string扩展的话，可以直接使用mb_strlen()函数，与该函数等效
      * @param    string  $str 
      * @return   int
      */

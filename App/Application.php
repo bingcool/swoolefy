@@ -15,10 +15,10 @@ class Application implements \Swoolefy\Core\AppInterface{
 			@mkdir($log_path, 0777);
 		}
 
-		include(__DIR__."/Config/defines.php");
+		include_once __DIR__.'/Config/defines.php';
 
 		// 加载App应用层配置和对应的协议配置
-		$config = include(__DIR__.'/Config/config.php');
+		$config = include_once __DIR__.'/Config/config.php';
 
 		return $config;
 	}

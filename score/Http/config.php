@@ -14,9 +14,16 @@ return [
 	'gzip_level' => 2,
 	'include_files' =>[],
 	'setting' => [
+		'reactor_num' => 1, //reactor thread num
+		'worker_num' => 5,    //worker process num
+		'max_request' => 1000,
+		'task_worker_num' => 3,
+		'task_tmpdir' => '/dev/shm',
+		'daemonize' => 0,
 		// http无状态，使用1或3
 		'dispatch_mode' => 3,
 		'reload_async' => true,
+		'daemonize' => 0,
 	],
 
 	// 是否内存化线上实时任务
