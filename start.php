@@ -1,7 +1,6 @@
 <?php
 
-
-$DIR =__DIR__;
+$DIR = __DIR__;
 
 // include composer的自动加载类完成命名空间的注册
 include_once $DIR.'/vendor/autoload.php';
@@ -17,11 +16,6 @@ function initCheck(){
     if(version_compare(swoole_version(),'1.9.15','<')) {
         die("swoole version must >= 1.9.15");
     }
-    // 暂不支持swoole2.0
-    // if(version_compare(swoole_version(),'2.0.1','>')) {
-    //     die("swoole version must < 2.0");
-    // }
-
 }
 
 function opCacheClear(){
@@ -86,6 +80,35 @@ function startServer($server) {
             $rpc->start();
             break;
         }
+        case 'monitor' :{
+            global $argv;
+            $path = $dir.'/protocol/monitor';
+            if(!is_dir($path)) {
+                @mkdir($path, 0777, true);
+            }
+
+            $config_file = $path.'/config.php';
+            if(!file_exists($config_file)) {
+                copy($dir.'/score/AutoReload/config.php', $config_file);
+            }
+
+            if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
+                swoole_process::daemon(true,false);
+                // 将当前进程绑定至CPU0上
+                // swoole_process::setaffinity([0]);
+            }
+
+            $pid = posix_getpid();
+            $monitor_pid_file = $path.'/monitor.pid';
+            @file_put_contents($monitor_pid_file, $pid);
+            // 设置当前进程的名称
+            cli_set_process_title("php-autoreload-swoole-server");
+            $config = include $config_file;
+            // 创建进程服务实例
+            $daemon = new \Swoolefy\AutoReload\daemon($config);
+            // 启动
+            $daemon->run();
+        }
         default:{
             help($command='help');
         }
@@ -109,6 +132,11 @@ function stopServer($server) {
         case 'rpc': {
             $path = $dir.'/protocol/rpc';
             $pid_file = $path.'/server.pid';
+            break;
+        }
+        case 'monitor': {
+            $path = $dir.'/protocol/monitor';
+            $pid_file = $path.'/monitor.pid';
             break;
         }
         default:{
