@@ -201,7 +201,7 @@ function help($command) {
         }
         default:{
             echo "------------欢迎使用swoolefy------------\n";
-            echo "有关某个命令的详细信息，请键入 help 命令:\n";
+            echo "有关某个命令的详细信息，请键入 help 命令:\n\n";
             echo "1、php start.php start help 查看详细信息!\n\n";
             echo "2、php start.php stop help 查看详细信息!\n\n";
         }
