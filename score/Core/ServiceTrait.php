@@ -90,9 +90,15 @@ trait ServiceTrait {
 	public function getInitIncludeFiles($dir='http') {
 		// 获取当前的处理的worker_id
 		$workerId = $this->getCurrentWorkerId();
-
-		$dir = ucfirst($dir);
-		$filePath = __DIR__.'/../'.$dir.'/'.$dir.'_'.'includes.json';
+		if(isset(Swfy::$config['setting']['log_file'])) {
+			$path = pathinfo(Swfy::$config['setting']['log_file'], PATHINFO_DIRNAME);
+			$dir = strtolower($dir);
+			$filePath = $path.'/'.$dir.'_'.'includes.json';
+		}else {
+			$dir = ucfirst($dir);
+			$filePath = __DIR__.'/../'.$dir.'/'.$dir.'_'.'includes.json';
+		}
+		
 		if(is_file($filePath)) {
 			$includes_string = file_get_contents($filePath);
 			if($includes_string) {

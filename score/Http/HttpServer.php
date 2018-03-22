@@ -61,11 +61,13 @@ class HttpServer extends BaseServer {
 		// 刷新字节缓存
 		self::clearCache();
 		self::$config = array_merge(
-					include(__DIR__.'/config.php'),
-					$config
-			);
-		self::$server = $this->webserver = new http_server(self::$config['host'], self::$config['port']);
+			include(__DIR__.'/config.php'),
+			$config
+		);
 		self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
+		//设置进程模式和socket类型
+		self::setSwooleSockType();
+		self::$server = $this->webserver = new http_server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, self::$swoole_socket_type);
 		$this->webserver->set(self::$setting);
 		parent::__construct();
 		// 初始化启动类
