@@ -11,6 +11,7 @@ return [
 	'port' => '9502',
 	'time_zone' => 'Asia/Shanghai',
 	'swoole_version' => '1.9.15', //要求swoole的最低版本
+	'swoole_process_mode' => 'nnn',//swoole的进程模式设置
 	'gzip_level' => 2,
 	'include_files' =>[],
 	'setting' => [

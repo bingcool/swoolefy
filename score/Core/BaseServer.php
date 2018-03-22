@@ -37,6 +37,18 @@ class BaseServer {
 	protected static $_startTime = 0;
 
 	/**
+	 * $swoole_process_model swoole的进程模式，默认swoole_process
+	 * @var [type]
+	 */
+	protected static $swoole_process_mode = SWOOLE_PROCESS;
+
+	/**
+	 * $swoole_socket_type swoole的socket设置类型
+	 * @var [type]
+	 */
+	protected static $swoole_socket_type = SWOOLE_SOCK_TCP;
+
+	/**
 	 * $_tasks 实时内存表保存数据,所有worker共享
 	 * @var null
 	 */
@@ -390,6 +402,28 @@ class BaseServer {
 	public static function isTaskProcess($worker_id) {
 		return static::isWorkerProcess($worker_id) ? false : true;
 	}
+
+	/**
+	 * isUseSsl 判断是否使用ssl加密
+	 * @return   boolean
+	 */
+	protected static function isUseSsl() {
+		if(isset(static::$setting['ssl_cert_file']) && isset(static::$setting['ssl_key_file'])) {
+			return true;
+		}
+		return false;
+	}
+
+	protected static function setSwooleSockType() {
+		if(isset(static::$setting['swoole_process_mode']) && static::$setting['swoole_process_mode'] == SWOOLE_BASE) {
+			self::$swoole_process_mode = SWOOLE_BASE;
+		}
+
+		if(self::isUseSsl()) {
+			self::$swoole_socket_type = SWOOLE_SOCK_TCP | SWOOLE_SSL;
+		}
+		return;
+	} 
 
 	/**
 	 * setCommonFunction 底层的公共函数库
