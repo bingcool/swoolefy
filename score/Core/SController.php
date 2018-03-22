@@ -5,6 +5,7 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Object;
 use Swoolefy\Tcp\TcpServer;
 use Swoolefy\Core\Application;
+use Swoolefy\Core\BaseServer;
 
 class SController extends Object {
 
@@ -62,6 +63,22 @@ class SController extends Object {
 			throw new \Exception("this method only can be called by tcp or rpc server!");
 		}
 		
+	}
+
+	/**
+	 * sendto udp 发送数据
+	 * @param    int      $ip  
+	 * @param    int      $port
+	 * @param    mixed    $data
+	 * @param    int      $server_socket
+	 * @return   void
+	 */
+	public function sendto($ip, $port, $data, $server_socket = -1) {
+		if(BaseServer::getServiceProtocol() == SWOOLEFY_UDP) {
+			Swfy::$server->sendto($ip, $port, $data, $server_socket);
+		}else {
+			throw new \Exception("this method only can be called by udp server!");
+		}
 	}
 
 	/**

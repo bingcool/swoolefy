@@ -314,10 +314,10 @@ class BaseServer {
 		if(isset(static::$setting['log_file'])) {
 			$path = pathinfo(static::$setting['log_file'], PATHINFO_DIRNAME);
 			$dir = strtolower($dir);
-			$filePath = $path.'/'.$dir.'_'.'includes.json';
+			$filePath = $path.'/includes.json';
 		}else {
 			$dir = ucfirst($dir);
-			$filePath = __DIR__.'/../'.$dir.'/'.$dir.'_'.'includes.json';
+			$filePath = __DIR__.'/../'.$dir.'/includes.json';
 		}
 		
 		$includes = get_included_files();
@@ -414,6 +414,9 @@ class BaseServer {
 		return false;
 	}
 
+	/**
+	 * setSwooleSockType 设置socket的类型
+	 */
 	protected static function setSwooleSockType() {
 		if(isset(static::$setting['swoole_process_mode']) && static::$setting['swoole_process_mode'] == SWOOLE_BASE) {
 			self::$swoole_process_mode = SWOOLE_BASE;
@@ -423,6 +426,26 @@ class BaseServer {
 			self::$swoole_socket_type = SWOOLE_SOCK_TCP | SWOOLE_SSL;
 		}
 		return;
+	}
+
+	/**
+	 * serviceType 获取当前主服务器使用的协议
+	 * @return   mixed
+	 */
+	public static function getServiceProtocol() {
+		// http
+		if(static::$server instanceof \Swoole\Http\Server) {
+			return SWOOLEFY_HTTP;
+		}else if(static::$server instanceof \Swoole\Server) {
+			if(self::$swoole_socket_type == SWOOLE_SOCK_UDP) {
+				return SWOOLEFY_UDP;
+			}
+			return SWOOLEFY_TCP;
+		}else if(static::$server instanceof \Swoole\WebSocket\Server) {
+			return SWOOLEFY_WEBSOCKET;
+		}
+		return false;
+
 	} 
 
 	/**
