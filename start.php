@@ -5,9 +5,7 @@ $DIR = __DIR__;
 // include composer的自动加载类完成命名空间的注册
 include_once $DIR.'/vendor/autoload.php';
 // include App应用层的自定义的自动加载类命名空间
-include_once $DIR.'/autoloader.php'; 
-// include 记载框架的整体定义常量
-include_once $DIR.'/score/MPHP.php';
+include_once $DIR.'/autoloader.php';
 
 function initCheck(){
     if(version_compare(phpversion(),'7.0.0','<')) {
@@ -80,6 +78,20 @@ function startServer($server) {
             $rpc->start();
             break;
         }
+        case 'udp': {
+            $path = $dir.'/protocol/udp';
+            if(!is_dir($path)) {
+                @mkdir($path, 0777, true);
+            }
+            $config_file = $path.'/config.php';
+            if(!file_exists($config_file)) {
+                copy($dir.'/score/Udp/config.php', $config_file);
+            }
+            $config = include $config_file;
+            $rpc = new \Swoolefy\Udp\UdpEventServer($config);
+            $rpc->start();
+            break;
+        }
         case 'monitor' :{
             global $argv;
             $path = $dir.'/protocol/monitor';
@@ -134,6 +146,11 @@ function stopServer($server) {
             $pid_file = $path.'/server.pid';
             break;
         }
+        case 'udp': {
+            $path = $dir.'/protocol/udp';
+            $pid_file = $path.'/server.pid';
+            break;
+        }
         case 'monitor': {
             $path = $dir.'/protocol/monitor';
             $pid_file = $path.'/monitor.pid';
@@ -185,6 +202,7 @@ function help($command) {
             echo "1、执行php start.php start http 即可启动http server服务\n";
             echo "2、执行php start.php start websocket 即可启动websocket server服务\n\n";
             echo "3、执行php start.php start rpc 即可启动rpc server服务\n\n";
+            echo "4、执行php start.php start udp 即可启动udp server服务\n\n";
             echo "\n";
             break;
         }
@@ -193,6 +211,7 @@ function help($command) {
             echo "1、执行php start.php stop http 即可终止http server服务\n";
             echo "2、执行php start.php stop websocket 即可终止websocket server服务\n\n";
             echo "3、执行php start.php stop rpc 即可终止rpc server服务\n\n";
+            echo "4、执行php start.php stop udp 即可终止rpc server服务\n\n";
             echo "\n";
             break;
         }

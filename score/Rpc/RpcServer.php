@@ -1,6 +1,8 @@
 <?php
 namespace Swoolefy\Rpc;
 
+include_once SWOOLEFY_CORE_ROOT_PATH.'/EventInterface.php';
+
 use Swoolefy\Core\Swfy;
 use Swoolefy\Tcp\TcpServer;
 use Swoolefy\Core\EventInterface;

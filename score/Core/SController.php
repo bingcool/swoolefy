@@ -38,6 +38,13 @@ class SController extends Object {
 	public function __construct() {
 		$this->fd = Application::$app->fd;
 		$this->config = Application::$app->config;
+
+		// 针对udp协议设置
+		if(isset(Application::$app->client_info) && !empty(Application::$app->client_info)) {
+			$this->client_info = Application::$app->client_info;
+		}else {
+			$this->client_info = null;
+		}
 	}
 
 	/**

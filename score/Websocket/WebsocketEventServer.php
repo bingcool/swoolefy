@@ -1,9 +1,11 @@
 <?php
 namespace Swoolefy\Websocket;
 
+include_once SWOOLEFY_CORE_ROOT_PATH.'/EventInterface.php';
+
 use Swoolefy\Core\Swfy;
-use Swoolefy\Core\WebsocketEventInterface;
 use Swoolefy\Websocket\WebsocketServer;
+use Swoolefy\Core\WebsocketEventInterface;
 
 // 如果直接通过php RpcServer.php启动时，必须include的vendor/autoload.php
 if(isset($argv) && $argv[0] == basename(__FILE__)) {
