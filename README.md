@@ -118,13 +118,12 @@ docker exec -it swoole /bin/sh
 ```
 可以在配置文件swoolefy/protocol/monitor/config.php设置。监控程序自动监控php的文件变动，然后swoole的worker自动重启，这个文件其实是通过调用代码Shell文件夹的swoole_monitor.sh来监控9502端口(这个是swoole的http服务的默认端口)，根据端口监听，可以设置不同端口，监听不同协议服务。   
   需要注意的是，由于在容器中/home/www的目录是挂载与缩主机的，inotify是无法监听到文件变动的，所以这个监控程序在容器环境中是无效的，每次修改代码必须重启      
-
 ### http服务   
 2、启动swoole的http服务，进入swoolefy 
 ```     
 启动：php start.php start http          
 停止：php start.php stop http 
-```             
+```
 
 默认端口是9502，可以在配置文件swoolefy/protocol/http/config.php中更改，同时对应的swoolefy/protocol/monitor/config.php中对应更改端口，实现不同的自动重载。  
 注意文件权限问题
@@ -134,7 +133,7 @@ docker exec -it swoole /bin/sh
 ```    
 启动：php start.php start websocket        
 停止：php start.php stop websocket      
-````
+```
 
 默认端口9503，可以在配置文件swoolefy/protocol/websocket/config.php中更改     
 
@@ -145,7 +144,13 @@ docker exec -it swoole /bin/sh
 停止：php start.php stop rpc
 ```
 
-默认端口9504，可以在配置文件swoolefy/protocol/rpc/config.php中更改。rpc服务类继承与tcp的抽象服务类，底层完成了数据的解封包，rpc直接处理业务逻辑。 
+### udp服务   
+1、启动swoole的rpc服务，进入swoolefy
+```    
+启动：php start.php start udp    
+停止：php start.php stop udp
+```
+默认端口9504，可以在配置文件swoolefy/protocol/udp/config.php中更改。     
 
 ### 访问Index     
 在App/Controller中就可以编码测试，基本和thinkphp的mvc那样操作。

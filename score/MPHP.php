@@ -1,6 +1,7 @@
 <?php
 namespace Swoolefy;
 
+defined('SWOOLEFY_CORE_ROOT_PATH') or define('SWOOLEFY_CORE_ROOT_PATH', __DIR__.'/Core');
 
 defined('SWOOLEFY_HTTP') or define('SWOOLEFY_HTTP', 'http');
 defined('SWOOLEFY_WEBSOCKET') or define('SWOOLEFY_WEBSOCKET', 'websocket');

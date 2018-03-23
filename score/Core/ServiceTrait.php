@@ -93,10 +93,10 @@ trait ServiceTrait {
 		if(isset(Swfy::$config['setting']['log_file'])) {
 			$path = pathinfo(Swfy::$config['setting']['log_file'], PATHINFO_DIRNAME);
 			$dir = strtolower($dir);
-			$filePath = $path.'/'.$dir.'_'.'includes.json';
+			$filePath = $path.'/includes.json';
 		}else {
 			$dir = ucfirst($dir);
-			$filePath = __DIR__.'/../'.$dir.'/'.$dir.'_'.'includes.json';
+			$filePath = __DIR__.'/../'.$dir.'/includes.json';
 		}
 		
 		if(is_file($filePath)) {

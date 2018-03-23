@@ -1,14 +1,11 @@
 <?php
 namespace Swoolefy\Websocket;
 
-use Swoolefy\Core\Swfy;
-use Swoolefy\Core\WebsocketEventInterface;
-use Swoolefy\Websocket\WebsocketServer;
+include_once SWOOLEFY_CORE_ROOT_PATH.'/EventInterface.php';
 
-// 如果直接通过php RpcServer.php启动时，必须include的vendor/autoload.php
-if(isset($argv) && $argv[0] == basename(__FILE__)) {
-	include_once '../../vendor/autoload.php';
-}
+use Swoolefy\Core\Swfy;
+use Swoolefy\Websocket\WebsocketServer;
+use Swoolefy\Core\WebsocketEventInterface;
 
 class WebsocketEventServer extends WebsocketServer implements WebsocketEventInterface {
 	/**
@@ -109,9 +106,4 @@ class WebsocketEventServer extends WebsocketServer implements WebsocketEventInte
 	 */
 	public function onClose($server, $fd) {}
 
-}
-
-if(isset($argv) && $argv[0] == basename(__FILE__)) {
-	$websocketserver = new WebsocketEventServer();
-	$websocketserver->start();
 }
