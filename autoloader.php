@@ -48,4 +48,4 @@ class autoloader {
 // include文件时，即完成自动加载的注册
 autoloader::register();
 // include 加载框架整体定义常量
-include_once __DIR__.'/score/MPHP.php';
+include_once SCORE_DIR_ROOT.'/score/MPHP.php';
