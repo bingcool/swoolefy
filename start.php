@@ -1,6 +1,11 @@
 <?php
-// score目录,只需要改这个变量即可
-$SCORE_DIR = __DIR__;
+// score目录,根据模式自动适应,composer安装模式
+if(is_dir(__DIR__.'/vendor/bingcool/swoolefy')) {
+    $SCORE_DIR = __DIR__.'/vendor/bingcool/swoolefy';
+}else {
+    // 直接下载使用模式
+    $SCORE_DIR = __DIR__;
+}
 
 // 定义一个全局常量
 defined('SCORE_DIR_ROOT') or define('SCORE_DIR_ROOT', $SCORE_DIR);
@@ -201,26 +206,29 @@ function help($command) {
     switch(strtolower($command.'-'.'help')) {
         case 'start-help':{
             echo "------------swoolefy启动服务命令------------\n";
-            echo "1、执行php start.php start http 即可启动http server服务\n";
+            echo "1、执行php start.php start http 即可启动http server服务\n\n";
             echo "2、执行php start.php start websocket 即可启动websocket server服务\n\n";
             echo "3、执行php start.php start rpc 即可启动rpc server服务\n\n";
             echo "4、执行php start.php start udp 即可启动udp server服务\n\n";
+            echo "5、执行php start.php start monitor 即在当前终端启动monitor 监控文件自动重启worker服务\n\n";
+            echo "6、执行php start.php start monitor -d 即以守护进程启动monitor 监控文件自动重启worker服务\n\n";
             echo "\n";
             break;
         }
         case 'stop-help':{
             echo "------------swoolefy终止服务命令------------\n";
-            echo "1、执行php start.php stop http 即可终止http server服务\n";
+            echo "1、执行php start.php stop http 即可终止http server服务\n\n";
             echo "2、执行php start.php stop websocket 即可终止websocket server服务\n\n";
             echo "3、执行php start.php stop rpc 即可终止rpc server服务\n\n";
             echo "4、执行php start.php stop udp 即可终止rpc server服务\n\n";
+            echo "5、执行php start.php stop monitor 即可终止monitor 监控文件自动重启worker服务\n\n";
             echo "\n";
             break;
         }
         default:{
             echo "------------欢迎使用swoolefy------------\n";
-            echo "有关某个命令的详细信息，请键入 help 命令:\n";
-            echo "1、php start.php start help 查看详细信息!\n";
+            echo "有关某个命令的详细信息，请键入 help 命令:\n\n";
+            echo "1、php start.php start help 查看详细信息!\n\n";
             echo "2、php start.php stop help 查看详细信息!\n\n";
         }
     }
