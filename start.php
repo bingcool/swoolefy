@@ -1,11 +1,15 @@
 <?php
+// score目录,只需要改这个变量即可
+$SCORE_DIR = __DIR__;
 
-$DIR = __DIR__;
-
+// 定义一个全局常量
+defined('SCORE_DIR_ROOT') or define('SCORE_DIR_ROOT', $SCORE_DIR);
+// 启动文件目录
+defined('START_DIR_ROOT') or define('START_DIR_ROOT', __DIR__);
 // include composer的自动加载类完成命名空间的注册
-include_once $DIR.'/vendor/autoload.php';
+include_once START_DIR_ROOT.'/vendor/autoload.php';
 // include App应用层的自定义的自动加载类命名空间
-include_once $DIR.'/autoloader.php';
+include_once START_DIR_ROOT.'/autoloader.php';
 
 function initCheck(){
     if(version_compare(phpversion(),'7.0.0','<')) {
@@ -34,16 +38,15 @@ function commandParser() {
 
 function startServer($server) {
     opCacheClear();
-    $dir = __DIR__;
 	switch(strtolower($server)) {
 		case 'http':{
-            $path = $dir.'/protocol/http';
+            $path = START_DIR_ROOT.'/protocol/http';
             if(!is_dir($path)) {
                 @mkdir($path, 0777, true);
             }
             $config_file = $path.'/config.php';
             if(!file_exists($config_file)) {
-                copy($dir.'/score/Http/config.php', $config_file);
+                copy(SCORE_DIR_ROOT.'/score/Http/config.php', $config_file);
             }
             $config = include $config_file;
             $http = new \Swoolefy\Http\HttpServer($config);
@@ -51,13 +54,13 @@ function startServer($server) {
             break;
         }
 		case 'websocket':{
-            $path = $dir.'/protocol/websocket';
+            $path = START_DIR_ROOT.'/protocol/websocket';
             if(!is_dir($path)) {
                 @mkdir($path, 0777, true);
             }
             $config_file = $path.'/config.php';
             if(!file_exists($config_file)) {
-                copy($dir.'/score/Websocket/config.php', $config_file);
+                copy(SCORE_DIR_ROOT.'/score/Websocket/config.php', $config_file);
             }
             $config = include $config_file;
 			$websocket = new \Swoolefy\Websocket\WebsocketEventServer($config);
@@ -65,13 +68,13 @@ function startServer($server) {
             break;
         }
         case 'rpc': {
-            $path = $dir.'/protocol/rpc';
+            $path = START_DIR_ROOT.'/protocol/rpc';
             if(!is_dir($path)) {
                 @mkdir($path, 0777, true);
             }
             $config_file = $path.'/config.php';
             if(!file_exists($config_file)) {
-                copy($dir.'/score/Rpc/config.php', $config_file);
+                copy(SCORE_DIR_ROOT.'/score/Rpc/config.php', $config_file);
             }
             $config = include $config_file;
             $rpc = new \Swoolefy\Rpc\RpcServer($config);
@@ -79,13 +82,13 @@ function startServer($server) {
             break;
         }
         case 'udp': {
-            $path = $dir.'/protocol/udp';
+            $path = START_DIR_ROOT.'/protocol/udp';
             if(!is_dir($path)) {
                 @mkdir($path, 0777, true);
             }
             $config_file = $path.'/config.php';
             if(!file_exists($config_file)) {
-                copy($dir.'/score/Udp/config.php', $config_file);
+                copy(SCORE_DIR_ROOT.'/score/Udp/config.php', $config_file);
             }
             $config = include $config_file;
             $rpc = new \Swoolefy\Udp\UdpEventServer($config);
@@ -94,14 +97,14 @@ function startServer($server) {
         }
         case 'monitor' :{
             global $argv;
-            $path = $dir.'/protocol/monitor';
+            $path = START_DIR_ROOT.'/protocol/monitor';
             if(!is_dir($path)) {
                 @mkdir($path, 0777, true);
             }
 
             $config_file = $path.'/config.php';
             if(!file_exists($config_file)) {
-                copy($dir.'/score/AutoReload/config.php', $config_file);
+                copy(SCORE_DIR_ROOT.'/score/AutoReload/config.php', $config_file);
             }
 
             if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
@@ -129,30 +132,29 @@ function startServer($server) {
 }
 
 function stopServer($server) {
-    $dir = __DIR__;
 	switch(strtolower($server)) {
 		case 'http': {
-            $path = $dir.'/protocol/http';
+            $path = START_DIR_ROOT.'/protocol/http';
             $pid_file = $path.'/server.pid';  
 		    break;
         }
 		case 'websocket': {
-            $path = $dir.'/protocol/websocket';
+            $path = START_DIR_ROOT.'/protocol/websocket';
 			$pid_file = $path.'/server.pid';
 		    break;
         }
         case 'rpc': {
-            $path = $dir.'/protocol/rpc';
+            $path = START_DIR_ROOT.'/protocol/rpc';
             $pid_file = $path.'/server.pid';
             break;
         }
         case 'udp': {
-            $path = $dir.'/protocol/udp';
+            $path = START_DIR_ROOT.'/protocol/udp';
             $pid_file = $path.'/server.pid';
             break;
         }
         case 'monitor': {
-            $path = $dir.'/protocol/monitor';
+            $path = START_DIR_ROOT.'/protocol/monitor';
             $pid_file = $path.'/monitor.pid';
             break;
         }
