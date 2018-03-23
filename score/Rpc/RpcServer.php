@@ -7,11 +7,6 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Tcp\TcpServer;
 use Swoolefy\Core\EventInterface;
 
-// 如果直接通过php RpcServer.php启动时，必须include的vendor/autoload.php
-if(isset($argv) && $argv[0] == basename(__FILE__)) {
-	include_once '../../vendor/autoload.php';
-}
-
 class RpcServer extends TcpServer implements EventInterface {
 	/**
 	 * __construct 初始化
@@ -113,9 +108,4 @@ class RpcServer extends TcpServer implements EventInterface {
 		//发起连接
 		$this->tcp_client->connect('127.0.0.1', 9998, 0.5);
 	}	
-}
-
-if(isset($argv) && $argv[0] == basename(__FILE__)) {
-	$rpcserver = new RpcServer();
-	$rpcserver->start();
 }

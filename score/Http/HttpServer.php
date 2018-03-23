@@ -8,11 +8,6 @@ use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoolefy\Core\Application;
 
-// 如果直接通过php HttpServer.php启动时，必须include的vendor/autoload.php
-if(isset($argv) && $argv[0] == basename(__FILE__)) {
-	include_once '../../vendor/autoload.php';
-}
-
 class HttpServer extends BaseServer {
 	/**
 	 * $setting
@@ -220,9 +215,4 @@ class HttpServer extends BaseServer {
 	 */
 	public function onFinish($task_id, $data) {}
 
-}
-
-if(isset($argv) && $argv[0] == basename(__FILE__)) {
-	$http = new HttpServer();
-	$http->start();
 }

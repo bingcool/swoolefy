@@ -433,16 +433,16 @@ class BaseServer {
 	 * @return   mixed
 	 */
 	public static function getServiceProtocol() {
-		// http
-		if(static::$server instanceof \Swoole\Http\Server) {
+		// websocket
+		if(static::$server instanceof \Swoole\WebSocket\Server) {
+			return SWOOLEFY_WEBSOCKET;
+		}else if(static::$server instanceof \Swoole\Http\Server) {
 			return SWOOLEFY_HTTP;
 		}else if(static::$server instanceof \Swoole\Server) {
 			if(self::$swoole_socket_type == SWOOLE_SOCK_UDP) {
 				return SWOOLEFY_UDP;
 			}
 			return SWOOLEFY_TCP;
-		}else if(static::$server instanceof \Swoole\WebSocket\Server) {
-			return SWOOLEFY_WEBSOCKET;
 		}
 		return false;
 

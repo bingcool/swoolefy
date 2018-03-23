@@ -3,7 +3,6 @@ namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Object;
-use Swoolefy\Tcp\TcpServer;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\BaseServer;
 
@@ -14,12 +13,6 @@ class SController extends Object {
 	 * @var null
 	 */
 	public $config = null;
-
-	/**
-	 * $previousUrl,记录url
-	 * @var array
-	 */
-	public static $previousUrl = [];
 
 	/**
 	 * $selfModel 控制器对应的自身model
@@ -40,8 +33,8 @@ class SController extends Object {
 		$this->fd = Application::$app->fd;
 		$this->config = Application::$app->config;
 
-		// 针对udp协议设置
-		if(isset(Application::$app->client_info) && !empty(Application::$app->client_info)) {
+		// udp协议设置
+		if(BaseServer::getServiceProtocol() == SWOOLEFY_UDP) {
 			$this->client_info = Application::$app->client_info;
 		}else {
 			$this->client_info = null;
@@ -55,9 +48,9 @@ class SController extends Object {
 	 * @return void
 	 */
 	public function send($fd, $data, $header = []) {
-		if(Swfy::$server instanceof \Swoole\Server) {
+		if(BaseServer::getServiceProtocol() == SWOOLEFY_TCP) {
 			$args = [$data, $header];
-			$data = TcpServer::pack($args);
+			$data = \Swoolefy\Tcp\TcpServer::pack($args);
 			Swfy::$server->send($fd, $data);
 		}else {
 			throw new \Exception("this method only can be called by tcp or rpc server!");
@@ -75,6 +68,9 @@ class SController extends Object {
 	 */
 	public function sendto($ip, $port, $data, $server_socket = -1) {
 		if(BaseServer::getServiceProtocol() == SWOOLEFY_UDP) {
+			if(is_array($data)){
+				$data = json_encode($data);
+			}
 			Swfy::$server->sendto($ip, $port, $data, $server_socket);
 		}else {
 			throw new \Exception("this method only can be called by udp server!");
@@ -82,7 +78,7 @@ class SController extends Object {
 	}
 
 	/**
-	 * push websocket的发送数据
+	 * push websocket 发送数据
 	 * @param  int    $fd
 	 * @param  mixed  $data
 	 * @param  int    $opcode
@@ -91,7 +87,7 @@ class SController extends Object {
 	 */
 	public function push($fd, $data, $opcode = 1, $finish = true) {
 		// 只能由websoccket调用
-		if(Swfy::$server instanceof \Swoole\WebSocket\Server) {
+		if(BaseServer::getServiceProtocol() == SWOOLEFY_WEBSOCKET) {
 			if(is_array($data)){
 				$data = json_encode($data);
 			}
@@ -145,8 +141,6 @@ class SController extends Object {
 		if(method_exists($this,'_afterAction')) {
 			static::_afterAction();
 		}
-		// 初始化这个变量
-		static::$previousUrl = [];
 		// 初始化清除所有得单例model实例
 		static::$selfModel = [];
 	}
