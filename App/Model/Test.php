@@ -11,9 +11,6 @@ class Test extends BModel {
 	private $name = 'hhhhhhhhhhhhhhh';
 	public function record() {
 
-		global $count;
-		self::$num++;
-		++$this->count;
 		return ['name'=>'kkk'.rand(1,100).'-count:'.$this->count.'-num:'.self::$num];
 	}
 
