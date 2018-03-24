@@ -20,6 +20,8 @@ return [
 		'log_file' => __DIR__.'/log.txt',
 		'pid_file' => __DIR__.'/server.pid',
 		'daemonize' => 0,
+    	'log_file' => __DIR__.'/log.txt',
+		'pid_file' => __DIR__.'/server.pid',
 	],
 
 	// 是否内存化线上实时任务
