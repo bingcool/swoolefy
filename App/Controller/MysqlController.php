@@ -12,50 +12,35 @@ use swoole_process;
 class MysqlController extends BController {
 
 	public function test() {
-		$db = Application::$app->db;
-		$books = $db->table('books');
-		$fields = $books->getFields();
+		$result = $this->db->table('user')->find();
+		$result1 = $this->db->query('select * from user where id=:id',['id'=>8]);
+		$data = ['username'=>'huangzengbing','sex'=>1];
+		$num = $this->db->table('user')->insert($data);
+		$mdata = [
+			$data,$data,$data
+		];
+		$num1 = $this->db->table('user')->insertAll($mdata);
+		dump($num);
+		dump($num1);
+		dump($result);
+		dump($result1);
+		dump($this->db->getLastSql());
+		dump($this->db->table('user')->getTableFields());
 
-		$sql = 'INSERT INTO  `books` (`id`,`book_name` ,`author`,`description`) VALUES (NULL ,  "php1",  "mmmmm",  "lnmp学习")';
-		$id = $db->execute($sql);
-
-		dump($id);
+		$bookdata = [
+			'bookname'=>'细说php',
+			'dec' => '入门级php开发'
+		];
+		$book_num = $this->db->table('book')->insert($bookdata);
+		dump($book_num);
+		dump($this->db->getLastSql());
+		dump(\Think\Db::$executeTimes);
+		dump($this->db->table('user')->getSqlLog());
 	}
 
 	public function get() {
-		$db = Application::$app->db;
-
-		// $data = $db->table('books')
-		// ->field('book_name')
-		// ->where('id>:id',['id'=>1])
-		// ->whereOr('book_name=:php1',['php1'=>'php1'])
-		// ->findAll();
-		// dump($data);
-		
-		
-		// $data = $db->table('books')
-		// ->field('id, book_name AS name')
-		// ->where('book_name like :like or id not in (2,3,4)',['like'=>'%php%'])
-		// ->findAll();
-		// dump($data);
-		
-		// $data = $db->table('books AS b')
-		// ->field('b.id, b.book_name,u.sex')
-		// ->join('user_book AS u','b.id=u.book_id')
-		// ->findAll();
-		
-		
-		// $sql = 'SELECT b.id,b.book_name FROM books AS b INNER JOIN user_book AS u ON b.id=u.book_id';
-		// $data = $db->query($sql);
-		// 
-		
-		$data = $db->table('books AS b')
-		->field('b.id, b.book_name,u.sex')
-		->join('user_book AS u','b.id=u.book_id')
-		->getColumn('id,sex','id');
-
-		dump($db->getLastSql());
-		dump($data);
+		$query = \Think\Db::$query;
+		dump($query);
 	}
 
 
