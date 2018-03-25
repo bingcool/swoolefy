@@ -23,7 +23,8 @@
         "nesbot/carbon": "^1.22",
         "predis/predis": "1.1.1",
         "mongodb/mongodb": "1.2.0",
-        "joshcam/mysqli-database-class": "dev-master"
+        "joshcam/mysqli-database-class": "dev-master",
+        "bingcool/swoolefy-orm": "dev-master"
     },
     "autoload": {
         "psr-4": {

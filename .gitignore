@@ -6,6 +6,7 @@ sftp-config.json
 *.json
 #server.pid
 *.pid
+*.lock
 #dir
 /App/Runtime/
 /App/Config/config.php
