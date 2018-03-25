@@ -38,11 +38,5 @@ class MysqlController extends BController {
 		dump($this->db->table('user')->getSqlLog());
 	}
 
-	public function get() {
-		$query = \Think\Db::$query;
-		dump($query);
-	}
-
-
 
 }

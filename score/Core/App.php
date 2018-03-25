@@ -190,7 +190,7 @@ class App extends \Swoolefy\Core\Component {
 		// 初始化静态变量
 		MTime::clear();
 		// 清空某些组件,每次请求重新创建
-		self::clearComponent(['mongodb','session']);
+		self::clearComponent(['mongodb','session', 'db']);
 		//清空全局变量
 		$_POST = $_GET = $_REQUEST = $_COOKIE = $_SESSION = [];
 

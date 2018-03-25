@@ -91,7 +91,8 @@ return [
 			    // 是否需要断线重连
 			    'break_reconnect' => true,
         	],
-        	'cache_driver'=>'redis',
+        	// 加载完成后的初始化配置函数
+        	'func' => 'setConfig',
 		],
 
 		'mongodb'=>[

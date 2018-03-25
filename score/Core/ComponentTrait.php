@@ -91,7 +91,7 @@ trait ComponentTrait {
 						$params = $defination['constructor'];
 						unset($defination['constructor']);
 					}
-					return static::$_components[$com_alias_name] = Swfy::$Di[$com_alias_name] = $this->buildInstance($class, $defination, $params);
+					return static::$_components[$com_alias_name] = Swfy::$Di[$com_alias_name] = $this->buildInstance($class, $defination, $params, $key);
 				}else {
 					throw new \Exception("component:".$com_alias_name.'must be set class', 1);
 				}
@@ -118,7 +118,7 @@ trait ComponentTrait {
 					unset($component['constructor']);
 				}
 				$defination = $component;
-				static::$_components[$key] = Swfy::$Di[$key] = $this->buildInstance($class, $defination, $params);
+				static::$_components[$key] = Swfy::$Di[$key] = $this->buildInstance($class, $defination, $params, $key);
 			}else {
 				static::$_components[$key] = Swfy::$Di[$key] = false;
 			}
@@ -155,7 +155,7 @@ trait ComponentTrait {
      * buildInstance
      * @return  object
      */
-	protected function buildInstance($class, $defination, $params) {
+	protected function buildInstance($class, $defination, $params, $key) {
 		list ($reflection, $dependencies) = $this->getDependencies($class);
 
         foreach ($params as $index => $param) {
@@ -170,10 +170,13 @@ trait ComponentTrait {
 
         $object = $reflection->newInstanceArgs($dependencies);
         foreach ($defination as $name => $value) {
-        	if(is_array($object->$name)) {
+        	if($name == 'func') {
+        		call_user_func_array([$object, $defination['func']], [$defination]);
+        	}else if(is_array($object->$name)) {
         		$object->$name = array_merge($object->$name,$value);
         		continue;
         	}
+
         	$object->$name = $value;
             
         }
