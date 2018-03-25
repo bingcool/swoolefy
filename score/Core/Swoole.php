@@ -154,6 +154,9 @@ class Swoole extends Object {
 		MTime::clear();
 		// 清空某些组件,每次请求重新创建
 		self::clearComponent(['mongodb']);
+		
+		// mysql组件
+		is_object($this->db) && $this->db->clear();
 		// 清空当前的请求应用对象
 		Application::$app = null;
 	}

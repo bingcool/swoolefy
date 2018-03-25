@@ -193,6 +193,11 @@ class App extends \Swoolefy\Core\Component {
 		self::clearComponent(['mongodb','session']);
 		//清空全局变量
 		$_POST = $_GET = $_REQUEST = $_COOKIE = $_SESSION = [];
+
+		// mysql组件
+		is_object($this->db) && $this->db->clear();
+		// 清空当前的请求应用对象
+		Application::$app = null;
 		// 必须设置一个异常结束
 		@$this->response->end();
 	}
