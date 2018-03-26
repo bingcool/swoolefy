@@ -1,12 +1,5 @@
 <?php
 return [
-	'route_model' => 1, //1代表pathinfo,2代表普通url模式
-	'default_route' => 'site/index',
-	'app_namespace' => 'App',
-	'not_found_template' => '404.html', //默认是在View文件夹下面
-	// 'not_found_function' => ['App\Controller\NotFound','page404'],
-	// 'catch_all_info' => '网站维护中',
-	
 	// 由于不是http应用，不需要设置view,session组件
 	'components' => [
 		// 

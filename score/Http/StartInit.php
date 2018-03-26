@@ -27,10 +27,10 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 */
 	public static function onWorkerStart($server,$worker_id) {
 		if($worker_id == 0) {
-			// \Swoolefy\Core\Timer\Tick::tickTimer(20000,['App\\Controller\\TickTasksController','mytest1'],[]);
-			// \Swoolefy\Core\Timer\Tick::tickTimer(15000,['App\\Controller\\TickTasksController','mytest1'],[]);
-			// \Swoolefy\Core\Timer\Tick::tickTimer(18000,['App\\Controller\\TickTasksController','mytest1'],[]);
-			// $tid1 = \Swoolefy\Core\Timer\Tick::afterTimer(5000,['App\\Controller\\Test','mytest'],[]);
+			// \Swoolefy\Core\Timer\Tick::tickTimer(2000, ['App\\Controller\\TickTasksController','mytest1'],['jjjjjj']);
+			// \Swoolefy\Core\Timer\Tick::tickTimer(15000,['App\\Controller\\TickTasksController','mytest1']);
+			// \Swoolefy\Core\Timer\Tick::tickTimer(18000,['App\\Controller\\TickTasksController','mytest1']);
+			$tid1 = \Swoolefy\Core\Timer\Tick::afterTimer(5000, ['App\\Controller\\TickTasksController','test'],[]);
 		}
 	}
 

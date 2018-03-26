@@ -17,13 +17,19 @@ class Tick {
     protected static $_after_tasks = [];
 
     /**
+     * $_tasks_instances 任务对象类
+     * @var array
+     */
+    protected static $_tasks_instances = [];
+
+    /**
      * tickTimer  循环定时器
      * @param   int      $time_interval
      * @param   callable $func         
      * @param   array    $params       
      * @return  int              
      */
-	public static function tickTimer($time_interval, $func, $params=[]) {
+	public static function tickTimer($time_interval, $func, $params = null) {
 		if($time_interval <= 0 || $time_interval > 86400000) {
             throw new \Exception(get_called_class()."::tickTimer() the first params 'time_interval' is requested 0-86400000 ms");
             return false;
@@ -34,7 +40,7 @@ class Tick {
             return false;
         }
 
-        $timer_id = self::tick($time_interval,$func,$params);
+        $timer_id = self::tick($time_interval, $func, $params);
 
         return $timer_id;
 	}
@@ -46,11 +52,28 @@ class Tick {
      * @param   array     $user_params  
      * @return  boolean              
      */
-    public static function tick($time_interval,$func,$user_params=[]) {
-        $tid = swoole_timer_tick($time_interval, function($timer_id,$user_params) use($func) {
-            array_push($user_params,$timer_id);
-            call_user_func_array($func, $user_params);
-        },$user_params);
+    public static function tick($time_interval, $func, $user_params = null) {
+        $tid = swoole_timer_tick($time_interval, function($timer_id, $user_params) use($func) {
+            $params = [];
+            if($user_params) {
+                $params = [$user_params, $timer_id];
+            }else {
+                $params = [$timer_id];
+            }
+
+            if(is_array($func)) {
+                list($class, $action) = $func;
+                $task_key = $class.'\\'.$action;
+                if(self::$_tasks_instances[$task_key]) {
+                   $tickTaskInstance = swoole_unpack(self::$_tasks_instances[$task_key]);
+                }else {
+                    $tickTaskInstance = new $class;
+                    self::$_tasks_instances[$task_key] = swoole_pack($tickTaskInstance);
+                }
+            }
+            call_user_func_array([$tickTaskInstance, $action], $params);
+            unset($tickTaskInstance, $class, $action, $user_params, $params, $func);
+        }, $user_params);
 
         if($tid) {
             self::$_tick_tasks[$tid] = array('callback'=>$func, 'params'=>$user_params, 'time_interval'=>$time_interval, 'timer_id'=>$tid, 'start_time'=>date('Y-m-d H:i:s',strtotime('now')));
@@ -92,7 +115,7 @@ class Tick {
      * @param    array     $params       
      * @return   int              
      */
-    public static function afterTimer($time_interval, $func, $params=[]) {
+    public static function afterTimer($time_interval, $func, $params = null) {
         if($time_interval <= 0 || $time_interval > 86400000) {
             throw new \Exception(get_called_class()."::afterTimer() the first params 'time_interval' is requested 0-86400000 ms");
             return false;
@@ -103,7 +126,7 @@ class Tick {
             return false;
         }
 
-        $timer_id = self::after($time_interval,$func,$params);
+        $timer_id = self::after($time_interval, $func, $params);
 
         return $timer_id;
     }
@@ -112,12 +135,21 @@ class Tick {
      * after 一次性定时器执行
      * @return  boolean
      */
-    public static function after($time_interval,$func,$user_params=[]) {
+    public static function after($time_interval, $func, $user_params = null) {
         $tid = swoole_timer_after($time_interval, function($user_params) use($func) {
-            call_user_func_array($func, $user_params);
+            $params = [];
+            if($user_params) {
+                $params = [$user_params];
+            }
+            if(is_array($func)) {
+                list($class, $action) = $func;
+                $tickTaskInstance = new $class;
+            }
+            call_user_func_array([$tickTaskInstance, $action], $params);
             // 执行完之后,更新目前的一次性任务项
             self::updateRunAfterTick();
-        },$user_params);
+            unset($tickTaskInstance, $class, $action, $user_params, $params, $func);
+        }, $user_params);
 
         if($tid) {
             self::$_after_tasks[$tid] = array('callback'=>$func, 'params'=>$user_params, 'time_interval'=>$time_interval, 'timer_id'=>$tid, 'start_time'=>date('Y-m-d H:i:s',strtotime('now')));
@@ -135,7 +167,7 @@ class Tick {
      */
     public static function updateRunAfterTick() {
         if(self::$_after_tasks) {
-            // 加上1000,提起前1s
+            // 加上1000,提前1s
             $now = strtotime('now') * 1000 + 1000;
             foreach(self::$_after_tasks as $key=>$value) {
                 $end_time = $value['time_interval'] + strtotime($value['start_time']) * 1000;
