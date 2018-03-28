@@ -22,7 +22,7 @@ class Mysql {
 	 * $default_config 默认的配置项
 	 * @var [type]
 	 */
-	public $default_config =  [
+	protected $default_config =  [
 			// 数据库类型
 		    'type'            => '',
 		    // 服务器地址
@@ -95,10 +95,10 @@ class Mysql {
 	 * setConfig 设置配置项
 	 * @param array $config
 	 */
-	public function setConfig($config = []) {
+	public function setConfig() {
 		$db_config = $this->getConfig();
 		if(empty($db_config['type']) && empty($db_config['hostname'])) {
-			$config = array_merge($this->default_config, $this->config, $config);
+			$config = array_merge($this->default_config, $this->config);
 			Db::setConfig($config);
 		}
 	}
@@ -119,14 +119,18 @@ class Mysql {
 		if(is_object($cache_driver)) {
 			Db::setCacheHandler($cache_driver);
 		}
+
 		$cacheHandler = $this->getCacheHandler();
+
 		if(!is_object($cacheHandler)) {
 			if(isset($this->cache_driver) && !empty($this->cache_driver)) {
 				if(is_string($this->cache_driver) ) {
 					$cache_driver = $this->cache_driver;
-					$cache_driver = new $cache_driver;
+					$cache_driver = Application::$app->$cache_driver;
+
 				}else if(is_object($this->cache_driver)){
 					$cache_driver = $this->cache_driver;
+
 				}else {
 					$cache_driver = null;
 				}

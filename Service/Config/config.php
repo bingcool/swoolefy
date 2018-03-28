@@ -8,7 +8,7 @@ return [
 		],
 
 		'redis_session' => [
-			'isDelay' => true,//延迟创建实例，请求时候再创建
+			'is_delay' => true,//延迟创建实例，请求时候再创建
 			'class' => 'Swoolefy\Core\Cache\Redis',
 			'constructor'=> [
 				[

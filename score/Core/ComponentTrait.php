@@ -11,6 +11,12 @@ trait ComponentTrait {
 	public static $_components = [];
 
 	/**
+	 * $_destroy_components 请求结束后销毁的对象
+	 * @var array
+	 */
+	protected static $_destroy_components = [];
+
+	/**
 	 * __set
 	 * @param    string  $name 
 	 * @param    object  $value
@@ -30,27 +36,16 @@ trait ComponentTrait {
 	public function __get($name) {
 		if(!isset($this->$name)) {
 			if(isset(static::$_components[$name])) {
-				if(is_object(static::$_components[$name])) {
-					// 以下组件需要做特殊处理,redis的timeout设置为0
-					switch($name) {
-						case 'redis': 
-						case 'redis_session':
-							$isConnected = static::$_components[$name]->isConnected();
-							if(!$isConnected) {
-								self::clearComponent($name);
-								self::creatObject($name, $this->config['components'][$name]);
-							}
-						break;
-					}
 
+				if(is_object(static::$_components[$name])) {	
 					return static::$_components[$name];
-					
 				}else {
 					self::clearComponent($name);
 					return false;
 				}
-			}elseif(in_array($name, array_keys($this->config['components']))) {
-				return self::creatObject($name, $this->config['components'][$name]);
+
+			}elseif(in_array($name, array_keys(Swfy::$appConfig['components']))) {
+				return self::creatObject($name, Swfy::$appConfig['components'][$name]);
 			}
 			return false;	
 		}
@@ -79,7 +74,7 @@ trait ComponentTrait {
 	 * @param    array   $defination     组件定义类
 	 * @return   array
 	 */
-	public function creatObject($com_alias_name=null,array $defination=[]) {
+	public function creatObject($com_alias_name = null, array $defination = []) {
 		// 动态创建公用组件
 		if($com_alias_name) {
 			if(!isset(static::$_components[$com_alias_name])) {
@@ -91,7 +86,7 @@ trait ComponentTrait {
 						$params = $defination['constructor'];
 						unset($defination['constructor']);
 					}
-					return static::$_components[$com_alias_name] = Swfy::$Di[$com_alias_name] = $this->buildInstance($class, $defination, $params, $key);
+					return static::$_components[$com_alias_name] = Swfy::$Di[$com_alias_name] = $this->buildInstance($class, $defination, $params, $com_alias_name);
 				}else {
 					throw new \Exception("component:".$com_alias_name.'must be set class', 1);
 				}
@@ -103,12 +98,13 @@ trait ComponentTrait {
 		}
 		// 配置文件初始化创建公用对象
 		$coreComponents = $this->coreComponents();
-		$components = array_merge($coreComponents,$this->config['components']);
+		$components = array_merge($coreComponents, Swfy::$appConfig['components']);
 		foreach($components as $key=>$component) {
 			// 如果存在直接跳过，下一个
-			if(isset(static::$_components[$key]) || (isset($component['isDelay']) && $component['isDelay'])) {
+			if(isset(static::$_components[$key]) || (isset($component[SWOOLEFY_COM_IS_DELAY]) && $component[SWOOLEFY_COM_IS_DELAY])) {
 				continue;
 			}
+			
 			if(isset($component['class']) && $component['class'] != '') {
 				$class = $component['class'];
 				unset($component['class']);
@@ -155,7 +151,7 @@ trait ComponentTrait {
      * buildInstance
      * @return  object
      */
-	protected function buildInstance($class, $defination, $params, $key) {
+	protected function buildInstance($class, $defination, $params, $com_alias_name) {
 		list ($reflection, $dependencies) = $this->getDependencies($class);
 
         foreach ($params as $index => $param) {
@@ -170,10 +166,17 @@ trait ComponentTrait {
 
         $object = $reflection->newInstanceArgs($dependencies);
         foreach ($defination as $name => $value) {
-        	if($name == 'func') {
-        		call_user_func_array([$object, $defination['func']], [$defination]);
+
+        	if($name == SWOOLEFY_COM_IS_DESTROY && $value) {
+        		array_push(self::$_destroy_components, $com_alias_name);
+        		continue;
+        	}
+
+        	if($name == SWOOLEFY_COM_FUNC) {
+        		call_user_func_array([$object, $defination[$name]], [$defination]);
+        		continue;
         	}else if(is_array($object->$name)) {
-        		$object->$name = array_merge($object->$name,$value);
+        		$object->$name = array_merge($object->$name, $value);
         		continue;
         	}
 
@@ -196,7 +199,7 @@ trait ComponentTrait {
 	 * @param    string|array  $component_alias_name
 	 * @return   boolean
 	 */
-	public function clearComponent($com_alias_name=null) {    
+	public function clearComponent($com_alias_name = null) {    
         if(!is_null($com_alias_name) && is_string($com_alias_name)) {
        		unset(static::$_components[$com_alias_name], Swfy::$Di[$com_alias_name]);
        		return true;

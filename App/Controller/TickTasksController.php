@@ -1,8 +1,10 @@
 <?php
 namespace App\Controller;
 
-class TickTasksController extends \Swoolefy\Core\Object {
-	// test task
+use Swoolefy\Core\Controller\TaskController;
+
+class TickTasksController extends TaskController {
+
 	public function mytest1($data) {
 		var_dump($data);
 		echo "总的任务数\n";

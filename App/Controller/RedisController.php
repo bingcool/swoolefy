@@ -10,8 +10,8 @@ use Swoolefy\Core\MTime;
 use swoole_process;
 
 class RedisController extends BController {
-	public function test() {
-		$this->redis->set('library', 'predis');
+	public function set() {
+		$this->redis->set('library', 'predis'.rand(1,100));
 		dump('yes');
 	}
 

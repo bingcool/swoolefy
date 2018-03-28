@@ -6,7 +6,7 @@ return [
 	'not_found_template' => '404.html', //默认是在View文件夹下面
 	// 'not_found_function' => ['App\Controller\NotFound','page404'],
 	// 'catch_all_info' => '网站维护中',
-	'session_start' => false,
+	'session_start' => true,
 	'cors' =>[
 		'Origin' => ['*'],
         'Access-Control-Request-Method' => ['GET','POST','PUT','DELETE'],
@@ -32,15 +32,18 @@ return [
 		],
 
 		'redis_session' => [
-			'isDelay' => true,//延迟创建实例，请求时候再创建
+			'is_delay' => true,//延迟创建实例，请求时候再创建
 			'class' => 'Swoolefy\Core\Cache\Redis',
 			'constructor'=> [
 				[
 					'scheme' => 'tcp',
     				'host'   => '192.168.99.102',
     				'port'   => 6379,
-    				'password' => '123456'
+    				'password' => '123456',
+    				'persistent' => true,
+    				'timeout' => 2
 				],
+				// ['tcp://192.168.99.102:6379?persistent=true&password=123456&timeout=2'],
 				[
 					'profile' => '3.2'
 				]
@@ -114,6 +117,7 @@ return [
 		],
 
 		'mongodb'=>[
+			'is_destroy' => 1,//每次请求后是否销毁对象
 			'class'=>'Swoolefy\Core\Mongodb\MongodbModel',
 			'database'=>'mytest',
 			'uri'=>'mongodb://192.168.99.102:27017',
@@ -124,6 +128,7 @@ return [
 		],
 
 		'redis' =>[
+			'is_delay' => true,//延迟创建实例，请求时候再创建
 			'class' => 'Swoolefy\Core\Cache\Redis',
 			'constructor'=> [
 				[
