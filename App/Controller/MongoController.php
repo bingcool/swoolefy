@@ -16,13 +16,21 @@ class MongoController extends BController {
 		// $user->field('*')->find();
 		dump($res);
 		dump($user);
+		
+		Swfy::createComponent($com_alias_name = 'view1',[
+			'class' => 'Swoolefy\Core\View',
+		]);
+
+		dump($this->view1);
 	}
 
 	public function get() {
-		$user = $this->mongodb->collection('user');
+		$user = $this->mongodb->user;
 		$data = $user->field('*')->find();
 		dump($data);
 
+		// dump($this->mongodb->ping());
+		// dump($this->mongodb->mongodbClient->__debugInfo());
 	}
 
 }

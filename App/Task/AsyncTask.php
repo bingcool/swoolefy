@@ -18,7 +18,7 @@ class AsyncTask extends TaskController {
 
 	public function asyncTaskTest($data, $request) {
 		var_dump($data);
-		var_dump($request->get);
+		var_dump($request);
 		// 异步任务完成，退出task进程
 		// AppAsyncTask::registerTaskfinish([$this, 'finish'], ['hhhhhhhhh']);
 	}

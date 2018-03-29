@@ -1,9 +1,6 @@
 <?php
 namespace Swoolefy\Core\Mongodb;
 
-/**
- * return call_user_func_array([$this->collectionInstance, $method], $argc);
- */
 use MongoDB\Client;
 use Swoolefy\Core\Mongodb\MongodbCollection;
 
@@ -57,7 +54,7 @@ class MongodbModel {
      * @param   string   $db
      * @return    object
      */
-    public function setDatabase($db=null) {
+    public function setDatabase($db = null) {
         if($db) {
             return $this->database = $db;
         }
@@ -72,7 +69,7 @@ class MongodbModel {
      * @param  string   $db
      * @return   object
      */
-    public function dbInstance($db=null) {
+    public function dbInstance($db = null) {
         if(isset(self::$databaseObject) && is_object(self::$databaseObject)) {
             return  self::$databaseObject;
         }
@@ -88,7 +85,7 @@ class MongodbModel {
         if(!is_object($this->mongodbClient)) {
             $this->mongodbClient = new Client($this->uri, $this->uriOptions, $this->driverOptions);
         }
-       return $this->dbInstance($db=null);
+        return $this->dbInstance($db = null);
     }
 
     /**
@@ -119,6 +116,18 @@ class MongodbModel {
 
         $this->dbInstance();
         return self::$collectionModels[$collection] = new MongodbCollection($collection);
+    }
+
+    /**
+     * __get 获取collection
+     * @param string  $name
+     * @return void
+     */
+    public function __get($name) {
+        if(is_string($name)) {
+            return $this->collection($name);
+        }
+        return false;
     }
 
     /**

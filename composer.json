@@ -1,6 +1,6 @@
 {
     "name": "bingcool/swoolefy",
-    "description": "swoole auto relaod and monitor",
+    "description": "swoolefy is a HV Framework based on swoole,for everyone use is easily!",
     "keywords": [
         "swoole",
         "auto relaod",

@@ -57,13 +57,17 @@ class MongodbCollection {
      */
     public $_id = null;
     
+    /**
+     * __construct
+     * @param string $collection
+     */
     public function __construct($collection) {
         $this->collectionInstance = MongodbModel::$databaseObject->$collection;
-        $this->_id =Application::$app->mongodb->_id;
+        $this->_id = Application::$app->mongodb->_id;
     }
 
     /**
-     * clear 由于是单例模式，需要每次实例collection时，清空条件
+     * clear 单例模式，需要每次实例collection时，清空条件
      * @return void
      */
     public function clear() {
@@ -276,7 +280,7 @@ class MongodbCollection {
      * @param   mixed    $argc
      * @return    mixed
      */
-    public function __call($method, $argc) {
-        return call_user_func_array([$this->collectionInstance, $method], $argc);
+    public function __call($method, $args) {
+        return call_user_func_array([$this->collectionInstance, $method], $args);
     }
 }

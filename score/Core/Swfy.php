@@ -2,14 +2,16 @@
 namespace Swoolefy\Core;
 
 class Swfy extends \Swoolefy\Core\Object {
+
+	use \Swoolefy\Core\ComponentTrait;
 	/**
 	 * $server swoole服务超全局变量
-	 * @var obj
+	 * @var null
 	 */
 	public static $server = null;
 
 	/**
-	 * $Di Di容器的静态变量数组
+	 * $Di Di容器components
 	 * @var array
 	 */
 	public static $Di = [];
@@ -24,6 +26,41 @@ class Swfy extends \Swoolefy\Core\Object {
 	 * @var null
 	 */
 	public static $appConfig = [];
+
+	/**
+	 * $com_alias_name 动态创建组件对象
+	 * @param string $com_alias_name
+	 * @param array  $defination
+	 * @return void
+	 */
+	public static function createComponent($com_alias_name = null, array $defination = []) {
+		return self::creatObject($com_alias_name, $defination);
+	}
+
+	/**
+	 * clearComponent 清空Component
+	 * @param  string  $com_alias_name
+	 * @return void
+	 */
+	public static function clearComponent($com_alias_name = null) {
+		return self::clearComponent($com_alias_name);
+	}
+
+	/**
+	 * getComponent 获取组件
+	 * @param [type] $com_alias_name
+	 * @return void
+	 */
+	public static function getComponent($com_alias_name = null) {
+		if($com_alias_name) {
+			return self::$Di;
+		}else {
+			if(isset(self::$Di[$com_alias_name])) {
+				return self::$Di[$com_alias_name];
+			}
+			return false;
+		}	
+	}
 
 	/**
 	 * __call

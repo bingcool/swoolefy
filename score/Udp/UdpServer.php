@@ -122,9 +122,9 @@ abstract class UdpServer extends BaseServer {
 		//处理异步任务
 		$this->udpserver->on('task', function(udp_server $server, $task_id, $from_worker_id, $data) {
 			try{
-				$taskdata = swoole_unpack($data);
+				$task_data = swoole_unpack($data);
 				// 延迟绑定
-				static::onTask($server, $task_id, $from_worker_id, $taskdata);
+				static::onTask($server, $task_id, $from_worker_id, $task_data);
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);

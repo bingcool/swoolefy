@@ -15,7 +15,7 @@ class AsyncTask implements AsyncTaskInterface {
      */
     public static function registerTask($callable, $data = []) {
         if(is_string($callable)) {
-            throw new \Exception("$callable must be array", 1);
+            throw new \Exception("$callable must be an array", 1);
         }
         $callable[0] = str_replace('/', '\\', trim($callable[0],'/'));
         $fd = Application::$app->fd;

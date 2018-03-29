@@ -43,9 +43,9 @@ class TaskController extends Object {
 	 * __construct 初始化函数
 	 */
 	public function __construct() {
+
 		Application::$app = $this;
-		// 将在启动worker时创建好的实例重新赋值于当前实例的组件变量
-		self::$_components = Swfy::$Di;
+		
 		// 应用层配置
 		$this->config = Swfy::$appConfig;
 	}

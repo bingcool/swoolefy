@@ -62,6 +62,8 @@ return [
 		],
 
 		'db' => [
+			'is_destroy' => 0,//每次请求后是否销毁对象
+			'is_delay' =>true,//延迟创建实例，请求时候再创建
 			'class' => 'Swoolefy\Core\Db\Mysql',
 			'config' =>[
 				 // 数据库类型
@@ -117,7 +119,8 @@ return [
 		],
 
 		'mongodb'=>[
-			'is_destroy' => 1,//每次请求后是否销毁对象
+			'is_destroy' => 0,//每次请求后是否销毁对象
+			'is_delay' => true,//延迟创建实例，请求时候再创建
 			'class'=>'Swoolefy\Core\Mongodb\MongodbModel',
 			'database'=>'mytest',
 			'uri'=>'mongodb://192.168.99.102:27017',
@@ -128,6 +131,7 @@ return [
 		],
 
 		'redis' =>[
+			'is_destroy' => true,//每次请求后是否销毁对象
 			'is_delay' => true,//延迟创建实例，请求时候再创建
 			'class' => 'Swoolefy\Core\Cache\Redis',
 			'constructor'=> [
