@@ -7,9 +7,9 @@ use Swoolefy\Core\AppDispatch;
 class RpcDispatch extends AppDispatch {
 	/**
 	 * $callable 远程调用函数对象类
-	 * @var null
+	 * @var array
 	 */
-	public $callable = null;
+	public $callable = [];
 
 	/**
 	 * $params 远程调用参数
@@ -43,7 +43,7 @@ class RpcDispatch extends AppDispatch {
 		if(!self::$routeCacheFileMap[$class]) {
 			// 类文件不存在
 			if(!$this->checkClass($class)){
-				
+				// TODO
 			}
 		}
 		$class = str_replace('/','\\', $class);

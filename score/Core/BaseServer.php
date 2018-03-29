@@ -26,9 +26,9 @@ class BaseServer {
 	 */
 	protected static $pack_check_type = null;
 
-	const PACK_CHECK_EOF = 'eof';
+	const PACK_CHECK_EOF = SWOOLEFY_PACK_CHECK_EOF;
 
-	const PACK_CHECK_LENGTH = 'length';
+	const PACK_CHECK_LENGTH = SWOOLEFY_PACK_CHECK_LENGTH;
 
 	/**
 	 * $_startTime 进程启动时间

@@ -46,6 +46,7 @@ class UdpHander extends Swoole implements HanderInterface {
 	public function run($recv, $clientInfo) {
 		// 必须要执行父类的run方法
 		parent::run($fd = null , $recv);
+		
 		$this->client_info = $clientInfo;
 		$recv = array_values(json_decode($recv, true));
 		if(is_array($recv) && count($recv) == 3) {

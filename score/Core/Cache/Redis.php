@@ -37,7 +37,7 @@ class Redis {
    	/**
    	 * __call 重载
    	 * @param  string  $method
-   	 * @param  mixed   $args]
+   	 * @param  mixed   $args
    	 * @return mixed
    	 */
    	public function __call($method, $args) {

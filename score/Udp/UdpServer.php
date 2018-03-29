@@ -11,12 +11,14 @@ abstract class UdpServer extends BaseServer {
 	 * @var array
 	 */
 	public static $setting = [
-		'reactor_num' => 1, //reactor thread num
-		'worker_num' => 1,    //worker process num
-		'max_request' => 5,
-		'task_worker_num' =>5,
+		'reactor_num' => 1,
+		'worker_num' => 1,
+		'max_request' => 1000,
+		'task_worker_num' => 1,
 		'task_tmpdir' => '/dev/shm',
 		'daemonize' => 0,
+		'log_file' => __DIR__.'/log.txt',
+		'pid_file' => __DIR__.'/server.pid',
 	];
 
 	/**

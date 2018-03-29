@@ -37,7 +37,7 @@ class RpcHander extends Swoole implements HanderInterface {
 	public function bootstrap($recv) {}
 
 	/**
-	 * run 完成初始化后,开始路由匹配和创建访问实例
+	 * run 完成初始化后,路由匹配和创建访问实例
 	 * @param  int   $fd
 	 * @param  mixed $recv
 	 * @return mixed
@@ -48,13 +48,14 @@ class RpcHander extends Swoole implements HanderInterface {
 		// 当前进程worker进程
 		if($this->isWorkerProcess()) {
 			// packet_length_checkout方式
-			if(Swfy::$server->pack_check_type == 'length') {
+			if(Swfy::$server->pack_check_type == SWOOLEFY_PACK_CHECK_LENGTH) {
 				list($header, $body) = $recv;
 				$this->header = $header;
 				if(is_array($body) && count($body) == 2) {
 					list($callable, $params) = $body;
 				}
-			}else if(Swfy::$server->pack_check_type == 'eof'){
+				
+			}else if(Swfy::$server->pack_check_type == SWOOLEFY_PACK_CHECK_EOF){
 				// eof方式
 				if(is_array($recv) && count($recv) == 2) {
 					list($callable, $params) = $recv;

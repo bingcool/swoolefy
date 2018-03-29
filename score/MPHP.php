@@ -3,6 +3,10 @@ namespace Swoolefy;
 // 定义当前core的根路径
 defined('SWOOLEFY_CORE_ROOT_PATH') or define('SWOOLEFY_CORE_ROOT_PATH', __DIR__.'/Core');
 
+// 定义打包检查类型
+defined('SWOOLEFY_PACK_CHECK_LENGTH') or define('SWOOLEFY_PACK_CHECK_LENGTH', 'length');
+defined('SWOOLEFY_PACK_CHECK_EOF') or define('SWOOLEFY_PACK_CHECK_EOF', 'eof');
+
 // 定义服务协议常量
 defined('SWOOLEFY_HTTP') or define('SWOOLEFY_HTTP', 'http');
 defined('SWOOLEFY_WEBSOCKET') or define('SWOOLEFY_WEBSOCKET', 'websocket');

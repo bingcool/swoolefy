@@ -165,7 +165,7 @@ class Tick {
      * updateRunAfterTick 更新一次定时器
      * @return  array
      */
-    public static function updateRunAfterTick() {
+    protected static function updateRunAfterTick() {
         if(self::$_after_tasks) {
             // 加上1000,提前1s
             $now = strtotime('now') * 1000 + 1000;

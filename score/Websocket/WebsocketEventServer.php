@@ -12,14 +12,13 @@ class WebsocketEventServer extends WebsocketServer implements WebsocketEventInte
 	 * __construct 初始化
 	 * @param array $config
 	 */
-	public function __construct(array $config=[]) {
+	public function __construct(array $config = []) {
 		// 获取当前服务文件配置
 		$config = array_merge(
 				include(__DIR__.'/config.php'),
 				$config
 			);
 		parent::__construct($config);
-		// 设置当前的服务名称
 	}
 
 	/**
@@ -65,12 +64,12 @@ class WebsocketEventServer extends WebsocketServer implements WebsocketEventInte
 			if($opcode == WEBSOCKET_OPCODE_TEXT) {
 				swoole_unpack(self::$service)->run($fd, $data);
 			}else if($opcode == WEBSOCKET_OPCODE_BINARY) {
-				// 二进制数据
+				// TODO 二进制数据
 			}
 			
 		}else {
 			// 断开连接
-			
+			$server->close();
 		}
 		
 	}

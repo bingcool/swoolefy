@@ -58,6 +58,7 @@ return [
 		'server'=>[
 			'pack_header_strct' => ['length'=>'N','name'=>'a30'],
 			'pack_length_key' => 'length',
+			'serialize_type' => 'json'
 		],
 		// 客户端的分包设置，eof分包
 		'client'=> [

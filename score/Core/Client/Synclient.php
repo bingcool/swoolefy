@@ -16,7 +16,7 @@ class Synclient {
 
 	/**
 	 * $pack_setting 分包数据协议设置
-	 * @var [type]
+	 * @var array
 	 */
 	public $pack_setting = [];
 
@@ -28,7 +28,7 @@ class Synclient {
 
 	/**
 	 * $serialize_type 设置数据序列化的方式 
-	 * @var [type]
+	 * @var string
 	 */
 	public $serialize_type = 'json';
 
@@ -218,8 +218,8 @@ class Synclient {
 	/**
 	 * enpack 
 	 * @param  array $data
-	 * @param  array $header
-	 * @param  mixed $serialize_type
+	 * @param  array  $header
+	 * @param  mixed  $serialize_type
 	 * @param  array  $heder_struct
 	 * @param  string $pack_length_key
 	 * @return mixed                 
@@ -275,6 +275,7 @@ class Synclient {
 				$pack_length_type .= ($value.$key).'/';
 			}
 		}
+        
 		$pack_length_type = trim($pack_length_type, '/');
 		return $pack_length_type;
 	}

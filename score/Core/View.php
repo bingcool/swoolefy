@@ -57,7 +57,7 @@ class View {
 	 * @param    $value
 	 * @return   
 	 */
-	public function assign($name,$value) {
+	public function assign($name, $value) {
 		$this->view->assign($name,$value);
 	}
 
@@ -66,13 +66,13 @@ class View {
 	 * @param    $arr
 	 * @return   boolean|null
 	 */
-	public function mAssign($arr=[]) {
+	public function mAssign($arr = []) {
 		if(!empty($arr)) {
 			if(is_string($arr)) {
 				return false;
 			}
 			foreach($arr as $name=>$value) {
-				$this->assign($name,$value);
+				$this->assign($name, $value);
 			}
 		}
 		return false;
@@ -83,7 +83,7 @@ class View {
 	 * @param   string  $template_file
 	 * @return  html               
 	 */
-	public function display($template_file=null) {
+	public function display($template_file = null) {
 		$template_file = ltrim($template_file);
 		if(stripos($template_file,'@') === 0) {
 			$template_file = substr($template_file,1);
@@ -165,7 +165,7 @@ class View {
 	 * @param    string  $template_file
 	 * @return                 
 	 */
-	public function fetch($template_file=null) {
+	public function fetch($template_file = null) {
 		$this->display($template_file);
 	}
 

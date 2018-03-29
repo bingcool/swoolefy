@@ -2,6 +2,7 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
+use Swoolefy\Core\Timer\TickManager;
 
 class Object {
 
@@ -10,10 +11,7 @@ class Object {
 	 * @return   mixed
 	 */
 	public static function getTickTasks() {
-		if(isset(Swfy::$config['table_tick_task']) && Swfy::$config['table_tick_task'] == true) {
-			return json_decode(Swfy::$server->table_ticker->get('tick_timer_task','tick_tasks'),true);
-		}
-		return false;								
+		return TickManager::getTickTasks();						
 	}
 
 	/**
@@ -21,10 +19,7 @@ class Object {
 	 * @return   mixed
 	 */
 	public static function getAfterTasks() {
-		if(isset(Swfy::$config['table_tick_task']) && Swfy::$config['table_tick_task'] == true) {
-			return json_decode(Swfy::$server->table_after->get('after_timer_task','after_tasks'),true);
-		}
-		return false;
+		return TickManager::getAfterTasks();
 	}
 
 	/**
@@ -33,7 +28,7 @@ class Object {
 	 * @return   boolean         
 	 */
 	public static function deleteTickTasks($timer_id) {
-		return \Swoolefy\Core\Timer\Tick::delTicker($timer_id);
+		return TickManager::clearTimer($timer_id);
 	}
 
 	/**
@@ -48,7 +43,7 @@ class Object {
 	 * __callStatic
 	 * @return   mixed
 	 */
-	public static function __callStatic($action,$args = []) {
+	public static function __callStatic($action, $args = []) {
 		
 	}
 
@@ -60,6 +55,14 @@ class Object {
 	 */
 	public static function _die($html='',$msg='') {
 		
+	}
+
+	/**
+	 * __toString 
+	 * @return string
+	 */
+	public function __toString() {
+		return get_called_class();
 	}	
 
 	/**

@@ -12,12 +12,14 @@ abstract class TcpServer extends BaseServer {
 	 * @var array
 	 */
 	public static $setting = [
-		'reactor_num' => 1, //reactor thread num
-		'worker_num' => 1,    //worker process num
-		'max_request' => 5,
-		'task_worker_num' =>5,
+		'reactor_num' => 1,
+		'worker_num' => 1,
+		'max_request' => 1000,
+		'task_worker_num' => 1,
 		'task_tmpdir' => '/dev/shm',
 		'daemonize' => 0,
+		'log_file' => __DIR__.'/log.txt',
+		'pid_file' => __DIR__.'/server.pid',
 	];
 
 	/**
@@ -67,22 +69,8 @@ abstract class TcpServer extends BaseServer {
 		// 初始化启动类
 		self::$startCtrl = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Tcp\\StartInit';
 		
-		/**
-		 * 设置客户端Pack包处理对象
-		 */
-		$this->pack = new Pack(self::$server);
-		if(self::isPackLength()) {
-			// packet_langth_check
-			$this->pack->header_struct = self::$config['packet']['server']['pack_header_strct'];
-			$this->pack->pack_length_key = self::$config['packet']['server']['pack_length_key'];
-			$this->pack->serialize_type = Pack::DECODE_JSON;
-			$this->pack->header_length = self::$setting['package_body_offset'];
-			$this->pack->packet_maxlen = self::$setting['package_max_length'];
-		}else {
-			// packet_eof_check
-			$this->pack->pack_eof = self::$setting['package_eof'];
-			$this->pack->serialize_type = Pack::DECODE_JSON;
-		}
+		// 设置Pack包处理对象
+		self::buildPackHander();
 		
 	}
 
@@ -96,6 +84,7 @@ abstract class TcpServer extends BaseServer {
 			// 启动的初始化函数
 			self::$startCtrl::start($server);
 		});
+
 		/**
 		 * managerstart回调
 		 */
@@ -135,7 +124,9 @@ abstract class TcpServer extends BaseServer {
 
 		});
 
-		// tcp连接
+		/**
+		 * tcp连接
+		 */
 		$this->tcpserver->on('connect', function (tcp_server $server, $fd) {  
     		try{
     			// 延迟绑定
@@ -146,7 +137,9 @@ abstract class TcpServer extends BaseServer {
     		}
 		});
 
-		//监听数据接收事件
+		/**
+		 * 监听数据接收事件
+		 */
 		$this->tcpserver->on('receive', function(tcp_server $server, $fd, $reactor_id, $data) {
 			try{
 				// 服务端为length检查包
@@ -166,7 +159,9 @@ abstract class TcpServer extends BaseServer {
 			
 		});
 
-		//处理异步任务
+		/**
+		 * 处理异步任务
+		 */
 		$this->tcpserver->on('task', function(tcp_server $server, $task_id, $from_worker_id, $data) {
 			try{
 				$task_data = swoole_unpack($data);
@@ -179,7 +174,9 @@ abstract class TcpServer extends BaseServer {
 		    
 		});
 
-		// 异步任务完成 
+		/**
+		 * 异步任务完成
+		 */
 		$this->tcpserver->on('finish', function(tcp_server $server, $task_id, $data) {
 			try{
 				$data = swoole_unpack($data);
@@ -191,7 +188,9 @@ abstract class TcpServer extends BaseServer {
 
 		});
 
-		// 关闭连接
+		/**
+		 * 关闭连接
+		 */
 		$this->tcpserver->on('close', function(tcp_server $server, $fd) {
 			try{
 				// 删除缓存的不完整的僵尸式数据包
@@ -233,6 +232,30 @@ abstract class TcpServer extends BaseServer {
 			});
 		}
 		$this->tcpserver->start();
+	}
+
+	/**
+	 * buildPackHander 创建pack处理对象
+	 * @return void
+	 */
+	public function buildPackHander() {
+
+		$this->pack = new Pack(self::$server);
+
+		if(self::isPackLength()) {
+			// packet_langth_check
+			$this->pack->header_struct = self::$config['packet']['server']['pack_header_strct'];
+			$this->pack->pack_length_key = self::$config['packet']['server']['pack_length_key'];
+			if(isset(self::$config['packet']['server']['serialize_type'])) {
+				$this->pack->serialize_type = self::$config['packet']['server']['serialize_type'];
+			}
+			$this->pack->header_length = self::$setting['package_body_offset'];
+			$this->pack->packet_maxlen = self::$setting['package_max_length'];
+		}else {
+			// packet_eof_check
+			$this->pack->pack_eof = self::$setting['package_eof'];
+			$this->pack->serialize_type = Pack::DECODE_JSON;
+		}
 	}
 
 	/**

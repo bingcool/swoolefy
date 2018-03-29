@@ -28,12 +28,6 @@ class TaskController extends Object {
 	public $config = null;
 
 	/**
-	 * $previousUrl,记录url
-	 * @var array
-	 */
-	public static $previousUrl = [];
-
-	/**
 	 * $selfModel 控制器对应的自身model
 	 * @var array
 	 */
@@ -73,14 +67,12 @@ class TaskController extends Object {
 		if(method_exists($this,'_afterAction')) {
 			static::_afterAction();
 		}
-		// 初始化这个变量
-		static::$previousUrl = [];
 		// 初始化清除所有得单例model实例
 		static::$selfModel = [];
 		// 初始化静态变量
 		MTime::clear();
 		// 清空某些组件,每次请求重新创建
-		self::clearComponent(['mongodb','session']);
+		self::clearComponent(self::$_destroy_components);
 
 	}
 
