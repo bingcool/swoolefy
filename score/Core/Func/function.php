@@ -44,7 +44,6 @@ function dump($var, $echo=true, $label=null, $strict=true) {
                 if(!empty($output)) {
                     $app->response->write($output);
                 }
-                $app->response->write();
             }  
         }
         return null;

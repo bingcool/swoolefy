@@ -269,7 +269,8 @@ class HttpRoute extends AppDispatch {
 	 * @return   boolean
 	 */
 	public static function isExistRouteFile($route) {
-		return self::$routeCacheFileMap[$route];
+		
+		return isset(self::$routeCacheFileMap[$route]) ? self::$routeCacheFileMap[$route] : false;
 	}
 
 	/**

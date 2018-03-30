@@ -29,10 +29,6 @@ class TestController extends BController {
 
 		$TestModel = ZModel::getInstance('App\Model\Test');
 		$data = $TestModel->record();		
-		
-		$tick_task = $this->getTickTasks();
-		dump($tick_task)
-		;
 		$this->display('test.html');
 	}
 

@@ -15,8 +15,6 @@ class AsyncTaskController extends BController {
 		dump('测试异步任务');
 		// 注册任务并执行
 		TaskManager::asyncTask(['App/Task/AsyncTask', 'asyncTaskTest'], ['swoole']);
-		// 注册任务发送邮件并执行
-		// TaskManager::registerTask(['App/Task/AsyncTask', 'anyncMail'], ['swoole']);
 		return ;
 	}
 

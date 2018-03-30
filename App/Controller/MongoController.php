@@ -15,18 +15,13 @@ class MongoController extends BController {
 		$res = $user->insertOne($data);
 		// $user->field('*')->find();
 		dump($res);
-		dump($user);
-		
-		Swfy::createComponent($com_alias_name = 'view1',[
-			'class' => 'Swoolefy\Core\View',
-		]);
-
-		dump($this->view1);
 	}
 
 	public function get() {
 		$user = $this->mongodb->user;
-		$data = $user->field('*')->find();
+		$_id = new \MongoDB\BSON\ObjectId('5abc9aba01867b01af198152');
+		$data = $user->where(['unid'=> $_id])->field('*')->find();
+		// $data = $user->field('*')->find();
 		dump($data);
 
 		// dump($this->mongodb->ping());

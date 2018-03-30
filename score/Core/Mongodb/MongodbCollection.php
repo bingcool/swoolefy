@@ -90,6 +90,27 @@ class MongodbCollection {
      * @return    $this
      */
     public function where($filter) {
+         
+        if(isset($filter['_id'])) {
+            if($filter['_id'] instanceof \MongoDB\BSON\ObjectId) {
+            }else {
+                $filter['_id'] = new \MongoDB\BSON\ObjectId($filter['_id']);
+            }
+            if(isset($filter[$this->_id])) {
+                unset($filter[$this->_id]);
+            }
+        }else {
+            $keys = array_keys($filter);
+            if(in_array($this->_id, $keys)) {
+                
+                if($filter[$this->_id] instanceof \MongoDB\BSON\ObjectId) {                    
+                    $filter['_id'] = $filter[$this->_id];
+                }else {
+                    $filter['_id'] = new \MongoDB\BSON\ObjectId($filter[$this->_id]);
+                }
+                unset($filter[$this->_id]);
+            }
+        }
         $this->filter = array_merge($this->filter, $filter);
         return $this;
     }

@@ -18,7 +18,7 @@ class SwoolefyException {
               case E_COMPILE_ERROR:
               case E_USER_ERROR:  
                 @ob_end_clean();
-                self::shutHalt($e['message']);
+                self::shutHalt($e['message'], $errorType = 'error');
                 break;
             }
         }
@@ -53,20 +53,20 @@ class SwoolefyException {
      * @return           
      */
     public static function appError($errno, $errstr, $errfile, $errline) {
-
-      switch ($errno) {
-          case E_ERROR:
-          case E_PARSE:
-          case E_CORE_ERROR:
-          case E_COMPILE_ERROR:
+    	$errorStr = "<user trigger> [$errno]-> $errfile 第 $errline 行: $errstr";
+      	switch ($errno) {
           case E_USER_ERROR:
-            ob_end_clean();
-            $errorStr = "$errstr ".$errfile." 第 $errline 行.";
-            self::shutHalt($errorStr);
-            break;
+          		self::shutHalt($errorStr, $errorType = 'notice');
+          		break;
+          case E_USER_WARNING:
+          		self::shutHalt($errorStr, $errorType = 'warning');
+          		break;
+          case E_USER_NOTICE:
+            	self::shutHalt($errorStr, $errorType = 'notice');
+           		break;
           default:
             break;
-      }
+      	}
       return ;
     }
 
@@ -75,7 +75,7 @@ class SwoolefyException {
      * @param  $error 错误
      * @return void
      */
-    public static function shutHalt($errorMsg) {
+    public static function shutHalt($errorMsg, $errorType = 'error') {
       $logFilePath = rtrim(LOG_PATH,'/').'/runtime.log';
       
       if(is_file($logFilePath)) {
@@ -86,9 +86,21 @@ class SwoolefyException {
       if($logFilesSize > 1024 * 20) {
         @file_put_contents($logFilePath,'');
       }
-
-      Application::$app->log->setChannel('Application')->setLogFilePath($logFilePath)->addError($errorMsg);
-
+      switch($errorType) {
+        case 'error':
+              Application::$app->log->setChannel('Application')->setLogFilePath($logFilePath)->addError($errorMsg);
+             break;
+        case 'warning':
+              Application::$app->log->setChannel('Application')->setLogFilePath($logFilePath)->addWarning($errorMsg);
+             break;
+        case 'notice':
+              Application::$app->log->setChannel('Application')->setLogFilePath($logFilePath)->addNotice($errorMsg);
+             break;
+        case 'info':
+             Application::$app->log->setChannel('Application')->setLogFilePath($logFilePath)->addInfo($errorMsg);
+             break;
+      }
+      
       return;
     }
 }
