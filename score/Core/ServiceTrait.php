@@ -9,7 +9,7 @@ trait ServiceTrait {
 	 * getMasterId 获取当前服务器主进程的PID
 	 * @return   int
 	 */
-	public function getMasterPid() {
+	public static function getMasterPid() {
 		return Swfy::$server->master_pid;
 	}
 
@@ -17,7 +17,7 @@ trait ServiceTrait {
 	 * getManagerId 当前服务器管理进程的PID
 	 * @return   int
 	 */
-	public function getManagerPid() {
+	public static function getManagerPid() {
 		return Swfy::$server->manager_pid;
 	}
 
@@ -25,7 +25,7 @@ trait ServiceTrait {
 	 * getCurrentWorkerPid 获取当前worker的进程PID 
 	 * @return int  
 	 */
-	public function getCurrentWorkerPid() {
+	public static function getCurrentWorkerPid() {
 		$workerPid = Swfy::$server->worker_pid;
 		if($workerPid) {
 			return $workerPid;
@@ -38,7 +38,7 @@ trait ServiceTrait {
 	 * getCurrentWorkerId 获取当前处理的worker_id
 	 * @return   int
 	 */
-	public function getCurrentWorkerId() {
+	public static function getCurrentWorkerId() {
 		$workerId = Swfy::$server->worker_id;
 		return $workerId;
 	}
@@ -47,7 +47,7 @@ trait ServiceTrait {
 	 * getConnections 服务器当前所有的连接
 	 * @return  object 
 	 */
-	public function getConnections() {
+	public static function getConnections() {
 		return Swfy::$server->connections;
 	}
 
@@ -55,7 +55,7 @@ trait ServiceTrait {
 	 * getWorkersPid 获取当前所有worker_pid与worker的映射
 	 * @return   array
 	 */
-	public function getWorkersPid() {
+	public static function getWorkersPid() {
 		return BaseServer::getWorkersPid();
 	}
 
@@ -63,7 +63,7 @@ trait ServiceTrait {
 	 * getLastError 返回最近一次的错误代码
 	 * @return   int 
 	 */
-	public function getLastError() {
+	public static function getLastError() {
 		return Swfy::$server->getLastError();
 	}
 
@@ -71,7 +71,7 @@ trait ServiceTrait {
 	 * getStats 获取swoole的状态
 	 * @return   array
 	 */
-	public function getSwooleStats() {
+	public static function getSwooleStats() {
 		return Swfy::$server->stats();
 	}
 
@@ -79,7 +79,7 @@ trait ServiceTrait {
 	 * getLocalIp 获取ip,不包括端口
 	 * @return   array
 	 */
-	public function getLocalIp() {
+	public static function getLocalIp() {
 		return swoole_get_local_ip();
 	}
 
@@ -87,9 +87,9 @@ trait ServiceTrait {
 	 * getIncludeFiles 获取swoole启动时,worker启动前已经include内存的文件
 	 * @return   array|boolean
 	 */
-	public function getInitIncludeFiles($dir='http') {
+	public static function getInitIncludeFiles($dir='http') {
 		// 获取当前的处理的worker_id
-		$workerId = $this->getCurrentWorkerId();
+		$workerId = self::getCurrentWorkerId();
 		if(isset(Swfy::$config['setting']['log_file'])) {
 			$path = pathinfo(Swfy::$config['setting']['log_file'], PATHINFO_DIRNAME);
 			$dir = strtolower($dir);
@@ -119,9 +119,9 @@ trait ServiceTrait {
 	 * getMomeryIncludeFiles 获取执行到目前action为止，swoole server中的该worker中内存中已经加载的class文件
 	 * @return  array 
 	 */
-	public function getMomeryIncludeFiles() {
+	public static function getMomeryIncludeFiles() {
 		$includeFiles = get_included_files();
-		$workerId = $this->getCurrentWorkerId();
+		$workerId = self::getCurrentWorkerId();
 		return [
 			'current_worker_id' => $workerId,
 			'include_momery_files' => $includeFiles,
@@ -133,7 +133,7 @@ trait ServiceTrait {
 	 * @param    $protocol
 	 * @return   array
 	 */
-	public function getConf($protocol='http') {
+	public static function getConf($protocol = 'http') {
 		$protocol = strtolower($protocol);
 		switch($protocol) {
 			case 'http':
@@ -145,9 +145,28 @@ trait ServiceTrait {
 			case 'rpc':
 				return \Swoolefy\Rpc\RpcServer::getConf();
 			break;
+			case 'udp':
+				return \Swoolefy\Rpc\UdpServer::getConf();
+			break;
 			default:return \Swoolefy\Http\HttpServer::getConf();
 			break;
 		}	
+	}
+
+	/**
+	 * getAppConfig 获取应用层配置
+	 * @return   array
+	 */
+	public static function getAppConfig() {
+		return Swfy::$appConfig;
+	}
+
+	/**
+	 * getSwooleSetting 获取swoole的setting配置
+	 * @return   array
+	 */
+	public static function getSwooleSetting() {
+		return Swfy::$config['setting'];
 	}
 
 	/**
@@ -173,4 +192,11 @@ trait ServiceTrait {
 		return self::isWorkerProcess($worker_id) ? false : true;
 	}
 
+	/**
+	 * getServer 获取server=对象
+	 * @return   object
+	 */
+	public static function getServer() {
+		return Swfy::$server;
+	}
 }

@@ -16,36 +16,6 @@ class MongodbCollection {
      */
     public $filter = [];
 
-    public static $builders = [
-        'NOT' => 'buildNotMap',
-        'AND' => 'buildAndMap',
-        'OR' => 'buildOrMap',
-        'IN' => 'buildInMap',
-        'NOT IN' => 'buildNotInMap',
-        'BETWEEN' => 'buildBetweenMap',
-        'NOT BETWEEN' => 'buildNotBetWeenMap',
-        'LIKE' => 'buildLikeMap',
-        'GT' => 'buildGtMap',
-        'EQ' => 'buildEqMap',
-        'LT' => 'buildLtMap',
-        'GTE' => 'buildGteMap',
-        'LTE' => 'buildLteMap',
-
-        'not' => 'buildNotMap',
-        'and' => 'buildAndMap',
-        'or' => 'buildOrMap',
-        'in' => 'buildInMap',
-        'not in' => 'buildNotInMap',
-        'between' => 'buildBetweenMap',
-        'not between' => 'buildNotBetWeenMap',
-        'like' => 'buildLikeMap',
-        'gt' => 'buildGtMap',
-        'eq' => 'buildEqMap',
-        'lt' => 'buildLtMap',
-        'get' => 'buildGteMap',
-        'lte' => 'buildLteMap',
-    ];
-
     /**
      * $options 其他选项
      * @var array

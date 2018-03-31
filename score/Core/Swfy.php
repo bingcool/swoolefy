@@ -3,7 +3,7 @@ namespace Swoolefy\Core;
 
 class Swfy extends \Swoolefy\Core\Object {
 
-	use \Swoolefy\Core\ComponentTrait;
+	use \Swoolefy\Core\ComponentTrait, \Swoolefy\Core\ServiceTrait;
 	/**
 	 * $server swoole服务超全局变量
 	 * @var null
@@ -26,6 +26,14 @@ class Swfy extends \Swoolefy\Core\Object {
 	 * @var null
 	 */
 	public static $appConfig = [];
+
+	/**
+	 * getAppConfig 获取应用层配置
+	 * @return   array
+	 */
+	public static function getAppConfig() {
+		return self::$appConfig;
+	}
 
 	/**
 	 * $com_alias_name 动态创建组件对象

@@ -205,6 +205,8 @@ class Mysql {
 	public function __call($method, $args) {
 		$this->setConfig();
 		$this->setCacheHandler();
+		// set hook call
+		Application::$app->afterRequest([$this,'clear']);
 		return Db::$method($args);
 	}
 

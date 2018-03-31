@@ -124,41 +124,13 @@ class App extends \Swoolefy\Core\Component {
 	 * @param	boolean $prepend
 	 * @return	void
 	 */
-	public function afterRequest(callable $callback, $prepend=false) {
+	public function afterRequest(callable $callback, $prepend = false) {
 		if(is_callable($callback)) {
-			$this->addHook(self::HOOK_AFTER_REQUEST, $callback, $prepend);
+			Hook::addHook(Hook::HOOK_AFTER_REQUEST, $callback, $prepend);
 		}else {
 			throw new \Exception(__NAMESPACE__.'::'.__function__.' the first param of type is callable');
 		}
 		
-	}
-
-	/**
-	 * addHook 添加钩子函数
-	 * @param    int   $type
-	 * @param 	 mixed $func
-	 * @param    boolean $prepend
-	 * @return     void
-	 */
-	protected function addHook($type, $func, $prepend=false) {
-		if($prepend) {
-			array_unshift($this->hooks[$type], $func);
-		}else {
-			$this->hooks[$type][] = $func;
-		}
-	}
-
-	/**
-	 * callhook 调用钩子函数
-	 * @param [type] $type
-	 * @return  void
-	 */
-	protected function callHook($type) {
-		if(isset($this->hooks[$type])) {
-			foreach($this->hooks[$type] as $func) {
-				$func();
-			}
-		}
 	}
 
 	/**
@@ -180,7 +152,8 @@ class App extends \Swoolefy\Core\Component {
 	 * @return  
 	 */
 	public function end() {
-		$this->callHook(self::HOOK_AFTER_REQUEST);
+		// call hook callable
+		Hook::callHook(Hook::HOOK_AFTER_REQUEST);
 		// Model的实例化对象初始化为[]
 		!empty(ZModel::$_model_instances) && ZModel::$_model_instances = [];
 		// 初始化静态变量
@@ -189,8 +162,6 @@ class App extends \Swoolefy\Core\Component {
 		self::clearComponent(self::$_destroy_components);
 		//清空全局变量
 		$_POST = $_GET = $_REQUEST = $_COOKIE = $_SESSION = [];
-		// mysql组件
-		is_object($this->db) && $this->db->clear();
 		// 清空当前的请求应用对象
 		Application::$app = null;
 		// 必须设置一个异常结束
