@@ -3,6 +3,7 @@ namespace Swoolefy\Core\Timer;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Timer\Tick;
+use Swoolefy\Core\Table\TableManager;
 
 class TickManager {
 
@@ -46,7 +47,7 @@ class TickManager {
 	 */
 	public static function getTickTasks() {
 		if(isset(Swfy::$config['table_tick_task']) && Swfy::$config['table_tick_task'] == true) {
-			return json_decode(Swfy::$server->table_ticker->get('tick_timer_task','tick_tasks'),true);
+			return json_decode(TableManager::get('table_ticker', 'tick_timer_task', 'tick_tasks'), true);
 		}
 		return false;								
 	}
@@ -57,7 +58,7 @@ class TickManager {
 	 */
 	public static function getAfterTasks() {
 		if(isset(Swfy::$config['table_tick_task']) && Swfy::$config['table_tick_task'] == true) {
-			return json_decode(Swfy::$server->table_after->get('after_timer_task','after_tasks'),true);
+			return json_decode(TableManager::get('table_after', 'after_timer_task', 'after_tasks'), true);
 		}
 		return false;
 	}

@@ -95,4 +95,8 @@ class Swfy extends \Swoolefy\Core\Object {
 		// 直接停止程序往下执行
 		throw new \Exception('Calling unknown static method: ' . get_called_class() . "::$action()");
 	}
+
+	public function __get($name) {
+		
+	}
 }

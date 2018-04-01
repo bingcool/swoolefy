@@ -197,6 +197,10 @@ trait ServiceTrait {
 	 * @return   object
 	 */
 	public static function getServer() {
-		return Swfy::$server;
+		if(is_object(Swfy::$server)) {
+			return Swfy::$server;
+		}else {
+			return \Swoolefy\Core\BaseServer::$server;
+		}
 	}
 }

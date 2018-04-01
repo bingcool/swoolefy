@@ -2,6 +2,7 @@
 namespace Swoolefy\Core\Timer;
 
 use Swoolefy\Core\Swfy;
+use Swoolefy\Core\Table\TableManager;
 
 class Tick {
 	/**
@@ -78,7 +79,8 @@ class Tick {
         if($tid) {
             self::$_tick_tasks[$tid] = array('callback'=>$func, 'params'=>$user_params, 'time_interval'=>$time_interval, 'timer_id'=>$tid, 'start_time'=>date('Y-m-d H:i:s',strtotime('now')));
             if(isset(Swfy::$config['table_tick_task']) && Swfy::$config['table_tick_task'] == true) {
-                Swfy::$server->table_ticker->set('tick_timer_task',['tick_tasks'=>json_encode(self::$_tick_tasks)]);
+                
+                TableManager::set('table_ticker', 'tick_timer_task', ['tick_tasks'=>json_encode(self::$_tick_tasks)]);
             }
             
         }
@@ -100,9 +102,11 @@ class Tick {
                 }
             }
             if(isset(Swfy::$config['table_tick_task']) && Swfy::$config['table_tick_task'] == true) {
-                Swfy::$server->table_ticker->set('tick_timer_task',['tick_tasks'=>json_encode(self::$_tick_tasks)]);
+
+                TableManager::set('table_ticker', 'tick_timer_task', ['tick_tasks'=>json_encode(self::$_tick_tasks)]);
+
+                return true;
             }
-            return true;
         }
 
         return false;
@@ -154,7 +158,8 @@ class Tick {
         if($tid) {
             self::$_after_tasks[$tid] = array('callback'=>$func, 'params'=>$user_params, 'time_interval'=>$time_interval, 'timer_id'=>$tid, 'start_time'=>date('Y-m-d H:i:s',strtotime('now')));
             if(isset(Swfy::$config['table_tick_task']) && Swfy::$config['table_tick_task'] == true) {
-                Swfy::$server->table_after->set('after_timer_task',['after_tasks'=>json_encode(self::$_after_tasks)]);
+
+                TableManager::set('table_after', 'after_timer_task', ['after_tasks'=>json_encode(self::$_after_tasks)]);
             }
         }
 
@@ -176,7 +181,8 @@ class Tick {
                 }
             }
             if(isset(Swfy::$config['table_tick_task']) && Swfy::$config['table_tick_task'] == true) {
-                Swfy::$server->table_after->set('after_timer_task',['after_tasks'=>json_encode(self::$_after_tasks)]);
+
+                TableManager::set('table_after', 'after_timer_task', ['after_tasks'=>json_encode(self::$_after_tasks)]);
             }
         }
         return ;

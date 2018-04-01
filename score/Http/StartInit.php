@@ -27,7 +27,7 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 */
 	public static function onWorkerStart($server,$worker_id) {
 		if($worker_id == 0) {
-			// \Swoolefy\Core\Timer\TickManager::tickTimer(2000, ['App\\Controller\\TickTasksController','mytest1'],['jjjjjj']);
+			\Swoolefy\Core\Timer\TickManager::tickTimer(2000, ['App\\Controller\\TickTasksController','mytest1'],['jjjjjj']);
 		}
 	}
 

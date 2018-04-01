@@ -34,6 +34,8 @@ return [
 
     	'log_file' => __DIR__.'/log.txt',
 		'pid_file' => __DIR__.'/server.pid',
+		'heartbeat_idle_time' => 60,
+    	'heartbeat_check_interval' => 10,
 
 	],
 	'table_tick_task' => true,

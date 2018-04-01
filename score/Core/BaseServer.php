@@ -1,6 +1,8 @@
 <?php
 namespace Swoolefy\Core;
 
+use Swoolefy\Core\Table\TableManager;
+
 class BaseServer {
 	/**
 	 * $config 
@@ -336,7 +338,7 @@ class BaseServer {
 	public static function setWorkersPid($worker_id, $worker_pid) {
 		$workers_pid = self::getWorkersPid();
 		$workers_pid[$worker_id] = $worker_pid;
-		self::$server->table_workers_pid->set('workers_pid',['workers_pid'=>json_encode($workers_pid)]);
+		TableManager::set('table_workers_pid', 'workers_pid', ['workers_pid'=>json_encode($workers_pid)]);
 	}
 
 	/**
@@ -344,7 +346,7 @@ class BaseServer {
 	 * @return   
 	 */
 	public static function getWorkersPid() {
-		return json_decode(self::$server->table_workers_pid->get('workers_pid')['workers_pid'], true);
+		return json_decode(TableManager::get('table_workers_pid', 'workers_pid', 'workers_pid'), true);
 	}
 
 	/**
@@ -361,25 +363,8 @@ class BaseServer {
 		}else {
 			$tables = static::$config['table'];
 		}
-		
-		foreach($tables as $k=>$row) {
-			$table = new \swoole_table($row['size']);
-			foreach($row['fields'] as $p=>$field) {
-				switch(strtolower($field[1])) {
-					case 'int':
-						$table->column($field[0],\swoole_table::TYPE_INT,(int)$field[2]);
-					break;
-					case 'string':
-						$table->column($field[0],\swoole_table::TYPE_STRING,(int)$field[2]);
-					break;
-					case 'float':
-						$table->column($field[0],\swoole_table::TYPE_FLOAT,(int)$field[2]);
-					break;
-				}
-			}
-			$table->create();
-			self::$server->$k = $table; 
-		}
+		//create table
+		TableManager::createTable($tables);
 	}
 
 	/**

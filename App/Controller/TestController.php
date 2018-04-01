@@ -29,7 +29,6 @@ class TestController extends BController {
 
 		$TestModel = ZModel::getInstance('App\Model\Test');
 		$data = $TestModel->record();
-
 		$this->display('test.html');
 	}
 
