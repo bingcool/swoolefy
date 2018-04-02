@@ -13,7 +13,7 @@ class ProcessManager {
 
     use \Swoolefy\Core\SingleTrait;
 	
-	private $table_process = [
+	private static $table_process = [
 		// 进程内存表
 		'table_process_map' => [
 			// 内存表建立的行数,取决于建立的process进程数
@@ -25,13 +25,13 @@ class ProcessManager {
 		],
 	];
 
-	private $processList = [];
+	private static $processList = [];
 
     /**
      * __construct 
      */
 	public function __construct() {
-		TableManager::getInstance()->createTable($this->table_process);
+		TableManager::getInstance()->createTable(self::$table_process);
 	}
 
 	/**
@@ -41,16 +41,16 @@ class ProcessManager {
 	 * @param boolean $async
 	 * @param array   $args
 	 */
-	public function addProcess(string $processName, string $processClass, $async = true,array $args = []) {
+	public static function addProcess(string $processName, string $processClass, $async = true,array $args = []) {
 		if(!TableManager::isExistTable('table_process_map')) {
-			TableManager::getInstance()->createTable($this->table_process);
+			TableManager::getInstance()->createTable(self::$table_process);
 		}
 
 		$key = md5($processName);
-        if(!isset($this->processList[$key])){
+        if(!isset(self::$processList[$key])){
             try{
                 $process = new $processClass($processName, $async, $args);
-                $this->processList[$key] = $process;
+                self::$processList[$key] = $process;
                 return true;
             }catch (\Exception $e){
                 throw new \Exception($e->getMessage(), 1);       
@@ -66,10 +66,10 @@ class ProcessManager {
 	 * @param  string $processName
 	 * @return object
 	 */
-	public function getProcessByName(string $processName) {
+	public static function getProcessByName(string $processName) {
         $key = md5($processName);
-        if(isset($this->processList[$key])){
-            return $this->processList[$key];
+        if(isset(self::$processList[$key])){
+            return self::$processList[$key];
         }else{
             return null;
         }
@@ -80,11 +80,11 @@ class ProcessManager {
      * @param  int    $pid
      * @return object
      */
-    public function getProcessByPid(int $pid) {
+    public static function getProcessByPid(int $pid) {
         $table = TableManager::getTable('table_process_map');
         foreach ($table as $key => $item){
             if($item['pid'] == $pid){
-                return $this->processList[$key];
+                return self::$processList[$key];
             }
         }
         return null;
@@ -95,9 +95,9 @@ class ProcessManager {
      * @param string          $processName
      * @param AbstractProcess $process
      */
-    public function setProcess(string $processName, AbstractProcess $process) {
+    public static function setProcess(string $processName, AbstractProcess $process) {
         $key = md5($processName);
-        $this->processList[$key] = $process;
+        self::$processList[$key] = $process;
     }
 
     /**
@@ -105,8 +105,8 @@ class ProcessManager {
      * @param  string $processName
      * @return boolean
      */
-    public function reboot(string $processName) {
-        $p = $this->getProcessByName($processName);
+    public static function reboot(string $processName) {
+        $p = self::getProcessByName($processName);
         if($p){
             \swoole_process::kill($p->getPid(), SIGTERM);
             return true;
@@ -121,8 +121,8 @@ class ProcessManager {
      * @param  string $data
      * @return boolean
      */
-    public function writeByProcessName(string $name,string $data) {
-        $process = $this->getProcessByName($name);
+    public static function writeByProcessName(string $name,string $data) {
+        $process = self::getProcessByName($name);
         if($process){
             return (bool)$process->getProcess()->write($data);
         }else{
@@ -136,8 +136,8 @@ class ProcessManager {
      * @param  float  $timeOut
      * @return mixed
      */
-    public function readByProcessName(string $name, float $timeOut = 0.1) {
-        $process = $this->getProcessByName($name);
+    public static function readByProcessName(string $name, float $timeOut = 0.1) {
+        $process = self::getProcessByName($name);
         if($process){
             $process = $process->getProcess();
             $read = array($process);

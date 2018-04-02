@@ -6,7 +6,7 @@
 3、支持多协议，目前支持http，websocket，tcp，udp，以及基于tcp实现的rpc,同时自定义简单数据格式              
 4、利用swoole的原生异步进程封装成应用服务，更有好的任务投放         
 5、实现超全局变量，IOC(控制反转)，静态延迟绑定，组件服务常驻内存化，trait的多路复用，钩子事件         
-6、简单易用的定时任务,以及table内存表，自定义错误捕捉       
+6、简单易用的定时任务管理TaskManager, 定时器管理TickManager, 内存表管理TableManager, 进程管理ProcessManager         
 7、灵活多层的配置,配置参数即可实现底层已封装的复杂功能          
 8、应用对象的深度复制，实现对象的常驻内存，每个请求只需要从内存中复制应用对象，不需要再重新创建，减少IO消耗，保持内存稳定     
 9、封装View，Log，Mysql，Redis，Mongodb，Swiftmail，Session等常用组件，其他组件根据业务按照约定即可封装成组件     
