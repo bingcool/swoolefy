@@ -59,7 +59,7 @@ abstract class WebsocketServer extends BaseServer {
 	 * $startctrl
 	 * @var null
 	 */
-	public static $startCtrl = null;
+	public $startCtrl = null;
 
 	/**
 	 * $serverName server服务名称
@@ -88,7 +88,10 @@ abstract class WebsocketServer extends BaseServer {
 		$this->pack = new Pack(self::$server);
 
 		// 初始化启动类
-		self::$startCtrl = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Websocket\\StartInit';	
+		$startInitClass = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Core\\StartInit';
+
+		$this->startCtrl = new $startInitClass();
+		$this->startCtrl->init();	
 	}
 
 	public function start() {
@@ -99,7 +102,7 @@ abstract class WebsocketServer extends BaseServer {
 			// 重新设置进程名称
 			self::setMasterProcessName(self::$config['master_process_name']);
 			// 启动的初始化函数
-			self::$startCtrl::start($server);
+			$this->startCtrl->start($server);
 		});
 		/**
 		 * managerstart回调
@@ -108,7 +111,7 @@ abstract class WebsocketServer extends BaseServer {
 			// 重新设置进程名称
 			self::setManagerProcessName(self::$config['manager_process_name']);
 			// 启动的初始化函数
-			self::$startCtrl::managerStart($server);
+			$this->startCtrl->managerStart($server);
 		});
 
 		/**
@@ -139,7 +142,7 @@ abstract class WebsocketServer extends BaseServer {
        		is_null(self::$service) && self::$service = swoole_pack(self::$config['application_service']::getInstance($config=[]));
 
 			// 启动的初始化函数
-			self::$startCtrl::workerStart($server, $worker_id);
+			$this->startCtrl->workerStart($server, $worker_id);
 			static::onWorkerStart($server, $worker_id);
 			
 		});
@@ -249,7 +252,7 @@ abstract class WebsocketServer extends BaseServer {
 		$this->webserver->on('WorkerStop', function(websocket_server $server, $worker_id) {
 			$this->pack->destroy($server, $worker_id);
 			// worker停止时的回调处理
-			self::$startCtrl::workerStop($server, $worker_id);
+			$this->startCtrl->workerStop($server, $worker_id);
 
 		});
 
@@ -258,7 +261,7 @@ abstract class WebsocketServer extends BaseServer {
 		 */
 		$this->webserver->on('WorkerError', function(websocket_server $server, $worker_id, $worker_pid, $exit_code, $signal) {
 			// worker停止的触发函数
-			self::$startCtrl::workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
+			$this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
 		});
 
 		/**
@@ -267,7 +270,7 @@ abstract class WebsocketServer extends BaseServer {
 		if(static::compareSwooleVersion()) {
 			$this->webserver->on('WorkerExit', function(websocket_server $server, $worker_id) {
 				// worker退出的触发函数
-				self::$startCtrl::workerExit($server, $worker_id);
+				$this->startCtrl->workerExit($server, $worker_id);
 			});
 		}
 

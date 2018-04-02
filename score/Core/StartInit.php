@@ -1,13 +1,25 @@
 <?php
-namespace Swoolefy\Websocket;
+namespace Swoolefy\Core;
 
 class StartInit extends \Swoolefy\Core\StartCtrl {
+
+	use \Swoolefy\Core\SingleTrait;
+
+	/**
+	 * init start之前初始化
+	 * @param  $args
+	 * @return void
+	 */
+	public function onInit() {
+
+	}
+
 	/**
 	 * onStart 
 	 * @param    $server
 	 * @return          
 	 */
-	public static function onStart($server) {
+	public function onStart($server) {
 		
 	}
 
@@ -16,7 +28,7 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 * @param    $server
 	 * @return          
 	 */
-	public static function onManagerStart($server){
+	public function onManagerStart($server) {
 		
 	}
 
@@ -25,10 +37,10 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 * @param    $server
 	 * @return   
 	 */
-	public static function onWorkerStart($server,$worker_id){
-		// if($worker_id == 0) {
-		// 	$tid = \Swoolefy\Core\Timer\Tick::afterTimer(10000,['App\\Controller\\Test','mytest'],['name'=>'bing']);
-		// }
+	public function onWorkerStart($server,$worker_id) {
+		if($worker_id == 0) {
+			// \Swoolefy\Core\Timer\TickManager::tickTimer(2000, ['App\\Controller\\TickTasksController','mytest1'],['jjjjjj']);
+		}
 	}
 
 	/**
@@ -37,7 +49,7 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 * @param    $worker_id
 	 * @return             
 	 */
-	public static function onWorkerStop($server,$worker_id){
+	public function onWorkerStop($server,$worker_id) {
 		
 	}
 
@@ -50,7 +62,7 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 * @param    $signal    
 	 * @return              
 	 */
-	public static function onWorkerError($server, $worker_id, $worker_pid, $exit_code, $signal) {
+	public function onWorkerError($server, $worker_id, $worker_pid, $exit_code, $signal) {
 
 	}
 
@@ -60,7 +72,7 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 * @param    $worker_id
 	 * @return                 
 	 */
-	public static function onWorkerExit($server, $worker_id) {
+	public function onWorkerExit($server, $worker_id) {
 
 	}
 
@@ -69,7 +81,7 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 * @param    $server
 	 * @return          
 	 */
-	public static function onManagerStop($server){
+	public function onManagerStop($server) {
 		
 	}
 }

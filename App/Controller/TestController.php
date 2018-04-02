@@ -37,4 +37,9 @@ class TestController extends BController {
 		return $this->returnJson($return);
 	}
 
+	public function testprocess() {
+		\Swoolefy\Core\Process\ProcessManager::getInstance()->writeByProcessName('test', 'kmkkmkmkm');
+		dump('jjjjjjjjjjjjjjjjjjjj');
+	}
+
 }

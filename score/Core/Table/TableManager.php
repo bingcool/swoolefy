@@ -6,18 +6,7 @@ use Swoolefy\Core\BaseServer;
 
 class TableManager {
 
-	private static $instance;
-	/**
-	 * getInstance 单例可变参数
-	 * @param  mixed $args
-	 * @return object
-	 */
-    public static function getInstance(...$args) {
-        if(!isset(self::$instance)){
-            self::$instance = new static(...$args);
-        }
-        return self::$instance;
-    }
+	use \Swoolefy\Core\SingleTrait;
 
     /**
      * createTable 

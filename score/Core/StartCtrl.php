@@ -2,12 +2,22 @@
 namespace Swoolefy\Core;
 
 class StartCtrl implements \Swoolefy\Core\StartInterface {
+
+	/**
+	 * init start之前初始化
+	 * @param  $args
+	 * @return void
+	 */
+	public function init() {
+		static::onInit();
+	}
+
 	/**
 	 * onStart 
 	 * @param    $server
 	 * @return          
 	 */
-	public static function start($server) {
+	public function start($server) {
 		static::onStart($server);
 	}
 
@@ -16,7 +26,7 @@ class StartCtrl implements \Swoolefy\Core\StartInterface {
 	 * @param    $server
 	 * @return          
 	 */
-	public static function managerStart($server){
+	public function managerStart($server){
 		static::onManagerStart($server);
 	}
 
@@ -25,7 +35,7 @@ class StartCtrl implements \Swoolefy\Core\StartInterface {
 	 * @param    $server
 	 * @return   
 	 */
-	public static function workerStart($server,$worker_id){
+	public function workerStart($server,$worker_id){
 		static::onWorkerStart($server,$worker_id);
 	}
 
@@ -35,7 +45,7 @@ class StartCtrl implements \Swoolefy\Core\StartInterface {
 	 * @param    $worker_id
 	 * @return             
 	 */
-	public static function workerStop($server,$worker_id){
+	public function workerStop($server,$worker_id){
 		static::onWorkerStop($server,$worker_id);
 	}
 
@@ -48,7 +58,7 @@ class StartCtrl implements \Swoolefy\Core\StartInterface {
 	 * @param    $signal    
 	 * @return              
 	 */
-	public static function workerError($server, $worker_id, $worker_pid, $exit_code, $signal) {
+	public function workerError($server, $worker_id, $worker_pid, $exit_code, $signal) {
 		static::onWorkerError($server, $worker_id, $worker_pid, $exit_code, $signal);
 	}
 
@@ -58,7 +68,7 @@ class StartCtrl implements \Swoolefy\Core\StartInterface {
 	 * @param    $worker_id
 	 * @return                 
 	 */
-	public static function workerExit($server, $worker_id) {
+	public function workerExit($server, $worker_id) {
 		static::onWorkExit($server, $worker_id);
 	}
 
@@ -67,7 +77,7 @@ class StartCtrl implements \Swoolefy\Core\StartInterface {
 	 * @param    $server
 	 * @return          
 	 */
-	public static function managerStop($server){
+	public function managerStop($server){
 		static::onManagerStop($server);
 	}
 } 

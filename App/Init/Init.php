@@ -1,0 +1,12 @@
+<?php
+namespace App\Init;
+
+use Swoolefy\Core\StartInit;
+use Swoolefy\Core\Process\ProcessManager;
+
+class Init extends StartInit {
+
+	public function onInit() {
+		ProcessManager::getInstance()->addProcess('test', \App\Process\Test::class);
+	}
+}

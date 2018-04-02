@@ -7,6 +7,8 @@ use Swoolefy\Core\Table\TableManager;
 
 class TickManager {
 
+	use \Swoolefy\Core\SingleTrait;
+
 	/**
 	 * tickTimer 循环定时器
 	 * @param   int    $time_interval

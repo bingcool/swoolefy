@@ -4,25 +4,32 @@ namespace Swoolefy\Core;
 interface StartInterface {
 
 	/**
+	 * init start之前初始化
+	 * @param  $args
+	 * @return 
+	 */
+	public function init();
+
+	/**
 	 * onStart 
 	 * @param    $server
 	 * @return          
 	 */
-	public static function start($server);
+	public function start($server);
 
 	/**
 	 * onManagerStart 
 	 * @param    $server
 	 * @return          
 	 */
-	public static function managerStart($server); 
+	public function managerStart($server); 
 
 	/**
 	 * onWorkerStart
 	 * @param    $server
 	 * @return   
 	 */
-	public static function workerStart($server,$worker_id);
+	public function workerStart($server,$worker_id);
 
 	/**
 	 * onWorkerStop
@@ -30,7 +37,7 @@ interface StartInterface {
 	 * @param    $worker_id
 	 * @return             
 	 */
-	public static function workerStop($server,$worker_id);
+	public function workerStop($server,$worker_id);
 
 	/**
 	 * workerError 
@@ -41,7 +48,7 @@ interface StartInterface {
 	 * @param    $signal    
 	 * @return              
 	 */
-	public static function workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
+	public function workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
 
 	/**
 	 * workerExit 1.9.17+版本支持
@@ -49,11 +56,11 @@ interface StartInterface {
 	 * @param    $worker_id
 	 * @return                 
 	 */
-	public static function workerExit($server, $worker_id);
+	public function workerExit($server, $worker_id);
 	/**
 	 * onManagerStop
 	 * @param    $server
 	 * @return          
 	 */
-	public static function managerStop($server);
+	public function managerStop($server);
 }

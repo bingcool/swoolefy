@@ -2,7 +2,7 @@
 // tcpserver的配置
 return [
 	'application_service' => 'Service\\Application2',
-	'start_init' => 'Swoolefy\\Udp\\StartInit',
+	'start_init' => 'App\\Init\\Init',
 	'master_process_name' => 'php-ucp-master',
 	'manager_process_name' => 'php-ucp-manager',
 	'worker_process_name' => 'php-ucp-worker',

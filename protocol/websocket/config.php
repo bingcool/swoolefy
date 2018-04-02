@@ -3,7 +3,7 @@
 return [
 	'application_index' => 'App\\Application',
 	'application_service' => 'Service\\Application1',
-	'start_init' => 'Swoolefy\\Websocket\\StartInit',
+	'start_init' => 'App\\Init\\Init',
 	'master_process_name' => 'php-websocket-master',
 	'manager_process_name' => 'php-websocket-manager',
 	'worker_process_name' => 'php-websocket-worker',

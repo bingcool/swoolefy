@@ -10,6 +10,8 @@ use Swoole\Table;
 use Swoolefy\Core\Table\TableManager;
 
 class ProcessManager {
+
+    use \Swoolefy\Core\SingleTrait;
 	
 	private $table_process = [
 		// 进程内存表
@@ -24,19 +26,6 @@ class ProcessManager {
 	];
 
 	private $processList = [];
-
-	private static $instance;
-	/**
-	 * getInstance 单例可变参数
-	 * @param  mixed $args
-	 * @return object
-	 */
-    public static function getInstance(...$args) {
-        if(!isset(self::$instance)){
-            self::$instance = new static(...$args);
-        }
-        return self::$instance;
-    }
 
     /**
      * __construct 
@@ -54,7 +43,7 @@ class ProcessManager {
 	 */
 	public function addProcess(string $processName, string $processClass, $async = true,array $args = []) {
 		if(!TableManager::isExistTable('table_process_map')) {
-			TableManager::createTable($this->table_process);
+			TableManager::getInstance()->createTable($this->table_process);
 		}
 
 		$key = md5($processName);
@@ -88,7 +77,7 @@ class ProcessManager {
 
     /**
      * getProcessByPid 通过进程id获取进程
-     * @param  int    $pid [description]
+     * @param  int    $pid
      * @return object
      */
     public function getProcessByPid(int $pid) {
