@@ -190,7 +190,8 @@ abstract class WebsocketServer extends BaseServer {
 		 */
 		$this->webserver->on('task', function(websocket_server $server, $task_id, $from_worker_id, $data) {
 			try{
-				static::onTask($server, $task_id, $from_worker_id, $data);
+				$task_data = swoole_unpack($data);
+				static::onTask($server, $task_id, $from_worker_id, $task_data);
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);

@@ -266,7 +266,7 @@ class MongodbCollection {
     }
 
     /**
-     * 本类找不到函数时,自动调用collection类的原始函数
+     * 本类找不到函数时,自动重载collection类的原始函数
      * @param   string    $method
      * @param   mixed    $argc
      * @return    mixed

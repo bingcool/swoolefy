@@ -28,4 +28,8 @@ class UdpController extends BController {
         dump('hello');
 
 	}
+
+	public function task() {
+		
+	}
 }

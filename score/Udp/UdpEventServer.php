@@ -7,7 +7,7 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Udp\UdpServer;
 use Swoolefy\Core\UdpEventInterface;
 
-class UdpEventServer extends UdpServer implements UdpEventInterface {
+abstract class UdpEventServer extends UdpServer implements UdpEventInterface {
 	/**
 	 * __construct 初始化
 	 * @param array $config
@@ -19,25 +19,35 @@ class UdpEventServer extends UdpServer implements UdpEventInterface {
 				$config
 			);
 		parent::__construct($config);
-
-		// 设置当前的服务名称
-		self::$serverName = SWOOLEFY_UDP;
 	}
 
-	public function onWorkerStart($server, $worker_id) {
+	public abstract function onWorkerStart($server, $worker_id);
 
-	}
-
+	/**
+	 * onPack 
+	 * @param    ovject $server
+	 * @param    mixed $data
+	 * @param    array $clientInfo
+	 * @return    
+	 */
 	public function onPack($server, $data, $clientInfo) {
 		swoole_unpack(self::$service)->run($data, $clientInfo);
 	}
 
+	/**
+	 * onTask 
+	 * @param    object  $server
+	 * @param    int     $task_id
+	 * @param    int     $from_worker_id
+	 * @param    mixed   $data
+	 * @return   
+	 */
 	public function onTask($server, $task_id, $from_worker_id, $data) {
-
+		list($callable, $taskData, $clientInfo) = $data;		
+		swoole_unpack(self::$service)->run([$callable, $taskData], $clientInfo);
+		return ;
 	}
 
-	public function onFinish($server, $task_id, $data) {
-
-	}
+	public abstract function onFinish($server, $task_id, $data);
 
 }

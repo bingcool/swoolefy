@@ -46,15 +46,25 @@ class UdpHander extends Swoole implements HanderInterface {
 	public function run($recv, $clientInfo) {
 		// 必须要执行父类的run方法
 		parent::run($fd = null , $recv);
-		
-		$this->client_info = $clientInfo;
-		$recv = array_values(json_decode($recv, true));
-		if(is_array($recv) && count($recv) == 3) {
-			list($service, $event, $params) = $recv;
-		}
 
-		if($service && $event && $params) {
-			$callable = [$service, $event];
+		$this->client_info = $clientInfo;
+		// worker进程
+		if($this->isWorkerProcess()) {
+			$recv = array_values(json_decode($recv, true));
+			if(is_array($recv) && count($recv) == 3) {
+				list($service, $event, $params) = $recv;
+			}
+
+			if($service && $event) {
+				$callable = [$service, $event];
+			}
+		}else {
+			// 任务task进程
+			list($callable, $params) = $recv;
+		}
+		
+		// 控制器实例
+		if($callable && $params) {
 			$Dispatch = new RpcDispatch($callable, $params);
 			$Dispatch->dispatch();
 		}

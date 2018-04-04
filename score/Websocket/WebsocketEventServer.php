@@ -7,7 +7,7 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Websocket\WebsocketServer;
 use Swoolefy\Core\WebsocketEventInterface;
 
-class WebsocketEventServer extends WebsocketServer implements WebsocketEventInterface {
+abstract class WebsocketEventServer extends WebsocketServer implements WebsocketEventInterface {
 	/**
 	 * __construct 初始化
 	 * @param array $config
@@ -27,7 +27,7 @@ class WebsocketEventServer extends WebsocketServer implements WebsocketEventInte
 	 * @param    int    $worker_id
 	 * @return   void
 	 */
-	public function onWorkerStart($server, $worker_id) {}
+	public abstract function onWorkerStart($server, $worker_id);
 
 	/**
 	 * onOpen 
@@ -35,7 +35,7 @@ class WebsocketEventServer extends WebsocketServer implements WebsocketEventInte
 	 * @param    object  $request
 	 * @return   void
 	 */
-	public function onOpen($server, $request) {}
+	public abstract function onOpen($server, $request);
 
 	/**
 	 * onRequest 接受http请求处理
@@ -95,7 +95,7 @@ class WebsocketEventServer extends WebsocketServer implements WebsocketEventInte
 	 * @param    mixed   $data
 	 * @return   void
 	 */
-	public function onFinish($server, $task_id, $data) {}
+	public abstract function onFinish($server, $task_id, $data);
 
 	/**
 	 * onClose 连接断开处理
@@ -103,6 +103,6 @@ class WebsocketEventServer extends WebsocketServer implements WebsocketEventInte
 	 * @param    int     $fd
 	 * @return   void
 	 */
-	public function onClose($server, $fd) {}
+	public abstract function onClose($server, $fd);
 
 }

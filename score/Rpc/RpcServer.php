@@ -7,7 +7,7 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Tcp\TcpServer;
 use Swoolefy\Core\EventInterface;
 
-class RpcServer extends TcpServer implements EventInterface {
+abstract class RpcServer extends TcpServer implements EventInterface {
 	/**
 	 * __construct 初始化
 	 * @param array $config
@@ -29,7 +29,7 @@ class RpcServer extends TcpServer implements EventInterface {
 	 * @param  int    $worker_id
 	 * @return void       
 	 */
-	public function onWorkerStart($server, $worker_id) {}
+	public abstract function onWorkerStart($server, $worker_id);
 
 	/**
 	 * onConnet socket连接上时回调函数
@@ -37,7 +37,7 @@ class RpcServer extends TcpServer implements EventInterface {
 	 * @param  int    $fd    
 	 * @return void        
 	 */
-	public function onConnet($server, $fd) {}
+	public abstract function onConnet($server, $fd);
 
 	/**
 	 * onReceive 接收数据时的回调处理，$data是一个完整的数据包，底层已经封装好，只需要配置好，直接使用即可
@@ -71,7 +71,7 @@ class RpcServer extends TcpServer implements EventInterface {
 	 * @param    mixed   $data
 	 * @return   void
 	 */
-	public function onFinish($server, $task_id, $data) {}
+	public abstract function onFinish($server, $task_id, $data);
 
 	/**
 	 * onClose tcp连接关闭时回调函数
@@ -79,33 +79,6 @@ class RpcServer extends TcpServer implements EventInterface {
 	 * @param  int    $fd    
 	 * @return void
 	 */
-	public function onClose($server, $fd) {}
-
-	/**
-	 * registerRpc 
-	 * @return   [type]        [description]
-	 */
-	public function registerRpc() {
-		$this->tcp_client = new \swoole_client(SWOOLE_SOCK_TCP, SWOOLE_SOCK_ASYNC);
-		//注册连接成功回调
-		$this->tcp_client->on("connect", function($cli){
-		    // 
-		});
-
-		//注册数据接收回调
-		$this->tcp_client->on("receive", function($cli, $data){
-
-		});
-
-		//注册连接失败回调
-		$this->tcp_client->on("error", function($cli){
-		});
-
-		//注册连接关闭回调
-		$this->tcp_client->on("close", function($cli){
-		});
-
-		//发起连接
-		$this->tcp_client->connect('127.0.0.1', 9998, 0.5);
-	}	
+	public abstract function onClose($server, $fd);
+	
 }

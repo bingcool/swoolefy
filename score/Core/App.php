@@ -68,7 +68,7 @@ class App extends \Swoolefy\Core\Component {
 	 * boostrap 初始化引导
 	 */
 	protected function bootstrap() {
-		Swfy::$config['application_index']::bootstrap();	
+		Swfy::$config['application_index']::bootstrap($_REQUEST);	
 	}
 
 	/**

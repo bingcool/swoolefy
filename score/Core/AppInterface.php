@@ -19,5 +19,5 @@ interface AppInterface {
 	 * boostrap  完成一些必要的程序引导和设置
 	 * @return   void
 	 */
-	public static function bootstrap();
+	public static function bootstrap($args);
 }

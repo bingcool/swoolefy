@@ -39,16 +39,27 @@ class WebsocketHander extends Swoole implements HanderInterface {
 	public function run($fd, $recv) {
 		// 必须要执行父类的run方法
 		parent::run($fd, $recv);
-		$recv = array_values(json_decode($recv, true));
-		if(is_array($recv) && count($recv) == 3) {
-			list($service, $event, $params) = $recv;
+		// worker进程
+		if($this->isWorkerProcess()) {
+			$recv = array_values(json_decode($recv, true));
+			if(is_array($recv) && count($recv) == 3) {
+				list($service, $event, $params) = $recv;
+			}
+			if($service && $event) {
+				$callable = [$service, $event];
+			}
+			
+		}else {
+			// 任务task进程
+			list($callable, $params) = $recv;
 		}
-		if($service && $event && $params) {
-			$callable = [$service, $event];
+
+		// 控制器实例
+		if($callable && $params) {
 			$Dispatch = new RpcDispatch($callable, $params);
 			$Dispatch->dispatch();
 		}
-
+		
 		// 必须执行
 		parent::end();
 		return;

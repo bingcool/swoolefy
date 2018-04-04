@@ -18,7 +18,7 @@ include_once START_DIR_ROOT.'/autoloader.php';
 
 function initCheck(){
     if(version_compare(phpversion(),'7.0.0','<')) {
-        die("php version must >= 5.6");
+        die("php version must >= 7.0.0");
     }
     if(version_compare(swoole_version(),'1.9.15','<')) {
         die("swoole version must >= 1.9.15");
@@ -64,11 +64,18 @@ function startServer($server) {
                 @mkdir($path, 0777, true);
             }
             $config_file = $path.'/config.php';
+            
             if(!file_exists($config_file)) {
                 copy(SCORE_DIR_ROOT.'/score/Websocket/config.php', $config_file);
             }
+
+            $event_server_file = $path.'/WebsocketEventServer.php';
+            if(!file_exists($event_server_file)) {
+                copy(SCORE_DIR_ROOT.'/score/EventServer/WebsocketEventServer.php', $event_server_file);
+            }
+
             $config = include $config_file;
-			$websocket = new \Swoolefy\Websocket\WebsocketEventServer($config);
+			$websocket = new \protocol\websocket\WebsocketEventServer($config);
             $websocket->start();
             break;
         }
@@ -81,8 +88,14 @@ function startServer($server) {
             if(!file_exists($config_file)) {
                 copy(SCORE_DIR_ROOT.'/score/Rpc/config.php', $config_file);
             }
+
+            $event_server_file = $path.'/RpcServer.php';
+            if(!file_exists($event_server_file)) {
+                copy(SCORE_DIR_ROOT.'/score/EventServer/RpcServer.php', $event_server_file);
+            }
+
             $config = include $config_file;
-            $rpc = new \Swoolefy\Rpc\RpcServer($config);
+            $rpc = new \protocol\rpc\RpcServer($config);
             $rpc->start();
             break;
         }
@@ -95,8 +108,14 @@ function startServer($server) {
             if(!file_exists($config_file)) {
                 copy(SCORE_DIR_ROOT.'/score/Udp/config.php', $config_file);
             }
+
+            $event_server_file = $path.'/UdpEventServer.php';
+            if(!file_exists($event_server_file)) {
+                copy(SCORE_DIR_ROOT.'/score/EventServer/UdpEventServer.php', $event_server_file);
+            }
+
             $config = include $config_file;
-            $rpc = new \Swoolefy\Udp\UdpEventServer($config);
+            $rpc = new \protocol\udp\UdpEventServer($config);
             $rpc->start();
             break;
         }
@@ -114,8 +133,6 @@ function startServer($server) {
 
             if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
                 swoole_process::daemon(true,false);
-                // 将当前进程绑定至CPU0上
-                // swoole_process::setaffinity([0]);
             }
 
             $pid = posix_getpid();

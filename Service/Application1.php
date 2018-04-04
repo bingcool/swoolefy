@@ -34,10 +34,7 @@ class Application1 implements \Swoolefy\Core\AppInterface{
 	 * boostrap  完成程序的引导和环境变量的设置
 	 * @return   
 	 */
-	public static function bootstrap() {
-		if(function_exists('xhprof_enable')) {
-			xhprof_enable(XHPROF_FLAGS_MEMORY);
-		}
+	public static function bootstrap($recv) {
 		// 上线必须设置为false
 		defined('SW_DEBUG') or define('SW_DEBUG', true);
 		defined('SW_ENV') or define('SW_ENV', 'dev');
