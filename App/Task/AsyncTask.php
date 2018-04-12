@@ -12,7 +12,6 @@ class AsyncTask extends TaskController {
 	// 异步任务
 	public function test($data) {
 		var_dump($data);
-		var_dump($request);
 
 	}
 

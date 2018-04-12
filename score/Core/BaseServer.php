@@ -220,7 +220,6 @@ class BaseServer {
 	 * @return   array
 	 */
 	public static function getConf() {
-		static::$config['setting'] = self::getSetting();
 		return static::$config;
 	}
 	/**
@@ -228,7 +227,7 @@ class BaseServer {
 	 * @return   array
 	 */
 	public static function getSetting() {
-		return static::$setting;
+		return self::$config['setting'];
 	}
 
 	/**

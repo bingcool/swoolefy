@@ -21,19 +21,12 @@ class Swfy extends \Swoolefy\Core\Object {
 	 * @var null
 	 */
 	public static $config = [];
+	
 	/**
 	 * $appConfig 应用层的配置
 	 * @var null
 	 */
 	public static $appConfig = [];
-
-	/**
-	 * getAppConfig 获取应用层配置
-	 * @return   array
-	 */
-	public static function getAppConfig() {
-		return self::$appConfig;
-	}
 
 	/**
 	 * $com_alias_name 动态创建组件对象

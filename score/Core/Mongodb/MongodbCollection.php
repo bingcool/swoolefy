@@ -86,7 +86,7 @@ class MongodbCollection {
     }
 
     /**
-     * field 子段设置
+     * field 字段设置
      * @param   array|string   $fields
      * @return    $this
      */
@@ -119,7 +119,7 @@ class MongodbCollection {
     }
 
     /**
-     * order 子段排序
+     * order 字段排序
      * @param   array   $sort
      * @return   $this
      */

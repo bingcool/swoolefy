@@ -133,31 +133,15 @@ trait ServiceTrait {
 	 * @param    $protocol
 	 * @return   array
 	 */
-	public static function getConf($protocol = 'http') {
-		$protocol = strtolower($protocol);
-		switch($protocol) {
-			case 'http':
-				return \Swoolefy\Http\HttpServer::getConf();
-			break;
-			case 'websocket':
-				return \Swoolefy\Websocket\WebsocketServer::getConf();
-			break;
-			case 'rpc':
-				return \Swoolefy\Rpc\RpcServer::getConf();
-			break;
-			case 'udp':
-				return \Swoolefy\Rpc\UdpServer::getConf();
-			break;
-			default:return \Swoolefy\Http\HttpServer::getConf();
-			break;
-		}	
+	public static function getConf() {
+		return BaseServer::getConf();
 	}
 
 	/**
 	 * getAppConfig 获取应用层配置
 	 * @return   array
 	 */
-	public static function getAppConfig() {
+	public static function getAppConf() {
 		return Swfy::$appConfig;
 	}
 
@@ -166,7 +150,7 @@ trait ServiceTrait {
 	 * @return   array
 	 */
 	public static function getSwooleSetting() {
-		return Swfy::$config['setting'];
+		return BaseServer::getSetting();
 	}
 
 	/**
@@ -193,14 +177,14 @@ trait ServiceTrait {
 	}
 
 	/**
-	 * getServer 获取server=对象
+	 * getServer 获取server对象
 	 * @return   object
 	 */
 	public static function getServer() {
 		if(is_object(Swfy::$server)) {
 			return Swfy::$server;
 		}else {
-			return \Swoolefy\Core\BaseServer::$server;
+			return BaseServer::$server;
 		}
 	}
 }
