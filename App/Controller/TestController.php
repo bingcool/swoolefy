@@ -9,6 +9,7 @@ use Swoolefy\Core\MGeneral;
 use Swoolefy\Core\MTime;
 use Swoolefy\Core\Task\AppAsyncTask;
 use swoole_process;
+use Swoolefy\Core\Process\ProcessManager;
 
 class TestController extends BController {
 
@@ -29,6 +30,7 @@ class TestController extends BController {
 
 		$TestModel = ZModel::getInstance('App\Model\Test');
 		$data = $TestModel->record();
+
 		$this->display('test.html');
 	}
 

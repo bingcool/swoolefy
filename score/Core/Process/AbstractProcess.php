@@ -72,6 +72,8 @@ abstract class AbstractProcess
                 $this->onReceive($msg);
             });
         }
+
+        $this->swooleProcess->name('php-addProcess:'.$this->getProcessName());
         $this->run($this->swooleProcess);
     }
 

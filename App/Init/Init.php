@@ -9,7 +9,7 @@ class Init extends StartInit {
 
 	public function onInit() {
 		
-		ProcessManager::getInstance()->addProcess('test', \App\Process\Test::class);
-		ProcessManager::addProcess('test2', \App\Process\Test::class);
+		ProcessManager::getInstance()->addProcess('test', \App\Process\TestProcess\Test::class);
+		ProcessManager::addProcess('test2', \App\Process\TestProcess\Test::class);
 	}
 }

@@ -28,7 +28,7 @@ class TickManager {
 	 * @return int
 	 */
 	public static function afterTimer($time_interval, $func, $params = null) {
-		return Tick::afterTimer($time_interval, $func, $params = null);
+		return Tick::afterTimer($time_interval, $func, $params);
 	}
 
 	/**
