@@ -1,7 +1,7 @@
 <?php
 namespace protocol\websocket;
 /**
- * 作为开放服务的接口模板，由用户定义,该文件将在服务第一次启动时y由score/EventServer复制到protocol/webspcket下
+ * 作为开放服务的接口模板，由用户定义,该文件将在服务第一次启动时由score/EventServer复制到protocol/webspcket下
  */
 
 use Swoolefy\Core\Swfy;

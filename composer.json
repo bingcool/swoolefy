@@ -16,6 +16,7 @@
             "role": "Engineer of php"
         }
     ],
+    "minimum-stability": "dev",
     "require": {
         "monolog/monolog": "1.23.0",
         "swiftmailer/swiftmailer": "6.0.1",

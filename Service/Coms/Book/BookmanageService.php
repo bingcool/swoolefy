@@ -16,12 +16,4 @@ class BookmanageService extends SController {
 		TaskManager::asyncTask(['App/Task/AsyncTask', 'test'], ['swoole']);
 
 	}
-
-	public function asyncTest() {
-		$data = ['name'=>'bingcool','sex'=>'男','num'=>rand(20,100),'params'=>$params];
-		$this->return($data);
-
-		$callable = ['Service/Task/AsyncTaskTest','asyncTaskTest'];
-		AsyncTask::registerTask($callable, $data=['hello']);
-	}
 }

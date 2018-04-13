@@ -18,7 +18,7 @@ class Redis {
 	protected $parameters = null;
 
 	/**
-	 * [$options 
+	 * $options 
 	 * @var null
 	*/
     protected $options = null;

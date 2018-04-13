@@ -7,22 +7,6 @@ return [
 			'class' => 'Swoolefy\Tool\Log',
 		],
 
-		'redis_session' => [
-			'is_delay' => true,//延迟创建实例，请求时候再创建
-			'class' => 'Swoolefy\Core\Cache\Redis',
-			'constructor'=> [
-				[
-					'scheme' => 'tcp',
-    				'host'   => '192.168.99.102',
-    				'port'   => 6379,
-    				'password' => '123456'
-				],
-				[
-					'profile' => '3.2'
-				]
-			]
-		],
-
 		'mailer' =>[
 			'class'=> 'Swoolefy\Tool\Swiftmail',
 			'smtpTransport' => [
