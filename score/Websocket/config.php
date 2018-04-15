@@ -14,8 +14,8 @@ return [
 	'accept_http' => true,
 	'time_zone' => 'PRC', 
 	'setting' => [
-		'reactor_num' => 1, //reactor thread num
-		'worker_num' => 3,    //worker process num
+		'reactor_num' => 1,
+		'worker_num' => 3,
 		'max_request' => 1000,
 		'task_worker_num' =>5,
 		'task_tmpdir' => '/dev/shm',
@@ -26,19 +26,4 @@ return [
 		'pid_file' => __DIR__.'/server.pid',
 	],
 	'table_tick_task' => true,
-	// 'table' => [
-	// 	'table1' => [
-	// 		'size' => 1024,
-	// 		'fields'=> [
-	// 			['tick_tasks','string',512]
-	// 		]
-	// 	],
-	// 	'table2' => [
-	// 		'size' => 1024,
-	// 		'fields'=> [
-	// 			['after_tasks','string',512]
-	// 		]
-	// 	],
-	// ],
-
 ];

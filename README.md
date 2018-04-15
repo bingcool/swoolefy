@@ -1,20 +1,22 @@
 # swoolefy
-这是一个基于swoole扩展实现的轻量级高性能的API和Web的MVC微服务框架，参考了TP,Yii2,Workerman,swooole-framework等框架的的设计思想,并结合自己的技术积累以及经验。
+swoolefy是一个基于swoole扩展实现的轻量级高性能的常驻内存型的API和Web应用服务框架。swoolefy的设计思想汲取了Tp5,Yii2,workerman,swooole-framework,easyswoole等框架的优秀设计思想，并结合本人多年的技术积累以及实践经验，它一定不是最优秀的框架，但是这是一个适合学习swoole的框架，特别适合中小团队，用过Tp的phper基本都会用，有过Yii2的经验者，那就更容易入手了。      
+swoolefy底层屏蔽了swoole与传统php-fpm的一些差异，让大部分的phper使用起来可以像使用php-fpm那样，轻松入手
 ### 实现的功能特性     
-1、轻量级的框架，实现路由与调度，MVC三层，当然也可以配置多层     
-2、支持composer和自定义注册命名空间      
-3、支持多协议，目前支持http，websocket，tcp，udp，以及基于tcp实现的rpc,同时自定义简单数据格式              
-4、利用swoole的原生异步进程封装成应用服务，更有好的任务投放         
-5、实现超全局变量，IOC(控制反转)，静态延迟绑定，组件服务常驻内存化，trait的多路复用，钩子事件         
-6、简单易用的定时任务管理TaskManager, 定时器管理TickManager, 内存表管理TableManager, 进程管理ProcessManager         
-7、灵活多层的配置,配置参数即可实现底层已封装的复杂功能          
-8、应用对象的深度复制，实现对象的常驻内存，每个请求只需要从内存中复制应用对象，不需要再重新创建，减少IO消耗，保持内存稳定     
-9、封装View，Log，Mysql，Redis，Mongodb，Swiftmail，Session等常用组件，其他组件根据业务按照约定即可封装成组件     
-10、支持udp，tcp，http多种方式接入graylog    
-11、基于inotify实现自动监测swoole服务的文件变动，实现自动重载，检测，智能邮件通知的服务      
-12、封装启动停止控制的脚本，简单命令即可管理整个框架    
+1、轻量级的框架，实现路由与调度，MVC三层，当然也可以配置多层   
+2、支持composer的PSR4规范和实现自定义注册命名空间    
+3、支持多协议，目前支持http，websocket，tcp，udp，以及基于tcp实现的rpc,开放式的系统接口,可自定义协议数据格式    
+4、抽象Event的事件处理与底层的事件监听解耦，屏蔽不同协议之间的应用差异，大部分代码实现共用   
+5、实现超全局变量，IOC，静态延迟绑定，组件服务常驻内存化，trait的多路复用，钩子事件，单例,工厂模式等   
+6、简单易用的异步务管理TaskManager， 定时器管理TickManager， 内存表管理TableManager， 进程管理ProcessManager，超全局管理    
+7、灵活多层的配置,配置参数即可实现底层已封装的复杂功能    
+8、应用对象的深度复制，实现对象的常驻内存，每个请求只需要从内存中复制应用对象，不需要再重新创建，减少IO消耗，保持内存稳定    
+9、封装View，Log，Mysql，Redis，Mongodb，Swiftmail，Session等常用组件，其他组件根据业务按照约定即可封装成组件         
+10、实现异步半阻塞与全异步非阻塞，EventHander与底层解耦     
+11、基于inotify实现自动监控swoole服务的文件变动，实现worker自动reload，智能邮件通知     
+12、命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架      
 
-### 文档手册将在后期整理    
+### 开发文档手册
+[开发文档](https://www.kancloud.cn/book/bingcoolhuang/php-swoole-swoolefy/preview/%E5%BA%8F%E8%A8%80.md)    
 
 ###swoolefy官方QQ群：735672669，欢迎加入！    
 
@@ -83,15 +85,7 @@ Zend OPcache
 useradd www -d /home/www -s /sbin/nologin
 ```
 则在某一个web目录，例如/home/www下                     
-(1)下载   
-```
-git clone https://github.com/bingcool/swoolefy.git  
-```
-
-(2) 安装依赖 (需要安装composer)
-```
-composer install  
-```
+[参考](https://www.kancloud.cn/book/bingcoolhuang/php-swoole-swoolefy/edit)   
 
 注意，composer install时，可能或提示说要求安装mongodb的扩展才能install,有两种处理方式：     
 a) 安装mongodb扩展,然后再执行composer install安装      

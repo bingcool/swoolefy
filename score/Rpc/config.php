@@ -9,11 +9,10 @@ return [
 	'www_user' => 'www',
 	'host' => '0.0.0.0',
 	'port' => '9504',
-
 	'time_zone' => 'PRC', 
 	'setting' => [
-		'reactor_num' => 1, //reactor thread num
-		'worker_num' => 3,    //worker process num
+		'reactor_num' => 1,
+		'worker_num' => 3,
 		'max_request' => 1000,
 		'task_worker_num' =>5,
 		'task_tmpdir' => '/dev/shm',
@@ -37,20 +36,20 @@ return [
 
 	],
 	'table_tick_task' => true,
-	'table' => [
-		'table1' => [
-			'size' => 1024,
-			'fields'=> [
-				['tick_tasks','string',512]
-			]
-		],
-		'table2' => [
-			'size' => 1024,
-			'fields'=> [
-				['after_tasks','string',512]
-			]
-		],
-	],
+	// 'table' => [
+	// 	'table1' => [
+	// 		'size' => 1024,
+	// 		'fields'=> [
+	// 			['tick_tasks','string',512]
+	// 		]
+	// 	],
+	// 	'table2' => [
+	// 		'size' => 1024,
+	// 		'fields'=> [
+	// 			['after_tasks','string',512]
+	// 		]
+	// 	],
+	// ],
 
 	// packet的设置
 	'packet'=>[
@@ -66,7 +65,7 @@ return [
 			'pack_eof'=>"\r\n\r\n",
 			'serialize_type' => 'json'
 		]
-		// 
+		// 客户端的length检查分包
 		// client => [
 				// 'pack_check_type' => 'length',
 				// 'pack_header_strct' => ['length'=>'N','name'=>'a30'],
@@ -75,6 +74,4 @@ return [
 		// ]
 
 	],
-
-
 ];
