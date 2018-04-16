@@ -250,8 +250,10 @@ trait AppTrait {
 	 * @param  string  $model
 	 * @return object
 	 */
-	public function getModel($model='') {
-		$module = $this->getModule();
+	public function getModel($model = '', $module = '') {
+		if(empty($module)) {
+			$module = $this->getModule();
+		}
 		$controller = $this->getController();
 		// 如果存在module
 		if(!empty($module)) {

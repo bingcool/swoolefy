@@ -218,9 +218,6 @@ class HttpServer extends BaseServer {
 		$taskInstance = new $class;
 		$taskInstance->task_id = $task_id;
 		$taskInstance->from_worker_id = $from_worker_id;
-		// call_user_func_array的性能稍微低
-		// call_user_func_array([$taskInstance, $action], [$extend_data, $request]);
-		// 使用变量调用
 		$taskInstance->$action($extend_data, $request);
 	}
 

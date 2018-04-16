@@ -59,12 +59,9 @@ class RpcDispatch extends AppDispatch {
 		$class = str_replace('/','\\', $class);
 		$serviceInstance = new $class();
 		try{
-			// call_user_func_array的性能稍微低
-			// call_user_func_array([$serviceInstance, $action], [$this->params]);
-			// 使用变量调用
 			$serviceInstance->$action($this->params);
 		}catch(\Exception $e) {
-
+			throw new \Exception("dispatch $class Instance Fatal error", 1);
 		}
 		
 	}
