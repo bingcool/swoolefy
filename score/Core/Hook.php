@@ -27,11 +27,27 @@ class Hook {
 	 * @return     void
 	 */
 	public static function addHook($type, $func, $prepend = false) {
-		if($prepend) {
-			array_unshift(self::$hooks[$type], $func);
-		}else {
-			self::$hooks[$type][] = $func;
+		if(is_callable($func, true, $callable_name)) {
+			$key = md5($callable_name);
+			if($prepend) {
+				if(!isset(self::$hooks[$type])) {
+					self::$hooks[$type] = [];
+				}
+				// 防止重复设置
+				if(!isset(self::$hooks[$type][$key])) {
+					self::$hooks[$type] = array_merge([$key => $func], self::$hooks[$type]);
+				}
+				return true;
+			}else {
+				// 防止重复设置
+				if(!isset(self::$hooks[$type][$key])) {
+					self::$hooks[$type][$key] = $func;
+				}
+				return true;
+			}
 		}
+		return false;
+		
 	}
 
 	/**

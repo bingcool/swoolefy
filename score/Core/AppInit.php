@@ -21,7 +21,7 @@ class AppInit extends Init {
 	public static function _init() {
 		parent::_init();
 		// 每一次请求清空,再初始化
-		$_POST = $_GET = $_REQUEST = $_COOKIE = $_SESSION = [];
+		$_POST = $_GET = $_REQUEST = $_COOKIE = $_SESSION = $_FILES = [];
 		//请求对象
 		$request = Application::$app->request;
 		self::resetServer($request);
@@ -61,7 +61,7 @@ class AppInit extends Init {
 	 */
 	public static function resetPost($request) {
 		if(isset($request->post)) {
-			$_POST = array_merge($_POST,$request->post);
+			$_POST = array_merge($_POST, $request->post);
 		}
 	}
 
@@ -72,7 +72,7 @@ class AppInit extends Init {
 	 */
 	public static function resetGet($request) {
 		if(isset($request->get)) {
-			$_GET = array_merge($_GET,$request->get);
+			$_GET = array_merge($_GET, $request->get);
 		}
 	}
 
@@ -95,7 +95,7 @@ class AppInit extends Init {
 	 */
 	public static function resetFile($request) {
 		if(isset($request->fiels)) {
-			$_FILES = array_merge($_FILES,$request->fiels);
+			$_FILES = array_merge($_FILES, $request->fiels);
 		}
 	}
 
@@ -105,6 +105,6 @@ class AppInit extends Init {
 	 * @return void
 	 */
 	public static function resetRequest($request) {
-		$_REQUEST = array_merge($_POST,$_GET,$request->cookie);
+		$_REQUEST = array_merge($_POST, $_GET, $request->cookie);
 	}
 }

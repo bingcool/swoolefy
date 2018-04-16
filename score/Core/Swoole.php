@@ -124,12 +124,9 @@ class Swoole extends Object {
 		if(!empty(ZModel::$_model_instances)) {
 			ZModel::$_model_instances = [];
 		}
-		// 初始化静态变量
-		class_exists('MTime') && MTime::clear();
-		// 清空某些组件,每次请求重新创建
+		// 销毁某些组件,每次请求重新创建
 		self::clearComponent(self::$_destroy_components);
-		
-		// 清空当前的请求应用对象
+		// 销毁当前的请求应用对象
 		Application::$app = null;
 	}
 

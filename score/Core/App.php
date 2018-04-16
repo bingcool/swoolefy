@@ -104,6 +104,8 @@ class App extends \Swoolefy\Core\Component {
 			$route = new HttpRoute($extend_data);
 			$route->dispatch();
 		}
+		// 销毁静态变量
+		$this->clearStaticVar();
 		// 请求结束
 		return $this->end();
 	}
@@ -134,7 +136,7 @@ class App extends \Swoolefy\Core\Component {
 	 * @param	boolean $prepend
 	 * @return	void
 	 */
-	public function afterRequest(callable $callback, $prepend = false) {
+	public function afterRequest(callable $callback, $prepend = true) {
 		if(is_callable($callback)) {
 			Hook::addHook(Hook::HOOK_AFTER_REQUEST, $callback, $prepend);
 		}else {
@@ -158,21 +160,26 @@ class App extends \Swoolefy\Core\Component {
 	}
 
 	/**
+	 *clearStaticVar 销毁静态变量
+	 * @return void
+	 */
+	public function clearStaticVar() {
+		// Model的实例化对象初始化为[]
+		!empty(ZModel::$_model_instances) && ZModel::$_model_instances = [];
+		// 清空某些组件,每次请求重新创建
+		self::clearComponent(self::$_destroy_components);
+		//清空全局变量
+		$_POST = $_GET = $_REQUEST = $_COOKIE = $_SESSION = [];
+	}
+
+	/**
 	 * end 请求结束
 	 * @return  
 	 */
 	public function end() {
 		// call hook callable
 		Hook::callHook(Hook::HOOK_AFTER_REQUEST);
-		// Model的实例化对象初始化为[]
-		!empty(ZModel::$_model_instances) && ZModel::$_model_instances = [];
-		// 初始化静态变量
-		class_exists('MTime') && MTime::clear();
-		// 清空某些组件,每次请求重新创建
-		self::clearComponent(self::$_destroy_components);
-		//清空全局变量
-		$_POST = $_GET = $_REQUEST = $_COOKIE = $_SESSION = [];
-		// 清空当前的请求应用对象
+		// 销毁当前的请求应用对象
 		Application::$app = null;
 		// 必须设置一个异常结束
 		@$this->response->end();
