@@ -79,13 +79,13 @@ zlib
 Zend OPcache    
 ```
 
-### 下载框架和安装
+### 开发部署
 1、如果是自己安装的php环境（需在linux环境下），最好先创建一个不能登录伪用户www，用来执行worker进程业务代码      
 ```
 useradd www -d /home/www -s /sbin/nologin
 ```
 则在某一个web目录，例如/home/www下                     
-[参考](https://www.kancloud.cn/book/bingcoolhuang/php-swoole-swoolefy/edit)   
+[参考](https://www.kancloud.cn/bingcoolhuang/php-swoole-swoolefy/587504)   
 
 注意，composer install时，可能或提示说要求安装mongodb的扩展才能install,有两种处理方式：     
 a) 安装mongodb扩展,然后再执行composer install安装      
