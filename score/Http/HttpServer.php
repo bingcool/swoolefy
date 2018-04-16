@@ -1,4 +1,14 @@
 <?php
+/**
++----------------------------------------------------------------------
+| swoolfy framework bases on swoole extension development
++----------------------------------------------------------------------
+| Licensed ( https://opensource.org/licenses/MIT )
++----------------------------------------------------------------------
+| Author: bingcool <bingcoolhuang@gmail.com || 2437667702@qq.com>
++----------------------------------------------------------------------
+*/
+
 namespace Swoolefy\Http;
 
 use Swoole\Http\Server as http_server;

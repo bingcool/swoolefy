@@ -1,4 +1,14 @@
 <?php
+/**
++----------------------------------------------------------------------
+| swoolfy framework bases on swoole extension development
++----------------------------------------------------------------------
+| Licensed ( https://opensource.org/licenses/MIT )
++----------------------------------------------------------------------
+| Author: bingcool <bingcoolhuang@gmail.com || 2437667702@qq.com>
++----------------------------------------------------------------------
+*/
+
 namespace Swoolefy;
 // 定义当前core的根路径
 defined('SWOOLEFY_CORE_ROOT_PATH') or define('SWOOLEFY_CORE_ROOT_PATH', __DIR__.'/Core');

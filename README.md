@@ -16,7 +16,7 @@ swoolefy底层屏蔽了swoole与传统php-fpm的一些差异，让大部分的ph
 12、命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架      
 
 ### 开发文档手册
-[开发文档](https://www.kancloud.cn/book/bingcoolhuang/php-swoole-swoolefy/preview/%E5%BA%8F%E8%A8%80.md)    
+[开发文档](https://www.kancloud.cn/bingcoolhuang/php-swoole-swoolefy/587501)   
 
 swoolefy官方QQ群：735672669，欢迎加入！    
 
@@ -205,3 +205,6 @@ location / {
             proxy_pass http://127.0.0.1:9502;
         }
 ```
+
+### License
+MIT
