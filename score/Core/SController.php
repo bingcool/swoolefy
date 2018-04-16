@@ -13,6 +13,7 @@ namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Object;
+use Swoolefy\Core\Hook;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\BaseServer;
 
@@ -119,7 +120,7 @@ class SController extends Object {
 
 	/**
 	 * isClientPackLength 根据设置判断客户端的分包方式length
-	 * @return   boolean       [description]
+	 * @return   boolean
 	 */
 	public function isClientPackLength() {
 		if($this->isClientPackEof()) {

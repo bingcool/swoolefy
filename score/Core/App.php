@@ -164,6 +164,8 @@ class App extends \Swoolefy\Core\Component {
 	 * @return void
 	 */
 	public function clearStaticVar() {
+		// call hook callable
+		Hook::callHook(Hook::HOOK_AFTER_REQUEST);
 		// Model的实例化对象初始化为[]
 		!empty(ZModel::$_model_instances) && ZModel::$_model_instances = [];
 		// 清空某些组件,每次请求重新创建
@@ -177,8 +179,6 @@ class App extends \Swoolefy\Core\Component {
 	 * @return  
 	 */
 	public function end() {
-		// call hook callable
-		Hook::callHook(Hook::HOOK_AFTER_REQUEST);
 		// 销毁当前的请求应用对象
 		Application::$app = null;
 		// 必须设置一个异常结束

@@ -13,7 +13,7 @@ namespace Swoolefy\Core\Controller;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Object;
-use Swoolefy\Core\MTime;
+use Swoolefy\Core\Hook;
 use Swoolefy\Core\Application;
 
 class TaskController extends Object {
@@ -74,14 +74,15 @@ class TaskController extends Object {
 	 * __destruct 返回数据之前执行,重新初始化一些静态变量
 	 */
 	public function __destruct() {
+		// call hook callable
+		Hook::callHook(Hook::HOOK_AFTER_REQUEST);
+
 		if(method_exists($this,'_afterAction')) {
 			static::_afterAction();
 		}
-		// 初始化清除所有得单例model实例
+		// 初始化销毁所有得单例model实例
 		static::$selfModel = [];
-		// 初始化静态变量
-		MTime::clear();
-		// 清空某些组件,每次请求重新创建
+		// 销毁某些组件,每次请求重新创建
 		self::clearComponent(self::$_destroy_components);
 
 	}
