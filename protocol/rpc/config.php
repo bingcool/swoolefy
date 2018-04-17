@@ -38,7 +38,7 @@ return [
     	'heartbeat_check_interval' => 10,
 
 	],
-	'table_tick_task' => true,
+	'open_table_tick_task' => true,
 	'table' => [
 		'table1' => [
 			'size' => 1024,

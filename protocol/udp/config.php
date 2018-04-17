@@ -25,7 +25,7 @@ return [
 		'pid_file' => __DIR__.'/server.pid',
 
 	],
-	'table_tick_task' => true,
+	'open_table_tick_task' => true,
 	'table' => [
 		'table1' => [
 			'size' => 1024,

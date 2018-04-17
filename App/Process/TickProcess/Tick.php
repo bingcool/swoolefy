@@ -1,5 +1,5 @@
 <?php
-namespace App\Process\TestProcess;
+namespace App\Process\TickProcess;
 
 use Swoole\Process;
 use Swoolefy\Core\Swfy;
@@ -9,9 +9,8 @@ use Swoolefy\Core\Process\ProcessManager;
 use Swoolefy\Core\Process\SwooleProcess;
 use Swoolefy\Core\Timer\TickManager;
 
-class Test extends AbstractProcess {
-
-    public $SwooleProcessHander;
+class Tick extends AbstractProcess {
+	public $SwooleProcessHander;
 
 	public function run(Process $process) {
         // 协议层配置
@@ -25,7 +24,7 @@ class Test extends AbstractProcess {
         // 创建进程单例应用
         $this->SwooleProcessHander = new SwooleProcess($appconf);
 
-        
+        TickManager::getInstance()->tickTimer(3, ['App\Process\TickProcess\TickController','ticktest'], ['fffff']);
     }
 
     public function onReceive($str, ...$args) {

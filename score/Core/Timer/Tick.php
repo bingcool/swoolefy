@@ -88,7 +88,7 @@ class Tick {
 
         if($tid) {
             self::$_tick_tasks[$tid] = array('callback'=>$func, 'params'=>$user_params, 'time_interval'=>$time_interval, 'timer_id'=>$tid, 'start_time'=>date('Y-m-d H:i:s',strtotime('now')));
-            if(isset(Swfy::$config['table_tick_task']) && Swfy::$config['table_tick_task'] == true) {
+            if(isset(Swfy::$config['open_table_tick_task']) && Swfy::$config['open_table_tick_task'] == true) {
                 
                 TableManager::set('table_ticker', 'tick_timer_task', ['tick_tasks'=>json_encode(self::$_tick_tasks)]);
             }
@@ -111,7 +111,7 @@ class Tick {
                     unset(self::$_tick_tasks[$tid]); 
                 }
             }
-            if(isset(Swfy::$config['table_tick_task']) && Swfy::$config['table_tick_task'] == true) {
+            if(isset(Swfy::$config['open_table_tick_task']) && Swfy::$config['open_table_tick_task'] == true) {
 
                 TableManager::set('table_ticker', 'tick_timer_task', ['tick_tasks'=>json_encode(self::$_tick_tasks)]);
 
@@ -167,7 +167,7 @@ class Tick {
 
         if($tid) {
             self::$_after_tasks[$tid] = array('callback'=>$func, 'params'=>$user_params, 'time_interval'=>$time_interval, 'timer_id'=>$tid, 'start_time'=>date('Y-m-d H:i:s',strtotime('now')));
-            if(isset(Swfy::$config['table_tick_task']) && Swfy::$config['table_tick_task'] == true) {
+            if(isset(Swfy::$config['open_table_tick_task']) && Swfy::$config['open_table_tick_task'] == true) {
 
                 TableManager::set('table_after', 'after_timer_task', ['after_tasks'=>json_encode(self::$_after_tasks)]);
             }
@@ -190,7 +190,7 @@ class Tick {
                     unset(self::$_after_tasks[$key]);    
                 }
             }
-            if(isset(Swfy::$config['table_tick_task']) && Swfy::$config['table_tick_task'] == true) {
+            if(isset(Swfy::$config['open_table_tick_task']) && Swfy::$config['open_table_tick_task'] == true) {
 
                 TableManager::set('table_after', 'after_timer_task', ['after_tasks'=>json_encode(self::$_after_tasks)]);
             }

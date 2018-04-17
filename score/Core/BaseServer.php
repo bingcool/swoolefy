@@ -367,7 +367,7 @@ class BaseServer {
 			static::$config['table'] = [];
 		}
 
-		if(isset(static::$config['table_tick_task']) && static::$config['table_tick_task'] == true) {
+		if(isset(static::$config['open_table_tick_task']) && static::$config['open_table_tick_task'] == true) {
 			$tables = array_merge(self::$_table_tasks,static::$config['table']);
 		}else {
 			$tables = static::$config['table'];

@@ -58,7 +58,7 @@ class TickManager {
 	 * @return   mixed
 	 */
 	public static function getTickTasks() {
-		if(isset(Swfy::$config['table_tick_task']) && Swfy::$config['table_tick_task'] == true) {
+		if(isset(Swfy::$config['open_table_tick_task']) && Swfy::$config['open_table_tick_task'] == true) {
 			return json_decode(TableManager::get('table_ticker', 'tick_timer_task', 'tick_tasks'), true);
 		}
 		return false;								
@@ -69,7 +69,7 @@ class TickManager {
 	 * @return   mixed
 	 */
 	public static function getAfterTasks() {
-		if(isset(Swfy::$config['table_tick_task']) && Swfy::$config['table_tick_task'] == true) {
+		if(isset(Swfy::$config['open_table_tick_task']) && Swfy::$config['open_table_tick_task'] == true) {
 			return json_decode(TableManager::get('table_after', 'after_timer_task', 'after_tasks'), true);
 		}
 		return false;
