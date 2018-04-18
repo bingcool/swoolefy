@@ -2,7 +2,7 @@
 namespace App\Controller;
 
 use Swoolefy\Core\Application;
-use Swoolefy\Core\Controller\TaskController;
+use Swoolefy\Core\Task\TaskController;
 
 class TickTasksController extends TaskController {
 

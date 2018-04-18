@@ -23,9 +23,7 @@ class Test extends AbstractProcess {
         include_once $config_path.'/Config/defines.php';
         $appconf = include_once $config_path.'/Config/config.php';
         // 创建进程单例应用
-        $this->SwooleProcessHander = new SwooleProcess($appconf);
-
-        
+        $this->SwooleProcessHander = new SwooleProcess($appconf);   
     }
 
     public function onReceive($str, ...$args) {
