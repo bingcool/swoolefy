@@ -27,7 +27,7 @@ class Tick extends AbstractProcess {
         $this->SwooleProcessHander = new SwooleProcess($appconf);
 
         // 创建定时器处理实例
-        TickManager::getInstance()->tickTimer(3000, [TickTestController::class,'ticktest'], ['fffff']);
+        // TickManager::getInstance()->tickTimer(3000, [TickTestController::class,'ticktest'], ['fffff']);
     }
 
     public function onReceive($str, ...$args) {
