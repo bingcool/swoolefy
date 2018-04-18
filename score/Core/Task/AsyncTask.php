@@ -19,7 +19,7 @@ use Swoolefy\Core\Task\AsyncTaskInterface;
 class AsyncTask implements AsyncTaskInterface {
 
     /**
-     * registerTask 注册实例任务并调用异步任务，创建一个访问实例，用于处理复杂业务
+     * registerTask 注册实例任务并调用异步任务，创建一个应用实例，用于处理复杂业务
      * @param   string  $route
      * @param   array   $data
      * @return    int|boolean

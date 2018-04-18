@@ -9,6 +9,8 @@ use Swoolefy\Core\Process\ProcessManager;
 use Swoolefy\Core\Process\SwooleProcess;
 use Swoolefy\Core\Timer\TickManager;
 
+use App\Process\TickProcess\TickTestController;
+
 class Tick extends AbstractProcess {
 	public $SwooleProcessHander;
 
@@ -24,7 +26,8 @@ class Tick extends AbstractProcess {
         // 创建进程单例应用
         $this->SwooleProcessHander = new SwooleProcess($appconf);
 
-        TickManager::getInstance()->tickTimer(3, ['App\Process\TickProcess\TickController','ticktest'], ['fffff']);
+        // 创建定时器处理实例
+        TickManager::getInstance()->tickTimer(3000, [TickTestController::class,'ticktest'], ['fffff']);
     }
 
     public function onReceive($str, ...$args) {

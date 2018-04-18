@@ -3,9 +3,9 @@
 return [
 	'application_service' => 'Service\\Application',
 	'start_init' => 'App\\Init\\Init',
-	'master_process_name' => 'php-tcp-master',
-	'manager_process_name' => 'php-tcp-manager',
-	'worker_process_name' => 'php-tcp-worker',
+	'master_process_name' => 'php-rpc-master',
+	'manager_process_name' => 'php-rpc-manager',
+	'worker_process_name' => 'php-rpc-worker',
 	'www_user' => 'www',
 	'host' => '0.0.0.0',
 	'port' => '9504',

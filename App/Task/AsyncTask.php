@@ -4,7 +4,7 @@ namespace App\Task;
 use Swoolefy\Core\Object;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
-use Swoolefy\Core\Controller\TaskController;
+use Swoolefy\Core\Task\TaskController;
 
 class AsyncTask extends TaskController {
 	public $name = null;
