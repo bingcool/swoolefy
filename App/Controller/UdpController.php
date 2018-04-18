@@ -15,13 +15,11 @@ class UdpController extends BController {
 		$event = 'saveLog';
 		$message =  ["protocol"=>"UDP","name"=>str_repeat('abcd',15), "age"=>'bingcool'.rand(1,1000)];
 
-		$data = [$service, $event, $message];
-
+		$data = $service."::".$event."::".json_encode($message);
 
         $client = new \Swoole\Client(SWOOLE_SOCK_UDP);
         $client->connect('127.0.0.1', 9505, 1);
        
-        $data = json_encode($data);
         // $client->send($data);
         $client->send($data);
 

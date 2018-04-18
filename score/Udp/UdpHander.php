@@ -19,6 +19,11 @@ use Swoolefy\Core\HanderInterface;
 class UdpHander extends Swoole implements HanderInterface {
 
 	/**
+	 * 数据分隔符
+	 */
+	const EOF = '::';
+
+	/**
 	 * $client_info 客户端信息
 	 * @var null
 	 */
@@ -60,9 +65,24 @@ class UdpHander extends Swoole implements HanderInterface {
 		$this->client_info = $clientInfo;
 		// worker进程
 		if($this->isWorkerProcess()) {
-			$recv = array_values(json_decode($recv, true));
-			if(is_array($recv) && count($recv) == 3) {
-				list($service, $event, $params) = $recv;
+			if(is_string($recv)) {
+				$packet = explode(self::EOF, $recv);
+				if(count($packet) == 3) {
+					list($service, $event, $params) =  $packet;
+					if(is_string($params)) {
+						$params_arr = json_decode($params, true);
+						if(is_array($params_arr)) {
+							$params = $params_arr;
+						}
+					}
+				}else if(count($packet) == 2) {
+					list($service, $event) =  $packet;					
+					$params = null;
+				}else {
+					// TODO
+				}
+			}else {
+				// TODO
 			}
 
 			if($service && $event) {
@@ -74,7 +94,7 @@ class UdpHander extends Swoole implements HanderInterface {
 		}
 		
 		// 控制器实例
-		if($callable && $params) {
+		if($callable) {
 			$Dispatch = new RpcDispatch($callable, $params);
 			$Dispatch->dispatch();
 		}
