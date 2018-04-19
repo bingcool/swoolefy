@@ -24,7 +24,7 @@ trait ServiceTrait {
 	}
 
 	/**
-	 * getManagerId 当前服务器管理进程的PID
+	 * getManagerId 获取当前服务器管理进程的PID
 	 * @return   int
 	 */
 	public static function getManagerPid() {
@@ -54,7 +54,7 @@ trait ServiceTrait {
 	}
 
 	/**
-	 * getConnections 服务器当前所有的连接
+	 * getConnections 获取服务器当前所有的连接
 	 * @return  object 
 	 */
 	public static function getConnections() {
@@ -70,7 +70,7 @@ trait ServiceTrait {
 	}
 
 	/**
-	 * getLastError 返回最近一次的错误代码
+	 * getLastError 获取最近一次的错误代码
 	 * @return   int 
 	 */
 	public static function getLastError() {

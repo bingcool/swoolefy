@@ -12,12 +12,12 @@ return [
 	'time_zone' => 'PRC',
 	'swoole_version' => '1.9.17', //要求swoole的最低版本
 	'swoole_process_mode' => SWOOLE_PROCESS,//swoole的进程模式设置
-	'include_files' =>[],
+	'include_files' => [],
 	'setting' => [
 		'reactor_num' => 1, 
 		'worker_num' => 5,
 		'max_request' => 1000,
-		'task_worker_num' => 3,
+		'task_worker_num' => 2,
 		'task_tmpdir' => '/dev/shm',
 		'daemonize' => 0,
 		// http无状态，使用1或3

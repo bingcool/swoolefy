@@ -27,7 +27,7 @@ class Swfy extends \Swoolefy\Core\Object {
 	public static $Di = [];
 
 	/**
-	 * $config swoole服务对应协议层的配置,(注意：不是应用层的配置)
+	 * $config swoole服务对应协议层的配置
 	 * @var null
 	 */
 	public static $config = [];
@@ -49,7 +49,7 @@ class Swfy extends \Swoolefy\Core\Object {
 	}
 
 	/**
-	 * clearComponent 清空Component
+	 * clearComponent 销毁Component
 	 * @param  string  $com_alias_name
 	 * @return void
 	 */
@@ -59,7 +59,7 @@ class Swfy extends \Swoolefy\Core\Object {
 
 	/**
 	 * getComponent 获取组件
-	 * @param [type] $com_alias_name
+	 * @param  string  $com_alias_name
 	 * @return void
 	 */
 	public static function getComponent($com_alias_name = null) {

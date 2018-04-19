@@ -1,18 +1,19 @@
 {
     "name": "bingcool/swoolefy",
-    "description": "swoolefy is a HV Framework based on swoole,for everyone use is easily!",
+    "description": "swoolefy is a HV Framework based on swoole extension, for everyone use it easily!",
     "keywords": [
+        "swoolefy",
         "swoole",
+        "php",
         "auto relaod",
         "monitor"
     ],
-    "time": "2017-08-01",
     "license": "MIT",
     "type": "project",
     "authors": [
         {
             "name": "bingcool",
-            "email": "bingcoolhuang@gmail.com",
+            "email": "2437667702@qq.com",
             "role": "Engineer of php"
         }
     ],
@@ -20,12 +21,14 @@
     "require": {
         "monolog/monolog": "1.23.0",
         "swiftmailer/swiftmailer": "6.0.1",
-        "smarty/smarty": "3.1.30",
+        "smarty/smarty": "3.1.30"
+    },
+    "require-dev": {
         "nesbot/carbon": "^1.22",
         "predis/predis": "1.1.1",
         "joshcam/mysqli-database-class": "dev-master",
-        "bingcool/swoolefy-orm": "dev-master"
-
+        "bingcool/swoolefy-orm": "dev-master",
+        "mongodb/mongodb": "1.3.0" 
     },
     "autoload": {
         "psr-4": {
