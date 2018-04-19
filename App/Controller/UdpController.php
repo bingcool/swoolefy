@@ -5,8 +5,6 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\ZModel;
 use Swoolefy\Core\Controller\BController;
-use Swoolefy\Core\MGeneral;
-use Swoolefy\Core\MTime;
 
 class UdpController extends BController {
 
@@ -20,10 +18,7 @@ class UdpController extends BController {
         $client = new \Swoole\Client(SWOOLE_SOCK_UDP);
         $client->connect('127.0.0.1', 9505, 1);
        
-        // $client->send($data);
         $client->send($data);
-
-        dump('hello');
 
 	}
 
