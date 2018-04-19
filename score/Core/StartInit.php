@@ -16,7 +16,8 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	use \Swoolefy\Core\SingleTrait;
 
 	/**
-	 * init start之前初始化
+	 * init swoole服务start启动之前初始化
+	 * 可创建自定义进程process
 	 * @param  $args
 	 * @return void
 	 */
@@ -48,9 +49,7 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 * @return   
 	 */
 	public function onWorkerStart($server,$worker_id) {
-		if($worker_id == 0) {
-			// \Swoolefy\Core\Timer\TickManager::tickTimer(2000, ['App\\Controller\\TickTasksController','mytest1'],['jjjjjj']);
-		}
+		
 	}
 
 	/**

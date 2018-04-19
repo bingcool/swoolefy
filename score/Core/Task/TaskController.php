@@ -18,7 +18,7 @@ use Swoolefy\Core\Application;
 
 class TaskController extends Object {
 	/**
-	 * $from_worker_id 记录当前任务由那个woker投递
+	 * $from_worker_id 记录当前任务from的woker投递
 	 * @see https://wiki.swoole.com/wiki/page/134.html
 	 * @var null
 	 */
@@ -78,7 +78,7 @@ class TaskController extends Object {
 		if(method_exists($this,'_afterAction')) {
 			static::_afterAction();
 		}
-		// 初始化销毁所有得单例model实例
+		// 销毁单例model实例
 		static::$selfModel = [];
 		// 销毁某些组件,每次请求重新创建
 		self::clearComponent(self::$_destroy_components);

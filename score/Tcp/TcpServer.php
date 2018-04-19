@@ -39,12 +39,6 @@ abstract class TcpServer extends BaseServer {
 	public $tcpserver = null;
 
 	/**
-	 * $channel 进程共享内存信道队列
-	 * @var null
-	 */
-	public $channel = null;
-
-	/**
 	 * $pack 封解包对象
 	 * @var null
 	 */

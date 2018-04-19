@@ -130,7 +130,7 @@ class SController extends Object {
 	}
 
 	/**
-	 * beforeAction 在处理实际action之前执行
+	 * beforeAction 在处理实际action前执行
 	 * @return   mixed
 	 */
 	public function _beforeAction() {
@@ -138,7 +138,7 @@ class SController extends Object {
 	}
 
 	/**
-	 * afterAction 在返回数据之前执行
+	 * afterAction 在销毁前执行
 	 * @return   mixed
 	 */
 	public function _afterAction() {
@@ -146,13 +146,13 @@ class SController extends Object {
 	}
 
 	/**
-	 * __destruct 返回数据之前执行,重新初始化一些静态变量
+	 * __destruct 重新初始化一些静态变量
 	 */
 	public function __destruct() {
 		if(method_exists($this,'_afterAction')) {
 			static::_afterAction();
 		}
-		// 初始化清除所有得单例model实例
+		// 销毁单例model实例
 		static::$selfModel = [];
 	}
 
