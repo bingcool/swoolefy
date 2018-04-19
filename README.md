@@ -25,7 +25,7 @@ swoolefy官方QQ群：735672669，欢迎加入！
 #### 安装实际环境(建议)
 1、支持php7.0+       
 2、搭建lnmp环境，建议使用lnmp一健安装包，https://lnmp.org, 建议安装lnmp1.4     
-3、安装php必要的扩展，本框架需要的扩展包括swoole(1.9.17+), swoole_serialize(https://github.com/swoole/swoole_serialize), inotify, pcntl, posix, zlib, mbstring,可以通过php-m查看是否安装了这些扩展，如果通过lnmp1.4一健安装包安装的，已经默认安装好这四个pcntl, posix, zlib, mbstring扩展的，只需要在安装swoole和swoole_serialize, inotify即可，具体安装过程参考官方文档
+3、安装php必要的扩展，本框架需要的扩展包括swoole(1.9.17+), [swoole_serialize](https://github.com/swoole/swoole_serialize), inotify, pcntl, posix, zlib, mbstring,可以通过php-m查看是否安装了这些扩展，如果通过lnmp1.4一健安装包安装的，已经默认安装好这四个pcntl, posix, zlib, mbstring扩展的，只需要在安装swoole和swoole_serialize, inotify即可，具体安装过程参考官方文档
     
 ##### docker容器已经配置好的php环境(开发测试)
 为了方便开发和测试，我打包了一个基于alpine基础镜像搭建的php7.1环境容器bingcool/php2swoole，这个image已经非常小了，已经安装所有的必须扩展，其中swoole是1.10.1版本，可以通过php --ri swoole 查看信息。     
@@ -81,25 +81,18 @@ Zend OPcache
 ```
 
 ### 开发部署
-1、如果是自己安装的php环境（需在linux环境下），最好先创建一个伪用户www，用来执行worker进程业务代码      
+1、如果是自己安装的php环境（需在linux环境下），建议先创建一个伪用户www，用来执行worker进程业务代码      
 ```
 useradd www -d /home/www -s /sbin/nologin
 ```
-则在某一个web目录，例如/home/www下                     
-[参考](https://www.kancloud.cn/bingcoolhuang/php-swoole-swoolefy/587504)   
+则在某一个web目录，例如`/home/www`下，利用`composer`方式来安装部署一个项                        
+[参考开发文档](https://www.kancloud.cn/bingcoolhuang/php-swoole-swoolefy/587504)   
 
-注意，composer install时，可能或提示说要求安装mongodb的扩展才能install,有两种处理方式：     
-a) 安装mongodb扩展,然后再执行composer install安装      
-b) 可能暂时不需要用到mongodb的，可以删除文件的composer.lock文件和将composer.json的require中的"mongodb/mongodb": "1.2.0"删除或者屏蔽掉，然后再执行composer install安装。如果后期安装好了扩展，需要安装mongodb依赖，再执行   
-```
-composer require mongodb/mongodb": "1.2.0"
-```
-   
 2、如果是通过bingcool/php2swoole容器启动php开发环境的，同样需要composer install下载整个完整代码，然后复制到缩主机的/home/www/目录下。   下面是简单使用，首先是启动容器      
 ```   
 docker run -it -d --name swoole -p 9502:9502 -v /home/www/:/home/www/ bingcool/php2swoole   
 ```
--v /home/www/:/home/www/ 是将缩主机的/home/www目录挂载到容器的/home/www  
+`-v /home/www/:/home/www/` 是将缩主机的`/home/www`目录挂载到容器的`/home/www` 
 
 (1)然后进入容器  
 ```
@@ -113,7 +106,7 @@ docker exec -it swoole /bin/sh
 守护进程启动：php swoolefy start monitor -d         
 停止：php swoolefy stop monitor      
 ```
-可以在配置文件swoolefy/protocol/monitor/config.php设置。监控程序自动监控php的文件变动，然后swoole的worker自动重启，这个文件其实是通过调用代码Shell文件夹的swoole_monitor.sh来监控9502端口(这个是swoole的http服务的默认端口)，根据端口监听，可以设置不同端口，监听不同协议服务。   
+可以在配置文件`swoolefy/protocol/monitor/config.php`设置。监控程序自动监控php的文件变动，然后swoole的worker自动重启，这个文件其实是通过调用代码Shell文件夹的swoole_monitor.sh来监控9502端口(这个是swoole的http服务的默认端口)，根据端口监听，可以设置不同端口，监听不同协议服务。   
   需要注意的是，由于在容器中/home/www的目录是挂载与缩主机的，inotify是无法监听到文件变动的，所以这个监控程序在容器环境中是无效的，每次修改代码必须重启      
 ### http服务   
 2、启动swoole的http服务，进入swoolefy 
@@ -121,7 +114,7 @@ docker exec -it swoole /bin/sh
 启动：php swoolefy start http          
 停止：php swoolefy stop http 
 ```
-默认端口是9502，可以在配置文件swoolefy/protocol/http/config.php中更改，同时对应的swoolefy/protocol/monitor/config.php中对应更改端口，实现不同的自动重载。  
+默认端口是9502，可以在配置文件`swoolefy/protocol/http/config.php`中更改，同时对应的`swoolefy/protocol/monitor/config.php`中对应更改端口，实现不同的自动重载。  
 注意文件权限问题
 
 ### websocket服务    
@@ -130,7 +123,7 @@ docker exec -it swoole /bin/sh
 启动：php swoolefy start websocket        
 停止：php swoolefy stop websocket      
 ```
-默认端口9503，可以在配置文件swoolefy/protocol/websocket/config.php中更改     
+默认端口9503，可以在配置文件`swoolefy/protocol/websocket/config.php`中更改     
 
 ### rpc服务   
 1、启动swoole的rpc服务，进入swoolefy
@@ -138,7 +131,7 @@ docker exec -it swoole /bin/sh
 启动：php swoolefy start rpc    
 停止：php swoolefy stop rpc
 ```
-默认端口9504，可以在配置文件swoolefy/protocol/rpc/config.php中更改。
+默认端口9504，可以在配置文件`swoolefy/protocol/rpc/config.php`中更改。
 
 ### udp服务   
 1、启动swoole的rpc服务，进入swoolefy
@@ -146,11 +139,11 @@ docker exec -it swoole /bin/sh
 启动：php swoolefy start udp    
 停止：php swoolefy stop udp
 ```
-默认端口9505，可以在配置文件swoolefy/protocol/udp/config.php中更改。    
+默认端口9505，可以在配置文件`swoolefy/protocol/udp/config.php`中更改。    
 
 ### 访问Index     
 在App/Controller中就可以编码测试，基本和thinkphp的mvc那样操作。
-比如在App/Controller/IndexController.php
+比如在`App/Controller/IndexController.php`
 ```
 <?php
 namespace App\Controller;
@@ -167,7 +160,7 @@ class IndexController extends BController {
 }
 ```
 
-那么直接在浏览器输入http://ip:9502/Index/index     
+那么直接在浏览器输入`http://ip:9502/Index/index `   
 若需要渲染模板
 ```
 <?php
