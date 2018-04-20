@@ -43,6 +43,7 @@ function commandParser() {
 
 function startServer($server) {
     opCacheClear();
+    global $argv;
 	switch(strtolower($server)) {
 		case 'http':{
             $path = START_DIR_ROOT.'/protocol/http';
@@ -54,6 +55,12 @@ function startServer($server) {
                 copy(SCORE_DIR_ROOT.'/score/Http/config.php', $config_file);
             }
             $config = include $config_file;
+            
+            if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
+
+                $config['setting']['daemonize'] = true;
+            }
+
             $http = new \Swoolefy\Http\HttpServer($config);
             $http->start();
             break;
@@ -75,6 +82,11 @@ function startServer($server) {
             }
 
             $config = include $config_file;
+
+            if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
+                $config['setting']['daemonize'] = true;
+            }
+
 			$websocket = new \protocol\websocket\WebsocketEventServer($config);
             $websocket->start();
             break;
@@ -95,6 +107,11 @@ function startServer($server) {
             }
 
             $config = include $config_file;
+
+            if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
+                $config['setting']['daemonize'] = true;
+            }
+
             $rpc = new \protocol\rpc\RpcServer($config);
             $rpc->start();
             break;
@@ -115,6 +132,11 @@ function startServer($server) {
             }
 
             $config = include $config_file;
+
+            if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
+                $config['setting']['daemonize'] = true;
+            }
+
             $rpc = new \protocol\udp\UdpEventServer($config);
             $rpc->start();
             break;
@@ -145,6 +167,7 @@ function startServer($server) {
             $daemon = new \Swoolefy\AutoReload\daemon($config);
             // 启动
             $daemon->run();
+            break;
         }
         default:{
             help($command='help');

@@ -111,35 +111,39 @@ docker exec -it swoole /bin/sh
 ### http服务   
 2、启动swoole的http服务，进入swoolefy 
 ```     
-启动：php swoolefy start http          
+启动：php swoolefy start http  
+守护进程启动：php swoolefy start http -d            
 停止：php swoolefy stop http 
 ```
-默认端口是9502，可以在配置文件`swoolefy/protocol/http/config.php`中更改，同时对应的`swoolefy/protocol/monitor/config.php`中对应更改端口，实现不同的自动重载。  
+默认端口是9502，可以在配置文件`protocol/http/config.php`中更改，同时对应的`protocol/monitor/config.php`中对应更改端口，实现不同的自动重载。  
 注意文件权限问题
 
 ### websocket服务    
 1、启动swoole的websocket服务，进入swoolefy
 ```    
-启动：php swoolefy start websocket        
+启动：php swoolefy start websocket 
+守护进程启动：php swoolefy start websocket -d            
 停止：php swoolefy stop websocket      
 ```
-默认端口9503，可以在配置文件`swoolefy/protocol/websocket/config.php`中更改     
+默认端口9503，可以在配置文件`protocol/websocket/config.php`中更改     
 
 ### rpc服务   
 1、启动swoole的rpc服务，进入swoolefy
 ```    
-启动：php swoolefy start rpc    
+启动：php swoolefy start rpc     
+守护进程启动：php swoolefy start rpc -d        
 停止：php swoolefy stop rpc
 ```
-默认端口9504，可以在配置文件`swoolefy/protocol/rpc/config.php`中更改。
+默认端口9504，可以在配置文件`protocol/rpc/config.php`中更改。
 
 ### udp服务   
 1、启动swoole的rpc服务，进入swoolefy
 ```    
 启动：php swoolefy start udp    
+守护进程启动：php swoolefy start udp -d     
 停止：php swoolefy stop udp
 ```
-默认端口9505，可以在配置文件`swoolefy/protocol/udp/config.php`中更改。    
+默认端口9505，可以在配置文件`protocol/udp/config.php`中更改。    
 
 ### 访问Index     
 在App/Controller中就可以编码测试，基本和thinkphp的mvc那样操作。

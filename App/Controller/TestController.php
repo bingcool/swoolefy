@@ -25,6 +25,9 @@ class TestController extends BController {
 			['name'=>'西游记', 'desc'=>'讲述唐曾四人西天取经的故事'],
 			['name'=>'水浒传', 'desc'=>'梁山一百零八好汉']		
 		];
+
+		$TestModel = $this->getModel();
+
 		$this->assign('name', $name);
 		$this->assign('books', $books);
 

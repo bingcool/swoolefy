@@ -14,11 +14,18 @@ return [
 	// 'gzip_level' => 2,
 	'include_files' =>[],
 	'setting' => [
+		'reactor_num' => 1, 
+		'worker_num' => 5,
+		'max_request' => 10000,
+		'task_worker_num' => 1,
+		'task_tmpdir' => '/dev/shm',
+		'daemonize' => 0,
 		// http无状态，使用1或3
 		'dispatch_mode' => 3,
 		'reload_async' => true,
 		'daemonize' => 0,
-    	'log_file' => __DIR__.'/log.txt',
+		// 不要更改这个两个配置文件位置
+		'log_file' => __DIR__.'/log.txt',
 		'pid_file' => __DIR__.'/server.pid',
 	],
 
