@@ -8,11 +8,9 @@ sftp-config.json
 *.pid
 *.lock
 #dir
-/App/Runtime/
-/App/Config/config.php
-/App/Config/defines.php
-/Service/Runtime/
-/Service/Config/
+/App
+/Service
+/protocol
 /vendor
 #runtime.log
 runtime.log
