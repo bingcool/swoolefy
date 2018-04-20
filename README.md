@@ -85,19 +85,23 @@ Zend OPcache
 ```
 useradd www -d /home/www -s /sbin/nologin
 ```
-则在某一个web目录，例如`/home/www`下，利用`composer`方式来安装部署一个项                        
+则在某一个web目录，例如`/home/www`下，利用`composer`方式来安装部署一个项目                           
 [参考开发文档](https://www.kancloud.cn/bingcoolhuang/php-swoole-swoolefy/587504)   
 
-2、如果是通过bingcool/php2swoole容器启动php开发环境的，同样需要composer install下载整个完整代码，然后复制到缩主机的/home/www/目录下。   下面是简单使用，首先是启动容器      
+2、使用bingcool/php2swoole容器启动php开发环境     
+下面是简单使用，首先是启动容器      
 ```   
-docker run -it -d --name swoole -p 9502:9502 -v /home/www/:/home/www/ bingcool/php2swoole   
+docker run -it -d --name dev -p 9502:9502 -v /home/www/:/home/www/ bingcool/php2swoole   
 ```
 `-v /home/www/:/home/www/` 是将缩主机的`/home/www`目录挂载到容器的`/home/www` 
 
 (1)然后进入容器  
 ```
-docker exec -it swoole /bin/sh
+docker exec -it dev /bin/sh
 ```
+
+利用`composer`方式来安装部署一个项目                         
+[参考开发文档](https://www.kancloud.cn/bingcoolhuang/php-swoole-swoolefy/587504)   
 
 ### 监控程序   
 1、启动文件自动监控程序，进入swoolefy   
