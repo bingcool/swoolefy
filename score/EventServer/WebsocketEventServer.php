@@ -41,6 +41,15 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer {
 	public function onFinish($server, $task_id, $data) {}
 
 	/**
+	 * onPipeMessage 
+	 * @param    object  $server
+	 * @param    int     $src_worker_id
+	 * @param    mixed   $message
+	 * @return   void
+	 */
+	public function onPipeMessage($server, $from_worker_id, $message) {}
+
+	/**
 	 * onClose 连接断开处理
 	 * @param    object  $server
 	 * @param    int     $fd

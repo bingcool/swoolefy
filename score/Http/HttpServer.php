@@ -18,7 +18,7 @@ use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoolefy\Core\Application;
 
-class HttpServer extends BaseServer {
+abstract class HttpServer extends BaseServer {
 	/**
 	 * $setting
 	 * @var array
@@ -143,11 +143,7 @@ class HttpServer extends BaseServer {
 		 */
 		$this->webserver->on('request', function(Request $request, Response $response) {
 			try{
-				// google浏览器会自动发一次请求/favicon.ico,在这里过滤掉
-				if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
-            		return $response->end();
-       			}
-				swoole_unpack(self::$App)->run($request, $response);
+				static::onRequest($request, $response);
 				return true;
 			}catch(\Exception $e) {
 				// 捕捉异常
@@ -161,7 +157,7 @@ class HttpServer extends BaseServer {
 		$this->webserver->on('task', function(http_server $server, $task_id, $from_worker_id, $data) {
 			try{
 				$task_data = swoole_unpack($data);
-				self::onTask($task_id, $from_worker_id, $task_data);
+				static::onTask($task_id, $from_worker_id, $task_data);
 			}catch(\Exception $e) {
 				// 捕捉异常
 				\Swoolefy\Core\SwoolefyException::appException($e);
@@ -170,11 +166,25 @@ class HttpServer extends BaseServer {
 		});
 
 		/**
-		 * 处理异步任务的结果
+		 * 处理异步任务
 		 */
 		$this->webserver->on('finish', function(http_server $server, $task_id, $data) {
 			try {
-				self::onFinish($task_id, $data);
+				static::onFinish($task_id, $data);
+				return true;
+			}catch(\Exception $e) {
+				// 捕捉异常
+				\Swoolefy\Core\SwoolefyException::appException($e);
+			}
+			
+		});
+
+		/**
+		 * 处理pipeMessage
+		 */
+		$this->webserver->on('pipeMessage', function(http_server $server, $src_worker_id, $message) {
+			try {
+				static::onPipeMessage($server, $src_worker_id, $message);
 				return true;
 			}catch(\Exception $e) {
 				// 捕捉异常
@@ -203,30 +213,5 @@ class HttpServer extends BaseServer {
 		
 		$this->webserver->start();
 	}
-
-	/**
-	 * onTask 异步任务处理
-	 * @param    int  $task_id
-	 * @param    int  $from_worker_id
-	 * @param    mixed $data
-	 * @return   void
-	 */
-	public function onTask($task_id, $from_worker_id, $data) {
-		list($callable, $extend_data, $request_items) = $data;
-		list($class, $action) = $callable;
-		$request = (object)$request_items;
-		$taskInstance = new $class;
-		$taskInstance->task_id = $task_id;
-		$taskInstance->from_worker_id = $from_worker_id;
-		$taskInstance->$action($extend_data, $request);
-	}
-
-	/**
-	 * onFinish 
-	 * @param    int   $task_id
-	 * @param    mixed $data
-	 * @return   void
-	 */
-	public function onFinish($task_id, $data) {}
 
 }

@@ -60,4 +60,13 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface {
 
 	public abstract function onFinish($server, $task_id, $data);
 
+	/**
+	 * onPipeMessage 
+	 * @param    object  $server
+	 * @param    int     $src_worker_id
+	 * @param    mixed   $message
+	 * @return   void
+	 */
+	public abstract function onPipeMessage($server, $from_worker_id, $message);
+
 }

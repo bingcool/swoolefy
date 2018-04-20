@@ -160,6 +160,20 @@ abstract class UdpServer extends BaseServer {
 		});
 
 		/**
+		 * 处理pipeMessage
+		 */
+		$this->udpserver->on('pipeMessage', function(udp_server $server, $from_worker_id, $message) {
+			try {
+				static::onPipeMessage($server, $from_worker_id, $message);
+				return true;
+			}catch(\Exception $e) {
+				// 捕捉异常
+				\Swoolefy\Core\SwoolefyException::appException($e);
+			}
+			
+		});
+
+		/**
 		 * 停止worker进程
 		 */
 		$this->udpserver->on('WorkerStop',function(udp_server $server, $worker_id) {

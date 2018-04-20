@@ -54,6 +54,12 @@ function startServer($server) {
             if(!file_exists($config_file)) {
                 copy(SCORE_DIR_ROOT.'/score/Http/config.php', $config_file);
             }
+
+            $event_server_file = $path.'/HttpServer.php';
+            if(!file_exists($event_server_file)) {
+                copy(SCORE_DIR_ROOT.'/score/EventServer/HttpServer.php', $event_server_file);
+            }
+
             $config = include $config_file;
             
             if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
@@ -61,7 +67,7 @@ function startServer($server) {
                 $config['setting']['daemonize'] = true;
             }
 
-            $http = new \Swoolefy\Http\HttpServer($config);
+            $http = new \protocol\http\HttpServer($config);
             $http->start();
             break;
         }

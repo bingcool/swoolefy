@@ -224,6 +224,20 @@ abstract class WebsocketServer extends BaseServer {
 		});
 
 		/**
+		 * 处理pipeMessage
+		 */
+		$this->webserver->on('pipeMessage', function(websocket_server $server, $from_worker_id, $message) {
+			try {
+				static::onPipeMessage($server, $from_worker_id, $message);
+				return true;
+			}catch(\Exception $e) {
+				// 捕捉异常
+				\Swoolefy\Core\SwoolefyException::appException($e);
+			}
+			
+		});
+
+		/**
 		 * close 函数,关闭连接
 		 */
 		$this->webserver->on('close', function(websocket_server $server, $fd) {
