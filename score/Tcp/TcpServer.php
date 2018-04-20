@@ -196,6 +196,20 @@ abstract class TcpServer extends BaseServer {
 		});
 
 		/**
+		 * 处理pipeMessage
+		 */
+		$this->tcpserver->on('pipeMessage', function(tcp_server $server, $from_worker_id, $message) {
+			try {
+				static::onPipeMessage($server, $from_worker_id, $message);
+				return true;
+			}catch(\Exception $e) {
+				// 捕捉异常
+				\Swoolefy\Core\SwoolefyException::appException($e);
+			}
+			
+		});
+
+		/**
 		 * 关闭连接
 		 */
 		$this->tcpserver->on('close', function(tcp_server $server, $fd) {

@@ -84,6 +84,15 @@ abstract class RpcServer extends TcpServer implements EventInterface {
 	public abstract function onFinish($server, $task_id, $data);
 
 	/**
+	 * onPipeMessage 
+	 * @param    object  $server
+	 * @param    int     $src_worker_id
+	 * @param    mixed   $message
+	 * @return   void
+	 */
+	public abstract function onPipeMessage($server, $from_worker_id, $message);
+
+	/**
 	 * onClose tcp连接关闭时回调函数
 	 * @param  object $server
 	 * @param  int    $fd    
