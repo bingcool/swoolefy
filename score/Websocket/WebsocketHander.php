@@ -13,7 +13,7 @@ namespace Swoolefy\Websocket;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Swoole;
-use Swoolefy\Rpc\RpcDispatch;
+use Swoolefy\Core\ServiceDispatch;
 use Swoolefy\Core\HanderInterface;
 
 class WebsocketHander extends Swoole implements HanderInterface {
@@ -66,7 +66,7 @@ class WebsocketHander extends Swoole implements HanderInterface {
 
 		// 控制器实例
 		if($callable && $params) {
-			$Dispatch = new RpcDispatch($callable, $params);
+			$Dispatch = new ServiceDispatch($callable, $params);
 			$Dispatch->dispatch();
 		}
 		

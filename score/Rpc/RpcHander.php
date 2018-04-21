@@ -13,7 +13,7 @@ namespace Swoolefy\Rpc;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Swoole;
-use Swoolefy\Rpc\RpcDispatch;
+use Swoolefy\Core\ServiceDispatch;
 use Swoolefy\Core\HanderInterface;
 
 class RpcHander extends Swoole implements HanderInterface {
@@ -80,7 +80,7 @@ class RpcHander extends Swoole implements HanderInterface {
 		}
 		
 		if($callable && $params) {
-			$Dispatch = new RpcDispatch($callable, $params);
+			$Dispatch = new ServiceDispatch($callable, $params);
 			$Dispatch->dispatch();
 		}
 		// 必须执行
