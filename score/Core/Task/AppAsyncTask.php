@@ -32,7 +32,7 @@ class AppAsyncTask extends AsyncTask {
         $requestItems = $request->all();
         // 只有在worker进程中可以调用异步任务进程，异步任务进程中不能调用异步进程
         if(self::isWorkerProcess()) {
-            $task_id = Swfy::$server->task(swoole_pack([$callable, $data, $requestItems]));
+            $task_id = Swfy::getServer()->task(swoole_pack([$callable, $data, $requestItems]));
             unset($callable, $data, $requestItems);
             return $task_id;
         }

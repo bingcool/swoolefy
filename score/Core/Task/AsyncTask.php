@@ -37,7 +37,7 @@ class AsyncTask implements AsyncTaskInterface {
                 $fd = Application::$app->client_info;
             }
 
-            $task_id = Swfy::$server->task(swoole_pack([$callable, $data, $fd]));
+            $task_id = Swfy::getServer()->task(swoole_pack([$callable, $data, $fd]));
             unset($callable, $data, $fd);
             return $task_id;
         }
@@ -50,7 +50,7 @@ class AsyncTask implements AsyncTaskInterface {
      * @return    void
      */
     public static function registerTaskfinish($callable, $data) {
-        return Swfy::$server->finish([$callable, $data]);
+        return Swfy::getServer()->finish([$callable, $data]);
     }
 
     /**
@@ -58,7 +58,7 @@ class AsyncTask implements AsyncTaskInterface {
      * @return int
      */
     public static function getCurrentWorkerId() {
-        return Swfy::$server->worker_id;
+        return Swfy::getServer()->worker_id;
     }
 
     /**

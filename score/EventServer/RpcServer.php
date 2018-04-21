@@ -32,10 +32,11 @@ class RpcServer extends \Swoolefy\Rpc\RpcServer {
 	public function onConnet($server, $fd) {}
 
 	/**
-	 * onFinish 异步任务完成后调用
-	 * @param    int     $task_id
-	 * @param    mixed   $data
-	 * @return   void
+	 * onFinish 
+	 * @param  object $server
+	 * @param  int    $task_id
+	 * @param  mixed  $data
+	 * @return mixed
 	 */
 	public function onFinish($server, $task_id, $data) {}
 

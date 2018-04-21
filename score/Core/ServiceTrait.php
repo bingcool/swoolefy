@@ -20,7 +20,7 @@ trait ServiceTrait {
 	 * @return   int
 	 */
 	public static function getMasterPid() {
-		return Swfy::$server->master_pid;
+		return Swfy::getServer()->master_pid;
 	}
 
 	/**
@@ -28,7 +28,7 @@ trait ServiceTrait {
 	 * @return   int
 	 */
 	public static function getManagerPid() {
-		return Swfy::$server->manager_pid;
+		return Swfy::getServer()->manager_pid;
 	}
 
 	/**
@@ -36,7 +36,7 @@ trait ServiceTrait {
 	 * @return int  
 	 */
 	public static function getCurrentWorkerPid() {
-		$workerPid = Swfy::$server->worker_pid;
+		$workerPid = Swfy::getServer()->worker_pid;
 		if($workerPid) {
 			return $workerPid;
 		}else {
@@ -49,7 +49,7 @@ trait ServiceTrait {
 	 * @return   int
 	 */
 	public static function getCurrentWorkerId() {
-		$workerId = Swfy::$server->worker_id;
+		$workerId = Swfy::getServer()->worker_id;
 		return $workerId;
 	}
 
@@ -58,7 +58,7 @@ trait ServiceTrait {
 	 * @return  object 
 	 */
 	public static function getConnections() {
-		return Swfy::$server->connections;
+		return Swfy::getServer()->connections;
 	}
 
 	/**
@@ -74,7 +74,7 @@ trait ServiceTrait {
 	 * @return   int 
 	 */
 	public static function getLastError() {
-		return Swfy::$server->getLastError();
+		return Swfy::getServer()->getLastError();
 	}
 
 	/**
@@ -82,7 +82,7 @@ trait ServiceTrait {
 	 * @return   array
 	 */
 	public static function getSwooleStats() {
-		return Swfy::$server->stats();
+		return Swfy::getServer()->stats();
 	}
 
 	/**

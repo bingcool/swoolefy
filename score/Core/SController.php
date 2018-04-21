@@ -54,6 +54,7 @@ class SController extends Object {
 
 	/**
 	 * return tcp 发送数据
+	 * @param  int    $fd
 	 * @param  mixed  $data
 	 * @param  string $encode
 	 * @return void
@@ -62,7 +63,7 @@ class SController extends Object {
 		if(BaseServer::getServiceProtocol() == SWOOLEFY_TCP) {
 			$args = [$data, $header];
 			$data = \Swoolefy\Tcp\TcpServer::pack($args);
-			Swfy::$server->send($fd, $data);
+			Swfy::getServer()->send($fd, $data);
 		}else {
 			throw new \Exception("this method only can be called by tcp or rpc server!");
 		}
@@ -82,7 +83,7 @@ class SController extends Object {
 			if(is_array($data)){
 				$data = json_encode($data);
 			}
-			Swfy::$server->sendto($ip, $port, $data, $server_socket);
+			Swfy::getServer()->sendto($ip, $port, $data, $server_socket);
 		}else {
 			throw new \Exception("this method only can be called by udp server!");
 		}
@@ -102,7 +103,7 @@ class SController extends Object {
 			if(is_array($data)){
 				$data = json_encode($data);
 			}
-			$result = Swfy::$server->push($fd, $data, $opcode, $finish);
+			$result = Swfy::getServer()->push($fd, $data, $opcode, $finish);
 			return $result;
 		}else {
 			throw new \Exception("this method only can be called by websocket server!");

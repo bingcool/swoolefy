@@ -77,7 +77,7 @@ class Swoole extends Object {
      * @return int
      */
     public static function getCurrentWorkerId() {
-        return Swfy::$server->worker_id;
+        return Swfy::getServer()->worker_id;
     }
 
     /**

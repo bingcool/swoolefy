@@ -15,9 +15,21 @@ class UdpEventServer extends \Swoolefy\Udp\UdpEventServer {
 		parent::__construct($config);
 	}
 
+	/**
+	 * onWorkerStart worker进程启动时回调处理
+	 * @param  object $server
+	 * @param  int    $worker_id
+	 * @return void       
+	 */
 	public function onWorkerStart($server, $worker_id) {}
 
-
+	/**
+	 * onFinish 
+	 * @param  object $server
+	 * @param  int    $task_id
+	 * @param  mixed  $data
+	 * @return mixed
+	 */
 	public function onFinish($server, $task_id, $data) {}
 
 	/**
