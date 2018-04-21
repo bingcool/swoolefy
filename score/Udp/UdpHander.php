@@ -13,7 +13,7 @@ namespace Swoolefy\Udp;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Swoole;
-use Swoolefy\Rpc\RpcDispatch;
+use Swoolefy\Core\ServiceDispatch;
 use Swoolefy\Core\HanderInterface;
 
 class UdpHander extends Swoole implements HanderInterface {
@@ -95,7 +95,7 @@ class UdpHander extends Swoole implements HanderInterface {
 		
 		// 控制器实例
 		if($callable) {
-			$Dispatch = new RpcDispatch($callable, $params);
+			$Dispatch = new ServiceDispatch($callable, $params);
 			$Dispatch->dispatch();
 		}
 
