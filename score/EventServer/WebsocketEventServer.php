@@ -32,11 +32,11 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer {
 	public function onOpen($server, $request) {}
 
 	/**
-	 * onFinish 任务完成
-	 * @param    object  $server
-	 * @param    int     $task_id
-	 * @param    mixed   $data
-	 * @return   void
+	 * onFinish 
+	 * @param  object $server
+	 * @param  int    $task_id
+	 * @param  mixed  $data
+	 * @return mixed
 	 */
 	public function onFinish($server, $task_id, $data) {}
 

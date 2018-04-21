@@ -35,7 +35,6 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 	 * @return   void
 	 */
 	public function onRequest($request, $response) {
-		// google浏览器会自动发一次请求/favicon.ico,在这里过滤掉
 		if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
             return $response->end();
        	}
@@ -66,6 +65,7 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 		$taskInstance->task_id = $task_id;
 		$taskInstance->from_worker_id = $from_worker_id;
 		$taskInstance->$action($extend_data, $request);
+		unset($callable, $taskInstance, $extend_data, $request);
 	}
 
 	/**
