@@ -108,7 +108,7 @@ abstract class WebsocketServer extends BaseServer {
 		/**
 		 * start回调
 		 */
-		$this->webserver->on('Start',function(websocket_server $server) {
+		$this->webserver->on('Start', function(websocket_server $server) {
 			// 重新设置进程名称
 			self::setMasterProcessName(self::$config['master_process_name']);
 			// 启动的初始化函数
@@ -117,7 +117,7 @@ abstract class WebsocketServer extends BaseServer {
 		/**
 		 * managerstart回调
 		 */
-		$this->webserver->on('ManagerStart',function(websocket_server $server) {
+		$this->webserver->on('ManagerStart', function(websocket_server $server) {
 			// 重新设置进程名称
 			self::setManagerProcessName(self::$config['manager_process_name']);
 			// 启动的初始化函数
@@ -127,7 +127,7 @@ abstract class WebsocketServer extends BaseServer {
 		/**
 		 * 启动worker进程监听回调，设置定时器
 		 */
-		$this->webserver->on('WorkerStart',function(websocket_server $server, $worker_id) {
+		$this->webserver->on('WorkerStart', function(websocket_server $server, $worker_id) {
 			// 记录主进程加载的公共files,worker重启不会在加载的
 			self::getIncludeFiles(static::$serverName);
 			// 重启worker时，清空字节cache
@@ -162,7 +162,7 @@ abstract class WebsocketServer extends BaseServer {
 		 * @see https://wiki.swoole.com/wiki/page/409.html
 		 */
 		if(method_exists($this, 'onHandshake')) {
-			$this->webserver->on('handshake', function (request $request, response $response) {
+			$this->webserver->on('handshake', function(request $request, response $response) {
 			// 自定义handshake函数
 				static::onHandshake($request, $response);
 			}); 

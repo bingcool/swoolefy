@@ -28,11 +28,11 @@ swoolefy官方QQ群：735672669，欢迎加入！
 3、安装php必要的扩展，本框架需要的扩展包括swoole(1.9.17+), [swoole_serialize](https://github.com/swoole/swoole_serialize), inotify, pcntl, posix, zlib, mbstring,可以通过php-m查看是否安装了这些扩展，如果通过lnmp1.4一健安装包安装的，已经默认安装好这四个pcntl, posix, zlib, mbstring扩展的，只需要在安装swoole和swoole_serialize, inotify即可，具体安装过程参考官方文档
     
 ##### docker容器已经配置好的php环境(开发测试)
-为了方便开发和测试，我打包了一个基于alpine基础镜像搭建的php7.1环境容器bingcool/php2swoole，这个image已经非常小了，已经安装所有的必须扩展，其中swoole是1.10.1版本，可以通过php --ri swoole 查看信息。     
+为了方便开发和测试，我打包了一个基于alpine基础镜像搭建的php7.1环境容器bingcool/php2swoole:2.4，这个image已经非常小了，已经安装所有的必须扩展，其中swoole是1.10.4版本，可以通过php --ri swoole 查看信息。     
 alpine的官网：https://pkgs.alpinelinux.org/packages    
 
 ```
-docker pull bingcool/php2swoole     
+docker pull bingcool/php2swoole:2.4     
 ```
 已安装的扩展如下：  
 ```
@@ -91,7 +91,7 @@ useradd www -d /home/www -s /sbin/nologin
 2、使用bingcool/php2swoole容器启动php开发环境     
 下面是简单使用，首先是启动容器      
 ```   
-docker run -it -d --name dev -p 9502:9502 -v /home/www/:/home/www/ bingcool/php2swoole   
+docker run -it -d --name dev -p 9502:9502 -v /home/www/:/home/www/ bingcool/php2swoole:2.4   
 ```
 `-v /home/www/:/home/www/` 是将缩主机的`/home/www`目录挂载到容器的`/home/www` 
 
@@ -100,7 +100,7 @@ docker run -it -d --name dev -p 9502:9502 -v /home/www/:/home/www/ bingcool/php2
 docker exec -it dev /bin/sh
 ```
 
-利用`composer`方式来安装部署一个项目                         
+容器中已经安装好composer和git等工具，然后利用`composer`方式来安装部署一个项目，同样参考                              
 [参考开发文档](https://www.kancloud.cn/bingcoolhuang/php-swoole-swoolefy/587504)   
 
 ### 监控程序   
