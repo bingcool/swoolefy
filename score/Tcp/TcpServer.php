@@ -85,7 +85,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * start回调
 		 */
-		$this->tcpserver->on('Start',function(tcp_server $server) {
+		$this->tcpserver->on('Start', function(tcp_server $server) {
 			// 重新设置进程名称
 			self::setMasterProcessName(self::$config['master_process_name']);
 			// 启动的初始化函数
@@ -95,7 +95,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * managerstart回调
 		 */
-		$this->tcpserver->on('ManagerStart',function(tcp_server $server) {
+		$this->tcpserver->on('ManagerStart', function(tcp_server $server) {
 			// 重新设置进程名称
 			self::setManagerProcessName(self::$config['manager_process_name']);
 			// 启动的初始化函数
@@ -105,7 +105,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * 启动worker进程监听回调，设置定时器
 		 */
-		$this->tcpserver->on('WorkerStart',function(tcp_server $server, $worker_id) {
+		$this->tcpserver->on('WorkerStart', function(tcp_server $server, $worker_id) {
 			// 记录主进程加载的公共files,worker重启不会在加载的
 			self::getIncludeFiles(static::$serverName);
 			// 重启worker时，清空字节cache
@@ -117,15 +117,15 @@ abstract class TcpServer extends BaseServer {
 			// 启动时提前加载文件
 			self::startInclude();
 			// 记录worker的进程worker_pid与worker_id的映射
-			self::setWorkersPid($worker_id,$server->worker_pid);
+			self::setWorkersPid($worker_id, $server->worker_pid);
 			// 超全局变量server
        		Swfy::$server = $this->tcpserver;
        		Swfy::$config = self::$config;
 
        		// 单例服务处理实例
-       		is_null(self::$service) && self::$service = swoole_pack(self::$config['application_service']::getInstance($config=[]));
+       		is_null(self::$service) && self::$service = swoole_pack(self::$config['application_service']::getInstance($config = []));
 			// 启动的初始化函数
-			$this->startCtrl->workerStart($server,$worker_id);
+			$this->startCtrl->workerStart($server, $worker_id);
 			// 延迟绑定
 			static::onWorkerStart($server, $worker_id);
 
@@ -134,7 +134,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * tcp连接
 		 */
-		$this->tcpserver->on('connect', function (tcp_server $server, $fd) {  
+		$this->tcpserver->on('connect', function(tcp_server $server, $fd) {  
     		try{
     			// 延迟绑定
     			static::onConnet($server, $fd);
@@ -227,7 +227,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * 停止worker进程
 		 */
-		$this->tcpserver->on('WorkerStop',function(tcp_server $server, $worker_id) {
+		$this->tcpserver->on('WorkerStop', function(tcp_server $server, $worker_id) {
 			// 销毁不完整数据以及
 			$this->pack->destroy($server, $worker_id);
 			// worker停止时的回调处理
@@ -238,7 +238,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * worker进程异常错误回调函数
 		 */
-		$this->tcpserver->on('WorkerError',function(tcp_server $server, $worker_id, $worker_pid, $exit_code, $signal) {
+		$this->tcpserver->on('WorkerError', function(tcp_server $server, $worker_id, $worker_pid, $exit_code, $signal) {
 			// worker停止的触发函数
 			$this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
 		});
@@ -247,7 +247,7 @@ abstract class TcpServer extends BaseServer {
 		 * worker进程退出回调函数，1.9.17+版本
 		 */
 		if(static::compareSwooleVersion()) {
-			$this->tcpserver->on('WorkerExit',function(tcp_server $server, $worker_id) {
+			$this->tcpserver->on('WorkerExit', function(tcp_server $server, $worker_id) {
 				// worker退出的触发函数
 				$this->startCtrl->workerExit($server, $worker_id);
 			});

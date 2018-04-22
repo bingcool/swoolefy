@@ -76,7 +76,7 @@ abstract class UdpServer extends BaseServer {
 		/**
 		 * start回调
 		 */
-		$this->udpserver->on('Start',function(udp_server $server) {
+		$this->udpserver->on('Start', function(udp_server $server) {
 			// 重新设置进程名称
 			self::setMasterProcessName(self::$config['master_process_name']);
 			// 启动的初始化函数
@@ -85,7 +85,7 @@ abstract class UdpServer extends BaseServer {
 		/**
 		 * managerstart回调
 		 */
-		$this->udpserver->on('ManagerStart',function(udp_server $server) {
+		$this->udpserver->on('ManagerStart', function(udp_server $server) {
 			// 重新设置进程名称
 			self::setManagerProcessName(self::$config['manager_process_name']);
 			// 启动的初始化函数
@@ -176,7 +176,7 @@ abstract class UdpServer extends BaseServer {
 		/**
 		 * 停止worker进程
 		 */
-		$this->udpserver->on('WorkerStop',function(udp_server $server, $worker_id) {
+		$this->udpserver->on('WorkerStop', function(udp_server $server, $worker_id) {
 			// worker停止时的回调处理
 			$this->startCtrl->workerStop($server, $worker_id);
 
@@ -185,7 +185,7 @@ abstract class UdpServer extends BaseServer {
 		/**
 		 * worker进程异常错误回调函数
 		 */
-		$this->udpserver->on('WorkerError',function(udp_server $server, $worker_id, $worker_pid, $exit_code, $signal) {
+		$this->udpserver->on('WorkerError', function(udp_server $server, $worker_id, $worker_pid, $exit_code, $signal) {
 			// worker停止的触发函数
 			$this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
 		});
@@ -194,7 +194,7 @@ abstract class UdpServer extends BaseServer {
 		 * worker进程退出回调函数，1.9.17+版本
 		 */
 		if(static::compareSwooleVersion()) {
-			$this->udpserver->on('WorkerExit',function(udp_server $server, $worker_id) {
+			$this->udpserver->on('WorkerExit', function(udp_server $server, $worker_id) {
 				// worker退出的触发函数
 				$this->startCtrl->workerExit($server, $worker_id);
 			});
