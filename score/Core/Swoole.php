@@ -120,13 +120,10 @@ class Swoole extends Object {
 	public function end() {
 		// call hook callable
 		Hook::callHook(Hook::HOOK_AFTER_REQUEST);
-		// Model的实例化对象初始化为[]
 		if(!empty(ZModel::$_model_instances)) {
 			ZModel::$_model_instances = [];
 		}
-		// 销毁某些组件,每次请求重新创建
 		self::clearComponent(self::$_destroy_components);
-		// 销毁当前的请求应用对象
 		Application::$app = null;
 	}
 
