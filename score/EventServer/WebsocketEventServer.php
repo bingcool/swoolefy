@@ -1,8 +1,15 @@
 <?php
-namespace protocol\websocket;
 /**
- * 作为开放服务的接口模板，由用户定义,该文件将在服务第一次启动时由score/EventServer复制到protocol/webspcket下
- */
++----------------------------------------------------------------------
+| swoolefy framework bases on swoole extension development, we can use it easily!
++----------------------------------------------------------------------
+| Licensed ( https://opensource.org/licenses/MIT )
++----------------------------------------------------------------------
+| Author: bingcool <bingcoolhuang@gmail.com || 2437667702@qq.com>
++----------------------------------------------------------------------
+*/
+
+namespace protocol\websocket;
 
 use Swoolefy\Core\Swfy;
 
