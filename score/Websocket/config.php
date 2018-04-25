@@ -1,5 +1,15 @@
 <?php
-// websocketserver的配置
+/**
++----------------------------------------------------------------------
+| swoolefy framework bases on swoole extension development, we can use it easily!
++----------------------------------------------------------------------
+| Licensed ( https://opensource.org/licenses/MIT )
++----------------------------------------------------------------------
+| Author: bingcool <bingcoolhuang@gmail.com || 2437667702@qq.com>
++----------------------------------------------------------------------
+*/
+
+// websocketserver协议层配置
 return [
 	'application_index' => 'App\\Application',
 	'application_service' => 'Service\\Application',
