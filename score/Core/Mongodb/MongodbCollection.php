@@ -11,8 +11,6 @@
 
 namespace Swoolefy\Core\Mongodb;
 
-use Swoolefy\Core\Application;
-
 class MongodbCollection {
     /**
      * $collectionInstance  collection实例
@@ -41,9 +39,9 @@ class MongodbCollection {
      * __construct
      * @param string $collection
      */
-    public function __construct($collection) {
+    public function __construct($collection, $_id) {
         $this->collectionInstance = MongodbModel::$databaseObject->$collection;
-        $this->_id = Application::$app->mongodb->_id;
+        $this->_id = $_id;
     }
 
     /**

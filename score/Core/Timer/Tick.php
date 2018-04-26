@@ -74,12 +74,11 @@ class Tick {
 
             if(is_array($func)) {
                 list($class, $action) = $func;
-                $task_key = $class.'\\'.$action;
-                if(self::$_tasks_instances[$task_key]) {
-                   $tickTaskInstance = swoole_unpack(self::$_tasks_instances[$task_key]);
+                if(self::$_tasks_instances[$timer_id]) {
+                   $tickTaskInstance = swoole_unpack(self::$_tasks_instances[$timer_id]);
                 }else {
                     $tickTaskInstance = new $class;
-                    self::$_tasks_instances[$task_key] = swoole_pack($tickTaskInstance);
+                    self::$_tasks_instances[$timer_id] = swoole_pack($tickTaskInstance);
                 }
             }
             call_user_func_array([$tickTaskInstance, $action], $params);
@@ -108,7 +107,7 @@ class Tick {
         if($result) {
             foreach(self::$_tick_tasks as $tid=>$value) {
                 if($tid == $timer_id) {
-                    unset(self::$_tick_tasks[$tid]); 
+                    unset(self::$_tick_tasks[$timer_id], self::$_tasks_instances[$timer_id]); 
                 }
             }
             if(isset(Swfy::$config['open_table_tick_task']) && Swfy::$config['open_table_tick_task'] == true) {
