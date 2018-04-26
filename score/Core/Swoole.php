@@ -27,6 +27,12 @@ class Swoole extends Object {
 	 */
 	public $fd = null;
 
+	/**
+ 	 * $ExceptionHanderClass 异常处理类
+ 	 * @var string
+ 	 */
+ 	private $ExceptionHanderClass = 'Swoolefy\\Core\\SwoolefyException';
+
  	/**
 	 * __construct
 	 * @param $config 应用层配置
@@ -37,8 +43,12 @@ class Swoole extends Object {
 		// Component组件创建
 		self::creatObject();
 		// 注册错误处理事件
-		register_shutdown_function('Swoolefy\Core\SwoolefyException::fatalError');
-      	set_error_handler('Swoolefy\Core\SwoolefyException::appError');
+		$protocol_config = Swfy::getConf();
+		if(isset($protocol_config['exception_hander_class']) && !empty($protocol_config['exception_hander_class'])) {
+			$this->ExceptionHanderClass = $protocol_config['exception_hander_class'];
+		}
+		register_shutdown_function($this->ExceptionHanderClass.'::fatalError');
+      	set_error_handler($this->ExceptionHanderClass.'::appError');
 	}
 
 	/**
@@ -46,8 +56,6 @@ class Swoole extends Object {
 	 * @return void
 	 */
 	protected function _init($recv = null) {
-		// 初始化处理
-		Init::_init();
 		static::init($recv);	
 	}
 

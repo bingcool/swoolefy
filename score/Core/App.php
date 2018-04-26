@@ -15,9 +15,6 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Core\AppInit;
 use Swoolefy\Core\HttpRoute;
 use Swoolefy\Core\Application;
-use Monolog\Logger;
-use Monolog\Handler\StreamHandler;
-use Swoolefy\Tool\ArrayHelper\ArrayForHelp;
 
 class App extends \Swoolefy\Core\Component {
 	/**
@@ -45,6 +42,13 @@ class App extends \Swoolefy\Core\Component {
 	public $hooks = [];
  	const HOOK_AFTER_REQUEST = 1;
 
+
+ 	/**
+ 	 * $ExceptionHanderClass 异常处理类
+ 	 * @var string
+ 	 */
+ 	private $ExceptionHanderClass = 'Swoolefy\\Core\\SwoolefyException';
+
 	/**
 	 * __construct
 	 * @param $config 应用层配置
@@ -55,8 +59,12 @@ class App extends \Swoolefy\Core\Component {
 		// Component组件创建
 		parent::creatObject();
 		// 注册错误处理事件
-		register_shutdown_function('Swoolefy\Core\SwoolefyException::fatalError');
-      	set_error_handler('Swoolefy\Core\SwoolefyException::appError');
+		$protocol_config = Swfy::getConf();
+		if(isset($protocol_config['exception_hander_class']) && !empty($protocol_config['exception_hander_class'])) {
+			$this->ExceptionHanderClass = $protocol_config['exception_hander_class'];
+		}
+		register_shutdown_function($this->ExceptionHanderClass.'::fatalError');
+      	set_error_handler($this->ExceptionHanderClass.'::appError');
 	}
 
 	/**
@@ -178,7 +186,7 @@ class App extends \Swoolefy\Core\Component {
 	public function end() {
 		// 销毁当前的请求应用对象
 		Application::$app = null;
-		// 必须设置一个异常结束
+		// 设置一个异常结束
 		@$this->response->end();
 	}
 
