@@ -20,7 +20,7 @@ class AppInit extends Init {
 	 */
 	public static function _init() {
 		parent::_init();
-		// 每一次请求清空,再初始化
+		// init 
 		$_POST = $_GET = $_REQUEST = $_COOKIE = $_SESSION = $_FILES = [];
 		//请求对象
 		$request = Application::$app->request;
@@ -32,6 +32,7 @@ class AppInit extends Init {
 		// 设置在最后执行
 		self::resetRequest($request);
 	}
+
 	/**
 	 * resetServer 重置SERVER超全局数组
 	 * @param  object  $request 请求对象
