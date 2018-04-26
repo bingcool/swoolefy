@@ -125,7 +125,23 @@ class MongodbModel {
         }
 
         $this->dbInstance();
-        return self::$collectionModels[$collection] = new MongodbCollection($collection);
+        return self::$collectionModels[$collection] = new MongodbCollection($collection, $this->_id);
+    }
+
+    /**
+     * setId 
+     * @return  void
+     */
+    public function setIdKey(string $_id) {
+        $this->_id = $_id;
+    }
+
+    /**
+     * getIdKey 
+     * @return string
+     */
+    public function getIdKey() {
+        return $this->_id;
     }
 
     /**
