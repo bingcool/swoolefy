@@ -1,6 +1,8 @@
 # swoolefy
-swoolefy是一个基于swoole扩展实现的轻量级高性能的常驻内存型的API和Web应用服务框架。swoolefy的设计思想汲取了Tp5,Yii2,workerman,swooole-framework,easyswoole等框架的优秀设计思想，并结合本人多年的技术积累以及实践经验，它这是一个适合学习swoole的框架，特别适合中小团队，用过Tp的phper基本都会用，有过Yii2的经验者，那就更容易入手了。      
-swoolefy底层屏蔽了swoole与传统php-fpm的一些差异，让大部分的phper使用起来可以像使用php-fpm那样，轻松入手
+swoolefy是一个基于swoole扩展实现的轻量级高性能的常驻内存型的API和Web应用服务框架,高度封装了http，websocket，udp服务器，以及基于tcp实现可扩展的rpc服务，同时支持composer包方式安装部署项目。基于实用，swoolefy抽象Event事件处理类，实现与底层的回调的解耦，支持同步|异步调用，内置view、Log、session、mysql、redis、memcached、mongodb等常用组件等。     
+
+swoolefy是一个适合学习swoole的框架，特别适合中小团队，用过Tp的phper基本都会用，有过Yii2的经验者，那就更容易入手了。同时swoolefy底层屏蔽了swoole与传统php-fpm的一些差异，让大部分的phper使用起来可以像使用php-fpm那样，轻松入手。    
+
 ### 实现的功能特性     
 1、轻量级的框架，实现路由与调度，MVC三层，当然也可以配置多层   
 2、支持composer的PSR-4规范和实现自定义注册命名空间    
