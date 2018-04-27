@@ -106,16 +106,23 @@ docker exec -it dev /bin/sh
 [参考开发文档](https://www.kancloud.cn/bingcoolhuang/php-swoole-swoolefy/587504)   
 
 ### 监控程序   
-1、启动文件自动监控程序，进入swoolefy   
+1、启动文件自动监控程序，进入项目目录   
 ```   
-当前终端启动：php swoolefy start monitor    
-守护进程启动：php swoolefy start monitor -d         
-停止：php swoolefy stop monitor      
+当前终端启动：php swoolefy start monitor config.php   
+守护进程启动：php swoolefy start monitor config.php -d         
+停止：php swoolefy stop monitor 9502     
 ```
-可以在配置文件`swoolefy/protocol/monitor/config.php`设置。监控程序自动监控php的文件变动，然后swoole的worker自动重启，这个文件其实是通过调用代码Shell文件夹的swoole_monitor.sh来监控9502端口(这个是swoole的http服务的默认端口)，根据端口监听，可以设置不同端口，监听不同协议服务。   
-  需要注意的是，由于在容器中/home/www的目录是挂载与缩主机的，inotify是无法监听到文件变动的，所以这个监控程序在容器环境中是无效的，每次修改代码必须重启      
+可以在默认配置文件`swoolefy/protocol/monitor/config.php`设置。监控程序自动监控php的文件变动，然后swoole的worker自动重启，这个文件其实是通过调用代码Shell文件夹的swoole_monitor.sh来监控9502端口(例如这里9502是swoole的http服务的默认端口)。       
+当我们需要监听多个不同端口的服务时，可以复制 config.php，命名成不同的配置文件，例如要监听websocket的服务端口9503，那么可以定义配置文件websocket9503.php，那么此时可以设置
+```
+当前终端启动：php swoolefy start monitor websocket9503.php   
+守护进程启动：php swoolefy start monitor websocket9503.php -d         
+停止：php swoolefy stop monitor 9503
+```
+
+需要注意的是，由于在容器中/home/www的目录是挂载与缩主机的，inotify是无法监听到文件变动的，所以这个监控程序在容器环境中是无效的，每次修改代码必须重启      
 ### http服务   
-2、启动swoole的http服务，进入swoolefy 
+2、启动swoole的http服务，进入项目目录    
 ```     
 启动：php swoolefy start http  
 守护进程启动：php swoolefy start http -d            
@@ -125,7 +132,7 @@ docker exec -it dev /bin/sh
 注意文件权限问题
 
 ### websocket服务    
-1、启动swoole的websocket服务，进入swoolefy
+1、启动swoole的websocket服务，进入项目目录    
 ```    
 启动：php swoolefy start websocket 
 守护进程启动：php swoolefy start websocket -d            
@@ -134,7 +141,7 @@ docker exec -it dev /bin/sh
 默认端口9503，可以在配置文件`protocol/websocket/config.php`中更改     
 
 ### rpc服务   
-1、启动swoole的rpc服务，进入swoolefy
+1、启动swoole的rpc服务，进入项目目录   
 ```    
 启动：php swoolefy start rpc     
 守护进程启动：php swoolefy start rpc -d        
@@ -143,7 +150,7 @@ docker exec -it dev /bin/sh
 默认端口9504，可以在配置文件`protocol/rpc/config.php`中更改。
 
 ### udp服务   
-1、启动swoole的rpc服务，进入swoolefy
+1、启动swoole的rpc服务，进入项目目录   
 ```    
 启动：php swoolefy start udp    
 守护进程启动：php swoolefy start udp -d     

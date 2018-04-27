@@ -16,7 +16,7 @@ use Swoolefy\Tool\Log;
 use Swoolefy\Tool\Swiftmail;
 use Exception;
 
-class autoReload {
+class Reload {
 	/**
 	 * $inotify
 	 * @var null

@@ -1,9 +1,9 @@
 <?php
-// score目录,根据模式自动适应,composer安装模式
+// score目录,composer安装模式
 if(is_dir(__DIR__.'/vendor/bingcool/swoolefy')) {
     $SCORE_DIR = __DIR__.'/vendor/bingcool/swoolefy';
 }else {
-    // 直接下载使用模式
+    // 直接使用模式
     $SCORE_DIR = __DIR__;
 }
 
@@ -148,7 +148,7 @@ function startServer($server) {
             break;
         }
         case 'monitor' :{
-            global $argv;
+
             $path = START_DIR_ROOT.'/protocol/monitor';
             if(!is_dir($path)) {
                 @mkdir($path, 0777, true);
@@ -159,18 +159,33 @@ function startServer($server) {
                 copy(SCORE_DIR_ROOT.'/score/AutoReload/config.php', $config_file);
             }
 
-            if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
+            $config = include $config_file;
+
+            if(isset($argv[3])) {
+                $config_file = $path.'/'.$argv[3];
+                if(is_file($config_file)) {
+                    $config = include $config_file;
+                }else if($argv[3] == '-d' || $argv[3] == '-D') {
+                    swoole_process::daemon(true,false);
+                } 
+            }
+
+            if(isset($argv[4]) && ($argv[4] == '-d' || $argv[4] == '-D')) {
                 swoole_process::daemon(true,false);
             }
 
             $pid = posix_getpid();
-            $monitor_pid_file = $path.'/monitor.pid';
+
+            $monitor_port = $config['monitorPort'];
+            $monitor_pid_file = $path.'/monitor'.$monitor_port.'.pid';
             @file_put_contents($monitor_pid_file, $pid);
+            
+            $monitor_process_name = (isset($config['monitorProcessName']) && !empty($config['monitorProcessName'])) ? $config['monitorProcessName'] : 'php-autoreload-swoole-server';
             // 设置当前进程的名称
-            cli_set_process_title("php-autoreload-swoole-server");
-            $config = include $config_file;
+            cli_set_process_title($monitor_process_name);
+            
             // 创建进程服务实例
-            $daemon = new \Swoolefy\AutoReload\daemon($config);
+            $daemon = new \Swoolefy\AutoReload\Daemon($config);
             // 启动
             $daemon->run();
             break;
@@ -183,6 +198,7 @@ function startServer($server) {
 }
 
 function stopServer($server) {
+    global $argv;
 	switch(strtolower($server)) {
 		case 'http': {
             $path = START_DIR_ROOT.'/protocol/http';
@@ -205,8 +221,11 @@ function stopServer($server) {
             break;
         }
         case 'monitor': {
+            if(isset($argv[3])) {
+                $port = $argv[3];
+            }
             $path = START_DIR_ROOT.'/protocol/monitor';
-            $pid_file = $path.'/monitor.pid';
+            $pid_file = $path.'/monitor'.$port.'.pid';
             break;
         }
         default:{
@@ -215,12 +234,12 @@ function stopServer($server) {
 	}
 
     if(!is_file($pid_file)) {
-        echo "warning: pid file {$pid_file} is not exist! \n";
+        echo "error: pid file {$pid_file} is not exist! \n";
         return;
     }
     $pid = intval(file_get_contents($pid_file));
     if(!swoole_process::kill($pid,0)){
-        echo "warning: pid={$pid} not exist \n";
+        echo "error: pid={$pid} not exist \n";
         return;
     }
     // 发送信号，终止进程
@@ -240,7 +259,7 @@ function stopServer($server) {
         }else {
             if(time() - $nowtime > 2){
                 echo "-----------stop info------------\n";
-                echo "warnning: stop server failed. please try again \n";
+                echo "error: stop server failed. please try again \n";
                 echo "\n";
                 break;
             }
@@ -256,8 +275,8 @@ function help($command) {
             echo "2、执行php swoolefy start websocket 即可启动websocket server服务\n\n";
             echo "3、执行php swoolefy start rpc 即可启动rpc server服务\n\n";
             echo "4、执行php swoolefy start udp 即可启动udp server服务\n\n";
-            echo "5、执行php swoolefy start monitor 即在当前终端启动monitor 监控文件自动重启worker服务\n\n";
-            echo "6、执行php swoolefy start monitor -d 即以守护进程启动monitor 监控文件自动重启worker服务\n\n";
+            echo "5、执行php swoolefy start monitor configfile，例如php swoolefy start monitor config9502.php 即在当前终端启动monitor 监控文件自动重启worker服务\n\n";
+            echo "6、执行php swoolefy start monitor configfile，例如php swoolefy start monitor config9502.php -d 即以守护进程启动monitor 监控文件自动重启worker服务\n\n";
             echo "\n";
             break;
         }
@@ -267,7 +286,7 @@ function help($command) {
             echo "2、执行php swoolefy stop websocket 即可终止websocket server服务\n\n";
             echo "3、执行php swoolefy stop rpc 即可终止rpc server服务\n\n";
             echo "4、执行php swoolefy stop udp 即可终止rpc server服务\n\n";
-            echo "5、执行php swoolefy stop monitor 即可终止monitor 监控文件自动重启worker服务\n\n";
+            echo "5、执行php swoolefy stop monitor port，例如php swoolefy stop monitor 9502 即可终止monitor 监控文件自动重启worker服务\n\n";
             echo "\n";
             break;
         }
