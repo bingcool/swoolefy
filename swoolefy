@@ -182,7 +182,7 @@ function startServer($server) {
             
             $monitor_process_name = (isset($config['monitorProcessName']) && !empty($config['monitorProcessName'])) ? $config['monitorProcessName'] : 'php-autoreload-swoole-server';
             // 设置当前进程的名称
-            cli_set_process_title($monitor_process_name);
+            cli_set_process_title($monitor_process_name.'-'.$monitor_port);
             
             // 创建进程服务实例
             $daemon = new \Swoolefy\AutoReload\Daemon($config);
