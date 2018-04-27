@@ -519,4 +519,18 @@ class BaseServer {
     	}
     	return false;
     }
+
+    /**
+     * catchException description]
+     * @param  Exception $e
+     * @return void
+     */
+    public static function catchException($e) {
+    	$ExceptionHanderClass = 'Swoolefy\\Core\\SwoolefyException';
+    	if(isset(self::$config['exception_hander_class']) && !empty(self::$config['exception_hander_class'])) {
+			$ExceptionHanderClass = self::$config['exception_hander_class'];
+		}
+
+		$ExceptionHanderClass::appException($e);
+    }
 }

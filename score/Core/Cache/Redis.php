@@ -71,7 +71,7 @@ class Redis {
 
 	/**
 	 * getParameters 获取参数
-	 * @return [type] [description]
+	 * @return array
 	 */
 	public function getParameters() {
 		return $this->parameters;

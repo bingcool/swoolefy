@@ -41,7 +41,7 @@ class Pack {
 	 * $header_struct 析包结构,包含包头结构，key代表的是包头的字段，value代表的pack的类型
 	 * @var string
 	 */
-	public static $header_struct = ['length'=>'N','name'=>'a30'];
+	public static $header_struct = ['length'=>'N'];
 
 	/**
 	 * $pack_length_type pack包数据的类型, 默认null

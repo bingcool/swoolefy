@@ -136,11 +136,9 @@ abstract class TcpServer extends BaseServer {
 		 */
 		$this->tcpserver->on('connect', function(tcp_server $server, $fd) {  
     		try{
-    			// 延迟绑定
     			static::onConnet($server, $fd);
     		}catch(\Exception $e) {
-    			// 捕捉异常
-				\Swoolefy\Core\SwoolefyException::appException($e);
+    			self::catchException($e);
     		}
 		});
 
@@ -160,8 +158,7 @@ abstract class TcpServer extends BaseServer {
 				static::onReceive($server, $fd, $reactor_id, $recv);
 				return;
     		}catch(\Exception $e) {
-    			// 捕捉异常
-				\Swoolefy\Core\SwoolefyException::appException($e);
+    			self::catchException($e);
     		}
 			
 		});
@@ -172,11 +169,9 @@ abstract class TcpServer extends BaseServer {
 		$this->tcpserver->on('task', function(tcp_server $server, $task_id, $from_worker_id, $data) {
 			try{
 				$task_data = swoole_unpack($data);
-				// 延迟绑定
 				static::onTask($server, $task_id, $from_worker_id, $task_data);
 			}catch(\Exception $e) {
-				// 捕捉异常
-				\Swoolefy\Core\SwoolefyException::appException($e);
+				self::catchException($e);
 			}
 		    
 		});
@@ -189,8 +184,7 @@ abstract class TcpServer extends BaseServer {
 				$data = swoole_unpack($data);
 				static::onFinish($server, $task_id, $data);
 			}catch(\Exception $e) {
-				// 捕捉异常
-				\Swoolefy\Core\SwoolefyException::appException($e);
+				self::catchException($e);
 			}
 
 		});
@@ -203,8 +197,7 @@ abstract class TcpServer extends BaseServer {
 				static::onPipeMessage($server, $from_worker_id, $message);
 				return true;
 			}catch(\Exception $e) {
-				// 捕捉异常
-				\Swoolefy\Core\SwoolefyException::appException($e);
+				self::catchException($e);
 			}
 			
 		});
@@ -219,8 +212,7 @@ abstract class TcpServer extends BaseServer {
 				// 延迟绑定
 				static::onClose($server, $fd);
 			}catch(\Exception $e) {
-				// 捕捉异常
-				\Swoolefy\Core\SwoolefyException::appException($e);
+				self::catchException($e);
 			}
 		});
 
@@ -264,7 +256,7 @@ abstract class TcpServer extends BaseServer {
 		$this->pack = new Pack(self::$server);
 
 		if(self::isPackLength()) {
-			// packet_langth_check
+			// packet_length_check
 			$this->pack->header_struct = self::$config['packet']['server']['pack_header_strct'];
 			$this->pack->pack_length_key = self::$config['packet']['server']['pack_length_key'];
 			if(isset(self::$config['packet']['server']['serialize_type'])) {
