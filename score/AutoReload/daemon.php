@@ -52,7 +52,7 @@ class Daemon {
 	];
 
 	/**
-	 * =__construct 初始化函数
+	 * __construct 初始化函数
 	 * @param    {String}
 	 */
 	public function __construct(array $config = []) {	

@@ -22,7 +22,7 @@ class Synclient {
 	 * $header_struct 析包结构,包含包头结构，key代表的是包头的字段，value代表的pack的类型
 	 * @var array
 	 */
-	public $header_struct = ['length'=>'N','name'=>'a30'];
+	public $header_struct = ['length'=>'N'];
 
 	/**
 	 * $pack_setting 分包数据协议设置
@@ -239,9 +239,8 @@ class Synclient {
 		$body = self::encode($data, $serialize_type);
         $bin_header_data = '';
 
-        // 如果没有设置，客户端的包头结构体与服务端一致
         if(empty($header_struct)) {
-        	$header_struct = self::$header_struct;
+        	throw new \Exception('you must set the $header_struct');
         }
 
         foreach($header_struct as $key=>$value) {

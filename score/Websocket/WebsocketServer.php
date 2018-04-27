@@ -176,8 +176,7 @@ abstract class WebsocketServer extends BaseServer {
 				static::onOpen($server, $request);
 				return true;
 			}catch(\Exception $e) {
-				// 捕捉异常
-				\Swoolefy\Core\SwoolefyException::appException($e);
+				self::catchException($e);
 			}
 		});
 
@@ -189,8 +188,7 @@ abstract class WebsocketServer extends BaseServer {
 				static::onMessage($server, $frame);
 				return true;
 			}catch(\Exception $e) {
-				// 捕捉异常
-				\Swoolefy\Core\SwoolefyException::appException($e);
+				self::catchException($e);
 			}
 		});
 
@@ -203,8 +201,7 @@ abstract class WebsocketServer extends BaseServer {
 				$task_data = swoole_unpack($data);
 				static::onTask($server, $task_id, $from_worker_id, $task_data);
 			}catch(\Exception $e) {
-				// 捕捉异常
-				\Swoolefy\Core\SwoolefyException::appException($e);
+				self::catchException($e);
 			}
 		    
 		});
@@ -217,8 +214,7 @@ abstract class WebsocketServer extends BaseServer {
 				static::onFinish($server, $task_id, $data);
 				return true;
 			}catch(\Exception $e) {
-				// 捕捉异常
-				\Swoolefy\Core\SwoolefyException::appException($e);
+				self::catchException($e);
 			}
     		
 		});
@@ -231,8 +227,7 @@ abstract class WebsocketServer extends BaseServer {
 				static::onPipeMessage($server, $from_worker_id, $message);
 				return true;
 			}catch(\Exception $e) {
-				// 捕捉异常
-				\Swoolefy\Core\SwoolefyException::appException($e);
+				self::catchException($e);
 			}
 			
 		});
@@ -246,8 +241,7 @@ abstract class WebsocketServer extends BaseServer {
 				$this->pack->delete($fd);
 				static::onClose($server, $fd);
 			}catch(\Exception $e) {
-				// 捕捉异常
-				\Swoolefy\Core\SwoolefyException::appException($e);
+				self::catchException($e);
 			}
 		});
 

@@ -28,7 +28,7 @@ class BController extends \Swoolefy\Core\AppObject {
 
 	/**
 	 * $session
-	 * @var [type]
+	 * @var null
 	 */
 	public $session = null;
 
@@ -67,15 +67,15 @@ class BController extends \Swoolefy\Core\AppObject {
 	}
 
 	/**
-	 * __destruct 返回数据之前执行,重新初始化一些静态变量
+	 * __destruct 返回数据之前执行,初始化一些静态变量
 	 */
 	public function __destruct() {
 		if(method_exists($this,'_afterAction')) {
 			static::_afterAction();
 		}
-		// 初始化这个变量
+		// destroy
 		static::$previousUrl = [];
-		// 初始化清除所有得单例model实例
+		// destroy
 		static::$selfModel = [];
 	}
 

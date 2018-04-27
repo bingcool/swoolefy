@@ -28,7 +28,7 @@ class SwoolefyException {
               case E_COMPILE_ERROR:
               case E_USER_ERROR:  
                 @ob_end_clean();
-                self::shutHalt($e['message'], $errorType = 'error');
+                static::shutHalt($e['message'], $errorType = 'error');
                 break;
             }
         }
@@ -42,7 +42,7 @@ class SwoolefyException {
         $error = array();
         $error['message']   =   $e->getMessage();
         $trace              =   $e->getTrace();
-        if('E'==$trace[0]['function']) {
+        if('E' == $trace[0]['function']) {
             $error['file']  =   $trace[0]['file'];
             $error['line']  =   $trace[0]['line'];
         }else{
@@ -51,7 +51,7 @@ class SwoolefyException {
         }
         $error['trace']     =   $e->getTraceAsString();
         $errorStr = $error['file'].' 第'.$error['line'].'行:'.$error['message'];
-        self::shutHalt($errorStr);
+        static::shutHalt($errorStr);
     }
 
     /**
@@ -66,13 +66,13 @@ class SwoolefyException {
     	$errorStr = "<user trigger> [$errno]-> $errfile 第 $errline 行: $errstr";
       	switch ($errno) {
           case E_USER_ERROR:
-          		self::shutHalt($errorStr, $errorType = 'notice');
+          		static::shutHalt($errorStr, $errorType = 'notice');
           		break;
           case E_USER_WARNING:
-          		self::shutHalt($errorStr, $errorType = 'warning');
+          		static::shutHalt($errorStr, $errorType = 'warning');
           		break;
           case E_USER_NOTICE:
-            	self::shutHalt($errorStr, $errorType = 'notice');
+            	static::shutHalt($errorStr, $errorType = 'notice');
            		break;
           default:
             break;

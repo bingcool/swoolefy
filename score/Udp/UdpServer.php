@@ -128,8 +128,7 @@ abstract class UdpServer extends BaseServer {
 				static::onPack($server, $data, $clientInfo);
 				return;
     		}catch(\Exception $e) {
-    			// 捕捉异常
-				\Swoolefy\Core\SwoolefyException::appException($e);
+    			self::catchException($e);
     		}
 			
 		});
@@ -141,8 +140,7 @@ abstract class UdpServer extends BaseServer {
 				// 延迟绑定
 				static::onTask($server, $task_id, $from_worker_id, $task_data);
 			}catch(\Exception $e) {
-				// 捕捉异常
-				\Swoolefy\Core\SwoolefyException::appException($e);
+				self::catchException($e);
 			}
 		    
 		});
@@ -153,8 +151,7 @@ abstract class UdpServer extends BaseServer {
 				$data = swoole_unpack($data);
 				static::onFinish($server, $task_id, $data);
 			}catch(\Exception $e) {
-				// 捕捉异常
-				\Swoolefy\Core\SwoolefyException::appException($e);
+				self::catchException($e);
 			}
 
 		});
@@ -167,8 +164,7 @@ abstract class UdpServer extends BaseServer {
 				static::onPipeMessage($server, $from_worker_id, $message);
 				return true;
 			}catch(\Exception $e) {
-				// 捕捉异常
-				\Swoolefy\Core\SwoolefyException::appException($e);
+				self::catchException($e);
 			}
 			
 		});

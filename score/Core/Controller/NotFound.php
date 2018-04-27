@@ -11,7 +11,9 @@
 
 namespace Swoolefy\Core\Controller;
 
-class NotFound extends \Swoolefy\Core\Controller\BController {
+use Swoolefy\Core\Controller\BController;
+
+class NotFound extends BController {
 	
 	/**
 	 * page404 默认404

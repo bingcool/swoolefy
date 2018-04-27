@@ -28,13 +28,14 @@ defined('SWOOLEFY_COM_IS_DELAY') or define('SWOOLEFY_COM_IS_DELAY', 'is_delay');
 defined('SWOOLEFY_COM_IS_DESTROY') or define('SWOOLEFY_COM_IS_DESTROY', 'is_destroy');
 defined('SWOOLEFY_COM_FUNC') or define('SWOOLEFY_COM_FUNC', 'func');
 
+// 定义版本
+defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '1.0.0');
+
 class MPHP {
 
 	/**
 	 * swoolefy框架的版本
 	 */
-	const VERSION = '0.9';
-
-
+	const VERSION = '1.0.0';
 
 }

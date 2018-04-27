@@ -146,8 +146,7 @@ abstract class HttpServer extends BaseServer {
 				static::onRequest($request, $response);
 				return true;
 			}catch(\Exception $e) {
-				// 捕捉异常
-				\Swoolefy\Core\SwoolefyException::appException($e);
+				self::catchException($e);
 			}
 		});
 
@@ -159,8 +158,7 @@ abstract class HttpServer extends BaseServer {
 				$task_data = swoole_unpack($data);
 				static::onTask($task_id, $from_worker_id, $task_data);
 			}catch(\Exception $e) {
-				// 捕捉异常
-				\Swoolefy\Core\SwoolefyException::appException($e);
+				self::catchException($e);
 			}
 			
 		});
@@ -173,8 +171,7 @@ abstract class HttpServer extends BaseServer {
 				static::onFinish($task_id, $data);
 				return true;
 			}catch(\Exception $e) {
-				// 捕捉异常
-				\Swoolefy\Core\SwoolefyException::appException($e);
+				self::catchException($e);
 			}
 			
 		});
@@ -187,8 +184,7 @@ abstract class HttpServer extends BaseServer {
 				static::onPipeMessage($server, $src_worker_id, $message);
 				return true;
 			}catch(\Exception $e) {
-				// 捕捉异常
-				\Swoolefy\Core\SwoolefyException::appException($e);
+				self::catchException($e);
 			}
 			
 		});
