@@ -11,9 +11,9 @@
 
 namespace Swoolefy\AutoReload;
 
-use Swoolefy\AutoReload\autoReload;
+use Swoolefy\AutoReload\Reload;
 
-class daemon {
+class Daemon {
 	/**
 	 * $config 配置
 	 * @var array
@@ -65,7 +65,7 @@ class daemon {
 	 * @return   void
 	 */
 	public function autoReload() {
-		$autoReload = new autoReload();
+		$autoReload = new Reload();
 		$autoReload->afterNSeconds = $this->config['afterNSeconds'];
 		$autoReload->isOnline = $this->config['isOnline'];
 		$autoReload->monitorPort = $this->config['monitorPort'];

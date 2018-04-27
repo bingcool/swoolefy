@@ -5,6 +5,7 @@ return [
 	'isOnline' => false,
 	'monitorPort' => 9502,
 	'monitorPath' => '/home/www/swoolefy',
+	'monitorProcessName' => 'php-autoreload-swoole-server',
 	'reloadFileTypes' => ['.php','.html','.js'],
 	'smtpTransport' => [
 		"server_host"=>"smtp.163.com",

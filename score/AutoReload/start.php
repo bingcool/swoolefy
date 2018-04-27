@@ -57,7 +57,7 @@ function start() {
 	// 设置当前进程的名称
 	cli_set_process_title("php-autoreload-swoole-server");
 	// 创建进程服务实例
-	$daemon = new \Swoolefy\AutoReload\daemon($config = []);
+	$daemon = new \Swoolefy\AutoReload\Daemon($config = []);
 	// 启动
 	$daemon->run();
 }
