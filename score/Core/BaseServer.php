@@ -521,7 +521,7 @@ class BaseServer {
     }
 
     /**
-     * catchException description]
+     * catchException 
      * @param  Exception $e
      * @return void
      */

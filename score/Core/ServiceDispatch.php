@@ -52,16 +52,19 @@ class ServiceDispatch extends AppDispatch {
 		$class = trim($class, '/');
 		if(!self::$routeCacheFileMap[$class]) {
 			// 类文件不存在
+			$file = $this->checkClass($class);
 			if(!$this->checkClass($class)){
 				// TODO
+				throw new \Exception("when dispatch, $class file is not exist", 1);
 			}
 		}
+		
 		$class = str_replace('/','\\', $class);
 		$serviceInstance = new $class();
 		try{
 			$serviceInstance->$action($this->params);
 		}catch(\Exception $e) {
-			throw new \Exception("dispatch $class Instance Fatal error", 1);
+			throw new \Exception("when dispatch, create $class Instance Fatal error, $class is not exist or $action is not exist!", 1);
 		}
 		
 	}
@@ -72,8 +75,9 @@ class ServiceDispatch extends AppDispatch {
 	 * @return boolean
 	 */
 	public function checkClass($class) {
-		$class = trim($class, '/');
-		$file = APP_PATH.DIRECTORY_SEPARATOR.$class.DIRECTORY_SEPARATOR.'.php';
+		$path = str_replace('\\', '/', $class);
+		$path = trim($path, '/');
+		$file = ROOT_PATH.DIRECTORY_SEPARATOR.$path.'.php';
 		if(is_file($file)) {
 			self::$routeCacheFileMap[$class] = true;
 			return true;

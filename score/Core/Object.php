@@ -17,36 +17,12 @@ use Swoolefy\Core\Timer\TickManager;
 class Object {
 
 	/**
-	 * getTickTasks 获取实时在线的循环定时任务
-	 * @return   mixed
-	 */
-	public static function getTickTasks() {
-		return TickManager::getTickTasks();						
-	}
-
-	/**
-	 * getAfterTasks 获取实时的在线一次性定时任务
-	 * @return   mixed
-	 */
-	public static function getAfterTasks() {
-		return TickManager::getAfterTasks();
-	}
-
-	/**
-	 * deleteTickTasks 删除一个实时任务
-	 * @param    $timer_id
-	 * @return   boolean         
-	 */
-	public static function deleteTickTasks($timer_id) {
-		return TickManager::clearTimer($timer_id);
-	}
-
-	/**
 	 * __call
 	 * @return   mixed
 	 */
-	public function __call($action,$args = []) {
-			
+	public function __call($action, $args = []) {
+		throw new \Exception("Error Processing Request, $action() is not exist！", 1);
+				
 	}
 
 	/**
@@ -63,7 +39,7 @@ class Object {
 	 * @param    $code
 	 * @return   mixed
 	 */
-	public static function _die($html='',$msg='') {
+	public static function _die($html='', $msg='') {
 		
 	}
 
