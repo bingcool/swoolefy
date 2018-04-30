@@ -169,11 +169,7 @@ trait ServiceTrait {
 	 * @return   boolean
 	 */
 	public static function isWorkerProcess() {
-		$worker_id = self::getCurrentWorkerId();
-		if($worker_id < Swfy::$config['setting']['worker_num']) {
-			return true;
-		}
-		return false;
+		return (!self::isTaskProcess()) ? true : false;
 	}
 
 	/**
@@ -182,8 +178,11 @@ trait ServiceTrait {
 	 * @return   boolean
 	 */
 	public static function isTaskProcess() {
-		$worker_id = self::getCurrentWorkerId();
-		return self::isWorkerProcess($worker_id) ? false : true;
+		$server = Swfy::getServer();
+		if(property_exists($server, 'taskworker')) {
+			return $server->taskworker;
+		}
+		throw new \Exception("not found task process,may be you use it before workerStart()", 1);
 	}
 
 	/**
