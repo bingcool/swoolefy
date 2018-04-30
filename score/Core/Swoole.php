@@ -93,9 +93,7 @@ class Swoole extends Object {
      * @return boolean
      */
     public static function isWorkerProcess() {
-        $worker_id = self::getCurrentWorkerId();
-        $max_worker_id = (Swfy::$config['setting']['worker_num']) - 1;
-        return ($worker_id <= $max_worker_id) ? true : false;
+        return Swfy::isWorkerProcess();
     }
 
     /**
@@ -103,7 +101,7 @@ class Swoole extends Object {
      * @return boolean
      */
     public static function isTaskProcess() {
-        return (self::isWorkerProcess()) ? false : true;
+        return (!self::isWorkerProcess()) ? true : false;
     }
 
  	/**

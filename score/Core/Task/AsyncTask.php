@@ -74,6 +74,6 @@ class AsyncTask implements AsyncTaskInterface {
      * @return boolean
      */
     public static function isTaskProcess() {
-        return (self::isWorkerProcess()) ? false : true;
+        return (!self::isWorkerProcess()) ? true : false;
     }
 }
