@@ -19,18 +19,6 @@ class MongodbCollection {
     public $collectionInstance = null;
     
     /**
-     * $filter where的过滤条件
-     * @var array
-     */
-    public $filter = [];
-
-    /**
-     * $options 其他选项
-     * @var array
-     */
-    public $options = [];
-
-    /**
      * _id 将默认设置成id
      */
     public $_id = null;
@@ -45,15 +33,6 @@ class MongodbCollection {
     }
 
     /**
-     * clear 单例模式，需要每次实例collection时，清空条件
-     * @return void
-     */
-    public function clear() {
-        $this->filter = $this->options = [];
-        return $this;
-    }
-    
-    /**
      * bulkWrite 批量执行操作命令数据
      * @param   array   $insertData
      * @return    void
@@ -63,15 +42,13 @@ class MongodbCollection {
     }
 
     /**
-     * where 条件设置
+     * parseFilter 条件分析
      * @param   array   $filter
      * @return    $this
      */
-    public function where($filter) {
-         
+    protected function parseFilter($filter = []) {
         if(isset($filter['_id'])) {
-            if($filter['_id'] instanceof \MongoDB\BSON\ObjectId) {
-            }else {
+            if(!$filter['_id'] instanceof \MongoDB\BSON\ObjectId) {
                 $filter['_id'] = new \MongoDB\BSON\ObjectId($filter['_id']);
             }
             if(isset($filter[$this->_id])) {
@@ -80,8 +57,7 @@ class MongodbCollection {
         }else {
             $keys = array_keys($filter);
             if(in_array($this->_id, $keys)) {
-                
-                if($filter[$this->_id] instanceof \MongoDB\BSON\ObjectId) {                    
+                if($filter[$this->_id] instanceof \MongoDB\BSON\ObjectId) {
                     $filter['_id'] = $filter[$this->_id];
                 }else {
                     $filter['_id'] = new \MongoDB\BSON\ObjectId($filter[$this->_id]);
@@ -89,90 +65,185 @@ class MongodbCollection {
                 unset($filter[$this->_id]);
             }
         }
-        $this->filter = array_merge($this->filter, $filter);
-        return $this;
-    }
-
-    /**
-     * field 字段设置
-     * @param   array|string   $fields
-     * @return    $this
-     */
-    public function field($fields) {
-        if($fields == '' || $fields == '*') {
-            return $this;
-        }
-        if(is_string($fields)) {
-            $fieldParams = explode(',', $fields);
-        }elseif(is_array($fileds)) {
-            $fieldParams = $fields;
-        } 
-        foreach($fieldParams as $field) {
-            $projection[$field] = 1; 
-        }
-        $this->options['projection'] = $projection;
-        return $this;
-    }
-
-    /**
-     * limit 限制数量设置
-     * @param   int   $skip
-     * @param   int   $offset
-     * @return   $this
-     */
-    public function limit($skip, $offset) {
-        $this->options['skip'] = (int) $skip;
-        $this->options['limit'] = (int) $offset;
-        return $this;
-    }
-
-    /**
-     * order 字段排序
-     * @param   array   $sort
-     * @return   $this
-     */
-    public function order($sort) {
-        if(is_string($sort)) {
-            list($field,$ordervalue) = explode(',',$sort);
-            $this->options['sort'] = [$field=>$ordervalue];
-        }
-        if(is_array($sort)) {
-            $this->options['sort'] = $sort;
-        }
-        return $this;
+        return $filter;
     }
 
     /**
      * find 查询数据
      * @return array
      */
-    public function find() {
-        $return = [];
-        $result = $this->collectionInstance->find($this->filter, $this->options);
-        foreach($result as $k => $document) {
-            $return[$k] = iterator_to_array($document);
-            if(isset($return[$k]['_id'])) {
+    public function find($filter = [], array $options = []) {
+        $result = [];
+        $filter = $this->parseFilter($filter);
+        $documents = $this->collectionInstance->find($filter, $options);
+        foreach($documents as $k => $document) {
+            $result[$k] = iterator_to_array($document);
+            if(isset($result[$k]['_id'])) {
                 if(!is_null($this->_id) &&  ($this->_id != '_id')) {
-                    $return[$k][$this->_id] = (string) $return[$k]['_id'];
-                    unset($return[$k]['_id']);
+                    $result[$k][$this->_id] = (string) $result[$k]['_id'];
+                    unset($result[$k]['_id']);
                 }else {
-                    $return[$k]['_id'] = (string) $return[$k]['_id'];
+                    $result[$k]['_id'] = (string) $result[$k]['_id'];
                 }  
             }
-        }        
-        return $return;
+        }      
+        return $result;
+    }
+
+    /**
+     * findOne 查找一个文档
+     * @param  array  $filter
+     * @param  array  $options
+     * @return array        
+     */
+    public function findOne($filter = [], array $options = []) {
+        $filter = $this->parseFilter($filter);
+        $documents = $this->collectionInstance->findOne($filter, $options);
+        $document = iterator_to_array($documents);
+        if(isset($document['_id'])) {
+            if(!is_null($this->_id) &&  ($this->_id != '_id')) {
+                $document[$this->_id] = (string) $document['_id'];
+                unset($document['_id']);
+            }else {
+                $document['_id'] = (string) $document['_id'];
+            }
+        } 
+        return $document;
+    }
+
+    /**
+     * findOneAndDelete 返回将要被删除的文档
+     * @param  array $filter
+     * @param  array  $options
+     * @return mixed
+     */
+    public function findOneAndDelete($filter, array $options = []) {
+        $filter = $this->parseFilter($filter);
+        $result = $this->collectionInstance->findOneAndDelete($filter, $options);
+        if(is_object($result)) {
+            $document = iterator_to_array($result);
+            if(isset($document['_id'])) {
+                if(!is_null($this->_id) &&  ($this->_id != '_id')) {
+                    $document[$this->_id] = (string) $document['_id'];
+                    unset($document['_id']);
+                }else {
+                    $document['_id'] = (string) $document['_id'];
+                }
+            }
+        }else if(is_array($result)) {
+            $document = $result;
+            if(isset($document['_id'])) {
+                if(!is_null($this->_id) &&  ($this->_id != '_id')) {
+                    $document[$this->_id] = (string) $document['_id'];
+                    unset($document['_id']);
+                }else {
+                    $document['_id'] = (string) $document['_id'];
+                }
+            }
+        }else {
+            // 没有匹配到文档返回null
+            $document = $result;
+        }
+        
+        return $document;
+    }
+
+    /**
+     * findOneAndReplace 返回替换后的文档
+     * @param  array $filter     
+     * @param  array $replacement
+     * @param  array  $options    
+     * @return mixed             
+     */
+    public function findOneAndReplace($filter, $replacement, array $options = []) {
+        $filter = $this->parseFilter($filter);
+        $result = $this->collectionInstance->findOneAndReplace($filter, $replacement, $options);
+        if(is_object($result)) {
+            $document = iterator_to_array($result);
+            if(isset($document['_id'])) {
+                if(!is_null($this->_id) &&  ($this->_id != '_id')) {
+                    $document[$this->_id] = (string) $document['_id'];
+                    unset($document['_id']);
+                }else {
+                    $document['_id'] = (string) $document['_id'];
+                }
+            }
+        }else if(is_array($result)) {
+            $document = $result;
+            if(isset($document['_id'])) {
+                if(!is_null($this->_id) &&  ($this->_id != '_id')) {
+                    $document[$this->_id] = (string) $document['_id'];
+                    unset($document['_id']);
+                }else {
+                    $document['_id'] = (string) $document['_id'];
+                }
+            }
+        }else {
+            $document = $result;
+        }
+        
+        return $document;
+    }
+
+    /**
+     * findOneAndUpdate 返回更新后的文档
+     * @param  array $filter
+     * @param  array $update
+     * @param  array  $options
+     * @return mixed
+     */
+    public function findOneAndUpdate($filter, $update, array $options = []) {
+        $filter = $this->parseFilter($filter);
+        $result = $this->collectionInstance->findOneAndUpdate($filter, $update, $options);
+        if(is_object($result)) {
+            $document = iterator_to_array($result);
+            if(isset($document['_id'])) {
+                if(!is_null($this->_id) &&  ($this->_id != '_id')) {
+                    $document[$this->_id] = (string) $document['_id'];
+                    unset($document['_id']);
+                }else {
+                    $document['_id'] = (string) $document['_id'];
+                }
+            }
+        }else if(is_array($result)) {
+            $document = $result;
+            if(isset($document['_id'])) {
+                if(!is_null($this->_id) &&  ($this->_id != '_id')) {
+                    $document[$this->_id] = (string) $document['_id'];
+                    unset($document['_id']);
+                }else {
+                    $document['_id'] = (string) $document['_id'];
+                }
+            }
+        }else {
+            // 没有找到对应的更新文档，返回null
+            $document = $result;
+        }
+        
+        return $document;
+    }
+
+    /**
+     * insertMany 插入多个文档
+     * @param  array  $documents
+     * @param  array  $options
+     * @return 
+     */
+    public function insertMany(array $documents, array $options = []) {
+        return $this->insert($documents, $options);
     }
 
     /**
      * insertMany 插入多条数据
      * @param   array   $insertData
+     * @param   array   $options
      * @return    int
      */
-    public function insert($insertData) {
-        if(count($insertData) == count($insertData, 1)) {
-            return $this->insertOne($insertData);
+    public function insert(array $documents, array $options = []) {
+        if(count($documents) == 1) {
+            return $this->insertOne($documents, $options);
         }
-        $writeResult = $this->collectionInstance->insertMany($insertData, $this->options);
+        $writeResult = $this->collectionInstance->insertMany($documents, $options);
         $insertId = $writeResult->getInsertedCount();
         if($insertId < 0 || is_null($insertId) || $insertId === false) {
             return false;
@@ -182,11 +253,11 @@ class MongodbCollection {
 
     /**
      * insertOne 插入一条数据
-     * @param   array   $insertData
+     * @param   array   $documents
      * @return    int
      */
-    public function insertOne($insertData) {
-        $writeResult = $this->collectionInstance->insertOne($insertData, $this->options);
+    public function insertOne($document, array $options = []) {
+        $writeResult = $this->collectionInstance->insertOne($document, $options);
         $insertId = $writeResult->getInsertedCount();
         if($insertId < 0 || is_null($insertId) || $insertId === false) {
             return false;
@@ -194,12 +265,15 @@ class MongodbCollection {
         return $insertId;
     }
 
-    /**
-     * deleteMany 删除多条数据
-     * @return int
+   /**
+     * deleteMany 删除多个文档
+     * @param   array $filter
+     * @param   array options
+     * @return  int|boolean 
      */
-    public function delete() {
-        $deleteResult = $this->collectionInstance->deleteMany($this->filter, $this->options);
+    public function delete($filter, array $options = []) {
+        $filter = $this->parseFilter($filter);
+        $deleteResult = $this->collectionInstance->deleteMany($filter, $options);
         $deleteId = $deleteResult->getDeletedCount();
         if($deleteId < 0 || is_null($deleteId) || $deleteId === false) {
             return false;
@@ -208,11 +282,24 @@ class MongodbCollection {
     }
 
     /**
-     * deleteMany 删除一条数据
-     * @return  int 
+     * deleteMany 删除多个文档
+     * @param   array $filter
+     * @param   array options
+     * @return  int|boolean 
      */
-    public function deleteOne() {
-        $deleteResult = $this->collectionInstance->deleteOne($this->filter, $this->options);
+    public function deleteMany($filter, array $options = []) {
+        return $this->delete($filter, $options);
+    }
+
+    /**
+     * deleteMany 删除一个文档
+     * @param   array $filter
+     * @param   array options
+     * @return  int|boolean 
+     */
+    public function deleteOne($filter, array $options = []) {
+        $filter = $this->parseFilter($filter);
+        $deleteResult = $this->collectionInstance->deleteOne($filter, $options);
         $deleteId = $deleteResult->getDeletedCount();
         if($deleteId < 0 || is_null($deleteId) || $deleteId === false) {
             return false;
@@ -220,12 +307,16 @@ class MongodbCollection {
         return $deleteId;
     }
 
-    /**
-     * updateMany 更新多条数据
-     * @return int
+     /**
+     * updateMany 更新多个文档
+     * @param  array  $filter
+     * @param  array  $update
+     * @param  array  $options
+     * @return int|boolean
      */
-    public function update() {
-        $updateResult = $this->collectionInstance->updateMany($this->filter, $this->options);
+    public function update($filter, $update, array $options = []) {
+        $filter = $this->parseFilter($filter);
+        $updateResult = $this->collectionInstance->updateMany($filter, $update, $options);
         $updateId = $updateResult->writeResult->getUpsertedCount();
         if($updateId == 0 || $updateId  === false) {
             return false;
@@ -234,11 +325,26 @@ class MongodbCollection {
     }
 
     /**
-     * deleteMany 更新一条数据
-     * @return int
+     * updateMany 更新多个文档
+     * @param  array  $filter
+     * @param  array  $update
+     * @param  array  $options
+     * @return int|boolean
      */
-    public function updateOne() {
-        $updateResult = $this->collectionInstance->updateOne($this->filter, $this->options);
+    public function updateMany($filter, $update, array $options = []) {
+        return $this->update($filter, $update, $options);
+    }
+
+    /**
+     * updateMany 更新一个文档
+     * @param  array  $filter
+     * @param  array  $update
+     * @param  array  $options
+     * @return int|boolean
+     */
+    public function updateOne($filter, $update, array $options = []) {
+        $filter = $this->parseFilter($filter);
+        $updateResult = $this->collectionInstance->updateOne($filter, $update, $options);
         $updateId = $updateResult->writeResult->getUpsertedCount();
         if($updateId == 0 || $updateId  === false) {
             return false;
@@ -250,8 +356,8 @@ class MongodbCollection {
      * count 计算总数
      * @return int
      */
-    public function count() {
-        return $this->collectionInstance->count($this->filter, $this->options);
+    public function count($filter, array $options = []) {
+        return $this->collectionInstance->count($filter, $options);
     }
 
     /**
@@ -259,18 +365,8 @@ class MongodbCollection {
      * @param   string   $filedName
      * @return    mixed
      */
-    public function distinct($filedName) {
-        return $this->collectionInstance->distinct($filedName, $this->filter, $this->options);
-    }
-
-    /**
-     * option 选项设置
-     * @param   array   $options
-     * @return    $this
-     */
-    public function option($options) {
-        $this->options = array_merge($this->options, $options);
-        return $this;
+    public function distinct($fieldName, $filter = [], array $options = []) {
+        return $this->collectionInstance->distinct($fieldName, $filter, $options);
     }
 
     /**
