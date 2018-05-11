@@ -71,7 +71,7 @@ class SwooleProcess extends Object {
 		// call hook callable
 		Hook::callHook(Hook::HOOK_AFTER_REQUEST);
 		ZModel::$_model_instances = [];
-		// 销毁某些组件,每次请求重新创建
+		// 销毁某些组件
 		self::clearComponent(self::$_destroy_components);
 	}
 

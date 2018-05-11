@@ -65,7 +65,7 @@ class ProcessController extends Object {
 		}
 		// 初始化销毁所有得单例model实例
 		static::$selfModel = [];
-		// 销毁某些组件,每次请求重新创建
+		// 销毁某些组件
 		self::clearComponent(self::$_destroy_components);
 
 	}

@@ -48,18 +48,6 @@ abstract class WebsocketServer extends BaseServer {
 	public $webserver = null;
 
 	/**
-	 * $tcpserver 
-	 * @var null
-	 */
-	public $tcpserver = null;
-
-	/**
-	 * $channel 进程共享内存信道队列
-	 * @var null
-	 */
-	public $channel = null;
-
-	/**
 	 * $pack 封解包对象
 	 * @var null
 	 */
@@ -91,9 +79,6 @@ abstract class WebsocketServer extends BaseServer {
 		$this->webserver->set(self::$setting);
 		parent::__construct();
 
-		// 创建一个channel通道,worker进程共享内存
-		$this->channel = new \Swoole\Channel(1024 * 256);
-
 		// 设置Pack包处理对象
 		$this->pack = new Pack(self::$server);
 
@@ -114,6 +99,7 @@ abstract class WebsocketServer extends BaseServer {
 			// 启动的初始化函数
 			$this->startCtrl->start($server);
 		});
+
 		/**
 		 * managerstart回调
 		 */
@@ -191,7 +177,6 @@ abstract class WebsocketServer extends BaseServer {
 				self::catchException($e);
 			}
 		});
-
 
 		/**
 		 * task 函数,处理异步任务

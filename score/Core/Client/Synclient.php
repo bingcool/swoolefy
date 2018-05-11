@@ -235,7 +235,6 @@ class Synclient {
 	 * @return mixed                 
 	 */
 	public static function enpack($data, $header, array $header_struct = [], $pack_length_key ='length', $serialize_type = self::DECODE_JSON) {
-
 		$body = self::encode($data, $serialize_type);
         $bin_header_data = '';
 
