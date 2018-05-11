@@ -36,6 +36,6 @@ class MPHP {
 	/**
 	 * swoolefy框架的版本
 	 */
-	const VERSION = '1.0.0';
+	const VERSION = SWOOLEFY_VERSION;
 
 }

@@ -234,8 +234,8 @@ class MongodbCollection {
     }
 
     /**
-     * insertMany 插入多条数据
-     * @param   array   $insertData
+     * insertMany 插入多个文档
+     * @param   array   $documents
      * @param   array   $options
      * @return    int
      */
@@ -253,10 +253,11 @@ class MongodbCollection {
 
     /**
      * insertOne 插入一条数据
-     * @param   array   $documents
+     * @param   array   $document
+     * @param   array   $options
      * @return    int
      */
-    public function insertOne($document, array $options = []) {
+    public function insertOne(array $document, array $options = []) {
         $writeResult = $this->collectionInstance->insertOne($document, $options);
         $insertId = $writeResult->getInsertedCount();
         if($insertId < 0 || is_null($insertId) || $insertId === false) {
@@ -366,6 +367,7 @@ class MongodbCollection {
      * @return    mixed
      */
     public function distinct($fieldName, $filter = [], array $options = []) {
+        $filter = $this->parseFilter($filter);
         return $this->collectionInstance->distinct($fieldName, $filter, $options);
     }
 
