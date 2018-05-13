@@ -76,15 +76,17 @@ class MongodbCollection {
         $result = [];
         $filter = $this->parseFilter($filter);
         $documents = $this->collectionInstance->find($filter, $options);
-        foreach($documents as $k => $document) {
-            $result[$k] = iterator_to_array($document);
-            if(isset($result[$k]['_id'])) {
-                if(!is_null($this->_id) &&  ($this->_id != '_id')) {
-                    $result[$k][$this->_id] = (string) $result[$k]['_id'];
-                    unset($result[$k]['_id']);
-                }else {
-                    $result[$k]['_id'] = (string) $result[$k]['_id'];
-                }  
+        if($documents) {
+            foreach($documents as $k => $document) {
+                $result[$k] = iterator_to_array($document);
+                if(isset($result[$k]['_id'])) {
+                    if(!is_null($this->_id) &&  ($this->_id != '_id')) {
+                        $result[$k][$this->_id] = (string) $result[$k]['_id'];
+                        unset($result[$k]['_id']);
+                    }else {
+                        $result[$k]['_id'] = (string) $result[$k]['_id'];
+                    }  
+                }
             }
         }      
         return $result;
@@ -99,7 +101,9 @@ class MongodbCollection {
     public function findOne($filter = [], array $options = []) {
         $filter = $this->parseFilter($filter);
         $documents = $this->collectionInstance->findOne($filter, $options);
-        $document = iterator_to_array($documents);
+        if($documents) {
+            $document = iterator_to_array($documents);
+        }
         if(isset($document['_id'])) {
             if(!is_null($this->_id) &&  ($this->_id != '_id')) {
                 $document[$this->_id] = (string) $document['_id'];
