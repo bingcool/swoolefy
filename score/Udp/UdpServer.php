@@ -148,7 +148,6 @@ abstract class UdpServer extends BaseServer {
 		// 异步任务完成 
 		$this->udpserver->on('finish', function(udp_server $server, $task_id, $data) {
 			try{
-				$data = swoole_unpack($data);
 				static::onFinish($server, $task_id, $data);
 			}catch(\Exception $e) {
 				self::catchException($e);

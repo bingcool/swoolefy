@@ -181,7 +181,6 @@ abstract class TcpServer extends BaseServer {
 		 */
 		$this->tcpserver->on('finish', function(tcp_server $server, $task_id, $data) {
 			try{
-				$data = swoole_unpack($data);
 				static::onFinish($server, $task_id, $data);
 			}catch(\Exception $e) {
 				self::catchException($e);

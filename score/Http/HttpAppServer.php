@@ -74,6 +74,6 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 	 * @param    mixed $data
 	 * @return   void
 	 */
-	public function onFinish($task_id, $data) {}
+	public function onFinish($server, $task_id, $data) {}
 
 }	
