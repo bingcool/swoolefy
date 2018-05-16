@@ -168,7 +168,7 @@ abstract class HttpServer extends BaseServer {
 		 */
 		$this->webserver->on('finish', function(http_server $server, $task_id, $data) {
 			try {
-				static::onFinish($task_id, $data);
+				static::onFinish($server, $task_id, $data);
 				return true;
 			}catch(\Exception $e) {
 				self::catchException($e);

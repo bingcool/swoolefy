@@ -21,7 +21,7 @@ return [
 	'host' => '0.0.0.0',
 	'port' => '9503',
 	// websocket独有
-	'accept_http' => true,
+	'accept_http' => false,
 	'time_zone' => 'PRC', 
 	'setting' => [
 		'reactor_num' => 1,

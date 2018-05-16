@@ -130,10 +130,9 @@ abstract class WebsocketServer extends BaseServer {
        		Swfy::$server = $this->webserver;
        		Swfy::$config = self::$config;
        		// 初始化整个应用对象,http请求设置
-       		if(self::$config['accept_http'] || self::$config['accept_http'] == 'true') {
+       		if(isset(self::$config['accept_http']) && self::$config['accept_http'] == true) {
        			is_null(self::$App) && self::$App = swoole_pack(self::$config['application_index']::getInstance($config=[]));
        		}
-
        		// 单例服务处理实例
        		is_null(self::$service) && self::$service = swoole_pack(self::$config['application_service']::getInstance($config=[]));
 
@@ -148,8 +147,8 @@ abstract class WebsocketServer extends BaseServer {
 		 * @see https://wiki.swoole.com/wiki/page/409.html
 		 */
 		if(method_exists($this, 'onHandshake')) {
-			$this->webserver->on('handshake', function(request $request, response $response) {
-			// 自定义handshake函数
+			$this->webserver->on('handshake', function(Request $request, Response $response) {
+				// 自定义handshake函数
 				static::onHandshake($request, $response);
 			}); 
 		} 
@@ -234,7 +233,7 @@ abstract class WebsocketServer extends BaseServer {
 		 * 接受http请求
 		 * @see https://wiki.swoole.com/wiki/page/397.html
 		 */
-		if(!isset(self::$config['accept_http']) || self::$config['accept_http'] || self::$config['accept_http'] == 'true') {
+		if((isset(self::$config['accept_http']) && self::$config['accept_http'] == true)) {
 			$this->webserver->on('request',function(Request $request, Response $response) {
 				try{
 					// google浏览器会自动发一次请求/favicon.ico,在这里过滤掉

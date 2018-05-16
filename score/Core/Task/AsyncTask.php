@@ -49,8 +49,21 @@ class AsyncTask implements AsyncTaskInterface {
      * @param   mixed  $data
      * @return    void
      */
-    public static function registerTaskfinish($callable, $data) {
-        return Swfy::getServer()->finish([$callable, $data]);
+    public static function registerTaskfinish($data) {
+       return static::finish($data);
+    }
+
+    /**
+     * finish registerTaskfinish函数-异步任务完成并退出到worker进程的别名函数
+     * @param    mixed   $callable
+     * @param    mixed   $data
+     * @return   void
+     */
+    public static function finish($data) {
+        if(is_array($data)) {
+            $data = json_encode($data);
+        }
+        return Swfy::getServer()->finish($data);
     }
 
     /**
