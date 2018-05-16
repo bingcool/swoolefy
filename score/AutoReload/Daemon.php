@@ -23,6 +23,7 @@ class Daemon {
 		'isOnline' => false,
 		'monitorPort' => 9502,
 		'monitorPath' => '/home/www/swoolefy',
+		'logFilePath' => START_DIR_ROOT.'/protocol/monitor/inotify.log',
 		'reloadFileTypes' => ['.php','.html','.js'],
 		'smtpTransport' => [
 			"server_host"=>"smtp.163.com",
@@ -66,14 +67,13 @@ class Daemon {
 	 */
 	public function autoReload() {
 		$autoReload = new Reload();
-		$autoReload->afterNSeconds = $this->config['afterNSeconds'];
-		$autoReload->isOnline = $this->config['isOnline'];
-		$autoReload->monitorPort = $this->config['monitorPort'];
-
-		$autoReload->smtpTransport = $this->config['smtpTransport'];
-
-		$autoReload->message = $this->config['message'];
-
+		isset($this->config['afterNSeconds']) && $autoReload->afterNSeconds = $this->config['afterNSeconds'];
+		isset($this->config['isOnline']) && $autoReload->isOnline = $this->config['isOnline'];
+		isset($this->config['monitorPort']) && $autoReload->monitorPort = $this->config['monitorPort'];
+		isset($this->config['logFilePath']) && $autoReload->logFilePath = $this->config['logFilePath'];
+		isset($this->config['reloadFileTypes']) && $autoReload->reloadFileTypes = $this->config['reloadFileTypes'];
+		isset($this->config['smtpTransport']) && $autoReload->smtpTransport = $this->config['smtpTransport'];
+		isset($this->config['message']) && $autoReload->message = $this->config['message'];
 		// 初始化配置
 		$autoReload->init();
 		// 开始监听

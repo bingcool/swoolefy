@@ -33,7 +33,13 @@ class Reload {
 	 * $reloadFileTypes,定义哪些文件的改动将触发swoole服务重启
 	 * @var array
 	 */
-	protected $reloadFileTypes = ['.php','.html','.js'];
+	public $reloadFileTypes = ['.php','.html','.js'];
+
+    /**
+     * $ignoreDir 忽略不需要检查的文件夹，默认vendor
+     * @var array
+     */
+    public $ignoreDir = ['vendor'];
 
 	/**
 	 * $watchFiles,保存监听的文件句柄
@@ -78,16 +84,10 @@ class Reload {
     public $isOnline = false;
 
     /**
-     * $isEmail,监听到swoole是否发邮件通知运维人员
-     * @var boolean
-     */
-    public $isEmail = false;
-
-    /**
      * $logDir,inotify重启的的错误日志记录
      * @var [type]
      */
-    public $logFilePath = __DIR__."/inotify.log";
+    public $logFilePath = null;
 
     /**
      * $Log
@@ -361,7 +361,7 @@ class Reload {
         $files = scandir($dir);
         foreach ($files as $f)
         {
-            if ($f == '.' || $f == '..')
+            if ($f == '.' || $f == '..' || in_array($f, $this->ignoreDir))
             {
                 continue;
             }

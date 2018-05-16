@@ -14,6 +14,7 @@ return [
 	'isOnline' => false,
 	'monitorPort' => 9502,
 	'monitorPath' => '/home/www/swoolefy',
+	'logFilePath' => __DIR__.'/inotify.log',
 	'monitorProcessName' => 'php-autoreload-swoole-server',
 	'reloadFileTypes' => ['.php','.html','.js'],
 	'smtpTransport' => [
