@@ -1,0 +1,37 @@
+<?php
+
+defined('VENDOR_ROOT') or define('VENDOR_ROOT', dirname(__DIR__));
+defined('VENDOR_SWOOLEFY_ROOT') or define('VENDOR_SWOOLEFY_ROOT', VENDOR_ROOT.'/bingcool/swoolefy');
+defined('PROJECT_ROOT') or define('PROJECT_ROOT', dirname(VENDOR_ROOT));
+
+function install() {
+	$autoloadFilePath = VENDOR_SWOOLEFY_ROOT.'/autoloader.php';
+	$swoolefyFilePath = VENDOR_SWOOLEFY_ROOT.'/swoolefy';
+
+	$projectAutoloadFilePath = PROJECT_ROOT.'/autoloader.php';
+	$projectSwoolefyFilePath = PROJECT_ROOT.'/swoolefy';
+
+	if(file_exists($projectAutoloadFilePath) || file_exists($projectSwoolefyFilePath)) {
+		echo "you have install swoolefy server frame\n\n";
+		exit;
+	}
+
+	if(file_exists($autoloadFilePath)) {
+		@copy($autoloadFilePath, $projectAutoloadFilePath);
+		echo "installing autoloader.php......\n\n";
+	}
+
+	if(file_exists($swoolefyFilePath)) {
+		@copy($swoolefyFilePath, $projectSwoolefyFilePath);
+		echo "installing swoolefy......\n\n";
+	}
+
+	if(file_exists($projectAutoloadFilePath) && file_exists($projectSwoolefyFilePath)) {
+		echo "installing swoolefy server complete!\n\n";
+	}else {
+		echo "installing swoolefy server failed!\n\n";
+	}
+	exit;
+}
+
+install();

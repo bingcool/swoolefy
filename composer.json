@@ -17,6 +17,9 @@
             "role": "Engineer of php"
         }
     ],
+    "bin": [
+        "bin/swoolefy"
+    ],
     "minimum-stability": "dev",
     "require": {
         "monolog/monolog": "1.23.0",
