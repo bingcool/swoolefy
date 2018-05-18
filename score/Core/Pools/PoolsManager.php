@@ -63,7 +63,6 @@ class PoolsManager {
         }
 
 		for($i=1; $i<=$processNumber; $i++) {
-            var_dump($i);
             $processName = $processName.$i;
 			$key = md5($processName);
 	        if(!isset(self::$processList[$key])){
