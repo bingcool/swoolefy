@@ -1,4 +1,14 @@
-<?php 
+<?php
+/**
++----------------------------------------------------------------------
+| swoolefy framework bases on swoole extension development, we can use it easily!
++----------------------------------------------------------------------
+| Licensed ( https://opensource.org/licenses/MIT )
++----------------------------------------------------------------------
+| Author: bingcool <bingcoolhuang@gmail.com || 2437667702@qq.com>
++----------------------------------------------------------------------
+*/
+
 namespace Swoolefy\Core\Pools;
 
 use Swoole\Process;
@@ -10,6 +20,7 @@ abstract class AbstractProcessPools {
     private $processName;
     private $async = null;
     private $args = [];
+    private $process_num = 1;
 
     /**
      * __construct 
@@ -17,9 +28,10 @@ abstract class AbstractProcessPools {
      * @param boolean $async      
      * @param array   $args       
      */
-    public function __construct(string $processName, $async = true, array $args = []) {
+    public function __construct(string $processName, $async = true, array $args = [], $process_num = 1) {
         $this->async = $async;
         $this->args = $args;
+        $this->process_num = $process_num;
         $this->processName = $processName;
         $this->swooleProcess = new \swoole_process([$this,'__start'], false, 2);
         $this->swooleProcess->start();
@@ -49,6 +61,8 @@ abstract class AbstractProcessPools {
         TableManager::getTable('table_process_pools_map')->set(
             md5($this->processName), ['pid'=>$this->swooleProcess->pid]
         );
+
+        TableManager::getTable('table_process_pools_number')->set($this->swooleProcess->pid, ['pnumber'=>$this->process_num]);
 
         if(extension_loaded('pcntl')) {
             pcntl_async_signals(true);
