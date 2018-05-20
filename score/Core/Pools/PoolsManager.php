@@ -1,4 +1,14 @@
-<?php 
+<?php
+/**
++----------------------------------------------------------------------
+| swoolefy framework bases on swoole extension development, we can use it easily!
++----------------------------------------------------------------------
+| Licensed ( https://opensource.org/licenses/MIT )
++----------------------------------------------------------------------
+| Author: bingcool <bingcoolhuang@gmail.com || 2437667702@qq.com>
++----------------------------------------------------------------------
+*/
+
 namespace Swoolefy\Core\Pools;
 
 use Swoole\Process;
@@ -13,24 +23,35 @@ class PoolsManager {
 		// 进程内存表
 		'table_process_pools_map' => [
 			// 内存表建立的行数,取决于建立的process进程数
-			'size' => 100,
+			'size' => 256,
 			// 字段
 			'fields'=> [
 				['pid','int', 10]
 			]
 		],
+        // 进程内存表对应的进程number
+        'table_process_pools_number' => [
+            // 内存表建立的行数,取决于建立的process进程数
+            'size' => 256,
+            // 字段
+            'fields'=> [
+                ['pnumber','int', 5]
+            ]
+        ],
 	];
 
 	private static $processList = [];
 
-	private static $pidMapKey = [];
+    private static $processNameList = [];
+
+    public static $process_used = [];
 
     /**
      * __construct
      * @param  $total_process 进程池总数
      */
-	public function __construct(int $total_process = 256) {
-        self::$table_process['table_process_pools_map']['size'] = $total_process;
+	public function __construct(int $total_process = 100) {
+        self::$table_process['table_process_pools_map']['size'] = self::$table_process['table_process_pools_number']['size']= $total_process;
 		TableManager::getInstance()->createTable(self::$table_process);
 	}
 
@@ -63,47 +84,58 @@ class PoolsManager {
         }
 
 		for($i=1; $i<=$processNumber; $i++) {
-            $processName = $processName.$i;
-			$key = md5($processName);
+            $process_name = $processName.$i;
+			$key = md5($process_name);
 	        if(!isset(self::$processList[$key])){
 	            try{
-	                $process = new $processClass($processName, $async, $args);
-	                $pid = $process->getPid();
-	                self::$pidMapKey[$pid] = $i;
+	                $process = new $processClass($process_name, $async, $args, $i);
 	                self::$processList[$key] = $process;
+                    self::$processNameList[$processName][] = $process_name;
 	            }catch (\Exception $e){
 	                throw new \Exception($e->getMessage(), 1);       
 	            }
 	        }else{
-	            throw new \Exception("you can not add the same process : $processName", 1);
+	            throw new \Exception("you can not add the same process : $process_name", 1);
 	            return false;
 	        }
         }
 
+        // self::registerProcessFinish(self::$processList);
+
         Process::signal(SIGCHLD, function($signo) use($processName, $processClass, $async, $args) {
-	        while(1)
-	        {
-	            $ret = Process::wait(false);
+	        while($ret = Process::wait(false)) { 
 	            if($ret) {
 	            	$pid = $ret['pid'];
-	            	$process_num = self::$pidMapKey[$pid];
-                    $processName = $processName.$process_num;
-	                $key = md5($processName);
-                    unset(self::$processList[$key], self::$pidMapKey[$pid]);
+	            	$process_num = TableManager::getInstance()->getTable('table_process_pools_number')->get($pid, 'pnumber');
+                    $process_name = $processName.$process_num;
+	                $key = md5($process_name);
+                    unset(self::$processList[$key]);
+                    TableManager::getInstance()->getTable('table_process_pools_number')->del($pid);
                     try{
-                        $process = new $processClass($processName, $async, $args);
-                        $pid = $process->getPid();
-                        self::$pidMapKey[$pid] = $i;
+                        $process = new $processClass($process_name, $async, $args, $process_num);
                         self::$processList[$key] = $process;
+                        // self::registerProcessFinish([$process]);
                     }catch (\Exception $e){
                         throw new \Exception($e->getMessage(), 1);       
                     }
-	            }else {
-	                break;
-	            }
-	        }
+	           }
+            }
 	    });
 	}
+
+    /**
+     * registerProcessFinish
+     * @return 
+     */
+    public static function registerProcessFinish(array $processList = []) {
+        foreach ($processList as $process_class) {
+            $process = $process_class->getProcess();
+            swoole_event_add($process->pipe, function ($pipe) use($process) {
+                $pid = $process->read();
+                self::$process_used[$pid] = 0;
+            });
+        }
+    }
 
 	/**
 	 * getProcessByName 通过名称获取一个进程
@@ -154,9 +186,10 @@ class PoolsManager {
      */
     public static function reboot(string $processName, $process_num = null) {
     	$processName = $processName.$process_num;
-        $p = self::getProcessByName($processName);
-        if($p){
-            \swoole_process::kill($p->getPid(), SIGTERM);
+        $process = self::getProcessByName($processName)->getProcess();
+        $pid = $process->pid;
+        if($pid){
+            $process->kill($pid, SIGTERM);
             return true;
         }else{
             return false;
@@ -176,6 +209,20 @@ class PoolsManager {
         }else{
             return false;
         }
+    }
+
+    /**
+     * writeByRandom 
+     * @param  string $name
+     * @param  string $data
+     * @return 
+     */
+    public static function writeByRandom(string $name, string $data) {
+        if(self::$processNameList[$name]) {
+            $key = array_rand(self::$processNameList[$name], 1);
+            $process_name = self::$processNameList[$name][$key];
+        }
+        self::writeByProcessName($process_name, $data);
     }
 
     /**
