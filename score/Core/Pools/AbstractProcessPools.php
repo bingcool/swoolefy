@@ -16,11 +16,11 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Table\TableManager;
 
 abstract class AbstractProcessPools {
-	private $swooleProcess;
-    private $processName;
-    private $async = null;
-    private $args = [];
-    private $process_num = 1;
+	protected $swooleProcess;
+    protected $processName;
+    protected $async = null;
+    protected $args = [];
+    protected $process_num = 1;
 
     /**
      * __construct 
@@ -102,6 +102,15 @@ abstract class AbstractProcessPools {
     public function getProcessName() {
         return $this->processName;
     }
+
+    /**
+     * onFinish 进程任务完成，默认返回进程名称
+     * @return   string
+     */
+    public function finish() {
+        $this->swooleProcess->write($this->processName);
+    }
+
     /**
      * run 进程创建后的run方法
      * @param  Process $process
