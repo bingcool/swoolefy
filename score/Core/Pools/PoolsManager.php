@@ -13,6 +13,7 @@ namespace Swoolefy\Core\Pools;
 
 use Swoole\Process;
 use Swoole\Table;
+use Swoolefy\Core\Timer\TickManager;
 use Swoolefy\Core\Table\TableManager;
 
 class PoolsManager {
@@ -44,26 +45,33 @@ class PoolsManager {
 
     private static $processNameList = [];
 
-    public static $process_used = [];
+    private static $process_used = [];
+
+    private static $process_name_list = [];
+
+    private static $channels = [];
+
+    private static $timer_ids = [];
 
     /**
      * __construct
      * @param  $total_process 进程池总数
      */
-	public function __construct(int $total_process = 100) {
+	public function __construct(int $total_process = 256) {
         self::$table_process['table_process_pools_map']['size'] = self::$table_process['table_process_pools_number']['size']= $total_process;
 		TableManager::getInstance()->createTable(self::$table_process);
 	}
 
 	/**
-	 * addProcess 添加一个进程
+	 * addProcess 添加创建进程
 	 * @param string  $processName
 	 * @param string  $processClass
      * @param int     $processNumber
 	 * @param boolean $async
+     * @param boolean $polling 是否是轮训向空闲进程写数据
 	 * @param array   $args
 	 */
-	public static function addProcessPools(string $processName, string $processClass, int $processNumber = 1, $async = true, array $args = []) {
+	public static function addProcessPools(string $processName, string $processClass, int $processNumber = 1, $polling = false, int $timer_int= 50, $async = true, array $args = []) {
 		if(!TableManager::isExistTable('table_process_pools_map')) {
 			TableManager::getInstance()->createTable(self::$table_process);
 		}
@@ -90,6 +98,7 @@ class PoolsManager {
 	            try{
 	                $process = new $processClass($process_name, $async, $args, $i);
 	                self::$processList[$key] = $process;
+                    self::$process_name_list[$processName][$key] = $process;
                     self::$processNameList[$processName][] = $process_name;
 	            }catch (\Exception $e){
 	                throw new \Exception($e->getMessage(), 1);       
@@ -100,7 +109,11 @@ class PoolsManager {
 	        }
         }
 
-        // self::registerProcessFinish(self::$processList);
+        if($polling) {
+            self::registerProcessFinish(self::$process_name_list[$processName], $processName);
+            self::$channels[$processName] = new \Swoole\Channel(2 * 1024 * 2014);
+            self::loopWrite($processName, $timer_int);
+        }
 
         Process::signal(SIGCHLD, function($signo) use($processName, $processClass, $async, $args) {
 	        while($ret = Process::wait(false)) { 
@@ -110,11 +123,13 @@ class PoolsManager {
                     $process_name = $processName.$process_num;
 	                $key = md5($process_name);
                     unset(self::$processList[$key]);
+                    unset(self::$process_name_list[$processName][$key]);
                     TableManager::getInstance()->getTable('table_process_pools_number')->del($pid);
                     try{
                         $process = new $processClass($process_name, $async, $args, $process_num);
                         self::$processList[$key] = $process;
-                        // self::registerProcessFinish([$process]);
+                        self::$process_name_list[$processName][$key] = $process;
+                        $polling && self::registerProcessFinish([$process], $processName);
                     }catch (\Exception $e){
                         throw new \Exception($e->getMessage(), 1);       
                     }
@@ -127,14 +142,78 @@ class PoolsManager {
      * registerProcessFinish
      * @return 
      */
-    public static function registerProcessFinish(array $processList = []) {
-        foreach ($processList as $process_class) {
+    public static function registerProcessFinish(array $processList = [], string $processName) {
+        foreach($processList as $process_class) {
             $process = $process_class->getProcess();
-            swoole_event_add($process->pipe, function ($pipe) use($process) {
-                $pid = $process->read();
-                self::$process_used[$pid] = 0;
+            $processname = $process_class->getProcessName();
+            // 默认所有进程空闲
+            self::$process_used[$processName][$processname] = 0;
+            swoole_event_add($process->pipe, function ($pipe) use($process, $processName) {
+                $process_name = $process->read(64 * 1024);
+                if(in_array($process_name, self::$processNameList[$processName])) {
+                    self::$process_used[$processName][$process_name] = 0;
+                }
             });
         }
+    }
+
+    /**
+     * loopWrite 定时循环向子进程写数据
+     * @return   mixed
+     */
+    public static function loopWrite(string $processName, $timer_int) {
+        $timer_id = swoole_timer_tick($timer_int, function($timer_id) use($processName) {
+            if(count(self::$process_used[$processName])) {
+                $channel= self::$channels[$processName];
+                $data = $channel->pop();
+                if($data) {
+                    // 获取其中一个空闲进程
+                    $process_name = array_rand(self::$process_used[$processName]);
+                    self::writeByProcessName($process_name, $data);
+                    unset(self::$process_used[$processName][$process_name]);
+                    return $process_name;
+                }
+            }
+        });
+        self::$timer_ids[$processName] = $timer_id;
+        return $timer_id;
+    }
+
+    /**
+     * getTimerId 获取当前的定时器id
+     * @param   string  $processName
+     * @return  mixed
+     */
+    public static function getTimerId(string $processName) {
+        if(isset(self::$timer_ids[$processName]) && self::$timer_ids[$processName]!== null) {
+            return self::$timer_ids[$processName];
+        }
+        return null;
+    }
+
+    /**
+     * clearTimer 清除进程内的定时器
+     * @param    string  $processName
+     * @return   boolean
+     */
+    public static function clearTimer(string $processName) {
+        $timer_id = self::getTimerId($processName);
+        if($timer_id) {
+            return swoole_timer_clear($timer_id);  
+        }
+        return false;
+    }
+
+    /**
+     * getChannel
+     * @param    string   $processName
+     * @return   object
+     */
+    public static function getChannel(string $processName) {
+        if(is_object(self::$channels[$processName])) {
+            return self::$channels[$processName];
+        }
+        return null;
     }
 
 	/**
@@ -212,7 +291,7 @@ class PoolsManager {
     }
 
     /**
-     * writeByRandom 
+     * writeByRandom 任意方式向进程写数据
      * @param  string $name
      * @param  string $data
      * @return 
@@ -223,7 +302,20 @@ class PoolsManager {
             $process_name = self::$processNameList[$name][$key];
         }
         self::writeByProcessName($process_name, $data);
+        return $process_name;
     }
+
+    /**
+     * writeByPolling 轮训方式向空闲进程写数据 
+     * @param  string $name
+     * @param  string $data
+     * @return 
+     */
+    public static function writeByPolling(string $name, string $data) {
+        $channel = self::$channels[$name];
+        return $channel->push($data);
+    }
+
 
     /**
      * readByProcessName 读取某个进程数据
