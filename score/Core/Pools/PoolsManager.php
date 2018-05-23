@@ -11,8 +11,9 @@
 
 namespace Swoolefy\Core\Pools;
 
-use Swoole\Process;
 use Swoole\Table;
+use Swoole\Process;
+use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Timer\TickManager;
 use Swoolefy\Core\Table\TableManager;
 
@@ -36,7 +37,8 @@ class PoolsManager {
             'size' => 256,
             // 字段
             'fields'=> [
-                ['pnumber','int', 5]
+                ['pnumber','int', 5],
+                ['masterProcessName','string', 20]
             ]
         ],
 	];
@@ -52,6 +54,8 @@ class PoolsManager {
     private static $channels = [];
 
     private static $timer_ids = [];
+
+    private static $process_args = [];
 
     /**
      * __construct
@@ -91,12 +95,15 @@ class PoolsManager {
             }
         }
 
+        $worker_id = Swfy::getCurrentWorkerId();
+
 		for($i=1; $i<=$processNumber; $i++) {
             $process_name = $processName.$i;
 			$key = md5($process_name);
+            $args = [$i, $worker_id, $polling, $processName];
 	        if(!isset(self::$processList[$key])){
 	            try{
-	                $process = new $processClass($process_name, $async, $args, $i);
+	                $process = new $processClass($process_name, $async, $args);
 	                self::$processList[$key] = $process;
                     self::$process_name_list[$processName][$key] = $process;
                     self::$processNameList[$processName][] = $process_name;
@@ -115,21 +122,26 @@ class PoolsManager {
             self::loopWrite($processName, $timer_int);
         }
 
-        Process::signal(SIGCHLD, function($signo) use($processName, $processClass, $async, $args) {
+        self::$process_args[$processName] = [$processClass, $async, $worker_id, $polling];
+
+        Process::signal(SIGCHLD, function($signo) {
 	        while($ret = Process::wait(false)) { 
 	            if($ret) {
 	            	$pid = $ret['pid'];
-	            	$process_num = TableManager::getInstance()->getTable('table_process_pools_number')->get($pid, 'pnumber');
+	            	$processInfo = TableManager::getInstance()->getTable('table_process_pools_number')->get($pid);
+                    list($process_num, $processName) = array_values($processInfo);
+                    list($processClass, $async, $worker_id, $polling) = self::$process_args[$processName];
                     $process_name = $processName.$process_num;
 	                $key = md5($process_name);
-                    unset(self::$processList[$key]);
-                    unset(self::$process_name_list[$processName][$key]);
+                    unset(self::$processList[$key], self::$process_name_list[$processName][$key]);
                     TableManager::getInstance()->getTable('table_process_pools_number')->del($pid);
+                    $args = [$process_num, $worker_id, $polling, $processName];
                     try{
-                        $process = new $processClass($process_name, $async, $args, $process_num);
+                        $process = new $processClass($process_name, $async, $args);
                         self::$processList[$key] = $process;
                         self::$process_name_list[$processName][$key] = $process;
                         $polling && self::registerProcessFinish([$process], $processName);
+                        unset($args, $process_num, $worker_id, $polling, $processName);
                     }catch (\Exception $e){
                         throw new \Exception($e->getMessage(), 1);       
                     }
