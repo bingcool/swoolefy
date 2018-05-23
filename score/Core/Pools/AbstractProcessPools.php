@@ -21,6 +21,9 @@ abstract class AbstractProcessPools {
     protected $async = null;
     protected $args = [];
     protected $process_num = 1;
+    protected $worker_id = 0;
+    protected $polling = false;
+    protected $master_process_name;
 
     /**
      * __construct 
@@ -28,11 +31,15 @@ abstract class AbstractProcessPools {
      * @param boolean $async      
      * @param array   $args       
      */
-    public function __construct(string $processName, $async = true, array $args = [], $process_num = 1) {
+    public function __construct(string $processName, $async = true, array $args = []) {
         $this->async = $async;
         $this->args = $args;
+        list($process_num, $worker_id, $polling, $master_process_name) = $args;
         $this->process_num = $process_num;
         $this->processName = $processName;
+        $this->worker_id = $worker_id;
+        $this->polling = $polling;
+        $this->master_process_name = $master_process_name;
         $this->swooleProcess = new \swoole_process([$this,'__start'], false, 2);
         $this->swooleProcess->start();
     }
@@ -62,7 +69,7 @@ abstract class AbstractProcessPools {
             md5($this->processName), ['pid'=>$this->swooleProcess->pid]
         );
 
-        TableManager::getTable('table_process_pools_number')->set($this->swooleProcess->pid, ['pnumber'=>$this->process_num]);
+        TableManager::getTable('table_process_pools_number')->set($this->swooleProcess->pid, ['pnumber'=>$this->process_num, 'masterProcessName'=>$this->master_process_name]);
 
         if(extension_loaded('pcntl')) {
             pcntl_async_signals(true);
@@ -104,11 +111,26 @@ abstract class AbstractProcessPools {
     }
 
     /**
-     * onFinish 进程任务完成，默认返回进程名称
+     * sendMessage 向worker进程发送数据，worker进程将通过onPipeMessage函数监听获取数数据
+     * 主要是用在writeByPolling函数，writeByPolling函数是异步函数，可以通过该函数通知worker进程任务完成
+     * @param  mixed  $msg
+     * @param  int    $worker_id
+     * @return boolean
+     */
+    public function sendMessage($msg, $worker_id = null) {
+        if(!is_numeric($worker_id) || is_null($worker_id)) {
+           $worker_id = $this->worker_id; 
+        }
+        return Swfy::getServer()->sendMessage($msg, $worker_id);
+    }
+
+    /**
+     * onFinish 进程任务完成，默认返回进程名称，PoolsManager释放进程，主要是用在writeByPolling函数，writeByPolling函数是异步函数
      * @return   string
      */
     public function finish() {
-        $this->swooleProcess->write($this->processName);
+        $this->polling && $this->swooleProcess->write($this->processName);
+        return ;
     }
 
     /**
