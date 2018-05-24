@@ -192,7 +192,6 @@ class PoolsManager {
                    // 轮询空闲进程
                     foreach(self::$process_free[$processName] as $process_name=>$value) {
                         if($value === 0) {
-                            var_dump($process_name);
                             self::writeByProcessName($process_name, $data);
                             unset(self::$process_free[$processName][$process_name]);
                             break;
