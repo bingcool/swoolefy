@@ -189,11 +189,15 @@ class PoolsManager {
                 $channel= self::$channels[$processName];
                 $data = $channel->pop();
                 if($data) {
-                    // 获取其中一个空闲进程
-                    $process_name = array_rand(self::$process_free[$processName]);
-                    self::writeByProcessName($process_name, $data);
-                    unset(self::$process_free[$processName][$process_name]);
-                    return $process_name;
+                   // 轮询空闲进程
+                    foreach(self::$process_free[$processName] as $process_name=>$value) {
+                        if($value === 0) {
+                            var_dump($process_name);
+                            self::writeByProcessName($process_name, $data);
+                            unset(self::$process_free[$processName][$process_name]);
+                            break;
+                        }
+                    }   
                 }
             }
         });
