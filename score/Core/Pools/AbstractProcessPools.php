@@ -125,11 +125,18 @@ abstract class AbstractProcessPools {
     }
 
     /**
-     * onFinish 进程任务完成，默认返回进程名称，PoolsManager释放进程，主要是用在writeByPolling函数，writeByPolling函数是异步函数
+     * onFinish 子进程任务完成，默认返回进程名称，PoolsManager释放进程，主要是用在writeByPolling函数，writeByPolling函数是异步函数
      * @return   string
      */
-    public function finish() {
-        $this->polling && $this->swooleProcess->write($this->processName);
+    public function finish($msg = null, $worker_id = null) {
+        if($this->polling) {
+            // 异步任务完成后,send数据给worker，子进程任务完成
+            if($msg) {
+                $this->sendMessage($msg, $worker_id);
+            }
+            // 通知woker进程，子进程空闲
+            $this->swooleProcess->write($this->processName);
+        }
         return ;
     }
 
