@@ -47,7 +47,7 @@ class PoolsManager {
 
     private static $processNameList = [];
 
-    private static $process_used = [];
+    private static $process_free = [];
 
     private static $process_name_list = [];
 
@@ -133,6 +133,7 @@ class PoolsManager {
                     list($processClass, $async, $worker_id, $polling) = self::$process_args[$processName];
                     $process_name = $processName.$process_num;
 	                $key = md5($process_name);
+                    $polling && swoole_event_del(self::$processList[$key]->getProcess()->pipe);
                     unset(self::$processList[$key], self::$process_name_list[$processName][$key]);
                     TableManager::getInstance()->getTable('table_process_pools_number')->del($pid);
                     $args = [$process_num, $worker_id, $polling, $processName];
@@ -159,11 +160,20 @@ class PoolsManager {
             $process = $process_class->getProcess();
             $processname = $process_class->getProcessName();
             // 默认所有进程空闲
-            self::$process_used[$processName][$processname] = 0;
+            self::$process_free[$processName][$processname] = 0;
             swoole_event_add($process->pipe, function ($pipe) use($process, $processName) {
                 $process_name = $process->read(64 * 1024);
+                // 属于$processName主进程的子进程
                 if(in_array($process_name, self::$processNameList[$processName])) {
-                    self::$process_used[$processName][$process_name] = 0;
+                    // 子进程大于0，说明该子进程收到重启的命令，那么将在任务完成后重启
+                    if(isset(self::$process_free[$processName][$process_name]) && $pid = self::$process_free[$processName][$process_name] > 0) {
+                        $process->kill($pid, SIGTERM);
+                        unset(self::$process_free[$processName][$process_name]);
+                    }else {
+                        // 正常设置子进程为空闲
+                        self::$process_free[$processName][$process_name] = 0;
+                    }
+                    
                 }
             });
         }
@@ -175,14 +185,14 @@ class PoolsManager {
      */
     public static function loopWrite(string $processName, $timer_int) {
         $timer_id = swoole_timer_tick($timer_int, function($timer_id) use($processName) {
-            if(count(self::$process_used[$processName])) {
+            if(count(self::$process_free[$processName])) {
                 $channel= self::$channels[$processName];
                 $data = $channel->pop();
                 if($data) {
                     // 获取其中一个空闲进程
-                    $process_name = array_rand(self::$process_used[$processName]);
+                    $process_name = array_rand(self::$process_free[$processName]);
                     self::writeByProcessName($process_name, $data);
-                    unset(self::$process_used[$processName][$process_name]);
+                    unset(self::$process_free[$processName][$process_name]);
                     return $process_name;
                 }
             }
@@ -276,11 +286,28 @@ class PoolsManager {
      * @return boolean
      */
     public static function reboot(string $processName, $process_num = null) {
-    	$processName = $processName.$process_num;
-        $process = self::getProcessByName($processName)->getProcess();
+    	$process_name = $processName.$process_num;
+        $process = self::getProcessByName($process_name)->getProcess();
         $pid = $process->pid;
         if($pid){
-            $process->kill($pid, SIGTERM);
+            $processInfo = TableManager::getInstance()->getTable('table_process_pools_number')->get($pid);
+            list($process_num, $processName) = array_values($processInfo);
+            // 异步轮训方式
+            if(isset(self::$process_free[$processName])) {
+                // 当前子进程空闲，则可以立即重启
+                if(in_array($process_name, self::$process_free[$processName]) && self::$process_free[$processName][$process_name] === 0) {
+                    $process->kill($pid, SIGTERM);
+                }else {
+                    // 当前子进程正在作业忙碌的,设置成$pid，代表子进程在完成任务后，将自动重启
+                    // 避免重复接受多次重启命令
+                    if(!isset(self::$process_free[$processName][$process_name])) {
+                        self::$process_free[$processName][$process_name] = $pid;
+                    }
+                }
+            }else {
+                // 其他模式直接重启子进程
+                $process->kill($pid, SIGTERM);
+            }
             return true;
         }else{
             return false;
