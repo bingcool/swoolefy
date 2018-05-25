@@ -92,6 +92,23 @@ abstract class AbstractProcess
     public function getProcessName() {
         return $this->processName;
     }
+
+    /**
+     * sendMessage 向worker进程发送数据(包含task进程)，worker进程将通过onPipeMessage函数监听获取数数据，默认向worker0发送
+     * @param  mixed  $msg
+     * @param  int    $worker_id
+     * @return boolean
+     */
+    public function sendMessage($msg = null, $worker_id = 0) {
+        if($worker_id >= 1) {
+            $worker_task_total_num = (int)Swfy::getServer()->setting['worker_num'] + (int)Swfy::getServer()->setting['task_worker_num'];
+            if($worker_id >= $worker_task_total_num) {
+                throw new \Exception("worker_id must less than $worker_task_total_num", 1);
+            }
+        }
+        return Swfy::getServer()->sendMessage($msg, $worker_id);
+    }
+
     /**
      * run 进程创建后的run方法
      * @param  Process $process
