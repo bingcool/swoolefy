@@ -8,8 +8,8 @@ swoolefy是一个适合学习swoole的框架，特别适合中小团队，用过
 2、支持composer的PSR-4规范和实现自定义注册命名空间    
 3、支持多协议，目前支持http，websocket，tcp，udp，以及基于tcp实现的rpc，开放式的系统接口，可自定义协议数据格式    
 4、抽象Event的事件处理与底层的事件监听解耦，屏蔽不同协议之间的应用差异，大部分代码实现共用   
-5、实现超全局变量，IOC，静态延迟绑定，组件服务常驻内存化，trait的多路复用，钩子事件，单例，工厂模式，注册数模式等   
-6、简单易用的异步务管理TaskManager， 定时器管理TickManager， 内存表管理TableManager， 进程管理ProcessManager，进程池管理PoolsManger，超全局管理    
+5、实现超全局变量，IOC，静态延迟绑定，组件服务常驻内存化，trait的多路复用，钩子事件，单例，工厂模式，注册树模式等   
+6、简单易用的异步务管理TaskManager， 定时器管理TickManager， 内存表管理TableManager， 自定义进程管理ProcessManager，进程池管理PoolsManger，超全局管理    
 7、灵活多层的配置,配置参数即可实现底层已封装的复杂功能    
 8、应用对象的深度复制，实现对象的常驻内存，每个请求只需要从内存中复制应用对象，不需要再重新创建，减少IO消耗    
 9、封装View，Log，Mysql，Redis，Mongodb，Swiftmail，Session等常用组件，其他组件根据业务按照约定即可封装成组件         
