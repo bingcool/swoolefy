@@ -256,7 +256,7 @@ abstract class TcpServer extends BaseServer {
 
 		if(self::isPackLength()) {
 			// packet_length_check
-			$this->pack->header_struct = self::$config['packet']['server']['pack_header_strct'];
+			$this->pack->header_struct = self::$config['packet']['server']['pack_header_struct'];
 			$this->pack->pack_length_key = self::$config['packet']['server']['pack_length_key'];
 			if(isset(self::$config['packet']['server']['serialize_type'])) {
 				$this->pack->serialize_type = self::$config['packet']['server']['serialize_type'];
@@ -310,23 +310,21 @@ abstract class TcpServer extends BaseServer {
 			$eof = Swfy::$config['packet']['client']['pack_eof'];
 			$serialize_type = Swfy::$config['packet']['client']['serialize_type'];
 			if($eof) {
-				$return_data = Pack::enpackeof($data, $serialize_type, $eof);
+				$pack_data = Pack::enpackeof($data, $serialize_type, $eof);
 			}else {
-				$return_data = Pack::enpackeof($data, $serialize_type);
+				$pack_data = Pack::enpackeof($data, $serialize_type);
 			}
-			return $return_data;
+			return $pack_data;
 
 		}else {
 			// 客户端是length方式分包
-			list($data, $header) = $data; 
-			$header_struct = Swfy::$config['packet']['client']['pack_header_strct'];
+			list($body_data, $header) = $data; 
+			$header_struct = Swfy::$config['packet']['client']['pack_header_struct'];
 			$pack_length_key = Swfy::$config['packet']['client']['pack_length_key'];
 			$serialize_type = Swfy::$config['packet']['client']['serialize_type'];
-
 			$header[$pack_length_key] = '';
-
-			$return_data = Pack::enpack($data, $header, $header_struct, $pack_length_key, $serialize_type);
-			return $return_data;
+			$pack_data = Pack::enpack($body_data, $header, $header_struct, $pack_length_key, $serialize_type);
+			return $pack_data;
 		}	
 	}
 }

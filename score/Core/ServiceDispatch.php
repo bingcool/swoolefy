@@ -36,11 +36,12 @@ class ServiceDispatch extends AppDispatch {
 	/**
 	 * __construct 
 	 */
-	public function __construct($callable, $params) {
+	public function __construct($callable, $params, $rpc_pack_header = []) {
 		// 执行父类
 		parent::__construct();
 		$this->callable = $callable;
 		$this->params = $params;
+		$this->rpc_pack_header = $rpc_pack_header;
 	}
 
 	/**
@@ -61,6 +62,7 @@ class ServiceDispatch extends AppDispatch {
 		
 		$class = str_replace('/','\\', $class);
 		$serviceInstance = new $class();
+		$serviceInstance->rpc_pack_header = $this->rpc_pack_header;
 		try{
 			$serviceInstance->$action($this->params);
 		}catch(\Exception $e) {

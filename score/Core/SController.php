@@ -131,6 +131,18 @@ class SController extends Object {
 	}
 
 	/**
+	 * getRpcPackHeader  获取rpc的pack头信息,只适用于rpc服务
+	 * @return   array
+	 */
+	public function getRpcPackHeader() {
+		if(BaseServer::getServiceProtocol() == SWOOLEFY_TCP) {
+			return $this->rpc_pack_header;
+		}else {
+			throw new \Exception("this method only can be called by tcp or rpc server!, because only rpc have pack setting!");
+		}
+	}
+
+	/**
 	 * beforeAction 在处理实际action前执行
 	 * @return   mixed
 	 */
