@@ -239,6 +239,7 @@ class Synclient {
      * @return  boolean
      */
 	public function waitCall($data, array $header = [], $seralize_type = self::DECODE_JSON) {
+        // 这里检测是应用层检测，不一定准确
 		if(!$this->client->isConnected()) {
             // 重连一次
             $this->client->close(true);
@@ -261,7 +262,22 @@ class Synclient {
             $this->is_has_call_menthod = true;
 			return true;
 		}else {
-			throw new \Exception("swoole_client error : ".$this->client->errCode);
+            // 重连一次
+            $this->client->close(true);
+            $this->reConnect();
+            // 重发一次
+            $res = $this->client->send($pack_data);
+            if($res) {
+                if(isset($header['request_id'])) {
+                    $this->request_id = $header['request_id'];
+                }else {
+                    $header_values = array_values($header);
+                    $this->request_id = end($header_values);
+                }
+                $this->is_has_call_menthod = true;
+                return true;
+            }
+            
 			return false;
 		}
 	}
@@ -291,7 +307,7 @@ class Synclient {
                 list($header, $body_data) = $response;
                 // 不属于当前调用返回的值
                 if(!in_array($this->getRequestId(), array_values($header))) {
-                    return false;
+                    return [];
                 }
                 return $response;
             }else {
@@ -299,7 +315,7 @@ class Synclient {
                 return $this->depackeof($data, $unseralize_type);
             }
         }
-        return false;
+        return [];
 	}
 
     /**

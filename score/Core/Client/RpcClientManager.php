@@ -58,10 +58,17 @@ class RpcClientManager {
 	 * @param    string    $pack_length_key
 	 * @return   object
 	 */
-	public function registerService(string $serviceNmae, array $serviceConfig = [], array $setting = [], array $header_struct = [], string $pack_length_key = 'length', string $client_serialize_type = 'json') {
+	public function registerService(
+		string $serviceNmae, 
+		array $serviceConfig = [], 
+		array $setting = [], 
+		array $header_struct = [], 
+		string $pack_length_key = 'length', 
+		string $client_serialize_type = 'json'
+	) {
 		$servers = $serviceConfig['servers'];
 		$timeout = $serviceConfig['timeout'];
-		$noblock = $serviceConfig['noblock'] ?: 0;
+		$noblock = isset($serviceConfig['noblock']) ? $serviceConfig['noblock'] : 0;
 		$key = md5($serviceNmae);
 		if(empty($setting)) {
 			$setting = $this->setting;
@@ -75,8 +82,6 @@ class RpcClientManager {
 			$client_service->setClientSerializeType($client_serialize_type);
 			$swoole_client = $client_service->connect();
 			self::$client_services[$key] = $client_service;
-		}else {
-			throw new \Exception("$serviceNmae service had exist", 1);
 		}
 
 		return $client_service;
