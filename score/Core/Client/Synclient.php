@@ -18,6 +18,12 @@ class Synclient {
 	 */
 	public $client;
 
+    /**
+     * $clientService 客户端的对应服务名
+     * @var [type]
+     */
+    public $clientServiceName;
+
 	/**
 	 * $header_struct 析包结构,包含包头结构，key代表的是包头的字段，value代表的pack的类型
 	 * @var array
@@ -25,7 +31,7 @@ class Synclient {
 	public $header_struct = ['length'=>'N'];
 
 	/**
-	 * $pack_setting 分包数据协议设置
+	 * $pack_setting client的分包数据协议设置
 	 * @var array
 	 */
 	public $pack_setting = [];
@@ -40,7 +46,18 @@ class Synclient {
 	 * $serialize_type 设置数据序列化的方式 
 	 * @var string
 	 */
-	public $serialize_type = 'json';
+	public $client_serialize_type = 'json';
+
+    /**
+     * 每次请求调用的串号id
+     */
+    public $request_id = null;
+
+    /**
+     * $is_has_call_menthod 是否调用了waitCall方法,，如果调用waitCall，则不能调用第二次，必须使用waitRecv()或者multiRecv()获取数据复位
+     * @var boolean
+     */
+    public $is_has_call_menthod = false;
 
 	/**
 	 * $pack_eof eof分包时设置
@@ -82,15 +99,20 @@ class Synclient {
     public $haveSwoole = false;
     public $haveSockets = false;
 
-    // 是否是使用pack_length来分包
- 	protected $is_pack_length_type = true;
+    /**
+     * $is_pack_length_type client是否使用length的check来检查分包
+     * @var boolean
+     */
+ 	public $is_pack_length_type = true;
 
     /**
      * __construct 初始化
      * @param array $setting
      */
-    public function __construct(array $setting=[]) {
+    public function __construct(array $setting=[], array $header_struct = [], string $pack_length_key = 'length') {
     	$this->pack_setting = array_merge($this->pack_setting, $setting);
+        $this->header_struct = array_merge($this->header_struct, $header_struct);
+        $this->pack_length_key = $pack_length_key;
 
     	$this->haveSwoole = extension_loaded('swoole');
         $this->haveSockets = extension_loaded('sockets');
@@ -108,18 +130,59 @@ class Synclient {
    	 * addServer 添加服务器
    	 * @param mixed  $servers 
    	 * @param float   $timeout 
-   	 * @param integer $nonblock
+   	 * @param integer $noblock
    	 */
-    public function addServer($servers, $timeout = 0.5, $nonblock = 0) {
-    	if(is_array($servers)) {
-    		$this->remote_servers = $servers;
-    	}else {
-    		if(strpos($value, ':')) {
-    			list($host, $port) = explode(':', $value);
-    			$this->remote_servers = [$host, $port];
+    public function addServer($servers, $timeout = 0.5, $noblock = 0) {
+    	if(!is_array($servers)) {
+    		if(strpos($servers, ':')) {
+    			list($host, $port) = explode(':', $servers);
+    			$servers = [$host, $port];
     		}
     	}
+        $this->remote_servers[] = $servers;
     	$this->timeout = $timeout;
+    }
+
+    /**
+     * setClientServiceName 设置当前的客户端实例的对应服务名
+     * @param   string  $clientServiceName
+     */
+    public function setClientServiceName(string $clientServiceName) {
+        return $this->clientServiceName = $clientServiceName;
+    }
+
+    /**
+     * getClientServiceName 
+     * @return  string
+     */
+    public function getClientServiceName() {
+        return $this->clientServiceName;
+    }
+
+    /**
+     * setClientSerializeType 设置client端数据的序列化类型
+     * @param    string   $client_serialize_type
+     */
+    public function setClientSerializeType(string $client_serialize_type) {
+        if($client_serialize_type) {
+            $this->client_serialize_type = $client_serialize_type;
+        }
+    }
+
+    /**
+     * getClientSerializeType  获取客户端实例的序列化类型
+     * @return  string
+     */
+    public function getClientSerializeType() {
+        return $this->client_serialize_type;
+    }
+
+    /**
+     * isPackLengthCheck  client是否使用length的检查
+     * @return   boolean
+     */
+    public function isPackLengthCheck() {
+        return $this->is_pack_length_type;
     }
 
     /**
@@ -127,50 +190,47 @@ class Synclient {
      * @param  syting  $host   
      * @param  string  $port   
      * @param  float   $tomeout
-     * @param  integer $nonlock
+     * @param  integer $noblock
      * @return mixed          
      */
-    public function connect($host = null, $port = null , $tomeout = 0.5, $nonlock = 0) {
+    public function connect($host = null, $port = null , $timeout = 0.5, $noblock = 0) {
     	if(!empty($host) && !empty($port)) {
-    		$this->remote_servers = [$host, $port];
+    		$this->remote_servers[] = [$host, $port];
     		$this->timeout = $timeout;
     	}
-
     	// 如果存在swoole扩展，优先使用swoole扩展
     	if($this->haveSwoole) {
-    		// 创建同步客户端
+    		// 创建长连接同步客户端
     		$client = new \swoole_client(SWOOLE_TCP | SWOOLE_KEEP, SWOOLE_SOCK_SYNC);
     		$client->set($this->pack_setting);
-
-    		foreach($this->remote_servers as $val) {
-    			$host = $val['host'];
-    			$port = $val['port'];
-    			$client->connect($host, $port);
-    			/**
-             	* 尝试重连一次
-             	*/
-	            for ($i = 0; $i < 2; $i++)
-	            {
-	                $ret = $client->connect($host, $port, $this->timeout, 0);
-	                if ($ret === false and ($client->errCode == 114 or $client->errCode == 115)) {
-	                    //强制关闭，重连
-	                    $client->close(true);
-	                    continue;
-	                }else {
-	                    break;
-	                }
-	            }
-    		}
-    		
+            $this->client = $client;
+            // 重连一次
+    		$this->reConnect();
     	}else if($this->haveSockets) {
-
+            // TODO
     	}else {
     		return false;
     	}
-
-    	$this->client = $client;
-
     	return $client;
+    }
+
+    /**
+     * getSwooleClient 获取当前的swoole_client实例
+     * @return   swoole_client
+     */
+    public function getSwooleClient() {
+        if(is_object($this->client)) {
+            return $this->client;
+        }
+        return false;
+    }
+
+    /**
+     * getRequestId  获取当前的请求的串号id
+     * @return   string 
+     */
+    public function getRequestId() {
+        return $this->request_id;
     }
 
     /**
@@ -178,56 +238,95 @@ class Synclient {
      * @param   mixed $data
      * @return  boolean
      */
-	public function send($data) {
+	public function waitCall($data, array $header = [], $seralize_type = self::DECODE_JSON) {
 		if(!$this->client->isConnected()) {
-			$this->client->close(true);
-			list($host, $port) = $this->remote_servers;
-			$this->client->connect($host, $port);
+            // 重连一次
+            $this->client->close(true);
+			$this->reConnect();
 		}
-
-		$res = $this->client->send($data);
+        if($this->is_has_call_menthod) {
+            throw new \Exception("you had call waitCall()  method 1 times, you can not call 2 times before you call waitRecv() method or multiRecv() method !", 1);  
+        }
+        // 封装包
+        $pack_data = self::enpack($data, $header, $this->header_struct, $this->pack_length_key, $seralize_type);
+		$res = $this->client->send($pack_data);
 		// 发送成功
 		if($res) {
+            if(isset($header['request_id'])) {
+                $this->request_id = $header['request_id'];
+            }else {
+                $header_values = array_values($header);
+                $this->request_id = end($header_values);
+            }
+            $this->is_has_call_menthod = true;
 			return true;
 		}else {
 			throw new \Exception("swoole_client error : ".$this->client->errCode);
 			return false;
 		}
-
 	}
 
 	/**
-	 * recv 接收数据
-	 * @param    int  $size  
+	 * recv 阻塞等待接收数据
+	 * @param    int  $size
 	 * @param    int  $flags 
 	 * @return   array
 	 */
-	public function recv($size = 64 * 1024, $flags = 0) {
-		$data = $this->client->recv($size, $flags);
-		if($data) {
-			if($this->is_pack_length_type) {
-				return $this->depack($data);
-			}else {
-				$unseralize_type = $this->serialize_type;
-				return $this->depackeof($data, $unseralize_type);
-			}
-		}else {
-			$this->client->close(true);
-			throw new \Exception("swoole_client recv error : ".$this->client->errCode);
-		}
+	public function waitRecv($timeout = 5, $size = 64 * 1024, $flags = 0) {
+        // 恢复标志是否调用waitCall方法的控制位
+        $this->is_has_call_menthod = false;
+        if($this->client instanceof \swoole_client) {
+            $read = array($this->client);
+            $write = [];
+            $error = [];
+            $ret = swoole_client_select($read, $write, $error, $timeout);
+            if($ret) {
+                $data = $this->client->recv($size, $flags);
+            }
+        }
+
+        if($data) {
+            if($this->is_pack_length_type) {
+                $response = $this->depack($data);
+                list($header, $body_data) = $response;
+                // 不属于当前调用返回的值
+                if(!in_array($this->getRequestId(), array_values($header))) {
+                    return false;
+                }
+                return $response;
+            }else {
+                $unseralize_type = $this->client_serialize_type;
+                return $this->depackeof($data, $unseralize_type);
+            }
+        }
+        return false;
 	}
 
-	/**
-	 * close 关闭
-	 * @return 
-	 */
-	public function close($isforce = false) {
-		return $this->client->close($isforce);
-	}
+    /**
+     * reConnect  最多尝试重连次数，默认尝试重连1次
+     * @param   int  $times
+     * @return  void
+     */
+    public function reConnect($times = 1) {
+        foreach($this->remote_servers as $k=>$servers) {
+            list($host, $port) = $servers;
+            // 尝试重连一次
+            for($i = 0; $i <= $times; $i++) {
+                $ret = $this->client->connect($host, $port, $this->timeout, 0);
+                if($ret === false && ($this->client->errCode == 114 || $this->client->errCode == 115)) {
+                    //强制关闭，重连
+                    $this->client->close(true);
+                    continue;
+                }else {
+                    break;
+                }
+            }
+        }
+    }
 
 	/**
 	 * enpack 
-	 * @param  array $data
+	 * @param  array  $data
 	 * @param  array  $header
 	 * @param  mixed  $serialize_type
 	 * @param  array  $heder_struct
@@ -266,8 +365,7 @@ class Synclient {
 		$unpack_length_type = $this->setUnpackLengthType();
 		$package_body_offset = $this->pack_setting['package_body_offset'];
 		$header = unpack($unpack_length_type, mb_strcut($data, 0, $package_body_offset, 'UTF-8'));
-		$body_data = json_decode(mb_strcut($data, 34, null, 'UTF-8'), true);
-
+		$body_data = json_decode(mb_strcut($data, $package_body_offset, null, 'UTF-8'), true);
 		return [$header, $body_data];
 	}
 
@@ -296,6 +394,7 @@ class Synclient {
 	 */
 	public static function encode($data, $serialize_type = self::DECODE_JSON) {
 		if(is_string($serialize_type)) {
+            $serialize_type = strtolower($serialize_type);
 			$serialize_type = self::SERIALIZE_TYPE[$serialize_type];
 		}
         switch($serialize_type) {
@@ -320,6 +419,7 @@ class Synclient {
 	 */
 	public static function decode($data, $unserialize_type = self::DECODE_JSON) {
 		if(is_string($unserialize_type)) {
+            $serialize_type = strtolower($serialize_type);
 			$unserialize_type = self::SERIALIZE_TYPE[$unserialize_type];
 		}
         switch($unserialize_type) {
@@ -337,11 +437,7 @@ class Synclient {
     }
 
     /**
-     * enpackeof eof协议封包,包体中不能含有eof的结尾符号，否则出错
-     * usages:
-     *	Syncilent::$pack_eof = "\r\n\r\n";
-	 *	$client = new Syncilent();
-	 *	$sendData = $client->enpackeof($data, Syncilent::DECODE_JSON);				
+     * enpackeof eof协议封包,包体中不能含有eof的结尾符号，否则出错		
      * @param  mixed $data
      * @param  int   $seralize_type
      * @param  string $eof
@@ -358,10 +454,6 @@ class Synclient {
 
     /**
      * depackeof  eof协议解包,每次收到一个完整的包
-     * usages:
-     *	Syncilent::$pack_eof = "\r\n\r\n";
-	 *	$client = new Syncilent();
-	 *	$sendData = $client->depackeof($data, Syncilent::DECODE_JSON);
      * @param   string  $data
      * @param   int     $unseralize_type
      * @return  mixed 
@@ -371,21 +463,11 @@ class Synclient {
     }
 
     /**
-     * __set 魔术方法设置pack_eof
-     * useage:
-	 *	$client = new Syncilent();
-	 *	$cilent->pack_eof = "\r\n\r\n";
-     * @param [type] $name  [description]
-     * @param [type] $value [description]
+     * close 关闭
+     * @return 
      */
-    public function __set($name, $value) {
-    	switch($name) {
-    		case "pack_eof" :
-    		if(is_string($value)) {
-    			self::$pack_eof = $value;
-    		}
-    		break;
-    		default;return;
-    	}
+    public function close($isforce = false) {
+        return $this->client->close($isforce);
     }
+
 }

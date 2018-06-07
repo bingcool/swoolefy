@@ -80,7 +80,7 @@ class RpcHander extends Swoole implements HanderInterface {
 		}
 		
 		if($callable && $params) {
-			$Dispatch = new ServiceDispatch($callable, $params);
+			$Dispatch = new ServiceDispatch($callable, $params, $this->header);
 			$Dispatch->dispatch();
 		}
 		// 必须执行
