@@ -24,7 +24,13 @@ class RpcClientManager {
 	protected $setting = [];
 
 	/**
-	 * $client_services 客户端服务实例
+	 * $is_swoole_env 是在swoole环境中使用，或者在apache|php-fpm中使用
+	 * @var boolean
+	 */
+	protected $is_swoole_env = false;
+
+	/**
+	 * $client_services 客户端所有注册的服务实例
 	 * @var array
 	 */
 	protected static $client_services = [];
@@ -42,11 +48,17 @@ class RpcClientManager {
 	protected static $header_structs = [];
 
 	/**
+	 * $busy_client_services 正在工作的服务实例
+	 * @var array
+	 */
+	protected static $busy_client_services = [];
+
+	/**
 	 * __construct 
 	 * @param  array $setting
 	 */
-	public function __construct(array $setting=[]) {
-		$this->setting = array_merge($this->setting, $setting);
+	public function __construct(bool $is_swoole_env = false) {
+		$this->is_swoole_env = $is_swoole_env;
 	}
 
 	/**
@@ -80,15 +92,17 @@ class RpcClientManager {
 			$client_service->addServer($servers, $timeout, $noblock);
 			$client_service->setClientServiceName($serviceNmae);
 			$client_service->setClientSerializeType($client_serialize_type);
+			$client_service->setIsSwooleEnv($this->is_swoole_env);
+			
 			$swoole_client = $client_service->connect();
-			self::$client_services[$key] = $client_service;
+			self::$client_services[$key] = swoole_pack($client_service);
 		}
 
 		return $client_service;
 	}
 
 	/**
-	 * getService 获取某个服务实例|所有服务
+	 * getService 获取某个服务实例|所有正在工作的服务
 	 * @param    String   $serviceNmae
 	 * @return   object|array
 	 */
@@ -96,10 +110,17 @@ class RpcClientManager {
 		if($serviceNmae) {
 			$key = md5($serviceNmae);
 			if(isset(self::$client_services[$key])) {
-				return self::$client_services[$key];
+				// 深度复制client_service实例
+				$client_service = swoole_unpack(self::$client_services[$key]);
+				$us = strstr(microtime(), ' ', true);
+        		$key_id = intval(strval($us * 1000 * 1000) . rand(100, 999));
+				if(!isset(self::$busy_client_services[$key_id])) {
+					self::$busy_client_services[$key_id] = $client_service;
+				}
+				return $client_service;
 			}
 		}
-		return self::$client_services;
+		return self::$busy_client_services;
 	}
 
 
@@ -130,8 +151,6 @@ class RpcClientManager {
         $client_services = array_values($client_services);
         foreach($client_services as $k=>$client_service) {
         	$read[$k] = $client_service->getSwooleClient();
-        	// 恢复标志是否调用waitCall方法的控制位
-        	$client_service->is_has_call_menthod = false;
         }
         $ret = swoole_client_select($read, $write, $error, $timeout);
         $this->response_pack_data = [];
@@ -139,38 +158,71 @@ class RpcClientManager {
             foreach($read as $k=>$swoole_client) {
                 $data = $swoole_client->recv($size, $flags);
                 $client_service = $client_services[$k];
-                $serviceNmae = $client_service->getClientServiceName();
                 if($data) {
                     if($client_service->isPackLengthCheck()) {
                     	$response = $client_service->depack($data);
 		                list($header, $body_data) = $response;
 		                // 不属于当前调用返回的值
 		                if(!in_array($client_service->getRequestId(), array_values($header))) {
-		                	// 返回[]
-		                    $this->response_pack_data[$serviceNmae] = [];
+		                    $this->response_pack_data[$client_service->getRequestId()] = [];
 		                }else {
-		                	$this->response_pack_data[$serviceNmae] = $response;
+		                	$this->response_pack_data[$client_service->getRequestId()] = $response;
 		                }
                     }else {
+                    	// eof分包时
+                    	$serviceNmae = $client_service->getClientServiceName();
                         $unseralize_type = $client_service->getClientSerializeType();
                         $this->response_pack_data[$serviceNmae] = $client_service->depackeof($data, $unseralize_type);
                     }
                 }
             }
         }
+        // client获取数据完成后，释放工作的client_services的实例
+        $this->destroyBusyClient();
         return $this->response_pack_data;
     }
 
     /**
-     * getResponsePackData 获取服务返回的数据
+     * getAllResponseData 获取所有调用请求的swoole_client_select的I/O响应包数据
+     * @return   array
+     */
+    public function getAllResponsePackData() {
+    	return $this->response_pack_data;
+    }
+
+
+    /**
+     * getResponsePackData 获取某个服务请求服务返回的数据
      * @param   string  $serviceName
      * @return  array
      */
-    public function getResponseData(string $serviceName) {
-    	if(!empty($this->response_pack_data)) {
-    		return $this->response_pack_data[$serviceName];
-    	}
-    	return false;
+    public function getResponsePackData(Synclient $client_service) {
+    	return $client_service->getResponsePackData();
+    }
+
+    /**
+     * getResponseBody 获取服务响应的包体数据
+     * @return  array
+     */
+    public function getResponsePackBody(Synclient $client_service) {
+        return $client_service->getResponsePackBody();
+    }
+
+    /**
+     * getResponseBody 获取服务响应的包头数据
+     * @return  array
+     */
+    public function getResponsePackHeader(Synclient $client_service) {
+        return $client_service->getResponsePackHeader();
+    }
+
+    /**
+     * destroyBusyClient client获取数据完成后，清空这些实例对象，实际上对象并没有真正销毁，因为在业务中还返回给一个变量引用着，只是清空self::$busy_client_services数组
+     * eg $client = RpcClientManager::getInstance()->getServices('productService'); $client这个变量引用实例
+     * @return  void 
+     */
+    public function destroyBusyClient() {
+    	self::$busy_client_services = [];
     }
 
 	/**
@@ -180,8 +232,9 @@ class RpcClientManager {
 	 */
 	public function getClientPackSetting(string $serviceNmae) {
 		$key = md5($serviceNmae);
-		if(isset(self::$client_pack_setting[$key])) {
-			return self::$client_pack_setting[$key];
+		$client_service = self::$client_pack_setting[$key];
+		if(is_object($client_service)) {
+			return $client_service->getClientPackSetting();
 		}
 		return false;
 	}
@@ -216,7 +269,7 @@ class RpcClientManager {
 	 * buildHeader  重建header的数据，产生一个唯一的请求串号id
 	 * @param    array   $header_data
 	 * @param    string  $request_id_key
-	 * @param    string  $length     12字节
+	 * @param    string  $length     默认12字节
 	 * @return   array
 	 */
 	public function buildHeaderRequestId(array $header_data, $request_id_key = 'request_id', $length = 12) {
