@@ -22,48 +22,42 @@ class Synclient {
      * $clientService 客户端的对应服务名
      * @var [type]
      */
-    public $clientServiceName;
+    protected $clientServiceName;
 
 	/**
 	 * $header_struct 析包结构,包含包头结构，key代表的是包头的字段，value代表的pack的类型
 	 * @var array
 	 */
-	public $header_struct = ['length'=>'N'];
+	protected $header_struct = ['length'=>'N'];
 
 	/**
 	 * $pack_setting client的分包数据协议设置
 	 * @var array
 	 */
-	public $pack_setting = [];
+	protected $pack_setting = [];
 
 	/**
 	 * $pack_length_key 包的长度设定的key，与$header_struct里设置的长度的key一致
 	 * @var string
 	 */
-	public $pack_length_key = 'length';
+	protected $pack_length_key = 'length';
 
 	/**
 	 * $serialize_type 设置数据序列化的方式 
 	 * @var string
 	 */
-	public $client_serialize_type = 'json';
+	protected $client_serialize_type = 'json';
 
     /**
      * 每次请求调用的串号id
      */
-    public $request_id = null;
-
-    /**
-     * $is_has_call_menthod 是否调用了waitCall方法,，如果调用waitCall，则不能调用第二次，必须使用waitRecv()或者multiRecv()获取数据复位
-     * @var boolean
-     */
-    public $is_has_call_menthod = false;
+    protected $request_id = null;
 
 	/**
 	 * $pack_eof eof分包时设置
 	 * @var string
 	 */
-	public static $pack_eof = "\r\n\r\n";
+	protected static $pack_eof = "\r\n\r\n";
 
 	/**
 	 * 定义序列化的方式
@@ -82,28 +76,28 @@ class Synclient {
      * $remote_servers 请求的远程服务ip和端口
      * @var array
      */
-    public $remote_servers = [];
-
-    /**
-     * $keeplive 是否保持长连接，默认true
-     * @var boolean
-     */
-    public $keeplive = true;
+    protected $remote_servers = [];
 
     /**
      * $timeout 连接超时时间，单位s
      * @var float
      */
-    public $timeout = 0.5;
+    protected $timeout = 0.5;
 
-    public $haveSwoole = false;
-    public $haveSockets = false;
+    protected $haveSwoole = false;
+    protected $haveSockets = false;
 
     /**
      * $is_pack_length_type client是否使用length的check来检查分包
      * @var boolean
      */
- 	public $is_pack_length_type = true;
+ 	protected $is_pack_length_type = true;
+
+    /**
+     * $is_swoole_env 是在swoole环境中使用，或者在apache|php-fpm中使用
+     * @var boolean
+     */
+    protected $is_swoole_env = false;
 
     /**
      * __construct 初始化
@@ -144,6 +138,40 @@ class Synclient {
     }
 
     /**
+     * setPackHeaderStruct   设置包头结构体
+     * @param    array    $header_struct
+     */
+    public function setPackHeaderStruct(array $header_struct = []) {
+        $this->header_struct = array_merge($this->header_struct, $header_struct);
+        return $this->header_struct;
+    }   
+
+    /**
+     * getPackHeaderStruct  获取包头结构体
+     * @return   array 
+     */
+    public function getPackHeaderStruct() {
+        return $this->header_struct;
+    }
+
+    /**
+     * setClientPackSetting 设置client实例的pack的长度检查
+     * @param   array  $pack_setting
+     */
+    public function setClientPackSetting(array $pack_setting = []) {
+        return $this->pack_setting = array_merge($this->pack_setting, $pack_setting);
+    }
+
+    /**
+     * getClientPackSetting 获取client实例的pack的长度检查配置
+     * @param   array  $pack_setting
+     */
+    public function getClientPackSetting() {
+        return $this->pack_setting;
+    }
+
+
+    /**
      * setClientServiceName 设置当前的客户端实例的对应服务名
      * @param   string  $clientServiceName
      */
@@ -157,6 +185,22 @@ class Synclient {
      */
     public function getClientServiceName() {
         return $this->clientServiceName;
+    }
+
+    /**
+     * setPackLengthKey 设置包头控制包体长度的key,默认length
+     * @param   string   $pack_length_key
+     */
+    public function setPackLengthKey(string $pack_length_key = 'length') {
+        $this->pack_length_key = $pack_length_key;
+        return true;
+    }
+
+    /**
+     * getPackLengthKey 设置包头控制包体长度的key,默认length
+     */
+    public function getPackLengthKey() {
+        return $this->pack_length_key; 
     }
 
     /**
@@ -186,6 +230,22 @@ class Synclient {
     }
 
     /**
+     * setIsSwooleEnv 
+     * @param    bool|boolean  $is_swoole_env
+     */
+    public function setIsSwooleEnv(bool $is_swoole_env = false) {
+        $this->is_swoole_env = $is_swoole_env;
+    }
+
+    /**
+     * getIsSwooleEnv 
+     * @param    bool|boolean  $is_swoole_env
+     */
+    public function isSwooleEnv() {
+        return $this->is_swoole_env;
+    }
+
+    /**
      * connect 连接
      * @param  syting  $host   
      * @param  string  $port   
@@ -198,7 +258,7 @@ class Synclient {
     		$this->remote_servers[] = [$host, $port];
     		$this->timeout = $timeout;
     	}
-    	// 如果存在swoole扩展，优先使用swoole扩展
+    	// 存在swoole扩展，优先使用swoole扩展
     	if($this->haveSwoole) {
     		// 创建长连接同步客户端
     		$client = new \swoole_client(SWOOLE_TCP | SWOOLE_KEEP, SWOOLE_SOCK_SYNC);
@@ -242,12 +302,11 @@ class Synclient {
         // 这里检测是应用层检测，不一定准确
 		if(!$this->client->isConnected()) {
             // 重连一次
-            $this->client->close(true);
+            if($this->is_swoole_env) {
+                $this->client->close(true);
+            }
 			$this->reConnect();
 		}
-        if($this->is_has_call_menthod) {
-            throw new \Exception("you had call waitCall()  method 1 times, you can not call 2 times before you call waitRecv() method or multiRecv() method !", 1);  
-        }
         // 封装包
         $pack_data = self::enpack($data, $header, $this->header_struct, $this->pack_length_key, $seralize_type);
 		$res = $this->client->send($pack_data);
@@ -259,11 +318,10 @@ class Synclient {
                 $header_values = array_values($header);
                 $this->request_id = end($header_values);
             }
-            $this->is_has_call_menthod = true;
 			return true;
 		}else {
             // 重连一次
-            $this->client->close(true);
+            @$this->client->close(true);
             $this->reConnect();
             // 重发一次
             $res = $this->client->send($pack_data);
@@ -274,7 +332,6 @@ class Synclient {
                     $header_values = array_values($header);
                     $this->request_id = end($header_values);
                 }
-                $this->is_has_call_menthod = true;
                 return true;
             }
             
@@ -289,8 +346,6 @@ class Synclient {
 	 * @return   array
 	 */
 	public function waitRecv($timeout = 5, $size = 64 * 1024, $flags = 0) {
-        // 恢复标志是否调用waitCall方法的控制位
-        $this->is_has_call_menthod = false;
         if($this->client instanceof \swoole_client) {
             $read = array($this->client);
             $write = [];
@@ -300,6 +355,8 @@ class Synclient {
                 $data = $this->client->recv($size, $flags);
             }
         }
+        // client获取数据完成后，释放工作的client_services的实例
+        RpcClientManager::getInstance()->destroyBusyClient();
 
         if($data) {
             if($this->is_pack_length_type) {
@@ -315,8 +372,47 @@ class Synclient {
                 return $this->depackeof($data, $unseralize_type);
             }
         }
+        
         return [];
 	}
+
+    /**
+     * getResponsePackData 获取服务返回的整包数据
+     * @param   string  $serviceName
+     * @return  array
+     */
+    public function getResponsePackData() {
+        // apache|php-fpm环境
+        if(!$this->is_swoole_env) {
+            static $pack_data;
+        }
+        
+        if(isset($pack_data) && !empty($pack_data)) {
+            return $pack_data;
+        }
+        $request_id = $this->getRequestId();
+        $response_pack_data = RpcClientManager::getInstance()->getAllResponsePackData();
+        $pack_data = $response_pack_data[$request_id] ?: [];
+        return $pack_data;
+    }
+
+    /**
+     * getResponseBody 获取服务响应的包体数据
+     * @return  array
+     */
+    public function getResponsePackBody() {
+        list($header, $body) = $this->getResponsePackData();
+        return $body ?: [];
+    }
+
+    /**
+     * getResponseBody 获取服务响应的包头数据
+     * @return  array
+     */
+    public function getResponsePackHeader() {
+        list($header,) = $this->getResponsePackData();
+        return $header ?: [];
+    }
 
     /**
      * reConnect  最多尝试重连次数，默认尝试重连1次
