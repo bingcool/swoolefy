@@ -653,7 +653,7 @@ class RpcSynclient {
      * @return mixed
      */
     public function __get(string $name) {
-        if(in_array($name, ['status_code', 'code']) {
+        if(in_array($name, ['status_code', 'code'])) {
             return $this->getStatusCode();
         }
         return null;
