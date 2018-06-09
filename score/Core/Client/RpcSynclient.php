@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Core\Client;
 
-class Synclient {
+class RpcSynclient {
 	/**
 	 * $client client对象
 	 * @var [type]
@@ -57,20 +57,7 @@ class Synclient {
 	 * $pack_eof eof分包时设置
 	 * @var string
 	 */
-	protected static $pack_eof = "\r\n\r\n";
-
-	/**
-	 * 定义序列化的方式
-	 */
-	const SERIALIZE_TYPE = [
-		'json' => 1,
-		'serialize' => 2,
-		'swoole' => 3
-	];
-
-	const DECODE_JSON = 1;
-    const DECODE_PHP = 2;
-    const DECODE_SWOOLE = 3;
+	protected $pack_eof = "\r\n\r\n";
 
     /**
      * $remote_servers 请求的远程服务ip和端口
@@ -100,6 +87,43 @@ class Synclient {
     protected $is_swoole_env = false;
 
     /**
+     * $swoole_keep 
+     * @var boolean
+     */
+    protected $swoole_keep = true;
+
+    /**
+     * $ERROR_CODE 
+     */
+    protected $status_code;
+
+    /**
+     * 定义序列化的方式
+     */
+    const SERIALIZE_TYPE = [
+        'json' => 1,
+        'serialize' => 2,
+        'swoole' => 3
+    ];
+
+    const DECODE_JSON = 1;
+    const DECODE_PHP = 2;
+    const DECODE_SWOOLE = 3;
+
+    // 服务器连接失败
+    const ERROR_CODE_CONNECT_FAIL = 5001;
+    // 首次数据发送成功
+    const ERROR_CODE_SEND_SUCCESS = 5002;
+    // 二次发送成功
+    const ERROR_CODE_SECOND_SEND_SUCCESS = 5003;
+    // 当前数据不属于当前的请求client对象
+    const ERROR_CODE_NO_MATCH = 5004;
+    // 数据接收超时,一般是服务端出现阻塞或者其他问题
+    const ERROR_CODE_CALL_TIMEOUT = 5005;
+    // 数据返回成功
+    const ERROR_CODE_SUCCESS = 0;
+
+    /**
      * __construct 初始化
      * @param array $setting
      */
@@ -116,7 +140,7 @@ class Synclient {
         }else {
         	// 使用eof方式分包
         	$this->is_pack_length_type = false;
-            self::$pack_eof = $this->pack_setting['package_eof'];
+            $this->pack_eof = $this->pack_setting['package_eof'];
         }
     }
 
@@ -233,8 +257,9 @@ class Synclient {
      * setIsSwooleEnv 
      * @param    bool|boolean  $is_swoole_env
      */
-    public function setIsSwooleEnv(bool $is_swoole_env = false) {
+    public function setSwooleEnv(bool $is_swoole_env = false) {
         $this->is_swoole_env = $is_swoole_env;
+        return true;
     }
 
     /**
@@ -243,6 +268,40 @@ class Synclient {
      */
     public function isSwooleEnv() {
         return $this->is_swoole_env;
+    }
+
+    /**
+     * setSwooleKeep 
+     * @param    bool|boolean  $is_swoole_keep
+     */
+    public function setSwooleKeep(bool $is_swoole_keep = true) {
+        $this->swoole_keep = $is_swoole_keep;
+        return true;
+    }
+
+    /**
+     * isSwooleKeep 
+     * @return   boolean  
+     */
+    public function isSwooleKeep() {
+        return $this->swoole_keep;
+    }
+
+    /**
+     * setErrorCode  设置实例对象状态码
+     * @param int $coode
+     */
+    public function setStatusCode($code) {
+        $this->status_code = $code;
+        return true;
+    }
+
+    /**
+     * getStatusCode 获取实例对象状态码
+     * @return  int
+     */
+    public function getStatusCode() {
+        return $this->status_code;
     }
 
     /**
@@ -258,10 +317,14 @@ class Synclient {
     		$this->remote_servers[] = [$host, $port];
     		$this->timeout = $timeout;
     	}
-    	// 存在swoole扩展，优先使用swoole扩展
+    	//优先使用swoole扩展
     	if($this->haveSwoole) {
     		// 创建长连接同步客户端
-    		$client = new \swoole_client(SWOOLE_TCP | SWOOLE_KEEP, SWOOLE_SOCK_SYNC);
+            if($this->isSwooleKeep()) {
+                $client = new \swoole_client(SWOOLE_SOCK_TCP | SWOOLE_KEEP, SWOOLE_SOCK_SYNC);
+            }else {
+                $client = new \swoole_client(SWOOLE_SOCK_TCP, SWOOLE_SOCK_SYNC);
+            }		
     		$client->set($this->pack_setting);
             $this->client = $client;
             // 重连一次
@@ -318,6 +381,7 @@ class Synclient {
                 $header_values = array_values($header);
                 $this->request_id = end($header_values);
             }
+            $this->setStatusCode(self::ERROR_CODE_SEND_SUCCESS);
 			return true;
 		}else {
             // 重连一次
@@ -332,9 +396,10 @@ class Synclient {
                     $header_values = array_values($header);
                     $this->request_id = end($header_values);
                 }
+                $this->setStatusCode(self::ERROR_CODE_SECOND_SEND_SUCCESS);
                 return true;
             }
-            
+            $this->setStatusCode(self::ERROR_CODE_CONNECT_FAIL);
 			return false;
 		}
 	}
@@ -348,8 +413,7 @@ class Synclient {
 	public function waitRecv($timeout = 5, $size = 64 * 1024, $flags = 0) {
         if($this->client instanceof \swoole_client) {
             $read = array($this->client);
-            $write = [];
-            $error = [];
+            $write = $error = [];
             $ret = swoole_client_select($read, $write, $error, $timeout);
             if($ret) {
                 $data = $this->client->recv($size, $flags);
@@ -362,17 +426,19 @@ class Synclient {
             if($this->is_pack_length_type) {
                 $response = $this->depack($data);
                 list($header, $body_data) = $response;
-                // 不属于当前调用返回的值
-                if(!in_array($this->getRequestId(), array_values($header))) {
-                    return [];
+                if(in_array($this->getRequestId(), array_values($header))) {
+                    $this->setStatusCode(self::ERROR_CODE_SUCCESS);
+                    return $response;
                 }
-                return $response;
+                $this->setStatusCode(self::ERROR_CODE_NO_MATCH);
+                return [];
+                
             }else {
                 $unseralize_type = $this->client_serialize_type;
                 return $this->depackeof($data, $unseralize_type);
             }
         }
-        
+        $this->setStatusCode(self::ERROR_CODE_CALL_TIMEOUT);
         return [];
 	}
 
@@ -382,7 +448,6 @@ class Synclient {
      * @return  array
      */
     public function getResponsePackData() {
-        // apache|php-fpm环境
         if(!$this->is_swoole_env) {
             static $pack_data;
         }
@@ -557,7 +622,7 @@ class Synclient {
      */
     public function enpackeof($data, $serialize_type = self::DECODE_JSON, $eof ='') {
     	if(empty($eof)) {
-    		$eof = self::$pack_eof;
+    		$eof = $this->pack_eof;
     	}
     	$data = self::encode($data, $serialize_type).$eof;
     	
@@ -580,6 +645,18 @@ class Synclient {
      */
     public function close($isforce = false) {
         return $this->client->close($isforce);
+    }
+
+    /**
+     * __get 
+     * @param  string  $name
+     * @return mixed
+     */
+    public function __get(string $name) {
+        if(in_array($name, ['status_code', 'code'])) {
+            return $this->getStatusCode();
+        }
+        return null;
     }
 
 }
