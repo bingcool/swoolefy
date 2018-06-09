@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Core\Client;
 
-use Swoolefy\Core\Client\Synclient;
+use Swoolefy\Core\Client\RpcSynclient;
 
 class RpcClientManager {
 
@@ -53,6 +53,19 @@ class RpcClientManager {
 	 */
 	protected static $busy_client_services = [];
 
+	// 服务器连接失败
+	const ERROR_CODE_CONNECT = 5001;
+	// 数据发送成功
+	const ERROR_CODE_SEND_SUCCESS = 5002;
+	// 等待接收数据
+	const ERROR_CODE_RECV = 5003;
+	// 服务器错误
+	const ERROR_CODE_SERVER = 5004;
+	// 数据接收超时
+	const ERROR_CODE_CALL_TIMEOUT = 5006;
+	// 数据返回成功
+	const ERROR_CODE_SUCCESS = 0;
+
 	/**
 	 * __construct 
 	 * @param  array $setting
@@ -75,8 +88,7 @@ class RpcClientManager {
 		array $serviceConfig = [], 
 		array $setting = [], 
 		array $header_struct = [], 
-		string $pack_length_key = 'length', 
-		string $client_serialize_type = 'json'
+		array $args = []
 	) {
 		$servers = $serviceConfig['servers'];
 		$timeout = $serviceConfig['timeout'];
@@ -88,12 +100,20 @@ class RpcClientManager {
 		if(!isset(self::$client_services[$key])) {
 			self::$client_pack_setting[$key] = $setting;
 			self::$header_structs[$key] = $header_struct;
-			$client_service = new Synclient($setting, $header_struct, $pack_length_key);
+			$pack_length_key = $args['pack_length_key'] ?: 'length';
+			$client_serialize_type = $args['client_serialize_type'] ?: 'json';
+			$swoole_keep = true;
+			if(isset($args['swoole_keep']) && ($args['swoole_keep'] === false || $args['swoole_keep'] == 0)) {
+				$swoole_keep = (boolean)$args['swoole_keep'];
+			}
+
+			$client_service = new RpcSynclient($setting, $header_struct, $pack_length_key);
 			$client_service->addServer($servers, $timeout, $noblock);
 			$client_service->setClientServiceName($serviceNmae);
 			$client_service->setClientSerializeType($client_serialize_type);
-			$client_service->setIsSwooleEnv($this->is_swoole_env);
-			
+			$client_service->setSwooleKeep($swoole_keep);
+			$client_service->setSwooleEnv($this->is_swoole_env);
+
 			$swoole_client = $client_service->connect();
 			self::$client_services[$key] = swoole_pack($client_service);
 		}
@@ -113,9 +133,9 @@ class RpcClientManager {
 				// 深度复制client_service实例
 				$client_service = swoole_unpack(self::$client_services[$key]);
 				$us = strstr(microtime(), ' ', true);
-        		$key_id = intval(strval($us * 1000 * 1000) . rand(100, 999));
-				if(!isset(self::$busy_client_services[$key_id])) {
-					self::$busy_client_services[$key_id] = $client_service;
+        		$client_id = intval(strval($us * 1000 * 1000) . rand(100, 999));
+				if(!isset(self::$busy_client_services[$client_id])) {
+					self::$busy_client_services[$client_id] = $client_service;
 				}
 				return $client_service;
 			}
@@ -145,37 +165,57 @@ class RpcClientManager {
      * @param    int   $flags
      * @return   array
      */
-    public function multiRecv($timeout = 10, $size = 64 * 1024, $flags = 0) {
-        $client_services = $this->getServices();
-        $read = $write = $error = [];
-        $client_services = array_values($client_services);
-        foreach($client_services as $k=>$client_service) {
-        	$read[$k] = $client_service->getSwooleClient();
-        }
-        $ret = swoole_client_select($read, $write, $error, $timeout);
+    public function multiRecv($timeout = 30, $size = 64 * 1024, $flags = 0) {
+        $busy_client_services = $this->getServices();
+        $client_services = $busy_client_services;
+        $start_time = time();
         $this->response_pack_data = [];
-        if($ret) {
-            foreach($read as $k=>$swoole_client) {
-                $data = $swoole_client->recv($size, $flags);
-                $client_service = $client_services[$k];
-                if($data) {
-                    if($client_service->isPackLengthCheck()) {
-                    	$response = $client_service->depack($data);
-		                list($header, $body_data) = $response;
-		                // 不属于当前调用返回的值
-		                if(!in_array($client_service->getRequestId(), array_values($header))) {
-		                    $this->response_pack_data[$client_service->getRequestId()] = [];
-		                }else {
-		                	$this->response_pack_data[$client_service->getRequestId()] = $response;
-		                }
-                    }else {
-                    	// eof分包时
-                    	$serviceNmae = $client_service->getClientServiceName();
-                        $unseralize_type = $client_service->getClientSerializeType();
-                        $this->response_pack_data[$serviceNmae] = $client_service->depackeof($data, $unseralize_type);
-                    }
-                }
-            }
+        while(!empty($client_services)) {
+        	$read = $write = $error = $client_ids = [];
+	        foreach($client_services as $client_id=>$client_service) {
+	        	$read[] = $client_service->getSwooleClient();
+	        	$client_ids[] = $client_id;
+	        }
+	        $ret = swoole_client_select($read, $write, $error, 0.50);
+	        if($ret) {
+	            foreach($read as $k=>$swoole_client) {
+	                $data = $swoole_client->recv($size, $flags);
+	                $client_id = $client_ids[$k];
+	                $client_service = $client_services[$client_id];
+	                if($data) {
+	                    if($client_service->isPackLengthCheck()) {
+	                    	$response = $client_service->depack($data);
+			                list($header, $body_data) = $response;
+			                $request_id = $client_service->getRequestId();
+			                // 属于当前调用返回的值
+			                if(in_array($request_id, array_values($header))) {
+			                	$this->response_pack_data[$request_id] = $response; 
+			                }else {
+			                	$this->response_pack_data[$request_id] = [];
+			                }
+	                    }else {
+	                    	// eof分包时
+	                    	$serviceNmae = $client_service->getClientServiceName();
+	                        $unseralize_type = $client_service->getClientSerializeType();
+	                        $this->response_pack_data[$serviceNmae] = $client_service->depackeof($data, $unseralize_type);
+	                    }
+	                }
+	                // 长连接的不能删除
+	                unset($client_services[$client_id]);
+	                
+	            }   
+	        }
+
+	        $end_time = time();
+	        if(($end_time - $start_time) > $timeout) {
+				// 超时的client_service实例
+		        foreach($client_services as $client_id=>$timeout_client_service) {
+	            	$request_id = $timeout_client_service->getRequestId();
+	            	$this->response_pack_data[$request_id] = [];
+	            	unset($client_services[$client_id]);
+		       	}
+		       	break;
+			}
         }
         // client获取数据完成后，释放工作的client_services的实例
         $this->destroyBusyClient();
@@ -196,7 +236,7 @@ class RpcClientManager {
      * @param   string  $serviceName
      * @return  array
      */
-    public function getResponsePackData(Synclient $client_service) {
+    public function getResponsePackData(RpcSynclient $client_service) {
     	return $client_service->getResponsePackData();
     }
 
@@ -204,7 +244,7 @@ class RpcClientManager {
      * getResponseBody 获取服务响应的包体数据
      * @return  array
      */
-    public function getResponsePackBody(Synclient $client_service) {
+    public function getResponsePackBody(RpcSynclient $client_service) {
         return $client_service->getResponsePackBody();
     }
 
@@ -212,7 +252,7 @@ class RpcClientManager {
      * getResponseBody 获取服务响应的包头数据
      * @return  array
      */
-    public function getResponsePackHeader(Synclient $client_service) {
+    public function getResponsePackHeader(RpcSynclient $client_service) {
         return $client_service->getResponsePackHeader();
     }
 
@@ -247,9 +287,7 @@ class RpcClientManager {
      * @return string
      */
     public function string($length = 6, $number = true, $ignore = []) {
-        //字符池
         $strings = 'ABCDEFGHIJKLOMNOPQRSTUVWXYZ';
-        //数字池
         $numbers = '0123456789';           
         if($ignore && is_array($ignore)) {
             $strings = str_replace($ignore, '', $strings);
@@ -259,7 +297,6 @@ class RpcClientManager {
         $max = strlen($pattern) - 1;
         $key = '';
         for($i = 0; $i < $length; $i++) {   
-            //生成php随机数
             $key .= $pattern[mt_rand(0, $max)]; 
         }
         return $key;
