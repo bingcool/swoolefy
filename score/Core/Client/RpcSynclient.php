@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Core\Client;
 
-class Synclient {
+class RpcSynclient {
 	/**
 	 * $client client对象
 	 * @var [type]
@@ -57,20 +57,7 @@ class Synclient {
 	 * $pack_eof eof分包时设置
 	 * @var string
 	 */
-	protected static $pack_eof = "\r\n\r\n";
-
-	/**
-	 * 定义序列化的方式
-	 */
-	const SERIALIZE_TYPE = [
-		'json' => 1,
-		'serialize' => 2,
-		'swoole' => 3
-	];
-
-	const DECODE_JSON = 1;
-    const DECODE_PHP = 2;
-    const DECODE_SWOOLE = 3;
+	protected $pack_eof = "\r\n\r\n";
 
     /**
      * $remote_servers 请求的远程服务ip和端口
@@ -100,6 +87,38 @@ class Synclient {
     protected $is_swoole_env = false;
 
     /**
+     * $swoole_keep 
+     * @var boolean
+     */
+    protected $swoole_keep = true;
+
+    /**
+     * 定义序列化的方式
+     */
+    const SERIALIZE_TYPE = [
+        'json' => 1,
+        'serialize' => 2,
+        'swoole' => 3
+    ];
+
+    const DECODE_JSON = 1;
+    const DECODE_PHP = 2;
+    const DECODE_SWOOLE = 3;
+
+    // 服务器连接失败
+    const ERROR_CODE_CONNECT = 5001;
+    // 数据发送成功
+    const ERROR_CODE_SEND_SUCCESS = 5002;
+    // 等待接收数据
+    const ERROR_CODE_RECV = 5003;
+    // 服务器错误
+    const ERROR_CODE_SERVER = 5004;
+    // 数据接收超时
+    const ERROR_CODE_CALL_TIMEOUT = 5006;
+    // 数据返回成功
+    const ERROR_CODE_SUCCESS = 0;
+
+    /**
      * __construct 初始化
      * @param array $setting
      */
@@ -116,7 +135,7 @@ class Synclient {
         }else {
         	// 使用eof方式分包
         	$this->is_pack_length_type = false;
-            self::$pack_eof = $this->pack_setting['package_eof'];
+            $this->pack_eof = $this->pack_setting['package_eof'];
         }
     }
 
@@ -233,8 +252,9 @@ class Synclient {
      * setIsSwooleEnv 
      * @param    bool|boolean  $is_swoole_env
      */
-    public function setIsSwooleEnv(bool $is_swoole_env = false) {
+    public function setSwooleEnv(bool $is_swoole_env = false) {
         $this->is_swoole_env = $is_swoole_env;
+        return true;
     }
 
     /**
@@ -243,6 +263,23 @@ class Synclient {
      */
     public function isSwooleEnv() {
         return $this->is_swoole_env;
+    }
+
+    /**
+     * setSwooleKeep 
+     * @param    bool|boolean  $is_swoole_keep
+     */
+    public function setSwooleKeep(bool $is_swoole_keep = true) {
+        $this->swoole_keep = $is_swoole_keep;
+        return true;
+    }
+
+    /**
+     * isSwooleKeep 
+     * @return   boolean  
+     */
+    public function isSwooleKeep() {
+        return $this->swoole_keep;
     }
 
     /**
@@ -258,10 +295,14 @@ class Synclient {
     		$this->remote_servers[] = [$host, $port];
     		$this->timeout = $timeout;
     	}
-    	// 存在swoole扩展，优先使用swoole扩展
+    	//优先使用swoole扩展
     	if($this->haveSwoole) {
     		// 创建长连接同步客户端
-    		$client = new \swoole_client(SWOOLE_TCP | SWOOLE_KEEP, SWOOLE_SOCK_SYNC);
+            if($this->isSwooleKeep()) {
+                $client = new \swoole_client(SWOOLE_SOCK_TCP | SWOOLE_KEEP, SWOOLE_SOCK_SYNC);
+            }else {
+                $client = new \swoole_client(SWOOLE_SOCK_TCP, SWOOLE_SOCK_SYNC);
+            }		
     		$client->set($this->pack_setting);
             $this->client = $client;
             // 重连一次
@@ -348,8 +389,7 @@ class Synclient {
 	public function waitRecv($timeout = 5, $size = 64 * 1024, $flags = 0) {
         if($this->client instanceof \swoole_client) {
             $read = array($this->client);
-            $write = [];
-            $error = [];
+            $write = $error = [];
             $ret = swoole_client_select($read, $write, $error, $timeout);
             if($ret) {
                 $data = $this->client->recv($size, $flags);
@@ -382,7 +422,6 @@ class Synclient {
      * @return  array
      */
     public function getResponsePackData() {
-        // apache|php-fpm环境
         if(!$this->is_swoole_env) {
             static $pack_data;
         }
@@ -557,7 +596,7 @@ class Synclient {
      */
     public function enpackeof($data, $serialize_type = self::DECODE_JSON, $eof ='') {
     	if(empty($eof)) {
-    		$eof = self::$pack_eof;
+    		$eof = $this->pack_eof;
     	}
     	$data = self::encode($data, $serialize_type).$eof;
     	
