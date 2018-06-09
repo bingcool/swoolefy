@@ -54,17 +54,17 @@ class RpcClientManager {
 	protected static $busy_client_services = [];
 
 	// 服务器连接失败
-	const ERROR_CODE_CONNECT = 5001;
-	// 数据发送成功
-	const ERROR_CODE_SEND_SUCCESS = 5002;
-	// 等待接收数据
-	const ERROR_CODE_RECV = 5003;
-	// 服务器错误
-	const ERROR_CODE_SERVER = 5004;
-	// 数据接收超时
-	const ERROR_CODE_CALL_TIMEOUT = 5006;
-	// 数据返回成功
-	const ERROR_CODE_SUCCESS = 0;
+    const ERROR_CODE_CONNECT_FAIL = 5001;
+    // 首次数据发送成功
+    const ERROR_CODE_SEND_SUCCESS = 5002;
+    // 二次发送成功
+    const ERROR_CODE_SECOND_SEND_SUCCESS = 5003;
+    // 当前数据不属于当前的请求client对象
+    const ERROR_CODE_NO_MATCH = 5004;
+    // 数据接收超时,一般是服务端出现阻塞或者其他问题
+    const ERROR_CODE_CALL_TIMEOUT = 5005;
+    // 数据返回成功
+    const ERROR_CODE_SUCCESS = 0;
 
 	/**
 	 * __construct 
@@ -187,10 +187,11 @@ class RpcClientManager {
 	                    	$response = $client_service->depack($data);
 			                list($header, $body_data) = $response;
 			                $request_id = $client_service->getRequestId();
-			                // 属于当前调用返回的值
 			                if(in_array($request_id, array_values($header))) {
-			                	$this->response_pack_data[$request_id] = $response; 
+			                	$client_service->setStatusCode(self::ERROR_CODE_SUCCESS);
+			                	$this->response_pack_data[$request_id] = $response;
 			                }else {
+			                	$client_service->setStatusCode(self::ERROR_CODE_NO_MATCH);
 			                	$this->response_pack_data[$request_id] = [];
 			                }
 	                    }else {
@@ -200,9 +201,7 @@ class RpcClientManager {
 	                        $this->response_pack_data[$serviceNmae] = $client_service->depackeof($data, $unseralize_type);
 	                    }
 	                }
-	                // 长连接的不能删除
-	                unset($client_services[$client_id]);
-	                
+	                unset($client_services[$client_id]);   
 	            }   
 	        }
 
@@ -211,6 +210,7 @@ class RpcClientManager {
 				// 超时的client_service实例
 		        foreach($client_services as $client_id=>$timeout_client_service) {
 	            	$request_id = $timeout_client_service->getRequestId();
+	            	$timeout_client_service->setStatusCode(self::ERROR_CODE_CALL_TIMEOUT);
 	            	$this->response_pack_data[$request_id] = [];
 	            	unset($client_services[$client_id]);
 		       	}
