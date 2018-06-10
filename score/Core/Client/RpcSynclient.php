@@ -53,6 +53,12 @@ class RpcSynclient {
      */
     protected $request_id = null;
 
+    /**
+     * $requesu_header 每次请求服务的包头信息
+     * @var array
+     */
+    protected $requesu_header = [];
+
 	/**
 	 * $pack_eof eof分包时设置
 	 * @var string
@@ -120,6 +126,8 @@ class RpcSynclient {
     const ERROR_CODE_NO_MATCH = 5004;
     // 数据接收超时,一般是服务端出现阻塞或者其他问题
     const ERROR_CODE_CALL_TIMEOUT = 5005;
+    // callable的解析出错
+    const ERROR_CODE_CALLABLE = 5006;
     // 数据返回成功
     const ERROR_CODE_SUCCESS = 0;
 
@@ -357,19 +365,54 @@ class RpcSynclient {
     }
 
     /**
+     * buildHeaderRequestId 发起每次请求建立一个请求串号request_id
+     * @param  array    $header_data
+     * @param  string   $request_id_key  默认request_id
+     * @param  int      $length          默认12字符(12字节)
+     * @return $this 
+     */
+    public function buildHeaderRequestId(array $header_data, $request_id_key = 'request_id', $length = 12) {
+        $this->request_header = RpcClientManager::getInstance()->buildHeaderRequestId($header_data, $request_id_key, $length);
+        return $this;
+    }
+
+    /**
+     * parseData 分析数据
+     * @param  array $data
+     * @return array
+     */
+    public function parseCallable(& $callable) {
+        if(is_string($callable)) {
+            $class_action = explode('::', $callable);
+            if(count($class_action) == 2) {
+                $callable = $class_action;
+            }else {
+                $this->setStatusCode(self::ERROR_CODE_CALLABLE);
+            }
+        }
+    }
+
+    /**
      * send 数据发送
-     * @param   mixed $data
+     * @param   mixed   $data
+     * @param   string  数据序列化模式
+     * @param   array   数据包头数据，如果要传入该参数，则必须是由buildHeaderRequestId()函数产生返回的数据
      * @return  boolean
      */
-	public function waitCall($data, array $header = [], $seralize_type = self::DECODE_JSON) {
-        // 这里检测是应用层检测，不一定准确
+	public function waitCall($callable, $params, $seralize_type = self::DECODE_JSON, array $header = []) {
 		if(!$this->client->isConnected()) {
-            // 重连一次
-            if($this->is_swoole_env) {
+            // swoole_keep的状态下不要关闭
+            if($this->is_swoole_env && !$this->swoole_keep) {
                 $this->client->close(true);
             }
 			$this->reConnect();
 		}
+
+        $this->parseCallable($callable);
+        $data = [$callable, $params];
+        if(empty($header)) {
+            $header = $this->request_header;
+        }
         // 封装包
         $pack_data = self::enpack($data, $header, $this->header_struct, $this->pack_length_key, $seralize_type);
 		$res = $this->client->send($pack_data);
@@ -382,10 +425,9 @@ class RpcSynclient {
                 $this->request_id = end($header_values);
             }
             $this->setStatusCode(self::ERROR_CODE_SEND_SUCCESS);
-			return true;
+			return $this;
 		}else {
             // 重连一次
-            @$this->client->close(true);
             $this->reConnect();
             // 重发一次
             $res = $this->client->send($pack_data);
@@ -397,10 +439,10 @@ class RpcSynclient {
                     $this->request_id = end($header_values);
                 }
                 $this->setStatusCode(self::ERROR_CODE_SECOND_SEND_SUCCESS);
-                return true;
+                return $this;
             }
             $this->setStatusCode(self::ERROR_CODE_CONNECT_FAIL);
-			return false;
+			return $this;
 		}
 	}
 
@@ -477,6 +519,17 @@ class RpcSynclient {
     public function getResponsePackHeader() {
         list($header,) = $this->getResponsePackData();
         return $header ?: [];
+    }
+
+    /**
+     * isCallSuccess waitCall发送数据是否成功
+     * @return boolean 
+     */
+    public function isCallSuccess() {
+        if(in_array($this->getStatusCode(), [self::ERROR_CODE_SEND_SUCCESS, self::ERROR_CODE_SECOND_SEND_SUCCESS])) {
+            return true;
+        }
+        return false;
     }
 
     /**
