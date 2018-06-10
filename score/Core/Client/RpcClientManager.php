@@ -63,6 +63,8 @@ class RpcClientManager {
     const ERROR_CODE_NO_MATCH = 5004;
     // 数据接收超时,一般是服务端出现阻塞或者其他问题
     const ERROR_CODE_CALL_TIMEOUT = 5005;
+    // callable的解析出错
+    const ERROR_CODE_CALLABLE = 5006;
     // 数据返回成功
     const ERROR_CODE_SUCCESS = 0;
 
@@ -229,7 +231,6 @@ class RpcClientManager {
     public function getAllResponsePackData() {
     	return $this->response_pack_data;
     }
-
 
     /**
      * getResponsePackData 获取某个服务请求服务返回的数据
