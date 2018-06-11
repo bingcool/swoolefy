@@ -195,7 +195,11 @@ trait ComponentTrait {
         	}
 
         	if($name == SWOOLEFY_COM_FUNC) {
-        		call_user_func_array([$object, $defination[$name]], [$defination]);
+        		if(is_string($defination[$name])) {
+        			call_user_func_array([$object, $defination[$name]], [$defination]);
+        		}else if($defination[$name] instanceof Closure) {
+        			call_user_func_array($defination[$name]->bindTo($object, get_class($object)), [$defination]);
+        		}
         		continue;
         	}else if(is_array($object->$name)) {
         		$object->$name = array_merge($object->$name, $value);
