@@ -13,6 +13,7 @@ namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\AppDispatch;
+use Swoolefy\Core\Application;
 
 class ServiceDispatch extends AppDispatch {
 	/**
@@ -41,7 +42,8 @@ class ServiceDispatch extends AppDispatch {
 		parent::__construct();
 		$this->callable = $callable;
 		$this->params = $params;
-		$this->rpc_pack_header = $rpc_pack_header;
+		Application::$app->mixed_params = $params;
+		Application::$app->rpc_pack_header = $rpc_pack_header;
 	}
 
 	/**
@@ -62,10 +64,11 @@ class ServiceDispatch extends AppDispatch {
 		
 		$class = str_replace('/','\\', $class);
 		$serviceInstance = new $class();
-		$serviceInstance->rpc_pack_header = $this->rpc_pack_header;
 		$serviceInstance->mixed_params = $this->params;
 		try{
 			$serviceInstance->$action($this->params);
+		}catch(\Exception $e) {
+			throw new \Exception($e->getMessage());
 		}catch(\Exception $e) {
 			throw new \Exception("when dispatch, create $class Instance Fatal error, $class is not exist or $action is not exist!", 1);
 		}

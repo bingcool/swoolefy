@@ -28,6 +28,17 @@ class Swoole extends Object {
 	public $fd = null;
 
 	/**
+	 * $mixed_params rpc,udp,websocket传递的参数寄存属性
+	 */
+	public $mixed_params;
+
+	/**
+	 * $rpc_pack_header rpc的包头数据
+	 * @var array
+	 */
+	public $rpc_pack_header = [];
+
+	/**
  	 * $ExceptionHanderClass 异常处理类
  	 * @var string
  	 */
@@ -103,6 +114,70 @@ class Swoole extends Object {
     public static function isTaskProcess() {
         return (!self::isWorkerProcess()) ? true : false;
     }
+
+    /**
+	 * getRpcPackHeader  获取rpc的pack头信息,只适用于rpc服务
+	 * @return   array
+	 */
+	public function getRpcPackHeader() {
+		if($this->isWorkerProcess()) {
+			if(BaseServer::getServiceProtocol() == SWOOLEFY_TCP) {
+				return $this->rpc_pack_header;
+			}else {
+				throw new \Exception("this method only can be called by TCP or RPC server!, because only rpc have pack setting!");
+			}
+		}else {
+			throw new \Exception("getRpcPackHeader() only can use in worker process!", 1);
+		}
+	}
+
+    /**
+	 * getRpcPackBodyParams 获取rpc的包体数据
+	 * @return mixed
+	 */
+	public function getRpcPackBodyParams() {
+		if($this->isWorkerProcess()) {
+			if(BaseServer::getServiceProtocol() == SWOOLEFY_TCP) {
+				return $this->mixed_params;
+			}else {
+				throw new \Exception("this method only can be called by TCP or RPC server!, because only rpc have pack setting!");
+			}
+		}else {
+			throw new \Exception("getRpcPackBodyParams() only can use in worker process!", 1);
+		}
+	}
+
+	/**
+	 * getUdpData 获取udp的数据
+	 * @return mixed
+	 */
+	public function getUdpData() {
+		if($this->isWorkerProcess()) {
+			if(BaseServer::getServiceProtocol() == SWOOLEFY_UDP) {
+				return $this->mixed_params;
+			}else {
+				throw new \Exception("this method only can be called by UDP server!");
+			}
+		}else {
+			throw new \Exception("getUdpData() only can use in worker process!", 1);
+		}
+	}
+
+	/**
+	 * getWebsockMsg 获取websocket的信息
+	 * @return mixed
+	 */
+	public function getWebsockMsg() {
+		if($this->isWorkerProcess()) {
+			if(BaseServer::getServiceProtocol() == SWOOLEFY_WEBSOCKET) {
+				return $this->mixed_params;
+			}else {
+				throw new \Exception("this method only can be called by WEBSOCKET server!");
+			}	
+		}else {
+			throw new \Exception("getWebsockMsg() only can use in worker process!", 1);
+		}
+	}
 
  	/**
 	 * afterRequest 请求结束后注册钩子执行操作
