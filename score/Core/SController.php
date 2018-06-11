@@ -16,6 +16,7 @@ use Swoolefy\Core\Object;
 use Swoolefy\Core\Hook;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Tcp\TcpServer;
 
 class SController extends Object {
 
@@ -36,6 +37,12 @@ class SController extends Object {
 	 * @var null
 	 */
 	public $fd = null;
+
+	/**
+	 * $mixed_params 
+	 * @var 
+	 */
+	public $mixed_params;
 
 	/**
 	 * __construct
@@ -135,11 +142,7 @@ class SController extends Object {
 	 * @return   array
 	 */
 	public function getRpcPackHeader() {
-		if(BaseServer::getServiceProtocol() == SWOOLEFY_TCP) {
-			return $this->rpc_pack_header;
-		}else {
-			throw new \Exception("this method only can be called by TCP or RPC server!, because only rpc have pack setting!");
-		}
+		return Application::$app->getRpcPackHeader();
 	}
 
 	/**
@@ -147,11 +150,7 @@ class SController extends Object {
 	 * @return mixed
 	 */
 	public function getRpcPackBodyParams() {
-		if(BaseServer::getServiceProtocol() == SWOOLEFY_TCP) {
-			return $this->mixed_params;
-		}else {
-			throw new \Exception("this method only can be called by TCP or RPC server!, because only rpc have pack setting!");
-		}
+		return Application::$app->getRpcPackBodyParams();
 	}
 
 	/**
@@ -159,23 +158,15 @@ class SController extends Object {
 	 * @return mixed
 	 */
 	public function getUdpData() {
-		if(BaseServer::getServiceProtocol() == SWOOLEFY_UDP) {
-			return $this->mixed_params;
-		}else {
-			throw new \Exception("this method only can be called by UDP server!");
-		}
+		return Application::$app->getUdpData();
 	}
 
 	/**
-	 * getWebsockMsg 获取udp的参数
+	 * getWebsockMsg 获取websocket的信息
 	 * @return mixed
 	 */
 	public function getWebsockMsg() {
-		if(BaseServer::getServiceProtocol() == SWOOLEFY_WEBSOCKET) {
-			return $this->mixed_params;
-		}else {
-			throw new \Exception("this method only can be called by WEBSOCKET server!");
-		}
+		return Application::$app->getWebsockMsg();
 	}
 
 	/**
