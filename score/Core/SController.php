@@ -138,7 +138,43 @@ class SController extends Object {
 		if(BaseServer::getServiceProtocol() == SWOOLEFY_TCP) {
 			return $this->rpc_pack_header;
 		}else {
-			throw new \Exception("this method only can be called by tcp or rpc server!, because only rpc have pack setting!");
+			throw new \Exception("this method only can be called by TCP or RPC server!, because only rpc have pack setting!");
+		}
+	}
+
+	/**
+	 * getRpcPackBodyParams 获取rpc的包体数据
+	 * @return mixed
+	 */
+	public function getRpcPackBodyParams() {
+		if(BaseServer::getServiceProtocol() == SWOOLEFY_TCP) {
+			return $this->mixed_params;
+		}else {
+			throw new \Exception("this method only can be called by TCP or RPC server!, because only rpc have pack setting!");
+		}
+	}
+
+	/**
+	 * getUdpData 获取udp的数据
+	 * @return mixed
+	 */
+	public function getUdpData() {
+		if(BaseServer::getServiceProtocol() == SWOOLEFY_UDP) {
+			return $this->mixed_params;
+		}else {
+			throw new \Exception("this method only can be called by UDP server!");
+		}
+	}
+
+	/**
+	 * getWebsockMsg 获取udp的参数
+	 * @return mixed
+	 */
+	public function getWebsockMsg() {
+		if(BaseServer::getServiceProtocol() == SWOOLEFY_WEBSOCKET) {
+			return $this->mixed_params;
+		}else {
+			throw new \Exception("this method only can be called by WEBSOCKET server!");
 		}
 	}
 

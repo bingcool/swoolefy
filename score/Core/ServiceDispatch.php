@@ -63,6 +63,7 @@ class ServiceDispatch extends AppDispatch {
 		$class = str_replace('/','\\', $class);
 		$serviceInstance = new $class();
 		$serviceInstance->rpc_pack_header = $this->rpc_pack_header;
+		$serviceInstance->mixed_params = $this->params;
 		try{
 			$serviceInstance->$action($this->params);
 		}catch(\Exception $e) {

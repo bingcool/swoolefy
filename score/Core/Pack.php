@@ -167,7 +167,6 @@ class Pack {
 			// 包头包含的包体长度值
 			$length = $header[self::$pack_length_key];
 
-			$header['fd'] = $fd;
 			$this->_headers[$fd] = $header;
 
 			$pack_body = mb_strcut($data, self::$header_length, null, 'UTF-8');
