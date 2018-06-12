@@ -18,7 +18,7 @@ use Swoolefy\Core\Application;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Tcp\TcpServer;
 
-class SController extends Object {
+class BService extends Object {
 
 	/**
 	 * $config 应用层配置
