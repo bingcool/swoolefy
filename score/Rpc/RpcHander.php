@@ -64,6 +64,13 @@ class RpcHander extends Swoole implements HanderInterface {
 				if(is_array($body) && count($body) == 2) {
 					list($callable, $params) = $body;
 				}
+
+				if($this->ping()) {
+					$args = ['pong', $this->header];
+					$data = \Swoolefy\Tcp\TcpServer::pack($args);
+					Swfy::getServer()->send($this->fd, $data);
+					return;
+				}
 				
 			}else if(Swfy::$server->pack_check_type == SWOOLEFY_PACK_CHECK_EOF){
 				// eof方式
@@ -89,12 +96,20 @@ class RpcHander extends Swoole implements HanderInterface {
 	}
 
 	/**
+	 * ping 心跳检测
+	 * @return   
+	 */
+	public function ping() {
+		if($this->header['request_id'] == 'ping') {
+			return true;
+		}
+		return false;
+	}
+
+	/**
 	 * author 认证
 	 * @return 
 	 */
-	public function author() {
-
-	}
-
+	public function author() {}
 
 }
