@@ -176,7 +176,7 @@ class Swiftmail {
 			$mailer->send($message);
 			
 		}catch (Swift_IoException $e) {
-			echo "errrorMessage:".$e->getMessage();
+			throw new \Exception($e->getMessage(), 1);
 		}
 	}
 }

@@ -313,6 +313,26 @@ class RpcSynclient {
     }
 
     /**
+     * heartbeat 客户端定时心跳检测
+     * @param    integer   $time
+     * @param    array     $header
+     * @param    \Closure  $callable
+     * @return       
+     */
+    public function heartbeat(int $time = 10 * 1000, array $header = [], $callable) {
+        if($this->isSwooleEnv() && $this->isSwooleKeep()) {
+            swoole_timer_tick($time, function($timer_id, $header) use ($callable) {
+                $this->waitCall('Swoolefy\\Core\\BService::ping', 'ping', self::DECODE_JSON, $header);
+                list($header, $data) = $this->waitRecv(1);
+                if($data && $callable instanceof \Closure) {
+                    return call_user_func_array($callable->bindTo($this, __CLASS__), [$data, $timer_id]);
+                }
+                return;
+            }, $header);
+        }
+    }
+
+    /**
      * connect 连接
      * @param  syting  $host   
      * @param  string  $port   
@@ -468,7 +488,7 @@ class RpcSynclient {
             if($this->is_pack_length_type) {
                 $response = $this->depack($data);
                 list($header, $body_data) = $response;
-                if(in_array($this->getRequestId(), array_values($header))) {
+                if(in_array($this->getRequestId(), array_values($header)) || $this->getRequestId() == 'ping') {
                     $this->setStatusCode(self::ERROR_CODE_SUCCESS);
                     return $response;
                 }
