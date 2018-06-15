@@ -18,16 +18,10 @@ class RpcClientManager {
 	use \Swoolefy\Core\SingleTrait;
 
 	/**
-	 * $setting 客户端解析设置
+	 * $client_pack_setting client的包设置
 	 * @var array
 	 */
-	protected $setting = [];
-
-	/**
-	 * $is_swoole_env 是在swoole环境中使用，或者在apache|php-fpm中使用
-	 * @var boolean
-	 */
-	protected $is_swoole_env = false;
+	protected static $client_pack_setting = [];
 
 	/**
 	 * $client_services 客户端所有注册的服务实例
@@ -36,22 +30,16 @@ class RpcClientManager {
 	protected static $client_services = [];
 
 	/**
-	 * $client_pack_setting client的包设置
-	 * @var array
-	 */
-	protected static $client_pack_setting = [];
-
-	/**
-	 * $header_structs pack的头部结构体
-	 * @var array
-	 */
-	protected static $header_structs = [];
-
-	/**
 	 * $busy_client_services 正在工作的服务实例
 	 * @var array
 	 */
 	protected static $busy_client_services = [];
+
+	/**
+	 * $is_swoole_env 是在swoole环境中使用，或者在apache|php-fpm中使用
+	 * @var boolean
+	 */
+	protected $is_swoole_env = false;
 
 	// 服务器连接失败
     const ERROR_CODE_CONNECT_FAIL = 5001;
@@ -65,6 +53,10 @@ class RpcClientManager {
     const ERROR_CODE_CALL_TIMEOUT = 5005;
     // callable的解析出错
     const ERROR_CODE_CALLABLE = 5006;
+    // enpack的解析出错,一般是serialize_type设置错误造成
+    const ERROR_CODE_ENPACK = 5007;
+    // enpack的解析出错,一般是serialize_type设置错误造成
+    const ERROR_CODE_DEPACK = 5008;
     // 数据返回成功
     const ERROR_CODE_SUCCESS = 0;
 
@@ -88,31 +80,30 @@ class RpcClientManager {
 	public function registerService(
 		string $serviceNmae, 
 		array $serviceConfig = [], 
-		array $setting = [], 
-		array $header_struct = [], 
+		array $client_pack_setting = [], 
+		array $server_header_struct = [], 
+		array $client_header_struct = [], 
 		array $args = []
 	) {
 		$servers = $serviceConfig['servers'];
 		$timeout = $serviceConfig['timeout'];
 		$noblock = isset($serviceConfig['noblock']) ? $serviceConfig['noblock'] : 0;
+		$server_serialize_type = isset($serviceConfig['serialize_type']) ? $serviceConfig['serialize_type'] : 'json';
 		$key = md5($serviceNmae);
-		if(empty($setting)) {
-			$setting = $this->setting;
-		}
+		
 		if(!isset(self::$client_services[$key])) {
-			self::$client_pack_setting[$key] = $setting;
-			self::$header_structs[$key] = $header_struct;
+			self::$client_pack_setting[$key] = $client_pack_setting;
 			$pack_length_key = $args['pack_length_key'] ?: 'length';
 			$client_serialize_type = $args['client_serialize_type'] ?: 'json';
 			$swoole_keep = true;
 			if(isset($args['swoole_keep']) && ($args['swoole_keep'] === false || $args['swoole_keep'] == 0)) {
 				$swoole_keep = (boolean)$args['swoole_keep'];
 			}
-
-			$client_service = new RpcSynclient($setting, $header_struct, $pack_length_key);
+			$client_service = new RpcSynclient($client_pack_setting, $server_header_struct, $client_header_struct, $pack_length_key);
 			$client_service->addServer($servers, $timeout, $noblock);
 			$client_service->setClientServiceName($serviceNmae);
 			$client_service->setClientSerializeType($client_serialize_type);
+			$client_service->setServerSerializeType($server_serialize_type);
 			$client_service->setSwooleKeep($swoole_keep);
 			$client_service->setSwooleEnv($this->is_swoole_env);
 

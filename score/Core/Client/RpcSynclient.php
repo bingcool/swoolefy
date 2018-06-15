@@ -25,16 +25,22 @@ class RpcSynclient {
     protected $clientServiceName;
 
 	/**
-	 * $header_struct 析包结构,包含包头结构，key代表的是包头的字段，value代表的pack的类型
+	 * $header_struct 服务端打包包头结构,key代表的是包头的字段，value代表的pack的类型
 	 * @var array
 	 */
-	protected $header_struct = ['length'=>'N'];
+	protected $server_header_struct = ['length'=>'N'];
+
+    /**
+     * $client_header_struct 客户端析包结构,key代表的是包头的字段，value代表的pack的类型
+     * @var array
+     */
+    protected $client_header_struct = [];
 
 	/**
-	 * $pack_setting client的分包数据协议设置
+	 * $client_pack_setting client的分包数据协议设置
 	 * @var array
 	 */
-	protected $pack_setting = [];
+	protected $client_pack_setting = [];
 
 	/**
 	 * $pack_length_key 包的长度设定的key，与$header_struct里设置的长度的key一致
@@ -43,10 +49,16 @@ class RpcSynclient {
 	protected $pack_length_key = 'length';
 
 	/**
-	 * $serialize_type 设置数据序列化的方式 
+	 * $client_serialize_type 客户端设置数据序列化的方式 
 	 * @var string
 	 */
 	protected $client_serialize_type = 'json';
+
+    /**
+     * $server_serialize_type 服务器端设置数据序列化的方式 
+     * @var string
+     */
+    protected $server_serialize_type = 'json';
 
     /**
      * 每次请求调用的串号id
@@ -128,6 +140,10 @@ class RpcSynclient {
     const ERROR_CODE_CALL_TIMEOUT = 5005;
     // callable的解析出错
     const ERROR_CODE_CALLABLE = 5006;
+    // enpack的解析出错,一般是serialize_type设置错误造成
+    const ERROR_CODE_ENPACK = 5007;
+    // enpack的解析出错,一般是serialize_type设置错误造成
+    const ERROR_CODE_DEPACK = 5008;
     // 数据返回成功
     const ERROR_CODE_SUCCESS = 0;
 
@@ -135,20 +151,20 @@ class RpcSynclient {
      * __construct 初始化
      * @param array $setting
      */
-    public function __construct(array $setting=[], array $header_struct = [], string $pack_length_key = 'length') {
-    	$this->pack_setting = array_merge($this->pack_setting, $setting);
-        $this->header_struct = array_merge($this->header_struct, $header_struct);
+    public function __construct(array $setting=[], array $server_header_struct = [], array $client_header_struct = [], string $pack_length_key = 'length') {
+    	$this->client_pack_setting = array_merge($this->client_pack_setting, $setting);
+        $this->server_header_struct = array_merge($this->server_header_struct, $server_header_struct);
+        $this->client_header_struct = $client_header_struct;
         $this->pack_length_key = $pack_length_key;
-
     	$this->haveSwoole = extension_loaded('swoole');
         $this->haveSockets = extension_loaded('sockets');
 
-        if(isset($this->pack_setting['open_length_check']) && isset($this->pack_setting['package_length_type'])) {
+        if(isset($this->client_pack_setting['open_length_check']) && isset($this->client_pack_setting['package_length_type'])) {
         	$this->is_pack_length_type = true;
         }else {
         	// 使用eof方式分包
         	$this->is_pack_length_type = false;
-            $this->pack_eof = $this->pack_setting['package_eof'];
+            $this->pack_eof = $this->client_pack_setting['package_eof'];
         }
     }
 
@@ -174,8 +190,8 @@ class RpcSynclient {
      * @param    array    $header_struct
      */
     public function setPackHeaderStruct(array $header_struct = []) {
-        $this->header_struct = array_merge($this->header_struct, $header_struct);
-        return $this->header_struct;
+        $this->server_header_struct = array_merge($this->server_header_struct, $header_struct);
+        return $this->server_header_struct;
     }   
 
     /**
@@ -183,23 +199,23 @@ class RpcSynclient {
      * @return   array 
      */
     public function getPackHeaderStruct() {
-        return $this->header_struct;
+        return $this->server_header_struct;
     }
 
     /**
      * setClientPackSetting 设置client实例的pack的长度检查
-     * @param   array  $pack_setting
+     * @param   array  $client_pack_setting
      */
-    public function setClientPackSetting(array $pack_setting = []) {
-        return $this->pack_setting = array_merge($this->pack_setting, $pack_setting);
+    public function setClientPackSetting(array $client_pack_setting = []) {
+        return $this->client_pack_setting = array_merge($this->client_pack_setting, $client_pack_setting);
     }
 
     /**
      * getClientPackSetting 获取client实例的pack的长度检查配置
-     * @param   array  $pack_setting
+     * @param   array  $client_pack_setting
      */
     public function getClientPackSetting() {
-        return $this->pack_setting;
+        return $this->client_pack_setting;
     }
 
 
@@ -239,9 +255,27 @@ class RpcSynclient {
      * setClientSerializeType 设置client端数据的序列化类型
      * @param    string   $client_serialize_type
      */
-    public function setClientSerializeType(string $client_serialize_type) {
+    public function setClientSerializeType($client_serialize_type) {
         if($client_serialize_type) {
             $this->client_serialize_type = $client_serialize_type;
+        }
+    }
+
+    /**
+     * getServerSerializeType  获取服务端实例的序列化类型
+     * @return  string
+     */
+    public function getServerSerializeType() {
+        return $this->server_serialize_type;
+    }
+
+    /**
+     * setServerSerializeType 设置服务端数据的序列化类型
+     * @param    string   $client_serialize_type
+     */
+    public function setServerSerializeType($server_serialize_type) {
+        if($server_serialize_type) {
+            $this->server_serialize_type = $server_serialize_type;
         }
     }
 
@@ -322,7 +356,7 @@ class RpcSynclient {
     public function heartbeat(int $time = 10 * 1000, array $header = [], $callable) {
         if($this->isSwooleEnv() && $this->isSwooleKeep()) {
             swoole_timer_tick($time, function($timer_id, $header) use ($callable) {
-                $this->waitCall('Swoolefy\\Core\\BService::ping', 'ping', self::DECODE_JSON, $header);
+                $this->waitCall('Swoolefy\\Core\\BService::ping', 'ping', $header);
                 list($header, $data) = $this->waitRecv(1);
                 if($data && $callable instanceof \Closure) {
                     return call_user_func_array($callable->bindTo($this, __CLASS__), [$data, $timer_id]);
@@ -353,7 +387,7 @@ class RpcSynclient {
             }else {
                 $client = new \swoole_client(SWOOLE_SOCK_TCP, SWOOLE_SOCK_SYNC);
             }		
-    		$client->set($this->pack_setting);
+    		$client->set($this->client_pack_setting);
             $this->client = $client;
             // 重连一次
     		$this->reConnect();
@@ -419,7 +453,7 @@ class RpcSynclient {
      * @param   array   数据包头数据，如果要传入该参数，则必须是由buildHeaderRequestId()函数产生返回的数据
      * @return  boolean
      */
-	public function waitCall($callable, $params, $seralize_type = self::DECODE_JSON, array $header = []) {
+	public function waitCall($callable, $params, array $header = []) {
 		if(!$this->client->isConnected()) {
             // swoole_keep的状态下不要关闭
             if($this->is_swoole_env && !$this->swoole_keep) {
@@ -433,8 +467,9 @@ class RpcSynclient {
         if(empty($header)) {
             $header = $this->request_header;
         }
+
         // 封装包
-        $pack_data = self::enpack($data, $header, $this->header_struct, $this->pack_length_key, $seralize_type);
+        $pack_data = $this->enpack($data, $header, $this->server_header_struct, $this->pack_length_key, $this->server_serialize_type);
 		$res = $this->client->send($pack_data);
 		// 发送成功
 		if($res) {
@@ -483,7 +518,6 @@ class RpcSynclient {
         }
         // client获取数据完成后，释放工作的client_services的实例
         RpcClientManager::getInstance()->destroyBusyClient();
-
         if($data) {
             if($this->is_pack_length_type) {
                 $response = $this->depack($data);
@@ -583,8 +617,8 @@ class RpcSynclient {
 	 * @param  string $pack_length_key
 	 * @return mixed                 
 	 */
-	public static function enpack($data, $header, array $header_struct = [], $pack_length_key ='length', $serialize_type = self::DECODE_JSON) {
-		$body = self::encode($data, $serialize_type);
+	public function enpack($data, $header, array $header_struct = [], $pack_length_key ='length', $serialize_type = self::DECODE_JSON) {
+		$body = $this->encode($data, $serialize_type);
         $bin_header_data = '';
 
         if(empty($header_struct)) {
@@ -613,7 +647,7 @@ class RpcSynclient {
 	 */
 	public function depack($data) {
 		$unpack_length_type = $this->setUnpackLengthType();
-		$package_body_offset = $this->pack_setting['package_body_offset'];
+		$package_body_offset = $this->client_pack_setting['package_body_offset'];
 		$header = unpack($unpack_length_type, mb_strcut($data, 0, $package_body_offset, 'UTF-8'));
 		$body_data = json_decode(mb_strcut($data, $package_body_offset, null, 'UTF-8'), true);
 		return [$header, $body_data];
@@ -625,13 +659,11 @@ class RpcSynclient {
 	 */
 	public function setUnpackLengthType() {
 		$pack_length_type = '';
-
-		if($this->header_struct) {
-			foreach($this->header_struct as $key=>$value) {
+		if($this->client_header_struct) {
+			foreach($this->client_header_struct as $key=>$value) {
 				$pack_length_type .= ($value.$key).'/';
 			}
-		}
-        
+		} 
 		$pack_length_type = trim($pack_length_type, '/');
 		return $pack_length_type;
 	}
@@ -642,7 +674,7 @@ class RpcSynclient {
 	 * @param   int     $seralize_type
 	 * @return  string
 	 */
-	public static function encode($data, $serialize_type = self::DECODE_JSON) {
+	public function encode($data, $serialize_type = self::DECODE_JSON) {
 		if(is_string($serialize_type)) {
             $serialize_type = strtolower($serialize_type);
 			$serialize_type = self::SERIALIZE_TYPE[$serialize_type];
@@ -651,13 +683,18 @@ class RpcSynclient {
         		// json
             case 1:
                 return json_encode($data);
+            break;
                 // serialize
             case 2:
             	return serialize($data);
+            break;
             case 3;
+                // swoole
+                return swoole_pack($data);
+            break;
             default:
-            	// swoole
-            	return swoole_pack($data);  
+                $this->setStatusCode(self::ERROR_CODE_ENPACK);
+                throw new \Exception("enpack error,may be serialize_type setted error", 1);	  
         }
 	}
 
@@ -667,7 +704,7 @@ class RpcSynclient {
 	 * @param    mixed    $unseralize_type
 	 * @return   mixed
 	 */
-	public static function decode($data, $unserialize_type = self::DECODE_JSON) {
+	public function decode($data, $unserialize_type = self::DECODE_JSON) {
 		if(is_string($unserialize_type)) {
             $serialize_type = strtolower($serialize_type);
 			$unserialize_type = self::SERIALIZE_TYPE[$unserialize_type];
@@ -676,13 +713,18 @@ class RpcSynclient {
         		// json
             case 1:
                 return json_decode($data, true);
+            break;
                 // serialize
             case 2:
             	return unserialize($data);
+            break;
             case 3;
+                // swoole
+                return swoole_unpack($data);
+            break;
             default:
-            	// swoole
-            	return swoole_unpack($data);   
+            	$this->setStatusCode(self::ERROR_CODE_DEPACK);
+                throw new \Exception("depack error,may be serialize_type setted error", 1);
         }
     }
 
@@ -697,7 +739,7 @@ class RpcSynclient {
     	if(empty($eof)) {
     		$eof = $this->pack_eof;
     	}
-    	$data = self::encode($data, $serialize_type).$eof;
+    	$data = $this->encode($data, $serialize_type).$eof;
     	
     	return $data;
     }
@@ -709,7 +751,7 @@ class RpcSynclient {
      * @return  mixed 
      */
     public function depackeof($data, $unserialize_type = self::DECODE_JSON) {
-    	return self::decode($data, $unserialize_type);
+    	return $this->decode($data, $unserialize_type);
     }
 
     /**
