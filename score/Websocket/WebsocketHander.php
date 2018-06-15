@@ -41,7 +41,7 @@ class WebsocketHander extends Swoole implements HanderInterface {
 
 
 	/**
-	 * run 完成初始化后,开始路由匹配和创建访问实例
+	 * run 服务调度，创建访问实例
 	 * @param  int   $fd
 	 * @param  mixed $recv
 	 * @return mixed

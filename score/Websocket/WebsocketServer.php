@@ -78,10 +78,6 @@ abstract class WebsocketServer extends BaseServer {
 		self::$server = $this->webserver = new websocket_server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, self::$swoole_socket_type);
 		$this->webserver->set(self::$setting);
 		parent::__construct();
-
-		// 设置Pack包处理对象
-		$this->pack = new Pack(self::$server);
-
 		// 初始化启动类
 		$startInitClass = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Core\\StartInit';
 
@@ -221,8 +217,6 @@ abstract class WebsocketServer extends BaseServer {
 		 */
 		$this->webserver->on('close', function(websocket_server $server, $fd) {
 			try{
-				// 删除缓存的不完整的僵尸式数据包
-				$this->pack->delete($fd);
 				static::onClose($server, $fd);
 			}catch(\Exception $e) {
 				self::catchException($e);
@@ -253,7 +247,6 @@ abstract class WebsocketServer extends BaseServer {
 		 * 停止worker进程
 		 */
 		$this->webserver->on('WorkerStop', function(websocket_server $server, $worker_id) {
-			$this->pack->destroy($server, $worker_id);
 			// worker停止时的回调处理
 			$this->startCtrl->workerStop($server, $worker_id);
 
