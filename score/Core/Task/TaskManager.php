@@ -17,7 +17,7 @@ use Swoolefy\Core\Task\AppAsyncTask;
 
 class TaskManager {
 	
-	use \Swoolefy\Core\SingleTrait;
+	use \Swoolefy\Core\SingletonTrait;
 
 	/**
 	 * $is_http_protocol_service 是否是http服务 

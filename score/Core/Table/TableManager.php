@@ -16,7 +16,7 @@ use Swoolefy\Core\BaseServer;
 
 class TableManager {
 
-	use \Swoolefy\Core\SingleTrait;
+	use \Swoolefy\Core\SingletonTrait;
 
     /**
      * createTable 

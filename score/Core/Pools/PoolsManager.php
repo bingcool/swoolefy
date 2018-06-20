@@ -19,7 +19,7 @@ use Swoolefy\Core\Table\TableManager;
 
 class PoolsManager {
 
-    use \Swoolefy\Core\SingleTrait;
+    use \Swoolefy\Core\SingletonTrait;
 	
 	private static $table_process = [
 		// 进程内存表

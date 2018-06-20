@@ -15,7 +15,7 @@ use Swoolefy\Core\Swfy;
 
 class ServerManager {
 
-	use \Swoolefy\Core\SingleTrait, \Swoolefy\Core\ServiceTrait;
+	use \Swoolefy\Core\SingletonTrait, \Swoolefy\Core\ServiceTrait;
 
 	/**
 	 * $server_port 监听port对象
