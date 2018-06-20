@@ -32,7 +32,7 @@ trait ComponentTrait {
 			return Swfy::$Di[$name];
 		}else {
 			if(is_array($value)) {
-				return self::creatObject($name, $value);
+				return $this->creatObject($name, $value);
 			}
 			return false;
 		}
@@ -50,12 +50,12 @@ trait ComponentTrait {
 				if(is_object(Swfy::$Di[$name])) {	
 					return Swfy::$Di[$name];
 				}else {
-					self::clearComponent($name);
+					$this->clearComponent($name);
 					return false;
 				}
 
 			}elseif(in_array($name, array_keys(Swfy::$appConfig['components']))) {
-				return self::creatObject($name, Swfy::$appConfig['components'][$name]);
+				return $this->creatObject($name, Swfy::$appConfig['components'][$name]);
 			}
 			return false;	
 		}
@@ -100,7 +100,7 @@ trait ComponentTrait {
 					if(isset($defination[SWOOLEFY_COM_IS_DELAY])) {
 						unset($defination[SWOOLEFY_COM_IS_DELAY]);
 					}
-					return Swfy::$Di[$com_alias_name] = self::buildInstance($class, $defination, $params, $com_alias_name);
+					return Swfy::$Di[$com_alias_name] = $this->buildInstance($class, $defination, $params, $com_alias_name);
 				}else {
 					throw new \Exception("component:".$com_alias_name.'must be set class', 1);
 				}
@@ -111,7 +111,7 @@ trait ComponentTrait {
 			
 		}
 		// 配置文件初始化创建公用对象
-		$coreComponents = self::coreComponents();
+		$coreComponents = $this->coreComponents();
 		$components = array_merge($coreComponents, Swfy::$appConfig['components']);
 		foreach($components as $key=>$component) {
 			// 存在直接跳过
@@ -129,7 +129,7 @@ trait ComponentTrait {
 				}
 				
 				$defination = $component;
-				Swfy::$Di[$key] = self::buildInstance($class, $defination, $params, $key);
+				Swfy::$Di[$key] = $this->buildInstance($class, $defination, $params, $key);
 
 			}else {
 				Swfy::$Di[$key] = false;
@@ -168,7 +168,7 @@ trait ComponentTrait {
      * @return  object
      */
 	protected function buildInstance($class, $defination, $params, $com_alias_name) {
-		list ($reflection, $dependencies) = self::getDependencies($class);
+		list ($reflection, $dependencies) = $this->getDependencies($class);
 
         foreach ($params as $index => $param) {
             $dependencies[$index] = $param;
