@@ -111,16 +111,14 @@ class Session {
         $this->driver = Application::$app->$driver_class;
         $this->isStart = true;
         $this->readonly = $readonly;
-        $sess_id = $this->session_id;
-        if(empty($sess_id)){
-            $sess_id = Application::$app->request->cookie[$this->cookie_key];
-            if(empty($sess_id)) {
-                $sess_id = MGeneral::randmd5(40);
-                Application::$app->response->cookie($this->cookie_key, $sess_id, time() + $this->cookie_lifetime, $this->cookie_path, $this->cookie_domain);
-                $this->session_id = $sess_id;
-            }
+        $cookie_session_id = Application::$app->request->cookie[$this->cookie_key];
+        $this->session_id = $cookie_session_id;
+        if(empty($cookie_session_id)) {
+            $sess_id = MGeneral::randmd5(40);
+            Application::$app->response->cookie($this->cookie_key, $sess_id, time() + $this->cookie_lifetime, $this->cookie_path, $this->cookie_domain);
+            $this->session_id = $sess_id;
         }
-        $_SESSION = $this->load($sess_id);
+        $_SESSION = $this->load($this->session_id);
         return true;
     }
 
