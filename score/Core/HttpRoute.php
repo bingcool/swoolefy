@@ -143,7 +143,7 @@ class HttpRoute extends AppDispatch {
 	 * @param  string  $action
 	 * @return boolean
 	 */
-	public function invoke($module=null,$controller=null,$action=null) {
+	public function invoke($module = null, $controller = null, $action = null) {
 		// 匹配控制器文件
 		$controller = $controller.'Controller';
 		// 判断是否存在这个类文件
@@ -255,7 +255,7 @@ class HttpRoute extends AppDispatch {
 	 * redirectNotFound 找不到文件或者对应action时,重定向至NotFound类
 	 * @return   array
 	 */
-	public function redirectNotFound($call_func=null) {
+	public function redirectNotFound($call_func = null) {
 		if(isset($this->config['not_found_function'])) {
 			// 重定向至NotFound类
 			list($namespace,$action) = $this->config['not_found_function'];
