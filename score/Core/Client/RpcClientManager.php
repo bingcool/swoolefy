@@ -15,7 +15,7 @@ use Swoolefy\Core\Client\RpcSynclient;
 
 class RpcClientManager {
 
-	use \Swoolefy\Core\SingleTrait;
+	use \Swoolefy\Core\SingletonTrait;
 
 	/**
 	 * $client_pack_setting client的包设置

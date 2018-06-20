@@ -13,7 +13,7 @@ namespace Swoolefy\Core;
 
 class StartInit extends \Swoolefy\Core\StartCtrl {
 
-	use \Swoolefy\Core\SingleTrait;
+	use \Swoolefy\Core\SingletonTrait;
 
 	/**
 	 * init swoole服务start启动之前初始化

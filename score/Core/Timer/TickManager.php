@@ -17,7 +17,7 @@ use Swoolefy\Core\Table\TableManager;
 
 class TickManager {
 
-	use \Swoolefy\Core\SingleTrait;
+	use \Swoolefy\Core\SingletonTrait;
 
 	/**
 	 * tickTimer 循环定时器
