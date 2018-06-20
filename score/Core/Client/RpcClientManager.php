@@ -93,8 +93,8 @@ class RpcClientManager {
 		
 		if(!isset(self::$client_services[$key])) {
 			self::$client_pack_setting[$key] = $client_pack_setting;
-			$pack_length_key = $args['pack_length_key'] ?: 'length';
-			$client_serialize_type = $args['client_serialize_type'] ?: 'json';
+			$pack_length_key = isset($args['pack_length_key']) ? $args['pack_length_key'] : 'length';
+			$client_serialize_type = isset($args['client_serialize_type']) ? $args['client_serialize_type'] : 'json';
 			$swoole_keep = true;
 			if(isset($args['swoole_keep']) && ($args['swoole_keep'] === false || $args['swoole_keep'] == 0)) {
 				$swoole_keep = (boolean)$args['swoole_keep'];

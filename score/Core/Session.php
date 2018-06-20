@@ -78,9 +78,13 @@ class Session {
             $this->cookie_lifetime = $config['cookie_lifetime'];
         }
         if(!isset($config['session_lifetime'])) {
-            $this->session_lifetime = $this->cookie_lifetime + 604800;
+            $this->session_lifetime = $this->cookie_lifetime + 7200;
         }else {
-            $this->session_lifetime = $config['session_lifetime'];
+            if($config['session_lifetime'] <  $config['cookie_lifetime']) {
+                $this->session_lifetime = $this->cookie_lifetime + 7200;
+            }else {
+                $this->session_lifetime = $config['session_lifetime'];
+            }
         }
         if(isset($config['cookie_path']) && !empty($config['cookie_path'])) {
             $this->cookie_path = $config['cookie_path'];
