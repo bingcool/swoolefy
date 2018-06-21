@@ -12,6 +12,7 @@
 namespace Swoolefy\Core\Client;
 
 use Swoolefy\Core\Client\RpcSynclient;
+use Swoolefy\Core\Client\RpcClientConst;
 
 class RpcClientManager {
 
@@ -40,25 +41,6 @@ class RpcClientManager {
 	 * @var boolean
 	 */
 	protected $is_swoole_env = false;
-
-	// 服务器连接失败
-    const ERROR_CODE_CONNECT_FAIL = 5001;
-    // 首次数据发送成功
-    const ERROR_CODE_SEND_SUCCESS = 5002;
-    // 二次发送成功
-    const ERROR_CODE_SECOND_SEND_SUCCESS = 5003;
-    // 当前数据不属于当前的请求client对象
-    const ERROR_CODE_NO_MATCH = 5004;
-    // 数据接收超时,一般是服务端出现阻塞或者其他问题
-    const ERROR_CODE_CALL_TIMEOUT = 5005;
-    // callable的解析出错
-    const ERROR_CODE_CALLABLE = 5006;
-    // enpack的解析出错,一般是serialize_type设置错误造成
-    const ERROR_CODE_ENPACK = 5007;
-    // enpack的解析出错,一般是serialize_type设置错误造成
-    const ERROR_CODE_DEPACK = 5008;
-    // 数据返回成功
-    const ERROR_CODE_SUCCESS = 0;
 
 	/**
 	 * __construct 
@@ -181,10 +163,10 @@ class RpcClientManager {
 			                list($header, $body_data) = $response;
 			                $request_id = $client_service->getRequestId();
 			                if(in_array($request_id, array_values($header))) {
-			                	$client_service->setStatusCode(self::ERROR_CODE_SUCCESS);
+			                	$client_service->setStatusCode(RpcClientConst::ERROR_CODE_SUCCESS);
 			                	$this->response_pack_data[$request_id] = $response;
 			                }else {
-			                	$client_service->setStatusCode(self::ERROR_CODE_NO_MATCH);
+			                	$client_service->setStatusCode(RpcClientConst::ERROR_CODE_NO_MATCH);
 			                	$this->response_pack_data[$request_id] = [];
 			                }
 	                    }else {
@@ -203,7 +185,7 @@ class RpcClientManager {
 				// 超时的client_service实例
 		        foreach($client_services as $client_id=>$timeout_client_service) {
 	            	$request_id = $timeout_client_service->getRequestId();
-	            	$timeout_client_service->setStatusCode(self::ERROR_CODE_CALL_TIMEOUT);
+	            	$timeout_client_service->setStatusCode(RpcClientConst::ERROR_CODE_CALL_TIMEOUT);
 	            	$this->response_pack_data[$request_id] = [];
 	            	unset($client_services[$client_id]);
 		       	}

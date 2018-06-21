@@ -35,14 +35,6 @@ class App extends \Swoolefy\Core\Component {
 	 */
 	public $config = null;
 
-	/**
-	 * $hooks 保存钩子执行函数
-	 * @var array
-	 */
-	public $hooks = [];
- 	const HOOK_AFTER_REQUEST = 1;
-
-
  	/**
  	 * $ExceptionHanderClass 异常处理类
  	 * @var string
