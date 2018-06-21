@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core\Client;
 
+use Swoolefy\Core\Client\RpcClientConst;
+
 class RpcSynclient {
 	/**
 	 * $client client对象
@@ -127,25 +129,6 @@ class RpcSynclient {
     const DECODE_JSON = 1;
     const DECODE_PHP = 2;
     const DECODE_SWOOLE = 3;
-
-    // 服务器连接失败
-    const ERROR_CODE_CONNECT_FAIL = 5001;
-    // 首次数据发送成功
-    const ERROR_CODE_SEND_SUCCESS = 5002;
-    // 二次发送成功
-    const ERROR_CODE_SECOND_SEND_SUCCESS = 5003;
-    // 当前数据不属于当前的请求client对象
-    const ERROR_CODE_NO_MATCH = 5004;
-    // 数据接收超时,一般是服务端出现阻塞或者其他问题
-    const ERROR_CODE_CALL_TIMEOUT = 5005;
-    // callable的解析出错
-    const ERROR_CODE_CALLABLE = 5006;
-    // enpack的解析出错,一般是serialize_type设置错误造成
-    const ERROR_CODE_ENPACK = 5007;
-    // enpack的解析出错,一般是serialize_type设置错误造成
-    const ERROR_CODE_DEPACK = 5008;
-    // 数据返回成功
-    const ERROR_CODE_SUCCESS = 0;
 
     /**
      * __construct 初始化
@@ -441,7 +424,7 @@ class RpcSynclient {
             if(count($class_action) == 2) {
                 $callable = $class_action;
             }else {
-                $this->setStatusCode(self::ERROR_CODE_CALLABLE);
+                $this->setStatusCode(RpcClientConst::ERROR_CODE_CALLABLE);
             }
         }
     }
@@ -479,7 +462,7 @@ class RpcSynclient {
                 $header_values = array_values($header);
                 $this->request_id = end($header_values);
             }
-            $this->setStatusCode(self::ERROR_CODE_SEND_SUCCESS);
+            $this->setStatusCode(RpcClientConst::ERROR_CODE_SEND_SUCCESS);
 			return $this;
 		}else {
             // 重连一次
@@ -493,10 +476,10 @@ class RpcSynclient {
                     $header_values = array_values($header);
                     $this->request_id = end($header_values);
                 }
-                $this->setStatusCode(self::ERROR_CODE_SECOND_SEND_SUCCESS);
+                $this->setStatusCode(RpcClientConst::ERROR_CODE_SECOND_SEND_SUCCESS);
                 return $this;
             }
-            $this->setStatusCode(self::ERROR_CODE_CONNECT_FAIL);
+            $this->setStatusCode(RpcClientConst::ERROR_CODE_CONNECT_FAIL);
 			return $this;
 		}
 	}
@@ -523,10 +506,10 @@ class RpcSynclient {
                 $response = $this->depack($data);
                 list($header, $body_data) = $response;
                 if(in_array($this->getRequestId(), array_values($header)) || $this->getRequestId() == 'ping') {
-                    $this->setStatusCode(self::ERROR_CODE_SUCCESS);
+                    $this->setStatusCode(RpcClientConst::ERROR_CODE_SUCCESS);
                     return $response;
                 }
-                $this->setStatusCode(self::ERROR_CODE_NO_MATCH);
+                $this->setStatusCode(RpcClientConst::ERROR_CODE_NO_MATCH);
                 return [];
                 
             }else {
@@ -534,7 +517,7 @@ class RpcSynclient {
                 return $this->depackeof($data, $unseralize_type);
             }
         }
-        $this->setStatusCode(self::ERROR_CODE_CALL_TIMEOUT);
+        $this->setStatusCode(RpcClientConst::ERROR_CODE_CALL_TIMEOUT);
         return [];
 	}
 
@@ -580,7 +563,7 @@ class RpcSynclient {
      * @return boolean 
      */
     public function isCallSuccess() {
-        if(in_array($this->getStatusCode(), [self::ERROR_CODE_SEND_SUCCESS, self::ERROR_CODE_SECOND_SEND_SUCCESS])) {
+        if(in_array($this->getStatusCode(), [RpcClientConst::ERROR_CODE_SEND_SUCCESS, RpcClientConst::ERROR_CODE_SECOND_SEND_SUCCESS])) {
             return true;
         }
         return false;
@@ -693,7 +676,7 @@ class RpcSynclient {
                 return swoole_pack($data);
             break;
             default:
-                $this->setStatusCode(self::ERROR_CODE_ENPACK);
+                $this->setStatusCode(RpcClientConst::ERROR_CODE_ENPACK);
                 throw new \Exception("enpack error,may be serialize_type setted error", 1);	  
         }
 	}
@@ -723,7 +706,7 @@ class RpcSynclient {
                 return swoole_unpack($data);
             break;
             default:
-            	$this->setStatusCode(self::ERROR_CODE_DEPACK);
+            	$this->setStatusCode(RpcClientConst::ERROR_CODE_DEPACK);
                 throw new \Exception("depack error,may be serialize_type setted error", 1);
         }
     }
