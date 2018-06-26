@@ -171,16 +171,21 @@ trait ComponentTrait {
 	 */
 	public static function clearComponent($com_alias_name = null) {
         if(!is_null($com_alias_name) && is_string($com_alias_name)) {
-       		unset(Swfy::$Di[$com_alias_name]);
-       		return true;
+	        $com_alias_name = (array)$com_alias_name;
         }else if(is_array($com_alias_name)) {
-       		foreach($com_alias_name as $alias_name) {
-       			unset(Swfy::$Di[$alias_name]);
-       		}
-       		return true;
+        	$com_alias_name = array_unique($com_alias_name);
+        }else {
+        	return false;
         }
-
-        return false;
+        foreach($com_alias_name as $alias_name) {
+   			$key = array_search($alias_name, self::$_destroy_components);
+   			if(is_numeric($key)) {
+    			unset(Swfy::$Di[$alias_name], self::$_destroy_components[$key]);
+        	}else {
+        		unset(Swfy::$Di[$alias_name]);
+        	}
+       	}
+        return true;
     }
 
 	/**
@@ -216,7 +221,6 @@ trait ComponentTrait {
 	public function __get($name) {
 		if(!isset($this->$name)) {
 			if(isset(Swfy::$Di[$name])) {
-
 				if(is_object(Swfy::$Di[$name])) {	
 					return Swfy::$Di[$name];
 				}else {
