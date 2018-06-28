@@ -12,12 +12,12 @@
 namespace Swoolefy\Core\Process;
 
 use Swoolefy\Core\Swfy;
-use Swoolefy\Core\Object;
+use Swoolefy\Core\BaseObject;
 use Swoolefy\Core\Hook;
 use Swoolefy\Core\ZModel;
 use Swoolefy\Core\Application;
 
-class SwooleProcess extends Object {
+class SwooleProcess extends BaseObject {
 
 	/**
 	 * $config 当前应用层的配置 

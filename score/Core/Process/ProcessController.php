@@ -12,11 +12,11 @@
 namespace Swoolefy\Core\Process;
 
 use Swoolefy\Core\Swfy;
-use Swoolefy\Core\Object;
+use Swoolefy\Core\BaseObject;
 use Swoolefy\Core\Hook;
 use Swoolefy\Core\Application;
 
-class ProcessController extends Object {
+class ProcessController extends BaseObject {
 	/**
 	 * $config 应用层配置
 	 * @var null
