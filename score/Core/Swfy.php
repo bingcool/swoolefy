@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Core;
 
-class Swfy extends \Swoolefy\Core\Object {
+class Swfy extends \Swoolefy\Core\BaseObject {
 
 	use \Swoolefy\Core\ComponentTrait, \Swoolefy\Core\ServiceTrait;
 	/**

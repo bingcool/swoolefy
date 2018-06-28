@@ -12,11 +12,11 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
-use Swoolefy\Core\Object;
+use Swoolefy\Core\BaseObject;
 use Swoolefy\Core\Struct;
 use Swoolefy\Core\Application;
 
-class SModel extends Object {
+class SModel extends BaseObject {
 
 	/**
 	 * $config 应用层配置

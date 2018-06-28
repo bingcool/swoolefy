@@ -12,13 +12,13 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
-use Swoolefy\Core\Object;
+use Swoolefy\Core\BaseObject;
 use Swoolefy\Core\Hook;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Tcp\TcpServer;
 
-class BService extends Object {
+class BService extends BaseObject {
 
 	/**
 	 * $config 应用层配置

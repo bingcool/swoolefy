@@ -14,7 +14,7 @@ namespace Swoolefy\Core;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 
-class AppObject extends Object {
+class AppObject extends BaseObject {
 
 	use \Swoolefy\Core\AppObjectTrait;
 }

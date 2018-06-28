@@ -12,11 +12,11 @@
 namespace Swoolefy\Core\Task;
 
 use Swoolefy\Core\Swfy;
-use Swoolefy\Core\Object;
+use Swoolefy\Core\BaseObject;
 use Swoolefy\Core\Hook;
 use Swoolefy\Core\Application;
 
-class TaskController extends Object {
+class TaskController extends BaseObject {
 	/**
 	 * $from_worker_id 记录当前任务from的woker投递
 	 * @see https://wiki.swoole.com/wiki/page/134.html
