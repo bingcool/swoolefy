@@ -40,7 +40,7 @@ class Tick {
      * @param   array    $params       
      * @return  int              
      */
-	public static function tickTimer($time_interval, $func, $params = null) {
+	public static function tickTimer($time_interval, $func, $params = null, $is_sington = true) {
 		if($time_interval <= 0 || $time_interval > 86400000) {
             throw new \Exception(get_called_class()."::tickTimer() the first params 'time_interval' is requested 0-86400000 ms");
             return false;
@@ -51,7 +51,7 @@ class Tick {
             return false;
         }
 
-        $timer_id = self::tick($time_interval, $func, $params);
+        $timer_id = self::tick($time_interval, $func, $params, $is_sington);
 
         return $timer_id;
 	}
@@ -63,8 +63,8 @@ class Tick {
      * @param   array     $user_params  
      * @return  boolean              
      */
-    public static function tick($time_interval, $func, $user_params = null) {
-        $tid = swoole_timer_tick($time_interval, function($timer_id, $user_params) use($func) {
+    public static function tick($time_interval, $func, $user_params = null, $is_sington = true) {
+        $tid = swoole_timer_tick($time_interval, function($timer_id, $user_params) use($func, $is_sington) {
             $params = [];
             if($user_params) {
                 $params = [$user_params, $timer_id];
@@ -74,11 +74,15 @@ class Tick {
 
             if(is_array($func)) {
                 list($class, $action) = $func;
-                if(self::$_tasks_instances[$timer_id]) {
-                   $tickTaskInstance = swoole_unpack(self::$_tasks_instances[$timer_id]);
+                if($is_sington) {
+                    if(self::$_tasks_instances[$timer_id]) {
+                        $tickTaskInstance = swoole_unpack(self::$_tasks_instances[$timer_id]);
+                    }else {
+                        $tickTaskInstance = new $class;
+                        self::$_tasks_instances[$timer_id] = swoole_pack($tickTaskInstance);
+                    }
                 }else {
                     $tickTaskInstance = new $class;
-                    self::$_tasks_instances[$timer_id] = swoole_pack($tickTaskInstance);
                 }
             }
             call_user_func_array([$tickTaskInstance, $action], $params);
