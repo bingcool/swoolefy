@@ -23,11 +23,12 @@ class TickManager {
 	 * tickTimer 循环定时器
 	 * @param   int    $time_interval
 	 * @param   mixed  $func         
-	 * @param   mixed  $params       
+	 * @param   mixed  $params
+	 * @param   bool   $is_sington       
 	 * @return  int
 	 */
-	public static function tickTimer($time_interval, $func, $params = null) {
-		return Tick::tickTimer($time_interval, $func, $params);
+	public static function tickTimer($time_interval, $func, $params = null, $is_sington = true) {
+		return Tick::tickTimer($time_interval, $func, $params, $is_sington);
 	}
 
 	/**
