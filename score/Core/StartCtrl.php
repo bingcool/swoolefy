@@ -79,7 +79,7 @@ class StartCtrl implements \Swoolefy\Core\StartInterface {
 	 * @return                 
 	 */
 	public function workerExit($server, $worker_id) {
-		static::onWorkExit($server, $worker_id);
+		static::onWorkerExit($server, $worker_id);
 	}
 
 	/**
