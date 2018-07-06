@@ -24,10 +24,10 @@ class TickManager {
 	 * @param   int    $time_interval
 	 * @param   mixed  $func         
 	 * @param   mixed  $params
-	 * @param   bool   $is_sington       
+	 * @param   bool   $is_sington  $func是否是单例，默认false
 	 * @return  int
 	 */
-	public static function tickTimer($time_interval, $func, $params = null, $is_sington = true) {
+	public static function tickTimer($time_interval, $func, $params = null, $is_sington = false) {
 		return Tick::tickTimer($time_interval, $func, $params, $is_sington);
 	}
 

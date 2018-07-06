@@ -58,13 +58,13 @@ class HttpRoute extends AppDispatch {
 		// 执行父类
 		parent::__construct();
 		// 获取请求对象
-		$this->request = Application::$app->request;
+		$this->request = Application::getApp()->request;
 		$this->require_uri = $this->request->server['PATH_INFO'];
 
-		$this->response = Application::$app->response;
-		$this->config = Application::$app->config;
+		$this->response = Application::getApp()->response;
+		$this->config = Application::getApp()->config;
 
-		$this->extend_data = $extend_data; 
+		$this->extend_data = $extend_data;
 	}
 
 	/**
@@ -299,9 +299,9 @@ class HttpRoute extends AppDispatch {
 	 */
 	public static function resetRouteDispatch($route) {
 		if(strpos($route, '/') != 0) {
-			Application::$app->request->server['PATH_INFO'] = '/'.$route;
+			Application::getApp()->request->server['PATH_INFO'] = '/'.$route;
 		}
-		Application::$app->request->server['PATH_INFO'] = $route;
+		Application::getApp()->request->server['PATH_INFO'] = $route;
 		
 	}
 

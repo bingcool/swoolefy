@@ -156,6 +156,16 @@ trait ServiceTrait {
 	}
 
 	/**
+	 * setAppConf 设置或重新设置原有的应用层配置
+	 * @param    array         $config
+	 * @return   boolean
+	 */
+	public static function setAppConf(array $config = []) {
+		Swfy::$appConfig = $config;
+		return true;
+	}
+
+	/**
 	 * getSwooleSetting 获取swoole的setting配置
 	 * @return   array
 	 */

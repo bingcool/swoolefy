@@ -219,19 +219,26 @@ abstract class TcpServer extends BaseServer {
 		 * 停止worker进程
 		 */
 		$this->tcpserver->on('WorkerStop', function(tcp_server $server, $worker_id) {
-			// 销毁不完整数据以及
-			$this->pack->destroy($server, $worker_id);
-			// worker停止时的回调处理
-			$this->startCtrl->workerStop($server, $worker_id);
-
+			try{
+				// 销毁不完整数据以及
+				$this->pack->destroy($server, $worker_id);
+				// worker停止时的回调处理
+				$this->startCtrl->workerStop($server, $worker_id);
+			}catch(\Exception $e) {
+				self::catchException($e);
+			}
 		});
 
 		/**
 		 * worker进程异常错误回调函数
 		 */
 		$this->tcpserver->on('WorkerError', function(tcp_server $server, $worker_id, $worker_pid, $exit_code, $signal) {
-			// worker停止的触发函数
-			$this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
+			try{
+				// worker停止的触发函数
+				$this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
+			}catch(\Exception $e) {
+				self::catchException($e);
+			}
 		});
 
 		/**
@@ -239,10 +246,16 @@ abstract class TcpServer extends BaseServer {
 		 */
 		if(static::compareSwooleVersion()) {
 			$this->tcpserver->on('WorkerExit', function(tcp_server $server, $worker_id) {
-				// worker退出的触发函数
-				$this->startCtrl->workerExit($server, $worker_id);
+				try{
+					// worker退出的触发函数
+					$this->startCtrl->workerExit($server, $worker_id);
+				}catch(\Exception $e) {
+					self::catchException($e);
+				}
+				
 			});
 		}
+		
 		$this->tcpserver->start();
 	}
 

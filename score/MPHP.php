@@ -29,7 +29,7 @@ defined('SWOOLEFY_COM_IS_DESTROY') or define('SWOOLEFY_COM_IS_DESTROY', 'is_dest
 defined('SWOOLEFY_COM_FUNC') or define('SWOOLEFY_COM_FUNC', 'func');
 
 // 定义版本
-defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '1.0.7');
+defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '4.0.0');
 
 class MPHP {
 

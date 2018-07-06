@@ -93,7 +93,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	 * @return   void
 	 */
 	public function onTask($server, $task_id, $from_worker_id, $data) {
-		list($callable, $taskData, $fd) = $data;		
+		list($callable, $taskData, $fd) = $data;
 		swoole_unpack(self::$service)->run($fd, [$callable, $taskData]);
 		return ;
 	}

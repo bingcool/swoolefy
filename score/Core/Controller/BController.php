@@ -44,10 +44,10 @@ class BController extends \Swoolefy\Core\AppObject {
 	 */
 	public function __construct() {
 		// 初始化请求对象和响应对象
-		$this->request = Application::$app->request;
-		$this->response = Application::$app->response;
-		$this->session = Application::$app->session;
-		$this->config = Application::$app->config;
+		$this->request = Application::getApp()->request;
+		$this->response = Application::getApp()->response;
+		$this->session = Application::getApp()->session;
+		$this->config = Application::getApp()->config;
 	}
 
 	/**
@@ -73,10 +73,6 @@ class BController extends \Swoolefy\Core\AppObject {
 		if(method_exists($this,'_afterAction')) {
 			static::_afterAction();
 		}
-		// destroy
-		static::$previousUrl = [];
-		// destroy
-		static::$selfModel = [];
 	}
 
 	//使用trait的复用特性

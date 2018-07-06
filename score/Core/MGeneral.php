@@ -17,7 +17,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
 	 * @return   boolean
 	 */
 	public static function isSsl() {
-        $request = Application::$app->request;
+        $request = Application::getApp()->request;
 
 	    if(isset($request->server['HTTPS']) && ('1' == $request->server['HTTPS'] || 'on' == strtolower($request->server['HTTPS']))){
 	        return true;
@@ -32,7 +32,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
 	 * @return   boolean
 	 */
     public static function isMobile() {
-        $request = Application::$app->request;
+        $request = Application::getApp()->request;
 
         if (isset($request->server['HTTP_VIA']) && stristr($request->server['HTTP_VIA'], "wap")) {
             return true;
@@ -61,7 +61,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
 	 * @return  string
 	 */
 	public static function getClientIP($type=0) {
-        $request = Application::$app->request;
+        $request = Application::getApp()->request;
         
 		// 通过nginx的代理
 		if(isset($request->server['HTTP_X_REAL_IP']) && strcasecmp($request->server['HTTP_X_REAL_IP'], "unknown")) {
@@ -147,7 +147,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
      */
     public static function _die($html='',$msg='') {
         // 直接结束请求
-        Application::$app->response->end($html);
+        Application::getApp()->response->end($html);
         throw new \Exception($msg);
     }
 
@@ -157,7 +157,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
      * @return  boolean
      */
     public static function xhprof($force=false) {
-        $host = Application::$app->request->server['HTTP_HOST'];
+        $host = Application::getApp()->request->server['HTTP_HOST'];
 
         if(SW_DEBUG) {
             $xhprof_data = xhprof_disable();
@@ -269,7 +269,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
 	 * @return   string
 	 */
 	public static function getBrowser() {
-        $sys = Application::$app->request->server['HTTP_USER_AGENT'];
+        $sys = Application::getApp()->request->server['HTTP_USER_AGENT'];
 
         if (stripos($sys, "Firefox/") > 0)
  		{
@@ -327,7 +327,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
      * @return  string
      */
     public static function getClientOS() {
-        $agent = Application::$app->request->server['HTTP_USER_AGENT'];
+        $agent = Application::getApp()->request->server['HTTP_USER_AGENT'];
 
         if (preg_match('/win/i', $agent) && preg_match('/nt 6.1/i', $agent))
         {

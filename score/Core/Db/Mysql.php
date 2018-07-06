@@ -136,7 +136,7 @@ class Mysql {
 			if(isset($this->cache_driver) && !empty($this->cache_driver)) {
 				if(is_string($this->cache_driver) ) {
 					$cache_driver = $this->cache_driver;
-					$cache_driver = Application::$app->$cache_driver;
+					$cache_driver = Application::getApp()->$cache_driver;
 
 				}else if(is_object($this->cache_driver)){
 					$cache_driver = $this->cache_driver;
@@ -216,7 +216,7 @@ class Mysql {
 		$this->setConfig();
 		$this->setCacheHandler();
 		// set hook call
-		Application::$app->afterRequest([$this,'clear']);
+		Application::getApp()->afterRequest([$this,'clear']);
 		return Db::$method($args);
 	}
 

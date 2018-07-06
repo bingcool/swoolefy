@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Core\Coroutine\CoroutineManager;
+
 class Hook {
 	/**
 	 * $hooks 保存钩子执行函数
@@ -27,21 +29,22 @@ class Hook {
 	 * @return     void
 	 */
 	public static function addHook($type, $func, $prepend = false) {
+		$cid = CoroutineManager::getInstance()->getCoroutineId();
 		if(is_callable($func, true, $callable_name)) {
 			$key = md5($callable_name);
 			if($prepend) {
-				if(!isset(self::$hooks[$type])) {
-					self::$hooks[$type] = [];
+				if(!isset(self::$hooks[$cid][$type])) {
+					self::$hooks[$cid][$type] = [];
 				}
 				// 防止重复设置
-				if(!isset(self::$hooks[$type][$key])) {
-					self::$hooks[$type] = array_merge([$key => $func], self::$hooks[$type]);
+				if(!isset(self::$hooks[$cid][$type][$key])) {
+					self::$hooks[$cid][$type] = array_merge([$key => $func], self::$hooks[$cid][$type]);
 				}
 				return true;
 			}else {
 				// 防止重复设置
-				if(!isset(self::$hooks[$type][$key])) {
-					self::$hooks[$type][$key] = $func;
+				if(!isset(self::$hooks[$cid][$type][$key])) {
+					self::$hooks[$cid][$type][$key] = $func;
 				}
 				return true;
 			}
@@ -56,8 +59,9 @@ class Hook {
 	 * @return  void
 	 */
 	public static function callHook($type) {
-		if(isset(self::$hooks[$type])) {
-			foreach(self::$hooks[$type] as $func) {
+		$cid = CoroutineManager::getInstance()->getCoroutineId();
+		if(isset(self::$hooks[$cid][$type])) {
+			foreach(self::$hooks[$cid][$type] as $func) {
 				$func();
 			}
 		}
@@ -69,7 +73,10 @@ class Hook {
 	 * getHookCallable 获取所有的钩子函数
 	 * @return  array
 	 */
-	public static function getHookCallable() {
+	public static function getHookCallable($cid) {
+		if($cid) {
+			return self::$hooks[$cid];
+		}
 		return self::$hooks;
 	}
 }

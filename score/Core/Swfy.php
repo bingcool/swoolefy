@@ -11,9 +11,11 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Core\Application;
+
 class Swfy extends \Swoolefy\Core\BaseObject {
 
-	use \Swoolefy\Core\ComponentTrait, \Swoolefy\Core\ServiceTrait;
+	use \Swoolefy\Core\ServiceTrait;
 	/**
 	 * $server swoole服务超全局变量
 	 * @var null
@@ -45,7 +47,7 @@ class Swfy extends \Swoolefy\Core\BaseObject {
 	 * @return void
 	 */
 	public static function createComponent(string $com_alias_name, array $defination = []) {
-		return self::creatObject($com_alias_name, $defination);
+		return Application::getApp()->creatObject($com_alias_name, $defination);
 	}
 
 	/**
@@ -54,7 +56,7 @@ class Swfy extends \Swoolefy\Core\BaseObject {
 	 * @return void
 	 */
 	public static function removeComponent($com_alias_name = null) {
-		return self::clearComponent($com_alias_name);
+		return Application::getApp()->clearComponent($com_alias_name);
 	}
 
 	/**
@@ -63,14 +65,7 @@ class Swfy extends \Swoolefy\Core\BaseObject {
 	 * @return void
 	 */
 	public static function getComponent(string $com_alias_name = null) {
-		if(!$com_alias_name) {
-			return self::$Di;
-		}else {
-			if(isset(self::$Di[$com_alias_name])) {
-				return self::$Di[$com_alias_name];
-			}
-			return false;
-		}	
+		return Application::getApp()->getComponents($com_alias_name);
 	}
 
 	/**
@@ -78,7 +73,7 @@ class Swfy extends \Swoolefy\Core\BaseObject {
 	 * @return   mixed
 	 */
 	public function __call($action, $args = []) {
-		Application::$app->response->end(json_encode([
+		Application::getApp()->response->end(json_encode([
 			'status' => 404,
 			'msg' => 'Calling unknown method: ' . get_called_class() . "::$action()",
 		]));
@@ -91,7 +86,7 @@ class Swfy extends \Swoolefy\Core\BaseObject {
 	 * @return   mixed
 	 */
 	public static function __callStatic($action, $args = []) {
-		Application::$app->response->end(json_encode([
+		Application::getApp()->response->end(json_encode([
 			'status' => 404,
 			'msg' => 'Calling unknown static method: ' . get_called_class() . "::$action()",
 		]));

@@ -12,8 +12,8 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
-use Swoolefy\Core\BaseObject;
 use Swoolefy\Core\Struct;
+use Swoolefy\Core\BaseObject;
 use Swoolefy\Core\Application;
 
 class SModel extends BaseObject {
@@ -34,7 +34,7 @@ class SModel extends BaseObject {
 	 * __construct 初始化函数
 	 */
 	public function __construct() {
-		$this->config = Application::$app->config;
+		$this->config = Application::getApp()->config;
 		// 数据结构模型对象
 		$this->struct = new Struct();
 	}
@@ -106,5 +106,5 @@ class SModel extends BaseObject {
 		static::_afterAction();
 	}
 
-	use \Swoolefy\Core\ComponentTrait, \Swoolefy\Core\ServiceTrait;
+	use \Swoolefy\Core\ServiceTrait;
 }
