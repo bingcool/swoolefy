@@ -16,13 +16,13 @@ trait AppTrait {
 	 * $previousUrl,记录url
 	 * @var array
 	 */
-	public static $previousUrl = [];
+	public $previousUrl = [];
 
 	/**
 	 * $selfModel 控制器对应的自身model
 	 * @var array
 	 */
-	public static $selfModel = [];
+	public $selfModel = [];
 	/**
 	 * _beforeAction 
 	 * @return   mixed
@@ -109,6 +109,112 @@ trait AppTrait {
         }
     }
 
+    /**
+     * getRequest 
+     * @return request 对象
+     */
+    public function getRequest() {
+    	return $this->request;
+    }
+
+    /**
+     * getResponse 
+     * @return response 对象
+     */
+    public function getResponse() {
+    	return $this->response;
+    }
+
+    /**
+     * getRequestParam 
+     * @param    string   $key
+     * @param    string   $mothod
+     * @return   mxixed
+     */
+    public function getRequestParam(string $name = null) {
+    	$mothod = strtolower($this->getMethod());
+    	switch($mothod) {
+    		case 'get' : 
+    			$input = $this->request->get;
+    		break;
+
+    		case 'post':
+    			$input = $this->request->post;
+    		break; 
+    		default :
+    			$input = [];
+    		break;
+    	}
+    	if($name) {
+    		$value = (isset($input[$name]) && !empty($input[$name])) ? $input[$name] : null;
+    	}else {
+    		$get = isset($this->request->get) ? $this->request->get : [];
+    		$post = isset($this->request->post) ? $this->request->post : [];
+    		$value = array_merge($get, $post);
+    		$value = $value ? $value : null;
+    		unset($input, $get, $post);
+    	}
+    	return $value;
+    }
+
+    /**
+     * getCookieParam 
+     * @param    string|null   $name
+     * @return   mixed
+     */
+    public function getCookieParam(string $name = null) {
+    	if($name) {
+    		$value = isset($this->request->cookie[$name]) ? $this->request->cookie[$name] : null;
+    		return $value;	
+    	}
+
+    	return $this->request->cookie;
+    }
+
+    /**
+     * getServerParam 
+     * @param    string|null   $name
+     * @return   mixed
+     */
+    public function getServerParam(string $name = null) {
+    	if($name) {
+    		$value = isset($this->request->server[$name]) ? $this->request->server[$name] : null;
+    		return $value;	
+    	}
+
+    	return $this->request->server;
+    }
+
+    /**
+     * getHeaderParam 
+     * @param    string|null   $name
+     * @return   mixed
+     */
+    public function getHeaderParam(string $name = null) {
+    	if($name) {
+    		$value = isset($this->request->header[$name]) ? $this->request->header[$name] : null;
+    		return $value;
+    	}
+
+    	return $this->request->header;
+    }
+
+    /**
+     * getFilesParam 
+     * @return   mixed
+     */
+    public function getUploadFiles() {
+    	return $this->request->files;
+    }
+
+    /**
+     * getRawContent 
+     * @return  mixed
+     */
+    public function getRawContent() {
+    	return $this->request->rawContent();
+    }
+
 	/**
 	 * getMethod 
 	 * @return   string
@@ -154,7 +260,7 @@ trait AppTrait {
 	 * @param    $ssl
 	 * @return   string
 	 */
-	public function getHomeUrl($ssl=false) {
+	public function getHomeUrl(bool $ssl=false) {
 		$protocol_version = $this->getProtocol();
 		list($protocol, $version) = explode('/', $protocol_version);
 		
@@ -173,12 +279,12 @@ trait AppTrait {
 	 * @param  boolean $ssl
 	 * @return   void   
 	 */
-	public function rememberUrl($name=null,$url=null,$ssl=false) {
+	public function rememberUrl(string $name = null, string $url=null, bool $ssl=false) {
 		if($url && $name) {
-			static::$previousUrl[$name] = $url;
+			$this->previousUrl[$name] = $url;
 		}else {
 			// 获取当前的url保存
-			static::$previousUrl['home_url'] = $this->getHomeUrl($ssl);
+			$this->previousUrl['home_url'] = $this->getHomeUrl($ssl);
 		}
 	}
 
@@ -187,15 +293,15 @@ trait AppTrait {
 	 * @param  string  $name
 	 * @return   mixed
 	 */
-	public function getPreviousUrl($name=null) {
+	public function getPreviousUrl(string $name = null) {
 		if($name) {
-			if(isset(static::$previousUrl[$name])) {
-				return static::$previousUrl[$name];
+			if(isset($this->previousUrl[$name])) {
+				return $this->previousUrl[$name];
 			}
 			return null;
 		}else {
-			if(isset(static::$previousUrl['home_url'])) {
-				return static::$previousUrl['home_url'];
+			if(isset($this->previousUrl['home_url'])) {
+				return $this->previousUrl['home_url'];
 			}
 
 			return null;
@@ -250,7 +356,7 @@ trait AppTrait {
 	 * @param  string  $model
 	 * @return object
 	 */
-	public function getModel($model = '', $module = '') {
+	public function getModel(string $model = '', string $module = '') {
 		if(empty($module)) {
 			$module = $this->getModule();
 		}
@@ -273,12 +379,12 @@ trait AppTrait {
 			}
 		}
 		// 从内存数组中返回
-		if(isset(self::$selfModel[$modelClass])) {
-			return self::$selfModel[$modelClass];
+		if(isset($this->selfModel[$modelClass])) {
+			return $this->selfModel[$modelClass];
 		}else {
 			try{
 				$modelInstance = new $modelClass;
-				return self::$selfModel[$modelClass] = $modelInstance;
+				return $this->selfModel[$modelClass] = $modelInstance;
 			}catch(\Exception $e) {
 				throw new \Exception($e->getMessage(), 1);
 			}
@@ -299,7 +405,7 @@ trait AppTrait {
 	 * @return   object
 	 */
 	public function getView() {
-		return Application::$app->view;
+		return Application::getApp()->view;
 	}
 
 
@@ -309,8 +415,8 @@ trait AppTrait {
 	 * @param   string|array  $value
 	 * @return  void   
 	 */
-	public function assign($name,$value) {
-		Application::$app->view->assign($name,$value);
+	public function assign(string $name, $value) {
+		Application::getApp()->view->assign($name,$value);
 	}
 
 	/**
@@ -318,8 +424,8 @@ trait AppTrait {
 	 * @param    string  $template_file
 	 * @return   void             
 	 */
-	public function display($template_file=null) {
-		Application::$app->view->display($template_file);
+	public function display(string $template_file = null) {
+		Application::getApp()->view->display($template_file);
 	}
 
 	/**
@@ -327,8 +433,8 @@ trait AppTrait {
 	 * @param    string  $template_file
 	 * @return   void              
 	 */
-	public function fetch($template_file=null) {
-		Application::$app->view->display($template_file);
+	public function fetch(string $template_file = null) {
+		Application::getApp()->view->display($template_file);
 	}
 
 	/**
@@ -337,8 +443,8 @@ trait AppTrait {
 	 * @param    string  $formater
 	 * @return   void         
 	 */
-	public function returnJson($data,$formater = 'json') {
-		Application::$app->view->returnJson($data,$formater);
+	public function returnJson(array $data, string $formater = 'json') {
+		Application::getApp()->view->returnJson($data, $formater);
 	}
 
 	/**
@@ -348,7 +454,7 @@ trait AppTrait {
 	 * @param    string  $length   
 	 * @return   void          
 	 */
-	public function sendfile($filename, $offset = 0, $length = 0) {
+	public function sendfile(string $filename, int $offset = 0, int $length = 0) {
 		$this->response->sendfile($filename, $offset = 0, $length = 0);
 	}
 
@@ -357,8 +463,7 @@ trait AppTrait {
 	 * @param    string  $url
 	 * @return   array
 	 */
-	public function parseUri($url)
-    {
+	public function parseUri(string $url) {
         $res = parse_url($url);
         $return['protocol'] = $res['scheme'];
         $return['host'] = $res['host'];
@@ -378,7 +483,7 @@ trait AppTrait {
 	 * @param    int     $code default 301
 	 * @return   void
 	 */
-	public function redirect($url,array $params=[], $code=301) {
+	public function redirect(string $url, array $params = [], int $code=301) {
 		$query_string = '';
 		trim($url);
 		if(strpos($url, 'http') === false || strpos($url, 'https') === false) {
@@ -447,7 +552,7 @@ trait AppTrait {
 	 * @param    int     $timeout 单位ms
 	 * @return   
 	 */
-	public function asyncHttpClient($urls=[],$timeout=500) {
+	public function asyncHttpClient(array $urls = [], int $timeout = 500) {
 		if(!empty($urls)) {
 			$conn = [];
 			$mh = curl_multi_init();
@@ -491,10 +596,10 @@ trait AppTrait {
 
 	/**
      * getClientIP 获取客户端ip
-     * @param   $type 返回类型 0:返回IP地址,1:返回IPV4地址数字
-     * @return  string
+     * @param   int  $type 返回类型 0:返回IP地址,1:返回IPV4地址数字
+     * @return  mixed
      */
-    public function getClientIP($type=0) {
+    public function getClientIP(int $type = 0) {
         // 通过nginx的代理
         if(isset($this->request->server['HTTP_X_REAL_IP']) && strcasecmp($this->request->server['HTTP_X_REAL_IP'], "unknown")) {
             $ip = $this->request->server['HTTP_X_REAL_IP'];
@@ -530,7 +635,7 @@ trait AppTrait {
      * @param    string  $value
      * @return   object
      */
-    public function header($name,$value) {
+    public function header(string $name, $value) {
         $this->response->header($name, $value);
         return $this->response;
     }
@@ -546,7 +651,15 @@ trait AppTrait {
      * @param   $httponly 设置成TRUE，Cookie仅可通过HTTP协议访问
      * @return  $this
      */
-    public function setCookie($key,$value = '',$expire = 0,$path = '/',$domain = '',$secure = false,$httponly = false) {
+    public function setCookie(
+    	$key, 
+    	$value = '', 
+    	$expire = 0, 
+    	$path = '/', 
+    	$domain = '', 
+    	$secure = false,
+    	$httponly = false
+    ) {
         $this->response->cookie($key, $value, $expire, $path, $domain, $secure, $httponly);
         return $this->response;
     }
@@ -753,7 +866,7 @@ trait AppTrait {
 	 * @param    int  $code
 	 * @return   void     
 	 */
-	public function status($code) {
+	public function status(int $code) {
 		$http_status = array(
 			// Informational 1xx
 			100,

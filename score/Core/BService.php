@@ -12,11 +12,11 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
-use Swoolefy\Core\BaseObject;
 use Swoolefy\Core\Hook;
-use Swoolefy\Core\Application;
-use Swoolefy\Core\BaseServer;
 use Swoolefy\Tcp\TcpServer;
+use Swoolefy\Core\BaseObject;
+use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\Application;
 
 class BService extends BaseObject {
 
@@ -30,7 +30,7 @@ class BService extends BaseObject {
 	 * $selfModel 控制器对应的自身model
 	 * @var array
 	 */
-	public static $selfModel = [];
+	public $selfModel = [];
 
 	/**
 	 * $fd 
@@ -48,12 +48,12 @@ class BService extends BaseObject {
 	 * __construct
 	 */
 	public function __construct() {
-		$this->fd = Application::$app->fd;
-		$this->config = Application::$app->config;
+		$this->fd = Application::getApp()->fd;
+		$this->config = Application::getApp()->config;
 
 		// udp协议设置
 		if(BaseServer::getServiceProtocol() == SWOOLEFY_UDP) {
-			$this->client_info = Application::$app->client_info;
+			$this->client_info = Application::getApp()->client_info;
 		}else {
 			$this->client_info = null;
 		}
@@ -142,7 +142,7 @@ class BService extends BaseObject {
 	 * @return   array
 	 */
 	public function getRpcPackHeader() {
-		return Application::$app->getRpcPackHeader();
+		return Application::getApp()->getRpcPackHeader();
 	}
 
 	/**
@@ -150,7 +150,7 @@ class BService extends BaseObject {
 	 * @return mixed
 	 */
 	public function getRpcPackBodyParams() {
-		return Application::$app->getRpcPackBodyParams();
+		return Application::getApp()->getRpcPackBodyParams();
 	}
 
 	/**
@@ -158,7 +158,7 @@ class BService extends BaseObject {
 	 * @return mixed
 	 */
 	public function getUdpData() {
-		return Application::$app->getUdpData();
+		return Application::getApp()->getUdpData();
 	}
 
 	/**
@@ -166,7 +166,7 @@ class BService extends BaseObject {
 	 * @return mixed
 	 */
 	public function getWebsockMsg() {
-		return Application::$app->getWebsockMsg();
+		return Application::getApp()->getWebsockMsg();
 	}
 
 	/**
@@ -192,8 +192,6 @@ class BService extends BaseObject {
 		if(method_exists($this,'_afterAction')) {
 			static::_afterAction();
 		}
-		// 销毁单例model实例
-		static::$selfModel = [];
 	}
 
 	use \Swoolefy\Core\ServiceTrait;

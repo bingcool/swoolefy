@@ -8,22 +8,27 @@
 | Author: bingcool <bingcoolhuang@gmail.com || 2437667702@qq.com>
 +----------------------------------------------------------------------
 */
- 
-namespace Swoolefy\Core\Process;
+
+namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
-use Swoolefy\Core\Hook;
 use Swoolefy\Core\ZModel;
 use Swoolefy\Core\BaseObject;
 use Swoolefy\Core\Application;
+use Swoolefy\Core\Coroutine\CoroutineManager;
 
-class SwooleProcess extends BaseObject {
-
+class EventController extends BaseObject {
 	/**
-	 * $config 当前应用层的配置 
+	 * $config 应用层配置
 	 * @var null
 	 */
 	public $config = null;
+
+	/**
+	 * $selfModel 控制器对应的自身model
+	 * @var array
+	 */
+	public $selfModel = [];
 
 	/**
 	 * $event_hooks 钩子事件
@@ -33,28 +38,40 @@ class SwooleProcess extends BaseObject {
 	const HOOK_AFTER_REQUEST = 1;
 
 	/**
- 	 * $ExceptionHanderClass 异常处理类
- 	 * @var string
- 	 */
- 	private $ExceptionHanderClass = 'Swoolefy\\Core\\SwoolefyException';
-
- 	/**
-	 * __construct
-	 * @param $config 应用层配置
+	 * __construct 初始化函数
 	 */
-	public function __construct(array $config = []) {
-		// 将应用层配置保存在上下文的服务
-		$this->config = array_merge(Swfy::$appConfig, $config);
-		// 注册错误处理事件
-		$protocol_config = Swfy::getConf();
-		if(isset($protocol_config['exception_hander_class']) && !empty($protocol_config['exception_hander_class'])) {
-			$this->ExceptionHanderClass = $protocol_config['exception_hander_class'];
-		}
-		register_shutdown_function($this->ExceptionHanderClass.'::fatalError');
-      	set_error_handler($this->ExceptionHanderClass.'::appError');
+	public function __construct() {
+		// 应用层配置
+		$this->config = Swfy::$appConfig;
+		$coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
+		$this->coroutine_id = $coroutine_id;
+		Application::setApp($this);
 	}
 
- 	/**
+	/**
+	 * setApp 重置APP对象
+	 * @param  string  $coroutine_id
+	 */
+	public function setApp($coroutine_id = null) {
+		if($coroutine_id) {
+			Application::removeApp();
+			$this->coroutine_id = $coroutine_id;
+			Application::setApp($this);
+			return  true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * getCid 
+	 * @return  mixed
+	 */
+	public function getCid() {
+		return $this->coroutine_id;
+	}
+
+	/**
 	 * afterRequest 
 	 * @param  callable $callback
 	 * @param  boolean  $prepend
@@ -97,18 +114,36 @@ class SwooleProcess extends BaseObject {
 	}
 
 	/**
-	 * end
-	 * @return  
+	 * beforeAction 在处理实际action之前执行
+	 * @return   mixed
 	 */
-	public function end() {
-		if(method_exists($this,'_afterAction')) {
+	public function _beforeAction() {
+		return true;
+	}
+
+	/**
+	 * afterAction 在返回数据之前执行
+	 * @return   mixed
+	 */
+	public function _afterAction() {
+		return true;
+	}
+
+	/**
+	 * __destruct 返回数据之前执行,重新初始化一些静态变量
+	 */
+	public function __destruct() {
+		// callhooks
+		if(method_exists($this, 'callAfterEventHook')) {
+			$this->callAfterEventHook();
+		};
+		// call hook callable
+		if(method_exists($this, '_afterAction')) {
 			static::_afterAction();
 		}
-		// callhooks
-		$this->callAfterEventHook();
-		// destroy
+		ZModel::removeInstance();
 		Application::removeApp();
 	}
 
- 	use \Swoolefy\Core\ComponentTrait;
+	use \Swoolefy\Core\ComponentTrait,\Swoolefy\Core\ServiceTrait;
 }

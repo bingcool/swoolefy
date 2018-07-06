@@ -12,9 +12,12 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
+use Swoolefy\Core\ZModel;
 use Swoolefy\Core\AppInit;
 use Swoolefy\Core\HttpRoute;
+use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Application;
+use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class App extends \Swoolefy\Core\Component {
 	/**
@@ -35,6 +38,12 @@ class App extends \Swoolefy\Core\Component {
 	 */
 	public $config = null;
 
+	/**
+	 * $coroutine_id 
+	 * @var [type]
+	 */
+	public $coroutine_id;
+
  	/**
  	 * $ExceptionHanderClass 异常处理类
  	 * @var string
@@ -48,8 +57,6 @@ class App extends \Swoolefy\Core\Component {
 	public function __construct(array $config=[]) {
 		// 将应用层配置保存在上下文的服务
 		$this->config = Swfy::$appConfig = $config;
-		// Component组件创建
-		parent::creatObject();
 		// 注册错误处理事件
 		$protocol_config = Swfy::getConf();
 		if(isset($protocol_config['exception_hander_class']) && !empty($protocol_config['exception_hander_class'])) {
@@ -64,7 +71,7 @@ class App extends \Swoolefy\Core\Component {
 	 * @return void
 	 */
 	protected function init() {
-		// 初始化超全局变量数组和对象
+		// 初始化对象
 		AppInit::_init();
 		// session start,在一些微服务的http请求中无需session
 		if(isset($this->config['session_start']) && $this->config['session_start']) {
@@ -78,7 +85,7 @@ class App extends \Swoolefy\Core\Component {
 	 * boostrap 初始化引导
 	 */
 	protected function bootstrap() {
-		Swfy::$config['application_index']::bootstrap($_REQUEST);	
+		Swfy::$config['application_index']::bootstrap($this->getRequestParam());	
 	}
 
 	/**
@@ -88,10 +95,14 @@ class App extends \Swoolefy\Core\Component {
 	 * @return void
 	 */
 	public function run($request, $response, $extend_data = null) {
+		// Component组件创建
+		parent::creatObject();
 		// 赋值对象
 		$this->request = $request;
 		$this->response = $response;
-		Application::$app = $this;
+		$coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
+		$this->coroutine_id = $coroutine_id;
+		Application::setApp($this);
 		// 初始化
 		$this->init();
 		// 引导程序与环境变量的设置
@@ -166,18 +177,16 @@ class App extends \Swoolefy\Core\Component {
 	public function clearStaticVar() {
 		// call hook callable
 		Hook::callHook(Hook::HOOK_AFTER_REQUEST);
-		!empty(ZModel::$_model_instances) && ZModel::$_model_instances = [];
-		self::clearComponent(self::$_destroy_components);
-		$_POST = $_GET = $_REQUEST = $_COOKIE = $_SESSION = [];
+		ZModel::removeInstance();
 	}
 
 	/**
 	 * end 请求结束
-	 * @return  
+	 * @return
 	 */
 	public function end() {
 		// 销毁当前的请求应用对象
-		Application::$app = null;
+		Application::removeApp();
 		// 设置一个异常结束
 		@$this->response->end();
 	}

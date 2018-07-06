@@ -58,7 +58,7 @@ class View {
 
 		$this->content_type = $contentType;
 		$this->view = $smarty;
-		isset(Application::$app->config['gzip_level']) && $this->gzip_level = (int)Application::$app->config['gzip_level'];
+		isset(Application::getApp()->config['gzip_level']) && $this->gzip_level = (int)Application::getApp()->config['gzip_level'];
 	}
 
 	/**
@@ -109,9 +109,9 @@ class View {
 	 * @return   html
 	 */
 	protected function redirectFetch($template_file) {
-		$module = Application::$app->getModule();
-		$controller = Application::$app->getController();
-		$action = Application::$app->getAction();
+		$module = Application::getApp()->getModule();
+		$controller = Application::getApp()->getController();
+		$action = Application::getApp()->getAction();
 		
 		if(!$template_file) {
 			$template_file = $action.'.html';
@@ -130,7 +130,7 @@ class View {
 			$tpl = $template_file;
 		}
 
-		$response = @Application::$app->response;
+		$response = @Application::getApp()->response;
 		$response->header('Content-Type',$this->content_type.'; charset=utf-8');
 		if($this->enable_gzip) {
 			$response->gzip($this->gzip_level);
@@ -157,7 +157,7 @@ class View {
 			$tpl = $template_file;
 		}
 
-		$response = Application::$app->response;
+		$response = Application::getApp()->response;
 		$response->header('Content-Type',$this->content_type.'; charset=utf-8');
 		if($this->enable_gzip) {
 			$response->gzip($this->gzip_level);
@@ -185,8 +185,8 @@ class View {
 	 * @param    string  $formater
 	 * @return        
 	 */
-	public function returnJson($data,$formater = 'json') {
-		$response = Application::$app->response;
+	public function returnJson($data, $formater = 'json') {
+		$response = Application::getApp()->response;
 		switch(strtoupper($formater)) {
 			case 'JSON':
 				$response->header('Content-Type','application/json; charset=utf-8');

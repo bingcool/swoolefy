@@ -9,17 +9,8 @@
 +----------------------------------------------------------------------
 */
 
-namespace Swoolefy\Core;
+namespace Swoolefy\Core\Timer;
 
-trait SingletonTrait {
+class TickController extends \Swoolefy\Core\Process\ProcessController {
 	
-    private static $instance;
-
-    static function getInstance(...$args)
-    {
-        if(!isset(self::$instance)){
-            self::$instance = new static(...$args);
-        }
-        return self::$instance;
-    }
 }

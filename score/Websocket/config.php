@@ -31,7 +31,7 @@ return [
 		'task_tmpdir' => '/dev/shm',
 		'daemonize' => 0,
 		// websocket使用固定的worker，使用2或4
-		'dispatch_mode' => 3,
+		'dispatch_mode' => 2,
 		// 不要更改这个两个配置文件位置
 		'log_file' => __DIR__.'/log.txt',
 		'pid_file' => __DIR__.'/server.pid',

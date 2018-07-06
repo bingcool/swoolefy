@@ -12,6 +12,8 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
+use Swoolefy\Core\ZModel;
+use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class Swoole extends BaseObject {
 
@@ -39,6 +41,12 @@ class Swoole extends BaseObject {
 	public $rpc_pack_header = [];
 
 	/**
+	 * $coroutine_id 
+	 * @var [type]
+	 */
+	public $coroutine_id;
+
+	/**
  	 * $ExceptionHanderClass 异常处理类
  	 * @var string
  	 */
@@ -51,8 +59,6 @@ class Swoole extends BaseObject {
 	public function __construct(array $config=[]) {
 		// 将应用层配置保存在上下文的服务
 		$this->config = Swfy::$appConfig = $config;
-		// Component组件创建
-		self::creatObject();
 		// 注册错误处理事件
 		$protocol_config = Swfy::getConf();
 		if(isset($protocol_config['exception_hander_class']) && !empty($protocol_config['exception_hander_class'])) {
@@ -83,7 +89,11 @@ class Swoole extends BaseObject {
 	 * @return void
 	 */
 	public function run($fd, $recv) {
-		Application::$app = $this;
+		$coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
+		$this->coroutine_id = $coroutine_id;
+		// Component组件创建
+		$this->creatObject();
+		Application::setApp($this);
 		$this->fd = $fd;
 		// 初始化处理
 		$this->_init($recv);
@@ -179,6 +189,14 @@ class Swoole extends BaseObject {
 		}
 	}
 
+	/**
+	 * getFd worker进程中可以读取到值，task进程不能，默认返回null
+	 * @return  mixed
+	 */
+	public function getFd() {
+		return $this->fd;
+	}
+
  	/**
 	 * afterRequest 请求结束后注册钩子执行操作
 	 * @param	mixed   $callback 
@@ -191,7 +209,6 @@ class Swoole extends BaseObject {
 		}else {
 			throw new \Exception(__NAMESPACE__.'::'.__function__.' the first param of type is callable');
 		}
-		
 	}
 
 	/**
@@ -201,11 +218,8 @@ class Swoole extends BaseObject {
 	public function end() {
 		// call hook callable
 		Hook::callHook(Hook::HOOK_AFTER_REQUEST);
-		if(!empty(ZModel::$_model_instances)) {
-			ZModel::$_model_instances = [];
-		}
-		self::clearComponent(self::$_destroy_components);
-		Application::$app = null;
+		ZModel::removeInstance();
+		Application::removeApp();
 	}
 
  	use \Swoolefy\Core\ComponentTrait,\Swoolefy\Core\ServiceTrait;

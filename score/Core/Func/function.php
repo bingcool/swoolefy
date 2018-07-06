@@ -20,7 +20,7 @@ use Swoolefy\Core\Application;
  */
 function dump($var, $echo=true, $label=null, $strict=true) {
     // 判断是否存在访问的应用对象
-    $app = Application::$app;
+    $app = Application::getApp();
 
     $label = ($label === null) ? '' : rtrim($label) . ' ';
     if (!$strict) {
@@ -70,6 +70,6 @@ function dump($var, $echo=true, $label=null, $strict=true) {
  * @return   mixed
  */
 function _die($msg='') {
-    Application::$app->response->end();
+    Application::getApp()->response->end();
     throw new \Exception($msg);
 }

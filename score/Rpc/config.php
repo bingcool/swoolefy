@@ -27,7 +27,7 @@ return [
 		'task_worker_num' => 2,
 		'task_tmpdir' => '/dev/shm',
 		'daemonize' => 0,
-		// TCP使用固定的worker，使用2或4
+		// TCP使用固定的worker，使用2或4或7
 		'dispatch_mode' => 2,
 		// 'open_eof_check' => true, //打开EOF检测
 		// 'open_eof_split' => true, //打开EOF_SPLIT检测

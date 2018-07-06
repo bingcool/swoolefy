@@ -29,12 +29,12 @@ class AsyncTask implements AsyncTaskInterface {
             throw new \Exception("$callable must be an array", 1);
         }
         $callable[0] = str_replace('/', '\\', trim($callable[0],'/'));
-        $fd = Application::$app->fd;
+        $fd = Application::getApp()->fd;
         // 只有在worker进程中可以调用异步任务进程，异步任务进程中不能调用异步进程
         if(self::isWorkerProcess()) {
             // udp没有连接概念，存在client_info
             if(BaseServer::getServiceProtocol() == SWOOLEFY_UDP) {
-                $fd = Application::$app->client_info;
+                $fd = Application::getApp()->client_info;
             }
 
             $task_id = Swfy::getServer()->task(swoole_pack([$callable, $data, $fd]));

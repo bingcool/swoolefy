@@ -11,13 +11,11 @@
 
 namespace Swoolefy\Websocket;
 
-use Swoole\WebSocket\Server as websocket_server;
-use Swoolefy\Core\BaseServer;
-use Swoole\Server as tcp_server;
 use Swoolefy\Core\Swfy;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
-use Swoolefy\Core\Pack;
+use Swoolefy\Core\BaseServer;
+use Swoole\WebSocket\Server as websocket_server;
 
 abstract class WebsocketServer extends BaseServer {
 	/**
@@ -46,12 +44,6 @@ abstract class WebsocketServer extends BaseServer {
 	 * @var null
 	 */
 	public $webserver = null;
-
-	/**
-	 * $pack 封解包对象
-	 * @var null
-	 */
-	public $pack = null;
 
 	/**
 	 * $startctrl
@@ -144,9 +136,13 @@ abstract class WebsocketServer extends BaseServer {
 		 */
 		if(method_exists($this, 'onHandshake')) {
 			$this->webserver->on('handshake', function(Request $request, Response $response) {
-				// 自定义handshake函数
-				static::onHandshake($request, $response);
-			}); 
+				try{
+					// 自定义handshake函数
+					static::onHandshake($request, $response);
+				}catch(\Exception $e) {
+					self::catchException($e);
+				}
+			});
 		} 
 		
 		/**
@@ -218,6 +214,7 @@ abstract class WebsocketServer extends BaseServer {
 		$this->webserver->on('close', function(websocket_server $server, $fd) {
 			try{
 				static::onClose($server, $fd);
+				return true;
 			}catch(\Exception $e) {
 				self::catchException($e);
 			}
@@ -228,7 +225,7 @@ abstract class WebsocketServer extends BaseServer {
 		 * @see https://wiki.swoole.com/wiki/page/397.html
 		 */
 		if((isset(self::$config['accept_http']) && self::$config['accept_http'] == true)) {
-			$this->webserver->on('request',function(Request $request, Response $response) {
+			$this->webserver->on('request', function(Request $request, Response $response) {
 				try{
 					// google浏览器会自动发一次请求/favicon.ico,在这里过滤掉
 					if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
@@ -238,7 +235,7 @@ abstract class WebsocketServer extends BaseServer {
 					return true;
 				}catch(\Exception $e) {
 					// 捕捉异常
-					\Swoolefy\Core\SwoolefyException::appException($e);
+					self::catchException($e);
 				}
 			});
 		}
@@ -247,26 +244,41 @@ abstract class WebsocketServer extends BaseServer {
 		 * 停止worker进程
 		 */
 		$this->webserver->on('WorkerStop', function(websocket_server $server, $worker_id) {
-			// worker停止时的回调处理
-			$this->startCtrl->workerStop($server, $worker_id);
-
+			try{
+				// worker停止时的回调处理
+				$this->startCtrl->workerStop($server, $worker_id);
+			}catch(\Exception $e) {
+				// 捕捉异常
+				self::catchException($e);
+			}
 		});
 
 		/**
 		 * worker进程异常错误回调函数
 		 */
 		$this->webserver->on('WorkerError', function(websocket_server $server, $worker_id, $worker_pid, $exit_code, $signal) {
-			// worker停止的触发函数
-			$this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
+			try{
+				// worker停止的触发函数
+				$this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
+			}catch(\Exception $e) {
+				// 捕捉异常
+				self::catchException($e);
+			}
+			
 		});
 
 		/**
 		 * worker进程退出回调函数，1.9.17+版本
 		 */
-		if(static::compareSwooleVersion()) {
+		if(method_exists($this->webserver, 'WorkerExit')) {
 			$this->webserver->on('WorkerExit', function(websocket_server $server, $worker_id) {
-				// worker退出的触发函数
-				$this->startCtrl->workerExit($server, $worker_id);
+				try{
+					// worker退出的触发函数
+					$this->startCtrl->workerExit($server, $worker_id);
+				}catch(\Exception $e) {
+					// 捕捉异常
+					self::catchException($e);
+				}
 			});
 		}
 

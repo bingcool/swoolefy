@@ -42,8 +42,8 @@ class ServiceDispatch extends AppDispatch {
 		parent::__construct();
 		$this->callable = $callable;
 		$this->params = $params;
-		Application::$app->mixed_params = $params;
-		Application::$app->rpc_pack_header = $rpc_pack_header;
+		Application::getApp()->mixed_params = $params;
+		Application::getApp()->rpc_pack_header = $rpc_pack_header;
 	}
 
 	/**
@@ -54,8 +54,6 @@ class ServiceDispatch extends AppDispatch {
 		list($class, $action) = $this->callable;
 		$class = trim($class, '/');
 		if(!self::$routeCacheFileMap[$class]) {
-			// 类文件不存在
-			$file = $this->checkClass($class);
 			if(!$this->checkClass($class)){
 				// TODO
 				throw new \Exception("when dispatch, $class file is not exist", 1);

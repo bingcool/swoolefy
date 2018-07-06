@@ -33,6 +33,12 @@ class BaseServer {
 	public static $service = null;
 
 	/**
+	 * $isEnableCoroutine 是否启用协程
+	 * @var boolean
+	 */
+	public static $isEnableCoroutine = false;
+
+	/**
 	 * $pack_check_type pack检查的方式
 	 * @var [type]
 	 */
@@ -106,6 +112,8 @@ class BaseServer {
 		self::createTables();
 		// check pack type
 		self::checkPackType();
+		// check coroutine
+		self::enableCoroutine();
 		// record start time
 		self::$_startTime = date('Y-m-d H:i:s',strtotime('now'));
 		
@@ -117,11 +125,11 @@ class BaseServer {
 	 */
 	public static function checkVersion() {
 		if(version_compare(phpversion(), '5.6.0', '<')) {
-			throw new \Exception("php version must be > 5.6.0,we suggest use php7.0+ version", 1);
+			throw new \Exception("php version must be >= 7.0, we suggest use php7.1+ version", 1);
 		}
 
 		if(!extension_loaded('swoole')) {
-			throw new \Exception("you are not install swoole extentions,please install it where version >= 1.9.17 or >=2.0.5 from https://github.com/swoole/swoole-src", 1);
+			throw new \Exception("you are not install swoole extentions,please install it where version >= 1.9.17 or >=4.0.1 from https://github.com/swoole/swoole-src", 1);
 		}
 
 		if(!extension_loaded('swoole_serialize')) {
@@ -518,6 +526,30 @@ class BaseServer {
     		return true;
     	}
     	return false;
+    }
+
+    /**
+     * enableCoroutine 
+     * @return 
+     */
+    public static function enableCoroutine() {
+    	if(version_compare(swoole_version(), '4.0.0', '>')) {
+    		self::$isEnableCoroutine = true;
+    		return;
+    	}else {
+    		// 低于4.0版本不能使用协程
+    		self::$isEnableCoroutine = false;
+    		return;
+    	}
+    	
+    }
+
+    /**
+     * isEnableCoroutine
+     * @return boolean
+     */
+	public static function canEnableCoroutine() {
+		return self::$isEnableCoroutine;
     }
 
     /**
