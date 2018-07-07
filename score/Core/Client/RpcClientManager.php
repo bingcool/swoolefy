@@ -90,7 +90,12 @@ class RpcClientManager {
 			$client_service->setSwooleEnv($this->is_swoole_env);
 
 			$swoole_client = $client_service->connect();
-			self::$client_services[$key] = swoole_pack($client_service);
+			if($this->is_swoole_env) {
+				self::$client_services[$key] = swoole_pack($client_service);
+			}else {
+				self::$client_services[$key] = serialize($client_service);
+			}
+			
 		}
 
 		return $client_service;
@@ -106,7 +111,11 @@ class RpcClientManager {
 			$key = md5($serviceNmae);
 			if(isset(self::$client_services[$key])) {
 				// 深度复制client_service实例
-				$client_service = swoole_unpack(self::$client_services[$key]);
+				if($this->is_swoole_env) {
+					$client_service = swoole_unpack(self::$client_services[$key]);
+				}else {
+					$client_service = unserialize(self::$client_services[$key]);
+				}		
 				$us = strstr(microtime(), ' ', true);
         		$client_id = intval(strval($us * 1000 * 1000) . rand(100, 999));
 				if(!isset(self::$busy_client_services[$client_id])) {
