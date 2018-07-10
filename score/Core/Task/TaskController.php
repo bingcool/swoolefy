@@ -21,12 +21,12 @@ class TaskController extends EventController {
 	 * @see https://wiki.swoole.com/wiki/page/134.html
 	 * @var null
 	 */
-	public $from_worker_id = null;
+	public $from_worker_id;
 
 	/**
 	 * $task_id 任务的ID
 	 * @see  https://wiki.swoole.com/wiki/page/134.html
 	 * @var null
 	 */
-	public $task_id = null;
+	public $task_id;
 }
