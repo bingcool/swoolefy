@@ -58,14 +58,13 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 	 * @return   void
 	 */
 	public function onTask($task_id, $from_worker_id, $data) {
-		list($callable, $extend_data, $request_items) = $data;
+		list($callable, $extend_data, $fd) = $data;
 		list($class, $action) = $callable;
-		$request = (object)$request_items;
 		$taskInstance = new $class;
 		$taskInstance->task_id = $task_id;
 		$taskInstance->from_worker_id = $from_worker_id;
-		$taskInstance->$action($extend_data, $request);
-		unset($callable, $taskInstance, $extend_data, $request);
+		$taskInstance->$action($extend_data);
+		unset($callable, $taskInstance, $extend_data, $fd);
 	}
 
 	/**
