@@ -55,10 +55,17 @@ class WebsocketHander extends Swoole implements HanderInterface {
 			if(is_array($recv) && count($recv) == 3) {
 				list($service, $event, $params) = $recv;
 			}
+
+			if($this->ping($evnet)) {
+				$data = 'pong';
+				Swfy::getServer()->push($this->fd, $data, $opcode = 1, $finish = true);
+				return;
+			}
+
 			if($service && $event) {
 				$callable = [$service, $event];
 			}
-			
+
 		}else {
 			// 任务task进程
 			list($callable, $params) = $recv;
@@ -73,6 +80,19 @@ class WebsocketHander extends Swoole implements HanderInterface {
 		// 必须执行
 		parent::end();
 		return;
+	}
+
+	/**
+	 * ping 
+	 * @param    string   $evnet
+	 * @param    string   $params
+	 * @return   
+	 */
+	public function ping(string $evnet) {
+		if(strtolower($evnet) == 'ping') {
+			return true;
+		}
+		return false;
 	}
 
 	/**
