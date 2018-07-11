@@ -220,7 +220,7 @@ abstract class TcpServer extends BaseServer {
 		 */
 		$this->tcpserver->on('WorkerStop', function(tcp_server $server, $worker_id) {
 			try{
-				// 销毁不完整数据以及
+				// 销毁不完整数据
 				$this->pack->destroy($server, $worker_id);
 				// worker停止时的回调处理
 				$this->startCtrl->workerStop($server, $worker_id);
