@@ -122,6 +122,31 @@ function startServer($server) {
             $rpc->start();
             break;
         }
+        case 'rpc1': {
+            $path = START_DIR_ROOT.'/protocol/rpc1';
+            if(!is_dir($path)) {
+                @mkdir($path, 0777, true);
+            }
+            $config_file = $path.'/config.php';
+            if(!file_exists($config_file)) {
+                copy(SCORE_DIR_ROOT.'/score/Rpc/config.php', $config_file);
+            }
+
+            $event_server_file = $path.'/RpcServer.php';
+            if(!file_exists($event_server_file)) {
+                copy(SCORE_DIR_ROOT.'/score/EventServer/RpcServer.php', $event_server_file);
+            }
+
+            $config = include $config_file;
+
+            if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
+                $config['setting']['daemonize'] = true;
+            }
+
+            $rpc = new \protocol\rpc1\RpcServer($config);
+            $rpc->start();
+            break;
+        }
         case 'udp': {
             $path = START_DIR_ROOT.'/protocol/udp';
             if(!is_dir($path)) {
