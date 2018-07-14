@@ -55,8 +55,8 @@ class WebsocketHander extends Swoole implements HanderInterface {
 			if(is_array($recv) && count($recv) == 3) {
 				list($service, $event, $params) = $recv;
 			}
-
-			if($this->ping($evnet)) {
+			
+			if($this->ping($event)) {
 				$data = 'pong';
 				Swfy::getServer()->push($this->fd, $data, $opcode = 1, $finish = true);
 				return;

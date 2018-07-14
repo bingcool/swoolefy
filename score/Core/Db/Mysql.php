@@ -97,8 +97,8 @@ class Mysql {
 	 * @param  string   $name
 	 * @return mixed
 	 */
-	public function getConfig($name = null) {
-		return Db::getConfig($name = null);
+	public function getConfig(string $name = null) {
+		return Db::getConfig($name);
 	}
 
 	/**
@@ -134,7 +134,7 @@ class Mysql {
 
 		if(!is_object($cacheHandler)) {
 			if(isset($this->cache_driver) && !empty($this->cache_driver)) {
-				if(is_string($this->cache_driver) ) {
+				if(is_string($this->cache_driver)) {
 					$cache_driver = $this->cache_driver;
 					$cache_driver = Application::getApp()->$cache_driver;
 

@@ -1,14 +1,15 @@
 # swoolefy
 swoolefy是一个基于swoole扩展实现的轻量级高性能的常驻内存型的API和Web应用服务框架,高度封装了http，websocket，udp服务器，以及基于tcp实现可扩展的rpc服务，同时支持composer包方式安装部署项目。基于实用，swoolefy抽象Event事件处理类，实现与底层的回调的解耦，支持同步|异步调用，内置view、log、session、mysql、redis、memcached、mongodb等常用组件等。     
-
-目前master分支完全兼容swoole4.x的协程，推荐使用swoole4.x，同时也兼容1.x，2.x的非协程模式。     
+、、、
+目前master分支完全兼容swoole4.x的协程，推荐使用swoole4.x，同时也兼容1.x，2.x的非协程模式。   
+、、、  
 
 ### 实现的功能特性     
 1、轻量级的框架，实现路由与调度，MVC三层，当然也可以配置多层   
 2、支持composer的PSR-4规范和实现自定义注册命名空间，快速部署项目，简单易用      
 3、支持多协议，目前支持http，websocket，tcp，udp，以及基于tcp实现的rpc，开放式的系统接口，可自定义协议数据格式    
 4、抽象Event的事件处理与底层的事件监听解耦，屏蔽不同协议之间的应用差异，大部分代码实现共用   
-5、实现超全局变量，IOC，静态延迟绑定，组件服务常驻内存化，trait的多路复用，钩子事件，单例，工厂模式，注册树模式等   
+5、实现超全局变量，IOC，静态延迟绑定，组件服务常驻内存化，协程对象池,trait的多路复用，钩子事件，单例，工厂模式，注册树模式等   
 6、简单易用的异步务管理TaskManager， 定时器管理TickManager， 内存表管理TableManager， 自定义进程管理ProcessManager，进程池管理PoolsManger，超全局管理         
 7、灵活多层的配置，配置参数即可实现底层已封装的复杂功能              
 8、单实例注册，RPC心跳检查，RPC客户端，应用对象的深度复制，实现对象的常驻内存   
