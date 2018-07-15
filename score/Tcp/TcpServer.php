@@ -11,10 +11,10 @@
 
 namespace Swoolefy\Tcp;
 
-use Swoole\Server as tcp_server;
-use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Pack;
+use Swoolefy\Core\BaseServer;
+use Swoole\Server as tcp_server;
 
 abstract class TcpServer extends BaseServer {
 	/**
@@ -123,7 +123,7 @@ abstract class TcpServer extends BaseServer {
        		Swfy::$config = self::$config;
 
        		// 单例服务处理实例
-       		is_null(self::$service) && self::$service = swoole_pack(self::$config['application_service']::getInstance($config = []));
+       		is_null(self::$service) && self::$service = \Swoole\Serialize::pack(self::$config['application_service']::getInstance($config = []));
 			// 启动的初始化函数
 			$this->startCtrl->workerStart($server, $worker_id);
 			// 延迟绑定
@@ -168,7 +168,7 @@ abstract class TcpServer extends BaseServer {
 		 */
 		$this->tcpserver->on('task', function(tcp_server $server, $task_id, $from_worker_id, $data) {
 			try{
-				$task_data = swoole_unpack($data);
+				$task_data = \Swoole\Serialize::unpack($data);
 				static::onTask($server, $task_id, $from_worker_id, $task_data);
 			}catch(\Exception $e) {
 				self::catchException($e);

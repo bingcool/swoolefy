@@ -123,7 +123,7 @@ abstract class HttpServer extends BaseServer {
        		Swfy::$server = $this->webserver;
        		Swfy::$config = self::$config;
        		// 初始化整个应用对象
-			is_null(self::$App) && self::$App = swoole_pack(self::$config['application_index']::getInstance($config=[]));
+			is_null(self::$App) && self::$App = \Swoole\Serialize::pack(self::$config['application_index']::getInstance($config=[]));
        		// 启动的初始化函数
 			$this->startCtrl->workerStart($server, $worker_id);
 			
@@ -155,7 +155,7 @@ abstract class HttpServer extends BaseServer {
 		 */
 		$this->webserver->on('task', function(http_server $server, $task_id, $from_worker_id, $data) {
 			try{
-				$task_data = swoole_unpack($data);
+				$task_data = \Swoole\Serialize::unpack($data);
 				static::onTask($task_id, $from_worker_id, $task_data);
 			}catch(\Exception $e) {
 				self::catchException($e);

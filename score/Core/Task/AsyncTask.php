@@ -42,7 +42,7 @@ class AsyncTask implements AsyncTaskInterface {
                 $fd = Application::getApp()->request->fd;
             }
 
-            $task_id = Swfy::getServer()->task(swoole_pack([$callable, $data, $fd]));
+            $task_id = Swfy::getServer()->task(\Swoole\Serialize::pack([$callable, $data, $fd]));
             unset($callable, $data, $fd);
             return $task_id;
         }

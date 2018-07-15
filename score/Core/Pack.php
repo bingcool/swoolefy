@@ -309,7 +309,7 @@ class Pack {
             case 3;
             default:
             	// swoole
-            	return swoole_pack($data);  
+            	return \Swoole\Serialize::pack($data);  
         }
 	}
 
@@ -333,7 +333,7 @@ class Pack {
             case 3;
             default:
             	// swoole
-            	return swoole_unpack($data);   
+            	return \Swoole\Serialize::unpack($data);   
         }
     }
 

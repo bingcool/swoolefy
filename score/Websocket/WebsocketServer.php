@@ -119,10 +119,10 @@ abstract class WebsocketServer extends BaseServer {
        		Swfy::$config = self::$config;
        		// 初始化整个应用对象,http请求设置
        		if(isset(self::$config['accept_http']) && self::$config['accept_http'] == true) {
-       			is_null(self::$App) && self::$App = swoole_pack(self::$config['application_index']::getInstance($config=[]));
+       			is_null(self::$App) && self::$App = \Swoole\Serialize::pack(self::$config['application_index']::getInstance($config=[]));
        		}
        		// 单例服务处理实例
-       		is_null(self::$service) && self::$service = swoole_pack(self::$config['application_service']::getInstance($config=[]));
+       		is_null(self::$service) && self::$service = \Swoole\Serialize::pack(self::$config['application_service']::getInstance($config=[]));
 
 			// 启动的初始化函数
 			$this->startCtrl->workerStart($server, $worker_id);
@@ -174,7 +174,7 @@ abstract class WebsocketServer extends BaseServer {
 		 */
 		$this->webserver->on('task', function(websocket_server $server, $task_id, $from_worker_id, $data) {
 			try{
-				$task_data = swoole_unpack($data);
+				$task_data = \Swoole\Serialize::unpack($data);
 				static::onTask($server, $task_id, $from_worker_id, $task_data);
 			}catch(\Exception $e) {
 				self::catchException($e);
