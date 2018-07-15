@@ -91,7 +91,7 @@ class RpcClientManager {
 
 			$swoole_client = $client_service->connect();
 			if($this->is_swoole_env) {
-				self::$client_services[$key] = swoole_pack($client_service);
+				self::$client_services[$key] = \Swoole\Serialize::pack($client_service);
 			}else {
 				self::$client_services[$key] = serialize($client_service);
 			}
@@ -112,7 +112,7 @@ class RpcClientManager {
 			if(isset(self::$client_services[$key])) {
 				// 深度复制client_service实例
 				if($this->is_swoole_env) {
-					$client_service = swoole_unpack(self::$client_services[$key]);
+					$client_service = \Swoole\Serialize::unpack(self::$client_services[$key]);
 				}else {
 					$client_service = unserialize(self::$client_services[$key]);
 				}		

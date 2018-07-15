@@ -673,7 +673,7 @@ class RpcSynclient {
             break;
             case 3;
                 // swoole
-                return swoole_pack($data);
+                return \Swoole\Serialize::pack($data);
             break;
             default:
                 $this->setStatusCode(RpcClientConst::ERROR_CODE_ENPACK);
@@ -703,7 +703,7 @@ class RpcSynclient {
             break;
             case 3;
                 // swoole
-                return swoole_unpack($data);
+                return \Swoole\Serialize::unpack($data);
             break;
             default:
             	$this->setStatusCode(RpcClientConst::ERROR_CODE_DEPACK);

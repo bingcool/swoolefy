@@ -114,7 +114,7 @@ abstract class UdpServer extends BaseServer {
        		Swfy::$config = self::$config;
 
        		// 单例服务处理实例
-       		is_null(self::$service) && self::$service = swoole_pack(self::$config['application_service']::getInstance($config=[]));
+       		is_null(self::$service) && self::$service = \Swoole\Serialize::pack(self::$config['application_service']::getInstance($config=[]));
 			// 启动的初始化函数
 			$this->startCtrl->workerStart($server,$worker_id);
 			// 延迟绑定
@@ -139,7 +139,7 @@ abstract class UdpServer extends BaseServer {
 		 */
 		$this->udpserver->on('task', function(udp_server $server, $task_id, $from_worker_id, $data) {
 			try{
-				$task_data = swoole_unpack($data);
+				$task_data = \Swoole\Serialize::unpack($data);
 				// 延迟绑定
 				static::onTask($server, $task_id, $from_worker_id, $task_data);
 			}catch(\Exception $e) {

@@ -77,10 +77,10 @@ class Tick {
                 list($class, $action) = $func;
                 if($is_sington) {
                     if(self::$_tasks_instances[$timer_id]) {
-                        $tickTaskInstance = swoole_unpack(self::$_tasks_instances[$timer_id]);
+                        $tickTaskInstance = \Swoole\Serialize::unpack(self::$_tasks_instances[$timer_id]);
                     }else {
                         $tickTaskInstance = new $class;
-                        self::$_tasks_instances[$timer_id] = swoole_pack($tickTaskInstance);
+                        self::$_tasks_instances[$timer_id] = \Swoole\Serialize::pack($tickTaskInstance);
                     }
                     if(method_exists("Swoolefy\\Core\\Application", 'setApp')) {
                         Application::setApp($tickTaskInstance);

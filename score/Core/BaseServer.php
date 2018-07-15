@@ -132,10 +132,6 @@ class BaseServer {
 			throw new \Exception("you are not install swoole extentions,please install it where version >= 1.9.17 or >=4.0.1 from https://github.com/swoole/swoole-src", 1);
 		}
 
-		if(!extension_loaded('swoole_serialize')) {
-			throw new \Exception("you are not install swoole_serialize extentions,please install it where from https://github.com/swoole/swoole_serialize", 1);
-		}
-
 		if(!extension_loaded('pcntl')) {
 			throw new \Exception("you are not install pcntl extentions,please install it", 1);
 		}

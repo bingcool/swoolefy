@@ -27,7 +27,7 @@ swoolefy官方QQ群：735672669，欢迎加入！
 #### 安装实际环境(建议)
 1、支持php7.0+       
 2、搭建lnmp环境，建议使用lnmp一健安装包，https://lnmp.org, 建议安装lnmp1.4     
-3、安装php必要的扩展，本框架需要的扩展包括swoole(1.9.17+), [swoole_serialize](https://github.com/swoole/swoole_serialize), inotify, pcntl, posix, zlib, mbstring,可以通过php-m查看是否安装了这些扩展，如果通过lnmp1.4一健安装包安装的，已经默认安装好这四个pcntl, posix, zlib, mbstring扩展的，只需要在安装swoole和swoole_serialize, inotify即可，具体安装过程参考官方文档
+3、安装php必要的扩展，本框架需要的扩展包括swoole(1.9.17+), [swoole_serialize](https://github.com/swoole/swoole_serialize), inotify, pcntl, posix, zlib, mbstring,可以通过php-m查看是否安装了这些扩展，如果通过lnmp1.4一健安装包安装的，已经默认安装好这四个pcntl, posix, zlib, mbstring扩展的，只需要在安装swoole，inotify即可，具体安装过程参考官方文档
     
 ##### docker容器已经配置好的php环境(开发测试)
 为了方便开发和测试，我打包了一个基于alpine基础镜像搭建的php7.1环境容器bingcool/php2swoole:2.5，这个image已经非常小了，已经安装所有的必须扩展，其中swoole是1.10.4版本，可以通过php --ri swoole 查看信息。     
