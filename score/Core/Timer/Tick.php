@@ -14,6 +14,7 @@ namespace Swoolefy\Core\Timer;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Table\TableManager;
+use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class Tick {
 	/**
@@ -83,6 +84,8 @@ class Tick {
                         self::$_tasks_instances[$timer_id] = \Swoole\Serialize::pack($tickTaskInstance);
                     }
                     if(method_exists("Swoolefy\\Core\\Application", 'setApp')) {
+                        $cid = CoroutineManager::getInstance()->getCoroutineId();
+                        $tickTaskInstance->coroutine_id = $cid;
                         Application::setApp($tickTaskInstance);
                     }
                 }else {
