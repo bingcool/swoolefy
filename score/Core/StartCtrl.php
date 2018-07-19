@@ -36,7 +36,7 @@ class StartCtrl implements \Swoolefy\Core\StartInterface {
 	 * @param    $server
 	 * @return          
 	 */
-	public function managerStart($server){
+	public function managerStart($server) {
 		static::onManagerStart($server);
 	}
 
@@ -45,7 +45,7 @@ class StartCtrl implements \Swoolefy\Core\StartInterface {
 	 * @param    $server
 	 * @return   
 	 */
-	public function workerStart($server, $worker_id){
+	public function workerStart($server, $worker_id) {
 		static::onWorkerStart($server, $worker_id);
 	}
 
@@ -55,7 +55,8 @@ class StartCtrl implements \Swoolefy\Core\StartInterface {
 	 * @param    $worker_id
 	 * @return             
 	 */
-	public function workerStop($server, $worker_id){
+	public function workerStop($server, $worker_id) {
+		\Swoolefy\Core\Pools\PoolsManager::getInstance()->killProcessInWorker();
 		static::onWorkerStop($server, $worker_id);
 	}
 

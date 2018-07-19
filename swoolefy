@@ -7,6 +7,9 @@ if(is_dir(__DIR__.'/vendor/bingcool/swoolefy')) {
     $SCORE_DIR = __DIR__;
 }
 
+// 设置成中国时区
+date_default_timezone_set('PRC');
+
 // 定义一个全局常量
 defined('SCORE_DIR_ROOT') or define('SCORE_DIR_ROOT', $SCORE_DIR);
 // 启动文件目录
@@ -268,23 +271,25 @@ function stopServer($server) {
         return;
     }
     // 发送信号，终止进程
-    swoole_process::kill($pid,SIGTERM);
+    swoole_process::kill($pid, SIGTERM);
     // 回收master创建的子进程（manager,worker,taskworker）
     swoole_process::wait();
-    //等待2秒
+
+    // 如果'reload_async' => true,，则默认workerStop有30s的过度期停顿这个时间稍微会比较长，设置成60过期
     $nowtime = time();
+    echo ".......Stopping begin at ".date("Y-m-d H:i:s").", please wait a moment, 最多30s，因为wokrer设置reload_async=true,默认有一个30s的过渡期..........\n";
     while(true){
-        usleep(1000);
-        if(!swoole_process::kill($pid,0)){
+        sleep(1);
+        if(!swoole_process::kill($pid, 0)) {
             echo "------------stop info------------\n";
-            echo "successful: server stop at ".date("Y-m-d H:i:s")."\n";
+            echo "Stop Server Successful: server stop at ".date("Y-m-d H:i:s")."\n";
             echo "\n";
             @unlink($pid_file);
             break;
         }else {
-            if(time() - $nowtime > 2){
+            if(time() - $nowtime > 60){
                 echo "-----------stop info------------\n";
-                echo "error: stop server failed. please try again \n";
+                echo "Please use 'ps -ef | grep php' checkout swoole weather stop \n";
                 echo "\n";
                 break;
             }

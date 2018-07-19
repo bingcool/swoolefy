@@ -340,7 +340,7 @@ class RpcSynclient {
         if($this->isSwooleEnv() && $this->isSwooleKeep()) {
             swoole_timer_tick($time, function($timer_id, $header) use ($callable) {
                 $this->waitCall('Swoolefy\\Core\\BService::ping', 'ping', $header);
-                list($header, $data) = $this->waitRecv(1);
+                list($header, $data) = $this->waitRecv(3);
                 if($data && $callable instanceof \Closure) {
                     return call_user_func_array($callable->bindTo($this, __CLASS__), [$data, $timer_id]);
                 }
