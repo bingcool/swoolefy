@@ -88,6 +88,12 @@ class Mysql {
 	public $query = null;
 
 	/**
+	 * $corMysql mysql的协程客户端
+	 * @var [type]
+	 */
+	public $CMysql;
+
+	/**
 	 * __construct 初始化函数
 	 */
 	public function __construct() {}
@@ -204,6 +210,20 @@ class Mysql {
 	 */
 	public function connect($config = [], $name = false) {
 		return Db::connect($config, $name);
+	}
+
+	/**
+	 * CorMysql 获取mysql协程客户端
+	 * @Author   huangzengbing
+	 * @DateTime 2018-07-26
+	 * @param    {String}
+	 */
+	public function selectMysql(array $extension = []) {
+		if(is_object($this->CMysql)) {
+			return $this->CMysql;
+		}
+		$this->CMysql = new MysqlCoroutine($this->getConfig(), $extension);
+		return $this->CMysql;
 	}
 
 	/**
