@@ -11,19 +11,32 @@
 
 namespace Swoolefy\Core\Db;
 
-use think\db\Query;
-use Swoolefy\Core\Application;
-
 class MysqlCoroutine {
 
+	/**
+	 * $master_mysql_config 主服务器的配置
+	 * @var array
+	 */
 	public $master_mysql_config = [];
 	public $master_swoole_mysql;
 
+	/**
+	 * $slave_mysql_config 从服务器的配置
+	 * @var array
+	 */
 	public $slave_mysql_config = [];
 	public $slave_swoole_mysql = [];
 
+	/**
+	 * $serverInfo mysql服务器的信息
+	 * @var array
+	 */
 	public $serverInfo = []; 
 
+	/**
+	 * $config 配置
+	 * @var [type]
+	 */
 	public $config = [
 	    'host' => '',
 	    'user' => '',
@@ -36,10 +49,11 @@ class MysqlCoroutine {
 	    'fetch_more' => true, //开启fetch模式, 可与pdo一样使用fetch/fetchAll逐行或获取全部结果集(4.0版本以上)
 	];
 
+	/**
+	 * $deploy 是否开启开启分布式，开启分布式则会自动读写分离
+	 * @var boolean
+	 */
 	public $deploy = false;
-
-	public $rw_separate = false;
-
 
 	public function __construct(array $config = [], array $extension = []) {
 		if($config) {
@@ -83,29 +97,32 @@ class MysqlCoroutine {
 		}
 	}
 
-	/**execute
+	/**execute 执行insert,update,delete操作
 	 * execute 
 	 * @param    string        $sql
 	 * @param    array         $bingParams
 	 * @return   void
 	 */
-	public function execute(string $sql, array $bingParams = []) {
-		$keys = array_keys($bingParams);
+	public function execute(string $sql, array $bindParams = [], int $timeout = 10) {
+		$keys = array_keys($bindParams);
 		// 不是索引数组
 		if(is_string($keys[0])) {
 			$params = [];
 			foreach($keys as $p=>$key) {
 				$sql = str_replace(':'.$key, '?', $sql);
-				$params[] = $bingParams[$key];
+				array_push($params, $bindParams[$key]);
 			}
-			$bingParams = $params;
-			unset($params);
 		}
-
+		if(stripos('=?', $sql) || stripos('= ?', $sql)) {
+			$bindParams = $params;
+			unset($params);
+		}else {
+			$bindParams = [];
+		}
+		
 		$res = $this->getMaster()->prepare($sql);
-
 		if($res) {
-			return $res->execute($bingParams, 10);
+			return $res->execute($bindParams, $timeout);
 		}else {
 			$errno = $this->getMaster()->errno;
 			$error = $this->getMaster()->error;
@@ -114,11 +131,11 @@ class MysqlCoroutine {
 	}
 
 	/**
-	 * query 从服务器查询
+	 * query 从服务器查询，执行select操作
 	 * @param    string     $sql
 	 * @return   array
 	 */
-	public function query(string $sql, int $slave_num = null, $timeout = 10) {
+	public function query(string $sql, int $slave_num = null, int $timeout = 10) {
 		$result = $this->getSlave($slave_num)->query($sql, $timeout);
 		if(is_array($result)) {
 			return $result;
@@ -133,7 +150,7 @@ class MysqlCoroutine {
 	public function getMaster() {
 		if(is_object($this->master_swoole_mysql)) {
 			return $this->master_swoole_mysql;
-		}else {
+		}else {	
 			foreach($this->master_mysql_config as $k=>$config) {
 				$swoole_mysql = new \Swoole\Coroutine\MySQL();
 				$res = $swoole_mysql->connect($config);
@@ -142,23 +159,12 @@ class MysqlCoroutine {
 					$res = $swoole_mysql->connect($config);
 					// 如果非分布式,那么读写都是同一个对象
 					if($res) {
-						if(!$this->deploy) {
-							$this->master_swoole_mysql = $swoole_mysql;
-							array_push($this->slave_swoole_mysql, $swoole_mysql);
-						}else {
-							$this->master_swoole_mysql = $swoole_mysql;
-						}
+						$this->master_swoole_mysql = $swoole_mysql;
 					}else {
 						throw new \Exception("master_swoole_mysql connect failed", 1);
-						
 					}
 				}else {
-					if(!$this->deploy) {
-						$this->master_swoole_mysql = $swoole_mysql;
-						array_push($this->slave_swoole_mysql, $swoole_mysql);
-					}else {
-						$this->master_swoole_mysql = $swoole_mysql;
-					}
+					$this->master_swoole_mysql = $swoole_mysql;
 				}
 			}	
 		}
@@ -172,10 +178,14 @@ class MysqlCoroutine {
 	 * @return   swoole_mysql
 	 */
 	public function getSlave(int $num = null) {
+		// 非分布式，则主从一致
+		if(!$this->deploy) {
+			return $this->master_swoole_mysql;
+		}
+		// 分布式
 		if(isset($this->slave_swoole_mysql[$num])) {
 			return $this->slave_swoole_mysql[$num];
 		}else {
-			// 分布式
 			// 随机获取一个从服务器
 			$num = array_rand($this->slave_mysql_config);
 			// 判断是否已建立实例对象
@@ -203,6 +213,14 @@ class MysqlCoroutine {
 				return $this->slave_swoole_mysql[$num];
 			} 
 		}
+	}
+
+	/**
+	 * getServerInfo 获取所有mysql服务器信息
+	 * @return array
+	 */
+	public function getServerInfo() {
+		return $this->serverInfo;
 	}
 
 	/**
@@ -258,44 +276,8 @@ class MysqlCoroutine {
 			$serverInfo[$k]['database'] = $databases[0];
 			$serverInfo[$k]['port'] = $ports[0];
 		}
-
+		$this->serverInfo = $serverInfo;
 		return $serverInfo;
 	}
 
-	/**
-     * 是否断线
-     * @access protected
-     * @param \PDOException|\Exception  $e 异常对象
-     * @return bool
-     */
-    protected function isBreak($e)
-    {
-        if (!$this->config['break_reconnect']) {
-            return false;
-        }
-
-        $info = [
-            'server has gone away',
-            'no connection to the server',
-            'Lost connection',
-            'is dead or not enabled',
-            'Error while sending',
-            'decryption failed or bad record mac',
-            'server closed the connection unexpectedly',
-            'SSL connection has been closed unexpectedly',
-            'Error writing data to the connection',
-            'Resource deadlock avoided',
-        ];
-
-        $error = $e->getMessage();
-
-        foreach ($info as $msg) {
-            if (false !== stripos($error, $msg)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-	
 }
