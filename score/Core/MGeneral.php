@@ -145,39 +145,10 @@ class MGeneral extends \Swoolefy\Core\AppObject {
      * @param    int      $code
      * @return   mixed
      */
-    public static function _die($html='',$msg='') {
+    public static function _die($html='', $msg='') {
         // 直接结束请求
         Application::getApp()->response->end($html);
         throw new \Exception($msg);
-    }
-
-    /**
-     * xhprof 性能分析函数
-     * @param   boolean  $force  是否强制输出
-     * @return  boolean
-     */
-    public static function xhprof($force=false) {
-        $host = Application::getApp()->request->server['HTTP_HOST'];
-
-        if(SW_DEBUG) {
-            $xhprof_data = xhprof_disable();
-            include_once ROOT_PATH.'/xhprof/xhprof_lib/utils/xhprof_lib.php';
-            include_once ROOT_PATH.'/xhprof/xhprof_lib/utils/xhprof_runs.php';
-            $xhprof_runs = new \XHProfRuns_Default();
-            $run_id = $xhprof_runs->save_run($xhprof_data, "xhprof_test");
-            $url= "http://{$host}/xhprof_html/index.php?run={$run_id}&source=xhprof_test";
-            dump($url);
-        }elseif($force) {
-            // 是否强制打印调试,在预发布和正式环境
-            $xhprof_data = xhprof_disable();
-            include_once ROOT_PATH.'/xhprof_lib/utils/xhprof_lib.php';
-            include_once ROOT_PATH.'/xhprof_lib/utils/xhprof_runs.php';
-            $xhprof_runs = new \XHProfRuns_Default();
-            $run_id = $xhprof_runs->save_run($xhprof_data, "xhprof_test");
-            $url= "http://{$host}/xhprof_html/index.php?run={$run_id}&source=xhprof_test";
-            dump($url);
-        }
-        return false; 
     }
 
     /**
