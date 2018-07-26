@@ -119,15 +119,36 @@ class MysqlCoroutine {
 		}else {
 			$bindParams = [];
 		}
-		
-		$res = $this->getMaster()->prepare($sql);
-		if($res) {
-			return $res->execute($bindParams, $timeout);
+
+		$master = $this->getMaster();
+
+		if($master->connected) {
+			$res = $master->prepare($sql);
+			if($res) {
+				return $res->execute($bindParams, $timeout);
+			}else {
+				$errno = $master->errno;
+				$error = $master->error;
+				throw new \Exception("errno:{$errno},{$error}", 1);
+			}
 		}else {
-			$errno = $this->getMaster()->errno;
-			$error = $this->getMaster()->error;
-			throw new \Exception("errno:{$errno},{$error}", 1);
+			// 断线重连
+			$configInfo = $master->configInfo;
+			$isConnect = $master->connect($configInfo);
+			if($isConnect) {
+				$res = $master->prepare($sql);
+				if($res) {
+					return $res->execute($bindParams, $timeout);
+				}else {
+					$errno = $master->errno;
+					$error = $master->error;
+					throw new \Exception("errno:{$errno},{$error}", 1);
+				}
+			}else {
+				throw new \Exception("master mysql:{$configInfo['host']}:{$configInfo['port']} connect is break,", 1);
+			}
 		}
+		
 	}
 
 	/**
@@ -136,11 +157,28 @@ class MysqlCoroutine {
 	 * @return   array
 	 */
 	public function query(string $sql, int $slave_num = null, int $timeout = 10) {
-		$result = $this->getSlave($slave_num)->query($sql, $timeout);
-		if(is_array($result)) {
-			return $result;
+		$slave = $this->getSlave($slave_num);
+		if($slave->connected) {
+			$result = $slave->query($sql, $timeout);
+			if(is_array($result)) {
+				return $result;
+			}
+			return null;
+		}else {
+			// 断线重连
+			$configInfo = $slave->configInfo;
+			$isConnect = $slave->connect($configInfo);
+			if($isConnect) {
+				$result = $slave->query($sql, $timeout);
+				if(is_array($result)) {
+					return $result;
+				}
+				return null;
+			}else {
+				throw new \Exception("slave mysql:{$configInfo['host']}:{$configInfo['port']} connect is break,", 1);
+			}
 		}
-		return null;
+		
 	}
 
 	/**
@@ -153,12 +191,13 @@ class MysqlCoroutine {
 		}else {	
 			foreach($this->master_mysql_config as $k=>$config) {
 				$swoole_mysql = new \Swoole\Coroutine\MySQL();
-				$res = $swoole_mysql->connect($config);
-				if($res == false) {
+				$swoole_mysql->configInfo = $config;
+				$isConnect = $swoole_mysql->connect($config);
+				if($isConnect == false) {
 					// 重连一次
-					$res = $swoole_mysql->connect($config);
+					$isConnect = $swoole_mysql->connect($config);
 					// 如果非分布式,那么读写都是同一个对象
-					if($res) {
+					if($isConnect) {
 						$this->master_swoole_mysql = $swoole_mysql;
 					}else {
 						throw new \Exception("master_swoole_mysql connect failed", 1);
@@ -196,10 +235,11 @@ class MysqlCoroutine {
 				$config = $this->slave_mysql_config[$num];
 
 				$swoole_mysql = new \Swoole\Coroutine\MySQL();
-				$res = $swoole_mysql->connect($config);
-				if($res == false) {
-					$res = $swoole_mysql->connect($config);
-					if($res) {
+				$swoole_mysql->configInfo = $config;
+				$isConnect = $swoole_mysql->connect($config);
+				if($isConnect == false) {
+					$isConnect = $swoole_mysql->connect($config);
+					if($isConnect) {
 						// 分布式
 						$this->slave_swoole_mysql[$num] = $swoole_mysql;
 					}else {
