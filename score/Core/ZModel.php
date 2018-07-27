@@ -25,25 +25,25 @@ class ZModel {
 	 * @param   string  $class  类命名空间
 	 * @return  object 
 	 */
-	public static function getInstance(string $class = '') {
+	public static function getInstance(string $class = '', ...$args) {
 		$cid = CoroutineManager::getInstance()->getCoroutineId();
 		$class = str_replace('/','\\', $class);
 		$class = trim($class,'\\');
 		if(isset(static::$_model_instances[$cid][$class]) && is_object(static::$_model_instances[$cid][$class])) {
             return static::$_model_instances[$cid][$class];
         }
-		static::$_model_instances[$cid][$class] = new $class();
+		static::$_model_instances[$cid][$class] = new $class(...$args);
         return static::$_model_instances[$cid][$class];
 	}
 
 	/**
-	 * removeInstance 删除某个协程下的model实例
+	 * removeInstance 删除某个协程下的所有创建的model实例
 	 * @return boolean
 	 */
 	public static function removeInstance() {
 		$cid = CoroutineManager::getInstance()->getCoroutineId();
 		if(isset(static::$_model_instances[$cid])) {
-			return static::$_model_instances[$cid];
+			unset(static::$_model_instances[$cid]);
 		}
 		return true;
 	}
