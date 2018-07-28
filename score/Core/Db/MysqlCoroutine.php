@@ -218,8 +218,8 @@ class MysqlCoroutine {
 	 */
 	public function getSlave(int $num = null) {
 		// 非分布式，则主从一致
-		if(!$this->deploy) {
-			return $this->master_swoole_mysql;
+		if(!$this->deploy || empty($this->slave_mysql_config)) {
+			return $this->getMaster();
 		}
 		// 分布式
 		if(isset($this->slave_swoole_mysql[$num])) {
@@ -310,11 +310,11 @@ class MysqlCoroutine {
 		}else {
 			// 单机架构
 			$k = 0;
-			$serverInfo[$k]['host'] = $hosts[0];
-			$serverInfo[$k]['user'] = $users[0];
-			$serverInfo[$k]['password'] = $passwords[0];
-			$serverInfo[$k]['database'] = $databases[0];
-			$serverInfo[$k]['port'] = $ports[0];
+			$serverInfo[$k]['host'] = $hosts[$k];
+			$serverInfo[$k]['user'] = $users[$k];
+			$serverInfo[$k]['password'] = $passwords[$k];
+			$serverInfo[$k]['database'] = $databases[$k];
+			$serverInfo[$k]['port'] = $ports[$k];
 		}
 		$this->serverInfo = $serverInfo;
 		return $serverInfo;
