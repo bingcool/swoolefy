@@ -12,10 +12,11 @@ swoolefy是一个基于swoole扩展实现的轻量级高性能的常驻内存型
 6、简单易用的异步务管理TaskManager， 定时器管理TickManager， 内存表管理TableManager， 自定义进程管理ProcessManager，进程池管理PoolsManger，超全局管理         
 7、灵活多层的配置，配置参数即可实现底层已封装的复杂功能              
 8、单实例注册，RPC心跳检查，RPC客户端，应用对象的深度复制，实现对象的常驻内存   
-9、封装View，Log，Mysql，Redis，Mongodb，Swiftmail，Session等常用组件，其他组件根据业务按照约定即可封装成组件              
-10、实现异步半阻塞与全异步非阻塞，EventHander与底层解耦           
-11、基于inotify实现自动监控swoole服务的文件变动，实现worker自动reload，智能邮件通知    
-12、命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架           
+9、封装View，Log，Mysql，Redis，Mongodb，Swiftmail，Session等常用组件，其他组件根据业务按照约定即可封装成组件                  
+10、实现异步半阻塞与全异步非阻塞，EventHander与底层解耦       
+11、支持swoole4.x的原生协程，高度封装mysql,redis协程组件，简单易用。    
+12、基于inotify实现自动监控swoole服务的文件变动，实现worker自动reload，智能邮件通知    
+13、命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架           
 
 ### 开发文档手册
 [开发文档](https://www.kancloud.cn/bingcoolhuang/php-swoole-swoolefy/587501)     
