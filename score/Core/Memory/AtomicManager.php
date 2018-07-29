@@ -18,6 +18,11 @@ class AtomicManager {
 	private $atomicList = [];
     private $atomicListForLong = [];
 
+    /**
+     * addAtomic 
+     * @param string      $name
+     * @param int|integer $int
+     */
     public function addAtomic(string $name, int $int = 0) {
         if(!isset($this->atomicList[$name])){
             $atomic = new \Swoole\Atomic($int);
@@ -25,6 +30,11 @@ class AtomicManager {
         }
     }
 
+    /**
+     * addAtomicLong 
+     * @param string      $name
+     * @param int|integer $int
+     */
     public function addAtomicLong(string $name, int $int = 0) {
         if(!isset($this->atomicListForLong[$name])){
             $atomic = new \Swoole\Atomic\Long($int);
@@ -32,6 +42,11 @@ class AtomicManager {
         }
     }
 
+    /**
+     * getAtomic 
+     * @param  string $name
+     * @return int
+     */
     public function getAtomic(string $name) {
         if(isset($this->atomicList[$name])){
             return $this->atomicList[$name];
@@ -40,6 +55,11 @@ class AtomicManager {
         }
     }
 
+    /**
+     * getAtomicLong
+     * @param  string $name
+     * @return long int
+     */
     public function getAtomicLong(string $name) {
         if(!isset($this->atomicListForLong[$name])){
             return $this->atomicListForLong[$name];
