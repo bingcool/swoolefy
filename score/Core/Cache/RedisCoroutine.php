@@ -96,7 +96,7 @@ class RedisCoroutine {
 	 * setConfig 初始化设置,在配置func中设置该函数回调
 	 * @param array
 	 */
-	public function setConfig(...$args) {
+	public function setConfig() {
 		$serverInfo = $this->parseConfig();
 		foreach($serverInfo as $k=>$config) {
 			// 主master
@@ -261,9 +261,9 @@ class RedisCoroutine {
 	 * @param  mixed   $args
 	 * @return mixed
 	 */
-	public function __call($method, $args) {
+	public function __call(string $method, array $args) {
 		$redis = $this->getMaster();
-		return call_user_func_array([$redis, $method], $args);
+		return $redis->$method(...$args);
 	}
 
 }

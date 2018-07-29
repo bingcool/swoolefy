@@ -124,6 +124,19 @@ trait ComponentTrait {
 		}
 		
         $object = $reflection->newInstanceArgs($dependencies);
+
+        // 回调必须设置在配置的最后
+        if(isset($defination[SWOOLEFY_COM_FUNC])) {
+        	$keys = array_keys($defination);
+        	if(end($keys) != SWOOLEFY_COM_FUNC) {
+        		$func = $defination[SWOOLEFY_COM_FUNC];
+        		unset($defination[SWOOLEFY_COM_FUNC]);
+        		// 设置在数组末尾
+        		$defination[SWOOLEFY_COM_FUNC] = $func;
+        	}
+        	unset($keys);	
+        }
+
         foreach ($defination as $name => $value) {
         	if($name == SWOOLEFY_COM_IS_DELAY) {
         		continue;
