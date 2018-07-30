@@ -66,6 +66,5 @@ class AtomicManager {
         }else{
             return null;
         }
-    }
- 
+    } 
 }
