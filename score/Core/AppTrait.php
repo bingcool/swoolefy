@@ -126,12 +126,12 @@ trait AppTrait {
     }
 
     /**
-     * getRequestParam 
+     * getRequestParam  获取请求参数，包括get,post
      * @param    string   $key
      * @param    string   $mothod
      * @return   mxixed
      */
-    public function getRequestParam(string $name = null) {
+    public function getRequestParams(string $name = null) {
     	$mothod = strtolower($this->getMethod());
     	switch($mothod) {
     		case 'get' : 
@@ -158,17 +158,60 @@ trait AppTrait {
     }
 
     /**
+     * getQueryParams 获取get参数
+     * @param  string|null $name
+     * @return string
+     */
+    public function getQueryParams(string $name = null) {
+    	$input = $this->request->get;
+    	if($name) {
+    		$value = (isset($input[$name]) && !empty($input[$name])) ? $input[$name] : null;
+    	}else {
+    		$value = isset($input) ? $input : [];
+    		
+    	}
+    	return $value;
+
+    }
+
+    /**
+     * getPostParmams 获取Post参数
+     * @param  string|null $name
+     * @return mixed
+     */
+    public function getPostParmams(string $name = null) {
+    	$input = $this->request->post;
+    	if($name) {
+    		$value = (isset($input[$name]) && !empty($input[$name])) ? $input[$name] : null;
+    	}else {
+    		$value = isset($input) ? $input : [];
+    		
+    	}
+    	return $value;
+    }
+
+    /**
      * getCookieParam 
      * @param    string|null   $name
      * @return   mixed
      */
-    public function getCookieParam(string $name = null) {
+    public function getCookieParams(string $name = null) {
+    	$cookies = $this->request->cookie;
     	if($name) {
-    		$value = isset($this->request->cookie[$name]) ? $this->request->cookie[$name] : null;
-    		return $value;	
+    		$value = isset($cookies[$name]) ? $cookies[$name] : null;
+    	}else {
+    		$value = isset($cookies) ? $cookies : [];
+    		
     	}
+    	return $value;
+    }
 
-    	return $this->request->cookie;
+    /**
+     * getData 获取完整的原始Http请求报文,包括Http Header和Http Body
+     * @return string
+     */
+    public function getData() {
+    	return $this->request->getData();
     }
 
     /**
@@ -176,7 +219,7 @@ trait AppTrait {
      * @param    string|null   $name
      * @return   mixed
      */
-    public function getServerParam(string $name = null) {
+    public function getServerParams(string $name = null) {
     	if($name) {
     		$value = isset($this->request->server[$name]) ? $this->request->server[$name] : null;
     		return $value;	
@@ -190,7 +233,7 @@ trait AppTrait {
      * @param    string|null   $name
      * @return   mixed
      */
-    public function getHeaderParam(string $name = null) {
+    public function getHeaderParams(string $name = null) {
     	if($name) {
     		$value = isset($this->request->header[$name]) ? $this->request->header[$name] : null;
     		return $value;
@@ -279,7 +322,7 @@ trait AppTrait {
 	 * @param  boolean $ssl
 	 * @return   void   
 	 */
-	public function rememberUrl(string $name = null, string $url=null, bool $ssl=false) {
+	public function rememberUrl(string $name = null, string $url = null, bool $ssl = false) {
 		if($url && $name) {
 			$this->previousUrl[$name] = $url;
 		}else {
@@ -483,15 +526,14 @@ trait AppTrait {
 	 * @param    int     $code default 301
 	 * @return   void
 	 */
-	public function redirect(string $url, array $params = [], int $code=301) {
+	public function redirect(string $url, array $params = [], int $code = 301) {
 		$query_string = '';
 		trim($url);
 		if(strpos($url, 'http') === false || strpos($url, 'https') === false) {
 			if(strpos($url, '/') != 0) {
 				$url = '/'.$url;
 			}
-		}
-		
+		}		
 		if($params) {
 			if(strpos($url,'?') > 0) {
 				foreach($params as $name=>$value) {
@@ -506,9 +548,17 @@ trait AppTrait {
 				$query_string = rtrim($query_string,'&');
 			}
 		}
-		$this->status($code);
-		$this->response->header('Location', $url.$query_string);
-		return;
+		// 发送Http跳转,调用此方法会自动end发送并结束响应,2.2.0+版本支持
+		if(version_compare(swoole_version(), '2.2.0', '>')) {
+			$this->response->redirect($url.$query_string, $code);
+			return;
+		}else {
+			$this->status($code);
+			$this->response->header('Location', $url.$query_string);
+			$this->response->end();
+			return;
+		}
+		
 	}
 
 	/**
