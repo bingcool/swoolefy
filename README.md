@@ -11,11 +11,11 @@ swoolefy是一个基于swoole扩展实现的轻量级高性能的常驻内存型
 5、实现超全局变量，IOC，静态延迟绑定，组件服务常驻内存化，协程对象池，trait的多路复用，钩子事件，单例，工厂模式，注册树模式等   
 6、简单易用的异步务管理TaskManager， 定时器管理TickManager， 内存表管理TableManager， 自定义进程管理ProcessManager，进程池管理PoolsManger，超全局管理                    
 7、支持rpc服务单实例注册，实现RPC心跳检查，RPC客户端，封包解包    
-9、封装View，Log，Mysql，Redis，Mongodb，Swiftmail，Session等常用组件，其他组件根据业务按照约定即可封装成组件                  
-10、实现异步半阻塞与全异步非阻塞，协程与非协程，EventHander与底层解耦，注册应用实例      
-11、支持swoole4.x的原生协程，高度封装mysql,redis协程组件，简单易用。    
-12、基于inotify实现自动监控swoole服务的文件变动，实现worker自动reload，智能邮件通知    
-13、命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架           
+8、封装View，Log，Mysql，Redis，Mongodb，Swiftmail，Session等常用组件，其他组件根据业务按照约定即可封装成组件                  
+9、实现异步半阻塞与全异步非阻塞，协程与非协程，EventHander与底层解耦，注册应用实例      
+10、支持swoole4.x的原生协程，高度封装mysql,redis协程组件，简单易用。    
+11、基于inotify实现自动监控swoole服务的文件变动，实现worker自动reload，智能邮件通知    
+12、命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架           
 
 ### 开发文档手册
 [开发文档](https://www.kancloud.cn/bingcoolhuang/php-swoole-swoolefy/587501)     
