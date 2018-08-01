@@ -96,10 +96,14 @@ abstract class AbstractProcessPools {
 
     /**
      * getArgs 获取变量参数
+     * @param  boolean  $all true 返回所有的变量| false 只返回外部传入变量
      * @return mixed
      */
-    public function getArgs() {
-        return $this->args;
+    public function getArgs(bool $all = false) {
+        if($all) {
+            return $this->args;
+        }
+        return end($this->args);
     }
 
     /**

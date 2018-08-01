@@ -27,9 +27,11 @@ defined('SWOOLEFY_UDP') or define('SWOOLEFY_UDP', 'udp');
 defined('SWOOLEFY_COM_IS_DELAY') or define('SWOOLEFY_COM_IS_DELAY', 'is_delay');
 defined('SWOOLEFY_COM_IS_DESTROY') or define('SWOOLEFY_COM_IS_DESTROY', 'is_destroy');
 defined('SWOOLEFY_COM_FUNC') or define('SWOOLEFY_COM_FUNC', 'func');
+defined('SWOOLEFY_ENABLE_POOLS') or define('SWOOLEFY_ENABLE_POOLS', 'enable_pools');
+defined('SWOOLEFY_POOLS_NUM') or define('SWOOLEFY_POOLS_NUM', 'pools_num');
 
 // 定义版本
-defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '4.0.1');
+defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '4.0.2');
 
 class MPHP {
 

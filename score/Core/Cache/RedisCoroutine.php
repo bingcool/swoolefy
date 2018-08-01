@@ -85,11 +85,14 @@ class RedisCoroutine {
 	 * @param string|null  $password
 	 * @param bool|boolean $is_serialize
 	 */
-	public function __construct($host = null, $port = null, string $password = null, bool $is_serialize = false) {
+	public function __construct($host = null, $port = null, string $password = null, int $selectdb = null, bool $deploy = false, bool $is_serialize = false) {
 		$host && $this->host  = $host;
 		$port && $this->port = $port;
 		$password && $this->password = $password;
+		$selectdb && $this->selectdb = $selectdb;
+		$deploy && $this->deploy = $deploy;
 		$is_serialize && $this->is_serialize;
+		$host && $this->setConfig();
 	}
 
 	/**
@@ -111,6 +114,13 @@ class RedisCoroutine {
 			}
 		}
 		return $serverInfo;
+	}
+
+	/**
+	 * setSelectDb 
+	 */
+	public function selectDb(int $db) {
+		$this->selectdb = $db;
 	}
 
 	/**

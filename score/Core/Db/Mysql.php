@@ -97,7 +97,15 @@ class Mysql {
 	/**
 	 * __construct 初始化函数
 	 */
-	public function __construct() {}
+	public function __construct(array $config = []) {
+		if($config) {
+			$db_config = $this->getConfig();
+			if(empty($db_config['type']) && empty($db_config['hostname'])) {
+				$this->config = array_merge($this->default_config, $this->config, $config);
+				Db::setConfig($this->config);
+			}
+		}
+	}
 
 	/**
 	 * getConfig 获取某个配置项
@@ -112,11 +120,14 @@ class Mysql {
 	 * setConfig 设置配置项
 	 * @param array $config
 	 */
-	public function setConfig() {
+	public function setConfig(array $config = []) {
+		if($config) {
+			$this->config = array_merge($this->config, $config);
+		}
 		$db_config = $this->getConfig();
 		if(empty($db_config['type']) && empty($db_config['hostname'])) {
-			$config = array_merge($this->default_config, $this->config);
-			Db::setConfig($config);
+			$this->config = array_merge($this->default_config, $this->config);
+			Db::setConfig($this->config);
 		}
 	}
 

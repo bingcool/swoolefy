@@ -22,6 +22,12 @@ trait ComponentTrait {
 	protected $container = [];
 
 	/**
+	 * $pools_component 需要创建进程池的组件，一般是mysql，或者redis
+	 * @var array
+	 */
+	protected $component_pools = [];
+
+	/**
 	 * creatObject 创建组件对象
 	 * @param    string  $com_alias_name 组件别名
 	 * @param    array   $defination     组件定义类
@@ -57,12 +63,18 @@ trait ComponentTrait {
 		// 配置文件初始化创建公用对象
 		$coreComponents = $this->coreComponents();
 		$components = array_merge($coreComponents, Swfy::$appConfig['components']);
-		foreach($components as $key=>$component) {
-			// 存在直接跳过
-			if(isset($this->container[$key]) || (isset($component[SWOOLEFY_COM_IS_DELAY]) && $component[SWOOLEFY_COM_IS_DELAY])) {
+		foreach($components as $com_name=>$component) {
+
+			if(isset($component[SWOOLEFY_ENABLE_POOLS]) && isset($component[SWOOLEFY_POOLS_NUM])) {
+				array_push($this->component_pools, $com_name);
 				continue;
 			}
-			
+
+			// 存在直接跳过
+			if(isset($this->container[$com_name]) || (isset($component[SWOOLEFY_COM_IS_DELAY]) && $component[SWOOLEFY_COM_IS_DELAY])) {
+				continue;
+			}
+
 			if(isset($component['class']) && $component['class'] != '') {
 				$class = $component['class'];
 				unset($component['class']);
@@ -73,10 +85,9 @@ trait ComponentTrait {
 				}
 				
 				$defination = $component;
-				$this->container[$key] = $this->buildInstance($class, $defination, $params, $key);
-
+				$this->container[$com_name] = $this->buildInstance($class, $defination, $params, $com_name);
 			}else {
-				$this->container[$key] = false;
+				$this->container[$com_name] = false;
 			}
 		}
 		return $this->container;
@@ -227,15 +238,21 @@ trait ComponentTrait {
 	public function __get($name) {
 		if(!isset($this->$name)) {
 			if(isset($this->container[$name])) {
-
 				if(is_object($this->container[$name])) {	
 					return $this->container[$name];
 				}else {
 					$this->clearComponent($name);
 					return false;
 				}
-
-			}elseif(in_array($name, array_keys(Swfy::$appConfig['components']))) {
+			}else if(in_array($name, array_keys(Swfy::$appConfig['components']))) {
+				// mysql,redis进程池中直接赋值
+				if(in_array($name, $this->component_pools)) {
+					$this->container[$name] = \Swoolefy\Core\Pools::getInstance()->getObj($name);
+					// 如果没有设置进程池处理实例，则降级到创建实例模式
+					if(is_object($this->container[$name])) {
+						return $this->container[$name];
+					}
+				}
 				return $this->creatObject($name, Swfy::$appConfig['components'][$name]);
 			}
 			return false;	
