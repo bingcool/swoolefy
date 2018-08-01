@@ -33,6 +33,12 @@ class Redis {
 	*/
     protected $options = null;
 
+    /**
+     * $is_initConfig 是否已经初始化配置
+     * @var boolean
+     */
+    protected $is_initConfig = false;
+
 	/**
 	 * __construct 
 	 * @param  mixed  $parameters
@@ -43,6 +49,7 @@ class Redis {
 			$this->Predis = new \Predis\Client($parameters, $options);
 			$this->parameters = $parameters;
 			$this->options = $options;
+			$this->is_initConfig = true;
 		}
 	}
 
@@ -53,6 +60,9 @@ class Redis {
 	 * @param mixed
 	 */
 	public function setConfig($parameters = null, $options = null, ...$args) {
+		if($this->is_initConfig) {
+			return true;
+		}
 		if(is_object($this->Predis)) {
 			unset($this->Predis);
 		}
