@@ -59,7 +59,6 @@ class EventController extends BaseObject {
 			Application::setApp($this);
 			return  true;
 		}
-
 		return false;
 	}
 

@@ -61,12 +61,34 @@ class Pools {
 	}
 
 	/**
-	 * getPoolsName 获取某一个进程池的名称
-	 * @param  string $poolsName  
-	 * @return [type]            [description]
+	 * getChanStats 获取某个通道的状态，返回一个数组，包括2项信息，queue_num 通道中的元素数量，queue_bytes 通道当前占用的内存字节数
+	 * @param  string $poolName
+	 * @return mixed
 	 */
-	public function getPoolsName(string $poolsName) {
-		return $this->poolsName[$poolsName];
+	public function getChanStats(string $poolName) {
+		if(isset($this->pools[$poolsName])) {
+			$chan = $this->pools[$poolsName];
+			return $chan->stats();
+		}
+		return null;
+	}
+
+	/**
+	 * getPools 获取所有进程池的channel对象
+	 * @return array
+	 */
+	public function getPools() {
+		return $this->pools;
+	}
+
+	/**
+	 * getChanSize 获取设置的通道的大小，单位字节
+	 * @param  string   $poolName
+	 * @return int
+	 */
+	public function getChanSize(string $poolsName = null) {
+		$chanSize = isset($poolsName) ? $this->size[$poolsName] : $this->size;
+		return $chanSize;
 	}
 
 	/**
