@@ -16,7 +16,7 @@ use Swoolefy\Core\Application;
 class EventApp {
 	/**
 	 * $event_app 事件处理应用对象
-	 * @var [type]
+	 * @var object
 	 */
 	public $event_app;
 
@@ -69,7 +69,7 @@ class EventApp {
 
 	/**
 	 * getAppCid 获取当前应用实例的协程id
-	 * @return  
+	 * @return  string
 	 */
 	public function getCid() {
 		return $this->event_app->getCid();
@@ -92,7 +92,7 @@ class EventApp {
 	}
 
 	/**
-	 * __destruct 
+	 * __destruct
 	 */
 	public function __destruct() {
 		Application::removeApp();

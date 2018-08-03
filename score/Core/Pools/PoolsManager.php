@@ -100,10 +100,10 @@ class PoolsManager {
 		for($i=1; $i<=$processNumber; $i++) {
             $process_name = $processName.$i;
 			$key = md5($process_name);
-            $args = [$i, $worker_id, $polling, $processName, $args];
+            $new_args = [$i, $worker_id, $polling, $processName, $args];
 	        if(!isset(self::$processList[$key])){
 	            try{
-	                $process = new $processClass($process_name, $async, $args);
+	                $process = new $processClass($process_name, $async, $new_args);
 	                self::$processList[$key] = $process;
                     self::$process_name_list[$processName][$key] = $process;
                     self::$processNameList[$processName][] = $process_name;
@@ -136,13 +136,13 @@ class PoolsManager {
                     $polling && swoole_event_del(self::$processList[$key]->getProcess()->pipe);
                     unset(self::$processList[$key], self::$process_name_list[$processName][$key]);
                     TableManager::getInstance()->getTable('table_process_pools_number')->del($pid);
-                    $args = [$process_num, $worker_id, $polling, $processName, $args];
+                    $new_args = [$process_num, $worker_id, $polling, $processName, $args];
                     try{
-                        $process = new $processClass($process_name, $async, $args);
+                        $process = new $processClass($process_name, $async, $new_args);
                         self::$processList[$key] = $process;
                         self::$process_name_list[$processName][$key] = $process;
                         $polling && self::registerProcessFinish([$process], $processName);
-                        unset($args, $process_num, $worker_id, $polling, $processName);
+                        unset($process_num, $worker_id, $polling, $processName);
                     }catch (\Exception $e){
                         throw new \Exception($e->getMessage(), 1);       
                     }
