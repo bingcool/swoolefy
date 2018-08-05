@@ -57,9 +57,9 @@ trait ModelTrait {
 	 * @return   boolean
 	 */
 	public function isSsl() {
-	    if(isset($this->request->server['HTTPS']) && ('1' == $this->request->server['HTTPS'] || 'on' == strtolower($this->request->server['HTTPS']))){
+	    if(isset($this->request->server['HTTPS']) && ($this->request->server['HTTPS'] == '1' || strtolower($this->request->server['HTTPS']) == 'on')) {
 	        return true;
-	    }elseif(isset($this->request->server['SERVER_PORT']) && ('443' == $this->request->server['SERVER_PORT'] )) {
+	    }elseif(isset($this->request->server['SERVER_PORT']) && ($this->request->server['SERVER_PORT'] == 443)) {
 	        return true;
 	    }
 	    return false;
@@ -156,7 +156,15 @@ trait ModelTrait {
      * @param   $httponly 设置成TRUE，Cookie仅可通过HTTP协议访问
      * @return  $this
      */
-    public function setCookie($key,$value = '',$expire = 0,$path = '/',$domain = '',$secure = false,$httponly = false) {
+    public function setCookie(
+        $key, 
+        $value = '',
+        $expire = 0,
+        $path = '/',
+        $domain = '',
+        $secure = false,
+        $httponly = false
+    ) {
         $this->response->cookie($key, $value, $expire, $path, $domain, $secure, $httponly);
         return $this->response;
     }

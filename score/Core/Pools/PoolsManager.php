@@ -118,7 +118,7 @@ class PoolsManager {
 
         if($polling) {
             self::registerProcessFinish(self::$process_name_list[$processName], $processName);
-            self::$channels[$processName] = new \Swoole\Channel(2 * 1024 * 2014);
+            self::$channels[$processName] = new \Swoole\Channel(5 * 1024 * 1024);
             self::loopWrite($processName, $timer_int);
         }
 
@@ -166,14 +166,14 @@ class PoolsManager {
                 // 属于$processName主进程的子进程
                 if(in_array($process_name, self::$processNameList[$processName])) {
                     // 子进程大于0，说明该子进程收到重启的命令，那么将在任务完成后重启
-                    if(isset(self::$process_free[$processName][$process_name]) && $pid = self::$process_free[$processName][$process_name] > 0) {
+                    if(isset(self::$process_free[$processName][$process_name]) && self::$process_free[$processName][$process_name] > 0) {
+                        $pid = self::$process_free[$processName][$process_name];
                         $process->kill($pid, SIGTERM);
                         unset(self::$process_free[$processName][$process_name]);
                     }else {
                         // 正常设置子进程为空闲
                         self::$process_free[$processName][$process_name] = 0;
-                    }
-                    
+                    }   
                 }
             });
         }
