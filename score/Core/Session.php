@@ -73,6 +73,10 @@ class Session {
      */
     public $readonly ;
 
+    /**
+     * __construct 初始化
+     * @param array $config
+     */
     public function __construct(array $config=[]) {
         if(isset($config['cache_prefix'])  && !empty($config['cache_prefix'])) {
             $this->cache_prefix = $config['cache_prefix'];
@@ -155,17 +159,17 @@ class Session {
      * @return bool
      */
     public function save() {
-        if (!$this->isStart || $this->readonly) {
+        if(!$this->isStart || $this->readonly) {
             return true;
         }
         //设置为Session关闭状态
         $this->isStart = false;
         $session_key = $this->cache_prefix . $this->session_id;
         // 如果没有设置SESSION,则不保存,防止覆盖
-        if(empty($_SESSION)) {
+        if(empty($this->_SESSION)) {
             return false;
         }
-        return $this->driver->setex($session_key, $this->session_lifetime, serialize($_SESSION));
+        return $this->driver->setex($session_key, $this->session_lifetime, serialize($this->_SESSION));
     }
 
     /**
@@ -212,6 +216,21 @@ class Session {
             return false;
         }
         return isset($this->_SESSION[$key]);
+    }
+
+    /**
+     * getSessionTtl 获取session对象的剩余生存时间
+     * @param   bool  $formatDate 是否格式化
+     * @return 
+     */
+    public function getSessionTtl() {
+        $session_key = $this->cache_prefix . $this->session_id;
+        $isExists = $this->driver->exists($session_key);
+        $isExists && $ttl = $this->driver->ttl($session_key);
+        if($ttl >= 0) {
+            return $ttl;
+        }
+        return null;
     }
 
     /**

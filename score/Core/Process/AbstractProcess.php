@@ -42,7 +42,7 @@ abstract class AbstractProcess
      * 服务启动后才能获得到创建的进程pid
      */
     public function getPid() {
-       $this->swooleProcess->pid;
+       return $this->swooleProcess->pid;
     }
 
     /**

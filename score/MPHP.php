@@ -31,7 +31,7 @@ defined('SWOOLEFY_ENABLE_POOLS') or define('SWOOLEFY_ENABLE_POOLS', 'enable_pool
 defined('SWOOLEFY_POOLS_NUM') or define('SWOOLEFY_POOLS_NUM', 'pools_num');
 
 // 定义版本
-defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '4.0.2');
+defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '4.0.3');
 
 class MPHP {
 
