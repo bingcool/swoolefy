@@ -28,7 +28,7 @@ swoolefy官方QQ群：735672669，欢迎加入！
 1、支持php7.0+，建议使用php7.1+，swoole4.0+以上版本          
 2、安装php必要的扩展，本框架需要的扩展包括swoole(4.0+), inotify, pcntl, posix, zlib, mbstring，可以通过php-m查看是否安装了这些扩展。    
     
-##### docker容器已经配置好的php环境(开发测试)
+#### docker(开发测试)
 为了方便开发和测试，我打包了一个基于alpine基础镜像搭建的php7.1环境容器bingcool/php2swoole:4.0.1，这个image已经非常小了，已经安装所有的必须扩展，其中swoole是4.0+版本，可以通过php --ri swoole 查看信息。     
 alpine的官网：https://pkgs.alpinelinux.org/packages    
 
@@ -39,10 +39,13 @@ docker pull bingcool/php2swoole:4.0.1
 docker pull bingcool/php2swoole:4.0.2
 ```
 
-如果需要php7.2，swoole4.0.2版本，可以
+如果需要php7.2，swoole4.0.2，4.0.4版本，可以
 ```
 docker pull bingcool/php2swoole:72402
+或者
+docker pull bingcoll/php2swoole:72404
 ```
+
 
 ### 开发部署
 1、如果是自己安装的php环境（需在linux环境下），建议先创建一个伪用户www，用来执行worker进程业务代码      
