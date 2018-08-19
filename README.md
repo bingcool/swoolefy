@@ -43,7 +43,7 @@ docker pull bingcool/php2swoole:4.0.2
 ```
 docker pull bingcool/php2swoole:72402
 或者
-docker pull bingcoll/php2swoole:72404
+docker pull bingcool/php2swoole:72404
 ```
 
 
