@@ -179,7 +179,7 @@ trait AppTrait {
      * @param  string|null $name
      * @return mixed
      */
-    public function getPostParmams(string $name = null) {
+    public function getPostParams(string $name = null) {
     	$input = $this->request->post;
     	if($name) {
     		$value = (isset($input[$name]) && !empty($input[$name])) ? $input[$name] : null;
