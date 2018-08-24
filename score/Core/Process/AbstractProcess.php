@@ -73,7 +73,7 @@ abstract class AbstractProcess
             });
         }
 
-        $this->swooleProcess->name('php-addProcess:'.$this->getProcessName());
+        $this->swooleProcess->name('php-addSelfProcess:'.$this->getProcessName());
         $this->run($this->swooleProcess);
     }
 
@@ -105,6 +105,9 @@ abstract class AbstractProcess
             if($worker_id >= $worker_task_total_num) {
                 throw new \Exception("worker_id must less than $worker_task_total_num", 1);
             }
+        }
+        if(!$msg) {
+            throw new \Exception('param $msg can not be null or empty', 1);   
         }
         return Swfy::getServer()->sendMessage($msg, $worker_id);
     }

@@ -88,7 +88,7 @@ class MysqlCoroutine {
 				if(!$this->deploy) {
 					$this->master_mysql_config[$k] = $this->slave_mysql_config[$k] = $config;
 				}else {
-					$this->master_swoole_mysql[$k] = $config;
+					$this->master_mysql_config[$k] = $config;
 				}
 						
 			}else if($k) {
@@ -98,7 +98,6 @@ class MysqlCoroutine {
 	}
 
 	/**execute 执行insert,update,delete操作
-	 * execute 
 	 * @param    string        $sql
 	 * @param    array         $bingParams
 	 * @return   void

@@ -67,7 +67,7 @@ class CoroutineManager {
 	 * getCoroutinStatus 
 	 * @return   array
 	 */
-	public function getCoroutinStatus() {
+	public function getCoroutineStatus() {
 		// 大于4.x版本
 		if($this->canEnableCoroutine()) {
 			if(method_exists('co', 'stats')) {
