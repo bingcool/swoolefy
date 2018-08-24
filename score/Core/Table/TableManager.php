@@ -192,4 +192,20 @@ class TableManager {
 			throw new \Exception("miss table argument", 1);
 		}
 	}
+
+	/**
+	 * count 计算表的存在条目数
+	 * @return int
+	 */
+	public static function count(string $table = null) {
+		$swoole_table = self::getTable($Table);
+		if($swoole_table) {
+			$count = $swoole_table->count();
+		}
+		if(is_numeric($count)) {
+			return $count;
+		}
+		return null; 
+
+	}
 }
