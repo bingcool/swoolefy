@@ -78,4 +78,34 @@ class CoroutineManager {
 		return null;
 		
 	}
+
+	/**
+	 * listCoroutines 遍历当前进程内的所有协程(swoole4.1.0+版本支持)
+	 * @return Iterator
+	 */
+	public function listCoroutines() {
+		if(method_exists('Swoole\Coroutine', 'listCoroutines')) {
+			$cids = [];
+			$coros = \Swoole\Coroutine::listCoroutines();
+			foreach($coros as $cid) {
+				array_push($cids, $cid);
+			}
+			return $cids;
+		}
+		return null;
+	}
+
+	/**
+	 * getBackTrace 获取协程函数调用栈
+	 * @param   $cid  
+	 * @param   $options
+	 * @param   $limit
+	 * @return  array
+	 */
+	public function getBackTrace($cid = 0, $options = DEBUG_BACKTRACE_PROVIDE_OBJECT, $limit = 0) {
+		if(method_exists('Swoole\Coroutine', 'getBackTrace')) {
+			return \Swoole\Coroutine::getBackTrace($cid, $options,  $limit);
+		}
+		return null;
+	}
 }

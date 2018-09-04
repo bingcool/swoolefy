@@ -46,6 +46,10 @@ docker pull bingcool/php2swoole:72402
 docker pull bingcool/php2swoole:72404
 ```
 
+如果需要php7.2，swoole4.1.1版本，可以
+```
+docker pull bingcool/php2swoole:72411
+```
 
 ### 开发部署
 1、如果是自己安装的php环境（需在linux环境下），建议先创建一个伪用户www，用来执行worker进程业务代码      
