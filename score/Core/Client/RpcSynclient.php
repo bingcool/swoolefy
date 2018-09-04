@@ -68,10 +68,10 @@ class RpcSynclient {
     protected $request_id = null;
 
     /**
-     * $requesu_header 每次请求服务的包头信息
+     * $request_header 每次请求服务的包头信息
      * @var array
      */
-    protected $requesu_header = [];
+    protected $request_header = [];
 
 	/**
 	 * $pack_eof eof分包时设置
@@ -134,7 +134,12 @@ class RpcSynclient {
      * __construct 初始化
      * @param array $setting
      */
-    public function __construct(array $setting=[], array $server_header_struct = [], array $client_header_struct = [], string $pack_length_key = 'length') {
+    public function __construct(
+        array $setting = [], 
+        array $server_header_struct = [], 
+        array $client_header_struct = [], 
+        string $pack_length_key = 'length'
+    ) {
     	$this->client_pack_setting = array_merge($this->client_pack_setting, $setting);
         $this->server_header_struct = array_merge($this->server_header_struct, $server_header_struct);
         $this->client_header_struct = $client_header_struct;
@@ -154,7 +159,7 @@ class RpcSynclient {
    	/**
    	 * addServer 添加服务器
    	 * @param mixed  $servers 
-   	 * @param float   $timeout 
+   	 * @param float   $timeout
    	 * @param integer $noblock
    	 */
     public function addServer($servers, $timeout = 0.5, $noblock = 0) {
