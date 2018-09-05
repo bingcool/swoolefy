@@ -18,9 +18,8 @@ swoolefy是一个基于swoole扩展实现的轻量级高性能的常驻内存型
 12、命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架           
 
 ### 开发文档手册
-[开发文档](https://www.kancloud.cn/bingcoolhuang/php-swoole-swoolefy/587501)     
-[demo](https://github.com/bingcool/project)  
 
+[开发文档](https://www.kancloud.cn/bingcoolhuang/php-swoole-swoolefy/587501)     
 swoolefy官方QQ群：735672669，欢迎加入！    
 
 ### 配置环境
