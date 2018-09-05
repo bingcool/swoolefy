@@ -52,7 +52,7 @@ class RpcClientManager {
 
 	/**
 	 * registerService 注册服务
-	 * @param    string    $serviceNmae
+	 * @param    string    $serviceName
 	 * @param    array     $serviceConfig
 	 * @param    array     $setting
 	 * @param    array     $header_struct
@@ -60,7 +60,7 @@ class RpcClientManager {
 	 * @return   object
 	 */
 	public function registerService(
-		string $serviceNmae, 
+		string $serviceName, 
 		array $serviceConfig = [], 
 		array $client_pack_setting = [], 
 		array $server_header_struct = [], 
@@ -71,7 +71,7 @@ class RpcClientManager {
 		$timeout = $serviceConfig['timeout'];
 		$noblock = isset($serviceConfig['noblock']) ? $serviceConfig['noblock'] : 0;
 		$server_serialize_type = isset($serviceConfig['serialize_type']) ? $serviceConfig['serialize_type'] : 'json';
-		$key = md5($serviceNmae);
+		$key = md5($serviceName);
 		
 		if(!isset(self::$client_services[$key])) {
 			self::$client_pack_setting[$key] = $client_pack_setting;
@@ -83,7 +83,7 @@ class RpcClientManager {
 			}
 			$client_service = new RpcSynclient($client_pack_setting, $server_header_struct, $client_header_struct, $pack_length_key);
 			$client_service->addServer($servers, $timeout, $noblock);
-			$client_service->setClientServiceName($serviceNmae);
+			$client_service->setClientServiceName($serviceName);
 			$client_service->setClientSerializeType($client_serialize_type);
 			$client_service->setServerSerializeType($server_serialize_type);
 			$client_service->setSwooleKeep($swoole_keep);
@@ -103,12 +103,12 @@ class RpcClientManager {
 
 	/**
 	 * getService 获取某个服务实例|所有正在工作的服务
-	 * @param    String   $serviceNmae
+	 * @param    String   $serviceName
 	 * @return   object|array
 	 */
-	public function getServices(string $serviceNmae = '') {
-		if($serviceNmae) {
-			$key = md5($serviceNmae);
+	public function getServices(string $serviceName = '') {
+		if($serviceName) {
+			$key = md5($serviceName);
 			if(isset(self::$client_services[$key])) {
 				// 深度复制client_service实例
 				if($this->is_swoole_env) {
@@ -130,13 +130,13 @@ class RpcClientManager {
 
 	/**
 	 * getSwooleClient 获取swoole_client实例
-	 * @param    string   $serviceNmae
+	 * @param    string   $serviceName
 	 * @return   swoole_client
 	 */
-	public function getSwooleClients(string $serviceNmae = '') {
-		if($serviceNmae) {
-			if($this->getServices($serviceNmae)) {
-				return $this->getServices($serviceNmae)->client;
+	public function getSwooleClients(string $serviceName = '') {
+		if($serviceName) {
+			if($this->getServices($serviceName)) {
+				return $this->getServices($serviceName)->client;
 			}
 		}
 		return false;
@@ -180,9 +180,9 @@ class RpcClientManager {
 			                }
 	                    }else {
 	                    	// eof分包时
-	                    	$serviceNmae = $client_service->getClientServiceName();
+	                    	$serviceName = $client_service->getClientServiceName();
 	                        $unseralize_type = $client_service->getClientSerializeType();
-	                        $this->response_pack_data[$serviceNmae] = $client_service->depackeof($data, $unseralize_type);
+	                        $this->response_pack_data[$serviceName] = $client_service->depackeof($data, $unseralize_type);
 	                    }
 	                }
 	                unset($client_services[$client_id]);   
@@ -216,7 +216,7 @@ class RpcClientManager {
 
     /**
      * getResponsePackData 获取某个服务请求服务返回的数据
-     * @param   string  $serviceName
+     * @param   object  $client_service
      * @return  array
      */
     public function getResponsePackData(RpcSynclient $client_service) {
@@ -225,6 +225,7 @@ class RpcClientManager {
 
     /**
      * getResponseBody 获取服务响应的包体数据
+     * @param   object  $client_service
      * @return  array
      */
     public function getResponsePackBody(RpcSynclient $client_service) {
@@ -233,6 +234,7 @@ class RpcClientManager {
 
     /**
      * getResponseBody 获取服务响应的包头数据
+     * @param   object  $client_service
      * @return  array
      */
     public function getResponsePackHeader(RpcSynclient $client_service) {
@@ -250,16 +252,16 @@ class RpcClientManager {
 
 	/**
 	 * getSetting 通过服务名获取客户端服务配置
-	 * @param    string   $serviceNmae
+	 * @param    string   $serviceName
 	 * @return   array
 	 */
-	public function getClientPackSetting(string $serviceNmae) {
-		$key = md5($serviceNmae);
+	public function getClientPackSetting(string $serviceName) {
+		$key = md5($serviceName);
 		$client_service = self::$client_pack_setting[$key];
 		if(is_object($client_service)) {
 			return $client_service->getClientPackSetting();
 		}
-		return false;
+		return null;
 	}
 
 	/**
