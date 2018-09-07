@@ -420,7 +420,7 @@ class RpcSynclient {
 
     /**
      * parseData 分析数据
-     * @param  array $data
+     * @param  string $callable
      * @return array
      */
     public function parseCallable(& $callable) {
@@ -436,9 +436,9 @@ class RpcSynclient {
 
     /**
      * send 数据发送
-     * @param   mixed   $data
-     * @param   string  数据序列化模式
-     * @param   array   数据包头数据，如果要传入该参数，则必须是由buildHeaderRequestId()函数产生返回的数据
+     * @param   string   $callable
+     * @param   mixed    $params数据序列化模式
+     * @param   array    $header  数据包头数据，如果要传入该参数，则必须是由buildHeaderRequestId()函数产生返回的数据
      * @return  boolean
      */
 	public function waitCall($callable, $params, array $header = []) {
@@ -491,6 +491,7 @@ class RpcSynclient {
 
 	/**
 	 * recv 阻塞等待接收数据
+     * @param    float $timeout
 	 * @param    int  $size
 	 * @param    int  $flags 
 	 * @return   array
