@@ -154,8 +154,10 @@ abstract class TcpServer extends BaseServer {
 					// 服务端为eof检查包
 					$recv = $this->pack->depackeof($data);
 				}
-				// 延迟绑定，服务处理实例
-				static::onReceive($server, $fd, $reactor_id, $recv);
+				if($recv) {
+					// 延迟绑定，服务处理实例
+					static::onReceive($server, $fd, $reactor_id, $recv);
+				}
 				return;
     		}catch(\Exception $e) {
     			self::catchException($e);
