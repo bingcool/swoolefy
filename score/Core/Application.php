@@ -28,6 +28,11 @@ class Application {
 	public static $dump = null;
 
 	/**
+	 * __construct
+	 */
+	public function __construct() {}
+
+	/**
 	 * setApp 
 	 * @param $object
 	 */
@@ -119,11 +124,6 @@ class Application {
 		}
 		return true;	
 	} 
-
-	/**
-	 * __construct
-	 */
-	public function __construct() {}
 
 	/**
 	 * __destruct
