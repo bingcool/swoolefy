@@ -61,7 +61,7 @@ class AtomicManager {
      * @return long int
      */
     public function getAtomicLong(string $name) {
-        if(!isset($this->atomicListForLong[$name])){
+        if(isset($this->atomicListForLong[$name])){
             return $this->atomicListForLong[$name];
         }else{
             return null;

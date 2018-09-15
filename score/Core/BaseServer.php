@@ -12,6 +12,7 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Table\TableManager;
+use Swoolefy\Core\Memory\AtomicManager;
 
 class BaseServer {
 	/**
@@ -114,6 +115,8 @@ class BaseServer {
 		self::checkPackType();
 		// check coroutine
 		self::enableCoroutine();
+		// enable sys collector
+		self::setAutomicOfRequest();
 		// record start time
 		self::$_startTime = date('Y-m-d H:i:s',strtotime('now'));
 		
@@ -561,4 +564,65 @@ class BaseServer {
 
 		$ExceptionHanderClass::appException($e);
     }
+
+    /**
+     * setAutomicOfRequest 创建计算请求的原子计算实例
+     * @param   boolean  
+     */
+    public static function setAutomicOfRequest() {
+    	if(self::isEnableSysCollector()) {
+    		AtomicManager::getInstance()->addAtomicLong('atomic_request_count');
+    		return true;
+    	}
+    	return false;
+    }
+
+    /**
+     * isEnableSysCollector
+     * @return boolean
+     */
+    public static function isEnableSysCollector() {
+    	static $isEnableSysCollector;
+    	if($isEnableSysCollector) {
+    		return true;
+    	}
+    	if(isset(self::$config['enable_sys_collector']) && !empty(self::$config['enable_sys_collector'])) {
+    		$isEnableSysCollector = true;
+    	}else {
+    		$isEnableSysCollector = false;
+    	}
+    	return $isEnableSysCollector;
+    }
+
+    /**
+     * requestCount 
+     * @return boolean
+     */
+    public static function atomicAdd() {
+    	if(self::isEnableSysCollector()){
+    		$atomic = AtomicManager::getInstance()->getAtomicLong('atomic_request_count');
+    		if(is_object($atomic)) {
+    			$atomic->add(1);
+    		}
+    	}
+    	return false;
+    }
+
+    /**
+     * beforeRequest
+     * @return boolean
+     */
+    public static function beforeRequest() {
+    	self::atomicAdd();
+    }
+
+    /**
+     * endRequest 
+     * @return
+     */
+    public static function endRequest() {
+
+    }
+
+    
 }

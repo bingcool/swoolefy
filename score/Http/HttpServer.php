@@ -77,10 +77,8 @@ abstract class HttpServer extends BaseServer {
 		parent::__construct();
 		// 初始化启动类
 		$startInitClass = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Core\\StartInit';
-
 		$this->startCtrl = new $startInitClass();
-		$this->startCtrl->init(); 
-		
+		$this->startCtrl->init();
 	}
 
 	public function start() {
@@ -143,6 +141,7 @@ abstract class HttpServer extends BaseServer {
 		 */
 		$this->webserver->on('request', function(Request $request, Response $response) {
 			try{
+				parent::beforeRequest();
 				static::onRequest($request, $response);
 				return true;
 			}catch(\Exception $e) {
