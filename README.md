@@ -61,7 +61,7 @@ useradd www -d /home/www -s /sbin/nologin
 2、使用bingcool/php2swoole容器启动php开发环境     
 下面是简单使用，首先是启动容器      
 ```   
-docker run -it -d --name dev -p 9502:9502 -v /home/www/:/home/www/ bingcool/php2swoole:2.4   
+docker run -it -d --name dev -p 9502:9502 -v /home/www/:/home/www/ bingcool/php2swoole:72404   
 ```
 `-v /home/www/:/home/www/` 是将缩主机的`/home/www`目录挂载到容器的`/home/www` 
 
