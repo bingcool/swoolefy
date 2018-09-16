@@ -29,12 +29,22 @@ class SysProcess extends AbstractProcess {
 		$sys_collector_config = $p_config['sys_collector_config'];
 		if(is_array($sys_collector_config) && isset($sys_collector_config['type'])) {
 			$type = $sys_collector_config['type'];
-			$time = isset($sys_collector_config['time']) ? (float) $sys_collector_config['time'] : 5;
+			$tick_time = isset($sys_collector_config['tick_time']) ? (float) $sys_collector_config['tick_time'] : 5;
 			$atomic = AtomicManager::getInstance()->getAtomicLong('atomic_request_count');
-			swoole_timer_tick($time * 1000, function($timer_id) use($type, $sys_collector_config, $atomic) {
+			swoole_timer_tick($tick_time * 1000, function($timer_id) use($type, $sys_collector_config, $atomic, $tick_time) {
+				// 统计系统信息
+				if(isset($sys_collector_config['func']) && $sys_collector_config['func'] instanceof \Closure) {
+					$res = call_user_func($sys_collector_config['func']);
+					if(is_array($res)) {
+						$sys_info = json_encode($res);
+					}else {
+						$sys_info = $res;
+					}
+				}
 				// 计算其他信息
 				$total_rqruest = $atomic->get();
-				$data = ['total_rqruest'=> $total_rqruest, 'time'=>strtotime('now')];
+				$data = ['total_request'=> $total_rqruest, 'tick_time'=>$tick_time,'from_service'=>$sys_collector_config['from_service'], 'timestamp'=>strtotime('now')];
+				$data['sys_collector_message'] = $sys_info;
 				switch($type) {
 					case SWOOLEFY_SYS_COLLECTOR_UDP:
 						$this->sendByUdp($sys_collector_config, $data);
@@ -59,7 +69,7 @@ class SysProcess extends AbstractProcess {
 	}
 
 	/**
-	 * sendByUdp 通过UDP发送给第三方
+	 * sendByUdp 通过UDP发送方式
 	 * @param  array  $sys_collector_config
 	 * @param  $array $data
 	 * @return void
@@ -67,7 +77,7 @@ class SysProcess extends AbstractProcess {
 	protected function sendByUdp(array $sys_collector_config, array $data = []) {
 		static $udp_client;
 		if(!is_object($udp_client)) {
-			$udp_client = new \Swoole\Client(SWOOLE_SOCK_UDP);
+			$udp_client = new \Swoole\Client(SWOOLE_SOCK_UDP, SWOOLE_SOCK_SYNC);
 		}
 		$host = $sys_collector_config['host'];
 		$port = $sys_collector_config['port'];
@@ -77,7 +87,13 @@ class SysProcess extends AbstractProcess {
 		$message = $service."::".$event."::".json_encode($data);
 		if($host && $port && $service && $event) {
 			try{
-				$udp_client->sendto($host, $port, $message);
+				if(!$udp_client->isConnected()) {
+					$isConnected = $udp_client->connect($host, $port);
+					if(!$isConnected) {
+						throw new \Exception("sendByUdp function connect udp is failed", 1);	
+					}
+				}
+				$udp_client->send($message);
 			}catch(\Exception $e) {
 				throw new \Exception($e->getMessage(), 1);
 			}
@@ -150,7 +166,7 @@ class SysProcess extends AbstractProcess {
 				$redis_client->auth($password);
 				$redis_client->setOption(\Redis::OPT_READ_TIMEOUT, -1);
 				$redis_client->select($database);
-			}catch(\Exception $e) {
+			}catch(\RedisException $e) {
 				throw new \Exception($e->getMessage(), 1);
 			}
 		}else {
