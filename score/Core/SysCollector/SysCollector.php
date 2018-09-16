@@ -17,6 +17,8 @@ class SysCollector {
 
 	use \Swoolefy\Core\SingletonTrait;
 
-	public function test() {}
+	public function test() {
+		return ['cpu'=>'25%','memory'=>'2345'];
+	}
 
 }

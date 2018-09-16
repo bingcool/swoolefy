@@ -22,7 +22,7 @@ class StartCtrl implements \Swoolefy\Core\StartInterface {
 	 * @return void
 	 */
 	public function init() {
-		// 创建一个统计system的自定义定时进程
+		// 创建一个统计system_collector的自定义定时进程
 		if(BaseServer::isEnableSysCollector()) {
 			ProcessManager::getInstance()->addProcess('system_collector', \Swoolefy\Core\SysCollector\SysProcess::class);
 		}
