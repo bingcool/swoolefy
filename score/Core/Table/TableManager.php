@@ -198,7 +198,7 @@ class TableManager {
 	 * @return int
 	 */
 	public static function count(string $table = null) {
-		$swoole_table = self::getTable($Table);
+		$swoole_table = self::getTable($table);
 		if($swoole_table) {
 			$count = $swoole_table->count();
 		}
