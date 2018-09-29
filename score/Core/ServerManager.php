@@ -55,7 +55,7 @@ class ServerManager {
 	public function getListener($port) {
 		$port = (int)$port;
 		if(isset($this->server_ports[$port])) {
-			return $server_port;
+			return $this->server_ports[$port];
 		}
 		return false;
 	}

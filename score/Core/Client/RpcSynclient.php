@@ -507,7 +507,7 @@ class RpcSynclient {
         }
         // client获取数据完成后，释放工作的client_services的实例
         RpcClientManager::getInstance()->destroyBusyClient();
-        if($data) {
+        if(isset($data)) {
             if($this->is_pack_length_type) {
                 $response = $this->depack($data);
                 list($header, $body_data) = $response;
@@ -695,7 +695,7 @@ class RpcSynclient {
 	 */
 	public function decode($data, $unserialize_type = self::DECODE_JSON) {
 		if(is_string($unserialize_type)) {
-            $serialize_type = strtolower($serialize_type);
+            $serialize_type = strtolower($unserialize_type);
 			$unserialize_type = self::SERIALIZE_TYPE[$unserialize_type];
 		}
         switch($unserialize_type) {
