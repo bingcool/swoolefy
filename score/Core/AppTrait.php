@@ -498,7 +498,7 @@ trait AppTrait {
 	 * @return   void          
 	 */
 	public function sendfile(string $filename, int $offset = 0, int $length = 0) {
-		$this->response->sendfile($filename, $offset = 0, $length = 0);
+		$this->response->sendfile($filename, $offset, $length);
 	}
 
 	/**
@@ -613,8 +613,8 @@ trait AppTrait {
 				  	curl_setopt($conn[$i], CURLOPT_SSL_VERIFYPEER, FALSE);
 					curl_setopt($conn[$i], CURLOPT_SSL_VERIFYHOST, FALSE);
 					curl_setopt($conn[$i], CURLOPT_NOSIGNAL, 1);
-					curl_setopt($conn[$i], CURLOPT_TIMEOUT_MS,$timeout);   
-				  	curl_setopt($conn[$i],CURLOPT_RETURNTRANSFER,true);
+					curl_setopt($conn[$i], CURLOPT_TIMEOUT_MS, $timeout);   
+				  	curl_setopt($conn[$i], CURLOPT_RETURNTRANSFER, true);
 				  	curl_multi_add_handle($mh,$conn[$i]);
 			}
 
