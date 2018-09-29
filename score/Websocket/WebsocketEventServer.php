@@ -75,6 +75,10 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 				\Swoole\Serialize::unpack(self::$service)->run($fd, $data);
 			}else if($opcode == WEBSOCKET_OPCODE_BINARY) {
 				// TODO 二进制数据
+				static::onMessageFromBinary($server, $frame);
+			}else if($opcode == 0x08) {
+				// TODO 关闭帧
+				static::onMessageFromClose($server, $frame);
 			}
 			
 		}else {
@@ -123,5 +127,21 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	 * @return   void
 	 */
 	public abstract function onClose($server, $fd);
+
+	/**
+	 * onMessageFromBinary 处理二进制数据
+	 * @param  object $server
+	 * @param  onject $frame
+	 * @return void       
+	 */
+	public abstract function onMessageFromBinary($server, $frame);
+
+	/**
+	 * onMessageFromClose 处理关闭帧
+	 * @param  object $server
+	 * @param  onject $frame 
+	 * @return void       
+	 */
+	public abstract function onMessageFromClose($server, $frame);
 
 }

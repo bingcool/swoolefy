@@ -34,7 +34,6 @@ defined('SWOOLEFY_POOLS_NUM') or define('SWOOLEFY_POOLS_NUM', 'pools_num');
 defined('SWOOLEFY_SYS_COLLECTOR_UDP') or define('SWOOLEFY_SYS_COLLECTOR_UDP', 'sys_collector_udp');
 defined('SWOOLEFY_SYS_COLLECTOR_SWOOLEREDIS') or define('SWOOLEFY_SYS_COLLECTOR_SWOOLEREDIS', 'sys_collector_swoole_redis');
 defined('SWOOLEFY_SYS_COLLECTOR_PHPREDIS') or define('SWOOLEFY_SYS_COLLECTOR_PHPREDIS', 'sys_collector_phpredis');
-
 defined('SWOOLEFY_SYS_COLLECTOR_FILE') or define('SWOOLEFY_SYS_COLLECTOR_FILE', 'sys_collector_file');
 defined('SWOOLEFY_SYS_COLLECTOR_CHANNEL') or define('SWOOLEFY_SYS_COLLECTOR_CHANNEL', 'sys_collector_channel');
 
