@@ -83,7 +83,7 @@ function stop() {
 	            echo "------------stop info------------\n";
 	            echo "successful: auto monitor process stop at ".date("Y-m-d H:i:s")."\n";
 	            echo "\n";
-	            @unlink($pid_file);
+	            @unlink($monitor_pid);
 	            break;
 	        }else {
 	            if(time() - $nowtime > 2){

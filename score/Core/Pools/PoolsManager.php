@@ -124,7 +124,7 @@ class PoolsManager {
 
         self::$process_args[$processName] = [$processClass, $async, $worker_id, $polling];
 
-        Process::signal(SIGCHLD, function($signo) {
+        Process::signal(SIGCHLD, function($signo) use($args) {
 	        while($ret = Process::wait(false)) { 
 	            if($ret) {
 	            	$pid = $ret['pid'];
@@ -343,8 +343,12 @@ class PoolsManager {
             $key = array_rand(self::$processNameList[$name], 1);
             $process_name = self::$processNameList[$name][$key];
         }
-        self::writeByProcessName($process_name, $data);
-        return $process_name;
+        if(isset($process_name)) {
+            self::writeByProcessName($process_name, $data);
+            return $process_name;
+        }
+        return null;
+
     }
 
     /**

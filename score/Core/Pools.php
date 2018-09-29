@@ -66,8 +66,8 @@ class Pools {
 	 * @return mixed
 	 */
 	public function getChanStats(string $poolName) {
-		if(isset($this->pools[$poolsName])) {
-			$chan = $this->pools[$poolsName];
+		if(isset($this->pools[$poolName])) {
+			$chan = $this->pools[$poolName];
 			return $chan->stats();
 		}
 		return null;
