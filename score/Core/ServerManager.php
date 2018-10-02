@@ -34,7 +34,8 @@ class ServerManager {
 	 * addListener 设置port实例
 	 * @param string $host 
 	 * @param int    $port 
-	 * @param type   $type 
+	 * @param type   $type
+     * @return mixed
 	 */
 	public function addListener(string $host, $port, $type = SWOOLE_SOCK_TCP) {
 		$port = (int)$port;
@@ -87,6 +88,23 @@ class ServerManager {
 	public function getClientInfo(int $fd, int $extraData, bool $ignoreError = false) {
 		return Swfy::getServer()->getClientInfo($fd, $extraData, $ignoreError);
 	}
+
+    /**
+     * reload 重启所有worker进程
+     * @param  bool  $only_reload_taskworkrer 是否重启task进程，默认false
+     * @return bool
+     */
+	public function reload(bool $only_reload_taskworkrer = false) {
+        Swfy::getServer()->reload($only_reload_taskworkrer);
+        return true;
+    }
+
+    /**
+     * shutdown 关闭服务器
+     */
+    public function shutdown() {
+        Swfy::getServer()->shutdown();
+    }
 	
 	/**
 	 * __toString
