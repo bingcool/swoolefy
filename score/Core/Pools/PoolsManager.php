@@ -61,7 +61,7 @@ class PoolsManager {
      * __construct
      * @param  $total_process 进程池总数
      */
-	public function __construct(int $total_process = 256) {
+	private function __construct(int $total_process = 256) {
         self::$table_process['table_process_pools_map']['size'] = self::$table_process['table_process_pools_number']['size']= $total_process;
 		TableManager::getInstance()->createTable(self::$table_process);
 	}

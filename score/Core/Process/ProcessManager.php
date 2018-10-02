@@ -30,7 +30,7 @@ class ProcessManager {
     /**
      * __construct 
      */
-	public function __construct() {
+	private function __construct() {
 		TableManager::getInstance()->createTable(self::$table_process);
 	}
 
