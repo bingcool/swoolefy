@@ -56,7 +56,11 @@ abstract class AbstractProcessPools {
      * 服务启动后才能获得到创建的进程pid
      */
     public function getPid() {
-       $this->swooleProcess->pid;
+       if(isset($this->swooleProcess->pid)){
+            return $this->swooleProcess->pid;
+        }else{
+            return null;
+        }
     }
 
     /**
