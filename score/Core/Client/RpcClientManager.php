@@ -159,6 +159,7 @@ class RpcClientManager {
 	        foreach($client_services as $client_id=>$client_service) {
 	        	$read[] = $client_service->getSwooleClient();
 	        	$client_ids[] = $client_id;
+	        	$client_service->setRecvWay(RpcClientConst::MULTI_RECV);
 	        }
 	        $ret = swoole_client_select($read, $write, $error, 0.50);
 	        if($ret) {

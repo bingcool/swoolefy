@@ -32,4 +32,8 @@ class RpcClientConst
     const ERROR_CODE_DEPACK = 5008;
     // 数据返回成功
     const ERROR_CODE_SUCCESS = 0;
+
+    // 接收数据方式(调用方式)
+    const WAIT_RECV = 'waitRecv';
+    const MULTI_RECV = 'multiRecv';
 }
