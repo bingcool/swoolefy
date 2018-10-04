@@ -118,6 +118,18 @@ class RpcSynclient {
     protected $status_code;
 
     /**
+     * $response_pack_data 响应的完整数据包，包括包头和包头，waitRecv()，multiRecv()调用后，可通过getResponsePackData函数获取
+     * @var array
+     */
+    protected $response_pack_data = [];
+
+    /**
+     * $recvWay 
+     * @var boolean
+     */
+    protected $recvWay = RpcClientConst::WAIT_RECV;
+
+    /**
      * 定义序列化的方式
      */
     const SERIALIZE_TYPE = [
@@ -407,6 +419,45 @@ class RpcSynclient {
     }
 
     /**
+     * 设置接收数据方式
+     */
+    public function setRecvWay($recv_way = null) {
+        if(in_array($recv_way, [RpcClientConst::MULTI_RECV, RpcClientConst::WAIT_RECV])) {
+            $this->recvWay = $recv_way;
+        }
+    }
+
+    /**
+     * isWultiRecv 判断是否是并行接收数据
+     * @return boolean
+     */
+    public function isMultiRecv() {
+        if($this->recvWay == RpcClientConst::MULTI_RECV) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * isWaitRecv 是否是阻塞方式
+     * @return boolean
+     */
+    public function isWaitRecv() {
+        if($this->recvWay == RpcClientConst::WAIT_RECV) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * getecvWay 获取接收数据方式
+     * @return 
+     */
+    public function getecvWay() {
+        return $this->recvWay;
+    }
+
+    /**
      * buildHeaderRequestId 发起每次请求建立一个请求串号request_id
      * @param  array    $header_data
      * @param  string   $request_id_key  默认request_id
@@ -507,12 +558,14 @@ class RpcSynclient {
         }
         // client获取数据完成后，释放工作的client_services的实例
         RpcClientManager::getInstance()->destroyBusyClient();
+        $request_id = $this->getRequestId();
         if(isset($data)) {
             if($this->is_pack_length_type) {
                 $response = $this->depack($data);
                 list($header, $body_data) = $response;
-                if(in_array($this->getRequestId(), array_values($header)) || $this->getRequestId() == 'ping') {
+                if(in_array($request_id, array_values($header)) || $this->getRequestId() == 'ping') {
                     $this->setStatusCode(RpcClientConst::ERROR_CODE_SUCCESS);
+                    $this->response_pack_data[$request_id] = $response;
                     return $response;
                 }
                 $this->setStatusCode(RpcClientConst::ERROR_CODE_NO_MATCH);
@@ -541,7 +594,13 @@ class RpcSynclient {
             return $pack_data;
         }
         $request_id = $this->getRequestId();
-        $response_pack_data = RpcClientManager::getInstance()->getAllResponsePackData();
+        if($this->isMultiRecv()) {
+            // mutilRecv 并行调用获取数据
+            $response_pack_data = RpcClientManager::getInstance()->getAllResponsePackData();
+        }else {
+            // waitRecv 阻塞调用时获取数据
+            $response_pack_data = $this->response_pack_data;
+        }  
         $pack_data = $response_pack_data[$request_id] ?: [];
         return $pack_data;
     }
@@ -560,7 +619,7 @@ class RpcSynclient {
      * @return  array
      */
     public function getResponsePackHeader() {
-        list($header,) = $this->getResponsePackData();
+        list($header, $body) = $this->getResponsePackData();
         return $header ?: [];
     }
 
