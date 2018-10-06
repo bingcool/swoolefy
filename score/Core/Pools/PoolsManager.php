@@ -71,11 +71,13 @@ class PoolsManager {
 	 * @param string  $processName
 	 * @param string  $processClass
      * @param int     $processNumber
+     * @param boolean $polling  是否是轮训向空闲进程写数据
+     * @param int     $timer_int 定时器时间，单位毫秒
 	 * @param boolean $async
-     * @param boolean $polling 是否是轮训向空闲进程写数据
 	 * @param array   $args
+     * @return  void
 	 */
-	public static function addProcessPools(string $processName, string $processClass, int $processNumber = 1, $polling = false, int $timer_int= 50, $async = true, array $args = []) {
+	public static function addProcessPools(string $processName, string $processClass, int $processNumber = 1, bool $polling = false, int $timer_int= 50, bool $async = true, array $args = []) {
 		if(!TableManager::isExistTable('table_process_pools_map')) {
 			TableManager::getInstance()->createTable(self::$table_process);
 		}
@@ -129,22 +131,25 @@ class PoolsManager {
 	            if($ret) {
 	            	$pid = $ret['pid'];
 	            	$processInfo = TableManager::getInstance()->getTable('table_process_pools_number')->get($pid);
-                    list($process_num, $processName) = array_values($processInfo);
-                    list($processClass, $async, $worker_id, $polling) = self::$process_args[$processName];
-                    $process_name = $processName.$process_num;
-	                $key = md5($process_name);
-                    $polling && swoole_event_del(self::$processList[$key]->getProcess()->pipe);
-                    unset(self::$processList[$key], self::$process_name_list[$processName][$key]);
-                    TableManager::getInstance()->getTable('table_process_pools_number')->del($pid);
-                    $new_args = [$process_num, $worker_id, $polling, $processName, $args];
-                    try{
-                        $process = new $processClass($process_name, $async, $new_args);
-                        self::$processList[$key] = $process;
-                        self::$process_name_list[$processName][$key] = $process;
-                        $polling && self::registerProcessFinish([$process], $processName);
-                        unset($process_num, $worker_id, $polling, $processName);
-                    }catch (\Exception $e){
-                        throw new \Exception($e->getMessage(), 1);       
+                    // 仅仅针对进程池创建的进程进行重建处理，非进程池创建的进程直接回收，不会处理
+                    if(isset($processInfo) && !empty($processInfo)) {
+                        list($process_num, $processName) = array_values($processInfo);
+                        list($processClass, $async, $worker_id, $polling) = self::$process_args[$processName];
+                        $process_name = $processName.$process_num;
+    	                $key = md5($process_name);
+                        $polling && swoole_event_del(self::$processList[$key]->getProcess()->pipe);
+                        unset(self::$processList[$key], self::$process_name_list[$processName][$key]);
+                        TableManager::getInstance()->getTable('table_process_pools_number')->del($pid);
+                        $new_args = [$process_num, $worker_id, $polling, $processName, $args];
+                        try{
+                            $process = new $processClass($process_name, $async, $new_args);
+                            self::$processList[$key] = $process;
+                            self::$process_name_list[$processName][$key] = $process;
+                            $polling && self::registerProcessFinish([$process], $processName);
+                            unset($process_num, $worker_id, $polling, $processName);
+                        }catch (\Exception $e){
+                            throw new \Exception($e->getMessage(), 1);       
+                        }
                     }
 	           }
             }
@@ -181,10 +186,13 @@ class PoolsManager {
 
     /**
      * loopWrite 定时循环向子进程写数据
-     * @return   mixed
+     * @param   string $processName
+     * @param   int $tick_time
+     * @return  
      */
-    public static function loopWrite(string $processName, $timer_int) {
-        $timer_id = swoole_timer_tick($timer_int, function($timer_id) use($processName) {
+    public static function loopWrite(string $processName, int $tick_time) {
+        $tick_time = (int) $tick_time;
+        $timer_id = swoole_timer_tick($tick_time, function($timer_id) use($processName) {
             if(count(self::$process_free[$processName])) {
                 $channel= self::$channels[$processName];
                 $data = $channel->pop();

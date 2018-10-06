@@ -101,9 +101,11 @@ class ServerManager {
 
     /**
      * shutdown 关闭服务器
+     * @return  true
      */
     public function shutdown() {
         Swfy::getServer()->shutdown();
+        return true;
     }
 	
 	/**
@@ -113,6 +115,5 @@ class ServerManager {
 	public function __toString() {
 		return get_called_class();
 	}
-
 
 }

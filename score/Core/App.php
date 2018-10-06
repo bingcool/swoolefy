@@ -127,13 +127,13 @@ class App extends \Swoolefy\Core\Component {
 	 */
 	public function catch() {
 		// 获取配置信息
-		if(isset($this->config['catch_all_info']) && $info = $this->config['catch_all_info']) {
-			if(is_array($info)) {
+		if(isset($this->config['catch_handle']) && $handle = $this->config['catch_handle']) {
+			if(is_array($handle)) {
 				$this->response->header('Content-Type','application/json; charset=UTF-8');
-				return $this->response->end(json_encode($info));
+				return $this->response->end(json_encode($handle));
 			}else {
 				$this->response->header('Content-Type','text/html; charset=UTF-8');
-				$this->response->end($info);
+				$this->response->end($handle);
 			}
 			
 			return true;

@@ -200,7 +200,11 @@ class HttpRoute extends AppDispatch {
 						}
 						
 					}else {
-						return $this->response->end($filePath.' is not exit!');
+						return $this->response->end(json_encode([
+							'ret'=>404,
+							'msg'=>$filePath.' is not exit!',
+							'data'=>''
+						]));
 					}	
 				}else {
 					self::setRouteFileMap($class);
@@ -214,7 +218,12 @@ class HttpRoute extends AppDispatch {
 		// 提前执行_beforeAction函数
 		if($controllerInstance->_beforeAction() === false || is_null($controllerInstance->_beforeAction())) {
 			$this->response->status(403);
-			return $this->response->write(json_encode(['status'=>403,'msg'=>'_beforeAction is forbidden calling']));
+			$this->response->header('Content-Type','application/json; charset=UTF-8');
+			return $this->response->write(json_encode([
+				'ret'=>403,
+				'msg'=>'if you called _beforeAction() must return true then can exec action function,otherwise this request is end when in _beforeAction()',
+				'data'=>''
+			]));
 		}
 		// 创建reflector对象实例
 		$reflector = new \ReflectionClass($controllerInstance);
@@ -231,22 +240,30 @@ class HttpRoute extends AppDispatch {
            	 		
 		        }catch (\ReflectionException $e) {
 		            // 方法调用发生异常后 引导到__call方法处理
-		            $method = new \ReflectionMethod($controllerInstance,'__call');
-		            $method->invokeArgs($controllerInstance, array($action,''));
+		            $method = new \ReflectionMethod($controllerInstance, '__call');
+		            $method->invokeArgs($controllerInstance, array($action, ''));
+		        }catch(\Throwable $e) {
+		        	throw new \Exception($e->getMessage(), 1);
 		        }
 			}else {
-				if(SW_DEBUG) {
-					return $this->response->end('class method '.$action.' is static property,can not be object call!');
-				}
+				return $this->response->end(json_encode([
+					'ret'=>500,
+					'msg'=>'class method '.$action.' is static or private, protected property, can not be object call!',
+					'data'=>''
+				]));
 			}
 		}else {
 			$this->response->status(404);
-			$this->response->header('Content-Type','text/html; charset=UTF-8');
+			$this->response->header('Content-Type','application/json; charset=UTF-8');
 			if(!SW_DEBUG) {
 				$method = new \ReflectionMethod($controllerInstance,'__call');
 		        $method->invokeArgs($controllerInstance, array($action,''));
 			}else {
-		        return $this->response->end('Class file for '.$filePath.' is exit, but the file:'.$controller.'.php'.' has not define '.'"'.$action.'()'.'"'.' method');
+		        return $this->response->end(json_encode([
+		        	'ret'=>404,
+		        	'msg'=>'Class file for '.$filePath.' is exit, but the file:'.$controller.'.php'.' has not define '.'"'.$action.'()'.'"'.' method',
+		        	'data'=>''
+		        ]));
 			}
 		}
 	}
@@ -279,7 +296,6 @@ class HttpRoute extends AppDispatch {
 	 * @return   boolean
 	 */
 	public static function isExistRouteFile($route) {
-		
 		return isset(self::$routeCacheFileMap[$route]) ? self::$routeCacheFileMap[$route] : false;
 	}
 

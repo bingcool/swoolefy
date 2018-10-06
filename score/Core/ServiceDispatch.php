@@ -55,7 +55,17 @@ class ServiceDispatch extends AppDispatch {
 		$class = trim($class, '/');
 		if(!self::$routeCacheFileMap[$class]) {
 			if(!$this->checkClass($class)){
-				// TODO
+				$app_conf = Swfy::getAppConf();
+				if(isset($app_conf['not_found_handle']) && is_string($app_conf['not_found_handle'])) {
+					$handle = $app_conf['not_found_handle'];
+					$notFoundInstance = new $handle;
+					if($notFoundInstance instanceof \Swoolefy\Core\NotFound) {
+						$notFoundInstance->return404($class);
+						return;
+					}
+				}
+				$notFoundInstance = new \Swoolefy\Core\NotFound();
+				$notFoundInstance->return404($class);
 				throw new \Exception("when dispatch, $class file is not exist", 1);
 			}
 		}
@@ -64,11 +74,36 @@ class ServiceDispatch extends AppDispatch {
 		$serviceInstance = new $class();
 		$serviceInstance->mixed_params = $this->params;
 		try{
-			$serviceInstance->$action($this->params);
-		}catch(\Exception $e) {
-			throw new \Exception($e->getMessage());
-		}catch(\Exception $e) {
-			throw new \Exception("when dispatch, create $class Instance Fatal error, $class is not exist or $action is not exist!", 1);
+			if(method_exists($serviceInstance, $action)) {
+				$serviceInstance->$action($this->params);
+			}else {
+				$app_conf = Swfy::getAppConf();
+				if(isset($app_conf['not_found_handle']) && is_string($app_conf['not_found_handle'])) {
+					$handle = $app_conf['not_found_handle'];
+					$notFoundInstance = new $handle;
+					if($notFoundInstance instanceof \Swoolefy\Core\NotFound) {
+						$notFoundInstance->return500($class, $action);
+						return;
+					}
+				}
+				$notFoundInstance = new \Swoolefy\Core\NotFound();
+				$notFoundInstance->return500($class, $action);
+				return;
+			}
+		}catch(\Throwable $t) {
+			$msg = $t->getMessage();
+			$app_conf = Swfy::getAppConf();
+			if(isset($app_conf['not_found_handle']) && is_string($app_conf['not_found_handle'])) {
+				$handle = $app_conf['not_found_handle'];
+				$notFoundInstance = new $handle;
+				if($notFoundInstance instanceof \Swoolefy\Core\NotFound) {
+					$notFoundInstance->returnError($msg);
+				}
+			}else {
+				$notFoundInstance = new \Swoolefy\Core\NotFound();
+				$notFoundInstance->returnError($msg);
+			}
+			throw new \Exception($msg);
 		}
 		
 	}
