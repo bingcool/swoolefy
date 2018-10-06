@@ -28,7 +28,7 @@ trait AppTrait {
 	 * @return   mixed
 	 */
 	public function _beforeAction() {
-
+		return true;
 	}
 
 	/**
@@ -36,7 +36,7 @@ trait AppTrait {
 	 * @return   mixed
 	 */
 	public function _afterAction() {
-
+		return true;
 	}
 	/**
 	 * isGet

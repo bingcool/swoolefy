@@ -18,7 +18,7 @@ class AppDispatch {
 	 * $fileRouteMap 缓存请求类文件是否存在的map映射，纯内存，无需每次请求判断is_file
 	 * @var array
 	 */
-	public static $routeCacheFileMap = [];
+	protected static $routeCacheFileMap = [];
 
 	/**
 	 * __construct 
