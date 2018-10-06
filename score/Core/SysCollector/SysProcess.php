@@ -50,10 +50,10 @@ class SysProcess extends AbstractProcess {
 						$this->sendByUdp($sys_collector_config, $data);
 					break;
 					case SWOOLEFY_SYS_COLLECTOR_SWOOLEREDIS:
-						$this->publicBySwooleRedis($sys_collector_config, $data);
+						$this->publishBySwooleRedis($sys_collector_config, $data);
 					break;
 					case SWOOLEFY_SYS_COLLECTOR_PHPREDIS:
-						$this->publicByPhpRedis($sys_collector_config, $data);
+						$this->publishByPhpRedis($sys_collector_config, $data);
 					break;
 					case SWOOLEFY_SYS_COLLECTOR_FILE:
 						$this->writeByFile($sys_collector_config, $data);
@@ -108,7 +108,7 @@ class SysProcess extends AbstractProcess {
 	 * @param  $array $data
 	 * @return void
 	 */
-	protected function publicBySwooleRedis(array $sys_collector_config, array $data = []) {
+	protected function publishBySwooleRedis(array $sys_collector_config, array $data = []) {
 		static $redis_client;
 		$host = $sys_collector_config['host'];
 		$port = (int)$sys_collector_config['port'];
@@ -145,7 +145,7 @@ class SysProcess extends AbstractProcess {
 	 * @param  array  $data                
 	 * @return void                      
 	 */
-	protected function publicByPhpRedis(array $sys_collector_config, array $data = []) {
+	protected function publishByPhpRedis(array $sys_collector_config, array $data = []) {
 		static $redis_client;
 		$host = $sys_collector_config['host'];
 		$port = (int)$sys_collector_config['port'];
