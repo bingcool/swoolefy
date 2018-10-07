@@ -46,7 +46,7 @@ class RpcClientManager {
 	 * __construct 
 	 * @param  array $setting
 	 */
-	public function __construct(bool $is_swoole_env = false) {
+	protected function __construct(bool $is_swoole_env = false) {
 		$this->is_swoole_env = $is_swoole_env;
 	}
 
