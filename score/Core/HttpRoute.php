@@ -242,8 +242,14 @@ class HttpRoute extends AppDispatch {
 		            // 方法调用发生异常后 引导到__call方法处理
 		            $method = new \ReflectionMethod($controllerInstance, '__call');
 		            $method->invokeArgs($controllerInstance, array($action, ''));
-		        }catch(\Throwable $e) {
-		        	throw new \Exception($e->getMessage(), 1);
+		        }catch(\Throwable $t) {
+				    $msg = 'Fatal error: '.$t->getMessage().' on '.$t->getFile().' on line '.$t->getLine();
+                    $this->response->write(json_encode([
+                        'ret' => 500,
+                        'msg' => $msg,
+                        'data' => ''
+                    ]));
+		        	throw new \Exception($msg, 1);
 		        }
 			}else {
 				return $this->response->end(json_encode([
