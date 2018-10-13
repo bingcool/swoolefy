@@ -120,7 +120,7 @@ docker exec -it dev /bin/sh
 默认端口9504，可以在配置文件`protocol/rpc/config.php`中更改。
 
 ### udp服务   
-1、启动swoole的rpc服务，进入项目目录   
+1、启动swoole的udp服务，进入项目目录   
 ```    
 启动：php swoolefy start udp    
 守护进程启动：php swoolefy start udp -d     
