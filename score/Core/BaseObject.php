@@ -65,7 +65,7 @@ class BaseObject {
 	 * @return   mixed
 	 */
 	public function __call($action, $args = []) {
-		throw new \Exception("Error Processing Request, $action() is not exist！", 1);			
+		throw new \Exception("Error Processing Request, $action() is undefined！", 1);
 	}
 
 	/**
