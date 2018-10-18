@@ -197,7 +197,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
         list($usec, $sec) = explode(" ", microtime());
         $min = intval('1' . str_repeat('0', $rand_length - 1));
         $max = intval(str_repeat('9', $rand_length));
-        return substr($sec, -5) . ((int)$usec * 100) . rand($min, $max);
+        return substr($sec, -5) . ((int)$usec * 100) . mt_rand($min, $max);
     }
 
     /**
@@ -210,7 +210,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
         if (empty($seed)) {
             $seed = self::string(20);
         }
-        return substr(md5($seed . rand(111111, 999999)), 0, $length);
+        return substr(md5($seed . mt_rand(111111, 999999)), 0, $length);
     }
 
     /**

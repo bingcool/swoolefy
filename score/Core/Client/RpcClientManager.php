@@ -117,7 +117,7 @@ class RpcClientManager {
 					$client_service = unserialize(self::$client_services[$key]);
 				}		
 				$us = strstr(microtime(), ' ', true);
-        		$client_id = intval(strval($us * 1000 * 1000) . rand(100, 999));
+        		$client_id = intval(strval($us * 1000 * 1000) . mt_rand(100, 999));
 				if(!isset(self::$busy_client_services[$client_id])) {
 					self::$busy_client_services[$client_id] = $client_service;
 				}
