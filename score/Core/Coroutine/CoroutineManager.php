@@ -57,7 +57,7 @@ class CoroutineManager {
 			if(isset(self::$cid) && !empty(self::$cid)) {
 				return self::$cid;
 			}
-			$cid = (string)time().'_'.rand(1,999);
+			$cid = (string)time().'_'.mt_rand(1,999);
 			self::$cid = self::PREFIX_CID.$cid;
 			return self::$cid;
 		}
