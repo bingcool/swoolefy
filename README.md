@@ -14,7 +14,7 @@ swoolefy是一个基于swoole扩展实现的轻量级高性能的常驻内存型
 8、封装View，Log，Mysql，Redis，Mongodb，Swiftmail，Session等常用组件，其他组件根据业务按照约定即可封装成组件                  
 9、实现异步半阻塞与全异步非阻塞，协程与非协程，EventHander与底层解耦，注册应用实例      
 10、支持swoole4.x的原生协程，高度封装mysql，redis协程组件，同时支持mysql，redis连接池。  
-11、支持自定义进程的redis，rabitmq，kafka的订阅发布，消息队列    
+11、支持自定义进程的redis，rabitmq，kafka的订阅发布，消息队列，支持crontab  
 12、支持定时的系统信息采集，并以订阅发布，udp等方式收集     
 13、基于inotify实现自动监控swoole服务的文件变动，实现worker自动reload，智能邮件通知    
 14、命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架           
