@@ -19,7 +19,7 @@ class Application {
 	 * $app 应用对象
 	 * @var null
 	 */
-	public static $app = null;
+	protected static $app = [];
 
 	/**
 	 * $dump 记录启动时的调试打印信息
@@ -38,7 +38,7 @@ class Application {
 	 */
 	public static function setApp($App) {
 		if(Swfy::isWorkerProcess()) {
-			// process进程将会定义成worker进程,ticker的callback应用实例必须继承ProcessController
+			// process进程中，将会定义成worker进程，进程本身不产生协程，默认返回-1，但可以使用go()创建协程，和ticker的callback应用实例是支持协程的，controller必须继承TickController 或者父类ProcessController等
 			if($App instanceof \Swoolefy\Core\Process\ProcessController) {
 				$cid = $App->coroutine_id;
 				if(isset(self::$app[$cid])) {
@@ -48,7 +48,7 @@ class Application {
 				return true;
 			}
 			
-			// 在worker进程中进行,AppObject是http应用,swoole是rpc,websocket,udp应用，TickController是tick的回调应用
+			// 在worker进程中进行，AppObject是http应用,swoole是rpc,websocket,udp应用，TickController是tick的回调应用
 			if($App instanceof \Swoolefy\Core\AppObject || $App instanceof \Swoolefy\Core\Swoole || $App instanceof \Swoolefy\Core\Timer\TickController || $App instanceof \Swoolefy\Core\EventController) {
 				$cid = $App->coroutine_id;
 				if(isset(self::$app[$cid])) {
@@ -58,7 +58,7 @@ class Application {
 				return true;
 			}		 
 		}else if(Swfy::isTaskProcess()) {
-			// task中不创建协程，也不能使用协程,ticker的callback可以创建协程
+			// task进程中，ticker的callback可以创建协程
 			if($App instanceof \Swoolefy\Core\Timer\TickController) {
 				$cid = $App->coroutine_id;
 				if(isset(self::$app[$cid])) {
@@ -67,8 +67,8 @@ class Application {
 				self::$app[$cid] = $App;
 				return true;
 			}
-			
-			// http的task任务
+
+			// task进程中，http的task应用实例，没有产生协程id的，默认返回为-1，此时$App->coroutine_id等于cid_task_process
 			if($App instanceof \Swoolefy\Core\Task\TaskController) {
 				$cid = $App->coroutine_id;
 				if(isset(self::$app[$cid])) {
@@ -78,8 +78,18 @@ class Application {
 				return true;
 			}
 
-			// rpc,websocket,udp的task
+			// task进程中，rpc,websocket,udp的task应用实例，没有产生协程id的，默认返回为-1，此时$App->coroutine_id等于cid_task_process
 			if($App instanceof \Swoolefy\Core\Swoole) {
+				$cid = $App->coroutine_id;
+				if(isset(self::$app[$cid])) {
+					unset(self::$app[$cid]);
+				}
+				self::$app[$cid] = $App;
+				return true;
+			}
+
+			// task进程中，swoole4.2.3版本起支持异步协程了，可以使用go创建协程和使用协程api
+			if($App instanceof \Swoolefy\Core\EventController) {
 				$cid = $App->coroutine_id;
 				if(isset(self::$app[$cid])) {
 					unset(self::$app[$cid]);
