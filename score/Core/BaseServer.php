@@ -101,6 +101,8 @@ class BaseServer {
 	 * __construct 初始化swoole的内置服务与检查
 	 */
 	public function __construct() {
+		// set config
+		Swfy::$config = self::$config;
 		// set timeZone
 		self::setTimeZone(); 
 		// include common function
