@@ -67,13 +67,7 @@ class Tick {
      */
     public static function tick($time_interval, $func, $user_params = null, $is_sington = false) {
         $tid = swoole_timer_tick($time_interval, function($timer_id, $user_params) use($func, $is_sington) {
-            $params = [];
-            if($user_params) {
-                $params = [$user_params, $timer_id];
-            }else {
-                $params = [$timer_id];
-            }
-
+            $params = [$user_params, $timer_id];
             if(is_array($func)) {
                 list($class, $action) = $func;
                 if($is_sington) {
@@ -91,8 +85,12 @@ class Tick {
                 }else {
                     $tickTaskInstance = new $class;
                 }
+                call_user_func_array([$tickTaskInstance, $action], $params);
+            }else if($func instanceof \Closure) {
+                //$tickInstance = new TickController();
+                // call_user_func_array($func->bindTo($tickInstance, get_class($tickInstance)), $params);
+                $func->call(new TickController, $user_params, $timer_id);
             }
-            call_user_func_array([$tickTaskInstance, $action], $params);
             if(method_exists("Swoolefy\\Core\\Application", 'removeApp')) {
                 Application::removeApp();
             }
@@ -101,8 +99,8 @@ class Tick {
 
         if($tid) {
             self::$_tick_tasks[$tid] = array('callback'=>$func, 'params'=>$user_params, 'time_interval'=>$time_interval, 'timer_id'=>$tid, 'start_time'=>date('Y-m-d H:i:s',strtotime('now')));
-            if(isset(Swfy::$config['open_table_tick_task']) && Swfy::$config['open_table_tick_task'] == true) {
-                
+            $config = Swfy::getConf();
+            if(isset($config['open_table_tick_task']) && $config['open_table_tick_task'] == true) {
                 TableManager::set('table_ticker', 'tick_timer_task', ['tick_tasks'=>json_encode(self::$_tick_tasks)]);
             }
             
@@ -124,7 +122,8 @@ class Tick {
                     unset(self::$_tick_tasks[$timer_id], self::$_tasks_instances[$timer_id]); 
                 }
             }
-            if(isset(Swfy::$config['open_table_tick_task']) && Swfy::$config['open_table_tick_task'] == true) {
+            $config = Swfy::getConf();
+            if(isset($config['open_table_tick_task']) && $config['open_table_tick_task'] == true) {
 
                 TableManager::set('table_ticker', 'tick_timer_task', ['tick_tasks'=>json_encode(self::$_tick_tasks)]);
 
@@ -183,7 +182,8 @@ class Tick {
 
         if($tid) {
             self::$_after_tasks[$tid] = array('callback'=>$func, 'params'=>$user_params, 'time_interval'=>$time_interval, 'timer_id'=>$tid, 'start_time'=>date('Y-m-d H:i:s',strtotime('now')));
-            if(isset(Swfy::$config['open_table_tick_task']) && Swfy::$config['open_table_tick_task'] == true) {
+            $config = Swfy::getConf();
+            if(isset($config['open_table_tick_task']) && $config['open_table_tick_task'] == true) {
 
                 TableManager::set('table_after', 'after_timer_task', ['after_tasks'=>json_encode(self::$_after_tasks)]);
             }
@@ -206,7 +206,8 @@ class Tick {
                     unset(self::$_after_tasks[$key]);    
                 }
             }
-            if(isset(Swfy::$config['open_table_tick_task']) && Swfy::$config['open_table_tick_task'] == true) {
+            $config = Swfy::getConf();
+            if(isset($config['open_table_tick_task']) && $config['open_table_tick_task'] == true) {
 
                 TableManager::set('table_after', 'after_timer_task', ['after_tasks'=>json_encode(self::$_after_tasks)]);
             }

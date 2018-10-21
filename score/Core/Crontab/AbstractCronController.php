@@ -37,9 +37,10 @@ abstract class AbstractCronController extends ProcessController {
     /**
      * runCron 
      * @param  string  $expression cron的表达式
+     * @param  callable $func   闭包函数
      * @return [type] [description]
      */
-    public function runCron(string $expression) {
+    public function runCron(string $expression, $func = null) {
     	$expression_key = md5($expression);
     	$cron = CronExpression::factory($expression);
         $now_time = time();   
@@ -53,7 +54,12 @@ abstract class AbstractCronController extends ProcessController {
 
         	if(($now_time == static::$cron_next_datetime[$expression_key] || $now_time == (static::$cron_next_datetime[$expression_key] + static::$offset_second))) {
 	            static::$cron_next_datetime[$expression_key] = $cron_next_datetime;
-	            $this->doCronTask($cron);
+                if($func instanceof \Closure) {
+                    //call_user_func_array($func->bindTo($this, get_class($this)), [$cron]);
+                    $func->call($this, $cron);
+                }else {
+                    $this->doCronTask($cron);
+                }
         	}
 
         	// 防止万一出现的异常出现，比如没有命中任务，本来是19:05:00要命中的，由于其他网络或者服务器其他原因，阻塞了,造成延迟，现在时间已经到了19::05:05
