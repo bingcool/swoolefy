@@ -170,8 +170,11 @@ class Tick {
             if(is_array($func)) {
                 list($class, $action) = $func;
                 $tickTaskInstance = new $class;
+                call_user_func_array([$tickTaskInstance, $action], $params);
+            }else if($func instanceof \Closure) {
+                $func->call(new TickController, $user_params, $timer_id = null);
             }
-            call_user_func_array([$tickTaskInstance, $action], $params);
+            
             if(method_exists("Swoolefy\\Core\\Application", 'removeApp')) {
                 Application::removeApp();
             }
