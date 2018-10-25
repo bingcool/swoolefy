@@ -47,7 +47,7 @@ class CrontabManager {
 					unset($cron_name_key);
 				}
 			}else {
-				throw new \Exception("crontab expression foramt is wrong, please check it", 1);
+				throw new \Exception("crontab expression format is wrong, please check it", 1);
 			}
 		}else {
 			throw new \Exception("want to use crontab, you need to install Cron\CronExpression", 1);	
