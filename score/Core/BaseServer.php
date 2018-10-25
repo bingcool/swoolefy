@@ -37,7 +37,7 @@ class BaseServer {
 	 * $isEnableCoroutine 是否启用协程
 	 * @var boolean
 	 */
-	public static $isEnableCoroutine = false;
+	protected static $isEnableCoroutine = false;
 
 	/**
 	 * $pack_check_type pack检查的方式
@@ -71,7 +71,7 @@ class BaseServer {
 	 * $_tasks 实时内存表保存数据,所有worker共享
 	 * @var null
 	 */
-	public static $_table_tasks = [
+	protected static $_table_tasks = [
 		// 循环定时器内存表
 		'table_ticker' => [
 			// 每个内存表建立的行数
