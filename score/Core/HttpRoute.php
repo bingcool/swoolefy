@@ -244,12 +244,13 @@ class HttpRoute extends AppDispatch {
 		            $method->invokeArgs($controllerInstance, array($action, ''));
 		        }catch(\Throwable $t) {
 				    $msg = 'Fatal error: '.$t->getMessage().' on '.$t->getFile().' on line '.$t->getLine();
-                    $this->response->write(json_encode([
+                    $this->response->end(json_encode([
                         'ret' => 500,
                         'msg' => $msg,
                         'data' => ''
                     ]));
-		        	throw new \Exception($msg, 1);
+                    // 触发错误异常
+                    throw new \Exception($msg, 1); 
 		        }
 			}else {
 				return $this->response->end(json_encode([
@@ -323,8 +324,7 @@ class HttpRoute extends AppDispatch {
 		if(strpos($route, '/') != 0) {
 			Application::getApp()->request->server['PATH_INFO'] = '/'.$route;
 		}
-		Application::getApp()->request->server['PATH_INFO'] = $route;
-		
+		Application::getApp()->request->server['PATH_INFO'] = $route;	
 	}
 
 }
