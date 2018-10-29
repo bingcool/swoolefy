@@ -8,6 +8,7 @@ sftp-config.json
 *.pid
 *.lock
 *.idea
+*.json.back
 #dir
 /App
 /Service
