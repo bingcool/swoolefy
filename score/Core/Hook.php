@@ -65,15 +65,17 @@ class Hook {
 				$func();
 			}
 		}
-		// init
-		self::$hooks = [];
+		// afterRequest钩子是目前应用实例生命周期最后执行的，这里直接将该协程的所有钩子函数都unset
+        if($type == self::HOOK_AFTER_REQUEST && isset(self::$hooks[$cid])) {
+            unset(self::$hooks[$cid]);
+        }
 	}
 
 	/**
 	 * getHookCallable 获取所有的钩子函数
 	 * @return  array
 	 */
-	public static function getHookCallable($cid) {
+	public static function getHookCallable($cid = null) {
 		if($cid) {
 			return self::$hooks[$cid];
 		}
