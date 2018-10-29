@@ -50,7 +50,7 @@ class CrontabManager {
 				throw new \Exception("crontab expression format is wrong, please check it", 1);
 			}
 		}else {
-			throw new \Exception("want to use crontab, you need to install Cron\CronExpression", 1);	
+			throw new \Exception("If you want to use crontab, you need to install 'composer require dragonmantank/cron-expression' ", 1);	
 		}
 	}
 
