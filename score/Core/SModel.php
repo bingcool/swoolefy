@@ -44,21 +44,21 @@ class SModel extends BaseObject {
 	 * @param   string  $property
 	 * @param   mixed   $value
 	 */
-	public function setStruct($property, $value=null) {
+	public function setStruct(string $property, $value = null) {
 		$this->struct->set($property, $value);
 	}
 
 	/**
-	 * MsetStruct 批量设置 
+	 * setMStruct 批量设置
 	 * @param    array  $array
 	 * @return   boolean
 	 */
-	public function MsetStruct($array) {
+	public function setMStruct(array $array = []) {
         if(!is_array($array) || empty($array)) {
             return false;
         }
 
-        foreach($array as $property=>$value) {
+        foreach($array as $property => $value) {
             $this->struct->set($property, $value);
         }
         return true;
@@ -70,7 +70,7 @@ class SModel extends BaseObject {
 	 * @param    mixed   $default
 	 * @return   mixed
 	 */
-	public function getStruct($property, $default = null) {
+	public function getStruct(string $property, $default = null) {
 		return $this->struct->get($property, $default);
 	}
 
