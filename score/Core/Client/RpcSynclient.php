@@ -130,6 +130,24 @@ class RpcSynclient {
     protected $recvWay = RpcClientConst::WAIT_RECV;
 
     /**
+     * 开始rpc请求的时间，单位us
+     * @var null
+     */
+    protected $start_rpc_time = null;
+
+    /**
+     * rpc调用返回获取到结果的时间，单位us
+     * @var null
+     */
+    protected $end_rpc_time = null;
+
+    /**
+     * 是否启用rpc请求的时间计算，默认false
+     * @var bool
+     */
+    protected $is_end_rpc_time = false;
+
+    /**
      * 定义序列化的方式
      */
     const SERIALIZE_TYPE = [
@@ -322,6 +340,62 @@ class RpcSynclient {
     }
 
     /**
+     * 设置请求的开始时间，单位us
+     */
+    public function setStartRpcTime() {
+        $this->start_rpc_time = microtime(true);
+    }
+
+    /**
+     * 获取请求的开始时间，单位us
+     * @return null
+     */
+    public function getStartRpcTime() {
+        return $this->start_rpc_time;
+    }
+
+    /**
+     * 设置rpc请求结束的时间，单位us
+     */
+    public function setEndRpcTime() {
+        $this->end_rpc_time = microtime(true);
+    }
+
+    /**
+     * 获取rpc请求结束的时间，单位us
+     * @return null
+     */
+    public function getEndRpcTime() {
+        return $this->end_rpc_time;
+    }
+
+    /**
+     * 启用rpc的请求时间记录
+     */
+    public function enableRpcRequestTime() {
+        $this->is_end_rpc_time = true;
+        return $this;
+    }
+
+    /**
+     * 判断是否启用rpc时间记录请求
+     * @return bool
+     */
+    public function isEnableRpcTime() {
+        return $this->is_end_rpc_time;
+    }
+
+    /**
+     * 获取rpc请求的总时间，单位毫秒ms
+     */
+    public function getRpcRequestTime() {
+        if(isset($this->start_rpc_time) && isset($this->end_rpc_time)) {
+            return number_format(($this->end_rpc_time - $this->start_rpc_time) * 1000, 3);
+        }
+        return null;
+    }
+
+    /**
      * isSwooleKeep 
      * @return   boolean  
      */
@@ -506,7 +580,10 @@ class RpcSynclient {
         if(empty($header)) {
             $header = $this->request_header;
         }
-
+        //记录Rpc开始请求时间
+        if($this->isEnableRpcTime()) {
+            $this->setStartRpcTime();
+        }
         // 封装包
         $pack_data = $this->enpack($data, $header, $this->server_header_struct, $this->pack_length_key, $this->server_serialize_type);
 		$res = $this->client->send($pack_data);
@@ -555,6 +632,10 @@ class RpcSynclient {
             if($ret) {
                 $data = $this->client->recv($size, $flags);
             }
+        }
+        //记录Rpc结束请求时间
+        if($this->isEnableRpcTime()) {
+            $this->setEndRpcTime();
         }
         // client获取数据完成后，释放工作的client_services的实例
         RpcClientManager::getInstance()->destroyBusyClient();

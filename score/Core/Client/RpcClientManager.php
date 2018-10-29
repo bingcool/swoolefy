@@ -167,6 +167,10 @@ class RpcClientManager {
 	                $data = $swoole_client->recv($size, $flags);
 	                $client_id = $client_ids[$k];
 	                $client_service = $client_services[$client_id];
+                    //记录Rpc结束请求时间,这里由于是并行的，可能时间并不会很准确的
+                    if($client_service->isEnableRpcTime()) {
+                        $client_service->setEndRpcTime();
+                    }
 	                if($data) {
 	                    if($client_service->isPackLengthCheck()) {
 	                    	$response = $client_service->depack($data);
