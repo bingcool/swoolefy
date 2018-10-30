@@ -54,10 +54,12 @@ class App extends \Swoolefy\Core\Component {
 	 * __construct
 	 * @param $config 应用层配置
 	 */
-	public function __construct(array $config=[]) {
+	public function __construct(array $config = []) {
+		// 将应用层保存在当前的应用实例
+		$this->config = $config;
 		// 将应用层配置保存在上下文的服务
-		$this->config = Swfy::$appConfig = $config;
-		// 注册错误处理事件
+		Swfy::setAppConf($config);
+		// 获取协议层配置
 		$protocol_config = Swfy::getConf();
 		if(isset($protocol_config['exception_hander_class']) && !empty($protocol_config['exception_hander_class'])) {
 			$this->ExceptionHanderClass = $protocol_config['exception_hander_class'];
@@ -97,7 +99,6 @@ class App extends \Swoolefy\Core\Component {
 	public function run($request, $response, $extend_data = null) {
 		// Component组件创建
 		parent::creatObject();
-		// 赋值对象
 		$this->request = $request;
 		$this->response = $response;
 		$coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
