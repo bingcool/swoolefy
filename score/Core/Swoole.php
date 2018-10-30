@@ -56,10 +56,12 @@ class Swoole extends BaseObject {
 	 * __construct
 	 * @param $config 应用层配置
 	 */
-	public function __construct(array $config=[]) {
+	public function __construct(array $config = []) {
 		// 将应用层配置保存在上下文的服务
-		$this->config = Swfy::$appConfig = $config;
-		// 注册错误处理事件
+		$this->config = $config;
+		// 将应用层配置保存在上下文的服务
+		Swfy::setAppConf($config);
+		// 获取协议层配置
 		$protocol_config = Swfy::getConf();
 		if(isset($protocol_config['exception_hander_class']) && !empty($protocol_config['exception_hander_class'])) {
 			$this->ExceptionHanderClass = $protocol_config['exception_hander_class'];
@@ -89,10 +91,10 @@ class Swoole extends BaseObject {
 	 * @return void
 	 */
 	public function run($fd, $recv) {
-		$coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
-		$this->coroutine_id = $coroutine_id;
 		// Component组件创建
 		$this->creatObject();
+		$coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
+		$this->coroutine_id = $coroutine_id;
 		Application::setApp($this);
 		$this->fd = $fd;
 		// 初始化处理
