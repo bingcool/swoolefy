@@ -27,8 +27,8 @@ class MongodbCollection {
      * __construct
      * @param string $collection
      */
-    public function __construct($collection, $_id) {
-        $this->collectionInstance = MongodbModel::$databaseObject->$collection;
+    public function __construct($collection, $_id, $databaseObject) {
+        $this->collectionInstance = $databaseObject->$collection;
         $this->_id = $_id;
     }
 

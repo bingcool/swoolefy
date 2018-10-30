@@ -39,13 +39,13 @@ class MongodbModel {
      * $databaseObject 数据库对象
      * @var null
      */
-    public static $databaseObject = null;
+    protected $databaseObject = null;
 
     /**
      * $collectionModels 每个collection的操作对象
      * @var array
      */
-    public static $collectionModels = [];
+    protected $collectionModels = [];
 
     /**
      * _id 将默认设置成id
@@ -80,11 +80,11 @@ class MongodbModel {
      * @return   object
      */
     public function dbInstance($db = null) {
-        if(isset(self::$databaseObject) && is_object(self::$databaseObject)) {
-            return  self::$databaseObject;
+        if(isset($this->databaseObject) && is_object($this->databaseObject)) {
+            return  $this->databaseObject;
         }
         $db = $this->setDatabase($db);
-        return self::$databaseObject = $this->mongodbClient->$db;
+        return $this->databaseObject = $this->mongodbClient->$db;
     }
 
      /**
@@ -120,12 +120,12 @@ class MongodbModel {
             $this->mongodbClient = new Client($this->uri, $this->uriOptions, $this->driverOptions);
         }
 
-        if(isset(self::$collectionModels[$collection]) && is_object(self::$collectionModels[$collection])) {
-            return self::$collectionModels[$collection]; 
+        if(isset($this->collectionModels[$collection]) && is_object($this->collectionModels[$collection])) {
+            return $this->collectionModels[$collection];
         }
 
-        $this->dbInstance();
-        return self::$collectionModels[$collection] = new MongodbCollection($collection, $this->_id);
+        $databaseObject = $this->dbInstance();
+        return $this->collectionModels[$collection] = new MongodbCollection($collection, $this->_id, $databaseObject);
     }
 
     /**
@@ -157,11 +157,11 @@ class MongodbModel {
     }
 
     /**
-     * __destruct 销毁初始化静态变量
+     * __destruct 销毁初始化变量
      */
     public function __destruct() {
-        self::$databaseObject = null;
-        self::$collectionModels = [];
+        $this->databaseObject = null;
+        $this->collectionModels = [];
     }
 
 }

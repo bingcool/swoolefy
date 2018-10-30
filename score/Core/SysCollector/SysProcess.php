@@ -170,7 +170,7 @@ class SysProcess extends AbstractProcess {
 				throw new \Exception($e->getMessage(), 1);
 			}
 		}else {
-			throw new \Exception('sys_collector_config of params: $host, $port, $password mustbe setted');
+			throw new \Exception('sys_collector_config of params: $host, $port, $password must be setted');
 		}
 		
 		if($data) {
