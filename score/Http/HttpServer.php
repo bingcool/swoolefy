@@ -117,6 +117,8 @@ abstract class HttpServer extends BaseServer {
 			self::startInclude();
 			// 记录worker的进程worker_pid与worker_id的映射
 			self::setWorkersPid($worker_id, $server->worker_pid);
+			// 启动动态运行时的Coroutine
+			self::runtimeEnableCoroutine();
 			// 超全局变量server
        		Swfy::$server = $this->webserver;
        		Swfy::$config = self::$config;

@@ -554,6 +554,24 @@ class BaseServer {
     }
 
     /**
+     * runtimeEnableCoroutine 运行时动态设置协程
+     * 只有进程中启动了这个协程，则在该进程中全局有效
+     * @return void
+     */
+    public static function runtimeEnableCoroutine() {
+    	if(method_exists('Swoole\\Runtime', 'enableCoroutine')) {
+    		if(isset(self::$config['runtime_enableCoroutine']) && (bool)self::$config['runtime_enableCoroutine'] == true) {
+	    		if(isset(self::$config['runtime_enableCoroutine_flags']) && is_int(self::$config['runtime_enableCoroutine_flags'])) {
+	    			$flags = self::$config['runtime_enableCoroutine_flags'];	
+	    		}else {
+	    			$flags = SWOOLE_HOOK_ALL;
+	    		}
+	    		\Swoole\Runtime::enableCoroutine(true, $flags);
+    		}
+    	}
+    }
+
+    /**
      * catchException 
      * @param  Exception $e
      * @return void
