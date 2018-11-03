@@ -140,6 +140,12 @@ trait AppTrait {
 
     		case 'post':
     			$input = $this->request->post;
+    			if(empty($input)) {
+    				$input = json_decode($this->request->rawContent(), true);
+    				if(!$input) {
+    					$input = [];
+    				}
+    			}
     		break; 
     		default :
     			$input = [];
@@ -150,8 +156,13 @@ trait AppTrait {
     	}else {
     		$get = isset($this->request->get) ? $this->request->get : [];
     		$post = isset($this->request->post) ? $this->request->post : [];
+    		if(empty($post)) {
+    			$post = json_decode($this->request->rawContent(), true);
+    			if(!$post) {
+    				$post = [];
+    			}
+    		}
     		$value = array_merge($get, $post);
-    		$value = $value ? $value : null;
     		unset($input, $get, $post);
     	}
     	return $value;
@@ -181,6 +192,9 @@ trait AppTrait {
      */
     public function getPostParams(string $name = null) {
     	$input = $this->request->post;
+    	if(!$input) {
+    		$input = json_decode($this->request->rawContent(), true);
+    	}
     	if($name) {
     		$value = (isset($input[$name]) && !empty($input[$name])) ? $input[$name] : null;
     	}else {

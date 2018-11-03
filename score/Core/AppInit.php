@@ -39,9 +39,7 @@ class AppInit extends Init {
 		foreach($request->header as $key => $value) {
             $_key = 'HTTP_' . strtoupper(str_replace('-', '_', $key));
             $request->server[$_key] = $value;
+            $request->header[$_key] = $value;
         }
-
-        $request->server = array_merge($_SERVER, $request->server);
 	}
-
 }
