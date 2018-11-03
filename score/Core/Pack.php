@@ -189,27 +189,7 @@ class Pack {
 	}
 
 	/**
-	 * setPackLengthType  设置pack头的类型
-	 * @return   string 
-	 */
-	public function setPackLengthType(array $struct=[]) {
-		if(self::$pack_length_type) {
-			return self::$pack_length_type;
-		}
-
-		$pack_length_type = '';
-		if(self::$header_struct) {
-			foreach(self::$header_struct as $key=>$value) {
-				$pack_length_type .= $value;
-			}
-		}
-		// 赋值
-		self::$pack_length_type = $pack_length_type;
-		return $pack_length_type;
-	}
-
-	/**
-	 * setPackLengthType  设置unpack头的类型
+	 * setUnPackLengthType  设置unpack头的类型
 	 * @return   string 
 	 */
 	public function setUnpackLengthType(array $struct=[]) {
