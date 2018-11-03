@@ -196,6 +196,50 @@ trait ServiceTrait {
 	}
 
 	/**
+	 * isHttpApp 
+	 * @return boolean
+	 */
+	public function isHttpApp() {
+		if(BaseServer::getServiceProtocol() == SWOOLEFY_HTTP) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * isRpcApp 判断当前应用是否是Tcp
+	 * @return boolean
+	 */
+	public function isRpcApp() {
+		if(BaseServer::getServiceProtocol() == SWOOLEFY_TCP) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * isWebsocketApp 
+	 * @return boolean
+	 */
+	public function isWebsocketApp() {
+		if(BaseServer::getServiceProtocol() == SWOOLEFY_WEBSOCKET) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * isUdpApp
+	 * @return boolean
+	 */
+	public function isUdpApp() {
+		if(BaseServer::getServiceProtocol() == SWOOLEFY_UDP) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
 	 * getServer 获取server对象
 	 * @return   object
 	 */
