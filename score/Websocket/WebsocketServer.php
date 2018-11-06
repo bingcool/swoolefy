@@ -164,6 +164,7 @@ abstract class WebsocketServer extends BaseServer {
 		 */
 		$this->webserver->on('message', function(websocket_server $server, $frame) {
 			try{
+				parent::beforeHandler();
 				static::onMessage($server, $frame);
 				return true;
 			}catch(\Exception $e) {

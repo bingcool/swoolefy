@@ -28,7 +28,7 @@ class SModel extends BaseObject {
 	 * $struct 数据结构对象
 	 * @var null
 	 */
-	public $struct = null;
+	protected $struct = null;
 
 	/**
 	 * __construct 初始化函数
