@@ -13,6 +13,7 @@ namespace Swoolefy\Core\SysCollector;
 
 use Swoole\Process;
 use Swoolefy\Core\Swfy;
+use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Memory\AtomicManager;
 use Swoolefy\Core\Process\AbstractProcess;
 use Swoolefy\Core\Process\ProcessController;
@@ -31,7 +32,8 @@ class SysProcess extends AbstractProcess {
 			$type = $sys_collector_config['type'];
 			$tick_time = isset($sys_collector_config['tick_time']) ? (float) $sys_collector_config['tick_time'] : 5;
 			$atomic = AtomicManager::getInstance()->getAtomicLong('atomic_request_count');
-			swoole_timer_tick($tick_time * 1000, function($timer_id) use($type, $sys_collector_config, $atomic, $tick_time) {
+            $isEnablePvCollector = BaseServer::isEnablePvCollector();
+			swoole_timer_tick($tick_time * 1000, function($timer_id) use($type, $sys_collector_config, $atomic, $tick_time, $isEnablePvCollector) {
 				// 统计系统信息
 				if(isset($sys_collector_config['func']) && $sys_collector_config['func'] instanceof \Closure) {
 					$res = call_user_func($sys_collector_config['func']);
@@ -41,9 +43,11 @@ class SysProcess extends AbstractProcess {
 						$sys_info = $res;
 					}
 				}
-				// 计算其他信息
-				$total_rqruest = $atomic->get();
-				$data = ['total_request'=> $total_rqruest, 'tick_time'=>$tick_time,'from_service'=>$sys_collector_config['from_service'], 'timestamp'=>strtotime('now')];
+				// pv原子计数器
+                $total_rqruest_num = $isEnablePvCollector ? $atomic->get() : 0;
+				// 当前时间段内原子清空
+                $total_rqruest_num && $atomic->sub($total_rqruest_num);
+				$data = ['total_request'=> $total_rqruest_num, 'tick_time'=>$tick_time,'from_service'=>$sys_collector_config['from_service'], 'timestamp'=>strtotime('now')];
 				$data['sys_collector_message'] = $sys_info;
 				switch($type) {
 					case SWOOLEFY_SYS_COLLECTOR_UDP:

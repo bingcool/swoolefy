@@ -615,11 +615,29 @@ class BaseServer {
     }
 
     /**
+     * isEnablePvCollector 是否启用计算请求次数
+     * @return bool
+     */
+    public static function isEnablePvCollector() {
+        static $isEnablePvCollector;
+        if($isEnablePvCollector) {
+            return true;
+        }
+        if(isset(self::$config['enable_pv_collector']) && !empty(self::$config['enable_pv_collector'])) {
+            $isEnablePvCollector = true;
+        }else {
+            $isEnablePvCollector = false;
+        }
+        return $isEnablePvCollector;
+
+    }
+
+    /**
      * requestCount 
      * @return boolean
      */
     public static function atomicAdd() {
-    	if(self::isEnableSysCollector()){
+    	if(self::isEnablePvCollector()){
     		$atomic = AtomicManager::getInstance()->getAtomicLong('atomic_request_count');
     		if(is_object($atomic)) {
     			$atomic->add(1);
