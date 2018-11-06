@@ -149,6 +149,7 @@ abstract class TcpServer extends BaseServer {
 		 */
 		$this->tcpserver->on('receive', function(tcp_server $server, $fd, $reactor_id, $data) {
 			try{
+				parent::beforeHandler();
 				// 服务端为length检查包
 				if(self::isPackLength()) {
 					$recv = $this->pack->depack($server, $fd, $reactor_id, $data);

@@ -581,16 +581,15 @@ class BaseServer {
     	if(isset(self::$config['exception_hander_class']) && !empty(self::$config['exception_hander_class'])) {
 			$ExceptionHanderClass = self::$config['exception_hander_class'];
 		}
-
 		$ExceptionHanderClass::appException($e);
     }
 
     /**
-     * setAutomicOfRequest 创建计算请求的原子计算实例
+     * setAutomicOfRequest 创建计算请求的原子计算实例,必须依赖于EnableSysCollector = true，否则设置没有意义,不生效
      * @param   boolean  
      */
     public static function setAutomicOfRequest() {
-    	if(self::isEnableSysCollector()) {
+    	if(self::isEnableSysCollector() && self::isEnablePvCollector()) {
     		AtomicManager::getInstance()->addAtomicLong('atomic_request_count');
     		return true;
     	}
@@ -606,7 +605,7 @@ class BaseServer {
     	if($isEnableSysCollector) {
     		return true;
     	}
-    	if(isset(self::$config['enable_sys_collector']) && !empty(self::$config['enable_sys_collector'])) {
+    	if(isset(self::$config['enable_sys_collector']) && (bool) (self::$config['enable_sys_collector'])) {
     		$isEnableSysCollector = true;
     	}else {
     		$isEnableSysCollector = false;
@@ -623,7 +622,7 @@ class BaseServer {
         if($isEnablePvCollector) {
             return true;
         }
-        if(isset(self::$config['enable_pv_collector']) && !empty(self::$config['enable_pv_collector'])) {
+        if(isset(self::$config['enable_pv_collector']) && (bool) (self::$config['enable_pv_collector'])) {
             $isEnablePvCollector = true;
         }else {
             $isEnablePvCollector = false;
@@ -633,14 +632,14 @@ class BaseServer {
     }
 
     /**
-     * requestCount 
+     * requestCount 必须依赖于EnableSysCollector = true，否则设置没有意义，不生效
      * @return boolean
      */
     public static function atomicAdd() {
-    	if(self::isEnablePvCollector()){
+    	if(self::isEnableSysCollector() && self::isEnablePvCollector()) {
     		$atomic = AtomicManager::getInstance()->getAtomicLong('atomic_request_count');
     		if(is_object($atomic)) {
-    			$atomic->add(1);
+    			return $atomic->add(1);
     		}
     	}
     	return false;
@@ -650,7 +649,7 @@ class BaseServer {
      * beforeRequest
      * @return boolean
      */
-    public static function beforeRequest() {
+    public static function beforeHandler() {
     	self::atomicAdd();
     }
 
@@ -658,9 +657,6 @@ class BaseServer {
      * endRequest 
      * @return
      */
-    public static function endRequest() {
+    public static function endHandler() {}
 
-    }
-
-    
 }

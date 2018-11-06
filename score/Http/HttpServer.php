@@ -143,7 +143,7 @@ abstract class HttpServer extends BaseServer {
 		 */
 		$this->webserver->on('request', function(Request $request, Response $response) {
 			try{
-				parent::beforeRequest();
+				parent::beforeHandler();
 				static::onRequest($request, $response);
 				return true;
 			}catch(\Exception $e) {
