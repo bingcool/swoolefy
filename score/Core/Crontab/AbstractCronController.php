@@ -45,14 +45,13 @@ abstract class AbstractCronController extends ProcessController {
     	$cron = CronExpression::factory($expression);
         $now_time = time();   
         $cron_next_datetime = strtotime($cron->getNextRunDate()->format('Y-m-d H:i:s'));
-        
         if($cron->isDue()) {
         	if(!isset(static::$cron_next_datetime[$expression_key])) {
         		static::$expression[$expression_key] = $expression;
             	static::$cron_next_datetime[$expression_key] = $cron_next_datetime;
         	}
 
-        	if(($now_time == static::$cron_next_datetime[$expression_key] || $now_time == (static::$cron_next_datetime[$expression_key] + static::$offset_second))) {
+        	if(($now_time >= static::$cron_next_datetime[$expression_key] && $now_time < ($cron_next_datetime - static::$offset_second))) {
 	            static::$cron_next_datetime[$expression_key] = $cron_next_datetime;
                 if($func instanceof \Closure) {
                     //call_user_func_array($func->bindTo($this, get_class($this)), [$cron]);
@@ -62,8 +61,8 @@ abstract class AbstractCronController extends ProcessController {
                 }
         	}
 
-        	// 防止万一出现的异常出现，比如没有命中任务，本来是19:05:00要命中的，由于其他网络或者服务器其他原因，阻塞了,造成延迟，现在时间已经到了19::05:05
-	        if($now_time > static::$cron_next_datetime[$expression_key] || $now_time > $cron_next_datetime) {
+        	// 防止万一出现的异常出现，比如没有命中任务， :05:00要命中的，由于其他网络或者服务器其他原因，阻塞了,造成延迟，现在时间已经到了19::05:05
+	        if($now_time > static::$cron_next_datetime[$expression_key] || $now_time >= $cron_next_datetime) {
 	            static::$cron_next_datetime[$expression_key] = $cron_next_datetime;
 	        }
         }
