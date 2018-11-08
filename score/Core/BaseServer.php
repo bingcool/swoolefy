@@ -560,9 +560,9 @@ class BaseServer {
      */
     public static function runtimeEnableCoroutine() {
     	if(method_exists('Swoole\\Runtime', 'enableCoroutine')) {
-    		if(isset(self::$config['runtime_enableCoroutine']) && (bool)self::$config['runtime_enableCoroutine'] == true) {
-	    		if(isset(self::$config['runtime_enableCoroutine_flags']) && is_int(self::$config['runtime_enableCoroutine_flags'])) {
-	    			$flags = self::$config['runtime_enableCoroutine_flags'];	
+    		if(isset(self::$config['runtime_enable_coroutine']) && (bool)self::$config['runtime_enable_coroutine'] == true) {
+	    		if(isset(self::$config['runtime_enable_coroutine_flags']) && is_int(self::$config['runtime_enable_coroutine_flags'])) {
+	    			$flags = self::$config['runtime_enable_coroutine_flags'];
 	    		}else {
 	    			$flags = SWOOLE_HOOK_ALL;
 	    		}
