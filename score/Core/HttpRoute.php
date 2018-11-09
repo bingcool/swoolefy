@@ -249,8 +249,9 @@ class HttpRoute extends AppDispatch {
                         'msg' => $msg,
                         'data' => ''
                     ]));
-                    // 触发错误异常
-                    throw new \Exception($msg, 1); 
+                    // 记录错误异常
+                    $exceptionClass = Application::getApp()->getExceptionClass();
+                    $exceptionClass::shutHalt($msg);
 		        }
 			}else {
 				return $this->response->end(json_encode([

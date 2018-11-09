@@ -22,24 +22,24 @@ class NotFound extends BService {
 		if(BaseServer::getServiceProtocol() == SWOOLEFY_TCP) {
 			// rpc服务，server端和client端的header_struct不相同时,默认不作处理
 			$is_same_packet_struct = $this->server_client_packet_struct_is_same();
+            $data = ['ret'=>404, 'msg'=>$class.' is not found!', 'data'=>''];
 			if($is_same_packet_struct) {
 				$fd = $this->fd;
-				$data = ['ret'=>404, 'msg'=>$class.' is not found!', 'data'=>''];
 				$header = $this->getRpcPackHeader();
 				$this->send($fd, $data, $header);
 			}
-			return;
+			return $data;
 		}else if(BaseServer::getServiceProtocol() == SWOOLEFY_WEBSOCKET) {
 			// websocket服务
 			$fd = $this->fd;
 			$data = ['ret'=>404, 'msg'=>$class.' is not found!', 'data'=>''];
 			$this->push($fd, $data, $opcode = 1, $finish = true);
-			return;
+			return $data;
 		}
 	}
 
 	/**
-	 * return505 找不到定义的函数类
+	 * return500 找不到定义的函数类
 	 * @param  string  $class
 	 * @param  string  $action
 	 * @return void
@@ -48,19 +48,19 @@ class NotFound extends BService {
 		if(BaseServer::getServiceProtocol() == SWOOLEFY_TCP) {
 			// rpc服务，server端和client端的header_struct不相同时,默认不作处理
 			$is_same_packet_struct = $this->server_client_packet_struct_is_same();
+            $data = ['ret'=>500, 'msg'=>$class.'::'.$action." $action() function undefined!", 'data'=>''];
 			if($is_same_packet_struct) {
 				$fd = $this->fd;
-				$data = ['ret'=>500, 'msg'=>$class.'::'.$action." $action() function undefined!", 'data'=>''];
 				$header = $this->getRpcPackHeader();
 				$this->send($fd, $data, $header);
 			}
-			return;
+			return $data;
 		}else if(BaseServer::getServiceProtocol() == SWOOLEFY_WEBSOCKET) {
 			// websocket服务
 			$fd = $this->fd;
 			$data = ['ret'=>500, 'msg'=>$class.'::'.$action." $action() function undefined!", 'data'=>''];
 			$this->push($fd, $data, $opcode = 1, $finish = true);
-			return;
+			return $data;
 		}
 	}
 
@@ -72,19 +72,19 @@ class NotFound extends BService {
 		if(BaseServer::getServiceProtocol() == SWOOLEFY_TCP) {
 			// rpc服务，server端和client端的header_struct不相同时,默认不作处理
 			$is_same_packet_struct = $this->server_client_packet_struct_is_same();
+            $data = ['ret'=>500, 'msg'=>$msg, 'data'=>''];
 			if($is_same_packet_struct) {
 				$fd = $this->fd;
-				$data = ['ret'=>500, 'msg'=>$msg, 'data'=>''];
 				$header = $this->getRpcPackHeader();
 				$this->send($fd, $data, $header);
 			}
-			return;
+			return $data;
 		}else if(BaseServer::getServiceProtocol() == SWOOLEFY_WEBSOCKET) {
 			// websocket服务
 			$fd = $this->fd;
 			$data = ['ret'=>500, 'msg'=>$msg, 'data'=>''];
 			$this->push($fd, $data, $opcode = 1, $finish = true);
-			return;
+			return $data;
 		}
 	}
 

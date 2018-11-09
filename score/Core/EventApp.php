@@ -63,7 +63,6 @@ class EventApp {
 			unset($this->event_app);
 			throw new \Exception("$class must extends \Swoolefy\Core\EventController");
 		}
-
 		return $this;
 	}
 
@@ -76,8 +75,9 @@ class EventApp {
 	}
 
 	/**
-	 * __call 
-	 * @param  string $action
+	 * __call 在协程编程中可直接使用try/catch处理异常。但必须在协程内捕获，不得跨协程捕获异常。
+    当协程退出时，发现有未捕获的异常，将引起致命错误。
+     * @param  string $action
 	 * @param  array  $args
 	 * return  $this
 	 */
@@ -85,8 +85,8 @@ class EventApp {
 		try{
 			// return call_user_func_array([$this->event_app, $action], $args);
 			return $this->event_app->$action(...$args);
-		}catch(\Exception $e) {
-			throw new \Exception($e->getMessage());
+		}catch(\Throwable $t) {
+			throw new \Exception($t->getMessage());
 		}
 		
 	}
