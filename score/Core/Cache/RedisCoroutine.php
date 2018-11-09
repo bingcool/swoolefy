@@ -153,7 +153,7 @@ class RedisCoroutine {
 				if($isConnected) {
 					$this->master_redis_hosts = $redis;
 				}else {
-					throw new \Exception("Master Coroutine Redis client failed to redis server", 1);
+					throw new \Exception("Master Coroutine Redis client failed to connect redis server", 1);
 				}
 			}
 

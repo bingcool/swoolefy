@@ -53,7 +53,7 @@ class Pools {
 					$this->sendMessage($poolsName);
 					break;
 				}else {
-					usleep(200);
+					usleep(1000);
 				}
 			}
 			return $obj;

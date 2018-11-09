@@ -61,13 +61,9 @@ class Swoole extends BaseObject {
 		$this->config = $config;
 		// 将应用层配置保存在上下文的服务
 		Swfy::setAppConf($config);
-		// 获取协议层配置
-		$protocol_config = Swfy::getConf();
-		if(isset($protocol_config['exception_hander_class']) && !empty($protocol_config['exception_hander_class'])) {
-			$this->ExceptionHanderClass = $protocol_config['exception_hander_class'];
-		}
-		register_shutdown_function($this->ExceptionHanderClass.'::fatalError');
-      	set_error_handler($this->ExceptionHanderClass.'::appError');
+        $exceptionClass = $this->getExceptionClass();
+        register_shutdown_function($exceptionClass.'::fatalError');
+        set_error_handler($exceptionClass.'::appError');
 	}
 
 	/**
@@ -198,6 +194,18 @@ class Swoole extends BaseObject {
 	public function getFd() {
 		return $this->fd;
 	}
+
+    /**
+     * 获取配置的异常处理类
+     */
+    public function getExceptionClass() {
+        // 获取协议层配置
+        $protocol_config = Swfy::getConf();
+        if(isset($protocol_config['exception_hander_class']) && !empty($protocol_config['exception_hander_class'])) {
+            return $protocol_config['exception_hander_class'];
+        }
+        return $this->ExceptionHanderClass;
+    }
 
  	/**
 	 * afterRequest 请求结束后注册钩子执行操作

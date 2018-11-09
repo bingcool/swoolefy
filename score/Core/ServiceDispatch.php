@@ -60,13 +60,17 @@ class ServiceDispatch extends AppDispatch {
 					$handle = $app_conf['not_found_handle'];
 					$notFoundInstance = new $handle;
 					if($notFoundInstance instanceof \Swoolefy\Core\NotFound) {
-						$notFoundInstance->return404($class);
-						return;
+                        $return_data = $notFoundInstance->return404($class);
 					}
-				}
-				$notFoundInstance = new \Swoolefy\Core\NotFound();
-				$notFoundInstance->return404($class);
-				throw new \Exception("when dispatch, $class file is not exist", 1);
+				}else {
+                    $notFoundInstance = new \Swoolefy\Core\NotFound();
+                    $return_data = $notFoundInstance->return404($class);
+                }
+                // 记录错误异常
+                $msg = isset($return_data['msg']) ? $return_data['msg'] : "when dispatch, $class not found!";
+                $exceptionClass = Application::getApp()->getExceptionClass();
+                $exceptionClass::shutHalt($msg);
+                return;
 			}
 		}
 		
@@ -82,12 +86,16 @@ class ServiceDispatch extends AppDispatch {
 					$handle = $app_conf['not_found_handle'];
 					$notFoundInstance = new $handle;
 					if($notFoundInstance instanceof \Swoolefy\Core\NotFound) {
-						$notFoundInstance->return500($class, $action);
-						return;
+                        $return_data = $notFoundInstance->return500($class, $action);
 					}
-				}
-				$notFoundInstance = new \Swoolefy\Core\NotFound();
-				$notFoundInstance->return500($class, $action);
+				}else {
+                    $notFoundInstance = new \Swoolefy\Core\NotFound();
+                    $return_data = $notFoundInstance->return500($class, $action);
+                }
+                // 记录错误异常
+                $msg = isset($return_data['msg']) ? $return_data['msg'] : "when dispatch, $class call undefined $action()";
+                $exceptionClass = Application::getApp()->getExceptionClass();
+                $exceptionClass::shutHalt($msg);
 				return;
 			}
 		}catch(\Throwable $t) {
@@ -97,13 +105,16 @@ class ServiceDispatch extends AppDispatch {
 				$handle = $app_conf['not_found_handle'];
 				$notFoundInstance = new $handle;
 				if($notFoundInstance instanceof \Swoolefy\Core\NotFound) {
-					$notFoundInstance->returnError($msg);
+                    $return_data = $notFoundInstance->returnError($msg);
 				}
 			}else {
 				$notFoundInstance = new \Swoolefy\Core\NotFound();
-				$notFoundInstance->returnError($msg);
+                $return_data = $notFoundInstance->returnError($msg);
 			}
-			throw new \Exception($msg);
+            // 记录错误异常
+            $exceptionClass = Application::getApp()->getExceptionClass();
+            $exceptionClass::shutHalt($msg);
+            return;
 		}
 		
 	}

@@ -59,13 +59,9 @@ class App extends \Swoolefy\Core\Component {
 		$this->config = $config;
 		// 将应用层配置保存在上下文的服务
 		Swfy::setAppConf($config);
-		// 获取协议层配置
-		$protocol_config = Swfy::getConf();
-		if(isset($protocol_config['exception_hander_class']) && !empty($protocol_config['exception_hander_class'])) {
-			$this->ExceptionHanderClass = $protocol_config['exception_hander_class'];
-		}
-		register_shutdown_function($this->ExceptionHanderClass.'::fatalError');
-      	set_error_handler($this->ExceptionHanderClass.'::appError');
+        $exceptionClass = $this->getExceptionClass();
+		register_shutdown_function($exceptionClass.'::fatalError');
+      	set_error_handler($exceptionClass.'::appError');
 	}
 
 	/**
@@ -170,6 +166,18 @@ class App extends \Swoolefy\Core\Component {
 			}
 		}
 	}
+
+    /**
+     * 获取配置的异常处理类
+     */
+	public function getExceptionClass() {
+        // 获取协议层配置
+        $protocol_config = Swfy::getConf();
+        if(isset($protocol_config['exception_hander_class']) && !empty($protocol_config['exception_hander_class'])) {
+            return $protocol_config['exception_hander_class'];
+        }
+        return $this->ExceptionHanderClass;
+    }
 
 	/**
 	 *clearStaticVar 销毁静态变量
