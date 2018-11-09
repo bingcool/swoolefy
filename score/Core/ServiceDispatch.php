@@ -93,7 +93,7 @@ class ServiceDispatch extends AppDispatch {
                     $return_data = $notFoundInstance->return500($class, $action);
                 }
                 // 记录错误异常
-                $msg = isset($return_data['msg']) ? $return_data['msg'] : "when dispatch, $class call undefined $action()";
+                $msg = isset($return_data['msg']) ? $return_data['msg'] : "when dispatch, $class call undefined function $action()";
                 $exceptionClass = Application::getApp()->getExceptionClass();
                 $exceptionClass::shutHalt($msg);
 				return;

@@ -16,16 +16,16 @@ use Swoolefy\Core\Application;
 class BaseObject {
 
 	/**
-	 * $args 存放协程请求实例的临时变量数据
-	 * @var array
-	 */
-	public $args = [];
-
-	/**
 	 * $coroutine_id
 	 * @var  string
 	 */
 	public $coroutine_id;
+
+	/**
+	 * $args 存放协程请求实例的临时变量数据
+	 * @var array
+	 */
+	protected $args = [];
 
 	/**
      * Returns the fully qualified name of this class.
@@ -41,7 +41,7 @@ class BaseObject {
      * @param  boolean
      */
     public function setArgs(string $name, $value) {
-    	if($value) {
+    	if($name && $value) {
     		$this->args[$name] = $value;
     		return true;
     	}
@@ -53,8 +53,11 @@ class BaseObject {
      * @param   string  $name
      * @return  mixed
      */
-    public function getArgs(string $name) {
-    	if(isset($this->args[$name])) {
+    public function getArgs(string $name = null) {
+    	if(!$name) {
+    		return $this->args;
+    	}
+    	if(isset($name) && isset($this->args[$name])) {
     		return $this->args[$name];
     	}
     	return null;
