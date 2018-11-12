@@ -97,7 +97,16 @@ class Application {
 				self::$app[$cid] = $App;
 				return true;
 			}
-		}
+		}else {
+            if($App instanceof \Swoolefy\Core\Process\ProcessController) {
+                $cid = $App->coroutine_id;
+                if(isset(self::$app[$cid])) {
+                    unset(self::$app[$cid]);
+                }
+                self::$app[$cid] = $App;
+                return true;
+            }
+        }
 		
 	}
 
