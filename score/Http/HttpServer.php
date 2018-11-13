@@ -126,6 +126,8 @@ abstract class HttpServer extends BaseServer {
 			is_null(self::$App) && self::$App = \Swoole\Serialize::pack(self::$config['application_index']::getInstance($config=[]));
        		// 启动的初始化函数
 			$this->startCtrl->workerStart($server, $worker_id);
+			// 延迟绑定
+			static::onWorkerStart($server, $worker_id);
 			
 		});
 

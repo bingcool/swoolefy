@@ -29,6 +29,14 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 	}
 
 	/**
+	 * onWorkerStart 
+	 * @param   object  $server    
+	 * @param   int     $worker_id 
+	 * @return  void
+	 */
+	public abstract function onWorkerStart($server, $worker_id);
+
+	/**
 	 * onRequest 
 	 * @param    $request
 	 * @param    $response
