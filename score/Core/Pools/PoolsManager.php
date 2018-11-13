@@ -57,6 +57,8 @@ class PoolsManager {
 
     private static $process_args = [];
 
+    private static $has_signal_sigchld = false;
+
     /**
      * __construct
      * @param  $total_process 进程池总数
@@ -124,17 +126,17 @@ class PoolsManager {
             self::loopWrite($processName, $timer_int);
         }
 
-        self::$process_args[$processName] = [$processClass, $async, $worker_id, $polling];
-
-        Process::signal(SIGCHLD, function($signo) use($args) {
-	        while($ret = Process::wait(false)) { 
+        self::$process_args[$processName] = [$processClass, $async, $worker_id, $polling, $args];
+        // SIGCHLD 信号在worker中只能注册一次，后面的注册会覆盖前面的，所以当需要添加多个进程池时，就会产生错乱，一旦进程执行reboot时，就会执行到这个信号监听，造成错乱，需要解决,不要使用use引入外部变量,并且只需要注册一次
+        !self::$has_signal_sigchld && Process::signal(SIGCHLD, function($signo) {
+	        while($ret = Process::wait(false)) {
 	            if($ret) {
 	            	$pid = $ret['pid'];
 	            	$processInfo = TableManager::getInstance()->getTable('table_process_pools_number')->get($pid);
                     // 仅仅针对进程池创建的进程进行重建处理，非进程池创建的进程直接回收，不会处理
                     if(isset($processInfo) && !empty($processInfo)) {
                         list($process_num, $processName) = array_values($processInfo);
-                        list($processClass, $async, $worker_id, $polling) = self::$process_args[$processName];
+                        list($processClass, $async, $worker_id, $polling, $args) = self::$process_args[$processName];
                         $process_name = $processName.$process_num;
     	                $key = md5($process_name);
                         $polling && swoole_event_del(self::$processList[$key]->getProcess()->pipe);
@@ -154,6 +156,8 @@ class PoolsManager {
 	           }
             }
 	    });
+        // 设置已注册状态
+        self::$has_signal_sigchld = true;
 	}
 
     /**

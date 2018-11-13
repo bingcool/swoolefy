@@ -24,6 +24,14 @@ class HttpServer extends \Swoolefy\Http\HttpAppServer {
 	}
 
 	/**
+	 * onWorkerStart 
+	 * @param   object $server    
+	 * @param   int    $worker_id 
+	 * @return  void
+	 */
+	public function onWorkerStart($server, $worker_id) {}
+
+	/**
 	 * onPipeMessage 
 	 * @param    object  $server
 	 * @param    int     $src_worker_id
