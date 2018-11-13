@@ -179,7 +179,10 @@ trait ServiceTrait {
 	 * @return   boolean
 	 */
 	public static function isWorkerProcess() {
-		return (!self::isTaskProcess()) ? true : false;
+		if(!self::isTaskProcess() && Swfy::getCurrentWorkerId() >= 0) {
+		    return true;
+        }
+        return false;
 	}
 
 	/**
@@ -194,6 +197,17 @@ trait ServiceTrait {
 		}
 		throw new \Exception("not found task process,may be you use it before workerStart()", 1);
 	}
+
+    /** isSelfProcess 进程是否是process进程
+     * @return bool
+     */
+	public static function isSelfProcess() {
+	    // process的进程的worker_id等于-1
+        if(!self::isTaskProcess() && Swfy::getCurrentWorkerId() < 0) {
+            return true;
+        }
+        return false;
+    }
 
 	/**
 	 * isHttpApp 
