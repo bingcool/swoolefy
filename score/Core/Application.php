@@ -38,7 +38,7 @@ class Application {
 	 */
 	public static function setApp($App) {
 		if(Swfy::isWorkerProcess()) {
-			// process进程中，将会定义成worker进程，进程本身不产生协程，默认返回-1，但可以使用go()创建协程，和ticker的callback应用实例是支持协程的，controller必须继承TickController 或者父类ProcessController等
+			//worker进程中可以使用go()创建协程，和ticker的callback应用实例是支持协程的，controller必须继承TickController 或者父类ProcessController等
 			if($App instanceof \Swoolefy\Core\Process\ProcessController) {
 				$cid = $App->coroutine_id;
 				if(isset(self::$app[$cid])) {
@@ -98,7 +98,8 @@ class Application {
 				return true;
 			}
 		}else {
-            if($App instanceof \Swoolefy\Core\Process\ProcessController) {
+            // process进程中，本身不产生协程，默认返回-1，但可以使用go()创建协程，创建应用单例，单例继承于ProcessController类
+            if($App instanceof \Swoolefy\Core\Process\ProcessController || $App instanceof \Swoolefy\Core\EventController) {
                 $cid = $App->coroutine_id;
                 if(isset(self::$app[$cid])) {
                     unset(self::$app[$cid]);

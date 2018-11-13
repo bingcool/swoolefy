@@ -120,7 +120,7 @@ class Swoole extends BaseObject {
      * @return boolean
      */
     public static function isTaskProcess() {
-        return (!self::isWorkerProcess()) ? true : false;
+        return Swfy::isTaskProcess();
     }
 
     /**
