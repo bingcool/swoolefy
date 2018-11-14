@@ -7,6 +7,7 @@ namespace Swoolefy\Core\Process;
 
 use Swoole\Process;
 use Swoolefy\Core\Swfy;
+use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Table\TableManager;
 
 abstract class AbstractProcess
@@ -73,12 +74,27 @@ abstract class AbstractProcess
         if($this->async){
             swoole_event_add($this->swooleProcess->pipe, function(){
                 $msg = $this->swooleProcess->read(64 * 1024);
-                $this->onReceive($msg);
+                try{
+                    $this->onReceive($msg);
+                }catch(\Throwable $t) {
+                    // 记录错误与异常
+                    $exceptionHanderClass = BaseServer::getExceptionClass();
+                    $errMsg = $t->getMessage();
+                    $exceptionHanderClass::shutHalt($errMsg);
+                }
             });
         }
 
         $this->swooleProcess->name('php-addSelfProcess:'.$this->getProcessName());
-        $this->run($this->swooleProcess);
+        try{
+            $this->run($this->swooleProcess);
+        }catch(\Throwable $t) {
+            // 记录错误与异常
+            $exceptionHanderClass = BaseServer::getExceptionClass();
+            $errMsg = $t->getMessage();
+            $exceptionHanderClass::shutHalt($errMsg);
+        }
+        
     }
 
     /**

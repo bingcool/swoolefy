@@ -44,10 +44,10 @@ class SysProcess extends AbstractProcess {
 					}
 				}
 				// pv原子计数器
-                $total_rqruest_num = $isEnablePvCollector ? $atomic->get() : 0;
+                $total_request_num = $isEnablePvCollector ? $atomic->get() : 0;
 				// 当前时间段内原子清空
-                $total_rqruest_num && $atomic->sub($total_rqruest_num);
-				$data = ['total_request'=> $total_rqruest_num, 'tick_time'=>$tick_time,'from_service'=>$sys_collector_config['from_service'], 'timestamp'=>strtotime('now')];
+                $total_request_num && $atomic->sub($total_request_num);
+				$data = ['total_request'=> $total_request_num, 'tick_time'=>$tick_time,'from_service'=>$sys_collector_config['from_service'], 'timestamp'=>date('Y-m-d H:i:s')];
 				$data['sys_collector_message'] = $sys_info;
 				switch($type) {
 					case SWOOLEFY_SYS_COLLECTOR_UDP:
@@ -184,7 +184,7 @@ class SysProcess extends AbstractProcess {
 	}
 
 	/**
-	 * writeByFile 记录到文件(主要用于开发调试阶段)
+	 * writeByFile 记录到文件
 	 * @param  array  $sys_collector_config
 	 * @param  array  $data                
 	 * @return void                      
