@@ -171,12 +171,7 @@ class App extends \Swoolefy\Core\Component {
      * 获取配置的异常处理类
      */
 	public function getExceptionClass() {
-        // 获取协议层配置
-        $protocol_config = Swfy::getConf();
-        if(isset($protocol_config['exception_hander_class']) && !empty($protocol_config['exception_hander_class'])) {
-            return $protocol_config['exception_hander_class'];
-        }
-        return $this->ExceptionHanderClass;
+        return BaseServer::getExceptionClass();
     }
 
 	/**

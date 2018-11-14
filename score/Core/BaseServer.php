@@ -585,6 +585,19 @@ class BaseServer {
     }
 
     /**
+     * getExceptionClass 
+     * @return string
+     */
+    public static function getExceptionClass() {
+    	$ExceptionHanderClass = 'Swoolefy\\Core\\SwoolefyException';
+        // 获取协议层配置
+        if(isset(self::$config['exception_hander_class']) && !empty(self::$config['exception_hander_class'])) {
+            return self::$config['exception_hander_class'];
+        }
+        return $ExceptionHanderClass;
+    }
+    
+    /**
      * setAutomicOfRequest 创建计算请求的原子计算实例,必须依赖于EnableSysCollector = true，否则设置没有意义,不生效
      * @param   boolean  
      */
