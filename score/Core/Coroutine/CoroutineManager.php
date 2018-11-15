@@ -45,7 +45,7 @@ class CoroutineManager {
 		// 大于4.x版本,建议使用版本
 		if($this->canEnableCoroutine()) {
 			$cid = \co::getuid();
-			// 在task|process中不直接支持使用协程
+			// 在task|process中不直接支持使用协程,但可以使用go()创建协程
 			if($cid == -1) {
 				$cid = self::PREFIX_CID.'task_process';
 			}else {

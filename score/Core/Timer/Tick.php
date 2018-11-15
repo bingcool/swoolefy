@@ -44,7 +44,7 @@ class Tick {
      */
 	public static function tickTimer($time_interval, $func, $params = null, $is_sington = false) {
 		if($time_interval <= 0 || $time_interval > 86400000) {
-            throw new \Exception(get_called_class()."::tickTimer() the first params 'time_interval' is requested 0-86400000 ms");
+            throw new \Exception(get_called_class()."::tickTimer() the first params 'time_interval' is requested 0~86400000 ms");
             return false;
         }
 
@@ -143,7 +143,7 @@ class Tick {
      */
     public static function afterTimer($time_interval, $func, $params = null) {
         if($time_interval <= 0 || $time_interval > 86400000) {
-            throw new \Exception(get_called_class()."::afterTimer() the first params 'time_interval' is requested 0-86400000 ms");
+            throw new \Exception(get_called_class()."::afterTimer() the first params 'time_interval' is requested 0~86400000 ms");
             return false;
         }
 

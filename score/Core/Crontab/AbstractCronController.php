@@ -61,7 +61,7 @@ abstract class AbstractCronController extends ProcessController {
                 }
         	}
 
-        	// 防止万一出现的异常出现，比如没有命中任务， :05:00要命中的，由于其他网络或者服务器其他原因，阻塞了,造成延迟，现在时间已经到了19::05:05
+        	// 防止万一出现的异常出现，比如没有命中任务， 19:05:00要命中的，由于其他网络或者服务器其他原因，阻塞了,造成延迟，现在时间已经到了19::05:05
 	        if($now_time > static::$cron_next_datetime[$expression_key] || $now_time >= $cron_next_datetime) {
 	            static::$cron_next_datetime[$expression_key] = $cron_next_datetime;
 	        }

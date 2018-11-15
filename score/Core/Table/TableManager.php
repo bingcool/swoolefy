@@ -189,7 +189,7 @@ class TableManager {
 				}
 				return false;
 			}
-			throw new \Exception("miss table argument", 1);
+			throw new \Exception("TableManager::isExistTable() miss 'table' argument", 1);
 		}
 	}
 
