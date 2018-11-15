@@ -163,7 +163,7 @@ trait ComponentTrait {
         			throw new \Exception("$com_alias_name component's config item 'func' is not Closure or $com_alias_name instance is not exists the method!");
         		}
         		continue;
-        	}else if(@is_array($object->$name)) {
+        	}else if(isset($object->$name) && @is_array($object->$name)) {
         		$object->$name = array_merge($object->$name, $value);
         		continue;
         	}

@@ -301,7 +301,10 @@ trait AppTrait {
 	 * @return   string
 	 */
 	public function getQueryString() {
-		return $this->request->server['QUERY_STRING'];
+	    if(isset($this->request->server['QUERY_STRING'])) {
+            return $this->request->server['QUERY_STRING'];
+        }
+        return null;
 	}
 
 	/**
@@ -326,7 +329,13 @@ trait AppTrait {
 		if($ssl) {
 			$protocol = 'https://';
 		}
-		return $protocol.$this->getHostName().$this->getRequestUri().'?'.$this->getQueryString();
+		$query_string = $this->getQueryString();
+		if($query_string) {
+            return $protocol.$this->getHostName().$this->getRequestUri().'?'.$query_string;
+        }else {
+            return $protocol.$this->getHostName().$this->getRequestUri();
+        }
+
 	}
 
 	/**

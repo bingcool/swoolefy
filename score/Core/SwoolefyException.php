@@ -63,15 +63,15 @@ class SwoolefyException {
      * @return           
      */
     public static function appError($errno, $errstr, $errfile, $errline) {
-    	$errorStr = "<user trigger> [$errno]-> $errfile 第 $errline 行: $errstr";
+    	$errorStr = "$errfile 第 $errline 行: $errstr";
       	switch ($errno) {
-            case E_USER_ERROR:
+            case E_ERROR:
           		static::shutHalt($errorStr, $errorType = 'notice');
           		break;
-            case E_USER_WARNING:
+            case E_WARNING:
           		static::shutHalt($errorStr, $errorType = 'warning');
           		break;
-            case E_USER_NOTICE:
+            case E_NOTICE:
             	static::shutHalt($errorStr, $errorType = 'notice');
            		break;
             default:
