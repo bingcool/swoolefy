@@ -1,7 +1,7 @@
 # swoolefy
 swoolefy是一个基于swoole扩展实现的轻量级高性能的常驻内存型的API和Web应用服务框架，高度封装了http，websocket，udp服务器，以及基于tcp实现可扩展的rpc服务，同时支持composer包方式安装部署项目。基于实用，swoolefy抽象Event事件处理类，实现与底层的回调的解耦，支持同步|异步调用，协程调度，全局事件注册，心跳检查，异步任务，多进程(池)等，内置view、log、session、mysql、redis、memcached、mongodb等常用组件等。     
 
-目前master主分支，swoolefy4.0+版本完全支持swoole4.x的协程，推荐使用swoole4.x，同时也兼容1.x，2.x的非协程模式。   
+目前swoolefy4.0+版本完全支持swoole4.x的协程，推荐使用swoole4.x.
 
 ### 实现的功能特性     
 1、轻量级高性能的框架，实现路由与调度，MVC三层，当然也可以配置多层   
@@ -30,7 +30,7 @@ swoolefy官方QQ群：735672669，欢迎加入！
 2、安装php必要的扩展，本框架需要的扩展包括swoole(4.0+), inotify, pcntl, posix, zlib, mbstring，可以通过php-m查看是否安装了这些扩展。    
     
 #### docker(开发测试)
-为了方便开发和测试，我打包了一个基于alpine基础镜像搭建的php7.1环境容器bingcool/php2swoole:4.0.1，这个image已经非常小了，已经安装所有的必须扩展，其中swoole是4.0+版本，可以通过php --ri swoole 查看信息。     
+为了方便开发和测试，打包了一个基于alpine基础镜像搭建的php7.1环境容器bingcool/php2swoole:4.0.1，这个image已经非常小了，已经安装所有的必须扩展，其中swoole是4.0+版本，可以通过php --ri swoole 查看信息。     
 alpine的官网：https://pkgs.alpinelinux.org/packages    
 
 如果需要php7.1，swoole4.0.1，4.0.2版本，可以
