@@ -125,11 +125,13 @@ class ServiceDispatch extends AppDispatch {
 	 * @return boolean
 	 */
 	public function checkClass($class) {
-		$path = str_replace('\\', '/', $class);
-		$path = trim($path, '/');
+		$path = trim(str_replace('\\', '/', $class), '/');
+        if(isset(self::$routeCacheFileMap[$path])) {
+            return true;
+        }
 		$file = ROOT_PATH.DIRECTORY_SEPARATOR.$path.'.php';
 		if(is_file($file)) {
-			self::$routeCacheFileMap[$class] = true;
+			self::$routeCacheFileMap[$path] = true;
 			return true;
 		}
 		return false;
