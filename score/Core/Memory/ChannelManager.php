@@ -22,7 +22,7 @@ class ChannelManager {
      * @param  string  $name
      * @param  int  $size
      */
-    public function addChannel(string $name, int $size = 1024 * 256) {
+    public function addChannel(string $name, int $size = 256 * 1024) {
         if(!isset($this->list[$name])) {
             $chan = new \Swoole\Channel($size);
             $this->list[$name] = $chan;

@@ -129,6 +129,8 @@ class Mysql {
 			$this->config = array_merge($this->default_config, $this->config);
 			Db::setConfig($this->config);
 		}
+		// set hook call
+		Application::getApp()->afterRequest([$this,'clear']);
 	}
 
 	/**
@@ -246,8 +248,6 @@ class Mysql {
 	public function __call($method, $args) {
 		$this->setConfig();
 		$this->setCacheHandler();
-		// set hook call
-		Application::getApp()->afterRequest([$this,'clear']);
 		return Db::$method($args);
 	}
 

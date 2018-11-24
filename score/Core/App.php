@@ -144,13 +144,12 @@ class App extends \Swoolefy\Core\Component {
 	 * @param	boolean $prepend
 	 * @return	void
 	 */
-	public function afterRequest(callable $callback, $prepend = true) {
+	public function afterRequest(callable $callback, $prepend = false) {
 		if(is_callable($callback)) {
 			Hook::addHook(Hook::HOOK_AFTER_REQUEST, $callback, $prepend);
 		}else {
 			throw new \Exception(__NAMESPACE__.'::'.__function__.' the first param of type is callable');
 		}
-		
 	}
 
 	/**

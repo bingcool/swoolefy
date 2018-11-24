@@ -13,7 +13,7 @@ namespace Swoolefy\Core\Cache;
 
 use  Predis\Client;
 
-class Redis {
+class Predis {
     
 	/**
 	 * $Predis redis实例
