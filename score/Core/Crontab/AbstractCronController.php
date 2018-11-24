@@ -38,7 +38,7 @@ abstract class AbstractCronController extends ProcessController {
      * runCron 
      * @param  string  $expression cron的表达式
      * @param  callable $func   闭包函数
-     * @return [type] [description]
+     * @return void
      */
     public function runCron(string $expression, $func = null) {
     	$expression_key = md5($expression);

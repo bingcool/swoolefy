@@ -403,7 +403,7 @@ class PoolsManager {
      * getProcessInWorker 获取一个worker进程内的所有的PoolsProcess进程
      * @return   array
      */
-    public function getProcessInWorker() {
+    public static function getProcessInWorker() {
         return self::$processList;
     }
 
@@ -411,8 +411,8 @@ class PoolsManager {
      * killProcessInWorker 在一个worker内的PoolsProcess的进程退出，主要在workerstop中使用，由于PoolsProcess是产生于worker进程的，worker作为父进程，在退出是必须将子进程退出，否则成僵尸进程
      * @return  bool
      */
-    public function killProcessInWorker() {
-        $processList = $this->getProcessInWorker();
+    public static function killProcessInWorker() {
+        $processList = self::getProcessInWorker();
         if($processList) {
             foreach($processList as $process) {
                 $pid = $process->getPid();
@@ -421,6 +421,5 @@ class PoolsManager {
             }
         }
         return true; 
-        
     }
 }
