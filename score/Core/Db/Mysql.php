@@ -12,7 +12,6 @@
 namespace Swoolefy\Core\Db;
 
 use Think\Db;
-use Swoolefy\Core\Application;
 use Swoolefy\Core\Db\MysqlCoroutine;
 
 class Mysql {
