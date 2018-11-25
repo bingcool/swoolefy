@@ -129,8 +129,6 @@ class Mysql {
 			$this->config = array_merge($this->default_config, $this->config);
 			Db::setConfig($this->config);
 		}
-		// set hook call
-		Application::getApp()->afterRequest([$this,'clear']);
 	}
 
 	/**
@@ -259,6 +257,13 @@ class Mysql {
 		Db::$queryTimes = 0;
 		Db::$executeTimes = 0;
 		Db::clear();
+	}
+
+	/**
+	 * __destruct 
+	 */
+	public function __destruct() {
+		$this->clear();
 	}
 
 }
