@@ -152,7 +152,12 @@ trait ServiceTrait {
 	 * @return   array
 	 */
 	public static function getAppConf() {
-		return Swfy::$appConfig;
+	    if(!empty(Swfy::$appConfig)) {
+            return Swfy::$appConfig;
+        }
+	    if(isset(BaseServer::getConf()['app_conf'])) {
+            return BaseServer::getConf()['app_conf'];
+        }
 	}
 
 	/**

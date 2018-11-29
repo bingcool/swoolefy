@@ -62,7 +62,7 @@ trait ComponentTrait {
 		}
 		// 配置文件初始化创建公用对象
 		$coreComponents = $this->coreComponents();
-		$components = array_merge($coreComponents, Swfy::$appConfig['components']);
+		$components = array_merge($coreComponents, Swfy::getAppConf()['components']);
 		foreach($components as $com_name=>$component) {
 
 			if(isset($component[SWOOLEFY_ENABLE_POOLS]) && isset($component[SWOOLEFY_POOLS_NUM])) {
@@ -237,6 +237,7 @@ trait ComponentTrait {
 	 * @return   object | boolean
 	 */
 	public function __get($name) {
+        $components = Swfy::getAppConf()['components'];
 		if(!isset($this->$name)) {
 			if(isset($this->container[$name])) {
 				if(is_object($this->container[$name])) {	
@@ -245,7 +246,7 @@ trait ComponentTrait {
 					$this->clearComponent($name);
 					return false;
 				}
-			}else if(in_array($name, array_keys(Swfy::$appConfig['components']))) {
+			}else if(in_array($name, array_keys($components))) {
 				// mysql,redis进程池中直接赋值
 				if(in_array($name, $this->component_pools)) {
 					$this->container[$name] = \Swoolefy\Core\Pools::getInstance()->getObj($name);
@@ -254,7 +255,7 @@ trait ComponentTrait {
 						return $this->container[$name];
 					}
 				}
-				return $this->creatObject($name, Swfy::$appConfig['components'][$name]);
+				return $this->creatObject($name, $components[$name]);
 			}
 			return false;	
 		}
