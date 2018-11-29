@@ -99,7 +99,7 @@ class App extends \Swoolefy\Core\Component {
 		// 引导程序与环境变量的设置
 		$this->bootstrap();
 		// 判断是否是在维护模式
-		if(!$this->catch()) {
+		if(!$this->catchAll()) {
 			// 路由调度执行
 			$route = new HttpRoute($extend_data);
 			$route->dispatch();
@@ -111,20 +111,19 @@ class App extends \Swoolefy\Core\Component {
 	}
 
 	/**
-	 * catch 捕捉拦截所有请求，进入维护模式
+	 * catchAll 捕捉拦截所有请求，进入维护模式
 	 * @return void
 	 */
-	public function catch() {
+	public function catchAll() {
 		// 获取配置信息
 		if(isset($this->config['catch_handle']) && $handle = $this->config['catch_handle']) {
 			if(is_array($handle)) {
 				$this->response->header('Content-Type','application/json; charset=UTF-8');
-				return $this->response->end(json_encode($handle));
+				$this->response->end(json_encode($handle));
 			}else {
 				$this->response->header('Content-Type','text/html; charset=UTF-8');
 				$this->response->end($handle);
 			}
-			
 			return true;
 		}
 		return false;

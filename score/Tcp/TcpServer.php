@@ -156,7 +156,7 @@ abstract class TcpServer extends BaseServer {
 					// 延迟绑定，服务处理实例
 					static::onReceive($server, $fd, $reactor_id, $recv);
 				}
-				return;
+				return true;
     		}catch(\Exception $e) {
     			self::catchException($e);
     		}
@@ -262,9 +262,7 @@ abstract class TcpServer extends BaseServer {
 	 * @return void
 	 */
 	public function buildPackHander() {
-
 		$this->pack = new Pack(self::$server);
-
 		if(self::isPackLength()) {
 			// packet_length_check
 			$this->pack->header_struct = self::$config['packet']['server']['pack_header_struct'];
@@ -332,7 +330,7 @@ abstract class TcpServer extends BaseServer {
             if($eof) {
                 $pack_data = Pack::enpackeof($data, $serialize_type, $eof);
             }else {
-                $pack_data = Pack::enpackeof($data, $serialize_type);
+                $pack_data = (new \Swoolefy\Core\Pack)->enpackeof($data, $serialize_type);
             }
             return $pack_data;
 		}	

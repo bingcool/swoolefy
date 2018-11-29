@@ -53,6 +53,12 @@ class MongodbModel {
      */
     public $_id = null;
 
+    /**
+     * MongodbModel constructor.
+     * @param string $uri
+     * @param array $uriOptions
+     * @param array $driverOptions
+     */
     public function __construct($uri='mongodb=127.0.0.1:27017', $uriOptions = [], $driverOptions=[]) {
         $this->uri = $uri;
         $this->uriOptions = $uriOptions;

@@ -428,7 +428,6 @@ class BaseServer {
 		if(self::isUseSsl()) {
 			self::$swoole_socket_type = SWOOLE_SOCK_TCP | SWOOLE_SSL;
 		}
-		return;
 	}
 
 	/**
@@ -448,7 +447,6 @@ class BaseServer {
 			return SWOOLEFY_TCP;
 		}
 		return false;
-
 	} 
 
 	/**
@@ -483,7 +481,7 @@ class BaseServer {
 	public static function checkSapiEnv() {
         // Only for cli.
         if(php_sapi_name() != 'cli') {
-            throw new \Exception("only run in command line mode \n", 1);
+            throw new \Exception("swoolefy only run in command line mode \n", 1);
         }
     }
 
@@ -500,7 +498,6 @@ class BaseServer {
     	if(self::$pack_check_type) {
     		self::$server->pack_check_type = self::$pack_check_type;
     	}
-    	
     }
 
     /**
@@ -521,8 +518,7 @@ class BaseServer {
     protected static function isPackLength() {
     	if(self::$pack_check_type == self::PACK_CHECK_LENGTH) {
     		if(!isset(static::$config['packet']['server'])) {
-    			throw new \Exception("you must set ['packet']['server'] in the config", 1);
-    			
+    			throw new \Exception("if you want to use RPC server, you must set ['packet']['server'] in the config", 1);
     		}
     		return true;
     	}
@@ -542,7 +538,6 @@ class BaseServer {
     		self::$isEnableCoroutine = false;
     		return;
     	}
-    	
     }
 
     /**

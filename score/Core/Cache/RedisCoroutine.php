@@ -79,13 +79,15 @@ class RedisCoroutine {
 	protected $slave_redis_hosts = [];
 
 	/**
-	 * __construct 
-	 * @param mixed       $host
-	 * @param mixed       $port
+	 * __construct
+	 * @param string       $host
+	 * @param string       $port
 	 * @param string|null  $password
-	 * @param bool|boolean $is_serialize
+     * @param int         $selectdb
+     * @param bool        $deploy
+	 * @param bool        $is_serialize
 	 */
-	public function __construct($host = null, $port = null, string $password = null, int $selectdb = null, bool $deploy = false, bool $is_serialize = false) {
+	public function __construct(string $host = null, $port = null, string $password = null, int $selectdb = null, bool $deploy = false, bool $is_serialize = false) {
 		$host && $this->host  = $host;
 		$port && $this->port = $port;
 		$password && $this->password = $password;
