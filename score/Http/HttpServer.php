@@ -35,12 +35,6 @@ abstract class HttpServer extends BaseServer {
 	];
 
 	/**
-	 * $App
-	 * @var null
-	 */
-	public static $App = null;
-
-	/**
 	 * $webserver
 	 * @var null
 	 */
@@ -122,8 +116,6 @@ abstract class HttpServer extends BaseServer {
 			// 超全局变量server
        		Swfy::$server = $this->webserver;
        		Swfy::$config = self::$config;
-       		// 初始化整个应用对象
-			is_null(self::$App) && self::$App = \Swoole\Serialize::pack(self::$config['application_index']::getInstance($config=[]));
        		// 启动的初始化函数
 			$this->startCtrl->workerStart($server, $worker_id);
 			// 延迟绑定
@@ -158,7 +150,7 @@ abstract class HttpServer extends BaseServer {
 		 */
 		$this->webserver->on('task', function(http_server $server, $task_id, $from_worker_id, $data) {
 			try{
-				$task_data = \Swoole\Serialize::unpack($data);
+				$task_data = unserialize($data);
 				static::onTask($task_id, $from_worker_id, $task_data);
 			}catch(\Exception $e) {
 				self::catchException($e);
@@ -208,18 +200,16 @@ abstract class HttpServer extends BaseServer {
 		/**
 		 * worker进程退出回调函数，1.9.17+版本
 		 */
-		if(static::compareSwooleVersion()) {
-			$this->webserver->on('WorkerExit', function(http_server $server, $worker_id) {
-				try{
-					// worker退出的触发函数
-					$this->startCtrl->workerExit($server, $worker_id);
-				}catch(\Exception $e) {
-					self::catchException($e);
-				}
-				
-			});
-		}
-		
+        $this->webserver->on('WorkerExit', function(http_server $server, $worker_id) {
+            try{
+                // worker退出的触发函数
+                $this->startCtrl->workerExit($server, $worker_id);
+            }catch(\Exception $e) {
+                self::catchException($e);
+            }
+
+        });
+
 		$this->webserver->start();
 	}
 

@@ -19,9 +19,6 @@ use Swoolefy\Core\Application;
  * @return   string            
  */
 function dump($var, $echo=true, $label=null, $strict=true) {
-    // 判断是否存在访问的应用对象
-    $app = Application::getApp();
-
     $label = ($label === null) ? '' : rtrim($label) . ' ';
     if (!$strict) {
         if (ini_get('html_errors')) {
@@ -39,15 +36,11 @@ function dump($var, $echo=true, $label=null, $strict=true) {
             $output = preg_replace('/\]\=\>\n(\s+)/m', '] => ', $output);
             $output = '<pre>' . $label . htmlspecialchars($output, ENT_QUOTES, 'UTF-8') . '</pre>';
         }
-
-        if(is_object($app)) {     
-        }else {
-          Application::$dump = $output; 
-        }
     }
     if($echo) {
         // 调试环境这个函数使用
         if(SW_DEBUG) {
+            $app = Application::getApp();
             if(is_object($app)) {
                 $app->response->header('Content-Type','text/html; charset=utf-8');
                 // worker启动时打印的信息，在下一次请求到来时打印出来

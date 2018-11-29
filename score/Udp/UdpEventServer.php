@@ -41,7 +41,7 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface {
 	 * @return    
 	 */
 	public function onPack($server, $data, $clientInfo) {
-		\Swoole\Serialize::unpack(self::$service)->run($data, $clientInfo);
+        self::$config['application_service']::getInstance($config=[])->run($data, $clientInfo);
 	}
 
 	/**
@@ -53,9 +53,9 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface {
 	 * @return   
 	 */
 	public function onTask($server, $task_id, $from_worker_id, $data) {
-		list($callable, $taskData, $clientInfo) = $data;		
-		\Swoole\Serialize::unpack(self::$service)->run([$callable, $taskData], $clientInfo);
-		return ;
+		list($callable, $taskData, $clientInfo) = $data;
+        self::$config['application_service']::getInstance($config=[])->run([$callable, $taskData], $clientInfo);
+		return true;
 	}
 
 	public abstract function onFinish($server, $task_id, $data);

@@ -58,7 +58,7 @@ abstract class RpcServer extends TcpServer implements EventInterface {
 	 * @return mixed
 	 */
 	public function onReceive($server, $fd, $reactor_id, $data) {
-		\Swoole\Serialize::unpack(self::$service)->run($fd, $data);
+        self::$config['application_service']::getInstance($config = [])->run($fd, $data);
 	}
 
 	/**
@@ -70,8 +70,8 @@ abstract class RpcServer extends TcpServer implements EventInterface {
 	 * @return  void
 	 */
 	public function onTask($server, $task_id, $from_id, $data) {
-		list($callable, $taskData, $fd) = $data;		
-		\Swoole\Serialize::unpack(self::$service)->run($fd, [$callable, $taskData]);
+		list($callable, $taskData, $fd) = $data;
+        self::$config['application_service']::getInstance($config = [])->run($fd, [$callable, $taskData]);
 		return ;
 	}
 

@@ -69,10 +69,8 @@ abstract class TcpServer extends BaseServer {
 		self::$server = $this->tcpserver = new tcp_server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, self::$swoole_socket_type);
 		$this->tcpserver->set(self::$setting);
 		parent::__construct();
-
 		// 初始化启动类
 		$startInitClass = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Core\\StartInit';
-
 		$this->startCtrl = new $startInitClass();
 		$this->startCtrl->init(); 
 		
@@ -123,9 +121,6 @@ abstract class TcpServer extends BaseServer {
 			// 超全局变量server
        		Swfy::$server = $this->tcpserver;
        		Swfy::$config = self::$config;
-
-       		// 单例服务处理实例
-       		is_null(self::$service) && self::$service = \Swoole\Serialize::pack(self::$config['application_service']::getInstance($config = []));
 			// 启动的初始化函数
 			$this->startCtrl->workerStart($server, $worker_id);
 			// 延迟绑定
@@ -173,7 +168,7 @@ abstract class TcpServer extends BaseServer {
 		 */
 		$this->tcpserver->on('task', function(tcp_server $server, $task_id, $from_worker_id, $data) {
 			try{
-				$task_data = \Swoole\Serialize::unpack($data);
+				$task_data = unserialize($data);
 				static::onTask($server, $task_id, $from_worker_id, $task_data);
 			}catch(\Exception $e) {
 				self::catchException($e);
@@ -249,18 +244,16 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * worker进程退出回调函数，1.9.17+版本
 		 */
-		if(static::compareSwooleVersion()) {
-			$this->tcpserver->on('WorkerExit', function(tcp_server $server, $worker_id) {
-				try{
-					// worker退出的触发函数
-					$this->startCtrl->workerExit($server, $worker_id);
-				}catch(\Exception $e) {
-					self::catchException($e);
-				}
-				
-			});
-		}
-		
+        $this->tcpserver->on('WorkerExit', function(tcp_server $server, $worker_id) {
+            try{
+                // worker退出的触发函数
+                $this->startCtrl->workerExit($server, $worker_id);
+            }catch(\Exception $e) {
+                self::catchException($e);
+            }
+
+        });
+
 		$this->tcpserver->start();
 	}
 
@@ -293,8 +286,8 @@ abstract class TcpServer extends BaseServer {
 	 * @return boolean
 	 */
 	public static function isClientPackEof() {
-		if(isset(Swfy::$config['packet']['client']['pack_check_type'])) {
-			if(Swfy::$config['packet']['client']['pack_check_type'] == 'eof') {
+		if(isset(self::$config['packet']['client']['pack_check_type'])) {
+			if(self::$config['packet']['client']['pack_check_type'] == 'eof') {
 				//$client_check是eof方式
 				return true;
 			}
@@ -323,26 +316,25 @@ abstract class TcpServer extends BaseServer {
 	 * @return   void
 	 */
 	public static function pack($data) {
-		if(static::isClientPackEof()) {
-			list($data) = $data;
-			$eof = Swfy::$config['packet']['client']['pack_eof'];
-			$serialize_type = Swfy::$config['packet']['client']['serialize_type'];
-			if($eof) {
-				$pack_data = Pack::enpackeof($data, $serialize_type, $eof);
-			}else {
-				$pack_data = Pack::enpackeof($data, $serialize_type);
-			}
-			return $pack_data;
-
+		if(static::isClientPackLength()) {
+            // 客户端是length方式分包
+            list($body_data, $header) = $data;
+            $header_struct = self::$config['packet']['client']['pack_header_struct'];
+            $pack_length_key = self::$config['packet']['client']['pack_length_key'];
+            $serialize_type = self::$config['packet']['client']['serialize_type'];
+            $header[$pack_length_key] = '';
+            $pack_data = Pack::enpack($body_data, $header, $header_struct, $pack_length_key, $serialize_type);
+            return $pack_data;
 		}else {
-			// 客户端是length方式分包
-			list($body_data, $header) = $data; 
-			$header_struct = Swfy::$config['packet']['client']['pack_header_struct'];
-			$pack_length_key = Swfy::$config['packet']['client']['pack_length_key'];
-			$serialize_type = Swfy::$config['packet']['client']['serialize_type'];
-			$header[$pack_length_key] = '';
-			$pack_data = Pack::enpack($body_data, $header, $header_struct, $pack_length_key, $serialize_type);
-			return $pack_data;
+            list($data) = $data;
+            $eof = self::$config['packet']['client']['pack_eof'];
+            $serialize_type = self::$config['packet']['client']['serialize_type'];
+            if($eof) {
+                $pack_data = Pack::enpackeof($data, $serialize_type, $eof);
+            }else {
+                $pack_data = Pack::enpackeof($data, $serialize_type);
+            }
+            return $pack_data;
 		}	
 	}
 }

@@ -47,12 +47,6 @@ class Swoole extends BaseObject {
 	 */
 	public $coroutine_id;
 
-	/**
- 	 * $ExceptionHanderClass 异常处理类
- 	 * @var string
- 	 */
- 	private $ExceptionHanderClass = 'Swoolefy\\Core\\SwoolefyException';
-
  	/**
 	 * __construct
 	 * @param $config 应用层配置
