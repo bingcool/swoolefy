@@ -46,7 +46,7 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 		if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
             return $response->end();
        	}
-		\Swoole\Serialize::unpack(self::$App)->run($request, $response);
+        self::$config['application_index']::getInstance($config = [])->run($request, $response);
 	}
 
 	/**

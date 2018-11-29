@@ -54,7 +54,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	 * @return   void
 	 */
 	public function onRequest($request, $response) {
-		\Swoole\Serialize::unpack(self::$App)->run($request, $response);
+        self::$config['application_index']::getInstance($config=[])->run($request, $response);
 	}
 
 	/**
@@ -72,7 +72,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 		if($finish) {
 			// utf-8文本数据
 			if($opcode == WEBSOCKET_OPCODE_TEXT) {
-				\Swoole\Serialize::unpack(self::$service)->run($fd, $data);
+                self::$config['application_service']::getInstance($config=[])->run($fd, $data);
 			}else if($opcode == WEBSOCKET_OPCODE_BINARY) {
 				// TODO 二进制数据
 				static::onMessageFromBinary($server, $frame);
@@ -98,8 +98,8 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	 */
 	public function onTask($server, $task_id, $from_worker_id, $data) {
 		list($callable, $taskData, $fd) = $data;
-		\Swoole\Serialize::unpack(self::$service)->run($fd, [$callable, $taskData]);
-		return ;
+        self::$config['application_service']::getInstance($config=[])->run($fd, [$callable, $taskData]);
+        return true;
 	}
 
 	/**

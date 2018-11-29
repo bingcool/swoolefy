@@ -44,12 +44,6 @@ class App extends \Swoolefy\Core\Component {
 	 */
 	public $coroutine_id;
 
- 	/**
- 	 * $ExceptionHanderClass 异常处理类
- 	 * @var string
- 	 */
- 	private $ExceptionHanderClass = 'Swoolefy\\Core\\SwoolefyException';
-
 	/**
 	 * __construct
 	 * @param $config 应用层配置
@@ -106,8 +100,6 @@ class App extends \Swoolefy\Core\Component {
 		$this->bootstrap();
 		// 判断是否是在维护模式
 		if(!$this->catch()) {
-			// 调试模式，将打印出一些信息
-			$this->debug();
 			// 路由调度执行
 			$route = new HttpRoute($extend_data);
 			$route->dispatch();
@@ -149,20 +141,6 @@ class App extends \Swoolefy\Core\Component {
 			Hook::addHook(Hook::HOOK_AFTER_REQUEST, $callback, $prepend);
 		}else {
 			throw new \Exception(__NAMESPACE__.'::'.__function__.' the first param of type is callable');
-		}
-	}
-
-	/**
-	 * debug 调试函数
-	 * @return 
-	 */
-	protected function debug() {
-		if(SW_DEBUG) {
-			$dumpInfo = \Swoolefy\Core\Application::$dump;
-			if(!is_null($dumpInfo)) {
-				$this->response->header('Content-Type','text/html; charset=UTF-8');
-				$this->response->write($dumpInfo);
-			}
 		}
 	}
 

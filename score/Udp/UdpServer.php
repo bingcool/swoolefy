@@ -66,7 +66,6 @@ abstract class UdpServer extends BaseServer {
 		parent::__construct();
 		// 初始化启动类
 		$startInitClass = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Core\\StartInit';
-
 		$this->startCtrl = new $startInitClass();
 		$this->startCtrl->init();
 		
@@ -114,9 +113,6 @@ abstract class UdpServer extends BaseServer {
 			// 超全局变量server
        		Swfy::$server = $this->udpserver;
        		Swfy::$config = self::$config;
-
-       		// 单例服务处理实例
-       		is_null(self::$service) && self::$service = \Swoole\Serialize::pack(self::$config['application_service']::getInstance($config=[]));
 			// 启动的初始化函数
 			$this->startCtrl->workerStart($server,$worker_id);
 			// 延迟绑定
@@ -142,7 +138,7 @@ abstract class UdpServer extends BaseServer {
 		 */
 		$this->udpserver->on('task', function(udp_server $server, $task_id, $from_worker_id, $data) {
 			try{
-				$task_data = \Swoole\Serialize::unpack($data);
+				$task_data = unserialize($data);
 				// 延迟绑定
 				static::onTask($server, $task_id, $from_worker_id, $task_data);
 			}catch(\Exception $e) {
@@ -205,17 +201,15 @@ abstract class UdpServer extends BaseServer {
 		/**
 		 * worker进程退出回调函数，1.9.17+版本
 		 */
-		if(static::compareSwooleVersion()) {
-			$this->udpserver->on('WorkerExit', function(udp_server $server, $worker_id) {
-				try{
-					// worker退出的触发函数
-					$this->startCtrl->workerExit($server, $worker_id);
-				}catch(\Exception $e) {
-					self::catchException($e);
-				}
-			});		
-		}
-		
+        $this->udpserver->on('WorkerExit', function(udp_server $server, $worker_id) {
+            try{
+                // worker退出的触发函数
+                $this->startCtrl->workerExit($server, $worker_id);
+            }catch(\Exception $e) {
+                self::catchException($e);
+            }
+        });
+
 		$this->udpserver->start();
 	}
 }

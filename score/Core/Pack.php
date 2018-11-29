@@ -283,13 +283,9 @@ class Pack {
         		// json
             case 1:
                 return json_encode($data);
-                // serialize
-            case 2:
-            	return serialize($data);
-            case 3;
             default:
-            	// swoole
-            	return \Swoole\Serialize::pack($data);  
+            	// serialize
+            	return serialize($data);
         }
 	}
 
@@ -307,13 +303,9 @@ class Pack {
         		// json
             case 1:
                 return json_decode($data, true);
-                // serialize
-            case 2:
-            	return unserialize($data);
-            case 3;
             default:
-            	// swoole
-            	return \Swoole\Serialize::unpack($data);   
+            	// serialize
+            	return unserialize($data);
         }
     }
 

@@ -34,12 +34,6 @@ abstract class WebsocketServer extends BaseServer {
 	];
 
 	/**
-	 * $App
-	 * @var null
-	 */
-	public static $App = null;
-
-	/**
 	 * $webserver
 	 * @var null
 	 */
@@ -72,7 +66,6 @@ abstract class WebsocketServer extends BaseServer {
 		parent::__construct();
 		// 初始化启动类
 		$startInitClass = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Core\\StartInit';
-
 		$this->startCtrl = new $startInitClass();
 		$this->startCtrl->init();	
 	}
@@ -119,13 +112,6 @@ abstract class WebsocketServer extends BaseServer {
 			// 超全局变量server
        		Swfy::$server = $this->webserver;
        		Swfy::$config = self::$config;
-       		// 初始化整个应用对象,http请求设置
-       		if(isset(self::$config['accept_http']) && self::$config['accept_http'] == true) {
-       			is_null(self::$App) && self::$App = \Swoole\Serialize::pack(self::$config['application_index']::getInstance($config=[]));
-       		}
-       		// 单例服务处理实例
-       		is_null(self::$service) && self::$service = \Swoole\Serialize::pack(self::$config['application_service']::getInstance($config=[]));
-
 			// 启动的初始化函数
 			$this->startCtrl->workerStart($server, $worker_id);
 			static::onWorkerStart($server, $worker_id);
@@ -177,7 +163,7 @@ abstract class WebsocketServer extends BaseServer {
 		 */
 		$this->webserver->on('task', function(websocket_server $server, $task_id, $from_worker_id, $data) {
 			try{
-				$task_data = \Swoole\Serialize::unpack($data);
+				$task_data = unserialize($data);
 				static::onTask($server, $task_id, $from_worker_id, $task_data);
 			}catch(\Exception $e) {
 				self::catchException($e);
@@ -273,17 +259,16 @@ abstract class WebsocketServer extends BaseServer {
 		/**
 		 * worker进程退出回调函数，1.9.17+版本
 		 */
-		if(method_exists($this->webserver, 'WorkerExit')) {
-			$this->webserver->on('WorkerExit', function(websocket_server $server, $worker_id) {
-				try{
-					// worker退出的触发函数
-					$this->startCtrl->workerExit($server, $worker_id);
-				}catch(\Exception $e) {
-					// 捕捉异常
-					self::catchException($e);
-				}
-			});
-		}
+
+        $this->webserver->on('WorkerExit', function(websocket_server $server, $worker_id) {
+            try{
+                // worker退出的触发函数
+                $this->startCtrl->workerExit($server, $worker_id);
+            }catch(\Exception $e) {
+                // 捕捉异常
+                self::catchException($e);
+            }
+        });
 
 		$this->webserver->start();
 	}
