@@ -50,7 +50,6 @@ class BService extends BaseObject {
 	public function __construct() {
 		$this->fd = Application::getApp()->fd;
 		$this->config = Application::getApp()->config;
-
 		// udp协议设置
 		if(BaseServer::getServiceProtocol() == SWOOLEFY_UDP) {
 			$this->client_info = Application::getApp()->client_info;

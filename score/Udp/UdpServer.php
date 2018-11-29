@@ -126,7 +126,7 @@ abstract class UdpServer extends BaseServer {
 				parent::beforeHandler();
 				// 延迟绑定，服务处理实例
 				static::onPack($server, $data, $clientInfo);
-				return;
+				return true;
     		}catch(\Exception $e) {
     			self::catchException($e);
     		}

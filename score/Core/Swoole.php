@@ -32,6 +32,7 @@ class Swoole extends BaseObject {
 
 	/**
 	 * $mixed_params rpc,udp,websocket传递的参数寄存属性
+     * @var null
 	 */
 	public $mixed_params;
 
@@ -43,7 +44,7 @@ class Swoole extends BaseObject {
 
 	/**
 	 * $coroutine_id 
-	 * @var [type]
+	 * @var null
 	 */
 	public $coroutine_id;
 

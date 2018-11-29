@@ -14,7 +14,6 @@ namespace Swoolefy\Core\Cache;
 use  Predis\Client;
 
 class Predis {
-    
 	/**
 	 * $Predis redis实例
 	 * @var [type]

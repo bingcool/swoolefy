@@ -55,10 +55,11 @@ abstract class RpcServer extends TcpServer implements EventInterface {
 	 * @param  int    $fd
 	 * @param  int    $reactor_id
 	 * @param  mixed  $data
-	 * @return mixed
+	 * @return boolean
 	 */
 	public function onReceive($server, $fd, $reactor_id, $data) {
         self::$config['application_service']::getInstance($config = [])->run($fd, $data);
+        return true;
 	}
 
 	/**
@@ -67,12 +68,12 @@ abstract class RpcServer extends TcpServer implements EventInterface {
 	 * @param   int     $task_id
 	 * @param   int     $from_id
 	 * @param   mixed   $data
-	 * @return  void
+	 * @return  boolean
 	 */
 	public function onTask($server, $task_id, $from_id, $data) {
 		list($callable, $taskData, $fd) = $data;
         self::$config['application_service']::getInstance($config = [])->run($fd, [$callable, $taskData]);
-		return ;
+		return true;
 	}
 
 	/**
