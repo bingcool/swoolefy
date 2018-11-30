@@ -12,16 +12,16 @@
 /*************自定义命名空间加载类**************/
 class autoloader {
     /**
-     * $directory 当前的目录
+     * $directory 启动目录
      * @var [type]
      */
-    private static $baseDirectory = __DIR__;
+    private static $baseDirectory = START_DIR_ROOT;
    
     /**
      * $prefix 自定义的根命名空间
      * @var array
      */
-    private static $root_namespace = ['App','Service','protocol'];
+    private static $root_namespace = ['protocol'];
 
     /**
      * @param string $className 

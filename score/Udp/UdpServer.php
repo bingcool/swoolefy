@@ -27,8 +27,8 @@ abstract class UdpServer extends BaseServer {
 		'task_worker_num' => 1,
 		'task_tmpdir' => '/dev/shm',
 		'daemonize' => 0,
-		'log_file' => __DIR__.'/log.txt',
-		'pid_file' => __DIR__.'/server.pid',
+		'log_file' => __DIR__.'/log/log.txt',
+		'pid_file' => __DIR__.'/log/server.pid',
 	];
 
 	/**

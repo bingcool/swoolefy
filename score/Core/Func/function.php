@@ -62,7 +62,6 @@ function dump($var, $echo=true, $label=null, $strict=true) {
  * @param    $code
  * @return   mixed
  */
-function _die($msg='') {
-    Application::getApp()->response->end();
+function _die($msg = '') {
     throw new \Exception($msg);
 }

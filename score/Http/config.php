@@ -12,7 +12,7 @@
 // http协议层配置
 return [
 	'application_index' => 'App\\Application',
-	'start_init' => 'Swoolefy\\Core\\StartInit',
+	'start_init' => \Swoolefy\Core\StartInit::class,
 	'master_process_name' => 'php-http-master',
 	'manager_process_name' => 'php-http-manager',
 	'worker_process_name' => 'php-http-worker',
@@ -34,9 +34,9 @@ return [
 		'dispatch_mode' => 3,
 		'reload_async' => true,
 		'daemonize' => 0,
-		// 不要更改这个两个配置文件位置
-		'log_file' => __DIR__.'/log.txt',
-		'pid_file' => __DIR__.'/server.pid',
+
+		'log_file' => __DIR__.'/log/log.txt',
+		'pid_file' => __DIR__.'/log/server.pid',
 	],
 
 	// 是否内存化线上实时任务

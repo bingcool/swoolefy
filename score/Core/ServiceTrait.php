@@ -98,6 +98,7 @@ trait ServiceTrait {
 	 * @return   array|boolean
 	 */
 	public static function getInitIncludeFiles($dir = null) {
+	    $result = false;
 		// 获取当前的处理的worker_id
 		$workerId = self::getCurrentWorkerId();
 		if(isset(Swfy::$config['setting']['log_file'])) {
@@ -108,15 +109,13 @@ trait ServiceTrait {
 		if(is_file($filePath)) {
 			$includes_string = file_get_contents($filePath);
 			if($includes_string) {
-				return [
+                $result = [
 					'current_worker_id' => $workerId,
 					'include_init_files' => json_decode($includes_string,true),
 				];
-			}else {
-				return false;
 			}
 		}
-		return false;
+		return $result;
 	}
 
 	/**

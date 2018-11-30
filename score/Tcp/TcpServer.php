@@ -28,8 +28,8 @@ abstract class TcpServer extends BaseServer {
 		'task_worker_num' => 1,
 		'task_tmpdir' => '/dev/shm',
 		'daemonize' => 0,
-		'log_file' => __DIR__.'/log.txt',
-		'pid_file' => __DIR__.'/server.pid',
+		'log_file' => __DIR__.'/log/log.txt',
+		'pid_file' => __DIR__.'/log/server.pid',
 	];
 
 	/**
@@ -72,8 +72,7 @@ abstract class TcpServer extends BaseServer {
 		// 初始化启动类
 		$startInitClass = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Core\\StartInit';
 		$this->startCtrl = new $startInitClass();
-		$this->startCtrl->init(); 
-		
+		$this->startCtrl->init();
 		// 设置Pack包处理对象
 		self::buildPackHander();
 		

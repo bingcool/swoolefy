@@ -11,9 +11,8 @@
 
 // websocketserver协议层配置
 return [
-	'application_index' => 'App\\Application',
 	'application_service' => 'Service\\Application',
-	'start_init' => 'Swoolefy\\Core\\StartInit',
+	'start_init' => \Swoolefy\Core\StartInit::class,
 	'master_process_name' => 'php-websocket-master',
 	'manager_process_name' => 'php-websocket-manager',
 	'worker_process_name' => 'php-websocket-worker',
@@ -32,9 +31,9 @@ return [
 		'daemonize' => 0,
 		// websocket使用固定的worker，使用2或4
 		'dispatch_mode' => 2,
-		// 不要更改这个两个配置文件位置
-		'log_file' => __DIR__.'/log.txt',
-		'pid_file' => __DIR__.'/server.pid',
+
+		'log_file' => __DIR__.'/log/log.txt',
+		'pid_file' => __DIR__.'/log/server.pid',
 	],
 	'open_table_tick_task' => true,
 ];

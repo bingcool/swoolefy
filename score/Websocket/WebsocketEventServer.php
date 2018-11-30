@@ -54,7 +54,9 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	 * @return   void
 	 */
 	public function onRequest($request, $response) {
-        self::$config['application_index']::getInstance($config=[])->run($request, $response);
+	    if(isset(self::$config['application_index'])) {
+            self::$config['application_index']::getInstance($config=[])->run($request, $response);
+        }
 	}
 
 	/**
