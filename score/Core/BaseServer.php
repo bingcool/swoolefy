@@ -330,22 +330,17 @@ class BaseServer {
 	 * @param   string $dir
 	 * @return   void
 	 */
-	public static function getIncludeFiles($dir='Http') {
+	public static function getIncludeFiles($dir = null) {
 		if(isset(static::$setting['log_file'])) {
 			$path = pathinfo(static::$setting['log_file'], PATHINFO_DIRNAME);
-			$dir = strtolower($dir);
 			$filePath = $path.'/includes.json';
-		}else {
-			$dir = ucfirst($dir);
-			$filePath = __DIR__.'/../'.$dir.'/includes.json';
+            $includes = get_included_files();
+            if(is_file($filePath)) {
+                @unlink($filePath);
+            }
+            @file_put_contents($filePath, json_encode($includes));
+            @chmod($filePath,0766);
 		}
-		
-		$includes = get_included_files();
-		if(is_file($filePath)) {
-			@unlink($filePath);	
-		}
-		@file_put_contents($filePath, json_encode($includes));
-		@chmod($filePath,0766);
 	}
 
 	/**
