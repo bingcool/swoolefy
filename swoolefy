@@ -1,4 +1,17 @@
+#! /usr/bin/php
 <?php
+
+// 定义注册的应用名和对应使用的协议
+$APP_NAMES = [
+    'App'=>'http',
+    'RpcService'=>'rpc',
+    'UdpService'=> 'udp',
+    'WebsockService'=>'websocket'
+];
+
+// 设置成中国时区
+date_default_timezone_set('PRC');
+
 // score目录,composer安装模式
 if(is_dir(__DIR__.'/vendor/bingcool/swoolefy')) {
     $SCORE_DIR = __DIR__.'/vendor/bingcool/swoolefy';
@@ -7,24 +20,29 @@ if(is_dir(__DIR__.'/vendor/bingcool/swoolefy')) {
     $SCORE_DIR = __DIR__;
 }
 
-// 设置成中国时区
-date_default_timezone_set('PRC');
-
 // 定义一个全局常量
 defined('SCORE_DIR_ROOT') or define('SCORE_DIR_ROOT', $SCORE_DIR);
 // 启动文件目录
 defined('START_DIR_ROOT') or define('START_DIR_ROOT', __DIR__);
+
 // include composer的自动加载类完成命名空间的注册
 include_once START_DIR_ROOT.'/vendor/autoload.php';
+
 // include App应用层的自定义的自动加载类命名空间
-include_once START_DIR_ROOT.'/autoloader.php';
+if(isset($argv[2]) && in_array($argv[2], array_keys($APP_NAMES))) {
+    include_once START_DIR_ROOT.'/'.$argv[2].'/autoloader.php';
+}
 
 function initCheck(){
-    if(version_compare(phpversion(),'7.0.0','<')) {
-        die("php version must >= 7.0.0");
-    }
-    if(version_compare(swoole_version(),'1.9.15','<')) {
-        die("swoole version must >= 1.9.15");
+    try{
+       if(version_compare(phpversion(),'7.0.0','<')) {
+            throw new Exception("php version must >= 7.0.0", 1);
+        }
+        if(version_compare(swoole_version(),'4.0.0','<')) {
+            throw new Exception("swoole version must >= 4.0.0", 1);
+        }
+    }catch(Exception $e) {
+        throw new Exception($e->getMessage(), 1);
     }
 }
 
@@ -47,227 +65,190 @@ function commandParser() {
 function startServer($server) {
     opCacheClear();
     global $argv;
-	switch(strtolower($server)) {
-		case 'http':{
-            $path = START_DIR_ROOT.'/protocol/http';
-            if(!is_dir($path)) {
-                @mkdir($path, 0777, true);
+    global $APP_NAMES;
+    $apps = $APP_NAMES;
+    if(!in_array($server, array_keys($apps))) {
+        echo "app_name is not in APP_NAME array\n\n";
+        return;
+    }
+    foreach($apps as $app_name => $protocol) {
+        if(($app_name == $server) && !in_array($app_name, array('monitor'))) {
+            switch ($protocol) {
+                case 'http':
+                        startHttpService($app_name);
+                    break;
+                case 'websocket':
+                        startWebsocket($app_name);
+                    break;
+                case 'rpc':
+                        startRpc($app_name);
+                    break;
+                case 'udp':
+                        startUdp($app_name);
+                    break;
+                default:
+                    write("protocol is not in ('http','websocket','rpc','udp')");
+                    break;
             }
-            $config_file = $path.'/config.php';
-            if(!file_exists($config_file)) {
-                copy(SCORE_DIR_ROOT.'/score/Http/config.php', $config_file);
-            }
-
-            $event_server_file = $path.'/HttpServer.php';
-            if(!file_exists($event_server_file)) {
-                copy(SCORE_DIR_ROOT.'/score/EventServer/HttpServer.php', $event_server_file);
-            }
-
-            $config = include $config_file;
-            
-            if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
-
-                $config['setting']['daemonize'] = true;
-            }
-
-            $http = new \protocol\http\HttpServer($config);
-            $http->start();
-            break;
         }
-		case 'websocket':{
-            $path = START_DIR_ROOT.'/protocol/websocket';
-            if(!is_dir($path)) {
-                @mkdir($path, 0777, true);
-            }
-            $config_file = $path.'/config.php';
-            
-            if(!file_exists($config_file)) {
-                copy(SCORE_DIR_ROOT.'/score/Websocket/config.php', $config_file);
-            }
-
-            $event_server_file = $path.'/WebsocketEventServer.php';
-            if(!file_exists($event_server_file)) {
-                copy(SCORE_DIR_ROOT.'/score/EventServer/WebsocketEventServer.php', $event_server_file);
-            }
-
-            $config = include $config_file;
-
-            if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
-                $config['setting']['daemonize'] = true;
-            }
-
-			$websocket = new \protocol\websocket\WebsocketEventServer($config);
-            $websocket->start();
-            break;
-        }
-        case 'rpc': {
-            $path = START_DIR_ROOT.'/protocol/rpc';
-            if(!is_dir($path)) {
-                @mkdir($path, 0777, true);
-            }
-            $config_file = $path.'/config.php';
-            if(!file_exists($config_file)) {
-                copy(SCORE_DIR_ROOT.'/score/Rpc/config.php', $config_file);
-            }
-
-            $event_server_file = $path.'/RpcServer.php';
-            if(!file_exists($event_server_file)) {
-                copy(SCORE_DIR_ROOT.'/score/EventServer/RpcServer.php', $event_server_file);
-            }
-
-            $config = include $config_file;
-
-            if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
-                $config['setting']['daemonize'] = true;
-            }
-
-            $rpc = new \protocol\rpc\RpcServer($config);
-            $rpc->start();
-            break;
-        }
-        case 'rpc1': {
-            $path = START_DIR_ROOT.'/protocol/rpc1';
-            if(!is_dir($path)) {
-                @mkdir($path, 0777, true);
-            }
-            $config_file = $path.'/config.php';
-            if(!file_exists($config_file)) {
-                copy(SCORE_DIR_ROOT.'/score/Rpc/config.php', $config_file);
-            }
-
-            $event_server_file = $path.'/RpcServer.php';
-            if(!file_exists($event_server_file)) {
-                copy(SCORE_DIR_ROOT.'/score/EventServer/RpcServer.php', $event_server_file);
-            }
-
-            $config = include $config_file;
-
-            if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
-                $config['setting']['daemonize'] = true;
-            }
-
-            $rpc = new \protocol\rpc1\RpcServer($config);
-            $rpc->start();
-            break;
-        }
-        case 'udp': {
-            $path = START_DIR_ROOT.'/protocol/udp';
-            if(!is_dir($path)) {
-                @mkdir($path, 0777, true);
-            }
-            $config_file = $path.'/config.php';
-            if(!file_exists($config_file)) {
-                copy(SCORE_DIR_ROOT.'/score/Udp/config.php', $config_file);
-            }
-
-            $event_server_file = $path.'/UdpEventServer.php';
-            if(!file_exists($event_server_file)) {
-                copy(SCORE_DIR_ROOT.'/score/EventServer/UdpEventServer.php', $event_server_file);
-            }
-
-            $config = include $config_file;
-
-            if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
-                $config['setting']['daemonize'] = true;
-            }
-
-            $rpc = new \protocol\udp\UdpEventServer($config);
-            $rpc->start();
-            break;
-        }
-        case 'monitor' :{
-
-            $path = START_DIR_ROOT.'/protocol/monitor';
-            if(!is_dir($path)) {
-                @mkdir($path, 0777, true);
-            }
-
-            $config_file = $path.'/config.php';
-            if(!file_exists($config_file)) {
-                copy(SCORE_DIR_ROOT.'/score/AutoReload/config.php', $config_file);
-            }
-
-            $config = include $config_file;
-
-            if(isset($argv[3])) {
-                $config_file = $path.'/'.$argv[3];
-                if(is_file($config_file)) {
-                    $config = include $config_file;
-                }else if($argv[3] == '-d' || $argv[3] == '-D') {
-                    swoole_process::daemon(true,false);
-                } 
-            }
-
-            if(isset($argv[4]) && ($argv[4] == '-d' || $argv[4] == '-D')) {
-                swoole_process::daemon(true,false);
-            }
-
-            $pid = posix_getpid();
-
-            $monitor_port = $config['monitorPort'];
-            $monitor_pid_file = $path.'/monitor'.$monitor_port.'.pid';
-            @file_put_contents($monitor_pid_file, $pid);
-            
-            $monitor_process_name = (isset($config['monitorProcessName']) && !empty($config['monitorProcessName'])) ? $config['monitorProcessName'] : 'php-autoreload-swoole-server';
-            // 设置当前进程的名称
-            cli_set_process_title($monitor_process_name.'-'.$monitor_port);
-            
-            // 创建进程服务实例
-            $daemon = new \Swoolefy\AutoReload\Daemon($config);
-            // 启动
-            $daemon->run();
-            break;
-        }
-        default:{
-            help($command='help');
-        }
-	}
+    }
     return ;
 }
 
-function stopServer($server) {
+function startHttpService($app_name) {
     global $argv;
-	switch(strtolower($server)) {
-		case 'http': {
-            $path = START_DIR_ROOT.'/protocol/http';
-            $pid_file = $path.'/server.pid';  
-		    break;
+    $path = START_DIR_ROOT.'/protocol/'.$app_name;
+    if(!is_dir($path)) {
+        @mkdir($path, 0777, true);
+    }
+    $config_file = $path.'/config.php';
+    if(!file_exists($config_file)) {
+        copy(SCORE_DIR_ROOT.'/score/Http/config.php', $config_file);
+    }
+
+    $event_server_file = $path.'/HttpServer.php';
+    if(!file_exists($event_server_file)) {
+        copy(SCORE_DIR_ROOT.'/score/EventServer/HttpServer.php', $event_server_file);
+    }
+
+    $config = include $config_file;
+
+    if(isset($config['setting']['log_file'])) {
+        $path = pathinfo($config['setting']['log_file'], PATHINFO_DIRNAME);
+        if(!is_dir($path)) {
+            mkdir($path, 0777, true);
         }
-		case 'websocket': {
-            $path = START_DIR_ROOT.'/protocol/websocket';
-			$pid_file = $path.'/server.pid';
-		    break;
+    }
+
+    if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
+        $config['setting']['daemonize'] = true;
+    }
+    $class = "protocol\\{$app_name}\\HttpServer";
+    $http = new $class($config);
+    $http->start();
+}
+
+function startWebsocket($app_name) {
+    global $argv;
+    $path = START_DIR_ROOT.'/protocol/'.$app_name;
+    if(!is_dir($path)) {
+        @mkdir($path, 0777, true);
+    }
+    $config_file = $path.'/config.php';
+
+    if(!file_exists($config_file)) {
+        copy(SCORE_DIR_ROOT.'/score/Websocket/config.php', $config_file);
+    }
+
+    $event_server_file = $path.'/WebsocketEventServer.php';
+    if(!file_exists($event_server_file)) {
+        copy(SCORE_DIR_ROOT.'/score/EventServer/WebsocketEventServer.php', $event_server_file);
+    }
+
+    $config = include $config_file;
+
+    if(isset($config['setting']['log_file'])) {
+        $path = pathinfo($config['setting']['log_file'], PATHINFO_DIRNAME);
+        if(!is_dir($path)) {
+            mkdir($path, 0777, true);
         }
-        case 'rpc': {
-            $path = START_DIR_ROOT.'/protocol/rpc';
-            $pid_file = $path.'/server.pid';
-            break;
+    }
+
+    if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
+        $config['setting']['daemonize'] = true;
+    }
+    $class = "protocol\\{$app_name}\\WebsocketEventServer";
+    $websocket = new $class($config);
+    $websocket->start();
+}
+
+function startRpc($app_name) {
+    global $argv;
+    $path = START_DIR_ROOT.'/protocol/'.$app_name;
+    if(!is_dir($path)) {
+        @mkdir($path, 0777, true);
+    }
+    $config_file = $path.'/config.php';
+    if(!file_exists($config_file)) {
+        copy(SCORE_DIR_ROOT.'/score/Rpc/config.php', $config_file);
+    }
+
+    $event_server_file = $path.'/RpcServer.php';
+    if(!file_exists($event_server_file)) {
+        copy(SCORE_DIR_ROOT.'/score/EventServer/RpcServer.php', $event_server_file);
+    }
+
+    $config = include $config_file;
+
+    if(isset($config['setting']['log_file'])) {
+        $path = pathinfo($config['setting']['log_file'], PATHINFO_DIRNAME);
+        if(!is_dir($path)) {
+            mkdir($path, 0777, true);
         }
-        case 'udp': {
-            $path = START_DIR_ROOT.'/protocol/udp';
-            $pid_file = $path.'/server.pid';
-            break;
+    }
+
+    if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
+        $config['setting']['daemonize'] = true;
+    }
+    $class = "protocol\\{$app_name}\\RpcServer";
+    $rpc = new $class($config);
+    $rpc->start();
+}
+
+function startUdp($app_name) {
+    global $argv;
+    $path = START_DIR_ROOT.'/protocol/'.$app_name;
+    if(!is_dir($path)) {
+        @mkdir($path, 0777, true);
+    }
+    $config_file = $path.'/config.php';
+    if(!file_exists($config_file)) {
+        copy(SCORE_DIR_ROOT.'/score/Udp/config.php', $config_file);
+    }
+
+    $event_server_file = $path.'/UdpEventServer.php';
+    if(!file_exists($event_server_file)) {
+        copy(SCORE_DIR_ROOT.'/score/EventServer/UdpEventServer.php', $event_server_file);
+    }
+
+    $config = include $config_file;
+
+    if(isset($config['setting']['log_file'])) {
+        $path = pathinfo($config['setting']['log_file'], PATHINFO_DIRNAME);
+        if(!is_dir($path)) {
+            mkdir($path, 0777, true);
         }
-        case 'monitor': {
-            if(isset($argv[3])) {
-                $port = $argv[3];
-            }
-            $path = START_DIR_ROOT.'/protocol/monitor';
-            $pid_file = $path.'/monitor'.$port.'.pid';
-            break;
+    }
+
+    if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
+        $config['setting']['daemonize'] = true;
+    }
+    $class = "protocol\\{$app_name}\\UdpEventServer";
+    $rpc = new $class($config);
+    $rpc->start();
+}
+
+function stopServer($app_name) {
+    global $argv;
+    $path = START_DIR_ROOT.'/protocol/'.$app_name;
+    $config = include $path.'/'.'config.php';
+    if(isset($config['setting']['log_file'])) {
+        $path = pathinfo($config['setting']['log_file'], PATHINFO_DIRNAME);
+        if(!is_dir($path)) {
+            mkdir($path, 0777, true);
         }
-        default:{
-            help($command='help');
-        }
-	}
+    }
+
+    $pid_file = $path.'/server.pid';
 
     if(!is_file($pid_file)) {
-        echo "error: pid file {$pid_file} is not exist! \n";
+        write("error: pid file {$pid_file} is not exist");
         return;
     }
+
     $pid = intval(file_get_contents($pid_file));
     if(!swoole_process::kill($pid,0)){
-        echo "error: pid={$pid} not exist \n";
+        write("error: pid={$pid} not exist");
         return;
     }
     // 发送信号，终止进程
@@ -277,54 +258,46 @@ function stopServer($server) {
 
     // 如果'reload_async' => true,，则默认workerStop有30s的过度期停顿这个时间稍微会比较长，设置成60过期
     $nowtime = time();
-    echo ".......Stopping begin at ".date("Y-m-d H:i:s").", please wait a moment, 最多30s，因为wokrer设置reload_async=true,默认有一个30s的过渡期..........\n";
-    while(true){
+    write(".......Begin start stopping at ".date("Y-m-d H:i:s").". please wait a moment, 最多30s，因为wokrer设置reload_async=true,可能默认有一个30s的过渡期..........");
+    while(true) {
         sleep(1);
         if(!swoole_process::kill($pid, 0)) {
-            echo "------------stop info------------\n";
-            echo "Stop Server Successful: server stop at ".date("Y-m-d H:i:s")."\n";
-            echo "\n";
+            write("------------stop info------------");
+            write("Stop Server Successful: server stop at ".date("Y-m-d H:i:s"));
             @unlink($pid_file);
             break;
         }else {
             if(time() - $nowtime > 60){
-                echo "-----------stop info------------\n";
-                echo "Please use 'ps -ef | grep php' checkout swoole weather stop \n";
-                echo "\n";
+                write("-----------stop info------------");
+                write("Please use 'ps -ef | grep php' checkout swoole weather stop");
                 break;
             }
         }
-    }  
+    }
 }
 
 function help($command) {
     switch(strtolower($command.'-'.'help')) {
         case 'start-help':{
-            echo "------------swoolefy启动服务命令------------\n";
-            echo "1、执行php swoolefy start http 即可启动http server服务\n\n";
-            echo "2、执行php swoolefy start websocket 即可启动websocket server服务\n\n";
-            echo "3、执行php swoolefy start rpc 即可启动rpc server服务\n\n";
-            echo "4、执行php swoolefy start udp 即可启动udp server服务\n\n";
-            echo "5、执行php swoolefy start monitor configfile，例如php swoolefy start monitor config9502.php 即在当前终端启动monitor 监控文件自动重启worker服务\n\n";
-            echo "6、执行php swoolefy start monitor configfile，例如php swoolefy start monitor config9502.php -d 即以守护进程启动monitor 监控文件自动重启worker服务\n\n";
+            write("------------swoolefy启动服务命令------------");
+            write("1、执行php swoolefy start APP_NAME  其中APP_NAME是应用的名称");
+            write("2、执行php swoolefy start monitor configfile，例如php swoolefy start monitor config9502.php 即在当前终端启动monitor 监控文件自动重启worker服务");
+            write("3、执行php swoolefy start monitor configfile，例如php swoolefy start monitor config9502.php -d 即以守护进程启动monitor 监控文件自动重启worker服务");
             echo "\n";
             break;
         }
         case 'stop-help':{
-            echo "------------swoolefy终止服务命令------------\n";
-            echo "1、执行php swoolefy stop http 即可终止http server服务\n\n";
-            echo "2、执行php swoolefy stop websocket 即可终止websocket server服务\n\n";
-            echo "3、执行php swoolefy stop rpc 即可终止rpc server服务\n\n";
-            echo "4、执行php swoolefy stop udp 即可终止rpc server服务\n\n";
-            echo "5、执行php swoolefy stop monitor port，例如php swoolefy stop monitor 9502 即可终止monitor 监控文件自动重启worker服务\n\n";
+            write("------------swoolefy终止服务命令------------");
+            write("1、执行php swoolefy stop APP_NAME  其中APP_NAME是应用的名称");
+            write("2、执行php swoolefy stop monitor port，例如php swoolefy stop monitor 9502 即可终止monitor 监控文件自动重启worker服务");
             echo "\n";
             break;
         }
         default:{
-            echo "------------欢迎使用swoolefy------------\n";
-            echo "有关某个命令的详细信息，请键入 help 命令:\n\n";
-            echo "1、php swoolefy start help 查看详细信息!\n\n";
-            echo "2、php swoolefy stop help 查看详细信息!\n\n";
+            write("------------欢迎使用swoolefy------------");
+            write("有关某个命令的详细信息，请键入 help 命令:");
+            write("1、php swoolefy start help 查看详细信息!");
+            write("2、php swoolefy stop help 查看详细信息!");
         }
     }
 }
@@ -348,8 +321,80 @@ function commandHandler(){
         }
     }else {
         help($command['command']);
-    }   
+    }
+}
+
+function write($msg, $foreground = "red", $background = "black") {
+    // Create new Colors class
+    static $colors;
+    if(!isset($colors)) {
+        $colors = new Colors();
+    }
+    echo $colors->getColoredString($msg, $foreground, $background) . "\n\n";
 }
 
 initCheck();
 commandHandler();
+
+class Colors {
+    private $foreground_colors = array();
+    private $background_colors = array();
+
+    public function __construct() {
+        // Set up shell colors
+        $this->foreground_colors['black'] = '0;30';
+        $this->foreground_colors['dark_gray'] = '1;30';
+        $this->foreground_colors['blue'] = '0;34';
+        $this->foreground_colors['light_blue'] = '1;34';
+        $this->foreground_colors['green'] = '0;32';
+        $this->foreground_colors['light_green'] = '1;32';
+        $this->foreground_colors['cyan'] = '0;36';
+        $this->foreground_colors['light_cyan'] = '1;36';
+        $this->foreground_colors['red'] = '0;31';
+        $this->foreground_colors['light_red'] = '1;31';
+        $this->foreground_colors['purple'] = '0;35';
+        $this->foreground_colors['light_purple'] = '1;35';
+        $this->foreground_colors['brown'] = '0;33';
+        $this->foreground_colors['yellow'] = '1;33';
+        $this->foreground_colors['light_gray'] = '0;37';
+        $this->foreground_colors['white'] = '1;37';
+
+        $this->background_colors['black'] = '40';
+        $this->background_colors['red'] = '41';
+        $this->background_colors['green'] = '42';
+        $this->background_colors['yellow'] = '43';
+        $this->background_colors['blue'] = '44';
+        $this->background_colors['magenta'] = '45';
+        $this->background_colors['cyan'] = '46';
+        $this->background_colors['light_gray'] = '47';
+    }
+
+    // Returns colored string
+    public function getColoredString($string, $foreground_color = null, $background_color = null) {
+        $colored_string = "";
+
+        // Check if given foreground color found
+        if (isset($this->foreground_colors[$foreground_color])) {
+            $colored_string .= "\033[" . $this->foreground_colors[$foreground_color] . "m";
+        }
+        // Check if given background color found
+        if (isset($this->background_colors[$background_color])) {
+            $colored_string .= "\033[" . $this->background_colors[$background_color] . "m";
+        }
+
+        // Add string and end coloring
+        $colored_string .=  $string . "\033[0m";
+
+        return $colored_string;
+    }
+
+    // Returns all foreground color names
+    public function getForegroundColors() {
+        return array_keys($this->foreground_colors);
+    }
+
+    // Returns all background color names
+    public function getBackgroundColors() {
+        return array_keys($this->background_colors);
+    }
+}

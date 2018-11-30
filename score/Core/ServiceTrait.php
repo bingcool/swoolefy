@@ -97,16 +97,12 @@ trait ServiceTrait {
 	 * getIncludeFiles 获取swoole启动时,worker启动前已经include内存的文件
 	 * @return   array|boolean
 	 */
-	public static function getInitIncludeFiles($dir='http') {
+	public static function getInitIncludeFiles($dir = null) {
 		// 获取当前的处理的worker_id
 		$workerId = self::getCurrentWorkerId();
 		if(isset(Swfy::$config['setting']['log_file'])) {
 			$path = pathinfo(Swfy::$config['setting']['log_file'], PATHINFO_DIRNAME);
-			$dir = strtolower($dir);
 			$filePath = $path.'/includes.json';
-		}else {
-			$dir = ucfirst($dir);
-			$filePath = __DIR__.'/../'.$dir.'/includes.json';
 		}
 		
 		if(is_file($filePath)) {
@@ -120,9 +116,7 @@ trait ServiceTrait {
 				return false;
 			}
 		}
-
 		return false;
-		
 	}
 
 	/**
