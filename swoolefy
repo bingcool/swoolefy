@@ -68,7 +68,7 @@ function startServer($server) {
     global $APP_NAMES;
     $apps = $APP_NAMES;
     if(!in_array($server, array_keys($apps))) {
-        echo "app_name is not in APP_NAME array\n\n";
+        write("[error] app_name is not in APP_NAME array in swoolefy file, please check it");
         return;
     }
     foreach($apps as $app_name => $protocol) {
