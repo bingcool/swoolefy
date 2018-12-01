@@ -260,7 +260,7 @@ function stopServer($app_name) {
 
     // 如果'reload_async' => true,，则默认workerStop有30s的过度期停顿这个时间稍微会比较长，设置成60过期
     $nowtime = time();
-    write(".......Begin start stopping at ".date("Y-m-d H:i:s").". please wait a moment, 最多30s，因为wokrer设置reload_async=true,可能默认有一个30s的过渡期..........");
+    write(".......Begin start stopping at ".date("Y-m-d H:i:s").". please wait a moment.");
     while(true) {
         sleep(1);
         if(!swoole_process::kill($pid, 0)) {
