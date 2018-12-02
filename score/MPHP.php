@@ -10,8 +10,6 @@
 */
 
 namespace Swoolefy;
-// 定义swoolefy环境
-defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', 1);
 
 // 定义当前core的根路径
 defined('SWOOLEFY_CORE_ROOT_PATH') or define('SWOOLEFY_CORE_ROOT_PATH', __DIR__.'/Core');

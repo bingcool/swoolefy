@@ -15,7 +15,6 @@ use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Process\ProcessManager;
 
 class StartCtrl implements \Swoolefy\Core\StartInterface {
-
 	/**
 	 * init start之前初始化
 	 * @param  $args
@@ -130,19 +129,22 @@ class StartCtrl implements \Swoolefy\Core\StartInterface {
         $swoole_version = swoole_version();
         $php_version = phpversion();
         $swoolefy_version = SWOOLEFY_VERSION;
-        _each(str_repeat('-',50));
+        $swoolefy_env = defined('SWOOLEFY_ENV') ? SWOOLEFY_ENV : null;
+        _each(str_repeat('-',50),'light_green');
         _each("
-            main server       {$main_server}
-            daemonize         {$daemonize}
-            listen address    {$listen_host}
-            listen port       {$listen_port}
-            worker num        {$worker_num}
-            task worker num   {$task_worker_num}
-            swoole version    {$swoole_version}
-            php version       {$php_version}
-            swoolefy version  {$swoolefy_version}
-");
-        _each(str_repeat('-',50)."\n");
+            main server         {$main_server}
+            daemonize           {$daemonize}
+            listen address      {$listen_host}
+            listen port         {$listen_port}
+            worker num          {$worker_num}
+            task worker num     {$task_worker_num}
+            swoole version      {$swoole_version}
+            php version         {$php_version}
+            swoolefy version    {$swoolefy_version}
+            swoolefy envirment  {$swoolefy_env}
+            tips                执行 php swoolefy help 可以查看更多信息
+",'light_green');
+        _each(str_repeat('-',50)."\n",'light_green');
 
     }
 
