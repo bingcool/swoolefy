@@ -12,6 +12,7 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Application;
+use Swoolefy\Core\EventController;
 
 class EventApp {
 	/**
@@ -48,21 +49,33 @@ class EventApp {
 			$app = (new \Swoolefy\Core\EventApp)->registerApp(\App\Event\Gocoroutine::class);
 			$app->test();
 		});
+     * 也可以利用闭包形式,最后一个函数是传进来的闭包函数的形参
+     * go(function() {
+            (new \Swoolefy\Core\EventApp)->registerApp(function($name) {
+                var_dump($name); //输出bingcool
+            },'bingcool');
+        });
 	 * @param  string $class
 	 * @return $this
 	 */
 	public function registerApp($class, ...$args) {
-		if(is_object($class)) {
-			$this->event_app = $class;
-		}
-		if(is_string($class)) {
-			$this->event_app = new $class(...$args);
-		}
+	    if($class instanceof \Closure) {
+            $eventController = new EventController(...$args);
+            $class->call($eventController, ...$args);
+        }else {
+            if(is_object($class)) {
+                $this->event_app = $class;
+            }
+            if(is_string($class)) {
+                $this->event_app = new $class(...$args);
+            }
 
-		if(!($this->event_app instanceof \Swoolefy\Core\EventController)) {
-			unset($this->event_app);
-			throw new \Exception("$class must extends \Swoolefy\Core\EventController");
-		}
+            if(!($this->event_app instanceof EventController)) {
+                unset($this->event_app);
+                $class_name = get_called_class($this->event_app);
+                throw new \Exception("$class_name must extends \Swoolefy\Core\EventController, please check it");
+            }
+        }
 		return $this;
 	}
 
