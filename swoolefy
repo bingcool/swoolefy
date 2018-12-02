@@ -9,6 +9,11 @@ $APP_NAMES = [
     'WebsockService'=>'websocket'
 ];
 
+// 定义环境
+defined('SWOOLEFY_DEV') or define('SWOOLEFY_DEV','dev');
+defined('SWOOLEFY_GRA') or define('SWOOLEFY_GRA','gra');
+defined('SWOOLEFY_PRD') or define('SWOOLEFY_PRD','prd');
+
 // 设置成中国时区
 date_default_timezone_set('PRC');
 
@@ -33,13 +38,50 @@ if(isset($argv[2]) && in_array($argv[2], array_keys($APP_NAMES))) {
     include_once START_DIR_ROOT.'/'.$argv[2].'/autoloader.php';
 }
 
-function initCheck(){
+// 判断当前环境,默认是dev(开发),gra(灰度),prd(生产)
+if(isset($argv[3]) && $argv[3] == '-'.SWOOLEFY_GRA) {
+    defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', SWOOLEFY_GRA);
+}
+if(isset($argv[3]) && $argv[3] == '-'.SWOOLEFY_PRD) {
+    defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', SWOOLEFY_PRD);
+}else {
+    defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', SWOOLEFY_DEV);
+}
+
+function IS_DEV_ENV() {
+    if(SWOOLEFY_ENV == SWOOLEFY_DEV) {
+        return true;
+    }
+    return false;
+}
+
+function IS_GRA_ENV() {
+    if(SWOOLEFY_ENV == SWOOLEFY_GRA) {
+        return true;
+    }
+    return false;
+}
+
+function IS_PRD_ENV() {
+    if(SWOOLEFY_ENV == SWOOLEFY_PRD) {
+        return true;
+    }
+    return false;
+}
+
+function initCheck() {
     try{
-       if(version_compare(phpversion(),'7.0.0','<')) {
-            throw new Exception("php version must >= 7.0.0", 1);
+       if(version_compare(phpversion(),'7.1.0','<')) {
+            write("
+                [error] php version must >= 7.1.0, current php version = ".phpversion()
+            );
+            exit();
         }
-        if(version_compare(swoole_version(),'4.0.0','<')) {
-            throw new Exception("swoole version must >= 4.0.0", 1);
+        if(version_compare(swoole_version(),'4.2.0','<')) {
+            write("
+                [error] the swoole version must >= 4.2.0, current swoole version = ".swoole_version()
+            );
+            exit();
         }
     }catch(Exception $e) {
         throw new Exception($e->getMessage(), 1);
@@ -101,9 +143,12 @@ function startHttpService($app_name) {
     if(!is_dir($path)) {
         @mkdir($path, 0777, true);
     }
-    $config_file = $path.'/config.php';
-    if(!file_exists($config_file)) {
-        copy(SCORE_DIR_ROOT.'/score/Http/config.php', $config_file);
+
+    foreach([SWOOLEFY_DEV, SWOOLEFY_GRA, SWOOLEFY_PRD] as $env) {
+        $config_file = $path."/config-{$env}.php";
+        if(!file_exists($config_file)) {
+            copy(SCORE_DIR_ROOT.'/score/Http/config.php', $config_file);
+        }
     }
 
     $event_server_file = $path.'/HttpServer.php';
@@ -111,7 +156,7 @@ function startHttpService($app_name) {
         copy(SCORE_DIR_ROOT.'/score/EventServer/HttpServer.php', $event_server_file);
     }
 
-    $config = include $config_file;
+    $config = include $path."/config-".SWOOLEFY_ENV.".php";
 
     if(isset($config['setting']['log_file'])) {
         $path = pathinfo($config['setting']['log_file'], PATHINFO_DIRNAME);
@@ -120,7 +165,7 @@ function startHttpService($app_name) {
         }
     }
 
-    if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
+    if(isset($argv[4]) && ($argv[4] == '-d' || $argv[4] == '-D')) {
         $config['setting']['daemonize'] = true;
     }
     $class = "protocol\\{$app_name}\\HttpServer";
@@ -134,10 +179,12 @@ function startWebsocket($app_name) {
     if(!is_dir($path)) {
         @mkdir($path, 0777, true);
     }
-    $config_file = $path.'/config.php';
 
-    if(!file_exists($config_file)) {
-        copy(SCORE_DIR_ROOT.'/score/Websocket/config.php', $config_file);
+    foreach([SWOOLEFY_DEV, SWOOLEFY_GRA, SWOOLEFY_PRD] as $env) {
+        $config_file = $path."/config-{$env}.php";
+        if(!file_exists($config_file)) {
+            copy(SCORE_DIR_ROOT.'/score/Websocket/config.php', $config_file);
+        }
     }
 
     $event_server_file = $path.'/WebsocketEventServer.php';
@@ -145,7 +192,7 @@ function startWebsocket($app_name) {
         copy(SCORE_DIR_ROOT.'/score/EventServer/WebsocketEventServer.php', $event_server_file);
     }
 
-    $config = include $config_file;
+    $config = include $path."/config-".SWOOLEFY_ENV.".php";
 
     if(isset($config['setting']['log_file'])) {
         $path = pathinfo($config['setting']['log_file'], PATHINFO_DIRNAME);
@@ -154,7 +201,7 @@ function startWebsocket($app_name) {
         }
     }
 
-    if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
+    if(isset($argv[4]) && ($argv[4] == '-d' || $argv[4] == '-D')) {
         $config['setting']['daemonize'] = true;
     }
     $class = "protocol\\{$app_name}\\WebsocketEventServer";
@@ -168,9 +215,12 @@ function startRpc($app_name) {
     if(!is_dir($path)) {
         @mkdir($path, 0777, true);
     }
-    $config_file = $path.'/config.php';
-    if(!file_exists($config_file)) {
-        copy(SCORE_DIR_ROOT.'/score/Rpc/config.php', $config_file);
+
+    foreach([SWOOLEFY_DEV, SWOOLEFY_GRA, SWOOLEFY_PRD] as $env) {
+        $config_file = $path."/config-{$env}.php";
+        if(!file_exists($config_file)) {
+            copy(SCORE_DIR_ROOT.'/score/Rpc/config.php', $config_file);
+        }
     }
 
     $event_server_file = $path.'/RpcServer.php';
@@ -178,7 +228,7 @@ function startRpc($app_name) {
         copy(SCORE_DIR_ROOT.'/score/EventServer/RpcServer.php', $event_server_file);
     }
 
-    $config = include $config_file;
+    $config = include $path."/config-".SWOOLEFY_ENV.".php";
 
     if(isset($config['setting']['log_file'])) {
         $path = pathinfo($config['setting']['log_file'], PATHINFO_DIRNAME);
@@ -187,7 +237,7 @@ function startRpc($app_name) {
         }
     }
 
-    if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
+    if(isset($argv[4]) && ($argv[4] == '-d' || $argv[4] == '-D')) {
         $config['setting']['daemonize'] = true;
     }
     $class = "protocol\\{$app_name}\\RpcServer";
@@ -201,9 +251,12 @@ function startUdp($app_name) {
     if(!is_dir($path)) {
         @mkdir($path, 0777, true);
     }
-    $config_file = $path.'/config.php';
-    if(!file_exists($config_file)) {
-        copy(SCORE_DIR_ROOT.'/score/Udp/config.php', $config_file);
+
+    foreach([SWOOLEFY_DEV, SWOOLEFY_GRA, SWOOLEFY_PRD] as $env) {
+        $config_file = $path."/config-{$env}.php";
+        if(!file_exists($config_file)) {
+            copy(SCORE_DIR_ROOT.'/score/Udp/config.php', $config_file);
+        }
     }
 
     $event_server_file = $path.'/UdpEventServer.php';
@@ -211,7 +264,7 @@ function startUdp($app_name) {
         copy(SCORE_DIR_ROOT.'/score/EventServer/UdpEventServer.php', $event_server_file);
     }
 
-    $config = include $config_file;
+    $config = include $path."/config-".SWOOLEFY_ENV.".php";
 
     if(isset($config['setting']['log_file'])) {
         $path = pathinfo($config['setting']['log_file'], PATHINFO_DIRNAME);
@@ -220,7 +273,7 @@ function startUdp($app_name) {
         }
     }
 
-    if(isset($argv[3]) && ($argv[3] == '-d' || $argv[3] == '-D')) {
+    if(isset($argv[4]) && ($argv[4] == '-d' || $argv[4] == '-D')) {
         $config['setting']['daemonize'] = true;
     }
     $class = "protocol\\{$app_name}\\UdpEventServer";
@@ -232,7 +285,7 @@ function stopServer($app_name) {
     global $argv;
     $path = START_DIR_ROOT.'/protocol/'.$app_name;
 
-    $config = include $path.'/'.'config.php';
+    $config = include $path.'/config-'.SWOOLEFY_ENV.'.php';
 
     if(isset($config['setting']['pid_file'])) {
         $path = pathinfo($config['setting']['pid_file'], PATHINFO_DIRNAME);
@@ -244,13 +297,13 @@ function stopServer($app_name) {
     $pid_file = $config['setting']['pid_file'];
 
     if(!is_file($pid_file)) {
-        write("error: pid file {$pid_file} is not exist");
+        write("[error] pid file {$pid_file} is not exist, please check server is running");
         return;
     }
 
     $pid = intval(file_get_contents($pid_file));
     if(!swoole_process::kill($pid,0)){
-        write("error: pid={$pid} not exist");
+        write("[error] pid={$pid} not exist");
         return;
     }
     // 发送信号，终止进程
@@ -260,12 +313,16 @@ function stopServer($app_name) {
 
     // 如果'reload_async' => true,，则默认workerStop有30s的过度期停顿这个时间稍微会比较长，设置成60过期
     $nowtime = time();
-    write(".......Begin start stopping at ".date("Y-m-d H:i:s").". please wait a moment.");
+    write("
+        server begin to stopping at ".date("Y-m-d H:i:s").". please wait a moment..."
+    );
     while(true) {
         sleep(1);
         if(!swoole_process::kill($pid, 0)) {
-            write("------------stop info------------");
-            write("Stop Server Successful: server stop at ".date("Y-m-d H:i:s"));
+            write("
+        ------------stop info------------\n    
+        server stop  successful. server stop at ".date("Y-m-d H:i:s")
+            );
             @unlink($pid_file);
             break;
         }else {
@@ -281,25 +338,25 @@ function stopServer($app_name) {
 function help($command) {
     switch(strtolower($command.'-'.'help')) {
         case 'start-help':{
-            write("------------swoolefy启动服务命令------------");
-            write("1、执行php swoolefy start APP_NAME  其中APP_NAME是应用的名称");
-            write("2、执行php swoolefy start monitor configfile，例如php swoolefy start monitor config9502.php 即在当前终端启动monitor 监控文件自动重启worker服务");
-            write("3、执行php swoolefy start monitor configfile，例如php swoolefy start monitor config9502.php -d 即以守护进程启动monitor 监控文件自动重启worker服务");
+            write("------------swoolefy启动服务命令------------",'light_green');
+            write("1、执行php swoolefy start APP_NAME  其中APP_NAME是应用的名称",'light_green');
+            write("2、执行php swoolefy start monitor configfile，例如php swoolefy start monitor config9502.php 即在当前终端启动monitor 监控文件自动重启worker服务",'light_green');
+            write("3、执行php swoolefy start monitor configfile，例如php swoolefy start monitor config9502.php -d 即以守护进程启动monitor 监控文件自动重启worker服务",'light_green');
             echo "\n";
             break;
         }
         case 'stop-help':{
-            write("------------swoolefy终止服务命令------------");
-            write("1、执行php swoolefy stop APP_NAME  其中APP_NAME是应用的名称");
-            write("2、执行php swoolefy stop monitor port，例如php swoolefy stop monitor 9502 即可终止monitor 监控文件自动重启worker服务");
+            write("------------swoolefy终止服务命令------------",'light_green');
+            write("1、执行php swoolefy stop APP_NAME  其中APP_NAME是应用的名称",'light_green');
+            write("2、执行php swoolefy stop monitor port，例如php swoolefy stop monitor 9502 即可终止monitor 监控文件自动重启worker服务",'light_green');
             echo "\n";
             break;
         }
         default:{
-            write("------------欢迎使用swoolefy------------");
-            write("有关某个命令的详细信息，请键入 help 命令:");
-            write("1、php swoolefy start help 查看详细信息!");
-            write("2、php swoolefy stop help 查看详细信息!");
+            write("------------欢迎使用swoolefy------------",'light_green');
+            write("有关某个命令的详细信息，请键入 help 命令:",'light_green');
+            write("1、php swoolefy start help 查看详细信息!",'light_green');
+            write("2、php swoolefy stop help 查看详细信息!",'light_green');
         }
     }
 }

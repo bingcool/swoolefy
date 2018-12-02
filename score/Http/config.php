@@ -20,7 +20,6 @@ return [
 	'host' => '0.0.0.0',
 	'port' => '9502',
 	'time_zone' => 'PRC',
-	'swoole_version' => '1.9.17', //要求swoole的最低版本
 	'swoole_process_mode' => SWOOLE_PROCESS,//swoole的进程模式设置
 	'include_files' => [],
 	'setting' => [
