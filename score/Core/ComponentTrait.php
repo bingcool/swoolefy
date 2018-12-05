@@ -25,7 +25,7 @@ trait ComponentTrait {
 	 * $pools_component 需要创建进程池的组件，一般是mysql，或者redis
 	 * @var array
 	 */
-	protected $component_pools = [];
+	protected static $component_pools = [];
 
 	/**
 	 * creatObject 创建组件对象
@@ -46,6 +46,11 @@ trait ComponentTrait {
 						$params = $defination['constructor'];
 						unset($defination['constructor']);
 					}
+
+                    if(isset($defination[SWOOLEFY_ENABLE_POOLS]) && isset($defination[SWOOLEFY_POOLS_NUM])) {
+                        $this->setOpenPoolsOfComponent($com_alias_name);
+                    }
+
 					// 删除延迟创建属性
 					if(isset($defination[SWOOLEFY_COM_IS_DELAY])) {
 						unset($defination[SWOOLEFY_COM_IS_DELAY]);
@@ -66,7 +71,7 @@ trait ComponentTrait {
 		foreach($components as $com_name=>$component) {
 
 			if(isset($component[SWOOLEFY_ENABLE_POOLS]) && isset($component[SWOOLEFY_POOLS_NUM])) {
-				array_push($this->component_pools, $com_name);
+				$this->setOpenPoolsOfComponent($com_name);
 				continue;
 			}
 
@@ -248,7 +253,7 @@ trait ComponentTrait {
 				}
 			}else if(in_array($name, array_keys($components))) {
 				// mysql,redis进程池中直接赋值
-				if(in_array($name, $this->component_pools)) {
+				if(in_array($name, self::$component_pools)) {
 					$this->container[$name] = \Swoolefy\Core\Pools::getInstance()->getObj($name);
 					// 如果没有设置进程池处理实例，则降级到创建实例模式
 					if(is_object($this->container[$name])) {
@@ -260,6 +265,25 @@ trait ComponentTrait {
 			return false;	
 		}
 	}
+
+    /**
+     * setComponentPools 设置记录启用pools的组件，一般在自定义进程做db,redis的进程池需要用到，慎用此函数
+     * @param string|null $com_alias_name
+     */
+	public function setOpenPoolsOfComponent(string $com_alias_name = null) {
+        if($com_alias_name) {
+            if(!in_array($com_alias_name, self::$component_pools)) {
+                array_push(self::$component_pools, $com_alias_name);
+            }
+        }
+    }
+
+    /**
+     * getOpenPoolsOfComponent 获取启用pools的组件名称
+     */
+    public function getOpenPoolsOfComponent() {
+        return self::$component_pools;
+    }
 
 	/**
 	 * __isset
