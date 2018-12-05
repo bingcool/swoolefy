@@ -16,7 +16,7 @@ use Swoolefy\Core\Swfy;
 trait ComponentTrait {
 
 	/**
-	 * $container 
+	 * $container
 	 * @var array
 	 */
 	protected $container = [];
@@ -25,7 +25,7 @@ trait ComponentTrait {
 	 * $pools_component 需要创建进程池的组件，一般是mysql，或者redis
 	 * @var array
 	 */
-	protected static $component_pools = [];
+	protected $component_pools = [];
 
 	/**
 	 * creatObject 创建组件对象
@@ -33,7 +33,7 @@ trait ComponentTrait {
 	 * @param    array   $defination     组件定义类
 	 * @return   array
 	 */
-	
+
 	public function creatObject(string $com_alias_name = null, array $defination = []) {
 		// 动态创建公用组件
 		if($com_alias_name) {
@@ -47,10 +47,6 @@ trait ComponentTrait {
 						unset($defination['constructor']);
 					}
 
-                    if(isset($defination[SWOOLEFY_ENABLE_POOLS]) && isset($defination[SWOOLEFY_POOLS_NUM])) {
-                        $this->setOpenPoolsOfComponent($com_alias_name);
-                    }
-
 					// 删除延迟创建属性
 					if(isset($defination[SWOOLEFY_COM_IS_DELAY])) {
 						unset($defination[SWOOLEFY_COM_IS_DELAY]);
@@ -59,18 +55,18 @@ trait ComponentTrait {
 				}else {
 					throw new \Exception("component:".$com_alias_name.'must be set class', 1);
 				}
-				
+
 			}else {
 				return $this->container[$com_alias_name];
 			}
-			
+
 		}
 		// 配置文件初始化创建公用对象
 		$coreComponents = $this->coreComponents();
 		$components = array_merge($coreComponents, Swfy::getAppConf()['components']);
 		foreach($components as $com_name=>$component) {
 
-			if(isset($component[SWOOLEFY_ENABLE_POOLS]) && isset($component[SWOOLEFY_POOLS_NUM])) {
+			if($this->isSetOpenPoolsOfComponent($component)) {
 				$this->setOpenPoolsOfComponent($com_name);
 				continue;
 			}
@@ -88,7 +84,7 @@ trait ComponentTrait {
 					$params = $component['constructor'];
 					unset($component['constructor']);
 				}
-				
+
 				$defination = $component;
 				$this->container[$com_name] = $this->buildInstance($class, $defination, $params, $com_name);
 			}else {
@@ -102,7 +98,7 @@ trait ComponentTrait {
 	/**
 	 * getDependencies
 	 * @param    string  $class
-	 * @return   array      
+	 * @return   array
 	 */
 	protected function getDependencies($class) {
         $dependencies = [];
@@ -138,7 +134,7 @@ trait ComponentTrait {
         if(empty($defination)) {
             return $reflection->newInstanceArgs($dependencies);
 		}
-		
+
         $object = $reflection->newInstanceArgs($dependencies);
 
         // 回调必须设置在配置的最后
@@ -150,7 +146,7 @@ trait ComponentTrait {
         		// 设置在数组末尾
         		$defination[SWOOLEFY_COM_FUNC] = $func;
         	}
-        	unset($keys);	
+        	unset($keys);
         }
 
         foreach ($defination as $name => $value) {
@@ -158,7 +154,7 @@ trait ComponentTrait {
         		continue;
         	}
 
-        	if($name == SWOOLEFY_COM_FUNC) {        		
+        	if($name == SWOOLEFY_COM_FUNC) {
         		if(is_string($defination[$name]) && method_exists($object, $defination[$name])) {
         			call_user_func_array([$object, $defination[$name]], [$defination]);
         		}else if($defination[$name] instanceof \Closure) {
@@ -174,7 +170,7 @@ trait ComponentTrait {
         	}
 
         	$object->$name = $value;
-            
+
         }
         return $object;
 	}
@@ -221,7 +217,7 @@ trait ComponentTrait {
 
 	/**
 	 * __set
-	 * @param    string  $name 
+	 * @param    string  $name
 	 * @param    object  $value
 	 * @return   object
 	 */
@@ -245,7 +241,7 @@ trait ComponentTrait {
         $components = Swfy::getAppConf()['components'];
 		if(!isset($this->$name)) {
 			if(isset($this->container[$name])) {
-				if(is_object($this->container[$name])) {	
+				if(is_object($this->container[$name])) {
 					return $this->container[$name];
 				}else {
 					$this->clearComponent($name);
@@ -253,7 +249,7 @@ trait ComponentTrait {
 				}
 			}else if(in_array($name, array_keys($components))) {
 				// mysql,redis进程池中直接赋值
-				if(in_array($name, self::$component_pools)) {
+				if(in_array($name, $this->component_pools)) {
 					$this->container[$name] = \Swoolefy\Core\Pools::getInstance()->getObj($name);
 					// 如果没有设置进程池处理实例，则降级到创建实例模式
 					if(is_object($this->container[$name])) {
@@ -262,9 +258,19 @@ trait ComponentTrait {
 				}
 				return $this->creatObject($name, $components[$name]);
 			}
-			return false;	
+			return false;
 		}
 	}
+
+    /**
+     * isSetOpenPoolsOfComponent 组件是否开启pools
+     */
+	private function isSetOpenPoolsOfComponent(array &$component) {
+        if(isset($component[SWOOLEFY_ENABLE_POOLS]) && isset($component[SWOOLEFY_POOLS_NUM])) {
+           return true;
+        }
+        return false;
+    }
 
     /**
      * setComponentPools 设置记录启用pools的组件，一般在自定义进程做db,redis的进程池需要用到，慎用此函数
@@ -272,8 +278,8 @@ trait ComponentTrait {
      */
 	public function setOpenPoolsOfComponent(string $com_alias_name = null) {
         if($com_alias_name) {
-            if(!in_array($com_alias_name, self::$component_pools)) {
-                array_push(self::$component_pools, $com_alias_name);
+            if(!in_array($com_alias_name, $this->component_pools)) {
+                array_push($this->component_pools, $com_alias_name);
             }
         }
     }
@@ -282,7 +288,7 @@ trait ComponentTrait {
      * getOpenPoolsOfComponent 获取启用pools的组件名称
      */
     public function getOpenPoolsOfComponent() {
-        return self::$component_pools;
+        return $this->component_pools;
     }
 
 	/**
