@@ -300,7 +300,7 @@ class BaseServer {
 
 	/**
 	 * setTimeZone 设置时区
-	 * @return   void
+	 * @return   boolean
 	 */
 	public static function setTimeZone() {
 		// 默认
@@ -309,7 +309,7 @@ class BaseServer {
 			$timezone = static::$config['time_zone'];
 		}
 		date_default_timezone_set($timezone);
-		return;
+		return true;
 	}
 
 	/**
@@ -426,20 +426,27 @@ class BaseServer {
 	}
 
 	/**
-	 * serviceType 获取当前主服务器使用的协议
+	 * serviceType 获取当前主服务器使用的协议,只需计算一次即可，寄存static变量
 	 * @return   mixed
 	 */
 	public static function getServiceProtocol() {
-		// websocket
+	    static $protocol;
+	    if($protocol) {
+	        return $protocol;
+        }
 		if(static::$server instanceof \Swoole\WebSocket\Server) {
-			return SWOOLEFY_WEBSOCKET;
+			$protocol = SWOOLEFY_WEBSOCKET;
+            return $protocol;
 		}else if(static::$server instanceof \Swoole\Http\Server) {
-			return SWOOLEFY_HTTP;
+            $protocol = SWOOLEFY_HTTP;
+            return $protocol;
 		}else if(static::$server instanceof \Swoole\Server) {
 			if(self::$swoole_socket_type == SWOOLE_SOCK_UDP) {
-				return SWOOLEFY_UDP;
-			}
-			return SWOOLEFY_TCP;
+                $protocol = SWOOLEFY_UDP;
+			}else {
+                $protocol = SWOOLEFY_TCP;
+            }
+            return $protocol;
 		}
 		return false;
 	} 
@@ -632,6 +639,50 @@ class BaseServer {
         }
         return $isEnablePvCollector;
 
+    }
+
+    /**
+     * isHttpApp
+     * @return boolean
+     */
+    public function isHttpApp() {
+        if(BaseServer::getServiceProtocol() == SWOOLEFY_HTTP) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * isRpcApp 判断当前应用是否是Tcp
+     * @return boolean
+     */
+    public function isRpcApp() {
+        if(BaseServer::getServiceProtocol() == SWOOLEFY_TCP) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * isWebsocketApp
+     * @return boolean
+     */
+    public function isWebsocketApp() {
+        if(BaseServer::getServiceProtocol() == SWOOLEFY_WEBSOCKET) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * isUdpApp
+     * @return boolean
+     */
+    public function isUdpApp() {
+        if(BaseServer::getServiceProtocol() == SWOOLEFY_UDP) {
+            return true;
+        }
+        return false;
     }
 
     /**
