@@ -129,12 +129,12 @@ class BaseServer {
 	 * @return   void
 	 */
 	public static function checkVersion() {
-		if(version_compare(phpversion(), '5.6.0', '<')) {
-			throw new \Exception("php version must be >= 7.0, we suggest use php7.1+ version", 1);
+		if(version_compare(phpversion(), '7.1.0', '<')) {
+			throw new \Exception("php version must be >= 7.1, we suggest use php7.2+ version", 1);
 		}
 
 		if(!extension_loaded('swoole')) {
-			throw new \Exception("you are not install swoole extentions,please install it where version >= 1.9.17 or >=4.0.1 from https://github.com/swoole/swoole-src", 1);
+			throw new \Exception("you are not install swoole extentions,please install swoole(suggest 4.2.0+) from https://github.com/swoole/swoole-src", 1);
 		}
 
 		if(!extension_loaded('pcntl')) {
@@ -241,6 +241,15 @@ class BaseServer {
 	public static function getConf() {
 		return static::$config;
 	}
+
+    /**
+     * getAppConf
+     * @return mixed
+     */
+	public static function getAppConf() {
+	    return static::$config['app_conf'];
+    }
+
 	/**
 	 * getSetting 获取swoole的配置项
 	 * @return   array
