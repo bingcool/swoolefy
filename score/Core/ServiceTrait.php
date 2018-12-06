@@ -212,7 +212,7 @@ trait ServiceTrait {
 	 * @return boolean
 	 */
 	public function isHttpApp() {
-		if(BaseServer::getServiceProtocol() == SWOOLEFY_HTTP) {
+		if(BaseServer::isHttpApp()) {
 			return true;
 		}
 		return false;
@@ -223,7 +223,7 @@ trait ServiceTrait {
 	 * @return boolean
 	 */
 	public function isRpcApp() {
-		if(BaseServer::getServiceProtocol() == SWOOLEFY_TCP) {
+		if(BaseServer::isRpcApp()) {
 			return true;
 		}
 		return false;
@@ -234,7 +234,7 @@ trait ServiceTrait {
 	 * @return boolean
 	 */
 	public function isWebsocketApp() {
-		if(BaseServer::getServiceProtocol() == SWOOLEFY_WEBSOCKET) {
+		if(BaseServer::isWebsocketApp()) {
 			return true;
 		}
 		return false;
@@ -245,7 +245,7 @@ trait ServiceTrait {
 	 * @return boolean
 	 */
 	public function isUdpApp() {
-		if(BaseServer::getServiceProtocol() == SWOOLEFY_UDP) {
+		if(BaseServer::isUdpApp()) {
 			return true;
 		}
 		return false;

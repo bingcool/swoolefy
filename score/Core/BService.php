@@ -66,7 +66,7 @@ class BService extends BaseObject {
 	 * @return void
 	 */
 	public function send($fd, $data, $header = []) {
-		if(BaseServer::getServiceProtocol() == SWOOLEFY_TCP) {
+		if(BaseServer::isRpcApp()) {
 			$args = [$data, $header];
 			$data = \Swoolefy\Tcp\TcpServer::pack($args);
 			Swfy::getServer()->send($fd, $data);
@@ -85,7 +85,7 @@ class BService extends BaseObject {
 	 * @return   void
 	 */
 	public function sendto($ip, $port, $data, $server_socket = -1) {
-		if(BaseServer::getServiceProtocol() == SWOOLEFY_UDP) {
+		if(BaseServer::isUdpApp()) {
 			if(is_array($data)){
 				$data = json_encode($data);
 			}
@@ -105,7 +105,7 @@ class BService extends BaseObject {
 	 */
 	public function push($fd, $data, $opcode = 1, $finish = true) {
 		// 只能由websoccket调用
-		if(BaseServer::getServiceProtocol() == SWOOLEFY_WEBSOCKET) {
+		if(BaseServer::isWebsocketApp()) {
 			if(is_array($data)){
 				$data = json_encode($data);
 			}
