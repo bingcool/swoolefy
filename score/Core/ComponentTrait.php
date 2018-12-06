@@ -215,6 +215,44 @@ trait ComponentTrait {
 		return [];
 	}
 
+    /**
+     * isSetOpenPoolsOfComponent 组件是否开启pools
+     */
+    private function isSetOpenPoolsOfComponent(array &$component) {
+        if(isset($component[SWOOLEFY_ENABLE_POOLS]) && isset($component[SWOOLEFY_POOLS_NUM])) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * setComponentPools 设置记录启用pools的组件，一般在自定义进程做db,redis的进程池需要用到，慎用此函数
+     * @param string|null $com_alias_name
+     */
+    public function setOpenPoolsOfComponent(string $com_alias_name = null) {
+        if($com_alias_name) {
+            if(!in_array($com_alias_name, $this->component_pools)) {
+                array_push($this->component_pools, $com_alias_name);
+            }
+        }
+    }
+
+    /**
+     * getOpenPoolsOfComponent 获取启用pools的组件名称
+     */
+    public function getOpenPoolsOfComponent() {
+        return $this->component_pools;
+    }
+
+    /**
+     * __isset
+     * @param    string  $name
+     * @return   boolean
+     */
+    public function __isset($name) {
+        return isset($this->$name);
+    }
+
 	/**
 	 * __set
 	 * @param    string  $name
@@ -260,44 +298,6 @@ trait ComponentTrait {
 			}
 			return false;
 		}
-	}
-
-    /**
-     * isSetOpenPoolsOfComponent 组件是否开启pools
-     */
-	private function isSetOpenPoolsOfComponent(array &$component) {
-        if(isset($component[SWOOLEFY_ENABLE_POOLS]) && isset($component[SWOOLEFY_POOLS_NUM])) {
-           return true;
-        }
-        return false;
-    }
-
-    /**
-     * setComponentPools 设置记录启用pools的组件，一般在自定义进程做db,redis的进程池需要用到，慎用此函数
-     * @param string|null $com_alias_name
-     */
-	public function setOpenPoolsOfComponent(string $com_alias_name = null) {
-        if($com_alias_name) {
-            if(!in_array($com_alias_name, $this->component_pools)) {
-                array_push($this->component_pools, $com_alias_name);
-            }
-        }
-    }
-
-    /**
-     * getOpenPoolsOfComponent 获取启用pools的组件名称
-     */
-    public function getOpenPoolsOfComponent() {
-        return $this->component_pools;
-    }
-
-	/**
-	 * __isset
-	 * @param    string  $name
-	 * @return   boolean
-	 */
-	public function __isset($name) {
-		return isset($this->$name);
 	}
 
 	/**

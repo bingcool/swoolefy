@@ -22,12 +22,6 @@ class Application {
 	protected static $app = [];
 
 	/**
-	 * $dump 记录启动时的调试打印信息
-	 * @var null
-	 */
-	public static $dump = null;
-
-	/**
 	 * __construct
 	 */
 	public function __construct() {}
@@ -140,10 +134,9 @@ class Application {
 		}
 		if(isset(self::$app[$cid])) {
 			unset(self::$app[$cid]);
-			return true;
 		}
 		return true;	
-	} 
+	}
 
 	/**
 	 * __destruct

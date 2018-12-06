@@ -148,9 +148,7 @@ trait ServiceTrait {
 	    if(!empty(Swfy::$appConfig)) {
             return Swfy::$appConfig;
         }
-	    if(isset(BaseServer::getConf()['app_conf'])) {
-            return BaseServer::getConf()['app_conf'];
-        }
+        return BaseServer::getAppConf();
 	}
 
 	/**

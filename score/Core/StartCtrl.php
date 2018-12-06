@@ -130,8 +130,8 @@ class StartCtrl implements \Swoolefy\Core\StartInterface {
         $php_version = phpversion();
         $swoolefy_version = SWOOLEFY_VERSION;
         $swoolefy_env = defined('SWOOLEFY_ENV') ? SWOOLEFY_ENV : null;
-        _each(str_repeat('-',50),'light_green');
-        _each("
+        $this->each(str_repeat('-',50),'light_green');
+        $this->each("
             main server         {$main_server}
             daemonize           {$daemonize}
             listen address      {$listen_host}
@@ -144,7 +144,7 @@ class StartCtrl implements \Swoolefy\Core\StartInterface {
             swoolefy envirment  {$swoolefy_env}
             tips                执行 php swoolefy help 可以查看更多信息
 ",'light_green');
-        _each(str_repeat('-',50)."\n",'light_green');
+        $this->each(str_repeat('-',50)."\n",'light_green');
 
     }
 
