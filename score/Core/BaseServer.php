@@ -654,7 +654,7 @@ class BaseServer {
      * isHttpApp
      * @return boolean
      */
-    public function isHttpApp() {
+    public static function isHttpApp() {
         if(BaseServer::getServiceProtocol() == SWOOLEFY_HTTP) {
             return true;
         }
@@ -665,7 +665,7 @@ class BaseServer {
      * isRpcApp 判断当前应用是否是Tcp
      * @return boolean
      */
-    public function isRpcApp() {
+    public static function isRpcApp() {
         if(BaseServer::getServiceProtocol() == SWOOLEFY_TCP) {
             return true;
         }
@@ -676,7 +676,7 @@ class BaseServer {
      * isWebsocketApp
      * @return boolean
      */
-    public function isWebsocketApp() {
+    public static function isWebsocketApp() {
         if(BaseServer::getServiceProtocol() == SWOOLEFY_WEBSOCKET) {
             return true;
         }
@@ -687,7 +687,7 @@ class BaseServer {
      * isUdpApp
      * @return boolean
      */
-    public function isUdpApp() {
+    public static function isUdpApp() {
         if(BaseServer::getServiceProtocol() == SWOOLEFY_UDP) {
             return true;
         }

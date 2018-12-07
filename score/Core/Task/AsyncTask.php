@@ -33,12 +33,12 @@ class AsyncTask implements AsyncTaskInterface {
         if(self::isWorkerProcess()) {
             $fd = Application::getApp()->fd;
             // udp没有连接概念，存在client_info
-            if(BaseServer::getServiceProtocol() == SWOOLEFY_UDP) {
+            if(BaseServer::isUdpApp()) {
                 $fd = Application::getApp()->client_info;
             }
 
             // http的fd其实没有实用意义
-            if(BaseServer::getServiceProtocol() == SWOOLEFY_HTTP) {
+            if(BaseServer::isHttpApp()) {
                 $fd = Application::getApp()->request->fd;
             }
 

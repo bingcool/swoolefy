@@ -19,7 +19,7 @@ class NotFound extends BService {
 	 */
 	public function return404(string $class) {
 		// tcp|rpc服务
-		if(BaseServer::getServiceProtocol() == SWOOLEFY_TCP) {
+		if(BaseServer::isRpcApp()) {
 			// rpc服务，server端和client端的header_struct不相同时,默认不作处理
 			$is_same_packet_struct = $this->server_client_packet_struct_is_same();
             $data = ['ret'=>404, 'msg'=>$class.' is not found!', 'data'=>''];
@@ -29,7 +29,7 @@ class NotFound extends BService {
 				$this->send($fd, $data, $header);
 			}
 			return $data;
-		}else if(BaseServer::getServiceProtocol() == SWOOLEFY_WEBSOCKET) {
+		}else if(BaseServer::isWebsocketApp()) {
 			// websocket服务
 			$fd = $this->fd;
 			$data = ['ret'=>404, 'msg'=>$class.' is not found!', 'data'=>''];
@@ -45,7 +45,7 @@ class NotFound extends BService {
 	 * @return void
 	 */
 	public function return500($class, $action) {
-		if(BaseServer::getServiceProtocol() == SWOOLEFY_TCP) {
+		if(BaseServer::isRpcApp()) {
 			// rpc服务，server端和client端的header_struct不相同时,默认不作处理
 			$is_same_packet_struct = $this->server_client_packet_struct_is_same();
             $data = ['ret'=>500, 'msg'=>$class.'::'.$action." $action() function undefined!", 'data'=>''];
@@ -55,7 +55,7 @@ class NotFound extends BService {
 				$this->send($fd, $data, $header);
 			}
 			return $data;
-		}else if(BaseServer::getServiceProtocol() == SWOOLEFY_WEBSOCKET) {
+		}else if(BaseServer::isWebsocketApp()) {
 			// websocket服务
 			$fd = $this->fd;
 			$data = ['ret'=>500, 'msg'=>$class.'::'.$action." $action() function undefined!", 'data'=>''];
@@ -69,7 +69,7 @@ class NotFound extends BService {
 	 * @return 
 	 */
 	public function returnError($msg) {
-		if(BaseServer::getServiceProtocol() == SWOOLEFY_TCP) {
+		if(BaseServer::isRpcApp()) {
 			// rpc服务，server端和client端的header_struct不相同时,默认不作处理
 			$is_same_packet_struct = $this->server_client_packet_struct_is_same();
             $data = ['ret'=>500, 'msg'=>$msg, 'data'=>''];
@@ -79,7 +79,7 @@ class NotFound extends BService {
 				$this->send($fd, $data, $header);
 			}
 			return $data;
-		}else if(BaseServer::getServiceProtocol() == SWOOLEFY_WEBSOCKET) {
+		}else if(BaseServer::isWebsocketApp()) {
 			// websocket服务
 			$fd = $this->fd;
 			$data = ['ret'=>500, 'msg'=>$msg, 'data'=>''];

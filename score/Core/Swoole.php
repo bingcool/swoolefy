@@ -125,7 +125,7 @@ class Swoole extends BaseObject {
 	 */
 	public function getRpcPackHeader() {
 		if($this->isWorkerProcess()) {
-			if(BaseServer::getServiceProtocol() == SWOOLEFY_TCP) {
+			if(BaseServer::isRpcApp()) {
 				return $this->rpc_pack_header;
 			}else {
 				throw new \Exception("this method only can be called by TCP or RPC server!, because only rpc have pack setting!");
@@ -141,7 +141,7 @@ class Swoole extends BaseObject {
 	 */
 	public function getRpcPackBodyParams() {
 		if($this->isWorkerProcess()) {
-			if(BaseServer::getServiceProtocol() == SWOOLEFY_TCP) {
+			if(BaseServer::isRpcApp()) {
 				return $this->mixed_params;
 			}else {
 				throw new \Exception("this method only can be called by TCP or RPC server!, because only rpc have pack setting!");
@@ -157,7 +157,7 @@ class Swoole extends BaseObject {
 	 */
 	public function getUdpData() {
 		if($this->isWorkerProcess()) {
-			if(BaseServer::getServiceProtocol() == SWOOLEFY_UDP) {
+			if(BaseServer::isUdpApp()) {
 				return $this->mixed_params;
 			}else {
 				throw new \Exception("this method only can be called by UDP server!");
@@ -173,7 +173,7 @@ class Swoole extends BaseObject {
 	 */
 	public function getWebsockMsg() {
 		if($this->isWorkerProcess()) {
-			if(BaseServer::getServiceProtocol() == SWOOLEFY_WEBSOCKET) {
+			if(BaseServer::isWebsocketApp()) {
 				return $this->mixed_params;
 			}else {
 				throw new \Exception("this method only can be called by WEBSOCKET server!");
@@ -188,7 +188,7 @@ class Swoole extends BaseObject {
 	 * @return  mixed
 	 */
 	public function getFd() {
-		return $this->fd;
+        return $this->fd;
 	}
 
     /**
