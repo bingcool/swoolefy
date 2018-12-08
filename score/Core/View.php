@@ -76,7 +76,7 @@ class View {
 	 * @param    $arr
 	 * @return   boolean|null
 	 */
-	public function mAssign($arr = []) {
+	public function multiAssign(array $arr = []) {
 		if(!empty($arr)) {
 			if(is_string($arr)) {
 				return false;
@@ -84,6 +84,7 @@ class View {
 			foreach($arr as $name=>$value) {
 				$this->assign($name, $value);
 			}
+			return true;
 		}
 		return false;
 	}
@@ -116,7 +117,6 @@ class View {
 		if(!$template_file) {
 			$template_file = $action.'.html';
 		}
-
 		$filePath = SMARTY_TEMPLATE_PATH.$controller.'/'.$template_file;
 		$fetchFile = $controller.'/'.$template_file;
 		if(!is_null($module)) {
