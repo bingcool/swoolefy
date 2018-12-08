@@ -46,11 +46,27 @@ class HttpRoute extends AppDispatch {
 	 */
 	public $extend_data = null;
 
-	/**
+    /**
+     * @var int pathinfo 模式
+     */
+    private $route_model_pathinfo = 1;
+
+    /**
+     * @var int 参数路由模式
+     */
+    private $route_model_query_params = 2;
+
+    /**
+     * @var string 控制器后缀
+     */
+    private $controller_suffix = 'Controller';
+
+    /**
 	 * $deny_actions 禁止外部直接访问的action
 	 * @var array
 	 */
 	public static $deny_actions = ['__construct','_beforeAction','_afterAction','__destruct'];
+
 	/**
 	 * __construct
 	 */
@@ -73,7 +89,7 @@ class HttpRoute extends AppDispatch {
 	 */
 	public function dispatch() {
 		// pathinfo的模式
-		if($this->config['route_model'] == 1) {
+		if($this->config['route_model'] == $this->route_model_pathinfo) {
 			// 采用默认路由
 			if($this->require_uri == '/' || $this->require_uri == '//') {
 				$this->require_uri = '/'.$this->config['default_route'];
@@ -82,7 +98,7 @@ class HttpRoute extends AppDispatch {
 			$route_uri = trim($this->require_uri,'/');
 			if($route_uri) {
 				// 分割出route
-				$route_params = explode('/',$route_uri);
+				$route_params = explode('/', $route_uri);
 				$count = count($route_params);
 				switch($count) {
 					case 1 : 
@@ -101,7 +117,7 @@ class HttpRoute extends AppDispatch {
 					break;	
 				}
 			}
-		}else if($this->config['route_model'] == 2) {
+		}else if($this->config['route_model'] == $this->route_model_query_params) {
 			$module = (isset($this->request->get['m']) && !$this->request->get['m']) ? $this->request->get['m'] : null;
 			$controller = $this->request->get['c'];
 			$action = isset($this->request->get['t']) ? $this->request->get['t'] : 'index';
@@ -120,7 +136,6 @@ class HttpRoute extends AppDispatch {
 		if(in_array($action, self::$deny_actions)) {
 			return $this->response->end($action.'() method is not be called!');
 		}
-		
 		if($module) {
 			// route参数数组
 			$this->request->server['ROUTE_PARAMS'] = [3,[$module,$controller,$action]];	
@@ -145,7 +160,7 @@ class HttpRoute extends AppDispatch {
 	 */
 	public function invoke($module = null, $controller = null, $action = null) {
 		// 匹配控制器文件
-		$controller = $controller.'Controller';
+		$controller = $controller.$this->controller_suffix;
 		// 判断是否存在这个类文件
 		if($module) {
 			// 访问类的命名空间
@@ -155,23 +170,18 @@ class HttpRoute extends AppDispatch {
 				$filePath = APP_PATH.DIRECTORY_SEPARATOR.'Module'.DIRECTORY_SEPARATOR.$module.DIRECTORY_SEPARATOR.$controller.'.php';
 				if(!is_file($filePath)) {
 					$this->response->status(404);
-					$this->response->header('Content-Type','text/html; charset=UTF-8');
-					if(!SW_DEBUG) {
-						// 使用配置的NotFound类
-						if(isset($this->config['not_found_function']) && is_array($this->config['not_found_function'])) {
-							list($controller, $action) = $this->redirectNotFound();
-							// 访问类的命名空间
-							$class = $this->config['app_namespace'].'\\'.'Controller'.'\\'.$controller.'Controller';
-						}else {
-							// 使用默认配置的NotFound类
-							list($controller, $action) = $this->redirectNotFound(['Swoolefy\Core\Controller\NotFound','page404']);
-							// 访问类的命名空间
-							$class = 'Swoolefy\\Core\Controller'.'\\'.$controller;
-						}
-
-					}else {
-						return $this->response->end($filePath.' is not exit!');
-					} 
+					$this->response->header('Content-Type','application/json; charset=UTF-8');
+                    // 使用配置的NotFound类
+                    if(isset($this->config['not_found_handle']) && is_array($this->config['not_found_handle'])) {
+                        // 访问类的命名空间
+                        $class = $this->redirectNotFound();
+                    }else {
+                        return $this->response->end(json_encode([
+                            'ret'=> 404,
+                            'msg'=> $filePath.' is not exit!',
+                            'data'=>''
+                        ]));
+                    }
 				}else {
 					self::setRouteFileMap($class);
 				}
@@ -185,27 +195,18 @@ class HttpRoute extends AppDispatch {
 				$filePath = APP_PATH.DIRECTORY_SEPARATOR.'Controller'.DIRECTORY_SEPARATOR.$controller.'.php';
 				if(!is_file($filePath)) {
 					$this->response->status(404);
-					$this->response->header('Content-Type','text/html; charset=UTF-8');
-					if(!SW_DEBUG) {
-						// 使用配置的NotFound类
-						if(isset($this->config['not_found_function']) && is_array($this->config['not_found_function'])) {
-							list($controller, $action) = $this->redirectNotFound();
-							// 访问类的命名空间
-							$class = $this->config['app_namespace'].'\\'.'Controller'.'\\'.$controller;
-						}else {
-							// 使用默认配置的404类
-							list($controller, $action) = $this->redirectNotFound(['Swoolefy\Core\Controller\NotFound','page404']);
-							// 访问类的命名空间
-							$class = 'Swoolefy\\Core\Controller'.'\\'.$controller;
-						}
-						
-					}else {
-						return $this->response->end(json_encode([
-							'ret'=>404,
-							'msg'=>$filePath.' is not exit!',
-							'data'=>''
-						]));
-					}	
+					$this->response->header('Content-Type','application/json; charset=UTF-8');
+                    // 使用配置的NotFound类
+                    if(isset($this->config['not_found_handle']) && is_array($this->config['not_found_handle'])) {
+                        // 访问类的命名空间
+                        $class = $this->redirectNotFound();
+                    }else {
+                        return $this->response->end(json_encode([
+                            'ret'=> 404,
+                            'msg'=> $filePath.' is not exit!',
+                            'data'=>''
+                        ]));
+                    }
 				}else {
 					self::setRouteFileMap($class);
 				}
@@ -220,8 +221,8 @@ class HttpRoute extends AppDispatch {
 			$this->response->status(403);
 			$this->response->header('Content-Type','application/json; charset=UTF-8');
 			return $this->response->write(json_encode([
-				'ret'=>403,
-				'msg'=>'if you called _beforeAction() must return true then can exec action function,otherwise this request is end when in _beforeAction()',
+				'ret'=> 403,
+				'msg'=> 'if you called _beforeAction() must return true then can exec action function,otherwise this request is end when in _beforeAction()',
 				'data'=>''
 			]));
 		}
@@ -263,39 +264,28 @@ class HttpRoute extends AppDispatch {
 		}else {
 			$this->response->status(404);
 			$this->response->header('Content-Type','application/json; charset=UTF-8');
-			if(!SW_DEBUG) {
-				$method = new \ReflectionMethod($controllerInstance,'__call');
-		        $method->invokeArgs($controllerInstance, array($action,''));
-			}else {
-		        return $this->response->end(json_encode([
-		        	'ret'=>404,
-		        	'msg'=>'Class file for '.$filePath.' is exit, but the file:'.$controller.'.php'.' has not define '.'"'.$action.'()'.'"'.' method',
-		        	'data'=>''
-		        ]));
-			}
+            return $this->response->end(json_encode([
+                'ret'=> 404,
+                'msg'=> 'Class file for '.$filePath.' is exit, but has undefined '.'"'.$action.'()'.'"'.' method',
+                'data'=>''
+            ]));
 		}
 	}
 
 	/**
-	 * redirectNotFound 找不到文件或者对应action时,重定向至NotFound类
+	 * redirectNotFound 重定向至NotFound类
 	 * @return   array
 	 */
 	public function redirectNotFound($call_func = null) {
-		if(isset($this->config['not_found_function'])) {
+		if(isset($this->config['not_found_handle'])) {
 			// 重定向至NotFound类
-			list($namespace,$action) = $this->config['not_found_function'];
-			$controller = @array_pop(explode('\\',$namespace));
-			// 重新设置一个NotFound类的route
-			$this->request->server['ROUTE'] = '/'.$controller.'/'.$action;
-		}else {
-			// 默认重定向至NotFound类
-			list($namespace,$action) = $call_func;
-			$controller = @array_pop(explode('\\',$namespace));
-			// 重新设置一个NotFound类的route
-			$this->request->server['ROUTE'] = '/'.$controller.'/'.$action;
-		}
+			list($namespace, $action) = $this->config['not_found_handle'];
+            $controller = @array_pop(explode('\\', $namespace));
+            // 重新设置一个NotFound类的route
+            $this->request->server['ROUTE'] = '/'.$controller.'/'.$action;
 
-		return [$controller,$action];
+            return trim(str_replace('/', '\\', $namespace), '/');
+		}
 	}
 
 	/**
