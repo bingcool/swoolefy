@@ -63,12 +63,15 @@ class EventApp {
             $eventController = new EventController(...$args);
             $class->call($eventController, ...$args);
         }else {
-            if(is_object($class)) {
-                $this->event_app = $class;
-            }
-            if(is_string($class)) {
-                $this->event_app = new $class(...$args);
-            }
+	        do{
+                if(is_string($class)) {
+                    $this->event_app = new $class(...$args);
+                    break;
+                }
+                if(is_object($class)) {
+                    $this->event_app = $class;
+                }
+            }while(0);
 
             if(!($this->event_app instanceof EventController)) {
                 unset($this->event_app);
