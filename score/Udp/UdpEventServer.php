@@ -31,6 +31,12 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface {
 		parent::__construct($config);
 	}
 
+    /**
+     * onWorkerStart
+     * @param $server
+     * @param $worker_id
+     * @return mixed
+     */
 	public abstract function onWorkerStart($server, $worker_id);
 
 	/**

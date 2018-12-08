@@ -39,7 +39,7 @@ defined('SWOOLEFY_SYS_COLLECTOR_FILE') or define('SWOOLEFY_SYS_COLLECTOR_FILE', 
 defined('SWOOLEFY_SYS_COLLECTOR_CHANNEL') or define('SWOOLEFY_SYS_COLLECTOR_CHANNEL', 'sys_collector_channel');
 
 // 定义版本
-defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '4.0.7');
+defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '4.0.8');
 
 class MPHP {
 
