@@ -52,7 +52,7 @@ class ServiceDispatch extends AppDispatch {
 	 */
 	public function dispatch() {
 		list($class, $action) = $this->callable;
-		$class = trim($class, '/');
+        $class = trim(str_replace('\\', '/', $class), '/');
 		if(!self::$routeCacheFileMap[$class]) {
 			if(!$this->checkClass($class)){
 				$app_conf = Swfy::getAppConf();
@@ -125,13 +125,12 @@ class ServiceDispatch extends AppDispatch {
 	 * @return boolean
 	 */
 	public function checkClass($class) {
-		$path = trim(str_replace('\\', '/', $class), '/');
-        if(isset(self::$routeCacheFileMap[$path])) {
+        if(isset(self::$routeCacheFileMap[$class])) {
             return true;
         }
-		$file = ROOT_PATH.DIRECTORY_SEPARATOR.$path.'.php';
+		$file = ROOT_PATH.DIRECTORY_SEPARATOR.$class.'.php';
 		if(is_file($file)) {
-			self::$routeCacheFileMap[$path] = true;
+			self::$routeCacheFileMap[$class] = true;
 			return true;
 		}
 		return false;
