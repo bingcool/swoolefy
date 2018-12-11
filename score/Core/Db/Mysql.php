@@ -249,20 +249,10 @@ class Mysql {
 	}
 
 	/**
-	 * clear 清空静态变量
-	 * @return void
-	 */
-	public function clear() {
-		Db::$queryTimes = 0;
-		Db::$executeTimes = 0;
-		Db::clear();
-	}
-
-	/**
 	 * __destruct 
 	 */
 	public function __destruct() {
-		$this->clear();
+
 	}
 
 }
