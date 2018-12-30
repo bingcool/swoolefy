@@ -125,7 +125,7 @@ class Session {
         $this->driver = Application::getApp()->$driver_class;
         $this->isStart = true;
         $this->readonly = $readonly;
-        $cookie_session_id = Application::getApp()->request->cookie[$this->cookie_key];
+        $cookie_session_id = isset(Application::getApp()->request->cookie[$this->cookie_key]) ? Application::getApp()->request->cookie[$this->cookie_key] : null;
         $this->session_id = $cookie_session_id;
         if(empty($cookie_session_id)) {
             $sess_id = MGeneral::randmd5(40);

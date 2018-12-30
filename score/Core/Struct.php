@@ -17,9 +17,7 @@ class Struct {
 	 * __construct 
 	 * @param    
 	 */
-	public function __construct(){
-
-	}
+	public function __construct() {}
 
 	/**
 	 * get 获取数据结构属性值

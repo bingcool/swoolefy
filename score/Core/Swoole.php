@@ -128,7 +128,7 @@ class Swoole extends BaseObject {
 			if(BaseServer::isRpcApp()) {
 				return $this->rpc_pack_header;
 			}else {
-				throw new \Exception("this method only can be called by TCP or RPC server!, because only rpc have pack setting!");
+				throw new \Exception("getRpcPackHeader() method only can be called by TCP or RPC server!, because only rpc have pack setting!");
 			}
 		}else {
 			throw new \Exception("getRpcPackHeader() only can use in worker process!", 1);
@@ -144,7 +144,7 @@ class Swoole extends BaseObject {
 			if(BaseServer::isRpcApp()) {
 				return $this->mixed_params;
 			}else {
-				throw new \Exception("this method only can be called by TCP or RPC server!, because only rpc have pack setting!");
+				throw new \Exception("getRpcPackBodyParams() method only can be called by TCP or RPC server!, because only rpc have pack setting!");
 			}
 		}else {
 			throw new \Exception("getRpcPackBodyParams() only can use in worker process!", 1);
@@ -160,7 +160,7 @@ class Swoole extends BaseObject {
 			if(BaseServer::isUdpApp()) {
 				return $this->mixed_params;
 			}else {
-				throw new \Exception("this method only can be called by UDP server!");
+				throw new \Exception("getUdpData() method only can be called by UDP server!");
 			}
 		}else {
 			throw new \Exception("getUdpData() only can use in worker process!", 1);
@@ -176,7 +176,7 @@ class Swoole extends BaseObject {
 			if(BaseServer::isWebsocketApp()) {
 				return $this->mixed_params;
 			}else {
-				throw new \Exception("this method only can be called by WEBSOCKET server!");
+				throw new \Exception("getWebsockMsg() method only can be called by WEBSOCKET server!");
 			}	
 		}else {
 			throw new \Exception("getWebsockMsg() only can use in worker process!", 1);
