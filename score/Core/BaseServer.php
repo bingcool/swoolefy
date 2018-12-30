@@ -380,8 +380,11 @@ class BaseServer {
 			static::$config['table'] = [];
 		}
 
-		if(isset(static::$config['open_table_tick_task']) && static::$config['open_table_tick_task'] == true) {
-			$tables = array_merge(self::$_table_tasks,static::$config['table']);
+		if(isset(static::$config['open_table_tick_task'])) {
+            $is_open_table_tick_task = filter_var(static::$config['open_table_tick_task'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if($is_open_table_tick_task) {
+                $tables = array_merge(self::$_table_tasks, static::$config['table']);
+            }
 		}else {
 			$tables = static::$config['table'];
 		}
@@ -566,12 +569,15 @@ class BaseServer {
      */
     public static function runtimeEnableCoroutine() {
     	if(method_exists('Swoole\\Runtime', 'enableCoroutine')) {
-    		if(isset(self::$config['runtime_enable_coroutine']) && (bool)self::$config['runtime_enable_coroutine'] == true) {
-	    		if(isset(self::$config['runtime_enable_coroutine_flags']) && is_int(self::$config['runtime_enable_coroutine_flags'])) {
-	    			$flags = self::$config['runtime_enable_coroutine_flags'];
-	    		}else {
-	    			$flags = SWOOLE_HOOK_ALL;
-	    		}
+    		if(isset(self::$config['runtime_enable_coroutine'])) {
+    		    $run_enable_coroutine = filter_var(self::$config['runtime_enable_coroutine'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+    		    if($run_enable_coroutine === true) {
+                    if(isset(self::$config['runtime_enable_coroutine_flags']) && is_int(self::$config['runtime_enable_coroutine_flags'])) {
+                        $flags = self::$config['runtime_enable_coroutine_flags'];
+                    }else {
+                        $flags = SWOOLE_HOOK_ALL;
+                    }
+                }
 	    		\Swoole\Runtime::enableCoroutine(true, $flags);
     		}
     	}
@@ -624,8 +630,11 @@ class BaseServer {
     	if($isEnableSysCollector) {
     		return true;
     	}
-    	if(isset(self::$config['enable_sys_collector']) && (bool) (self::$config['enable_sys_collector'])) {
-    		$isEnableSysCollector = true;
+    	if(isset(self::$config['enable_sys_collector'])) {
+            $isEnableSysCollector = filter_var(self::$config['enable_sys_collector'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if($isEnableSysCollector === null) {
+                $isEnableSysCollector = false;
+            }
     	}else {
     		$isEnableSysCollector = false;
     	}
@@ -641,8 +650,11 @@ class BaseServer {
         if($isEnablePvCollector) {
             return true;
         }
-        if(isset(self::$config['enable_pv_collector']) && (bool) (self::$config['enable_pv_collector'])) {
-            $isEnablePvCollector = true;
+        if(isset(self::$config['enable_pv_collector'])) {
+            $isEnablePvCollector = filter_var(self::$config['enable_pv_collector'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if($isEnablePvCollector === null) {
+                $isEnablePvCollector = false;
+            }
         }else {
             $isEnablePvCollector = false;
         }
