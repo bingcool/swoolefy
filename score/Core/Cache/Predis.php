@@ -92,7 +92,12 @@ class Predis {
 	 */
 	public function __destruct() {
 		// 断开并销毁redis的socket
-		$this->Predis->disconnect();
+        if(isset($this->parameters['persistent'])) {
+            $persistent = filter_var($this->parameters['persistent'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if(!$persistent) {
+                $this->Predis->disconnect();
+            }
+        }
 	}
 
 	/**
