@@ -1,17 +1,23 @@
 <?php
-namespace Swoolefy\Core\Process;
 /**
- * 本进程模块参考easyswooole的process
- * @see  https://github.com/easy-swoole/easyswoole/tree/2.x/src/Core/Swoole/Process
- */
++----------------------------------------------------------------------
+| swoolefy framework bases on swoole extension development, we can use it easily!
++----------------------------------------------------------------------
+| Licensed ( https://opensource.org/licenses/MIT )
++----------------------------------------------------------------------
+| Author: bingcool <bingcoolhuang@gmail.com || 2437667702@qq.com>
++----------------------------------------------------------------------
+*/
+
+namespace Swoolefy\Core\Process;
 
 use Swoole\Process;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Table\TableManager;
 
-abstract class AbstractProcess
-{
+abstract class AbstractProcess {
+
     private $swooleProcess;
     private $processName;
     private $async = null;
@@ -27,7 +33,7 @@ abstract class AbstractProcess
         $this->async = $async;
         $this->args = $args;
         $this->processName = $processName;
-        $this->swooleProcess = new \swoole_process([$this,'__start'], false, 2);
+        $this->swooleProcess = new \Swoole\Process([$this,'__start'], false, 2);
         Swfy::getServer()->addProcess($this->swooleProcess);
     }
 
@@ -119,7 +125,7 @@ abstract class AbstractProcess
      * @param  int    $worker_id
      * @return boolean
      */
-    public function sendMessage($msg = null, $worker_id = 0) {
+    public function sendMessage($msg = null, int $worker_id = 0) {
         if($worker_id >= 1) {
             $worker_task_total_num = (int)Swfy::getServer()->setting['worker_num'] + (int)Swfy::getServer()->setting['task_worker_num'];
             if($worker_id >= $worker_task_total_num) {

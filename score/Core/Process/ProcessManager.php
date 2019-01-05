@@ -1,9 +1,15 @@
 <?php
-namespace Swoolefy\Core\Process;
 /**
- * 本进程模块参考easyswooole的process
- * @see  https://github.com/easy-swoole/easyswoole/tree/2.x/src/Core/Swoole/Process
- */
++----------------------------------------------------------------------
+| swoolefy framework bases on swoole extension development, we can use it easily!
++----------------------------------------------------------------------
+| Licensed ( https://opensource.org/licenses/MIT )
++----------------------------------------------------------------------
+| Author: bingcool <bingcoolhuang@gmail.com || 2437667702@qq.com>
++----------------------------------------------------------------------
+*/
+
+namespace Swoolefy\Core\Process;
 
 use Swoole\Process;
 use Swoole\Table;
@@ -108,7 +114,7 @@ class ProcessManager {
     public static function reboot(string $processName) {
         $p = self::getProcessByName($processName);
         if($p){
-            \swoole_process::kill($p->getPid(), SIGTERM);
+            \Swoole\Process::kill($p->getPid(), SIGTERM);
             return true;
         }else{
             return false;

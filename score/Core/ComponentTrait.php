@@ -46,7 +46,6 @@ trait ComponentTrait {
 						$params = $defination['constructor'];
 						unset($defination['constructor']);
 					}
-
 					// 删除延迟创建属性
 					if(isset($defination[SWOOLEFY_COM_IS_DELAY])) {
 						unset($defination[SWOOLEFY_COM_IS_DELAY]);
