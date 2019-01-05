@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Pools\PoolsManager;
 
 class Pools {
@@ -28,14 +29,21 @@ class Pools {
 	 * @return Channel
 	 */
 	public function registerPools(string $poolsName, int $size = 5 * 1024 * 1024) {
-		if(!isset($this->pools[$poolsName]) && isset($size) && !empty($size)) {
-			$this->pools[$poolsName] = new \Swoole\Channel($size);
-			$this->poolsName[$poolsName] = $poolsName;
-			$this->size[$poolsName] = $size;
+		$conf = Swfy::getConf();
+		if(isset($conf['setting']['worker_num'])) {
+			$channel_num = $conf['setting']['worker_num'];
+		}
+		for($i=0; $i<$channel_num; $i++) {
+			if(!isset($this->pools[$poolsName][$i]) && isset($size) && !empty($size)) {
+				$this->pools[$poolsName][$i] = new \Swoole\Channel($size);
+				$this->poolsName[$poolsName] = $poolsName;
+				$this->size[$poolsName] = $size;
+			}
 		}
 		if($this->pools[$poolsName]) {
 			return $this->pools[$poolsName];
 		}
+		
 	}
 
 	/**
@@ -44,20 +52,24 @@ class Pools {
 	 * @return mixed
 	 */
 	public function getObj(string $poolsName) {
-		if(isset($this->pools[$poolsName])) {
-			$chan = $this->pools[$poolsName];
-			$obj = '';
-			while(1) {
-				$obj = $chan->pop();
-				if(is_object($obj)) {
-					$this->sendMessage($poolsName);
-					break;
-				}else {
-					usleep(1000);
+		if(Swfy::isWorkerProcess()) {
+			$worker_id = Swfy::getCurrentWorkerId();
+			if(isset($this->pools[$poolsName][$worker_id])) {
+				$chan = $this->pools[$poolsName][$worker_id];
+				$obj = '';
+				while(1) {
+					$obj = $chan->pop();
+					if(is_object($obj)) {
+						$this->sendMessage($poolsName);
+						break;
+					}else {
+						usleep(1000);
+					}
 				}
+				return $obj;
 			}
-			return $obj;
 		}
+		return null;
 	}
 
 	/**
@@ -65,9 +77,9 @@ class Pools {
 	 * @param  string $poolName
 	 * @return mixed
 	 */
-	public function getChanStats(string $poolName) {
-		if(isset($this->pools[$poolName])) {
-			$chan = $this->pools[$poolName];
+	public function getChanStats(string $poolName, int $worker_id) {
+		if(isset($this->pools[$poolName][$worker_id])) {
+			$chan = $this->pools[$poolName][$worker_id];
 			return $chan->stats();
 		}
 		return null;
@@ -77,7 +89,10 @@ class Pools {
 	 * getPools 获取所有进程池的channel对象
 	 * @return array
 	 */
-	public function getPools() {
+	public function getPools(string $poolsName) {
+		if($poolsName) {
+			return $this->pools[$poolsName];
+		}
 		return $this->pools;
 	}
 
@@ -95,7 +110,10 @@ class Pools {
 	 * sendMessage 通知process创建实例
 	 * @return void
 	 */
-	public function sendMessage(string $poolsName) {
-		PoolsManager::getInstance()->writeByRandom($poolsName, 1);
+	public function sendMessage(string $poolsName, $msg = null) {
+		if($msg == null) {
+			$msg = 1;
+		}
+		PoolsManager::getInstance()->writeByProcessPoolsName($poolsName, $msg);
 	}
 }
