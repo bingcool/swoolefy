@@ -51,18 +51,22 @@ class Pools {
 	 * @param  string $poolsName
 	 * @return mixed
 	 */
-	public function getObj(string $poolsName) {
+	public function getObj(string $poolsName, int $timeout = 10) {
 		if(Swfy::isWorkerProcess()) {
 			$worker_id = Swfy::getCurrentWorkerId();
 			if(isset($this->pools[$poolsName][$worker_id])) {
 				$chan = $this->pools[$poolsName][$worker_id];
 				$obj = '';
+				$start_time = time();
 				while(1) {
 					$obj = $chan->pop();
 					if(is_object($obj)) {
 						$this->sendMessage($poolsName);
 						break;
 					}else {
+                        if((time() - $start_time) > $timeout) {
+                            break;
+                        }
 						usleep(1000);
 					}
 				}

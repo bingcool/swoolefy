@@ -71,7 +71,7 @@ class BService extends BaseObject {
 			$data = \Swoolefy\Tcp\TcpServer::pack($args);
 			Swfy::getServer()->send($fd, $data);
 		}else {
-			throw new \Exception("this method only can be called by tcp or rpc server!");
+			throw new \Exception("BService::send() this method only can be called by tcp or rpc server!");
 		}
 		
 	}
@@ -91,7 +91,7 @@ class BService extends BaseObject {
 			}
 			Swfy::getServer()->sendto($ip, $port, $data, $server_socket);
 		}else {
-			throw new \Exception("this method only can be called by udp server!");
+			throw new \Exception("BService::sendto() this method only can be called by udp server!");
 		}
 	}
 
@@ -112,7 +112,7 @@ class BService extends BaseObject {
 			$result = Swfy::getServer()->push($fd, $data, $opcode, $finish);
 			return $result;
 		}else {
-			throw new \Exception("this method only can be called by websocket server!");
+			throw new \Exception("BService::push() this method only can be called by websocket server!");
 		}
 		
 	}

@@ -88,7 +88,7 @@ class SwoolefyException {
     public static function shutHalt($errorMsg, $errorType = 'error') {
         $logFilePath = rtrim(LOG_PATH,'/').'/runtime.log';
         if(is_file($logFilePath)) {
-          $logFilesSize = filesize($logFilePath);
+            $logFilesSize = filesize($logFilePath);
         }
         // 定时清除这个log文件
         if($logFilesSize > 1024 * 20) {
