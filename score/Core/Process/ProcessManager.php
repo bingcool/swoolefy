@@ -47,7 +47,7 @@ class ProcessManager {
 	 * @param boolean $async
 	 * @param array   $args
 	 */
-	public static function addProcess(string $processName, string $processClass, $async = true, array $args = []) {
+	public static function addProcess(string $processName, string $processClass, $async = true, array $args = [], $extend_data = null) {
 		if(!TableManager::isExistTable('table_process_map')) {
 			TableManager::getInstance()->createTable(self::$table_process);
 		}
@@ -55,7 +55,7 @@ class ProcessManager {
 		$key = md5($processName);
         if(!isset(self::$processList[$key])){
             try{
-                $process = new $processClass($processName, $async, $args);
+                $process = new $processClass($processName, $async, $args, $extend_data);
                 self::$processList[$key] = $process;
                 return true;
             }catch (\Exception $e){

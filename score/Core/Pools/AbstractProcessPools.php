@@ -22,6 +22,7 @@ abstract class AbstractProcessPools {
     private $processName;
     private $async = null;
     private $args = [];
+    private $extend_data;
     private $bind_worker_id = null;
 
      /**
@@ -30,9 +31,10 @@ abstract class AbstractProcessPools {
      * @param boolean $async      
      * @param array   $args       
      */
-    public function __construct(string $processName, $async = true, array $args = []) {
+    public function __construct(string $processName, $async = true, array $args = [], $extend_data = null) {
         $this->async = $async;
         $this->args = $args;
+        $this->extend_data = $extend_data;
         $this->processName = $processName;
         $this->swooleProcess = new \Swoole\Process([$this,'__start'], false, 2);
         Swfy::getServer()->addProcess($this->swooleProcess);
@@ -116,6 +118,13 @@ abstract class AbstractProcessPools {
      */
     public function getArgs() {
         return $this->args;
+    }
+
+    /**
+     * @return null
+     */
+    public function getExtendData() {
+        return $this->extend_data;
     }
 
     /**

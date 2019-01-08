@@ -62,26 +62,43 @@ class PoolsManager {
      * @param array   $args
      * @return  void
      */
-    public static function addProcessPools(string $processName, string $processClass, $async = true, array $args = []) {
+    public static function addProcessPools(string $processName, string $processClass, $async = true, array $args = [], $extend_data = null) {
         if(!TableManager::isExistTable('table_process_pools_map')) {
             TableManager::getInstance()->createTable(self::$table_process);
         }
-        for($i=0; $i<self::$total_process_num; $i++) {
-            $process_name = $processName.$i;
-            $key = md5($process_name);
-            if(!isset(self::$processList[$key])) {
-                try{
-                    $process = new $processClass($processName, $async, [$args[$i]]);
-                    $process->setBindWorkerId($i);
-                    self::$processList[$key] = $process;
-                }catch (\Exception $e){
-                    throw new \Exception($e->getMessage(), 1);       
+        if(count($args) == self::$total_process_num && $args[0] instanceof \Swoole\Channel) {
+            for($i=0; $i<self::$total_process_num; $i++) {
+                $process_name = $processName.$i;
+                $key = md5($process_name);
+                if(!isset(self::$processList[$key])) {
+                    try{
+                        $process = new $processClass($processName, $async, [$args[$i]], $extend_data);
+                        $process->setBindWorkerId($i);
+                        self::$processList[$key] = $process;
+                    }catch (\Exception $e){
+                        throw new \Exception($e->getMessage(), 1);
+                    }
+                }else{
+                    throw new \Exception("you can not add the same process : $processName", 1);
                 }
-            }else{
-                throw new \Exception("you can not add the same process : $processName", 1);
+            }
+        }else {
+            for($i=0; $i<self::$total_process_num; $i++) {
+                $process_name = $processName.$i;
+                $key = md5($process_name);
+                if(!isset(self::$processList[$key])) {
+                    try{
+                        $process = new $processClass($processName, $async, $args, $extend_data);
+                        $process->setBindWorkerId($i);
+                        self::$processList[$key] = $process;
+                    }catch (\Exception $e){
+                        throw new \Exception($e->getMessage(), 1);
+                    }
+                }else{
+                    throw new \Exception("you can not add the same process : $processName", 1);
+                }
             }
         }
-        
     }
 
     /**

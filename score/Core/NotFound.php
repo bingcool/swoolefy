@@ -21,7 +21,7 @@ class NotFound extends BService {
 		// tcp|rpc服务
 		if(BaseServer::isRpcApp()) {
 			// rpc服务，server端和client端的header_struct不相同时,默认不作处理
-			$is_same_packet_struct = $this->server_client_packet_struct_is_same();
+			$is_same_packet_struct = $this->serverClientPacketstructSame();
             $data = ['ret'=>404, 'msg'=>$class.' is not found!', 'data'=>''];
 			if($is_same_packet_struct) {
 				$fd = $this->fd;
@@ -47,7 +47,7 @@ class NotFound extends BService {
 	public function return500($class, $action) {
 		if(BaseServer::isRpcApp()) {
 			// rpc服务，server端和client端的header_struct不相同时,默认不作处理
-			$is_same_packet_struct = $this->server_client_packet_struct_is_same();
+			$is_same_packet_struct = $this->serverClientPacketstructSame();
             $data = ['ret'=>500, 'msg'=>$class.'::'.$action." $action() function undefined!", 'data'=>''];
 			if($is_same_packet_struct) {
 				$fd = $this->fd;
@@ -71,7 +71,7 @@ class NotFound extends BService {
 	public function returnError($msg) {
 		if(BaseServer::isRpcApp()) {
 			// rpc服务，server端和client端的header_struct不相同时,默认不作处理
-			$is_same_packet_struct = $this->server_client_packet_struct_is_same();
+			$is_same_packet_struct = $this->serverClientPacketstructSame();
             $data = ['ret'=>500, 'msg'=>$msg, 'data'=>''];
 			if($is_same_packet_struct) {
 				$fd = $this->fd;
@@ -89,10 +89,10 @@ class NotFound extends BService {
 	}
 
 	/**
-	 * server_client_packet_struct_is_same 头部结构体是否相同，相同才能直接获取返回，否则要根据client端header_struct的定义生产header头部信息
+	 * serverClientPacketstructSame 头部结构体是否相同，相同才能直接获取返回，否则要根据client端header_struct的定义生产header头部信息
 	 * @return boolean
 	 */
-	protected function server_client_packet_struct_is_same() {
+	protected function serverClientPacketstructSame() {
 		// 获取协议层配置
 		$conf = Swfy::getConf();
 		$server_pack_header_struct = $conf['packet']['server']['pack_header_struct'];

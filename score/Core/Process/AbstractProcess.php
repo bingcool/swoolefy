@@ -22,6 +22,7 @@ abstract class AbstractProcess {
     private $processName;
     private $async = null;
     private $args = [];
+    private $extend_data;
 
     /**
      * __construct 
@@ -29,9 +30,10 @@ abstract class AbstractProcess {
      * @param boolean $async      
      * @param array   $args       
      */
-    public function __construct(string $processName, $async = true, array $args = []) {
+    public function __construct(string $processName, $async = true, array $args = [], $extend_data = null) {
         $this->async = $async;
         $this->args = $args;
+        $this->extend_data = $extend_data;
         $this->processName = $processName;
         $this->swooleProcess = new \Swoole\Process([$this,'__start'], false, 2);
         Swfy::getServer()->addProcess($this->swooleProcess);
@@ -109,6 +111,13 @@ abstract class AbstractProcess {
      */
     public function getArgs() {
         return $this->args;
+    }
+
+    /**
+     * @return null
+     */
+    public function getExtendData() {
+        return $this->extend_data;
     }
 
     /**
