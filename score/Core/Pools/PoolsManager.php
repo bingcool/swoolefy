@@ -116,7 +116,7 @@ class PoolsManager {
                 return null;
             }
         }else {
-            throw new \Exception("PoolsManager::getInstance() can not use in task or self process", 1);  
+            throw new \Exception("PoolsManager::getInstance() can not use in task or self process, only use in worker process!", 1);
         }
     }
 
