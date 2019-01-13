@@ -67,7 +67,7 @@ class Pools {
                         if((time() - $start_time) > $timeout) {
                             break;
                         }
-						usleep(1000);
+						usleep(1200);
 					}
 				}
 				return $obj;

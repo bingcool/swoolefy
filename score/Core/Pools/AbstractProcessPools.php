@@ -52,7 +52,7 @@ abstract class AbstractProcessPools {
      * 服务启动后才能获得到创建的进程pid,不启动为null
      */
     public function getPid() {
-       if(isset($this->swooleProcess->pid)){
+        if(isset($this->swooleProcess->pid)){
             return $this->swooleProcess->pid;
         }else{
             return null;
@@ -65,6 +65,14 @@ abstract class AbstractProcessPools {
      */
     public function setBindWorkerId(int $worker_id) {
         $this->bind_worker_id = $worker_id;    
+    }
+
+    /**
+     * getBindWorkerId 获取绑定的worker_id
+     * @return null
+     */
+    public function getBindWorkerId() {
+        return $this->bind_worker_id;
     }
 
     /**
