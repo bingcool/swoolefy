@@ -99,7 +99,7 @@ class ServiceDispatch extends AppDispatch {
 				return;
 			}
 		}catch(\Throwable $t) {
-			$msg = 'Fatal error: '.$t->getMessage().' on '.$t->getFile().' on line '.$t->getLine();
+			$msg = 'Fatal error: '.$t->getMessage().' on '.$t->getFile().' on line '.$t->getLine().' ||| '.$class;
 			$app_conf = Swfy::getAppConf();
 			if(isset($app_conf['not_found_handle']) && is_string($app_conf['not_found_handle'])) {
 				$handle = $app_conf['not_found_handle'];

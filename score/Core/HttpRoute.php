@@ -245,7 +245,7 @@ class HttpRoute extends AppDispatch {
 		            $method->invokeArgs($controllerInstance, array($action, ''));
 		        }catch(\Throwable $t) {
 				    $query_string = isset($this->request->server['QUERY_STRING']) ? '?'.$this->request->server['QUERY_STRING'] : '';
-				    $msg = 'Fatal error: '.$t->getMessage().' on '.$t->getFile().' on line '.$t->getLine(). '    '.$this->request->server['REQUEST_URI'].$query_string;
+				    $msg = 'Fatal error: '.$t->getMessage().' on '.$t->getFile().' on line '.$t->getLine(). ' ||| '.$this->request->server['REQUEST_URI'].$query_string;
                     $this->response->end(json_encode([
                         'ret' => 500,
                         'msg' => $msg,
