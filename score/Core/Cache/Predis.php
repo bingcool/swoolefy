@@ -77,14 +77,15 @@ class Predis {
 	 * @return mixed
 	 */
 	public function __call(string $method, array $args) {
-		// 断线
-		if(!$this->Predis->isConnected()) {
-			// 销毁redis实例
-			unset($this->Predis);
-			// 重建redis实例
-			$this->Predis = new \Predis\Client($this->parameters, $this->options);
-		}
-		return call_user_func_array([$this->Predis, $method], $args);
+		try{
+            return call_user_func_array([$this->Predis, $method], $args);
+        }catch(\Throwable $t) {
+            // 销毁redis实例
+            $this->Predis->disconnect();
+            // 重建redis实例
+            $this->Predis = new \Predis\Client($this->parameters, $this->options);
+            return call_user_func_array([$this->Predis, $method], $args);
+        }
 	}
 
 	/**

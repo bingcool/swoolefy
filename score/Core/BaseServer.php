@@ -577,8 +577,8 @@ class BaseServer {
                     }else {
                         $flags = SWOOLE_HOOK_ALL;
                     }
+                    \Swoole\Runtime::enableCoroutine(true, $flags);
                 }
-	    		\Swoole\Runtime::enableCoroutine(true, $flags);
     		}
     	}
     }
