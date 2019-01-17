@@ -252,7 +252,7 @@ class Mysql {
 	 * __destruct 
 	 */
 	public function __destruct() {
-
+        Db::destroy();
 	}
 
 }
