@@ -245,7 +245,7 @@ class Mysql {
 	public function __call($method, $args) {
 		$this->setConfig();
 		$this->setCacheHandler();
-		return Db::$method($args);
+		return Db::$method(...$args);
 	}
 
 	/**
