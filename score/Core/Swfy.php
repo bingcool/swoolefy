@@ -38,7 +38,7 @@ class Swfy extends \Swoolefy\Core\BaseObject {
 	 * $com_alias_name 动态创建组件对象
 	 * @param string $com_alias_name
 	 * @param array  $defination
-	 * @return void
+	 * @return mixed
 	 */
 	public static function createComponent(string $com_alias_name, array $defination = []) {
 		return Application::getApp()->creatObject($com_alias_name, $defination);
@@ -47,7 +47,7 @@ class Swfy extends \Swoolefy\Core\BaseObject {
 	/**
 	 * removeComponent 销毁Component
 	 * @param  string|array  $com_alias_name
-	 * @return void
+	 * @return boolean
 	 */
 	public static function removeComponent($com_alias_name = null) {
 		return Application::getApp()->clearComponent($com_alias_name);
@@ -56,7 +56,7 @@ class Swfy extends \Swoolefy\Core\BaseObject {
 	/**
 	 * getComponent 获取组件
 	 * @param  string  $com_alias_name
-	 * @return void
+	 * @return mixed
 	 */
 	public static function getComponent(string $com_alias_name = null) {
 		return Application::getApp()->getComponents($com_alias_name);

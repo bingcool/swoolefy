@@ -34,7 +34,7 @@ class TaskManager {
 	 * @return   mixed
 	 */
 	public static function finish($data = null) {
-		return AsyncTask::finish($data);
+		AsyncTask::finish($data);
 	}
 
 	/**
@@ -44,6 +44,6 @@ class TaskManager {
 	 * @return   mixed
 	 */
 	public static function registerTaskfinish($data = null) {
-		return AsyncTask::registerTaskfinish($data);
+		AsyncTask::registerTaskfinish($data);
 	}
 }

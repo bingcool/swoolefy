@@ -12,17 +12,18 @@
 namespace Swoolefy\Core\Mongodb;
 
 class MongodbCollection {
+
+    /**
+     * _id 将默认设置成id
+     */
+    public $_id = null;
+
     /**
      * $collectionInstance  collection实例
      * @var null
      */
     public $collectionInstance = null;
-    
-    /**
-     * _id 将默认设置成id
-     */
-    public $_id = null;
-    
+
     /**
      * __construct
      * @param string $collection

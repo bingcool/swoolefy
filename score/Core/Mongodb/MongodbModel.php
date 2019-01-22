@@ -68,7 +68,7 @@ class MongodbModel {
     /**
      * setDatabase 
      * @param   string   $db
-     * @return    object
+     * @return  mixed
      */
     public function setDatabase($db = null) {
         if($db) {
@@ -106,14 +106,19 @@ class MongodbModel {
 
     /**
      * ping 测试是否能够连接mongodb server
-     *
-     * @return void
+     * @pong 是否返回ping的所有信息
+     * @return mixed
      */
-    public function ping() {
+    public function ping($pong = false) {
         $cursor = $this->db()->command([
             'ping' => 1,
         ]);
-        return $cursor->toArray()[0]['ok'];
+        if($pong) {
+            $pong_info = $cursor->toArray();
+        }else {
+            $pong_info = $cursor->toArray()[0]['ok'];
+        }
+        return $pong_info;
     }
 
     /**
@@ -153,7 +158,7 @@ class MongodbModel {
     /**
      * __get 获取collection
      * @param string  $name
-     * @return void
+     * @return mixed
      */
     public function __get($name) {
         if(is_string($name)) {

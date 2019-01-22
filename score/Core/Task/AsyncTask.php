@@ -56,7 +56,7 @@ class AsyncTask implements AsyncTaskInterface {
      * @return    void
      */
     public static function registerTaskfinish($data) {
-       return static::finish($data);
+       static::finish($data);
     }
 
     /**
@@ -69,7 +69,7 @@ class AsyncTask implements AsyncTaskInterface {
         if(is_array($data)) {
             $data = json_encode($data);
         }
-        return Swfy::getServer()->finish($data);
+        Swfy::getServer()->finish($data);
     }
 
     /**
