@@ -59,49 +59,52 @@ class UdpHander extends Swoole implements HanderInterface {
 	 * @return mixed
 	 */
 	public function run($recv, $clientInfo) {
-		// 必须要执行父类的run方法
-		parent::run($fd = null , $recv);
+	    try {
+            // 必须要执行父类的run方法
+            parent::run($fd = null , $recv);
+            $this->client_info = $clientInfo;
+            // worker进程
+            if($this->isWorkerProcess()) {
+                if(is_string($recv)) {
+                    $packet = explode(self::EOF, $recv);
+                    if(count($packet) == 3) {
+                        list($service, $event, $params) =  $packet;
+                        if(is_string($params)) {
+                            $params_arr = json_decode($params, true);
+                            if(is_array($params_arr)) {
+                                $params = $params_arr;
+                            }
+                        }
+                    }else if(count($packet) == 2) {
+                        list($service, $event) =  $packet;
+                        $params = null;
+                    }else {
+                        // TODO
+                    }
+                }else {
+                    // TODO
+                }
 
-		$this->client_info = $clientInfo;
-		// worker进程
-		if($this->isWorkerProcess()) {
-			if(is_string($recv)) {
-				$packet = explode(self::EOF, $recv);
-				if(count($packet) == 3) {
-					list($service, $event, $params) =  $packet;
-					if(is_string($params)) {
-						$params_arr = json_decode($params, true);
-						if(is_array($params_arr)) {
-							$params = $params_arr;
-						}
-					}
-				}else if(count($packet) == 2) {
-					list($service, $event) =  $packet;					
-					$params = null;
-				}else {
-					// TODO
-				}
-			}else {
-				// TODO
-			}
+                if($service && $event) {
+                    $callable = [$service, $event];
+                }
+            }else {
+                // 任务task进程
+                list($callable, $params) = $recv;
+            }
 
-			if($service && $event) {
-				$callable = [$service, $event];
-			}
-		}else {
-			// 任务task进程
-			list($callable, $params) = $recv;
-		}
-		
-		// 控制器实例
-		if($callable) {
-			$Dispatch = new ServiceDispatch($callable, $params);
-			$Dispatch->dispatch();
-		}
+            // 控制器实例
+            if($callable) {
+                $Dispatch = new ServiceDispatch($callable, $params);
+                $Dispatch->dispatch();
+            }
 
-		// 必须执行
-		parent::end();
-		return;
+        } finally {
+            // 必须执行
+            parent::end();
+            return;
+        }
+
 	}
 
 	/**
