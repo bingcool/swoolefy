@@ -87,28 +87,33 @@ class App extends \Swoolefy\Core\Component {
 	 * @return void
 	 */
 	public function run($request, $response, $extend_data = null) {
-		// Component组件创建
-		parent::creatObject();
-		$this->request = $request;
-		$this->response = $response;
-		$coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
-		$this->coroutine_id = $coroutine_id;
-		Application::setApp($this);
-		// 初始化
-		$this->init();
-		// 引导程序与环境变量的设置
-		$this->bootstrap();
-		// 判断是否是在维护模式
-		if(!$this->catchAll()) {
-			// 路由调度执行
-			$route = new HttpRoute($extend_data);
-			$route->dispatch();
-		}
-		// 销毁静态变量
-		$this->clearStaticVar();
-		// 请求结束
-		$this->end();
-		return;
+	    try {
+            // Component组件创建
+            parent::creatObject();
+            $this->request = $request;
+            $this->response = $response;
+            $coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
+            $this->coroutine_id = $coroutine_id;
+            Application::setApp($this);
+            // 初始化
+            $this->init();
+            // 引导程序与环境变量的设置
+            $this->bootstrap();
+            // 判断是否是在维护模式
+            if(!$this->catchAll()) {
+                // 路由调度执行
+                $route = new HttpRoute($extend_data);
+                $route->dispatch();
+            }
+        }catch (\Throwable $t) {
+
+            throw new \Exception($t->getMessage());
+
+        } finally {
+            $this->clearStaticVar();
+            $this->end();
+            return;
+        }
 	}
 
 	/**

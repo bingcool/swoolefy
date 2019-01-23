@@ -49,39 +49,43 @@ class WebsocketHander extends Swoole implements HanderInterface {
 	 * @return mixed
 	 */
 	public function run($fd, $recv) {
-		// 必须要执行父类的run方法,$recv是json字符串,boostrap函数中可以接收做一些引导处理
-		parent::run($fd, $recv);
-		// worker进程
-		if($this->isWorkerProcess()) {
-			$recv = array_values(json_decode($recv, true));			
-			if(is_array($recv) && count($recv) == 3) {
-				list($service, $event, $params) = $recv;
-			}
-			
-			if($this->ping($event)) {
-				$data = 'pong';
-				Swfy::getServer()->push($this->fd, $data, $opcode = 1, $finish = true);
-				return;
-			}
+	    try {
+            // 必须要执行父类的run方法,$recv是json字符串,boostrap函数中可以接收做一些引导处理
+            parent::run($fd, $recv);
+            // worker进程
+            if($this->isWorkerProcess()) {
+                $recv = array_values(json_decode($recv, true));
+                if(is_array($recv) && count($recv) == 3) {
+                    list($service, $event, $params) = $recv;
+                }
 
-			if($service && $event) {
-				$callable = [$service, $event];
-			}
+                if($this->ping($event)) {
+                    $data = 'pong';
+                    Swfy::getServer()->push($this->fd, $data, $opcode = 1, $finish = true);
+                    return;
+                }
 
-		}else {
-			// 任务task进程
-			list($callable, $params) = $recv;
-		}
+                if($service && $event) {
+                    $callable = [$service, $event];
+                }
 
-		// 控制器实例
-		if($callable && $params) {
-			$Dispatch = new ServiceDispatch($callable, $params);
-			$Dispatch->dispatch();
-		}
-		
-		// 必须执行
-		parent::end();
-		return;
+            }else {
+                // 任务task进程
+                list($callable, $params) = $recv;
+            }
+
+            // 控制器实例
+            if($callable && $params) {
+                $Dispatch = new ServiceDispatch($callable, $params);
+                $Dispatch->dispatch();
+            }
+
+        } finally {
+            // 必须执行
+            parent::end();
+            return;
+        }
+
 	}
 
 	/**
@@ -91,32 +95,35 @@ class WebsocketHander extends Swoole implements HanderInterface {
 	 * @return void
 	 */
 	public function handleBinary($fd, $recv) {
-		// 必须要执行父类的run方法,注意$recv是数据，第三个元素是二进制数据，为节省内存，不传这个元素到boostrap函数中
-		$new_recv = is_array($recv) ? array_slice($recv, 0, 2) : [];
-		parent::run($fd, $new_recv);
-		// worker进程
-		if($this->isWorkerProcess()) {
-			if(is_array($recv) && count($recv) == 3) {
-				list($service, $event, $buffer) = $recv;
-			}
-			if($service && $event) {
-				$callable = [$service, $event];
-			}
+	    try {
+            // 必须要执行父类的run方法,注意$recv是数据，第三个元素是二进制数据，为节省内存，不传这个元素到boostrap函数中
+            $new_recv = is_array($recv) ? array_slice($recv, 0, 2) : [];
+            parent::run($fd, $new_recv);
+            // worker进程
+            if($this->isWorkerProcess()) {
+                if(is_array($recv) && count($recv) == 3) {
+                    list($service, $event, $buffer) = $recv;
+                }
+                if($service && $event) {
+                    $callable = [$service, $event];
+                }
 
-		}else {
-			// 任务task进程
-			list($callable, $buffer) = $recv;
-		}
+            }else {
+                // 任务task进程
+                list($callable, $buffer) = $recv;
+            }
 
-		// 控制器实例
-		if($callable && $buffer) {
-			$Dispatch = new ServiceDispatch($callable, $buffer);
-			$Dispatch->dispatch();
-		}
-		
-		// 必须执行
-		parent::end();
-		return;
+            // 控制器实例
+            if($callable && $buffer) {
+                $Dispatch = new ServiceDispatch($callable, $buffer);
+                $Dispatch->dispatch();
+            }
+
+        } finally {
+            // 必须执行
+            parent::end();
+            return;
+        }
 	}
 
 	/**
