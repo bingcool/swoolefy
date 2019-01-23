@@ -16,7 +16,6 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Memory\AtomicManager;
 use Swoolefy\Core\Process\AbstractProcess;
-use Swoolefy\Core\Process\ProcessController;
 
 class SysProcess extends AbstractProcess {
 	/**
@@ -79,7 +78,7 @@ class SysProcess extends AbstractProcess {
 	 * @return void
 	 */
 	protected function sendByUdp(array $sys_collector_config, array $data = []) {
-		static $udp_client;
+		$udp_client = null;
 		if(!is_object($udp_client)) {
 			$udp_client = new \Swoole\Client(SWOOLE_SOCK_UDP, SWOOLE_SOCK_SYNC);
 		}
@@ -113,7 +112,7 @@ class SysProcess extends AbstractProcess {
 	 * @return void
 	 */
 	protected function publishBySwooleRedis(array $sys_collector_config, array $data = []) {
-		static $redis_client;
+		$redis_client = null;
 		$host = $sys_collector_config['host'];
 		$port = (int)$sys_collector_config['port'];
 		$password = $sys_collector_config['password'];
@@ -150,7 +149,7 @@ class SysProcess extends AbstractProcess {
 	 * @return void                      
 	 */
 	protected function publishByPhpRedis(array $sys_collector_config, array $data = []) {
-		static $redis_client;
+		$redis_client = null;
 		$host = $sys_collector_config['host'];
 		$port = (int)$sys_collector_config['port'];
 		$password = $sys_collector_config['password'];

@@ -127,7 +127,7 @@ class RedisCoroutine {
 
 	/**
 	 * getMaster 获取主master
-	 * @return coroutine_redis
+	 * @return mixed
 	 */
 	public function getMaster() {
 		if(is_object($this->master_redis_hosts)) {
@@ -167,7 +167,7 @@ class RedisCoroutine {
 	/**
 	 * getSlave 获取从redis
 	 * @param  int|null $num
-	 * @return coroutine_redis
+	 * @return mixed
 	 */
 	public function getSlave(int $num = null) {
 		if(!$this->deploy || empty($this->slave_redis_config)) {

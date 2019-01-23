@@ -26,7 +26,7 @@ class Hook {
 	 * @param    int   $type
 	 * @param 	 mixed $func
 	 * @param    boolean $prepend
-	 * @return     void
+	 * @return   boolean
 	 */
 	public static function addHook($type, $func, $prepend = false) {
 		$cid = CoroutineManager::getInstance()->getCoroutineId();

@@ -34,7 +34,8 @@ class CoroutineManager {
 	 * @return   boolean
 	 */
 	public  function canEnableCoroutine() {
-		return BaseServer::canEnableCoroutine();
+		//return BaseServer::canEnableCoroutine();
+        return true;
 	}
 	
 	/**
@@ -42,7 +43,7 @@ class CoroutineManager {
 	 * @return 
 	 */
 	public function getCoroutineId() {
-		// 大于4.x版本,建议使用版本
+		// 大于4.2.x版本,建议使用版本
 		if($this->canEnableCoroutine()) {
 			$cid = \co::getuid();
 			// 在task|process中不直接支持使用协程,但可以使用go()创建协程

@@ -60,7 +60,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
 	 * @param   int  $type 返回类型 0:返回IP地址,1:返回IPV4地址数字
 	 * @return  string
 	 */
-	public static function getClientIP($type=0) {
+	public static function getClientIP(int $type = 0) {
         $request = Application::getApp()->request;
         
 		// 通过nginx的代理

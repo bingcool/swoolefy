@@ -107,12 +107,13 @@ class App extends \Swoolefy\Core\Component {
 		// 销毁静态变量
 		$this->clearStaticVar();
 		// 请求结束
-		return $this->end();
+		$this->end();
+		return;
 	}
 
 	/**
 	 * catchAll 捕捉拦截所有请求，进入维护模式
-	 * @return void
+	 * @return boolean
 	 */
 	public function catchAll() {
 		// 获取配置信息
