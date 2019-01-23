@@ -80,9 +80,7 @@ class Predis {
 		try{
             return call_user_func_array([$this->Predis, $method], $args);
         }catch(\Throwable $t) {
-            // 销毁redis实例
             $this->Predis->disconnect();
-            // 重建redis实例
             $this->Predis = new \Predis\Client($this->parameters, $this->options);
             return call_user_func_array([$this->Predis, $method], $args);
         }
@@ -92,7 +90,6 @@ class Predis {
 	 * __destruct 销毁对象
 	 */
 	public function __destruct() {
-		// 断开并销毁redis的socket
         if(isset($this->parameters['persistent'])) {
             $persistent = filter_var($this->parameters['persistent'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
             if(!$persistent) {

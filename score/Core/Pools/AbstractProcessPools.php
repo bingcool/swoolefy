@@ -109,7 +109,7 @@ abstract class AbstractProcessPools {
             });
         }
 
-        $this->swooleProcess->name('php-ProcessPools_of_worker'.$this->bind_worker_id.':'.$this->getProcessName());
+        $this->swooleProcess->name('php-process-pools-worker'.$this->bind_worker_id.':'.$this->getProcessName());
         try{
             $this->run($this->swooleProcess);
         }catch(\Throwable $t) {

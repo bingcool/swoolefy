@@ -17,11 +17,10 @@ defined('SWOOLEFY_PRD') or define('SWOOLEFY_PRD','prd');
 // 设置成中国时区
 date_default_timezone_set('PRC');
 
-// score目录,composer安装模式
+// score目录
 if(is_dir(__DIR__.'/vendor/bingcool/swoolefy')) {
     $SCORE_DIR = __DIR__.'/vendor/bingcool/swoolefy';
 }else {
-    // 直接使用模式
     $SCORE_DIR = __DIR__;
 }
 
@@ -320,14 +319,14 @@ function stopServer($app_name) {
         sleep(1);
         if(!swoole_process::kill($pid, 0)) {
             write("
-        ------------stop info------------\n    
+        ---------------------stop info-------------------\n    
         server stop  successful. server stop at ".date("Y-m-d H:i:s")
             );
             @unlink($pid_file);
             break;
         }else {
             if(time() - $nowtime > 60){
-                write("-----------stop info------------");
+                write("---------------------------stop info-----------------------");
                 write("Please use 'ps -ef | grep php' checkout swoole weather stop");
                 break;
             }

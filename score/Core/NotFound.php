@@ -18,24 +18,23 @@ class NotFound extends BService {
 	 * @return        
 	 */
 	public function return404(string $class) {
+        $response = ['ret'=>404, 'msg'=>$class.' is not found!', 'data'=>''];
 		// tcp|rpc服务
 		if(BaseServer::isRpcApp()) {
 			// rpc服务，server端和client端的header_struct不相同时,默认不作处理
 			$is_same_packet_struct = $this->serverClientPacketstructSame();
-            $data = ['ret'=>404, 'msg'=>$class.' is not found!', 'data'=>''];
 			if($is_same_packet_struct) {
 				$fd = $this->fd;
 				$header = $this->getRpcPackHeader();
-				$this->send($fd, $data, $header);
+				$this->send($fd, $response, $header);
 			}
-			return $data;
+
 		}else if(BaseServer::isWebsocketApp()) {
 			// websocket服务
 			$fd = $this->fd;
-			$data = ['ret'=>404, 'msg'=>$class.' is not found!', 'data'=>''];
-			$this->push($fd, $data, $opcode = 1, $finish = true);
-			return $data;
+			$this->push($fd, $response, $opcode = 1, $finish = true);
 		}
+		return $response;
 	}
 
 	/**
@@ -45,23 +44,21 @@ class NotFound extends BService {
 	 * @return void
 	 */
 	public function return500($class, $action) {
+        $response = ['ret'=>500, 'msg'=>$class.'::'.$action." $action() function undefined!", 'data'=>''];
 		if(BaseServer::isRpcApp()) {
 			// rpc服务，server端和client端的header_struct不相同时,默认不作处理
 			$is_same_packet_struct = $this->serverClientPacketstructSame();
-            $data = ['ret'=>500, 'msg'=>$class.'::'.$action." $action() function undefined!", 'data'=>''];
 			if($is_same_packet_struct) {
 				$fd = $this->fd;
 				$header = $this->getRpcPackHeader();
-				$this->send($fd, $data, $header);
+				$this->send($fd, $response, $header);
 			}
-			return $data;
 		}else if(BaseServer::isWebsocketApp()) {
 			// websocket服务
 			$fd = $this->fd;
-			$data = ['ret'=>500, 'msg'=>$class.'::'.$action." $action() function undefined!", 'data'=>''];
-			$this->push($fd, $data, $opcode = 1, $finish = true);
-			return $data;
+			$this->push($fd, $response, $opcode = 1, $finish = true);
 		}
+		return $response;
 	}
 
 	/**
@@ -69,23 +66,22 @@ class NotFound extends BService {
 	 * @return 
 	 */
 	public function returnError($msg) {
+        $response = ['ret'=>500, 'msg'=>$msg, 'data'=>''];
 		if(BaseServer::isRpcApp()) {
 			// rpc服务，server端和client端的header_struct不相同时,默认不作处理
 			$is_same_packet_struct = $this->serverClientPacketstructSame();
-            $data = ['ret'=>500, 'msg'=>$msg, 'data'=>''];
 			if($is_same_packet_struct) {
 				$fd = $this->fd;
 				$header = $this->getRpcPackHeader();
-				$this->send($fd, $data, $header);
+				$this->send($fd, $response, $header);
 			}
-			return $data;
+
 		}else if(BaseServer::isWebsocketApp()) {
 			// websocket服务
 			$fd = $this->fd;
-			$data = ['ret'=>500, 'msg'=>$msg, 'data'=>''];
-			$this->push($fd, $data, $opcode = 1, $finish = true);
-			return $data;
+			$this->push($fd, $response, $opcode = 1, $finish = true);
 		}
+		return $response;
 	}
 
 	/**

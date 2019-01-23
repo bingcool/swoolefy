@@ -16,11 +16,10 @@ use Swoolefy\Core\Application;
 
 class AppInit extends Init {
 	/**
-	 * _init 初始化一下超全局变量,兼容php-fpm的web模式
+	 * _init
 	 */
 	public static function _init() {
 		parent::_init();
-		//请求对象
 		$request = Application::getApp()->request;
 		self::resetServer($request);
 	}
