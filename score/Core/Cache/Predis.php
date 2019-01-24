@@ -86,7 +86,15 @@ class Predis {
         }
 	}
 
-	/**
+    /**
+     * getParameters 获取参数
+     * @return array
+     */
+    public function getParameters() {
+        return $this->parameters;
+    }
+
+    /**
 	 * __destruct 销毁对象
 	 */
 	public function __destruct() {
@@ -98,11 +106,4 @@ class Predis {
         }
 	}
 
-	/**
-	 * getParameters 获取参数
-	 * @return array
-	 */
-	public function getParameters() {
-		return $this->parameters;
-	}	
 }

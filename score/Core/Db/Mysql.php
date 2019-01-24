@@ -168,8 +168,8 @@ class Mysql {
 	}
 
 	/**
-	 * getCacheHandler 
-	 * @return 获取缓存驱动实例
+	 * getCacheHandler 获取缓存驱动实例
+	 * @return mixed
 	 */
 	public function getCacheHandler() {
 		return Db::getCacheHandler();
@@ -205,7 +205,7 @@ class Mysql {
 	 * execute sql插入数据
 	 * @param  string   $sql 
 	 * @param  array    $bind
-	 * @return object      
+	 * @return mixed
 	 */
 	public function execute($sql, $bind = []) {
 		$this->setConfig();
@@ -217,7 +217,7 @@ class Mysql {
 	 * connect 创建一个新的数据连接实例
 	 * @param  array    $config
 	 * @param  boolean  $name  
-	 * @return object         
+	 * @return mixed
 	 */
 	public function connect($config = [], $name = false) {
 		return Db::connect($config, $name);
@@ -226,7 +226,7 @@ class Mysql {
 	/**
 	 * CorMysql 切换至mysql协程客户端
 	 * @param    array   $extension
-	 * @return   CMysql
+	 * @return   mixed
 	 */
 	public function selectMysql(array $extension = []) {
 		if(is_object($this->CMysql)) {
