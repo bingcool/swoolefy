@@ -66,13 +66,13 @@ abstract class RpcServer extends TcpServer implements EventInterface {
 	 * onTask 任务处理函数调度
 	 * @param   object  $server
 	 * @param   int     $task_id
-	 * @param   int     $from_id
+	 * @param   int     $from_worker_id
 	 * @param   mixed   $data
 	 * @return  boolean
 	 */
-	public function onTask($server, $task_id, $from_id, $data) {
+	public function onTask($server, $task_id, $from_worker_id, $data) {
 		list($callable, $taskData, $fd) = $data;
-        self::$config['application_service']::getInstance($config = [])->run($fd, [$callable, $taskData]);
+        self::$config['application_service']::getInstance($config = [])->run($fd, [$callable, $taskData], [$from_worker_id, $task_id]);
 		return true;
 	}
 

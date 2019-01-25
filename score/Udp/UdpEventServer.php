@@ -60,7 +60,7 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface {
 	 */
 	public function onTask($server, $task_id, $from_worker_id, $data) {
 		list($callable, $taskData, $clientInfo) = $data;
-        self::$config['application_service']::getInstance($config=[])->run([$callable, $taskData], $clientInfo);
+        self::$config['application_service']::getInstance($config=[])->run([$callable, $taskData], $clientInfo, [$from_worker_id, $task_id]);
 		return true;
 	}
 

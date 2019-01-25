@@ -61,7 +61,14 @@ class EventApp {
 	public function registerApp($class, ...$args) {
 	    if($class instanceof \Closure) {
             $eventController = new EventController(...$args);
-            $class->call($eventController, ...$args);
+            try {
+                $this->event_app = $eventController;
+                $class->call($eventController, ...$args);
+            }catch(\Throwable $t) {
+                self::__destruct();
+                throw new \Exception($t->getMessage());
+            }
+
         }else {
 	        do{
                 if(is_string($class)) {
@@ -102,6 +109,7 @@ class EventApp {
 			// return call_user_func_array([$this->event_app, $action], $args);
 			return $this->event_app->$action(...$args);
 		}catch(\Throwable $t) {
+            self::__destruct();
 			throw new \Exception($t->getMessage());
 		}
 		

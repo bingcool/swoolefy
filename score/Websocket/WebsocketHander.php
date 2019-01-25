@@ -48,7 +48,7 @@ class WebsocketHander extends Swoole implements HanderInterface {
 	 * @param  mixed $recv
 	 * @return mixed
 	 */
-	public function run($fd, $recv) {
+	public function run($fd, $recv, array $extend_data = []) {
 	    try {
             // 必须要执行父类的run方法,$recv是json字符串,boostrap函数中可以接收做一些引导处理
             parent::run($fd, $recv);
@@ -70,6 +70,7 @@ class WebsocketHander extends Swoole implements HanderInterface {
                 }
 
             }else {
+                $is_task_process = true;
                 // 任务task进程
                 list($callable, $params) = $recv;
             }
@@ -77,6 +78,10 @@ class WebsocketHander extends Swoole implements HanderInterface {
             // 控制器实例
             if($callable && $params) {
                 $Dispatch = new ServiceDispatch($callable, $params);
+                if(isset($is_task_process) && $is_task_process == true) {
+                    list($from_worker_id, $task_id) = $extend_data;
+                    $Dispatch->setFromWrkerIdAndTaskId($from_worker_id, $task_id);
+                }
                 $Dispatch->dispatch();
             }
 

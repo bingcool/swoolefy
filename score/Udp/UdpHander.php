@@ -58,7 +58,7 @@ class UdpHander extends Swoole implements HanderInterface {
 	 * @param  mixed $recv
 	 * @return mixed
 	 */
-	public function run($recv, $clientInfo) {
+	public function run($recv, $clientInfo, array $extend_data = []) {
 	    try {
             // 必须要执行父类的run方法
             parent::run($fd = null , $recv);
@@ -89,6 +89,7 @@ class UdpHander extends Swoole implements HanderInterface {
                     $callable = [$service, $event];
                 }
             }else {
+                $is_task_process = true;
                 // 任务task进程
                 list($callable, $params) = $recv;
             }
@@ -96,6 +97,10 @@ class UdpHander extends Swoole implements HanderInterface {
             // 控制器实例
             if($callable) {
                 $Dispatch = new ServiceDispatch($callable, $params);
+                if(isset($is_task_process) && $is_task_process == true) {
+                    list($from_worker_id, $task_id) = $extend_data;
+                    $Dispatch->setFromWrkerIdAndTaskId($from_worker_id, $task_id);
+                }
                 $Dispatch->dispatch();
             }
 
