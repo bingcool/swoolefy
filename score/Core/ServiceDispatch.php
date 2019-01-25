@@ -77,6 +77,11 @@ class ServiceDispatch extends AppDispatch {
 		$class = str_replace('/','\\', $class);
 		$serviceInstance = new $class();
 		$serviceInstance->mixed_params = $this->params;
+		if(isset($this->from_worker_id) && isset($this->task_id)) {
+            $serviceInstance->setFromWorkerId($this->from_worker_id);
+            $serviceInstance->setTaskId($this->task_id);
+        }
+
 		try{
 			if(method_exists($serviceInstance, $action)) {
 				$serviceInstance->$action($this->params);
@@ -118,6 +123,15 @@ class ServiceDispatch extends AppDispatch {
 		}
 		
 	}
+
+    /**
+     * @param int $from_worker_id
+     * @param int $task_id
+     */
+	public function setFromWrkerIdAndTaskId(int $from_worker_id, int $task_id) {
+	    $this->from_worker_id = $from_worker_id;
+	    $this->task_id = $task_id;
+    }
 
 	/**
 	 * checkClass 检查请求实例文件是否存在

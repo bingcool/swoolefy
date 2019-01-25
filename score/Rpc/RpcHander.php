@@ -52,7 +52,7 @@ class RpcHander extends Swoole implements HanderInterface {
 	 * @param  mixed $recv
 	 * @return mixed
 	 */
-	public function run($fd, $recv) {
+	public function run($fd, $recv, array $extend_data = []) {
 	    try {
             // 必须要执行父类的run方法
             parent::run($fd, $recv);
@@ -83,12 +83,17 @@ class RpcHander extends Swoole implements HanderInterface {
                     // 其他方式处理
                 }
             }else {
+                $is_task_process = true;
                 // 任务task进程
                 list($callable, $params) = $recv;
             }
 
             if($callable && $params) {
                 $Dispatch = new ServiceDispatch($callable, $params, $this->header);
+                if(isset($is_task_process) && $is_task_process == true) {
+                    list($from_worker_id, $task_id) = $extend_data;
+                    $Dispatch->setFromWrkerIdAndTaskId($from_worker_id, $task_id);
+                }
                 $Dispatch->dispatch();
             }
 

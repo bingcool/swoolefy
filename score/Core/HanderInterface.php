@@ -17,6 +17,6 @@ interface HanderInterface {
 
 	public function bootstrap($recv);
 
-	public function run($fd, $recv);
+	public function run($fd, $recv, array $extend_data);
 
 }
