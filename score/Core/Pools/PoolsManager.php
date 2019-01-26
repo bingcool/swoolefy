@@ -138,9 +138,9 @@ class PoolsManager {
     /**
      * setProcess 设置一个进程
      * @param string          $processName
-     * @param AbstractProcess $process
+     * @param AbstractProcessPools $process
      */
-    public static function setProcessPools(string $processName, AbstractProcess $process) {
+    public static function setProcessPools(string $processName, AbstractProcessPools $process) {
         $worker_id = Swfy::getCurrentWorkerId();
         $key = md5($processName.$worker_id);
         self::$processList[$key] = $process;

@@ -34,7 +34,7 @@ class TaskController extends EventController {
      */
     public function __construct() {
         parent::__construct();
-        // TaskController 仅仅用于http服务，而rpc,websocket,udp服务BService
+        // TaskController 仅仅用于http服务，而rpc,websocket,udp服务TaskService
         if(!BaseServer::isHttpApp()) {
             throw new \Exception("TaskController only use in http server task process!");
         }

@@ -63,7 +63,7 @@ class Tick {
      * @param   int       $time_interval
      * @param   callable  $func         
      * @param   array     $user_params  
-     * @return  boolean              
+     * @return  mixed
      */
     public static function tick($time_interval, $func, $user_params = null, $is_sington = false) {
         $tid = swoole_timer_tick($time_interval, function($timer_id, $user_params) use($func, $is_sington) {
@@ -159,7 +159,7 @@ class Tick {
 
     /**
      * after 一次性定时器执行
-     * @return  boolean
+     * @return  mixed
      */
     public static function after($time_interval, $func, $user_params = null) {
         $tid = swoole_timer_after($time_interval, function($user_params) use($func) {
@@ -197,7 +197,7 @@ class Tick {
 
     /**
      * updateRunAfterTick 更新一次定时器
-     * @return  array
+     * @return  void
      */
     protected static function updateRunAfterTick() {
         if(self::$_after_tasks) {
@@ -215,8 +215,6 @@ class Tick {
                 TableManager::set('table_after', 'after_timer_task', ['after_tasks'=>json_encode(self::$_after_tasks)]);
             }
         }
-        return ;
     }
-
 
 }
