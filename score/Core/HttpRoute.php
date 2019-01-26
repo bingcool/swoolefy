@@ -85,7 +85,7 @@ class HttpRoute extends AppDispatch {
 
 	/**
 	 * dispatch 路由调度
-	 * @return void
+	 * @return mixed
 	 */
 	public function dispatch() {
 		// pathinfo的模式

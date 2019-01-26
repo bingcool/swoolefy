@@ -13,6 +13,7 @@ namespace Swoolefy\Rpc;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Swoole;
+use Swoolefy\Tcp\TcpServer;
 use Swoolefy\Core\ServiceDispatch;
 use Swoolefy\Core\HanderInterface;
 
@@ -68,7 +69,7 @@ class RpcHander extends Swoole implements HanderInterface {
 
                     if($this->ping()) {
                         $args = ['pong', $this->header];
-                        $data = \Swoolefy\Tcp\TcpServer::pack($args);
+                        $data = TcpServer::pack($args);
                         Swfy::getServer()->send($this->fd, $data);
                         return;
                     }
