@@ -63,7 +63,6 @@ class StartCtrl implements \Swoolefy\Core\StartInterface {
 	 * @return             
 	 */
 	public function workerStop($server, $worker_id) {
-		\Swoolefy\Core\Pools\PoolsManager::getInstance()->killProcessInWorker();
 		static::onWorkerStop($server, $worker_id);
 	}
 
