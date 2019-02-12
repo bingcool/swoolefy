@@ -120,7 +120,9 @@ abstract class UdpServer extends BaseServer {
 
 		});
 
-		//监听数据接收事件
+		/**
+         * 监听数据接收事件
+         */
 		$this->udpserver->on('Packet', function(udp_server $server, $data, $clientInfo) {
 			try{
 				parent::beforeHandler();
