@@ -310,7 +310,7 @@ abstract class TcpServer extends BaseServer {
 	 * pack  根据配置设置，按照客户端的接受数据方式，打包数据发回给客户端
 	 * @param    mixed    $data
 	 * @param    int   $fd
-	 * @return   void
+	 * @return   mixed
 	 */
 	public static function pack($data) {
 		if(static::isClientPackLength()) {
@@ -321,7 +321,6 @@ abstract class TcpServer extends BaseServer {
             $serialize_type = self::$config['packet']['client']['serialize_type'];
             $header[$pack_length_key] = '';
             $pack_data = Pack::enpack($body_data, $header, $header_struct, $pack_length_key, $serialize_type);
-            return $pack_data;
 		}else {
             list($data) = $data;
             $eof = self::$config['packet']['client']['pack_eof'];
@@ -331,8 +330,9 @@ abstract class TcpServer extends BaseServer {
             }else {
                 $pack_data = (new \Swoolefy\Core\Pack)->enpackeof($data, $serialize_type);
             }
-            return $pack_data;
-		}	
+		}
+
+        return $pack_data;
 	}
 }
 
