@@ -33,16 +33,10 @@ class RedisCoroutine {
 	public $password;
 
 	/**
-	 * $selectDb 
-	 * @var null
-	 */
-	public $selectdb = null;
-
-	/**
-	 * $is_serialize 是否开启序列化PHP变量，默认false
+	 * $is_serialize options
 	 * @var boolean
 	 */
-	public $is_serialize = false;
+	public $options = [];
 
 	/**
 	 * $is_deploy 是否是主从或者集群
@@ -87,13 +81,12 @@ class RedisCoroutine {
      * @param bool        $deploy
 	 * @param bool        $is_serialize
 	 */
-	public function __construct(string $host = null, $port = null, string $password = null, int $selectdb = null, bool $deploy = false, bool $is_serialize = false) {
+	public function __construct(string $host = null, $port = null, string $password = null, bool $deploy = false, array $options = []) {
 		$host && $this->host  = $host;
 		$port && $this->port = $port;
 		$password && $this->password = $password;
-		$selectdb && $this->selectdb = $selectdb;
 		$deploy && $this->deploy = $deploy;
-		$is_serialize && $this->is_serialize;
+		!empty($options) && $this->options = $options;
 		$host && $this->setConfig();
 	}
 
@@ -119,13 +112,6 @@ class RedisCoroutine {
 	}
 
 	/**
-	 * setSelectDb 
-	 */
-	public function selectDb(int $db) {
-		$this->selectdb = $db;
-	}
-
-	/**
 	 * getMaster 获取主master
 	 * @return mixed
 	 */
@@ -137,20 +123,24 @@ class RedisCoroutine {
 			$config = array_values($config);
 			list($host, $port, $password) = $config;
 			$redis = new CRedis();
-			$redis->connect($host, $port, $this->is_serialize);
+			if(!empty($this->options)) {
+                $redis->setOptions($this->options);
+            }
+			$redis->connect($host, $port);
 			$redis->auth($password);
 			$this->selectdb && $redis->select(intval($this->selectdb));
 			$isConnected = $redis->connected;
-			// 连接成功
 			if($isConnected) {
 				$this->master_redis_hosts = $redis;
 			}else {
 				// 断线重连一次
 				unset($redis);
 				$redis = new CRedis();
-				$redis->connect($host, $port, $this->is_serialize);
+				$redis->connect($host, $port);
+                if(!empty($this->options)) {
+                    $redis->setOptions($this->options);
+                }
 				$redis->auth($password);
-				$this->selectdb && $redis->select(intval($this->selectdb));
 				$isConnected = $redis->connected;
 				if($isConnected) {
 					$this->master_redis_hosts = $redis;
@@ -179,16 +169,16 @@ class RedisCoroutine {
 		}else {
 			// 随机取一个从服务器
 			$num = array_rand($this->slave_redis_config);
-			if(isset($this->slave_redis_hosts[$num])) {
-				return $this->slave_redis_hosts[$num];
-			}else {
+			if(!isset($this->slave_redis_hosts[$num])) {
 				$config = $this->slave_redis_config[$num];
 				$config = array_values($config);
 				list($host, $port, $password) = $config;
 				$redis = new CRedis();
-				$redis->connect($host, $port, $this->is_serialize);
+				$redis->connect($host, $port);
+                if(!empty($this->options)) {
+                    $redis->setOptions($this->options);
+                }
 				$redis->auth($password);
-				$this->selectdb && $redis->select(intval($this->selectdb));
 				$isConnected = $redis->connected;
 				if($isConnected) {
 					$this->slave_redis_hosts[$num] = $redis;
@@ -196,7 +186,10 @@ class RedisCoroutine {
 					// 断线重连一次
 					unset($redis);
 					$redis = new CRedis();
-					$redis->connect($host, $port, $this->is_serialize);
+					$redis->connect($host, $port);
+                    if(!empty($this->options)) {
+                        $redis->setOptions($this->options);
+                    }
 					$redis->auth($password);
 					$this->selectdb && $redis->select(intval($this->selectdb));
 					$isConnected = $redis->connected;
@@ -207,6 +200,7 @@ class RedisCoroutine {
 					}
 				}
 			}
+            return $this->slave_redis_hosts[$num];
 		}
 	}
 
@@ -238,7 +232,7 @@ class RedisCoroutine {
 		$ports = explode(',', $this->port);
 		$passwords = explode(',', $this->password);
 		$serverInfo = [];
-		// 主从|集群
+		// cluster mode
 		if(count($hosts) > 1 && $this->is_deploy) {
 			foreach($hosts as $k=>$host) {
 				$serverInfo[$k]['host'] = $host;
@@ -255,7 +249,7 @@ class RedisCoroutine {
 				}
 			}
 		}else {
-			// 单机
+            //single pattern
 			$k = 0;
 			$serverInfo[$k]['host'] = $hosts[$k];
 			$serverInfo[$k]['port'] = $ports[$k];
@@ -268,7 +262,7 @@ class RedisCoroutine {
 	}
 
 	/**
-	 * __call 单机模式下
+	 * __call  single pattern
 	 * @param  string  $method
 	 * @param  mixed   $args
 	 * @return mixed
