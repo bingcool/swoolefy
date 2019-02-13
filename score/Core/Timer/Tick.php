@@ -39,8 +39,9 @@ class Tick {
      * tickTimer  循环定时器
      * @param   int      $time_interval
      * @param   callable $func         
-     * @param   array    $params       
-     * @return  int              
+     * @param   array    $params
+     * @throws
+     * @return  mixed
      */
 	public static function tickTimer($time_interval, $func, $params = null, $is_sington = false) {
 		if($time_interval <= 0 || $time_interval > 86400000) {
@@ -138,8 +139,9 @@ class Tick {
      * afterTimer 一次性定时器
      * @param    int       $time_interval
      * @param    callable  $func         
-     * @param    array     $params       
-     * @return   int              
+     * @param    array     $params
+     * @throws
+     * @return   mixed
      */
     public static function afterTimer($time_interval, $func, $params = null) {
         if($time_interval <= 0 || $time_interval > 86400000) {

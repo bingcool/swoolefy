@@ -29,6 +29,7 @@ class Application {
 	/**
 	 * setApp 
 	 * @param $object
+     * @return boolean
 	 */
 	public static function setApp($App) {
 		if(Swfy::isWorkerProcess()) {

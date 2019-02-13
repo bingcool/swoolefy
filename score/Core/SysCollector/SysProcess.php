@@ -75,6 +75,7 @@ class SysProcess extends AbstractProcess {
 	 * sendByUdp 通过UDP发送方式
 	 * @param  array  $sys_collector_config
 	 * @param  $array $data
+     * @throws
 	 * @return void
 	 */
 	protected function sendByUdp(array $sys_collector_config, array $data = []) {
@@ -109,6 +110,7 @@ class SysProcess extends AbstractProcess {
 	 * publicByRedis swooleredis的订阅发布方式
 	 * @param  array  $sys_collector_config
 	 * @param  $array $data
+     * @throws
 	 * @return void
 	 */
 	protected function publishBySwooleRedis(array $sys_collector_config, array $data = []) {
@@ -117,7 +119,7 @@ class SysProcess extends AbstractProcess {
 		$port = (int)$sys_collector_config['port'];
 		$password = $sys_collector_config['password'];
 		$timeout = $sys_collector_config['timeout'] ? (float) $sys_collector_config['timeout'] : 3;
-		$database = isset($sys_collector_config['timeout']) ? $sys_collector_config['timeout'] : 15;
+		$database = isset($sys_collector_config['database']) ? $sys_collector_config['database'] : 0;
 		$channel = isset($sys_collector_config['channel']) ? $sys_collector_config['channel'] : SWOOLEFY_SYS_COLLECTOR_CHANNEL;
 
 		if(!is_object($redis_client)) {
@@ -145,7 +147,8 @@ class SysProcess extends AbstractProcess {
 	/**
 	 * publicByPhpRedis phpredis的订阅发布方式
 	 * @param  array  $sys_collector_config
-	 * @param  array  $data                
+	 * @param  array  $data
+     * @throws
 	 * @return void                      
 	 */
 	protected function publishByPhpRedis(array $sys_collector_config, array $data = []) {
@@ -154,7 +157,7 @@ class SysProcess extends AbstractProcess {
 		$port = (int)$sys_collector_config['port'];
 		$password = $sys_collector_config['password'];
 		$timeout = $sys_collector_config['timeout'] ? (float) $sys_collector_config['timeout'] : 60;
-		$database = isset($sys_collector_config['timeout']) ? $sys_collector_config['timeout'] : 15;
+		$database = isset($sys_collector_config['database']) ? $sys_collector_config['database'] : 0;
 		$channel = isset($sys_collector_config['channel']) ? $sys_collector_config['channel'] : SWOOLEFY_SYS_COLLECTOR_CHANNEL;
 
 		if(!extension_loaded('redis')) {

@@ -46,6 +46,8 @@ class ProcessManager {
 	 * @param string  $processClass
 	 * @param boolean $async
 	 * @param array   $args
+     * @throws
+     * @return mixed
 	 */
 	public static function addProcess(string $processName, string $processClass, $async = true, array $args = [], $extend_data = null) {
 		if(!TableManager::isExistTable('table_process_map')) {
@@ -63,7 +65,6 @@ class ProcessManager {
             }
         }else{
             throw new \Exception("you can not add the same process : $processName", 1);
-            return false;
         }
 	}
 

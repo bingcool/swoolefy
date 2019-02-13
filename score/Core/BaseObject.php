@@ -65,6 +65,7 @@ class BaseObject {
 
 	/**
 	 * __call
+     * @throws
 	 * @return   mixed
 	 */
 	public function __call($action, $args = []) {

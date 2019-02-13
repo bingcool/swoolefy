@@ -82,7 +82,7 @@ class CoroutineManager {
 
 	/**
 	 * listCoroutines 遍历当前进程内的所有协程(swoole4.1.0+版本支持)
-	 * @return Iterator
+	 * @return mixed
 	 */
 	public function listCoroutines() {
 		if(method_exists('Swoole\Coroutine', 'listCoroutines')) {
