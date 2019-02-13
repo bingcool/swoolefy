@@ -126,7 +126,8 @@ class BaseServer {
 
 	/**
 	 * checkVersion 检查是否安装基础扩展
-	 * @return   void
+     * @throws
+	 * @return void
 	 */
 	public static function checkVersion() {
 		if(version_compare(phpversion(), '7.1.0', '<')) {

@@ -148,6 +148,7 @@ abstract class AbstractProcessPools {
      * worker进程将通过onPipeMessage函数监听获取数数据
      * @param  mixed  $msg
      * @param  int    $worker_id
+     * @throws
      * @return boolean
      */
     public function sendMessage($msg = null, int $worker_id = null) {

@@ -63,6 +63,7 @@ class BService extends BaseObject {
 	 * @param  int    $fd
 	 * @param  mixed  $data
 	 * @param  string $encode
+     * @throws
 	 * @return void
 	 */
 	public function send($fd, $data, $header = []) {
@@ -82,6 +83,7 @@ class BService extends BaseObject {
 	 * @param    int      $port
 	 * @param    mixed    $data
 	 * @param    int      $server_socket
+     * @throws
 	 * @return   void
 	 */
 	public function sendto($ip, $port, $data, $server_socket = -1) {
@@ -101,6 +103,7 @@ class BService extends BaseObject {
 	 * @param  mixed  $data
 	 * @param  int    $opcode
 	 * @param  boolean $finish
+     * @throws
 	 * @return boolean
 	 */
 	public function push($fd, $data, $opcode = 1, $finish = true) {
