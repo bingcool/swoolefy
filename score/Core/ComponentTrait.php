@@ -31,6 +31,7 @@ trait ComponentTrait {
 	 * creatObject 创建组件对象
 	 * @param    string  $com_alias_name 组件别名
 	 * @param    array   $defination     组件定义类
+     * @throws
 	 * @return   array
 	 */
 
@@ -119,6 +120,7 @@ trait ComponentTrait {
 
     /**
      * buildInstance
+     * @throws
      * @return  object
      */
 	protected function buildInstance($class, $defination, $params, $com_alias_name) {
@@ -256,7 +258,7 @@ trait ComponentTrait {
 	 * __set
 	 * @param    string  $name
 	 * @param    object  $value
-	 * @return   object
+	 * @return   mixed
 	 */
 	public function __set($name, $value) {
 		if(isset($this->container[$name])) {
@@ -272,7 +274,7 @@ trait ComponentTrait {
 	/**
 	 * __get
 	 * @param    string  $name
-	 * @return   object | boolean
+	 * @return   mixed
 	 */
 	public function __get($name) {
         $components = Swfy::getAppConf()['components'];

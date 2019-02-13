@@ -44,7 +44,8 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 	 */
 	public function onRequest($request, $response) {
 		if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
-            return $response->end();
+            $response->end();
+            return;
        	}
         self::$config['application_index']::getInstance($config = [])->run($request, $response);
 	}

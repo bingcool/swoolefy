@@ -26,7 +26,7 @@ interface AppInterface {
 	public static function getInstance(array $config);
 
 	/**
-	 * boostrap  完成一些必要的程序引导和设置
+	 * bootstrap  完成一些必要的程序引导和设置
 	 * @return   void
 	 */
 	public static function bootstrap($args);

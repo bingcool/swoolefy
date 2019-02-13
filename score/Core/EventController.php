@@ -76,6 +76,7 @@ class EventController extends BaseObject {
 	 * afterRequest 
 	 * @param  callable $callback
 	 * @param  boolean  $prepend
+     * @throws
 	 * @return mixed
 	 */
 	public function afterRequest(callable $callback, $prepend = false) {

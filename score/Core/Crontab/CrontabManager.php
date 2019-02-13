@@ -21,6 +21,12 @@ class CrontabManager {
 
 	protected $cron_tasks = [];
 
+    /**
+     * @param string $cron_name
+     * @param string $expression
+     * @param        $func
+     * @throws \Exception
+     */
 	public function addRule(string $cron_name, string $expression, $func) {
 		if(class_exists('Cron\\CronExpression')) {
 			if(CronExpression::isValidExpression($expression)) {
