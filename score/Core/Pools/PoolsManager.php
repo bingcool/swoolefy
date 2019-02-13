@@ -56,11 +56,11 @@ class PoolsManager {
      * @param string  $processName
      * @param string  $processClass
      * @param int     $processNumber
-     * @param boolean $polling  是否是轮训向空闲进程写数据
-     * @param int     $timer_int 定时器时间，单位毫秒
      * @param boolean $async
      * @param array   $args
-     * @return  void
+     * @param mixed   $extend_data
+     * @throws
+     * @return void
      */
     public static function addProcessPools(string $processName, string $processClass, $async = true, array $args = [], $extend_data = null) {
         if(!TableManager::isExistTable('table_process_pools_map')) {
@@ -104,6 +104,7 @@ class PoolsManager {
     /**
      * getProcessByName 通过名称获取一个进程
      * @param  string $processName
+     * @throws
      * @return object
      */
     public static function getProcessPoolsByName(string $processName) {
