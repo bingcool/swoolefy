@@ -48,7 +48,7 @@ class ServiceDispatch extends AppDispatch {
 
 	/**
 	 * dispatch 路由调度
-	 * @return void
+	 * @return  mixed
 	 */
 	public function dispatch() {
 		list($class, $action) = $this->callable;

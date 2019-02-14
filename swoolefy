@@ -152,9 +152,13 @@ function startHttpService($app_name) {
 
     $event_server_file = $path.'/HttpServer.php';
     if(!file_exists($event_server_file)) {
-        copy(SCORE_DIR_ROOT.'/score/EventServer/HttpServer.php', $event_server_file);
+        $search_str = "protocol\\http";
+        $replace_str = "protocol\\{$app_name}";
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT.'/score/EventServer/HttpServer.php');
+        $count = 1;
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        file_put_contents($event_server_file, $file_content_string);
     }
-
     $config = include $path."/config-".SWOOLEFY_ENV.".php";
 
     if(isset($config['setting']['log_file'])) {
@@ -166,6 +170,10 @@ function startHttpService($app_name) {
 
     if(isset($argv[4]) && ($argv[4] == '-d' || $argv[4] == '-D')) {
         $config['setting']['daemonize'] = true;
+    }
+    if(!isset($config['app_conf'])) {
+        write("Error:protocol/{$app_name}/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
+        exit();
     }
     $class = "protocol\\{$app_name}\\HttpServer";
     $http = new $class($config);
@@ -188,7 +196,12 @@ function startWebsocket($app_name) {
 
     $event_server_file = $path.'/WebsocketEventServer.php';
     if(!file_exists($event_server_file)) {
-        copy(SCORE_DIR_ROOT.'/score/EventServer/WebsocketEventServer.php', $event_server_file);
+        $search_str = "protocol\\websocket";
+        $replace_str = "protocol\\{$app_name}";
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT.'/score/EventServer/WebsocketEventServer.php');
+        $count = 1;
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        file_put_contents($event_server_file, $file_content_string);
     }
 
     $config = include $path."/config-".SWOOLEFY_ENV.".php";
@@ -202,6 +215,10 @@ function startWebsocket($app_name) {
 
     if(isset($argv[4]) && ($argv[4] == '-d' || $argv[4] == '-D')) {
         $config['setting']['daemonize'] = true;
+    }
+    if(!isset($config['app_conf'])) {
+        write("Error:protocol/{$app_name}/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
+        exit();
     }
     $class = "protocol\\{$app_name}\\WebsocketEventServer";
     $websocket = new $class($config);
@@ -224,7 +241,12 @@ function startRpc($app_name) {
 
     $event_server_file = $path.'/RpcServer.php';
     if(!file_exists($event_server_file)) {
-        copy(SCORE_DIR_ROOT.'/score/EventServer/RpcServer.php', $event_server_file);
+        $search_str = "protocol\\rpc";
+        $replace_str = "protocol\\{$app_name}";
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT.'/score/EventServer/RpcServer.php');
+        $count = 1;
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        file_put_contents($event_server_file, $file_content_string);
     }
 
     $config = include $path."/config-".SWOOLEFY_ENV.".php";
@@ -238,6 +260,10 @@ function startRpc($app_name) {
 
     if(isset($argv[4]) && ($argv[4] == '-d' || $argv[4] == '-D')) {
         $config['setting']['daemonize'] = true;
+    }
+    if(!isset($config['app_conf'])) {
+        write("Error:protocol/{$app_name}/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
+        exit();
     }
     $class = "protocol\\{$app_name}\\RpcServer";
     $rpc = new $class($config);
@@ -260,7 +286,12 @@ function startUdp($app_name) {
 
     $event_server_file = $path.'/UdpEventServer.php';
     if(!file_exists($event_server_file)) {
-        copy(SCORE_DIR_ROOT.'/score/EventServer/UdpEventServer.php', $event_server_file);
+        $search_str = "protocol\\udp";
+        $replace_str = "protocol\\{$app_name}";
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT.'/score/EventServer/UdpEventServer.php');
+        $count = 1;
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        file_put_contents($event_server_file, $file_content_string);
     }
 
     $config = include $path."/config-".SWOOLEFY_ENV.".php";
@@ -274,6 +305,10 @@ function startUdp($app_name) {
 
     if(isset($argv[4]) && ($argv[4] == '-d' || $argv[4] == '-D')) {
         $config['setting']['daemonize'] = true;
+    }
+    if(!isset($config['app_conf'])) {
+        write("Error:protocol/{$app_name}/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
+        exit();
     }
     $class = "protocol\\{$app_name}\\UdpEventServer";
     $rpc = new $class($config);
