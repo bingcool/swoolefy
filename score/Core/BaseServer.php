@@ -660,7 +660,6 @@ class BaseServer {
             $isEnablePvCollector = false;
         }
         return $isEnablePvCollector;
-
     }
 
     /**

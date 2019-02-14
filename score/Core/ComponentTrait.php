@@ -32,7 +32,7 @@ trait ComponentTrait {
 	 * @param    string  $com_alias_name 组件别名
 	 * @param    array   $defination     组件定义类
      * @throws
-	 * @return   array
+	 * @return   mixed
 	 */
 
 	public function creatObject(string $com_alias_name = null, array $defination = []) {
@@ -64,6 +64,7 @@ trait ComponentTrait {
 		// 配置文件初始化创建公用对象
 		$coreComponents = $this->coreComponents();
 		$components = array_merge($coreComponents, Swfy::getAppConf()['components']);
+
 		foreach($components as $com_name=>$component) {
 
 			if($this->isSetOpenPoolsOfComponent($component)) {
@@ -71,9 +72,11 @@ trait ComponentTrait {
 				continue;
 			}
 
-			// 存在直接跳过
-			if(isset($this->container[$com_name]) || (isset($component[SWOOLEFY_COM_IS_DELAY]) && $component[SWOOLEFY_COM_IS_DELAY])) {
-				continue;
+			if(isset($this->container[$com_name]) || isset($component[SWOOLEFY_COM_IS_DELAY])) {
+                $is_delay = filter_var($component[SWOOLEFY_COM_IS_DELAY], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                if($is_delay === true) {
+                    continue;
+                }
 			}
 
 			if(isset($component['class']) && $component['class'] != '') {

@@ -572,17 +572,14 @@ trait AppTrait {
 				$query_string = rtrim($query_string,'&');
 			}
 		}
-		// 发送Http跳转,调用此方法会自动end发送并结束响应,2.2.0+版本支持
-		if(version_compare(swoole_version(), '2.2.0', '>')) {
+		// 发送Http跳转,调用此方法会自动end发送并结束响应,4.2.0+版本支持
+		if(version_compare(swoole_version(), '4.2.0', '>')) {
 			$this->response->redirect($url.$query_string, $code);
-			return;
 		}else {
 			$this->status($code);
 			$this->response->header('Location', $url.$query_string);
 			$this->response->end();
-			return;
 		}
-		
 	}
 
 	/**
@@ -624,7 +621,7 @@ trait AppTrait {
 	 * asyncHttpClient 简单的模拟http异步并发请求
 	 * @param    array   $urls 
 	 * @param    int     $timeout 单位ms
-	 * @return   
+	 * @return   boolean
 	 */
 	public function asyncHttpClient(array $urls = [], int $timeout = 500) {
 		if(!empty($urls)) {
@@ -936,7 +933,7 @@ trait AppTrait {
     }
 
 	/**
-	 * sendHttpStatus,参考tp的
+	 * sendHttpStatus
 	 * @param    int  $code
 	 * @return   void     
 	 */

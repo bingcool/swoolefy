@@ -40,7 +40,7 @@ class App extends \Swoolefy\Core\Component {
 
 	/**
 	 * $coroutine_id 
-	 * @var [type]
+	 * @var null
 	 */
 	public $coroutine_id;
 
