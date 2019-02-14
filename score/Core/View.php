@@ -201,9 +201,6 @@ class View {
             	$string = $data;
 			default:$string = json_encode($data,0);break;
 		}
-		if($this->enable_gzip) {
-			$response->gzip($this->gzip_level);
-		}
 		$response->write($string);
 	}
 
