@@ -84,6 +84,7 @@ class App extends \Swoolefy\Core\Component {
 	 * run 执行
 	 * @param  $request
 	 * @param  $response
+     * @throws
 	 * @return void
 	 */
 	public function run($request, $response, $extend_data = null) {
@@ -139,6 +140,7 @@ class App extends \Swoolefy\Core\Component {
 	 * afterRequest 请求结束后注册钩子执行操作
 	 * @param	mixed   $callback 
 	 * @param	boolean $prepend
+     * @throws
 	 * @return	void
 	 */
 	public function afterRequest(callable $callback, $prepend = false) {
