@@ -104,8 +104,8 @@ class PoolsManager {
     /**
      * getProcessByName 通过名称获取一个进程
      * @param  string $processName
-     * @throws
-     * @return object
+     * @throws \Exception
+     * @return mixed
      */
     public static function getProcessPoolsByName(string $processName) {
         if(Swfy::isWorkerProcess()) {
@@ -153,13 +153,9 @@ class PoolsManager {
      * @return boolean
      */
     public static function rebootPools(string $processName) {
-        $p = self::getProcessPoolsByName($processName);
-        if($p){
-            \Swoole\Process::kill($p->getPid(), SIGTERM);
-            return true;
-        }else{
-            return false;
-        }
+        $process = self::getProcessPoolsByName($processName);
+        $kill_flag = $process->getSwoolefyProcessKillFlag();
+        self::writeByProcessPoolsName($processName, $kill_flag);
     }
 
     /**
