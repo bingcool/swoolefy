@@ -25,11 +25,13 @@ abstract class AbstractProcessPools {
     private $extend_data;
     private $bind_worker_id = null;
 
+    const SWOOLEFY_PROCESS_KILL_FLAG = "action::restart::swoolefy_process_kill_flag";
+
      /**
-     * __construct 
+     * __construct
      * @param string  $processName
-     * @param boolean $async      
-     * @param array   $args       
+     * @param boolean $async
+     * @param array   $args
      */
     public function __construct(string $processName, $async = true, array $args = [], $extend_data = null) {
         $this->async = $async;
@@ -52,11 +54,18 @@ abstract class AbstractProcessPools {
      * 服务启动后才能获得到创建的进程pid,不启动为null
      */
     public function getPid() {
-        if(isset($this->swooleProcess->pid)){
-            return $this->swooleProcess->pid;
-        }else{
-            return null;
+        $pid = TableManager::getTable('table_process_pools_map')->get(md5($this->processName),'pid');
+        if($pid) {
+            return $pid;
         }
+        return null;
+    }
+
+    /**
+     * @return string
+     */
+    public function getSwoolefyProcessKillFlag() {
+        return self::SWOOLEFY_PROCESS_KILL_FLAG;
     }
 
     /**
@@ -99,7 +108,12 @@ abstract class AbstractProcessPools {
             swoole_event_add($this->swooleProcess->pipe, function(){
                 $msg = $this->swooleProcess->read(64 * 1024);
                 try{
-                    $this->onReceive($msg);
+                    if($msg == self::SWOOLEFY_PROCESS_KILL_FLAG) {
+                        $this->reboot();
+                        return;
+                    }else {
+                        $this->onReceive($msg);
+                    }
                 }catch(\Throwable $t) {
                     // 记录错误与异常
                     $exceptionHanderClass = BaseServer::getExceptionClass();
@@ -159,6 +173,13 @@ abstract class AbstractProcessPools {
             $worker_id = $this->bind_worker_id;
         }
         return Swfy::getServer()->sendMessage($msg, $worker_id);
+    }
+
+    /**
+     * reboot
+     */
+    public function reboot() {
+        \Swoole\Process::kill($this->getPid(), SIGTERM);
     }
 
     /**

@@ -113,13 +113,9 @@ class ProcessManager {
      * @return boolean
      */
     public static function reboot(string $processName) {
-        $p = self::getProcessByName($processName);
-        if($p){
-            \Swoole\Process::kill($p->getPid(), SIGTERM);
-            return true;
-        }else{
-            return false;
-        }
+        $process = self::getProcessByName($processName);
+        $kill_flag = $process->getSwoolefyProcessKillFlag();
+        self::writeByProcessName($processName, $kill_flag);
     }
 
     /**
