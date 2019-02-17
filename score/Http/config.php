@@ -22,6 +22,7 @@ return [
 	'time_zone' => 'PRC',
 	'swoole_process_mode' => SWOOLE_PROCESS,//swoole的进程模式设置
 	'include_files' => [],
+    'runtime_enable_coroutine' => true,
 	'setting' => [
 		'reactor_num' => 1, 
 		'worker_num' => 5,
@@ -34,6 +35,7 @@ return [
 		'reload_async' => true,
 		'daemonize' => 0,
 
+        'enable_coroutine' => 1,
 		'log_file' => __DIR__.'/log/log.txt',
 		'pid_file' => __DIR__.'/log/server.pid',
 	],

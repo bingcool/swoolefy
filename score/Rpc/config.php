@@ -19,7 +19,8 @@ return [
 	'www_user' => 'www',
 	'host' => '0.0.0.0',
 	'port' => '9504',
-	'time_zone' => 'PRC', 
+	'time_zone' => 'PRC',
+    'runtime_enable_coroutine' => true,
 	'setting' => [
 		'reactor_num' => 1,
 		'worker_num' => 3,
@@ -37,6 +38,8 @@ return [
     	'package_length_offset' => 0,       //第N个字节是包长度的值
     	'package_body_offset'   => 34,       //第几个字节开始计算长度
     	'package_max_length'    => 2000000,  //协议最大长度
+
+        'enable_coroutine' => 1,
 
     	'log_file' => __DIR__.'/log/log.txt',
 		'pid_file' => __DIR__.'/log/server.pid',

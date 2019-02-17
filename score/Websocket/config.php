@@ -21,7 +21,8 @@ return [
 	'port' => '9503',
 	// websocket独有
 	'accept_http' => false,
-	'time_zone' => 'PRC', 
+	'time_zone' => 'PRC',
+    'runtime_enable_coroutine' => true,
 	'setting' => [
 		'reactor_num' => 1,
 		'worker_num' => 3,
@@ -31,6 +32,8 @@ return [
 		'daemonize' => 0,
 		// websocket使用固定的worker，使用2或4
 		'dispatch_mode' => 2,
+
+        'enable_coroutine' => 1,
 
 		'log_file' => __DIR__.'/log/log.txt',
 		'pid_file' => __DIR__.'/log/server.pid',
