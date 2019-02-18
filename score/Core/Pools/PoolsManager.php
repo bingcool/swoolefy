@@ -14,105 +14,122 @@ namespace Swoolefy\Core\Pools;
 use Swoole\Table;
 use Swoole\Process;
 use Swoolefy\Core\Swfy;
-use Swoolefy\Core\Timer\TickManager;
 use Swoolefy\Core\Table\TableManager;
 
 class PoolsManager {
 
     use \Swoolefy\Core\SingletonTrait;
+
+    const PROCESS_NUM = 1024;
     
     private static $table_process = [
         // 进程内存表
         'table_process_pools_map' => [
-            // 内存表建立的行数,取决于建立的process进程数
-            'size' => 256,
+            // 内存表建立的行数,取决于建立的process进程数,最小值1024
+            'size' => self::PROCESS_NUM,
             // 字段
             'fields'=> [
-                ['pid','int', 10]
+                ['pid','int', 10],
+                ['process_name','string', 50],
             ]
         ]
     ];
 
-    private static $total_process_num = null;
+    private static $total_process_num = 0;
 
     private static $processList = [];
 
+    private static $worker_num = 1;
+
     /**
      * __construct
-     * @param  $total_process 进程池总数
+     *
+     * @param  $total_process 每个worker绑定的进程数，也即是为每个worker附加的自定义进程数，默认绑定一个process
      */
     private function __construct() {
         $conf = Swfy::getConf();
         if(isset($conf['setting']['worker_num'])) {
-            $total_process_num = $conf['setting']['worker_num'];
-            self::$table_process['table_process_pools_map']['size'] = $total_process_num;
-            self::$total_process_num = $total_process_num;
+            self::$worker_num = $conf['setting']['worker_num'];
         }
         TableManager::getInstance()->createTable(self::$table_process);
     }
 
     /**
-     * addProcess 添加创建进程
+     * addProcess 添加创建进程并绑定当前worker进程
      * @param string  $processName
      * @param string  $processClass
-     * @param int     $processNumber
+     * @param int     $process_num_bind_worker 每个worker绑定的进程数，也即是为每个worker附加的自定义进程数，默认绑定一个process
      * @param boolean $async
      * @param array   $args
      * @param mixed   $extend_data
      * @throws
      * @return void
      */
-    public static function addProcessPools(string $processName, string $processClass, $async = true, array $args = [], $extend_data = null) {
+    public static function addProcessPools(string $processName, string $processClass, int $process_num_bind_worker = 1, $async = true, array $args = [], $extend_data = null) {
         if(!TableManager::isExistTable('table_process_pools_map')) {
             TableManager::getInstance()->createTable(self::$table_process);
         }
-        if(count($args) == self::$total_process_num && $args[0] instanceof \Swoole\Channel) {
-            for($i=0; $i<self::$total_process_num; $i++) {
-                $process_name = $processName.$i;
-                $key = md5($process_name);
-                if(!isset(self::$processList[$key])) {
+        // total process num
+        self::$total_process_num += (self::$worker_num * $process_num_bind_worker);
+
+        if(self::$total_process_num > self::PROCESS_NUM) {
+            throw new \Exception("total self process num more then ".self::PROCESS_NUM, 1);
+        }
+
+        $key = md5($processName);
+        if(isset(self::$processList[$key])) {
+            throw new \Exception("you can not add the same process : $processName", 1);
+        }
+
+        if(isset($args[0]) &&  $args[0] instanceof \Swoole\Channel) {
+
+            if(self::$worker_num != count($args)) {
+                throw new \Exception("args of channel object num must == worker_num", 1);
+            }
+
+            for($i = 0; $i < self::$worker_num; $i++) {
+                for($j = 0; $j < $process_num_bind_worker; $j++) {
                     try{
-                        $process = new $processClass($processName, $async, [$args[$i]], $extend_data);
+                        $process = new $processClass($processName.'@'.$i.'@'.$j, $async, [$args[$i]], $extend_data);
                         $process->setBindWorkerId($i);
-                        self::$processList[$key] = $process;
+                        self::$processList[$key][$i][$j] = $process;
                     }catch (\Exception $e){
                         throw new \Exception($e->getMessage(), 1);
                     }
-                }else{
-                    throw new \Exception("you can not add the same process : $processName", 1);
                 }
             }
         }else {
-            for($i=0; $i<self::$total_process_num; $i++) {
-                $process_name = $processName.$i;
-                $key = md5($process_name);
-                if(!isset(self::$processList[$key])) {
+            for($i = 0; $i < self::$worker_num; $i++) {
+                for($j = 0; $j < $process_num_bind_worker; $j++) {
                     try{
-                        $process = new $processClass($processName, $async, $args, $extend_data);
+                        $process = new $processClass($processName.'@'.$i.'@'.$j, $async, $args, $extend_data);
                         $process->setBindWorkerId($i);
-                        self::$processList[$key] = $process;
+                        self::$processList[$key][$i][$j] = $process;
                     }catch (\Exception $e){
                         throw new \Exception($e->getMessage(), 1);
                     }
-                }else{
-                    throw new \Exception("you can not add the same process : $processName", 1);
                 }
             }
         }
     }
 
     /**
-     * getProcessByName 通过名称获取一个进程
+     * getProcessByName 通过名称获取绑定当前worker进程的某个进程
      * @param  string $processName
+     * @param  bool $is_all 是否返回worker中绑定的所有process
      * @throws \Exception
      * @return mixed
      */
-    public static function getProcessPoolsByName(string $processName) {
+    public static function getProcessPoolsByName(string $processName, bool $is_all = false) {
         if(Swfy::isWorkerProcess()) {
             $worker_id = Swfy::getCurrentWorkerId();
-            $key = md5($processName.$worker_id);
-            if(isset(self::$processList[$key])) {
-                return self::$processList[$key];
+            $key = md5($processName);
+            if(isset(self::$processList[$key][$worker_id])) {
+                if($is_all) {
+                    return self::$processList[$key][$worker_id];
+                }
+                $k = array_rand(self::$processList[$key][$worker_id]);
+                return self::$processList[$key][$worker_id][$k];
             }else {
                 return null;
             }
@@ -122,50 +139,73 @@ class PoolsManager {
     }
 
     /**
-     * getProcessByPid 通过进程id获取进程
+     * getProcessByPid 通过进程id获取绑定当前worker进程的某个进程
      * @param  int    $pid
      * @return object
      */
     public static function getProcessPoolsByPid(int $pid) {
-        $table = TableManager::getTable('table_process_pools_map');
-        foreach ($table as $key => $item) {
-            if($item['pid'] == $pid){
-                return self::$processList[$key];
+        if(Swfy::isWorkerProcess()) {
+            $table = TableManager::getTable('table_process_pools_map');
+            foreach($table as $key => $item) {
+                if($item['pid'] == $pid) {
+                    list($processName, $worker_id, $process_num) = explode('@', $item['process_name']);
+                    $key = md5($processName);
+                    return self::$processList[$key][$worker_id][$process_num];
+                }
             }
+            return null;
+        }else {
+            throw new \Exception("PoolsManager::getInstance() can not use in task or self process, only use in worker process!", 1);
         }
-        return null;
     }
 
     /**
-     * setProcess 设置一个进程
+     * setProcess 绑定当前worker进程的设置一个进程
      * @param string          $processName
      * @param AbstractProcessPools $process
      */
     public static function setProcessPools(string $processName, AbstractProcessPools $process) {
         $worker_id = Swfy::getCurrentWorkerId();
-        $key = md5($processName.$worker_id);
-        self::$processList[$key] = $process;
+        $key = md5($processName);
+        array_push(self::$processList[$key][$worker_id], $process);
     }
 
     /**
-     * reboot 重启某个进程
+     * reboot 重启进程
      * @param  string $processName
      * @return boolean
      */
-    public static function rebootPools(string $processName) {
-        $process = self::getProcessPoolsByName($processName);
-        $kill_flag = $process->getSwoolefyProcessKillFlag();
-        self::writeByProcessPoolsName($processName, $kill_flag);
+    public static function rebootPools(string $processName, bool $is_restart_all_process = false) {
+        if($is_restart_all_process) {
+            foreach(self::$worker_num as $key => $worker_processes) {
+                foreach($worker_processes as $worker_id => $all_processes) {
+                    foreach($all_processes as $k => $process) {
+                        $kill_flag = $process->getSwoolefyProcessKillFlag();
+                        $process->getProcess()->write($kill_flag);
+                    }
+                }
+            }
+            return true;
+        }
+        $all_processes = self::getProcessPoolsByName($processName, true);
+        if(is_array($all_processes) && count($all_processes) > 0) {
+            foreach($all_processes as $k => $process) {
+                $kill_flag = $process->getSwoolefyProcessKillFlag();
+                $process->getProcess()->write($kill_flag);
+            }
+            return true;
+        }
+
     }
 
     /**
-     * writeByProcessName 向某个进程写数据
+     * writeByProcessName 向绑定当前worker进程的某个自定义进程写数据
      * @param  string $name
      * @param  string $data
      * @return boolean
      */
-    public static function writeByProcessPoolsName(string $name, string $data) {
-        $process = self::getProcessPoolsByName($name);
+    public static function writeByProcessPoolsName(string $processName, string $data) {
+        $process = self::getProcessPoolsByName($processName);
         if($process){
             return (bool)$process->getProcess()->write($data);
         }else{
@@ -174,13 +214,13 @@ class PoolsManager {
     }
 
     /**
-     * readByProcessName 读取某个进程数据
+     * readByProcessName 读取绑定的某个进程数据
      * @param  string $name
      * @param  float  $timeOut
      * @return mixed
      */
-    public static function readByProcessPoolsName(string $name, float $timeOut = 0.1) {
-        $process = self::getProcessPoolsByName($name);
+    public static function readByProcessPoolsName(string $processName, float $timeOut = 0.1) {
+        $process = self::getProcessPoolsByName($processName);
         if($process){
             $process = $process->getProcess();
             $read = array($process);
