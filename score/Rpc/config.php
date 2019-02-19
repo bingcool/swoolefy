@@ -30,9 +30,6 @@ return [
 		'daemonize' => 0,
 		// TCP使用固定的worker，使用2或4或7
 		'dispatch_mode' => 2,
-		// 'open_eof_check' => true, //打开EOF检测
-		// 'open_eof_split' => true, //打开EOF_SPLIT检测
-		// 'package_eof' => "\r\n\r\n", //设置EOF
 		'open_length_check'     => 1,
     	'package_length_type'   => 'N',
     	'package_length_offset' => 0,       //第N个字节是包长度的值
