@@ -24,7 +24,7 @@ abstract class AbstractProcess {
     private $args = [];
     private $extend_data;
 
-    const SWOOLEFY_PROCESS_KILL_FLAG = "action::restart::swoolefy_process_kill_flag";
+    const SWOOLEFY_PROCESS_KILL_FLAG = "action::restart::kill_flag";
 
     /**
      * __construct 

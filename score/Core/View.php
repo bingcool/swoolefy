@@ -50,12 +50,13 @@ class View {
 	 * __construct
 	 */
 	public function __construct($contentType='text/html') {
-		$smarty = new Smarty;
-		$smarty->setCompileDir(SMARTY_COMPILE_DIR);
-		$smarty->setCacheDir(SMARTY_CACHE_DIR);
-		$smarty_template_path = rtrim(SMARTY_TEMPLATE_PATH).'/';
-		$smarty->setTemplateDir($smarty_template_path);
-
+	    if(class_exists('Smarty')) {
+            $smarty = new Smarty;
+            $smarty->setCompileDir(SMARTY_COMPILE_DIR);
+            $smarty->setCacheDir(SMARTY_CACHE_DIR);
+            $smarty_template_path = rtrim(SMARTY_TEMPLATE_PATH).'/';
+            $smarty->setTemplateDir($smarty_template_path);
+        }
 		$this->content_type = $contentType;
 		$this->view = $smarty;
 		isset(Application::getApp()->config['gzip_level']) && $this->gzip_level = (int)Application::getApp()->config['gzip_level'];

@@ -511,7 +511,21 @@ trait AppTrait {
 	 * @return   void         
 	 */
 	public function returnJson(array $data, string $formater = 'json') {
-		Application::getApp()->view->returnJson($data, $formater);
+        switch(strtoupper($formater)) {
+            case 'JSON':
+                $this->response->header('Content-Type','application/json; charset=utf-8');
+                $string = json_encode($data,0);
+                break;
+            case 'XML':
+                $this->response->header('Content-Type','text/xml; charset=utf-8');
+                $string = xml_encode($data);
+                break;
+            case 'EVAL':
+                $this->response->header('Content-Type','text/xml; charset=utf-8');
+                $string = $data;
+            default:$string = json_encode($data,0);break;
+        }
+        $this->response->write($string);
 	}
 
 	/**

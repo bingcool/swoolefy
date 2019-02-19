@@ -15,7 +15,7 @@ use  Swoolefy\Core\Coroutine\CoroutineManager;
 
 class ZModel {
 	/**
-	 * $_instance 工厂模式的单实例
+	 * $_instance
 	 * @var array
 	 */
 	protected static $_model_instances = [];
