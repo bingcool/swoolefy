@@ -18,7 +18,8 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的API
 - [x] 支持协程单例注册
 - [x] 支持mysql协程组件，redis协程组件，mongodb组件，提供基于tp改造的swoolefy-orm协程mysql组件
 - [x] 支持mysql的协程连接池，redis协程池
-- [x] 异步务管理TaskManager，定时器管理TickManager，内存表管理TableManager，自定义进程管理ProcessManager，进程池管理PoolsManger
+- [x] 异步务管理TaskManager，定时器管理TickManager，内存表管理TableManager  
+- [x] 自定义进程管理ProcessManager，进程池管理PoolsManger
 - [x] 支持底层异常错误的所有日志捕捉
 - [x] 支持自定义进程的redis，rabitmq，kafka的订阅发布，消息队列等     
 - [x] 支持crontab    
