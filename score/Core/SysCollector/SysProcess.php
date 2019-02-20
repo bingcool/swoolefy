@@ -98,7 +98,7 @@ class SysProcess extends AbstractProcess {
 					}
 				}
 				$udp_client->send($message);
-			}catch(\Exception $e) {
+			}catch(\Throwable $e) {
 				throw new \Exception($e->getMessage(), 1);
 			}
 		}else {
@@ -119,29 +119,29 @@ class SysProcess extends AbstractProcess {
 		$port = (int)$sys_collector_config['port'];
 		$password = $sys_collector_config['password'];
 		$timeout = $sys_collector_config['timeout'] ? (float) $sys_collector_config['timeout'] : 3;
-		$database = isset($sys_collector_config['database']) ? $sys_collector_config['database'] : 0;
+
 		$channel = isset($sys_collector_config['channel']) ? $sys_collector_config['channel'] : SWOOLEFY_SYS_COLLECTOR_CHANNEL;
-
-		if(!is_object($redis_client)) {
-			$redis_client = new \swoole\redis([
-		    	'timeout' => $timeout,
-		    	'password' => $password,
-		    	'database' => $database
-	    	]);
-		}
-
-		if($data) {
-			$message = json_encode($data);
-			try{
-				$redis_client->connect($host, $port, function($redis_client, $result) use($channel, $message) {
-		    		$redis_client->publish($channel, $message, function($redis_client, $result) {
-		    			$redis_client->close();
-		    		});
-	    		});
-			}catch(\Exception $e) {
-				throw new \Exception($e->getMessage(), 1);
+		go(function() use($host, $port, $password, $timeout, $channel, $data) {
+			$redis_client = new \Swoole\Coroutine\Redis();
+			$redis_client->setOptions([
+				'connect_timeout'=> $timeout,
+				'timeout'=> -1,
+				'reconnect'=>2
+			]);
+            $redis_client->connect($host, $port);
+            $redis_client->auth($password);
+			$isConnected = $redis_client->connected;
+			if($isConnected) {
+                if($data) {
+                    $message = json_encode($data);
+                    try{
+                        $redis_client->publish($channel, $message);
+                    }catch(\Throwable $e) {
+                        throw new \Exception($e->getMessage(), 1);
+                    }
+                }
 			}
-		}
+		});
 	}
 
 	/**

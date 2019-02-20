@@ -36,7 +36,7 @@ class MongodbCollection {
     /**
      * bulkWrite 批量执行操作命令数据
      * @param   array   $insertData
-     * @return    void
+     * @return  mixed
      */
     public  function bulkWrite($insertData) {
         return $this->collectionInstance->bulkWrite($insertData);
@@ -45,7 +45,7 @@ class MongodbCollection {
     /**
      * parseFilter 条件分析
      * @param   array   $filter
-     * @return    $this
+     * @return  mixed
      */
     protected function parseFilter($filter = []) {
         if(isset($filter['_id'])) {
