@@ -44,14 +44,12 @@ class Tick {
      * @return  mixed
      */
 	public static function tickTimer($time_interval, $func, $params = null, $is_sington = false) {
-		if($time_interval <= 0 || $time_interval > 86400000) {
-            throw new \Exception(get_called_class()."::tickTimer() the first params 'time_interval' is requested 0~86400000 ms");
-            return false;
+		if($time_interval <= 0) {
+            throw new \Exception(get_called_class()."::tickTimer() the first params 'time_interval' is requested more than 0 ms");
         }
 
         if(!is_callable($func)) {
             throw new \Exception(get_called_class()."::tickTimer() the seconed params 'func' is not callable");
-            return false;
         }
 
         $timer_id = self::tick($time_interval, $func, $params, $is_sington);

@@ -128,7 +128,7 @@ class ServiceDispatch extends AppDispatch {
      * @param int $from_worker_id
      * @param int $task_id
      */
-	public function setFromWrkerIdAndTaskId(int $from_worker_id, int $task_id) {
+	public function setFromWorkerIdAndTaskId(int $from_worker_id, int $task_id) {
 	    $this->from_worker_id = $from_worker_id;
 	    $this->task_id = $task_id;
     }
