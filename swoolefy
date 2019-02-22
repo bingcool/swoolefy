@@ -33,10 +33,13 @@ defined('START_DIR_ROOT') or define('START_DIR_ROOT', __DIR__);
 include_once START_DIR_ROOT.'/vendor/autoload.php';
 
 // include App应用层的自定义的自动加载类命名空间
-if(isset($argv[2]) && in_array($argv[2], array_keys($APP_NAMES))) {
+if(isset($argv[2]) && in_array(trim($argv[2]), array_keys($APP_NAMES))) {
+    defined('APP_NAME') or define('APP_NAME', trim($argv[2]));
     include_once START_DIR_ROOT.'/'.$argv[2].'/autoloader.php';
+}else {
+    write("[Error] app_name is not in APP_NAME array in swoolefy file, please check it");
+    return;
 }
-
 // 判断当前环境,默认是dev(开发),gra(灰度),prd(生产)
 if(isset($argv[3]) && $argv[3] == '-'.SWOOLEFY_GRA) {
     defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', SWOOLEFY_GRA);
@@ -108,10 +111,6 @@ function startServer($server) {
     global $argv;
     global $APP_NAMES;
     $apps = $APP_NAMES;
-    if(!in_array($server, array_keys($apps))) {
-        write("[error] app_name is not in APP_NAME array in swoolefy file, please check it");
-        return;
-    }
     foreach($apps as $app_name => $protocol) {
         if(($app_name == $server) && !in_array($app_name, array('monitor'))) {
             switch ($protocol) {
