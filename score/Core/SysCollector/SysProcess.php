@@ -26,7 +26,7 @@ class SysProcess extends AbstractProcess {
 	public function run(Process $process) {
 		// 获取协议层协议配置
 		$p_config = Swfy::getConf();
-		$sys_collector_config = $p_config['sys_collector_config'];
+		$sys_collector_config = $p_config['sys_collector_conf'];
 		if(is_array($sys_collector_config) && isset($sys_collector_config['type'])) {
 			$type = $sys_collector_config['type'];
 			$tick_time = isset($sys_collector_config['tick_time']) ? (float) $sys_collector_config['tick_time'] : 5;
