@@ -665,6 +665,20 @@ class BaseServer {
     }
 
     /**
+     * @return bool|mixed
+     */
+    public static function isEnableReload() {
+        if(isset(self::$config['reload_conf']) && isset(self::$config['reload_conf']['enable_reload'])) {
+            $isEnableReload = filter_var(self::$config['reload_conf']['enable_reload'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if($isEnableReload === null) {
+                $isEnableReload = false;
+            }
+        }else {
+            $isEnableReload = false;
+        }
+        return $isEnableReload;
+    }
+    /**
      * isHttpApp
      * @return boolean
      */

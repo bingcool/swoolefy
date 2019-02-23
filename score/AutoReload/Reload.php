@@ -11,10 +11,7 @@
 
 namespace Swoolefy\AutoReload;
 
-use Swoole\Process as swoole_process;
-use Swoolefy\Tool\Log;
-use Swoolefy\Tool\Swiftmail;
-use Exception;
+use Swoolefy\Core\Swfy;
 
 class Reload {
 	/**
@@ -22,12 +19,6 @@ class Reload {
 	 * @var null
 	 */
 	private $inotify = null;
-
-	/**
-	 * $swoole_pid,swoole服务的主id
-	 * @var null
-	 */
-	private $swoole_pid = null;
 
 	/**
 	 * $reloadFileTypes,定义哪些文件的改动将触发swoole服务重启
@@ -39,7 +30,7 @@ class Reload {
      * $ignoreDir 忽略不需要检查的文件夹，默认vendor
      * @var array
      */
-    public $ignoreDir = ['vendor'];
+    public $ignoreDirs = ['vendor'];
 
 	/**
 	 * $watchFiles,保存监听的文件句柄
@@ -48,16 +39,10 @@ class Reload {
     protected $watchFiles = [];
 
     /**
-     * $afterNSeconds,等待的时间间隔重启
+     * $afterSeconds,等待的时间间隔重启
      * @var integer
      */
-    public $afterNSeconds = 10;
-
-    /**
-     * $process_pid，创建的多进程的id
-     * @var null
-     */
-    public $process_pid = null;
+    public $afterSeconds = 10;
 
     /**
      * $reloading,默认是不重启的
@@ -67,7 +52,7 @@ class Reload {
 
     /**
      * $events,默认监听的事件类型
-     * @var [type]
+     * @var
      */
     protected $events = IN_MODIFY | IN_DELETE | IN_CREATE | IN_MOVE;
 
@@ -78,70 +63,27 @@ class Reload {
     protected $rootDirs = [];
 
     /**
-     * $isOnline,默认打印在屏幕上，线上建议将日志写入文件
-     * @var boolean
+     * @var
      */
-    public $isOnline = false;
-
-    /**
-     * $logDir,inotify重启的的错误日志记录
-     * @var [type]
-     */
-    public $logFilePath = null;
-
-    /**
-     * $Log
-     * @var null
-     */
-    private $log = null;
-
-    /**
-     * $monitorShellFile
-     * @var [type]
-     */
-    public $monitorShellFile = __DIR__."/../Shell/swoole_monitor.sh";
-
-    /**
-     * $monitorPort
-     * @var [type]
-     */
-    public $monitorPort = 9501;
-    /**
-     * $logChannel，日志显示的频道主题
-     * @var string
-     */
-    public $logChannel = 'inotifyMonitor';
-
-    /**
-     * $smtpTransport，邮件的代理服务信息
-     * @var string
-     */
-    public $smtpTransport = null;
-
-    /**
-     * $smtpTransport，邮件的发送的msg信息
-     * @var string
-     */
-    public $message = null;
+    protected $callback;
 
     /**
      * __construct
      */
     public function __construct() {
-        //初始化inotify的句柄 
-        $this->inotify = inotify_init();  
+        if(extension_loaded('inotify')) {
+            $this->inotify = inotify_init();
+        }else {
+            throw new \Exception("If you want to use auto reload，you should install inotify extension,please view 'http://pecl.php.net/package/inotify'");
+        }
     }    
     /**
      * init
-     * @return [type] [description]
+     * @return mixed
      */
     public function init() {
         // 判断是否初始inotify
         !$this->inotify && $this->inotify = inotify_init();
-        // Log对象,线上模式才创建
-        if($this->isOnline) {
-            $this->log = new Log($this->logChannel,$this->logFilePath); 
-        }
     	// 将inotify添加至异步事件的eventloop
     	swoole_event_add($this->inotify, function ($fd) {
     		// 读取事件的信息
@@ -172,120 +114,24 @@ class Reload {
                     }
                     //正在reload，不再接受任何事件，冻结10秒
                     if (!$this->reloading)
-                    {   
-                        try {
-                            $process = new swoole_process(function($process_worker){
-                                $process_worker->exec('/bin/bash', array($this->monitorShellFile,$this->monitorPort)); 
-                            }, true);
-
-                            $process_pid = $process->start();
-                            $this->swoole_pid = intval($process->read());
-                            swoole_process::wait();
-                            
-                            if(!is_int($this->swoole_pid) || !$this->swoole_pid) {
-                                // 线上记录日志模式和调试模式
-                                $this->putLog("swoole已经停止....,请手动启动swoole!",'error');
-                                $this->sendEmail([
-                                    "subject"=>"检测到swoole已停止",
-                                    "body"   =>"swoole可能发送错误已经停止，请手动启动"
-                                ]);
-                                return;
-                            }
-
-                        }catch(Exception $e) {
-                            // 线上环境这里可以写发邮件通知
-                            $this->putLog("无法检测swoole_pid，无法重启",'error');
-                            $this->sendEmail([
-                                "subject"=>"检测到swoole已停止",
-                                "body"   =>"swoole可能发送错误已经停止，请手动启动"
-                            ]);
-                            return;
-                        }
-
-                        // 调试模式，打印信息在终端,线上模式将会写进日志文件
-                        $this->putLog("after ".$this->afterNSeconds." seconds reload the server",'info');
-                        //有事件发生了，进行重启
-                        swoole_timer_after($this->afterNSeconds * 1000, [$this, 'reload']);
+                    {
+                        //进行重启
+                        swoole_timer_after($this->afterSeconds * 1000, [$this, 'reload']);
                         $this->reloading = true;
                     }
                 }
             }
         });
-    }
 
-    /**
-     * putLog
-     * @param  $log
-     * @param  $tag
-     */
-    public function putLog($logInfo,$tag='error') {
-    	if($this->isOnline) {
-    		// 线上模式
-			// add records to the log
-            switch ($tag) {
-                case 'info': $this->log->addInfo($logInfo);
-                break;
-			    case 'notice': $this->log->addNotice($logInfo);
-                break;
-                case 'warning': $this->log->addWarning($logInfo);
-                break;
-                case 'error': $this->log->addError($logInfo);
-                break;
-                default:break;
-            }
-    	}else {
-    		// 调试模式
-    		$_log = "[".date('Y-m-d H:i:s')."]\t".$tag.':'.$logInfo."\n";
-        	echo $_log;
-    	}
-    	
-    }
-
-     /**
-     * sendEmail
-     * @param  $subject
-     * @param  $body
-     */
-    public function sendEmail(array $msg) {
-        if($this->isOnline) {
-            // 根据需要可能在不同的场景下发送不同的邮件主题以及通知内容信息，所以这里设置$msg变量
-            // 邮件发送是一个耗时过程，fork一个进程专门处理邮件发送业务
-            $process_mail = new swoole_process(function($process_mail_worker) use($msg) {
-                $swiftmail = new Swiftmail();
-                // 初始化信息
-                $swiftmail->setSmtpTransport($this->smtpTransport);
-                $swiftmail->setMessage($this->message);
-                // 重新设置覆盖原来的主题信息
-                isset($msg['subject']) && $swiftmail->setSubject($msg['subject']);
-                // 重新设置覆盖原来的body信息
-                isset($msg['body']) && $swiftmail->setBody($msg['body']);
-                // 覆盖
-                isset($msg['from']) && $swiftmail->setFrom($msg['from']);
-                // 覆盖
-                isset($msg['to']) && $swiftmail->setTo($msg['to']);
-                // 覆盖
-                isset($msg['attach']) && $swiftmail->setAttach($msg['attach']);
-                // 发送邮件
-                $swiftmail->sendEmail();
-            }, true);
-            // fork进程
-            $process_mail_pid = $process_mail->start();
-            // 回收进程
-            swoole_process::wait();
-            return;
-        }
-        return;
+    	return $this;
     }
 
     /**
      * 重启
      * @return void
      */
-    public function reload() {
-        // 调试模式，打印信息在终端
-        $this->putLog("reloading",'info');
-        //向主进程发送信号
-        posix_kill($this->swoole_pid, SIGUSR1);
+    protected function reload() {
+        Swfy::getServer()->reload();
         //清理所有监听
         $this->clearWatch();
         //重新监听
@@ -295,30 +141,41 @@ class Reload {
         }
         //继续进行reload
         $this->reloading = false;
-        // 重置为null
-        $this->swoole_pid = null;
+        $isReloadSuccess = !$this->reloading;
+        if($this->callback instanceof \Closure) {
+            $this->callback->call($this, $isReloadSuccess);
+        }
+    }
+
+    public function onReload(callable $callback) {
+        $this->callback = $callback;
+        return $this;
     }
 
     /**
      * addFileType 添加文件类型
      * @param $type
      */
-    public function addFileType($type) {
+    public function addFileType(string $type) {
         $type = trim($type, '.');
         $fileType = '.'.$type;
-        array_push($this->reloadFileTypes,$fileType);
+        array_push($this->reloadFileTypes, $fileType);
+        return $this;
     }
 
     /**
      * addEvent 添加事件
      * @param $inotifyEvent
+     * @return mixed
      */
     public function addEvent($inotifyEvent) {
         $this->events |= $inotifyEvent;
+        return $this;
     }
 
     /**
      * clearWatch 清理所有inotify监听
+     * @return mixed
      */
     private function clearWatch() {
         foreach($this->watchFiles as $wd)
@@ -327,6 +184,7 @@ class Reload {
             @inotify_rm_watch($this->inotify, $wd);
         }
         $this->watchFiles = [];
+        return $this;
     }
 
 
@@ -334,8 +192,8 @@ class Reload {
      * watch 监听文件目录
      * @param $dir
      * @param bool $root
-     * @return bool
-     * @throws NotFound
+     * @return mixed
+     * @throws
      */
     public function watch($dir, $root = true) {
         //目录不存在
@@ -347,7 +205,7 @@ class Reload {
         //避免重复监听
         if (isset($this->watchFiles[$dir]))
         {
-            return false;
+            return $this;
         }
         //根目录
         if ($root)
@@ -361,7 +219,7 @@ class Reload {
         $files = scandir($dir);
         foreach ($files as $f)
         {
-            if ($f == '.' || $f == '..' || in_array($f, $this->ignoreDir))
+            if ($f == '.' || $f == '..' || in_array($f, $this->ignoreDirs))
             {
                 continue;
             }
@@ -380,10 +238,33 @@ class Reload {
                 $this->watchFiles[$path] = $wd;
             }
         }
-        return true;
+        return $this;
     }
 
-    public function run() {
-        swoole_event_wait();
+    /**
+     * setAfterNSeconds 启动停顿时间
+     * @param float $seconds
+     */
+    public function setAfterSeconds(float $seconds = 10) {
+        $this->afterSeconds = $seconds;
+        return $this;
+    }
+
+    /**
+     * setReoloadFileType
+     * @param array $file_type
+     */
+    public function setReoloadFileType(array $file_type = ['.php']) {
+        $this->reloadFileTypes = array_merge($this->reloadFileTypes, $file_type);
+        return $this;
+    }
+
+    /**
+     * setIgnoreDir 设置忽略不需检测的文件夹
+     * @param array $ignore_dir
+     */
+    public function setIgnoreDirs(array $ignore_dirs = ['vendor']) {
+        $this->ignoreDirs = array_merge($this->ignoreDirs, $ignore_dirs);
+        return $this;
     }
 }
