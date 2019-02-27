@@ -112,7 +112,7 @@ function startServer($server) {
     global $APP_NAMES;
     $apps = $APP_NAMES;
     foreach($apps as $app_name => $protocol) {
-        if(($app_name == $server) && !in_array($app_name, array('monitor'))) {
+        if($app_name == $server) {
             switch ($protocol) {
                 case 'http':
                         startHttpService($app_name);
@@ -330,7 +330,7 @@ function stopServer($app_name) {
     $pid_file = $config['setting']['pid_file'];
 
     if(!is_file($pid_file)) {
-        write("[error] pid file {$pid_file} is not exist, please check server is running");
+        write("[error] pid file {$pid_file} is not exist, please check the server whether or not running");
         return;
     }
 
@@ -361,7 +361,7 @@ function stopServer($app_name) {
         }else {
             if(time() - $nowtime > 60){
                 write("---------------------------stop info-----------------------");
-                write("Please use 'ps -ef | grep php' checkout swoole weather stop");
+                write("Please use 'ps -ef | grep php' checkout swoole whether or not stop");
                 break;
             }
         }
