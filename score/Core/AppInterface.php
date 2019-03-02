@@ -12,11 +12,11 @@
 namespace Swoolefy\Core;
 
 interface AppInterface {
-	/**
-	 * init 初始化配置
-	 * @return   array
-	 */
-	public static function init();
+    /**
+     * bootstrap  完成一些必要的程序引导和设置
+     * @return   void
+     */
+    public static function bootstrap($args);
 
 	/**
 	 * getInstance 获取应用对象实例
@@ -25,9 +25,5 @@ interface AppInterface {
 	 */
 	public static function getInstance(array $config);
 
-	/**
-	 * bootstrap  完成一些必要的程序引导和设置
-	 * @return   void
-	 */
-	public static function bootstrap($args);
+
 }

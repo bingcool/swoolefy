@@ -41,10 +41,11 @@ if(isset($argv[2]) && in_array(trim($argv[2]), array_keys($APP_NAMES))) {
     return;
 }
 // 判断当前环境,默认是dev(开发),gra(灰度),prd(生产)
-if(isset($argv[3]) && $argv[3] == '-'.SWOOLEFY_GRA) {
+$cli_params = array_flip($argv);
+if(isset($cli_params['-'.SWOOLEFY_GRA])) {
     defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', SWOOLEFY_GRA);
 }
-if(isset($argv[3]) && $argv[3] == '-'.SWOOLEFY_PRD) {
+if(isset($cli_params['-'.SWOOLEFY_PRD])) {
     defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', SWOOLEFY_PRD);
 }else {
     defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', SWOOLEFY_DEV);
@@ -135,8 +136,7 @@ function startServer($server) {
     return ;
 }
 
-function startHttpService($app_name) {
-    global $argv;
+function startHttpService($app_name, $event_server_file_name = 'HttpServer') {
     $path = START_DIR_ROOT.'/protocol/'.$app_name;
     if(!is_dir($path)) {
         @mkdir($path, 0777, true);
@@ -149,11 +149,11 @@ function startHttpService($app_name) {
         }
     }
 
-    $event_server_file = $path.'/HttpServer.php';
+    $event_server_file = START_DIR_ROOT.'/'.$app_name."/{$event_server_file_name}.php";
     if(!file_exists($event_server_file)) {
         $search_str = "protocol\\http";
-        $replace_str = "protocol\\{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT.'/score/EventServer/HttpServer.php');
+        $replace_str = "{$app_name}";
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/score/EventServer/{$event_server_file_name}.php");
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
         file_put_contents($event_server_file, $file_content_string);
@@ -167,20 +167,20 @@ function startHttpService($app_name) {
         }
     }
 
-    if(isset($argv[4]) && ($argv[4] == '-d' || $argv[4] == '-D')) {
+    if(isDaemon()) {
         $config['setting']['daemonize'] = true;
     }
     if(!isset($config['app_conf'])) {
         write("Error:protocol/{$app_name}/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
         exit();
     }
-    $class = "protocol\\{$app_name}\\HttpServer";
+    setEnvParams($config);
+    $class = "{$app_name}\\{$event_server_file_name}";
     $http = new $class($config);
     $http->start();
 }
 
-function startWebsocket($app_name) {
-    global $argv;
+function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServer') {
     $path = START_DIR_ROOT.'/protocol/'.$app_name;
     if(!is_dir($path)) {
         @mkdir($path, 0777, true);
@@ -193,11 +193,11 @@ function startWebsocket($app_name) {
         }
     }
 
-    $event_server_file = $path.'/WebsocketEventServer.php';
+    $event_server_file = START_DIR_ROOT.'/'.$app_name."/{$event_server_file_name}.php";
     if(!file_exists($event_server_file)) {
         $search_str = "protocol\\websocket";
-        $replace_str = "protocol\\{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT.'/score/EventServer/WebsocketEventServer.php');
+        $replace_str = "{$app_name}";
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/score/EventServer/{$event_server_file_name}.php");
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
         file_put_contents($event_server_file, $file_content_string);
@@ -212,20 +212,22 @@ function startWebsocket($app_name) {
         }
     }
 
-    if(isset($argv[4]) && ($argv[4] == '-d' || $argv[4] == '-D')) {
+    if(isDaemon()) {
         $config['setting']['daemonize'] = true;
     }
     if(!isset($config['app_conf'])) {
         write("Error:protocol/{$app_name}/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
         exit();
     }
-    $class = "protocol\\{$app_name}\\WebsocketEventServer";
+
+    setEnvParams($config);
+
+    $class = "{$app_name}\\{$event_server_file_name}";
     $websocket = new $class($config);
     $websocket->start();
 }
 
-function startRpc($app_name) {
-    global $argv;
+function startRpc($app_name, $event_server_file_name = 'RpcServer') {
     $path = START_DIR_ROOT.'/protocol/'.$app_name;
     if(!is_dir($path)) {
         @mkdir($path, 0777, true);
@@ -238,11 +240,11 @@ function startRpc($app_name) {
         }
     }
 
-    $event_server_file = $path.'/RpcServer.php';
+    $event_server_file = START_DIR_ROOT.'/'.$app_name."/{$event_server_file_name}.php";
     if(!file_exists($event_server_file)) {
         $search_str = "protocol\\rpc";
-        $replace_str = "protocol\\{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT.'/score/EventServer/RpcServer.php');
+        $replace_str = "{$app_name}";
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/score/EventServer/{$event_server_file_name}.php");
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
         file_put_contents($event_server_file, $file_content_string);
@@ -257,20 +259,22 @@ function startRpc($app_name) {
         }
     }
 
-    if(isset($argv[4]) && ($argv[4] == '-d' || $argv[4] == '-D')) {
+    if(isDaemon()) {
         $config['setting']['daemonize'] = true;
     }
     if(!isset($config['app_conf'])) {
         write("Error:protocol/{$app_name}/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
         exit();
     }
-    $class = "protocol\\{$app_name}\\RpcServer";
+
+    setEnvParams($config);
+
+    $class = "{$app_name}\\{$event_server_file_name}";
     $rpc = new $class($config);
     $rpc->start();
 }
 
-function startUdp($app_name) {
-    global $argv;
+function startUdp($app_name, $event_server_file_name = 'UdpEventServer') {
     $path = START_DIR_ROOT.'/protocol/'.$app_name;
     if(!is_dir($path)) {
         @mkdir($path, 0777, true);
@@ -283,11 +287,11 @@ function startUdp($app_name) {
         }
     }
 
-    $event_server_file = $path.'/UdpEventServer.php';
+    $event_server_file = START_DIR_ROOT.'/'.$app_name."/{$event_server_file_name}.php";
     if(!file_exists($event_server_file)) {
         $search_str = "protocol\\udp";
-        $replace_str = "protocol\\{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT.'/score/EventServer/UdpEventServer.php');
+        $replace_str = "{$app_name}";
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/score/EventServer/{$event_server_file_name}.php");
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
         file_put_contents($event_server_file, $file_content_string);
@@ -302,20 +306,22 @@ function startUdp($app_name) {
         }
     }
 
-    if(isset($argv[4]) && ($argv[4] == '-d' || $argv[4] == '-D')) {
+    if(isDaemon()) {
         $config['setting']['daemonize'] = true;
     }
     if(!isset($config['app_conf'])) {
         write("Error:protocol/{$app_name}/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
         exit();
     }
-    $class = "protocol\\{$app_name}\\UdpEventServer";
-    $rpc = new $class($config);
-    $rpc->start();
+
+    setEnvParams($config);
+
+    $class = "{$app_name}\\{$event_server_file_name}";
+    $udp = new $class($config);
+    $udp->start();
 }
 
 function stopServer($app_name) {
-    global $argv;
     $path = START_DIR_ROOT.'/protocol/'.$app_name;
 
     $config = include $path.'/config-'.SWOOLEFY_ENV.'.php';
@@ -424,6 +430,27 @@ function write($msg, $foreground = "red", $background = "black") {
     }
     echo $colors->getColoredString($msg, $foreground, $background) . "\n\n";
 }
+
+function setEnvParams($config) {
+    global $argv;
+    $params = array_flip($argv);
+    if(isset($params['-h'])) {
+        $h = $argv[$params['-h'] + 1];
+        putenv("HOST_IP={$h}");
+    }
+    $port = $config['port'];
+    putenv("HOST_POST={$port}");
+}
+
+function isDaemon() {
+    global $argv;
+    $params = array_flip($argv);
+    if(isset($params['-d']) || isset($params['-D'])) {
+        return true;
+    }
+    return false;
+}
+
 
 initCheck();
 commandHandler();
