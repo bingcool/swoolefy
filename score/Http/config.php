@@ -11,7 +11,8 @@
 
 // http协议层配置
 return [
-	'application_index' => 'App\\Application',
+    'app_conf' => [], // 应用层配置，需要根据实际项目导入
+	'application_index' => \App\Application::class,
 	'start_init' => \Swoolefy\Core\StartInit::class,
 	'master_process_name' => 'php-http-master',
 	'manager_process_name' => 'php-http-manager',

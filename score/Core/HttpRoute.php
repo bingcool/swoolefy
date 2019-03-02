@@ -88,13 +88,17 @@ class HttpRoute extends AppDispatch {
 	 * @return mixed
 	 */
 	public function dispatch() {
+	    if(!isset($this->config['route_model']) || !in_array($this->config['route_model'], [$this->route_model_pathinfo, $this->route_model_query_params])) {
+            $this->config['route_model'] = 1;
+        }
 		// pathinfo的模式
 		if($this->config['route_model'] == $this->route_model_pathinfo) {
 			// 采用默认路由
 			if($this->require_uri == '/' || $this->require_uri == '//') {
-				$this->require_uri = '/'.$this->config['default_route'];
+			    if(isset($this->config['default_route'])) {
+                    $this->require_uri = '/'.$this->config['default_route'];
+                }
 			}
-			// 去掉两端的'/'
 			$route_uri = trim($this->require_uri,'/');
 			if($route_uri) {
 				// 分割出route
@@ -161,6 +165,9 @@ class HttpRoute extends AppDispatch {
 	public function invoke($module = null, $controller = null, $action = null) {
 		// 匹配控制器文件
 		$controller = $controller.$this->controller_suffix;
+		if(!isset($this->config['app_namespace'])) {
+            $this->config['app_namespace'] = APP_NAME;
+        }
 		// 判断是否存在这个类文件
 		if($module) {
 			// 访问类的命名空间
