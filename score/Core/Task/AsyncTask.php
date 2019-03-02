@@ -32,15 +32,15 @@ class AsyncTask implements AsyncTaskInterface {
         $callable[0] = str_replace('/', '\\', trim($callable[0],'/'));
         // 只有在worker进程中可以调用异步任务进程，异步任务进程中不能调用异步进程
         if(self::isWorkerProcess()) {
-            $fd = Application::getApp()->fd;
+            $fd = is_object(Application::getApp()) ? Application::getApp()->fd : null;
             // udp没有连接概念，存在client_info
             if(BaseServer::isUdpApp()) {
-                $fd = Application::getApp()->client_info;
+                $fd = is_object(Application::getApp()) ? Application::getApp()->client_info : null;
             }
 
             // http的fd其实没有实用意义
             if(BaseServer::isHttpApp()) {
-                $fd = Application::getApp()->request->fd;
+                $fd = is_object(Application::getApp()) ? Application::getApp()->request->fd : null;
             }
 
             $task_id = Swfy::getServer()->task(serialize([$callable, $data, $fd]));

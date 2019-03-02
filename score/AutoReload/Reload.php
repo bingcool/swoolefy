@@ -24,13 +24,13 @@ class Reload {
 	 * $reloadFileTypes,定义哪些文件的改动将触发swoole服务重启
 	 * @var array
 	 */
-	public $reloadFileTypes = ['.php','.html','.js'];
+	protected $reloadFileTypes = ['.php','.html','.js'];
 
     /**
      * $ignoreDir 忽略不需要检查的文件夹，默认vendor
      * @var array
      */
-    public $ignoreDirs = ['vendor'];
+    protected $ignoreDirs = ['vendor'];
 
 	/**
 	 * $watchFiles,保存监听的文件句柄
@@ -42,7 +42,7 @@ class Reload {
      * $afterSeconds,等待的时间间隔重启
      * @var integer
      */
-    public $afterSeconds = 10;
+    protected $afterSeconds = 10;
 
     /**
      * $reloading,默认是不重启的

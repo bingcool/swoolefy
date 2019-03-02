@@ -56,9 +56,9 @@ class View {
             $smarty->setCacheDir(SMARTY_CACHE_DIR);
             $smarty_template_path = rtrim(SMARTY_TEMPLATE_PATH).'/';
             $smarty->setTemplateDir($smarty_template_path);
+            $this->view = $smarty;
         }
 		$this->content_type = $contentType;
-		$this->view = $smarty;
 		isset(Application::getApp()->config['gzip_level']) && $this->gzip_level = (int)Application::getApp()->config['gzip_level'];
 	}
 
