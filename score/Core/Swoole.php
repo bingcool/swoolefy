@@ -53,9 +53,7 @@ class Swoole extends BaseObject {
 	 * @param $config 应用层配置
 	 */
 	public function __construct(array $config = []) {
-		// 将应用层配置保存在上下文的服务
 		$this->config = $config;
-		// 将应用层配置保存在上下文的服务
 		Swfy::setAppConf($config);
         $exceptionClass = $this->getExceptionClass();
         register_shutdown_function($exceptionClass.'::fatalError');
@@ -83,13 +81,11 @@ class Swoole extends BaseObject {
 	 * @return void
 	 */
 	public function run($fd, $recv) {
-		// Component组件创建
 		$this->creatObject();
 		$coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
 		$this->coroutine_id = $coroutine_id;
 		Application::setApp($this);
 		$this->fd = $fd;
-		// 初始化处理
 		$this->_init($recv);
 		// 引导程序与环境变量的设置
 		$this->_bootstrap($recv);

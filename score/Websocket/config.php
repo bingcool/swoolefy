@@ -11,6 +11,7 @@
 
 // websocketserver协议层配置
 return [
+    'app_conf' => [], // 应用层配置，需要根据实际项目导入
 	'application_service' => 'Service\\Application',
 	'start_init' => \Swoolefy\Core\StartInit::class,
 	'master_process_name' => 'php-websocket-master',

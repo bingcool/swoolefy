@@ -49,9 +49,7 @@ class App extends \Swoolefy\Core\Component {
 	 * @param $config 应用层配置
 	 */
 	public function __construct(array $config = []) {
-		// 将应用层保存在当前的应用实例
 		$this->config = $config;
-		// 将应用层配置保存在上下文的服务
 		Swfy::setAppConf($config);
         $exceptionClass = $this->getExceptionClass();
 		register_shutdown_function($exceptionClass.'::fatalError');
@@ -63,7 +61,6 @@ class App extends \Swoolefy\Core\Component {
 	 * @return void
 	 */
 	protected function init() {
-		// 初始化对象
 		AppInit::_init();
 		// session start,在一些微服务的http请求中无需session
 		if(isset($this->config['session_start']) && $this->config['session_start']) {
@@ -89,14 +86,12 @@ class App extends \Swoolefy\Core\Component {
 	 */
 	public function run($request, $response, $extend_data = null) {
 	    try {
-            // Component组件创建
             parent::creatObject();
             $this->request = $request;
             $this->response = $response;
             $coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
             $this->coroutine_id = $coroutine_id;
             Application::setApp($this);
-            // 初始化
             $this->init();
             // 引导程序与环境变量的设置
             $this->bootstrap();

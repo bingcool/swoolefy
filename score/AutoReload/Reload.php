@@ -30,7 +30,7 @@ class Reload {
      * $ignoreDir 忽略不需要检查的文件夹，默认vendor
      * @var array
      */
-    protected $ignoreDirs = ['vendor'];
+    protected $ignoreDirs = [];
 
 	/**
 	 * $watchFiles,保存监听的文件句柄

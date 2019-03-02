@@ -23,6 +23,7 @@ trait AppTrait {
 	 * @var array
 	 */
 	public $selfModel = [];
+
 	/**
 	 * _beforeAction 
 	 * @return   mixed
@@ -38,6 +39,7 @@ trait AppTrait {
 	public function _afterAction() {
 		return true;
 	}
+
 	/**
 	 * isGet
 	 * @return boolean
