@@ -147,6 +147,10 @@ class Reload {
         }
     }
 
+    /**
+     * @param callable $callback
+     * @return $this
+     */
     public function onReload(callable $callback) {
         $this->callback = $callback;
         return $this;

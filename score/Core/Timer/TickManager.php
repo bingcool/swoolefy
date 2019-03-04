@@ -60,8 +60,11 @@ class TickManager {
 	 */
 	public static function getTickTasks() {
 		$config = Swfy::getConf();
-		if(isset($config['open_table_tick_task']) && $config['open_table_tick_task'] == true) {
-			return json_decode(TableManager::get('table_ticker', 'tick_timer_task', 'tick_tasks'), true);
+		if(isset($config['open_table_tick_task'])) {
+            $is_open_table_tick_task = filter_var($config['open_table_tick_task'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if($is_open_table_tick_task) {
+                return json_decode(TableManager::get('table_ticker', 'tick_timer_task', 'tick_tasks'), true);
+            }
 		}
 		return false;								
 	}
@@ -72,8 +75,11 @@ class TickManager {
 	 */
 	public static function getAfterTasks() {
 		$config = Swfy::getConf();
-		if(isset($config['open_table_tick_task']) && $config['open_table_tick_task'] == true) {
-			return json_decode(TableManager::get('table_after', 'after_timer_task', 'after_tasks'), true);
+		if(isset($config['open_table_tick_task'])) {
+            $is_open_table_tick_task = filter_var($config['open_table_tick_task'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if($is_open_table_tick_task) {
+                return json_decode(TableManager::get('table_after', 'after_timer_task', 'after_tasks'), true);
+            }
 		}
 		return false;
 	}

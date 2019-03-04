@@ -11,13 +11,12 @@
 
 namespace Swoolefy\Core\SysCollector;
 
-use Swoolefy\Core\Memory\AtomicManager;
-
 class SysCollector {
 
 	use \Swoolefy\Core\SingletonTrait;
 
 	public function test() {
+	    //TODO
 		return ['cpu'=>'25%','memory'=>'2345'];
 	}
 
