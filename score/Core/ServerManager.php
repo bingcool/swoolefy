@@ -44,7 +44,7 @@ class ServerManager {
 			$this->server_ports[$port] = $server_port;
 			return $server_port;
 		}else {
-			throw new \Exception("addListener $port failed", 1);
+			throw new \Exception("ServerManager::addListener port = {$port} failed", 1);
 		}
 	}
 

@@ -55,6 +55,11 @@ class MysqlCoroutine {
 	 */
 	public $deploy = false;
 
+    /**
+     * MysqlCoroutine constructor.
+     * @param array $config
+     * @param array $extension
+     */
 	public function __construct(array $config = [], array $extension = []) {
 		if($config) {
 			$this->config['host'] = $config['hostname'];
@@ -213,7 +218,7 @@ class MysqlCoroutine {
 	/**
 	 * getSlave 获取从服务实例
 	 * @param    int|null  $num
-	 * @return   swoole_mysql
+	 * @return   mixed
 	 */
 	public function getSlave(int $num = null) {
 		// 非分布式，则主从一致

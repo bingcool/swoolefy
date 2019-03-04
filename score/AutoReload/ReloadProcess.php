@@ -38,7 +38,7 @@ class ReloadProcess extends AbstractProcess {
                 $autoReload->setReoloadFileType();
             }
 
-            if(isset($reload_config['ingore_dirs']) && is_array(isset($reload_config['ingore_dirs']))) {
+            if(isset($reload_config['ingore_dirs']) && is_array($reload_config['ingore_dirs'])) {
                 $autoReload->setIgnoreDirs($reload_config['ingore_dirs']);
             }else {
                 $autoReload->setIgnoreDirs();
