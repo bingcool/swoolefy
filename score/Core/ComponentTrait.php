@@ -30,16 +30,16 @@ trait ComponentTrait {
 	/**
 	 * creatObject 创建组件对象
 	 * @param    string  $com_alias_name 组件别名
-	 * @param    array   $defination     组件定义类
+	 * @param    mixed   $defination     组件定义类
      * @throws
 	 * @return   mixed
 	 */
 
-	public function creatObject(string $com_alias_name = null, array $defination = []) {
+	public function creatObject(string $com_alias_name = null, $defination = []) {
 		// 动态创建公用组件
 		if($com_alias_name) {
 			if(!isset($this->container[$com_alias_name])) {
-				if(isset($defination['class'])) {
+				if(is_array($defination) && isset($defination['class'])) {
 					$class = $defination['class'];
 					unset($defination['class']);
 					$params = [];
@@ -52,9 +52,11 @@ trait ComponentTrait {
 						unset($defination[SWOOLEFY_COM_IS_DELAY]);
 					}
 					return $this->container[$com_alias_name] = $this->buildInstance($class, $defination, $params, $com_alias_name);
+				}else if($defination instanceof \Closure) {
+                    return $this->container[$com_alias_name] = call_user_func($defination, $com_alias_name);
 				}else {
-					throw new \Exception("component:".$com_alias_name.'must be set class', 1);
-				}
+                    throw new \Exception("component:".$com_alias_name.'must be set class', 1);
+                }
 
 			}else {
 				return $this->container[$com_alias_name];
@@ -66,6 +68,11 @@ trait ComponentTrait {
 		$components = array_merge($coreComponents, Swfy::getAppConf()['components']);
 
 		foreach($components as $com_name=>$component) {
+
+		    if($component instanceof \Closure) {
+		        // delay create
+                continue;
+            }
 
 			if($this->isSetOpenPoolsOfComponent($component)) {
 				$this->setOpenPoolsOfComponent($com_name);
