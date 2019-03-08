@@ -29,6 +29,9 @@ class Pools {
 	 * @return Channel
 	 */
 	public function registerPools(string $poolsName, int $size = 5 * 1024 * 1024) {
+	    if(!class_exists('Swoole\Channel')) {
+	        throw new \Exception("after swoole 4.3.0, \Swoole\channel is removed, you can not use redis or nysql pools");
+        }
 		$conf = Swfy::getConf();
 		if(isset($conf['setting']['worker_num'])) {
 			$channel_num = $conf['setting']['worker_num'];
@@ -54,7 +57,7 @@ class Pools {
 	public function getObj(string $poolsName, int $timeout = 10) {
 		if(Swfy::isWorkerProcess()) {
 			$worker_id = Swfy::getCurrentWorkerId();
-			if(isset($this->pools[$poolsName][$worker_id])) {
+			if(isset($worker_id) && isset($this->pools[$poolsName][$worker_id])) {
 				$chan = $this->pools[$poolsName][$worker_id];
 				$obj = '';
 				$start_time = time();
