@@ -1,8 +1,9 @@
 <?php
 namespace Swoolefy\Tool;
-use Monolog\Logger;
-use Monolog\Handler\StreamHandler;
-use Monolog\Formatter\LineFormatter;
+
+use Swoolefy\Core\Log\Logger;
+use Swoolefy\Core\Log\StreamHandler;
+use Swoolefy\Core\Log\Formatter\LineFormatter;
 
 class Log {
 	/**
@@ -28,16 +29,23 @@ class Log {
 	 * @var string
 	 */
 	public $output = "[%datetime%] %channel% > %level_name% : %message% \n";
+
+	protected $logs = [];
 	
 	/**
 	 * __construct
 	 */
-	public function __construct($channel=null,$logFilePath=null,$output=null,$dateformat=null) {
+	public function __construct(
+        string $channel = null,
+        string $logFilePath = null,
+        string $output = null,
+        string $dateformat= null)
+    {
 		$this->channel = $channel;
 		$this->logFilePath = $logFilePath;
 		$output && $this->output = $output;
 		//$formatter对象
-		$this->formatter = new LineFormatter($this->output,$dateformat);
+		$this->formatter = new LineFormatter($this->output, $dateformat);
 	}
 
 	/**
@@ -67,22 +75,45 @@ class Log {
 	 */
 	public function setOutputFormat($output) {
 		$this->output = $output;
-		$this->formatter = new LineFormatter($this->output,$dateformat=null);
+		$this->formatter = new LineFormatter($this->output, $dateformat = null);
 		return $this;
 	}
+
+    /**
+     * @return null|string
+     */
+	public function getChannel() {
+	    return $this->channel;
+    }
+
+    /**
+     * @return null|string
+     */
+    public function getLogFilePath() {
+	    return $this->logFilePath;
+    }
+
+    /**
+     * @return null|string
+     */
+    public function getOutputFormat() {
+        return $this->formatter;
+    }
 
 	/**
 	 * info
 	 * @param  $loginfo 
 	 * @return 
 	 */
-	public function addInfo($logInfo) {
-		$log = new Logger($this->channel);
-		$stream = new StreamHandler($this->logFilePath, Logger::INFO);
-		$stream->setFormatter($this->formatter);
-		$log->pushHandler($stream);
-		// add records to the log
-		$log->info($logInfo);
+	public function addInfo($logInfo, array $context = array()) {
+        go(function() use($logInfo, $context) {
+            $log = new Logger($this->channel);
+            $stream = new StreamHandler($this->logFilePath, Logger::INFO);
+            $stream->setFormatter($this->formatter);
+            $log->pushHandler($stream);
+            // add records to the log
+            $log->info($logInfo, $context);
+        });
 	}
 
 	/**
@@ -90,13 +121,15 @@ class Log {
 	 * @param  $loginfo 
 	 * @return void
 	 */
-	public function addNotice($logInfo) {
-		$log = new Logger($this->channel);
-		$stream = new StreamHandler($this->logFilePath, Logger::NOTICE);
-		$stream->setFormatter($this->formatter);
-		$log->pushHandler($stream);
-		// add records to the log
-		$log->notice($logInfo);
+	public function addNotice($logInfo, array $context = array()) {
+        go(function() use($logInfo, $context) {
+            $log = new Logger($this->channel);
+            $stream = new StreamHandler($this->logFilePath, Logger::NOTICE);
+            $stream->setFormatter($this->formatter);
+            $log->pushHandler($stream);
+            // add records to the log
+            $log->notice($logInfo, $context);
+        });
 	}
 
 	/**
@@ -104,13 +137,15 @@ class Log {
 	 * @param  $loginfo 
 	 * @return void
 	 */
-	public function addWarning($logInfo) {
-		$log = new Logger($this->channel);
-		$stream = new StreamHandler($this->logFilePath, Logger::WARNING);
-		$stream->setFormatter($this->formatter);
-		$log->pushHandler($stream);
-		// add records to the log
-		$log->warning($logInfo);
+	public function addWarning($logInfo, array $context = array()) {
+        go(function() use($logInfo, $context) {
+            $log = new Logger($this->channel);
+            $stream = new StreamHandler($this->logFilePath, Logger::WARNING);
+            $stream->setFormatter($this->formatter);
+            $log->pushHandler($stream);
+            // add records to the log
+            $log->warning($logInfo, $context);
+        });
 	}
 
 	/**
@@ -118,13 +153,15 @@ class Log {
 	 * @param  $loginfo 
 	 * @return void
 	 */
-	public function addError($logInfo) {
-		$log = new Logger($this->channel);
-		$stream = new StreamHandler($this->logFilePath, Logger::ERROR);
-		$stream->setFormatter($this->formatter);
-		$log->pushHandler($stream);
-		// add records to the log
-		$log->error($logInfo);
+	public function addError($logInfo, array $context = array()) {
+        go(function() use($logInfo, $context) {
+            $log = new Logger($this->channel);
+            $stream = new StreamHandler($this->logFilePath, Logger::ERROR);
+            $stream->setFormatter($this->formatter);
+            $log->pushHandler($stream);
+            // add records to the log
+            $log->error($logInfo, $context);
+        });
 	}
 
 }
