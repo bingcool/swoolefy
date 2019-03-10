@@ -98,9 +98,9 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	 * @param    mixed   $data
 	 * @return   boolean
 	 */
-	public function onTask($server, $task_id, $from_worker_id, $data) {
+	public function onTask($server, $task_id, $from_worker_id, $data, $task = null) {
 		list($callable, $taskData, $fd) = $data;
-        self::$config['application_service']::getInstance($config=[])->run($fd, [$callable, $taskData], [$from_worker_id, $task_id]);
+        self::$config['application_service']::getInstance($config=[])->run($fd, [$callable, $taskData], [$from_worker_id, $task_id, $task]);
         return true;
 	}
 

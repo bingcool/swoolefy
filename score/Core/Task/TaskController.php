@@ -29,6 +29,12 @@ class TaskController extends EventController {
 	public $from_worker_id;
 
     /**
+ * \Swoole\Server\Task 对象 swoole4.2.12+ 添加
+ * @var
+ */
+    public $task = null;
+
+    /**
      * __construct
      * @throws \Exception
      */
@@ -57,6 +63,13 @@ class TaskController extends EventController {
     }
 
     /**
+     * @param \Swoole\Server\Task $task
+     */
+    public function setTask(\Swoole\Server\Task $task) {
+        $this->task = $task;
+    }
+
+    /**
      * getTaskId
      * @return int
      */
@@ -70,6 +83,14 @@ class TaskController extends EventController {
      */
     public function getFromWorkerId() {
         return $this->from_worker_id;
+    }
+
+    /**
+     * getTask
+     * return mixed
+     */
+    public function getTask() {
+        return $this->task;
     }
 
 }

@@ -80,6 +80,7 @@ class ServiceDispatch extends AppDispatch {
 		if(isset($this->from_worker_id) && isset($this->task_id)) {
             $serviceInstance->setFromWorkerId($this->from_worker_id);
             $serviceInstance->setTaskId($this->task_id);
+            $serviceInstance->setTask($this->task);
         }
 
 		try{
@@ -128,9 +129,10 @@ class ServiceDispatch extends AppDispatch {
      * @param int $from_worker_id
      * @param int $task_id
      */
-	public function setFromWorkerIdAndTaskId(int $from_worker_id, int $task_id) {
+	public function setFromWorkerIdAndTaskId(int $from_worker_id, int $task_id, $task = null) {
 	    $this->from_worker_id = $from_worker_id;
 	    $this->task_id = $task_id;
+	    $this->task = $task;
     }
 
 	/**
