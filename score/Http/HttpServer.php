@@ -158,7 +158,7 @@ abstract class HttpServer extends BaseServer {
                     $data = $task->data;
 
                     $task_data = unserialize($data);
-                    static::onTask($server, $task_id, $from_worker_id, $task_data);
+                    static::onTask($server, $task_id, $from_worker_id, $task_data, $task);
                 }catch(\Exception $e) {
                     self::catchException($e);
                 }

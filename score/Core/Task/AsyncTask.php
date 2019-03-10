@@ -56,8 +56,8 @@ class AsyncTask implements AsyncTaskInterface {
      * @param   mixed  $data
      * @return    void
      */
-    public static function registerTaskfinish($data) {
-       static::finish($data);
+    public static function registerTaskfinish($data, $task = null) {
+       static::finish($data, $task);
     }
 
     /**
@@ -66,11 +66,16 @@ class AsyncTask implements AsyncTaskInterface {
      * @param    mixed   $data
      * @return   void
      */
-    public static function finish($data) {
+    public static function finish($data, $task = null) {
         if(is_array($data)) {
             $data = json_encode($data);
         }
-        Swfy::getServer()->finish($data);
+
+        if(BaseServer::isTaskEnableCoroutine() && $task instanceof \Swoole\Server\Task) {
+            $task->finish($data);
+        }else {
+            Swfy::getServer()->finish($data);
+        }
     }
 
     /**
