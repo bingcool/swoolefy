@@ -33,6 +33,7 @@ return [
 		'dispatch_mode' => 2,
 
         'enable_coroutine' => 1,
+        'task_enable_coroutine' => 1,
 
 		'log_file' => __DIR__.'/log/log.txt',
 		'pid_file' => __DIR__.'/log/server.pid',

@@ -38,6 +38,7 @@ return [
     	'package_max_length'    => 2000000,  //协议最大长度
 
         'enable_coroutine' => 1,
+        'task_enable_coroutine' => 1,
 
     	'log_file' => __DIR__.'/log/log.txt',
 		'pid_file' => __DIR__.'/log/server.pid',

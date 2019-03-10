@@ -161,15 +161,33 @@ abstract class WebsocketServer extends BaseServer {
 		/**
 		 * task 函数,处理异步任务
 		 */
-		$this->webserver->on('task', function(websocket_server $server, $task_id, $from_worker_id, $data) {
-			try{
-				$task_data = unserialize($data);
-				static::onTask($server, $task_id, $from_worker_id, $task_data);
-			}catch(\Exception $e) {
-				self::catchException($e);
-			}
-		    
-		});
+        if(parent::isTaskEnableCoroutine()) {
+            $this->webserver->on('task', function(websocket_server $server, \Swoole\Server\Task $task) {
+                try{
+                    $from_worker_id = $task->worker_id;
+                    //任务的编号
+                    $task_id = $task->id;
+                    //任务的数据
+                    $data = $task->data;
+
+                    $task_data = unserialize($data);
+                    static::onTask($server, $task_id, $from_worker_id, $task_data);
+                }catch(\Exception $e) {
+                    self::catchException($e);
+                }
+            });
+        }else {
+            $this->webserver->on('task', function(websocket_server $server, $task_id, $from_worker_id, $data) {
+                try{
+                    $task_data = unserialize($data);
+                    static::onTask($server, $task_id, $from_worker_id, $task_data);
+                }catch(\Exception $e) {
+                    self::catchException($e);
+                }
+
+            });
+        }
+
 
 		/**
 		 * finish 函数,异步任务完成

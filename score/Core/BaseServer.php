@@ -723,6 +723,27 @@ class BaseServer {
     }
 
     /**
+     * @return bool|mixed
+     */
+    public static function isTaskEnableCoroutine() {
+        static $isTaskEnableCoroutine;
+        if(isset($isTaskEnableCoroutine) && is_bool($isTaskEnableCoroutine)) {
+            return $isTaskEnableCoroutine;
+        }
+
+        $isTaskEnableCoroutine = false;
+        if(version_compare(swoole_version(), '4.2.12', '>')) {
+            if(isset(self::$config['setting']['task_enable_coroutine'])) {
+                $isTaskEnableCoroutine = filter_var(self::$config['setting']['task_enable_coroutine'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                if($isTaskEnableCoroutine === null) {
+                    $isTaskEnableCoroutine = false;
+                }
+            }
+        }
+        return $isTaskEnableCoroutine;
+    }
+
+    /**
      * requestCount 必须依赖于EnableSysCollector = true，否则设置没有意义，不生效
      * @return boolean
      */

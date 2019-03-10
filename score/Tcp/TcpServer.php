@@ -165,15 +165,33 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * 处理异步任务
 		 */
-		$this->tcpserver->on('task', function(tcp_server $server, $task_id, $from_worker_id, $data) {
-			try{
-				$task_data = unserialize($data);
-				static::onTask($server, $task_id, $from_worker_id, $task_data);
-			}catch(\Exception $e) {
-				self::catchException($e);
-			}
-		    
-		});
+        if(parent::isTaskEnableCoroutine()) {
+            $this->tcpserver->on('task', function(tcp_server $server, \Swoole\Server\Task $task) {
+                try{
+                    $from_worker_id = $task->worker_id;
+                    //任务的编号
+                    $task_id = $task->id;
+                    //任务的数据
+                    $data = $task->data;
+
+                    $task_data = unserialize($data);
+                    static::onTask($server, $task_id, $from_worker_id, $task_data);
+                }catch(\Exception $e) {
+                    self::catchException($e);
+                }
+            });
+
+        }else {
+            $this->tcpserver->on('task', function(tcp_server $server, $task_id, $from_worker_id, $data) {
+                try{
+                    $task_data = unserialize($data);
+                    static::onTask($server, $task_id, $from_worker_id, $task_data);
+                }catch(\Exception $e) {
+                    self::catchException($e);
+                }
+
+            });
+        }
 
 		/**
 		 * 异步任务完成
