@@ -74,7 +74,7 @@ class TableManager {
 	 * @param array  $field_value
 	 */
 	public static function set(string $table, string $key, array $field_value = []) {
-		if(is_string($table) && is_string($key) && !empty($field_value)) {
+		if(!empty($field_value)) {
 			BaseServer::$server->tables[$table]->set($key, $field_value);
 		}	
 	}
@@ -87,10 +87,7 @@ class TableManager {
 	 * @return mixed       
 	 */
 	public static function get(string $table, string $key, $field = null) {
-		if(is_string($table) && is_string($key)) {
-			return BaseServer::$server->tables[$table]->get($key, $field);
-		}
-		return false;
+	    return BaseServer::$server->tables[$table]->get($key, $field);
 	}
 
 	/**
@@ -100,10 +97,7 @@ class TableManager {
 	 * @return boolean
 	 */
 	public static function exist(string $table, string $key) {
-		if(is_string($table) && is_string($key)) {
-			return BaseServer::$server->tables[$table]->exist($key);
-		}
-		return false;
+	    return BaseServer::$server->tables[$table]->exist($key);
 	}
 
 	/**
@@ -113,10 +107,8 @@ class TableManager {
 	 * @return boolean
 	 */
 	public static function del(string $table, string $key) {
-		if(is_string($table) && is_string($key)) {
-			return BaseServer::$server->tables[$table]->del($key);
-		}
-		return false;
+	    return BaseServer::$server->tables[$table]->del($key);
+
 	}
 
 	/**
@@ -128,7 +120,7 @@ class TableManager {
 	 * @return mixed              
 	 */
 	public static function incr(string $table, string $key, string $field, $incrby = 1) {
-		if(is_string($table) && is_string($key) && is_string($field)) {
+		if(is_int($incrby) || is_float($incrby)) {
 			return BaseServer::$server->tables[$table]->incr($key, $field, $incrby);
 		}
 		return false;
@@ -143,7 +135,7 @@ class TableManager {
 	 * @return mixed              
 	 */
 	public static function decr(string $table, string $key, string $field, $incrby = 1) {
-		if(is_string($table) && is_string($key) && is_string($field)) {
+		if(is_int($incrby) || is_float($incrby)) {
 			return BaseServer::$server->tables[$table]->decr($key, $field, $incrby);
 		}
 		return false;
@@ -179,6 +171,7 @@ class TableManager {
 	/**
 	 * isExistTable 判断是否已创建内存表
 	 * @param  string|null $table
+     * @throws
 	 * @return boolean
 	 */
 	public static function isExistTable(string $table = null) {

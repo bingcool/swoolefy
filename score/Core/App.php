@@ -121,7 +121,7 @@ class App extends \Swoolefy\Core\Component {
 		if(isset($this->config['catch_handle']) && $handle = $this->config['catch_handle']) {
 			if(is_array($handle)) {
 				$this->response->header('Content-Type','application/json; charset=UTF-8');
-				$this->response->end(json_encode($handle));
+				$this->response->end(json_encode($handle, JSON_UNESCAPED_UNICODE));
 			}else {
 				$this->response->header('Content-Type','text/html; charset=UTF-8');
 				$this->response->end($handle);

@@ -89,7 +89,7 @@ class BService extends BaseObject {
 	public function sendto($ip, $port, $data, $server_socket = -1) {
 		if(BaseServer::isUdpApp()) {
 			if(is_array($data)){
-				$data = json_encode($data);
+				$data = json_encode($data, JSON_UNESCAPED_UNICODE);
 			}
 			Swfy::getServer()->sendto($ip, $port, $data, $server_socket);
 		}else {
@@ -110,7 +110,7 @@ class BService extends BaseObject {
 		// 只能由websoccket调用
 		if(BaseServer::isWebsocketApp()) {
 			if(is_array($data)){
-				$data = json_encode($data);
+				$data = json_encode($data, JSON_UNESCAPED_UNICODE);
 			}
 			$result = Swfy::getServer()->push($fd, $data, $opcode, $finish);
 			return $result;

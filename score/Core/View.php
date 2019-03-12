@@ -186,23 +186,18 @@ class View {
 	 * @param    string  $formater
 	 * @return        
 	 */
-	public function returnJson($data, $formater = 'json') {
+	public function returnJson(array $data = [], string $formater = 'json') {
 		$response = Application::getApp()->response;
 		switch(strtoupper($formater)) {
 			case 'JSON':
 				$response->header('Content-Type','application/json; charset=utf-8');
-				$string = json_encode($data,0);
+				$json_string = json_encode($data,JSON_UNESCAPED_UNICODE);
 			break;
-			case 'XML':
-				$response->header('Content-Type','text/xml; charset=utf-8');
-           		$string = xml_encode($data);
-            break;
-            case 'EVAL':
-            	$response->header('Content-Type','text/xml; charset=utf-8');
-            	$string = $data;
-			default:$string = json_encode($data,0);break;
+			default:
+                $json_string = json_encode($data, JSON_UNESCAPED_UNICODE);
+			break;
 		}
-		$response->write($string);
+		$response->write($json_string);
 	}
 
 	/**
