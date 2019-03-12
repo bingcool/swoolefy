@@ -512,22 +512,17 @@ trait AppTrait {
 	 * @param    string  $formater
 	 * @return   void         
 	 */
-	public function returnJson(array $data, string $formater = 'json') {
+	public function returnJson(array $data = [], string $formater = 'json') {
         switch(strtoupper($formater)) {
             case 'JSON':
                 $this->response->header('Content-Type','application/json; charset=utf-8');
-                $string = json_encode($data,0);
-                break;
-            case 'XML':
-                $this->response->header('Content-Type','text/xml; charset=utf-8');
-                $string = xml_encode($data);
-                break;
-            case 'EVAL':
-                $this->response->header('Content-Type','text/xml; charset=utf-8');
-                $string = $data;
-            default:$string = json_encode($data,0);break;
+                $json_string = json_encode($data,JSON_UNESCAPED_UNICODE);
+            break;
+            default:
+                $json_string = json_encode($data, JSON_UNESCAPED_UNICODE);
+            break;
         }
-        $this->response->write($string);
+        $this->response->write($json_string);
 	}
 
 	/**
