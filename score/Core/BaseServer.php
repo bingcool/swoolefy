@@ -13,6 +13,7 @@ namespace Swoolefy\Core;
 
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Core\Memory\AtomicManager;
+use think\Exception;
 
 class BaseServer {
 	/**
@@ -66,6 +67,17 @@ class BaseServer {
 	 * @var [type]
 	 */
 	protected static $swoole_socket_type = SWOOLE_SOCK_TCP;
+
+    /**
+     * @var string 默认启动处理类
+     */
+	protected static $start_hander_class = 'Swoolefy\\Core\\StartInit';
+
+    /**
+     * $startctrl
+     * @var null
+     */
+    protected $startCtrl = null;
 
 	/**
 	 * $_tasks 实时内存表保存数据,所有worker共享
@@ -741,6 +753,30 @@ class BaseServer {
             }
         }
         return $isTaskEnableCoroutine;
+    }
+
+    /**
+     * @param $subclass
+     * @param $parentclass
+     * @return bool
+     */
+    public static function isSubclassOf($subclass, $parentclass) {
+        if(is_subclass_of($subclass, $parentclass) || trim($subclass,'\\') == trim($parentclass,'\\')) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @throws \Exception
+     * @return mixed
+     */
+    public static function startHander() {
+        $starHanderClass = isset(self::$config['start_init']) ? self::$config['start_init'] : self::$start_hander_class;
+        if(self::isSubclassOf($starHanderClass, self::$start_hander_class)) {
+           return new $starHanderClass();
+        }
+        throw new \Exception("Error:Config item of 'start_init'=>{$starHanderClass} must extends ".self::$start_hander_class);
     }
 
     /**

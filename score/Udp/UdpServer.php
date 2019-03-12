@@ -38,12 +38,6 @@ abstract class UdpServer extends BaseServer {
 	public $udpserver = null;
 
 	/**
-	 * $startctrl
-	 * @var null
-	 */
-	public $startCtrl = null;
-
-	/**
 	 * $serverName server服务名称
 	 * @var string
 	 */
@@ -65,9 +59,8 @@ abstract class UdpServer extends BaseServer {
 		$this->udpserver->set(self::$setting);
 		parent::__construct();
 		// 初始化启动类
-		$startInitClass = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Core\\StartInit';
-		$this->startCtrl = new $startInitClass();
-		$this->startCtrl->init();
+        $this->startCtrl = parent::startHander();
+        $this->startCtrl->init();
 		
 	}
 
