@@ -40,12 +40,6 @@ abstract class WebsocketServer extends BaseServer {
 	public $webserver = null;
 
 	/**
-	 * $startctrl
-	 * @var null
-	 */
-	public $startCtrl = null;
-
-	/**
 	 * $serverName server服务名称
 	 * @var string
 	 */
@@ -64,10 +58,9 @@ abstract class WebsocketServer extends BaseServer {
 		self::$server = $this->webserver = new websocket_server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, self::$swoole_socket_type);
 		$this->webserver->set(self::$setting);
 		parent::__construct();
-		// 初始化启动类
-		$startInitClass = isset(self::$config['start_init']) ? self::$config['start_init'] : 'Swoolefy\\Core\\StartInit';
-		$this->startCtrl = new $startInitClass();
-		$this->startCtrl->init();	
+        // 初始化启动类
+        $this->startCtrl = parent::startHander();
+        $this->startCtrl->init();
 	}
 
 	public function start() {
