@@ -11,7 +11,6 @@
 
 namespace Swoolefy\Core\Task;
 
-
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\EventController;
 
@@ -29,9 +28,9 @@ class TaskController extends EventController {
 	public $from_worker_id;
 
     /**
- * \Swoole\Server\Task 对象 swoole4.2.12+ 添加
- * @var
- */
+    * \Swoole\Server\Task 对象 swoole4.2.12+ 添加
+    * @var
+    */
     public $task = null;
 
     /**
