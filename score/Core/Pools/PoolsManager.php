@@ -62,10 +62,11 @@ class PoolsManager {
      * @param boolean $async
      * @param array   $args
      * @param mixed   $extend_data
+     * @param boolean $enable_coroutine
      * @throws
      * @return void
      */
-    public static function addProcessPools(string $processName, string $processClass, int $process_num_bind_worker = 1, $async = true, array $args = [], $extend_data = null) {
+    public static function addProcessPools(string $processName, string $processClass, int $process_num_bind_worker = 1, bool $async = true, array $args = [], $extend_data = null, bool $enable_coroutine = false) {
         if(!TableManager::isExistTable('table_process_pools_map')) {
             TableManager::getInstance()->createTable(self::$table_process);
         }
@@ -90,7 +91,7 @@ class PoolsManager {
             for($i = 0; $i < self::$worker_num; $i++) {
                 for($j = 0; $j < $process_num_bind_worker; $j++) {
                     try{
-                        $process = new $processClass($processName.'@'.$i.'@'.$j, $async, [$args[$i]], $extend_data);
+                        $process = new $processClass($processName.'@'.$i.'@'.$j, $async, [$args[$i]], $extend_data, $enable_coroutine);
                         $process->setBindWorkerId($i);
                         self::$processList[$key][$i][$j] = $process;
                     }catch (\Exception $e){
@@ -102,7 +103,7 @@ class PoolsManager {
             for($i = 0; $i < self::$worker_num; $i++) {
                 for($j = 0; $j < $process_num_bind_worker; $j++) {
                     try{
-                        $process = new $processClass($processName.'@'.$i.'@'.$j, $async, $args, $extend_data);
+                        $process = new $processClass($processName.'@'.$i.'@'.$j, $async, $args, $extend_data, $enable_coroutine);
                         $process->setBindWorkerId($i);
                         self::$processList[$key][$i][$j] = $process;
                     }catch (\Exception $e){

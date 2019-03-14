@@ -24,21 +24,29 @@ abstract class AbstractProcessPools {
     private $args = [];
     private $extend_data;
     private $bind_worker_id = null;
+    private $enable_coroutine = false;
 
     const SWOOLEFY_PROCESS_KILL_FLAG = "action::restart::kill_flag";
 
-     /**
-     * __construct
-     * @param string  $processName
-     * @param boolean $async
-     * @param array   $args
+    /**
+     * AbstractProcessPools constructor.
+     * @param string $process_name
+     * @param bool   $async
+     * @param array  $args
+     * @param null   $extend_data
+     * @param bool   $enable_coroutine
      */
-    public function __construct(string $process_name, $async = true, array $args = [], $extend_data = null) {
+    public function __construct(string $process_name, bool $async = true, array $args = [], $extend_data = null, bool $enable_coroutine = false) {
         $this->async = $async;
         $this->args = $args;
         $this->extend_data = $extend_data;
         $this->process_name = $process_name;
-        $this->swooleProcess = new \Swoole\Process([$this,'__start'], false, 2);
+        $this->enable_coroutine = $enable_coroutine;
+        if(version_compare(swoole_version(),'4.3.0','>=')) {
+            $this->swooleProcess = new \Swoole\Process([$this,'__start'], false, 2, $enable_coroutine);
+        }else {
+            $this->swooleProcess = new \Swoole\Process([$this,'__start'], false, 2);
+        }
         Swfy::getServer()->addProcess($this->swooleProcess);
     }
 
@@ -159,6 +167,13 @@ abstract class AbstractProcessPools {
             return $process_name;
         }
         return $this->process_name;
+    }
+
+    /**
+     * 是否启用协程
+     */
+    public function isEnableCoroutine() {
+        return $this->enable_coroutine;
     }
 
     /**

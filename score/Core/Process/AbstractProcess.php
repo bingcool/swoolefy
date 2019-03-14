@@ -23,21 +23,29 @@ abstract class AbstractProcess {
     private $async = null;
     private $args = [];
     private $extend_data;
+    private $enable_coroutine = false;
 
     const SWOOLEFY_PROCESS_KILL_FLAG = "action::restart::kill_flag";
 
     /**
-     * __construct 
-     * @param string  $processName
-     * @param boolean $async      
-     * @param array   $args       
+     * AbstractProcess constructor.
+     * @param string $processName
+     * @param bool   $async
+     * @param array  $args
+     * @param null   $extend_data
+     * @param bool   $enable_coroutine
      */
-    public function __construct(string $processName, $async = true, array $args = [], $extend_data = null) {
+    public function __construct(string $processName, bool $async = true, array $args = [], $extend_data = null, bool $enable_coroutine = false) {
         $this->async = $async;
         $this->args = $args;
         $this->extend_data = $extend_data;
         $this->processName = $processName;
-        $this->swooleProcess = new \Swoole\Process([$this,'__start'], false, 2);
+        $this->enable_coroutine = $enable_coroutine;
+        if(version_compare(swoole_version(),'4.3.0','>=')) {
+            $this->swooleProcess = new \Swoole\Process([$this,'__start'], false, 2, $enable_coroutine);
+        }else {
+            $this->swooleProcess = new \Swoole\Process([$this,'__start'], false, 2);
+        }
         Swfy::getServer()->addProcess($this->swooleProcess);
     }
 
@@ -140,6 +148,13 @@ abstract class AbstractProcess {
      */
     public function getProcessName() {
         return $this->processName;
+    }
+
+    /**
+     * 是否启用协程
+     */
+    public function isEnableCoroutine() {
+        return $this->enable_coroutine;
     }
 
     /**
