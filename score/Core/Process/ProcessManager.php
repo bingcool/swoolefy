@@ -46,10 +46,12 @@ class ProcessManager {
 	 * @param string  $processClass
 	 * @param boolean $async
 	 * @param array   $args
+     * @param mixed   $extend_data
+     * @param boolean $enable_coroutine
      * @throws
      * @return mixed
 	 */
-	public static function addProcess(string $processName, string $processClass, $async = true, array $args = [], $extend_data = null) {
+	public static function addProcess(string $processName, string $processClass, bool $async = true, array $args = [], $extend_data = null, bool $enable_coroutine = false) {
 		if(!TableManager::isExistTable('table_process_map')) {
 			TableManager::getInstance()->createTable(self::$table_process);
 		}
@@ -57,7 +59,7 @@ class ProcessManager {
 		$key = md5($processName);
         if(!isset(self::$processList[$key])){
             try{
-                $process = new $processClass($processName, $async, $args, $extend_data);
+                $process = new $processClass($processName, $async, $args, $extend_data, $enable_coroutine);
                 self::$processList[$key] = $process;
                 return true;
             }catch (\Exception $e){
