@@ -65,6 +65,7 @@ class EventApp {
             try {
                 $this->event_app = $eventController;
                 $class->call($eventController, ...$args);
+                $eventController->end();
             }catch(\Throwable $t) {
                 self::__destruct();
                 throw new \Exception($t->getMessage());
@@ -109,7 +110,9 @@ class EventApp {
 	public function __call(string $action, $args = []) {
 		try{
 			// return call_user_func_array([$this->event_app, $action], $args);
-			return $this->event_app->$action(...$args);
+			$result = $this->event_app->$action(...$args);
+			$this->event_app->end();
+            return $result;
 		}catch(\Throwable $t) {
             self::__destruct();
 			throw new \Exception($t->getMessage());

@@ -204,7 +204,7 @@ class App extends \Swoolefy\Core\Component {
 	 * @return
 	 */
 	public function end() {
-        // log send
+        // log hander
         $this->handerLog();
 		// 销毁当前的请求应用对象
 		Application::removeApp();

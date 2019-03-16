@@ -146,6 +146,7 @@ class EventController extends BaseObject {
             foreach($logs as $action => $log) {
                 if(!empty($log)) {
                     \Swoolefy\Core\Log\LogManager::getInstance()->{$action}($log);
+                    $this->logs[$action] = [];
                 }
             }
         }
@@ -168,9 +169,9 @@ class EventController extends BaseObject {
 	}
 
 	/**
-	 * __destruct 返回数据之前执行,重新初始化一些静态变量
+	 * end 返回数据之前执行,重新初始化一些静态变量
 	 */
-	public function __destruct() {
+	public function end() {
 		// callhooks
 		if(method_exists($this, 'callAfterEventHook')) {
 			$this->callAfterEventHook();
