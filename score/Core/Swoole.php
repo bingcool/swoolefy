@@ -48,7 +48,12 @@ class Swoole extends BaseObject {
 	 */
 	public $coroutine_id;
 
- 	/**
+    /**
+     * $log 日志
+     */
+    public $logs = [];
+
+    /**
 	 * __construct
 	 * @param $config 应用层配置
 	 */
@@ -213,6 +218,37 @@ class Swoole extends BaseObject {
 		}
 	}
 
+    /**
+     * @param $log
+     */
+    public function setLog($level, $log) {
+        if(!isset($this->logs[$level])) {
+            $this->logs[$level] = [];
+        }
+        array_push($this->logs[$level], $log);
+    }
+
+    /**
+     * @return array
+     */
+    public function getLog() {
+        return $this->logs;
+    }
+
+    /**
+     * handerLog
+     */
+    public function handerLog() {
+        // log send
+        if(!empty($logs = $this->getLog())) {
+            foreach($logs as $action => $log) {
+                if(!empty($log)) {
+                    \Swoolefy\Core\Log\LogManager::getInstance()->{$action}($log);
+                }
+            }
+        }
+    }
+
 	/**
 	 * end
 	 * @return  
@@ -220,6 +256,7 @@ class Swoole extends BaseObject {
 	public function end() {
 		// call hook callable
 		Hook::callHook(Hook::HOOK_AFTER_REQUEST);
+        $this->handerLog();
 		ZModel::removeInstance();
 		Application::removeApp();
 	}

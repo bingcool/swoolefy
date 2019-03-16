@@ -37,6 +37,11 @@ class EventController extends BaseObject {
 	public $event_hooks = [];
 	const HOOK_AFTER_REQUEST = 1;
 
+    /**
+     * $log 日志
+     */
+    public $logs = [];
+
 	/**
 	 * __construct 初始化函数
 	 */
@@ -51,8 +56,8 @@ class EventController extends BaseObject {
 	}
 
 	/**
-	 * setApp 重置APP对象
-	 * @param  string  $coroutine_id
+	 * setApp  重置APP对象
+	 * @param  int  $coroutine_id
 	 */
 	public function setApp($coroutine_id = null) {
 		if($coroutine_id) {
@@ -115,6 +120,37 @@ class EventController extends BaseObject {
 		}
 	}
 
+    /**
+     * @param $log
+     */
+    public function setLog($level, $log) {
+        if(!isset($this->logs[$level])) {
+            $this->logs[$level] = [];
+        }
+        array_push($this->logs[$level], $log);
+    }
+
+    /**
+     * @return array
+     */
+    public function getLog() {
+        return $this->logs;
+    }
+
+    /**
+     * handerLog
+     */
+    public function handerLog() {
+        // log send
+        if(!empty($logs = $this->getLog())) {
+            foreach($logs as $action => $log) {
+                if(!empty($log)) {
+                    \Swoolefy\Core\Log\LogManager::getInstance()->{$action}($log);
+                }
+            }
+        }
+    }
+
 	/**
 	 * beforeAction 在处理实际action之前执行
 	 * @return   mixed
@@ -143,6 +179,8 @@ class EventController extends BaseObject {
 		if(method_exists($this, '_afterAction')) {
 			static::_afterAction();
 		}
+        // log
+        $this->handerLog();
 		ZModel::removeInstance();
 		Application::removeApp();
 	}

@@ -44,6 +44,11 @@ class App extends \Swoolefy\Core\Component {
 	 */
 	public $coroutine_id;
 
+    /**
+     * $log 日志
+     */
+    public $logs = [];
+
 	/**
 	 * __construct
 	 * @param $config 应用层配置
@@ -147,6 +152,23 @@ class App extends \Swoolefy\Core\Component {
 	}
 
     /**
+     * @param $log
+     */
+	public function setLog($level, $log) {
+	    if(!isset($this->logs[$level])) {
+            $this->logs[$level] = [];
+        }
+        array_push($this->logs[$level], $log);
+	}
+
+    /**
+     * @return array
+     */
+    public function getLog() {
+        return $this->logs;
+    }
+
+    /**
      * 获取配置的异常处理类
      */
 	public function getExceptionClass() {
@@ -163,11 +185,27 @@ class App extends \Swoolefy\Core\Component {
 		ZModel::removeInstance();
 	}
 
+    /**
+     * handerLog
+     */
+    public function handerLog() {
+        // log send
+        if(!empty($logs = $this->getLog())) {
+            foreach($logs as $action => $log) {
+                if(!empty($log)) {
+                    \Swoolefy\Core\Log\LogManager::getInstance()->{$action}($log);
+                }
+            }
+        }
+    }
+
 	/**
 	 * end 请求结束
 	 * @return
 	 */
 	public function end() {
+        // log send
+        $this->handerLog();
 		// 销毁当前的请求应用对象
 		Application::removeApp();
 		// 设置一个异常结束
