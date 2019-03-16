@@ -73,7 +73,7 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 		$taskInstance = new $class;
 		$taskInstance->setTaskId((int)$task_id);
 		$taskInstance->setFromWorkerId((int)$from_worker_id);
-        $taskInstance->setTask($task);
+        $task && $taskInstance->setTask($task);
 		$taskInstance->$action($extend_data);
         $taskInstance->end();
 		unset($callable, $extend_data, $fd);
