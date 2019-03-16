@@ -1,6 +1,7 @@
 <?php
 namespace Swoolefy\Tool;
 
+use Swoolefy\Core\Application;
 use Swoolefy\Core\Log\Logger;
 use Swoolefy\Core\Log\StreamHandler;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
@@ -29,8 +30,6 @@ class Log {
 	 * @var string
 	 */
 	public $output = "[%datetime%] %channel% > %level_name% : %message% \n";
-
-	protected $logs = [];
 	
 	/**
 	 * __construct
@@ -105,7 +104,15 @@ class Log {
 	 * @param  $loginfo 
 	 * @return 
 	 */
-	public function addInfo($logInfo, array $context = array()) {
+	public function addInfo($logInfo, $is_deplay_batch = false, array $context = array()) {
+	    if(is_array($logInfo)) {
+            $logInfo = json_encode($logInfo);
+        }
+	    $app = Application::getApp();
+	    if(is_object($app) && $is_deplay_batch) {
+            $app->setLog(__FUNCTION__, $logInfo);
+            return;
+        }
         go(function() use($logInfo, $context) {
             $log = new Logger($this->channel);
             $stream = new StreamHandler($this->logFilePath, Logger::INFO);
@@ -121,7 +128,15 @@ class Log {
 	 * @param  $loginfo 
 	 * @return void
 	 */
-	public function addNotice($logInfo, array $context = array()) {
+	public function addNotice($logInfo, $is_deplay_batch = false, array $context = array()) {
+        if(is_array($logInfo)) {
+            $logInfo = json_encode($logInfo);
+        }
+        $app = Application::getApp();
+        if(is_object($app) && $is_deplay_batch) {
+            $app->setLog(__FUNCTION__, $logInfo);
+            return;
+        }
         go(function() use($logInfo, $context) {
             $log = new Logger($this->channel);
             $stream = new StreamHandler($this->logFilePath, Logger::NOTICE);
@@ -137,7 +152,15 @@ class Log {
 	 * @param  $loginfo 
 	 * @return void
 	 */
-	public function addWarning($logInfo, array $context = array()) {
+	public function addWarning($logInfo, $is_deplay_batch = false, array $context = array()) {
+        if(is_array($logInfo)) {
+            $logInfo = json_encode($logInfo);
+        }
+        $app = Application::getApp();
+        if(is_object($app) && $is_deplay_batch) {
+            $app->setLog(__FUNCTION__, $logInfo);
+            return;
+        }
         go(function() use($logInfo, $context) {
             $log = new Logger($this->channel);
             $stream = new StreamHandler($this->logFilePath, Logger::WARNING);
@@ -153,7 +176,15 @@ class Log {
 	 * @param  $loginfo 
 	 * @return void
 	 */
-	public function addError($logInfo, array $context = array()) {
+	public function addError($logInfo, $is_deplay_batch = false, array $context = array()) {
+        if(is_array($logInfo)) {
+            $logInfo = json_encode($logInfo);
+        }
+        $app = Application::getApp();
+        if(is_object($app) && $is_deplay_batch) {
+            $app->setLog(__FUNCTION__, $logInfo);
+            return;
+        }
         go(function() use($logInfo, $context) {
             $log = new Logger($this->channel);
             $stream = new StreamHandler($this->logFilePath, Logger::ERROR);
