@@ -107,9 +107,7 @@ class App extends \Swoolefy\Core\Component {
                 $route->dispatch();
             }
         }catch (\Throwable $t) {
-
             throw new \Exception($t->getMessage());
-
         } finally {
             $this->clearStaticVar();
             $this->end();
