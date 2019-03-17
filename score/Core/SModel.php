@@ -34,9 +34,12 @@ class SModel extends BaseObject {
 	 * __construct 初始化函数
 	 */
 	public function __construct() {
-		$this->config = Application::getApp()->config;
+		$this->config = Swfy::getAppConf();
 		// 数据结构模型对象
 		$this->struct = new Struct();
+		defer(function() {
+		    $this->destruct();
+        });
 	}
 
 	/**
@@ -86,7 +89,7 @@ class SModel extends BaseObject {
 	 * beforeAction 在处理实际action之前执行
 	 * @return   mixed
 	 */
-	public function _beforeAction() {
+	public function _beforeModel() {
 		return true;
 	}
 
@@ -94,7 +97,7 @@ class SModel extends BaseObject {
 	 * afterAction 在返回数据之前执行
 	 * @return   mixed
 	 */
-	public function _afterAction() {
+	public function _afterModel() {
 		return true;
 	}
 
@@ -102,8 +105,8 @@ class SModel extends BaseObject {
 	 * __destruct 对象销毁前处理一些静态变量
 	 * @param    
 	 */
-	public function __destruct() {
-		static::_afterAction();
+	public function destruct() {
+		static::_afterModel();
 	}
 
 	use \Swoolefy\Core\ServiceTrait;

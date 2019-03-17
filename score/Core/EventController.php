@@ -46,13 +46,14 @@ class EventController extends BaseObject {
 	 * __construct 初始化函数
 	 */
 	public function __construct() {
-		// Component组件创建
 		$this->creatObject();
-		// 应用层配置
 		$this->config = Swfy::getAppConf();
 		$coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
 		$this->coroutine_id = $coroutine_id;
 		Application::setApp($this);
+		defer(function() {
+		    $this->defer();
+        });
 	}
 
 	/**
@@ -185,6 +186,11 @@ class EventController extends BaseObject {
 		ZModel::removeInstance();
 		Application::removeApp();
 	}
+
+    /**
+     * 协程销毁前执行
+     */
+	public function defer() {}
 
 	use \Swoolefy\Core\ComponentTrait,\Swoolefy\Core\ServiceTrait;
 }

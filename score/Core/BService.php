@@ -56,6 +56,9 @@ class BService extends BaseObject {
 		}else {
 			$this->client_info = null;
 		}
+        defer(function() {
+            $this->destruct();
+        });
 	}
 
 	/**
@@ -190,7 +193,7 @@ class BService extends BaseObject {
 	/**
 	 * __destruct 重新初始化一些静态变量
 	 */
-	public function __destruct() {
+	public function destruct() {
 		if(method_exists($this,'_afterAction')) {
 			static::_afterAction();
 		}

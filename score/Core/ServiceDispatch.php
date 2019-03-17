@@ -53,7 +53,7 @@ class ServiceDispatch extends AppDispatch {
 	public function dispatch() {
 		list($class, $action) = $this->callable;
         $class = trim(str_replace('\\', '/', $class), '/');
-		if(!self::$routeCacheFileMap[$class]) {
+		if(!isset(self::$routeCacheFileMap[$class])) {
 			if(!$this->checkClass($class)){
 				$app_conf = Swfy::getAppConf();
 				if(isset($app_conf['not_found_handle']) && is_string($app_conf['not_found_handle'])) {
