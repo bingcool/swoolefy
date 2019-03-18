@@ -14,7 +14,8 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的API
 - [x] 支持httpServer
 - [x] 支持websocketServer,udpServer
 - [x] 支持基于tcp实现的rpc服务，开放式的系统接口，可自定义协议数据格式，并提供rpc-client组件
-- [x] 支持容器，组件IOC
+- [x] 支持容器，组件IOC    
+- [x] 支持全局日志   
 - [x] 支持协程单例注册
 - [x] 支持mysql协程组件，redis协程组件，mongodb组件，提供基于tp改造的swoolefy-orm协程mysql组件
 - [x] 支持mysql的协程连接池，redis协程池
