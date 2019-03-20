@@ -60,9 +60,6 @@ class Swoole extends BaseObject {
 	public function __construct(array $config = []) {
 		$this->config = $config;
 		Swfy::setAppConf($config);
-        $exceptionClass = $this->getExceptionClass();
-        register_shutdown_function($exceptionClass.'::fatalError');
-        set_error_handler($exceptionClass.'::appError');
 	}
 
 	/**

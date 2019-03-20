@@ -15,6 +15,7 @@ use Swoole\Process;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Table\TableManager;
+use think\Exception;
 
 abstract class AbstractProcess {
 
@@ -90,7 +91,12 @@ abstract class AbstractProcess {
         }
 
         Process::signal(SIGTERM, function() use($process) {
-            $this->onShutDown();
+            try{
+                $this->onShutDown();
+            }catch (\Throwable $t) {
+                BaseServer::catchException($t);
+            }
+
             TableManager::getTable('table_process_map')->del(md5($this->processName));
             swoole_event_del($process->pipe);
             $this->swooleProcess->exit(0);
@@ -107,22 +113,17 @@ abstract class AbstractProcess {
                         $this->onReceive($msg);
                     }
                 }catch(\Throwable $t) {
-                    // 记录错误与异常
-                    $exceptionHanderClass = BaseServer::getExceptionClass();
-                    $errMsg = $t->getMessage();
-                    $exceptionHanderClass::shutHalt($errMsg);
+                    BaseServer::catchException($t);
                 }
             });
         }
 
         $this->swooleProcess->name('php-addSelfProcess:'.$this->getProcessName());
+
         try{
             $this->run($this->swooleProcess);
         }catch(\Throwable $t) {
-            // 记录错误与异常
-            $exceptionHanderClass = BaseServer::getExceptionClass();
-            $errMsg = $t->getMessage();
-            $exceptionHanderClass::shutHalt($errMsg);
+            BaseServer::catchException($t);
         }
         
     }

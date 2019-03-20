@@ -94,6 +94,7 @@ abstract class HttpServer extends BaseServer {
 		$this->webserver->on('WorkerStart', function(http_server $server, $worker_id) {
 			// 记录主进程加载的公共files,worker重启不会在加载的
 			self::getIncludeFiles(static::$serverName);
+            self::registerShutdownFunction();
 			// 重启worker时，刷新字节cache
 			self::clearCache();
 			// 重新设置进程名称

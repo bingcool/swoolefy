@@ -69,7 +69,7 @@ trait ComponentTrait {
 
 		foreach($components as $com_name=>$component) {
 
-		    if($component instanceof \Closure) {
+		    if($component instanceof \Closure || isset($this->container[$com_name])) {
 		        // delay create
                 continue;
             }
@@ -79,14 +79,16 @@ trait ComponentTrait {
 				continue;
 			}
 
-			if(isset($this->container[$com_name]) || isset($component[SWOOLEFY_COM_IS_DELAY])) {
+			if(isset($component[SWOOLEFY_COM_IS_DELAY])) {
                 $is_delay = filter_var($component[SWOOLEFY_COM_IS_DELAY], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
                 if($is_delay === true) {
                     continue;
                 }
-			}
+			}else {
+                continue;
+            }
 
-			if(isset($component['class']) && $component['class'] != '') {
+			if(isset($component['class']) && !empty($component['class'])) {
 				$class = $component['class'];
 				unset($component['class']);
 				$params = [];

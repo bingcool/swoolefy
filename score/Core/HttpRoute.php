@@ -254,14 +254,14 @@ class HttpRoute extends AppDispatch {
 		        }catch(\Throwable $t) {
 				    $query_string = isset($this->request->server['QUERY_STRING']) ? '?'.$this->request->server['QUERY_STRING'] : '';
 				    $msg = 'Fatal error: '.$t->getMessage().' on '.$t->getFile().' on line '.$t->getLine(). ' ||| '.$this->request->server['REQUEST_URI'].$query_string;
-                    $this->response->end(json_encode([
+                    // 记录错误异常
+                    $exceptionClass = Application::getApp()->getExceptionClass();
+                    $exceptionClass::shutHalt($msg);
+				    $this->response->end(json_encode([
                         'ret' => 500,
                         'msg' => $msg,
                         'data' => ''
                     ]));
-                    // 记录错误异常
-                    $exceptionClass = Application::getApp()->getExceptionClass();
-                    $exceptionClass::shutHalt($msg);
 		        }
 			}else {
 				return $this->response->end(json_encode([
