@@ -794,6 +794,15 @@ class BaseServer {
     }
 
     /**
+     * 注册异常处理函数
+     */
+    public static function registerShutdownFunction() {
+        $exceptionClass = self::getExceptionClass();
+        register_shutdown_function($exceptionClass.'::fatalError');
+        set_error_handler($exceptionClass.'::appError');
+    }
+
+    /**
      * beforeRequest
      * @return boolean
      */

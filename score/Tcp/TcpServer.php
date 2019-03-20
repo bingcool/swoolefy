@@ -98,6 +98,7 @@ abstract class TcpServer extends BaseServer {
 		$this->tcpserver->on('WorkerStart', function(tcp_server $server, $worker_id) {
 			// 记录主进程加载的公共files,worker重启不会在加载的
 			self::getIncludeFiles(static::$serverName);
+            self::registerShutdownFunction();
 			// 重启worker时，清空字节cache
 			self::clearCache();
 			// 重新设置进程名称

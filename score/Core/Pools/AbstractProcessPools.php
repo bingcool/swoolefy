@@ -106,7 +106,12 @@ abstract class AbstractProcessPools {
         }
 
         Process::signal(SIGTERM, function() use($process) {
-            $this->onShutDown();
+            try{
+                $this->onShutDown();
+            }catch (\Throwable $t) {
+                BaseServer::catchException($t);
+            }
+
             TableManager::getTable('table_process_pools_map')->del(md5($this->process_name));
             swoole_event_del($process->pipe);
             $this->swooleProcess->exit(0);
@@ -123,10 +128,7 @@ abstract class AbstractProcessPools {
                         $this->onReceive($msg);
                     }
                 }catch(\Throwable $t) {
-                    // 记录错误与异常
-                    $exceptionHanderClass = BaseServer::getExceptionClass();
-                    $errMsg = $t->getMessage();
-                    $exceptionHanderClass::shutHalt($errMsg);
+                    BaseServer::catchException($t);
                 }
             });
         }
@@ -135,10 +137,7 @@ abstract class AbstractProcessPools {
         try{
             $this->run($this->swooleProcess);
         }catch(\Throwable $t) {
-            // 记录错误与异常
-            $exceptionHanderClass = BaseServer::getExceptionClass();
-            $errMsg = $t->getMessage();
-            $exceptionHanderClass::shutHalt($errMsg);
+            BaseServer::catchException($t);
         }
     }
 

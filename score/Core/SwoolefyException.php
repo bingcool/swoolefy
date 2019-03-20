@@ -86,6 +86,9 @@ class SwoolefyException {
      * @return void
      */
     public static function shutHalt($errorMsg, $errorType = 'error') {
+        if(!defined('LOG_PATH')) {
+            define('LOG_PATH', START_DIR_ROOT.DIRECTORY_SEPARATOR.APP_NAME);
+        }
         $logFilePath = rtrim(LOG_PATH,'/').'/runtime.log';
         if(is_file($logFilePath)) {
             $logFilesSize = filesize($logFilePath);

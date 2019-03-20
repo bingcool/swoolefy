@@ -51,7 +51,7 @@ trait AppObjectTrait {
 	 */
 	public static function _die($html='', $msg='') {
 		// 直接结束请求
-		Application::getApp()->response->end($html);
+		Application::getApp()->response->write($html);
 		throw new \Exception($msg);
 	}
 }
