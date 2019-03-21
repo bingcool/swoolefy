@@ -34,7 +34,7 @@ class ServerManager {
 	 * addListener 设置port实例
 	 * @param string $host 
 	 * @param int    $port 
-	 * @param type   $type
+	 * @param string   $type
      * @return mixed
 	 */
 	public function addListener(string $host, $port, $type = SWOOLE_SOCK_TCP) {
@@ -51,7 +51,7 @@ class ServerManager {
 	/**
 	 * getListener 获取port实例
 	 * @param  int $port
-	 * @return mixed
+	 * @return boolean
 	 */
 	public function getListener($port) {
 		$port = (int)$port;
@@ -66,14 +66,15 @@ class ServerManager {
 	 * @see https://wiki.swoole.com/wiki/page/547.html
 	 * @param  int|integer  $worker_id
 	 * @param  bool|boolean $waitEvent
-	 * @return 
+	 * @return boolean
 	 */
 	public function stopWorker(int $worker_id = -1, bool $waitEvent = false) {
 		if(version_compare(SWOOLE_VERSION, '1.9.19', '<')) {
 			Swfy::getServer()->stop($worker_id);
-			return true;
-		}
-		Swfy::getServer()->stop($worker_id, $waitEvent);
+
+		}else {
+            Swfy::getServer()->stop($worker_id, $waitEvent);
+        }
 		return true;
 	}
 
@@ -83,7 +84,7 @@ class ServerManager {
 	 * @param  int          $fd       
 	 * @param  int          $extraData
 	 * @param  bool|boolean $ignoreError
-	 * @return 
+	 * @return mixed
 	 */
 	public function getClientInfo(int $fd, int $extraData, bool $ignoreError = false) {
 		return Swfy::getServer()->getClientInfo($fd, $extraData, $ignoreError);
@@ -101,7 +102,7 @@ class ServerManager {
 
     /**
      * shutdown 关闭服务器
-     * @return  true
+     * @return  boolean
      */
     public function shutdown() {
         Swfy::getServer()->shutdown();

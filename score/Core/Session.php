@@ -111,7 +111,7 @@ class Session {
     /**
      * start 开启session
      * @param boolean $readonly
-     * @return void
+     * @return boolean
      */
     public function start($readonly = false) {
          /**
@@ -184,7 +184,7 @@ class Session {
      * set 设置session保存数据
      * @param   string   $key
      * @param   mixed  $data
-     * @return    true
+     * @return  boolean
      */
     public function set(string $key, $data) {
         if(is_string($key) && isset($data)) {
@@ -248,8 +248,7 @@ class Session {
 
     /**
      * clear 清空某个session
-     * @param    
-     * @return  
+     * @return  boolean
      */
     public function destroy() {
         if(!empty($this->_SESSION)) {

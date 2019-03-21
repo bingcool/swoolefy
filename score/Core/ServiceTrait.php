@@ -210,10 +210,7 @@ trait ServiceTrait {
 	 * @return boolean
 	 */
 	public function isHttpApp() {
-		if(BaseServer::isHttpApp()) {
-			return true;
-		}
-		return false;
+		return BaseServer::isHttpApp();
 	}
 
 	/**
@@ -221,10 +218,7 @@ trait ServiceTrait {
 	 * @return boolean
 	 */
 	public function isRpcApp() {
-		if(BaseServer::isRpcApp()) {
-			return true;
-		}
-		return false;
+		return BaseServer::isRpcApp();
 	}
 
 	/**
@@ -232,10 +226,7 @@ trait ServiceTrait {
 	 * @return boolean
 	 */
 	public function isWebsocketApp() {
-		if(BaseServer::isWebsocketApp()) {
-			return true;
-		}
-		return false;
+		return BaseServer::isWebsocketApp();
 	}
 
 	/**
@@ -243,10 +234,7 @@ trait ServiceTrait {
 	 * @return boolean
 	 */
 	public function isUdpApp() {
-		if(BaseServer::isUdpApp()) {
-			return true;
-		}
-		return false;
+		return BaseServer::isUdpApp();
 	}
 
 	/**

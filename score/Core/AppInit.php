@@ -11,15 +11,14 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Init;
+use Swoolefy\Core\AppObject;
 use Swoolefy\Core\Application;
 
-class AppInit extends Init {
+class AppInit extends AppObject {
 	/**
 	 * _init
 	 */
 	public static function _init() {
-		parent::_init();
 		$request = Application::getApp()->request;
 		self::resetServer($request);
 	}

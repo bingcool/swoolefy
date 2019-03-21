@@ -110,7 +110,7 @@ class RpcHander extends Swoole implements HanderInterface {
 	 * @return   
 	 */
 	public function ping() {
-		if($this->header['request_id'] == 'ping') {
+		if(in_array($this->header['request_id'], ['ping', 'PING'])) {
 			return true;
 		}
 		return false;
