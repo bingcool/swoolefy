@@ -99,7 +99,7 @@ class Tick {
         if($tid) {
             self::$_tick_tasks[$tid] = array('callback'=>$func, 'params'=>$user_params, 'time_interval'=>$time_interval, 'timer_id'=>$tid, 'start_time'=>date('Y-m-d H:i:s',strtotime('now')));
             $config = Swfy::getConf();
-            if(isset($config['open_table_tick_task']) && $config['open_table_tick_task'] == true) {
+            if(isset($config['enable_table_tick_task']) && $config['enable_table_tick_task'] == true) {
                 TableManager::set('table_ticker', 'tick_timer_task', ['tick_tasks'=>json_encode(self::$_tick_tasks)]);
             }
             
@@ -122,7 +122,7 @@ class Tick {
                 }
             }
             $config = Swfy::getConf();
-            if(isset($config['open_table_tick_task']) && $config['open_table_tick_task'] == true) {
+            if(isset($config['enable_table_tick_task']) && $config['enable_table_tick_task'] == true) {
 
                 TableManager::set('table_ticker', 'tick_timer_task', ['tick_tasks'=>json_encode(self::$_tick_tasks)]);
 
@@ -186,7 +186,7 @@ class Tick {
         if($tid) {
             self::$_after_tasks[$tid] = array('callback'=>$func, 'params'=>$user_params, 'time_interval'=>$time_interval, 'timer_id'=>$tid, 'start_time'=>date('Y-m-d H:i:s',strtotime('now')));
             $config = Swfy::getConf();
-            if(isset($config['open_table_tick_task']) && $config['open_table_tick_task'] == true) {
+            if(isset($config['enable_table_tick_task']) && $config['enable_table_tick_task'] == true) {
 
                 TableManager::set('table_after', 'after_timer_task', ['after_tasks'=>json_encode(self::$_after_tasks)]);
             }
@@ -210,7 +210,7 @@ class Tick {
                 }
             }
             $config = Swfy::getConf();
-            if(isset($config['open_table_tick_task']) && $config['open_table_tick_task'] == true) {
+            if(isset($config['enable_table_tick_task']) && $config['enable_table_tick_task'] == true) {
 
                 TableManager::set('table_after', 'after_timer_task', ['after_tasks'=>json_encode(self::$_after_tasks)]);
             }

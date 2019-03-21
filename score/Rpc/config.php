@@ -44,5 +44,5 @@ return [
 		'pid_file' => __DIR__.'/log/server.pid',
 
 	],
-	'open_table_tick_task' => true,
+	'enable_table_tick_task' => true,
 ];

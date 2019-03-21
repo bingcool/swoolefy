@@ -15,7 +15,7 @@ class NotFound extends BService {
 	/**
 	 * return404 类文件找不到处理
 	 * @param  string  $class 
-	 * @return        
+	 * @return mixed
 	 */
 	public function return404(string $class) {
         $response = ['ret'=>404, 'msg'=>$class.' is not found!', 'data'=>''];
@@ -41,7 +41,7 @@ class NotFound extends BService {
 	 * return500 找不到定义的函数类
 	 * @param  string  $class
 	 * @param  string  $action
-	 * @return void
+	 * @return mixed
 	 */
 	public function return500($class, $action) {
         $response = ['ret'=>500, 'msg'=>$class.'::'.$action." $action() function undefined!", 'data'=>''];
@@ -63,7 +63,7 @@ class NotFound extends BService {
 
 	/**
 	 * returnError 直接返回捕捉的错误和异常信息
-	 * @return 
+	 * @return mixed
 	 */
 	public function returnError($msg) {
         $response = ['ret'=>500, 'msg'=>$msg, 'data'=>''];

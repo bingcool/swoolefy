@@ -143,6 +143,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
      * _die 异常终端程序执行
      * @param    string   $msg
      * @param    int      $code
+     * @throws
      * @return   mixed
      */
     public static function _die($html='', $msg='') {

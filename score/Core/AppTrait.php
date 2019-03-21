@@ -473,8 +473,8 @@ trait AppTrait {
 	 * getView
 	 * @return   object
 	 */
-	public function getView() {
-		return Application::getApp()->view;
+	public function getView(string $view_component_name = 'view') {
+		return Application::getApp()->{$view_component_name};
 	}
 
 

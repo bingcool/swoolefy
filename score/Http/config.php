@@ -44,5 +44,5 @@ return [
 	],
 
 	// 是否内存化线上实时任务
-	'open_table_tick_task' => true,
+	'enable_table_tick_task' => true,
 ];

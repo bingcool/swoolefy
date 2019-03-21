@@ -395,9 +395,9 @@ class BaseServer {
 			static::$config['table'] = [];
 		}
 
-		if(isset(static::$config['open_table_tick_task'])) {
-            $is_open_table_tick_task = filter_var(static::$config['open_table_tick_task'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-            if($is_open_table_tick_task) {
+		if(isset(static::$config['enable_table_tick_task'])) {
+            $is_enable_table_tick_task = filter_var(static::$config['enable_table_tick_task'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if($is_enable_table_tick_task) {
                 $tables = array_merge(self::$_table_tasks, static::$config['table']);
             }
 		}else {

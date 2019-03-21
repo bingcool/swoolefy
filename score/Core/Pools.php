@@ -30,7 +30,7 @@ class Pools {
 	 */
 	public function registerPools(string $poolsName, int $size = 5 * 1024 * 1024) {
 	    if(!class_exists('Swoole\Channel')) {
-	        throw new \Exception("after swoole 4.3.0, \Swoole\channel is removed, you can not use redis or nysql pools");
+	        throw new \Exception("Error: after swoole 4.3.0+, \Swoole\channel is be removed, you can not use redis or mysql pools");
         }
 		$conf = Swfy::getConf();
 		if(isset($conf['setting']['worker_num'])) {

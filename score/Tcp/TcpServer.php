@@ -292,6 +292,7 @@ abstract class TcpServer extends BaseServer {
 
 	/**
 	 * isClientPackEof 根据设置判断客户端的分包方式
+     * @throws
 	 * @return boolean
 	 */
 	public static function isClientPackEof() {
@@ -320,8 +321,7 @@ abstract class TcpServer extends BaseServer {
 
 	/**
 	 * pack  根据配置设置，按照客户端的接受数据方式，打包数据发回给客户端
-	 * @param    mixed    $data
-	 * @param    int   $fd
+	 * @param    mixed   $data
 	 * @return   mixed
 	 */
 	public static function pack($data) {
@@ -340,7 +340,7 @@ abstract class TcpServer extends BaseServer {
             if($eof) {
                 $pack_data = Pack::enpackeof($data, $serialize_type, $eof);
             }else {
-                $pack_data = (new \Swoolefy\Core\Pack)->enpackeof($data, $serialize_type);
+                $pack_data = (new \Swoolefy\Core\Pack(Swfy::$server))->enpackeof($data, $serialize_type);
             }
 		}
 

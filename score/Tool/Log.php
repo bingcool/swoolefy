@@ -104,7 +104,7 @@ class Log {
 	 * @param  $loginfo 
 	 * @return 
 	 */
-	public function addInfo($logInfo, $is_deplay_batch = false, array $context = array()) {
+	public function addInfo($logInfo, $is_deplay_batch = false, array $context = []) {
 	    if(is_array($logInfo)) {
             $logInfo = json_encode($logInfo);
         }
@@ -128,7 +128,7 @@ class Log {
 	 * @param  $loginfo 
 	 * @return void
 	 */
-	public function addNotice($logInfo, $is_deplay_batch = false, array $context = array()) {
+	public function addNotice($logInfo, $is_deplay_batch = false, array $context = []) {
         if(is_array($logInfo)) {
             $logInfo = json_encode($logInfo);
         }
@@ -152,7 +152,7 @@ class Log {
 	 * @param  $loginfo 
 	 * @return void
 	 */
-	public function addWarning($logInfo, $is_deplay_batch = false, array $context = array()) {
+	public function addWarning($logInfo, $is_deplay_batch = false, array $context = []) {
         if(is_array($logInfo)) {
             $logInfo = json_encode($logInfo);
         }
@@ -176,7 +176,7 @@ class Log {
 	 * @param  $loginfo 
 	 * @return void
 	 */
-	public function addError($logInfo, $is_deplay_batch = false, array $context = array()) {
+	public function addError($logInfo, $is_deplay_batch = false, array $context = []) {
         if(is_array($logInfo)) {
             $logInfo = json_encode($logInfo);
         }
