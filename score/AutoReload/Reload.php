@@ -69,6 +69,7 @@ class Reload {
 
     /**
      * __construct
+     * @throws mixed
      */
     public function __construct() {
         if(extension_loaded('inotify')) {
@@ -79,6 +80,7 @@ class Reload {
     }    
     /**
      * init
+     * @throws mixed
      * @return mixed
      */
     public function init() {
@@ -169,7 +171,7 @@ class Reload {
 
     /**
      * addEvent 添加事件
-     * @param $inotifyEvent
+     * @param  $inotifyEvent
      * @return mixed
      */
     public function addEvent($inotifyEvent) {

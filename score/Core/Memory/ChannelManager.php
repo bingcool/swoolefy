@@ -21,6 +21,7 @@ class ChannelManager {
      * 创建一个数据Channel
      * @param  string  $name
      * @param  int  $size
+     * @throws mixed
      */
     public function addChannel(string $name, int $size = 256 * 1024) {
         if(!class_exists('Swoole\Channel')) {

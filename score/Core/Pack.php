@@ -343,7 +343,7 @@ class Pack {
      * @param  string $eof
      * @return string
      */
-    public function enpackeof($data, $serialize_type = self::DECODE_JSON, $eof ='') {
+    public static function enpackeof($data, $serialize_type = self::DECODE_JSON, $eof ='') {
     	if(empty($eof)) {
     		$eof = self::$pack_eof;
     	}

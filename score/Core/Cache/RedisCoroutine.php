@@ -113,6 +113,7 @@ class RedisCoroutine {
 
 	/**
 	 * getMaster 获取主master
+     * @throws mixed
 	 * @return mixed
 	 */
 	public function getMaster() {
@@ -157,6 +158,7 @@ class RedisCoroutine {
 	/**
 	 * getSlave 获取从redis
 	 * @param  int|null $num
+     * @throws mixed
 	 * @return mixed
 	 */
 	public function getSlave(int $num = null) {

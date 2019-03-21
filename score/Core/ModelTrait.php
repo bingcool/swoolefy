@@ -138,7 +138,7 @@ trait ModelTrait {
      * header,使用链式作用域
      * @param    string  $name
      * @param    string  $value
-     * @return   object
+     * @return   mixed
      */
     public function header($name,$value) {
         $this->response->header($name, $value);

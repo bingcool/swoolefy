@@ -74,7 +74,7 @@ class BaseObject {
 
 	/**
 	 * __callStatic
-	 * @return   mixed
+	 * @return   void
 	 */
 	public static function __callStatic($action, $args = []) {}
 
@@ -82,7 +82,7 @@ class BaseObject {
 	 * _die 异常终端程序执行
 	 * @param    $msg
 	 * @param    $code
-	 * @return   mixed
+	 * @return   void
 	 */
 	public static function _die($html='', $msg='') {}
 

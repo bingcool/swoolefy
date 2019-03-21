@@ -48,7 +48,7 @@ class ProcessManager {
 	 * @param array   $args
      * @param mixed   $extend_data
      * @param boolean $enable_coroutine
-     * @throws
+     * @throws mixed
      * @return mixed
 	 */
 	public static function addProcess(string $processName, string $processClass, bool $async = true, array $args = [], $extend_data = null, bool $enable_coroutine = false) {

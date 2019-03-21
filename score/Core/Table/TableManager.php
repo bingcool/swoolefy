@@ -171,7 +171,7 @@ class TableManager {
 	/**
 	 * isExistTable 判断是否已创建内存表
 	 * @param  string|null $table
-     * @throws
+     * @throws mixed
 	 * @return boolean
 	 */
 	public static function isExistTable(string $table = null) {

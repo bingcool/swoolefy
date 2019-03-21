@@ -26,6 +26,7 @@ class Pools {
 
 	/**
 	 * registerPools  注册pools的通道
+     * @throws mixed
 	 * @return Channel
 	 */
 	public function registerPools(string $poolsName, int $size = 5 * 1024 * 1024) {

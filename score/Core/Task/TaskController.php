@@ -35,7 +35,7 @@ class TaskController extends EventController {
 
     /**
      * __construct
-     * @throws \Exception
+     * @throws mixed
      */
     public function __construct() {
         parent::__construct();

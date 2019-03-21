@@ -152,7 +152,7 @@ class HttpRoute extends AppDispatch {
 			// 调用 
 			$this->invoke($module=null,$controller,$action);
 		}
-		return;
+		return null;
 	}
 
 	/**

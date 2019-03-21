@@ -31,7 +31,7 @@ trait ComponentTrait {
 	 * creatObject 创建组件对象
 	 * @param    string  $com_alias_name 组件别名
 	 * @param    mixed   $defination     组件定义类
-     * @throws
+     * @throws   mixed
 	 * @return   mixed
 	 */
 

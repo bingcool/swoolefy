@@ -65,6 +65,7 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 	 * @param    int  $task_id
 	 * @param    int  $from_worker_id
 	 * @param    mixed $data
+     * @throws   mixed
 	 * @return   void
 	 */
 	public function onTask($server, $task_id, $from_worker_id, $data, $task = null) {

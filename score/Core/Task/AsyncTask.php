@@ -22,8 +22,8 @@ class AsyncTask implements AsyncTaskInterface {
      * registerTask 注册实例任务并调用异步任务，创建一个应用实例，用于处理复杂业务
      * @param   string  $route
      * @param   array   $data
-     * @throws
-     * @return    int|boolean
+     * @throws  mixed
+     * @return  int|boolean
      */
     public static function registerTask($callable, $data = []) {
         if(is_string($callable)) {
