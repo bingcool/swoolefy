@@ -40,7 +40,7 @@ class Tick {
      * @param   int      $time_interval
      * @param   callable $func         
      * @param   array    $params
-     * @throws
+     * @throws  mixed
      * @return  mixed
      */
 	public static function tickTimer($time_interval, $func, $params = null, $is_sington = false) {
@@ -138,18 +138,15 @@ class Tick {
      * @param    int       $time_interval
      * @param    callable  $func         
      * @param    array     $params
-     * @throws
+     * @throws   mixed
      * @return   mixed
      */
     public static function afterTimer($time_interval, $func, $params = null) {
-        if($time_interval <= 0 || $time_interval > 86400000) {
-            throw new \Exception(get_called_class()."::afterTimer() the first params 'time_interval' is requested 0~86400000 ms");
-            return false;
+        if($time_interval <= 0) {
+            throw new \Exception(get_called_class()."::afterTimer() the first params 'time_interval' is requested more then 0 ms");
         }
-
         if(!is_callable($func)) {
             throw new \Exception(get_called_class()."::afterTimer() the seconed params 'func' is not callable");
-            return false;
         }
 
         $timer_id = self::after($time_interval, $func, $params);

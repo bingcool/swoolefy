@@ -67,7 +67,7 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer {
 	/**
 	 * onMessageFromBinary 处理二进制数据
 	 * @param  object $server
-	 * @param  onject $frame 
+	 * @param  mixed $frame
 	 * @return void       
 	 */
 	public function onMessageFromBinary($server, $frame) {}
@@ -76,7 +76,7 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer {
 	 * onMessageFromClose 处理关闭帧
 	 * Swoole 4.2.0+支持，需要开启设置"open_websocket_close_frame" => true，开启，默认false
 	 * @param  object $server
-	 * @param  onject $frame 
+	 * @param  mixed $frame
 	 * @return void       
 	 */
 	public function onMessageFromClose($server, $frame) {}

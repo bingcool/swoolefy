@@ -75,7 +75,7 @@ class SysProcess extends AbstractProcess {
 	 * sendByUdp 通过UDP发送方式
 	 * @param  array  $sys_collector_config
 	 * @param  $array $data
-     * @throws
+     * @throws mixed
 	 * @return void
 	 */
 	protected function sendByUdp(array $sys_collector_config, array $data = []) {
@@ -110,7 +110,7 @@ class SysProcess extends AbstractProcess {
 	 * publicByRedis swooleredis的订阅发布方式
 	 * @param  array  $sys_collector_config
 	 * @param  $array $data
-     * @throws
+     * @throws mixed
 	 * @return void
 	 */
 	protected function publishBySwooleRedis(array $sys_collector_config, array $data = []) {
@@ -148,7 +148,7 @@ class SysProcess extends AbstractProcess {
 	 * publicByPhpRedis phpredis的订阅发布方式
 	 * @param  array  $sys_collector_config
 	 * @param  array  $data
-     * @throws
+     * @throws mixed
 	 * @return void                      
 	 */
 	protected function publishByPhpRedis(array $sys_collector_config, array $data = []) {

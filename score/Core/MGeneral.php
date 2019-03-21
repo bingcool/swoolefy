@@ -120,7 +120,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
 			{
 				if ($precision > 1)
 				{
-					$number = substr($number, 0, -1) + ('0.' . str_repeat(0, $precision-1) . '1');
+					$number = substr($number, 0, -1) + (float)('0.' . str_repeat(0, $precision-1) . '1');
 				}
 				elseif ($precision == 1)
 				{

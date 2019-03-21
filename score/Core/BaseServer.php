@@ -140,7 +140,7 @@ class BaseServer {
 
 	/**
 	 * checkVersion 检查是否安装基础扩展
-     * @throws
+     * @throws mixed
 	 * @return void
 	 */
 	public static function checkVersion() {
@@ -542,6 +542,7 @@ class BaseServer {
 
     /**
      * isPackLength 是否是pack的length
+     * @throws mixed
      * @return boolean
      */
     protected static function isPackLength() {
@@ -768,7 +769,7 @@ class BaseServer {
     }
 
     /**
-     * @throws \Exception
+     * @throws mixed
      * @return mixed
      */
     public static function startHander() {

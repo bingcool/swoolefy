@@ -133,7 +133,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	/**
 	 * onMessageFromBinary 处理二进制数据
 	 * @param  object $server
-	 * @param  onject $frame
+	 * @param  mixed $frame
 	 * @return void       
 	 */
 	public abstract function onMessageFromBinary($server, $frame);
@@ -141,7 +141,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	/**
 	 * onMessageFromClose 处理关闭帧
 	 * @param  object $server
-	 * @param  onject $frame 
+	 * @param  mixed $frame
 	 * @return void       
 	 */
 	public abstract function onMessageFromClose($server, $frame);

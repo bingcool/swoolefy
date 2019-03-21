@@ -64,7 +64,7 @@ class Swfy extends \Swoolefy\Core\BaseObject {
 
 	/**
 	 * __call
-     * @throws
+     * @throws mixed
 	 * @return   mixed
 	 */
 	public function __call($action, $args = []) {
@@ -74,7 +74,7 @@ class Swfy extends \Swoolefy\Core\BaseObject {
 
 	/**
 	 * __callStatic
-     * @throws
+     * @throws   mixed
 	 * @return   mixed
 	 */
 	public static function __callStatic($action, $args = []) {

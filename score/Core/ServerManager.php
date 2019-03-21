@@ -69,7 +69,7 @@ class ServerManager {
 	 * @return boolean
 	 */
 	public function stopWorker(int $worker_id = -1, bool $waitEvent = false) {
-		if(version_compare(SWOOLE_VERSION, '1.9.19', '<')) {
+		if(version_compare(swoole_version(), '1.9.19', '<')) {
 			Swfy::getServer()->stop($worker_id);
 
 		}else {

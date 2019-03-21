@@ -51,7 +51,7 @@ class App extends \Swoolefy\Core\Component {
 
 	/**
 	 * __construct
-	 * @param $config 应用层配置
+	 * @param  array $config 应用层配置
 	 */
 	public function __construct(array $config = []) {
 		$this->config = $config;
@@ -135,7 +135,7 @@ class App extends \Swoolefy\Core\Component {
 	 * afterRequest 请求结束后注册钩子执行操作
 	 * @param	mixed   $callback 
 	 * @param	boolean $prepend
-     * @throws
+     * @throws  mixed
 	 * @return	void
 	 */
 	public function afterRequest(callable $callback, $prepend = false) {

@@ -101,14 +101,14 @@ abstract class UdpServer extends BaseServer {
 			// 启动时提前加载文件
 			self::startInclude();
 			// 记录worker的进程worker_pid与worker_id的映射
-			self::setWorkersPid($worker_id,$server->worker_pid);
+			self::setWorkersPid($worker_id, $server->worker_pid);
 			// 启动动态运行时的Coroutine
 			self::runtimeEnableCoroutine();
 			// 超全局变量server
        		Swfy::$server = $this->udpserver;
        		Swfy::$config = self::$config;
 			// 启动的初始化函数
-			$this->startCtrl->workerStart($server,$worker_id);
+			$this->startCtrl->workerStart($server, $worker_id);
 			// 延迟绑定
 			static::onWorkerStart($server, $worker_id);
 

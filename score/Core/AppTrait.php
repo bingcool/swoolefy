@@ -422,7 +422,7 @@ trait AppTrait {
 	/**
 	 * getModel 默认获取当前module下的控制器对应的module
 	 * @param  string  $model
-     * @throws
+     * @throws mixed
 	 * @return object
 	 */
 	public function getModel(string $model = '', string $module = '') {

@@ -56,7 +56,7 @@ class EventApp {
             },'bingcool');
         });
 	 * @param  string $class
-     * @throws
+     * @throws mixed
 	 * @return $this
 	 */
 	public function registerApp($class, ...$args) {
@@ -83,9 +83,9 @@ class EventApp {
             }while(0);
 
             if(!($this->event_app instanceof EventController)) {
+                $class_name = get_class($this->event_app);
                 unset($this->event_app);
-                $class_name = get_called_class($this->event_app);
-                throw new \Exception("$class_name must extends \Swoolefy\Core\EventController, please check it");
+                throw new \Exception("{$class_name} must extends \Swoolefy\Core\EventController, please check it");
             }
         }
 		return $this;
@@ -104,7 +104,7 @@ class EventApp {
     当协程退出时，发现有未捕获的异常，将引起致命错误。
      * @param  string $action
 	 * @param  array  $args
-     * @throws
+     * @throws mixed
 	 * return  $this
 	 */
 	public function __call(string $action, $args = []) {

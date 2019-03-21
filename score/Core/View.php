@@ -108,7 +108,7 @@ class View {
 	/**
 	 * redirectFetch 直接渲染对应的模块的模板
 	 * @param    $template_file
-	 * @return   html
+	 * @return   mixed
 	 */
 	protected function redirectFetch($template_file) {
 		$module = Application::getApp()->getModule();
@@ -147,7 +147,7 @@ class View {
 	/**
 	 * callFetch 跨模块调用渲染模板
 	 * @param    string  $template_file
-	 * @return   html
+	 * @return   mixed
 	 */
 	protected function callFetch($template_file) {
 		$filePath = SMARTY_TEMPLATE_PATH.$template_file;
