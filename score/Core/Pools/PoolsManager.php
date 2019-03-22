@@ -63,7 +63,7 @@ class PoolsManager {
      * @param array   $args
      * @param mixed   $extend_data
      * @param boolean $enable_coroutine
-     * @throws
+     * @throws \Exception
      * @return void
      */
     public static function addProcessPools(string $processName, string $processClass, int $process_num_bind_worker = 1, bool $async = true, array $args = [], $extend_data = null, bool $enable_coroutine = false) {
@@ -142,7 +142,8 @@ class PoolsManager {
     /**
      * getProcessByPid 通过进程id获取绑定当前worker进程的某个进程
      * @param  int    $pid
-     * @return object
+     * @throws \Exception
+     * @return mixed
      */
     public static function getProcessPoolsByPid(int $pid) {
         if(Swfy::isWorkerProcess()) {
@@ -173,7 +174,8 @@ class PoolsManager {
 
     /**
      * reboot 重启进程
-     * @param  string $processName
+     * @param  string  $processName
+     * @param  boolean $is_restart_all_process
      * @return boolean
      */
     public static function rebootPools(string $processName, bool $is_restart_all_process = false) {

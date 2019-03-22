@@ -12,7 +12,7 @@
 namespace Swoolefy\Core\Db;
 
 use Think\Db;
-use Swoolefy\Core\Db\MysqlCoroutine;
+use Swoolefy\Core\Application;
 
 class Mysql {
 
@@ -153,7 +153,7 @@ class Mysql {
 			if(isset($this->cache_driver) && !empty($this->cache_driver)) {
 				if(is_string($this->cache_driver)) {
 					$cache_driver = $this->cache_driver;
-					$cache_driver = Application::getApp()->$cache_driver;
+					$cache_driver = Application::getApp()->{$cache_driver};
 
 				}else if(is_object($this->cache_driver)){
 					$cache_driver = $this->cache_driver;

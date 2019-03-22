@@ -134,8 +134,7 @@ class WebsocketHander extends Swoole implements HanderInterface {
 	/**
 	 * ping 
 	 * @param    string   $evnet
-	 * @param    string   $params
-	 * @return   
+	 * @return   boolean
 	 */
 	public function ping(string $evnet) {
 		if(strtolower($evnet) == 'ping') {
@@ -146,10 +145,8 @@ class WebsocketHander extends Swoole implements HanderInterface {
 
 	/**
 	 * author 认证
-	 * @return 
+	 * @return void
 	 */
-	public function author() {
-
-	}
+	public function author() {}
 }
 

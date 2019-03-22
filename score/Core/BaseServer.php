@@ -140,7 +140,7 @@ class BaseServer {
 
 	/**
 	 * checkVersion 检查是否安装基础扩展
-     * @throws mixed
+     * @throws \Exception
 	 * @return void
 	 */
 	public static function checkVersion() {
@@ -233,7 +233,7 @@ class BaseServer {
 
 	/**
 	 * filterFaviconIcon google浏览器会自动发一次请求/favicon.ico,在这里过滤掉
-	 * @return  void
+	 * @return  mixed
 	 */
 	public static function filterFaviconIcon($request,$response) {
 		if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
@@ -243,7 +243,7 @@ class BaseServer {
 
 	/**
 	 * getStartTime 服务启动时间
-	 * @return   time
+	 * @return   string
 	 */
 	public static function getStartTime() {
 		return self::$_startTime;
@@ -505,6 +505,7 @@ class BaseServer {
 
 	/**
 	 * checkSapiEnv 判断是否是cli模式启动
+     * @throws \Exception
 	 * @return void
 	 */
 	public static function checkSapiEnv() {

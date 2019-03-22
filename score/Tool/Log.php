@@ -49,8 +49,8 @@ class Log {
 
 	/**
 	 * setChannel
-	 * @param    $channel 
-	 * @return   this 
+	 * @param    string $channel
+	 * @return   mixed  $this
 	 */
 	public function setChannel($channel) {
 		$this->channel = $channel;
@@ -59,8 +59,8 @@ class Log {
 
 	/**
 	 * setLogFilePath
-	 * @param   $logFilePath
-	 * @return  this
+	 * @param   string $logFilePath
+	 * @return  mixed  $this
 	 */
 	public function setLogFilePath($logFilePath) {
 		$this->logFilePath = $logFilePath;
@@ -69,8 +69,8 @@ class Log {
 
 	/**
 	 * setOutputFormat
-	 * @param    $output
-	 * @return   this
+	 * @param    string $output
+	 * @return   mixed $this
 	 */
 	public function setOutputFormat($output) {
 		$this->output = $output;

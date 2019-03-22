@@ -188,6 +188,7 @@ class TableManager {
 
 	/**
 	 * count 计算表的存在条目数
+     * @param string $table
 	 * @return int
 	 */
 	public static function count(string $table = null) {

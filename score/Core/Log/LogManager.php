@@ -23,7 +23,7 @@ class LogManager {
          string $channel = null,
          string $logFilePath = null,
          string $output = null,
-         string $dateformat= null
+         string $dateformat = null
     ) {
         if($channel && $logFilePath) {
             $this->logger = new \Swoolefy\Tool\Log($channel, $logFilePath, $output, $dateformat);
