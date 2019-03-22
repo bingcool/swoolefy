@@ -105,7 +105,9 @@ class MysqlCoroutine {
 	/**execute 执行insert,update,delete操作
 	 * @param    string        $sql
 	 * @param    array         $bingParams
-	 * @return   void
+     * @param    int           $timeout
+     * @throws   mixed
+	 * @return   mixed
 	 */
 	public function execute(string $sql, array $bindParams = [], int $timeout = 10) {
 		$keys = array_keys($bindParams);
@@ -155,11 +157,13 @@ class MysqlCoroutine {
 		
 	}
 
-	/**
-	 * query 从服务器查询，执行select操作
-	 * @param    string     $sql
-	 * @return   array
-	 */
+    /**
+     * @param string   $sql
+     * @param int|null $slave_num
+     * @param int      $timeout
+     * @return null
+     * @throws \Exception
+     */
 	public function query(string $sql, int $slave_num = null, int $timeout = 10) {
 		$slave = $this->getSlave($slave_num);
 		if($slave->connected) {
@@ -185,10 +189,11 @@ class MysqlCoroutine {
 		
 	}
 
-	/**
-	 * getMaster 获取主服务器实例
-	 * @return  
-	 */
+    /**
+     * getMaster 获取主服务器实例
+     * @return \Swoole\Coroutine\MySQL
+     * @throws \Exception
+     */
 	public function getMaster() {
 		if(is_object($this->master_swoole_mysql)) {
 			return $this->master_swoole_mysql;
@@ -218,6 +223,7 @@ class MysqlCoroutine {
 	/**
 	 * getSlave 获取从服务实例
 	 * @param    int|null  $num
+     * @throws   \Exception
 	 * @return   mixed
 	 */
 	public function getSlave(int $num = null) {

@@ -132,7 +132,7 @@ trait ComponentTrait {
 
     /**
      * buildInstance
-     * @throws
+     * @throws  \Exception
      * @return  object
      */
 	protected function buildInstance($class, $defination, $params, $com_alias_name) {
@@ -230,6 +230,8 @@ trait ComponentTrait {
 
     /**
      * isSetOpenPoolsOfComponent 组件是否开启pools
+     * @param array  $component
+     * @return boolean
      */
     private function isSetOpenPoolsOfComponent(array &$component) {
         if(isset($component[SWOOLEFY_ENABLE_POOLS]) && isset($component[SWOOLEFY_POOLS_NUM])) {
@@ -241,6 +243,7 @@ trait ComponentTrait {
     /**
      * setComponentPools 设置记录启用pools的组件，一般在自定义进程做db,redis的进程池需要用到，慎用此函数
      * @param string|null $com_alias_name
+     * @return void
      */
     public function setOpenPoolsOfComponent(string $com_alias_name = null) {
         if($com_alias_name) {
@@ -269,7 +272,7 @@ trait ComponentTrait {
 	/**
 	 * __set
 	 * @param    string  $name
-	 * @param    object  $value
+	 * @param    mixed  $value
 	 * @return   mixed
 	 */
 	public function __set($name, $value) {

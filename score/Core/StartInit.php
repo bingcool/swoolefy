@@ -18,7 +18,6 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	/**
 	 * init swoole服务start启动之前初始化
 	 * 可创建自定义进程process
-	 * @param  $args
 	 * @return void
 	 */
 	public function onInit() {

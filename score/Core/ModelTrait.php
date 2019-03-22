@@ -147,14 +147,14 @@ trait ModelTrait {
 
     /**
      * setCookie 设置HTTP响应的cookie信息，与PHP的setcookie()参数一致
-     * @param   $key   Cookie名称
-     * @param   $value Cookie值
-     * @param   $expire 有效时间
-     * @param   $path 有效路径
-     * @param   $domain 有效域名
-     * @param   $secure Cookie是否仅仅通过安全的HTTPS连接传给客户端
-     * @param   $httponly 设置成TRUE，Cookie仅可通过HTTP协议访问
-     * @return  $this
+     * @param   string  $key   Cookie名称
+     * @param   string  $value Cookie值
+     * @param   int     $expire 有效时间
+     * @param   string  $path 有效路径
+     * @param   string  $domain 有效域名
+     * @param   boolean $secure Cookie是否仅仅通过安全的HTTPS连接传给客户端
+     * @param   boolean $httponly 设置成TRUE，Cookie仅可通过HTTP协议访问
+     * @return  mixed
      */
     public function setCookie(
         $key, 

@@ -248,7 +248,6 @@ class Swoole extends BaseObject {
 
 	/**
 	 * end
-	 * @return  
 	 */
 	public function end() {
 		// call hook callable

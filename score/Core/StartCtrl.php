@@ -17,8 +17,6 @@ use Swoolefy\Core\Process\ProcessManager;
 class StartCtrl implements \Swoolefy\Core\StartInterface {
 	/**
 	 * init start之前初始化
-	 * @param  $args
-	 * @return void
 	 */
 	public function init() {
         static::eachStartInfo();

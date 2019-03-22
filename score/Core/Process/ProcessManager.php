@@ -73,7 +73,7 @@ class ProcessManager {
 	/**
 	 * getProcessByName 通过名称获取一个进程
 	 * @param  string $processName
-	 * @return object
+	 * @return mixed
 	 */
 	public static function getProcessByName(string $processName) {
         $key = md5($processName);
@@ -87,7 +87,7 @@ class ProcessManager {
     /**
      * getProcessByPid 通过进程id获取进程
      * @param  int    $pid
-     * @return object
+     * @return mixed
      */
     public static function getProcessByPid(int $pid) {
         $table = TableManager::getTable('table_process_map');

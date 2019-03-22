@@ -171,7 +171,6 @@ trait ServiceTrait {
 
 	/**
 	 * isWorkerProcess 进程是否是worker进程
-	 * @param    $worker_id
 	 * @return   boolean
 	 */
 	public static function isWorkerProcess() {
@@ -183,7 +182,6 @@ trait ServiceTrait {
 
 	/**
 	 * isTaskProcess 进程是否是task进程
-	 * @param    $worker_id
 	 * @return   boolean
 	 */
 	public static function isTaskProcess() {
@@ -195,7 +193,7 @@ trait ServiceTrait {
 	}
 
     /** isSelfProcess 进程是否是process进程
-     * @return bool
+     * @return boolean
      */
 	public static function isSelfProcess() {
 	    // process的进程的worker_id等于-1

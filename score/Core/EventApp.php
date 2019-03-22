@@ -55,8 +55,10 @@ class EventApp {
                 var_dump($name); //输出bingcool
             },'bingcool');
         });
+     *
 	 * @param  string $class
-     * @throws mixed
+     * @param  mixed  $args
+     * @throws \Exception
 	 * @return $this
 	 */
 	public function registerApp($class, ...$args) {
@@ -104,7 +106,7 @@ class EventApp {
     当协程退出时，发现有未捕获的异常，将引起致命错误。
      * @param  string $action
 	 * @param  array  $args
-     * @throws mixed
+     * @throws \Exception
 	 * return  $this
 	 */
 	public function __call(string $action, $args = []) {
