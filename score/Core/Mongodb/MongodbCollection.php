@@ -71,6 +71,8 @@ class MongodbCollection {
 
     /**
      * find 查询数据
+     * @param array $filter
+     * @param array $options
      * @return array
      */
     public function find($filter = [], array $options = []) {
@@ -367,9 +369,10 @@ class MongodbCollection {
     }
 
     /**
-     * distinct 
-     * @param   string   $filedName
-     * @return    mixed
+     * @param mixed $fieldName
+     * @param array $filter
+     * @param array $options
+     * @return mixed
      */
     public function distinct($fieldName, $filter = [], array $options = []) {
         $filter = $this->parseFilter($filter);
@@ -379,8 +382,8 @@ class MongodbCollection {
     /**
      * 本类找不到函数时,自动重载collection类的原始函数
      * @param   string    $method
-     * @param   mixed    $argc
-     * @return    mixed
+     * @param   mixed     $argc
+     * @return  mixed
      */
     public function __call($method, $args) {
         return call_user_func_array([$this->collectionInstance, $method], $args);

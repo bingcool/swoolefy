@@ -74,7 +74,7 @@ class SysProcess extends AbstractProcess {
 	/**
 	 * sendByUdp 通过UDP发送方式
 	 * @param  array  $sys_collector_config
-	 * @param  $array $data
+	 * @param  array  $data
      * @throws mixed
 	 * @return void
 	 */

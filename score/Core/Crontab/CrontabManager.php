@@ -24,8 +24,8 @@ class CrontabManager {
     /**
      * @param string $cron_name
      * @param string $expression
-     * @param        $func
-     * @throws mixed
+     * @param mixed  $func
+     * @throws \Exception
      */
 	public function addRule(string $cron_name, string $expression, $func) {
 		if(class_exists('Cron\\CronExpression')) {

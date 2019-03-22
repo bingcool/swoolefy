@@ -82,8 +82,8 @@ class MongodbModel {
 
     /**
      * dbInstanc
-     * @param  string   $db
-     * @return   object
+     * @param    string   $db
+     * @return   mixed
      */
     public function dbInstance($db = null) {
         if(isset($this->databaseObject) && is_object($this->databaseObject)) {
@@ -106,7 +106,7 @@ class MongodbModel {
 
     /**
      * ping 测试是否能够连接mongodb server
-     * @pong 是否返回ping的所有信息
+     * @param  boolean $pong 是否返回ping的所有信息
      * @return mixed
      */
     public function ping($pong = false) {
@@ -124,7 +124,7 @@ class MongodbModel {
     /**
      *  collection 创建collection对象
      * @param   string  $collection
-     * @return    object
+     * @return  mixed
      */
     public function collection($collection) {
         if(!is_object($this->mongodbClient)) {
@@ -140,7 +140,8 @@ class MongodbModel {
     }
 
     /**
-     * setId 
+     * setId
+     * @param   string $_id
      * @return  void
      */
     public function setIdKey(string $_id) {

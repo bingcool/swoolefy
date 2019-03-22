@@ -45,7 +45,7 @@ class EventController extends BaseObject {
 	/**
 	 * __construct 初始化函数
 	 */
-	public function __construct() {
+	public function __construct(...$args) {
 		$this->creatObject();
 		$this->config = Swfy::getAppConf();
 		$coroutine_id = CoroutineManager::getInstance()->getCoroutineId();

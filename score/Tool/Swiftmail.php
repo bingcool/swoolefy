@@ -72,7 +72,7 @@ class Swiftmail {
 
 	/**
 	 * initSmtpTransport
-	 * @return onject
+	 * @return mixed
 	 */
 	private function initSmtpTransport() {
 		if(is_array($this->smtpTransport)) {
@@ -163,6 +163,7 @@ class Swiftmail {
 
 	/**
 	 * sendEmail
+     * @throws \Exception
 	 * @return void
 	 */
 	public function sendEmail() {

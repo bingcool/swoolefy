@@ -77,7 +77,6 @@ class CoroutineManager {
 		}
 		// 1.x, 2.x版本
 		return null;
-		
 	}
 
 	/**
@@ -85,7 +84,7 @@ class CoroutineManager {
 	 * @return mixed
 	 */
 	public function listCoroutines() {
-		if(method_exists('Swoole\Coroutine', 'listCoroutines')) {
+		if(method_exists('Swoole\\Coroutine', 'listCoroutines')) {
 			$cids = [];
 			$coros = \Swoole\Coroutine::listCoroutines();
 			foreach($coros as $cid) {
@@ -101,10 +100,10 @@ class CoroutineManager {
 	 * @param   $cid  
 	 * @param   $options
 	 * @param   $limit
-	 * @return  array
+	 * @return  mixed
 	 */
 	public function getBackTrace($cid = 0, $options = DEBUG_BACKTRACE_PROVIDE_OBJECT, $limit = 0) {
-		if(method_exists('Swoole\Coroutine', 'getBackTrace')) {
+		if(method_exists('Swoole\\Coroutine', 'getBackTrace')) {
 			return \Swoole\Coroutine::getBackTrace($cid, $options,  $limit);
 		}
 		return null;
