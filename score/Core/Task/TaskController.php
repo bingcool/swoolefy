@@ -35,7 +35,7 @@ class TaskController extends EventController {
 
     /**
      * __construct
-     * @throws mixed
+     * @throws \Exception
      */
     public function __construct() {
         parent::__construct();
@@ -55,7 +55,7 @@ class TaskController extends EventController {
 
     /**
      * setFromWorkerId
-     * @return int
+     * @param  int $from_worker_id
      */
     public function setFromWorkerId(int $from_worker_id) {
         $this->from_worker_id = $from_worker_id;

@@ -65,8 +65,8 @@ class BService extends BaseObject {
 	 * return tcp 发送数据
 	 * @param  int    $fd
 	 * @param  mixed  $data
-	 * @param  string $encode
-     * @throws
+	 * @param  array  $header
+     * @throws \Exception
 	 * @return void
 	 */
 	public function send($fd, $data, $header = []) {
@@ -82,11 +82,11 @@ class BService extends BaseObject {
 
 	/**
 	 * sendto udp 发送数据
-	 * @param    int      $ip  
+	 * @param    string      $ip
 	 * @param    int      $port
 	 * @param    mixed    $data
 	 * @param    int      $server_socket
-     * @throws
+     * @throws   \Exception
 	 * @return   void
 	 */
 	public function sendto($ip, $port, $data, $server_socket = -1) {
@@ -106,10 +106,10 @@ class BService extends BaseObject {
 	 * @param  mixed  $data
 	 * @param  int    $opcode
 	 * @param  boolean $finish
-     * @throws
+     * @throws \Exception
 	 * @return boolean
 	 */
-	public function push($fd, $data, $opcode = 1, $finish = true) {
+	public function push($fd, $data, int $opcode = 1, bool $finish = true) {
 		// 只能由websoccket调用
 		if(BaseServer::isWebsocketApp()) {
 			if(is_array($data)){

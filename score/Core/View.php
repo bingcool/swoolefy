@@ -46,10 +46,11 @@ class View {
 	 */
 	public $enable_gzip = false;
 
-	/**
-	 * __construct
-	 */
-	public function __construct($contentType='text/html') {
+    /**
+     * View constructor.
+     * @param string $contentType
+     */
+	public function __construct($contentType = 'text/html') {
 	    if(class_exists('Smarty')) {
             $smarty = new Smarty;
             $smarty->setCompileDir(SMARTY_COMPILE_DIR);
@@ -93,7 +94,7 @@ class View {
 	/**
 	 * display 渲染视图成字符串
 	 * @param   string  $template_file
-	 * @return  html               
+	 * @return  mixed
 	 */
 	public function display($template_file = null) {
 		$template_file = ltrim($template_file);
@@ -107,8 +108,8 @@ class View {
 
 	/**
 	 * redirectFetch 直接渲染对应的模块的模板
-	 * @param    $template_file
-	 * @return   mixed
+	 * @param   string $template_file
+	 * @return  mixed
 	 */
 	protected function redirectFetch($template_file) {
 		$module = Application::getApp()->getModule();

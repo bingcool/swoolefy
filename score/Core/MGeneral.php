@@ -141,12 +141,12 @@ class MGeneral extends \Swoolefy\Core\AppObject {
 
     /**
      * _die 异常终端程序执行
-     * @param    string   $msg
-     * @param    int      $code
-     * @throws
+     * @param    string   $html
+     * @param    int      $msg
+     * @throws   \Exception
      * @return   mixed
      */
-    public static function _die($html='', $msg='') {
+    public static function _die($html = '', $msg = '') {
         // 直接结束请求
         Application::getApp()->response->end($html);
         throw new \Exception($msg);
@@ -192,7 +192,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
     /**
      * randtime 按UNIX时间戳产生随机数
      * @param   int  $rand_length
-     * @return string
+     * @return  string
      */
     public static function randtime($rand_length = 6) {
         list($usec, $sec) = explode(" ", microtime());
@@ -205,7 +205,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
      * randmd5 产生一个随机MD5字符的一部分
      * @param   int  $length
      * @param   int  $seed
-     * @return string
+     * @return  string
      */
     public static function randmd5($length = 20, $seed = null) {
         if (empty($seed)) {

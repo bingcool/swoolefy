@@ -42,7 +42,7 @@ class TaskService extends BService {
 
     /**
      * setFromWorkerId
-     * @return int
+     * @param  int $from_worker_id
      */
     public function setFromWorkerId(int $from_worker_id) {
         $this->from_worker_id = $from_worker_id;

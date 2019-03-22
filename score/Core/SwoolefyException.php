@@ -56,11 +56,11 @@ class SwoolefyException {
 
     /**
      * appError 获取用户程序错误
-     * @param    $errno  
-     * @param    $errstr 
-     * @param    $errfile
-     * @param    $errline
-     * @return           
+     * @param    int       $errno
+     * @param    string    $errstr
+     * @param    string    $errfile
+     * @param    int       $errline
+     * @return   void
      */
     public static function appError($errno, $errstr, $errfile, $errline) {
     	$errorStr = "$errfile 第 $errline 行: $errstr";
@@ -81,9 +81,9 @@ class SwoolefyException {
     }
 
     /**
-     * shutHalt 错误输出日志
-     * @param  $error 错误
-     * @return void
+     * shutHalt 输出错误日志
+     * @param string      $errorMsg
+     * @param string $errorType
      */
     public static function shutHalt($errorMsg, $errorType = 'error') {
         if(!defined('LOG_PATH')) {

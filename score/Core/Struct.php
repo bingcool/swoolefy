@@ -57,6 +57,7 @@ class Struct {
 	 * set 设置数据结构属性值
 	 * @param   string  $property
 	 * @param   mixed   $value
+     * @return  mixed
 	 */
 	public function set($property, $value = null) {
 		$previous = isset($this->$property) ? $this->$property : null;

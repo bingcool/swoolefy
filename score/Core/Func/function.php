@@ -60,10 +60,11 @@ function dump($var, $echo=true, $label=null, $strict=true) {
  * _die 异常终端程序执行
  * @param    $msg
  * @param    $code
+ * @throws   \Exception
  * @return   mixed
  */
-function _die($msg = '') {
-    throw new \Exception($msg);
+function _die($msg = '', int $code = 1) {
+    throw new \Exception($msg, $code);
 }
 
 /**

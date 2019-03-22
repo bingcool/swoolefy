@@ -38,7 +38,8 @@ class BaseObject {
     /**
      * setArgs 设置临时变量
      * @param  string  $name
-     * @param  boolean
+     * @param  mixed   $value
+     * @return boolean
      */
     public function setArgs(string $name, $value) {
     	if($name && $value) {
@@ -65,7 +66,7 @@ class BaseObject {
 
 	/**
 	 * __call
-     * @throws
+     * @throws  \Exception
 	 * @return   mixed
 	 */
 	public function __call($action, $args = []) {

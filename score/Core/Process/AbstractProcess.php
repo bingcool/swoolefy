@@ -162,7 +162,7 @@ abstract class AbstractProcess {
      * sendMessage 向worker进程发送数据(包含task进程)，worker进程将通过onPipeMessage函数监听获取数数据，默认向worker0发送
      * @param  mixed  $msg
      * @param  int    $worker_id
-     * @throws
+     * @throws \Exception
      * @return boolean
      */
     public function sendMessage($msg = null, int $worker_id = 0) {

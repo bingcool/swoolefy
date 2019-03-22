@@ -59,6 +59,7 @@ class EventController extends BaseObject {
 	/**
 	 * setApp  重置APP对象
 	 * @param  int  $coroutine_id
+     * @return boolean
 	 */
 	public function setApp($coroutine_id = null) {
 		if($coroutine_id) {
@@ -82,7 +83,7 @@ class EventController extends BaseObject {
 	 * afterRequest 
 	 * @param  callable $callback
 	 * @param  boolean  $prepend
-     * @throws mixed
+     * @throws \Exception
 	 * @return mixed
 	 */
 	public function afterRequest(callable $callback, $prepend = false) {
@@ -122,6 +123,7 @@ class EventController extends BaseObject {
 	}
 
     /**
+     * @param $level
      * @param $log
      */
     public function setLog($level, $log) {

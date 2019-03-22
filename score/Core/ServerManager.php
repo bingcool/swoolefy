@@ -35,6 +35,7 @@ class ServerManager {
 	 * @param string $host 
 	 * @param int    $port 
 	 * @param string   $type
+     * @throws \Exception
      * @return mixed
 	 */
 	public function addListener(string $host, $port, $type = SWOOLE_SOCK_TCP) {

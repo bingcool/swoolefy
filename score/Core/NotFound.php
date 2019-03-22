@@ -63,6 +63,7 @@ class NotFound extends BService {
 
 	/**
 	 * returnError 直接返回捕捉的错误和异常信息
+     * @param  string  $msg
 	 * @return mixed
 	 */
 	public function returnError($msg) {

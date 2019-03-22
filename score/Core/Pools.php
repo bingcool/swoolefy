@@ -53,6 +53,7 @@ class Pools {
 	/**
 	 * getObj 获取pools的一个实例
 	 * @param  string $poolsName
+     * @param  int    $timeout
 	 * @return mixed
 	 */
 	public function getObj(string $poolsName, int $timeout = 10) {
@@ -83,6 +84,7 @@ class Pools {
 	/**
 	 * getChanStats 获取某个通道的状态，返回一个数组，包括2项信息，queue_num 通道中的元素数量，queue_bytes 通道当前占用的内存字节数
 	 * @param  string $poolName
+     * @param  int    $worker_id
 	 * @return mixed
 	 */
 	public function getChanStats(string $poolName, int $worker_id) {
@@ -95,6 +97,7 @@ class Pools {
 
 	/**
 	 * getPools 获取所有进程池的channel对象
+     * @param   string  $poolsName
 	 * @return array
 	 */
 	public function getPools(string $poolsName) {
@@ -106,7 +109,7 @@ class Pools {
 
 	/**
 	 * getChanSize 获取设置的通道的大小，单位字节
-	 * @param  string   $poolName
+	 * @param  string $poolName
 	 * @return int
 	 */
 	public function getChanSize(string $poolsName = null) {
@@ -116,6 +119,8 @@ class Pools {
 
 	/**
 	 * sendMessage 通知process创建实例
+     * @param string $poolsName
+     * @param string $msg
 	 * @return void
 	 */
 	public function sendMessage(string $poolsName, $msg = null) {

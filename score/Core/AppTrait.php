@@ -113,7 +113,7 @@ trait AppTrait {
 
     /**
      * getRequest 
-     * @return request 对象
+     * @return mixed
      */
     public function getRequest() {
     	return $this->request;
@@ -121,7 +121,7 @@ trait AppTrait {
 
     /**
      * getResponse 
-     * @return response 对象
+     * @return mixed
      */
     public function getResponse() {
     	return $this->response;
@@ -129,9 +129,8 @@ trait AppTrait {
 
     /**
      * getRequestParam  获取请求参数，包括get,post
-     * @param    string   $key
-     * @param    string   $mothod
-     * @return   mxixed
+     * @param    string   $name
+     * @return   mixed
      */
     public function getRequestParams(string $name = null) {
     	$mothod = strtolower($this->getMethod());
@@ -358,7 +357,7 @@ trait AppTrait {
 
 	/**
 	 * getPreviousUrl
-	 * @param  string  $name
+	 * @param    string  $name
 	 * @return   mixed
 	 */
 	public function getPreviousUrl(string $name = null) {
@@ -529,7 +528,7 @@ trait AppTrait {
 	 * sendfile
 	 * @param    string  $filename 
 	 * @param    int     $offset   
-	 * @param    string  $length   
+	 * @param    int     $length
 	 * @return   void          
 	 */
 	public function sendfile(string $filename, int $offset = 0, int $length = 0) {
@@ -597,11 +596,11 @@ trait AppTrait {
 	 * dump，调试函数
 	 * @param    string|array  $var
 	 * @param    boolean       $echo
-	 * @param    $label
-	 * @param    $strict
+	 * @param    mixed         $label
+	 * @param    boolean       $strict
 	 * @return   string            
 	 */
-	public function dump($var, $echo=true, $label=null, $strict=true) {
+	public function dump($var, $echo = true, $label = null, $strict = true) {
 	    $label = ($label === null) ? '' : rtrim($label) . ' ';
 	    if (!$strict) {
 	        if (ini_get('html_errors')) {
@@ -724,14 +723,14 @@ trait AppTrait {
 
     /**
      * setCookie 设置HTTP响应的cookie信息，与PHP的setcookie()参数一致
-     * @param   $key   Cookie名称
-     * @param   $value Cookie值
-     * @param   $expire 有效时间
-     * @param   $path 有效路径
-     * @param   $domain 有效域名
-     * @param   $secure Cookie是否仅仅通过安全的HTTPS连接传给客户端
-     * @param   $httponly 设置成TRUE，Cookie仅可通过HTTP协议访问
-     * @return  $this
+     * @param   string  $key   Cookie名称
+     * @param   string  $value Cookie值
+     * @param   int     $expire 有效时间
+     * @param   string  $path 有效路径
+     * @param   string  $domain 有效域名
+     * @param   boolean $secure Cookie是否仅仅通过安全的HTTPS连接传给客户端
+     * @param   boolean $httponly 设置成TRUE，Cookie仅可通过HTTP协议访问
+     * @return  mixed
      */
     public function setCookie(
     	$key, 

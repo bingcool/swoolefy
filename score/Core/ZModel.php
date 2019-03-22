@@ -23,7 +23,8 @@ class ZModel {
 	/**
 	 * getInstance 获取model的单例
 	 * @param   string  $class  类命名空间
-	 * @return  object 
+     * @param   mixed   $args
+	 * @return  mixed
 	 */
 	public static function getInstance(string $class = '', ...$args) {
 		$cid = CoroutineManager::getInstance()->getCoroutineId();
