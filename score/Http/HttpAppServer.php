@@ -40,6 +40,7 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 	 * onRequest 
 	 * @param    $request
 	 * @param    $response
+     * @throws   \Throwable
 	 * @return   void
 	 */
 	public function onRequest($request, $response) {
@@ -47,7 +48,13 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
             $response->end();
             return;
        	}
-        self::$config['application_index']::getInstance($config = [])->run($request, $response);
+       	try {
+            $config = \Swoolefy\Core\Swfy::getAppConf();
+            $appInstance = new \Swoolefy\Core\App($config);
+            $appInstance->run($request, $response);
+        }catch (\Throwable $t) {
+            throw new \Exception($t->getMessage());
+        }
 	}
 
 	/**
@@ -65,7 +72,7 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 	 * @param    int  $task_id
 	 * @param    int  $from_worker_id
 	 * @param    mixed $data
-     * @throws   mixed
+     * @throws   \Throwable
 	 * @return   void
 	 */
 	public function onTask($server, $task_id, $from_worker_id, $data, $task = null) {

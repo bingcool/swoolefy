@@ -54,8 +54,10 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	 * @return   void
 	 */
 	public function onRequest($request, $response) {
-	    if(isset(self::$config['application_index'])) {
-            self::$config['application_index']::getInstance($config=[])->run($request, $response);
+	    if(isset(self::$config['accept_http']) && self::$config['accept_http'] == true) {
+            $config = \Swoolefy\Core\Swfy::getAppConf();
+            $appInstance = new \Swoolefy\Core\App($config);
+            $appInstance->run($request, $response);
         }
 	}
 
@@ -74,7 +76,9 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 		if($finish) {
 			// utf-8文本数据
 			if($opcode == WEBSOCKET_OPCODE_TEXT) {
-                self::$config['application_service']::getInstance($config=[])->run($fd, $data);
+                $config = \Swoolefy\Core\Swfy::getAppConf();
+                $appInstance = new \Swoolefy\Websocket\WebsocketHander($config);
+                $appInstance->run($fd, $data);
 			}else if($opcode == WEBSOCKET_OPCODE_BINARY) {
 				// TODO 二进制数据
 				static::onMessageFromBinary($server, $frame);
@@ -100,7 +104,9 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	 */
 	public function onTask($server, $task_id, $from_worker_id, $data, $task = null) {
 		list($callable, $taskData, $fd) = $data;
-        self::$config['application_service']::getInstance($config=[])->run($fd, [$callable, $taskData], [$from_worker_id, $task_id, $task]);
+        $config = \Swoolefy\Core\Swfy::getAppConf();
+        $appInstance = new \Swoolefy\Websocket\WebsocketHander($config);
+        $appInstance->run($fd, [$callable, $taskData], [$from_worker_id, $task_id, $task]);
         return true;
 	}
 

@@ -55,7 +55,7 @@ class Swoole extends BaseObject {
 
     /**
 	 * __construct
-	 * @param $config 应用层配置
+	 * @param array $config 应用层配置
 	 */
 	public function __construct(array $config = []) {
 		$this->config = $config;
@@ -75,7 +75,10 @@ class Swoole extends BaseObject {
 	 */
 	protected function _bootstrap($recv = null) {
 		static::bootstrap($recv);
-		Swfy::$config['application_service']::bootstrap($recv);
+		$application_service = Swfy::$config['application_service'];
+		if(isset($application_service) && class_exists($application_service)) {
+            Swfy::$config['application_service']::bootstrap($recv);
+        }
 	}
 
 	/**
