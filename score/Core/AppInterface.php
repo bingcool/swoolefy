@@ -18,12 +18,4 @@ interface AppInterface {
      */
     public static function bootstrap($args);
 
-	/**
-	 * getInstance 获取应用对象实例
-	 * @param    $config
-	 * @return   object
-	 */
-	public static function getInstance(array $config);
-
-
 }

@@ -140,7 +140,6 @@ abstract class UdpServer extends BaseServer {
                     $task_id = $task->id;
                     //任务的数据
                     $data = $task->data;
-
                     $task_data = unserialize($data);
                     static::onTask($server, $task_id, $from_worker_id, $task_data, $task);
                 }catch(\Exception $e) {
