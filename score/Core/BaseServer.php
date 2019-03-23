@@ -369,8 +369,9 @@ class BaseServer {
 
 	/**
 	 * setWorkersPid 记录worker对应的进程worker_pid与worker_id的映射
-	 * @param    $worker_id  
-	 * @param    $worker_pid 
+	 * @param  int $worker_id
+	 * @param  int $worker_pid
+     * @return void
 	 */
 	public static function setWorkersPid($worker_id, $worker_pid) {
 		$workers_pid = self::getWorkersPid();
@@ -409,8 +410,8 @@ class BaseServer {
 
 	/**
 	 * isWorkerProcess 进程是否是worker进程
-	 * @param    $worker_id
-	 * @return   boolean
+	 * @param   int $worker_id
+	 * @return  boolean
 	 */
 	public static function isWorkerProcess($worker_id) {
 		if($worker_id < static::$setting['worker_num']) {
@@ -421,8 +422,8 @@ class BaseServer {
 
 	/**
 	 * isTaskProcess 进程是否是task进程
-	 * @param    $worker_id
-	 * @return   boolean
+	 * @param   int $worker_id
+	 * @return  boolean
 	 */
 	public static function isTaskProcess($worker_id) {
 		return static::isWorkerProcess($worker_id) ? false : true;
@@ -489,10 +490,10 @@ class BaseServer {
 
 	/**
 	 * swooleVersion 判断swoole是否大于某个版本
-	 * @param    $version
+	 * @param    string  $version
 	 * @return   boolean
 	 */
-	public static function compareSwooleVersion($version = '1.9.15') {
+	public static function compareSwooleVersion($version = '4.2.0') {
 		if(isset(static::$config['swoole_version']) && !empty(static::$config['swoole_version'])) {
 			$version = static::$config['swoole_version'] ;
 		}
@@ -558,10 +559,10 @@ class BaseServer {
 
     /**
      * enableCoroutine 
-     * @return 
+     * @return void
      */
     public static function enableCoroutine() {
-    	if(version_compare(swoole_version(), '4.0.0', '>')) {
+    	if(version_compare(swoole_version(), '4.2.0', '>')) {
     		self::$isEnableCoroutine = true;
     		return;
     	}else {
@@ -679,6 +680,7 @@ class BaseServer {
     }
 
     /**
+     * isEnableReload
      * @return bool|mixed
      */
     public static function isEnableReload() {
@@ -760,7 +762,7 @@ class BaseServer {
     /**
      * @param $subclass
      * @param $parentclass
-     * @return bool
+     * @return boolean
      */
     public static function isSubclassOf($subclass, $parentclass) {
         if(is_subclass_of($subclass, $parentclass) || trim($subclass,'\\') == trim($parentclass,'\\')) {
@@ -770,6 +772,7 @@ class BaseServer {
     }
 
     /**
+     * startHander
      * @throws mixed
      * @return mixed
      */
@@ -796,7 +799,7 @@ class BaseServer {
     }
 
     /**
-     * 注册异常处理函数
+     * registerShutdownFunction 注册异常处理函数
      */
     public static function registerShutdownFunction() {
         $exceptionClass = self::getExceptionClass();
@@ -806,7 +809,7 @@ class BaseServer {
 
     /**
      * beforeRequest
-     * @return boolean
+     * @return void
      */
     public static function beforeHandler() {
     	self::atomicAdd();
@@ -814,7 +817,7 @@ class BaseServer {
 
     /**
      * endRequest 
-     * @return
+     * @return void
      */
     public static function endHandler() {}
 

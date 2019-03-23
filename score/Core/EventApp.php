@@ -101,13 +101,20 @@ class EventApp {
 		return $this->event_app->getCid();
 	}
 
+    /**
+     * @return object
+     */
+	public function getEventApp() {
+	    return $this->event_app;
+    }
+
 	/**
 	 * __call 在协程编程中可直接使用try/catch处理异常。但必须在协程内捕获，不得跨协程捕获异常。
     当协程退出时，发现有未捕获的异常，将引起致命错误。
      * @param  string $action
 	 * @param  array  $args
      * @throws \Exception
-	 * return  $this
+	 * return  mixed
 	 */
 	public function __call(string $action, $args = []) {
 		try{

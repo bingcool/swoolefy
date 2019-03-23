@@ -13,7 +13,11 @@ $APP_NAMES = [
 defined('SWOOLEFY_DEV') or define('SWOOLEFY_DEV','dev');
 defined('SWOOLEFY_GRA') or define('SWOOLEFY_GRA','gra');
 defined('SWOOLEFY_PRD') or define('SWOOLEFY_PRD','prd');
-
+define('SWOOLEFY_ENVS', [
+    SWOOLEFY_DEV,
+    SWOOLEFY_GRA,
+    SWOOLEFY_PRD
+]);
 // 设置成中国时区
 date_default_timezone_set('PRC');
 
@@ -80,9 +84,9 @@ function initCheck() {
             );
             exit();
         }
-        if(version_compare(swoole_version(),'4.2.0','<')) {
+        if(version_compare(swoole_version(),'4.2.13','<')) {
             write("
-                [error] the swoole version must >= 4.2.0, current swoole version = ".swoole_version()
+                [error] the swoole version must >= 4.2.13, current swoole version = ".swoole_version()
             );
             exit();
         }
@@ -142,7 +146,7 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer') {
         @mkdir($path, 0777, true);
     }
 
-    foreach([SWOOLEFY_DEV, SWOOLEFY_GRA, SWOOLEFY_PRD] as $env) {
+    foreach(SWOOLEFY_ENVS as $env) {
         $config_file = $path."/config-{$env}.php";
         if(!file_exists($config_file)) {
             copy(SCORE_DIR_ROOT.'/score/Http/config.php', $config_file);
@@ -186,7 +190,7 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
         @mkdir($path, 0777, true);
     }
 
-    foreach([SWOOLEFY_DEV, SWOOLEFY_GRA, SWOOLEFY_PRD] as $env) {
+    foreach(SWOOLEFY_ENVS as $env) {
         $config_file = $path."/config-{$env}.php";
         if(!file_exists($config_file)) {
             copy(SCORE_DIR_ROOT.'/score/Websocket/config.php', $config_file);
@@ -233,7 +237,7 @@ function startRpc($app_name, $event_server_file_name = 'RpcServer') {
         @mkdir($path, 0777, true);
     }
 
-    foreach([SWOOLEFY_DEV, SWOOLEFY_GRA, SWOOLEFY_PRD] as $env) {
+    foreach(SWOOLEFY_ENVS as $env) {
         $config_file = $path."/config-{$env}.php";
         if(!file_exists($config_file)) {
             copy(SCORE_DIR_ROOT.'/score/Rpc/config.php', $config_file);
@@ -280,7 +284,7 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer') {
         @mkdir($path, 0777, true);
     }
 
-    foreach([SWOOLEFY_DEV, SWOOLEFY_GRA, SWOOLEFY_PRD] as $env) {
+    foreach(SWOOLEFY_ENVS as $env) {
         $config_file = $path."/config-{$env}.php";
         if(!file_exists($config_file)) {
             copy(SCORE_DIR_ROOT.'/score/Udp/config.php', $config_file);

@@ -421,6 +421,7 @@ trait AppTrait {
 	/**
 	 * getModel 默认获取当前module下的控制器对应的module
 	 * @param  string  $model
+     * @param  string  $module
      * @throws mixed
 	 * @return object
 	 */

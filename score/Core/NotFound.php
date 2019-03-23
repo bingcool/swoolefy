@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Core\Application;
+
 class NotFound extends BService {
 	/**
 	 * return404 类文件找不到处理
@@ -24,14 +26,14 @@ class NotFound extends BService {
 			// rpc服务，server端和client端的header_struct不相同时,默认不作处理
 			$is_same_packet_struct = $this->serverClientPacketstructSame();
 			if($is_same_packet_struct) {
-				$fd = $this->fd;
+				$fd = Application::getApp()->getFd();
 				$header = $this->getRpcPackHeader();
 				$this->send($fd, $response, $header);
 			}
 
 		}else if(BaseServer::isWebsocketApp()) {
 			// websocket服务
-			$fd = $this->fd;
+			$fd = Application::getApp()->getFd();
 			$this->push($fd, $response, $opcode = 1, $finish = true);
 		}
 		return $response;
@@ -49,13 +51,13 @@ class NotFound extends BService {
 			// rpc服务，server端和client端的header_struct不相同时,默认不作处理
 			$is_same_packet_struct = $this->serverClientPacketstructSame();
 			if($is_same_packet_struct) {
-				$fd = $this->fd;
+				$fd = Application::getApp()->getFd();
 				$header = $this->getRpcPackHeader();
 				$this->send($fd, $response, $header);
 			}
 		}else if(BaseServer::isWebsocketApp()) {
 			// websocket服务
-			$fd = $this->fd;
+			$fd = Application::getApp()->getFd();
 			$this->push($fd, $response, $opcode = 1, $finish = true);
 		}
 		return $response;
@@ -72,14 +74,15 @@ class NotFound extends BService {
 			// rpc服务，server端和client端的header_struct不相同时,默认不作处理
 			$is_same_packet_struct = $this->serverClientPacketstructSame();
 			if($is_same_packet_struct) {
-				$fd = $this->fd;
+				$fd = Application::getApp()->getFd();
 				$header = $this->getRpcPackHeader();
 				$this->send($fd, $response, $header);
 			}
 
 		}else if(BaseServer::isWebsocketApp()) {
 			// websocket服务
-			$fd = $this->fd;
+			$fd = Application::getApp()->getFd();
+			var_dump($fd);
 			$this->push($fd, $response, $opcode = 1, $finish = true);
 		}
 		return $response;

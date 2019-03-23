@@ -182,14 +182,15 @@ trait ServiceTrait {
 
 	/**
 	 * isTaskProcess 进程是否是task进程
-	 * @return   boolean
+     * @throws \Exception
+	 * @return boolean
 	 */
 	public static function isTaskProcess() {
 		$server = Swfy::getServer();
 		if(property_exists($server, 'taskworker')) {
 			return $server->taskworker;
 		}
-		throw new \Exception("not found task process,may be you use it before workerStart()", 1);
+		throw new \Exception("Error: not found task process,may be you use it before workerStart()", 1);
 	}
 
     /** isSelfProcess 进程是否是process进程

@@ -116,7 +116,7 @@ class HttpRoute extends AppDispatch {
 						list($controller, $action) = $route_params;
 					break;
 					case 3 : 
-						// Model/Controller/Action模式
+						// Module/Controller/Action模式
 						list($module, $controller, $action) = $route_params;
 					break;	
 				}
@@ -138,19 +138,19 @@ class HttpRoute extends AppDispatch {
 		$this->request->server['ROUTE_PARAMS'] = [];
 		// 定义禁止直接外部访问的方法
 		if(in_array($action, self::$deny_actions)) {
-			return $this->response->end($action.'() method is not be called!');
+			return $this->response->end("{$action}() method is not be called");
 		}
 		if($module) {
 			// route参数数组
-			$this->request->server['ROUTE_PARAMS'] = [3,[$module,$controller,$action]];	
+			$this->request->server['ROUTE_PARAMS'] = [3, [$module,$controller,$action]];
 			// 调用
-			$this->invoke($module,$controller,$action);
+			$this->invoke($module, $controller, $action);
 			
 		}else {
 			// route参数数组
-			$this->request->server['ROUTE_PARAMS'] = [2,[$controller,$action]];
+			$this->request->server['ROUTE_PARAMS'] = [2, [$controller,$action]];
 			// 调用 
-			$this->invoke($module=null,$controller,$action);
+			$this->invoke($module = null, $controller, $action);
 		}
 		return null;
 	}

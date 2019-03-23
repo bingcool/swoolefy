@@ -54,17 +54,19 @@ class ServiceDispatch extends AppDispatch {
 		list($class, $action) = $this->callable;
         $class = trim(str_replace('\\', '/', $class), '/');
 		if(!isset(self::$routeCacheFileMap[$class])) {
-			if(!$this->checkClass($class)){
-				$app_conf = Swfy::getAppConf();
-				if(isset($app_conf['not_found_handle']) && is_string($app_conf['not_found_handle'])) {
-					$handle = $app_conf['not_found_handle'];
-					$notFoundInstance = new $handle;
-					if($notFoundInstance instanceof \Swoolefy\Core\NotFound) {
+			if(!$this->checkClass($class)) {
+			    if(Swfy::isWorkerProcess()) {
+                    $app_conf = Swfy::getAppConf();
+                    if(isset($app_conf['not_found_handle']) && is_string($app_conf['not_found_handle'])) {
+                        $handle = $app_conf['not_found_handle'];
+                        $notFoundInstance = new $handle;
+                        if($notFoundInstance instanceof \Swoolefy\Core\NotFound) {
+                            $return_data = $notFoundInstance->return404($class);
+                        }
+                    }else {
+                        $notFoundInstance = new \Swoolefy\Core\NotFound();
                         $return_data = $notFoundInstance->return404($class);
-					}
-				}else {
-                    $notFoundInstance = new \Swoolefy\Core\NotFound();
-                    $return_data = $notFoundInstance->return404($class);
+                    }
                 }
                 // 记录错误异常
                 $msg = isset($return_data['msg']) ? $return_data['msg'] : "when dispatch, $class not found!";
@@ -87,16 +89,18 @@ class ServiceDispatch extends AppDispatch {
 			if(method_exists($serviceInstance, $action)) {
 				$serviceInstance->$action($this->params);
 			}else {
-				$app_conf = Swfy::getAppConf();
-				if(isset($app_conf['not_found_handle']) && is_string($app_conf['not_found_handle'])) {
-					$handle = $app_conf['not_found_handle'];
-					$notFoundInstance = new $handle;
-					if($notFoundInstance instanceof \Swoolefy\Core\NotFound) {
+			    if(Swfy::isWorkerProcess()) {
+                    $app_conf = Swfy::getAppConf();
+                    if(isset($app_conf['not_found_handle']) && is_string($app_conf['not_found_handle'])) {
+                        $handle = $app_conf['not_found_handle'];
+                        $notFoundInstance = new $handle;
+                        if($notFoundInstance instanceof \Swoolefy\Core\NotFound) {
+                            $return_data = $notFoundInstance->return500($class, $action);
+                        }
+                    }else {
+                        $notFoundInstance = new \Swoolefy\Core\NotFound();
                         $return_data = $notFoundInstance->return500($class, $action);
-					}
-				}else {
-                    $notFoundInstance = new \Swoolefy\Core\NotFound();
-                    $return_data = $notFoundInstance->return500($class, $action);
+                    }
                 }
                 // 记录错误异常
                 $msg = isset($return_data['msg']) ? $return_data['msg'] : "when dispatch, $class call undefined function $action()";
@@ -105,18 +109,20 @@ class ServiceDispatch extends AppDispatch {
 				return;
 			}
 		}catch(\Throwable $t) {
-			$msg = 'Fatal error: '.$t->getMessage().' on '.$t->getFile().' on line '.$t->getLine().' ||| '.$class;
+			$msg = 'Fatal error: '.$t->getMessage().' on '.$t->getFile().' on line '.$t->getLine().' ||| '.$class.'::'.$action.'  data='.json_encode($this->params,JSON_UNESCAPED_UNICODE);
 			$app_conf = Swfy::getAppConf();
-			if(isset($app_conf['not_found_handle']) && is_string($app_conf['not_found_handle'])) {
-				$handle = $app_conf['not_found_handle'];
-				$notFoundInstance = new $handle;
-				if($notFoundInstance instanceof \Swoolefy\Core\NotFound) {
+			if(Swfy::isWorkerProcess()) {
+                if(isset($app_conf['not_found_handle']) && is_string($app_conf['not_found_handle'])) {
+                    $handle = $app_conf['not_found_handle'];
+                    $notFoundInstance = new $handle;
+                    if($notFoundInstance instanceof \Swoolefy\Core\NotFound) {
+                        $return_data = $notFoundInstance->returnError($msg);
+                    }
+                }else {
+                    $notFoundInstance = new \Swoolefy\Core\NotFound();
                     $return_data = $notFoundInstance->returnError($msg);
-				}
-			}else {
-				$notFoundInstance = new \Swoolefy\Core\NotFound();
-                $return_data = $notFoundInstance->returnError($msg);
-			}
+                }
+            }
             // 记录错误异常
             $exceptionClass = Application::getApp()->getExceptionClass();
             $exceptionClass::shutHalt($msg);
