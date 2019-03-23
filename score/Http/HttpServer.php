@@ -78,6 +78,7 @@ abstract class HttpServer extends BaseServer {
 			// 启动的初始化函数
 			$this->startCtrl->start($server);
 		});
+
 		/**
 		 * managerstart回调
 		 */
@@ -168,7 +169,6 @@ abstract class HttpServer extends BaseServer {
 
             });
         }
-
 
 		/**
 		 * 处理异步任务

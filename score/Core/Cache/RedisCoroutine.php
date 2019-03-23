@@ -129,7 +129,6 @@ class RedisCoroutine {
             }
 			$redis->connect($host, $port);
 			$redis->auth($password);
-			$this->selectdb && $redis->select(intval($this->selectdb));
 			$isConnected = $redis->connected;
 			if($isConnected) {
 				$this->master_redis_hosts = $redis;
@@ -193,7 +192,6 @@ class RedisCoroutine {
                         $redis->setOptions($this->options);
                     }
 					$redis->auth($password);
-					$this->selectdb && $redis->select(intval($this->selectdb));
 					$isConnected = $redis->connected;
 					if($isConnected) {
 						$this->slave_redis_hosts[$num] = $redis;

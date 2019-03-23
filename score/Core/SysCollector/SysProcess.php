@@ -81,7 +81,7 @@ class SysProcess extends AbstractProcess {
 	protected function sendByUdp(array $sys_collector_config, array $data = []) {
 		$udp_client = null;
 		if(!is_object($udp_client)) {
-			$udp_client = new \Swoole\Client(SWOOLE_SOCK_UDP, SWOOLE_SOCK_SYNC);
+			$udp_client = new \Swoole\Coroutine\Client(SWOOLE_SOCK_UDP);
 		}
 		$host = $sys_collector_config['host'];
 		$port = $sys_collector_config['port'];

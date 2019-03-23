@@ -116,7 +116,7 @@ class TableManager {
 	 * @param  string        $table
 	 * @param  string        $key  
 	 * @param  string        $field
-	 * @param  mixed|integer $incrby
+	 * @param  mixed|int $incrby
 	 * @return mixed              
 	 */
 	public static function incr(string $table, string $key, string $field, $incrby = 1) {
@@ -131,7 +131,7 @@ class TableManager {
 	 * @param  string        $table
 	 * @param  string        $key  
 	 * @param  string        $field
-	 * @param  mixed|integer $incrby
+	 * @param  mixed|int $incrby
 	 * @return mixed              
 	 */
 	public static function decr(string $table, string $key, string $field, $incrby = 1) {

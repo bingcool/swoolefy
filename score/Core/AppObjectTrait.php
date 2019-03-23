@@ -17,7 +17,7 @@ use Swoolefy\Core\Application;
 trait AppObjectTrait {
 	/**
 	 * __call
-     * @throws
+     * @throws \Exception
 	 */
 	public function __call($action, $args = []) {
 		Application::getApp()->response->end(json_encode([
@@ -31,7 +31,7 @@ trait AppObjectTrait {
 
 	/**
 	 * __callStatic
-     * @throws
+     * @throws \Exception
 	 */
 	public static function __callStatic($action, $args = []) {
 		Application::getApp()->response->end(json_encode([
@@ -47,7 +47,7 @@ trait AppObjectTrait {
 	 * _die 异常终端程序执行
 	 * @param    $msg
 	 * @param    $code
-     * @throws   mixed
+     * @throws   \Exception
 	 */
 	public static function _die($html='', $msg='') {
 		// 直接结束请求
