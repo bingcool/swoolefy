@@ -110,7 +110,6 @@ class BService extends BaseObject {
 	 * @return boolean
 	 */
 	public function push($fd, $data, int $opcode = 1, bool $finish = true) {
-		// 只能由websoccket调用
 		if(BaseServer::isWebsocketApp()) {
 			if(is_array($data)){
 				$data = json_encode($data, JSON_UNESCAPED_UNICODE);

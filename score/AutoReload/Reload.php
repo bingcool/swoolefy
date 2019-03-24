@@ -69,7 +69,7 @@ class Reload {
 
     /**
      * __construct
-     * @throws mixed
+     * @throws \Exception
      */
     public function __construct() {
         if(extension_loaded('inotify')) {
@@ -80,8 +80,8 @@ class Reload {
     }    
     /**
      * init
-     * @throws mixed
-     * @return mixed
+     * @throws \Exception
+     * @return $this
      */
     public function init() {
         // 判断是否初始inotify
@@ -150,7 +150,7 @@ class Reload {
     }
 
     /**
-     * @param callable $callback
+     * @param  callable $callback
      * @return $this
      */
     public function onReload(callable $callback) {
@@ -161,6 +161,7 @@ class Reload {
     /**
      * addFileType 添加文件类型
      * @param $type
+     * @return $this
      */
     public function addFileType(string $type) {
         $type = trim($type, '.');
@@ -172,7 +173,7 @@ class Reload {
     /**
      * addEvent 添加事件
      * @param  $inotifyEvent
-     * @return mixed
+     * @return $this
      */
     public function addEvent($inotifyEvent) {
         $this->events |= $inotifyEvent;
@@ -181,7 +182,7 @@ class Reload {
 
     /**
      * clearWatch 清理所有inotify监听
-     * @return mixed
+     * @return $this
      */
     private function clearWatch() {
         foreach($this->watchFiles as $wd)
@@ -198,8 +199,8 @@ class Reload {
      * watch 监听文件目录
      * @param $dir
      * @param bool $root
-     * @return mixed
-     * @throws
+     * @throws \Exception
+     * @return $this
      */
     public function watch($dir, $root = true) {
         //目录不存在
@@ -250,6 +251,7 @@ class Reload {
     /**
      * setAfterNSeconds 启动停顿时间
      * @param float $seconds
+     * @return $this
      */
     public function setAfterSeconds(float $seconds = 10) {
         $this->afterSeconds = $seconds;
@@ -259,6 +261,7 @@ class Reload {
     /**
      * setReoloadFileType
      * @param array $file_type
+     * @return $this
      */
     public function setReoloadFileType(array $file_type = ['.php']) {
         $this->reloadFileTypes = array_merge($this->reloadFileTypes, $file_type);
@@ -268,6 +271,7 @@ class Reload {
     /**
      * setIgnoreDir 设置忽略不需检测的文件夹
      * @param array $ignore_dir
+     * @return $this
      */
     public function setIgnoreDirs(array $ignore_dirs = ['vendor']) {
         $this->ignoreDirs = array_merge($this->ignoreDirs, $ignore_dirs);

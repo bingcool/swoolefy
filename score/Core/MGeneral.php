@@ -142,11 +142,11 @@ class MGeneral extends \Swoolefy\Core\AppObject {
     /**
      * _die 异常终端程序执行
      * @param    string   $html
-     * @param    int      $msg
+     * @param    string   $msg
      * @throws   \Exception
-     * @return   mixed
+     * @return   void
      */
-    public static function _die($html = '', $msg = '') {
+    public static function _die(string $html = '', string $msg = '') {
         // 直接结束请求
         Application::getApp()->response->end($html);
         throw new \Exception($msg);
@@ -159,7 +159,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
      * @param   array  $ignore 忽略某些字符串
      * @return string
      */
-    public static function string($length = 8, $number = true, $ignore = []) {
+    public static function string(int $length = 8, bool $is_number = true, array $ignore = []) {
         //字符池
         $strings = 'ABCDEFGHIJKLOMNOPQRSTUVWXYZ';
         //数字池
@@ -173,7 +173,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
         $key = '';
         for ($i = 0; $i < $length; $i++)
         {   
-                //生成php随机数
+            //生成php随机数
             $key .= $pattern[mt_rand(0, $max)]; 
         }
         return $key;

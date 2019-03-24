@@ -40,7 +40,7 @@ class EventController extends BaseObject {
     /**
      * $log 日志
      */
-    public $logs = [];
+    protected $logs = [];
 
 	/**
 	 * __construct 初始化函数
@@ -48,8 +48,7 @@ class EventController extends BaseObject {
 	public function __construct(...$args) {
 		$this->creatObject();
 		$this->config = Swfy::getAppConf();
-		$coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
-		$this->coroutine_id = $coroutine_id;
+		$this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
 		Application::setApp($this);
 		defer(function() {
 		    $this->defer();

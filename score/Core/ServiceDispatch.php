@@ -20,19 +20,19 @@ class ServiceDispatch extends AppDispatch {
 	 * $callable 远程调用函数对象类
 	 * @var array
 	 */
-	public $callable = [];
+	protected $callable = [];
 
 	/**
 	 * $params 远程调用参数
 	 * @var null
 	 */
-	public $params = null;
+	protected $params = null;
 
 	/**
 	 * $deny_actions 禁止外部直接访问的action
 	 * @var array
 	 */
-	public static $deny_actions = ['__construct','_beforeAction','_afterAction','__destruct'];
+	protected static $deny_actions = ['__construct','_beforeAction','_afterAction','__destruct'];
 
 	/**
 	 * __construct 
@@ -69,7 +69,7 @@ class ServiceDispatch extends AppDispatch {
                     }
                 }
                 // 记录错误异常
-                $msg = isset($return_data['msg']) ? $return_data['msg'] : "when dispatch, $class not found!";
+                $msg = isset($return_data['msg']) ? $return_data['msg'] : "when dispatch, {$class} not found!";
                 $exceptionClass = Application::getApp()->getExceptionClass();
                 $exceptionClass::shutHalt($msg);
                 return;
@@ -103,7 +103,7 @@ class ServiceDispatch extends AppDispatch {
                     }
                 }
                 // 记录错误异常
-                $msg = isset($return_data['msg']) ? $return_data['msg'] : "when dispatch, $class call undefined function $action()";
+                $msg = isset($return_data['msg']) ? $return_data['msg'] : "when dispatch, {$class} call undefined function {$action}()";
                 $exceptionClass = Application::getApp()->getExceptionClass();
                 $exceptionClass::shutHalt($msg);
 				return;

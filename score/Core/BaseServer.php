@@ -661,7 +661,7 @@ class BaseServer {
 
     /**
      * isEnablePvCollector 是否启用计算请求次数
-     * @return bool
+     * @return boolean
      */
     public static function isEnablePvCollector() {
         static $isEnablePvCollector;
@@ -681,7 +681,7 @@ class BaseServer {
 
     /**
      * isEnableReload
-     * @return bool|mixed
+     * @return boolean|mixed
      */
     public static function isEnableReload() {
         if(isset(self::$config['reload_conf']) && isset(self::$config['reload_conf']['enable_reload'])) {
@@ -739,7 +739,7 @@ class BaseServer {
     }
 
     /**
-     * @return bool|mixed
+     * @return boolean|mixed
      */
     public static function isTaskEnableCoroutine() {
         static $isTaskEnableCoroutine;
@@ -773,7 +773,7 @@ class BaseServer {
 
     /**
      * startHander
-     * @throws mixed
+     * @throws \Exception
      * @return mixed
      */
     public static function startHander() {

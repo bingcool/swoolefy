@@ -70,7 +70,7 @@ class BaseObject {
 	 * @return   mixed
 	 */
 	public function __call($action, $args = []) {
-		throw new \Exception("Error Processing Request, $action() is undefined！", 1);
+		throw new \Exception("Error Processing Request, {$action}() is undefined", 1);
 	}
 
 	/**
@@ -81,11 +81,11 @@ class BaseObject {
 
 	/**
 	 * _die 异常终端程序执行
-	 * @param    $msg
-	 * @param    $code
-	 * @return   void
+	 * @param   string $html
+	 * @param   string $msg
+	 * @return  void
 	 */
-	public static function _die($html='', $msg='') {}
+	public static function _die($html = '', $msg = '') {}
 
 	/**
 	 * __toString 

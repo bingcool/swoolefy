@@ -47,7 +47,7 @@ class App extends \Swoolefy\Core\Component {
     /**
      * $log 日志
      */
-    public $logs = [];
+    protected $logs = [];
 
 	/**
 	 * __construct
@@ -62,7 +62,7 @@ class App extends \Swoolefy\Core\Component {
 	 * init 初始化函数
 	 * @return void
 	 */
-	protected function init() {
+	protected function _init() {
 		AppInit::_init();
 		// session start,在一些微服务的http请求中无需session
 		if(isset($this->config['session_start']) && $this->config['session_start']) {
@@ -75,10 +75,12 @@ class App extends \Swoolefy\Core\Component {
 	/**
 	 * boostrap 初始化引导
 	 */
-	protected function bootstrap() {
-	    $application_index = Swfy::$config['application_index'];
-	    if(isset($application_index) && class_exists($application_index)) {
-            Swfy::$config['application_index']::bootstrap($this->getRequestParams());
+	protected function _bootstrap() {
+	    if(isset(Swfy::$config['application_index'])) {
+	    	$application_index = Swfy::$config['application_index'];
+	    	if(class_exists($application_index)) {
+            	Swfy::$config['application_index']::bootstrap($this->getRequestParams());
+        	}
         }
 	}
 
@@ -86,7 +88,7 @@ class App extends \Swoolefy\Core\Component {
 	 * run 执行
 	 * @param  $request
 	 * @param  $response
-     * @throws
+     * @throws \Exception
 	 * @return void
 	 */
 	public function run($request, $response, $extend_data = null) {
@@ -94,13 +96,10 @@ class App extends \Swoolefy\Core\Component {
             parent::creatObject();
             $this->request = $request;
             $this->response = $response;
-            $coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
-            $this->coroutine_id = $coroutine_id;
+            $this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
             Application::setApp($this);
-            $this->init();
-            // 引导程序与环境变量的设置
-            $this->bootstrap();
-            // 判断是否是在维护模式
+            $this->_init();
+            $this->_bootstrap();
             if(!$this->catchAll()) {
                 // 路由调度执行
                 $route = new HttpRoute($extend_data);
@@ -108,7 +107,7 @@ class App extends \Swoolefy\Core\Component {
             }
         }catch (\Throwable $t) {
             throw new \Exception($t->getMessage());
-        } finally {
+        }finally {
             $this->clearStaticVar();
             $this->end();
             return;
@@ -138,7 +137,7 @@ class App extends \Swoolefy\Core\Component {
 	 * afterRequest 请求结束后注册钩子执行操作
 	 * @param	mixed   $callback 
 	 * @param	boolean $prepend
-     * @throws  mixed
+     * @throws  \Exception
 	 * @return	void
 	 */
 	public function afterRequest(callable $callback, $prepend = false) {
@@ -199,7 +198,7 @@ class App extends \Swoolefy\Core\Component {
 
 	/**
 	 * end 请求结束
-	 * @return
+	 * @return void
 	 */
 	public function end() {
         // log hander

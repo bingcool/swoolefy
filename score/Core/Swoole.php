@@ -51,7 +51,7 @@ class Swoole extends BaseObject {
     /**
      * $log 日志
      */
-    public $logs = [];
+    protected $logs = [];
 
     /**
 	 * __construct
@@ -75,10 +75,12 @@ class Swoole extends BaseObject {
 	 */
 	protected function _bootstrap($recv = null) {
 		static::bootstrap($recv);
-		$application_service = Swfy::$config['application_service'];
-		if(isset($application_service) && class_exists($application_service)) {
-            Swfy::$config['application_service']::bootstrap($recv);
-        }
+		if(isset(Swfy::$config['application_service'])) {
+			$application_service = Swfy::$config['application_service'];
+			if(class_exists($application_service)) {
+            	Swfy::$config['application_service']::bootstrap($recv);
+        	}
+		}
 	}
 
 	/**
@@ -87,12 +89,10 @@ class Swoole extends BaseObject {
 	 */
 	public function run($fd, $recv) {
 		$this->creatObject();
-		$coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
-		$this->coroutine_id = $coroutine_id;
+		$this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
 		Application::setApp($this);
 		$this->fd = $fd;
 		$this->_init($recv);
-		// 引导程序与环境变量的设置
 		$this->_bootstrap($recv);
 	}
 
@@ -122,7 +122,7 @@ class Swoole extends BaseObject {
 
     /**
 	 * getRpcPackHeader  获取rpc的pack头信息,只适用于rpc服务
-     * @throws
+     * @throws  \Exception
 	 * @return   array
 	 */
 	public function getRpcPackHeader() {
@@ -139,7 +139,7 @@ class Swoole extends BaseObject {
 
     /**
 	 * getRpcPackBodyParams 获取rpc的包体数据
-     * @throws
+     * @throws \Exception
 	 * @return mixed
 	 */
 	public function getRpcPackBodyParams() {
@@ -156,7 +156,7 @@ class Swoole extends BaseObject {
 
 	/**
 	 * getUdpData 获取udp的数据
-     * @throws mixed
+     * @throws \Exception
 	 * @return mixed
 	 */
 	public function getUdpData() {
@@ -173,7 +173,7 @@ class Swoole extends BaseObject {
 
 	/**
 	 * getWebsockMsg 获取websocket的信息
-     * @throws mixed
+     * @throws \Exception
 	 * @return mixed
 	 */
 	public function getWebsockMsg() {
@@ -207,7 +207,7 @@ class Swoole extends BaseObject {
 	 * afterRequest 请求结束后注册钩子执行操作
 	 * @param	mixed   $callback 
 	 * @param	boolean $prepend
-     * @throws  mixed
+     * @throws  \Exception
 	 * @return	void
 	 */
 	public function afterRequest(callable $callback, $prepend = false) {

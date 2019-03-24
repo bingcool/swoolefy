@@ -222,7 +222,6 @@ class HttpRoute extends AppDispatch {
 
 		// 创建控制器实例
 		$controllerInstance = new $class();
-
 		// 提前执行_beforeAction函数
 		if($controllerInstance->_beforeAction() === false || is_null($controllerInstance->_beforeAction())) {
 			$this->response->status(403);
@@ -253,7 +252,12 @@ class HttpRoute extends AppDispatch {
 
 		        }catch(\Throwable $t) {
 				    $query_string = isset($this->request->server['QUERY_STRING']) ? '?'.$this->request->server['QUERY_STRING'] : '';
-				    $msg = 'Fatal error: '.$t->getMessage().' on '.$t->getFile().' on line '.$t->getLine(). ' ||| '.$this->request->server['REQUEST_URI'].$query_string;
+				    if(isset($this->request->post) && !empty($this->request->post)) {
+				        $post = json_encode($this->request->post,JSON_UNESCAPED_UNICODE);
+                        $msg = 'Fatal error: '.$t->getMessage().' on '.$t->getFile().' on line '.$t->getLine(). ' ||| '.$this->request->server['REQUEST_URI'].$query_string.' post_data:'.$post;
+                    }else {
+                        $msg = 'Fatal error: '.$t->getMessage().' on '.$t->getFile().' on line '.$t->getLine(). ' ||| '.$this->request->server['REQUEST_URI'].$query_string;
+                    }
                     // 记录错误异常
                     $exceptionClass = Application::getApp()->getExceptionClass();
                     $exceptionClass::shutHalt($msg);
