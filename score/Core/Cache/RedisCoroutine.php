@@ -28,13 +28,13 @@ class RedisCoroutine {
 
 	/**
 	 * $password 
-	 * @var [type]
+	 * @var
 	 */
 	public $password;
 
 	/**
 	 * $is_serialize options
-	 * @var boolean
+	 * @var array
 	 */
 	public $options = [];
 
@@ -77,9 +77,9 @@ class RedisCoroutine {
 	 * @param string       $host
 	 * @param string       $port
 	 * @param string|null  $password
-     * @param int         $selectdb
-     * @param bool        $deploy
-	 * @param bool        $is_serialize
+     * @param int          $selectdb
+     * @param boolean      $deploy
+	 * @param boolean      $is_serialize
 	 */
 	public function __construct(string $host = null, $port = null, string $password = null, bool $deploy = false, array $options = []) {
 		$host && $this->host  = $host;
@@ -264,7 +264,7 @@ class RedisCoroutine {
 	/**
 	 * __call  single pattern
 	 * @param  string  $method
-	 * @param  mixed   $args
+	 * @param  array   $args
 	 * @return mixed
 	 */
 	public function __call(string $method, array $args) {

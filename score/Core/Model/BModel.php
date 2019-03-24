@@ -27,7 +27,7 @@ class BModel extends \Swoolefy\Core\SModel {
 
 	/**
 	 * $session
-	 * @var [type]
+	 * @var null
 	 */
 	public $session = null;
 

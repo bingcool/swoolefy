@@ -16,7 +16,7 @@ use  Predis\Client;
 class Predis {
 	/**
 	 * $Predis redis实例
-	 * @var [type]
+	 * @var null
 	 */
 	protected $Predis;
 
@@ -73,7 +73,7 @@ class Predis {
 	/**
 	 * __call 重载
 	 * @param  string  $method
-	 * @param  mixed   $args
+	 * @param  array   $args
 	 * @return mixed
 	 */
 	public function __call(string $method, array $args) {

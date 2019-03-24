@@ -666,7 +666,7 @@ trait AppTrait {
 
 	/**
      * getRefererUrl 获取当前页面的上一级页面的来源url
-     * @return string | boolean
+     * @return mixed
      */
     public function getRefererUrl() {
         $referer = $this->request->server['HTTP_REFERER'];
@@ -734,13 +734,13 @@ trait AppTrait {
      * @return  mixed
      */
     public function setCookie(
-    	$key, 
-    	$value = '', 
-    	$expire = 0, 
-    	$path = '/', 
-    	$domain = '', 
-    	$secure = false,
-    	$httponly = false
+        string $key,
+        string $value = '',
+        int $expire = 0,
+        string $path = '/',
+        string $domain = '',
+        bool $secure = false,
+        bool $httponly = false
     ) {
         $this->response->cookie($key, $value, $expire, $path, $domain, $secure, $httponly);
         return $this->response;

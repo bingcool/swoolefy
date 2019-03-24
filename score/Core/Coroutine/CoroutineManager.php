@@ -84,9 +84,9 @@ class CoroutineManager {
 	 * @return mixed
 	 */
 	public function listCoroutines() {
-		if(method_exists('Swoole\\Coroutine', 'listCoroutines')) {
+		if(method_exists('Swoole\\Coroutine', 'list')) {
 			$cids = [];
-			$coros = \Swoole\Coroutine::listCoroutines();
+			$coros = \Swoole\Coroutine::list();
 			foreach($coros as $cid) {
 				array_push($cids, $cid);
 			}

@@ -8,12 +8,6 @@ use Swoolefy\Core\Log\Formatter\LineFormatter;
 
 class Log {
 	/**
-	 * $formatter,格式化对象
-	 * @var null
-	 */
-	public $formatter = null;
-
-	/**
 	 * $channel,日志的通过主题，关于那方面的日志
 	 * @var null
 	 */
@@ -30,6 +24,12 @@ class Log {
 	 * @var string
 	 */
 	public $output = "[%datetime%] %channel% > %level_name% : %message% \n";
+
+    /**
+     * $formatter 格式化对象
+     * @var null
+     */
+    protected $formatter = null;
 	
 	/**
 	 * __construct
@@ -38,7 +38,7 @@ class Log {
         string $channel = null,
         string $logFilePath = null,
         string $output = null,
-        string $dateformat= null)
+        string $dateformat = null)
     {
 		$this->channel = $channel;
 		$this->logFilePath = $logFilePath;
@@ -99,11 +99,12 @@ class Log {
         return $this->formatter;
     }
 
-	/**
-	 * info
-	 * @param  $loginfo 
-	 * @return 
-	 */
+    /**
+     * addInfo
+     * @param $logInfo
+     * @param bool $is_deplay_batch
+     * @param array $context
+     */
 	public function addInfo($logInfo, $is_deplay_batch = false, array $context = []) {
 	    if(is_array($logInfo)) {
             $logInfo = json_encode($logInfo);
@@ -123,11 +124,12 @@ class Log {
         });
 	}
 
-	/**
-	 * Notice
-	 * @param  $loginfo 
-	 * @return void
-	 */
+    /**
+     * addNotice
+     * @param $logInfo
+     * @param bool $is_deplay_batch
+     * @param array $context
+     */
 	public function addNotice($logInfo, $is_deplay_batch = false, array $context = []) {
         if(is_array($logInfo)) {
             $logInfo = json_encode($logInfo);
@@ -147,11 +149,12 @@ class Log {
         });
 	}
 
-	/**
-	 * Warning
-	 * @param  $loginfo 
-	 * @return void
-	 */
+    /**
+     * addWarning
+     * @param $logInfo
+     * @param bool $is_deplay_batch
+     * @param array $context
+     */
 	public function addWarning($logInfo, $is_deplay_batch = false, array $context = []) {
         if(is_array($logInfo)) {
             $logInfo = json_encode($logInfo);
@@ -171,11 +174,12 @@ class Log {
         });
 	}
 
-	/**
-	 * Error
-	 * @param  $loginfo 
-	 * @return void
-	 */
+    /**
+     * addError
+     * @param $logInfo
+     * @param bool $is_deplay_batch
+     * @param array $context
+     */
 	public function addError($logInfo, $is_deplay_batch = false, array $context = []) {
         if(is_array($logInfo)) {
             $logInfo = json_encode($logInfo);

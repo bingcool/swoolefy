@@ -113,7 +113,7 @@ class Session {
      * @param boolean $readonly
      * @return boolean
      */
-    public function start($readonly = false) {
+    public function start(bool $readonly = false) {
          /**
           * 注册钩子程序，在请求结束后保存sesion,防止多次注册
           */
@@ -197,7 +197,7 @@ class Session {
     /**
      * get 获取session的数据
      * @param   string  $key
-     * @return   mixed
+     * @return  mixed
      */
     public function get(string $key = null) {
         if(is_null($key)) {
@@ -220,8 +220,7 @@ class Session {
 
     /**
      * getSessionTtl 获取session对象的剩余生存时间
-     * @param   bool  $formatDate 是否格式化
-     * @return 
+     * @return
      */
     public function getSessionTtl() {
         $session_key = $this->cache_prefix . $this->session_id;
@@ -235,7 +234,7 @@ class Session {
 
     /**
      * delete 删除某个key
-     * @param    $key [description]
+     * @param    string  $key
      * @return   boolean
      */
     public function delete(string $key) {
@@ -267,7 +266,7 @@ class Session {
      * @param    boolean   $ismerge  生成新的session_id是否继承合并当前session的数据，默认true,如需要产生一个完全新的空的$this->_SESSION，可以设置false
      * @return   void
      */
-    public function reGenerateSessionId($ismerge=true) {
+    public function reGenerateSessionId(bool $ismerge = true) {
         $session_data = $this->_SESSION;
         // 先cookie的session_id失效
         setcookie($this->cookie_key, $this->session_id, time() - 600, $this->cookie_path, $this->cookie_domain);

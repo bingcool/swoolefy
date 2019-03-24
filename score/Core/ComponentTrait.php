@@ -115,7 +115,6 @@ trait ComponentTrait {
 	protected function getDependencies($class) {
         $dependencies = [];
         $reflection = new \ReflectionClass($class);
-
         $constructor = $reflection->getConstructor();
         if ($constructor !== null) {
             foreach ($constructor->getParameters() as $param) {
@@ -174,7 +173,7 @@ trait ComponentTrait {
         			// call_user_func_array($defination[$name]->bindTo($object, get_class($object)), [$defination]);
         			($defination[$name])->call($object, $defination);
         		}else {
-        			throw new \Exception("$com_alias_name component's config item 'func' is not Closure or $com_alias_name instance is not exists the method!");
+        			throw new \Exception("{$com_alias_name} component's config item 'func' is not Closure or {$com_alias_name} instance is not exists the method!");
         		}
         		continue;
         	}else if(isset($object->$name) && @is_array($object->$name)) {

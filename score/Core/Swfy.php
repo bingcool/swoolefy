@@ -69,7 +69,7 @@ class Swfy extends \Swoolefy\Core\BaseObject {
 	 */
 	public function __call($action, $args = []) {
 		// 直接停止程序往下执行
-		throw new \Exception('Calling unknown method: ' . get_called_class() . "::$action()");	
+		throw new \Exception("Calling unknown method: " . get_called_class()."::{$action}");
 	}
 
 	/**
@@ -79,7 +79,7 @@ class Swfy extends \Swoolefy\Core\BaseObject {
 	 */
 	public static function __callStatic($action, $args = []) {
 		// 直接停止程序往下执行
-		throw new \Exception('Calling unknown static method: ' . get_called_class() . "::$action()");
+		throw new \Exception("Calling unknown static method: " . get_called_class()."::{$action}");
 	}
 
 }
