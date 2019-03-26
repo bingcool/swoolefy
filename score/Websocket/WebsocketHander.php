@@ -97,6 +97,7 @@ class WebsocketHander extends Swoole implements HanderInterface {
 	 * handleBinary 处理二进制数据
 	 * @param  int   $fd
 	 * @param  array $recv
+     * @throws \Exception
 	 * @return void
 	 */
 	public function handleBinary($fd, $recv) {
@@ -114,8 +115,8 @@ class WebsocketHander extends Swoole implements HanderInterface {
                 }
 
             }else {
-                // 任务task进程
-                list($callable, $buffer) = $recv;
+                // 任务task进程,不处理二进制数据
+                throw new \Exception("Task process can not handle binary data");
             }
 
             // 控制器实例

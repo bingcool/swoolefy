@@ -57,11 +57,11 @@ class EventApp {
         });
      *
 	 * @param  string $class
-     * @param  mixed  $args
+     * @param  array  $args
      * @throws \Exception
 	 * @return $this
 	 */
-	public function registerApp($class, ...$args) {
+	public function registerApp($class, array $args = []) {
 	    if($class instanceof \Closure) {
             $eventController = new EventController(...$args);
             try {
