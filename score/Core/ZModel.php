@@ -23,10 +23,10 @@ class ZModel {
 	/**
 	 * getInstance 获取model的单例
 	 * @param   string  $class  类命名空间
-     * @param   mixed   $args
+     * @param   array   $args
 	 * @return  mixed
 	 */
-	public static function getInstance(string $class = '', ...$args) {
+	public static function getInstance(string $class = '', array $args = []) {
 		$cid = CoroutineManager::getInstance()->getCoroutineId();
 		$class = str_replace('/','\\', $class);
 		$class = trim($class,'\\');

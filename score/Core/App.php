@@ -64,7 +64,7 @@ class App extends \Swoolefy\Core\Component {
 	 */
 	protected function _init() {
 		AppInit::_init();
-		// session start,在一些微服务的http请求中无需session
+		// session start
 		if(isset($this->config['session_start']) && $this->config['session_start']) {
 			if(is_object($this->session)) {
 				$this->session->start();

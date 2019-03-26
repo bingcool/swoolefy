@@ -55,8 +55,8 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	 */
 	public function onRequest($request, $response) {
 	    if(isset(self::$config['accept_http']) && self::$config['accept_http'] == true) {
-            $config = \Swoolefy\Core\Swfy::getAppConf();
-            $appInstance = new \Swoolefy\Core\App($config);
+            $AppConfig = \Swoolefy\Core\Swfy::getAppConf();
+            $appInstance = new \Swoolefy\Core\App($AppConfig);
             $appInstance->run($request, $response);
         }
 	}
@@ -104,8 +104,8 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	 */
 	public function onTask($server, $task_id, $from_worker_id, $data, $task = null) {
 		list($callable, $taskData, $fd) = $data;
-        $config = \Swoolefy\Core\Swfy::getAppConf();
-        $appInstance = new \Swoolefy\Websocket\WebsocketHander($config);
+        $AppConfig = \Swoolefy\Core\Swfy::getAppConf();
+        $appInstance = new \Swoolefy\Websocket\WebsocketHander($AppConfig);
         $appInstance->run($fd, [$callable, $taskData], [$from_worker_id, $task_id, $task]);
         return true;
 	}

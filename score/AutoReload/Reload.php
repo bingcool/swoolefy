@@ -91,21 +91,18 @@ class Reload {
     		// 读取事件的信息
             $events = inotify_read($this->inotify);
 
-            if (!$events)
-            {
+            if(!$events)  {
                 return;
             }
             // 只要检测到一个文件改动，则停止其余文件的判断，等待时间重启即可
-            if (!$this->reloading)
-            {
+            if(!$this->reloading) {
                 foreach($events as $ev)
                 {
                     if ($ev['mask'] == IN_IGNORED)
                     {
                         continue;
 
-                    }else if ($ev['mask'] == IN_CREATE || $ev['mask'] == IN_DELETE || $ev['mask'] == IN_MODIFY || $ev['mask'] == IN_MOVED_TO || $ev['mask'] == IN_MOVED_FROM)
-                    {
+                    }else if(in_array($ev['mask'], [IN_CREATE, IN_DELETE, IN_MODIFY, IN_MOVED_TO, IN_MOVED_FROM])) {
                         // 获取改动文件文件的后缀名
                         $fileType = '.'.pathinfo($ev['name'], PATHINFO_EXTENSION);
                         //非重启类型
