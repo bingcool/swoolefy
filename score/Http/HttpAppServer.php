@@ -72,6 +72,7 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 	 * @param    int  $task_id
 	 * @param    int  $from_worker_id
 	 * @param    mixed $data
+     * @param    mixed $task
      * @throws   \Throwable
 	 * @return   void
 	 */
