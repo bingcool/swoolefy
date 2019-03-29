@@ -82,7 +82,6 @@ class NotFound extends BService {
 		}else if(BaseServer::isWebsocketApp()) {
 			// websocket服务
 			$fd = Application::getApp()->getFd();
-			var_dump($fd);
 			$this->push($fd, $response, $opcode = 1, $finish = true);
 		}
 		return $response;

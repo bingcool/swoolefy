@@ -382,7 +382,7 @@ class MongodbCollection {
     /**
      * 本类找不到函数时,自动重载collection类的原始函数
      * @param   string    $method
-     * @param   mixed     $argc
+     * @param   mixed     $args
      * @return  mixed
      */
     public function __call($method, $args) {
