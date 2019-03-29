@@ -6,7 +6,8 @@ $APP_NAMES = [
     'App'=>'http',
     'RpcService'=>'rpc',
     'UdpService'=> 'udp',
-    'WebsockService'=>'websocket'
+    'WebsockService'=>'websocket',
+    'Pwa'=>'http'
 ];
 
 // 定义环境
@@ -18,6 +19,7 @@ define('SWOOLEFY_ENVS', [
     SWOOLEFY_GRA,
     SWOOLEFY_PRD
 ]);
+
 // 设置成中国时区
 date_default_timezone_set('PRC');
 
@@ -38,12 +40,17 @@ include_once START_DIR_ROOT.'/vendor/autoload.php';
 
 // include App应用层的自定义的自动加载类命名空间
 if(isset($argv[2]) && in_array(trim($argv[2]), array_keys($APP_NAMES))) {
-    defined('APP_NAME') or define('APP_NAME', trim($argv[2]));
-    include_once START_DIR_ROOT.'/'.$argv[2].'/autoloader.php';
+    $app_name = trim($argv[2]);
+    defined('APP_NAME') or define('APP_NAME', $app_name);
+    if(trim($argv[1]) != 'create') {
+        $app_root_dir = START_DIR_ROOT.'/'.$app_name;
+        include_once $app_root_dir.'/autoloader.php';
+    }
 }else {
     write("[Error] app_name is not in APP_NAME array in swoolefy file, please check it");
     return;
 }
+
 // 判断当前环境,默认是dev(开发),gra(灰度),prd(生产)
 $cli_params = array_flip($argv);
 if(isset($cli_params['-'.SWOOLEFY_GRA])) {
@@ -107,17 +114,46 @@ function opCacheClear(){
 function commandParser() {
     global $argv;
     $command = isset($argv[1]) ? $argv[1] : null;
-    $server = isset($argv[2]) ? $argv[2] : null;
-    return ['command'=>$command, 'server'=>$server];
+    $app_name = isset($argv[2]) ? $argv[2] : null;
+    return ['command'=>$command, 'app_name'=>trim($app_name)];
 }
 
-function startServer($server) {
+function createProject($server_name) {
+    $dirs = ['Config'];
+    $params = commandParser();
+    $app_name = $params['app_name'];
+    global $APP_NAMES;
+    $app_root_dir = START_DIR_ROOT.'/'.$app_name;
+    if(is_dir($app_root_dir)) {
+        write("You haved create {$app_name} project dir");
+        exit();
+    }
+
+    $protocol = $APP_NAMES[$app_name];
+    if(!$protocol) {
+        write("[Error] app_name is not in APP_NAME array in swoolefy file, please check it");
+        exit();
+    }
+
+    if($protocol == 'http') {
+        $dirs = [
+            'Config','Controller','Runtime','Log'
+        ];
+    }
+
+    @mkdir($app_root_dir, 0777, true);
+    foreach($dirs as $dir) {
+        @mkdir($app_root_dir.'/'.$dir,0777, true);
+    }
+}
+
+function startServer($server_name) {
     opCacheClear();
     global $argv;
     global $APP_NAMES;
     $apps = $APP_NAMES;
     foreach($apps as $app_name => $protocol) {
-        if($app_name == $server) {
+        if($app_name == $server_name) {
             switch ($protocol) {
                 case 'http':
                         startHttpService($app_name);
@@ -132,7 +168,7 @@ function startServer($server) {
                         startUdp($app_name);
                     break;
                 default:
-                    write("protocol is not in ('http','websocket','rpc','udp')");
+                    write("protocol is not in 【'http','websocket','rpc','udp'】");
                     break;
             }
         }
@@ -345,14 +381,15 @@ function stopServer($app_name) {
     }
 
     $pid = intval(file_get_contents($pid_file));
-    if(!swoole_process::kill($pid,0)){
+    if(!\Swoole\Process::kill($pid, 0)){
         write("[error] pid={$pid} not exist");
         return;
     }
+
     // 发送信号，终止进程
-    swoole_process::kill($pid, SIGTERM);
+    \Swoole\Process::kill($pid, SIGTERM);
     // 回收master创建的子进程（manager,worker,taskworker）
-    swoole_process::wait();
+    \Swoole\Process::wait();
 
     // 如果'reload_async' => true,，则默认workerStop有30s的过度期停顿这个时间稍微会比较长，设置成60过期
     $nowtime = time();
@@ -361,7 +398,7 @@ function stopServer($app_name) {
     );
     while(true) {
         sleep(1);
-        if(!swoole_process::kill($pid, 0)) {
+        if(!\Swoole\Process::kill($pid, 0)) {
             write("
         ---------------------stop info-------------------\n    
         server stop  successful. server stop at ".date("Y-m-d H:i:s")
@@ -376,6 +413,8 @@ function stopServer($app_name) {
             }
         }
     }
+    \Swoole\Process::wait();
+    exit();
 }
 
 function help($command) {
@@ -406,14 +445,18 @@ function help($command) {
 
 function commandHandler(){
     $command = commandParser();
-    if(isset($command['server']) && $command['server'] != 'help') {
+    if(isset($command['app_name']) && $command['app_name'] != 'help') {
         switch($command['command']){
+            case 'create': {
+                createProject($command['app_name']);
+                break;
+            }
             case "start":{
-                startServer($command['server']);
+                startServer($command['app_name']);
                 break;
             }
             case 'stop':{
-                stopServer($command['server']);
+                stopServer($command['app_name']);
                 break;
             }
             case 'help':
