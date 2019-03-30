@@ -50,9 +50,11 @@ class EventController extends BaseObject {
 		$this->config = Swfy::getAppConf();
 		$this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
 		Application::setApp($this);
-		defer(function() {
-		    $this->defer();
-        });
+		if(\co::getCid() > 0) {
+			defer(function() {
+		    	$this->defer();
+        	});
+		}
 	}
 
 	/**
@@ -62,7 +64,7 @@ class EventController extends BaseObject {
 	 */
 	public function setApp($coroutine_id = null) {
 		if($coroutine_id) {
-			Application::removeApp();
+			Application::removeApp($this->coroutine_id);
 			$this->coroutine_id = $coroutine_id;
 			Application::setApp($this);
 			return  true;
@@ -185,7 +187,7 @@ class EventController extends BaseObject {
         // log
         $this->handerLog();
 		ZModel::removeInstance();
-		Application::removeApp();
+		Application::removeApp($this->coroutine_id);
 	}
 
     /**

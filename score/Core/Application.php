@@ -129,9 +129,10 @@ class Application {
 	 * @return boolean
 	 */
 	public static function removeApp($coroutine_id = null) {
-		$cid = CoroutineManager::getInstance()->getCoroutineId();
 		if($coroutine_id) {
 			$cid = $coroutine_id;
+		}else {
+			$cid = CoroutineManager::getInstance()->getCoroutineId();
 		}
 		if(isset(self::$app[$cid])) {
 			unset(self::$app[$cid]);

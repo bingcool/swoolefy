@@ -37,9 +37,11 @@ class SModel extends BaseObject {
 		$this->config = Swfy::getAppConf();
 		// 数据结构模型对象
 		$this->struct = new Struct();
-		defer(function() {
-		    $this->destruct();
-        });
+		if(\co::getCid() > 0) {
+			defer(function() {
+		    	$this->destruct();
+        	});
+		}
 	}
 
 	/**
