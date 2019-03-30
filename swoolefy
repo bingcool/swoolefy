@@ -43,7 +43,7 @@ if(isset($argv[2]) && in_array(trim($argv[2]), array_keys($APP_NAMES))) {
     $app_name = trim($argv[2]);
     defined('APP_NAME') or define('APP_NAME', $app_name);
     if(trim($argv[1]) != 'create') {
-        $app_root_dir = START_DIR_ROOT.'/'.$app_name;
+        $app_root_dir = START_DIR_ROOT."/{$app_name}";
         include_once $app_root_dir.'/autoloader.php';
     }
 }else {
@@ -119,11 +119,11 @@ function commandParser() {
 }
 
 function createProject($server_name) {
-    $dirs = ['Config'];
+    $dirs = ['Config', 'Service'];
     $params = commandParser();
     $app_name = $params['app_name'];
     global $APP_NAMES;
-    $app_root_dir = START_DIR_ROOT.'/'.$app_name;
+    $app_root_dir = START_DIR_ROOT."/{$app_name}";
     if(is_dir($app_root_dir)) {
         write("You haved create {$app_name} project dir");
         exit();
@@ -143,7 +143,7 @@ function createProject($server_name) {
 
     @mkdir($app_root_dir, 0777, true);
     foreach($dirs as $dir) {
-        @mkdir($app_root_dir.'/'.$dir,0777, true);
+        @mkdir($app_root_dir.'/'.$dir, 0777, true);
     }
 }
 
@@ -189,7 +189,7 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer') {
         }
     }
 
-    $event_server_file = START_DIR_ROOT.'/'.$app_name."/{$event_server_file_name}.php";
+    $event_server_file = START_DIR_ROOT."/{$app_name}/{$event_server_file_name}.php";
     if(!file_exists($event_server_file)) {
         $search_str = "protocol\\http";
         $replace_str = "{$app_name}";
@@ -198,6 +198,13 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer') {
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
         file_put_contents($event_server_file, $file_content_string);
     }
+
+    $autoloader_file = START_DIR_ROOT."/{$app_name}/autoloader.php";
+    if(!file_exists($autoloader_file)) {
+        $autoloader_file_path = SCORE_DIR_ROOT."/autoloader.php";
+        @copy($autoloader_file_path, $autoloader_file);
+    }
+
     $config = include $path."/config-".SWOOLEFY_ENV.".php";
 
     if(isset($config['setting']['log_file'])) {
@@ -233,7 +240,7 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
         }
     }
 
-    $event_server_file = START_DIR_ROOT.'/'.$app_name."/{$event_server_file_name}.php";
+    $event_server_file = START_DIR_ROOT."/{$app_name}/{$event_server_file_name}.php";
     if(!file_exists($event_server_file)) {
         $search_str = "protocol\\websocket";
         $replace_str = "{$app_name}";
@@ -241,6 +248,12 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
         file_put_contents($event_server_file, $file_content_string);
+    }
+
+    $autoloader_file = START_DIR_ROOT."/{$app_name}/autoloader.php";
+    if(!file_exists($autoloader_file)) {
+        $autoloader_file_path = SCORE_DIR_ROOT."/autoloader.php";
+        @copy($autoloader_file_path, $autoloader_file);
     }
 
     $config = include $path."/config-".SWOOLEFY_ENV.".php";
@@ -280,7 +293,7 @@ function startRpc($app_name, $event_server_file_name = 'RpcServer') {
         }
     }
 
-    $event_server_file = START_DIR_ROOT.'/'.$app_name."/{$event_server_file_name}.php";
+    $event_server_file = START_DIR_ROOT."/{$app_name}/{$event_server_file_name}.php";
     if(!file_exists($event_server_file)) {
         $search_str = "protocol\\rpc";
         $replace_str = "{$app_name}";
@@ -288,6 +301,12 @@ function startRpc($app_name, $event_server_file_name = 'RpcServer') {
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
         file_put_contents($event_server_file, $file_content_string);
+    }
+
+    $autoloader_file = START_DIR_ROOT."/{$app_name}/autoloader.php";
+    if(!file_exists($autoloader_file)) {
+        $autoloader_file_path = SCORE_DIR_ROOT."/autoloader.php";
+        @copy($autoloader_file_path, $autoloader_file);
     }
 
     $config = include $path."/config-".SWOOLEFY_ENV.".php";
@@ -327,7 +346,7 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer') {
         }
     }
 
-    $event_server_file = START_DIR_ROOT.'/'.$app_name."/{$event_server_file_name}.php";
+    $event_server_file = START_DIR_ROOT."/{$app_name}/{$event_server_file_name}.php";
     if(!file_exists($event_server_file)) {
         $search_str = "protocol\\udp";
         $replace_str = "{$app_name}";
@@ -335,6 +354,12 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer') {
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
         file_put_contents($event_server_file, $file_content_string);
+    }
+
+    $autoloader_file = START_DIR_ROOT."/{$app_name}/autoloader.php";
+    if(!file_exists($autoloader_file)) {
+        $autoloader_file_path = SCORE_DIR_ROOT."/autoloader.php";
+        @copy($autoloader_file_path, $autoloader_file);
     }
 
     $config = include $path."/config-".SWOOLEFY_ENV.".php";

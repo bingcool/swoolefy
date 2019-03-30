@@ -56,9 +56,11 @@ class BService extends BaseObject {
 		}else {
 			$this->client_info = null;
 		}
-        defer(function() {
-            $this->destruct();
-        });
+        if(\co::getCid() > 0) {
+			defer(function() {
+		    	$this->defer();
+        	});
+		}
 	}
 
 	/**
@@ -197,6 +199,8 @@ class BService extends BaseObject {
 			static::_afterAction();
 		}
 	}
+
+	public function defer() {}
 
 	use \Swoolefy\Core\ServiceTrait;
 }

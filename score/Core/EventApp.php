@@ -63,11 +63,15 @@ class EventApp {
 	 */
 	public function registerApp($class, array $args = []) {
 	    if($class instanceof \Closure) {
-            $eventController = new EventController(...$args);
+            $this->event_app = new EventController(...$args);
             try {
-                $this->event_app = $eventController;
-                $class->call($eventController, ...$args);
-                $eventController->end();
+                $cid = $this->event_app->getCid();
+            	$spl_object_id = spl_object_id($this->event_app);
+            	$new_cid = $cid.'_'.$spl_object_id;
+            	$this->event_app->setApp($new_cid);
+
+                $class->call($this->event_app, ...$args);
+                $this->event_app->end();
             }catch(\Throwable $t) {
                 self::__destruct();
                 throw new \Exception($t->getMessage());
@@ -77,11 +81,14 @@ class EventApp {
 	        do{
                 if(is_string($class)) {
                     $this->event_app = new $class(...$args);
-                    break;
-                }
-                if(is_object($class)) {
+                }else if(is_object($class)) {
                     $this->event_app = $class;
-                }
+                }	
+            	$cid = $this->event_app->getCid();
+            	$spl_object_id = spl_object_id($this->event_app);
+            	$new_cid = $cid.'_'.$spl_object_id;
+            	$this->event_app->setApp($new_cid);
+            	break;
             }while(0);
 
             if(!($this->event_app instanceof EventController)) {
@@ -126,14 +133,14 @@ class EventApp {
             self::__destruct();
 			throw new \Exception($t->getMessage());
 		}
-		
 	}
 
 	/**
 	 * __destruct
 	 */
 	public function __destruct() {
-		Application::removeApp();
+		$cid = $this->event_app->getCid();
+		Application::removeApp($cid);
 		unset($this->event_app);
 	}
 }
