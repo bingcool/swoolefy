@@ -84,14 +84,17 @@ class Tick {
                 }else {
                     $tickTaskInstance = new $class;
                 }
-                call_user_func_array([$tickTaskInstance, $action], $params);
+                //call_user_func_array([$tickTaskInstance, $action], $params);
+                $tickTaskInstance->{$action}(...$params);
             }else if($func instanceof \Closure) {
-                //$tickInstance = new TickController();
+                $tickTaskInstance = new TickController();
                 // call_user_func_array($func->bindTo($tickInstance, get_class($tickInstance)), $params);
-                $func->call(new TickController, $user_params, $timer_id);
+                $func->call($tickTaskInstance, $user_params, $timer_id);
             }
             if(method_exists("Swoolefy\\Core\\Application", 'removeApp')) {
-                Application::removeApp();
+                if(is_object($tickTaskInstance)) {
+                    Application::removeApp($tickTaskInstance->coroutine_id);
+                }
             }
             unset($tickTaskInstance, $class, $action, $user_params, $params, $func);
         }, $user_params);
@@ -167,13 +170,17 @@ class Tick {
             if(is_array($func)) {
                 list($class, $action) = $func;
                 $tickTaskInstance = new $class;
-                call_user_func_array([$tickTaskInstance, $action], $params);
+                //call_user_func_array([$tickTaskInstance, $action], $params);
+                $tickTaskInstance->{$action}(...$params);
             }else if($func instanceof \Closure) {
-                $func->call(new TickController, $user_params, $timer_id = null);
+                $tickTaskInstance = new TickController;
+                $func->call($tickTaskInstance, $user_params, $timer_id = null);
             }
             
             if(method_exists("Swoolefy\\Core\\Application", 'removeApp')) {
-                Application::removeApp();
+                if(is_object($tickTaskInstance)) {
+                    Application::removeApp($tickTaskInstance->coroutine_id);
+                }
             }
             // 执行完之后,更新目前的一次性任务项
             self::updateRunAfterTick();
