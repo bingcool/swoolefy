@@ -45,7 +45,7 @@ class CrontabManager {
 								$cronInstance->runCron($expression, $func);
 							
 								if(method_exists("Swoolefy\\Core\\Application", 'removeApp')) {
-	                				Application::removeApp();
+	                				Application::removeApp($cronInstance->coroutine_id);
 	           					}
 							}, $expression);
 						}

@@ -103,7 +103,23 @@ class Application {
                 return true;
             }
         }
-		
+	}
+
+	/**
+	 * issetApp
+	 * @param  int $coroutine_id
+	 * @return boolean 
+	 */
+	public function issetApp($coroutine_id = null) {
+		$cid = CoroutineManager::getInstance()->getCoroutineId();
+		if($coroutine_id) {
+			$cid = $coroutine_id;
+		}
+		if(isset(self::$app[$cid])) {
+			return true;
+		}else {
+			return false;
+		}
 	}
 
 	/**

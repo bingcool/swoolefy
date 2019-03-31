@@ -22,6 +22,12 @@ class EventApp {
 	public $event_app;
 
 	/**
+	 * $is_call 单例是否已调用执行函数，只能调用一次执行函数，即单例只能有一个入口执行函数
+	 * @var boolean
+	 */
+	public $is_call = false;
+
+	/**
 	 * registerApp 注册事件处理应用对象，注册一次处理事件
 	 * 可用于onConnect, onOpen, onPipeMessage,onHandShake, onClose这些协程回调中，每次回调都会创建一个协程
 	 * 而onFinish回调也可以使用这个注册，但是这个是阻塞执行的，不会创建协程，所以不会产生协程id，将返回cid=-1（那么重定义为cid_task_process），所以在继承的业务类中onFinish不能使用协程API.
@@ -65,11 +71,6 @@ class EventApp {
 	    if($class instanceof \Closure) {
             $this->event_app = new EventController(...$args);
             try {
-                $cid = $this->event_app->getCid();
-            	$spl_object_id = spl_object_id($this->event_app);
-            	$new_cid = $cid.'_'.$spl_object_id;
-            	$this->event_app->setApp($new_cid);
-
                 $class->call($this->event_app, ...$args);
                 $this->event_app->end();
             }catch(\Throwable $t) {
@@ -83,11 +84,7 @@ class EventApp {
                     $this->event_app = new $class(...$args);
                 }else if(is_object($class)) {
                     $this->event_app = $class;
-                }	
-            	$cid = $this->event_app->getCid();
-            	$spl_object_id = spl_object_id($this->event_app);
-            	$new_cid = $cid.'_'.$spl_object_id;
-            	$this->event_app->setApp($new_cid);
+                }
             	break;
             }while(0);
 
@@ -125,9 +122,13 @@ class EventApp {
 	 */
 	public function __call(string $action, $args = []) {
 		try{
+			if($this->is_call) {
+				throw new \Exception("Single Coroutine Instance once call once method");
+			}
 			// return call_user_func_array([$this->event_app, $action], $args);
 			$result = $this->event_app->$action(...$args);
 			$this->event_app->end();
+			$this->is_call = true;
             return $result;
 		}catch(\Throwable $t) {
             self::__destruct();
@@ -139,7 +140,9 @@ class EventApp {
 	 * __destruct
 	 */
 	public function __destruct() {
-		$cid = $this->event_app->getCid();
+		if(is_object($this->event_app)) {
+			$cid = $this->event_app->getCid();
+		}
 		Application::removeApp($cid);
 		unset($this->event_app);
 	}

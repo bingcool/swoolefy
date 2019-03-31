@@ -114,6 +114,10 @@ class SwoolefyException {
                  $log->setChannel('Application')->setLogFilePath($logFilePath)->addInfo($errorMsg);
                  break;
         }
+        if(in_array(SWOOLEFY_ENV, [SWOOLEFY_DEV, SWOOLEFY_GRA])) {
+             throw new \Exception($errorMsg);
+        }
+       
         return;
     }
 }
