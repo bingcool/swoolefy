@@ -177,7 +177,7 @@ function startServer($server_name) {
 }
 
 function startHttpService($app_name, $event_server_file_name = 'HttpServer') {
-    $path = START_DIR_ROOT.'/protocol/'.$app_name;
+    $path = START_DIR_ROOT."/protocol/{$app_name}";
     if(!is_dir($path)) {
         @mkdir($path, 0777, true);
     }
@@ -228,7 +228,7 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer') {
 }
 
 function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServer') {
-    $path = START_DIR_ROOT.'/protocol/'.$app_name;
+    $path = START_DIR_ROOT."/protocol/{$app_name}";
     if(!is_dir($path)) {
         @mkdir($path, 0777, true);
     }
@@ -281,7 +281,7 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
 }
 
 function startRpc($app_name, $event_server_file_name = 'RpcServer') {
-    $path = START_DIR_ROOT.'/protocol/'.$app_name;
+    $path = START_DIR_ROOT."/protocol/{$app_name}";
     if(!is_dir($path)) {
         @mkdir($path, 0777, true);
     }
@@ -334,7 +334,7 @@ function startRpc($app_name, $event_server_file_name = 'RpcServer') {
 }
 
 function startUdp($app_name, $event_server_file_name = 'UdpEventServer') {
-    $path = START_DIR_ROOT.'/protocol/'.$app_name;
+    $path = START_DIR_ROOT."/protocol/{$app_name}";
     if(!is_dir($path)) {
         @mkdir($path, 0777, true);
     }
@@ -387,7 +387,7 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer') {
 }
 
 function stopServer($app_name) {
-    $path = START_DIR_ROOT.'/protocol/'.$app_name;
+    $path = START_DIR_ROOT."/protocol/{$app_name}";
 
     $config = include $path.'/config-'.SWOOLEFY_ENV.'.php';
 

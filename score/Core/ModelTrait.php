@@ -101,10 +101,10 @@ trait ModelTrait {
 
 	/**
      * getClientIP 获取客户端ip
-     * @param   $type 返回类型 0:返回IP地址,1:返回IPV4地址数字
+     * @param   int $type  0:返回IP地址,1:返回IPV4地址数字
      * @return  string
      */
-    public function getClientIP($type=0) {
+    public function getClientIP($type = 0) {
         // 通过nginx的代理
         if(isset($this->request->server['HTTP_X_REAL_IP']) && strcasecmp($this->request->server['HTTP_X_REAL_IP'], "unknown")) {
             $ip = $this->request->server['HTTP_X_REAL_IP'];
