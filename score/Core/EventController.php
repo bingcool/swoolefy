@@ -44,6 +44,7 @@ class EventController extends BaseObject {
 
 	/**
 	 * __construct 初始化函数
+     * @throws \Exception
 	 */
 	public function __construct(...$args) {
 		$this->creatObject();
@@ -83,7 +84,6 @@ class EventController extends BaseObject {
 		$exists = Application::issetApp($coroutine_id);
 		if($exists) {
 			throw new \Exception("You haved created EventApp Instance, yon can only registerApp once, so you can't ceate secornd in same coroutine");
-			return false;
 		}
 		return true;
 	}

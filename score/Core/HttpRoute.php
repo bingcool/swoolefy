@@ -160,6 +160,7 @@ class HttpRoute extends AppDispatch {
 	 * @param  string  $module
 	 * @param  string  $controller
 	 * @param  string  $action
+     * @throws \Exception
 	 * @return boolean
 	 */
 	public function invoke($module = null, $controller = null, $action = null) {

@@ -110,7 +110,7 @@ class Application {
 	 * @param  int $coroutine_id
 	 * @return boolean 
 	 */
-	public function issetApp($coroutine_id = null) {
+	public static function issetApp($coroutine_id = null) {
 		$cid = CoroutineManager::getInstance()->getCoroutineId();
 		if($coroutine_id) {
 			$cid = $coroutine_id;
