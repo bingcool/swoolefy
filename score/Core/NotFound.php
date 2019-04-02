@@ -20,7 +20,7 @@ class NotFound extends BService {
 	 * @return mixed
 	 */
 	public function return404(string $class) {
-        $response = ['ret'=>404, 'msg'=>"{$class} is not found", 'data'=>''];
+        $response = ['ret'=>404, 'msg'=>"{$class} class file is not found", 'data'=>''];
 		// tcp|rpc服务
 		if(BaseServer::isRpcApp()) {
 			// rpc服务，server端和client端的header_struct不相同时,默认不作处理

@@ -40,6 +40,19 @@ trait AppTrait {
 		return true;
 	}
 
+    /**
+     * 提前结束请求，在_beforeAction中调用
+     * @param array  $data
+     * @param string $formater
+     * @return void
+     */
+    public function beforeEnd(array $data = [], string $formater = 'json') {
+        Application::getApp()->setEnd();
+        $this->returnJson($data, $formater);
+        $this->request->end();
+        return;
+    }
+
 	/**
 	 * isGet
 	 * @return boolean

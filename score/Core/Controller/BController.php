@@ -42,25 +42,9 @@ class BController extends \Swoolefy\Core\AppObject {
 		$this->response = Application::getApp()->response;
 		//$this->session = Application::getApp()->session;
 		$this->config = Application::getApp()->config;
-		defer(function () {
+		defer(function() {
 		    $this->destruct();
         });
-	}
-
-	/**
-	 * beforeAction 在处理实际action之前执行
-	 * @return   mixed
-	 */
-	public function _beforeAction() {
-		return true;
-	}
-
-	/**
-	 * afterAction 在返回数据之前执行
-	 * @return   mixed
-	 */
-	public function _afterAction() {
-		return true;
 	}
 
 	/**

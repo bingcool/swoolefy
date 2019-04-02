@@ -82,7 +82,9 @@ class ServiceDispatch extends AppDispatch {
 		if(isset($this->from_worker_id) && isset($this->task_id)) {
             $serviceInstance->setFromWorkerId($this->from_worker_id);
             $serviceInstance->setTaskId($this->task_id);
-            $serviceInstance->setTask($this->task);
+            if(!empty($this->task)) {
+                $serviceInstance->setTask($this->task);
+            }
         }
 
 		try{

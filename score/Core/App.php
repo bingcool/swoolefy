@@ -49,6 +49,8 @@ class App extends \Swoolefy\Core\Component {
      */
     protected $logs = [];
 
+    protected $is_end = false;
+
 	/**
 	 * __construct
 	 * @param  array $config 应用层配置
@@ -121,6 +123,7 @@ class App extends \Swoolefy\Core\Component {
 	public function catchAll() {
 		// 获取配置信息
 		if(isset($this->config['catch_handle']) && $handle = $this->config['catch_handle']) {
+            $this->is_end = true;
 			if(is_array($handle)) {
 				$this->response->header('Content-Type','application/json; charset=UTF-8');
 				$this->response->end(json_encode($handle, JSON_UNESCAPED_UNICODE));
@@ -196,6 +199,13 @@ class App extends \Swoolefy\Core\Component {
         }
     }
 
+    /**
+     * setEnd
+     */
+    public function setEnd() {
+        $this->is_end = true;
+    }
+
 	/**
 	 * end 请求结束
 	 * @return void
@@ -206,7 +216,10 @@ class App extends \Swoolefy\Core\Component {
 		// 销毁当前的请求应用对象
 		Application::removeApp();
 		// 设置一个异常结束
-		@$this->response->end();
+        if(!$this->is_end) {
+            @$this->response->end();
+        }
+
 	}
 
 	//使用trait的复用特性
