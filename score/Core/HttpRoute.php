@@ -65,7 +65,7 @@ class HttpRoute extends AppDispatch {
 	 * $deny_actions 禁止外部直接访问的action
 	 * @var array
 	 */
-	public static $deny_actions = ['__construct','_beforeAction','_afterAction','__destruct'];
+	protected static $deny_actions = ['__construct','_beforeAction','_afterAction','__destruct'];
 
 	/**
 	 * __construct
@@ -138,6 +138,7 @@ class HttpRoute extends AppDispatch {
 		$this->request->server['ROUTE_PARAMS'] = [];
 		// 定义禁止直接外部访问的方法
 		if(in_array($action, self::$deny_actions)) {
+            Application::getApp()->setEnd();
 			return $this->response->end("{$action}() method is not be called");
 		}
 		if($module) {
@@ -184,6 +185,7 @@ class HttpRoute extends AppDispatch {
                         // 访问类的命名空间
                         $class = $this->redirectNotFound();
                     }else {
+                        Application::getApp()->setEnd();
                         return $this->response->end(json_encode([
                             'ret'=> 404,
                             'msg'=> $filePath.' is not exit!',
@@ -209,6 +211,7 @@ class HttpRoute extends AppDispatch {
                         // 访问类的命名空间
                         $class = $this->redirectNotFound();
                     }else {
+                        Application::getApp()->setEnd();
                         return $this->response->end(json_encode([
                             'ret'=> 404,
                             'msg'=> $filePath.' is not exit!',
@@ -223,17 +226,20 @@ class HttpRoute extends AppDispatch {
 
 		// 创建控制器实例
 		$controllerInstance = new $class();
-		// 提前执行_beforeAction函数
-		if($controllerInstance->_beforeAction() === false || is_null($controllerInstance->_beforeAction())) {
-			$this->response->status(403);
-			$this->response->header('Content-Type','application/json; charset=UTF-8');
-			return $this->response->write(json_encode([
-				'ret'=> 403,
-				'msg'=> 'if you called _beforeAction() must return true then can exec action function,otherwise this request is end when in _beforeAction()',
-				'data'=>''
-			]));
-		}
-		// 创建reflector对象实例
+        // 提前执行_beforeAction函数
+		$isContinueAction = $controllerInstance->_beforeAction();
+        if($isContinueAction === false) {
+            Application::getApp()->setEnd();
+            $this->response->status(403);
+            $this->response->header('Content-Type','application/json; charset=UTF-8');
+            $this->response->end(json_encode([
+                'ret'=> 403,
+                'msg'=> 'if you called _beforeAction() must return true then can exec action function,otherwise this request is end when in _beforeAction()',
+                'data'=>''
+            ]));
+            return false;
+        }
+        // 创建reflector对象实例
 		$reflector = new \ReflectionClass($controllerInstance);
 		// 如果存在该类和对应的方法
 		if($reflector->hasMethod($action)) {
@@ -262,25 +268,27 @@ class HttpRoute extends AppDispatch {
                     // 记录错误异常
                     $exceptionClass = Application::getApp()->getExceptionClass();
                     $exceptionClass::shutHalt($msg);
+                    Application::getApp()->setEnd();
 				    $this->response->end(json_encode([
                         'ret' => 500,
                         'msg' => $msg,
                         'data' => ''
-                    ]));
+                    ],JSON_UNESCAPED_UNICODE));
 		        }
 			}else {
 				return $this->response->end(json_encode([
-					'ret'=>500,
-					'msg'=>'class method '.$action.' is static or private, protected property, can not be object call!',
+					'ret'=> 500,
+					'msg'=> "class method {$action} is static or private, protected property, can not be object call",
 					'data'=>''
 				]));
 			}
 		}else {
+            Application::getApp()->setEnd();
 			$this->response->status(404);
 			$this->response->header('Content-Type','application/json; charset=UTF-8');
             return $this->response->end(json_encode([
                 'ret'=> 404,
-                'msg'=> 'Class file for '.$filePath.' is exit, but has undefined '.'"'.$action.'()'.'"'.' method',
+                'msg'=> "Class file for {$filePath} is exited, but has undefined {$action}() method",
                 'data'=>''
             ]));
 		}
