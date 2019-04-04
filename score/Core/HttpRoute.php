@@ -170,13 +170,14 @@ class HttpRoute extends AppDispatch {
 		if(!isset($this->config['app_namespace'])) {
             $this->config['app_namespace'] = APP_NAME;
         }
-		// 判断是否存在这个类文件
+
+        $filePath = APP_PATH.DIRECTORY_SEPARATOR.'Module'.DIRECTORY_SEPARATOR.$module.DIRECTORY_SEPARATOR.$controller.'.php';
+        // 判断是否存在这个类文件
 		if($module) {
 			// 访问类的命名空间
 			$class = $this->config['app_namespace'].'\\'.'Module'.'\\'.$module.'\\'.$controller;
 			// 不存在请求类文件
 			if(!self::isExistRouteFile($class)) {
-				$filePath = APP_PATH.DIRECTORY_SEPARATOR.'Module'.DIRECTORY_SEPARATOR.$module.DIRECTORY_SEPARATOR.$controller.'.php';
 				if(!is_file($filePath)) {
 					$this->response->status(404);
 					$this->response->header('Content-Type','application/json; charset=UTF-8');
@@ -232,9 +233,16 @@ class HttpRoute extends AppDispatch {
             Application::getApp()->setEnd();
             $this->response->status(403);
             $this->response->header('Content-Type','application/json; charset=UTF-8');
+            $query_string = isset($this->request->server['QUERY_STRING']) ? '?'.$this->request->server['QUERY_STRING'] : '';
+            if(isset($this->request->post) && !empty($this->request->post)) {
+                $post = json_encode($this->request->post,JSON_UNESCAPED_UNICODE);
+                $msg = "call {$class}::_beforeAction return false, forbiden continue call {$class}::{$action}, please checkout it ||| ".$this->request->server['REQUEST_URI'].$query_string.' post_data:'.$post;
+            }else {
+                $msg = "call {$class}::_beforeAction return false, forbiden continue call {$class}::{$action}, please checkout it ||| ".$this->request->server['REQUEST_URI'].$query_string;
+            }
             $this->response->end(json_encode([
                 'ret'=> 403,
-                'msg'=> 'if you called _beforeAction() must return true then can exec action function,otherwise this request is end when in _beforeAction()',
+                'msg'=> $msg,
                 'data'=>''
             ]));
             return false;
