@@ -89,6 +89,12 @@ class ServiceDispatch extends AppDispatch {
 
 		try{
 			if(method_exists($serviceInstance, $action)) {
+                $isContinueAction = $serviceInstance->_beforeAction();
+                if($isContinueAction === false) {
+                    // end
+                    return false;
+                }
+                // next call
 				$serviceInstance->$action($this->params);
 			}else {
 			    if(Swfy::isWorkerProcess()) {

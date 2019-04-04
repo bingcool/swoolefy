@@ -69,13 +69,13 @@ class BService extends BaseObject {
 	 * @param  mixed  $data
 	 * @param  array  $header
      * @throws \Exception
-	 * @return void
+	 * @return mixed
 	 */
 	public function send($fd, $data, $header = []) {
 		if(BaseServer::isRpcApp()) {
 			$args = [$data, $header];
 			$data = \Swoolefy\Tcp\TcpServer::pack($args);
-			Swfy::getServer()->send($fd, $data);
+			return Swfy::getServer()->send($fd, $data);
 		}else {
 			throw new \Exception("BService::send() this method only can be called by tcp or rpc server!");
 		}
@@ -89,14 +89,14 @@ class BService extends BaseObject {
 	 * @param    mixed    $data
 	 * @param    int      $server_socket
      * @throws   \Exception
-	 * @return   void
+	 * @return   mixed
 	 */
 	public function sendto($ip, $port, $data, $server_socket = -1) {
 		if(BaseServer::isUdpApp()) {
 			if(is_array($data)){
 				$data = json_encode($data, JSON_UNESCAPED_UNICODE);
 			}
-			Swfy::getServer()->sendto($ip, $port, $data, $server_socket);
+			return Swfy::getServer()->sendto($ip, $port, $data, $server_socket);
 		}else {
 			throw new \Exception("BService::sendto() this method only can be called by udp server!");
 		}
