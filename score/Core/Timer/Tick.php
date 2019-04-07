@@ -91,6 +91,9 @@ class Tick {
                 // call_user_func_array($func->bindTo($tickInstance, get_class($tickInstance)), $params);
                 $func->call($tickTaskInstance, $user_params, $timer_id);
             }
+
+            $tickTaskInstance->end();
+
             if(method_exists("Swoolefy\\Core\\Application", 'removeApp')) {
                 if(is_object($tickTaskInstance)) {
                     Application::removeApp($tickTaskInstance->coroutine_id);
@@ -176,6 +179,8 @@ class Tick {
                 $tickTaskInstance = new TickController;
                 $func->call($tickTaskInstance, $user_params, $timer_id = null);
             }
+
+            $tickTaskInstance->end();
             
             if(method_exists("Swoolefy\\Core\\Application", 'removeApp')) {
                 if(is_object($tickTaskInstance)) {
