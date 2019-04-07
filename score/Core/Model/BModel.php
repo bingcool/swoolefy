@@ -26,20 +26,12 @@ class BModel extends \Swoolefy\Core\SModel {
 	public $response = null;
 
 	/**
-	 * $session
-	 * @var null
-	 */
-	public $session = null;
-
-	/**
 	 * __construct
 	 */
 	public function __construct() {
 		parent::__construct();
-		// 初始化请求对象和响应对象
 		$this->request = Application::getApp()->request;
 		$this->response = Application::getApp()->response;
-		$this->session = Application::getApp()->session;
 	}
 
 	// model的多路复用trait
