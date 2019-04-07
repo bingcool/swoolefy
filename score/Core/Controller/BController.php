@@ -40,17 +40,16 @@ class BController extends \Swoolefy\Core\AppObject {
 		// 初始化请求对象和响应对象
 		$this->request = Application::getApp()->request;
 		$this->response = Application::getApp()->response;
-		//$this->session = Application::getApp()->session;
 		$this->config = Application::getApp()->config;
 		defer(function() {
-		    $this->destruct();
+		    $this->defer();
         });
 	}
 
 	/**
-	 * __destruct 返回数据之前执行,初始化一些静态变量
+	 * __destruct 初始化一些静态变量
 	 */
-	public function destruct() {
+	public function defer() {
 		if(method_exists($this,'_afterAction')) {
 			static::_afterAction();
 		}

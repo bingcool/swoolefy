@@ -23,17 +23,17 @@ class ZModel {
 	/**
 	 * getInstance 获取model的单例
 	 * @param   string  $class  类命名空间
-     * @param   array   $args
+     * @param   array   $constructor 类构造函数参数
 	 * @return  mixed
 	 */
-	public static function getInstance(string $class = '', array $args = []) {
+	public static function getInstance(string $class = '', array $constructor = []) {
 		$cid = CoroutineManager::getInstance()->getCoroutineId();
 		$class = str_replace('/','\\', $class);
 		$class = trim($class,'\\');
 		if(isset(static::$_model_instances[$cid][$class]) && is_object(static::$_model_instances[$cid][$class])) {
             return static::$_model_instances[$cid][$class];
         }
-		static::$_model_instances[$cid][$class] = new $class(...$args);
+		static::$_model_instances[$cid][$class] = new $class(...$constructor);
         return static::$_model_instances[$cid][$class];
 	}
 
