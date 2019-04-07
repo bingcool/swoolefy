@@ -174,6 +174,7 @@ class EventController extends BaseObject {
 
 	/**
 	 * beforeAction 在处理实际action之前执行
+     * EventController不会执行该动作,所以继承与EventController不要调用该method
 	 * @return   mixed
 	 */
 	public function _beforeAction() {
@@ -189,7 +190,7 @@ class EventController extends BaseObject {
 	}
 
 	/**
-	 * end 返回数据之前执行,重新初始化一些静态变量
+	 * end 重新初始化一些静态变量
 	 */
 	public function end() {
 		// callhooks
