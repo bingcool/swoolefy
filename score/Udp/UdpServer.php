@@ -82,8 +82,24 @@ abstract class UdpServer extends BaseServer {
 			// 重新设置进程名称
 			self::setManagerProcessName(self::$config['manager_process_name']);
 			// 启动的初始化函数
-			$this->startCtrl->managerStart($server);
+            try{
+                $this->startCtrl->managerStart($server);
+            }catch (\Exception $e) {
+                self::catchException($e);
+            }
+
 		});
+
+        /**
+         * managerstop回调
+         */
+        $this->udpserver->on('ManagerStop', function(udp_server $server) {
+            try{
+                $this->startCtrl->managerStop($server);
+            }catch (\Exception $e) {
+                self::catchException($e);
+            }
+        });
 
 		/**
 		 * 启动worker进程监听回调，设置定时器

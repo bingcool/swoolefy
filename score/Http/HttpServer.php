@@ -76,7 +76,12 @@ abstract class HttpServer extends BaseServer {
 			// 重新设置进程名称
 			self::setMasterProcessName(self::$config['master_process_name']);
 			// 启动的初始化函数
-			$this->startCtrl->start($server);
+            try{
+                $this->startCtrl->start($server);
+            }catch (\Exception $e) {
+                self::catchException($e);
+            }
+
 		});
 
 		/**
@@ -88,6 +93,17 @@ abstract class HttpServer extends BaseServer {
 			// 启动的初始化函数
 			$this->startCtrl->managerStart($server);
 		});
+
+        /**
+         * managerstop回调
+         */
+        $this->webserver->on('ManagerStop', function(http_server $server) {
+            try{
+                $this->startCtrl->managerStop($server);
+            }catch (\Exception $e) {
+                self::catchException($e);
+            }
+        });
 
 		/**
 		 * 启动worker进程监听回调，设置定时器
