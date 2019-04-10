@@ -72,7 +72,7 @@ class ServiceDispatch extends AppDispatch {
                 $msg = isset($return_data['msg']) ? $return_data['msg'] : "when dispatch, {$class} not found!";
                 $exceptionClass = Application::getApp()->getExceptionClass();
                 $exceptionClass::shutHalt($msg);
-                return;
+                return false;
 			}
 		}
 		
@@ -114,7 +114,7 @@ class ServiceDispatch extends AppDispatch {
                 $msg = isset($return_data['msg']) ? $return_data['msg'] : "when dispatch, {$class} call undefined function {$action}()";
                 $exceptionClass = Application::getApp()->getExceptionClass();
                 $exceptionClass::shutHalt($msg);
-				return;
+				return false;
 			}
 		}catch(\Throwable $t) {
 			$msg = 'Fatal error: '.$t->getMessage().' on '.$t->getFile().' on line '.$t->getLine().' ||| '.$class.'::'.$action.'  data='.json_encode($this->params,JSON_UNESCAPED_UNICODE);
@@ -134,7 +134,7 @@ class ServiceDispatch extends AppDispatch {
             // 记录错误异常
             $exceptionClass = Application::getApp()->getExceptionClass();
             $exceptionClass::shutHalt($msg);
-            return;
+            return false;
 		}
 		
 	}
