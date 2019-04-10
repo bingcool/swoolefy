@@ -71,7 +71,7 @@ class Session {
      * 是否为只读，只读不需要保存
      * @var null
      */
-    public $readonly ;
+    public $readonly;
 
     /**
      * __construct 初始化

@@ -22,7 +22,7 @@ trait ComponentTrait {
 	protected $container = [];
 
 	/**
-	 * $pools_component 需要创建进程池的组件，一般是mysql，或者redis
+	 * $pools_component 需要创建进程池的组件
 	 * @var array
 	 */
 	protected $component_pools = [];
@@ -155,7 +155,6 @@ trait ComponentTrait {
         	if(end($keys) != SWOOLEFY_COM_FUNC) {
         		$func = $defination[SWOOLEFY_COM_FUNC];
         		unset($defination[SWOOLEFY_COM_FUNC]);
-        		// 设置在数组末尾
         		$defination[SWOOLEFY_COM_FUNC] = $func;
         	}
         	unset($keys);
