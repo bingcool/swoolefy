@@ -52,7 +52,7 @@ class Session {
      */
     public  $cookie_lifetime = 7776000;
     public  $session_lifetime = 0;
-    public  $cookie_domain = '*';
+    public  $cookie_domain = '';
     public  $cookie_path = '/';
 
     /**
@@ -102,7 +102,7 @@ class Session {
         if(isset($config['cache_driver']) && !empty($config['cache_driver'])) {
             $this->cache_driver = $config['cache_driver'];
         }
-        if(isset($config['cache_driver'])) {
+        if(isset($config['cookie_domain'])) {
             $this->cookie_domain = $config['cookie_domain'];
         }
        
@@ -122,7 +122,7 @@ class Session {
         }
 
         $driver_class = $this->cache_driver;
-        $this->driver = Application::getApp()->$driver_class;
+        $this->driver = Application::getApp()->{$driver_class};
         $this->isStart = true;
         $this->readonly = $readonly;
         $cookie_session_id = isset(Application::getApp()->request->cookie[$this->cookie_key]) ? Application::getApp()->request->cookie[$this->cookie_key] : null;

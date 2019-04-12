@@ -152,9 +152,7 @@ abstract class UdpServer extends BaseServer {
             $this->udpserver->on('task', function(udp_server $server, \Swoole\Server\Task $task) {
                 try{
                     $from_worker_id = $task->worker_id;
-                    //任务的编号
                     $task_id = $task->id;
-                    //任务的数据
                     $data = $task->data;
                     $task_data = unserialize($data);
                     static::onTask($server, $task_id, $from_worker_id, $task_data, $task);
@@ -166,7 +164,6 @@ abstract class UdpServer extends BaseServer {
             $this->udpserver->on('task', function(udp_server $server, $task_id, $from_worker_id, $data) {
                 try{
                     $task_data = unserialize($data);
-                    // 延迟绑定
                     static::onTask($server, $task_id, $from_worker_id, $task_data);
                 }catch(\Exception $e) {
                     self::catchException($e);
@@ -205,7 +202,6 @@ abstract class UdpServer extends BaseServer {
 		 */
 		$this->udpserver->on('WorkerStop', function(udp_server $server, $worker_id) {
 			try{
-				// worker停止时的回调处理
 				$this->startCtrl->workerStop($server, $worker_id);
 			}catch(\Exception $e) {
 				self::catchException($e);

@@ -37,7 +37,6 @@ class BController extends \Swoolefy\Core\AppObject {
 	 * @param void
 	 */
 	public function __construct() {
-		// 初始化请求对象和响应对象
 		$this->request = Application::getApp()->request;
 		$this->response = Application::getApp()->response;
 		$this->config = Application::getApp()->config;

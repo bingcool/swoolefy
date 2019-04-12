@@ -427,7 +427,7 @@ trait AppTrait {
 	 * @return string
 	 */
 	public function getAction() {
-		$routeParams = $this->getRouteParams();
+		list($count, $routeParams) = $this->getRouteParams();
 		return array_pop($routeParams);
 	}
 

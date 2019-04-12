@@ -140,19 +140,6 @@ class MGeneral extends \Swoolefy\Core\AppObject {
 	}
 
     /**
-     * _die 异常终端程序执行
-     * @param    string   $html
-     * @param    string   $msg
-     * @throws   \Exception
-     * @return   void
-     */
-    public static function _die(string $html = '', string $msg = '') {
-        // 直接结束请求
-        Application::getApp()->response->end($html);
-        throw new \Exception($msg);
-    }
-
-    /**
      * string 随机生成一个字符串
      * @param   int  $length
      * @param   bool  $number 只添加数字
@@ -208,7 +195,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
      * @return  string
      */
     public static function randmd5($length = 20, $seed = null) {
-        if (empty($seed)) {
+        if(empty($seed)) {
             $seed = self::string(20);
         }
         return substr(md5($seed . mt_rand(111111, 999999)), 0, $length);

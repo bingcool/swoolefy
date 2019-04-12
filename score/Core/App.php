@@ -103,7 +103,6 @@ class App extends \Swoolefy\Core\Component {
             $this->_init();
             $this->_bootstrap();
             if(!$this->catchAll()) {
-                // 路由调度执行
                 $route = new HttpRoute($extend_data);
                 $route->dispatch();
             }
@@ -213,9 +212,7 @@ class App extends \Swoolefy\Core\Component {
 	public function end() {
         // log hander
         $this->handerLog();
-		// 销毁当前的请求应用对象
 		Application::removeApp();
-		// 设置一个异常结束
         if(!$this->is_end) {
             @$this->response->end();
         }

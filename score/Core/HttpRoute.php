@@ -168,7 +168,6 @@ class HttpRoute extends AppDispatch {
         }
 
         $filePath = APP_PATH.DIRECTORY_SEPARATOR.'Module'.DIRECTORY_SEPARATOR.$module.DIRECTORY_SEPARATOR.$controller.'.php';
-        // 判断是否存在这个类文件
 		if($module) {
 			// 访问类的命名空间
 			$class = $this->config['app_namespace'].'\\'.'Module'.'\\'.$module.'\\'.$controller;
@@ -179,7 +178,6 @@ class HttpRoute extends AppDispatch {
 					$this->response->header('Content-Type','application/json; charset=UTF-8');
                     // 使用配置的NotFound类
                     if(isset($this->config['not_found_handle']) && is_array($this->config['not_found_handle'])) {
-                        // 访问类的命名空间
                         $class = $this->redirectNotFound();
                     }else {
                         Application::getApp()->setEnd();
@@ -197,7 +195,6 @@ class HttpRoute extends AppDispatch {
 		}else {
 			// 访问类的命名空间
 			$class = $this->config['app_namespace'].'\\'.'Controller'.'\\'.$controller;
-			// 不存在请求类文件
 			if(!self::isExistRouteFile($class)) {
 				$filePath = APP_PATH.DIRECTORY_SEPARATOR.'Controller'.DIRECTORY_SEPARATOR.$controller.'.php';
 				if(!is_file($filePath)) {
@@ -245,18 +242,18 @@ class HttpRoute extends AppDispatch {
         }
         // 创建reflector对象实例
 		$reflector = new \ReflectionClass($controllerInstance);
-		// 如果存在该类和对应的方法
 		if($reflector->hasMethod($action)) {
 			$method = new \ReflectionMethod($controllerInstance, $action);
 			if($method->isPublic() && !$method->isStatic()) {
 				try{
 					if($this->extend_data) {
-						$method->invoke($controllerInstance, $this->extend_data);
+						//$method->invoke($controllerInstance, $this->extend_data);
+                        $controllerInstance->{$action}($this->extend_data);
 					}else {
-						$method->invoke($controllerInstance);
+                        //$method->invoke($controllerInstance);
+                        $controllerInstance->{$action}();
 					}
-           	 		
-		        }catch (\ReflectionException $e) {
+		        }catch (\Exception $e) {
 		            $method = new \ReflectionMethod($controllerInstance, '__call');
 		            $method->invokeArgs($controllerInstance, [$class.'::'.$action, '']);
 		        }catch(\Throwable $t) {

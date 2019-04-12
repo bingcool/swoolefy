@@ -29,8 +29,7 @@ return [
 		'task_worker_num' => 2,
 		'task_tmpdir' => '/dev/shm',
 		'daemonize' => 0,
-		// TCP使用固定的worker，使用2或4
-		'dispatch_mode' => 2,
+		'dispatch_mode' => 3,
 
         'enable_coroutine' => 1,
         'task_enable_coroutine' => 1,
