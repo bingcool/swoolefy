@@ -179,11 +179,8 @@ abstract class TcpServer extends BaseServer {
             $this->tcpserver->on('task', function(tcp_server $server, \Swoole\Server\Task $task) {
                 try{
                     $from_worker_id = $task->worker_id;
-                    //任务的编号
                     $task_id = $task->id;
-                    //任务的数据
                     $data = $task->data;
-
                     $task_data = unserialize($data);
                     static::onTask($server, $task_id, $from_worker_id, $task_data, $task);
                 }catch(\Exception $e) {
@@ -249,7 +246,6 @@ abstract class TcpServer extends BaseServer {
 			try{
 				// 销毁不完整数据
 				$this->pack->destroy($server, $worker_id);
-				// worker停止时的回调处理
 				$this->startCtrl->workerStop($server, $worker_id);
 			}catch(\Exception $e) {
 				self::catchException($e);
@@ -261,7 +257,6 @@ abstract class TcpServer extends BaseServer {
 		 */
 		$this->tcpserver->on('WorkerError', function(tcp_server $server, $worker_id, $worker_pid, $exit_code, $signal) {
 			try{
-				// worker停止的触发函数
 				$this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
 			}catch(\Exception $e) {
 				self::catchException($e);
@@ -273,7 +268,6 @@ abstract class TcpServer extends BaseServer {
 		 */
         $this->tcpserver->on('WorkerExit', function(tcp_server $server, $worker_id) {
             try{
-                // worker退出的触发函数
                 $this->startCtrl->workerExit($server, $worker_id);
             }catch(\Exception $e) {
                 self::catchException($e);

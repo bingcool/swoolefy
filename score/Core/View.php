@@ -115,7 +115,6 @@ class View {
 		$module = Application::getApp()->getModule();
 		$controller = Application::getApp()->getController();
 		$action = Application::getApp()->getAction();
-		
 		if(!$template_file) {
 			$template_file = $action.'.html';
 		}
@@ -125,13 +124,11 @@ class View {
 			$filePath = SMARTY_TEMPLATE_PATH.$module.'_'.$controller.'/'.$template_file;
 			$fetchFile = $module.'_'.$controller.'/'.$template_file;
 		}
-		
 		if(is_file($filePath)) {
-			$tpl = $this->view->fetch($fetchFile);
+			$tpl = $this->view->fetch($fetchFile, md5($fetchFile), md5($fetchFile));
 		}else {
 			$tpl = $template_file;
 		}
-
 		$response = @Application::getApp()->response;
 		$response->header('Content-Type',$this->content_type.'; charset=utf-8');
 		if($this->enable_gzip) {
@@ -154,11 +151,10 @@ class View {
 		$filePath = SMARTY_TEMPLATE_PATH.$template_file;
 		$fetchFile = $template_file;
 		if(is_file($filePath)) {
-			$tpl = $this->view->fetch($fetchFile);
+			$tpl = $this->view->fetch($fetchFile, md5($fetchFile), md5($fetchFile));
 		}else {
 			$tpl = $template_file;
 		}
-
 		$response = Application::getApp()->response;
 		$response->header('Content-Type',$this->content_type.'; charset=utf-8');
 		if($this->enable_gzip) {

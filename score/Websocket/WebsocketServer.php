@@ -175,11 +175,8 @@ abstract class WebsocketServer extends BaseServer {
             $this->webserver->on('task', function(websocket_server $server, \Swoole\Server\Task $task) {
                 try{
                     $from_worker_id = $task->worker_id;
-                    //任务的编号
                     $task_id = $task->id;
-                    //任务的数据
                     $data = $task->data;
-
                     $task_data = unserialize($data);
                     static::onTask($server, $task_id, $from_worker_id, $task_data, $task);
                 }catch(\Exception $e) {
@@ -262,10 +259,8 @@ abstract class WebsocketServer extends BaseServer {
 		 */
 		$this->webserver->on('WorkerStop', function(websocket_server $server, $worker_id) {
 			try{
-				// worker停止时的回调处理
 				$this->startCtrl->workerStop($server, $worker_id);
 			}catch(\Exception $e) {
-				// 捕捉异常
 				self::catchException($e);
 			}
 		});
@@ -275,10 +270,8 @@ abstract class WebsocketServer extends BaseServer {
 		 */
 		$this->webserver->on('WorkerError', function(websocket_server $server, $worker_id, $worker_pid, $exit_code, $signal) {
 			try{
-				// worker停止的触发函数
 				$this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
 			}catch(\Exception $e) {
-				// 捕捉异常
 				self::catchException($e);
 			}
 			
@@ -290,10 +283,8 @@ abstract class WebsocketServer extends BaseServer {
 
         $this->webserver->on('WorkerExit', function(websocket_server $server, $worker_id) {
             try{
-                // worker退出的触发函数
                 $this->startCtrl->workerExit($server, $worker_id);
             }catch(\Exception $e) {
-                // 捕捉异常
                 self::catchException($e);
             }
         });

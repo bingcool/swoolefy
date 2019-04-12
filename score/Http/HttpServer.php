@@ -163,11 +163,8 @@ abstract class HttpServer extends BaseServer {
             $this->webserver->on('task', function(http_server $server, \Swoole\Server\Task $task) {
                 try{
                     $from_worker_id = $task->worker_id;
-                    //任务的编号
                     $task_id = $task->id;
-                    //任务的数据
                     $data = $task->data;
-
                     $task_data = unserialize($data);
                     static::onTask($server, $task_id, $from_worker_id, $task_data, $task);
                 }catch(\Exception $e) {
