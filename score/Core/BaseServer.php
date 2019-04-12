@@ -13,7 +13,6 @@ namespace Swoolefy\Core;
 
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Core\Memory\AtomicManager;
-use think\Exception;
 
 class BaseServer {
 	/**

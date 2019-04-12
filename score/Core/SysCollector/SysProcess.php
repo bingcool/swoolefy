@@ -193,7 +193,7 @@ class SysProcess extends AbstractProcess {
 	 */
 	protected function writeByFile(array $sys_collector_config, array $data = []) {
 		$file_path = $sys_collector_config['file_path'];
-		$max_size = isset($sys_collector_config['max_size']) ? $sys_collector_config['max_size'] : 50 * 1024;
+		$max_size = isset($sys_collector_config['max_size']) ? $sys_collector_config['max_size'] : 2 * 1024;
 		if(file_exists($file_path)) {
 			$file_size = filesize($file_path);
 			if($file_size > $max_size) {

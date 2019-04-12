@@ -15,28 +15,9 @@ use Swoolefy\Core\Application;
 use Swoolefy\Core\MGeneral;
 
 class Session {
-
-    /**
-     * $cache_prefix session_id的key的前缀
-     * @var string
-     */
-    public $cache_prefix = 'phpsess_';
-
-    /**
-     * $cookie_key cookie的session的key
-     * @var string
-     */
-    public $cookie_key = 'PHPSESSID';
-
-    /**
-     * $cache_driver session的 缓存驱动
-     * @var string
-     */
-    public $cache_driver = 'redis';
-    
     /**
      * $driver 缓存驱动的实例
-     * @var [type]
+     * @var null
      */
     public $driver = null;
 
@@ -44,7 +25,37 @@ class Session {
      * $session 寄存session的数据
      * @var array
      */
-    public $_SESSION = [];
+    protected $_SESSION = [];
+
+    /**
+     * $isStart 是否已经启动session
+     * @var boolean
+     */
+    protected $isStart = false;
+
+    /**
+     * $session_id sessio_id
+     * @var string
+     */
+    protected $session_id;
+
+    /**
+     * 是否为只读，只读不需要保存
+     * @var null
+     */
+    public $readonly;
+
+    /**
+     * $cache_driver session的 缓存驱动
+     * @var string
+     */
+    public $cache_driver = 'redis';
+
+    /**
+     * $cookie_key cookie的session的key
+     * @var string
+     */
+    public $cookie_key = 'PHPSESSID';
 
     /**
      * cookie的设置
@@ -56,33 +67,12 @@ class Session {
     public  $cookie_path = '/';
 
     /**
-     * $isStart 是否已经启动session
-     * @var boolean
-     */
-    public $isStart = false;
-
-    /**
-     * $session_id sessio_id 
-     * @var string
-     */
-    public $session_id;
-
-    /**
-     * 是否为只读，只读不需要保存
-     * @var null
-     */
-    public $readonly;
-
-    /**
      * __construct 初始化
      * @param array $config
      */
-    public function __construct(array $config=[]) {
-        if(isset($config['cache_prefix'])  && !empty($config['cache_prefix'])) {
-            $this->cache_prefix = $config['cache_prefix'];
-        }
-        if(isset($config['cookie_key ']) && !empty($config['cookie_key '])) {
-            $this->coookie_key = $config['cookie_key '];
+    public function __construct(array $config = []) {
+        if(isset($config['cookie_key']) && !empty($config['cookie_key'])) {
+            $this->coookie_key = $config['cookie_key'];
         }
         if(isset($config['cookie_lifetime']) && !empty($config['cookie_lifetime'])) {
             $this->cookie_lifetime = $config['cookie_lifetime'];
@@ -90,7 +80,7 @@ class Session {
         if(!isset($config['session_lifetime'])) {
             $this->session_lifetime = $this->cookie_lifetime + 7200;
         }else {
-            if($config['session_lifetime'] <  $config['cookie_lifetime']) {
+            if($config['session_lifetime'] <= $config['cookie_lifetime']) {
                 $this->session_lifetime = $this->cookie_lifetime + 7200;
             }else {
                 $this->session_lifetime = $config['session_lifetime'];
@@ -129,7 +119,7 @@ class Session {
         $this->session_id = $cookie_session_id;
         if(empty($cookie_session_id)) {
             $sess_id = MGeneral::randmd5(40);
-            Application::getApp()->response->cookie($this->cookie_key, $sess_id, time() + $this->cookie_lifetime, $this->cookie_path, $this->cookie_domain);
+            Application::getApp()->response->cookie($this->cookie_key, $sess_id, time() + $this->cookie_lifetime, $this->cookie_path, $this->cookie_domain, false, false);
             $this->session_id = $sess_id;
         }
         $this->_SESSION = $this->load($this->session_id);
@@ -145,7 +135,7 @@ class Session {
         if(!$this->session_id) {
             $this->session_id = $sess_id;
         }
-        $data = $this->driver->get($this->cache_prefix . $sess_id);
+        $data = $this->driver->get($sess_id);
         //先读数据，如果没有，就初始化一个
         if (!empty($data)) {
             return unserialize($data);
@@ -164,12 +154,72 @@ class Session {
         }
         //设置为Session关闭状态
         $this->isStart = false;
-        $session_key = $this->cache_prefix . $this->session_id;
         // 如果没有设置SESSION,则不保存,防止覆盖
         if(empty($this->_SESSION)) {
             return false;
         }
-        return $this->driver->setex($session_key, $this->session_lifetime, serialize($this->_SESSION));
+        return $this->driver->setex($this->session_id, $this->session_lifetime, serialize($this->_SESSION));
+    }
+
+    /**
+     * @param string|null $cookie_key
+     * @return $this
+     */
+    public function setCookieKey(string $cookie_key = null) {
+        if($cookie_key) {
+            $this->cookie_key = $cookie_key;
+        }
+        return $this;
+    }
+
+    /**
+     * @param null $driver
+     * @return $this
+     */
+    public function setCacheDriver($driver = null) {
+        if($driver) {
+            $this->cache_driver = $driver;
+        }
+        return $this;
+    }
+
+    /**
+     * @param int      $cookie_lifetime
+     * @param int|null $session_lifetime
+     */
+    public function setSessionIdExpireTime(int $cookie_lifetime = 0, int $session_lifetime = 0) {
+        if(!empty($cookie_lifetime)) {
+            $this->cookie_lifetime = $cookie_lifetime;
+        }
+        if(empty($session_lifetime)) {
+            $this->session_lifetime = $this->cookie_lifetime + 7200;
+        }else {
+            if($session_lifetime <= $cookie_lifetime) {
+                $this->session_lifetime = $this->cookie_lifetime + 7200;
+            }else {
+                $this->session_lifetime = $session_lifetime;
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param string|null $path
+     * @return $this
+     */
+    public function setCookiePath(string $path = null) {
+        if($path) {
+            $this->cookie_path = $path;
+        }
+        return $this;
+    }
+
+    public function setCookieDomain(string $domain = null) {
+        if($domain) {
+            $this->cookie_domain = $domain;
+        }
+        return $this;
     }
 
     /**
@@ -223,9 +273,8 @@ class Session {
      * @return
      */
     public function getSessionTtl() {
-        $session_key = $this->cache_prefix . $this->session_id;
-        $isExists = $this->driver->exists($session_key);
-        $isExists && $ttl = $this->driver->ttl($session_key);
+        $isExists = $this->driver->exists($this->session_id);
+        $isExists && $ttl = $this->driver->ttl($this->session_id);
         if($ttl >= 0) {
             return $ttl;
         }
@@ -255,8 +304,7 @@ class Session {
             // 使cookie失效
             setcookie($this->cookie_key, $this->session_id, time() - 600, $this->cookie_path, $this->cookie_domain);
             // redis中完全删除session_key
-            $session_key = $this->cache_prefix . $this->session_id;
-            return $this->driver->del($session_key);
+            return $this->driver->del($this->session_id);
         }
         return false;
     }

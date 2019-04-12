@@ -15,7 +15,6 @@ use Swoole\Process;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Table\TableManager;
-use think\Exception;
 
 abstract class AbstractProcess {
 
