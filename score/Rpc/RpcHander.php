@@ -68,8 +68,8 @@ class RpcHander extends Swoole implements HanderInterface {
                     }
 
                     if($this->ping()) {
-                        $args = ['pong', $this->header];
-                        $data = TcpServer::pack($args);
+                        $pong = ['pong', $this->header];
+                        $data = TcpServer::pack($pong);
                         Swfy::getServer()->send($this->fd, $data);
                         return;
                     }

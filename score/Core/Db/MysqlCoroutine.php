@@ -13,7 +13,35 @@ namespace Swoolefy\Core\Db;
 
 class MysqlCoroutine {
 
-	/**
+    /**
+     * $serverInfo mysql服务器的信息
+     * @var array
+     */
+    public $serverInfo = [];
+
+    /**
+     * $config 配置
+     * @var array
+     */
+    public $config = [
+        'host' => '',
+        'user' => '',
+        'password' => '',
+        'database' => '',
+        'port'    => '3306',
+        'timeout' => 5,
+        'charset' => 'utf8',
+        'strict_type' => false, //开启严格模式，返回的字段将自动转为数字类型
+        'fetch_more' => true, //开启fetch模式, 可与pdo一样使用fetch/fetchAll逐行或获取全部结果集(4.0版本以上)
+    ];
+
+    /**
+     * $deploy 是否开启开启分布式，开启分布式则会自动读写分离
+     * @var boolean
+     */
+    public $deploy = false;
+
+    /**
 	 * $master_mysql_config 主服务器的配置
 	 * @var array
 	 */
@@ -26,34 +54,6 @@ class MysqlCoroutine {
 	 */
 	public $slave_mysql_config = [];
 	public $slave_swoole_mysql = [];
-
-	/**
-	 * $serverInfo mysql服务器的信息
-	 * @var array
-	 */
-	public $serverInfo = []; 
-
-	/**
-	 * $config 配置
-	 * @var array
-	 */
-	public $config = [
-	    'host' => '',
-	    'user' => '',
-	    'password' => '',
-	    'database' => '',
-	    'port'    => '3306',
-	    'timeout' => 5,
-	    'charset' => 'utf8',
-	    'strict_type' => false, //开启严格模式，返回的字段将自动转为数字类型
-	    'fetch_more' => true, //开启fetch模式, 可与pdo一样使用fetch/fetchAll逐行或获取全部结果集(4.0版本以上)
-	];
-
-	/**
-	 * $deploy 是否开启开启分布式，开启分布式则会自动读写分离
-	 * @var boolean
-	 */
-	public $deploy = false;
 
     /**
      * MysqlCoroutine constructor.

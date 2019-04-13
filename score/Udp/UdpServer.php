@@ -214,7 +214,6 @@ abstract class UdpServer extends BaseServer {
 		 */
 		$this->udpserver->on('WorkerError', function(udp_server $server, $worker_id, $worker_pid, $exit_code, $signal) {
 			try{
-				// worker停止的触发函数
 				$this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
 			}catch(\Exception $e) {
 				self::catchException($e);
@@ -227,7 +226,6 @@ abstract class UdpServer extends BaseServer {
 		 */
         $this->udpserver->on('WorkerExit', function(udp_server $server, $worker_id) {
             try{
-                // worker退出的触发函数
                 $this->startCtrl->workerExit($server, $worker_id);
             }catch(\Exception $e) {
                 self::catchException($e);
