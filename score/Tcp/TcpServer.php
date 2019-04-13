@@ -63,9 +63,6 @@ abstract class TcpServer extends BaseServer {
 		self::$server = $this->tcpserver = new tcp_server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, self::$swoole_socket_type);
 		$this->tcpserver->set(self::$setting);
 		parent::__construct();
-		// 初始化启动类
-        $this->startCtrl = parent::startHander();
-        $this->startCtrl->init();
 		// 设置Pack包处理对象
 		self::buildPackHander();
 		

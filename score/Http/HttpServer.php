@@ -63,9 +63,6 @@ abstract class HttpServer extends BaseServer {
 		self::$server = $this->webserver = new http_server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, self::$swoole_socket_type);
 		$this->webserver->set(self::$setting);
 		parent::__construct();
-		// 初始化启动类
-        $this->startCtrl = parent::startHander();
-        $this->startCtrl->init();
 	}
 
 	public function start() {
@@ -227,7 +224,6 @@ abstract class HttpServer extends BaseServer {
 		 */
         $this->webserver->on('WorkerExit', function(http_server $server, $worker_id) {
             try{
-                // worker退出的触发函数
                 $this->startCtrl->workerExit($server, $worker_id);
             }catch(\Exception $e) {
                 self::catchException($e);

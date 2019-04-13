@@ -13,7 +13,7 @@
 return [
     'app_conf' => [], // 应用层配置，需要根据实际项目导入
 	'application_index' => \App\Application::class,
-	'start_init' => \Swoolefy\Core\StartInit::class,
+	'event_handler' => \Swoolefy\Core\EventHandler::class,
 	'master_process_name' => 'php-http-master',
 	'manager_process_name' => 'php-http-manager',
 	'worker_process_name' => 'php-http-worker',

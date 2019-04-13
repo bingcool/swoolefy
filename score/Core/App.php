@@ -129,10 +129,12 @@ class App extends \Swoolefy\Core\Component {
 			if(is_array($handle)) {
 				$this->response->header('Content-Type','application/json; charset=UTF-8');
 				$this->response->end(json_encode($handle, JSON_UNESCAPED_UNICODE));
+			}else if($handle instanceof \Closure) {
+				call_user_func($handle, $this->request, $this->response);
 			}else {
-				$this->response->header('Content-Type','text/html; charset=UTF-8');
-				$this->response->end($handle);
-			}
+                $this->response->header('Content-Type','text/html; charset=UTF-8');
+                $this->response->end($handle);
+            }
 			return true;
 		}
 		return false;

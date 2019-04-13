@@ -11,13 +11,13 @@
 
 namespace Swoolefy\Rpc;
 
-include_once SWOOLEFY_CORE_ROOT_PATH.'/EventInterface.php';
+include_once SWOOLEFY_CORE_ROOT_PATH.'/MainEventInterface.php';
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Tcp\TcpServer;
-use Swoolefy\Core\EventInterface;
+use Swoolefy\Core\RpcEventInterface;
 
-abstract class RpcServer extends TcpServer implements EventInterface {
+abstract class RpcServer extends TcpServer implements RpcEventInterface {
 	/**
 	 * __construct 初始化
 	 * @param array $config

@@ -11,10 +11,9 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Process\ProcessManager;
 
-class StartCtrl implements \Swoolefy\Core\StartInterface {
+class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
 	/**
 	 * init start之前初始化
 	 */
