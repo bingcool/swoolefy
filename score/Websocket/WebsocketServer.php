@@ -241,14 +241,12 @@ abstract class WebsocketServer extends BaseServer {
 		if((isset(self::$config['accept_http']) && self::$config['accept_http'] == true)) {
 			$this->webserver->on('request', function(Request $request, Response $response) {
 				try{
-					// google浏览器会自动发一次请求/favicon.ico,在这里过滤掉
 					if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
 	            		return $response->end();
 	       			}
 					static::onRequest($request, $response);
 					return true;
 				}catch(\Exception $e) {
-					// 捕捉异常
 					self::catchException($e);
 				}
 			});

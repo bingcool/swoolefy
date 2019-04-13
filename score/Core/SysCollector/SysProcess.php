@@ -94,7 +94,7 @@ class SysProcess extends AbstractProcess {
 				if(!$udp_client->isConnected()) {
 					$isConnected = $udp_client->connect($host, $port);
 					if(!$isConnected) {
-						throw new \Exception("sendByUdp function connect udp is failed", 1);	
+						throw new \Exception("SysProcess::sendByUdp function connect udp is failed", 1);
 					}
 				}
 				$udp_client->send($message);
@@ -102,7 +102,7 @@ class SysProcess extends AbstractProcess {
 				throw new \Exception($e->getMessage(), 1);
 			}
 		}else {
-			throw new \Exception("sys_collector_config of udp is wrong, host, port, service, event must be setted", 1);
+			throw new \Exception('sys_collector_config of udp is wrong, $host, $port, $service, $event of params must be setted', 1);
 		}
 	}
 
@@ -176,7 +176,7 @@ class SysProcess extends AbstractProcess {
 				throw new \Exception($e->getMessage(), 1);
 			}
 		}else {
-			throw new \Exception('sys_collector_config of params: $host, $port, $password must be setted');
+			throw new \Exception('sys_collector_config of phpredis is wrong, $host, $port, $password of params must be setted');
 		}
 		
 		if($data) {

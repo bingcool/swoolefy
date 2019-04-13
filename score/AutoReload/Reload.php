@@ -84,14 +84,13 @@ class Reload {
      * @return $this
      */
     public function init() {
-        // 判断是否初始inotify
         !$this->inotify && $this->inotify = inotify_init();
     	// 将inotify添加至异步事件的eventloop
-    	swoole_event_add($this->inotify, function ($fd) {
+    	swoole_event_add($this->inotify, function($fd) {
     		// 读取事件的信息
             $events = inotify_read($this->inotify);
 
-            if(!$events)  {
+            if(!$events) {
                 return;
             }
             // 只要检测到一个文件改动，则停止其余文件的判断，等待时间重启即可
@@ -184,7 +183,6 @@ class Reload {
     private function clearWatch() {
         foreach($this->watchFiles as $wd)
         {
-            // 忽略返回的警告信息
             @inotify_rm_watch($this->inotify, $wd);
         }
         $this->watchFiles = [];
@@ -233,7 +231,6 @@ class Reload {
             {
                 $this->watch($path, false);
             }
-            //检测文件类型
             $fileType = '.'.pathinfo($f, PATHINFO_EXTENSION);
 
             if(in_array($fileType, $this->reloadFileTypes))

@@ -49,6 +49,9 @@ class App extends \Swoolefy\Core\Component {
      */
     protected $logs = [];
 
+    /**
+     * @var bool
+     */
     protected $is_end = false;
 
 	/**
@@ -120,7 +123,7 @@ class App extends \Swoolefy\Core\Component {
 	 * @return boolean
 	 */
 	public function catchAll() {
-		// 获取配置信息
+	    // catchAll
 		if(isset($this->config['catch_handle']) && $handle = $this->config['catch_handle']) {
             $this->is_end = true;
 			if(is_array($handle)) {

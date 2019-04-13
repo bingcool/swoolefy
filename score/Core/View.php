@@ -203,7 +203,7 @@ class View {
 	 * @param   mixed   $value
 	 */
 	public function __set($name, $value) {
-		$this->$name = $value;
+		$this->{$name} = $value;
 		return;
 	}
 
@@ -213,7 +213,7 @@ class View {
 	 * @return    mixed
 	 */
 	public function __get($name) {
-		return $this->$name;
+		return $this->{$name};
 	}
 
 }
