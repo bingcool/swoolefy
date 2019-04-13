@@ -166,10 +166,10 @@ class HttpRoute extends AppDispatch {
 		if(!isset($this->config['app_namespace'])) {
             $this->config['app_namespace'] = APP_NAME;
         }
-
-        $filePath = APP_PATH.DIRECTORY_SEPARATOR.'Module'.DIRECTORY_SEPARATOR.$module.DIRECTORY_SEPARATOR.$controller.'.php';
-		if($module) {
-			// 访问类的命名空间
+        $filePath = APP_PATH.DIRECTORY_SEPARATOR.$controller.'.php';
+        if($module) {
+            $filePath = APP_PATH.DIRECTORY_SEPARATOR.'Module'.DIRECTORY_SEPARATOR.$module.DIRECTORY_SEPARATOR.$controller.'.php';
+            // 访问类的命名空间
 			$class = $this->config['app_namespace'].'\\'.'Module'.'\\'.$module.'\\'.$controller;
 			// 不存在请求类文件
 			if(!self::isExistRouteFile($class)) {
@@ -276,19 +276,21 @@ class HttpRoute extends AppDispatch {
 		        }
 			}else {
                 Application::getApp()->setEnd();
+                $msg = "class method {$class}::{$action} is static or private, protected property, can't be Instance object called";
 				return $this->response->end(json_encode([
 					'ret'=> 500,
-					'msg'=> "class method {$class}::{$action} is static or private, protected property, can't be Instance object called",
+					'msg'=> $msg,
 					'data'=>''
 				]));
 			}
 		}else {
             Application::getApp()->setEnd();
-			$this->response->status(404);
+            $msg = "Controller file '{$filePath}' is exited, but has undefined {$class}::{$action} method";
+            $this->response->status(404);
 			$this->response->header('Content-Type','application/json; charset=UTF-8');
             return $this->response->end(json_encode([
                 'ret'=> 404,
-                'msg'=> "Controller file '{$filePath}' is exited, but has undefined {$class}::{$action} method",
+                'msg'=> $msg,
                 'data'=>''
             ]));
 		}
