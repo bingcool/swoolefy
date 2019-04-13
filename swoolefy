@@ -7,7 +7,6 @@ $APP_NAMES = [
     'RpcService'=>'rpc',
     'UdpService'=> 'udp',
     'WebsockService'=>'websocket',
-    'Pwa'=>'http'
 ];
 
 // 定义环境

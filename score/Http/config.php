@@ -12,7 +12,7 @@
 // http协议层配置
 return [
     'app_conf' => [], // 应用层配置，需要根据实际项目导入
-	'application_index' => \App\Application::class,
+	'application_index' => '',
 	'event_handler' => \Swoolefy\Core\EventHandler::class,
 	'master_process_name' => 'php-http-master',
 	'manager_process_name' => 'php-http-manager',
