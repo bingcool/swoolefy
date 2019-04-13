@@ -12,7 +12,7 @@
 // websocketserver协议层配置
 return [
     'app_conf' => [], // 应用层配置，需要根据实际项目导入
-	'application_service' => 'Service\\Application',
+	'application_service' => '',
 	'event_handler' => \Swoolefy\Core\EventHandler::class,
 	'master_process_name' => 'php-websocket-master',
 	'manager_process_name' => 'php-websocket-manager',
