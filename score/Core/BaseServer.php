@@ -70,7 +70,7 @@ class BaseServer {
     /**
      * @var string 默认启动处理类
      */
-	protected static $start_hander_class = 'Swoolefy\\Core\\StartInit';
+	protected static $start_hander_class = 'Swoolefy\\Core\\EventHandler';
 
     /**
      * $startctrl
@@ -133,8 +133,10 @@ class BaseServer {
 		// enable sys collector
 		self::setAutomicOfRequest();
 		// record start time
-		self::$_startTime = date('Y-m-d H:i:s',strtotime('now'));
-		
+		self::$_startTime = date('Y-m-d H:i:s', strtotime('now'));
+        // start init
+        $this->startCtrl = self::startHandler();
+        $this->startCtrl->init();
 	}
 
 	/**
@@ -775,12 +777,12 @@ class BaseServer {
      * @throws \Exception
      * @return mixed
      */
-    public static function startHander() {
-        $starHanderClass = isset(self::$config['start_init']) ? self::$config['start_init'] : self::$start_hander_class;
+    public static function startHandler() {
+        $starHanderClass = isset(self::$config['event_handler']) ? self::$config['event_handler'] : self::$start_hander_class;
         if(self::isSubclassOf($starHanderClass, self::$start_hander_class)) {
            return new $starHanderClass();
         }
-        throw new \Exception("Error:Config item of 'start_init'=>{$starHanderClass} must extends ".self::$start_hander_class);
+        throw new \Exception("Error:Config item of 'event_handler'=>{$starHanderClass} must extends ".self::$start_hander_class);
     }
 
     /**

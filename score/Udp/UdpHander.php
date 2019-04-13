@@ -51,7 +51,6 @@ class UdpHander extends Swoole implements HanderInterface {
 	 */
 	public function bootstrap($recv) {}
 
-
 	/**
 	 * run 完成初始化后，路由匹配和创建访问实例
 	 * @param  int   $fd
@@ -116,7 +115,5 @@ class UdpHander extends Swoole implements HanderInterface {
 	 * author 认证
 	 * @return 
 	 */
-	public function author() {
-
-	}
+	public function author() {}
 }

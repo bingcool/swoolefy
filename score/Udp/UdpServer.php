@@ -58,10 +58,6 @@ abstract class UdpServer extends BaseServer {
 		self::$server = $this->udpserver = new udp_server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, SWOOLE_SOCK_UDP);
 		$this->udpserver->set(self::$setting);
 		parent::__construct();
-		// 初始化启动类
-        $this->startCtrl = parent::startHander();
-        $this->startCtrl->init();
-		
 	}
 
 	public function start() {

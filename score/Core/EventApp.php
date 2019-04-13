@@ -19,13 +19,13 @@ class EventApp {
 	 * $event_app 事件处理应用对象
 	 * @var object
 	 */
-	public $event_app;
+	protected $event_app;
 
 	/**
 	 * $is_call 单例是否已调用执行函数，只能调用一次执行函数，即单例只能有一个入口执行函数
 	 * @var boolean
 	 */
-	public $is_call = false;
+    protected $is_call = false;
 
 	/**
 	 * registerApp 注册事件处理应用对象，注册一次处理事件

@@ -11,45 +11,34 @@
 
 namespace Swoolefy\Core;
 
-class StartInit extends \Swoolefy\Core\StartCtrl {
-
-	use \Swoolefy\Core\SingletonTrait;
-
+interface EventCtrlInterface {
 	/**
-	 * init swoole服务start启动之前初始化
-	 * 可创建自定义进程process
-	 * @return void
+	 * init start之前初始化
+	 * @param  $args
+	 * @return 
 	 */
-	public function onInit() {
-
-	}
+	public function init();
 
 	/**
 	 * onStart 
 	 * @param    $server
 	 * @return          
 	 */
-	public function onStart($server) {
-		
-	}
+	public function start($server);
 
 	/**
 	 * onManagerStart 
 	 * @param    $server
 	 * @return          
 	 */
-	public function onManagerStart($server) {
-		
-	}
+	public function managerStart($server); 
 
 	/**
 	 * onWorkerStart
 	 * @param    $server
 	 * @return   
 	 */
-	public function onWorkerStart($server,$worker_id) {
-		
-	}
+	public function workerStart($server,$worker_id);
 
 	/**
 	 * onWorkerStop
@@ -57,9 +46,7 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 * @param    $worker_id
 	 * @return             
 	 */
-	public function onWorkerStop($server,$worker_id) {
-		
-	}
+	public function workerStop($server,$worker_id);
 
 	/**
 	 * workerError 
@@ -70,9 +57,7 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 * @param    $signal    
 	 * @return              
 	 */
-	public function onWorkerError($server, $worker_id, $worker_pid, $exit_code, $signal) {
-
-	}
+	public function workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
 
 	/**
 	 * workerExit 1.9.17+版本支持
@@ -80,16 +65,11 @@ class StartInit extends \Swoolefy\Core\StartCtrl {
 	 * @param    $worker_id
 	 * @return                 
 	 */
-	public function onWorkerExit($server, $worker_id) {
-
-	}
-
+	public function workerExit($server, $worker_id);
 	/**
 	 * onManagerStop
 	 * @param    $server
 	 * @return          
 	 */
-	public function onManagerStop($server) {
-		
-	}
+	public function managerStop($server);
 }
