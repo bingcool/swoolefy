@@ -515,7 +515,7 @@ function setEnvParams($config) {
         putenv("HOST_IP={$h}");
     }
     $port = $config['port'];
-    putenv("HOST_POST={$port}");
+    putenv("HOST_PORT={$port}");
 }
 
 function isDaemon() {
