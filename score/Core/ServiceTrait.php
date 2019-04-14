@@ -244,7 +244,7 @@ trait ServiceTrait {
 		if(is_object(Swfy::$server)) {
 			return Swfy::$server;
 		}else {
-			return BaseServer::$server;
+			return BaseServer::getServer();
 		}
 	}
 }

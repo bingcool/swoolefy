@@ -41,7 +41,10 @@ class TaskController extends EventController {
         parent::__construct();
         // TaskController 仅仅用于http服务，而rpc,websocket,udp服务TaskService
         if(!BaseServer::isHttpApp()) {
-            throw new \Exception("TaskController only use in http server task process!");
+            throw new \Exception(__CLASS__." only use in http server task process");
+        }
+        if(!BaseServer::getServer()->taskworker) {
+            throw new \Exception(__CLASS__." only use in task process");
         }
     }
 
@@ -90,6 +93,15 @@ class TaskController extends EventController {
      */
     public function getTask() {
         return $this->task;
+    }
+
+    /**
+     * finishTask 完成任务，投递数据至worker进程
+     * @param  mixed $data
+     * @return void
+     */
+    public function finishTask($data) {
+        TaskManager::getInstance()->finish($data, $this->task);
     }
 
 }

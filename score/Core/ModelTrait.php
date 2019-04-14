@@ -92,11 +92,7 @@ trait ModelTrait {
      * @return boolean
      */
     public function getRefererUrl() {
-        $referer = $this->request->server['HTTP_REFERER'];
-        if($referer) {
-            return $referer;
-        }
-        return false;
+        return $this->request->server['HTTP_REFERER'];
     }
 
 	/**
