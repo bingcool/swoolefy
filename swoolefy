@@ -514,8 +514,12 @@ function setEnvParams($config) {
         $h = $argv[$params['-h'] + 1];
         putenv("HOST_IP={$h}");
     }
-    $port = $config['port'];
-    putenv("HOST_PORT={$port}");
+    if(isset($config['port'])) {
+        $port = $config['port'];
+        putenv("HOST_PORT={$port}");
+    }
+    
+    putenv("swoolefy_env=".SWOOLEFY_ENV);
 }
 
 function isDaemon() {

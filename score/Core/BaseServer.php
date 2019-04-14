@@ -275,6 +275,14 @@ class BaseServer {
 	}
 
 	/**
+	 * getServer 
+	 * @return object
+	 */
+	public static function getServer() {
+		return self::$server;
+	}
+
+	/**
 	 * getSwooleVersion 获取swoole的版本
 	 * @return   string
 	 */

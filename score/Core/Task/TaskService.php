@@ -33,6 +33,16 @@ class TaskService extends BService {
     public $task = null;
 
     /**
+     * __construct
+     */
+    public function __construct() {
+        parent::__construct();
+        if(!BaseServer::getServer()->taskworker) {
+            throw new \Exception(__CLASS__." only use in task process");
+        }
+    }
+
+    /**
      * setTaskId
      * @param int $task_id
      */

@@ -47,7 +47,9 @@ trait AppTrait {
      * @return void
      */
     public function beforeEnd(array $data = [], string $formater = 'json') {
-        Application::getApp()->setEnd();
+    	if(is_object(Application::getApp())) {
+    		Application::getApp()->setEnd();
+    	}
         $this->returnJson($data, $formater);
         $this->request->end();
         return;
@@ -596,6 +598,9 @@ trait AppTrait {
 				$query_string = rtrim($query_string,'&');
 			}
 		}
+		if(is_object(Application::getApp())) {
+			Application::getApp()->setEnd();
+		}
 		// 发送Http跳转,调用此方法会自动end发送并结束响应,4.2.0+版本支持
 		if(version_compare(swoole_version(), '4.2.0', '>')) {
 			$this->response->redirect($url.$query_string, $code);
@@ -682,11 +687,7 @@ trait AppTrait {
      * @return mixed
      */
     public function getRefererUrl() {
-        $referer = $this->request->server['HTTP_REFERER'];
-        if($referer) {
-            return $referer;
-        }
-        return false;
+        return $this->request->server['HTTP_REFERER'];
     }
 
 	/**
