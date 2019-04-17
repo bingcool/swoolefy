@@ -16,7 +16,7 @@ defined('SWOOLEFY_PRD') or define('SWOOLEFY_PRD','prd');
 define('SWOOLEFY_ENVS', [
     SWOOLEFY_DEV,
     SWOOLEFY_GRA,
-    SWOOLEFY_PRD
+    SWOOLEFY_PRD,
 ]);
 
 // 设置成中国时区
@@ -42,8 +42,10 @@ if(isset($argv[2]) && in_array(trim($argv[2]), array_keys($APP_NAMES))) {
     $app_name = trim($argv[2]);
     defined('APP_NAME') or define('APP_NAME', $app_name);
     if(trim($argv[1]) != 'create') {
-        $app_root_dir = START_DIR_ROOT."/{$app_name}";
-        include_once $app_root_dir.'/autoloader.php';
+        $autoloader_file = START_DIR_ROOT."/{$app_name}/autoloader.php";
+        if(file_exists($autoloader_file)) {
+            include_once $autoloader_file;
+        }
     }
 }else {
     write("[Error] app_name is not in APP_NAME array in swoolefy file, please check it");
@@ -142,7 +144,25 @@ function createProject($server_name) {
 
     @mkdir($app_root_dir, 0777, true);
     foreach($dirs as $dir) {
-        @mkdir($app_root_dir.'/'.$dir, 0777, true);
+        @mkdir($app_root_dir . '/' . $dir, 0777, true);
+        switch($dir) {
+            case 'Config':{
+                foreach(SWOOLEFY_ENVS as $env) {
+                    $config_file = $app_root_dir . '/' . $dir . '/config-' . $env . '.php';
+                    if(!file_exists($config_file)) {
+                        $config_file_content =
+<<<EOF
+// 应用配置
+<?php
+return [];
+
+EOF;
+
+                        file_put_contents($config_file, $config_file_content);
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -199,8 +219,13 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer') {
 
     $autoloader_file = START_DIR_ROOT."/{$app_name}/autoloader.php";
     if(!file_exists($autoloader_file)) {
-        $autoloader_file_path = SCORE_DIR_ROOT."/autoloader.php";
-        @copy($autoloader_file_path, $autoloader_file);
+        $search_str = "<{APP_NAME}>";
+        $replace_str = "{$app_name}";
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/autoloader.php");
+        $count = 1;
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        file_put_contents($autoloader_file, $file_content_string);
+        include_once $autoloader_file;
     }
 
     $config = include $path."/config-".SWOOLEFY_ENV.".php";
@@ -253,8 +278,13 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
 
     $autoloader_file = START_DIR_ROOT."/{$app_name}/autoloader.php";
     if(!file_exists($autoloader_file)) {
-        $autoloader_file_path = SCORE_DIR_ROOT."/autoloader.php";
-        @copy($autoloader_file_path, $autoloader_file);
+        $search_str = "<{APP_NAME}>";
+        $replace_str = "{$app_name}";
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/autoloader.php");
+        $count = 1;
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        file_put_contents($autoloader_file, $file_content_string);
+        include_once $autoloader_file;
     }
 
     $config = include $path."/config-".SWOOLEFY_ENV.".php";
@@ -307,8 +337,13 @@ function startRpc($app_name, $event_server_file_name = 'RpcServer') {
 
     $autoloader_file = START_DIR_ROOT."/{$app_name}/autoloader.php";
     if(!file_exists($autoloader_file)) {
-        $autoloader_file_path = SCORE_DIR_ROOT."/autoloader.php";
-        @copy($autoloader_file_path, $autoloader_file);
+        $search_str = "<{APP_NAME}>";
+        $replace_str = "{$app_name}";
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/autoloader.php");
+        $count = 1;
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        file_put_contents($autoloader_file, $file_content_string);
+        include_once $autoloader_file;
     }
 
     $config = include $path."/config-".SWOOLEFY_ENV.".php";
@@ -361,8 +396,13 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer') {
 
     $autoloader_file = START_DIR_ROOT."/{$app_name}/autoloader.php";
     if(!file_exists($autoloader_file)) {
-        $autoloader_file_path = SCORE_DIR_ROOT."/autoloader.php";
-        @copy($autoloader_file_path, $autoloader_file);
+        $search_str = "<{APP_NAME}>";
+        $replace_str = "{$app_name}";
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/autoloader.php");
+        $count = 1;
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        file_put_contents($autoloader_file, $file_content_string);
+        include_once $autoloader_file;
     }
 
     $config = include $path."/config-".SWOOLEFY_ENV.".php";

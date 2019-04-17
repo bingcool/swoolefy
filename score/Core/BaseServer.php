@@ -135,7 +135,7 @@ class BaseServer {
 		// record start time
 		self::$_startTime = date('Y-m-d H:i:s', strtotime('now'));
         // start init
-        $this->startCtrl = self::startHandler();
+        $this->startCtrl = self::eventHandler();
         $this->startCtrl->init();
 	}
 
@@ -785,7 +785,7 @@ class BaseServer {
      * @throws \Exception
      * @return mixed
      */
-    public static function startHandler() {
+    public static function eventHandler() {
         $starHanderClass = isset(self::$config['event_handler']) ? self::$config['event_handler'] : self::$start_hander_class;
         if(self::isSubclassOf($starHanderClass, self::$start_hander_class)) {
            return new $starHanderClass();

@@ -23,7 +23,8 @@
     "minimum-stability": "dev",
     "require": {
         "php" : ">=7.1.0",
-        "ext-swoole" : ">=4.2.13"
+        "ext-swoole" : ">=4.2.13",
+        "psr/log" : "*"
     },
     "autoload": {
         "psr-4": {
