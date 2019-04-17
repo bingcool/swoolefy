@@ -147,20 +147,25 @@ function createProject($server_name) {
         @mkdir($app_root_dir . '/' . $dir, 0777, true);
         switch($dir) {
             case 'Config':{
+                $defines_file = $app_root_dir . '/' . $dir . '/defines.php';
+                if(!file_exists($defines_file)) {
+                    file_put_contents($defines_file, getDefines());
+                }
+                
                 foreach(SWOOLEFY_ENVS as $env) {
                     $config_file = $app_root_dir . '/' . $dir . '/config-' . $env . '.php';
                     if(!file_exists($config_file)) {
-                        $config_file_content =
-<<<EOF
-// 应用配置
-<?php
-return [];
-
-EOF;
-
-                        file_put_contents($config_file, $config_file_content);
+                        file_put_contents($config_file, getDefultConfig());
                     }
                 }
+                break;
+            }
+            case 'Controller':{
+                $controller_file = $app_root_dir . '/' . $dir.'/IndexController.php';
+                if(!file_exists($controller_file)) {
+                    file_put_contents($controller_file, getDefaultController());
+                }
+                break;
             }
         }
     }
@@ -571,6 +576,64 @@ function isDaemon() {
     return false;
 }
 
+function getDefultConfig() {
+$config_content = 
+<<<EOF
+<?php
+// 应用配置
+return [
+    'components' => [
+        'log' => [
+            'is_delay' => true,
+            'class' => \Swoolefy\Tool\Log::class,
+            'channel' => 'application',
+            'logFilePath' => rtrim(LOG_PATH,'/').'/runtime.log'
+        ]
+    ]
+];
+
+EOF;
+return $config_content;
+}
+
+function getDefaultController() {
+    $APP_NAME = APP_NAME;
+    $controller_content = 
+<<<EOF
+<?php
+namespace {$APP_NAME}\Controller;
+
+use Swoolefy\Core\Application;
+use Swoolefy\Core\Controller\BController;
+
+class IndexController extends BController {
+    public function index() {
+        Application::getApp()->response->write('<h1>Hello, Welcome to Swoolefy Framework! <h1>');
+    }
+}
+EOF;
+return $controller_content;
+}
+
+function getDefines() {
+    $APP_NAME = APP_NAME;
+    $defines_content = 
+<<<EOF
+<?php
+defined('APP_NAME') or define('APP_NAME', "{$APP_NAME}");
+defined('APP_PATH') or define('APP_PATH',dirname(__DIR__));
+defined('ROOT_PATH') or define('ROOT_PATH',dirname(APP_PATH));
+
+// 日志目录
+define('LOG_PATH', APP_PATH.'/Log');
+
+// 定义smarty(需要安装smarty)
+define('SMARTY_TEMPLATE_PATH',APP_PATH.'/View/');
+define('SMARTY_COMPILE_DIR',APP_PATH.'/Runtime/');
+define('SMARTY_CACHE_DIR',APP_PATH.'/Runtime/');
+EOF;
+return $defines_content;
+}
 
 initCheck();
 commandHandler();

@@ -23,11 +23,6 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface {
 	 * @param array $config
 	 */
 	public function __construct(array $config=[]) {
-		// 获取当前服务文件配置
-		$config = array_merge(
-				include(__DIR__.'/config.php'),
-				$config
-			);
 		parent::__construct($config);
 	}
 
