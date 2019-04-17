@@ -9,9 +9,14 @@
 +----------------------------------------------------------------------
 */
 
+// 加载常量定义，根据自己项目实际路径记载
+include_once START_DIR_ROOT.'/'.APP_NAME.'/Config/defines.php';
+// 加载应用层协议,根据自己项目实际路径记载
+$app_config = include_once START_DIR_ROOT.'/'.APP_NAME.'/Config/config-'.SWOOLEFY_ENV.'.php';
+
 // udpserver协议层配置
 return [
-    'app_conf' => [], // 应用层配置，需要根据实际项目导入
+    'app_conf' => $app_config, // 应用层配置，需要根据实际项目导入
 	'application_service' => '',
 	'event_handler' => \Swoolefy\Core\EventHandler::class,
 	'master_process_name' => 'php-udp-master',
