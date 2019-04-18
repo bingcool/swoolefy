@@ -2,12 +2,14 @@
 <?php
 
 // 定义注册的应用名和对应使用的协议
-$APP_NAMES = [
-    'App'=>'http',
-    'RpcService'=>'rpc',
-    'UdpService'=> 'udp',
-    'WebsockService'=>'websocket',
-];
+if(!isset($APP_NAMES)) {
+    $APP_NAMES = [
+        'App'=>'http',
+        'RpcService'=>'rpc',
+        'UdpService'=> 'udp',
+        'WebsockService'=>'websocket',
+    ];
+}
 
 // 定义环境
 defined('SWOOLEFY_DEV') or define('SWOOLEFY_DEV','dev');
@@ -16,7 +18,7 @@ defined('SWOOLEFY_PRD') or define('SWOOLEFY_PRD','prd');
 define('SWOOLEFY_ENVS', [
     SWOOLEFY_DEV,
     SWOOLEFY_GRA,
-    SWOOLEFY_PRD
+    SWOOLEFY_PRD,
 ]);
 
 // 设置成中国时区
@@ -42,8 +44,10 @@ if(isset($argv[2]) && in_array(trim($argv[2]), array_keys($APP_NAMES))) {
     $app_name = trim($argv[2]);
     defined('APP_NAME') or define('APP_NAME', $app_name);
     if(trim($argv[1]) != 'create') {
-        $app_root_dir = START_DIR_ROOT."/{$app_name}";
-        include_once $app_root_dir.'/autoloader.php';
+        $autoloader_file = START_DIR_ROOT."/{$app_name}/autoloader.php";
+        if(file_exists($autoloader_file)) {
+            include_once $autoloader_file;
+        }
     }
 }else {
     write("[Error] app_name is not in APP_NAME array in swoolefy file, please check it");
@@ -142,7 +146,30 @@ function createProject($server_name) {
 
     @mkdir($app_root_dir, 0777, true);
     foreach($dirs as $dir) {
-        @mkdir($app_root_dir.'/'.$dir, 0777, true);
+        @mkdir($app_root_dir . '/' . $dir, 0777, true);
+        switch($dir) {
+            case 'Config':{
+                $defines_file = $app_root_dir . '/' . $dir . '/defines.php';
+                if(!file_exists($defines_file)) {
+                    file_put_contents($defines_file, getDefines());
+                }
+                
+                foreach(SWOOLEFY_ENVS as $env) {
+                    $config_file = $app_root_dir . '/' . $dir . '/config-' . $env . '.php';
+                    if(!file_exists($config_file)) {
+                        file_put_contents($config_file, getDefultConfig());
+                    }
+                }
+                break;
+            }
+            case 'Controller':{
+                $controller_file = $app_root_dir . '/' . $dir.'/IndexController.php';
+                if(!file_exists($controller_file)) {
+                    file_put_contents($controller_file, getDefaultController());
+                }
+                break;
+            }
+        }
     }
 }
 
@@ -199,8 +226,13 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer') {
 
     $autoloader_file = START_DIR_ROOT."/{$app_name}/autoloader.php";
     if(!file_exists($autoloader_file)) {
-        $autoloader_file_path = SCORE_DIR_ROOT."/autoloader.php";
-        @copy($autoloader_file_path, $autoloader_file);
+        $search_str = "<{APP_NAME}>";
+        $replace_str = "{$app_name}";
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/autoloader.php");
+        $count = 1;
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        file_put_contents($autoloader_file, $file_content_string);
+        include_once $autoloader_file;
     }
 
     $config = include $path."/config-".SWOOLEFY_ENV.".php";
@@ -253,8 +285,13 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
 
     $autoloader_file = START_DIR_ROOT."/{$app_name}/autoloader.php";
     if(!file_exists($autoloader_file)) {
-        $autoloader_file_path = SCORE_DIR_ROOT."/autoloader.php";
-        @copy($autoloader_file_path, $autoloader_file);
+        $search_str = "<{APP_NAME}>";
+        $replace_str = "{$app_name}";
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/autoloader.php");
+        $count = 1;
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        file_put_contents($autoloader_file, $file_content_string);
+        include_once $autoloader_file;
     }
 
     $config = include $path."/config-".SWOOLEFY_ENV.".php";
@@ -307,8 +344,13 @@ function startRpc($app_name, $event_server_file_name = 'RpcServer') {
 
     $autoloader_file = START_DIR_ROOT."/{$app_name}/autoloader.php";
     if(!file_exists($autoloader_file)) {
-        $autoloader_file_path = SCORE_DIR_ROOT."/autoloader.php";
-        @copy($autoloader_file_path, $autoloader_file);
+        $search_str = "<{APP_NAME}>";
+        $replace_str = "{$app_name}";
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/autoloader.php");
+        $count = 1;
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        file_put_contents($autoloader_file, $file_content_string);
+        include_once $autoloader_file;
     }
 
     $config = include $path."/config-".SWOOLEFY_ENV.".php";
@@ -361,8 +403,13 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer') {
 
     $autoloader_file = START_DIR_ROOT."/{$app_name}/autoloader.php";
     if(!file_exists($autoloader_file)) {
-        $autoloader_file_path = SCORE_DIR_ROOT."/autoloader.php";
-        @copy($autoloader_file_path, $autoloader_file);
+        $search_str = "<{APP_NAME}>";
+        $replace_str = "{$app_name}";
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/autoloader.php");
+        $count = 1;
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        file_put_contents($autoloader_file, $file_content_string);
+        include_once $autoloader_file;
     }
 
     $config = include $path."/config-".SWOOLEFY_ENV.".php";
@@ -531,6 +578,64 @@ function isDaemon() {
     return false;
 }
 
+function getDefultConfig() {
+$config_content = 
+<<<EOF
+<?php
+// 应用配置
+return [
+    'components' => [
+        'log' => [
+            'is_delay' => true,
+            'class' => \Swoolefy\Tool\Log::class,
+            'channel' => 'application',
+            'logFilePath' => rtrim(LOG_PATH,'/').'/runtime.log'
+        ]
+    ]
+];
+
+EOF;
+return $config_content;
+}
+
+function getDefaultController() {
+    $APP_NAME = APP_NAME;
+    $controller_content = 
+<<<EOF
+<?php
+namespace {$APP_NAME}\Controller;
+
+use Swoolefy\Core\Application;
+use Swoolefy\Core\Controller\BController;
+
+class IndexController extends BController {
+    public function index() {
+        Application::getApp()->response->write('<h1>Hello, Welcome to Swoolefy Framework! <h1>');
+    }
+}
+EOF;
+return $controller_content;
+}
+
+function getDefines() {
+    $APP_NAME = APP_NAME;
+    $defines_content = 
+<<<EOF
+<?php
+defined('APP_NAME') or define('APP_NAME', "{$APP_NAME}");
+defined('APP_PATH') or define('APP_PATH',dirname(__DIR__));
+defined('ROOT_PATH') or define('ROOT_PATH',dirname(APP_PATH));
+
+// 日志目录
+define('LOG_PATH', APP_PATH.'/Log');
+
+// 定义smarty(需要安装smarty)
+define('SMARTY_TEMPLATE_PATH',APP_PATH.'/View/');
+define('SMARTY_COMPILE_DIR',APP_PATH.'/Runtime/');
+define('SMARTY_CACHE_DIR',APP_PATH.'/Runtime/');
+EOF;
+return $defines_content;
+}
 
 initCheck();
 commandHandler();
