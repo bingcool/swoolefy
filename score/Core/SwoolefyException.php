@@ -66,7 +66,7 @@ class SwoolefyException {
     	$errorStr = "$errfile 第 $errline 行: $errstr";
       	switch ($errno) {
             case E_ERROR:
-          		static::shutHalt($errorStr, $errorType = 'notice');
+          		static::shutHalt($errorStr, $errorType = 'error');
           		break;
             case E_WARNING:
           		static::shutHalt($errorStr, $errorType = 'warning');

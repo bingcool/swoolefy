@@ -19,6 +19,7 @@ return [
     'app_conf' => $app_config, // 应用层配置，需要根据实际项目导入
 	'application_service' => '',
 	'event_handler' => \Swoolefy\Core\EventHandler::class,
+    'exception_handler' => '',
 	'master_process_name' => 'php-rpc-master',
 	'manager_process_name' => 'php-rpc-manager',
 	'worker_process_name' => 'php-rpc-worker',
@@ -49,5 +50,18 @@ return [
 		'pid_file' => __DIR__.'/log/server.pid',
 
 	],
+
 	'enable_table_tick_task' => true,
+
+    // 热更新
+    //'reload_conf'=>[
+    //    'enable_reload' => true,
+    //    'after_seconds' => 3,
+    //    'monitor_path' => APP_PATH,//开发者自己定义目录
+    //    'reload_file_types' => ['.php','.html','.js'],
+    //    'ignore_dirs' => [],
+    //    'callback' => function() {
+    //        var_dump("callback");
+    //    }
+    //],
 ];
