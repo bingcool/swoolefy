@@ -49,13 +49,29 @@ if(isset($argv[2]) && in_array(trim($argv[2]), array_keys($APP_NAMES))) {
             include_once $autoloader_file;
         }
     }
-}else {
-    write("[Error] app_name is not in APP_NAME array in swoolefy file, please check it");
-    return;
+}
+else {
+    if((isset($argv[1]) && $argv[1]=='help')||(isset($argv[2]) && $argv[2]=='help')){
+    }
+    else{
+	    help('');
+        write("[Error] app_name is not in APP_NAME array in swoolefy file, please check it");
+	    return;
+    }
+    
 }
 
 // 判断当前环境,默认是dev(开发),gra(灰度),prd(生产)
 $cli_params = array_flip($argv);
+
+foreach(SWOOLEFY_ENVS as $env){
+    if(isset($cli_params['-'.$env])){
+        defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', $env);
+	break;
+    }
+}
+defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', SWOOLEFY_DEV);
+/*
 if(isset($cli_params['-'.SWOOLEFY_GRA])) {
     defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', SWOOLEFY_GRA);
 }
@@ -64,6 +80,7 @@ if(isset($cli_params['-'.SWOOLEFY_PRD])) {
 }else {
     defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', SWOOLEFY_DEV);
 }
+*/
 
 function IS_DEV_ENV() {
     if(SWOOLEFY_ENV == SWOOLEFY_DEV) {
@@ -493,32 +510,98 @@ function stopServer($app_name) {
     exit();
 }
 
+function reloadServer($app_name) {
+    global $argv;
+    $path = START_DIR_ROOT.'/protocol/'.$app_name;
+    $config = include $path.'/config-'.SWOOLEFY_ENV.'.php';
+    if(isset($config['setting']['pid_file'])) {
+        $path = pathinfo($config['setting']['pid_file'], PATHINFO_DIRNAME);
+        if(!is_dir($path)) {
+	    mkdir($path, 0777, true);
+        }
+    }
+    $pid_file = $config['setting']['pid_file'];
+    
+
+    if(!is_file($pid_file)) {
+        write("[error] pid file {$pid_file} is not exist, please check server is running");
+        return;
+    }
+
+    $pid = intval(file_get_contents($pid_file));
+    if(!swoole_process::kill($pid,0)){
+        write("[error] pid={$pid} not exist");
+        return;
+    }
+    // 发送信号，终止进程
+    swoole_process::kill($pid, SIGUSR1);
+    // 回收master创建的子进程（manager,worker,taskworker）
+    //swoole_process::wait();
+
+    // 如果'reload_async' => true,，则默认workerStop有30s的过度期停顿这个时间稍微会比较长，设置成60过期
+    write("
+        server begin to reload at ".date("Y-m-d H:i:s").". please wait a moment..."
+    );
+
+}
 function help($command) {
     switch(strtolower($command.'-'.'help')) {
         case 'start-help':{
             write("------------swoolefy启动服务命令------------",'light_green');
-            write("1、执行php swoolefy start APP_NAME  其中APP_NAME是应用的名称",'light_green');
-            write("2、执行php swoolefy start monitor configfile，例如php swoolefy start monitor config9502.php 即在当前终端启动monitor 监控文件自动重启worker服务",'light_green');
-            write("3、执行php swoolefy start monitor configfile，例如php swoolefy start monitor config9502.php -d 即以守护进程启动monitor 监控文件自动重启worker服务",'light_green');
+            showAppHelp('start','启动');
             echo "\n";
             break;
         }
         case 'stop-help':{
             write("------------swoolefy终止服务命令------------",'light_green');
-            write("1、执行php swoolefy stop APP_NAME  其中APP_NAME是应用的名称",'light_green');
-            write("2、执行php swoolefy stop monitor port，例如php swoolefy stop monitor 9502 即可终止monitor 监控文件自动重启worker服务",'light_green');
+            showAppHelp('stop','终止');
+            echo "\n";
+            break;
+        }
+	
+        case 'reload-help':{
+            write("------------swoolefy平滑重启服务命令------------",'light_green');
+            showAppHelp('reload','平滑重启');
+            echo "\n";
+            break;
+        }
+
+        case 'create-help':{
+            write("------------swoolefy平滑重启服务命令------------",'light_green');
+            showAppHelp('create','创建');
             echo "\n";
             break;
         }
         default:{
             write("------------欢迎使用swoolefy------------",'light_green');
             write("有关某个命令的详细信息，请键入 help 命令:",'light_green');
-            write("1、php swoolefy start help 查看详细信息!",'light_green');
-            write("2、php swoolefy stop help 查看详细信息!",'light_green');
+            write("1、php swoolefy create help 查看创建项目详细信息!",'light_green');
+            write("2、php swoolefy start help 查看启动服务详细信息!",'light_green');
+            write("3、php swoolefy stop help 查看终止服务详细信息!",'light_green');
+            write("4、php swoolefy reload help 查看平滑重启服务详细信息!",'light_green');
         }
     }
 }
-
+function showAppHelp($cmd,$cmd_info){
+    $index = 1;
+    global $APP_NAMES;
+    $env_str = '-ENV';
+    if('create' == $cmd){
+        $env_str = '';
+    }
+    foreach ($APP_NAMES as $app_name => $service){
+        $help_str = $index."、php swoolefy {$cmd} {$app_name} {$env_str} {$cmd_info} {$service}服务的{$app_name}项目";
+        write($help_str,'light_green');
+        $index++;
+    }
+    if($env_str){
+        write("{$index}、ENV变量提供".join(SWOOLEFY_ENVS,' ').'需要更多环境变量请修改SWOOLEFY_ENVS','light_green');
+        $index++;
+        write("{$index}、-ENV可以省略，缺省以dev执行 对应不同的配置文件",'light_green');
+    }
+    $index++;
+    write("{$index}、更多服务请修改\$APP_NAMES变量",'light_green');
+}
 function commandHandler(){
     $command = commandParser();
     if(isset($command['app_name']) && $command['app_name'] != 'help') {
@@ -533,6 +616,10 @@ function commandHandler(){
             }
             case 'stop':{
                 stopServer($command['app_name']);
+                break;
+            }
+            case 'reload':{
+                reloadServer($command['app_name']);
                 break;
             }
             case 'help':
