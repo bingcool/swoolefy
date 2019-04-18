@@ -76,7 +76,7 @@ class WebsocketHander extends Swoole implements HanderInterface {
             }
 
             // 控制器实例
-            if($callable && $params) {
+            if($callable) {
                 $Dispatch = new ServiceDispatch($callable, $params);
                 if(isset($is_task_process) && $is_task_process == true) {
                     list($from_worker_id, $task_id, $task) = $extend_data;
