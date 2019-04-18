@@ -62,6 +62,12 @@ class HttpRoute extends AppDispatch {
     private $controller_suffix = 'Controller';
 
     /**
+     * $default_route 
+     * @var string
+     */
+    private $default_route = 'Index/index';
+
+    /**
 	 * $deny_actions 禁止外部直接访问的action
 	 * @var array
 	 */
@@ -92,8 +98,10 @@ class HttpRoute extends AppDispatch {
 
 		if($this->config['route_model'] == $this->route_model_pathinfo) {
 			if($this->require_uri == '/' || $this->require_uri == '//') {
-			    if(isset($this->config['default_route'])) {
+			    if(isset($this->config['default_route']) && !empty($this->config['default_route'])) {
                     $this->require_uri = '/'.trim($this->config['default_route'], '/');
+                }else {
+                	$this->require_uri = '/'.$this->default_route;
                 }
 			}
 			$route_uri = trim($this->require_uri,'/');

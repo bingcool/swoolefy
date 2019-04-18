@@ -21,7 +21,7 @@ class autoloader {
      * $prefix 自定义的根命名空间
      * @var array
      */
-    private static $root_namespace = ['protocol'];
+    private static $root_namespace = ["<{APP_NAME}>"];
 
     /**
      * @param string $className 
@@ -43,6 +43,7 @@ class autoloader {
             }
         }
     }
+
     /**
      * 注册自动加载
      */     
