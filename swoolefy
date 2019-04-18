@@ -2,12 +2,14 @@
 <?php
 
 // 定义注册的应用名和对应使用的协议
-$APP_NAMES = [
-    'App'=>'http',
-    'RpcService'=>'rpc',
-    'UdpService'=> 'udp',
-    'WebsockService'=>'websocket',
-];
+if(!isset($APP_NAMES)) {
+    $APP_NAMES = [
+        'App'=>'http',
+        'RpcService'=>'rpc',
+        'UdpService'=> 'udp',
+        'WebsockService'=>'websocket',
+    ];
+}
 
 // 定义环境
 defined('SWOOLEFY_DEV') or define('SWOOLEFY_DEV','dev');
