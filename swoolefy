@@ -15,7 +15,7 @@ if(!isset($APP_NAMES)) {
 defined('SWOOLEFY_DEV') or define('SWOOLEFY_DEV','dev');
 defined('SWOOLEFY_GRA') or define('SWOOLEFY_GRA','gra');
 defined('SWOOLEFY_PRD') or define('SWOOLEFY_PRD','prd');
-define('SWOOLEFY_ENVS', [
+defined('SWOOLEFY_ENVS') or define('SWOOLEFY_ENVS', [
     SWOOLEFY_DEV,
     SWOOLEFY_GRA,
     SWOOLEFY_PRD,
@@ -67,20 +67,11 @@ $cli_params = array_flip($argv);
 foreach(SWOOLEFY_ENVS as $env){
     if(isset($cli_params['-'.$env])){
         defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', $env);
-	break;
+        break;
     }
 }
+
 defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', SWOOLEFY_DEV);
-/*
-if(isset($cli_params['-'.SWOOLEFY_GRA])) {
-    defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', SWOOLEFY_GRA);
-}
-if(isset($cli_params['-'.SWOOLEFY_PRD])) {
-    defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', SWOOLEFY_PRD);
-}else {
-    defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', SWOOLEFY_DEV);
-}
-*/
 
 function IS_DEV_ENV() {
     if(SWOOLEFY_ENV == SWOOLEFY_DEV) {
