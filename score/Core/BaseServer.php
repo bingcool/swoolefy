@@ -99,14 +99,20 @@ class BaseServer {
 				['after_tasks','string',8096]
 			]
 		],
-		//$_workers_pids 记录映射进程worker_pid和worker_id的关系 
-		'table_workers_pid' => [
-			'size' => 1,
-			'fields'=> [
-				['workers_pid','string',512]
-			]
-		],
 	];
+
+    /**
+     * $_workers_pids 记录映射进程worker_pid和worker_id的关系
+     * @var array
+     */
+	protected static $_table_worker_pid_map = [
+        'table_workers_pid' => [
+            'size' => 1,
+            'fields'=> [
+                ['workers_pid','string',512]
+            ]
+        ]
+    ];
 
 	/**
 	 * __construct 初始化swoole的内置服务与检查
@@ -405,16 +411,16 @@ class BaseServer {
 			static::$config['table'] = [];
 		}
 
-		if(isset(static::$config['enable_table_tick_task'])) {
+        $table_task = array_merge(static::$_table_worker_pid_map, static::$config['table']);
+
+        if(isset(static::$config['enable_table_tick_task'])) {
             $is_enable_table_tick_task = filter_var(static::$config['enable_table_tick_task'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
             if($is_enable_table_tick_task) {
-                $tables = array_merge(self::$_table_tasks, static::$config['table']);
+                $table_task = array_merge(self::$_table_tasks, static::$_table_worker_pid_map, static::$config['table']);
             }
-		}else {
-			$tables = static::$config['table'];
 		}
 		//create table
-		TableManager::createTable($tables);
+        $table_task && TableManager::createTable($table_task);
 	}
 
 	/**
@@ -617,8 +623,8 @@ class BaseServer {
      */
     public static function catchException($e) {
     	$ExceptionHanderClass = 'Swoolefy\\Core\\SwoolefyException';
-    	if(isset(self::$config['exception_hander_class']) && !empty(self::$config['exception_hander_class'])) {
-			$ExceptionHanderClass = self::$config['exception_hander_class'];
+    	if(isset(self::$config['exception_handler']) && !empty(self::$config['exception_handler'])) {
+			$ExceptionHanderClass = self::$config['exception_handler'];
 		}
 		$ExceptionHanderClass::appException($e);
     }
@@ -630,8 +636,8 @@ class BaseServer {
     public static function getExceptionClass() {
     	$ExceptionHanderClass = 'Swoolefy\\Core\\SwoolefyException';
         // 获取协议层配置
-        if(isset(self::$config['exception_hander_class']) && !empty(self::$config['exception_hander_class'])) {
-            return self::$config['exception_hander_class'];
+        if(isset(self::$config['exception_handler']) && !empty(self::$config['exception_handler'])) {
+            return self::$config['exception_handler'];
         }
         return $ExceptionHanderClass;
     }

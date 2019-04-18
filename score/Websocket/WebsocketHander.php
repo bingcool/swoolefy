@@ -50,10 +50,8 @@ class WebsocketHander extends Swoole implements HanderInterface {
 	 */
 	public function run($fd, $recv, array $extend_data = []) {
 	    try {
-            // 必须要执行父类的run方法,$recv是json字符串,boostrap函数中可以接收做一些引导处理
-            parent::run($fd, $recv);
-            // worker进程
-            if($this->isWorkerProcess()) {
+	        // 心跳
+	        if($this->isWorkerProcess()) {
                 $recv = array_values(json_decode($recv, true));
                 if(is_array($recv) && count($recv) == 3) {
                     list($service, $event, $params) = $recv;
@@ -61,14 +59,17 @@ class WebsocketHander extends Swoole implements HanderInterface {
 
                 if($this->ping($event)) {
                     $data = 'pong';
-                    Swfy::getServer()->push($this->fd, $data, $opcode = 1, $finish = true);
+                    Swfy::getServer()->push($fd, $data, $opcode = 1, $finish = true);
                     return;
                 }
-
+            }
+            // 必须要执行父类的run方法,$recv是json字符串,boostrap函数中可以接收做一些引导处理
+            parent::run($fd, $recv);
+            // worker进程
+            if($this->isWorkerProcess()) {
                 if($service && $event) {
                     $callable = [$service, $event];
                 }
-
             }else {
                 $is_task_process = true;
                 // 任务task进程
