@@ -5,7 +5,7 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的API
 实现与底层的回调的解耦，支持协程调度，同步|异步调用，全局事件注册，心跳检查，异步任务，多进程(池)等，
 内置view、log、session、mysql、redis、mongodb等常用组件等。     
 
-目前swoolefy4.0+版本完全支持swoole4.x的协程，推荐使用swoole4.2.x.
+目前swoolefy4.2+版本完全支持swoole4.2.13+的协程，推荐使用swoole4.3.+.
 
 ### 实现的功能特性     
 - [x] 路由与调度，MVC三层，多级配置      
