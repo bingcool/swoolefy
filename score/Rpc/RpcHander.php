@@ -55,29 +55,26 @@ class RpcHander extends Swoole implements HanderInterface {
 	 */
 	public function run($fd, $recv, array $extend_data = []) {
 	    try {
+	        if($this->isWorkerProcess()) {
+                if(Swfy::$server->pack_check_type == SWOOLEFY_PACK_CHECK_LENGTH) {
+                    list($header, $body) = $recv;
+                    $this->header = $header;
+                    if($this->ping()) {
+                        $pong = ['pong', $this->header];
+                        $data = TcpServer::pack($pong);
+                        Swfy::getServer()->send($fd, $data);
+                        return;
+                    }
+                }
+            }
             // 必须要执行父类的run方法
             parent::run($fd, $recv);
             // 当前进程worker进程
             if($this->isWorkerProcess()) {
                 // packet_length_checkout方式
                 if(Swfy::$server->pack_check_type == SWOOLEFY_PACK_CHECK_LENGTH) {
-                    list($header, $body) = $recv;
-                    $this->header = $header;
                     if(is_array($body) && count($body) == 2) {
                         list($callable, $params) = $body;
-                    }
-
-                    if($this->ping()) {
-                        $pong = ['pong', $this->header];
-                        $data = TcpServer::pack($pong);
-                        Swfy::getServer()->send($this->fd, $data);
-                        return;
-                    }
-
-                }else if(Swfy::$server->pack_check_type == SWOOLEFY_PACK_CHECK_EOF){
-                    // eof方式
-                    if(is_array($recv) && count($recv) == 2) {
-                        list($callable, $params) = $recv;
                     }
                 }else {
                     // TODO
