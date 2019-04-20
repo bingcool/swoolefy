@@ -579,10 +579,13 @@ trait AppTrait {
 	public function redirect(string $url, array $params = [], int $code = 301) {
 		$query_string = '';
 		trim($url);
-		if(strpos($url, 'http') === false || strpos($url, 'https') === false) {
+		if(strpos($url, 'http') === false || strpos($url, 'https') === false || strpos($url, 'http') != 0 || strpos($url, 'https') != 0) {
 			if(strpos($url, '/') != 0) {
 				$url = '/'.$url;
 			}
+            list($protocol, $version) = explode('/', $this->getProtocol());
+            $protocol = strtolower($protocol).'://';
+            $url = $protocol.$this->getHostName().$url;
 		}		
 		if($params) {
 			if(strpos($url,'?') > 0) {
