@@ -49,11 +49,9 @@ if(isset($argv[2]) && in_array(trim($argv[2]), array_keys($APP_NAMES))) {
             include_once $autoloader_file;
         }
     }
-}
-else {
-    if((isset($argv[1]) && $argv[1]=='help')||(isset($argv[2]) && $argv[2]=='help')){
-    }
-    else{
+}else {
+    if((isset($argv[1]) && $argv[1]=='help')|| (isset($argv[2]) && $argv[2]=='help')) {
+    }else{
 	    help('');
         write("[Error] app_name is not in APP_NAME array in swoolefy file, please check it");
 	    return;
@@ -148,7 +146,7 @@ function createProject($server_name) {
 
     if($protocol == 'http') {
         $dirs = [
-            'Config','Controller','Runtime','Log'
+            'Config','Controller','Model','Module','View','Runtime','Log'
         ];
     }
 
@@ -175,6 +173,18 @@ function createProject($server_name) {
                 if(!file_exists($controller_file)) {
                     file_put_contents($controller_file, getDefaultController());
                 }
+                break;
+            }
+            case 'Model': {
+                $model_file = $app_root_dir . '/' . $dir.'/IndexModel.php';
+                if(!file_exists($model_file)) {
+                    file_put_contents($model_file, getDefaultModel());
+                }
+                break;
+            }
+            case 'View': {
+                $view_controller_dir = $app_root_dir . '/' . $dir.'/Index';
+                @mkdir($view_controller_dir, 0777, true);
                 break;
             }
         }
@@ -513,28 +523,29 @@ function reloadServer($app_name) {
     }
     $pid_file = $config['setting']['pid_file'];
     
-
     if(!is_file($pid_file)) {
         write("[error] pid file {$pid_file} is not exist, please check server is running");
         return;
     }
 
     $pid = intval(file_get_contents($pid_file));
-    if(!swoole_process::kill($pid,0)){
+    if(!swoole_process::kill($pid, 0)){
         write("[error] pid={$pid} not exist");
         return;
     }
-    // 发送信号，终止进程
+    // 发送信号，reload只针对worker进程
     swoole_process::kill($pid, SIGUSR1);
-    // 回收master创建的子进程（manager,worker,taskworker）
-    //swoole_process::wait();
-
-    // 如果'reload_async' => true,，则默认workerStop有30s的过度期停顿这个时间稍微会比较长，设置成60过期
-    write("
-        server begin to reload at ".date("Y-m-d H:i:s").". please wait a moment..."
+    write(
+        "server worker process begin to reload at ".date("Y-m-d H:i:s").". please wait a moment..."
     );
-
+    sleep(2);
+    write(
+        "server worker process reload successful at ".date("Y-m-d H:i:s"),
+        'light_green'
+    );
+    
 }
+
 function help($command) {
     switch(strtolower($command.'-'.'help')) {
         case 'start-help':{
@@ -713,6 +724,21 @@ define('SMARTY_COMPILE_DIR',APP_PATH.'/Runtime/');
 define('SMARTY_CACHE_DIR',APP_PATH.'/Runtime/');
 EOF;
 return $defines_content;
+}
+
+function getDefaultModel() {
+<<<EOF
+<?php
+namespace App\Model;
+
+use Swoolefy\Core\Model\BModel;
+
+class IndexModel extends BModel {
+    public function index() {
+        return "welcome to model";
+    }
+}
+EOF;
 }
 
 initCheck();
