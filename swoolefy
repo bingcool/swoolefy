@@ -727,9 +727,11 @@ return $defines_content;
 }
 
 function getDefaultModel() {
+    $APP_NAME = APP_NAME;
+    $defines_content = 
 <<<EOF
 <?php
-namespace App\Model;
+namespace {$APP_NAME}\Model;
 
 use Swoolefy\Core\Model\BModel;
 
@@ -739,6 +741,7 @@ class IndexModel extends BModel {
     }
 }
 EOF;
+return $defines_content;
 }
 
 initCheck();
