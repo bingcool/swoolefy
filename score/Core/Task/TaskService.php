@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Core\Task;
 
+use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\BService;
 
 class TaskService extends BService {
@@ -34,6 +35,7 @@ class TaskService extends BService {
 
     /**
      * __construct
+     * @throws \Exception
      */
     public function __construct() {
         parent::__construct();
@@ -87,5 +89,14 @@ class TaskService extends BService {
      */
     public function getTask() {
         return $this->task;
+    }
+
+    /**
+     * finishTask 完成任务，投递数据至worker进程
+     * @param  mixed $data
+     * @return void
+     */
+    public function finishTask($data) {
+        TaskManager::getInstance()->finish($data, $this->task);
     }
 }
