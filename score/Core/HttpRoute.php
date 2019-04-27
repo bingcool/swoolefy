@@ -263,7 +263,7 @@ class HttpRoute extends AppDispatch {
 					}
 		        }catch (\Exception $e) {
 		            $method = new \ReflectionMethod($controllerInstance, '__call');
-		            $method->invokeArgs($controllerInstance, [$class.'::'.$action, '']);
+		            $method->invokeArgs($controllerInstance, [$action, '']);
 		        }catch(\Throwable $t) {
 				    $query_string = isset($this->request->server['QUERY_STRING']) ? '?'.$this->request->server['QUERY_STRING'] : '';
 				    if(isset($this->request->post) && !empty($this->request->post)) {
