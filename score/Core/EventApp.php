@@ -123,7 +123,8 @@ class EventApp {
 	public function __call(string $action, $args = []) {
 		try{
 			if($this->is_call) {
-				throw new \Exception("Single Coroutine Instance only call one method, you haved called");
+                $class_name = get_class($this->event_app);
+				throw new \Exception("{$class_name} Single Coroutine Instance only call one method, you haved called");
 			}
 			// return call_user_func_array([$this->event_app, $action], $args);
 			$result = $this->event_app->$action(...$args);

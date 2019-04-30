@@ -44,24 +44,14 @@ class CoroutineManager {
 	 */
 	public function getCoroutineId() {
 		// 大于4.2.x版本,建议使用版本
-		if($this->canEnableCoroutine()) {
-			$cid = \co::getCid();
-			// 4.3.0+在task|process中也支持直接使用协程,同时可以使用go()创建协程
-			if($cid == -1) {
-				$cid = self::PREFIX_CID.'task_process';
-			}else {
-				$cid = self::PREFIX_CID.$cid;
-			}
-			return $cid;
-		}else {
-			// 1.x, 2.x版本不能使用协程，2.x编译时需要关闭协程选项
-			if(isset(self::$cid) && !empty(self::$cid)) {
-				return self::$cid;
-			}
-			$cid = (string)time().'_'.mt_rand(1,999);
-			self::$cid = self::PREFIX_CID.$cid;
-			return self::$cid;
-		}
+        $cid = \co::getCid();
+        // 4.3.0+在task|process中也支持直接使用协程,同时可以使用go()创建协程
+        if($cid == -1) {
+            $cid = self::PREFIX_CID.'task_process';
+        }else {
+            $cid = self::PREFIX_CID.$cid;
+        }
+        return $cid;
 	}
 
 	/**
