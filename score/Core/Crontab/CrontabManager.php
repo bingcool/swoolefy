@@ -53,7 +53,7 @@ class CrontabManager {
 					unset($cron_name_key);
 				}
 			}else {
-				throw new \Exception("crontab expression format is wrong, please check it", 1);
+				throw new \Exception("Crontab expression format is wrong, please check it", 1);
 			}
 		}else {
 			throw new \Exception("If you want to use crontab, you need to install 'composer require dragonmantank/cron-expression' ", 1);	
