@@ -20,6 +20,7 @@ trait AppObjectTrait {
      * @throws \Exception
 	 */
 	public function __call($action, $args = []) {
+	    Application::getApp()->setEnd();
 		Application::getApp()->response->end(json_encode([
 			'ret' => 500,
 			'msg' => "Calling unknown method: " . get_called_class()."::{$action}",
@@ -34,6 +35,7 @@ trait AppObjectTrait {
      * @throws \Exception
 	 */
 	public static function __callStatic($action, $args = []) {
+        Application::getApp()->setEnd();
 		Application::getApp()->response->end(json_encode([
 			'ret' => 500,
 			'msg' => "Calling unknown static method: " . get_called_class() . "::{$action}",

@@ -17,6 +17,7 @@ use Swoolefy\Core\AppInit;
 use Swoolefy\Core\HttpRoute;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Application;
+use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class App extends \Swoolefy\Core\Component {
@@ -197,7 +198,7 @@ class App extends \Swoolefy\Core\Component {
         if(!empty($logs = $this->getLog())) {
             foreach($logs as $action => $log) {
                 if(!empty($log)) {
-                    \Swoolefy\Core\Log\LogManager::getInstance()->{$action}($log);
+                    LogManager::getInstance()->{$action}($log);
                 }
             }
         }
