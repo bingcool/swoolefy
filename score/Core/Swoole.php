@@ -14,6 +14,7 @@ namespace Swoolefy\Core;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\ZModel;
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class Swoole extends BaseObject {
@@ -243,7 +244,7 @@ class Swoole extends BaseObject {
         if(!empty($logs = $this->getLog())) {
             foreach($logs as $action => $log) {
                 if(!empty($log)) {
-                    \Swoolefy\Core\Log\LogManager::getInstance()->{$action}($log);
+                    LogManager::getInstance()->{$action}($log);
                 }
             }
         }

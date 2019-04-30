@@ -115,7 +115,7 @@ class SwoolefyException {
                  break;
         }
         if(in_array(SWOOLEFY_ENV, [SWOOLEFY_DEV, SWOOLEFY_GRA])) {
-             throw new \Exception(_each($errorMsg));
+            _each($errorMsg);
         }
        
         return;

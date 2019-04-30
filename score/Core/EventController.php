@@ -15,6 +15,7 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Core\ZModel;
 use Swoolefy\Core\BaseObject;
 use Swoolefy\Core\Application;
+use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class EventController extends BaseObject {
@@ -165,7 +166,7 @@ class EventController extends BaseObject {
         if(!empty($logs = $this->getLog())) {
             foreach($logs as $action => $log) {
                 if(!empty($log)) {
-                    \Swoolefy\Core\Log\LogManager::getInstance()->{$action}($log);
+                    LogManager::getInstance()->{$action}($log);
                     $this->logs[$action] = [];
                 }
             }
