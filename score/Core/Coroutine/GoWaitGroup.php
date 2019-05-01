@@ -9,7 +9,7 @@
 +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Core;
+namespace Swoolefy\Core\Coroutine;
 
 use Swoole\Coroutine\Channel;
 
