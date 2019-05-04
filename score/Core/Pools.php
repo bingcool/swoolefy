@@ -8,11 +8,11 @@
 | Author: bingcool <bingcoolhuang@gmail.com || 2437667702@qq.com>
 +----------------------------------------------------------------------
 */
-
+// NOTE：swoole 4.3.0+ 之后，该类已移除不使用
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
-use Swoolefy\Core\Pools\PoolsManager;
+use Swoolefy\Core\ProcessPools\PoolsManager;
 
 class Pools {
 
