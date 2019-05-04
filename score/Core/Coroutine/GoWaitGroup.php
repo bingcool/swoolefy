@@ -57,8 +57,8 @@ class GoWaitGroup {
     /**
      * done
      */
-    public function done(string $key, $data = null) {
-        if(!empty($data)) {
+    public function done(string $key = null, $data = null) {
+        if(!empty($key) && !empty($data)) {
             $this->result[$key] = $data;
         }
         $this->chan->push(1);
