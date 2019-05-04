@@ -9,7 +9,7 @@
 +----------------------------------------------------------------------
 */
 
-namespace Swoolefy\Core\Pools;
+namespace Swoolefy\Core\ProcessPools;
 
 use Swoole\Process;
 use Swoolefy\Core\Swfy;

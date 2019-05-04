@@ -72,9 +72,16 @@ class GoWaitGroup {
             $this->chan->pop();
         }
         $result = $this->result;
+        $this->reset();
+        return $result;
+    }
+
+    /**
+     * reset
+     */
+    public function reset() {
         $this->result = [];
         $this->count = 0;
-        return $result;
     }
 
 }

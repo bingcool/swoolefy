@@ -9,7 +9,7 @@
 +----------------------------------------------------------------------
 */
 
-namespace Swoolefy\Core\Pools;
+namespace Swoolefy\Core\ProcessPools;
 
 use Swoole\Table;
 use Swoole\Process;
