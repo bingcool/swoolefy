@@ -222,7 +222,7 @@ abstract class WebsocketServer extends BaseServer {
 		/**
 		 * close 函数,关闭连接
 		 */
-		$this->webserver->on('close', function(websocket_server $server, $fd) {
+		$this->webserver->on('close', function(websocket_server $server, $fd, $reactorId) {
 			try{
 				static::onClose($server, $fd);
 				return true;
