@@ -226,11 +226,11 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * 关闭连接
 		 */
-		$this->tcpserver->on('close', function(tcp_server $server, $fd) {
+		$this->tcpserver->on('close', function(tcp_server $server, $fd, $reactorId) {
 			try{
 				// 销毁不完整数据
 				if(parent::isPackLength()) {
-					$this->pack->destroy($server, $worker_id);
+					$this->pack->destroy($server, $fd);
 				}
 				// 延迟绑定
 				static::onClose($server, $fd);
@@ -244,10 +244,6 @@ abstract class TcpServer extends BaseServer {
 		 */
 		$this->tcpserver->on('WorkerStop', function(tcp_server $server, $worker_id) {
 			try{
-				// 销毁不完整数据
-				if(parent::isPackLength()) {
-					$this->pack->destroy($server, $worker_id);
-				}
 				$this->startCtrl->workerStop($server, $worker_id);
 			}catch(\Exception $e) {
 				self::catchException($e);
