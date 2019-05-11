@@ -14,6 +14,7 @@ namespace Swoolefy\Rpc;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Swoole;
 use Swoolefy\Tcp\TcpServer;
+use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\ServiceDispatch;
 use Swoolefy\Core\HanderInterface;
 
@@ -56,15 +57,22 @@ class RpcHander extends Swoole implements HanderInterface {
 	public function run($fd, $recv, array $extend_data = []) {
 	    try {
 	        if($this->isWorkerProcess()) {
-                if(Swfy::$server->pack_check_type == SWOOLEFY_PACK_CHECK_LENGTH) {
+                if(BaseServer::isPackLength()) {
                     list($header, $body) = $recv;
                     $this->header = $header;
-                    if($this->ping()) {
-                        $pong = ['pong', $this->header];
-                        $data = TcpServer::pack($pong);
-                        Swfy::getServer()->send($fd, $data);
-                        return;
+                }else if(BaseServer::isPackEof()) {
+                	$body = &$recv;
+                	list($callable, $params) = $body;
+                	if(count($callable) == 2) {
+                		$ping = $callable[1];
+                		$this->header['request_id'] = $ping;
                     }
+                }
+                if($this->ping()) {
+                    $pong = ['pong', $this->header];
+                    $data = TcpServer::pack($pong);
+                    Swfy::getServer()->send($fd, $data);
+                    return;
                 }
             }
             // 必须要执行父类的run方法
@@ -72,12 +80,12 @@ class RpcHander extends Swoole implements HanderInterface {
             // 当前进程worker进程
             if($this->isWorkerProcess()) {
                 // packet_length_checkout方式
-                if(Swfy::$server->pack_check_type == SWOOLEFY_PACK_CHECK_LENGTH) {
+                if(BaseServer::isPackLength() || BaseServer::isPackEof()) {
                     if(is_array($body) && count($body) == 2) {
                         list($callable, $params) = $body;
                     }
                 }else {
-                    // TODO
+                	// TODO
                     // 其他方式处理
                 }
             }else {
