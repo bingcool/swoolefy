@@ -72,9 +72,14 @@ class BService extends BaseObject {
 	 */
 	public function send($fd, $data, $header = []) {
 		if(BaseServer::isRpcApp()) {
-			$args = [$data, $header];
-			$data = \Swoolefy\Tcp\TcpServer::pack($args);
-			return Swfy::getServer()->send($fd, $data);
+			if(BaseServer::isPackLength()) {
+				$args = [$data, $header];
+				$data = \Swoolefy\Tcp\TcpServer::pack($args);
+				return Swfy::getServer()->send($fd, $data);
+			}else if(BaseServer::isPackEof()) {
+				$text = \Swoolefy\Tcp\TcpServer::pack($data);
+				return Swfy::getServer()->send($fd, $text);
+			}
 		}else {
 			throw new \Exception("BService::send() this method only can be called by tcp or rpc server!");
 		}

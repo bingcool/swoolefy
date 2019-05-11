@@ -9,7 +9,7 @@
 +----------------------------------------------------------------------
 */
 
-namespace Swoolefy\Core;
+namespace Swoolefy\Rpc;
 
 class Pack {
 
@@ -17,7 +17,7 @@ class Pack {
 	 * $server 
 	 * @var null
 	 */
-	public $server = null;
+	protected $server = null;
 
 	/**
 	 * $_buffer 对于一个连接没有收到完整数据包的数据进行暂时的缓存，等待此链接的数据包接收完整在处理
@@ -35,20 +35,19 @@ class Pack {
 	 * $_pack_size 包的大小，实际应用应设置与package_max_length设置保持一致，默认2M
 	 * @var [type]
 	 */
-	public $packet_maxlen = 2 * 1024 * 1024;
+	protected static $packet_maxlen = 2 * 1024 * 1024;
 
 	/**
 	 * $header_struct 析包结构,包含包头结构，key代表的是包头的字段，value代表的pack的类型
 	 * @var string
 	 */
-	public static $header_struct = ['length'=>'N'];
+	protected static $header_struct = ['length'=>'N'];
 
 	/**
 	 * $pack_length_type pack包数据的类型, 默认null
 	 * @var null
 	 */
 	protected static $pack_length_type = null;
-
 
 	/**
 	 * $unpack_length_type unpack包数据的类型, 默认null
@@ -60,13 +59,19 @@ class Pack {
 	 * $pack_length_key 包的长度设定的key，与$header_struct里设置的长度的key一致
 	 * @var string
 	 */
-	public static $pack_length_key = 'length';
+	protected static $pack_length_key = 'length';
 
 	/**
 	 * $serialize_type 设置数据序列化的方式 
-	 * @var [type]
+	 * @var string
 	 */
-	public $serialize_type = 'json';
+	protected static $serialize_type = 'json';
+
+	/**
+	 * $header_length 包头固定长度，单位字节,等于package_body_offset设置的值
+	 * @var integer
+	 */
+	protected static $header_length = 30;
 
 	/**
 	 * 定义序列化的方式
@@ -86,18 +91,6 @@ class Pack {
     const ERR_SERVER_BUSY       = 9003;   //服务器繁忙，超过处理能力
     
 	/**
-	 * $header_length 包头固定长度，单位字节,等于package_body_offset设置的值
-	 * @var integer
-	 */
-	public static $header_length = 30;
-
-	/**
-	 * $pack_eof eof分包时设置
-	 * @var string
-	 */
-	public static $pack_eof = "\r\n\r\n";
-
-	/**
 	 * __construct 
 	 * @param    \Swoole\Server $server
 	 */
@@ -106,38 +99,69 @@ class Pack {
 	}
 
 	/**
-	 * decodePack 接收数据解包处理
-	 * usages:
-	 *	Pack::$header_struct = ['length'=>'N','name'=>'a30']  包头定义的字段与对应类型
-	 *	Pack::$pack_length_key = 'length'   包头的记录包体长度的key,要与$header_struct的key一致
-	 *	Pack::$header_length = 34            固定包头字节大小，与package_body_offset一致
-	 *
-	 * 
-	 *  $Pack = new Pack();
-	 *  又或者先这样设置
-	 *  $Pack->header_struct = ['length'=>'N','name'=>'a30']
-	 *  $Pack->pack_length_key = 'length'
-	 *  $Pack->header_length = 34
-	 *  
-	 *	$Pack->serialize_type = Pack::DECODE_SWOOLE;
-	 * 	$Pack->packet_maxlen = 2 * 1024 * 1024 包的最大长度，与package_max_length设置保持一致
-	 *  $res = $Pack->depack($server, $fd, $reactor_id, $data);
+	 * setHeaderStruct 设置服务端包头结构体
+	 * @param  array $pack_header_struct 服务端包头结构体
+	 */
+	public function setHeaderStruct(array $pack_header_struct = []) {
+		self::$header_struct = array_merge(self::$header_struct, $pack_header_struct);
+		return true;
+	}
+
+	/**
+	 * setPackLengthKey 
+	 * @param string $pack_length_key 包头长度key
+	 */
+	public function setPackLengthKey(string $pack_length_key = 'length') {
+		self::$pack_length_key = $pack_length_key;
+		return true;
+	}
+
+	/**
+	 * setSerializeType
+	 * @param string $serialize_type
+	 */
+	public function setSerializeType(string $serialize_type = 'json') {
+		self::$serialize_type = $serialize_type;
+		return true;
+	}
+
+	/**
+	 * setHeaderLength
+	 * @param int|null $header_length
+	 */
+	public function setHeaderLength(int $header_length = null) {
+		self::$header_length = $header_length;
+	}
+
+	/**
+	 * setPacketMaxlen 包的最大长度
+	 * @param int|null $packet_maxlen
+	 */
+	public function setPacketMaxlen(int $packet_maxlen = null) {
+		self::$packet_maxlen = $packet_maxlen;
+	}
+
+	/**
+	 * depack 
 	 * @param    \Swoole\Server $server
 	 * @param    int            $fd
-	 * @param    int         $reactor_id
+	 * @param    int            $reactor_id
 	 * @param    string         $data
 	 * @return   mixed
 	 */
 	public function depack(\Swoole\Server $server, $fd, $reactor_id, $data) {
 		//接收的包数据不完整的
 		if(isset($this->_buffers[$fd])) {
-			// 每次再接收的数据是属于上一个不完整的包的，已经没有包头了，直接包体数据
+			/**
+			 * 每次再接收的数据是属于上一个不完整的包的,已经没有包头了,直接包体数据
+			 */
 			$this->_buffers[$fd] .= $data;
-
 			$buffer_fd_data_length = strlen($this->_buffers[$fd]);
 
-			// 长度错误时
-			if($buffer_fd_data_length > $this->packet_maxlen) {
+			/**
+			 * 包长度超出最大设置限度
+			 */
+			if($buffer_fd_data_length > self::$packet_maxlen) {
 				$this->sendErrorMessage($fd, self::ERR_TOOBIG);
 				unset($this->_buffers[$fd], $this->_headers[$fd]);
 				return false;
@@ -146,10 +170,10 @@ class Pack {
 			if($buffer_fd_data_length < $this->_headers[$fd][self::$pack_length_key]) {
 				return false;
 			}else {
-				// 数据包已接收完整
+				//数据包已接收完整
 				$pack_body = $this->_buffers[$fd];
 				// 数据解包
-				$data = $this->decode($pack_body, $this->serialize_type);
+				$data = $this->decode($pack_body, self::$serialize_type);
 
 				$request = [$this->_headers[$fd], $data];
 				unset($this->_buffers[$fd], $this->_headers[$fd]);
@@ -173,7 +197,7 @@ class Pack {
 			// 接收数据包完整
 			if(strlen($pack_body) == $length) {
 				// 数据解包
-				$data = $this->decode($pack_body, $this->serialize_type);
+				$data = $this->decode($pack_body, self::$serialize_type);
 
 				$request = [$this->_headers[$fd], $data];
 				unset($this->_buffers[$fd], $this->_headers[$fd]);
@@ -216,7 +240,7 @@ class Pack {
 	 * @return   boolean
 	 */
 	public function sendErrorMessage($fd, $errno) {
-        return $this->server->send($fd, self::encode(['errcode' => $errno,'msg'=>'packet length more than packet_maxlen'], $this->serialize_type));
+        return $this->server->send($fd, self::encode(['errcode' => $errno,'msg'=>'packet length more than packet_maxlen'], self::$serialize_type));
     }
 
     /**
@@ -228,7 +252,6 @@ class Pack {
 		foreach($header as $key=>&$value) {
 			$header[$key] = trim($value);
 		}
-
 		return $header;
 	}
 
@@ -236,9 +259,6 @@ class Pack {
 	 * encode 数据封包
 	 * usages:
 	 	$header = ['length'=>'','name'=>'bingcool'];头部字段信息,'length'字段可以为空
-		$Pack = new Pack();
-		$sendData = $Pack->enpack($data, $header, Pack::DECODE_SWOOLE);
-
 	 * @param    mixed  $data
 	 * @param    array  $header
 	 * @param    string  $serialize_type
@@ -282,7 +302,7 @@ class Pack {
         switch($serialize_type) {
         		// json
             case 1:
-                return json_encode($data);
+                return json_encode($data, JSON_UNESCAPED_UNICODE);
             default:
             	// serialize
             	return serialize($data);
@@ -331,88 +351,4 @@ class Pack {
     		return;	
     	}
     }
-
-    /**
-     * enpackeof eof协议封包,包体中不能含有eof的结尾符号，否则出错
-     * usages:
-     *	Pack::$pack_eof = "\r\n\r\n";
-	 *	$Pack = new Pack();
-	 *	$sendData = $Pack->enpackeof($data, Pack::DECODE_JSON);				
-     * @param  mixed $data
-     * @param  int   $seralize_type
-     * @param  string $eof
-     * @return string
-     */
-    public static function enpackeof($data, $serialize_type = self::DECODE_JSON, $eof ='') {
-    	if(empty($eof)) {
-    		$eof = self::$pack_eof;
-    	}
-    	$data = self::encode($data, $serialize_type).$eof;
-    	
-    	return $data;
-    }
-
-    /**
-     * depackeof  eof协议解包,每次收到一个完整的包
-     * usages:
-     *	Pack::$pack_eof = "\r\n\r\n";
-	 *	$Pack = new Pack();
-	 *	$res = $Pack->depackeof($data, Pack::DECODE_JSON);
-     * @param   string  $data
-     * @param   int     $unseralize_type
-     * @return  mixed 
-     */
-    public function depackeof($data, $unserialize_type = '') {
-    	if($unserialize_type) {
-    		$this->serialize_type = $unserialize_type;
-    	}
-    	return self::decode($data, $this->serialize_type);
-    }
-
-    /**
-     * __set 利用魔术方法设置静态变量
-     * 	$Pack = new Pack();
-	 *  $Pack->header_struct = ['length'=>'N','name'=>'a30']
-	 *  $Pack->pack_length_key = 'length'
-	 *  $Pack->header_length = 34
-	 *  
-     * @param  $name 
-     * @param  $value
-     */
-    public function __set($name, $value) {
-	 	switch($name) {
-	 		case "header_struct" :
-	 			if(is_array($value)) {
-	 				self::$header_struct = $value;
-	 				return true;
-	 			}
-	 			return false;
-
-	 		break;
-	 		case "pack_length_key" :
-	 			if(is_string($value)) {
-	 				self::$pack_length_key = $value;
-	 				return true;
-	 			}
-	 			return false;
-	 		break;
-	 		case "header_length" :
-	 			if(is_int($value)) {
-	 				self::$header_length  = $value;
-	 				return true;
-	 			}
-	 			return false;
-	 		break;
-	 		case 'pack_eof':
-	 			if(is_string($value)) {
-	 				self::$pack_eof = $value;
-	 				return true;
-	 			}
-	 			return false;
-	 		break;
-	 		default:
-	 		return false;
-	 	}
-    }
-
 }

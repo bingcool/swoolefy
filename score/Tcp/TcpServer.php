@@ -12,7 +12,8 @@
 namespace Swoolefy\Tcp;
 
 use Swoolefy\Core\Swfy;
-use Swoolefy\Core\Pack;
+use Swoolefy\Rpc\Pack;
+use Swoolefy\Rpc\Text;
 use Swoolefy\Core\BaseServer;
 use Swoole\Server as tcp_server;
 
@@ -152,14 +153,14 @@ abstract class TcpServer extends BaseServer {
 			try{
 				parent::beforeHandler();
 				// 服务端为length检查包
-				if(self::isPackLength()) {
+				if(parent::isPackLength()) {
 					$recv = $this->pack->depack($server, $fd, $reactor_id, $data);
 				}else {
 					// 服务端为eof检查包
-					$recv = $this->pack->depackeof($data);
+					$recv = $this->Text->depackeof($data);
 				}
 				if($recv) {
-					// 延迟绑定，服务处理实例
+					//延迟绑定，服务处理实例
 					static::onReceive($server, $fd, $reactor_id, $recv);
 				}
 				return true;
@@ -227,8 +228,10 @@ abstract class TcpServer extends BaseServer {
 		 */
 		$this->tcpserver->on('close', function(tcp_server $server, $fd) {
 			try{
-				// 删除缓存的不完整的僵尸式数据包
-				$this->pack->delete($fd);
+				// 销毁不完整数据
+				if(parent::isPackLength()) {
+					$this->pack->destroy($server, $worker_id);
+				}
 				// 延迟绑定
 				static::onClose($server, $fd);
 			}catch(\Exception $e) {
@@ -242,7 +245,9 @@ abstract class TcpServer extends BaseServer {
 		$this->tcpserver->on('WorkerStop', function(tcp_server $server, $worker_id) {
 			try{
 				// 销毁不完整数据
-				$this->pack->destroy($server, $worker_id);
+				if(parent::isPackLength()) {
+					$this->pack->destroy($server, $worker_id);
+				}
 				$this->startCtrl->workerStop($server, $worker_id);
 			}catch(\Exception $e) {
 				self::catchException($e);
@@ -280,20 +285,29 @@ abstract class TcpServer extends BaseServer {
 	 * @return void
 	 */
 	public function buildPackHander() {
-		$this->pack = new Pack(self::$server);
 		if(self::isPackLength()) {
+			$this->pack = new Pack(self::$server);
 			// packet_length_check
-			$this->pack->header_struct = self::$config['packet']['server']['pack_header_struct'];
-			$this->pack->pack_length_key = self::$config['packet']['server']['pack_length_key'];
+			$this->pack->setHeaderStruct(self::$config['packet']['server']['pack_header_struct']);
+			$this->pack->setPackLengthKey(self::$config['packet']['server']['pack_length_key']);
 			if(isset(self::$config['packet']['server']['serialize_type'])) {
-				$this->pack->serialize_type = self::$config['packet']['server']['serialize_type'];
+				$this->pack->setSerializeType(self::$config['packet']['server']['serialize_type']);
 			}
-			$this->pack->header_length = self::$setting['package_body_offset'];
-			$this->pack->packet_maxlen = self::$setting['package_max_length'];
+			$this->pack->setHeaderLength(self::$setting['package_body_offset']);
+			if(isset(self::$setting['package_max_length'])) {
+				$package_max_length = (int)self::$setting['package_max_length'];
+				$this->pack->setPacketMaxlen(self::$setting['package_max_length']);
+			}
 		}else {
+			$this->Text = new Text();
 			// packet_eof_check
-			$this->pack->pack_eof = self::$setting['package_eof'];
-			$this->pack->serialize_type = Pack::DECODE_JSON;
+			$this->Text->setPackEof(self::$setting['package_eof']);
+			if(isset(self::$config['packet']['server']['serialize_type'])) {
+				$serialize_type = self::$config['packet']['server']['serialize_type'];
+			}else {
+				$serialize_type = Text::DECODE_JSON;
+			}
+			$this->Text->setSerializeType($serialize_type);
 		}
 	}
 
@@ -341,13 +355,12 @@ abstract class TcpServer extends BaseServer {
             $header[$pack_length_key] = '';
             $pack_data = Pack::enpack($body_data, $header, $header_struct, $pack_length_key, $serialize_type);
 		}else {
-            list($data) = $data;
             $eof = self::$config['packet']['client']['pack_eof'];
             $serialize_type = self::$config['packet']['client']['serialize_type'];
             if($eof) {
-                $pack_data = Pack::enpackeof($data, $serialize_type, $eof);
+                $pack_data = Text::enpackeof($data, $serialize_type, $eof);
             }else {
-                $pack_data = (new \Swoolefy\Core\Pack(Swfy::$server))->enpackeof($data, $serialize_type);
+                $pack_data = Text::enpackeof($data, $serialize_type);
             }
 		}
 

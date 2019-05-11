@@ -550,7 +550,7 @@ class BaseServer {
      * usePackEof 是否是pack的eof
      * @return boolean
      */
-    protected static function isPackEof() {
+    public static function isPackEof() {
     	if(self::$pack_check_type == self::PACK_CHECK_EOF) {
     		return true;
     	}
@@ -562,7 +562,7 @@ class BaseServer {
      * @throws mixed
      * @return boolean
      */
-    protected static function isPackLength() {
+    public static function isPackLength() {
     	if(self::$pack_check_type == self::PACK_CHECK_LENGTH) {
     		if(!isset(static::$config['packet']['server'])) {
     			throw new \Exception("if you want to use RPC server, you must set ['packet']['server'] in the config", 1);
