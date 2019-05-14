@@ -43,7 +43,7 @@ abstract class WebsocketServer extends BaseServer {
 	 * $serverName server服务名称
 	 * @var string
 	 */
-	public static $serverName = SWOOLEFY_WEBSOCKET;
+	protected static $serverName = SWOOLEFY_WEBSOCKET;
 
 	/**
 	 * __construct
