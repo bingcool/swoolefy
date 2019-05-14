@@ -44,7 +44,7 @@ abstract class HttpServer extends BaseServer {
 	 * $serverName server服务名称
 	 * @var string
 	 */
-	public static $serverName = SWOOLEFY_HTTP;
+	protected static $serverName = SWOOLEFY_HTTP;
 
 	/**
 	 * __construct

@@ -43,13 +43,19 @@ abstract class TcpServer extends BaseServer {
 	 * $pack 封解包对象
 	 * @var null
 	 */
-	public $pack = null;
+	protected $Pack = null;
+
+	/**
+	 * $Text text协议对象
+	 * @var null
+	 */
+	protected $Text = null;
 
 	/**
 	 * $serverName server服务名称
 	 * @var string
 	 */
-	public static $serverName = SWOOLEFY_TCP;
+	protected static $serverName = SWOOLEFY_TCP;
 
 	/**
 	 * __construct
@@ -154,7 +160,7 @@ abstract class TcpServer extends BaseServer {
 				parent::beforeHandler();
 				// 服务端为length检查包
 				if(parent::isPackLength()) {
-					$recv = $this->pack->depack($server, $fd, $reactor_id, $data);
+					$recv = $this->Pack->depack($server, $fd, $reactor_id, $data);
 				}else {
 					// 服务端为eof检查包
 					$recv = $this->Text->depackeof($data);
@@ -230,7 +236,7 @@ abstract class TcpServer extends BaseServer {
 			try{
 				// 销毁不完整数据
 				if(parent::isPackLength()) {
-					$this->pack->destroy($server, $fd);
+					$this->Pack->destroy($server, $fd);
 				}
 				// 延迟绑定
 				static::onClose($server, $fd);
@@ -282,17 +288,17 @@ abstract class TcpServer extends BaseServer {
 	 */
 	public function buildPackHander() {
 		if(self::isPackLength()) {
-			$this->pack = new Pack(self::$server);
+			$this->Pack = new Pack(self::$server);
 			// packet_length_check
-			$this->pack->setHeaderStruct(self::$config['packet']['server']['pack_header_struct']);
-			$this->pack->setPackLengthKey(self::$config['packet']['server']['pack_length_key']);
+			$this->Pack->setHeaderStruct(self::$config['packet']['server']['pack_header_struct']);
+			$this->Pack->setPackLengthKey(self::$config['packet']['server']['pack_length_key']);
 			if(isset(self::$config['packet']['server']['serialize_type'])) {
-				$this->pack->setSerializeType(self::$config['packet']['server']['serialize_type']);
+				$this->Pack->setSerializeType(self::$config['packet']['server']['serialize_type']);
 			}
-			$this->pack->setHeaderLength(self::$setting['package_body_offset']);
+			$this->Pack->setHeaderLength(self::$setting['package_body_offset']);
 			if(isset(self::$setting['package_max_length'])) {
 				$package_max_length = (int)self::$setting['package_max_length'];
-				$this->pack->setPacketMaxlen(self::$setting['package_max_length']);
+				$this->Pack->setPacketMaxlen(self::$setting['package_max_length']);
 			}
 		}else {
 			$this->Text = new Text();
