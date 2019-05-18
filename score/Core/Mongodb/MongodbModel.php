@@ -59,7 +59,7 @@ class MongodbModel {
      * @param array $uriOptions
      * @param array $driverOptions
      */
-    public function __construct($uri='mongodb=127.0.0.1:27017', $uriOptions = [], $driverOptions=[]) {
+    public function __construct(string $uri = 'mongodb=127.0.0.1:27017', array $uriOptions = [], array $driverOptions=[]) {
         $this->uri = $uri;
         $this->uriOptions = $uriOptions;
         $this->driverOptions = $driverOptions;
@@ -70,7 +70,7 @@ class MongodbModel {
      * @param   string   $db
      * @return  mixed
      */
-    public function setDatabase($db = null) {
+    public function setDatabase(string $db = null) {
         if($db) {
             return $this->database = $db;
         }
@@ -85,7 +85,7 @@ class MongodbModel {
      * @param    string   $db
      * @return   mixed
      */
-    public function dbInstance($db = null) {
+    public function dbInstance(string $db = null) {
         if(isset($this->databaseObject) && is_object($this->databaseObject)) {
             return  $this->databaseObject;
         }
@@ -109,7 +109,7 @@ class MongodbModel {
      * @param  boolean $pong 是否返回ping的所有信息
      * @return mixed
      */
-    public function ping($pong = false) {
+    public function ping(bool $pong = false) {
         $cursor = $this->db()->command([
             'ping' => 1,
         ]);
@@ -126,7 +126,7 @@ class MongodbModel {
      * @param   string  $collection
      * @return  mixed
      */
-    public function collection($collection) {
+    public function collection(string $collection) {
         if(!is_object($this->mongodbClient)) {
             $this->mongodbClient = new Client($this->uri, $this->uriOptions, $this->driverOptions);
         }

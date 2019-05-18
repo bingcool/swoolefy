@@ -36,6 +36,7 @@ class CoroutinePools {
      */
     public function addPool(string $pool_name, $handler) {
         $AppConf = BaseServer::getAppConf();
+        $pool_name = trim($pool_name);
         if(isset($AppConf['enable_component_pools']) && is_array($AppConf['enable_component_pools']) && !empty($AppConf['enable_component_pools'])) {
             if(!in_array($pool_name, $AppConf['enable_component_pools'])) {
                 throw new \Exception("pool_name={$pool_name} must in app conf['enable_component_pools'] value");
@@ -43,9 +44,16 @@ class CoroutinePools {
         }
         if(!isset($this->pools[$pool_name])) {
             if($handler instanceof PoolsHandler) {
-                $this->pools[$pool_name] = $handler;
+                $handler_pool_name = $handler->getPoolName();
+                if($handler_pool_name == $pool_name) {
+                    $this->pools[$pool_name] = $handler;
+                }else {
+                    $class = get_class($handler);
+                    throw new \Exception(__CLASS__."::addPool() of First Param 'pool_name'={$pool_name}, but {$class}::pool_name = {$handler_pool_name}, so the two are not equal");
+                }
             }else if($handler instanceof \Closure) {
-                $this->pools[$pool_name] = call_user_func_array($handler, [$pool_name]);
+                $args = [$pool_name];
+                $this->pools[$pool_name] = call_user_func_array($handler, $args);
             }
         }
     }
@@ -56,6 +64,7 @@ class CoroutinePools {
      * @return   mixed
      */
     public function getPool(string $pool_name) {
+        $pool_name = trim($pool_name);
         if(isset($this->pools[$pool_name])) {
             return $this->pools[$pool_name];
         }else{

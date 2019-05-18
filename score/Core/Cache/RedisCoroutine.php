@@ -87,6 +87,9 @@ class RedisCoroutine {
 		$password && $this->password = $password;
 		$deploy && $this->deploy = $deploy;
 		!empty($options) && $this->options = $options;
+		if(!isset($this->options['compatibility_mode'])) {
+			$this->options['compatibility_mode'] = true;
+		}
 		$host && $this->setConfig();
 	}
 

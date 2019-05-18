@@ -55,7 +55,7 @@ abstract class PoolsHandler {
 
 	public function registerPools(string $pool_name = null) {
 		if($pool_name) {
-			$this->pool_name = $pool_name;
+			$this->pool_name = trim($pool_name);
 			if(!isset($this->channel)) {
                 $this->channel = new \Swoole\Coroutine\Channel($this->maxPoolsNum);
         	}
