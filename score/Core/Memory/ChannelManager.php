@@ -20,17 +20,22 @@ class ChannelManager {
     /**
      * 创建一个数据Channel
      * @param  string  $name
-     * @param  int  $size
+     * @param  int   $capacity
      * @throws mixed
      */
-    public function addChannel(string $name, int $size = 256 * 1024) {
-        if(!class_exists('Swoole\Channel')) {
+    public function addChannel(string $name, int $capacity = null) {
+        if(!class_exists('Swoole\\Coroutine\\Channel')) {
             throw new \Exception("after swoole 4.3.0, \Swoole\channel is removed, you can not use it");
         }
         if(!isset($this->list[$name])) {
-            $chan = new \Swoole\Channel($size);
+            if($capacity) {
+                $chan = new \Swoole\Coroutine\Channel($capacity);
+            }else {
+                $chan = new \Swoole\Coroutine\Channel();
+            }
             $this->list[$name] = $chan;
         }
+        return $this;
     }
 
     /**

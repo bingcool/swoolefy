@@ -205,6 +205,26 @@ class App extends \Swoolefy\Core\Component {
     }
 
     /**
+     *pushComponentPools
+     * @return 
+     */
+    public function pushComponentPools() {
+    	if(!empty($this->component_pools) && !empty($this->component_pools_obj_ids)) {
+    		foreach($this->component_pools as $name) {
+    			if(isset($this->container[$name])) {
+    				$obj = $this->container[$name];
+    				if(is_object($obj)) {
+    					$obj_id = spl_object_id($obj);
+    					if(in_array($obj_id, $this->component_pools_obj_ids)) {
+    						\Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
+    					}
+    				}
+    			}
+    		}
+    	}
+    }
+
+    /**
      * setEnd
      */
     public function setEnd() {
@@ -218,6 +238,8 @@ class App extends \Swoolefy\Core\Component {
 	public function end() {
         // log hander
         $this->handerLog();
+        // push obj pools
+        $this->pushComponentPools();
 		Application::removeApp();
         if(!$this->is_end) {
             @$this->response->end();

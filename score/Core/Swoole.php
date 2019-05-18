@@ -250,6 +250,26 @@ class Swoole extends BaseObject {
         }
     }
 
+    /**
+     *pushComponentPools
+     * @return 
+     */
+    public function pushComponentPools() {
+    	if(!empty($this->component_pools) && !empty($this->component_pools_obj_ids)) {
+    		foreach($this->component_pools as $name) {
+    			if(isset($this->container[$name])) {
+    				$obj = $this->container[$name];
+    				if(is_object($obj)) {
+    					$obj_id = spl_object_id($obj);
+    					if(in_array($obj_id, $this->component_pools_obj_ids)) {
+    						\Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
+    					}
+    				}
+    			}
+    		}
+    	}
+    }
+
 	/**
 	 * end
 	 */
@@ -258,6 +278,8 @@ class Swoole extends BaseObject {
 		Hook::callHook(Hook::HOOK_AFTER_REQUEST);
         $this->handerLog();
 		ZModel::removeInstance();
+		// push obj pools
+		$this->pushComponentPools();
 		Application::removeApp();
 	}
 

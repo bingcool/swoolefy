@@ -23,7 +23,7 @@ trait AppObjectTrait {
 	    Application::getApp()->setEnd();
 		Application::getApp()->response->end(json_encode([
 			'ret' => 500,
-			'msg' => "Calling unknown method: " . get_called_class()."::{$action}",
+			'msg' => "Calling unknown method: " . get_called_class()."::{$action}, ".json_encode($args, JSON_UNESCAPED_UNICODE),
 			'data' => ''
 		]));
 		// 直接停止程序往下执行
@@ -38,7 +38,7 @@ trait AppObjectTrait {
         Application::getApp()->setEnd();
 		Application::getApp()->response->end(json_encode([
 			'ret' => 500,
-			'msg' => "Calling unknown static method: " . get_called_class() . "::{$action}",
+			'msg' => "Calling unknown static method: " . get_called_class() . "::{$action}, ".json_encode($args, JSON_UNESCAPED_UNICODE),
 			'data' => ''
 		]));
 		// 直接停止程序往下执行
