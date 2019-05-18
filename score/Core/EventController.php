@@ -173,6 +173,26 @@ class EventController extends BaseObject {
         }
     }
 
+    /**
+     *pushComponentPools
+     * @return 
+     */
+    public function pushComponentPools() {
+    	if(!empty($this->component_pools) && !empty($this->component_pools_obj_ids)) {
+    		foreach($this->component_pools as $name) {
+    			if(isset($this->container[$name])) {
+    				$obj = $this->container[$name];
+    				if(is_object($obj)) {
+    					$obj_id = spl_object_id($obj);
+    					if(in_array($obj_id, $this->component_pools_obj_ids)) {
+    						\Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
+    					}
+    				}
+    			}
+    		}
+    	}
+    }
+
 	/**
 	 * beforeAction 在处理实际action之前执行
      * EventController不会执行该动作,所以继承与EventController不要调用该method
@@ -205,6 +225,8 @@ class EventController extends BaseObject {
         // log
         $this->handerLog();
 		ZModel::removeInstance();
+		// push obj pools
+		$this->pushComponentPools();
 		Application::removeApp($this->coroutine_id);
 	}
 
