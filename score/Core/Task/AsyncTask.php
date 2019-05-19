@@ -68,7 +68,7 @@ class AsyncTask implements AsyncTaskInterface {
      */
     public static function finish($data, $task = null) {
         if(is_array($data)) {
-            $data = json_encode($data);
+            $data = json_encode($data, JSON_UNESCAPED_UNICODE);
         }
         if(BaseServer::isTaskEnableCoroutine() && $task instanceof \Swoole\Server\Task) {
             $task->finish($data);

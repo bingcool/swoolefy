@@ -137,6 +137,9 @@ trait ServiceTrait {
 	 * @return   array
 	 */
 	public static function getConf() {
+		if(!empty(Swfy::$config)) {
+			return Swfy::$config;
+		}
 		return BaseServer::getConf();
 	}
 
