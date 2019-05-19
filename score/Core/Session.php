@@ -131,7 +131,7 @@ class Session {
      * @param    string  $sess_id
      * @return   array
      */
-    protected function load($sess_id) {
+    protected function load(string $sess_id) {
         if(!$this->session_id) {
             $this->session_id = $sess_id;
         }

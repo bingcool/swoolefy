@@ -24,10 +24,19 @@ class autoloader {
     private static $root_namespace = ["<{APP_NAME}>"];
 
     /**
+     * $class_map_namespace
+     * @var array
+     */
+    private static $class_map_namespace = [];
+
+    /**
      * @param string $className 
      * @return boolean
      */
     public static function autoload($className) {
+        if(isset(self::$class_map_namespace[$className])) {
+            return;
+        }
         foreach(self::$root_namespace as $k=>$namespace) {
             // 判断如果以\命名空间访问的格式符合
             if (0 === strpos($className, $namespace)) {
@@ -36,7 +45,10 @@ class autoloader {
                 // 组合新的路径
                 $filepath = self::$baseDirectory.DIRECTORY_SEPARATOR.implode(DIRECTORY_SEPARATOR, $parts).'.php';
                 if (is_file($filepath)) {
-                    require_once $filepath;
+                    $res = require_once $filepath;
+                    if($res) {
+                        self::$class_map_namespace[$className] = true;
+                    }
                 }
                 // 匹配到符合的,结束循环
                 break;
