@@ -45,7 +45,7 @@ class NotFound extends BService {
 	 * @param  string  $action
 	 * @return mixed
 	 */
-	public function return500($class, $action) {
+	public function return500(string $class, string $action) {
         $response = ['ret'=>500, 'msg'=>"{$class}::{$action} is undefined", 'data'=>''];
 		if(BaseServer::isRpcApp()) {
 			// rpc服务，server端和client端的header_struct不相同时,默认不作处理
@@ -68,7 +68,7 @@ class NotFound extends BService {
      * @param  string  $msg
 	 * @return mixed
 	 */
-	public function returnError($msg) {
+	public function returnError(string $msg) {
         $response = ['ret'=>500, 'msg'=>$msg, 'data'=>''];
 		if(BaseServer::isRpcApp()) {
 			// rpc服务，server端和client端的header_struct不相同时,默认不作处理

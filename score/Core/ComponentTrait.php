@@ -214,7 +214,9 @@ trait ComponentTrait {
         	return false;
         }
         foreach($com_alias_name as $alias_name) {
-        	unset($this->container[$alias_name]);
+        	if(isset($this->container[$alias_name])) {
+        		unset($this->container[$alias_name]);
+        	}
        	}
         return true;
     }
