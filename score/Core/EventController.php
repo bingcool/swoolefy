@@ -123,7 +123,7 @@ class EventController extends BaseObject {
 				return true;
 			}
 		}else {
-			throw new \Exception(__NAMESPACE__.'::'.__function__.' the first param of type is callable');
+			throw new \Exception(__NAMESPACE__.'::'.__function__.' the first param of type must be seted callable');
 		}
 		
 	}
@@ -195,7 +195,7 @@ class EventController extends BaseObject {
 
 	/**
 	 * beforeAction 在处理实际action之前执行
-     * EventController不会执行该动作,所以继承与EventController不要调用该method
+     * EventController不会执行该动作,所以继承于EventController其他类不要调用该method
 	 * @return   mixed
 	 */
 	public function _beforeAction() {

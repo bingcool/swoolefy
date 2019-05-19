@@ -235,7 +235,7 @@ class HttpRoute extends AppDispatch {
             $this->response->header('Content-Type','application/json; charset=UTF-8');
             $query_string = isset($this->request->server['QUERY_STRING']) ? '?'.$this->request->server['QUERY_STRING'] : '';
             if(isset($this->request->post) && !empty($this->request->post)) {
-                $post = json_encode($this->request->post,JSON_UNESCAPED_UNICODE);
+                $post = json_encode($this->request->post, JSON_UNESCAPED_UNICODE);
                 $msg = "call {$class}::_beforeAction return false, forbiden continue call {$class}::{$action}, please checkout it ||| ".$this->request->server['REQUEST_URI'].$query_string.' post_data:'.$post;
             }else {
                 $msg = "call {$class}::_beforeAction return false, forbiden continue call {$class}::{$action}, please checkout it ||| ".$this->request->server['REQUEST_URI'].$query_string;
@@ -280,7 +280,7 @@ class HttpRoute extends AppDispatch {
                         'ret' => 500,
                         'msg' => $msg,
                         'data' => ''
-                    ],JSON_UNESCAPED_UNICODE));
+                    ], JSON_UNESCAPED_UNICODE));
 		        }
 			}else {
                 Application::getApp()->setEnd();

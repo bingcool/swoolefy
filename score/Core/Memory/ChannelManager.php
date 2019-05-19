@@ -24,9 +24,6 @@ class ChannelManager {
      * @throws mixed
      */
     public function addChannel(string $name, int $capacity = null) {
-        if(!class_exists('Swoole\\Coroutine\\Channel')) {
-            throw new \Exception("after swoole 4.3.0, \Swoole\channel is removed, you can not use it");
-        }
         if(!isset($this->list[$name])) {
             if($capacity) {
                 $chan = new \Swoole\Coroutine\Channel($capacity);
