@@ -69,9 +69,9 @@ abstract class PoolsHandler {
 	 */
 	public function pushObj($obj) {
 		if(is_object($obj)) {
-			if(!$this->channel->isFull()) {
-				$this->channel->push($obj);
-			} 
+		    go(function() use($obj) {
+                $this->channel->push($obj, 3);
+            });
 		}
 	}
 
