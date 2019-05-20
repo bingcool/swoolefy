@@ -11,8 +11,6 @@
 
 namespace Swoolefy\Core\Coroutine;
 
-use Swoolefy\Core\Coroutine\CoroutinePools;
-
 use Swoolefy\Core\BaseServer;
 
 class CoroutinePools {
