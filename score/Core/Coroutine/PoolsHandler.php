@@ -11,8 +11,6 @@
 
 namespace Swoolefy\Core\Coroutine;
 
-use Swoolefy\Core\Memory\ChannelManager;
-
 abstract class PoolsHandler {
 
 	protected $channel = null;
@@ -23,21 +21,41 @@ abstract class PoolsHandler {
 
 	protected $minPoolsNum;
 
+	protected $pushTimeout = 3;
+
+	protected $popTimeout = 1;
+
 	public function setMaxPoolsNum(int $maxPoolsNum = 50) {
 		$this->maxPoolsNum = $maxPoolsNum;
-	}
-
-	public function setMinPoolsNum(int $minPoolsNum = 20) {
-		$this->minPoolsNum = $minPoolsNum;
 	}
 
 	public function getMaxPoolsNum() {
 		return $this->maxPoolsNum;
 	}
 
-	public function getMinPoolsNum() {
+    public function setMinPoolsNum(int $minPoolsNum = 20) {
+        $this->minPoolsNum = $minPoolsNum;
+    }
+
+    public function getMinPoolsNum() {
 		return $this->minPoolsNum;
 	}
+
+	public function setPushTimeout(int $pushTimeout = 3) {
+	    $this->pushTimeout = $pushTimeout;
+    }
+
+    public function getPushTimeout() {
+	    return $this->pushTimeout;
+    }
+
+    public function setPopTimeout(int $popTimeout = 1) {
+	    $this->popTimeout = $popTimeout;
+    }
+
+    public function getPopTimeout() {
+	    return $this->popTimeout;
+    }
 
 	public function getPoolName() {
 		return $this->pool_name;
@@ -70,7 +88,7 @@ abstract class PoolsHandler {
 	public function pushObj($obj) {
 		if(is_object($obj)) {
 		    go(function() use($obj) {
-                $this->channel->push($obj, 3);
+                $this->channel->push($obj, $this->pushTimeout);
             });
 		}
 	}
