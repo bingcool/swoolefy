@@ -286,9 +286,12 @@ trait ComponentTrait {
 			}else if(in_array($name, array_keys($components))) {
 				// mysql,redis进程池中直接赋值
 				if(in_array($name, $this->component_pools)) {
-					$this->container[$name] = \Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->getPool($name)->getObj();
+				    $poolHandler = \Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->getPool($name);
+					if(is_object($poolHandler)) {
+                        $this->container[$name] = $poolHandler->getObj();
+                    }
 					// 如果没有设置进程池处理实例，则降级到创建实例模式
-					if(is_object($this->container[$name])) {
+					if(isset($this->container[$name]) && is_object($this->container[$name])) {
 						$obj_id = spl_object_id($this->container[$name]);
 						if(!in_array($obj_id, $this->component_pools_obj_ids)) {
 							array_push($this->component_pools_obj_ids, $obj_id);
