@@ -21,7 +21,7 @@ class CoroutinePools {
 
     /**
      * 在workerStart可以创建一个协程池Channel
-        \Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->addPool('redis', function($pool_name) {
+        \Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->addPool('redis', function($pool_name): \Swoolefy\Core\Coroutine\PoolsHandler {
             $redis = new \App\CoroutinePools\RedisPools();
             $redis->setMaxPoolsNum();
             $redis->setMinPoolsNum();
@@ -29,7 +29,7 @@ class CoroutinePools {
             return $redis;
         });
      * @param  string  $name
-     * @param  PoolsHandler   $handler
+     * @param  mixed   $handler
      * @throws mixed
      */
     public function addPool(string $pool_name, $handler) {
@@ -52,6 +52,8 @@ class CoroutinePools {
             }else if($handler instanceof \Closure) {
                 $args = [$pool_name];
                 $this->pools[$pool_name] = call_user_func_array($handler, $args);
+            }else {
+                throw new \Exception(__CLASS__."::addPools of second param 'handler' must be a Object extends \Swoolefy\Core\Coroutine\PoolsHandler, Or a Closure function");
             }
         }
     }
