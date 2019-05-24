@@ -25,6 +25,8 @@ abstract class PoolsHandler {
 
 	protected $popTimeout = 1;
 
+	protected $callCount = 0;
+
 	public function setMaxPoolsNum(int $maxPoolsNum = 50) {
 		$this->maxPoolsNum = $maxPoolsNum;
 	}
@@ -88,8 +90,24 @@ abstract class PoolsHandler {
 	public function pushObj($obj) {
 		if(is_object($obj)) {
 		    go(function() use($obj) {
-                $this->channel->push($obj, $this->pushTimeout);
+                $result = $this->channel->push($obj, $this->pushTimeout);
+                $length = $this->channel->length();
+                // 矫正
+                if(($this->maxPoolsNum - $length) == $this->callCount - 1) {
+                	$this->callCount--;
+                }else {
+                	$this->callCount = $this->maxPoolsNum - $length;
+                }
             });
+		}
+	}
+
+	public function fetchObj() {
+		try {
+			$this->callCount++;
+			return $this->getObj();
+		}catch(\Exception $e) {
+			throw new \Exception($e->getMessage());
 		}
 	}
 
