@@ -288,7 +288,7 @@ trait ComponentTrait {
 				if(in_array($name, $this->component_pools)) {
 				    $poolHandler = \Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->getPool($name);
 					if(is_object($poolHandler)) {
-                        $this->container[$name] = $poolHandler->getObj();
+                        $this->container[$name] = $poolHandler->fetchObj();
                     }
 					// 如果没有设置进程池处理实例，则降级到创建实例模式
 					if(isset($this->container[$name]) && is_object($this->container[$name])) {

@@ -64,6 +64,9 @@ class CoroutinePools {
      * @return   mixed
      */
     public function getPool(string $pool_name) {
+        if(!$pool_name) {
+            return null;
+        }
         $pool_name = trim($pool_name);
         if(isset($this->pools[$pool_name])) {
             return $this->pools[$pool_name];
