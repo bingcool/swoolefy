@@ -298,7 +298,7 @@ abstract class TcpServer extends BaseServer {
 			$this->Pack->setHeaderLength(self::$setting['package_body_offset']);
 			if(isset(self::$setting['package_max_length'])) {
 				$package_max_length = (int)self::$setting['package_max_length'];
-				$this->Pack->setPacketMaxlen(self::$setting['package_max_length']);
+				$this->Pack->setPacketMaxlen($package_max_length);
 			}
 		}else {
 			$this->Text = new Text();

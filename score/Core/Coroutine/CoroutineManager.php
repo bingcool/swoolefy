@@ -21,7 +21,7 @@ class CoroutineManager {
 	/**
 	 * coroutine_id的前缀
 	 */
-	const  PREFIX_CID = 'cid_';
+	const  PREFIX_CID = '';
 
 	/**
 	 * $cid 

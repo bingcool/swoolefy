@@ -234,18 +234,21 @@ abstract class WebsocketServer extends BaseServer {
 		 * 接受http请求
 		 * @see https://wiki.swoole.com/wiki/page/397.html
 		 */
-		if((isset(self::$config['accept_http']) && self::$config['accept_http'] == true)) {
-			$this->webserver->on('request', function(Request $request, Response $response) {
-				try{
-					if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
-	            		return $response->end();
-	       			}
-					static::onRequest($request, $response);
-					return true;
-				}catch(\Exception $e) {
-					self::catchException($e);
-				}
-			});
+		if(isset(self::$config['accept_http'])){
+            $accept_http = filter_var(self::$config['accept_http'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if($accept_http) {
+                $this->webserver->on('request', function (Request $request, Response $response) {
+                    try{
+                        if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
+                            return $response->end();
+                        }
+                        static::onRequest($request, $response);
+                        return true;
+                    } catch (\Exception $e) {
+                        self::catchException($e);
+                    }
+                });
+            }
 		}
 
 		/**

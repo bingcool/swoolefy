@@ -30,9 +30,7 @@ class TableManager {
 			$swoole_tables = [];
 		}
 		if(is_array($tables) && !empty($tables)) {
-
 			foreach($tables as $table_name => $row) {
-				// 避免重复创建
 				if(isset($swoole_tables[$table_name])) {
 					continue;
 				}
@@ -53,7 +51,6 @@ class TableManager {
 						break;
 					}
 				}
-
 				if($table->create()) {
 					$swoole_tables[$table_name] = $table;
 				}				

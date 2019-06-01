@@ -88,8 +88,8 @@ class UdpHander extends Swoole implements HanderInterface {
                     $callable = [$service, $event];
                 }
             }else {
-                $is_task_process = true;
                 // 任务task进程
+                $is_task_process = true;
                 list($callable, $params) = $recv;
             }
 
