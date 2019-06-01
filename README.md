@@ -1,19 +1,20 @@
 # swoolefy
-swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的API和Web应用服务框架，
+swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协程级应用服务框架，
 高度封装了http，websocket，udp服务器，以及基于tcp实现可扩展的rpc服务，
 同时支持composer包方式安装部署项目。基于实用，swoolefy抽象Event事件处理类，
-实现与底层的回调的解耦，支持协程调度，同步|异步调用，全局事件注册，心跳检查，异步任务，多进程(池)等，
+实现与底层的回调的解耦，支持协程调度，同步|异步调用，全局事件注册，心跳检查，异步任务，多进程(池)，连接池等，
 内置view、log、session、mysql、redis、mongodb等常用组件等。     
 
 目前swoolefy4.2+版本完全支持swoole4.2.13+的协程，推荐使用swoole4.3.+.
 
-### 实现的功能特性     
+### 实现的功能特性
+- [x] 架手脚一键创建项目           
 - [x] 路由与调度，MVC三层，多级配置      
 - [x] 支持composer的PSR-4规范，实现PSR-3的日志接口     
 - [x] 支持自定义注册命名空间，快速部署项目，简单易用      
 - [x] 支持httpServer
 - [x] 支持websocketServer,udpServer
-- [x] 支持基于tcp实现的rpc服务，开放式的系统接口，可自定义协议数据格式，并提供rpc-client组件
+- [x] 支持基于tcp实现的rpc服务，开放式的系统接口，可自定义协议数据格式，并提供rpc-client协程组件
 - [x] 支持容器，组件IOC    
 - [x] 支持全局日志   
 - [x] 支持协程单例注册
@@ -24,7 +25,7 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的API
 - [x] 支持底层异常错误的所有日志捕捉
 - [x] 支持自定义进程的redis，rabitmq，kafka的订阅发布，消息队列等     
 - [x] 支持crontab      
-- [x] 支持热更新   
+- [x] 支持热更新       
 - [x] 支持定时的系统信息采集，并以订阅发布，udp等方式收集至存贮端    
 - [x] 命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架 
 - [ ] 分布式服务注册（zk，etcd）
@@ -37,7 +38,48 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的API
 | mongodb | composer require mongodb/mongodb:1.3 | mongodb组件，需要使用mongodb必须安装此组件 |
 | rpc-client | composer require bingcool/rpc-client:dev-master | swoolefy的rpc客户端，当与rpc服务端通信时，需要安装此组件，支持在php-fpm中使用 |
 | cron-expression | composer require dragonmantank/cron-expression | crontal组件，需要使用定时任务时必须安装此组件 |
-       
+  
+### 定义组件
+```
+// 在应用层配置文件中
+components => [
+    // 例如创建phpredis扩展连接实例
+    'redis' => function($com_name) { // 定义组件名，闭包回调实现创建组件过程，return对象即可
+         $redis = new \Redis();
+         $redis->connect('127.0.0.1', 6379, 3);
+         return $redis;   
+    },
+    
+    // 例如创建原生的PDO组件实例
+    'mysql' => function($com_name) {
+        $dbh = new PDO('mysql:host=127.0.0.1;port=6379;dbname=swoolefy', 'root', '123456');
+        return $dbh;
+    }
+    // 其他的组件都可以通过闭包回调创建
+]
+
+```
+### 使用组件
+```
+use Swoolefy\Core\Application;
+class TestController extends BController {
+    public function test() {
+        // 组件就是配置回调中定义的组件，这个过程会发生协程调度
+        $redis = Application::getApp()->redis;
+        $redis->set('name', swoolefy);
+        
+        // PDO实例，这个过程会发生协程调度
+        $mysql = Application::getApp()->mysql;
+        // 添加一条数据
+        $sql = "INSERT INTO `user` (`login` ,`password`) VALUES (:login, :password)"; 
+        $stmt = $dbh->prepare($sql); 
+        $stmt->execute(array(':login'=>'kevin2',':password'=>'123456789'));  
+        echo $dbh->lastinsertid(); 
+    }
+}
+
+```
+     
 ### 开发文档手册
 
 文档:[开发文档](https://www.kancloud.cn/bingcoolhuang/php-swoole-swoolefy/587501)     
