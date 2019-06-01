@@ -49,11 +49,9 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	 * @return   void
 	 */
 	public function onRequest($request, $response) {
-	    if(isset(self::$config['accept_http']) && self::$config['accept_http'] == true) {
-            $AppConfig = \Swoolefy\Core\Swfy::getAppConf();
-            $appInstance = new \Swoolefy\Core\App($AppConfig);
-            $appInstance->run($request, $response);
-        }
+        $AppConfig = \Swoolefy\Core\Swfy::getAppConf();
+        $appInstance = new \Swoolefy\Core\App($AppConfig);
+        $appInstance->run($request, $response);
 	}
 
 	/**

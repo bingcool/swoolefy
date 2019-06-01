@@ -89,8 +89,8 @@ class RpcHander extends Swoole implements HanderInterface {
                     // 其他方式处理
                 }
             }else {
-                $is_task_process = true;
                 // 任务task进程
+                $is_task_process = true;
                 list($callable, $params) = $recv;
             }
 
