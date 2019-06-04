@@ -94,9 +94,9 @@ function IS_PRD_ENV() {
 
 function initCheck() {
     try{
-       if(version_compare(phpversion(),'7.1.0','<')) {
+       if(version_compare(phpversion(),'7.2.0','<')) {
             write("
-                [error] php version must >= 7.1.0, current php version = ".phpversion()
+                [error] php version must >= 7.2.0, current php version = ".phpversion()
             );
             exit();
         }

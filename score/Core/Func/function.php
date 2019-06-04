@@ -39,7 +39,7 @@ function dump($var, $echo=true, $label=null, $strict=true) {
     }
     if($echo) {
         // 调试环境这个函数使用
-        if(!IS_PRD_ENV()) {
+        if(function_exists('IS_PRD_ENV') && !IS_PRD_ENV()) {
             $app = Application::getApp();
             if(is_object($app)) {
                 $app->response->header('Content-Type','text/html; charset=utf-8');
