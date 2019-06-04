@@ -41,7 +41,7 @@ class Predis {
 	/**
 	 * __construct 
 	 * @param  mixed  $parameters
-	 * @param  ixed   $options
+	 * @param  mixed   $options
 	 */
 	public function __construct($parameters = null, $options = null) {
 		if($parameters) {

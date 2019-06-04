@@ -148,7 +148,7 @@ class App extends \Swoolefy\Core\Component {
      * @throws  \Exception
 	 * @return	void
 	 */
-	public function afterRequest(callable $callback, $prepend = false) {
+	public function afterRequest(callable $callback, bool $prepend = false) {
 		if(is_callable($callback)) {
 			Hook::addHook(Hook::HOOK_AFTER_REQUEST, $callback, $prepend);
 		}else {
