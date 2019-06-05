@@ -126,11 +126,17 @@ class EventApp {
                 $class_name = get_class($this->event_app);
 				throw new \Exception("{$class_name} Single Coroutine Instance only call one method, you haved called");
 			}
-			// return call_user_func_array([$this->event_app, $action], $args);
-			$result = $this->event_app->$action(...$args);
-			$this->event_app->end();
-			$this->is_call = true;
-            return $result;
+            try {
+                $result = $this->event_app->$action(...$args);
+                return $result;
+            }catch(\Throwable $t) {
+			    throw new \Exception($t->getMessage());
+            }finally {
+                if(!$this->event_app->isDefer()) {
+                    $this->event_app->end();
+                }
+                $this->is_call = true;
+            }
 		}catch(\Throwable $t) {
             self::__destruct();
 			throw new \Exception($t->getMessage());

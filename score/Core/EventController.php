@@ -43,6 +43,12 @@ class EventController extends BaseObject {
      */
     protected $logs = [];
 
+    /**
+     * $is_defer
+     * @var boolean
+     */
+    protected $is_defer = false;
+
 	/**
 	 * __construct 初始化函数
      * @throws \Exception
@@ -53,11 +59,7 @@ class EventController extends BaseObject {
 		$this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
 		if($this->canCreateApp($this->coroutine_id)) {
 			Application::setApp($this);
-			if(\co::getCid() > 0) {
-				defer(function() {
-			    	$this->defer();
-	        	});
-			}
+            $this->defer();
 		}
 	}
 
@@ -214,14 +216,12 @@ class EventController extends BaseObject {
 	 * end 重新初始化一些静态变量
 	 */
 	public function end() {
-		// callhooks
-		if(method_exists($this, 'callAfterEventHook')) {
-			$this->callAfterEventHook();
-		};
 		// call hook callable
 		if(method_exists($this, '_afterAction')) {
 			static::_afterAction();
 		}
+        // callhooks
+        $this->callAfterEventHook();
         // log
         $this->handerLog();
 		ZModel::removeInstance();
@@ -231,9 +231,24 @@ class EventController extends BaseObject {
 	}
 
     /**
-     * 协程销毁前执行
+     * defer
+     * @return void
      */
-	public function defer() {}
+    public function defer() {
+        if(\co::getCid() > 0) {
+            $this->is_defer = true;
+            defer(function() {
+                $this->end();
+            });
+        }
+    }
+
+    /**
+     * @return bool
+     */
+    public function isDefer() {
+        return $this->is_defer;
+    }
 
 	use \Swoolefy\Core\ComponentTrait,\Swoolefy\Core\ServiceTrait;
 }

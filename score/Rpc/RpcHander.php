@@ -105,7 +105,9 @@ class RpcHander extends Swoole implements HanderInterface {
 
         } finally {
             // 必须执行
-            parent::end();
+            if(!$this->is_defer) {
+            	parent::end();
+            }
             return;
         }
 	}

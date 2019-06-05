@@ -55,6 +55,12 @@ class App extends \Swoolefy\Core\Component {
      */
     protected $is_end = false;
 
+    /**
+     * $is_defer
+     * @var boolean
+     */
+    protected $is_defer = false;
+
 	/**
 	 * __construct
 	 * @param  array $config 应用层配置
@@ -106,6 +112,7 @@ class App extends \Swoolefy\Core\Component {
             Application::setApp($this);
             $this->_init();
             $this->_bootstrap();
+            $this->defer();
             if(!$this->catchAll()) {
                 $route = new HttpRoute($extend_data);
                 $route->dispatch();
@@ -113,8 +120,10 @@ class App extends \Swoolefy\Core\Component {
         }catch (\Throwable $t) {
             throw new \Exception($t->getMessage());
         }finally {
-            $this->clearStaticVar();
-            $this->end();
+        	if(!$this->is_defer) {
+        		$this->clearStaticVar();
+	            $this->end();
+        	}
             return;
         }
 	}
@@ -236,7 +245,7 @@ class App extends \Swoolefy\Core\Component {
 	 * @return void
 	 */
 	public function end() {
-        // log hander
+		// log hander
         $this->handerLog();
         // push obj pools
         $this->pushComponentPools();
@@ -244,7 +253,20 @@ class App extends \Swoolefy\Core\Component {
         if(!$this->is_end) {
             @$this->response->end();
         }
+	}
 
+	/**
+	 * defer 
+	 * @return void
+	 */
+	public function defer() {
+		if(\co::getCid() > 0) {
+			$this->is_defer = true;
+			defer(function() {
+			    $this->clearStaticVar();
+	            $this->end();
+        	});
+		}
 	}
 
 	//使用trait的复用特性

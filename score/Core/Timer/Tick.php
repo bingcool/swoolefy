@@ -84,16 +84,14 @@ class Tick {
                 }else {
                     $tickTaskInstance = new $class;
                 }
-                //call_user_func_array([$tickTaskInstance, $action], $params);
                 $tickTaskInstance->{$action}(...$params);
             }else if($func instanceof \Closure) {
                 $tickTaskInstance = new TickController();
-                // call_user_func_array($func->bindTo($tickInstance, get_class($tickInstance)), $params);
                 $func->call($tickTaskInstance, $user_params, $timer_id);
             }
-
-            $tickTaskInstance->end();
-
+            if($tickTaskInstance->isDefer() === false) {
+                $tickTaskInstance->end();
+            }
             if(method_exists("Swoolefy\\Core\\Application", 'removeApp')) {
                 if(is_object($tickTaskInstance)) {
                     Application::removeApp($tickTaskInstance->coroutine_id);
@@ -180,7 +178,9 @@ class Tick {
                 $func->call($tickTaskInstance, $user_params, $timer_id = null);
             }
 
-            $tickTaskInstance->end();
+            if($tickTaskInstance->isDefer() === false) {
+                $tickTaskInstance->end();
+            }
             
             if(method_exists("Swoolefy\\Core\\Application", 'removeApp')) {
                 if(is_object($tickTaskInstance)) {
