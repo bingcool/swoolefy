@@ -55,6 +55,12 @@ class Swoole extends BaseObject {
     protected $logs = [];
 
     /**
+     * $is_defer
+     * @var boolean
+     */
+    protected $is_defer = false;
+
+    /**
 	 * __construct
 	 * @param array $config 应用层配置
 	 */
@@ -95,6 +101,7 @@ class Swoole extends BaseObject {
 		$this->fd = $fd;
 		$this->_init($recv);
 		$this->_bootstrap($recv);
+		$this->defer();
 	}
 
 	/**
@@ -281,6 +288,19 @@ class Swoole extends BaseObject {
 		// push obj pools
 		$this->pushComponentPools();
 		Application::removeApp();
+	}
+
+	/**
+	 * defer 
+	 * @return void
+	 */
+	public function defer() {
+		if(\co::getCid() > 0) {
+			$this->is_defer = true;
+			defer(function() {
+	            $this->end();
+        	});
+		}
 	}
 
  	use \Swoolefy\Core\ComponentTrait,\Swoolefy\Core\ServiceTrait;
