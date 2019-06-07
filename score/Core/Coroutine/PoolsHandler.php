@@ -98,6 +98,9 @@ abstract class PoolsHandler {
                 }else {
                 	$this->callCount = $this->maxPoolsNum - $length;
                 }
+                if($this->callCount < 0) {
+                	$this->callCount = 0;
+                }
             });
 		}
 	}
