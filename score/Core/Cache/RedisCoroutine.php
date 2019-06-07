@@ -74,23 +74,75 @@ class RedisCoroutine {
 
 	/**
 	 * __construct
-	 * @param string       $host
-	 * @param int          $port
-	 * @param string|null  $password
-     * @param int          $selectdb
-     * @param boolean      $deploy
-	 * @param boolean      $is_serialize
+	 * @param mixed   $host
+	 * @param mixed   $port
+	 * @param mixed   $password
+     * @param int     $selectdb
+     * @param boolean $deploy
+	 * @param array   $options
 	 */
-	public function __construct(string $host = null, $port = null, string $password = null, bool $deploy = false, array $options = []) {
-		$host && $this->host  = $host;
+	public function __construct($host = null, $port = null, $password = null, bool $deploy = false, array $options = []) {
+		if($host && $port) {
+			$this->setHost($host);
+			$this->setPort($port);
+			$this->setPassword($password);
+			$this->setDeploy($deploy);
+			$this->setOptions($options);
+			$this->setConfig();
+		}
+	}
+
+	/**
+	 * setHost 
+	 * @param string|array $host
+	 */
+	public function setHost($host = null) {
+		$host && $this->host = $host;
+		return $this;
+	}
+
+	/**
+	 * setPort
+	 * @param  string|int|array $port
+	 */
+	public function setPort($port = null) {
 		$port && $this->port = $port;
+		return $this;
+	}
+
+	/**
+	 * setPassword 
+	 * @param string|array $password
+	 */
+	public function setPassword($password = null) {
 		$password && $this->password = $password;
+		if($this->host && $this->port) {
+			$this->setConfig();
+		}else {
+			throw new \Exception("You must set Host And Port");
+		}
+		return $this;
+	}
+
+	/**
+	 * setDeploy 主从模式需要设置这个为true
+	 *  @param bool $is_deploy
+	 */
+	public function setDeploy(bool $is_deploy = false) {
 		$deploy && $this->deploy = $deploy;
+		return $this;
+	}
+
+	/**
+	 * setOptions
+	 * @param array $options
+	 */
+	public function setOptions(array $options = []) {
 		!empty($options) && $this->options = $options;
 		if(!isset($this->options['compatibility_mode'])) {
 			$this->options['compatibility_mode'] = true;
 		}
-		$host && $this->setConfig();
+		return $this;
 	}
 
 	/**
@@ -123,6 +175,7 @@ class RedisCoroutine {
 		if(is_object($this->master_redis_hosts)) {
 			return $this->master_redis_hosts;
 		}
+
 		foreach($this->master_redis_config as $k=>$config) {
 			$config = array_values($config);
 			list($host, $port, $password) = $config;
@@ -231,9 +284,22 @@ class RedisCoroutine {
 		if(!empty($this->serverInfo)) {
 			return $this->serverInfo;
 		}
-		$hosts = explode(',', $this->host);
-		$ports = explode(',', $this->port);
-		$passwords = explode(',', $this->password);
+		if(is_string($this->host)) {
+			$hosts = explode(',', $this->host);
+		}else{
+			$hosts = $this->host;
+		} 
+		if(is_string($this->port) || is_int($this->port)) {
+			$ports = explode(',', $this->port);
+		}else{
+			$ports = $this->port;
+		}
+		if(is_string($this->password)) {
+			$passwords = explode(',', $this->password);
+		}else{
+			$passwords = $this->password;
+		}
+
 		$serverInfo = [];
 		// cluster mode
 		if(count($hosts) > 1 && $this->is_deploy) {
@@ -265,7 +331,7 @@ class RedisCoroutine {
 	}
 
 	/**
-	 * __call  single pattern
+	 * __call  single pattern,call master Instance
 	 * @param  string  $method
 	 * @param  array   $args
 	 * @return mixed
