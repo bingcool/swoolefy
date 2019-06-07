@@ -19,9 +19,9 @@ class MGeneral extends \Swoolefy\Core\AppObject {
 	public static function isSsl() {
         $request = Application::getApp()->request;
 
-	    if(isset($request->server['HTTPS']) && ('1' == $request->server['HTTPS'] || 'on' == strtolower($request->server['HTTPS']))){
+	    if(isset($request->server['HTTPS']) && ($request->server['HTTPS'] == '1' || strtolower($request->server['HTTPS']) == 'on') ) {
 	        return true;
-	    }elseif(isset($request->server['SERVER_PORT']) && ('443' == $request->server['SERVER_PORT'] )) {
+	    }elseif(isset($request->server['SERVER_PORT']) && ($request->server['SERVER_PORT'] == '443' )) {
 	        return true;
 	    }
 	    return false;
