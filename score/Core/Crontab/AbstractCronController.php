@@ -59,7 +59,9 @@ abstract class AbstractCronController extends ProcessController {
                 }else {
                     $this->doCronTask($cron);
                 }
-                $this->end();
+                if(!$this->isDefer()) {
+                    $this->end();
+                }
         	}
 
         	// 防止万一出现的异常出现，比如没有命中任务， 19:05:00要命中的，由于其他网络或者服务器其他原因，阻塞了,造成延迟，现在时间已经到了19::05:05
