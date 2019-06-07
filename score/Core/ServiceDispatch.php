@@ -57,8 +57,8 @@ class ServiceDispatch extends AppDispatch {
 			if(!$this->checkClass($class)) {
 			    if(Swfy::isWorkerProcess()) {
                     $app_conf = Swfy::getAppConf();
-                    if(isset($app_conf['not_found_handle']) && is_string($app_conf['not_found_handle'])) {
-                        $handle = $app_conf['not_found_handle'];
+                    if(isset($app_conf['not_found_handler']) && is_string($app_conf['not_found_handler'])) {
+                        $handle = $app_conf['not_found_handler'];
                         $notFoundInstance = new $handle;
                         if($notFoundInstance instanceof \Swoolefy\Core\NotFound) {
                             $return_data = $notFoundInstance->return404($class);
@@ -99,8 +99,8 @@ class ServiceDispatch extends AppDispatch {
 			}else {
 			    if(Swfy::isWorkerProcess()) {
                     $app_conf = Swfy::getAppConf();
-                    if(isset($app_conf['not_found_handle']) && is_string($app_conf['not_found_handle'])) {
-                        $handle = $app_conf['not_found_handle'];
+                    if(isset($app_conf['not_found_handler']) && is_string($app_conf['not_found_handler'])) {
+                        $handle = $app_conf['not_found_handler'];
                         $notFoundInstance = new $handle;
                         if($notFoundInstance instanceof \Swoolefy\Core\NotFound) {
                             $return_data = $notFoundInstance->return500($class, $action);
@@ -120,8 +120,8 @@ class ServiceDispatch extends AppDispatch {
 			$msg = 'Fatal error: '.$t->getMessage().' on '.$t->getFile().' on line '.$t->getLine().' ||| '.$class.'::'.$action.'  data='.json_encode($this->params,JSON_UNESCAPED_UNICODE);
 			$app_conf = Swfy::getAppConf();
 			if(Swfy::isWorkerProcess()) {
-                if(isset($app_conf['not_found_handle']) && is_string($app_conf['not_found_handle'])) {
-                    $handle = $app_conf['not_found_handle'];
+                if(isset($app_conf['not_found_handler']) && is_string($app_conf['not_found_handler'])) {
+                    $handle = $app_conf['not_found_handler'];
                     $notFoundInstance = new $handle;
                     if($notFoundInstance instanceof \Swoolefy\Core\NotFound) {
                         $return_data = $notFoundInstance->returnError($msg);

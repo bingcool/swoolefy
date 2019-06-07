@@ -637,7 +637,7 @@ class BaseServer {
     	$ExceptionHanderClass = 'Swoolefy\\Core\\SwoolefyException';
         // 获取协议层配置
         if(isset(self::$config['exception_handler']) && !empty(self::$config['exception_handler'])) {
-            return self::$config['exception_handler'];
+            $ExceptionHanderClass = self::$config['exception_handler'];
         }
         return $ExceptionHanderClass;
     }

@@ -53,15 +53,14 @@ class SModel extends BaseObject {
 	}
 
 	/**
-	 * setMStruct 批量设置
+	 * setMultiStruct 批量设置
 	 * @param    array  $array
 	 * @return   boolean
 	 */
-	public function setMStruct(array $array = []) {
+	public function setMultiStruct(array $array = []) {
         if(!is_array($array) || empty($array)) {
             return false;
         }
-
         foreach($array as $property => $value) {
             $this->struct->set($property, $value);
         }
@@ -82,7 +81,7 @@ class SModel extends BaseObject {
 	 * getAllStruct 获取所有数据结构属性值
 	 * @return   mixed
 	 */
-	public function getMStruct() {
+	public function getAllStruct() {
 		return $this->struct->getPublicProperties();
 	}
 
@@ -103,7 +102,7 @@ class SModel extends BaseObject {
 	}
 
 	/**
-	 * __destruct 对象销毁前处理一些静态变量
+	 * destruct 对象销毁前处理一些静态变量
 	 * @param    
 	 */
 	public function destruct() {
