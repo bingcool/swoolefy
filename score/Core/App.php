@@ -249,6 +249,7 @@ class App extends \Swoolefy\Core\Component {
         $this->handerLog();
         // push obj pools
         $this->pushComponentPools();
+        // remove App Instance
 		Application::removeApp();
         if(!$this->is_end) {
             @$this->response->end();

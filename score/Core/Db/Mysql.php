@@ -154,10 +154,8 @@ class Mysql {
 				if(is_string($this->cache_driver)) {
 					$cache_driver = $this->cache_driver;
 					$cache_driver = Application::getApp()->{$cache_driver};
-
 				}else if(is_object($this->cache_driver)){
 					$cache_driver = $this->cache_driver;
-
 				}else {
 					$cache_driver = null;
 				}

@@ -44,6 +44,12 @@ class EventController extends BaseObject {
     protected $logs = [];
 
     /**
+     * $is_end
+     * @var boolean
+     */
+    protected $is_end = false;
+
+    /**
      * $is_defer
      * @var boolean
      */
@@ -213,20 +219,34 @@ class EventController extends BaseObject {
 	}
 
 	/**
+	 * setEnd
+	 */
+	public function setEnd() {
+		$this->is_end = true;
+	}
+
+	/**
 	 * end 重新初始化一些静态变量
 	 */
 	public function end() {
+		if($this->is_end) {
+			return;
+		}
 		// call hook callable
 		if(method_exists($this, '_afterAction')) {
 			static::_afterAction();
 		}
+		// set End
+		$this->setEnd();
         // callhooks
         $this->callAfterEventHook();
         // log
         $this->handerLog();
+        // remove Model
 		ZModel::removeInstance();
 		// push obj pools
 		$this->pushComponentPools();
+		// remove App Instance
 		Application::removeApp($this->coroutine_id);
 	}
 

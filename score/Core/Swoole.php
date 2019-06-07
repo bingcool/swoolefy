@@ -283,10 +283,13 @@ class Swoole extends BaseObject {
 	public function end() {
 		// call hook callable
 		Hook::callHook(Hook::HOOK_AFTER_REQUEST);
+		// log hander
         $this->handerLog();
+        // remove Model
 		ZModel::removeInstance();
 		// push obj pools
 		$this->pushComponentPools();
+		// remove App Instance
 		Application::removeApp();
 	}
 

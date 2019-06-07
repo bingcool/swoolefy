@@ -51,7 +51,6 @@ class TickManager {
 		if(is_int($timer_id)) {
 			return Tick::delTicker($timer_id);
 		}
-		
 	}
 
 	/**
