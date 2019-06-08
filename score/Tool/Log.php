@@ -117,7 +117,7 @@ class Log {
      */
 	public function addInfo($logInfo, $is_deplay_batch = false, array $context = []) {
 	    if(is_array($logInfo)) {
-            $logInfo = json_encode($logInfo);
+            $logInfo = json_encode($logInfo, JSON_UNESCAPED_UNICODE);
         }
 	    $app = Application::getApp();
 	    if(is_object($app) && $is_deplay_batch) {
@@ -142,7 +142,7 @@ class Log {
      */
 	public function addNotice($logInfo, $is_deplay_batch = false, array $context = []) {
         if(is_array($logInfo)) {
-            $logInfo = json_encode($logInfo);
+            $logInfo = json_encode($logInfo, JSON_UNESCAPED_UNICODE);
         }
         $app = Application::getApp();
         if(is_object($app) && $is_deplay_batch) {
@@ -167,7 +167,7 @@ class Log {
      */
 	public function addWarning($logInfo, $is_deplay_batch = false, array $context = []) {
         if(is_array($logInfo)) {
-            $logInfo = json_encode($logInfo);
+            $logInfo = json_encode($logInfo, JSON_UNESCAPED_UNICODE);
         }
         $app = Application::getApp();
         if(is_object($app) && $is_deplay_batch) {
@@ -192,7 +192,7 @@ class Log {
      */
 	public function addError($logInfo, $is_deplay_batch = false, array $context = []) {
         if(is_array($logInfo)) {
-            $logInfo = json_encode($logInfo);
+            $logInfo = json_encode($logInfo, JSON_UNESCAPED_UNICODE);
         }
         $app = Application::getApp();
         if(is_object($app) && $is_deplay_batch) {
