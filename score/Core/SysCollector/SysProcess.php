@@ -37,7 +37,7 @@ class SysProcess extends AbstractProcess {
 				if(isset($sys_collector_config['func']) && $sys_collector_config['func'] instanceof \Closure) {
 					$res = call_user_func($sys_collector_config['func']);
 					if(is_array($res)) {
-						$sys_info = json_encode($res);
+						$sys_info = json_encode($res, JSON_UNESCAPED_UNICODE);
 					}else {
 						$sys_info = $res;
 					}
@@ -88,7 +88,7 @@ class SysProcess extends AbstractProcess {
 		$service = $sys_collector_config['service'];
 		$event = $sys_collector_config['event'];
 		// 组合消息,udp的数据格式
-		$message = $service."::".$event."::".json_encode($data);
+		$message = $service."::".$event."::".json_encode($data, JSON_UNESCAPED_UNICODE);
 		if($host && $port && $service && $event) {
 			try{
 				if(!$udp_client->isConnected()) {
@@ -133,7 +133,7 @@ class SysProcess extends AbstractProcess {
 			$isConnected = $redis_client->connected;
 			if($isConnected) {
                 if($data) {
-                    $message = json_encode($data);
+                    $message = json_encode($data, JSON_UNESCAPED_UNICODE);
                     try{
                         $redis_client->publish($channel, $message);
                     }catch(\Throwable $e) {
@@ -180,7 +180,7 @@ class SysProcess extends AbstractProcess {
 		}
 		
 		if($data) {
-			$message = json_encode($data);
+			$message = json_encode($data, JSON_UNESCAPED_UNICODE);
 			$redis_client->publish($channel, $message);
 		}
 	}
@@ -202,7 +202,7 @@ class SysProcess extends AbstractProcess {
 			}
 		}
 		if($data) {
-			$message = json_encode($data);
+			$message = json_encode($data, JSON_UNESCAPED_UNICODE);
 			@file_put_contents($file_path, $message."\r\n", FILE_APPEND);
 		}
 	}
