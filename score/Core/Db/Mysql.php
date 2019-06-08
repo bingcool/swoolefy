@@ -226,11 +226,11 @@ class Mysql {
 	 * @param    array   $extension
 	 * @return   mixed
 	 */
-	public function selectMysql(array $extension = []) {
+	public function selectMysql(array $config = []) {
 		if(is_object($this->CMysql)) {
 			return $this->CMysql;
 		}
-		$this->CMysql = new MysqlCoroutine($this->getConfig(), $extension);
+		$this->CMysql = new MysqlCoroutine($config);
 		return $this->CMysql;
 	}
 
