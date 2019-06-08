@@ -110,8 +110,6 @@ class MysqlCoroutine {
 		return $this;
 	}
 
-
-
 	/**execute 执行insert,update,delete操作
 	 * @param    string        $sql
 	 * @param    array         $bingParams
