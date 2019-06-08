@@ -39,7 +39,7 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 | rpc-client | composer require bingcool/rpc-client:dev-master | swoolefy的rpc客户端，当与rpc服务端通信时，需要安装此组件，支持在php-fpm中使用 |
 | cron-expression | composer require dragonmantank/cron-expression | crontal组件，需要使用定时任务时必须安装此组件 |
   
-### 定义组件
+### 定义组件，开放式组件接口，闭包回调实现创建组件过程，return对象即可
 ```
 // 在应用层配置文件中
 components => [
@@ -49,13 +49,57 @@ components => [
          $redis->connect('127.0.0.1', 6379, 3);
          return $redis;   
     },
+
+    // predis组件的redis实例
+    'predis' => function($name) {
+        $parameters = [
+            'scheme' => 'tcp',
+            'host'   => '123.207.19.149',
+            'port'   => 6379,
+            'password' => '123456'
+        ];
+        $predis = new \Swoolefy\Core\Cache\Predis();
+        $predis->setConfig($parameters);
+        return $predis;
+    },
+
+    // swoole的原生协程redis客户端
+    'CRedis' => function($name) {
+        $CRedis = new \Swoolefy\Core\Cache\RedisCoroutine();
+        $CRedis->setHost('123.207.19.149')->setPort('6379')->setPassword('123456');
+        return $CRedis;
+    },
     
-    // 例如创建原生的PDO组件实例
+    // 例如创建原生的mysql的PDO组件实例
     'mysql' => function($com_name) {
         $dbh = new PDO('mysql:host=127.0.0.1;port=6379;dbname=swoolefy', 'root', '123456');
         return $dbh;
     }
+     // swoole原生的mysql客户端
+    'CMysql' => function($name) {
+        $config = [
+            'host' => ['123.207.19.149'],
+            'user' => 'bingcool',
+            'password' => 'bingcool@123456',
+            'database' => 'bingcool',
+            'port'    => '3306',
+            'timeout' => 5,
+            'charset' => 'utf8',
+            'strict_type' => false, //开启严格模式，返回的字段将自动转为数字类型
+            'fetch_more' => true, //开启fetch模式, 可与pdo一样使用fetch/fetchAll逐行或获取全部结果集(4.0版本以上)
+        ];
+
+        $cdb = new Swoolefy\Core\Db\MysqlCoroutine();
+        $cdb->setConfig($config);
+        return $cdb;
+    },
     // 其他的组件都可以通过闭包回调创建
+    // log组件
+    'log' => [
+        'class' => \Swoolefy\Tool\Log::class,
+        'channel' => 'application',
+        'logFilePath' => rtrim(LOG_PATH,'/').'/runtime.log'
+    ],
 ]
 
 ```
@@ -67,6 +111,11 @@ class TestController extends BController {
         // 组件就是配置回调中定义的组件，这个过程会发生协程调度
         $redis = Application::getApp()->redis;
         $redis->set('name', swoolefy);
+
+        // predis组件，这个过程会发生协程调度
+        $predis = Application::getApp()->predis;
+        $predis->set('predis','this is a predis instance');
+        $predis->get('predis');
         
         // PDO实例，这个过程会发生协程调度
         $mysql = Application::getApp()->mysql;
@@ -74,7 +123,7 @@ class TestController extends BController {
         $sql = "INSERT INTO `user` (`login` ,`password`) VALUES (:login, :password)"; 
         $stmt = $dbh->prepare($sql); 
         $stmt->execute(array(':login'=>'kevin2',':password'=>'123456789'));  
-        echo $dbh->lastinsertid(); 
+        echo $dbh->lastinsertid();
     }
 }
 
