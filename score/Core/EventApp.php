@@ -150,10 +150,11 @@ class EventApp {
 	 * __destruct
 	 */
 	public function __destruct() {
+		$cid = null;
 		if(is_object($this->event_app)) {
 			$cid = $this->event_app->getCid();
+			unset($this->event_app);
 		}
 		Application::removeApp($cid);
-		unset($this->event_app);
 	}
 }
