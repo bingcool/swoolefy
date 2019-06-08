@@ -170,7 +170,6 @@ trait ComponentTrait {
         		if(is_string($defination[$name]) && method_exists($object, $defination[$name])) {
         			call_user_func_array([$object, $defination[$name]], [$defination]);
         		}else if($defination[$name] instanceof \Closure) {
-        			// call_user_func_array($defination[$name]->bindTo($object, get_class($object)), [$defination]);
         			($defination[$name])->call($object, $defination);
         		}else {
         			throw new \Exception("{$com_alias_name} component's config item 'func' is not Closure or {$com_alias_name} instance is not exists the method!");
