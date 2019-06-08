@@ -60,25 +60,10 @@ class MysqlCoroutine {
      * @param array $config
      * @param array $extension
      */
-	public function __construct(array $config = [], array $extension = []) {
-		if($config) {
-			$this->config['host'] = $config['host'];
-			$this->config['user'] = $config['user'];
-			$this->config['password'] = $config['password'];
-			$this->config['database'] = $config['database'];
-			$this->config['port'] = $config['port'];
-			$this->config['charset'] = $config['charset'];
-
-			isset($extension['timeout']) && $this->config['timeout'] = $extension['timeout'];
-			isset($extension['strict_type']) && $this->config['strict_type'] = $extension['strict_type'];
-			isset($extension['fetch_more']) && $this->config['fetch_more'] = $extension['fetch_more'];
-
-			isset($config['deploy']) && $this->deploy = $config['deploy'];
-			isset($config['rw_separate']) && $this->rw_separate = $config['rw_separate'];
+	public function __construct(array $config = []) {
+		if(!empty($config)) {
+			$this->setConfig($config);
 		}
-
-		$this->initConfig();
-
 	}
 
 	/**
@@ -94,13 +79,38 @@ class MysqlCoroutine {
 					$this->master_mysql_config[$k] = $this->slave_mysql_config[$k] = $config;
 				}else {
 					$this->master_mysql_config[$k] = $config;
-				}
-						
+				}		
 			}else if($k) {
 				$this->slave_mysql_config[$k] = $config;
 			}
 		}
 	}
+
+	/**
+	 * setConfig
+	 * @param array $config
+	 */
+	public function setConfig(array $config = []) {
+		if($config) {
+			$this->config['host'] = $config['host'];
+			$this->config['user'] = $config['user'];
+			$this->config['password'] = $config['password'];
+			$this->config['database'] = $config['database'];
+			$this->config['port'] = $config['port'];
+			$this->config['charset'] = $config['charset'];
+
+			isset($config['timeout']) && $this->config['timeout'] = $config['timeout'];
+			isset($config['strict_type']) && $this->config['strict_type'] = $config['strict_type'];
+			isset($config['fetch_more']) && $this->config['fetch_more'] = $config['fetch_more'];
+
+			isset($config['deploy']) && $this->deploy = $config['deploy'];
+			isset($config['rw_separate']) && $this->rw_separate = $config['rw_separate'];	
+		}
+		$this->initConfig();
+		return $this;
+	}
+
+
 
 	/**execute 执行insert,update,delete操作
 	 * @param    string        $sql
@@ -112,7 +122,7 @@ class MysqlCoroutine {
 	public function execute(string $sql, array $bindParams = [], int $timeout = 10) {
 		$keys = array_keys($bindParams);
 		// 不是索引数组
-		if(is_string($keys[0])) {
+		if(!empty($keys) && is_string($keys[0])) {
 			$params = [];
 			foreach($keys as $p=>$key) {
 				$sql = str_replace(':'.$key, '?', $sql);
@@ -154,7 +164,6 @@ class MysqlCoroutine {
 				throw new \Exception("MySQL Coroutine :{$configInfo['host']}:{$configInfo['port']} connect is break,", 1);
 			}
 		}
-		
 	}
 
     /**
@@ -174,7 +183,7 @@ class MysqlCoroutine {
 			if($isConnect) {
 				$result = $slave->query($sql, $timeout);
 			}else {
-				throw new \Exception("slave mysql:{$configInfo['host']}:{$configInfo['port']} connect is break,", 1);
+				throw new \Exception("Slave mysql:{$configInfo['host']}:{$configInfo['port']} connect is break,", 1);
 			}
 		}
 		return $result;
@@ -199,7 +208,7 @@ class MysqlCoroutine {
                 if($isConnect) {
                     $this->master_swoole_mysql = $swoole_mysql;
                 }else {
-                    throw new \Exception("master_swoole_mysql connect failed", 1);
+                    throw new \Exception("Master_swoole_mysql connect failed", 1);
                 }
             }else {
                 $this->master_swoole_mysql = $swoole_mysql;
@@ -240,7 +249,7 @@ class MysqlCoroutine {
                 // 分布式
                 $this->slave_swoole_mysql[$num] = $swoole_mysql;
             }else {
-                throw new \Exception("slave_swoole_mysql connect failed", 1);
+                throw new \Exception("Slave_swoole_mysql connect failed", 1);
             }
         }else {
             // 分布式
@@ -267,12 +276,31 @@ class MysqlCoroutine {
 		if(!empty($this->serverInfo)) {
 			return $this->serverInfo;
 		}
-
-		$hosts = explode(',', $this->config['host']);
-		$users = explode(',', $this->config['user']);
-		$passwords = explode(',', $this->config['password']);
-		$databases = explode(',', $this->config['database']);
-		$ports = explode(',', $this->config['port']);
+		if(is_string($this->config['host'])) {
+			$hosts = explode(',', $this->config['host']);
+		}else {
+			$hosts = $this->config['host'];
+		}
+		if(is_string($this->config['user'])) {
+			$users = explode(',', $this->config['user']);
+		}else {
+			$users = $this->config['user'];
+		}
+		if(is_string($this->config['password'])) {
+			$passwords = explode(',', $this->config['password']);
+		}else {
+			$passwords = $this->config['password'];
+		}
+		if(is_string($this->config['database'])) {
+			$databases = explode(',', $this->config['database']);
+		}else {
+			$databases = $this->config['database'];
+		}
+		if(is_string($this->config['port']) || is_int($this->config['port'])) {
+			$ports = explode(',', $this->config['port']);
+		}else {
+			$ports = $this->config['port'];
+		}
 		// 主从架构
 		if(count($hosts) > 1 && $this->deploy) {
 			foreach($hosts as $k=>$host) {
@@ -301,6 +329,11 @@ class MysqlCoroutine {
 				}else {
 					$serverInfo[$k]['port'] = $ports[0];
 				}
+
+				$serverInfo[$k]['timeout'] = $this->config['timeout'];
+				$serverInfo[$k]['charset'] = $this->config['charset'];
+				$serverInfo[$k]['strict_type'] = $this->config['strict_type'];
+				$serverInfo[$k]['fetch_more'] = $this->config['fetch_more'];
 			}
 
 		}else {
@@ -311,9 +344,24 @@ class MysqlCoroutine {
 			$serverInfo[$k]['password'] = $passwords[$k];
 			$serverInfo[$k]['database'] = $databases[$k];
 			$serverInfo[$k]['port'] = $ports[$k];
+			$serverInfo[$k]['timeout'] = $this->config['timeout'];
+			$serverInfo[$k]['charset'] = $this->config['charset'];
+			$serverInfo[$k]['strict_type'] = $this->config['strict_type'];
+			$serverInfo[$k]['fetch_more'] = $this->config['fetch_more'];
 		}
 		$this->serverInfo = $serverInfo;
 		return $serverInfo;
+	}
+
+	/**
+	 * __call
+	 * @param  string $method
+	 * @param  array  $args
+	 * @return mixed
+	 */
+	public function __call($method, $args) {
+		$db->getMaster();
+		return $db->$method(...$args);
 	}
 
 }

@@ -267,7 +267,7 @@ class Reload {
      * @param array $ignore_dir
      * @return $this
      */
-    public function setIgnoreDirs(array $ignore_dirs = ['vendor']) {
+    public function setIgnoreDirs(array $ignore_dirs = []) {
         $this->ignoreDirs = array_merge($this->ignoreDirs, $ignore_dirs);
         return $this;
     }
