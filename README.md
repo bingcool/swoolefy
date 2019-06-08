@@ -54,7 +54,7 @@ components => [
     'predis' => function($name) {
         $parameters = [
             'scheme' => 'tcp',
-            'host'   => '123.207.19.149',
+            'host'   => '127.0.0.1',
             'port'   => 6379,
             'password' => '123456'
         ];
@@ -66,7 +66,7 @@ components => [
     // swoole的原生协程redis客户端
     'CRedis' => function($name) {
         $CRedis = new \Swoolefy\Core\Cache\RedisCoroutine();
-        $CRedis->setHost('123.207.19.149')->setPort('6379')->setPassword('123456');
+        $CRedis->setHost('127.0.0.1')->setPort('6379')->setPassword('123456');
         return $CRedis;
     },
     
@@ -78,9 +78,9 @@ components => [
      // swoole原生的mysql客户端
     'CMysql' => function($name) {
         $config = [
-            'host' => ['123.207.19.149'],
+            'host' => '127.0.0.1',
             'user' => 'bingcool',
-            'password' => 'bingcool@123456',
+            'password' => '123456',
             'database' => 'bingcool',
             'port'    => '3306',
             'timeout' => 5,
