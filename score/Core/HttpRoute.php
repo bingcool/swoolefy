@@ -174,7 +174,7 @@ class HttpRoute extends AppDispatch {
 		if(!isset($this->config['app_namespace'])) {
             $this->config['app_namespace'] = APP_NAME;
         }
-        $filePath = APP_PATH.DIRECTORY_SEPARATOR.$controller.'.php';
+        $filePath = APP_PATH.DIRECTORY_SEPARATOR.'Controller'.$controller.'.php';
         if($module) {
             $filePath = APP_PATH.DIRECTORY_SEPARATOR.'Module'.DIRECTORY_SEPARATOR.$module.DIRECTORY_SEPARATOR.$controller.'.php';
             // 访问类的命名空间
@@ -185,8 +185,8 @@ class HttpRoute extends AppDispatch {
 					$this->response->status(404);
 					$this->response->header('Content-Type','application/json; charset=UTF-8');
                     // 使用配置的NotFound类
-                    if(isset($this->config['not_found_handle']) && is_array($this->config['not_found_handle'])) {
-                        $class = $this->redirectNotFound();
+                    if(isset($this->config['not_found_handler']) && is_array($this->config['not_found_handler'])) {
+                        list($class, $action) = $this->redirectNotFound();
                     }else {
                         Application::getApp()->setEnd();
                         return $this->response->end(json_encode([
@@ -209,9 +209,9 @@ class HttpRoute extends AppDispatch {
 					$this->response->status(404);
 					$this->response->header('Content-Type','application/json; charset=UTF-8');
                     // 使用配置的NotFound类
-                    if(isset($this->config['not_found_handle']) && is_array($this->config['not_found_handle'])) {
+                    if(isset($this->config['not_found_handler']) && is_array($this->config['not_found_handler'])) {
                         // 访问类的命名空间
-                        $class = $this->redirectNotFound();
+                        list($class, $action) = $this->redirectNotFound();
                     }else {
                         Application::getApp()->setEnd();
                         return $this->response->end(json_encode([
@@ -225,7 +225,6 @@ class HttpRoute extends AppDispatch {
 				}
 			}
 		}
-
 		// 创建控制器实例
 		$controllerInstance = new $class();
         // 提前执行_beforeAction函数
@@ -309,14 +308,17 @@ class HttpRoute extends AppDispatch {
 	 * @return   array
 	 */
 	public function redirectNotFound($call_func = null) {
-		if(isset($this->config['not_found_handle'])) {
+		if(isset($this->config['not_found_handler'])) {
 			// 重定向至NotFound类
-			list($namespace, $action) = $this->config['not_found_handle'];
-            $controller = @array_pop(explode('\\', $namespace));
+			list($namespace, $action) = $this->config['not_found_handler'];
+			$route_params = explode('\\', $namespace);
+			if(is_array($route_params)) {
+				$controller = array_pop($route_params);
+			}
             // 重新设置一个NotFound类的route
             $this->request->server['ROUTE'] = '/'.$controller.'/'.$action;
-
-            return trim(str_replace('/', '\\', $namespace), '/');
+            $class = trim(str_replace('/', '\\', $namespace.$this->controller_suffix), '/');
+            return [$class, $action];
 		}
 	}
 
