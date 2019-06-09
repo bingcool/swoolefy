@@ -13,6 +13,7 @@ namespace Swoolefy\Core\Db;
 
 use Think\Db;
 use Swoolefy\Core\Application;
+use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class Mysql {
 
@@ -94,6 +95,12 @@ class Mysql {
 	public $CMysql;
 
 	/**
+	 * $coroutine_id
+	 * @var null
+	 */
+	protected $coroutine_id = null;
+
+	/**
 	 * __construct 初始化函数
 	 */
 	public function __construct(array $config = []) {
@@ -104,6 +111,8 @@ class Mysql {
 				Db::setConfig($this->config);
 			}
 		}
+		$cid = CoroutineManager::getInstance()->getCoroutineId();
+		$this->coroutine_id = $cid;
 	}
 
 	/**
@@ -250,7 +259,7 @@ class Mysql {
 	 * __destruct 
 	 */
 	public function __destruct() {
-        Db::destroy();
+        Db::destroy($this->coroutine_id);
 	}
 
 }
