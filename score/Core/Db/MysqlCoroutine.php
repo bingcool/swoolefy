@@ -358,7 +358,7 @@ class MysqlCoroutine {
 	 * @return mixed
 	 */
 	public function __call($method, $args) {
-		$db->getMaster();
+		$db = $this->getMaster();
 		return $db->$method(...$args);
 	}
 
