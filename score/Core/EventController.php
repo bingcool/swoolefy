@@ -232,12 +232,10 @@ class EventController extends BaseObject {
 		if($this->is_end) {
 			return;
 		}
-		// call hook callable
-		if(method_exists($this, '_afterAction')) {
-			static::_afterAction();
-		}
 		// set End
 		$this->setEnd();
+		// call hook callable
+		static::_afterAction();
         // callhooks
         $this->callAfterEventHook();
         // log
