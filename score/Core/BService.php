@@ -199,9 +199,7 @@ class BService extends BaseObject {
 	 * __destruct 重新初始化一些静态变量
 	 */
     public function defer() {
-        if(method_exists($this,'_afterAction')) {
-            static::_afterAction();
-		}
+		static::_afterAction();
 	}
 
 	use \Swoolefy\Core\ServiceTrait;
