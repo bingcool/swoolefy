@@ -254,12 +254,53 @@ trait ComponentTrait {
 		if(isset($this->container[$name])) {
 			return $this->container[$name];
 		}else {
-			if(is_array($value)) {
+			if(is_array($value) || $value instanceof \Closure) {
 				return $this->creatObject($name, $value);
 			}
 			return false;
 		}
 	}
+
+    /**
+     * @param string $name
+     * @return bool|mixed
+     */
+    final public function get(string $name) {
+        $AppConf = BaseServer::getAppConf();
+        $components = $AppConf['components'];
+        if(empty($this->component_pools)) {
+            if(isset($AppConf['enable_component_pools']) && is_array($AppConf['enable_component_pools']) && !empty($AppConf['enable_component_pools'])) {
+                $this->component_pools = $AppConf['enable_component_pools'];
+            }
+        }
+        if(isset($this->container[$name])) {
+            if(is_object($this->container[$name])) {
+                return $this->container[$name];
+            }else {
+                $this->clearComponent($name);
+                return false;
+            }
+        }else if(in_array($name, array_keys($components))) {
+            // mysql,redis进程池中直接赋值
+            if(in_array($name, $this->component_pools)) {
+                $poolHandler = \Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->getPool($name);
+                if(is_object($poolHandler)) {
+                    $this->container[$name] = $poolHandler->fetchObj();
+                }
+                // 如果没有设置进程池处理实例，则降级到创建实例模式
+                if(isset($this->container[$name]) && is_object($this->container[$name])) {
+                    $obj_id = spl_object_id($this->container[$name]);
+                    if(!in_array($obj_id, $this->component_pools_obj_ids)) {
+                        array_push($this->component_pools_obj_ids, $obj_id);
+                    }
+                    return $this->container[$name];
+                }
+            }
+            return $this->creatObject($name, $components[$name]);
+        }
+        return false;
+
+    }
 
 	/**
 	 * __get
@@ -267,41 +308,7 @@ trait ComponentTrait {
 	 * @return   mixed
 	 */
 	public function __get($name) {
-		$AppConf = BaseServer::getAppConf();
-        $components = $AppConf['components'];
-        if(empty($this->component_pools)) {
-        	if(isset($AppConf['enable_component_pools']) && is_array($AppConf['enable_component_pools']) && !empty($AppConf['enable_component_pools'])) {
-        		$this->component_pools = $AppConf['enable_component_pools'];
-        	}
-        }
-		if(!isset($this->$name)) {
-			if(isset($this->container[$name])) {
-				if(is_object($this->container[$name])) {
-					return $this->container[$name];
-				}else {
-					$this->clearComponent($name);
-					return false;
-				}
-			}else if(in_array($name, array_keys($components))) {
-				// mysql,redis进程池中直接赋值
-				if(in_array($name, $this->component_pools)) {
-				    $poolHandler = \Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->getPool($name);
-					if(is_object($poolHandler)) {
-                        $this->container[$name] = $poolHandler->fetchObj();
-                    }
-					// 如果没有设置进程池处理实例，则降级到创建实例模式
-					if(isset($this->container[$name]) && is_object($this->container[$name])) {
-						$obj_id = spl_object_id($this->container[$name]);
-						if(!in_array($obj_id, $this->component_pools_obj_ids)) {
-							array_push($this->component_pools_obj_ids, $obj_id);
-						}
-						return $this->container[$name];
-					}
-				}
-				return $this->creatObject($name, $components[$name]);
-			}
-			return false;
-		}
+        return $this->get($name);
 	}
 
 	/**
