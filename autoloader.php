@@ -31,7 +31,7 @@ class autoloader {
 
     /**
      * @param string $className 
-     * @return boolean
+     * @return void
      */
     public static function autoload($className) {
         if(isset(self::$class_map_namespace[$className])) {
