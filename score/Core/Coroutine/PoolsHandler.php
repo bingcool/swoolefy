@@ -105,6 +105,10 @@ abstract class PoolsHandler {
 		}
 	}
 
+    /**
+     * @return mixed
+     * @throws \Exception
+     */
 	public function fetchObj() {
 		try {
 			$this->callCount++;
