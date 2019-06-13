@@ -117,15 +117,21 @@ class TestController extends BController {
     public function test() {
         // 组件就是配置回调中定义的组件，这个过程会发生协程调度
         $redis = Application::getApp()->redis;
+        //或者
+        // $redis = Application::getApp()->get('redis');
         $redis->set('name', swoolefy);
 
         // predis组件，这个过程会发生协程调度
         $predis = Application::getApp()->predis;
+        //或者
+        // $predis = Application::getApp()->get('predis');
         $predis->set('predis','this is a predis instance');
         $predis->get('predis');
         
         // PDO实例，这个过程会发生协程调度
         $mysql = Application::getApp()->mysql;
+        // 或者
+        // $mysql = Application::getApp()->get('mysql');
         // 添加一条数据
         $sql = "INSERT INTO `user` (`login` ,`password`) VALUES (:login, :password)"; 
         $stmt = $dbh->prepare($sql); 
@@ -142,4 +148,5 @@ class TestController extends BController {
 swoolefy官方QQ群：735672669，欢迎加入！    
 
 ### License
-MIT 
+MIT   
+Copyright (c) 2017-2019 zengbing huang    
