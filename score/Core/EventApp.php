@@ -73,7 +73,6 @@ class EventApp {
             try {
                 $class->call($this->event_app, ...$args);
             }catch(\Throwable $t) {
-                self::__destruct();
                 throw new \Exception($t->getMessage());
             }finally {
             	if(!$this->event_app->isDefer()) {
