@@ -41,8 +41,10 @@ class ZModel {
 	 * removeInstance 删除某个协程下的所有创建的model实例
 	 * @return boolean
 	 */
-	public static function removeInstance() {
-		$cid = CoroutineManager::getInstance()->getCoroutineId();
+	public static function removeInstance($cid = null) {
+	    if(empty($cid)) {
+            $cid = CoroutineManager::getInstance()->getCoroutineId();
+        }
 		if(isset(static::$_model_instances[$cid])) {
 			unset(static::$_model_instances[$cid]);
 		}

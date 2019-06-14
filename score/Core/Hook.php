@@ -58,14 +58,16 @@ class Hook {
 	 * @param   int $type
 	 * @return  void
 	 */
-	public static function callHook($type) {
-		$cid = CoroutineManager::getInstance()->getCoroutineId();
+	public static function callHook($type, $cid = null) {
+        if(empty($cid)) {
+            $cid = CoroutineManager::getInstance()->getCoroutineId();
+        }
 		if(isset(self::$hooks[$cid][$type])) {
 			foreach(self::$hooks[$cid][$type] as $func) {
 				$func();
 			}
 		}
-		// afterRequest钩子是目前应用实例生命周期最后执行的，这里直接将该协程的所有钩子函数都unset
+		// afterRequest钩子是目前应用实例生命周期最后执行的，直接将该协程的所有钩子函数都unset
         if($type == self::HOOK_AFTER_REQUEST && isset(self::$hooks[$cid])) {
             unset(self::$hooks[$cid]);
         }
@@ -73,12 +75,16 @@ class Hook {
 
 	/**
 	 * getHookCallable 获取所有的钩子函数
+     * @param int $cid
 	 * @return  array
 	 */
 	public static function getHookCallable($cid = null) {
-		if($cid) {
-			return self::$hooks[$cid];
+		if(empty($cid)) {
+            $cid = CoroutineManager::getInstance()->getCoroutineId();
 		}
-		return self::$hooks;
+		if(isset(self::$hooks[$cid])) {
+            return self::$hooks[$cid];
+        }
+        return null;
 	}
 }
