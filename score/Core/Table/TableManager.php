@@ -34,20 +34,20 @@ class TableManager {
 				if(isset($swoole_tables[$table_name])) {
 					continue;
 				}
-				$table = new \swoole_table($row['size']);
+				$table = new \Swoole\Table($row['size']);
 				foreach($row['fields'] as $p => $field) {
 					switch(strtolower($field[1])) {
 						case 'int':
-						case \swoole_table::TYPE_INT:
-							$table->column($field[0], \swoole_table::TYPE_INT, (int)$field[2]);
+						case \Swoole\Table::TYPE_INT:
+							$table->column($field[0], \Swoole\Table::TYPE_INT, (int)$field[2]);
 						break;
 						case 'string':
-						case \swoole_table::TYPE_STRING:
-							$table->column($field[0], \swoole_table::TYPE_STRING, (int)$field[2]);
+						case \Swoole\Table::TYPE_STRING:
+							$table->column($field[0], \Swoole\Table::TYPE_STRING, (int)$field[2]);
 						break;
 						case 'float':
-						case \swoole_table::TYPE_FLOAT:
-							$table->column($field[0], \swoole_table::TYPE_FLOAT, (int)$field[2]);
+						case \Swoole\Table::TYPE_FLOAT:
+							$table->column($field[0], \Swoole\Table::TYPE_FLOAT, (int)$field[2]);
 						break;
 					}
 				}

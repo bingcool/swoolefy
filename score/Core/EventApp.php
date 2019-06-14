@@ -140,7 +140,6 @@ class EventApp {
                 $this->is_call = true;
             }
 		}catch(\Throwable $t) {
-            self::__destruct();
 			throw new \Exception($t->getMessage());
 		}
 	}

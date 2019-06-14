@@ -29,8 +29,9 @@ class PoolsManager {
             'size' => self::PROCESS_NUM,
             // 字段
             'fields'=> [
+                //从4.3版本开始，底层对内存长度做了对齐处理。字符串长度必须为8的整数倍。如长度为18会自动对齐到24字节
                 ['pid','int', 10],
-                ['process_name','string', 50],
+                ['process_name','string', 56],
             ]
         ]
     ];
@@ -82,33 +83,14 @@ class PoolsManager {
             throw new \Exception("you can not add the same process : $processName", 1);
         }
 
-        if(isset($args[0]) &&  $args[0] instanceof \Swoole\Channel) {
-
-            if(self::$worker_num != count($args)) {
-                throw new \Exception("args of channel object num must == worker_num", 1);
-            }
-
-            for($i = 0; $i < self::$worker_num; $i++) {
-                for($j = 0; $j < $process_num_bind_worker; $j++) {
-                    try{
-                        $process = new $processClass($processName.'@'.$i.'@'.$j, $async, [$args[$i]], $extend_data, $enable_coroutine);
-                        $process->setBindWorkerId($i);
-                        self::$processList[$key][$i][$j] = $process;
-                    }catch (\Exception $e){
-                        throw new \Exception($e->getMessage(), 1);
-                    }
-                }
-            }
-        }else {
-            for($i = 0; $i < self::$worker_num; $i++) {
-                for($j = 0; $j < $process_num_bind_worker; $j++) {
-                    try{
-                        $process = new $processClass($processName.'@'.$i.'@'.$j, $async, $args, $extend_data, $enable_coroutine);
-                        $process->setBindWorkerId($i);
-                        self::$processList[$key][$i][$j] = $process;
-                    }catch (\Exception $e){
-                        throw new \Exception($e->getMessage(), 1);
-                    }
+        for($i = 0; $i < self::$worker_num; $i++) {
+            for($j = 0; $j < $process_num_bind_worker; $j++) {
+                try{
+                    $process = new $processClass($processName.'@'.$i.'@'.$j, $async, $args, $extend_data, $enable_coroutine);
+                    $process->setBindWorkerId($i);
+                    self::$processList[$key][$i][$j] = $process;
+                }catch (\Exception $e){
+                    throw new \Exception($e->getMessage(), 1);
                 }
             }
         }
