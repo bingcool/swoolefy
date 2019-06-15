@@ -480,11 +480,8 @@ function stopServer($app_name) {
         return;
     }
 
-    // 发送信号，终止进程
     \Swoole\Process::kill($pid, SIGTERM);
-    // 回收master创建的子进程（manager,worker,taskworker）
     \Swoole\Process::wait();
-
     // 如果'reload_async' => true,，则默认workerStop有30s的过度期停顿这个时间稍微会比较长，设置成60过期
     $nowtime = time();
     write("
@@ -584,7 +581,8 @@ function help($command) {
         }
     }
 }
-function showAppHelp($cmd,$cmd_info){
+
+function showAppHelp($cmd, $cmd_info){
     $index = 1;
     global $APP_NAMES;
     $env_str = '-ENV';
@@ -604,6 +602,7 @@ function showAppHelp($cmd,$cmd_info){
     $index++;
     write("{$index}、更多服务请修改\$APP_NAMES变量",'light_green');
 }
+
 function commandHandler(){
     $command = commandParser();
     if(isset($command['app_name']) && $command['app_name'] != 'help') {
@@ -665,6 +664,22 @@ function isDaemon() {
         return true;
     }
     return false;
+}
+
+function showLogo() {
+$logo = 
+<<<LOGO
+  ______                               _           _ _ _ _
+ /  ____|                             | |         |  _ _ _|
+|  (__    __      __   ___     ___    | |   ___   | |        _   _
+ \___ \   \ \ /\ / /  / _ \   / _ \   | |  / _ \  | |_ _ _  | | | |
+ ____) |   \ V  V /  | (_) | | (_) |  | | | ___/  |  _ _ _| | |_| |
+|_____/     \_/\_/    \___/   \___/   |_|  \___|  | |        \__, |
+                                                  |_|           | |
+                                                              _ / |
+                                                             |__ /
+LOGO;
+write($logo,'light_green');
 }
 
 function getDefultConfig() {
@@ -745,4 +760,5 @@ return $defines_content;
 }
 
 initCheck();
+showLogo();
 commandHandler();
