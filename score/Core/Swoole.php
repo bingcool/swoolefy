@@ -129,6 +129,26 @@ class Swoole extends BaseObject {
     }
 
     /**
+     * @param null $cid
+     * @return null|string
+     */
+    public function setCid($coroutine_id = null) {
+        if(empty($coroutine_id)) {
+            $coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
+        }
+        $this->coroutine_id = $coroutine_id;
+        return $this->coroutine_id;
+    }
+
+    /**
+     * getCid
+     * @return  mixed
+     */
+    public function getCid() {
+        return $this->coroutine_id;
+    }
+
+    /**
 	 * getRpcPackHeader  获取rpc的pack头信息,只适用于rpc服务
      * @throws  \Exception
 	 * @return   array
