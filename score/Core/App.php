@@ -183,6 +183,26 @@ class App extends \Swoolefy\Core\Component {
     }
 
     /**
+     * @param null $cid
+     * @return null|string
+     */
+    public function setCid($coroutine_id = null) {
+        if(empty($coroutine_id)) {
+            $coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
+        }
+        $this->coroutine_id = $coroutine_id;
+        return $this->coroutine_id;
+    }
+
+    /**
+     * getCid
+     * @return  mixed
+     */
+    public function getCid() {
+        return $this->coroutine_id;
+    }
+
+    /**
      * 获取配置的异常处理类
      */
 	public function getExceptionClass() {

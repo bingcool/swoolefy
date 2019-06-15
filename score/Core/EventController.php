@@ -84,6 +84,26 @@ class EventController extends BaseObject {
 		return false;
 	}
 
+    /**
+     * @param null $cid
+     * @return null|string
+     */
+	public function setCid($coroutine_id = null) {
+	    if(empty($coroutine_id)) {
+            $coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
+        }
+        $this->coroutine_id = $coroutine_id;
+	    return $this->coroutine_id;
+    }
+
+    /**
+     * getCid
+     * @return  mixed
+     */
+    public function getCid() {
+        return $this->coroutine_id;
+    }
+
 	/**
 	 * canCreateApp
 	 * @throws \Exception
@@ -95,14 +115,6 @@ class EventController extends BaseObject {
 			throw new \Exception("You haved created EventApp Instance, yon can only registerApp once, so you can't ceate secornd in same coroutine");
 		}
 		return true;
-	}
-
-	/**
-	 * getCid 
-	 * @return  mixed
-	 */
-	public function getCid() {
-		return $this->coroutine_id;
 	}
 
 	/**

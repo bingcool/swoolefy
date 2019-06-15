@@ -22,11 +22,6 @@ class Application {
 	protected static $app = [];
 
 	/**
-	 * __construct
-	 */
-	public function __construct() {}
-
-	/**
 	 * setApp 
 	 * @param $object
      * @return boolean
