@@ -196,15 +196,22 @@ trait ServiceTrait {
 		throw new \Exception("Error: not found task process,may be you use it before workerStart()", 1);
 	}
 
-    /** isSelfProcess 进程是否是process进程
+    /** isUserProcess 进程是否是process进程
      * @return boolean
      */
-	public static function isSelfProcess() {
+	public static function isUserProcess() {
 	    // process的进程的worker_id等于-1
         if(!self::isTaskProcess() && Swfy::getCurrentWorkerId() < 0) {
             return true;
         }
         return false;
+    }
+
+    /** isSelfProcess 进程是否是process进程
+     * @return boolean
+     */
+    public static function isSelfProcess() {
+        return self::isUserProcess();
     }
 
 	/**
