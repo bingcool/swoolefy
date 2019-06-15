@@ -128,18 +128,22 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
         $php_version = phpversion();
         $swoolefy_version = SWOOLEFY_VERSION;
         $swoolefy_env = defined('SWOOLEFY_ENV') ? SWOOLEFY_ENV : null;
+        $cpu_num = swoole_cpu_num();
+        $ip_list = json_encode(swoole_get_local_ip());
         $this->each(str_repeat('-',50),'light_green');
         $this->each("
             main server         {$main_server}
+            swoolefy envirment  {$swoolefy_env}
             daemonize           {$daemonize}
             listen address      {$listen_host}
             listen port         {$listen_port}
             worker num          {$worker_num}
             task worker num     {$task_worker_num}
+            cpu num             {$cpu_num}
             swoole version      {$swoole_version}
             php version         {$php_version}
             swoolefy version    {$swoolefy_version}
-            swoolefy envirment  {$swoolefy_env}
+            ip_list             {$ip_list}
             tips                执行 php swoolefy help 可以查看更多信息
 ",'light_green');
         $this->each(str_repeat('-',50)."\n",'light_green');
