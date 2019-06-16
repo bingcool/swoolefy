@@ -24,17 +24,10 @@ class CoroutineManager {
 	const  PREFIX_CID = '';
 
 	/**
-	 * $cid 
-	 * @var null
-	 */
-	protected static $cid = null;
-
-	/**
 	 * isEnableCoroutine 
 	 * @return   boolean
 	 */
 	public  function canEnableCoroutine() {
-		//return BaseServer::canEnableCoroutine();
         return true;
 	}
 	
