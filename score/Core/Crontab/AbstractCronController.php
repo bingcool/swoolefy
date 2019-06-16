@@ -54,7 +54,6 @@ abstract class AbstractCronController extends ProcessController {
         	if(($now_time >= static::$cron_next_datetime[$expression_key] && $now_time < ($cron_next_datetime - static::$offset_second))) {
 	            static::$cron_next_datetime[$expression_key] = $cron_next_datetime;
                 if($func instanceof \Closure) {
-                    //call_user_func_array($func->bindTo($this, get_class($this)), [$cron]);
                     $func->call($this, $cron);
                 }else {
                     $this->doCronTask($cron);
