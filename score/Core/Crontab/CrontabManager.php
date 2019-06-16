@@ -43,7 +43,6 @@ class CrontabManager {
 							swoole_timer_tick(1000, function($timer_id, $expression) use($func) {
 								$cronInstance = new CronController();
 								$cronInstance->runCron($expression, $func);
-							
 								if(method_exists("Swoolefy\\Core\\Application", 'removeApp')) {
 	                				Application::removeApp($cronInstance->coroutine_id);
 	           					}
