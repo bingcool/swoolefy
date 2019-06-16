@@ -225,6 +225,8 @@ class HttpRoute extends AppDispatch {
 				}
 			}
 		}
+		// reset app conf
+		Application::getApp()->setAppConf($this->config);
 		// 创建控制器实例
 		$controllerInstance = new $class();
         // 提前执行_beforeAction函数

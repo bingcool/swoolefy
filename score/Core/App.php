@@ -129,6 +129,21 @@ class App extends \Swoolefy\Core\Component {
 	}
 
 	/**
+	 * setAppConf
+	 */
+	public function setAppConf(array $conf = []) {
+		static $is_reset_app_conf;
+		if(!isset($is_reset_app_conf)) {
+			if(!empty($conf)) {
+				$this->config = $conf;
+				Swfy::setAppConf($conf);
+				BaseServer::setAppConf($conf);
+				$is_reset_app_conf = true;
+			}
+		}
+	}
+
+	/**
 	 * catchAll 捕捉拦截所有请求，进入维护模式
 	 * @return boolean
 	 */
