@@ -272,6 +272,16 @@ class BaseServer {
 	    return static::$config['app_conf'];
     }
 
+    /**
+     * setAppConf
+     * @param array $config
+     */
+    public static function setAppConf(array $config = []) {
+    	if(!empty($config)) {
+    		static::$config['app_conf'] = $config;
+    	}
+    }
+
 	/**
 	 * getSetting 获取swoole的配置项
 	 * @return   array
