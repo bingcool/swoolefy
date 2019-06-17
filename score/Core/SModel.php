@@ -15,6 +15,7 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Struct;
 use Swoolefy\Core\BaseObject;
 use Swoolefy\Core\Application;
+use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class SModel extends BaseObject {
 
@@ -36,11 +37,7 @@ class SModel extends BaseObject {
 	public function __construct() {
 		$this->config = Swfy::getAppConf();
 		$this->struct = new Struct();
-		if(\co::getCid() > 0) {
-			defer(function() {
-		    	$this->destruct();
-        	});
-		}
+		$this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
 	}
 
 	/**
@@ -105,7 +102,7 @@ class SModel extends BaseObject {
 	 * destruct 对象销毁前处理一些静态变量
 	 * @param    
 	 */
-	public function destruct() {
+	public function __destruct() {
 		static::_afterModel();
 	}
 
