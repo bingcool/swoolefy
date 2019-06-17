@@ -129,6 +129,7 @@ class EventApp {
 				throw new \Exception("{$class_name} Single Coroutine Instance only call one method, you haved called");
 			}
             try {
+                $this->is_call = true;
                 $result = $this->event_app->$action(...$args);
                 return $result;
             }catch(\Throwable $t) {
@@ -137,7 +138,6 @@ class EventApp {
                 if(!$this->event_app->isDefer()) {
                     $this->event_app->end();
                 }
-                $this->is_call = true;
             }
 		}catch(\Throwable $t) {
 			throw new \Exception($t->getMessage());
