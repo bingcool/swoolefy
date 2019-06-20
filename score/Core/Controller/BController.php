@@ -40,7 +40,7 @@ class BController extends \Swoolefy\Core\AppObject {
 		$this->request = Application::getApp()->request;
 		$this->response = Application::getApp()->response;
 		$this->config = Application::getApp()->config;
-		if(\co::getCid() > 0) {
+		if(\Co::getCid() > 0) {
 			defer(function() {
 		    	$this->defer();
         	});

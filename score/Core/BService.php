@@ -55,7 +55,7 @@ class BService extends BaseObject {
 		}else {
 			$this->client_info = null;
 		}
-        if(\co::getCid() > 0) {
+        if(\Co::getCid() > 0) {
 			defer(function() {
 		    	$this->defer();
         	});

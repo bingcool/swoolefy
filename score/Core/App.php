@@ -296,7 +296,7 @@ class App extends \Swoolefy\Core\Component {
 	 * @return void
 	 */
 	public function defer() {
-		if(\co::getCid() > 0) {
+		if(\Co::getCid() > 0) {
 			$this->is_defer = true;
 			defer(function() {
 			    $this->clearStaticVar();
