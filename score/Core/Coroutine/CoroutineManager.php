@@ -11,9 +11,6 @@
 
 namespace Swoolefy\Core\Coroutine;
 
-use Swoolefy\Core\Swfy;
-use Swoolefy\Core\BaseServer;
-
 class CoroutineManager {
 
 	use \Swoolefy\Core\SingletonTrait;
@@ -37,7 +34,7 @@ class CoroutineManager {
 	 */
 	public function getCoroutineId() {
 		// 大于4.2.x版本,建议使用版本
-        $cid = \co::getCid();
+        $cid = \Co::getCid();
         // 4.3.0+在task|process中也支持直接使用协程,同时可以使用go()创建协程
         if($cid == -1) {
             $cid = self::PREFIX_CID.'task_process';
@@ -47,6 +44,16 @@ class CoroutineManager {
         return $cid;
 	}
 
+    /**
+     * 是否是协程环境
+     */
+	public function isCoroutine() {
+	    if(\Co::getCid() > 0) {
+            return true;
+        }
+        return false;
+    }
+
 	/**
 	 * getCoroutinStatus 
 	 * @return   array
@@ -55,7 +62,7 @@ class CoroutineManager {
 		// 大于4.x版本
 		if($this->canEnableCoroutine()) {
 			if(method_exists('co', 'stats')) {
-				return \co::stats();
+				return \Co::stats();
 			}
 		}
 		// 1.x, 2.x版本
