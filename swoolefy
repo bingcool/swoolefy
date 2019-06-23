@@ -526,12 +526,12 @@ function reloadServer($app_name) {
     }
 
     $pid = intval(file_get_contents($pid_file));
-    if(!swoole_process::kill($pid, 0)){
+    if(!\Swoole\Process::kill($pid, 0)){
         write("[error] pid={$pid} not exist");
         return;
     }
     // 发送信号，reload只针对worker进程
-    swoole_process::kill($pid, SIGUSR1);
+    \Swoole\Process::kill($pid, SIGUSR1);
     write(
         "server worker process begin to reload at ".date("Y-m-d H:i:s").". please wait a moment..."
     );
