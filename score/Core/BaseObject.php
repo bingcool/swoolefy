@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Application;
+use Swoolefy\Core\Coroutine\Context;
 
 class BaseObject {
 
@@ -20,6 +20,11 @@ class BaseObject {
 	 * @var  string
 	 */
 	public $coroutine_id;
+
+    /**
+     * @var
+     */
+	protected $context;
 
 	/**
 	 * $args 存放协程请求实例的临时变量数据
@@ -33,6 +38,37 @@ class BaseObject {
      */
     public static function className() {
         return get_called_class();
+    }
+
+    /**
+     * @param \ArrayObject $context
+     * @return boolean
+     */
+    public function setContext(\ArrayObject $context) {
+        $this->context = $context;
+        return true;
+    }
+
+    /**
+     * @return bool|null
+     */
+    public function isSetContext() {
+        if($this->context instanceof \ArrayObject) {
+            return true;
+        }
+        return null;
+    }
+
+    /**
+     * getContext
+     * @param mixed
+     */
+    public function getContext() {
+        if($this->context) {
+            return $this->context;
+        }else {
+            return Context::getContext();
+        }
     }
 
     /**
