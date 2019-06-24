@@ -54,6 +54,5 @@ class BController extends \Swoolefy\Core\AppObject {
 		static::_afterAction();
 	}
 
-	//使用trait的复用特性
 	use \Swoolefy\Core\AppTrait,\Swoolefy\Core\ServiceTrait;
 }
