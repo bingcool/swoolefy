@@ -305,6 +305,5 @@ class App extends \Swoolefy\Core\Component {
 		}
 	}
 
-	//使用trait的复用特性
 	use \Swoolefy\Core\AppTrait,\Swoolefy\Core\ServiceTrait;
 }

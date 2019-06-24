@@ -18,6 +18,7 @@ use Swoolefy\Core\Swfy;
 class Context {
     /**
      * @return ArrayObject|null
+     * @throws \Exception
      */
     public static function getContext() {
         if(\Co::getCid() > 0) {
@@ -34,7 +35,7 @@ class Context {
                     return $context;
                 }
             }else if(Swfy::isUserProcess()) {
-                throw new \Exception("You getContext in UserProcess not in App Instance");
+                throw new \Exception(__CLASS__."::getContext in UserProcess must use in App Instance");
             }else {
                 return null;
             }

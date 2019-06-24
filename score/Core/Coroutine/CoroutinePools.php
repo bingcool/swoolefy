@@ -47,7 +47,7 @@ class CoroutinePools {
                     $this->pools[$pool_name] = $handler;
                 }else {
                     $class = get_class($handler);
-                    throw new \Exception(__CLASS__."::addPool() of First Param 'pool_name'={$pool_name}, but {$class}::pool_name = {$handler_pool_name}, so the two are not equal");
+                    throw new \Exception(__CLASS__."::addPool of First Param 'pool_name'={$pool_name}, but {$class}::pool_name = {$handler_pool_name}, so the two are not equal");
                 }
             }else if($handler instanceof \Closure) {
                 $args = [$pool_name];

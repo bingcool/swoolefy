@@ -73,6 +73,9 @@ abstract class PoolsHandler {
 		}
 	}
 
+    /**
+     * @param string|null $pool_name
+     */
 	public function registerPools(string $pool_name = null) {
 		if($pool_name) {
 			$this->pool_name = trim($pool_name);
