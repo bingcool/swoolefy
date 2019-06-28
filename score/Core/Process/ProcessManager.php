@@ -18,12 +18,14 @@ use Swoolefy\Core\Table\TableManager;
 class ProcessManager {
 
     use \Swoolefy\Core\SingletonTrait;
+
+    const PROCESS_NUM = 1024;
 	
 	private static $table_process = [
 		// 进程内存表
 		'table_process_map' => [
 			// 内存表建立的行数,取决于建立的process进程数，默认最小1024
-			'size' => 1024,
+			'size' => self::PROCESS_NUM,
 			// 字段
 			'fields'=> [
 				['pid','int', 10]

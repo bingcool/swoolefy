@@ -117,7 +117,7 @@ abstract class AbstractProcess {
             });
         }
 
-        $this->swooleProcess->name('php-addSelfProcess:'.$this->getProcessName());
+        $this->swooleProcess->name('php-user-process:'.$this->getProcessName());
 
         try{
             $this->run($this->swooleProcess);
@@ -190,7 +190,17 @@ abstract class AbstractProcess {
      * @return void
      */
     public abstract function run(Process $process);
+
+    /**
+     * @return mixed
+     */
     public abstract function onShutDown();
+
+    /**
+     * @param       $str
+     * @param mixed ...$args
+     * @return mixed
+     */
     public abstract function onReceive($str, ...$args);
 
 }
