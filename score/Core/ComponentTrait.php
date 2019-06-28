@@ -40,7 +40,6 @@ trait ComponentTrait {
      * @throws   mixed
 	 * @return   mixed
 	 */
-
 	public function creatObject(string $com_alias_name = null, $defination = []) {
 		// 动态创建公用组件
 		if($com_alias_name) {

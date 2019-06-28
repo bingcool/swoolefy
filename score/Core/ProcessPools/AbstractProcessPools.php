@@ -133,7 +133,7 @@ abstract class AbstractProcessPools {
             });
         }
 
-        $this->swooleProcess->name('php-process-pools-worker'.$this->bind_worker_id.':'.$this->getProcessName(true));
+        $this->swooleProcess->name('php-user-process-worker'.$this->bind_worker_id.':'.$this->getProcessName(true));
         try{
             $this->run($this->swooleProcess);
         }catch(\Throwable $t) {
@@ -207,7 +207,17 @@ abstract class AbstractProcessPools {
      * @return void
      */
     public abstract function run(Process $process);
+
+    /**
+     * @return mixed
+     */
     public abstract function onShutDown();
+
+    /**
+     * @param       $str
+     * @param mixed ...$args
+     * @return mixed
+     */
     public abstract function onReceive($str, ...$args);
 
 }
