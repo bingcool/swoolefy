@@ -13,10 +13,8 @@ namespace Swoolefy\Websocket;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Swoole;
-use Swoolefy\Core\Application;
 use Swoolefy\Core\ServiceDispatch;
 use Swoolefy\Core\HanderInterface;
-use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class WebsocketHander extends Swoole implements HanderInterface {
 	/**

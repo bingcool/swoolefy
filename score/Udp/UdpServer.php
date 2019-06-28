@@ -55,7 +55,7 @@ abstract class UdpServer extends BaseServer {
 		self::setSwooleSockType();
 		// UDP服务器,固定为SWOOLE_SOCK_UDP
 		self::$swoole_socket_type = SWOOLE_SOCK_UDP;
-		self::$server = $this->udpserver = new udp_server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, SWOOLE_SOCK_UDP);
+		self::$server = $this->udpserver = new \Swoole\Server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, SWOOLE_SOCK_UDP);
 		$this->udpserver->set(self::$setting);
 		parent::__construct();
 	}
@@ -64,7 +64,7 @@ abstract class UdpServer extends BaseServer {
 		/**
 		 * start回调
 		 */
-		$this->udpserver->on('Start', function(udp_server $server) {
+		$this->udpserver->on('Start', function(\Swoole\Server $server) {
 			// 重新设置进程名称
 			self::setMasterProcessName(self::$config['master_process_name']);
 			// 启动的初始化函数
@@ -74,7 +74,7 @@ abstract class UdpServer extends BaseServer {
 		/**
 		 * managerstart回调
 		 */
-		$this->udpserver->on('ManagerStart', function(udp_server $server) {
+		$this->udpserver->on('ManagerStart', function(\Swoole\Server $server) {
 			// 重新设置进程名称
 			self::setManagerProcessName(self::$config['manager_process_name']);
 			// 启动的初始化函数
@@ -89,7 +89,7 @@ abstract class UdpServer extends BaseServer {
         /**
          * managerstop回调
          */
-        $this->udpserver->on('ManagerStop', function(udp_server $server) {
+        $this->udpserver->on('ManagerStop', function(\Swoole\Server $server) {
             try{
                 $this->startCtrl->managerStop($server);
             }catch (\Exception $e) {
@@ -100,7 +100,7 @@ abstract class UdpServer extends BaseServer {
 		/**
 		 * 启动worker进程监听回调，设置定时器
 		 */
-		$this->udpserver->on('WorkerStart', function(udp_server $server, $worker_id) {
+		$this->udpserver->on('WorkerStart', function(\Swoole\Server $server, $worker_id) {
 			// 记录主进程加载的公共files,worker重启不会在加载的
 			self::getIncludeFiles(static::$serverName);
             self::registerShutdownFunction();
@@ -129,7 +129,7 @@ abstract class UdpServer extends BaseServer {
 		/**
          * 监听数据接收事件
          */
-		$this->udpserver->on('Packet', function(udp_server $server, $data, $clientInfo) {
+		$this->udpserver->on('Packet', function(\Swoole\Server $server, $data, $clientInfo) {
 			try{
 				parent::beforeHandler();
 				// 延迟绑定，服务处理实例
@@ -145,7 +145,7 @@ abstract class UdpServer extends BaseServer {
 		 * 处理异步任务
 		 */
         if(parent::isTaskEnableCoroutine()) {
-            $this->udpserver->on('task', function(udp_server $server, \Swoole\Server\Task $task) {
+            $this->udpserver->on('task', function(\Swoole\Server $server, \Swoole\Server\Task $task) {
                 try{
                     $from_worker_id = $task->worker_id;
                     $task_id = $task->id;
@@ -157,7 +157,7 @@ abstract class UdpServer extends BaseServer {
                 }
             });
         }else {
-            $this->udpserver->on('task', function(udp_server $server, $task_id, $from_worker_id, $data) {
+            $this->udpserver->on('task', function(\Swoole\Server $server, $task_id, $from_worker_id, $data) {
                 try{
                     $task_data = unserialize($data);
                     static::onTask($server, $task_id, $from_worker_id, $task_data);
@@ -171,7 +171,7 @@ abstract class UdpServer extends BaseServer {
 		/**
 		 * 异步任务完成
 		 */
-		$this->udpserver->on('finish', function(udp_server $server, $task_id, $data) {
+		$this->udpserver->on('finish', function(\Swoole\Server $server, $task_id, $data) {
 			try{
 				static::onFinish($server, $task_id, $data);
 			}catch(\Exception $e) {
@@ -183,7 +183,7 @@ abstract class UdpServer extends BaseServer {
 		/**
 		 * 处理pipeMessage
 		 */
-		$this->udpserver->on('pipeMessage', function(udp_server $server, $from_worker_id, $message) {
+		$this->udpserver->on('pipeMessage', function(\Swoole\Server $server, $from_worker_id, $message) {
 			try {
 				static::onPipeMessage($server, $from_worker_id, $message);
 				return true;
@@ -196,7 +196,7 @@ abstract class UdpServer extends BaseServer {
 		/**
 		 * 停止worker进程
 		 */
-		$this->udpserver->on('WorkerStop', function(udp_server $server, $worker_id) {
+		$this->udpserver->on('WorkerStop', function(\Swoole\Server $server, $worker_id) {
 			try{
 				$this->startCtrl->workerStop($server, $worker_id);
 			}catch(\Exception $e) {
@@ -208,7 +208,7 @@ abstract class UdpServer extends BaseServer {
 		/**
 		 * worker进程异常错误回调函数
 		 */
-		$this->udpserver->on('WorkerError', function(udp_server $server, $worker_id, $worker_pid, $exit_code, $signal) {
+		$this->udpserver->on('WorkerError', function(\Swoole\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
 			try{
 				$this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
 			}catch(\Exception $e) {
@@ -220,7 +220,7 @@ abstract class UdpServer extends BaseServer {
 		/**
 		 * worker进程退出回调函数，1.9.17+版本
 		 */
-        $this->udpserver->on('WorkerExit', function(udp_server $server, $worker_id) {
+        $this->udpserver->on('WorkerExit', function(\Swoole\Server $server, $worker_id) {
             try{
                 $this->startCtrl->workerExit($server, $worker_id);
             }catch(\Exception $e) {
