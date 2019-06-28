@@ -15,7 +15,6 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Rpc\Pack;
 use Swoolefy\Rpc\Text;
 use Swoolefy\Core\BaseServer;
-use Swoole\Server as tcp_server;
 
 abstract class TcpServer extends BaseServer {
 	/**
@@ -67,7 +66,7 @@ abstract class TcpServer extends BaseServer {
 		self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
 		//设置进程模式和socket类型
 		self::setSwooleSockType();
-		self::$server = $this->tcpserver = new tcp_server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, self::$swoole_socket_type);
+		self::$server = $this->tcpserver = new \Swoole\Server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, self::$swoole_socket_type);
 		$this->tcpserver->set(self::$setting);
 		parent::__construct();
 		// 设置Pack包处理对象
@@ -79,7 +78,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * start回调
 		 */
-		$this->tcpserver->on('Start', function(tcp_server $server) {
+		$this->tcpserver->on('Start', function(\Swoole\Server $server) {
 			// 重新设置进程名称
 			self::setMasterProcessName(self::$config['master_process_name']);
 			// 启动的初始化函数
@@ -89,7 +88,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * managerstart回调
 		 */
-		$this->tcpserver->on('ManagerStart', function(tcp_server $server) {
+		$this->tcpserver->on('ManagerStart', function(\Swoole\Server $server) {
 			// 重新设置进程名称
 			self::setManagerProcessName(self::$config['manager_process_name']);
 			// 启动的初始化函数
@@ -104,7 +103,7 @@ abstract class TcpServer extends BaseServer {
         /**
          * managerstop回调
          */
-        $this->tcpserver->on('ManagerStop', function(tcp_server $server) {
+        $this->tcpserver->on('ManagerStop', function(\Swoole\Server $server) {
             try {
                 $this->startCtrl->managerStop($server);
             }catch (\Exception $e) {
@@ -115,7 +114,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * 启动worker进程监听回调，设置定时器
 		 */
-		$this->tcpserver->on('WorkerStart', function(tcp_server $server, $worker_id) {
+		$this->tcpserver->on('WorkerStart', function(\Swoole\Server $server, $worker_id) {
 			// 记录主进程加载的公共files,worker重启不会在加载的
 			self::getIncludeFiles(static::$serverName);
             self::registerShutdownFunction();
@@ -144,7 +143,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * tcp连接
 		 */
-		$this->tcpserver->on('connect', function(tcp_server $server, $fd) {  
+		$this->tcpserver->on('connect', function(\Swoole\Server $server, $fd) {
     		try{
     			static::onConnet($server, $fd);
     		}catch(\Exception $e) {
@@ -155,7 +154,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * 监听数据接收事件
 		 */
-		$this->tcpserver->on('receive', function(tcp_server $server, $fd, $reactor_id, $data) {
+		$this->tcpserver->on('receive', function(\Swoole\Server $server, $fd, $reactor_id, $data) {
 			try{
 				parent::beforeHandler();
 				// 服务端为length检查包
@@ -180,7 +179,7 @@ abstract class TcpServer extends BaseServer {
 		 * 处理异步任务
 		 */
         if(parent::isTaskEnableCoroutine()) {
-            $this->tcpserver->on('task', function(tcp_server $server, \Swoole\Server\Task $task) {
+            $this->tcpserver->on('task', function(\Swoole\Server $server, \Swoole\Server\Task $task) {
                 try{
                     $from_worker_id = $task->worker_id;
                     $task_id = $task->id;
@@ -193,7 +192,7 @@ abstract class TcpServer extends BaseServer {
             });
 
         }else {
-            $this->tcpserver->on('task', function(tcp_server $server, $task_id, $from_worker_id, $data) {
+            $this->tcpserver->on('task', function(\Swoole\Server $server, $task_id, $from_worker_id, $data) {
                 try{
                     $task_data = unserialize($data);
                     static::onTask($server, $task_id, $from_worker_id, $task_data);
@@ -207,7 +206,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * 异步任务完成
 		 */
-		$this->tcpserver->on('finish', function(tcp_server $server, $task_id, $data) {
+		$this->tcpserver->on('finish', function(\Swoole\Server $server, $task_id, $data) {
 			try{
 				static::onFinish($server, $task_id, $data);
 			}catch(\Exception $e) {
@@ -219,7 +218,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * 处理pipeMessage
 		 */
-		$this->tcpserver->on('pipeMessage', function(tcp_server $server, $from_worker_id, $message) {
+		$this->tcpserver->on('pipeMessage', function(\Swoole\Server $server, $from_worker_id, $message) {
 			try {
 				static::onPipeMessage($server, $from_worker_id, $message);
 				return true;
@@ -232,7 +231,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * 关闭连接
 		 */
-		$this->tcpserver->on('close', function(tcp_server $server, $fd, $reactorId) {
+		$this->tcpserver->on('close', function(\Swoole\Server $server, $fd, $reactorId) {
 			try{
 				// 销毁不完整数据
 				if(parent::isPackLength()) {
@@ -248,7 +247,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * 停止worker进程
 		 */
-		$this->tcpserver->on('WorkerStop', function(tcp_server $server, $worker_id) {
+		$this->tcpserver->on('WorkerStop', function(\Swoole\Server $server, $worker_id) {
 			try{
 				$this->startCtrl->workerStop($server, $worker_id);
 			}catch(\Exception $e) {
@@ -259,7 +258,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * worker进程异常错误回调函数
 		 */
-		$this->tcpserver->on('WorkerError', function(tcp_server $server, $worker_id, $worker_pid, $exit_code, $signal) {
+		$this->tcpserver->on('WorkerError', function(\Swoole\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
 			try{
 				$this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
 			}catch(\Exception $e) {
@@ -270,7 +269,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * worker进程退出回调函数，1.9.17+版本
 		 */
-        $this->tcpserver->on('WorkerExit', function(tcp_server $server, $worker_id) {
+        $this->tcpserver->on('WorkerExit', function(\Swoole\Server $server, $worker_id) {
             try{
                 $this->startCtrl->workerExit($server, $worker_id);
             }catch(\Exception $e) {

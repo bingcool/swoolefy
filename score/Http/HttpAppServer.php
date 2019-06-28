@@ -11,8 +11,6 @@
 
 namespace Swoolefy\Http;
 
-use Swoolefy\Core\Swfy;
-
 abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 
 	/**

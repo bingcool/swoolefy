@@ -11,7 +11,6 @@
 
 namespace Swoolefy\Udp;
 
-use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Swoole;
 use Swoolefy\Core\ServiceDispatch;
 use Swoolefy\Core\HanderInterface;
