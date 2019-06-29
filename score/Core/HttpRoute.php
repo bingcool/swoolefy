@@ -227,9 +227,9 @@ class HttpRoute extends AppDispatch {
 		}
 		// reset app conf
 		Application::getApp()->setAppConf($this->config);
-		// 创建控制器实例
+		// Create Controller Instance
 		$controllerInstance = new $class();
-        // 提前执行_beforeAction函数
+        // invoke _beforeAction
 		$isContinueAction = $controllerInstance->_beforeAction();
         if($isContinueAction === false) {
             $this->response->status(403);
@@ -256,10 +256,8 @@ class HttpRoute extends AppDispatch {
 			if($method->isPublic() && !$method->isStatic()) {
 				try{
 					if($this->extend_data) {
-						//$method->invoke($controllerInstance, $this->extend_data);
                         $controllerInstance->{$action}($this->extend_data);
 					}else {
-                        //$method->invoke($controllerInstance);
                         $controllerInstance->{$action}();
 					}
 		        }catch (\Exception $e) {

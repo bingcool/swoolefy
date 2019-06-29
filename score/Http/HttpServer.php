@@ -42,7 +42,7 @@ abstract class HttpServer extends BaseServer {
 	 * $serverName server服务名称
 	 * @var string
 	 */
-	protected static $serverName = SWOOLEFY_HTTP;
+	const SERVER_NAME = SWOOLEFY_HTTP;
 
 	/**
 	 * __construct
@@ -58,6 +58,7 @@ abstract class HttpServer extends BaseServer {
 		self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
 		//设置进程模式和socket类型
 		self::setSwooleSockType();
+		self::setServerName(self::SERVER_NAME);
 		self::$server = $this->webserver = new \Swoole\Http\Server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, self::$swoole_socket_type);
 		$this->webserver->set(self::$setting);
 		parent::__construct();
@@ -105,7 +106,7 @@ abstract class HttpServer extends BaseServer {
 		 */
 		$this->webserver->on('WorkerStart', function(\Swoole\Http\Server $server, $worker_id) {
 			// 记录主进程加载的公共files,worker重启不会在加载的
-			self::getIncludeFiles(static::$serverName);
+			self::getIncludeFiles($worker_id);
             self::registerShutdownFunction();
 			// 重启worker时，刷新字节cache
 			self::clearCache();

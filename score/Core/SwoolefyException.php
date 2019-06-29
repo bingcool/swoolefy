@@ -12,6 +12,15 @@
 namespace Swoolefy\Core;
 
 class SwoolefyException {
+
+    const EXCEPTION_ERR = 'error';
+
+    const EXCEPTION_WARNING = 'warning';
+
+    const EXCEPTION_NOTICE = 'notice';
+
+    const EXCEPTION_INFO = 'info';
+
 	/**
 	 * fatalError 致命错误捕获,两种情况触发
      * a)代码中执行exit(),die()原生函数，在swoole中是禁止使用这个两个函数的，因为会导致worker退出
@@ -28,7 +37,7 @@ class SwoolefyException {
                 case E_COMPILE_ERROR:
                 case E_USER_ERROR:
                     @ob_end_clean();
-                    static::shutHalt($e['message'], $errorType = 'error');
+                    static::shutHalt($e['message'], $errorType = SwoolefyException::EXCEPTION_ERR);
                 break;
             }
         }
@@ -66,13 +75,13 @@ class SwoolefyException {
     	$errorStr = "$errfile 第 $errline 行: $errstr";
       	switch ($errno) {
             case E_ERROR:
-          		static::shutHalt($errorStr, $errorType = 'error');
+          		static::shutHalt($errorStr, $errorType = SwoolefyException::EXCEPTION_ERR);
           		break;
             case E_WARNING:
-          		static::shutHalt($errorStr, $errorType = 'warning');
+          		static::shutHalt($errorStr, $errorType = SwoolefyException::EXCEPTION_WARNING);
           		break;
             case E_NOTICE:
-            	static::shutHalt($errorStr, $errorType = 'notice');
+            	static::shutHalt($errorStr, $errorType = SwoolefyException::EXCEPTION_NOTICE);
            		break;
             default:
             break;
@@ -85,7 +94,7 @@ class SwoolefyException {
      * @param string      $errorMsg
      * @param string $errorType
      */
-    public static function shutHalt($errorMsg, $errorType = 'error') {
+    public static function shutHalt($errorMsg, $errorType = SwoolefyException::EXCEPTION_ERR) {
         if(!defined('LOG_PATH')) {
             define('LOG_PATH', START_DIR_ROOT.DIRECTORY_SEPARATOR.APP_NAME);
         }
@@ -101,16 +110,16 @@ class SwoolefyException {
         $log = new \Swoolefy\Tool\Log;
 
         switch($errorType) {
-            case 'error':
+            case SwoolefyException::EXCEPTION_ERR:
                   $log->setChannel('Application')->setLogFilePath($logFilePath)->addError($errorMsg);
                  break;
-            case 'warning':
+            case SwoolefyException::EXCEPTION_WARNING:
                   $log->setChannel('Application')->setLogFilePath($logFilePath)->addWarning($errorMsg);
                  break;
-            case 'notice':
+            case SwoolefyException::EXCEPTION_NOTICE:
                   $log->setChannel('Application')->setLogFilePath($logFilePath)->addNotice($errorMsg);
                  break;
-            case 'info':
+            case SwoolefyException::EXCEPTION_INFO:
                  $log->setChannel('Application')->setLogFilePath($logFilePath)->addInfo($errorMsg);
                  break;
         }

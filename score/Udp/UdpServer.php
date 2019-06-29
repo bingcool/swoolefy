@@ -41,7 +41,7 @@ abstract class UdpServer extends BaseServer {
 	 * $serverName server服务名称
 	 * @var string
 	 */
-	protected static $serverName = SWOOLEFY_UDP;
+	const SERVER_NAME = SWOOLEFY_UDP;
 
 	/**
 	 * __construct
@@ -53,6 +53,7 @@ abstract class UdpServer extends BaseServer {
 		self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
 		//设置进程模式和socket类型
 		self::setSwooleSockType();
+        self::setServerName(self::SERVER_NAME);
 		// UDP服务器,固定为SWOOLE_SOCK_UDP
 		self::$swoole_socket_type = SWOOLE_SOCK_UDP;
 		self::$server = $this->udpserver = new \Swoole\Server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, SWOOLE_SOCK_UDP);
@@ -102,7 +103,7 @@ abstract class UdpServer extends BaseServer {
 		 */
 		$this->udpserver->on('WorkerStart', function(\Swoole\Server $server, $worker_id) {
 			// 记录主进程加载的公共files,worker重启不会在加载的
-			self::getIncludeFiles(static::$serverName);
+			self::getIncludeFiles($worker_id);
             self::registerShutdownFunction();
 			// 重启worker时，清空字节cache
 			self::clearCache();

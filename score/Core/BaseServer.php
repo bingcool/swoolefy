@@ -31,7 +31,7 @@ class BaseServer {
 	 * $Service 
 	 * @var null 服务实例，适用于TCP,UDP,RPC
 	 */
-	public static $service = null;
+	protected static $server_name = null;
 
 	/**
 	 * $isEnableCoroutine 是否启用协程
@@ -256,6 +256,22 @@ class BaseServer {
 		return self::$_startTime;
 	}
 
+    /**
+     * setServerName
+     * @param string $server_name
+     */
+	public static function setServerName($server_name = null) {
+        self::$server_name = $server_name;
+    }
+
+	/**
+	 * getServerName 
+	 * @return string
+	 */
+	public static function getServerName() {
+		return self::$server_name;
+	}
+
 	/**
 	 * getConfig 获取服务的全部配置
 	 * @return   array
@@ -379,8 +395,8 @@ class BaseServer {
 	 * @param   string $dir
 	 * @return   void
 	 */
-	public static function getIncludeFiles($dir = null) {
-		if(isset(static::$setting['log_file'])) {
+	public static function getIncludeFiles($worker_id) {
+		if(isset(static::$setting['log_file']) && $worker_id == 0) {
 			$path = pathinfo(static::$setting['log_file'], PATHINFO_DIRNAME);
 			$filePath = $path.'/includes.json';
             $includes = get_included_files();
