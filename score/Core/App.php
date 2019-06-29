@@ -243,6 +243,7 @@ class App extends \Swoolefy\Core\Component {
             foreach($logs as $action => $log) {
                 if(!empty($log)) {
                     LogManager::getInstance()->{$action}($log);
+                    $this->logs[$action] = [];
                 }
             }
         }

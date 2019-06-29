@@ -74,7 +74,7 @@ abstract class HttpServer extends BaseServer {
 			// 启动的初始化函数
             try{
                 $this->startCtrl->start($server);
-            }catch (\Exception $e) {
+            }catch (\Throwable $e) {
                 self::catchException($e);
             }
 
@@ -96,7 +96,7 @@ abstract class HttpServer extends BaseServer {
         $this->webserver->on('ManagerStop', function(\Swoole\Http\Server $server) {
             try{
                 $this->startCtrl->managerStop($server);
-            }catch (\Exception $e) {
+            }catch (\Throwable $e) {
                 self::catchException($e);
             }
         });
@@ -107,6 +107,7 @@ abstract class HttpServer extends BaseServer {
 		$this->webserver->on('WorkerStart', function(\Swoole\Http\Server $server, $worker_id) {
 			// 记录主进程加载的公共files,worker重启不会在加载的
 			self::getIncludeFiles($worker_id);
+			// registerShutdown
             self::registerShutdownFunction();
 			// 重启worker时，刷新字节cache
 			self::clearCache();
@@ -147,7 +148,7 @@ abstract class HttpServer extends BaseServer {
 				parent::beforeHandler();
 				static::onRequest($request, $response);
 				return true;
-			}catch(\Exception $e) {
+			}catch(\Throwable $e) {
 				self::catchException($e);
 			}
 		});
@@ -163,7 +164,7 @@ abstract class HttpServer extends BaseServer {
                     $data = $task->data;
                     $task_data = unserialize($data);
                     static::onTask($server, $task_id, $from_worker_id, $task_data, $task);
-                }catch(\Exception $e) {
+                }catch(\Throwable $e) {
                     self::catchException($e);
                 }
             });
@@ -172,7 +173,7 @@ abstract class HttpServer extends BaseServer {
                 try{
                     $task_data = unserialize($data);
                     static::onTask($server, $task_id, $from_worker_id, $task_data);
-                }catch(\Exception $e) {
+                }catch(\Throwable $e) {
                     self::catchException($e);
                 }
 
@@ -186,7 +187,7 @@ abstract class HttpServer extends BaseServer {
 			try {
 				static::onFinish($server, $task_id, $data);
 				return true;
-			}catch(\Exception $e) {
+			}catch(\Throwable $e) {
 				self::catchException($e);
 			}
 			
@@ -199,10 +200,9 @@ abstract class HttpServer extends BaseServer {
 			try {
 				static::onPipeMessage($server, $src_worker_id, $message);
 				return true;
-			}catch(\Exception $e) {
+			}catch(\Throwable $e) {
 				self::catchException($e);
 			}
-			
 		});
 
 		/**
@@ -212,10 +212,9 @@ abstract class HttpServer extends BaseServer {
 			try{
 				// worker停止的触发函数
 				$this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
-			}catch(\Exception $e) {
+			}catch(\Throwable $e) {
 				self::catchException($e);
 			}
-			
 		});
 
 		/**
@@ -224,10 +223,9 @@ abstract class HttpServer extends BaseServer {
         $this->webserver->on('WorkerExit', function(\Swoole\Http\Server $server, $worker_id) {
             try{
                 $this->startCtrl->workerExit($server, $worker_id);
-            }catch(\Exception $e) {
+            }catch(\Throwable $e) {
                 self::catchException($e);
             }
-
         });
 
 		$this->webserver->start();
