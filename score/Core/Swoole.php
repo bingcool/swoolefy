@@ -272,6 +272,7 @@ class Swoole extends BaseObject {
             foreach($logs as $action => $log) {
                 if(!empty($log)) {
                     LogManager::getInstance()->{$action}($log);
+                    $this->logs[$action] = [];
                 }
             }
         }

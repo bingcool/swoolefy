@@ -95,10 +95,9 @@ abstract class TcpServer extends BaseServer {
 			// 启动的初始化函数
             try{
                 $this->startCtrl->managerStart($server);
-            }catch (\Exception $e) {
+            }catch (\Throwable $e) {
                 self::catchException($e);
             }
-
 		});
 
         /**
@@ -107,7 +106,7 @@ abstract class TcpServer extends BaseServer {
         $this->tcpserver->on('ManagerStop', function(\Swoole\Server $server) {
             try {
                 $this->startCtrl->managerStop($server);
-            }catch (\Exception $e) {
+            }catch (\Throwable $e) {
                 self::catchException($e);
             }
         });
@@ -148,7 +147,7 @@ abstract class TcpServer extends BaseServer {
 		$this->tcpserver->on('connect', function(\Swoole\Server $server, $fd) {
     		try{
     			static::onConnet($server, $fd);
-    		}catch(\Exception $e) {
+    		}catch(\Throwable $e) {
     			self::catchException($e);
     		}
 		});
@@ -171,7 +170,7 @@ abstract class TcpServer extends BaseServer {
 					static::onReceive($server, $fd, $reactor_id, $recv);
 				}
 				return true;
-    		}catch(\Exception $e) {
+    		}catch(\Throwable $e) {
     			self::catchException($e);
     		}
 			
@@ -188,7 +187,7 @@ abstract class TcpServer extends BaseServer {
                     $data = $task->data;
                     $task_data = unserialize($data);
                     static::onTask($server, $task_id, $from_worker_id, $task_data, $task);
-                }catch(\Exception $e) {
+                }catch(\Throwable $e) {
                     self::catchException($e);
                 }
             });
@@ -198,7 +197,7 @@ abstract class TcpServer extends BaseServer {
                 try{
                     $task_data = unserialize($data);
                     static::onTask($server, $task_id, $from_worker_id, $task_data);
-                }catch(\Exception $e) {
+                }catch(\Throwable $e) {
                     self::catchException($e);
                 }
 
@@ -211,7 +210,7 @@ abstract class TcpServer extends BaseServer {
 		$this->tcpserver->on('finish', function(\Swoole\Server $server, $task_id, $data) {
 			try{
 				static::onFinish($server, $task_id, $data);
-			}catch(\Exception $e) {
+			}catch(\Throwable $e) {
 				self::catchException($e);
 			}
 
@@ -224,7 +223,7 @@ abstract class TcpServer extends BaseServer {
 			try {
 				static::onPipeMessage($server, $from_worker_id, $message);
 				return true;
-			}catch(\Exception $e) {
+			}catch(\Throwable $e) {
 				self::catchException($e);
 			}
 			
@@ -241,7 +240,7 @@ abstract class TcpServer extends BaseServer {
 				}
 				// 延迟绑定
 				static::onClose($server, $fd);
-			}catch(\Exception $e) {
+			}catch(\Throwable $e) {
 				self::catchException($e);
 			}
 		});
@@ -252,7 +251,7 @@ abstract class TcpServer extends BaseServer {
 		$this->tcpserver->on('WorkerStop', function(\Swoole\Server $server, $worker_id) {
 			try{
 				$this->startCtrl->workerStop($server, $worker_id);
-			}catch(\Exception $e) {
+			}catch(\Throwable $e) {
 				self::catchException($e);
 			}
 		});
@@ -263,7 +262,7 @@ abstract class TcpServer extends BaseServer {
 		$this->tcpserver->on('WorkerError', function(\Swoole\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
 			try{
 				$this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
-			}catch(\Exception $e) {
+			}catch(\Throwable $e) {
 				self::catchException($e);
 			}
 		});
@@ -274,7 +273,7 @@ abstract class TcpServer extends BaseServer {
         $this->tcpserver->on('WorkerExit', function(\Swoole\Server $server, $worker_id) {
             try{
                 $this->startCtrl->workerExit($server, $worker_id);
-            }catch(\Exception $e) {
+            }catch(\Throwable $e) {
                 self::catchException($e);
             }
 

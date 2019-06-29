@@ -12,9 +12,11 @@
 namespace Swoolefy\Tool;
 
 use Swoolefy\Core\Application;
+use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Log\Logger;
 use Swoolefy\Core\Log\StreamHandler;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
+use Swoolefy\Core\Swfy;
 
 class Log {
 	/**
@@ -124,14 +126,13 @@ class Log {
             $app->setLog(__FUNCTION__, $logInfo);
             return;
         }
-        go(function() use($logInfo, $context) {
-            $log = new Logger($this->channel);
-            $stream = new StreamHandler($this->logFilePath, Logger::INFO);
-            $stream->setFormatter($this->formatter);
-            $log->pushHandler($stream);
-            // add records to the log
-            $log->info($logInfo, $context);
-        });
+        try {
+            go(function() use($logInfo, $context) {
+                $this->insertLog($logInfo, $context, Logger::INFO);
+            });
+        }catch (\Throwable $e) {
+            $this->insertLog($logInfo, $context, Logger::INFO);
+        }
 	}
 
     /**
@@ -149,14 +150,13 @@ class Log {
             $app->setLog(__FUNCTION__, $logInfo);
             return;
         }
-        go(function() use($logInfo, $context) {
-            $log = new Logger($this->channel);
-            $stream = new StreamHandler($this->logFilePath, Logger::NOTICE);
-            $stream->setFormatter($this->formatter);
-            $log->pushHandler($stream);
-            // add records to the log
-            $log->notice($logInfo, $context);
-        });
+        try {
+            go(function() use($logInfo, $context) {
+                $this->insertLog($logInfo, $context, Logger::NOTICE);
+            });
+        }catch (\Throwable $e) {
+            $this->insertLog($logInfo, $context, Logger::NOTICE);
+        }
 	}
 
     /**
@@ -174,14 +174,13 @@ class Log {
             $app->setLog(__FUNCTION__, $logInfo);
             return;
         }
-        go(function() use($logInfo, $context) {
-            $log = new Logger($this->channel);
-            $stream = new StreamHandler($this->logFilePath, Logger::WARNING);
-            $stream->setFormatter($this->formatter);
-            $log->pushHandler($stream);
-            // add records to the log
-            $log->warning($logInfo, $context);
-        });
+        try {
+            go(function() use($logInfo, $context) {
+                $this->insertLog($logInfo, $context, Logger::WARNING);
+            });
+        }catch (\Throwable $e) {
+            $this->insertLog($logInfo, $context, Logger::WARNING);
+        }
 	}
 
     /**
@@ -199,14 +198,29 @@ class Log {
             $app->setLog(__FUNCTION__, $logInfo);
             return;
         }
-        go(function() use($logInfo, $context) {
-            $log = new Logger($this->channel);
-            $stream = new StreamHandler($this->logFilePath, Logger::ERROR);
-            $stream->setFormatter($this->formatter);
-            $log->pushHandler($stream);
-            // add records to the log
-            $log->error($logInfo, $context);
-        });
+
+        try{
+            go(function() use($logInfo, $context) {
+                $this->insertLog($logInfo, $context, Logger::ERROR);
+            });
+        }catch (\Throwable $e) {
+            $this->insertLog($logInfo, $context, Logger::ERROR);
+        }
 	}
+
+    /**
+     * @param $logInfo
+     * @param $context
+     * @param int $type
+     * @throws \Throwable
+     */
+	public function insertLog($logInfo, array $context = [], $type = Logger::INFO) {
+        $log = new Logger($this->channel);
+        $stream = new StreamHandler($this->logFilePath, $type);
+        $stream->setFormatter($this->formatter);
+        $log->pushHandler($stream);
+        // add records to the log
+        $log->error($logInfo, $context);
+    }
 
 }
