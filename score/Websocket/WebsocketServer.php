@@ -42,7 +42,7 @@ abstract class WebsocketServer extends BaseServer {
 	 * $serverName server服务名称
 	 * @var string
 	 */
-	protected static $serverName = SWOOLEFY_WEBSOCKET;
+	const SERVER_NAME = SWOOLEFY_WEBSOCKET;
 
 	/**
 	 * __construct
@@ -54,6 +54,7 @@ abstract class WebsocketServer extends BaseServer {
 		self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
 		//设置进程模式和socket类型
 		self::setSwooleSockType();
+        self::setServerName(self::SERVER_NAME);
 		self::$server = $this->webserver = new \Swoole\WebSocket\Server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, self::$swoole_socket_type);
 		$this->webserver->set(self::$setting);
 		parent::__construct();
@@ -101,7 +102,7 @@ abstract class WebsocketServer extends BaseServer {
 		 */
 		$this->webserver->on('WorkerStart', function(\Swoole\WebSocket\Server $server, $worker_id) {
 			// 记录主进程加载的公共files,worker重启不会在加载的
-			self::getIncludeFiles(static::$serverName);
+			self::getIncludeFiles($worker_id);
             self::registerShutdownFunction();
 			// 重启worker时，清空字节cache
 			self::clearCache();

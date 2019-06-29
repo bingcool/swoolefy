@@ -22,10 +22,8 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface {
 	 * __construct 初始化
 	 * @param array $config
 	 */
-	public function __construct(array $config=[]) {
+	public function __construct(array $config = []) {
 		parent::__construct($config);
-		// 设置当前的服务名称
-		self::$serverName = 'rpc';
 	}
 
 	/**
