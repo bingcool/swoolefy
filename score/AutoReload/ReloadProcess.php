@@ -51,7 +51,15 @@ class ReloadProcess extends AbstractProcess {
         }
     }
 
+    /**
+     * @param $str
+     * @param mixed ...$args
+     * @return mixed|void
+     */
     public function onReceive($str, ...$args) {}
 
+    /**
+     * @return mixed|void
+     */
     public function onShutDown() {}
 }

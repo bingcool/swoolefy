@@ -82,6 +82,13 @@ class SModel extends BaseObject {
 		return $this->struct->getPublicProperties();
 	}
 
+    /**
+     * @return string
+     */
+	public function getCid() {
+	    return $this->coroutine_id;
+    }
+
 	/**
 	 * beforeAction 在处理实际action之前执行
 	 * @return   mixed

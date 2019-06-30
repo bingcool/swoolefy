@@ -19,7 +19,7 @@ class BaseObject {
 	 * $coroutine_id
 	 * @var  string
 	 */
-	public $coroutine_id;
+	protected $coroutine_id;
 
     /**
      * @var

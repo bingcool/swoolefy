@@ -19,13 +19,13 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
 	 */
 	public function init() {
         static::eachStartInfo();
+        static::onInit();
 		if(BaseServer::isEnableSysCollector()) {
 			ProcessManager::getInstance()->addProcess('swoolefy_system_collector', \Swoolefy\Core\SysCollector\SysProcess::class);
 		}
 		if(BaseServer::isEnableReload()) {
             ProcessManager::getInstance()->addProcess('swoolefy_system_reload',\Swoolefy\AutoReload\ReloadProcess::class);
         }
-		static::onInit();
 	}
 
 	/**

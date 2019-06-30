@@ -56,7 +56,7 @@ class WebsocketHander extends Swoole implements HanderInterface {
                 }
 
                 if($this->ping($event)) {
-                    $data = 'pong';
+                    $data = json_encode(['pong'=>1,'ok'=>1]);
                     Swfy::getServer()->push($fd, $data, $opcode = 1, $finish = true);
                     return;
                 }
@@ -140,8 +140,8 @@ class WebsocketHander extends Swoole implements HanderInterface {
 	 * @param    string   $evnet
 	 * @return   boolean
 	 */
-	public function ping(string $evnet) {
-		if(strtolower($evnet) == 'ping') {
+	public function ping(string $event) {
+		if(strtolower($event) == 'ping') {
 			return true;
 		}
 		return false;

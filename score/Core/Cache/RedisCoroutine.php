@@ -153,7 +153,7 @@ class RedisCoroutine {
 	public function setConfig() {
 		$serverInfo = $this->parseConfig();
 		foreach($serverInfo as $k=>$config) {
-			// 主master
+			// master
 			if($k == 0) {
 				if(!$this->deploy) {
 					$this->master_redis_config[$k] = $this->slave_redis_config[$k] = $config;

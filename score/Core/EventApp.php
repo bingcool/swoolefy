@@ -126,7 +126,7 @@ class EventApp {
 		try{
 			if($this->is_call) {
                 $class_name = get_class($this->event_app);
-				throw new \Exception("{$class_name} Single Coroutine Instance only call one method, you haved called");
+				throw new \Exception("{$class_name} Single Coroutine Instance only be called one method, you haved called");
 			}
             try {
                 $this->is_call = true;

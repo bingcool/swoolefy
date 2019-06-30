@@ -131,6 +131,30 @@ trait ServiceTrait {
 		];
 	}
 
+    /**
+     * @param $server
+     * @return bool
+     */
+	public static function setSwooleServer($server) {
+	    if(is_object($server)) {
+	        Swfy::$server = $server;
+	        return true;
+        }
+        return false;
+    }
+
+    /**
+     * @param array $conf
+     * @param bool
+     */
+	public static function setConf(array $conf) {
+        if(is_array($conf)) {
+            Swfy::$config = $conf;
+            return true;
+        }
+        return false;
+    }
+
 	/**
 	 * getConf 获取协议层对应的配置
 	 * @param    $protocol

@@ -64,7 +64,6 @@ abstract class TcpServer extends BaseServer {
 		self::clearCache();
 		self::$config = $config;
 		self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
-		//设置进程模式和socket类型
 		self::setSwooleSockType();
         self::setServerName(self::SERVER_NAME);
 		self::$server = $this->tcpserver = new \Swoole\Server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, self::$swoole_socket_type);
@@ -131,9 +130,10 @@ abstract class TcpServer extends BaseServer {
 			self::setWorkersPid($worker_id, $server->worker_pid);
 			// 启动动态运行时的Coroutine
 			self::runtimeEnableCoroutine();
-			// 超全局变量server
-       		Swfy::$server = $this->tcpserver;
-       		Swfy::$config = self::$config;
+            // 超全局变量server
+            Swfy::setSwooleServer($this->tcpserver);
+            // 全局配置
+            Swfy::setConf(self::$config);
 			// 启动的初始化函数
 			$this->startCtrl->workerStart($server, $worker_id);
 			// 延迟绑定
@@ -158,15 +158,12 @@ abstract class TcpServer extends BaseServer {
 		$this->tcpserver->on('receive', function(\Swoole\Server $server, $fd, $reactor_id, $data) {
 			try{
 				parent::beforeHandler();
-				// 服务端为length检查包
 				if(parent::isPackLength()) {
 					$recv = $this->Pack->depack($server, $fd, $reactor_id, $data);
 				}else {
-					// 服务端为eof检查包
 					$recv = $this->Text->depackeof($data);
 				}
 				if($recv) {
-					//延迟绑定，服务处理实例
 					static::onReceive($server, $fd, $reactor_id, $recv);
 				}
 				return true;
@@ -238,7 +235,6 @@ abstract class TcpServer extends BaseServer {
 				if(parent::isPackLength()) {
 					$this->Pack->destroy($server, $fd);
 				}
-				// 延迟绑定
 				static::onClose($server, $fd);
 			}catch(\Throwable $e) {
 				self::catchException($e);
@@ -320,8 +316,7 @@ abstract class TcpServer extends BaseServer {
 	 */
 	public static function isClientPackEof() {
 		if(isset(self::$config['packet']['client']['pack_check_type'])) {
-			if(self::$config['packet']['client']['pack_check_type'] == 'eof') {
-				//$client_check是eof方式
+			if(in_array(self::$config['packet']['client']['pack_check_type'], ['eof', 'EOF']) ) {
 				return true;
 			}
 			return false;
@@ -349,7 +344,6 @@ abstract class TcpServer extends BaseServer {
 	 */
 	public static function pack($data) {
 		if(static::isClientPackLength()) {
-            // 客户端是length方式分包
             list($body_data, $header) = $data;
             $header_struct = self::$config['packet']['client']['pack_header_struct'];
             $pack_length_key = self::$config['packet']['client']['pack_length_key'];

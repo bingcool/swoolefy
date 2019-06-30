@@ -12,11 +12,9 @@
 namespace Swoolefy\Tool;
 
 use Swoolefy\Core\Application;
-use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Log\Logger;
 use Swoolefy\Core\Log\StreamHandler;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
-use Swoolefy\Core\Swfy;
 
 class Log {
 	/**
