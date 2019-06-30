@@ -49,14 +49,12 @@ abstract class HttpServer extends BaseServer {
 	 * @param array $config
 	 */
 	public function __construct(array $config=[]) {
-		// 刷新字节缓存
 		self::clearCache();
 		self::$config = array_merge(
 			include(__DIR__.'/config.php'),
 			$config
 		);
 		self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
-		//设置进程模式和socket类型
 		self::setSwooleSockType();
 		self::setServerName(self::SERVER_NAME);
 		self::$server = $this->webserver = new \Swoole\Http\Server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, self::$swoole_socket_type);
@@ -122,8 +120,9 @@ abstract class HttpServer extends BaseServer {
 			// 启动动态运行时的Coroutine
 			self::runtimeEnableCoroutine();
 			// 超全局变量server
-       		Swfy::$server = $this->webserver;
-       		Swfy::$config = self::$config;
+       		Swfy::setSwooleServer($this->webserver);
+       		// 全局配置
+       		Swfy::setConf(self::$config);
        		// 启动的初始化函数
 			$this->startCtrl->workerStart($server, $worker_id);
 			// 延迟绑定
@@ -210,7 +209,6 @@ abstract class HttpServer extends BaseServer {
 		 */
 		$this->webserver->on('WorkerError', function(\Swoole\Http\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
 			try{
-				// worker停止的触发函数
 				$this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
 			}catch(\Throwable $e) {
 				self::catchException($e);

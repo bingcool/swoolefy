@@ -20,8 +20,8 @@ class AsyncTask implements AsyncTaskInterface {
 
     /**
      * registerTask 注册实例任务并调用异步任务，创建一个应用实例，用于处理复杂业务
-     * @param   string  $route
-     * @param   array   $data
+     * @param   array  $callable
+     * @param   array  $data
      * @throws  mixed
      * @return  int|boolean
      */
@@ -30,14 +30,13 @@ class AsyncTask implements AsyncTaskInterface {
             throw new \Exception("AsyncTask::registerTask() function first params:callable must be an array", 1);
         }
         $callable[0] = str_replace('/', '\\', trim($callable[0],'/'));
-        // 只有在worker进程中可以调用异步任务进程，异步任务进程中不能调用异步进程
+        // 在worker进程中可以调用异步任务进程，异步任务进程中不能调用异步进程
         if(self::isWorkerProcess()) {
             $fd = is_object(Application::getApp()) ? Application::getApp()->fd : null;
             // udp没有连接概念，存在client_info
             if(BaseServer::isUdpApp()) {
                 $fd = is_object(Application::getApp()) ? Application::getApp()->client_info : null;
             }
-
             // http的fd其实没有实用意义
             if(BaseServer::isHttpApp()) {
                 $fd = is_object(Application::getApp()) ? Application::getApp()->request->fd : null;
@@ -54,7 +53,8 @@ class AsyncTask implements AsyncTaskInterface {
     /**
      * finish 异步任务完成并退出到worker进程
      * @param   mixed  $data
-     * @return    void
+     * @param   mixed  $task
+     * @return  void
      */
     public static function registerTaskfinish($data, $task = null) {
        static::finish($data, $task);
@@ -62,8 +62,8 @@ class AsyncTask implements AsyncTaskInterface {
 
     /**
      * finish registerTaskfinish函数-异步任务完成并退出到worker进程的别名函数
-     * @param    mixed   $callable
      * @param    mixed   $data
+     * @param    mixed   $task
      * @return   void
      */
     public static function finish($data, $task = null) {

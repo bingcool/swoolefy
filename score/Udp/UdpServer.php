@@ -51,7 +51,6 @@ abstract class UdpServer extends BaseServer {
 		self::clearCache();
 		self::$config = $config;
 		self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
-		//设置进程模式和socket类型
 		self::setSwooleSockType();
         self::setServerName(self::SERVER_NAME);
 		// UDP服务器,固定为SWOOLE_SOCK_UDP
@@ -118,9 +117,10 @@ abstract class UdpServer extends BaseServer {
 			self::setWorkersPid($worker_id, $server->worker_pid);
 			// 启动动态运行时的Coroutine
 			self::runtimeEnableCoroutine();
-			// 超全局变量server
-       		Swfy::$server = $this->udpserver;
-       		Swfy::$config = self::$config;
+            // 超全局变量server
+            Swfy::setSwooleServer($this->udpserver);
+            // 全局配置
+            Swfy::setConf(self::$config);
 			// 启动的初始化函数
 			$this->startCtrl->workerStart($server, $worker_id);
 			// 延迟绑定
@@ -134,7 +134,6 @@ abstract class UdpServer extends BaseServer {
 		$this->udpserver->on('Packet', function(\Swoole\Server $server, $data, $clientInfo) {
 			try{
 				parent::beforeHandler();
-				// 延迟绑定，服务处理实例
 				static::onPack($server, $data, $clientInfo);
 				return true;
     		}catch(\Throwable $e) {

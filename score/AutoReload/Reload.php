@@ -89,7 +89,6 @@ class Reload {
     	swoole_event_add($this->inotify, function($fd) {
     		// 读取事件的信息
             $events = inotify_read($this->inotify);
-
             if(!$events) {
                 return;
             }
