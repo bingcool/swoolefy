@@ -16,7 +16,7 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 实现与底层的回调的解耦，支持协程调度，同步|异步调用，全局事件注册，心跳检查，异步任务，多进程(池)，连接池等，
 内置view、log、session、mysql、redis、mongodb等常用组件等。     
 
-目前swoolefy4.2+版本完全支持swoole4.2.13+的协程，推荐使用swoole4.3.+.
+目前swoolefy4.2+版本完全支持swoole4.2.13+的协程，最高支持最新版的swoole4.4.+，推荐使用swoole4.3.+.
 
 ### 实现的功能特性
 - [x] 架手脚一键创建项目           
@@ -31,6 +31,7 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 - [x] 支持协程单例注册
 - [x] 支持mysql协程组件，redis协程组件，mongodb组件，提供基于tp改造的swoolefy-orm协程mysql组件
 - [x] 支持mysql的协程连接池，redis协程池
+- [x] 支持protobuf buffer的数据接口结构验证，压缩传输等        
 - [x] 异步务管理TaskManager，定时器管理TickManager，内存表管理TableManager  
 - [x] 自定义进程管理ProcessManager，进程池管理PoolsManger
 - [x] 支持底层异常错误的所有日志捕捉
