@@ -1,0 +1,35 @@
+syntax="proto3";         //声明版本，3x版本支持php
+
+option php_namespace = "App\\Module\\Book\\Protobuf"; // 文件生成的php文件命名空间
+option php_metadata_namespace = "App\\Module\\Book\\Protobuf"; // message生成的php文件名名空间
+//option php_class_prefix = "Prefix"; //生成类的前缀
+
+package Protobuf; //包名，和php_namespace,php_metadata_namespace的最后空间相同
+
+
+message PkgGetBookListReq{
+	//响应
+ 	int32 book_id = 1;
+ 	int32 user_id = 2;
+}
+
+message PkgGetBookListRsp{
+	//响应
+ 	int32 ret = 1;
+ 	string msg = 2;
+ 	GetBookListData data = 3;
+}
+
+message GetBookListData {       //Person  生成php文件的类名
+    string name=1;     //姓名
+    int32  age=2;      //年龄
+    bool   sex=3;      //性别
+    int32  phone=4;    //手机
+    repeated Addr addr = 5;
+    int32  user_id = 6;
+}
+
+message Addr {
+	float lon = 1;
+	float lat = 2;
+}
