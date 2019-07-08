@@ -71,23 +71,27 @@ class ProtobufBuffer {
 	 * @param  mixed $value
 	 * @return mixed 
 	 */
-	protected function repeatedOrMessageClass($value) {
+	protected static function repeatedOrMessageClass($value) {
     	if(is_object($value)) {
-		    	if($value instanceof \Google\Protobuf\Internal\RepeatedField) {
-		    		$new_value = [];
-		    		foreach($value as $obj) {
-		    			if($obj instanceof \Google\Protobuf\Internal\Message) {
-		    				$value = self::toArray($obj);
-		    			}else if($obj instanceof \Google\Protobuf\Internal\RepeatedField) {
-		    				self::repeatedOrMessageClass($obj);
-		    			}
-		    			$new_value[] = $value;
-		    		}
-		    		$value = $new_value;
-		    		unset($new_value);
-		    	}else if($value instanceof \Google\Protobuf\Internal\Message) {
-    				$value = self::toArray($value);
-    			}
+    		if($value instanceof \Google\Protobuf\Internal\Message) {
+    			$value = self::toArray($value);
+    		}else if($value instanceof \Google\Protobuf\Internal\RepeatedField || $value instanceof \Google\Protobuf\Internal\MapField) {
+	    		$tmp = [];
+	    		foreach($value as $obj) {
+	    			if($obj instanceof \Google\Protobuf\Internal\Message) {
+	    				$tmp_value = self::toArray($obj);
+	    			}else if($obj instanceof \Google\Protobuf\Internal\RepeatedField) {
+	    				$tmp_value = self::repeatedOrMessageClass($obj);
+	    			}else if(is_string($obj) || is_int($obj) || is_float($obj) || is_bool($obj) || is_double($obj)) {
+	    				$tmp_value = $obj;
+	    			}else {
+	    				$tmp_value = self::repeatedOrMessageClass($obj);
+	    			}
+	    			$tmp[] = $tmp_value;
+	    		}
+	    		$value = $tmp;
+	    		unset($tmp);
+	    	}
 	    }
 	    return $value;
     }
