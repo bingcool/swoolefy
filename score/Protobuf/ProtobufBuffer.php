@@ -75,7 +75,7 @@ class ProtobufBuffer {
     	if(is_object($value)) {
     		if($value instanceof \Google\Protobuf\Internal\Message) {
     			$value = self::toArray($value);
-    		}else if($value instanceof \Google\Protobuf\Internal\RepeatedField || $value instanceof \Google\Protobuf\Internal\MapField) {
+    		}else if($value instanceof \Google\Protobuf\Internal\RepeatedField) {
 	    		$tmp = [];
 	    		foreach($value as $obj) {
 	    			if($obj instanceof \Google\Protobuf\Internal\Message) {
@@ -91,7 +91,16 @@ class ProtobufBuffer {
 	    		}
 	    		$value = $tmp;
 	    		unset($tmp);
+	    	}else if($value instanceof \Google\Protobuf\Internal\MapField) {
+	    		$tmp = [];
+    			foreach($value as $key=>$obj) {
+    				$tmp_value = self::repeatedOrMessageClass($obj);
+    				$tmp[$key] = $tmp_value;
+    			}
+    			$value = $tmp;
+    			unset($tmp);
 	    	}
+    		
 	    }
 	    return $value;
     }
