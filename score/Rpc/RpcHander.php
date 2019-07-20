@@ -86,7 +86,6 @@ class RpcHander extends Swoole implements HanderInterface {
                     }
                 }else {
                 	// TODO
-                    // 其他方式处理
                 }
             }else {
                 // 任务task进程

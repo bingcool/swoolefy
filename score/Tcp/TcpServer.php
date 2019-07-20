@@ -69,7 +69,6 @@ abstract class TcpServer extends BaseServer {
 		self::$server = $this->tcpserver = new \Swoole\Server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, self::$swoole_socket_type);
 		$this->tcpserver->set(self::$setting);
 		parent::__construct();
-		// 设置Pack包处理对象
 		self::buildPackHander();
 		
 	}

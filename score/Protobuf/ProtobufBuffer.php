@@ -25,20 +25,25 @@ class ProtobufBuffer {
 		}
 
 		$reflect = new \ReflectionClass($obj);
-		$props = $reflect->getProperties(\ReflectionProperty::IS_PRIVATE);
+		$props = $reflect->getProperties(\ReflectionProperty::IS_PRIVATE | \ReflectionProperty::IS_PROTECTED);
 		
 		foreach($props as $prop) {
 		    $prop->setAccessible(true);
-		    $key =$prop->getName();
-		    $property = self::LetterToBiger($key);
-		    $method = "get".$property;   
-		    if($reflect->hasMethod($method)) {
-		    	$value = $obj->{$method}();
+		    $property = $prop->getName();
+		    $method = self::LetterToBiger($property);
+		    $getter = 'get'.$method;
+		    if($reflect->hasMethod($getter)) {
+		    	$value = $obj->{$getter}();
 		    	$value = self::repeatedOrMessageClass($value);
-		    	$array[$key] = $value;
-		    }else {
-		    	continue;
-		    } 
+		    	if($prop->isProtected()) {
+		    		if(!empty($value)) {
+		    			$one_of_method = 'get'.self::LetterToBiger($value);
+		    			$array[$value] = $obj->{$one_of_method}();
+		    		}
+		    	}else {
+		    		$array[$property] = $value;
+		    	}
+		    }
 		}
 
 		return $array;
@@ -55,7 +60,7 @@ class ProtobufBuffer {
 			return $array;
 		}
 		$reflect = new \ReflectionClass($obj);
-		$props = $reflect->getProperties(\ReflectionProperty::IS_PRIVATE);
+		$props = $reflect->getProperties(\ReflectionProperty::IS_PRIVATE | \ReflectionProperty::IS_PROTECTED);
 		
 		foreach($props as $prop) {
 		    $prop->setAccessible(true);
@@ -85,7 +90,7 @@ class ProtobufBuffer {
 	    			}else if(is_string($obj) || is_int($obj) || is_float($obj) || is_bool($obj) || is_double($obj)) {
 	    				$tmp_value = $obj;
 	    			}else {
-	    				$tmp_value = self::repeatedOrMessageClass($obj);
+	    				$tmp_value = $obj;
 	    			}
 	    			$tmp[] = $tmp_value;
 	    		}
