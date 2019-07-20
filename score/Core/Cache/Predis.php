@@ -78,12 +78,11 @@ class Predis {
 	 */
 	public function __call(string $method, array $args) {
 		try{
-            //return call_user_func_array([$this->Predis, $method], $args);
             return $this->Predis->$method(...$args);
         }catch(\Throwable $t) {
             $this->Predis->disconnect();
             $this->Predis = new \Predis\Client($this->parameters, $this->options);
-            return call_user_func_array([$this->Predis, $method], $args);
+            return $this->Predis->$method(...$args);
         }
 	}
 

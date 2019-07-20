@@ -268,12 +268,10 @@ class Pack {
 	public static function enpack($data, array $header, array $header_struct = [], $pack_length_key ='length', $serialize_type = self::DECODE_JSON) {
 		$body = self::encode($data, $serialize_type);
         $bin_header_data = '';
-
         // 如果没有设置，客户端的包头结构体与服务端一致
         if(empty($header_struct)) {
         	$header_struct = self::$header_struct;
         }
-
         foreach($header_struct as $key=>$value) {
         	if(isset($header[$key])) {
         		// 计算包体长度
@@ -331,6 +329,7 @@ class Pack {
 
     /**
      * delete 删除缓存的不完整的僵尸式数据包，可以在onclose回调中执行,防止内存偷偷溢增
+     * @param int  $fd
      * @return void
      */
     public function delete($fd) {
@@ -340,6 +339,8 @@ class Pack {
 
     /**
      * destroy 当workerstop时,删除缓冲的不完整的僵尸式数据包，并强制断开这些链接
+     * @param mixed $server
+     * @param int $worker_id
      * @return void
      */
     public function destroy($server = null, $worker_id = null) {
