@@ -103,7 +103,7 @@ class Reload {
                     }else if(in_array($ev['mask'], [IN_CREATE, IN_DELETE, IN_MODIFY, IN_MOVED_TO, IN_MOVED_FROM])) {
                         // 获取改动文件文件的后缀名
                         $fileType = '.'.pathinfo($ev['name'], PATHINFO_EXTENSION);
-                        //非重启类型
+                        
                         if(!in_array($fileType, $this->reloadFileTypes))
                         {
                             continue;
