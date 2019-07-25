@@ -146,20 +146,23 @@ class MGeneral extends \Swoolefy\Core\AppObject {
      * @param   array  $ignore 忽略某些字符串
      * @return string
      */
-    public static function string(int $length = 8, bool $is_number = true, array $ignore = []) {
+    public static function string(int $length = 8, bool $is_number = false, array $ignore = []) {
         //字符池
         $strings = 'ABCDEFGHIJKLOMNOPQRSTUVWXYZ';
         //数字池
         $numbers = '0123456789';           
-        if ($ignore && is_array($ignore)) {
+        if($ignore && is_array($ignore)) {
             $strings = str_replace($ignore, '', $strings);
             $numbers = str_replace($ignore, '', $numbers);
         }
-        $pattern = $strings . $numbers;
+        if($is_number) {
+            $pattern = $numbers;
+        }else {
+            $pattern = $strings . $numbers;
+        }
         $max = strlen($pattern) - 1;
         $key = '';
-        for ($i = 0; $i < $length; $i++)
-        {   
+        for($i = 0; $i < $length; $i++) {
             //生成php随机数
             $key .= $pattern[mt_rand(0, $max)]; 
         }

@@ -13,8 +13,6 @@ namespace Swoolefy\Udp;
 
 include_once SWOOLEFY_CORE_ROOT_PATH.'/MainEventInterface.php';
 
-use Swoolefy\Core\Swfy;
-use Swoolefy\Udp\UdpServer;
 use Swoolefy\Core\UdpEventInterface;
 
 abstract class UdpEventServer extends UdpServer implements UdpEventInterface {
@@ -36,10 +34,10 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface {
 
 	/**
 	 * onPack 
-	 * @param    ovject $server
+	 * @param    object $server
 	 * @param    mixed $data
 	 * @param    array $clientInfo
-	 * @return    
+	 * @return   void
 	 */
 	public function onPack($server, $data, $clientInfo) {
         $AppConfig = \Swoolefy\Core\Swfy::getAppConf();
@@ -54,7 +52,7 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface {
 	 * @param    int     $from_worker_id
 	 * @param    mixed   $data
      * @param    mixed   $task
-	 * @return   
+	 * @return   boolean
 	 */
 	public function onTask($server, $task_id, $from_worker_id, $data, $task = null) {
 		list($callable, $taskData, $clientInfo) = $data;
@@ -69,7 +67,7 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface {
 	/**
 	 * onPipeMessage 
 	 * @param    object  $server
-	 * @param    int     $src_worker_id
+	 * @param    int     $from_worker_id
 	 * @param    mixed   $message
 	 * @return   void
 	 */

@@ -26,9 +26,9 @@ class Struct {
 	 * @return  string
 	 */
 	public function get($property, $default = null) {
-		if(isset($this->$property))
+		if(isset($this->{$property}))
 		{
-			return $this->$property;
+			return $this->{$property};
 		}
 		return $default;
 	}
@@ -60,8 +60,8 @@ class Struct {
      * @return  mixed
 	 */
 	public function set($property, $value = null) {
-		$previous = isset($this->$property) ? $this->$property : null;
-		$this->$property = $value;
+		$previous = isset($this->{$property}) ? $this->{$property} : null;
+		$this->{$property} = $value;
 		return $previous;
 	}
 

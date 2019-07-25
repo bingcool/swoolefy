@@ -1023,7 +1023,7 @@ trait AppTrait {
 			$this->response->status($code);
 		}else {
 			if(!IS_PRD_ENV()) {
-				$this->response->write('error: '.$code .'is not a standard http code!');
+				$this->response->write('error: '.$code .'is not a standard http code');
 			}
 		}
 	}	
