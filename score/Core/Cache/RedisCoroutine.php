@@ -114,6 +114,7 @@ class RedisCoroutine {
 	 * setPassword 
 	 * @param string|array $password
      * @throws \Exception;
+     * @return mixed
 	 */
 	public function setPassword($password = null) {
 		$password && $this->password = $password;
@@ -130,7 +131,7 @@ class RedisCoroutine {
 	 *  @param bool $is_deploy
 	 */
 	public function setDeploy(bool $is_deploy = false) {
-		$deploy && $this->deploy = $deploy;
+        $is_deploy && $this->deploy = $is_deploy;
 		return $this;
 	}
 

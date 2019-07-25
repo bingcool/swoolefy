@@ -275,7 +275,7 @@ abstract class WebsocketServer extends BaseServer {
 		});
 
 		/**
-		 * worker进程退出回调函数，1.9.17+版本
+		 * worker进程退出回调函数
 		 */
 
         $this->webserver->on('WorkerExit', function(\Swoole\WebSocket\Server $server, $worker_id) {
