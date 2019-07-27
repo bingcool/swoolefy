@@ -95,7 +95,6 @@ trait ComponentTrait {
 					$params = $component['constructor'];
 					unset($component['constructor']);
 				}
-
 				$defination = $component;
 				$this->container[$com_name] = $this->buildInstance($class, $defination, $params, $com_name);
 			}else {
@@ -163,7 +162,6 @@ trait ComponentTrait {
         	if($name == SWOOLEFY_COM_IS_DELAY) {
         		continue;
         	}
-
         	if($name == SWOOLEFY_COM_FUNC) {
         		if(is_string($defination[$name]) && method_exists($object, $defination[$name])) {
         			call_user_func_array([$object, $defination[$name]], [$defination]);
@@ -177,7 +175,6 @@ trait ComponentTrait {
         		$object->$name = array_merge($object->$name, $value);
         		continue;
         	}
-
         	$object->$name = $value;
 
         }

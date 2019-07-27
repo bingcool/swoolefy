@@ -11,8 +11,6 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Swfy;
-
 class ServerManager {
 
 	use \Swoolefy\Core\SingletonTrait, \Swoolefy\Core\ServiceTrait;
