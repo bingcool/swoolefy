@@ -92,7 +92,6 @@ class UdpHander extends Swoole implements HanderInterface {
                 list($callable, $params) = $recv;
             }
 
-            // 控制器实例
             if($callable) {
                 $Dispatch = new ServiceDispatch($callable, $params);
                 if(isset($is_task_process) && $is_task_process == true) {

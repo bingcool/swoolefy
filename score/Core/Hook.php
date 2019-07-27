@@ -36,13 +36,11 @@ class Hook {
 				if(!isset(self::$hooks[$cid][$type])) {
 					self::$hooks[$cid][$type] = [];
 				}
-				// 防止重复设置
 				if(!isset(self::$hooks[$cid][$type][$key])) {
 					self::$hooks[$cid][$type] = array_merge([$key => $func], self::$hooks[$cid][$type]);
 				}
 				return true;
 			}else {
-				// 防止重复设置
 				if(!isset(self::$hooks[$cid][$type][$key])) {
 					self::$hooks[$cid][$type][$key] = $func;
 				}

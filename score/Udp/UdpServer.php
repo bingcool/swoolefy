@@ -16,6 +16,13 @@ use Swoolefy\Core\BaseServer;
 use Swoole\Server as udp_server;
 
 abstract class UdpServer extends BaseServer {
+
+    /**
+     * $serverName server服务名称
+     * @var string
+     */
+    const SERVER_NAME = SWOOLEFY_UDP;
+
 	/**
 	 * $setting
 	 * @var array
@@ -36,12 +43,6 @@ abstract class UdpServer extends BaseServer {
 	 * @var null
 	 */
 	public $udpserver = null;
-
-	/**
-	 * $serverName server服务名称
-	 * @var string
-	 */
-	const SERVER_NAME = SWOOLEFY_UDP;
 
 	/**
 	 * __construct
@@ -65,20 +66,20 @@ abstract class UdpServer extends BaseServer {
 		 * start回调
 		 */
 		$this->udpserver->on('Start', function(\Swoole\Server $server) {
-			// 重新设置进程名称
-			self::setMasterProcessName(self::$config['master_process_name']);
-			// 启动的初始化函数
-			$this->startCtrl->start($server);
+		    try{
+                self::setMasterProcessName(self::$config['master_process_name']);
+                $this->startCtrl->start($server);
+            }catch (\Throwable $e) {
+                self::catchException($e);
+            }
 		});
 
 		/**
 		 * managerstart回调
 		 */
 		$this->udpserver->on('ManagerStart', function(\Swoole\Server $server) {
-			// 重新设置进程名称
-			self::setManagerProcessName(self::$config['manager_process_name']);
-			// 启动的初始化函数
             try{
+                self::setManagerProcessName(self::$config['manager_process_name']);
                 $this->startCtrl->managerStart($server);
             }catch (\Throwable $e) {
                 self::catchException($e);

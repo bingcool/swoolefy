@@ -116,11 +116,11 @@ class HttpRoute extends AppDispatch {
 					break;
 					case 2 : 
 						$module = null;
-						// Controller/Action模式
+						// Controller/Action
 						list($controller, $action) = $route_params;
 					break;
 					case 3 : 
-						// Module/Controller/Action模式
+						// Module/Controller/Action
 						list($module, $controller, $action) = $route_params;
 					break;	
 				}

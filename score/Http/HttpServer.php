@@ -17,6 +17,13 @@ use Swoole\Http\Response;
 use Swoolefy\Core\BaseServer;
 
 abstract class HttpServer extends BaseServer {
+
+    /**
+     * $serverName server服务名称
+     * @var string
+     */
+    const SERVER_NAME = SWOOLEFY_HTTP;
+
 	/**
 	 * $setting
 	 * @var array
@@ -37,12 +44,6 @@ abstract class HttpServer extends BaseServer {
 	 * @var null
 	 */
 	public $webserver = null;
-
-	/**
-	 * $serverName server服务名称
-	 * @var string
-	 */
-	const SERVER_NAME = SWOOLEFY_HTTP;
 
 	/**
 	 * __construct
@@ -67,10 +68,8 @@ abstract class HttpServer extends BaseServer {
 		 * start回调
 		 */
 		$this->webserver->on('Start', function(\Swoole\Http\Server $server) {
-			// 重新设置进程名称
-			self::setMasterProcessName(self::$config['master_process_name']);
-			// 启动的初始化函数
             try{
+                self::setMasterProcessName(self::$config['master_process_name']);
                 $this->startCtrl->start($server);
             }catch (\Throwable $e) {
                 self::catchException($e);
@@ -82,10 +81,12 @@ abstract class HttpServer extends BaseServer {
 		 * managerstart回调
 		 */
 		$this->webserver->on('ManagerStart', function(\Swoole\Http\Server $server) {
-			// 重新设置进程名称
-			self::setManagerProcessName(self::$config['manager_process_name']);
-			// 启动的初始化函数
-			$this->startCtrl->managerStart($server);
+		    try{
+                self::setManagerProcessName(self::$config['manager_process_name']);
+                $this->startCtrl->managerStart($server);
+            }catch (\Throwable $e) {
+                self::catchException($e);
+            }
 		});
 
         /**
@@ -134,9 +135,7 @@ abstract class HttpServer extends BaseServer {
 		 * worker进程停止回调函数
 		 */
 		$this->webserver->on('WorkerStop', function(\Swoole\Http\Server $server, $worker_id) {
-			// worker停止的触发函数
 			$this->startCtrl->workerStop($server,$worker_id);
-			
 		});
 
 		/**

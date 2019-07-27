@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Core\Timer;
 
+use Swoole\Timer;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Timer\Tick;
 use Swoolefy\Core\Table\TableManager;
@@ -82,6 +83,27 @@ class TickManager {
 		}
 		return false;
 	}
+
+    /**
+     * @param int $fd
+     */
+	public static function timerInfo(int $fd) {
+	    return Timer::info($fd);
+    }
+
+    /**
+     * @return mixed
+     */
+    public static function timerList() {
+	    return Timer::list();
+    }
+
+    /**
+     * @return mixed
+     */
+    public static function timerStatus() {
+        return Timer::stats();
+    }
 
 	/**
 	 * __callStatic 

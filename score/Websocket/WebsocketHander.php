@@ -48,7 +48,7 @@ class WebsocketHander extends Swoole implements HanderInterface {
 	 */
 	public function run($fd, $recv, array $extend_data = []) {
 	    try {
-	        // 心跳
+	        // heart
 	        if($this->isWorkerProcess()) {
                 $recv = array_values(json_decode($recv, true));
                 if(is_array($recv) && count($recv) == 3) {
@@ -74,7 +74,6 @@ class WebsocketHander extends Swoole implements HanderInterface {
                 list($callable, $params) = $recv;
             }
 
-            // 控制器实例
             if($callable) {
                 $Dispatch = new ServiceDispatch($callable, $params);
                 if(isset($is_task_process) && $is_task_process == true) {
@@ -120,7 +119,6 @@ class WebsocketHander extends Swoole implements HanderInterface {
                 throw new \Exception("Task process can not handle binary data");
             }
 
-            // 控制器实例
             if($callable && $buffer) {
                 $Dispatch = new ServiceDispatch($callable, $buffer);
                 $Dispatch->dispatch();

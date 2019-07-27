@@ -94,24 +94,20 @@ class Reload {
             }
             // 只要检测到一个文件改动，则停止其余文件的判断，等待时间重启即可
             if(!$this->reloading) {
-                foreach($events as $ev)
-                {
-                    if ($ev['mask'] == IN_IGNORED)
-                    {
+                foreach($events as $ev) {
+                    if ($ev['mask'] == IN_IGNORED) {
                         continue;
 
                     }else if(in_array($ev['mask'], [IN_CREATE, IN_DELETE, IN_MODIFY, IN_MOVED_TO, IN_MOVED_FROM])) {
                         // 获取改动文件文件的后缀名
                         $fileType = '.'.pathinfo($ev['name'], PATHINFO_EXTENSION);
-                        
-                        if(!in_array($fileType, $this->reloadFileTypes))
-                        {
+
+                        if(!in_array($fileType, $this->reloadFileTypes)) {
                             continue;
                         }
                     }
                     //正在reload，不再接受任何事件，冻结10秒
-                    if (!$this->reloading)
-                    {
+                    if (!$this->reloading) {
                         //进行重启
                         swoole_timer_after($this->afterSeconds * 1000, [$this, 'reload']);
                         $this->reloading = true;
@@ -132,8 +128,7 @@ class Reload {
         //清理所有监听
         $this->clearWatch();
         //重新监听
-        foreach($this->rootDirs as $root)
-        {
+        foreach($this->rootDirs as $root) {
             $this->watch($root);
         }
         //继续进行reload
@@ -180,8 +175,7 @@ class Reload {
      * @return $this
      */
     private function clearWatch() {
-        foreach($this->watchFiles as $wd)
-        {
+        foreach($this->watchFiles as $wd) {
             @inotify_rm_watch($this->inotify, $wd);
         }
         $this->watchFiles = [];
@@ -198,19 +192,16 @@ class Reload {
      */
     public function watch($dir, $root = true) {
         //目录不存在
-        if (!is_dir($dir))
-        {
+        if (!is_dir($dir)) {
             $error = "[$dir] is not a directory.";
             throw new \Exception ($error);
         }
         //避免重复监听
-        if (isset($this->watchFiles[$dir]))
-        {
+        if (isset($this->watchFiles[$dir])) {
             return $this;
         }
         //根目录
-        if ($root)
-        {
+        if ($root) {
             $this->rootDirs[] = $dir;
         }
 
@@ -218,22 +209,18 @@ class Reload {
         $this->watchFiles[$dir] = $wd;
 
         $files = scandir($dir);
-        foreach ($files as $f)
-        {
-            if ($f == '.' || $f == '..' || in_array($f, $this->ignoreDirs))
-            {
+        foreach ($files as $f) {
+            if ($f == '.' || $f == '..' || in_array($f, $this->ignoreDirs)) {
                 continue;
             }
             $path = $dir . '/' . $f;
             //递归目录
-            if (is_dir($path))
-            {
+            if (is_dir($path)) {
                 $this->watch($path, false);
             }
             $fileType = '.'.pathinfo($f, PATHINFO_EXTENSION);
 
-            if(in_array($fileType, $this->reloadFileTypes))
-            {
+            if(in_array($fileType, $this->reloadFileTypes)) {
                 $wd = inotify_add_watch($this->inotify, $path, $this->events);
                 $this->watchFiles[$path] = $wd;
             }

@@ -58,8 +58,8 @@ class ServiceDispatch extends AppDispatch {
 			    if(Swfy::isWorkerProcess()) {
                     $app_conf = Swfy::getAppConf();
                     if(isset($app_conf['not_found_handler']) && is_string($app_conf['not_found_handler'])) {
-                        $handle = $app_conf['not_found_handler'];
-                        $notFoundInstance = new $handle;
+                        $handler = $app_conf['not_found_handler'];
+                        $notFoundInstance = new $handler;
                         if($notFoundInstance instanceof \Swoolefy\Core\NotFound) {
                             $return_data = $notFoundInstance->return404($class);
                         }
