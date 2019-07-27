@@ -41,7 +41,6 @@ class AsyncTask implements AsyncTaskInterface {
             if(BaseServer::isHttpApp()) {
                 $fd = is_object(Application::getApp()) ? Application::getApp()->request->fd : null;
             }
-
             $task_id = Swfy::getServer()->task(serialize([$callable, $data, $fd]));
             unset($callable, $data, $fd);
             return $task_id;

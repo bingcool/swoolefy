@@ -113,7 +113,7 @@ class RedisCoroutine {
 	/**
 	 * setPassword 
 	 * @param string|array $password
-     * @throws \Exception;
+     * @throws \Exception
      * @return mixed
 	 */
 	public function setPassword($password = null) {

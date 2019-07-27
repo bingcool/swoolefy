@@ -17,6 +17,13 @@ use Swoolefy\Rpc\Text;
 use Swoolefy\Core\BaseServer;
 
 abstract class TcpServer extends BaseServer {
+
+    /**
+     * $serverName server服务名称
+     * @var string
+     */
+    const SERVER_NAME = SWOOLEFY_TCP;
+
 	/**
 	 * $setting
 	 * @var array
@@ -51,12 +58,6 @@ abstract class TcpServer extends BaseServer {
 	protected $Text = null;
 
 	/**
-	 * $serverName server服务名称
-	 * @var string
-	 */
-	const SERVER_NAME = SWOOLEFY_TCP;
-
-	/**
 	 * __construct
 	 * @param array $config
 	 */
@@ -78,20 +79,20 @@ abstract class TcpServer extends BaseServer {
 		 * start回调
 		 */
 		$this->tcpserver->on('Start', function(\Swoole\Server $server) {
-			// 重新设置进程名称
-			self::setMasterProcessName(self::$config['master_process_name']);
-			// 启动的初始化函数
-			$this->startCtrl->start($server);
+		    try{
+                self::setMasterProcessName(self::$config['master_process_name']);
+                $this->startCtrl->start($server);
+            }catch (\Throwable $e) {
+                self::catchException($e);
+            }
 		});
 
 		/**
 		 * managerstart回调
 		 */
 		$this->tcpserver->on('ManagerStart', function(\Swoole\Server $server) {
-			// 重新设置进程名称
-			self::setManagerProcessName(self::$config['manager_process_name']);
-			// 启动的初始化函数
             try{
+                self::setManagerProcessName(self::$config['manager_process_name']);
                 $this->startCtrl->managerStart($server);
             }catch (\Throwable $e) {
                 self::catchException($e);
