@@ -214,8 +214,8 @@ abstract class AbstractProcessPools {
     public abstract function onShutDown();
 
     /**
-     * @param       $str
-     * @param mixed ...$args
+     * @param  string $str
+     * @param  mixed ...$args
      * @return mixed
      */
     public abstract function onReceive($str, ...$args);

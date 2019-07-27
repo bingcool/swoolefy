@@ -33,7 +33,7 @@ class Pack {
 
 	/**
 	 * $_pack_size 包的大小，实际应用应设置与package_max_length设置保持一致，默认2M
-	 * @var [type]
+	 * @var integer
 	 */
 	protected static $packet_maxlen = 2 * 1024 * 1024;
 
