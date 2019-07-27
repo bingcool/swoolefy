@@ -336,7 +336,7 @@ trait AppTrait {
 	 * @param    $ssl
 	 * @return   string
 	 */
-	public function getHomeUrl(bool $ssl=false) {
+	public function getHomeUrl(bool $ssl = false) {
 		$protocol_version = $this->getProtocol();
 		list($protocol, $version) = explode('/', $protocol_version);
 		

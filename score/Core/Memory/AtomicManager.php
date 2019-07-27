@@ -45,7 +45,7 @@ class AtomicManager {
     /**
      * getAtomic 
      * @param  string $name
-     * @return int
+     * @return mixed
      */
     public function getAtomic(string $name) {
         if(isset($this->atomicList[$name])){
@@ -58,7 +58,7 @@ class AtomicManager {
     /**
      * getAtomicLong
      * @param  string $name
-     * @return long int
+     * @return mixed
      */
     public function getAtomicLong(string $name) {
         if(isset($this->atomicListForLong[$name])){

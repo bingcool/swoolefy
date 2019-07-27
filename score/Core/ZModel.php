@@ -28,8 +28,7 @@ class ZModel {
 	 */
 	public static function getInstance(string $class = '', array $constructor = []) {
 		$cid = CoroutineManager::getInstance()->getCoroutineId();
-		$class = str_replace('/','\\', $class);
-		$class = trim($class,'\\');
+		$class = self::setClass($class);
 		if(isset(static::$_model_instances[$cid][$class]) && is_object(static::$_model_instances[$cid][$class])) {
             return static::$_model_instances[$cid][$class];
         }
@@ -39,16 +38,33 @@ class ZModel {
 
 	/**
 	 * removeInstance 删除某个协程下的所有创建的model实例
+     * @param int $cid
+     * @param string $class
 	 * @return boolean
 	 */
-	public static function removeInstance($cid = null) {
+	public static function removeInstance($cid = null, string $class = '') {
 	    if(empty($cid)) {
             $cid = CoroutineManager::getInstance()->getCoroutineId();
         }
-		if(isset(static::$_model_instances[$cid])) {
+		if(isset(static::$_model_instances[$cid]) && empty($class)) {
 			unset(static::$_model_instances[$cid]);
-		}
+		}else if(isset(static::$_model_instances[$cid]) && !empty($class)) {
+            $class = self::setClass($class);
+            if(isset(static::$_model_instances[$cid][$class])) {
+                unset(static::$_model_instances[$cid][$class]);
+            }
+        }
 		return true;
 	}
+
+    /**
+     * @param string $class
+     * @return mixed|string
+     */
+	private static function setClass(string $class = '') {
+        $class = str_replace('/','\\', $class);
+        $class = trim($class,'\\');
+        return $class;
+    }
 
 }

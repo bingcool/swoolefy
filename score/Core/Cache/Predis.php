@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Core\Cache;
 
-use  Predis\Client;
+use Predis\Client;
 
 class Predis {
 	/**

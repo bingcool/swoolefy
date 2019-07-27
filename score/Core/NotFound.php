@@ -21,9 +21,7 @@ class NotFound extends BService {
 	 */
 	public function return404(string $class) {
         $response = ['ret'=>404, 'msg'=>"{$class} class file is not found", 'data'=>''];
-		// tcp|rpc服务
 		if(BaseServer::isRpcApp()) {
-			// rpc服务，server端和client端的header_struct不相同时,默认不作处理
 			$is_same_packet_struct = $this->serverClientPacketstructSame();
 			if($is_same_packet_struct) {
 				$fd = Application::getApp()->getFd();
@@ -32,7 +30,6 @@ class NotFound extends BService {
 			}
 
 		}else if(BaseServer::isWebsocketApp()) {
-			// websocket服务
 			$fd = Application::getApp()->getFd();
 			$this->push($fd, $response, $opcode = 1, $finish = true);
 		}
@@ -48,7 +45,6 @@ class NotFound extends BService {
 	public function return500(string $class, string $action) {
         $response = ['ret'=>500, 'msg'=>"{$class}::{$action} is undefined", 'data'=>''];
 		if(BaseServer::isRpcApp()) {
-			// rpc服务，server端和client端的header_struct不相同时,默认不作处理
 			$is_same_packet_struct = $this->serverClientPacketstructSame();
 			if($is_same_packet_struct) {
 				$fd = Application::getApp()->getFd();
@@ -56,7 +52,6 @@ class NotFound extends BService {
 				$this->send($fd, $response, $header);
 			}
 		}else if(BaseServer::isWebsocketApp()) {
-			// websocket服务
 			$fd = Application::getApp()->getFd();
 			$this->push($fd, $response, $opcode = 1, $finish = true);
 		}
@@ -71,7 +66,6 @@ class NotFound extends BService {
 	public function returnError(string $msg) {
         $response = ['ret'=>500, 'msg'=>$msg, 'data'=>''];
 		if(BaseServer::isRpcApp()) {
-			// rpc服务，server端和client端的header_struct不相同时,默认不作处理
 			$is_same_packet_struct = $this->serverClientPacketstructSame();
 			if($is_same_packet_struct) {
 				$fd = Application::getApp()->getFd();
@@ -80,7 +74,6 @@ class NotFound extends BService {
 			}
 
 		}else if(BaseServer::isWebsocketApp()) {
-			// websocket服务
 			$fd = Application::getApp()->getFd();
 			$this->push($fd, $response, $opcode = 1, $finish = true);
 		}
@@ -92,7 +85,6 @@ class NotFound extends BService {
 	 * @return boolean
 	 */
 	protected function serverClientPacketstructSame() {
-		// 获取协议层配置
 		$conf = Swfy::getConf();
 		$server_pack_header_struct = $conf['packet']['server']['pack_header_struct'];
 		$client_pack_header_struct = $conf['packet']['client']['pack_header_struct'];
