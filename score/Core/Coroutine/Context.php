@@ -31,6 +31,7 @@ class Context {
                     return $app->getContext();
                 }else {
                     $context = new ArrayObject();
+                    $context->setFlags(ArrayObject::STD_PROP_LIST|ArrayObject::ARRAY_AS_PROPS);
                     $app->setContext($context);
                     return $context;
                 }
