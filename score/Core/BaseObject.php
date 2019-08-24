@@ -19,7 +19,7 @@ class BaseObject {
 	 * $coroutine_id
 	 * @var  string
 	 */
-	protected $coroutine_id;
+	public $coroutine_id;
 
     /**
      * @var
@@ -47,6 +47,22 @@ class BaseObject {
     public function setContext(\ArrayObject $context) {
         $this->context = $context;
         return true;
+    }
+
+    /**
+     * setCid
+     * @param mixed $cid
+     */
+    public function setCid($cid = null) {
+        $this->coroutine_id = $cid;
+    }
+
+    /**
+     * getCid 
+     * @return mixed
+     */
+    public function getCid() {
+        return $this->coroutine_id;
     }
 
     /**
