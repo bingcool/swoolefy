@@ -30,7 +30,7 @@ class Application {
 		if(Swfy::isWorkerProcess()) {
 			//worker进程中可以使用go()创建协程，和ticker的callback应用实例是支持协程的，controller必须继承TickController 或者父类ProcessController等
 			if($App instanceof \Swoolefy\Core\Process\ProcessController) {
-				$cid = $App->coroutine_id;
+				$cid = $App->getCid();
 				if(isset(self::$app[$cid])) {
 					unset(self::$app[$cid]);
 				}
@@ -40,17 +40,18 @@ class Application {
 			
 			// 在worker进程中进行，AppObject是http应用,swoole是rpc,websocket,udp应用，TickController是tick的回调应用
 			if($App instanceof \Swoolefy\Core\AppObject || $App instanceof \Swoolefy\Core\Swoole || $App instanceof \Swoolefy\Core\Timer\TickController || $App instanceof \Swoolefy\Core\EventController) {
-				$cid = $App->coroutine_id;
+				$cid = $App->getCid();
 				if(isset(self::$app[$cid])) {
 					unset(self::$app[$cid]);
 				}
 				self::$app[$cid] = $App;
 				return true;
-			}		 
+			}
+
 		}else if(Swfy::isTaskProcess()) {
 			// task进程中，ticker的callback可以创建协程
 			if($App instanceof \Swoolefy\Core\Timer\TickController) {
-				$cid = $App->coroutine_id;
+				$cid = $App->getCid();
 				if(isset(self::$app[$cid])) {
 					unset(self::$app[$cid]);
 				}
@@ -60,7 +61,7 @@ class Application {
 
 			// task进程中，http的task应用实例，没有产生协程id的，默认返回为-1，此时$App->coroutine_id等于cid_task_process
 			if($App instanceof \Swoolefy\Core\Task\TaskController) {
-				$cid = $App->coroutine_id;
+				$cid = $App->getCid();
 				if(isset(self::$app[$cid])) {
 					unset(self::$app[$cid]);
 				}
@@ -70,7 +71,7 @@ class Application {
 
 			// task进程中，rpc,websocket,udp的task应用实例，没有产生协程id的，默认返回为-1，此时$App->coroutine_id等于cid_task_process
 			if($App instanceof \Swoolefy\Core\Swoole) {
-				$cid = $App->coroutine_id;
+				$cid = $App->getCid();
 				if(isset(self::$app[$cid])) {
 					unset(self::$app[$cid]);
 				}
@@ -80,7 +81,7 @@ class Application {
 
 			// task进程中，swoole4.2.3版本起支持异步协程了，可以使用go创建协程和使用协程api
 			if($App instanceof \Swoolefy\Core\EventController) {
-				$cid = $App->coroutine_id;
+				$cid = $App->getCid();
 				if(isset(self::$app[$cid])) {
 					unset(self::$app[$cid]);
 				}
@@ -91,7 +92,7 @@ class Application {
             // process进程中，本身不产生协程，默认返回-1,可以通过设置第四个参数enable_coroutine = true启用协程
             // 同时可以使用go()创建协程，创建应用单例，单例继承于ProcessController类
             if($App instanceof \Swoolefy\Core\Process\ProcessController || $App instanceof \Swoolefy\Core\EventController) {
-                $cid = $App->coroutine_id;
+                $cid = $App->getCid();
                 if(isset(self::$app[$cid])) {
                     unset(self::$app[$cid]);
                 }
