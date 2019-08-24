@@ -135,7 +135,6 @@ class MysqlCoroutine {
 		}
 
 		$master = $this->getMaster();
-
 		if($master->connected) {
 			$res = $master->prepare($sql);
 			if($res) {
@@ -146,7 +145,7 @@ class MysqlCoroutine {
 				throw new \Exception("MySQL Coroutine errno:{$errno},{$error}", 1);
 			}
 		}else {
-			// 断线重连
+			//try to reconnect
 			$configInfo = $master->configInfo;
 			$isConnect = $master->connect($configInfo);
 			if($isConnect) {
@@ -187,6 +186,32 @@ class MysqlCoroutine {
 		return $result;
 	}
 
+	/**
+	 * connect
+	 * @param  array       $config             
+	 * @param  int|integer $retry_connect_times
+	 * @return [type]                          
+	 */
+	protected function connect(array $config = [], int $retry_connect_times = 1) {
+		do {
+			$swoole_mysql = new \Swoole\Coroutine\MySQL();
+	        $swoole_mysql->configInfo = $config;
+	        $isConnected = $swoole_mysql->connect($config);
+	        var_dump($isConnected);
+	        if($isConnected) {
+	            break;
+            }
+            unset($swoole_mysql);
+		}while($retry_connect_times--);
+
+		if($isConnected && is_object($swoole_mysql)) {
+            return $swoole_mysql;
+        }else {
+        	$host = $config['host'];
+            throw new \Exception("swoole_mysql connect failed to redis host:{$host}");
+        }
+	}
+
     /**
      * getMaster 获取主服务器实例
      * @throws \Exception
@@ -196,21 +221,10 @@ class MysqlCoroutine {
 		if(is_object($this->master_swoole_mysql)) {
 			return $this->master_swoole_mysql;
 		}
-        foreach($this->master_mysql_config as $k=>$config) {
-            $swoole_mysql = new \Swoole\Coroutine\MySQL();
-            $swoole_mysql->configInfo = $config;
-            $isConnect = $swoole_mysql->connect($config);
-            if($isConnect == false) {
-                $isConnect = $swoole_mysql->connect($config);
-                // 如果非分布式,那么读写都是同一个对象
-                if($isConnect) {
-                    $this->master_swoole_mysql = $swoole_mysql;
-                }else {
-                    throw new \Exception("Master_swoole_mysql connect failed", 1);
-                }
-            }else {
-                $this->master_swoole_mysql = $swoole_mysql;
-            }
+		$config = array_shift($this->master_mysql_config);
+        $master_mysql = $this->connect($config);
+        if($master_mysql instanceof \Swoole\Coroutine\MySQL) {
+        	$this->master_swoole_mysql = $master_mysql;
         }
 		return $this->master_swoole_mysql;
 	}
@@ -230,30 +244,28 @@ class MysqlCoroutine {
 		if(isset($this->slave_swoole_mysql[$num])) {
 			return $this->slave_swoole_mysql[$num];
 		}
+		// 存在从服务器，随机取一个
+		if(is_array($this->slave_swoole_mysql) && !empty($this->slave_swoole_mysql)) {
+			$num = array_rand($this->slave_swoole_mysql);
+			$slave_mysql = $this->slave_swoole_mysql[$num];
+			if($slave_mysql instanceof \Swoole\Coroutine\MySQL) {
+				return $slave_mysql;
+			}
+			unset($slave_mysql);
+		}
+
         // 随机获取一个从服务器
         $num = array_rand($this->slave_mysql_config);
-        // 判断是否已建立实例对象
+        // 是否已建立实例对象
         if(isset($this->slave_swoole_mysql[$num])) {
             return $this->slave_swoole_mysql[$num];
         }
         // 创建实例对象
         $config = $this->slave_mysql_config[$num];
-        $swoole_mysql = new \Swoole\Coroutine\MySQL();
-        $swoole_mysql->configInfo = $config;
-        $isConnect = $swoole_mysql->connect($config);
-        if($isConnect == false) {
-            $isConnect = $swoole_mysql->connect($config);
-            if($isConnect) {
-                // 分布式
-                $this->slave_swoole_mysql[$num] = $swoole_mysql;
-            }else {
-                throw new \Exception("Slave_swoole_mysql connect failed", 1);
-            }
-        }else {
-            // 分布式
-            $this->slave_swoole_mysql[$num] = $swoole_mysql;
+       	$slave_mysql = $this->connect($config);
+       	if($slave_mysql instanceof \Swoole\Coroutine\MySQL) {
+        	$this->slave_swoole_mysql[$num] = $slave_mysql;
         }
-
         return $this->slave_swoole_mysql[$num];
 
 	}
@@ -299,7 +311,7 @@ class MysqlCoroutine {
 		}else {
 			$ports = $this->config['port'];
 		}
-		// 主从架构
+		// master-slave model
 		if(count($hosts) > 1 && $this->deploy) {
 			foreach($hosts as $k=>$host) {
 				$serverInfo[$k]['host'] = $host;
@@ -335,7 +347,7 @@ class MysqlCoroutine {
 			}
 
 		}else {
-			// 单机架构
+			// single model
 			$k = 0;
 			$serverInfo[$k]['host'] = $hosts[$k];
 			$serverInfo[$k]['user'] = $users[$k];
@@ -357,7 +369,7 @@ class MysqlCoroutine {
 	 * @param  array  $args
 	 * @return mixed
 	 */
-	public function __call($method, $args) {
+	public function __call(string $method, array $args = []) {
 		$db = $this->getMaster();
 		return $db->$method(...$args);
 	}
