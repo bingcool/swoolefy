@@ -54,7 +54,7 @@ class BaseObject {
      * @param mixed $cid
      */
     public function setCid($cid = null) {
-        $this->coroutine_id = $cid;
+        $cid && $this->coroutine_id = $cid;
     }
 
     /**
