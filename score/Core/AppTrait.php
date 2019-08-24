@@ -402,7 +402,7 @@ trait AppTrait {
 	 * getModule 
 	 * @return string|null
 	 */
-	public function getModule() {
+	public function getModuleId() {
 		list($count,$routeParams) = $this->getRouteParams();
 		if($count == 3) {
 			return $routeParams[0];
@@ -415,7 +415,7 @@ trait AppTrait {
 	 * getController
 	 * @return string
 	 */
-	public function getController() {
+	public function getControllerId() {
 		list($count,$routeParams) = $this->getRouteParams();
 		if($count == 3) {
 			return $routeParams[1];
@@ -428,7 +428,7 @@ trait AppTrait {
 	 * getAction
 	 * @return string
 	 */
-	public function getAction() {
+	public function getActionId() {
 		list($count, $routeParams) = $this->getRouteParams();
 		return array_pop($routeParams);
 	}
@@ -442,9 +442,9 @@ trait AppTrait {
 	 */
 	public function getModel(string $model = '', string $module = '') {
 		if(empty($module)) {
-			$module = $this->getModule();
+			$module = $this->getModuleId();
 		}
-		$controller = $this->getController();
+		$controller = $this->getControllerId();
 		// 如果存在module
 		if(!empty($module)) {
 			// model的类文件对应控制器

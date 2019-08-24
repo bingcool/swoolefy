@@ -18,6 +18,7 @@ use Swoolefy\Core\HttpRoute;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Log\LogManager;
+use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class App extends \Swoolefy\Core\Component {
@@ -44,6 +45,12 @@ class App extends \Swoolefy\Core\Component {
 	 * @var null
 	 */
 	public $coroutine_id;
+
+    /**
+     * $controllerInstance 控制器实例
+     * @var null
+     */
+    protected $controllerInstance = null;
 
     /**
      * $log 日志
@@ -143,7 +150,22 @@ class App extends \Swoolefy\Core\Component {
 		}
 	}
 
-	/**
+    /**
+     * @param BController $controller
+     */
+	public function setControllerInstance(BController $controller) {
+	    $this->controllerInstance = $controller;
+    }
+
+    /**
+     * @param int $type
+     * @return |null
+     */
+    public function getControllerInstance() {
+        return $this->controllerInstance;
+    }
+
+    /**
 	 * catchAll 捕捉拦截所有请求，进入维护模式
 	 * @return boolean
 	 */

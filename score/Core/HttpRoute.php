@@ -229,6 +229,7 @@ class HttpRoute extends AppDispatch {
 		Application::getApp()->setAppConf($this->config);
 		// Create Controller Instance
 		$controllerInstance = new $class();
+        Application::getApp()->setControllerInstance($controllerInstance);
         // invoke _beforeAction
 		$isContinueAction = $controllerInstance->_beforeAction();
         if($isContinueAction === false) {

@@ -112,9 +112,9 @@ class View {
 	 * @return  mixed
 	 */
 	protected function redirectFetch($template_file) {
-		$module = Application::getApp()->getModule();
-		$controller = Application::getApp()->getController();
-		$action = Application::getApp()->getAction();
+		$module = Application::getApp()->getModuleId();
+		$controller = Application::getApp()->getControllerId();
+		$action = Application::getApp()->getActionId();
 		if(!$template_file) {
 			$template_file = $action.'.html';
 		}
