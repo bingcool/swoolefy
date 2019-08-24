@@ -74,19 +74,18 @@ class App extends \Swoolefy\Core\Component {
 	 */
 	public function __construct(array $config = []) {
 		$this->config = $config;
-		Swfy::setAppConf($config);
 	}
 
 	/**
 	 * init 初始化函数
 	 * @return void
 	 */
-	protected function _init() {
-		AppInit::_init();
+	protected function _init($request) {
+		AppInit::init($request);
 		// session start
 		if(isset($this->config['session_start']) && $this->config['session_start']) {
-			if(is_object($this->session)) {
-				$this->session->start();
+			if(is_object($this->get('session'))) {
+				$this->get('session')->start();
 			};
 		}
 	} 
@@ -94,11 +93,12 @@ class App extends \Swoolefy\Core\Component {
 	/**
 	 * boostrap 初始化引导
 	 */
-	protected function _bootstrap() {
-	    if(isset(Swfy::$config['application_index'])) {
-	    	$application_index = Swfy::$config['application_index'];
+	protected function _bootstrap($request) {
+        $config = BaseServer::getConf();
+	    if(isset($config['application_index'])) {
+	    	$application_index = $config['application_index'];
 	    	if(class_exists($application_index)) {
-            	Swfy::$config['application_index']::bootstrap($this->getRequestParams());
+            	$config['application_index']::bootstrap($this->getRequestParams());
         	}
         }
 	}
@@ -117,8 +117,8 @@ class App extends \Swoolefy\Core\Component {
             $this->response = $response;
             $this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
             Application::setApp($this);
-            $this->_init();
-            $this->_bootstrap();
+            $this->_init($request);
+            $this->_bootstrap($request);
             $this->defer();
             if(!$this->catchAll()) {
                 $route = new HttpRoute($extend_data);

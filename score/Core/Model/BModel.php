@@ -19,6 +19,7 @@ class BModel extends \Swoolefy\Core\SModel {
 	 * @var null
 	 */
 	public $request = null;
+
 	/**
 	 * $response 
 	 * @var null
@@ -34,6 +35,5 @@ class BModel extends \Swoolefy\Core\SModel {
 		$this->response = Application::getApp()->response;
 	}
 
-	// model的多路复用trait
 	use \Swoolefy\Core\ModelTrait, \Swoolefy\Core\AppObjectTrait;
 }

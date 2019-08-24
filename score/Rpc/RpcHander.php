@@ -95,7 +95,7 @@ class RpcHander extends Swoole implements HanderInterface {
 
             if($callable) {
                 $Dispatch = new ServiceDispatch($callable, $params, $this->header);
-                if(isset($is_task_process) && $is_task_process == true) {
+                if(isset($is_task_process) && $is_task_process === true) {
                     list($from_worker_id, $task_id, $task) = $extend_data;
                     $Dispatch->setFromWorkerIdAndTaskId($from_worker_id, $task_id, $task);
                 }

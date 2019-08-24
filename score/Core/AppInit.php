@@ -18,17 +18,8 @@ class AppInit extends AppObject {
 	/**
 	 * _init
 	 */
-	public static function _init() {
-		$request = Application::getApp()->request;
-		self::resetServer($request);
-	}
-
-	/**
-	 * resetServer 重置SERVER请求对象
-	 * @param  object  $request 请求对象
-	 * @return void
-	 */
-	public static function resetServer($request) {
+	public static function init($request) {
+		// 重置SERVER请求对象
 		foreach($request->server as $p=>$val) {
 			$upper = strtoupper($p);
 			$request->server[$upper] = $val;

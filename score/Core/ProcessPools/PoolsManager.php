@@ -75,12 +75,12 @@ class PoolsManager {
         self::$total_process_num += (self::$worker_num * $process_num_bind_worker);
 
         if(self::$total_process_num > self::PROCESS_NUM) {
-            throw new \Exception("total self process num more then ".self::PROCESS_NUM, 1);
+            throw new \Exception("PoolsManager Error : total self process num more then ".self::PROCESS_NUM, 1);
         }
 
         $key = md5($processName);
         if(isset(self::$processList[$key])) {
-            throw new \Exception("you can not add the same process : $processName", 1);
+            throw new \Exception("PoolsManager Error : you can not add the same process : $processName", 1);
         }
 
         for($i = 0; $i < self::$worker_num; $i++) {
