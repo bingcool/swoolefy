@@ -59,7 +59,7 @@ class RedisCoroutine {
 	 * $master_redis_host redis的主服务器实例
 	 * @var array
 	 */
-	protected $master_redis_hosts;
+	protected $master_redis_instances;
 
 	/**
 	 * $slave_redis_config redis从服务器的配置
@@ -70,7 +70,7 @@ class RedisCoroutine {
 	 * $slave_redis_host redis从服务器实例
 	 * @var array
 	 */
-	protected $slave_redis_hosts = [];
+	protected $slave_redis_instances = [];
 
 	/**
 	 * __construct
@@ -121,7 +121,7 @@ class RedisCoroutine {
 		if($this->host && $this->port) {
 			$this->setConfig();
 		}else {
-			throw new \Exception("You must set Host And Port");
+			throw new \Exception("You must set Host and Port");
 		}
 		return $this;
 	}
@@ -169,18 +169,17 @@ class RedisCoroutine {
 	}
 
 	/**
-	 * getMaster 获取主master
-     * @throws mixed
-	 * @return mixed
+	 * connect 
+	 * @param  array        $config       
+	 * @param  int|integer  $retry_connect_times
+	 * @return mixed                           
 	 */
-	public function getMaster() {
-		if(is_object($this->master_redis_hosts)) {
-			return $this->master_redis_hosts;
-		}
+	protected function connect(array $config = [], int $retry_connect_times = 1) {
+		$host = $config['host'];
+		$port = $config['port'];
+		$password = $config['password'];
 
-		foreach($this->master_redis_config as $k=>$config) {
-			$config = array_values($config);
-			list($host, $port, $password) = $config;
+		do {
 			$redis = new CRedis();
 			if(!empty($this->options)) {
                 $redis->setOptions($this->options);
@@ -188,31 +187,42 @@ class RedisCoroutine {
 			$redis->connect($host, $port);
 			$redis->auth($password);
 			$isConnected = $redis->connected;
-
 			if($isConnected) {
-				$this->master_redis_hosts = $redis;
-			}else {
-				unset($redis);
-				$redis = new CRedis();
-				$redis->connect($host, $port);
-                if(!empty($this->options)) {
-                    $redis->setOptions($this->options);
-                }
-				$redis->auth($password);
-				$isConnected = $redis->connected;
-				if($isConnected) {
-					$this->master_redis_hosts = $redis;
-				}else {
-					throw new \Exception("Master Coroutine Redis client failed to connect redis server", 1);
-				}
+				break;
 			}
-			break;
+		}while($retry_connect_times--);
+
+		if($isConnected) {
+			return $redis;
+		}else {
+			throw new \Exception("Coroutine Redis client failed to connect redis server host:{$host}");
 		}
-		return $this->master_redis_hosts;
 	}
 
 	/**
-	 * getSlave 获取从redis
+	 * getMaster 获取master redis
+     * @throws mixed
+	 * @return mixed
+	 */
+	public function getMaster() {
+		if(is_object($this->master_redis_instances)) {
+			return $this->master_redis_instances;
+		}
+		$master_redis = $this->connect(array_shift($this->master_redis_config));
+		is_object($master_redis) && $this->master_redis_instances = $master_redis;
+		return $this->master_redis_instances;
+	}
+
+	/**
+	 * getRedis 使用代理时，没有主从之分，直接获取代理服务器 
+	 * @return 
+	 */
+	public function getRedis() {
+		return $this->getMaster();
+	}
+
+	/**
+	 * getSlave 获取slave redis
 	 * @param  int|null $num
      * @throws mixed
 	 * @return mixed
@@ -222,44 +232,27 @@ class RedisCoroutine {
 			return $this->getMaster();
 		}
 
-		if(isset($this->slave_redis_hosts[$num])) {
-			return $this->slave_redis_hosts[$num];
+		if(isset($this->slave_redis_instances[$num])) {
+			return $this->slave_redis_instances[$num];
 		}
 
-        // 随机取一个从服务器
+		if(!empty($this->slave_redis_instances)) {
+			$num = array_rand($this->slave_redis_instances);
+			$slave_redis = $this->slave_redis_instances[$num];
+			if($slave_redis instanceof CRedis) {
+				return $slave_redis;
+			}
+			unset($slave_redis);
+		}
+
         $num = array_rand($this->slave_redis_config);
-        if(!isset($this->slave_redis_hosts[$num])) {
+        if(!isset($this->slave_redis_instances[$num])) {
             $config = $this->slave_redis_config[$num];
-            $config = array_values($config);
-            list($host, $port, $password) = $config;
-            $redis = new CRedis();
-            $redis->connect($host, $port);
-            if(!empty($this->options)) {
-                $redis->setOptions($this->options);
-            }
-            $redis->auth($password);
-            $isConnected = $redis->connected;
+			$slave_redis = $this->connect($config);
+			is_object($slave_redis) && $this->slave_redis_instances[$num] = $slave_redis;
+		}
 
-            if($isConnected) {
-                $this->slave_redis_hosts[$num] = $redis;
-            }else {
-                unset($redis);
-                $redis = new CRedis();
-                $redis->connect($host, $port);
-                if(!empty($this->options)) {
-                    $redis->setOptions($this->options);
-                }
-                $redis->auth($password);
-                $isConnected = $redis->connected;
-                if($isConnected) {
-                    $this->slave_redis_hosts[$num] = $redis;
-                }else {
-                    throw new \Exception("Slave Coroutine Redis client failed to redis server", 1);
-                }
-            }
-        }
-        return $this->slave_redis_hosts[$num];
-
+		return $this->slave_redis_instances[$num];
 	}
 
 	/**
@@ -304,7 +297,7 @@ class RedisCoroutine {
 
 		$serverInfo = [];
 		// cluster mode
-		if(count($hosts) > 1 && $this->is_deploy) {
+		if(count($hosts) > 1 && $this->deploy) {
 			foreach($hosts as $k=>$host) {
 				$serverInfo[$k]['host'] = $host;
 				if(count($ports) > 1 ) {
@@ -338,7 +331,7 @@ class RedisCoroutine {
 	 * @param  array   $args
 	 * @return mixed
 	 */
-	public function __call(string $method, array $args) {
+	public function __call(string $method, array $args = []) {
 		$redis = $this->getMaster();
 		return $redis->$method(...$args);
 	}
