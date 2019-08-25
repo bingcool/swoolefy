@@ -23,7 +23,7 @@ class Swoole extends BaseObject {
 	 * $config 当前应用层的配置 
 	 * @var null
 	 */
-	public $config = null;
+	public $app_conf = null;
 
 	/**
 	 * $fd fd连接句柄标志
@@ -43,12 +43,6 @@ class Swoole extends BaseObject {
 	 */
 	public $rpc_pack_header = [];
 
-	/**
-	 * $coroutine_id 
-	 * @var null
-	 */
-	public $coroutine_id;
-
     /**
      * $log 日志
      */
@@ -65,8 +59,7 @@ class Swoole extends BaseObject {
 	 * @param array $config 应用层配置
 	 */
 	public function __construct(array $config = []) {
-		$this->config = $config;
-		Swfy::setAppConf($config);
+		$this->app_conf = $config;
 	}
 
 	/**
@@ -82,10 +75,10 @@ class Swoole extends BaseObject {
 	 */
 	protected function _bootstrap($recv = null) {
 		static::bootstrap($recv);
-		if(isset(Swfy::$config['application_service'])) {
-			$application_service = Swfy::$config['application_service'];
+		if(isset(Swfy::$conf['application_service'])) {
+			$application_service = Swfy::$conf['application_service'];
 			if(class_exists($application_service)) {
-            	Swfy::$config['application_service']::bootstrap($recv);
+            	Swfy::$conf['application_service']::bootstrap($recv);
         	}
 		}
 	}

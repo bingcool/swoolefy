@@ -101,8 +101,8 @@ trait ServiceTrait {
 	    $result = false;
 		// 获取当前的处理的worker_id
 		$workerId = self::getCurrentWorkerId();
-		if(isset(Swfy::$config['setting']['log_file'])) {
-			$path = pathinfo(Swfy::$config['setting']['log_file'], PATHINFO_DIRNAME);
+		if(isset(Swfy::$conf['setting']['log_file'])) {
+			$path = pathinfo(Swfy::$conf['setting']['log_file'], PATHINFO_DIRNAME);
 			$filePath = $path.'/includes.json';
 		}
 		
@@ -149,7 +149,7 @@ trait ServiceTrait {
      */
 	public static function setConf(array $conf) {
         if(is_array($conf)) {
-            Swfy::$config = $conf;
+            Swfy::$conf = $conf;
             return true;
         }
         return false;
@@ -161,8 +161,8 @@ trait ServiceTrait {
 	 * @return   array
 	 */
 	public static function getConf() {
-		if(!empty(Swfy::$config)) {
-			return Swfy::$config;
+		if(!empty(Swfy::$conf)) {
+			return Swfy::$conf;
 		}
 		return BaseServer::getConf();
 	}
@@ -172,8 +172,8 @@ trait ServiceTrait {
 	 * @return   array
 	 */
 	public static function getAppConf() {
-	    if(!empty(Swfy::$appConfig)) {
-            return Swfy::$appConfig;
+	    if(!empty(Swfy::$app_conf)) {
+            return Swfy::$app_conf;
         }
         return BaseServer::getAppConf();
 	}
@@ -183,8 +183,8 @@ trait ServiceTrait {
 	 * @param    array         $config
 	 * @return   boolean
 	 */
-	public static function setAppConf(array $config = []) {
-		Swfy::$appConfig = $config;
+	public static function setAppConf(array $conf = []) {
+		Swfy::$app_conf = $conf;
 		return true;
 	}
 
@@ -193,7 +193,7 @@ trait ServiceTrait {
 	 * @return   array
 	 */
 	public static function getSwooleSetting() {
-		return BaseServer::getSetting();
+		return BaseServer::getSwooleSetting();
 	}
 
 	/**

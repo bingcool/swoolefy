@@ -38,7 +38,7 @@ class App extends \Swoolefy\Core\Component {
 	 * $config 当前应用层的配置 
 	 * @var null
 	 */
-	public $config = null;
+	public $app_conf = null;
 
 	/**
 	 * $coroutine_id 
@@ -72,8 +72,8 @@ class App extends \Swoolefy\Core\Component {
 	 * __construct
 	 * @param  array $config 应用层配置
 	 */
-	public function __construct(array $config = []) {
-		$this->config = $config;
+	public function __construct(array $conf = []) {
+		$this->app_conf = $conf;
 	}
 
 	/**
@@ -83,7 +83,7 @@ class App extends \Swoolefy\Core\Component {
 	protected function _init($request) {
 		AppInit::init($request);
 		// session start
-		if(isset($this->config['session_start']) && $this->config['session_start']) {
+		if(isset($this->app_conf['session_start']) && $this->app_conf['session_start']) {
 			if(is_object($this->get('session'))) {
 				$this->get('session')->start();
 			};
@@ -94,11 +94,11 @@ class App extends \Swoolefy\Core\Component {
 	 * boostrap 初始化引导
 	 */
 	protected function _bootstrap($request) {
-        $config = BaseServer::getConf();
-	    if(isset($config['application_index'])) {
-	    	$application_index = $config['application_index'];
+        $conf = BaseServer::getConf();
+	    if(isset($conf['application_index'])) {
+	    	$application_index = $conf['application_index'];
 	    	if(class_exists($application_index)) {
-            	$config['application_index']::bootstrap($this->getRequestParams());
+            	$conf['application_index']::bootstrap($this->getRequestParams());
         	}
         }
 	}
@@ -142,7 +142,7 @@ class App extends \Swoolefy\Core\Component {
 		static $is_reset_app_conf;
 		if(!isset($is_reset_app_conf)) {
 			if(!empty($conf)) {
-				$this->config = $conf;
+				$this->app_conf = $conf;
 				Swfy::setAppConf($conf);
 				BaseServer::setAppConf($conf);
 				$is_reset_app_conf = true;
@@ -158,7 +158,6 @@ class App extends \Swoolefy\Core\Component {
     }
 
     /**
-     * @param int $type
      * @return |null
      */
     public function getControllerInstance() {
@@ -171,7 +170,7 @@ class App extends \Swoolefy\Core\Component {
 	 */
 	public function catchAll() {
 	    // catchAll
-		if(isset($this->config['catch_handle']) && $handle = $this->config['catch_handle']) {
+		if(isset($this->app_conf['catch_handle']) && $handle = $this->app_conf['catch_handle']) {
             $this->is_end = true;
 			if(is_array($handle)) {
 				$this->response->header('Content-Type','application/json; charset=UTF-8');

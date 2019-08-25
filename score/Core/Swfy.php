@@ -26,13 +26,13 @@ class Swfy extends \Swoolefy\Core\BaseObject {
 	 * $config swoole服务对应协议层的配置
 	 * @var null
 	 */
-	public static $config = [];
+	public static $conf = [];
 	
 	/**
 	 * $appConfig 应用层的配置
 	 * @var null
 	 */
-	public static $appConfig = [];
+	public static $app_conf = [];
 
 	/**
 	 * $com_alias_name 动态创建组件对象

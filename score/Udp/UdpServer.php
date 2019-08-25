@@ -13,7 +13,6 @@ namespace Swoolefy\Udp;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\BaseServer;
-use Swoole\Server as udp_server;
 
 abstract class UdpServer extends BaseServer {
 
@@ -48,7 +47,7 @@ abstract class UdpServer extends BaseServer {
 	 * __construct
 	 * @param array $config
 	 */
-	public function __construct(array $config=[]) {
+	public function __construct(array $config = []) {
 		self::clearCache();
 		self::$config = $config;
 		self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
