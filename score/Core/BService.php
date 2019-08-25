@@ -21,7 +21,7 @@ use Swoolefy\Core\Application;
 class BService extends BaseObject {
 
 	/**
-	 * $config 应用层配置
+	 * $app_conf 应用层配置
 	 * @var null
 	 */
 	public $app_conf = null;

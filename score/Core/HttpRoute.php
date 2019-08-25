@@ -78,10 +78,10 @@ class HttpRoute extends AppDispatch {
 	 */
 	public function __construct($extend_data = null) {
 		parent::__construct();
-		$App = Application::getApp();
-		$this->request = $App->request;
-		$this->response = $App->response;
-		$this->app_conf = $App->app_conf;
+		$app = Application::getApp();
+		$this->request = $app->request;
+		$this->response = $app->response;
+		$this->app_conf = $app->app_conf;
 		$this->require_uri = $this->request->server['PATH_INFO'];
 		$this->extend_data = $extend_data;
 	}
@@ -224,12 +224,14 @@ class HttpRoute extends AppDispatch {
 				}
 			}
 		}
-		// reset app conf
-		Application::getApp()->setAppConf($this->app_conf);
+		// app
+        $app = Application::getApp();
+        // reset app conf
+        $app->setAppConf($this->app_conf);
 		// Create Controller Instance
 		$controllerInstance = new $class();
 		// set Controller Instance
-        Application::getApp()->setControllerInstance($controllerInstance);
+        $app->setControllerInstance($controllerInstance);
         // invoke _beforeAction
 		$isContinueAction = $controllerInstance->_beforeAction();
         if($isContinueAction === false) {

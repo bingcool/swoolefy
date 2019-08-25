@@ -20,7 +20,7 @@ use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class EventController extends BaseObject {
 	/**
-	 * $config 应用层配置
+	 * $app_conf 应用层配置
 	 * @var null
 	 */
 	public $app_conf = null;
@@ -250,7 +250,7 @@ class EventController extends BaseObject {
 		static::_afterAction();
         // callhooks
         $this->callAfterEventHook();
-        // log
+        // handle log
         $this->handerLog();
         // remove Model
 		ZModel::removeInstance();
