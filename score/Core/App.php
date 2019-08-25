@@ -35,7 +35,7 @@ class App extends \Swoolefy\Core\Component {
 	public $response = null;
 
 	/**
-	 * $config 当前应用层的配置 
+	 * $app_conf 当前应用层的配置
 	 * @var null
 	 */
 	public $app_conf = null;
@@ -82,7 +82,6 @@ class App extends \Swoolefy\Core\Component {
 	 */
 	protected function _init($request) {
 		AppInit::init($request);
-		// session start
 		if(isset($this->app_conf['session_start']) && $this->app_conf['session_start']) {
 			if(is_object($this->get('session'))) {
 				$this->get('session')->start();

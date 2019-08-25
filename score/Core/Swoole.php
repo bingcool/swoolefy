@@ -20,7 +20,7 @@ use Swoolefy\Core\Coroutine\CoroutineManager;
 class Swoole extends BaseObject {
 
 	/**
-	 * $config 当前应用层的配置 
+	 * $app_conf 当前应用层的配置
 	 * @var null
 	 */
 	public $app_conf = null;
