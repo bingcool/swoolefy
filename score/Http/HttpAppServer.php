@@ -42,8 +42,8 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
             return;
        	}
        	try {
-            $AppConfig = \Swoolefy\Core\Swfy::getAppConf();
-            $appInstance = new \Swoolefy\Core\App($AppConfig);
+            $app_conf = \Swoolefy\Core\Swfy::getAppConf();
+            $appInstance = new \Swoolefy\Core\App($app_conf);
             $appInstance->run($request, $response);
         }catch (\Throwable $t) {
             throw new \Exception($t->getMessage());

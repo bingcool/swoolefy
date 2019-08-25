@@ -35,10 +35,10 @@ class HttpRoute extends AppDispatch {
 	public $require_uri = null;
 
 	/**
-	 * $config 配置值
+	 * $app_conf 应用层配置值
 	 * @var null
 	 */
-	public $config = null;
+	public $app_conf = null;
 
 	/**
 	 * $extend_data 额外请求数据
@@ -81,7 +81,7 @@ class HttpRoute extends AppDispatch {
 		$App = Application::getApp();
 		$this->request = $App->request;
 		$this->response = $App->response;
-		$this->config = $App->config;
+		$this->app_conf = $App->app_conf;
 		$this->require_uri = $this->request->server['PATH_INFO'];
 		$this->extend_data = $extend_data;
 	}
@@ -91,14 +91,14 @@ class HttpRoute extends AppDispatch {
 	 * @return mixed
 	 */
 	public function dispatch() {
-	    if(!isset($this->config['route_model']) || !in_array($this->config['route_model'], [$this->route_model_pathinfo, $this->route_model_query_params])) {
-            $this->config['route_model'] = 1;
+	    if(!isset($this->app_conf['route_model']) || !in_array($this->app_conf['route_model'], [$this->route_model_pathinfo, $this->route_model_query_params])) {
+            $this->app_conf['route_model'] = 1;
         }
 
-		if($this->config['route_model'] == $this->route_model_pathinfo) {
+		if($this->app_conf['route_model'] == $this->route_model_pathinfo) {
 			if($this->require_uri == '/' || $this->require_uri == '//') {
-			    if(isset($this->config['default_route']) && !empty($this->config['default_route'])) {
-                    $this->require_uri = '/'.trim($this->config['default_route'], '/');
+			    if(isset($this->app_conf['default_route']) && !empty($this->app_conf['default_route'])) {
+                    $this->require_uri = '/'.trim($this->app_conf['default_route'], '/');
                 }else {
                 	$this->require_uri = '/'.$this->default_route;
                 }
@@ -124,7 +124,7 @@ class HttpRoute extends AppDispatch {
 					break;	
 				}
 			}
-		}else if($this->config['route_model'] == $this->route_model_query_params) {
+		}else if($this->app_conf['route_model'] == $this->route_model_query_params) {
 			$module = (isset($this->request->get['m']) && !$this->request->get['m']) ? $this->request->get['m'] : null;
 			$controller = $this->request->get['c'];
 			$action = isset($this->request->get['t']) ? $this->request->get['t'] : 'index';
@@ -170,21 +170,21 @@ class HttpRoute extends AppDispatch {
 	public function invoke($module = null, $controller = null, $action = null) {
 		// 匹配控制器文件
 		$controller = $controller.$this->controller_suffix;
-		if(!isset($this->config['app_namespace'])) {
-            $this->config['app_namespace'] = APP_NAME;
+		if(!isset($this->app_conf['app_namespace'])) {
+            $this->app_conf['app_namespace'] = APP_NAME;
         }
         $filePath = APP_PATH.DIRECTORY_SEPARATOR.'Controller'.$controller.'.php';
         if($module) {
             $filePath = APP_PATH.DIRECTORY_SEPARATOR.'Module'.DIRECTORY_SEPARATOR.$module.DIRECTORY_SEPARATOR.$controller.'.php';
             // 访问类的命名空间
-			$class = $this->config['app_namespace'].'\\'.'Module'.'\\'.$module.'\\'.$controller;
+			$class = $this->app_conf['app_namespace'].'\\'.'Module'.'\\'.$module.'\\'.$controller;
 			// 不存在请求类文件
 			if(!self::isExistRouteFile($class)) {
 				if(!is_file($filePath)) {
 					$this->response->status(404);
 					$this->response->header('Content-Type','application/json; charset=UTF-8');
                     // 使用配置的NotFound类
-                    if(isset($this->config['not_found_handler']) && is_array($this->config['not_found_handler'])) {
+                    if(isset($this->app_conf['not_found_handler']) && is_array($this->app_conf['not_found_handler'])) {
                         list($class, $action) = $this->redirectNotFound();
                     }else {
                         Application::getApp()->setEnd();
@@ -201,14 +201,14 @@ class HttpRoute extends AppDispatch {
 
 		}else {
 			// 访问类的命名空间
-			$class = $this->config['app_namespace'].'\\'.'Controller'.'\\'.$controller;
+			$class = $this->app_conf['app_namespace'].'\\'.'Controller'.'\\'.$controller;
 			if(!self::isExistRouteFile($class)) {
 				$filePath = APP_PATH.DIRECTORY_SEPARATOR.'Controller'.DIRECTORY_SEPARATOR.$controller.'.php';
 				if(!is_file($filePath)) {
 					$this->response->status(404);
 					$this->response->header('Content-Type','application/json; charset=UTF-8');
                     // 使用配置的NotFound类
-                    if(isset($this->config['not_found_handler']) && is_array($this->config['not_found_handler'])) {
+                    if(isset($this->app_conf['not_found_handler']) && is_array($this->app_conf['not_found_handler'])) {
                         // 访问类的命名空间
                         list($class, $action) = $this->redirectNotFound();
                     }else {
@@ -225,7 +225,7 @@ class HttpRoute extends AppDispatch {
 			}
 		}
 		// reset app conf
-		Application::getApp()->setAppConf($this->config);
+		Application::getApp()->setAppConf($this->app_conf);
 		// Create Controller Instance
 		$controllerInstance = new $class();
 		// set Controller Instance
@@ -309,9 +309,9 @@ class HttpRoute extends AppDispatch {
 	 * @return   array
 	 */
 	public function redirectNotFound($call_func = null) {
-		if(isset($this->config['not_found_handler'])) {
+		if(isset($this->app_conf['not_found_handler'])) {
 			// 重定向至NotFound类
-			list($namespace, $action) = $this->config['not_found_handler'];
+			list($namespace, $action) = $this->app_conf['not_found_handler'];
 			$route_params = explode('\\', $namespace);
 			if(is_array($route_params)) {
 				$controller = array_pop($route_params);

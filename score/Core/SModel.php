@@ -23,7 +23,7 @@ class SModel extends BaseObject {
 	 * $config 应用层配置
 	 * @var null
 	 */
-	public $config = null;
+	public $app_conf = null;
 
 	/**
 	 * $struct 数据结构对象
@@ -35,7 +35,7 @@ class SModel extends BaseObject {
 	 * __construct 初始化函数
 	 */
 	public function __construct() {
-		$this->config = Swfy::getAppConf();
+		$this->app_conf = Swfy::getAppConf();
 		$this->struct = new Struct();
 		$this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
 	}

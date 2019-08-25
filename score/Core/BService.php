@@ -24,7 +24,7 @@ class BService extends BaseObject {
 	 * $config 应用层配置
 	 * @var null
 	 */
-	public $config = null;
+	public $app_conf = null;
 
 	/**
 	 * $selfModel 控制器对应的自身model
@@ -49,7 +49,7 @@ class BService extends BaseObject {
 	 */
 	public function __construct() {
 		$this->fd = Application::getApp()->fd;
-		$this->config = Application::getApp()->config;
+		$this->app_conf = Application::getApp()->app_conf;
 		if(BaseServer::isUdpApp()) {
 			$this->client_info = Application::getApp()->client_info;
 		}else {

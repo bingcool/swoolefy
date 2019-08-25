@@ -119,7 +119,7 @@ class BaseServer {
 	 */
 	public function __construct() {
 		// set config
-		Swfy::$config = self::$config;
+		Swfy::$conf = self::$config;
         // start runtime Coroutine
         self::runtimeEnableCoroutine();
 		// set timeZone
@@ -292,17 +292,17 @@ class BaseServer {
      * setAppConf
      * @param array $config
      */
-    public static function setAppConf(array $config = []) {
-    	if(!empty($config)) {
-    		static::$config['app_conf'] = $config;
+    public static function setAppConf(array $conf = []) {
+    	if(!empty($conf)) {
+    		static::$config['app_conf'] = $conf;
     	}
     }
 
 	/**
-	 * getSetting 获取swoole的配置项
+	 * getSwooleSetting 获取swoole的配置项
 	 * @return   array
 	 */
-	public static function getSetting() {
+	public static function getSwooleSetting() {
 		return self::$config['setting'];
 	}
 

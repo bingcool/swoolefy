@@ -23,7 +23,7 @@ class EventController extends BaseObject {
 	 * $config 应用层配置
 	 * @var null
 	 */
-	public $config = null;
+	public $app_conf = null;
 
 	/**
 	 * $selfModel 控制器对应的自身model
@@ -61,7 +61,7 @@ class EventController extends BaseObject {
 	 */
 	public function __construct(...$args) {
 		$this->creatObject();
-		$this->config = Swfy::getAppConf();
+		$this->app_conf = Swfy::getAppConf();
 		$this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
 		if($this->canCreateApp($this->coroutine_id)) {
 			Application::setApp($this);

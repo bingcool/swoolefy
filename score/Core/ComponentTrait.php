@@ -70,7 +70,6 @@ trait ComponentTrait {
 		// 配置文件初始化创建公用对象
 		$coreComponents = $this->coreComponents();
 		$components = array_merge($coreComponents, BaseServer::getAppConf()['components']);
-
 		foreach($components as $com_name=>$component) {
 
 		    if($component instanceof \Closure || isset($this->container[$com_name])) {

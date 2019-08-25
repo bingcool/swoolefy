@@ -30,7 +30,7 @@ class BController extends \Swoolefy\Core\AppObject {
 	 * $config
 	 * @var null
 	 */
-	public $config = null;
+	public $app_conf = null;
 
 	/**
 	 * __construct
@@ -39,7 +39,7 @@ class BController extends \Swoolefy\Core\AppObject {
 	public function __construct() {
 		$this->request = Application::getApp()->request;
 		$this->response = Application::getApp()->response;
-		$this->config = Application::getApp()->config;
+		$this->app_conf = Application::getApp()->app_conf;
 		if(\Co::getCid() > 0) {
 			defer(function() {
 		    	$this->defer();

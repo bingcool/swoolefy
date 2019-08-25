@@ -449,17 +449,17 @@ trait AppTrait {
 		if(!empty($module)) {
 			// model的类文件对应控制器
 			if(!empty($model)) {
-				$modelClass = $this->config['app_namespace'].'\\'.'Module'.'\\'.$module.'\\'.'Model'.'\\'.$model;
+				$modelClass = $this->app_conf['app_namespace'].'\\'.'Module'.'\\'.$module.'\\'.'Model'.'\\'.$model;
 			}else {
-				$modelClass = $this->config['app_namespace'].'\\'.'Module'.'\\'.$module.'\\'.'Model'.'\\'.$controller;
+				$modelClass = $this->app_conf['app_namespace'].'\\'.'Module'.'\\'.$module.'\\'.'Model'.'\\'.$controller;
 			}
 		}else {
 			// model的类文件对应控制器
 			if(!empty($model)) {
-				$modelClass = $this->config['app_namespace'].'\\'.'Model'.'\\'.$model;
+				$modelClass = $this->app_conf['app_namespace'].'\\'.'Model'.'\\'.$model;
 				
 			}else {
-				$modelClass = $this->config['app_namespace'].'\\'.'Model'.'\\'.$controller;
+				$modelClass = $this->app_conf['app_namespace'].'\\'.'Model'.'\\'.$controller;
 			}
 		}
 		// 从内存数组中返回
