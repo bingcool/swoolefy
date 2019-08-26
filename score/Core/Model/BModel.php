@@ -31,8 +31,9 @@ class BModel extends \Swoolefy\Core\SModel {
 	 */
 	public function __construct() {
 		parent::__construct();
-		$this->request = Application::getApp()->request;
-		$this->response = Application::getApp()->response;
+		$app = Application::getApp();
+		$this->request = $app->request;
+		$this->response = $app->response;
 	}
 
 	use \Swoolefy\Core\ModelTrait, \Swoolefy\Core\AppObjectTrait;

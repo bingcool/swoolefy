@@ -20,7 +20,7 @@ use Swoolefy\Core\Coroutine\CoroutineManager;
 class SModel extends BaseObject {
 
 	/**
-	 * $config 应用层配置
+	 * $app_conf 应用层配置
 	 * @var null
 	 */
 	public $app_conf = null;
@@ -81,13 +81,6 @@ class SModel extends BaseObject {
 	public function getAllStruct() {
 		return $this->struct->getPublicProperties();
 	}
-
-    /**
-     * @return string
-     */
-	public function getCid() {
-	    return $this->coroutine_id;
-    }
 
 	/**
 	 * beforeAction 在处理实际action之前执行

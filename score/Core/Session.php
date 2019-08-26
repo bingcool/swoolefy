@@ -104,22 +104,23 @@ class Session {
      * @return boolean
      */
     public function start(bool $readonly = false) {
-         /**
-          * 注册钩子程序，在请求结束后保存sesion,防止多次注册
-          */
+        /**
+         * 注册钩子程序，在请求结束后保存sesion,防止多次注册
+         */
+        $app = Application::getApp();
         if(!$this->isStart) {
-            Application::getApp()->afterRequest([$this,'save']);
+            $app->afterRequest([$this,'save']);
         }
 
-        $driver_class = $this->cache_driver;
-        $this->driver = Application::getApp()->get($driver_class);
+        $driver_compenent_name = $this->cache_driver;
+        $this->driver = $app->get($driver_compenent_name);
         $this->isStart = true;
         $this->readonly = $readonly;
-        $cookie_session_id = isset(Application::getApp()->request->cookie[$this->cookie_key]) ? Application::getApp()->request->cookie[$this->cookie_key] : null;
+        $cookie_session_id = isset($app->request->cookie[$this->cookie_key]) ? $app->request->cookie[$this->cookie_key] : null;
         $this->session_id = $cookie_session_id;
         if(empty($cookie_session_id)) {
             $sess_id = MGeneral::randmd5(40);
-            Application::getApp()->response->cookie($this->cookie_key, $sess_id, time() + $this->cookie_lifetime, $this->cookie_path, $this->cookie_domain, false, false);
+            $app->response->cookie($this->cookie_key, $sess_id, time() + $this->cookie_lifetime, $this->cookie_path, $this->cookie_domain, false, false);
             $this->session_id = $sess_id;
         }
         $this->_SESSION = $this->load($this->session_id);

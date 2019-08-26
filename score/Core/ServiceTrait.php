@@ -189,6 +189,18 @@ trait ServiceTrait {
 	}
 
 	/**
+	 * getAppParams 应用参数
+	 * @param  array  $params
+	 * @return array
+	 */
+	public function getAppParams(array $params = []) {
+		if(isset(Swfy::$conf['app_conf']['params']) && !empty(Swfy::$conf['app_conf']['params'])) {
+			return Swfy::$conf['app_conf']['params'];
+		}
+		return $params;
+	}
+
+	/**
 	 * getSwooleSetting 获取swoole的setting配置
 	 * @return   array
 	 */
