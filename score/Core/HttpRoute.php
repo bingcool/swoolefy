@@ -29,16 +29,16 @@ class HttpRoute extends AppDispatch {
 	public $response = null;
 
 	/**
-	 * $require_uri 请求的url
-	 * @var null
-	 */
-	public $require_uri = null;
-
-	/**
 	 * $app_conf 应用层配置值
 	 * @var null
 	 */
 	public $app_conf = null;
+
+	/**
+	 * $require_uri 请求的url
+	 * @var null
+	 */
+	public $require_uri = null;
 
 	/**
 	 * $extend_data 额外请求数据

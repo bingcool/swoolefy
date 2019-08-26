@@ -151,7 +151,10 @@ class BaseObject {
 	 * 直接获取component组件实例
 	 */
 	public function __get($name) {
-		return Application::getApp()->$name;
+        if(is_object(Application::getApp())) {
+            return Application::getApp()->get($name);
+        }
+        return $name;
 	}
 
 }

@@ -106,10 +106,14 @@ class EventController extends BaseObject {
 
 	/**
 	 * canCreateApp
+	 * @param  int $coroutine_id
 	 * @throws \Exception
 	 * @return boolean
 	 */
-	public function canCreateApp($coroutine_id) {
+	public function canCreateApp($coroutine_id = null) {
+		if(empty($coroutine_id)) {
+            $coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
+        }
 		$exists = Application::issetApp($coroutine_id);
 		if($exists) {
 			throw new \Exception("You haved created EventApp Instance, yon can only registerApp once, so you can't ceate secornd in same coroutine");

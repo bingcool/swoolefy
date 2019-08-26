@@ -48,10 +48,11 @@ class BService extends BaseObject {
 	 * __construct
 	 */
 	public function __construct() {
-		$this->fd = Application::getApp()->fd;
-		$this->app_conf = Application::getApp()->app_conf;
+		$app = Application::getApp();
+		$this->fd = $app->fd;
+		$this->app_conf = $app->app_conf;
 		if(BaseServer::isUdpApp()) {
-			$this->client_info = Application::getApp()->client_info;
+			$this->client_info = $app->client_info;
 		}else {
 			$this->client_info = null;
 		}
