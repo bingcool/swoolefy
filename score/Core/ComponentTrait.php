@@ -260,11 +260,11 @@ trait ComponentTrait {
      * @return bool|mixed
      */
     final public function get(string $name) {
-        $AppConf = BaseServer::getAppConf();
-        $components = $AppConf['components'];
+        $app_conf = BaseServer::getAppConf();
+        $components = $app_conf['components'];
         if(empty($this->component_pools)) {
-            if(isset($AppConf['enable_component_pools']) && is_array($AppConf['enable_component_pools']) && !empty($AppConf['enable_component_pools'])) {
-                $this->component_pools = $AppConf['enable_component_pools'];
+            if(isset($app_conf['enable_component_pools']) && is_array($app_conf['enable_component_pools']) && !empty($app_conf['enable_component_pools'])) {
+                $this->component_pools = $app_conf['enable_component_pools'];
             }
         }
         if(isset($this->container[$name])) {
