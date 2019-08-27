@@ -33,10 +33,10 @@ class CoroutinePools {
      * @throws mixed
      */
     public function addPool(string $pool_name, $handler) {
-        $AppConf = BaseServer::getAppConf();
+        $app_conf = BaseServer::getAppConf();
         $pool_name = trim($pool_name);
-        if(isset($AppConf['enable_component_pools']) && is_array($AppConf['enable_component_pools']) && !empty($AppConf['enable_component_pools'])) {
-            if(!in_array($pool_name, $AppConf['enable_component_pools'])) {
+        if(isset($app_conf['enable_component_pools']) && is_array($app_conf['enable_component_pools']) && !empty($app_conf['enable_component_pools'])) {
+            if(!in_array($pool_name, $app_conf['enable_component_pools'])) {
                 throw new \Exception("pool_name={$pool_name} must in app conf['enable_component_pools'] value");
             }
         }
