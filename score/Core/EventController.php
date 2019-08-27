@@ -138,14 +138,12 @@ class EventController extends BaseObject {
 				if(!isset($this->event_hooks[self::HOOK_AFTER_REQUEST][$key])) {
 					$this->event_hooks[self::HOOK_AFTER_REQUEST][$key] = array_merge([$key=>$callback], $this->event_hooks[self::HOOK_AFTER_REQUEST]);
 				}
-				return true;
 			}else {
-				// 防止重复设置
 				if(!isset($this->event_hooks[self::HOOK_AFTER_REQUEST][$key])) {
 					$this->event_hooks[self::HOOK_AFTER_REQUEST][$key] = $callback;
 				}
-				return true;
 			}
+            return true;
 		}else {
 			throw new \Exception(__NAMESPACE__.'::'.__function__.' the first param of type must be seted callable');
 		}

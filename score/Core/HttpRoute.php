@@ -34,17 +34,23 @@ class HttpRoute extends AppDispatch {
 	 */
 	public $app_conf = null;
 
+    /**
+     * $app 请求应用对象
+     * @var null
+     */
+	protected $app = null;
+
 	/**
 	 * $require_uri 请求的url
 	 * @var null
 	 */
-	public $require_uri = null;
+	protected $require_uri = null;
 
 	/**
 	 * $extend_data 额外请求数据
 	 * @var null
 	 */
-	public $extend_data = null;
+	protected $extend_data = null;
 
     /**
      * @var int pathinfo 模式
@@ -78,10 +84,10 @@ class HttpRoute extends AppDispatch {
 	 */
 	public function __construct($extend_data = null) {
 		parent::__construct();
-		$app = Application::getApp();
-		$this->request = $app->request;
-		$this->response = $app->response;
-		$this->app_conf = $app->app_conf;
+		$this->app = Application::getApp();
+		$this->request = $this->app->request;
+		$this->response = $this->app->response;
+		$this->app_conf = $this->app->app_conf;
 		$this->require_uri = $this->request->server['PATH_INFO'];
 		$this->extend_data = $extend_data;
 	}
@@ -94,7 +100,6 @@ class HttpRoute extends AppDispatch {
 	    if(!isset($this->app_conf['route_model']) || !in_array($this->app_conf['route_model'], [$this->route_model_pathinfo, $this->route_model_query_params])) {
             $this->app_conf['route_model'] = 1;
         }
-
 		if($this->app_conf['route_model'] == $this->route_model_pathinfo) {
 			if($this->require_uri == '/' || $this->require_uri == '//') {
 			    if(isset($this->app_conf['default_route']) && !empty($this->app_conf['default_route'])) {
@@ -134,15 +139,19 @@ class HttpRoute extends AppDispatch {
 				$this->require_uri = '/'.$controller.'/'.$action;
 			}
 		}
-
 		// 重新设置一个route
 		$this->request->server['ROUTE'] = $this->require_uri;
 		// route参数组数
 		$this->request->server['ROUTE_PARAMS'] = [];
 		// 定义禁止直接外部访问的方法
 		if(in_array($action, self::$deny_actions)) {
-            Application::getApp()->setEnd();
-			return $this->response->end("{$action}() method is not be called");
+            $msg = [
+                'ret' => 403,
+                'msg' => "{$controller}::{$action} is not allow access",
+                'data' => ''
+            ];
+			$this->app->beforeEnd($msg);
+			return false;
 		}
 		if($module) {
 			// route参数数组
@@ -169,7 +178,7 @@ class HttpRoute extends AppDispatch {
 	 */
 	public function invoke($module = null, $controller = null, $action = null) {
 		// 匹配控制器文件
-		$controller = $controller.$this->controller_suffix;
+		$controller = $this->setControllerClass($controller);
 		if(!isset($this->app_conf['app_namespace'])) {
             $this->app_conf['app_namespace'] = APP_NAME;
         }
@@ -187,12 +196,13 @@ class HttpRoute extends AppDispatch {
                     if(isset($this->app_conf['not_found_handler']) && is_array($this->app_conf['not_found_handler'])) {
                         list($class, $action) = $this->redirectNotFound();
                     }else {
-                        Application::getApp()->setEnd();
-                        return $this->response->end(json_encode([
-                            'ret'=> 404,
-                            'msg'=> $filePath.' is not exit!',
-                            'data'=>''
-                        ]));
+                        $msg = [
+                            'ret' => 404,
+                            'msg' => $filePath.' is not exit',
+                            'data' => ''
+                        ];
+                        $this->app->beforeEnd($msg);
+                        return false;
                     }
 				}else {
 					self::setRouteFileMap($class);
@@ -212,26 +222,25 @@ class HttpRoute extends AppDispatch {
                         // 访问类的命名空间
                         list($class, $action) = $this->redirectNotFound();
                     }else {
-                        Application::getApp()->setEnd();
-                        return $this->response->end(json_encode([
-                            'ret'=> 404,
-                            'msg'=> $filePath.' is not exit!',
-                            'data'=>''
-                        ]));
+                        $msg = [
+                            'ret' => 404,
+                            'msg' => $filePath.' is not exit',
+                            'data' => ''
+                        ];
+                        $this->app->beforeEnd($msg);
+                        return false;
                     }
 				}else {
 					self::setRouteFileMap($class);
 				}
 			}
 		}
-		// app
-        $app = Application::getApp();
         // reset app conf
-        $app->setAppConf($this->app_conf);
+        $this->app->setAppConf($this->app_conf);
 		// Create Controller Instance
 		$controllerInstance = new $class();
 		// set Controller Instance
-        $app->setControllerInstance($controllerInstance);
+        $this->app->setControllerInstance($controllerInstance);
         // invoke _beforeAction
 		$isContinueAction = $controllerInstance->_beforeAction();
         if($isContinueAction === false) {
@@ -240,16 +249,16 @@ class HttpRoute extends AppDispatch {
             $query_string = isset($this->request->server['QUERY_STRING']) ? '?'.$this->request->server['QUERY_STRING'] : '';
             if(isset($this->request->post) && !empty($this->request->post)) {
                 $post = json_encode($this->request->post, JSON_UNESCAPED_UNICODE);
-                $msg = "call {$class}::_beforeAction return false, forbiden continue call {$class}::{$action}, please checkout it ||| ".$this->request->server['REQUEST_URI'].$query_string.' post_data:'.$post;
+                $error_msg = "call {$class}::_beforeAction return false, forbiden continue call {$class}::{$action}, please checkout it ||| ".$this->request->server['REQUEST_URI'].$query_string.' post_data:'.$post;
             }else {
-                $msg = "call {$class}::_beforeAction return false, forbiden continue call {$class}::{$action}, please checkout it ||| ".$this->request->server['REQUEST_URI'].$query_string;
+                $error_msg = "call {$class}::_beforeAction return false, forbiden continue call {$class}::{$action}, please checkout it ||| ".$this->request->server['REQUEST_URI'].$query_string;
             }
-            Application::getApp()->setEnd();
-            $this->response->end(json_encode([
-                'ret'=> 403,
-                'msg'=> $msg,
-                'data'=>''
-            ]));
+            $msg = [
+                'ret' => 403,
+                'msg' => $error_msg,
+                'data' => ''
+            ];
+            $this->app->beforeEnd($msg);
             return false;
         }
         // 创建reflector对象实例
@@ -257,7 +266,7 @@ class HttpRoute extends AppDispatch {
 		if($reflector->hasMethod($action)) {
 			$method = new \ReflectionMethod($controllerInstance, $action);
 			if($method->isPublic() && !$method->isStatic()) {
-				try{
+				try {
 					if($this->extend_data) {
                         $controllerInstance->{$action}($this->extend_data);
 					}else {
@@ -270,39 +279,42 @@ class HttpRoute extends AppDispatch {
 				    $query_string = isset($this->request->server['QUERY_STRING']) ? '?'.$this->request->server['QUERY_STRING'] : '';
 				    if(isset($this->request->post) && !empty($this->request->post)) {
 				        $post = json_encode($this->request->post,JSON_UNESCAPED_UNICODE);
-                        $msg = 'Fatal error: '.$t->getMessage().' on '.$t->getFile().' on line '.$t->getLine(). ' ||| '.$this->request->server['REQUEST_URI'].$query_string.' post_data:'.$post;
+                        $error_msg = 'Fatal error: '.$t->getMessage().' on '.$t->getFile().' on line '.$t->getLine(). ' ||| '.$this->request->server['REQUEST_URI'].$query_string.' post_data:'.$post;
                     }else {
-                        $msg = 'Fatal error: '.$t->getMessage().' on '.$t->getFile().' on line '.$t->getLine(). ' ||| '.$this->request->server['REQUEST_URI'].$query_string;
+                        $error_msg = 'Fatal error: '.$t->getMessage().' on '.$t->getFile().' on line '.$t->getLine(). ' ||| '.$this->request->server['REQUEST_URI'].$query_string;
                     }
                     // 记录错误异常
-                    $exceptionClass = Application::getApp()->getExceptionClass();
-                    $exceptionClass::shutHalt($msg);
-                    Application::getApp()->setEnd();
-				    $this->response->end(json_encode([
+                    $exceptionClass = $this->app->getExceptionClass();
+                    $exceptionClass::shutHalt($error_msg);
+                    $msg = [
                         'ret' => 500,
-                        'msg' => $msg,
+                        'msg' => $error_msg,
                         'data' => ''
-                    ], JSON_UNESCAPED_UNICODE));
+                    ];
+                    $this->app->beforeEnd($msg);
+                    return false;
 		        }
 			}else {
-                Application::getApp()->setEnd();
-                $msg = "class method {$class}::{$action} is static or private, protected property, can't be Instance object called";
-				return $this->response->end(json_encode([
-					'ret'=> 500,
-					'msg'=> $msg,
-					'data'=>''
-				]));
+                $error_msg = "class method {$class}::{$action} is protected or private property, can't be called by Controller Instance";
+                $msg = [
+                    'ret' => 500,
+                    'msg' => $error_msg,
+                    'data' => ''
+                ];
+                $this->app->beforeEnd($msg);
+                return false;
 			}
 		}else {
-            Application::getApp()->setEnd();
-            $msg = "Controller file '{$filePath}' is exited, but has undefined {$class}::{$action} method";
+            $error_msg = "Controller file '{$filePath}' is exited, but has undefined {$class}::{$action} method";
             $this->response->status(404);
 			$this->response->header('Content-Type','application/json; charset=UTF-8');
-            return $this->response->end(json_encode([
-                'ret'=> 404,
-                'msg'=> $msg,
-                'data'=>''
-            ]));
+            $msg = [
+                'ret' => 404,
+                'msg' => $error_msg,
+                'data' => ''
+            ];
+            $this->app->beforeEnd($msg);
+            return false;
 		}
 	}
 
@@ -324,6 +336,14 @@ class HttpRoute extends AppDispatch {
             return [$class, $action];
 		}
 	}
+
+    /**
+     * @param string $controller
+     * @return string
+     */
+    protected function setControllerClass(string $controller) {
+        return $controller.$this->controller_suffix;
+    }
 
 	/**
 	 * isExistRouteFile 判断是否存在请求的route文件
@@ -351,6 +371,13 @@ class HttpRoute extends AppDispatch {
 	public static function resetRouteDispatch($route) {
 	    $route = trim($route,'/');
         Application::getApp()->request->server['PATH_INFO'] = '/'.$route;
+    }
+
+    /**
+     * __destruct
+     */
+    public function __destruct() {
+        unset($this->app);
     }
 
 }
