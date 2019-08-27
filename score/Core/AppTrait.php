@@ -153,7 +153,6 @@ trait AppTrait {
     		case 'get' : 
     			$input = $this->request->get;
     		break;
-
     		case 'post':
     			$input = $this->request->post;
     			if(empty($input)) {
@@ -215,7 +214,6 @@ trait AppTrait {
     		$value = (isset($input[$name]) && !empty($input[$name])) ? $input[$name] : null;
     	}else {
     		$value = isset($input) ? $input : [];
-    		
     	}
     	return $value;
     }
@@ -231,7 +229,6 @@ trait AppTrait {
     		$value = isset($cookies[$name]) ? $cookies[$name] : null;
     	}else {
     		$value = isset($cookies) ? $cookies : [];
-    		
     	}
     	return $value;
     }
