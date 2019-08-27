@@ -175,7 +175,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
      * @param   int  $base
      * @return integer
      */
-    public static function idhash($uid, $base = 100) {
+    public static function idHash($uid, $base = 100) {
         return intval($uid / $base);
     }
 
@@ -184,7 +184,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
      * @param   int  $rand_length
      * @return  string
      */
-    public static function randtime($rand_length = 6) {
+    public static function randTime(int $rand_length = 6) {
         list($usec, $sec) = explode(" ", microtime());
         $min = intval('1' . str_repeat('0', $rand_length - 1));
         $max = intval(str_repeat('9', $rand_length));
@@ -197,11 +197,11 @@ class MGeneral extends \Swoolefy\Core\AppObject {
      * @param   int  $seed
      * @return  string
      */
-    public static function randmd5($length = 20, $seed = null) {
+    public static function randMd5($length = 20, $seed = null) {
         if(empty($seed)) {
             $seed = self::string(20);
         }
-        return substr(md5($seed . mt_rand(111111, 999999)), 0, $length);
+        return substr(md5($seed . mt_rand(111111, 999999).bin2hex(random_bytes(5))), 0, $length);
     }
 
     /**

@@ -119,7 +119,7 @@ class Session {
         $cookie_session_id = isset($app->request->cookie[$this->cookie_key]) ? $app->request->cookie[$this->cookie_key] : null;
         $this->session_id = $cookie_session_id;
         if(empty($cookie_session_id)) {
-            $sess_id = MGeneral::randmd5(40);
+            $sess_id = MGeneral::randMd5(40);
             $app->response->cookie($this->cookie_key, $sess_id, time() + $this->cookie_lifetime, $this->cookie_path, $this->cookie_domain, false, false);
             $this->session_id = $sess_id;
         }

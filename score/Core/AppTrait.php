@@ -197,7 +197,6 @@ trait AppTrait {
     		
     	}
     	return $value;
-
     }
 
     /**
@@ -251,7 +250,6 @@ trait AppTrait {
     		$value = isset($this->request->server[$name]) ? $this->request->server[$name] : null;
     		return $value;	
     	}
-
     	return $this->request->server;
     }
 
@@ -336,9 +334,7 @@ trait AppTrait {
 	public function getHomeUrl(bool $ssl = false) {
 		$protocol_version = $this->getProtocol();
 		list($protocol, $version) = explode('/', $protocol_version);
-		
 		$protocol = strtolower($protocol).'://';
-
 		if($ssl) {
 			$protocol = 'https://';
 		}
@@ -382,7 +378,6 @@ trait AppTrait {
 			if(isset($this->previousUrl['home_url'])) {
 				return $this->previousUrl['home_url'];
 			}
-
 			return null;
 		}
 	} 
@@ -470,7 +465,6 @@ trait AppTrait {
 				throw new \Exception($e->getMessage(), 1);
 			}
 		}
-
 	}
 
 	/**
