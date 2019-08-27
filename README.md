@@ -11,7 +11,7 @@
                                                              |_ _ /
 ```                                                            
 swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协程级应用服务框架，
-高度封装了http，websocket，udp服务器，以及基于tcp实现可扩展的rpc服务，
+高度支持httpApi，websocket，udp服务器，以及基于tcp实现可扩展的rpc服务，
 同时支持composer包方式安装部署项目。基于实用，swoolefy抽象Event事件处理类，
 实现与底层的回调的解耦，支持协程调度，同步|异步调用，全局事件注册，心跳检查，异步任务，多进程(池)，连接池等，
 内置view、log、session、mysql、redis、mongodb等常用组件等。     
