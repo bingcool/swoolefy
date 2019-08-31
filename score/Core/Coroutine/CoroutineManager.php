@@ -38,10 +38,6 @@ class CoroutineManager {
         // 4.3.0+在task|process中也支持直接使用协程,同时可以使用go()创建协程
         if($cid == -1) {
             $cid = self::PREFIX_CID.'task_process';
-        }else {
-            if(self::PREFIX_CID) {
-                $cid = self::PREFIX_CID.$cid;
-            }
         }
         return $cid;
 	}
