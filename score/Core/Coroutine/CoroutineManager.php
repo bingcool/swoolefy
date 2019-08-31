@@ -39,7 +39,9 @@ class CoroutineManager {
         if($cid == -1) {
             $cid = self::PREFIX_CID.'task_process';
         }else {
-            $cid = self::PREFIX_CID.$cid;
+            if(self::PREFIX_CID) {
+                $cid = self::PREFIX_CID.$cid;
+            }
         }
         return $cid;
 	}

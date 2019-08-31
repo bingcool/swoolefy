@@ -190,14 +190,13 @@ class MysqlCoroutine {
 	 * connect
 	 * @param  array       $config             
 	 * @param  int|integer $retry_connect_times
-	 * @return [type]                          
+	 * @return mixed
 	 */
 	protected function connect(array $config = [], int $retry_connect_times = 1) {
 		do {
 			$swoole_mysql = new \Swoole\Coroutine\MySQL();
 	        $swoole_mysql->configInfo = $config;
 	        $isConnected = $swoole_mysql->connect($config);
-	        var_dump($isConnected);
 	        if($isConnected) {
 	            break;
             }
@@ -240,11 +239,10 @@ class MysqlCoroutine {
 		if(!$this->deploy || empty($this->slave_mysql_config)) {
 			return $this->getMaster();
 		}
-		// 分布式
 		if(isset($this->slave_swoole_mysql[$num])) {
 			return $this->slave_swoole_mysql[$num];
 		}
-		// 存在从服务器，随机取一个
+
 		if(is_array($this->slave_swoole_mysql) && !empty($this->slave_swoole_mysql)) {
 			$num = array_rand($this->slave_swoole_mysql);
 			$slave_mysql = $this->slave_swoole_mysql[$num];
@@ -254,13 +252,12 @@ class MysqlCoroutine {
 			unset($slave_mysql);
 		}
 
-        // 随机获取一个从服务器
         $num = array_rand($this->slave_mysql_config);
         // 是否已建立实例对象
         if(isset($this->slave_swoole_mysql[$num])) {
             return $this->slave_swoole_mysql[$num];
         }
-        // 创建实例对象
+
         $config = $this->slave_mysql_config[$num];
        	$slave_mysql = $this->connect($config);
        	if($slave_mysql instanceof \Swoole\Coroutine\MySQL) {

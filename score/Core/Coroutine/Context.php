@@ -12,8 +12,8 @@
 namespace Swoolefy\Core\Coroutine;
 
 use ArrayObject;
-use Swoolefy\Core\Application;
 use Swoolefy\Core\Swfy;
+use Swoolefy\Core\Application;
 
 class Context {
     /**

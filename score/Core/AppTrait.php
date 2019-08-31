@@ -46,11 +46,16 @@ trait AppTrait {
      * @param string $formater
      * @return void
      */
-    public function beforeEnd(array $data = [], string $formater = 'json') {
+    public function beforeEnd($ret = 0, string $msg = '', $data = '', string $formater = 'json') {
     	if(is_object(Application::getApp())) {
     		Application::getApp()->setEnd();
     	}
-        $this->returnJson($data, $formater);
+    	$response = [
+    	    'ret' => $ret,
+            'msg' => $msg,
+            'data' => $data
+        ];
+        $this->jsonSerialize($response, $formater);
         $this->request->end();
         return;
     }
@@ -519,17 +524,26 @@ trait AppTrait {
 	 * @return   void         
 	 */
 	public function returnJson(array $data = [], string $formater = 'json') {
+        $this->jsonSerialize($data, $formater);
+	}
+
+    /**
+     * jsonSerialize
+     * @param array $data
+     * @param string $formater
+     */
+	public function jsonSerialize(array $data = [], string $formater = 'json') {
         switch(strtoupper($formater)) {
             case 'JSON':
                 $this->response->header('Content-Type','application/json; charset=utf-8');
                 $json_string = json_encode($data,JSON_UNESCAPED_UNICODE);
-            break;
+                break;
             default:
                 $json_string = json_encode($data, JSON_UNESCAPED_UNICODE);
-            break;
+                break;
         }
         $this->response->write($json_string);
-	}
+    }
 
 	/**
 	 * sendfile

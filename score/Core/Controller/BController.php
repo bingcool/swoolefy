@@ -27,7 +27,7 @@ class BController extends \Swoolefy\Core\AppObject {
 	public $response = null;
 
 	/**
-	 * $config
+	 * $app_conf
 	 * @var null
 	 */
 	public $app_conf = null;

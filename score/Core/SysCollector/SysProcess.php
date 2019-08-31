@@ -25,8 +25,8 @@ class SysProcess extends AbstractProcess {
 	 */
 	public function run(Process $process) {
 		// 获取协议层协议配置
-		$p_config = Swfy::getConf();
-		$sys_collector_config = $p_config['sys_collector_conf'];
+		$conf = Swfy::getConf();
+		$sys_collector_config = $conf['sys_collector_conf'];
 		if(is_array($sys_collector_config) && isset($sys_collector_config['type'])) {
 			$type = $sys_collector_config['type'];
 			$tick_time = isset($sys_collector_config['tick_time']) ? (float) $sys_collector_config['tick_time'] : 5;
@@ -174,7 +174,9 @@ class SysProcess extends AbstractProcess {
 				$redis_client->select($database);
 			}catch(\RedisException $e) {
 				throw new \Exception($e->getMessage(), 1);
-			}
+			}catch (\Throwable $t) {
+                throw new \Exception($t->getMessage(), 1);
+            }
 		}else {
 			throw new \Exception('sys_collector_config of phpredis is wrong, $host, $port, $password of params must be setted');
 		}

@@ -150,9 +150,8 @@ trait ServiceTrait {
 	public static function setConf(array $conf) {
         if(is_array($conf)) {
             Swfy::$conf = $conf;
-            return true;
         }
-        return false;
+        return true;
     }
 
 	/**
