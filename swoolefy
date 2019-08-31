@@ -1,5 +1,14 @@
 #! /usr/bin/php
 <?php
+/**
++----------------------------------------------------------------------
+| swoolefy framework bases on swoole extension development, we can use it easily!
++----------------------------------------------------------------------
+| Licensed ( https://opensource.org/licenses/MIT )
++----------------------------------------------------------------------
+| Author: bingcool <bingcoolhuang@gmail.com || 2437667702@qq.com>
++----------------------------------------------------------------------
+ */
 
 // 定义注册的应用名和对应使用的协议
 if(!isset($APP_NAMES)) {
@@ -27,14 +36,20 @@ date_default_timezone_set('PRC');
 // score目录
 if(is_dir(__DIR__.'/vendor/bingcool/swoolefy')) {
     $SCORE_DIR = __DIR__.'/vendor/bingcool/swoolefy';
+    $USERD_ENV = 'composer'; //composer安装使用
 }else {
     $SCORE_DIR = __DIR__;
+    $USERD_ENV = 'direct'; // 直接下载使用
 }
 
 // 定义一个全局常量
 defined('SCORE_DIR_ROOT') or define('SCORE_DIR_ROOT', $SCORE_DIR);
 // 启动文件目录
 defined('START_DIR_ROOT') or define('START_DIR_ROOT', __DIR__);
+// 定义cli传参
+defined("SWOOLEFY_CLI_PARAMS") or define('SWOOLEFY_CLI_PARAMS', $argv);
+// 定义使用环境
+defined('USERD_ENV') or define('USERD_ENV', $USERD_ENV);
 
 // include composer的自动加载类完成命名空间的注册
 include_once START_DIR_ROOT.'/vendor/autoload.php';
@@ -759,6 +774,64 @@ EOF;
 return $defines_content;
 }
 
-initCheck();
-showLogo();
-commandHandler();
+
+/**
++----------------------------------------------------------------------
+| swoolefy framework bases on swoole extension development, we can use it easily!
++----------------------------------------------------------------------
+| Licensed ( https://opensource.org/licenses/MIT )
++----------------------------------------------------------------------
+| Author: bingcool <bingcoolhuang@gmail.com || 2437667702@qq.com>
++----------------------------------------------------------------------
+ */
+
+class RunStart {
+
+    static $run_start;
+
+    private $is_run = false;
+
+    private $argv;
+
+    public static function getInstance() {
+        if(!isset(self::$run_start)) {
+            self::$run_start = new self();
+        }
+        return self::$run_start;
+    }
+
+    public function run($callback = null) {
+        if(!$this->is_run) {
+            $this->argv = SWOOLEFY_CLI_PARAMS;
+            initCheck();
+            showLogo();
+            $command = $this->argv[1];
+            if(is_callable($callback)) {
+                call_user_func($callback, $command);
+            }
+            commandHandler();            
+            $this->is_run = true;
+        }
+    }
+}
+
+// 默认直接下载使用模式
+// 如通过composer安装的形式，需要将该代码重新引入，请看文档
+// @see https://www.kancloud.cn/bingcoolhuang/php-swoole-swoolefy/587504
+// if(USERD_ENV == 'direct') {
+//     $RunStart = RunStart::getInstance();
+//     $RunStart->run(function($action) {
+//         // 启动之后可以在这实现回调，记录启动日志
+//         //var_dump($action);
+//     });
+// }
+
+$RunStart = RunStart::getInstance();
+$RunStart->run(function($action) {
+    // 启动之后可以在这实现回调，记录启动日志
+    //var_dump($action);
+});
+
+
+
+
