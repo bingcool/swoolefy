@@ -48,4 +48,9 @@ class MPHP {
 	 */
 	const VERSION = SWOOLEFY_VERSION;
 
+    /**
+     * swoolefy envirment
+     */
+	const SWOOLEFY_ENV = SWOOLEFY_ENV;
+
 }

@@ -145,12 +145,8 @@ class HttpRoute extends AppDispatch {
 		$this->request->server['ROUTE_PARAMS'] = [];
 		// 定义禁止直接外部访问的方法
 		if(in_array($action, self::$deny_actions)) {
-            $msg = [
-                'ret' => 403,
-                'msg' => "{$controller}::{$action} is not allow access",
-                'data' => ''
-            ];
-			$this->app->beforeEnd($msg);
+            $msg = "{$controller}::{$action} is not allow access";
+			$this->app->beforeEnd(403, $msg);
 			return false;
 		}
 		if($module) {
@@ -196,12 +192,8 @@ class HttpRoute extends AppDispatch {
                     if(isset($this->app_conf['not_found_handler']) && is_array($this->app_conf['not_found_handler'])) {
                         list($class, $action) = $this->redirectNotFound();
                     }else {
-                        $msg = [
-                            'ret' => 404,
-                            'msg' => $filePath.' is not exit',
-                            'data' => ''
-                        ];
-                        $this->app->beforeEnd($msg);
+                        $msg = $filePath.' is not exit';
+                        $this->app->beforeEnd(404, $msg);
                         return false;
                     }
 				}else {
@@ -222,12 +214,8 @@ class HttpRoute extends AppDispatch {
                         // 访问类的命名空间
                         list($class, $action) = $this->redirectNotFound();
                     }else {
-                        $msg = [
-                            'ret' => 404,
-                            'msg' => $filePath.' is not exit',
-                            'data' => ''
-                        ];
-                        $this->app->beforeEnd($msg);
+                        $msg = $filePath.' is not exit';
+                        $this->app->beforeEnd(404, $msg);
                         return false;
                     }
 				}else {
@@ -253,12 +241,7 @@ class HttpRoute extends AppDispatch {
             }else {
                 $error_msg = "call {$class}::_beforeAction return false, forbiden continue call {$class}::{$action}, please checkout it ||| ".$this->request->server['REQUEST_URI'].$query_string;
             }
-            $msg = [
-                'ret' => 403,
-                'msg' => $error_msg,
-                'data' => ''
-            ];
-            $this->app->beforeEnd($msg);
+            $this->app->beforeEnd(403, $error_msg);
             return false;
         }
         // 创建reflector对象实例
@@ -286,34 +269,19 @@ class HttpRoute extends AppDispatch {
                     // 记录错误异常
                     $exceptionClass = $this->app->getExceptionClass();
                     $exceptionClass::shutHalt($error_msg);
-                    $msg = [
-                        'ret' => 500,
-                        'msg' => $error_msg,
-                        'data' => ''
-                    ];
-                    $this->app->beforeEnd($msg);
+                    $this->app->beforeEnd(500, $error_msg);
                     return false;
 		        }
 			}else {
                 $error_msg = "class method {$class}::{$action} is protected or private property, can't be called by Controller Instance";
-                $msg = [
-                    'ret' => 500,
-                    'msg' => $error_msg,
-                    'data' => ''
-                ];
-                $this->app->beforeEnd($msg);
+                $this->app->beforeEnd(500, $error_msg);
                 return false;
 			}
 		}else {
             $error_msg = "Controller file '{$filePath}' is exited, but has undefined {$class}::{$action} method";
             $this->response->status(404);
 			$this->response->header('Content-Type','application/json; charset=UTF-8');
-            $msg = [
-                'ret' => 404,
-                'msg' => $error_msg,
-                'data' => ''
-            ];
-            $this->app->beforeEnd($msg);
+            $this->app->beforeEnd(404, $error_msg);
             return false;
 		}
 	}

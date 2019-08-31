@@ -16,7 +16,6 @@ use Swoolefy\Core\Application;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class Mysql {
-
 	/**
 	 * $config 配置
 	 * @var array

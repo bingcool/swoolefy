@@ -119,7 +119,7 @@ class BaseServer {
 	 */
 	public function __construct() {
 		// set config
-		Swfy::$conf = self::$config;
+		Swfy::setConf(self::$config);
         // start runtime Coroutine
         self::runtimeEnableCoroutine();
 		// set timeZone
