@@ -26,7 +26,7 @@ abstract class AbstractProcessPools {
     private $bind_worker_id = null;
     private $enable_coroutine = false;
 
-    const SWOOLEFY_PROCESS_KILL_FLAG = "action::restart::kill_flag";
+    const SWOOLEFY_PROCESS_KILL_FLAG = "action::restart::action::reboot";
 
     /**
      * AbstractProcessPools constructor.
@@ -113,12 +113,13 @@ abstract class AbstractProcessPools {
             }
 
             TableManager::getTable('table_process_pools_map')->del(md5($this->process_name));
-            swoole_event_del($process->pipe);
+            \Swoole\Event::del($process->pipe);
+            \Swoole\Event::exit();
             $this->swooleProcess->exit(0);
         });
 
-        if($this->async){
-            swoole_event_add($this->swooleProcess->pipe, function(){
+        if($this->async) {
+            \Swoole\Event::add($this->swooleProcess->pipe, function(){
                 $msg = $this->swooleProcess->read(64 * 1024);
                 try{
                     if($msg == self::SWOOLEFY_PROCESS_KILL_FLAG) {
@@ -135,7 +136,7 @@ abstract class AbstractProcessPools {
 
         $this->swooleProcess->name('php-user-process-worker'.$this->bind_worker_id.':'.$this->getProcessName(true));
         try{
-            $this->run($this->swooleProcess);
+            $this->run();
         }catch(\Throwable $t) {
             BaseServer::catchException($t);
         }
@@ -203,21 +204,20 @@ abstract class AbstractProcessPools {
 
     /**
      * run 进程创建后的run方法
-     * @param  Process $process
      * @return void
      */
-    public abstract function run(Process $process);
+    public abstract function run();
 
     /**
      * @return mixed
      */
-    public abstract function onShutDown();
+    public function onShutDown() {}
 
     /**
      * @param  string $str
      * @param  mixed ...$args
      * @return mixed
      */
-    public abstract function onReceive($str, ...$args);
+    public function onReceive($str, ...$args) {}
 
 }
