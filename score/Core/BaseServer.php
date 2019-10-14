@@ -123,9 +123,7 @@ class BaseServer {
         // start runtime Coroutine
         self::runtimeEnableCoroutine();
 		// set timeZone
-		self::setTimeZone(); 
-		// include common function
-		self::setCommonFunction();
+		self::setTimeZone();
 		// check extensions
 		self::checkVersion();
 		// check is run on cli

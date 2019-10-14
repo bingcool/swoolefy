@@ -57,19 +57,19 @@ class GoWaitGroup {
     /**
      * done
      */
-    public function done(string $key = null, $data = null) {
+    public function done(string $key = null, $data = null, float $timeout = -1) {
         if(!empty($key) && !empty($data)) {
             $this->result[$key] = $data;
         }
-        $this->chan->push(1);
+        $this->chan->push(1, $timeout);
     }
 
     /**
      * wait
      */
-    public function wait() {
+    public function wait(float $timeout = 0) {
         while($this->count--) {
-            $this->chan->pop();
+            $this->chan->pop($timeout);
         }
         $result = $this->result;
         $this->reset();

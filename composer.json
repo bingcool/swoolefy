@@ -28,6 +28,7 @@
         "psr/log" : "*"
     },
     "autoload": {
+        "files": ["score/core/Func/function.php"],
         "psr-4": {
             "Swoolefy\\": "score/"
         }
