@@ -117,7 +117,7 @@ class ServiceDispatch extends AppDispatch {
 				return false;
 			}
 		}catch(\Throwable $t) {
-			$msg = 'Fatal error: '.$t->getMessage().' on '.$t->getFile().' on line '.$t->getLine().' ||| '.$class.'::'.$action.'  data='.json_encode($this->params,JSON_UNESCAPED_UNICODE);
+			$msg = $t->getMessage().' on '.$t->getFile().' on line '.$t->getLine().' ||| '.$class.'::'.$action.' ||| '.json_encode($this->params,JSON_UNESCAPED_UNICODE);
 			$app_conf = Swfy::getAppConf();
 			if(Swfy::isWorkerProcess()) {
                 if(isset($app_conf['not_found_handler']) && is_string($app_conf['not_found_handler'])) {

@@ -136,6 +136,7 @@ abstract class AbstractProcessPools {
 
         $this->swooleProcess->name('php-user-process-worker'.$this->bind_worker_id.':'.$this->getProcessName(true));
         try{
+            $this->init();
             $this->run();
         }catch(\Throwable $t) {
             BaseServer::catchException($t);
@@ -203,6 +204,11 @@ abstract class AbstractProcessPools {
     }
 
     /**
+     * init
+     */
+    public function init() {}
+
+    /**
      * run 进程创建后的run方法
      * @return void
      */
@@ -214,10 +220,10 @@ abstract class AbstractProcessPools {
     public function onShutDown() {}
 
     /**
-     * @param  string $str
-     * @param  mixed ...$args
+     * @param mixed $msg
+     * @param mixed ...$args
      * @return mixed
      */
-    public function onReceive($str, ...$args) {}
+    public function onReceive($msg, ...$args) {}
 
 }

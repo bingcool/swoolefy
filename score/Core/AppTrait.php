@@ -536,7 +536,7 @@ trait AppTrait {
         switch(strtoupper($formater)) {
             case 'JSON':
                 $this->response->header('Content-Type','application/json; charset=utf-8');
-                $json_string = json_encode($data,JSON_UNESCAPED_UNICODE);
+                $json_string = json_encode($data, JSON_UNESCAPED_UNICODE);
                 break;
             default:
                 $json_string = json_encode($data, JSON_UNESCAPED_UNICODE);

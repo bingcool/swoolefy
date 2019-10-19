@@ -21,7 +21,7 @@ class ReloadProcess extends AbstractProcess {
      * @param Process $process
      * @throws \Exception
      */
-    public function run(Process $process) {
+    public function run() {
         $config = Swfy::getConf();
         if(isset($config['reload_conf'])) {
             $reload_config = $config['reload_conf'];

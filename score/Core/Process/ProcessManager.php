@@ -128,7 +128,7 @@ class ProcessManager {
      * @param  string $data
      * @return boolean
      */
-    public static function writeByProcessName(string $name,string $data) {
+    public static function writeByProcessName(string $name, string $data) {
         $process = self::getProcessByName($name);
         if($process){
             return (bool)$process->getProcess()->write($data);
