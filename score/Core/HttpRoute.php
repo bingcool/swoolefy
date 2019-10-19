@@ -145,7 +145,7 @@ class HttpRoute extends AppDispatch {
 		$this->request->server['ROUTE_PARAMS'] = [];
 		// 定义禁止直接外部访问的方法
 		if(in_array($action, self::$deny_actions)) {
-            $msg = "{$controller}::{$action} is not allow access";
+            $msg = "{$controller}::{$action}() is not allow access";
 			$this->app->beforeEnd(403, $msg);
 			return false;
 		}
@@ -173,118 +173,115 @@ class HttpRoute extends AppDispatch {
 	 * @return boolean
 	 */
 	public function invoke($module = null, $controller = null, $action = null) {
-		// 匹配控制器文件
-		$controller = $this->setControllerClass($controller);
-		if(!isset($this->app_conf['app_namespace'])) {
+        // 匹配控制器文件
+        $controller = $this->setControllerClass($controller);
+        if(!isset($this->app_conf['app_namespace'])) {
             $this->app_conf['app_namespace'] = APP_NAME;
         }
-        $filePath = APP_PATH.DIRECTORY_SEPARATOR.'Controller'.$controller.'.php';
+        $filePath = APP_PATH . DIRECTORY_SEPARATOR . 'Controller' . $controller . '.php';
         if($module) {
-            $filePath = APP_PATH.DIRECTORY_SEPARATOR.'Module'.DIRECTORY_SEPARATOR.$module.DIRECTORY_SEPARATOR.$controller.'.php';
+            $filePath = APP_PATH . DIRECTORY_SEPARATOR . 'Module' . DIRECTORY_SEPARATOR . $module . DIRECTORY_SEPARATOR . $controller . '.php';
             // 访问类的命名空间
-			$class = $this->app_conf['app_namespace'].'\\'.'Module'.'\\'.$module.'\\'.$controller;
-			// 不存在请求类文件
-			if(!self::isExistRouteFile($class)) {
-				if(!is_file($filePath)) {
-					$this->response->status(404);
-					$this->response->header('Content-Type','application/json; charset=UTF-8');
+            $class = $this->app_conf['app_namespace'] . '\\' . 'Module' . '\\' . $module . '\\' . $controller;
+            // 不存在请求类文件
+            if(!$this->isExistRouteFile($class)) {
+                if(!is_file($filePath)) {
+                    $this->response->status(404);
+                    $this->response->header('Content-Type', 'application/json; charset=UTF-8');
                     // 使用配置的NotFound类
                     if(isset($this->app_conf['not_found_handler']) && is_array($this->app_conf['not_found_handler'])) {
                         list($class, $action) = $this->redirectNotFound();
                     }else {
-                        $msg = $filePath.' is not exit';
+                        $msg = $filePath . ' is not exit';
                         $this->app->beforeEnd(404, $msg);
                         return false;
                     }
-				}else {
-					self::setRouteFileMap($class);
-				}
-			}
+                }else {
+                    $this->setRouteFileMap($class);
+                }
+            }
 
-		}else {
-			// 访问类的命名空间
-			$class = $this->app_conf['app_namespace'].'\\'.'Controller'.'\\'.$controller;
-			if(!self::isExistRouteFile($class)) {
-				$filePath = APP_PATH.DIRECTORY_SEPARATOR.'Controller'.DIRECTORY_SEPARATOR.$controller.'.php';
-				if(!is_file($filePath)) {
-					$this->response->status(404);
-					$this->response->header('Content-Type','application/json; charset=UTF-8');
+        }else {
+            // 访问类的命名空间
+            $class = $this->app_conf['app_namespace'] . '\\' . 'Controller' . '\\' . $controller;
+            if(!$this->isExistRouteFile($class)) {
+                $filePath = APP_PATH . DIRECTORY_SEPARATOR . 'Controller' . DIRECTORY_SEPARATOR . $controller . '.php';
+                if(!is_file($filePath)) {
+                    $this->response->status(404);
+                    $this->response->header('Content-Type', 'application/json; charset=UTF-8');
                     // 使用配置的NotFound类
                     if(isset($this->app_conf['not_found_handler']) && is_array($this->app_conf['not_found_handler'])) {
                         // 访问类的命名空间
                         list($class, $action) = $this->redirectNotFound();
                     }else {
-                        $msg = $filePath.' is not exit';
+                        $msg = $filePath . ' is not exit';
                         $this->app->beforeEnd(404, $msg);
                         return false;
                     }
-				}else {
-					self::setRouteFileMap($class);
-				}
-			}
-		}
+                }else {
+                    $this->setRouteFileMap($class);
+                }
+            }
+        }
         // reset app conf
         $this->app->setAppConf($this->app_conf);
-		// Create Controller Instance
-		$controllerInstance = new $class();
-		// set Controller Instance
+        // Create Controller Instance
+        $controllerInstance = new $class();
+        // set Controller Instance
         $this->app->setControllerInstance($controllerInstance);
         // invoke _beforeAction
-		$isContinueAction = $controllerInstance->_beforeAction();
+        $isContinueAction = $controllerInstance->_beforeAction();
         if($isContinueAction === false) {
             $this->response->status(403);
-            $this->response->header('Content-Type','application/json; charset=UTF-8');
-            $query_string = isset($this->request->server['QUERY_STRING']) ? '?'.$this->request->server['QUERY_STRING'] : '';
+            $this->response->header('Content-Type', 'application/json; charset=UTF-8');
+            $query_string = isset($this->request->server['QUERY_STRING']) ? '?' . $this->request->server['QUERY_STRING'] : '';
             if(isset($this->request->post) && !empty($this->request->post)) {
                 $post = json_encode($this->request->post, JSON_UNESCAPED_UNICODE);
-                $error_msg = "call {$class}::_beforeAction return false, forbiden continue call {$class}::{$action}, please checkout it ||| ".$this->request->server['REQUEST_URI'].$query_string.' post_data:'.$post;
+                $error_msg = "call {$class}::_beforeAction() return false, forbiden continue call {$class}::{$action}(), please checkout it ||| " . $this->request->server['REQUEST_URI'] . $query_string . ' ||| ' . $post;
             }else {
-                $error_msg = "call {$class}::_beforeAction return false, forbiden continue call {$class}::{$action}, please checkout it ||| ".$this->request->server['REQUEST_URI'].$query_string;
+                $error_msg = "call {$class}::_beforeAction() return false, forbiden continue call {$class}::{$action}(), please checkout it ||| " . $this->request->server['REQUEST_URI'] . $query_string;
             }
             $this->app->beforeEnd(403, $error_msg);
             return false;
         }
         // 创建reflector对象实例
-		$reflector = new \ReflectionClass($controllerInstance);
-		if($reflector->hasMethod($action)) {
-			$method = new \ReflectionMethod($controllerInstance, $action);
-			if($method->isPublic() && !$method->isStatic()) {
-				try {
-					if($this->extend_data) {
+        $reflector = new \ReflectionClass($controllerInstance);
+        if($reflector->hasMethod($action)) {
+            $method = new \ReflectionMethod($controllerInstance, $action);
+            if($method->isPublic() && !$method->isStatic()) {
+                try{
+                    if($this->extend_data) {
                         $controllerInstance->{$action}($this->extend_data);
-					}else {
-                        $controllerInstance->{$action}();
-					}
-		        }catch (\Exception $e) {
-		            $method = new \ReflectionMethod($controllerInstance, '__call');
-		            $method->invokeArgs($controllerInstance, [$action, $e->getMessage()]);
-		        }catch(\Throwable $t) {
-				    $query_string = isset($this->request->server['QUERY_STRING']) ? '?'.$this->request->server['QUERY_STRING'] : '';
-				    if(isset($this->request->post) && !empty($this->request->post)) {
-				        $post = json_encode($this->request->post,JSON_UNESCAPED_UNICODE);
-                        $error_msg = 'Fatal error: '.$t->getMessage().' on '.$t->getFile().' on line '.$t->getLine(). ' ||| '.$this->request->server['REQUEST_URI'].$query_string.' post_data:'.$post;
                     }else {
-                        $error_msg = 'Fatal error: '.$t->getMessage().' on '.$t->getFile().' on line '.$t->getLine(). ' ||| '.$this->request->server['REQUEST_URI'].$query_string;
+                        $controllerInstance->{$action}();
+                    }
+                }catch (\Throwable $t) {
+                    $query_string = isset($this->request->server['QUERY_STRING']) ? '?' . $this->request->server['QUERY_STRING'] : '';
+                    if(isset($this->request->post) && !empty($this->request->post)) {
+                        $post = json_encode($this->request->post, JSON_UNESCAPED_UNICODE);
+                        $error_msg = $t->getMessage() . ' on ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $this->request->server['REQUEST_URI'] . $query_string . ' ||| ' . $post;
+                    }else {
+                        $error_msg = $t->getMessage() . ' on ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $this->request->server['REQUEST_URI'] . $query_string;
                     }
                     // 记录错误异常
                     $exceptionClass = $this->app->getExceptionClass();
                     $exceptionClass::shutHalt($error_msg);
                     $this->app->beforeEnd(500, $error_msg);
                     return false;
-		        }
-			}else {
-                $error_msg = "class method {$class}::{$action} is protected or private property, can't be called by Controller Instance";
+                }
+            }else {
+                $error_msg = "class method {$class}::{$action}() is protected or private property, can't be called by Controller Instance";
                 $this->app->beforeEnd(500, $error_msg);
                 return false;
-			}
-		}else {
+            }
+        }else {
             $error_msg = "Controller file '{$filePath}' is exited, but has undefined {$class}::{$action} method";
             $this->response->status(404);
-			$this->response->header('Content-Type','application/json; charset=UTF-8');
+            $this->response->header('Content-Type', 'application/json; charset=UTF-8');
             $this->app->beforeEnd(404, $error_msg);
             return false;
-		}
-	}
+        }
+    }
 
 	/**
 	 * redirectNotFound 重定向至NotFound类
@@ -318,7 +315,7 @@ class HttpRoute extends AppDispatch {
 	 * @param    string  $route  请求的路由uri
 	 * @return   boolean
 	 */
-	public static function isExistRouteFile($route) {
+	public function isExistRouteFile($route) {
 		return isset(self::$routeCacheFileMap[$route]) ? self::$routeCacheFileMap[$route] : false;
 	}
 
@@ -327,7 +324,7 @@ class HttpRoute extends AppDispatch {
 	 * @param   string  $route  请求的路由uri
 	 * @return  void
 	 */
-	public static function setRouteFileMap($route) {
+	public function setRouteFileMap($route) {
 		self::$routeCacheFileMap[$route] = true;
 	}
 

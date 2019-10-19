@@ -121,6 +121,7 @@ abstract class AbstractProcess {
         $this->swooleProcess->name('php-swoolefy-user-process:'.$this->getProcessName());
 
         try{
+            $this->init();
             $this->run();
         }catch(\Throwable $t) {
             BaseServer::catchException($t);
@@ -186,6 +187,11 @@ abstract class AbstractProcess {
     }
 
     /**
+     * init
+     */
+    public function init() {}
+
+    /**
      * run 进程创建后的run方法
      * @return void
      */
@@ -197,10 +203,10 @@ abstract class AbstractProcess {
     public function onShutDown() {}
 
     /**
-     * @param       $str
+     * @param mixed $msg
      * @param mixed ...$args
      * @return mixed
      */
-    public function onReceive($str, ...$args) {}
+    public function onReceive($msg, ...$args) {}
 
 }

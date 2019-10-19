@@ -117,21 +117,6 @@ class BaseObject {
     }
 
 	/**
-	 * __call
-     * @throws  \Exception
-	 * @return   mixed
-	 */
-	public function __call($action, $args = []) {
-		throw new \Exception("Error Processing Request, {$action}() is undefined", 1);
-	}
-
-	/**
-	 * __callStatic
-	 * @return   void
-	 */
-	public static function __callStatic($action, $args = []) {}
-
-	/**
 	 * _die 异常终端程序执行
 	 * @param   string $html
 	 * @param   string $msg

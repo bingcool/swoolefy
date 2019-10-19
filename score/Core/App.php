@@ -106,7 +106,7 @@ class App extends \Swoolefy\Core\Component {
 	 * run 执行
 	 * @param  $request
 	 * @param  $response
-     * @throws \Exception
+     * @throws \Throwable
 	 * @return void
 	 */
 	public function run($request, $response, $extend_data = null) {
@@ -123,8 +123,8 @@ class App extends \Swoolefy\Core\Component {
                 $route = new HttpRoute($extend_data);
                 $route->dispatch();
             }
-        }catch (\Throwable $t) {
-            throw new \Exception($t->getMessage());
+        }catch (\Throwable $throwable) {
+            throw $throwable;
         }finally {
         	if(!$this->is_defer) {
         		$this->clearStaticVar();
