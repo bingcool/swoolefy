@@ -23,7 +23,7 @@ class SysProcess extends AbstractProcess {
 	 * @param  Process $process
 	 * @return void          
 	 */
-	public function run(Process $process) {
+	public function run() {
 		// 获取协议层协议配置
 		$conf = Swfy::getConf();
 		$sys_collector_config = $conf['sys_collector_conf'];
