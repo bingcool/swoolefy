@@ -28,35 +28,35 @@ class CrontabManager {
      * @throws \Exception
      */
 	public function addRule(string $cron_name, string $expression, $func) {
-		if(class_exists('Cron\\CronExpression')) {
-			if(CronExpression::isValidExpression($expression)) {
-				if(is_callable($func)) {
-					$cron_name_key = md5($cron_name);
-					if(is_array($func)) {
-						if(!isset($this->cron_tasks[$cron_name_key])) {	
-							$this->cron_tasks[$cron_name_key] = [$expression, $func];
-							TickManager::tickTimer(1000, $func, $expression);
-						}
-					}else {
-						if(!isset($this->cron_tasks[$cron_name_key])) {
-							$this->cron_tasks[$cron_name_key] = [$expression, $func];
-							swoole_timer_tick(1000, function($timer_id, $expression) use($func) {
-								$cronInstance = new CronController();
-								$cronInstance->runCron($expression, $func);
-								if(method_exists("Swoolefy\\Core\\Application", 'removeApp')) {
-	                				Application::removeApp($cronInstance->coroutine_id);
-	           					}
-							}, $expression);
-						}
-					}
-					unset($cron_name_key);
-				}
-			}else {
-				throw new \Exception("Crontab expression format is wrong, please check it", 1);
-			}
-		}else {
-			throw new \Exception("If you want to use crontab, you need to install 'composer require dragonmantank/cron-expression' ", 1);	
-		}
+	    if(!class_exists('Cron\\CronExpression')) {
+            throw new \Exception("If you want to use crontab, you need to install 'composer require dragonmantank/cron-expression' ", 1);
+        }
+
+	    if(!CronExpression::isValidExpression($expression)) {
+            throw new \Exception("Crontab expression format is wrong, please check it", 1);
+        }
+
+        if(is_callable($func)) {
+            $cron_name_key = md5($cron_name);
+            if(is_array($func)) {
+                if(!isset($this->cron_tasks[$cron_name_key])) {
+                    $this->cron_tasks[$cron_name_key] = [$expression, $func];
+                    TickManager::tickTimer(1000, $func, $expression);
+                }
+            }else {
+                if(!isset($this->cron_tasks[$cron_name_key])) {
+                    $this->cron_tasks[$cron_name_key] = [$expression, $func];
+                    swoole_timer_tick(1000, function($timer_id, $expression) use($func) {
+                        $cronInstance = new CronController();
+                        $cronInstance->runCron($expression, $func);
+                        if(method_exists("Swoolefy\\Core\\Application", 'removeApp')) {
+                            Application::removeApp($cronInstance->coroutine_id);
+                        }
+                    }, $expression);
+                }
+            }
+            unset($cron_name_key);
+        }
 	}
 
     /**

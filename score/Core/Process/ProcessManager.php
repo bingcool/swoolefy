@@ -24,7 +24,7 @@ class ProcessManager {
 	private static $table_process = [
 		// 进程内存表
 		'table_process_map' => [
-			// 内存表建立的行数,取决于建立的process进程数，默认最小1024
+			// 内存表建立的行数,取决于建立的process进程数，默认最小值64
 			'size' => self::PROCESS_NUM,
 			// 字段
 			'fields'=> [

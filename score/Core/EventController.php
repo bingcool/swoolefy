@@ -200,19 +200,21 @@ class EventController extends BaseObject {
      * @return 
      */
     public function pushComponentPools() {
-    	if(!empty($this->component_pools) && !empty($this->component_pools_obj_ids)) {
-    		foreach($this->component_pools as $name) {
-    			if(isset($this->container[$name])) {
-    				$obj = $this->container[$name];
-    				if(is_object($obj)) {
-    					$obj_id = spl_object_id($obj);
-    					if(in_array($obj_id, $this->component_pools_obj_ids)) {
-    						\Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
-    					}
-    				}
-    			}
-    		}
-    	}
+        if(!empty($this->component_pools) || !empty($this->component_pools_obj_ids)) {
+            return false;
+        }
+
+        foreach($this->component_pools as $name) {
+            if(isset($this->container[$name])) {
+                $obj = $this->container[$name];
+                if(is_object($obj)) {
+                    $obj_id = spl_object_id($obj);
+                    if(in_array($obj_id, $this->component_pools_obj_ids)) {
+                        \Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
+                    }
+                }
+            }
+        }
     }
 
 	/**
@@ -244,7 +246,7 @@ class EventController extends BaseObject {
 	 */
 	public function end() {
 		if($this->is_end) {
-			return;
+			return true;
 		}
 		// set End
 		$this->setEnd();
