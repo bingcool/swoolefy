@@ -72,8 +72,8 @@ class EventApp {
             $this->event_app = new EventController(...$args);
             try {
                 $class->call($this->event_app, ...$args);
-            }catch(\Throwable $t) {
-                throw new \Exception($t->getMessage());
+            }catch(\Throwable $throwable) {
+                throw $throwable;
             }finally {
             	if(!$this->event_app->isDefer()) {
                     $this->event_app->end();
@@ -132,8 +132,8 @@ class EventApp {
                 $this->is_call = true;
                 $result = $this->event_app->$action(...$args);
                 return $result;
-            }catch(\Throwable $t) {
-			    throw new \Exception($t->getMessage());
+            }catch(\Throwable $throwable) {
+			    throw $throwable;
             }finally {
                 if(!$this->event_app->isDefer()) {
                     $this->event_app->end();

@@ -25,7 +25,7 @@ class PoolsManager {
     private static $table_process = [
         // 进程内存表
         'table_process_pools_map' => [
-            // 内存表建立的行数,取决于建立的process进程数,最小值1024
+            // 内存表建立的行数,取决于建立的process进程数,最小值64
             'size' => self::PROCESS_NUM,
             // 字段
             'fields'=> [
@@ -206,19 +206,16 @@ class PoolsManager {
      */
     public static function readByProcessPoolsName(string $processName, float $timeOut = 0.1) {
         $process = self::getProcessPoolsByName($processName);
-        if($process){
-            $process = $process->getProcess();
-            $read = array($process);
-            $write = [];
-            $error = [];
-            $ret = swoole_select($read, $write, $error, $timeOut);
-            if($ret){
-                return $process->read(64 * 1024);
-            }else{
-                return null;
-            }
-        }else{
-            return null;
+        if(!is_object($process)){
+            throw new \Exception("Not exist name of $processName process");
+        }
+        $swooleProcess = $process->getProcess();
+        $read = array($swooleProcess);
+        $write = [];
+        $error = [];
+        $ret = swoole_select($read, $write, $error, $timeOut);
+        if($ret){
+            return $process->read(64 * 1024);
         }
     }
 }
