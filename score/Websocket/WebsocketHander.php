@@ -44,6 +44,7 @@ class WebsocketHander extends Swoole implements HanderInterface {
 	 * run 服务调度，创建访问实例，处理String数据
 	 * @param  int   $fd
 	 * @param  mixed $recv
+     * @throws \Throwable
 	 * @return mixed
 	 */
 	public function run($fd, $recv, array $extend_data = []) {
@@ -83,12 +84,14 @@ class WebsocketHander extends Swoole implements HanderInterface {
                 $Dispatch->dispatch();
             }
 
+        }catch (\Throwable $t) {
+            throw $t;
         } finally {
             // 必须执行
             if(!$this->is_defer) {
                 parent::end();
             }
-            return;
+            return true;
         }
 
 	}
