@@ -52,6 +52,7 @@ class RpcHander extends Swoole implements HanderInterface {
 	 * run 完成初始化后,路由匹配和创建访问实例
 	 * @param  int   $fd
 	 * @param  mixed $recv
+     * @throws \Throwable
 	 * @return mixed
 	 */
 	public function run($fd, $recv, array $extend_data = []) {
@@ -92,7 +93,6 @@ class RpcHander extends Swoole implements HanderInterface {
                 $is_task_process = true;
                 list($callable, $params) = $recv;
             }
-
             if($callable) {
                 $Dispatch = new ServiceDispatch($callable, $params, $this->header);
                 if(isset($is_task_process) && $is_task_process === true) {
@@ -102,12 +102,14 @@ class RpcHander extends Swoole implements HanderInterface {
                 $Dispatch->dispatch();
             }
 
+        }catch (\Throwable $t) {
+            throw $t;
         } finally {
             // 必须执行
             if(!$this->is_defer) {
             	parent::end();
             }
-            return;
+            return true;
         }
 	}
 

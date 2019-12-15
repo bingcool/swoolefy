@@ -28,7 +28,7 @@ class ZModel {
 	 */
 	public static function getInstance(string $class = '', array $constructor = []) {
 		$cid = CoroutineManager::getInstance()->getCoroutineId();
-		$class = self::setClass($class);
+		$class = self::parseClass($class);
 		if(isset(static::$_model_instances[$cid][$class]) && is_object(static::$_model_instances[$cid][$class])) {
             return static::$_model_instances[$cid][$class];
         }
@@ -49,7 +49,7 @@ class ZModel {
 		if(isset(static::$_model_instances[$cid]) && empty($class)) {
 			unset(static::$_model_instances[$cid]);
 		}else if(isset(static::$_model_instances[$cid]) && !empty($class)) {
-            $class = self::setClass($class);
+            $class = self::parseClass($class);
             if(isset(static::$_model_instances[$cid][$class])) {
                 unset(static::$_model_instances[$cid][$class]);
             }
@@ -61,7 +61,7 @@ class ZModel {
      * @param string $class
      * @return mixed|string
      */
-	private static function setClass(string $class = '') {
+	private static function parseClass(string $class = '') {
         $class = str_replace('/','\\', $class);
         $class = trim($class,'\\');
         return $class;

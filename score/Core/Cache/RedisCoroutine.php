@@ -192,11 +192,11 @@ class RedisCoroutine {
 			}
 		}while($retry_connect_times--);
 
-		if($isConnected) {
-			return $redis;
-		}else {
-			throw new \Exception("Coroutine Redis client failed to connect redis server host:{$host}");
+		if(!$isConnected) {
+            throw new \Exception("Coroutine Redis client failed to connect redis server host:{$host}");
+
 		}
+		return $redis;
 	}
 
 	/**

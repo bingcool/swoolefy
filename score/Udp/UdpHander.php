@@ -54,59 +54,62 @@ class UdpHander extends Swoole implements HanderInterface {
 	 * run 完成初始化后，路由匹配和创建访问实例
 	 * @param  int   $fd
 	 * @param  mixed $recv
+     * @throws \Throwable
 	 * @return mixed
 	 */
 	public function run($recv, $clientInfo, array $extend_data = []) {
 	    try {
             // 必须要执行父类的run方法
-            parent::run($fd = null , $recv);
+            parent::run($fd = null, $recv);
             $this->client_info = $clientInfo;
             // worker进程
-            if($this->isWorkerProcess()) {
-                if(is_string($recv)) {
+            if ($this->isWorkerProcess()) {
+                if (is_string($recv)) {
                     $packet = explode(self::EOF, $recv);
-                    if(count($packet) == 3) {
-                        list($service, $event, $params) =  $packet;
-                        if(is_string($params)) {
+                    if (count($packet) == 3) {
+                        list($service, $event, $params) = $packet;
+                        if (is_string($params)) {
                             $params_arr = json_decode($params, true);
-                            if(is_array($params_arr)) {
+                            if (is_array($params_arr)) {
                                 $params = $params_arr;
                             }
                         }
-                    }else if(count($packet) == 2) {
-                        list($service, $event) =  $packet;
+                    } else if (count($packet) == 2) {
+                        list($service, $event) = $packet;
                         $params = null;
-                    }else {
+                    } else {
                         // TODO
                     }
-                }else {
+                } else {
                     // TODO
                 }
 
-                if($service && $event) {
+                if ($service && $event) {
                     $callable = [$service, $event];
                 }
-            }else {
+            } else {
                 // 任务task进程
                 $is_task_process = true;
                 list($callable, $params) = $recv;
             }
 
-            if($callable) {
+            if ($callable) {
                 $Dispatch = new ServiceDispatch($callable, $params);
-                if(isset($is_task_process) && $is_task_process === true) {
+                if (isset($is_task_process) && $is_task_process === true) {
                     list($from_worker_id, $task_id, $task) = $extend_data;
                     $Dispatch->setFromWorkerIdAndTaskId($from_worker_id, $task_id, $task);
                 }
                 $Dispatch->dispatch();
             }
+        }catch (\Throwable $t) {
+            throw $t;
 
         } finally {
             // 必须执行
             if(!$this->is_defer) {
                 parent::end();
             }
-            return;
+            return true;
         }
 
 	}

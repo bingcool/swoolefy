@@ -64,7 +64,7 @@ class EventApp {
      *
 	 * @param  string $class
      * @param  array  $args
-     * @throws \Exception
+     * @throws \Throwable
 	 * @return $this
 	 */
 	public function registerApp($class, array $args = []) {
@@ -79,7 +79,6 @@ class EventApp {
                     $this->event_app->end();
                 }
             }
-
         }else {
 	        do{
                 if(is_string($class)) {

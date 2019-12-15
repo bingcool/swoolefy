@@ -650,8 +650,9 @@ trait AppTrait {
 	    	// 调试环境这个函数使用
 	        if(!IS_PRD_ENV()) @$this->response->write($output);
 	        return null;
-	    }else
-	        return $output;
+	    }else {
+            return $output;
+        }
 	}
 
 	/**
