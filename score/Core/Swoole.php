@@ -279,7 +279,6 @@ class Swoole extends BaseObject {
     	if(!empty($this->component_pools) || !empty($this->component_pools_obj_ids)) {
     		return false;
     	}
-
         foreach($this->component_pools as $name) {
             if(isset($this->container[$name])) {
                 $obj = $this->container[$name];

@@ -11,11 +11,11 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Hook;
 use Swoolefy\Tcp\TcpServer;
 use Swoolefy\Core\BaseObject;
-use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Application;
 
 class BService extends BaseObject {
@@ -72,18 +72,17 @@ class BService extends BaseObject {
 	 * @return mixed
 	 */
 	public function send($fd, $data, $header = []) {
-		if(BaseServer::isRpcApp()) {
-			if(BaseServer::isPackLength()) {
-				$args = [$data, $header];
-				$data = \Swoolefy\Tcp\TcpServer::pack($args);
-				return Swfy::getServer()->send($fd, $data);
-			}else if(BaseServer::isPackEof()) {
-				$text = \Swoolefy\Tcp\TcpServer::pack($data);
-				return Swfy::getServer()->send($fd, $text);
-			}
-		}else {
-			throw new \Exception("BService::send() this method only can be called by tcp or rpc server!");
-		}
+		if(!BaseServer::isRpcApp()) {
+            throw new \Exception("BService::send() this method only can be called by tcp or rpc server!");
+        }
+        if(BaseServer::isPackLength()) {
+            $args = [$data, $header];
+            $data = \Swoolefy\Tcp\TcpServer::pack($args);
+            return Swfy::getServer()->send($fd, $data);
+        }else if(BaseServer::isPackEof()) {
+            $text = \Swoolefy\Tcp\TcpServer::pack($data);
+            return Swfy::getServer()->send($fd, $text);
+        }
 		
 	}
 
@@ -97,14 +96,13 @@ class BService extends BaseObject {
 	 * @return   mixed
 	 */
 	public function sendto($ip, $port, $data, $server_socket = -1) {
-		if(BaseServer::isUdpApp()) {
-			if(is_array($data)){
-				$data = json_encode($data, JSON_UNESCAPED_UNICODE);
-			}
-			return Swfy::getServer()->sendto($ip, $port, $data, $server_socket);
-		}else {
-			throw new \Exception("BService::sendto() this method only can be called by udp server!");
-		}
+		if(!BaseServer::isUdpApp()) {
+            throw new \Exception("BService::sendto() this method only can be called by udp server!");
+        }
+        if(is_array($data)){
+            $data = json_encode($data, JSON_UNESCAPED_UNICODE);
+        }
+        return Swfy::getServer()->sendto($ip, $port, $data, $server_socket);
 	}
 
 	/**
@@ -117,15 +115,14 @@ class BService extends BaseObject {
 	 * @return boolean
 	 */
 	public function push($fd, $data, int $opcode = 1, bool $finish = true) {
-		if(BaseServer::isWebsocketApp()) {
-			if(is_array($data)){
-				$data = json_encode($data, JSON_UNESCAPED_UNICODE);
-			}
-			$result = Swfy::getServer()->push($fd, $data, $opcode, $finish);
-			return $result;
-		}else {
-			throw new \Exception("BService::push() this method only can be called by websocket server!");
+		if(!BaseServer::isWebsocketApp()) {
+            throw new \Exception("BService::push() this method only can be called by websocket server!");
 		}
+		if(is_array($data)) {
+            $data = json_encode($data, JSON_UNESCAPED_UNICODE);
+        }
+        $result = Swfy::getServer()->push($fd, $data, $opcode, $finish);
+        return $result;
 		
 	}
 
