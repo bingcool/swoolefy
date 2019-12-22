@@ -170,11 +170,11 @@ abstract class AbstractProcess {
         if($worker_id >= 1) {
             $worker_task_total_num = (int)Swfy::getServer()->setting['worker_num'] + (int)Swfy::getServer()->setting['task_worker_num'];
             if($worker_id >= $worker_task_total_num) {
-                throw new \Exception("worker_id must less than $worker_task_total_num", 1);
+                throw new \Exception("Worker_id must less than $worker_task_total_num", 1);
             }
         }
         if(!$msg) {
-            throw new \Exception('param $msg can not be null or empty', 1);   
+            throw new \Exception('Param $msg can not be null or empty', 1);
         }
         return Swfy::getServer()->sendMessage($msg, $worker_id);
     }

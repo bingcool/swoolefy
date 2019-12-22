@@ -64,8 +64,8 @@ class ProcessManager {
                 $process = new $processClass($processName, $async, $args, $extend_data, $enable_coroutine);
                 self::$processList[$key] = $process;
                 return true;
-            }catch (\Exception $e){
-                throw new \Exception($e->getMessage(), 1);       
+            }catch (\Exception $exception){
+                throw new $exception;
             }
         }else{
             throw new \Exception("you can not add the same process : $processName", 1);

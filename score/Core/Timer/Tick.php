@@ -65,7 +65,7 @@ class Tick {
      * @return  mixed
      */
     public static function tick($time_interval, $func, $user_params = null, $is_sington = false) {
-        $tid = swoole_timer_tick($time_interval, function($timer_id, $user_params) use($func, $is_sington) {
+        $tid = \Swoole\Timer::tick($time_interval, function($timer_id, $user_params) use($func, $is_sington) {
             $params = [$user_params, $timer_id];
             if(is_array($func)) {
                 list($class, $action) = $func;
@@ -118,7 +118,7 @@ class Tick {
      * @return   boolean         
      */
     public static function delTicker($timer_id) {
-        $result = swoole_timer_clear($timer_id);
+        $result = \Swoole\Timer::clear($timer_id);
         if($result) {
             foreach(self::$_tick_tasks as $tid=>$value) {
                 if($tid == $timer_id) {
@@ -152,9 +152,7 @@ class Tick {
         if(!is_callable($func)) {
             throw new \Exception(get_called_class()."::afterTimer() the seconed params 'func' is not callable");
         }
-
         $timer_id = self::after($time_interval, $func, $params);
-
         return $timer_id;
     }
 
@@ -163,7 +161,7 @@ class Tick {
      * @return  mixed
      */
     public static function after($time_interval, $func, $user_params = null) {
-        $tid = swoole_timer_after($time_interval, function($user_params) use($func) {
+        $tid = \Swoole\Timer::after($time_interval, function($user_params) use($func) {
             $params = [];
             if($user_params) {
                 $params = [$user_params];
@@ -220,7 +218,6 @@ class Tick {
             }
             $config = Swfy::getConf();
             if(isset($config['enable_table_tick_task']) && $config['enable_table_tick_task'] == true) {
-
                 TableManager::set('table_after', 'after_timer_task', ['after_tasks'=>json_encode(self::$_after_tasks)]);
             }
         }
