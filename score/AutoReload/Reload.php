@@ -72,11 +72,10 @@ class Reload {
      * @throws \Exception
      */
     public function __construct() {
-        if(extension_loaded('inotify')) {
-            $this->inotify = inotify_init();
-        }else {
+        if(!extension_loaded('inotify')) {
             throw new \Exception("If you want to use auto reload，you should install inotify extension,please view 'http://pecl.php.net/package/inotify'");
         }
+        $this->inotify = inotify_init();
     }    
     /**
      * init
@@ -86,7 +85,7 @@ class Reload {
     public function init() {
         !$this->inotify && $this->inotify = inotify_init();
     	// 将inotify添加至异步事件的eventloop
-    	swoole_event_add($this->inotify, function($fd) {
+    	\Swoole\Event::add($this->inotify, function($fd) {
     		// 读取事件的信息
             $events = inotify_read($this->inotify);
             if(!$events) {
@@ -109,7 +108,7 @@ class Reload {
                     //正在reload，不再接受任何事件，冻结10秒
                     if (!$this->reloading) {
                         //进行重启
-                        swoole_timer_after($this->afterSeconds * 1000, [$this, 'reload']);
+                        \Swoole\Timer::after($this->afterSeconds * 1000, [$this, 'reload']);
                         $this->reloading = true;
                     }
                 }
