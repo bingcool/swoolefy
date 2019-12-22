@@ -138,8 +138,8 @@ class EventApp {
                     $this->event_app->end();
                 }
             }
-		}catch(\Throwable $t) {
-			throw new \Exception($t->getMessage());
+		}catch(\Throwable $throwable) {
+			throw new $throwable;
 		}
 	}
 

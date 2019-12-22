@@ -46,7 +46,7 @@ class CrontabManager {
             }else {
                 if(!isset($this->cron_tasks[$cron_name_key])) {
                     $this->cron_tasks[$cron_name_key] = [$expression, $func];
-                    swoole_timer_tick(1000, function($timer_id, $expression) use($func) {
+                    \Swoole\Timer::tick(1000, function($timer_id, $expression) use($func) {
                         $cronInstance = new CronController();
                         $cronInstance->runCron($expression, $func);
                         if(method_exists("Swoolefy\\Core\\Application", 'removeApp')) {
