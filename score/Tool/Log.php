@@ -122,7 +122,7 @@ class Log {
 	    $app = Application::getApp();
 	    if(is_object($app) && $is_deplay_batch) {
             $app->setLog(__FUNCTION__, $logInfo);
-            return;
+            return true;
         }
         try {
             go(function() use($logInfo, $context) {
@@ -138,6 +138,7 @@ class Log {
      * @param $logInfo
      * @param bool $is_deplay_batch
      * @param array $context
+     * @param \Throwable
      */
 	public function addNotice($logInfo, $is_deplay_batch = false, array $context = []) {
         if(is_array($logInfo)) {
@@ -146,7 +147,7 @@ class Log {
         $app = Application::getApp();
         if(is_object($app) && $is_deplay_batch) {
             $app->setLog(__FUNCTION__, $logInfo);
-            return;
+            return true;
         }
         try {
             go(function() use($logInfo, $context) {
@@ -170,7 +171,7 @@ class Log {
         $app = Application::getApp();
         if(is_object($app) && $is_deplay_batch) {
             $app->setLog(__FUNCTION__, $logInfo);
-            return;
+            return true;
         }
         try {
             go(function() use($logInfo, $context) {
@@ -194,7 +195,7 @@ class Log {
         $app = Application::getApp();
         if(is_object($app) && $is_deplay_batch) {
             $app->setLog(__FUNCTION__, $logInfo);
-            return;
+            return true;
         }
 
         try{
@@ -210,7 +211,6 @@ class Log {
      * @param $logInfo
      * @param $context
      * @param int $type
-     * @throws \Throwable
      */
 	public function insertLog($logInfo, array $context = [], $type = Logger::INFO) {
         $log = new Logger($this->channel);
@@ -218,7 +218,7 @@ class Log {
         $stream->setFormatter($this->formatter);
         $log->pushHandler($stream);
         // add records to the log
-        $log->error($logInfo, $context);
+        $log->addRecord($type, $logInfo, $context);
     }
 
 }

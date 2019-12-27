@@ -23,7 +23,8 @@ abstract class AbstractProcess {
     private $async = null;
     private $args = [];
     private $extend_data;
-    private $enable_coroutine = false;
+    private $enable_coroutine = true;
+    private $is_exiting = false;
 
     const SWOOLEFY_PROCESS_KILL_FLAG = "action::restart::action::reboot";
 
@@ -35,7 +36,7 @@ abstract class AbstractProcess {
      * @param null   $extend_data
      * @param bool   $enable_coroutine
      */
-    public function __construct(string $processName, bool $async = true, array $args = [], $extend_data = null, bool $enable_coroutine = false) {
+    public function __construct(string $processName, bool $async = true, array $args = [], $extend_data = null, bool $enable_coroutine = true) {
         $this->async = $async;
         $this->args = $args;
         $this->extend_data = $extend_data;
@@ -183,7 +184,62 @@ abstract class AbstractProcess {
      * reboot
      */
     public function reboot() {
-        \Swoole\Process::kill($this->getPid(), SIGTERM);
+        if(!$this->is_exiting) {
+            $this->is_exiting = true;
+            $this->runtimeCoroutineWait();
+            \Swoole\Process::kill($this->getPid(), SIGTERM);
+        }
+    }
+
+    /**
+     * @return bool
+     */
+    public function isExiting() {
+        return $this->is_exiting;
+    }
+
+    /**
+     * getCurrentRunCoroutineNum 获取当前进程中正在运行的协程数量，可以通过这个值判断比较，防止协程过多创建，可以设置sleep等待
+     * @return int
+     */
+    public function getCurrentRunCoroutineNum() {
+        $coroutine_info = \Swoole\Coroutine::stats();
+        if(isset($coroutine_info['coroutine_num'])) {
+            return $coroutine_info['coroutine_num'];
+        }
+    }
+
+    /**
+     * getCurrentCcoroutineLastCid 获取当前进程的协程cid已分配到哪个值，可以根据这个值设置进程reboot,防止cid超出最大数
+     * @return int
+     */
+    public function getCurrentCcoroutineLastCid() {
+        $coroutine_info = \Swoole\Coroutine::stats();
+        if(isset($coroutine_info['coroutine_last_cid'])) {
+            return $coroutine_info['coroutine_last_cid'];
+        }
+    }
+
+    /**
+     * 对于运行态的协程，还没有执行完的，设置一个再等待时间$re_wait_time
+     * @param int $cycle_times 轮询次数
+     * @param int $re_wait_time 每次2s轮询
+     */
+    private function runtimeCoroutineWait(int $cycle_times = 5, int $re_wait_time = 2) {
+        if($cycle_times <= 0) {
+            $cycle_times = 2;
+        }
+        while($cycle_times) {
+            // 当前运行的coroutine
+            $runCoroutineNum = $this->getCurrentRunCoroutineNum();
+            // 除了主协程，还有其他协程没唤醒，则再等待
+            if($runCoroutineNum > 1) {
+                --$cycle_times;
+                \Swoole\Coroutine::sleep($re_wait_time);
+            }else {
+                break;
+            }
+        }
     }
 
     /**
