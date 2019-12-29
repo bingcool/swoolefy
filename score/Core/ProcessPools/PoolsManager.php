@@ -89,8 +89,8 @@ class PoolsManager {
                     $process = new $processClass($processName.'@'.$i.'@'.$j, $async, $args, $extend_data, $enable_coroutine);
                     $process->setBindWorkerId($i);
                     self::$processList[$key][$i][$j] = $process;
-                }catch (\Exception $e){
-                    throw new \Exception($e->getMessage(), 1);
+                }catch (\Exception $exception) {
+                    throw $exception;
                 }
             }
         }

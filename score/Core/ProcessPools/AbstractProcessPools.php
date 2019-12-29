@@ -24,7 +24,7 @@ abstract class AbstractProcessPools {
     private $args = [];
     private $extend_data;
     private $bind_worker_id = null;
-    private $enable_coroutine = false;
+    private $enable_coroutine = true;
     private $is_exiting = false;
 
     const SWOOLEFY_PROCESS_KILL_FLAG = "action::restart::action::reboot";
@@ -37,7 +37,7 @@ abstract class AbstractProcessPools {
      * @param mixed  $extend_data
      * @param boolean   $enable_coroutine
      */
-    public function __construct(string $process_name, bool $async = true, array $args = [], $extend_data = null, bool $enable_coroutine = false) {
+    public function __construct(string $process_name, bool $async = true, array $args = [], $extend_data = null, bool $enable_coroutine = true) {
         $this->async = $async;
         $this->args = $args;
         $this->extend_data = $extend_data;

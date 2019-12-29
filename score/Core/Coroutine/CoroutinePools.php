@@ -28,7 +28,7 @@ class CoroutinePools {
             $redis->registerPools($pool_name);
             return $redis;
         });
-     * @param  string  $name
+     * @param  string  $pool_name 与配置的component_name对应
      * @param  mixed   $handler
      * @throws mixed
      */

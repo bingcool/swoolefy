@@ -178,7 +178,6 @@ class RedisCoroutine {
 		$host = $config['host'];
 		$port = $config['port'];
 		$password = $config['password'];
-
 		do {
 			$redis = new CRedis();
 			if(!empty($this->options)) {
@@ -193,8 +192,7 @@ class RedisCoroutine {
 		}while($retry_connect_times--);
 
 		if(!$isConnected) {
-            throw new \Exception("Coroutine Redis client failed to connect redis server host:{$host}");
-
+            throw new \Exception("Coroutine Redis client failed to connect host:{$host}");
 		}
 		return $redis;
 	}

@@ -12,13 +12,6 @@
 namespace Swoolefy\Core\Db;
 
 class MysqlCoroutine {
-
-    /**
-     * $serverInfo mysql服务器的信息
-     * @var array
-     */
-    public $serverInfo = [];
-
     /**
      * $config 配置
      * @var array
@@ -36,24 +29,30 @@ class MysqlCoroutine {
     ];
 
     /**
-     * $deploy 是否开启开启分布式，开启分布式则会自动读写分离
-     * @var boolean
+     * $serverInfo mysql服务器的信息
+     * @var array
      */
-    public $deploy = false;
+    protected $server_info = [];
 
     /**
 	 * $master_mysql_config 主服务器的配置
 	 * @var array
 	 */
-	public $master_mysql_config = [];
-	public $master_swoole_mysql;
+	protected $master_mysql_config = [];
+	protected $master_swoole_mysql;
 
 	/**
 	 * $slave_mysql_config 从服务器的配置
 	 * @var array
 	 */
-	public $slave_mysql_config = [];
-	public $slave_swoole_mysql = [];
+    protected $slave_mysql_config = [];
+    protected $slave_swoole_mysql = [];
+
+    /**
+     * $deploy 是否开启开启分布式，开启分布式则会自动读写分离
+     * @var boolean
+     */
+    protected $deploy = false;
 
     /**
      * MysqlCoroutine constructor.
@@ -62,7 +61,7 @@ class MysqlCoroutine {
      */
 	public function __construct(array $config = []) {
 		if(!empty($config)) {
-			$this->setConfig($config);
+			$this->setConfig(array_merge($this->config, $config));
 		}
 	}
 
@@ -70,7 +69,7 @@ class MysqlCoroutine {
 	 * initConfig  初始化配置
 	 * @return   
 	 */
-	public function initConfig() {
+	protected function initConfig() {
 		$serverInfo = $this->parseConfig();
 		foreach($serverInfo as $k=>$config) {
 			// 主master
@@ -194,20 +193,24 @@ class MysqlCoroutine {
 	 */
 	protected function connect(array $config = [], int $retry_connect_times = 1) {
 		do {
-			$swoole_mysql = new \Swoole\Coroutine\MySQL();
-	        $swoole_mysql->configInfo = $config;
-	        $isConnected = $swoole_mysql->connect($config);
-	        if($isConnected) {
-	            break;
+		    try {
+                $swoole_mysql = new \Swoole\Coroutine\MySQL();
+                $swoole_mysql->configInfo = $config;
+                $isConnected = $swoole_mysql->connect($config);
+                if($isConnected) {
+                    break;
+                }
+                unset($swoole_mysql);
+            }catch (\Throwable $throwable) {
+                throw new \Exception($throwable->getMessage());
             }
-            unset($swoole_mysql);
 		}while($retry_connect_times--);
 
 		if($isConnected && is_object($swoole_mysql)) {
             return $swoole_mysql;
         }else {
         	$host = $config['host'];
-            throw new \Exception("swoole_mysql connect failed to redis host:{$host}");
+            throw new \Exception("swoole_mysql connect failed to host:{$host}, please check config");
         }
 	}
 
@@ -252,6 +255,7 @@ class MysqlCoroutine {
 			unset($slave_mysql);
 		}
 
+		// 随机建立实例
         $num = array_rand($this->slave_mysql_config);
         // 是否已建立实例对象
         if(isset($this->slave_swoole_mysql[$num])) {
@@ -272,16 +276,16 @@ class MysqlCoroutine {
 	 * @return array
 	 */
 	public function getServerInfo() {
-		return $this->serverInfo;
+		return $this->server_info;
 	}
 
 	/**
 	 * parseConfig  分析配置参数
 	 * @return   array 
 	 */
-	public function parseConfig() {
-		if(!empty($this->serverInfo)) {
-			return $this->serverInfo;
+	protected function parseConfig() {
+		if(!empty($this->server_info)) {
+			return $this->server_info;
 		}
 		if(is_string($this->config['host'])) {
 			$hosts = explode(',', $this->config['host']);
@@ -356,8 +360,8 @@ class MysqlCoroutine {
 			$serverInfo[$k]['strict_type'] = $this->config['strict_type'];
 			$serverInfo[$k]['fetch_more'] = $this->config['fetch_more'];
 		}
-		$this->serverInfo = $serverInfo;
-		return $serverInfo;
+		$this->server_info = $serverInfo;
+		return $this->server_info;
 	}
 
 	/**

@@ -32,7 +32,7 @@ class SysProcess extends AbstractProcess {
 			$tick_time = isset($sys_collector_config['tick_time']) ? (float) $sys_collector_config['tick_time'] : 5;
 			$atomic = AtomicManager::getInstance()->getAtomicLong('atomic_request_count');
             $isEnablePvCollector = BaseServer::isEnablePvCollector();
-			swoole_timer_tick($tick_time * 1000, function($timer_id) use($type, $sys_collector_config, $atomic, $tick_time, $isEnablePvCollector) {
+			\Swoole\Timer::tick($tick_time * 1000, function($timer_id) use($type, $sys_collector_config, $atomic, $tick_time, $isEnablePvCollector) {
 				// 统计系统信息
 				if(isset($sys_collector_config['func']) && $sys_collector_config['func'] instanceof \Closure) {
 					$res = call_user_func($sys_collector_config['func']);
@@ -62,7 +62,7 @@ class SysProcess extends AbstractProcess {
 						$this->writeByFile($sys_collector_config, $data);
 					break;
 					default:
-						swoole_timer_clear($timer_id);
+						\Swoole\Timer::clear($timer_id);
 						return;
 					break;
 				}
@@ -98,8 +98,8 @@ class SysProcess extends AbstractProcess {
 					}
 				}
 				$udp_client->send($message);
-			}catch(\Throwable $e) {
-				throw new \Exception($e->getMessage(), 1);
+			}catch(\Throwable $exception) {
+				throw $exception;
 			}
 		}else {
 			throw new \Exception('sys_collector_config of udp is wrong, $host, $port, $service, $event of params must be setted', 1);
@@ -136,8 +136,8 @@ class SysProcess extends AbstractProcess {
                     $message = json_encode($data, JSON_UNESCAPED_UNICODE);
                     try{
                         $redis_client->publish($channel, $message);
-                    }catch(\Throwable $e) {
-                        throw new \Exception($e->getMessage(), 1);
+                    }catch(\Throwable $exception) {
+                        throw new \Exception($exception->getMessage(), 1);
                     }
                 }
 			}
@@ -172,10 +172,10 @@ class SysProcess extends AbstractProcess {
 				$redis_client->auth($password);
 				$redis_client->setOption(\Redis::OPT_READ_TIMEOUT, -1);
 				$redis_client->select($database);
-			}catch(\RedisException $e) {
-				throw new \Exception($e->getMessage(), 1);
-			}catch (\Throwable $t) {
-                throw new \Exception($t->getMessage(), 1);
+			}catch(\Exception $exception) {
+				throw new \Exception($exception->getMessage(), 1);
+			}catch (\Throwable $throwable) {
+                throw new \Exception($throwable->getMessage(), 1);
             }
 		}else {
 			throw new \Exception('sys_collector_config of phpredis is wrong, $host, $port, $password of params must be setted');

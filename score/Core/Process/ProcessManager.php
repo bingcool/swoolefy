@@ -65,7 +65,7 @@ class ProcessManager {
                 self::$processList[$key] = $process;
                 return true;
             }catch (\Exception $exception){
-                throw new $exception;
+                throw $exception;
             }
         }else{
             throw new \Exception("you can not add the same process : $processName", 1);
