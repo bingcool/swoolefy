@@ -20,6 +20,9 @@ if(!isset($APP_NAMES)) {
     ];
 }
 
+// 设置成中国时区
+date_default_timezone_set('PRC');
+
 // 定义环境
 defined('SWOOLEFY_DEV') or define('SWOOLEFY_DEV','dev');
 defined('SWOOLEFY_GRA') or define('SWOOLEFY_GRA','gra');
@@ -29,9 +32,6 @@ defined('SWOOLEFY_ENVS') or define('SWOOLEFY_ENVS', [
     SWOOLEFY_GRA,
     SWOOLEFY_PRD,
 ]);
-
-// 设置成中国时区
-date_default_timezone_set('PRC');
 
 // score目录
 if(is_dir(__DIR__.'/vendor/bingcool/swoolefy')) {
@@ -69,7 +69,7 @@ if(isset($argv[2]) && in_array(trim($argv[2]), array_keys($APP_NAMES))) {
     }else{
 	    help('');
         write("[Error] app_name is not in APP_NAME array in swoolefy file, please check it");
-	    return;
+	    return false;
     }
     
 }
@@ -705,7 +705,6 @@ $config_content =
 return [
     'components' => [
         'log' => [
-            'is_delay' => true,
             'class' => \Swoolefy\Tool\Log::class,
             'channel' => 'application',
             'logFilePath' => rtrim(LOG_PATH,'/').'/runtime.log'
