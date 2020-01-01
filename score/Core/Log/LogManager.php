@@ -48,7 +48,7 @@ class LogManager {
      * @param  string $log_name
      * @return mixed
      */
-    public function registerLoggerByClosure(\Closure $func, string $log_name) {
+    public function registerLoggerByClosure(\Closure $func, string $log_name = null) {
         $this->logger = call_user_func($func, $log_name);
     }
 
