@@ -283,7 +283,6 @@ class Pack {
 	        	}
         	} 
         }
-
         return $bin_header_data . $body;
 	}
 
@@ -330,18 +329,18 @@ class Pack {
     /**
      * delete 删除缓存的不完整的僵尸式数据包，可以在onclose回调中执行,防止内存偷偷溢增
      * @param int  $fd
-     * @return void
+     * @return boolean
      */
     public function delete($fd) {
     	unset($this->_buffers[$fd], $this->_headers[$fd]);
-    	return;
+    	return true;
     }
 
     /**
      * destroy 当workerstop时,删除缓冲的不完整的僵尸式数据包，并强制断开这些链接
      * @param mixed $server
      * @param int $worker_id
-     * @return void
+     * @return boolean
      */
     public function destroy($server = null, $worker_id = null) {
     	if(!empty($this->_buffers)) {
@@ -349,7 +348,7 @@ class Pack {
     			$this->server->close($fd, true);
     			unset($this->_buffers[$fd], $this->_headers[$fd]);
     		}
-    		return;	
+    		return true;
     	}
     }
 }

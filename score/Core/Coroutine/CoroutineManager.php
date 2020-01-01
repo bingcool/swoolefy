@@ -59,8 +59,8 @@ class CoroutineManager {
 	public function getCoroutineStatus() {
 		// 大于4.x版本
 		if($this->canEnableCoroutine()) {
-			if(method_exists('co', 'stats')) {
-				return \Co::stats();
+			if(method_exists('Swoole\\Coroutine', 'stats')) {
+				return \Swoole\Coroutine::stats();
 			}
 		}
 		// 1.x, 2.x版本

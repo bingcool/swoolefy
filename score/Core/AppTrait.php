@@ -610,7 +610,7 @@ trait AppTrait {
 			Application::getApp()->setEnd();
 		}
 		// 发送Http跳转,调用此方法会自动end发送并结束响应,4.2.0+版本支持
-		if(version_compare(swoole_version(), '4.2.0', '>')) {
+		if(version_compare(swoole_version(), '4.4.5', '>')) {
 			$this->response->redirect($url.$query_string, $code);
 		}else {
 			$this->status($code);
