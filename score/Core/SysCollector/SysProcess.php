@@ -98,8 +98,8 @@ class SysProcess extends AbstractProcess {
 					}
 				}
 				$udp_client->send($message);
-			}catch(\Throwable $exception) {
-				throw $exception;
+			}catch(\Throwable $throwable) {
+				throw $throwable;
 			}
 		}else {
 			throw new \Exception('sys_collector_config of udp is wrong, $host, $port, $service, $event of params must be setted', 1);
@@ -136,8 +136,8 @@ class SysProcess extends AbstractProcess {
                     $message = json_encode($data, JSON_UNESCAPED_UNICODE);
                     try{
                         $redis_client->publish($channel, $message);
-                    }catch(\Throwable $exception) {
-                        throw new \Exception($exception->getMessage(), 1);
+                    }catch(\Throwable $throwable) {
+                        throw $throwable;
                     }
                 }
 			}
@@ -175,7 +175,7 @@ class SysProcess extends AbstractProcess {
 			}catch(\Exception $exception) {
 				throw new \Exception($exception->getMessage(), 1);
 			}catch (\Throwable $throwable) {
-                throw new \Exception($throwable->getMessage(), 1);
+                throw $throwable;
             }
 		}else {
 			throw new \Exception('sys_collector_config of phpredis is wrong, $host, $port, $password of params must be setted');
