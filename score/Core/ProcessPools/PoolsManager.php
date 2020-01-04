@@ -186,12 +186,15 @@ class PoolsManager {
     /**
      * writeByProcessName 向绑定当前worker进程的某个自定义进程写数据
      * @param  string $name
-     * @param  string $data
+     * @param  mixed $data
      * @return boolean
      */
-    public static function writeByProcessPoolsName(string $processName, string $data) {
+    public static function writeByProcessPoolsName(string $processName, $data) {
         $process = self::getProcessPoolsByName($processName);
         if($process){
+            if(is_array($data)) {
+                $data = json_encode($data, JSON_UNESCAPED_UNICODE);
+            }
             return (bool)$process->getProcess()->write($data);
         }else{
             return false;
@@ -202,6 +205,7 @@ class PoolsManager {
      * readByProcessName 读取绑定的某个进程数据
      * @param  string $name
      * @param  float  $timeOut
+     * @throws \Exception
      * @return mixed
      */
     public static function readByProcessPoolsName(string $processName, float $timeOut = 0.1) {

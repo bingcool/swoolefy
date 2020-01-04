@@ -189,6 +189,7 @@ class MysqlCoroutine {
 	 * connect
 	 * @param  array       $config             
 	 * @param  int|integer $retry_connect_times
+     * @throws \Exception
 	 * @return mixed
 	 */
 	protected function connect(array $config = [], int $retry_connect_times = 1) {

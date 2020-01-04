@@ -127,6 +127,7 @@ abstract class AbstractProcessPools {
                         $this->reboot();
                         return;
                     }else {
+                        $msg = $this->validDataJson($msg);
                         $this->onReceive($msg);
                     }
                 }catch(\Throwable $t) {
@@ -142,6 +143,20 @@ abstract class AbstractProcessPools {
         }catch(\Throwable $t) {
             BaseServer::catchException($t);
         }
+    }
+
+    /**
+     * @param $data
+     * @return array|mixed
+     */
+    protected function validDataJson($data) {
+        if(is_string($data)) {
+            $data_arr = json_decode($data, true);
+            if(is_array($data_arr)) {
+                $data = $data_arr;
+            }
+        }
+        return $data;
     }
 
     /**

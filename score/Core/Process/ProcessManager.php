@@ -125,12 +125,15 @@ class ProcessManager {
     /**
      * writeByProcessName 向某个进程写数据
      * @param  string $name
-     * @param  string $data
+     * @param  mixed $data
      * @return boolean
      */
-    public static function writeByProcessName(string $name, string $data) {
+    public static function writeByProcessName(string $name, $data) {
         $process = self::getProcessByName($name);
         if($process){
+            if(is_array($data)) {
+                $data = json_encode($data, JSON_UNESCAPED_UNICODE);
+            }
             return (bool)$process->getProcess()->write($data);
         }else{
             return false;
