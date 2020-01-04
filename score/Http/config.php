@@ -40,8 +40,6 @@ return [
 		// http无状态，使用1或3
 		'dispatch_mode' => 3,
 		'reload_async' => true,
-		'daemonize' => 0,
-
         'enable_coroutine' => 1,
         'task_enable_coroutine' => 1,
 

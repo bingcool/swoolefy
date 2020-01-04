@@ -115,9 +115,9 @@ function initCheck() {
             );
             exit();
         }
-        if(version_compare(swoole_version(),'4.2.13','<')) {
+        if(version_compare(swoole_version(),'4.4.5','<')) {
             write("
-                [error] the swoole version must >= 4.2.13, current swoole version = ".swoole_version()
+                [error] the swoole version must >= 4.4.5, current swoole version = ".swoole_version()
             );
             exit();
         }
