@@ -33,39 +33,43 @@ class SysProcess extends AbstractProcess {
 			$atomic = AtomicManager::getInstance()->getAtomicLong('atomic_request_count');
             $isEnablePvCollector = BaseServer::isEnablePvCollector();
 			\Swoole\Timer::tick($tick_time * 1000, function($timer_id) use($type, $sys_collector_config, $atomic, $tick_time, $isEnablePvCollector) {
-				// 统计系统信息
-				if(isset($sys_collector_config['func']) && $sys_collector_config['func'] instanceof \Closure) {
-					$res = call_user_func($sys_collector_config['func']);
-					if(is_array($res)) {
-						$sys_info = json_encode($res, JSON_UNESCAPED_UNICODE);
-					}else {
-						$sys_info = $res;
-					}
-				}
-				// pv原子计数器
-                $total_request_num = $isEnablePvCollector ? $atomic->get() : 0;
-				// 当前时间段内原子清空
-                $total_request_num && $atomic->sub($total_request_num);
-				$data = ['total_request'=> $total_request_num, 'tick_time'=>$tick_time,'from_service'=>$sys_collector_config['from_service'], 'timestamp'=>date('Y-m-d H:i:s')];
-				$data['sys_collector_message'] = $sys_info;
-				switch($type) {
-					case SWOOLEFY_SYS_COLLECTOR_UDP:
-						$this->sendByUdp($sys_collector_config, $data);
-					break;
-					case SWOOLEFY_SYS_COLLECTOR_SWOOLEREDIS:
-						$this->publishBySwooleRedis($sys_collector_config, $data);
-					break;
-					case SWOOLEFY_SYS_COLLECTOR_PHPREDIS:
-						$this->publishByPhpRedis($sys_collector_config, $data);
-					break;
-					case SWOOLEFY_SYS_COLLECTOR_FILE:
-						$this->writeByFile($sys_collector_config, $data);
-					break;
-					default:
-						\Swoole\Timer::clear($timer_id);
-						return;
-					break;
-				}
+				try{
+                    // 统计系统信息
+                    if(isset($sys_collector_config['func']) && $sys_collector_config['func'] instanceof \Closure) {
+                        $res = call_user_func($sys_collector_config['func']);
+                        if(is_array($res)) {
+                            $sys_info = json_encode($res, JSON_UNESCAPED_UNICODE);
+                        }else {
+                            $sys_info = $res;
+                        }
+                    }
+                    // pv原子计数器
+                    $total_request_num = $isEnablePvCollector ? $atomic->get() : 0;
+                    // 当前时间段内原子清空
+                    $total_request_num && $atomic->sub($total_request_num);
+                    $data = ['total_request'=> $total_request_num, 'tick_time'=>$tick_time,'from_service'=>$sys_collector_config['from_service'], 'timestamp'=>date('Y-m-d H:i:s')];
+                    $data['sys_collector_message'] = $sys_info;
+                    switch($type) {
+                        case SWOOLEFY_SYS_COLLECTOR_UDP:
+                            $this->sendByUdp($sys_collector_config, $data);
+                            break;
+                        case SWOOLEFY_SYS_COLLECTOR_SWOOLEREDIS:
+                            $this->publishBySwooleRedis($sys_collector_config, $data);
+                            break;
+                        case SWOOLEFY_SYS_COLLECTOR_PHPREDIS:
+                            $this->publishByPhpRedis($sys_collector_config, $data);
+                            break;
+                        case SWOOLEFY_SYS_COLLECTOR_FILE:
+                            $this->writeByFile($sys_collector_config, $data);
+                            break;
+                        default:
+                            \Swoole\Timer::clear($timer_id);
+                            return;
+                            break;
+                    }
+                }catch(\Throwable $t) {
+                    BaseServer::catchException($t);
+                }
 			});
 		}
 		return;
