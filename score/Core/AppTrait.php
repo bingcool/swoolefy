@@ -542,7 +542,17 @@ trait AppTrait {
                 $json_string = json_encode($data, JSON_UNESCAPED_UNICODE);
                 break;
         }
-        $this->response->write($json_string);
+
+        if(strlen($json_string) > 2 * 1024 * 1024){
+            $res = str_split($json_string,2 * 1024 * 1024);
+            unset($json_string);
+            foreach ($res as $k=>$item) {
+                $this->response->write($item);
+                unset($res[$k]);
+            }
+        }else{
+            $this->response->write($json_string);
+        }
     }
 
 	/**
