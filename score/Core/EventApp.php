@@ -73,7 +73,7 @@ class EventApp {
             try {
                 $class->call($this->event_app, ...$args);
             }catch(\Throwable $throwable) {
-                throw $throwable;
+                BaseServer::catchException($throwable);
             }finally {
             	if(!$this->event_app->isDefer()) {
                     $this->event_app->end();
@@ -139,7 +139,7 @@ class EventApp {
                 }
             }
 		}catch(\Throwable $throwable) {
-			throw new $throwable;
+            BaseServer::catchException($throwable);
 		}
 	}
 

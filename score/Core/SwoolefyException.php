@@ -103,7 +103,7 @@ class SwoolefyException {
             $logFilesSize = filesize($logFilePath);
         }
         // 定时清除这个log文件
-        if($logFilesSize > 1024 * 20) {
+        if($logFilesSize > 20 * 1024 * 1024) {
             @file_put_contents($logFilePath,'');
         }
 

@@ -367,10 +367,7 @@ class BaseServer {
 	 */
 	public static function setTimeZone() {
 		// 默认
-		$timezone = 'PRC';
-		if(isset(static::$config['time_zone'])) {
-			$timezone = static::$config['time_zone'];
-		}
+		$timezone = static::$config['time_zone'] ?? 'PRC';
 		date_default_timezone_set($timezone);
 		return true;
 	}
