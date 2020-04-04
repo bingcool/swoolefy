@@ -276,7 +276,7 @@ class Swoole extends BaseObject {
      * @return 
      */
     public function pushComponentPools() {
-    	if(!empty($this->component_pools) || !empty($this->component_pools_obj_ids)) {
+    	if(empty($this->component_pools) || empty($this->component_pools_obj_ids)) {
     		return false;
     	}
         foreach($this->component_pools as $name) {
