@@ -722,8 +722,7 @@ trait AppTrait {
         if(isset($this->request->server['HTTP_CLIENT_IP']) && strcasecmp($this->request->server['HTTP_CLIENT_IP'], "unknown")) {
             $ip = $this->request->server["HTTP_CLIENT_IP"];
         }
-        if (isset($this->request->server['HTTP_X_FORWARDED_FOR']) and strcasecmp($this->request->server['HTTP_X_FORWARDED_FOR'], "unknown"))
-        {
+        if(isset($this->request->server['HTTP_X_FORWARDED_FOR']) and strcasecmp($this->request->server['HTTP_X_FORWARDED_FOR'], "unknown")) {
             return $this->request->server['HTTP_X_FORWARDED_FOR'];
         }
         if(isset($this->request->server['REMOTE_ADDR'])) {

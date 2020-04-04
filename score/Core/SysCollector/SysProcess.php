@@ -12,12 +12,24 @@
 namespace Swoolefy\Core\SysCollector;
 
 use Swoole\Process;
+use Swoolefy\Core\EventController;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Memory\AtomicManager;
 use Swoolefy\Core\Process\AbstractProcess;
 
 class SysProcess extends AbstractProcess {
+
+    /**
+     * 默认定时，单位秒
+     */
+    const DEFAULT_TICK_TIME = 5;
+
+    /**
+     * 协程处理一定数量自重启
+     */
+    const DEFAULT_MAX_TICK_HANDLE_COROUTINE_NUM = 10000;
+
 	/**
 	 * run system收集信息进程
 	 * @param  Process $process
@@ -29,14 +41,21 @@ class SysProcess extends AbstractProcess {
 		$sys_collector_config = $conf['sys_collector_conf'];
 		if(is_array($sys_collector_config) && isset($sys_collector_config['type'])) {
 			$type = $sys_collector_config['type'];
-			$tick_time = isset($sys_collector_config['tick_time']) ? (float) $sys_collector_config['tick_time'] : 5;
+			$tick_time = isset($sys_collector_config['tick_time']) ? (float) $sys_collector_config['tick_time'] : self::DEFAULT_TICK_TIME;
 			$atomic = AtomicManager::getInstance()->getAtomicLong('atomic_request_count');
+			$max_tick_handle_coroutine_num = $sys_collector_config['max_tick_handle_coroutine_num'] ?? self::DEFAULT_MAX_TICK_HANDLE_COROUTINE_NUM;
             $isEnablePvCollector = BaseServer::isEnablePvCollector();
-			\Swoole\Timer::tick($tick_time * 1000, function($timer_id) use($type, $sys_collector_config, $atomic, $tick_time, $isEnablePvCollector) {
+			\Swoole\Timer::tick($tick_time * 1000, function($timer_id) use($type, $sys_collector_config, $atomic, $tick_time, $isEnablePvCollector, $max_tick_handle_coroutine_num) {
 				try{
+				    if($this->getCurrentCcoroutineLastCid() > $max_tick_handle_coroutine_num) {
+                        \Swoole\Timer::clear($timer_id);
+                        $this->reboot();
+                    }
                     // 统计系统信息
                     if(isset($sys_collector_config['func']) && $sys_collector_config['func'] instanceof \Closure) {
-                        $res = call_user_func($sys_collector_config['func']);
+                        $event = new EventController();
+                        $func = $sys_collector_config['func'];
+                        $res = $func->call($event);
                         if(is_array($res)) {
                             $sys_info = json_encode($res, JSON_UNESCAPED_UNICODE);
                         }else {
@@ -64,7 +83,6 @@ class SysProcess extends AbstractProcess {
                             break;
                         default:
                             \Swoole\Timer::clear($timer_id);
-                            return;
                             break;
                     }
                 }catch(\Throwable $t) {
@@ -89,7 +107,7 @@ class SysProcess extends AbstractProcess {
 		}
 		$host = $sys_collector_config['host'];
 		$port = $sys_collector_config['port'];
-		$service = $sys_collector_config['service'];
+		$service = $sys_collector_config['target_service'];
 		$event = $sys_collector_config['event'];
 		// 组合消息,udp的数据格式
 		$message = $service."::".$event."::".json_encode($data, JSON_UNESCAPED_UNICODE);
@@ -199,7 +217,7 @@ class SysProcess extends AbstractProcess {
 	 */
 	protected function writeByFile(array $sys_collector_config, array $data = []) {
 		$file_path = $sys_collector_config['file_path'];
-		$max_size = isset($sys_collector_config['max_size']) ? $sys_collector_config['max_size'] : 2 * 1024;
+		$max_size = isset($sys_collector_config['max_size']) ? $sys_collector_config['max_size'] : 2 * 1024 * 1024;
 		if(file_exists($file_path)) {
 			$file_size = filesize($file_path);
 			if($file_size > $max_size) {
