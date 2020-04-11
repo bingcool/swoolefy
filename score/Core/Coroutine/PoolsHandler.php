@@ -11,39 +11,31 @@
 
 namespace Swoolefy\Core\Coroutine;
 
-abstract class PoolsHandler {
+class PoolsHandler {
 
 	protected $channel = null;
 
-	protected $pool_name;
+	protected $poolName;
 
-	protected $maxPoolsNum;
+	protected $poolsNum = 30;
 
-	protected $minPoolsNum;
-
-	protected $pushTimeout = 3;
+	protected $pushTimeout = 2;
 
 	protected $popTimeout = 1;
 
 	protected $callCount = 0;
 
-	public function setMaxPoolsNum(int $maxPoolsNum = 50) {
-		$this->maxPoolsNum = $maxPoolsNum;
+	protected $liveTime = 10;
+
+	public function setPoolsNum(int $poolsNum = 50) {
+		$this->poolsNum = $poolsNum;
 	}
 
-	public function getMaxPoolsNum() {
-		return $this->maxPoolsNum;
+	public function getPoolsNum() {
+		return $this->poolsNum;
 	}
 
-    public function setMinPoolsNum(int $minPoolsNum = 20) {
-        $this->minPoolsNum = $minPoolsNum;
-    }
-
-    public function getMinPoolsNum() {
-		return $this->minPoolsNum;
-	}
-
-	public function setPushTimeout(int $pushTimeout = 3) {
+	public function setPushTimeout(float $pushTimeout = 3) {
 	    $this->pushTimeout = $pushTimeout;
     }
 
@@ -51,7 +43,7 @@ abstract class PoolsHandler {
 	    return $this->pushTimeout;
     }
 
-    public function setPopTimeout(int $popTimeout = 1) {
+    public function setPopTimeout(float $popTimeout = 1) {
 	    $this->popTimeout = $popTimeout;
     }
 
@@ -59,8 +51,16 @@ abstract class PoolsHandler {
 	    return $this->popTimeout;
     }
 
+    public function setLiveTime(int $liveTime) {
+	    $this->liveTime = $liveTime;
+    }
+
+    public function getLiveTime() {
+	    return $this->liveTime;
+    }
+
 	public function getPoolName() {
-		return $this->pool_name;
+		return $this->poolName;
 	}
 
 	public function getCapacity() {
@@ -74,13 +74,13 @@ abstract class PoolsHandler {
 	}
 
     /**
-     * @param string|null $pool_name
+     * @param string|null $poolNname
      */
-	public function registerPools(string $pool_name = null) {
-		if($pool_name) {
-			$this->pool_name = trim($pool_name);
+	public function registerPools(string $poolNname = null) {
+		if($poolNname) {
+			$this->poolName = trim($poolNname);
 			if(!isset($this->channel)) {
-                $this->channel = new \Swoole\Coroutine\Channel($this->maxPoolsNum);
+                $this->channel = new \Swoole\Coroutine\Channel($this->poolsNum);
         	}
 		}
 	}
@@ -93,14 +93,29 @@ abstract class PoolsHandler {
 	public function pushObj($obj) {
 		if(is_object($obj)) {
 		    go(function() use($obj) {
-                $result = $this->channel->push($obj, $this->pushTimeout);
-                $length = $this->channel->length();
-                // 矫正
-                if(($this->maxPoolsNum - $length) == $this->callCount - 1) {
-                	$this->callCount--;
-                }else {
-                	$this->callCount = $this->maxPoolsNum - $length;
+                $isPush = true;
+		        if(isset($obj->objExpireTime) && time() > $obj->objExpireTime) {
+		            $isPush = false;
                 }
+
+                $length = $this->channel->length();
+                if($length >= $this->poolsNum) {
+                    $isPush = false;
+                }
+
+                if($isPush) {
+                    $this->channel->push($obj, $this->pushTimeout);
+                    $length = $this->channel->length();
+                    // 矫正
+                    if(($this->poolsNum - $length) == $this->callCount - 1) {
+                        --$this->callCount;
+                    }else {
+                        $this->callCount = $this->poolsNum - $length;
+                    }
+                }else {
+                    --$this->callCount;
+                }
+
                 if($this->callCount < 0) {
                 	$this->callCount = 0;
                 }
@@ -114,8 +129,9 @@ abstract class PoolsHandler {
      */
 	public function fetchObj() {
 		try {
-			$this->callCount++;
-			return $this->getObj();
+			$obj = $this->getObj();
+            is_object($obj) && $this->callCount++;
+            return $obj;
 		}catch(\Exception $e) {
 			throw new \Exception($e->getMessage());
 		}
@@ -125,5 +141,77 @@ abstract class PoolsHandler {
 	 * getObj 开发者自行实现
 	 * @return
 	 */
-	public abstract function getObj();
+    protected function getObj() {
+        // 第一次开始创建对象
+        if($this->callCount == 0 && $this->channel->isEmpty()) {
+            if($this->poolsNum) {
+                $this->build($this->poolsNum);
+            }
+            if($this->channel->length() > 0) {
+                return $this->pop();
+            }
+        }else {
+            if($this->callCount >= $this->poolsNum) {
+                usleep(10 * 1000);
+                $length = $this->channel->length();
+                if($length > 0) {
+                    return $this->pop();
+                }else {
+                    return null;
+                }
+            }else {
+                // 是否已经调用了
+                $length = $this->channel->length();
+                if($length > 0) {
+                    return $this->pop();
+                }
+            }
+        }
+    }
+
+    /**
+     * @param int $num
+     * @param callable $callable
+     * @throws Exception
+     */
+    protected function build(int $num, $callable = '') {
+        if($callable instanceof \Closure) {
+            $callFunction = $callable;
+        }else {
+            $callFunction = \Swoolefy\Core\Swfy::getAppConf()['components'][$this->poolName];
+        }
+        for($i=0; $i<$num; $i++) {
+            $obj = call_user_func($callFunction, $this->poolName);
+            if(!is_object($obj)) {
+                throw new \Exception("components of {$this->poolName} must return object");
+            }
+            $obj->objExpireTime = time() + ($this->liveTime) + rand(1,10);
+            $this->channel->push($obj, $this->pushTimeout);
+        }
+    }
+
+    /**
+     *
+     */
+    protected function pop() {
+        $startTime = time();
+        while($obj = $this->channel->pop($this->popTimeout)) {
+            if(isset($obj->objExpireTime) && time() > $obj->objExpireTime) {
+                //re build
+                $this->build(1);
+                if(time() - $startTime > 1) {
+                    $isTimeOut = true;
+                    break;
+                }
+            }else {
+                break;
+            }
+        }
+
+        if($obj === false || (isset($isTimeOut))) {
+            return null;
+        }
+
+        return $obj;
+    }
 }

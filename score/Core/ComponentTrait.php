@@ -264,7 +264,8 @@ trait ComponentTrait {
         $components = $app_conf['components'];
         if(empty($this->component_pools)) {
             if(isset($app_conf['enable_component_pools']) && is_array($app_conf['enable_component_pools']) && !empty($app_conf['enable_component_pools'])) {
-                $this->component_pools = $app_conf['enable_component_pools'];
+                $enable_component_pools = array_keys($app_conf['enable_component_pools']);
+                $this->component_pools = $enable_component_pools;
             }
         }
         if(isset($this->container[$name])) {

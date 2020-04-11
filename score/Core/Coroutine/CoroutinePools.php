@@ -21,39 +21,46 @@ class CoroutinePools {
 
     /**
      * 在workerStart可以创建一个协程池Channel
-        \Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->addPool('redis', function($pool_name): \Swoolefy\Core\Coroutine\PoolsHandler {
-            $redis = new \App\CoroutinePools\RedisPools();
-            $redis->setMaxPoolsNum();
-            $redis->setMinPoolsNum();
-            $redis->registerPools($pool_name);
-            return $redis;
-        });
+     * 'enable_component_pools' => [
+        'redis' => [
+            'min_pools_num'=>10,
+            'max_pools_num'=>30,
+            'push_timeout'=>1.5,
+            'pop_timeout'=>1,
+            'live_time'=>10 * 60
+            ]
+        ],
+     *
      * @param  string  $pool_name 与配置的component_name对应
      * @param  mixed   $handler
      * @throws mixed
      */
-    public function addPool(string $pool_name, $handler) {
+    public function addPool() {
         $app_conf = BaseServer::getAppConf();
-        $pool_name = trim($pool_name);
         if(isset($app_conf['enable_component_pools']) && is_array($app_conf['enable_component_pools']) && !empty($app_conf['enable_component_pools'])) {
-            if(!in_array($pool_name, $app_conf['enable_component_pools'])) {
-                throw new \Exception("pool_name={$pool_name} must in app conf['enable_component_pools'] value");
-            }
-        }
-        if(!isset($this->pools[$pool_name])) {
-            if($handler instanceof PoolsHandler) {
-                $handler_pool_name = $handler->getPoolName();
-                if($handler_pool_name == $pool_name) {
-                    $this->pools[$pool_name] = $handler;
-                }else {
-                    $class = get_class($handler);
-                    throw new \Exception(__CLASS__."::addPool of First Param 'pool_name'={$pool_name}, but {$class}::pool_name = {$handler_pool_name}, so the two are not equal");
-                }
-            }else if($handler instanceof \Closure) {
+            foreach($app_conf['enable_component_pools'] as $pool_name =>$component_pool) {
                 $args = [$pool_name];
-                $this->pools[$pool_name] = call_user_func_array($handler, $args);
-            }else {
-                throw new \Exception(__CLASS__."::addPools of second param 'handler' must be a Object extends \Swoolefy\Core\Coroutine\PoolsHandler, Or a Closure function");
+                if(!isset($this->pools[$pool_name])) {
+                    $this->pools[$pool_name] = call_user_func_array(function($pool_name) use($component_pool) {
+                        $poolsHandler = new PoolsHandler();
+                        if(isset($component_pool['pools_num']) && is_numeric($component_pool['pools_num'])) {
+                            $poolsHandler->setPoolsNum($component_pool['pools_num']);
+                        }
+
+                        if(isset($component_pool['push_timeout'])) {
+                            $poolsHandler->setPushTimeout($component_pool['push_timeout']);
+                        }
+
+                        if(isset($component_pool['pop_timeout'])) {
+                            $poolsHandler->setPopTimeout($component_pool['pop_timeout']);
+                        }
+                        if(isset($component_pool['live_time'])) {
+                            $poolsHandler->setLiveTime($component_pool['live_time']);
+                        }
+                        $poolsHandler->registerPools($pool_name);
+                        return $poolsHandler;
+                    }, $args);
+                }
             }
         }
     }

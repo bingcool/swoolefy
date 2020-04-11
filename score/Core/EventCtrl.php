@@ -52,6 +52,7 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
 	 * @return   
 	 */
 	public function workerStart($server, $worker_id) {
+        \Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->addPool();
 		static::onWorkerStart($server, $worker_id);
 	}
 
