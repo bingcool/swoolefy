@@ -24,9 +24,7 @@ class ServerManager {
 	/**
 	 * __construct 
 	 */
-	private function __construct() {
-
-	}
+	private function __construct() {}
 
 	/**
 	 * addListener 设置port实例
@@ -86,11 +84,11 @@ class ServerManager {
 
     /**
      * reload 重启所有worker进程
-     * @param  bool  $only_reload_taskworkrer 是否重启task进程，默认false
+     * @param  bool  $only_reload_taskworker 是否重启task进程，默认false
      * @return bool
      */
-	public function reload(bool $only_reload_taskworkrer = false) {
-        Swfy::getServer()->reload($only_reload_taskworkrer);
+	public function reload(bool $only_reload_taskworker = false) {
+        Swfy::getServer()->reload($only_reload_taskworker);
         return true;
     }
 

@@ -218,7 +218,7 @@ class Swoole extends BaseObject {
 	}
 
     /**
-     * 获取配置的异常处理类
+     * @return string | SwoolefyException
      */
     public function getExceptionClass() {
         return BaseServer::getExceptionClass();

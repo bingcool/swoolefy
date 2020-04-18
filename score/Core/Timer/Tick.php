@@ -66,26 +66,12 @@ class Tick {
      * @return  mixed
      */
     public static function tick($time_interval, $func, $user_params = null, $is_sington = false) {
-        $tid = \Swoole\Timer::tick($time_interval, function($timer_id, $user_params) use($func, $is_sington) {
+        $tid = \Swoole\Timer::tick($time_interval, function($timer_id, $user_params) use($func) {
             $params = [$user_params, $timer_id];
             try {
                 if(is_array($func)) {
                     list($class, $action) = $func;
-                    if($is_sington) {
-                        if(self::$_tasks_instances[$timer_id]) {
-                            $tickTaskInstance = unserialize(self::$_tasks_instances[$timer_id]);
-                        }else {
-                            $tickTaskInstance = new $class;
-                            self::$_tasks_instances[$timer_id] = serialize($tickTaskInstance);
-                        }
-                        if(method_exists("Swoolefy\\Core\\Application", 'setApp')) {
-                            $cid = CoroutineManager::getInstance()->getCoroutineId();
-                            $tickTaskInstance->coroutine_id = $cid;
-                            Application::setApp($tickTaskInstance);
-                        }
-                    }else {
-                        $tickTaskInstance = new $class;
-                    }
+                    $tickTaskInstance = new $class;
                     $tickTaskInstance->{$action}(...$params);
                 }else if($func instanceof \Closure) {
                     $tickTaskInstance = new TickController();
@@ -171,12 +157,10 @@ class Tick {
             if($user_params) {
                 $params = [$user_params];
             }
-
             try{
                 if(is_array($func)) {
                     list($class, $action) = $func;
                     $tickTaskInstance = new $class;
-                    //call_user_func_array([$tickTaskInstance, $action], $params);
                     $tickTaskInstance->{$action}(...$params);
                 }else if($func instanceof \Closure) {
                     $tickTaskInstance = new TickController;

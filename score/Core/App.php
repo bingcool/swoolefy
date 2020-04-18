@@ -238,7 +238,7 @@ class App extends \Swoolefy\Core\Component {
     }
 
     /**
-     * 获取配置的异常处理类
+     * @return SwoolefyException | string
      */
 	public function getExceptionClass() {
         return BaseServer::getExceptionClass();
