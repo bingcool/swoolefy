@@ -38,6 +38,9 @@ defined('SWOOLEFY_SYS_COLLECTOR_PHPREDIS') or define('SWOOLEFY_SYS_COLLECTOR_PHP
 defined('SWOOLEFY_SYS_COLLECTOR_FILE') or define('SWOOLEFY_SYS_COLLECTOR_FILE', 'sys_collector_file');
 defined('SWOOLEFY_SYS_COLLECTOR_CHANNEL') or define('SWOOLEFY_SYS_COLLECTOR_CHANNEL', 'sys_collector_channel');
 
+defined('ROUTE_MODEL_PATHINFO') or define('ROUTE_MODEL_PATHINFO', 1);
+defined('ROUTE_MODEL_QUERY_PARAMS') or define('ROUTE_MODEL_QUERY_PARAMS', 2);
+
 // 定义版本
 defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '4.3.1');
 

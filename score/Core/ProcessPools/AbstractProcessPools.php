@@ -286,14 +286,14 @@ abstract class AbstractProcessPools {
     public abstract function run();
 
     /**
-     * @return mixed
+     * @return void
      */
     public function onShutDown() {}
 
     /**
      * @param mixed $msg
      * @param mixed ...$args
-     * @return mixed
+     * @return void
      */
     public function onReceive($msg, ...$args) {}
 

@@ -74,11 +74,11 @@ class PoolsHandler {
 	}
 
     /**
-     * @param string|null $poolNname
+     * @param string|null $poolName
      */
-	public function registerPools(string $poolNname = null) {
-		if($poolNname) {
-			$this->poolName = trim($poolNname);
+	public function registerPools(string $poolName = null) {
+		if($poolName) {
+			$this->poolName = trim($poolName);
 			if(!isset($this->channel)) {
                 $this->channel = new \Swoole\Coroutine\Channel($this->poolsNum);
         	}

@@ -16,6 +16,17 @@ use Swoolefy\Core\Application;
 use Swoolefy\Core\AppDispatch;
 
 class HttpRoute extends AppDispatch {
+
+    /**
+     * @var int pathinfo 模式
+     */
+    const ROUTE_MODEL_PATHINFO = ROUTE_MODEL_PATHINFO;
+
+    /**
+     * @var int 参数路由模式
+     */
+    const ROUTE_MODEL_QUERY_PARAMS = ROUTE_MODEL_QUERY_PARAMS;
+
 	/**
 	 * $request 请求对象
 	 * @var null
@@ -53,16 +64,6 @@ class HttpRoute extends AppDispatch {
 	protected $extend_data = null;
 
     /**
-     * @var int pathinfo 模式
-     */
-    private $route_model_pathinfo = 1;
-
-    /**
-     * @var int 参数路由模式
-     */
-    private $route_model_query_params = 2;
-
-    /**
      * @var string 控制器后缀
      */
     private $controller_suffix = 'Controller';
@@ -97,10 +98,10 @@ class HttpRoute extends AppDispatch {
 	 * @return mixed
 	 */
 	public function dispatch() {
-	    if(!isset($this->app_conf['route_model']) || !in_array($this->app_conf['route_model'], [$this->route_model_pathinfo, $this->route_model_query_params])) {
-            $this->app_conf['route_model'] = 1;
+	    if(!isset($this->app_conf['route_model']) || !in_array($this->app_conf['route_model'], [self::ROUTE_MODEL_PATHINFO, self::ROUTE_MODEL_QUERY_PARAMS])) {
+            $this->app_conf['route_model'] = self::ROUTE_MODEL_PATHINFO;
         }
-		if($this->app_conf['route_model'] == $this->route_model_pathinfo) {
+		if($this->app_conf['route_model'] == self::ROUTE_MODEL_PATHINFO) {
 			if($this->require_uri == '/' || $this->require_uri == '//') {
 			    if(isset($this->app_conf['default_route']) && !empty($this->app_conf['default_route'])) {
                     $this->require_uri = '/'.trim($this->app_conf['default_route'], '/');
@@ -129,10 +130,10 @@ class HttpRoute extends AppDispatch {
 					break;	
 				}
 			}
-		}else if($this->app_conf['route_model'] == $this->route_model_query_params) {
-			$module = (isset($this->request->get['m']) && !$this->request->get['m']) ? $this->request->get['m'] : null;
+		}else if($this->app_conf['route_model'] == self::ROUTE_MODEL_QUERY_PARAMS) {
+			$module = $this->request->get['m'] ?? null;
 			$controller = $this->request->get['c'];
-			$action = isset($this->request->get['t']) ? $this->request->get['t'] : 'index';
+			$action = $this->request->get['t'] ?? 'index';
 			if($module) {
 				$this->require_uri = '/'.$module.'/'.$controller.'/'.$action;
 			}else {

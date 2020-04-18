@@ -124,11 +124,11 @@ class ServiceDispatch extends AppDispatch {
                     $handle = $app_conf['not_found_handler'];
                     $notFoundInstance = new $handle;
                     if($notFoundInstance instanceof \Swoolefy\Core\NotFound) {
-                        $return_data = $notFoundInstance->returnError($msg);
+                        $notFoundInstance->returnError($msg);
                     }
                 }else {
                     $notFoundInstance = new \Swoolefy\Core\NotFound();
-                    $return_data = $notFoundInstance->returnError($msg);
+                    $notFoundInstance->returnError($msg);
                 }
             }
             // 记录错误异常

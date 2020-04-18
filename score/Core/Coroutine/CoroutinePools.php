@@ -23,8 +23,7 @@ class CoroutinePools {
      * 在workerStart可以创建一个协程池Channel
      * 'enable_component_pools' => [
         'redis' => [
-            'min_pools_num'=>10,
-            'max_pools_num'=>30,
+            'pools_num'=>10,
             'push_timeout'=>1.5,
             'pop_timeout'=>1,
             'live_time'=>10 * 60
@@ -38,7 +37,11 @@ class CoroutinePools {
     public function addPool() {
         $app_conf = BaseServer::getAppConf();
         if(isset($app_conf['enable_component_pools']) && is_array($app_conf['enable_component_pools']) && !empty($app_conf['enable_component_pools'])) {
+            $components = array_keys($app_conf['components']);
             foreach($app_conf['enable_component_pools'] as $pool_name =>$component_pool) {
+                if(!in_array($pool_name, $components)) {
+                    throw new \Exception("enable_component_pools of item={$pool_name},not set in components");
+                }
                 $args = [$pool_name];
                 if(!isset($this->pools[$pool_name])) {
                     $this->pools[$pool_name] = call_user_func_array(function($pool_name) use($component_pool) {
@@ -68,7 +71,7 @@ class CoroutinePools {
     /**
      * getChannel
      * @param    string   $name
-     * @return   mixed
+     * @return   PoolsHandler
      */
     public function getPool(string $pool_name) {
         if(!$pool_name) {

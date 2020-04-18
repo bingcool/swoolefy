@@ -466,8 +466,8 @@ trait AppTrait {
 			try{
 				$modelInstance = new $modelClass;
 				return $this->selfModel[$modelClass] = $modelInstance;
-			}catch(\Exception $e) {
-				throw new \Exception($e->getMessage(), 1);
+			}catch(\Exception $exception) {
+				throw $exception;
 			}
 		}
 	}

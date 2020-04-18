@@ -74,5 +74,9 @@ abstract class AbstractCronController extends ProcessController {
     	return static::$offset_second;
     }
 
+    /**
+     * @param CronExpression $cron
+     * @return mixed
+     */
     public abstract function doCronTask(CronExpression $cron);
 }
