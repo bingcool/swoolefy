@@ -33,13 +33,18 @@ class Log {
 	 * $output,默认定义输出日志的文本格式
 	 * @var string
 	 */
-	public $output = "[%datetime%] %channel% > %level_name% : %message% \n";
+    public $output = "[%datetime%] %channel%:%level_name%:%message%:%context%\n";
 
     /**
      * $formatter 格式化对象
      * @var null
      */
     protected $formatter = null;
+
+    /**
+     * @var string
+     */
+    protected $prefix = 'add';
 	
 	/**
 	 * __construct
@@ -116,9 +121,6 @@ class Log {
      * @param array $context
      */
 	public function addInfo($logInfo, $is_deplay_batch = false, array $context = []) {
-	    if(is_array($logInfo)) {
-            $logInfo = json_encode($logInfo, JSON_UNESCAPED_UNICODE);
-        }
 	    $app = Application::getApp();
 	    if(is_object($app) && $is_deplay_batch) {
             $app->setLog(__FUNCTION__, $logInfo);
@@ -141,9 +143,6 @@ class Log {
      * @param \Throwable
      */
 	public function addNotice($logInfo, $is_deplay_batch = false, array $context = []) {
-        if(is_array($logInfo)) {
-            $logInfo = json_encode($logInfo, JSON_UNESCAPED_UNICODE);
-        }
         $app = Application::getApp();
         if(is_object($app) && $is_deplay_batch) {
             $app->setLog(__FUNCTION__, $logInfo);
@@ -165,9 +164,6 @@ class Log {
      * @param array $context
      */
 	public function addWarning($logInfo, $is_deplay_batch = false, array $context = []) {
-        if(is_array($logInfo)) {
-            $logInfo = json_encode($logInfo, JSON_UNESCAPED_UNICODE);
-        }
         $app = Application::getApp();
         if(is_object($app) && $is_deplay_batch) {
             $app->setLog(__FUNCTION__, $logInfo);
@@ -189,9 +185,6 @@ class Log {
      * @param array $context
      */
 	public function addError($logInfo, $is_deplay_batch = false, array $context = []) {
-        if(is_array($logInfo)) {
-            $logInfo = json_encode($logInfo, JSON_UNESCAPED_UNICODE);
-        }
         $app = Application::getApp();
         if(is_object($app) && $is_deplay_batch) {
             $app->setLog(__FUNCTION__, $logInfo);
@@ -213,12 +206,24 @@ class Log {
      * @param int $type
      */
 	public function insertLog($logInfo, array $context = [], $type = Logger::INFO) {
+        if(is_array($logInfo)) {
+            $logInfo = json_encode($logInfo, JSON_UNESCAPED_UNICODE);
+        }
         $log = new Logger($this->channel);
         $stream = new StreamHandler($this->logFilePath, $type);
         $stream->setFormatter($this->formatter);
         $log->pushHandler($stream);
         // add records to the log
         $log->addRecord($type, $logInfo, $context);
+    }
+
+    /**
+     * @param $method
+     * @param $methodName
+     */
+    public function __call($method, $arguments) {
+	    $methodName = $this->prefix.ucfirst($method);
+	    $this->$methodName(...$arguments);
     }
 
 }
