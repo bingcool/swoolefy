@@ -13,6 +13,7 @@ namespace Swoolefy\Core\ProcessPools;
 
 use Swoole\Table;
 use Swoole\Process;
+use Swoolefy\Core\Process\AbstractProcess;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Table\TableManager;
 
@@ -86,6 +87,9 @@ class PoolsManager {
         for($i = 0; $i < self::$worker_num; $i++) {
             for($j = 0; $j < $process_num_bind_worker; $j++) {
                 try{
+                    /**
+                     * @var AbstractProcessPools $process
+                     */
                     $process = new $processClass($processName.'@'.$i.'@'.$j, $async, $args, $extend_data, $enable_coroutine);
                     $process->setBindWorkerId($i);
                     self::$processList[$key][$i][$j] = $process;
@@ -100,8 +104,8 @@ class PoolsManager {
      * getProcessByName 通过名称获取绑定当前worker进程的某个进程
      * @param  string $processName
      * @param  bool $is_all 是否返回worker中绑定的所有process
-     * @throws \Exception
      * @return mixed
+     * @throws \Exception
      */
     public static function getProcessPoolsByName(string $processName, bool $is_all = false) {
         if(Swfy::isWorkerProcess()) {
@@ -164,6 +168,9 @@ class PoolsManager {
         if($is_restart_all_process) {
             foreach(self::$worker_num as $key => $worker_processes) {
                 foreach($worker_processes as $worker_id => $all_processes) {
+                    /**
+                     * @var AbstractProcessPools $process
+                     */
                     foreach($all_processes as $k => $process) {
                         $kill_flag = $process->getSwoolefyProcessKillFlag();
                         $process->getProcess()->write($kill_flag);
