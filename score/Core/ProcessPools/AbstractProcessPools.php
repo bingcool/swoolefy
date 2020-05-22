@@ -151,9 +151,9 @@ abstract class AbstractProcessPools {
      */
     protected function validDataJson($data) {
         if(is_string($data)) {
-            $data_arr = json_decode($data, true);
-            if(is_array($data_arr)) {
-                $data = $data_arr;
+            $dataArr = json_decode($data, true);
+            if(is_array($dataArr)) {
+                $data = $dataArr;
             }
         }
         return $data;
