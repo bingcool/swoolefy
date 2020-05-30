@@ -12,12 +12,14 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
+use Swoolefy\Core\App;
+use Swoolefy\Core\Swoole;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class Application {
 	/**
 	 * $app 应用对象
-	 * @var null
+	 * @var App|Swoole
 	 */
 	protected static $app = [];
 

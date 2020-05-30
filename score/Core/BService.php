@@ -22,7 +22,7 @@ class BService extends BaseObject {
 
 	/**
 	 * $app_conf 应用层配置
-	 * @var null
+	 * @var array
 	 */
 	public $app_conf = null;
 

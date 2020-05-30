@@ -221,9 +221,9 @@ class Log {
      * @param $method
      * @param $methodName
      */
-    public function __call($method, $arguments) {
+    public function __call($method, $args) {
 	    $methodName = $this->prefix.ucfirst($method);
-	    $this->$methodName(...$arguments);
+	    $this->$methodName(...$args);
     }
 
 }

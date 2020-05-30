@@ -21,7 +21,5 @@ class AppDispatch {
 	/**
 	 * __construct 
 	 */
-	public function __construct() {
-		
-	}
+	public function __construct() {}
 }

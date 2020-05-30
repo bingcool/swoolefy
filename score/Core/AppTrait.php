@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Core\Model\BModel;
+
 trait AppTrait {
 	/**
 	 * $previousUrl,记录url
@@ -153,37 +155,32 @@ trait AppTrait {
      * @return   mixed
      */
     public function getRequestParams(string $name = null) {
-    	$mothod = strtolower($this->getMethod());
-    	switch($mothod) {
+        $get = isset($this->request->get) ? $this->request->get : [];
+        $post = isset($this->request->post) ? $this->request->post : [];
+        if(empty($input)) {
+            $post = json_decode($this->request->rawContent(), true);
+            if(!$post) {
+                $post = [];
+            }
+        }
+
+        $method = strtolower($this->getMethod());
+        switch($method) {
     		case 'get' : 
-    			$input = $this->request->get;
+    			$input = $get;
     		break;
     		case 'post':
-    			$input = $this->request->post;
-    			if(empty($input)) {
-    				$input = json_decode($this->request->rawContent(), true);
-    				if(!$input) {
-    					$input = [];
-    				}
-    			}
+    			$input = $post;
     		break; 
     		default :
     			$input = [];
     		break;
     	}
     	if($name) {
-    		$value = (isset($input[$name]) && !empty($input[$name])) ? $input[$name] : null;
+    		$value = $input[$name] ?? null;
     	}else {
-    		$get = isset($this->request->get) ? $this->request->get : [];
-    		$post = isset($this->request->post) ? $this->request->post : [];
-    		if(empty($post)) {
-    			$post = json_decode($this->request->rawContent(), true);
-    			if(!$post) {
-    				$post = [];
-    			}
-    		}
     		$value = array_merge($get, $post);
-    		unset($input, $get, $post);
+    		unset($get, $post);
     	}
     	return $value;
     }
@@ -196,10 +193,9 @@ trait AppTrait {
     public function getQueryParams(string $name = null) {
     	$input = $this->request->get;
     	if($name) {
-    		$value = (isset($input[$name]) && !empty($input[$name])) ? $input[$name] : null;
+    		$value = $input[$name] ?? null;
     	}else {
     		$value = isset($input) ? $input : [];
-    		
     	}
     	return $value;
     }
@@ -215,7 +211,7 @@ trait AppTrait {
     		$input = json_decode($this->request->rawContent(), true);
     	}
     	if($name) {
-    		$value = (isset($input[$name]) && !empty($input[$name])) ? $input[$name] : null;
+    		$value = $input[$name] ?? null;
     	}else {
     		$value = isset($input) ? $input : [];
     	}
@@ -345,11 +341,11 @@ trait AppTrait {
 		}
 		$query_string = $this->getQueryString();
 		if($query_string) {
-            return $protocol.$this->getHostName().$this->getRequestUri().'?'.$query_string;
+            $url = $protocol.$this->getHostName().$this->getRequestUri().'?'.$query_string;
         }else {
-            return $protocol.$this->getHostName().$this->getRequestUri();
+            $url = $protocol.$this->getHostName().$this->getRequestUri();
         }
-
+		return $url;
 	}
 
 	/**
@@ -376,15 +372,14 @@ trait AppTrait {
 	public function getPreviousUrl(string $name = null) {
 		if($name) {
 			if(isset($this->previousUrl[$name])) {
-				return $this->previousUrl[$name];
+				$previousUrl =  $this->previousUrl[$name];
 			}
-			return null;
 		}else {
 			if(isset($this->previousUrl['home_url'])) {
-				return $this->previousUrl['home_url'];
+                $previousUrl = $this->previousUrl['home_url'];
 			}
-			return null;
 		}
+		return $previousUrl ?? null;
 	} 
 
 	/**
@@ -400,12 +395,11 @@ trait AppTrait {
 	 * @return string|null
 	 */
 	public function getModuleId() {
-		list($count,$routeParams) = $this->getRouteParams();
+		list($count, $routeParams) = $this->getRouteParams();
 		if($count == 3) {
 			return $routeParams[0];
-		}else {
-			return null;
 		}
+		return null;
 	}
 
 	/**
@@ -435,7 +429,7 @@ trait AppTrait {
 	 * @param  string  $model
      * @param  string  $module
      * @throws mixed
-	 * @return object
+	 * @return BModel|null
 	 */
 	public function getModel(string $model = '', string $module = '') {
 		if(empty($module)) {
@@ -460,17 +454,19 @@ trait AppTrait {
 			}
 		}
 		// 从内存数组中返回
-		if(isset($this->selfModel[$modelClass])) {
-			return $this->selfModel[$modelClass];
-		}else {
-			try{
-				$modelInstance = new $modelClass;
-				return $this->selfModel[$modelClass] = $modelInstance;
-			}catch(\Exception $exception) {
-				throw $exception;
-			}
+		if(!isset($this->selfModel[$modelClass])) {
+            try{
+                /**
+                 * @var BModel $modelInstance
+                 */
+                $modelInstance = new $modelClass;
+                $this->selfModel[$modelClass] = $modelInstance;
+            }catch(\Exception $exception) {
+                throw $exception;
+            }
 		}
-	}
+        return $this->selfModel[$modelClass] ?? null;
+    }
 
 	/**
 	 * getQuery
