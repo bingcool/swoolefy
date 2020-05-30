@@ -17,7 +17,7 @@ use Swoolefy\Core\EventController;
 class EventApp {
 	/**
 	 * $event_app 事件处理应用对象
-	 * @var object
+	 * @var EventController
 	 */
 	protected $event_app;
 
@@ -107,7 +107,7 @@ class EventApp {
 	}
 
     /**
-     * @return object
+     * @return EventController
      */
 	public function getEventApp() {
 	    return $this->event_app;
@@ -118,8 +118,8 @@ class EventApp {
     当协程退出时，发现有未捕获的异常，将引起致命错误。
      * @param  string $action
 	 * @param  array  $args
+     * @return  mixed
      * @throws \Exception
-	 * return  mixed
 	 */
 	public function __call(string $action, $args = []) {
 		try{

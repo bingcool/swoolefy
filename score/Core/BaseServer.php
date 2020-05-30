@@ -23,7 +23,7 @@ class BaseServer {
 
 	/**
 	 * $server swoole服务器对象实例
-	 * @var null
+	 * @var Swoole|null
 	 */
 	public static $server = null;
 
@@ -639,12 +639,12 @@ class BaseServer {
 
     /**
      * catchException 
-     * @param  Exception $e
+     * @param  \Throwable $e
      * @return void
      */
     public static function catchException($e) {
     	$ExceptionHanderClass = 'Swoolefy\\Core\\SwoolefyException';
-    	if(isset(self::$config['exception_handler']) && !empty(self::$config['exception_handler'])) {
+    	if(isset(self::$config['exception_handler'])) {
 			$ExceptionHanderClass = self::$config['exception_handler'];
 		}
 		$ExceptionHanderClass::appException($e);
@@ -809,8 +809,8 @@ class BaseServer {
 
     /**
      * startHander
-     * @throws \Exception
      * @return mixed
+     * @throws \Exception
      */
     public static function eventHandler() {
         $starHanderClass = isset(self::$config['event_handler']) ? self::$config['event_handler'] : self::$start_hander_class;

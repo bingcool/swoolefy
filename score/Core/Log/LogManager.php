@@ -11,10 +11,15 @@
 
 namespace Swoolefy\Core\Log;
 
+use \Swoolefy\Tool\Log;
+
 class LogManager {
 
     use \Swoolefy\Core\SingletonTrait;
 
+    /**
+     * @var Log
+     */
     protected $logger;
 
     /**
@@ -54,7 +59,7 @@ class LogManager {
 
     /**
      * getLogger
-     * @return mixed
+     * @return Log
      */
     public function getLogger() {
         return $this->logger;
