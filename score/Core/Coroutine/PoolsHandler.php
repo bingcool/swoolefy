@@ -133,7 +133,7 @@ class PoolsHandler {
             is_object($obj) && $this->callCount++;
             return $obj;
 		}catch(\Exception $e) {
-			throw new \Exception($e->getMessage());
+			throw $e;
 		}
 	}
 
@@ -190,9 +190,7 @@ class PoolsHandler {
         }
     }
 
-    /**
-     *
-     */
+
     protected function pop() {
         $startTime = time();
         while($obj = $this->channel->pop($this->popTimeout)) {

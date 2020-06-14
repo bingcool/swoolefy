@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Core\Coroutine;
 
+use Swoole\Coroutine;
 use Swoole\Coroutine\Channel;
 
 class GoWaitGroup {
@@ -37,13 +38,18 @@ class GoWaitGroup {
     }
 
     /**
-     * add
+     * go
      */
-    public function go(\Closure $go_func = null) {
-        $this->count++;
-        if($go_func instanceof \Closure) {
-            go($go_func);
-        }
+    public function go(\Closure $callBack, ...$params) {
+        Coroutine::create(function (...$params) use($callBack) {
+            try{
+                $this->count++;
+                $callBack->call($this, ...$params);
+            }catch (\Throwable $throwable) {
+                $this->count--;
+                throw $throwable;
+            }
+        }, ...$params);
     }
 
     /**

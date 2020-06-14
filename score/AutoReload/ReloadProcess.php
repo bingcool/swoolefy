@@ -18,7 +18,6 @@ use Swoolefy\Core\Process\AbstractProcess;
 class ReloadProcess extends AbstractProcess {
 
     /**
-     * @param Process $process
      * @throws \Exception
      */
     public function run() {
