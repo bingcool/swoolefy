@@ -18,7 +18,7 @@ abstract class AbstractCronController extends ProcessController {
 
 	/**
 	 * $cron_next_datetime 定时任务下一次执行时间
-	 * @var null
+	 * @var array
 	 */
 	protected static $cron_next_datetime = [];
 
@@ -30,7 +30,7 @@ abstract class AbstractCronController extends ProcessController {
 
     /**
      * $expression
-     * @var null
+     * @var array
      */
     protected static $expression = [];
 

@@ -12,11 +12,10 @@
 namespace Swoolefy\Protobuf;
 
 class ProtobufBuffer {
-
 	/**
 	 * toArray 
 	 * @param  mixed $obj
-	 * @return mixed
+	 * @return array
 	 */
 	public static function toArray($obj) {
 		$array = [];
@@ -25,20 +24,20 @@ class ProtobufBuffer {
 		}
 
 		$reflect = new \ReflectionClass($obj);
-		$props = $reflect->getProperties(\ReflectionProperty::IS_PRIVATE | \ReflectionProperty::IS_PROTECTED);
+		$properties = $reflect->getProperties(\ReflectionProperty::IS_PRIVATE | \ReflectionProperty::IS_PROTECTED);
 		
-		foreach($props as $prop) {
-		    $prop->setAccessible(true);
-		    $property = $prop->getName();
-		    $method = self::LetterToBiger($property);
-		    $getter = 'get'.$method;
+		foreach($properties as $propertyObj) {
+            $propertyObj->setAccessible(true);
+		    $property = $propertyObj->getName();
+		    $methodName = self::LetterToBiger($property);
+		    $getter = 'get'.$methodName;
 		    if($reflect->hasMethod($getter)) {
 		    	$value = $obj->{$getter}();
 		    	$value = self::repeatedOrMessageClass($value);
-		    	if($prop->isProtected()) {
+		    	if($propertyObj->isProtected()) {
 		    		if(!empty($value)) {
-		    			$one_of_method = 'get'.self::LetterToBiger($value);
-		    			$array[$value] = $obj->{$one_of_method}();
+		    			$oneOfMethod = 'get'.self::LetterToBiger($value);
+		    			$array[$value] = $obj->{$oneOfMethod}();
 		    		}
 		    	}else {
 		    		$array[$property] = $value;
@@ -50,77 +49,85 @@ class ProtobufBuffer {
 	}
 
 	/**
-	 * getFileds
-	 * @param  mixed $obj
-	 * @return array
-	 */
-	public static function getObjFileds($obj, ...$args) {
-		$array = [];
-		if(!is_object($obj)) {
-			return $array;
-		}
-		$reflect = new \ReflectionClass($obj);
-		$props = $reflect->getProperties(\ReflectionProperty::IS_PRIVATE | \ReflectionProperty::IS_PROTECTED);
-		
-		foreach($props as $prop) {
-		    $prop->setAccessible(true);
-		    $key =$prop->getName();
-		    array_push($array, $key);
-		}
-
-		return $array;
-	}
-
-	/**
 	 * repeatedOrMessageClass
 	 * @param  mixed $value
 	 * @return mixed 
 	 */
 	protected static function repeatedOrMessageClass($value) {
-    	if(is_object($value)) {
-    		if($value instanceof \Google\Protobuf\Internal\Message) {
-    			$value = self::toArray($value);
-    		}else if($value instanceof \Google\Protobuf\Internal\RepeatedField) {
-	    		$tmp = [];
-	    		foreach($value as $obj) {
-	    			if($obj instanceof \Google\Protobuf\Internal\Message) {
-	    				$tmp_value = self::toArray($obj);
-	    			}else if($obj instanceof \Google\Protobuf\Internal\RepeatedField) {
-	    				$tmp_value = self::repeatedOrMessageClass($obj);
-	    			}else if(is_string($obj) || is_int($obj) || is_float($obj) || is_bool($obj) || is_double($obj)) {
-	    				$tmp_value = $obj;
-	    			}else {
-	    				$tmp_value = $obj;
-	    			}
-	    			$tmp[] = $tmp_value;
-	    		}
-	    		$value = $tmp;
-	    		unset($tmp);
-	    	}else if($value instanceof \Google\Protobuf\Internal\MapField) {
-	    		$tmp = [];
-    			foreach($value as $key=>$obj) {
-    				$tmp_value = self::repeatedOrMessageClass($obj);
-    				$tmp[$key] = $tmp_value;
-    			}
-    			$value = $tmp;
-    			unset($tmp);
-	    	}
-    		
-	    }
+	    if(!is_object($value)) {
+	        return $value;
+        }
+
+	    switch(true) {
+            case $value instanceof \Google\Protobuf\Internal\Message :
+                    $value = self::toArray($value);
+                break;
+            case $value instanceof \Google\Protobuf\Internal\RepeatedField :
+                    $tmpData = [];
+                    foreach($value as $obj) {
+                        if($obj instanceof \Google\Protobuf\Internal\Message) {
+                            $tmpValue = self::toArray($obj);
+                        }else if($obj instanceof \Google\Protobuf\Internal\RepeatedField) {
+                            $tmpValue = self::repeatedOrMessageClass($obj);
+                        }else if(is_string($obj) || is_int($obj) || is_float($obj) || is_bool($obj) || is_double($obj)) {
+                            $tmpValue = $obj;
+                        }else {
+                            $tmpValue = $obj;
+                        }
+                        $tmpData[] = $tmpValue;
+                    }
+                    unset($tmpData);
+                break;
+            case $value instanceof \Google\Protobuf\Internal\MapField :
+                    $tmpData = [];
+                    foreach($value as $key=>$obj) {
+                        $tmpValue = self::repeatedOrMessageClass($obj);
+                        $tmpData[$key] = $tmpValue;
+                    }
+                    $value = $tmpData;
+                    unset($tmpData);
+                break;
+            default:
+                break;
+        }
+
 	    return $value;
     }
 
     /**
      * LetterToBiger
      * @param string $letter
+     * @return string
      */
 	public static function LetterToBiger(string $letter = null) {
-		$letter_arr = explode('_', $letter);
+		$letterArr = explode('_', $letter);
 		$property = '';
-		foreach ($letter_arr as $letter) {
+		foreach ($letterArr as $letter) {
 			$property .= ucfirst($letter);
 		}
 		return $property;
 	}
+
+    /**
+     * getFileds
+     * @param  mixed $obj
+     * @return array
+     */
+    public static function getObjFileds($obj, ...$args) {
+        $array = [];
+        if(!is_object($obj)) {
+            return $array;
+        }
+        $reflect = new \ReflectionClass($obj);
+        $properties = $reflect->getProperties(\ReflectionProperty::IS_PRIVATE | \ReflectionProperty::IS_PROTECTED);
+
+        foreach($properties as $propertyObj) {
+            $propertyObj->setAccessible(true);
+            $key =$propertyObj->getName();
+            array_push($array, $key);
+        }
+
+        return $array;
+    }
 
 }
