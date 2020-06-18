@@ -11,7 +11,9 @@
 
 namespace Swoolefy\Protobuf;
 
-class ProtobufBuffer {
+use Google\Protobuf\Internal\DescriptorPool;
+
+class ProtoBuffer {
 	/**
 	 * toArray 
 	 * @param  mixed $obj
@@ -23,26 +25,28 @@ class ProtobufBuffer {
 			return $array;
 		}
 
-		$reflect = new \ReflectionClass($obj);
-		$properties = $reflect->getProperties(\ReflectionProperty::IS_PRIVATE | \ReflectionProperty::IS_PROTECTED);
-		
-		foreach($properties as $propertyObj) {
-            $propertyObj->setAccessible(true);
-		    $property = $propertyObj->getName();
-		    $methodName = self::LetterToBiger($property);
-		    $getter = 'get'.$methodName;
-		    if($reflect->hasMethod($getter)) {
-		    	$value = $obj->{$getter}();
-		    	$value = self::repeatedOrMessageClass($value);
-		    	if($propertyObj->isProtected()) {
-		    		if(!empty($value)) {
-		    			$oneOfMethod = 'get'.self::LetterToBiger($value);
-		    			$array[$value] = $obj->{$oneOfMethod}();
-		    		}
-		    	}else {
-		    		$array[$property] = $value;
-		    	}
-		    }
+        $pool = DescriptorPool::getGeneratedPool();
+        $desc = $pool->getDescriptorByClassName(get_class($obj));
+        /** @var \Google\Protobuf\Internal\FieldDescriptor  $field */
+        foreach($desc->getField() as $k=>$field) {
+            $fieldName = $field->getName();
+            $getter = $field->getGetter();
+            if($field->getOneofIndex() !== -1) {
+                /** @var \Google\Protobuf\Internal\OneofDescriptor  $oneOf */
+                $oneOf = $desc->getOneofDecl()[$field->getOneofIndex()];
+                $oneOfName = $oneOf->getName();
+                $oneOfGetter = 'get'.self::LetterToBiger($oneOfName);
+                $selectOneOfName = $obj->$oneOfGetter();
+                if($fieldName != $selectOneOfName) {
+                    continue;
+                }
+            }
+
+            $value = $obj->$getter();
+
+            $value = self::repeatedOrMessageClass($value);
+
+            $array[$fieldName] = $value;
 		}
 
 		return $array;
@@ -57,7 +61,6 @@ class ProtobufBuffer {
 	    if(!is_object($value)) {
 	        return $value;
         }
-
 	    switch(true) {
             case $value instanceof \Google\Protobuf\Internal\Message :
                     $value = self::toArray($value);
@@ -76,6 +79,7 @@ class ProtobufBuffer {
                         }
                         $tmpData[] = $tmpValue;
                     }
+                    $value = $tmpData;
                     unset($tmpData);
                 break;
             case $value instanceof \Google\Protobuf\Internal\MapField :
@@ -109,25 +113,21 @@ class ProtobufBuffer {
 	}
 
     /**
-     * getFileds
-     * @param  mixed $obj
-     * @return array
+     * @param \Google\Protobuf\Internal\Message $obj
+     * @param $jsonString
+     * @param bool $ignore_unknown
+     * @throws \Exception
      */
-    public static function getObjFileds($obj, ...$args) {
-        $array = [];
-        if(!is_object($obj)) {
-            return $array;
-        }
-        $reflect = new \ReflectionClass($obj);
-        $properties = $reflect->getProperties(\ReflectionProperty::IS_PRIVATE | \ReflectionProperty::IS_PROTECTED);
-
-        foreach($properties as $propertyObj) {
-            $propertyObj->setAccessible(true);
-            $key =$propertyObj->getName();
-            array_push($array, $key);
-        }
-
-        return $array;
+	public static function mergeFromJsonString(& $obj, $jsonString, $ignore_unknown = false) {
+        $obj->mergeFromJsonString($jsonString, $ignore_unknown);
+        return $obj;
     }
 
+    /**
+     * @param $obj
+     * @return false|string
+     */
+    public static function serializeToJsonString($obj){
+	    return json_encode(self::toArray($obj));
+    }
 }
