@@ -88,7 +88,7 @@ class BService extends BaseObject {
 
 	/**
 	 * sendto udp 发送数据
-	 * @param    string      $ip
+	 * @param    string   $ip
 	 * @param    int      $port
 	 * @param    mixed    $data
 	 * @param    int      $server_socket

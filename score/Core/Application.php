@@ -8,7 +8,6 @@
 | Author: bingcool <bingcoolhuang@gmail.com || 2437667702@qq.com>
 +----------------------------------------------------------------------
 */
-
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
