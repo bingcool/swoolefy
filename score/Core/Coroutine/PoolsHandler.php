@@ -152,7 +152,7 @@ class PoolsHandler {
             }
         }else {
             if($this->callCount >= $this->poolsNum) {
-                usleep(10 * 1000);
+                usleep(15 * 1000);
                 $length = $this->channel->length();
                 if($length > 0) {
                     return $this->pop();

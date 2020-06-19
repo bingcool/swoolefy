@@ -24,23 +24,23 @@ class Context {
         if(\Co::getCid() > 0) {
             $context = \Co::getContext();
             return $context;
-        }else {
-            $app = Application::getApp();
-            if(is_object($app)) {
-                if($app->isSetContext()) {
-                    return $app->getContext();
-                }else {
-                    $context = new ArrayObject();
-                    $context->setFlags(ArrayObject::STD_PROP_LIST|ArrayObject::ARRAY_AS_PROPS);
-                    $app->setContext($context);
-                    return $context;
-                }
-            }else if(Swfy::isUserProcess()) {
-                throw new \Exception(__CLASS__."::getContext in UserProcess must use in App Instance");
-            }else {
-                return null;
-            }
         }
+
+        $app = Application::getApp();
+        if(is_object($app)) {
+            if($app->isSetContext()) {
+                return $app->getContext();
+            }else {
+                $context = new ArrayObject();
+                $context->setFlags(ArrayObject::STD_PROP_LIST|ArrayObject::ARRAY_AS_PROPS);
+                $app->setContext($context);
+                return $context;
+            }
+        }else if(Swfy::isUserProcess()) {
+            throw new \Exception(__CLASS__."::getContext in UserProcess must use in App Instance");
+        }
+
+        return null;
     }
 
     /**
