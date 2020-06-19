@@ -41,11 +41,12 @@ class CrontabManager {
         }
 
         $cron_name_key = md5($cron_name);
-        if(!isset($this->cron_tasks[$cron_name_key])) {
-            $this->cron_tasks[$cron_name_key] = [$expression, $func];
-        }else {
+
+        if(isset($this->cron_tasks[$cron_name_key])) {
             throw new \Exception("cron_name=$cron_name has been seted, you can not set again!");
         }
+
+        $this->cron_tasks[$cron_name_key] = [$expression, $func];
 
         if(is_array($func)) {
             TickManager::tickTimer(1000, $func, $expression);
