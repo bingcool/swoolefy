@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Core\Controller;
 
+use Swoole\Coroutine;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 
@@ -41,7 +42,7 @@ class BController extends \Swoolefy\Core\AppObject {
 		$this->request = $app->request;
 		$this->response = $app->response;
 		$this->app_conf = $app->app_conf;
-		if(\Co::getCid() > 0) {
+		if(Coroutine::getCid() > 0) {
 			defer(function() {
 		    	$this->defer();
         	});

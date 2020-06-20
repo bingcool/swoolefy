@@ -36,28 +36,28 @@ trait ComponentTrait {
 	/**
 	 * creatObject 创建组件对象
 	 * @param    string  $com_alias_name 组件别名
-	 * @param    mixed   $defination     组件定义类
+	 * @param    mixed   $definition     组件定义类
      * @return   mixed
      * @throws   mixed
 	 */
-	public function creatObject(string $com_alias_name = null, $defination = []) {
+	public function creatObject(string $com_alias_name = null, $definition = []) {
 		// 动态创建公用组件
 		if($com_alias_name) {
 			if(!isset($this->container[$com_alias_name])) {
-				if(is_array($defination) && isset($defination['class'])) {
-					$class = $defination['class'];
-					unset($defination['class']);
+				if(is_array($definition) && isset($definition['class'])) {
+					$class = $definition['class'];
+					unset($definition['class']);
 					$params = [];
-					if(isset($defination['constructor'])){
-						$params = $defination['constructor'];
-						unset($defination['constructor']);
+					if(isset($definition['constructor'])){
+						$params = $definition['constructor'];
+						unset($definition['constructor']);
 					}
-					if(isset($defination[SWOOLEFY_COM_IS_DELAY])) {
-						unset($defination[SWOOLEFY_COM_IS_DELAY]);
+					if(isset($definition[SWOOLEFY_COM_IS_DELAY])) {
+						unset($definition[SWOOLEFY_COM_IS_DELAY]);
 					}
-					return $this->container[$com_alias_name] = $this->buildInstance($class, $defination, $params, $com_alias_name);
-				}else if($defination instanceof \Closure) {
-                    return $this->container[$com_alias_name] = call_user_func($defination, $com_alias_name);
+					return $this->container[$com_alias_name] = $this->buildInstance($class, $definition, $params, $com_alias_name);
+				}else if($definition instanceof \Closure) {
+                    return $this->container[$com_alias_name] = call_user_func($definition, $com_alias_name);
 				}else {
                     throw new \Exception("component:".$com_alias_name.'must be set class', 1);
                 }
@@ -94,8 +94,8 @@ trait ComponentTrait {
 					$params = $component['constructor'];
 					unset($component['constructor']);
 				}
-				$defination = $component;
-				$this->container[$com_name] = $this->buildInstance($class, $defination, $params, $com_name);
+				$definition = $component;
+				$this->container[$com_name] = $this->buildInstance($class, $definition, $params, $com_name);
 			}else {
 				$this->container[$com_name] = false;
 			}
@@ -127,11 +127,14 @@ trait ComponentTrait {
     }
 
     /**
-     * buildInstance
-     * @throws  \Exception
-     * @return  object
+     * @param $class
+     * @param $definition
+     * @param $params
+     * @param $com_alias_name
+     * @return mixed
+     * @throws \Exception
      */
-	protected function buildInstance($class, $defination, $params, $com_alias_name) {
+	protected function buildInstance($class, $definition, $params, $com_alias_name) {
 		list ($reflection, $dependencies) = $this->getDependencies($class);
 
         foreach ($params as $index => $param) {
@@ -140,38 +143,38 @@ trait ComponentTrait {
         if(!$reflection->isInstantiable()) {
             throw new \Exception($reflection->name);
         }
-        if(empty($defination)) {
+        if(empty($definition)) {
             return $reflection->newInstanceArgs($dependencies);
 		}
 
         $object = $reflection->newInstanceArgs($dependencies);
 
         // 回调必须设置在配置的最后
-        if(isset($defination[SWOOLEFY_COM_FUNC])) {
-        	$keys = array_keys($defination);
+        if(isset($definition[SWOOLEFY_COM_FUNC])) {
+        	$keys = array_keys($definition);
         	if(end($keys) != SWOOLEFY_COM_FUNC) {
-        		$func = $defination[SWOOLEFY_COM_FUNC];
-        		unset($defination[SWOOLEFY_COM_FUNC]);
-        		$defination[SWOOLEFY_COM_FUNC] = $func;
+        		$func = $definition[SWOOLEFY_COM_FUNC];
+        		unset($definition[SWOOLEFY_COM_FUNC]);
+        		$definition[SWOOLEFY_COM_FUNC] = $func;
         	}
         	unset($keys);
         }
 
-        foreach ($defination as $name => $value) {
+        foreach ($definition as $name => $value) {
         	if($name == SWOOLEFY_COM_IS_DELAY) {
         		continue;
         	}
         	if($name == SWOOLEFY_COM_FUNC) {
-        		if(is_string($defination[$name]) && method_exists($object, $defination[$name])) {
-        			call_user_func_array([$object, $defination[$name]], [$defination]);
-        		}else if($defination[$name] instanceof \Closure) {
-        			($defination[$name])->call($object, $defination);
+        		if(is_string($definition[$name]) && method_exists($object, $definition[$name])) {
+        			call_user_func_array([$object, $definition[$name]], [$definition]);
+        		}else if($definition[$name] instanceof \Closure) {
+        			($definition[$name])->call($object, $definition);
         		}else {
         			throw new \Exception("{$com_alias_name} component's config item 'func' is not Closure or {$com_alias_name} instance is not exists the method!");
         		}
         		continue;
         	}else if(isset($object->$name) && @is_array($object->$name)) {
-        		$object->$name = array_merge($object->$name, $value);
+        		$object->$name = array_merge_recursive($object->$name, $value);
         		continue;
         	}
         	$object->$name = $value;

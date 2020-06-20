@@ -146,7 +146,7 @@ class HttpRoute extends AppDispatch {
 		$this->request->server['ROUTE_PARAMS'] = [];
 		// 定义禁止直接外部访问的方法
 		if(in_array($action, self::$deny_actions)) {
-            $msg = "{$controller}::{$action}() is not allow access";
+            $msg = "{$controller}::{$action} is not allow access action";
 			$this->app->beforeEnd(403, $msg);
 			return false;
 		}
