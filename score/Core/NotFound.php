@@ -23,11 +23,11 @@ class NotFound extends BService {
         $response = ['ret'=>404, 'msg'=>"{$class} class file is not found", 'data'=>''];
 		if(BaseServer::isRpcApp()) {
 			$is_same_packet_struct = $this->serverClientPacketstructSame();
-			if($is_same_packet_struct) {
-				$fd = Application::getApp()->getFd();
-				$header = $this->getRpcPackHeader();
-				$this->send($fd, $response, $header);
-			}
+            if($is_same_packet_struct) {
+                $fd = Application::getApp()->getFd();
+                $header = $this->getRpcPackHeader();
+                $this->send($fd, $response, $header);
+            }
 
 		}else if(BaseServer::isWebsocketApp()) {
 			$fd = Application::getApp()->getFd();
