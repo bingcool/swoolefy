@@ -39,7 +39,7 @@ class EventController extends BaseObject {
 	const HOOK_AFTER_REQUEST = 1;
 
     /**
-     * $log 日志
+     * @var array
      */
     protected $logs = [];
 
@@ -85,7 +85,7 @@ class EventController extends BaseObject {
 	}
 
     /**
-     * @param null $cid
+     * @param int $coroutine_id
      * @return null|string
      */
 	public function setCid($coroutine_id = null) {
@@ -104,12 +104,12 @@ class EventController extends BaseObject {
         return $this->coroutine_id;
     }
 
-	/**
-	 * canCreateApp
-	 * @param  int $coroutine_id
-	 * @throws \Exception
-	 * @return boolean
-	 */
+    /**
+     * canCreateApp
+     * @param int $coroutine_id
+     * @return boolean
+     * @throws \Exception
+     */
 	public function canCreateApp($coroutine_id = null) {
 		if(empty($coroutine_id)) {
             $coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
@@ -121,33 +121,30 @@ class EventController extends BaseObject {
 		return true;
 	}
 
-	/**
-	 * afterRequest 
-	 * @param  callable $callback
-	 * @param  boolean  $prepend
+    /**
+     * afterRequest
+     * @param callable $callback
+     * @param boolean $prepend
+     * @return mixed
      * @throws \Exception
-	 * @return mixed
-	 */
+     */
 	public function afterRequest(callable $callback, $prepend = false) {
 		if(is_callable($callback, true, $callable_name)) {
 			$key = md5($callable_name);
-			if($prepend) {
-				if(!isset($this->event_hooks[self::HOOK_AFTER_REQUEST])) {
-					$this->event_hooks[self::HOOK_AFTER_REQUEST] = [];
-				}
-				if(!isset($this->event_hooks[self::HOOK_AFTER_REQUEST][$key])) {
-					$this->event_hooks[self::HOOK_AFTER_REQUEST][$key] = array_merge([$key=>$callback], $this->event_hooks[self::HOOK_AFTER_REQUEST]);
-				}
-			}else {
-				if(!isset($this->event_hooks[self::HOOK_AFTER_REQUEST][$key])) {
-					$this->event_hooks[self::HOOK_AFTER_REQUEST][$key] = $callback;
-				}
-			}
+            if($prepend) {
+                if(!isset($this->event_hooks[self::HOOK_AFTER_REQUEST])) {
+                    $this->event_hooks[self::HOOK_AFTER_REQUEST] = [];
+                }
+                if(!isset($this->event_hooks[self::HOOK_AFTER_REQUEST][$key])) {
+                    $this->event_hooks[self::HOOK_AFTER_REQUEST][$key] = array_merge([$key=>$callback], $this->event_hooks[self::HOOK_AFTER_REQUEST]);
+                }
+            }else {
+                if(!isset($this->event_hooks[self::HOOK_AFTER_REQUEST][$key])) {
+                    $this->event_hooks[self::HOOK_AFTER_REQUEST][$key] = $callback;
+                }
+            }
             return true;
-		}else {
-			throw new \Exception(__NAMESPACE__.'::'.__function__.' the first param of type must be seted callable');
 		}
-		
 	}
 
 	/**

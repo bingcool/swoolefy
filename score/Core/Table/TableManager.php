@@ -171,7 +171,7 @@ class TableManager {
      * @throws mixed
 	 * @return boolean
 	 */
-	public static function isExistTable(string $table = null) {
+	public static function isExistTable(string $table) {
 		if(isset(BaseServer::$server->tables)) {
 			if($table) {
 				if(isset(BaseServer::$server->tables[$table])) {
@@ -179,7 +179,7 @@ class TableManager {
 				}
 				return false;
 			}
-			throw new \Exception("TableManager::isExistTable() miss 'table' argument", 1);
+			return false;
 		}
 	}
 
@@ -199,4 +199,38 @@ class TableManager {
 		return null; 
 
 	}
+
+    /**
+     * 获取已设置的key
+     * @param string $table
+     * @return array
+     */
+	public static function getTableKeys(string $table) {
+        $keys = [];
+        $swoole_table = self::getTable($table);
+        if(is_object($swoole_table) && $swoole_table instanceof \Swoole\Table) {
+            foreach ($swoole_table as $key => $item) {
+                array_push($keys, $key);
+            }
+        }
+        return $keys;
+    }
+
+    /**
+     * 获取table的key映射的每一行数据rowValue
+     * @param string $table
+     * @return array
+     */
+    public static function getKeyMapRowValue(string $table) {
+        $table_rows = [];
+        $swoole_table = self::getTable($table);
+        if(is_object($swoole_table) && $swoole_table instanceof \Swoole\Table) {
+            foreach ($swoole_table as $key => $item) {
+                $table_rows[$key] = $item;
+            }
+        }
+        return $table_rows;
+    }
+
+
 }

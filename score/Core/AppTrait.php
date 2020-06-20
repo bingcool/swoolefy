@@ -157,7 +157,7 @@ trait AppTrait {
     public function getRequestParams(string $name = null) {
         $get = isset($this->request->get) ? $this->request->get : [];
         $post = isset($this->request->post) ? $this->request->post : [];
-        if(empty($input)) {
+        if(empty($post)) {
             $post = json_decode($this->request->rawContent(), true);
             if(!$post) {
                 $post = [];
@@ -188,7 +188,7 @@ trait AppTrait {
     /**
      * getQueryParams 获取get参数
      * @param  string|null $name
-     * @return string
+     * @return mixed
      */
     public function getQueryParams(string $name = null) {
     	$input = $this->request->get;
@@ -206,7 +206,7 @@ trait AppTrait {
      * @return mixed
      */
     public function getPostParams(string $name = null) {
-    	$input = $this->request->post;
+    	$input = $this->request->post ?? [];
     	if(!$input) {
     		$input = json_decode($this->request->rawContent(), true);
     	}
@@ -407,7 +407,7 @@ trait AppTrait {
 	 * @return string
 	 */
 	public function getControllerId() {
-		list($count,$routeParams) = $this->getRouteParams();
+		list($count, $routeParams) = $this->getRouteParams();
 		if($count == 3) {
 			return $routeParams[1];
 		}else {
@@ -540,11 +540,11 @@ trait AppTrait {
         }
 
         if(strlen($json_string) > 2 * 1024 * 1024){
-            $res = str_split($json_string,2 * 1024 * 1024);
+            $chunks = str_split($json_string,2 * 1024 * 1024);
             unset($json_string);
-            foreach ($res as $k=>$item) {
-                $this->response->write($item);
-                unset($res[$k]);
+            foreach ($chunks as $k=>$chunk) {
+                $this->response->write($chunk);
+                unset($chunks[$k]);
             }
         }else{
             $this->response->write($json_string);

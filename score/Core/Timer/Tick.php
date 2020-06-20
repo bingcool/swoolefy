@@ -65,7 +65,7 @@ class Tick {
      * @param   array     $user_params  
      * @return  mixed
      */
-    public static function tick($time_interval, $func, $user_params = null, $is_sington = false) {
+    public static function tick($time_interval, callable $func, $user_params = null, $is_sington = false) {
         $tid = \Swoole\Timer::tick($time_interval, function($timer_id, $user_params) use($func) {
             $params = [$user_params, $timer_id];
             try {
@@ -136,7 +136,7 @@ class Tick {
      * @throws   mixed
      * @return   mixed
      */
-    public static function afterTimer($time_interval, $func, $params = null) {
+    public static function afterTimer($time_interval, callable $func, $params = null) {
         if($time_interval <= 0) {
             throw new \Exception(get_called_class()."::afterTimer() the first params 'time_interval' is requested more then 0 ms");
         }
@@ -151,7 +151,7 @@ class Tick {
      * after 一次性定时器执行
      * @return  mixed
      */
-    public static function after($time_interval, $func, $user_params = null) {
+    public static function after($time_interval, callable $func, $user_params = null) {
         $tid = \Swoole\Timer::after($time_interval, function($user_params) use($func) {
             $params = [];
             if($user_params) {
