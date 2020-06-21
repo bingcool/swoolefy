@@ -41,14 +41,15 @@ abstract class WebsocketServer extends BaseServer {
 
 	/**
 	 * $webserver
-	 * @var null
+	 * @var \Swoole\Server  $webserver
 	 */
 	public $webserver = null;
 
-	/**
-	 * __construct
-	 * @param array $config
-	 */
+    /**
+     * __construct
+     * @param array $config
+     * @throws \Exception
+     */
 	public function __construct(array $config=[]) {
 		self::clearCache();
 		self::$config = $config;

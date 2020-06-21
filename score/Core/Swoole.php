@@ -108,6 +108,7 @@ class Swoole extends BaseObject {
     /**
      * isWorkerProcess 判断当前进程是否是worker进程
      * @return boolean
+     * @throws \Exception
      */
     public static function isWorkerProcess() {
         return Swfy::isWorkerProcess();
@@ -116,6 +117,7 @@ class Swoole extends BaseObject {
     /**
      * isTaskProcess 判断当前进程是否是异步task进程
      * @return boolean
+     * @throws \Exception
      */
     public static function isTaskProcess() {
         return Swfy::isTaskProcess();
@@ -142,21 +144,20 @@ class Swoole extends BaseObject {
     }
 
     /**
-	 * getRpcPackHeader  获取rpc的pack头信息,只适用于rpc服务
-     * @throws  \Exception
-	 * @return   array
-	 */
+     * getRpcPackHeader  获取rpc的pack头信息,只适用于rpc服务
+     * @return   array
+     * @throws \Exception
+     */
 	public function getRpcPackHeader() {
-		if($this->isWorkerProcess()) {
-			if(BaseServer::isRpcApp()) {
-				return $this->rpc_pack_header;
-			}else {
-				throw new \Exception("getRpcPackHeader() method only can be called by TCP or RPC server!, because only rpc have pack setting!");
-			}
-		}else {
-			throw new \Exception("getRpcPackHeader() only can use in worker process!", 1);
-		}
-	}
+		if(!$this->isWorkerProcess()) {
+            throw new \Exception("getRpcPackHeader() only can use in worker process");
+        }
+        if(!BaseServer::isRpcApp()) {
+            throw new \Exception("getRpcPackHeader() method only can be called by TCP or RPC server!, because only rpc have pack setting");
+        }
+        return $this->rpc_pack_header;
+
+    }
 
     /**
 	 * getRpcPackBodyParams 获取rpc的包体数据
@@ -164,15 +165,14 @@ class Swoole extends BaseObject {
 	 * @return mixed
 	 */
 	public function getRpcPackBodyParams() {
-		if($this->isWorkerProcess()) {
-			if(BaseServer::isRpcApp()) {
-				return $this->mixed_params;
-			}else {
-				throw new \Exception("getRpcPackBodyParams() method only can be called by TCP or RPC server!, because only rpc have pack setting!");
-			}
-		}else {
-			throw new \Exception("getRpcPackBodyParams() only can use in worker process!", 1);
-		}
+		if(!$this->isWorkerProcess()) {
+            throw new \Exception("getRpcPackBodyParams() only can use in worker process");
+        }
+        if(!BaseServer::isRpcApp()) {
+            throw new \Exception("getRpcPackBodyParams() method only can be called by TCP or RPC server!, because only rpc have pack setting");
+        }
+
+        return $this->mixed_params;
 	}
 
 	/**
@@ -181,15 +181,15 @@ class Swoole extends BaseObject {
 	 * @return mixed
 	 */
 	public function getUdpData() {
-		if($this->isWorkerProcess()) {
-			if(BaseServer::isUdpApp()) {
-				return $this->mixed_params;
-			}else {
-				throw new \Exception("getUdpData() method only can be called by UDP server!");
-			}
-		}else {
-			throw new \Exception("getUdpData() only can use in worker process!", 1);
-		}
+		if(!$this->isWorkerProcess()) {
+            throw new \Exception("getUdpData() only can use in worker process");
+        }
+
+        if(!BaseServer::isUdpApp()) {
+            throw new \Exception("getUdpData() method only can be called by UDP server");
+        }
+
+        return $this->mixed_params;
 	}
 
 	/**
@@ -198,16 +198,16 @@ class Swoole extends BaseObject {
 	 * @return mixed
 	 */
 	public function getWebsockMsg() {
-		if($this->isWorkerProcess()) {
-			if(BaseServer::isWebsocketApp()) {
-				return $this->mixed_params;
-			}else {
-				throw new \Exception("getWebsockMsg() method only can be called by WEBSOCKET server!");
-			}	
-		}else {
-			throw new \Exception("getWebsockMsg() only can use in worker process!", 1);
-		}
-	}
+		if(!$this->isWorkerProcess()) {
+            throw new \Exception("getWebsockMsg() only can use in worker process");
+        }
+
+        if(!BaseServer::isWebsocketApp()) {
+            throw new \Exception("getWebsockMsg() method only can be called by WEBSOCKET server");
+        }
+
+        return $this->mixed_params;
+    }
 
 	/**
 	 * getFd worker进程中可以读取到值，task进程不能，默认返回null
@@ -232,11 +232,7 @@ class Swoole extends BaseObject {
 	 * @return	void
 	 */
 	public function afterRequest(callable $callback, $prepend = false) {
-		if(is_callable($callback)) {
-			Hook::addHook(Hook::HOOK_AFTER_REQUEST, $callback, $prepend);
-		}else {
-			throw new \Exception(__NAMESPACE__.'::'.__function__.' the first param of type is callable');
-		}
+        Hook::addHook(Hook::HOOK_AFTER_REQUEST, $callback, $prepend);
 	}
 
     /**

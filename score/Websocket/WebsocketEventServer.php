@@ -18,7 +18,8 @@ use Swoolefy\Websocket\WebsocketServer;
 use Swoolefy\Core\WebsocketEventInterface;
 
 abstract class WebsocketEventServer extends WebsocketServer implements WebsocketEventInterface {
-	/**
+
+    /**
 	 * __construct 初始化
 	 * @param array $config
 	 */
@@ -42,30 +43,32 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	 */
 	public abstract function onOpen($server, $request);
 
-	/**
-	 * onRequest 接受http请求处理
-	 * @param    object  $request
-	 * @param    object  $response
-	 * @return   void
-	 */
+    /**
+     * onRequest 接受http请求处理
+     * @param object $request
+     * @param object $response
+     * @return   void
+     * @throws \Throwable
+     */
 	public function onRequest($request, $response) {
         $app_conf = \Swoolefy\Core\Swfy::getAppConf();
         $appInstance = new \Swoolefy\Core\App($app_conf);
         $appInstance->run($request, $response);
 	}
 
-	/**
-	 * onMessage 接受信息并处理信息
-	 * @param    object  $server
-	 * @param    object  $frame
-	 * @return   void
-	 */
+    /**
+     * onMessage 接受信息并处理信息
+     * @param object $server
+     * @param object $frame
+     * @return   void
+     * @throws \Throwable
+     */
 	public function onMessage($server, $frame) {
 		$fd = $frame->fd;
 		$data = $frame->data;
 		$opcode = $frame->opcode;
 		$finish = $frame->finish;
-		// 数据接收是否完整
+        // 数据接收是否完整
 		if($finish) {
 			// utf-8文本数据
 			if($opcode == WEBSOCKET_OPCODE_TEXT) {
@@ -81,21 +84,22 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 			}
 			
 		}else {
-			// 断开连接
-			$server->close();
-		}
-		
+            // 断开连接
+            $server->disconnect($fd, $code = 1009, $reason = "");
+        }
+
 	}
 
-	/**
-	 * onTask 异步任务处理
-	 * @param    object  $server
-	 * @param    int     $task_id
-	 * @param    int     $from_worker_id
-	 * @param    mixed   $data
-     * @param    mixed   $task
-	 * @return   boolean
-	 */
+    /**
+     * onTask 异步任务处理
+     * @param object $server
+     * @param int $task_id
+     * @param int $from_worker_id
+     * @param mixed $data
+     * @param mixed $task
+     * @return   boolean
+     * @throws \Throwable
+     */
 	public function onTask($server, $task_id, $from_worker_id, $data, $task = null) {
 		list($callable, $taskData, $fd) = $data;
         $app_conf = \Swoolefy\Core\Swfy::getAppConf();

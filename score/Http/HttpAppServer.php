@@ -11,12 +11,15 @@
 
 namespace Swoolefy\Http;
 
+use Swoolefy\Core\Task\TaskController;
+
 abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 
-	/**
-	 * __construct 初始化
-	 * @param array $config
-	 */
+    /**
+     * __construct 初始化
+     * @param array $config
+     * @throws \Exception
+     */
 	public function __construct(array $config=[]) {
 		parent::__construct($config);
 	}
@@ -73,6 +76,7 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 	    try {
             list($callable, $extend_data, $fd) = $data;
             list($class, $action) = $callable;
+            /**@var TaskController $taskInstance*/
             $taskInstance = new $class;
             $taskInstance->setTaskId((int)$task_id);
             $taskInstance->setFromWorkerId((int)$from_worker_id);

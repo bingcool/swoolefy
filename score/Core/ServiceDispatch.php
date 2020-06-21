@@ -46,10 +46,11 @@ class ServiceDispatch extends AppDispatch {
 		Application::getApp()->rpc_pack_header = $rpc_pack_header;
 	}
 
-	/**
-	 * dispatch 路由调度
-	 * @return  mixed
-	 */
+    /**
+     * dispatch 路由调度
+     * @return  mixed
+     * @throws \Exception
+     */
 	public function dispatch() {
 		list($class, $action) = $this->callable;
         $class = trim(str_replace('\\', '/', $class), '/');
@@ -77,6 +78,7 @@ class ServiceDispatch extends AppDispatch {
 		}
 		
 		$class = str_replace('/','\\', $class);
+		/**@var BService $serviceInstance*/
 		$serviceInstance = new $class();
 		$serviceInstance->mixed_params = $this->params;
 		if(isset($this->from_worker_id) && isset($this->task_id)) {

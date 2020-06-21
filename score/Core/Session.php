@@ -102,6 +102,7 @@ class Session {
      * start 开启session
      * @param boolean $readonly
      * @return boolean
+     * @throws \Exception
      */
     public function start(bool $readonly = false) {
         /**
@@ -312,8 +313,9 @@ class Session {
 
     /**
      * reGenerateSessionId 重新生成session_id
-     * @param    boolean   $ismerge  生成新的session_id是否继承合并当前session的数据，默认true,如需要产生一个完全新的空的$this->_SESSION，可以设置false
+     * @param boolean $ismerge 生成新的session_id是否继承合并当前session的数据，默认true,如需要产生一个完全新的空的$this->_SESSION，可以设置false
      * @return   void
+     * @throws \Exception
      */
     public function reGenerateSessionId(bool $ismerge = true) {
         $session_data = $this->_SESSION;

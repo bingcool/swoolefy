@@ -17,10 +17,11 @@ use Swoolefy\Tcp\TcpServer;
 use Swoolefy\Core\RpcEventInterface;
 
 abstract class RpcServer extends TcpServer implements RpcEventInterface {
-	/**
-	 * __construct 初始化
-	 * @param array $config
-	 */
+    /**
+     * __construct 初始化
+     * @param array $config
+     * @throws \Exception
+     */
 	public function __construct(array $config = []) {
 		parent::__construct($config);
 	}
@@ -41,14 +42,15 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface {
 	 */
 	public abstract function onConnet($server, $fd);
 
-	/**
-	 * onReceive 接收数据时的回调处理，$data是一个完整的数据包，底层已经封装好，只需要配置好，直接使用即可
-	 * @param  object $server
-	 * @param  int    $fd
-	 * @param  int    $reactor_id
-	 * @param  mixed  $data
-	 * @return boolean
-	 */
+    /**
+     * onReceive 接收数据时的回调处理，$data是一个完整的数据包，底层已经封装好，只需要配置好，直接使用即可
+     * @param object $server
+     * @param int $fd
+     * @param int $reactor_id
+     * @param mixed $data
+     * @return boolean
+     * @throws \Throwable
+     */
 	public function onReceive($server, $fd, $reactor_id, $data) {
         $app_conf = \Swoolefy\Core\Swfy::getAppConf();
         $appInstance = new \Swoolefy\Rpc\RpcHander($app_conf);
@@ -56,15 +58,16 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface {
         return true;
 	}
 
-	/**
-	 * onTask 任务处理函数调度
-	 * @param   object  $server
-	 * @param   int     $task_id
-	 * @param   int     $from_worker_id
-	 * @param   mixed   $data
-     * @param   mixed   $task
-	 * @return  boolean
-	 */
+    /**
+     * onTask 任务处理函数调度
+     * @param object $server
+     * @param int $task_id
+     * @param int $from_worker_id
+     * @param mixed $data
+     * @param mixed $task
+     * @return  boolean
+     * @throws \Throwable
+     */
 	public function onTask($server, $task_id, $from_worker_id, $data, $task = null) {
 		list($callable, $taskData, $fd) = $data;
         $app_conf = \Swoolefy\Core\Swfy::getAppConf();

@@ -45,10 +45,11 @@ abstract class HttpServer extends BaseServer {
 	 */
 	public $webserver = null;
 
-	/**
-	 * __construct
-	 * @param array $config
-	 */
+    /**
+     * __construct
+     * @param array $config
+     * @throws \Exception
+     */
 	public function __construct(array $config=[]) {
 		self::clearCache();
 		self::$config = array_merge(
