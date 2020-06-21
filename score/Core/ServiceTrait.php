@@ -207,10 +207,11 @@ trait ServiceTrait {
 		return BaseServer::getSwooleSetting();
 	}
 
-	/**
-	 * isWorkerProcess 进程是否是worker进程
-	 * @return   boolean
-	 */
+    /**
+     * isWorkerProcess 进程是否是worker进程
+     * @return   boolean
+     * @throws \Exception
+     */
 	public static function isWorkerProcess() {
 		if(!self::isTaskProcess() && Swfy::getCurrentWorkerId() >= 0) {
 		    return true;
@@ -233,6 +234,7 @@ trait ServiceTrait {
 
     /** isUserProcess 进程是否是process进程
      * @return boolean
+     * @throws \Exception
      */
 	public static function isUserProcess() {
 	    // process的进程的worker_id等于-1
@@ -244,6 +246,7 @@ trait ServiceTrait {
 
     /** isSelfProcess 进程是否是process进程
      * @return boolean
+     * @throws \Exception
      */
     public static function isSelfProcess() {
         return self::isUserProcess();

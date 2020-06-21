@@ -51,7 +51,7 @@ class WebsocketHander extends Swoole implements HanderInterface {
 	    try {
 	        // heart
 	        if($this->isWorkerProcess()) {
-                $recv = array_values(json_decode($recv, true));
+                $recv = array_values(json_decode($recv, true) ?? []);
                 if(is_array($recv) && count($recv) == 3) {
                     list($service, $event, $params) = $recv;
                 }
@@ -105,6 +105,10 @@ class WebsocketHander extends Swoole implements HanderInterface {
 	 */
 	public function handleBinary($fd, $recv) {
 	    try {
+	        if(!$this->isWorkerProcess()) {
+                // 任务task进程,不处理二进制数据
+                throw new \Exception("Task process can not handle binary data");
+            }
             // 必须要执行父类的run方法,注意$recv是数据，第三个元素是二进制数据，为节省内存，不传这个元素到boostrap函数中
             $new_recv = is_array($recv) ? array_slice($recv, 0, 2) : [];
             parent::run($fd, $new_recv);
@@ -117,9 +121,6 @@ class WebsocketHander extends Swoole implements HanderInterface {
                     $callable = [$service, $event];
                 }
 
-            }else {
-                // 任务task进程,不处理二进制数据
-                throw new \Exception("Task process can not handle binary data");
             }
 
             if($callable && $buffer) {

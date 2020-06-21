@@ -38,15 +38,16 @@ abstract class UdpServer extends BaseServer {
 	];
 
 	/**
-	 * $tcpserver 
-	 * @var null
+	 * $udpserver
+	 * @var \Swoole\Server $udpserver
 	 */
 	public $udpserver = null;
 
-	/**
-	 * __construct
-	 * @param array $config
-	 */
+    /**
+     * __construct
+     * @param array $config
+     * @throws \Exception
+     */
 	public function __construct(array $config = []) {
 		self::clearCache();
 		self::$config = $config;

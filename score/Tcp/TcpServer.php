@@ -41,7 +41,7 @@ abstract class TcpServer extends BaseServer {
 
 	/**
 	 * $tcpserver 
-	 * @var null
+	 * @var \Swoole\Server $tcpserver
 	 */
 	public $tcpserver = null;
 
@@ -57,10 +57,11 @@ abstract class TcpServer extends BaseServer {
 	 */
 	protected $Text = null;
 
-	/**
-	 * __construct
-	 * @param array $config
-	 */
+    /**
+     * __construct
+     * @param array $config
+     * @throws \Exception
+     */
 	public function __construct(array $config=[]) {
 		self::clearCache();
 		self::$config = $config;
@@ -326,10 +327,11 @@ abstract class TcpServer extends BaseServer {
 		
 	}
 
-	/**
-	 * isClientPackLength 根据设置判断客户端的分包方式
-	 * @return boolean
-	 */
+    /**
+     * isClientPackLength 根据设置判断客户端的分包方式
+     * @return boolean
+     * @throws \Exception
+     */
 	public static function isClientPackLength() {
 		if(static::isClientPackEof()) {
 			return false;
@@ -337,11 +339,12 @@ abstract class TcpServer extends BaseServer {
 		return true;
 	}
 
-	/**
-	 * pack  根据配置设置，按照客户端的接受数据方式，打包数据发回给客户端
-	 * @param    mixed   $data
-	 * @return   mixed
-	 */
+    /**
+     * pack  根据配置设置，按照客户端的接受数据方式，打包数据发回给客户端
+     * @param mixed $data
+     * @return   mixed
+     * @throws \Exception
+     */
 	public static function pack($data) {
 		if(static::isClientPackLength()) {
             list($body_data, $header) = $data;

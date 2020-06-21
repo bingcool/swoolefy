@@ -14,11 +14,12 @@ namespace Swoolefy\Core;
 use Swoolefy\Core\Application;
 
 class NotFound extends BService {
-	/**
-	 * return404 类文件找不到处理
-	 * @param  string  $class 
-	 * @return mixed
-	 */
+    /**
+     * return404 类文件找不到处理
+     * @param string $class
+     * @return mixed
+     * @throws \Exception
+     */
 	public function return404(string $class) {
         $response = ['ret'=>404, 'msg'=>"{$class} class file is not found", 'data'=>''];
 		if(BaseServer::isRpcApp()) {
@@ -36,12 +37,13 @@ class NotFound extends BService {
 		return $response;
 	}
 
-	/**
-	 * return500 找不到定义的函数类
-	 * @param  string  $class
-	 * @param  string  $action
-	 * @return mixed
-	 */
+    /**
+     * return500 找不到定义的函数类
+     * @param string $class
+     * @param string $action
+     * @return mixed
+     * @throws \Exception
+     */
 	public function return500(string $class, string $action) {
         $response = ['ret'=>500, 'msg'=>"{$class}::{$action} is undefined", 'data'=>''];
 		if(BaseServer::isRpcApp()) {
@@ -58,11 +60,12 @@ class NotFound extends BService {
 		return $response;
 	}
 
-	/**
-	 * returnError 直接返回捕捉的错误和异常信息
-     * @param  string  $msg
-	 * @return mixed
-	 */
+    /**
+     * returnError 直接返回捕捉的错误和异常信息
+     * @param string $msg
+     * @return mixed
+     * @throws \Exception
+     */
 	public function returnError(string $msg) {
         $response = ['ret'=>500, 'msg'=>$msg, 'data'=>''];
 		if(BaseServer::isRpcApp()) {
