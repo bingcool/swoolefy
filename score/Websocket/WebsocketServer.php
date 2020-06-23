@@ -17,7 +17,6 @@ use Swoole\Http\Response;
 use Swoolefy\Core\BaseServer;
 
 abstract class WebsocketServer extends BaseServer {
-
     /**
      * $serverName server服务名称
      * @var string
@@ -40,10 +39,10 @@ abstract class WebsocketServer extends BaseServer {
 	];
 
 	/**
-	 * $webserver
-	 * @var \Swoole\Server
+	 * $webServer
+	 * @var \Swoole\WebSocket\Server
 	 */
-	public $webserver = null;
+	protected $webServer = null;
 
     /**
      * __construct
@@ -56,8 +55,8 @@ abstract class WebsocketServer extends BaseServer {
 		self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
 		self::setSwooleSockType();
         self::setServerName(self::SERVER_NAME);
-		self::$server = $this->webserver = new \Swoole\WebSocket\Server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, self::$swoole_socket_type);
-		$this->webserver->set(self::$setting);
+		self::$server = $this->webServer = new \Swoole\WebSocket\Server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, self::$swoole_socket_type);
+		$this->webServer->set(self::$setting);
 		parent::__construct();
 	}
 
@@ -65,7 +64,7 @@ abstract class WebsocketServer extends BaseServer {
 		/**
 		 * start回调
 		 */
-		$this->webserver->on('Start', function(\Swoole\WebSocket\Server $server) {
+		$this->webServer->on('Start', function(\Swoole\WebSocket\Server $server) {
 		    try{
                 self::setMasterProcessName(self::$config['master_process_name']);
                 $this->startCtrl->start($server);
@@ -75,9 +74,9 @@ abstract class WebsocketServer extends BaseServer {
 		});
 
 		/**
-		 * managerstart回调
+		 * managerStart回调
 		 */
-		$this->webserver->on('ManagerStart', function(\Swoole\WebSocket\Server $server) {
+		$this->webServer->on('ManagerStart', function(\Swoole\WebSocket\Server $server) {
             try{
                 self::setManagerProcessName(self::$config['manager_process_name']);
                 $this->startCtrl->managerStart($server);
@@ -88,9 +87,9 @@ abstract class WebsocketServer extends BaseServer {
 		});
 
         /**
-         * managerstop回调
+         * managerStop回调
          */
-        $this->webserver->on('ManagerStop', function(\Swoole\WebSocket\Server $server) {
+        $this->webServer->on('ManagerStop', function(\Swoole\WebSocket\Server $server) {
             try{
                 $this->startCtrl->managerStop($server);
             }catch (\Throwable $e) {
@@ -101,7 +100,7 @@ abstract class WebsocketServer extends BaseServer {
 		/**
 		 * 启动worker进程监听回调，设置定时器
 		 */
-		$this->webserver->on('WorkerStart', function(\Swoole\WebSocket\Server $server, $worker_id) {
+		$this->webServer->on('WorkerStart', function(\Swoole\WebSocket\Server $server, $worker_id) {
 			// 记录主进程加载的公共files,worker重启不会在加载的
 			self::getIncludeFiles($worker_id);
 			// registerShutdown
@@ -119,7 +118,7 @@ abstract class WebsocketServer extends BaseServer {
 			// 启动动态运行时的Coroutine
 			self::runtimeEnableCoroutine();
             // 超全局变量server
-            Swfy::setSwooleServer($this->webserver);
+            Swfy::setSwooleServer($this->webServer);
             // 全局配置
             Swfy::setConf(self::$config);
 			// 启动的初始化函数
@@ -133,7 +132,7 @@ abstract class WebsocketServer extends BaseServer {
 		 * @see https://wiki.swoole.com/wiki/page/409.html
 		 */
 		if(method_exists($this, 'onHandshake')) {
-			$this->webserver->on('handshake', function(Request $request, Response $response) {
+			$this->webServer->on('handshake', function(Request $request, Response $response) {
 				try{
 					// 自定义handshake函数
 					static::onHandshake($request, $response);
@@ -146,7 +145,7 @@ abstract class WebsocketServer extends BaseServer {
 		/**
 		 * open 函数处理
 		 */
-		$this->webserver->on('open', function(\Swoole\WebSocket\Server $server, $request) {
+		$this->webServer->on('open', function(\Swoole\WebSocket\Server $server, $request) {
 			try{
 				static::onOpen($server, $request);
 				return true;
@@ -158,7 +157,7 @@ abstract class WebsocketServer extends BaseServer {
 		/**
 		 * message 函数
 		 */
-		$this->webserver->on('message', function(\Swoole\WebSocket\Server $server, $frame) {
+		$this->webServer->on('message', function(\Swoole\WebSocket\Server $server, $frame) {
 			try{
 				parent::beforeHandler();
 				static::onMessage($server, $frame);
@@ -172,7 +171,7 @@ abstract class WebsocketServer extends BaseServer {
 		 * task 函数,处理异步任务
 		 */
         if(parent::isTaskEnableCoroutine()) {
-            $this->webserver->on('task', function(\Swoole\WebSocket\Server $server, \Swoole\Server\Task $task) {
+            $this->webServer->on('task', function(\Swoole\WebSocket\Server $server, \Swoole\Server\Task $task) {
                 try{
                     $from_worker_id = $task->worker_id;
                     $task_id = $task->id;
@@ -184,7 +183,7 @@ abstract class WebsocketServer extends BaseServer {
                 }
             });
         }else {
-            $this->webserver->on('task', function(\Swoole\WebSocket\Server $server, $task_id, $from_worker_id, $data) {
+            $this->webServer->on('task', function(\Swoole\WebSocket\Server $server, $task_id, $from_worker_id, $data) {
                 try{
                     $task_data = unserialize($data);
                     static::onTask($server, $task_id, $from_worker_id, $task_data);
@@ -198,7 +197,7 @@ abstract class WebsocketServer extends BaseServer {
 		/**
 		 * finish 函数,异步任务完成
 		 */
-		$this->webserver->on('finish', function(\Swoole\WebSocket\Server $server, $task_id, $data) {
+		$this->webServer->on('finish', function(\Swoole\WebSocket\Server $server, $task_id, $data) {
 			try{
 				static::onFinish($server, $task_id, $data);
 				return true;
@@ -211,7 +210,7 @@ abstract class WebsocketServer extends BaseServer {
 		/**
 		 * 处理pipeMessage
 		 */
-		$this->webserver->on('pipeMessage', function(\Swoole\WebSocket\Server $server, $from_worker_id, $message) {
+		$this->webServer->on('pipeMessage', function(\Swoole\WebSocket\Server $server, $from_worker_id, $message) {
 			try {
 				static::onPipeMessage($server, $from_worker_id, $message);
 				return true;
@@ -224,7 +223,7 @@ abstract class WebsocketServer extends BaseServer {
 		/**
 		 * close 函数,关闭连接
 		 */
-		$this->webserver->on('close', function(\Swoole\WebSocket\Server $server, $fd, $reactorId) {
+		$this->webServer->on('close', function(\Swoole\WebSocket\Server $server, $fd, $reactorId) {
 			try{
 				static::onClose($server, $fd);
 				return true;
@@ -239,7 +238,7 @@ abstract class WebsocketServer extends BaseServer {
 		if(isset(self::$config['accept_http'])){
             $accept_http = filter_var(self::$config['accept_http'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
             if($accept_http) {
-                $this->webserver->on('request', function (Request $request, Response $response) {
+                $this->webServer->on('request', function (Request $request, Response $response) {
                     try{
                         if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
                             return $response->end();
@@ -256,7 +255,7 @@ abstract class WebsocketServer extends BaseServer {
 		/**
 		 * 停止worker进程
 		 */
-		$this->webserver->on('WorkerStop', function(\Swoole\WebSocket\Server $server, $worker_id) {
+		$this->webServer->on('WorkerStop', function(\Swoole\WebSocket\Server $server, $worker_id) {
 			try{
 				$this->startCtrl->workerStop($server, $worker_id);
 			}catch(\Throwable $e) {
@@ -267,7 +266,7 @@ abstract class WebsocketServer extends BaseServer {
 		/**
 		 * worker进程异常错误回调函数
 		 */
-		$this->webserver->on('WorkerError', function(\Swoole\WebSocket\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
+		$this->webServer->on('WorkerError', function(\Swoole\WebSocket\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
 			try{
 				$this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
 			}catch(\Throwable $e) {
@@ -279,8 +278,7 @@ abstract class WebsocketServer extends BaseServer {
 		/**
 		 * worker进程退出回调函数
 		 */
-
-        $this->webserver->on('WorkerExit', function(\Swoole\WebSocket\Server $server, $worker_id) {
+        $this->webServer->on('WorkerExit', function(\Swoole\WebSocket\Server $server, $worker_id) {
             try{
                 $this->startCtrl->workerExit($server, $worker_id);
             }catch(\Throwable $e) {
@@ -288,7 +286,7 @@ abstract class WebsocketServer extends BaseServer {
             }
         });
 
-		$this->webserver->start();
+		$this->webServer->start();
 	}
 
 

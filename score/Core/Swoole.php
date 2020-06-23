@@ -83,10 +83,11 @@ class Swoole extends BaseObject {
 		}
 	}
 
-	/**
-	 * call 调用创建处理实例
-	 * @return void
-	 */
+    /**
+     * call 调用创建处理实例
+     * @return void
+     * @throws \Exception
+     */
 	public function run($fd, $recv) {
 		$this->creatObject();
 		$this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
@@ -294,7 +295,7 @@ class Swoole extends BaseObject {
 	public function end() {
 		// call hook callable
 		Hook::callHook(Hook::HOOK_AFTER_REQUEST);
-		// log hander
+		// log handle
         $this->handleLog();
         // remove Model
 		ZModel::removeInstance();

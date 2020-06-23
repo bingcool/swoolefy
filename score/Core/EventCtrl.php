@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Core;
 
+use Swoole\Server;
 use Swoolefy\Core\Process\ProcessManager;
 
 class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
@@ -30,8 +31,8 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
 
 	/**
 	 * onStart 
-	 * @param    $server
-	 * @return          
+	 * @param Server $server
+	 * @return void
 	 */
 	public function start($server) {
 		static::onStart($server);
@@ -39,8 +40,8 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
 
 	/**
 	 * onManagerStart 
-	 * @param    $server
-	 * @return          
+	 * @param Server $server
+	 * @return void
 	 */
 	public function managerStart($server) {
 		static::onManagerStart($server);
@@ -48,8 +49,8 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
 
 	/**
 	 * onWorkerStart
-	 * @param    $server
-	 * @return   
+	 * @param Server $server
+	 * @return void
 	 */
 	public function workerStart($server, $worker_id) {
         \Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->addPool();
@@ -58,9 +59,9 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
 
 	/**
 	 * onWorkerStop
-	 * @param    $server   
-	 * @param    $worker_id
-	 * @return             
+	 * @param Server $server
+	 * @param int   $worker_id
+	 * @return void
 	 */
 	public function workerStop($server, $worker_id) {
 		static::onWorkerStop($server, $worker_id);
@@ -68,12 +69,12 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
 
 	/**
 	 * workerError 
-	 * @param    $server    
-	 * @param    $worker_id 
-	 * @param    $worker_pid
-	 * @param    $exit_code 
-	 * @param    $signal    
-	 * @return              
+	 * @param  Server $server
+	 * @param  int   $worker_id
+	 * @param  int  $worker_pid
+	 * @param  mixed  $exit_code
+	 * @param  boolean $signal
+	 * @return void
 	 */
 	public function workerError($server, $worker_id, $worker_pid, $exit_code, $signal) {
 		static::onWorkerError($server, $worker_id, $worker_pid, $exit_code, $signal);
@@ -81,9 +82,9 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
 
 	/**
 	 * workerExit 1.9.17+版本支持
-	 * @param    $server   
-	 * @param    $worker_id
-	 * @return                 
+	 * @param  Server  $server
+	 * @param  int  $worker_id
+	 * @return void
 	 */
 	public function workerExit($server, $worker_id) {
 		static::onWorkerExit($server, $worker_id);
@@ -91,8 +92,8 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
 
 	/**
 	 * onManagerStop
-	 * @param    $server
-	 * @return          
+	 * @param  Server  $server
+	 * @return void
 	 */
 	public function managerStop($server){
 		static::onManagerStop($server);
@@ -153,7 +154,7 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
 
     /**
      * _each
-     * @param $msg
+     * @param string $msg
      * @param string $foreground
      * @param string $background
      */

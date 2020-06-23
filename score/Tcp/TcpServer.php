@@ -40,20 +40,20 @@ abstract class TcpServer extends BaseServer {
 	];
 
 	/**
-	 * $tcpserver 
-	 * @var \Swoole\Server $tcpserver
+	 * $tcpServer
+	 * @var \Swoole\Server
 	 */
-	public $tcpserver = null;
+	public $tcpServer = null;
 
 	/**
 	 * $pack 封解包对象
-	 * @var null
+	 * @var \Swoolefy\Rpc\Pack
 	 */
 	protected $Pack = null;
 
 	/**
 	 * $Text text协议对象
-	 * @var null
+	 * @var \Swoolefy\Rpc\Text
 	 */
 	protected $Text = null;
 
@@ -68,8 +68,8 @@ abstract class TcpServer extends BaseServer {
 		self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
 		self::setSwooleSockType();
         self::setServerName(self::SERVER_NAME);
-		self::$server = $this->tcpserver = new \Swoole\Server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, self::$swoole_socket_type);
-		$this->tcpserver->set(self::$setting);
+		self::$server = $this->tcpServer = new \Swoole\Server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, self::$swoole_socket_type);
+		$this->tcpServer->set(self::$setting);
 		parent::__construct();
 		self::buildPackHander();
 		
@@ -79,7 +79,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * start回调
 		 */
-		$this->tcpserver->on('Start', function(\Swoole\Server $server) {
+		$this->tcpServer->on('Start', function(\Swoole\Server $server) {
 		    try{
                 self::setMasterProcessName(self::$config['master_process_name']);
                 $this->startCtrl->start($server);
@@ -89,9 +89,9 @@ abstract class TcpServer extends BaseServer {
 		});
 
 		/**
-		 * managerstart回调
+		 * managerStart回调
 		 */
-		$this->tcpserver->on('ManagerStart', function(\Swoole\Server $server) {
+		$this->tcpServer->on('ManagerStart', function(\Swoole\Server $server) {
             try{
                 self::setManagerProcessName(self::$config['manager_process_name']);
                 $this->startCtrl->managerStart($server);
@@ -101,9 +101,9 @@ abstract class TcpServer extends BaseServer {
 		});
 
         /**
-         * managerstop回调
+         * managerStop回调
          */
-        $this->tcpserver->on('ManagerStop', function(\Swoole\Server $server) {
+        $this->tcpServer->on('ManagerStop', function(\Swoole\Server $server) {
             try {
                 $this->startCtrl->managerStop($server);
             }catch (\Throwable $e) {
@@ -114,7 +114,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * 启动worker进程监听回调，设置定时器
 		 */
-		$this->tcpserver->on('WorkerStart', function(\Swoole\Server $server, $worker_id) {
+		$this->tcpServer->on('WorkerStart', function(\Swoole\Server $server, $worker_id) {
 			// 记录主进程加载的公共files,worker重启不会在加载的
 			self::getIncludeFiles($worker_id);
 			// registerShutdown
@@ -132,7 +132,7 @@ abstract class TcpServer extends BaseServer {
 			// 启动动态运行时的Coroutine
 			self::runtimeEnableCoroutine();
             // 超全局变量server
-            Swfy::setSwooleServer($this->tcpserver);
+            Swfy::setSwooleServer($this->tcpServer);
             // 全局配置
             Swfy::setConf(self::$config);
 			// 启动的初始化函数
@@ -145,7 +145,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * tcp连接
 		 */
-		$this->tcpserver->on('connect', function(\Swoole\Server $server, $fd) {
+		$this->tcpServer->on('connect', function(\Swoole\Server $server, $fd) {
     		try{
     			static::onConnet($server, $fd);
     		}catch(\Throwable $e) {
@@ -156,7 +156,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * 监听数据接收事件
 		 */
-		$this->tcpserver->on('receive', function(\Swoole\Server $server, $fd, $reactor_id, $data) {
+		$this->tcpServer->on('receive', function(\Swoole\Server $server, $fd, $reactor_id, $data) {
 			try{
 				parent::beforeHandler();
 				if(parent::isPackLength()) {
@@ -178,7 +178,7 @@ abstract class TcpServer extends BaseServer {
 		 * 处理异步任务
 		 */
         if(parent::isTaskEnableCoroutine()) {
-            $this->tcpserver->on('task', function(\Swoole\Server $server, \Swoole\Server\Task $task) {
+            $this->tcpServer->on('task', function(\Swoole\Server $server, \Swoole\Server\Task $task) {
                 try{
                     $from_worker_id = $task->worker_id;
                     $task_id = $task->id;
@@ -191,7 +191,7 @@ abstract class TcpServer extends BaseServer {
             });
 
         }else {
-            $this->tcpserver->on('task', function(\Swoole\Server $server, $task_id, $from_worker_id, $data) {
+            $this->tcpServer->on('task', function(\Swoole\Server $server, $task_id, $from_worker_id, $data) {
                 try{
                     $task_data = unserialize($data);
                     static::onTask($server, $task_id, $from_worker_id, $task_data);
@@ -205,7 +205,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * 异步任务完成
 		 */
-		$this->tcpserver->on('finish', function(\Swoole\Server $server, $task_id, $data) {
+		$this->tcpServer->on('finish', function(\Swoole\Server $server, $task_id, $data) {
 			try{
 				static::onFinish($server, $task_id, $data);
 			}catch(\Throwable $e) {
@@ -217,7 +217,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * 处理pipeMessage
 		 */
-		$this->tcpserver->on('pipeMessage', function(\Swoole\Server $server, $from_worker_id, $message) {
+		$this->tcpServer->on('pipeMessage', function(\Swoole\Server $server, $from_worker_id, $message) {
 			try {
 				static::onPipeMessage($server, $from_worker_id, $message);
 				return true;
@@ -230,7 +230,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * 关闭连接
 		 */
-		$this->tcpserver->on('close', function(\Swoole\Server $server, $fd, $reactorId) {
+		$this->tcpServer->on('close', function(\Swoole\Server $server, $fd, $reactorId) {
 			try{
 				// 销毁不完整数据
 				if(parent::isPackLength()) {
@@ -245,7 +245,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * 停止worker进程
 		 */
-		$this->tcpserver->on('WorkerStop', function(\Swoole\Server $server, $worker_id) {
+		$this->tcpServer->on('WorkerStop', function(\Swoole\Server $server, $worker_id) {
 			try{
 				$this->startCtrl->workerStop($server, $worker_id);
 			}catch(\Throwable $e) {
@@ -256,7 +256,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * worker进程异常错误回调函数
 		 */
-		$this->tcpserver->on('WorkerError', function(\Swoole\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
+		$this->tcpServer->on('WorkerError', function(\Swoole\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
 			try{
 				$this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
 			}catch(\Throwable $e) {
@@ -267,7 +267,7 @@ abstract class TcpServer extends BaseServer {
 		/**
 		 * worker进程退出回调函数
 		 */
-        $this->tcpserver->on('WorkerExit', function(\Swoole\Server $server, $worker_id) {
+        $this->tcpServer->on('WorkerExit', function(\Swoole\Server $server, $worker_id) {
             try{
                 $this->startCtrl->workerExit($server, $worker_id);
             }catch(\Throwable $e) {
@@ -276,7 +276,7 @@ abstract class TcpServer extends BaseServer {
 
         });
 
-		$this->tcpserver->start();
+		$this->tcpServer->start();
 	}
 
 	/**
@@ -342,7 +342,7 @@ abstract class TcpServer extends BaseServer {
     /**
      * pack  根据配置设置，按照客户端的接受数据方式，打包数据发回给客户端
      * @param mixed $data
-     * @return   mixed
+     * @return mixed
      * @throws \Exception
      */
 	public static function pack($data) {

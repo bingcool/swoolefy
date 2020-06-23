@@ -69,11 +69,12 @@ class EventController extends BaseObject {
 		}
 	}
 
-	/**
-	 * setApp  重置APP对象
-	 * @param  int  $coroutine_id
+    /**
+     * setApp  重置APP对象
+     * @param int $coroutine_id
      * @return boolean
-	 */
+     * @throws \Exception
+     */
 	public function setApp($coroutine_id = null) {
 		if($coroutine_id) {
 			Application::removeApp($this->coroutine_id);

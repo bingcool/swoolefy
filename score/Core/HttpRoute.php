@@ -19,30 +19,32 @@ use Swoolefy\Core\Controller\BController;
 class HttpRoute extends AppDispatch {
 
     /**
-     * @var int pathinfo 模式
+     * pathinfo 模式
+     * @var int
      */
     const ROUTE_MODEL_PATHINFO = ROUTE_MODEL_PATHINFO;
 
     /**
-     * @var int 参数路由模式
+     * 参数路由模式
+     * @var int
      */
     const ROUTE_MODEL_QUERY_PARAMS = ROUTE_MODEL_QUERY_PARAMS;
 
 	/**
 	 * $request 请求对象
-	 * @var null
+	 * @var \Swoole\Http\Request
 	 */
 	public $request = null;
 
 	/**
 	 * $response
-	 * @var null
+	 * @var \Swoole\Http\Response
 	 */
 	public $response = null;
 
 	/**
 	 * $app_conf 应用层配置值
-	 * @var null
+	 * @var array
 	 */
 	public $app_conf = null;
 

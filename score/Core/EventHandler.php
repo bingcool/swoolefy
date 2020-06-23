@@ -26,8 +26,8 @@ class EventHandler extends \Swoolefy\Core\EventCtrl {
 
 	/**
 	 * onStart 
-	 * @param    $server
-	 * @return   void
+	 * @param $server
+	 * @return void
 	 */
 	public function onStart($server) {
 		
@@ -35,8 +35,8 @@ class EventHandler extends \Swoolefy\Core\EventCtrl {
 
 	/**
 	 * onManagerStart 
-	 * @param    $server
-	 * @return   void
+	 * @param $server
+	 * @return void
 	 */
 	public function onManagerStart($server) {
 		
@@ -44,8 +44,8 @@ class EventHandler extends \Swoolefy\Core\EventCtrl {
 
 	/**
 	 * onWorkerStart
-	 * @param    $server
-	 * @return   void
+	 * @param $server
+	 * @return void
 	 */
 	public function onWorkerStart($server,$worker_id) {
 		
@@ -53,9 +53,9 @@ class EventHandler extends \Swoolefy\Core\EventCtrl {
 
 	/**
 	 * onWorkerStop
-	 * @param    $server   
-	 * @param    $worker_id
-	 * @return   void
+	 * @param $server
+	 * @param $worker_id
+	 * @return void
 	 */
 	public function onWorkerStop($server,$worker_id) {
 		
@@ -63,12 +63,12 @@ class EventHandler extends \Swoolefy\Core\EventCtrl {
 
 	/**
 	 * workerError 
-	 * @param    $server    
-	 * @param    $worker_id 
-	 * @param    $worker_pid
-	 * @param    $exit_code 
-	 * @param    $signal    
-	 * @return              
+	 * @param  $server
+	 * @param  $worker_id
+	 * @param  $worker_pid
+	 * @param  $exit_code
+	 * @param  $signal
+	 * @return void
 	 */
 	public function onWorkerError($server, $worker_id, $worker_pid, $exit_code, $signal) {
 
@@ -76,9 +76,9 @@ class EventHandler extends \Swoolefy\Core\EventCtrl {
 
 	/**
 	 * workerExit 1.9.17+版本支持
-	 * @param    $server   
-	 * @param    $worker_id
-	 * @return   void
+	 * @param  $server
+	 * @param  $worker_id
+	 * @return void
 	 */
 	public function onWorkerExit($server, $worker_id) {
 
@@ -86,8 +86,8 @@ class EventHandler extends \Swoolefy\Core\EventCtrl {
 
 	/**
 	 * onManagerStop
-	 * @param    $server
-	 * @return   void
+	 * @param  $server
+	 * @return void
 	 */
 	public function onManagerStop($server) {
 		
