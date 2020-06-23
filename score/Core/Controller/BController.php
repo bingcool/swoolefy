@@ -52,9 +52,7 @@ class BController extends \Swoolefy\Core\AppObject {
 	/**
 	 * __destruct 初始化一些静态变量
 	 */
-	public function defer() {
-		static::_afterAction();
-	}
+	public function defer() {}
 
 	use \Swoolefy\Core\AppTrait,\Swoolefy\Core\ServiceTrait;
 }

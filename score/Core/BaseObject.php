@@ -78,6 +78,7 @@ class BaseObject {
     /**
      * getContext
      * @param mixed
+     * @throws \Exception
      */
     public function getContext() {
         if($this->context) {

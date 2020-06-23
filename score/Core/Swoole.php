@@ -193,11 +193,11 @@ class Swoole extends BaseObject {
 	}
 
 	/**
-	 * getWebsockMsg 获取websocket的信息
+	 * getWebsocketMsg 获取websocket的信息
      * @throws \Exception
 	 * @return mixed
 	 */
-	public function getWebsockMsg() {
+	public function getWebsocketMsg() {
 		if(!$this->isWorkerProcess()) {
             throw new \Exception("getWebsockMsg() only can use in worker process");
         }
@@ -253,9 +253,9 @@ class Swoole extends BaseObject {
     }
 
     /**
-     * handerLog
+     * handleLog
      */
-    public function handerLog() {
+    public function handleLog() {
         // log send
         if(!empty($logs = $this->getLog())) {
             foreach($logs as $action => $log) {
@@ -295,7 +295,7 @@ class Swoole extends BaseObject {
 		// call hook callable
 		Hook::callHook(Hook::HOOK_AFTER_REQUEST);
 		// log hander
-        $this->handerLog();
+        $this->handleLog();
         // remove Model
 		ZModel::removeInstance();
 		// push obj pools

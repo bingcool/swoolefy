@@ -26,7 +26,9 @@
         "ext-swoole" : ">=4.4.5",
         "ext-json": "*",
         "psr/log" : "*",
-        "ext-inotify": "*",
+        "ext-pcntl" : "*",
+        "ext-posix" : "*",
+        "ext-sockets": "*",
         "ext-zend-opcache": "*",
         "ext-apcu": "*"
     },
@@ -35,6 +37,9 @@
         "psr-4": {
             "Swoolefy\\": "score/"
         }
+    },
+    "require-dev": {
+        "swoole/ide-helper": "@dev"
     }
 
 }

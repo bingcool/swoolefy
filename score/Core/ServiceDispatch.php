@@ -78,7 +78,7 @@ class ServiceDispatch extends AppDispatch {
 		}
 		
 		$class = str_replace('/','\\', $class);
-		/**@var BService $serviceInstance*/
+		/**@var \Swoolefy\Core\BService $serviceInstance */
 		$serviceInstance = new $class();
 		$serviceInstance->mixed_params = $this->params;
 		if(isset($this->from_worker_id) && isset($this->task_id)) {
@@ -91,13 +91,16 @@ class ServiceDispatch extends AppDispatch {
 
 		try{
 			if(method_exists($serviceInstance, $action)) {
-                $isContinueAction = $serviceInstance->_beforeAction();
+			    // before Call
+                $isContinueAction = $serviceInstance->_beforeAction($action);
                 if($isContinueAction === false) {
                     // end
                     return false;
                 }
-                // next call
+                // next Call
 				$serviceInstance->$action($this->params);
+                // after Call
+                $serviceInstance->_afterAction($action);
 			}else {
 			    if(Swfy::isWorkerProcess()) {
                     $app_conf = Swfy::getAppConf();

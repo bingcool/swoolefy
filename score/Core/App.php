@@ -24,13 +24,13 @@ use Swoolefy\Core\Coroutine\CoroutineManager;
 class App extends \Swoolefy\Core\Component {
 	/**
 	 * $request 当前请求的对象
-	 * @var null
+	 * @var \Swoole\Http\Request
 	 */
 	public $request = null;
 	
 	/**
 	 * $response 当前请求的响应对象
-	 * @var null
+	 * @var \Swoole\Http\Response
 	 */
 	public $response = null;
 
@@ -255,9 +255,9 @@ class App extends \Swoolefy\Core\Component {
 	}
 
     /**
-     * handerLog
+     * handleLog
      */
-    public function handerLog() {
+    public function handleLog() {
         // log send
         if(!empty($logs = $this->getLog())) {
             foreach($logs as $action => $log) {
@@ -303,7 +303,7 @@ class App extends \Swoolefy\Core\Component {
 	 */
 	public function end() {
 		// log hander
-        $this->handerLog();
+        $this->handleLog();
         // push obj pools
         $this->pushComponentPools();
         // remove App Instance

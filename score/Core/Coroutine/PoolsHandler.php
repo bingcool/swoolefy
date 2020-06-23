@@ -10,10 +10,13 @@
  */
 
 namespace Swoolefy\Core\Coroutine;
+use Swoole\Coroutine\Channel;
 
 class PoolsHandler {
-
-	protected $channel = null;
+    /**
+     * @var Channel
+     */
+    protected $channel = null;
 
 	protected $poolName;
 
@@ -80,7 +83,7 @@ class PoolsHandler {
 		if($poolName) {
 			$this->poolName = trim($poolName);
 			if(!isset($this->channel)) {
-                $this->channel = new \Swoole\Coroutine\Channel($this->poolsNum);
+                $this->channel = new Channel($this->poolsNum);
         	}
 		}
 	}
