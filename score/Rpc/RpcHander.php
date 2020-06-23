@@ -28,7 +28,7 @@ class RpcHander extends Swoole implements HanderInterface {
 
 	/**
 	 * __construct 初始化
-	 * @param    array  $config
+	 * @param array $config
 	 */
 	public function __construct(array $config=[]) {
 		parent::__construct($config);
@@ -43,7 +43,7 @@ class RpcHander extends Swoole implements HanderInterface {
 
 	/**
 	 * bootstrap 当执行run方法时,首先会执行init->bootstrap
-	 * @param  mixed  $recv
+	 * @param  mixed $recv
 	 * @return void
 	 */
 	public function bootstrap($recv) {}

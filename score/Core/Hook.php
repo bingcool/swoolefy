@@ -52,7 +52,7 @@ class Hook {
 	}
 
 	/**
-	 * callhook 调用钩子函数
+	 * 调用钩子函数
 	 * @param   int $type
 	 * @return  void
 	 */
@@ -74,7 +74,7 @@ class Hook {
 	/**
 	 * getHookCallable 获取所有的钩子函数
      * @param int $cid
-	 * @return  mixed
+	 * @return mixed
 	 */
 	public static function getHookCallable($cid = null) {
 		if(empty($cid)) {

@@ -22,11 +22,12 @@ class Application {
 	 */
 	protected static $app = [];
 
-	/**
-	 * setApp 
-	 * @param $object
+    /**
+     * setApp
+     * @param $object
      * @return boolean
-	 */
+     * @throws \Exception
+     */
 	public static function setApp($App) {
 		if(Swfy::isWorkerProcess()) {
 			//worker进程中可以使用go()创建协程，和ticker的callback应用实例是支持协程的，controller必须继承TickController 或者父类ProcessController等

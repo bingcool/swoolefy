@@ -11,6 +11,9 @@
 
 namespace Swoolefy\Http;
 
+use Swoole\Server;
+use Swoole\Http\Request;
+use Swoole\Http\Response;
 use Swoolefy\Core\Task\TaskController;
 
 abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
@@ -26,7 +29,7 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 
 	/**
 	 * onWorkerStart 
-	 * @param   object  $server    
+	 * @param   Server  $server
 	 * @param   int     $worker_id 
 	 * @return  void
 	 */
@@ -34,10 +37,10 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 
 	/**
 	 * onRequest 
-	 * @param    $request
-	 * @param    $response
-     * @throws   \Throwable
-	 * @return   void
+	 * @param  Request  $request
+	 * @param  Response  $response
+     * @throws \Throwable
+	 * @return void
 	 */
 	public function onRequest($request, $response) {
 		if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
@@ -55,7 +58,7 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 
 	/**
 	 * onPipeMessage 
-	 * @param    object  $server
+	 * @param    Server  $server
 	 * @param    int     $src_worker_id
 	 * @param    mixed   $message
 	 * @return   void
@@ -64,7 +67,7 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 
 	/**
 	 * onTask 异步任务处理
-     * @param    mixed  $server
+     * @param    Server  $server
 	 * @param    int  $task_id
 	 * @param    int  $from_worker_id
 	 * @param    mixed $data
@@ -94,7 +97,7 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 
 	/**
 	 * onFinish
-     * @param    mixed $server
+     * @param    Server $server
 	 * @param    int   $task_id
 	 * @param    mixed $data
 	 * @return   void

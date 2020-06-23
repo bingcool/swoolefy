@@ -91,7 +91,7 @@ class SwoolefyException {
 
     /**
      * shutHalt 输出错误日志
-     * @param string      $errorMsg
+     * @param string $errorMsg
      * @param string $errorType
      */
     public static function shutHalt($errorMsg, $errorType = SwoolefyException::EXCEPTION_ERR) {

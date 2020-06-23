@@ -23,7 +23,7 @@ class BaseServer {
 
 	/**
 	 * $server swoole服务器对象实例
-	 * @var Swoole|null
+	 * @var \Swoole\Server
 	 */
 	public static $server = null;
 
@@ -73,7 +73,7 @@ class BaseServer {
 	protected static $start_hander_class = 'Swoolefy\\Core\\EventHandler';
 
     /**
-     * $startctrl
+     * $startCtrl
      * @var null
      */
     protected $startCtrl = null;
@@ -102,7 +102,7 @@ class BaseServer {
 	];
 
     /**
-     * $_workers_pids 记录映射进程worker_pid和worker_id的关系
+     * $_table_worker_pid_map 记录映射进程worker_pid和worker_id的关系
      * @var array
      */
 	protected static $_table_worker_pid_map = [
@@ -208,7 +208,7 @@ class BaseServer {
 	}
 
 	/**
-	 * startInclude 设置需要在workerstart启动时加载的配置文件
+	 * startInclude 设置需要在workerStart启动时加载的配置文件
 	 * @param  array  $includes 
 	 * @return   void
 	 */
@@ -239,9 +239,11 @@ class BaseServer {
 
 	/**
 	 * filterFaviconIcon google浏览器会自动发一次请求/favicon.ico,在这里过滤掉
+     * @var \Swoole\Http\Request $request
+     * @var \Swoole\Http\Response $response
 	 * @return  mixed
 	 */
-	public static function filterFaviconIcon($request,$response) {
+	public static function filterFaviconIcon($request, $response) {
 		if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
             return $response->end();
        	}
@@ -323,7 +325,7 @@ class BaseServer {
 
 	/**
 	 * getLastError 返回最后一次的错误代码
-	 * @return   int
+	 * @return int
 	 */
 	public static function getLastError() {
 		return self::$server->getLastError();
@@ -331,7 +333,7 @@ class BaseServer {
 
 	/**
 	 * getLastErrorMsg 获取swoole最后一次的错误信息
-	 * @return   string
+	 * @return string
 	 */
 	public static function getLastErrorMsg() {
 		$code = swoole_errno();
@@ -340,7 +342,7 @@ class BaseServer {
 
 	/**
 	 * getLocalIp 获取本地ip
-	 * @return   string
+	 * @return string
 	 */
 	public static function getLocalIp() {
 		return swoole_get_local_ip();	
@@ -348,7 +350,7 @@ class BaseServer {
 
 	/**
 	 * getLocalMac 获取本机mac地址
-	 * @return   array
+	 * @return array
 	 */
 	public static function getLocalMac() {
 		return swoole_get_local_mac();
@@ -356,7 +358,7 @@ class BaseServer {
 
 	/**
 	 * getStatus 获取swoole的状态信息
-	 * @return   array
+	 * @return array
 	 */
 	public static function getStats() {
 		return self::$server->stats();
@@ -364,7 +366,7 @@ class BaseServer {
 
 	/**
 	 * setTimeZone 设置时区
-	 * @return   boolean
+	 * @return boolean
 	 */
 	public static function setTimeZone() {
 		// 默认
@@ -375,7 +377,7 @@ class BaseServer {
 
 	/**
 	 * clearCache 清空字节缓存
-	 * @return  void
+	 * @return void
 	 */
 	public static function clearCache() {
 		if(function_exists('apc_clear_cache')){
@@ -388,8 +390,8 @@ class BaseServer {
 
 	/**
 	 * getIncludeFiles 获取woker启动前已经加载的文件
-	 * @param   string $dir
-	 * @return   void
+	 * @param string $dir
+	 * @return void
 	 */
 	public static function getIncludeFiles($worker_id) {
 		if(isset(static::$setting['log_file']) && $worker_id == 0) {

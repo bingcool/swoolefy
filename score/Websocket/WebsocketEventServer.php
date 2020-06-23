@@ -13,6 +13,7 @@ namespace Swoolefy\Websocket;
 
 include_once SWOOLEFY_CORE_ROOT_PATH.'/MainEventInterface.php';
 
+use Swoole\Server;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Websocket\WebsocketServer;
 use Swoolefy\Core\WebsocketEventInterface;
@@ -20,16 +21,17 @@ use Swoolefy\Core\WebsocketEventInterface;
 abstract class WebsocketEventServer extends WebsocketServer implements WebsocketEventInterface {
 
     /**
-	 * __construct 初始化
-	 * @param array $config
-	 */
+     * __construct 初始化
+     * @param array $config
+     * @throws \Exception
+     */
 	public function __construct(array $config = []) {
 		parent::__construct($config);
 	}
 
 	/**
 	 * onWorkerStart worker启动函数处理
-	 * @param    object  $server
+	 * @param    Server  $server
 	 * @param    int    $worker_id
 	 * @return   void
 	 */
@@ -37,7 +39,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 
 	/**
 	 * onOpen 
-	 * @param    object  $server
+	 * @param    Server  $server
 	 * @param    object  $request
 	 * @return   void
 	 */
@@ -45,8 +47,8 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 
     /**
      * onRequest 接受http请求处理
-     * @param object $request
-     * @param object $response
+     * @param \Swoole\Http\Request $request
+     * @param \Swoole\Http\Response $response
      * @return   void
      * @throws \Throwable
      */
@@ -58,9 +60,9 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 
     /**
      * onMessage 接受信息并处理信息
-     * @param object $server
+     * @param Server $server
      * @param object $frame
-     * @return   void
+     * @return void
      * @throws \Throwable
      */
 	public function onMessage($server, $frame) {
@@ -92,7 +94,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 
     /**
      * onTask 异步任务处理
-     * @param object $server
+     * @param Server $server
      * @param int $task_id
      * @param int $from_worker_id
      * @param mixed $data
@@ -110,7 +112,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 
 	/**
 	 * onFinish 任务完成
-	 * @param    object  $server
+	 * @param    Server  $server
 	 * @param    int     $task_id
 	 * @param    mixed   $data
 	 * @return   void
@@ -119,7 +121,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 
 	/**
 	 * onPipeMessage 
-	 * @param    object  $server
+	 * @param    Server  $server
 	 * @param    int     $src_worker_id
 	 * @param    mixed   $message
 	 * @return   void
@@ -128,7 +130,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 
 	/**
 	 * onClose 连接断开处理
-	 * @param    object  $server
+	 * @param    Server  $server
 	 * @param    int     $fd
 	 * @return   void
 	 */
@@ -136,7 +138,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 
 	/**
 	 * onMessageFromBinary 处理二进制数据
-	 * @param  object $server
+	 * @param  Server $server
 	 * @param  mixed $frame
 	 * @return void       
 	 */
@@ -144,7 +146,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 
 	/**
 	 * onMessageFromClose 处理关闭帧
-	 * @param  object $server
+	 * @param  Server $server
 	 * @param  mixed $frame
 	 * @return void       
 	 */

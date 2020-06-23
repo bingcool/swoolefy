@@ -40,10 +40,10 @@ abstract class HttpServer extends BaseServer {
 	];
 
 	/**
-	 * $webserver
-	 * @var null
+	 * $webServer
+	 * @var \Swoole\Http\Server
 	 */
-	public $webserver = null;
+	protected $webServer = null;
 
     /**
      * __construct
@@ -59,8 +59,8 @@ abstract class HttpServer extends BaseServer {
 		self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
 		self::setSwooleSockType();
 		self::setServerName(self::SERVER_NAME);
-		self::$server = $this->webserver = new \Swoole\Http\Server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, self::$swoole_socket_type);
-		$this->webserver->set(self::$setting);
+		self::$server = $this->webServer = new \Swoole\Http\Server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, self::$swoole_socket_type);
+		$this->webServer->set(self::$setting);
 		parent::__construct();
 	}
 
@@ -68,7 +68,7 @@ abstract class HttpServer extends BaseServer {
 		/**
 		 * start回调
 		 */
-		$this->webserver->on('Start', function(\Swoole\Http\Server $server) {
+		$this->webServer->on('Start', function(\Swoole\Http\Server $server) {
             try{
                 self::setMasterProcessName(self::$config['master_process_name']);
                 $this->startCtrl->start($server);
@@ -79,9 +79,9 @@ abstract class HttpServer extends BaseServer {
 		});
 
 		/**
-		 * managerstart回调
+		 * managerStart回调
 		 */
-		$this->webserver->on('ManagerStart', function(\Swoole\Http\Server $server) {
+		$this->webServer->on('ManagerStart', function(\Swoole\Http\Server $server) {
 		    try{
                 self::setManagerProcessName(self::$config['manager_process_name']);
                 $this->startCtrl->managerStart($server);
@@ -91,9 +91,9 @@ abstract class HttpServer extends BaseServer {
 		});
 
         /**
-         * managerstop回调
+         * managerStop回调
          */
-        $this->webserver->on('ManagerStop', function(\Swoole\Http\Server $server) {
+        $this->webServer->on('ManagerStop', function(\Swoole\Http\Server $server) {
             try{
                 $this->startCtrl->managerStop($server);
             }catch (\Throwable $e) {
@@ -104,7 +104,7 @@ abstract class HttpServer extends BaseServer {
 		/**
 		 * 启动worker进程监听回调，设置定时器
 		 */
-		$this->webserver->on('WorkerStart', function(\Swoole\Http\Server $server, $worker_id) {
+		$this->webServer->on('WorkerStart', function(\Swoole\Http\Server $server, $worker_id) {
 			// 记录主进程加载的公共files,worker重启不会在加载的
 			self::getIncludeFiles($worker_id);
 			// registerShutdown
@@ -122,7 +122,7 @@ abstract class HttpServer extends BaseServer {
 			// 启动动态运行时的Coroutine
 			self::runtimeEnableCoroutine();
 			// 超全局变量server
-       		Swfy::setSwooleServer($this->webserver);
+       		Swfy::setSwooleServer($this->webServer);
        		// 全局配置
        		Swfy::setConf(self::$config);
        		// 启动的初始化函数
@@ -135,14 +135,14 @@ abstract class HttpServer extends BaseServer {
 		/**
 		 * worker进程停止回调函数
 		 */
-		$this->webserver->on('WorkerStop', function(\Swoole\Http\Server $server, $worker_id) {
+		$this->webServer->on('WorkerStop', function(\Swoole\Http\Server $server, $worker_id) {
 			$this->startCtrl->workerStop($server,$worker_id);
 		});
 
 		/**
 		 * 接受http请求
 		 */
-		$this->webserver->on('request', function(Request $request, Response $response) {
+		$this->webServer->on('request', function(Request $request, Response $response) {
 			try{
 				parent::beforeHandler();
 				static::onRequest($request, $response);
@@ -156,7 +156,7 @@ abstract class HttpServer extends BaseServer {
 		 * 异步任务
 		 */
         if(parent::isTaskEnableCoroutine()) {
-            $this->webserver->on('task', function(\Swoole\Http\Server $server, \Swoole\Server\Task $task) {
+            $this->webServer->on('task', function(\Swoole\Http\Server $server, \Swoole\Server\Task $task) {
                 try{
                     $from_worker_id = $task->worker_id;
                     $task_id = $task->id;
@@ -168,7 +168,7 @@ abstract class HttpServer extends BaseServer {
                 }
             });
         }else {
-            $this->webserver->on('task', function(\Swoole\Http\Server $server, $task_id, $from_worker_id, $data) {
+            $this->webServer->on('task', function(\Swoole\Http\Server $server, $task_id, $from_worker_id, $data) {
                 try{
                     $task_data = unserialize($data);
                     static::onTask($server, $task_id, $from_worker_id, $task_data);
@@ -182,7 +182,7 @@ abstract class HttpServer extends BaseServer {
 		/**
 		 * 处理异步任务
 		 */
-		$this->webserver->on('finish', function(\Swoole\Http\Server $server, $task_id, $data) {
+		$this->webServer->on('finish', function(\Swoole\Http\Server $server, $task_id, $data) {
 			try {
 				static::onFinish($server, $task_id, $data);
 				return true;
@@ -195,7 +195,7 @@ abstract class HttpServer extends BaseServer {
 		/**
 		 * 处理pipeMessage
 		 */
-		$this->webserver->on('pipeMessage', function(\Swoole\Http\Server $server, $src_worker_id, $message) {
+		$this->webServer->on('pipeMessage', function(\Swoole\Http\Server $server, $src_worker_id, $message) {
 			try {
 				static::onPipeMessage($server, $src_worker_id, $message);
 				return true;
@@ -207,7 +207,7 @@ abstract class HttpServer extends BaseServer {
 		/**
 		 * worker进程异常错误回调函数
 		 */
-		$this->webserver->on('WorkerError', function(\Swoole\Http\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
+		$this->webServer->on('WorkerError', function(\Swoole\Http\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
 			try{
 				$this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
 			}catch(\Throwable $e) {
@@ -218,7 +218,7 @@ abstract class HttpServer extends BaseServer {
 		/**
 		 * worker进程退出回调函数
 		 */
-        $this->webserver->on('WorkerExit', function(\Swoole\Http\Server $server, $worker_id) {
+        $this->webServer->on('WorkerExit', function(\Swoole\Http\Server $server, $worker_id) {
             try{
                 $this->startCtrl->workerExit($server, $worker_id);
             }catch(\Throwable $e) {
@@ -226,7 +226,7 @@ abstract class HttpServer extends BaseServer {
             }
         });
 
-		$this->webserver->start();
+		$this->webServer->start();
 	}
 
 }
