@@ -46,6 +46,7 @@ class Context {
     /**
      * @param $name
      * @param $value
+     * @throws \Exception
      */
     public static function set($name, $value) {
         $context = self::getContext();

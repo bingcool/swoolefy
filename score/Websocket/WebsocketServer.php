@@ -41,7 +41,7 @@ abstract class WebsocketServer extends BaseServer {
 
 	/**
 	 * $webserver
-	 * @var \Swoole\Server  $webserver
+	 * @var \Swoole\Server
 	 */
 	public $webserver = null;
 

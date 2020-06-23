@@ -26,19 +26,19 @@ trait AppTrait {
 	 */
 	public $selfModel = [];
 
-	/**
-	 * _beforeAction 
-	 * @return   mixed
-	 */
-	public function _beforeAction() {
+    /**
+     * @param string $action
+     * @return bool
+     */
+	public function _beforeAction(string $action) {
 		return true;
 	}
 
-	/**
-	 * _afterAction
-	 * @return   mixed
-	 */
-	public function _afterAction() {
+    /**
+     * @param string $action
+     * @return bool
+     */
+	public function _afterAction(string $action) {
 		return true;
 	}
 

@@ -35,7 +35,7 @@ class ProtoBuffer {
                 /** @var \Google\Protobuf\Internal\OneofDescriptor  $oneOf */
                 $oneOf = $desc->getOneofDecl()[$field->getOneofIndex()];
                 $oneOfName = $oneOf->getName();
-                $oneOfGetter = 'get'.self::LetterToBiger($oneOfName);
+                $oneOfGetter = 'get'.self::LetterToBigger($oneOfName);
                 $selectOneOfName = $obj->$oneOfGetter();
                 if($fieldName != $selectOneOfName) {
                     continue;
@@ -99,11 +99,11 @@ class ProtoBuffer {
     }
 
     /**
-     * LetterToBiger
+     * LetterToBigger
      * @param string $letter
      * @return string
      */
-	public static function LetterToBiger(string $letter = null) {
+	public static function LetterToBigger(string $letter = null) {
 		$letterArr = explode('_', $letter);
 		$property = '';
 		foreach ($letterArr as $letter) {
@@ -119,7 +119,10 @@ class ProtoBuffer {
      * @throws \Exception
      */
 	public static function mergeFromJsonString(& $obj, $jsonString, $ignore_unknown = false) {
-        $obj->mergeFromJsonString($jsonString, $ignore_unknown);
+        if(!$obj instanceof \Google\Protobuf\Internal\Message) {
+            throw new \RuntimeException('Param of obj must be instanceof \Google\Protobuf\Internal\Message');
+        }
+	    $obj->mergeFromJsonString($jsonString, $ignore_unknown);
         return $obj;
     }
 
@@ -128,6 +131,6 @@ class ProtoBuffer {
      * @return false|string
      */
     public static function serializeToJsonString($obj){
-	    return json_encode(self::toArray($obj));
+	    return json_encode(self::toArray($obj),JSON_UNESCAPED_UNICODE);
     }
 }

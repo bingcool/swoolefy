@@ -14,6 +14,7 @@ namespace Swoolefy\Core;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\AppDispatch;
+use Swoolefy\Core\Controller\BController;
 
 class HttpRoute extends AppDispatch {
 
@@ -93,10 +94,11 @@ class HttpRoute extends AppDispatch {
 		$this->extend_data = $extend_data;
 	}
 
-	/**
-	 * dispatch 路由调度
-	 * @return mixed
-	 */
+    /**
+     * dispatch 路由调度
+     * @return mixed
+     * @throws \Exception
+     */
 	public function dispatch() {
 	    if(!isset($this->app_conf['route_model']) || !in_array($this->app_conf['route_model'], [self::ROUTE_MODEL_PATHINFO, self::ROUTE_MODEL_QUERY_PARAMS])) {
             $this->app_conf['route_model'] = self::ROUTE_MODEL_PATHINFO;
@@ -226,12 +228,12 @@ class HttpRoute extends AppDispatch {
         }
         // reset app conf
         $this->app->setAppConf($this->app_conf);
-        // Create Controller Instance
+        /**@var BController $controllerInstance */
         $controllerInstance = new $class();
         // set Controller Instance
         $this->app->setControllerInstance($controllerInstance);
         // invoke _beforeAction
-        $isContinueAction = $controllerInstance->_beforeAction();
+        $isContinueAction = $controllerInstance->_beforeAction($action);
         if($isContinueAction === false) {
             $this->response->status(403);
             $this->response->header('Content-Type', 'application/json; charset=UTF-8');
@@ -256,6 +258,7 @@ class HttpRoute extends AppDispatch {
                     }else {
                         $controllerInstance->{$action}();
                     }
+                    $controllerInstance->_afterAction($action);
                 }catch (\Throwable $t) {
                     $query_string = isset($this->request->server['QUERY_STRING']) ? '?' . $this->request->server['QUERY_STRING'] : '';
                     if(isset($this->request->post) && !empty($this->request->post)) {

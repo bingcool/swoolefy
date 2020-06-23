@@ -178,9 +178,9 @@ class EventController extends BaseObject {
     }
 
     /**
-     * handerLog
+     * handleLog
      */
-    public function handerLog() {
+    public function handleLog() {
         // log send
         if(!empty($logs = $this->getLog())) {
             foreach($logs as $action => $log) {
@@ -252,7 +252,7 @@ class EventController extends BaseObject {
         // callhooks
         $this->callAfterEventHook();
         // handle log
-        $this->handerLog();
+        $this->handleLog();
         // remove Model
 		ZModel::removeInstance();
 		// push obj pools

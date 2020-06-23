@@ -160,9 +160,10 @@ class PoolsManager {
 
     /**
      * reboot 重启进程
-     * @param  string  $processName
-     * @param  boolean $is_restart_all_process
+     * @param string $processName
+     * @param boolean $is_restart_all_process
      * @return boolean
+     * @throws \Exception
      */
     public static function rebootPools(string $processName, bool $is_restart_all_process = false) {
         if($is_restart_all_process) {
@@ -192,9 +193,10 @@ class PoolsManager {
 
     /**
      * writeByProcessName 向绑定当前worker进程的某个自定义进程写数据
-     * @param  string $name
-     * @param  mixed $data
+     * @param string $name
+     * @param mixed $data
      * @return boolean
+     * @throws \Exception
      */
     public static function writeByProcessPoolsName(string $processName, $data) {
         $process = self::getProcessPoolsByName($processName);

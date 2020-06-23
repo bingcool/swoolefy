@@ -126,18 +126,20 @@ class BService extends BaseObject {
 		
 	}
 
-	/**
-	 * isClientPackEof  根据设置判断客户端的分包方式eof
-	 * @return boolean
-	 */
+    /**
+     * isClientPackEof  根据设置判断客户端的分包方式eof
+     * @return boolean
+     * @throws \Exception
+     */
 	public function isClientPackEof() {
 		return TcpServer::isClientPackEof();
 	}
 
-	/**
-	 * isClientPackLength 根据设置判断客户端的分包方式length
-	 * @return   boolean
-	 */
+    /**
+     * isClientPackLength 根据设置判断客户端的分包方式length
+     * @return   boolean
+     * @throws \Exception
+     */
 	public function isClientPackLength() {
 		if($this->isClientPackEof()) {
 			return false;
@@ -145,60 +147,64 @@ class BService extends BaseObject {
 		return true;
 	}
 
-	/**
-	 * getRpcPackHeader  获取rpc的pack头信息,只适用于rpc服务
-	 * @return   array
-	 */
+    /**
+     * getRpcPackHeader  获取rpc的pack头信息,只适用于rpc服务
+     * @return   array
+     * @throws \Exception
+     */
 	public function getRpcPackHeader() {
 		return Application::getApp()->getRpcPackHeader();
 	}
 
-	/**
-	 * getRpcPackBodyParams 获取rpc的包体数据
-	 * @return mixed
-	 */
+    /**
+     * getRpcPackBodyParams 获取rpc的包体数据
+     * @return mixed
+     * @throws \Exception
+     */
 	public function getRpcPackBodyParams() {
 		return Application::getApp()->getRpcPackBodyParams();
 	}
 
-	/**
-	 * getUdpData 获取udp的数据
-	 * @return mixed
-	 */
+    /**
+     * getUdpData 获取udp的数据
+     * @return mixed
+     * @throws \Exception
+     */
 	public function getUdpData() {
 		return Application::getApp()->getUdpData();
 	}
 
-	/**
-	 * getWebsockMsg 获取websocket的信息
-	 * @return mixed
-	 */
-	public function getWebsockMsg() {
-		return Application::getApp()->getWebsockMsg();
+    /**
+     * getWebsocketMsg 获取websocket的信息
+     * @return mixed
+     * @throws \Exception
+     */
+	public function getWebsocketMsg() {
+		return Application::getApp()->getWebsocketMsg();
 	}
 
 	/**
 	 * beforeAction 在处理实际action前执行
+     * @param string $action
 	 * @return   mixed
 	 */
-	public function _beforeAction() {
+	public function _beforeAction(string $action) {
 		return true;
 	}
 
 	/**
 	 * afterAction 在销毁前执行
+     * @param string $action
 	 * @return   mixed
 	 */
-	public function _afterAction() {
+	public function _afterAction(string $action) {
 		return true;
 	}
 
 	/**
-	 * __destruct 重新初始化一些静态变量
+	 * 控制权实例协程销毁前可以做初始化一些静态变量
 	 */
-    public function defer() {
-		static::_afterAction();
-	}
+    public function defer() {}
 
 	use \Swoolefy\Core\ServiceTrait;
 }
