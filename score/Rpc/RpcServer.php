@@ -35,12 +35,12 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface {
 	public abstract function onWorkerStart($server, $worker_id);
 
 	/**
-	 * onConnet socket连接上时回调函数
+	 * onConnect socket连接上时回调函数
 	 * @param  object $server
 	 * @param  int    $fd    
 	 * @return void        
 	 */
-	public abstract function onConnet($server, $fd);
+	public abstract function onConnect($server, $fd);
 
     /**
      * onReceive 接收数据时的回调处理，$data是一个完整的数据包，底层已经封装好，只需要配置好，直接使用即可
