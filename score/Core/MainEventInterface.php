@@ -16,7 +16,7 @@ namespace Swoolefy\Core;
  */
 interface RpcEventInterface {
     public function onWorkerStart($server, $worker_id);
-    public function onConnet($server, $fd);
+    public function onConnect($server, $fd);
     public function onReceive($server, $fd, $reactor_id, $data);
     public function onTask($server, $task_id, $from_worker_id, $data);
     public function onFinish($server, $task_id, $data);

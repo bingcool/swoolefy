@@ -104,11 +104,12 @@ trait ComponentTrait {
 
 	}
 
-	/**
-	 * getDependencies
-	 * @param    string  $class
-	 * @return   array
-	 */
+    /**
+     * getDependencies
+     * @param string $class
+     * @return   array
+     * @throws \ReflectionException
+     */
 	protected function getDependencies($class) {
         $dependencies = [];
         $reflection = new \ReflectionClass($class);
@@ -135,6 +136,7 @@ trait ComponentTrait {
      * @throws \Exception
      */
 	protected function buildInstance($class, $definition, $params, $com_alias_name) {
+	    /**@var \ReflectionClass $reflection */
 		list ($reflection, $dependencies) = $this->getDependencies($class);
 
         foreach ($params as $index => $param) {
@@ -260,6 +262,7 @@ trait ComponentTrait {
     /**
      * @param string $name
      * @return bool|mixed
+     * @throws \Exception
      */
     final public function get(string $name) {
         $app_conf = BaseServer::getAppConf();
