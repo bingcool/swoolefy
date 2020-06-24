@@ -35,7 +35,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	 * @param    int    $worker_id
 	 * @return   void
 	 */
-	public abstract function onWorkerStart($server, $worker_id);
+    abstract public function onWorkerStart($server, $worker_id);
 
 	/**
 	 * onOpen 
@@ -43,13 +43,13 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	 * @param    object  $request
 	 * @return   void
 	 */
-	public abstract function onOpen($server, $request);
+    abstract public function onOpen($server, $request);
 
     /**
      * onRequest 接受http请求处理
      * @param \Swoole\Http\Request $request
      * @param \Swoole\Http\Response $response
-     * @return   void
+     * @return void
      * @throws \Throwable
      */
 	public function onRequest($request, $response) {
@@ -117,7 +117,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	 * @param    mixed   $data
 	 * @return   void
 	 */
-	public abstract function onFinish($server, $task_id, $data);
+    abstract public function onFinish($server, $task_id, $data);
 
 	/**
 	 * onPipeMessage 
@@ -126,7 +126,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	 * @param    mixed   $message
 	 * @return   void
 	 */
-	public abstract function onPipeMessage($server, $from_worker_id, $message);
+    abstract public function onPipeMessage($server, $from_worker_id, $message);
 
 	/**
 	 * onClose 连接断开处理
@@ -134,7 +134,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	 * @param    int     $fd
 	 * @return   void
 	 */
-	public abstract function onClose($server, $fd);
+    abstract public function onClose($server, $fd);
 
 	/**
 	 * onMessageFromBinary 处理二进制数据
@@ -142,7 +142,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	 * @param  mixed $frame
 	 * @return void       
 	 */
-	public abstract function onMessageFromBinary($server, $frame);
+    abstract public function onMessageFromBinary($server, $frame);
 
 	/**
 	 * onMessageFromClose 处理关闭帧
@@ -150,6 +150,6 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	 * @param  mixed $frame
 	 * @return void       
 	 */
-	public abstract function onMessageFromClose($server, $frame);
+    abstract public function onMessageFromClose($server, $frame);
 
 }

@@ -29,12 +29,6 @@ class EventController extends BaseObject {
 	public $app_conf = null;
 
 	/**
-	 * $selfModel 控制器对应的自身model
-	 * @var array
-	 */
-	public $selfModel = [];
-
-	/**
 	 * $event_hooks 钩子事件
 	 * @var array
 	 */

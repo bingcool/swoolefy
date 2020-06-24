@@ -47,7 +47,7 @@ class SysProcess extends AbstractProcess {
             $isEnablePvCollector = BaseServer::isEnablePvCollector();
 			\Swoole\Timer::tick($tick_time * 1000, function($timer_id) use($type, $sys_collector_config, $atomic, $tick_time, $isEnablePvCollector, $max_tick_handle_coroutine_num) {
 				try{
-				    if($this->getCurrentCcoroutineLastCid() > $max_tick_handle_coroutine_num) {
+				    if($this->getCurrentCoroutineLastCid() > $max_tick_handle_coroutine_num) {
                         \Swoole\Timer::clear($timer_id);
                         $this->reboot();
                     }
@@ -111,27 +111,28 @@ class SysProcess extends AbstractProcess {
 		$event = $sys_collector_config['event'];
 		// 组合消息,udp的数据格式
 		$message = $service."::".$event."::".json_encode($data, JSON_UNESCAPED_UNICODE);
-		if($host && $port && $service && $event) {
-			try{
-				if(!$udp_client->isConnected()) {
-					$isConnected = $udp_client->connect($host, $port);
-					if(!$isConnected) {
-						throw new \Exception("SysProcess::sendByUdp function connect udp is failed", 1);
-					}
-				}
-				$udp_client->send($message);
-			}catch(\Throwable $throwable) {
-				throw $throwable;
-			}
-		}else {
-			throw new \Exception('sys_collector_config of udp is wrong, $host, $port, $service, $event of params must be setted', 1);
+
+		if(empty($host) || empty($port) || empty($service) || empty($event)) {
+			throw new \Exception('sys_collector_config of udp is wrong, host, port, service, event of params must be setted');
 		}
+
+        try{
+            if(!$udp_client->isConnected()) {
+                $isConnected = $udp_client->connect($host, $port);
+                if(!$isConnected) {
+                    throw new \Exception("SysProcess::sendByUdp function connect udp is failed");
+                }
+            }
+            $udp_client->send($message);
+        }catch(\Throwable $throwable) {
+            throw $throwable;
+        }
 	}
 
 	/**
 	 * publicByRedis swooleredis的订阅发布方式
 	 * @param  array  $sys_collector_config
-	 * @param  $array $data
+	 * @param  array $data
      * @throws mixed
 	 * @return void
 	 */
@@ -167,7 +168,7 @@ class SysProcess extends AbstractProcess {
 	}
 
 	/**
-	 * publicByPhpRedis phpredis的订阅发布方式
+	 * publicByPhpRedis phpRedis的订阅发布方式
 	 * @param  array  $sys_collector_config
 	 * @param  array  $data
      * @throws mixed
@@ -185,24 +186,26 @@ class SysProcess extends AbstractProcess {
 		if(!extension_loaded('redis')) {
 			throw new \Exception("because you enable sys_collector, must be install extension of phpredis", 1);	
 		}
+
+		if(empty($host) || empty($port)  || empty($password)) {
+            throw new \Exception('sys_collector_config of phpRedis is wrong, host, port, password of params must be setted');
+        }
+
 		if(!is_object($redis_client)) {
 			$redis_client = new \Redis();
 		}
-		if($host && $port && $password) {
-			try{
-				$redis_client->pconnect($host, $port, $timeout);
-				$redis_client->auth($password);
-				$redis_client->setOption(\Redis::OPT_READ_TIMEOUT, -1);
-				$redis_client->select($database);
-			}catch(\Exception $exception) {
-				throw new \Exception($exception->getMessage(), 1);
-			}catch (\Throwable $throwable) {
-                throw $throwable;
-            }
-		}else {
-			throw new \Exception('sys_collector_config of phpredis is wrong, $host, $port, $password of params must be setted');
-		}
-		
+
+        try {
+            $redis_client->pconnect($host, $port, $timeout);
+            $redis_client->auth($password);
+            $redis_client->setOption(\Redis::OPT_READ_TIMEOUT, -1);
+            $redis_client->select($database);
+        }catch(\Exception $exception) {
+            throw $exception;
+        }catch (\Throwable $throwable) {
+            throw $throwable;
+        }
+
 		if($data) {
 			$message = json_encode($data, JSON_UNESCAPED_UNICODE);
 			$redis_client->publish($channel, $message);

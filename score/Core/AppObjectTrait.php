@@ -17,9 +17,9 @@ use Swoolefy\Core\Application;
 trait AppObjectTrait {
 	/**
 	 * _die 异常终端程序执行
-	 * @param    string $html
-	 * @param    string $msg
-     * @throws   \Exception
+	 * @param string $html
+	 * @param string $msg
+     * @throws \Exception
 	 */
 	public static function _die($html = '', $msg = '') {
 		// 直接结束请求

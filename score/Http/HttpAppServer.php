@@ -33,7 +33,7 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 	 * @param   int     $worker_id 
 	 * @return  void
 	 */
-	public abstract function onWorkerStart($server, $worker_id);
+    abstract public function onWorkerStart($server, $worker_id);
 
 	/**
 	 * onRequest 
@@ -51,8 +51,8 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
             $app_conf = \Swoolefy\Core\Swfy::getAppConf();
             $appInstance = new \Swoolefy\Core\App($app_conf);
             $appInstance->run($request, $response);
-        }catch (\Throwable $t) {
-            throw new \Exception($t->getMessage());
+        }catch (\Throwable $throwable) {
+            throw new \Exception($throwable->getMessage());
         }
 	}
 
@@ -63,7 +63,7 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 	 * @param    mixed   $message
 	 * @return   void
 	 */
-	public abstract function onPipeMessage($server, $from_worker_id, $message);
+    abstract public function onPipeMessage($server, $from_worker_id, $message);
 
 	/**
 	 * onTask 异步任务处理

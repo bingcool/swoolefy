@@ -36,7 +36,13 @@ abstract class AbstractProcess {
      * @param null   $extend_data
      * @param bool   $enable_coroutine
      */
-    public function __construct(string $processName, bool $async = true, array $args = [], $extend_data = null, bool $enable_coroutine = true) {
+    public function __construct(
+        string $processName,
+        bool $async = true,
+        array $args = [],
+        $extend_data = null,
+        bool $enable_coroutine = true
+    ){
         $this->async = $async;
         $this->args = $args;
         $this->extend_data = $extend_data;
@@ -137,9 +143,9 @@ abstract class AbstractProcess {
      */
     protected function validDataJson($data) {
         if(is_string($data)) {
-            $data_arr = json_decode($data, true);
-            if(is_array($data_arr)) {
-                $data = $data_arr;
+            $dataArr = json_decode($data, true);
+            if(is_array($dataArr)) {
+                $data = $dataArr;
             }
         }
         return $data;
@@ -154,7 +160,7 @@ abstract class AbstractProcess {
     }
 
     /**
-     * @return null
+     * @return mixed
      */
     public function getExtendData() {
         return $this->extend_data;
@@ -170,6 +176,7 @@ abstract class AbstractProcess {
 
     /**
      * 是否启用协程
+     * @param boolean
      */
     public function isEnableCoroutine() {
         return $this->enable_coroutine;
@@ -219,20 +226,16 @@ abstract class AbstractProcess {
      */
     public function getCurrentRunCoroutineNum() {
         $coroutine_info = \Swoole\Coroutine::stats();
-        if(isset($coroutine_info['coroutine_num'])) {
-            return $coroutine_info['coroutine_num'];
-        }
+        return $coroutine_info['coroutine_num'] ?? null;
     }
 
     /**
-     * getCurrentCcoroutineLastCid 获取当前进程的协程cid已分配到哪个值，可以根据这个值设置进程reboot,防止cid超出最大数
+     * getCurrentCoroutineLastCid 获取当前进程的协程cid已分配到哪个值，可以根据这个值设置进程reboot,防止cid超出最大数
      * @return int
      */
-    public function getCurrentCcoroutineLastCid() {
+    public function getCurrentCoroutineLastCid() {
         $coroutine_info = \Swoole\Coroutine::stats();
-        if(isset($coroutine_info['coroutine_last_cid'])) {
-            return $coroutine_info['coroutine_last_cid'];
-        }
+        return $coroutine_info['coroutine_last_cid'] ?? null;
     }
 
     /**
@@ -266,7 +269,7 @@ abstract class AbstractProcess {
      * run 进程创建后的run方法
      * @return void
      */
-    public abstract function run();
+    abstract public function run();
 
     /**
      * @return mixed
