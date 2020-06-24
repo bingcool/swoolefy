@@ -72,15 +72,16 @@ class RedisCoroutine {
 	 */
 	protected $slave_redis_instances = [];
 
-	/**
-	 * __construct
-	 * @param mixed   $host
-	 * @param mixed   $port
-	 * @param mixed   $password
-     * @param int     $selectdb
+    /**
+     * __construct
+     * @param mixed $host
+     * @param mixed $port
+     * @param mixed $password
+     * @param int $selectdb
      * @param boolean $deploy
-	 * @param array   $options
-	 */
+     * @param array $options
+     * @throws \Exception
+     */
 	public function __construct($host = null, $port = null, $password = null, bool $deploy = false, array $options = []) {
 		if($host && $port) {
 			$this->setHost($host);

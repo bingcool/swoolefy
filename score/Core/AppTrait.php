@@ -58,7 +58,7 @@ trait AppTrait {
             'data' => $data
         ];
         $this->jsonSerialize($response, $formater);
-        $this->request->end();
+        $this->response->end();
         return;
     }
 

@@ -51,17 +51,17 @@ class AsyncTask implements AsyncTaskInterface {
     }
 
     /**
-     * registerTaskfinish 异步任务完成并退出到worker进程
+     * registerTaskFinish 异步任务完成并退出到worker进程
      * @param   mixed  $data
      * @param   mixed  $task
      * @return  void
      */
-    public static function registerTaskfinish($data, $task = null) {
+    public static function registerTaskFinish($data, $task = null) {
        static::finish($data, $task);
     }
 
     /**
-     * finish registerTaskfinish函数-异步任务完成并退出到worker进程的别名函数
+     * finish registerTaskFinish函数-异步任务完成并退出到worker进程的别名函数
      * @param    mixed   $data
      * @param    mixed   $task
      * @return   void
@@ -88,6 +88,7 @@ class AsyncTask implements AsyncTaskInterface {
     /**
      * isWorkerProcess 判断当前进程是否是worker进程
      * @return boolean
+     * @throws \Exception
      */
     public static function isWorkerProcess() {
        return Swfy::isWorkerProcess();
@@ -96,6 +97,7 @@ class AsyncTask implements AsyncTaskInterface {
     /**
      * isTaskProcess 判断当前进程是否是异步task进程
      * @return boolean
+     * @throws \Exception
      */
     public static function isTaskProcess() {
         return Swfy::isTaskProcess();

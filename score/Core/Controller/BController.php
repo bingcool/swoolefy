@@ -16,16 +16,20 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 
 class BController extends \Swoolefy\Core\AppObject {
-	/**
-	 * $request
-	 * @var null
-	 */
-	public $request = null;
-	/**
-	 * $response 
-	 * @var null
-	 */
-	public $response = null;
+
+    use \Swoolefy\Core\AppTrait,\Swoolefy\Core\ServiceTrait;
+
+    /**
+     * $request 当前请求的对象
+     * @var \Swoole\Http\Request
+     */
+    public $request = null;
+
+    /**
+     * $response 当前请求的响应对象
+     * @var \Swoole\Http\Response
+     */
+    public $response = null;
 
 	/**
 	 * $app_conf
@@ -53,6 +57,4 @@ class BController extends \Swoolefy\Core\AppObject {
 	 * __destruct 初始化一些静态变量
 	 */
 	public function defer() {}
-
-	use \Swoolefy\Core\AppTrait,\Swoolefy\Core\ServiceTrait;
 }

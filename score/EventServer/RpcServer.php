@@ -14,10 +14,11 @@ namespace protocol\rpc;
 use Swoolefy\Core\Swfy;
 
 class RpcServer extends \Swoolefy\Rpc\RpcServer {
-	/**
-	 * __construct 初始化
-	 * @param array $config
-	 */
+    /**
+     * __construct 初始化
+     * @param array $config
+     * @throws \Exception
+     */
 	public function __construct(array $config=[]) {
 		parent::__construct($config);
 	}
@@ -31,12 +32,12 @@ class RpcServer extends \Swoolefy\Rpc\RpcServer {
 	public function onWorkerStart($server, $worker_id) {}
 
 	/**
-	 * onConnet socket连接上时回调函数
+	 * onConnect socket连接上时回调函数
 	 * @param  object $server
 	 * @param  int    $fd    
 	 * @return void        
 	 */
-	public function onConnet($server, $fd) {}
+	public function onConnect($server, $fd) {}
 
 	/**
 	 * onFinish 

@@ -29,7 +29,7 @@ class TaskController extends EventController {
 
     /**
     * \Swoole\Server\Task 对象 swoole4.2.12+ 添加
-    * @var
+    * @var \Swoole\Server\Task
     */
     public $task = null;
 

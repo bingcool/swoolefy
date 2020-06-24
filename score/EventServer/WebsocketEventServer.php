@@ -14,10 +14,11 @@ namespace protocol\websocket;
 use Swoolefy\Core\Swfy;
 
 class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer {
-	/**
-	 * __construct 初始化
-	 * @param array $config
-	 */
+    /**
+     * __construct 初始化
+     * @param array $config
+     * @throws \Exception
+     */
 	public function __construct(array $config = []) {
 		parent::__construct($config);
 	}
