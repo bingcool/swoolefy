@@ -14,15 +14,18 @@ namespace Swoolefy\Core\Model;
 use Swoolefy\Core\Application;
 
 class BModel extends \Swoolefy\Core\SModel {
-	/**
+
+    use \Swoolefy\Core\ModelTrait, \Swoolefy\Core\AppObjectTrait;
+
+    /**
 	 * $request
-	 * @var null
+	 * @var \Swoole\Http\Request
 	 */
 	public $request = null;
 
 	/**
 	 * $response 
-	 * @var null
+	 * @var \Swoole\Http\Response
 	 */
 	public $response = null;
 
@@ -35,6 +38,4 @@ class BModel extends \Swoolefy\Core\SModel {
 		$this->request = $app->request;
 		$this->response = $app->response;
 	}
-
-	use \Swoolefy\Core\ModelTrait, \Swoolefy\Core\AppObjectTrait;
 }

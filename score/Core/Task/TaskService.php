@@ -23,13 +23,13 @@ class TaskService extends BService {
 
     /**
      * $from_worker_id 记录当前任务from的woker投递
-     * @var null
+     * @var int
      */
     public $from_worker_id;
 
     /**
      * \Swoole\Server\Task 对象 swoole4.2.12+ 添加
-     * @var
+     * @var \Swoole\Server\Task
      */
     public $task = null;
 

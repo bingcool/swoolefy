@@ -78,7 +78,7 @@ class ServiceDispatch extends AppDispatch {
 		}
 		
 		$class = str_replace('/','\\', $class);
-		/**@var \Swoolefy\Core\BService $serviceInstance */
+		/**@var \Swoolefy\Core\Task\TaskService $serviceInstance */
 		$serviceInstance = new $class();
 		$serviceInstance->mixed_params = $this->params;
 		if(isset($this->from_worker_id) && isset($this->task_id)) {

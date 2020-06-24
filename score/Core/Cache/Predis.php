@@ -15,10 +15,10 @@ use Predis\Client;
 
 class Predis {
 	/**
-	 * $Predis redis实例
-	 * @var null
+	 * $predis redis实例
+	 * @var \Predis\Client
 	 */
-	protected $Predis;
+	protected $predis;
 
 	/**
 	 * $parameters 
@@ -33,10 +33,10 @@ class Predis {
     protected $options = null;
 
     /**
-     * $is_initConfig 是否已经初始化配置
+     * $isInitConfig 是否已经初始化配置
      * @var boolean
      */
-    protected $is_initConfig = false;
+    protected $isInitConfig = false;
 
 	/**
 	 * __construct 
@@ -45,10 +45,10 @@ class Predis {
 	 */
 	public function __construct($parameters = null, $options = null) {
 		if($parameters) {
-			$this->Predis = new \Predis\Client($parameters, $options);
+			$this->predis = new \Predis\Client($parameters, $options);
 			$this->parameters = $parameters;
 			$this->options = $options;
-			$this->is_initConfig = true;
+			$this->isInitConfig = true;
 		}
 	}
 
@@ -59,13 +59,13 @@ class Predis {
 	 * @param mixed
 	 */
 	public function setConfig($parameters = null, $options = null, ...$args) {
-		if($this->is_initConfig) {
+		if($this->isInitConfig) {
 			return true;
 		}
-		if(is_object($this->Predis)) {
-			unset($this->Predis);
+		if(is_object($this->predis)) {
+			unset($this->predis);
 		}
-		$this->Predis = new \Predis\Client($parameters, $options);
+		$this->predis = new \Predis\Client($parameters, $options);
 		$this->parameters = $parameters;
 		$this->options = $options;
 	}
@@ -78,11 +78,11 @@ class Predis {
 	 */
 	public function __call(string $method, array $args) {
 		try{
-            return $this->Predis->$method(...$args);
+            return $this->predis->$method(...$args);
         }catch(\Throwable $t) {
-            $this->Predis->disconnect();
-            $this->Predis = new \Predis\Client($this->parameters, $this->options);
-            return $this->Predis->$method(...$args);
+            $this->predis->disconnect();
+            $this->predis = new \Predis\Client($this->parameters, $this->options);
+            return $this->predis->$method(...$args);
         }
 	}
 
@@ -101,7 +101,7 @@ class Predis {
         if(isset($this->parameters['persistent'])) {
             $persistent = filter_var($this->parameters['persistent'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
             if(!$persistent) {
-                $this->Predis->disconnect();
+                $this->predis->disconnect();
             }
         }
 	}

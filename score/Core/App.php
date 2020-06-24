@@ -22,7 +22,10 @@ use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class App extends \Swoolefy\Core\Component {
-	/**
+
+    use \Swoolefy\Core\AppTrait,\Swoolefy\Core\ServiceTrait;
+
+    /**
 	 * $request 当前请求的对象
 	 * @var \Swoole\Http\Request
 	 */
@@ -302,7 +305,7 @@ class App extends \Swoolefy\Core\Component {
 	 * @return void
 	 */
 	public function end() {
-		// log hander
+		// log handle
         $this->handleLog();
         // push obj pools
         $this->pushComponentPools();
@@ -327,5 +330,4 @@ class App extends \Swoolefy\Core\Component {
 		}
 	}
 
-    use \Swoolefy\Core\AppTrait,\Swoolefy\Core\ServiceTrait;
 }

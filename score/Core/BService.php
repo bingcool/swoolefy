@@ -20,7 +20,9 @@ use Swoolefy\Core\Application;
 
 class BService extends BaseObject {
 
-	/**
+    use \Swoolefy\Core\ServiceTrait;
+
+    /**
 	 * $app_conf 应用层配置
 	 * @var array
 	 */
@@ -206,5 +208,4 @@ class BService extends BaseObject {
 	 */
     public function defer() {}
 
-	use \Swoolefy\Core\ServiceTrait;
 }

@@ -19,15 +19,17 @@ use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class SModel extends BaseObject {
 
-	/**
+    use \Swoolefy\Core\ServiceTrait;
+
+    /**
 	 * $app_conf 应用层配置
-	 * @var null
+	 * @var array
 	 */
 	public $app_conf = null;
 
 	/**
 	 * $struct 数据结构对象
-	 * @var null
+	 * @var Struct
 	 */
 	protected $struct = null;
 
@@ -83,7 +85,7 @@ class SModel extends BaseObject {
 	}
 
 	/**
-	 * beforeAction 在处理实际action之前执行
+	 * beforeAction 在处理之前执行
 	 * @return   mixed
 	 */
 	public function _beforeModel() {
@@ -105,6 +107,4 @@ class SModel extends BaseObject {
 	public function __destruct() {
 		static::_afterModel();
 	}
-
-	use \Swoolefy\Core\ServiceTrait;
 }

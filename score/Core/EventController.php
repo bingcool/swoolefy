@@ -19,7 +19,10 @@ use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class EventController extends BaseObject {
-	/**
+
+    use \Swoolefy\Core\ComponentTrait,\Swoolefy\Core\ServiceTrait;
+
+    /**
 	 * $app_conf 应用层配置
 	 * @var array
 	 */
@@ -282,5 +285,4 @@ class EventController extends BaseObject {
         return $this->is_defer;
     }
 
-	use \Swoolefy\Core\ComponentTrait,\Swoolefy\Core\ServiceTrait;
 }

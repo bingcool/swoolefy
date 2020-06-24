@@ -19,7 +19,9 @@ use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class Swoole extends BaseObject {
 
-	/**
+    use \Swoolefy\Core\ComponentTrait,\Swoolefy\Core\ServiceTrait;
+
+    /**
 	 * $app_conf 当前应用层的配置
 	 * @var null
 	 */
@@ -318,5 +320,4 @@ class Swoole extends BaseObject {
 		}
 	}
 
- 	use \Swoolefy\Core\ComponentTrait,\Swoolefy\Core\ServiceTrait;
 }

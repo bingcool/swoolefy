@@ -16,21 +16,22 @@ use Swoolefy\Core\Application;
 class Swfy extends \Swoolefy\Core\BaseObject {
 
 	use \Swoolefy\Core\ServiceTrait;
+
 	/**
 	 * $server swoole服务超全局变量
-	 * @var null
+	 * @var \Swoole\Server
 	 */
 	public static $server = null;
 
 	/**
 	 * $conf swoole服务对应协议层的配置
-	 * @var null
+	 * @var array
 	 */
 	public static $conf = [];
 	
 	/**
 	 * $app_conf 应用层的配置
-	 * @var null
+	 * @var array
 	 */
 	public static $app_conf = [];
 

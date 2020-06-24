@@ -50,7 +50,7 @@ class HttpRoute extends AppDispatch {
 
     /**
      * $app 请求应用对象
-     * @var null
+     * @var App
      */
 	protected $app = null;
 

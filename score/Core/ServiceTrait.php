@@ -119,15 +119,15 @@ trait ServiceTrait {
 	}
 
 	/**
-	 * getMomeryIncludeFiles 获取执行到目前action为止，swoole server中的该worker中内存中已经加载的class文件
+	 * getIncludeFiles 获取执行到目前action为止，swoole server中的该worker中内存中已经加载的class文件
 	 * @return  array 
 	 */
-	public static function getMomeryIncludeFiles() {
+	public static function getIncludeFiles() {
 		$includeFiles = get_included_files();
 		$workerId = self::getCurrentWorkerId();
 		return [
 			'current_worker_id' => $workerId,
-			'include_momery_files' => $includeFiles,
+			'include_memory_files' => $includeFiles,
 		];
 	}
 

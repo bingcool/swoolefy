@@ -57,13 +57,13 @@ class BaseServer {
 
 	/**
 	 * $swoole_process_model swoole的进程模式，默认swoole_process
-	 * @var [type]
+	 * @var int
 	 */
 	protected static $swoole_process_mode = SWOOLE_PROCESS;
 
 	/**
 	 * $swoole_socket_type swoole的socket设置类型
-	 * @var [type]
+	 * @var int
 	 */
 	protected static $swoole_socket_type = SWOOLE_SOCK_TCP;
 
@@ -80,7 +80,7 @@ class BaseServer {
 
 	/**
 	 * $_tasks 实时内存表保存数据,所有worker共享
-	 * @var null
+	 * @var array
 	 */
 	protected static $_table_tasks = [
 		// 循环定时器内存表

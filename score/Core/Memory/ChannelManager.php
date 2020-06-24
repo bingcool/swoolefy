@@ -26,11 +26,11 @@ class ChannelManager {
     public function addChannel(string $name, int $capacity = null) {
         if(!isset($this->list[$name])) {
             if($capacity) {
-                $chan = new \Swoole\Coroutine\Channel($capacity);
+                $channel = new \Swoole\Coroutine\Channel($capacity);
             }else {
-                $chan = new \Swoole\Coroutine\Channel();
+                $channel = new \Swoole\Coroutine\Channel();
             }
-            $this->list[$name] = $chan;
+            $this->list[$name] = $channel;
         }
         return $this;
     }
@@ -41,10 +41,6 @@ class ChannelManager {
      * @return   mixed
      */
     public function getChannel(string $name) {
-        if(isset($this->list[$name])) {
-            return $this->list[$name];
-        }else{
-            return null;
-        }
+        return $this->list[$name] ?? null;
     }
 }

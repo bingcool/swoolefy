@@ -19,8 +19,8 @@ class TaskManager {
 
 	/**
 	 * asyncTask 异步任务投递
-	 * @param  mixed  $callable
-	 * @param  mixed  $data
+	 * @param mixed $callable
+	 * @param mixed $data
 	 * @return mixed
 	 */
 	public static function asyncTask($callable, $data = []) {
@@ -29,19 +29,19 @@ class TaskManager {
 
 	/**
 	 * finish 异步任务完成，退出至worker进程
-	 * @param    mixed  $data
-	 * @param    mixed  $task
+	 * @param mixed $data
+	 * @param mixed $task
 	 */
 	public static function finish($data = null, $task = null) {
 		AsyncTask::finish($data, $task);
 	}
 
 	/**
-	 * registerTaskfinish 异步任务完成，退出至worker进程
-	 * @param    mixed  $data
-	 * @param    mixed  $task
+	 * registerTaskFinish 异步任务完成，退出至worker进程
+	 * @param mixed $data
+	 * @param mixed $task
 	 */
-	public static function registerTaskfinish($data = null, $task = null) {
+	public static function registerTaskFinish($data = null, $task = null) {
 		AsyncTask::registerTaskfinish($data, $task);
 	}
 }
