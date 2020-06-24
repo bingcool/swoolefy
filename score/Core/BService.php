@@ -27,13 +27,7 @@ class BService extends BaseObject {
 	 * @var array
 	 */
 	public $app_conf = null;
-
-	/**
-	 * $selfModel 控制器对应的自身model
-	 * @var array
-	 */
-	public $selfModel = [];
-
+	
 	/**
 	 * $fd 
 	 * @var null
@@ -46,6 +40,11 @@ class BService extends BaseObject {
 	 */
 	public $mixed_params;
 
+    /**
+     * @var null
+     */
+	protected $client_info;
+
 	/**
 	 * __construct
 	 */
@@ -55,8 +54,6 @@ class BService extends BaseObject {
 		$this->app_conf = $app->app_conf;
 		if(BaseServer::isUdpApp()) {
 			$this->client_info = $app->client_info;
-		}else {
-			$this->client_info = null;
 		}
         if(\Co::getCid() > 0) {
 			defer(function() {

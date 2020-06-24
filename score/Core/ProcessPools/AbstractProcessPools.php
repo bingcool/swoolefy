@@ -242,10 +242,10 @@ abstract class AbstractProcessPools {
     }
 
     /**
-     * getCurrentCcoroutineLastCid 获取当前进程的协程cid已分配到哪个值，可以根据这个值设置进程reboot,防止cid超出最大数
+     * getCurrentCoroutineLastCid 获取当前进程的协程cid已分配到哪个值，可以根据这个值设置进程reboot,防止cid超出最大数
      * @return int
      */
-    public function getCurrentCcoroutineLastCid() {
+    public function getCurrentCoroutineLastCid() {
         $coroutine_info = \Swoole\Coroutine::stats();
         if(isset($coroutine_info['coroutine_last_cid'])) {
             return $coroutine_info['coroutine_last_cid'];

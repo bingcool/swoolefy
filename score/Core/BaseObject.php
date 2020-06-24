@@ -119,9 +119,9 @@ class BaseObject {
 
 	/**
 	 * _die 异常终端程序执行
-	 * @param   string $html
-	 * @param   string $msg
-	 * @return  void
+	 * @param string $html
+	 * @param string $msg
+	 * @return void
 	 */
 	public static function _die($html = '', $msg = '') {}
 

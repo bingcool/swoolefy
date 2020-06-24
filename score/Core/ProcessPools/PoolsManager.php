@@ -45,10 +45,9 @@ class PoolsManager {
 
     /**
      * __construct
-     *
-     * @param  $total_process //每个worker绑定的进程数，也即是为每个worker附加的自定义进程数，默认绑定一个process
+     *每个worker绑定的进程数，也即是为每个worker附加的自定义进程数，默认绑定一个process
      */
-    private function __construct() {
+    protected function __construct() {
         $conf = Swfy::getConf();
         if(isset($conf['setting']['worker_num'])) {
             self::$worker_num = $conf['setting']['worker_num'];
@@ -127,24 +126,24 @@ class PoolsManager {
 
     /**
      * getProcessByPid 通过进程id获取绑定当前worker进程的某个进程
-     * @param  int    $pid
+     * @param  int $pid
      * @throws \Exception
      * @return mixed
      */
     public static function getProcessPoolsByPid(int $pid) {
-        if(Swfy::isWorkerProcess()) {
-            $table = TableManager::getTable('table_process_pools_map');
-            foreach($table as $key => $item) {
-                if($item['pid'] == $pid) {
-                    list($processName, $worker_id, $process_num) = explode('@', $item['process_name']);
-                    $key = md5($processName);
-                    return self::$processList[$key][$worker_id][$process_num];
-                }
-            }
-            return null;
-        }else {
-            throw new \Exception("PoolsManager::getInstance() can not use in task or self process, only use in worker process!", 1);
+        if(!Swfy::isWorkerProcess()) {
+            throw new \Exception("PoolsManager::getInstance() can not use in task or self process, only use in worker process");
         }
+
+        $table = TableManager::getTable('table_process_pools_map');
+        foreach($table as $key => $item) {
+            if($item['pid'] == $pid) {
+                list($processName, $worker_id, $process_num) = explode('@', $item['process_name']);
+                $key = md5($processName);
+                return self::$processList[$key][$worker_id][$process_num];
+            }
+        }
+        return null;
     }
 
     /**
@@ -169,9 +168,7 @@ class PoolsManager {
         if($is_restart_all_process) {
             foreach(self::$worker_num as $key => $worker_processes) {
                 foreach($worker_processes as $worker_id => $all_processes) {
-                    /**
-                     * @var AbstractProcessPools $process
-                     */
+                    /**@var AbstractProcessPools $process */
                     foreach($all_processes as $k => $process) {
                         $kill_flag = $process->getSwoolefyProcessKillFlag();
                         $process->getProcess()->write($kill_flag);
@@ -180,9 +177,10 @@ class PoolsManager {
             }
             return true;
         }
-        $all_processes = self::getProcessPoolsByName($processName, true);
-        if(is_array($all_processes) && count($all_processes) > 0) {
-            foreach($all_processes as $k => $process) {
+        $allProcesses = self::getProcessPoolsByName($processName, true);
+        if(is_array($allProcesses) && count($allProcesses) > 0) {
+            foreach($allProcesses as $k => $process) {
+                /**@var AbstractProcessPools $process */
                 $kill_flag = $process->getSwoolefyProcessKillFlag();
                 $process->getProcess()->write($kill_flag);
             }
@@ -205,9 +203,8 @@ class PoolsManager {
                 $data = json_encode($data, JSON_UNESCAPED_UNICODE);
             }
             return (bool)$process->getProcess()->write($data);
-        }else{
-            return false;
         }
+        return false;
     }
 
     /**

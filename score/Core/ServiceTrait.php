@@ -156,8 +156,8 @@ trait ServiceTrait {
 
 	/**
 	 * getConf 获取协议层对应的配置
-	 * @param    $protocol
-	 * @return   array
+	 * @param $protocol
+	 * @return array
 	 */
 	public static function getConf() {
 		if(!empty(Swfy::$conf)) {
@@ -168,7 +168,7 @@ trait ServiceTrait {
 
 	/**
 	 * getAppConfig 获取应用层配置
-	 * @return   array
+	 * @return array
 	 */
 	public static function getAppConf() {
 	    if(!empty(Swfy::$app_conf)) {
@@ -179,8 +179,8 @@ trait ServiceTrait {
 
 	/**
 	 * setAppConf 设置或重新设置原有的应用层配置
-	 * @param    array         $config
-	 * @return   boolean
+	 * @param  array $config
+	 * @return boolean
 	 */
 	public static function setAppConf(array $conf = []) {
 		Swfy::$app_conf = $conf;
@@ -201,7 +201,7 @@ trait ServiceTrait {
 
 	/**
 	 * getSwooleSetting 获取swoole的setting配置
-	 * @return   array
+	 * @return array
 	 */
 	public static function getSwooleSetting() {
 		return BaseServer::getSwooleSetting();
@@ -209,7 +209,7 @@ trait ServiceTrait {
 
     /**
      * isWorkerProcess 进程是否是worker进程
-     * @return   boolean
+     * @return boolean
      * @throws \Exception
      */
 	public static function isWorkerProcess() {

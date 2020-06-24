@@ -32,7 +32,7 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface {
      * @param int $worker_id
      * @return mixed
      */
-	public abstract function onWorkerStart($server, $worker_id);
+    abstract public function onWorkerStart($server, $worker_id);
 
     /**
      * onPack
@@ -66,7 +66,7 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface {
 		return true;
 	}
 
-	public abstract function onFinish($server, $task_id, $data);
+    abstract public function onFinish($server, $task_id, $data);
 
 	/**
 	 * onPipeMessage 
@@ -75,6 +75,6 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface {
 	 * @param    mixed   $message
 	 * @return   void
 	 */
-	public abstract function onPipeMessage($server, $from_worker_id, $message);
+    abstract public function onPipeMessage($server, $from_worker_id, $message);
 
 }
