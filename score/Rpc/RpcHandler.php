@@ -16,9 +16,9 @@ use Swoolefy\Core\Swoole;
 use Swoolefy\Tcp\TcpServer;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\ServiceDispatch;
-use Swoolefy\Core\HanderInterface;
+use Swoolefy\Core\HandlerInterface;
 
-class RpcHander extends Swoole implements HanderInterface {
+class RpcHandler extends Swoole implements HandlerInterface {
 
 	/**
 	 * $header length方式packet检测时，可以寄存请求包的信息，用于认证等

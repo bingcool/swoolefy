@@ -78,7 +78,7 @@ class ProcessManager {
 	/**
 	 * getProcessByName 通过名称获取一个进程
 	 * @param  string $processName
-	 * @return mixed
+	 * @return AbstractProcess
 	 */
 	public static function getProcessByName(string $processName) {
         $key = md5($processName);
@@ -151,20 +151,17 @@ class ProcessManager {
      */
     public static function readByProcessName(string $name, float $timeOut = 0.1) {
         $process = self::getProcessByName($name);
-        if($process){
-            $process = $process->getProcess();
-            $read = array($process);
+        if($process) {
+            $swooleProcess = $process->getProcess();
+            $read = array($swooleProcess);
             $write = [];
             $error = [];
             $ret = swoole_select($read, $write, $error, $timeOut);
             if($ret){
-                return $process->read(64 * 1024);
-            }else{
-                return null;
+                return $swooleProcess->read(64 * 1024);
             }
-        }else{
-            return null;
         }
+        return null;
     }
 
 }

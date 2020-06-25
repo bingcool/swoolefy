@@ -286,7 +286,7 @@ trait ServiceTrait {
 
 	/**
 	 * getServer 获取server对象
-	 * @return   object
+	 * @return   \Swoole\Server
 	 */
 	public static function getServer() {
 		if(is_object(Swfy::$server)) {

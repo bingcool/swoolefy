@@ -103,7 +103,7 @@ class PoolsManager {
      * getProcessByName 通过名称获取绑定当前worker进程的某个进程
      * @param  string $processName
      * @param  bool $is_all 是否返回worker中绑定的所有process
-     * @return mixed
+     * @return AbstractProcess|array
      * @throws \Exception
      */
     public static function getProcessPoolsByName(string $processName, bool $is_all = false) {

@@ -19,13 +19,13 @@ use Swoolefy\Core\Controller\BController;
 class HttpRoute extends AppDispatch {
 
     /**
-     * pathinfo 模式
+     * pathInfo 模式
      * @var int
      */
     const ROUTE_MODEL_PATHINFO = ROUTE_MODEL_PATHINFO;
 
     /**
-     * 参数路由模式
+     * params路由模式
      * @var int
      */
     const ROUTE_MODEL_QUERY_PARAMS = ROUTE_MODEL_QUERY_PARAMS;
@@ -56,7 +56,7 @@ class HttpRoute extends AppDispatch {
 
 	/**
 	 * $require_uri 请求的url
-	 * @var null
+	 * @var string
 	 */
 	protected $require_uri = null;
 
@@ -191,16 +191,8 @@ class HttpRoute extends AppDispatch {
             // 不存在请求类文件
             if(!$this->isExistRouteFile($class)) {
                 if(!is_file($filePath)) {
-                    $this->response->status(404);
-                    $this->response->header('Content-Type', 'application/json; charset=UTF-8');
-                    // 使用配置的NotFound类
-                    if(isset($this->app_conf['not_found_handler']) && is_array($this->app_conf['not_found_handler'])) {
-                        list($class, $action) = $this->redirectNotFound();
-                    }else {
-                        $msg = $filePath . ' is not exit';
-                        $this->app->beforeEnd(404, $msg);
-                        return false;
-                    }
+                    $targetNotFoundClassArr = $this->fileNotFound($class);
+                    if(is_array($targetNotFoundClassArr)) list($class, $action) = $targetNotFoundClassArr;
                 }else {
                     $this->setRouteFileMap($class);
                 }
@@ -212,17 +204,8 @@ class HttpRoute extends AppDispatch {
             if(!$this->isExistRouteFile($class)) {
                 $filePath = APP_PATH . DIRECTORY_SEPARATOR . 'Controller' . DIRECTORY_SEPARATOR . $controller . '.php';
                 if(!is_file($filePath)) {
-                    $this->response->status(404);
-                    $this->response->header('Content-Type', 'application/json; charset=UTF-8');
-                    // 使用配置的NotFound类
-                    if(isset($this->app_conf['not_found_handler']) && is_array($this->app_conf['not_found_handler'])) {
-                        // 访问类的命名空间
-                        list($class, $action) = $this->redirectNotFound();
-                    }else {
-                        $msg = $filePath . ' is not exit';
-                        $this->app->beforeEnd(404, $msg);
-                        return false;
-                    }
+                    $targetNotFoundClassArr = $this->fileNotFound($class);
+                    if(is_array($targetNotFoundClassArr)) list($class, $action) = $targetNotFoundClassArr;
                 }else {
                     $this->setRouteFileMap($class);
                 }
@@ -242,9 +225,9 @@ class HttpRoute extends AppDispatch {
             $query_string = isset($this->request->server['QUERY_STRING']) ? '?' . $this->request->server['QUERY_STRING'] : '';
             if(isset($this->request->post) && !empty($this->request->post)) {
                 $post = json_encode($this->request->post, JSON_UNESCAPED_UNICODE);
-                $error_msg = "call {$class}::_beforeAction() return false, forbiden continue call {$class}::{$action}(), please checkout it ||| " . $this->request->server['REQUEST_URI'] . $query_string . ' ||| ' . $post;
+                $error_msg = "Call {$class}::_beforeAction() return false, forbiden continue call {$class}::{$action}, please checkout it ||| " . $this->request->server['REQUEST_URI'] . $query_string . ' ||| ' . $post;
             }else {
-                $error_msg = "call {$class}::_beforeAction() return false, forbiden continue call {$class}::{$action}(), please checkout it ||| " . $this->request->server['REQUEST_URI'] . $query_string;
+                $error_msg = "Call {$class}::_beforeAction() return false, forbiden continue call {$class}::{$action}, please checkout it ||| " . $this->request->server['REQUEST_URI'] . $query_string;
             }
             $this->app->beforeEnd(403, $error_msg);
             return false;
@@ -276,12 +259,12 @@ class HttpRoute extends AppDispatch {
                     return false;
                 }
             }else {
-                $error_msg = "class method {$class}::{$action}() is protected or private property, can't be called by Controller Instance";
+                $error_msg = "Class method {$class}::{$action} is protected or private property, can't be called by Controller Instance";
                 $this->app->beforeEnd(500, $error_msg);
                 return false;
             }
         }else {
-            $error_msg = "Controller file '{$filePath}' is exited, but has undefined {$class}::{$action} method";
+            $error_msg = "Controller file is exited, but has undefined {$class}::{$action} method";
             $this->response->status(404);
             $this->response->header('Content-Type', 'application/json; charset=UTF-8');
             $this->app->beforeEnd(404, $error_msg);
@@ -333,6 +316,23 @@ class HttpRoute extends AppDispatch {
 	public function setRouteFileMap($route) {
 		self::$routeCacheFileMap[$route] = true;
 	}
+
+    /**
+     * @param $class
+     * @return array|bool
+     */
+	protected function fileNotFound($class) {
+        $this->response->status(404);
+        $this->response->header('Content-Type', 'application/json; charset=UTF-8');
+        // 使用配置的NotFound类
+        if(isset($this->app_conf['not_found_handler']) && is_array($this->app_conf['not_found_handler'])) {
+            return $this->redirectNotFound();
+        }else {
+            $msg = "Class {$class} is not exit";
+            $this->app->beforeEnd(404, $msg);
+            return false;
+        }
+    }
 
 	/**
 	 * resetRouteDispatch 重置路由调度,将实际的路由改变请求,主要用在boostrap()中

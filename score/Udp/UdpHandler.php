@@ -13,9 +13,9 @@ namespace Swoolefy\Udp;
 
 use Swoolefy\Core\Swoole;
 use Swoolefy\Core\ServiceDispatch;
-use Swoolefy\Core\HanderInterface;
+use Swoolefy\Core\HandlerInterface;
 
-class UdpHander extends Swoole implements HanderInterface {
+class UdpHandler extends Swoole implements HandlerInterface {
 
 	/**
 	 * 数据分隔符
@@ -101,8 +101,8 @@ class UdpHander extends Swoole implements HanderInterface {
                 }
                 $dispatch->dispatch();
             }
-        }catch (\Throwable $t) {
-            throw $t;
+        }catch (\Throwable $throwable) {
+            throw $throwable;
 
         } finally {
             // 必须执行

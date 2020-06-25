@@ -19,13 +19,13 @@ use Swoolefy\Core\Log\Formatter\LineFormatter;
 class Log {
 	/**
 	 * $channel,日志的通过主题，关于那方面的日志
-	 * @var null
+	 * @var string
 	 */
 	public $channel = null;
 
 	/**
 	 * $logFilePath
-	 * @var null
+	 * @var string
 	 */
 	public $logFilePath = null;
 
@@ -37,7 +37,7 @@ class Log {
 
     /**
      * $formatter 格式化对象
-     * @var null
+     * @var string
      */
     protected $formatter = null;
 
@@ -65,7 +65,7 @@ class Log {
 	/**
 	 * setChannel
 	 * @param    string $channel
-	 * @return   mixed  $this
+	 * @return   $this
 	 */
 	public function setChannel($channel) {
 		$this->channel = $channel;
@@ -75,7 +75,7 @@ class Log {
 	/**
 	 * setLogFilePath
 	 * @param   string $logFilePath
-	 * @return  mixed  $this
+	 * @return  $this
 	 */
 	public function setLogFilePath($logFilePath) {
 		$this->logFilePath = $logFilePath;
@@ -84,8 +84,8 @@ class Log {
 
 	/**
 	 * setOutputFormat
-	 * @param    string $output
-	 * @return   mixed $this
+	 * @param  string $output
+	 * @return $this
 	 */
 	public function setOutputFormat($output) {
 		$this->output = $output;

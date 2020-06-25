@@ -71,7 +71,7 @@ abstract class TcpServer extends BaseServer {
 		self::$server = $this->tcpServer = new \Swoole\Server(self::$config['host'], self::$config['port'], self::$swoole_process_mode, self::$swoole_socket_type);
 		$this->tcpServer->set(self::$setting);
 		parent::__construct();
-		self::buildPackHander();
+		self::buildPackHandler();
 		
 	}
 
@@ -147,7 +147,7 @@ abstract class TcpServer extends BaseServer {
 		 */
 		$this->tcpServer->on('connect', function(\Swoole\Server $server, $fd) {
     		try{
-    			static::onConnet($server, $fd);
+    			static::onConnect($server, $fd);
     		}catch(\Throwable $e) {
     			self::catchException($e);
     		}
@@ -280,10 +280,10 @@ abstract class TcpServer extends BaseServer {
 	}
 
 	/**
-	 * buildPackHander 创建pack处理对象
+	 * buildPackHandler 创建pack处理对象
 	 * @return void
 	 */
-	public function buildPackHander() {
+	protected function buildPackHandler() {
 		if(self::isPackLength()) {
 			$this->Pack = new Pack(self::$server);
 			// packet_length_check
@@ -310,21 +310,19 @@ abstract class TcpServer extends BaseServer {
 		}
 	}
 
-	/**
-	 * isClientPackEof 根据设置判断客户端的分包方式
-     * @throws
-	 * @return boolean
-	 */
+    /**
+     * isClientPackEof 根据设置判断客户端的分包方式
+     * @return boolean
+     * @throws \Exception
+     */
 	public static function isClientPackEof() {
-		if(isset(self::$config['packet']['client']['pack_check_type'])) {
-			if(in_array(self::$config['packet']['client']['pack_check_type'], ['eof', 'EOF']) ) {
-				return true;
-			}
-			return false;
-		}else {
-			throw new \Exception("you must set ['packet']['client']  in the config file", 1);	
-		}
-		
+		if(!isset(self::$config['packet']['client']['pack_check_type'])) {
+            throw new \Exception("you must set ['packet']['client']  in the config file", 1);
+        }
+        if(in_array(self::$config['packet']['client']['pack_check_type'], ['eof', 'EOF']) ) {
+            return true;
+        }
+        return false;
 	}
 
     /**

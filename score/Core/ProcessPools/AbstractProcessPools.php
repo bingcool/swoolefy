@@ -53,7 +53,7 @@ abstract class AbstractProcessPools {
 
     /**
      * getProcess 获取process进程对象
-     * @return object
+     * @return Process
      */
     public function getProcess() {
         return $this->swooleProcess;
@@ -87,7 +87,7 @@ abstract class AbstractProcessPools {
 
     /**
      * getBindWorkerId 获取绑定的worker_id
-     * @return null
+     * @return int
      */
     public function getBindWorkerId() {
         return $this->bind_worker_id;
@@ -236,9 +236,7 @@ abstract class AbstractProcessPools {
      */
     public function getCurrentRunCoroutineNum() {
         $coroutine_info = \Swoole\Coroutine::stats();
-        if(isset($coroutine_info['coroutine_num'])) {
-            return $coroutine_info['coroutine_num'];
-        }
+        return $coroutine_info['coroutine_num'] ?? null;
     }
 
     /**
@@ -247,9 +245,7 @@ abstract class AbstractProcessPools {
      */
     public function getCurrentCoroutineLastCid() {
         $coroutine_info = \Swoole\Coroutine::stats();
-        if(isset($coroutine_info['coroutine_last_cid'])) {
-            return $coroutine_info['coroutine_last_cid'];
-        }
+        return $coroutine_info['coroutine_last_cid'] ?? null;
     }
 
     /**

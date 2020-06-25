@@ -39,7 +39,7 @@ class Pack {
 
 	/**
 	 * $header_struct 析包结构,包含包头结构，key代表的是包头的字段，value代表的pack的类型
-	 * @var string
+	 * @var array
 	 */
 	protected static $header_struct = ['length'=>'N'];
 
@@ -337,7 +337,7 @@ class Pack {
     }
 
     /**
-     * destroy 当workerstop时,删除缓冲的不完整的僵尸式数据包，并强制断开这些链接
+     * destroy 当workerStop时,删除缓冲的不完整的僵尸式数据包，并强制断开这些链接
      * @param mixed $server
      * @param int $worker_id
      * @return boolean

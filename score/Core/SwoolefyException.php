@@ -59,21 +59,21 @@ class SwoolefyException {
             $error['line']  =   $e->getLine();
         }
         $error['trace']     =   $e->getTraceAsString();
-        $errorStr = $error['file'].' 第'.$error['line'].'行:'.$error['message'];
+        $errorStr = "{$error['message']} in file {$error["file"]} on line {$error['line']} ";
         static::shutHalt($errorStr);
     }
 
     /**
      * appError 获取用户程序错误
-     * @param    int       $errno
-     * @param    string    $errstr
-     * @param    string    $errfile
-     * @param    int       $errline
+     * @param    int       $errorNo
+     * @param    string    $errorString
+     * @param    string    $errorFile
+     * @param    int       $errorLine
      * @return   void
      */
-    public static function appError($errno, $errstr, $errfile, $errline) {
-    	$errorStr = "$errfile 第 $errline 行: $errstr";
-      	switch ($errno) {
+    public static function appError($errorNo, $errorString, $errorFile, $errorLine) {
+    	$errorStr = "{$errorString} in file {$errorFile} on line {$errorLine} ";
+      	switch ($errorNo) {
             case E_ERROR:
           		static::shutHalt($errorStr, $errorType = SwoolefyException::EXCEPTION_ERR);
           		break;
@@ -97,13 +97,17 @@ class SwoolefyException {
     public static function shutHalt($errorMsg, $errorType = SwoolefyException::EXCEPTION_ERR) {
         if(!defined('LOG_PATH')) {
             define('LOG_PATH', START_DIR_ROOT.DIRECTORY_SEPARATOR.APP_NAME);
+            if(!is_dir(LOG_PATH)) {
+                mkdir(LOG_PATH,0766);
+            }
         }
         $logFilePath = rtrim(LOG_PATH,'/').'/runtime.log';
         if(is_file($logFilePath)) {
             $logFilesSize = filesize($logFilePath);
         }
+
         // 定时清除这个log文件
-        if($logFilesSize > 20 * 1024 * 1024) {
+        if(isset($logFilesSize) && $logFilesSize > 20 * 1024 * 1024) {
             @file_put_contents($logFilePath,'');
         }
 
