@@ -107,7 +107,7 @@ trait ComponentTrait {
     /**
      * getDependencies
      * @param string $class
-     * @return   array
+     * @return array
      * @throws \ReflectionException
      */
 	protected function getDependencies($class) {
@@ -187,8 +187,8 @@ trait ComponentTrait {
 
 	/**
 	 * getComponents
-	 * @param    string $com_alias_name
-	 * @return   mixed
+	 * @param string $com_alias_name
+	 * @return mixed
 	 */
 	public function getComponents(string $com_alias_name = null) {
 		if($com_alias_name && isset($this->container[$com_alias_name])) {
@@ -199,8 +199,8 @@ trait ComponentTrait {
 
 	/**
 	 * clearComponent
-	 * @param    string|array  $component_alias_name
-	 * @return   boolean
+	 * @param string|array  $component_alias_name
+	 * @return boolean
 	 */
 	public function clearComponent($com_alias_name = null) {
         if(!is_null($com_alias_name) && is_string($com_alias_name)) {
@@ -220,7 +220,7 @@ trait ComponentTrait {
 
 	/**
 	 * coreComponents 定义核心组件
-	 * @return   array
+	 * @return array
 	 */
 	public function coreComponents() {
 		return [];
@@ -228,6 +228,7 @@ trait ComponentTrait {
 
     /**
      * getOpenPoolsOfComponent 获取启用pools的组件名称
+     * @return array
      */
     public function getOpenPoolsOfComponent() {
         return $this->component_pools;
@@ -235,8 +236,8 @@ trait ComponentTrait {
 
     /**
      * __isset
-     * @param    string  $name
-     * @return   boolean
+     * @param string $name
+     * @return boolean
      */
     public function __isset($name) {
         return isset($this->$name);
@@ -244,9 +245,9 @@ trait ComponentTrait {
 
 	/**
 	 * __set
-	 * @param    string  $name
-	 * @param    mixed  $value
-	 * @return   mixed
+	 * @param string $name
+	 * @param mixed $value
+	 * @return mixed
 	 */
 	public function __set($name, $value) {
 		if(isset($this->container[$name])) {
@@ -304,8 +305,8 @@ trait ComponentTrait {
 
 	/**
 	 * __get
-	 * @param    string  $name
-	 * @return   mixed
+	 * @param string $name
+	 * @return mixed
 	 */
 	public function __get($name) {
         return $this->get($name);
@@ -313,7 +314,7 @@ trait ComponentTrait {
 
 	/**
 	 * __unset
-	 * @param   string  $name
+	 * @param string $name
 	 */
 	public function __unset($name) {
 		unset($this->$name);

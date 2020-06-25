@@ -34,10 +34,10 @@ class HttpServer extends \Swoolefy\Http\HttpAppServer {
 
 	/**
 	 * onPipeMessage 
-	 * @param    object  $server
-	 * @param    int     $src_worker_id
-	 * @param    mixed   $message
-	 * @return   void
+	 * @param  object $server
+	 * @param  int $src_worker_id
+	 * @param  mixed $message
+	 * @return void
 	 */
 	public function onPipeMessage($server, $from_worker_id, $message) {}
 

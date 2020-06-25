@@ -170,7 +170,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
     }
 
     /**
-     * idhash 按id计算散列值
+     * idHash 按id计算散列值
      * @param   int  $uid
      * @param   int  $base
      * @return integer
@@ -180,7 +180,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
     }
 
     /**
-     * randtime 按UNIX时间戳产生随机数
+     * randTime 按UNIX时间戳产生随机数
      * @param   int  $rand_length
      * @return  string
      */
@@ -205,7 +205,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
     }
 
     /**
-     * mbstrlen 计算某个混合字符串的长度总数，包含英文或者中文的字符串,如果安装mb_string扩展的话，可以直接使用mb_strlen()函数，与该函数等效
+     * mbStrlen 计算某个混合字符串的长度总数，包含英文或者中文的字符串,如果安装mb_string扩展的话，可以直接使用mb_strlen()函数，与该函数等效
      * @param    string  $str 
      * @return   int
      */

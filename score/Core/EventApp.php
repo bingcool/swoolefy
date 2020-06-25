@@ -118,7 +118,7 @@ class EventApp {
     当协程退出时，发现有未捕获的异常，将引起致命错误。
      * @param  string $action
 	 * @param  array  $args
-     * @return  mixed
+     * @return mixed
      * @throws \Exception
 	 */
 	public function __call(string $action, $args = []) {

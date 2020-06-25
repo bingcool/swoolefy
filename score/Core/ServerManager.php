@@ -30,9 +30,9 @@ class ServerManager {
 	 * addListener 设置port实例
 	 * @param string $host 
 	 * @param int    $port 
-	 * @param string   $type
-     * @throws \Exception
+	 * @param string $type
      * @return mixed
+     * @throws \Exception
 	 */
 	public function addListener(string $host, $port, $type = SWOOLE_SOCK_TCP) {
 		$port = (int)$port;
@@ -73,8 +73,8 @@ class ServerManager {
 	/**
 	 * getClientInfo 
 	 * @see https://wiki.swoole.com/wiki/page/p-connection_info.html  
-	 * @param  int          $fd       
-	 * @param  int          $extraData
+	 * @param  int $fd
+	 * @param  int $extraData
 	 * @param  bool $ignoreError
 	 * @return mixed
 	 */

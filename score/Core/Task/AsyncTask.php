@@ -20,10 +20,10 @@ class AsyncTask implements AsyncTaskInterface {
 
     /**
      * registerTask 注册实例任务并调用异步任务，创建一个应用实例，用于处理复杂业务
-     * @param   array  $callable
-     * @param   array  $data
-     * @throws  mixed
-     * @return  int|boolean
+     * @param  array $callable
+     * @param  array $data
+     * @throws mixed
+     * @return int|boolean
      */
     public static function registerTask($callable, $data = []) {
         if(is_string($callable)) {
@@ -52,9 +52,9 @@ class AsyncTask implements AsyncTaskInterface {
 
     /**
      * registerTaskFinish 异步任务完成并退出到worker进程
-     * @param   mixed  $data
-     * @param   mixed  $task
-     * @return  void
+     * @param  mixed $data
+     * @param  mixed $task
+     * @return void
      */
     public static function registerTaskFinish($data, $task = null) {
        static::finish($data, $task);
@@ -62,9 +62,9 @@ class AsyncTask implements AsyncTaskInterface {
 
     /**
      * finish registerTaskFinish函数-异步任务完成并退出到worker进程的别名函数
-     * @param    mixed   $data
-     * @param    mixed   $task
-     * @return   void
+     * @param  mixed $data
+     * @param  mixed $task
+     * @return void
      */
     public static function finish($data, $task = null) {
         if(is_array($data)) {

@@ -17,6 +17,9 @@ class CoroutinePools {
 
     use \Swoolefy\Core\SingletonTrait;
 
+    /**
+     * @var array
+     */
     private $pools = [];
 
     /**
@@ -70,8 +73,8 @@ class CoroutinePools {
 
     /**
      * getChannel
-     * @param    string   $name
-     * @return   PoolsHandler
+     * @param  string $name
+     * @return PoolsHandler
      */
     public function getPool(string $pool_name) {
         if(!$pool_name) {

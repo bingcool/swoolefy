@@ -11,12 +11,11 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\AppObject;
-use Swoolefy\Core\Application;
+use Swoole\Http\Request;
 
 class AppInit extends AppObject {
 	/**
-	 * _init
+	 * @param Request $request
 	 */
 	public static function init($request) {
 		// 重置SERVER请求对象

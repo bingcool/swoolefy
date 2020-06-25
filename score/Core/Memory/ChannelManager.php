@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core\Memory;
 
+use Swoole\Coroutine\Channel;
+
 class ChannelManager {
 
     use \Swoolefy\Core\SingletonTrait;
@@ -20,15 +22,16 @@ class ChannelManager {
     /**
      * 创建一个数据Channel
      * @param  string  $name
-     * @param  int   $capacity
+     * @param  int  $capacity
+     * @return $this
      * @throws mixed
      */
     public function addChannel(string $name, int $capacity = null) {
         if(!isset($this->list[$name])) {
             if($capacity) {
-                $channel = new \Swoole\Coroutine\Channel($capacity);
+                $channel = new Channel($capacity);
             }else {
-                $channel = new \Swoole\Coroutine\Channel();
+                $channel = new Channel();
             }
             $this->list[$name] = $channel;
         }
@@ -37,8 +40,8 @@ class ChannelManager {
 
     /**
      * getChannel
-     * @param    string   $name
-     * @return   mixed
+     * @param  string $name
+     * @return Channel
      */
     public function getChannel(string $name) {
         return $this->list[$name] ?? null;

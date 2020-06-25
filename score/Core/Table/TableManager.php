@@ -140,7 +140,7 @@ class TableManager {
 
 	/**
 	 * getTables 获取已创建的内存表的名称
-	 * @return mixed
+	 * @return array
 	 */
 	public static function getTablesName() {
 		if(isset(BaseServer::$server->tables)) {
@@ -152,7 +152,7 @@ class TableManager {
 	/**
 	 * getTable 获取已创建的table实例对象
 	 * @param  string|null $table
-	 * @return object
+	 * @return \Swoole\Table
 	 */
 	public static function getTable(string $table = null) {
 		if(isset(BaseServer::$server->tables)) {

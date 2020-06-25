@@ -33,9 +33,9 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer {
 
 	/**
 	 * onOpen 
-	 * @param    object  $server
-	 * @param    object  $request
-	 * @return   void
+	 * @param object $server
+	 * @param object $request
+	 * @return void
 	 */
 	public function onOpen($server, $request) {}
 
@@ -50,18 +50,18 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer {
 
 	/**
 	 * onPipeMessage 
-	 * @param    object  $server
-	 * @param    int     $src_worker_id
-	 * @param    mixed   $message
-	 * @return   void
+	 * @param object $server
+	 * @param int $src_worker_id
+	 * @param mixed $message
+	 * @return void
 	 */
 	public function onPipeMessage($server, $from_worker_id, $message) {}
 
 	/**
 	 * onClose 连接断开处理
-	 * @param    object  $server
-	 * @param    int     $fd
-	 * @return   void
+	 * @param object $server
+	 * @param int  $fd
+	 * @return void
 	 */
 	public function onClose($server, $fd) {}
 

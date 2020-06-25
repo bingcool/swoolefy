@@ -17,7 +17,7 @@ use Swoolefy\Core\Memory\AtomicManager;
 class BaseServer {
 	/**
 	 * $config 
-	 * @var null
+	 * @var array
 	 */
 	public static $config = [];
 
@@ -74,7 +74,7 @@ class BaseServer {
 
     /**
      * $startCtrl
-     * @var null
+     * @var EventHandler
      */
     protected $startCtrl = null;
 
@@ -146,8 +146,8 @@ class BaseServer {
 
 	/**
 	 * checkVersion 检查是否安装基础扩展
+     * @return void
      * @throws \Exception
-	 * @return void
 	 */
 	public static function checkVersion() {
 		if(version_compare(phpversion(), '7.2.0', '<')) {
@@ -210,7 +210,7 @@ class BaseServer {
 	/**
 	 * startInclude 设置需要在workerStart启动时加载的配置文件
 	 * @param  array  $includes 
-	 * @return   void
+	 * @return void
 	 */
 	public static function startInclude() {
 		$includeFiles = isset(static::$config['include_files']) ? static::$config['include_files'] : [];
@@ -251,7 +251,7 @@ class BaseServer {
 
 	/**
 	 * getStartTime 服务启动时间
-	 * @return   string
+	 * @return int
 	 */
 	public static function getStartTime() {
 		return self::$_startTime;
@@ -275,7 +275,7 @@ class BaseServer {
 
 	/**
 	 * getConfig 获取服务的全部配置
-	 * @return   array
+	 * @return array
 	 */
 	public static function getConf() {
 		return static::$config;
@@ -283,7 +283,7 @@ class BaseServer {
 
     /**
      * getAppConf
-     * @return mixed
+     * @return array
      */
 	public static function getAppConf() {
 	    return static::$config['app_conf'];
@@ -301,7 +301,7 @@ class BaseServer {
 
 	/**
 	 * getSwooleSetting 获取swoole的配置项
-	 * @return   array
+	 * @return array
 	 */
 	public static function getSwooleSetting() {
 		return self::$config['setting'];
@@ -317,7 +317,7 @@ class BaseServer {
 
 	/**
 	 * getSwooleVersion 获取swoole的版本
-	 * @return   string
+	 * @return string
 	 */
 	public static function getSwooleVersion() {
     	return swoole_version();
@@ -420,7 +420,7 @@ class BaseServer {
 
 	/**
 	 * getWorkersPid 获取线上的实时的进程worker_pid与worker_id的映射
-	 * @return   
+	 * @return array
 	 */
 	public static function getWorkersPid() {
 		return json_decode(TableManager::get('table_workers_pid', 'workers_pid', 'workers_pid'), true);
@@ -470,7 +470,7 @@ class BaseServer {
 
 	/**
 	 * isUseSsl 判断是否使用ssl加密
-	 * @return   boolean
+	 * @return boolean
 	 */
 	protected static function isUseSsl() {
 		if(isset(static::$setting['ssl_cert_file']) && isset(static::$setting['ssl_key_file'])) {
@@ -481,6 +481,7 @@ class BaseServer {
 
 	/**
 	 * setSwooleSockType 设置socket的类型
+     * @return void
 	 */
 	protected static function setSwooleSockType() {
 		if(isset(static::$setting['swoole_process_mode']) && static::$setting['swoole_process_mode'] == SWOOLE_BASE) {
@@ -494,7 +495,7 @@ class BaseServer {
 
 	/**
 	 * serviceType 获取当前主服务器使用的协议,只需计算一次即可，寄存static变量
-	 * @return   mixed
+	 * @return  mixed
 	 */
 	public static function getServiceProtocol() {
 	    static $protocol;
@@ -529,8 +530,8 @@ class BaseServer {
 
 	/**
 	 * swooleVersion 判断swoole是否大于某个版本
-	 * @param    string  $version
-	 * @return   boolean
+	 * @param string  $version
+	 * @return boolean
 	 */
 	public static function compareSwooleVersion($version = '4.2.0') {
 		if(isset(static::$config['swoole_version']) && !empty(static::$config['swoole_version'])) {
@@ -643,7 +644,7 @@ class BaseServer {
     }
 
     /**
-     * catchException 
+     * catchException
      * @param  \Throwable $e
      * @return void
      */

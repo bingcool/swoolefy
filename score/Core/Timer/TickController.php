@@ -11,4 +11,6 @@
 
 namespace Swoolefy\Core\Timer;
 
-class TickController extends \Swoolefy\Core\Process\ProcessController {}
+use Swoolefy\Core\Process\ProcessController;
+
+class TickController extends ProcessController {}

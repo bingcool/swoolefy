@@ -110,8 +110,8 @@ class BService extends BaseObject {
 	 * @param  mixed  $data
 	 * @param  int    $opcode
 	 * @param  boolean $finish
+     * @return boolean
      * @throws \Exception
-	 * @return boolean
 	 */
 	public function push($fd, $data, int $opcode = 1, bool $finish = true) {
 		if(!BaseServer::isWebsocketApp()) {
@@ -136,7 +136,7 @@ class BService extends BaseObject {
 
     /**
      * isClientPackLength 根据设置判断客户端的分包方式length
-     * @return   boolean
+     * @return boolean
      * @throws \Exception
      */
 	public function isClientPackLength() {
@@ -157,7 +157,7 @@ class BService extends BaseObject {
 
     /**
      * getRpcPackBodyParams 获取rpc的包体数据
-     * @return mixed
+     * @return array
      * @throws \Exception
      */
 	public function getRpcPackBodyParams() {

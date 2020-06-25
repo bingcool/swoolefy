@@ -44,8 +44,8 @@ class SModel extends BaseObject {
 
 	/**
 	 * setStruct 
-	 * @param   string  $property
-	 * @param   mixed   $value
+	 * @param string $property
+	 * @param mixed $value
 	 */
 	public function setStruct(string $property, $value = null) {
 		$this->struct->set($property, $value);
@@ -53,8 +53,8 @@ class SModel extends BaseObject {
 
 	/**
 	 * setMultiStruct 批量设置
-	 * @param    array  $array
-	 * @return   boolean
+	 * @param array $array
+	 * @return boolean
 	 */
 	public function setMultiStruct(array $array = []) {
         if(!is_array($array) || empty($array)) {
@@ -68,9 +68,9 @@ class SModel extends BaseObject {
 
 	/**
 	 * getStruct 
-	 * @param    string  $property
-	 * @param    mixed   $default
-	 * @return   mixed
+	 * @param string $property
+	 * @param mixed  $default
+	 * @return mixed
 	 */
 	public function getStruct(string $property, $default = null) {
 		return $this->struct->get($property, $default);
@@ -78,7 +78,7 @@ class SModel extends BaseObject {
 
 	/**
 	 * getAllStruct 获取所有数据结构属性值
-	 * @return   mixed
+	 * @return mixed
 	 */
 	public function getAllStruct() {
 		return $this->struct->getPublicProperties();
@@ -86,7 +86,7 @@ class SModel extends BaseObject {
 
 	/**
 	 * beforeAction 在处理之前执行
-	 * @return   mixed
+	 * @return boolean
 	 */
 	public function _beforeModel() {
 		return true;
@@ -94,7 +94,7 @@ class SModel extends BaseObject {
 
 	/**
 	 * afterAction 在返回数据之前执行
-	 * @return   mixed
+	 * @return boolean
 	 */
 	public function _afterModel() {
 		return true;
@@ -102,7 +102,6 @@ class SModel extends BaseObject {
 
 	/**
 	 * destruct 对象销毁前处理一些静态变量
-	 * @param    
 	 */
 	public function __destruct() {
 		static::_afterModel();

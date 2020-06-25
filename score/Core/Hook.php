@@ -74,7 +74,7 @@ class Hook {
 	/**
 	 * getHookCallable 获取所有的钩子函数
      * @param int $cid
-	 * @return mixed
+	 * @return callable
 	 */
 	public static function getHookCallable($cid = null) {
 		if(empty($cid)) {

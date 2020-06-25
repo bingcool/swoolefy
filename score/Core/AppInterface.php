@@ -14,6 +14,7 @@ namespace Swoolefy\Core;
 interface AppInterface {
     /**
      * bootstrap  完成一些必要的程序引导和设置
+     * @param mixed $args
      * @return mixed
      */
     public static function bootstrap($args);

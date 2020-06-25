@@ -193,7 +193,9 @@ class PoolsHandler {
         }
     }
 
-
+    /**
+     * @return mixed|null
+     */
     protected function pop() {
         $startTime = time();
         while($obj = $this->channel->pop($this->popTimeout)) {
