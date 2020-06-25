@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Core;
 
-interface HanderInterface {
+interface HandlerInterface {
 
 	public function init($recv);
 

@@ -78,10 +78,6 @@ class CoroutinePools {
             return null;
         }
         $pool_name = trim($pool_name);
-        if(isset($this->pools[$pool_name])) {
-            return $this->pools[$pool_name];
-        }else{
-            return null;
-        }
+        return $this->pools[$pool_name] ?? null;
     }
 }

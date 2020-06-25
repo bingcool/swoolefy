@@ -14,9 +14,9 @@ namespace Swoolefy\Websocket;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Swoole;
 use Swoolefy\Core\ServiceDispatch;
-use Swoolefy\Core\HanderInterface;
+use Swoolefy\Core\HandlerInterface;
 
-class WebsocketHander extends Swoole implements HanderInterface {
+class WebsocketHandler extends Swoole implements HandlerInterface {
 	/**
 	 * __construct 初始化
 	 * @param    array  $config

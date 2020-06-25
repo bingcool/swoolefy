@@ -75,7 +75,7 @@ class ServerManager {
 	 * @see https://wiki.swoole.com/wiki/page/p-connection_info.html  
 	 * @param  int          $fd       
 	 * @param  int          $extraData
-	 * @param  bool|boolean $ignoreError
+	 * @param  bool $ignoreError
 	 * @return mixed
 	 */
 	public function getClientInfo(int $fd, int $extraData, bool $ignoreError = false) {

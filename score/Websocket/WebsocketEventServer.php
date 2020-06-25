@@ -75,7 +75,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 			// utf-8文本数据
 			if($opcode == WEBSOCKET_OPCODE_TEXT) {
                 $app_conf = \Swoolefy\Core\Swfy::getAppConf();
-                $appInstance = new \Swoolefy\Websocket\WebsocketHander($app_conf);
+                $appInstance = new \Swoolefy\Websocket\WebsocketHandler($app_conf);
                 $appInstance->run($fd, $data);
 			}else if($opcode == WEBSOCKET_OPCODE_BINARY) {
 				// TODO 二进制数据
@@ -105,7 +105,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	public function onTask($server, $task_id, $from_worker_id, $data, $task = null) {
 		list($callable, $taskData, $fd) = $data;
         $app_conf = \Swoolefy\Core\Swfy::getAppConf();
-        $appInstance = new \Swoolefy\Websocket\WebsocketHander($app_conf);
+        $appInstance = new \Swoolefy\Websocket\WebsocketHandler($app_conf);
         $appInstance->run($fd, [$callable, $taskData], [$from_worker_id, $task_id, $task]);
         return true;
 	}

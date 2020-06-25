@@ -204,6 +204,7 @@ class App extends \Swoolefy\Core\Component {
 	}
 
     /**
+     * @param $level
      * @param $log
      */
 	public function setLog($level, $log) {
@@ -221,7 +222,7 @@ class App extends \Swoolefy\Core\Component {
     }
 
     /**
-     * @param null $cid
+     * @param null $coroutine_id
      * @return null|string
      */
     public function setCid($coroutine_id = null) {

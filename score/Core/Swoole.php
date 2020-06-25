@@ -23,7 +23,7 @@ class Swoole extends BaseObject {
 
     /**
 	 * $app_conf 当前应用层的配置
-	 * @var null
+	 * @var array
 	 */
 	public $app_conf = null;
 
@@ -47,6 +47,7 @@ class Swoole extends BaseObject {
 
     /**
      * $log 日志
+     * @var array
      */
     protected $logs = [];
 
@@ -127,8 +128,8 @@ class Swoole extends BaseObject {
     }
 
     /**
-     * @param null $cid
-     * @return null|string
+     * @param int $coroutine_id
+     * @return int
      */
     public function setCid($coroutine_id = null) {
         if(empty($coroutine_id)) {
@@ -140,7 +141,7 @@ class Swoole extends BaseObject {
 
     /**
      * getCid
-     * @return  mixed
+     * @return int
      */
     public function getCid() {
         return $this->coroutine_id;
@@ -148,7 +149,7 @@ class Swoole extends BaseObject {
 
     /**
      * getRpcPackHeader  获取rpc的pack头信息,只适用于rpc服务
-     * @return   array
+     * @return array
      * @throws \Exception
      */
 	public function getRpcPackHeader() {
@@ -214,7 +215,7 @@ class Swoole extends BaseObject {
 
 	/**
 	 * getFd worker进程中可以读取到值，task进程不能，默认返回null
-	 * @return  mixed
+	 * @return mixed
 	 */
 	public function getFd() {
         return $this->fd;
@@ -240,6 +241,7 @@ class Swoole extends BaseObject {
 
     /**
      * @param $log
+     * @return void
      */
     public function setLog($level, $log) {
         if(!isset($this->logs[$level])) {
@@ -272,7 +274,7 @@ class Swoole extends BaseObject {
 
     /**
      *pushComponentPools
-     * @return 
+     * @return boolean
      */
     public function pushComponentPools() {
     	if(empty($this->component_pools) || empty($this->component_pools_obj_ids)) {
@@ -291,9 +293,9 @@ class Swoole extends BaseObject {
         }
     }
 
-	/**
-	 * end
-	 */
+    /**
+     * @return void
+     */
 	public function end() {
 		// call hook callable
 		Hook::callHook(Hook::HOOK_AFTER_REQUEST);

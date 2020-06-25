@@ -23,7 +23,7 @@ class GoWaitGroup {
     /**
      * @var Channel
      */
-    private $chan;
+    private $channel;
 
     /**
      * @var array
@@ -34,7 +34,7 @@ class GoWaitGroup {
      * WaitGroup constructor
      */
     public function __construct() {
-        $this->chan = new Channel;
+        $this->channel = new Channel;
     }
 
     /**
@@ -67,7 +67,7 @@ class GoWaitGroup {
         if(!empty($key) && !empty($data)) {
             $this->result[$key] = $data;
         }
-        $this->chan->push(1, $timeout);
+        $this->channel->push(1, $timeout);
     }
 
     /**
@@ -75,7 +75,7 @@ class GoWaitGroup {
      */
     public function wait(float $timeout = 0) {
         while($this->count--) {
-            $this->chan->pop($timeout);
+            $this->channel->pop($timeout);
         }
         $result = $this->result;
         $this->reset();

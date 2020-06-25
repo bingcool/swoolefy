@@ -56,23 +56,7 @@ class ServiceDispatch extends AppDispatch {
         $class = trim(str_replace('\\', '/', $class), '/');
 		if(!isset(self::$routeCacheFileMap[$class])) {
 			if(!$this->checkClass($class)) {
-			    if(Swfy::isWorkerProcess()) {
-                    $app_conf = Swfy::getAppConf();
-                    if(isset($app_conf['not_found_handler']) && is_string($app_conf['not_found_handler'])) {
-                        $handler = $app_conf['not_found_handler'];
-                        $notFoundInstance = new $handler;
-                        if($notFoundInstance instanceof \Swoolefy\Core\NotFound) {
-                            $return_data = $notFoundInstance->return404($class);
-                        }
-                    }else {
-                        $notFoundInstance = new \Swoolefy\Core\NotFound();
-                        $return_data = $notFoundInstance->return404($class);
-                    }
-                }
-                // 记录错误异常
-                $msg = isset($return_data['msg']) ? $return_data['msg'] : "when dispatch, {$class} not found!";
-                $exceptionClass = Application::getApp()->getExceptionClass();
-                $exceptionClass::shutHalt($msg);
+                $this->errorHandle($class, $action, 'return404');
                 return false;
 			}
 		}
@@ -102,39 +86,13 @@ class ServiceDispatch extends AppDispatch {
                 // after Call
                 $serviceInstance->_afterAction($action);
 			}else {
-			    if(Swfy::isWorkerProcess()) {
-                    $app_conf = Swfy::getAppConf();
-                    if(isset($app_conf['not_found_handler']) && is_string($app_conf['not_found_handler'])) {
-                        $handle = $app_conf['not_found_handler'];
-                        $notFoundInstance = new $handle;
-                        if($notFoundInstance instanceof \Swoolefy\Core\NotFound) {
-                            $return_data = $notFoundInstance->return500($class, $action);
-                        }
-                    }else {
-                        $notFoundInstance = new \Swoolefy\Core\NotFound();
-                        $return_data = $notFoundInstance->return500($class, $action);
-                    }
-                }
-                // 记录错误异常
-                $msg = isset($return_data['msg']) ? $return_data['msg'] : "when dispatch, {$class} call undefined function {$action}()";
-                $exceptionClass = Application::getApp()->getExceptionClass();
-                $exceptionClass::shutHalt($msg);
-				return false;
+			    $this->errorHandle($class, $action, 'return500');
+                return false;
 			}
 		}catch(\Throwable $t) {
 			$msg = $t->getMessage().' on '.$t->getFile().' on line '.$t->getLine().' ||| '.$class.'::'.$action.' ||| '.json_encode($this->params,JSON_UNESCAPED_UNICODE);
-			$app_conf = Swfy::getAppConf();
 			if(Swfy::isWorkerProcess()) {
-                if(isset($app_conf['not_found_handler']) && is_string($app_conf['not_found_handler'])) {
-                    $handle = $app_conf['not_found_handler'];
-                    $notFoundInstance = new $handle;
-                    if($notFoundInstance instanceof \Swoolefy\Core\NotFound) {
-                        $notFoundInstance->returnError($msg);
-                    }
-                }else {
-                    $notFoundInstance = new \Swoolefy\Core\NotFound();
-                    $notFoundInstance->returnError($msg);
-                }
+                $this->getErrorHandle()->returnError($msg);
             }
             // 记录错误异常
             $exceptionClass = Application::getApp()->getExceptionClass();
@@ -143,6 +101,38 @@ class ServiceDispatch extends AppDispatch {
 		}
 		
 	}
+
+    /**
+     * @param $class
+     * @param $action
+     * @param string $errorMethod
+     * @return boolean
+     * @throws \Exception
+     */
+	protected function errorHandle($class, $action, $errorMethod = 'return404') {
+        if(Swfy::isWorkerProcess()) {
+            $notFoundInstance = $this->getErrorHandle();
+            $errorMsg = $notFoundInstance->{$errorMethod}($class, $action);
+        }
+        // 记录错误异常
+        $msg = isset($errorMsg['msg']) ? $errorMsg['msg'] : "Call undefined function {$class}::{$action}";
+        $exceptionClass = Application::getApp()->getExceptionClass();
+        $exceptionClass::shutHalt($msg);
+        return true;
+    }
+
+    /**
+     * @return NotFound
+     */
+    protected function getErrorHandle() {
+        $app_conf = Swfy::getAppConf();
+        $notFoundInstance = new \Swoolefy\Core\NotFound();
+        if(isset($app_conf['not_found_handler']) && is_string($app_conf['not_found_handler'])) {
+            $handle = $app_conf['not_found_handler'];
+            $notFoundInstance = new $handle;
+        }
+        return $notFoundInstance;
+    }
 
     /**
      * @param int $from_worker_id

@@ -309,7 +309,7 @@ class BaseServer {
 
 	/**
 	 * getServer 
-	 * @return object
+	 * @return \Swoole\Server
 	 */
 	public static function getServer() {
 		return self::$server;
@@ -620,23 +620,25 @@ class BaseServer {
     }
 
     /**
-     * runtimeEnableCoroutine 运行时动态设置协程
+     * runtimeEnableCoroutine 运行时动态设置协程(默认开启)
      * 只有进程中启动了这个协程，则在该进程中全局有效
      * @return void
      */
     public static function runtimeEnableCoroutine() {
     	if(method_exists('Swoole\\Runtime', 'enableCoroutine')) {
+            $run_enable_coroutine = true;
     		if(isset(self::$config['runtime_enable_coroutine'])) {
     		    $run_enable_coroutine = filter_var(self::$config['runtime_enable_coroutine'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-    		    if($run_enable_coroutine === true) {
-                    if(isset(self::$config['runtime_enable_coroutine_flags']) && is_int(self::$config['runtime_enable_coroutine_flags'])) {
-                        $flags = self::$config['runtime_enable_coroutine_flags'];
-                    }else {
-                        $flags = SWOOLE_HOOK_ALL;
-                    }
-                    \Swoole\Runtime::enableCoroutine(true, $flags);
-                }
     		}
+
+            if($run_enable_coroutine === true) {
+                if(isset(self::$config['runtime_enable_coroutine_flags'])) {
+                    $flags = self::$config['runtime_enable_coroutine_flags'];
+                }else {
+                    $flags = SWOOLE_HOOK_ALL;
+                }
+                \Swoole\Runtime::enableCoroutine(true, $flags);
+            }
     	}
     }
 
@@ -646,11 +648,11 @@ class BaseServer {
      * @return void
      */
     public static function catchException($e) {
-    	$ExceptionHanderClass = 'Swoolefy\\Core\\SwoolefyException';
+    	$exceptionHanderClass = 'Swoolefy\\Core\\SwoolefyException';
     	if(isset(self::$config['exception_handler'])) {
-			$ExceptionHanderClass = self::$config['exception_handler'];
+			$exceptionHanderClass = self::$config['exception_handler'];
 		}
-		$ExceptionHanderClass::appException($e);
+        $exceptionHanderClass::appException($e);
     }
 
     /**
@@ -658,17 +660,17 @@ class BaseServer {
      * @return string
      */
     public static function getExceptionClass() {
-    	$ExceptionHanderClass = 'Swoolefy\\Core\\SwoolefyException';
+        $exceptionHanderClass = 'Swoolefy\\Core\\SwoolefyException';
         // 获取协议层配置
         if(isset(self::$config['exception_handler']) && !empty(self::$config['exception_handler'])) {
-            $ExceptionHanderClass = self::$config['exception_handler'];
+            $exceptionHanderClass = self::$config['exception_handler'];
         }
-        return $ExceptionHanderClass;
+        return $exceptionHanderClass;
     }
     
     /**
      * setAutomicOfRequest 创建计算请求的原子计算实例,必须依赖于EnableSysCollector = true，否则设置没有意义,不生效
-     * @param   boolean  
+     * @param boolean
      */
     public static function setAutomicOfRequest() {
     	if(self::isEnableSysCollector() && self::isEnablePvCollector()) {
@@ -720,16 +722,15 @@ class BaseServer {
 
     /**
      * isEnableReload
-     * @return boolean|mixed
+     * @return boolean
      */
     public static function isEnableReload() {
+        $isEnableReload = false;
         if(isset(self::$config['reload_conf']) && isset(self::$config['reload_conf']['enable_reload'])) {
             $isEnableReload = filter_var(self::$config['reload_conf']['enable_reload'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
             if($isEnableReload === null) {
                 $isEnableReload = false;
             }
-        }else {
-            $isEnableReload = false;
         }
         return $isEnableReload;
     }
@@ -811,16 +812,16 @@ class BaseServer {
     }
 
     /**
-     * startHander
+     * startHandler
      * @return mixed
      * @throws \Exception
      */
     public static function eventHandler() {
-        $starHanderClass = isset(self::$config['event_handler']) ? self::$config['event_handler'] : self::$start_hander_class;
-        if(self::isSubclassOf($starHanderClass, self::$start_hander_class)) {
-           return new $starHanderClass();
+        $starHandlerClass = isset(self::$config['event_handler']) ? self::$config['event_handler'] : self::$start_hander_class;
+        if(self::isSubclassOf($starHandlerClass, self::$start_hander_class)) {
+           return new $starHandlerClass();
         }
-        throw new \Exception("Error:Config item of 'event_handler'=>{$starHanderClass} must extends ".self::$start_hander_class);
+        throw new \Exception("Error:Config item of 'event_handler'=>{$starHandlerClass} must extends ".self::$start_hander_class);
     }
 
     /**
@@ -843,6 +844,13 @@ class BaseServer {
     public static function registerShutdownFunction() {
         $exceptionClass = self::getExceptionClass();
         register_shutdown_function($exceptionClass.'::fatalError');
+    }
+
+    /**
+     * registerErrorHandler
+     */
+    public static function registerErrorHandler() {
+        $exceptionClass = self::getExceptionClass();
         set_error_handler($exceptionClass.'::appError');
     }
 
@@ -852,6 +860,8 @@ class BaseServer {
      */
     public static function beforeHandler() {
     	self::atomicAdd();
+        // registerErrorHandler
+        self::registerErrorHandler();
     }
 
     /**

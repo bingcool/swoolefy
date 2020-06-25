@@ -54,7 +54,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface {
      */
 	public function onReceive($server, $fd, $reactor_id, $data) {
         $app_conf = \Swoolefy\Core\Swfy::getAppConf();
-        $appInstance = new \Swoolefy\Rpc\RpcHander($app_conf);
+        $appInstance = new \Swoolefy\Rpc\RpcHandler($app_conf);
         $appInstance->run($fd, $data);
         return true;
 	}
@@ -72,7 +72,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface {
 	public function onTask($server, $task_id, $from_worker_id, $data, $task = null) {
 		list($callable, $taskData, $fd) = $data;
         $app_conf = \Swoolefy\Core\Swfy::getAppConf();
-        $appInstance = new \Swoolefy\Rpc\RpcHander($app_conf);
+        $appInstance = new \Swoolefy\Rpc\RpcHandler($app_conf);
         $appInstance->run($fd, [$callable, $taskData], [$from_worker_id, $task_id, $task]);
 		return true;
 	}

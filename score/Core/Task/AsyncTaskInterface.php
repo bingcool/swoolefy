@@ -20,5 +20,5 @@ interface AsyncTaskInterface {
     /** 
     * finish 异步任务完成并退出到worker进程,执行finish进程业务
     */
-    public static function registerTaskfinish($data);
+    public static function registerTaskFinish($data);
 }
