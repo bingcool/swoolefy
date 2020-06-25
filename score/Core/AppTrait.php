@@ -14,6 +14,19 @@ namespace Swoolefy\Core;
 use Swoolefy\Core\Model\BModel;
 
 trait AppTrait {
+
+    /**
+     * $request 当前请求的对象
+     * @var \Swoole\Http\Request
+     */
+    public $request = null;
+
+    /**
+     * $response 当前请求的响应对象
+     * @var \Swoole\Http\Response
+     */
+    public $response = null;
+
 	/**
 	 * $previousUrl,记录url
 	 * @var array
@@ -44,9 +57,10 @@ trait AppTrait {
 
     /**
      * 提前结束请求，在_beforeAction中调用
-     * @param array  $data
+     * @param int $ret
+     * @param string $msg
+     * @param string $data
      * @param string $formater
-     * @return void
      */
     public function beforeEnd($ret = 0, string $msg = '', $data = '', string $formater = 'json') {
     	if(is_object(Application::getApp())) {
@@ -135,7 +149,7 @@ trait AppTrait {
 
     /**
      * getRequest 
-     * @return mixed
+     * @return \Swoole\Http\Request
      */
     public function getRequest() {
     	return $this->request;
@@ -143,7 +157,7 @@ trait AppTrait {
 
     /**
      * getResponse 
-     * @return mixed
+     * @return \Swoole\Http\Response
      */
     public function getResponse() {
     	return $this->response;
@@ -201,7 +215,7 @@ trait AppTrait {
     }
 
     /**
-     * getPostParmams 获取Post参数
+     * getPostParams 获取Post参数
      * @param  string|null $name
      * @return mixed
      */

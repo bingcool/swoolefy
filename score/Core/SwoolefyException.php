@@ -45,7 +45,7 @@ class SwoolefyException {
 
 	/**
      * appException 自定义异常处理
-     * @param mixed $e 异常对象
+     * @param \Throwable $e 异常对象
      */
     public static function appException($e) {
         $error = array();
@@ -65,11 +65,11 @@ class SwoolefyException {
 
     /**
      * appError 获取用户程序错误
-     * @param    int       $errorNo
-     * @param    string    $errorString
-     * @param    string    $errorFile
-     * @param    int       $errorLine
-     * @return   void
+     * @param  int    $errorNo
+     * @param  string $errorString
+     * @param  string $errorFile
+     * @param  int    $errorLine
+     * @return void
      */
     public static function appError($errorNo, $errorString, $errorFile, $errorLine) {
     	$errorStr = "{$errorString} in file {$errorFile} on line {$errorLine} ";

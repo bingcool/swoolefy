@@ -14,6 +14,8 @@ namespace Swoolefy\Core;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\ZModel;
 use Swoolefy\Core\AppInit;
+use Swoole\Http\Request;
+use Swoole\Http\Response;
 use Swoolefy\Core\HttpRoute;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Application;
@@ -27,36 +29,37 @@ class App extends \Swoolefy\Core\Component {
 
     /**
 	 * $request 当前请求的对象
-	 * @var \Swoole\Http\Request
+	 * @var Request
 	 */
 	public $request = null;
-	
+
 	/**
 	 * $response 当前请求的响应对象
-	 * @var \Swoole\Http\Response
+	 * @var Response
 	 */
 	public $response = null;
 
 	/**
 	 * $app_conf 当前应用层的配置
-	 * @var null
+	 * @var array
 	 */
 	public $app_conf = null;
 
 	/**
 	 * $coroutine_id 
-	 * @var null
+	 * @var int
 	 */
 	public $coroutine_id;
 
     /**
      * $controllerInstance 控制器实例
-     * @var null
+     * @var BController
      */
     protected $controllerInstance = null;
 
     /**
      * $log 日志
+     * @var array
      */
     protected $logs = [];
 
@@ -67,22 +70,24 @@ class App extends \Swoolefy\Core\Component {
 
     /**
      * $is_defer
-     * @var boolean
+     * @var bool
      */
     protected $is_defer = false;
 
 	/**
 	 * __construct
-	 * @param  array $config 应用层配置
+	 * @param array $config 应用层配置
 	 */
 	public function __construct(array $conf = []) {
 		$this->app_conf = $conf;
 	}
 
-	/**
-	 * init 初始化函数
-	 * @return void
-	 */
+    /**
+     * init 初始化函数
+     * @param Request $request
+     * @return void
+     * @throws \Exception
+     */
 	protected function _init($request) {
 		AppInit::init($request);
 		if(isset($this->app_conf['session_start']) && $this->app_conf['session_start']) {
@@ -93,7 +98,7 @@ class App extends \Swoolefy\Core\Component {
 	} 
 
 	/**
-	 * boostrap 初始化引导
+	 * bootstrap 初始化引导
 	 */
 	protected function _bootstrap($request) {
         $conf = BaseServer::getConf();
@@ -190,10 +195,10 @@ class App extends \Swoolefy\Core\Component {
 
 	/**
 	 * afterRequest 请求结束后注册钩子执行操作
-	 * @param	mixed   $callback 
-	 * @param	boolean $prepend
-     * @throws  \Exception
-	 * @return	void
+	 * @param callable $callback
+	 * @param boolean $prepend
+     * @throws \Exception
+	 * @return void
 	 */
 	public function afterRequest(callable $callback, bool $prepend = false) {
 		if(is_callable($callback)) {
@@ -235,7 +240,7 @@ class App extends \Swoolefy\Core\Component {
 
     /**
      * getCid
-     * @return  mixed
+     * @return int
      */
     public function getCid() {
         return $this->coroutine_id;
@@ -260,6 +265,7 @@ class App extends \Swoolefy\Core\Component {
 
     /**
      * handleLog
+     * @return void
      */
     public function handleLog() {
         // log send
@@ -275,7 +281,7 @@ class App extends \Swoolefy\Core\Component {
 
     /**
      *pushComponentPools
-     * @return 
+     * @return bool
      */
     public function pushComponentPools() {
         if(empty($this->component_pools) || empty($this->component_pools_obj_ids)) {
@@ -296,6 +302,7 @@ class App extends \Swoolefy\Core\Component {
 
     /**
      * setEnd
+     * @return void
      */
     public function setEnd() {
         $this->is_end = true;

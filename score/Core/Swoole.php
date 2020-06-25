@@ -74,7 +74,7 @@ class Swoole extends BaseObject {
 	}
 
 	/**
-	 * boostrap 初始化引导
+	 * bootstrap 初始化引导
 	 */
 	protected function _bootstrap($recv = null) {
 		static::bootstrap($recv);
@@ -259,6 +259,7 @@ class Swoole extends BaseObject {
 
     /**
      * handleLog
+     * @return void
      */
     public function handleLog() {
         // log send

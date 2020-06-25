@@ -96,7 +96,7 @@ class EventController extends BaseObject {
 
     /**
      * getCid
-     * @return  mixed
+     * @return mixed
      */
     public function getCid() {
         return $this->coroutine_id;
@@ -177,6 +177,7 @@ class EventController extends BaseObject {
 
     /**
      * handleLog
+     * @return void
      */
     public function handleLog() {
         // log send
@@ -192,7 +193,7 @@ class EventController extends BaseObject {
 
     /**
      *pushComponentPools
-     * @return 
+     * @return boolean
      */
     public function pushComponentPools() {
         if(!empty($this->component_pools) || !empty($this->component_pools_obj_ids)) {
@@ -215,7 +216,7 @@ class EventController extends BaseObject {
 	/**
 	 * beforeAction 在处理实际action之前执行
      * EventController不会执行该动作,所以继承于EventController其他类不要调用该method
-	 * @return   mixed
+	 * @return boolean
 	 */
 	public function _beforeAction() {
 		return true;
@@ -223,7 +224,7 @@ class EventController extends BaseObject {
 
 	/**
 	 * afterAction 在返回数据之前执行
-	 * @return   mixed
+	 * @return boolean
 	 */
 	public function _afterAction() {
 		return true;
@@ -231,6 +232,7 @@ class EventController extends BaseObject {
 
 	/**
 	 * setEnd
+     * @return void
 	 */
 	public function setEnd() {
 		$this->is_end = true;
@@ -273,7 +275,7 @@ class EventController extends BaseObject {
     }
 
     /**
-     * @return bool
+     * @return boolean
      */
     public function isDefer() {
         return $this->is_defer;

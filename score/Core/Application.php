@@ -24,7 +24,7 @@ class Application {
 
     /**
      * setApp
-     * @param $object
+     * @param App|Swoole
      * @return boolean
      * @throws \Exception
      */

@@ -29,9 +29,9 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 
 	/**
 	 * onWorkerStart 
-	 * @param   Server  $server
-	 * @param   int     $worker_id 
-	 * @return  void
+	 * @param Server $server
+	 * @param int  $worker_id
+	 * @return void
 	 */
     abstract public function onWorkerStart($server, $worker_id);
 
@@ -58,22 +58,22 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 
 	/**
 	 * onPipeMessage 
-	 * @param    Server  $server
-	 * @param    int     $src_worker_id
-	 * @param    mixed   $message
-	 * @return   void
+	 * @param  Server  $server
+	 * @param  int     $src_worker_id
+	 * @param  mixed   $message
+	 * @return void
 	 */
     abstract public function onPipeMessage($server, $from_worker_id, $message);
 
 	/**
 	 * onTask 异步任务处理
-     * @param    Server  $server
-	 * @param    int  $task_id
-	 * @param    int  $from_worker_id
-	 * @param    mixed $data
-     * @param    mixed $task
-     * @throws   \Throwable
-	 * @return   void
+     * @param  Server  $server
+	 * @param  int  $task_id
+	 * @param  int  $from_worker_id
+	 * @param  mixed $data
+     * @param  mixed $task
+     * @throws \Throwable
+	 * @return void
 	 */
 	public function onTask($server, $task_id, $from_worker_id, $data, $task = null) {
 	    try {
@@ -97,10 +97,10 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 
 	/**
 	 * onFinish
-     * @param    Server $server
-	 * @param    int   $task_id
-	 * @param    mixed $data
-	 * @return   void
+     * @param  Server $server
+	 * @param  int   $task_id
+	 * @param  mixed $data
+	 * @return void
 	 */
 	public function onFinish($server, $task_id, $data) {}
 

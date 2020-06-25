@@ -17,7 +17,7 @@ use Swoolefy\Core\BaseServer;
 trait ServiceTrait {
 	/**
 	 * getMasterId 获取当前服务器主进程的PID
-	 * @return   int
+	 * @return int
 	 */
 	public static function getMasterPid() {
 		return Swfy::getServer()->master_pid;
@@ -25,7 +25,7 @@ trait ServiceTrait {
 
 	/**
 	 * getManagerId 获取当前服务器管理进程的PID
-	 * @return   int
+	 * @return int
 	 */
 	public static function getManagerPid() {
 		return Swfy::getServer()->manager_pid;
@@ -46,7 +46,7 @@ trait ServiceTrait {
 
 	/**
 	 * getCurrentWorkerId 获取当前处理的worker_id
-	 * @return   int
+	 * @return int
 	 */
 	public static function getCurrentWorkerId() {
 		$workerId = Swfy::getServer()->worker_id;
@@ -55,7 +55,7 @@ trait ServiceTrait {
 
 	/**
 	 * getConnections 获取服务器当前所有的连接
-	 * @return  object 
+	 * @return object
 	 */
 	public static function getConnections() {
 		return Swfy::getServer()->connections;
@@ -63,7 +63,7 @@ trait ServiceTrait {
 
 	/**
 	 * getWorkersPid 获取当前所有worker_pid与worker的映射
-	 * @return   array
+	 * @return array
 	 */
 	public static function getWorkersPid() {
 		return BaseServer::getWorkersPid();
@@ -71,7 +71,7 @@ trait ServiceTrait {
 
 	/**
 	 * getLastError 获取最近一次的错误代码
-	 * @return   int 
+	 * @return int
 	 */
 	public static function getLastError() {
 		return Swfy::getServer()->getLastError();
@@ -79,7 +79,7 @@ trait ServiceTrait {
 
 	/**
 	 * getStats 获取swoole的状态
-	 * @return   array
+	 * @return array
 	 */
 	public static function getSwooleStats() {
 		return Swfy::getServer()->stats();
@@ -87,7 +87,7 @@ trait ServiceTrait {
 
 	/**
 	 * getLocalIp 获取ip,不包括端口
-	 * @return   array
+	 * @return array
 	 */
 	public static function getLocalIp() {
 		return swoole_get_local_ip();
@@ -95,7 +95,7 @@ trait ServiceTrait {
 
 	/**
 	 * getIncludeFiles 获取swoole启动时,worker启动前已经include内存的文件
-	 * @return   array|boolean
+	 * @return array|boolean
 	 */
 	public static function getInitIncludeFiles($dir = null) {
 	    $result = false;
@@ -120,7 +120,7 @@ trait ServiceTrait {
 
 	/**
 	 * getIncludeFiles 获取执行到目前action为止，swoole server中的该worker中内存中已经加载的class文件
-	 * @return  array 
+	 * @return array
 	 */
 	public static function getIncludeFiles() {
 		$includeFiles = get_included_files();
@@ -133,7 +133,7 @@ trait ServiceTrait {
 
     /**
      * @param $server
-     * @return bool
+     * @return boolean
      */
 	public static function setSwooleServer($server) {
 	    if(is_object($server)) {
@@ -145,7 +145,7 @@ trait ServiceTrait {
 
     /**
      * @param array $conf
-     * @param bool
+     * @param boolean
      */
 	public static function setConf(array $conf) {
         if(is_array($conf)) {
@@ -221,8 +221,8 @@ trait ServiceTrait {
 
 	/**
 	 * isTaskProcess 进程是否是task进程
+     * @return boolean
      * @throws \Exception
-	 * @return boolean
 	 */
 	public static function isTaskProcess() {
 		$server = Swfy::getServer();

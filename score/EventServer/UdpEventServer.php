@@ -42,10 +42,10 @@ class UdpEventServer extends \Swoolefy\Udp\UdpEventServer {
 
 	/**
 	 * onPipeMessage 
-	 * @param    object  $server
-	 * @param    int     $src_worker_id
-	 * @param    mixed   $message
-	 * @return   void
+	 * @param object $server
+	 * @param int $src_worker_id
+	 * @param mixed $message
+	 * @return void
 	 */
 	public function onPipeMessage($server, $from_worker_id, $message) {}
 

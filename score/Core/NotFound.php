@@ -11,8 +11,6 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Application;
-
 class NotFound extends BService {
     /**
      * return404 类文件找不到处理
@@ -23,7 +21,7 @@ class NotFound extends BService {
 	public function return404(string $class) {
         $response = ['ret'=>404, 'msg'=>"Class {$class} is not found", 'data'=>''];
 		if(BaseServer::isRpcApp()) {
-			$is_same_packet_struct = $this->serverClientPacketstructSame();
+			$is_same_packet_struct = $this->serverClientPacketStructSame();
             if($is_same_packet_struct) {
                 $fd = Application::getApp()->getFd();
                 $header = $this->getRpcPackHeader();
@@ -47,7 +45,7 @@ class NotFound extends BService {
 	public function return500(string $class, string $action) {
         $response = ['ret'=>500, 'msg'=>"Call undefined number function of {$class}::{$action}", 'data'=>''];
 		if(BaseServer::isRpcApp()) {
-			$is_same_packet_struct = $this->serverClientPacketstructSame();
+			$is_same_packet_struct = $this->serverClientPacketStructSame();
 			if($is_same_packet_struct) {
 				$fd = Application::getApp()->getFd();
 				$header = $this->getRpcPackHeader();
@@ -69,7 +67,7 @@ class NotFound extends BService {
 	public function returnError(string $msg) {
         $response = ['ret'=>500, 'msg'=>$msg, 'data'=>''];
 		if(BaseServer::isRpcApp()) {
-			$is_same_packet_struct = $this->serverClientPacketstructSame();
+			$is_same_packet_struct = $this->serverClientPacketStructSame();
 			if($is_same_packet_struct) {
 				$fd = Application::getApp()->getFd();
 				$header = $this->getRpcPackHeader();
@@ -84,10 +82,10 @@ class NotFound extends BService {
 	}
 
 	/**
-	 * serverClientPacketstructSame 头部结构体是否相同，相同才能直接获取返回，否则要根据client端header_struct的定义生产header头部信息
+	 * serverClientPacketStructSame 头部结构体是否相同，相同才能直接获取返回，否则要根据client端header_struct的定义生产header头部信息
 	 * @return boolean
 	 */
-	protected function serverClientPacketstructSame() {
+	protected function serverClientPacketStructSame() {
 		$conf = Swfy::getConf();
 		$server_pack_header_struct = $conf['packet']['server']['pack_header_struct'];
 		$client_pack_header_struct = $conf['packet']['client']['pack_header_struct'];

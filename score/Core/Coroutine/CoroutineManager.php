@@ -22,7 +22,7 @@ class CoroutineManager {
 
 	/**
 	 * isEnableCoroutine 
-	 * @return   boolean
+	 * @return boolean
 	 */
 	public  function canEnableCoroutine() {
         return true;
@@ -30,7 +30,7 @@ class CoroutineManager {
 	
 	/**
 	 * getMainCoroutineId 获取协程的id
-	 * @return 
+	 * @return int
 	 */
 	public function getCoroutineId() {
 		// 大于4.2.x版本,建议使用版本
@@ -44,6 +44,7 @@ class CoroutineManager {
 
     /**
      * 是否是协程环境
+     * @return boolean
      */
 	public function isCoroutine() {
 	    if(\Co::getCid() > 0) {
@@ -53,8 +54,8 @@ class CoroutineManager {
     }
 
 	/**
-	 * getCoroutinStatus 
-	 * @return   array
+	 * getCoroutineStatus
+	 * @return array
 	 */
 	public function getCoroutineStatus() {
 		// 大于4.x版本
@@ -69,7 +70,7 @@ class CoroutineManager {
 
 	/**
 	 * listCoroutines 遍历当前进程内的所有协程(swoole4.1.0+版本支持)
-	 * @return mixed
+	 * @return array
 	 */
 	public function listCoroutines() {
 		if(method_exists('Swoole\\Coroutine', 'list')) {

@@ -65,8 +65,8 @@ class Swfy extends \Swoolefy\Core\BaseObject {
 
 	/**
 	 * __call
-     * @throws   \Exception
-	 * @return   void
+     * @return void
+     * @throws \Exception
 	 */
 	public function __call($action, $args = []) {
 		// stop exec
@@ -75,8 +75,8 @@ class Swfy extends \Swoolefy\Core\BaseObject {
 
 	/**
 	 * __callStatic
-     * @throws   \Exception
-	 * @return   void
+     * @return void
+     * @throws \Exception
 	 */
 	public static function __callStatic($action, $args = []) {
 		// stop exec

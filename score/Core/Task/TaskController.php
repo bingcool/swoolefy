@@ -17,13 +17,13 @@ use Swoolefy\Core\EventController;
 class TaskController extends EventController {
     /**
      * $task_id 任务的ID
-     * @var null
+     * @var int
      */
     public $task_id;
 
 	/**
 	 * $from_worker_id 记录当前任务from的woker投递
-	 * @var null
+	 * @var int
 	 */
 	public $from_worker_id;
 

@@ -59,7 +59,7 @@ class Context {
 
     /**
      * @param $name
-     * @return bool
+     * @return boolean
      * @throws \Exception
      */
     public static function get($name) {
@@ -72,7 +72,7 @@ class Context {
 
     /**
      * @param $name
-     * @return bool
+     * @return boolean
      * @throws \Exception
      */
     public static function has($name) {
