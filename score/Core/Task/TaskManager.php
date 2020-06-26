@@ -31,6 +31,7 @@ class TaskManager {
 	 * finish 异步任务完成，退出至worker进程
 	 * @param mixed $data
 	 * @param mixed $task
+     * @return void
 	 */
 	public static function finish($data = null, $task = null) {
 		AsyncTask::finish($data, $task);
@@ -40,6 +41,7 @@ class TaskManager {
 	 * registerTaskFinish 异步任务完成，退出至worker进程
 	 * @param mixed $data
 	 * @param mixed $task
+     * @return void
 	 */
 	public static function registerTaskFinish($data = null, $task = null) {
 		AsyncTask::registerTaskfinish($data, $task);

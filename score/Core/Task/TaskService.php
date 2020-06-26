@@ -22,7 +22,7 @@ class TaskService extends BService {
     public $task_id;
 
     /**
-     * $from_worker_id 记录当前任务from的woker投递
+     * $from_worker_id 记录当前任务from的worssker投递
      * @var int
      */
     public $from_worker_id;
@@ -85,7 +85,7 @@ class TaskService extends BService {
 
     /**
      * getTask
-     * return mixed
+     * return \Swoole\Server\Task
      */
     public function getTask() {
         return $this->task;

@@ -29,8 +29,7 @@
         "ext-pcntl" : "*",
         "ext-posix" : "*",
         "ext-sockets": "*",
-        "ext-zend-opcache": "*",
-        "ext-apcu": "*"
+        "ext-zend-opcache": "*"
     },
     "autoload": {
         "files": ["score/core/Func/function.php"],
