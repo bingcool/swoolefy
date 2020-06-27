@@ -114,7 +114,7 @@ class EventController extends BaseObject {
         }
 		$exists = Application::issetApp($coroutine_id);
 		if($exists) {
-			throw new \Exception("You haved created EventApp Instance, yon can only registerApp once, so you can't ceate secornd in same coroutine");
+			throw new \Exception("You had created EventApp Instance, yon can only registerApp once, so you can't create same coroutine");
 		}
 		return true;
 	}
@@ -249,7 +249,7 @@ class EventController extends BaseObject {
 		$this->setEnd();
 		// call hook callable
 		static::_afterAction();
-        // callhooks
+        // callHooks
         $this->callAfterEventHook();
         // handle log
         $this->handleLog();

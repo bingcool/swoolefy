@@ -263,7 +263,7 @@ trait ComponentTrait {
     /**
      * @param string $name
      * @return bool|mixed
-     * @throws \Exception
+     * @throws Exception
      */
     final public function get(string $name) {
         $app_conf = BaseServer::getAppConf();
@@ -303,11 +303,12 @@ trait ComponentTrait {
 
     }
 
-	/**
-	 * __get
-	 * @param string $name
-	 * @return mixed
-	 */
+    /**
+     * __get
+     * @param string $name
+     * @return mixed
+     * @throws \Exception
+     */
 	public function __get($name) {
         return $this->get($name);
 	}

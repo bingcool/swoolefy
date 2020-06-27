@@ -15,7 +15,7 @@ use  Swoolefy\Core\Coroutine\CoroutineManager;
 
 class ZModel {
 	/**
-	 * $_instance
+	 * $_model_instances
 	 * @var array
 	 */
 	protected static $_model_instances = [];

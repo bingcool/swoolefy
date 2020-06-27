@@ -14,7 +14,6 @@ namespace Swoolefy\Core;
 interface EventCtrlInterface {
 	/**
 	 * init start之前初始化
-	 * @param  $args
 	 * @return void
 	 */
 	public function init();

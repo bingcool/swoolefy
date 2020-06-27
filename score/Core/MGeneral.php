@@ -144,7 +144,7 @@ class MGeneral extends \Swoolefy\Core\AppObject {
      * @param   int  $length
      * @param   bool  $number 只添加数字
      * @param   array  $ignore 忽略某些字符串
-     * @return string
+     * @return  string
      */
     public static function string(int $length = 8, bool $is_number = false, array $ignore = []) {
         //字符池
@@ -171,9 +171,9 @@ class MGeneral extends \Swoolefy\Core\AppObject {
 
     /**
      * idHash 按id计算散列值
-     * @param   int  $uid
-     * @param   int  $base
-     * @return integer
+     * @param  int $uid
+     * @param  int $base
+     * @return int
      */
     public static function idHash($uid, $base = 100) {
         return intval($uid / $base);
