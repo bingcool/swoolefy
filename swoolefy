@@ -652,7 +652,7 @@ function write($msg, $foreground = "red", $background = "black") {
     // Create new Colors class
     static $colors;
     if(!isset($colors)) {
-        $colors = new \Swoolefy\Tool\EachColor();
+        $colors = new \Swoolefy\Util\EachColor();
     }
     echo $colors->getColoredString($msg, $foreground, $background) . "\n\n";
 }
@@ -705,7 +705,7 @@ $config_content =
 return [
     'components' => [
         'log' => [
-            'class' => \Swoolefy\Tool\Log::class,
+            'class' => \Swoolefy\Util\Log::class,
             'channel' => 'application',
             'logFilePath' => rtrim(LOG_PATH,'/').'/runtime.log'
         ]

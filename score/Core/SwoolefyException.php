@@ -111,7 +111,7 @@ class SwoolefyException {
             @file_put_contents($logFilePath,'');
         }
 
-        $log = new \Swoolefy\Tool\Log;
+        $log = new \Swoolefy\Util\Log;
 
         switch($errorType) {
             case SwoolefyException::EXCEPTION_ERR:

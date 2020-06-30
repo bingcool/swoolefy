@@ -44,7 +44,7 @@ defined('ROUTE_MODEL_QUERY_PARAMS') or define('ROUTE_MODEL_QUERY_PARAMS', 2);
 // 定义版本
 defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '4.3.1');
 
-class MPHP {
+class Constants {
 
 	/**
 	 * swoolefy框架的版本

@@ -5,7 +5,7 @@
  * @license http://www.yiiframework.com/license/
  */
 
-namespace Swoolefy\Tool\ArrayHelper;
+namespace Swoolefy\Util\ArrayHelper;
 
 /**
  * ArrayHelper provides additional array functionality that you can use in your

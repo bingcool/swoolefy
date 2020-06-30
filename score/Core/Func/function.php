@@ -77,7 +77,7 @@ function _each(string $msg, string $foreground = "red", string $background = "bl
     // Create new Colors class
     static $colors;
     if(!isset($colors)) {
-        $colors = new \Swoolefy\Tool\EachColor();
+        $colors = new \Swoolefy\Util\EachColor();
     }
     echo $colors->getColoredString($msg, $foreground, $background);
 }

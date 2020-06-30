@@ -9,7 +9,7 @@
 +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Tool;
+namespace Swoolefy\Util;
 
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Log\Logger;

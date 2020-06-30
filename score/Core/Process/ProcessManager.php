@@ -71,7 +71,7 @@ class ProcessManager {
                 throw $exception;
             }
         }else{
-            throw new \Exception("you can not add the same process : $processName", 1);
+            throw new \Exception("You can not add the same process : $processName");
         }
 	}
 

@@ -5,7 +5,7 @@
  * @license http://www.yiiframework.com/license/
  */
 
-namespace Swoolefy\Tool\ArrayHelper;
+namespace Swoolefy\Util\ArrayHelper;
 
 /**
  * Object that represents the replacement of array value while performing [[ArrayHelper::merge()]].

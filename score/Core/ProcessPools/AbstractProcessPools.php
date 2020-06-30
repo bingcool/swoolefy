@@ -204,7 +204,7 @@ abstract class AbstractProcessPools {
      */
     public function sendMessage($msg = null, int $worker_id = null) {
         if(!$msg) {
-            throw new \Exception('param $msg can not be null or empty', 1);   
+            throw new \Exception('Param of msg can not be null or empty');
         }
         if($worker_id == null) {
             $worker_id = $this->bind_worker_id;
