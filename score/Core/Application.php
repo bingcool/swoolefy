@@ -114,7 +114,7 @@ class Application {
 		if($coroutine_id) {
 			$cid = $coroutine_id;
 		}
-		if(isset(self::$app[$cid])) {
+		if(isset(self::$app[$cid]) && self::$app[$cid] instanceof EventController) {
 			return true;
 		}else {
 			return false;

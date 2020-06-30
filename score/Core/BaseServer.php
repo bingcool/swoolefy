@@ -649,11 +649,11 @@ class BaseServer {
      * @return void
      */
     public static function catchException($e) {
-    	$exceptionHanderClass = 'Swoolefy\\Core\\SwoolefyException';
-    	if(isset(self::$config['exception_handler'])) {
-			$exceptionHanderClass = self::$config['exception_handler'];
+    	$exceptionHandlerClass = '\\Swoolefy\\Core\\SwoolefyException';
+    	if(isset(self::$config['exception_handler']) && !empty(self::$config['exception_handler'])) {
+			$exceptionHandlerClass = self::$config['exception_handler'];
 		}
-        $exceptionHanderClass::appException($e);
+        $exceptionHandlerClass::appException($e);
     }
 
     /**
