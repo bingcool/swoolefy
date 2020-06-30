@@ -108,7 +108,7 @@ components => [
     // 其他的组件都可以通过闭包回调创建
     // 数组配置型log组件
     'log' => [
-        'class' => \Swoolefy\Tool\Log::class,
+        'class' => \Swoolefy\Util\Log::class,
         'channel' => 'application',
         'logFilePath' => rtrim(LOG_PATH,'/').'/runtime.log'
     ],
@@ -116,7 +116,7 @@ components => [
     'log' => function($name) {
         $channel= 'application';
         $logFilePath = rtrim(LOG_PATH,'/').'/runtime.log';
-        $log = new \Swoolefy\Tool\Log($channel, $logFilePath);
+        $log = new \Swoolefy\Util\Log($channel, $logFilePath);
         return $log;
     },
 ]

@@ -5,7 +5,7 @@
  * @license http://www.yiiframework.com/license/
  */
 
-namespace Swoolefy\Tool\ArrayHelper;
+namespace Swoolefy\Util\ArrayHelper;
 
 /**
  * InvalidParamException represents an exception caused by invalid parameters passed to a method.

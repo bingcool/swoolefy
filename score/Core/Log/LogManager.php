@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Core\Log;
 
-use \Swoolefy\Tool\Log;
+use \Swoolefy\Util\Log;
 
 class LogManager {
 
@@ -43,7 +43,7 @@ class LogManager {
         string $dateformat = null
     ) {
         if($channel && $logFilePath) {
-            $this->logger = new \Swoolefy\Tool\Log($channel, $logFilePath, $output, $dateformat);
+            $this->logger = new \Swoolefy\Util\Log($channel, $logFilePath, $output, $dateformat);
         }
     }
 

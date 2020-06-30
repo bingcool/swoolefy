@@ -5,10 +5,10 @@
  * @license http://www.yiiframework.com/license/
  */
 
-namespace Swoolefy\Tool\ArrayHelper;
+namespace Swoolefy\Util\ArrayHelper;
 
-use Swoolefy\Tool\ArrayHelper\Arrayable;
-use Swoolefy\Tool\ArrayHelper\InvalidParamException;
+use Swoolefy\Util\ArrayHelper\Arrayable;
+use Swoolefy\Util\ArrayHelper\InvalidParamException;
 
 /**
  * BaseArrayHelper provides concrete implementation for [[ArrayHelper]].

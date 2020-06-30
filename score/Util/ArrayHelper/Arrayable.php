@@ -5,7 +5,7 @@
  * @license http://www.yiiframework.com/license/
  */
 
-namespace Swoolefy\Tool\ArrayHelper;
+namespace Swoolefy\Util\ArrayHelper;
 
 /**
  * Arrayable is the interface that should be implemented by classes who want to support customizable representation of their instances.

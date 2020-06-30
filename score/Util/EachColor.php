@@ -9,7 +9,7 @@
 +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Tool;
+namespace Swoolefy\Util;
 
 class EachColor {
     private $foreground_colors = [];
