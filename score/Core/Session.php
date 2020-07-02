@@ -12,7 +12,7 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Application;
-use Swoolefy\Core\MGeneral;
+use Swoolefy\Util\Helper;
 
 class Session {
     /**
@@ -113,14 +113,14 @@ class Session {
             $app->afterRequest([$this,'save']);
         }
 
-        $driver_compenent_name = $this->cache_driver;
-        $this->driver = $app->get($driver_compenent_name);
+        $driver_component_name = $this->cache_driver;
+        $this->driver = $app->get($driver_component_name);
         $this->isStart = true;
         $this->readonly = $readonly;
         $cookie_session_id = isset($app->request->cookie[$this->cookie_key]) ? $app->request->cookie[$this->cookie_key] : null;
         $this->session_id = $cookie_session_id;
         if(empty($cookie_session_id)) {
-            $sess_id = MGeneral::randMd5(40);
+            $sess_id = Helper::randMd5(40);
             $app->response->cookie($this->cookie_key, $sess_id, time() + $this->cookie_lifetime, $this->cookie_path, $this->cookie_domain, false, false);
             $this->session_id = $sess_id;
         }

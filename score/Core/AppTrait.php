@@ -530,20 +530,20 @@ trait AppTrait {
 	/**
 	 * returnJson
 	 * @param    array  $data    
-	 * @param    string  $formater
+	 * @param    string  $formatter
 	 * @return   void         
 	 */
-	public function returnJson(array $data = [], string $formater = 'json') {
-        $this->jsonSerialize($data, $formater);
+	public function returnJson(array $data = [], string $formatter = 'json') {
+        $this->jsonSerialize($data, $formatter);
 	}
 
     /**
      * jsonSerialize
      * @param array $data
-     * @param string $formater
+     * @param string $formatter
      */
-	public function jsonSerialize(array $data = [], string $formater = 'json') {
-        switch(strtoupper($formater)) {
+	public function jsonSerialize(array $data = [], string $formatter = 'json') {
+        switch(strtoupper($formatter)) {
             case 'JSON':
                 $this->response->header('Content-Type','application/json; charset=utf-8');
                 $json_string = json_encode($data, JSON_UNESCAPED_UNICODE);
@@ -676,47 +676,11 @@ trait AppTrait {
 	}
 
 	/**
-	 * asyncHttpClient 简单的模拟http异步并发请求
-	 * @param    array   $urls 
-	 * @param    int     $timeout 单位ms
-	 * @return   boolean
-	 */
-	public function asyncHttpClient(array $urls = [], int $timeout = 500) {
-		if(!empty($urls)) {
-			$conn = [];
-			$mh = curl_multi_init();
-			foreach($urls as $i => $url) {
-				$conn[$i] = curl_init($url);
-					curl_setopt($conn[$i], CURLOPT_CUSTOMREQUEST, "GET");
-				  	curl_setopt($conn[$i], CURLOPT_HEADER ,0);
-				  	curl_setopt($conn[$i], CURLOPT_SSL_VERIFYPEER, FALSE);
-					curl_setopt($conn[$i], CURLOPT_SSL_VERIFYHOST, FALSE);
-					curl_setopt($conn[$i], CURLOPT_NOSIGNAL, 1);
-					curl_setopt($conn[$i], CURLOPT_TIMEOUT_MS, $timeout);   
-				  	curl_setopt($conn[$i], CURLOPT_RETURNTRANSFER, true);
-				  	curl_multi_add_handle($mh,$conn[$i]);
-			}
-
-			do {   
-  				curl_multi_exec($mh,$active);   
-			}while ($active);
-
-			foreach ($urls as $i => $url) {   
-  				curl_multi_remove_handle($mh,$conn[$i]);   
-  				curl_close($conn[$i]);   
-			}
-			curl_multi_close($mh);
-			return true;
-		}
-		return false;
-	}
-
-	/**
      * getRefererUrl 获取当前页面的上一级页面的来源url
      * @return mixed
      */
     public function getRefererUrl() {
-        return $this->request->server['HTTP_REFERER'];
+        return $this->request->server['HTTP_REFERER'] ?? '';
     }
 
 	/**
@@ -851,6 +815,153 @@ trait AppTrait {
         }
 
         return $exp[0] . '(' . $exp[1] . ')';
+    }
+
+    /**
+     * getOS 客户端操作系统信息
+     * @return  string
+     */
+    public static function getClientOS() {
+        $agent = Application::getApp()->request->server['HTTP_USER_AGENT'];
+
+        if (preg_match('/win/i', $agent) && preg_match('/nt 6.1/i', $agent))
+        {
+            $clientOS = 'Windows 7';
+        }
+        elseif (preg_match('/win/i', $agent) && preg_match('/nt 10.0/i', $agent))
+        {
+            $clientOS = 'Windows 10';
+        }
+        elseif (preg_match('/win/i', $agent) && preg_match('/nt 6.2/i', $agent))
+        {
+            $clientOS = 'Windows 8';
+        }
+        elseif (preg_match('/linux/i', $agent) && preg_match('/android/i', $agent))
+        {
+            $clientOS = 'Android';
+        }elseif(preg_match('/iPhone/i', $agent)) {
+            $clientOS = 'Ios';
+        }
+        elseif (preg_match('/linux/i', $agent))
+        {
+            $clientOS = 'Linux';
+        }
+        elseif (preg_match('/unix/i', $agent))
+        {
+            $clientOS = 'Unix';
+        }
+        elseif (preg_match('/win/i', $agent) && preg_match('/nt 5.1/i', $agent))
+        {
+            $clientOS = 'Windows XP';
+        }
+        elseif(preg_match('/win/i', $agent) && strpos($agent, '95'))
+        {
+            $clientOS = 'Windows 95';
+        }
+        elseif (preg_match('/win 9x/i', $agent) && strpos($agent, '4.90'))
+        {
+            $clientOS = 'Windows ME';
+        }
+        elseif (preg_match('/win/i', $agent) && preg_match('/98/i', $agent))
+        {
+            $clientOS = 'Windows 98';
+        }
+        elseif (preg_match('/win/i', $agent) && preg_match('/nt 6.0/i', $agent))
+        {
+            $clientOS = 'Windows Vista';
+        }
+        elseif (preg_match('/win/i', $agent) && preg_match('/nt 5/i', $agent))
+        {
+            $clientOS = 'Windows 2000';
+        }
+        elseif (preg_match('/win/i', $agent) && preg_match('/nt/i', $agent))
+        {
+            $clientOS = 'Windows NT';
+        }
+        elseif (preg_match('/win/i', $agent) && preg_match('/32/i', $agent))
+        {
+            $clientOS = 'Windows 32';
+        }
+        elseif (preg_match('/linux/i', $agent) && preg_match('/android/i', $agent))
+        {
+            $clientOS = 'Android';
+        }elseif(preg_match('/iPhone/i', $agent)) {
+            $clientOS = 'Ios';
+        }
+        elseif (preg_match('/linux/i', $agent))
+        {
+            $clientOS = 'Linux';
+        }
+        elseif (preg_match('/unix/i', $agent))
+        {
+            $clientOS = 'Unix';
+        }
+        elseif (preg_match('/sun/i', $agent) && preg_match('/os/i', $agent))
+        {
+            $clientOS = 'SunOS';
+        }
+        elseif (preg_match('/ibm/i', $agent) && preg_match('/os/i', $agent))
+        {
+            $clientOS = 'IBM OS/2';
+        }
+        elseif (preg_match('/Mac/i', $agent) && preg_match('/PC/i', $agent))
+        {
+            $clientOS = 'Macintosh';
+        }
+        elseif (preg_match('/PowerPC/i', $agent))
+        {
+            $clientOS = 'PowerPC';
+        }
+        elseif (preg_match('/AIX/i', $agent))
+        {
+            $clientOS = 'AIX';
+        }
+        elseif (preg_match('/HPUX/i', $agent))
+        {
+            $clientOS = 'HPUX';
+        }
+        elseif (preg_match('/NetBSD/i', $agent))
+        {
+            $clientOS = 'NetBSD';
+        }
+        elseif (preg_match('/BSD/i', $agent))
+        {
+            $clientOS = 'BSD';
+        }
+        elseif (preg_match('/OSF1/i', $agent))
+        {
+            $clientOS = 'OSF1';
+        }
+        elseif (preg_match('/IRIX/i', $agent))
+        {
+            $clientOS = 'IRIX';
+        }
+        elseif (preg_match('/FreeBSD/i', $agent))
+        {
+            $clientOS = 'FreeBSD';
+        }
+        elseif (preg_match('/teleport/i', $agent))
+        {
+            $clientOS = 'teleport';
+        }
+        elseif (preg_match('/flashget/i', $agent))
+        {
+            $clientOS = 'flashget';
+        }
+        elseif (preg_match('/webzip/i', $agent))
+        {
+            $clientOS = 'webzip';
+        }
+        elseif (preg_match('/offline/i', $agent))
+        {
+            $clientOS = 'offline';
+        }
+        else
+        {
+            $clientOS = 'Unknown';
+        }
+
+        return $clientOS;
     }
 
 	/**
