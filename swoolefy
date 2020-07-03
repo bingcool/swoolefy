@@ -111,13 +111,13 @@ function initCheck() {
     try{
        if(version_compare(phpversion(),'7.2.0','<')) {
             write("
-                [error] php version must >= 7.2.0, current php version = ".phpversion()
+                [Error] php version must >= 7.2.0, current php version = ".phpversion()
             );
             exit();
         }
         if(version_compare(swoole_version(),'4.4.5','<')) {
             write("
-                [error] the swoole version must >= 4.4.5, current swoole version = ".swoole_version()
+                [Error] the swoole version must >= 4.4.5, current swoole version = ".swoole_version()
             );
             exit();
         }
@@ -149,7 +149,7 @@ function createProject($server_name) {
     global $APP_NAMES;
     $app_root_dir = START_DIR_ROOT."/{$app_name}";
     if(is_dir($app_root_dir)) {
-        write("You haved create {$app_name} project dir");
+        write("You had create {$app_name} project dir");
         exit();
     }
 
@@ -226,7 +226,7 @@ function startServer($server_name) {
                         startUdp($app_name);
                     break;
                 default:
-                    write("protocol is not in 【'http','websocket','rpc','udp'】");
+                    write("Protocol is not in 【'http','websocket','rpc','udp'】");
                     break;
             }
         }
@@ -243,7 +243,7 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer') {
     foreach(SWOOLEFY_ENVS as $env) {
         $config_file = $path."/config-{$env}.php";
         if(!file_exists($config_file)) {
-            copy(SCORE_DIR_ROOT.'/score/Http/config.php', $config_file);
+            copy(SCORE_DIR_ROOT.'/src/Http/config.php', $config_file);
         }
     }
 
@@ -251,7 +251,7 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer') {
     if(!file_exists($event_server_file)) {
         $search_str = "protocol\\http";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/score/EventServer/{$event_server_file_name}.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/src/EventServer/{$event_server_file_name}.php");
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
         file_put_contents($event_server_file, $file_content_string);
@@ -282,7 +282,7 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer') {
     }
 
     if(!isset($config['app_conf'])) {
-        write("Error:protocol/{$app_name}/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
+        write("[Error] protocol/{$app_name}/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
         exit();
     }
 
@@ -302,7 +302,7 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
     foreach(SWOOLEFY_ENVS as $env) {
         $config_file = $path."/config-{$env}.php";
         if(!file_exists($config_file)) {
-            copy(SCORE_DIR_ROOT.'/score/Websocket/config.php', $config_file);
+            copy(SCORE_DIR_ROOT.'/src/Websocket/config.php', $config_file);
         }
     }
 
@@ -310,7 +310,7 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
     if(!file_exists($event_server_file)) {
         $search_str = "protocol\\websocket";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/score/EventServer/{$event_server_file_name}.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/src/EventServer/{$event_server_file_name}.php");
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
         file_put_contents($event_server_file, $file_content_string);
@@ -341,7 +341,7 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
     }
 
     if(!isset($config['app_conf'])) {
-        write("Error:protocol/{$app_name}/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
+        write("[Error] protocol/{$app_name}/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
         exit();
     }
 
@@ -361,7 +361,7 @@ function startRpc($app_name, $event_server_file_name = 'RpcServer') {
     foreach(SWOOLEFY_ENVS as $env) {
         $config_file = $path."/config-{$env}.php";
         if(!file_exists($config_file)) {
-            copy(SCORE_DIR_ROOT.'/score/Rpc/config.php', $config_file);
+            copy(SCORE_DIR_ROOT.'/src/Rpc/config.php', $config_file);
         }
     }
 
@@ -369,7 +369,7 @@ function startRpc($app_name, $event_server_file_name = 'RpcServer') {
     if(!file_exists($event_server_file)) {
         $search_str = "protocol\\rpc";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/score/EventServer/{$event_server_file_name}.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/src/EventServer/{$event_server_file_name}.php");
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
         file_put_contents($event_server_file, $file_content_string);
@@ -400,7 +400,7 @@ function startRpc($app_name, $event_server_file_name = 'RpcServer') {
     }
 
     if(!isset($config['app_conf'])) {
-        write("Error:protocol/{$app_name}/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
+        write("[Error] protocol/{$app_name}/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
         exit();
     }
 
@@ -420,7 +420,7 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer') {
     foreach(SWOOLEFY_ENVS as $env) {
         $config_file = $path."/config-{$env}.php";
         if(!file_exists($config_file)) {
-            copy(SCORE_DIR_ROOT.'/score/Udp/config.php', $config_file);
+            copy(SCORE_DIR_ROOT.'/src/Udp/config.php', $config_file);
         }
     }
 
@@ -428,7 +428,7 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer') {
     if(!file_exists($event_server_file)) {
         $search_str = "protocol\\udp";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/score/EventServer/{$event_server_file_name}.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/src/EventServer/{$event_server_file_name}.php");
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
         file_put_contents($event_server_file, $file_content_string);
@@ -459,7 +459,7 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer') {
     }
     
     if(!isset($config['app_conf'])) {
-        write("Error:protocol/{$app_name}/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
+        write("[Error] protocol/{$app_name}/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
         exit();
     }
 
@@ -500,14 +500,14 @@ function stopServer($app_name) {
     // 如果'reload_async' => true,，则默认workerStop有30s的过度期停顿这个时间稍微会比较长，设置成60过期
     $nowtime = time();
     write("
-        server begin to stopping at ".date("Y-m-d H:i:s").". please wait a moment..."
+        Server begin to stopping at ".date("Y-m-d H:i:s").". please wait a moment..."
     );
     while(true) {
         sleep(1);
         if(!\Swoole\Process::kill($pid, 0)) {
             write("
         ---------------------stop info-------------------\n    
-        server stop  successful. server stop at ".date("Y-m-d H:i:s")
+        Server stop  successful. server stop at ".date("Y-m-d H:i:s")
             );
             @unlink($pid_file);
             break;
@@ -548,11 +548,11 @@ function reloadServer($app_name) {
     // 发送信号，reload只针对worker进程
     \Swoole\Process::kill($pid, SIGUSR1);
     write(
-        "server worker process begin to reload at ".date("Y-m-d H:i:s").". please wait a moment..."
+        "Server worker process begin to reload at ".date("Y-m-d H:i:s").". please wait a moment..."
     );
     sleep(2);
     write(
-        "server worker process reload successful at ".date("Y-m-d H:i:s"),
+        "Server worker process reload successful at ".date("Y-m-d H:i:s"),
         'light_green'
     );
     
@@ -814,23 +814,5 @@ class RunStart {
     }
 }
 
-// 默认直接下载使用模式
-// 如通过composer安装的形式，需要将该代码重新引入，请看文档
-// @see https://www.kancloud.cn/bingcoolhuang/php-swoole-swoolefy/587504
-// if(USERD_ENV == 'direct') {
-//     $RunStart = RunStart::getInstance();
-//     $RunStart->run(function($action) {
-//         // 启动之后可以在这实现回调，记录启动日志
-//         //var_dump($action);
-//     });
-// }
-
-$RunStart = RunStart::getInstance();
-$RunStart->run(function($action) {
-    // 启动之后可以在这实现回调，记录启动日志
-    //var_dump($action);
-});
-
-
-
-
+$runStart = RunStart::getInstance();
+$runStart->run();

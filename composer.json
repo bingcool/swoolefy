@@ -32,9 +32,9 @@
         "ext-zend-opcache": "*"
     },
     "autoload": {
-        "files": ["score/Constants.php","score/core/Func/function.php"],
+        "files": ["src/Constants.php","src/core/Func/function.php"],
         "psr-4": {
-            "Swoolefy\\": "score/"
+            "Swoolefy\\": "src/"
         }
     },
     "require-dev": {
