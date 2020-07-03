@@ -70,7 +70,7 @@ class BaseServer {
     /**
      * @var string 默认启动处理类
      */
-	protected static $start_hander_class = 'Swoolefy\\Core\\EventHandler';
+	protected static $start_handler_class = 'Swoolefy\\Core\\EventHandler';
 
     /**
      * $startCtrl
@@ -818,11 +818,11 @@ class BaseServer {
      * @throws \Exception
      */
     public static function eventHandler() {
-        $starHandlerClass = isset(self::$config['event_handler']) ? self::$config['event_handler'] : self::$start_hander_class;
-        if(self::isSubclassOf($starHandlerClass, self::$start_hander_class)) {
+        $starHandlerClass = isset(self::$config['event_handler']) ? self::$config['event_handler'] : self::$start_handler_class;
+        if(self::isSubclassOf($starHandlerClass, self::$start_handler_class)) {
            return new $starHandlerClass();
         }
-        throw new \Exception("Error:Config item of 'event_handler'=>{$starHandlerClass} must extends ".self::$start_hander_class);
+        throw new \Exception("Error:Config item of 'event_handler'=>{$starHandlerClass} must extends ".self::$start_handler_class);
     }
 
     /**

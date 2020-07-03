@@ -264,7 +264,7 @@ class HttpRoute extends AppDispatch {
                 return false;
             }
         }else {
-            $error_msg = "Controller file is exited, but has undefined {$class}::{$action} method";
+            $error_msg = "Controller file is exited, but call undefined {$class}::{$action} method";
             $this->response->status(404);
             $this->response->header('Content-Type', 'application/json; charset=UTF-8');
             $this->app->beforeEnd(404, $error_msg);

@@ -38,11 +38,11 @@ class Swfy extends \Swoolefy\Core\BaseObject {
 	/**
 	 * $com_alias_name 动态创建组件对象
 	 * @param string $com_alias_name
-	 * @param mixed  $defination
+	 * @param mixed  $definition
 	 * @return mixed
 	 */
-	public static function createComponent(string $com_alias_name, $defination = []) {
-		return Application::getApp()->creatObject($com_alias_name, $defination);
+	public static function createComponent(string $com_alias_name, $definition = []) {
+		return Application::getApp()->creatObject($com_alias_name, $definition);
 	}
 
 	/**

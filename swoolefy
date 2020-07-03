@@ -485,7 +485,7 @@ function stopServer($app_name) {
     $pid_file = $config['setting']['pid_file'];
 
     if(!is_file($pid_file)) {
-        write("[error] pid file {$pid_file} is not exist, please check the server whether or not running");
+        write("[error] pid file {$pid_file} is not exist, please check the server whether running");
         return;
     }
 
