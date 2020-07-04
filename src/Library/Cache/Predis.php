@@ -9,7 +9,7 @@
 +----------------------------------------------------------------------
 */
 
-namespace Swoolefy\Core\Cache;
+namespace Swoolefy\Library\Cache;
 
 use Predis\Client;
 

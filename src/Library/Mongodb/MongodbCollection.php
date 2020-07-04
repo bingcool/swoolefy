@@ -9,7 +9,7 @@
 +----------------------------------------------------------------------
 */
 
-namespace Swoolefy\Core\Mongodb;
+namespace Swoolefy\Library\Mongodb;
 
 class MongodbCollection {
 

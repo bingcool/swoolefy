@@ -9,7 +9,7 @@
 +----------------------------------------------------------------------
 */
 
-namespace Swoolefy\Core\Db;
+namespace Swoolefy\Library\Db;
 
 class MysqlCoroutine {
     /**
@@ -110,11 +110,11 @@ class MysqlCoroutine {
 	}
 
 	/**execute 执行insert,update,delete操作
-	 * @param    string        $sql
-	 * @param    array         $bingParams
-     * @param    int           $timeout
-     * @throws   mixed
-	 * @return   mixed
+	 * @param  string  $sql
+	 * @param  array   $bingParams
+     * @param  int     $timeout
+     * @throws mixed
+	 * @return mixed
 	 */
 	public function execute(string $sql, array $bindParams = [], int $timeout = 10) {
 		$keys = array_keys($bindParams);
@@ -211,7 +211,7 @@ class MysqlCoroutine {
             return $swoole_mysql;
         }else {
         	$host = $config['host'];
-            throw new \Exception("swoole_mysql connect failed to host:{$host}, please check config");
+            throw new \Exception("Swoole mysql connect failed to host:{$host}, please check config");
         }
 	}
 
