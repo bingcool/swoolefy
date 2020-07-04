@@ -13,7 +13,6 @@ namespace Swoolefy\Core\Timer;
 
 use Swoole\Timer;
 use Swoolefy\Core\Swfy;
-use Swoolefy\Core\Timer\Tick;
 use Swoolefy\Core\Table\TableManager;
 
 class TickManager {

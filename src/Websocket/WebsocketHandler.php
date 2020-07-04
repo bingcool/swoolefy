@@ -84,8 +84,8 @@ class WebsocketHandler extends Swoole implements HandlerInterface {
                 $dispatch->dispatch();
             }
 
-        }catch (\Throwable $t) {
-            throw $t;
+        }catch (\Throwable $throwable) {
+            throw $throwable;
         } finally {
             // 必须执行
             if(!$this->is_defer) {

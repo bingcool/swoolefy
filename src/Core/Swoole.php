@@ -37,13 +37,13 @@ class Swoole extends BaseObject {
 	 * $mixed_params rpc,udp,websocket传递的参数寄存属性
      * @var null
 	 */
-	public $mixed_params;
+	protected $mixed_params;
 
 	/**
 	 * $rpc_pack_header rpc的包头数据
 	 * @var array
 	 */
-	public $rpc_pack_header = [];
+	protected $rpc_pack_header = [];
 
     /**
      * $log 日志
@@ -137,6 +137,27 @@ class Swoole extends BaseObject {
         }
         $this->coroutine_id = $coroutine_id;
         return $this->coroutine_id;
+    }
+
+    /**
+     * @param $mixed_params
+     */
+    public function setMixedParams($mixed_params) {
+        $this->mixed_params = $mixed_params;
+    }
+
+    /**
+     * @param array $rpc_pack_header
+     */
+    public function setRpcPackHeader(array $rpc_pack_header) {
+        $this->rpc_pack_header = $rpc_pack_header;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getMixedParams() {
+        return $this->mixed_params;
     }
 
     /**

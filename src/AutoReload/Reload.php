@@ -238,11 +238,11 @@ class Reload {
     }
 
     /**
-     * setReoloadFileType
+     * setReloadFileType
      * @param array $file_type
      * @return $this
      */
-    public function setReoloadFileType(array $file_type = ['.php']) {
+    public function setReloadFileType(array $file_type = ['.php']) {
         $this->reloadFileTypes = array_merge($this->reloadFileTypes, $file_type);
         return $this;
     }

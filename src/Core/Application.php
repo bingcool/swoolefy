@@ -14,6 +14,9 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Core\App;
 use Swoolefy\Core\Swoole;
 use Swoolefy\Core\Coroutine\CoroutineManager;
+use Swoolefy\Rpc\RpcHandler;
+use Swoolefy\Udp\UdpHandler;
+use Swoolefy\Websocket\WebsocketHandler;
 
 class Application {
 	/**
@@ -124,7 +127,7 @@ class Application {
 	/**
 	 * getApp 
 	 * @param  int|null $coroutine_id
-	 * @return Swoole|App
+	 * @return Swoole|UdpHandler|WebsocketHandler|RpcHandler|App
 	 */
 	public static function getApp($coroutine_id = null) {
 		$cid = CoroutineManager::getInstance()->getCoroutineId();

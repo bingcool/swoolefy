@@ -29,12 +29,6 @@ class ServiceDispatch extends AppDispatch {
 	protected $params = null;
 
 	/**
-	 * $deny_actions 禁止外部直接访问的action
-	 * @var array
-	 */
-	protected static $deny_actions = ['__construct','_beforeAction','_afterAction','__destruct'];
-
-	/**
 	 * __construct 
 	 */
 	public function __construct($callable, $params, $rpc_pack_header = []) {
@@ -42,8 +36,8 @@ class ServiceDispatch extends AppDispatch {
 		parent::__construct();
 		$this->callable = $callable;
 		$this->params = $params;
-		Application::getApp()->mixed_params = $params;
-		Application::getApp()->rpc_pack_header = $rpc_pack_header;
+		Application::getApp()->setMixedParams($params);
+		Application::getApp()->setRpcPackHeader($rpc_pack_header);
 	}
 
     /**
@@ -64,7 +58,7 @@ class ServiceDispatch extends AppDispatch {
 		$class = str_replace('/','\\', $class);
 		/**@var \Swoolefy\Core\Task\TaskService $serviceInstance */
 		$serviceInstance = new $class();
-		$serviceInstance->mixed_params = $this->params;
+		$serviceInstance->setMixedParams($this->params);
 		if(isset($this->from_worker_id) && isset($this->task_id)) {
             $serviceInstance->setFromWorkerId($this->from_worker_id);
             $serviceInstance->setTaskId($this->task_id);

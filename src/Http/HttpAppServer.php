@@ -52,7 +52,7 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
             $appInstance = new \Swoolefy\Core\App($app_conf);
             $appInstance->run($request, $response);
         }catch (\Throwable $throwable) {
-            throw new \Exception($throwable->getMessage());
+            throw $throwable;
         }
 	}
 
@@ -89,8 +89,8 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
                 $taskInstance->end();
             }
             unset($callable, $extend_data, $fd);
-        }catch (\Throwable $t) {
-	        throw new \Exception($t->getMessage());
+        }catch (\Throwable $throwable) {
+	        throw $throwable;
         }
 
 	}

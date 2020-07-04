@@ -32,9 +32,9 @@ class ReloadProcess extends AbstractProcess {
             }
 
             if(isset($reload_config['reload_file_types']) && is_array($reload_config['reload_file_types'])) {
-                $autoReload->setReoloadFileType($reload_config['reload_file_types']);
+                $autoReload->setReloadFileType($reload_config['reload_file_types']);
             }else {
-                $autoReload->setReoloadFileType();
+                $autoReload->setReloadFileType();
             }
 
             if(isset($reload_config['ingore_dirs']) && is_array($reload_config['ingore_dirs'])) {
