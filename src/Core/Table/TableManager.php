@@ -110,30 +110,30 @@ class TableManager {
 
 	/**
 	 * incr 原子自增操作
-	 * @param  string        $table
-	 * @param  string        $key  
-	 * @param  string        $field
-	 * @param  mixed|int $incrby
+	 * @param  string  $table
+	 * @param  string  $key
+	 * @param  string  $field
+	 * @param  mixed|int $incrBy
 	 * @return mixed              
 	 */
-	public static function incr(string $table, string $key, string $field, $incrby = 1) {
-		if(is_int($incrby) || is_float($incrby)) {
-			return BaseServer::$server->tables[$table]->incr($key, $field, $incrby);
+	public static function incr(string $table, string $key, string $field, $incrBy = 1) {
+		if(is_int($incrBy) || is_float($incrBy)) {
+			return BaseServer::$server->tables[$table]->incr($key, $field, $incrBy);
 		}
 		return false;
 	}
 
 	/**
 	 * decr 原子自减操作
-	 * @param  string        $table
-	 * @param  string        $key  
-	 * @param  string        $field
-	 * @param  mixed|int $incrby
+	 * @param  string  $table
+	 * @param  string  $key
+	 * @param  string  $field
+	 * @param  mixed|int $incrBy
 	 * @return mixed              
 	 */
-	public static function decr(string $table, string $key, string $field, $incrby = 1) {
-		if(is_int($incrby) || is_float($incrby)) {
-			return BaseServer::$server->tables[$table]->decr($key, $field, $incrby);
+	public static function decr(string $table, string $key, string $field, $incrBy = 1) {
+		if(is_int($incrBy) || is_float($incrBy)) {
+			return BaseServer::$server->tables[$table]->decr($key, $field, $incrBy);
 		}
 		return false;
 	}
@@ -157,11 +157,9 @@ class TableManager {
 	public static function getTable(string $table = null) {
 		if(isset(BaseServer::$server->tables)) {
 			if($table) {
-				return BaseServer::$server->tables[$table];
+				return BaseServer::$server->tables[$table] ?? null;
 			}
-			return null;
 		}
-
 		return null;
 	}
 
@@ -177,11 +175,10 @@ class TableManager {
 				if(isset(BaseServer::$server->tables[$table])) {
 					return true;
 				}
-				return false;
 			}
-			return false;
 		}
-	}
+        return false;
+    }
 
 	/**
 	 * count 计算表的存在条目数

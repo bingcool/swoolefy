@@ -42,7 +42,7 @@ defined('ROUTE_MODEL_PATHINFO') or define('ROUTE_MODEL_PATHINFO', 1);
 defined('ROUTE_MODEL_QUERY_PARAMS') or define('ROUTE_MODEL_QUERY_PARAMS', 2);
 
 // 定义版本
-defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '4.3.1');
+defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '4.4.0');
 
 class Constants {
 

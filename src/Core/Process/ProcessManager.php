@@ -53,23 +53,30 @@ class ProcessManager {
      * @throws mixed
      * @return mixed
 	 */
-	public static function addProcess(string $processName, string $processClass, bool $async = true, array $args = [], $extend_data = null, bool $enable_coroutine = false) {
+	public static function addProcess(
+	    string $processName,
+        string $processClass,
+        bool $async = true,
+        array $args = [],
+        $extend_data = null,
+        bool $enable_coroutine = false
+    ) {
+        $key = md5($processName);
+        if(isset(self::$processList[$key])){
+            throw new \Exception("You can not add the same process : $processName");
+        }
+
 		if(!TableManager::isExistTable('table_process_map')) {
 			TableManager::getInstance()->createTable(self::$table_process);
 		}
 
-		$key = md5($processName);
-        if(!isset(self::$processList[$key])){
-            try{
-                /**@var AbstractProcess $process */
-                $process = new $processClass($processName, $async, $args, $extend_data, $enable_coroutine);
-                self::$processList[$key] = $process;
-                return true;
-            }catch (\Exception $exception){
-                throw $exception;
-            }
-        }else{
-            throw new \Exception("You can not add the same process : $processName");
+        try{
+            /**@var AbstractProcess $process */
+            $process = new $processClass($processName, $async, $args, $extend_data, $enable_coroutine);
+            self::$processList[$key] = $process;
+            return $process;
+        }catch (\Exception $exception){
+            throw $exception;
         }
 	}
 
@@ -80,11 +87,7 @@ class ProcessManager {
 	 */
 	public static function getProcessByName(string $processName) {
         $key = md5($processName);
-        if(isset(self::$processList[$key])){
-            return self::$processList[$key];
-        }else{
-            return null;
-        }
+        return self::$processList[$key] ?? null;
     }
 
     /**
@@ -136,9 +139,8 @@ class ProcessManager {
                 $data = json_encode($data, JSON_UNESCAPED_UNICODE);
             }
             return (bool)$process->getProcess()->write($data);
-        }else{
-            return false;
         }
+        return false;
     }
 
     /**
