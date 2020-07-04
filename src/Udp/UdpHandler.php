@@ -26,7 +26,7 @@ class UdpHandler extends Swoole implements HandlerInterface {
 	 * $client_info 客户端信息
 	 * @var null
 	 */
-	public $client_info = null;
+	protected $client_info = null;
 
 	/**
 	 * __construct 初始化
@@ -50,6 +50,13 @@ class UdpHandler extends Swoole implements HandlerInterface {
 	 */
 	public function bootstrap($recv) {}
 
+    /**
+     * @return mixed
+     */
+	public function getClientInfo() {
+	    return $this->client_info;
+    }
+
 	/**
 	 * run 完成初始化后，路由匹配和创建访问实例
 	 * @param  int   $fd
@@ -63,39 +70,36 @@ class UdpHandler extends Swoole implements HandlerInterface {
             parent::run($fd = null, $recv);
             $this->client_info = $clientInfo;
             // worker进程
-            if ($this->isWorkerProcess()) {
-                if (is_string($recv)) {
+            if($this->isWorkerProcess()) {
+                if(is_string($recv)) {
                     $packet = explode(self::EOF, $recv);
-                    if (count($packet) == 3) {
+                    if(count($packet) == 3) {
                         list($service, $event, $params) = $packet;
-                        if (is_string($params)) {
-                            $params_arr = json_decode($params, true);
-                            if (is_array($params_arr)) {
-                                $params = $params_arr;
-                            }
+                        if(is_string($params)) {
+                            $params = json_decode($params, true) ?? [];
                         }
-                    } else if (count($packet) == 2) {
+                    }else if(count($packet) == 2) {
                         list($service, $event) = $packet;
-                        $params = null;
-                    } else {
+                        $params = [];
+                    }else {
                         // TODO
                     }
-                } else {
+                }else {
                     // TODO
                 }
 
-                if ($service && $event) {
+                if($service && $event) {
                     $callable = [$service, $event];
                 }
-            } else {
+            }else {
                 // 任务task进程
                 $is_task_process = true;
                 list($callable, $params) = $recv;
             }
 
-            if ($callable) {
+            if($callable) {
                 $dispatch = new ServiceDispatch($callable, $params);
-                if (isset($is_task_process) && $is_task_process === true) {
+                if(isset($is_task_process) && $is_task_process === true) {
                     list($from_worker_id, $task_id, $task) = $extend_data;
                     $dispatch->setFromWorkerIdAndTaskId($from_worker_id, $task_id, $task);
                 }
@@ -103,15 +107,13 @@ class UdpHandler extends Swoole implements HandlerInterface {
             }
         }catch (\Throwable $throwable) {
             throw $throwable;
-
-        } finally {
+        }finally {
             // 必须执行
             if(!$this->is_defer) {
                 parent::end();
             }
             return true;
         }
-
 	}
 
 	/**

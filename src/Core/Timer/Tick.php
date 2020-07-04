@@ -15,7 +15,6 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Table\TableManager;
-use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class Tick {
 	/**

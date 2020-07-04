@@ -17,6 +17,7 @@ use Swoolefy\Core\Hook;
 use Swoolefy\Tcp\TcpServer;
 use Swoolefy\Core\BaseObject;
 use Swoolefy\Core\Application;
+use Swoolefy\Udp\UdpHandler;
 
 class BService extends BaseObject {
 
@@ -36,12 +37,12 @@ class BService extends BaseObject {
 
 	/**
 	 * $mixed_params 
-	 * @var 
+	 * @var mixed
 	 */
-	public $mixed_params;
+	protected $mixed_params;
 
     /**
-     * @var null
+     * @var mixed
      */
 	protected $client_info;
 
@@ -49,11 +50,13 @@ class BService extends BaseObject {
 	 * __construct
 	 */
 	public function __construct() {
+	    /**@var Swoole $app*/
 		$app = Application::getApp();
 		$this->fd = $app->fd;
 		$this->app_conf = $app->app_conf;
 		if(BaseServer::isUdpApp()) {
-			$this->client_info = $app->client_info;
+		    /**@var UdpHandler $app*/
+			$this->client_info = $app->getClientInfo();
 		}
         if(\Co::getCid() > 0) {
 			defer(function() {
@@ -61,6 +64,20 @@ class BService extends BaseObject {
         	});
 		}
 	}
+
+    /**
+     * @param $mixed_params
+     */
+    public function setMixedParams($mixed_params) {
+        $this->mixed_params = $mixed_params;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getMixedParams() {
+        return $this->mixed_params;
+    }
 
 	/**
 	 * return tcp 发送数据
@@ -181,6 +198,13 @@ class BService extends BaseObject {
 	public function getWebsocketMsg() {
 		return Application::getApp()->getWebsocketMsg();
 	}
+
+    /**
+     * @return mixed
+     */
+	public function getClientInfo() {
+	    return $this->client_info;
+    }
 
 	/**
 	 * beforeAction 在处理实际action前执行

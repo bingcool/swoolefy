@@ -15,6 +15,7 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Task\AsyncTaskInterface;
+use Swoolefy\Udp\UdpHandler;
 
 class AsyncTask implements AsyncTaskInterface {
 
@@ -39,7 +40,7 @@ class AsyncTask implements AsyncTaskInterface {
         $fd = is_object(Application::getApp()) ? Application::getApp()->fd : null;
         // udp没有连接概念，存在client_info
         if(BaseServer::isUdpApp()) {
-            $fd = is_object(Application::getApp()) ? Application::getApp()->client_info : null;
+            $fd = is_object(Application::getApp()) ? Application::getApp()->getClientInfo() : null;
         }
         // http的fd其实没有实用意义
         if(BaseServer::isHttpApp()) {
