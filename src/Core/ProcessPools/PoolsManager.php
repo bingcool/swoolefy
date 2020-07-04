@@ -67,7 +67,15 @@ class PoolsManager {
      * @throws \Exception
      * @return void
      */
-    public static function addProcessPools(string $processName, string $processClass, int $process_num_bind_worker = 1, bool $async = true, array $args = [], $extend_data = null, bool $enable_coroutine = false) {
+    public static function addProcessPools(
+        string $processName,
+        string $processClass,
+        int $process_num_bind_worker = 1,
+        bool $async = true,
+        array $args = [],
+        $extend_data = null,
+        bool $enable_coroutine = false
+    ) {
         if(!TableManager::isExistTable('table_process_pools_map')) {
             TableManager::getInstance()->createTable(self::$table_process);
         }
@@ -86,9 +94,7 @@ class PoolsManager {
         for($i = 0; $i < self::$worker_num; $i++) {
             for($j = 0; $j < $process_num_bind_worker; $j++) {
                 try{
-                    /**
-                     * @var AbstractProcessPools $process
-                     */
+                    /**@var AbstractProcessPools $process */
                     $process = new $processClass($processName.'@'.$i.'@'.$j, $async, $args, $extend_data, $enable_coroutine);
                     $process->setBindWorkerId($i);
                     self::$processList[$key][$i][$j] = $process;
@@ -107,21 +113,19 @@ class PoolsManager {
      * @throws \Exception
      */
     public static function getProcessPoolsByName(string $processName, bool $is_all = false) {
-        if(Swfy::isWorkerProcess()) {
-            $worker_id = Swfy::getCurrentWorkerId();
-            $key = md5($processName);
-            if(isset(self::$processList[$key][$worker_id])) {
-                if($is_all) {
-                    return self::$processList[$key][$worker_id];
-                }
-                $k = array_rand(self::$processList[$key][$worker_id]);
-                return self::$processList[$key][$worker_id][$k];
-            }else {
-                return null;
-            }
-        }else {
+        if(!Swfy::isWorkerProcess()) {
             throw new \Exception("PoolsManager::getInstance() can not use in task or self process, only use in worker process");
         }
+        $worker_id = Swfy::getCurrentWorkerId();
+        $key = md5($processName);
+        if(isset(self::$processList[$key][$worker_id])) {
+            if($is_all) {
+                return self::$processList[$key][$worker_id];
+            }
+            $k = array_rand(self::$processList[$key][$worker_id]);
+            return self::$processList[$key][$worker_id][$k];
+        }
+        return null;
     }
 
     /**
@@ -134,7 +138,6 @@ class PoolsManager {
         if(!Swfy::isWorkerProcess()) {
             throw new \Exception("PoolsManager::getInstance() can not use in task or self process, only use in worker process");
         }
-
         $table = TableManager::getTable('table_process_pools_map');
         foreach($table as $key => $item) {
             if($item['pid'] == $pid) {

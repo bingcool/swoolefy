@@ -29,7 +29,8 @@
         "ext-pcntl" : "*",
         "ext-posix" : "*",
         "ext-sockets": "*",
-        "ext-zend-opcache": "*"
+        "ext-zend-opcache": "*",
+        "dragonmantank/cron-expression": "3.0.0"
     },
     "autoload": {
         "files": ["src/Constants.php","src/core/Func/function.php"],

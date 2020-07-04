@@ -17,7 +17,7 @@ class ChannelManager {
 
     use \Swoolefy\Core\SingletonTrait;
 
-    private $list = [];
+    private $lists = [];
 
     /**
      * 创建一个数据Channel
@@ -27,13 +27,13 @@ class ChannelManager {
      * @throws mixed
      */
     public function addChannel(string $name, int $capacity = null) {
-        if(!isset($this->list[$name])) {
+        if(!isset($this->lists[$name])) {
             if($capacity) {
                 $channel = new Channel($capacity);
             }else {
                 $channel = new Channel();
             }
-            $this->list[$name] = $channel;
+            $this->lists[$name] = $channel;
         }
         return $this;
     }
@@ -44,6 +44,6 @@ class ChannelManager {
      * @return Channel
      */
     public function getChannel(string $name) {
-        return $this->list[$name] ?? null;
+        return $this->lists[$name] ?? null;
     }
 }
