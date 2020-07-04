@@ -70,14 +70,14 @@ components => [
             'port'   => 6379,
             'password' => '123456'
         ];
-        $predis = new \Swoolefy\Core\Cache\Predis();
+        $predis = new \Swoolefy\Library\Cache\Predis();
         $predis->setConfig($parameters);
         return $predis;
     },
 
     // swoole的原生协程redis客户端
     'CRedis' => function($name) {
-        $CRedis = new \Swoolefy\Core\Cache\RedisCoroutine();
+        $CRedis = new \Swoolefy\Library\Cache\RedisCoroutine();
         $CRedis->setHost('127.0.0.1')->setPort('6379')->setPassword('123456');
         return $CRedis;
     },
@@ -101,7 +101,7 @@ components => [
             'fetch_more' => true, //开启fetch模式, 可与pdo一样使用fetch/fetchAll逐行或获取全部结果集(4.0版本以上)
         ];
 
-        $cdb = new Swoolefy\Core\Db\MysqlCoroutine();
+        $cdb = new Swoolefy\Library\Db\MysqlCoroutine();
         $cdb->setConfig($config);
         return $cdb;
     },
