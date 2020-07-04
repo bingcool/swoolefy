@@ -9,7 +9,7 @@
 +----------------------------------------------------------------------
 */
 
-namespace Swoolefy\Core\Cache;
+namespace Swoolefy\Library\Cache;
 
 use \Swoole\Coroutine\Redis as CRedis;
 
@@ -82,7 +82,13 @@ class RedisCoroutine {
      * @param array $options
      * @throws \Exception
      */
-	public function __construct($host = null, $port = null, $password = null, bool $deploy = false, array $options = []) {
+	public function __construct(
+	    $host = null,
+        $port = null,
+        $password = null,
+        bool $deploy = false,
+        array $options = []
+    ) {
 		if($host && $port) {
 			$this->setHost($host);
 			$this->setPort($port);

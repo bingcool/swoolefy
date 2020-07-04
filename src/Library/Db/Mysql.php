@@ -9,7 +9,7 @@
 +----------------------------------------------------------------------
 */
 
-namespace Swoolefy\Core\Db;
+namespace Swoolefy\Library\Db;
 
 use Think\Db;
 use Swoolefy\Core\Application;
