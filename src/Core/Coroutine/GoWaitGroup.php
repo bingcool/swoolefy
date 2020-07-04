@@ -38,7 +38,8 @@ class GoWaitGroup {
     }
 
     /**
-     * go
+     * @param \Closure $callBack
+     * @param mixed ...$params
      */
     public function go(\Closure $callBack, ...$params) {
         Coroutine::create(function (...$params) use($callBack) {
@@ -61,7 +62,9 @@ class GoWaitGroup {
     }
 
     /**
-     * done
+     * @param string|null $key
+     * @param null $data
+     * @param float $timeouts
      */
     public function done(string $key = null, $data = null, float $timeout = -1) {
         if(!empty($key) && !empty($data)) {
@@ -71,7 +74,8 @@ class GoWaitGroup {
     }
 
     /**
-     * wait
+     * @param float $timeout
+     * @return array
      */
     public function wait(float $timeout = 0) {
         while($this->count--) {
@@ -85,7 +89,7 @@ class GoWaitGroup {
     /**
      * reset
      */
-    public function reset() {
+    protected function reset() {
         $this->result = [];
         $this->count = 0;
     }

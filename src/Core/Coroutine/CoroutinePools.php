@@ -33,8 +33,6 @@ class CoroutinePools {
             ]
         ],
      *
-     * @param  string  $pool_name 与配置的component_name对应
-     * @param  mixed   $handler
      * @throws mixed
      */
     public function addPool() {

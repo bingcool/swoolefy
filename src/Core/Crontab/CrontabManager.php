@@ -43,7 +43,7 @@ class CrontabManager {
         $cron_name_key = md5($cron_name);
 
         if(isset($this->cron_tasks[$cron_name_key])) {
-            throw new \Exception("cron_name=$cron_name has been seted, you can not set again!");
+            throw new \Exception("Cron name=$cron_name had been setting, you can not set same name again!");
         }
 
         $this->cron_tasks[$cron_name_key] = [$expression, $func];
@@ -52,14 +52,13 @@ class CrontabManager {
             TickManager::tickTimer(1000, $func, $expression);
         }else {
             \Swoole\Timer::tick(1000, function($timer_id, $expression) use($func) {
-                try {
+                try{
                     $cronInstance = new CronController();
                     $cronInstance->runCron($expression, $func);
-                    if(method_exists("Swoolefy\\Core\\Application", 'removeApp')) {
-                        Application::removeApp($cronInstance->coroutine_id);
-                    }
                 }catch (\Throwable $throwable) {
                     throw $throwable;
+                }finally {
+                    Application::removeApp($cronInstance->coroutine_id);
                 }
             }, $expression);
         }

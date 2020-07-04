@@ -22,7 +22,7 @@ class EventHandler extends \Swoolefy\Core\EventCtrl {
 	 */
 	public function onInit() {
 
-	}
+    }
 
 	/**
 	 * onStart 

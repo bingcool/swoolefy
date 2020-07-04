@@ -193,7 +193,7 @@ abstract class AbstractProcess {
         if($worker_id >= 1) {
             $worker_task_total_num = (int)Swfy::getServer()->setting['worker_num'] + (int)Swfy::getServer()->setting['task_worker_num'];
             if($worker_id >= $worker_task_total_num) {
-                throw new \Exception("Worker_id must less than $worker_task_total_num");
+                throw new \Exception("Param of worker_id must <=$worker_task_total_num");
             }
         }
         if(!$msg) {

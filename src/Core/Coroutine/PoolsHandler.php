@@ -10,6 +10,7 @@
  */
 
 namespace Swoolefy\Core\Coroutine;
+
 use Swoole\Coroutine\Channel;
 
 class PoolsHandler {
@@ -18,58 +19,109 @@ class PoolsHandler {
      */
     protected $channel = null;
 
+    /**
+     * @var string
+     */
 	protected $poolName;
 
+    /**
+     * @var int
+     */
 	protected $poolsNum = 30;
 
+    /**
+     * @var int
+     */
 	protected $pushTimeout = 2;
 
+    /**
+     * @var int
+     */
 	protected $popTimeout = 1;
 
+    /**
+     * @var int
+     */
 	protected $callCount = 0;
 
+    /**
+     * @var int
+     */
 	protected $liveTime = 10;
 
+    /**
+     * @param int $poolsNum
+     */
 	public function setPoolsNum(int $poolsNum = 50) {
 		$this->poolsNum = $poolsNum;
 	}
 
+    /**
+     * @return int
+     */
 	public function getPoolsNum() {
 		return $this->poolsNum;
 	}
 
+    /**
+     * @param float $pushTimeout
+     */
 	public function setPushTimeout(float $pushTimeout = 3) {
 	    $this->pushTimeout = $pushTimeout;
     }
 
+    /**
+     * @return int
+     */
     public function getPushTimeout() {
 	    return $this->pushTimeout;
     }
 
+    /**
+     * @param float $popTimeout
+     */
     public function setPopTimeout(float $popTimeout = 1) {
 	    $this->popTimeout = $popTimeout;
     }
 
+    /**
+     * @return int
+     */
     public function getPopTimeout() {
 	    return $this->popTimeout;
     }
 
+    /**
+     * @param int $liveTime
+     */
     public function setLiveTime(int $liveTime) {
 	    $this->liveTime = $liveTime;
     }
 
+    /**
+     * @return int
+     */
     public function getLiveTime() {
 	    return $this->liveTime;
     }
 
+    /**
+     * @return string
+     */
 	public function getPoolName() {
 		return $this->poolName;
 	}
 
+    /**
+     * @return int
+     */
 	public function getCapacity() {
 		return $this->channel->capacity;
 	}
 
+    /**
+     * @return Channel
+     */
 	public function getChannel() {
 		if(isset($this->channel)) {
 			return $this->channel;
@@ -135,14 +187,14 @@ class PoolsHandler {
 			$obj = $this->getObj();
             is_object($obj) && $this->callCount++;
             return $obj;
-		}catch(\Exception $e) {
-			throw $e;
+		}catch(\Exception $exception) {
+			throw $exception;
 		}
 	}
 
 	/**
 	 * getObj 开发者自行实现
-	 * @return
+	 * @return mixed
 	 */
     protected function getObj() {
         // 第一次开始创建对象
@@ -186,7 +238,7 @@ class PoolsHandler {
         for($i=0; $i<$num; $i++) {
             $obj = call_user_func($callFunction, $this->poolName);
             if(!is_object($obj)) {
-                throw new \Exception("components of {$this->poolName} must return object");
+                throw new \Exception("Components of {$this->poolName} must return object");
             }
             $obj->objExpireTime = time() + ($this->liveTime) + rand(1,10);
             $this->channel->push($obj, $this->pushTimeout);
@@ -212,6 +264,7 @@ class PoolsHandler {
         }
 
         if($obj === false || (isset($isTimeOut))) {
+            unset($obj);
             return null;
         }
 

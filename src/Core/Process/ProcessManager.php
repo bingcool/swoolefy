@@ -61,9 +61,7 @@ class ProcessManager {
 		$key = md5($processName);
         if(!isset(self::$processList[$key])){
             try{
-                /**
-                 * @var AbstractProcess $process
-                 */
+                /**@var AbstractProcess $process */
                 $process = new $processClass($processName, $async, $args, $extend_data, $enable_coroutine);
                 self::$processList[$key] = $process;
                 return true;
