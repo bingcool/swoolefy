@@ -102,12 +102,10 @@ class SysProcess extends AbstractProcess {
 	 * @return void
 	 */
 	protected function sendByUdp(array $sys_collector_config, array $data = []) {
-		$udp_client = null;
-		if(!is_object($udp_client)) {
-			$udp_client = new \Swoole\Coroutine\Client(SWOOLE_SOCK_UDP);
-		}
+        $udpClient = new \Swoole\Coroutine\Client(SWOOLE_SOCK_UDP);
 		$host = $sys_collector_config['host'];
 		$port = $sys_collector_config['port'];
+		$timeout = $sys_collector_config['timeout'] ?? 3;
 		$service = $sys_collector_config['target_service'];
 		$event = $sys_collector_config['event'];
 		// 组合消息,udp的数据格式
@@ -118,13 +116,13 @@ class SysProcess extends AbstractProcess {
 		}
 
         try{
-            if(!$udp_client->isConnected()) {
-                $isConnected = $udp_client->connect($host, $port);
+            if(!$udpClient->isConnected()) {
+                $isConnected = $udpClient->connect($host, $port, $timeout);
                 if(!$isConnected) {
                     throw new \Exception("SysProcess::sendByUdp function connect udp is failed");
                 }
             }
-            $udp_client->send($message);
+            $udpClient->send($message);
         }catch(\Throwable $throwable) {
             throw $throwable;
         }
@@ -138,7 +136,6 @@ class SysProcess extends AbstractProcess {
 	 * @return void
 	 */
 	protected function publishBySwooleRedis(array $sys_collector_config, array $data = []) {
-		$redis_client = null;
 		$host = $sys_collector_config['host'];
 		$port = (int)$sys_collector_config['port'];
 		$password = $sys_collector_config['password'];
@@ -146,20 +143,20 @@ class SysProcess extends AbstractProcess {
 
 		$channel = isset($sys_collector_config['channel']) ? $sys_collector_config['channel'] : SWOOLEFY_SYS_COLLECTOR_CHANNEL;
 		go(function() use($host, $port, $password, $timeout, $channel, $data) {
-			$redis_client = new \Swoole\Coroutine\Redis();
-			$redis_client->setOptions([
+            $redisClient = new \Swoole\Coroutine\Redis();
+            $redisClient->setOptions([
 				'connect_timeout'=> $timeout,
 				'timeout'=> -1,
 				'reconnect'=>2
 			]);
-            $redis_client->connect($host, $port);
-            $redis_client->auth($password);
-			$isConnected = $redis_client->connected;
+            $redisClient->connect($host, $port);
+            $redisClient->auth($password);
+			$isConnected = $redisClient->connected;
 			if($isConnected) {
                 if($data) {
                     $message = json_encode($data, JSON_UNESCAPED_UNICODE);
                     try{
-                        $redis_client->publish($channel, $message);
+                        $redisClient->publish($channel, $message);
                     }catch(\Throwable $throwable) {
                         throw $throwable;
                     }
@@ -176,7 +173,6 @@ class SysProcess extends AbstractProcess {
 	 * @return void                      
 	 */
 	protected function publishByPhpRedis(array $sys_collector_config, array $data = []) {
-		$redis_client = null;
 		$host = $sys_collector_config['host'];
 		$port = (int)$sys_collector_config['port'];
 		$password = $sys_collector_config['password'];
@@ -185,22 +181,19 @@ class SysProcess extends AbstractProcess {
 		$channel = isset($sys_collector_config['channel']) ? $sys_collector_config['channel'] : SWOOLEFY_SYS_COLLECTOR_CHANNEL;
 
 		if(!extension_loaded('redis')) {
-			throw new \Exception("because you enable sys_collector, must be install extension of phpredis", 1);	
+			throw new \Exception("Because you enable sys_collector, must be install extension of phpredis", 1);
 		}
 
 		if(empty($host) || empty($port)  || empty($password)) {
-            throw new \Exception('sys_collector_config of phpRedis is wrong, host, port, password of params must be setted');
+            throw new \Exception('Config of sys_collector_config of phpRedis is wrong, host, port, password of params must be setted');
         }
 
-		if(!is_object($redis_client)) {
-			$redis_client = new \Redis();
-		}
-
+        $redisClient = new \Redis();
         try {
-            $redis_client->pconnect($host, $port, $timeout);
-            $redis_client->auth($password);
-            $redis_client->setOption(\Redis::OPT_READ_TIMEOUT, -1);
-            $redis_client->select($database);
+            $redisClient->pconnect($host, $port, $timeout);
+            $redisClient->auth($password);
+            $redisClient->setOption(\Redis::OPT_READ_TIMEOUT, -1);
+            $redisClient->select($database);
         }catch(\Exception $exception) {
             throw $exception;
         }catch (\Throwable $throwable) {
@@ -209,7 +202,7 @@ class SysProcess extends AbstractProcess {
 
 		if($data) {
 			$message = json_encode($data, JSON_UNESCAPED_UNICODE);
-			$redis_client->publish($channel, $message);
+            $redisClient->publish($channel, $message);
 		}
 	}
 
@@ -235,8 +228,16 @@ class SysProcess extends AbstractProcess {
 		}
 	}
 
+    /**
+     * @param mixed $str
+     * @param mixed ...$args
+     * @return mixed|void
+     */
 	public function onReceive($str, ...$args) {}
 
+    /**
+     * @return mixed|void
+     */
 	public function onShutDown() {}
 
 }
