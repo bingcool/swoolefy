@@ -66,12 +66,8 @@ trait AppTrait {
     	if(is_object(Application::getApp())) {
     		Application::getApp()->setEnd();
     	}
-    	$response = [
-    	    'ret' => $ret,
-            'msg' => $msg,
-            'data' => $data
-        ];
-        $this->jsonSerialize($response, $formater);
+    	$responseData = Application::buildResponseData($ret, $msg, $data);
+        $this->jsonSerialize($responseData, $formater);
         $this->response->end();
         return;
     }
@@ -533,8 +529,9 @@ trait AppTrait {
 	 * @param    string  $formatter
 	 * @return   void         
 	 */
-	public function returnJson(array $data = [], string $formatter = 'json') {
-        $this->jsonSerialize($data, $formatter);
+	public function returnJson(array $data = [], $ret=0, $msg='', string $formatter = 'json') {
+        $responseData = Application::buildResponseData($ret, $msg, $data);
+        $this->jsonSerialize($responseData, $formatter);
 	}
 
     /**

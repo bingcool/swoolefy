@@ -115,7 +115,7 @@ class App extends \Swoolefy\Core\Component {
 	 * @param  $request
 	 * @param  $response
      * @throws \Throwable
-	 * @return boolean
+	 * @return mixed
 	 */
 	public function run($request, $response, $extend_data = null) {
 	    try {
@@ -138,7 +138,6 @@ class App extends \Swoolefy\Core\Component {
         		$this->clearStaticVar();
 	            $this->end();
         	}
-            return true;
         }
 	}
 

@@ -78,6 +78,11 @@ class HttpRoute extends AppDispatch {
     private $default_route = 'Index/index';
 
     /**
+     * @var array
+     */
+    protected $actionParams = [];
+
+    /**
 	 * $deny_actions 禁止外部直接访问的action
 	 * @var array
 	 */
@@ -225,49 +230,49 @@ class HttpRoute extends AppDispatch {
             $query_string = isset($this->request->server['QUERY_STRING']) ? '?' . $this->request->server['QUERY_STRING'] : '';
             if(isset($this->request->post) && !empty($this->request->post)) {
                 $post = json_encode($this->request->post, JSON_UNESCAPED_UNICODE);
-                $error_msg = "Call {$class}::_beforeAction() return false, forbiden continue call {$class}::{$action}, please checkout it ||| " . $this->request->server['REQUEST_URI'] . $query_string . ' ||| ' . $post;
+                $errorMsg = "Call {$class}::_beforeAction() return false, forbiden continue call {$class}::{$action}, please checkout it ||| " . $this->request->server['REQUEST_URI'] . $query_string . ' ||| ' . $post;
             }else {
-                $error_msg = "Call {$class}::_beforeAction() return false, forbiden continue call {$class}::{$action}, please checkout it ||| " . $this->request->server['REQUEST_URI'] . $query_string;
+                $errorMsg = "Call {$class}::_beforeAction() return false, forbiden continue call {$class}::{$action}, please checkout it ||| " . $this->request->server['REQUEST_URI'] . $query_string;
             }
-            $this->app->beforeEnd(403, $error_msg);
+            $this->app->beforeEnd(403, $errorMsg);
             return false;
         }
         // 创建reflector对象实例
         $reflector = new \ReflectionClass($controllerInstance);
         if($reflector->hasMethod($action)) {
-            $method = new \ReflectionMethod($controllerInstance, $action);
+            list($method, $args) = $this->bindActionParams($controllerInstance, $action, $this->buildParams());
             if($method->isPublic() && !$method->isStatic()) {
                 try{
                     if($this->extend_data) {
                         $controllerInstance->{$action}($this->extend_data);
                     }else {
-                        $controllerInstance->{$action}();
+                        $controllerInstance->{$action}(...$args);
                     }
                     $controllerInstance->_afterAction($action);
                 }catch (\Throwable $t) {
                     $query_string = isset($this->request->server['QUERY_STRING']) ? '?' . $this->request->server['QUERY_STRING'] : '';
                     if(isset($this->request->post) && !empty($this->request->post)) {
                         $post = json_encode($this->request->post, JSON_UNESCAPED_UNICODE);
-                        $error_msg = $t->getMessage() . ' on ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $this->request->server['REQUEST_URI'] . $query_string . ' ||| ' . $post;
+                        $errorMsg = $t->getMessage() . ' on ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $this->request->server['REQUEST_URI'] . $query_string . ' ||| ' . $post;
                     }else {
-                        $error_msg = $t->getMessage() . ' on ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $this->request->server['REQUEST_URI'] . $query_string;
+                        $errorMsg = $t->getMessage() . ' on ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $this->request->server['REQUEST_URI'] . $query_string;
                     }
                     // 记录错误异常
                     $exceptionClass = $this->app->getExceptionClass();
-                    $exceptionClass::shutHalt($error_msg);
-                    $this->app->beforeEnd(500, $error_msg);
+                    $this->app->beforeEnd(500, $errorMsg);
+                    $exceptionClass::shutHalt($errorMsg);
                     return false;
                 }
             }else {
-                $error_msg = "Class method {$class}::{$action} is protected or private property, can't be called by Controller Instance";
-                $this->app->beforeEnd(500, $error_msg);
+                $errorMsg = "Class method {$class}::{$action} is protected or private property, can't be called by Controller Instance";
+                $this->app->beforeEnd(500, $errorMsg);
                 return false;
             }
         }else {
-            $error_msg = "Controller file is exited, but call undefined {$class}::{$action} method";
+            $errorMsg = "Controller file is exited, but call undefined {$class}::{$action} method";
             $this->response->status(404);
             $this->response->header('Content-Type', 'application/json; charset=UTF-8');
-            $this->app->beforeEnd(404, $error_msg);
+            $this->app->beforeEnd(404, $errorMsg);
             return false;
         }
     }
@@ -345,10 +350,82 @@ class HttpRoute extends AppDispatch {
     }
 
     /**
+     * @param $controllerInstance
+     * @param $action
+     * @param $params
+     * @return array
+     * @throws \ReflectionException
+     */
+    protected function bindActionParams($controllerInstance, $action, $params) {
+        $method = new \ReflectionMethod($controllerInstance, $action);
+        $args = [];
+        $missing = [];
+        $actionParams = [];
+        foreach ($method->getParameters() as $param) {
+            $name = $param->getName();
+            if (array_key_exists($name, $params)) {
+                $isValid = true;
+                if ($param->isArray()) {
+                    $params[$name] = (array)$params[$name];
+                } elseif (is_array($params[$name])) {
+                    $isValid = false;
+                } elseif (
+                    PHP_VERSION_ID >= 70000 &&
+                    ($type = $param->getType()) !== null &&
+                    $type->isBuiltin() &&
+                    ($params[$name] !== null || !$type->allowsNull())
+                ) {
+                    $typeName = PHP_VERSION_ID >= 70100 ? $type->getName() : (string)$type;
+                    switch($typeName) {
+                        case 'int':
+                            $params[$name] = filter_var($params[$name], FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE);
+                            break;
+                        case 'float':
+                            $params[$name] = filter_var($params[$name], FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE);
+                            break;
+                    }
+                    if ($params[$name] === null) {
+                        $isValid = false;
+                    }
+                }
+                if(!$isValid) {
+                    throw new \Exception("Invalid data received for parameter of {$name}".'|||'.$this->request->server['REQUEST_URI']);
+                }
+                $args[] = $actionParams[$name] = $params[$name];
+                unset($params[$name]);
+            }elseif ($param->isDefaultValueAvailable()) {
+                $args[] = $actionParams[$name] = $param->getDefaultValue();
+            }else {
+                $missing[] = $name;
+            }
+        }
+
+        if(!empty($missing)) {
+            throw new \Exception("Missing required parameters of name : ".implode(', ', $missing).'|||'.$this->request->server['REQUEST_URI'].'|||'.json_encode($actionParams, JSON_UNESCAPED_UNICODE));
+        }
+
+        $this->actionParams = $actionParams;
+
+        return [$method, $args];
+    }
+
+    /**
+     * @return array|mixed
+     */
+    protected function buildParams() {
+        $get = isset($this->request->get) ? $this->request->get : [];
+        $post = isset($this->request->post) ? $this->request->post : [];
+        if(empty($post)) {
+            $post = json_decode($this->request->rawContent(), true) ?? [];
+        }
+        $params = $get + $post;
+        return $params;
+    }
+
+    /**
      * __destruct
      */
     public function __destruct() {
         unset($this->app);
     }
-
 }

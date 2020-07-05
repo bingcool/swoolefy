@@ -19,20 +19,22 @@ class NotFound extends BService {
      * @throws \Exception
      */
 	public function return404(string $class) {
-        $response = ['ret'=>404, 'msg'=>"Class {$class} is not found", 'data'=>''];
+	    $ret = 404;
+	    $msg = "Class {$class} is not found";
+        $responseData = Application::buildResponseData($ret, $msg);
 		if(BaseServer::isRpcApp()) {
 			$is_same_packet_struct = $this->serverClientPacketStructSame();
             if($is_same_packet_struct) {
                 $fd = Application::getApp()->getFd();
                 $header = $this->getRpcPackHeader();
-                $this->send($fd, $response, $header);
+                $this->send($fd, $responseData, $header);
             }
 
 		}else if(BaseServer::isWebsocketApp()) {
 			$fd = Application::getApp()->getFd();
-			$this->push($fd, $response, $opcode = 1, $finish = true);
+			$this->push($fd, $responseData, $opcode = 1, $finish = true);
 		}
-		return $response;
+		return $responseData;
 	}
 
     /**
@@ -43,19 +45,21 @@ class NotFound extends BService {
      * @throws \Exception
      */
 	public function return500(string $class, string $action) {
-        $response = ['ret'=>500, 'msg'=>"Call undefined number function of {$class}::{$action}", 'data'=>''];
+	    $ret = 500;
+	    $msg = "Call undefined function of {$class}::{$action}";
+        $responseData = Application::buildResponseData($ret, $msg);
 		if(BaseServer::isRpcApp()) {
 			$is_same_packet_struct = $this->serverClientPacketStructSame();
 			if($is_same_packet_struct) {
 				$fd = Application::getApp()->getFd();
 				$header = $this->getRpcPackHeader();
-				$this->send($fd, $response, $header);
+				$this->send($fd, $responseData, $header);
 			}
 		}else if(BaseServer::isWebsocketApp()) {
 			$fd = Application::getApp()->getFd();
-			$this->push($fd, $response, $opcode = 1, $finish = true);
+			$this->push($fd, $responseData, $opcode = 1, $finish = true);
 		}
-		return $response;
+		return $responseData;
 	}
 
     /**
@@ -65,20 +69,21 @@ class NotFound extends BService {
      * @throws \Exception
      */
 	public function returnError(string $msg) {
-        $response = ['ret'=>500, 'msg'=>$msg, 'data'=>''];
-		if(BaseServer::isRpcApp()) {
+        $ret = 500;
+        $responseData = Application::buildResponseData($ret, $msg);
+        if(BaseServer::isRpcApp()) {
 			$is_same_packet_struct = $this->serverClientPacketStructSame();
 			if($is_same_packet_struct) {
 				$fd = Application::getApp()->getFd();
 				$header = $this->getRpcPackHeader();
-				$this->send($fd, $response, $header);
+				$this->send($fd, $responseData, $header);
 			}
 
 		}else if(BaseServer::isWebsocketApp()) {
 			$fd = Application::getApp()->getFd();
-			$this->push($fd, $response, $opcode = 1, $finish = true);
+			$this->push($fd, $responseData, $opcode = 1, $finish = true);
 		}
-		return $response;
+		return $responseData;
 	}
 
 	/**

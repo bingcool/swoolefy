@@ -40,12 +40,12 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 	 * @param  Request  $request
 	 * @param  Response  $response
      * @throws \Throwable
-	 * @return void
+	 * @return boolean
 	 */
 	public function onRequest($request, $response) {
 		if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
             $response->end();
-            return;
+            return true;
        	}
        	try {
             $app_conf = \Swoolefy\Core\Swfy::getAppConf();
@@ -92,7 +92,6 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
         }catch (\Throwable $throwable) {
 	        throw $throwable;
         }
-
 	}
 
 	/**

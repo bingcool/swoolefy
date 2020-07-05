@@ -99,11 +99,10 @@ class BService extends BaseObject {
             $text = \Swoolefy\Tcp\TcpServer::pack($data);
             return Swfy::getServer()->send($fd, $text);
         }
-		
 	}
 
 	/**
-	 * sendto udp 发送数据
+	 * sendTo udp 发送数据
 	 * @param  string $ip
 	 * @param  int    $port
 	 * @param  mixed  $data
@@ -111,9 +110,9 @@ class BService extends BaseObject {
      * @throws \Exception
 	 * @return mixed
 	 */
-	public function sendto($ip, $port, $data, $server_socket = -1) {
+	public function sendTo($ip, $port, $data, $server_socket = -1) {
 		if(!BaseServer::isUdpApp()) {
-            throw new \Exception("BService::sendto() this method only can be called by udp server!");
+            throw new \Exception("BService::sendTo() this method only can be called by udp server!");
         }
         if(is_array($data)){
             $data = json_encode($data, JSON_UNESCAPED_UNICODE);
