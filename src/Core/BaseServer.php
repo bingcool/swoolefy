@@ -155,23 +155,23 @@ class BaseServer {
 		}
 
 		if(!extension_loaded('swoole')) {
-			throw new \Exception("you are not install swoole extentions,please install swoole(suggest 4.2.0+) from https://github.com/swoole/swoole-src", 1);
+			throw new \Exception("Missing install swoole extentions,please install swoole(suggest 4.2.0+) from https://github.com/swoole/swoole-src", 1);
 		}
 
 		if(!extension_loaded('pcntl')) {
-			throw new \Exception("you are not install pcntl extentions,please install it", 1);
+			throw new \Exception("Missing install pcntl extentions,please install it", 1);
 		}
 
 		if(!extension_loaded('posix')) {
-			throw new \Exception("you are not install posix extentions,please install it", 1);
+			throw new \Exception("Missing install posix extentions,please install it", 1);
 		}
 
 		if(!extension_loaded('zlib')) {
-			throw new \Exception("you are not install zlib extentions,please install it", 1);
+			throw new \Exception("Missing install zlib extentions,please install it", 1);
 		}
 
 		if(!extension_loaded('mbstring')) {
-			throw new \Exception("you are not install mbstring extentions,please install it", 1);
+			throw new \Exception("Missing install mbstring extentions,please install it", 1);
 		}
 	}
 
@@ -552,7 +552,7 @@ class BaseServer {
 	public static function checkSapiEnv() {
         // Only for cli.
         if(php_sapi_name() != 'cli') {
-            throw new \Exception("swoolefy only run in command line mode \n", 1);
+            throw new \Exception("Swoolefy only run in command line mode \n", 1);
         }
     }
 
@@ -590,7 +590,7 @@ class BaseServer {
     public static function isPackLength() {
     	if(self::$pack_check_type == self::PACK_CHECK_LENGTH) {
     		if(!isset(static::$config['packet']['server'])) {
-    			throw new \Exception("if you want to use RPC server, you must set ['packet']['server'] in the config", 1);
+    			throw new \Exception("If you want to use RPC server, you must set ['packet']['server'] in the config", 1);
     		}
     		return true;
     	}
