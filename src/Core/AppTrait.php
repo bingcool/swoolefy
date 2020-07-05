@@ -60,14 +60,14 @@ trait AppTrait {
      * @param int $ret
      * @param string $msg
      * @param string $data
-     * @param string $formater
+     * @param string $formatter
      */
-    public function beforeEnd($ret = 0, string $msg = '', $data = '', string $formater = 'json') {
+    public function beforeEnd($ret = 0, string $msg = '', $data = '', string $formatter = 'json') {
     	if(is_object(Application::getApp())) {
     		Application::getApp()->setEnd();
     	}
     	$responseData = Application::buildResponseData($ret, $msg, $data);
-        $this->jsonSerialize($responseData, $formater);
+        $this->jsonSerialize($responseData, $formatter);
         $this->response->end();
         return;
     }
@@ -466,9 +466,7 @@ trait AppTrait {
 		// 从内存数组中返回
 		if(!isset($this->selfModel[$modelClass])) {
             try{
-                /**
-                 * @var BModel $modelInstance
-                 */
+                /**@var BModel $modelInstance */
                 $modelInstance = new $modelClass;
                 $this->selfModel[$modelClass] = $modelInstance;
             }catch(\Exception $exception) {
@@ -523,12 +521,12 @@ trait AppTrait {
 		Application::getApp()->view->display($template_file);
 	}
 
-	/**
-	 * returnJson
-	 * @param    array  $data    
-	 * @param    string  $formatter
-	 * @return   void         
-	 */
+    /**
+     * @param array $data
+     * @param int $ret
+     * @param string $msg
+     * @param string $formatter
+     */
 	public function returnJson(array $data = [], $ret=0, $msg='', string $formatter = 'json') {
         $responseData = Application::buildResponseData($ret, $msg, $data);
         $this->jsonSerialize($responseData, $formatter);
@@ -543,22 +541,22 @@ trait AppTrait {
         switch(strtoupper($formatter)) {
             case 'JSON':
                 $this->response->header('Content-Type','application/json; charset=utf-8');
-                $json_string = json_encode($data, JSON_UNESCAPED_UNICODE);
+                $jsonString = json_encode($data, JSON_UNESCAPED_UNICODE);
                 break;
             default:
-                $json_string = json_encode($data, JSON_UNESCAPED_UNICODE);
+                $jsonString = json_encode($data, JSON_UNESCAPED_UNICODE);
                 break;
         }
 
-        if(strlen($json_string) > 2 * 1024 * 1024){
-            $chunks = str_split($json_string,2 * 1024 * 1024);
-            unset($json_string);
-            foreach ($chunks as $k=>$chunk) {
+        if(strlen($jsonString) > 2 * 1024 * 1024){
+            $chunks = str_split($jsonString,2 * 1024 * 1024);
+            unset($jsonString);
+            foreach($chunks as $k=>$chunk) {
                 $this->response->write($chunk);
                 unset($chunks[$k]);
             }
         }else{
-            $this->response->write($json_string);
+            $this->response->write($jsonString);
         }
     }
 
@@ -578,7 +576,7 @@ trait AppTrait {
 	 * @param    string  $url
 	 * @return   array
 	 */
-	public function parseUri(string $url) {
+	public function parseUrl(string $url) {
         $res = parse_url($url);
         $return['protocol'] = $res['scheme'];
         $return['host'] = $res['host'];
@@ -599,7 +597,7 @@ trait AppTrait {
 	 * @return   void
 	 */
 	public function redirect(string $url, array $params = [], int $code = 301) {
-		$query_string = '';
+        $queryString = '';
 		trim($url);
 		if(strpos($url, 'http') === false || strpos($url, 'https') === false || strpos($url, 'http') != 0 || strpos($url, 'https') != 0) {
 			if(strpos($url, '/') != 0) {
@@ -611,16 +609,10 @@ trait AppTrait {
 		}		
 		if($params) {
 			if(strpos($url,'?') > 0) {
-				foreach($params as $name=>$value) {
-					$query_string .= '&'.$name.'='.$value;
-				}
+                $queryString = http_build_query($params);
 			}else {
-				$query_string = '?';
-				foreach($params as $name=>$value) {
-					$query_string .= $name.'='.$value.'&';
-				}
-
-				$query_string = rtrim($query_string,'&');
+                $queryString = '?';
+                $queryString .= http_build_query($params);
 			}
 		}
 		if(is_object(Application::getApp())) {
@@ -628,10 +620,10 @@ trait AppTrait {
 		}
 		// 发送Http跳转,调用此方法会自动end发送并结束响应,4.2.0+版本支持
 		if(version_compare(swoole_version(), '4.4.5', '>')) {
-			$this->response->redirect($url.$query_string, $code);
+			$this->response->redirect($url.$queryString, $code);
 		}else {
 			$this->status($code);
-			$this->response->header('Location', $url.$query_string);
+			$this->response->header('Location', $url.$queryString);
 			$this->response->end();
 		}
 	}
@@ -733,7 +725,7 @@ trait AppTrait {
      * @param   string  $path 有效路径
      * @param   string  $domain 有效域名
      * @param   boolean $secure Cookie是否仅仅通过安全的HTTPS连接传给客户端
-     * @param   boolean $httponly 设置成TRUE，Cookie仅可通过HTTP协议访问
+     * @param   boolean $httpOnly 设置成TRUE，Cookie仅可通过HTTP协议访问
      * @return  mixed
      */
     public function setCookie(
@@ -743,9 +735,9 @@ trait AppTrait {
         string $path = '/',
         string $domain = '',
         bool $secure = false,
-        bool $httponly = false
+        bool $httpOnly = false
     ) {
-        $this->response->cookie($key, $value, $expire, $path, $domain, $secure, $httponly);
+        $this->response->cookie($key, $value, $expire, $path, $domain, $secure, $httpOnly);
         return $this->response;
     }
 
@@ -1024,7 +1016,7 @@ trait AppTrait {
 			$this->response->status($code);
 		}else {
 			if(!IS_PRD_ENV()) {
-				$this->response->write('error: '.$code .'is not a standard http code');
+				$this->response->write('Error: '.$code .'is not a standard http code');
 			}
 		}
 	}	

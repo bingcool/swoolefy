@@ -84,13 +84,13 @@ class ServiceDispatch extends AppDispatch {
                 return false;
 			}
 		}catch(\Throwable $t) {
-			$msg = $t->getMessage().' on '.$t->getFile().' on line '.$t->getLine().' ||| '.$class.'::'.$action.' ||| '.json_encode($this->params,JSON_UNESCAPED_UNICODE);
+			$errorMsg = $t->getMessage().' on '.$t->getFile().' on line '.$t->getLine().' ||| '.$class.'::'.$action.' ||| '.json_encode($this->params,JSON_UNESCAPED_UNICODE);
 			if(Swfy::isWorkerProcess()) {
-                $this->getErrorHandle()->returnError($msg);
+                $this->getErrorHandle()->returnError($errorMsg);
             }
             // 记录错误异常
             $exceptionClass = Application::getApp()->getExceptionClass();
-            $exceptionClass::shutHalt($msg);
+            $exceptionClass::shutHalt($errorMsg);
             return false;
 		}
 		

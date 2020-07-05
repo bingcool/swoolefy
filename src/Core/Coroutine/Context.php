@@ -81,7 +81,6 @@ class Context {
             if(isset($context[$name])) {
                 return true;
             }
-            return false;
         }
         return false;
     }
