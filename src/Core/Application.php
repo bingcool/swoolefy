@@ -158,6 +158,20 @@ class Application {
 		return true;	
 	}
 
+    /**
+     * @param int $ret
+     * @param string $msg
+     * @param string $data
+     * @return array
+     */
+	public static function buildResponseData($ret = 0, string $msg = '', $data = '') {
+	    return [
+            'ret' => $ret,
+            'msg' => $msg,
+            'data' => $data
+        ];
+    }
+
 	/**
 	 * __destruct
 	 */

@@ -149,7 +149,7 @@ trait ModelTrait {
      * @param   string  $path 有效路径
      * @param   string  $domain 有效域名
      * @param   boolean $secure Cookie是否仅仅通过安全的HTTPS连接传给客户端
-     * @param   boolean $httponly 设置成TRUE，Cookie仅可通过HTTP协议访问
+     * @param   boolean $httpOnly 设置成TRUE，Cookie仅可通过HTTP协议访问
      * @return  mixed
      */
     public function setCookie(
@@ -159,9 +159,9 @@ trait ModelTrait {
         string $path = '/',
         string $domain = '',
         bool $secure = false,
-        bool $httponly = false
+        bool $httpOnly = false
     ) {
-        $this->response->cookie($key, $value, $expire, $path, $domain, $secure, $httponly);
+        $this->response->cookie($key, $value, $expire, $path, $domain, $secure, $httpOnly);
         return $this->response;
     }
 

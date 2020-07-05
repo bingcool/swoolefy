@@ -661,12 +661,12 @@ class BaseServer {
      * @return string
      */
     public static function getExceptionClass() {
-        $exceptionHanderClass = 'Swoolefy\\Core\\SwoolefyException';
+        $exceptionHandlerClass = 'Swoolefy\\Core\\SwoolefyException';
         // 获取协议层配置
         if(isset(self::$config['exception_handler']) && !empty(self::$config['exception_handler'])) {
-            $exceptionHanderClass = self::$config['exception_handler'];
+            $exceptionHandlerClass = self::$config['exception_handler'];
         }
-        return $exceptionHanderClass;
+        return $exceptionHandlerClass;
     }
     
     /**

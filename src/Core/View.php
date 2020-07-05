@@ -178,26 +178,6 @@ class View {
 	}
 
 	/**
-	 * json 输出json
-	 * @param    array   $data
-	 * @param    string  $formater
-	 * @return        
-	 */
-	public function returnJson(array $data = [], string $formater = 'json') {
-		$response = Application::getApp()->response;
-		switch(strtoupper($formater)) {
-			case 'JSON':
-				$response->header('Content-Type','application/json; charset=utf-8');
-				$json_string = json_encode($data,JSON_UNESCAPED_UNICODE);
-			break;
-			default:
-                $json_string = json_encode($data, JSON_UNESCAPED_UNICODE);
-			break;
-		}
-		$response->write($json_string);
-	}
-
-	/**
 	 * 私有或者受保护的属性赋值时会自动调用
 	 * @param   string   $name
 	 * @param   mixed   $value

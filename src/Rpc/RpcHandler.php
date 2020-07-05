@@ -109,7 +109,6 @@ class RpcHandler extends Swoole implements HandlerInterface {
             if(!$this->is_defer) {
             	parent::end();
             }
-            return true;
         }
 	}
 
