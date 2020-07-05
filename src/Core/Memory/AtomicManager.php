@@ -16,7 +16,7 @@ class AtomicManager {
 	use \Swoolefy\Core\SingletonTrait;
 
 	private $atomicList = [];
-    private $atomicListForLong = [];
+    private $atomicListLong = [];
 
     /**
      * addAtomic 
@@ -36,9 +36,9 @@ class AtomicManager {
      * @param int|integer $int
      */
     public function addAtomicLong(string $name, int $int = 0) {
-        if(!isset($this->atomicListForLong[$name])){
+        if(!isset($this->atomicListLong[$name])){
             $atomic = new \Swoole\Atomic\Long($int);
-            $this->atomicListForLong[$name] = $atomic;
+            $this->atomicListLong[$name] = $atomic;
         }
     }
 
@@ -48,11 +48,7 @@ class AtomicManager {
      * @return mixed
      */
     public function getAtomic(string $name) {
-        if(isset($this->atomicList[$name])){
-            return $this->atomicList[$name];
-        }else{
-            return null;
-        }
+        return $this->atomicList[$name] ?? null;
     }
 
     /**
@@ -61,10 +57,6 @@ class AtomicManager {
      * @return mixed
      */
     public function getAtomicLong(string $name) {
-        if(isset($this->atomicListForLong[$name])){
-            return $this->atomicListForLong[$name];
-        }else{
-            return null;
-        }
+        return $this->atomicListLong[$name] ?? null;
     } 
 }

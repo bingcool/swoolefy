@@ -111,10 +111,7 @@ class BaseObject {
     	if(!$name) {
     		return $this->args;
     	}
-    	if(isset($name) && isset($this->args[$name])) {
-    		return $this->args[$name];
-    	}
-    	return null;
+        return $this->args[$name] ?? null;
     }
 
 	/**

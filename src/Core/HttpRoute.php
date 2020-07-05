@@ -340,7 +340,7 @@ class HttpRoute extends AppDispatch {
     }
 
 	/**
-	 * resetRouteDispatch 重置路由调度,将实际的路由改变请求,主要用在boostrap()中
+	 * resetRouteDispatch 重置路由调度,将实际的路由改变请求,主要用在bootstrap()中
 	 * @param   string  $route  请求的路由uri
 	 * @return  void
 	 */
