@@ -141,7 +141,7 @@ class HttpRoute extends AppDispatch {
 			}
 		}else if($this->app_conf['route_model'] == self::ROUTE_MODEL_QUERY_PARAMS) {
 			$module = $this->request->get['m'] ?? null;
-			$controller = $this->request->get['c'];
+			$controller = $this->request->get['c'] ?? 'Index';
 			$action = $this->request->get['t'] ?? 'index';
 			if($module) {
 				$this->require_uri = '/'.$module.'/'.$controller.'/'.$action;
@@ -156,6 +156,7 @@ class HttpRoute extends AppDispatch {
 		// 定义禁止直接外部访问的方法
 		if(in_array($action, self::$deny_actions)) {
             $msg = "{$controller}::{$action} is not allow access action";
+            $this->response->status(403);
 			$this->app->beforeEnd(403, $msg);
 			return false;
 		}
@@ -184,7 +185,7 @@ class HttpRoute extends AppDispatch {
 	 */
 	public function invoke($module = null, $controller = null, $action = null) {
         // 匹配控制器文件
-        $controller = $this->setControllerClass($controller);
+        $controller = $this->buildControllerClass($controller);
         if(!isset($this->app_conf['app_namespace'])) {
             $this->app_conf['app_namespace'] = APP_NAME;
         }
@@ -230,9 +231,9 @@ class HttpRoute extends AppDispatch {
             $query_string = isset($this->request->server['QUERY_STRING']) ? '?' . $this->request->server['QUERY_STRING'] : '';
             if(isset($this->request->post) && !empty($this->request->post)) {
                 $post = json_encode($this->request->post, JSON_UNESCAPED_UNICODE);
-                $errorMsg = "Call {$class}::_beforeAction() return false, forbiden continue call {$class}::{$action}, please checkout it ||| " . $this->request->server['REQUEST_URI'] . $query_string . ' ||| ' . $post;
+                $errorMsg = "Call {$class}::_beforeAction() return false, forbidden continue call {$class}::{$action}, please checkout it ||| " . $this->request->server['REQUEST_URI'] . $query_string . ' ||| ' . $post;
             }else {
-                $errorMsg = "Call {$class}::_beforeAction() return false, forbiden continue call {$class}::{$action}, please checkout it ||| " . $this->request->server['REQUEST_URI'] . $query_string;
+                $errorMsg = "Call {$class}::_beforeAction() return false, forbidden continue call {$class}::{$action}, please checkout it ||| " . $this->request->server['REQUEST_URI'] . $query_string;
             }
             $this->app->beforeEnd(403, $errorMsg);
             return false;
@@ -243,21 +244,18 @@ class HttpRoute extends AppDispatch {
             list($method, $args) = $this->bindActionParams($controllerInstance, $action, $this->buildParams());
             if($method->isPublic() && !$method->isStatic()) {
                 try{
-                    if($this->extend_data) {
-                        $controllerInstance->{$action}($this->extend_data);
-                    }else {
-                        $controllerInstance->{$action}(...$args);
-                    }
+                    $controllerInstance->{$action}(...$args);
                     $controllerInstance->_afterAction($action);
                 }catch (\Throwable $t) {
-                    $query_string = isset($this->request->server['QUERY_STRING']) ? '?' . $this->request->server['QUERY_STRING'] : '';
+                    $queryString = isset($this->request->server['QUERY_STRING']) ? '?' . $this->request->server['QUERY_STRING'] : '';
                     if(isset($this->request->post) && !empty($this->request->post)) {
                         $post = json_encode($this->request->post, JSON_UNESCAPED_UNICODE);
-                        $errorMsg = $t->getMessage() . ' on ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $this->request->server['REQUEST_URI'] . $query_string . ' ||| ' . $post;
+                        $errorMsg = $t->getMessage() . ' on ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $this->request->server['REQUEST_URI'] . $queryString . ' ||| ' . $post;
                     }else {
-                        $errorMsg = $t->getMessage() . ' on ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $this->request->server['REQUEST_URI'] . $query_string;
+                        $errorMsg = $t->getMessage() . ' on ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $this->request->server['REQUEST_URI'] . $queryString;
                     }
                     // 记录错误异常
+                    $this->response->status(500);
                     $exceptionClass = $this->app->getExceptionClass();
                     $this->app->beforeEnd(500, $errorMsg);
                     $exceptionClass::shutHalt($errorMsg);
@@ -265,6 +263,7 @@ class HttpRoute extends AppDispatch {
                 }
             }else {
                 $errorMsg = "Class method {$class}::{$action} is protected or private property, can't be called by Controller Instance";
+                $this->response->status(500);
                 $this->app->beforeEnd(500, $errorMsg);
                 return false;
             }
@@ -300,7 +299,7 @@ class HttpRoute extends AppDispatch {
      * @param string $controller
      * @return string
      */
-    protected function setControllerClass(string $controller) {
+    protected function buildControllerClass(string $controller) {
         return $controller.$this->controller_suffix;
     }
 

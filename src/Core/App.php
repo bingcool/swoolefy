@@ -119,10 +119,10 @@ class App extends \Swoolefy\Core\Component {
 	 */
 	public function run($request, $response, $extend_data = null) {
 	    try {
+            $this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
             parent::creatObject();
             $this->request = $request;
             $this->response = $response;
-            $this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
             Application::setApp($this);
             $this->_init($request);
             $this->_bootstrap($request);

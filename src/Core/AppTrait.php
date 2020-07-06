@@ -572,7 +572,7 @@ trait AppTrait {
 	}
 
 	/**
-	 * parseUri 解析URI
+	 * parseUrl 解析URI
 	 * @param    string  $url
 	 * @return   array
 	 */

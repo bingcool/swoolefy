@@ -229,7 +229,7 @@ trait ServiceTrait {
 		if(property_exists($server, 'taskworker')) {
 			return $server->taskworker;
 		}
-		throw new \Exception("Error: not found task process,may be you use it before workerStart()", 1);
+		throw new \Exception("Not found task process,may be you use it before workerStart");
 	}
 
     /** isUserProcess 进程是否是process进程
