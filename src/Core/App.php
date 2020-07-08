@@ -95,12 +95,12 @@ class App extends \Swoolefy\Core\Component {
 				$this->get('session')->start();
 			};
 		}
-	} 
+	}
 
-	/**
-	 * bootstrap 初始化引导
-	 */
-	protected function _bootstrap($request) {
+    /**
+     * @param $request
+     */
+	protected function _bootstrap() {
         $conf = BaseServer::getConf();
 	    if(isset($conf['application_index'])) {
 	    	$application_index = $conf['application_index'];
@@ -125,7 +125,7 @@ class App extends \Swoolefy\Core\Component {
             $this->response = $response;
             Application::setApp($this);
             $this->_init($request);
-            $this->_bootstrap($request);
+            $this->_bootstrap();
             $this->defer();
             if(!$this->catchAll()) {
                 $route = new HttpRoute($extend_data);
