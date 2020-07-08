@@ -11,13 +11,13 @@
  */
 
 // 定义注册的应用名和对应使用的协议
-if(!isset($APP_NAMES)) {
-    $APP_NAMES = [
+if(!defined('APP_NAMES')) {
+    define('APP_NAMES',[
         'App'=>'http',
         'RpcService'=>'rpc',
         'UdpService'=> 'udp',
         'WebsockService'=>'websocket',
-    ];
+    ]);
 }
 
 // 设置成中国时区
@@ -55,7 +55,7 @@ defined('USERD_ENV') or define('USERD_ENV', $USERD_ENV);
 include_once START_DIR_ROOT.'/vendor/autoload.php';
 
 // include App应用层的自定义的自动加载类命名空间
-if(isset($argv[2]) && in_array(trim($argv[2]), array_keys($APP_NAMES))) {
+if(isset($argv[2]) && in_array(trim($argv[2]), array_keys(APP_NAMES))) {
     $app_name = trim($argv[2]);
     defined('APP_NAME') or define('APP_NAME', $app_name);
     if(trim($argv[1]) != 'create') {
@@ -178,7 +178,7 @@ function createProject($server_name) {
                 foreach(SWOOLEFY_ENVS as $env) {
                     $config_file = $app_root_dir . '/' . $dir . '/config-' . $env . '.php';
                     if(!file_exists($config_file)) {
-                        file_put_contents($config_file, getDefultConfig());
+                        file_put_contents($config_file, getDefaultConfig());
                     }
                 }
                 break;
@@ -208,9 +208,7 @@ function createProject($server_name) {
 
 function startServer($server_name) {
     opCacheClear();
-    global $APP_NAMES;
-    $apps = $APP_NAMES;
-    foreach($apps as $app_name => $protocol) {
+    foreach(APP_NAMES as $app_name => $protocol) {
         if($app_name == $server_name) {
             switch ($protocol) {
                 case 'http':
@@ -697,7 +695,7 @@ LOGO;
 write($logo,'light_green');
 }
 
-function getDefultConfig() {
+function getDefaultConfig() {
 $config_content = 
 <<<EOF
 <?php

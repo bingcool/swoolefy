@@ -40,6 +40,16 @@ trait AppTrait {
 	public $selfModel = [];
 
     /**
+     * @var array
+     */
+	protected $requestParams = [];
+
+    /**
+     * @var array
+     */
+	protected $postParams = [];
+
+    /**
      * @param string $action
      * @return bool
      */
@@ -61,6 +71,7 @@ trait AppTrait {
      * @param string $msg
      * @param string $data
      * @param string $formatter
+     * @return boolean
      */
     public function beforeEnd($ret = 0, string $msg = '', $data = '', string $formatter = 'json') {
     	if(is_object(Application::getApp())) {
@@ -69,7 +80,7 @@ trait AppTrait {
     	$responseData = Application::buildResponseData($ret, $msg, $data);
         $this->jsonSerialize($responseData, $formatter);
         $this->response->end();
-        return;
+        return true;
     }
 
 	/**
@@ -165,31 +176,23 @@ trait AppTrait {
      * @return   mixed
      */
     public function getRequestParams(string $name = null) {
+        if($this->requestParams) {
+            if($name) {
+                return $this->requestParams[$name] ?? null;
+            }else {
+                return $this->requestParams;
+            }
+        }
         $get = isset($this->request->get) ? $this->request->get : [];
         $post = isset($this->request->post) ? $this->request->post : [];
         if(empty($post)) {
-            $post = json_decode($this->request->rawContent(), true);
-            if(!$post) {
-                $post = [];
-            }
+            $post = json_decode($this->request->rawContent(), true) ?? [];
         }
-
-        $method = strtolower($this->getMethod());
-        switch($method) {
-    		case 'get' : 
-    			$input = $get;
-    		break;
-    		case 'post':
-    			$input = $post;
-    		break; 
-    		default :
-    			$input = [];
-    		break;
-    	}
+    	$this->requestParams = array_merge($get, $post);
     	if($name) {
-    		$value = $input[$name] ?? null;
+    		$value = $this->requestParams[$name] ?? null;
     	}else {
-    		$value = array_merge($get, $post);
+            $value = $this->requestParams;
     		unset($get, $post);
     	}
     	return $value;
@@ -216,15 +219,24 @@ trait AppTrait {
      * @return mixed
      */
     public function getPostParams(string $name = null) {
+        if($this->postParams) {
+            if($name) {
+                return $this->postParams[$name] ?? null;
+            }
+            return $this->postParams;
+        }
+
     	$input = $this->request->post ?? [];
     	if(!$input) {
-    		$input = json_decode($this->request->rawContent(), true);
+    		$input = json_decode($this->request->rawContent(), true) ?? [];
     	}
+        $this->postParams = $input;
     	if($name) {
-    		$value = $input[$name] ?? null;
+    		$value = $this->postParams[$name] ?? null;
     	}else {
-    		$value = isset($input) ? $input : [];
+    		$value = $this->postParams;
     	}
+
     	return $value;
     }
 
@@ -599,7 +611,7 @@ trait AppTrait {
 	public function redirect(string $url, array $params = [], int $code = 301) {
         $queryString = '';
 		trim($url);
-		if(strpos($url, 'http') === false || strpos($url, 'https') === false || strpos($url, 'http') != 0 || strpos($url, 'https') != 0) {
+		if(strncmp($url, '//', 2) && strpos($url, '://') === false) {
 			if(strpos($url, '/') != 0) {
 				$url = '/'.$url;
 			}
@@ -618,12 +630,12 @@ trait AppTrait {
 		if(is_object(Application::getApp())) {
 			Application::getApp()->setEnd();
 		}
-		// 发送Http跳转,调用此方法会自动end发送并结束响应,4.2.0+版本支持
+        $url = $url.$queryString;
 		if(version_compare(swoole_version(), '4.4.5', '>')) {
-			$this->response->redirect($url.$queryString, $code);
+			$this->response->redirect($url, $code);
 		}else {
 			$this->status($code);
-			$this->response->header('Location', $url.$queryString);
+			$this->response->header('Location', $url);
 			$this->response->end();
 		}
 	}

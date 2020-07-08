@@ -31,7 +31,8 @@ function dump($var, $echo=true, $label=null, $strict=true) {
         ob_start();
         var_dump($var);
         // 获取终端输出
-        $output = ob_get_clean();
+        $output = ob_get_contents();
+        @ob_end_clean();
         if(!extension_loaded('xdebug')) {
             $output = preg_replace('/\]\=\>\n(\s+)/m', '] => ', $output);
             $output = '<pre>' . $label . htmlspecialchars($output, ENT_QUOTES, 'UTF-8') . '</pre>';
