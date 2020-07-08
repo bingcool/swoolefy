@@ -176,24 +176,21 @@ trait AppTrait {
      * @return   mixed
      */
     public function getRequestParams(string $name = null) {
-        if($this->requestParams) {
-            if($name) {
-                return $this->requestParams[$name] ?? null;
-            }else {
-                return $this->requestParams;
+        if(!$this->requestParams) {
+            $get = isset($this->request->get) ? $this->request->get : [];
+            $post = isset($this->request->post) ? $this->request->post : [];
+            if(empty($post)) {
+                $post = json_decode($this->request->rawContent(), true) ?? [];
             }
+            $this->requestParams = array_merge($get, $post);
+            unset($get, $post);
         }
-        $get = isset($this->request->get) ? $this->request->get : [];
-        $post = isset($this->request->post) ? $this->request->post : [];
-        if(empty($post)) {
-            $post = json_decode($this->request->rawContent(), true) ?? [];
-        }
-    	$this->requestParams = array_merge($get, $post);
+
     	if($name) {
     		$value = $this->requestParams[$name] ?? null;
     	}else {
             $value = $this->requestParams;
-    		unset($get, $post);
+
     	}
     	return $value;
     }
@@ -219,18 +216,14 @@ trait AppTrait {
      * @return mixed
      */
     public function getPostParams(string $name = null) {
-        if($this->postParams) {
-            if($name) {
-                return $this->postParams[$name] ?? null;
+        if(!$this->postParams) {
+            $input = $this->request->post ?? [];
+            if(!$input) {
+                $input = json_decode($this->request->rawContent(), true) ?? [];
             }
-            return $this->postParams;
+            $this->postParams = $input;
         }
 
-    	$input = $this->request->post ?? [];
-    	if(!$input) {
-    		$input = json_decode($this->request->rawContent(), true) ?? [];
-    	}
-        $this->postParams = $input;
     	if($name) {
     		$value = $this->postParams[$name] ?? null;
     	}else {
@@ -292,7 +285,7 @@ trait AppTrait {
 
     /**
      * getFilesParam 
-     * @return   mixed
+     * @return mixed
      */
     public function getUploadFiles() {
     	return $this->request->files;
@@ -308,7 +301,7 @@ trait AppTrait {
 
 	/**
 	 * getMethod 
-	 * @return   string
+	 * @return string
 	 */
 	public function getMethod() {
 		return $this->request->server['REQUEST_METHOD'];
@@ -332,7 +325,7 @@ trait AppTrait {
 
 	/**
 	 * getQueryString
-	 * @return   string
+	 * @return string
 	 */
 	public function getQueryString() {
 	    if(isset($this->request->server['QUERY_STRING'])) {
@@ -343,7 +336,7 @@ trait AppTrait {
 
 	/**
 	 * getProtocol
-	 * @return   string
+	 * @return  string
 	 */
 	public function getProtocol() {
 		return $this->request->server['SERVER_PROTOCOL'];
@@ -662,6 +655,7 @@ trait AppTrait {
 	        var_dump($var);
 	        // 获取终端输出
 	        $output = ob_get_clean();
+	        @ob_end_clean();
 	        if (!extension_loaded('xdebug')) {
 	            $output = preg_replace('/\]\=\>\n(\s+)/m', '] => ', $output);
 	            $output = '<pre>' . $label . htmlspecialchars($output, ENT_QUOTES) . '</pre>';

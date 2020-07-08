@@ -206,22 +206,15 @@ class PoolsHandler {
                 return $this->pop();
             }
         }else {
-            if($this->callCount >= $this->poolsNum) {
+            if($this->callCount >= $this->poolsNum || $this->channel->isEmpty()) {
                 usleep(15 * 1000);
-                $length = $this->channel->length();
-                if($length > 0) {
-                    return $this->pop();
-                }else {
-                    return null;
-                }
-            }else {
-                // 是否已经调用了
-                $length = $this->channel->length();
-                if($length > 0) {
-                    return $this->pop();
-                }
+            }
+            $length = $this->channel->length();
+            if($length > 0) {
+                return $this->pop();
             }
         }
+        return null;
     }
 
     /**

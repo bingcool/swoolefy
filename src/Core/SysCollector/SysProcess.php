@@ -51,6 +51,7 @@ class SysProcess extends AbstractProcess {
 				    if($this->getCurrentCoroutineLastCid() > $max_tick_handle_coroutine_num) {
                         \Swoole\Timer::clear($timer_id);
                         $this->reboot();
+                        return;
                     }
                     // 统计系统信息
                     if(isset($sys_collector_config['func']) && $sys_collector_config['func'] instanceof \Closure) {
@@ -152,14 +153,12 @@ class SysProcess extends AbstractProcess {
             $redisClient->connect($host, $port);
             $redisClient->auth($password);
 			$isConnected = $redisClient->connected;
-			if($isConnected) {
-                if($data) {
-                    $message = json_encode($data, JSON_UNESCAPED_UNICODE);
-                    try{
-                        $redisClient->publish($channel, $message);
-                    }catch(\Throwable $throwable) {
-                        throw $throwable;
-                    }
+			if($isConnected && $data) {
+                $message = json_encode($data, JSON_UNESCAPED_UNICODE);
+                try{
+                    $redisClient->publish($channel, $message);
+                }catch(\Throwable $throwable) {
+                    throw $throwable;
                 }
 			}
 		});

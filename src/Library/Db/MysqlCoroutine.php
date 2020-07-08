@@ -141,12 +141,12 @@ class MysqlCoroutine {
 			}else {
 				$errno = $master->errno;
 				$error = $master->error;
-				throw new \Exception("MySQL Coroutine errno:{$errno},{$error}", 1);
+				throw new \Exception("MySQL Coroutine errno:{$errno},{$error}");
 			}
 		}else {
 			//try to reconnect
-			$configInfo = $master->configInfo;
-			$isConnect = $master->connect($configInfo);
+			$configInfo = $master->serverInfo;
+			$isConnect = $master->connect($master->serverInfo);
 			if($isConnect) {
 				$res = $master->prepare($sql);
 				if($res) {
@@ -154,10 +154,10 @@ class MysqlCoroutine {
 				}else {
 					$errno = $master->errno;
 					$error = $master->error;
-					throw new \Exception("MySQL Coroutine errno:{$errno},{$error}", 1);
+					throw new \Exception("MySQL Coroutine errno:{$errno},{$error}");
 				}
 			}else {
-				throw new \Exception("MySQL Coroutine :{$configInfo['host']}:{$configInfo['port']} connect is break,", 1);
+				throw new \Exception("MySQL Coroutine :{$configInfo['host']}:{$configInfo['port']} connect is break");
 			}
 		}
 	}
@@ -174,12 +174,12 @@ class MysqlCoroutine {
 		if($slave->connected) {
 			$result = $slave->query($sql, $timeout);
 		}else {
-			$configInfo = $slave->configInfo;
+			$configInfo = $slave->serverInfo;
 			$isConnect = $slave->connect($configInfo);
 			if($isConnect) {
 				$result = $slave->query($sql, $timeout);
 			}else {
-				throw new \Exception("Slave mysql:{$configInfo['host']}:{$configInfo['port']} connect is break,", 1);
+				throw new \Exception("Slave mysql:{$configInfo['host']}:{$configInfo['port']} connect is break");
 			}
 		}
 		return $result;
@@ -221,14 +221,16 @@ class MysqlCoroutine {
      * @return \Swoole\Coroutine\MySQL
      */
 	public function getMaster() {
-		if(is_object($this->master_swoole_mysql)) {
-			return $this->master_swoole_mysql;
+		if(!is_object($this->master_swoole_mysql)) {
+            $configs = $this->master_mysql_config;
+            $config = array_shift($configs);
+            unset($configs);
+            $master_mysql = $this->connect($config);
+            if($master_mysql instanceof \Swoole\Coroutine\MySQL) {
+                $this->master_swoole_mysql = $master_mysql;
+            }
+            unset($master_mysql);
 		}
-		$config = array_shift($this->master_mysql_config);
-        $master_mysql = $this->connect($config);
-        if($master_mysql instanceof \Swoole\Coroutine\MySQL) {
-        	$this->master_swoole_mysql = $master_mysql;
-        }
 		return $this->master_swoole_mysql;
 	}
 
@@ -236,7 +238,7 @@ class MysqlCoroutine {
 	 * getSlave 获取从服务实例
 	 * @param    int|null  $num
      * @throws   \Exception
-	 * @return   mixed
+	 * @return   \Swoole\Coroutine\MySQL
 	 */
 	public function getSlave(int $num = null) {
 		// 非分布式，则主从一致
@@ -365,12 +367,22 @@ class MysqlCoroutine {
 		return $this->server_info;
 	}
 
-	/**
-	 * __call
-	 * @param  string $method
-	 * @param  array  $args
-	 * @return mixed
-	 */
+    /**
+     * @param $name
+     * @return mixed
+     * @throws \Exception
+     */
+	public function __get($name) {
+        return $this->getMaster()->$name;
+    }
+
+    /**
+     * __call
+     * @param string $method
+     * @param array $args
+     * @return mixed
+     * @throws \Exception
+     */
 	public function __call(string $method, array $args = []) {
 		$db = $this->getMaster();
 		return $db->$method(...$args);
