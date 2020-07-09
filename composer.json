@@ -30,7 +30,9 @@
         "ext-posix" : "*",
         "ext-sockets": "*",
         "ext-zend-opcache": "*",
-        "dragonmantank/cron-expression": "3.0.0"
+        "dragonmantank/cron-expression": "3.0.0",
+        "topthink/think-orm": "2.0.33",
+        "ext-pdo": "*"
     },
     "autoload": {
         "files": ["src/Constants.php","src/core/Func/function.php"],
