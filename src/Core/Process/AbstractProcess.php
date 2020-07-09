@@ -47,7 +47,7 @@ abstract class AbstractProcess {
         $this->args = $args;
         $this->extend_data = $extend_data;
         $this->processName = $processName;
-        $this->enable_coroutine = $enable_coroutine;
+        $this->enable_coroutine = true;
         if(version_compare(swoole_version(),'4.4.5','>=')) {
             $this->swooleProcess = new \Swoole\Process([$this,'__start'], false, 2, $enable_coroutine);
         }else {

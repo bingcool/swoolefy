@@ -1,264 +1,160 @@
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| Author: bingcool <bingcoolhuang@gmail.com || 2437667702@qq.com>
-+----------------------------------------------------------------------
-*/
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | Author: bingcool <bingcoolhuang@gmail.com || 2437667702@qq.com>
+ * +----------------------------------------------------------------------
+ */
 
 namespace Swoolefy\Library\Db;
 
-use Think\Db;
-use Swoolefy\Core\Application;
-use Swoolefy\Core\Coroutine\CoroutineManager;
+use PDO;
 
-class Mysql {
-	/**
-	 * $config 配置
-	 * @var array
-	 */
-	public $config = [];
+class Mysql extends PDOConnection {
 
-	/**
-	 * $cacheHandler 缓存驱动处理
-	 * @var null
-	 */
-	public $cache_driver = null;
+    /**
+     * 解析pdo连接的dsn信息
+     * @return string
+     */
+    public function parseDsn(): string
+    {
+        $config = $this->config;
+        if (!empty($config['socket'])) {
+            $dsn = 'mysql:unix_socket=' . $config['socket'];
+        } elseif (!empty($config['hostport'])) {
+            $dsn = 'mysql:host=' . $config['hostname'] . ';port=' . $config['hostport'];
+        } else {
+            $dsn = 'mysql:host=' . $config['hostname'];
+        }
+        $dsn .= ';dbname=' . $config['database'];
 
-	/**
-	 * $default_config 默认的配置项
-	 * @var [type]
-	 */
-	protected $default_config =  [
-		// 数据库类型
-	    'type'            => '',
-	    // 服务器地址
-	    'hostname'        => '',
-	    // 数据库名
-	    'database'        => '',
-	    // 用户名
-	    'username'        => '',
-	    // 密码
-	    'password'        => '',
-	    // 端口
-	    'hostport'        => '',
-	    // 连接dsn
-	    'dsn'             => '',
-	    // 数据库连接参数
-	    'params'          => [],
-	    // 数据库编码默认采用utf8
-	    'charset'         => 'utf8',
-	    // 数据库表前缀
-	    'prefix'          => '',
-	    // 数据库调试模式
-	    'debug'           => false,
-	    // 数据库部署方式:0 集中式(单一服务器),1 分布式(主从服务器)
-	    'deploy'          => 0,
-	    // 数据库读写是否分离 主从式有效
-	    'rw_separate'     => false,
-	    // 读写分离后 主服务器数量
-	    'master_num'      => 1,
-	    // 指定从服务器序号
-	    'slave_no'        => '',
-	    // 是否严格检查字段是否存在
-	    'fields_strict'   => true,
-	    // 数据集返回类型
-	    'resultset_type'  => '',
-	    // 自动写入时间戳字段
-	    'auto_timestamp'  => false,
-	    // 时间字段取出后的默认时间格式
-	    'datetime_format' => 'Y-m-d H:i:s',
-	    // 是否需要进行SQL性能分析
-	    'sql_explain'     => false,
-	    // Builder类
-	    'builder'         => '',
-	    // Query类
-	    'query'           => '\\think\\db\\Query',
-	    // 是否需要断线重连
-	    'break_reconnect' => true,
-	];
+        if (!empty($config['charset'])) {
+            $dsn .= ';charset=' . $config['charset'];
+        }
 
-	/**
-	 * $query 查询对象
-	 * @var null
-	 */
-	public $query = null;
+        return $dsn;
+    }
 
-	/**
-	 * $corMysql mysql的协程客户端
-	 * @var [type]
-	 */
-	public $CMysql;
+    /**
+     * 取得数据表的字段信息
+     * @param  string $tableName
+     * @return array
+     */
+    public function getFields(string $tableName): array
+    {
+        $sourceTableName = $tableName;
+        if(!isset($this->tableFields[$tableName]) && empty($this->tableFields[$tableName])) {
 
-	/**
-	 * $coroutine_id
-	 * @var null
-	 */
-	protected $coroutine_id = null;
+            [$tableName] = explode(' ', $tableName);
 
-	/**
-	 * __construct 初始化函数
-	 */
-	public function __construct(array $config = []) {
-		if($config) {
-			$db_config = $this->getConfig();
-			if(empty($db_config['type']) && empty($db_config['hostname'])) {
-				$this->config = array_merge($this->default_config, $this->config, $config);
-				Db::setConfig($this->config);
-			}
-		}
-		$cid = CoroutineManager::getInstance()->getCoroutineId();
-		$this->coroutine_id = $cid;
-	}
+            if (false === strpos($tableName, '`')) {
+                if (strpos($tableName, '.')) {
+                    $tableName = str_replace('.', '`.`', $tableName);
+                }
+                $tableName = '`' . $tableName . '`';
+            }
 
-	/**
-	 * getConfig 获取某个配置项
-	 * @param  string   $name
-	 * @return mixed
-	 */
-	public function getConfig(string $name = null) {
-		return Db::getConfig($name);
-	}
+            $sql    = 'SHOW FULL COLUMNS FROM ' . $tableName;
+            $pdo    = $this->PDOStatementHandle($sql);
+            $result = $pdo->fetchAll(PDO::FETCH_ASSOC);
+            $info   = [];
 
-	/**
-	 * setConfig 设置配置项
-	 * @param array $config
-	 */
-	public function setConfig(array $config = []) {
-		if($config) {
-			$this->config = array_merge($this->config, $config);
-		}
-		$db_config = $this->getConfig();
-		if(empty($db_config['type']) && empty($db_config['hostname'])) {
-			$this->config = array_merge($this->default_config, $this->config);
-			Db::setConfig($this->config);
-		}
-	}
+            if(!empty($result)) {
+                foreach ($result as $key => $val) {
+                    $val = array_change_key_case($val);
 
-	/**
-	 * setQuery 设置查询对象
-	 * @param string   $query
-	 */
-	public function setQuery($query) {
-		Db::setQuery($query);
-	}
+                    $info[$val['field']] = [
+                        'name'    => $val['field'],
+                        'type'    => $val['type'],
+                        'notnull' => 'NO' == $val['null'],
+                        'default' => $val['default'],
+                        'primary' => strtolower($val['key']) == 'pri',
+                        'autoinc' => strtolower($val['extra']) == 'auto_increment',
+                        'comment' => $val['comment'],
+                    ];
+                }
+            }
+            $fieldResult = $this->fieldCase($info);
+            $this->tableFields[$sourceTableName] = $fieldResult;
+        }
 
-	/**
-	 * setCacheHandler 设置缓存驱动
-	 * @param $cacheHandler
-	 */
-	public function setCacheHandler($cache_driver = null) {
-		if(is_object($cache_driver)) {
-			Db::setCacheHandler($cache_driver);
-		}
+        return  $this->tableFields[$sourceTableName];
+    }
 
-		$cacheHandler = $this->getCacheHandler();
+    /**
+     * 取得数据库的表信息
+     * @access public
+     * @param  string $dbName
+     * @return array
+     */
+    public function getTables(string $dbName = ''): array
+    {
+        $sql    = !empty($dbName) ? 'SHOW TABLES FROM ' . $dbName : 'SHOW TABLES ';
+        $pdo    = $this->PDOStatementHandle($sql);
+        $result = $pdo->fetchAll(PDO::FETCH_ASSOC);
+        $info   = [];
 
-		if(!is_object($cacheHandler)) {
-			if(isset($this->cache_driver) && !empty($this->cache_driver)) {
-				if(is_string($this->cache_driver)) {
-					$cache_driver = $this->cache_driver;
-					$cache_driver = Application::getApp()->{$cache_driver};
-				}else if(is_object($this->cache_driver)){
-					$cache_driver = $this->cache_driver;
-				}else {
-					$cache_driver = null;
-				}
-				Db::setCacheHandler($cache_driver);
-			}
-		}
-		
-	}
+        foreach ($result as $key => $val) {
+            $info[$key] = current($val);
+        }
 
-	/**
-	 * getCacheHandler 获取缓存驱动实例
-	 * @return mixed
-	 */
-	public function getCacheHandler() {
-		return Db::getCacheHandler();
-	}
+        return $info;
+    }
 
-	/**
-	 * table 设置查询表
-	 * @param  string   $table
-	 * @return object
-	 */
-	public function table($table) {
-		$this->setConfig();
-		$this->setCacheHandler();
-		$this->query = Db::table($table);
-		return $this->query;
-	}
+    /**
+     * 启动XA事务
+     * @param string $xid XA事务id
+     * @return void
+     * @throws \Exception
+     */
+    public function startTransXa(string $xid)
+    {
+        $this->initConnect(true);
+        $this->PDOInstance->exec("XA START '$xid'");
+    }
 
-	/**
-	 * query sql查询类
-	 * @param  string   $sql
-	 * @param  array    $bind  
-	 * @param  boolean  $master
-	 * @param  boolean  $class 
-	 * @return object      
-	 */
-	public function query($sql, $bind = [], $master = false, $class = false) {
-		$this->setConfig();
-		$this->setCacheHandler();
-		return Db::query($sql, $bind , $master, $class);
-	}
+    /**
+     * 预编译XA事务
+     * @param string $xid XA事务id
+     * @return void
+     * @throws \Exception
+     */
+    public function prepareXa(string $xid)
+    {
+        $this->initConnect();
+        $this->PDOInstance->exec("XA END '$xid'");
+        $this->PDOInstance->exec("XA PREPARE '$xid'");
+    }
 
-	/**
-	 * execute sql插入数据
-	 * @param  string   $sql 
-	 * @param  array    $bind
-	 * @return mixed
-	 */
-	public function execute($sql, $bind = []) {
-		$this->setConfig();
-		$this->setCacheHandler();
-		return Db::execute($sql, $bind);
-	}
+    /**
+     * 提交XA事务
+     * @param string $xid XA事务id
+     * @return void
+     * @throws \Exception
+     */
+    public function commitXa(string $xid)
+    {
+        $this->initConnect();
+        $this->PDOInstance->exec("XA COMMIT '$xid'");
+    }
 
-	/**
-	 * connect 创建一个新的数据连接实例
-	 * @param  array    $config
-	 * @param  boolean  $name  
-	 * @return mixed
-	 */
-	public function connect($config = [], $name = false) {
-		return Db::connect($config, $name);
-	}
+    /**
+     * 回滚XA事务
+     * @param string $xid XA事务id
+     * @return void
+     * @throws \Exception
+     */
+    public function rollbackXa(string $xid)
+    {
+        $this->initConnect();
+        $this->PDOInstance->exec("XA ROLLBACK '$xid'");
+    }
 
-	/**
-	 * CorMysql 切换至mysql协程客户端
-	 * @param    array   $extension
-	 * @return   mixed
-	 */
-	public function selectMysql(array $config = []) {
-		if(is_object($this->CMysql)) {
-			return $this->CMysql;
-		}
-		$this->CMysql = new MysqlCoroutine($config);
-		return $this->CMysql;
-	}
-
-	/**
-	 * __call 
-	 * @param  string  $method
-	 * @param  mixed   $args  
-	 * @return mixed        
-	 */
-	public function __call($method, $args) {
-		$this->setConfig();
-		$this->setCacheHandler();
-		return Db::$method(...$args);
-	}
-
-	/**
-	 * __destruct 
-	 */
-	public function __destruct() {
-        Db::destroy($this->coroutine_id);
-	}
-
+    public function __destruct()
+    {
+        var_dump('db destroy');
+    }
 }
