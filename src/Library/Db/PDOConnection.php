@@ -254,9 +254,9 @@ abstract class PDOConnection implements ConnectionInterface {
             $this->bindValue($bind);
             // 执行查询
             $this->PDOStatement->execute();
-            $this->reConnectTimes = 0;
             $queryEndTime = microtime(true);
             $this->log('Execute sql end','Execute successful, Execute time='.($queryEndTime - $queryStartTime));
+            $this->reConnectTimes = 0;
             return $this->PDOStatement;
         } catch (\Throwable | \Exception $e) {
             if($this->reConnectTimes < 4 && $this->isBreak($e)) {
@@ -347,13 +347,12 @@ abstract class PDOConnection implements ConnectionInterface {
     }
 
     /**
-     * @param string $sql
      * @param array $bindParams
      * @return int
      */
-    public function insert(string $sql, array $bindParams = []): int
+    public function insert(array $bindParams = []): int
     {
-        $this->execute($sql, $bindParams);
+        return $this->execute($this->queryStr, $bindParams);
     }
 
     /**
@@ -361,20 +360,18 @@ abstract class PDOConnection implements ConnectionInterface {
      * @param array $bindParams
      * @return int
      */
-    public function update(string $sql, array $bindParams = []): int
+    public function update(array $bindParams = []): int
     {
-        $this->execute($sql, $bindParams);
+        return $this->execute($this->queryStr, $bindParams);
     }
 
     /**
-     * @param string $sql
      * @param array $bindParams
      * @return int
-     * @throws \Throwable
      */
-    public function delete(string $sql, array $bindParams = []): int
+    public function delete(array $bindParams = []): int
     {
-        $this->execute($sql, $bindParams);
+        return $this->execute($this->queryStr, $bindParams);
     }
 
     /**
@@ -437,6 +434,14 @@ abstract class PDOConnection implements ConnectionInterface {
         $info = $this->getSchemaInfo($tableName);
 
         return $fetch ? $info[$fetch] : $info;
+    }
+
+    /**
+     * @param string $string
+     * @param int $parameter_type
+     */
+    public function quote(string $string, $parameterType = PDO::PARAM_STR) {
+        return $this->PDOInstance->quote($string, $parameterType);
     }
 
     /**
@@ -600,16 +605,15 @@ abstract class PDOConnection implements ConnectionInterface {
     /**
      * 启动事务
      * @return void
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function beginTransaction()
     {
-        $this->initConnect();
-        $this->PDOInstance->beginTransaction();
+        $this->initConnect(true);
         ++$this->transTimes;
 
         try {
-            if (1 == $this->transTimes) {
+            if ($this->transTimes == 1) {
                 $this->PDOInstance->beginTransaction();
             } elseif ($this->transTimes > 1 && $this->supportSavepoint()) {
                 $this->PDOInstance->exec(
@@ -674,7 +678,7 @@ abstract class PDOConnection implements ConnectionInterface {
     /**
      * 事务回滚
      * @return void
-     * @throws \Exception
+     * @throws Exception
      */
     public function rollback()
     {
