@@ -48,29 +48,11 @@ interface ConnectionInterface
     public function query(string $sql, array $bindParams): array;
 
     /**
-     * 插入记录
-     * @access public
-     * @param string  $sql        查询对象
-     * @param boolean $getLastInsID 返回自增主键
-     * @return mixed
-     */
-    public function insert(string $sql, array $bindParams = []): int;
-
-    /**
-     * 更新记录
-     * @param $sql
-     * @param $bindParams
+     * @param string $sql
+     * @param array $bindParams
      * @return int
      */
-    public function update(string $sql, array $bindParams = []): int;
-
-    /**
-     * 删除记录
-     * @param $sql
-     * @param $bindParams
-     * @return int
-     */
-    public function delete(string $sql, array $bindParams = []): int;
+    public function execute(string $sql, array $bindParams = []): int;
 
     /**
      * 启动事务

@@ -202,17 +202,13 @@ class PoolsHandler {
             if($this->poolsNum) {
                 $this->build($this->poolsNum);
             }
-            if($this->channel->length() > 0) {
-                return $this->pop();
-            }
         }else {
             if($this->callCount >= $this->poolsNum || $this->channel->isEmpty()) {
                 usleep(15 * 1000);
             }
-            $length = $this->channel->length();
-            if($length > 0) {
-                return $this->pop();
-            }
+        }
+        if($this->channel->length() > 0) {
+            return $this->pop();
         }
         return null;
     }
@@ -258,7 +254,8 @@ class PoolsHandler {
 
         if($obj === false || (isset($isTimeOut))) {
             unset($obj);
-            return null;
+            $newObj = $this->channel->pop($this->popTimeout);
+            return is_object($newObj) ? $newObj : null;
         }
 
         return $obj;
