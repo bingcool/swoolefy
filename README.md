@@ -45,7 +45,6 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 ### 常用组件
 | 组件名称 | 安装 | 说明 |
 | ------ | ------ | ------ |
-| swoolefy-orm | composer require bingcool/swoolefy-orm:1.2.* | 基于tp-orm实现的适配swoolefy的mysql协程组件 |
 | predis | composer require predis/predis:1.1.1 | swoolefy基于predis组件实现容器封装，使用redis操作需要安装此组件 |
 | mongodb | composer require mongodb/mongodb:1.3 | mongodb组件，需要使用mongodb必须安装此组件 |
 | rpc-client | composer require bingcool/rpc-client:dev-master | swoolefy的rpc客户端，当与rpc服务端通信时，需要安装此组件，支持在php-fpm中使用 |
