@@ -50,7 +50,7 @@ class RedisConnection {
      */
     public function __destruct() {
         unset($this->redis);
-        $this->logs = [];
+        $this->lastLogs = [];
     }
 
 }
