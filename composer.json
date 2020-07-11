@@ -28,12 +28,10 @@
         "psr/log" : "*",
         "ext-pcntl" : "*",
         "ext-posix" : "*",
+        "ext-pdo": "*",
         "ext-sockets": "*",
         "ext-zend-opcache": "*",
-        "dragonmantank/cron-expression": "3.0.0",
-        "topthink/think-orm": "2.0.33",
-        "ext-pdo": "*",
-        "predis/predis": "1.1.1"
+        "dragonmantank/cron-expression": "3.0.0"
     },
     "autoload": {
         "files": ["src/Constants.php","src/core/Func/function.php"],
