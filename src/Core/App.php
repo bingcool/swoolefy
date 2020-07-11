@@ -337,4 +337,9 @@ class App extends \Swoolefy\Core\Component {
 		}
 	}
 
+	public function __destruct()
+    {
+        var_dump('App destruct');
+    }
+
 }
