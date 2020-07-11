@@ -57,8 +57,9 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 components => [
     // 例如创建phpredis扩展连接实例
     'redis' => function($com_name) { // 定义组件名，闭包回调实现创建组件过程，return对象即可
-         $redis = new \Redis();
-         $redis->connect('127.0.0.1', 6379, 3);
+         $redis = new \Swoolefy\Library\Cache\Redis();
+         $redis->connect('127.0.0.1', 6379);
+         $redis->auth('123456');
          return $redis;   
     },
 
@@ -75,36 +76,68 @@ components => [
         return $predis;
     },
 
-    // swoole的原生协程redis客户端
-    'CRedis' => function($name) {
-        $CRedis = new \Swoolefy\Library\Cache\RedisCoroutine();
-        $CRedis->setHost('127.0.0.1')->setPort('6379')->setPassword('123456');
-        return $CRedis;
-    },
-    
-    // 例如创建原生的mysql的PDO组件实例
-    'mysql' => function($com_name) {
-        $dbh = new PDO('mysql:host=127.0.0.1;port=6379;dbname=swoolefy', 'root', '123456');
-        return $dbh;
-    }
-     // swoole原生的mysql客户端
-    'CMysql' => function($name) {
+     // 适配swoole的mysql客户端组件(参考tp和yii)
+    'db' => function() {
         $config = [
-            'host' => '127.0.0.1',
-            'user' => 'bingcool',
-            'password' => '123456',
-            'database' => 'bingcool',
-            'port'    => '3306',
-            'timeout' => 5,
-            'charset' => 'utf8',
-            'strict_type' => false, //开启严格模式，返回的字段将自动转为数字类型
-            'fetch_more' => true, //开启fetch模式, 可与pdo一样使用fetch/fetchAll逐行或获取全部结果集(4.0版本以上)
+            // 地址
+            'hostname'        => '127.0.0.1',
+            // 数据库
+            'database'        => 'bingcool',
+            // 用户名
+            'username'        => 'bingcool',
+            // 密码
+            'password'        => '123456',
+            // 端口
+            'hostport'        => '3306',
+            // dsn
+            'dsn'             => '',
+            // 数据库连接参数
+            'params'          => [],
+            // 数据库编码,默认采用utf8
+            'charset'         => 'utf8',
+            // 数据库表前缀
+            'prefix'          => '',
+            // 是否断线重连
+            'break_reconnect' => true,
+            // 是否支持事务嵌套
+            'support_savepoint' => false
         ];
 
-        $cdb = new Swoolefy\Library\Db\MysqlCoroutine();
-        $cdb->setConfig($config);
-        return $cdb;
+        $db = new \Swoolefy\Library\Db\Mysql($config);
+        return $db;
     },
+       
+    // 适配swoole的postgresql客户端组件(参考tp和yii)
+    'pg' => function() {
+        $config = [
+            // 地址
+            'hostname'        => '127.0.0.1',
+            // 数据库
+            'database'        => 'dbtest',
+            // 用户
+            'username'        => 'bingcool',
+            // 密码
+            'password'        => '123456',
+            // 端口
+            'hostport'        => '5432',
+            // dsn
+            'dsn'             => '',
+            // 数据库连接参数
+            'params'          => [],
+            // 数据库编码,默认采用utf8
+            'charset'         => 'utf8',
+            // 数据库表前缀
+            'prefix'          => '',
+            // 是否断线重连
+            'break_reconnect' => true,
+            // 是否支持事务嵌套
+            'support_savepoint' => false
+        ];
+
+        $pg = new \Swoolefy\Library\Db\Pgsql($config);
+        return $pg;
+    },
+
     // 其他的组件都可以通过闭包回调创建
     // 数组配置型log组件
     'log' => [
@@ -140,15 +173,30 @@ class TestController extends BController {
         $predis->set('predis','this is a predis instance');
         $predis->get('predis');
         
-        // PDO实例，这个过程会发生协程调度
-        $mysql = Application::getApp()->mysql;
+        // PDO的mysql实例，这个过程会发生协程调度
+        $db = Application::getApp()->db;
         // 或者
-        // $mysql = Application::getApp()->get('mysql');
+        // $mysql = Application::getApp()->get('db');
         // 添加一条数据
-        $sql = "INSERT INTO `user` (`login` ,`password`) VALUES (:login, :password)"; 
-        $stmt = $dbh->prepare($sql); 
-        $stmt->execute(array(':login'=>'kevin2',':password'=>'123456789'));  
-        echo $dbh->lastinsertid();
+        $sql = "INSERT INTO `user` (`username` ,`sex`) VALUES (:username, :sex)"; 
+        $numRows = $db->createCommand($sql)->insert([
+            ':username'=>'bingcool-test',
+            ':sex' => 1
+        ]);
+        var_dump($numRows)         
+
+        //查询
+        $result = $db->createCommand('select * from user where id>:id')->findOne([':id'=>100]);
+        var_dump($result);    
+
+        // pg实例    
+        $pg = Application::getApp()->get('pg');   
+        // 添加一条数据   
+        $sql = "INSERT INTO `user` (`username` ,`sex`) VALUES (:username, :sex)"; 
+        $pg->createCommand($sql)->insert([
+            ':username'=>'bingcool-test',
+            ':sex' => 1
+        ]);
     }
 }
 
