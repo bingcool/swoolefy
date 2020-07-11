@@ -13,12 +13,17 @@ namespace Swoolefy\Library\Cache;
 
 use Predis\Client;
 
-class Predis {
+/**
+ * @see \Predis\Client
+ * @mixin \Predis\Client
+ */
+
+class Predis extends RedisConnection {
 	/**
 	 * $predis redis实例
 	 * @var \Predis\Client
 	 */
-	protected $predis;
+	protected $redis;
 
 	/**
 	 * $parameters 
@@ -45,7 +50,7 @@ class Predis {
 	 */
 	public function __construct($parameters = null, $options = null) {
 		if($parameters) {
-			$this->predis = new \Predis\Client($parameters, $options);
+			$this->redis = new \Predis\Client($parameters, $options);
 			$this->parameters = $parameters;
 			$this->options = $options;
 			$this->isInitConfig = true;
@@ -62,10 +67,10 @@ class Predis {
 		if($this->isInitConfig) {
 			return true;
 		}
-		if(is_object($this->predis)) {
-			unset($this->predis);
+		if(is_object($this->redis)) {
+			unset($this->redis);
 		}
-		$this->predis = new \Predis\Client($parameters, $options);
+		$this->redis = new \Predis\Client($parameters, $options);
 		$this->parameters = $parameters;
 		$this->options = $options;
 	}
@@ -76,13 +81,23 @@ class Predis {
 	 * @param  array   $args
 	 * @return mixed
 	 */
-	public function __call(string $method, array $args) {
+	public function __call(string $method, array $arguments) {
 		try{
-            return $this->predis->$method(...$args);
-        }catch(\Throwable $t) {
-            $this->predis->disconnect();
-            $this->predis = new \Predis\Client($this->parameters, $this->options);
-            return $this->predis->$method(...$args);
+            $this->log($method, $arguments,"start to exec method={$method}");
+            $result = $this->redis->{$method}(...$arguments);
+            $this->log($method, $arguments);
+            return $result;
+        }catch(\Exception $e) {
+            $this->log($method, $arguments, $e->getMessage());
+            $this->redis->disconnect();
+            $this->log($method, $arguments, 'start to try again');
+            $this->redis = new \Predis\Client($this->parameters, $this->options);
+            $result = $this->redis->{$method}(...$arguments);
+            $this->log($method, $arguments, 'retry ok');
+            return $result;
+        }catch (\Throwable $t) {
+            $this->log($method, $arguments, 'retry failed,errorMsg='.$t->getMessage());
+            throw $t;
         }
 	}
 
@@ -101,7 +116,7 @@ class Predis {
         if(isset($this->parameters['persistent'])) {
             $persistent = filter_var($this->parameters['persistent'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
             if(!$persistent) {
-                $this->predis->disconnect();
+                $this->redis->disconnect();
             }
         }
 	}
