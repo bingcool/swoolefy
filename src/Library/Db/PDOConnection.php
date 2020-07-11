@@ -46,7 +46,9 @@ abstract class PDOConnection implements ConnectionInterface {
         // 是否需要断线重连
         'break_reconnect' => false,
         // 是否支持事务嵌套
-        'support_savepoint' => false
+        'support_savepoint' => false,
+        // sql执行日志条目设置,不能设置太大,适合调试使用,设置为0，则不使用
+        'spend_log_limit' => 50,
     ];
 
     /**
@@ -70,11 +72,6 @@ abstract class PDOConnection implements ConnectionInterface {
      * @var int
      */
     private $transTimes;
-
-    /**
-     * @var array
-     */
-    protected $logs = [];
 
     /**
      * @var int
@@ -111,6 +108,11 @@ abstract class PDOConnection implements ConnectionInterface {
      * @var array
      */
     protected $info = [];
+
+    /**
+     * @var array
+     */
+    protected $lastLogs = [];
 
     /**
      * PDO连接参数
@@ -193,12 +195,11 @@ abstract class PDOConnection implements ConnectionInterface {
             $startTime = microtime(true);
             $this->PDOInstance = $this->createPdo($this->config['dsn'], $this->config['username'], $this->config['password'], $params);
             $endTime = microtime(true);
-            $this->log(__FUNCTION__, 'Connect successful, Spend Time='.($endTime - $startTime));
+            $this->log('Connect start', 'Connect successful, Spend Time='.($endTime - $startTime));
             return $this->PDOInstance;
         } catch (\PDOException $e) {
             if($autoConnection) {
-                $this->log(__FUNCTION__, 'Connect failed, errorMsg='.$e->getMessage());
-                $this->log(__FUNCTION__, 'Start try connect once again');
+                $this->log('Connect failed, try to connect once again', 'Connect failed, errorMsg='.$e->getMessage());
                 return $this->connect([], false, true);
             }else {
                 throw $e;
@@ -247,7 +248,7 @@ abstract class PDOConnection implements ConnectionInterface {
 
         try {
             $queryStartTime = microtime(true);
-            $this->log('Execute sql start','bindParams='.json_encode($bind, JSON_UNESCAPED_UNICODE));
+            $this->log('Execute sql start',"sql={$this->queryStr},bindParams=".json_encode($bind, JSON_UNESCAPED_UNICODE));
             // 预处理
             $this->PDOStatement = $this->PDOInstance->prepare($sql);
             // 参数绑定
@@ -372,6 +373,87 @@ abstract class PDOConnection implements ConnectionInterface {
     public function delete(array $bindParams = []): int
     {
         return $this->execute($this->queryStr, $bindParams);
+    }
+
+    /**
+     * @param string $sql
+     */
+    public function createCommand(string $sql) {
+        $this->queryStr = $sql;
+        return $this;
+    }
+
+    /**
+     * @param int $fetchType
+     * @return array
+     */
+    public function findOne(array $bingParams =[], $fetchType = PDO::FETCH_ASSOC) {
+        $this->initConnect();
+        $this->PDOStatementHandle($this->queryStr, $bingParams);
+        $result = $this->PDOStatement->fetch($fetchType);
+        if(!$result) {
+            $result = [];
+        }
+        return $result;
+    }
+
+    /**
+     * @param array $bingParams
+     * @param bool $one
+     * @return array
+     */
+    public function findAll(array $bingParams =[], bool $one = false) {
+        $sql = $one ? $this->queryStr.' LIMIT 1' : $this->queryStr;
+        return $this->query($sql, $bingParams);
+    }
+
+    /**
+     * 获取某个标量
+     * @param array $bingParams
+     */
+    public function findScalar(array $bingParams =[]) {
+        $this->initConnect();
+        $this->PDOStatementHandle($this->queryStr, $bingParams);
+        return $this->PDOStatement->fetchColumn(0);
+    }
+
+    /**
+     * @param array $bingParams
+     */
+    public function count(array $bingParams =[]) {
+        return $this->findScalar($bingParams);
+    }
+
+    /**
+     * @param array $bingParams
+     * @return array
+     */
+    public function max(array $bingParams =[]) {
+        return $this->findOne($bingParams);
+    }
+
+    /**
+     * @param array $bingParams
+     * @return array
+     */
+    public function min(array $bingParams =[]) {
+        return $this->findOne($bingParams);
+    }
+
+    /**
+     * @param array $bingParams
+     * @return array
+     */
+    public function avg(array $bingParams =[]) {
+        return $this->findOne($bingParams);
+    }
+
+    /**
+     * @param array $bingParams
+     * @return array
+     */
+    public function sum(array $bingParams =[]) {
+        return $this->findOne($bingParams);
     }
 
     /**
@@ -621,11 +703,13 @@ abstract class PDOConnection implements ConnectionInterface {
                 );
             }
             $this->reConnectTimes = 0;
+            $this->log('Start transaction','reConnectTimes='.$this->reConnectTimes);
         } catch (\Throwable $e) {
             if ($this->reConnectTimes < 4 && $this->isBreak($e)) {
                 --$this->transTimes;
                 ++$this->reConnectTimes;
                 $this->close()->beginTransaction();
+                $this->log( 'Start transaction failed, try to start again','reConnectTimes='.$this->reConnectTimes);
             }
             throw $e;
         }
@@ -668,10 +752,13 @@ abstract class PDOConnection implements ConnectionInterface {
     public function commit()
     {
         $this->initConnect();
+
+        $this->log('Transaction commit start','transaction commit start');
         if (1 == $this->transTimes) {
             $this->PDOInstance->commit();
         }
         --$this->transTimes;
+        $this->log('Transaction commit finish','transaction commit ok');
     }
 
 
@@ -683,6 +770,10 @@ abstract class PDOConnection implements ConnectionInterface {
     public function rollback()
     {
         $this->initConnect();
+        $this->log('Transaction commit','transaction commit failed');
+
+        $this->log('Transaction rollback start','transaction rollback start');
+
         if (1 == $this->transTimes) {
             $this->PDOInstance->rollBack();
         } elseif ($this->transTimes > 1 && $this->supportSavepoint()) {
@@ -692,6 +783,8 @@ abstract class PDOConnection implements ConnectionInterface {
         }
 
         $this->transTimes = max(0, $this->transTimes - 1);
+        $this->log('Transaction rollback finish','transaction rollback ok');
+
     }
 
     /**
@@ -845,14 +938,21 @@ abstract class PDOConnection implements ConnectionInterface {
      * @param string $msg
      */
     protected function log($action, $msg = '') {
-        array_push($this->logs, [$action, $msg]);
+        $spendLogLimit = $this->config['spend_log_limit'] ?? 0;
+        //使用连接池的话，可能会将多次的执行sql流程存在log中，没有释放，此时看到的sql流程就不准确了,或者清空了前面的
+        if($spendLogLimit) {
+            if(count($this->lastLogs) > $spendLogLimit) {
+                $this->lastLogs = [];
+            }
+            $this->lastLogs[] = ['time'=>date('Y-m-d, H:i:s'),'action'=>$action, 'msg'=>$msg];
+        }
     }
 
     /**
-     *
+     * getLog
      */
-    public function getLog() {
-        return $this->logs;
+    public function getLastLogs() {
+        return $this->lastLogs;
     }
 
 }

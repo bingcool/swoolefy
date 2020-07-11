@@ -44,6 +44,7 @@ class Pgsql extends PDOConnection {
 
     /**
      * 取得数据表的字段信息
+     * table_msg这个函数需要用户自定义,执行本目录下的pgsql.sql代码段创建该函数
      * @param  string $tableName
      * @return array
      */
