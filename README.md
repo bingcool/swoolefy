@@ -59,7 +59,7 @@ components => [
     'redis' => function($com_name) { // 定义组件名，闭包回调实现创建组件过程，return对象即可
          $redis = new \Swoolefy\Library\Cache\Redis();
          $redis->connect('127.0.0.1', 6379);
-         $redis->auth('123456');
+         $redis->auth('123456789');
          return $redis;   
     },
 
@@ -69,7 +69,7 @@ components => [
             'scheme' => 'tcp',
             'host'   => '127.0.0.1',
             'port'   => 6379,
-            'password' => '123456'
+            'password' => '123456789'
         ];
         $predis = new \Swoolefy\Library\Cache\Predis();
         $predis->setConfig($parameters);
@@ -86,7 +86,7 @@ components => [
             // 用户名
             'username'        => 'bingcool',
             // 密码
-            'password'        => '123456',
+            'password'        => '123456789',
             // 端口
             'hostport'        => '3306',
             // dsn
@@ -117,7 +117,7 @@ components => [
             // 用户
             'username'        => 'bingcool',
             // 密码
-            'password'        => '123456',
+            'password'        => '123456789',
             // 端口
             'hostport'        => '5432',
             // dsn
