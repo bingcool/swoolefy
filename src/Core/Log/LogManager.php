@@ -13,6 +13,11 @@ namespace Swoolefy\Core\Log;
 
 use \Swoolefy\Util\Log;
 
+/**
+ * Class LogManager
+ * @see \Swoolefy\Util\Log
+ * @mixin \Swoolefy\Util\Log
+ */
 class LogManager {
 
     use \Swoolefy\Core\SingletonTrait;

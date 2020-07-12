@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Coroutine\Context;
 
 class BaseObject {
@@ -25,6 +26,11 @@ class BaseObject {
      * @var
      */
 	protected $context;
+
+    /**
+     * @var array
+     */
+	protected $logs = [];
 
 	/**
 	 * $args 存放协程请求实例的临时变量数据
@@ -86,6 +92,49 @@ class BaseObject {
         }else {
             return Context::getContext();
         }
+    }
+
+    /**
+     * @param string $logAction
+     * @param array $log
+     */
+    public function setLog($logAction, array $log) {
+        if(!isset($this->logs[$logAction])) {
+            $this->logs[$logAction] = [];
+        }
+        $this->logs[$logAction][] = $log;
+    }
+
+    /**
+     * @return array
+     */
+    public function getLogs() {
+        return $this->logs;
+    }
+
+    /**
+     * handleLog
+     * @return void
+     */
+    public function handleLog() {
+        // log send
+        if(!empty($actionLogs = $this->getLogs())) {
+            foreach($actionLogs as $action => $logs) {
+                foreach ($logs as $k => $info) {
+                    unset($this->logs[$action][$k]);
+                    if(!empty($info)) {
+                        LogManager::getInstance()->{$action}(...$info);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * clearLogs
+     */
+    public function clearLogs() {
+        $this->logs = [];
     }
 
     /**

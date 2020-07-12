@@ -348,15 +348,15 @@ trait AppTrait {
 	 * @return   string
 	 */
 	public function getHomeUrl(bool $ssl = false) {
-		$protocol_version = $this->getProtocol();
-		list($protocol, $version) = explode('/', $protocol_version);
+		$protocolVersion = $this->getProtocol();
+		list($protocol, $version) = explode('/', $protocolVersion);
 		$protocol = strtolower($protocol).'://';
 		if($ssl) {
 			$protocol = 'https://';
 		}
-		$query_string = $this->getQueryString();
-		if($query_string) {
-            $url = $protocol.$this->getHostName().$this->getRequestUri().'?'.$query_string;
+		$queryString = $this->getQueryString();
+		if($queryString) {
+            $url = $protocol.$this->getHostName().$this->getRequestUri().'?'.$queryString;
         }else {
             $url = $protocol.$this->getHostName().$this->getRequestUri();
         }

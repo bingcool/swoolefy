@@ -58,12 +58,6 @@ class App extends \Swoolefy\Core\Component {
     protected $controllerInstance = null;
 
     /**
-     * $log 日志
-     * @var array
-     */
-    protected $logs = [];
-
-    /**
      * @var bool
      */
     protected $is_end = false;
@@ -207,35 +201,7 @@ class App extends \Swoolefy\Core\Component {
 		}
 	}
 
-    /**
-     * @param $level
-     * @param $log
-     */
-	public function setLog($level, $log) {
-	    if(!isset($this->logs[$level])) {
-            $this->logs[$level] = [];
-        }
-        array_push($this->logs[$level], $log);
-	}
 
-    /**
-     * @return array
-     */
-    public function getLog() {
-        return $this->logs;
-    }
-
-    /**
-     * @param null $coroutine_id
-     * @return null|string
-     */
-    public function setCid($coroutine_id = null) {
-        if(empty($coroutine_id)) {
-            $coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
-        }
-        $this->coroutine_id = $coroutine_id;
-        return $this->coroutine_id;
-    }
 
     /**
      * getCid
@@ -261,22 +227,6 @@ class App extends \Swoolefy\Core\Component {
 		Hook::callHook(Hook::HOOK_AFTER_REQUEST);
 		ZModel::removeInstance();
 	}
-
-    /**
-     * handleLog
-     * @return void
-     */
-    public function handleLog() {
-        // log send
-        if(!empty($logs = $this->getLog())) {
-            foreach($logs as $action => $log) {
-                if(!empty($log)) {
-                    LogManager::getInstance()->{$action}($log);
-                    $this->logs[$action] = [];
-                }
-            }
-        }
-    }
 
     /**
      *pushComponentPools
@@ -336,10 +286,5 @@ class App extends \Swoolefy\Core\Component {
         	});
 		}
 	}
-
-	public function __destruct()
-    {
-        var_dump('App destruct');
-    }
 
 }
