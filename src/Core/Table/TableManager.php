@@ -72,7 +72,7 @@ class TableManager {
 	 */
 	public static function set(string $table, string $key, array $field_value = []) {
 		if(!empty($field_value)) {
-			BaseServer::$server->tables[$table]->set($key, $field_value);
+            self::getTable($table)->set($key, $field_value);
 		}	
 	}
 
@@ -84,7 +84,7 @@ class TableManager {
 	 * @return mixed       
 	 */
 	public static function get(string $table, string $key, $field = null) {
-	    return BaseServer::$server->tables[$table]->get($key, $field);
+	    return self::getTable($table)->get($key, $field);
 	}
 
 	/**
@@ -94,7 +94,7 @@ class TableManager {
 	 * @return boolean
 	 */
 	public static function exist(string $table, string $key) {
-	    return BaseServer::$server->tables[$table]->exist($key);
+	    return self::getTable($table)->exist($key);
 	}
 
 	/**
@@ -104,7 +104,7 @@ class TableManager {
 	 * @return boolean
 	 */
 	public static function del(string $table, string $key) {
-	    return BaseServer::$server->tables[$table]->del($key);
+	    return self::getTable($table)->del($key);
 
 	}
 
@@ -118,7 +118,7 @@ class TableManager {
 	 */
 	public static function incr(string $table, string $key, string $field, $incrBy = 1) {
 		if(is_int($incrBy) || is_float($incrBy)) {
-			return BaseServer::$server->tables[$table]->incr($key, $field, $incrBy);
+			return self::getTable($table)->incr($key, $field, $incrBy);
 		}
 		return false;
 	}
@@ -133,7 +133,7 @@ class TableManager {
 	 */
 	public static function decr(string $table, string $key, string $field, $incrBy = 1) {
 		if(is_int($incrBy) || is_float($incrBy)) {
-			return BaseServer::$server->tables[$table]->decr($key, $field, $incrBy);
+			return self::getTable($table)->decr($key, $field, $incrBy);
 		}
 		return false;
 	}
@@ -152,15 +152,15 @@ class TableManager {
 	/**
 	 * getTable 获取已创建的table实例对象
 	 * @param  string|null $table
-	 * @return \Swoole\Table
+	 * @return \Swoole\Table|array
 	 */
-	public static function getTable(string $table = null) {
+	public static function getTable(string $table) {
 		if(isset(BaseServer::$server->tables)) {
-			if($table) {
-				return BaseServer::$server->tables[$table] ?? null;
-			}
+            if(!isset(BaseServer::$server->tables[$table])) {
+                throw new \Exception("Not exist Table={$table}");
+            }
+            return BaseServer::$server->tables[$table];
 		}
-		return null;
 	}
 
 	/**

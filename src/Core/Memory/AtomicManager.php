@@ -15,7 +15,14 @@ class AtomicManager {
 
 	use \Swoolefy\Core\SingletonTrait;
 
+    /**
+     * @var array
+     */
 	private $atomicList = [];
+
+    /**
+     * @var array
+     */
     private $atomicListLong = [];
 
     /**

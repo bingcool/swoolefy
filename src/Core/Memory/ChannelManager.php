@@ -17,6 +17,9 @@ class ChannelManager {
 
     use \Swoolefy\Core\SingletonTrait;
 
+    /**
+     * @var array
+     */
     private $lists = [];
 
     /**

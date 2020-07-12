@@ -37,12 +37,11 @@ class ServerManager {
 	public function addListener(string $host, $port, $type = SWOOLE_SOCK_TCP) {
 		$port = (int)$port;
 		$server_port = Swfy::getServer()->addListener($host, $port, $type);
-		if(is_object($server_port)) {
-			$this->server_ports[$port] = $server_port;
-			return $server_port;
-		}else {
-			throw new \Exception("ServerManager::addListener port = {$port} failed", 1);
-		}
+		if(!is_object($server_port)) {
+            throw new \Exception("ServerManager::addListener port = {$port} failed", 1);
+        }
+        $this->server_ports[$port] = $server_port;
+        return $server_port;
 	}
 
 	/**

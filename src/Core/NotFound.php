@@ -20,7 +20,7 @@ class NotFound extends BService {
      */
 	public function return404(string $class) {
 	    $ret = 404;
-	    $msg = "Class {$class} is not found";
+	    $msg = "Not Found Class {$class}";
         $responseData = Application::buildResponseData($ret, $msg);
 		if(BaseServer::isRpcApp()) {
 			$is_same_packet_struct = $this->serverClientPacketStructSame();
@@ -46,7 +46,7 @@ class NotFound extends BService {
      */
 	public function return500(string $class, string $action) {
 	    $ret = 500;
-	    $msg = "Call undefined function of {$class}::{$action}";
+	    $msg = "Call Undefined Function Of {$class}::{$action}";
         $responseData = Application::buildResponseData($ret, $msg);
 		if(BaseServer::isRpcApp()) {
 			$is_same_packet_struct = $this->serverClientPacketStructSame();
