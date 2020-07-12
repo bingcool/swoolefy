@@ -130,7 +130,7 @@ class SysProcess extends AbstractProcess {
 	}
 
 	/**
-	 * publicByRedis swooleredis的订阅发布方式
+	 * publicByRedis swooleRedis的订阅发布方式
 	 * @param  array  $sys_collector_config
 	 * @param  array $data
      * @throws mixed

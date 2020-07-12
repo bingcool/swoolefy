@@ -228,12 +228,12 @@ class HttpRoute extends AppDispatch {
         if($isContinueAction === false) {
             $this->response->status(403);
             $this->response->header('Content-Type', 'application/json; charset=UTF-8');
-            $query_string = isset($this->request->server['QUERY_STRING']) ? '?' . $this->request->server['QUERY_STRING'] : '';
+            $queryString = isset($this->request->server['QUERY_STRING']) ? '?' . $this->request->server['QUERY_STRING'] : '';
             if(isset($this->request->post) && !empty($this->request->post)) {
                 $post = json_encode($this->request->post, JSON_UNESCAPED_UNICODE);
-                $errorMsg = "Call {$class}::_beforeAction() return false, forbidden continue call {$class}::{$action}, please checkout it ||| " . $this->request->server['REQUEST_URI'] . $query_string . ' ||| ' . $post;
+                $errorMsg = "Call {$class}::_beforeAction() return false, forbidden continue call {$class}::{$action}, please checkout it ||| " . $this->request->server['REQUEST_URI'] . $queryString . ' ||| ' . $post;
             }else {
-                $errorMsg = "Call {$class}::_beforeAction() return false, forbidden continue call {$class}::{$action}, please checkout it ||| " . $this->request->server['REQUEST_URI'] . $query_string;
+                $errorMsg = "Call {$class}::_beforeAction() return false, forbidden continue call {$class}::{$action}, please checkout it ||| " . $this->request->server['REQUEST_URI'] . $queryString;
             }
             $this->app->beforeEnd(403, $errorMsg);
             return false;
