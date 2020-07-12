@@ -261,40 +261,6 @@ class Swoole extends BaseObject {
 	}
 
     /**
-     * @param $log
-     * @return void
-     */
-    public function setLog($level, $log) {
-        if(!isset($this->logs[$level])) {
-            $this->logs[$level] = [];
-        }
-        array_push($this->logs[$level], $log);
-    }
-
-    /**
-     * @return array
-     */
-    public function getLog() {
-        return $this->logs;
-    }
-
-    /**
-     * handleLog
-     * @return void
-     */
-    public function handleLog() {
-        // log send
-        if(!empty($logs = $this->getLog())) {
-            foreach($logs as $action => $log) {
-                if(!empty($log)) {
-                    LogManager::getInstance()->{$action}($log);
-                    $this->logs[$action] = [];
-                }
-            }
-        }
-    }
-
-    /**
      *pushComponentPools
      * @return boolean
      */

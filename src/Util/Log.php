@@ -123,16 +123,10 @@ class Log {
 	public function addInfo($logInfo, $is_deplay_batch = false, array $context = []) {
 	    $app = Application::getApp();
 	    if(is_object($app) && $is_deplay_batch) {
-            $app->setLog(__FUNCTION__, $logInfo);
+            $app->setLog(__FUNCTION__, [$logInfo, false, $context]);
             return true;
         }
-        try {
-            go(function() use($logInfo, $context) {
-                $this->insertLog($logInfo, $context, Logger::INFO);
-            });
-        }catch (\Throwable $e) {
-            $this->insertLog($logInfo, $context, Logger::INFO);
-        }
+        $this->insertLog($logInfo, $context, Logger::INFO);
 	}
 
     /**
@@ -145,16 +139,10 @@ class Log {
 	public function addNotice($logInfo, $is_deplay_batch = false, array $context = []) {
         $app = Application::getApp();
         if(is_object($app) && $is_deplay_batch) {
-            $app->setLog(__FUNCTION__, $logInfo);
+            $app->setLog(__FUNCTION__, [$logInfo, false, $context]);
             return true;
         }
-        try {
-            go(function() use($logInfo, $context) {
-                $this->insertLog($logInfo, $context, Logger::NOTICE);
-            });
-        }catch (\Throwable $e) {
-            $this->insertLog($logInfo, $context, Logger::NOTICE);
-        }
+        $this->insertLog($logInfo, $context, Logger::NOTICE);
 	}
 
     /**
@@ -166,16 +154,10 @@ class Log {
 	public function addWarning($logInfo, $is_deplay_batch = false, array $context = []) {
         $app = Application::getApp();
         if(is_object($app) && $is_deplay_batch) {
-            $app->setLog(__FUNCTION__, $logInfo);
+            $app->setLog(__FUNCTION__, [$logInfo, false, $context]);
             return true;
         }
-        try {
-            go(function() use($logInfo, $context) {
-                $this->insertLog($logInfo, $context, Logger::WARNING);
-            });
-        }catch (\Throwable $e) {
-            $this->insertLog($logInfo, $context, Logger::WARNING);
-        }
+        $this->insertLog($logInfo, $context, Logger::WARNING);
 	}
 
     /**
@@ -187,17 +169,10 @@ class Log {
 	public function addError($logInfo, $is_deplay_batch = false, array $context = []) {
         $app = Application::getApp();
         if(is_object($app) && $is_deplay_batch) {
-            $app->setLog(__FUNCTION__, $logInfo);
+            $app->setLog(__FUNCTION__, [$logInfo, false, $context]);
             return true;
         }
-
-        try{
-            go(function() use($logInfo, $context) {
-                $this->insertLog($logInfo, $context, Logger::ERROR);
-            });
-        }catch (\Throwable $e) {
-            $this->insertLog($logInfo, $context, Logger::ERROR);
-        }
+        $this->insertLog($logInfo, $context, Logger::ERROR);
 	}
 
     /**
@@ -206,15 +181,21 @@ class Log {
      * @param int $type
      */
 	public function insertLog($logInfo, array $context = [], $type = Logger::INFO) {
-        if(is_array($logInfo)) {
-            $logInfo = json_encode($logInfo, JSON_UNESCAPED_UNICODE);
+	    try {
+            if(is_array($logInfo)) {
+                $logInfo = json_encode($logInfo, JSON_UNESCAPED_UNICODE);
+            }
+            go(function() use($logInfo, $context, $type) {
+                $log = new Logger($this->channel);
+                $stream = new StreamHandler($this->logFilePath, $type);
+                $stream->setFormatter($this->formatter);
+                $log->pushHandler($stream);
+                // add records to the log
+                $log->addRecord($type, $logInfo, $context);
+            });
+        }catch (\Exception $e) {
+
         }
-        $log = new Logger($this->channel);
-        $stream = new StreamHandler($this->logFilePath, $type);
-        $stream->setFormatter($this->formatter);
-        $log->pushHandler($stream);
-        // add records to the log
-        $log->addRecord($type, $logInfo, $context);
     }
 
     /**
