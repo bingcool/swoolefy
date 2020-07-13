@@ -429,7 +429,7 @@ abstract class PDOConnection implements ConnectionInterface {
      * @return array
      */
     public function max(array $bingParams =[]) {
-        return $this->findOne($bingParams);
+        return $this->findScalar($bingParams);
     }
 
     /**
@@ -437,7 +437,7 @@ abstract class PDOConnection implements ConnectionInterface {
      * @return array
      */
     public function min(array $bingParams =[]) {
-        return $this->findOne($bingParams);
+        return $this->findScalar($bingParams);
     }
 
     /**
@@ -445,7 +445,7 @@ abstract class PDOConnection implements ConnectionInterface {
      * @return array
      */
     public function avg(array $bingParams =[]) {
-        return $this->findOne($bingParams);
+        return $this->findScalar($bingParams);
     }
 
     /**
@@ -453,7 +453,7 @@ abstract class PDOConnection implements ConnectionInterface {
      * @return array
      */
     public function sum(array $bingParams =[]) {
-        return $this->findOne($bingParams);
+        return $this->findScalar($bingParams);
     }
 
     /**
@@ -953,6 +953,24 @@ abstract class PDOConnection implements ConnectionInterface {
      */
     public function getLastLogs() {
         return $this->lastLogs;
+    }
+
+    /**
+     * 获取返回或者影响的记录数
+     * @return integer
+     */
+    public function getNumRows(): int
+    {
+        return $this->numRows;
+    }
+
+    /**
+     * 析构方法
+     */
+    public function __destruct()
+    {
+        // 关闭连接
+        $this->close();
     }
 
 }
