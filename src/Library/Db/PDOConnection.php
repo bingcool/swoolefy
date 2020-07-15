@@ -877,7 +877,7 @@ abstract class PDOConnection implements ConnectionInterface {
             // 判断占位符
             $sql = is_numeric($key) ?
                 substr_replace($sql, $value, strpos($sql, '?'), 1) :
-                substr_replace($sql, $value, strpos($sql, ':' . $key), strlen(':' . $key));
+                substr_replace($sql, $value, strpos($sql,  $key), strlen($key));
         }
 
         return rtrim($sql);
