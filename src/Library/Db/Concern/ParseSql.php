@@ -11,8 +11,6 @@
 
 namespace Swoolefy\Library\Db\Concern;
 
-use DateTime;
-
 trait ParseSql {
 
     /**
@@ -68,6 +66,19 @@ trait ParseSql {
         $sql = "UPDATE {$this->table} SET {$setValueStr} WHERE {$pk}=:pk";
         $bindParams[':pk'] = $this->getPkValue() ?? 0;
         return [$sql, $bindParams];
+    }
+
+    /**
+     * parseDeleteSql
+     */
+    protected function parseDeleteSql() {
+        $pk = $this->getPk();
+        $pkValue = $this->getPkValue();
+        if($pkValue) {
+            $sql = "DELETE FROM {$this->table} WHERE {$pk}=:pk LIMIT 1";
+            $bindParams[':pk'] = $pkValue;
+        }
+        return [$sql ?? '', $bindParams ?? []];
     }
 
     /**

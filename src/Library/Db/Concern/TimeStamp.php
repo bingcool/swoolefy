@@ -13,14 +13,10 @@ namespace Swoolefy\Library\Db\Concern;
 
 use DateTime;
 
-/**
- * 自动时间戳
- */
 trait TimeStamp
 {
     /**
      * 时间日期字段格式化处理
-     * @access protected
      * @param  mixed $format    日期格式
      * @param  mixed $time      时间日期表达式
      * @param  bool  $timestamp 时间表达式是否为时间戳
@@ -29,7 +25,7 @@ trait TimeStamp
     protected function formatDateTime($format, $time = 'now', bool $timestamp = false)
     {
         if (empty($time)) {
-            return;
+            return null;
         }
 
         if (false === $format) {

@@ -13,7 +13,6 @@ namespace Swoolefy\Library\Db;
 
 use ArrayAccess;
 use think\contract\Jsonable;
-use think\helper\Str;
 
 /**
  * Class Model
@@ -27,8 +26,6 @@ use think\helper\Str;
  * @method void onAfterWrite(Model $model) static after_write事件定义
  * @method mixed onBeforeDelete(Model $model) static before_write事件定义
  * @method void onAfterDelete(Model $model) static after_delete事件定义
- * @method void onBeforeRestore(Model $model) static before_restore事件定义
- * @method void onAfterRestore(Model $model) static after_restore事件定义
  */
 abstract class Model implements ArrayAccess, Jsonable
 {
@@ -48,6 +45,11 @@ abstract class Model implements ArrayAccess, Jsonable
     protected $exists = false;
 
     /**
+     * @var bool
+     */
+    protected $isNew = false;
+
+    /**
      * @var string
      */
     protected $suffix = '';
@@ -65,26 +67,31 @@ abstract class Model implements ArrayAccess, Jsonable
     /**
      * @var array
      */
-    protected $attributes = [];
+    protected $attributes = null;
 
     /**
-     * 架构函数
-     * @access public
-     * @param array $data 数据
+     * @var bool
+     */
+    protected $force = false;
+
+    /**
+     * @var bool
+     */
+    protected $lazySave = false;
+
+    /**
+     * Model constructor.
      */
     public function __construct()
     {
-        // 执行初始化操作
         $this->init();
-
     }
 
-    protected function init() {
-
-    }
+    protected function init() {}
 
     protected function checkData(): void
     {
+
     }
 
     protected function checkResult($result): void
@@ -94,11 +101,10 @@ abstract class Model implements ArrayAccess, Jsonable
 
     /**
      * 设置数据是否存在
-     * @access public
      * @param bool $exists
      * @return $this
      */
-    public function exists(bool $exists = true)
+    protected function exists(bool $exists = true)
     {
         $this->exists = $exists;
         return $this;
@@ -106,12 +112,16 @@ abstract class Model implements ArrayAccess, Jsonable
 
     /**
      * 判断数据是否存在数据库
-     * @access public
      * @return bool
      */
     public function isExists(): bool
     {
         return $this->exists;
+    }
+
+    protected function setNew(bool $isNew)
+    {
+        $this->isNew = $isNew;
     }
 
     /**
@@ -126,7 +136,8 @@ abstract class Model implements ArrayAccess, Jsonable
     /**
      * 自定义创建primary key的值,一般默认是数据库自增
      */
-    public function createPkValue() {
+    public function createPkValue()
+    {
 
     }
 
@@ -159,8 +170,7 @@ abstract class Model implements ArrayAccess, Jsonable
     }
 
     /**
-     * 修改器 设置数据对象的值
-     * @access public
+     * 修改器 设置数据对象的值处理
      * @param string $name  名称
      * @param mixed  $value 值
      * @return void
@@ -182,17 +192,17 @@ abstract class Model implements ArrayAccess, Jsonable
         // 源数据
         if(!$this->isExists()) $this->origin[$name] = $value;
 
-        $method = 'set' . Str::studly($name) . 'Attr';
+        $method = 'set' . self::studly($name) . 'Attr';
 
         if(method_exists($this, $method)) {
-            // 返回 修改器 处理过的数据
+            // 返回修改器处理过的数据
             $value = $this->$method($value);
             $this->set[$name] = true;
             if(is_null($value)) {
                 return;
             }
         }else if(isset($this->type[$name])) {
-            // 类型转换
+            //类型转换
             $value = $this->writeTransform($value, $this->type[$name]);
         }
         // 设置数据对象属性
@@ -201,7 +211,6 @@ abstract class Model implements ArrayAccess, Jsonable
 
     /**
      * 保存当前数据对象
-     * @access public
      * @param array  $data     数据
      * @return bool
      */
@@ -230,42 +239,48 @@ abstract class Model implements ArrayAccess, Jsonable
 
     /**
      * 新增写入数据
-     * @access protected
-     * @param string $sequence 自增名
      * @return bool
-     * @throws Throwable
+     * @throws Exception
      */
-    protected function insertData(string $sequence = null): bool
+    protected function insertData(): bool
     {
+        // 标记为新数据
+        $this->setNew(true);
+
         if(false === $this->trigger('BeforeInsert')) {
             return false;
         }
 
         $this->checkData();
 
-        // 检查允许字段
-        $allowFields = $this->checkAllowFields();
+        try {
+            // 检查允许字段
+            $allowFields = $this->checkAllowFields();
+            $pk = $this->getPk();
+            // 对于自定义的主键值，需要设置
+            $pkValue = $this->createPkValue();
+            if($pkValue) {
+                $this->data[$pk] = $pkValue;
+            }else {
+                // 数据表设置自增pk的，则不需要设置允许字段
+                $allowFields = array_diff($allowFields, [$pk]);
+            }
+            list($sql, $bindParams) = $this->parseInsertSql($allowFields);
+            $this->numRows = $this->getConnection()->createCommand($sql)->insert($bindParams);
+            // 获取插入的主键值
+            $lastId = $this->getConnection()->getLastInsID($this->getPk());
 
-        $pk = $this->getPk();
-        // 对于自定义的主键值，需要设置
-        $pkValue = $this->createPkValue();
-        if($pkValue) {
-            $this->data[$pk] = $pkValue;
-        }else {
-            // 数据表设置自增pk的，则不需要设置允许字段
-            $allowFields = array_diff($allowFields, [$pk]);
+        }catch (\Exception $exception) {
+            throw $exception;
         }
-        list($sql, $bindParams) = $this->parseInsertSql($allowFields);
-        $this->numRows = $this->getConnection()->createCommand($sql)->insert($bindParams);
-        // 获取插入的主键值
-        $lastId = $this->getConnection()->getLastInsID($this->getPk());
+
         if($lastId) {
             if(is_string($pk) && (!isset($this->data[$pk]) || '' == $this->data[$pk])) {
                 $this->data[$pk] = $lastId;
             }
+            // 标记数据已经存在
+            $this->exists(true);
         }
-        // 标记数据已经存在
-        $lastId && $this->exists = true;
         // 所有的数据表原始字段值设置
         $this->buildAttributes();
         // 新增回调
@@ -276,7 +291,6 @@ abstract class Model implements ArrayAccess, Jsonable
 
     /**
      * 检查数据是否允许写入
-     * @access protected
      * @return array
      */
     protected function checkAllowFields(): array
@@ -305,25 +319,37 @@ abstract class Model implements ArrayAccess, Jsonable
     }
 
     /**
-     * 保存写入数据
-     * @access protected
+     * 保存写入更新数据
+     * @param array $attributes
      * @return bool
      */
-    protected function updateData(): bool
+    protected function updateData(array $attributes = []): bool
     {
+        // 标记为新数据
+        $this->setNew(false);
+
         // 事件回调
         if(false === $this->trigger('BeforeUpdate')) {
             return false;
         }
 
         $this->checkData();
-        // 获取有更新的数据
-        $diffData = $this->getChangedData();
+        // 自动获取有更新的数据
+        if(!$attributes) {
+            $diffData = $this->getChangedData();
+        }else {
+            // 指定字段更新
+            $diffData = $this->getCustomData($attributes);
+        }
         // 检查允许字段
         $allowFields = $this->checkAllowFields();
         list($sql, $bindParams) = $this->parseUpdateSql($diffData, $allowFields);
         $this->numRows = $this->getConnection()->createCommand($sql)->update($bindParams);
+
+        $this->origin = $this->data;
+
         $this->checkResult($this->data);
+
         // 更新回调
         $this->trigger('AfterUpdate');
 
@@ -331,8 +357,38 @@ abstract class Model implements ArrayAccess, Jsonable
     }
 
     /**
+     * 指定字段更新
+     * @param array $attributes
+     * @return bool
+     */
+    public function update(array $attributes): bool
+    {
+        $this->force = false;
+        return $this->updateData($attributes);
+    }
+
+    /**
+     * @return bool
+     */
+    public function delete(): bool
+    {
+        // 标记为新数据
+        $this->setNew(false);
+
+        if(!$this->exists || false === $this->trigger('BeforeDelete')) {
+            return false;
+        }
+
+        list($sql, $bindParams) = $this->parseDeleteSql();
+        $this->numRows = $this->getConnection()->createCommand($sql)->delete($bindParams);
+        $this->trigger('AfterDelete');
+        $this->exists   = false;
+        $this->lazySave = false;
+        return true;
+    }
+
+    /**
      * 检测数据对象的值
-     * @access public
      * @param string $name 名称
      * @return bool
      */
@@ -343,7 +399,6 @@ abstract class Model implements ArrayAccess, Jsonable
 
     /**
      * 获取器 获取数据对象的值
-     * @access public
      * @param string $name 名称
      * @return mixed
      * @throws \Exception
@@ -355,7 +410,6 @@ abstract class Model implements ArrayAccess, Jsonable
 
     /**
      * 获取器 获取数据对象的值
-     * @access public
      * @param  string $name 名称
      * @return mixed
      * @throws Exception
@@ -373,7 +427,7 @@ abstract class Model implements ArrayAccess, Jsonable
      */
     protected function getValue(string $fieldName, $value)
     {
-        $method = 'get' . Str::studly($fieldName) . 'Attr';
+        $method = 'get' . self::studly($fieldName) . 'Attr';
         if(method_exists($this, $method)) {
             $value = $this->$method($value);
         }else if(isset($this->type[$fieldName])) {
@@ -384,27 +438,24 @@ abstract class Model implements ArrayAccess, Jsonable
     }
 
     /**
-     * 获取对象Formatter处理后的业务目标数据 如果不存在指定字段返回null
+     * 获取对象Formatter处理后的真实存在的业务目标数据 如果不存在指定字段返回null
      * @return array|null
      */
     public function getAttributes() {
-        if(!$this->attributes) {
-            if($this->data) {
-                foreach($this->data as $fieldName=>$value) {
-                    if(in_array($fieldName, $this->tableFields)) {
-                        $attributes[$fieldName] = $this->getValue($fieldName, $value);
-                    }
-                    unset($this->data[$fieldName]);
+        if($this->isExists() && $this->origin) {
+            foreach($this->origin as $fieldName=>$value) {
+                if(in_array($fieldName, $this->tableFields)) {
+                    $attributes[$fieldName] = $this->getValue($fieldName, $value);
                 }
+                unset($this->origin[$fieldName]);
             }
-            $this->attributes = $attributes ?? null;
         }
+        $this->attributes = $attributes ?? null;
         return $this->attributes;
     }
 
     /**
      * 判断模型是否为空
-     * @access public
      * @return bool
      */
     public function isEmpty(): bool
@@ -413,8 +464,18 @@ abstract class Model implements ArrayAccess, Jsonable
     }
 
     /**
+     * 下划线转驼峰(首字母大写)
+     * @param  string $value
+     * @return string
+     */
+    public static function studly(string $value): string
+    {
+        $value = ucwords(str_replace(['-', '_'], ' ', $value));
+        return str_replace(' ', '', $value);
+    }
+
+    /**
      * 销毁数据对象的值
-     * @access public
      * @param string $name 名称
      * @return void
      */

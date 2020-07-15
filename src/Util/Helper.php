@@ -199,6 +199,137 @@ class Helper {
     }
 
     /**
+     * 检查字符串中是否包含某些字符串
+     * @param string       $haystack
+     * @param string|array $needles
+     * @return bool
+     */
+    public static function contains(string $haystack, $needles) {
+        foreach ((array) $needles as $needle) {
+            if ('' != $needle && mb_strpos($haystack, $needle) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 检查字符串是否以某些字符串结尾
+     * @param  string       $haystack
+     * @param  string|array $needles
+     * @return bool
+     */
+    public static function endsWith(string $haystack, $needles) {
+        foreach ((array) $needles as $needle) {
+            if ((string) $needle === static::substr($haystack, -static::length($needle))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 检查字符串是否以某些字符串开头
+     * @param  string       $haystack
+     * @param  string|array $needles
+     * @return bool
+     */
+    public static function startsWith(string $haystack, $needles) {
+        foreach ((array) $needles as $needle) {
+            if ('' != $needle && mb_strpos($haystack, $needle) === 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 字符串转小写
+     * @param  string $value
+     * @return string
+     */
+    public static function lower(string $value) {
+        return mb_strtolower($value, 'UTF-8');
+    }
+
+    /**
+     * 字符串转大写
+     * @param  string $value
+     * @return string
+     */
+    public static function upper(string $value) {
+        return mb_strtoupper($value, 'UTF-8');
+    }
+
+    /**
+     * 获取字符串的长度
+     * @param  string $value
+     * @return int
+     */
+    public static function length(string $value) {
+        return mb_strlen($value);
+    }
+
+    /**
+     * 截取字符串
+     *
+     * @param  string   $string
+     * @param  int      $start
+     * @param  int|null $length
+     * @return string
+     */
+    public static function substr(string $string, int $start, int $length = null): string
+    {
+        return mb_substr($string, $start, $length, 'UTF-8');
+    }
+
+    /**
+     * 驼峰转下划线
+     * @param  string $value
+     * @param  string $delimiter
+     * @return string
+     */
+    public static function snake(string $value, string $delimiter = '_') {
+        if(!ctype_lower($value)) {
+            $value = preg_replace('/\s+/u', '', $value);
+            $value = static::lower(preg_replace('/(.)(?=[A-Z])/u', '$1' . $delimiter, $value));
+        }
+        return $value;
+    }
+
+    /**
+     * 下划线转驼峰(首字母小写)
+     * @param  string $value
+     * @return string
+     */
+    public static function camel(string $value) {
+
+        return lcfirst(static::studly($value));
+    }
+
+    /**
+     * 下划线转驼峰(首字母大写)
+     * @param  string $value
+     * @return string
+     */
+    public static function studly(string $value) {
+        $value = ucwords(str_replace(['-', '_'], ' ', $value));
+        return str_replace(' ', '', $value);
+    }
+
+    /**
+     * 转为首字母大写的标题格式
+     * @param  string $value
+     * @return string
+     */
+    public static function title(string $value) {
+        return mb_convert_case($value, MB_CASE_TITLE, 'UTF-8');
+    }
+
+    /**
      * asyncHttpClient 简单的模拟http异步并发请求
      * @param    array   $urls
      * @param    int     $timeout 单位ms
