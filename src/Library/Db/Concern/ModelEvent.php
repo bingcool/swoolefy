@@ -11,7 +11,6 @@
 
 namespace Swoolefy\Library\Db\Concern;
 
-use think\db\exception\ModelEventException;
 use think\helper\Str;
 
 /**
@@ -19,29 +18,11 @@ use think\helper\Str;
  */
 trait ModelEvent
 {
-
-    /**
-     * Event对象
-     * @var object
-     */
-    protected static $event;
-
     /**
      * 是否需要事件响应
      * @var bool
      */
     protected $withEvent = true;
-
-    /**
-     * 设置Event对象
-     * @access public
-     * @param object $event Event对象
-     * @return void
-     */
-    public static function setEvent($event)
-    {
-        self::$event = $event;
-    }
 
     /**
      * 当前操作的事件响应
@@ -70,17 +51,12 @@ trait ModelEvent
         $call = 'on' . Str::studly($event);
 
         try {
-            if (method_exists(static::class, $call)) {
+            $result = null;
+            if(method_exists(static::class, $call)) {
                 $result = call_user_func([static::class, $call], $this);
-            } elseif (is_object(self::$event) && method_exists(self::$event, 'trigger')) {
-                $result = self::$event->trigger(static::class . '.' . $event, $this);
-                $result = empty($result) ? true : end($result);
-            } else {
-                $result = true;
             }
-
             return false === $result ? false : true;
-        } catch (ModelEventException $e) {
+        } catch (\Exception $e) {
             return false;
         }
     }
