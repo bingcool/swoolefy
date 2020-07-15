@@ -11,9 +11,6 @@
 
 namespace Swoolefy\Library\Db\Concern;
 
-/**
- * 模型数据处理
- */
 trait Attribute
 {
     /**
@@ -21,18 +18,6 @@ trait Attribute
      * @var string|array
      */
     protected $pk = 'id';
-
-    /**
-     * 数据表字段信息 留空则自动获取
-     * @var array
-     */
-    protected $schema = [];
-
-    /**
-     * 当前允许写入的字段
-     * @var array
-     */
-    protected $field = [];
 
     /**
      * 字段自动类型转换
@@ -65,30 +50,6 @@ trait Attribute
     private $origin = [];
 
     /**
-     * JSON数据表字段
-     * @var array
-     */
-    protected $json = [];
-
-    /**
-     * JSON数据表字段类型
-     * @var array
-     */
-    protected $jsonType = [];
-
-    /**
-     * JSON数据取出是否需要转换为数组
-     * @var bool
-     */
-    protected $jsonAssoc = false;
-
-    /**
-     * 是否严格字段大小写
-     * @var bool
-     */
-    protected $strict = true;
-
-    /**
      * 修改器执行记录
      * @var array
      */
@@ -96,7 +57,6 @@ trait Attribute
 
     /**
      * 获取模型对象的主键
-     * @access public
      * @return string|array
      */
     public function getPk()
@@ -106,7 +66,6 @@ trait Attribute
 
     /**
      * 判断一个字段名是否为主键字段
-     * @access public
      * @param  string $key 名称
      * @return bool
      */
@@ -131,42 +90,40 @@ trait Attribute
     public function getPkValue()
     {
         $pk = $this->getPk();
-        if (is_string($pk) && array_key_exists($pk, $this->data)) {
+        if(is_string($pk) && array_key_exists($pk, $this->data)) {
             return $this->data[$pk];
         }
-        return;
+        return null;
     }
 
     /**
-     * 设置允许写入的字段
+     * 设置允许写入的字段,默认获取数据表所有字段
      * @access public
      * @param  array $field 允许写入的字段
      * @return $this
      */
     public function allowField(array $field)
     {
-        $this->field = $field;
-
+        $this->tableFields = $field;
         return $this;
     }
 
     /**
      * 获取对象原始数据 如果不存在指定字段返回null
      * @access public
-     * @param  string $name 字段名 留空获取全部
+     * @param  string $fieldName 字段名 留空获取全部
      * @return mixed
      */
-    public function getOrigin(string $name = null)
+    public function getOrigin(string $fieldName = null)
     {
-        if (is_null($name)) {
+        if(is_null($fieldName)) {
             return $this->origin;
         }
-
-        return array_key_exists($name, $this->origin) ? $this->origin[$name] : null;
+        return array_key_exists($fieldName, $this->origin) ? $this->origin[$fieldName] : null;
     }
 
     /**
-     * 获取对象原始数据(原始出表数据，没做任何formater处理) 如果不存在指定字段返回false
+     * 获取对象原始数据(原始出表或者对象设置即将如表的数据) 如果不存在指定字段返回false
      * @access public
      * @param  string $fieldName 字段名 留空获取全部
      * @return mixed
@@ -206,6 +163,23 @@ trait Attribute
     }
 
     /**
+     * 获取指定字段更新值
+     * @param array $customFields
+     * @return array
+     */
+    protected function getCustomData(array $customFields): array
+    {
+        $diffData = [];
+        foreach($customFields as $field) {
+            if(isset($this->readonly[$field]) || !isset($this->data[$field])) {
+                continue;
+            }
+            $diffData[$field] = $this->data[$field];
+        }
+        return $diffData;
+    }
+
+    /**
      * 直接设置数据对象值
      * @access public
      * @param  string $name  属性名
@@ -227,7 +201,7 @@ trait Attribute
     protected function writeTransform($value, $type)
     {
         if (is_null($value)) {
-            return;
+            return null;
         }
 
         if (is_array($type)) {
@@ -293,7 +267,7 @@ trait Attribute
     protected function readTransform($value, $type)
     {
         if (is_null($value)) {
-            return;
+            return null;
         }
 
         if (is_array($type)) {

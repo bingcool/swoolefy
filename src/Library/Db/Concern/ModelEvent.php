@@ -26,7 +26,6 @@ trait ModelEvent
 
     /**
      * 当前操作的事件响应
-     * @access protected
      * @param  bool $event  是否需要事件响应
      * @return $this
      */
@@ -38,7 +37,6 @@ trait ModelEvent
 
     /**
      * 触发事件
-     * @access protected
      * @param  string $event 事件名
      * @return bool
      */
@@ -48,7 +46,7 @@ trait ModelEvent
             return true;
         }
 
-        $call = 'on' . Str::studly($event);
+        $call = 'on' . self::studly($event);
 
         try {
             $result = null;
