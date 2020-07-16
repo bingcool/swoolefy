@@ -11,8 +11,6 @@
 
 namespace Swoolefy\Library\Db\Concern;
 
-use think\helper\Str;
-
 /**
  * 模型事件处理
  */
@@ -23,6 +21,11 @@ trait ModelEvent
      * @var bool
      */
     protected $withEvent = true;
+
+    /**
+     * @var array
+     */
+    protected $skipEvents = [];
 
     /**
      * 当前操作的事件响应
@@ -36,6 +39,15 @@ trait ModelEvent
     }
 
     /**
+     * @param string $event
+     * @return $this
+     */
+    public function skipEvent(string $event) {
+        $this->skipEvents[] = $event;
+        return $this;
+    }
+
+    /**
      * 触发事件
      * @param  string $event 事件名
      * @return bool
@@ -45,12 +57,12 @@ trait ModelEvent
         if (!$this->withEvent) {
             return true;
         }
-
-        $call = 'on' . self::studly($event);
+        $onEvent = self::studly($event);
+        $call = 'on' . $onEvent;
 
         try {
             $result = null;
-            if(method_exists(static::class, $call)) {
+            if(method_exists(static::class, $call) && !in_array($onEvent, $this->skipEvents)) {
                 $result = call_user_func([static::class, $call], $this);
             }
             return false === $result ? false : true;

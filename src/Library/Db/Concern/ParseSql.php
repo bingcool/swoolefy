@@ -82,11 +82,22 @@ trait ParseSql {
     }
 
     /**
-     * @param string $sql
+     * @param string $where
+     * @param array $bindParams
+     * @return ParseSql
+     */
+    protected function parseWhereSql(string $where) {
+        $sql = "SELECT * FROM {$this->table} WHERE {$where}";
+        return $sql;
+    }
+
+    /**
+     * @param string $where
      * @param array $bindParams
      * @return ParseSql|null
      */
-    public function findOne(string $sql, array $bindParams = []) {
+    public function findOne(string $where, array $bindParams = []) {
+        $sql = $this->parseWhereSql($where);
         $attributes = $this->getConnection()->createCommand($sql)->findOne($bindParams);
         if($attributes) {
             foreach($attributes as $field => $value) {
@@ -95,19 +106,8 @@ trait ParseSql {
             // 记录源数据
             $this->origin = $this->data;
             $this->exists(true);
-            $result = $this;
         }
-        return $result ?? null;
-    }
-
-    /**
-     * @param string $where
-     * @param array $bindParams
-     * @return ParseSql
-     */
-    public function findWhere(string $where, array $bindParams = []) {
-        $sql = "SELECT * FROM {$this->table} WHERE {$where}";
-        return $this->findOne($sql, $bindParams);
+        return $this;
     }
 
     /**

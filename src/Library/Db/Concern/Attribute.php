@@ -14,8 +14,8 @@ namespace Swoolefy\Library\Db\Concern;
 trait Attribute
 {
     /**
-     * 数据表主键 复合主键使用数组定义
-     * @var string|array
+     * 数据表主键
+     * @var string
      */
     protected $pk = 'id';
 
@@ -57,7 +57,7 @@ trait Attribute
 
     /**
      * 获取模型对象的主键
-     * @return string|array
+     * @return string
      */
     public function getPk()
     {
@@ -124,7 +124,6 @@ trait Attribute
 
     /**
      * 获取对象原始数据(原始出表或者对象设置即将如表的数据) 如果不存在指定字段返回false
-     * @access public
      * @param  string $fieldName 字段名 留空获取全部
      * @return mixed
      * @throws Exception
@@ -139,7 +138,6 @@ trait Attribute
 
     /**
      * 获取变化的数据 并排除只读数据
-     * @access public
      * @return array
      */
     public function getChangedData(): array
@@ -181,7 +179,6 @@ trait Attribute
 
     /**
      * 直接设置数据对象值
-     * @access public
      * @param  string $name  属性名
      * @param  mixed  $value 值
      * @return void
@@ -193,7 +190,6 @@ trait Attribute
 
     /**
      * 数据写入 类型转换
-     * @access protected
      * @param  mixed        $value 值
      * @param  string|array $type  要转换的类型
      * @return mixed
@@ -231,7 +227,7 @@ trait Attribute
                 break;
             case 'datetime':
                 $value = is_numeric($value) ? $value : strtotime($value);
-                $value = $this->formatDateTime('Y-m-d H:i:s.u', $value, true);
+                $value = $this->formatDateTime('Y-m-d H:i:s', $value, true);
                 break;
             case 'object':
                 if (is_object($value)) {
@@ -259,7 +255,6 @@ trait Attribute
 
     /**
      * 数据读取 类型转换
-     * @access protected
      * @param  mixed        $value 值
      * @param  string|array $type  要转换的类型
      * @return mixed

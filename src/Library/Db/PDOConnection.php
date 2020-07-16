@@ -549,7 +549,7 @@ abstract class PDOConnection implements ConnectionInterface {
             $schema = $tableName;
         }
 
-        if (!isset($this->info[$schema]) || $force) {
+        if (!isset($this->info[$schema]) || $force || isset($this->objExpireTime)) {
             $info = $this->getTableFieldsInfo($tableName);
             $pk      = $info['_pk'] ?? null;
             $autoinc = $info['_autoinc'] ?? null;
