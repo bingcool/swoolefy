@@ -46,7 +46,7 @@ class Mysql extends PDOConnection {
     public function getFields(string $tableName): array
     {
         $sourceTableName = $tableName;
-        if(!isset($this->tableFields[$tableName]) && empty($this->tableFields[$tableName])) {
+        if(!isset($this->tableFields[$tableName]) && empty($this->tableFields[$tableName]) || isset($this->objExpireTime)) {
 
             [$tableName] = explode(' ', $tableName);
 

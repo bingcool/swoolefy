@@ -17,14 +17,11 @@ use think\contract\Jsonable;
 /**
  * Class Model
  * @package think
- * @method void onAfterRead(Model $model) static after_read事件定义
  * @method mixed onBeforeInsert(Model $model) static before_insert事件定义
  * @method void onAfterInsert(Model $model) static after_insert事件定义
  * @method mixed onBeforeUpdate(Model $model) static before_update事件定义
  * @method void onAfterUpdate(Model $model) static after_update事件定义
- * @method mixed onBeforeWrite(Model $model) static before_write事件定义
- * @method void onAfterWrite(Model $model) static after_write事件定义
- * @method mixed onBeforeDelete(Model $model) static before_write事件定义
+ * @method mixed onBeforeDelete(Model $model) static before_delete事件定义
  * @method void onAfterDelete(Model $model) static after_delete事件定义
  */
 abstract class Model implements ArrayAccess, Jsonable
@@ -34,10 +31,23 @@ abstract class Model implements ArrayAccess, Jsonable
     use Concern\ParseSql;
     use Concern\TimeStamp;
 
+    const BEFORE_INSERT = 'BeforeInsert';
+    const AFTER_INSERT = 'AfterInsert';
+    const BEFORE_UPDATE = 'BeforeUpdate';
+    const AFTER_UPDATE = 'AfterUpdate';
+    const BEFORE_DELETE = 'BeforeDelete';
+    const AFTER_DELETE = 'AfterDelete';
+
     /**
      * @var string
      */
     protected $table;
+
+    /**
+     * 数据表主键
+     * @var string
+     */
+    protected $pk = 'id';
 
     /**
      * @var boolean
@@ -87,17 +97,22 @@ abstract class Model implements ArrayAccess, Jsonable
         $this->init();
     }
 
+    /**
+     * 获取当前模型的数据库连接标识
+     * @return PDOConnection
+     */
+    abstract public function getConnection();
+
+    /**
+     * 自定义创建primary key的值,一般默认是数据库自增
+     */
+    public function createPkValue(){}
+
     protected function init() {}
 
-    protected function checkData(): void
-    {
+    protected function checkData() {}
 
-    }
-
-    protected function checkResult($result): void
-    {
-
-    }
+    protected function checkResult($result) {}
 
     /**
      * 设置数据是否存在
@@ -119,26 +134,9 @@ abstract class Model implements ArrayAccess, Jsonable
         return $this->exists;
     }
 
-    protected function setNew(bool $isNew)
+    protected function setIsNew(bool $isNew)
     {
         $this->isNew = $isNew;
-    }
-
-    /**
-     * 获取当前模型的数据库连接标识
-     * @return PDOConnection
-     */
-    public function getConnection()
-    {
-
-    }
-
-    /**
-     * 自定义创建primary key的值,一般默认是数据库自增
-     */
-    public function createPkValue()
-    {
-
     }
 
     /**
@@ -245,7 +243,7 @@ abstract class Model implements ArrayAccess, Jsonable
     protected function insertData(): bool
     {
         // 标记为新数据
-        $this->setNew(true);
+        $this->setIsNew(true);
 
         if(false === $this->trigger('BeforeInsert')) {
             return false;
@@ -315,7 +313,7 @@ abstract class Model implements ArrayAccess, Jsonable
      */
     protected function buildAttributes() {
         list($sql, $bindParams) = $this->parseFindSqlByPk();
-        $this->findOne($sql, $bindParams);
+        $this->getConnection()->createCommand($sql)->findOne($bindParams);
     }
 
     /**
@@ -326,7 +324,7 @@ abstract class Model implements ArrayAccess, Jsonable
     protected function updateData(array $attributes = []): bool
     {
         // 标记为新数据
-        $this->setNew(false);
+        $this->setIsNew(false);
 
         // 事件回调
         if(false === $this->trigger('BeforeUpdate')) {
@@ -373,7 +371,7 @@ abstract class Model implements ArrayAccess, Jsonable
     public function delete(): bool
     {
         // 标记为新数据
-        $this->setNew(false);
+        $this->setIsNew(false);
 
         if(!$this->exists || false === $this->trigger('BeforeDelete')) {
             return false;
@@ -490,45 +488,48 @@ abstract class Model implements ArrayAccess, Jsonable
         $this->setAttribute($name, $value);
     }
 
+    /**
+     * @param mixed $name
+     * @return bool
+     */
     public function offsetExists($name): bool
     {
         return $this->__isset($name);
     }
 
+    /**
+     * @param mixed $name
+     */
     public function offsetUnset($name)
     {
         $this->__unset($name);
     }
 
+    /**
+     * @param mixed $name
+     * @return mixed
+     */
     public function offsetGet($name)
     {
         return $this->getAttribute($name);
     }
 
     /**
-     * 转换当前模型对象为JSON字符串
-     * @access public
+     * 转换当前模型对象源数据转为JSON字符串
      * @param  integer $options json参数
      * @return string
      */
     public function toJson(int $options = JSON_UNESCAPED_UNICODE): string
     {
-
+        return json_encode($this->origin, $options);
     }
 
+    /**
+     * @return string
+     */
     public function __toString()
     {
         return $this->toJson();
-    }
-
-    public function __call($method, $args)
-    {
-
-    }
-
-    public static function __callStatic($method, $args)
-    {
-
     }
 
     /**
