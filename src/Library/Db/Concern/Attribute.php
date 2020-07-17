@@ -203,7 +203,7 @@ trait Attribute
     {
         $diffData = $originAttributes = $newAttributes = [];
         foreach($customFields as $fieldName) {
-            if(isset($this->readonly[$fieldName]) || !isset($this->data[$fieldName])) {
+            if(isset($this->readonly[$fieldName]) || !isset($this->data[$fieldName]) || !isset($this->origin[$fieldName])) {
                 continue;
             }
             $diffData[$fieldName] = $this->data[$fieldName];
