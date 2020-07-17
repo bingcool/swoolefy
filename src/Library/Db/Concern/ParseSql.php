@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Library\Db\Concern;
 
+use Swoolefy\Library\Db\PDOConnection;
+
 trait ParseSql {
 
     /**
@@ -84,7 +86,7 @@ trait ParseSql {
     /**
      * @param string $where
      * @param array $bindParams
-     * @return ParseSql
+     * @return string
      */
     protected function parseWhereSql(string $where) {
         $sql = "SELECT * FROM {$this->table} WHERE {$where}";
@@ -94,11 +96,24 @@ trait ParseSql {
     /**
      * @param string $where
      * @param array $bindParams
-     * @return ParseSql|null
+     * @return $this
      */
     public function findOne(string $where, array $bindParams = []) {
         $sql = $this->parseWhereSql($where);
-        $attributes = $this->getConnection()->createCommand($sql)->findOne($bindParams);
+        /**@var PDOConnection $connection*/
+        $connection = $this->getSlaveConnect();
+        if(!is_object($connection)) {
+            $connection = $this->getConnection();
+        }
+        $attributes = $connection->createCommand($sql)->findOne($bindParams);
+        $this->parseOrigin($attributes);
+        return $this;
+    }
+
+    /**
+     * @param array $attributes
+     */
+    protected function parseOrigin(array $attributes = []) {
         if($attributes) {
             foreach($attributes as $field => $value) {
                 $this->data[$field] = $value;
@@ -107,7 +122,6 @@ trait ParseSql {
             $this->origin = $this->data;
             $this->exists(true);
         }
-        return $this;
     }
 
     /**

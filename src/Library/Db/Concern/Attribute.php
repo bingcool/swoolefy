@@ -44,6 +44,12 @@ trait Attribute
     private $data = [];
 
     /**
+     * afterUpdate后可以获取不同属性
+     * @var array
+     */
+    private $diffAttributes = [];
+
+    /**
      * 原始数据
      * @var array
      */
@@ -119,7 +125,7 @@ trait Attribute
         if(is_null($fieldName)) {
             return $this->origin;
         }
-        return array_key_exists($fieldName, $this->origin) ? $this->origin[$fieldName] : null;
+        return $this->origin[$fieldName] ?? null;
     }
 
     /**
@@ -140,9 +146,17 @@ trait Attribute
      * 获取变化的数据 并排除只读数据
      * @return array
      */
-    public function getChangedData(): array
+    protected function getChangeData(): array
     {
-        $data = $this->force ? $this->data : array_udiff_assoc($this->data, $this->origin, function ($a, $b) {
+        $diffData = $this->force ? $this->data : $this->parseDiffData();
+        return $diffData;
+    }
+
+    /**
+     * @return array
+     */
+    protected function parseDiffData() {
+        $diffData = array_udiff_assoc($this->data, $this->origin, function ($a, $b) {
             if ((empty($a) || empty($b)) && $a !== $b) {
                 return 1;
             }
@@ -152,12 +166,32 @@ trait Attribute
 
         // 只读字段不允许更新
         foreach ($this->readonly as $key => $field) {
-            if (isset($data[$field])) {
-                unset($data[$field]);
+            if (isset($diffData[$field])) {
+                unset($diffData[$field]);
             }
         }
 
-        return $data;
+        $originAttributes = $newAttributes = [];
+        foreach($diffData as $fieldName=>$value) {
+            $originAttributes[$fieldName] = $this->getValue($fieldName, $this->origin[$fieldName]);
+            $newAttributes[$fieldName] = $this->getValue($fieldName, $value);
+        }
+
+        if($originAttributes) {
+            $this->diffAttributes = [
+                'old_attributes' => $originAttributes ?? [],
+                'new_attributes' => $newAttributes ?? []
+            ];
+        }
+
+        return $diffData;
+    }
+
+    /**
+     * @return array
+     */
+    public function getDiffAttributes() {
+        return $this->diffAttributes;
     }
 
     /**
@@ -167,13 +201,23 @@ trait Attribute
      */
     protected function getCustomData(array $customFields): array
     {
-        $diffData = [];
-        foreach($customFields as $field) {
-            if(isset($this->readonly[$field]) || !isset($this->data[$field])) {
+        $diffData = $originAttributes = $newAttributes = [];
+        foreach($customFields as $fieldName) {
+            if(isset($this->readonly[$fieldName]) || !isset($this->data[$fieldName])) {
                 continue;
             }
-            $diffData[$field] = $this->data[$field];
+            $diffData[$fieldName] = $this->data[$fieldName];
+            $originAttributes[$fieldName] = $this->getValue($fieldName, $this->origin[$fieldName]);
+            $newAttributes[$fieldName] = $this->getValue($fieldName, $this->data[$fieldName]);
         }
+
+        if($originAttributes) {
+            $this->diffAttributes = [
+                'old_attributes' => $originAttributes ?? [],
+                'new_attributes' => $newAttributes ?? []
+            ];
+        }
+
         return $diffData;
     }
 

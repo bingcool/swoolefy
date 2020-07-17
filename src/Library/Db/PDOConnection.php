@@ -223,7 +223,7 @@ abstract class PDOConnection implements ConnectionInterface {
      * @param $params
      * @return PDO
      */
-    protected function createPdo($dsn, $username, $password, $params)
+    protected function createPdo($dsn, $username, $password, $params): PDO
     {
         return new PDO($dsn, $username, $password, $params);
     }
@@ -887,18 +887,20 @@ abstract class PDOConnection implements ConnectionInterface {
      * 获取最近插入的ID
      * @param string  $sequence 自增序列名
      * @return mixed
+     * @throws Throwable
      */
     public function getLastInsID($sequence = null)
     {
         try {
             $insertId = $this->PDOInstance->lastInsertId($sequence);
         } catch (\Exception $e) {
-            $insertId = '';
+            $insertId = $this->PDOInstance->lastInsertId();
+        }catch (\Throwable $t) {
+            throw $t;
         }
         if(is_numeric($insertId)) {
             $insertId = (int)$insertId;
         }
-
         return $insertId;
     }
 

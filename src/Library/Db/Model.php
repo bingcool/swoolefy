@@ -12,7 +12,6 @@
 namespace Swoolefy\Library\Db;
 
 use ArrayAccess;
-use think\contract\Jsonable;
 
 /**
  * Class Model
@@ -24,7 +23,7 @@ use think\contract\Jsonable;
  * @method mixed onBeforeDelete(Model $model) static before_delete事件定义
  * @method void onAfterDelete(Model $model) static after_delete事件定义
  */
-abstract class Model implements ArrayAccess, Jsonable
+abstract class Model implements ArrayAccess
 {
     use Concern\Attribute;
     use Concern\ModelEvent;
@@ -85,11 +84,6 @@ abstract class Model implements ArrayAccess, Jsonable
     protected $force = false;
 
     /**
-     * @var bool
-     */
-    protected $lazySave = false;
-
-    /**
      * Model constructor.
      */
     public function __construct()
@@ -98,10 +92,18 @@ abstract class Model implements ArrayAccess, Jsonable
     }
 
     /**
-     * 获取当前模型的数据库连接标识
+     * 获取当前模型的数据库
      * @return PDOConnection
      */
     abstract public function getConnection();
+
+    /**
+     * 获取当前模型的数据库从库设置
+     * @param mixed ...$args
+     */
+    public function getSlaveConnect(...$args) {
+        return $this->getConnection();
+    }
 
     /**
      * 自定义创建primary key的值,一般默认是数据库自增
@@ -134,15 +136,27 @@ abstract class Model implements ArrayAccess, Jsonable
         return $this->exists;
     }
 
-    protected function setIsNew(bool $isNew)
+    /**
+     * @param bool $isNew
+     */
+    protected function setIsNew(bool $isNew): void
     {
         $this->isNew = $isNew;
     }
 
     /**
+     * @return bool
+     */
+    public function isNew(): bool
+    {
+        return $this->isNew;
+    }
+
+    /**
      * @return int
      */
-    public function getNumRows() {
+    public function getNumRows(): int
+    {
         return $this->numRows;
     }
 
@@ -181,8 +195,10 @@ abstract class Model implements ArrayAccess, Jsonable
     /**
      * @param $name
      * @param $value
+     * @return void
      */
-    public function setAttribute($name, $value) {
+    public function setAttribute($name, $value): void
+    {
 
         if($this->isExists() && $name == $this->getPk()) {
             return;
@@ -209,29 +225,18 @@ abstract class Model implements ArrayAccess, Jsonable
 
     /**
      * 保存当前数据对象
-     * @param array  $data     数据
+     * @param array  $data 数据
      * @return bool
      */
     public function save(): bool
     {
-        if ($this->isEmpty() || false === $this->trigger('BeforeWrite')) {
-            return false;
-        }
-
         $result = $this->isExists() ? $this->updateData() : $this->insertData();
-
         if (false === $result) {
             return false;
         }
-
-        // 写入回调
-        $this->trigger('AfterWrite');
-
         // 重新记录原始数据
         $this->origin   = $this->data;
         $this->set      = [];
-        $this->lazySave = false;
-
         return true;
     }
 
@@ -253,7 +258,7 @@ abstract class Model implements ArrayAccess, Jsonable
 
         try {
             // 检查允许字段
-            $allowFields = $this->checkAllowFields();
+            $allowFields = $this->getAllowFields();
             $pk = $this->getPk();
             // 对于自定义的主键值，需要设置
             $pkValue = $this->createPkValue();
@@ -265,33 +270,33 @@ abstract class Model implements ArrayAccess, Jsonable
             }
             list($sql, $bindParams) = $this->parseInsertSql($allowFields);
             $this->numRows = $this->getConnection()->createCommand($sql)->insert($bindParams);
-            // 获取插入的主键值
-            $lastId = $this->getConnection()->getLastInsID($this->getPk());
-
-        }catch (\Exception $exception) {
+        }catch (\Throwable $exception) {
             throw $exception;
         }
-
-        if($lastId) {
-            if(is_string($pk) && (!isset($this->data[$pk]) || '' == $this->data[$pk])) {
-                $this->data[$pk] = $lastId;
-            }
-            // 标记数据已经存在
-            $this->exists(true);
-        }
+        // 标记数据已经存在
+        $this->exists(true);
         // 所有的数据表原始字段值设置
         $this->buildAttributes();
         // 新增回调
         $this->trigger('AfterInsert');
+        return $this->data[$pk] ?? false;
+    }
 
-        return $lastId ?? false;
+    /**
+     * @return int
+     */
+    public function getLastInsertId(): int
+    {
+        if($this->isNew() && $this->isExists()) {
+            return $this->getPkValue();
+        }
     }
 
     /**
      * 检查数据是否允许写入
      * @return array
      */
-    protected function checkAllowFields(): array
+    protected function getAllowFields(): array
     {
         if(empty($this->tableFields)) {
             // 检测字段
@@ -310,10 +315,14 @@ abstract class Model implements ArrayAccess, Jsonable
 
     /**
      * buildAttributes
+     * @return $this
      */
-    protected function buildAttributes() {
+    protected function buildAttributes()
+    {
         list($sql, $bindParams) = $this->parseFindSqlByPk();
-        $this->getConnection()->createCommand($sql)->findOne($bindParams);
+        $attributes = $this->getConnection()->createCommand($sql)->findOne($bindParams);
+        $this->parseOrigin($attributes);
+        return $this;
     }
 
     /**
@@ -334,20 +343,19 @@ abstract class Model implements ArrayAccess, Jsonable
         $this->checkData();
         // 自动获取有更新的数据
         if(!$attributes) {
-            $diffData = $this->getChangedData();
+            $diffData = $this->getChangeData();
         }else {
             // 指定字段更新
             $diffData = $this->getCustomData($attributes);
         }
         // 检查允许字段
-        $allowFields = $this->checkAllowFields();
-        list($sql, $bindParams) = $this->parseUpdateSql($diffData, $allowFields);
-        $this->numRows = $this->getConnection()->createCommand($sql)->update($bindParams);
-
-        $this->origin = $this->data;
-
+        $allowFields = $this->getAllowFields();
+        if($diffData) {
+            list($sql, $bindParams) = $this->parseUpdateSql($diffData, $allowFields);
+            $this->numRows = $this->getConnection()->createCommand($sql)->update($bindParams);
+            $this->origin = $this->data;
+        }
         $this->checkResult($this->data);
-
         // 更新回调
         $this->trigger('AfterUpdate');
 
@@ -379,9 +387,8 @@ abstract class Model implements ArrayAccess, Jsonable
 
         list($sql, $bindParams) = $this->parseDeleteSql();
         $this->numRows = $this->getConnection()->createCommand($sql)->delete($bindParams);
-        $this->trigger('AfterDelete');
         $this->exists   = false;
-        $this->lazySave = false;
+        $this->trigger('AfterDelete');
         return true;
     }
 
@@ -442,10 +449,11 @@ abstract class Model implements ArrayAccess, Jsonable
     public function getAttributes() {
         if($this->isExists() && $this->origin) {
             foreach($this->origin as $fieldName=>$value) {
-                if(in_array($fieldName, $this->tableFields)) {
+                if(in_array($fieldName, $this->getAllowFields())) {
                     $attributes[$fieldName] = $this->getValue($fieldName, $value);
+                }else {
+                    unset($this->origin[$fieldName]);
                 }
-                unset($this->origin[$fieldName]);
             }
         }
         $this->attributes = $attributes ?? null;
@@ -459,6 +467,38 @@ abstract class Model implements ArrayAccess, Jsonable
     public function isEmpty(): bool
     {
         return empty($this->data);
+    }
+
+    /**
+     * 设置当前模型数据表的后缀
+     * @param string $suffix 数据表后缀
+     * @return $this
+     */
+    public function setSuffix(string $suffix)
+    {
+        $this->suffix = $suffix;
+        return $this;
+    }
+
+    /**
+     * 获取当前模型的数据表后缀
+     * @return string
+     */
+    public function getSuffix(): string
+    {
+        return $this->suffix ?: '';
+    }
+
+    /**
+     * 切换后缀进行查询
+     * @param string $suffix 切换的表后缀
+     * @return Model
+     */
+    public static function modelSuffix(string $suffix)
+    {
+        $model = new static();
+        $model->setSuffix($suffix);
+        return $model;
     }
 
     /**
@@ -538,8 +578,6 @@ abstract class Model implements ArrayAccess, Jsonable
      */
     public function __destruct()
     {
-        if($this->lazySave) {
-            $this->save();
-        }
+
     }
 }
