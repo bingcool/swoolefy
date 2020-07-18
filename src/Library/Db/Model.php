@@ -443,7 +443,7 @@ abstract class Model implements ArrayAccess
     }
 
     /**
-     * 获取对象Formatter处理后的真实存在的业务目标数据 如果不存在指定字段返回null
+     * 获取对象Formatter处理后的真实存在的业务目标数据
      * @return array|null
      */
     public function getAttributes() {

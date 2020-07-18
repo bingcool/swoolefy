@@ -51,6 +51,7 @@ trait ModelEvent
      * 触发事件
      * @param  string $event 事件名
      * @return bool
+     * @throws Exception
      */
     protected function trigger(string $event): bool
     {
@@ -67,7 +68,7 @@ trait ModelEvent
             }
             return false === $result ? false : true;
         } catch (\Exception $e) {
-            return false;
+            throw $e;
         }
     }
 }
