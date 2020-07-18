@@ -41,7 +41,7 @@ class BaseServer {
 
 	/**
 	 * $pack_check_type pack检查的方式
-	 * @var [type]
+	 * @var
 	 */
 	protected static $pack_check_type = null;
 
@@ -50,10 +50,10 @@ class BaseServer {
 	const PACK_CHECK_LENGTH = SWOOLEFY_PACK_CHECK_LENGTH;
 
 	/**
-	 * $_startTime 进程启动时间
+	 * $startTime 进程启动时间
 	 * @var int
 	 */
-	protected static $_startTime = 0;
+	protected static $startTime = 0;
 
 	/**
 	 * $swoole_process_model swoole的进程模式，默认swoole_process
@@ -138,7 +138,7 @@ class BaseServer {
 		// enable sys collector
 		self::setAutomicOfRequest();
 		// record start time
-		self::$_startTime = date('Y-m-d H:i:s', strtotime('now'));
+		self::$startTime = date('Y-m-d H:i:s', strtotime('now'));
         // start init
         $this->startCtrl = self::eventHandler();
         $this->startCtrl->init();
@@ -254,7 +254,7 @@ class BaseServer {
 	 * @return int
 	 */
 	public static function getStartTime() {
-		return self::$_startTime;
+		return self::$startTime;
 	}
 
     /**

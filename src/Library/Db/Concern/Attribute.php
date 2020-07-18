@@ -90,21 +90,30 @@ trait Attribute
 
     /**
      * 获取模型对象的主键值
-     * @access public
      * @return mixed
      */
     public function getPkValue()
     {
         $pk = $this->getPk();
         if(is_string($pk) && array_key_exists($pk, $this->data)) {
-            return $this->data[$pk];
+            $types = $this->getFieldType();
+            $pkValue = $this->data[$pk] ?? '';
+            if(isset($types[$pk]) && !empty($pkValue)) {
+                if($types[$pk] == 'int' || $types[$pk] == 'integer') {
+                    $pkValue = (int)$pkValue;
+                }else if($types[$pk] == 'float') {
+                    $pkValue = (float)$pkValue;
+                }else {
+                    $pkValue = (string)$pkValue;
+                }
+            }
+            return $pkValue;
         }
-        return null;
+        return '';
     }
 
     /**
      * 设置允许写入的字段,默认获取数据表所有字段
-     * @access public
      * @param  array $field 允许写入的字段
      * @return $this
      */
@@ -116,7 +125,6 @@ trait Attribute
 
     /**
      * 获取对象原始数据 如果不存在指定字段返回null
-     * @access public
      * @param  string $fieldName 字段名 留空获取全部
      * @return mixed
      */

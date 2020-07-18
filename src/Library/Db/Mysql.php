@@ -86,7 +86,6 @@ class Mysql extends PDOConnection {
 
     /**
      * 取得数据库的表信息
-     * @access public
      * @param  string $dbName
      * @return array
      */
