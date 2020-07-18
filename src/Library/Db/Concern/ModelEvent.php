@@ -64,7 +64,7 @@ trait ModelEvent
         try {
             $result = null;
             if(method_exists(static::class, $call) && !in_array($onEvent, $this->skipEvents)) {
-                $result = call_user_func([static::class, $call], $this);
+                $result = $this->{$call}();
             }
             return false === $result ? false : true;
         } catch (\Exception $e) {

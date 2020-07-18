@@ -161,6 +161,13 @@ abstract class Model implements ArrayAccess
     }
 
     /**
+     * @return string
+     */
+    public function getTableName() {
+        return $this->table;
+    }
+
+    /**
      * @param callable $callback
      * @return mixed|null
      * @throws Throwable
