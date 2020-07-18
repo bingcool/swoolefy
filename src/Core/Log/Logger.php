@@ -11,8 +11,6 @@
 
 namespace Swoolefy\Core\Log;
 
-use Swoolefy\Core\Log\HandlerInterface;
-use Swoolefy\Core\Log\StreamHandler;
 use Psr\Log\LoggerInterface;
 
 /**
