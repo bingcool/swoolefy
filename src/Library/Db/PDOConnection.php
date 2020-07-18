@@ -230,29 +230,29 @@ abstract class PDOConnection implements ConnectionInterface {
 
     /**
      * @param string $sql
-     * @param array $bind
+     * @param array $bindParams
      * @param bool $procedure
      * @return PDOStatement
      * @throws PDOException
      * @throws Exception
      * @throws Throwable
      */
-    public function PDOStatementHandle(string $sql, array $bind = []): PDOStatement
+    public function PDOStatementHandle(string $sql, array $bindParams = []): PDOStatement
     {
         $this->initConnect();
 
         // 记录SQL语句
         $this->queryStr = $sql;
 
-        $this->bind = $bind;
+        $this->bind = $bindParams;
 
         try {
             $queryStartTime = microtime(true);
-            $this->log('Execute sql start',"sql={$this->queryStr},bindParams=".json_encode($bind, JSON_UNESCAPED_UNICODE));
+            $this->log('Execute sql start',"sql={$this->queryStr},bindParams=".json_encode($bindParams, JSON_UNESCAPED_UNICODE));
             // 预处理
             $this->PDOStatement = $this->PDOInstance->prepare($sql);
             // 参数绑定
-            $this->bindValue($bind);
+            $this->bindValue($bindParams);
             // 执行查询
             $this->PDOStatement->execute();
             $queryEndTime = microtime(true);
@@ -262,7 +262,7 @@ abstract class PDOConnection implements ConnectionInterface {
         } catch (\Throwable | \Exception $e) {
             if($this->reConnectTimes < 4 && $this->isBreak($e)) {
                 ++$this->reConnectTimes;
-                return $this->close()->PDOStatementHandle($sql, $bind);
+                return $this->close()->PDOStatementHandle($sql, $bindParams);
             }
             throw $e;
         }
@@ -294,13 +294,13 @@ abstract class PDOConnection implements ConnectionInterface {
      * 支持 [':name'=>'value',':id'=>123] 对应命名占位符
      * 或者 ['value',123] 对应问号占位符
      * @access public
-     * @param array $bind 要绑定的参数列表
+     * @param array $bindParams 要绑定的参数列表
      * @return void
      * @throws \Exception
      */
-    protected function bindValue(array $bind = []): void
+    protected function bindValue(array $bindParams = []): void
     {
-        foreach ($bind as $key => $val) {
+        foreach ($bindParams as $key => $val) {
             // 占位符
             $param = is_numeric($key) ? $key + 1 : $key;
 
@@ -317,7 +317,7 @@ abstract class PDOConnection implements ConnectionInterface {
             }
 
             if(!$result) {
-                throw new \Exception("Error occurred  when binding parameters '{$param}',lastSql=".$this->getRealSql($this->queryStr, $bind));
+                throw new \Exception("Error occurred  when binding parameters '{$param}',lastSql=".$this->getRealSql($this->queryStr, $bindParams));
             }
         }
     }
@@ -329,7 +329,6 @@ abstract class PDOConnection implements ConnectionInterface {
      */
     public function query(string $sql, array $bindParams = []): array
     {
-        $this->initConnect();
         $this->PDOStatementHandle($sql, $bindParams);
         return $this->getResult();
     }
@@ -341,7 +340,6 @@ abstract class PDOConnection implements ConnectionInterface {
      */
     public function execute(string $sql, array $bindParams = []): int
     {
-        $this->initConnect();
         $this->PDOStatementHandle($sql, $bindParams);
         $this->numRows = $this->PDOStatement->rowCount();
         return $this->numRows;
@@ -384,12 +382,12 @@ abstract class PDOConnection implements ConnectionInterface {
     }
 
     /**
+     * @param array $bindParams
      * @param int $fetchType
-     * @return array
+     * @return array|mixed
      */
-    public function findOne(array $bingParams =[], $fetchType = PDO::FETCH_ASSOC) {
-        $this->initConnect();
-        $this->PDOStatementHandle($this->queryStr, $bingParams);
+    public function findOne(array $bindParams =[], $fetchType = PDO::FETCH_ASSOC) {
+        $this->PDOStatementHandle($this->queryStr, $bindParams);
         $result = $this->PDOStatement->fetch($fetchType);
         if(!$result) {
             $result = [];
@@ -398,62 +396,61 @@ abstract class PDOConnection implements ConnectionInterface {
     }
 
     /**
-     * @param array $bingParams
+     * @param array $bindParams
      * @param bool $one
      * @return array
      */
-    public function findAll(array $bingParams =[], bool $one = false) {
+    public function findAll(array $bindParams =[], bool $one = false) {
         $sql = $one ? $this->queryStr.' LIMIT 1' : $this->queryStr;
-        return $this->query($sql, $bingParams);
+        return $this->query($sql, $bindParams);
     }
 
     /**
      * 获取某个标量
-     * @param array $bingParams
+     * @param array $bindParams
      */
-    public function findScalar(array $bingParams =[]) {
-        $this->initConnect();
-        $this->PDOStatementHandle($this->queryStr, $bingParams);
+    public function findScalar(array $bindParams =[]) {
+        $this->PDOStatementHandle($this->queryStr, $bindParams);
         return $this->PDOStatement->fetchColumn(0);
     }
 
     /**
-     * @param array $bingParams
+     * @param array $bindParams
      */
-    public function count(array $bingParams =[]) {
-        return $this->findScalar($bingParams);
+    public function count(array $bindParams =[]) {
+        return $this->findScalar($bindParams);
     }
 
     /**
-     * @param array $bingParams
+     * @param array $bindParams
      * @return array
      */
-    public function max(array $bingParams =[]) {
-        return $this->findScalar($bingParams);
+    public function max(array $bindParams =[]) {
+        return $this->findScalar($bindParams);
     }
 
     /**
-     * @param array $bingParams
+     * @param array $bindParams
      * @return array
      */
-    public function min(array $bingParams =[]) {
-        return $this->findScalar($bingParams);
+    public function min(array $bindParams =[]) {
+        return $this->findScalar($bindParams);
     }
 
     /**
-     * @param array $bingParams
+     * @param array $bindParams
      * @return array
      */
-    public function avg(array $bingParams =[]) {
-        return $this->findScalar($bingParams);
+    public function avg(array $bindParams =[]) {
+        return $this->findScalar($bindParams);
     }
 
     /**
-     * @param array $bingParams
+     * @param array $bindParams
      * @return array
      */
-    public function sum(array $bingParams =[]) {
-        return $this->findScalar($bingParams);
+    public function sum(array $bindParams =[]) {
+        return $this->findScalar($bindParams);
     }
 
     /**
@@ -523,7 +520,12 @@ abstract class PDOConnection implements ConnectionInterface {
      * @param int $parameter_type
      */
     public function quote(string $string, $parameterType = PDO::PARAM_STR) {
-        return $this->PDOInstance->quote($string, $parameterType);
+         $quoteString = $this->PDOInstance->quote($string, $parameterType);
+         if($quoteString === false) {
+             $quoteString = addcslashes(str_replace("'", "''", $string), "\000\n\r\\\032");
+         }
+
+         return $quoteString;
     }
 
     /**
@@ -906,7 +908,6 @@ abstract class PDOConnection implements ConnectionInterface {
 
     /**
      * 获取最近一次查询的sql语句
-     * @access public
      * @return string
      */
     public function getLastSql(): string
@@ -916,7 +917,6 @@ abstract class PDOConnection implements ConnectionInterface {
 
     /**
      * 获取最近的错误信息
-     * @access public
      * @return string
      */
     public function getLastError(): string

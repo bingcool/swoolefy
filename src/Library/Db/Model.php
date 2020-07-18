@@ -69,6 +69,11 @@ abstract class Model implements ArrayAccess
     protected $tableFields = [];
 
     /**
+     * @var array
+     */
+    protected $schemaInfo = [];
+
+    /**
      * @var int
      */
     protected $numRows = 0;
@@ -177,7 +182,7 @@ abstract class Model implements ArrayAccess
         try {
             $result = null;
             $this->getConnection()->beginTransaction();
-            if (is_callable($callback)) {
+            if(is_callable($callback)) {
                 $result = call_user_func($callback);
             }
             $this->getConnection()->commit();
@@ -306,10 +311,8 @@ abstract class Model implements ArrayAccess
     protected function getAllowFields(): array
     {
         if(empty($this->tableFields)) {
-            // 检测字段
-            $table = $this->table ? $this->table . $this->suffix : $this->table;
-            $fieldInfo = $this->getConnection()->getFields($table);
-            $fields = array_keys($fieldInfo);
+            $schemaInfo = $this->getSchemaInfo();
+            $fields = $schemaInfo['fields'];
             if(!empty($this->disuse)) {
                 // 废弃字段
                 $fields = array_diff($fields, $this->disuse);
@@ -318,6 +321,29 @@ abstract class Model implements ArrayAccess
         }
 
         return $this->tableFields;
+    }
+
+    /**
+     * @return array|mixed
+     */
+    protected function getFieldType() {
+        $schemaInfo = $this->getSchemaInfo();
+        return $schemaInfo['type'] ?? [];
+    }
+
+    /**
+     * @return array
+     */
+    protected function getSchemaInfo(): array
+    {
+        if(empty($this->schemaInfo)) {
+            // 检测字段
+            $table = $this->table ? $this->table . $this->suffix : $this->table;
+            $schemaInfo = $this->getConnection()->getSchemaInfo($table);
+            $this->schemaInfo = $schemaInfo;
+        }
+
+        return $this->schemaInfo;
     }
 
     /**
