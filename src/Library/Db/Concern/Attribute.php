@@ -251,6 +251,7 @@ trait Attribute
         }
 
         switch ($type) {
+            case 'int':
             case 'integer':
                 $value = (int) $value;
                 break;
@@ -261,6 +262,7 @@ trait Attribute
                     $value = (float) number_format($value, (int) $param, '.', '');
                 }
                 break;
+            case 'bool':
             case 'boolean':
                 $value = (bool) $value;
                 break;
@@ -316,6 +318,7 @@ trait Attribute
         }
 
         switch ($type) {
+            case 'int':
             case 'integer':
                 $value = (int) $value;
                 break;
@@ -326,6 +329,7 @@ trait Attribute
                     $value = (float) number_format($value, (int) $param, '.', '');
                 }
                 break;
+            case 'bool':
             case 'boolean':
                 $value = (bool) $value;
                 break;
