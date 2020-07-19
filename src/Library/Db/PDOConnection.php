@@ -330,7 +330,7 @@ abstract class PDOConnection implements ConnectionInterface {
     public function query(string $sql, array $bindParams = []): array
     {
         $this->PDOStatementHandle($sql, $bindParams);
-        return $this->getResult();
+        return $this->getResult() ?? [];
     }
 
     /**
@@ -386,12 +386,10 @@ abstract class PDOConnection implements ConnectionInterface {
      * @param int $fetchType
      * @return array|mixed
      */
-    public function findOne(array $bindParams =[], $fetchType = PDO::FETCH_ASSOC) {
+    public function findOne(array $bindParams =[], $fetchType = PDO::FETCH_ASSOC)
+    {
         $this->PDOStatementHandle($this->queryStr, $bindParams);
         $result = $this->PDOStatement->fetch($fetchType);
-        if(!$result) {
-            $result = [];
-        }
         return $result;
     }
 
@@ -517,9 +515,10 @@ abstract class PDOConnection implements ConnectionInterface {
 
     /**
      * @param string $string
-     * @param int $parameter_type
+     * @param int $parameterType
      */
-    public function quote(string $string, $parameterType = PDO::PARAM_STR) {
+    public function quote(string $string, $parameterType = PDO::PARAM_STR): string
+    {
          $quoteString = $this->PDOInstance->quote($string, $parameterType);
          if($quoteString === false) {
              $quoteString = addcslashes(str_replace("'", "''", $string), "\000\n\r\\\032");
@@ -533,7 +532,7 @@ abstract class PDOConnection implements ConnectionInterface {
      * @param mixed $tableName 数据表名
      * @return string
      */
-    public function getAutoInc($tableName)
+    public function getAutoInc(string $tableName): string
     {
         return $this->getTableInfo($tableName, 'autoinc');
     }
@@ -543,7 +542,7 @@ abstract class PDOConnection implements ConnectionInterface {
      * @param bool $force 强制从数据库获取
      * @return array
      */
-    public function getSchemaInfo(string $tableName, bool $force = false)
+    public function getSchemaInfo(string $tableName, bool $force = false): array
     {
         if (!strpos($tableName, '.')) {
             $schema = $this->getConfig('database') . '.' . $tableName;
@@ -939,7 +938,8 @@ abstract class PDOConnection implements ConnectionInterface {
      * @param $action
      * @param string $msg
      */
-    protected function log($action, $msg = '') {
+    protected function log($action, $msg = ''): void
+    {
         $spendLogLimit = $this->config['spend_log_limit'] ?? 0;
         //使用连接池的话，可能会将多次的执行sql流程存在log中，没有释放，此时看到的sql流程就不准确了,或者清空了前面的
         if($spendLogLimit) {
@@ -953,7 +953,8 @@ abstract class PDOConnection implements ConnectionInterface {
     /**
      * getLog
      */
-    public function getLastLogs() {
+    public function getLastLogs(): array
+    {
         return $this->lastLogs;
     }
 

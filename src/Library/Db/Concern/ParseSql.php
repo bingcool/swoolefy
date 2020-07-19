@@ -96,7 +96,7 @@ trait ParseSql {
     /**
      * @param string $where
      * @param array $bindParams
-     * @return $this
+     * @return $this|boolean
      */
     public function findOne(string $where, array $bindParams = []) {
         $sql = $this->parseWhereSql($where);
@@ -106,8 +106,13 @@ trait ParseSql {
             $connection = $this->getConnection();
         }
         $attributes = $connection->createCommand($sql)->findOne($bindParams);
-        $this->parseOrigin($attributes);
-        return $this;
+        if($attributes) {
+            $this->parseOrigin($attributes);
+            return $this;
+        }else {
+            $this->exists(false);
+            return false;
+        }
     }
 
     /**
