@@ -348,14 +348,20 @@ abstract class Model implements ArrayAccess
 
     /**
      * buildAttributes
-     * @return $this
+     * @return $this|boolean
      */
     protected function buildAttributes()
     {
         list($sql, $bindParams) = $this->parseFindSqlByPk();
         $attributes = $this->getConnection()->createCommand($sql)->findOne($bindParams);
-        $this->parseOrigin($attributes);
-        return $this;
+        if($attributes) {
+            $this->parseOrigin($attributes);
+            return $this;
+        }else {
+            $this->exists(false);
+            return false;
+        }
+
     }
 
     /**
