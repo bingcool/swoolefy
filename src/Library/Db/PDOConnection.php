@@ -382,6 +382,49 @@ abstract class PDOConnection implements ConnectionInterface {
     }
 
     /**
+     * @param string $table
+     * @param array $fields
+     * @param array $dataSet
+     */
+    public function batchInsert(string $table, array $fields, array $dataSet) {
+        $fieldStr = implode(',', $fields);
+        $sql = "INSERT INTO {$table} ($fieldStr) VALUES ";
+        $sqlArr = [];
+        $tableFieldInfo = $this->getTableFieldsInfo($table);
+        foreach($dataSet as $row) {
+            $row = array_values($row);
+            foreach($row as $i=>&$value) {
+                if(isset($fields[$i])) {
+                    $fieldName = $fields[$i];
+                    $type = $tableFieldInfo[$fieldName] ?? 'string';
+                    switch ($type) {
+                        case 'int':
+                        case 'integer':
+                        case 'timestamp':
+                            $value = (int)$value;
+                            break;
+                        case 'float':
+                            $value = (float)$value;
+                            break;
+                        case 'bool':
+                        case 'boolean':
+                            $value = (int)$value;
+                            break;
+                        default:
+                            $value = $this->quote($value);
+                            break;
+                    }
+                }
+            }
+            $sqlArr[] = '('.implode(',', $row).')';
+        }
+
+        $sql .= implode(',', $sqlArr);
+
+        $this->createCommand($sql)->insert();
+    }
+
+    /**
      * @param array $bindParams
      * @param int $fetchType
      * @return array|mixed
@@ -390,6 +433,7 @@ abstract class PDOConnection implements ConnectionInterface {
     {
         $this->PDOStatementHandle($this->queryStr, $bindParams);
         $result = $this->PDOStatement->fetch($fetchType);
+        $this->PDOStatement->closeCursor();
         return $result;
     }
 
@@ -401,6 +445,17 @@ abstract class PDOConnection implements ConnectionInterface {
     public function findAll(array $bindParams =[], bool $one = false) {
         $sql = $one ? $this->queryStr.' LIMIT 1' : $this->queryStr;
         return $this->query($sql, $bindParams);
+    }
+
+    /**
+     * @param array $bindParams
+     * @return mixed
+     */
+    public function findColumn(array $bindParams =[]) {
+        $this->PDOStatementHandle($this->queryStr, $bindParams);
+        $result = $this->PDOStatement->fetchAll(PDO::FETCH_COLUMN);
+        $this->PDOStatement->closeCursor();
+        return $result;
     }
 
     /**
