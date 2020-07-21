@@ -231,7 +231,7 @@ class EventController extends BaseObject {
      * defer
      * @return void
      */
-    public function defer() {
+    protected function defer() {
         if(\Co::getCid() > 0) {
             $this->is_defer = true;
             defer(function() {
