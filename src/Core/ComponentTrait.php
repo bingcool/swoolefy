@@ -284,6 +284,7 @@ trait ComponentTrait {
         }else if(in_array($name, array_keys($components))) {
             // mysql,redis进程池中直接赋值
             if(in_array($name, $this->component_pools)) {
+                /** @var \Swoolefy\Core\Coroutine\PoolsHandler $poolHandler */
                 $poolHandler = \Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->getPool($name);
                 if(is_object($poolHandler)) {
                     $this->container[$name] = $poolHandler->fetchObj();

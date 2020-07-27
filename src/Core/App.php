@@ -190,18 +190,11 @@ class App extends \Swoolefy\Core\Component {
 	 * afterRequest 请求结束后注册钩子执行操作
 	 * @param callable $callback
 	 * @param boolean $prepend
-     * @throws \Exception
-	 * @return void
+	 * @return bool
 	 */
 	public function afterRequest(callable $callback, bool $prepend = false) {
-		if(is_callable($callback)) {
-			Hook::addHook(Hook::HOOK_AFTER_REQUEST, $callback, $prepend);
-		}else {
-			throw new \Exception(__NAMESPACE__.'::'.__function__.' the first param of type is callable');
-		}
-	}
-
-
+        return Hook::addHook(Hook::HOOK_AFTER_REQUEST, $callback, $prepend);
+    }
 
     /**
      * getCid
@@ -225,7 +218,6 @@ class App extends \Swoolefy\Core\Component {
 	public function clearStaticVar() {
 		// call hook callable
 		Hook::callHook(Hook::HOOK_AFTER_REQUEST);
-		ZModel::removeInstance();
 	}
 
     /**
@@ -262,6 +254,8 @@ class App extends \Swoolefy\Core\Component {
 	 * @return void
 	 */
 	public function end() {
+        // remove ZModel
+        ZModel::removeInstance();
 		// log handle
         $this->handleLog();
         // push obj pools

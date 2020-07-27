@@ -253,11 +253,10 @@ class Swoole extends BaseObject {
 	 * afterRequest 请求结束后注册钩子执行操作
 	 * @param	mixed   $callback 
 	 * @param	boolean $prepend
-     * @throws  \Exception
-	 * @return	void
+	 * @return	bool
 	 */
 	public function afterRequest(callable $callback, $prepend = false) {
-        Hook::addHook(Hook::HOOK_AFTER_REQUEST, $callback, $prepend);
+        return Hook::addHook(Hook::HOOK_AFTER_REQUEST, $callback, $prepend);
 	}
 
     /**
