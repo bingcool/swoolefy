@@ -181,7 +181,8 @@ trait Attribute
 
         $originAttributes = $newAttributes = [];
         foreach($diffData as $fieldName=>$value) {
-            $originAttributes[$fieldName] = $this->getValue($fieldName, $this->origin[$fieldName]);
+            $originValue = isset($this->origin[$fieldName]) ? $this->getValue($fieldName, $this->origin[$fieldName]) : null;
+            $originAttributes[$fieldName] = $originValue;
             $newAttributes[$fieldName] = $this->getValue($fieldName, $value);
         }
 
@@ -199,7 +200,22 @@ trait Attribute
      * @return array
      */
     public function getDiffAttributes() {
-        return $this->diffAttributes;
+        if($this->isNew()) {
+            foreach($this->origin as $field=>$value) {
+                $newAttributes[$field] = $this->getValue($field, $value);
+            }
+            $diffAttributes = [
+                'old_attributes' => [],
+                'new_attributes' => $newAttributes ?? []
+            ];
+        }else {
+            if(empty($this->diffAttributes)) {
+                $this->parseDiffData();
+            }
+            $diffAttributes = $this->diffAttributes;
+        }
+
+        return $diffAttributes;
     }
 
     /**

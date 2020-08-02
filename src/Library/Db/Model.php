@@ -212,8 +212,6 @@ abstract class Model implements ArrayAccess
         if($this->isExists() && $name == $this->getPk()) {
             return;
         }
-        // 源数据
-        if(!$this->isExists()) $this->origin[$name] = $value;
 
         $method = 'set' . self::studly($name) . 'Attr';
 
@@ -228,6 +226,9 @@ abstract class Model implements ArrayAccess
             //类型转换
             $value = $this->writeTransform($value, $this->type[$name]);
         }
+        // 源数据
+        if(!$this->isExists()) $this->origin[$name] = $value;
+
         // 设置数据对象属性
         $this->data[$name] = $value;
     }
