@@ -173,18 +173,16 @@ abstract class Model implements ArrayAccess
     }
 
     /**
-     * @param callable $callback
+     * @param \Closure $callback
      * @return mixed|null
      * @throws Throwable
      */
-    protected function transaction(callable $callback)
+    protected function transaction(\Closure $callback)
     {
         try {
             $result = null;
             $this->getConnection()->beginTransaction();
-            if(is_callable($callback)) {
-                $result = call_user_func($callback);
-            }
+            $result = $callback->call($this);
             $this->getConnection()->commit();
             return $result;
         } catch (\Exception | \Throwable $e) {
@@ -211,7 +209,6 @@ abstract class Model implements ArrayAccess
      */
     public function setAttribute($name, $value): void
     {
-
         if($this->isExists() && $name == $this->getPk()) {
             return;
         }
