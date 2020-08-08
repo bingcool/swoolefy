@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Library\Db;
 
-class ActiveObject extends Model {
+class ActiveRecord extends Model {
 
     /**
      * 表名

@@ -49,7 +49,7 @@ abstract class Model implements ArrayAccess
     protected $pk = 'id';
 
     /**
-     * @var boolean
+     * @var bool
      */
     protected $exists = false;
 
@@ -111,9 +111,9 @@ abstract class Model implements ArrayAccess
     }
 
     /**
-     * 自定义创建primary key的值,一般默认是数据库自增
+     * 自定义创建primary key的值.数据库自增的则忽略该函数处理
      */
-    public function createPkValue(){}
+    public function createPkValue() {}
 
     protected function init() {}
 
@@ -391,10 +391,9 @@ abstract class Model implements ArrayAccess
             list($sql, $bindParams) = $this->parseUpdateSql($diffData, $allowFields);
             $this->numRows = $this->getConnection()->createCommand($sql)->update($bindParams);
             $this->origin = $this->data;
+            $this->checkResult($this->data);
+            $this->trigger('AfterUpdate');
         }
-        $this->checkResult($this->data);
-        // 更新回调
-        $this->trigger('AfterUpdate');
 
         return true;
     }
@@ -411,21 +410,41 @@ abstract class Model implements ArrayAccess
     }
 
     /**
+     * @param bool $force 强制物理删除
      * @return bool
      */
-    public function delete(): bool
+    public function delete(bool $force = false): bool
     {
-        // 标记为新数据
+        if(!$this->isExists()) {
+            throw new \RuntimeException('Active object is not exist');
+        }
+
         $this->setIsNew(false);
 
         if(!$this->exists || false === $this->trigger('BeforeDelete')) {
             return false;
         }
 
-        list($sql, $bindParams) = $this->parseDeleteSql();
-        $this->numRows = $this->getConnection()->createCommand($sql)->delete($bindParams);
-        $this->exists   = false;
+        if($force) {
+            list($sql, $bindParams) = $this->parseDeleteSql();
+            $this->numRows = $this->getConnection()->createCommand($sql)->delete($bindParams);
+        }else {
+            if($this->processDelete() === false) {
+                throw new \RuntimeException('ProcessDelete Failed');
+            }
+        }
+        $this->exists(false);
         $this->trigger('AfterDelete');
+        return true;
+    }
+
+    /**
+     * 自定义逻辑删除过程
+     * @return bool
+     */
+    protected function processDelete(): bool
+    {
+        //todo
         return true;
     }
 
@@ -480,7 +499,7 @@ abstract class Model implements ArrayAccess
     }
 
     /**
-     * 获取对象Formatter处理后的真实存在的业务目标数据
+     * 获取对象经过属性的getter函数处理后的真实存在的业务目标数据
      * @return array|null
      */
     public function getAttributes() {

@@ -62,7 +62,7 @@ class WebsocketHandler extends Swoole implements HandlerInterface {
                     return;
                 }
             }
-            // 必须要执行父类的run方法,$recv是json字符串,boostrap函数中可以接收做一些引导处理
+            // 必须要执行父类的run方法,$recv是json字符串,bootstrap函数中可以接收做一些引导处理
             parent::run($fd, $recv);
             // worker进程
             if($this->isWorkerProcess()) {
@@ -108,7 +108,7 @@ class WebsocketHandler extends Swoole implements HandlerInterface {
                 // 任务task进程,不处理二进制数据
                 throw new \Exception("Task process can not handle binary data");
             }
-            // 必须要执行父类的run方法,注意$recv是数据，第三个元素是二进制数据，为节省内存，不传这个元素到boostrap函数中
+            // 必须要执行父类的run方法,注意$recv是数据，第三个元素是二进制数据，为节省内存，不传这个元素到bootstrap函数中
             $new_recv = is_array($recv) ? array_slice($recv, 0, 2) : [];
             parent::run($fd, $new_recv);
             // worker进程
