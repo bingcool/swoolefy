@@ -138,7 +138,7 @@ class BaseServer {
 		// enable sys collector
 		self::setAutomicOfRequest();
 		// record start time
-		self::$startTime = date('Y-m-d H:i:s', strtotime('now'));
+		self::$startTime = date('Y-m-d H:i:s');
         // start init
         $this->startCtrl = self::eventHandler();
         $this->startCtrl->init();

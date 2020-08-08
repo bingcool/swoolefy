@@ -17,7 +17,6 @@ use Swoolefy\Rpc\Text;
 use Swoolefy\Core\BaseServer;
 
 abstract class TcpServer extends BaseServer {
-
     /**
      * $serverName server服务名称
      * @var string

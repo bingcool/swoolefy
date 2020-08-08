@@ -47,8 +47,44 @@ return [
 		'pid_file' => __DIR__.'/log/server.pid',
 	],
 
+    // 内存表定义可以按照以下demo格式
+    //'table' => [
+    //    'table_process' => [
+    //         内存表建立的行数,取决于建立的process进程数,最小值64
+    //         'size' => 64,
+    //          // 定义字段
+    //          'fields'=> [
+    //                /**
+    //                 * 从4.3版本开始，底层对内存长度做了对齐处理.字符串长度必须为8的整数倍.
+    //                 * 如长度为18会自动对齐到24字节
+    //                 */
+    //                 ['pid','int', 10],
+    //                 ['process_name','string', 56],
+    //              ]
+    //           ]
+    // ],
+
 	// 是否内存化线上实时任务
-	'enable_table_tick_task' => true,
+	//'enable_table_tick_task' => true,
+
+    // 创建计算请求的原子计算实例,必须依赖于EnableSysCollector = true，否则设置没有意义,不生效
+    //'enable_pv_collector' => true,
+    // 信息采集器
+    //'enable_sys_collector' => true,
+    //    'sys_collector_conf' => [
+    //    'type' => SWOOLEFY_SYS_COLLECTOR_UDP,
+    //    'host' => '127.0.0.1',
+    //    'port' => 9504,
+    //    'from_service' => 'http-app',
+    //    'target_service' => 'collectorService/system',
+    //    'event' => 'collect',
+    //    'tick_time' => 2,
+    //    'callback' => function() {
+    //          // todo,在这里实现获取需要收集的信息并返回
+    //          $sysCollector = new \Swoolefy\Core\SysCollector\SysCollector();
+    //          return $sysCollector->test();
+    //     }
+    //],
 
     // 热更新
     //'reload_conf'=>[
