@@ -241,9 +241,9 @@ trait AppTrait {
     public function getCookieParams(string $name = null) {
     	$cookies = $this->request->cookie;
     	if($name) {
-    		$value = isset($cookies[$name]) ? $cookies[$name] : null;
+    		$value = $cookies[$name] ?? null;
     	}else {
-    		$value = isset($cookies) ? $cookies : [];
+    		$value = $cookies ?? [];
     	}
     	return $value;
     }

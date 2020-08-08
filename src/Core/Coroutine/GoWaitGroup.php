@@ -13,6 +13,7 @@ namespace Swoolefy\Core\Coroutine;
 
 use Swoole\Coroutine;
 use Swoole\Coroutine\Channel;
+use Swoolefy\Core\BaseServer;
 
 class GoWaitGroup {
     /**
@@ -48,7 +49,7 @@ class GoWaitGroup {
                 $callBack->call($this, ...$params);
             }catch (\Throwable $throwable) {
                 $this->count--;
-                throw $throwable;
+                BaseServer::catchException($throwable);
             }
         }, ...$params);
     }
