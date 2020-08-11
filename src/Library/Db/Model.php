@@ -15,14 +15,9 @@ use ArrayAccess;
 
 /**
  * Class Model
- * @package think
- * @method mixed onBeforeInsert(Model $model) static before_insert事件定义
- * @method void onAfterInsert(Model $model) static after_insert事件定义
- * @method mixed onBeforeUpdate(Model $model) static before_update事件定义
- * @method void onAfterUpdate(Model $model) static after_update事件定义
- * @method mixed onBeforeDelete(Model $model) static before_delete事件定义
- * @method void onAfterDelete(Model $model) static after_delete事件定义
+ * @package Swoolefy\Library\Db
  */
+
 abstract class Model implements ArrayAccess
 {
     use Concern\Attribute;
@@ -56,7 +51,7 @@ abstract class Model implements ArrayAccess
     /**
      * @var bool
      */
-    protected $isNew = false;
+    protected $isNew = true;
 
     /**
      * @var string
@@ -103,6 +98,11 @@ abstract class Model implements ArrayAccess
     abstract public function getConnection();
 
     /**
+     * @return Model
+     */
+    abstract public static function model(): Model;
+
+    /**
      * 获取当前模型的数据库从库设置
      * @param mixed ...$args
      */
@@ -112,8 +112,54 @@ abstract class Model implements ArrayAccess
 
     /**
      * 自定义创建primary key的值.数据库自增的则忽略该函数处理
+     * @return mixed
      */
     public function createPkValue() {}
+
+    /**
+     * @param $pk
+     * @param mixed ...$params
+     */
+    public function loadByPk($pk, ...$params) {}
+
+    /**
+     * @return bool
+     */
+    protected function onBeforeInsert(): bool
+    {
+        return true;
+    }
+
+    /**
+     * return void
+     */
+    protected function onAfterInsert() {}
+
+    /**
+     * @return bool
+     */
+    protected function onBeforeUpdate(): bool
+    {
+        return true;
+    }
+
+    /**
+     * @return void
+     */
+    protected function onAfterUpdate() {}
+
+    /**
+     * @return bool
+     */
+    protected function onBeforeDelete(): bool
+    {
+        return true;
+    }
+
+    /**
+     * @return void
+     */
+    protected function onAfterDelete() {}
 
     protected function init() {}
 
@@ -241,7 +287,7 @@ abstract class Model implements ArrayAccess
     public function save(): bool
     {
         $result = $this->isExists() ? $this->updateData() : $this->insertData();
-        if (false === $result) {
+        if(false === $result) {
             return false;
         }
         // 重新记录原始数据
@@ -324,7 +370,8 @@ abstract class Model implements ArrayAccess
     /**
      * @return array|mixed
      */
-    protected function getFieldType() {
+    protected function getFieldType(): array
+    {
         $schemaInfo = $this->getSchemaInfo();
         return $schemaInfo['type'] ?? [];
     }

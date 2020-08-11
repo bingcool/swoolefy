@@ -108,6 +108,10 @@ trait ModelEvent
         $this->customEventHandlers[$event] = $func;
     }
 
+    /**
+     * @param string $event
+     * @return array|null
+     */
     public function getEventHandle($event = '')
     {
         if($event) {
