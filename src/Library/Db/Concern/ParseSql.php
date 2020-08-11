@@ -108,11 +108,12 @@ trait ParseSql {
         $attributes = $connection->createCommand($sql)->findOne($bindParams);
         if($attributes) {
             $this->parseOrigin($attributes);
-            return $this;
+            $this->setIsNew(false);
         }else {
             $this->exists(false);
-            return false;
+            $this->setIsNew(true);
         }
+        return $this;
     }
 
     /**
@@ -127,14 +128,6 @@ trait ParseSql {
             $this->origin = $this->data;
             $this->exists(true);
         }
-    }
-
-    /**
-     * @return $this
-     */
-    public static function model() {
-        $model = new static();
-        return $model;
     }
 
 }
