@@ -14,6 +14,7 @@ namespace Swoolefy\Core\ProcessPools;
 use Swoole\Process;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\EventController;
 use Swoolefy\Core\Table\TableManager;
 
 abstract class AbstractProcessPools {
@@ -42,7 +43,7 @@ abstract class AbstractProcessPools {
         $this->args = $args;
         $this->extend_data = $extend_data;
         $this->process_name = $process_name;
-        $this->enable_coroutine = $enable_coroutine;
+        $this->enable_coroutine = true;
         if(version_compare(swoole_version(),'4.3.0','>=')) {
             $this->swooleProcess = new \Swoole\Process([$this,'__start'], false, 2, $enable_coroutine);
         }else {
@@ -74,7 +75,7 @@ abstract class AbstractProcessPools {
      * @return string
      */
     public function getSwoolefyProcessKillFlag() {
-        return self::SWOOLEFY_PROCESS_KILL_FLAG;
+        return static::SWOOLEFY_PROCESS_KILL_FLAG;
     }
 
     /**
@@ -107,11 +108,15 @@ abstract class AbstractProcessPools {
         }
 
         Process::signal(SIGTERM, function() use($process) {
-            try{
-                $this->onShutDown();
-            }catch (\Throwable $t) {
-                BaseServer::catchException($t);
-            }
+            \Swoole\Coroutine::create(function() {
+                try {
+                    (new \Swoolefy\Core\EventApp)->registerApp(function(EventController $eventApp) {
+                        $this->onShutDown();
+                    });
+                }catch (\Throwable $throwable) {
+                    BaseServer::catchException($throwable);
+                }
+            });
 
             TableManager::getTable('table_process_pools_map')->del(md5($this->process_name));
             \Swoole\Event::del($process->pipe);
@@ -122,24 +127,30 @@ abstract class AbstractProcessPools {
         if($this->async) {
             \Swoole\Event::add($this->swooleProcess->pipe, function(){
                 $msg = $this->swooleProcess->read(64 * 1024);
-                try{
-                    if($msg == self::SWOOLEFY_PROCESS_KILL_FLAG) {
-                        $this->reboot();
-                        return;
-                    }else {
-                        $msg = $this->validDataJson($msg);
-                        $this->onReceive($msg);
+                \Swoole\Coroutine::create(function() use($msg) {
+                    try{
+                        if($msg == static::SWOOLEFY_PROCESS_KILL_FLAG) {
+                            $this->reboot();
+                            return;
+                        }else {
+                            $msg = $this->validDataJson($msg);
+                            (new \Swoolefy\Core\EventApp)->registerApp(function(EventController $eventApp) use($msg) {
+                                $this->onReceive($msg);
+                            });
+                        }
+                    }catch(\Throwable $throwable) {
+                        BaseServer::catchException($throwable);
                     }
-                }catch(\Throwable $t) {
-                    BaseServer::catchException($t);
-                }
+                });
             });
         }
 
         $this->swooleProcess->name('php-user-process-worker'.$this->bind_worker_id.':'.$this->getProcessName(true));
         try{
-            $this->init();
-            $this->run();
+            (new \Swoolefy\Core\EventApp)->registerApp(function(EventController $eventApp) {
+                $this->init();
+                $this->run();
+            });
         }catch(\Throwable $t) {
             BaseServer::catchException($t);
         }
@@ -196,7 +207,7 @@ abstract class AbstractProcessPools {
 
     /**
      * sendMessage 向绑定的worker进程发送数据
-     * worker进程将通过onPipeMessage函数监听获取数数据
+     * worker进程将通过onPipeMessage函数异步监听获取数数据
      * @param  mixed  $msg
      * @param  int    $worker_id
      * @throws \Exception
@@ -210,6 +221,15 @@ abstract class AbstractProcessPools {
             $worker_id = $this->bind_worker_id;
         }
         return Swfy::getServer()->sendMessage($msg, $worker_id);
+    }
+
+    /**
+     * 阻塞写数据
+     * worker进程将通过swoole_select或者stream_select函数监听获取数数据
+     * @param $msg
+     */
+    public function write($msg) {
+        $this->swooleProcess->write($msg);
     }
 
     /**
@@ -279,7 +299,7 @@ abstract class AbstractProcessPools {
      * run 进程创建后的run方法
      * @return void
      */
-    public abstract function run();
+    abstract public function run();
 
     /**
      * @return void

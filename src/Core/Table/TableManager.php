@@ -153,6 +153,7 @@ class TableManager {
 	 * getTable 获取已创建的table实例对象
 	 * @param  string|null $table
 	 * @return \Swoole\Table|array
+     * @throws Exception
 	 */
 	public static function getTable(string $table) {
 		if(isset(BaseServer::$server->tables)) {

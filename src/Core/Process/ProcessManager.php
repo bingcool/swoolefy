@@ -21,7 +21,7 @@ class ProcessManager {
 
     const PROCESS_NUM = 1024;
 	
-	private static $table_process = [
+	private $table_process = [
 		// 进程内存表
 		'table_process_map' => [
 			// 内存表建立的行数,取决于建立的process进程数，默认最小值64
@@ -33,13 +33,16 @@ class ProcessManager {
 		],
 	];
 
-	private static $processList = [];
+    /**
+     * @var array
+     */
+	private $processList = [];
 
     /**
      * __construct 
      */
 	private function __construct() {
-		TableManager::getInstance()->createTable(self::$table_process);
+		TableManager::getInstance()->createTable($this->table_process);
 	}
 
 	/**
@@ -53,27 +56,27 @@ class ProcessManager {
      * @throws mixed
      * @return mixed
 	 */
-	public static function addProcess(
+	public function addProcess(
 	    string $processName,
         string $processClass,
         bool $async = true,
         array $args = [],
         $extend_data = null,
-        bool $enable_coroutine = false
+        bool $enable_coroutine = true
     ) {
         $key = md5($processName);
-        if(isset(self::$processList[$key])){
+        if(isset($this->processList[$key])){
             throw new \Exception("You can not add the same process : $processName");
         }
 
 		if(!TableManager::isExistTable('table_process_map')) {
-			TableManager::getInstance()->createTable(self::$table_process);
+			TableManager::getInstance()->createTable($this->table_process);
 		}
 
         try{
             /**@var AbstractProcess $process */
             $process = new $processClass($processName, $async, $args, $extend_data, $enable_coroutine);
-            self::$processList[$key] = $process;
+            $this->processList[$key] = $process;
             return $process;
         }catch (\Exception $exception){
             throw $exception;
@@ -85,9 +88,9 @@ class ProcessManager {
 	 * @param  string $processName
 	 * @return AbstractProcess
 	 */
-	public static function getProcessByName(string $processName) {
+	public function getProcessByName(string $processName) {
         $key = md5($processName);
-        return self::$processList[$key] ?? null;
+        return $this->processList[$key] ?? null;
     }
 
     /**
@@ -95,11 +98,11 @@ class ProcessManager {
      * @param  int    $pid
      * @return mixed
      */
-    public static function getProcessByPid(int $pid) {
+    public function getProcessByPid(int $pid) {
         $table = TableManager::getTable('table_process_map');
         foreach ($table as $key => $item){
             if($item['pid'] == $pid){
-                return self::$processList[$key];
+                return $this->processList[$key];
             }
         }
         return null;
@@ -110,9 +113,9 @@ class ProcessManager {
      * @param string          $processName
      * @param AbstractProcess $process
      */
-    public static function setProcess(string $processName, AbstractProcess $process) {
+    public function setProcess(string $processName, AbstractProcess $process) {
         $key = md5($processName);
-        self::$processList[$key] = $process;
+        $this->processList[$key] = $process;
     }
 
     /**
@@ -120,25 +123,34 @@ class ProcessManager {
      * @param  string $processName
      * @return boolean
      */
-    public static function reboot(string $processName) {
-        $process = self::getProcessByName($processName);
+    public function reboot(string $processName) {
+        $process = $this->getProcessByName($processName);
         $kill_flag = $process->getSwoolefyProcessKillFlag();
-        self::writeByProcessName($processName, $kill_flag);
+        $this->writeByProcessName($processName, $kill_flag);
     }
 
     /**
-     * writeByProcessName 向某个进程写数据
-     * @param  string $name
-     * @param  mixed $data
-     * @return boolean
+     * writeByProcessName 向绑定当前worker进程的某个自定义进程写数据
+     * 如果需要获取等待的结果，可以设置callback,在规定时间内读取返回数据回调处理
+     * @param string $name
+     * @param mixed $data
+     * @param \Closure $callback
+     * @param float $timeOut
+     * @return bool
      */
-    public static function writeByProcessName(string $name, $data) {
-        $process = self::getProcessByName($name);
+    public function writeByProcessName(string $name, $data, \Closure $callback = null, $timeOut = 3) {
+        $process = $this->getProcessByName($name);
         if($process){
             if(is_array($data)) {
                 $data = json_encode($data, JSON_UNESCAPED_UNICODE);
             }
-            return (bool)$process->getProcess()->write($data);
+            $result = (bool)$process->getProcess()->write($data);
+            if($result && $callback instanceof \Closure) {
+                $msg = null;
+                $msg = $this->read($process->getProcess(), $timeOut);
+                $callback->call($this, $msg);
+            }
+            return true;
         }
         return false;
     }
@@ -149,19 +161,31 @@ class ProcessManager {
      * @param  float  $timeOut
      * @return mixed
      */
-    public static function readByProcessName(string $name, float $timeOut = 0.1) {
-        $process = self::getProcessByName($name);
+    public function readByProcessName(string $name, float $timeOut = 3) {
+        $process = $this->getProcessByName($name);
         if($process) {
             $swooleProcess = $process->getProcess();
-            $read = array($swooleProcess);
-            $write = [];
-            $error = [];
-            $ret = swoole_select($read, $write, $error, $timeOut);
-            if($ret){
-                return $swooleProcess->read(64 * 1024);
-            }
+            return $this->read($swooleProcess, $timeOut);
         }
         return null;
+    }
+
+    /**
+     * 在规定时间内读取数据
+     * @param Process $swooleProcess
+     * @param float $timeOut
+     * @return mixed
+     */
+    public function read(Process $swooleProcess, float $timeOut = 3) {
+        $result = null;
+        $read = [$swooleProcess];
+        $write = [];
+        $error = [];
+        $ret = swoole_select($read, $write, $error, $timeOut);
+        if($ret){
+            $result = $swooleProcess->read(64 * 1024);
+        }
+        return $result;
     }
 
 }
