@@ -14,6 +14,12 @@ namespace Swoolefy\Core;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\EventController;
 
+/**
+ * Class EventApp
+ * @package Swoolefy\Core
+ * @mixin EventController
+ */
+
 class EventApp {
 	/**
 	 * $event_app 事件处理应用对象
@@ -69,9 +75,11 @@ class EventApp {
 	 */
 	public function registerApp($class, array $args = []) {
 	    if($class instanceof \Closure) {
-            $this->event_app = new EventController(...$args);
+	        /**@var EventController $event_app*/
+            $event_app = new EventController(...$args);
             try {
-                $class->call($this->event_app, ...$args);
+                $this->event_app = $event_app;
+                call_user_func($class, $event_app);
             }catch(\Throwable $throwable) {
                 BaseServer::catchException($throwable);
             }finally {

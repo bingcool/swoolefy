@@ -14,6 +14,7 @@ namespace Swoolefy\Core\Process;
 use Swoole\Process;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\EventController;
 use Swoolefy\Core\Table\TableManager;
 
 abstract class AbstractProcess {
@@ -79,7 +80,7 @@ abstract class AbstractProcess {
      * @return string
      */
     public function getSwoolefyProcessKillFlag() {
-        return self::SWOOLEFY_PROCESS_KILL_FLAG;
+        return static::SWOOLEFY_PROCESS_KILL_FLAG;
     }
 
     /**
@@ -97,11 +98,15 @@ abstract class AbstractProcess {
         }
 
         Process::signal(SIGTERM, function() use($process) {
-            try{
-                $this->onShutDown();
-            }catch (\Throwable $t) {
-                BaseServer::catchException($t);
-            }
+            \Swoole\Coroutine::create(function() {
+                try {
+                    (new \Swoolefy\Core\EventApp)->registerApp(function(EventController $eventApp) {
+                        $this->onShutDown();
+                    });
+                }catch (\Throwable $throwable) {
+                    BaseServer::catchException($throwable);
+                }
+            });
 
             TableManager::getTable('table_process_map')->del(md5($this->processName));
             \Swoole\Event::del($process->pipe);
@@ -112,25 +117,31 @@ abstract class AbstractProcess {
         if($this->async){
             \Swoole\Event::add($this->swooleProcess->pipe, function(){
                 $msg = $this->swooleProcess->read(64 * 1024);
-                try{
-                    if($msg == self::SWOOLEFY_PROCESS_KILL_FLAG) {
-                        $this->reboot();
-                        return;
-                    }else {
-                        $msg = $this->validDataJson($msg);
-                        $this->onReceive($msg);
+                \Swoole\Coroutine::create(function() use($msg) {
+                    try{
+                        if($msg == static::SWOOLEFY_PROCESS_KILL_FLAG) {
+                            $this->reboot();
+                            return;
+                        }else {
+                            $msg = $this->validDataJson($msg);
+                            (new \Swoolefy\Core\EventApp)->registerApp(function(EventController $eventApp) use($msg) {
+                                $this->onReceive($msg);
+                            });
+                        }
+                    }catch(\Throwable $throwable) {
+                        BaseServer::catchException($throwable);
                     }
-                }catch(\Throwable $t) {
-                    BaseServer::catchException($t);
-                }
+                });
             });
         }
 
         $this->swooleProcess->name('php-swoolefy-user-process:'.$this->getProcessName());
 
         try{
-            $this->init();
-            $this->run();
+            (new \Swoolefy\Core\EventApp)->registerApp(function(EventController $eventApp) {
+                $this->init();
+                $this->run();
+            });
         }catch(\Throwable $t) {
             BaseServer::catchException($t);
         }

@@ -36,6 +36,7 @@ trait ServiceTrait {
 	 * @return int  
 	 */
 	public static function getCurrentWorkerPid() {
+	    // 自定义进程worker_pid=0
 		$workerPid = Swfy::getServer()->worker_pid;
 		if($workerPid) {
 			return $workerPid;
@@ -49,6 +50,7 @@ trait ServiceTrait {
 	 * @return int
 	 */
 	public static function getCurrentWorkerId() {
+	    //自定义进程worker_id=-1
 		$workerId = Swfy::getServer()->worker_id;
 		return $workerId;
 	}
