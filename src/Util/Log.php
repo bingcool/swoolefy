@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Util;
 
+use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Log\Logger;
 use Swoolefy\Core\Log\StreamHandler;
@@ -117,63 +118,61 @@ class Log {
     /**
      * addInfo
      * @param $logInfo
-     * @param bool $is_deplay_batch
+     * @param bool $is_delay_batch
      * @param array $context
      */
-	public function addInfo($logInfo, $is_deplay_batch = false, array $context = []) {
-	    $app = Application::getApp();
-	    if(is_object($app) && $is_deplay_batch) {
-            $app->setLog(__FUNCTION__, [$logInfo, false, $context]);
-            return true;
-        }
-        $this->insertLog($logInfo, $context, Logger::INFO);
+	public function addInfo($logInfo, $is_delay_batch = false, array $context = []) {
+        $this->handleLog(__FUNCTION__, $logInfo, $is_delay_batch, $context, Logger::INFO);
 	}
 
     /**
      * addNotice
      * @param $logInfo
-     * @param bool $is_deplay_batch
+     * @param bool $is_delay_batch
      * @param array $context
      * @param \Throwable
      */
-	public function addNotice($logInfo, $is_deplay_batch = false, array $context = []) {
-        $app = Application::getApp();
-        if(is_object($app) && $is_deplay_batch) {
-            $app->setLog(__FUNCTION__, [$logInfo, false, $context]);
-            return true;
-        }
-        $this->insertLog($logInfo, $context, Logger::NOTICE);
+	public function addNotice($logInfo, $is_delay_batch = false, array $context = []) {
+        $this->handleLog(__FUNCTION__, $logInfo, $is_delay_batch, $context, Logger::NOTICE);
 	}
 
     /**
      * addWarning
      * @param $logInfo
-     * @param bool $is_deplay_batch
+     * @param bool $is_delay_batch
      * @param array $context
      */
-	public function addWarning($logInfo, $is_deplay_batch = false, array $context = []) {
-        $app = Application::getApp();
-        if(is_object($app) && $is_deplay_batch) {
-            $app->setLog(__FUNCTION__, [$logInfo, false, $context]);
-            return true;
-        }
-        $this->insertLog($logInfo, $context, Logger::WARNING);
+	public function addWarning($logInfo, $is_delay_batch = false, array $context = []) {
+        $this->handleLog(__FUNCTION__, $logInfo, $is_delay_batch, $context, Logger::WARNING);
 	}
 
     /**
      * addError
      * @param $logInfo
-     * @param bool $is_deplay_batch
+     * @param bool $is_delay_batch
      * @param array $context
      */
-	public function addError($logInfo, $is_deplay_batch = false, array $context = []) {
+	public function addError($logInfo, $is_delay_batch = false, array $context = []) {
+        $this->handleLog(__FUNCTION__, $logInfo, $is_delay_batch, $context, Logger::ERROR);
+	}
+
+    /**
+     * @param $function
+     * @param $is_delay_batch
+     * @param $logInfo
+     * @param $context
+     * @param $type
+     * @return bool
+     * @throws \Exception
+     */
+    protected function handleLog($function, $logInfo, $is_delay_batch, $context, $type) {
         $app = Application::getApp();
-        if(is_object($app) && $is_deplay_batch) {
-            $app->setLog(__FUNCTION__, [$logInfo, false, $context]);
+        if(is_object($app) && $is_delay_batch && Swfy::isWorkerProcess()) {
+            $app->setLog($function, [$logInfo, false, $context]);
             return true;
         }
-        $this->insertLog($logInfo, $context, Logger::ERROR);
-	}
+        $this->insertLog($logInfo, $context, $type);
+    }
 
     /**
      * @param $logInfo
@@ -181,21 +180,31 @@ class Log {
      * @param int $type
      */
 	public function insertLog($logInfo, array $context = [], $type = Logger::INFO) {
-	    try {
-            if(is_array($logInfo)) {
-                $logInfo = json_encode($logInfo, JSON_UNESCAPED_UNICODE);
-            }
-            go(function() use($logInfo, $context, $type) {
+        if(is_array($logInfo)) {
+            $logInfo = json_encode($logInfo, JSON_UNESCAPED_UNICODE);
+        }
+
+        $callable = function () use($type, $logInfo, $context) {
+            try{
                 $log = new Logger($this->channel);
                 $stream = new StreamHandler($this->logFilePath, $type);
                 $stream->setFormatter($this->formatter);
                 $log->pushHandler($stream);
                 // add records to the log
                 $log->addRecord($type, $logInfo, $context);
-            });
-        }catch (\Exception $e) {
+            }catch (\Exception $e) {
 
+            }
+        };
+
+        if(\Swoole\Coroutine::getCid() > 0) {
+            \Swoole\Coroutine::create(function() use($callable) {
+                call_user_func($callable);
+            });
+        }else {
+            call_user_func($callable);
         }
+
     }
 
     /**

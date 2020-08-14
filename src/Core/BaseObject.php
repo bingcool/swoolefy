@@ -11,8 +11,9 @@
 
 namespace Swoolefy\Core;
 
+use ArrayObject;
 use Swoolefy\Core\Log\LogManager;
-use Swoolefy\Core\Coroutine\Context;
+use \Swoole\Coroutine;
 
 class BaseObject {
 
@@ -78,20 +79,24 @@ class BaseObject {
         if($this->context instanceof \ArrayObject) {
             return true;
         }
-        return null;
+        return false;
     }
 
     /**
-     * getContext
-     * @param mixed
-     * @throws \Exception
+     * @return ArrayObject|mixed
      */
     public function getContext() {
         if($this->context) {
-            return $this->context;
+            $context = $this->context;
+        }else if(\Co::getCid() > 0) {
+            $context = Coroutine::getContext();
         }else {
-            return Context::getContext();
+            $context = new ArrayObject();
+            $context->setFlags(ArrayObject::STD_PROP_LIST|ArrayObject::ARRAY_AS_PROPS);
+            $this->context = $context;
         }
+
+        return $context;
     }
 
     /**
