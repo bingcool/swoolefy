@@ -219,7 +219,6 @@ class SysProcess extends AbstractProcess {
 			$file_size = filesize($file_path);
 			if($file_size > $max_size) {
 				@unlink($file_path);
-				return;
 			}
 		}
 		if($data) {

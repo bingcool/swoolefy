@@ -85,8 +85,9 @@ abstract class Model implements ArrayAccess
 
     /**
      * Model constructor.
+     * @param mixed ...$params
      */
-    public function __construct()
+    public function __construct(...$params)
     {
         $this->init();
     }

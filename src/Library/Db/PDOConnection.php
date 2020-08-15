@@ -169,7 +169,7 @@ abstract class PDOConnection implements ConnectionInterface {
     }
 
     /**
-     * 连接数据库方法
+     * 连接数据库
      * @param array $config
      * @param bool $autoConnection
      * @param bool $force
@@ -562,9 +562,7 @@ abstract class PDOConnection implements ConnectionInterface {
      */
     public function getTableInfo(string $tableName, string $fetch = '')
     {
-
         $info = $this->getSchemaInfo($tableName);
-
         return $fetch ? $info[$fetch] : $info;
     }
 
