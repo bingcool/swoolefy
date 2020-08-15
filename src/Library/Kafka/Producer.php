@@ -24,7 +24,7 @@ class Producer {
     /**
      * @var string
      */
-    protected $metaBrokerList = '127.0.0.9092';
+    protected $metaBrokerList = '127.0.0.1:9092';
 
     /**
      * @var Conf
