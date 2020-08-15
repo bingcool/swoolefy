@@ -13,6 +13,7 @@ namespace Swoolefy\Core\Crontab;
 
 use Cron\CronExpression;
 use Swoolefy\Core\Application;
+use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Timer\TickManager;
 
 class CrontabManager {
@@ -58,7 +59,7 @@ class CrontabManager {
                     $cronInstance = new $class;
                     $cronInstance->{$action}($expression, null, $cron_name);
                 }catch (\Throwable $throwable) {
-                    throw $throwable;
+                    BaseServer::catchException($throwable);
                 }finally {
                     Application::removeApp($cronInstance->coroutine_id);
                 }
@@ -69,7 +70,7 @@ class CrontabManager {
                     $cronInstance = new CronController();
                     $cronInstance->runCron($expression, $func, $cron_name);
                 }catch (\Throwable $throwable) {
-                    throw $throwable;
+                    BaseServer::catchException($throwable);
                 }finally {
                     Application::removeApp($cronInstance->coroutine_id);
                 }
