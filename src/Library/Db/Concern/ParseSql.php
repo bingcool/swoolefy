@@ -105,7 +105,7 @@ trait ParseSql {
         if(!is_object($connection)) {
             $connection = $this->getConnection();
         }
-        $attributes = $connection->createCommand($sql)->findOne($bindParams);
+        $attributes = $connection->createCommand($sql)->queryOne($bindParams);
         if($attributes) {
             $this->parseOrigin($attributes);
             $this->setIsNew(false);
