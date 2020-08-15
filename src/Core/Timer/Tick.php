@@ -49,7 +49,7 @@ class Tick {
         }
 
         if(!is_callable($func)) {
-            throw new \Exception(get_called_class()."::tickTimer() the seconed params 'func' is not callable");
+            throw new \Exception(get_called_class()."::tickTimer() the second params 'func' is not callable type");
         }
 
         $timer_id = self::tick($time_interval, $func, $params, $is_sington);
@@ -79,13 +79,14 @@ class Tick {
                 if($tickTaskInstance->isDefer() === false) {
                     $tickTaskInstance->end();
                 }
+            }catch(\Throwable $t) {
+                BaseServer::catchException($t);
+            }finally {
                 if(method_exists("Swoolefy\\Core\\Application", 'removeApp')) {
                     if(is_object($tickTaskInstance)) {
                         Application::removeApp($tickTaskInstance->coroutine_id);
                     }
                 }
-            }catch(\Throwable $t) {
-                BaseServer::catchException($t);
             }
             unset($tickTaskInstance, $class, $action, $user_params, $params, $func);
         }, $user_params);
@@ -170,13 +171,14 @@ class Tick {
                     $tickTaskInstance->end();
                 }
 
+            }catch (\Throwable $t) {
+                BaseServer::catchException($t);
+            }finally {
                 if(method_exists("Swoolefy\\Core\\Application", 'removeApp')) {
                     if(is_object($tickTaskInstance)) {
                         Application::removeApp($tickTaskInstance->coroutine_id);
                     }
                 }
-            }catch (\Throwable $t) {
-                BaseServer::catchException($t);
             }
             // 执行完之后,更新目前的一次性任务项
             self::updateRunAfterTick();

@@ -49,12 +49,25 @@ class CrontabManager {
         $this->cron_tasks[$cron_name_key] = [$expression, $func];
 
         if(is_array($func)) {
-            TickManager::tickTimer(1000, $func, $expression);
+            list($class, $action) = $func;
+            if(!is_subclass_of($class, '\\Swoolefy\\Core\\Crontab\\AbstractCronController')) {
+                throw new \Exception(__CLASS__.__FUNCTION__." Params of func about Crontab Handle Controller need to extend Swoolefy\\Core\\Crontab\\AbstractCronController");
+            }
+            \Swoole\Timer::tick(1000, function($timer_id, $expression) use($class, $action, $cron_name) {
+                try{
+                    $cronInstance = new $class;
+                    $cronInstance->{$action}($expression, null, $cron_name);
+                }catch (\Throwable $throwable) {
+                    throw $throwable;
+                }finally {
+                    Application::removeApp($cronInstance->coroutine_id);
+                }
+            }, $expression);
         }else {
-            \Swoole\Timer::tick(1000, function($timer_id, $expression) use($func) {
+            \Swoole\Timer::tick(1000, function($timer_id, $expression) use($func, $cron_name) {
                 try{
                     $cronInstance = new CronController();
-                    $cronInstance->runCron($expression, $func);
+                    $cronInstance->runCron($expression, $func, $cron_name);
                 }catch (\Throwable $throwable) {
                     throw $throwable;
                 }finally {

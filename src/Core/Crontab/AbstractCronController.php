@@ -38,23 +38,24 @@ abstract class AbstractCronController extends ProcessController {
      * runCron 
      * @param  string  $expression cron的表达式
      * @param  callable $func   闭包函数
+     * @param  string  $cron_name
      * @return void
      */
-    public function runCron(string $expression, $func = null) {
+    public function runCron(string $expression, callable $func = null, string $cron_name) {
     	$expression_key = md5($expression);
+    	/**@var CronExpression $cron*/
     	$cron = CronExpression::factory($expression);
         $now_time = time();   
         $cron_next_datetime = strtotime($cron->getNextRunDate()->format('Y-m-d H:i:s'));
         if($cron->isDue()) {
-        	if(!isset(static::$cron_next_datetime[$expression_key])) {
-        		static::$expression[$expression_key] = $expression;
-            	static::$cron_next_datetime[$expression_key] = $cron_next_datetime;
+        	if(!isset(static::$cron_next_datetime[$cron_name][$expression_key])) {
+        		static::$expression[$cron_name][$expression_key] = $expression;
+            	static::$cron_next_datetime[$cron_name][$expression_key] = $cron_next_datetime;
         	}
-
-        	if(($now_time >= static::$cron_next_datetime[$expression_key] && $now_time < ($cron_next_datetime - static::$offset_second))) {
-	            static::$cron_next_datetime[$expression_key] = $cron_next_datetime;
+        	if(($now_time >= static::$cron_next_datetime[$cron_name][$expression_key] && $now_time < ($cron_next_datetime - static::$offset_second))) {
+	            static::$cron_next_datetime[$cron_name][$expression_key] = $cron_next_datetime;
                 if($func instanceof \Closure) {
-                    $func->call($this, $cron);
+                    call_user_func($func, $cron_name, $expression);
                 }else {
                     $this->doCronTask($cron);
                 }
@@ -64,8 +65,8 @@ abstract class AbstractCronController extends ProcessController {
         	}
 
         	// 防止万一出现的异常出现，比如没有命中任务， 19:05:00要命中的，由于其他网络或者服务器其他原因，阻塞了,造成延迟，现在时间已经到了19::05:05
-	        if($now_time > static::$cron_next_datetime[$expression_key] || $now_time >= $cron_next_datetime) {
-	            static::$cron_next_datetime[$expression_key] = $cron_next_datetime;
+	        if($now_time > static::$cron_next_datetime[$cron_name][$expression_key] || $now_time >= $cron_next_datetime) {
+	            static::$cron_next_datetime[$cron_name][$expression_key] = $cron_next_datetime;
 	        }
         }
     }
