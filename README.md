@@ -185,13 +185,13 @@ class TestController extends BController {
         var_dump($numRows)         
 
         //查询
-        $result = $db->createCommand('select * from user where id>:id')->findOne([':id'=>100]);
+        $result = $db->createCommand('select * from user where id>:id')->queryOne([':id'=>100]);
         var_dump($result);    
 
         // pg实例    
         $pg = Application::getApp()->get('pg');   
         // 添加一条数据   
-        $sql = "INSERT INTO `user` (`username` ,`sex`) VALUES (:username, :sex)"; 
+        $sql = "INSERT INTO `user` (username ,sex) VALUES (:username, :sex)"; 
         $pg->createCommand($sql)->insert([
             ':username'=>'bingcool-test',
             ':sex' => 1

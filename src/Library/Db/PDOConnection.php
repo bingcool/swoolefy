@@ -431,6 +431,15 @@ abstract class PDOConnection implements ConnectionInterface {
      */
     public function findOne(array $bindParams =[], $fetchType = PDO::FETCH_ASSOC)
     {
+        return $this->queryOne($bindParams, $fetchType);
+    }
+
+    /**
+     * @param array $bindParams
+     * @param int $fetchType
+     * @return array|mixed
+     */
+    public function queryOne(array $bindParams =[], $fetchType = PDO::FETCH_ASSOC) {
         $this->PDOStatementHandle($this->queryStr, $bindParams);
         $result = $this->PDOStatement->fetch($fetchType);
         $this->PDOStatement->closeCursor();
@@ -442,7 +451,7 @@ abstract class PDOConnection implements ConnectionInterface {
      * @param bool $one
      * @return array
      */
-    public function findAll(array $bindParams =[], bool $one = false) {
+    public function queryAll(array $bindParams =[], bool $one = false) {
         $sql = $one ? $this->queryStr.' LIMIT 1' : $this->queryStr;
         return $this->query($sql, $bindParams);
     }
@@ -451,7 +460,7 @@ abstract class PDOConnection implements ConnectionInterface {
      * @param array $bindParams
      * @return mixed
      */
-    public function findColumn(array $bindParams =[]) {
+    public function queryColumn(array $bindParams =[]) {
         $this->PDOStatementHandle($this->queryStr, $bindParams);
         $result = $this->PDOStatement->fetchAll(PDO::FETCH_COLUMN);
         $this->PDOStatement->closeCursor();
@@ -462,7 +471,7 @@ abstract class PDOConnection implements ConnectionInterface {
      * 获取某个标量
      * @param array $bindParams
      */
-    public function findScalar(array $bindParams =[]) {
+    public function queryScalar(array $bindParams =[]) {
         $this->PDOStatementHandle($this->queryStr, $bindParams);
         return $this->PDOStatement->fetchColumn(0);
     }
@@ -471,7 +480,7 @@ abstract class PDOConnection implements ConnectionInterface {
      * @param array $bindParams
      */
     public function count(array $bindParams =[]) {
-        return $this->findScalar($bindParams);
+        return $this->queryScalar($bindParams);
     }
 
     /**
@@ -479,7 +488,7 @@ abstract class PDOConnection implements ConnectionInterface {
      * @return array
      */
     public function max(array $bindParams =[]) {
-        return $this->findScalar($bindParams);
+        return $this->queryScalar($bindParams);
     }
 
     /**
@@ -487,7 +496,7 @@ abstract class PDOConnection implements ConnectionInterface {
      * @return array
      */
     public function min(array $bindParams =[]) {
-        return $this->findScalar($bindParams);
+        return $this->queryScalar($bindParams);
     }
 
     /**
@@ -495,7 +504,7 @@ abstract class PDOConnection implements ConnectionInterface {
      * @return array
      */
     public function avg(array $bindParams =[]) {
-        return $this->findScalar($bindParams);
+        return $this->queryScalar($bindParams);
     }
 
     /**
@@ -503,7 +512,7 @@ abstract class PDOConnection implements ConnectionInterface {
      * @return array
      */
     public function sum(array $bindParams =[]) {
-        return $this->findScalar($bindParams);
+        return $this->queryScalar($bindParams);
     }
 
     /**
