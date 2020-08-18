@@ -626,7 +626,7 @@ class BaseServer {
      * @return void
      */
     public static function runtimeEnableCoroutine() {
-    	if(method_exists('Swoole\\Runtime', 'enableCoroutine')) {
+    	if(method_exists('\\Swoole\\Runtime', 'enableCoroutine')) {
             $run_enable_coroutine = true;
     		if(isset(self::$config['runtime_enable_coroutine'])) {
     		    $run_enable_coroutine = filter_var(self::$config['runtime_enable_coroutine'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);

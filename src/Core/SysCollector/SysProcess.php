@@ -146,7 +146,7 @@ class SysProcess extends AbstractProcess {
 		$timeout = $this->sys_collector_config['timeout'] ? (float) $this->sys_collector_config['timeout'] : 3;
 
 		$channel = isset($this->sys_collector_config['channel']) ? $this->sys_collector_config['channel'] : SWOOLEFY_SYS_COLLECTOR_CHANNEL;
-		go(function() use($host, $port, $password, $timeout, $channel, $data) {
+		\Swoole\Coroutine::create(function() use($host, $port, $password, $timeout, $channel, $data) {
             $redisClient = new \Swoole\Coroutine\Redis();
             $redisClient->setOptions([
 				'connect_timeout'=> $timeout,
