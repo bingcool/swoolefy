@@ -12,7 +12,6 @@
 namespace Swoolefy\Core\Controller;
 
 use Swoole\Coroutine;
-use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 
 class BController extends \Swoolefy\Core\AppObject {

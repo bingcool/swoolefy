@@ -74,14 +74,15 @@ class Tick {
                     $tickTaskInstance->{$action}(...$params);
                 }else if($func instanceof \Closure) {
                     $tickTaskInstance = new TickController();
-                    $func->call($tickTaskInstance, $user_params, $timer_id);
+                    call_user_func($func, $user_params, $timer_id);
                 }
-                if($tickTaskInstance->isDefer() === false) {
-                    $tickTaskInstance->end();
-                }
+
             }catch(\Throwable $t) {
                 BaseServer::catchException($t);
             }finally {
+                if($tickTaskInstance->isDefer() === false) {
+                    $tickTaskInstance->end();
+                }
                 if(method_exists("Swoolefy\\Core\\Application", 'removeApp')) {
                     if(is_object($tickTaskInstance)) {
                         Application::removeApp($tickTaskInstance->coroutine_id);
@@ -164,16 +165,15 @@ class Tick {
                     $tickTaskInstance->{$action}(...$params);
                 }else if($func instanceof \Closure) {
                     $tickTaskInstance = new TickController;
-                    $func->call($tickTaskInstance, $user_params, $timer_id = null);
-                }
-
-                if($tickTaskInstance->isDefer() === false) {
-                    $tickTaskInstance->end();
+                    call_user_func($func, $user_params, $timer_id = null);
                 }
 
             }catch (\Throwable $t) {
                 BaseServer::catchException($t);
             }finally {
+                if($tickTaskInstance->isDefer() === false) {
+                    $tickTaskInstance->end();
+                }
                 if(method_exists("Swoolefy\\Core\\Application", 'removeApp')) {
                     if(is_object($tickTaskInstance)) {
                         Application::removeApp($tickTaskInstance->coroutine_id);

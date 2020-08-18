@@ -288,7 +288,7 @@ trait ServiceTrait {
 
 	/**
 	 * getServer 获取server对象
-	 * @return   \Swoole\Server
+	 * @return   \Swoole\Server|\Swoole\Http\Server|\Swoole\WebSocket\Server
 	 */
 	public static function getServer() {
 		if(is_object(Swfy::$server)) {

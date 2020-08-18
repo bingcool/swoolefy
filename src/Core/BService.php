@@ -168,7 +168,9 @@ class BService extends BaseObject {
      * @throws \Exception
      */
 	public function getRpcPackHeader() {
-		return Application::getApp()->getRpcPackHeader();
+	    /**@var Swoole $app*/
+	    $app = Application::getApp();
+		return $app->getRpcPackHeader();
 	}
 
     /**
@@ -177,7 +179,9 @@ class BService extends BaseObject {
      * @throws \Exception
      */
 	public function getRpcPackBodyParams() {
-		return Application::getApp()->getRpcPackBodyParams();
+        /**@var Swoole $app*/
+        $app = Application::getApp();
+		return $app->getRpcPackBodyParams();
 	}
 
     /**
@@ -186,7 +190,9 @@ class BService extends BaseObject {
      * @throws \Exception
      */
 	public function getUdpData() {
-		return Application::getApp()->getUdpData();
+        /**@var Swoole $app*/
+        $app = Application::getApp();
+		return $app->getUdpData();
 	}
 
     /**
@@ -195,7 +201,9 @@ class BService extends BaseObject {
      * @throws \Exception
      */
 	public function getWebsocketMsg() {
-		return Application::getApp()->getWebsocketMsg();
+        /**@var Swoole $app*/
+        $app = Application::getApp();
+		return $app->getWebsocketMsg();
 	}
 
     /**
