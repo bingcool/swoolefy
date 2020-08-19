@@ -147,7 +147,7 @@ class PoolsHandler {
 	 */
 	public function pushObj($obj) {
 		if(is_object($obj)) {
-		    go(function() use($obj) {
+		    \Swoole\Coroutine::create(function() use($obj) {
                 $isPush = true;
 		        if(isset($obj->objExpireTime) && time() > $obj->objExpireTime) {
 		            $isPush = false;

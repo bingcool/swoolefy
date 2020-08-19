@@ -56,6 +56,62 @@ class GoWaitGroup {
     }
 
     /**
+     * 可以通过 use 关键字传入外部变量
+     *  $country = 'China';
+     *   $callBack1 = function() use($country) {
+     *      sleep(3);
+     *      return [
+     *          'tengxun'=> 'tengxun'
+     *      ];
+     *      };
+     *
+     *   $callBack2 = function() {
+     *      sleep(3);
+     *      return [
+     *           'baidu'=> 'baidu'
+     *      ];
+     *   };
+     *
+     *   $callBack3 = function() {
+     *      sleep(1);
+     *      return [
+     *          'ali'=> 'ali'
+     *      ];
+     *   };
+     *
+     *   call callable
+     *   $result = GoWaitGroup::multiCall([
+     *      'key1' => $callBack1,
+     *      'key2' => $callBack2,
+     *      'key3' => $callBack3
+     *   ]);
+     *
+     *   var_dump($result);
+     *
+     * @param array $callBacks
+     * @param float $timeOut
+     * @return array
+     */
+    public static function multiCall(array $callBacks, float $timeOut = 3.0) {
+        $goWait = new static();
+        foreach($callBacks as $key=>$callBack) {
+            Coroutine::create(function () use($key, $callBack, $goWait) {
+                try{
+                    $goWait->count++;
+                    $goWait->initResult($key, null);
+                    $result = call_user_func($callBack);
+                    $goWait->done($key, $result, 3.0);
+                }catch (\Throwable $throwable) {
+                    $goWait->count--;
+                    BaseServer::catchException($throwable);
+                }
+            });
+        }
+        $result = $goWait->wait($timeOut);
+        return $result;
+    }
+
+    /**
      * start
      */
     public function start() {
@@ -73,6 +129,14 @@ class GoWaitGroup {
             $this->result[$key] = $data;
         }
         $this->channel->push(1, $timeout);
+    }
+
+    /**
+     * @param string $key
+     * @param null $data
+     */
+    public function initResult(string $key, $data = null) {
+        $this->result[$key] = $data;
     }
 
     /**

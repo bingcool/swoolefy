@@ -211,7 +211,7 @@ class PoolsManager {
             if($result && $callback instanceof \Closure) {
                 $msg = null;
                 $msg = $this->read($process->getProcess(), $timeOut);
-                $callback->call($this, $msg);
+                call_user_func($callback, $msg);
             }
         }
         return $process->getProcess();

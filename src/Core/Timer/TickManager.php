@@ -65,7 +65,7 @@ class TickManager {
                 return json_decode(TableManager::get('table_ticker', 'tick_timer_task', 'tick_tasks'), true);
             }
 		}
-		return false;								
+		return [];
 	}
 
 	/**
@@ -80,7 +80,7 @@ class TickManager {
                 return json_decode(TableManager::get('table_after', 'after_timer_task', 'after_tasks'), true);
             }
 		}
-		return false;
+		return [];
 	}
 
     /**
