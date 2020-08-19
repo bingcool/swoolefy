@@ -83,11 +83,11 @@ class ServerManager {
 
     /**
      * reload 重启所有worker进程
-     * @param  bool  $only_reload_taskworker 是否重启task进程，默认false
+     * @param  bool  $only_reload_taskWorker 是否重启task进程，默认false
      * @return bool
      */
-	public function reload(bool $only_reload_taskworker = false) {
-        Swfy::getServer()->reload($only_reload_taskworker);
+	public function reload(bool $only_reload_taskWorker = false) {
+        Swfy::getServer()->reload($only_reload_taskWorker);
         return true;
     }
 
