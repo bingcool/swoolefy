@@ -133,9 +133,14 @@ class BService extends BaseObject {
 		if(!BaseServer::isWebsocketApp()) {
             throw new \Exception("BService::push() this method only can be called by websocket server!");
 		}
-		if(is_array($data)) {
+        if(!Swfy::getServer()->isEstablished($fd)) {
+            throw new \Exception("Websocket connection closed");
+        }
+
+        if(is_array($data)) {
             $data = json_encode($data, JSON_UNESCAPED_UNICODE);
         }
+
         $result = Swfy::getServer()->push($fd, $data, $opcode, $finish);
         return $result;
 		

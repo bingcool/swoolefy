@@ -131,9 +131,6 @@ class View {
 		}
 		$response = @Application::getApp()->response;
 		$response->header('Content-Type',$this->content_type.'; charset=utf-8');
-		if($this->enable_gzip) {
-			$response->gzip($this->gzip_level);
-		}
 		// 分段返回数据,2M左右一段
 		$p = 0;
 		$size = $this->write_size;
@@ -157,9 +154,6 @@ class View {
 		}
 		$response = Application::getApp()->response;
 		$response->header('Content-Type',$this->content_type.'; charset=utf-8');
-		if($this->enable_gzip) {
-			$response->gzip($this->gzip_level);
-		}
 		// 分段返回数据,2M左右一段
 		$p = 0;
 		$size = $this->write_size;
