@@ -43,6 +43,11 @@ return [
         'enable_coroutine' => 1,
         'task_enable_coroutine' => 1,
 
+        // 压缩
+        'http_compression' => true,
+        // $level 压缩等级，范围是 1-9，等级越高压缩后的尺寸越小，但 CPU 消耗更多。默认为 1, 最高为 9
+        'http_compression_level' =>1,
+
 		'log_file' => __DIR__.'/log/log.txt',
 		'pid_file' => __DIR__.'/log/server.pid',
 	],

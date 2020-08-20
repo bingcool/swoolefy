@@ -12,8 +12,8 @@
 namespace Swoolefy\Core;
 
 use ArrayObject;
-use Swoolefy\Core\Log\LogManager;
 use \Swoole\Coroutine;
+use Swoolefy\Core\Log\LogManager;
 
 class BaseObject {
 
