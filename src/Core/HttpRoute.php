@@ -155,9 +155,9 @@ class HttpRoute extends AppDispatch {
 		$this->request->server['ROUTE_PARAMS'] = [];
 		// 定义禁止直接外部访问的方法
 		if(in_array($action, self::$deny_actions)) {
-            $msg = "{$controller}::{$action} is not allow access action";
+            $errorMsg = "{$controller}::{$action} is not allow access action";
             $this->response->status(403);
-			$this->app->beforeEnd(403, $msg);
+			$this->app->beforeEnd(403, $errorMsg);
 			return false;
 		}
 		if($module) {
@@ -332,8 +332,8 @@ class HttpRoute extends AppDispatch {
         if(isset($this->app_conf['not_found_handler']) && is_array($this->app_conf['not_found_handler'])) {
             return $this->redirectNotFound();
         }else {
-            $msg = "Class {$class} is not exit";
-            $this->app->beforeEnd(404, $msg);
+            $errorMsg = "Class {$class} is not exit";
+            $this->app->beforeEnd(404, $errorMsg);
             return false;
         }
     }
