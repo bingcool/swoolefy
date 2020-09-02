@@ -180,8 +180,12 @@ class ProcessManager {
         $result = null;
         $read = [$swooleProcess];
         $write = [];
-        $error = [];
-        $ret = swoole_select($read, $write, $error, $timeOut);
+        $except = [];
+        if($timeOut < 1) {
+            $timeOut = 1;
+        }
+        $timeOut = (int)$timeOut;
+        $ret = stream_select($read, $write, $except, $timeOut);
         if($ret){
             $result = $swooleProcess->read(64 * 1024);
         }
