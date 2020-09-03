@@ -23,50 +23,48 @@ class CoroutinePools {
     private $pools = [];
 
     /**
-     * 在workerStart可以创建一个协程池Channel
-     * 'enable_component_pools' => [
-        'redis' => [
-            'pools_num'=>10,
-            'push_timeout'=>1.5,
-            'pop_timeout'=>1,
-            'live_time'=>10 * 60
-            ]
-        ],
-     *
-     * @throws mixed
+     * @var array
      */
-    public function addPool() {
-        $app_conf = BaseServer::getAppConf();
-        if(isset($app_conf['enable_component_pools']) && is_array($app_conf['enable_component_pools']) && !empty($app_conf['enable_component_pools'])) {
-            $components = array_keys($app_conf['components']);
-            foreach($app_conf['enable_component_pools'] as $pool_name =>$component_pool) {
-                if(!in_array($pool_name, $components)) {
-                    throw new \Exception("enable_component_pools of item={$pool_name},not set in components");
-                }
-                $args = [$pool_name];
-                if(!isset($this->pools[$pool_name])) {
-                    $this->pools[$pool_name] = call_user_func_array(function($pool_name) use($component_pool) {
-                        $poolsHandler = new PoolsHandler();
-                        if(isset($component_pool['pools_num']) && is_numeric($component_pool['pools_num'])) {
-                            $poolsHandler->setPoolsNum($component_pool['pools_num']);
-                        }
+    const DefaultConfig = [
+        'pools_name' => 30,
+        'push_timeout' => 2,
+        'pop_timeout' => 1,
+        'live_time' => 10
+    ];
 
-                        if(isset($component_pool['push_timeout'])) {
-                            $poolsHandler->setPushTimeout($component_pool['push_timeout']);
-                        }
-
-                        if(isset($component_pool['pop_timeout'])) {
-                            $poolsHandler->setPopTimeout($component_pool['pop_timeout']);
-                        }
-                        if(isset($component_pool['live_time'])) {
-                            $poolsHandler->setLiveTime($component_pool['live_time']);
-                        }
-                        $poolsHandler->registerPools($pool_name);
-                        return $poolsHandler;
-                    }, $args);
-                }
+    /**
+     * @param $poolName
+     * @param array $config
+     * @param callable $constructor
+     */
+    public function addPool(
+        $pool_name,
+        array $config = [],
+        callable $constructor
+    ) {
+        $config = array_merge(self::DefaultConfig, $config);
+        $pool_name = trim($pool_name);
+        $this->pools[$pool_name] = call_user_func(function() use($pool_name, $config, $constructor) {
+            $poolsHandler = new PoolsHandler();
+            if(isset($config['pools_num']) && is_numeric($config['pools_num'])) {
+                $poolsHandler->setPoolsNum($config['pools_num']);
             }
-        }
+
+            if(isset($config['push_timeout'])) {
+                $poolsHandler->setPushTimeout($config['push_timeout']);
+            }
+
+            if(isset($config['pop_timeout'])) {
+                $poolsHandler->setPopTimeout($config['pop_timeout']);
+            }
+            if(isset($config['live_time'])) {
+                $poolsHandler->setLiveTime($config['live_time']);
+            }
+
+            $poolsHandler->setBuildCallable($constructor);
+            $poolsHandler->registerPools($pool_name);
+            return $poolsHandler;
+        });
     }
 
     /**
@@ -80,5 +78,24 @@ class CoroutinePools {
         }
         $pool_name = trim($pool_name);
         return $this->pools[$pool_name] ?? null;
+    }
+
+    /**
+     * 获取一个对象
+     * @param string $pool_name
+     * @return mixed
+     */
+    public function getObj(string $pool_name) {
+        return $this->getPool($pool_name)->fetchObj();
+    }
+
+    /**
+     * 使用完put对象入channel
+     * @param string $pool_name
+     * @param $obj
+     * @return mixed
+     */
+    public function putObj(string $pool_name, $obj) {
+        $this->getPool($pool_name)->pushObj($obj);
     }
 }

@@ -50,6 +50,11 @@ class PoolsHandler {
 	protected $liveTime = 10;
 
     /**
+     * @var null
+     */
+	protected $callable = null;
+
+    /**
      * @param int $poolsNum
      */
 	public function setPoolsNum(int $poolsNum = 50) {
@@ -127,6 +132,14 @@ class PoolsHandler {
 			return $this->channel;
 		}
 	}
+
+    /**
+     * 实例创建执行体
+     * @param callable $callback
+     */
+	public function setBuildCallable(callable $callback) {
+	    $this->callable = $callback;
+    }
 
     /**
      * @param string|null $poolName
@@ -218,14 +231,9 @@ class PoolsHandler {
      * @param callable $callable
      * @throws Exception
      */
-    protected function build(int $num, $callable = '') {
-        if($callable instanceof \Closure) {
-            $callFunction = $callable;
-        }else {
-            $callFunction = \Swoolefy\Core\Swfy::getAppConf()['components'][$this->poolName];
-        }
+    protected function build(int $num) {
         for($i=0; $i<$num; $i++) {
-            $obj = call_user_func($callFunction, $this->poolName);
+            $obj = call_user_func($this->callable, $this->poolName);
             if(!is_object($obj)) {
                 throw new \Exception("Components of {$this->poolName} must return object");
             }

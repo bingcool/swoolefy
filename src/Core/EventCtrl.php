@@ -54,7 +54,7 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
 	 * @return void
 	 */
 	public function workerStart($server, $worker_id) {
-        \Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->addPool();
+        $this->buildComponentPools();
 		static::onWorkerStart($server, $worker_id);
 	}
 
@@ -96,9 +96,36 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
 	 * @param  Server $server
 	 * @return void
 	 */
-	public function managerStop($server){
+	public function managerStop($server) {
 		static::onManagerStop($server);
 	}
+
+    /**
+     * 在workerStart可以创建一个协程池Channel
+     * 'enable_component_pools' => [
+        'redis' => [
+            'pools_num'=>10,
+            'push_timeout'=>1.5,
+            'pop_timeout'=>1,
+            'live_time'=>10 * 60
+        ]
+    ],
+     *
+     * @throws mixed
+     */
+	protected function buildComponentPools() {
+        $app_conf = BaseServer::getAppConf();
+        if(isset($app_conf['enable_component_pools']) && is_array($app_conf['enable_component_pools']) && !empty($app_conf['enable_component_pools'])) {
+            $components = array_keys($app_conf['components']);
+            foreach($app_conf['enable_component_pools'] as $pool_name =>$component_pool_config) {
+                if(!in_array($pool_name, $components)) {
+                    throw new \Exception("enable_component_pools of item={$pool_name},not set in components");
+                }
+                $callable = \Swoolefy\Core\Swfy::getAppConf()['components'][$pool_name];
+                \Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->addPool($pool_name, $component_pool_config, $callable);
+            }
+        }
+    }
 
     /**
      * eachStartInfo
