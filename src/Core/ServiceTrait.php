@@ -212,7 +212,7 @@ trait ServiceTrait {
     /**
      * isWorkerProcess 进程是否是worker进程
      * @return boolean
-     * @throws \Exception
+     * @throws Exception
      */
 	public static function isWorkerProcess() {
 		if(!self::isTaskProcess() && Swfy::getCurrentWorkerId() >= 0) {
@@ -224,7 +224,7 @@ trait ServiceTrait {
 	/**
 	 * isTaskProcess 进程是否是task进程
      * @return boolean
-     * @throws \Exception
+     * @throws Exception
 	 */
 	public static function isTaskProcess() {
 		$server = Swfy::getServer();
@@ -236,7 +236,7 @@ trait ServiceTrait {
 
     /** isUserProcess 进程是否是process进程
      * @return boolean
-     * @throws \Exception
+     * @throws Exception
      */
 	public static function isUserProcess() {
 	    // process的进程的worker_id等于-1

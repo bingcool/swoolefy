@@ -206,14 +206,14 @@ class PoolsHandler {
 	}
 
 	/**
-	 * getObj 开发者自行实现
+	 * getObj
 	 * @return mixed
 	 */
     protected function getObj() {
         // 第一次开始创建对象
         if($this->callCount == 0 && $this->channel->isEmpty()) {
             if($this->poolsNum) {
-                $this->build($this->poolsNum);
+                $this->make($this->poolsNum);
             }
         }else {
             if($this->callCount >= $this->poolsNum || $this->channel->isEmpty()) {
@@ -231,11 +231,11 @@ class PoolsHandler {
      * @param callable $callable
      * @throws Exception
      */
-    protected function build(int $num) {
+    protected function make(int $num) {
         for($i=0; $i<$num; $i++) {
             $obj = call_user_func($this->callable, $this->poolName);
             if(!is_object($obj)) {
-                throw new \Exception("Components of {$this->poolName} must return object");
+                throw new \Exception("Pools of {$this->poolName} build instance must return object");
             }
             $obj->objExpireTime = time() + ($this->liveTime) + rand(1,10);
             $this->channel->push($obj, $this->pushTimeout);
@@ -250,7 +250,7 @@ class PoolsHandler {
         while($obj = $this->channel->pop($this->popTimeout)) {
             if(isset($obj->objExpireTime) && time() > $obj->objExpireTime) {
                 //re build
-                $this->build(1);
+                $this->make(1);
                 if(time() - $startTime > 1) {
                     $isTimeOut = true;
                     break;
