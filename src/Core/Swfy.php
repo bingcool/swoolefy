@@ -13,7 +13,7 @@ namespace Swoolefy\Core;
 
 use Swoolefy\Core\Application;
 
-class Swfy extends \Swoolefy\Core\BaseObject {
+class Swfy {
 
 	use \Swoolefy\Core\ServiceTrait;
 

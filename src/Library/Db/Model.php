@@ -107,7 +107,7 @@ abstract class Model implements ArrayAccess
      * 获取当前模型的数据库从库设置
      * @param mixed ...$args
      */
-    public function getSlaveConnect(...$args) {
+    public function getSlaveConnection(...$args) {
         return $this->getConnection();
     }
 
