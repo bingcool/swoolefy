@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Websocket;
 
+use Swoolefy\Core\EventApp;
 use Swoolefy\Core\Swfy;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
@@ -122,9 +123,10 @@ abstract class WebsocketServer extends BaseServer {
             // 全局配置
             Swfy::setConf(self::$config);
 			// 启动的初始化函数
-			$this->startCtrl->workerStart($server, $worker_id);
-			static::onWorkerStart($server, $worker_id);
-			
+            (new EventApp())->registerApp(function($event) use($server, $worker_id) {
+                $this->startCtrl->workerStart($server, $worker_id);
+                static::onWorkerStart($server, $worker_id);
+            });
 		});
 
 		/**
@@ -147,7 +149,9 @@ abstract class WebsocketServer extends BaseServer {
 		 */
 		$this->webServer->on('open', function(\Swoole\WebSocket\Server $server, $request) {
 			try{
-				static::onOpen($server, $request);
+                (new EventApp())->registerApp(function() use($server, $request) {
+                    static::onOpen($server, $request);
+                });
 				return true;
 			}catch(\Throwable $e) {
 				self::catchException($e);
@@ -159,7 +163,7 @@ abstract class WebsocketServer extends BaseServer {
 		 */
 		$this->webServer->on('message', function(\Swoole\WebSocket\Server $server, $frame) {
 			try{
-				parent::beforeHandler();
+				parent::beforeHandle();
 				static::onMessage($server, $frame);
 				return true;
 			}catch(\Throwable $e) {
@@ -190,7 +194,6 @@ abstract class WebsocketServer extends BaseServer {
                 }catch(\Throwable $e) {
                     self::catchException($e);
                 }
-
             });
         }
 
@@ -199,7 +202,9 @@ abstract class WebsocketServer extends BaseServer {
 		 */
 		$this->webServer->on('finish', function(\Swoole\WebSocket\Server $server, $task_id, $data) {
 			try{
-				static::onFinish($server, $task_id, $data);
+                (new EventApp())->registerApp(function($event) use($server, $task_id, $data) {
+                    static::onFinish($server, $task_id, $data);
+                });
 				return true;
 			}catch(\Throwable $e) {
 				self::catchException($e);
@@ -212,12 +217,13 @@ abstract class WebsocketServer extends BaseServer {
 		 */
 		$this->webServer->on('pipeMessage', function(\Swoole\WebSocket\Server $server, $from_worker_id, $message) {
 			try {
-				static::onPipeMessage($server, $from_worker_id, $message);
+                (new EventApp())->registerApp(function() use($server, $from_worker_id, $message) {
+                    static::onPipeMessage($server, $from_worker_id, $message);
+                });
 				return true;
 			}catch(\Throwable $e) {
 				self::catchException($e);
 			}
-			
 		});
 
 		/**
@@ -225,7 +231,9 @@ abstract class WebsocketServer extends BaseServer {
 		 */
 		$this->webServer->on('close', function(\Swoole\WebSocket\Server $server, $fd, $reactorId) {
 			try{
-				static::onClose($server, $fd);
+                (new EventApp())->registerApp(function($event) use($server, $fd) {
+                    static::onClose($server, $fd);
+                });
 				return true;
 			}catch(\Throwable $e) {
 				self::catchException($e);
@@ -257,7 +265,9 @@ abstract class WebsocketServer extends BaseServer {
 		 */
 		$this->webServer->on('WorkerStop', function(\Swoole\WebSocket\Server $server, $worker_id) {
 			try{
-				$this->startCtrl->workerStop($server, $worker_id);
+                (new EventApp())->registerApp(function($event) use($server, $worker_id) {
+                    $this->startCtrl->workerStop($server, $worker_id);
+                });
 			}catch(\Throwable $e) {
 				self::catchException($e);
 			}
@@ -267,23 +277,31 @@ abstract class WebsocketServer extends BaseServer {
 		 * worker进程异常错误回调函数
 		 */
 		$this->webServer->on('WorkerError', function(\Swoole\WebSocket\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
-			try{
-				$this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
-			}catch(\Throwable $e) {
-				self::catchException($e);
-			}
-			
+			\Swoole\Coroutine::create(function () use($server, $worker_id, $worker_pid, $exit_code, $signal) {
+                try{
+                    (new EventApp())->registerApp(function($event) use($server, $worker_id, $worker_pid, $exit_code, $signal) {
+                        $this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
+                    });
+                }catch(\Throwable $e) {
+                    self::catchException($e);
+                }
+            });
+
 		});
 
 		/**
 		 * worker进程退出回调函数
 		 */
         $this->webServer->on('WorkerExit', function(\Swoole\WebSocket\Server $server, $worker_id) {
-            try{
-                $this->startCtrl->workerExit($server, $worker_id);
-            }catch(\Throwable $e) {
-                self::catchException($e);
-            }
+            \Swoole\Coroutine::create(function () use($server, $worker_id) {
+                try{
+                    (new EventApp())->registerApp(function($event) use($server, $worker_id) {
+                        $this->startCtrl->workerExit($server, $worker_id);
+                    });
+                }catch(\Throwable $e) {
+                    self::catchException($e);
+                }
+            });
         });
 
 		$this->webServer->start();

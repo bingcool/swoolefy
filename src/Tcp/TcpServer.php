@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Tcp;
 
+use Swoolefy\Core\EventApp;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Rpc\Pack;
 use Swoolefy\Rpc\Text;
@@ -135,9 +136,10 @@ abstract class TcpServer extends BaseServer {
             // 全局配置
             Swfy::setConf(self::$config);
 			// 启动的初始化函数
-			$this->startCtrl->workerStart($server, $worker_id);
-			// 延迟绑定
-			static::onWorkerStart($server, $worker_id);
+            (new EventApp())->registerApp(function($event) use($server, $worker_id) {
+                $this->startCtrl->workerStart($server, $worker_id);
+                static::onWorkerStart($server, $worker_id);
+            });
 
 		});
 
@@ -146,7 +148,9 @@ abstract class TcpServer extends BaseServer {
 		 */
 		$this->tcpServer->on('connect', function(\Swoole\Server $server, $fd) {
     		try{
-    			static::onConnect($server, $fd);
+                (new EventApp())->registerApp(function() use($server, $fd) {
+                    static::onConnect($server, $fd);
+                });
     		}catch(\Throwable $e) {
     			self::catchException($e);
     		}
@@ -157,7 +161,7 @@ abstract class TcpServer extends BaseServer {
 		 */
 		$this->tcpServer->on('receive', function(\Swoole\Server $server, $fd, $reactor_id, $data) {
 			try{
-				parent::beforeHandler();
+				parent::beforeHandle();
 				if(parent::isPackLength()) {
 					$recv = $this->Pack->depack($server, $fd, $reactor_id, $data);
 				}else {
@@ -197,7 +201,6 @@ abstract class TcpServer extends BaseServer {
                 }catch(\Throwable $e) {
                     self::catchException($e);
                 }
-
             });
         }
 
@@ -210,7 +213,6 @@ abstract class TcpServer extends BaseServer {
 			}catch(\Throwable $e) {
 				self::catchException($e);
 			}
-
 		});
 
 		/**
@@ -218,12 +220,13 @@ abstract class TcpServer extends BaseServer {
 		 */
 		$this->tcpServer->on('pipeMessage', function(\Swoole\Server $server, $from_worker_id, $message) {
 			try {
-				static::onPipeMessage($server, $from_worker_id, $message);
+                (new EventApp())->registerApp(function() use($server, $from_worker_id, $message) {
+                    static::onPipeMessage($server, $from_worker_id, $message);
+                });
 				return true;
 			}catch(\Throwable $e) {
 				self::catchException($e);
 			}
-			
 		});
 
 		/**
@@ -235,7 +238,9 @@ abstract class TcpServer extends BaseServer {
 				if(parent::isPackLength()) {
 					$this->Pack->destroy($server, $fd);
 				}
-				static::onClose($server, $fd);
+                (new EventApp())->registerApp(function() use($server, $fd) {
+                    static::onClose($server, $fd);
+                });
 			}catch(\Throwable $e) {
 				self::catchException($e);
 			}
@@ -246,7 +251,9 @@ abstract class TcpServer extends BaseServer {
 		 */
 		$this->tcpServer->on('WorkerStop', function(\Swoole\Server $server, $worker_id) {
 			try{
-				$this->startCtrl->workerStop($server, $worker_id);
+                (new EventApp())->registerApp(function() use($server, $worker_id) {
+                    $this->startCtrl->workerStop($server, $worker_id);
+                });
 			}catch(\Throwable $e) {
 				self::catchException($e);
 			}
@@ -256,23 +263,30 @@ abstract class TcpServer extends BaseServer {
 		 * worker进程异常错误回调函数
 		 */
 		$this->tcpServer->on('WorkerError', function(\Swoole\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
-			try{
-				$this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
-			}catch(\Throwable $e) {
-				self::catchException($e);
-			}
+            \Swoole\Coroutine::create(function () use($server, $worker_id, $worker_pid, $exit_code, $signal) {
+                try{
+                    (new EventApp())->registerApp(function($event) use($server, $worker_id, $worker_pid, $exit_code, $signal) {
+                        $this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
+                    });
+                }catch(\Throwable $e) {
+                    self::catchException($e);
+                }
+            });
 		});
 
 		/**
 		 * worker进程退出回调函数
 		 */
         $this->tcpServer->on('WorkerExit', function(\Swoole\Server $server, $worker_id) {
-            try{
-                $this->startCtrl->workerExit($server, $worker_id);
-            }catch(\Throwable $e) {
-                self::catchException($e);
-            }
-
+            \Swoole\Coroutine::create(function () use($server, $worker_id) {
+                try{
+                    (new EventApp())->registerApp(function($event) use($server, $worker_id) {
+                        $this->startCtrl->workerExit($server, $worker_id);
+                    });
+                }catch(\Throwable $e) {
+                    self::catchException($e);
+                }
+            });
         });
 
 		$this->tcpServer->start();

@@ -246,5 +246,4 @@ class EventController extends BaseObject {
     public function isDefer() {
         return $this->is_defer;
     }
-
 }
