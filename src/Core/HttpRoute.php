@@ -80,7 +80,7 @@ class HttpRoute extends AppDispatch {
     /**
      * @var array
      */
-    protected $actionParams = [];
+    protected $action_params = [];
 
     /**
 	 * $deny_actions 禁止外部直接访问的action
@@ -403,7 +403,7 @@ class HttpRoute extends AppDispatch {
             throw new \Exception("Missing required parameters of name : ".implode(', ', $missing).'|||'.$this->request->server['REQUEST_URI'].'|||'.json_encode($actionParams, JSON_UNESCAPED_UNICODE));
         }
 
-        $this->actionParams = $actionParams;
+        $this->action_params = $actionParams;
 
         return [$method, $args];
     }

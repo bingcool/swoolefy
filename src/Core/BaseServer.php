@@ -141,7 +141,10 @@ class BaseServer {
 		self::$startTime = date('Y-m-d H:i:s');
         // start init
         $this->startCtrl = self::eventHandler();
-        $this->startCtrl->init();
+        (new \Swoolefy\Core\EventApp())->registerApp(function($event) {
+            $this->startCtrl->init();
+        });
+
 	}
 
 	/**
@@ -859,7 +862,7 @@ class BaseServer {
      * beforeRequest
      * @return void
      */
-    public static function beforeHandler() {
+    public static function beforeHandle() {
     	self::atomicAdd();
         // registerErrorHandler
         self::registerErrorHandler();

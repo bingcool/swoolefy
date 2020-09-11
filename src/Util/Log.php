@@ -43,6 +43,16 @@ class Log {
     protected $formatter = null;
 
     /**
+     * @var
+     */
+    protected $logger;
+
+    /**
+     * @var
+     */
+    protected $handler;
+
+    /**
      * @var string
      */
     protected $prefix = 'add';
@@ -59,9 +69,13 @@ class Log {
 		$this->channel = $channel;
 		$this->logFilePath = $logFilePath;
 		$output && $this->output = $output;
+        $this->logger = new Logger($this->channel);
+        $this->handler = new StreamHandler($this->logFilePath);
 		//$formatter对象
 		$this->formatter = new LineFormatter($this->output, $dateformat);
-	}
+        $this->handler->setFormatter($this->formatter);
+
+    }
 
 	/**
 	 * setChannel
@@ -186,12 +200,10 @@ class Log {
 
         $callable = function () use($type, $logInfo, $context) {
             try{
-                $log = new Logger($this->channel);
-                $stream = new StreamHandler($this->logFilePath, $type);
-                $stream->setFormatter($this->formatter);
-                $log->pushHandler($stream);
+                $this->logger->setHandlers([]);
+                $this->logger->pushHandler($this->handler);
                 // add records to the log
-                $log->addRecord($type, $logInfo, $context);
+                $this->logger->addRecord($type, $logInfo, $context);
             }catch (\Exception $e) {
 
             }
