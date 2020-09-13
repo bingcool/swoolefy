@@ -21,7 +21,7 @@ class Context {
      * @throws \Exception
      */
     public static function getContext() {
-        if(\Co::getCid() > 0) {
+        if(\Swoole\Coroutine::getCid() > 0) {
             $context = \Co::getContext();
             return $context;
         }

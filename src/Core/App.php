@@ -272,7 +272,7 @@ class App extends \Swoolefy\Core\Component {
 	 * @return void
 	 */
 	protected function defer() {
-		if(\Co::getCid() > 0) {
+		if(\Swoole\Coroutine::getCid() > 0) {
 			$this->is_defer = true;
 			defer(function() {
 			    $this->clearStaticVar();

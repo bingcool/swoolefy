@@ -301,7 +301,7 @@ class Swoole extends BaseObject {
 	 * @return void
 	 */
 	protected function defer() {
-		if(\Co::getCid() > 0) {
+		if(\Swoole\Coroutine::getCid() > 0) {
 			$this->is_defer = true;
 			defer(function() {
 	            $this->end();
