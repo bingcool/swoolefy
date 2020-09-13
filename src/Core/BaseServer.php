@@ -59,7 +59,7 @@ class BaseServer {
 	 * $swoole_process_model swoole的进程模式，默认swoole_process
 	 * @var int
 	 */
-	protected static $swoole_process_mode = SWOOLE_PROCESS;
+	protected static $swoole_process_model = SWOOLE_PROCESS;
 
 	/**
 	 * $swoole_socket_type swoole的socket设置类型
@@ -183,7 +183,7 @@ class BaseServer {
 	 * @param  string  $master_process_name
 	 */
 	public static function setMasterProcessName($master_process_name) {
-		swoole_set_process_name($master_process_name);
+		cli_set_process_title($master_process_name);
 	}
 
 	/**
@@ -191,7 +191,7 @@ class BaseServer {
 	 * @param  string  $manager_process_name
 	 */
 	public static function setManagerProcessName($manager_process_name) {
-		swoole_set_process_name($manager_process_name);
+        cli_set_process_title($manager_process_name);
 	}
 
 	/**
@@ -203,9 +203,9 @@ class BaseServer {
 	public static function setWorkerProcessName($worker_process_name, $worker_id, $worker_num=1) {
 		// 设置worker的进程
 		if($worker_id >= $worker_num) {
-            swoole_set_process_name($worker_process_name."-task".$worker_id);
+            cli_set_process_title($worker_process_name."-task".$worker_id);
         }else {
-            swoole_set_process_name($worker_process_name."-worker".$worker_id);
+            cli_set_process_title($worker_process_name."-worker".$worker_id);
         }
 
 	}
@@ -488,7 +488,7 @@ class BaseServer {
 	 */
 	protected static function setSwooleSockType() {
 		if(isset(static::$setting['swoole_process_mode']) && static::$setting['swoole_process_mode'] == SWOOLE_BASE) {
-			self::$swoole_process_mode = SWOOLE_BASE;
+			self::$swoole_process_model = SWOOLE_BASE;
 		}
 
 		if(self::isUseSsl()) {
