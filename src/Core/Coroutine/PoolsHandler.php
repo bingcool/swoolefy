@@ -231,7 +231,7 @@ class PoolsHandler {
      * @param callable $callable
      * @throws Exception
      */
-    protected function make(int $num) {
+    protected function make(int $num = 1) {
         for($i=0; $i<$num; $i++) {
             $obj = call_user_func($this->callable, $this->poolName);
             if(!is_object($obj)) {
