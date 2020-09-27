@@ -231,7 +231,7 @@ trait ComponentTrait {
      * @return array
      */
     public function getOpenPoolsOfComponent() {
-        return $this->component_pools;
+        return $this->component_pools ?? [];
     }
 
     /**
@@ -268,20 +268,24 @@ trait ComponentTrait {
     final public function get(string $name) {
         $app_conf = BaseServer::getAppConf();
         $components = $app_conf['components'];
+
+        if(isset($this->container[$name])) {
+            if(is_object($this->container[$name])) {
+                return $this->container[$name];
+            }else {
+                $this->clearComponent($name);
+                return $this->creatObject($name, $components[$name]);
+            }
+        }
+
         if(empty($this->component_pools)) {
             if(isset($app_conf['enable_component_pools']) && is_array($app_conf['enable_component_pools']) && !empty($app_conf['enable_component_pools'])) {
                 $enable_component_pools = array_keys($app_conf['enable_component_pools']);
                 $this->component_pools = $enable_component_pools;
             }
         }
-        if(isset($this->container[$name])) {
-            if(is_object($this->container[$name])) {
-                return $this->container[$name];
-            }else {
-                $this->clearComponent($name);
-                return false;
-            }
-        }else if(in_array($name, array_keys($components))) {
+
+        if(in_array($name, array_keys($components))) {
             // mysql,redis进程池中直接赋值
             if(in_array($name, $this->component_pools)) {
                 /** @var \Swoolefy\Core\Coroutine\PoolsHandler $poolHandler */

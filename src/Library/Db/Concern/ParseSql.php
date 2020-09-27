@@ -101,7 +101,7 @@ trait ParseSql {
     public function findOne(string $where, array $bindParams = []) {
         $sql = $this->parseWhereSql($where);
         /**@var PDOConnection $connection*/
-        $connection = $this->getSlaveConnect();
+        $connection = $this->getSlaveConnection();
         if(!is_object($connection)) {
             $connection = $this->getConnection();
         }
