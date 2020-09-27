@@ -582,16 +582,16 @@ trait AppTrait {
 	 * @return   array
 	 */
 	public function parseUrl(string $url) {
-        $res = parse_url($url);
-        $return['protocol'] = $res['scheme'];
-        $return['host'] = $res['host'];
-        $return['port'] = $res['port'];
-        $return['user'] = $res['user'];
-        $return['pass'] = $res['pass'];
-        $return['path'] = $res['path'];
-        $return['id'] = $res['fragment'];
-        parse_str($res['query'], $return['params']);
-        return $return;
+        $parseUrlItems = parse_url($url);
+        $parseItems['protocol'] = $parseUrlItems['scheme'];
+        $parseItems['host'] = $parseUrlItems['host'];
+        $parseItems['port'] = $parseUrlItems['port'];
+        $parseItems['user'] = $parseUrlItems['user'];
+        $parseItems['pass'] = $parseUrlItems['pass'];
+        $parseItems['path'] = $parseUrlItems['path'];
+        $parseItems['id'] = $parseUrlItems['fragment'];
+        parse_str($parseUrlItems['query'], $parseItems['params']);
+        return $parseItems;
     }
 
 	/**

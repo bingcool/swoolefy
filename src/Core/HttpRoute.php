@@ -189,7 +189,6 @@ class HttpRoute extends AppDispatch {
         if(!isset($this->app_conf['app_namespace'])) {
             $this->app_conf['app_namespace'] = APP_NAME;
         }
-        $filePath = APP_PATH . DIRECTORY_SEPARATOR . 'Controller' . $controller . '.php';
         if($module) {
             $filePath = APP_PATH . DIRECTORY_SEPARATOR . 'Module' . DIRECTORY_SEPARATOR . $module . DIRECTORY_SEPARATOR . $controller . '.php';
             // 访问类的命名空间

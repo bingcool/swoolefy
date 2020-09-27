@@ -664,7 +664,7 @@ class BaseServer {
      * @return string
      */
     public static function getExceptionClass() {
-        $exceptionHandlerClass = 'Swoolefy\\Core\\SwoolefyException';
+        $exceptionHandlerClass = '\\Swoolefy\\Core\\SwoolefyException';
         // 获取协议层配置
         if(isset(self::$config['exception_handler']) && !empty(self::$config['exception_handler'])) {
             $exceptionHandlerClass = self::$config['exception_handler'];
@@ -825,7 +825,7 @@ class BaseServer {
         if(self::isSubclassOf($starHandlerClass, self::$start_handler_class)) {
            return new $starHandlerClass();
         }
-        throw new \Exception("Error:Config item of 'event_handler'=>{$starHandlerClass} must extends ".self::$start_handler_class);
+        throw new \Exception("Config item of 'event_handler'=>{$starHandlerClass} must extends ".self::$start_handler_class.' class');
     }
 
     /**
