@@ -96,9 +96,9 @@ class Swoole extends BaseObject {
 		$this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
 		Application::setApp($this);
 		$this->fd = $fd;
+        $this->defer();
 		$this->_init($recv);
 		$this->_bootstrap($recv);
-		$this->defer();
 	}
 
 	/**

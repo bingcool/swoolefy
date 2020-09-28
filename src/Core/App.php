@@ -118,9 +118,9 @@ class App extends \Swoolefy\Core\Component {
             $this->request = $request;
             $this->response = $response;
             Application::setApp($this);
+            $this->defer();
             $this->_init($request);
             $this->_bootstrap();
-            $this->defer();
             if(!$this->catchAll()) {
                 $route = new HttpRoute($extend_data);
                 $route->dispatch();

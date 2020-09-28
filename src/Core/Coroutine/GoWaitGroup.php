@@ -144,7 +144,7 @@ class GoWaitGroup {
      * @return array
      */
     public function wait(float $timeout = 0) {
-        while($this->count--) {
+        while($this->count-- > 0) {
             $this->channel->pop($timeout);
         }
         $result = $this->result;
