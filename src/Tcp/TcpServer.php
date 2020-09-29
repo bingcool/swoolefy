@@ -35,6 +35,7 @@ abstract class TcpServer extends BaseServer {
 		'task_worker_num' => 1,
 		'task_tmpdir' => '/dev/shm',
 		'daemonize' => 0,
+        'hook_flags' => SWOOLE_HOOK_ALL | SWOOLE_HOOK_CURL,
 		'log_file' => __DIR__.'/log/log.txt',
 		'pid_file' => __DIR__.'/log/server.pid',
 	];
@@ -117,6 +118,8 @@ abstract class TcpServer extends BaseServer {
 		$this->tcpServer->on('WorkerStart', function(\Swoole\Server $server, $worker_id) {
 			// 记录主进程加载的公共files,worker重启不会在加载的
 			self::getIncludeFiles($worker_id);
+            // 启动动态运行时的Coroutine
+            self::runtimeEnableCoroutine();
 			// registerShutdown
             self::registerShutdownFunction();
 			// 重启worker时，清空字节cache
@@ -129,8 +132,6 @@ abstract class TcpServer extends BaseServer {
 			self::startInclude();
 			// 记录worker的进程worker_pid与worker_id的映射
 			self::setWorkersPid($worker_id, $server->worker_pid);
-			// 启动动态运行时的Coroutine
-			self::runtimeEnableCoroutine();
             // 超全局变量server
             Swfy::setSwooleServer($this->tcpServer);
             // 全局配置

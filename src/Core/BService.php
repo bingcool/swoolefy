@@ -58,7 +58,7 @@ class BService extends BaseObject {
 		    /**@var UdpHandler $app*/
 			$this->client_info = $app->getClientInfo();
 		}
-        if(\Co::getCid() > 0) {
+        if(\Swoole\Coroutine::getCid() > 0) {
 			defer(function() {
 		    	$this->defer();
         	});

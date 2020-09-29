@@ -629,21 +629,7 @@ class BaseServer {
      * @return void
      */
     public static function runtimeEnableCoroutine() {
-    	if(method_exists('\\Swoole\\Runtime', 'enableCoroutine')) {
-            $run_enable_coroutine = true;
-    		if(isset(self::$config['runtime_enable_coroutine'])) {
-    		    $run_enable_coroutine = filter_var(self::$config['runtime_enable_coroutine'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-    		}
-
-            if($run_enable_coroutine === true) {
-                if(isset(self::$config['runtime_enable_coroutine_flags'])) {
-                    $flags = self::$config['runtime_enable_coroutine_flags'];
-                }else {
-                    $flags = SWOOLE_HOOK_ALL;
-                }
-                \Swoole\Runtime::enableCoroutine(true, $flags);
-            }
-    	}
+        \Swoole\Runtime::enableCoroutine(static::$setting['hook_flags'] ?: SWOOLE_HOOK_ALL | SWOOLE_HOOK_CURL);
     }
 
     /**

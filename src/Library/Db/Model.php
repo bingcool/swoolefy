@@ -24,6 +24,7 @@ abstract class Model implements ArrayAccess
     use Concern\ModelEvent;
     use Concern\ParseSql;
     use Concern\TimeStamp;
+    use Concern\Util;
 
     const BEFORE_INSERT = 'BeforeInsert';
     const AFTER_INSERT = 'AfterInsert';
@@ -603,17 +604,6 @@ abstract class Model implements ArrayAccess
         $model = new static();
         $model->setSuffix($suffix);
         return $model;
-    }
-
-    /**
-     * 下划线转驼峰(首字母大写)
-     * @param  string $value
-     * @return string
-     */
-    public static function studly(string $value): string
-    {
-        $value = ucwords(str_replace(['-', '_'], ' ', $value));
-        return str_replace(' ', '', $value);
     }
 
     /**

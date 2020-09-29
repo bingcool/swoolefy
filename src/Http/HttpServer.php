@@ -36,6 +36,7 @@ abstract class HttpServer extends BaseServer {
 		'task_worker_num' => 1,
 		'task_tmpdir' => '/dev/shm',
 		'daemonize' => 0,
+        'hook_flags' => SWOOLE_HOOK_ALL | SWOOLE_HOOK_CURL,
 		'log_file' => __DIR__.'/log/log.txt',
 		'pid_file' => __DIR__.'/log/server.pid',
 	];
@@ -51,7 +52,7 @@ abstract class HttpServer extends BaseServer {
      * @param array $config
      * @throws \Exception
      */
-	public function __construct(array $config=[]) {
+	public function __construct(array $config = []) {
 		self::clearCache();
 		self::$config = array_merge(
 			include(__DIR__.'/config.php'),
@@ -76,7 +77,6 @@ abstract class HttpServer extends BaseServer {
             }catch (\Throwable $e) {
                 self::catchException($e);
             }
-
 		});
 
 		/**
@@ -106,6 +106,8 @@ abstract class HttpServer extends BaseServer {
 		 * 启动worker进程监听回调，设置定时器
 		 */
 		$this->webServer->on('WorkerStart', function(\Swoole\Http\Server $server, $worker_id) {
+            // 启动动态运行时的Coroutine
+            self::runtimeEnableCoroutine();
 			// 记录主进程加载的公共files,worker重启不会在加载的
 			self::getIncludeFiles($worker_id);
 			// registerShutdown
@@ -120,8 +122,6 @@ abstract class HttpServer extends BaseServer {
 			self::startInclude();
 			// 记录worker的进程worker_pid与worker_id的映射
 			self::setWorkersPid($worker_id, $server->worker_pid);
-			// 启动动态运行时的Coroutine
-			self::runtimeEnableCoroutine();
 			// 超全局变量server
        		Swfy::setSwooleServer($this->webServer);
        		// 全局配置
