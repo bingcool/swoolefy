@@ -97,7 +97,7 @@ trait Attribute
         $pk = $this->getPk();
         if(is_string($pk) && array_key_exists($pk, $this->data)) {
             $types = $this->getFieldType();
-            $pkValue = $this->data[$pk] ?? '';
+            $pkValue = $this->data[$pk] ?? 0;
             if(isset($types[$pk]) && !empty($pkValue)) {
                 if($types[$pk] == 'int' || $types[$pk] == 'integer') {
                     $pkValue = (int)$pkValue;
@@ -109,7 +109,7 @@ trait Attribute
             }
             return $pkValue;
         }
-        return '';
+        return 0;
     }
 
     /**
