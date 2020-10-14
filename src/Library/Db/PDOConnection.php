@@ -210,7 +210,7 @@ abstract class PDOConnection implements ConnectionInterface {
     /**
      * @param bool $force
      */
-    protected function initConnect(bool $force = false): void
+    public function initConnect(bool $force = false): void
     {
         $this->connect($this->config, true, $force);
     }
@@ -245,7 +245,6 @@ abstract class PDOConnection implements ConnectionInterface {
         $this->queryStr = $sql;
 
         $this->bind = $bindParams;
-
         try {
             $queryStartTime = microtime(true);
             $this->log('Execute sql start',"sql={$this->queryStr},bindParams=".json_encode($bindParams, JSON_UNESCAPED_UNICODE));

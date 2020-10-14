@@ -320,7 +320,7 @@ abstract class Model implements ArrayAccess
             $pk = $this->getPk();
             // 对于自定义的主键值，需要设置
             $pkValue = $this->createPkValue();
-            if($pkValue) {
+            if(empty($pkValue)) {
                 $this->data[$pk] = $pkValue;
             }else {
                 // 数据表设置自增pk的，则不需要设置允许字段
@@ -328,6 +328,10 @@ abstract class Model implements ArrayAccess
             }
             list($sql, $bindParams) = $this->parseInsertSql($allowFields);
             $this->numRows = $this->getConnection()->createCommand($sql)->insert($bindParams);
+            // 对于自增的pk,插入成功,需要赋值
+            if(!isset($this->data[$pk]))  {
+                $this->data[$pk] = $this->getConnection()->getLastInsID($pk);
+            }
         }catch (\Throwable $exception) {
             throw $exception;
         }
