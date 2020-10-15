@@ -87,7 +87,9 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 			
 		}else {
             // 断开连接
-            $server->disconnect($fd, $code = 1009, $reason = "");
+            if(method_exists($server,'disconnect')) {
+                $server->disconnect($fd, $code = 1009, $reason = "");
+            }
         }
 
 	}
