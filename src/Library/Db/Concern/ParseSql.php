@@ -22,13 +22,13 @@ trait ParseSql {
     protected function parseInsertSql(array $allowFields) {
         $fields = $columns = $bindParams = [];
         foreach($allowFields as $field) {
-            if(isset($this->data[$field])) {
+            if(isset($this->_data[$field])) {
                 $fields[] = $field;
                 $column = ':'.$field;
                 $columns[] = $column;
-                $bindParams[$column] = $this->data[$field];
+                $bindParams[$column] = $this->_data[$field];
             }else {
-                unset($this->data[$field]);
+                unset($this->_data[$field]);
             }
         }
         $fields = implode(',', $fields);
@@ -122,10 +122,10 @@ trait ParseSql {
     protected function parseOrigin(array $attributes = []) {
         if($attributes) {
             foreach($attributes as $field => $value) {
-                $this->data[$field] = $value;
+                $this->_data[$field] = $value;
             }
             // 记录源数据
-            $this->origin = $this->data;
+            $this->_origin = $this->_data;
             $this->exists(true);
         }
     }

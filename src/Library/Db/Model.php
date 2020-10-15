@@ -47,7 +47,7 @@ abstract class Model implements ArrayAccess
     /**
      * @var bool
      */
-    protected $exists = false;
+    protected $isExists = false;
 
     /**
      * @var bool
@@ -77,7 +77,7 @@ abstract class Model implements ArrayAccess
     /**
      * @var array
      */
-    protected $attributes = null;
+    protected $_attributes = null;
 
     /**
      * @var bool
@@ -176,7 +176,7 @@ abstract class Model implements ArrayAccess
      */
     protected function exists(bool $exists = true)
     {
-        $this->exists = $exists;
+        $this->isExists = $exists;
         return $this;
     }
 
@@ -186,7 +186,7 @@ abstract class Model implements ArrayAccess
      */
     public function isExists(): bool
     {
-        return $this->exists;
+        return $this->isExists;
     }
 
     /**
@@ -266,19 +266,19 @@ abstract class Model implements ArrayAccess
         if(method_exists($this, $method)) {
             // 返回修改器处理过的数据
             $value = $this->$method($value);
-            $this->set[$name] = true;
+            $this->_set[$name] = true;
             if(is_null($value)) {
                 return;
             }
-        }else if(isset($this->type[$name])) {
+        }else if(isset($this->fieldTypeMap[$name])) {
             //类型转换
-            $value = $this->writeTransform($value, $this->type[$name]);
+            $value = $this->writeTransform($value, $this->fieldTypeMap[$name]);
         }
         // 源数据
-        if(!$this->isExists()) $this->origin[$name] = $value;
+        if(!$this->isExists()) $this->_origin[$name] = $value;
 
         // 设置数据对象属性
-        $this->data[$name] = $value;
+        $this->_data[$name] = $value;
     }
 
     /**
@@ -293,8 +293,8 @@ abstract class Model implements ArrayAccess
             return false;
         }
         // 重新记录原始数据
-        $this->origin   = $this->data;
-        $this->set      = [];
+        $this->_origin   = $this->_data;
+        $this->_set      = [];
         return true;
     }
 
@@ -321,7 +321,7 @@ abstract class Model implements ArrayAccess
             // 对于自定义的主键值，需要设置
             $pkValue = $this->createPkValue();
             if(empty($pkValue)) {
-                $this->data[$pk] = $pkValue;
+                $this->_data[$pk] = $pkValue;
             }else {
                 // 数据表设置自增pk的，则不需要设置允许字段
                 $allowFields = array_diff($allowFields, [$pk]);
@@ -329,8 +329,8 @@ abstract class Model implements ArrayAccess
             list($sql, $bindParams) = $this->parseInsertSql($allowFields);
             $this->numRows = $this->getConnection()->createCommand($sql)->insert($bindParams);
             // 对于自增的pk,插入成功,需要赋值
-            if(!isset($this->data[$pk]))  {
-                $this->data[$pk] = $this->getConnection()->getLastInsID($pk);
+            if(!isset($this->_data[$pk]))  {
+                $this->_data[$pk] = $this->getConnection()->getLastInsID($pk);
             }
         }catch (\Throwable $exception) {
             throw $exception;
@@ -341,7 +341,7 @@ abstract class Model implements ArrayAccess
         $this->buildAttributes();
         // 新增回调
         $this->trigger('AfterInsert');
-        return $this->data[$pk] ?? false;
+        return $this->_data[$pk] ?? false;
     }
 
     /**
@@ -363,9 +363,9 @@ abstract class Model implements ArrayAccess
         if(empty($this->tableFields)) {
             $schemaInfo = $this->getSchemaInfo();
             $fields = $schemaInfo['fields'];
-            if(!empty($this->disuse)) {
+            if(!empty($this->disuseFields)) {
                 // 废弃字段
-                $fields = array_diff($fields, $this->disuse);
+                $fields = array_diff($fields, $this->disuseFields);
             }
             $this->tableFields = $fields;
         }
@@ -443,8 +443,8 @@ abstract class Model implements ArrayAccess
         if($diffData) {
             list($sql, $bindParams) = $this->parseUpdateSql($diffData, $allowFields);
             $this->numRows = $this->getConnection()->createCommand($sql)->update($bindParams);
-            $this->origin = $this->data;
-            $this->checkResult($this->data);
+            $this->_origin = $this->_data;
+            $this->checkResult($this->_data);
             $this->trigger('AfterUpdate');
         }
 
@@ -474,7 +474,7 @@ abstract class Model implements ArrayAccess
 
         $this->setIsNew(false);
 
-        if(!$this->exists || false === $this->trigger('BeforeDelete')) {
+        if(!$this->isExists || false === $this->trigger('BeforeDelete')) {
             return false;
         }
 
@@ -544,9 +544,9 @@ abstract class Model implements ArrayAccess
         $method = 'get' . self::studly($fieldName) . 'Attr';
         if(method_exists($this, $method)) {
             $value = $this->$method($value);
-        }else if(isset($this->type[$fieldName])) {
+        }else if(isset($this->fieldTypeMap[$fieldName])) {
             // 类型转换
-            $value = $this->readTransform($value, $this->type[$fieldName]);
+            $value = $this->readTransform($value, $this->fieldTypeMap[$fieldName]);
         }
         return $value;
     }
@@ -556,17 +556,20 @@ abstract class Model implements ArrayAccess
      * @return array|null
      */
     public function getAttributes() {
-        if($this->isExists() && $this->origin) {
-            foreach($this->origin as $fieldName=>$value) {
-                if(in_array($fieldName, $this->getAllowFields())) {
-                    $attributes[$fieldName] = $this->getValue($fieldName, $value);
-                }else {
-                    unset($this->origin[$fieldName]);
+        if(is_null($this->_attributes)) {
+            if($this->isExists() && $this->_origin) {
+                foreach($this->_origin as $fieldName=>$value) {
+                    if(in_array($fieldName, $this->getAllowFields())) {
+                        $attributes[$fieldName] = $this->getValue($fieldName, $value);
+                    }else {
+                        unset($this->_origin[$fieldName]);
+                    }
                 }
             }
+            $this->_attributes = $attributes ?? null;
         }
-        $this->attributes = $attributes ?? null;
-        return $this->attributes;
+
+        return $this->_attributes;
     }
 
     /**
@@ -575,7 +578,7 @@ abstract class Model implements ArrayAccess
      */
     public function isEmpty(): bool
     {
-        return empty($this->data);
+        return empty($this->_data);
     }
 
     /**
@@ -617,7 +620,7 @@ abstract class Model implements ArrayAccess
      */
     public function __unset(string $name): void
     {
-        unset($this->data[$name]);
+        unset($this->_data[$name]);
     }
 
     // ArrayAccess
@@ -659,7 +662,7 @@ abstract class Model implements ArrayAccess
      */
     public function toJson(int $options = JSON_UNESCAPED_UNICODE): string
     {
-        return json_encode($this->origin, $options);
+        return json_encode($this->_origin, $options);
     }
 
     /**
