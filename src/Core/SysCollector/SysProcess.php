@@ -73,7 +73,7 @@ class SysProcess extends AbstractProcess {
                     // 当前时间段内原子清空
                     $total_request_num && $atomic->sub($total_request_num);
                     // 数据聚合
-                    $data = ['total_request'=> $total_request_num, 'tick_time'=>$tick_time,'from_service'=>$this->sys_collector_config['from_service'], 'timestamp'=>date('Y-m-d H:i:s')];
+                    $data = ['total_request'=> $total_request_num, 'tick_time'=>$tick_time,'from_service'=>$this->sys_collector_config['from_service'] ?? '', 'timestamp'=>date('Y-m-d H:i:s')];
                     $data['sys_collector_message'] = $sys_info;
                     switch($type) {
                         case SWOOLEFY_SYS_COLLECTOR_UDP:
@@ -143,9 +143,9 @@ class SysProcess extends AbstractProcess {
 		$host = $this->sys_collector_config['host'];
 		$port = (int)$this->sys_collector_config['port'];
 		$password = $this->sys_collector_config['password'];
-		$timeout = $this->sys_collector_config['timeout'] ? (float) $this->sys_collector_config['timeout'] : 3;
+		$timeout = isset($this->sys_collector_config['timeout']) ? (float) $this->sys_collector_config['timeout'] : 3;
 
-		$channel = isset($this->sys_collector_config['channel']) ? $this->sys_collector_config['channel'] : SWOOLEFY_SYS_COLLECTOR_CHANNEL;
+		$channel = $this->sys_collector_config['channel'] ?? SWOOLEFY_SYS_COLLECTOR_CHANNEL;
 		\Swoole\Coroutine::create(function() use($host, $port, $password, $timeout, $channel, $data) {
             $redisClient = new \Swoole\Coroutine\Redis();
             $redisClient->setOptions([
@@ -177,9 +177,9 @@ class SysProcess extends AbstractProcess {
 		$host = $this->sys_collector_config['host'];
 		$port = (int)$this->sys_collector_config['port'];
 		$password = $this->sys_collector_config['password'];
-		$timeout = $this->sys_collector_config['timeout'] ? (float) $this->sys_collector_config['timeout'] : 60;
-		$database = isset($this->sys_collector_config['database']) ? $this->sys_collector_config['database'] : 0;
-		$channel = isset($this->sys_collector_config['channel']) ? $this->sys_collector_config['channel'] : SWOOLEFY_SYS_COLLECTOR_CHANNEL;
+		$timeout = isset($this->sys_collector_config['timeout']) ? (float) $this->sys_collector_config['timeout'] : 60;
+		$database = $this->sys_collector_config['database'] ?? 0;
+		$channel = $this->sys_collector_config['channel'] ?? SWOOLEFY_SYS_COLLECTOR_CHANNEL;
 
 		if(!extension_loaded('redis')) {
 			throw new \Exception("Because you enable sys_collector, must be install extension of phpredis", 1);
@@ -214,7 +214,7 @@ class SysProcess extends AbstractProcess {
 	 */
 	protected function writeByFile(array $data = []) {
 		$file_path = $this->sys_collector_config['file_path'];
-		$max_size = isset($this->sys_collector_config['max_size']) ? $this->sys_collector_config['max_size'] : 2 * 1024 * 1024;
+		$max_size = $this->sys_collector_config['max_size'] ?? 2 * 1024 * 1024;
 		if(file_exists($file_path)) {
 			$file_size = filesize($file_path);
 			if($file_size > $max_size) {
