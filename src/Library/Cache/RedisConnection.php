@@ -24,13 +24,17 @@ class RedisConnection {
     protected $lastLogs = [];
 
     /**
+     * @var int
+     */
+    protected $spendLogNum = 20;
+
+    /**
      * @param $method
      * @param $arguments
      * @param $errorMsg
      */
     protected function log($method, $arguments, $errorMsg = 'ok') {
-        //记录前50个操作即可，防止在循坏中大量创建
-        if(count($this->lastLogs) > 50) {
+        if(count($this->lastLogs) > $this->spendLogNum) {
             $this->lastLogs = [];
         }
         $this->lastLogs[] = json_encode(['time'=>date('Y-m-d, H:i:s'), 'method'=>$method, 'args'=>$arguments, 'msg'=>$errorMsg],JSON_UNESCAPED_UNICODE);
@@ -43,6 +47,17 @@ class RedisConnection {
         return array_map(function ($item) {
             return json_decode($item, true) ?? [];
         }, $this->lastLogs);
+    }
+
+    /**
+     * @param int $logNum
+     */
+    public function setLimitLogNum(int $spendLogNum) {
+        //最大记录前50个操作即可，防止在循坏中大量创建
+        if($spendLogNum > 50) {
+            $spendLogNum = 50;
+        }
+        $this->spendLogNum = $spendLogNum;
     }
 
     /**

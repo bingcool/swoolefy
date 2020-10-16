@@ -38,11 +38,6 @@ class Redis extends RedisConnection {
     protected $isPersistent = false;
 
     /**
-     * @var array
-     */
-    protected $lastLogs = [];
-
-    /**
      * Redis constructor
      */
     public function __construct() {
