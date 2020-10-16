@@ -48,7 +48,7 @@ abstract class PDOConnection implements ConnectionInterface {
         // 是否支持事务嵌套
         'support_savepoint' => false,
         // sql执行日志条目设置,不能设置太大,适合调试使用,设置为0，则不使用
-        'spend_log_limit' => 50,
+        'spend_log_limit' => 30,
     ];
 
     /**
@@ -1035,6 +1035,7 @@ abstract class PDOConnection implements ConnectionInterface {
     {
         // 关闭连接
         $this->close();
+        $this->lastLogs = [];
     }
 
 }
