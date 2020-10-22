@@ -32,7 +32,10 @@
         "ext-sockets": "*",
         "ext-zend-opcache": "*",
         "dragonmantank/cron-expression": "3.0.0",
-        "swoole/ide-helper": "dev-master"
+        "swoole/ide-helper": "dev-master",
+        "yurunsoft/guzzle-swoole": "@dev",
+        "doctrine/orm": "2.7.4",
+        "malkusch/lock": "dev-master"
     },
     "autoload": {
         "files": ["src/Constants.php","src/core/Func/function.php"],

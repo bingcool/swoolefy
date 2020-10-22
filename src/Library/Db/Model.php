@@ -102,7 +102,11 @@ abstract class Model implements ArrayAccess
     /**
      * @return Model
      */
-    abstract public static function model(): Model;
+    public static function model(): Model
+    {
+        $class = get_called_class();
+        return new $class();
+    }
 
     /**
      * 获取当前模型的数据库从库设置
