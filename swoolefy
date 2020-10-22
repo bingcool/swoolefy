@@ -146,14 +146,13 @@ function createProject($server_name) {
     $dirs = ['Config', 'Service'];
     $params = commandParser();
     $app_name = $params['app_name'];
-    global $APP_NAMES;
     $app_root_dir = START_DIR_ROOT."/{$app_name}";
     if(is_dir($app_root_dir)) {
         write("You had create {$app_name} project dir");
         exit();
     }
 
-    $protocol = $APP_NAMES[$app_name];
+    $protocol = APP_NAMES[$app_name];
     if(!$protocol) {
         write("[Error] app_name is not in APP_NAME array in swoolefy file, please check it");
         exit();

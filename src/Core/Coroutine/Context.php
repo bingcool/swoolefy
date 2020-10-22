@@ -22,7 +22,7 @@ class Context {
      */
     public static function getContext() {
         if(\Swoole\Coroutine::getCid() > 0) {
-            $context = \Co::getContext();
+            $context = \Swoole\Coroutine::getContext();
             return $context;
         }
 
