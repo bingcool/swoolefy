@@ -52,9 +52,9 @@ class BService extends BaseObject {
 	public function __construct() {
 	    /**@var Swoole $app*/
 		$app = Application::getApp();
-		$this->fd = $app->fd;
+        $this->fd = $app->fd;
 		$this->app_conf = $app->app_conf;
-		if(BaseServer::isUdpApp()) {
+        if(BaseServer::isUdpApp()) {
 		    /**@var UdpHandler $app*/
 			$this->client_info = $app->getClientInfo();
 		}

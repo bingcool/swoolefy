@@ -213,21 +213,6 @@ abstract class UdpServer extends BaseServer {
 		});
 
 		/**
-		 * worker进程异常错误回调函数
-		 */
-		$this->udpServer->on('WorkerError', function(Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
-			\Swoole\Coroutine::create(function () use($server, $worker_id, $worker_pid, $exit_code, $signal) {
-                try{
-                    (new EventApp())->registerApp(function($event) use($server, $worker_id, $worker_pid, $exit_code, $signal) {
-                        $this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
-                    });
-                }catch(\Throwable $e) {
-                    self::catchException($e);
-                }
-            });
-		});
-
-		/**
 		 * worker进程退出回调函数
 		 */
         $this->udpServer->on('WorkerExit', function(Server $server, $worker_id) {
@@ -240,6 +225,18 @@ abstract class UdpServer extends BaseServer {
                     self::catchException($e);
                 }
             });
+        });
+
+        /**
+         * worker进程异常错误回调函数
+         * 注意，此回调是在manager进程中发生的，不能使用创建协程和使用协程api,否则报错
+         */
+        $this->udpServer->on('WorkerError', function(Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
+            try{
+                $this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
+            }catch(\Throwable $e) {
+                self::catchException($e);
+            }
         });
 
 		$this->udpServer->start();

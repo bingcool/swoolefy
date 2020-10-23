@@ -60,26 +60,26 @@ class UdpHandler extends Swoole implements HandlerInterface {
 	/**
 	 * run 完成初始化后，路由匹配和创建访问实例
 	 * @param  int   $fd
-	 * @param  mixed $recv
+	 * @param  mixed $payload
      * @throws \Throwable
 	 * @return mixed
 	 */
-	public function run($recv, $clientInfo, array $extend_data = []) {
+	public function run($payload, $clientInfo, array $extend_data = []) {
 	    try {
             // 必须要执行父类的run方法
-            parent::run($fd = null, $recv);
+            parent::run($fd = null, $payload);
             $this->client_info = $clientInfo;
             // worker进程
             if($this->isWorkerProcess()) {
-                if(is_string($recv)) {
-                    $packet = explode(self::EOF, $recv);
-                    if(count($packet) == 3) {
-                        list($service, $event, $params) = $packet;
+                if(is_string($payload)) {
+                    $dataGramItems = explode(self::EOF, $payload);
+                    if(count($dataGramItems) == 3) {
+                        list($service, $event, $params) = $dataGramItems;
                         if(is_string($params)) {
                             $params = json_decode($params, true) ?? [];
                         }
-                    }else if(count($packet) == 2) {
-                        list($service, $event) = $packet;
+                    }else if(count($dataGramItems) == 2) {
+                        list($service, $event) = $dataGramItems;
                         $params = [];
                     }else {
                         // TODO
@@ -94,7 +94,7 @@ class UdpHandler extends Swoole implements HandlerInterface {
             }else {
                 // 任务task进程
                 $is_task_process = true;
-                list($callable, $params) = $recv;
+                list($callable, $params) = $payload;
             }
 
             if($callable) {

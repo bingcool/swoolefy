@@ -261,21 +261,6 @@ abstract class TcpServer extends BaseServer {
 		});
 
 		/**
-		 * worker进程异常错误回调函数
-		 */
-		$this->tcpServer->on('WorkerError', function(\Swoole\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
-            \Swoole\Coroutine::create(function () use($server, $worker_id, $worker_pid, $exit_code, $signal) {
-                try{
-                    (new EventApp())->registerApp(function($event) use($server, $worker_id, $worker_pid, $exit_code, $signal) {
-                        $this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
-                    });
-                }catch(\Throwable $e) {
-                    self::catchException($e);
-                }
-            });
-		});
-
-		/**
 		 * worker进程退出回调函数
 		 */
         $this->tcpServer->on('WorkerExit', function(\Swoole\Server $server, $worker_id) {
@@ -288,6 +273,18 @@ abstract class TcpServer extends BaseServer {
                     self::catchException($e);
                 }
             });
+        });
+
+        /**
+         * worker进程异常错误回调函数
+         * 注意，此回调是在manager进程中发生的，不能使用创建协程和使用协程api,否则报错
+         */
+        $this->tcpServer->on('WorkerError', function(\Swoole\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
+            try{
+                $this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
+            }catch(\Throwable $e) {
+                self::catchException($e);
+            }
         });
 
 		$this->tcpServer->start();

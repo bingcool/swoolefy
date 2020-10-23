@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Websocket;
 
+use Swoolefy\Core\Application;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Swoole;
 use Swoolefy\Core\ServiceDispatch;
@@ -43,36 +44,37 @@ class WebsocketHandler extends Swoole implements HandlerInterface {
 	/**
 	 * run 服务调度，创建访问实例，处理String数据
 	 * @param  int   $fd
-	 * @param  mixed $recv
+	 * @param  mixed $payload
      * @throws \Throwable
 	 * @return mixed
 	 */
-	public function run($fd, $recv, array $extend_data = []) {
+	public function run($fd, $payload, array $extend_data = []) {
 	    try {
 	        // heart
 	        if($this->isWorkerProcess()) {
-                $recv = array_values(json_decode($recv, true) ?? []);
-                if(is_array($recv) && count($recv) == 3) {
-                    list($service, $event, $params) = $recv;
+                $payload = array_values(json_decode($payload, true) ?? []);
+                if(is_array($payload) && count($payload) == 3) {
+                    list($service, $event, $params) = $payload;
+                }else {
+                    return Swfy::getServer()->push($fd, json_encode($this->errorMsg('Websocket Params Missing')), $opcode = 1, $finish = true);
                 }
 
                 if($this->ping($event)) {
                     $data = json_encode(['pong'=>1,'ok'=>1]);
-                    Swfy::getServer()->push($fd, $data, $opcode = 1, $finish = true);
-                    return;
+                    return Swfy::getServer()->push($fd, $data, $opcode = 1, $finish = true);
                 }
             }
             // 必须要执行父类的run方法,$recv是json字符串,bootstrap函数中可以接收做一些引导处理
-            parent::run($fd, $recv);
+            parent::run($fd, $payload);
             // worker进程
             if($this->isWorkerProcess()) {
                 if($service && $event) {
                     $callable = [$service, $event];
                 }
             }else {
-                // 任务task进程
+                // 任务task进程l
                 $is_task_process = true;
-                list($callable, $params) = $recv;
+                list($callable, $params) = $payload;
             }
 
             if($callable) {
@@ -98,23 +100,23 @@ class WebsocketHandler extends Swoole implements HandlerInterface {
 	/**
 	 * handleBinary 处理二进制数据
 	 * @param  int   $fd
-	 * @param  array $recv
+	 * @param  array $payload
      * @throws \Exception
 	 * @return void
 	 */
-	public function handleBinary($fd, $recv) {
+	public function handleBinary($fd, $payload) {
 	    try {
 	        if(!$this->isWorkerProcess()) {
                 // 任务task进程,不处理二进制数据
                 throw new \Exception("Task process can not handle binary data");
             }
             // 必须要执行父类的run方法,注意$recv是数据，第三个元素是二进制数据，为节省内存，不传这个元素到bootstrap函数中
-            $new_recv = is_array($recv) ? array_slice($recv, 0, 2) : [];
+            $new_recv = is_array($payload) ? array_slice($payload, 0, 2) : [];
             parent::run($fd, $new_recv);
             // worker进程
             if($this->isWorkerProcess()) {
-                if(is_array($recv) && count($recv) == 3) {
-                    list($service, $event, $buffer) = $recv;
+                if(is_array($payload) && count($payload) == 3) {
+                    list($service, $event, $buffer) = $payload;
                 }
                 if($service && $event) {
                     $callable = [$service, $event];
@@ -146,6 +148,18 @@ class WebsocketHandler extends Swoole implements HandlerInterface {
 		}
 		return false;
 	}
+
+    /**
+     * @param string $errorMethod
+     * @param string $msg
+     * @return array
+     */
+	private function errorMsg($msg = '') {
+        if(Swfy::isWorkerProcess()) {
+            $errorMsg = Application::buildResponseData(500, $msg);
+        }
+        return $errorMsg ?? [];
+    }
 
 	/**
 	 * author 认证
