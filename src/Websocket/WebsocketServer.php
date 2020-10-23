@@ -209,7 +209,6 @@ abstract class WebsocketServer extends BaseServer {
 			}catch(\Throwable $e) {
 				self::catchException($e);
 			}
-    		
 		});
 
 		/**

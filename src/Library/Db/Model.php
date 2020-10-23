@@ -319,7 +319,6 @@ abstract class Model implements ArrayAccess
         $this->checkData();
 
         try {
-            // 检查允许字段
             $allowFields = $this->getAllowFields();
             $pk = $this->getPk();
             // 对于自定义的主键值，需要设置
@@ -343,7 +342,6 @@ abstract class Model implements ArrayAccess
         $this->exists(true);
         // 所有的数据表原始字段值设置
         $this->buildAttributes();
-        // 新增回调
         $this->trigger('AfterInsert');
         return $this->_data[$pk] ?? false;
     }
@@ -426,10 +424,7 @@ abstract class Model implements ArrayAccess
      */
     protected function updateData(array $attributes = []): bool
     {
-        // 标记为新数据
         $this->setIsNew(false);
-
-        // 事件回调
         if(false === $this->trigger('BeforeUpdate')) {
             return false;
         }
@@ -442,7 +437,7 @@ abstract class Model implements ArrayAccess
             // 指定字段更新
             $diffData = $this->getCustomData($attributes);
         }
-        // 检查允许字段
+
         $allowFields = $this->getAllowFields();
         if($diffData) {
             list($sql, $bindParams) = $this->parseUpdateSql($diffData, $allowFields);

@@ -520,15 +520,6 @@ class BaseServer {
             return $protocol;
 		}
 		return false;
-	} 
-
-	/**
-	 * setCommonFunction 底层的公共函数库
-	 * @return  void
-	 */
-	public static function setCommonFunction() {
-		// 包含核心公共的函数库
-		include_once __DIR__.'/Func/function.php';
 	}
 
 	/**
