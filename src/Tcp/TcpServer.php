@@ -73,7 +73,6 @@ abstract class TcpServer extends BaseServer {
 		$this->tcpServer->set(self::$setting);
 		parent::__construct();
 		self::buildPackHandler();
-		
 	}
 
 	public function start() {
@@ -209,8 +208,11 @@ abstract class TcpServer extends BaseServer {
 		 * 异步任务完成
 		 */
 		$this->tcpServer->on('finish', function(\Swoole\Server $server, $task_id, $data) {
-			try{
-				static::onFinish($server, $task_id, $data);
+		    try{
+                (new EventApp())->registerApp(function($event) use($server, $task_id, $data) {
+                    static::onFinish($server, $task_id, $data);
+                });
+                return true;
 			}catch(\Throwable $e) {
 				self::catchException($e);
 			}
@@ -371,7 +373,6 @@ abstract class TcpServer extends BaseServer {
                 $pack_data = Text::enpackeof($data, $serialize_type);
             }
 		}
-
         return $pack_data;
 	}
 }

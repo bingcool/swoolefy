@@ -21,7 +21,7 @@ use Swoolefy\Websocket\WebsocketHandler;
 class Application {
 	/**
 	 * $app 应用对象
-	 * @var App|Swoole
+	 * @var array
 	 */
 	protected static $app = [];
 
