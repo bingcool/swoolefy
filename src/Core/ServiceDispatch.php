@@ -50,7 +50,7 @@ class ServiceDispatch extends AppDispatch {
         $class = trim(str_replace('\\', '/', $class), '/');
 		if(!isset(self::$routeCacheFileMap[$class])) {
 			if(!$this->checkClass($class)) {
-                $this->errorHandle($class, $action, 'return404');
+                $this->errorHandle($class, $action, 'error404');
                 return false;
 			}
 		}
@@ -80,13 +80,13 @@ class ServiceDispatch extends AppDispatch {
                 // after Call
                 $serviceInstance->_afterAction($action);
 			}else {
-			    $this->errorHandle($class, $action, 'return500');
+			    $this->errorHandle($class, $action, 'error500');
                 return false;
 			}
 		}catch(\Throwable $t) {
 			$errorMsg = $t->getMessage().' on '.$t->getFile().' on line '.$t->getLine().' ||| '.$class.'::'.$action.' ||| '.json_encode($this->params,JSON_UNESCAPED_UNICODE);
 			if(Swfy::isWorkerProcess()) {
-                $this->getErrorHandle()->returnError($errorMsg);
+                $this->getErrorHandle()->errorMsg($errorMsg);
             }
             // 记录错误异常
             $exceptionClass = Application::getApp()->getExceptionClass();
@@ -103,7 +103,7 @@ class ServiceDispatch extends AppDispatch {
      * @return boolean
      * @throws \Exception
      */
-	protected function errorHandle($class, $action, $errorMethod = 'return404') {
+	protected function errorHandle($class, $action, $errorMethod = 'error404') {
         if(Swfy::isWorkerProcess()) {
             $notFoundInstance = $this->getErrorHandle();
             $errorMsg = $notFoundInstance->{$errorMethod}($class, $action);
