@@ -12,7 +12,7 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
-use Swoolefy\Core\Factory;
+use Swoolefy\Core\ZFactory;
 use Swoolefy\Core\BaseObject;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Log\LogManager;
@@ -220,7 +220,7 @@ class EventController extends BaseObject {
         // handle log
         $this->handleLog();
         // remove
-		Factory::removeInstance();
+		ZFactory::removeInstance();
 		// push obj pools
 		$this->pushComponentPools();
 		// remove App Instance

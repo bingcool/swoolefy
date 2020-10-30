@@ -12,7 +12,7 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
-use Swoolefy\Core\Factory;
+use Swoolefy\Core\ZFactory;
 use Swoolefy\Core\AppInit;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
@@ -255,7 +255,7 @@ class App extends \Swoolefy\Core\Component {
 	 */
 	public function end() {
         // remove
-        Factory::removeInstance();
+        ZFactory::removeInstance();
 		// log handle
         $this->handleLog();
         // push obj pools
