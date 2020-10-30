@@ -12,7 +12,7 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
-use Swoolefy\Core\Factory;
+use Swoolefy\Core\ZFactory;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Coroutine\CoroutineManager;
@@ -289,7 +289,7 @@ class Swoole extends BaseObject {
 		// log handle
         $this->handleLog();
         // remove
-		Factory::removeInstance();
+		ZFactory::removeInstance();
 		// push obj pools
 		$this->pushComponentPools();
 		// remove App Instance

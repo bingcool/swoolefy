@@ -13,7 +13,7 @@ namespace Swoolefy\Core;
 
 use  Swoolefy\Core\Coroutine\CoroutineManager;
 
-class Factory {
+class ZFactory {
 	/**
 	 * $_instances
 	 * @var array
