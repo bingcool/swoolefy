@@ -11,8 +11,6 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Model\BModel;
-
 trait AppTrait {
 
     /**
@@ -32,12 +30,6 @@ trait AppTrait {
 	 * @var array
 	 */
 	public $previousUrl = [];
-
-	/**
-	 * $selfModel 控制器对应的自身model
-	 * @var array
-	 */
-	public $selfModel = [];
 
     /**
      * @var array
@@ -438,48 +430,6 @@ trait AppTrait {
 		list($count, $routeParams) = $this->getRouteParams();
 		return array_pop($routeParams);
 	}
-
-	/**
-	 * getModel 默认获取当前module下的控制器对应的module
-	 * @param  string  $model
-     * @param  string  $module
-     * @throws mixed
-	 * @return BModel|null
-	 */
-	public function getModel(string $model = '', string $module = '') {
-		if(empty($module)) {
-			$module = $this->getModuleId();
-		}
-		$controller = $this->getControllerId();
-		// 如果存在module
-		if(!empty($module)) {
-			// model的类文件对应控制器
-			if(!empty($model)) {
-				$modelClass = $this->app_conf['app_namespace'].'\\'.'Module'.'\\'.$module.'\\'.'Model'.'\\'.$model;
-			}else {
-				$modelClass = $this->app_conf['app_namespace'].'\\'.'Module'.'\\'.$module.'\\'.'Model'.'\\'.$controller;
-			}
-		}else {
-			// model的类文件对应控制器
-			if(!empty($model)) {
-				$modelClass = $this->app_conf['app_namespace'].'\\'.'Model'.'\\'.$model;
-				
-			}else {
-				$modelClass = $this->app_conf['app_namespace'].'\\'.'Model'.'\\'.$controller;
-			}
-		}
-		// 从内存数组中返回
-		if(!isset($this->selfModel[$modelClass])) {
-            try{
-                /**@var BModel $modelInstance */
-                $modelInstance = new $modelClass;
-                $this->selfModel[$modelClass] = $modelInstance;
-            }catch(\Exception $exception) {
-                throw $exception;
-            }
-		}
-        return $this->selfModel[$modelClass] ?? null;
-    }
 
 	/**
 	 * getQuery
