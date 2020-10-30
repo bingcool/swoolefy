@@ -13,12 +13,12 @@ namespace Swoolefy\Core;
 
 use  Swoolefy\Core\Coroutine\CoroutineManager;
 
-class ZModel {
+class Factory {
 	/**
-	 * $_model_instances
+	 * $_instances
 	 * @var array
 	 */
-	protected static $_model_instances = [];
+	protected static $_instances = [];
 
 	/**
 	 * getInstance 获取model的单例
@@ -29,11 +29,11 @@ class ZModel {
 	public static function getInstance(string $class = '', array $constructor = []) {
 		$cid = CoroutineManager::getInstance()->getCoroutineId();
 		$class = self::parseClass($class);
-		if(isset(static::$_model_instances[$cid][$class]) && is_object(static::$_model_instances[$cid][$class])) {
-            return static::$_model_instances[$cid][$class];
+		if(isset(static::$_instances[$cid][$class]) && is_object(static::$_instances[$cid][$class])) {
+            return static::$_instances[$cid][$class];
         }
-		static::$_model_instances[$cid][$class] = new $class(...$constructor);
-        return static::$_model_instances[$cid][$class];
+		static::$_instances[$cid][$class] = new $class(...$constructor);
+        return static::$_instances[$cid][$class];
 	}
 
 	/**
@@ -46,12 +46,12 @@ class ZModel {
 	    if(empty($cid)) {
             $cid = CoroutineManager::getInstance()->getCoroutineId();
         }
-		if(isset(static::$_model_instances[$cid]) && empty($class)) {
-			unset(static::$_model_instances[$cid]);
-		}else if(isset(static::$_model_instances[$cid]) && !empty($class)) {
+		if(isset(static::$_instances[$cid]) && empty($class)) {
+			unset(static::$_instances[$cid]);
+		}else if(isset(static::$_instances[$cid]) && !empty($class)) {
             $class = self::parseClass($class);
-            if(isset(static::$_model_instances[$cid][$class])) {
-                unset(static::$_model_instances[$cid][$class]);
+            if(isset(static::$_instances[$cid][$class])) {
+                unset(static::$_instances[$cid][$class]);
             }
         }
 		return true;
