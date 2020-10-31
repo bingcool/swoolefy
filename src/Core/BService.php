@@ -236,9 +236,10 @@ class BService extends BaseObject {
 		return true;
 	}
 
-	/**
-	 * 控制权实例协程销毁前可以做初始化一些静态变量
-	 */
+    /**
+     * 控制权实例协程销毁前可以做初始化一些静态变量
+     * @return mixed
+     */
     public function defer() {}
 
 }

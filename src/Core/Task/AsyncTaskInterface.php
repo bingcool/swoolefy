@@ -14,11 +14,16 @@ namespace Swoolefy\Core\Task;
 interface AsyncTaskInterface {
     /**
      * registerTask 注册并调用异步任务
+     * @param $route
+     * @param $data
+     * @return mixed
      */
     public static function registerTask($route, $data);
 
-    /** 
-    * finish 异步任务完成并退出到worker进程,执行finish进程业务
-    */
+    /**
+     * finish 异步任务完成并退出到worker进程,执行finish进程业务
+     * @param $data
+     * @return mixed
+     */
     public static function registerTaskFinish($data);
 }
