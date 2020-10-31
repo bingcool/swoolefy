@@ -65,5 +65,5 @@ class AtomicManager {
      */
     public function getAtomicLong(string $name) {
         return $this->atomicListLong[$name] ?? null;
-    } 
+    }
 }

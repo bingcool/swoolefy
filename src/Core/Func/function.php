@@ -85,6 +85,7 @@ function _each(string $msg, string $foreground = "red", string $background = "bl
 
 /**
  * 随机获取一个可监听的端口(php_socket模式)
+ * @return bool
  */
 function get_one_free_port() {
     $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
@@ -104,6 +105,7 @@ function get_one_free_port() {
 
 /**
  * 随机获取一个可监听的端口(swoole_coroutine模式)
+ * @return mixed
  */
 function get_one_free_port_coro() {
     $socket = new \Swoole\Coroutine\Socket(AF_INET, SOCK_STREAM, IPPROTO_IP);

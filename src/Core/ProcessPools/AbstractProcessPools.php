@@ -81,6 +81,7 @@ abstract class AbstractProcessPools {
     /**
      * setBindWorkerId 进程绑定对应的worker 
      * @param  int $worker_id
+     * @return void
      */
     public function setBindWorkerId(int $worker_id) {
         $this->bind_worker_id = $worker_id;    
@@ -200,6 +201,7 @@ abstract class AbstractProcessPools {
 
     /**
      * 是否启用协程
+     * @return bool
      */
     public function isEnableCoroutine() {
         return $this->enable_coroutine;
@@ -227,6 +229,7 @@ abstract class AbstractProcessPools {
      * 阻塞写数据
      * worker进程将通过swoole_select或者stream_select函数监听获取数数据
      * @param $msg
+     * @return string
      */
     public function write($msg) {
         $this->swooleProcess->write($msg);
@@ -234,6 +237,7 @@ abstract class AbstractProcessPools {
 
     /**
      * reboot
+     * @return void
      */
     public function reboot() {
         if(!$this->is_exiting) {

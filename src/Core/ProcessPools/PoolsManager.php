@@ -43,7 +43,7 @@ class PoolsManager {
 
     /**
      * __construct
-     *每个worker绑定的进程数，也即是为每个worker附加的自定义进程数，默认绑定一个process
+     * 每个worker绑定的进程数，也即是为每个worker附加的自定义进程数，默认绑定一个process
      */
     protected function __construct() {
         $conf = Swfy::getConf();

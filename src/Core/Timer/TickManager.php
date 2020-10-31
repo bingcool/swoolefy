@@ -55,7 +55,7 @@ class TickManager {
 
 	/**
 	 * getTickTasks 获取实时在线的循环定时任务
-	 * @return   mixed
+	 * @return  mixed
 	 */
 	public static function getTickTasks() {
 		$config = Swfy::getConf();
@@ -70,7 +70,7 @@ class TickManager {
 
 	/**
 	 * getAfterTasks 获取实时的在线一次性定时任务
-	 * @return   mixed
+	 * @return  mixed
 	 */
 	public static function getAfterTasks() {
 		$config = Swfy::getConf();

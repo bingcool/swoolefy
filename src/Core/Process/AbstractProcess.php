@@ -215,6 +215,7 @@ abstract class AbstractProcess {
 
     /**
      * reboot
+     * @return void
      */
     public function reboot() {
         if(!$this->is_exiting) {
@@ -274,6 +275,7 @@ abstract class AbstractProcess {
 
     /**
      * init
+     * @return void
      */
     public function init() {}
 
