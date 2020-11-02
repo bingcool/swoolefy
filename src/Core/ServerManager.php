@@ -59,7 +59,6 @@ class ServerManager {
 
 	/**
 	 * stopWorker 
-	 * @see https://wiki.swoole.com/wiki/page/547.html
 	 * @param  int|integer  $worker_id
 	 * @param  bool|boolean $waitEvent
 	 * @return boolean
@@ -71,7 +70,6 @@ class ServerManager {
 
 	/**
 	 * getClientInfo 
-	 * @see https://wiki.swoole.com/wiki/page/p-connection_info.html  
 	 * @param  int $fd
 	 * @param  int $extraData
 	 * @param  bool $ignoreError
