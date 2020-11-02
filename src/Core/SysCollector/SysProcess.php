@@ -22,11 +22,13 @@ class SysProcess extends AbstractProcess {
 
     /**
      * 默认定时，单位秒
+     * @var int
      */
     const DEFAULT_TICK_TIME = 5;
 
     /**
      * 协程处理一定数量自重启
+     * @var int
      */
     const DEFAULT_MAX_TICK_HANDLE_COROUTINE_NUM = 10000;
 

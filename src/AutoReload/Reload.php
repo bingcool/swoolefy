@@ -76,7 +76,8 @@ class Reload {
             throw new \Exception("If you want to use auto reload，you should install inotify extension,please view 'http://pecl.php.net/package/inotify'");
         }
         $this->inotify = inotify_init();
-    }    
+    }
+
     /**
      * init
      * @throws \Exception
@@ -84,9 +85,7 @@ class Reload {
      */
     public function init() {
         !$this->inotify && $this->inotify = inotify_init();
-    	// 将inotify添加至异步事件的eventloop
     	\Swoole\Event::add($this->inotify, function($fd) {
-    		// 读取事件的信息
             $events = inotify_read($this->inotify);
             if(!$events) {
                 return;
@@ -107,7 +106,6 @@ class Reload {
                     }
                     //正在reload，不再接受任何事件，冻结10秒
                     if (!$this->reloading) {
-                        //进行重启
                         \Swoole\Timer::after($this->afterSeconds * 1000, [$this, 'reload']);
                         $this->reloading = true;
                     }
@@ -119,18 +117,18 @@ class Reload {
     }
 
     /**
-     * 重启
+     * reboot
      * @return void
      */
     protected function reload() {
         Swfy::getServer()->reload();
-        //清理所有监听
+        //clear listen
         $this->clearWatch();
-        //重新监听
+        //re listen
         foreach($this->rootDirs as $root) {
             $this->watch($root);
         }
-        //继续进行reload
+        //reloading
         $this->reloading = false;
         $isReloadSuccess = !$this->reloading;
         if($this->callback instanceof \Closure) {
@@ -180,7 +178,6 @@ class Reload {
         $this->watchFiles = [];
         return $this;
     }
-
 
     /**
      * watch 监听文件目录
