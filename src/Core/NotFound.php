@@ -68,8 +68,8 @@ class NotFound extends BService {
      * @return mixed
      * @throws \Exception
      */
-	public function errorMsg(string $msg) {
-        $ret = 500;
+	public function errorMsg(string $msg, int $code = 500) {
+        $ret = $code;
         $responseData = Application::buildResponseData($ret, $msg);
         if(BaseServer::isRpcApp()) {
 			$is_same_packet_struct = $this->serverClientPacketStructSame();

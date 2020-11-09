@@ -11,10 +11,6 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Swfy;
-use Swoolefy\Core\AppDispatch;
-use Swoolefy\Core\Application;
-
 class ServiceDispatch extends AppDispatch {
 	/**
 	 * $callable 远程调用函数对象类
@@ -73,6 +69,9 @@ class ServiceDispatch extends AppDispatch {
                 $isContinueAction = $serviceInstance->_beforeAction($action);
                 if($isContinueAction === false) {
                     // end
+                    if(Swfy::isWorkerProcess()) {
+                        $this->getErrorHandle()->errorMsg("Forbidden access, {$class}::_beforeAction return false ||| ".json_encode($this->params,JSON_UNESCAPED_UNICODE),403);
+                    }
                     return false;
                 }
                 // next Call
