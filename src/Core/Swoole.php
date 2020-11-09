@@ -46,12 +46,6 @@ class Swoole extends BaseObject {
 	protected $rpc_pack_header = [];
 
     /**
-     * $log 日志
-     * @var array
-     */
-    protected $logs = [];
-
-    /**
      * $is_defer
      * @var boolean
      */
