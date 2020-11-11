@@ -14,8 +14,6 @@ namespace Swoolefy\Core\Task;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\BaseServer;
-use Swoolefy\Core\Task\AsyncTaskInterface;
-use Swoolefy\Udp\UdpHandler;
 
 class AsyncTask implements AsyncTaskInterface {
 
