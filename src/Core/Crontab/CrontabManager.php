@@ -38,7 +38,7 @@ class CrontabManager {
         }
 
         if(!is_callable($func)) {
-            throw new \Exception("Params func must be callable");
+            throw new \Exception("Params of func must be callable type");
         }
 
         $cron_name_key = md5($cron_name);

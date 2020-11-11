@@ -769,7 +769,7 @@ class BaseServer {
         }
 
         $isTaskEnableCoroutine = false;
-        if(version_compare(swoole_version(), '4.2.12', '>')) {
+        if(version_compare(swoole_version(), '4.4.5', '>')) {
             if(isset(self::$config['setting']['task_enable_coroutine'])) {
                 $isTaskEnableCoroutine = filter_var(self::$config['setting']['task_enable_coroutine'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
                 if($isTaskEnableCoroutine === null) {
