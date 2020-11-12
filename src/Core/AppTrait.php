@@ -80,7 +80,7 @@ trait AppTrait {
 	 * @return boolean
 	 */
 	public function isGet() {
-		return ($this->request->server['REQUEST_METHOD'] == 'GET') ? true :false;
+		return (strtoupper($this->request->server['REQUEST_METHOD']) == 'GET') ? true :false;
 	}
 
 	/**
@@ -88,7 +88,7 @@ trait AppTrait {
 	 * @return boolean
 	 */
 	public function isPost() {
-		return ($this->request->server['REQUEST_METHOD'] == 'POST') ? true :false;
+		return (strtoupper($this->request->server['REQUEST_METHOD']) == 'POST') ? true :false;
 	}
 
 	/**
@@ -96,7 +96,7 @@ trait AppTrait {
 	 * @return boolean
 	 */
 	public function isPut() {
-		return ($this->request->server['REQUEST_METHOD'] == 'PUT') ? true :false;
+		return (strtoupper($this->request->server['REQUEST_METHOD']) == 'PUT') ? true :false;
 	}
 
 	/**
@@ -104,7 +104,7 @@ trait AppTrait {
 	 * @return boolean
 	 */
 	public function isDelete() {
-		return ($this->request->server['REQUEST_METHOD'] == 'DELETE') ? true :false;
+		return (strtoupper($this->request->server['REQUEST_METHOD']) == 'DELETE') ? true :false;
 	}
 
 	/**
@@ -255,7 +255,8 @@ trait AppTrait {
      */
     public function getServerParams(string $name = null) {
     	if($name) {
-    		$value = isset($this->request->server[$name]) ? $this->request->server[$name] : null;
+    	    $name = strtoupper($name);
+    		$value = $this->request->server[$name] ?? null;
     		return $value;	
     	}
     	return $this->request->server;
@@ -268,7 +269,8 @@ trait AppTrait {
      */
     public function getHeaderParams(string $name = null) {
     	if($name) {
-    		$value = isset($this->request->header[$name]) ? $this->request->header[$name] : null;
+    	    $name = strtolower($name);
+    		$value = $this->request->header[$name] ?? null;
     		return $value;
     	}
 

@@ -13,7 +13,6 @@ namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\ZFactory;
-use Swoolefy\Core\AppInit;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoolefy\Core\HttpRoute;
@@ -82,8 +81,7 @@ class App extends \Swoolefy\Core\Component {
      * @return void
      * @throws \Exception
      */
-	protected function _init($request) {
-		AppInit::init($request);
+	protected function _init() {
 		if(isset($this->app_conf['session_start']) && $this->app_conf['session_start']) {
 			if(is_object($this->get('session'))) {
 				$this->get('session')->start();
@@ -113,13 +111,14 @@ class App extends \Swoolefy\Core\Component {
 	 */
 	public function run($request, $response, $extend_data = null) {
 	    try {
+	        $this->parseHeaders($request);
             $this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
             parent::creatObject();
             $this->request = $request;
             $this->response = $response;
             Application::setApp($this);
             $this->defer();
-            $this->_init($request);
+            $this->_init();
             $this->_bootstrap();
             if(!$this->catchAll()) {
                 $route = new HttpRoute($extend_data);
@@ -134,6 +133,22 @@ class App extends \Swoolefy\Core\Component {
         	}
         }
 	}
+
+    /**
+     * @param $request
+     */
+	protected function parseHeaders($request) {
+        foreach($request->server as $key=>$value) {
+            $upper = strtoupper($key);
+            $request->server[$upper] = $value;
+            unset($request->server[$key]);
+        }
+        foreach($request->header as $key => $value) {
+            $_key = 'HTTP_' . strtoupper(str_replace('-', '_', $key));
+            $request->server[$_key] = $value;
+            $request->header[$_key] = $value;
+        }
+    }
 
 	/**
 	 * setAppConf
@@ -158,7 +173,7 @@ class App extends \Swoolefy\Core\Component {
     }
 
     /**
-     * @return |null
+     * @return BController
      */
     public function getControllerInstance() {
         return $this->controllerInstance;
@@ -241,14 +256,6 @@ class App extends \Swoolefy\Core\Component {
         }
     }
 
-    /**
-     * setEnd
-     * @return void
-     */
-    public function setEnd() {
-        $this->is_end = true;
-    }
-
 	/**
 	 * end 请求结束
 	 * @return void
@@ -280,5 +287,13 @@ class App extends \Swoolefy\Core\Component {
         	});
 		}
 	}
+
+    /**
+     * setEnd
+     * @return void
+     */
+    public function setEnd() {
+        $this->is_end = true;
+    }
 
 }
