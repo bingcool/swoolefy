@@ -24,10 +24,9 @@ class TableManager {
      * @return boolean
      */
 	public static function createTable(array $tables = []) {
+        $swoole_tables = [];
 		if(isset(BaseServer::$server->tables) && is_array(BaseServer::$server->tables)) {
 			$swoole_tables = BaseServer::$server->tables;
-		}else {
-			$swoole_tables = [];
 		}
 		if(is_array($tables) && !empty($tables)) {
 			foreach($tables as $table_name => $row) {

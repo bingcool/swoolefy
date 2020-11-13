@@ -14,6 +14,7 @@ namespace Swoolefy\Core\Process;
 use Swoole\Process;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\BaseServer;
+use Swoole\Coroutine\Channel;
 use Swoolefy\Core\EventController;
 use Swoolefy\Core\Table\TableManager;
 
@@ -98,16 +99,6 @@ abstract class AbstractProcess {
         }
 
         Process::signal(SIGTERM, function() use($process) {
-            \Swoole\Coroutine::create(function() {
-                try {
-                    (new \Swoolefy\Core\EventApp)->registerApp(function(EventController $eventApp) {
-                        $this->onShutDown();
-                    });
-                }catch (\Throwable $throwable) {
-                    BaseServer::catchException($throwable);
-                }
-            });
-
             TableManager::getTable('table_process_map')->del(md5($this->processName));
             \Swoole\Event::del($process->pipe);
             \Swoole\Event::exit();
@@ -220,8 +211,21 @@ abstract class AbstractProcess {
     public function reboot() {
         if(!$this->is_exiting) {
             $this->is_exiting = true;
-            $this->runtimeCoroutineWait();
-            \Swoole\Process::kill($this->getPid(), SIGTERM);
+            $channel = new Channel(1);
+            \Swoole\Coroutine::create(function() {
+                try {
+                    $this->runtimeCoroutineWait();
+                    (new \Swoolefy\Core\EventApp)->registerApp(function(EventController $eventApp) {
+                        $this->onShutDown();
+                    });
+                }catch (\Throwable $throwable) {
+                    BaseServer::catchException($throwable);
+                }finally {
+                    \Swoole\Process::kill($this->getPid(), SIGTERM);
+                }
+            });
+            // 需要阻塞等待，防止父协程继续往下执行
+            $channel->pop(-1);
         }
     }
 
@@ -263,8 +267,8 @@ abstract class AbstractProcess {
         while($cycle_times > 0) {
             // 当前运行的coroutine
             $runCoroutineNum = $this->getCurrentRunCoroutineNum();
-            // 除了主协程，还有其他协程没唤醒，则再等待
-            if($runCoroutineNum > 1) {
+            // 除了主协程和runtimeCoroutineWait跑在协程中，所以等于2个协程，还有其他协程没唤醒，则再等待
+            if($runCoroutineNum > 2) {
                 --$cycle_times;
                 \Swoole\Coroutine::sleep($re_wait_time);
             }else {
