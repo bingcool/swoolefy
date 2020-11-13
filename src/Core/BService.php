@@ -11,12 +11,7 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\BaseServer;
-use Swoolefy\Core\Swfy;
-use Swoolefy\Core\Hook;
 use Swoolefy\Tcp\TcpServer;
-use Swoolefy\Core\BaseObject;
-use Swoolefy\Core\Application;
 use Swoolefy\Udp\UdpHandler;
 
 class BService extends BaseObject {

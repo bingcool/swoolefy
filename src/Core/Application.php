@@ -10,13 +10,7 @@
 */
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Swfy;
-use Swoolefy\Core\App;
-use Swoolefy\Core\Swoole;
 use Swoolefy\Core\Coroutine\CoroutineManager;
-use Swoolefy\Rpc\RpcHandler;
-use Swoolefy\Udp\UdpHandler;
-use Swoolefy\Websocket\WebsocketHandler;
 
 class Application {
 	/**

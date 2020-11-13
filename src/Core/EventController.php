@@ -11,11 +11,6 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Swfy;
-use Swoolefy\Core\ZFactory;
-use Swoolefy\Core\BaseObject;
-use Swoolefy\Core\Application;
-use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class EventController extends BaseObject {

@@ -12,7 +12,7 @@
 namespace Swoolefy\Core;
 
 use ArrayObject;
-use \Swoole\Coroutine;
+use Swoole\Coroutine;
 use Swoolefy\Core\Log\LogManager;
 
 class BaseObject {
