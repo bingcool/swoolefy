@@ -11,9 +11,6 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Swfy;
-use Swoolefy\Core\Application;
-use Swoolefy\Core\AppDispatch;
 use Swoolefy\Core\Controller\BController;
 
 class HttpRoute extends AppDispatch {

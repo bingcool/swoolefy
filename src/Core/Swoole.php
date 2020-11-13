@@ -11,10 +11,6 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Swfy;
-use Swoolefy\Core\ZFactory;
-use Swoolefy\Core\BaseServer;
-use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class Swoole extends BaseObject {

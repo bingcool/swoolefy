@@ -11,14 +11,8 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Swfy;
-use Swoolefy\Core\ZFactory;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
-use Swoolefy\Core\HttpRoute;
-use Swoolefy\Core\BaseServer;
-use Swoolefy\Core\Application;
-use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 

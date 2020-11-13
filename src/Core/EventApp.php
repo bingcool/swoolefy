@@ -11,9 +11,6 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Application;
-use Swoolefy\Core\EventController;
-
 /**
  * Class EventApp
  * @package Swoolefy\Core

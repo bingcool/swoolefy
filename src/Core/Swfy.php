@@ -11,8 +11,6 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Application;
-
 class Swfy {
 
 	use \Swoolefy\Core\ServiceTrait;
