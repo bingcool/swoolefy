@@ -61,6 +61,16 @@ class BService extends BaseObject {
 	}
 
     /**
+     * beforeAction 在处理实际action前执行
+     * @param string $action
+     * @return mixed
+     */
+    public function _beforeAction(string $action) {
+        return true;
+    }
+
+
+    /**
      * @param $mixed_params
      */
     public function setMixedParams($mixed_params) {
@@ -79,7 +89,7 @@ class BService extends BaseObject {
 	 * @param  int    $fd
 	 * @param  mixed  $data
 	 * @param  array  $header
-     * @throws \Exception
+     * @throws Exception
 	 * @return mixed
 	 */
 	public function send($fd, $data, $header = []) {
@@ -87,8 +97,8 @@ class BService extends BaseObject {
             throw new \Exception("BService::send() this method only can be called by tcp or rpc server!");
         }
         if(BaseServer::isPackLength()) {
-            $args = [$data, $header];
-            $data = \Swoolefy\Tcp\TcpServer::pack($args);
+            $payload = [$data, $header];
+            $data = \Swoolefy\Tcp\TcpServer::pack($payload);
             return Swfy::getServer()->send($fd, $data);
         }else if(BaseServer::isPackEof()) {
             $text = \Swoolefy\Tcp\TcpServer::pack($data);
@@ -102,7 +112,7 @@ class BService extends BaseObject {
 	 * @param  int    $port
 	 * @param  mixed  $data
 	 * @param  int  $server_socket
-     * @throws \Exception
+     * @throws Exception
 	 * @return mixed
 	 */
 	public function sendTo($ip, $port, $data, $server_socket = -1) {
@@ -122,7 +132,7 @@ class BService extends BaseObject {
 	 * @param  int    $opcode
 	 * @param  boolean $finish
      * @return boolean
-     * @throws \Exception
+     * @throws Exception
 	 */
 	public function push($fd, $data, int $opcode = 1, bool $finish = true) {
 		if(!BaseServer::isWebsocketApp()) {
@@ -165,7 +175,7 @@ class BService extends BaseObject {
     /**
      * getRpcPackHeader  获取rpc的pack头信息,只适用于rpc服务
      * @return array
-     * @throws \Exception
+     * @throws Exception
      */
 	public function getRpcPackHeader() {
 	    /**@var Swoole $app*/
@@ -176,7 +186,7 @@ class BService extends BaseObject {
     /**
      * getRpcPackBodyParams 获取rpc的包体数据
      * @return array
-     * @throws \Exception
+     * @throws Exception
      */
 	public function getRpcPackBodyParams() {
         /**@var Swoole $app*/
@@ -213,14 +223,6 @@ class BService extends BaseObject {
 	    return $this->client_info;
     }
 
-	/**
-	 * beforeAction 在处理实际action前执行
-     * @param string $action
-	 * @return mixed
-	 */
-	public function _beforeAction(string $action) {
-		return true;
-	}
 
 	/**
 	 * afterAction 在销毁前执行

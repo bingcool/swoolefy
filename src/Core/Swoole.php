@@ -161,7 +161,7 @@ class Swoole extends BaseObject {
     /**
      * getRpcPackHeader  获取rpc的pack头信息,只适用于rpc服务
      * @return array
-     * @throws \Exception
+     * @throws Exception
      */
 	public function getRpcPackHeader() {
 		if(!$this->isWorkerProcess()) {
@@ -176,7 +176,7 @@ class Swoole extends BaseObject {
 
     /**
 	 * getRpcPackBodyParams 获取rpc的包体数据
-     * @throws \Exception
+     * @throws Exception
 	 * @return mixed
 	 */
 	public function getRpcPackBodyParams() {
@@ -192,7 +192,7 @@ class Swoole extends BaseObject {
 
 	/**
 	 * getUdpData 获取udp的数据
-     * @throws \Exception
+     * @throws Exception
 	 * @return mixed
 	 */
 	public function getUdpData() {
@@ -209,7 +209,7 @@ class Swoole extends BaseObject {
 
 	/**
 	 * getWebsocketMsg 获取websocket的信息
-     * @throws \Exception
+     * @throws Exception
 	 * @return mixed
 	 */
 	public function getWebsocketMsg() {
