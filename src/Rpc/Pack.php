@@ -11,13 +11,9 @@
 
 namespace Swoolefy\Rpc;
 
-class Pack {
+use Swoolefy\Core\Application;
 
-	/**
-	 * $server 
-	 * @var null
-	 */
-	protected $server = null;
+class Pack extends BaseParse {
 
 	/**
 	 * $_buffer 对于一个连接没有收到完整数据包的数据进行暂时的缓存，等待此链接的数据包接收完整在处理
@@ -44,12 +40,6 @@ class Pack {
 	protected static $header_struct = ['length'=>'N'];
 
 	/**
-	 * $pack_length_type pack包数据的类型, 默认null
-	 * @var null
-	 */
-	protected static $pack_length_type = null;
-
-	/**
 	 * $unpack_length_type unpack包数据的类型, 默认null
 	 * @var null
 	 */
@@ -72,31 +62,6 @@ class Pack {
 	 * @var integer
 	 */
 	protected static $header_length = 30;
-
-	/**
-	 * 定义序列化的方式
-	 */
-	const SERIALIZE_TYPE = [
-		'json' => 1,
-		'serialize' => 2,
-		'swoole' => 3
-	];
-
-	const DECODE_JSON = 1;
-    const DECODE_PHP = 2;
-    const DECODE_SWOOLE = 3;
-
-    const ERR_HEADER            = 9001;   //错误的包头
-    const ERR_TOOBIG            = 9002;   //请求包体长度超过允许的范围
-    const ERR_SERVER_BUSY       = 9003;   //服务器繁忙，超过处理能力
-    
-	/**
-	 * __construct 
-	 * @param    \Swoole\Server $server
-	 */
-	public function __construct(\Swoole\Server $server) {
-		$this->server = $server;
-	}
 
 	/**
 	 * setHeaderStruct 设置服务端包头结构体
@@ -134,101 +99,68 @@ class Pack {
 	}
 
 	/**
-	 * setPacketMaxlen 包的最大长度
-	 * @param int|null $packet_maxlen
+	 * setPacketMaxlength 包的最大长度
+	 * @param int|null $packet_maxlength
 	 */
-	public function setPacketMaxlen(int $packet_maxlen = null) {
-		self::$packet_maxlen = $packet_maxlen;
+	public function setPacketMaxlength(int $packet_maxlength = null) {
+		self::$packet_maxlen = $packet_maxlength;
+	}
+
+    /**
+     * decodePack swoole底层已经根据配置的解包协议分割tcp数据,data是一个完整的数据包
+     * @param $fd
+     * @param $data
+     * @return array|bool
+     */
+	public function decodePack(
+        $fd,
+        $data
+    ) {
+        /**
+         * unpack包类型
+         */
+        $this->parseUnpackType();
+
+        /**
+         * 解析包头
+         */
+        $header = unpack(self::$unpack_length_type, mb_strcut($data, 0, self::$header_length, 'UTF-8'));
+
+        $this->filterHeader($header);
+
+        /**
+         * 包头包含的包体长度值
+         */
+        $length = $header[self::$pack_length_key];
+
+        $this->_headers[$fd] = $header;
+
+        $pack_body = mb_strcut($data, self::$header_length, $length, 'UTF-8');
+
+        $data = $this->decode($pack_body, self::$serialize_type);
+        $payload = [$this->_headers[$fd], $data];
+        unset($this->_buffers[$fd], $this->_headers[$fd]);
+        return $payload;
 	}
 
 	/**
-	 * depack 
-	 * @param    \Swoole\Server $server
-	 * @param    int            $fd
-	 * @param    int            $reactor_id
-	 * @param    string         $data
-	 * @return   mixed
-	 */
-	public function depack(\Swoole\Server $server, $fd, $reactor_id, $data) {
-		//接收的包数据不完整的
-		if(isset($this->_buffers[$fd])) {
-			/**
-			 * 每次再接收的数据是属于上一个不完整的包的,已经没有包头了,直接包体数据
-			 */
-			$this->_buffers[$fd] .= $data;
-			$buffer_fd_data_length = strlen($this->_buffers[$fd]);
-
-			/**
-			 * 包长度超出最大设置限度
-			 */
-			if($buffer_fd_data_length > self::$packet_maxlen) {
-				$this->sendErrorMessage($fd, self::ERR_TOOBIG);
-				unset($this->_buffers[$fd], $this->_headers[$fd]);
-				return false;
-			}
-
-			if($buffer_fd_data_length < $this->_headers[$fd][self::$pack_length_key]) {
-				return false;
-			}else {
-				//数据包已接收完整
-				$pack_body = $this->_buffers[$fd];
-				// 数据解包
-				$data = $this->decode($pack_body, self::$serialize_type);
-
-				$request = [$this->_headers[$fd], $data];
-				unset($this->_buffers[$fd], $this->_headers[$fd]);
-				// 返回包头和包体数据
-				return $request;
-			}
-
-		}else {
-			// 设置unpack包类型
-			$this->setUnpackLengthType();
-			// 解析包头
-			$header = unpack(self::$unpack_length_type, mb_strcut($data, 0, self::$header_length, 'UTF-8'));
-
-			$this->filterHeader($header);
-			// 包头包含的包体长度值
-			$length = $header[self::$pack_length_key];
-
-			$this->_headers[$fd] = $header;
-
-			$pack_body = mb_strcut($data, self::$header_length, null, 'UTF-8');
-			// 接收数据包完整
-			if(strlen($pack_body) == $length) {
-				// 数据解包
-				$data = $this->decode($pack_body, self::$serialize_type);
-
-				$request = [$this->_headers[$fd], $data];
-				unset($this->_buffers[$fd], $this->_headers[$fd]);
-				// 返回包头和包体数据
-				return $request;
-			}else {
-				// 包数据不完整，先缓存
-				$this->_buffers[$fd] .= $pack_body;
-				return false;
-			}
-		}
-		
-	}
-
-	/**
-	 * setUnPackLengthType  设置unpack头的类型
+	 * parseUnpackType  设置unpack头的类型
 	 * @return   string 
 	 */
-	public function setUnpackLengthType(array $struct=[]) {
+	public function parseUnpackType(array $header_struct = []) {
+        $pack_length_type = '';
 		if(self::$unpack_length_type) {
 			return self::$unpack_length_type;
 		}
-
-		$pack_length_type = '';
+		if($header_struct) {
+            self::$header_struct = $header_struct;
+        }
 		if(self::$header_struct) {
 			foreach(self::$header_struct as $key=>$value) {
 				$pack_length_type .= ($value.$key).'/';
 			}
 		}
 		$pack_length_type = trim($pack_length_type, '/');
-		// 赋值
 		self::$unpack_length_type = $pack_length_type;
 		return $pack_length_type;
 	}
@@ -239,12 +171,13 @@ class Pack {
 	 * @param    mixed  $errno
 	 * @return   boolean
 	 */
-	public function sendErrorMessage($fd, $errno) {
-        return $this->server->send($fd, self::encode(['errcode' => $errno,'msg'=>'packet length more than packet_maxlen'], self::$serialize_type));
+	public function sendErrorMessage($fd, $errno, $errorMsg) {
+	    $responseData = Application::buildResponseData($errno, $errorMsg);
+        return $this->server->send($fd, self::encode($responseData, self::$serialize_type));
     }
 
     /**
-     * filterHeader  去掉头部空格|null
+     * filterHeader  filter头部空格
      * @param    &$header 
      * @return   array
      */
@@ -256,29 +189,40 @@ class Pack {
 	}
 
 	/**
-	 * encode 数据封包
+	 * encodePack 数据封包
 	 * usages:
-	 	$header = ['length'=>'','name'=>'bingcool'];头部字段信息,'length'字段可以为空
+	 	$header = ['length'=>'','name'=>'bing'];头部字段信息,'length'字段可以为空
 	 * @param    mixed  $data
 	 * @param    array  $header
 	 * @param    string  $serialize_type
 	 * @param    array  $heder_struct
 	 * @return   string
 	 */
-	public static function enpack($data, array $header, array $header_struct = [], $pack_length_key ='length', $serialize_type = self::DECODE_JSON) {
-		$body = self::encode($data, $serialize_type);
+	public static function encodePack(
+	    $data,
+        array $header,
+        array $header_struct = [],
+        $pack_length_key ='length',
+        $serialize_type = self::DECODE_JSON
+    ) {
         $bin_header_data = '';
-        // 如果没有设置，客户端的包头结构体与服务端一致
+	    $body = self::encode($data, $serialize_type);
+        /**
+         * 如果没有设置，客户端的包头结构体与服务端一致
+         */
         if(empty($header_struct)) {
         	$header_struct = self::$header_struct;
         }
+        if(!isset($header_struct[$pack_length_key])) {
+            $header_struct[$pack_length_key] = '';
+        }
         foreach($header_struct as $key=>$value) {
         	if(isset($header[$key])) {
-        		// 计算包体长度
+        		// length packet header
 	        	if($key == $pack_length_key) {
 	        		$bin_header_data .= pack($value, strlen($body));
 	        	}else {
-	        		// 其他的包头
+	        		// other packet header
 	        		$bin_header_data .= pack($value, $header[$key]);
 	        	}
         	} 
@@ -309,12 +253,12 @@ class Pack {
 	/**
 	 * decode 数据反序列化
 	 * @param    string   $data
-	 * @param    mixed    $unseralize_type
+	 * @param    mixed    $unserialize_type
 	 * @return   mixed
 	 */
 	public static function decode($data, $unserialize_type = self::DECODE_JSON) {
 		if(is_string($unserialize_type)) {
-			$unserialize_type = self::SERIALIZE_TYPE[$unserialize_type];
+            $unserialize_type = self::SERIALIZE_TYPE[$unserialize_type];
 		}
         switch($unserialize_type) {
         		// json

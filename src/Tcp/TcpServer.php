@@ -163,9 +163,9 @@ abstract class TcpServer extends BaseServer {
 			try{
 				parent::beforeHandle();
 				if(parent::isPackLength()) {
-					$recv = $this->Pack->depack($server, $fd, $reactor_id, $data);
+					$recv = $this->Pack->decodePack($fd, $data);
 				}else {
-					$recv = $this->Text->depackeof($data);
+					$recv = $this->Text->decodePackEof($data);
 				}
 				if($recv) {
 					static::onReceive($server, $fd, $reactor_id, $recv);
@@ -308,10 +308,10 @@ abstract class TcpServer extends BaseServer {
 			$this->Pack->setHeaderLength(self::$setting['package_body_offset']);
 			if(isset(self::$setting['package_max_length'])) {
 				$package_max_length = (int)self::$setting['package_max_length'];
-				$this->Pack->setPacketMaxlen($package_max_length);
+				$this->Pack->setPacketMaxlength($package_max_length);
 			}
 		}else {
-			$this->Text = new Text();
+			$this->Text = new Text(self::$server);
 			// packet_eof_check
 			$this->Text->setPackEof(self::$setting['package_eof']);
 			if(isset(self::$config['packet']['server']['serialize_type'])) {
@@ -354,7 +354,7 @@ abstract class TcpServer extends BaseServer {
      * pack  根据配置设置，按照客户端的接受数据方式，打包数据发回给客户端
      * @param mixed $data
      * @return mixed
-     * @throws \Exception
+     * @throws Exception
      */
 	public static function pack($data) {
 		if(static::isClientPackLength()) {
@@ -363,14 +363,14 @@ abstract class TcpServer extends BaseServer {
             $pack_length_key = self::$config['packet']['client']['pack_length_key'];
             $serialize_type = self::$config['packet']['client']['serialize_type'];
             $header[$pack_length_key] = '';
-            $pack_data = Pack::enpack($body_data, $header, $header_struct, $pack_length_key, $serialize_type);
+            $pack_data = Pack::encodePack($body_data, $header, $header_struct, $pack_length_key, $serialize_type);
 		}else {
             $eof = self::$config['packet']['client']['pack_eof'];
             $serialize_type = self::$config['packet']['client']['serialize_type'];
             if($eof) {
-                $pack_data = Text::enpackeof($data, $serialize_type, $eof);
+                $pack_data = Text::encodePackEof($data, $serialize_type, $eof);
             }else {
-                $pack_data = Text::enpackeof($data, $serialize_type);
+                $pack_data = Text::encodePackEof($data, $serialize_type);
             }
 		}
         return $pack_data;

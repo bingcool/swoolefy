@@ -11,25 +11,7 @@
 
 namespace Swoolefy\Rpc;
 
-class Text {
-
-	/**
-	 * 定义序列化的方式
-	 */
-	const SERIALIZE_TYPE = [
-		'json' => 1,
-		'serialize' => 2,
-		'swoole' => 3
-	];
-
-	const DECODE_JSON = 1;
-    const DECODE_PHP = 2;
-    const DECODE_SWOOLE = 3;
-
-    const ERR_HEADER            = 9001;   //错误的包头
-    const ERR_TOOBIG            = 9002;   //请求包体长度超过允许的范围
-    const ERR_SERVER_BUSY       = 9003;   //服务器繁忙，超过处理能力
-
+class Text extends BaseParse {
 	/**
 	 * $pack_eof eof分包时设置
 	 * @var string
@@ -59,17 +41,17 @@ class Text {
 	}
 
 	/**
-     * enpackeof eof协议封包,包体中不能含有eof的结尾符号，否则出错
+     * encodePackEof eof协议封包,包体中不能含有eof的结尾符号，否则出错
      * usages:
      *	Pack::$pack_eof = "\r\n\r\n";
 	 *	$Pack = new Pack();
-	 *	$sendData = $Pack->enpackeof($data, Pack::DECODE_JSON);				
+	 *	$sendData = $Pack->encodePackEof($data, Pack::DECODE_JSON);
      * @param  mixed $data
      * @param  int   $seralize_type
      * @param  string $eof
      * @return string
      */
-    public static function enpackeof($data, $serialize_type = self::DECODE_JSON, $eof ='') {
+    public static function encodePackEof($data, $serialize_type = self::DECODE_JSON, $eof ='') {
     	if(empty($eof)) {
     		$eof = self::$pack_eof;
     	}
@@ -78,16 +60,16 @@ class Text {
     }
 
     /**
-     * depackeof  eof协议解包,每次收到一个完整的包
+     * decodePackEof  eof协议解包,每次收到一个完整的包
      * usages:
      *	Pack::$pack_eof = "\r\n\r\n";
 	 *	$Pack = new Pack();
-	 *	$res = $Pack->depackeof($data, Pack::DECODE_JSON);
+	 *	$res = $Pack->decodePackEof($data, Pack::DECODE_JSON);
      * @param   string  $data
      * @param   int     $unseralize_type
      * @return  mixed 
      */
-    public function depackeof($data, $unserialize_type = '') {
+    public function decodePackEof($data, $unserialize_type = '') {
     	if($unserialize_type) {
     		self::$serialize_type = $unserialize_type;
     	}
