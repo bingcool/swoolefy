@@ -62,7 +62,7 @@ class RpcHandler extends Swoole implements HandlerInterface {
                     list($header, $body) = $payload;
                     $this->header = $header;
                 }else if(BaseServer::isPackEof()) {
-                	$body = &$payload;
+                	$body = $payload;
                 	list($callable, $params) = $body;
                 	if(count($callable) == 2) {
                 		$ping = $callable[1];
