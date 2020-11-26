@@ -72,7 +72,7 @@ class WebsocketHandler extends Swoole implements HandlerInterface {
                     $callable = [$service, $event];
                 }
             }else {
-                // 任务task进程l
+                // 任务task进程
                 $is_task_process = true;
                 list($callable, $params) = $payload;
             }
@@ -121,12 +121,11 @@ class WebsocketHandler extends Swoole implements HandlerInterface {
                 if($service && $event) {
                     $callable = [$service, $event];
                 }
-
             }
 
             if($callable && $buffer) {
-                $Dispatch = new ServiceDispatch($callable, $buffer);
-                $Dispatch->dispatch();
+                $dispatch = new ServiceDispatch($callable, $buffer);
+                $dispatch->dispatch();
             }
 
         } finally {

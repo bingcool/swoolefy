@@ -104,6 +104,8 @@ class SwoolefyException {
         $logFilePath = rtrim(LOG_PATH,'/').'/runtime.log';
         if(is_file($logFilePath)) {
             $logFilesSize = filesize($logFilePath);
+        }else {
+            @file_put_contents($logFilePath,'');
         }
 
         // 定时清除这个log文件

@@ -47,6 +47,11 @@ class BaseParse {
     const ERR_SERVER_BUSY = 9003;
 
     /**
+     * parse error
+     */
+    const ERR_PARSE_BODY = 9004;
+
+    /**
      * $server
      * @var null
      */
