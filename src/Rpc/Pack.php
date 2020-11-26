@@ -12,6 +12,8 @@
 namespace Swoolefy\Rpc;
 
 use Swoolefy\Core\Application;
+use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\Swfy;
 
 class Pack extends BaseParse {
 
@@ -137,8 +139,20 @@ class Pack extends BaseParse {
 
         $pack_body = mb_strcut($data, self::$header_length, $length, 'UTF-8');
 
-        $data = $this->decode($pack_body, self::$serialize_type);
-        $payload = [$this->_headers[$fd], $data];
+        $pack_data = $this->decode($pack_body, self::$serialize_type);
+
+        if($pack_data === null || $pack_data === false || $pack_data === '') {
+            $error_msg = 'Parse Packet Error, May Be Packet Encoding Error';
+            $this->sendErrorMessage($fd, parent::ERR_PARSE_BODY, $error_msg, $header);
+            throw new \Exception(sprintf(
+                "errorMsg:%s,header=%s,body=%s",
+                $error_msg,
+                json_encode($header, JSON_UNESCAPED_UNICODE),
+                $pack_body
+            ));
+        }
+
+        $payload = [$this->_headers[$fd], $pack_data];
         unset($this->_buffers[$fd], $this->_headers[$fd]);
         return $payload;
 	}
@@ -171,9 +185,16 @@ class Pack extends BaseParse {
 	 * @param    mixed  $errno
 	 * @return   boolean
 	 */
-	public function sendErrorMessage($fd, $errno, $errorMsg) {
+	public function sendErrorMessage($fd, $errno, $errorMsg, array $header) {
 	    $responseData = Application::buildResponseData($errno, $errorMsg);
-        return $this->server->send($fd, self::encode($responseData, self::$serialize_type));
+        if(BaseServer::isPackLength()) {
+            $payload = [$responseData, $header];
+            $data = \Swoolefy\Tcp\TcpServer::pack($payload);
+            return Swfy::getServer()->send($fd, $data);
+        }else if(BaseServer::isPackEof()) {
+            $text = \Swoolefy\Tcp\TcpServer::pack($responseData);
+            return Swfy::getServer()->send($fd, $text);
+        }
     }
 
     /**
@@ -264,9 +285,11 @@ class Pack extends BaseParse {
         		// json
             case 1:
                 return json_decode($data, true);
+                break;
             default:
             	// serialize
             	return unserialize($data);
+            	break;
         }
     }
 

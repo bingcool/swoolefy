@@ -165,9 +165,10 @@ trait AppTrait {
     /**
      * getRequestParam  获取请求参数，包括get,post
      * @param    string   $name
+     * @param    mixed    $default
      * @return   mixed
      */
-    public function getRequestParams(string $name = null) {
+    public function getRequestParams(string $name = null, $default = null) {
         if(!$this->requestParams) {
             $get = isset($this->request->get) ? $this->request->get : [];
             $post = isset($this->request->post) ? $this->request->post : [];
@@ -179,7 +180,7 @@ trait AppTrait {
         }
 
     	if($name) {
-    		$value = $this->requestParams[$name] ?? null;
+    		$value = $this->requestParams[$name] ?? $default;
     	}else {
             $value = $this->requestParams;
 
@@ -190,12 +191,13 @@ trait AppTrait {
     /**
      * getQueryParams 获取get参数
      * @param  string|null $name
+     * @param  mixed $default
      * @return mixed
      */
-    public function getQueryParams(string $name = null) {
+    public function getQueryParams(string $name = null, $default = null) {
     	$input = $this->request->get;
     	if($name) {
-    		$value = $input[$name] ?? null;
+    		$value = $input[$name] ?? $default;
     	}else {
     		$value = isset($input) ? $input : [];
     	}
@@ -205,9 +207,10 @@ trait AppTrait {
     /**
      * getPostParams 获取Post参数
      * @param  string|null $name
+     * @param  mixed $default
      * @return mixed
      */
-    public function getPostParams(string $name = null) {
+    public function getPostParams(string $name = null, $default = null) {
         if(!$this->postParams) {
             $input = $this->request->post ?? [];
             if(!$input) {
@@ -217,7 +220,7 @@ trait AppTrait {
         }
 
     	if($name) {
-    		$value = $this->postParams[$name] ?? null;
+    		$value = $this->postParams[$name] ?? $default;
     	}else {
     		$value = $this->postParams;
     	}
@@ -228,12 +231,13 @@ trait AppTrait {
     /**
      * getCookieParam 
      * @param    string|null   $name
+     * @param    mixed $default
      * @return   mixed
      */
-    public function getCookieParams(string $name = null) {
+    public function getCookieParams(string $name = null, $default = null) {
     	$cookies = $this->request->cookie;
     	if($name) {
-    		$value = $cookies[$name] ?? null;
+    		$value = $cookies[$name] ?? $default;
     	}else {
     		$value = $cookies ?? [];
     	}

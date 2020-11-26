@@ -37,6 +37,7 @@ class TableManager {
 				foreach($row['fields'] as $p => $field) {
 					switch(strtolower($field[1])) {
 						case 'int':
+                        case 'integer':
 						case \Swoole\Table::TYPE_INT:
 							$table->column($field[0], \Swoole\Table::TYPE_INT, (int)$field[2]);
 						break;

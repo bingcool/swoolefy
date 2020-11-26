@@ -70,11 +70,14 @@ class Log {
 		$this->logFilePath = $logFilePath;
 		$output && $this->output = $output;
         $this->logger = new Logger($this->channel);
-        $this->handler = new StreamHandler($this->logFilePath);
+        if($logFilePath) {
+            $this->handler = new StreamHandler($this->logFilePath);
+        }
 		//$formatter对象
 		$this->formatter = new LineFormatter($this->output, $dateformat);
-        $this->handler->setFormatter($this->formatter);
-
+        if($this->handler) {
+            $this->handler->setFormatter($this->formatter);
+        }
     }
 
 	/**
@@ -94,6 +97,8 @@ class Log {
 	 */
 	public function setLogFilePath($logFilePath) {
 		$this->logFilePath = $logFilePath;
+        $this->handler = new StreamHandler($this->logFilePath);
+        $this->handler->setFormatter($this->formatter);
 		return $this;
 	}
 
