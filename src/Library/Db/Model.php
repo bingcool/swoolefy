@@ -323,7 +323,7 @@ abstract class Model implements ArrayAccess
             $pk = $this->getPk();
             // 对于自定义的主键值，需要设置
             $pkValue = $this->createPkValue();
-            if(empty($pkValue)) {
+            if($pkValue) {
                 $this->_data[$pk] = $pkValue;
             }else {
                 // 数据表设置自增pk的，则不需要设置允许字段

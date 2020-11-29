@@ -181,10 +181,7 @@ class App extends \Swoolefy\Core\Component {
 	    // catchAll
 		if(isset($this->app_conf['catch_handle']) && $handle = $this->app_conf['catch_handle']) {
             $this->is_end = true;
-			if(is_array($handle)) {
-				$this->response->header('Content-Type','application/json; charset=UTF-8');
-				$this->response->end(json_encode($handle, JSON_UNESCAPED_UNICODE));
-			}else if($handle instanceof \Closure) {
+			if($handle instanceof \Closure) {
                 $handle->call($this, $this->request, $this->response);
 			}else {
                 $this->response->header('Content-Type','text/html; charset=UTF-8');
@@ -288,6 +285,13 @@ class App extends \Swoolefy\Core\Component {
      */
     public function setEnd() {
         $this->is_end = true;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isEnd() {
+        return $this->is_end;
     }
 
 }
