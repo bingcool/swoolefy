@@ -75,6 +75,12 @@ class HttpRoute extends AppDispatch {
     private $default_route = 'Index/index';
 
     /**
+     * action前缀
+     * @var string
+     */
+    private $action_prefix = 'action';
+
+    /**
      * @var array
      */
     protected $action_params = [];
@@ -221,26 +227,36 @@ class HttpRoute extends AppDispatch {
         $this->app->setControllerInstance($controllerInstance);
         // invoke _beforeAction
         $isContinueAction = $controllerInstance->_beforeAction($action);
+        if(isset($this->app_conf['enable_action_prefix']) && $this->app_conf['enable_action_prefix']) {
+            $targetAction = $this->action_prefix.ucfirst($action);
+        }else {
+            $targetAction = $action;
+        }
+
+        if($this->app->isEnd()) {
+            return false;
+        }
+
         if($isContinueAction === false) {
             $this->response->status(403);
-            $this->response->header('Content-Type', 'application/json; charset=UTF-8');
+            @$this->response->header('Content-Type', 'application/json; charset=UTF-8');
             $queryString = isset($this->request->server['QUERY_STRING']) ? '?' . $this->request->server['QUERY_STRING'] : '';
             if(isset($this->request->post) && !empty($this->request->post)) {
                 $post = json_encode($this->request->post, JSON_UNESCAPED_UNICODE);
-                $errorMsg = "Call {$class}::_beforeAction() return false, forbidden continue call {$class}::{$action}, please checkout it ||| " . $this->request->server['REQUEST_URI'] . $queryString . ' ||| ' . $post;
+                $errorMsg = "Call {$class}::_beforeAction() return false, forbidden continue call {$class}::{$targetAction}, please checkout it ||| " . $this->request->server['REQUEST_URI'] . $queryString . ' ||| ' . $post;
             }else {
-                $errorMsg = "Call {$class}::_beforeAction() return false, forbidden continue call {$class}::{$action}, please checkout it ||| " . $this->request->server['REQUEST_URI'] . $queryString;
+                $errorMsg = "Call {$class}::_beforeAction() return false, forbidden continue call {$class}::{$targetAction}, please checkout it ||| " . $this->request->server['REQUEST_URI'] . $queryString;
             }
             $this->app->beforeEnd(403, $errorMsg);
             return false;
         }
         // 创建reflector对象实例
         $reflector = new \ReflectionClass($controllerInstance);
-        if($reflector->hasMethod($action)) {
-            list($method, $args) = $this->bindActionParams($controllerInstance, $action, $this->buildParams());
+        if($reflector->hasMethod($targetAction)) {
+            list($method, $args) = $this->bindActionParams($controllerInstance, $targetAction, $this->buildParams());
             if($method->isPublic() && !$method->isStatic()) {
                 try{
-                    $controllerInstance->{$action}(...$args);
+                    $controllerInstance->{$targetAction}(...$args);
                     $controllerInstance->_afterAction($action);
                 }catch (\Throwable $t) {
                     $queryString = isset($this->request->server['QUERY_STRING']) ? '?' . $this->request->server['QUERY_STRING'] : '';
@@ -258,13 +274,13 @@ class HttpRoute extends AppDispatch {
                     return false;
                 }
             }else {
-                $errorMsg = "Class method {$class}::{$action} is protected or private property, can't be called by Controller Instance";
+                $errorMsg = "Class method {$class}::{$targetAction} is protected or private property, can't be called by Controller Instance";
                 $this->response->status(500);
                 $this->app->beforeEnd(500, $errorMsg);
                 return false;
             }
         }else {
-            $errorMsg = "Controller file is exited, but call undefined {$class}::{$action} method";
+            $errorMsg = "Call undefined {$class}::{$targetAction} method";
             $this->response->status(404);
             $this->response->header('Content-Type', 'application/json; charset=UTF-8');
             $this->app->beforeEnd(404, $errorMsg);
@@ -328,7 +344,7 @@ class HttpRoute extends AppDispatch {
         if(isset($this->app_conf['not_found_handler']) && is_array($this->app_conf['not_found_handler'])) {
             return $this->redirectNotFound();
         }else {
-            $errorMsg = "Class {$class} is not exit";
+            $errorMsg = "Class {$class} is not found";
             $this->app->beforeEnd(404, $errorMsg);
             return false;
         }

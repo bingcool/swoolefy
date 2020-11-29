@@ -58,7 +58,7 @@ trait AppTrait {
 	}
 
     /**
-     * 提前结束请求，在_beforeAction中调用
+     * 提前结束请求，可以在_beforeAction中调用
      * @param int $ret
      * @param string $msg
      * @param string $data
