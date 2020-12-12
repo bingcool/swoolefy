@@ -31,8 +31,9 @@
         "ext-pdo": "*",
         "ext-sockets": "*",
         "ext-zend-opcache": "*",
+        "ext-mbstring": "*",
         "dragonmantank/cron-expression": "3.0.0",
-        "swoole/ide-helper": "dev-master"
+        "simps/mqtt": "dev-master"
     },
     "autoload": {
         "files": ["src/Constants.php","src/core/Func/function.php"],

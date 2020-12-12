@@ -98,10 +98,10 @@ class BService extends BaseObject {
         }
         if(BaseServer::isPackLength()) {
             $payload = [$data, $header];
-            $data = \Swoolefy\Tcp\TcpServer::pack($payload);
+            $data = \Swoolefy\Rpc\RpcServer::pack($payload);
             return Swfy::getServer()->send($fd, $data);
         }else if(BaseServer::isPackEof()) {
-            $text = \Swoolefy\Tcp\TcpServer::pack($data);
+            $text = \Swoolefy\Rpc\RpcServer::pack($data);
             return Swfy::getServer()->send($fd, $text);
         }
 	}
