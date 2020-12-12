@@ -24,7 +24,7 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 - [x] 支持composer的PSR-4规范，实现PSR-3的日志接口     
 - [x] 支持自定义注册命名空间，快速部署项目，简单易用      
 - [x] 支持httpServer
-- [x] 支持websocketServer,udpServer
+- [x] 支持websocketServer,udpServer,mqttServer      
 - [x] 支持基于tcp实现的rpc服务，开放式的系统接口，可自定义协议数据格式，并提供rpc-client协程组件
 - [x] 支持容器，组件IOC    
 - [x] 支持全局日志   

@@ -154,7 +154,7 @@ class EventApp {
 	 */
 	public function __destruct() {
 		$cid = null;
-		if(is_object($this->event_app)) {
+		if(is_object($this->event_app) && $this->event_app instanceof EventController) {
 			$cid = $this->event_app->getCid();
 			unset($this->event_app);
 		}

@@ -19,6 +19,7 @@ if(!defined('APP_NAMES')) {
         'RpcService'=>'rpc',
         'UdpService'=> 'udp',
         'WebsockService'=>'websocket',
+        'MqttService'=> 'mqtt'
     ]);
 }
 
@@ -224,8 +225,11 @@ function startServer($server_name) {
                 case 'udp':
                         startUdp($app_name);
                     break;
+                case 'mqtt':
+                        startMqtt($app_name);
+                    break;
                 default:
-                    write("Protocol is not in 【'http','websocket','rpc','udp'】");
+                    write("Protocol is not in 【'http','websocket','rpc','udp','mqtt'】");
                     break;
             }
         }
@@ -467,6 +471,65 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer') {
     $class = "{$app_name}\\{$event_server_file_name}";
     $udp = new $class($config);
     $udp->start();
+}
+
+function startMqtt($app_name, $event_server_file_name = 'MqttServer') {
+    $path = START_DIR_ROOT."/protocol/{$app_name}";
+    if(!is_dir($path)) {
+        @mkdir($path, 0777, true);
+    }
+
+    foreach(SWOOLEFY_ENVS as $env) {
+        $config_file = $path."/config-{$env}.php";
+        if(!file_exists($config_file)) {
+            copy(SCORE_DIR_ROOT.'/src/Mqtt/config.php', $config_file);
+        }
+    }
+
+    $event_server_file = START_DIR_ROOT."/{$app_name}/{$event_server_file_name}.php";
+    if(!file_exists($event_server_file)) {
+        $search_str = "protocol\\mqtt";
+        $replace_str = "{$app_name}";
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/src/EventServer/{$event_server_file_name}.php");
+        $count = 1;
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        file_put_contents($event_server_file, $file_content_string);
+    }
+
+    $autoloader_file = START_DIR_ROOT."/{$app_name}/autoloader.php";
+    if(!file_exists($autoloader_file)) {
+        $search_str = "<{APP_NAME}>";
+        $replace_str = "{$app_name}";
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/autoloader.php");
+        $count = 1;
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        file_put_contents($autoloader_file, $file_content_string);
+        include_once $autoloader_file;
+    }
+
+    $config = include $path."/config-".SWOOLEFY_ENV.".php";
+
+    if(isset($config['setting']['log_file'])) {
+        $path = pathinfo($config['setting']['log_file'], PATHINFO_DIRNAME);
+        if(!is_dir($path)) {
+            mkdir($path, 0777, true);
+        }
+    }
+
+    if(isDaemon()) {
+        $config['setting']['daemonize'] = true;
+    }
+
+    if(!isset($config['app_conf'])) {
+        write("[Error] protocol/{$app_name}/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
+        exit();
+    }
+
+    setEnvParams($config);
+
+    $class = "{$app_name}\\{$event_server_file_name}";
+    $mqtt = new $class($config);
+    $mqtt->start();
 }
 
 function stopServer($app_name) {

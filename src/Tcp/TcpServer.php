@@ -72,7 +72,6 @@ abstract class TcpServer extends BaseServer {
 		self::$server = $this->tcpServer = new \Swoole\Server(self::$config['host'], self::$config['port'], self::$swoole_process_model, self::$swoole_socket_type);
 		$this->tcpServer->set(self::$setting);
 		parent::__construct();
-		self::buildPackHandler();
 	}
 
 	public function start() {
@@ -292,88 +291,6 @@ abstract class TcpServer extends BaseServer {
 		$this->tcpServer->start();
 	}
 
-	/**
-	 * buildPackHandler 创建pack处理对象
-	 * @return void
-	 */
-	protected function buildPackHandler() {
-		if(self::isPackLength()) {
-			$this->Pack = new Pack(self::$server);
-			// packet_length_check
-			$this->Pack->setHeaderStruct(self::$config['packet']['server']['pack_header_struct']);
-			$this->Pack->setPackLengthKey(self::$config['packet']['server']['pack_length_key']);
-			if(isset(self::$config['packet']['server']['serialize_type'])) {
-				$this->Pack->setSerializeType(self::$config['packet']['server']['serialize_type']);
-			}
-			$this->Pack->setHeaderLength(self::$setting['package_body_offset']);
-			if(isset(self::$setting['package_max_length'])) {
-				$package_max_length = (int)self::$setting['package_max_length'];
-				$this->Pack->setPacketMaxlength($package_max_length);
-			}
-		}else {
-			$this->Text = new Text(self::$server);
-			// packet_eof_check
-			$this->Text->setPackEof(self::$setting['package_eof']);
-			if(isset(self::$config['packet']['server']['serialize_type'])) {
-				$serialize_type = self::$config['packet']['server']['serialize_type'];
-			}else {
-				$serialize_type = Text::DECODE_JSON;
-			}
-			$this->Text->setSerializeType($serialize_type);
-		}
-	}
 
-    /**
-     * isClientPackEof 根据设置判断客户端的分包方式
-     * @return boolean
-     * @throws \Exception
-     */
-	public static function isClientPackEof() {
-		if(!isset(self::$config['packet']['client']['pack_check_type'])) {
-            throw new \Exception("you must set ['packet']['client']  in the config file", 1);
-        }
-        if(in_array(self::$config['packet']['client']['pack_check_type'], ['eof', 'EOF']) ) {
-            return true;
-        }
-        return false;
-	}
-
-    /**
-     * isClientPackLength 根据设置判断客户端的分包方式
-     * @return boolean
-     * @throws \Exception
-     */
-	public static function isClientPackLength() {
-		if(static::isClientPackEof()) {
-			return false;
-		}
-		return true;
-	}
-
-    /**
-     * pack  根据配置设置，按照客户端的接受数据方式，打包数据发回给客户端
-     * @param mixed $data
-     * @return mixed
-     * @throws Exception
-     */
-	public static function pack($data) {
-		if(static::isClientPackLength()) {
-            list($body_data, $header) = $data;
-            $header_struct = self::$config['packet']['client']['pack_header_struct'];
-            $pack_length_key = self::$config['packet']['client']['pack_length_key'];
-            $serialize_type = self::$config['packet']['client']['serialize_type'];
-            $header[$pack_length_key] = '';
-            $pack_data = Pack::encodePack($body_data, $header, $header_struct, $pack_length_key, $serialize_type);
-		}else {
-            $eof = self::$config['packet']['client']['pack_eof'];
-            $serialize_type = self::$config['packet']['client']['serialize_type'];
-            if($eof) {
-                $pack_data = Text::encodePackEof($data, $serialize_type, $eof);
-            }else {
-                $pack_data = Text::encodePackEof($data, $serialize_type);
-            }
-		}
-        return $pack_data;
-	}
 }
 

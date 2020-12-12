@@ -23,6 +23,7 @@ defined('SWOOLEFY_HTTP') or define('SWOOLEFY_HTTP', 'http');
 defined('SWOOLEFY_WEBSOCKET') or define('SWOOLEFY_WEBSOCKET', 'websocket');
 defined('SWOOLEFY_TCP') or define('SWOOLEFY_TCP', 'tcp');
 defined('SWOOLEFY_UDP') or define('SWOOLEFY_UDP', 'udp');
+defined('SWOOLEFY_MQTT') or define('SWOOLEFY_MQTT', 'mqtt');
 
 // 定义组件可以选择使用的属性key
 defined('SWOOLEFY_COM_IS_DELAY') or define('SWOOLEFY_COM_IS_DELAY', 'is_delay');

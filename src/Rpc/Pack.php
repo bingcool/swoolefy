@@ -189,10 +189,10 @@ class Pack extends BaseParse {
 	    $responseData = Application::buildResponseData($errno, $errorMsg);
         if(BaseServer::isPackLength()) {
             $payload = [$responseData, $header];
-            $data = \Swoolefy\Tcp\TcpServer::pack($payload);
+            $data = \Swoolefy\Rpc\RpcServer::pack($payload);
             return Swfy::getServer()->send($fd, $data);
         }else if(BaseServer::isPackEof()) {
-            $text = \Swoolefy\Tcp\TcpServer::pack($responseData);
+            $text = \Swoolefy\Rpc\RpcServer::pack($responseData);
             return Swfy::getServer()->send($fd, $text);
         }
     }

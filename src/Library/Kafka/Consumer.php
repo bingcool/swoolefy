@@ -68,7 +68,8 @@ class Consumer {
     public function __construct(
         $metaBrokerList = '',
         $topicName = ''
-    ){
+    )
+    {
         $this->conf = new \RdKafka\Conf();
         $this->setBrokerList($metaBrokerList);
         $this->setDefaultConf();

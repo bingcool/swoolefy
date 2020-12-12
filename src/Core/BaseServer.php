@@ -515,7 +515,11 @@ class BaseServer {
 			if(self::$swoole_socket_type == SWOOLE_SOCK_UDP) {
                 $protocol = SWOOLEFY_UDP;
 			}else {
-                $protocol = SWOOLEFY_TCP;
+			    if(isset(static::$config['setting']['open_mqtt_protocol']) && (bool)static::$config['setting']['open_mqtt_protocol'] == true) {
+                    $protocol = SWOOLEFY_MQTT;
+                }else {
+                    $protocol = SWOOLEFY_TCP;
+                }
             }
             return $protocol;
 		}

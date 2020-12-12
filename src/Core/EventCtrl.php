@@ -145,6 +145,9 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
             case SWOOLEFY_UDP :
                 $main_server = 'UdpServer';
                 break;
+            case SWOOLEFY_MQTT :
+                $main_server = 'MqttServer';
+                break;
             default:
                 $main_server = 'HttpServer';
         }
