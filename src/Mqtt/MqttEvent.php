@@ -83,7 +83,7 @@ class MqttEvent {
         return true;
     }
 
-    public function disconnect($fd): bool
+    public function disconnect(): bool
     {
         //todo client_id与fd在disconnect解除关联
         return true;
