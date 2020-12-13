@@ -14,7 +14,7 @@ include_once START_DIR_ROOT.'/'.APP_NAME.'/Config/defines.php';
 // 加载应用层协议,根据自己项目实际路径记载
 $app_config = include_once START_DIR_ROOT.'/'.APP_NAME.'/Config/config-'.SWOOLEFY_ENV.'.php';
 
-// tcpServer协议层配置
+// mqttServer协议层配置
 return [
     'app_conf' => $app_config, // 应用层配置，需要根据实际项目导入
 	'application_service' => '',
@@ -31,7 +31,7 @@ return [
 		'reactor_num' => 1,
 		'worker_num' => 3,
 		'max_request' => 1000,
-		'task_worker_num' => 2,
+		'task_worker_num' => 1,
 		'task_tmpdir' => '/dev/shm',
 		'daemonize' => 0,
 		// TCP使用固定的worker，使用2或4或7
