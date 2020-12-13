@@ -312,7 +312,9 @@ class Pack extends BaseParse {
     public function destroy($server = null, $worker_id = null) {
     	if(!empty($this->_buffers)) {
     		foreach($this->_buffers as $fd=>$data) {
-    			$this->server->close($fd, true);
+    		    if($this->server->exists($fd)) {
+                    $this->server->close($fd, true);
+                }
     			unset($this->_buffers[$fd], $this->_headers[$fd]);
     		}
     		return true;

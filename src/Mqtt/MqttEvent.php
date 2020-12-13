@@ -17,12 +17,24 @@ use Swoolefy\Core\Swfy;
 
 class MqttEvent {
 
+    /**
+     * @var \Swoole\Http\Server|\Swoole\Server|\Swoole\WebSocket\Server
+     */
     protected $server;
 
+    /**
+     * @var integer
+     */
     protected $fd;
 
+    /**
+     * @var array
+     */
     protected $data;
 
+    /**
+     * @var array
+     */
     public static $eventMaps = [
         Types::CONNECT => 'connect',
         Types::CONNACK => 'connectAck',
@@ -40,6 +52,11 @@ class MqttEvent {
         Types::DISCONNECT => 'disconnect'
     ];
 
+    /**
+     * MqttEvent constructor.
+     * @param $fd
+     * @param $data
+     */
     public function __construct($fd, $data)
     {
         $this->server = Swfy::getServer();
@@ -48,10 +65,11 @@ class MqttEvent {
     }
 
     /**
-     * @param mixed ...$args
+     * @param $username
+     * @param $password
      * @return bool
      */
-    public function auth(...$args): bool
+    public function auth($username, $password): bool
     {
         // todo auth username and password
         return true;

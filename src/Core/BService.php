@@ -106,16 +106,22 @@ class BService extends BaseObject {
         }
 	}
 
-	/**
-	 * sendTo udp 发送数据
-	 * @param  string $ip
-	 * @param  int    $port
-	 * @param  mixed  $data
-	 * @param  int  $server_socket
-     * @throws Exception
-	 * @return mixed
-	 */
-	public function sendTo($ip, $port, $data, $server_socket = -1) {
+    /**
+     * sendTo udp 发送数据
+     * @param $data
+     * @param string $ip
+     * @param string $port
+     * @param null $server_socket
+     * @return mixed
+     * @throws \Exception
+     */
+	public function sendTo($data, $ip = '', $port = '', $server_socket = null) {
+        if(empty($ip)) {
+            $ip = $this->client_info['address'];
+        }
+        if(empty($port)) {
+            $port = $this->client_info['port'];
+        }
 		if(!BaseServer::isUdpApp()) {
             throw new \Exception("BService::sendTo() this method only can be called by udp server!");
         }

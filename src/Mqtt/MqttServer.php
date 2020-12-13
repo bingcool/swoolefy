@@ -40,6 +40,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
         'task_worker_num' => 1,
         'task_tmpdir' => '/dev/shm',
         'daemonize' => 0,
+        'open_mqtt_protocol' => true,
         'hook_flags' => SWOOLE_HOOK_ALL | SWOOLE_HOOK_CURL,
         'log_file' => __DIR__.'/log/log.txt',
         'pid_file' => __DIR__.'/log/server.pid',
@@ -304,7 +305,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
             $eventClass = '\Swoolefy\Mqtt\MqttEvent';
         }
 
-        $mqttEvent = new MqttEvent($fd, $data);
+        $mqttEvent = new $eventClass($fd, $data);
 
         try {
             switch($type) {
@@ -414,6 +415,45 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
 	}
 
     /**
+     * onTask 任务处理函数调度
+     * @param Server $server
+     * @param int $task_id
+     * @param int $from_worker_id
+     * @param mixed $data
+     * @param null|\Swoole\Server\Task $task
+     * @return  boolean
+     * @throws \Throwable
+     */
+	public function onTask($server, $task_id, $from_worker_id, $data, $task = null)
+    {
+	    //todo
+	}
+
+    /**
+     * onFinish 异步任务完成后调用
+     * @param Server $server
+     * @param $task_id
+     * @param $data
+     * @return mixed
+     */
+     public function onFinish($server, $task_id, $data)
+     {
+         // todo
+     }
+
+	/**
+	 * onPipeMessage 
+	 * @param Server $server
+	 * @param int    $src_worker_id
+	 * @param mixed  $message
+	 * @return void
+	 */
+     public function onPipeMessage($server, $from_worker_id, $message)
+     {
+         //todo
+     }
+
+    /**
      * onWorkerStart worker进程启动时回调处理
      * @param  Server $server
      * @param  int    $worker_id
@@ -428,38 +468,6 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
      * @return void
      */
     abstract public function onConnect($server, $fd);
-
-    /**
-     * onTask 任务处理函数调度
-     * @param Server $server
-     * @param int $task_id
-     * @param int $from_worker_id
-     * @param mixed $data
-     * @param mixed $task
-     * @return  boolean
-     * @throws \Throwable
-     */
-	public function onTask($server, $task_id, $from_worker_id, $data, $task = null) {
-
-	}
-
-    /**
-     * onFinish 异步任务完成后调用
-     * @param Server $server
-     * @param $task_id
-     * @param $data
-     * @return mixed
-     */
-    abstract public function onFinish($server, $task_id, $data);
-
-	/**
-	 * onPipeMessage 
-	 * @param Server $server
-	 * @param int    $src_worker_id
-	 * @param mixed  $message
-	 * @return void
-	 */
-    abstract public function onPipeMessage($server, $from_worker_id, $message);
 
 	/**
 	 * onClose tcp连接关闭时回调函数
