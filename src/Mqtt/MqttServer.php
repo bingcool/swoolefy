@@ -57,6 +57,9 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
      * @throws \Exception
      */
 	public function __construct(array $config = []) {
+	    if(!class_exists('Simps\MQTT\Protocol')) {
+	        throw new \Exception("Missing class \Simps\MQTT\Protocol, please 'composer require simps/mqtt'");
+        }
         self::clearCache();
         self::$config = $config;
         self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
@@ -336,7 +339,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
                     $mqttEvent->pingReq();
                     break;
                 case Types::DISCONNECT:
-                    $mqttEvent->disconnect($fd);
+                    $mqttEvent->disconnect();
                     if($server->exist($fd)) {
                         $server->close($fd);
                     }
