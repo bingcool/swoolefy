@@ -305,6 +305,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
             $eventClass = '\Swoolefy\Mqtt\MqttEvent';
         }
 
+        /**@var MqttEvent $mqttEvent*/
         $mqttEvent = new $eventClass($fd, $data);
 
         try {
@@ -329,7 +330,9 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
                         $clean_session,
                         $will
                     )) {
-                        $server->close($fd);
+                        if($server->exists($fd)) {
+                            $server->close($fd);
+                        }
                         return false;
                     }
 
