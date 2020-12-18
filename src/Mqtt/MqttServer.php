@@ -14,6 +14,7 @@ namespace Swoolefy\Mqtt;
 include_once SWOOLEFY_CORE_ROOT_PATH.'/MainEventInterface.php';
 
 use Simps\MQTT\Protocol;
+use Simps\MQTT\ProtocolV5;
 use Simps\MQTT\Types;
 use Swoole\Server;
 use Swoolefy\Core\BaseServer;
@@ -276,8 +277,22 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
         $this->mqttServer->start();
     }
 
+    public function onReceive($server, $fd, $reactor_id, $data)
+    {
+        $conf = \Swoolefy\Core\Swfy::getConf();
+        $protocolLevel = (int)($conf['mqtt']['protocol_level'] ?? MQTT_PROTOCOL_LEVEL3);
+        var_dump($protocolLevel);
+        if($protocolLevel === MQTT_PROTOCOL_LEVEL3)
+        {
+            return $this->handleV3($server, $fd,  $data);
+        }else if($protocolLevel == MQTT_PROTOCOL_LEVEL5)
+        {
+            return $this->handleV5($server, $fd,  $data);
+        }
+    }
+
     /**
-     * onReceive mqtt receive handle
+     * handleV3 mqtt receive handle
      * @param Server $server
      * @param int $fd
      * @param int $reactor_id
@@ -285,7 +300,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
      * @return boolean
      * @throws \Throwable
      */
-	public function onReceive($server, $fd, $reactor_id, $data) {
+	public function handleV3($server, $fd, &$data) {
         $data = Protocol::unpack($data);
         if(is_array($data) && isset($data['type'])) {
             $type = $data['type'];
@@ -298,8 +313,8 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
             throw new \Exception('Mqtt Packet parse missing type');
         }
 
-        $app_conf = \Swoolefy\Core\Swfy::getAppConf();
-        $eventClass = $app_conf['mqtt']['mqtt_event_handler'] ?? '';
+        $conf = \Swoolefy\Core\Swfy::getAppConf();
+        $eventClass = $conf['mqtt']['mqtt_event_handler'] ?? '';
 
         if(empty($eventClass) || !class_exists($eventClass)) {
             $eventClass = '\Swoolefy\Mqtt\MqttEvent';
@@ -416,6 +431,151 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
 
         return true;
 	}
+
+    /**
+     * handleV5 mqtt receive handle
+     * @param Server $server
+     * @param int $fd
+     * @param int $reactor_id
+     * @param mixed $data
+     * @return boolean
+     * @throws \Throwable
+     */
+    public function handleV5($server, $fd, &$data) {
+        $data = ProtocolV5::unpack($data);
+        var_dump($data);
+        if(is_array($data) && isset($data['type'])) {
+            $type = $data['type'];
+        }
+
+        if(!isset($type)) {
+            if($server->exists($fd)) {
+                $server->close($fd);
+            }
+            throw new \Exception('Mqtt Packet parse missing type');
+        }
+
+        $conf = \Swoolefy\Core\Swfy::getAppConf();
+        $eventClass = $conf['mqtt']['mqtt_event_handler'] ?? '';
+
+        if(empty($eventClass) || !class_exists($eventClass)) {
+            $eventClass = '\Swoolefy\Mqtt\MqttEvent5';
+        }
+
+        /**@var MqttEvent5 $mqttEvent*/
+        $mqttEvent = new $eventClass($fd, $data);
+
+        try {
+            switch($type) {
+                case Types::CONNECT:
+                    $protocol_name = $data['protocol_name'];
+                    $protocol_level = $data['protocol_level'];
+                    $username = $data['user_name'] ?? '';
+                    $password = $data['password'] ?? '';
+                    $clean_session = $data['clean_session'] ?? 0;
+                    $keep_alive = $data['keep_alive'];
+                    $properties = $data['properties'];
+                    $client_id = $data['client_id'];
+                    $will = $data['will'] ?? [];
+
+                    if(!$mqttEvent->auth($username, $password) || !$mqttEvent->connect(
+                            $protocol_name,
+                            $protocol_level,
+                            $username,
+                            $password,
+                            $client_id,
+                            $keep_alive,
+                            $properties,
+                            $clean_session,
+                            $will
+                        )) {
+                        if($server->exists($fd)) {
+                            $server->close($fd);
+                        }
+                        return false;
+                    }
+
+                    $mqttEvent->connectAck($clean_session);
+
+                    break;
+                case Types::PINGREQ:
+                    $mqttEvent->pingReq();
+                    break;
+                case Types::DISCONNECT:
+                    $mqttEvent->disconnect();
+                    if($server->exist($fd)) {
+                        $server->close($fd);
+                    }
+                    break;
+                case Types::PUBLISH:
+                    $type = $data['type'];
+                    $topic = $data['topic'];
+                    $message = $data['message'];
+                    $dup = $data['dup'];
+                    $qos = $data['qos'];
+                    $retain = $data['retain'];
+                    $message_id = $data['message_id'] ?? '';
+
+                    // Send to subscribers
+                    $mqttEvent->publish(
+                        $type,
+                        $topic,
+                        $message,
+                        $dup,
+                        $qos,
+                        $retain,
+                        $message_id
+                    );
+
+                    if($data['qos'] === 1) {
+                        $mqttEvent->publishAck($message_id);
+                    }
+
+                    break;
+                case Types::SUBSCRIBE:
+                    $payload = [];
+                    $topics = $data['topics'];
+                    $type = $data['type'];
+                    $message_id = $data['message_id'];
+
+                    if(method_exists($mqttEvent, 'subscribe')) {
+                        $mqttEvent->subscribe($type, $topics, $message_id);
+                    }
+
+                    foreach ($data['topics'] as $k => $option) {
+                        $qos = $option['qos'];
+                        if (is_numeric($qos) && $qos < 3) {
+                            $payload[] = $qos;
+                        } else {
+                            $payload[] = \Simps\MQTT\Hex\ReasonCode::QOS_NOT_SUPPORTED;
+                        }
+                    }
+
+                    $mqttEvent->subscribeAck($message_id, $payload);
+
+                    break;
+                case Types::UNSUBSCRIBE:
+                    $topics = $data['topics'];
+                    $type = $data['type'];
+                    $message_id = $data['message_id'] ?? '';
+                    if(method_exists($mqttEvent,'unSubscribe')) {
+                        $mqttEvent->unSubscribe($type, $topics, $message_id);
+                    }
+                    $mqttEvent->unSubscribeAck($message_id);
+                    break;
+                default:
+                    throw new \Exception("Mqtt Packet type={$type} error");
+            }
+        }catch (\Exception $exception) {
+            if($server->exists($fd)) {
+                $server->close($fd);
+            }
+            self::catchException($exception);
+            return false;
+        }
+
+        return true;
+    }
 
     /**
      * onTask 任务处理函数调度
