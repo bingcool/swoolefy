@@ -48,6 +48,9 @@ class Redis extends RedisConnection {
      * buildRedis
      */
     protected function buildRedis() {
+        if(!extension_loaded('redis')) {
+            throw new \Exception("Missing extension redis, please install it");
+        }
         $this->redis = new \Redis();
     }
 

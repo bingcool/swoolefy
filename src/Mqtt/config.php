@@ -50,8 +50,13 @@ return [
     'mqtt' => [
         'username' =>'',
         'password' => '',
+        //'protocol_level' => 4, // mqtt3.1.3
         // 需继承Swoolefy\Mqtt\MqttEvent
-        'mqtt_event_handler' => \Swoolefy\Mqtt\MqttEvent::class
+        //'mqtt_event_handler' => \Swoolefy\Mqtt\MqttEvent::class
+
+        'protocol_level' => 5, // mqtt5
+        // 需继承Swoolefy\Mqtt\MqttEvent5
+        'mqtt_event_handler' => \Swoolefy\Mqtt\MqttEvent5::class
     ],
 
 	'enable_table_tick_task' => true,
