@@ -45,7 +45,7 @@ class App extends \Swoolefy\Core\Component {
 	public $coroutine_id;
 
     /**
-     * $controllerInstance 控制器实例
+     * $controllerInstance
      * @var BController
      */
     protected $controllerInstance = null;
@@ -70,7 +70,7 @@ class App extends \Swoolefy\Core\Component {
 	}
 
     /**
-     * init 初始化函数
+     * init
      * @param Request $request
      * @return void
      * @throws \Exception
@@ -97,7 +97,7 @@ class App extends \Swoolefy\Core\Component {
 	}
 
 	/**
-	 * run 执行
+	 * run
 	 * @param  $request
 	 * @param  $response
      * @throws \Throwable
@@ -193,7 +193,7 @@ class App extends \Swoolefy\Core\Component {
 	}
 
 	/**
-	 * afterRequest 请求结束后注册钩子执行操作
+	 * afterRequest call
 	 * @param callable $callback
 	 * @param boolean $prepend
 	 * @return bool
@@ -218,7 +218,7 @@ class App extends \Swoolefy\Core\Component {
     }
 
 	/**
-	 *clearStaticVar 销毁静态变量
+	 *clearStaticVar
 	 * @return void
 	 */
 	public function clearStaticVar() {
@@ -248,7 +248,7 @@ class App extends \Swoolefy\Core\Component {
     }
 
 	/**
-	 * end 请求结束
+	 * request end
 	 * @return void
 	 */
 	public function end() {

@@ -119,9 +119,7 @@ class Tick {
             }
             $config = Swfy::getConf();
             if(isset($config['enable_table_tick_task']) && $config['enable_table_tick_task'] == true) {
-
                 TableManager::set('table_ticker', 'tick_timer_task', ['tick_tasks'=>json_encode(self::$_tick_tasks)]);
-
                 return true;
             }
         }

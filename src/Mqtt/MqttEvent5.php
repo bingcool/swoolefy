@@ -68,12 +68,23 @@ class MqttEvent5 {
     /**
      * @param $username
      * @param $password
+     * @param $authenticationMethod
+     * @param $authenticationData
      * @return bool
      */
-    public function auth($username, $password): bool
+    public function verify($username, $password, $authentication_method, $authentication_data): bool
     {
         // todo auth username and password
         return true;
+    }
+
+    /**
+     * @param $code
+     * @param array $properties
+     */
+    public function auth($code, array $properties)
+    {
+
     }
 
     /**

@@ -19,16 +19,16 @@ class BService extends BaseObject {
     use \Swoolefy\Core\ServiceTrait;
 
     /**
+     * $fd
+     * @var null
+     */
+    protected $fd = null;
+
+    /**
 	 * $app_conf 应用层配置
 	 * @var array
 	 */
-	public $app_conf = null;
-	
-	/**
-	 * $fd 
-	 * @var null
-	 */
-	public $fd = null;
+	protected $app_conf = null;
 
 	/**
 	 * $mixed_params 

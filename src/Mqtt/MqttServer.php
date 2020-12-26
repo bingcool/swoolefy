@@ -19,6 +19,7 @@ use Simps\MQTT\Types;
 use Swoole\Server;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\EventApp;
+use Swoolefy\Core\EventController;
 use Swoolefy\Core\RpcEventInterface;
 use Swoolefy\Core\Swfy;
 
@@ -54,7 +55,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
     public $mqttServer = null;
 
     /**
-     * __construct 初始化
+     * __construct
      * @param array $config
      * @throws \Exception
      */
@@ -133,7 +134,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
             // 全局配置
             Swfy::setConf(self::$config);
             // 启动的初始化函数
-            (new EventApp())->registerApp(function($event) use($server, $worker_id) {
+            (new EventApp())->registerApp(function(EventController $event) use($server, $worker_id) {
                 $this->startCtrl->workerStart($server, $worker_id);
                 static::onWorkerStart($server, $worker_id);
             });
@@ -198,7 +199,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
          */
         $this->mqttServer->on('finish', function(\Swoole\Server $server, $task_id, $data) {
             try{
-                (new EventApp())->registerApp(function($event) use($server, $task_id, $data) {
+                (new EventApp())->registerApp(function(EventController $event) use($server, $task_id, $data) {
                     static::onFinish($server, $task_id, $data);
                 });
                 return true;
@@ -212,7 +213,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
          */
         $this->mqttServer->on('pipeMessage', function(\Swoole\Server $server, $from_worker_id, $message) {
             try {
-                (new EventApp())->registerApp(function() use($server, $from_worker_id, $message) {
+                (new EventApp())->registerApp(function(EventController $event) use($server, $from_worker_id, $message) {
                     static::onPipeMessage($server, $from_worker_id, $message);
                 });
                 return true;
@@ -226,7 +227,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
          */
         $this->mqttServer->on('close', function(\Swoole\Server $server, $fd, $reactorId) {
             try{
-                (new EventApp())->registerApp(function() use($server, $fd) {
+                (new EventApp())->registerApp(function(EventController $event) use($server, $fd) {
                     static::onClose($server, $fd);
                 });
             }catch(\Throwable $e) {
@@ -239,7 +240,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
          */
         $this->mqttServer->on('WorkerStop', function(\Swoole\Server $server, $worker_id) {
             try{
-                (new EventApp())->registerApp(function() use($server, $worker_id) {
+                (new EventApp())->registerApp(function(EventController $event) use($server, $worker_id) {
                     $this->startCtrl->workerStop($server, $worker_id);
                 });
             }catch(\Throwable $e) {
@@ -253,7 +254,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
         $this->mqttServer->on('WorkerExit', function(\Swoole\Server $server, $worker_id) {
             \Swoole\Coroutine::create(function () use($server, $worker_id) {
                 try{
-                    (new EventApp())->registerApp(function($event) use($server, $worker_id) {
+                    (new EventApp())->registerApp(function(EventController $event) use($server, $worker_id) {
                         $this->startCtrl->workerExit($server, $worker_id);
                     });
                 }catch(\Throwable $e) {
@@ -281,7 +282,6 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
     {
         $conf = \Swoolefy\Core\Swfy::getConf();
         $protocolLevel = (int)($conf['mqtt']['protocol_level'] ?? MQTT_PROTOCOL_LEVEL3);
-        var_dump($protocolLevel);
         if($protocolLevel === MQTT_PROTOCOL_LEVEL3)
         {
             return $this->handleV3($server, $fd,  $data);
@@ -335,7 +335,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
                     $client_id = $data['client_id'];
                     $will = $data['will'] ?? [];
 
-                    if(!$mqttEvent->auth($username, $password) || !$mqttEvent->connect(
+                    if(!$mqttEvent->verify($username, $password) || !$mqttEvent->connect(
                         $protocol_name,
                         $protocol_level,
                         $username,
@@ -443,7 +443,6 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
      */
     public function handleV5($server, $fd, &$data) {
         $data = ProtocolV5::unpack($data);
-        var_dump($data);
         if(is_array($data) && isset($data['type'])) {
             $type = $data['type'];
         }
@@ -477,8 +476,10 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
                     $properties = $data['properties'];
                     $client_id = $data['client_id'];
                     $will = $data['will'] ?? [];
-
-                    if(!$mqttEvent->auth($username, $password) || !$mqttEvent->connect(
+                    $authentication_method = $properties['authentication_method'] ?? '';
+                    $authentication_data = $properties['authentication_data'] ?? '';
+                    // connect 附带authentication_method,authentication_data,开启auth验证
+                    if(!$mqttEvent->verify($username, $password, $authentication_method, $authentication_data) || !$mqttEvent->connect(
                             $protocol_name,
                             $protocol_level,
                             $username,
@@ -498,6 +499,12 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
                     $mqttEvent->connectAck($clean_session);
 
                     break;
+                // connect 附带authentication_method,authentication_data,开启auth验证
+                case Types::AUTH:
+                    $code = $data['code'];
+                    $properties = $data['properties'] ?? [];
+                    $mqttEvent->auth($code, $properties);
+                    break;
                 case Types::PINGREQ:
                     $mqttEvent->pingReq();
                     break;
@@ -515,7 +522,6 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
                     $qos = $data['qos'];
                     $retain = $data['retain'];
                     $message_id = $data['message_id'] ?? '';
-
                     // Send to subscribers
                     $mqttEvent->publish(
                         $type,

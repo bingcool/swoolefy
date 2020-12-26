@@ -21,14 +21,7 @@ class EventController extends BaseObject {
 	 * $app_conf 应用层配置
 	 * @var array
 	 */
-	public $app_conf = null;
-
-	/**
-	 * $event_hooks 钩子事件
-	 * @var array
-	 */
-	public $event_hooks = [];
-	const HOOK_AFTER_REQUEST = 1;
+	protected $app_conf = null;
 
     /**
      * @var array
@@ -47,7 +40,14 @@ class EventController extends BaseObject {
      */
     protected $is_defer = false;
 
-	/**
+    /**
+     * $event_hooks 钩子事件
+     * @var array
+     */
+    protected $event_hooks = [];
+    const HOOK_AFTER_REQUEST = 1;
+
+    /**
 	 * __construct 初始化函数
      * @throws \Exception
 	 */

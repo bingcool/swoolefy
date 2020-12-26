@@ -15,6 +15,7 @@ use Swoole\Server;
 use Swoolefy\Core\EventApp;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\EventController;
 
 abstract class UdpServer extends BaseServer {
 
@@ -126,7 +127,7 @@ abstract class UdpServer extends BaseServer {
             // 全局配置
             Swfy::setConf(self::$config);
 			// 启动的初始化函数
-            (new EventApp())->registerApp(function($event) use($server, $worker_id) {
+            (new EventApp())->registerApp(function(EventController $event) use($server, $worker_id) {
                 $this->startCtrl->workerStart($server, $worker_id);
                 static::onWorkerStart($server, $worker_id);
             });
@@ -190,7 +191,7 @@ abstract class UdpServer extends BaseServer {
 		 */
 		$this->udpServer->on('pipeMessage', function(Server $server, $from_worker_id, $message) {
 			try {
-                (new EventApp())->registerApp(function($event) use($server, $from_worker_id, $message) {
+                (new EventApp())->registerApp(function(EventController $event) use($server, $from_worker_id, $message) {
                     static::onPipeMessage($server, $from_worker_id, $message);
                 });
 				return true;
@@ -204,7 +205,7 @@ abstract class UdpServer extends BaseServer {
 		 */
 		$this->udpServer->on('WorkerStop', function(Server $server, $worker_id) {
 			try{
-                (new EventApp())->registerApp(function($event) use($server, $worker_id) {
+                (new EventApp())->registerApp(function(EventController $event) use($server, $worker_id) {
                     $this->startCtrl->workerStop($server, $worker_id);
                 });
 			}catch(\Throwable $e) {
@@ -218,7 +219,7 @@ abstract class UdpServer extends BaseServer {
         $this->udpServer->on('WorkerExit', function(Server $server, $worker_id) {
             \Swoole\Coroutine::create(function () use($server, $worker_id) {
                 try{
-                    (new EventApp())->registerApp(function($event) use($server, $worker_id) {
+                    (new EventApp())->registerApp(function(EventController $event) use($server, $worker_id) {
                         $this->startCtrl->workerExit($server, $worker_id);
                     });
                 }catch(\Throwable $e) {

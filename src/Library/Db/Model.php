@@ -335,8 +335,10 @@ abstract class Model implements ArrayAccess
             if(!isset($this->_data[$pk]))  {
                 $this->_data[$pk] = $this->getConnection()->getLastInsID($pk);
             }
-        }catch (\Throwable $exception) {
+        }catch (\Exception $exception) {
             throw $exception;
+        }catch (\Throwable $throwable) {
+            throw $throwable;
         }
         // 标记数据已经存在
         $this->exists(true);
@@ -414,7 +416,6 @@ abstract class Model implements ArrayAccess
             $this->exists(false);
             return false;
         }
-
     }
 
     /**
@@ -497,6 +498,9 @@ abstract class Model implements ArrayAccess
     protected function processDelete(): bool
     {
         //todo
+        // 逻辑删除，可能不需要再次执行update操作
+        $this->skipEvent(self::BEFORE_UPDATE);
+        $this->skipEvent(self::AFTER_UPDATE);
         return true;
     }
 

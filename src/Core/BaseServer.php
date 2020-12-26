@@ -141,7 +141,7 @@ class BaseServer {
 		self::$startTime = date('Y-m-d H:i:s');
         // start init
         $this->startCtrl = self::eventHandler();
-        (new \Swoolefy\Core\EventApp())->registerApp(function($event) {
+        (new \Swoolefy\Core\EventApp())->registerApp(function() {
             $this->startCtrl->init();
         });
 

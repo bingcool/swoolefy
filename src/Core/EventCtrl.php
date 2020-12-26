@@ -13,6 +13,7 @@ namespace Swoolefy\Core;
 
 use Swoole\Server;
 use Swoolefy\Core\Process\ProcessManager;
+use Swoolefy\Core\ProcessPools\PoolsManager;
 
 class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
 	/**
@@ -20,7 +21,6 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
      * @return void
 	 */
 	public function init() {
-        static::eachStartInfo();
         static::onInit();
 		if(BaseServer::isEnableSysCollector()) {
 			ProcessManager::getInstance()->addProcess('swoolefy_system_collector', \Swoolefy\Core\SysCollector\SysProcess::class);
@@ -28,6 +28,7 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
 		if(BaseServer::isEnableReload()) {
             ProcessManager::getInstance()->addProcess('swoolefy_system_reload',\Swoolefy\AutoReload\ReloadProcess::class);
         }
+        static::eachStartInfo();
 	}
 
 	/**
@@ -163,6 +164,10 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
         $swoolefy_env = defined('SWOOLEFY_ENV') ? SWOOLEFY_ENV : null;
         $cpu_num = swoole_cpu_num();
         $ip_list = json_encode(swoole_get_local_ip());
+        $processListInfo = array_values(ProcessManager::getInstance()->getProcessListInfo());
+        $processListInfoStr = json_encode($processListInfo,JSON_UNESCAPED_UNICODE);
+        $poolsProcessListInfo = array_values(PoolsManager::getInstance()->getProcessListInfo());
+        $poolsProcessListInfoStr = json_encode($poolsProcessListInfo,JSON_UNESCAPED_UNICODE);
         $this->each(str_repeat('-',50),'light_green');
         $this->each("
             main server         {$main_server}

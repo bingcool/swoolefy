@@ -75,7 +75,7 @@ class SysProcess extends AbstractProcess {
                     // 当前时间段内原子清空
                     $total_request_num && $atomic->sub($total_request_num);
                     // 数据聚合
-                    $data = ['total_request'=> $total_request_num, 'tick_time'=>$tick_time,'from_service'=>$this->sys_collector_config['from_service'] ?? '', 'timestamp'=>date('Y-m-d H:i:s')];
+                    $data = ['total_request'=> $total_request_num, 'tick_time'=>$tick_time, 'from_service'=>$this->sys_collector_config['from_service'] ?? '', 'timestamp'=>date('Y-m-d H:i:s')];
                     $data['sys_collector_message'] = $sys_info;
                     switch($type) {
                         case SWOOLEFY_SYS_COLLECTOR_UDP:
@@ -111,8 +111,8 @@ class SysProcess extends AbstractProcess {
 	protected function sendByUdp(array $data = []) {
         $udpClient = new \Swoole\Coroutine\Client(SWOOLE_SOCK_UDP);
 		$host = $this->sys_collector_config['host'];
-		$port = $this->sys_collector_config['port'];
-		$timeout = $this->sys_collector_config['timeout'] ?? 3;
+		$port = (int)$this->sys_collector_config['port'];
+		$timeout = (int)$this->sys_collector_config['timeout'] ?? 3;
 		$service = $this->sys_collector_config['target_service'];
 		$event = $this->sys_collector_config['event'];
 		// 组合消息,udp的数据格式

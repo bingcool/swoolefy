@@ -48,7 +48,7 @@ class RpcHandler extends Swoole implements HandlerInterface {
 	public function bootstrap($recv) {}
 
 	/**
-	 * run 完成初始化后,路由匹配和创建访问实例
+	 * run 完成初始化后路由匹配和创建访问实例
 	 * @param  int   $fd
 	 * @param  mixed $payload
      * @throws \Throwable

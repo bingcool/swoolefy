@@ -198,9 +198,7 @@ class Predis extends RedisConnection {
 	 */
 	public function __construct($parameters = null, $options = null) {
 		if($parameters) {
-			$this->redis = new \Predis\Client($parameters, $options);
-			$this->parameters = $parameters;
-			$this->options = $options;
+            $this->buildRedis($parameters, $options);
 			$this->isInitConfig = true;
 		}
 	}
@@ -216,12 +214,21 @@ class Predis extends RedisConnection {
 			return true;
 		}
 		if(is_object($this->redis)) {
-			unset($this->redis);
+            $this->redis->disconnect();
+            $this->redis = null;
 		}
-		$this->redis = new \Predis\Client($parameters, $options);
-		$this->parameters = $parameters;
-		$this->options = $options;
+		$this->buildRedis($parameters, $options);
 	}
+
+    /**
+     * @param array $parameters
+     * @param $options
+     */
+	protected function buildRedis(array $parameters, $options) {
+        $this->redis = new \Predis\Client($parameters, $options);
+        $this->parameters = $parameters;
+        $this->options = $options;
+    }
 
 	/**
 	 * __call 重载
