@@ -19,7 +19,7 @@ use Swoolefy\Core\RpcEventInterface;
 
 abstract class RpcServer extends TcpServer implements RpcEventInterface {
     /**
-     * __construct 初始化
+     * __construct
      * @param array $config
      * @throws \Exception
      */

@@ -153,6 +153,7 @@ class Producer {
      * @param int $partition
      * @param int $msgFlag
      * @return void
+     * @throws Exception
      */
     public function produce(
         string $payload,
@@ -178,6 +179,7 @@ class Producer {
      * @param array|null $headers
      * @param int $partition
      * @param int $msgFlag
+     * @throws Exception
      */
     public function producev(
         string $payload,

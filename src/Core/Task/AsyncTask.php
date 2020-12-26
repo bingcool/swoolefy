@@ -26,22 +26,25 @@ class AsyncTask implements AsyncTaskInterface {
      */
     public static function registerTask($callable, $data = []) {
         if(is_string($callable)) {
-            throw new \Exception("AsyncTask::registerTask() function first params:callable must be an array", 1);
+            throw new \Exception("AsyncTask::registerTask() function first params:callable must be an array");
         }
 
         // 在worker进程中可以调用异步任务进程，异步任务进程中不能调用异步进程
         if(!self::isWorkerProcess()) {
-            throw new \Exception("AsyncTask::registerTask() Task Only Use In Worker Process!");
+            throw new \Exception("AsyncTask::registerTask() Task Only Use In Worker Process");
         }
 
         $callable[0] = str_replace('/', '\\', trim($callable[0],'/'));
         $fd = is_object(Application::getApp()) ? Application::getApp()->fd : null;
-        // udp没有连接概念，存在client_info
         if(BaseServer::isUdpApp()) {
-            $fd = is_object(Application::getApp()) ? Application::getApp()->getClientInfo() : null;
+            /**@var \Swoolefy\Udp\UdpHandler $app*/
+            $app = Application::getApp();
+            // udp没有连接概念,存在client_info
+            if(is_object($app)) $fd = $app->getClientInfo();
         }
-        // http的fd其实没有实用意义
+
         if(BaseServer::isHttpApp()) {
+            //http的fd其实没有实用意义
             $fd = is_object(Application::getApp()) ? Application::getApp()->request->fd : null;
         }
         $task_id = Swfy::getServer()->task(serialize([$callable, $data, $fd]));

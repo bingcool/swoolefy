@@ -44,7 +44,7 @@ abstract class PDOConnection implements ConnectionInterface {
         // fetchType
         'fetch_type' => PDO::FETCH_ASSOC,
         // 是否需要断线重连
-        'break_reconnect' => false,
+        'break_reconnect' => true,
         // 是否支持事务嵌套
         'support_savepoint' => false,
         // sql执行日志条目设置,不能设置太大,适合调试使用,设置为0，则不使用
@@ -197,7 +197,7 @@ abstract class PDOConnection implements ConnectionInterface {
             $endTime = microtime(true);
             $this->log('Connect start', 'Connect successful, Spend Time='.($endTime - $startTime));
             return $this->PDOInstance;
-        } catch (\PDOException $e) {
+        } catch (\PDOException|\Exception|\Throwable $e) {
             if($autoConnection) {
                 $this->log('Connect failed, try to connect once again', 'Connect failed, errorMsg='.$e->getMessage());
                 return $this->connect([], false, true);
@@ -258,7 +258,7 @@ abstract class PDOConnection implements ConnectionInterface {
             $this->log('Execute sql end','Execute successful, Execute time='.($queryEndTime - $queryStartTime));
             $this->reConnectTimes = 0;
             return $this->PDOStatement;
-        } catch (\Throwable | \Exception $e) {
+        } catch (\PDOException|\Exception|\Throwable $e) {
             if($this->reConnectTimes < 4 && $this->isBreak($e)) {
                 ++$this->reConnectTimes;
                 return $this->close()->PDOStatementHandle($sql, $bindParams);
@@ -292,8 +292,7 @@ abstract class PDOConnection implements ConnectionInterface {
      * 参数绑定
      * 支持 [':name'=>'value',':id'=>123] 对应命名占位符
      * 或者 ['value',123] 对应问号占位符
-     * @access public
-     * @param array $bindParams 要绑定的参数列表
+     * @param array $bindParams
      * @return void
      * @throws \Exception
      */
@@ -384,6 +383,7 @@ abstract class PDOConnection implements ConnectionInterface {
      * @param string $table
      * @param array $fields
      * @param array $dataSet
+     * @return integer
      */
     public function batchInsert(string $table, array $fields, array $dataSet) {
         $fieldStr = implode(',', $fields);
@@ -420,7 +420,7 @@ abstract class PDOConnection implements ConnectionInterface {
 
         $sql .= implode(',', $sqlArr);
 
-        $this->createCommand($sql)->insert();
+        return $this->createCommand($sql)->insert();
     }
 
     /**
@@ -428,7 +428,7 @@ abstract class PDOConnection implements ConnectionInterface {
      * @param int $fetchType
      * @return array|mixed
      */
-    public function findOne(array $bindParams =[], $fetchType = PDO::FETCH_ASSOC)
+    public function findOne(array $bindParams =[], int $fetchType = PDO::FETCH_ASSOC)
     {
         return $this->queryOne($bindParams, $fetchType);
     }
@@ -438,7 +438,7 @@ abstract class PDOConnection implements ConnectionInterface {
      * @param int $fetchType
      * @return array|mixed
      */
-    public function queryOne(array $bindParams =[], $fetchType = PDO::FETCH_ASSOC) {
+    public function queryOne(array $bindParams =[], int $fetchType = PDO::FETCH_ASSOC) {
         $this->PDOStatementHandle($this->queryStr, $bindParams);
         $result = $this->PDOStatement->fetch($fetchType);
         $this->PDOStatement->closeCursor();
@@ -564,8 +564,8 @@ abstract class PDOConnection implements ConnectionInterface {
 
     /**
      * 获取数据表信息
-     * @param string  $tableName 数据表名
-     * @param string $fetch     获取信息类型 值包括 fields type bind pk
+     * @param string $tableName 数据表名
+     * @param string $fetch  获取信息类型 值包括 fields type bind pk
      * @return mixed
      */
     public function getTableInfo(string $tableName, string $fetch = '')
@@ -766,16 +766,15 @@ abstract class PDOConnection implements ConnectionInterface {
             }
             $this->reConnectTimes = 0;
             $this->log('Start transaction','reConnectTimes='.$this->reConnectTimes);
-        } catch (\Throwable $e) {
-            if ($this->reConnectTimes < 4 && $this->isBreak($e)) {
+        } catch (\PDOException|\Exception|\Throwable $exception) {
+            if ($this->reConnectTimes < 4 && $this->isBreak($exception)) {
                 --$this->transTimes;
                 ++$this->reConnectTimes;
                 $this->close()->beginTransaction();
                 $this->log( 'Start transaction failed, try to start again','reConnectTimes='.$this->reConnectTimes);
             }
-            throw $e;
+            throw $exception;
         }
-
     }
 
     /**

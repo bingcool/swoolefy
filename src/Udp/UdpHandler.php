@@ -71,7 +71,7 @@ class UdpHandler extends Swoole implements HandlerInterface {
             $this->client_info = $clientInfo;
             // worker进程
             if($this->isWorkerProcess()) {
-                $dataGramItems = explode(self::EOF, $payload);
+                $dataGramItems = explode(static::EOF, $payload);
                 if(count($dataGramItems) == 3) {
                     list($service, $event, $params) = $dataGramItems;
                     if(is_string($params)) {

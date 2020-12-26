@@ -39,6 +39,11 @@ class ProcessManager {
 	private $processList = [];
 
     /**
+     * @var array
+     */
+	private $processListInfo = [];
+
+    /**
      * __construct 
      */
 	private function __construct() {
@@ -77,11 +82,19 @@ class ProcessManager {
             /**@var AbstractProcess $process */
             $process = new $processClass($processName, $async, $args, $extend_data, $enable_coroutine);
             $this->processList[$key] = $process;
+            $this->processListInfo[$processName] = ['process_name'=>$processName, 'class'=>$processClass];
             return $process;
         }catch (\Exception $exception){
             throw $exception;
         }
 	}
+
+    /**
+     * @return array
+     */
+	public function getProcessListInfo() {
+	    return $this->processListInfo;
+    }
 
 	/**
 	 * getProcessByName 通过名称获取一个进程
@@ -181,12 +194,17 @@ class ProcessManager {
         $read = [$swooleProcess];
         $write = [];
         $except = [];
-        if($timeOut < 1) {
-            $timeOut = 1;
+        if(function_exists('swoole_client_select')) {
+            $ret = swoole_client_select($read, $write, $except, $timeOut);
+        }else {
+            if($timeOut < 1) {
+                $timeOut = 1;
+            }
+            $timeOut = (int)$timeOut;
+            $ret = stream_select($read, $write, $except, $timeOut);
         }
-        $timeOut = (int)$timeOut;
-        $ret = stream_select($read, $write, $except, $timeOut);
-        if($ret){
+
+        if($ret) {
             $result = $swooleProcess->read(64 * 1024);
         }
         return $result;

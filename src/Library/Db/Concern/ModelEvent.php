@@ -36,12 +36,12 @@ trait ModelEvent
 
     /**
      * 当前操作的事件响应
-     * @param  bool $event  是否需要事件响应
+     * @param  bool $withEvent  是否需要事件响应
      * @return $this
      */
-    public function withEvent(bool $event)
+    public function withEvent(bool $withEvent)
     {
-        $this->withEvent = $event;
+        $this->withEvent = $withEvent;
         return $this;
     }
 
@@ -67,7 +67,7 @@ trait ModelEvent
             return true;
         }
         $onEvent = self::studly($event);
-        $call = 'on' . $onEvent;
+        $eventFunction = 'on' . $onEvent;
 
         try {
             $result = null;
@@ -76,8 +76,8 @@ trait ModelEvent
                 $callFunction = $this->customEventHandlers[$onEvent];
                 $result = $callFunction->call($this);
             }else {
-                if(method_exists(static::class, $call) && !in_array($onEvent, $this->skipEvents)) {
-                    $result = $this->{$call}();
+                if(method_exists(static::class, $eventFunction) && !in_array($onEvent, $this->skipEvents)) {
+                    $result = $this->{$eventFunction}();
                 }
             }
 
@@ -88,11 +88,11 @@ trait ModelEvent
     }
 
     /**
-     * @param $event
+     * @param string $event
      * @param \Closure $func
      * @throws Exception
      */
-    public function setEventHandle($event, \Closure $func)
+    public function setEventHandle(string $event, \Closure $func)
     {
         if(!in_array($event, [
             static::BEFORE_INSERT,
@@ -102,7 +102,7 @@ trait ModelEvent
             static::BEFORE_DELETE,
             static::AFTER_DELETE
         ])) {
-            throw new \Exception("addEventHandle first argument of eventName type error");
+            throw new \Exception("AddEventHandle first argument of eventName type error");
         }
 
         $this->customEventHandlers[$event] = $func;
@@ -112,7 +112,7 @@ trait ModelEvent
      * @param string $event
      * @return array|null
      */
-    public function getEventHandle($event = '')
+    public function getEventHandle(string $event = '')
     {
         if($event) {
             $handle = $this->customEventHandlers[$event] ?? null;

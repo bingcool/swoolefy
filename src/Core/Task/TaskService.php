@@ -22,7 +22,7 @@ class TaskService extends BService {
     public $task_id;
 
     /**
-     * $from_worker_id 记录当前任务from的worssker投递
+     * $from_worker_id 记录当前任务from的worker投递
      * @var int
      */
     public $from_worker_id;

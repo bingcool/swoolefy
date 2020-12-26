@@ -39,7 +39,7 @@ class CoroutinePools {
      */
     public function addPool(
         $pool_name,
-        array $config = [],
+        array $config,
         callable $constructor
     ) {
         $config = array_merge(self::DefaultConfig, $config);

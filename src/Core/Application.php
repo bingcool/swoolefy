@@ -121,7 +121,7 @@ class Application {
 	/**
 	 * getApp 
 	 * @param  int|null $coroutine_id
-	 * @return App|array
+	 * @return App|Swoole|array
 	 */
 	public static function getApp($coroutine_id = null) {
 		$cid = CoroutineManager::getInstance()->getCoroutineId();

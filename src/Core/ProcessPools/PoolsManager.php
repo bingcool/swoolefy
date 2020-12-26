@@ -35,11 +35,25 @@ class PoolsManager {
         ]
     ];
 
+    /**
+     * @var int
+     */
     private $total_process_num = 0;
 
+    /**
+     * @var array
+     */
     private $processList = [];
 
+    /**
+     * @var int
+     */
     private $worker_num = 1;
+
+    /**
+     * @var array
+     */
+    private $processListInfo = [];
 
     /**
      * __construct
@@ -96,11 +110,16 @@ class PoolsManager {
                     $process = new $processClass($processName.'@'.$i.'@'.$j, $async, $args, $extend_data, $enable_coroutine);
                     $process->setBindWorkerId($i);
                     $this->processList[$key][$i][$j] = $process;
+                    $this->processListInfo[$processName] = ['process_name'=>$processName.'@'.$i.'@'.$j, 'bind_worker_num'=>$i,'process_worker_num'=>$j, 'class'=>$processClass];
                 }catch (\Exception $exception) {
                     throw $exception;
                 }
             }
         }
+    }
+
+    public function getProcessListInfo() {
+        return $this->processListInfo;
     }
 
     /**
@@ -188,7 +207,7 @@ class PoolsManager {
             }
             return true;
         }
-
+        return false;
     }
 
     /**
@@ -228,11 +247,15 @@ class PoolsManager {
         $read = [$swooleProcess];
         $write = [];
         $except = [];
-        if($timeOut < 1) {
-            $timeOut = 1;
+        if(function_exists('swoole_client_select')) {
+            $ret = swoole_client_select($read, $write, $except, $timeOut);
+        }else {
+            if($timeOut < 1) {
+                $timeOut = 1;
+            }
+            $timeOut = (int)$timeOut;
+            $ret = stream_select($read, $write, $except, $timeOut);
         }
-        $timeOut = (int)$timeOut;
-        $ret = stream_select($read, $write, $except, $timeOut);
         if($ret){
             $result = $swooleProcess->read(64 * 1024);
         }

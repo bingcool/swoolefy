@@ -69,7 +69,7 @@ class MqttEvent {
      * @param $password
      * @return bool
      */
-    public function auth($username, $password): bool
+    public function verify($username, $password): bool
     {
         // todo auth username and password
         return true;

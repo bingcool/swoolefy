@@ -46,8 +46,7 @@ class GoWaitGroup {
         Coroutine::create(function (...$params) use($callBack) {
             try{
                 $this->count++;
-                $args = func_get_args();
-                call_user_func($callBack, ...$args);
+                call_user_func($callBack, ...$params);
             }catch (\Throwable $throwable) {
                 $this->count--;
                 BaseServer::catchException($throwable);
