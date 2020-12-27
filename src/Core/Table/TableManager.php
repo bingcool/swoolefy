@@ -83,7 +83,7 @@ class TableManager {
 	 * @param  string $field
 	 * @return mixed       
 	 */
-	public static function get(string $table, string $key, $field = null) {
+	public static function get(string $table, string $key, string $field = null) {
 	    return self::getTable($table)->get($key, $field);
 	}
 

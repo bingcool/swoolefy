@@ -99,45 +99,6 @@ class WebsocketHandler extends Swoole implements HandlerInterface {
 	}
 
 	/**
-	 * handleBinary 处理二进制数据
-	 * @param  int   $fd
-	 * @param  array $payload
-     * @throws \Exception
-	 * @return void
-	 */
-	public function handleBinary($fd, $payload) {
-	    try {
-	        if(!$this->isWorkerProcess()) {
-                // 任务task进程,不处理二进制数据
-                throw new \Exception("Task process can not handle binary data");
-            }
-            // 必须要执行父类的run方法,注意$recv是数据，第三个元素是二进制数据，为节省内存，不传这个元素到bootstrap函数中
-            $binaryRecv = is_array($payload) ? array_slice($payload, 0, 2) : [];
-            parent::run($fd, $binaryRecv);
-            // worker进程
-            if($this->isWorkerProcess()) {
-                if(is_array($payload) && count($payload) == 3) {
-                    list($service, $event, $buffer) = $payload;
-                }
-                if($service && $event) {
-                    $callable = [$service, $event];
-                }
-            }
-
-            if($callable && $buffer) {
-                $dispatch = new ServiceDispatch($callable, $buffer);
-                $dispatch->dispatch();
-            }
-
-        } finally {
-            // 必须执行
-            if(!$this->is_defer) {
-                parent::end();
-            }
-        }
-	}
-
-	/**
 	 * ping 
 	 * @param    string   $evnet
 	 * @return   boolean

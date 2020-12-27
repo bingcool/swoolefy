@@ -252,10 +252,10 @@ class App extends \Swoolefy\Core\Component {
 	 * @return void
 	 */
 	public function end() {
-        // remove
-        ZFactory::removeInstance();
 		// log handle
         $this->handleLog();
+        // remove
+        ZFactory::removeInstance();
         // push obj pools
         $this->pushComponentPools();
         // remove App Instance

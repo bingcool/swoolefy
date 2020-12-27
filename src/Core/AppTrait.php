@@ -257,10 +257,10 @@ trait AppTrait {
      * @param    string|null   $name
      * @return   mixed
      */
-    public function getServerParams(string $name = null) {
+    public function getServerParams(string $name = null, $default = null) {
     	if($name) {
     	    $name = strtoupper($name);
-    		$value = $this->request->server[$name] ?? null;
+    		$value = $this->request->server[$name] ?? $default;
     		return $value;	
     	}
     	return $this->request->server;
@@ -271,10 +271,10 @@ trait AppTrait {
      * @param    string|null   $name
      * @return   mixed
      */
-    public function getHeaderParams(string $name = null) {
+    public function getHeaderParams(string $name = null, $default = null) {
     	if($name) {
     	    $name = strtolower($name);
-    		$value = $this->request->header[$name] ?? null;
+    		$value = $this->request->header[$name] ?? $default;
     		return $value;
     	}
 
@@ -554,10 +554,10 @@ trait AppTrait {
 	 * redirect 重定向,使用这个函数后,要return,停止程序执行
 	 * @param    string  $url
 	 * @param    array   $params eg:['name'=>'ming','age'=>18]
-	 * @param    int     $code default 301
+	 * @param    int     $httpStatus default 301
 	 * @return   void
 	 */
-	public function redirect(string $url, array $params = [], int $code = 301) {
+	public function redirect(string $url, array $params = [], int $httpStatus = 301) {
         $queryString = '';
 		trim($url);
 		if(strncmp($url, '//', 2) && strpos($url, '://') === false) {
@@ -581,9 +581,9 @@ trait AppTrait {
 		}
         $url = $url.$queryString;
 		if(version_compare(swoole_version(), '4.4.5', '>')) {
-			$this->response->redirect($url, $code);
+			$this->response->redirect($url, $httpStatus);
 		}else {
-			$this->status($code);
+			$this->status($httpStatus);
 			$this->response->header('Location', $url);
 			$this->response->end();
 		}
@@ -680,7 +680,7 @@ trait AppTrait {
     }
 
     /**
-     * setCookie 设置HTTP响应的cookie信息，与PHP的setcookie()参数一致
+     * setCookie 设置HTTP响应的cookie信息,PHP的setCookie()参数一致
      * @param   string  $key   Cookie名称
      * @param   string  $value Cookie值
      * @param   int     $expire 有效时间

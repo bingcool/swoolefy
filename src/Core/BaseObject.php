@@ -102,8 +102,9 @@ class BaseObject {
     /**
      * @param string $logAction
      * @param array $log
+     * @return void
      */
-    public function setLog($logAction, array $log) {
+    public function setLog(string $logAction, array $log) {
         if(!isset($this->logs[$logAction])) {
             $this->logs[$logAction] = [];
         }

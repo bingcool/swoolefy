@@ -79,7 +79,9 @@ class Parallel {
             foreach($chunk as $key=>$callable) {
                 if(in_array($key, $this->ignoreCallbacks)) unset($chunk[$key]);
             }
-            $res = GoWaitGroup::multiCall($chunk, $timeOut);
+            if($chunk) {
+                $res = GoWaitGroup::multiCall($chunk, $timeOut);
+            }
             unset($chunks[$k]);
             $result = array_merge($result, $res ?? []);
         }
