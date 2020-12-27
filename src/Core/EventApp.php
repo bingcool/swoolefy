@@ -68,7 +68,7 @@ class EventApp {
      *
 	 * @param  string $class
      * @param  array  $args
-     * @throws \Throwable
+     * @throws Exception
 	 * @return $this
 	 */
 	public function registerApp($class, array $args = []) {
@@ -78,7 +78,7 @@ class EventApp {
             try {
                 $this->event_app = $event_app;
                 call_user_func($class, $event_app);
-            }catch(\Throwable $throwable) {
+            }catch(\Exception|\Throwable $throwable) {
                 BaseServer::catchException($throwable);
             }finally {
             	if(!$this->event_app->isDefer()) {

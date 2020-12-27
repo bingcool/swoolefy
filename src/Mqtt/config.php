@@ -18,7 +18,7 @@ $app_config = include_once START_DIR_ROOT.'/'.APP_NAME.'/Config/config-'.SWOOLEF
 return [
     'app_conf' => $app_config, // 应用层配置，需要根据实际项目导入
 	'application_service' => '',
-    'exception_handler' => '',
+    'exception_handler' => \Swoolefy\Core\EventHandler::class,
 	'master_process_name' => 'php-swoolefy-mqtt-master',
 	'manager_process_name' => 'php-swoolefy-mqtt-manager',
 	'worker_process_name' => 'php-swoolefy-mqtt-worker',

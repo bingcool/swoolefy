@@ -215,7 +215,7 @@ abstract class AbstractProcess {
             \Swoole\Coroutine::create(function() {
                 try {
                     $this->runtimeCoroutineWait();
-                    (new \Swoolefy\Core\EventApp)->registerApp(function(EventController $eventApp) {
+                    (new \Swoolefy\Core\EventApp)->registerApp(function(EventController $event) {
                         $this->onShutDown();
                     });
                 }catch (\Throwable $throwable) {

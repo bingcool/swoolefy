@@ -46,7 +46,7 @@ class NotFound extends BService {
      */
 	public function error500(string $class, string $action) {
 	    $ret = 500;
-	    $msg = "Call Undefined Function Of {$class}::{$action}";
+	    $msg = "Call Undefined Method Of {$class}::{$action}";
         $responseData = Application::buildResponseData($ret, $msg);
 		if(BaseServer::isRpcApp()) {
 			$is_same_packet_struct = $this->serverClientPacketStructSame();

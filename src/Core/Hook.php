@@ -62,7 +62,11 @@ class Hook {
         }
 		if(isset(self::$hooks[$cid][$type])) {
 			foreach(self::$hooks[$cid][$type] as $func) {
-				$func();
+			    try {
+                    $func();
+                }catch (\Exception $e) {
+			        BaseServer::catchException($e);
+                }
 			}
 		}
 		// afterRequest钩子是目前应用实例生命周期最后执行的，直接将该协程的所有钩子函数都unset
