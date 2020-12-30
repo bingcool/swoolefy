@@ -17,6 +17,7 @@ use Swoole\Server;
 use Swoolefy\Core\UdpEventInterface;
 
 abstract class UdpEventServer extends UdpServer implements UdpEventInterface {
+
     /**
      * __construct 初始化
      * @param array $config

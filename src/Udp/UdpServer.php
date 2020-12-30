@@ -79,7 +79,7 @@ abstract class UdpServer extends BaseServer {
 		});
 
 		/**
-		 * managerStart回调
+		 * managerStart
 		 */
 		$this->udpServer->on('ManagerStart', function(Server $server) {
             try{
@@ -92,7 +92,7 @@ abstract class UdpServer extends BaseServer {
 		});
 
         /**
-         * managerStop回调
+         * managerStop
          */
         $this->udpServer->on('ManagerStop', function(Server $server) {
             try{
@@ -103,7 +103,7 @@ abstract class UdpServer extends BaseServer {
         });
 
 		/**
-		 * 启动worker进程监听回调，设置定时器
+		 * WorkerStart
 		 */
 		$this->udpServer->on('WorkerStart', function(Server $server, $worker_id) {
 			// 记录主进程加载的公共files,worker重启不会在加载的
@@ -135,7 +135,7 @@ abstract class UdpServer extends BaseServer {
 		});
 
 		/**
-         * 监听数据接收事件
+         * Packet
          */
 		$this->udpServer->on('Packet', function(Server $server, $data, $clientInfo) {
 			try{
@@ -148,7 +148,7 @@ abstract class UdpServer extends BaseServer {
 		});
 
 		/**
-		 * 处理异步任务
+		 * task
 		 */
         if(parent::isTaskEnableCoroutine()) {
             $this->udpServer->on('task', function(Server $server, \Swoole\Server\Task $task) {
@@ -174,7 +174,7 @@ abstract class UdpServer extends BaseServer {
         }
 
 		/**
-		 * 异步任务完成
+		 * finish
 		 */
 		$this->udpServer->on('finish', function(Server $server, $task_id, $data) {
 			try{
@@ -187,7 +187,7 @@ abstract class UdpServer extends BaseServer {
 		});
 
 		/**
-		 * 处理pipeMessage
+		 * pipeMessage
 		 */
 		$this->udpServer->on('pipeMessage', function(Server $server, $from_worker_id, $message) {
 			try {
@@ -201,7 +201,7 @@ abstract class UdpServer extends BaseServer {
 		});
 
 		/**
-		 * 停止worker进程
+		 * WorkerStop
 		 */
 		$this->udpServer->on('WorkerStop', function(Server $server, $worker_id) {
 			try{
@@ -214,7 +214,7 @@ abstract class UdpServer extends BaseServer {
 		});
 
 		/**
-		 * worker进程退出回调函数
+		 * WorkerExit
 		 */
         $this->udpServer->on('WorkerExit', function(Server $server, $worker_id) {
             \Swoole\Coroutine::create(function () use($server, $worker_id) {
@@ -229,7 +229,7 @@ abstract class UdpServer extends BaseServer {
         });
 
         /**
-         * worker进程异常错误回调函数
+         * WorkerError
          * 注意，此回调是在manager进程中发生的，不能使用创建协程和使用协程api,否则报错
          */
         $this->udpServer->on('WorkerError', function(Server $server, $worker_id, $worker_pid, $exit_code, $signal) {

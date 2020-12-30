@@ -151,7 +151,7 @@ class ProcessManager {
      * @param float $timeOut
      * @return bool
      */
-    public function writeByProcessName(string $name, $data, \Closure $callback = null, $timeOut = 3) {
+    public function writeByProcessName(string $name, $data, \Closure $callback = null, float $timeOut = 3) {
         $process = $this->getProcessByName($name);
         if($process){
             if(is_array($data)) {

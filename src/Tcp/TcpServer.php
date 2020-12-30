@@ -87,7 +87,7 @@ abstract class TcpServer extends BaseServer {
 		});
 
 		/**
-		 * managerStart回调
+		 * managerStart
 		 */
 		$this->tcpServer->on('ManagerStart', function(\Swoole\Server $server) {
             try{
@@ -99,7 +99,7 @@ abstract class TcpServer extends BaseServer {
 		});
 
         /**
-         * managerStop回调
+         * managerStop
          */
         $this->tcpServer->on('ManagerStop', function(\Swoole\Server $server) {
             try {
@@ -110,7 +110,7 @@ abstract class TcpServer extends BaseServer {
         });
 
 		/**
-		 * 启动worker进程监听回调，设置定时器
+		 * WorkerStart
 		 */
 		$this->tcpServer->on('WorkerStart', function(\Swoole\Server $server, $worker_id) {
 			// 记录主进程加载的公共files,worker重启不会在加载的
@@ -141,7 +141,7 @@ abstract class TcpServer extends BaseServer {
 		});
 
 		/**
-		 * tcp连接
+		 * tcp connect
 		 */
 		$this->tcpServer->on('connect', function(\Swoole\Server $server, $fd) {
     		try{
@@ -154,7 +154,7 @@ abstract class TcpServer extends BaseServer {
 		});
 
 		/**
-		 * 监听数据接收事件
+		 * receive
 		 */
 		$this->tcpServer->on('receive', function(\Swoole\Server $server, $fd, $reactor_id, $data) {
 			try{
@@ -175,7 +175,7 @@ abstract class TcpServer extends BaseServer {
 		});
 
 		/**
-		 * 处理异步任务
+		 * task
 		 */
         if(parent::isTaskEnableCoroutine()) {
             $this->tcpServer->on('task', function(\Swoole\Server $server, \Swoole\Server\Task $task) {
@@ -202,7 +202,7 @@ abstract class TcpServer extends BaseServer {
         }
 
 		/**
-		 * 异步任务完成
+		 * finish
 		 */
 		$this->tcpServer->on('finish', function(\Swoole\Server $server, $task_id, $data) {
 		    try{
@@ -216,7 +216,7 @@ abstract class TcpServer extends BaseServer {
 		});
 
 		/**
-		 * 处理pipeMessage
+		 * pipeMessage
 		 */
 		$this->tcpServer->on('pipeMessage', function(\Swoole\Server $server, $from_worker_id, $message) {
 			try {
@@ -230,7 +230,7 @@ abstract class TcpServer extends BaseServer {
 		});
 
 		/**
-		 * 关闭连接
+		 * close
 		 */
 		$this->tcpServer->on('close', function(\Swoole\Server $server, $fd, $reactorId) {
 			try{
@@ -247,7 +247,7 @@ abstract class TcpServer extends BaseServer {
 		});
 
 		/**
-		 * 停止worker进程
+		 * WorkerStop
 		 */
 		$this->tcpServer->on('WorkerStop', function(\Swoole\Server $server, $worker_id) {
 			try{
@@ -260,7 +260,7 @@ abstract class TcpServer extends BaseServer {
 		});
 
 		/**
-		 * worker进程退出回调函数
+		 * WorkerExit
 		 */
         $this->tcpServer->on('WorkerExit', function(\Swoole\Server $server, $worker_id) {
             \Swoole\Coroutine::create(function () use($server, $worker_id) {
@@ -275,7 +275,7 @@ abstract class TcpServer extends BaseServer {
         });
 
         /**
-         * worker进程异常错误回调函数
+         * WorkerError
          * 注意，此回调是在manager进程中发生的，不能使用创建协程和使用协程api,否则报错
          */
         $this->tcpServer->on('WorkerError', function(\Swoole\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {

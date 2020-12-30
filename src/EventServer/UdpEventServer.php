@@ -14,6 +14,7 @@ namespace protocol\udp;
 use Swoolefy\Core\Swfy;
 
 class UdpEventServer extends \Swoolefy\Udp\UdpEventServer {
+
     /**
      * __construct 初始化
      * @param array $config

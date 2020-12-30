@@ -14,6 +14,7 @@ namespace protocol\websocket;
 use Swoolefy\Core\Swfy;
 
 class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer {
+
     /**
      * __construct 初始化
      * @param array $config

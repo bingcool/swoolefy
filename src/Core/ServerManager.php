@@ -64,7 +64,7 @@ class ServerManager {
 	 * @return boolean
 	 */
 	public function stopWorker(int $worker_id = -1, bool $waitEvent = false) {
-        Swfy::getServer()->stop($worker_id, $waitEvent);
+        Swfy::getServer()->stop($worker_id);
 		return true;
 	}
 
@@ -76,7 +76,7 @@ class ServerManager {
 	 * @return mixed
 	 */
 	public function getClientInfo(int $fd, int $extraData, bool $ignoreError = false) {
-		return Swfy::getServer()->getClientInfo($fd, $extraData, $ignoreError);
+		return Swfy::getServer()->getClientInfo($fd, $extraData);
 	}
 
     /**

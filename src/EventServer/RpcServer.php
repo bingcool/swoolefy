@@ -14,6 +14,7 @@ namespace protocol\rpc;
 use Swoolefy\Core\Swfy;
 
 class RpcServer extends \Swoolefy\Rpc\RpcServer {
+
     /**
      * __construct 初始化
      * @param array $config
