@@ -220,7 +220,7 @@ class PoolsManager {
      * @return Process
      * @throws Exception
      */
-    public function writeByProcessPoolsName(string $processName, $data, \Closure $callback = null, $timeOut = 3) {
+    public function writeByProcessPoolsName(string $processName, $data, \Closure $callback = null, float $timeOut = 3) {
         $process = $this->getProcessPoolsByName($processName);
         if($process){
             if(is_array($data)) {

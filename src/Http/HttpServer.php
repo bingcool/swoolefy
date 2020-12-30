@@ -81,7 +81,7 @@ abstract class HttpServer extends BaseServer {
 		});
 
 		/**
-		 * managerStart回调
+		 * managerStart
 		 */
 		$this->webServer->on('ManagerStart', function(\Swoole\Http\Server $server) {
 		    try{
@@ -93,7 +93,7 @@ abstract class HttpServer extends BaseServer {
 		});
 
         /**
-         * managerStop回调
+         * managerStop
          */
         $this->webServer->on('ManagerStop', function(\Swoole\Http\Server $server) {
             try{
@@ -104,7 +104,7 @@ abstract class HttpServer extends BaseServer {
         });
 
 		/**
-		 * 启动worker进程监听回调，设置定时器
+		 * WorkerStart
 		 */
 		$this->webServer->on('WorkerStart', function(\Swoole\Http\Server $server, $worker_id) {
             // 启动动态运行时的Coroutine
@@ -128,15 +128,13 @@ abstract class HttpServer extends BaseServer {
        		// 全局配置
        		Swfy::setConf(self::$config);
             (new EventApp())->registerApp(function(EventController $event) use($server, $worker_id) {
-                // 启动的初始化函数
                 $this->startCtrl->workerStart($server, $worker_id);
-                // 延迟绑定
                 static::onWorkerStart($server, $worker_id);
             });
 		});
 
 		/**
-		 * 接受http请求
+		 * request
 		 */
 		$this->webServer->on('request', function(Request $request, Response $response) {
 			try{
@@ -149,7 +147,7 @@ abstract class HttpServer extends BaseServer {
 		});
 
 		/**
-		 * 异步任务
+		 * task
 		 */
         if(parent::isTaskEnableCoroutine()) {
             $this->webServer->on('task', function(\Swoole\Http\Server $server, \Swoole\Server\Task $task) {
@@ -176,7 +174,7 @@ abstract class HttpServer extends BaseServer {
         }
 
 		/**
-		 * 处理异步任务
+		 * finish
 		 */
 		$this->webServer->on('finish', function(\Swoole\Http\Server $server, $task_id, $data) {
             try {
@@ -190,7 +188,7 @@ abstract class HttpServer extends BaseServer {
 		});
 
 		/**
-		 * 处理pipeMessage
+		 * pipeMessage
 		 */
 		$this->webServer->on('pipeMessage', function(\Swoole\Http\Server $server, $src_worker_id, $message) {
 			try {
@@ -204,14 +202,14 @@ abstract class HttpServer extends BaseServer {
 		});
 
         /**
-         * worker进程停止回调函数
+         * workerStop
          */
         $this->webServer->on('WorkerStop', function(\Swoole\Http\Server $server, $worker_id) {
             $this->startCtrl->workerStop($server,$worker_id);
         });
 
 		/**
-		 * worker进程退出回调函数
+		 * workerExit
 		 */
         $this->webServer->on('WorkerExit', function(\Swoole\Http\Server $server, $worker_id) {
             \Swoole\Coroutine::create(function() use($server, $worker_id) {
@@ -226,7 +224,7 @@ abstract class HttpServer extends BaseServer {
         });
 
         /**
-         * worker进程异常错误回调函数
+         * WorkerError
          * 注意，此回调是在manager进程中发生的，不能使用创建协程和使用协程api,否则报错
          */
         $this->webServer->on('WorkerError', function(\Swoole\Http\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {

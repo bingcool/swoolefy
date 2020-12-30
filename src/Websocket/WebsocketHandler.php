@@ -20,7 +20,7 @@ use Swoolefy\Core\HandlerInterface;
 class WebsocketHandler extends Swoole implements HandlerInterface {
 
 	/**
-	 * __construct 初始化
+	 * __construct
 	 * @param    array  $config
 	 */
 	public function __construct(array $config=[]) {
@@ -43,7 +43,7 @@ class WebsocketHandler extends Swoole implements HandlerInterface {
 
 
 	/**
-	 * run 服务调度，创建访问实例，处理String数据
+	 * run 服务调度
 	 * @param  int   $fd
 	 * @param  mixed $payload
      * @throws \Throwable

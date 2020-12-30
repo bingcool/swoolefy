@@ -14,6 +14,7 @@ namespace protocol\mqtt;
 use Swoolefy\Core\Swfy;
 
 class MqttServer extends \Swoolefy\Mqtt\MqttServer {
+
     /**
      * __construct 初始化
      * @param array $config
