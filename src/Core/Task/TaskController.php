@@ -46,7 +46,6 @@ class TaskController extends EventController {
             throw new \Exception(__CLASS__." only use in task process");
         }
         parent::__construct();
-
     }
 
     /**

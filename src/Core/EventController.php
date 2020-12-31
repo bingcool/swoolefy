@@ -199,29 +199,6 @@ class EventController extends BaseObject {
 		$this->is_end = true;
 	}
 
-	/**
-	 * end 重新初始化一些静态变量
-	 */
-	public function end() {
-		if($this->is_end) {
-			return true;
-		}
-		// set End
-		$this->setEnd();
-		// call hook callable
-		static::_afterAction();
-        // callHooks
-        $this->callAfterEventHook();
-        // handle log
-        $this->handleLog();
-        // remove
-		ZFactory::removeInstance();
-		// push obj pools
-		$this->pushComponentPools();
-		// remove App Instance
-		Application::removeApp($this->coroutine_id);
-	}
-
     /**
      * defer
      * @return void
@@ -241,4 +218,28 @@ class EventController extends BaseObject {
     public function isDefer() {
         return $this->is_defer;
     }
+
+    /**
+     * end 重新初始化一些静态变量
+     */
+    public function end() {
+        if($this->is_end) {
+            return true;
+        }
+        // set End
+        $this->setEnd();
+        // call hook callable
+        static::_afterAction();
+        // callHooks
+        $this->callAfterEventHook();
+        // handle log
+        $this->handleLog();
+        // remove
+        ZFactory::removeInstance();
+        // push obj pools
+        $this->pushComponentPools();
+        // remove App Instance
+        Application::removeApp($this->coroutine_id);
+    }
+
 }

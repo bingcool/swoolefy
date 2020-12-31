@@ -37,46 +37,40 @@ class Tick {
 
     /**
      * tickTimer  循环定时器
-     * @param   int      $time_interval
+     * @param   int      $time_interval_ms
      * @param   callable $func         
      * @param   array    $params
      * @throws  mixed
      * @return  mixed
      */
-	public static function tickTimer($time_interval, $func, $params = null, $is_sington = false) {
-		if($time_interval <= 0) {
+	public static function tickTimer(int $time_interval_ms, callable $func, $params = null) {
+		if($time_interval_ms <= 0) {
             throw new \Exception(get_called_class()."::tickTimer() the first params 'time_interval' is requested more than 0 ms");
         }
 
-        if(!is_callable($func)) {
-            throw new \Exception(get_called_class()."::tickTimer() the second params 'func' is not callable type");
-        }
-
-        $timer_id = self::tick($time_interval, $func, $params, $is_sington);
+        $timer_id = self::tick($time_interval_ms, $func, $params);
 
         return $timer_id;
 	}
 
     /**
      * tick  循环定时器执行
-     * @param   int       $time_interval
+     * @param   int       $time_interval_ms
      * @param   callable  $func         
-     * @param   array     $user_params  
+     * @param   array     $params
      * @return  mixed
      */
-    public static function tick($time_interval, callable $func, $user_params = null, $is_sington = false) {
-        $tid = \Swoole\Timer::tick($time_interval, function($timer_id, $user_params) use($func) {
-            $params = [$user_params, $timer_id];
+    public static function tick(int $time_interval_ms, callable $func, $params = null) {
+        $tid = \Swoole\Timer::tick($time_interval_ms, function($timer_id, $params) use($func) {
             try {
                 if(is_array($func)) {
                     list($class, $action) = $func;
                     $tickTaskInstance = new $class;
-                    $tickTaskInstance->{$action}(...$params);
+                    $tickTaskInstance->{$action}(...[$params, $timer_id]);
                 }else if($func instanceof \Closure) {
                     $tickTaskInstance = new TickController();
-                    call_user_func($func, $user_params, $timer_id);
+                    call_user_func($func, $params, $timer_id);
                 }
-
             }catch(\Throwable $t) {
                 BaseServer::catchException($t);
             }finally {
@@ -89,11 +83,17 @@ class Tick {
                     }
                 }
             }
-            unset($tickTaskInstance, $class, $action, $user_params, $params, $func);
-        }, $user_params);
+            unset($tickTaskInstance, $class, $action, $user_params, $func);
+        }, $params);
 
         if($tid) {
-            self::$_tick_tasks[$tid] = array('callback'=>$func, 'params'=>$user_params, 'time_interval'=>$time_interval, 'timer_id'=>$tid, 'start_time'=>date('Y-m-d H:i:s',strtotime('now')));
+            self::$_tick_tasks[$tid] = [
+                'callback'=>$func,
+                'params'=>$params,
+                'time_interval'=>$time_interval_ms,
+                'timer_id'=>$tid,
+                'start_time'=>date('Y-m-d H:i:s', strtotime('now'))
+            ];
             $config = Swfy::getConf();
             if(isset($config['enable_table_tick_task']) && $config['enable_table_tick_task'] == true) {
                 TableManager::set('table_ticker', 'tick_timer_task', ['tick_tasks'=>json_encode(self::$_tick_tasks)]);
@@ -129,20 +129,18 @@ class Tick {
 
     /**
      * afterTimer 一次性定时器
-     * @param    int       $time_interval
+     * @param    int       $time_interval_ms
      * @param    callable  $func         
      * @param    array     $params
      * @throws   mixed
      * @return   mixed
      */
-    public static function afterTimer($time_interval, callable $func, $params = null) {
-        if($time_interval <= 0) {
+    public static function afterTimer(int $time_interval_ms, callable $func, $params = null) {
+        if($time_interval_ms <= 0) {
             throw new \Exception(get_called_class()."::afterTimer() the first params 'time_interval' is requested more then 0 ms");
         }
-        if(!is_callable($func)) {
-            throw new \Exception(get_called_class()."::afterTimer() the seconed params 'func' is not callable");
-        }
-        $timer_id = self::after($time_interval, $func, $params);
+
+        $timer_id = self::after($time_interval_ms, $func, $params);
         return $timer_id;
     }
 
@@ -150,22 +148,18 @@ class Tick {
      * after 一次性定时器执行
      * @return  mixed
      */
-    public static function after($time_interval, callable $func, $user_params = null) {
-        $tid = \Swoole\Timer::after($time_interval, function($user_params) use($func) {
-            $params = [];
-            if($user_params) {
-                $params = [$user_params];
-            }
+    public static function after(int $time_interval_ms, callable $func, $params = null) {
+        $tid = \Swoole\Timer::after($time_interval_ms, function($params) use($func) {
             try{
+                $timer_id = null;
                 if(is_array($func)) {
                     list($class, $action) = $func;
                     $tickTaskInstance = new $class;
-                    $tickTaskInstance->{$action}(...$params);
+                    $tickTaskInstance->{$action}(...[$params, $timer_id]);
                 }else if($func instanceof \Closure) {
                     $tickTaskInstance = new TickController;
-                    call_user_func($func, $user_params, $timer_id = null);
+                    call_user_func($func, $params, $timer_id);
                 }
-
             }catch (\Throwable $t) {
                 BaseServer::catchException($t);
             }finally {
@@ -180,14 +174,19 @@ class Tick {
             }
             // 执行完之后,更新目前的一次性任务项
             self::updateRunAfterTick();
-            unset($tickTaskInstance, $class, $action, $user_params, $params, $func);
-        }, $user_params);
+            unset($tickTaskInstance, $class, $action, $user_params, $func);
+        }, $params);
 
         if($tid) {
-            self::$_after_tasks[$tid] = array('callback'=>$func, 'params'=>$user_params, 'time_interval'=>$time_interval, 'timer_id'=>$tid, 'start_time'=>date('Y-m-d H:i:s',strtotime('now')));
+            self::$_after_tasks[$tid] = [
+                'callback'=>$func,
+                'params'=>$params,
+                'time_interval'=>$time_interval_ms,
+                'timer_id'=>$tid,
+                'start_time'=>date('Y-m-d H:i:s',strtotime('now'))
+            ];
             $config = Swfy::getConf();
             if(isset($config['enable_table_tick_task']) && $config['enable_table_tick_task'] == true) {
-
                 TableManager::set('table_after', 'after_timer_task', ['after_tasks'=>json_encode(self::$_after_tasks)]);
             }
         }

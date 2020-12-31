@@ -248,24 +248,6 @@ class App extends \Swoolefy\Core\Component {
     }
 
 	/**
-	 * request end
-	 * @return void
-	 */
-	public function end() {
-		// log handle
-        $this->handleLog();
-        // remove
-        ZFactory::removeInstance();
-        // push obj pools
-        $this->pushComponentPools();
-        // remove App Instance
-		Application::removeApp();
-        if(!$this->is_end) {
-            @$this->response->end();
-        }
-	}
-
-	/**
 	 * defer 
 	 * @return void
 	 */
@@ -278,6 +260,24 @@ class App extends \Swoolefy\Core\Component {
         	});
 		}
 	}
+
+    /**
+     * request end
+     * @return void
+     */
+    public function end() {
+        // log handle
+        $this->handleLog();
+        // remove
+        ZFactory::removeInstance();
+        // push obj pools
+        $this->pushComponentPools();
+        // remove App Instance
+        Application::removeApp();
+        if(!$this->is_end) {
+            @$this->response->end();
+        }
+    }
 
     /**
      * setEnd

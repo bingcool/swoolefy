@@ -270,22 +270,6 @@ class Swoole extends BaseObject {
         }
     }
 
-    /**
-     * @return void
-     */
-	public function end() {
-		// call hook callable
-		Hook::callHook(Hook::HOOK_AFTER_REQUEST);
-		// log handle
-        $this->handleLog();
-        // remove
-		ZFactory::removeInstance();
-		// push obj pools
-		$this->pushComponentPools();
-		// remove App Instance
-		Application::removeApp();
-	}
-
 	/**
 	 * defer 
 	 * @return void
@@ -298,5 +282,21 @@ class Swoole extends BaseObject {
         	});
 		}
 	}
+
+    /**
+     * @return void
+     */
+    public function end() {
+        // call hook callable
+        Hook::callHook(Hook::HOOK_AFTER_REQUEST);
+        // log handle
+        $this->handleLog();
+        // remove
+        ZFactory::removeInstance();
+        // push obj pools
+        $this->pushComponentPools();
+        // remove App Instance
+        Application::removeApp();
+    }
 
 }
