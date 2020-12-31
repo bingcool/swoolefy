@@ -26,7 +26,7 @@ class CrontabManager {
      * @param string $cron_name
      * @param string $expression
      * @param mixed  $func
-     * @throws \Exception
+     * @throws Exception
      */
 	public function addRule(string $cron_name, string $expression, $func) {
 	    if(!class_exists('Cron\\CronExpression')) {
@@ -56,23 +56,23 @@ class CrontabManager {
             }
             \Swoole\Timer::tick(1000, function($timer_id, $expression) use($class, $action, $cron_name) {
                 try{
-                    $cronInstance = new $class;
-                    $cronInstance->{$action}($expression, null, $cron_name);
+                    $cronControllerInstance = new $class;
+                    $cronControllerInstance->{$action}($expression, null, $cron_name);
                 }catch (\Throwable $throwable) {
                     BaseServer::catchException($throwable);
                 }finally {
-                    Application::removeApp($cronInstance->coroutine_id);
+                    Application::removeApp($cronControllerInstance->coroutine_id);
                 }
             }, $expression);
         }else {
             \Swoole\Timer::tick(1000, function($timer_id, $expression) use($func, $cron_name) {
                 try{
-                    $cronInstance = new CronController();
-                    $cronInstance->runCron($expression, $func, $cron_name);
+                    $cronControllerInstance = new CronController();
+                    $cronControllerInstance->runCron($expression, $func, $cron_name);
                 }catch (\Throwable $throwable) {
                     BaseServer::catchException($throwable);
                 }finally {
-                    Application::removeApp($cronInstance->coroutine_id);
+                    Application::removeApp($cronControllerInstance->coroutine_id);
                 }
             }, $expression);
         }

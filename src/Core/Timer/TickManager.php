@@ -21,25 +21,24 @@ class TickManager {
 
 	/**
 	 * tickTimer 循环定时器
-	 * @param   int    $time_interval
+	 * @param   int    $time_interval_ms
 	 * @param   mixed  $func         
 	 * @param   mixed  $params
-	 * @param   bool   $is_sington  $func是否是单例，默认false
 	 * @return  int
 	 */
-	public static function tickTimer($time_interval, $func, $params = null, $is_sington = false) {
-		return Tick::tickTimer($time_interval, $func, $params, $is_sington);
+	public static function tickTimer($time_interval_ms, $func, $params = null) {
+		return Tick::tickTimer($time_interval_ms, $func, $params);
 	}
 
 	/**
 	 * afterTimer 一次性定时器
-	 * @param  int   $time_interval
+	 * @param  int   $time_interval_ms
 	 * @param  mixed $func         
 	 * @param  mixed $params       
 	 * @return int
 	 */
-	public static function afterTimer($time_interval, $func, $params = null) {
-		return Tick::afterTimer($time_interval, $func, $params);
+	public static function afterTimer($time_interval_ms, $func, $params = null) {
+		return Tick::afterTimer($time_interval_ms, $func, $params);
 	}
 
 	/**

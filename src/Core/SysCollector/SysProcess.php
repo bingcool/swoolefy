@@ -75,7 +75,12 @@ class SysProcess extends AbstractProcess {
                     // 当前时间段内原子清空
                     $total_request_num && $atomic->sub($total_request_num);
                     // 数据聚合
-                    $data = ['total_request'=> $total_request_num, 'tick_time'=>$tick_time, 'from_service'=>$this->sys_collector_config['from_service'] ?? '', 'timestamp'=>date('Y-m-d H:i:s')];
+                    $data = [
+                        'total_request'=> $total_request_num,
+                        'tick_time'=>$tick_time,
+                        'from_service'=>$this->sys_collector_config['from_service'] ?? '',
+                        'timestamp'=>date('Y-m-d H:i:s')
+                    ];
                     $data['sys_collector_message'] = $sys_info;
                     switch($type) {
                         case SWOOLEFY_SYS_COLLECTOR_UDP:
