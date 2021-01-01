@@ -21,7 +21,7 @@ use Swoolefy\Core\WebsocketEventInterface;
 abstract class WebsocketEventServer extends WebsocketServer implements WebsocketEventInterface {
 
     /**
-     * __construct 初始化
+     * __construct
      * @param array $config
      * @throws \Exception
      */
@@ -30,7 +30,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	}
 
 	/**
-	 * onWorkerStart worker启动函数处理
+	 * onWorkerStart
 	 * @param    Server  $server
 	 * @param    int    $worker_id
 	 * @return   void
@@ -59,7 +59,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 	}
 
     /**
-     * onMessage 接受信息并处理信息
+     * onMessage
      * @param Server $server
      * @param object $frame
      * @return void

@@ -16,7 +16,7 @@ use Swoolefy\Core\Swfy;
 class HttpServer extends \Swoolefy\Http\HttpAppServer {
 
     /**
-     * __construct 初始化
+     * __construct
      * @param array $config
      * @throws \Exception
      */

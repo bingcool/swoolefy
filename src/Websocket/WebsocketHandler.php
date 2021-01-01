@@ -51,7 +51,7 @@ class WebsocketHandler extends Swoole implements HandlerInterface {
 	 */
 	public function run($fd, $payload, array $extend_data = []) {
 	    try {
-	        // heart
+	        // heartbeat
 	        if($this->isWorkerProcess()) {
                 $payload = array_values(json_decode($payload, true) ?? []);
                 if(is_array($payload) && count($payload) == 3) {
@@ -73,7 +73,7 @@ class WebsocketHandler extends Swoole implements HandlerInterface {
                     $callable = [$service, $event];
                 }
             }else {
-                // 任务task进程
+                // task进程
                 $is_task_process = true;
                 list($callable, $params) = $payload;
             }
@@ -123,7 +123,7 @@ class WebsocketHandler extends Swoole implements HandlerInterface {
     }
 
 	/**
-	 * author 认证
+	 * author
 	 * @return void
 	 */
 	public function author() {}

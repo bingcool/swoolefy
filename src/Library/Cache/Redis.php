@@ -134,9 +134,11 @@ class Redis extends RedisConnection {
             $result = $this->redis->{$method}(...$arguments);
             $this->log($method, $arguments);
             return $result;
-        }catch(\Exception $e) {
+        }catch(\RedisException|\Exception $e) {
             $this->log($method, $arguments, $e->getMessage());
             $this->log($method, $arguments, 'start to reConnect');
+            \Swoole\Coroutine\System::sleep(0.5);
+            $this->redis->close();
             $this->reConnect();
             $this->log($method, $arguments, "reConnect successful, start to try exec method={$method} again");
             $result = $this->redis->{$method}(...$arguments);

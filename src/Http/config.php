@@ -14,9 +14,10 @@ include_once START_DIR_ROOT.'/'.APP_NAME.'/Config/defines.php';
 // 加载应用层协议,根据自己项目实际路径记载
 $app_config = include_once START_DIR_ROOT.'/'.APP_NAME.'/Config/config-'.SWOOLEFY_ENV.'.php';
 
-// http协议层配置
+// http配置项
 return [
-    'app_conf' => $app_config, // 应用层配置，需要根据实际项目导入
+    // 应用层配置，需要根据实际项目导入
+    'app_conf' => $app_config,
 	'application_index' => '',
 	'event_handler' => \Swoolefy\Core\EventHandler::class,
     'exception_handler' => '',
@@ -27,7 +28,7 @@ return [
 	'host' => '0.0.0.0',
 	'port' => '9502',
 	'time_zone' => 'PRC',
-	'swoole_process_mode' => SWOOLE_PROCESS,//swoole的进程模式设置
+	'swoole_process_mode' => SWOOLE_PROCESS,
 	'include_files' => [],
     'runtime_enable_coroutine' => true,
 	'setting' => [

@@ -164,15 +164,13 @@ class HttpRoute extends AppDispatch {
 			return false;
 		}
 		if($module) {
-			// route参数数组
+			// route params array
 			$this->request->server['ROUTE_PARAMS'] = [3, [$module, $controller, $action]];
-			// 调用
 			$this->invoke($module, $controller, $action);
 			
 		}else {
-			// route参数数组
+			// route params array
 			$this->request->server['ROUTE_PARAMS'] = [2, [$controller, $action]];
-			// 调用 
 			$this->invoke($module = null, $controller, $action);
 		}
 		return true;
@@ -187,16 +185,13 @@ class HttpRoute extends AppDispatch {
 	 * @return boolean
 	 */
 	public function invoke($module = null, $controller = null, $action = null) {
-        // 匹配控制器文件
         $controller = $this->buildControllerClass($controller);
         if(!isset($this->app_conf['app_namespace'])) {
             $this->app_conf['app_namespace'] = APP_NAME;
         }
         if($module) {
             $filePath = APP_PATH . DIRECTORY_SEPARATOR . 'Module' . DIRECTORY_SEPARATOR . $module . DIRECTORY_SEPARATOR . $controller . '.php';
-            // 访问类的命名空间
             $class = $this->app_conf['app_namespace'] . '\\' . 'Module' . '\\' . $module . '\\' . $controller;
-            // 不存在请求类文件
             if(!$this->isExistRouteFile($class)) {
                 if(!is_file($filePath)) {
                     $targetNotFoundClassArr = $this->fileNotFound($class);
@@ -207,7 +202,6 @@ class HttpRoute extends AppDispatch {
             }
 
         }else {
-            // 访问类的命名空间
             $class = $this->app_conf['app_namespace'] . '\\' . 'Controller' . '\\' . $controller;
             if(!$this->isExistRouteFile($class)) {
                 $filePath = APP_PATH . DIRECTORY_SEPARATOR . 'Controller' . DIRECTORY_SEPARATOR . $controller . '.php';
@@ -250,7 +244,7 @@ class HttpRoute extends AppDispatch {
             $this->app->beforeEnd(403, $errorMsg);
             return false;
         }
-        // 创建reflector对象实例
+        // reflector对象实例
         $reflector = new \ReflectionClass($controllerInstance);
         if($reflector->hasMethod($targetAction)) {
             list($method, $args) = $this->bindActionParams($controllerInstance, $targetAction, $this->buildParams());
@@ -266,7 +260,7 @@ class HttpRoute extends AppDispatch {
                     }else {
                         $errorMsg = $t->getMessage() . ' on ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $this->request->server['REQUEST_URI'] . $queryString;
                     }
-                    // 记录错误异常
+                    // record exception
                     $this->response->status(500);
                     $exceptionClass = $this->app->getExceptionClass();
                     $this->app->beforeEnd(500, $errorMsg);
@@ -340,7 +334,6 @@ class HttpRoute extends AppDispatch {
 	protected function fileNotFound($class) {
         $this->response->status(404);
         $this->response->header('Content-Type', 'application/json; charset=UTF-8');
-        // 使用配置的NotFound类
         if(isset($this->app_conf['not_found_handler']) && is_array($this->app_conf['not_found_handler'])) {
             return $this->redirectNotFound();
         }else {

@@ -16,7 +16,7 @@ class CoroutineManager {
 	use \Swoolefy\Core\SingletonTrait;
 
 	/**
-	 * coroutine_id的前缀
+	 * coroutine_id 前缀
 	 */
 	const  PREFIX_CID = '';
 

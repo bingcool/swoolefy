@@ -19,7 +19,7 @@ use Swoolefy\Core\Task\TaskController;
 abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 
     /**
-     * __construct 初始化
+     * __construct
      * @param array $config
      * @throws \Exception
      */

@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Tcp\TcpServer;
+use Swoolefy\Rpc\RpcServer;
 use Swoolefy\Udp\UdpHandler;
 
 class BService extends BaseObject {
@@ -163,7 +163,7 @@ class BService extends BaseObject {
      * @throws \Exception
      */
 	public function isClientPackEof() {
-		return TcpServer::isClientPackEof();
+		return RpcServer::isClientPackEof();
 	}
 
     /**

@@ -26,7 +26,7 @@ class RpcHandler extends Swoole implements HandlerInterface {
 	public $header = [];
 
 	/**
-	 * __construct 初始化
+	 * __construct
 	 * @param array $config
 	 */
 	public function __construct(array $config=[]) {
@@ -112,7 +112,7 @@ class RpcHandler extends Swoole implements HandlerInterface {
 	}
 
 	/**
-	 * ping 心跳检测
+	 * ping
 	 * @return   
 	 */
 	public function ping() {
@@ -123,7 +123,7 @@ class RpcHandler extends Swoole implements HandlerInterface {
 	}
 
 	/**
-	 * author 认证
+	 * author
 	 * @return 
 	 */
 	public function author() {}

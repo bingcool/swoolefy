@@ -67,7 +67,7 @@ abstract class UdpServer extends BaseServer {
 
 	public function start() {
 		/**
-		 * start回调
+		 * start
 		 */
 		$this->udpServer->on('Start', function(Server $server) {
 		    try{
