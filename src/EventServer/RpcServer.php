@@ -16,7 +16,7 @@ use Swoolefy\Core\Swfy;
 class RpcServer extends \Swoolefy\Rpc\RpcServer {
 
     /**
-     * __construct 初始化
+     * __construct
      * @param array $config
      * @throws \Exception
      */
@@ -25,7 +25,7 @@ class RpcServer extends \Swoolefy\Rpc\RpcServer {
 	}
 
 	/**
-	 * onWorkerStart worker进程启动时回调处理
+	 * onWorkerStart
 	 * @param  object $server
 	 * @param  int    $worker_id
 	 * @return void       

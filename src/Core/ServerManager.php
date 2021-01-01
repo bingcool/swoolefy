@@ -16,7 +16,7 @@ class ServerManager {
 	use \Swoolefy\Core\SingletonTrait, \Swoolefy\Core\ServiceTrait;
 
 	/**
-	 * $server_port 监听port对象
+	 * $server_port
 	 * @var array
 	 */
 	private $server_ports = [];
@@ -27,7 +27,7 @@ class ServerManager {
 	private function __construct() {}
 
 	/**
-	 * addListener 设置port实例
+	 * addListener
 	 * @param string $host 
 	 * @param int    $port 
 	 * @param string $type
@@ -45,7 +45,7 @@ class ServerManager {
 	}
 
 	/**
-	 * getListener 获取port实例
+	 * getListener
 	 * @param  int $port
 	 * @return boolean
 	 */
@@ -80,7 +80,7 @@ class ServerManager {
 	}
 
     /**
-     * reload 重启所有worker进程
+     * reload
      * @param  bool  $only_reload_taskWorker 是否重启task进程，默认false
      * @return bool
      */
@@ -90,7 +90,7 @@ class ServerManager {
     }
 
     /**
-     * shutdown 关闭服务器
+     * shutdown
      * @return  boolean
      */
     public function shutdown() {

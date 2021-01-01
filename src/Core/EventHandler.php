@@ -75,7 +75,7 @@ class EventHandler extends \Swoolefy\Core\EventCtrl {
 	}
 
 	/**
-	 * workerExit 1.9.17+版本支持
+	 * workerExit
 	 * @param  $server
 	 * @param  $worker_id
 	 * @return void

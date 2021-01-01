@@ -16,7 +16,7 @@ use Swoolefy\Core\Swfy;
 class UdpEventServer extends \Swoolefy\Udp\UdpEventServer {
 
     /**
-     * __construct 初始化
+     * __construct
      * @param array $config
      * @throws \Exception
      */
@@ -25,7 +25,7 @@ class UdpEventServer extends \Swoolefy\Udp\UdpEventServer {
 	}
 
 	/**
-	 * onWorkerStart worker进程启动时回调处理
+	 * onWorkerStart
 	 * @param  object $server
 	 * @param  int    $worker_id
 	 * @return void       

@@ -13,7 +13,7 @@ namespace Swoolefy\Core;
 
 class NotFound extends BService {
     /**
-     * error404 类文件找不到处理
+     * error404
      * @param string $class
      * @return mixed
      * @throws \Exception
@@ -38,7 +38,7 @@ class NotFound extends BService {
 	}
 
     /**
-     * error500 找不到定义的函数类
+     * error500
      * @param string $class
      * @param string $action
      * @return mixed
@@ -63,7 +63,7 @@ class NotFound extends BService {
 	}
 
     /**
-     * error 直接返回捕捉的错误和异常信息
+     * error
      * @param string $msg
      * @return mixed
      * @throws \Exception

@@ -37,7 +37,7 @@ class ServiceDispatch extends AppDispatch {
 	}
 
     /**
-     * dispatch 路由调度
+     * dispatch
      * @return  mixed
      * @throws \Exception
      */
@@ -87,7 +87,7 @@ class ServiceDispatch extends AppDispatch {
 			if(Swfy::isWorkerProcess()) {
                 $this->getErrorHandle()->errorMsg($errorMsg);
             }
-            // 记录错误异常
+            // record exception
             $exceptionClass = Application::getApp()->getExceptionClass();
             $exceptionClass::shutHalt($errorMsg);
             return false;
@@ -138,7 +138,7 @@ class ServiceDispatch extends AppDispatch {
     }
 
 	/**
-	 * checkClass 检查请求实例文件是否存在
+	 * checkClass
 	 * @param  string  $class
 	 * @return boolean
 	 */

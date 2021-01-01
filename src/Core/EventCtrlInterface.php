@@ -59,7 +59,7 @@ interface EventCtrlInterface {
 	public function workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
 
 	/**
-	 * workerExit 1.9.17+版本支持
+	 * workerExit
 	 * @param  $server
 	 * @param  $worker_id
 	 * @return void

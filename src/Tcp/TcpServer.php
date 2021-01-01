@@ -75,7 +75,7 @@ abstract class TcpServer extends BaseServer {
 
 	public function start() {
 		/**
-		 * start回调
+		 * start
 		 */
 		$this->tcpServer->on('Start', function(\Swoole\Server $server) {
 		    try{

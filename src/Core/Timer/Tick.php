@@ -109,7 +109,10 @@ class Tick {
      * @param    int  $timer_id
      * @return   boolean         
      */
-    public static function delTicker($timer_id) {
+    public static function delTicker(int $timer_id) {
+        if(!\Swoole\Timer::exists($timer_id)) {
+            return true;
+        }
         $result = \Swoole\Timer::clear($timer_id);
         if($result) {
             foreach(self::$_tick_tasks as $tid=>$value) {

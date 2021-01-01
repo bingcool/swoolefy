@@ -43,9 +43,7 @@ class ReloadProcess extends AbstractProcess {
                 $autoReload->setIgnoreDirs();
             }
 
-            // 初始化配置
             $autoReload->init();
-            // 开始监听
             $autoReload->watch($reload_config['monitor_path'])->onReload($reload_config['callback']);
         }
     }

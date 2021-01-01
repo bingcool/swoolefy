@@ -16,7 +16,7 @@ use Swoolefy\Core\Swfy;
 class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer {
 
     /**
-     * __construct 初始化
+     * __construct
      * @param array $config
      * @throws \Exception
      */
@@ -25,7 +25,7 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer {
 	}
 
 	/**
-	 * onWorkerStart worker启动函数处理
+	 * onWorkerStart
 	 * @param    object  $server
 	 * @param    int    $worker_id
 	 * @return   void

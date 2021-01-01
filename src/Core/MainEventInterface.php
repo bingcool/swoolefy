@@ -12,7 +12,7 @@
 namespace Swoolefy\Core;
 
 /**
- * rpc 定义接口
+ * rpc
  */
 interface RpcEventInterface {
     public function onWorkerStart($server, $worker_id);
@@ -23,7 +23,7 @@ interface RpcEventInterface {
     public function onClose($server, $fd);
 }
 /**
- * websocket 定义接口
+ * websocket
  */
 interface WebsocketEventInterface {
     public function onWorkerStart($server, $worker_id);
@@ -35,7 +35,7 @@ interface WebsocketEventInterface {
     public function onClose($server, $fd);
 }
 /**
- * udp 定义接口
+ * udp
  */
 interface UdpEventInterface {
     public function onWorkerStart($server, $worker_id);

@@ -65,7 +65,7 @@ abstract class WebsocketServer extends BaseServer {
 
 	public function start() {
 		/**
-		 * start回调
+		 * start
 		 */
 		$this->webServer->on('Start', function(\Swoole\WebSocket\Server $server) {
 		    try{

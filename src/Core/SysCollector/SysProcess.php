@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Core\SysCollector;
 
+use mysql_xdevapi\Exception;
 use Swoole\Process;
 use Swoolefy\Core\EventController;
 use Swoolefy\Core\Swfy;
@@ -63,11 +64,11 @@ class SysProcess extends AbstractProcess {
                     // 统计系统信息
                     if(isset($callback) && $callback instanceof \Closure) {
                         $event = new EventController();
-                        $res = $callback->call($event) ?? [];
-                        if(is_array($res)) {
-                            $sys_info = json_encode($res, JSON_UNESCAPED_UNICODE);
+                        $response = $callback->call($event) ?? [];
+                        if(is_array($response)) {
+                            $collectionInfo = json_encode($response, JSON_UNESCAPED_UNICODE);
                         }else {
-                            $sys_info = $res;
+                            $collectionInfo = $response;
                         }
                     }
                     // pv原子计数器
@@ -81,7 +82,7 @@ class SysProcess extends AbstractProcess {
                         'from_service'=>$this->sys_collector_config['from_service'] ?? '',
                         'timestamp'=>date('Y-m-d H:i:s')
                     ];
-                    $data['sys_collector_message'] = $sys_info;
+                    $data['sys_collector_message'] = $collectionInfo;
                     switch($type) {
                         case SWOOLEFY_SYS_COLLECTOR_UDP:
                             $this->sendByUdp($data);
@@ -202,7 +203,7 @@ class SysProcess extends AbstractProcess {
             $redisClient->auth($password);
             $redisClient->setOption(\Redis::OPT_READ_TIMEOUT, -1);
             $redisClient->select($database);
-        }catch(\Exception $exception) {
+        }catch(\RedisException|\Exception $exception) {
             throw $exception;
         }catch (\Throwable $throwable) {
             throw $throwable;

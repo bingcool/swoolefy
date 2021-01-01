@@ -87,7 +87,7 @@ class UdpHandler extends Swoole implements HandlerInterface {
                     $callable = [$service, $event];
                 }
             }else {
-                // 任务task进程
+                // task进程
                 $is_task_process = true;
                 list($callable, $params) = $payload;
             }
@@ -103,7 +103,6 @@ class UdpHandler extends Swoole implements HandlerInterface {
         }catch (\Throwable $throwable) {
             throw $throwable;
         }finally {
-            // 必须执行
             if(!$this->is_defer) {
                 parent::end();
             }
@@ -111,7 +110,7 @@ class UdpHandler extends Swoole implements HandlerInterface {
 	}
 
 	/**
-	 * author 认证
+	 * author
 	 * @return 
 	 */
 	public function author() {}

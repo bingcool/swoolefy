@@ -68,7 +68,7 @@ class Swoole extends BaseObject {
 	 */
 	protected function _bootstrap($recv = null) {
 		static::bootstrap($recv);
-		if(isset(Swfy::$conf['application_service'])) {
+		if(isset(Swfy::$conf['application_service']) && !empty(Swfy::$conf['application_service'])) {
 			$application_service = Swfy::$conf['application_service'];
 			if(class_exists($application_service)) {
             	Swfy::$conf['application_service']::bootstrap($recv);

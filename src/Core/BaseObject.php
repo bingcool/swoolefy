@@ -192,7 +192,7 @@ class BaseObject {
         if(is_object(Application::getApp())) {
             return Application::getApp()->get($name);
         }
-        return $name;
+        return false;
 	}
 
 }

@@ -245,6 +245,7 @@ class Predis extends RedisConnection {
         }catch(\Exception $e) {
             $this->log($method, $arguments, $e->getMessage());
             $this->redis->disconnect();
+            \Swoole\Coroutine\System::sleep(0.5);
             $this->log($method, $arguments, 'start to try again');
             $this->redis = new \Predis\Client($this->parameters, $this->options);
             $result = $this->redis->{$method}(...$arguments);

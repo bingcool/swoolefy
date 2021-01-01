@@ -21,7 +21,7 @@ class Reload {
 	private $inotify = null;
 
 	/**
-	 * $reloadFileTypes,定义哪些文件的改动将触发swoole服务重启
+	 * $reloadFileTypes 定义哪些文件的改动将触发swoole服务重启
 	 * @var array
 	 */
 	protected $reloadFileTypes = ['.php','.html','.js'];
@@ -33,25 +33,25 @@ class Reload {
     protected $ignoreDirs = [];
 
 	/**
-	 * $watchFiles,保存监听的文件句柄
+	 * $watchFiles 保存监听的文件句柄
 	 * @var array
 	 */
     protected $watchFiles = [];
 
     /**
-     * $afterSeconds,等待的时间间隔重启
+     * $afterSeconds 等待的时间间隔重启
      * @var integer
      */
     protected $afterSeconds = 10;
 
     /**
-     * $reloading,默认是不重启的
+     * $reloading 默认是不重启的
      * boolean
      */
     protected $reloading = false;
 
     /**
-     * $events,默认监听的事件类型
+     * $events 默认监听的事件类型
      * @var
      */
     protected $events = IN_MODIFY | IN_DELETE | IN_CREATE | IN_MOVE;

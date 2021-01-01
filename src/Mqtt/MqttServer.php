@@ -142,7 +142,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
         });
 
         /**
-         * tcp连接
+         * tcp connect
          */
         $this->mqttServer->on('connect', function(\Swoole\Server $server, $fd) {
             try{
@@ -155,7 +155,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
         });
 
         /**
-         * 监听数据接收事件
+         * receive
          */
         $this->mqttServer->on('receive', function(\Swoole\Server $server, $fd, $reactor_id, $data) {
             try{
@@ -168,7 +168,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
         });
 
         /**
-         * 处理异步任务
+         * task
          */
         if(parent::isTaskEnableCoroutine()) {
             $this->mqttServer->on('task', function(\Swoole\Server $server, \Swoole\Server\Task $task) {
@@ -195,7 +195,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
         }
 
         /**
-         * 异步任务完成
+         * finish
          */
         $this->mqttServer->on('finish', function(\Swoole\Server $server, $task_id, $data) {
             try{
@@ -209,7 +209,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
         });
 
         /**
-         * 处理pipeMessage
+         * pipeMessage
          */
         $this->mqttServer->on('pipeMessage', function(\Swoole\Server $server, $from_worker_id, $message) {
             try {
@@ -223,7 +223,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
         });
 
         /**
-         * 关闭连接
+         * close
          */
         $this->mqttServer->on('close', function(\Swoole\Server $server, $fd, $reactorId) {
             try{
@@ -236,7 +236,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
         });
 
         /**
-         * 停止worker进程
+         * WorkerStop
          */
         $this->mqttServer->on('WorkerStop', function(\Swoole\Server $server, $worker_id) {
             try{
@@ -249,7 +249,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
         });
 
         /**
-         * worker进程退出回调函数
+         * WorkerExit
          */
         $this->mqttServer->on('WorkerExit', function(\Swoole\Server $server, $worker_id) {
             \Swoole\Coroutine::create(function () use($server, $worker_id) {
@@ -264,7 +264,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
         });
 
         /**
-         * worker进程异常错误回调函数
+         * WorkerError
          * 注意，此回调是在manager进程中发生的，不能使用创建协程和使用协程api,否则报错
          */
         $this->mqttServer->on('WorkerError', function(\Swoole\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
