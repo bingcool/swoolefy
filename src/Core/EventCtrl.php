@@ -83,7 +83,7 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
 	}
 
 	/**
-	 * workerExit 1.9.17+版本支持
+	 * workerExit
 	 * @param  Server $server
 	 * @param  int $worker_id
 	 * @return void

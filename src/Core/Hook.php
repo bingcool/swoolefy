@@ -15,14 +15,14 @@ use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class Hook {
 	/**
-	 * $hooks 保存钩子执行函数
+	 * $hooks
 	 * @var array
 	 */
 	protected static $hooks = [];
  	const HOOK_AFTER_REQUEST = 1;
 
  	/**
-	 * addHook 添加钩子函数
+	 * addHook
 	 * @param    int   $type
 	 * @param 	 mixed $func
 	 * @param    boolean $prepend
@@ -52,7 +52,7 @@ class Hook {
 	}
 
 	/**
-	 * 调用钩子函数
+	 * call hooks
 	 * @param   int $type
 	 * @return  void
 	 */
@@ -76,7 +76,7 @@ class Hook {
 	}
 
 	/**
-	 * getHookCallable 获取所有的钩子函数
+	 * getHookCallable
      * @param int $cid
 	 * @return callable
 	 */

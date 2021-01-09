@@ -15,7 +15,12 @@ use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Core\Memory\AtomicManager;
 
 class BaseServer {
-	/**
+
+    const PACK_CHECK_EOF = SWOOLEFY_PACK_CHECK_EOF;
+
+    const PACK_CHECK_LENGTH = SWOOLEFY_PACK_CHECK_LENGTH;
+
+    /**
 	 * $config 
 	 * @var array
 	 */
@@ -44,10 +49,6 @@ class BaseServer {
 	 * @var
 	 */
 	protected static $pack_check_type = null;
-
-	const PACK_CHECK_EOF = SWOOLEFY_PACK_CHECK_EOF;
-
-	const PACK_CHECK_LENGTH = SWOOLEFY_PACK_CHECK_LENGTH;
 
 	/**
 	 * $startTime 进程启动时间

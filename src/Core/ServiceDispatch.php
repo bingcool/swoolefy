@@ -92,7 +92,6 @@ class ServiceDispatch extends AppDispatch {
             $exceptionClass::shutHalt($errorMsg);
             return false;
 		}
-		
 	}
 
     /**

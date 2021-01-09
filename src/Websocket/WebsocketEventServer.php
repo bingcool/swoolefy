@@ -46,7 +46,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
     abstract public function onOpen($server, $request);
 
     /**
-     * onRequest 接受http请求处理
+     * onRequest
      * @param \Swoole\Http\Request $request
      * @param \Swoole\Http\Response $response
      * @return void
@@ -86,7 +86,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 			}
 			
 		}else {
-            // 断开连接
+            // close
             if(method_exists($server,'disconnect')) {
                 $server->disconnect($fd, $code = 1009, $reason = "");
             }
