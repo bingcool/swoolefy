@@ -19,7 +19,7 @@ return [
     // 应用层配置，需要根据实际项目导入
     'app_conf' => $app_config,
 	'application_service' => '',
-    'exception_handler' => \Swoolefy\Core\EventHandler::class,
+    'exception_handler' => \Swoolefy\Core\SwoolefyException::class,
 	'master_process_name' => 'php-swoolefy-mqtt-master',
 	'manager_process_name' => 'php-swoolefy-mqtt-manager',
 	'worker_process_name' => 'php-swoolefy-mqtt-worker',

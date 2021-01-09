@@ -75,7 +75,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
 
     public function start() {
         /**
-         * start回调
+         * start
          */
         $this->mqttServer->on('Start', function(\Swoole\Server $server) {
             try{
@@ -87,7 +87,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
         });
 
         /**
-         * managerStart回调
+         * managerStart
          */
         $this->mqttServer->on('ManagerStart', function(\Swoole\Server $server) {
             try{
@@ -99,7 +99,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
         });
 
         /**
-         * managerStop回调
+         * managerStop
          */
         $this->mqttServer->on('ManagerStop', function(\Swoole\Server $server) {
             try {
@@ -110,7 +110,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
         });
 
         /**
-         * 启动worker进程监听回调，设置定时器
+         * WorkerStart
          */
         $this->mqttServer->on('WorkerStart', function(\Swoole\Server $server, $worker_id) {
             // 记录主进程加载的公共files,worker重启不会在加载的
@@ -278,6 +278,14 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
         $this->mqttServer->start();
     }
 
+    /**
+     * @param $server
+     * @param $fd
+     * @param $reactor_id
+     * @param $data
+     * @return bool
+     * @throws \Throwable
+     */
     public function onReceive($server, $fd, $reactor_id, $data)
     {
         $conf = \Swoolefy\Core\Swfy::getConf();
@@ -421,7 +429,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
                 default:
                     throw new \Exception("Mqtt Packet type={$type} error");
             }
-        }catch (\Exception $exception) {
+        }catch (\Exception|\Throwable $exception) {
             if($server->exists($fd)) {
                 $server->close($fd);
             }
@@ -572,7 +580,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
                 default:
                     throw new \Exception("Mqtt Packet type={$type} error");
             }
-        }catch (\Exception $exception) {
+        }catch (\Exception|\Throwable $exception) {
             if($server->exists($fd)) {
                 $server->close($fd);
             }

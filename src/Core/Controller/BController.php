@@ -52,8 +52,8 @@ class BController extends \Swoolefy\Core\AppObject {
 		}
 	}
 
-	/**
-	 * __destruct 初始化一些静态变量
-	 */
+    /**
+     * defer
+     */
 	public function defer() {}
 }

@@ -23,7 +23,7 @@ class ChannelManager {
     private $lists = [];
 
     /**
-     * 创建一个数据Channel
+     * channel
      * @param  string  $name
      * @param  int  $capacity
      * @return $this

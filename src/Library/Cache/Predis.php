@@ -258,7 +258,7 @@ class Predis extends RedisConnection {
 	}
 
     /**
-     * getParameters 获取参数
+     * getParameters
      * @return array
      */
     public function getParameters() {
@@ -266,7 +266,7 @@ class Predis extends RedisConnection {
     }
 
     /**
-	 * __destruct 销毁对象
+	 * __destruct
 	 */
 	public function __destruct() {
         if(isset($this->parameters['persistent'])) {

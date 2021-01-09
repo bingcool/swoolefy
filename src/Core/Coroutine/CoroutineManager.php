@@ -34,7 +34,7 @@ class CoroutineManager {
 	 */
 	public function getCoroutineId() {
 		// 大于4.2.x版本,建议使用版本
-        $cid = \Co::getCid();
+        $cid = \Swoole\Coroutine::getCid();
         // 4.3.0+在task|process中也支持直接使用协程,同时可以使用go()创建协程
         if($cid == -1) {
             $cid = self::PREFIX_CID.'task_process';
@@ -47,7 +47,7 @@ class CoroutineManager {
      * @return boolean
      */
 	public function isCoroutine() {
-	    if(\Co::getCid() > 0) {
+	    if(\Swoole\Coroutine::getCid() > 0) {
             return true;
         }
         return false;

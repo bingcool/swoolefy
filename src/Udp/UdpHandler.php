@@ -29,7 +29,7 @@ class UdpHandler extends Swoole implements HandlerInterface {
 	protected $client_info = null;
 
 	/**
-	 * __construct 初始化
+	 * __construct
 	 * @param    array  $config
 	 */
 	public function __construct(array $config=[]) {

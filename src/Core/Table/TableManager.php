@@ -46,6 +46,7 @@ class TableManager {
 							$table->column($field[0], \Swoole\Table::TYPE_STRING, (int)$field[2]);
 						break;
 						case 'float':
+                        case 'double':
 						case \Swoole\Table::TYPE_FLOAT:
 							$table->column($field[0], \Swoole\Table::TYPE_FLOAT, (int)$field[2]);
 						break;

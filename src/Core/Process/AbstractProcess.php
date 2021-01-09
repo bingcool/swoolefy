@@ -265,7 +265,6 @@ abstract class AbstractProcess {
             $cycle_times = 2;
         }
         while($cycle_times > 0) {
-            // 当前运行的coroutine
             $runCoroutineNum = $this->getCurrentRunCoroutineNum();
             // 除了主协程和runtimeCoroutineWait跑在协程中，所以等于2个协程，还有其他协程没唤醒，则再等待
             if($runCoroutineNum > 2) {
