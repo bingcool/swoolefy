@@ -14,7 +14,7 @@ use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class Application {
 	/**
-	 * $app 应用对象
+	 * $app application object array
 	 * @var array
 	 */
 	protected static $app = [];

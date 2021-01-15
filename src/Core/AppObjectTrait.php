@@ -22,7 +22,7 @@ trait AppObjectTrait {
      * @throws \Exception
 	 */
 	public static function _die($html = '', $msg = '') {
-		// 直接结束请求
+		// request end
 		Application::getApp()->response->write($html);
 		throw new \Exception($msg);
 	}

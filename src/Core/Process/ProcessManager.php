@@ -184,7 +184,7 @@ class ProcessManager {
     }
 
     /**
-     * 在规定时间内读取数据
+     * read 在规定时间内读取数据
      * @param Process $swooleProcess
      * @param float $timeOut
      * @return mixed

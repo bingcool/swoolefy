@@ -14,12 +14,17 @@ namespace Swoolefy\Core;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class Hook {
-	/**
-	 * $hooks
-	 * @var array
-	 */
-	protected static $hooks = [];
+
+    /**
+     * hook after request type
+     */
  	const HOOK_AFTER_REQUEST = 1;
+
+    /**
+     * $hooks
+     * @var array
+     */
+    protected static $hooks = [];
 
  	/**
 	 * addHook

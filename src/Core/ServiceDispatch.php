@@ -28,7 +28,6 @@ class ServiceDispatch extends AppDispatch {
 	 * __construct 
 	 */
 	public function __construct($callable, $params, $rpc_pack_header = []) {
-		// 执行父类
 		parent::__construct();
 		$this->callable = $callable;
 		$this->params = $params;
@@ -106,7 +105,6 @@ class ServiceDispatch extends AppDispatch {
             $notFoundInstance = $this->getErrorHandle();
             $errorMsg = $notFoundInstance->{$errorMethod}($class, $action);
         }
-        // 记录错误异常
         $msg = isset($errorMsg['msg']) ? $errorMsg['msg'] : "Call undefined function {$class}::{$action}";
         $exceptionClass = Application::getApp()->getExceptionClass();
         $exceptionClass::shutHalt($msg);

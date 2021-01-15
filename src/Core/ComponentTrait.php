@@ -168,9 +168,10 @@ trait ComponentTrait {
         		if(is_string($definition[$name]) && method_exists($object, $definition[$name])) {
         			call_user_func_array([$object, $definition[$name]], [$definition]);
         		}else if($definition[$name] instanceof \Closure) {
-        			($definition[$name])->call($object, $definition);
+        		    $closure = $definition[$name];
+                    $closure->call($object, $definition);
         		}else {
-        			throw new \Exception("{$com_alias_name} component's config item 'func' is not Closure or {$com_alias_name} instance is not exists the method!");
+        			throw new \Exception("{$com_alias_name} component's config item 'func' is not Closure or {$com_alias_name} instance is not exists of method");
         		}
         		continue;
         	}else if(isset($object->$name) && @is_array($object->$name)) {
@@ -233,32 +234,6 @@ trait ComponentTrait {
     }
 
     /**
-     * __isset
-     * @param string $name
-     * @return boolean
-     */
-    public function __isset($name) {
-        return isset($this->$name);
-    }
-
-	/**
-	 * __set
-	 * @param string $name
-	 * @param mixed $value
-	 * @return mixed
-	 */
-	public function __set($name, $value) {
-		if(isset($this->container[$name])) {
-			return $this->container[$name];
-		}else {
-			if(is_array($value) || $value instanceof \Closure) {
-				return $this->creatObject($name, $value);
-			}
-			return false;
-		}
-	}
-
-    /**
      * @param string $name
      * @return mixed
      * @throws Exception
@@ -283,7 +258,7 @@ trait ComponentTrait {
             }
         }
 
-        if(in_array($name, array_keys($components))) {
+        if(array_key_exists($name, $components)) {
             // mysql,redis进程池中直接赋值
             if(in_array($name, $this->component_pools)) {
                 /** @var \Swoolefy\Core\Coroutine\PoolsHandler $poolHandler */
@@ -323,4 +298,30 @@ trait ComponentTrait {
 	public function __unset($name) {
 		unset($this->$name);
 	}
+
+    /**
+     * __isset
+     * @param string $name
+     * @return boolean
+     */
+    public function __isset($name) {
+        return isset($this->$name);
+    }
+
+    /**
+     * __set
+     * @param string $name
+     * @param mixed $value
+     * @return mixed
+     */
+    public function __set($name, $value) {
+        if(isset($this->container[$name])) {
+            return $this->container[$name];
+        }else {
+            if(is_array($value) || $value instanceof \Closure) {
+                return $this->creatObject($name, $value);
+            }
+            return false;
+        }
+    }
 } 

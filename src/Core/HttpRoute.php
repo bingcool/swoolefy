@@ -152,11 +152,11 @@ class HttpRoute extends AppDispatch {
 				$this->require_uri = '/'.$controller.'/'.$action;
 			}
 		}
-		// 重新设置一个route
+		// reset route
 		$this->request->server['ROUTE'] = $this->require_uri;
-		// route参数组数
+		// route params array attach to server
 		$this->request->server['ROUTE_PARAMS'] = [];
-		// 定义禁止直接外部访问的方法
+		// forbidden call action
 		if(in_array($action, self::$deny_actions)) {
             $errorMsg = "{$controller}::{$action} is not allow access action";
             $this->response->status(403);
@@ -244,7 +244,7 @@ class HttpRoute extends AppDispatch {
             $this->app->beforeEnd(403, $errorMsg);
             return false;
         }
-        // reflector对象实例
+        // reflector object
         $reflector = new \ReflectionClass($controllerInstance);
         if($reflector->hasMethod($targetAction)) {
             list($method, $args) = $this->bindActionParams($controllerInstance, $targetAction, $this->buildParams());
@@ -288,13 +288,13 @@ class HttpRoute extends AppDispatch {
 	 */
 	public function redirectNotFound($call_func = null) {
 		if(isset($this->app_conf['not_found_handler'])) {
-			// 重定向至NotFound类
+			// reset NotFound class
 			list($namespace, $action) = $this->app_conf['not_found_handler'];
 			$route_params = explode('\\', $namespace);
 			if(is_array($route_params)) {
 				$controller = array_pop($route_params);
 			}
-            // 重新设置一个NotFound类的route
+            // reset NotFound class route
             $this->request->server['ROUTE'] = '/'.$controller.'/'.$action;
             $class = trim(str_replace('/', '\\', $namespace.$this->controller_suffix), '/');
             return [$class, $action];
