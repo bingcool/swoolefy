@@ -26,10 +26,9 @@ class AsyncTask implements AsyncTaskInterface {
      */
     public static function registerTask($callable, $data = []) {
         if(is_string($callable)) {
-            throw new \Exception("AsyncTask::registerTask() function first params:callable must be an array");
+            throw new \Exception("AsyncTask::registerTask() function first argument of callable must be an array");
         }
 
-        // 在worker进程中可以调用异步任务进程，异步任务进程中不能调用异步进程
         if(!self::isWorkerProcess()) {
             throw new \Exception("AsyncTask::registerTask() Task Only Use In Worker Process");
         }

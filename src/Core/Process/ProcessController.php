@@ -13,6 +13,4 @@ namespace Swoolefy\Core\Process;
 
 use Swoolefy\Core\EventController;
 
-class ProcessController extends EventController {
-	
-}
+class ProcessController extends EventController {}

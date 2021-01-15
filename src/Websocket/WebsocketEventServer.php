@@ -70,9 +70,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 		$data = $frame->data;
 		$opcode = $frame->opcode;
 		$finish = $frame->finish;
-        // 数据接收是否完整
 		if($finish) {
-			// utf-8文本数据
 			if($opcode == WEBSOCKET_OPCODE_TEXT) {
                 $app_conf = \Swoolefy\Core\Swfy::getAppConf();
                 $appInstance = new \Swoolefy\Websocket\WebsocketHandler($app_conf);
@@ -84,7 +82,6 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 				// TODO 关闭帧
 				static::onMessageFromClose($server, $frame);
 			}
-			
 		}else {
             // close
             if(method_exists($server,'disconnect')) {

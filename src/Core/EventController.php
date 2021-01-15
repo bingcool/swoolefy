@@ -48,7 +48,7 @@ class EventController extends BaseObject {
     const HOOK_AFTER_REQUEST = 1;
 
     /**
-	 * __construct 初始化函数
+	 * __construct
      * @throws \Exception
 	 */
 	public function __construct(...$args) {

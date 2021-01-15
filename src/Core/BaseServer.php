@@ -27,7 +27,7 @@ class BaseServer {
 	public static $config = [];
 
 	/**
-	 * $server swoole服务器对象实例
+	 * $server swoole server
 	 * @var \Swoole\Server
 	 */
 	public static $server = null;
