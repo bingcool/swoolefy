@@ -205,9 +205,8 @@ class PoolsManager {
                 $kill_flag = $process->getSwoolefyProcessKillFlag();
                 $process->getProcess()->write($kill_flag);
             }
-            return true;
         }
-        return false;
+        return true;
     }
 
     /**

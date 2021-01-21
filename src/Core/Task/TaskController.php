@@ -22,7 +22,7 @@ class TaskController extends EventController {
     public $task_id;
 
 	/**
-	 * $from_worker_id 记录当前任务from的woker投递
+	 * $from_worker_id 记录当前任务from的worker投递
 	 * @var int
 	 */
 	public $from_worker_id;
@@ -35,7 +35,7 @@ class TaskController extends EventController {
 
     /**
      * __construct
-     * @throws \Exception
+     * @throws Exception
      */
     public function __construct() {
         /**

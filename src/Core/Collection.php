@@ -20,13 +20,13 @@ use JsonSerializable;
 class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSerializable
 {
     /**
-     * @var array 数据
+     * @var array
      */
     protected $items = [];
 
     /**
      * Collection constructor.
-     * @param  array $items 数据
+     * @param  array $items
      */
     public function __construct($items = [])
     {
@@ -34,8 +34,8 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
     }
 
     /**
-     * 创建 Collection 实例
-     * @param  array $items 数据
+     * 创建 Collection
+     * @param  array $items
      * @return static
      */
     public static function make($items = [])
