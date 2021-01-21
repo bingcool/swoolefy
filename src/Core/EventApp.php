@@ -37,9 +37,10 @@ class EventApp {
 	 * 例如在close事件，App\Event\Close业务类需要继承于\Swoolefy\Core\EventController
 	 *
 	 * public function onClose($server, $fd) {
-		   // 只需要注册一次就好
-		   (new \Swoolefy\Core\EventApp())->registerApp(\App\Event\Close::class, $server, $fd)->close();
-	 *  }
+     // 只需要注册一次就好
+     *    go(function() {
+     * 		   (new \Swoolefy\Core\EventApp())->registerApp(\App\Event\Close::class, $server, $fd)->close();
+     *   })
 	 *
 	 * 那么处理类
 	 * class Close extends EventController {

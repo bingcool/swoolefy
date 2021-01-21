@@ -259,7 +259,7 @@ trait ComponentTrait {
         }
 
         if(array_key_exists($name, $components)) {
-            // mysql,redis进程池中直接赋值
+            // mysql|redis进程池中直接赋值
             if(in_array($name, $this->component_pools)) {
                 /** @var \Swoolefy\Core\Coroutine\PoolsHandler $poolHandler */
                 $poolHandler = \Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->getPool($name);
