@@ -12,7 +12,7 @@
 namespace Swoolefy\Mqtt;
 
 use Simps\MQTT\Protocol;
-use Simps\MQTT\Types;
+use Simps\MQTT\Protocol\Types;
 use Swoolefy\Core\Swfy;
 
 class MqttEvent {
@@ -133,7 +133,7 @@ class MqttEvent {
             if($sub_fd != $this->fd) {
                 $this->server->send(
                     $sub_fd,
-                    Protocol::pack(
+                    Protocol\V3::pack(
                         [
                             'type' => $type,
                             'topic' => $topic,
@@ -175,7 +175,7 @@ class MqttEvent {
     final public function connectAck($clean_session) {
         $this->server->send(
             $this->fd,
-            Protocol::pack(
+            Protocol\V3::pack(
                 [
                     'type' => Types::CONNACK,
                     'code' => 0,
@@ -190,7 +190,7 @@ class MqttEvent {
      */
     final public function pingReq()
     {
-        $this->server->send($this->fd, Protocol::pack(['type' => Types::PINGRESP]));
+        $this->server->send($this->fd, Protocol\V3::pack(['type' => Types::PINGRESP]));
     }
 
     /**
@@ -199,7 +199,7 @@ class MqttEvent {
     final public function publishAck($message_id) {
         $this->server->send(
             $this->fd,
-            Protocol::pack(
+            Protocol\V3::pack(
                 [
                     'type' => Types::PUBACK,
                     'message_id' => $message_id ?? '',
@@ -216,7 +216,7 @@ class MqttEvent {
     {
         $this->server->send(
             $this->fd,
-            Protocol::pack(
+            Protocol\V3::pack(
                 [
                     'type' => Types::SUBACK,
                     'message_id' => $message_id ?? '',
@@ -233,7 +233,7 @@ class MqttEvent {
     {
         $this->server->send(
             $this->fd,
-            Protocol::pack(
+            Protocol\V3::pack(
                 [
                     'type' => Types::UNSUBACK,
                     'message_id' => $message_id ?? '',
