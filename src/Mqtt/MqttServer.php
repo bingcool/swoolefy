@@ -14,8 +14,7 @@ namespace Swoolefy\Mqtt;
 include_once SWOOLEFY_CORE_ROOT_PATH.'/MainEventInterface.php';
 
 use Simps\MQTT\Protocol;
-use Simps\MQTT\ProtocolV5;
-use Simps\MQTT\Types;
+use Simps\MQTT\Protocol\Types;
 use Swoole\Server;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\EventApp;
@@ -309,7 +308,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
      * @throws \Throwable
      */
 	public function handleV3($server, $fd, &$data) {
-        $data = Protocol::unpack($data);
+        $data = Protocol\V3::unpack($data);
         if(is_array($data) && isset($data['type'])) {
             $type = $data['type'];
         }
@@ -450,7 +449,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
      * @throws \Throwable
      */
     public function handleV5($server, $fd, &$data) {
-        $data = ProtocolV5::unpack($data);
+        $data = Protocol\V5::unpack($data);
         if(is_array($data) && isset($data['type'])) {
             $type = $data['type'];
         }
