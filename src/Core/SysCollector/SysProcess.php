@@ -11,7 +11,6 @@
 
 namespace Swoolefy\Core\SysCollector;
 
-use mysql_xdevapi\Exception;
 use Swoole\Process;
 use Swoolefy\Core\EventController;
 use Swoolefy\Core\Swfy;
