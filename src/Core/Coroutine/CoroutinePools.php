@@ -26,7 +26,7 @@ class CoroutinePools {
      * @var array
      */
     const DefaultConfig = [
-        'pools_name' => 30,
+        'pools_num' => 30,
         'push_timeout' => 2,
         'pop_timeout' => 1,
         'live_time' => 10
