@@ -310,7 +310,7 @@ abstract class Model implements ArrayAccess
      */
     protected function insertData(): bool
     {
-        // 标记为新数据
+        // new flag
         $this->setIsNew(true);
 
         if(false === $this->trigger('BeforeInsert')) {
@@ -333,7 +333,7 @@ abstract class Model implements ArrayAccess
             list($sql, $bindParams) = $this->parseInsertSql($allowFields);
             $this->numRows = $this->getConnection()->createCommand($sql)->insert($bindParams);
             // 对于自增的pk,插入成功,需要赋值
-            if(!isset($this->_data[$pk]))  {
+            if(!isset($this->_data[$pk])) {
                 $this->_data[$pk] = $this->getConnection()->getLastInsID($pk);
             }
         }catch (\Exception $exception) {
@@ -393,7 +393,6 @@ abstract class Model implements ArrayAccess
     protected function getSchemaInfo(): array
     {
         if(empty($this->schemaInfo)) {
-            // 检测字段
             $table = $this->table ? $this->table . $this->suffix : $this->table;
             $schemaInfo = $this->getConnection()->getSchemaInfo($table);
             $this->schemaInfo = $schemaInfo;
@@ -549,7 +548,6 @@ abstract class Model implements ArrayAccess
         if(method_exists($this, $method)) {
             $value = $this->$method($value);
         }else if(isset($this->fieldTypeMap[$fieldName])) {
-            // 类型转换
             $value = $this->readTransform($value, $this->fieldTypeMap[$fieldName]);
         }
         return $value;

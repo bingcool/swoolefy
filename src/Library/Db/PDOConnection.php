@@ -403,6 +403,7 @@ abstract class PDOConnection implements ConnectionInterface {
                             $value = (int)$value;
                             break;
                         case 'float':
+                        case 'double':
                             $value = (float)$value;
                             break;
                         case 'bool':
@@ -421,6 +422,31 @@ abstract class PDOConnection implements ConnectionInterface {
         $sql .= implode(',', $sqlArr);
 
         return $this->createCommand($sql)->insert();
+    }
+
+    /**
+     * 批量插入数据
+     * @param string $table
+     * @param array $dataSet
+     * @return int
+     */
+    public function multiInsert(string $table, array $dataSet)
+    {
+        $fields = [];
+        $paramsKeys = [];
+        $params = [];
+        foreach ($dataSet as $index => $data) {
+            foreach ($data as $k => $v) {
+                $fields[$k] = $k;
+                $paramsKeys[$index][] = $paramKey = ":{$k}_{$index}";
+                $params[$paramKey] = $v;
+            }
+            $paramsKeys[$index] = "(" . implode(',', $paramsKeys[$index]) . ")";
+        }
+
+        $sql = "INSERT INTO {$table} (" . implode(',', $fields) . ") VALUES " . implode(',', $paramsKeys);
+
+        return $this->createCommand($sql)->insert($params);
     }
 
     /**
@@ -835,7 +861,7 @@ abstract class PDOConnection implements ConnectionInterface {
 
         $this->log('Transaction rollback start','transaction rollback start');
 
-        if (1 == $this->transTimes) {
+        if ($this->transTimes == 1) {
             $this->PDOInstance->rollBack();
         } elseif ($this->transTimes > 1 && $this->supportSavepoint()) {
             $this->PDOInstance->exec(
@@ -1032,7 +1058,6 @@ abstract class PDOConnection implements ConnectionInterface {
      */
     public function __destruct()
     {
-        // 关闭连接
         $this->close();
         $this->lastLogs = [];
     }
