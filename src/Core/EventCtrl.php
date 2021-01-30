@@ -122,7 +122,7 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
                 if(!in_array($pool_name, $components)) {
                     throw new \Exception("enable_component_pools of item={$pool_name},not set in components");
                 }
-                $callable = \Swoolefy\Core\Swfy::getAppConf()['components'][$pool_name];
+                $callable = $app_conf['components'][$pool_name];
                 \Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->addPool($pool_name, $component_pool_config, $callable);
             }
         }

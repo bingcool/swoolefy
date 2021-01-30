@@ -10,6 +10,7 @@
 */
 
 use Swoolefy\Core\Application;
+
 /**
  * dump 调试函数
  * @param    $var

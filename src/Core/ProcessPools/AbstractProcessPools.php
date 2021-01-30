@@ -126,9 +126,9 @@ abstract class AbstractProcessPools {
                             $this->reboot();
                             return;
                         }else {
-                            $msg = $this->validDataJson($msg);
-                            (new \Swoolefy\Core\EventApp)->registerApp(function(EventController $eventApp) use($msg) {
-                                $this->onReceive($msg);
+                            $message = json_decode($msg, true) ?? $msg;
+                            (new \Swoolefy\Core\EventApp)->registerApp(function(EventController $eventApp) use($message) {
+                                $this->onReceive($message);
                             });
                         }
                     }catch(\Throwable $throwable) {
@@ -138,7 +138,7 @@ abstract class AbstractProcessPools {
             });
         }
 
-        $this->swooleProcess->name('php-user-process-worker'.$this->bind_worker_id.':'.$this->getProcessName(true));
+        $this->swooleProcess->name(APP_NAME.':'.'php-swoolefy-user-process-worker'.$this->bind_worker_id.':'.$this->getProcessName(true));
         try {
             (new \Swoolefy\Core\EventApp)->registerApp(function(EventController $eventApp) {
                 $this->init();
@@ -147,20 +147,6 @@ abstract class AbstractProcessPools {
         }catch(\Throwable $t) {
             BaseServer::catchException($t);
         }
-    }
-
-    /**
-     * @param $data
-     * @return array|mixed
-     */
-    protected function validDataJson($data) {
-        if(is_string($data)) {
-            $dataArr = json_decode($data, true);
-            if(is_array($dataArr)) {
-                $data = $dataArr;
-            }
-        }
-        return $data;
     }
 
     /**

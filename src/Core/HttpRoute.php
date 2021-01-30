@@ -16,19 +16,19 @@ use Swoolefy\Core\Controller\BController;
 class HttpRoute extends AppDispatch {
 
     /**
-     * pathInfo 模式
+     * pathInfo model
      * @var int
      */
     const ROUTE_MODEL_PATHINFO = ROUTE_MODEL_PATHINFO;
 
     /**
-     * params路由模式
+     * params model
      * @var int
      */
     const ROUTE_MODEL_QUERY_PARAMS = ROUTE_MODEL_QUERY_PARAMS;
 
 	/**
-	 * $request 请求对象
+	 * $request
 	 * @var \Swoole\Http\Request
 	 */
 	public $request = null;
@@ -86,7 +86,7 @@ class HttpRoute extends AppDispatch {
     protected $action_params = [];
 
     /**
-	 * $deny_actions 禁止外部直接访问的action
+	 * $deny_actions
 	 * @var array
 	 */
 	protected static $deny_actions = ['__construct','_beforeAction','_afterAction','__destruct'];
@@ -105,7 +105,7 @@ class HttpRoute extends AppDispatch {
 	}
 
     /**
-     * dispatch 路由调度
+     * dispatch
      * @return mixed
      * @throws \Exception
      */
