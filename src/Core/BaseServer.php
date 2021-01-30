@@ -184,7 +184,7 @@ class BaseServer {
 	 * @param  string  $master_process_name
 	 */
 	public static function setMasterProcessName($master_process_name) {
-		cli_set_process_title($master_process_name);
+		cli_set_process_title(static::getAppName().':'.$master_process_name);
 	}
 
 	/**
@@ -192,7 +192,7 @@ class BaseServer {
 	 * @param  string  $manager_process_name
 	 */
 	public static function setManagerProcessName($manager_process_name) {
-        cli_set_process_title($manager_process_name);
+        cli_set_process_title(static::getAppName().':'.$manager_process_name);
 	}
 
 	/**
@@ -204,12 +204,23 @@ class BaseServer {
 	public static function setWorkerProcessName($worker_process_name, $worker_id, $worker_num=1) {
 		// 设置worker的进程
 		if($worker_id >= $worker_num) {
-            cli_set_process_title($worker_process_name."-task".$worker_id);
+            cli_set_process_title(static::getAppName().':'.$worker_process_name."-task".$worker_id);
         }else {
-            cli_set_process_title($worker_process_name."-worker".$worker_id);
+            cli_set_process_title(static::getAppName().':'.$worker_process_name."-worker".$worker_id);
         }
 
 	}
+
+    /**
+     * @return string
+     */
+	public static function getAppName() {
+        $appName = '';
+        if(defined('APP_NAME')) {
+            $appName = APP_NAME;
+        }
+        return $appName;
+    }
 
 	/**
 	 * startInclude 设置需要在workerStart启动时加载的配置文件

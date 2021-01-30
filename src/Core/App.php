@@ -84,7 +84,7 @@ class App extends \Swoolefy\Core\Component {
 	}
 
     /**
-     * @param $request
+     * before request application handle
      */
 	protected function _bootstrap() {
         $conf = BaseServer::getConf();

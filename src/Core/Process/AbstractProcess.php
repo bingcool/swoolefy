@@ -106,7 +106,7 @@ abstract class AbstractProcess {
         });
 
         if($this->async){
-            \Swoole\Event::add($this->swooleProcess->pipe, function(){
+            \Swoole\Event::add($this->swooleProcess->pipe, function() {
                 $msg = $this->swooleProcess->read(64 * 1024);
                 \Swoole\Coroutine::create(function() use($msg) {
                     try{
@@ -114,9 +114,9 @@ abstract class AbstractProcess {
                             $this->reboot();
                             return;
                         }else {
-                            $msg = $this->validDataJson($msg);
-                            (new \Swoolefy\Core\EventApp)->registerApp(function(EventController $eventApp) use($msg) {
-                                $this->onReceive($msg);
+                            $message = json_decode($msg, true) ?? $msg;
+                            (new \Swoolefy\Core\EventApp)->registerApp(function(EventController $eventApp) use($message) {
+                                $this->onReceive($message);
                             });
                         }
                     }catch(\Throwable $throwable) {
@@ -137,20 +137,6 @@ abstract class AbstractProcess {
             BaseServer::catchException($t);
         }
         
-    }
-
-    /**
-     * @param $data
-     * @return array|mixed
-     */
-    protected function validDataJson($data) {
-        if(is_string($data)) {
-            $dataArr = json_decode($data, true);
-            if(is_array($dataArr)) {
-                $data = $dataArr;
-            }
-        }
-        return $data;
     }
 
     /**

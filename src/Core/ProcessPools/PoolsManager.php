@@ -95,7 +95,7 @@ class PoolsManager {
         $this->total_process_num += ($this->worker_num * $process_num_bind_worker);
 
         if($this->total_process_num > self::PROCESS_NUM) {
-            throw new \Exception("PoolsManager Error : total self process num more then ".self::PROCESS_NUM);
+            throw new \Exception("PoolsManager Error : total user process num more then ".self::PROCESS_NUM);
         }
 
         $key = md5($processName);

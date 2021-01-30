@@ -41,10 +41,14 @@ class EventController extends BaseObject {
     protected $is_defer = false;
 
     /**
-     * $event_hooks 钩子事件
+     * $event_hooks
      * @var array
      */
     protected $event_hooks = [];
+
+    /**
+     * after request event
+     */
     const HOOK_AFTER_REQUEST = 1;
 
     /**
