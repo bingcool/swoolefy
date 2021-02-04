@@ -188,7 +188,7 @@ class EventController extends BaseObject {
 	}
 
 	/**
-	 * afterAction 在返回数据之前执行
+	 * afterAction
 	 * @return boolean
 	 */
 	public function _afterAction() {

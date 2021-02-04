@@ -138,7 +138,7 @@ abstract class AbstractProcessPools {
             });
         }
 
-        $this->swooleProcess->name(APP_NAME.':'.'php-swoolefy-user-process-worker'.$this->bind_worker_id.':'.$this->getProcessName(true));
+        $this->swooleProcess->name(BaseServer::getAppName().':'.'php-swoolefy-user-process-worker'.$this->bind_worker_id.':'.$this->getProcessName(true));
         try {
             (new \Swoolefy\Core\EventApp)->registerApp(function(EventController $eventApp) {
                 $this->init();
@@ -205,7 +205,7 @@ abstract class AbstractProcessPools {
 
     /**
      * 阻塞写数据
-     * worker进程将通过swoole_select或者stream_select函数监听获取数数据
+     * worker进程将通过swoole_client_select或者stream_select函数监听获取数数据
      * @param $msg
      * @return string
      */

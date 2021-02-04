@@ -136,8 +136,7 @@ class EventApp {
 			}
             try {
                 $this->is_call = true;
-                $result = $this->event_app->$action(...$args);
-                return $result;
+                return $this->event_app->$action(...$args);
             }catch(\Throwable $throwable) {
 			    throw $throwable;
             }finally {
