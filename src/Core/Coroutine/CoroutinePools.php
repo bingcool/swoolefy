@@ -11,8 +11,6 @@
 
 namespace Swoolefy\Core\Coroutine;
 
-use Swoolefy\Core\BaseServer;
-
 class CoroutinePools {
 
     use \Swoolefy\Core\SingletonTrait;

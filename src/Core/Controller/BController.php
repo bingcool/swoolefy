@@ -19,13 +19,13 @@ class BController extends \Swoolefy\Core\AppObject {
     use \Swoolefy\Core\AppTrait,\Swoolefy\Core\ServiceTrait;
 
     /**
-     * $request 当前请求的对象
+     * $request
      * @var \Swoole\Http\Request
      */
     public $request = null;
 
     /**
-     * $response 当前请求的响应对象
+     * $response
      * @var \Swoole\Http\Response
      */
     public $response = null;

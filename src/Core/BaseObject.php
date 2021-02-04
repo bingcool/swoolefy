@@ -186,7 +186,7 @@ class BaseObject {
 	}	
 
 	/**
-	 * 直接获取component组件实例
+	 * get component
 	 */
 	public function __get($name) {
         if(is_object(Application::getApp())) {

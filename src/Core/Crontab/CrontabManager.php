@@ -20,7 +20,7 @@ class CrontabManager {
 
 	use \Swoolefy\Core\SingletonTrait;
 
-	protected $cron_tasks = [];
+	protected $cronTasks = [];
 
     /**
      * @param string $cron_name
@@ -43,11 +43,11 @@ class CrontabManager {
 
         $cron_name_key = md5($cron_name);
 
-        if(isset($this->cron_tasks[$cron_name_key])) {
+        if(isset($this->cronTasks[$cron_name_key])) {
             throw new \Exception("Cron name=$cron_name had been setting, you can not set same name again!");
         }
 
-        $this->cron_tasks[$cron_name_key] = [$expression, $func];
+        $this->cronTasks[$cron_name_key] = [$expression, $func];
 
         if(is_array($func)) {
             list($class, $action) = $func;
@@ -87,12 +87,12 @@ class CrontabManager {
 	public function getCronTaskByName(string $cron_name = null) {
 		if($cron_name) {
 			$cron_name_key = md5($cron_name);
-			if(isset($this->cron_tasks[$cron_name_key])) {
-				return $this->cron_tasks[$cron_name_key];
+			if(isset($this->cronTasks[$cron_name_key])) {
+				return $this->cronTasks[$cron_name_key];
 			}
 			return null;
 		}
-		return $this->cron_tasks;
+		return $this->cronTasks;
 	}
 
 }

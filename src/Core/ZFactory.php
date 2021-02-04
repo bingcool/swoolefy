@@ -21,7 +21,7 @@ class ZFactory {
 	protected static $_instances = [];
 
 	/**
-	 * getInstance 获取model的单例
+	 * getInstance 获取单例
 	 * @param   string  $class  类命名空间
      * @param   array   $constructor 类构造函数参数
 	 * @return  mixed
@@ -37,7 +37,7 @@ class ZFactory {
 	}
 
 	/**
-	 * removeInstance 删除某个协程下的所有创建的model实例
+	 * removeInstance 删除某个协程下的所有创建的实例
      * @param int $cid
      * @param string $class
 	 * @return boolean

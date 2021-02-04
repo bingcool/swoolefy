@@ -229,7 +229,6 @@ class BService extends BaseObject {
 	    return $this->client_info;
     }
 
-
 	/**
 	 * afterAction 在销毁前执行
      * @param string $action

@@ -14,19 +14,19 @@ namespace Swoolefy\Core;
 trait AppTrait {
 
     /**
-     * $request 当前请求的对象
+     * $request
      * @var \Swoole\Http\Request
      */
     public $request = null;
 
     /**
-     * $response 当前请求的响应对象
+     * $response
      * @var \Swoole\Http\Response
      */
     public $response = null;
 
 	/**
-	 * $previousUrl,记录url
+	 * $previousUrl
 	 * @var array
 	 */
 	public $previousUrl = [];

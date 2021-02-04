@@ -16,8 +16,14 @@ use Swoolefy\Core\Memory\AtomicManager;
 
 class BaseServer {
 
+    /**
+     * check eof
+     */
     const PACK_CHECK_EOF = SWOOLEFY_PACK_CHECK_EOF;
 
+    /**
+     * check length
+     */
     const PACK_CHECK_LENGTH = SWOOLEFY_PACK_CHECK_LENGTH;
 
     /**

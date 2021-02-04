@@ -59,32 +59,6 @@ abstract class AbstractProcess {
     }
 
     /**
-     * getProcess 获取process进程对象
-     * @return Process
-     */
-    public function getProcess() {
-        return $this->swooleProcess;
-    }
-
-    /*
-     * 服务启动后才能获得到创建的进程pid,不启动为null
-     */
-    public function getPid() {
-        $pid = TableManager::getTable('table_process_map')->get(md5($this->processName),'pid');
-        if($pid) {
-            return $pid;
-        }
-        return null;
-    }
-
-    /**
-     * @return string
-     */
-    public function getSwoolefyProcessKillFlag() {
-        return static::SWOOLEFY_PROCESS_KILL_FLAG;
-    }
-
-    /**
      * __start 创建process的成功回调处理
      * @param  Process $process
      * @return void
@@ -126,7 +100,7 @@ abstract class AbstractProcess {
             });
         }
 
-        $this->swooleProcess->name('php-swoolefy-user-process:'.$this->getProcessName());
+        $this->swooleProcess->name(BaseServer::getAppName().':'.'php-swoolefy-user-process:'.$this->getProcessName());
 
         try{
             (new \Swoolefy\Core\EventApp)->registerApp(function(EventController $eventApp) {
@@ -152,6 +126,32 @@ abstract class AbstractProcess {
      */
     public function getExtendData() {
         return $this->extend_data;
+    }
+
+    /**
+     * getProcess 获取process进程对象
+     * @return Process
+     */
+    public function getProcess() {
+        return $this->swooleProcess;
+    }
+
+    /*
+     * 服务启动后才能获得到创建的进程pid,不启动为null
+     */
+    public function getPid() {
+        $pid = TableManager::getTable('table_process_map')->get(md5($this->processName),'pid');
+        if($pid) {
+            return $pid;
+        }
+        return null;
+    }
+
+    /**
+     * @return string
+     */
+    public function getSwoolefyProcessKillFlag() {
+        return static::SWOOLEFY_PROCESS_KILL_FLAG;
     }
 
     /**
