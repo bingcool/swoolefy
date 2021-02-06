@@ -11,9 +11,9 @@
 
 namespace Swoolefy\Rpc;
 
-use Swoolefy\Core\Application;
-use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Swfy;
+use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\Application;
 
 class Pack extends BaseParse {
 

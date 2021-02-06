@@ -253,7 +253,10 @@ class Consumer {
         return $rdKafkaConsumer;
     }
 
-    /**/
+    /**
+     * setTopicConfToConf
+     * @return void
+     */
     protected function setTopicConfToConf()
     {
         $topicConf = $this->getTopicConf();

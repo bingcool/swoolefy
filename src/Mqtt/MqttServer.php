@@ -13,9 +13,9 @@ namespace Swoolefy\Mqtt;
 
 include_once SWOOLEFY_CORE_ROOT_PATH.'/MainEventInterface.php';
 
+use Swoole\Server;
 use Simps\MQTT\Protocol;
 use Simps\MQTT\Protocol\Types;
-use Swoole\Server;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\EventApp;
 use Swoolefy\Core\EventController;
