@@ -13,7 +13,7 @@ namespace Swoolefy\Library\Db;
 
 class SqlBuilder
 {
-    static $preparePrefix = ':XM_PREPARE';
+    static $preparePrefix = ':SW_PREPARE';
     static $paramCount = 0;
 
     public static function buildMultiWhere($alias, array $conditions, &$sql, &$params, $operator = 'AND')

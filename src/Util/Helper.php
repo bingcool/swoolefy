@@ -154,7 +154,6 @@ class Helper {
         if ($len <= 0) {
             return 0;
         }
-
         $count = 0;
         for($i = 0; $i < $len; $i++) {
             $count++;
@@ -210,7 +209,6 @@ class Helper {
                 return true;
             }
         }
-
         return false;
     }
 
@@ -226,7 +224,6 @@ class Helper {
                 return true;
             }
         }
-
         return false;
     }
 
@@ -242,7 +239,6 @@ class Helper {
                 return true;
             }
         }
-
         return false;
     }
 

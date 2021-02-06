@@ -204,7 +204,7 @@ class Predis extends RedisConnection {
 	}
 
 	/**
-	 * setConfig设置配置
+	 * setConfig 设置配置
 	 * @param array $parameters
 	 * @param array $options
 	 * @param mixed
