@@ -110,7 +110,8 @@ function IS_PRD_ENV() {
     return false;
 }
 
-function initCheck() {
+function initCheck()
+{
     try{
        if(version_compare(phpversion(),'7.2.0','<')) {
             write("
@@ -129,7 +130,8 @@ function initCheck() {
     }
 }
 
-function opCacheClear(){
+function opCacheClear()
+{
     if(function_exists('apc_clear_cache')){
         apc_clear_cache();
     }
@@ -138,14 +140,16 @@ function opCacheClear(){
     }
 }
 
-function commandParser() {
+function commandParser()
+{
     global $argv;
     $command = isset($argv[1]) ? $argv[1] : null;
     $app_name = isset($argv[2]) ? $argv[2] : null;
     return ['command'=>$command, 'app_name'=>trim($app_name)];
 }
 
-function createProject($server_name) {
+function createProject($server_name)
+{
     $dirs = ['Config', 'Service'];
     $params = commandParser();
     $app_name = $params['app_name'];
@@ -208,7 +212,8 @@ function createProject($server_name) {
     }
 }
 
-function startServer($server_name) {
+function startServer($server_name)
+{
     opCacheClear();
     foreach(APP_NAMES as $app_name => $protocol) {
         if($app_name == $server_name) {
@@ -237,7 +242,8 @@ function startServer($server_name) {
     return ;
 }
 
-function startHttpService($app_name, $event_server_file_name = 'HttpServer') {
+function startHttpService($app_name, $event_server_file_name = 'HttpServer')
+{
     $path = START_DIR_ROOT."/protocol/{$app_name}";
     if(!is_dir($path)) {
         @mkdir($path, 0777, true);
@@ -296,7 +302,8 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer') {
     $http->start();
 }
 
-function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServer') {
+function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServer')
+{
     $path = START_DIR_ROOT."/protocol/{$app_name}";
     if(!is_dir($path)) {
         @mkdir($path, 0777, true);
@@ -355,7 +362,8 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
     $websocket->start();
 }
 
-function startRpc($app_name, $event_server_file_name = 'RpcServer') {
+function startRpc($app_name, $event_server_file_name = 'RpcServer')
+{
     $path = START_DIR_ROOT."/protocol/{$app_name}";
     if(!is_dir($path)) {
         @mkdir($path, 0777, true);
@@ -414,7 +422,8 @@ function startRpc($app_name, $event_server_file_name = 'RpcServer') {
     $rpc->start();
 }
 
-function startUdp($app_name, $event_server_file_name = 'UdpEventServer') {
+function startUdp($app_name, $event_server_file_name = 'UdpEventServer')
+{
     $path = START_DIR_ROOT."/protocol/{$app_name}";
     if(!is_dir($path)) {
         @mkdir($path, 0777, true);
@@ -532,19 +541,9 @@ function startMqtt($app_name, $event_server_file_name = 'MqttServer') {
     $mqtt->start();
 }
 
-function stopServer($app_name) {
-    $path = START_DIR_ROOT."/protocol/{$app_name}";
-
-    $config = include $path.'/config-'.SWOOLEFY_ENV.'.php';
-
-    if(isset($config['setting']['pid_file'])) {
-        $path = pathinfo($config['setting']['pid_file'], PATHINFO_DIRNAME);
-        if(!is_dir($path)) {
-            mkdir($path, 0777, true);
-        }
-    }
-
-    $pid_file = $config['setting']['pid_file'];
+function stopServer($app_name)
+{
+    $pid_file = getPidFile($app_name);
 
     if(!is_file($pid_file)) {
         write("[error] pid file {$pid_file} is not exist, please check the server whether running");
@@ -585,17 +584,9 @@ function stopServer($app_name) {
     exit();
 }
 
-function reloadServer($app_name) {
-    global $argv;
-    $path = START_DIR_ROOT.'/protocol/'.$app_name;
-    $config = include $path.'/config-'.SWOOLEFY_ENV.'.php';
-    if(isset($config['setting']['pid_file'])) {
-        $path = pathinfo($config['setting']['pid_file'], PATHINFO_DIRNAME);
-        if(!is_dir($path)) {
-	    mkdir($path, 0777, true);
-        }
-    }
-    $pid_file = $config['setting']['pid_file'];
+function reloadServer($app_name)
+{
+    $pid_file = getPidFile($app_name);
     
     if(!is_file($pid_file)) {
         write("[error] pid file {$pid_file} is not exist, please check server is running");
@@ -618,6 +609,55 @@ function reloadServer($app_name) {
         'light_green'
     );
     
+}
+
+function statusServer($app_name)
+{
+    $pid_file = getPidFile($app_name);
+
+    if(!is_file($pid_file)) {
+        write("[error] pid file {$pid_file} is not exist, please check server is running");
+        return;
+    }
+
+    $pid = intval(file_get_contents($pid_file));
+    if(!\Swoole\Process::kill($pid, 0)){
+        write("[error] pid={$pid} not exist, server maybe shutdown");
+        return;
+    }
+
+    $exec = 'ps -ef | grep php | grep '.$app_name."-swoolefy". ' | grep -v grep';
+
+    exec($exec, $output, $return);
+
+    if(empty($output))
+    {
+        write("[error] ps -ef not match {$app_name}-swoolefy");
+        return;
+    }
+
+    foreach ($output as $value)
+    {
+        write(
+            '进程id='.$value,
+            'light_green'
+        );
+    }
+}
+
+function getPidFile($app_name)
+{
+    $path = START_DIR_ROOT.'/protocol/'.$app_name;
+    $config = include $path.'/config-'.SWOOLEFY_ENV.'.php';
+    if(isset($config['setting']['pid_file'])) {
+        $path = pathinfo($config['setting']['pid_file'], PATHINFO_DIRNAME);
+        if(!is_dir($path)) {
+            mkdir($path, 0777, true);
+        }
+    }
+    $pid_file = $config['setting']['pid_file'] ?? '';
+
+    return $pid_file;
 }
 
 function help($command) {
@@ -698,6 +738,10 @@ function commandHandler(){
             }
             case 'reload':{
                 reloadServer($command['app_name']);
+                break;
+            }
+            case 'status': {
+                statusServer($command['app_name']);
                 break;
             }
             case 'help':

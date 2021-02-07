@@ -14,7 +14,7 @@ namespace Swoolefy\Library\Db\Concern;
 trait Attribute
 {
     /**
-     * 数据表主键
+     * primary key
      * @var string
      */
     protected $pk = 'id';
