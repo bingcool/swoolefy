@@ -223,7 +223,7 @@ class BaseServer {
 	public static function getAppName() {
         $appName = '';
         if(defined('APP_NAME')) {
-            $appName = APP_NAME;
+            $appName = APP_NAME.'-swoolefy';
         }
         return $appName;
     }
