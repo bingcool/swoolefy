@@ -100,7 +100,7 @@ abstract class AbstractProcess {
             });
         }
 
-        $this->swooleProcess->name(BaseServer::getAppName().':'.'php-swoolefy-user-process:'.$this->getProcessName());
+        $this->swooleProcess->name(BaseServer::getAppPrefix().':'.'php-swoolefy-user-process:'.$this->getProcessName());
 
         try{
             (new \Swoolefy\Core\EventApp)->registerApp(function(EventController $eventApp) {

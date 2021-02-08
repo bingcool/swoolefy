@@ -99,7 +99,7 @@ class EventApp {
             if(!($this->event_app instanceof EventController)) {
                 $class_name = get_class($this->event_app);
                 unset($this->event_app);
-                throw new \Exception("{$class_name} must extends \Swoolefy\Core\EventController, please check it");
+                throw new \Exception(sprintf("%s must extends \Swoolefy\Core\EventController, please check it", $class_name));
             }
         }
 		return $this;
@@ -132,7 +132,7 @@ class EventApp {
 		try{
 			if($this->is_call) {
                 $class_name = get_class($this->event_app);
-				throw new \Exception("{$class_name} Single Coroutine Instance only be called one method, you had called");
+				throw new \Exception(sprintf("%s Single Coroutine Instance only be called one method, you had called", $class_name));
 			}
             try {
                 $this->is_call = true;

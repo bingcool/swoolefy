@@ -57,7 +57,7 @@ trait ComponentTrait {
 				}else if($definition instanceof \Closure) {
                     return $this->container[$com_alias_name] = call_user_func($definition, $com_alias_name);
 				}else {
-                    throw new \Exception("component:".$com_alias_name.'must be set class', 1);
+                    throw new \Exception(sprintf("component:%s must be set class", $com_alias_name));
                 }
 
 			}else {
@@ -171,7 +171,7 @@ trait ComponentTrait {
         		    $closure = $definition[$name];
                     $closure->call($object, $definition);
         		}else {
-        			throw new \Exception("{$com_alias_name} component's config item 'func' is not Closure or {$com_alias_name} instance is not exists of method");
+        			throw new \Exception(sprintf("%s of component's config item 'func' is not Closure or %s instance is not exists of method", $com_alias_name, $com_alias_name));
         		}
         		continue;
         	}else if(isset($object->$name) && @is_array($object->$name)) {

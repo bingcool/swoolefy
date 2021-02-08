@@ -249,32 +249,42 @@ class HttpRoute extends AppDispatch {
         if($reflector->hasMethod($targetAction)) {
             list($method, $args) = $this->bindActionParams($controllerInstance, $targetAction, $this->buildParams());
             if($method->isPublic() && !$method->isStatic()) {
-                try{
+                try
+                {
                     $controllerInstance->{$targetAction}(...$args);
                     $controllerInstance->_afterAction($action);
-                }catch (\Throwable $t) {
+                }catch (\Throwable $t)
+                {
                     $queryString = isset($this->request->server['QUERY_STRING']) ? '?' . $this->request->server['QUERY_STRING'] : '';
                     if(isset($this->request->post) && !empty($this->request->post)) {
                         $post = json_encode($this->request->post, JSON_UNESCAPED_UNICODE);
-                        $errorMsg = $t->getMessage() . ' on ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $this->request->server['REQUEST_URI'] . $queryString . ' ||| ' . $post;
+                        $errorMsg = $t->getMessage() . ' on ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $this->request->server['REQUEST_URI'] . $queryString . ' ||| ' . $post.'|||'.$t->getTraceAsString();
                     }else {
-                        $errorMsg = $t->getMessage() . ' on ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $this->request->server['REQUEST_URI'] . $queryString;
+                        $errorMsg = $t->getMessage() . ' on ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $this->request->server['REQUEST_URI'] . $queryString.'|||'.$t->getTraceAsString();
                     }
                     // record exception
                     $this->response->status(500);
                     $exceptionClass = $this->app->getExceptionClass();
                     $this->app->beforeEnd(500, $errorMsg);
-                    $exceptionClass::shutHalt($errorMsg);
+                    $exceptionClass::shutHalt($errorMsg, SwoolefyException::EXCEPTION_ERR, $t);
                     return false;
                 }
             }else {
-                $errorMsg = "Class method {$class}::{$targetAction} is protected or private property, can't be called by Controller Instance";
+                $errorMsg = sprintf(
+                    "Class method %s::%s is protected or private property, can't be called by Controller Instance",
+                        $class,
+                        $targetAction
+                    );
                 $this->response->status(500);
                 $this->app->beforeEnd(500, $errorMsg);
                 return false;
             }
         }else {
-            $errorMsg = "Call undefined {$class}::{$targetAction} method";
+            $errorMsg = sprintf(
+                "Call undefined %s::%s method",
+                $class,
+                $targetAction
+            );
             $this->response->status(404);
             $this->response->header('Content-Type', 'application/json; charset=UTF-8');
             $this->app->beforeEnd(404, $errorMsg);
