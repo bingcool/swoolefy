@@ -140,6 +140,60 @@ class SqlBuilder
         }
     }
 
+    public static function buildMinRange($alias, $field, $min, &$sql, &$params, bool $include = true)
+    {
+        if(is_null($min) || $min === '')
+        {
+            $min = 0;
+        }
+
+        if($include)
+        {
+            $sql .= " and {$alias}{$field} >= :min_{$field}";
+        }else
+        {
+            $sql .= " and {$alias}{$field} > :min_{$field}";
+        }
+
+        $params[":min_{$field}"] = $min;
+    }
+
+    public static function buildMaxRange($alias, $field, $max, &$sql, &$params, bool $include = true)
+    {
+        if(is_null($max) || $max === '')
+        {
+            $max = 0;
+        }
+
+        if($include)
+        {
+            $sql .= " and {$alias}{$field} <= :max_{$field}";
+        }else
+        {
+            $sql .= " and {$alias}{$field} < :max_{$field}";
+        }
+
+        $params[":max_{$field}"] = $max;
+    }
+
+    public static function buildLike($alias, $field, $keyword, &$sql, &$params, $operator = 'AND')
+    {
+        $sql .= " $operator {$alias}{$field} like {$keyword}";
+    }
+
+    public static function buildOrderBy($alias, $field, $rank, &$sql, &$params)
+    {
+        if(in_array(strtolower($rank),['asc', 'desc']))
+        {
+            $sql .= " order by {$alias}{$field}";
+        }
+    }
+
+    public static function buildGroupBy($alias, $field, &$sql, &$params)
+    {
+        $sql .= " group by {$alias}{$field}";
+    }
+
     private static function buildInWhere($values, &$params)
     {
         $prepareParams = [];
