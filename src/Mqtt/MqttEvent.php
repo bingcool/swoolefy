@@ -172,7 +172,8 @@ class MqttEvent {
     /**
      * @param $clean_session
      */
-    final public function connectAck($clean_session) {
+    final public function connectAck($clean_session)
+    {
         $this->server->send(
             $this->fd,
             Protocol\V3::pack(
@@ -196,7 +197,8 @@ class MqttEvent {
     /**
      * @param $message_id
      */
-    final public function publishAck($message_id) {
+    final public function publishAck($message_id)
+    {
         $this->server->send(
             $this->fd,
             Protocol\V3::pack(

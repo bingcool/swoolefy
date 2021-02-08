@@ -21,7 +21,7 @@ class Reload {
 	private $inotify = null;
 
 	/**
-	 * $reloadFileTypes 定义哪些文件的改动将触发swoole服务重启
+	 * $reloadFileTypes 定义触发swoole服务重启文件的类型
 	 * @var array
 	 */
 	protected $reloadFileTypes = ['.php','.html','.js'];
@@ -90,21 +90,24 @@ class Reload {
             if(!$events) {
                 return;
             }
-            // 只要检测到一个文件改动，则停止其余文件的判断，等待时间重启即可
+            /**
+             * 只要检测到一个文件改动，则停止其余文件的判断，等待时间重启即可
+             */
             if(!$this->reloading) {
                 foreach($events as $ev) {
                     if ($ev['mask'] == IN_IGNORED) {
                         continue;
 
                     }else if(in_array($ev['mask'], [IN_CREATE, IN_DELETE, IN_MODIFY, IN_MOVED_TO, IN_MOVED_FROM])) {
-                        // 获取改动文件文件的后缀名
                         $fileType = '.'.pathinfo($ev['name'], PATHINFO_EXTENSION);
 
                         if(!in_array($fileType, $this->reloadFileTypes)) {
                             continue;
                         }
                     }
-                    //正在reload，不再接受任何事件，冻结10秒
+                    /**
+                     * 正在reload，不再接受任何事件，冻结10秒
+                     */
                     if (!$this->reloading) {
                         \Swoole\Timer::after($this->afterSeconds * 1000, [$this, 'reload']);
                         $this->reloading = true;

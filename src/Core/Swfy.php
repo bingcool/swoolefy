@@ -68,7 +68,12 @@ class Swfy {
 	 */
 	public function __call($action, $args = []) {
 		// stop exec
-		throw new \Exception("Calling unknown method: " . get_called_class()."::"."{$action}");
+		throw new \Exception(sprintf(
+		    "Calling unknown method: %s::%s",
+                get_called_class(),
+                $action
+            )
+        );
 	}
 
 	/**
@@ -78,7 +83,12 @@ class Swfy {
 	 */
 	public static function __callStatic($action, $args = []) {
 		// stop exec
-		throw new \Exception("Calling unknown static method: " . get_called_class()."::"."{$action}");
+		throw new \Exception(sprintf(
+		    "Calling unknown static method: %s::%s",
+                get_called_class(),
+                $action
+            )
+        );
 	}
 
 }

@@ -14,8 +14,6 @@ namespace Swoolefy\Websocket;
 include_once SWOOLEFY_CORE_ROOT_PATH.'/MainEventInterface.php';
 
 use Swoole\Server;
-use Swoolefy\Core\Swfy;
-use Swoolefy\Websocket\WebsocketServer;
 use Swoolefy\Core\WebsocketEventInterface;
 
 abstract class WebsocketEventServer extends WebsocketServer implements WebsocketEventInterface {

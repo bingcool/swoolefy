@@ -29,15 +29,21 @@ class SwoolefyException {
 	 * @return void
 	 */
     public static function fatalError() {
-        if($e = error_get_last()) {
-            switch($e['type']){
+        if($error = error_get_last()) {
+            switch($error['type']){
                 case E_ERROR:
                 case E_PARSE:
                 case E_CORE_ERROR:
                 case E_COMPILE_ERROR:
                 case E_USER_ERROR:
                     @ob_end_clean();
-                    static::shutHalt($e['message'], $errorType = SwoolefyException::EXCEPTION_ERR);
+                    $errorStr = sprintf("%s in file %s on line %d",
+                        $error['message'],
+                        $error["file"],
+                        $error['line']
+                    );
+                    $throwable = new \Exception($errorStr);
+                    static::shutHalt($errorStr, SwoolefyException::EXCEPTION_ERR, $throwable);
                 break;
             }
         }
@@ -59,8 +65,13 @@ class SwoolefyException {
             $error['line']  =   $e->getLine();
         }
         $error['trace']     =   $e->getTraceAsString();
-        $errorStr = "{$error['message']} in file {$error["file"]} on line {$error['line']} ";
-        static::shutHalt($errorStr);
+        $errorStr = sprintf(
+            "%s in file %s on line %d",
+                $error['message'],
+                $error["file"],
+                $error['line']
+        );
+        static::shutHalt($errorStr, SwoolefyException::EXCEPTION_ERR, $e);
     }
 
     /**
@@ -72,16 +83,21 @@ class SwoolefyException {
      * @return void
      */
     public static function appError($errorNo, $errorString, $errorFile, $errorLine) {
-    	$errorStr = "{$errorString} in file {$errorFile} on line {$errorLine} ";
+    	$errorStr = sprintf(
+    	    "%s in file %s on line %d",
+            $errorString,
+            $errorFile,
+            $errorLine
+        );
       	switch ($errorNo) {
             case E_ERROR:
-          		static::shutHalt($errorStr, $errorType = SwoolefyException::EXCEPTION_ERR);
+          		static::shutHalt($errorStr, SwoolefyException::EXCEPTION_ERR);
           		break;
             case E_WARNING:
-          		static::shutHalt($errorStr, $errorType = SwoolefyException::EXCEPTION_WARNING);
+          		static::shutHalt($errorStr, SwoolefyException::EXCEPTION_WARNING);
           		break;
             case E_NOTICE:
-            	static::shutHalt($errorStr, $errorType = SwoolefyException::EXCEPTION_NOTICE);
+            	static::shutHalt($errorStr, SwoolefyException::EXCEPTION_NOTICE);
            		break;
             default:
             break;
@@ -94,7 +110,7 @@ class SwoolefyException {
      * @param string $errorMsg
      * @param string $errorType
      */
-    public static function shutHalt($errorMsg, $errorType = SwoolefyException::EXCEPTION_ERR) {
+    public static function shutHalt($errorMsg, $errorType = SwoolefyException::EXCEPTION_ERR, \Throwable $throwable = null) {
         if(!defined('LOG_PATH')) {
             define('LOG_PATH', START_DIR_ROOT.DIRECTORY_SEPARATOR.APP_NAME);
             if(!is_dir(LOG_PATH)) {

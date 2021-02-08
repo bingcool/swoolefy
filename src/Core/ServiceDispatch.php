@@ -82,13 +82,13 @@ class ServiceDispatch extends AppDispatch {
                 return false;
 			}
 		}catch(\Throwable $t) {
-			$errorMsg = $t->getMessage().' on '.$t->getFile().' on line '.$t->getLine().' ||| '.$class.'::'.$action.' ||| '.json_encode($this->params,JSON_UNESCAPED_UNICODE);
+			$errorMsg = $t->getMessage().' on '.$t->getFile().' on line '.$t->getLine().' ||| '.$class.'::'.$action.' ||| '.json_encode($this->params,JSON_UNESCAPED_UNICODE).'|||'.$t->getTraceAsString();
 			if(Swfy::isWorkerProcess()) {
                 $this->getErrorHandle()->errorMsg($errorMsg);
             }
             // record exception
             $exceptionClass = Application::getApp()->getExceptionClass();
-            $exceptionClass::shutHalt($errorMsg);
+            $exceptionClass::shutHalt($errorMsg,SwoolefyException::EXCEPTION_ERR, $t);
             return false;
 		}
 	}
@@ -105,7 +105,7 @@ class ServiceDispatch extends AppDispatch {
             $notFoundInstance = $this->getErrorHandle();
             $errorMsg = $notFoundInstance->{$errorMethod}($class, $action);
         }
-        $msg = isset($errorMsg['msg']) ? $errorMsg['msg'] : "Call undefined function {$class}::{$action}";
+        $msg = isset($errorMsg['msg']) ? $errorMsg['msg'] : sprintf("Call undefined method %s::%s", $class, $action);
         $exceptionClass = Application::getApp()->getExceptionClass();
         $exceptionClass::shutHalt($msg);
         return true;

@@ -16,7 +16,7 @@ class CoroutineManager {
 	use \Swoolefy\Core\SingletonTrait;
 
 	/**
-	 * coroutine_id 前缀
+	 * coroutine_id
 	 */
 	const  PREFIX_CID = '';
 
@@ -43,7 +43,6 @@ class CoroutineManager {
 	}
 
     /**
-     * 是否是协程环境
      * @return boolean
      */
 	public function isCoroutine() {
@@ -85,7 +84,7 @@ class CoroutineManager {
 	}
 
 	/**
-	 * getBackTrace 获取协程函数调用栈
+	 * getBackTrace
 	 * @param   $cid  
 	 * @param   $options
 	 * @param   $limit

@@ -1,6 +1,5 @@
 #!/usr/bin/php
 
-
 <?php
 /**
 +----------------------------------------------------------------------
@@ -23,9 +22,6 @@ if(!defined('APP_NAMES')) {
     ]);
 }
 
-// 设置成中国时区
-date_default_timezone_set('PRC');
-
 // 定义环境
 defined('SWOOLEFY_DEV') or define('SWOOLEFY_DEV','dev');
 defined('SWOOLEFY_GRA') or define('SWOOLEFY_GRA','gra');
@@ -35,6 +31,7 @@ defined('SWOOLEFY_ENVS') or define('SWOOLEFY_ENVS', [
     SWOOLEFY_GRA,
     SWOOLEFY_PRD,
 ]);
+
 
 // score目录
 if(is_dir(__DIR__.'/vendor/bingcool/swoolefy')) {
@@ -639,7 +636,7 @@ function statusServer($app_name)
     foreach ($output as $value)
     {
         write(
-            '进程id='.$value,
+            '进程pid='.$value,
             'light_green'
         );
     }
@@ -682,6 +679,13 @@ function help($command) {
             break;
         }
 
+        case 'status-help':{
+            write("------------swoolefy服务状态查看命令------------",'light_green');
+            showAppHelp('status','服务状态');
+            echo "\n";
+            break;
+        }
+
         case 'create-help':{
             write("------------swoolefy平滑重启服务命令------------",'light_green');
             showAppHelp('create','创建');
@@ -695,29 +699,34 @@ function help($command) {
             write("2、php swoolefy start help 查看启动服务详细信息!",'light_green');
             write("3、php swoolefy stop help 查看终止服务详细信息!",'light_green');
             write("4、php swoolefy reload help 查看平滑重启服务详细信息!",'light_green');
+            write("5、php swoolefy status help 查看服务状态详细信息!",'light_green');
+
         }
     }
 }
 
-function showAppHelp($cmd, $cmd_info){
-    $index = 1;
-    global $APP_NAMES;
+function showAppHelp($cmd, $cmd_info)
+{
+    $index = 0;
     $env_str = '-ENV';
-    if('create' == $cmd){
+    if(in_array($cmd, ['create','status','stop']))
+    {
         $env_str = '';
     }
-    foreach ($APP_NAMES as $app_name => $service){
+    foreach (APP_NAMES as $app_name => $service)
+    {
+        $index++;
         $help_str = $index."、php swoolefy {$cmd} {$app_name} {$env_str} {$cmd_info} {$service}服务的{$app_name}项目";
         write($help_str,'light_green');
-        $index++;
     }
-    if($env_str){
-        write("{$index}、ENV变量提供".join(SWOOLEFY_ENVS,' ').'需要更多环境变量请修改SWOOLEFY_ENVS','light_green');
+    if($env_str)
+    {
+        write("{$index}、ENV变量提供".join(SWOOLEFY_ENVS,' ').'需要更多环境变量配置SWOOLEFY_ENVS常量设置','light_green');
         $index++;
         write("{$index}、-ENV可以省略，缺省以dev执行 对应不同的配置文件",'light_green');
     }
     $index++;
-    write("{$index}、更多服务请修改\$APP_NAMES变量",'light_green');
+    write("{$index}、更多服务请修改配置变APP_NAME常量",'light_green');
 }
 
 function commandHandler(){
