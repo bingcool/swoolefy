@@ -585,11 +585,11 @@ function stopServer($app_name)
             }
         }
         \Swoole\Process::wait();
-        exit();
+        exit;
+    }else {
+        write("2、你已放弃停止应用{$app_name},应用继续running中");
+        exit;
     }
-
-    write("2、你已放弃停止应用{$app_name},应用继续running");
-    exit;
 }
 
 function reloadServer($app_name)
@@ -616,7 +616,6 @@ function reloadServer($app_name)
         "Server worker process reload successful at ".date("Y-m-d H:i:s"),
         'light_green'
     );
-    
 }
 
 function statusServer($app_name)
