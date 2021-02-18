@@ -14,7 +14,6 @@ namespace Swoolefy\Core\Crontab;
 use Cron\CronExpression;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\BaseServer;
-use Swoolefy\Core\Timer\TickManager;
 
 class CrontabManager {
 

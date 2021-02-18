@@ -82,10 +82,10 @@ class Swoole extends BaseObject {
      * @throws \Exception
      */
 	public function run($fd, $recv) {
+        $this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
+        $this->fd = $fd;
 		$this->creatObject();
-		$this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
 		Application::setApp($this);
-		$this->fd = $fd;
         $this->defer();
 		$this->_init($recv);
 		$this->_bootstrap($recv);

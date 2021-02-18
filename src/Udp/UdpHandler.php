@@ -81,7 +81,7 @@ class UdpHandler extends Swoole implements HandlerInterface {
                     list($service, $event) = $dataGramItems;
                     $params = [];
                 }else {
-                    //TODO
+                    throw new \Exception('Udp dataGramItems parse error');
                 }
                 if($service && $event) {
                     $callable = [$service, $event];
