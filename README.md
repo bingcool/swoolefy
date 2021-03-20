@@ -29,7 +29,7 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 - [x] 支持容器，组件IOC    
 - [x] 支持全局日志   
 - [x] 支持协程单例注册
-- [x] 支持mysql协程组件，redis协程组件，mongodb组件，提供基于tp改造的swoolefy-orm协程mysql组件
+- [x] 支持mysql,postSql协程组件，redis协程组件，mongodb组件     
 - [x] 支持mysql的协程连接池，redis协程池
 - [x] 支持protobuf buffer的数据接口结构验证，压缩传输等        
 - [x] 异步务管理TaskManager，定时器管理TickManager，内存表管理TableManager  

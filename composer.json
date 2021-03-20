@@ -33,7 +33,8 @@
         "ext-sockets": "*",
         "ext-zend-opcache": "*",
         "ext-mbstring": "*",
-        "dragonmantank/cron-expression": "3.0.0"
+        "dragonmantank/cron-expression" : "2.3.0",
+        "bingcool/library": "dev-master"
     },
     "autoload": {
         "files": ["src/Constants.php","src/core/Func/function.php"],
