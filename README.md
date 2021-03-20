@@ -58,7 +58,7 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 components => [
     // 例如创建phpredis扩展连接实例
     'redis' => function($com_name) { // 定义组件名，闭包回调实现创建组件过程，return对象即可
-         $redis = new \Swoolefy\Library\Cache\Redis();
+         $redis = new \Common\Library\Cache\Redis();
          $redis->connect('127.0.0.1', 6379);
          $redis->auth('123456789');
          return $redis;   
@@ -72,7 +72,7 @@ components => [
             'port'   => 6379,
             'password' => '123456789'
         ];
-        $predis = new \Swoolefy\Library\Cache\Predis();
+        $predis = new \Common\Library\Cache\Predis();
         $predis->setConfig($parameters);
         return $predis;
     },
@@ -104,7 +104,7 @@ components => [
             'support_savepoint' => false
         ];
 
-        $db = new \Swoolefy\Library\Db\Mysql($config);
+        $db = new \Common\Library\Db\Mysql($config);
         return $db;
     },
        
@@ -135,7 +135,7 @@ components => [
             'support_savepoint' => false
         ];
 
-        $pg = new \Swoolefy\Library\Db\Pgsql($config);
+        $pg = new \Common\Library\Db\Pgsql($config);
         return $pg;
     },
 
