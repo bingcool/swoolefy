@@ -33,7 +33,17 @@
         "ext-sockets": "*",
         "ext-zend-opcache": "*",
         "ext-mbstring": "*",
-        "dragonmantank/cron-expression" : "2.3.0",
+        "dragonmantank/cron-expression": "3.0.0",
+        "swoole/ide-helper": "dev-master",
+        "nikic/fast-route": "^2.0@dev",
+        "vlucas/valitron": "dev-master",
+        "bingcool/rpc-client": "dev-master",
+        "workerman/workerman": "dev-master",
+        "imiphp/imi-grpc": "dev-master",
+        "bluerhinos/phpmqtt": "dev-master",
+        "sensorsdata/sa-sdk-php": "dev-master",
+        "topthink/think-orm": "dev-master",
+        "simps/mqtt": "dev-master",
         "bingcool/library": "dev-master"
     },
     "autoload": {
