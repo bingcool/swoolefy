@@ -403,7 +403,7 @@ class HttpRoute extends AppDispatch {
                     }
                 }
                 if(!$isValid) {
-                    throw new \Exception("Invalid data received for parameter of {$name}".'|||'.$this->request->server['REQUEST_URI']);
+                    throw new \InvalidArgumentException("Invalid data received for parameter of {$name}".'|||'.$this->request->server['REQUEST_URI']);
                 }
                 $args[] = $actionParams[$name] = $params[$name];
                 unset($params[$name]);
@@ -415,7 +415,7 @@ class HttpRoute extends AppDispatch {
         }
 
         if(!empty($missing)) {
-            throw new \Exception("Missing required parameters of name : ".implode(', ', $missing).'|||'.$this->request->server['REQUEST_URI'].'|||'.json_encode($actionParams, JSON_UNESCAPED_UNICODE));
+            throw new \InvalidArgumentException("Missing required parameters of name : ".implode(', ', $missing).'|||'.$this->request->server['REQUEST_URI'].'|||'.json_encode($actionParams, JSON_UNESCAPED_UNICODE));
         }
 
         $this->action_params = $actionParams;
