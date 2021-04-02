@@ -59,8 +59,8 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
      * @throws \Exception
      */
 	public function __construct(array $config = []) {
-	    if(!class_exists('Simps\MQTT\Protocol')) {
-	        throw new \Exception("Missing class \Simps\MQTT\Protocol, please 'composer require simps/mqtt'");
+	    if(!class_exists('Simps\MQTT\Client')) {
+	        throw new \Exception("Missing class \Simps\MQTT\Client, please 'composer require simps/mqtt'");
         }
         self::clearCache();
         self::$config = $config;
@@ -357,9 +357,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
                         }
                         return false;
                     }
-
                     $mqttEvent->connectAck($clean_session);
-
                     break;
                 case Types::PINGREQ:
                     $mqttEvent->pingReq();
@@ -393,7 +391,6 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
                     if($data['qos'] === 1) {
                         $mqttEvent->publishAck($message_id);
                     }
-
                     break;
                 case Types::SUBSCRIBE:
                     $payload = [];
@@ -412,9 +409,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
                             $payload[] = chr(0x80);
                         }
                     }
-
                     $mqttEvent->subscribeAck($message_id, $payload);
-
                     break;
                 case Types::UNSUBSCRIBE:
                     $topics = $data['topics'];
@@ -504,7 +499,6 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
                     }
 
                     $mqttEvent->connectAck($clean_session);
-
                     break;
                 // connect 附带authentication_method,authentication_data,开启auth验证
                 case Types::AUTH:
@@ -543,7 +537,6 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
                     if($data['qos'] === 1) {
                         $mqttEvent->publishAck($message_id);
                     }
-
                     break;
                 case Types::SUBSCRIBE:
                     $payload = [];
@@ -565,7 +558,6 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
                     }
 
                     $mqttEvent->subscribeAck($message_id, $payload);
-
                     break;
                 case Types::UNSUBSCRIBE:
                     $topics = $data['topics'];
@@ -586,7 +578,6 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
             self::catchException($exception);
             return false;
         }
-
         return true;
     }
 

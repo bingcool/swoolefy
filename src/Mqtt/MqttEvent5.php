@@ -72,7 +72,12 @@ class MqttEvent5 {
      * @param $authenticationData
      * @return bool
      */
-    public function verify($username, $password, $authentication_method, $authentication_data): bool
+    public function verify(
+        $username,
+        $password,
+        $authentication_method,
+        $authentication_data
+    ): bool
     {
         // todo auth username and password
         return true;
@@ -143,8 +148,10 @@ class MqttEvent5 {
         // 循环发给订阅的客户端，这里要去除publish发布的连接端fd
         // 读取$message的client_id，client_id与fd在connect的时候关联起来，保存好关系在redis
         // 发布者可以通过向指定client_id发布消息，这时可以从关系中获取fd,从而向指定client_id发布消息
-        foreach($this->server->connections as $sub_fd) {
-            if($sub_fd != $this->fd) {
+        foreach($this->server->connections as $sub_fd)
+        {
+            if($sub_fd != $this->fd)
+            {
                 $this->server->send(
                     $sub_fd,
                     Protocol\V5::pack(
@@ -211,7 +218,7 @@ class MqttEvent5 {
     }
 
     /**
-     *
+     * pingReq
      */
     final public function pingReq()
     {
@@ -245,7 +252,7 @@ class MqttEvent5 {
                 [
                     'type' => Types::SUBACK,
                     'message_id' => $message_id ?? '',
-                    'payload' => $payload
+                    'codes' => $payload,
                 ]
             )
         );

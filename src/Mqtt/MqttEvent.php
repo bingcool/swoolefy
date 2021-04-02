@@ -11,9 +11,14 @@
 
 namespace Swoolefy\Mqtt;
 
+use Swoolefy\Core\Swfy;
 use Simps\MQTT\Protocol;
 use Simps\MQTT\Protocol\Types;
-use Swoolefy\Core\Swfy;
+use Simps\MQTT\Message\ConnAck;
+use Simps\MQTT\Message\PingResp;
+use Simps\MQTT\Message\PubAck;
+use Simps\MQTT\Message\SubAck;
+use Simps\MQTT\Message\UnSubAck;
 
 class MqttEvent {
 
@@ -127,10 +132,12 @@ class MqttEvent {
     )
     {
         // 循环发给订阅的客户端，这里要去除publish发布的连接端fd
-        // 读取$message的client_id，client_id与fd在connect的时候关联起来，保存好关系在redis
+        // 读取变量$message的client_id，client_id与fd在connect的时候关联起来，保存好关系在redis
         // 发布者可以通过向指定client_id发布消息，这时可以从关系中获取fd,从而向指定client_id发布消息
-        foreach($this->server->connections as $sub_fd) {
-            if($sub_fd != $this->fd) {
+        foreach($this->server->connections as $sub_fd)
+        {
+            if($sub_fd != $this->fd)
+            {
                 $this->server->send(
                     $sub_fd,
                     Protocol\V3::pack(
@@ -176,22 +183,16 @@ class MqttEvent {
     {
         $this->server->send(
             $this->fd,
-            Protocol\V3::pack(
-                [
-                    'type' => Types::CONNACK,
-                    'code' => 0,
-                    'session_present' => $clean_session,
-                ]
-            )
+            (new ConnAck())->setCode(0)->setSessionPresent($clean_session)
         );
     }
 
     /**
-     *
+     * pingReq
      */
     final public function pingReq()
     {
-        $this->server->send($this->fd, Protocol\V3::pack(['type' => Types::PINGRESP]));
+        $this->server->send($this->fd, (new PingResp()));
     }
 
     /**
@@ -201,12 +202,7 @@ class MqttEvent {
     {
         $this->server->send(
             $this->fd,
-            Protocol\V3::pack(
-                [
-                    'type' => Types::PUBACK,
-                    'message_id' => $message_id ?? '',
-                ]
-            )
+            (new PubAck())->setMessageId($message_id ?? '')
         );
     }
 
@@ -218,13 +214,8 @@ class MqttEvent {
     {
         $this->server->send(
             $this->fd,
-            Protocol\V3::pack(
-                [
-                    'type' => Types::SUBACK,
-                    'message_id' => $message_id ?? '',
-                    'payload' => $payload
-                ]
-            )
+            (new SubAck())->setMessageId($message_id ?? '')
+                ->setCodes($payload)
         );
     }
 
@@ -235,12 +226,7 @@ class MqttEvent {
     {
         $this->server->send(
             $this->fd,
-            Protocol\V3::pack(
-                [
-                    'type' => Types::UNSUBACK,
-                    'message_id' => $message_id ?? '',
-                ]
-            )
+            (new UnSubAck())->setMessageId($message_id ?? '')
         );
     }
 
