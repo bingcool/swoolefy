@@ -138,7 +138,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface {
     /**
      * isClientPackEof 根据设置判断客户端的分包方式
      * @return boolean
-     * @throws \Exception
+     * @throws Exception
      */
     final public static function isClientPackEof() {
         if(!isset(self::$config['packet']['client']['pack_check_type'])) {
@@ -153,7 +153,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface {
     /**
      * isClientPackLength 根据设置判断客户端的分包方式
      * @return boolean
-     * @throws \Exception
+     * @throws Exception
      */
     final public static function isClientPackLength() {
         if(self::isClientPackEof()) {
