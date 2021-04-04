@@ -11,7 +11,6 @@
 
 namespace Swoolefy\AutoReload;
 
-use Swoole\Process;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Process\AbstractProcess;
 

@@ -292,7 +292,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
         if($protocolLevel === MQTT_PROTOCOL_LEVEL3)
         {
             return $this->handleV3($server, $fd,  $data);
-        }else if($protocolLevel == MQTT_PROTOCOL_LEVEL5)
+        }else if($protocolLevel === MQTT_PROTOCOL_LEVEL5)
         {
             return $this->handleV5($server, $fd,  $data);
         }
@@ -321,12 +321,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
         }
 
         $conf = \Swoolefy\Core\Swfy::getAppConf();
-        $eventClass = $conf['mqtt']['mqtt_event_handler'] ?? '';
-
-        if(empty($eventClass) || !class_exists($eventClass)) {
-            $eventClass = '\Swoolefy\Mqtt\MqttEvent';
-        }
-
+        $eventClass = $conf['mqtt']['mqtt_event_handler'] ?? \Swoolefy\Mqtt\MqttEvent::class;
         /**@var MqttEvent $mqttEvent*/
         $mqttEvent = new $eventClass($fd, $data);
 
@@ -457,12 +452,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
         }
 
         $conf = \Swoolefy\Core\Swfy::getAppConf();
-        $eventClass = $conf['mqtt']['mqtt_event_handler'] ?? '';
-
-        if(empty($eventClass) || !class_exists($eventClass)) {
-            $eventClass = '\Swoolefy\Mqtt\MqttEvent5';
-        }
-
+        $eventClass = $conf['mqtt']['mqtt_event_handler'] ?? \Swoolefy\Mqtt\MqttEvent5::class;
         /**@var MqttEvent5 $mqttEvent*/
         $mqttEvent = new $eventClass($fd, $data);
 
