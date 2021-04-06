@@ -125,7 +125,7 @@ class EventController extends BaseObject {
      * @return mixed
      * @throws \Exception
      */
-	public function afterRequest(callable $callback, $prepend = false) {
+	public function afterRequest(callable $callback, bool $prepend = false) {
 		if(is_callable($callback, true, $callable_name)) {
 			$key = md5($callable_name);
             if($prepend) {

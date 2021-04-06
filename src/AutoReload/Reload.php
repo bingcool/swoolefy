@@ -189,7 +189,7 @@ class Reload {
      * @throws \Exception
      * @return $this
      */
-    public function watch($dir, $root = true) {
+    public function watch($dir, bool $root = true) {
         //目录不存在
         if (!is_dir($dir)) {
             $error = "[$dir] is not a directory.";

@@ -33,7 +33,7 @@ class Hook {
 	 * @param    boolean $prepend
 	 * @return   boolean
 	 */
-	public static function addHook($type, $func, $prepend = false) {
+	public static function addHook($type, $func, bool $prepend = false) {
 		$cid = CoroutineManager::getInstance()->getCoroutineId();
 		if(is_callable($func, true, $callable_name)) {
 			$key = md5($callable_name);
@@ -58,10 +58,11 @@ class Hook {
 
 	/**
 	 * call hooks
-	 * @param   int $type
+	 * @param int $type
+     * @param int $cid
 	 * @return  void
 	 */
-	public static function callHook($type, $cid = null) {
+	public static function callHook($type, ?int $cid = null) {
         if(empty($cid)) {
             $cid = CoroutineManager::getInstance()->getCoroutineId();
         }
@@ -85,7 +86,7 @@ class Hook {
      * @param int $cid
 	 * @return callable
 	 */
-	public static function getHookCallable($cid = null) {
+	public static function getHookCallable(?int $cid = null) {
 		if(empty($cid)) {
             $cid = CoroutineManager::getInstance()->getCoroutineId();
 		}
