@@ -39,7 +39,7 @@ class Swfy {
 	 * @param mixed  $definition
 	 * @return mixed
 	 */
-	public static function createComponent(string $com_alias_name, $definition = []) {
+	public static function createComponent(?string $com_alias_name, $definition = []) {
 		return Application::getApp()->creatObject($com_alias_name, $definition);
 	}
 
@@ -48,7 +48,7 @@ class Swfy {
 	 * @param  string|array  $com_alias_name
 	 * @return boolean
 	 */
-	public static function removeComponent($com_alias_name = null) {
+	public static function removeComponent(?string $com_alias_name = null) {
 		return Application::getApp()->clearComponent($com_alias_name);
 	}
 
@@ -57,7 +57,7 @@ class Swfy {
 	 * @param  string  $com_alias_name
 	 * @return mixed
 	 */
-	public static function getComponent(string $com_alias_name = null) {
+	public static function getComponent(?string $com_alias_name = null) {
 		return Application::getApp()->getComponents($com_alias_name);
 	}
 

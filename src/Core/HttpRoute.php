@@ -184,7 +184,7 @@ class HttpRoute extends AppDispatch {
      * @throws \Exception
 	 * @return boolean
 	 */
-	public function invoke($module = null, $controller = null, $action = null) {
+	public function invoke(?string $module = null, ?string $controller = null, ?string $action = null) {
         $controller = $this->buildControllerClass($controller);
         if(!isset($this->app_conf['app_namespace'])) {
             $this->app_conf['app_namespace'] = APP_NAME;
@@ -296,7 +296,7 @@ class HttpRoute extends AppDispatch {
 	 * redirectNotFound 重定向至NotFound类
 	 * @return   array
 	 */
-	public function redirectNotFound($call_func = null) {
+	public function redirectNotFound() {
 		if(isset($this->app_conf['not_found_handler'])) {
 			// reset NotFound class
 			list($namespace, $action) = $this->app_conf['not_found_handler'];
@@ -324,7 +324,7 @@ class HttpRoute extends AppDispatch {
 	 * @param    string  $route  请求的路由uri
 	 * @return   boolean
 	 */
-	public function isExistRouteFile($route) {
+	public function isExistRouteFile(string $route) {
 		return isset(self::$routeCacheFileMap[$route]) ? self::$routeCacheFileMap[$route] : false;
 	}
 
@@ -333,7 +333,7 @@ class HttpRoute extends AppDispatch {
 	 * @param   string  $route  请求的路由uri
 	 * @return  void
 	 */
-	public function setRouteFileMap($route) {
+	public function setRouteFileMap(string $route) {
 		self::$routeCacheFileMap[$route] = true;
 	}
 
@@ -341,7 +341,7 @@ class HttpRoute extends AppDispatch {
      * @param $class
      * @return array|bool
      */
-	protected function fileNotFound($class) {
+	protected function fileNotFound(string $class) {
         $this->response->status(404);
         $this->response->header('Content-Type', 'application/json; charset=UTF-8');
         if(isset($this->app_conf['not_found_handler']) && is_array($this->app_conf['not_found_handler'])) {
@@ -358,7 +358,7 @@ class HttpRoute extends AppDispatch {
 	 * @param   string  $route  请求的路由uri
 	 * @return  void
 	 */
-	public static function resetRouteDispatch($route) {
+	public static function resetRouteDispatch(string $route) {
 	    $route = trim($route,'/');
         Application::getApp()->request->server['PATH_INFO'] = '/'.$route;
     }
