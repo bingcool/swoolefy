@@ -92,7 +92,7 @@ class BService extends BaseObject {
      * @throws Exception
 	 * @return mixed
 	 */
-	public function send($fd, $data, $header = []) {
+	public function send($fd, $data, array $header = []) {
 		if(!BaseServer::isRpcApp()) {
             throw new \Exception("BService::send() this method only can be called by tcp or rpc server!");
         }
@@ -115,7 +115,7 @@ class BService extends BaseObject {
      * @return mixed
      * @throws \Exception
      */
-	public function sendTo($data, $ip = '', $port = '', $server_socket = null) {
+	public function sendTo($data, string $ip = '', $port = '', $server_socket = null) {
         if(empty($ip)) {
             $ip = $this->client_info['address'];
         }

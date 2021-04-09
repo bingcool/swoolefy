@@ -23,7 +23,7 @@ class TaskManager {
 	 * @param mixed $data
 	 * @return mixed
 	 */
-	public static function asyncTask($callable, $data = []) {
+	public static function asyncTask($callable, array $data = []) {
 		return AsyncTask::registerTask($callable, $data);
 	}
 

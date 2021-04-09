@@ -27,17 +27,13 @@ class CrontabManager {
      * @param mixed  $func
      * @throws Exception
      */
-	public function addRule(string $cron_name, string $expression, $func) {
+	public function addRule(string $cron_name, string $expression, callable $func) {
 	    if(!class_exists('Cron\\CronExpression')) {
             throw new \Exception("If you want to use crontab, you need to install 'composer require dragonmantank/cron-expression' ");
         }
 
 	    if(!CronExpression::isValidExpression($expression)) {
             throw new \Exception("Crontab expression format is wrong, please check it");
-        }
-
-        if(!is_callable($func)) {
-            throw new \Exception("Params of func must be callable type");
         }
 
         $cron_name_key = md5($cron_name);

@@ -18,7 +18,7 @@ interface AsyncTaskInterface {
      * @param $data
      * @return mixed
      */
-    public static function registerTask($route, $data);
+    public static function registerTask($route, array $data);
 
     /**
      * finish 异步任务完成并退出到worker进程,执行finish进程业务

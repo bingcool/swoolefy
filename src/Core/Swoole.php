@@ -77,6 +77,20 @@ class Swoole extends BaseObject {
 	}
 
     /**
+     * init 当执行run方法时,首先会执行init->bootstrap
+     * @param  mixed  $recv
+     * @return void
+     */
+    protected function init($recv) {}
+
+    /**
+     * bootstrap 当执行run方法时,首先会执行init->bootstrap
+     * @param  mixed  $recv
+     * @return void
+     */
+    protected function bootstrap($recv) {}
+
+    /**
      * call 调用创建处理实例
      * @return void
      * @throws \Exception
@@ -245,7 +259,7 @@ class Swoole extends BaseObject {
 	 * @param	boolean $prepend
 	 * @return	bool
 	 */
-	public function afterRequest(callable $callback, $prepend = false) {
+	public function afterRequest(callable $callback, bool $prepend = false) {
         return Hook::addHook(Hook::HOOK_AFTER_REQUEST, $callback, $prepend);
 	}
 

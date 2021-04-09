@@ -103,7 +103,7 @@ class App extends \Swoolefy\Core\Component {
      * @throws \Throwable
 	 * @return mixed
 	 */
-	public function run($request, $response, $extend_data = null) {
+	public function run(Request $request, Response $response, $extend_data = null) {
 	    try {
 	        $this->parseHeaders($request);
             $this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();

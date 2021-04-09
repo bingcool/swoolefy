@@ -22,11 +22,11 @@ class TickManager {
 	/**
 	 * tickTimer 循环定时器
 	 * @param   int    $time_interval_ms
-	 * @param   mixed  $func         
+	 * @param   callable  $func
 	 * @param   mixed  $params
 	 * @return  int
 	 */
-	public static function tickTimer($time_interval_ms, $func, $params = null) {
+	public static function tickTimer(int $time_interval_ms, callable $func, $params = null) {
 		return Tick::tickTimer($time_interval_ms, $func, $params);
 	}
 
@@ -37,7 +37,7 @@ class TickManager {
 	 * @param  mixed $params       
 	 * @return int
 	 */
-	public static function afterTimer($time_interval_ms, $func, $params = null) {
+	public static function afterTimer(int $time_interval_ms, callable $func, $params = null) {
 		return Tick::afterTimer($time_interval_ms, $func, $params);
 	}
 
@@ -109,7 +109,7 @@ class TickManager {
 	 * @param  mixed  $args
 	 * @return mixed      
 	 */
-	public static function __callStatic($name, $args) {
+	public static function __callStatic(string $name, $args) {
 		return false;
 	}
 

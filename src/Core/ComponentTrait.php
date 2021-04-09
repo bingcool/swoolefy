@@ -108,7 +108,7 @@ trait ComponentTrait {
      * @return array
      * @throws \ReflectionException
      */
-	protected function getDependencies($class) {
+	protected function getDependencies(string $class) {
         $dependencies = [];
         $reflection = new \ReflectionClass($class);
         $constructor = $reflection->getConstructor();
@@ -126,14 +126,14 @@ trait ComponentTrait {
     }
 
     /**
-     * @param $class
+     * @param string $class
      * @param $definition
-     * @param $params
-     * @param $com_alias_name
-     * @return mixed
-     * @throws \Exception
+     * @param array $params
+     * @param string $com_alias_name
+     * @return object
+     * @throws \ReflectionException
      */
-	protected function buildInstance($class, $definition, $params, $com_alias_name) {
+	protected function buildInstance(string $class, array $definition, array $params, string $com_alias_name) {
 	    /**@var \ReflectionClass $reflection */
 		list ($reflection, $dependencies) = $this->getDependencies($class);
 
@@ -189,7 +189,7 @@ trait ComponentTrait {
 	 * @param string $com_alias_name
 	 * @return mixed
 	 */
-	public function getComponents(string $com_alias_name = null) {
+	public function getComponents(?string $com_alias_name = null) {
 		if($com_alias_name && isset($this->container[$com_alias_name])) {
 			return $this->container[$com_alias_name];
 		}
@@ -201,7 +201,7 @@ trait ComponentTrait {
 	 * @param string|array  $component_alias_name
 	 * @return boolean
 	 */
-	public function clearComponent($com_alias_name = null) {
+	public function clearComponent(?string $com_alias_name = null) {
         if(!is_null($com_alias_name) && is_string($com_alias_name)) {
 	        $com_alias_name = (array)$com_alias_name;
         }else if(is_array($com_alias_name)) {

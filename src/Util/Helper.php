@@ -18,7 +18,7 @@ class Helper {
      * @param    string  $email
      * @return   boolean
      */
-    public static function isValidateEmail($email) {
+    public static function isValidateEmail(string $email) {
         return filter_var($email, FILTER_VALIDATE_EMAIL);
     }
 
@@ -27,7 +27,7 @@ class Helper {
      * @param    string  $ip
      * @return   boolean
      */
-    public static function isValidateIp($ip) {
+    public static function isValidateIp(string $ip) {
         $ipv4 = ip2long($ip);
         if(is_numeric($ipv4)) {
             return true;
@@ -75,7 +75,7 @@ class Helper {
      * @param   int  $seed
      * @return  string
      */
-    public static function randMd5($length = 20, $seed = null) {
+    public static function randMd5(int $length = 20, $seed = null) {
         if(empty($seed)) {
             $seed = self::randString(20);
         }
@@ -118,7 +118,7 @@ class Helper {
      * @param  int $base
      * @return int
      */
-    public static function idHash($uid, $base = 100) {
+    public static function idHash(int $uid, int $base = 100) {
         return intval($uid / $base);
     }
 
@@ -138,7 +138,7 @@ class Helper {
      * @param string $url the URL to be checked
      * @return bool whether the URL is relative
      */
-    public static function isRelative($url)
+    public static function isRelative(string $url)
     {
         return strncmp($url, '//', 2) && strpos($url, '://') === false;
     }
@@ -148,7 +148,7 @@ class Helper {
      * @param    string  $str
      * @return   int
      */
-    public static function mbStrlen($str) {
+    public static function mbStrlen(string $str) {
         // strlen()计算的是字节
         $len = strlen($str);
         if ($len <= 0) {

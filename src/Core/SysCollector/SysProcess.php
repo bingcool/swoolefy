@@ -53,7 +53,7 @@ class SysProcess extends AbstractProcess {
             $isEnablePvCollector = BaseServer::isEnablePvCollector();
             $callback = $this->sys_collector_config['callback'] ?? null;
 			\Swoole\Timer::tick($tick_time * 1000, function($timer_id) use($type, $atomic, $tick_time, $isEnablePvCollector, $max_tick_handle_coroutine_num, $callback) {
-				try{
+				try {
 				    // 处理达到一定协程数量进程重启
 				    if($this->getCurrentCoroutineLastCid() > $max_tick_handle_coroutine_num) {
                         \Swoole\Timer::clear($timer_id);

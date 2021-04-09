@@ -24,7 +24,7 @@ class AsyncTask implements AsyncTaskInterface {
      * @throws mixed
      * @return int|boolean
      */
-    public static function registerTask($callable, $data = []) {
+    public static function registerTask($callable, array $data = []) {
         if(is_string($callable)) {
             throw new \Exception("AsyncTask::registerTask() function first argument of callable must be an array");
         }
