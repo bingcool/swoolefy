@@ -189,7 +189,7 @@ class BaseServer {
 	 * setMasterProcessName 设置主进程名称
 	 * @param  string  $master_process_name
 	 */
-	public static function setMasterProcessName($master_process_name) {
+	public static function setMasterProcessName(string $master_process_name) {
 		cli_set_process_title(static::getAppPrefix().':'.$master_process_name);
 	}
 

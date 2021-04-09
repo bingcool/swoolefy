@@ -117,7 +117,7 @@ class TableManager {
 	 * @param  mixed|int $incrBy
 	 * @return mixed              
 	 */
-	public static function incr(string $table, string $key, string $field, $incrBy = 1) {
+	public static function incr(string $table, string $key, string $field, int $incrBy = 1) {
 		if(is_int($incrBy) || is_float($incrBy)) {
 			return self::getTable($table)->incr($key, $field, $incrBy);
 		}
@@ -132,7 +132,7 @@ class TableManager {
 	 * @param  mixed|int $incrBy
 	 * @return mixed              
 	 */
-	public static function decr(string $table, string $key, string $field, $incrBy = 1) {
+	public static function decr(string $table, string $key, string $field, int $incrBy = 1) {
 		if(is_int($incrBy) || is_float($incrBy)) {
 			return self::getTable($table)->decr($key, $field, $incrBy);
 		}

@@ -44,11 +44,11 @@ class Context {
     }
 
     /**
-     * @param $name
-     * @param $value
+     * @param string $name
+     * @param mixed $value
      * @throws \Exception
      */
-    public static function set($name, $value) {
+    public static function set(string $name, $value) {
         $context = self::getContext();
         if($context) {
             $context[$name] = $value;
@@ -58,11 +58,11 @@ class Context {
     }
 
     /**
-     * @param $name
+     * @param string $name
      * @return boolean
      * @throws \Exception
      */
-    public static function get($name) {
+    public static function get(string $name) {
         $context = self::getContext();
         if($context) {
             return $context[$name];
@@ -71,11 +71,11 @@ class Context {
     }
 
     /**
-     * @param $name
+     * @param string $name
      * @return boolean
      * @throws \Exception
      */
-    public static function has($name) {
+    public static function has(string $name) {
         $context = self::getContext();
         if($context) {
             if(isset($context[$name])) {

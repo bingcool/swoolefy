@@ -149,7 +149,10 @@ class Tick {
 
     /**
      * after 一次性定时器执行
-     * @return  mixed
+     * @param int $time_interval_ms
+     * @param callable $func
+     * @param null $params
+     * @return bool|mixed
      */
     public static function after(int $time_interval_ms, callable $func, $params = null) {
         $tid = \Swoole\Timer::after($time_interval_ms, function($params) use($func) {

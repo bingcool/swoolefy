@@ -73,7 +73,8 @@ class EventApp {
 	 * @return $this
 	 */
 	public function registerApp($class, array $args = []) {
-	    if($class instanceof \Closure) {
+	    if($class instanceof \Closure)
+	    {
 	        /**@var EventController $event_app*/
             $event_app = new EventController(...$args);
             try {
@@ -86,17 +87,21 @@ class EventApp {
                     $this->event_app->end();
                 }
             }
-        }else {
-	        do{
-                if(is_string($class)) {
+        }else
+        {
+	        do {
+                if(is_string($class))
+                {
                     $this->event_app = new $class(...$args);
-                }else if(is_object($class)) {
+                }else if(is_object($class))
+                {
                     $this->event_app = $class;
                 }
             	break;
             }while(0);
 
-            if(!($this->event_app instanceof EventController)) {
+            if(!($this->event_app instanceof EventController))
+            {
                 $class_name = get_class($this->event_app);
                 unset($this->event_app);
                 throw new \Exception(sprintf("%s must extends \Swoolefy\Core\EventController, please check it", $class_name));
@@ -128,7 +133,7 @@ class EventApp {
      * @return mixed
      * @throws \Exception
 	 */
-	public function __call(string $action, $args = []) {
+	public function __call(string $action, array $args = []) {
 		try{
 			if($this->is_call) {
                 $class_name = get_class($this->event_app);

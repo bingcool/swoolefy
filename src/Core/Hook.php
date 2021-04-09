@@ -62,7 +62,7 @@ class Hook {
      * @param int $cid
 	 * @return  void
 	 */
-	public static function callHook($type, ?int $cid = null) {
+	public static function callHook($type, $cid = null) {
         if(empty($cid)) {
             $cid = CoroutineManager::getInstance()->getCoroutineId();
         }
@@ -86,7 +86,7 @@ class Hook {
      * @param int $cid
 	 * @return callable
 	 */
-	public static function getHookCallable(?int $cid = null) {
+	public static function getHookCallable($cid = null) {
 		if(empty($cid)) {
             $cid = CoroutineManager::getInstance()->getCoroutineId();
 		}

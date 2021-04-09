@@ -85,7 +85,7 @@ class Log {
 	 * @param    string $channel
 	 * @return   $this
 	 */
-	public function setChannel($channel) {
+	public function setChannel(string $channel) {
 		$this->channel = $channel;
 		return $this;
 	}
@@ -95,7 +95,7 @@ class Log {
 	 * @param   string $logFilePath
 	 * @return  $this
 	 */
-	public function setLogFilePath($logFilePath) {
+	public function setLogFilePath(string $logFilePath) {
 		$this->logFilePath = $logFilePath;
         $this->handler = new StreamHandler($this->logFilePath);
         $this->handler->setFormatter($this->formatter);
@@ -107,7 +107,7 @@ class Log {
 	 * @param  string $output
 	 * @return $this
 	 */
-	public function setOutputFormat($output) {
+	public function setOutputFormat(string $output) {
 		$this->output = $output;
 		$this->formatter = new LineFormatter($this->output, $dateformat = null);
 		return $this;
@@ -140,7 +140,7 @@ class Log {
      * @param bool $is_delay_batch
      * @param array $context
      */
-	public function addInfo($logInfo, $is_delay_batch = false, array $context = []) {
+	public function addInfo($logInfo, bool $is_delay_batch = false, array $context = []) {
         $this->handleLog(__FUNCTION__, $logInfo, $is_delay_batch, $context, Logger::INFO);
 	}
 
@@ -151,7 +151,7 @@ class Log {
      * @param array $context
      * @param \Throwable
      */
-	public function addNotice($logInfo, $is_delay_batch = false, array $context = []) {
+	public function addNotice($logInfo, bool $is_delay_batch = false, array $context = []) {
         $this->handleLog(__FUNCTION__, $logInfo, $is_delay_batch, $context, Logger::NOTICE);
 	}
 
@@ -161,7 +161,7 @@ class Log {
      * @param bool $is_delay_batch
      * @param array $context
      */
-	public function addWarning($logInfo, $is_delay_batch = false, array $context = []) {
+	public function addWarning($logInfo, bool $is_delay_batch = false, array $context = []) {
         $this->handleLog(__FUNCTION__, $logInfo, $is_delay_batch, $context, Logger::WARNING);
 	}
 
@@ -171,7 +171,7 @@ class Log {
      * @param bool $is_delay_batch
      * @param array $context
      */
-	public function addError($logInfo, $is_delay_batch = false, array $context = []) {
+	public function addError($logInfo, bool $is_delay_batch = false, array $context = []) {
         $this->handleLog(__FUNCTION__, $logInfo, $is_delay_batch, $context, Logger::ERROR);
 	}
 

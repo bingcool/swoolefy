@@ -31,12 +31,12 @@ class CoroutinePools {
     ];
 
     /**
-     * @param $poolName
+     * @param string $poolName
      * @param array $config
      * @param callable $constructor
      */
     public function addPool(
-        $pool_name,
+        string $pool_name,
         array $config,
         callable $constructor
     ) {

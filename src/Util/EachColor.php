@@ -45,7 +45,7 @@ class EachColor {
     }
 
     // Returns colored string
-    public function getColoredString($string, $foreground_color = null, $background_color = null) {
+    public function getColoredString($string, ?string $foreground_color = null, ?string $background_color = null) {
         $colored_string = "";
 
         // Check if given foreground color found

@@ -41,9 +41,13 @@ abstract class AbstractCronController extends ProcessController {
      * @param  string  $cron_name
      * @return void
      */
-    public function runCron(string $expression, callable $func = null, string $cron_name) {
+    public function runCron(string $expression, ?callable $func = null, string $cron_name = '') {
+        if(empty($cron_name))
+        {
+            throw new \Exception('cron_name empty');
+        }
     	$expression_key = md5($expression);
-    	/**@var CronExpression $cron*/
+    	/**@var CronExpression $cron */
     	$cron = CronExpression::factory($expression);
         $now_time = time();   
         $cron_next_datetime = strtotime($cron->getNextRunDate()->format('Y-m-d H:i:s'));

@@ -123,7 +123,7 @@ class Application {
 	 * @param  int|null $coroutine_id
 	 * @return App|Swoole|null
 	 */
-	public static function getApp($coroutine_id = null) {
+	public static function getApp(?int $coroutine_id = null) {
 		$cid = CoroutineManager::getInstance()->getCoroutineId();
 		if($coroutine_id) {
 			$cid = $coroutine_id;
@@ -157,7 +157,7 @@ class Application {
      * @param string $data
      * @return array
      */
-	public static function buildResponseData($ret = 0, string $msg = '', $data = '') {
+	public static function buildResponseData(int $ret = 0, string $msg = '', $data = '') {
 	    return [
             'ret' => $ret,
             'msg' => $msg,

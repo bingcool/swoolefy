@@ -115,7 +115,7 @@ class WebsocketHandler extends Swoole implements HandlerInterface {
      * @param string $msg
      * @return array
      */
-	private function errorMsg($msg = '') {
+	private function errorMsg(string $msg = '') {
         if(Swfy::isWorkerProcess()) {
             $errorMsg = Application::buildResponseData(500, $msg);
         }

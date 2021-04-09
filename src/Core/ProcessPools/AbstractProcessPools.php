@@ -20,15 +20,49 @@ use Swoolefy\Core\Table\TableManager;
 
 abstract class AbstractProcessPools {
 
+    /**
+     * @var Process
+     */
     private $swooleProcess;
+
+    /**
+     * @var string
+     */
     private $process_name;
+
+    /**
+     * @var bool|null
+     */
     private $async = null;
+
+    /**
+     * @var array
+     */
     private $args = [];
+
+    /**
+     * @var mixed|null
+     */
     private $extend_data;
+
+    /**
+     * @var int
+     */
     private $bind_worker_id = null;
+
+    /**
+     * @var bool
+     */
     private $enable_coroutine = true;
+
+    /**
+     * @var bool
+     */
     private $is_exiting = false;
 
+    /**
+     * kill reboot flag
+     */
     const SWOOLEFY_PROCESS_KILL_FLAG = "action::restart::action::reboot";
 
     /**
