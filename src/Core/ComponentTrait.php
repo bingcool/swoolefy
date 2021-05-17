@@ -69,18 +69,13 @@ trait ComponentTrait {
 		$coreComponents = $this->coreComponents();
 		$components = array_merge($coreComponents, BaseServer::getAppConf()['components']);
 		foreach($components as $com_name=>$component) {
-
-		    if($component instanceof \Closure || isset($this->container[$com_name])) {
+		    if($component instanceof \Closure) {
 		        // delay create
                 continue;
             }
 
-			if(isset($component[SWOOLEFY_COM_IS_DELAY])) {
-                $is_delay = filter_var($component[SWOOLEFY_COM_IS_DELAY], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-                if($is_delay === true) {
-                    continue;
-                }
-			}else {
+		    if(isset($this->container[$com_name]) && is_object($this->container[$com_name]))
+            {
                 continue;
             }
 

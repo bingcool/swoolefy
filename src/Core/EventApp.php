@@ -69,9 +69,9 @@ class EventApp {
      *
 	 * @param  string $class
      * @param  array  $args
-     * @throws Exception
 	 * @return $this
-	 */
+     * @throws Exception
+     */
 	public function registerApp($class, array $args = []) {
 	    if($class instanceof \Closure)
 	    {

@@ -122,7 +122,7 @@ class App extends \Swoolefy\Core\Component {
             throw $throwable;
         }finally {
         	if(!$this->is_defer) {
-        		$this->clearStaticVar();
+        		$this->onAfterRequest();
 	            $this->end();
         	}
         }
@@ -174,7 +174,7 @@ class App extends \Swoolefy\Core\Component {
     }
 
     /**
-	 * catchAll 捕捉拦截所有请求，进入维护模式
+	 * catchAll 捕捉拦截所有请求,进入维护模式
 	 * @return boolean
 	 */
 	public function catchAll() {
@@ -217,15 +217,6 @@ class App extends \Swoolefy\Core\Component {
         return BaseServer::getExceptionClass();
     }
 
-	/**
-	 *clearStaticVar
-	 * @return void
-	 */
-	public function clearStaticVar() {
-		// call hook callable
-		Hook::callHook(Hook::HOOK_AFTER_REQUEST);
-	}
-
     /**
      *pushComponentPools
      * @return bool
@@ -255,11 +246,20 @@ class App extends \Swoolefy\Core\Component {
 		if(\Swoole\Coroutine::getCid() > 0) {
 			$this->is_defer = true;
 			defer(function() {
-			    $this->clearStaticVar();
+			    $this->onAfterRequest();
 	            $this->end();
         	});
 		}
 	}
+
+    /**
+     *onAfterRequest
+     * @return void
+     */
+    protected function onAfterRequest() {
+        // call hook callable
+        Hook::callHook(Hook::HOOK_AFTER_REQUEST);
+    }
 
     /**
      * request end
