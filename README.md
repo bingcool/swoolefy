@@ -51,10 +51,15 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 | cron-expression | composer require dragonmantank/cron-expression | crontal组件，需要使用定时任务时必须安装此组件 |  
 | redis lock | composer require malkusch/lock | Redis锁组件 |    
 | validate | composer require vlucas/valitron | validate 数据校验组件 |  
-  
+| bingcool/library | composer require bingcool/library | library 组件库 |  
+
+### bingcool/library 是swoolefy require 内置库，专门为swoole实现的组件库        
+实现了包括Db Model组件、Kafka生产消费组件、Redis Cache 组件、Redis Queue队列组件，Redis Delay Queue延迟队列组件，Redis订阅发布组件、UUid组件等    
+github: https://github.com/bingcool/library    
+
 ### 定义组件，开放式组件接口，闭包回调实现创建组件过程，return对象即可
 ```
-// 在应用层配置文件中
+// 在应用层配置文件中,例如下面使用library的Redis、Db组件
 components => [
     // 例如创建phpredis扩展连接实例
     'redis' => function($com_name) { // 定义组件名，闭包回调实现创建组件过程，return对象即可
