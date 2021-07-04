@@ -16,7 +16,7 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 实现与底层的回调的解耦，支持协程调度，同步|异步调用，全局事件注册，心跳检查，异步任务，多进程(池)，连接池等，
 内置view、log、session、mysql、redis、mongodb等常用组件等。     
 
-目前swoolefy4.2+版本完全支持swoole4.4.+的协程，最高支持最新版的swoole4.4.+，推荐使用swoole4.4.8+.
+目前swoolefy4.2+版本完全支持swoole4.4.+的协程，最高支持最新版的swoole4.4.+，推荐使用新版swoole4.6+.
 
 ### 实现的功能特性
 - [x] 架手脚一键创建项目           
@@ -29,7 +29,7 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 - [x] 支持容器，组件IOC    
 - [x] 支持全局日志   
 - [x] 支持协程单例注册
-- [x] 支持mysql,postSql协程组件，redis协程组件，mongodb组件     
+- [x] 支持mysql、postgreSql协程组件、redis协程组件、mongodb组件     
 - [x] 支持mysql的协程连接池，redis协程池
 - [x] 支持protobuf buffer的数据接口结构验证，压缩传输等        
 - [x] 异步务管理TaskManager，定时器管理TickManager，内存表管理TableManager  
@@ -45,16 +45,16 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 ### 常用组件
 | 组件名称 | 安装 | 说明 |
 | ------ | ------ | ------ |
-| predis | composer require predis/predis:1.1.1 | swoolefy基于predis组件实现容器封装，使用redis操作需要安装此组件 |
+| predis | composer require predis/predis:1.1.1 | predis组件、或者Phpredis扩展 |
 | mongodb | composer require mongodb/mongodb:1.3 | mongodb组件，需要使用mongodb必须安装此组件 |
-| rpc-client | composer require bingcool/rpc-client:dev-master | swoolefy的rpc客户端，当与rpc服务端通信时，需要安装此组件，支持在php-fpm中使用 |
-| cron-expression | composer require dragonmantank/cron-expression | crontal组件，需要使用定时任务时必须安装此组件 |  
+| rpc-client | composer require bingcool/rpc-client:dev-master | swoolefy的rpc客户端组件，当与rpc服务端通信时，需要安装此组件，支持在php-fpm中使用 |
+| cron-expression | composer require dragonmantank/cron-expression | crontab计划任务组件，类似Linux的crobtab |  
 | redis lock | composer require malkusch/lock | Redis锁组件 |    
-| validate | composer require vlucas/valitron | validate 数据校验组件 |  
-| bingcool/library | composer require bingcool/library | library 组件库 |  
+| validate | composer require vlucas/valitron | validate数据校验组件 |  
+| bingcool/library | composer require bingcool/library | library组件库 |  
 
-### bingcool/library 是swoolefy require 内置库，专门为swoole实现的组件库        
-实现了包括Db Model组件、Kafka生产消费组件、Redis Cache 组件、Redis Queue队列组件，Redis Delay Queue延迟队列组件，Redis订阅发布组件、UUid组件等    
+### bingcool/library 是swoolefy require 内置库，专为swoole协程实现的组件库        
+实现了包括Db Mysql、PostgreSql Model组件、Kafka生产和消费组件、Redis Cache组件、Redis Queue队列组件，Redis Delay Queue延迟队列组件，Redis订阅发布组件、UUid组件、RateLimit限流组件等    
 github: https://github.com/bingcool/library    
 
 ### 定义组件，开放式组件接口，闭包回调实现创建组件过程，return对象即可
@@ -82,7 +82,7 @@ components => [
         return $predis;
     },
 
-     // 适配swoole的mysql客户端组件(参考tp和yii)
+     // 适配swoole的mysql客户端组件
     'db' => function() {
         $config = [
             // 地址
@@ -113,7 +113,7 @@ components => [
         return $db;
     },
        
-    // 适配swoole的postgresql客户端组件(参考tp和yii)
+    // 适配swoole的postgreSql客户端组件
     'pg' => function() {
         $config = [
             // 地址
@@ -165,17 +165,23 @@ components => [
 ```
 use Swoolefy\Core\Application;
 class TestController extends BController {
+    /**
+    * 控制器
+    */
     public function test() {
-        // 组件就是配置回调中定义的组件，这个过程会发生协程调度
+        // 获取组件，组件就是配置回调中定义的组件
         $redis = Application::getApp()->redis;
-        //或者
+        //或者通过get指明组件名获取(推荐)
         // $redis = Application::getApp()->get('redis');
+
+        // swoole hook 特性，这个过程会发生协程调度
         $redis->set('name', swoolefy);
 
-        // predis组件，这个过程会发生协程调度
+        // predis组件
         $predis = Application::getApp()->predis;
         //或者
         // $predis = Application::getApp()->get('predis');
+        // 这个过程会发生协程调度
         $predis->set('predis','this is a predis instance');
         $predis->get('predis');
         
