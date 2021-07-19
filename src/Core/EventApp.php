@@ -135,17 +135,21 @@ class EventApp {
 	 */
 	public function __call(string $action, array $args = []) {
 		try{
-			if($this->is_call) {
+			if($this->is_call)
+			{
                 $class_name = get_class($this->event_app);
 				throw new \Exception(sprintf("%s Single Coroutine Instance only be called one method, you had called", $class_name));
 			}
             try {
                 $this->is_call = true;
                 return $this->event_app->$action(...$args);
-            }catch(\Throwable $throwable) {
+            }catch(\Throwable $throwable)
+            {
 			    throw $throwable;
-            }finally {
-                if(!$this->event_app->isDefer()) {
+            }finally
+            {
+                if(!$this->event_app->isDefer())
+                {
                     $this->event_app->end();
                 }
             }

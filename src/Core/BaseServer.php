@@ -85,6 +85,11 @@ class BaseServer {
      */
     protected $startCtrl = null;
 
+    /**
+     * @var array
+     */
+    protected $coroutine_setting = [];
+
 	/**
 	 * $_tasks 实时内存表保存数据,所有worker共享
 	 * @var array
@@ -129,7 +134,7 @@ class BaseServer {
 		// set config
 		Swfy::setConf(self::$config);
         // start runtime Coroutine
-        self::runtimeEnableCoroutine();
+        self::setCoroutineSetting(self::$config['coroutine_setting'] ?? []);
 		// set timeZone
 		self::setTimeZone();
 		// check extensions
@@ -160,12 +165,12 @@ class BaseServer {
      * @throws \Exception
 	 */
 	public static function checkVersion() {
-		if(version_compare(phpversion(), '7.2.15', '<')) {
-			throw new \Exception("php version must be >= 7.2.15, we suggest use php7.2+ version", 1);
+		if(version_compare(phpversion(), '7.2.0', '<')) {
+			throw new \Exception("php version must be >= 7.2.0, we suggest use php7.2+ version", 1);
 		}
 
 		if(!extension_loaded('swoole')) {
-			throw new \Exception("Missing install swoole extentions,please install swoole(suggest 4.2.0+) from https://github.com/swoole/swoole-src", 1);
+			throw new \Exception("Missing install swoole extentions,please install swoole(suggest 4.5.0+) from https://github.com/swoole/swoole-src", 1);
 		}
 
 		if(!extension_loaded('pcntl')) {
@@ -216,6 +221,17 @@ class BaseServer {
         }
 
 	}
+
+    /**
+     * @param array $setting
+     */
+	public static function setCoroutineSetting(array $setting)
+    {
+        $setting['hook_flags'] = self::getHookFlags($setting);
+        $setting = array_merge(\Swoole\Coroutine::getOptions() ?? [], $setting);
+        !empty($setting) && \Swoole\Coroutine::set($setting);
+        return true;
+    }
 
     /**
      * @return string
@@ -645,12 +661,34 @@ class BaseServer {
     }
 
     /**
-     * runtimeEnableCoroutine 运行时动态设置协程(默认开启)
-     * 只有进程中启动了这个协程，则在该进程中全局有效
-     * @return void
+     * @return bool
      */
-    public static function runtimeEnableCoroutine() {
-        \Swoole\Runtime::enableCoroutine(static::$setting['hook_flags'] ?: SWOOLE_HOOK_ALL | SWOOLE_HOOK_CURL);
+    public static function runtimeEnableCoroutine()
+    {
+        return self::setCoroutineSetting(self::$config['coroutine_setting'] ?? []);
+    }
+
+    /**
+     * getHookFlags
+     */
+    public static function getHookFlags(array $coroutine_setting = [])
+    {
+        $hook_flags = $coroutine_setting['hook_flags'] ?? '';
+        if(empty($hook_flags))
+        {
+            if(version_compare(swoole_version(),'4.7.0', '>='))
+            {
+                $hook_flags = SWOOLE_HOOK_ALL | SWOOLE_HOOK_NATIVE_CURL;
+            }else if(version_compare(swoole_version(),'4.6.0', '>='))
+            {
+                $hook_flags = SWOOLE_HOOK_ALL ^ SWOOLE_HOOK_CURL | SWOOLE_HOOK_NATIVE_CURL;
+            }else
+            {
+                $hook_flags = SWOOLE_HOOK_ALL ^ SWOOLE_HOOK_CURL;
+            }
+        }
+
+        return $hook_flags;
     }
 
     /**

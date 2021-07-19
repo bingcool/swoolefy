@@ -274,7 +274,8 @@ class App extends \Swoolefy\Core\Component {
         $this->pushComponentPools();
         // remove App Instance
         Application::removeApp();
-        if(!$this->is_end) {
+        if(!$this->is_end)
+        {
             @$this->response->end();
         }
     }

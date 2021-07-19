@@ -114,7 +114,8 @@ abstract class AbstractProcess {
                 $msg = $this->swooleProcess->read(64 * 1024);
                 \Swoole\Coroutine::create(function() use($msg) {
                     try{
-                        if($msg == static::SWOOLEFY_PROCESS_KILL_FLAG) {
+                        if($msg == static::SWOOLEFY_PROCESS_KILL_FLAG)
+                        {
                             $this->reboot();
                             return;
                         }else {

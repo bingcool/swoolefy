@@ -73,7 +73,13 @@ abstract class AbstractProcessPools {
      * @param mixed  $extend_data
      * @param boolean   $enable_coroutine
      */
-    public function __construct(string $process_name, bool $async = true, array $args = [], $extend_data = null, bool $enable_coroutine = true) {
+    public function __construct(
+        string $process_name,
+        bool $async = true,
+        array $args = [],
+        ?array $extend_data = null,
+        bool $enable_coroutine = true
+    ) {
         $this->async = $async;
         $this->args = $args;
         $this->extend_data = $extend_data;
