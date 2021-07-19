@@ -53,6 +53,11 @@ return [
 		'pid_file' => __DIR__.'/log/server.pid',
 	],
 
+
+    'coroutine_setting' => [
+        'max_coroutine' => 50000
+    ],
+
     // 内存表定义可以按照以下demo格式
     //'table' => [
     //    'table_process' => [

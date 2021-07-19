@@ -48,6 +48,10 @@ return [
 
 	],
 
+    'coroutine_setting' => [
+        'max_coroutine' => 50000
+    ],
+
     'mqtt' => [
         'username' =>'',
         'password' => '',

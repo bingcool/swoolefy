@@ -48,6 +48,10 @@ return [
 		'pid_file' => __DIR__.'/log/server.pid',
 	],
 
+    'coroutine_setting' => [
+        'max_coroutine' => 50000
+    ],
+
 	'enable_table_tick_task' => true,
 
     // 创建计算请求的原子计算实例,必须依赖于EnableSysCollector = true，否则设置没有意义,不生效

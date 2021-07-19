@@ -66,21 +66,29 @@ class ProcessManager {
         string $processClass,
         bool $async = true,
         array $args = [],
-        $extend_data = null,
+        ?array $extend_data = null,
         bool $enable_coroutine = true
     ) {
         $key = md5($processName);
-        if(isset($this->processList[$key])){
+        if(isset($this->processList[$key]))
+        {
             throw new \Exception("You can not add the same process : $processName");
         }
 
-		if(!TableManager::isExistTable('table_process_map')) {
+		if(!TableManager::isExistTable('table_process_map'))
+		{
 			TableManager::getInstance()->createTable($this->table_process);
 		}
 
         try{
             /**@var AbstractProcess $process */
-            $process = new $processClass($processName, $async, $args, $extend_data, $enable_coroutine);
+            $process = new $processClass(
+                $processName,
+                $async,
+                $args,
+                $extend_data,
+                $enable_coroutine
+            );
             $this->processList[$key] = $process;
             $this->processListInfo[$processName] = ['process_name'=>$processName, 'class'=>$processClass];
             return $process;
