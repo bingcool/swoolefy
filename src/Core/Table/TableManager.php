@@ -230,6 +230,4 @@ class TableManager {
         }
         return $table_rows;
     }
-
-
 }

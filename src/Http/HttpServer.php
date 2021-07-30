@@ -69,7 +69,7 @@ abstract class HttpServer extends BaseServer {
 
 	public function start() {
 		/**
-		 * start回调
+		 * start
 		 */
 		$this->webServer->on('Start', function(\Swoole\Http\Server $server) {
             try{

@@ -45,7 +45,8 @@ class SysProcess extends AbstractProcess {
 	public function run() {
 		$conf = Swfy::getConf();
 		$this->sys_collector_config = $conf['sys_collector_conf'];
-		if(is_array($this->sys_collector_config) && isset($this->sys_collector_config['type'])) {
+		if(is_array($this->sys_collector_config) && isset($this->sys_collector_config['type']))
+		{
 			$type = $this->sys_collector_config['type'];
 			$tick_time = isset($sys_collector_config['tick_time']) ? (float) $this->sys_collector_config['tick_time'] : self::DEFAULT_TICK_TIME;
 			$atomic = AtomicManager::getInstance()->getAtomicLong('atomic_request_count');
@@ -54,13 +55,13 @@ class SysProcess extends AbstractProcess {
             $callback = $this->sys_collector_config['callback'] ?? null;
 			\Swoole\Timer::tick($tick_time * 1000, function($timer_id) use($type, $atomic, $tick_time, $isEnablePvCollector, $max_tick_handle_coroutine_num, $callback) {
 				try {
-				    // 处理达到一定协程数量进程重启
+				    // reboot for max Coroutine
 				    if($this->getCurrentCoroutineLastCid() > $max_tick_handle_coroutine_num) {
                         \Swoole\Timer::clear($timer_id);
                         $this->reboot();
                         return;
                     }
-                    // 统计系统信息
+                    // report info
                     if(isset($callback) && $callback instanceof \Closure) {
                         $event = new EventController();
                         $response = $callback->call($event) ?? [];
@@ -70,11 +71,10 @@ class SysProcess extends AbstractProcess {
                             $collectionInfo = $response;
                         }
                     }
-                    // pv原子计数器
+                    // pv
                     $total_request_num = $isEnablePvCollector ? $atomic->get() : 0;
-                    // 当前时间段内原子清空
+                    // clear
                     $total_request_num && $atomic->sub($total_request_num);
-                    // 数据聚合
                     $data = [
                         'total_request'=> $total_request_num,
                         'tick_time'=>$tick_time,
@@ -120,7 +120,7 @@ class SysProcess extends AbstractProcess {
 		$timeout = (int)$this->sys_collector_config['timeout'] ?? 3;
 		$service = $this->sys_collector_config['target_service'];
 		$event = $this->sys_collector_config['event'];
-		// 组合消息,udp的数据格式
+		// Udp data format
 		$message = $service."::".$event."::".json_encode($data, JSON_UNESCAPED_UNICODE);
 
 		if(empty($host) || empty($port) || empty($service) || empty($event)) {
