@@ -54,7 +54,20 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 | bingcool/library | composer require bingcool/library | library组件库 |  
 
 ### bingcool/library 是swoolefy require 内置库，专为swoole协程实现的组件库        
-实现了包括Db Mysql、PostgreSql Model组件、Kafka生产和消费组件、Redis Cache组件、Redis Queue队列组件，Redis Delay Queue延迟队列组件，Redis订阅发布组件、UUid组件、RateLimit限流组件，Db 、Redis、Curl 连接池组件等    
+实现了包括：    
+- [x] Db Mysql Model组件
+- [x] PostgreSql Model组件    
+- [x] Kafka Producer Consumer组件    
+- [x] Redis Cache组件  
+- [x] Redis Queue队列组件   
+- [x] Redis Delay Queue延迟队列组件            
+- [x] RedisLock锁组件   
+- [x] RateLimit限流组件   
+- [x] Redis Public Subscribe组件    
+- [x] Db 、Redis、Curl协程连接池组件
+- [x] UUid 自增id组件  
+- [x] Curl基础组件    
+   
 github: https://github.com/bingcool/library    
 
 ### 定义组件，开放式组件接口，闭包回调实现创建组件过程，return对象即可
