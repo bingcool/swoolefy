@@ -19,8 +19,14 @@ class PoolsManager {
 
     use \Swoolefy\Core\SingletonTrait;
 
+    /**
+     * const
+     */
     const PROCESS_NUM = 1024;
-    
+
+    /**
+     * @var array
+     */
     private $table_process = [
         // 进程内存表
         'table_process_pools_map' => [

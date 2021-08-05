@@ -59,7 +59,7 @@ class BaseParse {
 
     /**
      * __construct
-     * @param    \Swoole\Server $server
+     * @param \Swoole\Server $server
      */
     public function __construct(\Swoole\Server $server) {
         $this->server = $server;

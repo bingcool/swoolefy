@@ -29,7 +29,7 @@ class ChannelManager {
      * @return $this
      * @throws mixed
      */
-    public function addChannel(string $name, int $capacity = null) {
+    public function addChannel(string $name, ?int $capacity = null) {
         if(!isset($this->lists[$name])) {
             if($capacity) {
                 $channel = new Channel($capacity);
