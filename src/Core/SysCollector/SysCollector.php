@@ -17,7 +17,7 @@ class SysCollector {
 
 	public function test() {
 	    //TODO
-		return ['cpu'=>'25%','memory'=>'2345'];
+		return ['cpu'=>'25%','memory'=>'2345KB'];
 	}
 
 }

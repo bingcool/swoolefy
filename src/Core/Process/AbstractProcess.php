@@ -241,8 +241,12 @@ abstract class AbstractProcess {
                     \Swoole\Process::kill($this->getPid(), SIGTERM);
                 }
             });
-            // 需要阻塞等待，防止父协程继续往下执行
-            $channel->pop(-1);
+            if(\Swoole\Coroutine::getCid() > 0)
+            {
+                $channel->pop(-1);
+                $channel->close();
+            }
+
         }
     }
 

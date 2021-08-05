@@ -85,7 +85,7 @@ abstract class AbstractProcessPools {
         $this->extend_data = $extend_data;
         $this->process_name = $process_name;
         $this->enable_coroutine = true;
-        if(version_compare(swoole_version(),'4.3.0','>=')) {
+        if(version_compare(swoole_version(),'4.4.0','>=')) {
             $this->swooleProcess = new \Swoole\Process([$this,'__start'], false, 2, $enable_coroutine);
         }else {
             $this->swooleProcess = new \Swoole\Process([$this,'__start'], false, 2);
@@ -158,7 +158,7 @@ abstract class AbstractProcessPools {
         });
 
         if($this->async) {
-            \Swoole\Event::add($this->swooleProcess->pipe, function(){
+            \Swoole\Event::add($this->swooleProcess->pipe, function() {
                 $msg = $this->swooleProcess->read(64 * 1024);
                 \Swoole\Coroutine::create(function() use($msg) {
                     try{
@@ -273,8 +273,11 @@ abstract class AbstractProcessPools {
                     \Swoole\Process::kill($this->getPid(), SIGTERM);
                 }
             });
-            // 需要阻塞等待，防止父协程继续往下执行
-            $channel->pop(-1);
+            if(\Swoole\Coroutine::getCid() > 0)
+            {
+                $channel->pop(-1);
+                $channel->close();
+            }
         }
     }
 

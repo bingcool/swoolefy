@@ -234,7 +234,6 @@ abstract class TcpServer extends BaseServer {
 		 */
 		$this->tcpServer->on('close', function(\Swoole\Server $server, $fd, $reactorId) {
 			try{
-				// 销毁不完整数据
 				if(parent::isPackLength()) {
 					$this->Pack->destroy($server, $fd);
 				}
