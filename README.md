@@ -73,7 +73,7 @@ github: https://github.com/bingcool/library
 
 
 ### 关联项目
-bingcool/workerfy 是基于swoole实现的多进程协程模型，专处理daemon后台进程处理
+bingcool/workerfy 是基于swoole实现的多进程协程模型，专处理daemon后台进程处理      
 github: https://github.com/bingcool/workerfy        
 
 ### 定义组件，开放式组件接口，闭包回调实现创建组件过程，return对象即可
