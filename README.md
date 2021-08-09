@@ -71,7 +71,9 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 github: https://github.com/bingcool/library    
 
 
-### bingcool/workerfy 是基于swoole实现的多进程协程模型，专处理daemon后台进程处理
+
+### 关联项目
+bingcool/workerfy 是基于swoole实现的多进程协程模型，专处理daemon后台进程处理
 github: https://github.com/bingcool/workerfy        
 
 ### 定义组件，开放式组件接口，闭包回调实现创建组件过程，return对象即可
