@@ -47,7 +47,7 @@ defined('MQTT_PROTOCOL_LEVEL5') or define('MQTT_PROTOCOL_LEVEL5', 5);
 
 
 // 定义版本
-defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '4.4.0');
+defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '4.5.0');
 
 class Constants {
 
