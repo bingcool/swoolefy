@@ -45,8 +45,8 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 ### 常用组件
 | 组件名称 | 安装 | 说明 |
 | ------ | ------ | ------ |
-| predis | composer require predis/predis:1.1.1 | predis组件、或者Phpredis扩展 |
-| mongodb | composer require mongodb/mongodb:1.3 | mongodb组件，需要使用mongodb必须安装此组件 |
+| predis | composer require predis/predis:~1.1.7 | predis组件、或者Phpredis扩展 |
+| mongodb | composer require mongodb/mongodb:~1.3 | mongodb组件，需要使用mongodb必须安装此组件 |
 | rpc-client | composer require bingcool/rpc-client:dev-master | swoolefy的rpc客户端组件，当与rpc服务端通信时，需要安装此组件，支持在php-fpm中使用 |
 | cron-expression | composer require dragonmantank/cron-expression | crontab计划任务组件，类似Linux的crobtab |  
 | redis lock | composer require malkusch/lock | Redis锁组件 |    
