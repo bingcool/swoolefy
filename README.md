@@ -22,25 +22,24 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 - [x] 架手脚一键创建项目           
 - [x] 路由与调度，MVC三层，多级配置      
 - [x] 支持composer的PSR-4规范，实现PSR-3的日志接口     
-- [x] 支持自定义注册命名空间，快速部署项目，简单易用      
-- [x] 支持httpServer
+- [x] 支持自定义注册不同根命名空间，快速多项目部署          
+- [x] 支持httpServer，实用轻量Api接口开发     
 - [x] 支持websocketServer,udpServer,mqttServer      
 - [x] 支持基于tcp实现的rpc服务，开放式的系统接口，可自定义协议数据格式，并提供rpc-client协程组件
-- [x] 支持容器，组件IOC    
-- [x] 支持全局日志   
-- [x] 支持协程单例注册
+- [x] 支持DI容器，组件IOC、配置化        
+- [x] 支持协程单例注册,协程上下文变量寄存    
 - [x] 支持mysql、postgreSql协程组件、redis协程组件、mongodb组件     
 - [x] 支持mysql的协程连接池，redis协程池
 - [x] 支持protobuf buffer的数据接口结构验证，压缩传输等        
 - [x] 异步务管理TaskManager，定时器管理TickManager，内存表管理TableManager  
 - [x] 自定义进程管理ProcessManager，进程池管理PoolsManger
-- [x] 支持底层异常错误的所有日志捕捉
+- [x] 支持底层异常错误的所有日志捕捉,支持全局日志,包括debug、info、notice、warning、error等级       
 - [x] 支持自定义进程的redis，rabitmq，kafka的订阅发布，消息队列等     
-- [x] 支持crontab      
-- [x] 支持热更新       
+- [x] 支持crontab计划任务                    
+- [x] 支持热更新reload worker                  
 - [x] 支持定时的系统信息采集，并以订阅发布，udp等方式收集至存贮端    
-- [x] 命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架 
-- [ ] 分布式服务注册（zk，etcd）
+- [x] 命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架      
+- [ ] 分布式服务注册（zk，etcd）       
 
 ### 常用组件
 | 组件名称 | 安装 | 说明 |
@@ -74,8 +73,9 @@ github: https://github.com/bingcool/library
 
 ### 关联项目
 bingcool/workerfy 是基于swoole实现的多进程协程模型，专处理daemon后台进程处理      
-github: https://github.com/bingcool/workerfy        
+github: https://github.com/bingcool/workerfy   
 
+     
 ### 定义组件，开放式组件接口，闭包回调实现创建组件过程，return对象即可
 ```
 // 在应用层配置文件中,例如下面使用library的Redis、Db组件
