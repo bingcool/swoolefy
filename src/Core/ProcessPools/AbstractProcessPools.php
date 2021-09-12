@@ -321,7 +321,7 @@ abstract class AbstractProcessPools {
             // 除了主协程和runtimeCoroutineWait跑在协程中，所以等于2个协程，还有其他协程没唤醒，则再等待
             if($runCoroutineNum > 2) {
                 --$cycle_times;
-                \Swoole\Coroutine::sleep($re_wait_time);
+                \Swoole\Coroutine\System::sleep($re_wait_time);
             }else {
                 break;
             }

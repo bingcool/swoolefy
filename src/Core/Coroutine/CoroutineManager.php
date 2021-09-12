@@ -22,7 +22,7 @@ class CoroutineManager {
 
 	/**
 	 * isEnableCoroutine 
-	 * @return boolean
+	 * @return bool
 	 */
 	public  function canEnableCoroutine() {
         return true;
@@ -43,7 +43,7 @@ class CoroutineManager {
 	}
 
     /**
-     * @return boolean
+     * @return bool
      */
 	public function isCoroutine() {
 	    if(\Swoole\Coroutine::getCid() > 0) {

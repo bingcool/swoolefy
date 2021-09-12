@@ -31,7 +31,7 @@ class Swoole extends BaseObject {
 
 	/**
 	 * $mixed_params rpc,udp,websocket传递的参数寄存属性
-     * @var null
+     * @var mixed
 	 */
 	protected $mixed_params;
 
@@ -43,7 +43,7 @@ class Swoole extends BaseObject {
 
     /**
      * $is_defer
-     * @var boolean
+     * @var bool
      */
     protected $is_defer = false;
 
@@ -115,7 +115,7 @@ class Swoole extends BaseObject {
 
     /**
      * isWorkerProcess 判断当前进程是否是worker进程
-     * @return boolean
+     * @return bool
      * @throws \Exception
      */
     public static function isWorkerProcess() {
@@ -256,7 +256,7 @@ class Swoole extends BaseObject {
  	/**
 	 * afterRequest 请求结束后注册钩子执行操作
 	 * @param	mixed   $callback 
-	 * @param	boolean $prepend
+	 * @param	bool $prepend
 	 * @return	bool
 	 */
 	public function afterRequest(callable $callback, bool $prepend = false) {

@@ -338,7 +338,7 @@ class HttpRoute extends AppDispatch {
 	}
 
     /**
-     * @param $class
+     * @param string $class
      * @return array|bool
      */
 	protected function fileNotFound(string $class) {
