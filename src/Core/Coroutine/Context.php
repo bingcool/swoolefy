@@ -72,7 +72,7 @@ class Context {
 
     /**
      * @param string $name
-     * @return boolean
+     * @return bool
      * @throws \Exception
      */
     public static function has(string $name) {
