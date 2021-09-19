@@ -224,6 +224,7 @@ class BaseServer {
 
     /**
      * @param array $setting
+     * @return bool
      */
 	public static function setCoroutineSetting(array $setting)
     {

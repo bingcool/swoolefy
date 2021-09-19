@@ -97,7 +97,6 @@ class Reload {
                 foreach($events as $ev) {
                     if ($ev['mask'] == IN_IGNORED) {
                         continue;
-
                     }else if(in_array($ev['mask'], [IN_CREATE, IN_DELETE, IN_MODIFY, IN_MOVED_TO, IN_MOVED_FROM])) {
                         $fileType = '.'.pathinfo($ev['name'], PATHINFO_EXTENSION);
 
