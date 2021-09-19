@@ -268,7 +268,7 @@ class App extends \Swoolefy\Core\Component {
     public function end() {
         // log handle
         $this->handleLog();
-        // remove
+        // remove coroutine instance
         ZFactory::removeInstance();
         // push obj pools
         $this->pushComponentPools();

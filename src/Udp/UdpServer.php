@@ -58,7 +58,6 @@ abstract class UdpServer extends BaseServer {
 		self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
 		self::setSwooleSockType();
         self::setServerName(self::SERVER_NAME);
-		// UDP服务器,固定为SWOOLE_SOCK_UDP
 		self::$swoole_socket_type = SWOOLE_SOCK_UDP;
 		self::$server = $this->udpServer = new Server(self::$config['host'], self::$config['port'], self::$swoole_process_model, SWOOLE_SOCK_UDP);
 		$this->udpServer->set(self::$setting);
@@ -88,7 +87,6 @@ abstract class UdpServer extends BaseServer {
             }catch (\Throwable $e) {
                 self::catchException($e);
             }
-
 		});
 
         /**

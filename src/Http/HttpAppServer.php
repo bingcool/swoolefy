@@ -40,7 +40,7 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer {
 	 * @param  Request  $request
 	 * @param  Response  $response
      * @throws \Throwable
-	 * @return boolean
+	 * @return bool
 	 */
 	public function onRequest($request, $response) {
 		if($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
