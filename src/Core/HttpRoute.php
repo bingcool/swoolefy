@@ -113,6 +113,7 @@ class HttpRoute extends AppDispatch {
 	    if(!isset($this->app_conf['route_model']) || !in_array($this->app_conf['route_model'], [self::ROUTE_MODEL_PATHINFO, self::ROUTE_MODEL_QUERY_PARAMS])) {
             $this->app_conf['route_model'] = self::ROUTE_MODEL_PATHINFO;
         }
+
 		if($this->app_conf['route_model'] == self::ROUTE_MODEL_PATHINFO) {
 			if($this->require_uri == '/' || $this->require_uri == '//') {
 			    if(isset($this->app_conf['default_route']) && !empty($this->app_conf['default_route'])) {
@@ -147,9 +148,9 @@ class HttpRoute extends AppDispatch {
 			$controller = $this->request->get['c'] ?? 'Index';
 			$action = $this->request->get['t'] ?? 'index';
 			if($module) {
-				$this->require_uri = '/'.$module.'/'.$controller.'/'.$action;
+				$this->require_uri = DIRECTORY_SEPARATOR.$module.DIRECTORY_SEPARATOR.$controller.DIRECTORY_SEPARATOR.$action;
 			}else {
-				$this->require_uri = '/'.$controller.'/'.$action;
+				$this->require_uri = DIRECTORY_SEPARATOR.$controller.DIRECTORY_SEPARATOR.$action;
 			}
 		}
 		// reset route
@@ -184,7 +185,11 @@ class HttpRoute extends AppDispatch {
      * @throws \Exception
 	 * @return boolean
 	 */
-	public function invoke(?string $module = null, ?string $controller = null, ?string $action = null) {
+	protected function invoke(
+	    ?string $module = null,
+        ?string $controller = null,
+        ?string $action = null
+    ) {
         $controller = $this->buildControllerClass($controller);
         if(!isset($this->app_conf['app_namespace'])) {
             $this->app_conf['app_namespace'] = APP_NAME;
@@ -384,14 +389,14 @@ class HttpRoute extends AppDispatch {
                 } elseif (is_array($params[$name])) {
                     $isValid = false;
                 } elseif (
-                    PHP_VERSION_ID >= 70000 &&
                     ($type = $param->getType()) !== null &&
                     $type->isBuiltin() &&
                     ($params[$name] !== null || !$type->allowsNull())
                 ) {
-                    $typeName = PHP_VERSION_ID >= 70100 ? $type->getName() : (string)$type;
+                    $typeName = $type->getName();
                     switch($typeName) {
                         case 'int':
+                        case 'integer':
                             $params[$name] = filter_var($params[$name], FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE);
                             break;
                         case 'float':

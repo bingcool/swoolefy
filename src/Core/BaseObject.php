@@ -122,7 +122,7 @@ class BaseObject {
      * handleLog
      * @return void
      */
-    public function handleLog() {
+    protected function handleLog() {
         // log send
         if(!empty($actionLogs = $this->getLogs())) {
             foreach($actionLogs as $action => $logs) {

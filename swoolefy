@@ -12,12 +12,8 @@
 
 // 定义注册的应用名和对应使用的协议
 if(!defined('APP_NAMES')) {
-    define('APP_NAMES',[
-        'App'=>'http',
-        'RpcService'=>'rpc',
-        'UdpService'=> 'udp',
-        'WebsockService'=>'websocket',
-        'MqttService'=> 'mqtt'
+    define('APP_NAMES', [
+        'Test' => 'http'
     ]);
 }
 
@@ -76,14 +72,16 @@ if(isset($argv[2]) && in_array(trim($argv[2]), array_keys(APP_NAMES))) {
 // 判断当前环境,默认是dev(开发),gra(灰度),prd(生产)
 $cli_params = array_flip($argv);
 
-foreach(SWOOLEFY_ENVS as $env){
-    if(isset($cli_params['-'.$env])){
-        defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', $env);
+$cliEnv = SWOOLEFY_DEV;
+
+foreach(SWOOLEFY_ENVS as $env) {
+    if(isset($cli_params['-'.$env])) {
+        $cliEnv = $env;
         break;
     }
 }
 
-defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', SWOOLEFY_DEV);
+defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', $cliEnv);
 
 function IS_DEV_ENV() {
     if(SWOOLEFY_ENV == SWOOLEFY_DEV) {
@@ -122,7 +120,7 @@ function initCheck()
             exit();
         }
     }catch(Exception $e) {
-        throw new Exception($e->getMessage(), 1);
+        throw new Exception($e->getMessage());
     }
 }
 
@@ -146,7 +144,7 @@ function commandParser()
 
 function createProject($server_name)
 {
-    $dirs = ['Config', 'Service'];
+    $dirs = ['Config', 'Service','Protocol'];
     $params = commandParser();
     $app_name = $params['app_name'];
     $app_root_dir = START_DIR_ROOT."/{$app_name}";
@@ -163,7 +161,7 @@ function createProject($server_name)
 
     if($protocol == 'http') {
         $dirs = [
-            'Config','Controller','Model','Module','View','Runtime','Log'
+            'Config','Controller','Model','Module','View','Runtime','Log','Protocol'
         ];
     }
 
@@ -204,6 +202,33 @@ function createProject($server_name)
                 @mkdir($view_controller_dir, 0777, true);
                 break;
             }
+            case 'Protocol': {
+                $path = START_DIR_ROOT."/{$app_name}/Protocol";
+                foreach(SWOOLEFY_ENVS as $env) {
+                    $config_file = $path."/config-{$env}.php";
+                    if(!file_exists($config_file)) {
+                        switch ($protocol)
+                        {
+                            case 'http':
+                                copy(SCORE_DIR_ROOT.'/src/Http/config.php', $config_file);
+                                break;
+                            case 'rpc':
+                                copy(SCORE_DIR_ROOT.'/src/Rpc/config.php', $config_file);
+                                break;
+                            case 'udp':
+                                copy(SCORE_DIR_ROOT.'/src/Udp/config.php', $config_file);
+                                break;
+                            case 'websocket':
+                                copy(SCORE_DIR_ROOT.'/src/Websocket/config.php', $config_file);
+                                break;
+                            case 'mqtt':
+                                copy(SCORE_DIR_ROOT.'/src/Mqtt/config.php', $config_file);
+                                break;
+                        }
+
+                    }
+                }
+            }
         }
     }
 }
@@ -240,17 +265,9 @@ function startServer($server_name)
 
 function startHttpService($app_name, $event_server_file_name = 'HttpServer')
 {
-    $path = START_DIR_ROOT."/protocol/{$app_name}";
-    if(!is_dir($path)) {
-        @mkdir($path, 0777, true);
-    }
-
-    foreach(SWOOLEFY_ENVS as $env) {
-        $config_file = $path."/config-{$env}.php";
-        if(!file_exists($config_file)) {
-            copy(SCORE_DIR_ROOT.'/src/Http/config.php', $config_file);
-        }
-    }
+    $path = START_DIR_ROOT."/{$app_name}/Protocol";
+    $config = include $path."/config-".SWOOLEFY_ENV.".php";
+    checkRunning($config);
 
     $event_server_file = START_DIR_ROOT."/{$app_name}/{$event_server_file_name}.php";
     if(!file_exists($event_server_file)) {
@@ -273,24 +290,10 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer')
         include_once $autoloader_file;
     }
 
-    $config = include $path."/config-".SWOOLEFY_ENV.".php";
-
-    if(isset($config['setting']['log_file'])) {
-        $path = pathinfo($config['setting']['log_file'], PATHINFO_DIRNAME);
-        if(!is_dir($path)) {
-            mkdir($path, 0777, true);
-        }
-    }
-
     if(isDaemon()) {
         $config['setting']['daemonize'] = true;
     }
-
-    if(!isset($config['app_conf'])) {
-        write("[Error] protocol/{$app_name}/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
-        exit();
-    }
-
+    makeDirLogAndPid($config);
     setEnvParams($config);
 
     $class = "{$app_name}\\{$event_server_file_name}";
@@ -300,17 +303,9 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer')
 
 function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServer')
 {
-    $path = START_DIR_ROOT."/protocol/{$app_name}";
-    if(!is_dir($path)) {
-        @mkdir($path, 0777, true);
-    }
-
-    foreach(SWOOLEFY_ENVS as $env) {
-        $config_file = $path."/config-{$env}.php";
-        if(!file_exists($config_file)) {
-            copy(SCORE_DIR_ROOT.'/src/Websocket/config.php', $config_file);
-        }
-    }
+    $path = START_DIR_ROOT."/{$app_name}/Protocol";
+    $config = include $path."/config-".SWOOLEFY_ENV.".php";
+    checkRunning($config);
 
     $event_server_file = START_DIR_ROOT."/{$app_name}/{$event_server_file_name}.php";
     if(!file_exists($event_server_file)) {
@@ -333,24 +328,10 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
         include_once $autoloader_file;
     }
 
-    $config = include $path."/config-".SWOOLEFY_ENV.".php";
-
-    if(isset($config['setting']['log_file'])) {
-        $path = pathinfo($config['setting']['log_file'], PATHINFO_DIRNAME);
-        if(!is_dir($path)) {
-            mkdir($path, 0777, true);
-        }
-    }
-
     if(isDaemon()) {
         $config['setting']['daemonize'] = true;
     }
-
-    if(!isset($config['app_conf'])) {
-        write("[Error] protocol/{$app_name}/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
-        exit();
-    }
-
+    makeDirLogAndPid($config);
     setEnvParams($config);
 
     $class = "{$app_name}\\{$event_server_file_name}";
@@ -360,17 +341,9 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
 
 function startRpc($app_name, $event_server_file_name = 'RpcServer')
 {
-    $path = START_DIR_ROOT."/protocol/{$app_name}";
-    if(!is_dir($path)) {
-        @mkdir($path, 0777, true);
-    }
-
-    foreach(SWOOLEFY_ENVS as $env) {
-        $config_file = $path."/config-{$env}.php";
-        if(!file_exists($config_file)) {
-            copy(SCORE_DIR_ROOT.'/src/Rpc/config.php', $config_file);
-        }
-    }
+    $path = START_DIR_ROOT."/{$app_name}/Protocol";
+    $config = include $path."/config-".SWOOLEFY_ENV.".php";
+    checkRunning($config);
 
     $event_server_file = START_DIR_ROOT."/{$app_name}/{$event_server_file_name}.php";
     if(!file_exists($event_server_file)) {
@@ -393,24 +366,10 @@ function startRpc($app_name, $event_server_file_name = 'RpcServer')
         include_once $autoloader_file;
     }
 
-    $config = include $path."/config-".SWOOLEFY_ENV.".php";
-
-    if(isset($config['setting']['log_file'])) {
-        $path = pathinfo($config['setting']['log_file'], PATHINFO_DIRNAME);
-        if(!is_dir($path)) {
-            mkdir($path, 0777, true);
-        }
-    }
-
     if(isDaemon()) {
         $config['setting']['daemonize'] = true;
     }
-
-    if(!isset($config['app_conf'])) {
-        write("[Error] protocol/{$app_name}/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
-        exit();
-    }
-
+    makeDirLogAndPid($config);
     setEnvParams($config);
 
     $class = "{$app_name}\\{$event_server_file_name}";
@@ -420,17 +379,9 @@ function startRpc($app_name, $event_server_file_name = 'RpcServer')
 
 function startUdp($app_name, $event_server_file_name = 'UdpEventServer')
 {
-    $path = START_DIR_ROOT."/protocol/{$app_name}";
-    if(!is_dir($path)) {
-        @mkdir($path, 0777, true);
-    }
-
-    foreach(SWOOLEFY_ENVS as $env) {
-        $config_file = $path."/config-{$env}.php";
-        if(!file_exists($config_file)) {
-            copy(SCORE_DIR_ROOT.'/src/Udp/config.php', $config_file);
-        }
-    }
+    $path = START_DIR_ROOT."/{$app_name}/Protocol";
+    $config = include $path."/config-".SWOOLEFY_ENV.".php";
+    checkRunning($config);
 
     $event_server_file = START_DIR_ROOT."/{$app_name}/{$event_server_file_name}.php";
     if(!file_exists($event_server_file)) {
@@ -453,24 +404,10 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer')
         include_once $autoloader_file;
     }
 
-    $config = include $path."/config-".SWOOLEFY_ENV.".php";
-
-    if(isset($config['setting']['log_file'])) {
-        $path = pathinfo($config['setting']['log_file'], PATHINFO_DIRNAME);
-        if(!is_dir($path)) {
-            mkdir($path, 0777, true);
-        }
-    }
-
     if(isDaemon()) {
         $config['setting']['daemonize'] = true;
     }
-    
-    if(!isset($config['app_conf'])) {
-        write("[Error] protocol/{$app_name}/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
-        exit();
-    }
-
+    makeDirLogAndPid($config);
     setEnvParams($config);
 
     $class = "{$app_name}\\{$event_server_file_name}";
@@ -479,17 +416,9 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer')
 }
 
 function startMqtt($app_name, $event_server_file_name = 'MqttServer') {
-    $path = START_DIR_ROOT."/protocol/{$app_name}";
-    if(!is_dir($path)) {
-        @mkdir($path, 0777, true);
-    }
-
-    foreach(SWOOLEFY_ENVS as $env) {
-        $config_file = $path."/config-{$env}.php";
-        if(!file_exists($config_file)) {
-            copy(SCORE_DIR_ROOT.'/src/Mqtt/config.php', $config_file);
-        }
-    }
+    $path = START_DIR_ROOT."/{$app_name}/Protocol";
+    $config = include $path."/config-".SWOOLEFY_ENV.".php";
+    checkRunning($config);
 
     $event_server_file = START_DIR_ROOT."/{$app_name}/{$event_server_file_name}.php";
     if(!file_exists($event_server_file)) {
@@ -512,24 +441,10 @@ function startMqtt($app_name, $event_server_file_name = 'MqttServer') {
         include_once $autoloader_file;
     }
 
-    $config = include $path."/config-".SWOOLEFY_ENV.".php";
-
-    if(isset($config['setting']['log_file'])) {
-        $path = pathinfo($config['setting']['log_file'], PATHINFO_DIRNAME);
-        if(!is_dir($path)) {
-            mkdir($path, 0777, true);
-        }
-    }
-
     if(isDaemon()) {
         $config['setting']['daemonize'] = true;
     }
-
-    if(!isset($config['app_conf'])) {
-        write("[Error] protocol/{$app_name}/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
-        exit();
-    }
-
+    makeDirLogAndPid($config);
     setEnvParams($config);
 
     $class = "{$app_name}\\{$event_server_file_name}";
@@ -550,7 +465,7 @@ function stopServer($app_name)
         exit();
     }
 
-    echo "1、你确定停止应用{$app_name}?(yes or no):";
+    echo "1、你确定停止应用{$app_name}? (yes or no):";
 
     $lineValue = '';
     while (ord($lineValue) == '')
@@ -591,6 +506,28 @@ function stopServer($app_name)
     }
 }
 
+function makeDirLogAndPid(array $config)
+{
+    if(isset($config['setting']['log_file'])) {
+        $path = pathinfo($config['setting']['log_file'], PATHINFO_DIRNAME);
+        if(!is_dir($path)) {
+            mkdir($path, 0777, true);
+        }
+    }
+
+    if(isset($config['setting']['pid_file'])) {
+        $path = pathinfo($config['setting']['pid_file'], PATHINFO_DIRNAME);
+        if(!is_dir($path)) {
+            mkdir($path, 0777, true);
+        }
+    }
+
+    if(!isset($config['app_conf'])) {
+        write("[Error] ".APP_NAME."/Protocol/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
+        exit();
+    }
+}
+
 function reloadServer($app_name)
 {
     $pid_file = getPidFile($app_name);
@@ -622,7 +559,7 @@ function statusServer($app_name)
     $pid_file = getPidFile($app_name);
 
     if(!is_file($pid_file)) {
-        write("[error] pid file {$pid_file} is not exist, please check server is running");
+        write("[error] pid file {$pid_file} is not exist, please check server weather is running");
         return;
     }
 
@@ -653,7 +590,7 @@ function statusServer($app_name)
 
 function getPidFile($app_name)
 {
-    $path = START_DIR_ROOT.'/protocol/'.$app_name;
+    $path = START_DIR_ROOT."/{$app_name}/Protocol";
     $config = include $path.'/config-'.SWOOLEFY_ENV.'.php';
     if(isset($config['setting']['pid_file'])) {
         $path = pathinfo($config['setting']['pid_file'], PATHINFO_DIRNAME);
@@ -662,8 +599,23 @@ function getPidFile($app_name)
         }
     }
     $pid_file = $config['setting']['pid_file'] ?? '';
-
     return $pid_file;
+}
+
+function checkRunning(array $config)
+{
+    if(isset($config['setting']['pid_file'])) {
+        $pidFile = $config['setting']['pid_file'];
+        if(is_file($pidFile))
+        {
+            $pid = file_get_contents($pidFile);
+            if(is_numeric($pid) && \Swoole\Process::kill($pid,0))
+            {
+                write('【Warning】'.APP_NAME." Server is running, pid={$pid}, pidFile={$pidFile}");
+                exit(0);
+            }
+        }
+    }
 }
 
 function help($command) {
@@ -886,12 +838,10 @@ function getDefaultModel() {
 <?php
 namespace {$APP_NAME}\Model;
 
-use Swoolefy\Core\Model\BModel;
+use Common\Library\Db\Model;
 
-class IndexModel extends BModel {
-    public function index() {
-        return "welcome to model";
-    }
+class IndexModel extends Model {
+    
 }
 EOF;
 return $defines_content;

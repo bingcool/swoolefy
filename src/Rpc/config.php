@@ -47,8 +47,8 @@ return [
         'enable_coroutine' => 1,
         'task_enable_coroutine' => 1,
 
-    	'log_file' => __DIR__.'/log/log.txt',
-		'pid_file' => __DIR__.'/log/server.pid',
+        'log_file' => '/tmp/'.APP_NAME.'/log.txt',
+        'pid_file' => '/data/'.APP_NAME.'/log/server.pid',
 
 	],
 

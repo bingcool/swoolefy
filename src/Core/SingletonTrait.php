@@ -15,6 +15,10 @@ trait SingletonTrait {
 	
     private static $instance;
 
+    /**
+     * @param mixed ...$args
+     * @return static
+     */
     static function getInstance(...$args)
     {
         if(!isset(self::$instance)){

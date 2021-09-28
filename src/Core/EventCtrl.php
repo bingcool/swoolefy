@@ -12,6 +12,7 @@
 namespace Swoolefy\Core;
 
 use Swoole\Server;
+use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Process\ProcessManager;
 use Swoolefy\Core\ProcessPools\PoolsManager;
 
@@ -123,7 +124,7 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
                     throw new \Exception("enable_component_pools of item={$pool_name},not set in components");
                 }
                 $callable = $app_conf['components'][$pool_name];
-                \Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->addPool($pool_name, $component_pool_config, $callable);
+                CoroutinePools::getInstance()->addPool($pool_name, $component_pool_config, $callable);
             }
         }
     }

@@ -63,7 +63,7 @@ class EventApp {
      * 也可以利用闭包形式,最后一个函数是传进来的闭包函数的形参,外部变量使用use引入
      * go(function() {
             (new \Swoolefy\Core\EventApp)->registerApp(function($event) use($name, $id) {
-                var_dump($event); //输出ventController 实例
+                var_dump($event); //输出EventController 实例
             });
         });
      *
@@ -75,11 +75,13 @@ class EventApp {
 	public function registerApp($class, array $args = []) {
 	    if($class instanceof \Closure)
 	    {
-	        /**@var EventController $event_app*/
-            $event_app = new EventController(...$args);
             try {
-                $this->event_app = $event_app;
-                call_user_func($class, $event_app);
+                /**
+                 * @var EventController $event_app
+                 */
+                $this->event_app = new EventController(...$args);;
+                call_user_func($class, $this->event_app);
+
             }catch(\Exception|\Throwable $throwable) {
                 BaseServer::catchException($throwable);
             }finally {
@@ -140,6 +142,7 @@ class EventApp {
                 $class_name = get_class($this->event_app);
 				throw new \Exception(sprintf("%s Single Coroutine Instance only be called one method, you had called", $class_name));
 			}
+			
             try {
                 $this->is_call = true;
                 return $this->event_app->$action(...$args);

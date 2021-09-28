@@ -8,15 +8,14 @@ sftp-config.json
 *.pid
 *.lock
 *.idea
+*.log
 *.json.back
 #dir
 /App
-/Service
 /protocol
 /vendor
 Pb
 #runtime.log
 runtime.log
 docker-compose.yml
-/APP/View/Test/test.html
 /*Service

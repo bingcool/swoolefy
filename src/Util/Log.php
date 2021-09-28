@@ -43,7 +43,7 @@ class Log {
     protected $formatter = null;
 
     /**
-     * @var
+     * @var Logger
      */
     protected $logger;
 
@@ -69,7 +69,7 @@ class Log {
 		$this->channel = $channel;
 		$this->logFilePath = $logFilePath;
 		$output && $this->output = $output;
-        $this->logger = new Logger($this->channel);
+        $channel && $this->logger = new Logger($this->channel);
         if($logFilePath) {
             $this->handler = new StreamHandler($this->logFilePath);
         }
@@ -87,6 +87,9 @@ class Log {
 	 */
 	public function setChannel(string $channel) {
 		$this->channel = $channel;
+		if(!$this->logger) {
+            $this->logger = new Logger($this->channel);
+        }
 		return $this;
 	}
 
