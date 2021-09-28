@@ -16,7 +16,7 @@ class Helper {
     /**
      * isValidateEmail 判断是否是合法的邮箱
      * @param    string  $email
-     * @return   boolean
+     * @return   bool
      */
     public static function isValidateEmail(string $email) {
         return filter_var($email, FILTER_VALIDATE_EMAIL);
@@ -25,7 +25,7 @@ class Helper {
     /**
      * isValidateIp 判断是否是合法的的ip地址
      * @param    string  $ip
-     * @return   boolean
+     * @return   bool
      */
     public static function isValidateIp(string $ip) {
         $ipv4 = ip2long($ip);

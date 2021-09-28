@@ -55,7 +55,11 @@ trait ComponentTrait {
 					}
 					return $this->container[$com_alias_name] = $this->buildInstance($class, $definition, $params, $com_alias_name);
 				}else if($definition instanceof \Closure) {
-                    return $this->container[$com_alias_name] = call_user_func($definition, $com_alias_name);
+                    $object = $this->container[$com_alias_name] = call_user_func($definition, $com_alias_name);
+                    if(\Swoole\Coroutine::getCid() > 0 ) {
+                        $object->envCoroutineId = \Swoole\Coroutine::getCid();
+                    }
+                    return $object;
 				}else {
                     throw new \Exception(sprintf("component:%s must be set class", $com_alias_name));
                 }
@@ -132,17 +136,27 @@ trait ComponentTrait {
 	    /**@var \ReflectionClass $reflection */
 		list ($reflection, $dependencies) = $this->getDependencies($class);
 
-        foreach ($params as $index => $param) {
+        foreach($params as $index => $param) {
             $dependencies[$index] = $param;
         }
+
         if(!$reflection->isInstantiable()) {
             throw new \Exception($reflection->name);
         }
+
         if(empty($definition)) {
-            return $reflection->newInstanceArgs($dependencies);
+            $object = $reflection->newInstanceArgs($dependencies);
+            if(\Swoole\Coroutine::getCid() > 0) {
+                $object->envCoroutineId = \Swoole\Coroutine::getCid();
+            }
+            return $object;
 		}
 
         $object = $reflection->newInstanceArgs($dependencies);
+
+        if(\Swoole\Coroutine::getCid() > 0) {
+            $object->envCoroutineId = \Swoole\Coroutine::getCid();
+        }
 
         // 回调必须设置在配置的最后
         if(isset($definition[SWOOLEFY_COM_FUNC])) {
@@ -173,9 +187,10 @@ trait ComponentTrait {
         		$object->$name = array_merge_recursive($object->$name, $value);
         		continue;
         	}
-        	$object->$name = $value;
 
+        	$object->$name = $value;
         }
+
         return $object;
 	}
 
@@ -234,16 +249,34 @@ trait ComponentTrait {
      * @throws Exception
      */
     final public function get(string $name) {
+
         $app_conf = BaseServer::getAppConf();
+
         $components = $app_conf['components'];
 
         if(isset($this->container[$name])) {
             if(is_object($this->container[$name])) {
-                return $this->container[$name];
-            }else {
-                $this->clearComponent($name);
-                return $this->creatObject($name, $components[$name]);
+                $object = $this->container[$name];
+                 // 同一个协程中的单例对象,解决在不同协程 $this->get('db') 时组件上下文污染问题
+                $cid = \Swoole\Coroutine::getCid();
+                if(isset($object->envCoroutineId) && $object->envCoroutineId == $cid) {
+                    return $object;
+                }else {
+                    $app = Application::getApp($cid);
+                    if(is_object($app)) {
+                        $object = $app->getComponents($name);
+                        if(is_object($object)) {
+                            unset($app);
+                            return $object;
+                        }else {
+                            return $app->creatObject($name, $components[$name]);
+                        }
+                    }
+                }
             }
+
+            $this->clearComponent($name);
+            return $this->creatObject($name, $components[$name]);
         }
 
         if(empty($this->component_pools)) {
@@ -282,7 +315,7 @@ trait ComponentTrait {
      * @return mixed
      * @throws \Exception
      */
-	public function __get($name) {
+	final public function __get($name) {
         return $this->get($name);
 	}
 

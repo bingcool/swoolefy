@@ -21,7 +21,7 @@ use Swoolefy\Core\EventController;
 abstract class HttpServer extends BaseServer {
 
     /**
-     * $serverName server服务名称
+     * $serverName
      * @var string
      */
     const SERVER_NAME = SWOOLEFY_HTTP;

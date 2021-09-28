@@ -28,20 +28,18 @@ class TaskController extends EventController {
 	public $from_worker_id;
 
     /**
-    * \Swoole\Server\Task 对象 swoole4.2.12+ 添加
     * @var \Swoole\Server\Task
     */
     public $task = null;
 
     /**
-     * __construct
+     * /**
+     * TaskController应用于http
+     * TaskService应用于rpc,websocket,udp
+     *
      * @throws Exception
      */
     public function __construct() {
-        /**
-         * TaskController应用于http
-         * TaskService应用于rpc,websocket,udp
-         */
         if(!BaseServer::isHttpApp()) {
             throw new \Exception(__CLASS__." only use in http server task process");
         }

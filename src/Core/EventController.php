@@ -11,7 +11,13 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Coroutine\CoroutineManager;
+
+/**
+ * Class EventController
+ * @package Swoolefy\Core
+ */
 
 class EventController extends BaseObject {
 
@@ -171,7 +177,7 @@ class EventController extends BaseObject {
                 if(is_object($obj)) {
                     $obj_id = spl_object_id($obj);
                     if(in_array($obj_id, $this->component_pools_obj_ids)) {
-                        \Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
+                        CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
                     }
                 }
             }

@@ -128,10 +128,7 @@ class Application {
 		if($coroutine_id) {
 			$cid = $coroutine_id;
 		}
-		if(isset(self::$app[$cid])) {
-			return self::$app[$cid];
-		}
-		return null;
+		return self::$app[$cid] ?? null;
 	}
 
 	/**
@@ -148,7 +145,7 @@ class Application {
 		if(isset(self::$app[$cid])) {
 			unset(self::$app[$cid]);
 		}
-		return true;	
+		return true;
 	}
 
     /**

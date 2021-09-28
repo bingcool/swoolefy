@@ -51,8 +51,11 @@ class CrontabManager {
             }
             \Swoole\Timer::tick(1000, function($timer_id, $expression) use($class, $action, $cron_name) {
                 try{
+                    /**
+                     * @var AbstractCronController $cronControllerInstance
+                     */
                     $cronControllerInstance = new $class;
-                    $cronControllerInstance->{$action}($expression, null, $cron_name);
+                    $cronControllerInstance->runCron($expression, null, $cron_name);
                 }catch (\Throwable $throwable) {
                     BaseServer::catchException($throwable);
                 }finally {
@@ -62,8 +65,17 @@ class CrontabManager {
         }else {
             \Swoole\Timer::tick(1000, function($timer_id, $expression) use($func, $cron_name) {
                 try{
-                    $cronControllerInstance = new CronController();
+                    $cronControllerInstance = new class extends AbstractCronController {
+                        /**
+                         * @inheritDoc
+                         */
+                        public function doCronTask(CronExpression $cron)
+                        {
+                        }
+                    };
+
                     $cronControllerInstance->runCron($expression, $func, $cron_name);
+
                 }catch (\Throwable $throwable) {
                     BaseServer::catchException($throwable);
                 }finally {

@@ -20,7 +20,7 @@ class autoloader {
      * $prefix 自定义的根命名空间
      * @var array
      */
-    private static $root_namespace = ["<{APP_NAME}>"];
+    private static $root_namespace = ["Test"];
 
     /**
      * $class_map_namespace

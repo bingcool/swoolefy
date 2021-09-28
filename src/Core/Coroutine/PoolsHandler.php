@@ -238,6 +238,9 @@ class PoolsHandler {
                 throw new \Exception("Pools of {$this->poolName} build instance must return object");
             }
             $obj->objExpireTime = time() + ($this->liveTime) + rand(1,10);
+            if(\Swoole\Coroutine::getCid() > 0) {
+                $obj->envCoroutineId = \Swoole\Coroutine::getCid();
+            }
             $this->channel->push($obj, $this->pushTimeout);
         }
     }
