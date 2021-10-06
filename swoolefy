@@ -191,7 +191,7 @@ function createProject($server_name)
                 break;
             }
             case 'Model': {
-                $model_file = $app_root_dir . '/' . $dir.'/IndexModel.php';
+                $model_file = $app_root_dir . '/' . $dir.'/ClientModel.php';
                 if(!file_exists($model_file)) {
                     file_put_contents($model_file, getDefaultModel());
                 }

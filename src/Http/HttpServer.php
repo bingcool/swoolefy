@@ -208,7 +208,15 @@ abstract class HttpServer extends BaseServer {
          * workerStop
          */
         $this->webServer->on('WorkerStop', function(\Swoole\Http\Server $server, $worker_id) {
-            $this->startCtrl->workerStop($server,$worker_id);
+            \Swoole\Coroutine::create(function() use($server, $worker_id) {
+                try {
+                    (new EventApp())->registerApp(function () use ($server, $worker_id) {
+                        $this->startCtrl->workerStop($server, $worker_id);
+                    });
+                } catch (\Throwable $e) {
+                    self::catchException($e);
+                }
+            });
         });
 
 		/**
@@ -232,7 +240,9 @@ abstract class HttpServer extends BaseServer {
          */
         $this->webServer->on('WorkerError', function(\Swoole\Http\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
             try{
-                $this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
+                (new EventApp())->registerApp(function () use($server, $worker_id, $worker_pid, $exit_code, $signal) {
+                    $this->startCtrl->workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
+                });
             }catch(\Throwable $e) {
                 self::catchException($e);
             }

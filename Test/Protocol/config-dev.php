@@ -34,7 +34,7 @@ return [
 	'setting' => [
 		'reactor_num' => 1, 
 		'worker_num' => 5,
-		'max_request' => 1000,
+		'max_request' => 2,
 		'task_worker_num' => 2,
 		'task_tmpdir' => '/dev/shm',
 		'daemonize' => 0,

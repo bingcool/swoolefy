@@ -51,5 +51,9 @@ return [
             return $predis;
         },
 
-    ]
+    ],
+
+//    'catch_handle' => function(\Swoole\Http\Request $request, \Swoole\Http\Response $response) {
+//        $response->end(json_encode(['code'=>-1,'msg'=>'系统维护中']));
+//    }
 ];

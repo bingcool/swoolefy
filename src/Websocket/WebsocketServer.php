@@ -263,13 +263,15 @@ abstract class WebsocketServer extends BaseServer {
 		 * WorkerStop
 		 */
 		$this->webServer->on('WorkerStop', function(\Swoole\WebSocket\Server $server, $worker_id) {
-			try{
-                (new EventApp())->registerApp(function(EventController $event) use($server, $worker_id) {
-                    $this->startCtrl->workerStop($server, $worker_id);
-                });
-			}catch(\Throwable $e) {
-				self::catchException($e);
-			}
+            \Swoole\Coroutine::create(function () use($server, $worker_id) {
+                try {
+                    (new EventApp())->registerApp(function (EventController $event) use ($server, $worker_id) {
+                        $this->startCtrl->workerStop($server, $worker_id);
+                    });
+                } catch (\Throwable $e) {
+                    self::catchException($e);
+                }
+            });
 		});
 
 		/**

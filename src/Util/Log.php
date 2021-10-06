@@ -17,6 +17,15 @@ use Swoolefy\Core\Log\Logger;
 use Swoolefy\Core\Log\StreamHandler;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
 
+/**
+ * Class Log
+ * @package Swoolefy\Util
+ * @method \Swoolefy\Util\Log info
+ * @method \Swoolefy\Util\Log notice
+ * @method \Swoolefy\Util\Log warning
+ * @method \Swoolefy\Util\Log error
+ */
+
 class Log {
 	/**
 	 * $channel,日志的通过主题，关于那方面的日志

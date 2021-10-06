@@ -13,7 +13,7 @@ namespace Swoolefy\Core;
 
 interface AppInterface {
     /**
-     * bootstrap  完成一些必要的程序引导和设置
+     * bootstrap
      * @param mixed $args
      * @return mixed
      */

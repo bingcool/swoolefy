@@ -249,13 +249,15 @@ abstract class TcpServer extends BaseServer {
 		 * WorkerStop
 		 */
 		$this->tcpServer->on('WorkerStop', function(\Swoole\Server $server, $worker_id) {
-			try{
-                (new EventApp())->registerApp(function(EventController $event) use($server, $worker_id) {
-                    $this->startCtrl->workerStop($server, $worker_id);
-                });
-			}catch(\Throwable $e) {
-				self::catchException($e);
-			}
+            \Swoole\Coroutine::create(function () use($server, $worker_id) {
+                try {
+                    (new EventApp())->registerApp(function (EventController $event) use ($server, $worker_id) {
+                        $this->startCtrl->workerStop($server, $worker_id);
+                    });
+                } catch (\Throwable $e) {
+                    self::catchException($e);
+                }
+            });
 		});
 
 		/**

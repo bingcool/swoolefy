@@ -2,6 +2,8 @@
 
 namespace Test;
 
+use Swoolefy\Core\Application;
+use Swoolefy\Core\EventApp;
 use Swoolefy\Core\ProcessPools\PoolsManager;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Log\LogManager;
@@ -56,5 +58,10 @@ class Event extends EventHandler
         // 这里为什么获取不到pid,那是应为process需要server执行start后才会创建，而在这里只是创建实例，server还没正式启动
         //$pid = ProcessManager::getInstance()->getProcessByName('redis_list_test')->getPid();
 
+    }
+
+    public function onWorkerStop($server, $worker_id)
+    {
+        //var_dump(Application::getApp()->get('db'));
     }
 }

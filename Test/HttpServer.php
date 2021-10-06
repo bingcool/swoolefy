@@ -67,5 +67,4 @@ class HttpServer extends \Swoolefy\Http\HttpAppServer {
         var_dump('Worker Process Find Db Result as：');
         print_r($result);
     }
-
 }	

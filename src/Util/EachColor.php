@@ -12,7 +12,14 @@
 namespace Swoolefy\Util;
 
 class EachColor {
+    /**
+     * @var array
+     */
     private $foreground_colors = [];
+
+    /**
+     * @var array
+     */
     private $background_colors = [];
 
     public function __construct() {
