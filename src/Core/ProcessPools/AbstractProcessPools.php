@@ -85,11 +85,7 @@ abstract class AbstractProcessPools {
         $this->extend_data = $extend_data;
         $this->process_name = $process_name;
         $this->enable_coroutine = true;
-        if(version_compare(swoole_version(),'4.4.0','>=')) {
-            $this->swooleProcess = new \Swoole\Process([$this,'__start'], false, 2, $enable_coroutine);
-        }else {
-            $this->swooleProcess = new \Swoole\Process([$this,'__start'], false, 2);
-        }
+        $this->swooleProcess = new \Swoole\Process([$this,'__start'], false, 2, $this->enable_coroutine);
         Swfy::getServer()->addProcess($this->swooleProcess);
     }
 

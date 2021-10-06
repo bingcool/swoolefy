@@ -19,7 +19,7 @@ class IndexController extends BController {
          * @var \Swoolefy\Util\Log $log
          */
         $log = Application::getApp()->log;
-        $log->addInfo('test-log-id='.rand(1,1000));
+        $log->addInfo('test-log-id='.rand(1,1000),true);
         $this->returnJson([
             'Controller' => $this->getControllerId(),
             'Action' => $this->getActionId()

@@ -174,7 +174,7 @@ class App extends \Swoolefy\Core\Component {
     }
 
     /**
-	 * catchAll 捕捉拦截所有请求,进入维护模式
+	 * catchAll request
 	 * @return boolean
 	 */
 	public function catchAll() {

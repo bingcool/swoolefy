@@ -254,11 +254,12 @@ trait ComponentTrait {
 
         $components = $app_conf['components'];
 
+        $cid = \Swoole\Coroutine::getCid();
+
         if(isset($this->container[$name])) {
             if(is_object($this->container[$name])) {
                 $object = $this->container[$name];
                  // 同一个协程中的单例对象,解决在不同协程 $this->get('db') 时组件上下文污染问题
-                $cid = \Swoole\Coroutine::getCid();
                 if(isset($object->envCoroutineId) && $object->envCoroutineId == $cid) {
                     return $object;
                 }else {
@@ -288,13 +289,13 @@ trait ComponentTrait {
 
         if(array_key_exists($name, $components)) {
             // mysql|redis进程池中直接赋值
-            if(in_array($name, $this->component_pools)) {
+            if(in_array($name, $this->component_pools) && $cid > 0) {
                 /** @var \Swoolefy\Core\Coroutine\PoolsHandler $poolHandler */
                 $poolHandler = \Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->getPool($name);
                 if(is_object($poolHandler)) {
                     $this->container[$name] = $poolHandler->fetchObj();
                 }
-                // 如果没有设置进程池处理实例，则降级到创建实例模式
+                // 若没有设置进程池处理实例，则降级到创建实例模式
                 if(isset($this->container[$name]) && is_object($this->container[$name])) {
                     $obj_id = spl_object_id($this->container[$name]);
                     if(!in_array($obj_id, $this->component_pools_obj_ids)) {

@@ -202,13 +202,15 @@ abstract class UdpServer extends BaseServer {
 		 * WorkerStop
 		 */
 		$this->udpServer->on('WorkerStop', function(Server $server, $worker_id) {
-			try{
-                (new EventApp())->registerApp(function(EventController $event) use($server, $worker_id) {
-                    $this->startCtrl->workerStop($server, $worker_id);
-                });
-			}catch(\Throwable $e) {
-				self::catchException($e);
-			}
+            \Swoole\Coroutine::create(function () use($server, $worker_id) {
+                try {
+                    (new EventApp())->registerApp(function (EventController $event) use ($server, $worker_id) {
+                        $this->startCtrl->workerStop($server, $worker_id);
+                    });
+                } catch (\Throwable $e) {
+                    self::catchException($e);
+                }
+            });
 		});
 
 		/**

@@ -85,7 +85,7 @@ class EventApp {
             }catch(\Exception|\Throwable $throwable) {
                 BaseServer::catchException($throwable);
             }finally {
-            	if(!$this->event_app->isDefer()) {
+            	if(is_object($this->event_app) && !$this->event_app->isDefer()) {
                     $this->event_app->end();
                 }
             }
@@ -137,7 +137,7 @@ class EventApp {
 	 */
 	public function __call(string $action, array $args = []) {
 		try{
-			if($this->is_call)
+			if($this->is_call && \Swoole\Coroutine::getCid() > 0)
 			{
                 $class_name = get_class($this->event_app);
 				throw new \Exception(sprintf("%s Single Coroutine Instance only be called one method, you had called", $class_name));
@@ -151,7 +151,7 @@ class EventApp {
 			    throw $throwable;
             }finally
             {
-                if(!$this->event_app->isDefer())
+                if(is_object($this->event_app) && !$this->event_app->isDefer())
                 {
                     $this->event_app->end();
                 }
