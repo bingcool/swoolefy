@@ -14,6 +14,7 @@ namespace Swoolefy\Core;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoolefy\Core\Controller\BController;
+use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class App extends \Swoolefy\Core\Component {
@@ -118,8 +119,18 @@ class App extends \Swoolefy\Core\Component {
                 $route = new HttpRoute($extend_data);
                 $route->dispatch();
             }
-        }catch (\Throwable $throwable) {
-            throw $throwable;
+        }catch (\Throwable $t) {
+	        $code = $t->getCode();
+	        if(in_array($code, [403, 404, 500])) {
+	            $this->response->status($code);
+	            $this->response->header('Content-Type', 'application/json; charset=UTF-8');
+	            $exception = $this->getExceptionClass();
+	            $msg = $t->getMessage();
+	            $this->beforeEnd($code, $msg);
+                $exception::shutHalt($msg, SwoolefyException::EXCEPTION_ERR, $t);
+            }else {
+                throw $t;
+            }
         }finally {
         	if(!$this->is_defer) {
         		$this->onAfterRequest();
@@ -231,7 +242,7 @@ class App extends \Swoolefy\Core\Component {
                 if(is_object($obj)) {
                     $obj_id = spl_object_id($obj);
                     if(in_array($obj_id, $this->component_pools_obj_ids)) {
-                        \Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
+                        CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
                     }
                 }
             }

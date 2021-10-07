@@ -159,10 +159,8 @@ class HttpRoute extends AppDispatch {
 		$this->request->server['ROUTE_PARAMS'] = [];
 		// forbidden call action
 		if(in_array($action, self::$deny_actions)) {
-            $errorMsg = "{$controller}::{$action} is not allow access action";
-            $this->response->status(403);
-			$this->app->beforeEnd(403, $errorMsg);
-			return false;
+            $errorMsg = "{$controller}::{$action} is not allow access action ||| ".$this->require_uri;
+            throw new \RuntimeException($errorMsg, 403);
 		}
 		if($module) {
 			// route params array
@@ -237,8 +235,6 @@ class HttpRoute extends AppDispatch {
         }
 
         if($isContinueAction === false) {
-            $this->response->status(403);
-            @$this->response->header('Content-Type', 'application/json; charset=UTF-8');
             $queryString = isset($this->request->server['QUERY_STRING']) ? '?' . $this->request->server['QUERY_STRING'] : '';
             if(isset($this->request->post) && !empty($this->request->post)) {
                 $post = json_encode($this->request->post, JSON_UNESCAPED_UNICODE);
@@ -246,20 +242,17 @@ class HttpRoute extends AppDispatch {
             }else {
                 $errorMsg = "Call {$class}::_beforeAction() return false, forbidden continue call {$class}::{$targetAction}, please checkout it ||| " . $this->request->server['REQUEST_URI'] . $queryString;
             }
-            $this->app->beforeEnd(403, $errorMsg);
-            return false;
+            throw new \RuntimeException($errorMsg, 404);
         }
         // reflector object
         $reflector = new \ReflectionClass($controllerInstance);
         if($reflector->hasMethod($targetAction)) {
             list($method, $args) = $this->bindActionParams($controllerInstance, $targetAction, $this->buildParams());
             if($method->isPublic() && !$method->isStatic()) {
-                try
-                {
+                try {
                     $controllerInstance->{$targetAction}(...$args);
                     $controllerInstance->_afterAction($action);
-                }catch (\Throwable $t)
-                {
+                }catch (\Throwable $t) {
                     $queryString = isset($this->request->server['QUERY_STRING']) ? '?' . $this->request->server['QUERY_STRING'] : '';
                     if(isset($this->request->post) && !empty($this->request->post)) {
                         $post = json_encode($this->request->post, JSON_UNESCAPED_UNICODE);
@@ -268,11 +261,11 @@ class HttpRoute extends AppDispatch {
                         $errorMsg = $t->getMessage() . ' on ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $this->request->server['REQUEST_URI'] . $queryString.'|||'.$t->getTraceAsString();
                     }
                     // record exception
-                    $this->response->status(500);
-                    $exceptionClass = $this->app->getExceptionClass();
-                    $this->app->beforeEnd(500, $errorMsg);
-                    $exceptionClass::shutHalt($errorMsg, SwoolefyException::EXCEPTION_ERR, $t);
-                    return false;
+                    if(in_array(get_class($t), ['Exception', 'Throwable'])) {
+                        throw new \RuntimeException($errorMsg, 500);
+                    }else {
+                        throw new $t;
+                    }
                 }
             }else {
                 $errorMsg = sprintf(
@@ -280,9 +273,7 @@ class HttpRoute extends AppDispatch {
                         $class,
                         $targetAction
                     );
-                $this->response->status(500);
-                $this->app->beforeEnd(500, $errorMsg);
-                return false;
+                throw new \RuntimeException($errorMsg, 500);
             }
         }else {
             $errorMsg = sprintf(
@@ -290,10 +281,7 @@ class HttpRoute extends AppDispatch {
                 $class,
                 $targetAction
             );
-            $this->response->status(404);
-            $this->response->header('Content-Type', 'application/json; charset=UTF-8');
-            $this->app->beforeEnd(404, $errorMsg);
-            return false;
+            throw new \RuntimeException($errorMsg, 404);
         }
     }
 
@@ -347,14 +335,11 @@ class HttpRoute extends AppDispatch {
      * @return array|bool
      */
 	protected function fileNotFound(string $class) {
-        $this->response->status(404);
-        $this->response->header('Content-Type', 'application/json; charset=UTF-8');
         if(isset($this->app_conf['not_found_handler']) && is_array($this->app_conf['not_found_handler'])) {
             return $this->redirectNotFound();
         }else {
             $errorMsg = "Class {$class} is not found";
-            $this->app->beforeEnd(404, $errorMsg);
-            return false;
+            throw new \RuntimeException($errorMsg, 404);
         }
     }
 
