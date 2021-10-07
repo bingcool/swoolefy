@@ -20,7 +20,7 @@ return [
     'app_conf' => $app_config,
 	'application_index' => '',
 	'event_handler' => \Test\Event::class,
-    'exception_handler' => '',
+    'exception_handler' => \Test\Exception\ExceptionHandle::class,
     'master_process_name' => 'php-swoolefy-http-master',
     'manager_process_name' => 'php-swoolefy-http-manager',
     'worker_process_name' => 'php-swoolefy-http-worker',
