@@ -11,7 +11,8 @@
 
 namespace Swoolefy\Core;
 
-class SwoolefyException {
+class SwoolefyException
+{
 
     const EXCEPTION_ERR = 'error';
 
@@ -28,7 +29,8 @@ class SwoolefyException {
      * c)代码执行完毕，由于在这里是worker常驻内存的，register_shutdown_function所注册是在worker进程中的，所以代码执行完毕不会触发，在php-fpm中代码会执行
 	 * @return void
 	 */
-    public static function fatalError() {
+    public static function fatalError()
+    {
         if($error = error_get_last()) {
             switch($error['type']){
                 case E_ERROR:
@@ -53,8 +55,8 @@ class SwoolefyException {
      * appException 自定义异常处理
      * @param \Throwable $e 异常对象
      */
-    public static function appException($e) {
-        $error = array();
+    public static function appException($e)
+    {
         $error['message']   =   $e->getMessage();
         $trace              =   $e->getTrace();
         if('E' == $trace[0]['function']) {
@@ -82,7 +84,8 @@ class SwoolefyException {
      * @param  int    $errorLine
      * @return void
      */
-    public static function appError($errorNo, $errorString, $errorFile, $errorLine) {
+    public static function appError($errorNo, $errorString, $errorFile, $errorLine)
+    {
     	$errorStr = sprintf(
     	    "%s in file %s on line %d",
             $errorString,
@@ -106,17 +109,62 @@ class SwoolefyException {
     }
 
     /**
-     * shutHalt 输出错误日志
+     * 捕捉异常返回前端(重写)
+     * @param App $app
+     * @param \Throwable $e
+     */
+    public static function response(App $app, \Throwable $t)
+    {
+        $app->response->header('Content-Type', 'application/json; charset=UTF-8');
+
+        $queryString = isset($app->request->server['QUERY_STRING']) ? '?' . $app->request->server['QUERY_STRING'] : '';
+        $exceptionMsg = $t->getMessage();
+
+        $errorMsg = $exceptionMsg . ' in file ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $app->request->server['REQUEST_URI'] . $queryString;
+
+        $app->response->header('Content-Type', 'application/json; charset=UTF-8');
+
+
+        if(($code = $t->getCode()) == 0)
+        {
+            // 公共异常错误码
+            $code = -1;
+        }
+
+
+        // 生产环境
+        if(!IS_DEV_ENV()) {
+            $errorMsg = $exceptionMsg;
+        }
+
+        $app->beforeEnd($code, $errorMsg);
+
+        // 记录在日志中
+        if(isset($app->request->post) && !empty($app->request->post)) {
+            $postData = var_export($app->request->post);
+            $errorMsg .= '|||'.$postData.'|||'.$t->getTraceAsString();
+        }else {
+            $errorMsg .= '|||'.$t->getTraceAsString();
+        }
+
+        static::shutHalt($errorMsg);
+
+    }
+
+    /**
+     * shutHalt 记录日志(重写)
      * @param string $errorMsg
      * @param string $errorType
      */
-    public static function shutHalt($errorMsg, $errorType = SwoolefyException::EXCEPTION_ERR, \Throwable $throwable = null) {
+    public static function shutHalt($errorMsg, $errorType = SwoolefyException::EXCEPTION_ERR, \Throwable $throwable = null)
+    {
         if(!defined('LOG_PATH')) {
             define('LOG_PATH', START_DIR_ROOT.DIRECTORY_SEPARATOR.APP_NAME);
             if(!is_dir(LOG_PATH)) {
                 mkdir(LOG_PATH,0766);
             }
         }
+
         $logFilePath = rtrim(LOG_PATH,'/').'/runtime.log';
         if(is_file($logFilePath)) {
             $logFilesSize = filesize($logFilePath);
@@ -151,4 +199,5 @@ class SwoolefyException {
        
         return;
     }
+
 }

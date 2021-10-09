@@ -7,6 +7,8 @@ class ExceptionController extends BController
 {
     public function test() {
         var_dump('test exception');
-        throw new \RuntimeException('test throw  exception');
+        trigger_error('trigger error');
+
+        $this->returnJson(['name'=>'bingcool-'.rand(1,1000)]);
     }
 }
