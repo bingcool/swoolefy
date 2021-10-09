@@ -180,7 +180,7 @@ class HttpRoute extends AppDispatch {
 	 * @param  string  $module
 	 * @param  string  $controller
 	 * @param  string  $action
-     * @throws \Exception
+     * @throws \Throwable
 	 * @return boolean
 	 */
 	protected function invoke(
@@ -252,20 +252,10 @@ class HttpRoute extends AppDispatch {
                 try {
                     $controllerInstance->{$targetAction}(...$args);
                     $controllerInstance->_afterAction($action);
+                }catch (\Exception $e) {
+                    throw $e;
                 }catch (\Throwable $t) {
-                    $queryString = isset($this->request->server['QUERY_STRING']) ? '?' . $this->request->server['QUERY_STRING'] : '';
-                    if(isset($this->request->post) && !empty($this->request->post)) {
-                        $post = json_encode($this->request->post, JSON_UNESCAPED_UNICODE);
-                        $errorMsg = $t->getMessage() . ' on ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $this->request->server['REQUEST_URI'] . $queryString . ' ||| ' . $post.'|||'.$t->getTraceAsString();
-                    }else {
-                        $errorMsg = $t->getMessage() . ' on ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $this->request->server['REQUEST_URI'] . $queryString.'|||'.$t->getTraceAsString();
-                    }
-                    // record exception
-                    if(in_array(get_class($t), ['Exception', 'Throwable'])) {
-                        throw new \RuntimeException($errorMsg, 500);
-                    }else {
-                        throw new $t;
-                    }
+                    throw $t;
                 }
             }else {
                 $errorMsg = sprintf(
@@ -430,6 +420,6 @@ class HttpRoute extends AppDispatch {
      * __destruct
      */
     public function __destruct() {
-        unset($this->app);
+        unset($this->app, $this->request, $this->response);
     }
 }

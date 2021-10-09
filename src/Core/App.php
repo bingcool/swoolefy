@@ -120,17 +120,8 @@ class App extends \Swoolefy\Core\Component {
                 $route->dispatch();
             }
         }catch (\Throwable $t) {
-	        $code = $t->getCode();
-	        if(in_array($code, [403, 404, 500])) {
-	            $this->response->status($code);
-	            $this->response->header('Content-Type', 'application/json; charset=UTF-8');
-	            $exception = $this->getExceptionClass();
-	            $msg = $t->getMessage();
-	            $this->beforeEnd($code, $msg);
-                $exception::shutHalt($msg, SwoolefyException::EXCEPTION_ERR, $t);
-            }else {
-                throw $t;
-            }
+            $exceptionHandle = $this->getExceptionClass();
+            $exceptionHandle::response($this, $t);
         }finally {
         	if(!$this->is_defer) {
         		$this->onAfterRequest();
