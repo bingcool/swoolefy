@@ -104,11 +104,11 @@ class BaseObject {
      * @param array $log
      * @return void
      */
-    public function setLog(string $logAction, array $log) {
-        if(!isset($this->logs[$logAction])) {
-            $this->logs[$logAction] = [];
+    public function setLog(string $type, string $logAction, array $log) {
+        if(!isset($this->logs[$type][$logAction])) {
+            $this->logs[$type][$logAction] = [];
         }
-        $this->logs[$logAction][] = $log;
+        $this->logs[$type][$logAction][] = $log;
     }
 
     /**
@@ -125,12 +125,20 @@ class BaseObject {
     protected function handleLog() {
         // log send
         if(!empty($actionLogs = $this->getLogs())) {
-            foreach($actionLogs as $action => $logs) {
-                foreach ($logs as $k => $info) {
-                    unset($this->logs[$action][$k]);
-                    if(!empty($info)) {
-                        LogManager::getInstance()->{$action}(...$info);
+            foreach($actionLogs as $type => $logs) {
+                $logger = LogManager::getInstance()->getLogger($type);
+                if(!is_object($logger)) {
+                    $this->clearLogs();
+                    break;
+                }
+                foreach ($logs as $action => $logArr) {
+                    foreach ($logArr as $k=>$info) {
+                        unset($this->logs[$type][$action][$k]);
+                        if(!empty($info)) {
+                            $logger->{$action}(...$info);
+                        }
                     }
+
                 }
             }
         }

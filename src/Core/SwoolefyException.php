@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Core\Log\LogManager;
+
 class SwoolefyException
 {
 
@@ -158,14 +160,13 @@ class SwoolefyException
      */
     public static function shutHalt($errorMsg, $errorType = SwoolefyException::EXCEPTION_ERR, \Throwable $throwable = null)
     {
-        if(!defined('LOG_PATH')) {
-            define('LOG_PATH', START_DIR_ROOT.DIRECTORY_SEPARATOR.APP_NAME);
-            if(!is_dir(LOG_PATH)) {
-                mkdir(LOG_PATH,0766);
-            }
+        $logger = LogManager::getInstance()->getLogger('error_log');
+        if(!is_object($logger)) {
+            _each("【Warning】Missing set 'error_log' component on ".__CLASS__.'::'.__FUNCTION__);
+            return;
         }
 
-        $logFilePath = rtrim(LOG_PATH,'/').'/runtime.log';
+        $logFilePath = $logger->getLogFilePath();
         if(is_file($logFilePath)) {
             $logFilesSize = filesize($logFilePath);
         }else {
@@ -177,22 +178,21 @@ class SwoolefyException
             @file_put_contents($logFilePath,'');
         }
 
-        $log = new \Swoolefy\Util\Log;
-
         switch($errorType) {
             case SwoolefyException::EXCEPTION_ERR:
-                  $log->setChannel('Application')->setLogFilePath($logFilePath)->addError($errorMsg);
+                  $logger->addError($errorMsg);
                  break;
             case SwoolefyException::EXCEPTION_WARNING:
-                  $log->setChannel('Application')->setLogFilePath($logFilePath)->addWarning($errorMsg);
+                 $logger->addWarning($errorMsg);
                  break;
             case SwoolefyException::EXCEPTION_NOTICE:
-                  $log->setChannel('Application')->setLogFilePath($logFilePath)->addNotice($errorMsg);
+                 $logger->addNotice($errorMsg);
                  break;
             case SwoolefyException::EXCEPTION_INFO:
-                 $log->setChannel('Application')->setLogFilePath($logFilePath)->addInfo($errorMsg);
+                 $logger->addInfo($errorMsg);
                  break;
         }
+
         if(in_array(SWOOLEFY_ENV, [SWOOLEFY_DEV, SWOOLEFY_GRA])) {
             _each($errorMsg);
         }

@@ -42,40 +42,36 @@ class LogManager {
      * @return void                  
      */
     public function registerLogger(
+        string $type,
         string $channel = null,
         string $logFilePath = null,
         string $output = null,
         string $dateformat = null
     ) {
         if($channel && $logFilePath) {
-            $this->logger = new \Swoolefy\Util\Log($channel, $logFilePath, $output, $dateformat);
+            $logger = $this->logger[$type] = new \Swoolefy\Util\Log($channel, $logFilePath, $output, $dateformat);
+            $logger->setType($type);
         }
     }
 
     /**
      * registerLoggerByClosure
      * @param  \Closure  $func
-     * @param  string $log_name
+     * @param  string $type
      * @return mixed
      */
-    public function registerLoggerByClosure(\Closure $func, string $log_name = null) {
-        $this->logger = call_user_func($func, $log_name);
+    public function registerLoggerByClosure(\Closure $func, string $type) {
+        $logger = $this->logger[$type] = call_user_func($func, $type);
+        $logger->setType($type);
     }
 
     /**
      * getLogger
+     * @param string $type
      * @return Log
      */
-    public function getLogger() {
-        return $this->logger;
-    }
-
-    /**
-     * @param $action
-     * @param $args
-     */
-    public function __call($action, $args) {
-        $this->logger->$action(...$args);
+    public function getLogger(string $type) {
+        return $this->logger[$type] ?? null;
     }
 
 }

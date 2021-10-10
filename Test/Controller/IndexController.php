@@ -4,6 +4,7 @@ namespace Test\Controller;
 use Swoolefy\Core\App;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
+use Swoolefy\Core\Log\LogManager;
 
 class IndexController extends BController {
 
@@ -19,7 +20,17 @@ class IndexController extends BController {
          * @var \Swoolefy\Util\Log $log
          */
         $log = Application::getApp()->log;
-        $log->addInfo('test-log-id='.rand(1,1000),true);
+        $log->addInfo('test-log-id='.rand(1,1000),true, ['name'=>'bincool','sex'=>1,'address'=>'shenzhen']);
+        $this->returnJson([
+            'Controller' => $this->getControllerId(),
+            'Action' => $this->getActionId()
+        ]);
+    }
+
+    public function testLog1()
+    {
+        $log = LogManager::getInstance()->getLogger('log');
+        $log->addInfo('test11111-log-id='.rand(1,1000),true);
         $this->returnJson([
             'Controller' => $this->getControllerId(),
             'Action' => $this->getActionId()

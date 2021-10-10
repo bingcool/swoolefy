@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Core\Log\LogManager;
+
 class EventHandler extends \Swoolefy\Core\EventCtrl {
 
 	use \Swoolefy\Core\SingletonTrait;
@@ -21,7 +23,21 @@ class EventHandler extends \Swoolefy\Core\EventCtrl {
 	 * @return void
 	 */
 	public function onInit() {
+	    // default register logger
+        $app_conf = Swfy::getAppConf();
+        if(isset($app_conf['components']['log'])) {
+            $log = $app_conf['components']['log'];
+            if($log instanceof \Closure) {
+                LogManager::getInstance()->registerLoggerByClosure($log, 'log');
+            }
+        }
 
+        if(isset($app_conf['components']['error_log'])) {
+            $log = $app_conf['components']['error_log'];
+            if($log instanceof \Closure) {
+                LogManager::getInstance()->registerLoggerByClosure($log, 'error_log');
+            }
+        }
     }
 
 	/**
