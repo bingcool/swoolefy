@@ -27,6 +27,12 @@ use Swoolefy\Core\Log\Formatter\LineFormatter;
  */
 
 class Log {
+
+    /**
+     * @var string
+     */
+    public $type;
+
 	/**
 	 * $channel,日志的通过主题，关于那方面的日志
 	 * @var string
@@ -70,11 +76,13 @@ class Log {
 	 * __construct
 	 */
 	public function __construct(
+	    string $type,
         string $channel = null,
         string $logFilePath = null,
         string $output = null,
         string $dateformat = null)
     {
+        $this->type = $type;
 		$this->channel = $channel;
 		$this->logFilePath = $logFilePath;
 		$output && $this->output = $output;
@@ -87,6 +95,16 @@ class Log {
         if($this->handler) {
             $this->handler->setFormatter($this->formatter);
         }
+    }
+
+    /**
+     * @param string $type
+     * @return $this
+     */
+    public function setType(string $type)
+    {
+        $this->type = $type;
+        return $this;
     }
 
 	/**
@@ -199,7 +217,7 @@ class Log {
     protected function handleLog($function, $logInfo, $is_delay_batch, $context, $type) {
         $app = Application::getApp();
         if(is_object($app) && $is_delay_batch && Swfy::isWorkerProcess()) {
-            $app->setLog($function, [$logInfo, false, $context]);
+            $app->setLog($this->type, $function, [$logInfo, false, $context]);
             return true;
         }
         $this->insertLog($logInfo, $context, $type);

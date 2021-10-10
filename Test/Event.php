@@ -16,20 +16,22 @@ class Event extends EventHandler
      * onInit
      */
     public function onInit() {
+
         // log register
         $app_conf = Swfy::getAppConf();
-        if(isset($app_conf['components']['log']))
-        {
+        if(isset($app_conf['components']['log'])) {
             $log = $app_conf['components']['log'];
             if($log instanceof \Closure) {
                 LogManager::getInstance()->registerLoggerByClosure($log, 'log');
-            }else if(is_array($log)) {
-                $channel = $app_conf['components']['log']['channel'];
-                $logpath = $app_conf['components']['log']['logFilePath'];
-                LogManager::getInstance()->registerLogger($channel, $logpath);
             }
         }
 
+        if(isset($app_conf['components']['error_log'])) {
+            $log = $app_conf['components']['error_log'];
+            if($log instanceof \Closure) {
+                LogManager::getInstance()->registerLoggerByClosure($log, 'error_log');
+            }
+        }
 
         // 创建一个测试自定义进程
         //ProcessManager::getInstance()->addProcess('test', \Test\Process\TestProcess\Test::class);

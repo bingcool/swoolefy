@@ -23,11 +23,19 @@ return [
 
     // 组件
     'components' => [
-        // logger
-        'log' => function() {
-            $logger = new \Swoolefy\Util\Log();
+        // 用户行为记录的日志
+        'log' => function($name) {
+            $logger = new \Swoolefy\Util\Log($name);
             $logger->setChannel('application');
-            $logger->setLogFilePath('/tmp/Test/runtime.log');
+            $logger->setLogFilePath(LOG_PATH.'/runtime.log');
+            return $logger;
+        },
+
+        // 系统捕捉异常错误日志
+        'error_log' => function($name) {
+            $logger = new \Swoolefy\Util\Log($name);
+            $logger->setChannel('application');
+            $logger->setLogFilePath(LOG_PATH.'/error.log');
             return $logger;
         },
 

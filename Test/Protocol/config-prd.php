@@ -49,8 +49,8 @@ return [
         // $level 压缩等级，范围是 1-9，等级越高压缩后的尺寸越小，但 CPU 消耗更多。默认为 1, 最高为 9
         'http_compression_level' =>1,
 
-		'log_file' => __DIR__.'/log/log.txt',
-		'pid_file' => __DIR__.'/log/server.pid',
+        'log_file' => '/tmp/'.APP_NAME.'/swoole_log.txt',
+        'pid_file' => '/data/'.APP_NAME.'/log/server.pid',
 	],
 
 

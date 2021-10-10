@@ -45,7 +45,7 @@ return [
         'enable_coroutine' => 1,
         'task_enable_coroutine' => 1,
 
-        'log_file' => '/tmp/'.APP_NAME.'/log.txt',
+        'log_file' => '/tmp/'.APP_NAME.'/swoole_log.txt',
         'pid_file' => '/data/'.APP_NAME.'/log/server.pid',
 	],
 
