@@ -89,23 +89,23 @@ class RpcHandler extends Swoole implements HandlerInterface {
                 }
             }else {
                 // 任务task进程
-                $is_task_process = true;
+                $isTaskProcess = true;
                 list($callable, $params) = $payload;
             }
             if($callable) {
-                $dispatch = new ServiceDispatch($callable, $params, $this->header);
-                if(isset($is_task_process) && $is_task_process === true) {
+                $dispatcher = new ServiceDispatch($callable, $params, $this->header);
+                if(isset($isTaskProcess) && $isTaskProcess === true) {
                     list($from_worker_id, $task_id, $task) = $extend_data;
-                    $dispatch->setFromWorkerIdAndTaskId($from_worker_id, $task_id, $task);
+                    $dispatcher->setFromWorkerIdAndTaskId($from_worker_id, $task_id, $task);
                 }
-                $dispatch->dispatch();
+                $dispatcher->dispatch();
             }
 
         }catch (\Throwable $throwable) {
             throw $throwable;
         } finally {
             // 必须执行
-            if(!$this->is_defer) {
+            if(!$this->isDefer) {
             	parent::end();
             }
         }

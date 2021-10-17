@@ -38,13 +38,13 @@ class EventController extends BaseObject {
      * $is_end
      * @var boolean
      */
-    protected $is_end = false;
+    protected $isEnd = false;
 
     /**
      * $is_defer
      * @var boolean
      */
-    protected $is_defer = false;
+    protected $isDefer = false;
 
     /**
      * $event_hooks
@@ -206,7 +206,7 @@ class EventController extends BaseObject {
      * @return void
 	 */
 	public function setEnd() {
-		$this->is_end = true;
+		$this->isEnd = true;
 	}
 
     /**
@@ -215,7 +215,7 @@ class EventController extends BaseObject {
      */
     protected function defer() {
         if(\Swoole\Coroutine::getCid() > 0) {
-            $this->is_defer = true;
+            $this->isDefer = true;
             defer(function() {
                 $this->end();
             });
@@ -226,14 +226,14 @@ class EventController extends BaseObject {
      * @return boolean
      */
     public function isDefer() {
-        return $this->is_defer;
+        return $this->isDefer;
     }
 
     /**
      * end 重新初始化一些静态变量
      */
     public function end() {
-        if($this->is_end) {
+        if($this->isEnd) {
             return true;
         }
         // set End

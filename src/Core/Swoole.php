@@ -46,7 +46,7 @@ class Swoole extends BaseObject {
      * $is_defer
      * @var bool
      */
-    protected $is_defer = false;
+    protected $isDefer = false;
 
     /**
 	 * __construct
@@ -291,7 +291,7 @@ class Swoole extends BaseObject {
 	 */
 	protected function defer() {
 		if(\Swoole\Coroutine::getCid() > 0) {
-			$this->is_defer = true;
+			$this->isDefer = true;
 			defer(function() {
 	            $this->end();
         	});

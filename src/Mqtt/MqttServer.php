@@ -287,8 +287,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface {
      * @return bool
      * @throws \Throwable
      */
-    public function onReceive($server, $fd, $reactor_id, $data)
-    {
+    public function onReceive($server, $fd, $reactor_id, $data) {
         $conf = \Swoolefy\Core\Swfy::getConf();
         $protocolLevel = (int)($conf['mqtt']['protocol_level'] ?? MQTT_PROTOCOL_LEVEL3);
         if($protocolLevel === MQTT_PROTOCOL_LEVEL3)
