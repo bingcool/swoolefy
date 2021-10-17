@@ -38,7 +38,7 @@ class CommandRunner {
     /**
      * @var array
      */
-    static $exitCodes = [
+    public static $exitCodes = [
         0 => 'OK',
         1 => 'General error',
         2 => 'Misuse of shell builtins',
@@ -208,7 +208,7 @@ class CommandRunner {
 
                     $returnCode = fgets($pipes[3],10);
                     if($returnCode != 0) {
-                        throw new \Exception("CommandRunner Proc Open failed,reurnCode={$return},commandLine={$command}.");
+                        throw new \Exception("CommandRunner Proc Open failed,reurnCode={$returnCode},commandLine={$command}.");
                     }
                 }
                 $params = [$pipes[0], $pipes[1], $pipes[2], $status, $returnCode ?? -1];
@@ -265,7 +265,7 @@ class CommandRunner {
     }
 
     /**
-     * @throws Exception
+     * @throws \Exception
      */
     protected function checkNextFlag()
     {
@@ -286,6 +286,7 @@ class CommandRunner {
 
     /**
      * __clone
+     * @throws \Exception
      */
     private function __clone()
     {

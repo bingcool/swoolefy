@@ -130,7 +130,7 @@ trait ComponentTrait {
      * @param array $params
      * @param string $com_alias_name
      * @return object
-     * @throws \ReflectionException
+     * @throws \Exception
      */
 	protected function buildInstance(string $class, array $definition, array $params, string $com_alias_name) {
 	    /**@var \ReflectionClass $reflection */
@@ -246,7 +246,7 @@ trait ComponentTrait {
     /**
      * @param string $name
      * @return mixed
-     * @throws Exception
+     * @throws \Exception
      */
     final public function get(string $name) {
 

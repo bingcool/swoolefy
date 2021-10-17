@@ -59,10 +59,11 @@ class Struct {
 	 * @param  mixed  $value
      * @return mixed
 	 */
-	public function set($property, $value = null) {
-		$previous = isset($this->{$property}) ? $this->{$property} : null;
-		$this->{$property} = $value;
-		return $previous;
+	public function set($property, $value, bool $replace = false) {
+		if(!isset($this->{$property}) || $replace) {
+            $this->{$property} = $value;
+        }
+		return true;
 	}
 
 	/**

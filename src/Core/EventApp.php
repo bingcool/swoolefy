@@ -109,6 +109,7 @@ class EventApp {
                 throw new \Exception(sprintf("%s must extends \Swoolefy\Core\EventController, please check it", $class_name));
             }
         }
+
 		return $this;
 	}
 
@@ -137,8 +138,7 @@ class EventApp {
 	 */
 	public function __call(string $action, array $args = []) {
 		try{
-			if($this->is_call && \Swoole\Coroutine::getCid() > 0)
-			{
+			if($this->is_call && \Swoole\Coroutine::getCid() > 0) {
                 $class_name = get_class($this->event_app);
 				throw new \Exception(sprintf("%s Single Coroutine Instance only be called one method, you had called", $class_name));
 			}
@@ -146,11 +146,9 @@ class EventApp {
             try {
                 $this->is_call = true;
                 return $this->event_app->$action(...$args);
-            }catch(\Throwable $throwable)
-            {
+            }catch(\Throwable $throwable) {
 			    throw $throwable;
-            }finally
-            {
+            }finally {
                 if(is_object($this->event_app) && !$this->event_app->isDefer())
                 {
                     $this->event_app->end();

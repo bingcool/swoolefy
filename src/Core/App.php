@@ -54,13 +54,13 @@ class App extends \Swoolefy\Core\Component {
     /**
      * @var bool
      */
-    protected $is_end = false;
+    protected $isEnd = false;
 
     /**
      * $is_defer
      * @var bool
      */
-    protected $is_defer = false;
+    protected $isDefer = false;
 
 	/**
 	 * __construct
@@ -123,7 +123,7 @@ class App extends \Swoolefy\Core\Component {
             $exceptionHandle = $this->getExceptionClass();
             $exceptionHandle::response($this, $t);
         }finally {
-        	if(!$this->is_defer) {
+        	if(!$this->isDefer) {
         		$this->onAfterRequest();
 	            $this->end();
         	}
@@ -150,13 +150,13 @@ class App extends \Swoolefy\Core\Component {
 	 * setAppConf
 	 */
 	public function setAppConf(array $conf = []) {
-		static $is_reset_app_conf;
-		if(!isset($is_reset_app_conf)) {
+		static $isResetAppConf;
+		if(!isset($isResetAppConf)) {
 			if(!empty($conf)) {
 				$this->app_conf = $conf;
 				Swfy::setAppConf($conf);
 				BaseServer::setAppConf($conf);
-				$is_reset_app_conf = true;
+				$isResetAppConf = true;
 			}
 		}
 	}
@@ -182,7 +182,7 @@ class App extends \Swoolefy\Core\Component {
 	public function catchAll() {
 	    // catchAll
 		if(isset($this->app_conf['catch_handle']) && $handle = $this->app_conf['catch_handle']) {
-            $this->is_end = true;
+            $this->isEnd = true;
 			if($handle instanceof \Closure) {
                 $handle->call($this, $this->request, $this->response);
 			}else {
@@ -246,7 +246,7 @@ class App extends \Swoolefy\Core\Component {
 	 */
 	protected function defer() {
 		if(\Swoole\Coroutine::getCid() > 0) {
-			$this->is_defer = true;
+			$this->isDefer = true;
 			defer(function() {
 			    $this->onAfterRequest();
 	            $this->end();
@@ -276,7 +276,7 @@ class App extends \Swoolefy\Core\Component {
         $this->pushComponentPools();
         // remove App Instance
         Application::removeApp();
-        if(!$this->is_end)
+        if(!$this->isEnd)
         {
             @$this->response->end();
         }
@@ -287,14 +287,14 @@ class App extends \Swoolefy\Core\Component {
      * @return void
      */
     public function setEnd() {
-        $this->is_end = true;
+        $this->isEnd = true;
     }
 
     /**
      * @return bool
      */
     public function isEnd() {
-        return $this->is_end;
+        return $this->isEnd;
     }
 
 }

@@ -29,7 +29,7 @@ trait AppTrait {
 	 * $previousUrl
 	 * @var array
 	 */
-	public $previousUrl = [];
+	protected $previousUrl = [];
 
     /**
      * @var array

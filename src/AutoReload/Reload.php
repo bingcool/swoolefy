@@ -189,10 +189,8 @@ class Reload {
      * @return $this
      */
     public function watch($dir, bool $root = true) {
-        //目录不存在
         if (!is_dir($dir)) {
-            $error = "[$dir] is not a directory.";
-            throw new \Exception ($error);
+            throw new \Exception("[$dir] is not a directory.");
         }
         //避免重复监听
         if (isset($this->watchFiles[$dir])) {

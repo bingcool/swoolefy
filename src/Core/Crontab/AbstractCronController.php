@@ -42,8 +42,7 @@ abstract class AbstractCronController extends ProcessController {
      * @return void
      */
     public function runCron(string $expression, ?callable $func = null, string $cron_name = '') {
-        if(empty($cron_name))
-        {
+        if(empty($cron_name)) {
             throw new \Exception('cron_name empty');
         }
     	$expression_key = md5($expression);
