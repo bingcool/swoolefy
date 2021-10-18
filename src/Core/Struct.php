@@ -11,13 +11,22 @@
 
 namespace Swoolefy\Core;
 
+use stdClass;
+
 class Struct {
+
+    /**
+     * @var stdClass
+     */
+    protected $stdClass;
 
 	/**
 	 * __construct 
 	 * @param    
 	 */
-	public function __construct() {}
+	public function __construct() {
+	    $this->stdClass = new stdClass();
+    }
 
 	/**
 	 * get 获取数据结构属性值
@@ -26,9 +35,9 @@ class Struct {
 	 * @return string
 	 */
 	public function get($property, $default = null) {
-		if(isset($this->{$property}))
+		if(isset($this->stdClass->{$property}))
 		{
-			return $this->{$property};
+			return $this->stdClass->{$property};
 		}
 		return $default;
 	}
@@ -38,9 +47,8 @@ class Struct {
 	 * @param  boolean $public
 	 * @return array
 	 */
-	public function getProperties($public = true) {
-		$vars = get_object_vars($this);
-		
+	public function getProperties(bool $public = true) {
+		$vars = get_object_vars($this->stdClass);
 		if($public) {
 			foreach ($vars as $k => $v)
 			{
@@ -60,8 +68,8 @@ class Struct {
      * @return mixed
 	 */
 	public function set($property, $value, bool $replace = false) {
-		if(!isset($this->{$property}) || $replace) {
-            $this->{$property} = $value;
+		if(!isset($this->stdClass->{$property}) || $replace) {
+            $this->stdClass->{$property} = $value;
         }
 		return true;
 	}
@@ -74,7 +82,7 @@ class Struct {
 		$properties = (array)$properties;
 		if(is_array($properties)) {
 			foreach ($properties as $k => $v) {
-				$this->$k = $v;
+				$this->stdClass->$k = $v;
 			}
 		}
 	}
@@ -84,7 +92,7 @@ class Struct {
 	 * @return  array
 	 */
 	public function getPublicProperties() {
-		return $this->getProperties();
+		return $this->getProperties(true);
 	}
 
 }
