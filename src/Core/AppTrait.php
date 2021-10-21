@@ -445,52 +445,49 @@ trait AppTrait {
 		return $this->request->get;
 	}
 
-	/**
-	 * getView
-	 * @return   object
-	 */
-	public function getView(string $view_component_name = 'view') {
-		return Application::getApp()->{$view_component_name};
+    /**
+     * @param string $name
+     * @param $value
+     * @param string $viewCom
+     * @throws \Exception
+     */
+	public function assign(string $name, $value, string $viewCom = 'view') {
+		Application::getApp()->get($viewCom)->assign($name,$value);
 	}
 
-
-	/**
-	 * assign
-	 * @param   string  $name
-	 * @param   string|array  $value
-	 * @return  void   
-	 */
-	public function assign(string $name, $value) {
-		Application::getApp()->view->assign($name,$value);
+    /**
+     * @param string|null $template_file
+     * @param string $viewCom
+     * @throws \Exception
+     */
+	public function display(string $template_file = null, string $viewCom = 'view') {
+		Application::getApp()->get($viewCom)->display($template_file);
 	}
 
-	/**
-	 * display
-	 * @param    string  $template_file
-	 * @return   void             
-	 */
-	public function display(string $template_file = null) {
-		Application::getApp()->view->display($template_file);
-	}
-
-	/**
-	 * fetch
-	 * @param    string  $template_file
-	 * @return   void              
-	 */
-	public function fetch(string $template_file = null) {
-		Application::getApp()->view->display($template_file);
+    /**
+     * @param string|null $template_file
+     * @param string $viewCom
+     * @throws \Exception
+     */
+	public function fetch(string $template_file = null, string $viewCom = 'view') {
+		Application::getApp()->get($viewCom)->display($template_file);
 	}
 
     /**
      * @param array $data
      * @param int $ret
-     * @param string $msg
+     * @param mixed $msg
      * @param string $formatter
      */
-	public function returnJson(array $data = [], $ret=0, $msg='', string $formatter = 'json') {
+	public function returnJson(
+	    array $data = [],
+        int $ret = 0,
+        $msg = '',
+        string $formatter = 'json'
+    ) {
         $responseData = Application::buildResponseData($ret, $msg, $data);
         $this->jsonSerialize($responseData, $formatter);
+        return;
 	}
 
     /**
@@ -509,7 +506,7 @@ trait AppTrait {
                 break;
         }
 
-        if(strlen($jsonString) > 2 * 1024 * 1024){
+        if(strlen($jsonString) > 2 * 1024 * 1024) {
             $chunks = str_split($jsonString,2 * 1024 * 1024);
             unset($jsonString);
             foreach($chunks as $k=>$chunk) {
