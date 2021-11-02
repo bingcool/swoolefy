@@ -33,6 +33,7 @@ return [
 	'include_files' => [],
     'runtime_enable_coroutine' => true,
 	'setting' => [
+        'admin_server' => '0.0.0.0:9503',
 		'reactor_num' => 1, 
 		'worker_num' => 5,
 		'max_request' => 2,

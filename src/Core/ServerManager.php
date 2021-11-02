@@ -34,8 +34,7 @@ class ServerManager {
      * @return mixed
      * @throws \Exception
 	 */
-	public function addListener(string $host, $port, $type = SWOOLE_SOCK_TCP) {
-		$port = (int)$port;
+	public function addListener(string $host, int $port, $type = SWOOLE_SOCK_TCP) {
 		$server_port = Swfy::getServer()->addListener($host, $port, $type);
 		if(!is_object($server_port)) {
             throw new \Exception("ServerManager::addListener port = {$port} failed", 1);
@@ -49,8 +48,7 @@ class ServerManager {
 	 * @param  int $port
 	 * @return boolean
 	 */
-	public function getListener($port) {
-		$port = (int)$port;
+	public function getListener(int $port) {
 		if(isset($this->server_ports[$port])) {
 			return $this->server_ports[$port];
 		}
@@ -59,8 +57,8 @@ class ServerManager {
 
 	/**
 	 * stopWorker 
-	 * @param  int|integer  $worker_id
-	 * @param  bool|boolean $waitEvent
+	 * @param  int  $worker_id
+	 * @param  bool $waitEvent
 	 * @return boolean
 	 */
 	public function stopWorker(int $worker_id = -1, bool $waitEvent = false) {
@@ -91,7 +89,7 @@ class ServerManager {
 
     /**
      * shutdown
-     * @return  boolean
+     * @return  bool
      */
     public function shutdown() {
         Swfy::getServer()->shutdown();
