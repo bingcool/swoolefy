@@ -107,7 +107,7 @@ class HttpRoute extends AppDispatch {
     /**
      * dispatch
      * @return mixed
-     * @throws \Exception
+     * @throws \Throwable
      */
 	public function dispatch() {
 	    if(!isset($this->app_conf['route_model']) || !in_array($this->app_conf['route_model'], [self::ROUTE_MODEL_PATHINFO, self::ROUTE_MODEL_QUERY_PARAMS])) {

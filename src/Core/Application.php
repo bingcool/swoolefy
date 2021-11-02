@@ -136,7 +136,7 @@ class Application {
 	 * @param  int|null $coroutine_id
 	 * @return boolean
 	 */
-	public static function removeApp($coroutine_id = null) {
+	public static function removeApp(?int $coroutine_id = null) {
 		if($coroutine_id) {
 			$cid = $coroutine_id;
 		}else {

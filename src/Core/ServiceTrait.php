@@ -16,7 +16,7 @@ use Swoolefy\Core\BaseServer;
 
 trait ServiceTrait {
 	/**
-	 * getMasterId 获取当前服务器主进程的PID
+	 * getMasterId
 	 * @return int
 	 */
 	public static function getMasterPid() {
@@ -24,7 +24,7 @@ trait ServiceTrait {
 	}
 
 	/**
-	 * getManagerId 获取当前服务器管理进程的PID
+	 * getManagerId
 	 * @return int
 	 */
 	public static function getManagerPid() {
@@ -32,7 +32,7 @@ trait ServiceTrait {
 	}
 
 	/**
-	 * getCurrentWorkerPid 获取当前worker的进程PID 
+	 * getCurrentWorkerPid
 	 * @return int  
 	 */
 	public static function getCurrentWorkerPid() {
@@ -46,7 +46,7 @@ trait ServiceTrait {
 	}
 
 	/**
-	 * getCurrentWorkerId 获取当前处理的worker_id
+	 * getCurrentWorkerId
 	 * @return int
 	 */
 	public static function getCurrentWorkerId() {
@@ -56,7 +56,7 @@ trait ServiceTrait {
 	}
 
 	/**
-	 * getConnections 获取服务器当前所有的连接
+	 * getConnections
 	 * @return object
 	 */
 	public static function getConnections() {
@@ -64,7 +64,7 @@ trait ServiceTrait {
 	}
 
 	/**
-	 * getWorkersPid 获取当前所有worker_pid与worker的映射
+	 * getWorkersPid
 	 * @return array
 	 */
 	public static function getWorkersPid() {
@@ -80,7 +80,7 @@ trait ServiceTrait {
 	}
 
 	/**
-	 * getStats 获取swoole的状态
+	 * getStats
 	 * @return array
 	 */
 	public static function getSwooleStats() {
@@ -101,7 +101,6 @@ trait ServiceTrait {
 	 */
 	public static function getInitIncludeFiles($dir = null) {
 	    $result = false;
-		// 获取当前的处理的worker_id
 		$workerId = self::getCurrentWorkerId();
 		if(isset(Swfy::$conf['setting']['log_file'])) {
 			$path = pathinfo(Swfy::$conf['setting']['log_file'], PATHINFO_DIRNAME);
@@ -121,7 +120,8 @@ trait ServiceTrait {
 	}
 
 	/**
-	 * getIncludeFiles 获取执行到目前action为止，swoole server中的该worker中内存中已经加载的class文件
+	 * getIncludeFiles
+     * 获取执行到目前action为止，swoole server中的该worker中内存中已经加载的class文件
 	 * @return array
 	 */
 	public static function getIncludeFiles() {

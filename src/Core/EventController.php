@@ -50,7 +50,7 @@ class EventController extends BaseObject {
      * $event_hooks
      * @var array
      */
-    protected $event_hooks = [];
+    protected $eventHooks = [];
 
     /**
      * after request event
@@ -135,15 +135,15 @@ class EventController extends BaseObject {
 		if(is_callable($callback, true, $callable_name)) {
 			$key = md5($callable_name);
             if($prepend) {
-                if(!isset($this->event_hooks[self::HOOK_AFTER_REQUEST])) {
-                    $this->event_hooks[self::HOOK_AFTER_REQUEST] = [];
+                if(!isset($this->eventHooks[self::HOOK_AFTER_REQUEST])) {
+                    $this->eventHooks[self::HOOK_AFTER_REQUEST] = [];
                 }
-                if(!isset($this->event_hooks[self::HOOK_AFTER_REQUEST][$key])) {
-                    $this->event_hooks[self::HOOK_AFTER_REQUEST][$key] = array_merge([$key=>$callback], $this->event_hooks[self::HOOK_AFTER_REQUEST]);
+                if(!isset($this->eventHooks[self::HOOK_AFTER_REQUEST][$key])) {
+                    $this->eventHooks[self::HOOK_AFTER_REQUEST][$key] = array_merge([$key=>$callback], $this->eventHooks[self::HOOK_AFTER_REQUEST]);
                 }
             }else {
-                if(!isset($this->event_hooks[self::HOOK_AFTER_REQUEST][$key])) {
-                    $this->event_hooks[self::HOOK_AFTER_REQUEST][$key] = $callback;
+                if(!isset($this->eventHooks[self::HOOK_AFTER_REQUEST][$key])) {
+                    $this->eventHooks[self::HOOK_AFTER_REQUEST][$key] = $callback;
                 }
             }
             return true;
@@ -155,8 +155,8 @@ class EventController extends BaseObject {
 	 * @return void
 	 */
 	public function callAfterEventHook() {
-		if(isset($this->event_hooks[self::HOOK_AFTER_REQUEST]) && !empty($this->event_hooks[self::HOOK_AFTER_REQUEST])) {
-			foreach($this->event_hooks[self::HOOK_AFTER_REQUEST] as $func) {
+		if(isset($this->eventHooks[self::HOOK_AFTER_REQUEST]) && !empty($this->eventHooks[self::HOOK_AFTER_REQUEST])) {
+			foreach($this->eventHooks[self::HOOK_AFTER_REQUEST] as $func) {
 				$func();
 			}
 		}
