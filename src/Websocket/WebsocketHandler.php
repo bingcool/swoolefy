@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Websocket;
 
+use Swoole\WebSocket\Frame;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Swoole;
@@ -61,19 +62,18 @@ class WebsocketHandler extends Swoole implements HandlerInterface {
                 }
 
                 if($this->ping($event)) {
-                    $data = json_encode(['pong'=>1,'ok'=>1]);
-                    return Swfy::getServer()->push($fd, $data, $opcode = 1, $finish = true);
+                    $pingFrame = new Frame;
+                    $pingFrame->opcode = WEBSOCKET_OPCODE_PONG;
+                    return Swfy::getServer()->push($fd, $pingFrame);
                 }
             }
-            // 必须要执行父类的run方法,$recv是json字符串,bootstrap函数中可以接收做一些引导处理
+
             parent::run($fd, $payload);
-            // worker进程
             if($this->isWorkerProcess()) {
                 if($service && $event) {
                     $callable = [$service, $event];
                 }
             }else {
-                // task进程
                 $isTaskProcess = true;
                 list($callable, $params) = $payload;
             }
@@ -90,7 +90,6 @@ class WebsocketHandler extends Swoole implements HandlerInterface {
         }catch (\Throwable $throwable) {
             throw $throwable;
         } finally {
-            // 必须执行
             if(!$this->isDefer) {
                 parent::end();
             }

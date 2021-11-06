@@ -75,11 +75,10 @@ class RpcHandler extends Swoole implements HandlerInterface {
                     return;
                 }
             }
-            // 必须要执行父类的run方法
+
             parent::run($fd, $payload);
-            // 当前进程worker进程
             if($this->isWorkerProcess()) {
-                // packet_length_checkout方式
+                // packet_length_checkout
                 if(BaseServer::isPackLength() || BaseServer::isPackEof()) {
                     if(is_array($body) && count($body) == 2) {
                         list($callable, $params) = $body;
@@ -88,10 +87,10 @@ class RpcHandler extends Swoole implements HandlerInterface {
                 	// TODO
                 }
             }else {
-                // 任务task进程
                 $isTaskProcess = true;
                 list($callable, $params) = $payload;
             }
+
             if($callable) {
                 $dispatcher = new ServiceDispatch($callable, $params, $this->header);
                 if(isset($isTaskProcess) && $isTaskProcess === true) {
@@ -104,7 +103,6 @@ class RpcHandler extends Swoole implements HandlerInterface {
         }catch (\Throwable $throwable) {
             throw $throwable;
         } finally {
-            // 必须执行
             if(!$this->isDefer) {
             	parent::end();
             }

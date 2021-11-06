@@ -66,10 +66,8 @@ class UdpHandler extends Swoole implements HandlerInterface {
 	 */
 	public function run($payload, $clientInfo, array $extend_data = []) {
 	    try {
-            // 必须要执行父类的run方法
             parent::run($fd = null, $payload);
             $this->client_info = $clientInfo;
-            // worker进程
             if($this->isWorkerProcess()) {
                 $dataGramItems = explode(static::EOF, $payload);
                 if(count($dataGramItems) == 3) {
@@ -87,7 +85,6 @@ class UdpHandler extends Swoole implements HandlerInterface {
                     $callable = [$service, $event];
                 }
             }else {
-                // task进程
                 $isTaskProcess = true;
                 list($callable, $params) = $payload;
             }

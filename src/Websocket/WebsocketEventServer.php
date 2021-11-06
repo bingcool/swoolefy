@@ -14,6 +14,7 @@ namespace Swoolefy\Websocket;
 include_once SWOOLEFY_CORE_ROOT_PATH.'/MainEventInterface.php';
 
 use Swoole\Server;
+use Swoole\WebSocket\Frame;
 use Swoolefy\Core\WebsocketEventInterface;
 
 abstract class WebsocketEventServer extends WebsocketServer implements WebsocketEventInterface {
@@ -74,10 +75,12 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
                 $appInstance = new \Swoolefy\Websocket\WebsocketHandler($app_conf);
                 $appInstance->run($fd, $data);
 			}else if($opcode == WEBSOCKET_OPCODE_BINARY) {
-				// TODO 二进制数据
 				static::onMessageFromBinary($server, $frame);
-			}else if($opcode == 0x08) {
-				// TODO 关闭帧
+			}else if($opcode == WEBSOCKET_OPCODE_PING) {
+                $pingFrame = new Frame;
+                $pingFrame->opcode = WEBSOCKET_OPCODE_PONG;
+                $server->push($frame->fd, $pingFrame);
+            }else if($opcode == WEBSOCKET_OPCODE_CLOSE) {
 				static::onMessageFromClose($server, $frame);
 			}
 		}else {

@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Websocket;
 
+use Swoole\WebSocket\Frame;
 use Swoolefy\Core\EventApp;
 use Swoolefy\Core\Swfy;
 use Swoole\Http\Request;
@@ -161,7 +162,7 @@ abstract class WebsocketServer extends BaseServer {
 		/**
 		 * message
 		 */
-		$this->webServer->on('message', function(\Swoole\WebSocket\Server $server, $frame) {
+		$this->webServer->on('message', function(\Swoole\WebSocket\Server $server, Frame $frame) {
 			try{
 				parent::beforeHandle();
 				static::onMessage($server, $frame);
