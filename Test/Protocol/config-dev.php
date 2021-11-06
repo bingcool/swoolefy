@@ -100,14 +100,14 @@ return [
     //],
 
     // 热更新
-    'reload_conf'=>[
-        'enable_reload' => true,
-        'after_seconds' => 3,
-        'monitor_path' => APP_PATH,//开发者自己定义目录
-        'reload_file_types' => ['.php','.html','.js'],
-        'ignore_dirs' => [],
-        'callback' => function() {
-            var_dump("reload success");
-        }
-    ],
+//    'reload_conf'=>[
+//        'enable_reload' => true,
+//        'after_seconds' => 3,
+//        'monitor_path' => APP_PATH,//开发者自己定义目录
+//        'reload_file_types' => ['.php','.html','.js'],
+//        'ignore_dirs' => [],
+//        'callback' => function() {
+//            var_dump("reload success");
+//        }
+//    ],
 ];

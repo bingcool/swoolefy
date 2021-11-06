@@ -3,13 +3,11 @@ sftp-config.json
 #log
 *.txt
 #runtime
-*.json
 #server.pid
 *.pid
 *.lock
 *.idea
 *.log
-*.json.back
 #dir
 /App
 /protocol
