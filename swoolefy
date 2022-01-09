@@ -880,7 +880,6 @@ EOF;
     return $defines_content;
 }
 
-// Run Start
 function Run($callback = null)
 {
     $argv = SWOOLEFY_CLI_PARAMS;
@@ -894,4 +893,3 @@ function Run($callback = null)
 }
 
 Run();
-
