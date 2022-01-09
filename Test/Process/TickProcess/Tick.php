@@ -21,6 +21,7 @@ class Tick extends AbstractProcess {
         });
         var_dump('This is process tick, class='.__CLASS__);
         // 创建定时器处理实例
+
         TickManager::getInstance()->tickTimer(3000,
             [TickController::class, 'tickTest'],
             ['name'=>'swoolefy-tick']

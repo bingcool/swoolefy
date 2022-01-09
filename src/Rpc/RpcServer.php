@@ -1,47 +1,49 @@
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| @see https://github.com/bingcool/swoolefy
-+----------------------------------------------------------------------
-*/
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | @see https://github.com/bingcool/swoolefy
+ * +----------------------------------------------------------------------
+ */
 
 namespace Swoolefy\Rpc;
 
-include_once SWOOLEFY_CORE_ROOT_PATH.'/MainEventInterface.php';
+include_once SWOOLEFY_CORE_ROOT_PATH . '/MainEventInterface.php';
 
 use Swoole\Server;
 use Swoolefy\Tcp\TcpServer;
 use Swoolefy\Core\RpcEventInterface;
 
-abstract class RpcServer extends TcpServer implements RpcEventInterface {
+abstract class RpcServer extends TcpServer implements RpcEventInterface
+{
     /**
      * __construct
      * @param array $config
      * @throws \Exception
      */
-	public function __construct(array $config = []) {
-		parent::__construct($config);
+    public function __construct(array $config = [])
+    {
+        parent::__construct($config);
         self::buildPackHandler();
-	}
+    }
 
-	/**
-	 * onWorkerStart worker进程启动时回调处理
-	 * @param  Server $server
-	 * @param  int    $worker_id
-	 * @return void       
-	 */
+    /**
+     * onWorkerStart worker进程启动时回调处理
+     * @param Server $server
+     * @param int $worker_id
+     * @return void
+     */
     abstract public function onWorkerStart($server, $worker_id);
 
-	/**
-	 * onConnect socket连接上时回调函数
-	 * @param  Server $server
-	 * @param  int    $fd    
-	 * @return void        
-	 */
+    /**
+     * onConnect socket连接上时回调函数
+     * @param Server $server
+     * @param int $fd
+     * @return void
+     */
     abstract public function onConnect($server, $fd);
 
     /**
@@ -53,12 +55,13 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface {
      * @return boolean
      * @throws \Throwable
      */
-	public function onReceive($server, $fd, $reactor_id, $data) {
+    public function onReceive($server, $fd, $reactor_id, $data)
+    {
         $app_conf = \Swoolefy\Core\Swfy::getAppConf();
         $appInstance = new \Swoolefy\Rpc\RpcHandler($app_conf);
         $appInstance->run($fd, $data);
         return true;
-	}
+    }
 
     /**
      * onTask 任务处理函数调度
@@ -70,13 +73,14 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface {
      * @return  boolean
      * @throws \Throwable
      */
-	public function onTask($server, $task_id, $from_worker_id, $data, $task = null) {
-		list($callable, $taskData, $fd) = $data;
+    public function onTask($server, $task_id, $from_worker_id, $data, $task = null)
+    {
+        list($callable, $taskData, $fd) = $data;
         $app_conf = \Swoolefy\Core\Swfy::getAppConf();
         $appInstance = new \Swoolefy\Rpc\RpcHandler($app_conf);
         $appInstance->run($fd, [$callable, $taskData], [$from_worker_id, $task_id, $task]);
-		return true;
-	}
+        return true;
+    }
 
     /**
      * onFinish 异步任务完成后调用
@@ -87,48 +91,49 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface {
      */
     abstract public function onFinish($server, $task_id, $data);
 
-	/**
-	 * onPipeMessage 
-	 * @param Server $server
-	 * @param int    $src_worker_id
-	 * @param mixed  $message
-	 * @return void
-	 */
+    /**
+     * onPipeMessage
+     * @param Server $server
+     * @param int $src_worker_id
+     * @param mixed $message
+     * @return void
+     */
     abstract public function onPipeMessage($server, $from_worker_id, $message);
 
-	/**
-	 * onClose tcp连接关闭时回调函数
-	 * @param  Server $server
-	 * @param  int    $fd    
-	 * @return void
-	 */
+    /**
+     * onClose tcp连接关闭时回调函数
+     * @param Server $server
+     * @param int $fd
+     * @return void
+     */
     abstract public function onClose($server, $fd);
 
     /**
      * buildPackHandler 创建pack处理对象
      * @return void
      */
-    protected function buildPackHandler() {
-        if(self::isPackLength()) {
+    protected function buildPackHandler()
+    {
+        if (self::isPackLength()) {
             $this->Pack = new Pack(self::$server);
             // packet_length_check
             $this->Pack->setHeaderStruct(self::$config['packet']['server']['pack_header_struct']);
             $this->Pack->setPackLengthKey(self::$config['packet']['server']['pack_length_key']);
-            if(isset(self::$config['packet']['server']['serialize_type'])) {
+            if (isset(self::$config['packet']['server']['serialize_type'])) {
                 $this->Pack->setSerializeType(self::$config['packet']['server']['serialize_type']);
             }
             $this->Pack->setHeaderLength(self::$setting['package_body_offset']);
-            if(isset(self::$setting['package_max_length'])) {
+            if (isset(self::$setting['package_max_length'])) {
                 $package_max_length = (int)self::$setting['package_max_length'];
                 $this->Pack->setPacketMaxlength($package_max_length);
             }
-        }else {
+        } else {
             $this->Text = new Text(self::$server);
             // packet_eof_check
             $this->Text->setPackEof(self::$setting['package_eof']);
-            if(isset(self::$config['packet']['server']['serialize_type'])) {
+            if (isset(self::$config['packet']['server']['serialize_type'])) {
                 $serialize_type = self::$config['packet']['server']['serialize_type'];
-            }else {
+            } else {
                 $serialize_type = Text::DECODE_JSON;
             }
             $this->Text->setSerializeType($serialize_type);
@@ -140,11 +145,12 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface {
      * @return boolean
      * @throws Exception
      */
-    final public static function isClientPackEof() {
-        if(!isset(self::$config['packet']['client']['pack_check_type'])) {
+    final public static function isClientPackEof()
+    {
+        if (!isset(self::$config['packet']['client']['pack_check_type'])) {
             throw new \Exception("you must set ['packet']['client']  in the config file", 1);
         }
-        if(in_array(self::$config['packet']['client']['pack_check_type'], ['eof', 'EOF']) ) {
+        if (in_array(self::$config['packet']['client']['pack_check_type'], ['eof', 'EOF'])) {
             return true;
         }
         return false;
@@ -155,8 +161,9 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface {
      * @return boolean
      * @throws Exception
      */
-    final public static function isClientPackLength() {
-        if(self::isClientPackEof()) {
+    final public static function isClientPackLength()
+    {
+        if (self::isClientPackEof()) {
             return false;
         }
         return true;
@@ -168,24 +175,25 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface {
      * @return mixed
      * @throws Exception
      */
-    final public static function pack($data) {
-        if(self::isClientPackLength()) {
+    final public static function pack($data)
+    {
+        if (self::isClientPackLength()) {
             list($body_data, $header) = $data;
             $header_struct = self::$config['packet']['client']['pack_header_struct'];
             $pack_length_key = self::$config['packet']['client']['pack_length_key'];
             $serialize_type = self::$config['packet']['client']['serialize_type'];
             $header[$pack_length_key] = '';
             $pack_data = Pack::encodePack($body_data, $header, $header_struct, $pack_length_key, $serialize_type);
-        }else {
+        } else {
             $eof = self::$config['packet']['client']['pack_eof'];
             $serialize_type = self::$config['packet']['client']['serialize_type'];
-            if($eof) {
+            if ($eof) {
                 $pack_data = Text::encodePackEof($data, $serialize_type, $eof);
-            }else {
+            } else {
                 $pack_data = Text::encodePackEof($data, $serialize_type);
             }
         }
         return $pack_data;
     }
-	
+
 }

@@ -1,17 +1,18 @@
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| @see https://github.com/bingcool/swoolefy
-+----------------------------------------------------------------------
-*/
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | @see https://github.com/bingcool/swoolefy
+ * +----------------------------------------------------------------------
+ */
 
 namespace Swoolefy\Core\Coroutine;
 
-class CoroutinePools {
+class CoroutinePools
+{
 
     use \Swoolefy\Core\SingletonTrait;
 
@@ -36,26 +37,27 @@ class CoroutinePools {
      * @param callable $constructor
      */
     public function addPool(
-        string $pool_name,
-        array $config,
+        string   $pool_name,
+        array    $config,
         callable $constructor
-    ) {
+    )
+    {
         $config = array_merge(self::DefaultConfig, $config);
         $pool_name = trim($pool_name);
-        $this->pools[$pool_name] = call_user_func(function() use($pool_name, $config, $constructor) {
+        $this->pools[$pool_name] = call_user_func(function () use ($pool_name, $config, $constructor) {
             $poolsHandler = new PoolsHandler();
-            if(isset($config['pools_num']) && is_numeric($config['pools_num'])) {
+            if (isset($config['pools_num']) && is_numeric($config['pools_num'])) {
                 $poolsHandler->setPoolsNum($config['pools_num']);
             }
 
-            if(isset($config['push_timeout'])) {
+            if (isset($config['push_timeout'])) {
                 $poolsHandler->setPushTimeout($config['push_timeout']);
             }
 
-            if(isset($config['pop_timeout'])) {
+            if (isset($config['pop_timeout'])) {
                 $poolsHandler->setPopTimeout($config['pop_timeout']);
             }
-            if(isset($config['live_time'])) {
+            if (isset($config['live_time'])) {
                 $poolsHandler->setLiveTime($config['live_time']);
             }
 
@@ -67,11 +69,12 @@ class CoroutinePools {
 
     /**
      * getChannel
-     * @param  string $name
+     * @param string $name
      * @return PoolsHandler
      */
-    public function getPool(string $pool_name) {
-        if(!$pool_name) {
+    public function getPool(string $pool_name)
+    {
+        if (!$pool_name) {
             return null;
         }
         $pool_name = trim($pool_name);
@@ -83,7 +86,8 @@ class CoroutinePools {
      * @param string $pool_name
      * @return mixed
      */
-    public function getObj(string $pool_name) {
+    public function getObj(string $pool_name)
+    {
         return $this->getPool($pool_name)->fetchObj();
     }
 
@@ -93,7 +97,8 @@ class CoroutinePools {
      * @param $obj
      * @return mixed
      */
-    public function putObj(string $pool_name, $obj) {
+    public function putObj(string $pool_name, $obj)
+    {
         $this->getPool($pool_name)->pushObj($obj);
     }
 }

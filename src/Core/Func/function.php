@@ -1,13 +1,13 @@
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| @see https://github.com/bingcool/swoolefy
-+----------------------------------------------------------------------
-*/
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | @see https://github.com/bingcool/swoolefy
+ * +----------------------------------------------------------------------
+ */
 
 use Swoolefy\Core\Application;
 
@@ -17,9 +17,10 @@ use Swoolefy\Core\Application;
  * @param    $echo
  * @param    $label
  * @param    $strict
- * @return   string            
+ * @return   string
  */
-function dump($var, $echo = true, $label = null, $strict = true) {
+function dump($var, $echo = true, $label = null, $strict = true)
+{
     $label = ($label === null) ? '' : rtrim($label) . ' ';
     if (!$strict) {
         if (ini_get('html_errors')) {
@@ -34,38 +35,39 @@ function dump($var, $echo = true, $label = null, $strict = true) {
         // 获取终端输出
         $output = ob_get_contents();
         @ob_end_clean();
-        if(!extension_loaded('xdebug')) {
+        if (!extension_loaded('xdebug')) {
             $output = preg_replace('/\]\=\>\n(\s+)/m', '] => ', $output);
             $output = '<pre>' . $label . htmlspecialchars($output, ENT_QUOTES, 'UTF-8') . '</pre>';
         }
     }
-    if($echo) {
+    if ($echo) {
         // 调试环境这个函数使用
-        if(function_exists('IS_PRD_ENV') && !IS_PRD_ENV()) {
+        if (function_exists('IS_PRD_ENV') && !IS_PRD_ENV()) {
             $app = Application::getApp();
-            if(is_object($app)) {
-                $app->response->header('Content-Type','text/html; charset=utf-8');
+            if (is_object($app)) {
+                $app->response->header('Content-Type', 'text/html; charset=utf-8');
                 // worker启动时打印的信息，在下一次请求到来时打印出来
-                if(!empty($output)) {
+                if (!empty($output)) {
                     $app->response->write($output);
                 }
-            }  
+            }
         }
         return null;
-    }else {
+    } else {
         return $output;
     }
-        
+
 }
 
 /**
  * _die 异常终端程序执行
  * @param    $msg
  * @param    $code
- * @throws   \Exception
  * @return   mixed
+ * @throws   \Exception
  */
-function _die($msg = '', int $code = 1) {
+function _die($msg = '', int $code = 1)
+{
     throw new \Exception($msg, $code);
 }
 
@@ -75,10 +77,11 @@ function _die($msg = '', int $code = 1) {
  * @param string $foreground
  * @param string $background
  */
-function _each(string $msg, string $foreground = "red", string $background = "black") {
+function _each(string $msg, string $foreground = "red", string $background = "black")
+{
     // Create new Colors class
     static $colors;
-    if(!isset($colors)) {
+    if (!isset($colors)) {
         $colors = new \Swoolefy\Util\EachColor();
     }
     echo $colors->getColoredString($msg, $foreground, $background);
@@ -88,7 +91,8 @@ function _each(string $msg, string $foreground = "red", string $background = "bl
  * 随机获取一个可监听的端口(php_socket模式)
  * @return bool
  */
-function get_one_free_port() {
+function get_one_free_port()
+{
     $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
     if (!socket_bind($socket, "0.0.0.0", 0)) {
         return false;
@@ -108,7 +112,8 @@ function get_one_free_port() {
  * 随机获取一个可监听的端口(swoole_coroutine模式)
  * @return mixed
  */
-function get_one_free_port_coro() {
+function get_one_free_port_coro()
+{
     $socket = new \Swoole\Coroutine\Socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
     $socket->bind('0.0.0.0');
     $socket->listen();

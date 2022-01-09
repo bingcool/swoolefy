@@ -1,13 +1,13 @@
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| @see https://github.com/bingcool/swoolefy
-+----------------------------------------------------------------------
-*/
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | @see https://github.com/bingcool/swoolefy
+ * +----------------------------------------------------------------------
+ */
 
 namespace Swoolefy\Core\ProcessPools;
 
@@ -18,7 +18,8 @@ use Swoole\Coroutine\Channel;
 use Swoolefy\Core\EventController;
 use Swoolefy\Core\Table\TableManager;
 
-abstract class AbstractProcessPools {
+abstract class AbstractProcessPools
+{
 
     /**
      * @var Process
@@ -68,24 +69,25 @@ abstract class AbstractProcessPools {
     /**
      * AbstractProcessPools constructor.
      * @param string $process_name
-     * @param bool   $async
-     * @param array  $args
-     * @param mixed  $extend_data
-     * @param boolean   $enable_coroutine
+     * @param bool $async
+     * @param array $args
+     * @param mixed $extend_data
+     * @param boolean $enable_coroutine
      */
     public function __construct(
         string $process_name,
-        bool $async = true,
-        array $args = [],
+        bool   $async = true,
+        array  $args = [],
         ?array $extend_data = null,
-        bool $enable_coroutine = true
-    ) {
+        bool   $enable_coroutine = true
+    )
+    {
         $this->async = $async;
         $this->args = $args;
         $this->extend_data = $extend_data;
         $this->process_name = $process_name;
         $this->enable_coroutine = true;
-        $this->swooleProcess = new \Swoole\Process([$this,'__start'], false, 2, $this->enable_coroutine);
+        $this->swooleProcess = new \Swoole\Process([$this, '__start'], false, 2, $this->enable_coroutine);
         Swfy::getServer()->addProcess($this->swooleProcess);
     }
 
@@ -93,7 +95,8 @@ abstract class AbstractProcessPools {
      * getProcess 获取process进程对象
      * @return Process
      */
-    public function getProcess() {
+    public function getProcess()
+    {
         return $this->swooleProcess;
     }
 
@@ -101,9 +104,10 @@ abstract class AbstractProcessPools {
      * 服务启动后才能获得到创建的进程pid,不启动为null
      * @return mixed
      */
-    public function getPid() {
-        $pid = TableManager::getTable('table_process_pools_map')->get(md5($this->process_name),'pid');
-        if($pid) {
+    public function getPid()
+    {
+        $pid = TableManager::getTable('table_process_pools_map')->get(md5($this->process_name), 'pid');
+        if ($pid) {
             return $pid;
         }
         return null;
@@ -112,75 +116,79 @@ abstract class AbstractProcessPools {
     /**
      * @return string
      */
-    public function getSwoolefyProcessKillFlag() {
+    public function getSwoolefyProcessKillFlag()
+    {
         return static::SWOOLEFY_PROCESS_KILL_FLAG;
     }
 
     /**
-     * setBindWorkerId 进程绑定对应的worker 
-     * @param  int $worker_id
+     * setBindWorkerId 进程绑定对应的worker
+     * @param int $worker_id
      * @return void
      */
-    public function setBindWorkerId(int $worker_id) {
-        $this->bind_worker_id = $worker_id;    
+    public function setBindWorkerId(int $worker_id)
+    {
+        $this->bind_worker_id = $worker_id;
     }
 
     /**
      * getBindWorkerId 获取绑定的worker_id
      * @return int
      */
-    public function getBindWorkerId() {
+    public function getBindWorkerId()
+    {
         return $this->bind_worker_id;
     }
 
     /**
      * __start 创建process的成功回调处理
-     * @param  Process $process
+     * @param Process $process
      * @return void
      */
-    public function __start(Process $process) {
+    public function __start(Process $process)
+    {
         TableManager::getTable('table_process_pools_map')->set(
-            md5($this->process_name), ['pid'=>$this->swooleProcess->pid, 'process_name'=>$this->process_name]
+            md5($this->process_name), ['pid' => $this->swooleProcess->pid, 'process_name' => $this->process_name]
         );
-        if(extension_loaded('pcntl')) {
+        if (extension_loaded('pcntl')) {
             pcntl_async_signals(true);
         }
 
-        Process::signal(SIGTERM, function() use($process) {
+        Process::signal(SIGTERM, function () use ($process) {
             TableManager::getTable('table_process_pools_map')->del(md5($this->process_name));
             \Swoole\Event::del($process->pipe);
             \Swoole\Event::exit();
             $this->swooleProcess->exit(0);
         });
 
-        if($this->async) {
-            \Swoole\Event::add($this->swooleProcess->pipe, function() {
+        if ($this->async) {
+            \Swoole\Event::add($this->swooleProcess->pipe, function () {
                 $msg = $this->swooleProcess->read(64 * 1024);
-                \Swoole\Coroutine::create(function() use($msg) {
-                    try{
-                        if($msg == static::SWOOLEFY_PROCESS_KILL_FLAG) {
+                \Swoole\Coroutine::create(function () use ($msg) {
+                    try {
+                        if ($msg == static::SWOOLEFY_PROCESS_KILL_FLAG) {
                             $this->reboot();
                             return;
-                        }else {
+                        } else {
                             $message = json_decode($msg, true) ?? $msg;
-                            (new \Swoolefy\Core\EventApp)->registerApp(function(EventController $eventApp) use($message) {
+                            (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) use ($message) {
                                 $this->onReceive($message);
                             });
                         }
-                    }catch(\Throwable $throwable) {
+                    } catch (\Throwable $throwable) {
                         BaseServer::catchException($throwable);
                     }
                 });
             });
         }
 
-        $this->swooleProcess->name(BaseServer::getAppPrefix().':'.'php-swoolefy-user-process-worker'.$this->bind_worker_id.':'.$this->getProcessName(true));
+        $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'php-swoolefy-user-process-worker' . $this->bind_worker_id . ':' . $this->getProcessName(true));
         try {
-            (new \Swoolefy\Core\EventApp)->registerApp(function(EventController $eventApp) {
+            (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
                 $this->init();
                 $this->run();
             });
-        }catch(\Throwable $t) {
+        } catch (\Throwable $t) {
             BaseServer::catchException($t);
         }
     }
@@ -189,24 +197,27 @@ abstract class AbstractProcessPools {
      * getArgs 获取变量参数
      * @return mixed
      */
-    public function getArgs() {
+    public function getArgs()
+    {
         return $this->args;
     }
 
     /**
      * @return null
      */
-    public function getExtendData() {
+    public function getExtendData()
+    {
         return $this->extend_data;
     }
 
     /**
      * getProcessName
-     * @param  boolean $is_full_name
-     * @return string 
+     * @param boolean $is_full_name
+     * @return string
      */
-    public function getProcessName(bool $is_full_name = false) {
-        if(!$is_full_name) {
+    public function getProcessName(bool $is_full_name = false)
+    {
+        if (!$is_full_name) {
             list($process_name, $worker_id, $process_num) = explode('@', $this->process_name);
             return $process_name;
         }
@@ -217,23 +228,25 @@ abstract class AbstractProcessPools {
      * 是否启用协程
      * @return bool
      */
-    public function isEnableCoroutine() {
+    public function isEnableCoroutine()
+    {
         return $this->enable_coroutine;
     }
 
     /**
      * sendMessage 向绑定的worker进程发送数据
      * worker进程将通过onPipeMessage函数异步监听获取数数据
-     * @param  mixed  $msg
-     * @param  int    $worker_id
-     * @throws \Exception
+     * @param mixed $msg
+     * @param int $worker_id
      * @return boolean
+     * @throws \Exception
      */
-    public function sendMessage($msg = null, int $worker_id = null) {
-        if(!$msg) {
+    public function sendMessage($msg = null, int $worker_id = null)
+    {
+        if (!$msg) {
             throw new \Exception('Param of msg can not be null or empty');
         }
-        if($worker_id == null) {
+        if ($worker_id == null) {
             $worker_id = $this->bind_worker_id;
         }
         return Swfy::getServer()->sendMessage($msg, $worker_id);
@@ -245,7 +258,8 @@ abstract class AbstractProcessPools {
      * @param $msg
      * @return string
      */
-    public function write($msg) {
+    public function write($msg)
+    {
         $this->swooleProcess->write($msg);
     }
 
@@ -253,24 +267,24 @@ abstract class AbstractProcessPools {
      * reboot
      * @return void
      */
-    public function reboot() {
-        if(!$this->is_exiting) {
+    public function reboot()
+    {
+        if (!$this->is_exiting) {
             $this->is_exiting = true;
             $channel = new Channel(1);
-            \Swoole\Coroutine::create(function() {
+            \Swoole\Coroutine::create(function () {
                 try {
                     $this->runtimeCoroutineWait();
-                    (new \Swoolefy\Core\EventApp)->registerApp(function(EventController $eventApp) {
+                    (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
                         $this->onShutDown();
                     });
-                }catch (\Throwable $throwable) {
+                } catch (\Throwable $throwable) {
                     BaseServer::catchException($throwable);
-                }finally {
+                } finally {
                     \Swoole\Process::kill($this->getPid(), SIGTERM);
                 }
             });
-            if(\Swoole\Coroutine::getCid() > 0)
-            {
+            if (\Swoole\Coroutine::getCid() > 0) {
                 $channel->pop(-1);
                 $channel->close();
             }
@@ -280,7 +294,8 @@ abstract class AbstractProcessPools {
     /**
      * @return bool
      */
-    public function isExiting() {
+    public function isExiting()
+    {
         return $this->is_exiting;
     }
 
@@ -288,7 +303,8 @@ abstract class AbstractProcessPools {
      * getCurrentRunCoroutineNum 获取当前进程中正在运行的协程数量，可以通过这个值判断比较，防止协程过多创建，可以设置sleep等待
      * @return int
      */
-    public function getCurrentRunCoroutineNum() {
+    public function getCurrentRunCoroutineNum()
+    {
         $coroutine_info = \Swoole\Coroutine::stats();
         return $coroutine_info['coroutine_num'] ?? null;
     }
@@ -297,7 +313,8 @@ abstract class AbstractProcessPools {
      * getCurrentCoroutineLastCid 获取当前进程的协程cid已分配到哪个值，可以根据这个值设置进程reboot,防止cid超出最大数
      * @return int
      */
-    public function getCurrentCoroutineLastCid() {
+    public function getCurrentCoroutineLastCid()
+    {
         $coroutine_info = \Swoole\Coroutine::stats();
         return $coroutine_info['coroutine_last_cid'] ?? null;
     }
@@ -307,18 +324,19 @@ abstract class AbstractProcessPools {
      * @param int $cycle_times 轮询次数
      * @param int $re_wait_time 每次2s轮询
      */
-    private function runtimeCoroutineWait(int $cycle_times = 5, int $re_wait_time = 2) {
-        if($cycle_times <= 0) {
+    private function runtimeCoroutineWait(int $cycle_times = 5, int $re_wait_time = 2)
+    {
+        if ($cycle_times <= 0) {
             $cycle_times = 2;
         }
-        while($cycle_times > 0) {
+        while ($cycle_times > 0) {
             // 当前运行的coroutine
             $runCoroutineNum = $this->getCurrentRunCoroutineNum();
             // 除了主协程和runtimeCoroutineWait跑在协程中，所以等于2个协程，还有其他协程没唤醒，则再等待
-            if($runCoroutineNum > 2) {
+            if ($runCoroutineNum > 2) {
                 --$cycle_times;
                 \Swoole\Coroutine\System::sleep($re_wait_time);
-            }else {
+            } else {
                 break;
             }
         }
@@ -327,7 +345,9 @@ abstract class AbstractProcessPools {
     /**
      * init
      */
-    public function init() {}
+    public function init()
+    {
+    }
 
     /**
      * run 进程创建后的run方法
@@ -338,13 +358,17 @@ abstract class AbstractProcessPools {
     /**
      * @return void
      */
-    public function onShutDown() {}
+    public function onShutDown()
+    {
+    }
 
     /**
      * @param mixed $msg
      * @param mixed ...$args
      * @return void
      */
-    public function onReceive($msg, ...$args) {}
+    public function onReceive($msg, ...$args)
+    {
+    }
 
 }

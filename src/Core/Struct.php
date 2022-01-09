@@ -1,98 +1,102 @@
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| @see https://github.com/bingcool/swoolefy
-+----------------------------------------------------------------------
-*/
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | @see https://github.com/bingcool/swoolefy
+ * +----------------------------------------------------------------------
+ */
 
 namespace Swoolefy\Core;
 
 use stdClass;
 
-class Struct {
+class Struct
+{
 
     /**
      * @var stdClass
      */
     protected $stdClass;
 
-	/**
-	 * __construct 
-	 * @param    
-	 */
-	public function __construct() {
-	    $this->stdClass = new stdClass();
+    /**
+     * __construct
+     * @param
+     */
+    public function __construct()
+    {
+        $this->stdClass = new stdClass();
     }
 
-	/**
-	 * get 获取数据结构属性值
-	 * @param  string $property
-	 * @param  mixed  $default
-	 * @return string
-	 */
-	public function get($property, $default = null) {
-		if(isset($this->stdClass->{$property}))
-		{
-			return $this->stdClass->{$property};
-		}
-		return $default;
-	}
+    /**
+     * get 获取数据结构属性值
+     * @param string $property
+     * @param mixed $default
+     * @return string
+     */
+    public function get($property, $default = null)
+    {
+        if (isset($this->stdClass->{$property})) {
+            return $this->stdClass->{$property};
+        }
+        return $default;
+    }
 
-	/**
-	 * getProperties 获取所有设置数据结构属性
-	 * @param  boolean $public
-	 * @return array
-	 */
-	public function getProperties(bool $public = true) {
-		$vars = get_object_vars($this->stdClass);
-		if($public) {
-			foreach ($vars as $k => $v)
-			{
-				if ('_' == substr($k, 0, 1))
-				{
-					unset($vars[$k]);
-				}
-			}
-		}
-		return $vars;
-	}
+    /**
+     * getProperties 获取所有设置数据结构属性
+     * @param boolean $public
+     * @return array
+     */
+    public function getProperties(bool $public = true)
+    {
+        $vars = get_object_vars($this->stdClass);
+        if ($public) {
+            foreach ($vars as $k => $v) {
+                if ('_' == substr($k, 0, 1)) {
+                    unset($vars[$k]);
+                }
+            }
+        }
+        return $vars;
+    }
 
-	/**
-	 * set 设置数据结构属性值
-	 * @param  string $property
-	 * @param  mixed  $value
+    /**
+     * set 设置数据结构属性值
+     * @param string $property
+     * @param mixed $value
      * @return mixed
-	 */
-	public function set($property, $value, bool $replace = false) {
-		if(!isset($this->stdClass->{$property}) || $replace) {
+     */
+    public function set($property, $value, bool $replace = false)
+    {
+        if (!isset($this->stdClass->{$property}) || $replace) {
             $this->stdClass->{$property} = $value;
         }
-		return true;
-	}
+        return true;
+    }
 
-	/**
-	 * setProperties 批量设置
-	 * @param  array $properties
-	 */
-	public function setProperties($properties) {
-		$properties = (array)$properties;
-		if(is_array($properties)) {
-			foreach ($properties as $k => $v) {
-				$this->stdClass->$k = $v;
-			}
-		}
-	}
+    /**
+     * setProperties 批量设置
+     * @param array $properties
+     */
+    public function setProperties($properties)
+    {
+        $properties = (array)$properties;
+        if (is_array($properties)) {
+            foreach ($properties as $k => $v) {
+                $this->stdClass->$k = $v;
+            }
+        }
+    }
 
-	/**
-	 * getPublicProperties 获取设置的公有属性值
-	 * @return  array
-	 */
-	public function getPublicProperties() {
-		return $this->getProperties(true);
-	}
+    /**
+     * getPublicProperties 获取设置的公有属性值
+     * @return  array
+     */
+    public function getPublicProperties()
+    {
+        return $this->getProperties(true);
+    }
 
 }

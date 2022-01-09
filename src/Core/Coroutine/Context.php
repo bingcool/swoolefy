@@ -1,12 +1,12 @@
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| @see https://github.com/bingcool/swoolefy
-+----------------------------------------------------------------------
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | @see https://github.com/bingcool/swoolefy
+ * +----------------------------------------------------------------------
  */
 
 namespace Swoolefy\Core\Coroutine;
@@ -15,30 +15,32 @@ use ArrayObject;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 
-class Context {
+class Context
+{
 
     /**
      * @return ArrayObject|null
      * @throws \Exception
      */
-    public static function getContext() {
-        if(\Swoole\Coroutine::getCid() > 0) {
+    public static function getContext()
+    {
+        if (\Swoole\Coroutine::getCid() > 0) {
             $context = \Swoole\Coroutine::getContext();
             return $context;
         }
 
         $app = Application::getApp();
-        if(is_object($app)) {
-            if($app->isSetContext()) {
+        if (is_object($app)) {
+            if ($app->isSetContext()) {
                 return $app->getContext();
-            }else {
+            } else {
                 $context = new ArrayObject();
-                $context->setFlags(ArrayObject::STD_PROP_LIST|ArrayObject::ARRAY_AS_PROPS);
+                $context->setFlags(ArrayObject::STD_PROP_LIST | ArrayObject::ARRAY_AS_PROPS);
                 $app->setContext($context);
                 return $context;
             }
-        }else if(Swfy::isUserProcess()) {
-            throw new \Exception(__CLASS__."::".__FUNCTION__. " in UserProcess must use in App Instance");
+        } else if (Swfy::isUserProcess()) {
+            throw new \Exception(__CLASS__ . "::" . __FUNCTION__ . " in UserProcess must use in App Instance");
         }
 
         return null;
@@ -49,9 +51,10 @@ class Context {
      * @param mixed $value
      * @throws \Exception
      */
-    public static function set(string $name, $value) {
+    public static function set(string $name, $value)
+    {
         $context = self::getContext();
-        if($context) {
+        if ($context) {
             $context[$name] = $value;
             return true;
         }
@@ -63,9 +66,10 @@ class Context {
      * @return boolean
      * @throws \Exception
      */
-    public static function get(string $name) {
+    public static function get(string $name)
+    {
         $context = self::getContext();
-        if($context) {
+        if ($context) {
             return $context[$name];
         }
         return null;
@@ -76,10 +80,11 @@ class Context {
      * @return bool
      * @throws \Exception
      */
-    public static function has(string $name) {
+    public static function has(string $name)
+    {
         $context = self::getContext();
-        if($context) {
-            if(isset($context[$name])) {
+        if ($context) {
+            if (isset($context[$name])) {
                 return true;
             }
         }

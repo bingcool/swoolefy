@@ -1,12 +1,12 @@
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| @see https://github.com/bingcool/swoolefy
-+----------------------------------------------------------------------
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | @see https://github.com/bingcool/swoolefy
+ * +----------------------------------------------------------------------
  */
 
 namespace Swoolefy\Mqtt;
@@ -15,7 +15,8 @@ use Simps\MQTT\Protocol;
 use Simps\MQTT\Protocol\Types;
 use Swoolefy\Core\Swfy;
 
-class MqttEvent5 {
+class MqttEvent5
+{
 
     /**
      * @var \Swoole\Http\Server|\Swoole\Server|\Swoole\WebSocket\Server
@@ -148,10 +149,8 @@ class MqttEvent5 {
         // 循环发给订阅的客户端，这里要去除publish发布的连接端fd
         // 读取$message的client_id，client_id与fd在connect的时候关联起来，保存好关系在redis
         // 发布者可以通过向指定client_id发布消息，这时可以从关系中获取fd,从而向指定client_id发布消息
-        foreach($this->server->connections as $sub_fd)
-        {
-            if($sub_fd != $this->fd)
-            {
+        foreach ($this->server->connections as $sub_fd) {
+            if ($sub_fd != $this->fd) {
                 $this->server->send(
                     $sub_fd,
                     Protocol\V5::pack(
@@ -228,7 +227,8 @@ class MqttEvent5 {
     /**
      * @param $message_id
      */
-    final public function publishAck($message_id) {
+    final public function publishAck($message_id)
+    {
         $this->server->send(
             $this->fd,
             Protocol\V5::pack(

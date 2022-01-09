@@ -33,7 +33,7 @@
         "ext-sockets": "*",
         "ext-zend-opcache": "*",
         "ext-mbstring": "*",
-        "dragonmantank/cron-expression": "3.0.0",
+        "dragonmantank/cron-expression": "~3.2",
         "bingcool/library": "dev-master"
     },
     "autoload": {

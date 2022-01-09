@@ -1,63 +1,63 @@
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| @see https://github.com/bingcool/swoolefy
-+----------------------------------------------------------------------
-*/
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | @see https://github.com/bingcool/swoolefy
+ * +----------------------------------------------------------------------
+ */
 
 // 加载常量定义，根据自己项目实际路径记载
-include_once START_DIR_ROOT.'/'.APP_NAME.'/Config/defines.php';
+include_once START_DIR_ROOT . '/' . APP_NAME . '/Config/defines.php';
 // 加载应用层协议,根据自己项目实际路径记载
-$app_config = include_once START_DIR_ROOT.'/'.APP_NAME.'/Config/config-'.SWOOLEFY_ENV.'.php';
+$app_config = include_once START_DIR_ROOT . '/' . APP_NAME . '/Config/config-' . SWOOLEFY_ENV . '.php';
 
 // tcpServer配置
 return [
     // 应用层配置，需要根据实际项目导入
     'app_conf' => $app_config,
-	'application_service' => '',
-	'event_handler' => \Swoolefy\Core\EventHandler::class,
+    'application_service' => '',
+    'event_handler' => \Swoolefy\Core\EventHandler::class,
     'response_formatter' => \Swoolefy\Core\ResponseFormatter::class,
     'exception_handler' => '',
-	'master_process_name' => 'php-swoolefy-rpc-master',
-	'manager_process_name' => 'php-swoolefy-rpc-manager',
-	'worker_process_name' => 'php-swoolefy-rpc-worker',
-	'www_user' => 'www',
-	'host' => '0.0.0.0',
-	'port' => '9504',
-	'time_zone' => 'PRC',
+    'master_process_name' => 'php-swoolefy-rpc-master',
+    'manager_process_name' => 'php-swoolefy-rpc-manager',
+    'worker_process_name' => 'php-swoolefy-rpc-worker',
+    'www_user' => 'www',
+    'host' => '0.0.0.0',
+    'port' => '9504',
+    'time_zone' => 'PRC',
     'runtime_enable_coroutine' => true,
-	'setting' => [
-		'reactor_num' => 1,
-		'worker_num' => 3,
-		'max_request' => 1000,
-		'task_worker_num' => 2,
-		'task_tmpdir' => '/dev/shm',
-		'daemonize' => 0,
-		// TCP使用固定的worker，使用2或4或7
-		'dispatch_mode' => 2,
-		'open_length_check'     => 1,
-    	'package_length_type'   => 'N',
-    	'package_length_offset' => 0,       //第N个字节是包长度的值
-    	'package_body_offset'   => 34,       //第几个字节开始计算长度
-    	'package_max_length'    => 2000000,  //协议最大长度
+    'setting' => [
+        'reactor_num' => 1,
+        'worker_num' => 3,
+        'max_request' => 1000,
+        'task_worker_num' => 2,
+        'task_tmpdir' => '/dev/shm',
+        'daemonize' => 0,
+        // TCP使用固定的worker，使用2或4或7
+        'dispatch_mode' => 2,
+        'open_length_check' => 1,
+        'package_length_type' => 'N',
+        'package_length_offset' => 0,       //第N个字节是包长度的值
+        'package_body_offset' => 34,       //第几个字节开始计算长度
+        'package_max_length' => 2000000,  //协议最大长度
 
         'enable_coroutine' => 1,
         'task_enable_coroutine' => 1,
 
-        'log_file' => '/tmp/'.APP_NAME.'/swoole_log.txt',
-        'pid_file' => '/data/'.APP_NAME.'/log/server.pid',
+        'log_file' => '/tmp/' . APP_NAME . '/swoole_log.txt',
+        'pid_file' => '/data/' . APP_NAME . '/log/server.pid',
 
-	],
+    ],
 
     'coroutine_setting' => [
         'max_coroutine' => 50000
     ],
 
-	'enable_table_tick_task' => true,
+    'enable_table_tick_task' => true,
 
     // 创建计算请求的原子计算实例,必须依赖于EnableSysCollector = true，否则设置没有意义,不生效
     //'enable_pv_collector' => true,

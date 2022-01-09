@@ -1,17 +1,18 @@
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| @see https://github.com/bingcool/swoolefy
-+----------------------------------------------------------------------
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | @see https://github.com/bingcool/swoolefy
+ * +----------------------------------------------------------------------
  */
 
 namespace Swoolefy\Rpc;
 
-class BaseParse {
+class BaseParse
+{
 
     /**
      * json
@@ -61,7 +62,8 @@ class BaseParse {
      * __construct
      * @param \Swoole\Server $server
      */
-    public function __construct(\Swoole\Server $server) {
+    public function __construct(\Swoole\Server $server)
+    {
         $this->server = $server;
     }
 }

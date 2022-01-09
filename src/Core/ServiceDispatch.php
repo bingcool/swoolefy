@@ -1,97 +1,100 @@
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| @see https://github.com/bingcool/swoolefy
-+----------------------------------------------------------------------
-*/
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | @see https://github.com/bingcool/swoolefy
+ * +----------------------------------------------------------------------
+ */
 
 namespace Swoolefy\Core;
 
-class ServiceDispatch extends AppDispatch {
-	/**
-	 * $callable 远程调用函数对象类
-	 * @var array
-	 */
-	protected $callable = [];
+class ServiceDispatch extends AppDispatch
+{
+    /**
+     * $callable 远程调用函数对象类
+     * @var array
+     */
+    protected $callable = [];
 
-	/**
-	 * $params 远程调用参数
-	 * @var null
-	 */
-	protected $params = null;
+    /**
+     * $params 远程调用参数
+     * @var null
+     */
+    protected $params = null;
 
-	/**
-	 * __construct 
-	 */
-	public function __construct($callable, $params, $rpc_pack_header = []) {
-		parent::__construct();
-		$this->callable = $callable;
-		$this->params = $params;
-		Application::getApp()->setMixedParams($params);
-		Application::getApp()->setRpcPackHeader($rpc_pack_header);
-	}
+    /**
+     * __construct
+     */
+    public function __construct($callable, $params, $rpc_pack_header = [])
+    {
+        parent::__construct();
+        $this->callable = $callable;
+        $this->params = $params;
+        Application::getApp()->setMixedParams($params);
+        Application::getApp()->setRpcPackHeader($rpc_pack_header);
+    }
 
     /**
      * dispatch
      * @return  mixed
      * @throws \Exception
      */
-	public function dispatch() {
-		list($class, $action) = $this->callable;
+    public function dispatch()
+    {
+        list($class, $action) = $this->callable;
         $class = trim(str_replace('\\', '/', $class), '/');
-		if(!isset(self::$routeCacheFileMap[$class])) {
-			if(!$this->checkClass($class)) {
+        if (!isset(self::$routeCacheFileMap[$class])) {
+            if (!$this->checkClass($class)) {
                 $this->errorHandle($class, $action, 'error404');
                 return false;
-			}
-		}
-		
-		$class = str_replace('/','\\', $class);
-		/**@var \Swoolefy\Core\Task\TaskService $serviceInstance */
-		$serviceInstance = new $class();
-		$serviceInstance->setMixedParams($this->params);
-		if(isset($this->from_worker_id) && isset($this->task_id)) {
+            }
+        }
+
+        $class = str_replace('/', '\\', $class);
+        /**@var \Swoolefy\Core\Task\TaskService $serviceInstance */
+        $serviceInstance = new $class();
+        $serviceInstance->setMixedParams($this->params);
+        if (isset($this->from_worker_id) && isset($this->task_id)) {
             $serviceInstance->setFromWorkerId($this->from_worker_id);
             $serviceInstance->setTaskId($this->task_id);
-            if(!empty($this->task)) {
+            if (!empty($this->task)) {
                 $serviceInstance->setTask($this->task);
             }
         }
 
-		try{
-			if(method_exists($serviceInstance, $action)) {
-			    // before Call
+        try {
+            if (method_exists($serviceInstance, $action)) {
+                // before Call
                 $isContinueAction = $serviceInstance->_beforeAction($action);
-                if($isContinueAction === false) {
+                if ($isContinueAction === false) {
                     // end
-                    if(Swfy::isWorkerProcess()) {
-                        $this->getErrorHandle()->errorMsg("Forbidden access, {$class}::_beforeAction return false ||| ".json_encode($this->params,JSON_UNESCAPED_UNICODE),403);
+                    if (Swfy::isWorkerProcess()) {
+                        $this->getErrorHandle()->errorMsg("Forbidden access, {$class}::_beforeAction return false ||| " . json_encode($this->params, JSON_UNESCAPED_UNICODE), 403);
                     }
                     return false;
                 }
                 // next action Call
-				$serviceInstance->$action($this->params);
+                $serviceInstance->$action($this->params);
                 // after Call
                 $serviceInstance->_afterAction($action);
-			}else {
-			    $this->errorHandle($class, $action, 'error500');
+            } else {
+                $this->errorHandle($class, $action, 'error500');
                 return false;
-			}
-		}catch(\Throwable $t) {
-			$errorMsg = $t->getMessage().' on '.$t->getFile().' on line '.$t->getLine().' ||| '.$class.'::'.$action.' ||| '.json_encode($this->params,JSON_UNESCAPED_UNICODE).'|||'.$t->getTraceAsString();
-			if(Swfy::isWorkerProcess()) {
+            }
+        } catch (\Throwable $t) {
+            $errorMsg = $t->getMessage() . ' on ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $class . '::' . $action . ' ||| ' . json_encode($this->params, JSON_UNESCAPED_UNICODE) . '|||' . $t->getTraceAsString();
+            if (Swfy::isWorkerProcess()) {
                 $this->getErrorHandle()->errorMsg($errorMsg);
             }
             // record exception
             $exceptionClass = Application::getApp()->getExceptionClass();
-            $exceptionClass::shutHalt($errorMsg,SwoolefyException::EXCEPTION_ERR, $t);
+            $exceptionClass::shutHalt($errorMsg, SwoolefyException::EXCEPTION_ERR, $t);
             return false;
-		}
-	}
+        }
+    }
 
     /**
      * @param $class
@@ -100,8 +103,9 @@ class ServiceDispatch extends AppDispatch {
      * @return boolean
      * @throws \Exception
      */
-	protected function errorHandle($class, $action, $errorMethod = 'error404') {
-        if(Swfy::isWorkerProcess()) {
+    protected function errorHandle($class, $action, $errorMethod = 'error404')
+    {
+        if (Swfy::isWorkerProcess()) {
             $notFoundInstance = $this->getErrorHandle();
             $errorMsg = $notFoundInstance->{$errorMethod}($class, $action);
         }
@@ -114,10 +118,11 @@ class ServiceDispatch extends AppDispatch {
     /**
      * @return NotFound
      */
-    protected function getErrorHandle() {
+    protected function getErrorHandle()
+    {
         $app_conf = Swfy::getAppConf();
         $notFoundInstance = new \Swoolefy\Core\NotFound();
-        if(isset($app_conf['not_found_handler']) && is_string($app_conf['not_found_handler'])) {
+        if (isset($app_conf['not_found_handler']) && is_string($app_conf['not_found_handler'])) {
             $handle = $app_conf['not_found_handler'];
             $notFoundInstance = new $handle;
         }
@@ -128,27 +133,29 @@ class ServiceDispatch extends AppDispatch {
      * @param int $from_worker_id
      * @param int $task_id
      */
-	public function setFromWorkerIdAndTaskId(int $from_worker_id, int $task_id, $task = null) {
-	    $this->from_worker_id = $from_worker_id;
-	    $this->task_id = $task_id;
-	    $this->task = $task;
+    public function setFromWorkerIdAndTaskId(int $from_worker_id, int $task_id, $task = null)
+    {
+        $this->from_worker_id = $from_worker_id;
+        $this->task_id = $task_id;
+        $this->task = $task;
     }
 
-	/**
-	 * checkClass
-	 * @param  string  $class
-	 * @return boolean
-	 */
-	public function checkClass($class) {
-        if(isset(self::$routeCacheFileMap[$class])) {
+    /**
+     * checkClass
+     * @param string $class
+     * @return boolean
+     */
+    public function checkClass($class)
+    {
+        if (isset(self::$routeCacheFileMap[$class])) {
             return true;
         }
-		$file = ROOT_PATH.DIRECTORY_SEPARATOR.$class.'.php';
-		if(is_file($file)) {
-			self::$routeCacheFileMap[$class] = true;
-			return true;
-		}
-		return false;
-	}
+        $file = ROOT_PATH . DIRECTORY_SEPARATOR . $class . '.php';
+        if (is_file($file)) {
+            self::$routeCacheFileMap[$class] = true;
+            return true;
+        }
+        return false;
+    }
 
 }

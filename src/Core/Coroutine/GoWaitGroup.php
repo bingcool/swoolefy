@@ -1,12 +1,12 @@
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| @see https://github.com/bingcool/swoolefy
-+----------------------------------------------------------------------
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | @see https://github.com/bingcool/swoolefy
+ * +----------------------------------------------------------------------
  */
 
 namespace Swoolefy\Core\Coroutine;
@@ -15,7 +15,8 @@ use Swoole\Coroutine;
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\BaseServer;
 
-class GoWaitGroup {
+class GoWaitGroup
+{
     /**
      * @var int
      */
@@ -34,7 +35,8 @@ class GoWaitGroup {
     /**
      * WaitGroup constructor
      */
-    public function __construct() {
+    public function __construct()
+    {
         $this->channel = new Channel;
     }
 
@@ -42,12 +44,13 @@ class GoWaitGroup {
      * @param \Closure $callBack
      * @param mixed ...$params
      */
-    public function go(\Closure $callBack, ...$params) {
-        Coroutine::create(function (...$params) use($callBack) {
-            try{
+    public function go(\Closure $callBack, ...$params)
+    {
+        Coroutine::create(function (...$params) use ($callBack) {
+            try {
                 $this->count++;
                 call_user_func($callBack, ...$params);
-            }catch (\Throwable $throwable) {
+            } catch (\Throwable $throwable) {
                 $this->count--;
                 BaseServer::catchException($throwable);
             }
@@ -91,16 +94,17 @@ class GoWaitGroup {
      * @param float $timeOut
      * @return array
      */
-    public static function multiCall(array $callBacks, float $timeOut = 3.0) {
+    public static function multiCall(array $callBacks, float $timeOut = 3.0)
+    {
         $goWait = new static();
-        foreach($callBacks as $key=>$callBack) {
-            Coroutine::create(function () use($key, $callBack, $goWait) {
-                try{
+        foreach ($callBacks as $key => $callBack) {
+            Coroutine::create(function () use ($key, $callBack, $goWait) {
+                try {
                     $goWait->count++;
                     $goWait->initResult($key, null);
                     $result = call_user_func($callBack);
                     $goWait->done($key, $result, 3.0);
-                }catch (\Throwable $throwable) {
+                } catch (\Throwable $throwable) {
                     $goWait->count--;
                     BaseServer::catchException($throwable);
                 }
@@ -113,7 +117,8 @@ class GoWaitGroup {
     /**
      * start
      */
-    public function start() {
+    public function start()
+    {
         $this->count++;
         return $this->count;
     }
@@ -123,8 +128,9 @@ class GoWaitGroup {
      * @param null $data
      * @param float $timeouts
      */
-    public function done(string $key = null, $data = null, float $timeout = -1) {
-        if(!empty($key) && !empty($data)) {
+    public function done(string $key = null, $data = null, float $timeout = -1)
+    {
+        if (!empty($key) && !empty($data)) {
             $this->result[$key] = $data;
         }
         $this->channel->push(1, $timeout);
@@ -134,7 +140,8 @@ class GoWaitGroup {
      * @param string $key
      * @param null $data
      */
-    public function initResult(string $key, $data = null) {
+    public function initResult(string $key, $data = null)
+    {
         $this->result[$key] = $data;
     }
 
@@ -142,8 +149,9 @@ class GoWaitGroup {
      * @param float $timeout
      * @return array
      */
-    public function wait(float $timeout = 0) {
-        while($this->count-- > 0) {
+    public function wait(float $timeout = 0)
+    {
+        while ($this->count-- > 0) {
             $this->channel->pop($timeout);
         }
         $result = $this->result;
@@ -154,7 +162,8 @@ class GoWaitGroup {
     /**
      * reset
      */
-    protected function reset() {
+    protected function reset()
+    {
         $this->result = [];
         $this->count = 0;
     }

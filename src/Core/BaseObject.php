@@ -1,13 +1,13 @@
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| @see https://github.com/bingcool/swoolefy
-+----------------------------------------------------------------------
-*/
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | @see https://github.com/bingcool/swoolefy
+ * +----------------------------------------------------------------------
+ */
 
 namespace Swoolefy\Core;
 
@@ -15,35 +15,37 @@ use ArrayObject;
 use Swoole\Coroutine;
 use Swoolefy\Core\Log\LogManager;
 
-class BaseObject {
+class BaseObject
+{
 
-	/**
-	 * $coroutine_id
-	 * @var  string
-	 */
-	public $coroutine_id;
+    /**
+     * $coroutine_id
+     * @var  string
+     */
+    public $coroutine_id;
 
     /**
      * @var
      */
-	protected $context;
+    protected $context;
 
     /**
      * @var array
      */
-	protected $logs = [];
+    protected $logs = [];
 
-	/**
-	 * $args 存放协程请求实例的临时变量数据
-	 * @var array
-	 */
-	protected $args = [];
+    /**
+     * $args 存放协程请求实例的临时变量数据
+     * @var array
+     */
+    protected $args = [];
 
-	/**
+    /**
      * className Returns the fully qualified name of this class.
      * @return string the fully qualified name of this class.
      */
-    public static function className() {
+    public static function className()
+    {
         return get_called_class();
     }
 
@@ -51,7 +53,8 @@ class BaseObject {
      * @param \ArrayObject $context
      * @return boolean
      */
-    public function setContext(\ArrayObject $context) {
+    public function setContext(\ArrayObject $context)
+    {
         $this->context = $context;
         return true;
     }
@@ -60,23 +63,26 @@ class BaseObject {
      * setCid
      * @param mixed $cid
      */
-    public function setCid($cid = null) {
+    public function setCid($cid = null)
+    {
         $cid && $this->coroutine_id = $cid;
     }
 
     /**
-     * getCid 
+     * getCid
      * @return mixed
      */
-    public function getCid() {
+    public function getCid()
+    {
         return $this->coroutine_id;
     }
 
     /**
      * @return bool|null
      */
-    public function isSetContext() {
-        if($this->context instanceof \ArrayObject) {
+    public function isSetContext()
+    {
+        if ($this->context instanceof \ArrayObject) {
             return true;
         }
         return false;
@@ -85,14 +91,15 @@ class BaseObject {
     /**
      * @return ArrayObject|mixed
      */
-    public function getContext() {
-        if($this->context) {
+    public function getContext()
+    {
+        if ($this->context) {
             $context = $this->context;
-        }else if(\Co::getCid() > 0) {
+        } else if (\Co::getCid() > 0) {
             $context = Coroutine::getContext();
-        }else {
+        } else {
             $context = new ArrayObject();
-            $context->setFlags(ArrayObject::STD_PROP_LIST|ArrayObject::ARRAY_AS_PROPS);
+            $context->setFlags(ArrayObject::STD_PROP_LIST | ArrayObject::ARRAY_AS_PROPS);
             $this->context = $context;
         }
 
@@ -104,8 +111,9 @@ class BaseObject {
      * @param array $log
      * @return void
      */
-    public function setLog(string $type, string $logAction, array $log) {
-        if(!isset($this->logs[$type][$logAction])) {
+    public function setLog(string $type, string $logAction, array $log)
+    {
+        if (!isset($this->logs[$type][$logAction])) {
             $this->logs[$type][$logAction] = [];
         }
         $this->logs[$type][$logAction][] = $log;
@@ -114,7 +122,8 @@ class BaseObject {
     /**
      * @return array
      */
-    public function getLogs() {
+    public function getLogs()
+    {
         return $this->logs;
     }
 
@@ -122,19 +131,20 @@ class BaseObject {
      * handleLog
      * @return void
      */
-    protected function handleLog() {
+    protected function handleLog()
+    {
         // log send
-        if(!empty($actionLogs = $this->getLogs())) {
-            foreach($actionLogs as $type => $logs) {
+        if (!empty($actionLogs = $this->getLogs())) {
+            foreach ($actionLogs as $type => $logs) {
                 $logger = LogManager::getInstance()->getLogger($type);
-                if(!is_object($logger)) {
+                if (!is_object($logger)) {
                     $this->clearLogs();
                     break;
                 }
                 foreach ($logs as $action => $logArr) {
-                    foreach ($logArr as $k=>$info) {
+                    foreach ($logArr as $k => $info) {
                         unset($this->logs[$type][$action][$k]);
-                        if(!empty($info)) {
+                        if (!empty($info)) {
                             $logger->{$action}(...$info);
                         }
                     }
@@ -147,60 +157,67 @@ class BaseObject {
     /**
      * clearLogs
      */
-    public function clearLogs() {
+    public function clearLogs()
+    {
         $this->logs = [];
     }
 
     /**
      * setArgs 设置临时变量
-     * @param  string  $name
-     * @param  mixed   $value
+     * @param string $name
+     * @param mixed $value
      * @return boolean
      */
-    public function setArgs(string $name, $value) {
-    	if($name && $value) {
-    		$this->args[$name] = $value;
-    		return true;
-    	}
-    	return false;
+    public function setArgs(string $name, $value)
+    {
+        if ($name && $value) {
+            $this->args[$name] = $value;
+            return true;
+        }
+        return false;
     }
 
     /**
      * getArgs 获取临时变量值
-     * @param   string  $name
+     * @param string $name
      * @return  mixed
      */
-    public function getArgs(string $name = null) {
-    	if(!$name) {
-    		return $this->args;
-    	}
+    public function getArgs(string $name = null)
+    {
+        if (!$name) {
+            return $this->args;
+        }
         return $this->args[$name] ?? null;
     }
 
-	/**
-	 * _die 异常终端程序执行
-	 * @param string $html
-	 * @param string $msg
-	 * @return void
-	 */
-	public static function _die($html = '', $msg = '') {}
+    /**
+     * _die 异常终端程序执行
+     * @param string $html
+     * @param string $msg
+     * @return void
+     */
+    public static function _die($html = '', $msg = '')
+    {
+    }
 
-	/**
-	 * __toString 
-	 * @return string
-	 */
-	public function __toString() {
-		return get_called_class();
-	}	
+    /**
+     * __toString
+     * @return string
+     */
+    public function __toString()
+    {
+        return get_called_class();
+    }
 
-	/**
-	 * get component
-	 */
-	public function __get($name) {
-        if(is_object(Application::getApp())) {
+    /**
+     * get component
+     */
+    public function __get($name)
+    {
+        if (is_object(Application::getApp())) {
             return Application::getApp()->get($name);
         }
         return false;
-	}
+    }
 
 }

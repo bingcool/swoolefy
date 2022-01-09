@@ -1,26 +1,26 @@
 #!/usr/bin/php
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| @see https://github.com/bingcool/swoolefy
-+----------------------------------------------------------------------
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | @see https://github.com/bingcool/swoolefy
+ * +----------------------------------------------------------------------
  */
 
 // 定义注册的应用名和对应使用的协议
-if(!defined('APP_NAMES')) {
+if (!defined('APP_NAMES')) {
     define('APP_NAMES', [
         'Test' => 'http'
     ]);
 }
 
 // 定义环境
-defined('SWOOLEFY_DEV') or define('SWOOLEFY_DEV','dev');
-defined('SWOOLEFY_GRA') or define('SWOOLEFY_GRA','gra');
-defined('SWOOLEFY_PRD') or define('SWOOLEFY_PRD','prd');
+defined('SWOOLEFY_DEV') or define('SWOOLEFY_DEV', 'dev');
+defined('SWOOLEFY_GRA') or define('SWOOLEFY_GRA', 'gra');
+defined('SWOOLEFY_PRD') or define('SWOOLEFY_PRD', 'prd');
 defined('SWOOLEFY_ENVS') or define('SWOOLEFY_ENVS', [
     SWOOLEFY_DEV,
     SWOOLEFY_GRA,
@@ -29,10 +29,10 @@ defined('SWOOLEFY_ENVS') or define('SWOOLEFY_ENVS', [
 
 
 // score目录
-if(is_dir(__DIR__.'/vendor/bingcool/swoolefy')) {
-    $SCORE_DIR = __DIR__.'/vendor/bingcool/swoolefy';
+if (is_dir(__DIR__ . '/vendor/bingcool/swoolefy')) {
+    $SCORE_DIR = __DIR__ . '/vendor/bingcool/swoolefy';
     $USERD_ENV = 'composer'; //composer安装使用
-}else {
+} else {
     $SCORE_DIR = __DIR__;
     $USERD_ENV = 'direct'; // 直接下载使用
 }
@@ -47,26 +47,26 @@ defined("SWOOLEFY_CLI_PARAMS") or define('SWOOLEFY_CLI_PARAMS', $argv);
 defined('USERD_ENV') or define('USERD_ENV', $USERD_ENV);
 
 // include composer的自动加载类完成命名空间的注册
-include_once START_DIR_ROOT.'/vendor/autoload.php';
+include_once START_DIR_ROOT . '/vendor/autoload.php';
 
 // include App应用层的自定义的自动加载类命名空间
-if(isset($argv[2]) && in_array(trim($argv[2]), array_keys(APP_NAMES))) {
+if (isset($argv[2]) && in_array(trim($argv[2]), array_keys(APP_NAMES))) {
     $app_name = trim($argv[2]);
     defined('APP_NAME') or define('APP_NAME', $app_name);
-    if(trim($argv[1]) != 'create') {
-        $autoloader_file = START_DIR_ROOT."/{$app_name}/autoloader.php";
-        if(file_exists($autoloader_file)) {
+    if (trim($argv[1]) != 'create') {
+        $autoloader_file = START_DIR_ROOT . "/{$app_name}/autoloader.php";
+        if (file_exists($autoloader_file)) {
             include_once $autoloader_file;
         }
     }
-}else {
-    if((isset($argv[1]) && $argv[1]=='help')|| (isset($argv[2]) && $argv[2]=='help')) {
-    }else{
-	    help('');
+} else {
+    if ((isset($argv[1]) && $argv[1] == 'help') || (isset($argv[2]) && $argv[2] == 'help')) {
+    } else {
+        help('');
         write("[Error] app_name is not in APP_NAME array in swoolefy file, please check it");
-	    return false;
+        return false;
     }
-    
+
 }
 
 // 判断当前环境,默认是dev(开发),gra(灰度),prd(生产)
@@ -74,8 +74,8 @@ $cli_params = array_flip($argv);
 
 $cliEnv = SWOOLEFY_DEV;
 
-foreach(SWOOLEFY_ENVS as $env) {
-    if(isset($cli_params['-'.$env])) {
+foreach (SWOOLEFY_ENVS as $env) {
+    if (isset($cli_params['-' . $env])) {
         $cliEnv = $env;
         break;
     }
@@ -83,22 +83,25 @@ foreach(SWOOLEFY_ENVS as $env) {
 
 defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', $cliEnv);
 
-function IS_DEV_ENV() {
-    if(SWOOLEFY_ENV == SWOOLEFY_DEV) {
+function IS_DEV_ENV()
+{
+    if (SWOOLEFY_ENV == SWOOLEFY_DEV) {
         return true;
     }
     return false;
 }
 
-function IS_GRA_ENV() {
-    if(SWOOLEFY_ENV == SWOOLEFY_GRA) {
+function IS_GRA_ENV()
+{
+    if (SWOOLEFY_ENV == SWOOLEFY_GRA) {
         return true;
     }
     return false;
 }
 
-function IS_PRD_ENV() {
-    if(SWOOLEFY_ENV == SWOOLEFY_PRD) {
+function IS_PRD_ENV()
+{
+    if (SWOOLEFY_ENV == SWOOLEFY_PRD) {
         return true;
     }
     return false;
@@ -106,30 +109,30 @@ function IS_PRD_ENV() {
 
 function initCheck()
 {
-    try{
-       if(version_compare(phpversion(),'7.2.0','<')) {
+    try {
+        if (version_compare(phpversion(), '7.2.0', '<')) {
             write("
-                [Error] php version must >= 7.2.0, current php version = ".phpversion()
+                [Error] php version must >= 7.2.0, current php version = " . phpversion()
             );
             exit();
         }
-        if(version_compare(swoole_version(),'4.4.5','<')) {
+        if (version_compare(swoole_version(), '4.4.5', '<')) {
             write("
-                [Error] the swoole version must >= 4.4.5, current swoole version = ".swoole_version()
+                [Error] the swoole version must >= 4.4.5, current swoole version = " . swoole_version()
             );
             exit();
         }
-    }catch(Exception $e) {
+    } catch (Exception $e) {
         throw new Exception($e->getMessage());
     }
 }
 
 function opCacheClear()
 {
-    if(function_exists('apc_clear_cache')){
+    if (function_exists('apc_clear_cache')) {
         apc_clear_cache();
     }
-    if(function_exists('opcache_reset')){
+    if (function_exists('opcache_reset')) {
         opcache_reset();
     }
 }
@@ -139,90 +142,94 @@ function commandParser()
     global $argv;
     $command = isset($argv[1]) ? $argv[1] : null;
     $app_name = isset($argv[2]) ? $argv[2] : null;
-    return ['command'=>$command, 'app_name'=>trim($app_name)];
+    return ['command' => $command, 'app_name' => trim($app_name)];
 }
 
 function createProject($server_name)
 {
-    $dirs = ['Config', 'Service','Protocol'];
+    $dirs = ['Config', 'Service', 'Protocol'];
     $params = commandParser();
     $app_name = $params['app_name'];
-    $app_root_dir = START_DIR_ROOT."/{$app_name}";
-    if(is_dir($app_root_dir)) {
+    $app_root_dir = START_DIR_ROOT . "/{$app_name}";
+    if (is_dir($app_root_dir)) {
         write("You had create {$app_name} project dir");
         exit();
     }
 
     $protocol = APP_NAMES[$app_name];
-    if(!$protocol) {
+    if (!$protocol) {
         write("[Error] app_name is not in APP_NAME array in swoolefy file, please check it");
         exit();
     }
 
-    if($protocol == 'http') {
+    if ($protocol == 'http') {
         $dirs = [
-            'Config','Controller','Model','Module','View','Runtime','Log','Protocol'
+            'Config', 'Controller', 'Model', 'Module', 'View', 'Runtime', 'Log', 'Protocol'
         ];
     }
 
     @mkdir($app_root_dir, 0777, true);
-    foreach($dirs as $dir) {
+    foreach ($dirs as $dir) {
         @mkdir($app_root_dir . '/' . $dir, 0777, true);
-        switch($dir) {
-            case 'Config':{
+        switch ($dir) {
+            case 'Config':
+            {
                 $defines_file = $app_root_dir . '/' . $dir . '/defines.php';
-                if(!file_exists($defines_file)) {
+                if (!file_exists($defines_file)) {
                     file_put_contents($defines_file, getDefines());
                 }
-                
-                foreach(SWOOLEFY_ENVS as $env) {
+
+                foreach (SWOOLEFY_ENVS as $env) {
                     $config_file = $app_root_dir . '/' . $dir . '/config-' . $env . '.php';
-                    if(!file_exists($config_file)) {
+                    if (!file_exists($config_file)) {
                         file_put_contents($config_file, getDefaultConfig());
                     }
                 }
                 break;
             }
-            case 'Controller':{
-                $controller_file = $app_root_dir . '/' . $dir.'/IndexController.php';
-                if(!file_exists($controller_file)) {
+            case 'Controller':
+            {
+                $controller_file = $app_root_dir . '/' . $dir . '/IndexController.php';
+                if (!file_exists($controller_file)) {
                     file_put_contents($controller_file, getDefaultController());
                 }
                 break;
             }
-            case 'Model': {
-                $model_file = $app_root_dir . '/' . $dir.'/ClientModel.php';
-                if(!file_exists($model_file)) {
+            case 'Model':
+            {
+                $model_file = $app_root_dir . '/' . $dir . '/ClientModel.php';
+                if (!file_exists($model_file)) {
                     file_put_contents($model_file, getDefaultModel());
                 }
                 break;
             }
-            case 'View': {
-                $view_controller_dir = $app_root_dir . '/' . $dir.'/Index';
+            case 'View':
+            {
+                $view_controller_dir = $app_root_dir . '/' . $dir . '/Index';
                 @mkdir($view_controller_dir, 0777, true);
                 break;
             }
-            case 'Protocol': {
-                $path = START_DIR_ROOT."/{$app_name}/Protocol";
-                foreach(SWOOLEFY_ENVS as $env) {
-                    $config_file = $path."/config-{$env}.php";
-                    if(!file_exists($config_file)) {
-                        switch ($protocol)
-                        {
+            case 'Protocol':
+            {
+                $path = START_DIR_ROOT . "/{$app_name}/Protocol";
+                foreach (SWOOLEFY_ENVS as $env) {
+                    $config_file = $path . "/config-{$env}.php";
+                    if (!file_exists($config_file)) {
+                        switch ($protocol) {
                             case 'http':
-                                copy(SCORE_DIR_ROOT.'/src/Http/config.php', $config_file);
+                                copy(SCORE_DIR_ROOT . '/src/Http/config.php', $config_file);
                                 break;
                             case 'rpc':
-                                copy(SCORE_DIR_ROOT.'/src/Rpc/config.php', $config_file);
+                                copy(SCORE_DIR_ROOT . '/src/Rpc/config.php', $config_file);
                                 break;
                             case 'udp':
-                                copy(SCORE_DIR_ROOT.'/src/Udp/config.php', $config_file);
+                                copy(SCORE_DIR_ROOT . '/src/Udp/config.php', $config_file);
                                 break;
                             case 'websocket':
-                                copy(SCORE_DIR_ROOT.'/src/Websocket/config.php', $config_file);
+                                copy(SCORE_DIR_ROOT . '/src/Websocket/config.php', $config_file);
                                 break;
                             case 'mqtt':
-                                copy(SCORE_DIR_ROOT.'/src/Mqtt/config.php', $config_file);
+                                copy(SCORE_DIR_ROOT . '/src/Mqtt/config.php', $config_file);
                                 break;
                         }
 
@@ -236,23 +243,23 @@ function createProject($server_name)
 function startServer($server_name)
 {
     opCacheClear();
-    foreach(APP_NAMES as $app_name => $protocol) {
-        if($app_name == $server_name) {
+    foreach (APP_NAMES as $app_name => $protocol) {
+        if ($app_name == $server_name) {
             switch ($protocol) {
                 case 'http':
-                        startHttpService($app_name);
+                    startHttpService($app_name);
                     break;
                 case 'websocket':
-                        startWebsocket($app_name);
+                    startWebsocket($app_name);
                     break;
                 case 'rpc':
-                        startRpc($app_name);
+                    startRpc($app_name);
                     break;
                 case 'udp':
-                        startUdp($app_name);
+                    startUdp($app_name);
                     break;
                 case 'mqtt':
-                        startMqtt($app_name);
+                    startMqtt($app_name);
                     break;
                 default:
                     write("Protocol is not in 【'http','websocket','rpc','udp','mqtt'】");
@@ -260,37 +267,37 @@ function startServer($server_name)
             }
         }
     }
-    return ;
+    return;
 }
 
 function startHttpService($app_name, $event_server_file_name = 'HttpServer')
 {
-    $path = START_DIR_ROOT."/{$app_name}/Protocol";
-    $config = include $path."/config-".SWOOLEFY_ENV.".php";
+    $path = START_DIR_ROOT . "/{$app_name}/Protocol";
+    $config = include $path . "/config-" . SWOOLEFY_ENV . ".php";
     checkRunning($config);
 
-    $event_server_file = START_DIR_ROOT."/{$app_name}/{$event_server_file_name}.php";
-    if(!file_exists($event_server_file)) {
+    $event_server_file = START_DIR_ROOT . "/{$app_name}/{$event_server_file_name}.php";
+    if (!file_exists($event_server_file)) {
         $search_str = "protocol\\http";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/src/EventServer/{$event_server_file_name}.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/EventServer/{$event_server_file_name}.php");
         $count = 1;
-        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($event_server_file, $file_content_string);
     }
 
-    $autoloader_file = START_DIR_ROOT."/{$app_name}/autoloader.php";
-    if(!file_exists($autoloader_file)) {
+    $autoloader_file = START_DIR_ROOT . "/{$app_name}/autoloader.php";
+    if (!file_exists($autoloader_file)) {
         $search_str = "<{APP_NAME}>";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/autoloader.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/autoloader.php");
         $count = 1;
-        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($autoloader_file, $file_content_string);
         include_once $autoloader_file;
     }
 
-    if(isDaemon()) {
+    if (isDaemon()) {
         $config['setting']['daemonize'] = true;
     }
     makeDirLogAndPid($config);
@@ -303,32 +310,32 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer')
 
 function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServer')
 {
-    $path = START_DIR_ROOT."/{$app_name}/Protocol";
-    $config = include $path."/config-".SWOOLEFY_ENV.".php";
+    $path = START_DIR_ROOT . "/{$app_name}/Protocol";
+    $config = include $path . "/config-" . SWOOLEFY_ENV . ".php";
     checkRunning($config);
 
-    $event_server_file = START_DIR_ROOT."/{$app_name}/{$event_server_file_name}.php";
-    if(!file_exists($event_server_file)) {
+    $event_server_file = START_DIR_ROOT . "/{$app_name}/{$event_server_file_name}.php";
+    if (!file_exists($event_server_file)) {
         $search_str = "protocol\\websocket";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/src/EventServer/{$event_server_file_name}.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/EventServer/{$event_server_file_name}.php");
         $count = 1;
-        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($event_server_file, $file_content_string);
     }
 
-    $autoloader_file = START_DIR_ROOT."/{$app_name}/autoloader.php";
-    if(!file_exists($autoloader_file)) {
+    $autoloader_file = START_DIR_ROOT . "/{$app_name}/autoloader.php";
+    if (!file_exists($autoloader_file)) {
         $search_str = "<{APP_NAME}>";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/autoloader.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/autoloader.php");
         $count = 1;
-        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($autoloader_file, $file_content_string);
         include_once $autoloader_file;
     }
 
-    if(isDaemon()) {
+    if (isDaemon()) {
         $config['setting']['daemonize'] = true;
     }
     makeDirLogAndPid($config);
@@ -341,32 +348,32 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
 
 function startRpc($app_name, $event_server_file_name = 'RpcServer')
 {
-    $path = START_DIR_ROOT."/{$app_name}/Protocol";
-    $config = include $path."/config-".SWOOLEFY_ENV.".php";
+    $path = START_DIR_ROOT . "/{$app_name}/Protocol";
+    $config = include $path . "/config-" . SWOOLEFY_ENV . ".php";
     checkRunning($config);
 
-    $event_server_file = START_DIR_ROOT."/{$app_name}/{$event_server_file_name}.php";
-    if(!file_exists($event_server_file)) {
+    $event_server_file = START_DIR_ROOT . "/{$app_name}/{$event_server_file_name}.php";
+    if (!file_exists($event_server_file)) {
         $search_str = "protocol\\rpc";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/src/EventServer/{$event_server_file_name}.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/EventServer/{$event_server_file_name}.php");
         $count = 1;
-        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($event_server_file, $file_content_string);
     }
 
-    $autoloader_file = START_DIR_ROOT."/{$app_name}/autoloader.php";
-    if(!file_exists($autoloader_file)) {
+    $autoloader_file = START_DIR_ROOT . "/{$app_name}/autoloader.php";
+    if (!file_exists($autoloader_file)) {
         $search_str = "<{APP_NAME}>";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/autoloader.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/autoloader.php");
         $count = 1;
-        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($autoloader_file, $file_content_string);
         include_once $autoloader_file;
     }
 
-    if(isDaemon()) {
+    if (isDaemon()) {
         $config['setting']['daemonize'] = true;
     }
     makeDirLogAndPid($config);
@@ -379,32 +386,32 @@ function startRpc($app_name, $event_server_file_name = 'RpcServer')
 
 function startUdp($app_name, $event_server_file_name = 'UdpEventServer')
 {
-    $path = START_DIR_ROOT."/{$app_name}/Protocol";
-    $config = include $path."/config-".SWOOLEFY_ENV.".php";
+    $path = START_DIR_ROOT . "/{$app_name}/Protocol";
+    $config = include $path . "/config-" . SWOOLEFY_ENV . ".php";
     checkRunning($config);
 
-    $event_server_file = START_DIR_ROOT."/{$app_name}/{$event_server_file_name}.php";
-    if(!file_exists($event_server_file)) {
+    $event_server_file = START_DIR_ROOT . "/{$app_name}/{$event_server_file_name}.php";
+    if (!file_exists($event_server_file)) {
         $search_str = "protocol\\udp";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/src/EventServer/{$event_server_file_name}.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/EventServer/{$event_server_file_name}.php");
         $count = 1;
-        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($event_server_file, $file_content_string);
     }
 
-    $autoloader_file = START_DIR_ROOT."/{$app_name}/autoloader.php";
-    if(!file_exists($autoloader_file)) {
+    $autoloader_file = START_DIR_ROOT . "/{$app_name}/autoloader.php";
+    if (!file_exists($autoloader_file)) {
         $search_str = "<{APP_NAME}>";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/autoloader.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/autoloader.php");
         $count = 1;
-        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($autoloader_file, $file_content_string);
         include_once $autoloader_file;
     }
 
-    if(isDaemon()) {
+    if (isDaemon()) {
         $config['setting']['daemonize'] = true;
     }
     makeDirLogAndPid($config);
@@ -415,33 +422,34 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer')
     $udp->start();
 }
 
-function startMqtt($app_name, $event_server_file_name = 'MqttServer') {
-    $path = START_DIR_ROOT."/{$app_name}/Protocol";
-    $config = include $path."/config-".SWOOLEFY_ENV.".php";
+function startMqtt($app_name, $event_server_file_name = 'MqttServer')
+{
+    $path = START_DIR_ROOT . "/{$app_name}/Protocol";
+    $config = include $path . "/config-" . SWOOLEFY_ENV . ".php";
     checkRunning($config);
 
-    $event_server_file = START_DIR_ROOT."/{$app_name}/{$event_server_file_name}.php";
-    if(!file_exists($event_server_file)) {
+    $event_server_file = START_DIR_ROOT . "/{$app_name}/{$event_server_file_name}.php";
+    if (!file_exists($event_server_file)) {
         $search_str = "protocol\\mqtt";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/src/EventServer/{$event_server_file_name}.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/EventServer/{$event_server_file_name}.php");
         $count = 1;
-        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($event_server_file, $file_content_string);
     }
 
-    $autoloader_file = START_DIR_ROOT."/{$app_name}/autoloader.php";
-    if(!file_exists($autoloader_file)) {
+    $autoloader_file = START_DIR_ROOT . "/{$app_name}/autoloader.php";
+    if (!file_exists($autoloader_file)) {
         $search_str = "<{APP_NAME}>";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT."/autoloader.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/autoloader.php");
         $count = 1;
-        $file_content_string = str_replace($search_str, $replace_str, $file_content_string,$count);
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($autoloader_file, $file_content_string);
         include_once $autoloader_file;
     }
 
-    if(isDaemon()) {
+    if (isDaemon()) {
         $config['setting']['daemonize'] = true;
     }
     makeDirLogAndPid($config);
@@ -455,7 +463,7 @@ function startMqtt($app_name, $event_server_file_name = 'MqttServer') {
 function stopServer($app_name)
 {
     $pid_file = getPidFile($app_name);
-    if(!is_file($pid_file)) {
+    if (!is_file($pid_file)) {
         write("[error] pid file {$pid_file} is not exist, please check the server whether running");
         exit();
     }
@@ -468,12 +476,11 @@ function stopServer($app_name)
     echo "1、你确定停止应用{$app_name}? (yes or no):";
 
     $lineValue = '';
-    while (ord($lineValue) == '')
-    {
+    while (ord($lineValue) == '') {
         $lineValue = trim(fgets(STDIN));
     }
 
-    if(strtolower($lineValue) == 'yes') {
+    if (strtolower($lineValue) == 'yes') {
         \Swoole\Process::kill($pid, SIGTERM);
         \Swoole\Process::wait();
         // 如果'reload_async' => true,，则默认workerStop有30s的过度期停顿这个时间稍微会比较长，设置成60过期
@@ -500,7 +507,7 @@ function stopServer($app_name)
         }
         \Swoole\Process::wait();
         exit;
-    }else {
+    } else {
         write("2、你已放弃停止应用{$app_name},应用继续running中");
         exit;
     }
@@ -508,22 +515,22 @@ function stopServer($app_name)
 
 function makeDirLogAndPid(array $config)
 {
-    if(isset($config['setting']['log_file'])) {
+    if (isset($config['setting']['log_file'])) {
         $path = pathinfo($config['setting']['log_file'], PATHINFO_DIRNAME);
-        if(!is_dir($path)) {
+        if (!is_dir($path)) {
             mkdir($path, 0777, true);
         }
     }
 
-    if(isset($config['setting']['pid_file'])) {
+    if (isset($config['setting']['pid_file'])) {
         $path = pathinfo($config['setting']['pid_file'], PATHINFO_DIRNAME);
-        if(!is_dir($path)) {
+        if (!is_dir($path)) {
             mkdir($path, 0777, true);
         }
     }
 
-    if(!isset($config['app_conf'])) {
-        write("[Error] ".APP_NAME."/Protocol/config-".SWOOLEFY_ENV.".php"." must include app_conf file and set app_conf");
+    if (!isset($config['app_conf'])) {
+        write("[Error] " . APP_NAME . "/Protocol/config-" . SWOOLEFY_ENV . ".php" . " must include app_conf file and set app_conf");
         exit();
     }
 }
@@ -531,25 +538,25 @@ function makeDirLogAndPid(array $config)
 function reloadServer($app_name)
 {
     $pid_file = getPidFile($app_name);
-    
-    if(!is_file($pid_file)) {
+
+    if (!is_file($pid_file)) {
         write("[error] pid file {$pid_file} is not exist, please check server is running");
         return;
     }
 
     $pid = intval(file_get_contents($pid_file));
-    if(!\Swoole\Process::kill($pid, 0)){
+    if (!\Swoole\Process::kill($pid, 0)) {
         write("[error] pid={$pid} not exist");
         return;
     }
     // 发送信号，reload只针对worker进程
     \Swoole\Process::kill($pid, SIGUSR1);
     write(
-        "Server worker process begin to reload at ".date("Y-m-d H:i:s").". please wait a moment..."
+        "Server worker process begin to reload at " . date("Y-m-d H:i:s") . ". please wait a moment..."
     );
     sleep(2);
     write(
-        "Server worker process reload successful at ".date("Y-m-d H:i:s"),
+        "Server worker process reload successful at " . date("Y-m-d H:i:s"),
         'light_green'
     );
 }
@@ -558,31 +565,29 @@ function statusServer($app_name)
 {
     $pid_file = getPidFile($app_name);
 
-    if(!is_file($pid_file)) {
+    if (!is_file($pid_file)) {
         write("[error] pid file {$pid_file} is not exist, please check server weather is running");
         return;
     }
 
     $pid = intval(file_get_contents($pid_file));
-    if(!\Swoole\Process::kill($pid, 0)){
+    if (!\Swoole\Process::kill($pid, 0)) {
         write("[error] pid={$pid} not exist, server maybe shutdown");
         return;
     }
 
-    $exec = 'ps -ef | grep php | grep '.$app_name."-swoolefy". ' | grep -v grep';
+    $exec = 'ps -ef | grep php | grep ' . $app_name . "-swoolefy" . ' | grep -v grep';
 
     exec($exec, $output, $return);
 
-    if(empty($output))
-    {
+    if (empty($output)) {
         write("[error] ps -ef not match {$app_name}-swoolefy");
         return;
     }
 
-    foreach ($output as $value)
-    {
+    foreach ($output as $value) {
         write(
-            '进程pid='.$value,
+            '进程pid=' . $value,
             'light_green'
         );
     }
@@ -590,11 +595,11 @@ function statusServer($app_name)
 
 function getPidFile($app_name)
 {
-    $path = START_DIR_ROOT."/{$app_name}/Protocol";
-    $config = include $path.'/config-'.SWOOLEFY_ENV.'.php';
-    if(isset($config['setting']['pid_file'])) {
+    $path = START_DIR_ROOT . "/{$app_name}/Protocol";
+    $config = include $path . '/config-' . SWOOLEFY_ENV . '.php';
+    if (isset($config['setting']['pid_file'])) {
         $path = pathinfo($config['setting']['pid_file'], PATHINFO_DIRNAME);
-        if(!is_dir($path)) {
+        if (!is_dir($path)) {
             mkdir($path, 0777, true);
         }
     }
@@ -604,63 +609,68 @@ function getPidFile($app_name)
 
 function checkRunning(array $config)
 {
-    if(isset($config['setting']['pid_file'])) {
+    if (isset($config['setting']['pid_file'])) {
         $pidFile = $config['setting']['pid_file'];
-        if(is_file($pidFile))
-        {
+        if (is_file($pidFile)) {
             $pid = file_get_contents($pidFile);
-            if(is_numeric($pid) && \Swoole\Process::kill($pid,0))
-            {
-                write('【Warning】'.APP_NAME." Server is running, pid={$pid}, pidFile={$pidFile}");
+            if (is_numeric($pid) && \Swoole\Process::kill($pid, 0)) {
+                write('【Warning】' . APP_NAME . " Server is running, pid={$pid}, pidFile={$pidFile}");
                 exit(0);
             }
         }
     }
 }
 
-function help($command) {
-    switch(strtolower($command.'-'.'help')) {
-        case 'start-help':{
-            write("------------swoolefy启动服务命令------------",'light_green');
-            showAppHelp('start','启动');
+function help($command)
+{
+    switch (strtolower($command . '-' . 'help')) {
+        case 'start-help':
+        {
+            write("------------swoolefy启动服务命令------------", 'light_green');
+            showAppHelp('start', '启动');
             echo "\n";
             break;
         }
-        case 'stop-help':{
-            write("------------swoolefy终止服务命令------------",'light_green');
-            showAppHelp('stop','终止');
-            echo "\n";
-            break;
-        }
-	
-        case 'reload-help':{
-            write("------------swoolefy平滑重启服务命令------------",'light_green');
-            showAppHelp('reload','平滑重启');
+        case 'stop-help':
+        {
+            write("------------swoolefy终止服务命令------------", 'light_green');
+            showAppHelp('stop', '终止');
             echo "\n";
             break;
         }
 
-        case 'status-help':{
-            write("------------swoolefy服务状态查看命令------------",'light_green');
-            showAppHelp('status','服务状态');
+        case 'reload-help':
+        {
+            write("------------swoolefy平滑重启服务命令------------", 'light_green');
+            showAppHelp('reload', '平滑重启');
             echo "\n";
             break;
         }
 
-        case 'create-help':{
-            write("------------swoolefy平滑重启服务命令------------",'light_green');
-            showAppHelp('create','创建');
+        case 'status-help':
+        {
+            write("------------swoolefy服务状态查看命令------------", 'light_green');
+            showAppHelp('status', '服务状态');
             echo "\n";
             break;
         }
-        default:{
-            write("------------欢迎使用swoolefy------------",'light_green');
-            write("有关某个命令的详细信息，请键入 help 命令:",'light_green');
-            write("1、php swoolefy create help 查看创建项目详细信息!",'light_green');
-            write("2、php swoolefy start help 查看启动服务详细信息!",'light_green');
-            write("3、php swoolefy stop help 查看终止服务详细信息!",'light_green');
-            write("4、php swoolefy reload help 查看平滑重启服务详细信息!",'light_green');
-            write("5、php swoolefy status help 查看服务状态详细信息!",'light_green');
+
+        case 'create-help':
+        {
+            write("------------swoolefy平滑重启服务命令------------", 'light_green');
+            showAppHelp('create', '创建');
+            echo "\n";
+            break;
+        }
+        default:
+        {
+            write("------------欢迎使用swoolefy------------", 'light_green');
+            write("有关某个命令的详细信息，请键入 help 命令:", 'light_green');
+            write("1、php swoolefy create help 查看创建项目详细信息!", 'light_green');
+            write("2、php swoolefy start help 查看启动服务详细信息!", 'light_green');
+            write("3、php swoolefy stop help 查看终止服务详细信息!", 'light_green');
+            write("4、php swoolefy reload help 查看平滑重启服务详细信息!", 'light_green');
+            write("5、php swoolefy status help 查看服务状态详细信息!", 'light_green');
 
         }
     }
@@ -670,96 +680,104 @@ function showAppHelp($cmd, $cmd_info)
 {
     $index = 0;
     $env_str = '-ENV';
-    if(in_array($cmd, ['create','status','stop']))
-    {
+    if (in_array($cmd, ['create', 'status', 'stop'])) {
         $env_str = '';
     }
-    foreach (APP_NAMES as $app_name => $service)
-    {
+    foreach (APP_NAMES as $app_name => $service) {
         $index++;
-        $help_str = $index."、php swoolefy {$cmd} {$app_name} {$env_str} {$cmd_info} {$service}服务的{$app_name}项目";
-        write($help_str,'light_green');
+        $help_str = $index . "、php swoolefy {$cmd} {$app_name} {$env_str} {$cmd_info} {$service}服务的{$app_name}项目";
+        write($help_str, 'light_green');
     }
-    if($env_str)
-    {
-        write("{$index}、ENV变量提供".join(SWOOLEFY_ENVS,' ').'需要更多环境变量配置SWOOLEFY_ENVS常量设置','light_green');
+    if ($env_str) {
+        write("{$index}、ENV变量提供" . join(SWOOLEFY_ENVS, ' ') . '需要更多环境变量配置SWOOLEFY_ENVS常量设置', 'light_green');
         $index++;
-        write("{$index}、-ENV可以省略，缺省以dev执行 对应不同的配置文件",'light_green');
+        write("{$index}、-ENV可以省略，缺省以dev执行 对应不同的配置文件", 'light_green');
     }
     $index++;
-    write("{$index}、更多服务请修改配置变APP_NAME常量",'light_green');
+    write("{$index}、更多服务请修改配置变APP_NAME常量", 'light_green');
 }
 
-function commandHandler(){
+function commandHandler()
+{
     $command = commandParser();
-    if(isset($command['app_name']) && $command['app_name'] != 'help') {
-        switch($command['command']){
-            case 'create': {
+    if (isset($command['app_name']) && $command['app_name'] != 'help') {
+        switch ($command['command']) {
+            case 'create':
+            {
                 createProject($command['app_name']);
                 break;
             }
-            case "start":{
+            case "start":
+            {
                 startServer($command['app_name']);
                 break;
             }
-            case 'stop':{
+            case 'stop':
+            {
                 stopServer($command['app_name']);
                 break;
             }
-            case 'reload':{
+            case 'reload':
+            {
                 reloadServer($command['app_name']);
                 break;
             }
-            case 'status': {
+            case 'status':
+            {
                 statusServer($command['app_name']);
                 break;
             }
             case 'help':
-            default:{
+            default:
+            {
                 help($command['command']);
             }
         }
-    }else {
+    } else {
         help($command['command']);
     }
 }
 
-function write($msg, $foreground = "red", $background = "black") {
+function write($msg, $foreground = "red", $background = "black")
+{
     // Create new Colors class
     static $colors;
-    if(!isset($colors)) {
+    if (!isset($colors)) {
         $colors = new \Swoolefy\Util\EachColor();
     }
     echo $colors->getColoredString($msg, $foreground, $background) . "\n\n";
 }
 
-function setEnvParams($config) {
+function setEnvParams($config)
+{
     global $argv;
     $params = array_flip($argv);
-    if(isset($params['-h'])) {
+    if (isset($params['-h'])) {
         $h = $argv[$params['-h'] + 1];
         putenv("HOST_IP={$h}");
     }
-    if(isset($config['port'])) {
+    if (isset($config['port'])) {
         $port = $config['port'];
         putenv("HOST_PORT={$port}");
     }
-    
-    putenv("swoolefy_env=".SWOOLEFY_ENV);
+
+    putenv("swoolefy_env=" . SWOOLEFY_ENV);
 }
 
-function isDaemon() {
+function isDaemon()
+{
     global $argv;
     $params = array_flip($argv);
-    if(isset($params['-d']) || isset($params['-D'])) {
+    if (isset($params['-d']) || isset($params['-D'])) {
         return true;
     }
     return false;
 }
 
-function showLogo() {
-$logo = 
-<<<LOGO
+function showLogo()
+{
+    $logo =
+        <<<LOGO
   ______                                _           _ _ _ _
  /  ____|                              | |         |  _ _ _|  _   _
 |  (__     __      __   ___     ___    | |   ___   | |       | | | |
@@ -770,12 +788,13 @@ $logo =
                                                               __ / |
                                                              |_ _ /
 LOGO;
-write($logo,'light_green');
+    write($logo, 'light_green');
 }
 
-function getDefaultConfig() {
-$config_content = 
-<<<EOF
+function getDefaultConfig()
+{
+    $config_content =
+        <<<EOF
 <?php
 // 应用配置
 return [
@@ -799,13 +818,14 @@ return [
 ];
 
 EOF;
-return $config_content;
+    return $config_content;
 }
 
-function getDefaultController() {
+function getDefaultController()
+{
     $APP_NAME = APP_NAME;
-    $controller_content = 
-<<<EOF
+    $controller_content =
+        <<<EOF
 <?php
 namespace {$APP_NAME}\Controller;
 
@@ -818,13 +838,14 @@ class IndexController extends BController {
     }
 }
 EOF;
-return $controller_content;
+    return $controller_content;
 }
 
-function getDefines() {
+function getDefines()
+{
     $APP_NAME = APP_NAME;
-    $defines_content = 
-<<<EOF
+    $defines_content =
+        <<<EOF
 <?php
 defined('APP_NAME') or define('APP_NAME', "{$APP_NAME}");
 defined('APP_PATH') or define('APP_PATH',dirname(__DIR__));
@@ -838,13 +859,14 @@ define('SMARTY_TEMPLATE_PATH',APP_PATH.'/View/');
 define('SMARTY_COMPILE_DIR',APP_PATH.'/Runtime/');
 define('SMARTY_CACHE_DIR',APP_PATH.'/Runtime/');
 EOF;
-return $defines_content;
+    return $defines_content;
 }
 
-function getDefaultModel() {
+function getDefaultModel()
+{
     $APP_NAME = APP_NAME;
-    $defines_content = 
-<<<EOF
+    $defines_content =
+        <<<EOF
 <?php
 namespace {$APP_NAME}\Model;
 
@@ -854,21 +876,21 @@ class IndexModel extends Model {
     
 }
 EOF;
-return $defines_content;
+    return $defines_content;
 }
 
 
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| Author: bingcool <bingcoolhuang@gmail.com || 2437667702@qq.com>
-+----------------------------------------------------------------------
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | Author: bingcool <bingcoolhuang@gmail.com || 2437667702@qq.com>
+ * +----------------------------------------------------------------------
  */
-
-class RunStart {
+class RunStart
+{
 
     static $run_start;
 
@@ -876,23 +898,25 @@ class RunStart {
 
     private $argv;
 
-    public static function getInstance() {
-        if(!isset(self::$run_start)) {
+    public static function getInstance()
+    {
+        if (!isset(self::$run_start)) {
             self::$run_start = new self();
         }
         return self::$run_start;
     }
 
-    public function run($callback = null) {
-        if(!$this->is_run) {
+    public function run($callback = null)
+    {
+        if (!$this->is_run) {
             $this->argv = SWOOLEFY_CLI_PARAMS;
             initCheck();
             showLogo();
             $command = $this->argv[1];
-            if(is_callable($callback)) {
+            if (is_callable($callback)) {
                 call_user_func($callback, $command);
             }
-            commandHandler();            
+            commandHandler();
             $this->is_run = true;
         }
     }

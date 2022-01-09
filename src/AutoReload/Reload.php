@@ -1,30 +1,31 @@
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| @see https://github.com/bingcool/swoolefy
-+----------------------------------------------------------------------
-*/
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | @see https://github.com/bingcool/swoolefy
+ * +----------------------------------------------------------------------
+ */
 
 namespace Swoolefy\AutoReload;
 
 use Swoolefy\Core\Swfy;
 
-class Reload {
-	/**
-	 * $inotify
-	 * @var null
-	 */
-	private $inotify = null;
+class Reload
+{
+    /**
+     * $inotify
+     * @var null
+     */
+    private $inotify = null;
 
-	/**
-	 * $reloadFileTypes 定义触发swoole服务重启文件的类型
-	 * @var array
-	 */
-	protected $reloadFileTypes = ['.php','.html','.js'];
+    /**
+     * $reloadFileTypes 定义触发swoole服务重启文件的类型
+     * @var array
+     */
+    protected $reloadFileTypes = ['.php', '.html', '.js'];
 
     /**
      * $ignoreDir 忽略不需要检查的文件夹，默认vendor
@@ -32,10 +33,10 @@ class Reload {
      */
     protected $ignoreDirs = [];
 
-	/**
-	 * $watchFiles 保存监听的文件句柄
-	 * @var array
-	 */
+    /**
+     * $watchFiles 保存监听的文件句柄
+     * @var array
+     */
     protected $watchFiles = [];
 
     /**
@@ -71,8 +72,9 @@ class Reload {
      * __construct
      * @throws \Exception
      */
-    public function __construct() {
-        if(!extension_loaded('inotify')) {
+    public function __construct()
+    {
+        if (!extension_loaded('inotify')) {
             throw new \Exception("If you want to use auto reload，you should install inotify extension,please view 'http://pecl.php.net/package/inotify'");
         }
         $this->inotify = inotify_init();
@@ -80,27 +82,28 @@ class Reload {
 
     /**
      * init
-     * @throws \Exception
      * @return $this
+     * @throws \Exception
      */
-    public function init() {
+    public function init()
+    {
         !$this->inotify && $this->inotify = inotify_init();
-    	\Swoole\Event::add($this->inotify, function($fd) {
+        \Swoole\Event::add($this->inotify, function ($fd) {
             $events = inotify_read($this->inotify);
-            if(!$events) {
+            if (!$events) {
                 return;
             }
             /**
              * 只要检测到一个文件改动，则停止其余文件的判断，等待时间重启即可
              */
-            if(!$this->reloading) {
-                foreach($events as $ev) {
+            if (!$this->reloading) {
+                foreach ($events as $ev) {
                     if ($ev['mask'] == IN_IGNORED) {
                         continue;
-                    }else if(in_array($ev['mask'], [IN_CREATE, IN_DELETE, IN_MODIFY, IN_MOVED_TO, IN_MOVED_FROM])) {
-                        $fileType = '.'.pathinfo($ev['name'], PATHINFO_EXTENSION);
+                    } else if (in_array($ev['mask'], [IN_CREATE, IN_DELETE, IN_MODIFY, IN_MOVED_TO, IN_MOVED_FROM])) {
+                        $fileType = '.' . pathinfo($ev['name'], PATHINFO_EXTENSION);
 
-                        if(!in_array($fileType, $this->reloadFileTypes)) {
+                        if (!in_array($fileType, $this->reloadFileTypes)) {
                             continue;
                         }
                     }
@@ -115,34 +118,36 @@ class Reload {
             }
         });
 
-    	return $this;
+        return $this;
     }
 
     /**
      * reboot
      * @return void
      */
-    protected function reload() {
+    protected function reload()
+    {
         Swfy::getServer()->reload();
         //clear listen
         $this->clearWatch();
         //re listen
-        foreach($this->rootDirs as $root) {
+        foreach ($this->rootDirs as $root) {
             $this->watch($root);
         }
         //reloading
         $this->reloading = false;
         $isReloadSuccess = !$this->reloading;
-        if($this->callback instanceof \Closure) {
+        if ($this->callback instanceof \Closure) {
             $this->callback->call($this, $isReloadSuccess);
         }
     }
 
     /**
-     * @param  callable $callback
+     * @param callable $callback
      * @return $this
      */
-    public function onReload(callable $callback) {
+    public function onReload(callable $callback)
+    {
         $this->callback = $callback;
         return $this;
     }
@@ -152,9 +157,10 @@ class Reload {
      * @param $type
      * @return $this
      */
-    public function addFileType(string $type) {
+    public function addFileType(string $type)
+    {
         $type = trim($type, '.');
-        $fileType = '.'.$type;
+        $fileType = '.' . $type;
         array_push($this->reloadFileTypes, $fileType);
         return $this;
     }
@@ -164,7 +170,8 @@ class Reload {
      * @param  $inotifyEvent
      * @return $this
      */
-    public function addEvent($inotifyEvent) {
+    public function addEvent($inotifyEvent)
+    {
         $this->events |= $inotifyEvent;
         return $this;
     }
@@ -173,8 +180,9 @@ class Reload {
      * clearWatch 清理所有inotify监听
      * @return $this
      */
-    private function clearWatch() {
-        foreach($this->watchFiles as $wd) {
+    private function clearWatch()
+    {
+        foreach ($this->watchFiles as $wd) {
             @inotify_rm_watch($this->inotify, $wd);
         }
         $this->watchFiles = [];
@@ -185,10 +193,11 @@ class Reload {
      * watch 监听文件目录
      * @param $dir
      * @param bool $root
-     * @throws \Exception
      * @return $this
+     * @throws \Exception
      */
-    public function watch($dir, bool $root = true) {
+    public function watch($dir, bool $root = true)
+    {
         if (!is_dir($dir)) {
             throw new \Exception("[$dir] is not a directory.");
         }
@@ -214,9 +223,9 @@ class Reload {
             if (is_dir($path)) {
                 $this->watch($path, false);
             }
-            $fileType = '.'.pathinfo($f, PATHINFO_EXTENSION);
+            $fileType = '.' . pathinfo($f, PATHINFO_EXTENSION);
 
-            if(in_array($fileType, $this->reloadFileTypes)) {
+            if (in_array($fileType, $this->reloadFileTypes)) {
                 $wd = inotify_add_watch($this->inotify, $path, $this->events);
                 $this->watchFiles[$path] = $wd;
             }
@@ -229,7 +238,8 @@ class Reload {
      * @param float $seconds
      * @return $this
      */
-    public function setAfterSeconds(float $seconds = 10) {
+    public function setAfterSeconds(float $seconds = 10)
+    {
         $this->afterSeconds = $seconds;
         return $this;
     }
@@ -239,7 +249,8 @@ class Reload {
      * @param array $file_type
      * @return $this
      */
-    public function setReloadFileType(array $file_type = ['.php']) {
+    public function setReloadFileType(array $file_type = ['.php'])
+    {
         $this->reloadFileTypes = array_merge($this->reloadFileTypes, $file_type);
         return $this;
     }
@@ -249,7 +260,8 @@ class Reload {
      * @param array $ignore_dir
      * @return $this
      */
-    public function setIgnoreDirs(array $ignore_dirs = []) {
+    public function setIgnoreDirs(array $ignore_dirs = [])
+    {
         $this->ignoreDirs = array_merge($this->ignoreDirs, $ignore_dirs);
         return $this;
     }
