@@ -37,7 +37,7 @@
         "bingcool/library": "dev-master"
     },
     "autoload": {
-        "files": ["src/Constants.php","src/core/Func/function.php"],
+        "files": ["src/Constants.php","src/Core/Func/function.php"],
         "psr-4": {
             "Swoolefy\\": "src/"
         }
