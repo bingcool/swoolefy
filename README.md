@@ -16,7 +16,7 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 实现与底层的回调的解耦，支持协程调度，同步|异步调用，全局事件注册，心跳检查，异步任务，多进程(池)，连接池等，
 内置view、log、session、mysql、redis、mongodb等常用组件等。     
 
-目前swoolefy4.2+版本完全支持swoole4.4.+的协程，推荐使用新版swoole4.6+.
+目前swoolefy4.2+版本完全支持swoole4.4.+的协程，推荐使用新版swoole4.8+.
 
 ### 实现的功能特性
 - [x] 架手脚一键创建项目           
@@ -78,7 +78,29 @@ github: https://github.com/bingcool/workerfy
      
 ### 定义组件，开放式组件接口，闭包回调实现创建组件过程，return对象即可
 ```
+
+// db|redis连接池
+
+'enable_component_pools' => [
+    // 取components的`DB`组件名称相对应
+    'db' => [
+        'pools_num' => 5, // db实例数
+        'push_timeout' => 2, // db实例进入channel池最长等待时间，单位s
+        'pop_timeout' => 1, // db实例出channel池最长等待时间，单位s.在规定时间内获取不到db对象，将降级为实时创建db实例
+        'live_time' => 10 // db实例的有效期，单位s.过期后将被掉弃，重新创建新DB实例
+    ],
+
+    // 取components的`redis`组件名称相对应
+    'redis' => [
+        'pools_num' => 5,
+        'push_timeout' => 2,
+        'pop_timeout' => 1,
+        'live_time' => 10
+    ]
+],
+
 // 在应用层配置文件中,例如下面使用library的Redis、Db组件
+
 components => [
     // 例如创建phpredis扩展连接实例
     'redis' => function($com_name) { // 定义组件名，闭包回调实现创建组件过程，return对象即可

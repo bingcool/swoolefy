@@ -1,146 +1,159 @@
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| @see https://github.com/bingcool/swoolefy
-+----------------------------------------------------------------------
-*/
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | @see https://github.com/bingcool/swoolefy
+ * +----------------------------------------------------------------------
+ */
 
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\BaseServer;
 
-trait ServiceTrait {
-	/**
-	 * getMasterId
-	 * @return int
-	 */
-	public static function getMasterPid() {
-		return Swfy::getServer()->master_pid;
-	}
+trait ServiceTrait
+{
+    /**
+     * getMasterId
+     * @return int
+     */
+    public static function getMasterPid()
+    {
+        return Swfy::getServer()->master_pid;
+    }
 
-	/**
-	 * getManagerId
-	 * @return int
-	 */
-	public static function getManagerPid() {
-		return Swfy::getServer()->manager_pid;
-	}
+    /**
+     * getManagerId
+     * @return int
+     */
+    public static function getManagerPid()
+    {
+        return Swfy::getServer()->manager_pid;
+    }
 
-	/**
-	 * getCurrentWorkerPid
-	 * @return int  
-	 */
-	public static function getCurrentWorkerPid() {
-	    // 自定义进程worker_pid=0
-		$workerPid = Swfy::getServer()->worker_pid;
-		if($workerPid) {
-			return $workerPid;
-		}else {
-			return posix_getpid();
-		}
-	}
+    /**
+     * getCurrentWorkerPid
+     * @return int
+     */
+    public static function getCurrentWorkerPid()
+    {
+        // 自定义进程worker_pid=0
+        $workerPid = Swfy::getServer()->worker_pid;
+        if ($workerPid) {
+            return $workerPid;
+        } else {
+            return posix_getpid();
+        }
+    }
 
-	/**
-	 * getCurrentWorkerId
-	 * @return int
-	 */
-	public static function getCurrentWorkerId() {
-	    //自定义进程worker_id=-1
-		$workerId = Swfy::getServer()->worker_id;
-		return $workerId;
-	}
+    /**
+     * getCurrentWorkerId
+     * @return int
+     */
+    public static function getCurrentWorkerId()
+    {
+        //自定义进程worker_id=-1
+        $workerId = Swfy::getServer()->worker_id;
+        return $workerId;
+    }
 
-	/**
-	 * getConnections
-	 * @return object
-	 */
-	public static function getConnections() {
-		return Swfy::getServer()->connections;
-	}
+    /**
+     * getConnections
+     * @return object
+     */
+    public static function getConnections()
+    {
+        return Swfy::getServer()->connections;
+    }
 
-	/**
-	 * getWorkersPid
-	 * @return array
-	 */
-	public static function getWorkersPid() {
-		return BaseServer::getWorkersPid();
-	}
+    /**
+     * getWorkersPid
+     * @return array
+     */
+    public static function getWorkersPid()
+    {
+        return BaseServer::getWorkersPid();
+    }
 
-	/**
-	 * getLastError 获取最近一次的错误代码
-	 * @return int
-	 */
-	public static function getLastError() {
-		return Swfy::getServer()->getLastError();
-	}
+    /**
+     * getLastError 获取最近一次的错误代码
+     * @return int
+     */
+    public static function getLastError()
+    {
+        return Swfy::getServer()->getLastError();
+    }
 
-	/**
-	 * getStats
-	 * @return array
-	 */
-	public static function getSwooleStats() {
-		return Swfy::getServer()->stats();
-	}
+    /**
+     * getStats
+     * @return array
+     */
+    public static function getSwooleStats()
+    {
+        return Swfy::getServer()->stats();
+    }
 
-	/**
-	 * getLocalIp 获取ip,不包括端口
-	 * @return array
-	 */
-	public static function getLocalIp() {
-		return swoole_get_local_ip();
-	}
+    /**
+     * getLocalIp 获取ip,不包括端口
+     * @return array
+     */
+    public static function getLocalIp()
+    {
+        return swoole_get_local_ip();
+    }
 
-	/**
-	 * getIncludeFiles 获取swoole启动时,worker启动前已经include内存的文件
-	 * @return array|boolean
-	 */
-	public static function getInitIncludeFiles($dir = null) {
-	    $result = false;
-		$workerId = self::getCurrentWorkerId();
-		if(isset(Swfy::$conf['setting']['log_file'])) {
-			$path = pathinfo(Swfy::$conf['setting']['log_file'], PATHINFO_DIRNAME);
-			$filePath = $path.'/includes.json';
-		}
-		
-		if(is_file($filePath)) {
-			$includes_string = file_get_contents($filePath);
-			if($includes_string) {
+    /**
+     * getIncludeFiles 获取swoole启动时,worker启动前已经include内存的文件
+     * @return array|boolean
+     */
+    public static function getInitIncludeFiles($dir = null)
+    {
+        $result = false;
+        $workerId = self::getCurrentWorkerId();
+        if (isset(Swfy::$conf['setting']['log_file'])) {
+            $path = pathinfo(Swfy::$conf['setting']['log_file'], PATHINFO_DIRNAME);
+            $filePath = $path . '/includes.json';
+        }
+
+        if (is_file($filePath)) {
+            $includes_string = file_get_contents($filePath);
+            if ($includes_string) {
                 $result = [
-					'current_worker_id' => $workerId,
-					'include_init_files' => json_decode($includes_string,true),
-				];
-			}
-		}
-		return $result;
-	}
+                    'current_worker_id' => $workerId,
+                    'include_init_files' => json_decode($includes_string, true),
+                ];
+            }
+        }
+        return $result;
+    }
 
-	/**
-	 * getIncludeFiles
+    /**
+     * getIncludeFiles
      * 获取执行到目前action为止，swoole server中的该worker中内存中已经加载的class文件
-	 * @return array
-	 */
-	public static function getIncludeFiles() {
-		$includeFiles = get_included_files();
-		$workerId = self::getCurrentWorkerId();
-		return [
-			'current_worker_id' => $workerId,
-			'include_memory_files' => $includeFiles,
-		];
-	}
+     * @return array
+     */
+    public static function getIncludeFiles()
+    {
+        $includeFiles = get_included_files();
+        $workerId = self::getCurrentWorkerId();
+        return [
+            'current_worker_id' => $workerId,
+            'include_memory_files' => $includeFiles,
+        ];
+    }
 
     /**
      * @param $server
      * @return boolean
      */
-	public static function setSwooleServer($server) {
-	    if(is_object($server)) {
-	        Swfy::$server = $server;
-	        return true;
+    public static function setSwooleServer($server)
+    {
+        if (is_object($server)) {
+            Swfy::$server = $server;
+            return true;
         }
         return false;
     }
@@ -149,98 +162,107 @@ trait ServiceTrait {
      * @param array $conf
      * @param boolean
      */
-	public static function setConf(array $conf) {
-        if(is_array($conf)) {
+    public static function setConf(array $conf)
+    {
+        if (is_array($conf)) {
             Swfy::$conf = $conf;
         }
         return true;
     }
 
-	/**
-	 * getConf 获取协议层对应的配置
-	 * @param $protocol
-	 * @return array
-	 */
-	public static function getConf() {
-		if(!empty(Swfy::$conf)) {
-			return Swfy::$conf;
-		}
-		return BaseServer::getConf();
-	}
+    /**
+     * getConf 获取协议层对应的配置
+     * @param $protocol
+     * @return array
+     */
+    public static function getConf()
+    {
+        if (!empty(Swfy::$conf)) {
+            return Swfy::$conf;
+        }
+        return BaseServer::getConf();
+    }
 
-	/**
-	 * getAppConfig 获取应用层配置
-	 * @return array
-	 */
-	public static function getAppConf() {
-	    if(!empty(Swfy::$app_conf)) {
+    /**
+     * getAppConfig 获取应用层配置
+     * @return array
+     */
+    public static function getAppConf()
+    {
+        if (!empty(Swfy::$app_conf)) {
             return Swfy::$app_conf;
         }
         return BaseServer::getAppConf();
-	}
+    }
 
-	/**
-	 * setAppConf 设置或重新设置原有的应用层配置
-	 * @param  array $config
-	 * @return boolean
-	 */
-	public static function setAppConf(array $conf = []) {
-		Swfy::$app_conf = $conf;
-		return true;
-	}
+    /**
+     * setAppConf 设置或重新设置原有的应用层配置
+     * @param array $config
+     * @return boolean
+     */
+    public static function setAppConf(array $conf = [])
+    {
+        Swfy::$app_conf = $conf;
+        return true;
+    }
 
-	/**
-	 * getAppParams 应用参数
-	 * @param  array  $params
-	 * @return array
-	 */
-	public function getAppParams(array $params = []) {
-		if(isset(Swfy::$conf['app_conf']['params']) && !empty(Swfy::$conf['app_conf']['params'])) {
-			return Swfy::$conf['app_conf']['params'];
-		}
-		return $params;
-	}
+    /**
+     * getAppParams 应用参数
+     * @param array $params
+     * @return array
+     */
+    public function getAppParams(array $params = [])
+    {
+        if (isset(Swfy::$conf['app_conf']['params']) && !empty(Swfy::$conf['app_conf']['params'])) {
+            return Swfy::$conf['app_conf']['params'];
+        }
+        return $params;
+    }
 
-	/**
-	 * getSwooleSetting 获取swoole的setting配置
-	 * @return array
-	 */
-	public static function getSwooleSetting() {
-		return BaseServer::getSwooleSetting();
-	}
+    /**
+     * getSwooleSetting 获取swoole的setting配置
+     * @return array
+     */
+    public static function getSwooleSetting()
+    {
+        return BaseServer::getSwooleSetting();
+    }
 
     /**
      * isWorkerProcess 进程是否是worker进程
      * @return boolean
      * @throws Exception
      */
-	public static function isWorkerProcess() {
-		if(!self::isTaskProcess() && Swfy::getCurrentWorkerId() >= 0) {
-		    return true;
+    public static function isWorkerProcess()
+    {
+        if (!self::isTaskProcess() && Swfy::getCurrentWorkerId() >= 0) {
+            return true;
         }
         return false;
-	}
+    }
 
-	/**
-	 * isTaskProcess 进程是否是task进程
+    /**
+     * isTaskProcess 进程是否是task进程
      * @return boolean
      * @throws Exception
-	 */
-	public static function isTaskProcess() {
-		$server = Swfy::getServer();
-		if(property_exists($server, 'taskworker')) {
-			return $server->taskworker;
-		}
-		throw new \Exception("Not found task process,may be you use it before workerStart");
-	}
+     */
+    public static function isTaskProcess()
+    {
+        $server = Swfy::getServer();
+        if (property_exists($server, 'taskworker')) {
+            return $server->taskworker;
+        }
+        throw new \Exception("Not found task process,may be you use it before workerStart");
+    }
 
     /** isUserProcess 进程是否是process进程
      * @return boolean
      * @throws Exception
      */
-	public static function isUserProcess() {
-	    // process的进程的worker_id等于-1
-        if(!self::isTaskProcess() && Swfy::getCurrentWorkerId() < 0) {
+    public static function isUserProcess()
+    {
+        // process的进程的worker_id等于-1
+        if (!self::isTaskProcess() && Swfy::getCurrentWorkerId() < 0) {
             return true;
         }
         return false;
@@ -250,51 +272,57 @@ trait ServiceTrait {
      * @return boolean
      * @throws \Exception
      */
-    public static function isSelfProcess() {
+    public static function isSelfProcess()
+    {
         return self::isUserProcess();
     }
 
-	/**
-	 * isHttpApp 
-	 * @return boolean
-	 */
-	public function isHttpApp() {
-		return BaseServer::isHttpApp();
-	}
+    /**
+     * isHttpApp
+     * @return boolean
+     */
+    public function isHttpApp()
+    {
+        return BaseServer::isHttpApp();
+    }
 
-	/**
-	 * isRpcApp 判断当前应用是否是Tcp
-	 * @return boolean
-	 */
-	public function isRpcApp() {
-		return BaseServer::isRpcApp();
-	}
+    /**
+     * isRpcApp 判断当前应用是否是Tcp
+     * @return boolean
+     */
+    public function isRpcApp()
+    {
+        return BaseServer::isRpcApp();
+    }
 
-	/**
-	 * isWebsocketApp 
-	 * @return boolean
-	 */
-	public function isWebsocketApp() {
-		return BaseServer::isWebsocketApp();
-	}
+    /**
+     * isWebsocketApp
+     * @return boolean
+     */
+    public function isWebsocketApp()
+    {
+        return BaseServer::isWebsocketApp();
+    }
 
-	/**
-	 * isUdpApp
-	 * @return boolean
-	 */
-	public function isUdpApp() {
-		return BaseServer::isUdpApp();
-	}
+    /**
+     * isUdpApp
+     * @return boolean
+     */
+    public function isUdpApp()
+    {
+        return BaseServer::isUdpApp();
+    }
 
-	/**
-	 * getServer 获取server对象
-	 * @return   \Swoole\Server|\Swoole\Http\Server|\Swoole\WebSocket\Server
-	 */
-	public static function getServer() {
-		if(is_object(Swfy::$server)) {
-			return Swfy::$server;
-		}else {
-			return BaseServer::getServer();
-		}
-	}
+    /**
+     * getServer 获取server对象
+     * @return   \Swoole\Server|\Swoole\Http\Server|\Swoole\WebSocket\Server
+     */
+    public static function getServer()
+    {
+        if (is_object(Swfy::$server)) {
+            return Swfy::$server;
+        } else {
+            return BaseServer::getServer();
+        }
+    }
 }

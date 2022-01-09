@@ -1,12 +1,12 @@
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| @see https://github.com/bingcool/swoolefy
-+----------------------------------------------------------------------
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | @see https://github.com/bingcool/swoolefy
+ * +----------------------------------------------------------------------
  */
 
 namespace Swoolefy\Core\Coroutine;
@@ -27,8 +27,8 @@ namespace Swoolefy\Core\Coroutine;
  * }
  *
  */
-
-class Parallel {
+class Parallel
+{
 
     /**
      * @var int
@@ -49,7 +49,8 @@ class Parallel {
      * Parallel constructor.
      * @param int $concurrent
      */
-    public function __construct(int $concurrent = 5) {
+    public function __construct(int $concurrent = 5)
+    {
         $this->concurrent = $concurrent;
     }
 
@@ -57,7 +58,8 @@ class Parallel {
      * @param callable $callable
      * @param null $key
      */
-    public function add(callable $callable, $key = null) {
+    public function add(callable $callable, $key = null)
+    {
         if (null === $key) {
             $this->callbacks[] = $callable;
         } else {
@@ -69,17 +71,18 @@ class Parallel {
      * @param float $timeOut
      * @return array
      */
-    public function wait(float $timeOut = 5.0) {
-        if(empty($this->callbacks)) {
+    public function wait(float $timeOut = 5.0)
+    {
+        if (empty($this->callbacks)) {
             return [];
         }
         $chunks = array_chunk($this->callbacks, $this->concurrent, true);
         $result = $this->callbacks = [];
-        foreach ($chunks as $k=>$chunk) {
-            foreach($chunk as $key=>$callable) {
-                if(in_array($key, $this->ignoreCallbacks)) unset($chunk[$key]);
+        foreach ($chunks as $k => $chunk) {
+            foreach ($chunk as $key => $callable) {
+                if (in_array($key, $this->ignoreCallbacks)) unset($chunk[$key]);
             }
-            if($chunk) {
+            if ($chunk) {
                 $res = GoWaitGroup::multiCall($chunk, $timeOut);
             }
             unset($chunks[$k]);
@@ -91,14 +94,16 @@ class Parallel {
     /**
      * @param $key
      */
-    public function ignoreCallbacks(array $keys) {
+    public function ignoreCallbacks(array $keys)
+    {
         $this->ignoreCallbacks = $keys;
     }
 
     /**
      * return void
      */
-    public function clear() {
+    public function clear()
+    {
         $this->callbacks = [];
     }
 

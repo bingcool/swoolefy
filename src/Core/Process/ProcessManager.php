@@ -1,13 +1,13 @@
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| @see https://github.com/bingcool/swoolefy
-+----------------------------------------------------------------------
-*/
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | @see https://github.com/bingcool/swoolefy
+ * +----------------------------------------------------------------------
+ */
 
 namespace Swoolefy\Core\Process;
 
@@ -15,72 +15,73 @@ use Swoole\Process;
 use Swoole\Table;
 use Swoolefy\Core\Table\TableManager;
 
-class ProcessManager {
+class ProcessManager
+{
 
     use \Swoolefy\Core\SingletonTrait;
 
     const PROCESS_NUM = 1024;
-	
-	private $table_process = [
-		// 进程内存表
-		'table_process_map' => [
-			// 内存表建立的行数,取决于建立的process进程数，默认最小值64
-			'size' => self::PROCESS_NUM,
-			// 字段
-			'fields'=> [
-				['pid','int', 10]
-			]
-		],
-	];
+
+    private $table_process = [
+        // 进程内存表
+        'table_process_map' => [
+            // 内存表建立的行数,取决于建立的process进程数，默认最小值64
+            'size' => self::PROCESS_NUM,
+            // 字段
+            'fields' => [
+                ['pid', 'int', 10]
+            ]
+        ],
+    ];
 
     /**
      * @var array
      */
-	private $processList = [];
+    private $processList = [];
 
     /**
      * @var array
      */
-	private $processListInfo = [];
+    private $processListInfo = [];
 
     /**
-     * __construct 
+     * __construct
      */
-	private function __construct() {
-		TableManager::getInstance()->createTable($this->table_process);
-	}
+    private function __construct()
+    {
+        TableManager::getInstance()->createTable($this->table_process);
+    }
 
-	/**
-	 * addProcess 添加一个进程
-	 * @param string  $processName
-	 * @param string  $processClass
-	 * @param boolean $async
-	 * @param array   $args
-     * @param mixed   $extend_data
+    /**
+     * addProcess 添加一个进程
+     * @param string $processName
+     * @param string $processClass
+     * @param boolean $async
+     * @param array $args
+     * @param mixed $extend_data
      * @param boolean $enable_coroutine
-     * @throws mixed
      * @return mixed
-	 */
-	public function addProcess(
-	    string $processName,
+     * @throws mixed
+     */
+    public function addProcess(
+        string $processName,
         string $processClass,
-        bool $async = true,
-        array $args = [],
+        bool   $async = true,
+        array  $args = [],
         ?array $extend_data = null,
-        bool $enable_coroutine = true
-    ) {
+        bool   $enable_coroutine = true
+    )
+    {
         $key = md5($processName);
-        if(isset($this->processList[$key]))
-        {
+        if (isset($this->processList[$key])) {
             throw new \Exception("You can not add the same process : $processName");
         }
 
-		if(!TableManager::isExistTable('table_process_map'))
-		{
-			TableManager::getInstance()->createTable($this->table_process);
-		}
+        if (!TableManager::isExistTable('table_process_map')) {
+            TableManager::getInstance()->createTable($this->table_process);
+        }
 
-        try{
+        try {
             /**@var AbstractProcess $process */
             $process = new $processClass(
                 $processName,
@@ -90,39 +91,42 @@ class ProcessManager {
                 $enable_coroutine
             );
             $this->processList[$key] = $process;
-            $this->processListInfo[$processName] = ['process_name'=>$processName, 'class'=>$processClass];
+            $this->processListInfo[$processName] = ['process_name' => $processName, 'class' => $processClass];
             return $process;
-        }catch (\Exception $exception){
+        } catch (\Exception $exception) {
             throw $exception;
         }
-	}
+    }
 
     /**
      * @return array
      */
-	public function getProcessListInfo() {
-	    return $this->processListInfo;
+    public function getProcessListInfo()
+    {
+        return $this->processListInfo;
     }
 
-	/**
-	 * getProcessByName 通过名称获取一个进程
-	 * @param  string $processName
-	 * @return AbstractProcess
-	 */
-	public function getProcessByName(string $processName) {
+    /**
+     * getProcessByName 通过名称获取一个进程
+     * @param string $processName
+     * @return AbstractProcess
+     */
+    public function getProcessByName(string $processName)
+    {
         $key = md5($processName);
         return $this->processList[$key] ?? null;
     }
 
     /**
      * getProcessByPid 通过进程id获取进程
-     * @param  int    $pid
+     * @param int $pid
      * @return mixed
      */
-    public function getProcessByPid(int $pid) {
+    public function getProcessByPid(int $pid)
+    {
         $table = TableManager::getTable('table_process_map');
-        foreach ($table as $key => $item){
-            if($item['pid'] == $pid){
+        foreach ($table as $key => $item) {
+            if ($item['pid'] == $pid) {
                 return $this->processList[$key];
             }
         }
@@ -131,20 +135,22 @@ class ProcessManager {
 
     /**
      * setProcess 设置一个进程
-     * @param string          $processName
+     * @param string $processName
      * @param AbstractProcess $process
      */
-    public function setProcess(string $processName, AbstractProcess $process) {
+    public function setProcess(string $processName, AbstractProcess $process)
+    {
         $key = md5($processName);
         $this->processList[$key] = $process;
     }
 
     /**
      * reboot 重启某个进程
-     * @param  string $processName
+     * @param string $processName
      * @return boolean
      */
-    public function reboot(string $processName) {
+    public function reboot(string $processName)
+    {
         $process = $this->getProcessByName($processName);
         $kill_flag = $process->getSwoolefyProcessKillFlag();
         $this->writeByProcessName($processName, $kill_flag);
@@ -159,14 +165,15 @@ class ProcessManager {
      * @param float $timeOut
      * @return bool
      */
-    public function writeByProcessName(string $name, $data, \Closure $callback = null, float $timeOut = 3.0 ) {
+    public function writeByProcessName(string $name, $data, \Closure $callback = null, float $timeOut = 3.0)
+    {
         $process = $this->getProcessByName($name);
-        if($process){
-            if(is_array($data)) {
+        if ($process) {
+            if (is_array($data)) {
                 $data = json_encode($data, JSON_UNESCAPED_UNICODE);
             }
             $result = (bool)$process->getProcess()->write($data);
-            if($result && $callback instanceof \Closure) {
+            if ($result && $callback instanceof \Closure) {
                 $msg = null;
                 $msg = $this->read($process->getProcess(), $timeOut);
                 call_user_func($callback, $msg);
@@ -178,13 +185,14 @@ class ProcessManager {
 
     /**
      * readByProcessName 读取某个进程数据
-     * @param  string $name
-     * @param  float  $timeOut
+     * @param string $name
+     * @param float $timeOut
      * @return mixed
      */
-    public function readByProcessName(string $name, float $timeOut = 3) {
+    public function readByProcessName(string $name, float $timeOut = 3)
+    {
         $process = $this->getProcessByName($name);
-        if($process) {
+        if ($process) {
             $swooleProcess = $process->getProcess();
             return $this->read($swooleProcess, $timeOut);
         }
@@ -197,22 +205,23 @@ class ProcessManager {
      * @param float $timeOut
      * @return mixed
      */
-    public function read(Process $swooleProcess, float $timeOut = 3) {
+    public function read(Process $swooleProcess, float $timeOut = 3)
+    {
         $result = null;
         $read = [$swooleProcess];
         $write = [];
         $except = [];
-        if(function_exists('swoole_client_select')) {
+        if (function_exists('swoole_client_select')) {
             $ret = swoole_client_select($read, $write, $except, $timeOut);
-        }else {
-            if($timeOut < 1) {
+        } else {
+            if ($timeOut < 1) {
                 $timeOut = 1;
             }
             $timeOut = (int)$timeOut;
             $ret = stream_select($read, $write, $except, $timeOut);
         }
 
-        if($ret) {
+        if ($ret) {
             $result = $swooleProcess->read(64 * 1024);
         }
         return $result;

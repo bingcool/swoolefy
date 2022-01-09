@@ -76,7 +76,7 @@ class NormalizerFormatter implements FormatterInterface
             $count = 1;
             foreach ($data as $key => $value) {
                 if ($count++ >= 1000) {
-                    $normalized['...'] = 'Over 1000 items ('.count($data).' total), aborting normalization';
+                    $normalized['...'] = 'Over 1000 items (' . count($data) . ' total), aborting normalization';
                     break;
                 }
                 $normalized[$key] = $this->normalize($value);
@@ -110,21 +110,21 @@ class NormalizerFormatter implements FormatterInterface
             return sprintf('[resource] (%s)', get_resource_type($data));
         }
 
-        return '[unknown('.gettype($data).')]';
+        return '[unknown(' . gettype($data) . ')]';
     }
 
     protected function normalizeException($e)
     {
         // TODO 2.0 only check for Throwable
         if (!$e instanceof Exception && !$e instanceof \Throwable) {
-            throw new \InvalidArgumentException('Exception/Throwable expected, got '.gettype($e).' / '.get_class($e));
+            throw new \InvalidArgumentException('Exception/Throwable expected, got ' . gettype($e) . ' / ' . get_class($e));
         }
 
         $data = array(
             'class' => get_class($e),
             'message' => $e->getMessage(),
             'code' => $e->getCode(),
-            'file' => $e->getFile().':'.$e->getLine(),
+            'file' => $e->getFile() . ':' . $e->getLine(),
         );
 
         if ($e instanceof \SoapFault) {
@@ -144,7 +144,7 @@ class NormalizerFormatter implements FormatterInterface
         $trace = $e->getTrace();
         foreach ($trace as $frame) {
             if (isset($frame['file'])) {
-                $data['trace'][] = $frame['file'].':'.$frame['line'];
+                $data['trace'][] = $frame['file'] . ':' . $frame['line'];
             } elseif (isset($frame['function']) && $frame['function'] === '{closure}') {
                 // We should again normalize the frames, because it might contain invalid items
                 $data['trace'][] = $frame['function'];
@@ -164,10 +164,10 @@ class NormalizerFormatter implements FormatterInterface
     /**
      * Return the JSON representation of a value
      *
-     * @param  mixed             $data
-     * @param  bool              $ignoreErrors
-     * @throws \RuntimeException if encoding fails and errors are not ignored
+     * @param mixed $data
+     * @param bool $ignoreErrors
      * @return string
+     * @throws \RuntimeException if encoding fails and errors are not ignored
      */
     protected function toJson($data, $ignoreErrors = false)
     {
@@ -186,7 +186,7 @@ class NormalizerFormatter implements FormatterInterface
     }
 
     /**
-     * @param  mixed  $data
+     * @param mixed $data
      * @return string JSON encoded data or null on failure
      */
     private function jsonEncode($data)
@@ -202,10 +202,10 @@ class NormalizerFormatter implements FormatterInterface
      * inital error is not encoding related or the input can't be cleaned then
      * raise a descriptive exception.
      *
-     * @param  int               $code return code of json_last_error function
-     * @param  mixed             $data data that was meant to be encoded
-     * @throws \RuntimeException if failure can't be corrected
+     * @param int $code return code of json_last_error function
+     * @param mixed $data data that was meant to be encoded
      * @return string            JSON encoded data after error correction
+     * @throws \RuntimeException if failure can't be corrected
      */
     private function handleJsonError($code, $data)
     {
@@ -233,8 +233,8 @@ class NormalizerFormatter implements FormatterInterface
     /**
      * Throws an exception according to a given code with a customized message
      *
-     * @param  int               $code return code of json_last_error function
-     * @param  mixed             $data data that was meant to be encoded
+     * @param int $code return code of json_last_error function
+     * @param mixed $data data that was meant to be encoded
      * @throws \RuntimeException
      */
     private function throwEncodeError($code, $data)
@@ -256,7 +256,7 @@ class NormalizerFormatter implements FormatterInterface
                 $msg = 'Unknown error';
         }
 
-        throw new \RuntimeException('JSON encoding failed: '.$msg.'. Encoding: '.var_export($data, true));
+        throw new \RuntimeException('JSON encoding failed: ' . $msg . '. Encoding: ' . var_export($data, true));
     }
 
     /**
@@ -280,7 +280,9 @@ class NormalizerFormatter implements FormatterInterface
         if (is_string($data) && !preg_match('//u', $data)) {
             $data = preg_replace_callback(
                 '/[\x80-\xFF]+/',
-                function ($m) { return utf8_encode($m[0]); },
+                function ($m) {
+                    return utf8_encode($m[0]);
+                },
                 $data
             );
             $data = str_replace(

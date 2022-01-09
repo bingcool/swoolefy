@@ -1,13 +1,13 @@
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| @see https://github.com/bingcool/swoolefy
-+----------------------------------------------------------------------
-*/
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | @see https://github.com/bingcool/swoolefy
+ * +----------------------------------------------------------------------
+ */
 
 namespace Swoolefy\Core;
 
@@ -16,111 +16,121 @@ use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Process\ProcessManager;
 use Swoolefy\Core\ProcessPools\PoolsManager;
 
-class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
-	/**
-	 * init start之前初始化
+class EventCtrl implements \Swoolefy\Core\EventCtrlInterface
+{
+    /**
+     * init start之前初始化
      * @return void
-	 */
-	public function init() {
+     */
+    public function init()
+    {
         static::onInit();
-		if(BaseServer::isEnableSysCollector()) {
-			ProcessManager::getInstance()->addProcess('swoolefy_system_collector', \Swoolefy\Core\SysCollector\SysProcess::class);
-		}
-		if(BaseServer::isEnableReload()) {
-            ProcessManager::getInstance()->addProcess('swoolefy_system_reload',\Swoolefy\AutoReload\ReloadProcess::class);
+        if (BaseServer::isEnableSysCollector()) {
+            ProcessManager::getInstance()->addProcess('swoolefy_system_collector', \Swoolefy\Core\SysCollector\SysProcess::class);
+        }
+        if (BaseServer::isEnableReload()) {
+            ProcessManager::getInstance()->addProcess('swoolefy_system_reload', \Swoolefy\AutoReload\ReloadProcess::class);
         }
         static::eachStartInfo();
-	}
+    }
 
-	/**
-	 * onStart 
-	 * @param Server $server
-	 * @return void
-	 */
-	public function start($server) {
-		static::onStart($server);
-	}
+    /**
+     * onStart
+     * @param Server $server
+     * @return void
+     */
+    public function start($server)
+    {
+        static::onStart($server);
+    }
 
-	/**
-	 * onManagerStart 
-	 * @param Server $server
-	 * @return void
-	 */
-	public function managerStart($server) {
-		static::onManagerStart($server);
-	}
+    /**
+     * onManagerStart
+     * @param Server $server
+     * @return void
+     */
+    public function managerStart($server)
+    {
+        static::onManagerStart($server);
+    }
 
-	/**
-	 * onWorkerStart
-	 * @param Server $server
-	 * @return void
-	 */
-	public function workerStart($server, $worker_id) {
+    /**
+     * onWorkerStart
+     * @param Server $server
+     * @return void
+     */
+    public function workerStart($server, $worker_id)
+    {
         $this->buildComponentPools();
-		static::onWorkerStart($server, $worker_id);
-	}
+        static::onWorkerStart($server, $worker_id);
+    }
 
-	/**
-	 * onWorkerStop
-	 * @param Server $server
-	 * @param int $worker_id
-	 * @return void
-	 */
-	public function workerStop($server, $worker_id) {
-		static::onWorkerStop($server, $worker_id);
-	}
+    /**
+     * onWorkerStop
+     * @param Server $server
+     * @param int $worker_id
+     * @return void
+     */
+    public function workerStop($server, $worker_id)
+    {
+        static::onWorkerStop($server, $worker_id);
+    }
 
-	/**
-	 * workerError 
-	 * @param  Server $server
-	 * @param  int $worker_id
-	 * @param  int $worker_pid
-	 * @param  mixed $exit_code
-	 * @param  boolean $signal
-	 * @return void
-	 */
-	public function workerError($server, $worker_id, $worker_pid, $exit_code, $signal) {
-		static::onWorkerError($server, $worker_id, $worker_pid, $exit_code, $signal);
-	}
+    /**
+     * workerError
+     * @param Server $server
+     * @param int $worker_id
+     * @param int $worker_pid
+     * @param mixed $exit_code
+     * @param boolean $signal
+     * @return void
+     */
+    public function workerError($server, $worker_id, $worker_pid, $exit_code, $signal)
+    {
+        static::onWorkerError($server, $worker_id, $worker_pid, $exit_code, $signal);
+    }
 
-	/**
-	 * workerExit
-	 * @param  Server $server
-	 * @param  int $worker_id
-	 * @return void
-	 */
-	public function workerExit($server, $worker_id) {
-		static::onWorkerExit($server, $worker_id);
-	}
+    /**
+     * workerExit
+     * @param Server $server
+     * @param int $worker_id
+     * @return void
+     */
+    public function workerExit($server, $worker_id)
+    {
+        static::onWorkerExit($server, $worker_id);
+    }
 
-	/**
-	 * onManagerStop
-	 * @param  Server $server
-	 * @return void
-	 */
-	public function managerStop($server) {
-		static::onManagerStop($server);
-	}
+    /**
+     * onManagerStop
+     * @param Server $server
+     * @return void
+     */
+    public function managerStop($server)
+    {
+        static::onManagerStop($server);
+    }
 
     /**
      * 在workerStart可以创建一个协程池Channel
      * 'enable_component_pools' => [
-        'redis' => [
-            'pools_num'=>10,
-            'push_timeout'=>1.5,
-            'pop_timeout'=>1,
-            'live_time'=>10 * 60
-        ]
-    ],
+     *      'redis' => [
+     *              'pools_num'=>10,
+     *              'push_timeout'=>1.5,
+     *              'pop_timeout'=>1,
+     *              'live_time'=>10 * 60
+     *      ]
+     * ],
      *
      * @throws mixed
      */
-	protected function buildComponentPools() {
+    protected function buildComponentPools()
+    {
         $app_conf = BaseServer::getAppConf();
-        if(isset($app_conf['enable_component_pools']) && is_array($app_conf['enable_component_pools']) && !empty($app_conf['enable_component_pools'])) {
+        if (isset($app_conf['enable_component_pools']) && is_array($app_conf['enable_component_pools']) && !empty($app_conf['enable_component_pools'])) {
             $components = array_keys($app_conf['components']);
-            foreach($app_conf['enable_component_pools'] as $pool_name =>$component_pool_config) {
-                if(!in_array($pool_name, $components)) {
+            foreach ($app_conf['enable_component_pools'] as $pool_name => $component_pool_config) {
+                if (!in_array($pool_name, $components)) {
                     throw new \Exception("enable_component_pools of item={$pool_name}, not set in components");
                 }
                 $callable = $app_conf['components'][$pool_name];
@@ -132,9 +142,10 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
     /**
      * eachStartInfo
      */
-	protected function eachStartInfo() {
+    protected function eachStartInfo()
+    {
         $protocol = BaseServer::getServiceProtocol();
-        switch($protocol) {
+        switch ($protocol) {
             case SWOOLEFY_HTTP :
                 $main_server = 'HttpServer';
                 break;
@@ -157,7 +168,7 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
         $daemonize = isset($conf['setting']['daemonize']) ? $conf['setting']['daemonize'] : false;
         $listen_host = isset($conf['host']) ? $conf['host'] : '127.0.0.1';
         $listen_port = isset($conf['port']) ? $conf['port'] : null;
-        $worker_num  = isset($conf['setting']['worker_num']) ? $conf['setting']['worker_num'] : 1;
+        $worker_num = isset($conf['setting']['worker_num']) ? $conf['setting']['worker_num'] : 1;
         $task_worker_num = isset($conf['setting']['task_worker_num']) ? $conf['setting']['task_worker_num'] : 0;
         $swoole_version = swoole_version();
         $php_version = phpversion();
@@ -166,10 +177,10 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
         $cpu_num = swoole_cpu_num();
         $ip_list = json_encode(swoole_get_local_ip());
         $processListInfo = array_values(ProcessManager::getInstance()->getProcessListInfo());
-        $processListInfoStr = json_encode($processListInfo,JSON_UNESCAPED_UNICODE);
+        $processListInfoStr = json_encode($processListInfo, JSON_UNESCAPED_UNICODE);
         $poolsProcessListInfo = array_values(PoolsManager::getInstance()->getProcessListInfo());
-        $poolsProcessListInfoStr = json_encode($poolsProcessListInfo,JSON_UNESCAPED_UNICODE);
-        $this->each(str_repeat('-',50),'light_green');
+        $poolsProcessListInfoStr = json_encode($poolsProcessListInfo, JSON_UNESCAPED_UNICODE);
+        $this->each(str_repeat('-', 50), 'light_green');
         $this->each("
             main server         {$main_server}
             swoolefy envirment  {$swoolefy_env}
@@ -184,8 +195,8 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
             swoolefy version    {$swoolefy_version}
             ip_list             {$ip_list}
             tips                执行 php swoolefy help 可以查看更多信息
-",'light_green');
-        $this->each(str_repeat('-',50)."\n",'light_green');
+", 'light_green');
+        $this->each(str_repeat('-', 50) . "\n", 'light_green');
 
     }
 
@@ -195,7 +206,8 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface {
      * @param string $foreground
      * @param string $background
      */
-    protected function each(string $msg, string $foreground = "red", string $background = "black") {
-	    _each($msg, $foreground, $background);
+    protected function each(string $msg, string $foreground = "red", string $background = "black")
+    {
+        _each($msg, $foreground, $background);
     }
 } 

@@ -1,24 +1,25 @@
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| @see https://github.com/bingcool/swoolefy
-+----------------------------------------------------------------------
-*/
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | @see https://github.com/bingcool/swoolefy
+ * +----------------------------------------------------------------------
+ */
 
 namespace Swoolefy\Core\Memory;
 
-class AtomicManager {
+class AtomicManager
+{
 
-	use \Swoolefy\Core\SingletonTrait;
+    use \Swoolefy\Core\SingletonTrait;
 
     /**
      * @var array
      */
-	private $atomicList = [];
+    private $atomicList = [];
 
     /**
      * @var array
@@ -26,44 +27,48 @@ class AtomicManager {
     private $atomicListLong = [];
 
     /**
-     * addAtomic 
-     * @param string      $name
+     * addAtomic
+     * @param string $name
      * @param int|integer $int
      */
-    public function addAtomic(string $name, int $int = 0) {
-        if(!isset($this->atomicList[$name])){
+    public function addAtomic(string $name, int $int = 0)
+    {
+        if (!isset($this->atomicList[$name])) {
             $atomic = new \Swoole\Atomic($int);
             $this->atomicList[$name] = $atomic;
         }
     }
 
     /**
-     * addAtomicLong 
-     * @param string      $name
+     * addAtomicLong
+     * @param string $name
      * @param int|integer $int
      */
-    public function addAtomicLong(string $name, int $int = 0) {
-        if(!isset($this->atomicListLong[$name])){
+    public function addAtomicLong(string $name, int $int = 0)
+    {
+        if (!isset($this->atomicListLong[$name])) {
             $atomic = new \Swoole\Atomic\Long($int);
             $this->atomicListLong[$name] = $atomic;
         }
     }
 
     /**
-     * getAtomic 
-     * @param  string $name
+     * getAtomic
+     * @param string $name
      * @return mixed
      */
-    public function getAtomic(string $name) {
+    public function getAtomic(string $name)
+    {
         return $this->atomicList[$name] ?? null;
     }
 
     /**
      * getAtomicLong
-     * @param  string $name
+     * @param string $name
      * @return mixed
      */
-    public function getAtomicLong(string $name) {
+    public function getAtomicLong(string $name)
+    {
         return $this->atomicListLong[$name] ?? null;
     }
 }

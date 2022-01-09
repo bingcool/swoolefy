@@ -1,12 +1,12 @@
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| @see https://github.com/bingcool/swoolefy
-+----------------------------------------------------------------------
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | @see https://github.com/bingcool/swoolefy
+ * +----------------------------------------------------------------------
  */
 
 namespace Swoolefy\Core;
@@ -14,7 +14,8 @@ namespace Swoolefy\Core;
 use Swoole\Coroutine\Channel;
 use Swoole\Coroutine\System;
 
-class CommandRunner {
+class CommandRunner
+{
     /**
      * @var array
      */
@@ -88,19 +89,17 @@ class CommandRunner {
      */
     public static function getInstance(string $runnerName, int $concurrent = 5)
     {
-        if(!isset(static::$instances[$runnerName]))
-        {
-            /**@var CommandRunner $runner*/
+        if (!isset(static::$instances[$runnerName])) {
+            /**@var CommandRunner $runner */
             $runner = new static();
-            if($concurrent >= 10)
-            {
+            if ($concurrent >= 10) {
                 $concurrent = 10;
             }
             $runner->concurrent = $concurrent;
             $runner->channel = new Channel($runner->concurrent);
             static::$instances[$runnerName] = $runner;
-        }else {
-            /**@var CommandRunner $runner*/
+        } else {
+            /**@var CommandRunner $runner */
             $runner = static::$instances[$runnerName];
         }
 
@@ -116,44 +115,43 @@ class CommandRunner {
      * @param bool $async
      * @param string $log
      * @param bool $isExec
-     * @throws Exception
      * @return array
+     * @throws Exception
      */
     public function exec(
         string $execBinFile,
         string $commandRouter,
-        array $args = [],
-        bool $async = false,
+        array  $args = [],
+        bool   $async = false,
         string $log = '/dev/null',
-        bool $isExec = true
-    ) {
+        bool   $isExec = true
+    )
+    {
         $this->checkNextFlag();
         $params = '';
-        if($args) {
+        if ($args) {
             $params = $this->parseEscapeShellArg($args);
         }
 
-        $path = $execBinFile.' '.$commandRouter.' '.$params;
+        $path = $execBinFile . ' ' . $commandRouter . ' ' . $params;
         $command = "{$path} >> {$log} 2>&1 && echo $$";
-        if($async) {
+        if ($async) {
             // echo $! 表示输出进程id赋值在output数组中
             $command = "nohup {$path} >> {$log} 2>&1 & echo $!";
         }
 
-        if($isExec)
-        {
-            exec($command,$output,$return);
+        if ($isExec) {
+            exec($command, $output, $return);
             $pid = $output[0] ?? '';
-            if($pid)
-            {
+            if ($pid) {
                 $this->channel->push([
                     'pid' => $pid,
                     'command' => $command,
                     'start_time' => time()
-                ],0.2);
+                ], 0.2);
             }
             // when exec error save log
-            if($return != 0) {
+            if ($return != 0) {
                 throw new \Exception("CommandRunner Exec failed,reurnCode={$return},commandLine={$command}.");
             }
         }
@@ -170,16 +168,17 @@ class CommandRunner {
      */
     public function procOpen(
         callable $callable,
-        string $execBinFile,
-        array $args = []
-    ) {
+        string   $execBinFile,
+        array    $args = []
+    )
+    {
         $this->checkNextFlag();
         $params = '';
-        if($args) {
+        if ($args) {
             $params = $this->parseEscapeShellArg($args);
         }
 
-        $command = $execBinFile.' '.$params.'; echo $? >&3';
+        $command = $execBinFile . ' ' . $params . '; echo $? >&3';
         $descriptors = array(
             // stdout
             0 => array('pipe', 'r'),
@@ -191,32 +190,32 @@ class CommandRunner {
             3 => array('pipe', 'w')
         );
 
-        \Swoole\Coroutine::create(function () use($callable, $command, $descriptors) {
+        \Swoole\Coroutine::create(function () use ($callable, $command, $descriptors) {
             // in $callable forbidden create coroutine, because $proc_process had been bind in current coroutine
             try {
                 $proc_process = proc_open($command, $descriptors, $pipes);
-                if(!is_resource($proc_process)) {
+                if (!is_resource($proc_process)) {
                     throw new \Exception("Proc Open Command 【{$command}】 failed.");
                 }
                 $status = proc_get_status($proc_process);
-                if($status['pid'] ?? '') {
+                if ($status['pid'] ?? '') {
                     $this->channel->push([
                         'pid' => $status['pid'],
                         'command' => $command,
                         'start_time' => time()
-                    ],0.2);
+                    ], 0.2);
 
-                    $returnCode = fgets($pipes[3],10);
-                    if($returnCode != 0) {
+                    $returnCode = fgets($pipes[3], 10);
+                    if ($returnCode != 0) {
                         throw new \Exception("CommandRunner Proc Open failed,reurnCode={$returnCode},commandLine={$command}.");
                     }
                 }
                 $params = [$pipes[0], $pipes[1], $pipes[2], $status, $returnCode ?? -1];
                 return call_user_func_array($callable, $params);
-            }catch (\Throwable $e) {
+            } catch (\Throwable $e) {
                 throw $e;
-            }finally {
-                foreach($pipes as $pipe) {
+            } finally {
+                foreach ($pipes as $pipe) {
                     @fclose($pipe);
                 }
                 proc_close($proc_process);
@@ -231,33 +230,26 @@ class CommandRunner {
     public function isNextHandle()
     {
         $this->isNextFlag = true;
-        if($this->channel->isFull())
-        {
+        if ($this->channel->isFull()) {
             $pids = [];
-            while($item = $this->channel->pop(0.05))
-            {
+            while ($item = $this->channel->pop(0.05)) {
                 $pid = $item['pid'];
                 $startTime = $item['start_time'];
-                if(\Swoole\Process::kill($pid,0) && ($startTime + 60) > time() )
-                {
+                if (\Swoole\Process::kill($pid, 0) && ($startTime + 60) > time()) {
                     $pids[] = $item;
                 }
             }
 
-            foreach($pids as $item)
-            {
-                $this->channel->push($item,0.1);
+            foreach ($pids as $item) {
+                $this->channel->push($item, 0.1);
             }
 
-            if($this->channel->length() < $this->concurrent)
-            {
+            if ($this->channel->length() < $this->concurrent) {
                 $isNext = true;
-            }else
-            {
+            } else {
                 System::sleep(0.1);
             }
-        }else
-        {
+        } else {
             $isNext = true;
         }
 
@@ -269,7 +261,7 @@ class CommandRunner {
      */
     protected function checkNextFlag()
     {
-        if(!$this->isNextFlag) {
+        if (!$this->isNextFlag) {
             throw new \Exception('Missing call isNextHandle().');
         }
         $this->isNextFlag = false;

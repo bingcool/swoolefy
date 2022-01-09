@@ -1,17 +1,18 @@
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| @see https://github.com/bingcool/swoolefy
-+----------------------------------------------------------------------
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | @see https://github.com/bingcool/swoolefy
+ * +----------------------------------------------------------------------
  */
 
 namespace Swoolefy\Util;
 
-class EachColor {
+class EachColor
+{
     /**
      * @var array
      */
@@ -22,7 +23,8 @@ class EachColor {
      */
     private $background_colors = [];
 
-    public function __construct() {
+    public function __construct()
+    {
         // Set up shell colors
         $this->foreground_colors['black'] = '0;30';
         $this->foreground_colors['dark_gray'] = '1;30';
@@ -52,7 +54,8 @@ class EachColor {
     }
 
     // Returns colored string
-    public function getColoredString($string, ?string $foreground_color = null, ?string $background_color = null) {
+    public function getColoredString($string, ?string $foreground_color = null, ?string $background_color = null)
+    {
         $colored_string = "";
 
         // Check if given foreground color found
@@ -65,18 +68,20 @@ class EachColor {
         }
 
         // Add string and end coloring
-        $colored_string .=  $string . "\033[0m";
+        $colored_string .= $string . "\033[0m";
 
         return $colored_string;
     }
 
     // Returns all foreground color names
-    public function getForegroundColors() {
+    public function getForegroundColors()
+    {
         return array_keys($this->foreground_colors);
     }
 
     // Returns all background color names
-    public function getBackgroundColors() {
+    public function getBackgroundColors()
+    {
         return array_keys($this->background_colors);
     }
 }
