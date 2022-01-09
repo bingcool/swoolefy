@@ -777,7 +777,7 @@ function isDaemon()
 function showLogo()
 {
     $logo =
-        <<<LOGO
+<<<LOGO
   ______                                _           _ _ _ _
  /  ____|                              | |         |  _ _ _|  _   _
 |  (__     __      __   ___     ___    | |   ___   | |       | | | |
@@ -794,7 +794,7 @@ LOGO;
 function getDefaultConfig()
 {
     $config_content =
-        <<<EOF
+<<<EOF
 <?php
 // 应用配置
 return [
@@ -825,7 +825,7 @@ function getDefaultController()
 {
     $APP_NAME = APP_NAME;
     $controller_content =
-        <<<EOF
+<<<EOF
 <?php
 namespace {$APP_NAME}\Controller;
 
@@ -845,7 +845,8 @@ function getDefines()
 {
     $APP_NAME = APP_NAME;
     $defines_content =
-        <<<EOF
+
+<<<EOF
 <?php
 defined('APP_NAME') or define('APP_NAME', "{$APP_NAME}");
 defined('APP_PATH') or define('APP_PATH',dirname(__DIR__));
@@ -866,7 +867,7 @@ function getDefaultModel()
 {
     $APP_NAME = APP_NAME;
     $defines_content =
-        <<<EOF
+<<<EOF
 <?php
 namespace {$APP_NAME}\Model;
 
@@ -879,48 +880,18 @@ EOF;
     return $defines_content;
 }
 
-
-/**
- * +----------------------------------------------------------------------
- * | swoolefy framework bases on swoole extension development, we can use it easily!
- * +----------------------------------------------------------------------
- * | Licensed ( https://opensource.org/licenses/MIT )
- * +----------------------------------------------------------------------
- * | Author: bingcool <bingcoolhuang@gmail.com || 2437667702@qq.com>
- * +----------------------------------------------------------------------
- */
-class RunStart
+// Run Start
+function Run($callback = null)
 {
-
-    static $run_start;
-
-    private $is_run = false;
-
-    private $argv;
-
-    public static function getInstance()
-    {
-        if (!isset(self::$run_start)) {
-            self::$run_start = new self();
-        }
-        return self::$run_start;
+    $argv = SWOOLEFY_CLI_PARAMS;
+    initCheck();
+    showLogo();
+    $command = $argv[1];
+    if (is_callable($callback)) {
+        call_user_func($callback, $command);
     }
-
-    public function run($callback = null)
-    {
-        if (!$this->is_run) {
-            $this->argv = SWOOLEFY_CLI_PARAMS;
-            initCheck();
-            showLogo();
-            $command = $this->argv[1];
-            if (is_callable($callback)) {
-                call_user_func($callback, $command);
-            }
-            commandHandler();
-            $this->is_run = true;
-        }
-    }
+    commandHandler();
 }
 
-$runStart = RunStart::getInstance();
-$runStart->run();
+Run();
+
