@@ -25,10 +25,10 @@ class CrontabManager
     /**
      * @param string $cron_name
      * @param string $expression
-     * @param mixed $func
+     * @param callable|array $func
      * @throws Exception
      */
-    public function addRule(string $cron_name, string $expression, callable $func)
+    public function addRule(string $cron_name, string $expression, $func)
     {
         if (!class_exists('Cron\\CronExpression')) {
             throw new \Exception("If you want to use crontab, you need to install 'composer require dragonmantank/cron-expression' ");
@@ -57,7 +57,7 @@ class CrontabManager
                      * @var AbstractCronController $cronControllerInstance
                      */
                     $cronControllerInstance = new $class;
-                    $cronControllerInstance->runCron($expression, null, $cron_name);
+                    $cronControllerInstance->runCron($cron_name, $expression, null);
                 } catch (\Throwable $throwable) {
                     BaseServer::catchException($throwable);
                 } finally {
@@ -71,12 +71,12 @@ class CrontabManager
                         /**
                          * @inheritDoc
                          */
-                        public function doCronTask(CronExpression $cron)
+                        public function doCronTask(CronExpression $cron, string $cron_name)
                         {
                         }
                     };
 
-                    $cronControllerInstance->runCron($expression, $func, $cron_name);
+                    $cronControllerInstance->runCron($cron_name, $expression, $func);
 
                 } catch (\Throwable $throwable) {
                     BaseServer::catchException($throwable);

@@ -42,14 +42,16 @@ abstract class AbstractCronController extends ProcessController
      * @param string $cron_name
      * @return void
      */
-    public function runCron(string $expression, ?callable $func = null, string $cron_name = '')
+    public function runCron(string $cron_name, string $expression, ?callable $func = null)
     {
-        if (empty($cron_name)) {
-            throw new \Exception('cron_name empty');
-        }
         $expression_key = md5($expression);
         /**@var CronExpression $cron */
-        $cron = CronExpression::factory($expression);
+        if(method_exists('\\Cron\\CronExpression','factory')) {
+            $cron = CronExpression::factory($expression);
+        }else {
+            $cron = new CronExpression($expression);
+        }
+
         $now_time = time();
         $cron_next_datetime = strtotime($cron->getNextRunDate()->format('Y-m-d H:i:s'));
         if ($cron->isDue()) {
@@ -62,7 +64,7 @@ abstract class AbstractCronController extends ProcessController
                 if ($func instanceof \Closure) {
                     call_user_func($func, $cron_name, $expression);
                 } else {
-                    $this->doCronTask($cron);
+                    $this->doCronTask($cron, $cron_name);
                 }
                 if (!$this->isDefer()) {
                     $this->end();
@@ -83,7 +85,8 @@ abstract class AbstractCronController extends ProcessController
 
     /**
      * @param CronExpression $cron
+     * @param string $cron_name
      * @return mixed
      */
-    abstract public function doCronTask(CronExpression $cron);
+    abstract public function doCronTask(CronExpression $cron, string $cron_name);
 }

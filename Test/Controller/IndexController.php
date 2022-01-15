@@ -128,4 +128,70 @@ class IndexController extends BController {
             'list' => $list ?? []
         ]);
     }
+
+    public function testTransation()
+    {
+        /**
+         * @var \Common\Library\Db\Mysql $db
+         */
+        $db = Application::getApp()->get('db');
+
+        $db->beginTransaction();
+
+        try {
+            $db = Application::getApp()->get('db');
+            $db->createCommand("insert into tbl_order (`order_id`,`user_id`,`order_amount`,`order_product_ids`,`order_status`) values(:order_id,:user_id,:order_amount,:order_product_ids,:order_status)" )
+                ->insert([
+                    ':order_id' => time() + 5,
+                    ':user_id' => 10000,
+                    ':order_amount' => 105,
+                    ':order_product_ids' => json_encode([1,2,3,rand(1,1000)]),
+                    ':order_status' => 1
+                ]);
+
+            $rowCount = $db->getNumRows();
+
+            $db->commit();
+
+
+            go(function () {
+                (new \Swoolefy\Core\EventApp)->registerApp(function($event) {
+                    /**
+                     * @var \Common\Library\Db\Mysql $db
+                     */
+                    $db = Application::getApp()->get('db');
+                    $db->beginTransaction();
+
+                    try {
+
+                        $db->createCommand("insert into tbl_order (`order_id`,`user_id`,`order_amount`,`order_product_ids`,`order_status`) values(:order_id,:user_id,:order_amount,:order_product_ids,:order_status)" )
+                            ->insert([
+                                ':order_id' => time() + 5,
+                                ':user_id' => 10000,
+                                ':order_amount' => 105,
+                                ':order_product_ids' => json_encode([1,2,3,rand(1,1000)]),
+                                ':order_status' => 1
+                            ]);
+
+                        $db->commit();
+
+                    }catch (\Throwable $e) {
+                        $db->rollback();
+                        var_dump($e->getMessage());
+                    }
+                });
+            });
+
+        }catch (\Throwable $e)
+        {
+            $db->rollback();
+            var_dump($e->getMessage());
+            return;
+        }
+
+        $this->returnJson([
+            'num' => $rowCount
+        ]);
+
+    }
 }

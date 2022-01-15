@@ -19,10 +19,12 @@ if (!defined('APP_NAMES')) {
 
 // 定义环境
 defined('SWOOLEFY_DEV') or define('SWOOLEFY_DEV', 'dev');
+defined('SWOOLEFY_TEST') or define('SWOOLEFY_TEST','test');
 defined('SWOOLEFY_GRA') or define('SWOOLEFY_GRA', 'gra');
 defined('SWOOLEFY_PRD') or define('SWOOLEFY_PRD', 'prd');
 defined('SWOOLEFY_ENVS') or define('SWOOLEFY_ENVS', [
     SWOOLEFY_DEV,
+    SWOOLEFY_TEST,
     SWOOLEFY_GRA,
     SWOOLEFY_PRD,
 ]);
@@ -69,7 +71,7 @@ if (isset($argv[2]) && in_array(trim($argv[2]), array_keys(APP_NAMES))) {
 
 }
 
-// 判断当前环境,默认是dev(开发),gra(灰度),prd(生产)
+// 判断当前环境,默认是dev(开发),test(测试),gra(灰度),prd(生产)
 $cli_params = array_flip($argv);
 
 $cliEnv = SWOOLEFY_DEV;
@@ -82,30 +84,6 @@ foreach (SWOOLEFY_ENVS as $env) {
 }
 
 defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', $cliEnv);
-
-function IS_DEV_ENV()
-{
-    if (SWOOLEFY_ENV == SWOOLEFY_DEV) {
-        return true;
-    }
-    return false;
-}
-
-function IS_GRA_ENV()
-{
-    if (SWOOLEFY_ENV == SWOOLEFY_GRA) {
-        return true;
-    }
-    return false;
-}
-
-function IS_PRD_ENV()
-{
-    if (SWOOLEFY_ENV == SWOOLEFY_PRD) {
-        return true;
-    }
-    return false;
-}
 
 function initCheck()
 {
@@ -123,7 +101,8 @@ function initCheck()
             exit();
         }
     } catch (Exception $e) {
-        throw new Exception($e->getMessage());
+        write($e->getMessage());
+        exit();
     }
 }
 
