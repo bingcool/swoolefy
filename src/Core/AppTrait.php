@@ -659,7 +659,7 @@ trait AppTrait
         }
         if ($echo) {
             // 调试环境这个函数使用
-            if (!IS_PRD_ENV()) @$this->response->write($output);
+            if (!SystemEnv::isPrdEnv()) @$this->response->write($output);
             return null;
         } else {
             return $output;
@@ -946,7 +946,7 @@ trait AppTrait
         if (in_array($code, $http_status)) {
             $this->response->status($code);
         } else {
-            if (!IS_PRD_ENV()) {
+            if (!SystemEnv::isPrdEnv()) {
                 $this->response->write('Error: ' . $code . 'is not a standard http code');
             }
         }

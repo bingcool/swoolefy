@@ -134,7 +134,7 @@ class SwoolefyException
 
 
         // 生产环境
-        if (!IS_DEV_ENV()) {
+        if (!SystemEnv::isDevEnv()) {
             $errorMsg = $exceptionMsg;
         }
 

@@ -10,6 +10,7 @@
  */
 
 use Swoolefy\Core\Application;
+use Swoolefy\Core\SystemEnv;
 
 /**
  * dump 调试函数
@@ -42,7 +43,7 @@ function dump($var, $echo = true, $label = null, $strict = true)
     }
     if ($echo) {
         // 调试环境这个函数使用
-        if (function_exists('IS_PRD_ENV') && !IS_PRD_ENV()) {
+        if (!SystemEnv::isPrdEnv()) {
             $app = Application::getApp();
             if (is_object($app)) {
                 $app->response->header('Content-Type', 'text/html; charset=utf-8');

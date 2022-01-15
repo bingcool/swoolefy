@@ -37,7 +37,7 @@ class GoWaitGroup
      */
     public function __construct()
     {
-        $this->channel = new Channel;
+        $this->channel = new Channel(1);
     }
 
     /**
