@@ -253,7 +253,7 @@ trait ComponentTrait
     /**
      * @param string $name
      * @return mixed
-     * @throws \Exception
+     * @throws Exception
      */
     final public function get(string $name)
     {
