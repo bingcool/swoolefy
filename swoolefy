@@ -455,7 +455,7 @@ function stopServer($app_name)
     echo "1、你确定停止应用{$app_name}? (yes or no):";
 
     $lineValue = '';
-    while (ord($lineValue) == '') {
+    while ($lineValue == '') {
         $lineValue = trim(fgets(STDIN));
     }
 

@@ -120,7 +120,7 @@ class PoolsManager
                     $process->setBindWorkerId($i);
                     $this->processList[$key][$i][$j] = $process;
                     $this->processListInfo[$processName] = ['process_name' => $processName . '@' . $i . '@' . $j, 'bind_worker_num' => $i, 'process_worker_num' => $j, 'class' => $processClass];
-                } catch (\Exception $exception) {
+                } catch (\Throwable $exception) {
                     throw $exception;
                 }
             }
