@@ -134,7 +134,7 @@ class EventController extends BaseObject
      * @param callable $callback
      * @param boolean $prepend
      * @return bool
-     * @throws \Exception
+     * @throws Exception
      */
     public function afterRequest(callable $callback, bool $prepend = false)
     {

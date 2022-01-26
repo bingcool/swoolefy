@@ -21,10 +21,17 @@ class IndexController extends BController {
          */
         $log = Application::getApp()->log;
         $log->addInfo('test-log-id='.rand(1,1000),true, ['name'=>'bincool','sex'=>1,'address'=>'shenzhen']);
+        Application::getApp()->afterRequest([$this, 'afterSave']);
+
         $this->returnJson([
             'Controller' => $this->getControllerId(),
             'Action' => $this->getActionId()
         ]);
+    }
+
+    public function afterSave()
+    {
+        var_dump(__FUNCTION__);
     }
 
     public function testLog1()

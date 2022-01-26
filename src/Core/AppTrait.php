@@ -517,7 +517,7 @@ trait AppTrait
      * @param string $formatter
      * @return void
      */
-    public function returnJson(
+    protected function returnJson(
         array  $data = [],
         int    $ret = 0,
                $msg = '',
@@ -533,7 +533,7 @@ trait AppTrait
      * @param array $data
      * @param string $formatter
      */
-    public function jsonSerialize(array $data = [], string $formatter = 'json')
+    protected function jsonSerialize(array $data = [], string $formatter = 'json')
     {
         switch (strtoupper($formatter)) {
             case 'JSON':
@@ -555,6 +555,7 @@ trait AppTrait
         } else {
             $this->response->write($jsonString);
         }
+        $this->response->end();
     }
 
     /**
