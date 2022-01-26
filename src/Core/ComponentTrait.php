@@ -43,7 +43,7 @@ trait ComponentTrait
     {
         // 动态创建公用组件
         if ($com_alias_name) {
-            if (!isset($this->container[$com_alias_name])) {
+            if (!isset($this->container[$com_alias_name]) || !is_object($this->container[$com_alias_name])) {
                 if (is_array($definition) && isset($definition['class'])) {
                     $class = $definition['class'];
                     unset($definition['class']);

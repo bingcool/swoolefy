@@ -34,12 +34,12 @@ class EventApp
     /**
      * registerApp 注册事件处理应用对象，注册一次处理事件
      * 可用于onConnect, onOpen, onPipeMessage,onHandShake, onClose,onFinish这些协程回调中，每次回调都会创建一个协程
-     * 例如在close事件，App\Event\Close业务类需要继承于\Swoolefy\Core\EventController
+     * 例如在close事件，App\AbstractEventHandle\Close业务类需要继承于\Swoolefy\Core\EventController
      *
      * public function onClose($server, $fd) {
      * // 只需要注册一次就好
      *    go(function() {
-     *           (new \Swoolefy\Core\EventApp())->registerApp(\App\Event\Close::class, $server, $fd)->close();
+     *           (new \Swoolefy\Core\EventApp())->registerApp(\App\AbstractEventHandle\Close::class, $server, $fd)->close();
      *   })
      *
      * 那么处理类
@@ -54,17 +54,17 @@ class EventApp
      * //TODO
      * }
      *  }
-     *  同时go创建协程中，创建应用实例可以使用这个类注册实例，\App\Event\Gocoroutine继承于\Swoolefy\Core\EventController
+     *  同时go创建协程中，创建应用实例可以使用这个类注册实例，\App\AbstractEventHandle\Gocoroutine继承于\Swoolefy\Core\EventController
      * registerApp的第二个参数args是class的__construct参数
      *  go(function() {
-     * $app = (new \Swoolefy\Core\EventApp)->registerApp(\App\Event\Gocoroutine::class, ['name','id']);
-     * $app->test();
+     *      $app = (new \Swoolefy\Core\EventApp)->registerApp(\App\AbstractEventHandle\Gocoroutine::class, ['name','id']);
+     *      $app->test();
      * });
      * 也可以利用闭包形式,最后一个函数是传进来的闭包函数的形参,外部变量使用use引入
      * go(function() {
-     * (new \Swoolefy\Core\EventApp)->registerApp(function($event) use($name, $id) {
-     * var_dump($event); //输出EventController 实例
-     * });
+     *      (new \Swoolefy\Core\EventApp)->registerApp(function($event) use($name, $id) {
+     *          var_dump($event); //输出EventController 实例
+     *      });
      * });
      *
      * @param string|\Closure $class
