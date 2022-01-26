@@ -281,7 +281,7 @@ class Swoole extends BaseObject
      * afterRequest 请求结束后注册钩子执行操作
      * @param mixed $callback
      * @param bool $prepend
-     * @return    bool
+     * @return bool
      */
     public function afterRequest(callable $callback, bool $prepend = false)
     {
