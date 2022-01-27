@@ -86,7 +86,7 @@ class ServerManager
 
     /**
      * reload
-     * @param bool $only_reload_taskWorker 是否重启task进程，默认false
+     * @param bool $only_reload_taskWorker
      * @return bool
      */
     public function reload(bool $only_reload_taskWorker = false)
