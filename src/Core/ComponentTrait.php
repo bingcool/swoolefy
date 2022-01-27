@@ -257,13 +257,9 @@ trait ComponentTrait
      */
     final public function get(string $name)
     {
-
         $app_conf = BaseServer::getAppConf();
-
         $components = $app_conf['components'];
-
         $cid = \Swoole\Coroutine::getCid();
-
         if (isset($this->container[$name])) {
             if (is_object($this->container[$name])) {
                 $object = $this->container[$name];

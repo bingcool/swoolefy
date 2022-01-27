@@ -95,7 +95,7 @@ class BaseObject
     {
         if ($this->context) {
             $context = $this->context;
-        } else if (\Co::getCid() > 0) {
+        } else if (Coroutine::getCid() > 0) {
             $context = Coroutine::getContext();
         } else {
             $context = new ArrayObject();
