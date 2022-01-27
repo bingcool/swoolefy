@@ -269,7 +269,7 @@ class BaseServer
         $includeFiles = isset(static::$config['include_files']) ? static::$config['include_files'] : [];
         if ($includeFiles) {
             foreach ($includeFiles as $filePath) {
-                include_once $filePath;
+                include $filePath;
             }
         }
     }
