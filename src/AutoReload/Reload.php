@@ -93,9 +93,7 @@ class Reload
             if (!$events) {
                 return;
             }
-            /**
-             * 只要检测到一个文件改动，则停止其余文件的判断，等待时间重启即可
-             */
+            //只要检测到一个文件改动，则停止其余文件的判断，等待时间重启即可
             if (!$this->reloading) {
                 foreach ($events as $ev) {
                     if ($ev['mask'] == IN_IGNORED) {
@@ -107,9 +105,7 @@ class Reload
                             continue;
                         }
                     }
-                    /**
-                     * 正在reload，不再接受任何事件，冻结10秒
-                     */
+                    //正在reload，不再接受任何事件，冻结10秒
                     if (!$this->reloading) {
                         \Swoole\Timer::after($this->afterSeconds * 1000, [$this, 'reload']);
                         $this->reloading = true;

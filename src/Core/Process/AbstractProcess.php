@@ -252,7 +252,6 @@ abstract class AbstractProcess
                 $channel->pop(-1);
                 $channel->close();
             }
-
         }
     }
 

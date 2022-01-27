@@ -9,9 +9,9 @@
  * +----------------------------------------------------------------------
  */
 
-// 加载常量定义，根据自己项目实际路径记载
+// 加载常量定义，根据项目实际路径加载
 include_once START_DIR_ROOT . '/' . APP_NAME . '/Config/defines.php';
-// 加载应用层协议,根据自己项目实际路径记载
+// 加载应用层协议,根据项目实际路径加载
 $app_config = include_once START_DIR_ROOT . '/' . APP_NAME . '/Config/config-' . SWOOLEFY_ENV . '.php';
 
 // mqttServer配置

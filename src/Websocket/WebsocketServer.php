@@ -137,7 +137,7 @@ abstract class WebsocketServer extends BaseServer
         /**
          * 自定义handshake,如果子类设置了onHandshake()，函数中必须要"自定义"握手过程,否则将不会建立websockdet连接
          */
-        if (method_exists($this, 'onHandshake')) {
+        if (method_exists(static::class, 'onHandshake')) {
             $this->webServer->on('handshake', function (Request $request, Response $response) {
                 try {
                     // 自定义handshake函数

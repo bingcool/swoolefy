@@ -38,9 +38,9 @@ class EventApp
      *
      * public function onClose($server, $fd) {
      * // 只需要注册一次就好
-     *    go(function() {
-     *           (new \Swoolefy\Core\EventApp())->registerApp(\App\AbstractEventHandle\Close::class, $server, $fd)->close();
-     *   })
+     * go(function() {
+     *      (new \Swoolefy\Core\EventApp())->registerApp(\App\AbstractEventHandle\Close::class, $server, $fd)->close();
+     * })
      *
      * 那么处理类
      * class Close extends EventController {
