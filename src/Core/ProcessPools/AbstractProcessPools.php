@@ -29,7 +29,7 @@ abstract class AbstractProcessPools
     /**
      * @var string
      */
-    private $process_name;
+    private $processName;
 
     /**
      * @var bool|null
@@ -44,22 +44,22 @@ abstract class AbstractProcessPools
     /**
      * @var mixed|null
      */
-    private $extend_data;
+    private $extendData;
 
     /**
      * @var int
      */
-    private $bind_worker_id = null;
+    private $bindWorkerId = null;
 
     /**
      * @var bool
      */
-    private $enable_coroutine = true;
+    private $enableCoroutine = true;
 
     /**
      * @var bool
      */
-    private $is_exiting = false;
+    private $isExiting = false;
 
     /**
      * kill reboot flag
@@ -84,10 +84,10 @@ abstract class AbstractProcessPools
     {
         $this->async = $async;
         $this->args = $args;
-        $this->extend_data = $extend_data;
-        $this->process_name = $process_name;
-        $this->enable_coroutine = true;
-        $this->swooleProcess = new \Swoole\Process([$this, '__start'], false, 2, $this->enable_coroutine);
+        $this->extendData = $extend_data;
+        $this->processName = $process_name;
+        $this->enableCoroutine = true;
+        $this->swooleProcess = new \Swoole\Process([$this, '__start'], false, 2, $this->enableCoroutine);
         Swfy::getServer()->addProcess($this->swooleProcess);
     }
 
@@ -106,7 +106,7 @@ abstract class AbstractProcessPools
      */
     public function getPid()
     {
-        $pid = TableManager::getTable('table_process_pools_map')->get(md5($this->process_name), 'pid');
+        $pid = TableManager::getTable('table_process_pools_map')->get(md5($this->processName), 'pid');
         if ($pid) {
             return $pid;
         }
@@ -128,7 +128,7 @@ abstract class AbstractProcessPools
      */
     public function setBindWorkerId(int $worker_id)
     {
-        $this->bind_worker_id = $worker_id;
+        $this->bindWorkerId = $worker_id;
     }
 
     /**
@@ -137,7 +137,7 @@ abstract class AbstractProcessPools
      */
     public function getBindWorkerId()
     {
-        return $this->bind_worker_id;
+        return $this->bindWorkerId;
     }
 
     /**
@@ -148,14 +148,18 @@ abstract class AbstractProcessPools
     public function __start(Process $process)
     {
         TableManager::getTable('table_process_pools_map')->set(
-            md5($this->process_name), ['pid' => $this->swooleProcess->pid, 'process_name' => $this->process_name]
+            md5($this->processName), ['pid' => $this->swooleProcess->pid, 'process_name' => $this->processName]
         );
         if (extension_loaded('pcntl')) {
             pcntl_async_signals(true);
         }
 
         Process::signal(SIGTERM, function () use ($process) {
-            TableManager::getTable('table_process_pools_map')->del(md5($this->process_name));
+            // destroy
+            if (method_exists(static::class, '__destruct') && version_compare(phpversion(), '8.0.0', '>=') ) {
+                $this->__destruct();
+            }
+            TableManager::getTable('table_process_pools_map')->del(md5($this->processName));
             \Swoole\Event::del($process->pipe);
             \Swoole\Event::exit();
             $this->swooleProcess->exit(0);
@@ -182,7 +186,7 @@ abstract class AbstractProcessPools
             });
         }
 
-        $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'php-swoolefy-user-process-worker' . $this->bind_worker_id . ':' . $this->getProcessName(true));
+        $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'php-swoolefy-user-process-worker' . $this->bindWorkerId . ':' . $this->getProcessName(true));
         try {
             (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
                 $this->init();
@@ -207,7 +211,7 @@ abstract class AbstractProcessPools
      */
     public function getExtendData()
     {
-        return $this->extend_data;
+        return $this->extendData;
     }
 
     /**
@@ -218,10 +222,10 @@ abstract class AbstractProcessPools
     public function getProcessName(bool $is_full_name = false)
     {
         if (!$is_full_name) {
-            list($process_name, $worker_id, $process_num) = explode('@', $this->process_name);
-            return $process_name;
+            list($processName, $worker_id, $process_num) = explode('@', $this->processName);
+            return $processName;
         }
-        return $this->process_name;
+        return $this->processName;
     }
 
     /**
@@ -230,7 +234,7 @@ abstract class AbstractProcessPools
      */
     public function isEnableCoroutine()
     {
-        return $this->enable_coroutine;
+        return $this->enableCoroutine;
     }
 
     /**
@@ -247,7 +251,7 @@ abstract class AbstractProcessPools
             throw new \Exception('Param of msg can not be null or empty');
         }
         if ($worker_id == null) {
-            $worker_id = $this->bind_worker_id;
+            $worker_id = $this->bindWorkerId;
         }
         return Swfy::getServer()->sendMessage($msg, $worker_id);
     }
@@ -269,8 +273,8 @@ abstract class AbstractProcessPools
      */
     public function reboot()
     {
-        if (!$this->is_exiting) {
-            $this->is_exiting = true;
+        if (!$this->isExiting) {
+            $this->isExiting = true;
             $channel = new Channel(1);
             \Swoole\Coroutine::create(function () {
                 try {
@@ -296,7 +300,7 @@ abstract class AbstractProcessPools
      */
     public function isExiting()
     {
-        return $this->is_exiting;
+        return $this->isExiting;
     }
 
     /**
