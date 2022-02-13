@@ -22,7 +22,7 @@ class ProcessManager
 
     const PROCESS_NUM = 1024;
 
-    private $table_process = [
+    private $tableProcess = [
         // 进程内存表
         'table_process_map' => [
             // 内存表建立的行数,取决于建立的process进程数，默认最小值64
@@ -49,7 +49,7 @@ class ProcessManager
      */
     private function __construct()
     {
-        TableManager::getInstance()->createTable($this->table_process);
+        TableManager::getInstance()->createTable($this->tableProcess);
     }
 
     /**
@@ -78,7 +78,7 @@ class ProcessManager
         }
 
         if (!TableManager::isExistTable('table_process_map')) {
-            TableManager::getInstance()->createTable($this->table_process);
+            TableManager::getInstance()->createTable($this->tableProcess);
         }
 
         try {

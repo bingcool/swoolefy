@@ -238,15 +238,15 @@ class App extends \Swoolefy\Core\Component
      */
     public function pushComponentPools()
     {
-        if (empty($this->component_pools) || empty($this->component_pools_obj_ids)) {
+        if (empty($this->componentPools) || empty($this->componentPoolsObjIds)) {
             return false;
         }
-        foreach ($this->component_pools as $name) {
+        foreach ($this->componentPools as $name) {
             if (isset($this->container[$name])) {
                 $obj = $this->container[$name];
                 if (is_object($obj)) {
                     $obj_id = spl_object_id($obj);
-                    if (in_array($obj_id, $this->component_pools_obj_ids)) {
+                    if (in_array($obj_id, $this->componentPoolsObjIds)) {
                         CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
                     }
                 }

@@ -21,13 +21,13 @@ abstract class AbstractCronController extends ProcessController
      * $cron_next_datetime 定时任务下一次执行时间
      * @var array
      */
-    protected static $cron_next_datetime = [];
+    protected static $cronNextDatetime = [];
 
     /**
      * $offset_second 偏差时间1s
      * @var integer
      */
-    protected static $offset_second = 1;
+    protected static $offsetSecond = 1;
 
     /**
      * $expression
@@ -55,12 +55,12 @@ abstract class AbstractCronController extends ProcessController
         $now_time = time();
         $cron_next_datetime = strtotime($cron->getNextRunDate()->format('Y-m-d H:i:s'));
         if ($cron->isDue()) {
-            if (!isset(static::$cron_next_datetime[$cron_name][$expression_key])) {
+            if (!isset(static::$cronNextDatetime[$cron_name][$expression_key])) {
                 static::$expression[$cron_name][$expression_key] = $expression;
-                static::$cron_next_datetime[$cron_name][$expression_key] = $cron_next_datetime;
+                static::$cronNextDatetime[$cron_name][$expression_key] = $cron_next_datetime;
             }
-            if (($now_time >= static::$cron_next_datetime[$cron_name][$expression_key] && $now_time < ($cron_next_datetime - static::$offset_second))) {
-                static::$cron_next_datetime[$cron_name][$expression_key] = $cron_next_datetime;
+            if (($now_time >= static::$cronNextDatetime[$cron_name][$expression_key] && $now_time < ($cron_next_datetime - static::$offsetSecond))) {
+                static::$cronNextDatetime[$cron_name][$expression_key] = $cron_next_datetime;
                 if ($func instanceof \Closure) {
                     call_user_func($func, $cron_name, $expression);
                 } else {
@@ -72,15 +72,15 @@ abstract class AbstractCronController extends ProcessController
             }
 
             // 防止万一出现的异常出现，比如没有命中任务， 19:05:00要命中的，由于其他网络或者服务器其他原因，阻塞了,造成延迟，现在时间已经到了19::05:05
-            if ($now_time > static::$cron_next_datetime[$cron_name][$expression_key] || $now_time >= $cron_next_datetime) {
-                static::$cron_next_datetime[$cron_name][$expression_key] = $cron_next_datetime;
+            if ($now_time > static::$cronNextDatetime[$cron_name][$expression_key] || $now_time >= $cron_next_datetime) {
+                static::$cronNextDatetime[$cron_name][$expression_key] = $cron_next_datetime;
             }
         }
     }
 
     public function getOffsetSecond()
     {
-        return static::$offset_second;
+        return static::$offsetSecond;
     }
 
     /**

@@ -35,13 +35,13 @@ class Swoole extends BaseObject
      * $mixed_params rpc,udp,websocket传递的参数寄存属性
      * @var mixed
      */
-    protected $mixed_params;
+    protected $mixedParams;
 
     /**
      * $rpc_pack_header rpc的包头数据
      * @var array
      */
-    protected $rpc_pack_header = [];
+    protected $rpcPackHeader = [];
 
     /**
      * $is_defer
@@ -162,7 +162,7 @@ class Swoole extends BaseObject
      */
     public function setMixedParams($mixed_params)
     {
-        $this->mixed_params = $mixed_params;
+        $this->mixedParams = $mixed_params;
     }
 
     /**
@@ -170,7 +170,7 @@ class Swoole extends BaseObject
      */
     public function setRpcPackHeader(array $rpc_pack_header)
     {
-        $this->rpc_pack_header = $rpc_pack_header;
+        $this->rpcPackHeader = $rpc_pack_header;
     }
 
     /**
@@ -178,7 +178,7 @@ class Swoole extends BaseObject
      */
     public function getMixedParams()
     {
-        return $this->mixed_params;
+        return $this->mixedParams;
     }
 
     /**
@@ -203,7 +203,7 @@ class Swoole extends BaseObject
         if (!BaseServer::isRpcApp()) {
             throw new \Exception(sprintf("%s::getRpcPackHeader() method only can be called by TCP or RPC server!, because only rpc have pack setting", __CLASS__));
         }
-        return $this->rpc_pack_header;
+        return $this->rpcPackHeader;
 
     }
 
@@ -221,7 +221,7 @@ class Swoole extends BaseObject
             throw new \Exception(sprintf("%s::getRpcPackBodyParams() method only can be called by TCP or RPC server!, because only rpc have pack setting", __CLASS__));
         }
 
-        return $this->mixed_params;
+        return $this->mixedParams;
     }
 
     /**
@@ -239,7 +239,7 @@ class Swoole extends BaseObject
             throw new \Exception(sprintf("%s::getUdpData() method only can be called by UDP server", __CLASS__));
         }
 
-        return $this->mixed_params;
+        return $this->mixedParams;
     }
 
     /**
@@ -257,7 +257,7 @@ class Swoole extends BaseObject
             throw new \Exception(sprintf("%s::getWebsocketMsg() method only can be called by WEBSOCKET server", __CLASS__));
         }
 
-        return $this->mixed_params;
+        return $this->mixedParams;
     }
 
     /**
@@ -294,15 +294,15 @@ class Swoole extends BaseObject
      */
     public function pushComponentPools()
     {
-        if (empty($this->component_pools) || empty($this->component_pools_obj_ids)) {
+        if (empty($this->componentPools) || empty($this->componentPoolsObjIds)) {
             return false;
         }
-        foreach ($this->component_pools as $name) {
+        foreach ($this->componentPools as $name) {
             if (isset($this->container[$name])) {
                 $obj = $this->container[$name];
                 if (is_object($obj)) {
                     $obj_id = spl_object_id($obj);
-                    if (in_array($obj_id, $this->component_pools_obj_ids)) {
+                    if (in_array($obj_id, $this->componentPoolsObjIds)) {
                         CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
                     }
                 }
