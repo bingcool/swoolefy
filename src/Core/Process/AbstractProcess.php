@@ -44,17 +44,17 @@ abstract class AbstractProcess
     /**
      * @var null
      */
-    private $extend_data;
+    private $extendData;
 
     /**
      * @var bool
      */
-    private $enable_coroutine = true;
+    private $enableCoroutine = true;
 
     /**
      * @var bool
      */
-    private $is_exiting = false;
+    private $isExiting = false;
 
     /**
      * kill reboot flag
@@ -79,10 +79,10 @@ abstract class AbstractProcess
     {
         $this->async = $async;
         $this->args = $args;
-        $this->extend_data = $extend_data;
+        $this->extendData = $extend_data;
         $this->processName = $processName;
-        $this->enable_coroutine = true;
-        $this->swooleProcess = new \Swoole\Process([$this, '__start'], false, 2, $this->enable_coroutine);
+        $this->enableCoroutine = true;
+        $this->swooleProcess = new \Swoole\Process([$this, '__start'], false, 2, $this->enableCoroutine);
         Swfy::getServer()->addProcess($this->swooleProcess);
     }
 
@@ -93,6 +93,7 @@ abstract class AbstractProcess
      */
     public function __start(Process $process)
     {
+        $this->installRegisterShutdownFunction();
         TableManager::getTable('table_process_map')->set(
             md5($this->processName), ['pid' => $this->swooleProcess->pid]
         );
@@ -102,6 +103,10 @@ abstract class AbstractProcess
         }
 
         Process::signal(SIGTERM, function () use ($process) {
+            // destroy
+            if (method_exists(static::class, '__destruct') && version_compare(phpversion(), '8.0.0', '>=') ) {
+                $this->__destruct();
+            }
             TableManager::getTable('table_process_map')->del(md5($this->processName));
             \Swoole\Event::del($process->pipe);
             \Swoole\Event::exit();
@@ -156,7 +161,7 @@ abstract class AbstractProcess
      */
     public function getExtendData()
     {
-        return $this->extend_data;
+        return $this->extendData;
     }
 
     /**
@@ -203,7 +208,7 @@ abstract class AbstractProcess
      */
     public function isEnableCoroutine()
     {
-        return $this->enable_coroutine;
+        return $this->enableCoroutine;
     }
 
     /**
@@ -233,8 +238,8 @@ abstract class AbstractProcess
      */
     public function reboot()
     {
-        if (!$this->is_exiting) {
-            $this->is_exiting = true;
+        if (!$this->isExiting) {
+            $this->isExiting = true;
             $channel = new Channel(1);
             \Swoole\Coroutine::create(function () {
                 try {
@@ -252,7 +257,6 @@ abstract class AbstractProcess
                 $channel->pop(-1);
                 $channel->close();
             }
-
         }
     }
 
@@ -261,7 +265,7 @@ abstract class AbstractProcess
      */
     public function isExiting()
     {
-        return $this->is_exiting;
+        return $this->isExiting;
     }
 
     /**
@@ -280,8 +284,8 @@ abstract class AbstractProcess
      */
     public function getCurrentCoroutineLastCid()
     {
-        $coroutine_info = \Swoole\Coroutine::stats();
-        return $coroutine_info['coroutine_last_cid'] ?? null;
+        $coroutineInfo = \Swoole\Coroutine::stats();
+        return $coroutineInfo['coroutine_last_cid'] ?? null;
     }
 
     /**
@@ -305,6 +309,29 @@ abstract class AbstractProcess
                 break;
             }
         }
+    }
+
+    /**
+     * catch out of memory
+     *
+     * installRegisterShutdownFunction
+     */
+    protected function installRegisterShutdownFunction()
+    {
+        register_shutdown_function(function () {
+            $error = error_get_last();
+            if(null !== $error) {
+                $errorStr = sprintf("%s in file %s on line %d",
+                    $error['message'],
+                    $error['file'],
+                    $error['line']
+                );
+                if(!in_array($error['type'], [E_NOTICE, E_WARNING]) ) {
+                    $exception = new \Exception($errorStr, $error['type']);
+                    BaseServer::catchException($exception);
+                }
+            }
+        });
     }
 
     /**

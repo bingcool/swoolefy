@@ -269,7 +269,7 @@ class BaseServer
         $includeFiles = isset(static::$config['include_files']) ? static::$config['include_files'] : [];
         if ($includeFiles) {
             foreach ($includeFiles as $filePath) {
-                include_once $filePath;
+                include $filePath;
             }
         }
     }
@@ -685,11 +685,9 @@ class BaseServer
     {
         if (version_compare(swoole_version(), '4.2.0', '>')) {
             self::$isEnableCoroutine = true;
-            return;
         } else {
             // 低于4.0版本不能使用协程
             self::$isEnableCoroutine = false;
-            return;
         }
     }
 

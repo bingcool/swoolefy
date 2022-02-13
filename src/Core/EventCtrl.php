@@ -61,7 +61,7 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface
      */
     public function workerStart($server, $worker_id)
     {
-        $this->buildComponentPools();
+        $this->registerComponentPools();
         static::onWorkerStart($server, $worker_id);
     }
 
@@ -124,7 +124,7 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface
      *
      * @throws mixed
      */
-    protected function buildComponentPools()
+    protected function registerComponentPools()
     {
         $app_conf = BaseServer::getAppConf();
         if (isset($app_conf['enable_component_pools']) && is_array($app_conf['enable_component_pools']) && !empty($app_conf['enable_component_pools'])) {
