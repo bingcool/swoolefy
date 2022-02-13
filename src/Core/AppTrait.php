@@ -599,7 +599,7 @@ trait AppTrait
     public function redirect(string $url, array $params = [], int $httpStatus = 301)
     {
         $queryString = '';
-        trim($url);
+        $url = trim($url);
         if (strncmp($url, '//', 2) && strpos($url, '://') === false) {
             if (strpos($url, '/') != 0) {
                 $url = '/' . $url;

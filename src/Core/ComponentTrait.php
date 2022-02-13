@@ -24,13 +24,13 @@ trait ComponentTrait
      * $pools_component 需要创建进程池的组件
      * @var array
      */
-    protected $component_pools = [];
+    protected $componentPools = [];
 
     /**
      * $component_pools_obj_ids 进程池的组件对象id,区分非来自进程池的组件,因为来自进程的组件不能push到进程池，否则会污染
      * @var array
      */
-    protected $component_pools_obj_ids = [];
+    protected $componentPoolsObjIds = [];
 
     /**
      * creatObject 创建组件对象
@@ -43,7 +43,7 @@ trait ComponentTrait
     {
         // 动态创建公用组件
         if ($com_alias_name) {
-            if (!isset($this->container[$com_alias_name])) {
+            if (!isset($this->container[$com_alias_name]) || !is_object($this->container[$com_alias_name])) {
                 if (is_array($definition) && isset($definition['class'])) {
                     $class = $definition['class'];
                     unset($definition['class']);
@@ -247,7 +247,7 @@ trait ComponentTrait
      */
     public function getOpenPoolsOfComponent()
     {
-        return $this->component_pools ?? [];
+        return $this->componentPools ?? [];
     }
 
     /**
@@ -257,13 +257,9 @@ trait ComponentTrait
      */
     final public function get(string $name)
     {
-
         $app_conf = BaseServer::getAppConf();
-
         $components = $app_conf['components'];
-
         $cid = \Swoole\Coroutine::getCid();
-
         if (isset($this->container[$name])) {
             if (is_object($this->container[$name])) {
                 $object = $this->container[$name];
@@ -288,16 +284,16 @@ trait ComponentTrait
             return $this->creatObject($name, $components[$name]);
         }
 
-        if (empty($this->component_pools)) {
+        if (empty($this->componentPools)) {
             if (isset($app_conf['enable_component_pools']) && is_array($app_conf['enable_component_pools']) && !empty($app_conf['enable_component_pools'])) {
-                $enable_component_pools = array_keys($app_conf['enable_component_pools']);
-                $this->component_pools = $enable_component_pools;
+                $enableComponentPools = array_keys($app_conf['enable_component_pools']);
+                $this->componentPools = $enableComponentPools;
             }
         }
 
         if (array_key_exists($name, $components)) {
             // mysql|redis进程池中直接赋值
-            if (in_array($name, $this->component_pools) && $cid > 0) {
+            if (in_array($name, $this->componentPools) && $cid > 0) {
                 /** @var \Swoolefy\Core\Coroutine\PoolsHandler $poolHandler */
                 $poolHandler = \Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->getPool($name);
                 if (is_object($poolHandler)) {
@@ -306,8 +302,8 @@ trait ComponentTrait
                 // 若没有设置进程池处理实例，则降级到创建实例模式
                 if (isset($this->container[$name]) && is_object($this->container[$name])) {
                     $obj_id = spl_object_id($this->container[$name]);
-                    if (!in_array($obj_id, $this->component_pools_obj_ids)) {
-                        array_push($this->component_pools_obj_ids, $obj_id);
+                    if (!in_array($obj_id, $this->componentPoolsObjIds)) {
+                        array_push($this->componentPoolsObjIds, $obj_id);
                     }
                     return $this->container[$name];
                 }

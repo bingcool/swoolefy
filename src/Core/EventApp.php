@@ -23,24 +23,24 @@ class EventApp
      * $event_app 事件处理应用对象
      * @var EventController
      */
-    protected $event_app;
+    protected $eventApp;
 
     /**
      * $is_call 单例是否已调用执行函数，只能调用一次执行函数，即单例只能有一个入口执行函数
      * @var boolean
      */
-    protected $is_call = false;
+    protected $isCall = false;
 
     /**
      * registerApp 注册事件处理应用对象，注册一次处理事件
      * 可用于onConnect, onOpen, onPipeMessage,onHandShake, onClose,onFinish这些协程回调中，每次回调都会创建一个协程
-     * 例如在close事件，App\Event\Close业务类需要继承于\Swoolefy\Core\EventController
+     * 例如在close事件，App\AbstractEventHandle\Close业务类需要继承于\Swoolefy\Core\EventController
      *
      * public function onClose($server, $fd) {
      * // 只需要注册一次就好
-     *    go(function() {
-     *           (new \Swoolefy\Core\EventApp())->registerApp(\App\Event\Close::class, $server, $fd)->close();
-     *   })
+     * go(function() {
+     *      (new \Swoolefy\Core\EventApp())->registerApp(\App\AbstractEventHandle\Close::class, $server, $fd)->close();
+     * })
      *
      * 那么处理类
      * class Close extends EventController {
@@ -54,17 +54,17 @@ class EventApp
      * //TODO
      * }
      *  }
-     *  同时go创建协程中，创建应用实例可以使用这个类注册实例，\App\Event\Gocoroutine继承于\Swoolefy\Core\EventController
+     *  同时go创建协程中，创建应用实例可以使用这个类注册实例，\App\AbstractEventHandle\Gocoroutine继承于\Swoolefy\Core\EventController
      * registerApp的第二个参数args是class的__construct参数
      *  go(function() {
-     * $app = (new \Swoolefy\Core\EventApp)->registerApp(\App\Event\Gocoroutine::class, ['name','id']);
-     * $app->test();
+     *      $app = (new \Swoolefy\Core\EventApp)->registerApp(\App\AbstractEventHandle\Gocoroutine::class, ['name','id']);
+     *      $app->test();
      * });
      * 也可以利用闭包形式,最后一个函数是传进来的闭包函数的形参,外部变量使用use引入
      * go(function() {
-     * (new \Swoolefy\Core\EventApp)->registerApp(function($event) use($name, $id) {
-     * var_dump($event); //输出EventController 实例
-     * });
+     *      (new \Swoolefy\Core\EventApp)->registerApp(function($event) use($name, $id) {
+     *          var_dump($event); //输出EventController 实例
+     *      });
      * });
      *
      * @param string|\Closure $class
@@ -79,29 +79,29 @@ class EventApp
                 /**
                  * @var EventController $event_app
                  */
-                $this->event_app = new EventController(...$args);;
-                call_user_func($class, $this->event_app);
+                $this->eventApp = new EventController(...$args);;
+                call_user_func($class, $this->eventApp);
 
             } catch (\Exception | \Throwable $throwable) {
                 BaseServer::catchException($throwable);
             } finally {
-                if (is_object($this->event_app) && !$this->event_app->isDefer()) {
-                    $this->event_app->end();
+                if (is_object($this->eventApp) && !$this->eventApp->isDefer()) {
+                    $this->eventApp->end();
                 }
             }
         } else {
             do {
                 if (is_string($class)) {
-                    $this->event_app = new $class(...$args);
+                    $this->eventApp = new $class(...$args);
                 } else if (is_object($class)) {
-                    $this->event_app = $class;
+                    $this->eventApp = $class;
                 }
                 break;
             } while (0);
 
-            if (!($this->event_app instanceof EventController)) {
-                $class_name = get_class($this->event_app);
-                unset($this->event_app);
+            if (!($this->eventApp instanceof EventController)) {
+                $class_name = get_class($this->eventApp);
+                unset($this->eventApp);
                 throw new \Exception(sprintf("%s must extends \Swoolefy\Core\EventController, please check it", $class_name));
             }
         }
@@ -115,7 +115,7 @@ class EventApp
      */
     public function getCid()
     {
-        return $this->event_app->getCid();
+        return $this->eventApp->getCid();
     }
 
     /**
@@ -123,7 +123,7 @@ class EventApp
      */
     public function getEventApp()
     {
-        return $this->event_app;
+        return $this->eventApp;
     }
 
     /**
@@ -137,19 +137,19 @@ class EventApp
     public function __call(string $action, array $args = [])
     {
         try {
-            if ($this->is_call && \Swoole\Coroutine::getCid() > 0) {
-                $class_name = get_class($this->event_app);
+            if ($this->isCall && \Swoole\Coroutine::getCid() > 0) {
+                $class_name = get_class($this->eventApp);
                 throw new \Exception(sprintf("%s Single Coroutine Instance only be called one method, you had called", $class_name));
             }
 
             try {
-                $this->is_call = true;
-                return $this->event_app->$action(...$args);
+                $this->isCall = true;
+                return $this->eventApp->$action(...$args);
             } catch (\Throwable $throwable) {
                 throw $throwable;
             } finally {
-                if (is_object($this->event_app) && !$this->event_app->isDefer()) {
-                    $this->event_app->end();
+                if (is_object($this->eventApp) && !$this->eventApp->isDefer()) {
+                    $this->eventApp->end();
                 }
             }
         } catch (\Throwable $throwable) {
@@ -163,9 +163,9 @@ class EventApp
     public function __destruct()
     {
         $cid = null;
-        if (is_object($this->event_app) && $this->event_app instanceof EventController) {
-            $cid = $this->event_app->getCid();
-            unset($this->event_app);
+        if (is_object($this->eventApp) && $this->eventApp instanceof EventController) {
+            $cid = $this->eventApp->getCid();
+            unset($this->eventApp);
         }
         Application::removeApp($cid);
     }

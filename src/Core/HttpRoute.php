@@ -56,44 +56,45 @@ class HttpRoute extends AppDispatch
      * $require_uri 请求的url
      * @var string
      */
-    protected $require_uri = null;
+    protected $requireUri = null;
 
     /**
      * $extend_data 额外请求数据
      * @var null
      */
-    protected $extend_data = null;
+    protected $extendData = null;
 
     /**
      * @var string 控制器后缀
      */
-    private $controller_suffix = 'Controller';
+    private $controllerSuffix = 'Controller';
 
     /**
      * $default_route
      * @var string
      */
-    private $default_route = 'Index/index';
+    private $defaultRoute = 'Index/index';
 
     /**
      * action前缀
      * @var string
      */
-    private $action_prefix = 'action';
+    private $actionPrefix = 'action';
 
     /**
      * @var array
      */
-    protected $action_params = [];
+    protected $actionParams = [];
 
     /**
      * $deny_actions
      * @var array
      */
-    protected static $deny_actions = ['__construct', '_beforeAction', '_afterAction', '__destruct'];
+    protected static $denyActions = ['__construct', '_beforeAction', '_afterAction', '__destruct'];
 
     /**
      * __construct
+     * @param mixed $extend_data
      */
     public function __construct($extend_data = null)
     {
@@ -102,8 +103,8 @@ class HttpRoute extends AppDispatch
         $this->request = $this->app->request;
         $this->response = $this->app->response;
         $this->app_conf = $this->app->app_conf;
-        $this->require_uri = $this->request->server['PATH_INFO'];
-        $this->extend_data = $extend_data;
+        $this->requireUri = $this->request->server['PATH_INFO'];
+        $this->extendData = $extend_data;
     }
 
     /**
@@ -118,14 +119,14 @@ class HttpRoute extends AppDispatch
         }
 
         if ($this->app_conf['route_model'] == self::ROUTE_MODEL_PATHINFO) {
-            if ($this->require_uri == '/' || $this->require_uri == '//') {
+            if ($this->requireUri == '/' || $this->requireUri == '//') {
                 if (isset($this->app_conf['default_route']) && !empty($this->app_conf['default_route'])) {
-                    $this->require_uri = '/' . trim($this->app_conf['default_route'], '/');
+                    $this->requireUri = '/' . trim($this->app_conf['default_route'], '/');
                 } else {
-                    $this->require_uri = '/' . $this->default_route;
+                    $this->requireUri = '/' . $this->defaultRoute;
                 }
             }
-            $route_uri = trim($this->require_uri, '/');
+            $route_uri = trim($this->requireUri, '/');
             if ($route_uri) {
                 $route_params = explode('/', $route_uri);
                 $count = count($route_params);
@@ -151,18 +152,18 @@ class HttpRoute extends AppDispatch
             $controller = $this->request->get['c'] ?? 'Index';
             $action = $this->request->get['t'] ?? 'index';
             if ($module) {
-                $this->require_uri = DIRECTORY_SEPARATOR . $module . DIRECTORY_SEPARATOR . $controller . DIRECTORY_SEPARATOR . $action;
+                $this->requireUri = DIRECTORY_SEPARATOR . $module . DIRECTORY_SEPARATOR . $controller . DIRECTORY_SEPARATOR . $action;
             } else {
-                $this->require_uri = DIRECTORY_SEPARATOR . $controller . DIRECTORY_SEPARATOR . $action;
+                $this->requireUri = DIRECTORY_SEPARATOR . $controller . DIRECTORY_SEPARATOR . $action;
             }
         }
         // reset route
-        $this->request->server['ROUTE'] = $this->require_uri;
+        $this->request->server['ROUTE'] = $this->requireUri;
         // route params array attach to server
         $this->request->server['ROUTE_PARAMS'] = [];
         // forbidden call action
-        if (in_array($action, self::$deny_actions)) {
-            $errorMsg = "{$controller}::{$action} is not allow access action ||| " . $this->require_uri;
+        if (in_array($action, static::$denyActions)) {
+            $errorMsg = "{$controller}::{$action} is not allow access action ||| " . $this->requireUri;
             throw new \RuntimeException($errorMsg, 403);
         }
         if ($module) {
@@ -229,7 +230,7 @@ class HttpRoute extends AppDispatch
         // invoke _beforeAction
         $isContinueAction = $controllerInstance->_beforeAction($action);
         if (isset($this->app_conf['enable_action_prefix']) && $this->app_conf['enable_action_prefix']) {
-            $targetAction = $this->action_prefix . ucfirst($action);
+            $targetAction = $this->actionPrefix . ucfirst($action);
         } else {
             $targetAction = $action;
         }
@@ -294,7 +295,7 @@ class HttpRoute extends AppDispatch
             }
             // reset NotFound class route
             $this->request->server['ROUTE'] = '/' . $controller . '/' . $action;
-            $class = trim(str_replace('/', '\\', $namespace . $this->controller_suffix), '/');
+            $class = trim(str_replace('/', '\\', $namespace . $this->controllerSuffix), '/');
             return [$class, $action];
         }
     }
@@ -305,7 +306,7 @@ class HttpRoute extends AppDispatch
      */
     protected function buildControllerClass(string $controller)
     {
-        return $controller . $this->controller_suffix;
+        return $controller . $this->controllerSuffix;
     }
 
     /**
@@ -409,7 +410,7 @@ class HttpRoute extends AppDispatch
             throw new \InvalidArgumentException("Missing required parameters of name : " . implode(', ', $missing) . '|||' . $this->request->server['REQUEST_URI'] . '|||' . json_encode($actionParams, JSON_UNESCAPED_UNICODE));
         }
 
-        $this->action_params = $actionParams;
+        $this->actionParams = $actionParams;
 
         return [$method, $args];
     }

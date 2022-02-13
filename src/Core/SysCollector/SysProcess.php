@@ -235,7 +235,7 @@ class SysProcess extends AbstractProcess
         }
         if ($data) {
             $message = json_encode($data, JSON_UNESCAPED_UNICODE);
-            @file_put_contents($file_path, $message . "\r\n", FILE_APPEND);
+            @file_put_contents($file_path, $message . PHP_EOL, FILE_APPEND);
         }
     }
 
