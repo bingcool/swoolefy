@@ -555,6 +555,9 @@ trait AppTrait
         } else {
             $this->response->write($jsonString);
         }
+        if(is_object(Application::getApp())) {
+            Application::getApp()->setEnd();
+        }
         $this->response->end();
     }
 
