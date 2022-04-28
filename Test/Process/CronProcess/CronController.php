@@ -10,10 +10,9 @@ class CronController extends AbstractCronController {
     /**
      * @inheritDoc
      */
-    public function doCronTask(CronExpression $cron)
+    public function doCronTask(CronExpression $cron, string $cron_name)
     {
         $expression = $cron->getExpression();
-
         $redis = Application::getApp()->get('redis');
         $redis->set('key','key-id='.rand(1,1000));
         $keyValue = $redis->get('key');

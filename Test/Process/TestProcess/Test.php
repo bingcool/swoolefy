@@ -16,11 +16,11 @@ class Test extends AbstractProcess
         while (true)
         {
             try {
-                $cid = \Co::getCid();
+                $cid = \Swoole\Coroutine::getCid();
                 /**
                  * @var \Common\Library\Db\Mysql $db
                  */
-                $db = Application::getApp()->get('db');
+                //$db = Application::getApp()->get('db');
                 //var_dump("This is Test Process, cid={$cid}, class=".__CLASS__.", db_object_id=".spl_object_id($db));
                 sleep(5);
             }catch (\Throwable $e)

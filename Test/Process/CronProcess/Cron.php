@@ -28,10 +28,6 @@ class Cron extends AbstractProcess {
             // 抽离成CronController形式
             CrontabManager::getInstance()->addRule('cron_test1', '*/1 * * * *', [CronController::class, 'doCronTask']);
 
-//        TickManager::tickTimer(1000, function() {
-//            sleep(2);
-//            var_dump(date('Y-m-d H:i:s'));
-//        }, $params = null);
 
         }catch (\Throwable $e)
         {

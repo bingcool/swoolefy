@@ -207,7 +207,7 @@ class CommandRunner
 
                     $returnCode = fgets($pipes[3], 10);
                     if ($returnCode != 0) {
-                        throw new \Exception("CommandRunner Proc Open failed,reurnCode={$returnCode},commandLine={$command}.");
+                        throw new \Exception("CommandRunner Proc Open failed,return Code={$returnCode},commandLine={$command}.");
                     }
                 }
                 $params = [$pipes[0], $pipes[1], $pipes[2], $status, $returnCode ?? -1];
@@ -231,16 +231,16 @@ class CommandRunner
     {
         $this->isNextFlag = true;
         if ($this->channel->isFull()) {
-            $pids = [];
+            $itemList = [];
             while ($item = $this->channel->pop(0.05)) {
                 $pid = $item['pid'];
                 $startTime = $item['start_time'];
                 if (\Swoole\Process::kill($pid, 0) && ($startTime + 60) > time()) {
-                    $pids[] = $item;
+                    $itemList[] = $item;
                 }
             }
 
-            foreach ($pids as $item) {
+            foreach ($itemList as $item) {
                 $this->channel->push($item, 0.1);
             }
 
