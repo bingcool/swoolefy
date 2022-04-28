@@ -572,6 +572,25 @@ function statusServer($app_name)
     }
 }
 
+function monitorServer($app_name)
+{
+    $pid_file = getPidFile($app_name);
+
+    if (!is_file($pid_file)) {
+        write("[checkSever] pid file {$pid_file} is not exist, please check server weather is running");
+        return;
+    }
+
+    $pid = intval(file_get_contents($pid_file));
+    if (!\Swoole\Process::kill($pid, 0)) {
+        sleep(2);
+        if(!\Swoole\Process::kill($pid, 0)) {
+            write("[checkSever] server had shutdown, now restarting .....");
+            startServer($app_name);
+        }
+    }
+}
+
 function getPidFile($app_name)
 {
     $path = START_DIR_ROOT . "/{$app_name}/Protocol";
@@ -704,6 +723,11 @@ function commandHandler()
             case 'status':
             {
                 statusServer($command['app_name']);
+                break;
+            }
+            case 'monitor':
+            {
+                monitorServer($command['app_name']);
                 break;
             }
             case 'help':

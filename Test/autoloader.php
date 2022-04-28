@@ -12,7 +12,7 @@
 class autoloader {
     /**
      * $directory 启动目录
-     * @var [type]
+     * @var string
      */
     private static $baseDirectory = START_DIR_ROOT;
    
@@ -67,6 +67,6 @@ class autoloader {
     }
 }
 
-// include文件时，即完成自动加载的注册
+// include 文件时，即完成自动加载的注册
 autoloader::register();
 
