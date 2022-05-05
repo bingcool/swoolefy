@@ -152,8 +152,8 @@ class ProcessManager
     public function reboot(string $processName)
     {
         $process = $this->getProcessByName($processName);
-        $kill_flag = $process->getSwoolefyProcessKillFlag();
-        $this->writeByProcessName($processName, $kill_flag);
+        $killFlag = $process->getSwoolefyProcessKillFlag();
+        $this->writeByProcessName($processName, $killFlag);
     }
 
     /**
@@ -174,9 +174,8 @@ class ProcessManager
             }
             $result = (bool)$process->getProcess()->write($data);
             if ($result && $callback instanceof \Closure) {
-                $msg = null;
                 $msg = $this->read($process->getProcess(), $timeOut);
-                call_user_func($callback, $msg);
+                call_user_func($callback, $msg ?? null);
             }
             return true;
         }

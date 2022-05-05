@@ -486,9 +486,9 @@ class BaseServer
      */
     public static function setWorkersPid($worker_id, $worker_pid)
     {
-        $workers_pid = self::getWorkersPid();
-        $workers_pid[$worker_id] = $worker_pid;
-        TableManager::set('table_workers_pid', 'workers_pid', ['workers_pid' => json_encode($workers_pid)]);
+        $workerPidArr = self::getWorkersPid();
+        $workerPidArr[$worker_id] = $worker_pid;
+        TableManager::set('table_workers_pid', 'workers_pid', ['workers_pid' => json_encode($workerPidArr)]);
     }
 
     /**

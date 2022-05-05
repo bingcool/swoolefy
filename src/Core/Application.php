@@ -62,7 +62,7 @@ class Application
             }
 
             // task进程中，可以使用go创建协程和使用协程api
-            if ($App instanceof \Swoolefy\Core\Task\TaskController || $App instanceof \Swoolefy\Core\EventController || $App instanceof \Swoolefy\Core\Timer\TickController) {
+            if ($App instanceof \Swoolefy\Core\EventController || $App instanceof \Swoolefy\Core\Task\TaskController || $App instanceof \Swoolefy\Core\Timer\TickController) {
                 $cid = $App->getCid();
                 if (isset(self::$apps[$cid])) {
                     unset(self::$apps[$cid]);
