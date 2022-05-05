@@ -221,7 +221,6 @@ function createProject($server_name)
 
 function startServer($server_name)
 {
-    opCacheClear();
     foreach (APP_NAMES as $app_name => $protocol) {
         if ($app_name == $server_name) {
             switch ($protocol) {
@@ -254,6 +253,9 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer')
     $path = START_DIR_ROOT . "/{$app_name}/Protocol";
     $config = include $path . "/config-" . SWOOLEFY_ENV . ".php";
     checkRunning($config);
+    if($config['app_conf'] === true) {
+        $config['app_conf'] = include START_DIR_ROOT . '/' . APP_NAME . '/Config/config-' . SWOOLEFY_ENV . '.php';
+    }
 
     $event_server_file = START_DIR_ROOT . "/{$app_name}/{$event_server_file_name}.php";
     if (!file_exists($event_server_file)) {
@@ -273,7 +275,7 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer')
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($autoloader_file, $file_content_string);
-        include_once $autoloader_file;
+        include $autoloader_file;
     }
 
     if (isDaemon()) {
@@ -311,7 +313,7 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($autoloader_file, $file_content_string);
-        include_once $autoloader_file;
+        include $autoloader_file;
     }
 
     if (isDaemon()) {
@@ -349,7 +351,7 @@ function startRpc($app_name, $event_server_file_name = 'RpcServer')
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($autoloader_file, $file_content_string);
-        include_once $autoloader_file;
+        include $autoloader_file;
     }
 
     if (isDaemon()) {
@@ -387,7 +389,7 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer')
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($autoloader_file, $file_content_string);
-        include_once $autoloader_file;
+        include $autoloader_file;
     }
 
     if (isDaemon()) {
@@ -425,7 +427,7 @@ function startMqtt($app_name, $event_server_file_name = 'MqttServer')
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($autoloader_file, $file_content_string);
-        include_once $autoloader_file;
+        include $autoloader_file;
     }
 
     if (isDaemon()) {
@@ -697,6 +699,7 @@ function showAppHelp($cmd, $cmd_info)
 
 function commandHandler()
 {
+    opCacheClear();
     $command = commandParser();
     if (isset($command['app_name']) && $command['app_name'] != 'help') {
         switch ($command['command']) {
@@ -855,13 +858,11 @@ defined('APP_NAME') or define('APP_NAME', "{$APP_NAME}");
 defined('APP_PATH') or define('APP_PATH',dirname(__DIR__));
 defined('ROOT_PATH') or define('ROOT_PATH',dirname(APP_PATH));
 
-// 日志目录
-define('LOG_PATH', APP_PATH.'/Log');
+defined('LOG_PATH') or define('LOG_PATH', APP_PATH.'/Log');
+defined('SMARTY_TEMPLATE_PATH') or define('SMARTY_TEMPLATE_PATH', APP_PATH.'/View/');
+defined('SMARTY_COMPILE_DIR') or define('SMARTY_COMPILE_DIR', APP_PATH.'/Runtime/');
+defined('SMARTY_CACHE_DIR') or define('SMARTY_CACHE_DIR', APP_PATH.'/Runtime/');
 
-// 定义smarty(需要安装smarty)
-define('SMARTY_TEMPLATE_PATH',APP_PATH.'/View/');
-define('SMARTY_COMPILE_DIR',APP_PATH.'/Runtime/');
-define('SMARTY_CACHE_DIR',APP_PATH.'/Runtime/');
 EOF;
     return $defines_content;
 }
