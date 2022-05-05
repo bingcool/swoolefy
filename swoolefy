@@ -1,4 +1,4 @@
-#!/usr/bin/php
+#!/usr/bin/env php
 <?php
 /**
  * +----------------------------------------------------------------------
@@ -566,7 +566,7 @@ function statusServer($app_name)
 
     foreach ($output as $value) {
         write(
-            '进程pid=' . $value,
+            '进程pid=' . trim($value),
             'light_green'
         );
     }
