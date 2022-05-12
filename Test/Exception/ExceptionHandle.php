@@ -14,6 +14,7 @@ class ExceptionHandle extends \Swoolefy\Core\SwoolefyException
     public static function shutHalt($errorMsg, $errorType = SwoolefyException::EXCEPTION_ERR, \Throwable $throwable = null)
     {
         parent::shutHalt($errorMsg, $errorType);
-        $db = Application::getApp()->get('db');
+        var_dump($throwable->getMessage());
+        //$db = Application::getApp()->get('db');
     }
 }

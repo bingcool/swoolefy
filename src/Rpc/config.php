@@ -25,7 +25,7 @@ return [
     'master_process_name' => 'php-swoolefy-rpc-master',
     'manager_process_name' => 'php-swoolefy-rpc-manager',
     'worker_process_name' => 'php-swoolefy-rpc-worker',
-    'www_user' => 'www',
+    'www_user' => '',
     'host' => '0.0.0.0',
     'port' => '9504',
     'time_zone' => 'PRC',

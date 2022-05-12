@@ -25,7 +25,7 @@ return [
     'master_process_name' => 'php-swoolefy-http-master',
     'manager_process_name' => 'php-swoolefy-http-manager',
     'worker_process_name' => 'php-swoolefy-http-worker',
-	'www_user' => 'www',
+	'www_user' => '',
 	'host' => '0.0.0.0',
 	'port' => '9502',
 	'time_zone' => 'PRC',
@@ -35,9 +35,9 @@ return [
 	'setting' => [
         'admin_server' => '0.0.0.0:9503',
 		'reactor_num' => 1, 
-		'worker_num' => 5,
-		'max_request' => 2,
-		'task_worker_num' => 2,
+		'worker_num' => 1,
+		'max_request' => 20,
+		'task_worker_num' => 1,
 		'task_tmpdir' => '/dev/shm',
 		'daemonize' => 0,
 		// http无状态，使用1或3
