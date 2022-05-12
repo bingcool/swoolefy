@@ -180,6 +180,7 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface
         $processListInfoStr = json_encode($processListInfo, JSON_UNESCAPED_UNICODE);
         $poolsProcessListInfo = array_values(PoolsManager::getInstance()->getProcessListInfo());
         $poolsProcessListInfoStr = json_encode($poolsProcessListInfo, JSON_UNESCAPED_UNICODE);
+        $hostname = gethostname();
         $this->each(str_repeat('-', 50), 'light_green');
         $this->each("
             main server         {$main_server}
@@ -194,6 +195,7 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface
             php version         {$php_version}
             swoolefy version    {$swoolefy_version}
             ip_list             {$ip_list}
+            hostname            {$hostname}
             tips                执行 php swoolefy help 可以查看更多信息
 ", 'light_green');
         $this->each(str_repeat('-', 50) . "\n", 'light_green');
