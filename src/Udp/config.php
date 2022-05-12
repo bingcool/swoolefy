@@ -24,7 +24,7 @@ return [
     'master_process_name' => 'php-swoolefy-udp-master',
     'manager_process_name' => 'php-swoolefy-udp-manager',
     'worker_process_name' => 'php-swoolefy-udp-worker',
-    'www_user' => 'www',
+    'www_user' => '',
     'host' => '0.0.0.0',
     'port' => '9505',
     'time_zone' => 'PRC',

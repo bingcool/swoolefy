@@ -25,7 +25,7 @@ return [
     'master_process_name' => 'php-swoolefy-websocket-master',
     'manager_process_name' => 'php-swoolefy-websocket-manager',
     'worker_process_name' => 'php-swoolefy-websocket-worker',
-    'www_user' => 'www',
+    'www_user' => '',
     'host' => '0.0.0.0',
     'port' => '9503',
     // websocket独有

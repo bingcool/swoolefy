@@ -280,13 +280,11 @@ class BaseServer
      */
     public static function setWorkerUserGroup($worker_user = null)
     {
-        if (!isset(static::$setting['user'])) {
-            if ($worker_user) {
-                $userInfo = posix_getpwnam($worker_user);
-                if ($userInfo) {
-                    posix_setuid($userInfo['uid']);
-                    posix_setgid($userInfo['gid']);
-                }
+        if ($worker_user) {
+            $userInfo = posix_getpwnam($worker_user);
+            if ($userInfo) {
+                posix_setuid($userInfo['uid']);
+                posix_setgid($userInfo['gid']);
             }
         }
     }
