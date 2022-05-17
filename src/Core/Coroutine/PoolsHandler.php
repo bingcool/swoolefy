@@ -227,7 +227,7 @@ class PoolsHandler
      */
     protected function getObj()
     {
-        // 第一次开始创建对象
+        // first build object
         if ($this->callCount == 0 && $this->channel->isEmpty()) {
             if ($this->poolsNum) {
                 $this->make($this->poolsNum);
