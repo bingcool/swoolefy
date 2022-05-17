@@ -239,7 +239,7 @@ abstract class HttpServer extends BaseServer
 
         /**
          * WorkerError
-         * 注意，此回调是在manager进程中发生的，不能使用创建协程和使用协程api,否则报错
+         * tips callback function manager进程中发生的,不能使用创建协程和使用协程api,否则报错
          */
         $this->webServer->on('WorkerError', function (\Swoole\Http\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
             try {

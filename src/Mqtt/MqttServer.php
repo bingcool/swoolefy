@@ -26,7 +26,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
 {
 
     /**
-     * $serverName server服务名称
+     * $serverName
      * @var string
      */
     const SERVER_NAME = SWOOLEFY_MQTT;
@@ -269,7 +269,6 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
 
         /**
          * WorkerError
-         * 注意，此回调是在manager进程中发生的，不能使用创建协程和使用协程api,否则报错
          */
         $this->mqttServer->on('WorkerError', function (\Swoole\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
             try {
@@ -577,7 +576,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
     }
 
     /**
-     * onTask 任务处理函数调度
+     * onTask
      * @param Server $server
      * @param int $task_id
      * @param int $from_worker_id
@@ -592,7 +591,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
     }
 
     /**
-     * onFinish 异步任务完成后调用
+     * onFinish
      * @param Server $server
      * @param $task_id
      * @param $data
@@ -616,7 +615,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
     }
 
     /**
-     * onWorkerStart worker进程启动时回调处理
+     * onWorkerStart
      * @param Server $server
      * @param int $worker_id
      * @return void
@@ -624,7 +623,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
     abstract public function onWorkerStart($server, $worker_id);
 
     /**
-     * onConnect socket连接上时回调函数
+     * onConnect
      * @param Server $server
      * @param int $fd
      * @return void
@@ -632,7 +631,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
     abstract public function onConnect($server, $fd);
 
     /**
-     * onClose tcp连接关闭时回调函数
+     * onClose tcp
      * @param Server $server
      * @param int $fd
      * @return void

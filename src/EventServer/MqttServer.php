@@ -37,7 +37,7 @@ class MqttServer extends \Swoolefy\Mqtt\MqttServer
     }
 
     /**
-     * onConnect socket连接上时回调函数
+     * onConnect
      * @param object $server
      * @param int $fd
      * @return void
@@ -69,7 +69,7 @@ class MqttServer extends \Swoolefy\Mqtt\MqttServer
     }
 
     /**
-     * onClose tcp连接关闭时回调函数
+     * onClose tcp
      * @param object $server
      * @param int $fd
      * @return void

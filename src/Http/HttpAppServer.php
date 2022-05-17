@@ -69,7 +69,7 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer
     abstract public function onPipeMessage($server, $from_worker_id, $message);
 
     /**
-     * onTask 异步任务处理
+     * onTask
      * @param Server $server
      * @param int $task_id
      * @param int $from_worker_id

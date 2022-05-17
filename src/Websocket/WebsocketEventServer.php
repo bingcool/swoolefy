@@ -97,7 +97,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
     }
 
     /**
-     * onTask 异步任务处理
+     * onTask
      * @param Server $server
      * @param int $task_id
      * @param int $from_worker_id
@@ -116,7 +116,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
     }
 
     /**
-     * onFinish 任务完成
+     * onFinish
      * @param Server $server
      * @param int $task_id
      * @param mixed $data
@@ -134,7 +134,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
     abstract public function onPipeMessage($server, $from_worker_id, $message);
 
     /**
-     * onClose 连接断开处理
+     * onClose
      * @param Server $server
      * @param int $fd
      * @return   void
@@ -142,7 +142,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
     abstract public function onClose($server, $fd);
 
     /**
-     * onMessageFromBinary 处理二进制数据
+     * onMessageFromBinary
      * @param Server $server
      * @param mixed $frame
      * @return void
@@ -150,7 +150,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
     abstract public function onMessageFromBinary($server, $frame);
 
     /**
-     * onMessageFromClose 处理关闭帧
+     * onMessageFromClose
      * @param Server $server
      * @param mixed $frame
      * @return void

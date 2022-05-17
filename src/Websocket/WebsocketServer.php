@@ -22,7 +22,7 @@ use Swoolefy\Core\EventController;
 abstract class WebsocketServer extends BaseServer
 {
     /**
-     * $serverName server服务名称
+     * $serverName
      * @var string
      */
     const SERVER_NAME = SWOOLEFY_WEBSOCKET;
@@ -104,7 +104,7 @@ abstract class WebsocketServer extends BaseServer
         });
 
         /**
-         * 启动worker进程监听回调，设置定时器
+         * WorkerStart
          */
         $this->webServer->on('WorkerStart', function (\Swoole\WebSocket\Server $server, $worker_id) {
             // 记录主进程加载的公共files,worker重启不会在加载的
@@ -295,7 +295,6 @@ abstract class WebsocketServer extends BaseServer
 
         /**
          * WorkerError
-         * 注意，此回调是在manager进程中发生的，不能使用创建协程和使用协程api,否则报错
          */
         $this->webServer->on('WorkerError', function (\Swoole\WebSocket\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
             try {

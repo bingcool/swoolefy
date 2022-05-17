@@ -31,7 +31,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
     }
 
     /**
-     * onWorkerStart worker进程启动时回调处理
+     * onWorkerStart
      * @param Server $server
      * @param int $worker_id
      * @return void
@@ -39,7 +39,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
     abstract public function onWorkerStart($server, $worker_id);
 
     /**
-     * onConnect socket连接上时回调函数
+     * onConnect
      * @param Server $server
      * @param int $fd
      * @return void
@@ -64,7 +64,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
     }
 
     /**
-     * onTask 任务处理函数调度
+     * onTask
      * @param Server $server
      * @param int $task_id
      * @param int $from_worker_id
@@ -83,7 +83,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
     }
 
     /**
-     * onFinish 异步任务完成后调用
+     * onFinish
      * @param Server $server
      * @param $task_id
      * @param $data
@@ -101,7 +101,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
     abstract public function onPipeMessage($server, $from_worker_id, $message);
 
     /**
-     * onClose tcp连接关闭时回调函数
+     * onClose tcp
      * @param Server $server
      * @param int $fd
      * @return void
