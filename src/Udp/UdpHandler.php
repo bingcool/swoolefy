@@ -24,7 +24,7 @@ class UdpHandler extends Swoole implements HandlerInterface
     const EOF = '::';
 
     /**
-     * $client_info 客户端信息
+     * $client_info
      * @var null
      */
     protected $client_info = null;
