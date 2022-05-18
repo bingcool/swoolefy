@@ -10,7 +10,7 @@ class CronController extends AbstractCronController {
     /**
      * @inheritDoc
      */
-    public function doCronTask(CronExpression $cron, string $cron_name)
+    public function doCronTask(CronExpression $cron, string $cronName)
     {
         $expression = $cron->getExpression();
         $redis = Application::getApp()->get('redis');

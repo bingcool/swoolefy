@@ -1,6 +1,7 @@
 <?php
 namespace Test\Process\CronProcess;
 
+use co;
 use Swoole\Process;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
@@ -19,7 +20,7 @@ class Cron extends AbstractProcess {
 
             // 闭包回调模式
             CrontabManager::getInstance()->addRule('cron_test', '*/1 * * * *', function($cron) {
-                $cid = \Co::getuid();
+                $cid = \Swoole\Coroutine::getCid();
                 $date = date('Y-m-d H:i:s');
                 var_dump('This is Cron Process Cid='.$cid.', now date='.$date.', class='.__CLASS__);
                 sleep(5);

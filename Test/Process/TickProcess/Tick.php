@@ -17,7 +17,7 @@ class Tick extends AbstractProcess {
         // 协议层配置
         // $conf = Swfy::getConf();
         go(function() {
-            $cid = \Swoole\Coroutine::getuid();
+            $cid = \Swoole\Coroutine::getCid();
         });
 
         var_dump('This is process tick, class='.__CLASS__);
