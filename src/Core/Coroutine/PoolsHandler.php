@@ -12,6 +12,7 @@
 namespace Swoolefy\Core\Coroutine;
 
 use Swoole\Coroutine\Channel;
+use Swoolefy\Core\Dto\ContainerObjectDto;
 
 class PoolsHandler
 {
@@ -177,7 +178,7 @@ class PoolsHandler
         if (is_object($obj)) {
             \Swoole\Coroutine::create(function () use ($obj) {
                 $isPush = true;
-                if (isset($obj->objExpireTime) && time() > $obj->objExpireTime) {
+                if (isset($obj->__objExpireTime) && time() > $obj->__objExpireTime) {
                     $isPush = false;
                 }
 
@@ -255,12 +256,24 @@ class PoolsHandler
             if (!is_object($obj)) {
                 throw new \Exception("Pools of {$this->poolName} build instance must return object");
             }
-            $obj->objExpireTime = time() + ($this->liveTime) + rand(1, 10);
-            if (\Swoole\Coroutine::getCid() > 0) {
-                $obj->envCoroutineId = \Swoole\Coroutine::getCid();
-            }
-            $this->channel->push($obj, $this->pushTimeout);
+
+            $containerObject = $this->buildContainerObject($obj);
+            $this->channel->push($containerObject, $this->pushTimeout);
         }
+    }
+
+    /**
+     * @param $object
+     * @return ContainerObjectDto
+     */
+    private function buildContainerObject($object)
+    {
+        $containerObjectDto = new ContainerObjectDto();
+        $containerObjectDto->__coroutineId = \Swoole\Coroutine::getCid();
+        $containerObjectDto->__objInitTime = time();
+        $containerObjectDto->__object = $object;
+        $containerObjectDto->__objExpireTime = time() + ($this->liveTime) + rand(1, 10);;
+        return $containerObjectDto;
     }
 
     /**
@@ -269,8 +282,8 @@ class PoolsHandler
     protected function pop()
     {
         $startTime = time();
-        while ($obj = $this->channel->pop($this->popTimeout)) {
-            if (isset($obj->objExpireTime) && time() > $obj->objExpireTime) {
+        while ($containerObject = $this->channel->pop($this->popTimeout)) {
+            if (isset($containerObject->__objExpireTime) && time() > $containerObject->__objExpireTime) {
                 //re build
                 $this->make(1);
                 if (time() - $startTime > 1) {
@@ -282,12 +295,12 @@ class PoolsHandler
             }
         }
 
-        if ($obj === false || (isset($isTimeOut))) {
-            unset($obj);
-            $newObj = $this->channel->pop($this->popTimeout);
-            return is_object($newObj) ? $newObj : null;
+        if ($containerObject === false || (isset($isTimeOut))) {
+            unset($containerObject);
+            $containerObject = $this->channel->pop($this->popTimeout);
+
         }
 
-        return $obj;
+        return is_object($containerObject) ? $containerObject : null;
     }
 }
