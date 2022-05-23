@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Core\Dto\ContainerObjectDto;
+
 trait ComponentTrait
 {
 
@@ -57,11 +59,8 @@ trait ComponentTrait
                     }
                     return $this->container[$com_alias_name] = $this->buildInstance($class, $definition, $params, $com_alias_name);
                 } else if ($definition instanceof \Closure) {
-                    $object = $this->container[$com_alias_name] = call_user_func($definition, $com_alias_name);
-                    if (\Swoole\Coroutine::getCid() > 0) {
-                        $object->envCoroutineId = \Swoole\Coroutine::getCid();
-                    }
-                    return $object;
+                    $object = call_user_func($definition, $com_alias_name);
+                    return $this->container[$com_alias_name] = $this->buildContainerObject($object);
                 } else {
                     throw new \Exception(sprintf("component:%s must be set class", $com_alias_name));
                 }
@@ -149,17 +148,10 @@ trait ComponentTrait
 
         if (empty($definition)) {
             $object = $reflection->newInstanceArgs($dependencies);
-            if (\Swoole\Coroutine::getCid() > 0) {
-                $object->envCoroutineId = \Swoole\Coroutine::getCid();
-            }
             return $object;
         }
 
         $object = $reflection->newInstanceArgs($dependencies);
-
-        if (\Swoole\Coroutine::getCid() > 0) {
-            $object->envCoroutineId = \Swoole\Coroutine::getCid();
-        }
 
         // 回调必须设置在配置的最后
         if (isset($definition[SWOOLEFY_COM_FUNC])) {
@@ -194,7 +186,21 @@ trait ComponentTrait
             $object->$name = $value;
         }
 
-        return $object;
+        return $this->buildContainerObject($object);
+    }
+
+    /**
+     * @param $object
+     * @return ContainerObjectDto
+     */
+    private function buildContainerObject($object)
+    {
+        $containerObjectDto = new ContainerObjectDto();
+        $containerObjectDto->__coroutineId = \Swoole\Coroutine::getCid();
+        $containerObjectDto->__objInitTime = time();
+        $containerObjectDto->__object = $object;
+        $containerObjectDto->__objExpireTime = null;
+        return $containerObjectDto;
     }
 
     /**
@@ -262,17 +268,17 @@ trait ComponentTrait
         $cid = \Swoole\Coroutine::getCid();
         if (isset($this->container[$name])) {
             if (is_object($this->container[$name])) {
-                $object = $this->container[$name];
+                $containerObject = $this->container[$name];
                 // 同一个协程中的单例对象,解决在不同协程 $this->get('db') 时组件上下文污染问题
-                if (isset($object->envCoroutineId) && $object->envCoroutineId == $cid) {
-                    return $object;
+                if (isset($containerObject->__coroutineId) && $containerObject->__coroutineId == $cid) {
+                    return $containerObject;
                 } else {
                     $app = Application::getApp($cid);
                     if (is_object($app)) {
-                        $object = $app->getComponents($name);
-                        if (is_object($object)) {
+                        $containerObject = $app->getComponents($name);
+                        if (is_object($containerObject)) {
                             unset($app);
-                            return $object;
+                            return $containerObject;
                         } else {
                             return $app->creatObject($name, $components[$name]);
                         }

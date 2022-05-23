@@ -137,8 +137,8 @@ class EventApp
     {
         try {
             if ($this->isCall && \Swoole\Coroutine::getCid() > 0) {
-                $class_name = get_class($this->eventApp);
-                throw new \Exception(sprintf("%s Single Coroutine Instance only be called one method, you had called", $class_name));
+                $className = get_class($this->eventApp);
+                throw new \Exception(sprintf("%s Single Coroutine Instance only be called one method, you had called", $className));
             }
 
             try {
