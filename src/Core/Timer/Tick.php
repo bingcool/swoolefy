@@ -161,7 +161,7 @@ class Tick
      */
     public static function after(int $time_interval_ms, $func, $params = null)
     {
-        $tid = \Swoole\Timer::after($time_interval_ms, function ($params) use ($func) {
+        $timerId = \Swoole\Timer::after($time_interval_ms, function ($params) use ($func) {
             try {
                 $timer_id = null;
                 if (is_array($func)) {
@@ -189,12 +189,12 @@ class Tick
             unset($tickTaskInstance, $class, $action, $user_params, $func);
         }, $params);
 
-        if ($tid) {
-            self::$_after_tasks[$tid] = [
+        if ($timerId) {
+            self::$_after_tasks[$timerId] = [
                 'callback' => $func,
                 'params' => $params,
                 'time_interval' => $time_interval_ms,
-                'timer_id' => $tid,
+                'timer_id' => $timerId,
                 'start_time' => date('Y-m-d H:i:s', strtotime('now'))
             ];
             $config = Swfy::getConf();
@@ -203,7 +203,7 @@ class Tick
             }
         }
 
-        return $tid ? $tid : false;
+        return $timerId;
     }
 
     /**
