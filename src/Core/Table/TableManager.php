@@ -11,7 +11,6 @@
 
 namespace Swoolefy\Core\Table;
 
-use Swoole\Table;
 use Swoolefy\Core\BaseServer;
 
 class TableManager
@@ -26,17 +25,17 @@ class TableManager
      */
     public static function createTable(array $tables = [])
     {
-        $swoole_tables = [];
+        $swooleTables = [];
         if (isset(BaseServer::$server->tables) && is_array(BaseServer::$server->tables)) {
-            $swoole_tables = BaseServer::$server->tables;
+            $swooleTables = BaseServer::$server->tables;
         }
         if (is_array($tables) && !empty($tables)) {
-            foreach ($tables as $table_name => $row) {
-                if (isset($swoole_tables[$table_name])) {
+            foreach ($tables as $tableName => $row) {
+                if (isset($swooleTables[$tableName])) {
                     continue;
                 }
                 $table = new \Swoole\Table($row['size']);
-                foreach ($row['fields'] as $p => $field) {
+                foreach ($row['fields'] as $field) {
                     switch (strtolower($field[1])) {
                         case 'int':
                         case 'integer':
@@ -55,12 +54,12 @@ class TableManager
                     }
                 }
                 if ($table->create()) {
-                    $swoole_tables[$table_name] = $table;
+                    $swooleTables[$tableName] = $table;
                 }
             }
-
-            BaseServer::$server->tables = $swoole_tables;
-            unset($swoole_tables);
+            // todo 8.2+
+            BaseServer::$server->tables = $swooleTables;
+            unset($swooleTables);
             return true;
         }
 
@@ -200,9 +199,9 @@ class TableManager
      */
     public static function count(string $table = null)
     {
-        $swoole_table = self::getTable($table);
-        if ($swoole_table) {
-            $count = $swoole_table->count();
+        $swooleTable = self::getTable($table);
+        if ($swooleTable) {
+            $count = $swooleTable->count();
         }
         if (is_numeric($count)) {
             return $count;
@@ -219,9 +218,9 @@ class TableManager
     public static function getTableKeys(string $table)
     {
         $keys = [];
-        $swoole_table = self::getTable($table);
-        if (is_object($swoole_table) && $swoole_table instanceof \Swoole\Table) {
-            foreach ($swoole_table as $key => $item) {
+        $swooleTable = self::getTable($table);
+        if (is_object($swooleTable) && $swooleTable instanceof \Swoole\Table) {
+            foreach ($swooleTable as $key => $item) {
                 array_push($keys, $key);
             }
         }
@@ -235,13 +234,13 @@ class TableManager
      */
     public static function getKeyMapRowValue(string $table)
     {
-        $table_rows = [];
-        $swoole_table = self::getTable($table);
-        if (is_object($swoole_table) && $swoole_table instanceof \Swoole\Table) {
-            foreach ($swoole_table as $key => $item) {
-                $table_rows[$key] = $item;
+        $tableRows = [];
+        $swooleTable = self::getTable($table);
+        if (is_object($swooleTable) && $swooleTable instanceof \Swoole\Table) {
+            foreach ($swooleTable as $key => $item) {
+                $tableRows[$key] = $item;
             }
         }
-        return $table_rows;
+        return $tableRows;
     }
 }

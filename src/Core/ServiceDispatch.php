@@ -89,6 +89,7 @@ class ServiceDispatch extends AppDispatch
             if (Swfy::isWorkerProcess()) {
                 $this->getErrorHandle()->errorMsg($errorMsg);
             }
+
             // record exception
             $exceptionClass = Application::getApp()->getExceptionClass();
             $exceptionClass::shutHalt($errorMsg, SwoolefyException::EXCEPTION_ERR, $t);

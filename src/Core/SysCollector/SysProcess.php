@@ -36,7 +36,7 @@ class SysProcess extends AbstractProcess
     /**
      * @var array
      */
-    protected $sys_collector_config = [];
+    protected $sysCollectorConfig = [];
 
     /**
      * run system收集信息进程
@@ -45,19 +45,19 @@ class SysProcess extends AbstractProcess
      */
     public function run()
     {
-        $conf = Swfy::getConf();
-        $this->sys_collector_config = $conf['sys_collector_conf'];
-        if (is_array($this->sys_collector_config) && isset($this->sys_collector_config['type'])) {
-            $type = $this->sys_collector_config['type'];
-            $tick_time = isset($sys_collector_config['tick_time']) ? (float)$this->sys_collector_config['tick_time'] : self::DEFAULT_TICK_TIME;
+        $conf                     = Swfy::getConf();
+        $this->sysCollectorConfig = $conf['sys_collector_conf'];
+        if (is_array($this->sysCollectorConfig) && isset($this->sysCollectorConfig['type'])) {
+            $type = $this->sysCollectorConfig['type'];
+            $tickTime = isset($sys_collector_config['tick_time']) ? (float)$this->sysCollectorConfig['tick_time'] : self::DEFAULT_TICK_TIME;
             $atomic = AtomicManager::getInstance()->getAtomicLong('atomic_request_count');
-            $max_tick_handle_coroutine_num = $this->sys_collector_config['max_tick_handle_coroutine_num'] ?? self::DEFAULT_MAX_TICK_HANDLE_COROUTINE_NUM;
+            $maxTickHandleCoroutineNum = $this->sysCollectorConfig['max_tick_handle_coroutine_num'] ?? self::DEFAULT_MAX_TICK_HANDLE_COROUTINE_NUM;
             $isEnablePvCollector = BaseServer::isEnablePvCollector();
-            $callback = $this->sys_collector_config['callback'] ?? null;
-            \Swoole\Timer::tick($tick_time * 1000, function ($timer_id) use ($type, $atomic, $tick_time, $isEnablePvCollector, $max_tick_handle_coroutine_num, $callback) {
+            $callback = $this->sysCollectorConfig['callback'] ?? null;
+            \Swoole\Timer::tick($tickTime * 1000, function ($timer_id) use ($type, $atomic, $tickTime, $isEnablePvCollector, $maxTickHandleCoroutineNum, $callback) {
                 try {
                     // reboot for max Coroutine
-                    if ($this->getCurrentCoroutineLastCid() > $max_tick_handle_coroutine_num) {
+                    if ($this->getCurrentCoroutineLastCid() > $maxTickHandleCoroutineNum) {
                         \Swoole\Timer::clear($timer_id);
                         $this->reboot();
                         return;
@@ -73,13 +73,13 @@ class SysProcess extends AbstractProcess
                         }
                     }
                     // pv
-                    $total_request_num = $isEnablePvCollector ? $atomic->get() : 0;
+                    $totalRequestNum = $isEnablePvCollector ? $atomic->get() : 0;
                     // clear
-                    $total_request_num && $atomic->sub($total_request_num);
+                    $totalRequestNum && $atomic->sub($totalRequestNum);
                     $data = [
-                        'total_request' => $total_request_num,
-                        'tick_time' => $tick_time,
-                        'from_service' => $this->sys_collector_config['from_service'] ?? '',
+                        'total_request' => $totalRequestNum,
+                        'tick_time' => $tickTime,
+                        'from_service' => $this->sysCollectorConfig['from_service'] ?? '',
                         'timestamp' => date('Y-m-d H:i:s')
                     ];
                     $data['sys_collector_message'] = $collectionInfo;
@@ -117,11 +117,11 @@ class SysProcess extends AbstractProcess
     protected function sendByUdp(array $data = [])
     {
         $udpClient = new \Swoole\Coroutine\Client(SWOOLE_SOCK_UDP);
-        $host = $this->sys_collector_config['host'];
-        $port = (int)$this->sys_collector_config['port'];
-        $timeout = (int)$this->sys_collector_config['timeout'] ?? 3;
-        $service = $this->sys_collector_config['target_service'];
-        $event = $this->sys_collector_config['event'];
+        $host = $this->sysCollectorConfig['host'];
+        $port = (int)$this->sysCollectorConfig['port'];
+        $timeout = (int)$this->sysCollectorConfig['timeout'] ?? 3;
+        $service = $this->sysCollectorConfig['target_service'];
+        $event = $this->sysCollectorConfig['event'];
         // Udp data format
         $message = $service . "::" . $event . "::" . json_encode($data, JSON_UNESCAPED_UNICODE);
 
@@ -150,12 +150,12 @@ class SysProcess extends AbstractProcess
      */
     protected function publishBySwooleRedis(array $data = [])
     {
-        $host = $this->sys_collector_config['host'];
-        $port = (int)$this->sys_collector_config['port'];
-        $password = $this->sys_collector_config['password'];
-        $timeout = isset($this->sys_collector_config['timeout']) ? (float)$this->sys_collector_config['timeout'] : 3;
+        $host = $this->sysCollectorConfig['host'];
+        $port = (int)$this->sysCollectorConfig['port'];
+        $password = $this->sysCollectorConfig['password'];
+        $timeout = isset($this->sysCollectorConfig['timeout']) ? (float)$this->sysCollectorConfig['timeout'] : 3;
 
-        $channel = $this->sys_collector_config['channel'] ?? SWOOLEFY_SYS_COLLECTOR_CHANNEL;
+        $channel = $this->sysCollectorConfig['channel'] ?? SWOOLEFY_SYS_COLLECTOR_CHANNEL;
         \Swoole\Coroutine::create(function () use ($host, $port, $password, $timeout, $channel, $data) {
             $redisClient = new \Swoole\Coroutine\Redis();
             $redisClient->setOptions([
@@ -185,12 +185,12 @@ class SysProcess extends AbstractProcess
      */
     protected function publishByPhpRedis(array $data = [])
     {
-        $host = $this->sys_collector_config['host'];
-        $port = (int)$this->sys_collector_config['port'];
-        $password = $this->sys_collector_config['password'];
-        $timeout = isset($this->sys_collector_config['timeout']) ? (float)$this->sys_collector_config['timeout'] : 60;
-        $database = $this->sys_collector_config['database'] ?? 0;
-        $channel = $this->sys_collector_config['channel'] ?? SWOOLEFY_SYS_COLLECTOR_CHANNEL;
+        $host = $this->sysCollectorConfig['host'];
+        $port = (int)$this->sysCollectorConfig['port'];
+        $password = $this->sysCollectorConfig['password'];
+        $timeout = isset($this->sysCollectorConfig['timeout']) ? (float)$this->sysCollectorConfig['timeout'] : 60;
+        $database = $this->sysCollectorConfig['database'] ?? 0;
+        $channel = $this->sysCollectorConfig['channel'] ?? SWOOLEFY_SYS_COLLECTOR_CHANNEL;
 
         if (!extension_loaded('redis')) {
             throw new \Exception("Because you enable sys_collector, must be install extension of phpredis", 1);
@@ -225,17 +225,17 @@ class SysProcess extends AbstractProcess
      */
     protected function writeByFile(array $data = [])
     {
-        $file_path = $this->sys_collector_config['file_path'];
-        $max_size = $this->sys_collector_config['max_size'] ?? 2 * 1024 * 1024;
-        if (file_exists($file_path)) {
-            $file_size = filesize($file_path);
-            if ($file_size > $max_size) {
-                @unlink($file_path);
+        $filePath = $this->sysCollectorConfig['file_path'];
+        $maxSize = $this->sysCollectorConfig['max_size'] ?? 2 * 1024 * 1024;
+        if (file_exists($filePath)) {
+            $file_size = filesize($filePath);
+            if ($file_size > $maxSize) {
+                @unlink($filePath);
             }
         }
         if ($data) {
             $message = json_encode($data, JSON_UNESCAPED_UNICODE);
-            @file_put_contents($file_path, $message . PHP_EOL, FILE_APPEND);
+            @file_put_contents($filePath, $message . PHP_EOL, FILE_APPEND);
         }
     }
 

@@ -28,7 +28,7 @@ class PoolsManager
     /**
      * @var array
      */
-    private $table_process = [
+    private $tableProcess = [
         // 进程内存表
         'table_process_pools_map' => [
             // 内存表建立的行数,取决于建立的process进程数,最小值64
@@ -45,7 +45,7 @@ class PoolsManager
     /**
      * @var int
      */
-    private $total_process_num = 0;
+    private $totalProcessNum = 0;
 
     /**
      * @var array
@@ -55,7 +55,7 @@ class PoolsManager
     /**
      * @var int
      */
-    private $worker_num = 1;
+    private $workerNum = 1;
 
     /**
      * @var array
@@ -70,9 +70,9 @@ class PoolsManager
     {
         $conf = Swfy::getConf();
         if (isset($conf['setting']['worker_num'])) {
-            $this->worker_num = $conf['setting']['worker_num'];
+            $this->workerNum = $conf['setting']['worker_num'];
         }
-        TableManager::getInstance()->createTable($this->table_process);
+        TableManager::getInstance()->createTable($this->tableProcess);
     }
 
     /**
@@ -98,12 +98,12 @@ class PoolsManager
     )
     {
         if (!TableManager::isExistTable('table_process_pools_map')) {
-            TableManager::getInstance()->createTable($this->table_process);
+            TableManager::getInstance()->createTable($this->tableProcess);
         }
         // total process num
-        $this->total_process_num += ($this->worker_num * $process_num_bind_worker);
+        $this->totalProcessNum += ($this->workerNum * $process_num_bind_worker);
 
-        if ($this->total_process_num > self::PROCESS_NUM) {
+        if ($this->totalProcessNum > self::PROCESS_NUM) {
             throw new \Exception("PoolsManager Error : total user process num more then " . self::PROCESS_NUM);
         }
 
@@ -112,7 +112,7 @@ class PoolsManager
             throw new \Exception("PoolsManager Error : you can not add the same process : $processName");
         }
 
-        for ($i = 0; $i < $this->worker_num; $i++) {
+        for ($i = 0; $i < $this->workerNum; $i++) {
             for ($j = 0; $j < $process_num_bind_worker; $j++) {
                 try {
                     /**@var AbstractProcessPools $process */
@@ -127,6 +127,9 @@ class PoolsManager
         }
     }
 
+    /**
+     * @return array
+     */
     public function getProcessListInfo()
     {
         return $this->processListInfo;
@@ -144,15 +147,15 @@ class PoolsManager
         if (!Swfy::isWorkerProcess()) {
             throw new \Exception("PoolsManager::getInstance() can not use in task or self process, only use in worker process");
         }
-        $worker_id = Swfy::getCurrentWorkerId();
+        $workerId = Swfy::getCurrentWorkerId();
         $key = md5($processName);
-        if (isset($this->processList[$key][$worker_id])) {
+        if (isset($this->processList[$key][$workerId])) {
             if ($is_all) {
-                return $this->processList[$key][$worker_id];
+                return $this->processList[$key][$workerId];
             }
             // 随机返回当前worker进程绑定的一个附属进程
-            $k = array_rand($this->processList[$key][$worker_id]);
-            return $this->processList[$key][$worker_id][$k];
+            $k = array_rand($this->processList[$key][$workerId]);
+            return $this->processList[$key][$workerId][$k];
         }
         return null;
     }
@@ -171,9 +174,9 @@ class PoolsManager
         $table = TableManager::getTable('table_process_pools_map');
         foreach ($table as $key => $item) {
             if ($item['pid'] == $pid) {
-                list($processName, $worker_id, $process_num) = explode('@', $item['process_name']);
+                list($processName, $workerId, $processNum) = explode('@', $item['process_name']);
                 $key = md5($processName);
-                return $this->processList[$key][$worker_id][$process_num];
+                return $this->processList[$key][$workerId][$processNum];
             }
         }
         return null;
@@ -186,9 +189,9 @@ class PoolsManager
      */
     public function setProcessPools(string $processName, AbstractProcessPools $process)
     {
-        $worker_id = Swfy::getCurrentWorkerId();
+        $workerId = Swfy::getCurrentWorkerId();
         $key = md5($processName);
-        array_push($this->processList[$key][$worker_id], $process);
+        array_push($this->processList[$key][$workerId], $process);
     }
 
     /**
@@ -201,23 +204,23 @@ class PoolsManager
     public function rebootPools(string $processName, bool $is_restart_all_process = false)
     {
         if ($is_restart_all_process) {
-            foreach ($this->worker_num as $key => $worker_processes) {
-                foreach ($worker_processes as $worker_id => $all_processes) {
+            foreach ($this->workerNum as $workerProcesses) {
+                foreach ($workerProcesses as $processList) {
                     /**@var AbstractProcessPools $process */
-                    foreach ($all_processes as $k => $process) {
-                        $kill_flag = $process->getSwoolefyProcessKillFlag();
-                        $process->getProcess()->write($kill_flag);
+                    foreach ($processList as $process) {
+                        $killFlag = $process->getSwoolefyProcessKillFlag();
+                        $process->getProcess()->write($killFlag);
                     }
                 }
             }
             return true;
         }
-        $allProcesses = $this->getProcessPoolsByName($processName, true);
-        if (is_array($allProcesses) && count($allProcesses) > 0) {
-            foreach ($allProcesses as $k => $process) {
+        $processList = $this->getProcessPoolsByName($processName, true);
+        if (is_array($processList) && count($processList) > 0) {
+            foreach ($processList as $process) {
                 /**@var AbstractProcessPools $process */
-                $kill_flag = $process->getSwoolefyProcessKillFlag();
-                $process->getProcess()->write($kill_flag);
+                $killFlag = $process->getSwoolefyProcessKillFlag();
+                $process->getProcess()->write($killFlag);
             }
         }
         return true;
