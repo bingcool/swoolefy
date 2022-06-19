@@ -106,7 +106,7 @@ trait ServiceTrait
     }
 
     /**
-     * getIncludeFiles 获取swoole启动时,worker启动前已经include内存的文件
+     * getIncludeFiles
      * @return array|boolean
      */
     public static function getInitIncludeFiles($dir = null)
@@ -131,8 +131,9 @@ trait ServiceTrait
     }
 
     /**
-     * getIncludeFiles
+     *
      * 获取执行到目前action为止，swoole server中的该worker中内存中已经加载的class文件
+     *
      * @return array
      */
     public static function getIncludeFiles()
