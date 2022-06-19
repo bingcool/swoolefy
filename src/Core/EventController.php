@@ -183,8 +183,8 @@ class EventController extends BaseObject
             if (isset($this->container[$name])) {
                 $obj = $this->container[$name];
                 if (is_object($obj)) {
-                    $obj_id = spl_object_id($obj);
-                    if (in_array($obj_id, $this->componentPoolsObjIds)) {
+                    $objId = spl_object_id($obj);
+                    if (in_array($objId, $this->componentPoolsObjIds)) {
                         CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
                     }
                 }

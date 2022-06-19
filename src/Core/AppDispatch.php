@@ -14,7 +14,8 @@ namespace Swoolefy\Core;
 class AppDispatch
 {
     /**
-     * $fileRouteMap 纯内存，无需每次请求判断is_file
+     * $fileRouteMap
+     *
      * @var array
      */
     protected static $routeCacheFileMap = [];

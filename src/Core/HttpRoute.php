@@ -254,14 +254,8 @@ class HttpRoute extends AppDispatch
         if ($reflector->hasMethod($targetAction)) {
             list($method, $args) = $this->bindActionParams($controllerInstance, $targetAction, $this->buildParams());
             if ($method->isPublic() && !$method->isStatic()) {
-                try {
-                    $controllerInstance->{$targetAction}(...$args);
-                    $controllerInstance->_afterAction($action);
-                } catch (\Exception $e) {
-                    throw $e;
-                } catch (\Throwable $t) {
-                    throw $t;
-                }
+                $controllerInstance->{$targetAction}(...$args);
+                $controllerInstance->_afterAction($action);
             } else {
                 $errorMsg = sprintf(
                     "Class method %s::%s is protected or private property, can't be called by Controller Instance",

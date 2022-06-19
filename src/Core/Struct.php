@@ -99,4 +99,23 @@ class Struct
         return $this->getProperties(true);
     }
 
+    /**
+     * @param $property
+     * @param $value
+     * @return mixed
+     */
+    public function __set($property, $value)
+    {
+        return $this->set($property, $value, true);
+    }
+
+    /**
+     * @param $property
+     * @return string
+     */
+    public function __get($property)
+    {
+        return $this->get($property, $default = null);
+    }
+
 }
