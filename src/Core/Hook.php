@@ -69,6 +69,7 @@ class Hook
         if (empty($cid)) {
             $cid = CoroutineManager::getInstance()->getCoroutineId();
         }
+
         if (isset(self::$hooks[$cid][$type])) {
             foreach (self::$hooks[$cid][$type] as $func) {
                 try {
@@ -78,7 +79,7 @@ class Hook
                 }
             }
         }
-        // afterRequest钩子是目前应用实例生命周期最后执行的，直接将该协程的所有钩子函数都unset
+
         if ($type == self::HOOK_AFTER_REQUEST && isset(self::$hooks[$cid])) {
             unset(self::$hooks[$cid]);
         }

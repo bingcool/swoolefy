@@ -53,7 +53,7 @@ class HttpRoute extends AppDispatch
     protected $app = null;
 
     /**
-     * $require_uri 请求的url
+     * $require_uri
      * @var string
      */
     protected $requireUri = null;
@@ -65,7 +65,7 @@ class HttpRoute extends AppDispatch
     protected $extendData = null;
 
     /**
-     * @var string 控制器后缀
+     * @var string
      */
     private $controllerSuffix = 'Controller';
 
@@ -76,7 +76,7 @@ class HttpRoute extends AppDispatch
     private $defaultRoute = 'Index/index';
 
     /**
-     * action前缀
+     * action prefix
      * @var string
      */
     private $actionPrefix = 'action';
