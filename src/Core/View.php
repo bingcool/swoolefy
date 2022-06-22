@@ -12,7 +12,6 @@
 namespace Swoolefy\Core;
 
 use Smarty;
-use Swoolefy\Core\Application;
 
 class View
 {

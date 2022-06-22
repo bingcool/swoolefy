@@ -45,7 +45,7 @@ class AsyncTask implements AsyncTaskInterface
         }
 
         if (BaseServer::isHttpApp()) {
-            //http的fd其实没有实用意义
+            // http的fd其实没有实用意义
             $fd = is_object(Application::getApp()) ? Application::getApp()->request->fd : null;
         }
         $task_id = Swfy::getServer()->task(serialize([$callable, $data, $fd]));

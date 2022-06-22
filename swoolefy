@@ -49,7 +49,7 @@ defined("SWOOLEFY_CLI_PARAMS") or define('SWOOLEFY_CLI_PARAMS', $argv);
 defined('USERD_ENV') or define('USERD_ENV', $USERD_ENV);
 
 // include composer的自动加载类完成命名空间的注册
-include_once START_DIR_ROOT . '/vendor/autoload.php';
+include START_DIR_ROOT . '/vendor/autoload.php';
 
 // include App应用层的自定义的自动加载类命名空间
 if (isset($argv[2]) && in_array(trim($argv[2]), array_keys(APP_NAMES))) {
@@ -58,7 +58,7 @@ if (isset($argv[2]) && in_array(trim($argv[2]), array_keys(APP_NAMES))) {
     if (trim($argv[1]) != 'create') {
         $autoloader_file = START_DIR_ROOT . "/{$app_name}/autoloader.php";
         if (file_exists($autoloader_file)) {
-            include_once $autoloader_file;
+            include $autoloader_file;
         }
     }
 } else {

@@ -59,7 +59,7 @@ class Swoole extends BaseObject
     }
 
     /**
-     * init 初始化函数
+     * init
      * @return void
      */
     protected function _init($recv = null)
@@ -68,7 +68,7 @@ class Swoole extends BaseObject
     }
 
     /**
-     * bootstrap 初始化引导
+     * bootstrap
      */
     protected function _bootstrap($recv = null)
     {

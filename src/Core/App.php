@@ -186,11 +186,10 @@ class App extends \Swoolefy\Core\Component
 
     /**
      * catchAll request
-     * @return boolean
+     * @return bool
      */
     public function catchAll()
     {
-        // catchAll
         if (isset($this->app_conf['catch_handle']) && $handle = $this->app_conf['catch_handle']) {
             $this->isEnd = true;
             if ($handle instanceof \Closure) {
@@ -245,8 +244,8 @@ class App extends \Swoolefy\Core\Component
             if (isset($this->container[$name])) {
                 $obj = $this->container[$name];
                 if (is_object($obj)) {
-                    $obj_id = spl_object_id($obj);
-                    if (in_array($obj_id, $this->componentPoolsObjIds)) {
+                    $objId = spl_object_id($obj);
+                    if (in_array($objId, $this->componentPoolsObjIds)) {
                         CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
                     }
                 }

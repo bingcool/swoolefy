@@ -3,7 +3,6 @@
 namespace Test\Task;
 
 use Swoolefy\Core\Application;
-use Swoolefy\Core\EventController;
 use Swoolefy\Core\Task\TaskController;
 
 class TestTask extends TaskController
