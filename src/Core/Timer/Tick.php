@@ -37,7 +37,7 @@ class Tick
     protected static $_tasks_instances = [];
 
     /**
-     * tickTimer  循环定时器
+     * tickTimer
      * @param int $time_interval_ms
      * @param mixed $func
      * @param array $params
@@ -56,7 +56,7 @@ class Tick
     }
 
     /**
-     * tick  循环定时器执行
+     * tick
      * @param int $time_interval_ms
      * @param mixed $func
      * @param array $params
@@ -108,7 +108,7 @@ class Tick
     }
 
     /**
-     * delTicker 删除循环定时器
+     * delTicker
      * @param int $timer_id
      * @return   boolean
      */
@@ -135,7 +135,7 @@ class Tick
     }
 
     /**
-     * afterTimer 一次性定时器
+     * afterTimer
      * @param int $time_interval_ms
      * @param mixed $func
      * @param array $params
@@ -153,7 +153,7 @@ class Tick
     }
 
     /**
-     * after 一次性定时器执行
+     * after
      * @param int $time_interval_ms
      * @param mixed $func
      * @param null $params
@@ -207,20 +207,21 @@ class Tick
     }
 
     /**
-     * updateRunAfterTick 更新一次定时器
+     * updateRunAfterTick
      * @return  void
      */
     protected static function updateRunAfterTick()
     {
         if (self::$_after_tasks) {
-            // 加上1000,提前1s
             $now = strtotime('now') * 1000 + 1000;
+
             foreach (self::$_after_tasks as $key => $value) {
                 $end_time = $value['time_interval'] + strtotime($value['start_time']) * 1000;
                 if ($now >= $end_time) {
                     unset(self::$_after_tasks[$key]);
                 }
             }
+
             $config = Swfy::getConf();
             if (isset($config['enable_table_tick_task']) && $config['enable_table_tick_task'] == true) {
                 TableManager::set('table_after', 'after_timer_task', ['after_tasks' => json_encode(self::$_after_tasks)]);

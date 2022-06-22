@@ -21,7 +21,7 @@ class TickManager
     use \Swoolefy\Core\SingletonTrait;
 
     /**
-     * tickTimer 循环定时器
+     * tickTimer
      * @param int $time_interval_ms
      * @param mixed $func
      * @param mixed $params
@@ -33,7 +33,7 @@ class TickManager
     }
 
     /**
-     * afterTimer 一次性定时器
+     * afterTimer
      * @param int $time_interval_ms
      * @param mixed $func
      * @param mixed $params
@@ -57,7 +57,7 @@ class TickManager
     }
 
     /**
-     * getTickTasks 获取实时在线的循环定时任务
+     * getTickTasks
      * @return  mixed
      */
     public static function getTickTasks()
@@ -73,7 +73,7 @@ class TickManager
     }
 
     /**
-     * getAfterTasks 获取实时的在线一次性定时任务
+     * getAfterTasks
      * @return  mixed
      */
     public static function getAfterTasks()

@@ -225,12 +225,13 @@ class CommandRunner
     }
 
     /**
+     * @param bool $isNeedCheck
      * @return bool
      */
-    public function isNextHandle()
+    public function isNextHandle(bool $isNeedCheck = true)
     {
         $this->isNextFlag = true;
-        if ($this->channel->isFull()) {
+        if ($this->channel->isFull() && $isNeedCheck) {
             $itemList = [];
             while ($item = $this->channel->pop(0.05)) {
                 $pid = $item['pid'];
