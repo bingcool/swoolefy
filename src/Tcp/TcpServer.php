@@ -19,7 +19,7 @@ use Swoolefy\Core\EventController;
 abstract class TcpServer extends BaseServer
 {
     /**
-     * $serverName server服务名称
+     * $serverName server name
      * @var string
      */
     const SERVER_NAME = SWOOLEFY_TCP;
@@ -47,13 +47,13 @@ abstract class TcpServer extends BaseServer
     public $tcpServer = null;
 
     /**
-     * $pack 封解包对象
+     * $pack
      * @var \Swoolefy\Rpc\Pack
      */
     protected $Pack = null;
 
     /**
-     * $Text text协议对象
+     * $Text text protocol
      * @var \Swoolefy\Rpc\Text
      */
     protected $Text = null;
@@ -280,7 +280,7 @@ abstract class TcpServer extends BaseServer
 
         /**
          * WorkerError
-         * tips:此回调是在manager进程中发生的，不能使用创建协程和使用协程api,否则报错
+         * tips此回调是在manager进程中发生的，不能使用创建协程和使用协程api,否则报错
          */
         $this->tcpServer->on('WorkerError', function (\Swoole\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
             try {

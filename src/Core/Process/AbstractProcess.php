@@ -141,8 +141,8 @@ abstract class AbstractProcess
                 $this->init();
                 $this->run();
             });
-        } catch (\Throwable $t) {
-            BaseServer::catchException($t);
+        } catch (\Throwable $throwable) {
+            BaseServer::catchException($throwable);
         }
 
     }
@@ -204,7 +204,7 @@ abstract class AbstractProcess
 
     /**
      * 是否启用协程
-     * @param boolean
+     * @param bool
      */
     public function isEnableCoroutine()
     {
@@ -215,7 +215,7 @@ abstract class AbstractProcess
      * sendMessage 向worker进程发送数据(包含task进程)，worker进程将通过onPipeMessage函数监听获取数数据，默认向worker0发送
      * @param mixed $msg
      * @param int $worker_id
-     * @return boolean
+     * @return bool
      * @throws \Exception
      */
     public function sendMessage($msg = null, int $worker_id = 0)

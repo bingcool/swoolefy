@@ -51,7 +51,7 @@ class BaseObject
 
     /**
      * @param \ArrayObject $context
-     * @return boolean
+     * @return bool
      */
     public function setContext(\ArrayObject $context)
     {
@@ -166,7 +166,7 @@ class BaseObject
      * setArgs 设置临时变量
      * @param string $name
      * @param mixed $value
-     * @return boolean
+     * @return bool
      */
     public function setArgs(string $name, $value)
     {

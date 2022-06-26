@@ -56,7 +56,7 @@ class ProcessManager
      * addProcess 添加一个进程
      * @param string $processName
      * @param string $processClass
-     * @param boolean $async
+     * @param bool $async
      * @param array $args
      * @param mixed $extend_data
      * @param boolean $enable_coroutine
@@ -147,7 +147,7 @@ class ProcessManager
     /**
      * reboot 重启某个进程
      * @param string $processName
-     * @return boolean
+     * @return bool
      */
     public function reboot(string $processName)
     {

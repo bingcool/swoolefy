@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Dto\ContainerObjectDto;
 
 trait ComponentTrait
@@ -35,7 +36,8 @@ trait ComponentTrait
     protected $componentPoolsObjIds = [];
 
     /**
-     * creatObject 创建组件对象
+     * creatObject
+     *
      * @param string $com_alias_name 组件别名
      * @param mixed $definition 组件定义类
      * @return   mixed
@@ -43,7 +45,7 @@ trait ComponentTrait
      */
     public function creatObject(string $com_alias_name = null, $definition = [])
     {
-        // 动态创建公用组件
+        // dynamic create component object
         if ($com_alias_name) {
             if (!isset($this->container[$com_alias_name]) || !is_object($this->container[$com_alias_name])) {
                 if (is_array($definition) && isset($definition['class'])) {
@@ -70,16 +72,16 @@ trait ComponentTrait
             }
 
         }
-        // 配置文件初始化创建公用对象
+        // create component object by config file
         $coreComponents = $this->coreComponents();
         $components = array_merge($coreComponents, BaseServer::getAppConf()['components']);
-        foreach ($components as $com_name => $component) {
+        foreach ($components as $comName => $component) {
             if ($component instanceof \Closure) {
                 // delay create
                 continue;
             }
 
-            if (isset($this->container[$com_name]) && is_object($this->container[$com_name])) {
+            if (isset($this->container[$comName]) && is_object($this->container[$comName])) {
                 continue;
             }
 
@@ -92,9 +94,9 @@ trait ComponentTrait
                     unset($component['constructor']);
                 }
                 $definition = $component;
-                $this->container[$com_name] = $this->buildInstance($class, $definition, $params, $com_name);
+                $this->container[$comName] = $this->buildInstance($class, $definition, $params, $comName);
             } else {
-                $this->container[$com_name] = false;
+                $this->container[$comName] = false;
             }
         }
         return $this->container;
@@ -248,7 +250,7 @@ trait ComponentTrait
     }
 
     /**
-     * getOpenPoolsOfComponent 获取启用pools的组件名称
+     * getOpenPoolsOfComponent
      * @return array
      */
     public function getOpenPoolsOfComponent()
@@ -301,15 +303,15 @@ trait ComponentTrait
             // mysql|redis进程池中直接赋值
             if (in_array($name, $this->componentPools) && $cid > 0) {
                 /** @var \Swoolefy\Core\Coroutine\PoolsHandler $poolHandler */
-                $poolHandler = \Swoolefy\Core\Coroutine\CoroutinePools::getInstance()->getPool($name);
+                $poolHandler = CoroutinePools::getInstance()->getPool($name);
                 if (is_object($poolHandler)) {
                     $this->container[$name] = $poolHandler->fetchObj();
                 }
                 // 若没有设置进程池处理实例,则降级到创建实例模式
                 if (isset($this->container[$name]) && is_object($this->container[$name])) {
-                    $obj_id = spl_object_id($this->container[$name]);
-                    if (!in_array($obj_id, $this->componentPoolsObjIds)) {
-                        array_push($this->componentPoolsObjIds, $obj_id);
+                    $objId = spl_object_id($this->container[$name]);
+                    if (!in_array($objId, $this->componentPoolsObjIds)) {
+                        array_push($this->componentPoolsObjIds, $objId);
                     }
                     return $this->container[$name];
                 }

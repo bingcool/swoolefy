@@ -143,7 +143,7 @@ class BService extends BaseObject
      * @param int $fd
      * @param mixed $data
      * @param int $opcode
-     * @param boolean $finish
+     * @param bool $finish
      * @return boolean
      * @throws Exception
      */
@@ -167,7 +167,7 @@ class BService extends BaseObject
 
     /**
      * isClientPackEof  根据设置判断客户端的分包方式eof
-     * @return boolean
+     * @return bool
      * @throws \Exception
      */
     public function isClientPackEof()
@@ -177,7 +177,7 @@ class BService extends BaseObject
 
     /**
      * isClientPackLength 根据设置判断客户端的分包方式length
-     * @return boolean
+     * @return bool
      * @throws \Exception
      */
     public function isClientPackLength()

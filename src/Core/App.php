@@ -206,7 +206,7 @@ class App extends \Swoolefy\Core\Component
     /**
      * afterRequest call
      * @param callable $callback
-     * @param boolean $prepend
+     * @param bool $prepend
      * @return bool
      */
     public function afterRequest(callable $callback, bool $prepend = false)

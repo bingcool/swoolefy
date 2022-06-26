@@ -31,7 +31,7 @@ class Struct
     }
 
     /**
-     * get 获取数据结构属性值
+     * get property value
      * @param string $property
      * @param mixed $default
      * @return string
@@ -45,7 +45,7 @@ class Struct
     }
 
     /**
-     * getProperties 获取所有设置数据结构属性
+     * getProperties
      * @param boolean $public
      * @return array
      */
@@ -63,7 +63,7 @@ class Struct
     }
 
     /**
-     * set 设置数据结构属性值
+     * set property value
      * @param string $property
      * @param mixed $value
      * @return mixed
@@ -77,7 +77,7 @@ class Struct
     }
 
     /**
-     * setProperties 批量设置
+     * batch setProperties
      * @param array $properties
      */
     public function setProperties($properties)
@@ -91,7 +91,7 @@ class Struct
     }
 
     /**
-     * getPublicProperties 获取设置的公有属性值
+     * getPublicProperties
      * @return  array
      */
     public function getPublicProperties()

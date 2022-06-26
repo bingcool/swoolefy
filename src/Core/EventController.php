@@ -42,7 +42,7 @@ class EventController extends BaseObject
 
     /**
      * $is_defer
-     * @var boolean
+     * @var bool
      */
     protected $isDefer = false;
 
@@ -75,7 +75,7 @@ class EventController extends BaseObject
     /**
      * setApp  重置APP对象
      * @param int $coroutine_id
-     * @return boolean
+     * @return bool
      * @throws \Exception
      */
     public function setApp($coroutine_id = null)
@@ -112,9 +112,8 @@ class EventController extends BaseObject
     }
 
     /**
-     * canCreateApp
-     * @param int $coroutine_id
-     * @return boolean
+     * @param null $coroutine_id
+     * @return bool
      * @throws \Exception
      */
     public function canCreateApp($coroutine_id = null)
@@ -132,7 +131,7 @@ class EventController extends BaseObject
     /**
      * afterRequest
      * @param callable $callback
-     * @param boolean $prepend
+     * @param bool $prepend
      * @return bool
      * @throws Exception
      */
@@ -171,7 +170,7 @@ class EventController extends BaseObject
 
     /**
      *pushComponentPools
-     * @return boolean
+     * @return bool
      */
     public function pushComponentPools()
     {
@@ -195,7 +194,7 @@ class EventController extends BaseObject
     /**
      * beforeAction 在处理实际action之前执行
      * EventController不会执行该动作,所以继承于EventController其他类不要调用该method
-     * @return boolean
+     * @return bool
      */
     public function _beforeAction()
     {
@@ -204,7 +203,7 @@ class EventController extends BaseObject
 
     /**
      * afterAction
-     * @return boolean
+     * @return bool
      */
     public function _afterAction()
     {
@@ -235,7 +234,7 @@ class EventController extends BaseObject
     }
 
     /**
-     * @return boolean
+     * @return bool
      */
     public function isDefer()
     {

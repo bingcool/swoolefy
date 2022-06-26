@@ -144,7 +144,7 @@ class ServiceDispatch extends AppDispatch
     /**
      * checkClass
      * @param string $class
-     * @return boolean
+     * @return bool
      */
     public function checkClass($class)
     {
