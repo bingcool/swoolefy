@@ -59,7 +59,7 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface
      * @param int $from_worker_id
      * @param mixed $data
      * @param mixed $task
-     * @return boolean
+     * @return bool
      * @throws \Throwable
      */
     public function onTask($server, $task_id, $from_worker_id, $data, $task = null)

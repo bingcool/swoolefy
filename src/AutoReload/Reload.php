@@ -22,43 +22,43 @@ class Reload
     private $inotify = null;
 
     /**
-     * $reloadFileTypes 定义触发swoole服务重启文件的类型
+     * $reloadFileTypes watch file type
      * @var array
      */
     protected $reloadFileTypes = ['.php', '.html', '.js'];
 
     /**
-     * $ignoreDir 忽略不需要检查的文件夹，默认vendor
+     * $ignoreDir ignore dirs
      * @var array
      */
     protected $ignoreDirs = [];
 
     /**
-     * $watchFiles 保存监听的文件句柄
+     * $watchFiles file fd
      * @var array
      */
     protected $watchFiles = [];
 
     /**
-     * $afterSeconds 等待的时间间隔重启
+     * $afterSeconds reboot time
      * @var integer
      */
     protected $afterSeconds = 10;
 
     /**
-     * $reloading 默认是不重启的
+     * $reloading
      * boolean
      */
     protected $reloading = false;
 
     /**
-     * $events 默认监听的事件类型
+     * listen events
      * @var
      */
     protected $events = IN_MODIFY | IN_DELETE | IN_CREATE | IN_MOVE;
 
     /**
-     * $rootDirs 根目录
+     * $rootDirs
      * @var array
      */
     protected $rootDirs = [];
@@ -93,7 +93,6 @@ class Reload
             if (!$events) {
                 return;
             }
-            //只要检测到一个文件改动，则停止其余文件的判断，等待时间重启即可
             if (!$this->reloading) {
                 foreach ($events as $ev) {
                     if ($ev['mask'] == IN_IGNORED) {
@@ -105,7 +104,7 @@ class Reload
                             continue;
                         }
                     }
-                    //正在reload，不再接受任何事件，冻结10秒
+
                     if (!$this->reloading) {
                         \Swoole\Timer::after($this->afterSeconds * 1000, [$this, 'reload']);
                         $this->reloading = true;
@@ -149,7 +148,7 @@ class Reload
     }
 
     /**
-     * addFileType 添加文件类型
+     * addFileType
      * @param $type
      * @return $this
      */
@@ -162,7 +161,7 @@ class Reload
     }
 
     /**
-     * addEvent 添加事件
+     * addEvent
      * @param  $inotifyEvent
      * @return $this
      */
@@ -173,7 +172,7 @@ class Reload
     }
 
     /**
-     * clearWatch 清理所有inotify监听
+     * clearWatch clear watch file
      * @return $this
      */
     private function clearWatch()
@@ -186,7 +185,7 @@ class Reload
     }
 
     /**
-     * watch 监听文件目录
+     * watch listen dir
      * @param $dir
      * @param bool $root
      * @return $this
@@ -197,11 +196,11 @@ class Reload
         if (!is_dir($dir)) {
             throw new \Exception("[$dir] is not a directory.");
         }
-        //避免重复监听
+        // ignore again
         if (isset($this->watchFiles[$dir])) {
             return $this;
         }
-        //根目录
+
         if ($root) {
             $this->rootDirs[] = $dir;
         }
@@ -215,7 +214,7 @@ class Reload
                 continue;
             }
             $path = $dir . '/' . $f;
-            //递归目录
+
             if (is_dir($path)) {
                 $this->watch($path, false);
             }
@@ -230,7 +229,7 @@ class Reload
     }
 
     /**
-     * setAfterNSeconds 启动停顿时间
+     * setAfterSeconds
      * @param float $seconds
      * @return $this
      */
@@ -252,7 +251,7 @@ class Reload
     }
 
     /**
-     * setIgnoreDir 设置忽略不需检测的文件夹
+     * setIgnoreDir
      * @param array $ignore_dir
      * @return $this
      */

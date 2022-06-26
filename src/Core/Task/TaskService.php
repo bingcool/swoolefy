@@ -101,7 +101,7 @@ class TaskService extends BService
     }
 
     /**
-     * finishTask 完成任务，投递数据至worker进程
+     * finishTask
      * @param mixed $data
      * @return void
      */

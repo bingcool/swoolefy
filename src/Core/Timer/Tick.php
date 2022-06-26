@@ -191,11 +191,11 @@ class Tick
 
         if ($timerId) {
             self::$_after_tasks[$timerId] = [
-                'callback' => $func,
-                'params' => $params,
+                'callback'      => $func,
+                'params'        => $params,
                 'time_interval' => $time_interval_ms,
-                'timer_id' => $timerId,
-                'start_time' => date('Y-m-d H:i:s', strtotime('now'))
+                'timer_id'      => $timerId,
+                'start_time'    => date('Y-m-d H:i:s', strtotime('now'))
             ];
             $config = Swfy::getConf();
             if (isset($config['enable_table_tick_task']) && $config['enable_table_tick_task'] == true) {

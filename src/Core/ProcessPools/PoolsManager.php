@@ -80,7 +80,7 @@ class PoolsManager
      * @param string $processName
      * @param string $processClass
      * @param int $process_num_bind_worker 每个worker绑定的进程数，也即是为每个worker附加的自定义进程数，默认绑定一个process
-     * @param boolean $async
+     * @param bool $async
      * @param array $args
      * @param mixed $extend_data
      * @param boolean $enable_coroutine
@@ -197,8 +197,8 @@ class PoolsManager
     /**
      * reboot 重启进程
      * @param string $processName
-     * @param boolean $is_restart_all_process
-     * @return boolean
+     * @param bool $is_restart_all_process
+     * @return bool
      * @throws Exception
      */
     public function rebootPools(string $processName, bool $is_restart_all_process = false)

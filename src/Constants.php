@@ -52,12 +52,12 @@ defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '4.5.0');
 class Constants {
 
 	/**
-	 * swoolefy框架的版本
+	 * swoolefy version
 	 */
-	const VERSION = SWOOLEFY_VERSION;
+	const SWOOLEFY_VERSION = SWOOLEFY_VERSION;
 
     /**
-     * swoolefy envirment
+     * swoolefy env
      */
 	const SWOOLEFY_ENV = SWOOLEFY_ENV;
 

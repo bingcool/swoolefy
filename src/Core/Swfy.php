@@ -48,7 +48,7 @@ class Swfy
     /**
      * removeComponent 销毁Component
      * @param string|array $com_alias_name
-     * @return boolean
+     * @return bool
      */
     public static function removeComponent(?string $com_alias_name = null)
     {

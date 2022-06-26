@@ -72,7 +72,7 @@ abstract class AbstractProcessPools
      * @param bool $async
      * @param array $args
      * @param mixed $extend_data
-     * @param boolean $enable_coroutine
+     * @param bool $enable_coroutine
      */
     public function __construct(
         string $process_name,
@@ -216,7 +216,7 @@ abstract class AbstractProcessPools
 
     /**
      * getProcessName
-     * @param boolean $is_full_name
+     * @param bool $is_full_name
      * @return string
      */
     public function getProcessName(bool $is_full_name = false)
@@ -242,7 +242,7 @@ abstract class AbstractProcessPools
      * worker进程将通过onPipeMessage函数异步监听获取数数据
      * @param mixed $msg
      * @param int $worker_id
-     * @return boolean
+     * @return bool
      * @throws \Exception
      */
     public function sendMessage($msg = null, int $worker_id = null)

@@ -22,7 +22,7 @@ class AsyncTask implements AsyncTaskInterface
      * registerTask 注册实例任务并调用异步任务，创建一个应用实例，用于处理复杂业务
      * @param array $callable
      * @param array $data
-     * @return int|boolean
+     * @return int|bool
      * @throws mixed
      */
     public static function registerTask($callable, array $data = [])
@@ -93,7 +93,7 @@ class AsyncTask implements AsyncTaskInterface
 
     /**
      * isWorkerProcess 判断当前进程是否是worker进程
-     * @return boolean
+     * @return bool
      * @throws \Exception
      */
     public static function isWorkerProcess()
@@ -103,7 +103,7 @@ class AsyncTask implements AsyncTaskInterface
 
     /**
      * isTaskProcess 判断当前进程是否是异步task进程
-     * @return boolean
+     * @return bool
      * @throws \Exception
      */
     public static function isTaskProcess()

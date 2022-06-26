@@ -77,6 +77,9 @@ abstract class AbstractCronController extends ProcessController
         }
     }
 
+    /**
+     * @return int
+     */
     public function getOffsetSecond()
     {
         return static::$offsetSecond;

@@ -82,7 +82,7 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface
      * @param int $worker_id
      * @param int $worker_pid
      * @param mixed $exit_code
-     * @param boolean $signal
+     * @param bool $signal
      * @return void
      */
     public function workerError($server, $worker_id, $worker_pid, $exit_code, $signal)
@@ -164,23 +164,25 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface
             default:
                 $main_server = 'HttpServer';
         }
-        $conf = Swfy::getConf();
-        $daemonize = isset($conf['setting']['daemonize']) ? $conf['setting']['daemonize'] : false;
-        $listen_host = isset($conf['host']) ? $conf['host'] : '127.0.0.1';
-        $listen_port = isset($conf['port']) ? $conf['port'] : null;
-        $worker_num = isset($conf['setting']['worker_num']) ? $conf['setting']['worker_num'] : 1;
-        $task_worker_num = isset($conf['setting']['task_worker_num']) ? $conf['setting']['task_worker_num'] : 0;
-        $swoole_version = swoole_version();
-        $php_version = phpversion();
-        $swoolefy_version = SWOOLEFY_VERSION;
-        $swoolefy_env = defined('SWOOLEFY_ENV') ? SWOOLEFY_ENV : null;
-        $cpu_num = swoole_cpu_num();
-        $ip_list = json_encode(swoole_get_local_ip());
-        $processListInfo = array_values(ProcessManager::getInstance()->getProcessListInfo());
-        $processListInfoStr = json_encode($processListInfo, JSON_UNESCAPED_UNICODE);
-        $poolsProcessListInfo = array_values(PoolsManager::getInstance()->getProcessListInfo());
+
+        $conf                    = Swfy::getConf();
+        $daemonize               = isset($conf['setting']['daemonize']) ? $conf['setting']['daemonize'] : false;
+        $listen_host             = isset($conf['host']) ? $conf['host'] : '127.0.0.1';
+        $listen_port             = isset($conf['port']) ? $conf['port'] : null;
+        $worker_num              = isset($conf['setting']['worker_num']) ? $conf['setting']['worker_num'] : 1;
+        $task_worker_num         = isset($conf['setting']['task_worker_num']) ? $conf['setting']['task_worker_num'] : 0;
+        $swoole_version          = swoole_version();
+        $php_version             = phpversion();
+        $swoolefy_version        = SWOOLEFY_VERSION;
+        $swoolefy_env            = defined('SWOOLEFY_ENV') ? SWOOLEFY_ENV : null;
+        $cpu_num                 = swoole_cpu_num();
+        $ip_list                 = json_encode(swoole_get_local_ip());
+        $processListInfo         = array_values(ProcessManager::getInstance()->getProcessListInfo());
+        $processListInfoStr      = json_encode($processListInfo, JSON_UNESCAPED_UNICODE);
+        $poolsProcessListInfo    = array_values(PoolsManager::getInstance()->getProcessListInfo());
         $poolsProcessListInfoStr = json_encode($poolsProcessListInfo, JSON_UNESCAPED_UNICODE);
-        $hostname = gethostname();
+        $hostname                = gethostname();
+
         $this->each(str_repeat('-', 50), 'light_green');
         $this->each("
             main server         {$main_server}

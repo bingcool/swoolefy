@@ -102,8 +102,8 @@ class Session
 
     /**
      * start 开启session
-     * @param boolean $readonly
-     * @return boolean
+     * @param bool $readonly
+     * @return bool
      * @throws \Exception
      */
     public function start(bool $readonly = false)
@@ -247,7 +247,7 @@ class Session
      * set 设置session保存数据
      * @param string $key
      * @param mixed $data
-     * @return  boolean
+     * @return  bool
      */
     public function set(string $key, $data)
     {
@@ -274,7 +274,7 @@ class Session
     /**
      * has 是否存在某个key
      * @param string $key
-     * @return   boolean
+     * @return bool
      */
     public function has(string $key)
     {
@@ -301,7 +301,7 @@ class Session
     /**
      * delete 删除某个key
      * @param string $key
-     * @return   boolean
+     * @return bool
      */
     public function delete(string $key)
     {
@@ -314,7 +314,7 @@ class Session
 
     /**
      * clear 清空某个session
-     * @return  boolean
+     * @return bool
      */
     public function destroy()
     {
@@ -330,8 +330,8 @@ class Session
 
     /**
      * reGenerateSessionId 重新生成session_id
-     * @param boolean $ismerge 生成新的session_id是否继承合并当前session的数据，默认true,如需要产生一个完全新的空的$this->_SESSION，可以设置false
-     * @return   void
+     * @param bool $ismerge 生成新的session_id是否继承合并当前session的数据，默认true,如需要产生一个完全新的空的$this->_SESSION，可以设置false
+     * @return void
      * @throws \Exception
      */
     public function reGenerateSessionId(bool $ismerge = true)

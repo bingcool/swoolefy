@@ -24,7 +24,7 @@ class Application
     /**
      * setApp
      * @param App|Swoole
-     * @return boolean
+     * @return bool
      * @throws \Exception
      */
     public static function setApp($App)
@@ -87,7 +87,7 @@ class Application
     /**
      * issetApp
      * @param int $coroutine_id
-     * @return boolean
+     * @return bool
      */
     public static function issetApp($coroutine_id = null)
     {
@@ -119,7 +119,7 @@ class Application
     /**
      * removeApp
      * @param int|null $coroutine_id
-     * @return boolean
+     * @return bool
      */
     public static function removeApp(?int $coroutine_id = null)
     {

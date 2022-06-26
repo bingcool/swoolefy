@@ -107,7 +107,7 @@ trait ServiceTrait
 
     /**
      * getIncludeFiles
-     * @return array|boolean
+     * @return array|bool
      */
     public static function getInitIncludeFiles($dir = null)
     {
@@ -148,7 +148,7 @@ trait ServiceTrait
 
     /**
      * @param $server
-     * @return boolean
+     * @return bool
      */
     public static function setSwooleServer($server)
     {
@@ -161,7 +161,7 @@ trait ServiceTrait
 
     /**
      * @param array $conf
-     * @param boolean
+     * @param bool
      */
     public static function setConf(array $conf)
     {
@@ -199,7 +199,7 @@ trait ServiceTrait
     /**
      * setAppConf 设置或重新设置原有的应用层配置
      * @param array $config
-     * @return boolean
+     * @return bool
      */
     public static function setAppConf(array $conf = [])
     {
@@ -231,7 +231,7 @@ trait ServiceTrait
 
     /**
      * isWorkerProcess 进程是否是worker进程
-     * @return boolean
+     * @return bool
      * @throws Exception
      */
     public static function isWorkerProcess()
@@ -244,7 +244,7 @@ trait ServiceTrait
 
     /**
      * isTaskProcess 进程是否是task进程
-     * @return boolean
+     * @return bool
      * @throws Exception
      */
     public static function isTaskProcess()
@@ -257,7 +257,7 @@ trait ServiceTrait
     }
 
     /** isUserProcess 进程是否是process进程
-     * @return boolean
+     * @return bool
      * @throws Exception
      */
     public static function isUserProcess()
@@ -270,7 +270,7 @@ trait ServiceTrait
     }
 
     /** isSelfProcess 进程是否是process进程
-     * @return boolean
+     * @return bool
      * @throws \Exception
      */
     public static function isSelfProcess()
@@ -280,7 +280,7 @@ trait ServiceTrait
 
     /**
      * isHttpApp
-     * @return boolean
+     * @return bool
      */
     public function isHttpApp()
     {
@@ -289,7 +289,7 @@ trait ServiceTrait
 
     /**
      * isRpcApp 判断当前应用是否是Tcp
-     * @return boolean
+     * @return bool
      */
     public function isRpcApp()
     {
@@ -298,7 +298,7 @@ trait ServiceTrait
 
     /**
      * isWebsocketApp
-     * @return boolean
+     * @return bool
      */
     public function isWebsocketApp()
     {
@@ -307,7 +307,7 @@ trait ServiceTrait
 
     /**
      * isUdpApp
-     * @return boolean
+     * @return bool
      */
     public function isUdpApp()
     {

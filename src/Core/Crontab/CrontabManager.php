@@ -20,6 +20,9 @@ class CrontabManager
 
     use \Swoolefy\Core\SingletonTrait;
 
+    /**
+     * @var array
+     */
     protected $cronTasks = [];
 
     /**

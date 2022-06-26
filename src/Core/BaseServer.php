@@ -433,7 +433,7 @@ class BaseServer
 
     /**
      * setTimeZone 设置时区
-     * @return boolean
+     * @return bool
      */
     public static function setTimeZone()
     {
@@ -523,7 +523,7 @@ class BaseServer
     /**
      * isWorkerProcess 进程是否是worker进程
      * @param int $worker_id
-     * @return  boolean
+     * @return  bool
      */
     public static function isWorkerProcess($worker_id)
     {
@@ -536,7 +536,7 @@ class BaseServer
     /**
      * isTaskProcess 进程是否是task进程
      * @param int $worker_id
-     * @return  boolean
+     * @return  bool
      */
     public static function isTaskProcess($worker_id)
     {
@@ -545,7 +545,7 @@ class BaseServer
 
     /**
      * isUseSsl 判断是否使用ssl加密
-     * @return boolean
+     * @return bool
      */
     protected static function isUseSsl()
     {
@@ -604,9 +604,9 @@ class BaseServer
     /**
      * swooleVersion 判断swoole是否大于某个版本
      * @param string $version
-     * @return boolean
+     * @return bool
      */
-    public static function compareSwooleVersion($version = '4.2.0')
+    public static function compareSwooleVersion($version = '4.4.0')
     {
         if (isset(static::$config['swoole_version']) && !empty(static::$config['swoole_version'])) {
             $version = static::$config['swoole_version'];
@@ -649,7 +649,7 @@ class BaseServer
 
     /**
      * usePackEof 是否是pack的eof
-     * @return boolean
+     * @return bool
      */
     public static function isPackEof()
     {
@@ -691,7 +691,7 @@ class BaseServer
 
     /**
      * isEnableCoroutine
-     * @return boolean
+     * @return bool
      */
     public static function canEnableCoroutine()
     {
@@ -755,7 +755,7 @@ class BaseServer
 
     /**
      * setAutomicOfRequest 创建计算请求的原子计算实例,必须依赖于EnableSysCollector = true，否则设置没有意义,不生效
-     * @param boolean
+     * @param bool
      */
     public static function setAutomicOfRequest()
     {
@@ -768,7 +768,7 @@ class BaseServer
 
     /**
      * isEnableSysCollector
-     * @return boolean
+     * @return bool
      */
     public static function isEnableSysCollector()
     {
@@ -789,7 +789,7 @@ class BaseServer
 
     /**
      * isEnablePvCollector 是否启用计算请求次数
-     * @return boolean
+     * @return bool
      */
     public static function isEnablePvCollector()
     {
@@ -810,7 +810,7 @@ class BaseServer
 
     /**
      * isEnableReload
-     * @return boolean
+     * @return bool
      */
     public static function isEnableReload()
     {
@@ -826,7 +826,7 @@ class BaseServer
 
     /**
      * isHttpApp
-     * @return boolean
+     * @return bool
      */
     public static function isHttpApp()
     {
@@ -838,7 +838,7 @@ class BaseServer
 
     /**
      * isRpcApp 判断当前应用是否是Tcp
-     * @return boolean
+     * @return bool
      */
     public static function isRpcApp()
     {
@@ -850,7 +850,7 @@ class BaseServer
 
     /**
      * isWebsocketApp
-     * @return boolean
+     * @return bool
      */
     public static function isWebsocketApp()
     {
@@ -862,7 +862,7 @@ class BaseServer
 
     /**
      * isUdpApp
-     * @return boolean
+     * @return bool
      */
     public static function isUdpApp()
     {
@@ -873,7 +873,7 @@ class BaseServer
     }
 
     /**
-     * @return boolean|mixed
+     * @return bool|mixed
      */
     public static function isTaskEnableCoroutine()
     {
@@ -897,7 +897,7 @@ class BaseServer
     /**
      * @param $subclass
      * @param $parentclass
-     * @return boolean
+     * @return bool
      */
     public static function isSubclassOf($subclass, $parentclass)
     {
@@ -923,7 +923,7 @@ class BaseServer
 
     /**
      * requestCount 必须依赖于EnableSysCollector = true，否则设置没有意义，不生效
-     * @return boolean
+     * @return bool
      */
     public static function atomicAdd()
     {

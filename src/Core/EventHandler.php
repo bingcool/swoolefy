@@ -19,8 +19,6 @@ class EventHandler extends \Swoolefy\Core\EventCtrl
     use \Swoolefy\Core\SingletonTrait;
 
     /**
-     * init swoole服务start启动之前初始化
-     * 可创建自定义进程process
      * @return void
      */
     public function onInit()

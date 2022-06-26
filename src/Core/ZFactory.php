@@ -23,9 +23,9 @@ class ZFactory
     protected static $_instances = [];
 
     /**
-     * getInstance 获取单例
-     * @param string $class 类命名空间
-     * @param array $constructor 类构造函数参数
+     * getInstance
+     * @param string $class
+     * @param array $constructor
      * @return  mixed
      */
     public static function getInstance(string $class = '', array $constructor = [])
@@ -40,7 +40,17 @@ class ZFactory
     }
 
     /**
-     * removeInstance 删除某个协程下的所有创建的实例
+     * @param string $class
+     * @param array $constructor
+     * @return mixed
+     */
+    public static function newInstance(string $class = '', array $constructor = [])
+    {
+        return new $class(...$constructor);
+    }
+
+    /**
+     * removeInstance
      * @param int $cid
      * @param string $class
      * @return boolean

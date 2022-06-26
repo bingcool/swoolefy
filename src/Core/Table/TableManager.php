@@ -21,7 +21,7 @@ class TableManager
     /**
      * createTable
      * @param array $tables
-     * @return boolean
+     * @return bool
      */
     public static function createTable(array $tables = [])
     {
@@ -95,7 +95,7 @@ class TableManager
      * exist 判断是否存在
      * @param string $table
      * @param string $key
-     * @return boolean
+     * @return bool
      */
     public static function exist(string $table, string $key)
     {
@@ -106,7 +106,7 @@ class TableManager
      * del 删除某行key
      * @param string $table
      * @param string $key
-     * @return boolean
+     * @return bool
      */
     public static function del(string $table, string $key)
     {
@@ -177,7 +177,7 @@ class TableManager
     /**
      * isExistTable 判断是否已创建内存表
      * @param string|null $table
-     * @return boolean
+     * @return bool
      * @throws mixed
      */
     public static function isExistTable(string $table)

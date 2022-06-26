@@ -27,7 +27,7 @@ class EventApp
 
     /**
      * $is_call 单例是否已调用执行函数，只能调用一次执行函数，即单例只能有一个入口执行函数
-     * @var boolean
+     * @var bool
      */
     protected $isCall = false;
 
