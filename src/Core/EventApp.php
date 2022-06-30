@@ -110,7 +110,7 @@ class EventApp
 
     /**
      * getAppCid 获取当前应用实例的协程id
-     * @return  string
+     * @return string
      */
     public function getCid()
     {

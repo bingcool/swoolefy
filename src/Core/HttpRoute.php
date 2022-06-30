@@ -59,7 +59,7 @@ class HttpRoute extends AppDispatch
     protected $requireUri = null;
 
     /**
-     * $extend_data 额外请求数据
+     * $extendData 额外请求数据
      * @var null
      */
     protected $extendData = null;
@@ -70,13 +70,13 @@ class HttpRoute extends AppDispatch
     private $controllerSuffix = 'Controller';
 
     /**
-     * $default_route
+     * $defaultRoute
      * @var string
      */
     private $defaultRoute = 'Index/index';
 
     /**
-     * action prefix
+     * actionPrefix
      * @var string
      */
     private $actionPrefix = 'action';
@@ -87,7 +87,7 @@ class HttpRoute extends AppDispatch
     protected $actionParams = [];
 
     /**
-     * $deny_actions
+     * $denyActions
      * @var array
      */
     protected static $denyActions = ['__construct', '_beforeAction', '_afterAction', '__destruct'];
@@ -128,22 +128,22 @@ class HttpRoute extends AppDispatch
             }
             $route_uri = trim($this->requireUri, '/');
             if ($route_uri) {
-                $route_params = explode('/', $route_uri);
-                $count = count($route_params);
+                $routeParams = explode('/', $route_uri);
+                $count = count($routeParams);
                 switch ($count) {
                     case 1 :
                         $module = null;
-                        $controller = $route_params[0];
+                        $controller = $routeParams[0];
                         $action = 'index';
                         break;
                     case 2 :
                         $module = null;
                         // Controller/Action
-                        list($controller, $action) = $route_params;
+                        list($controller, $action) = $routeParams;
                         break;
                     case 3 :
                         // Module/Controller/Action
-                        list($module, $controller, $action) = $route_params;
+                        list($module, $controller, $action) = $routeParams;
                         break;
                 }
             }

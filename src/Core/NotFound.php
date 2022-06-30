@@ -99,7 +99,7 @@ class NotFound extends BService
 
     /**
      * serverClientPacketStructSame 头部结构体是否相同，相同才能直接获取返回，否则要根据client端header_struct的定义生产header头部信息
-     * @return boolean
+     * @return bool
      */
     protected function serverClientPacketStructSame()
     {
