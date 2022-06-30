@@ -162,7 +162,7 @@ class BaseServer
     }
 
     /**
-     * checkVersion 检查是否安装基础扩展
+     * checkVersion
      * @return void
      * @throws \Exception
      */
@@ -194,7 +194,7 @@ class BaseServer
     }
 
     /**
-     * setMasterProcessName 设置主进程名称
+     * setMasterProcessName
      * @param string $master_process_name
      */
     public static function setMasterProcessName(string $master_process_name)
@@ -203,7 +203,7 @@ class BaseServer
     }
 
     /**
-     * setManagerProcessName 设置管理进程的名称
+     * setManagerProcessName
      * @param string $manager_process_name
      */
     public static function setManagerProcessName($manager_process_name)
@@ -212,7 +212,7 @@ class BaseServer
     }
 
     /**
-     * setWorkerProcessName 设置worker进程名称
+     * setWorkerProcessName
      * @param string $worker_process_name
      * @param int $worker_id
      * @param int $worker_num
@@ -303,7 +303,7 @@ class BaseServer
     }
 
     /**
-     * getStartTime 服务启动时间
+     * getStartTime
      * @return int
      */
     public static function getStartTime()
@@ -330,7 +330,7 @@ class BaseServer
     }
 
     /**
-     * getConfig 获取服务的全部配置
+     * getConfig 获取服务的全局配置
      * @return array
      */
     public static function getConf()
@@ -359,7 +359,7 @@ class BaseServer
     }
 
     /**
-     * getSwooleSetting 获取swoole的配置项
+     * getSwooleSetting
      * @return array
      */
     public static function getSwooleSetting()
@@ -377,7 +377,7 @@ class BaseServer
     }
 
     /**
-     * getSwooleVersion 获取swoole的版本
+     * getSwooleVersion
      * @return string
      */
     public static function getSwooleVersion()
@@ -386,7 +386,7 @@ class BaseServer
     }
 
     /**
-     * getLastError 返回最后一次的错误代码
+     * getLastError
      * @return int
      */
     public static function getLastError()
@@ -395,7 +395,7 @@ class BaseServer
     }
 
     /**
-     * getLastErrorMsg 获取swoole最后一次的错误信息
+     * getLastErrorMsg
      * @return string
      */
     public static function getLastErrorMsg()
@@ -405,7 +405,7 @@ class BaseServer
     }
 
     /**
-     * getLocalIp 获取本地ip
+     * getLocalIp
      * @return string
      */
     public static function getLocalIp()
@@ -414,7 +414,7 @@ class BaseServer
     }
 
     /**
-     * getLocalMac 获取本机mac地址
+     * getLocalMac
      * @return array
      */
     public static function getLocalMac()
@@ -423,7 +423,7 @@ class BaseServer
     }
 
     /**
-     * getStatus 获取swoole的状态信息
+     * getStatus
      * @return array
      */
     public static function getStats()
@@ -432,7 +432,7 @@ class BaseServer
     }
 
     /**
-     * setTimeZone 设置时区
+     * setTimeZone
      * @return bool
      */
     public static function setTimeZone()
@@ -444,7 +444,7 @@ class BaseServer
     }
 
     /**
-     * clearCache 清空字节缓存
+     * clearCache
      * @return void
      */
     public static function clearCache()
@@ -458,7 +458,7 @@ class BaseServer
     }
 
     /**
-     * getIncludeFiles 获取woker启动前已经加载的文件
+     * getIncludeFiles
      * @param string $dir
      * @return void
      */
