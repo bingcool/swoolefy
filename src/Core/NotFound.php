@@ -26,6 +26,7 @@ class NotFound extends BService
             "Not Found Class %s",
             $class
         );
+
         $responseData = Application::buildResponseData($ret, $msg);
         if (BaseServer::isRpcApp()) {
             $is_same_packet_struct = $this->serverClientPacketStructSame();

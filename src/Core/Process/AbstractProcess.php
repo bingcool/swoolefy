@@ -42,9 +42,9 @@ abstract class AbstractProcess
     private $args = [];
 
     /**
-     * @var null
+     * @var mixed|null
      */
-    private $extendData;
+    private $extendData = null;
 
     /**
      * @var bool
@@ -173,8 +173,10 @@ abstract class AbstractProcess
         return $this->swooleProcess;
     }
 
-    /*
+    /**
      * 服务启动后才能获得到创建的进程pid,不启动为null
+     *
+     * @return int|null
      */
     public function getPid()
     {
@@ -280,7 +282,7 @@ abstract class AbstractProcess
 
     /**
      * getCurrentCoroutineLastCid 获取当前进程的协程cid已分配到哪个值，可以根据这个值设置进程reboot,防止cid超出最大数
-     * @return int
+     * @return int|null
      */
     public function getCurrentCoroutineLastCid()
     {
@@ -315,6 +317,7 @@ abstract class AbstractProcess
      * catch out of memory
      *
      * installRegisterShutdownFunction
+     * @return void
      */
     protected function installRegisterShutdownFunction()
     {

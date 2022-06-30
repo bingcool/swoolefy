@@ -27,7 +27,7 @@ class Swoole extends BaseObject
 
     /**
      * $fd fd连接句柄标志
-     * @var null
+     * @var int
      */
     public $fd = null;
 
@@ -136,7 +136,7 @@ class Swoole extends BaseObject
 
     /**
      * isTaskProcess 判断当前进程是否是异步task进程
-     * @return boolean
+     * @return bool
      * @throws \Exception
      */
     public static function isTaskProcess()
@@ -290,7 +290,7 @@ class Swoole extends BaseObject
 
     /**
      *pushComponentPools
-     * @return boolean
+     * @return bool
      */
     public function pushComponentPools()
     {

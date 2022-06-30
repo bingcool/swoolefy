@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Rpc;
 
+use malkusch\lock\mutex\Mutex;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Application;
@@ -32,7 +33,7 @@ class Pack extends BaseParse
 
     /**
      * $_pack_size 包的大小，实际应用应设置与package_max_length设置保持一致，默认2M
-     * @var integer
+     * @var int
      */
     protected static $packet_maxlen = 2 * 1024 * 1024;
 
@@ -62,7 +63,7 @@ class Pack extends BaseParse
 
     /**
      * $header_length 包头固定长度，单位字节,等于package_body_offset设置的值
-     * @var integer
+     * @var int
      */
     protected static $header_length = 30;
 
@@ -166,7 +167,7 @@ class Pack extends BaseParse
 
     /**
      * parseUnpackType  设置unpack头的类型
-     * @return   string
+     * @return string
      */
     public function parseUnpackType(array $header_struct = [])
     {
@@ -191,7 +192,7 @@ class Pack extends BaseParse
      * sendErrorMessage
      * @param int $fd
      * @param mixed $errno
-     * @return   boolean
+     * @return bool
      */
     public function sendErrorMessage($fd, $errno, $errorMsg, array $header)
     {
@@ -208,8 +209,8 @@ class Pack extends BaseParse
 
     /**
      * filterHeader  filter头部空格
-     * @param    &$header
-     * @return   array
+     * @param &$header
+     * @return array
      */
     public function filterHeader(&$header)
     {
@@ -227,7 +228,7 @@ class Pack extends BaseParse
      * @param array $header
      * @param string $serialize_type
      * @param array $heder_struct
-     * @return   string
+     * @return string
      */
     public static function encodePack(
         $data,
@@ -266,7 +267,7 @@ class Pack extends BaseParse
      * encode 数据序列化
      * @param mixed $data
      * @param int $serialize_type
-     * @return  string
+     * @return string
      */
     public static function encode($data, $serialize_type = self::DECODE_JSON)
     {
@@ -287,7 +288,7 @@ class Pack extends BaseParse
      * decode 数据反序列化
      * @param string $data
      * @param mixed $unserialize_type
-     * @return   mixed
+     * @return mixed
      */
     public static function decode($data, $unserialize_type = self::DECODE_JSON)
     {
@@ -309,7 +310,7 @@ class Pack extends BaseParse
     /**
      * delete 删除缓存的不完整的僵尸式数据包，可以在onclose回调中执行,防止内存偷偷溢增
      * @param int $fd
-     * @return boolean
+     * @return bool
      */
     public function delete($fd)
     {
@@ -321,7 +322,7 @@ class Pack extends BaseParse
      * destroy 当workerStop时,删除缓冲的不完整的僵尸式数据包，并强制断开这些链接
      * @param mixed $server
      * @param int $worker_id
-     * @return boolean
+     * @return bool
      */
     public function destroy($server = null, $worker_id = null)
     {

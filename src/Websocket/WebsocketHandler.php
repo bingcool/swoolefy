@@ -53,10 +53,11 @@ class WebsocketHandler extends Swoole implements HandlerInterface
      * run 服务调度
      * @param int $fd
      * @param mixed $payload
+     * @param array $extendData
      * @return mixed
      * @throws \Throwable
      */
-    public function run($fd, $payload, array $extend_data = [])
+    public function run($fd, $payload, array $extendData = [])
     {
         try {
             // heartbeat
@@ -88,7 +89,7 @@ class WebsocketHandler extends Swoole implements HandlerInterface
             if ($callable) {
                 $dispatcher = new ServiceDispatch($callable, $params);
                 if (isset($isTaskProcess) && $isTaskProcess === true) {
-                    list($from_worker_id, $task_id, $task) = $extend_data;
+                    list($from_worker_id, $task_id, $task) = $extendData;
                     $dispatcher->setFromWorkerIdAndTaskId($from_worker_id, $task_id, $task);
                 }
                 $dispatcher->dispatch();
@@ -107,7 +108,7 @@ class WebsocketHandler extends Swoole implements HandlerInterface
     /**
      * ping
      * @param string $evnet
-     * @return   boolean
+     * @return bool
      */
     public function ping(string $event)
     {

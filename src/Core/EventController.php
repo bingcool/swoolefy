@@ -36,7 +36,7 @@ class EventController extends BaseObject
 
     /**
      * $is_end
-     * @var boolean
+     * @var bool
      */
     protected $isEnd = false;
 
@@ -91,7 +91,7 @@ class EventController extends BaseObject
 
     /**
      * @param int $coroutine_id
-     * @return null|string
+     * @return int
      */
     public function setCid($coroutine_id = null)
     {
@@ -104,7 +104,7 @@ class EventController extends BaseObject
 
     /**
      * getCid
-     * @return mixed
+     * @return int
      */
     public function getCid()
     {

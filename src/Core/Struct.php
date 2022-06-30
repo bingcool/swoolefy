@@ -23,7 +23,6 @@ class Struct
 
     /**
      * __construct
-     * @param
      */
     public function __construct()
     {
@@ -46,7 +45,7 @@ class Struct
 
     /**
      * getProperties
-     * @param boolean $public
+     * @param bool $public
      * @return array
      */
     public function getProperties(bool $public = true)
@@ -79,6 +78,7 @@ class Struct
     /**
      * batch setProperties
      * @param array $properties
+     * @return void
      */
     public function setProperties($properties)
     {
@@ -92,7 +92,7 @@ class Struct
 
     /**
      * getPublicProperties
-     * @return  array
+     * @return array
      */
     public function getPublicProperties()
     {

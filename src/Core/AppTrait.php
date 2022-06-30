@@ -125,7 +125,7 @@ trait AppTrait
 
     /**
      * isSsl
-     * @return   bool
+     * @return bool
      */
     public function isSsl()
     {
@@ -139,7 +139,7 @@ trait AppTrait
 
     /**
      * isMobile
-     * @return   bool
+     * @return bool
      */
     public function isMobile()
     {

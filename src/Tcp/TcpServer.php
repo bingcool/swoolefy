@@ -75,6 +75,9 @@ abstract class TcpServer extends BaseServer
         parent::__construct();
     }
 
+    /**
+     * start
+     */
     public function start()
     {
         /**

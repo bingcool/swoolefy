@@ -37,14 +37,14 @@ class CoroutinePools
      * @param callable $constructor
      */
     public function addPool(
-        string   $pool_name,
+        string   $poolName,
         array    $config,
         callable $constructor
     )
     {
-        $config = array_merge(self::DefaultConfig, $config);
-        $pool_name = trim($pool_name);
-        $this->pools[$pool_name] = call_user_func(function () use ($pool_name, $config, $constructor) {
+        $config                 = array_merge(self::DefaultConfig, $config);
+        $poolName               = trim($poolName);
+        $this->pools[$poolName] = call_user_func(function () use ($poolName, $config, $constructor) {
             $poolsHandler = new PoolsHandler();
             if (isset($config['pools_num']) && is_numeric($config['pools_num'])) {
                 $poolsHandler->setPoolsNum($config['pools_num']);
@@ -62,43 +62,43 @@ class CoroutinePools
             }
 
             $poolsHandler->setBuildCallable($constructor);
-            $poolsHandler->registerPools($pool_name);
+            $poolsHandler->registerPools($poolName);
             return $poolsHandler;
         });
     }
 
     /**
      * getChannel
-     * @param string $name
+     * @param string $poolName
      * @return PoolsHandler
      */
-    public function getPool(string $pool_name)
+    public function getPool(string $poolName)
     {
-        if (!$pool_name) {
+        if (!$poolName) {
             return null;
         }
-        $pool_name = trim($pool_name);
-        return $this->pools[$pool_name] ?? null;
+        $poolName = trim($poolName);
+        return $this->pools[$poolName] ?? null;
     }
 
     /**
      * 获取一个对象
-     * @param string $pool_name
+     * @param string $poolName
      * @return mixed
      */
-    public function getObj(string $pool_name)
+    public function getObj(string $poolName)
     {
-        return $this->getPool($pool_name)->fetchObj();
+        return $this->getPool($poolName)->fetchObj();
     }
 
     /**
      * 使用完put对象入channel
-     * @param string $pool_name
+     * @param string $poolName
      * @param $obj
-     * @return mixed
+     * @return void
      */
-    public function putObj(string $pool_name, $obj)
+    public function putObj(string $poolName, $obj)
     {
-        $this->getPool($pool_name)->pushObj($obj);
+        $this->getPool($poolName)->pushObj($obj);
     }
 }

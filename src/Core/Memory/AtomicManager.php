@@ -29,7 +29,7 @@ class AtomicManager
     /**
      * addAtomic
      * @param string $name
-     * @param int|integer $int
+     * @param int $int
      */
     public function addAtomic(string $name, int $int = 0)
     {
@@ -42,7 +42,7 @@ class AtomicManager
     /**
      * addAtomicLong
      * @param string $name
-     * @param int|integer $int
+     * @param int $int
      */
     public function addAtomicLong(string $name, int $int = 0)
     {

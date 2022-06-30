@@ -18,7 +18,7 @@ class Session
 {
     /**
      * $driver 缓存驱动的实例
-     * @var null
+     * @var string
      */
     public $driver = null;
 
@@ -30,7 +30,7 @@ class Session
 
     /**
      * $isStart 是否已经启动session
-     * @var boolean
+     * @var bool
      */
     protected $isStart = false;
 
@@ -134,7 +134,7 @@ class Session
     /**
      * load 加载获取session数据
      * @param string $sess_id
-     * @return   array
+     * @return array
      */
     protected function load(string $sess_id)
     {
@@ -181,7 +181,7 @@ class Session
     }
 
     /**
-     * @param null $driver
+     * @param string $driver
      * @return $this
      */
     public function setCacheDriver($driver = null)
@@ -247,7 +247,7 @@ class Session
      * set 设置session保存数据
      * @param string $key
      * @param mixed $data
-     * @return  bool
+     * @return bool
      */
     public function set(string $key, $data)
     {
@@ -261,7 +261,7 @@ class Session
     /**
      * get 获取session的数据
      * @param string $key
-     * @return  mixed
+     * @return mixed
      */
     public function get(string $key = null)
     {
@@ -286,7 +286,7 @@ class Session
 
     /**
      * getSessionTtl 获取session对象的剩余生存时间
-     * @return
+     * @return int
      */
     public function getSessionTtl()
     {

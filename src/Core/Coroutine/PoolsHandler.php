@@ -90,6 +90,7 @@ class PoolsHandler
 
     /**
      * @param float $popTimeout
+     * @return void
      */
     public function setPopTimeout(float $popTimeout = 1)
     {
@@ -106,6 +107,7 @@ class PoolsHandler
 
     /**
      * @param int $liveTime
+     * @return void
      */
     public function setLiveTime(int $liveTime)
     {
@@ -149,6 +151,7 @@ class PoolsHandler
     /**
      * 实例创建执行体
      * @param callable $callback
+     * @return void
      */
     public function setBuildCallable(callable $callback)
     {
@@ -157,8 +160,9 @@ class PoolsHandler
 
     /**
      * @param string|null $poolName
+     * @return void
      */
-    public function registerPools(string $poolName = null)
+    public function registerPools(?string $poolName = null)
     {
         if ($poolName) {
             $this->poolName = trim($poolName);
@@ -170,6 +174,7 @@ class PoolsHandler
 
     /**
      * pushObj 使用完要重新push进channel
+     *
      * @param object $obj
      * @return void
      */
@@ -246,7 +251,6 @@ class PoolsHandler
 
     /**
      * @param int $num
-     * @param callable $callable
      * @throws Exception
      */
     protected function make(int $num = 1)
@@ -268,10 +272,10 @@ class PoolsHandler
      */
     private function buildContainerObject($object)
     {
-        $containerObjectDto = new ContainerObjectDto();
-        $containerObjectDto->__coroutineId = \Swoole\Coroutine::getCid();
-        $containerObjectDto->__objInitTime = time();
-        $containerObjectDto->__object = $object;
+        $containerObjectDto                  = new ContainerObjectDto();
+        $containerObjectDto->__coroutineId   = \Swoole\Coroutine::getCid();
+        $containerObjectDto->__objInitTime   = time();
+        $containerObjectDto->__object        = $object;
         $containerObjectDto->__objExpireTime = time() + ($this->liveTime) + rand(1, 10);;
         return $containerObjectDto;
     }

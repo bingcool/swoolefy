@@ -94,9 +94,9 @@ class CrontabManager
 
     /**
      * @param string|null $cron_name
-     * @return array|mixed|null
+     * @return array|null
      */
-    public function getCronTaskByName(string $cron_name = null)
+    public function getCronTaskByName(?string $cron_name = null)
     {
         if ($cron_name) {
             $cron_name_key = md5($cron_name);

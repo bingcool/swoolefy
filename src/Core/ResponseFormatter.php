@@ -26,7 +26,6 @@ class ResponseFormatter
             'ret' => $ret,
             'msg' => $msg,
             'data' => $data
-            //'require_id' => 'xxxxxxxxx'
         ];
     }
 }

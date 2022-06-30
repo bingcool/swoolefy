@@ -22,6 +22,9 @@ class ProcessManager
 
     const PROCESS_NUM = 1024;
 
+    /**
+     * @var array
+     */
     private $tableProcess = [
         // 进程内存表
         'table_process_map' => [
@@ -58,8 +61,8 @@ class ProcessManager
      * @param string $processClass
      * @param bool $async
      * @param array $args
-     * @param mixed $extend_data
-     * @param boolean $enable_coroutine
+     * @param mixed $extendData
+     * @param bool $enableCoroutine
      * @return mixed
      * @throws mixed
      */
@@ -68,8 +71,8 @@ class ProcessManager
         string $processClass,
         bool   $async = true,
         array  $args = [],
-        ?array $extend_data = null,
-        bool   $enable_coroutine = true
+        ?array $extendData = null,
+        bool   $enableCoroutine = true
     )
     {
         $key = md5($processName);
@@ -87,8 +90,8 @@ class ProcessManager
                 $processName,
                 $async,
                 $args,
-                $extend_data,
-                $enable_coroutine
+                $extendData,
+                $enableCoroutine
             );
             $this->processList[$key] = $process;
             $this->processListInfo[$processName] = ['process_name' => $processName, 'class' => $processClass];
@@ -154,6 +157,7 @@ class ProcessManager
         $process = $this->getProcessByName($processName);
         $killFlag = $process->getSwoolefyProcessKillFlag();
         $this->writeByProcessName($processName, $killFlag);
+        return true;
     }
 
     /**

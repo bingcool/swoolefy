@@ -62,7 +62,7 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer
     /**
      * onPipeMessage
      * @param Server $server
-     * @param int $src_worker_id
+     * @param int $from_worker_id
      * @param mixed $message
      * @return void
      */
@@ -83,13 +83,16 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer
         try {
             list($callable, $extendData, $fd) = $data;
             list($className, $action) = $callable;
+
             /**@var TaskController $taskInstance */
             $taskInstance = new $className;
             $taskInstance->setTaskId((int)$task_id);
             $taskInstance->setFromWorkerId((int)$from_worker_id);
             $task && $taskInstance->setTask($task);
             $taskInstance->$action($extendData);
+
             unset($callable, $extendData, $fd);
+
         } catch (\Throwable $throwable) {
             $taskInstance->end();
             throw $throwable;

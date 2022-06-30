@@ -18,6 +18,6 @@ interface HandlerInterface
 
     public function bootstrap($recv);
 
-    public function run($fd, $recv, array $extend_data);
+    public function run($fd, $recv, array $extendData);
 
 }
