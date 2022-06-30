@@ -28,7 +28,6 @@ class ChannelManager
      * @param string $name
      * @param int $capacity
      * @return $this
-     * @throws mixed
      */
     public function addChannel(string $name, ?int $capacity = null)
     {

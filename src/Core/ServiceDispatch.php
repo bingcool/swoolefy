@@ -21,7 +21,7 @@ class ServiceDispatch extends AppDispatch
 
     /**
      * $params 远程调用参数
-     * @var null
+     * @var mixed
      */
     protected $params = null;
 
@@ -39,13 +39,14 @@ class ServiceDispatch extends AppDispatch
 
     /**
      * dispatch
-     * @return  mixed
+     * @return mixed
      * @throws \Exception
      */
     public function dispatch()
     {
         list($class, $action) = $this->callable;
         $class = trim(str_replace('\\', '/', $class), '/');
+
         if (!isset(self::$routeCacheFileMap[$class])) {
             if (!$this->checkClass($class)) {
                 $this->errorHandle($class, $action, 'error404');
@@ -85,7 +86,9 @@ class ServiceDispatch extends AppDispatch
                 return false;
             }
         } catch (\Throwable $t) {
+
             $errorMsg = $t->getMessage() . ' on ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $class . '::' . $action . ' ||| ' . json_encode($this->params, JSON_UNESCAPED_UNICODE) . '|||' . $t->getTraceAsString();
+
             if (Swfy::isWorkerProcess()) {
                 $this->getErrorHandle()->errorMsg($errorMsg);
             }
@@ -110,6 +113,7 @@ class ServiceDispatch extends AppDispatch
             $notFoundInstance = $this->getErrorHandle();
             $errorMsg = $notFoundInstance->{$errorMethod}($class, $action);
         }
+
         $msg = isset($errorMsg['msg']) ? $errorMsg['msg'] : sprintf("Call undefined method %s::%s", $class, $action);
         $exceptionClass = Application::getApp()->getExceptionClass();
         $exceptionClass::shutHalt($msg);

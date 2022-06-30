@@ -116,6 +116,7 @@ class GoWaitGroup
 
     /**
      * start
+     * @return int
      */
     public function start()
     {
@@ -125,8 +126,9 @@ class GoWaitGroup
 
     /**
      * @param string|null $key
-     * @param null $data
+     * @param mixed $data
      * @param float $timeouts
+     * @return void
      */
     public function done(string $key = null, $data = null, float $timeout = -1)
     {
@@ -161,6 +163,7 @@ class GoWaitGroup
 
     /**
      * reset
+     * @return void
      */
     protected function reset()
     {

@@ -51,10 +51,12 @@ class BService extends BaseObject
         $app = Application::getApp();
         $this->fd = $app->fd;
         $this->app_conf = $app->app_conf;
+
         if (BaseServer::isUdpApp()) {
             /**@var UdpHandler $app */
             $this->clientInfo = $app->getClientInfo();
         }
+
         if (\Swoole\Coroutine::getCid() > 0) {
             defer(function () {
                 $this->defer();
@@ -144,7 +146,7 @@ class BService extends BaseObject
      * @param mixed $data
      * @param int $opcode
      * @param bool $finish
-     * @return boolean
+     * @return bool
      * @throws Exception
      */
     public function push($fd, $data, int $opcode = 1, bool $finish = true)

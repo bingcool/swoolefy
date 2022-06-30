@@ -241,6 +241,7 @@ class App extends \Swoolefy\Core\Component
         if (empty($this->componentPools) || empty($this->componentPoolsObjIds)) {
             return false;
         }
+
         foreach ($this->componentPools as $name) {
             if (isset($this->container[$name])) {
                 $obj = $this->container[$name];

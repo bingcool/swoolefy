@@ -50,7 +50,7 @@ class ServerManager
     /**
      * getListener
      * @param int $port
-     * @return boolean
+     * @return bool
      */
     public function getListener(int $port)
     {
@@ -64,7 +64,7 @@ class ServerManager
      * stopWorker
      * @param int $worker_id
      * @param bool $waitEvent
-     * @return boolean
+     * @return bool
      */
     public function stopWorker(int $worker_id = -1, bool $waitEvent = false)
     {
@@ -97,7 +97,7 @@ class ServerManager
 
     /**
      * shutdown
-     * @return  bool
+     * @return bool
      */
     public function shutdown()
     {

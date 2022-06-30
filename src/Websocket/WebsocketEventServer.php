@@ -34,7 +34,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
      * onWorkerStart
      * @param Server $server
      * @param int $worker_id
-     * @return   void
+     * @return void
      */
     abstract public function onWorkerStart($server, $worker_id);
 
@@ -42,7 +42,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
      * onOpen
      * @param Server $server
      * @param object $request
-     * @return   void
+     * @return void
      */
     abstract public function onOpen($server, $request);
 
@@ -103,7 +103,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
      * @param int $from_worker_id
      * @param mixed $data
      * @param mixed $task
-     * @return   boolean
+     * @return bool
      * @throws \Throwable
      */
     public function onTask($server, $task_id, $from_worker_id, $data, $task = null)
@@ -120,7 +120,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
      * @param Server $server
      * @param int $task_id
      * @param mixed $data
-     * @return   void
+     * @return void
      */
     abstract public function onFinish($server, $task_id, $data);
 
@@ -129,7 +129,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
      * @param Server $server
      * @param int $src_worker_id
      * @param mixed $message
-     * @return   void
+     * @return void
      */
     abstract public function onPipeMessage($server, $from_worker_id, $message);
 
@@ -137,7 +137,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
      * onClose
      * @param Server $server
      * @param int $fd
-     * @return   void
+     * @return void
      */
     abstract public function onClose($server, $fd);
 

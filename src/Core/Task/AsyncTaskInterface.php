@@ -15,11 +15,11 @@ interface AsyncTaskInterface
 {
     /**
      * registerTask 注册并调用异步任务
-     * @param $route
-     * @param $data
+     * @param $callable
+     * @param array $data
      * @return mixed
      */
-    public static function registerTask($route, array $data);
+    public static function registerTask($callable, array $data);
 
     /**
      * finish 异步任务完成并退出到worker进程,执行finish进程业务

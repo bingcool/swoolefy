@@ -536,7 +536,7 @@ class BaseServer
     /**
      * isTaskProcess 进程是否是task进程
      * @param int $worker_id
-     * @return  bool
+     * @return bool
      */
     public static function isTaskProcess($worker_id)
     {
@@ -572,7 +572,7 @@ class BaseServer
 
     /**
      * serviceType 获取当前主服务器使用的协议,只需计算一次即可，寄存static变量
-     * @return  mixed
+     * @return mixed
      */
     public static function getServiceProtocol()
     {
@@ -661,7 +661,7 @@ class BaseServer
 
     /**
      * isPackLength 是否是pack的length
-     * @return boolean
+     * @return bool
      * @throws mixed
      */
     public static function isPackLength()

@@ -83,7 +83,7 @@ class PoolsManager
      * @param bool $async
      * @param array $args
      * @param mixed $extend_data
-     * @param boolean $enable_coroutine
+     * @param bool $enable_coroutine
      * @return void
      * @throws Exception
      */

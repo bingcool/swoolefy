@@ -56,7 +56,7 @@ class Parallel
 
     /**
      * @param callable $callable
-     * @param null $key
+     * @param string $key
      */
     public function add(callable $callable, $key = null)
     {
@@ -92,7 +92,8 @@ class Parallel
     }
 
     /**
-     * @param $key
+     * @param array $key
+     * @return void
      */
     public function ignoreCallbacks(array $keys)
     {
@@ -100,7 +101,7 @@ class Parallel
     }
 
     /**
-     * return void
+     *@return void
      */
     public function clear()
     {

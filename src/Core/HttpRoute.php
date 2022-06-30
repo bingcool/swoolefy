@@ -60,7 +60,7 @@ class HttpRoute extends AppDispatch
 
     /**
      * $extendData 额外请求数据
-     * @var null
+     * @var mixed
      */
     protected $extendData = null;
 
@@ -224,12 +224,14 @@ class HttpRoute extends AppDispatch
         }
         // reset app conf
         $this->app->setAppConf($this->app_conf);
+
         /**@var BController $controllerInstance */
         $controllerInstance = new $class();
         // set Controller Instance
         $this->app->setControllerInstance($controllerInstance);
         // invoke _beforeAction
         $isContinueAction = $controllerInstance->_beforeAction($action);
+
         if (isset($this->app_conf['enable_action_prefix']) && $this->app_conf['enable_action_prefix']) {
             $targetAction = $this->actionPrefix . ucfirst($action);
         } else {
@@ -307,7 +309,7 @@ class HttpRoute extends AppDispatch
     /**
      * isExistRouteFile 判断是否存在请求的route文件
      * @param string $route 请求的路由uri
-     * @return   boolean
+     * @return bool
      */
     public function isExistRouteFile(string $route)
     {
@@ -317,7 +319,7 @@ class HttpRoute extends AppDispatch
     /**
      * setRouteFileMap 缓存路由的映射
      * @param string $route 请求的路由uri
-     * @return  void
+     * @return void
      */
     public function setRouteFileMap(string $route)
     {
@@ -326,7 +328,7 @@ class HttpRoute extends AppDispatch
 
     /**
      * @param string $class
-     * @return array|bool
+     * @return array
      */
     protected function fileNotFound(string $class)
     {
@@ -341,7 +343,7 @@ class HttpRoute extends AppDispatch
     /**
      * resetRouteDispatch 重置路由调度,将实际的路由改变请求,主要用在bootstrap()中
      * @param string $route 请求的路由uri
-     * @return  void
+     * @return void
      */
     public static function resetRouteDispatch(string $route)
     {
@@ -359,9 +361,8 @@ class HttpRoute extends AppDispatch
     protected function bindActionParams($controllerInstance, $action, $params)
     {
         $method = new \ReflectionMethod($controllerInstance, $action);
-        $args = [];
-        $missing = [];
-        $actionParams = [];
+        $args = $missing = $actionParams = [];
+
         foreach ($method->getParameters() as $param) {
             $name = $param->getName();
             if (array_key_exists($name, $params)) {
@@ -411,11 +412,11 @@ class HttpRoute extends AppDispatch
     }
 
     /**
-     * @return array|mixed
+     * @return array
      */
     protected function buildParams()
     {
-        $get = isset($this->request->get) ? $this->request->get : [];
+        $get  = isset($this->request->get) ? $this->request->get : [];
         $post = isset($this->request->post) ? $this->request->post : [];
         if (empty($post)) {
             $post = json_decode($this->request->rawContent(), true) ?? [];

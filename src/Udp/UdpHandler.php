@@ -25,9 +25,9 @@ class UdpHandler extends Swoole implements HandlerInterface
 
     /**
      * $client_info
-     * @var null
+     * @var mixed
      */
-    protected $client_info = null;
+    protected $clientInfo = null;
 
     /**
      * __construct
@@ -61,21 +61,22 @@ class UdpHandler extends Swoole implements HandlerInterface
      */
     public function getClientInfo()
     {
-        return $this->client_info;
+        return $this->clientInfo;
     }
 
     /**
      * run 完成初始化后，路由匹配和创建访问实例
      * @param int $fd
      * @param mixed $payload
+     * @param array $extendData
      * @return mixed
      * @throws \Throwable
      */
-    public function run($payload, $clientInfo, array $extend_data = [])
+    public function run($payload, $clientInfo, array $extendData = [])
     {
         try {
             parent::run($fd = null, $payload);
-            $this->client_info = $clientInfo;
+            $this->clientInfo = $clientInfo;
             if ($this->isWorkerProcess()) {
                 $dataGramItems = explode(static::EOF, $payload);
                 if (count($dataGramItems) == 3) {
@@ -100,7 +101,7 @@ class UdpHandler extends Swoole implements HandlerInterface
             if ($callable) {
                 $dispatcher = new ServiceDispatch($callable, $params);
                 if (isset($isTaskProcess) && $isTaskProcess === true) {
-                    list($from_worker_id, $task_id, $task) = $extend_data;
+                    list($from_worker_id, $task_id, $task) = $extendData;
                     $dispatcher->setFromWorkerIdAndTaskId($from_worker_id, $task_id, $task);
                 }
                 $dispatcher->dispatch();
@@ -116,7 +117,7 @@ class UdpHandler extends Swoole implements HandlerInterface
 
     /**
      * author
-     * @return
+     * @return mixed
      */
     public function author()
     {

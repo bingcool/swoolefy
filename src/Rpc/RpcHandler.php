@@ -60,7 +60,7 @@ class RpcHandler extends Swoole implements HandlerInterface
      * @return mixed
      * @throws \Throwable
      */
-    public function run($fd, $payload, array $extend_data = [])
+    public function run($fd, $payload, array $extendData = [])
     {
         try {
             if ($this->isWorkerProcess()) {
@@ -101,7 +101,7 @@ class RpcHandler extends Swoole implements HandlerInterface
             if ($callable) {
                 $dispatcher = new ServiceDispatch($callable, $params, $this->header);
                 if (isset($isTaskProcess) && $isTaskProcess === true) {
-                    list($from_worker_id, $task_id, $task) = $extend_data;
+                    list($from_worker_id, $task_id, $task) = $extendData;
                     $dispatcher->setFromWorkerIdAndTaskId($from_worker_id, $task_id, $task);
                 }
                 $dispatcher->dispatch();

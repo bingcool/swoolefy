@@ -54,7 +54,7 @@ class BaseParse
 
     /**
      * $server
-     * @var null
+     * @var \Swoole\Server
      */
     protected $server = null;
 

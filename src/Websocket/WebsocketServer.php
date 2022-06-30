@@ -66,6 +66,9 @@ abstract class WebsocketServer extends BaseServer
         parent::__construct();
     }
 
+    /**
+     * start
+     */
     public function start()
     {
         /**

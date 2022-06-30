@@ -100,9 +100,10 @@ abstract class AbstractProcessPools
         return $this->swooleProcess;
     }
 
-    /*
+    /**
      * 服务启动后才能获得到创建的进程pid,不启动为null
-     * @return mixed
+     *
+     * @return int|null
      */
     public function getPid()
     {
@@ -207,7 +208,7 @@ abstract class AbstractProcessPools
     }
 
     /**
-     * @return null
+     * @return mixed|null
      */
     public function getExtendData()
     {

@@ -39,7 +39,6 @@ class BController extends \Swoolefy\Core\AppObject
 
     /**
      * __construct
-     * @param void
      */
     public function __construct()
     {

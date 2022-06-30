@@ -19,7 +19,7 @@ class TaskService extends BService
 
     /**
      * $task_id 任务的ID
-     * @var null
+     * @var int
      */
     public $task_id;
 

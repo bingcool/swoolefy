@@ -25,7 +25,7 @@ abstract class AbstractCronController extends ProcessController
 
     /**
      * $offset_second 偏差时间1s
-     * @var integer
+     * @var int
      */
     protected static $offsetSecond = 1;
 

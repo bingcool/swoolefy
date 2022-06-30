@@ -19,7 +19,7 @@ class Context
 {
 
     /**
-     * @return ArrayObject|null
+     * @return ArrayObject
      * @throws \Exception
      */
     public static function getContext()
@@ -63,7 +63,7 @@ class Context
 
     /**
      * @param string $name
-     * @return boolean
+     * @return bool
      * @throws \Exception
      */
     public static function get(string $name)

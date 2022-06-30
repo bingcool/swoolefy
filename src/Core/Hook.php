@@ -31,8 +31,8 @@ class Hook
      * addHook
      * @param int $type
      * @param mixed $func
-     * @param boolean $prepend
-     * @return   boolean
+     * @param bool $prepend
+     * @return bool
      */
     public static function addHook($type, $func, bool $prepend = false)
     {
@@ -62,7 +62,7 @@ class Hook
      * call hooks
      * @param int $type
      * @param int $cid
-     * @return  void
+     * @return void
      */
     public static function callHook($type, $cid = null)
     {

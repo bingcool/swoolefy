@@ -119,15 +119,12 @@ class TableManager
      * @param string $table
      * @param string $key
      * @param string $field
-     * @param mixed|int $incrBy
-     * @return mixed
+     * @param int $incrBy
+     * @return int
      */
     public static function incr(string $table, string $key, string $field, int $incrBy = 1)
     {
-        if (is_int($incrBy) || is_float($incrBy)) {
-            return self::getTable($table)->incr($key, $field, $incrBy);
-        }
-        return false;
+        return self::getTable($table)->incr($key, $field, $incrBy);
     }
 
     /**
@@ -135,15 +132,12 @@ class TableManager
      * @param string $table
      * @param string $key
      * @param string $field
-     * @param mixed|int $incrBy
-     * @return mixed
+     * @param int $incrBy
+     * @return int
      */
     public static function decr(string $table, string $key, string $field, int $incrBy = 1)
     {
-        if (is_int($incrBy) || is_float($incrBy)) {
-            return self::getTable($table)->decr($key, $field, $incrBy);
-        }
-        return false;
+        return self::getTable($table)->decr($key, $field, $incrBy);
     }
 
     /**
@@ -178,7 +172,6 @@ class TableManager
      * isExistTable 判断是否已创建内存表
      * @param string|null $table
      * @return bool
-     * @throws mixed
      */
     public static function isExistTable(string $table)
     {
