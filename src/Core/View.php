@@ -42,7 +42,7 @@ class View
     /**
      * $enable_gzip 是否开启压缩,压缩功能由nginx实现即可gzip,不要增加swoole的开销，而且数据分多段返回时会出现数据乱码
      * 建议不要开启这个压缩功能,这样$write_size无论设置多大分段(当然<2M)返回都不会乱码
-     * @var boolean
+     * @var bool
      */
     public $enable_gzip = false;
 
@@ -78,7 +78,7 @@ class View
     /**
      * mAssign 批量赋值
      * @param    $arr
-     * @return   boolean|null
+     * @return   bool|null
      */
     public function multiAssign(array $arr = [])
     {
@@ -97,7 +97,7 @@ class View
     /**
      * display 渲染视图成字符串
      * @param string $template_file
-     * @return  mixed
+     * @return mixed
      */
     public function display($template_file = null)
     {
@@ -113,7 +113,7 @@ class View
     /**
      * redirectFetch 直接渲染对应的模块的模板
      * @param string $template_file
-     * @return  mixed
+     * @return mixed
      */
     protected function redirectFetch($template_file)
     {
@@ -147,7 +147,7 @@ class View
     /**
      * callFetch 跨模块调用渲染模板
      * @param string $template_file
-     * @return   mixed
+     * @return mixed
      */
     protected function callFetch($template_file)
     {
@@ -171,7 +171,7 @@ class View
     /**
      * fetch 渲染输出模板
      * @param string $template_file
-     * @return
+     * @return void
      */
     public function fetch($template_file = null)
     {
@@ -192,7 +192,7 @@ class View
     /**
      * 获取私有或者受保护的属性赋值时会自动调用
      * @param string $name
-     * @return    mixed
+     * @return mixed
      */
     public function __get($name)
     {

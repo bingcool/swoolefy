@@ -26,7 +26,7 @@ class ZFactory
      * getInstance
      * @param string $class
      * @param array $constructor
-     * @return  mixed
+     * @return mixed
      */
     public static function getInstance(string $class = '', array $constructor = [])
     {
@@ -53,7 +53,7 @@ class ZFactory
      * removeInstance
      * @param int $cid
      * @param string $class
-     * @return boolean
+     * @return bool
      */
     public static function removeInstance(?int$cid = null, string $class = '')
     {
