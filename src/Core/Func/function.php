@@ -14,11 +14,11 @@ use Swoolefy\Core\SystemEnv;
 
 /**
  * dump 调试函数
- * @param    $var
- * @param    $echo
- * @param    $label
- * @param    $strict
- * @return   string
+ * @param $var
+ * @param $echo
+ * @param $label
+ * @param $strict
+ * @return string
  */
 function dump($var, $echo = true, $label = null, $strict = true)
 {
@@ -62,10 +62,10 @@ function dump($var, $echo = true, $label = null, $strict = true)
 
 /**
  * _die 异常终端程序执行
- * @param    $msg
- * @param    $code
- * @return   mixed
- * @throws   \Exception
+ * @param $msg
+ * @param $code
+ * @return mixed
+ * @throws \Exception
  */
 function _die($msg = '', int $code = 1)
 {

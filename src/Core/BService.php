@@ -35,12 +35,12 @@ class BService extends BaseObject
      * $mixed_params
      * @var mixed
      */
-    protected $mixed_params;
+    protected $mixedParams;
 
     /**
      * @var mixed
      */
-    protected $client_info;
+    protected $clientInfo;
 
     /**
      * __construct
@@ -53,7 +53,7 @@ class BService extends BaseObject
         $this->app_conf = $app->app_conf;
         if (BaseServer::isUdpApp()) {
             /**@var UdpHandler $app */
-            $this->client_info = $app->getClientInfo();
+            $this->clientInfo = $app->getClientInfo();
         }
         if (\Swoole\Coroutine::getCid() > 0) {
             defer(function () {
@@ -86,7 +86,7 @@ class BService extends BaseObject
      */
     public function getMixedParams()
     {
-        return $this->mixed_params;
+        return $this->mixedParams;
     }
 
     /**
@@ -124,10 +124,10 @@ class BService extends BaseObject
     public function sendTo($data, string $ip = '', $port = '', $server_socket = null)
     {
         if (empty($ip)) {
-            $ip = $this->client_info['address'];
+            $ip = $this->clientInfo['address'];
         }
         if (empty($port)) {
-            $port = $this->client_info['port'];
+            $port = $this->clientInfo['port'];
         }
         if (!BaseServer::isUdpApp()) {
             throw new \Exception("BService::sendTo() this method only can be called by udp server!");
@@ -241,11 +241,11 @@ class BService extends BaseObject
      */
     public function getClientInfo()
     {
-        return $this->client_info;
+        return $this->clientInfo;
     }
 
     /**
-     * afterAction 在销毁前执行
+     * afterAction
      * @param string $action
      * @return mixed
      */

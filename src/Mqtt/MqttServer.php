@@ -306,7 +306,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
      * @param int $fd
      * @param int $reactor_id
      * @param mixed $data
-     * @return boolean
+     * @return bool
      * @throws \Throwable
      */
     public function handleV3($server, $fd, &$data)
@@ -438,7 +438,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
      * @param int $fd
      * @param int $reactor_id
      * @param mixed $data
-     * @return boolean
+     * @return bool
      * @throws \Throwable
      */
     public function handleV5($server, $fd, &$data)
@@ -582,7 +582,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
      * @param int $from_worker_id
      * @param mixed $data
      * @param null|\Swoole\Server\Task $task
-     * @return  boolean
+     * @return bool
      * @throws \Throwable
      */
     public function onTask($server, $task_id, $from_worker_id, $data, $task = null)

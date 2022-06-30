@@ -65,7 +65,7 @@ trait AppTrait
      * @param string $msg
      * @param string $data
      * @param string $formatter
-     * @return boolean
+     * @return bool
      */
     public function beforeEnd($ret = 0, string $msg = '', $data = '', string $formatter = 'json')
     {
@@ -80,7 +80,7 @@ trait AppTrait
 
     /**
      * isGet
-     * @return boolean
+     * @return bool
      */
     public function isGet()
     {
@@ -89,7 +89,7 @@ trait AppTrait
 
     /**
      * isPost
-     * @return boolean
+     * @return bool
      */
     public function isPost()
     {
@@ -98,7 +98,7 @@ trait AppTrait
 
     /**
      * isPut
-     * @return boolean
+     * @return bool
      */
     public function isPut()
     {
@@ -107,7 +107,7 @@ trait AppTrait
 
     /**
      * isDelete
-     * @return boolean
+     * @return bool
      */
     public function isDelete()
     {
@@ -116,7 +116,7 @@ trait AppTrait
 
     /**
      * isAjax
-     * @return boolean
+     * @return bool
      */
     public function isAjax()
     {
@@ -125,7 +125,7 @@ trait AppTrait
 
     /**
      * isSsl
-     * @return   boolean
+     * @return   bool
      */
     public function isSsl()
     {
@@ -139,7 +139,7 @@ trait AppTrait
 
     /**
      * isMobile
-     * @return   boolean
+     * @return   bool
      */
     public function isMobile()
     {
@@ -272,7 +272,7 @@ trait AppTrait
     /**
      * getServerParam
      * @param string|null $name
-     * @return   mixed
+     * @return mixed
      */
     public function getServerParams(string $name = null, $default = null)
     {
@@ -287,7 +287,7 @@ trait AppTrait
     /**
      * getHeaderParam
      * @param string|null $name
-     * @return   mixed
+     * @return mixed
      */
     public function getHeaderParams(string $name = null, $default = null)
     {
@@ -311,7 +311,7 @@ trait AppTrait
 
     /**
      * getRawContent
-     * @return  mixed
+     * @return mixed
      */
     public function getRawContent()
     {
@@ -338,7 +338,7 @@ trait AppTrait
 
     /**
      * getRoute
-     * @return  string
+     * @return string
      */
     public function getRoute()
     {
@@ -359,7 +359,7 @@ trait AppTrait
 
     /**
      * getProtocol
-     * @return  string
+     * @return string
      */
     public function getProtocol()
     {
@@ -368,8 +368,8 @@ trait AppTrait
 
     /**
      * getHomeUrl 获取当前请求的url
-     * @param    $ssl
-     * @return   string
+     * @param $ssl
+     * @return string
      */
     public function getHomeUrl(bool $ssl = false)
     {
@@ -392,8 +392,8 @@ trait AppTrait
      * rememberUrl
      * @param string $name
      * @param string $url
-     * @param boolean $ssl
-     * @return   void
+     * @param bool $ssl
+     * @return void
      */
     public function rememberUrl(string $name = null, string $url = null, bool $ssl = false)
     {
@@ -408,7 +408,7 @@ trait AppTrait
     /**
      * getPreviousUrl
      * @param string $name
-     * @return   mixed
+     * @return mixed
      */
     public function getPreviousUrl(string $name = null)
     {
@@ -566,7 +566,7 @@ trait AppTrait
      * @param string $filename
      * @param int $offset
      * @param int $length
-     * @return   void
+     * @return void
      */
     public function sendfile(string $filename, int $offset = 0, int $length = 0)
     {
@@ -576,7 +576,7 @@ trait AppTrait
     /**
      * parseUrl 解析URI
      * @param string $url
-     * @return   array
+     * @return array
      */
     public function parseUrl(string $url)
     {
@@ -597,7 +597,7 @@ trait AppTrait
      * @param string $url
      * @param array $params eg:['name'=>'ming','age'=>18]
      * @param int $httpStatus default 301
-     * @return   void
+     * @return void
      */
     public function redirect(string $url, array $params = [], int $httpStatus = 301)
     {
@@ -635,12 +635,12 @@ trait AppTrait
     /**
      * dump，调试函数
      * @param string|array $var
-     * @param boolean $echo
+     * @param bool $echo
      * @param mixed $label
-     * @param boolean $strict
-     * @return   string
+     * @param bool $strict
+     * @return string
      */
-    public function dump($var, $echo = true, $label = null, $strict = true)
+    public function dump($var, bool $echo = true, $label = null, bool $strict = true)
     {
         $label = ($label === null) ? '' : rtrim($label) . ' ';
         if (!$strict) {
@@ -719,7 +719,7 @@ trait AppTrait
      * header,使用链式作用域
      * @param string $name
      * @param string $value
-     * @return   object
+     * @return object
      */
     public function header(string $name, $value)
     {
@@ -734,9 +734,9 @@ trait AppTrait
      * @param int $expire 有效时间
      * @param string $path 有效路径
      * @param string $domain 有效域名
-     * @param boolean $secure Cookie是否仅仅通过安全的HTTPS连接传给客户端
-     * @param boolean $httpOnly 设置成TRUE，Cookie仅可通过HTTP协议访问
-     * @return  mixed
+     * @param bool $secure Cookie是否仅仅通过安全的HTTPS连接传给客户端
+     * @param bool $httpOnly 设置成TRUE，Cookie仅可通过HTTP协议访问
+     * @return mixed
      */
     public function setCookie(
         string $key,
@@ -754,7 +754,7 @@ trait AppTrait
 
     /**
      * getHostName
-     * @return   string
+     * @return string
      */
     public function getHostName()
     {
@@ -763,7 +763,7 @@ trait AppTrait
 
     /**
      * getBrowser 获取浏览器
-     * @return   string
+     * @return string
      */
     public function getBrowser()
     {
@@ -806,7 +806,7 @@ trait AppTrait
 
     /**
      * getOS 客户端操作系统信息
-     * @return  string
+     * @return string
      */
     public static function getClientOS()
     {
@@ -890,11 +890,11 @@ trait AppTrait
     /**
      * sendHttpStatus
      * @param int $code
-     * @return   void
+     * @return void
      */
     public function status(int $code)
     {
-        $http_status = array(
+        $httpStatus = array(
             // Informational 1xx
             100,
             101,
@@ -947,7 +947,7 @@ trait AppTrait
             505,
             509
         );
-        if (in_array($code, $http_status)) {
+        if (in_array($code, $httpStatus)) {
             $this->response->status($code);
         } else {
             if (!SystemEnv::isPrdEnv()) {
