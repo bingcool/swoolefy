@@ -196,10 +196,10 @@ abstract class HttpServer extends BaseServer
         /**
          * pipeMessage
          */
-        $this->webServer->on('pipeMessage', function (\Swoole\Http\Server $server, $src_worker_id, $message) {
+        $this->webServer->on('pipeMessage', function (\Swoole\Http\Server $server, $from_worker_id, $message) {
             try {
-                (new EventApp())->registerApp(function (EventController $event) use ($server, $src_worker_id, $message) {
-                    static::onPipeMessage($server, $src_worker_id, $message);
+                (new EventApp())->registerApp(function (EventController $event) use ($server, $from_worker_id, $message) {
+                    static::onPipeMessage($server, $from_worker_id, $message);
                 });
                 return true;
             } catch (\Throwable $e) {

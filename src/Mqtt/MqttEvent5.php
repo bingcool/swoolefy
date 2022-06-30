@@ -199,7 +199,7 @@ class MqttEvent5
             'retain_available' => true,
             'shared_subscription_available' => true,
             'subscription_identifier_available' => true,
-            'topic_alias_maximum' => 65535, //0
+            'topic_alias_maximum' => 65535,
             'wildcard_subscription_available' => true,
         ], $properties);
 

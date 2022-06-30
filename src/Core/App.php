@@ -154,6 +154,7 @@ class App extends \Swoolefy\Core\Component
 
     /**
      * setAppConf
+     * @param array $conf
      */
     public function setAppConf(array $conf = [])
     {

@@ -25,7 +25,7 @@ class BaseObject
     public $coroutine_id;
 
     /**
-     * @var
+     * @var mixed
      */
     protected $context;
 
