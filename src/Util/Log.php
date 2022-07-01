@@ -73,7 +73,12 @@ class Log
     protected $prefix = 'add';
 
     /**
-     * __construct
+     * @param string $type
+     * @param string|null $channel
+     * @param string|null $logFilePath
+     * @param string|null $output
+     * @param string|null $dateformat
+     * @throws \Exception
      */
     public function __construct(
         string $type,
@@ -110,7 +115,7 @@ class Log
     /**
      * setChannel
      * @param string $channel
-     * @return   $this
+     * @return $this
      */
     public function setChannel(string $channel)
     {
@@ -124,7 +129,7 @@ class Log
     /**
      * setLogFilePath
      * @param string $logFilePath
-     * @return  $this
+     * @return $this
      */
     public function setLogFilePath(string $logFilePath)
     {
@@ -147,7 +152,7 @@ class Log
     }
 
     /**
-     * @return null|string
+     * @return string
      */
     public function getChannel()
     {
@@ -163,7 +168,7 @@ class Log
     }
 
     /**
-     * @return null|string
+     * @return string
      */
     public function getOutputFormat()
     {
@@ -235,8 +240,8 @@ class Log
     }
 
     /**
-     * @param $logInfo
-     * @param $context
+     * @param mixed $logInfo
+     * @param array $context
      * @param int $type
      */
     public function insertLog($logInfo, array $context = [], $type = Logger::INFO)

@@ -178,7 +178,7 @@ trait AppTrait
      * getRequestParam  获取请求参数，包括get,post
      * @param string $name
      * @param mixed $default
-     * @return   mixed
+     * @return mixed
      */
     public function getRequestParams(string $name = null, $default = null)
     {
@@ -247,7 +247,7 @@ trait AppTrait
      * getCookieParam
      * @param string|null $name
      * @param mixed $default
-     * @return   mixed
+     * @return mixed
      */
     public function getCookieParams(string $name = null, $default = null)
     {
@@ -472,7 +472,7 @@ trait AppTrait
 
     /**
      * getQuery
-     * @return string
+     * @return mixed
      */
     public function getQuery()
     {
@@ -634,7 +634,7 @@ trait AppTrait
 
     /**
      * dump，调试函数
-     * @param string|array $var
+     * @param mixed $var
      * @param bool $echo
      * @param mixed $label
      * @param bool $strict
@@ -708,7 +708,7 @@ trait AppTrait
 
     /**
      * getFd 获取当前请求的fd
-     * @return  int
+     * @return int
      */
     public function getFd()
     {

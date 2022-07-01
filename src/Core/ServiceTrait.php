@@ -40,11 +40,11 @@ trait ServiceTrait
      */
     public static function getCurrentWorkerPid()
     {
-        // 自定义进程worker_pid=0
         $workerPid = Swfy::getServer()->worker_pid;
         if ($workerPid) {
             return $workerPid;
         } else {
+            // 自定义进程worker_pid
             return posix_getpid();
         }
     }
@@ -97,7 +97,7 @@ trait ServiceTrait
     }
 
     /**
-     * getLocalIp 获取ip,不包括端口
+     * getLocalIp
      * @return array
      */
     public static function getLocalIp()
@@ -173,7 +173,6 @@ trait ServiceTrait
 
     /**
      * getConf 获取协议层对应的配置
-     * @param $protocol
      * @return array
      */
     public static function getConf()
@@ -316,7 +315,7 @@ trait ServiceTrait
 
     /**
      * getServer 获取server对象
-     * @return   \Swoole\Server|\Swoole\Http\Server|\Swoole\WebSocket\Server
+     * @return \Swoole\Server|\Swoole\Http\Server|\Swoole\WebSocket\Server
      */
     public static function getServer()
     {

@@ -17,7 +17,7 @@ class Reload
 {
     /**
      * $inotify
-     * @var null
+     * @var mixed
      */
     private $inotify = null;
 
@@ -41,7 +41,7 @@ class Reload
 
     /**
      * $afterSeconds reboot time
-     * @var integer
+     * @var int
      */
     protected $afterSeconds = 10;
 
@@ -53,7 +53,7 @@ class Reload
 
     /**
      * listen events
-     * @var
+     * @var mixed
      */
     protected $events = IN_MODIFY | IN_DELETE | IN_CREATE | IN_MOVE;
 
@@ -64,7 +64,7 @@ class Reload
     protected $rootDirs = [];
 
     /**
-     * @var
+     * @var \Closure
      */
     protected $callback;
 

@@ -26,7 +26,9 @@ class ServiceDispatch extends AppDispatch
     protected $params = null;
 
     /**
-     * __construct
+     * @param $callable
+     * @param $params
+     * @param array $rpc_pack_header
      */
     public function __construct($callable, $params, $rpc_pack_header = [])
     {
@@ -104,7 +106,7 @@ class ServiceDispatch extends AppDispatch
      * @param $class
      * @param $action
      * @param string $errorMethod
-     * @return boolean
+     * @return bool
      * @throws \Exception
      */
     protected function errorHandle($class, $action, $errorMethod = 'error404')
@@ -137,6 +139,7 @@ class ServiceDispatch extends AppDispatch
     /**
      * @param int $from_worker_id
      * @param int $task_id
+     * @param mixed|null $task
      */
     public function setFromWorkerIdAndTaskId(int $from_worker_id, int $task_id, $task = null)
     {

@@ -52,7 +52,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
      * @param int $fd
      * @param int $reactor_id
      * @param mixed $data
-     * @return boolean
+     * @return bool
      * @throws \Throwable
      */
     public function onReceive($server, $fd, $reactor_id, $data)

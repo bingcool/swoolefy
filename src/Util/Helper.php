@@ -17,7 +17,7 @@ class Helper
     /**
      * isValidateEmail 判断是否是合法的邮箱
      * @param string $email
-     * @return   bool
+     * @return bool
      */
     public static function isValidateEmail(string $email)
     {
@@ -27,7 +27,7 @@ class Helper
     /**
      * isValidateIp 判断是否是合法的的ip地址
      * @param string $ip
-     * @return   bool
+     * @return bool
      */
     public static function isValidateIp(string $ip)
     {
@@ -39,8 +39,8 @@ class Helper
     }
 
     /**
-     * getLocalIp 获取ip,不包括端口
-     * @return   array
+     * getLocalIp
+     * @return array
      */
     public static function getLocalIp()
     {
@@ -94,7 +94,7 @@ class Helper
      * @param int $length
      * @param bool $number 只添加数字
      * @param array $ignore 忽略某些字符串
-     * @return  string
+     * @return string
      */
     public static function randString(int $length = 8, bool $is_number = false, array $ignore = [])
     {
@@ -156,7 +156,7 @@ class Helper
     /**
      * mbStrlen 计算某个混合字符串的长度总数，包含英文或者中文的字符串,如果安装mb_string扩展的话，可以直接使用mb_strlen()函数，与该函数等效
      * @param string $str
-     * @return   int
+     * @return int
      */
     public static function mbStrlen(string $str)
     {
@@ -179,7 +179,7 @@ class Helper
      * roundByPrecision 四舍五入
      * @param float $number 数值
      * @param int $precision 精度
-     * @return   float
+     * @return float
      */
     public static function roundByPrecision(float $number, int $precision)
     {
@@ -342,7 +342,7 @@ class Helper
      * asyncHttpClient 简单的模拟http异步并发请求
      * @param array $urls
      * @param int $timeout 单位ms
-     * @return   boolean
+     * @return bool
      */
     public function asyncHttpClient(array $urls = [], int $timeout = 500)
     {

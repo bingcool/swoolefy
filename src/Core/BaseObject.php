@@ -20,7 +20,7 @@ class BaseObject
 
     /**
      * $coroutine_id
-     * @var  string
+     * @var string
      */
     public $coroutine_id;
 
@@ -89,7 +89,7 @@ class BaseObject
     }
 
     /**
-     * @return ArrayObject|mixed
+     * @return ArrayObject
      */
     public function getContext()
     {

@@ -203,11 +203,11 @@ class EventController extends BaseObject
 
     /**
      * afterAction
-     * @return bool
+     * @return void
      */
     public function _afterAction()
     {
-        return true;
+
     }
 
     /**

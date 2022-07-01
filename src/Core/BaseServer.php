@@ -41,13 +41,13 @@ class BaseServer
 
     /**
      * $Service
-     * @var null 服务实例，适用于TCP,UDP,RPC
+     * @var string 服务实例，适用于TCP,UDP,RPC
      */
     protected static $server_name = null;
 
     /**
      * $isEnableCoroutine 是否启用协程
-     * @var boolean
+     * @var bool
      */
     protected static $isEnableCoroutine = false;
 

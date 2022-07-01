@@ -119,7 +119,6 @@ class WebsocketHandler extends Swoole implements HandlerInterface
     }
 
     /**
-     * @param string $errorMethod
      * @param string $msg
      * @return array
      */

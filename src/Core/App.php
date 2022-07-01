@@ -23,13 +23,13 @@ class App extends \Swoolefy\Core\Component
     use \Swoolefy\Core\AppTrait, \Swoolefy\Core\ServiceTrait;
 
     /**
-     * $request 当前请求的对象
+     * $request
      * @var Request
      */
     public $request = null;
 
     /**
-     * $response 当前请求的响应对象
+     * $response
      * @var Response
      */
     public $response = null;
@@ -103,12 +103,13 @@ class App extends \Swoolefy\Core\Component
 
     /**
      * run
-     * @param  $request
-     * @param  $response
+     * @param Request $request
+     * @param Response $response
+     * @param mixed $extendData
      * @return mixed
      * @throws \Throwable
      */
-    public function run(Request $request, Response $response, $extend_data = null)
+    public function run(Request $request, Response $response, $extendData = null)
     {
         try {
             $this->parseHeaders($request);
@@ -121,7 +122,7 @@ class App extends \Swoolefy\Core\Component
             $this->_init();
             $this->_bootstrap();
             if (!$this->catchAll()) {
-                $route = new HttpRoute($extend_data);
+                $route = new HttpRoute($extendData);
                 $route->dispatch();
             }
         } catch (\Throwable $t) {
@@ -136,9 +137,9 @@ class App extends \Swoolefy\Core\Component
     }
 
     /**
-     * @param $request
+     * @param Request $request
      */
-    protected function parseHeaders($request)
+    protected function parseHeaders(Request $request)
     {
         foreach ($request->server as $key => $value) {
             $upper = strtoupper($key);
