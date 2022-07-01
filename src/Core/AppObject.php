@@ -13,6 +13,5 @@ namespace Swoolefy\Core;
 
 class AppObject extends BaseObject
 {
-
     use \Swoolefy\Core\AppObjectTrait;
 }

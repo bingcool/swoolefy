@@ -21,7 +21,7 @@ class BService extends BaseObject
 
     /**
      * $fd
-     * @var null
+     * @var int
      */
     protected $fd = null;
 
@@ -77,10 +77,11 @@ class BService extends BaseObject
 
     /**
      * @param $mixed_params
+     * @return void
      */
     public function setMixedParams($mixed_params)
     {
-        $this->mixed_params = $mixed_params;
+        $this->mixedParams = $mixed_params;
     }
 
     /**

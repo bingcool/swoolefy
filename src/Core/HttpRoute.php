@@ -148,9 +148,9 @@ class HttpRoute extends AppDispatch
                 }
             }
         } else if ($this->app_conf['route_model'] == self::ROUTE_MODEL_QUERY_PARAMS) {
-            $module = $this->request->get['m'] ?? null;
+            $module     = $this->request->get['m'] ?? null;
             $controller = $this->request->get['c'] ?? 'Index';
-            $action = $this->request->get['t'] ?? 'index';
+            $action     = $this->request->get['t'] ?? 'index';
             if ($module) {
                 $this->requireUri = DIRECTORY_SEPARATOR . $module . DIRECTORY_SEPARATOR . $controller . DIRECTORY_SEPARATOR . $action;
             } else {
@@ -184,7 +184,7 @@ class HttpRoute extends AppDispatch
      * @param string $module
      * @param string $controller
      * @param string $action
-     * @return boolean
+     * @return bool
      * @throws \Throwable
      */
     protected function invoke(

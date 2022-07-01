@@ -73,7 +73,7 @@ class ZFactory
 
     /**
      * @param string $class
-     * @return mixed|string
+     * @return string
      */
     private static function parseClass(string $class = '')
     {
