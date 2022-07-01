@@ -74,8 +74,8 @@ class Tick
                     $tickTaskInstance = new TickController();
                     call_user_func($func, $params, $timer_id);
                 }
-            } catch (\Throwable $t) {
-                BaseServer::catchException($t);
+            } catch (\Throwable $throwable) {
+                BaseServer::catchException($throwable);
             } finally {
                 if ($tickTaskInstance->isDefer() === false) {
                     $tickTaskInstance->end();
@@ -91,11 +91,11 @@ class Tick
 
         if ($tid) {
             self::$_tick_tasks[$tid] = [
-                'callback' => $func,
-                'params' => $params,
+                'callback'      => $func,
+                'params'        => $params,
                 'time_interval' => $time_interval_ms,
-                'timer_id' => $tid,
-                'start_time' => date('Y-m-d H:i:s', strtotime('now'))
+                'timer_id'      => $tid,
+                'start_time'    => date('Y-m-d H:i:s', strtotime('now'))
             ];
             $config = Swfy::getConf();
             if (isset($config['enable_table_tick_task']) && $config['enable_table_tick_task'] == true) {
@@ -117,14 +117,18 @@ class Tick
         if (!\Swoole\Timer::exists($timer_id)) {
             return true;
         }
+
         $result = \Swoole\Timer::clear($timer_id);
+
         if ($result) {
             foreach (self::$_tick_tasks as $tid => $value) {
                 if ($tid == $timer_id) {
                     unset(self::$_tick_tasks[$timer_id], self::$_tasks_instances[$timer_id]);
                 }
             }
+
             $config = Swfy::getConf();
+
             if (isset($config['enable_table_tick_task']) && $config['enable_table_tick_task'] == true) {
                 TableManager::set('table_ticker', 'tick_timer_task', ['tick_tasks' => json_encode(self::$_tick_tasks)]);
                 return true;
@@ -148,8 +152,8 @@ class Tick
             throw new \Exception(get_called_class() . "::afterTimer() the first params 'time_interval' is requested more then 0 ms");
         }
 
-        $timer_id = self::after($time_interval_ms, $func, $params);
-        return $timer_id;
+        $timerId = self::after($time_interval_ms, $func, $params);
+        return $timerId;
     }
 
     /**

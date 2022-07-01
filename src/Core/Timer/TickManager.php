@@ -25,7 +25,7 @@ class TickManager
      * @param int $time_interval_ms
      * @param mixed $func
      * @param mixed $params
-     * @return  int
+     * @return int
      */
     public static function tickTimer(int $time_interval_ms, $func, $params = null)
     {
@@ -58,7 +58,7 @@ class TickManager
 
     /**
      * getTickTasks
-     * @return  mixed
+     * @return mixed
      */
     public static function getTickTasks()
     {
@@ -74,7 +74,7 @@ class TickManager
 
     /**
      * getAfterTasks
-     * @return  mixed
+     * @return mixed
      */
     public static function getAfterTasks()
     {

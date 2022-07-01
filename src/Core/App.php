@@ -226,7 +226,7 @@ class App extends \Swoolefy\Core\Component
     }
 
     /**
-     * @return SwoolefyException | string
+     * @return SwoolefyException|string
      */
     public function getExceptionClass()
     {

@@ -16,10 +16,6 @@ class CoroutineManager
 
     use \Swoolefy\Core\SingletonTrait;
 
-    /**
-     * coroutine_id
-     */
-    const  PREFIX_CID = '';
 
     /**
      * isEnableCoroutine
@@ -31,14 +27,12 @@ class CoroutineManager
     }
 
     /**
-     * getMainCoroutineId 获取协程的id
+     * getMainCoroutineId
      * @return int
      */
     public function getCoroutineId()
     {
-        // 大于4.2.x版本,建议使用版本
         $cid = \Swoole\Coroutine::getCid();
-        // 4.3.0+在task|process中也支持直接使用协程,同时可以使用go()创建协程
         return $cid;
     }
 
@@ -59,18 +53,16 @@ class CoroutineManager
      */
     public function getCoroutineStatus()
     {
-        // 大于4.x版本
         if ($this->canEnableCoroutine()) {
             if (method_exists('Swoole\\Coroutine', 'stats')) {
                 return \Swoole\Coroutine::stats();
             }
         }
-        // 1.x, 2.x版本
         return null;
     }
 
     /**
-     * listCoroutines 遍历当前进程内的所有协程(swoole4.1.0+版本支持)
+     * listCoroutines
      * @return array
      */
     public function listCoroutines()
@@ -88,10 +80,10 @@ class CoroutineManager
 
     /**
      * getBackTrace
-     * @param   $cid
-     * @param   $options
-     * @param   $limit
-     * @return  mixed
+     * @param $cid
+     * @param $options
+     * @param $limit
+     * @return mixed
      */
     public function getBackTrace($cid = 0, $options = DEBUG_BACKTRACE_PROVIDE_OBJECT, $limit = 0)
     {

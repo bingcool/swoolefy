@@ -69,6 +69,7 @@ class CoroutinePools
 
     /**
      * getChannel
+     *
      * @param string $poolName
      * @return PoolsHandler
      */
@@ -83,6 +84,7 @@ class CoroutinePools
 
     /**
      * 获取一个对象
+     *
      * @param string $poolName
      * @return mixed
      */
@@ -93,6 +95,7 @@ class CoroutinePools
 
     /**
      * 使用完put对象入channel
+     *
      * @param string $poolName
      * @param $obj
      * @return void

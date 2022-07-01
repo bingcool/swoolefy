@@ -89,7 +89,7 @@ class BaseServer
     /**
      * @var array
      */
-    protected $coroutine_setting = [];
+    public static $tableMemory = [];
 
     /**
      * $_tasks 实时内存表保存数据,所有worker共享

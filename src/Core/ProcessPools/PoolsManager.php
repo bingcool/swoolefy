@@ -79,29 +79,29 @@ class PoolsManager
      * addProcess 添加创建进程并绑定当前worker进程
      * @param string $processName
      * @param string $processClass
-     * @param int $process_num_bind_worker 每个worker绑定的进程数，也即是为每个worker附加的自定义进程数，默认绑定一个process
+     * @param int $processNumBindWorker 每个worker绑定的进程数，也即是为每个worker附加的自定义进程数，默认绑定一个process
      * @param bool $async
      * @param array $args
-     * @param mixed $extend_data
-     * @param bool $enable_coroutine
+     * @param mixed $extendData
+     * @param bool $enableCoroutine
      * @return void
      * @throws Exception
      */
     public function addProcessPools(
         string $processName,
         string $processClass,
-        int    $process_num_bind_worker = 1,
+        int    $processNumBindWorker = 1,
         bool   $async = true,
         array  $args = [],
-               $extend_data = null,
-        bool   $enable_coroutine = true
+               $extendData = null,
+        bool   $enableCoroutine = true
     )
     {
         if (!TableManager::isExistTable('table_process_pools_map')) {
             TableManager::getInstance()->createTable($this->tableProcess);
         }
         // total process num
-        $this->totalProcessNum += ($this->workerNum * $process_num_bind_worker);
+        $this->totalProcessNum += ($this->workerNum * $processNumBindWorker);
 
         if ($this->totalProcessNum > self::PROCESS_NUM) {
             throw new \Exception("PoolsManager Error : total user process num more then " . self::PROCESS_NUM);
@@ -113,10 +113,10 @@ class PoolsManager
         }
 
         for ($i = 0; $i < $this->workerNum; $i++) {
-            for ($j = 0; $j < $process_num_bind_worker; $j++) {
+            for ($j = 0; $j < $processNumBindWorker; $j++) {
                 try {
                     /**@var AbstractProcessPools $process */
-                    $process = new $processClass($processName . '@' . $i . '@' . $j, $async, $args, $extend_data, $enable_coroutine);
+                    $process = new $processClass($processName . '@' . $i . '@' . $j, $async, $args, $extendData, $enableCoroutine);
                     $process->setBindWorkerId($i);
                     $this->processList[$key][$i][$j] = $process;
                     $this->processListInfo[$processName] = ['process_name' => $processName . '@' . $i . '@' . $j, 'bind_worker_num' => $i, 'process_worker_num' => $j, 'class' => $processClass];
@@ -138,11 +138,11 @@ class PoolsManager
     /**
      * getProcessByName 通过名称获取绑定当前worker进程的某个进程
      * @param string $processName
-     * @param bool $is_all 是否返回worker中绑定的所有process
+     * @param bool $isReturnAll 是否返回worker中绑定的所有process
      * @return AbstractProcessPools|array
      * @throws Exception
      */
-    public function getProcessPoolsByName(string $processName, bool $is_all = false)
+    public function getProcessPoolsByName(string $processName, bool $isReturnAll = false)
     {
         if (!Swfy::isWorkerProcess()) {
             throw new \Exception("PoolsManager::getInstance() can not use in task or self process, only use in worker process");
@@ -150,7 +150,7 @@ class PoolsManager
         $workerId = Swfy::getCurrentWorkerId();
         $key = md5($processName);
         if (isset($this->processList[$key][$workerId])) {
-            if ($is_all) {
+            if ($isReturnAll) {
                 return $this->processList[$key][$workerId];
             }
             // 随机返回当前worker进程绑定的一个附属进程
@@ -197,13 +197,13 @@ class PoolsManager
     /**
      * reboot 重启进程
      * @param string $processName
-     * @param bool $is_restart_all_process
+     * @param bool $isRestartFullProcess
      * @return bool
      * @throws Exception
      */
-    public function rebootPools(string $processName, bool $is_restart_all_process = false)
+    public function rebootPools(string $processName, bool $isRestartFullProcess = false)
     {
-        if ($is_restart_all_process) {
+        if ($isRestartFullProcess) {
             foreach ($this->workerNum as $workerProcesses) {
                 foreach ($workerProcesses as $processList) {
                     /**@var AbstractProcessPools $process */
@@ -215,6 +215,7 @@ class PoolsManager
             }
             return true;
         }
+
         $processList = $this->getProcessPoolsByName($processName, true);
         if (is_array($processList) && count($processList) > 0) {
             foreach ($processList as $process) {
