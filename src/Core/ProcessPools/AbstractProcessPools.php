@@ -289,6 +289,7 @@ abstract class AbstractProcessPools
                     \Swoole\Process::kill($this->getPid(), SIGTERM);
                 }
             });
+            
             if (\Swoole\Coroutine::getCid() > 0) {
                 $channel->pop(-1);
                 $channel->close();

@@ -346,7 +346,7 @@ abstract class AbstractProcess
     }
 
     /**
-     * run 进程创建后的run方法
+     * run
      * @return void
      */
     abstract public function run();

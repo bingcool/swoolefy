@@ -25,45 +25,41 @@ class TableManager
      */
     public static function createTable(array $tables = [])
     {
-        $swooleTables = [];
-        if (isset(BaseServer::$server->tables) && is_array(BaseServer::$server->tables)) {
-            $swooleTables = BaseServer::$server->tables;
-        }
-        if (is_array($tables) && !empty($tables)) {
-            foreach ($tables as $tableName => $row) {
-                if (isset($swooleTables[$tableName])) {
-                    continue;
-                }
-                $table = new \Swoole\Table($row['size']);
-                foreach ($row['fields'] as $field) {
-                    switch (strtolower($field[1])) {
-                        case 'int':
-                        case 'integer':
-                        case \Swoole\Table::TYPE_INT:
-                            $table->column($field[0], \Swoole\Table::TYPE_INT, (int)$field[2]);
-                            break;
-                        case 'string':
-                        case \Swoole\Table::TYPE_STRING:
-                            $table->column($field[0], \Swoole\Table::TYPE_STRING, (int)$field[2]);
-                            break;
-                        case 'float':
-                        case 'double':
-                        case \Swoole\Table::TYPE_FLOAT:
-                            $table->column($field[0], \Swoole\Table::TYPE_FLOAT, (int)$field[2]);
-                            break;
-                    }
-                }
-                if ($table->create()) {
-                    $swooleTables[$tableName] = $table;
-                }
-            }
-            // todo 8.2+
-            BaseServer::$server->tables = $swooleTables;
-            unset($swooleTables);
-            return true;
+        if(!$tables) {
+            return false;
         }
 
-        return false;
+        foreach ($tables as $tableName => $row) {
+            if (isset(BaseServer::$tableMemory[$tableName])) {
+                continue;
+            }
+
+            $table = new \Swoole\Table($row['size']);
+            foreach ($row['fields'] as $field) {
+                switch (strtolower($field[1])) {
+                    case 'int':
+                    case 'integer':
+                    case \Swoole\Table::TYPE_INT:
+                        $table->column($field[0], \Swoole\Table::TYPE_INT, (int)$field[2]);
+                        break;
+                    case 'string':
+                    case \Swoole\Table::TYPE_STRING:
+                        $table->column($field[0], \Swoole\Table::TYPE_STRING, (int)$field[2]);
+                        break;
+                    case 'float':
+                    case 'double':
+                    case \Swoole\Table::TYPE_FLOAT:
+                        $table->column($field[0], \Swoole\Table::TYPE_FLOAT, (int)$field[2]);
+                        break;
+                }
+            }
+
+            if ($table->create()) {
+                BaseServer::$tableMemory[$tableName] = $table;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -146,8 +142,8 @@ class TableManager
      */
     public static function getTablesName()
     {
-        if (isset(BaseServer::$server->tables)) {
-            return array_keys(BaseServer::$server->tables);
+        if (isset(BaseServer::$tableMemory)) {
+            return array_keys(BaseServer::$tableMemory);
         }
         return null;
     }
@@ -160,11 +156,11 @@ class TableManager
      */
     public static function getTable(string $table)
     {
-        if (isset(BaseServer::$server->tables)) {
-            if (!isset(BaseServer::$server->tables[$table])) {
+        if (isset(BaseServer::$tableMemory)) {
+            if (!isset(BaseServer::$tableMemory[$table])) {
                 throw new \Exception("Not exist Table={$table}");
             }
-            return BaseServer::$server->tables[$table];
+            return BaseServer::$tableMemory[$table];
         }
     }
 
@@ -175,9 +171,9 @@ class TableManager
      */
     public static function isExistTable(string $table)
     {
-        if (isset(BaseServer::$server->tables)) {
+        if (isset(BaseServer::$tableMemory)) {
             if ($table) {
-                if (isset(BaseServer::$server->tables[$table])) {
+                if (isset(BaseServer::$tableMemory[$table])) {
                     return true;
                 }
             }

@@ -24,28 +24,28 @@ class ReloadProcess extends AbstractProcess
     {
         $config = Swfy::getConf();
         if (isset($config['reload_conf'])) {
-            $reload_config = $config['reload_conf'];
+            $reloadConfig = $config['reload_conf'];
             $autoReload = new Reload();
-            if (isset($reload_config['after_seconds'])) {
-                $autoReload->setAfterSeconds((float)$reload_config['after_seconds']);
+            if (isset($reloadConfig['after_seconds'])) {
+                $autoReload->setAfterSeconds((float)$reloadConfig['after_seconds']);
             } else {
                 $autoReload->setAfterSeconds();
             }
 
-            if (isset($reload_config['reload_file_types']) && is_array($reload_config['reload_file_types'])) {
-                $autoReload->setReloadFileType($reload_config['reload_file_types']);
+            if (isset($reloadConfig['reload_file_types']) && is_array($reloadConfig['reload_file_types'])) {
+                $autoReload->setReloadFileType($reloadConfig['reload_file_types']);
             } else {
                 $autoReload->setReloadFileType();
             }
 
-            if (isset($reload_config['ignore_dirs']) && is_array($reload_config['ignore_dirs'])) {
-                $autoReload->setIgnoreDirs($reload_config['ignore_dirs']);
+            if (isset($reloadConfig['ignore_dirs']) && is_array($reloadConfig['ignore_dirs'])) {
+                $autoReload->setIgnoreDirs($reloadConfig['ignore_dirs']);
             } else {
                 $autoReload->setIgnoreDirs();
             }
 
             $autoReload->init();
-            $autoReload->watch($reload_config['monitor_path'])->onReload($reload_config['callback']);
+            $autoReload->watch($reloadConfig['monitor_path'])->onReload($reloadConfig['callback']);
         }
     }
 
