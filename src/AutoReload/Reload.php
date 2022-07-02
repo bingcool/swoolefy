@@ -47,7 +47,7 @@ class Reload
 
     /**
      * $reloading
-     * boolean
+     * @var bool
      */
     protected $reloading = false;
 
@@ -149,7 +149,7 @@ class Reload
 
     /**
      * addFileType
-     * @param $type
+     * @param string $type
      * @return $this
      */
     public function addFileType(string $type)
@@ -186,12 +186,12 @@ class Reload
 
     /**
      * watch listen dir
-     * @param $dir
+     * @param string $dir
      * @param bool $root
      * @return $this
      * @throws \Exception
      */
-    public function watch($dir, bool $root = true)
+    public function watch(string $dir, bool $root = true)
     {
         if (!is_dir($dir)) {
             throw new \Exception("[$dir] is not a directory.");

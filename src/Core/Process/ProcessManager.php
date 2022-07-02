@@ -20,6 +20,9 @@ class ProcessManager
 
     use \Swoolefy\Core\SingletonTrait;
 
+    /**
+     * const
+     */
     const PROCESS_NUM = 1024;
 
     /**
@@ -140,6 +143,7 @@ class ProcessManager
      * setProcess 设置一个进程
      * @param string $processName
      * @param AbstractProcess $process
+     * @return void
      */
     public function setProcess(string $processName, AbstractProcess $process)
     {
@@ -165,7 +169,7 @@ class ProcessManager
      * 如果需要获取等待的结果，可以设置callback,在规定时间内读取返回数据回调处理
      * @param string $name
      * @param mixed $data
-     * @param \Closure $callback
+     * @param \Closure|null $callback
      * @param float $timeOut
      * @return bool
      */
@@ -227,6 +231,7 @@ class ProcessManager
         if ($ret) {
             $result = $swooleProcess->read(64 * 1024);
         }
+
         return $result;
     }
 

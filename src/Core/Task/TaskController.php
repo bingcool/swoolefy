@@ -20,18 +20,18 @@ class TaskController extends EventController
      * $task_id 任务的ID
      * @var int
      */
-    public $task_id;
+    protected $task_id;
 
     /**
      * $from_worker_id 记录当前任务from的worker投递
      * @var int
      */
-    public $from_worker_id;
+    protected $from_worker_id;
 
     /**
      * @var \Swoole\Server\Task
      */
-    public $task = null;
+    protected $task = null;
 
     /**
      * /**
@@ -54,6 +54,7 @@ class TaskController extends EventController
     /**
      * setTaskId
      * @param int $task_id
+     * @return void
      */
     public function setTaskId(int $task_id)
     {
@@ -63,6 +64,7 @@ class TaskController extends EventController
     /**
      * setFromWorkerId
      * @param int $from_worker_id
+     * @return void
      */
     public function setFromWorkerId(int $from_worker_id)
     {
@@ -71,6 +73,7 @@ class TaskController extends EventController
 
     /**
      * @param \Swoole\Server\Task $task
+     * @return void
      */
     public function setTask(\Swoole\Server\Task $task)
     {
@@ -97,7 +100,7 @@ class TaskController extends EventController
 
     /**
      * getTask
-     * return mixed
+     * @return mixed
      */
     public function getTask()
     {

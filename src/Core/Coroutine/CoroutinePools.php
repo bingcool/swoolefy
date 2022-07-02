@@ -25,10 +25,10 @@ class CoroutinePools
      * @var array
      */
     const DefaultConfig = [
-        'pools_num' => 30,
+        'pools_num'    => 30,
         'push_timeout' => 2,
-        'pop_timeout' => 1,
-        'live_time' => 10
+        'pop_timeout'  => 1,
+        'live_time'    => 10
     ];
 
     /**
@@ -57,6 +57,7 @@ class CoroutinePools
             if (isset($config['pop_timeout'])) {
                 $poolsHandler->setPopTimeout($config['pop_timeout']);
             }
+
             if (isset($config['live_time'])) {
                 $poolsHandler->setLiveTime($config['live_time']);
             }
@@ -83,7 +84,7 @@ class CoroutinePools
     }
 
     /**
-     * 获取一个对象
+     * getObj
      *
      * @param string $poolName
      * @return mixed

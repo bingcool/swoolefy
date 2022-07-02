@@ -134,7 +134,7 @@ class Helper
     /**
      * randTime 按UNIX时间戳产生随机数
      * @param int $rand_length
-     * @return  string
+     * @return string
      */
     public static function randTime(int $rand_length = 6)
     {

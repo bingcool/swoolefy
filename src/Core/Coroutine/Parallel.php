@@ -76,15 +76,18 @@ class Parallel
         if (empty($this->callbacks)) {
             return [];
         }
+
         $chunks = array_chunk($this->callbacks, $this->concurrent, true);
         $result = $this->callbacks = [];
         foreach ($chunks as $k => $chunk) {
             foreach ($chunk as $key => $callable) {
                 if (in_array($key, $this->ignoreCallbacks)) unset($chunk[$key]);
             }
+
             if ($chunk) {
                 $res = GoWaitGroup::multiCall($chunk, $timeOut);
             }
+
             unset($chunks[$k]);
             $result = array_merge($result, $res ?? []);
         }
