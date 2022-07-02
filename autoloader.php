@@ -11,52 +11,48 @@
 
 class autoloader {
     /**
-     * $directory 启动目录
-     * @var [type]
+     * $directory
+     * @var string
      */
     private static $baseDirectory = START_DIR_ROOT;
    
     /**
-     * $prefix 自定义的根命名空间
+     * Root Namespace
      * @var array
      */
-    private static $root_namespace = ["<{APP_NAME}>"];
+    private static $rootNamespace = ["<{APP_NAME}>"];
 
     /**
-     * $class_map_namespace
+     * Class Map Namespace
      * @var array
      */
-    private static $class_map_namespace = [];
+    private static $classMapNamespace = [];
 
     /**
      * @param string $className 
      * @return void
      */
     public static function autoload($className) {
-        if(isset(self::$class_map_namespace[$className])) {
+        if(isset(self::$classMapNamespace[$className])) {
             return;
         }
-        foreach(self::$root_namespace as $k=>$namespace) {
-            // 判断如果以\命名空间访问的格式符合
+        foreach(self::$rootNamespace as $k=>$namespace) {
             if (0 === strpos($className, $namespace)) {
-                //分隔出$this->prefixLength个字符串以后的字符返回，再以\为分隔符分隔
                 $parts = explode('\\', $className);
-                // 组合新的路径
                 $filepath = self::$baseDirectory.DIRECTORY_SEPARATOR.implode(DIRECTORY_SEPARATOR, $parts).'.php';
                 if (is_file($filepath)) {
                     $res = require_once $filepath;
                     if($res) {
-                        self::$class_map_namespace[$className] = true;
+                        self::$classMapNamespace[$className] = true;
                     }
                 }
-                // 匹配到符合的,结束循环
                 break;
             }
         }
     }
 
     /**
-     * 注册自动加载
+     * register autoload
      */     
     public static function register($prepend=false) { 
         if(!function_exists('__autoload')) { 
@@ -67,6 +63,6 @@ class autoloader {
     }
 }
 
-// include文件时，即完成自动加载的注册
+// include file
 autoloader::register();
 
