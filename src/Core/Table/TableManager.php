@@ -67,6 +67,7 @@ class TableManager
      * @param string $table
      * @param string $key
      * @param array $field_value
+     * @return void
      */
     public static function set(string $table, string $key, array $field_value = [])
     {

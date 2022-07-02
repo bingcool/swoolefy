@@ -73,6 +73,7 @@ abstract class AbstractProcessPools
      * @param array $args
      * @param mixed $extend_data
      * @param bool $enable_coroutine
+     * @return void
      */
     public function __construct(
         string $process_name,
@@ -242,16 +243,16 @@ abstract class AbstractProcessPools
      * sendMessage 向绑定的worker进程发送数据
      * worker进程将通过onPipeMessage函数异步监听获取数数据
      * @param mixed $msg
-     * @param int $worker_id
+     * @param int|null $worker_id
      * @return bool
      * @throws \Exception
      */
-    public function sendMessage($msg = null, int $worker_id = null)
+    public function sendMessage($msg = null, ?int $worker_id = null)
     {
         if (!$msg) {
             throw new \Exception('Param of msg can not be null or empty');
         }
-        if ($worker_id == null) {
+        if ($worker_id === null) {
             $worker_id = $this->bindWorkerId;
         }
         return Swfy::getServer()->sendMessage($msg, $worker_id);
@@ -356,13 +357,13 @@ abstract class AbstractProcessPools
     }
 
     /**
-     * run 进程创建后的run方法
-     * @return void
+     * run
+     * @return mixed
      */
     abstract public function run();
 
     /**
-     * @return void
+     * @return mixed
      */
     public function onShutDown()
     {

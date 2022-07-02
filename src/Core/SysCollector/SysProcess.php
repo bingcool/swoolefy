@@ -40,8 +40,8 @@ class SysProcess extends AbstractProcess
 
     /**
      * run system收集信息进程
-     * @param Process $process
-     * @return void
+     *
+     * @return mixed
      */
     public function run()
     {

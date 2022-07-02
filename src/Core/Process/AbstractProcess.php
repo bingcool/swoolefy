@@ -68,6 +68,7 @@ abstract class AbstractProcess
      * @param array $args
      * @param null $extend_data
      * @param bool $enable_coroutine
+     * @return void
      */
     public function __construct(
         string $processName,

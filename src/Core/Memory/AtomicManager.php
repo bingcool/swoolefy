@@ -43,6 +43,7 @@ class AtomicManager
      * addAtomicLong
      * @param string $name
      * @param int $int
+     * @return void
      */
     public function addAtomicLong(string $name, int $int = 0)
     {

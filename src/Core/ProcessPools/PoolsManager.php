@@ -21,7 +21,7 @@ class PoolsManager
     use \Swoolefy\Core\SingletonTrait;
 
     /**
-     * const
+     * @var int
      */
     const PROCESS_NUM = 1024;
 

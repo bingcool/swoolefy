@@ -21,19 +21,19 @@ class TaskService extends BService
      * $task_id 任务的ID
      * @var int
      */
-    public $task_id;
+    protected $task_id;
 
     /**
      * $from_worker_id 记录当前任务from的worker投递
      * @var int
      */
-    public $from_worker_id;
+    protected $from_worker_id;
 
     /**
      * \Swoole\Server\Task 对象 swoole4.2.12+ 添加
      * @var \Swoole\Server\Task
      */
-    public $task = null;
+    protected $task = null;
 
     /**
      * __construct
@@ -50,6 +50,7 @@ class TaskService extends BService
     /**
      * setTaskId
      * @param int $task_id
+     * @return void
      */
     public function setTaskId(int $task_id)
     {
@@ -59,6 +60,7 @@ class TaskService extends BService
     /**
      * setFromWorkerId
      * @param int $from_worker_id
+     * @return void
      */
     public function setFromWorkerId(int $from_worker_id)
     {
@@ -67,6 +69,7 @@ class TaskService extends BService
 
     /**
      * @param \Swoole\Server\Task $task
+     * @return void
      */
     public function setTask(\Swoole\Server\Task $task)
     {
@@ -93,7 +96,7 @@ class TaskService extends BService
 
     /**
      * getTask
-     * return \Swoole\Server\Task
+     * @return \Swoole\Server\Task|null
      */
     public function getTask()
     {

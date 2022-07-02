@@ -58,7 +58,7 @@ class CoroutineManager
                 return \Swoole\Coroutine::stats();
             }
         }
-        return null;
+        return [];
     }
 
     /**
@@ -75,7 +75,7 @@ class CoroutineManager
             }
             return $cids;
         }
-        return null;
+        return [];
     }
 
     /**
