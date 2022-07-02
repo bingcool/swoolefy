@@ -24,7 +24,7 @@ class MqttEvent5
     protected $server;
 
     /**
-     * @var integer
+     * @var int
      */
     protected $fd;
 
@@ -87,6 +87,7 @@ class MqttEvent5
     /**
      * @param $code
      * @param array $properties
+     * @return mixed
      */
     public function auth($code, array $properties)
     {
@@ -121,6 +122,9 @@ class MqttEvent5
         return true;
     }
 
+    /**
+     * @return bool
+     */
     public function disconnect(): bool
     {
         //todo client_id与fd在disconnect解除关联
@@ -128,16 +132,15 @@ class MqttEvent5
     }
 
     /**
-     * @param $type
      * @param $topic
      * @param $message
      * @param $dup
      * @param $qos
      * @param $retain
      * @param $message_id
+     * @return mixed
      */
     public function publish(
-        $type,
         $topic,
         $message,
         $dup,
@@ -149,23 +152,21 @@ class MqttEvent5
         // 循环发给订阅的客户端，这里要去除publish发布的连接端fd
         // 读取$message的client_id，client_id与fd在connect的时候关联起来，保存好关系在redis
         // 发布者可以通过向指定client_id发布消息，这时可以从关系中获取fd,从而向指定client_id发布消息
-        foreach ($this->server->connections as $sub_fd) {
-            if ($sub_fd != $this->fd) {
-                $this->server->send(
-                    $sub_fd,
-                    Protocol\V5::pack(
-                        [
-                            'type' => $type,
-                            'topic' => $topic,
-                            'message' => $message,
-                            'dup' => $dup,
-                            'qos' => $qos,
-                            'retain' => $retain,
-                            'message_id' => $message_id
-                        ]
-                    )
-                );
-            }
+        foreach ($this->server->connections as $subFd) {
+            $this->server->send(
+                $subFd,
+                Protocol\V5::pack(
+                    [
+                        'type' => Types::PUBLISH,
+                        'topic' => $topic,
+                        'message' => $message,
+                        'dup' => $dup,
+                        'qos' => $qos,
+                        'retain' => $retain,
+                        'message_id' => $message_id
+                    ]
+                )
+            );
         }
     }
 
@@ -173,6 +174,7 @@ class MqttEvent5
      * @param $type
      * @param $topics
      * @param $message_id
+     * @return mixed
      */
     public function subscribe($type, $topics, $message_id)
     {
@@ -183,6 +185,7 @@ class MqttEvent5
      * @param $type
      * @param $topics
      * @param $message_id
+     * @return mixed
      */
     public function unSubscribe($type, $topics, $message_id)
     {
@@ -191,6 +194,7 @@ class MqttEvent5
 
     /**
      * @param $clean_session
+     * @return void
      */
     public function connectAck($clean_session, array $properties = [])
     {
@@ -218,6 +222,7 @@ class MqttEvent5
 
     /**
      * pingReq
+     * @return void
      */
     final public function pingReq()
     {
@@ -226,6 +231,7 @@ class MqttEvent5
 
     /**
      * @param $message_id
+     * @return void
      */
     final public function publishAck($message_id)
     {
@@ -243,6 +249,7 @@ class MqttEvent5
     /**
      * @param $message_id
      * @param $payload
+     * @return void
      */
     final public function subscribeAck($message_id, $payload)
     {
@@ -260,6 +267,7 @@ class MqttEvent5
 
     /**
      * @param $message_id
+     * @return void
      */
     final public function unSubscribeAck($message_id)
     {
