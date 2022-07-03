@@ -201,6 +201,7 @@ class Tick
                 'timer_id'      => $timerId,
                 'start_time'    => date('Y-m-d H:i:s', strtotime('now'))
             ];
+
             $config = Swfy::getConf();
             if (isset($config['enable_table_tick_task']) && $config['enable_table_tick_task'] == true) {
                 TableManager::set('table_after', 'after_timer_task', ['after_tasks' => json_encode(self::$_after_tasks)]);
@@ -212,7 +213,7 @@ class Tick
 
     /**
      * updateRunAfterTick
-     * @return  void
+     * @return void
      */
     protected static function updateRunAfterTick()
     {
