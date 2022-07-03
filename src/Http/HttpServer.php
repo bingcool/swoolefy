@@ -57,10 +57,7 @@ abstract class HttpServer extends BaseServer
     public function __construct(array $config = [])
     {
         self::clearCache();
-        self::$config = array_merge(
-            include(__DIR__ . '/config.php'),
-            $config
-        );
+        self::$config = $config;
         self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
         self::setSwooleSockType();
         self::setServerName(self::SERVER_NAME);

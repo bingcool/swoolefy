@@ -90,6 +90,7 @@ class TickManager
 
     /**
      * @param int $fd
+     * @return array
      */
     public static function timerInfo(int $fd)
     {
@@ -97,7 +98,7 @@ class TickManager
     }
 
     /**
-     * @return mixed
+     * @return \Swoole\timer\Iterator
      */
     public static function timerList()
     {
@@ -105,7 +106,7 @@ class TickManager
     }
 
     /**
-     * @return mixed
+     * @return array
      */
     public static function timerStatus()
     {
