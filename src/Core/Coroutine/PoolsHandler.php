@@ -202,6 +202,7 @@ class PoolsHandler
                         $this->callCount = $this->poolsNum - $length;
                     }
                 } else {
+                    unset($obj);
                     --$this->callCount;
                 }
 

@@ -53,10 +53,11 @@ trait AppTrait
 
     /**
      * @param string $action
+     * @return void
      */
     public function _afterAction($action)
     {
-        return true;
+
     }
 
     /**

@@ -254,7 +254,7 @@ class BService extends BaseObject
      */
     public function _afterAction(string $action)
     {
-        return true;
+
     }
 
     /**

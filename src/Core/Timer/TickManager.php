@@ -47,7 +47,7 @@ class TickManager
     /**
      * clearTimer
      * @param int $timer_id
-     * @return boolean
+     * @return bool
      */
     public static function clearTimer(int $timer_id)
     {
@@ -74,7 +74,7 @@ class TickManager
 
     /**
      * getAfterTasks
-     * @return mixed
+     * @return array
      */
     public static function getAfterTasks()
     {

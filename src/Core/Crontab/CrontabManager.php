@@ -41,13 +41,13 @@ class CrontabManager
             throw new \Exception("Crontab expression format is wrong, please check it");
         }
 
-        $cron_name_key = md5($cron_name);
+        $cronNameKey = md5($cron_name);
 
-        if (isset($this->cronTasks[$cron_name_key])) {
+        if (isset($this->cronTasks[$cronNameKey])) {
             throw new \Exception("Cron name=$cron_name had been setting, you can not set same name again!");
         }
 
-        $this->cronTasks[$cron_name_key] = [$expression, $func];
+        $this->cronTasks[$cronNameKey] = [$expression, $func];
 
         if (is_array($func)) {
             list($class, $action) = $func;
@@ -89,7 +89,7 @@ class CrontabManager
             }, $expression);
         }
 
-        unset($cron_name_key);
+        unset($cronNameKey);
     }
 
     /**
@@ -99,9 +99,9 @@ class CrontabManager
     public function getCronTaskByName(?string $cron_name = null)
     {
         if ($cron_name) {
-            $cron_name_key = md5($cron_name);
-            if (isset($this->cronTasks[$cron_name_key])) {
-                return $this->cronTasks[$cron_name_key];
+            $cronNameKey = md5($cron_name);
+            if (isset($this->cronTasks[$cronNameKey])) {
+                return $this->cronTasks[$cronNameKey];
             }
             return null;
         }

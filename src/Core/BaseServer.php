@@ -711,18 +711,18 @@ class BaseServer
      */
     public static function getHookFlags(array $coroutine_setting = [])
     {
-        $hook_flags = $coroutine_setting['hook_flags'] ?? '';
-        if (empty($hook_flags)) {
+        $hookFlags = $coroutine_setting['hook_flags'] ?? '';
+        if (empty($hookFlags)) {
             if (version_compare(swoole_version(), '4.7.0', '>=')) {
-                $hook_flags = SWOOLE_HOOK_ALL | SWOOLE_HOOK_NATIVE_CURL;
+                $hookFlags = SWOOLE_HOOK_ALL | SWOOLE_HOOK_NATIVE_CURL;
             } else if (version_compare(swoole_version(), '4.6.0', '>=')) {
-                $hook_flags = SWOOLE_HOOK_ALL ^ SWOOLE_HOOK_CURL | SWOOLE_HOOK_NATIVE_CURL;
+                $hookFlags = SWOOLE_HOOK_ALL ^ SWOOLE_HOOK_CURL | SWOOLE_HOOK_NATIVE_CURL;
             } else {
-                $hook_flags = SWOOLE_HOOK_ALL ^ SWOOLE_HOOK_CURL;
+                $hookFlags = SWOOLE_HOOK_ALL ^ SWOOLE_HOOK_CURL;
             }
         }
 
-        return $hook_flags;
+        return $hookFlags;
     }
 
     /**

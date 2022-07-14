@@ -44,7 +44,7 @@ abstract class AbstractCronController extends ProcessController
      */
     public function runCron(string $cron_name, string $expression, ?callable $func = null)
     {
-        $expression_key = md5($expression);
+        $expressionKey = md5($expression);
         /**@var CronExpression $cron */
         if(method_exists(CronExpression::class,'factory')) {
             $cron = CronExpression::factory($expression);
@@ -52,15 +52,15 @@ abstract class AbstractCronController extends ProcessController
             $cron = new CronExpression($expression);
         }
 
-        $now_time = time();
-        $cron_next_datetime = strtotime($cron->getNextRunDate()->format('Y-m-d H:i:s'));
+        $nowTime = time();
+        $cronNextDatetime = strtotime($cron->getNextRunDate()->format('Y-m-d H:i:s'));
         if ($cron->isDue()) {
-            if (!isset(static::$cronNextDatetime[$cron_name][$expression_key])) {
-                static::$expression[$cron_name][$expression_key] = $expression;
-                static::$cronNextDatetime[$cron_name][$expression_key] = $cron_next_datetime;
+            if (!isset(static::$cronNextDatetime[$cron_name][$expressionKey])) {
+                static::$expression[$cron_name][$expressionKey] = $expression;
+                static::$cronNextDatetime[$cron_name][$expressionKey] = $cronNextDatetime;
             }
-            if (($now_time >= static::$cronNextDatetime[$cron_name][$expression_key] && $now_time < ($cron_next_datetime - static::$offsetSecond))) {
-                static::$cronNextDatetime[$cron_name][$expression_key] = $cron_next_datetime;
+            if (($nowTime >= static::$cronNextDatetime[$cron_name][$expressionKey] && $nowTime < ($cronNextDatetime - static::$offsetSecond))) {
+                static::$cronNextDatetime[$cron_name][$expressionKey] = $cronNextDatetime;
                 if ($func instanceof \Closure) {
                     call_user_func($func, $cron_name, $expression);
                 } else {
@@ -71,8 +71,8 @@ abstract class AbstractCronController extends ProcessController
                 }
             }
 
-            if ($now_time > static::$cronNextDatetime[$cron_name][$expression_key] || $now_time >= $cron_next_datetime) {
-                static::$cronNextDatetime[$cron_name][$expression_key] = $cron_next_datetime;
+            if ($nowTime > static::$cronNextDatetime[$cron_name][$expressionKey] || $nowTime >= $cronNextDatetime) {
+                static::$cronNextDatetime[$cron_name][$expressionKey] = $cronNextDatetime;
             }
         }
     }
