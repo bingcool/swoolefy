@@ -102,8 +102,8 @@ class SysProcess extends AbstractProcess
                             \Swoole\Timer::clear($timer_id);
                             break;
                     }
-                } catch (\Throwable $t) {
-                    BaseServer::catchException($t);
+                } catch (\Throwable $throwable) {
+                    BaseServer::catchException($throwable);
                 }
             });
         }
@@ -112,6 +112,7 @@ class SysProcess extends AbstractProcess
 
     /**
      * sendByUdp 通过UDP发送方式
+     *
      * @param array $data
      * @return void
      * @throws mixed
@@ -121,7 +122,7 @@ class SysProcess extends AbstractProcess
         $udpClient = new \Swoole\Coroutine\Client(SWOOLE_SOCK_UDP);
         $host      = $this->sysCollectorConfig['host'];
         $port      = (int)$this->sysCollectorConfig['port'];
-        $timeout   = (int)$this->sysCollectorConfig['timeout'] ?? 3;
+        $timeout   = (int)($this->sysCollectorConfig['timeout'] ?? 3);
         $service   = $this->sysCollectorConfig['target_service'];
         $event     = $this->sysCollectorConfig['event'];
         // Udp data format
@@ -131,21 +132,18 @@ class SysProcess extends AbstractProcess
             throw new \Exception('Config about sys_collector_config of udp is wrong, host, port, service, event of params must be setting');
         }
 
-        try {
-            if (!$udpClient->isConnected()) {
-                $isConnected = $udpClient->connect($host, $port, $timeout);
-                if (!$isConnected) {
-                    throw new \Exception("SysProcess::sendByUdp function connect udp is failed");
-                }
+        if (!$udpClient->isConnected()) {
+            $isConnected = $udpClient->connect($host, $port, $timeout);
+            if (!$isConnected) {
+                throw new \Exception("SysProcess::sendByUdp of connect udp is failed");
             }
-            $udpClient->send($message);
-        } catch (\Throwable $throwable) {
-            throw $throwable;
         }
+        $udpClient->send($message);
     }
 
     /**
      * publicByRedis swooleRedis的订阅发布方式
+     *
      * @param array $data
      * @return void
      * @throws mixed
@@ -170,17 +168,14 @@ class SysProcess extends AbstractProcess
             $isConnected = $redisClient->connected;
             if ($isConnected && $data) {
                 $message = json_encode($data, JSON_UNESCAPED_UNICODE);
-                try {
-                    $redisClient->publish($channel, $message);
-                } catch (\Throwable $throwable) {
-                    throw $throwable;
-                }
+                $redisClient->publish($channel, $message);
             }
         });
     }
 
     /**
      * publicByPhpRedis phpRedis的订阅发布方式
+     *
      * @param array $data
      * @return void
      * @throws mixed
@@ -203,16 +198,10 @@ class SysProcess extends AbstractProcess
         }
 
         $redisClient = new \Redis();
-        try {
-            $redisClient->pconnect($host, $port, $timeout);
-            $redisClient->auth($password);
-            $redisClient->setOption(\Redis::OPT_READ_TIMEOUT, -1);
-            $redisClient->select($database);
-        } catch (\RedisException | \Exception $exception) {
-            throw $exception;
-        } catch (\Throwable $throwable) {
-            throw $throwable;
-        }
+        $redisClient->pconnect($host, $port, $timeout);
+        $redisClient->auth($password);
+        $redisClient->setOption(\Redis::OPT_READ_TIMEOUT, -1);
+        $redisClient->select($database);
 
         if ($data) {
             $message = json_encode($data, JSON_UNESCAPED_UNICODE);

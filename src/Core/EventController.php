@@ -243,6 +243,7 @@ class EventController extends BaseObject
 
     /**
      * end 重新初始化一些静态变量
+     * @return mixed
      */
     public function end()
     {

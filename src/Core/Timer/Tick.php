@@ -110,7 +110,7 @@ class Tick
     /**
      * delTicker
      * @param int $timer_id
-     * @return   boolean
+     * @return   bool
      */
     public static function delTicker(int $timer_id)
     {
