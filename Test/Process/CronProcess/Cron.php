@@ -18,6 +18,8 @@ class Cron extends AbstractProcess {
         try {
             $this->appConf = Swfy::getAppConf();
 
+            dump('klllll');
+
             // 闭包回调模式
             CrontabManager::getInstance()->addRule('cron_test', '*/1 * * * *', function($cron) {
                 $cid = \Swoole\Coroutine::getCid();
