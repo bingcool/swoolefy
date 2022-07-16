@@ -13,7 +13,7 @@ use Swoolefy\Core\Application;
 use Swoolefy\Core\SystemEnv;
 
 /**
- * dump 调试函数
+ * dump debug method
  * @param $var
  * @param $echo
  * @param $label
@@ -45,12 +45,14 @@ function dump($var, $echo = true, $label = null, $strict = true)
         // 调试环境这个函数使用
         if (!SystemEnv::isPrdEnv()) {
             $app = Application::getApp();
-            if (is_object($app)) {
+            if (is_object($app) && isset($app->response)) {
                 $app->response->header('Content-Type', 'text/html; charset=utf-8');
                 // worker启动时打印的信息，在下一次请求到来时打印出来
                 if (!empty($output)) {
                     $app->response->write($output);
                 }
+            }else {
+                var_dump($var);
             }
         }
         return null;
@@ -58,6 +60,14 @@ function dump($var, $echo = true, $label = null, $strict = true)
         return $output;
     }
 
+}
+
+/**
+ * @param $debugData
+ */
+function dd($debugData)
+{
+    dump($debugData);
 }
 
 /**
@@ -90,7 +100,8 @@ function _each(string $msg, string $foreground = "red", string $background = "bl
 
 /**
  * 随机获取一个可监听的端口(php_socket模式)
- * @return bool
+ *
+ * @return int
  */
 function get_one_free_port()
 {
@@ -111,7 +122,8 @@ function get_one_free_port()
 
 /**
  * 随机获取一个可监听的端口(swoole_coroutine模式)
- * @return mixed
+ *
+ * @return int
  */
 function get_one_free_port_coro()
 {

@@ -11,9 +11,6 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Swfy;
-use Swoolefy\Core\BaseServer;
-
 trait ServiceTrait
 {
     /**

@@ -59,7 +59,8 @@ class ProcessManager
     }
 
     /**
-     * addProcess 添加一个进程
+     * addProcess
+     *
      * @param string $processName
      * @param string $processClass
      * @param bool $async
@@ -167,6 +168,7 @@ class ProcessManager
     /**
      * writeByProcessName 向绑定当前worker进程的某个自定义进程写数据
      * 如果需要获取等待的结果，可以设置callback,在规定时间内读取返回数据回调处理
+     *
      * @param string $name
      * @param mixed $data
      * @param \Closure|null $callback

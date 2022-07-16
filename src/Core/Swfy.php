@@ -35,7 +35,7 @@ class Swfy
     public static $app_conf = [];
 
     /**
-     * $com_alias_name 动态创建组件对象
+     * $com_alias_name
      * @param string $com_alias_name
      * @param mixed $definition
      * @return mixed
@@ -46,7 +46,7 @@ class Swfy
     }
 
     /**
-     * removeComponent 销毁Component
+     * removeComponent
      * @param string|array $com_alias_name
      * @return bool
      */
@@ -56,7 +56,7 @@ class Swfy
     }
 
     /**
-     * getComponent 获取组件
+     * getComponent
      * @param string $com_alias_name
      * @return mixed
      */

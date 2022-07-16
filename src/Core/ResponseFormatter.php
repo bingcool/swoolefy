@@ -14,7 +14,8 @@ namespace Swoolefy\Core;
 class ResponseFormatter
 {
     /**
-     * 定义响应的数据格式
+     * define response formatter
+     *
      * @param int $ret
      * @param string $msg
      * @param string $data

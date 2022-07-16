@@ -99,10 +99,10 @@ class HttpRoute extends AppDispatch
     public function __construct($extend_data = null)
     {
         parent::__construct();
-        $this->app = Application::getApp();
-        $this->request = $this->app->request;
-        $this->response = $this->app->response;
-        $this->app_conf = $this->app->app_conf;
+        $this->app        = Application::getApp();
+        $this->request    = $this->app->request;
+        $this->response   = $this->app->response;
+        $this->app_conf   = $this->app->app_conf;
         $this->requireUri = $this->request->server['PATH_INFO'];
         $this->extendData = $extend_data;
     }
@@ -126,9 +126,11 @@ class HttpRoute extends AppDispatch
                     $this->requireUri = '/' . $this->defaultRoute;
                 }
             }
-            $route_uri = trim($this->requireUri, '/');
-            if ($route_uri) {
-                $routeParams = explode('/', $route_uri);
+
+            $routeUri = trim($this->requireUri, '/');
+
+            if ($routeUri) {
+                $routeParams = explode('/', $routeUri);
                 $count = count($routeParams);
                 switch ($count) {
                     case 1 :
@@ -147,10 +149,12 @@ class HttpRoute extends AppDispatch
                         break;
                 }
             }
+
         } else if ($this->app_conf['route_model'] == self::ROUTE_MODEL_QUERY_PARAMS) {
             $module     = $this->request->get['m'] ?? null;
             $controller = $this->request->get['c'] ?? 'Index';
             $action     = $this->request->get['t'] ?? 'index';
+
             if ($module) {
                 $this->requireUri = DIRECTORY_SEPARATOR . $module . DIRECTORY_SEPARATOR . $controller . DIRECTORY_SEPARATOR . $action;
             } else {

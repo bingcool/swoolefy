@@ -11,10 +11,9 @@
 
 namespace Swoolefy\Core\SysCollector;
 
-use Swoole\Process;
-use Swoolefy\Core\EventController;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\EventController;
 use Swoolefy\Core\Memory\AtomicManager;
 use Swoolefy\Core\Process\AbstractProcess;
 
@@ -80,9 +79,9 @@ class SysProcess extends AbstractProcess
                     $totalRequestNum && $atomic->sub($totalRequestNum);
                     $data = [
                         'total_request' => $totalRequestNum,
-                        'tick_time' => $tickTime,
-                        'from_service' => $this->sysCollectorConfig['from_service'] ?? '',
-                        'timestamp' => date('Y-m-d H:i:s')
+                        'tick_time'     => $tickTime,
+                        'from_service'  => $this->sysCollectorConfig['from_service'] ?? '',
+                        'timestamp'     => date('Y-m-d H:i:s')
                     ];
                     $data['sys_collector_message'] = $collectionInfo;
                     switch ($type) {
