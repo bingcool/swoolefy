@@ -25,7 +25,7 @@ class BaseObject
     public $coroutine_id;
 
     /**
-     * @var mixed
+     * @var \ArrayObject
      */
     protected $context;
 
@@ -70,7 +70,7 @@ class BaseObject
 
     /**
      * getCid
-     * @return mixed
+     * @return int
      */
     public function getCid()
     {
@@ -78,7 +78,7 @@ class BaseObject
     }
 
     /**
-     * @return bool|null
+     * @return bool
      */
     public function isSetContext()
     {
@@ -107,6 +107,7 @@ class BaseObject
     }
 
     /**
+     * @param string $type
      * @param string $logAction
      * @param array $log
      * @return void
@@ -156,6 +157,7 @@ class BaseObject
 
     /**
      * clearLogs
+     * @return void
      */
     public function clearLogs()
     {
@@ -180,7 +182,7 @@ class BaseObject
     /**
      * getArgs 获取临时变量值
      * @param string $name
-     * @return  mixed
+     * @return mixed
      */
     public function getArgs(string $name = null)
     {
@@ -211,6 +213,7 @@ class BaseObject
 
     /**
      * get component
+     * @return mixed
      */
     public function __get($name)
     {

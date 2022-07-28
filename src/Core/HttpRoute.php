@@ -94,9 +94,9 @@ class HttpRoute extends AppDispatch
 
     /**
      * __construct
-     * @param mixed $extend_data
+     * @param mixed $extendData
      */
-    public function __construct($extend_data = null)
+    public function __construct($extendData = null)
     {
         parent::__construct();
         $this->app        = Application::getApp();
@@ -104,7 +104,7 @@ class HttpRoute extends AppDispatch
         $this->response   = $this->app->response;
         $this->app_conf   = $this->app->app_conf;
         $this->requireUri = $this->request->server['PATH_INFO'];
-        $this->extendData = $extend_data;
+        $this->extendData = $extendData;
     }
 
     /**

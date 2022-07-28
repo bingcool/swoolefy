@@ -74,9 +74,7 @@ class App extends \Swoolefy\Core\Component
 
     /**
      * init
-     * @param Request $request
      * @return void
-     * @throws \Exception
      */
     protected function _init()
     {
@@ -125,9 +123,9 @@ class App extends \Swoolefy\Core\Component
                 $route = new HttpRoute($extendData);
                 $route->dispatch();
             }
-        } catch (\Throwable $t) {
+        } catch (\Throwable $throwable) {
             $exceptionHandle = $this->getExceptionClass();
-            $exceptionHandle::response($this, $t);
+            $exceptionHandle::response($this, $throwable);
         } finally {
             if (!$this->isDefer) {
                 $this->onAfterRequest();
@@ -146,6 +144,7 @@ class App extends \Swoolefy\Core\Component
             $request->server[$upper] = $value;
             unset($request->server[$key]);
         }
+
         foreach ($request->header as $key => $value) {
             $_key = 'HTTP_' . strtoupper(str_replace('-', '_', $key));
             $request->server[$_key] = $value;
