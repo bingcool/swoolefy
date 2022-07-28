@@ -197,7 +197,6 @@ trait AppTrait
             $value = $this->requestParams[$name] ?? $default;
         } else {
             $value = $this->requestParams;
-
         }
         return $value;
     }
