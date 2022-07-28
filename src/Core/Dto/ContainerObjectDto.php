@@ -66,6 +66,14 @@ class ContainerObjectDto extends \stdClass
     }
 
     /**
+     * @return mixed
+     */
+    public function getObject()
+    {
+        return $this->__object;
+    }
+
+    /**
      * @param $name
      * @param $arguments
      * @return mixed
