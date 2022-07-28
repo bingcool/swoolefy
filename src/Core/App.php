@@ -65,7 +65,7 @@ class App extends \Swoolefy\Core\Component
 
     /**
      * __construct
-     * @param array $config 应用层配置
+     * @param array $config
      */
     public function __construct(array $conf = [])
     {

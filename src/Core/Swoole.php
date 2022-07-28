@@ -51,7 +51,7 @@ class Swoole extends BaseObject
 
     /**
      * __construct
-     * @param array $config 应用层配置
+     * @param array $config
      */
     public function __construct(array $config = [])
     {

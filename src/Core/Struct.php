@@ -35,7 +35,7 @@ class Struct
      * @param mixed $default
      * @return string
      */
-    public function get($property, $default = null)
+    public function get(string $property, $default = null)
     {
         if (isset($this->stdClass->{$property})) {
             return $this->stdClass->{$property};
@@ -67,7 +67,7 @@ class Struct
      * @param mixed $value
      * @return mixed
      */
-    public function set($property, $value, bool $replace = false)
+    public function set(string $property, $value, bool $replace = false)
     {
         if (!isset($this->stdClass->{$property}) || $replace) {
             $this->stdClass->{$property} = $value;
@@ -80,13 +80,10 @@ class Struct
      * @param array $properties
      * @return void
      */
-    public function setProperties($properties)
+    public function setProperties(array $properties)
     {
-        $properties = (array)$properties;
-        if (is_array($properties)) {
-            foreach ($properties as $k => $v) {
-                $this->stdClass->$k = $v;
-            }
+        foreach ($properties as $k => $v) {
+            $this->stdClass->$k = $v;
         }
     }
 
@@ -100,20 +97,20 @@ class Struct
     }
 
     /**
-     * @param $property
+     * @param string $property
      * @param $value
      * @return mixed
      */
-    public function __set($property, $value)
+    public function __set(string $property, $value)
     {
         return $this->set($property, $value, true);
     }
 
     /**
-     * @param $property
+     * @param string $property
      * @return string
      */
-    public function __get($property)
+    public function __get(string $property)
     {
         return $this->get($property, $default = null);
     }

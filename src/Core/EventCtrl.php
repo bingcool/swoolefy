@@ -19,7 +19,7 @@ use Swoolefy\Core\ProcessPools\PoolsManager;
 class EventCtrl implements \Swoolefy\Core\EventCtrlInterface
 {
     /**
-     * init start之前初始化
+     * init run in before start method
      * @return void
      */
     public function init()
