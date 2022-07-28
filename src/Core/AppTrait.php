@@ -575,7 +575,7 @@ trait AppTrait
     }
 
     /**
-     * parseUrl 解析URI
+     * parseUrl
      * @param string $url
      * @return array
      */
@@ -594,7 +594,7 @@ trait AppTrait
     }
 
     /**
-     * redirect 重定向,使用这个函数后,要return,停止程序执行
+     * redirect 重定向-使用这个函数后,要return,停止程序执行
      * @param string $url
      * @param array $params eg:['name'=>'ming','age'=>18]
      * @param int $httpStatus default 301
@@ -634,7 +634,7 @@ trait AppTrait
     }
 
     /**
-     * dump，调试函数
+     * dump 调试函数
      * @param mixed $var
      * @param bool $echo
      * @param mixed $label

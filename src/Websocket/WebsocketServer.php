@@ -32,15 +32,15 @@ abstract class WebsocketServer extends BaseServer
      * @var array
      */
     public static $setting = [
-        'reactor_num' => 1,
-        'worker_num' => 1,
-        'max_request' => 1000,
+        'reactor_num'     => 1,
+        'worker_num'      => 1,
+        'max_request'     => 1000,
         'task_worker_num' => 1,
-        'task_tmpdir' => '/dev/shm',
-        'daemonize' => 0,
-        'hook_flags' => SWOOLE_HOOK_ALL | SWOOLE_HOOK_CURL,
-        'log_file' => __DIR__ . '/log/log.txt',
-        'pid_file' => __DIR__ . '/log/server.pid',
+        'task_tmpdir'     => '/dev/shm',
+        'daemonize'       => 0,
+        'hook_flags'      => SWOOLE_HOOK_ALL | SWOOLE_HOOK_CURL,
+        'log_file'        => __DIR__ . '/log/log.txt',
+        'pid_file'        => __DIR__ . '/log/server.pid',
     ];
 
     /**

@@ -137,8 +137,8 @@ class EventController extends BaseObject
      */
     public function afterRequest(callable $callback, bool $prepend = false)
     {
-        if (is_callable($callback, true, $callable_name)) {
-            $key = md5($callable_name);
+        if (is_callable($callback, true, $callableName)) {
+            $key = md5($callableName);
             if ($prepend) {
                 if (!isset($this->eventHooks[self::HOOK_AFTER_REQUEST])) {
                     $this->eventHooks[self::HOOK_AFTER_REQUEST] = [];

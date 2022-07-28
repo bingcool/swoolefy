@@ -17,7 +17,6 @@ class ServerManager
     use \Swoolefy\Core\SingletonTrait, \Swoolefy\Core\ServiceTrait;
 
     /**
-     * $server_port
      * @var array
      */
     private $serverPorts = [];
@@ -75,11 +74,10 @@ class ServerManager
     /**
      * getClientInfo
      * @param int $fd
-     * @param int $extraData
-     * @param bool $ignoreError
+     * @param mixed $extraData
      * @return mixed
      */
-    public function getClientInfo(int $fd, int $extraData, bool $ignoreError = false)
+    public function getClientInfo(int $fd, $extraData = null)
     {
         return Swfy::getServer()->getClientInfo($fd, $extraData);
     }

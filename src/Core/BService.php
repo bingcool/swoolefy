@@ -65,7 +65,7 @@ class BService extends BaseObject
     }
 
     /**
-     * beforeAction 在处理实际action前执行
+     * beforeAction
      * @param string $action
      * @return mixed
      */
