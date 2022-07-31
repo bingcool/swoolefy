@@ -61,13 +61,13 @@ class ServerManager
 
     /**
      * stopWorker
-     * @param int $worker_id
+     * @param int $workerId
      * @param bool $waitEvent
      * @return bool
      */
-    public function stopWorker(int $worker_id = -1, bool $waitEvent = false)
+    public function stopWorker(int $workerId = -1, bool $waitEvent = false)
     {
-        Swfy::getServer()->stop($worker_id);
+        Swfy::getServer()->stop($workerId);
         return true;
     }
 

@@ -9,26 +9,30 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Core;
+namespace Swoolefy\Core\Dto;
 
-use Swoolefy\Core\Dto\BaseResponseDto;
-
-class ResponseFormatter
+class BaseResponseDto extends \stdClass
 {
     /**
-     * define response formatter
-     *
-     * @param int $code
-     * @param string $msg
-     * @param string $data
-     * @return array
+     * @var int
      */
-    public static function formatterData(int $code = 0, string $msg = '', $data = [])
+    public $code;
+
+    /**
+     * @var string
+     */
+    public $msg = '';
+
+    /**
+     * @var array
+     */
+    public $data = [];
+
+    /**
+     * toArray
+     */
+    public function toArray()
     {
-        $response = new BaseResponseDto();
-        $response->code = $code;
-        $response->msg  = $msg;
-        $response->data = $data;
-        return $response->toArray();
+        return (array)$this;
     }
 }

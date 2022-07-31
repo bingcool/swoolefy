@@ -135,15 +135,15 @@ class Application
     }
 
     /**
-     * @param int $ret
+     * @param int $code
      * @param string $msg
      * @param string $data
      * @return array
      */
-    public static function buildResponseData(int $ret = 0, string $msg = '', $data = '')
+    public static function buildResponseData(int $code = 0, string $msg = '', $data = '')
     {
-        $responseFormatter = Swfy::getConf()['response_formatter'] ?? ResponseFormatter::class;
-        return $responseFormatter::formatterData($ret, $msg, $data);
+        $responseFormatter = Swfy::getConf()['response_formatter'] ?: ResponseFormatter::class;
+        return $responseFormatter::formatterData($code, $msg, $data);
     }
 
     /**

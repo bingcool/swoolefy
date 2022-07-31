@@ -41,7 +41,7 @@ trait ServiceTrait
         if ($workerPid) {
             return $workerPid;
         } else {
-            // 自定义进程worker_pid
+            // 自定义进程pid
             return posix_getpid();
         }
     }
@@ -76,7 +76,7 @@ trait ServiceTrait
     }
 
     /**
-     * getLastError 获取最近一次的错误代码
+     * getLastError
      * @return int
      */
     public static function getLastError()

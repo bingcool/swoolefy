@@ -166,7 +166,7 @@ abstract class AbstractProcess
     }
 
     /**
-     * getProcess 获取process进程对象
+     * getProcess
      * @return Process
      */
     public function getProcess()
@@ -206,8 +206,8 @@ abstract class AbstractProcess
     }
 
     /**
-     * 是否启用协程
-     * @param bool
+     * isEnableCoroutine
+     * @return bool
      */
     public function isEnableCoroutine()
     {
@@ -256,6 +256,7 @@ abstract class AbstractProcess
                     \Swoole\Process::kill($this->getPid(), SIGTERM);
                 }
             });
+
             if (\Swoole\Coroutine::getCid() > 0) {
                 $channel->pop(-1);
                 $channel->close();

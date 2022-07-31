@@ -12,7 +12,6 @@
 namespace Swoolefy\Core\Process;
 
 use Swoole\Process;
-use Swoole\Table;
 use Swoolefy\Core\Table\TableManager;
 
 class ProcessManager

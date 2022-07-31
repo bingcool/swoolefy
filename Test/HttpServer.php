@@ -12,7 +12,6 @@
 namespace Test;
 
 use Swoolefy\Core\Application;
-use Swoolefy\Core\Swfy;
 
 class HttpServer extends \Swoolefy\Http\HttpAppServer {
 

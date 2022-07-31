@@ -152,6 +152,7 @@ abstract class AbstractProcessPools
         TableManager::getTable('table_process_pools_map')->set(
             md5($this->processName), ['pid' => $this->swooleProcess->pid, 'process_name' => $this->processName]
         );
+
         if (extension_loaded('pcntl')) {
             pcntl_async_signals(true);
         }
@@ -200,7 +201,7 @@ abstract class AbstractProcessPools
     }
 
     /**
-     * getArgs 获取变量参数
+     * getArgs
      * @return mixed
      */
     public function getArgs()
@@ -224,14 +225,14 @@ abstract class AbstractProcessPools
     public function getProcessName(bool $is_full_name = false)
     {
         if (!$is_full_name) {
-            list($processName, $worker_id, $process_num) = explode('@', $this->processName);
+            list($processName, $workerId, $processNum) = explode('@', $this->processName);
             return $processName;
         }
         return $this->processName;
     }
 
     /**
-     * 是否启用协程
+     * isEnableCoroutine
      * @return bool
      */
     public function isEnableCoroutine()

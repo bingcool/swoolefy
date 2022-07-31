@@ -34,8 +34,8 @@
         "ext-zend-opcache": "*",
         "ext-mbstring": "*",
         "dragonmantank/cron-expression": "~3.2",
-        "bingcool/library": "dev-master",
-        "simps/mqtt": "2.x-dev"
+        "simps/mqtt": "2.x-dev",
+        "bingcool/library": "dev-master"
     },
     "autoload": {
         "files": ["src/Constants.php","src/Core/Func/function.php"],

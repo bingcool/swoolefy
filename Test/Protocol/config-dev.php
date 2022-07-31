@@ -76,7 +76,7 @@ return [
      ],
 
     // 依赖于EnableSysCollector = true，否则设置没有意义,不生效
-    'enable_pv_collector'  => true,
+    'enable_pv_collector'  => false,
     'enable_sys_collector' => true,
     'sys_collector_conf' => [
         'type'           => SWOOLEFY_SYS_COLLECTOR_UDP,
