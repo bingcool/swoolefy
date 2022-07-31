@@ -135,24 +135,21 @@ class EventApp
      */
     public function __call(string $action, array $args = [])
     {
-        try {
-            if ($this->isCall && \Swoole\Coroutine::getCid() > 0) {
-                $className = get_class($this->eventApp);
-                throw new \Exception(sprintf("%s Single Coroutine Instance only be called one method, you had called", $className));
-            }
+        if ($this->isCall && \Swoole\Coroutine::getCid() > 0) {
+            $className = get_class($this->eventApp);
+            throw new \Exception(sprintf("%s Single Coroutine Instance only be called one method, you had called", $className));
+        }
 
-            try {
-                $this->isCall = true;
-                return $this->eventApp->$action(...$args);
-            } catch (\Throwable $throwable) {
-                throw $throwable;
-            } finally {
-                if (is_object($this->eventApp) && !$this->eventApp->isDefer()) {
-                    $this->eventApp->end();
-                }
-            }
+        try {
+            $this->isCall = true;
+            return $this->eventApp->$action(...$args);
+
         } catch (\Throwable $throwable) {
             BaseServer::catchException($throwable);
+        }finally {
+            if (is_object($this->eventApp) && !$this->eventApp->isDefer()) {
+                $this->eventApp->end();
+            }
         }
     }
 

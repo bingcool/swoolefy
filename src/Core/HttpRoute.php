@@ -167,7 +167,7 @@ class HttpRoute extends AppDispatch
         $this->request->server['ROUTE_PARAMS'] = [];
         // forbidden call action
         if (in_array($action, static::$denyActions)) {
-            $errorMsg = "{$controller}::{$action} is not allow access action ||| " . $this->requireUri;
+            $errorMsg = "{$controller}::{$action} is not allow access action";
             throw new \RuntimeException($errorMsg, 403);
         }
         if ($module) {
@@ -247,13 +247,7 @@ class HttpRoute extends AppDispatch
         }
 
         if ($isContinueAction === false) {
-            $queryString = isset($this->request->server['QUERY_STRING']) ? '?' . $this->request->server['QUERY_STRING'] : '';
-            if (isset($this->request->post) && !empty($this->request->post)) {
-                $post = json_encode($this->request->post, JSON_UNESCAPED_UNICODE);
-                $errorMsg = "Call {$class}::_beforeAction() return false, forbidden continue call {$class}::{$targetAction}, please checkout it ||| " . $this->request->server['REQUEST_URI'] . $queryString . ' ||| ' . $post;
-            } else {
-                $errorMsg = "Call {$class}::_beforeAction() return false, forbidden continue call {$class}::{$targetAction}, please checkout it ||| " . $this->request->server['REQUEST_URI'] . $queryString;
-            }
+            $errorMsg = "Call {$class}::_beforeAction() return false, forbidden continue call {$class}::{$targetAction}, please checkout it";
             throw new \RuntimeException($errorMsg, 404);
         }
         // reflector object

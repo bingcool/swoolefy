@@ -462,7 +462,7 @@ function stopServer($app_name)
     }
     $pid = intval(file_get_contents($pid_file));
     if (!\Swoole\Process::kill($pid, 0)) {
-        write("[error] pid={$pid} not exist");
+        write("[error] Server is not runnning");
         exit();
     }
 

@@ -62,20 +62,24 @@ trait AppTrait
 
     /**
      * 提前结束请求，可以在_beforeAction中调用
-     * @param int $ret
+     * @param int $code
      * @param string $msg
      * @param string $data
      * @param string $formatter
      * @return bool
      */
-    public function beforeEnd($ret = 0, string $msg = '', $data = '', string $formatter = 'json')
+    public function beforeEnd(
+        int $code = 0,
+        string $msg = '',
+        $data = '',
+        string $formatter = 'json'
+    )
     {
         if (is_object(Application::getApp())) {
             Application::getApp()->setEnd();
         }
-        $responseData = Application::buildResponseData($ret, $msg, $data);
+        $responseData = Application::buildResponseData($code, $msg, $data);
         $this->jsonSerialize($responseData, $formatter);
-        $this->response->end();
         return true;
     }
 
@@ -512,19 +516,19 @@ trait AppTrait
 
     /**
      * @param array $data
-     * @param int $ret
+     * @param int $code
      * @param mixed $msg
      * @param string $formatter
      * @return void
      */
     protected function returnJson(
         array  $data = [],
-        int    $ret = 0,
+        int    $code = 0,
                $msg = '',
         string $formatter = 'json'
     )
     {
-        $responseData = Application::buildResponseData($ret, $msg, $data);
+        $responseData = Application::buildResponseData($code, $msg, $data);
         $this->jsonSerialize($responseData, $formatter);
     }
 
@@ -555,9 +559,11 @@ trait AppTrait
         } else {
             $this->response->write($jsonString);
         }
+
         if(is_object(Application::getApp())) {
             Application::getApp()->setEnd();
         }
+
         $this->response->end();
     }
 

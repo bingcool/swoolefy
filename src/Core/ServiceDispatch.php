@@ -87,17 +87,20 @@ class ServiceDispatch extends AppDispatch
                 $this->errorHandle($class, $action, 'error500');
                 return false;
             }
-        } catch (\Throwable $t) {
-
-            $errorMsg = $t->getMessage() . ' on ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $class . '::' . $action . ' ||| ' . json_encode($this->params, JSON_UNESCAPED_UNICODE) . '|||' . $t->getTraceAsString();
+        } catch (\Throwable $throwable) {
+            $exceptionMsg = $throwable->getMessage();
+            $errorMsg     = $throwable->getMessage() . ' on ' . $throwable->getFile() . ' on line ' . $throwable->getLine() . ' ||| ' . $class . '::' . $action . ' ||| ' . json_encode($this->params, JSON_UNESCAPED_UNICODE) . '|||' . $throwable->getTraceAsString();
 
             if (Swfy::isWorkerProcess()) {
+                if(SystemEnv::isGraEnv() || SystemEnv::isPrdEnv()) {
+                    $errorMsg = $exceptionMsg;
+                }
                 $this->getErrorHandle()->errorMsg($errorMsg);
             }
 
             // record exception
             $exceptionClass = Application::getApp()->getExceptionClass();
-            $exceptionClass::shutHalt($errorMsg, SwoolefyException::EXCEPTION_ERR, $t);
+            $exceptionClass::shutHalt($errorMsg, SwoolefyException::EXCEPTION_ERR, $throwable);
             return false;
         }
     }

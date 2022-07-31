@@ -55,27 +55,28 @@ class SwoolefyException
 
     /**
      * appException 自定义异常处理
-     * @param \Throwable $e 异常对象
+     * @param \Throwable $exception 异常对象
      */
-    public static function appException($e)
+    public static function appException($exception)
     {
-        $error['message'] = $e->getMessage();
-        $trace = $e->getTrace();
+        $error['message'] = $exception->getMessage();
+        $trace = $exception->getTrace();
         if ('E' == $trace[0]['function']) {
             $error['file'] = $trace[0]['file'];
             $error['line'] = $trace[0]['line'];
         } else {
-            $error['file'] = $e->getFile();
-            $error['line'] = $e->getLine();
+            $error['file'] = $exception->getFile();
+            $error['line'] = $exception->getLine();
         }
-        $error['trace'] = $e->getTraceAsString();
+        $error['trace'] = $exception->getTraceAsString();
         $errorStr = sprintf(
             "%s in file %s on line %d",
             $error['message'],
             $error["file"],
             $error['line']
         );
-        static::shutHalt($errorStr, SwoolefyException::EXCEPTION_ERR, $e);
+
+        static::shutHalt($errorStr, SwoolefyException::EXCEPTION_ERR, $exception);
     }
 
     /**
@@ -115,40 +116,34 @@ class SwoolefyException
      * @param App $app
      * @param \Throwable $e
      */
-    public static function response(App $app, \Throwable $t)
+    public static function response(App $app, \Throwable $throwable)
     {
         $app->response->header('Content-Type', 'application/json; charset=UTF-8');
 
         $queryString = isset($app->request->server['QUERY_STRING']) ? '?' . $app->request->server['QUERY_STRING'] : '';
-        $exceptionMsg = $t->getMessage();
+        $exceptionMsg = $throwable->getMessage();
 
-        $errorMsg = $exceptionMsg . ' in file ' . $t->getFile() . ' on line ' . $t->getLine() . ' ||| ' . $app->request->server['REQUEST_URI'] . $queryString;
+        if (isset($app->request->post) && !empty($app->request->post)) {
+            $postRaw = json_encode($app->request->post, JSON_UNESCAPED_UNICODE);
+            $errorMsg = $exceptionMsg . ' in file ' . $throwable->getFile() . ' on line ' . $throwable->getLine() . ' ||| ' . $app->request->server['REQUEST_URI'] . $queryString.' ||| '.$postRaw;
+        } else {
+            $errorMsg = $exceptionMsg . ' in file ' . $throwable->getFile() . ' on line ' . $throwable->getLine() . ' ||| ' . $app->request->server['REQUEST_URI'] . $queryString;
+        }
 
-        $app->response->header('Content-Type', 'application/json; charset=UTF-8');
-
-
-        if (($code = $t->getCode()) == 0) {
-            // 公共异常错误码
+        if (($code = $throwable->getCode()) == 0) {
+            // common error code
             $code = -1;
         }
 
-
-        // 生产环境
-        if (!SystemEnv::isDevEnv()) {
+        if (SystemEnv::isPrdEnv() || SystemEnv::isGraEnv()) {
             $errorMsg = $exceptionMsg;
         }
 
         $app->beforeEnd($code, $errorMsg);
 
-        // 记录在日志中
-        if (isset($app->request->post) && !empty($app->request->post)) {
-            $postData = var_export($app->request->post);
-            $errorMsg .= '|||' . $postData . '|||' . $t->getTraceAsString();
-        } else {
-            $errorMsg .= '|||' . $t->getTraceAsString();
-        }
+        $errorMsg .= ' ||| ' . $throwable->getTraceAsString();
 
-        static::shutHalt($errorMsg);
+        static::shutHalt($errorMsg, SwoolefyException::EXCEPTION_ERR, $throwable);
 
     }
 

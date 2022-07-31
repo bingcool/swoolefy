@@ -170,6 +170,7 @@ trait ComponentTrait
             if ($name == SWOOLEFY_COM_IS_DELAY) {
                 continue;
             }
+
             if ($name == SWOOLEFY_COM_FUNC) {
                 if (is_string($definition[$name]) && method_exists($object, $definition[$name])) {
                     call_user_func_array([$object, $definition[$name]], [$definition]);

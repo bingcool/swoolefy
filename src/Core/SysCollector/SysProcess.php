@@ -137,6 +137,7 @@ class SysProcess extends AbstractProcess
                 throw new \Exception("SysProcess::sendByUdp of connect udp is failed");
             }
         }
+
         $udpClient->send($message);
     }
 
@@ -224,6 +225,7 @@ class SysProcess extends AbstractProcess
                 @unlink($filePath);
             }
         }
+
         if ($data) {
             $message = json_encode($data, JSON_UNESCAPED_UNICODE);
             @file_put_contents($filePath, $message . PHP_EOL, FILE_APPEND);

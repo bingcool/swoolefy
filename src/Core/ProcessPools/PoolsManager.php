@@ -171,6 +171,7 @@ class PoolsManager
         if (!Swfy::isWorkerProcess()) {
             throw new \Exception("PoolsManager::getInstance() can not use in task or self process, only use in worker process");
         }
+
         $table = TableManager::getTable('table_process_pools_map');
         foreach ($table as $key => $item) {
             if ($item['pid'] == $pid) {
@@ -179,6 +180,7 @@ class PoolsManager
                 return $this->processList[$key][$workerId][$processNum];
             }
         }
+
         return null;
     }
 
@@ -251,6 +253,7 @@ class PoolsManager
                 call_user_func($callback, $msg);
             }
         }
+
         return $process->getProcess();
     }
 
@@ -275,9 +278,11 @@ class PoolsManager
             $timeOut = (int)$timeOut;
             $ret = stream_select($read, $write, $except, $timeOut);
         }
+
         if ($ret) {
             $result = $swooleProcess->read(64 * 1024);
         }
+
         return $result;
     }
 }

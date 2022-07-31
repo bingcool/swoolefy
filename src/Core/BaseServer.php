@@ -602,7 +602,7 @@ class BaseServer
     }
 
     /**
-     * swooleVersion 判断swoole是否大于某个版本
+     * compareSwooleVersion
      * @param string $version
      * @return bool
      */
@@ -619,7 +619,7 @@ class BaseServer
     }
 
     /**
-     * checkSapiEnv 判断是否是cli模式启动
+     * checkSapiEnv
      * @return void
      * @throws \Exception
      */

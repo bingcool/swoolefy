@@ -113,7 +113,7 @@ class App extends \Swoolefy\Core\Component
             $this->parseHeaders($request);
             $this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
             parent::creatObject();
-            $this->request = $request;
+            $this->request  = $request;
             $this->response = $response;
             Application::setApp($this);
             $this->defer();
