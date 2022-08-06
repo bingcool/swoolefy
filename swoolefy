@@ -601,7 +601,7 @@ function statusServer($app_name)
 
     foreach ($output as $value) {
         write(
-            '进程pid=' . trim($value),
+             trim($value),
             'light_green'
         );
     }
