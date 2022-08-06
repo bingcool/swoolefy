@@ -13,7 +13,8 @@
 // 定义注册的应用名和对应使用的协议
 if (!defined('APP_NAMES')) {
     define('APP_NAMES', [
-        'Test' => 'http'
+        'Test' => 'http',
+        'UdpService' => 'udp'
     ]);
 }
 
@@ -290,6 +291,11 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer')
         include $autoloader_file;
     }
 
+    $router_file = START_DIR_ROOT . "/{$app_name}/Router.php";
+    if(!file_exists($router_file)) {
+        file_put_contents($router_file, getRouters());
+    }
+
     if (isDaemon()) {
         $config['setting']['daemonize'] = true;
     }
@@ -326,6 +332,11 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($autoloader_file, $file_content_string);
         include $autoloader_file;
+    }
+
+    $router_file = START_DIR_ROOT . "/{$app_name}/Router.php";
+    if(!file_exists($router_file)) {
+        file_put_contents($router_file, getServiceRouters());
     }
 
     if (isDaemon()) {
@@ -402,6 +413,11 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer')
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($autoloader_file, $file_content_string);
         include $autoloader_file;
+    }
+
+    $router_file = START_DIR_ROOT . "/{$app_name}/Router.php";
+    if(!file_exists($router_file)) {
+        file_put_contents($router_file, getServiceRouters());
     }
 
     if (isDaemon()) {
@@ -877,6 +893,34 @@ defined('SMARTY_CACHE_DIR') or define('SMARTY_CACHE_DIR', APP_PATH.'/Runtime/');
 
 EOF;
     return $defines_content;
+}
+
+function getRouters()
+{
+    $router_content =
+        <<<EOF
+<?php
+
+return [
+    '/index/userList' => '/Index/getUserList'  
+];
+
+EOF;
+    return $router_content;
+}
+
+function getServiceRouters()
+{
+    $router_content =
+        <<<EOF
+<?php
+
+return [
+    'Service/Location/ReportLocationService::reportUserLocation' => 'UdpService/Service/Location/ReportLocationService::reportUserLocation'  
+];
+
+EOF;
+    return $router_content;
 }
 
 function getDefaultModel()

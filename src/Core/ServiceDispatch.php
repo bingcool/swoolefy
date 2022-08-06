@@ -26,17 +26,17 @@ class ServiceDispatch extends AppDispatch
     protected $params = null;
 
     /**
-     * @param $callable
-     * @param $params
-     * @param array $rpc_pack_header
+     * @param array $callable
+     * @param mixed $params
+     * @param array $rpcPackHeader
      */
-    public function __construct($callable, $params, $rpc_pack_header = [])
+    public function __construct(array $callable, $params, array $rpcPackHeader = [])
     {
         parent::__construct();
         $this->callable = $callable;
-        $this->params = $params;
+        $this->params   = $params;
         Application::getApp()->setMixedParams($params);
-        Application::getApp()->setRpcPackHeader($rpc_pack_header);
+        Application::getApp()->setRpcPackHeader($rpcPackHeader);
     }
 
     /**
@@ -80,7 +80,7 @@ class ServiceDispatch extends AppDispatch
                     return false;
                 }
                 // next action Call
-                $serviceInstance->$action($this->params);
+                $serviceInstance->{$action}($this->params);
                 // after Call
                 $serviceInstance->_afterAction($action);
             } else {
@@ -106,13 +106,13 @@ class ServiceDispatch extends AppDispatch
     }
 
     /**
-     * @param $class
-     * @param $action
+     * @param string $class
+     * @param string $action
      * @param string $errorMethod
      * @return bool
      * @throws \Exception
      */
-    protected function errorHandle($class, $action, $errorMethod = 'error404')
+    protected function errorHandle(string $class, string $action, $errorMethod = 'error404')
     {
         if (Swfy::isWorkerProcess()) {
             $notFoundInstance = $this->getErrorHandle();
@@ -156,7 +156,7 @@ class ServiceDispatch extends AppDispatch
      * @param string $class
      * @return bool
      */
-    public function checkClass($class)
+    public function checkClass(string $class)
     {
         if (isset(self::$routeCacheFileMap[$class])) {
             return true;

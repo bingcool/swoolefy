@@ -103,7 +103,9 @@ class HttpRoute extends AppDispatch
         $this->request    = $this->app->request;
         $this->response   = $this->app->response;
         $this->app_conf   = $this->app->app_conf;
-        $this->requireUri = $this->request->server['PATH_INFO'];
+
+        $this->requireUri = Swfy::getRouterMapUri($this->request->server['PATH_INFO']);
+
         $this->extendData = $extendData;
     }
 

@@ -322,4 +322,30 @@ trait ServiceTrait
             return BaseServer::getServer();
         }
     }
+
+    /**
+     * getRouters
+     */
+    public static function getRouters()
+    {
+        static $routerMap;
+        if(!isset($routerMap)) {
+            $routerFile = APP_NAME.'/Router.php';
+            if(is_file($routerFile)) {
+                $routerMap = include $routerFile;
+            }
+        }
+
+        return $routerMap;
+    }
+
+    /**
+     * @param string $uri
+     * @return string
+     */
+    public static function getRouterMapUri(string $uri)
+    {
+        $routerMap = self::getRouters();
+        return $routerMap[$uri] ?? $uri;
+    }
 }
