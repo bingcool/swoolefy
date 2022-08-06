@@ -486,7 +486,7 @@ function stopServer($app_name)
             if (!\Swoole\Process::kill($pid, 0)) {
                 write("
         ---------------------stop info-------------------\n    
-        Server stop  successful. server stop at " . date("Y-m-d H:i:s")
+        Server Stop  OK. server stop at " . date("Y-m-d H:i:s")
                 );
                 @unlink($pid_file);
                 break;

@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Core\Coroutine\Context;
 use  Swoolefy\Core\Coroutine\CoroutineManager;
 
 class ZFactory
@@ -31,6 +32,14 @@ class ZFactory
     public static function getInstance(string $class = '', array $constructor = [])
     {
         $cid = CoroutineManager::getInstance()->getCoroutineId();
+
+        if($cid >= 0 && !Context::has(__CLASS__.'::'.__FUNCTION__)) {
+            Context::set(__CLASS__.'::'.__FUNCTION__, 1);
+            defer(function () use($cid) {
+                self::removeInstance($cid);
+            });
+        }
+
         $class = self::parseClass($class);
         if (isset(static::$_instances[$cid][$class]) && is_object(static::$_instances[$cid][$class])) {
             return static::$_instances[$cid][$class];

@@ -20,7 +20,6 @@ class Context
 
     /**
      * @return ArrayObject
-     * @throws \Exception
      */
     public static function getContext()
     {
@@ -49,7 +48,7 @@ class Context
     /**
      * @param string $name
      * @param mixed $value
-     * @throws \Exception
+     * @return bool
      */
     public static function set(string $name, $value)
     {
@@ -64,7 +63,6 @@ class Context
     /**
      * @param string $name
      * @return bool
-     * @throws \Exception
      */
     public static function get(string $name)
     {
@@ -78,7 +76,6 @@ class Context
     /**
      * @param string $name
      * @return bool
-     * @throws \Exception
      */
     public static function has(string $name)
     {
