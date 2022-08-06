@@ -499,6 +499,12 @@ function stopServer($app_name)
         );
         while (true) {
             sleep(1);
+
+            if(\Swoole\Process::kill($pid, 0) && time() > 30) {
+                \Swoole\Process::kill($pid, SIGKILL);
+                sleep(1);
+            }
+
             if (!\Swoole\Process::kill($pid, 0)) {
                 write("
         ---------------------stop info-------------------\n    
@@ -509,7 +515,7 @@ function stopServer($app_name)
             } else {
                 if (time() - $nowtime > 60) {
                     write("---------------------------stop info-----------------------");
-                    write("Please use 'ps -ef | grep php' checkout swoole whether or not stop");
+                    write("Please use 'ps -ef | grep php-swoolefy' checkout swoole whether or not stop");
                     break;
                 }
             }
