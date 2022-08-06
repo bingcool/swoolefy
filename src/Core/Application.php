@@ -142,7 +142,7 @@ class Application
      */
     public static function buildResponseData(int $code = 0, string $msg = '', $data = '')
     {
-        $responseFormatter = Swfy::getConf()['response_formatter'] ?: ResponseFormatter::class;
+        $responseFormatter = (!isset(Swfy::getConf()['response_formatter']) || empty(Swfy::getConf()['response_formatter'])) ? ResponseFormatter::class : Swfy::getConf()['response_formatter'];
         return $responseFormatter::formatterData($code, $msg, $data);
     }
 

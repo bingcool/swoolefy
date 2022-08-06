@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Udp;
 
+use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Swoole;
 use Swoolefy\Core\ServiceDispatch;
 use Swoolefy\Core\HandlerInterface;
@@ -66,8 +67,8 @@ class UdpHandler extends Swoole implements HandlerInterface
 
     /**
      * run 完成初始化后，路由匹配和创建访问实例
-     * @param int $fd
      * @param mixed $payload
+     * @param mixed $clientInfo
      * @param array $extendData
      * @return mixed
      * @throws \Throwable
@@ -78,7 +79,7 @@ class UdpHandler extends Swoole implements HandlerInterface
             parent::run($fd = null, $payload);
             $this->clientInfo = $clientInfo;
             if ($this->isWorkerProcess()) {
-                $dataGramItems = explode(static::EOF, $payload);
+                $dataGramItems = explode(static::EOF, $payload, 3);
                 if (count($dataGramItems) == 3) {
                     list($service, $event, $params) = $dataGramItems;
                     if (is_string($params)) {
@@ -99,11 +100,20 @@ class UdpHandler extends Swoole implements HandlerInterface
             }
 
             if ($callable) {
+
+                if (!isset($isTaskProcess)) {
+                    $service          = trim(str_replace('\\', '/', $service), '/');
+                    $serviceHandle    = implode(self::EOF, [$service, $event]);
+                    $routerMapService = Swfy::getRouterMapUri($serviceHandle);
+                    $callable         = explode(self::EOF, $routerMapService);
+                }
+
                 $dispatcher = new ServiceDispatch($callable, $params);
                 if (isset($isTaskProcess) && $isTaskProcess === true) {
                     list($from_worker_id, $task_id, $task) = $extendData;
                     $dispatcher->setFromWorkerIdAndTaskId($from_worker_id, $task_id, $task);
                 }
+
                 $dispatcher->dispatch();
             }
         } catch (\Throwable $throwable) {

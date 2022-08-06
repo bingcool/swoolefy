@@ -22,6 +22,11 @@ class WebsocketHandler extends Swoole implements HandlerInterface
 {
 
     /**
+     * 数据分隔符
+     */
+    const EOF = '::';
+
+    /**
      * __construct
      * @param array $config
      */
@@ -60,15 +65,19 @@ class WebsocketHandler extends Swoole implements HandlerInterface
     public function run($fd, $payload, array $extendData = [])
     {
         try {
-            // heartbeat
+            // parse data
             if ($this->isWorkerProcess()) {
-                $payload = array_values(json_decode($payload, true) ?? []);
+                $payload = explode(static::EOF, $payload, 3);
                 if (is_array($payload) && count($payload) == 3) {
                     list($service, $event, $params) = $payload;
+                    if (is_string($params)) {
+                        $params = json_decode($params, true) ?? $params;
+                    }
                 } else {
                     return Swfy::getServer()->push($fd, json_encode($this->errorMsg('Websocket Params Missing')), $opcode = 1, $finish = true);
                 }
 
+                // heartbeat
                 if ($this->ping($event)) {
                     $pingFrame = new Frame;
                     $pingFrame->opcode = WEBSOCKET_OPCODE_PONG;
@@ -87,6 +96,14 @@ class WebsocketHandler extends Swoole implements HandlerInterface
             }
 
             if ($callable) {
+
+                if (!isset($isTaskProcess)) {
+                    $service          = trim(str_replace('\\', '/', $service), '/');
+                    $serviceHandle    = implode(self::EOF, [$service, $event]);
+                    $routerMapService = Swfy::getRouterMapUri($serviceHandle);
+                    $callable         = explode(self::EOF, $routerMapService);
+                }
+
                 $dispatcher = new ServiceDispatch($callable, $params);
                 if (isset($isTaskProcess) && $isTaskProcess === true) {
                     list($from_worker_id, $task_id, $task) = $extendData;

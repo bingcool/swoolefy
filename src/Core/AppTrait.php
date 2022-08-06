@@ -341,6 +341,14 @@ trait AppTrait
     }
 
     /**
+     * @return string
+     */
+    public function getRequestUriMapRouterUri()
+    {
+        return Swfy::getRouterMapUri($this->getRequestUri());
+    }
+
+    /**
      * getRoute
      * @return string
      */
