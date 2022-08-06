@@ -13,8 +13,7 @@
 // 定义注册的应用名和对应使用的协议
 if (!defined('APP_NAMES')) {
     define('APP_NAMES', [
-        'Test' => 'http',
-        'UdpService' => 'udp'
+        'Test' => 'http'
     ]);
 }
 
@@ -150,7 +149,7 @@ function createProject($server_name)
 
     $protocol = APP_NAMES[$app_name];
     if (!$protocol) {
-        write("[Error] app_name is not in APP_NAME array in swoolefy file, please check it");
+        write("[Error] app_name={$app_name} is not in APP_NAME array in swoolefy file, please check it");
         exit();
     }
 
@@ -581,13 +580,13 @@ function statusServer($app_name)
     $pid_file = getPidFile($app_name);
 
     if (!is_file($pid_file)) {
-        write("[error] pid file {$pid_file} is not exist, please check server weather is running");
+        write("pid file {$pid_file} is not exist, please check server weather is running");
         return;
     }
 
     $pid = intval(file_get_contents($pid_file));
     if (!\Swoole\Process::kill($pid, 0)) {
-        write("[error] pid={$pid} not exist, server maybe shutdown");
+        write("Server Maybe Shutdown, You can use 'ps -ef | grep php-swoolefy' ");
         return;
     }
 
@@ -596,7 +595,7 @@ function statusServer($app_name)
     exec($exec, $output, $return);
 
     if (empty($output)) {
-        write("[error] ps -ef not match {$app_name}-swoolefy");
+        write("'ps -ef' not match {$app_name}-swoolefy");
         return;
     }
 
@@ -613,7 +612,7 @@ function monitorServer($app_name)
     $pid_file = getPidFile($app_name);
 
     if (!is_file($pid_file)) {
-        write("[checkSever] pid file {$pid_file} is not exist, please check server weather is running");
+        write("[CheckSever] pid file {$pid_file} is not exist, please check server weather is running");
         return;
     }
 
@@ -621,7 +620,7 @@ function monitorServer($app_name)
     if (!\Swoole\Process::kill($pid, 0)) {
         sleep(2);
         if(!\Swoole\Process::kill($pid, 0)) {
-            write("[checkSever] server had shutdown, now restarting .....");
+            write("[CheckSever] server had shutdown, now restarting .....");
             startServer($app_name);
         }
     }
