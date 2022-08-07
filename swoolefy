@@ -472,12 +472,12 @@ function stopServer($app_name)
 {
     $pid_file = getPidFile($app_name);
     if (!is_file($pid_file)) {
-        write("[error] pid file {$pid_file} is not exist, please check the server whether running");
+        write("[Error] pid file={$pid_file} is not exist, please check the server whether running");
         exit();
     }
     $pid = intval(file_get_contents($pid_file));
     if (!\Swoole\Process::kill($pid, 0)) {
-        write("[error] Server is not runnning");
+        write("[Error] Server Stop!");
         exit();
     }
 
@@ -522,7 +522,7 @@ function stopServer($app_name)
         \Swoole\Process::wait();
         exit;
     } else {
-        write("2、你已放弃停止应用{$app_name},应用继续running中");
+        write("\n你已放弃停止应用{$app_name},应用继续running中");
         exit;
     }
 }
@@ -554,13 +554,13 @@ function reloadServer($app_name)
     $pid_file = getPidFile($app_name);
 
     if (!is_file($pid_file)) {
-        write("[error] pid file {$pid_file} is not exist, please check server is running");
+        write("[Error] pid file {$pid_file} is not exist, please check server is running");
         return;
     }
 
     $pid = intval(file_get_contents($pid_file));
     if (!\Swoole\Process::kill($pid, 0)) {
-        write("[error] pid={$pid} not exist");
+        write("[Error] pid={$pid} not exist");
         return;
     }
     // 发送信号，reload只针对worker进程
