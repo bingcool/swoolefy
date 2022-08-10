@@ -9,24 +9,26 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Core\Task;
+namespace Swoolefy\Core\Dto;
 
-use Swoolefy\Core\Dto\TaskMessageDto;
+use Swoolefy\Core\Task\TaskController;
+use Swoolefy\Core\Task\TaskService;
 
-interface AsyncTaskInterface
+class TaskMessageDto extends AbstractDto
 {
     /**
-     * registerTask 注册并调用异步任务
-     * @param array $callable
-     * @param array $data
-     * @return mixed
+     * @var TaskController|TaskService
      */
-    public static function registerTask(TaskMessageDto $taskMessageDto);
+    public $taskClass;
 
     /**
-     * finish 异步任务完成并退出到worker进程,执行finish进程业务
-     * @param $data
-     * @return mixed
+     * @var string
      */
-    public static function registerTaskFinish($data);
+    public $taskAction;
+
+    /**
+     * @var array
+     */
+    public $taskData = [];
+
 }

@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Core\Task;
 
-use Swoolefy\Core\Task\AsyncTask;
+use Swoolefy\Core\Dto\TaskMessageDto;
 
 class TaskManager
 {
@@ -19,18 +19,16 @@ class TaskManager
     use \Swoolefy\Core\SingletonTrait;
 
     /**
-     * asyncTask 异步任务投递
-     * @param mixed $callable
-     * @param mixed $data
+     * @param TaskMessageDto
      * @return mixed
      */
-    public static function asyncTask($callable, array $data = [])
+    public static function asyncTask(TaskMessageDto $taskMessageDto)
     {
-        return AsyncTask::registerTask($callable, $data);
+        return AsyncTask::registerTask($taskMessageDto);
     }
 
     /**
-     * finish 异步任务完成，退出至worker进程
+     * finish 异步任务完成,消息发送worker
      * @param mixed $data
      * @param mixed $task
      * @return void
@@ -41,7 +39,7 @@ class TaskManager
     }
 
     /**
-     * registerTaskFinish 异步任务完成，退出至worker进程
+     * registerTaskFinish
      * @param mixed $data
      * @param mixed $task
      * @return void

@@ -92,8 +92,8 @@ class App extends \Swoolefy\Core\Component
     {
         $conf = BaseServer::getConf();
         if (isset($conf['application_index'])) {
-            $application_index = $conf['application_index'];
-            if (class_exists($application_index)) {
+            $applicationIndex = $conf['application_index'];
+            if (class_exists($applicationIndex)) {
                 $conf['application_index']::bootstrap($this->getRequestParams());
             }
         }

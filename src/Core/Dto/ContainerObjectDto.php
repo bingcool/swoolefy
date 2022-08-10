@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Core\Dto;
 
-class ContainerObjectDto extends \stdClass
+class ContainerObjectDto extends AbstractDto
 {
     /**
      * @var int
