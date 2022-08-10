@@ -56,7 +56,7 @@ class HttpRoute extends AppDispatch
      * $require_uri
      * @var string
      */
-    protected $requireUri = null;
+    protected $routerUri = null;
 
     /**
      * $extendData 额外请求数据
@@ -103,9 +103,7 @@ class HttpRoute extends AppDispatch
         $this->request    = $this->app->request;
         $this->response   = $this->app->response;
         $this->app_conf   = $this->app->app_conf;
-
-        $this->requireUri = Swfy::getRouterMapUri($this->request->server['PATH_INFO']);
-
+        $this->routerUri = Swfy::getRouterMapUri($this->request->server['PATH_INFO']);
         $this->extendData = $extendData;
     }
 
@@ -121,15 +119,15 @@ class HttpRoute extends AppDispatch
         }
 
         if ($this->app_conf['route_model'] == self::ROUTE_MODEL_PATHINFO) {
-            if ($this->requireUri == '/' || $this->requireUri == '//') {
+            if ($this->routerUri == '/' || $this->routerUri == '//') {
                 if (isset($this->app_conf['default_route']) && !empty($this->app_conf['default_route'])) {
-                    $this->requireUri = '/' . trim($this->app_conf['default_route'], '/');
+                    $this->routerUri = '/' . trim($this->app_conf['default_route'], '/');
                 } else {
-                    $this->requireUri = '/' . $this->defaultRoute;
+                    $this->routerUri = '/' . $this->defaultRoute;
                 }
             }
 
-            $routeUri = trim($this->requireUri, '/');
+            $routeUri = trim($this->routerUri, '/');
 
             if ($routeUri) {
                 $routeParams = explode('/', $routeUri);
@@ -158,13 +156,13 @@ class HttpRoute extends AppDispatch
             $action     = $this->request->get['t'] ?? 'index';
 
             if ($module) {
-                $this->requireUri = DIRECTORY_SEPARATOR . $module . DIRECTORY_SEPARATOR . $controller . DIRECTORY_SEPARATOR . $action;
+                $this->routerUri = DIRECTORY_SEPARATOR . $module . DIRECTORY_SEPARATOR . $controller . DIRECTORY_SEPARATOR . $action;
             } else {
-                $this->requireUri = DIRECTORY_SEPARATOR . $controller . DIRECTORY_SEPARATOR . $action;
+                $this->routerUri = DIRECTORY_SEPARATOR . $controller . DIRECTORY_SEPARATOR . $action;
             }
         }
         // reset route
-        $this->request->server['ROUTE'] = $this->requireUri;
+        $this->request->server['ROUTE'] = $this->routerUri;
         // route params array attach to server
         $this->request->server['ROUTE_PARAMS'] = [];
         // forbidden call action

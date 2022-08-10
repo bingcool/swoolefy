@@ -154,10 +154,10 @@ abstract class UdpServer extends BaseServer
         if (parent::isTaskEnableCoroutine()) {
             $this->udpServer->on('task', function (Server $server, \Swoole\Server\Task $task) {
                 try {
+                    $data           = $task->data;
+                    $task_id        = $task->id;
                     $from_worker_id = $task->worker_id;
-                    $task_id = $task->id;
-                    $data = $task->data;
-                    $task_data = unserialize($data);
+                    $task_data      = unserialize($data);
                     static::onTask($server, $task_id, $from_worker_id, $task_data, $task);
                 } catch (\Throwable $e) {
                     self::catchException($e);

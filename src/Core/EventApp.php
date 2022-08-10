@@ -76,9 +76,6 @@ class EventApp
     {
         if ($class instanceof \Closure) {
             try {
-                /**
-                 * @var EventController $event_app
-                 */
                 $this->eventApp = new EventController(...$args);
                 call_user_func($class, $this->eventApp);
             } catch (\Exception | \Throwable $throwable) {

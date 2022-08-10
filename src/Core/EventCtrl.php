@@ -129,12 +129,13 @@ class EventCtrl implements \Swoolefy\Core\EventCtrlInterface
         $app_conf = BaseServer::getAppConf();
         if (isset($app_conf['enable_component_pools']) && is_array($app_conf['enable_component_pools']) && !empty($app_conf['enable_component_pools'])) {
             $components = array_keys($app_conf['components']);
-            foreach ($app_conf['enable_component_pools'] as $pool_name => $component_pool_config) {
-                if (!in_array($pool_name, $components)) {
-                    throw new \Exception("enable_component_pools of item={$pool_name}, not set in components");
+            foreach ($app_conf['enable_component_pools'] as $poolName => $component_pool_config) {
+                if (!in_array($poolName, $components)) {
+                    continue;
                 }
-                $callable = $app_conf['components'][$pool_name];
-                CoroutinePools::getInstance()->addPool($pool_name, $component_pool_config, $callable);
+
+                $callable = $app_conf['components'][$poolName];
+                CoroutinePools::getInstance()->addPool($poolName, $component_pool_config, $callable);
             }
         }
     }

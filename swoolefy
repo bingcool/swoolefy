@@ -13,7 +13,8 @@
 // 定义注册的应用名和对应使用的协议
 if (!defined('APP_NAMES')) {
     define('APP_NAMES', [
-        'Test' => 'http'
+        'Test' => 'http',
+        'UdpService' => 'udp'
     ]);
 }
 
