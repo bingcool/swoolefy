@@ -57,9 +57,11 @@ class ServiceDispatch extends AppDispatch
         }
 
         $class = str_replace('/', '\\', $class);
+
         /**@var \Swoolefy\Core\Task\TaskService $serviceInstance */
         $serviceInstance = new $class();
         $serviceInstance->setMixedParams($this->params);
+
         if (isset($this->from_worker_id) && isset($this->task_id)) {
             $serviceInstance->setFromWorkerId($this->from_worker_id);
             $serviceInstance->setTaskId($this->task_id);

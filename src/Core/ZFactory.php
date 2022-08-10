@@ -12,7 +12,7 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Coroutine\Context;
-use  Swoolefy\Core\Coroutine\CoroutineManager;
+use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class ZFactory
 {
