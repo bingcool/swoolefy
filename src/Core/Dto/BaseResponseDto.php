@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Core\Dto;
 
-class BaseResponseDto extends \stdClass
+class BaseResponseDto extends AbstractDto
 {
     /**
      * @var int

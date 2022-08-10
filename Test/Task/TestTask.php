@@ -8,13 +8,13 @@ use Swoolefy\Core\Task\TaskController;
 class TestTask extends TaskController
 {
 
-    public function doRun(array $data)
+    public function doRun(array $taskData)
     {
         $fromWorkerId = $this->getFromWorkerId();
-        $msg = is_array($data) ? json_encode($data) : $data;
+        $msg = is_array($taskData) ? json_encode($taskData) : $taskData;
         var_dump("Task Process Receive data from workerId={$fromWorkerId} and msg=".$msg);
 
-        $userId = $data['user_id'];
+        $userId = $taskData['user_id'];
         /**
          * @var \Common\Library\Db\Mysql $db
          */
@@ -52,6 +52,6 @@ class TestTask extends TaskController
             });
         });
 
-        $this->finishTask($data);
+        $this->finishTask($taskData);
     }
 }

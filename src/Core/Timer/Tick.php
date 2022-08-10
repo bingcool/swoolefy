@@ -50,9 +50,9 @@ class Tick
             throw new \Exception(get_called_class() . "::tickTimer() the first params 'time_interval' is requested more than 0 ms");
         }
 
-        $timer_id = self::tick($time_interval_ms, $func, $params);
+        $timerId = self::tick($time_interval_ms, $func, $params);
 
-        return $timer_id;
+        return $timerId;
     }
 
     /**
@@ -143,8 +143,8 @@ class Tick
      * @param int $time_interval_ms
      * @param mixed $func
      * @param array $params
-     * @return   mixed
-     * @throws   mixed
+     * @return mixed
+     * @throws mixed
      */
     public static function afterTimer(int $time_interval_ms, $func, $params = null)
     {

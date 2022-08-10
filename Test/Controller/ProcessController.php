@@ -2,6 +2,7 @@
 namespace Test\Controller;
 
 use Swoolefy\Core\Controller\BController;
+use Swoolefy\Core\Dto\TaskMessageDto;
 use Swoolefy\Core\Process\ProcessManager;
 use Swoolefy\Core\Task\TaskManager;
 
@@ -13,10 +14,12 @@ class ProcessController extends BController
     public function sendTaskWorker()
     {
         // 投递异步任务到task进程
-       TaskManager::getInstance()->asyncTask(
-           [\Test\Task\TestTask::class, 'doRun'],
-           ['order_id'=>123456,'user_id'=>10000]
-       );
+
+        $taskMessageDto = new TaskMessageDto();
+        $taskMessageDto->taskClass = \Test\Task\TestTask::class;
+        $taskMessageDto->taskAction = 'doRun';
+        $taskMessageDto->taskData = ['order_id'=>123456,'user_id'=>10000];
+        TaskManager::getInstance()->asyncTask($taskMessageDto);
 
        $this->returnJson(['class' => __CLASS__, 'action'=>__FUNCTION__]);
     }

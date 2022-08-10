@@ -36,7 +36,7 @@ class TaskController extends EventController
     /**
      * /**
      * TaskController应用于http
-     * TaskService应用于rpc,websocket,udp
+     * TaskService应用于rpc、websocket、udp
      *
      * @throws Exception
      */
@@ -108,7 +108,7 @@ class TaskController extends EventController
     }
 
     /**
-     * finishTask 完成任务，投递数据至worker进程
+     * finishTask
      * @param mixed $data
      * @return void
      */
