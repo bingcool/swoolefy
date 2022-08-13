@@ -227,13 +227,6 @@ class BService extends BaseObject
         return Application::getApp()->getWebsocketMsg();
     }
 
-    /**
-     * @return mixed
-     */
-    public function getTaskData()
-    {
-        return $this->getMixedParams();
-    }
 
     /**
      * @return mixed
