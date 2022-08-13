@@ -14,6 +14,7 @@ namespace Swoolefy\Http;
 use Swoole\Server;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
+use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Task\TaskController;
 
 abstract class HttpAppServer extends \Swoolefy\Http\HttpServer
@@ -50,8 +51,7 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer
             $response->end();
             return true;
         }
-        $app_conf = \Swoolefy\Core\Swfy::getAppConf();
-        $appInstance = new \Swoolefy\Core\App($app_conf);
+        $appInstance = new \Swoolefy\Core\App(Swfy::getAppConf());
         $appInstance->run($request, $response);
         return true;
     }
@@ -78,7 +78,7 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer
     public function onTask($server, $task_id, $from_worker_id, $data, $task = null)
     {
         try {
-            list($callable, $extendData, $fd) = $data;
+            list($callable, $taskData, $fd) = $data;
             list($className, $action) = $callable;
 
             /**@var TaskController $taskInstance */
@@ -86,7 +86,7 @@ abstract class HttpAppServer extends \Swoolefy\Http\HttpServer
             $taskInstance->setTaskId((int)$task_id);
             $taskInstance->setFromWorkerId((int)$from_worker_id);
             $task && $taskInstance->setTask($task);
-            $taskInstance->$action($extendData);
+            $taskInstance->$action($taskData);
 
             unset($callable, $extendData, $fd);
 

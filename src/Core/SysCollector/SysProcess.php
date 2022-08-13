@@ -46,20 +46,19 @@ class SysProcess extends AbstractProcess
     {
         $conf                     = Swfy::getConf();
         $this->sysCollectorConfig = $conf['sys_collector_conf'];
-        if (is_array($this->sysCollectorConfig) && isset($this->sysCollectorConfig['type'])) {
-
+        if (isset($this->sysCollectorConfig['type'])) {
             $type                      = $this->sysCollectorConfig['type'];
-            $tickTime                  = isset($sys_collector_config['tick_time']) ? (float)$this->sysCollectorConfig['tick_time'] : self::DEFAULT_TICK_TIME;
+            $tickTime                  = isset($this->sysCollectorConfig['tick_time']) ? (float)$this->sysCollectorConfig['tick_time'] : self::DEFAULT_TICK_TIME;
             $atomic                    = AtomicManager::getInstance()->getAtomicLong('atomic_request_count');
             $maxTickHandleCoroutineNum = $this->sysCollectorConfig['max_tick_handle_coroutine_num'] ?? self::DEFAULT_MAX_TICK_HANDLE_COROUTINE_NUM;
             $isEnablePvCollector       = BaseServer::isEnablePvCollector();
             $callback                  = $this->sysCollectorConfig['callback'] ?? null;
 
-            \Swoole\Timer::tick($tickTime * 1000, function ($timer_id) use ($type, $atomic, $tickTime, $isEnablePvCollector, $maxTickHandleCoroutineNum, $callback) {
+            \Swoole\Timer::tick($tickTime * 1000, function ($timerId) use ($type, $atomic, $tickTime, $isEnablePvCollector, $maxTickHandleCoroutineNum, $callback) {
                 try {
                     // reboot for max Coroutine
                     if ($this->getCurrentCoroutineLastCid() > $maxTickHandleCoroutineNum) {
-                        \Swoole\Timer::clear($timer_id);
+                        \Swoole\Timer::clear($timerId);
                         $this->reboot();
                         return;
                     }
@@ -98,7 +97,7 @@ class SysProcess extends AbstractProcess
                             $this->writeByFile($data);
                             break;
                         default:
-                            \Swoole\Timer::clear($timer_id);
+                            \Swoole\Timer::clear($timerId);
                             break;
                     }
                 } catch (\Throwable $throwable) {
@@ -124,8 +123,9 @@ class SysProcess extends AbstractProcess
         $timeout   = (int)($this->sysCollectorConfig['timeout'] ?? 3);
         $service   = $this->sysCollectorConfig['target_service'];
         $event     = $this->sysCollectorConfig['event'];
+
         // Udp data format
-        $message = $service . "::" . $event . "::" . json_encode($data, JSON_UNESCAPED_UNICODE);
+        $message = implode(SWOOLEFY_EOF_FLAG, [$service, $event, json_encode($data, JSON_UNESCAPED_UNICODE)]);
 
         if (empty($host) || empty($port) || empty($service) || empty($event)) {
             throw new \Exception('Config about sys_collector_config of udp is wrong, host, port, service, event of params must be setting');
@@ -152,7 +152,7 @@ class SysProcess extends AbstractProcess
     {
         $host     = $this->sysCollectorConfig['host'];
         $port     = (int)$this->sysCollectorConfig['port'];
-        $password = $this->sysCollectorConfig['password'];
+        $password = $this->sysCollectorConfig['password'] ?? '';
         $timeout  = isset($this->sysCollectorConfig['timeout']) ? (float)$this->sysCollectorConfig['timeout'] : 3;
 
         $channel = $this->sysCollectorConfig['channel'] ?? SWOOLEFY_SYS_COLLECTOR_CHANNEL;
@@ -160,11 +160,12 @@ class SysProcess extends AbstractProcess
             $redisClient = new \Swoole\Coroutine\Redis();
             $redisClient->setOptions([
                 'connect_timeout' => $timeout,
-                'timeout' => -1,
-                'reconnect' => 2
+                'timeout'         => -1,
+                'reconnect'       => 2
             ]);
+
             $redisClient->connect($host, $port);
-            $redisClient->auth($password);
+            !empty($password) && $redisClient->auth($password);
             $isConnected = $redisClient->connected;
             if ($isConnected && $data) {
                 $message = json_encode($data, JSON_UNESCAPED_UNICODE);
@@ -184,7 +185,7 @@ class SysProcess extends AbstractProcess
     {
         $host     = $this->sysCollectorConfig['host'];
         $port     = (int)$this->sysCollectorConfig['port'];
-        $password = $this->sysCollectorConfig['password'];
+        $password = $this->sysCollectorConfig['password'] ?? '';
         $timeout  = isset($this->sysCollectorConfig['timeout']) ? (float)$this->sysCollectorConfig['timeout'] : 60;
         $database = $this->sysCollectorConfig['database'] ?? 0;
         $channel  = $this->sysCollectorConfig['channel'] ?? SWOOLEFY_SYS_COLLECTOR_CHANNEL;
@@ -220,8 +221,8 @@ class SysProcess extends AbstractProcess
         $maxSize  = $this->sysCollectorConfig['max_size'] ?? 2 * 1024 * 1024;
 
         if (file_exists($filePath)) {
-            $file_size = filesize($filePath);
-            if ($file_size > $maxSize) {
+            $fileSize = filesize($filePath);
+            if ($fileSize > $maxSize) {
                 @unlink($filePath);
             }
         }

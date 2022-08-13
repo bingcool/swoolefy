@@ -14,6 +14,7 @@ namespace Swoolefy\Udp;
 include_once SWOOLEFY_CORE_ROOT_PATH . '/MainEventInterface.php';
 
 use Swoole\Server;
+use Swoolefy\Core\Swfy;
 use Swoolefy\Core\UdpEventInterface;
 
 abstract class UdpEventServer extends UdpServer implements UdpEventInterface
@@ -47,8 +48,7 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface
      */
     public function onPack($server, $data, $clientInfo)
     {
-        $app_conf = \Swoolefy\Core\Swfy::getAppConf();
-        $appInstance = new \Swoolefy\Udp\UdpHandler($app_conf);
+        $appInstance = new UdpHandler(Swfy::getAppConf());
         $appInstance->run($data, $clientInfo);
     }
 
@@ -65,8 +65,7 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface
     public function onTask($server, $task_id, $from_worker_id, $data, $task = null)
     {
         list($callable, $taskData, $clientInfo) = $data;
-        $app_conf = \Swoolefy\Core\Swfy::getAppConf();
-        $appInstance = new \Swoolefy\Udp\UdpHandler($app_conf);
+        $appInstance = new UdpHandler(Swfy::getAppConf());
         $appInstance->run([$callable, $taskData], $clientInfo, [$from_worker_id, $task_id, $task]);
         return true;
     }

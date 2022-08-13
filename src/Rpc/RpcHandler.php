@@ -77,7 +77,7 @@ class RpcHandler extends Swoole implements HandlerInterface
                 }
                 if ($this->ping()) {
                     $pong = ['pong', $this->header];
-                    $data = \Swoolefy\Rpc\RpcServer::pack($pong);
+                    $data = RpcServer::pack($pong);
                     Swfy::getServer()->send($fd, $data);
                     return;
                 }

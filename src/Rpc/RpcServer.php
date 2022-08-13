@@ -14,6 +14,7 @@ namespace Swoolefy\Rpc;
 include_once SWOOLEFY_CORE_ROOT_PATH . '/MainEventInterface.php';
 
 use Swoole\Server;
+use Swoolefy\Core\Swfy;
 use Swoolefy\Tcp\TcpServer;
 use Swoolefy\Core\RpcEventInterface;
 
@@ -57,8 +58,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
      */
     public function onReceive($server, $fd, $reactor_id, $data)
     {
-        $app_conf = \Swoolefy\Core\Swfy::getAppConf();
-        $appInstance = new \Swoolefy\Rpc\RpcHandler($app_conf);
+        $appInstance = new RpcHandler(Swfy::getAppConf());
         $appInstance->run($fd, $data);
         return true;
     }
@@ -76,8 +76,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
     public function onTask($server, $task_id, $from_worker_id, $data, $task = null)
     {
         list($callable, $taskData, $fd) = $data;
-        $app_conf = \Swoolefy\Core\Swfy::getAppConf();
-        $appInstance = new \Swoolefy\Rpc\RpcHandler($app_conf);
+        $appInstance = new RpcHandler(Swfy::getAppConf());
         $appInstance->run($fd, [$callable, $taskData], [$from_worker_id, $task_id, $task]);
         return true;
     }
@@ -170,7 +169,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
     }
 
     /**
-     * pack  根据配置设置，按照客户端的接受数据方式，打包数据发回给客户端
+     * pack 根据配置设置,按照客户端的接受数据方式,打包数据发回给客户端
      * @param mixed $data
      * @return mixed
      * @throws Exception

@@ -224,14 +224,16 @@ abstract class AbstractProcess
     public function sendMessage($msg = null, int $worker_id = 0)
     {
         if ($worker_id >= 1) {
-            $worker_task_total_num = (int)Swfy::getServer()->setting['worker_num'] + (int)Swfy::getServer()->setting['task_worker_num'];
-            if ($worker_id >= $worker_task_total_num) {
-                throw new \Exception("Param of worker_id must <=$worker_task_total_num");
+            $workerTaskTotalNum = (int)Swfy::getServer()->setting['worker_num'] + (int)Swfy::getServer()->setting['task_worker_num'];
+            if ($worker_id >= $workerTaskTotalNum) {
+                throw new \Exception("Param of worker_id must <=$workerTaskTotalNum");
             }
         }
+
         if (!$msg) {
             throw new \Exception('Param of msg can not be null or empty');
         }
+
         return Swfy::getServer()->sendMessage($msg, $worker_id);
     }
 

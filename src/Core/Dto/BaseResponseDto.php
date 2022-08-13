@@ -27,12 +27,4 @@ class BaseResponseDto extends AbstractDto
      * @var array
      */
     public $data = [];
-
-    /**
-     * toArray
-     */
-    public function toArray()
-    {
-        return (array)$this;
-    }
 }

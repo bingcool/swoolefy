@@ -168,7 +168,6 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
             } catch (\Throwable $e) {
                 self::catchException($e);
             }
-
         });
 
         /**
@@ -327,7 +326,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
             throw new \Exception('Mqtt Packet parse missing type');
         }
 
-        $conf = Swfy::getConf();
+        $conf       = Swfy::getConf();
         $eventClass = $conf['mqtt']['mqtt_event_handler'] ?? MqttEvent::class;
 
         /**
@@ -450,13 +449,11 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
     }
 
     /**
-     * handleV5 mqtt receive handle
-     * @param Server $server
-     * @param int $fd
-     * @param int $reactor_id
-     * @param mixed $data
+     * @param $server
+     * @param $fd
+     * @param $data
      * @return bool
-     * @throws \Throwable
+     * @throws \Exception
      */
     public function handleV5($server, $fd, &$data)
     {
@@ -473,7 +470,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
             throw new \Exception('Mqtt Packet parse missing type');
         }
 
-        $conf = Swfy::getConf();
+        $conf       = Swfy::getConf();
         $eventClass = $conf['mqtt']['mqtt_event_handler'] ?? MqttEvent5::class;
 
         /**
@@ -612,7 +609,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
      * @param int $task_id
      * @param int $from_worker_id
      * @param mixed $data
-     * @param null|\Swoole\Server\Task $task
+     * @param \Swoole\Server\Task|null $task
      * @return bool
      * @throws \Throwable
      */
