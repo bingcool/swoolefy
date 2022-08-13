@@ -77,6 +77,14 @@ class TaskService extends BService
     }
 
     /**
+     * @return mixed
+     */
+    public function getTaskData()
+    {
+        return $this->getMixedParams();
+    }
+
+    /**
      * getTaskId
      * @return int
      */
