@@ -64,15 +64,15 @@ class Tick
      */
     public static function tick(int $time_interval_ms, $func, $params = null)
     {
-        $tid = \Swoole\Timer::tick($time_interval_ms, function ($timer_id, $params) use ($func) {
+        $tid = \Swoole\Timer::tick($time_interval_ms, function ($timerId, $params) use ($func) {
             try {
                 if (is_array($func)) {
                     list($class, $action) = $func;
                     $tickTaskInstance = new $class;
-                    $tickTaskInstance->{$action}(...[$params, $timer_id]);
+                    $tickTaskInstance->{$action}(...[$params, $timerId]);
                 } else if ($func instanceof \Closure) {
                     $tickTaskInstance = new TickController();
-                    call_user_func($func, $params, $timer_id);
+                    call_user_func($func, $params, $timerId);
                 }
             } catch (\Throwable $throwable) {
                 BaseServer::catchException($throwable);
@@ -86,7 +86,9 @@ class Tick
                     }
                 }
             }
-            unset($tickTaskInstance, $class, $action, $user_params, $func);
+
+            unset($tickTaskInstance, $class, $action, $func);
+
         }, $params);
 
         if ($tid) {
@@ -97,8 +99,10 @@ class Tick
                 'timer_id'      => $tid,
                 'start_time'    => date('Y-m-d H:i:s', strtotime('now'))
             ];
-            $config = Swfy::getConf();
-            if (isset($config['enable_table_tick_task']) && $config['enable_table_tick_task'] == true) {
+
+            $conf = Swfy::getConf();
+
+            if (isset($conf['enable_table_tick_task']) && $conf['enable_table_tick_task'] == true) {
                 TableManager::set('table_ticker', 'tick_timer_task', ['tick_tasks' => json_encode(self::$_tick_tasks)]);
             }
 
@@ -182,6 +186,7 @@ class Tick
                 if ($tickTaskInstance->isDefer() === false) {
                     $tickTaskInstance->end();
                 }
+
                 if (method_exists("Swoolefy\\Core\\Application", 'removeApp')) {
                     if (is_object($tickTaskInstance)) {
                         Application::removeApp($tickTaskInstance->coroutine_id);
@@ -190,7 +195,7 @@ class Tick
             }
             // 执行完之后,更新目前的一次性任务项
             self::updateRunAfterTick();
-            unset($tickTaskInstance, $class, $action, $user_params, $func);
+            unset($tickTaskInstance, $class, $action, $func);
         }, $params);
 
         if ($timerId) {
@@ -202,8 +207,8 @@ class Tick
                 'start_time'    => date('Y-m-d H:i:s', strtotime('now'))
             ];
 
-            $config = Swfy::getConf();
-            if (isset($config['enable_table_tick_task']) && $config['enable_table_tick_task'] == true) {
+            $conf = Swfy::getConf();
+            if (isset($conf['enable_table_tick_task']) && $conf['enable_table_tick_task'] == true) {
                 TableManager::set('table_after', 'after_timer_task', ['after_tasks' => json_encode(self::$_after_tasks)]);
             }
         }
@@ -227,8 +232,8 @@ class Tick
                 }
             }
 
-            $config = Swfy::getConf();
-            if (isset($config['enable_table_tick_task']) && $config['enable_table_tick_task'] == true) {
+            $conf = Swfy::getConf();
+            if (isset($conf['enable_table_tick_task']) && $conf['enable_table_tick_task'] == true) {
                 TableManager::set('table_after', 'after_timer_task', ['after_tasks' => json_encode(self::$_after_tasks)]);
             }
         }

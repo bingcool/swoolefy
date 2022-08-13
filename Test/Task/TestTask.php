@@ -34,7 +34,7 @@ class TestTask extends TaskController
         \Swoole\Coroutine::create(function () {
             $eventApp = (new \Swoolefy\Core\EventApp())->registerApp(function ($event) {
                 // registerApp闭包里面必须通过这样的组件获取组件实例
-                $db = $this->get('db');
+                $db  = $this->get('db');
                 $db1 = $this->get('db');
                 $cid = \Co::getCid();
                 // 再嵌套协程单例应用

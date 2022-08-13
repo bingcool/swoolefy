@@ -26,12 +26,12 @@ class CrontabManager
     protected $cronTasks = [];
 
     /**
-     * @param string $cron_name
+     * @param string $cronName
      * @param string $expression
      * @param callable|array $func
      * @throws Exception
      */
-    public function addRule(string $cron_name, string $expression, $func)
+    public function addRule(string $cronName, string $expression, $func)
     {
         if (!class_exists('Cron\\CronExpression')) {
             throw new \Exception("If you want to use crontab, you need to install 'composer require dragonmantank/cron-expression' ");
@@ -41,10 +41,10 @@ class CrontabManager
             throw new \Exception("Crontab expression format is wrong, please check it");
         }
 
-        $cronNameKey = md5($cron_name);
+        $cronNameKey = md5($cronName);
 
         if (isset($this->cronTasks[$cronNameKey])) {
-            throw new \Exception("Cron name=$cron_name had been setting, you can not set same name again!");
+            throw new \Exception("Cron name=$cronName had been setting, you can not set same name again!");
         }
 
         $this->cronTasks[$cronNameKey] = [$expression, $func];
@@ -54,13 +54,13 @@ class CrontabManager
             if (!is_subclass_of($class, '\\Swoolefy\\Core\\Crontab\\AbstractCronController')) {
                 throw new \Exception(__CLASS__ ."::". __FUNCTION__ . " Params of func about Crontab Handle Controller need to extend Swoolefy\\Core\\Crontab\\AbstractCronController");
             }
-            \Swoole\Timer::tick(1000, function ($timer_id, $expression) use ($class, $action, $cron_name) {
+            \Swoole\Timer::tick(1000, function ($timerId, $expression) use ($class, $action, $cronName) {
                 try {
                     /**
                      * @var AbstractCronController $cronControllerInstance
                      */
                     $cronControllerInstance = new $class;
-                    $cronControllerInstance->runCron($cron_name, $expression, null);
+                    $cronControllerInstance->runCron($cronName, $expression, null);
                 } catch (\Throwable $throwable) {
                     BaseServer::catchException($throwable);
                 } finally {
@@ -68,7 +68,7 @@ class CrontabManager
                 }
             }, $expression);
         } else {
-            \Swoole\Timer::tick(1000, function ($timer_id, $expression) use ($func, $cron_name) {
+            \Swoole\Timer::tick(1000, function ($timer_id, $expression) use ($func, $cronName) {
                 try {
                     $cronControllerInstance = new class extends AbstractCronController {
                         /**
@@ -79,7 +79,7 @@ class CrontabManager
                         }
                     };
 
-                    $cronControllerInstance->runCron($cron_name, $expression, $func);
+                    $cronControllerInstance->runCron($cronName, $expression, $func);
 
                 } catch (\Throwable $throwable) {
                     BaseServer::catchException($throwable);

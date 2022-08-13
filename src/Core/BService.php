@@ -32,10 +32,9 @@ class BService extends BaseObject
     protected $app_conf = null;
 
     /**
-     * $mixed_params
      * @var mixed
      */
-    protected $mixedParams;
+    private $mixedParams;
 
     /**
      * @var mixed
@@ -85,7 +84,9 @@ class BService extends BaseObject
      */
     public function setMixedParams($mixed_params)
     {
-        $this->mixedParams = $mixed_params;
+        if(empty($this->mixedParams)) {
+            $this->mixedParams = $mixed_params;
+        }
     }
 
     /**
@@ -102,7 +103,6 @@ class BService extends BaseObject
      * @param mixed $data
      * @param array $header
      * @return mixed
-     * @throws Exception
      */
     public function send($fd, $data, array $header = [])
     {
@@ -126,7 +126,6 @@ class BService extends BaseObject
      * @param string $port
      * @param null $server_socket
      * @return mixed
-     * @throws \Exception
      */
     public function sendTo($data, string $ip = '', $port = '', $server_socket = null)
     {
@@ -152,7 +151,6 @@ class BService extends BaseObject
      * @param int $opcode
      * @param bool $finish
      * @return bool
-     * @throws Exception
      */
     public function push($fd, $data, int $opcode = 1, bool $finish = true)
     {
@@ -175,7 +173,6 @@ class BService extends BaseObject
     /**
      * isClientPackEof  根据设置判断客户端的分包方式eof
      * @return bool
-     * @throws \Exception
      */
     public function isClientPackEof()
     {
@@ -185,7 +182,6 @@ class BService extends BaseObject
     /**
      * isClientPackLength 根据设置判断客户端的分包方式length
      * @return bool
-     * @throws \Exception
      */
     public function isClientPackLength()
     {
@@ -198,49 +194,45 @@ class BService extends BaseObject
     /**
      * getRpcPackHeader  获取rpc的pack头信息,只适用于rpc服务
      * @return array
-     * @throws Exception
      */
     public function getRpcPackHeader()
     {
-        /**@var Swoole $app */
-        $app = Application::getApp();
-        return $app->getRpcPackHeader();
+        return Application::getApp()->getRpcPackHeader();
     }
 
     /**
      * getRpcPackBodyParams 获取rpc的包体数据
      * @return array
-     * @throws Exception
      */
     public function getRpcPackBodyParams()
     {
-        /**@var Swoole $app */
-        $app = Application::getApp();
-        return $app->getRpcPackBodyParams();
+        return Application::getApp()->getRpcPackBodyParams();
     }
 
     /**
      * getUdpData 获取udp的数据
      * @return mixed
-     * @throws \Exception
      */
     public function getUdpData()
     {
-        /**@var Swoole $app */
-        $app = Application::getApp();
-        return $app->getUdpData();
+        return Application::getApp()->getUdpData();
     }
 
     /**
      * getWebsocketMsg 获取websocket的信息
      * @return mixed
-     * @throws \Exception
      */
     public function getWebsocketMsg()
     {
-        /**@var Swoole $app */
-        $app = Application::getApp();
-        return $app->getWebsocketMsg();
+        return Application::getApp()->getWebsocketMsg();
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getTaskData()
+    {
+        return $this->getMixedParams();
     }
 
     /**

@@ -22,9 +22,9 @@ class ReloadProcess extends AbstractProcess
      */
     public function run()
     {
-        $config = Swfy::getConf();
-        if (isset($config['reload_conf'])) {
-            $reloadConfig = $config['reload_conf'];
+        $conf = Swfy::getConf();
+        if (isset($conf['reload_conf'])) {
+            $reloadConfig = $conf['reload_conf'];
             $autoReload = new Reload();
             if (isset($reloadConfig['after_seconds'])) {
                 $autoReload->setAfterSeconds((float)$reloadConfig['after_seconds']);

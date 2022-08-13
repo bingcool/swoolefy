@@ -120,7 +120,7 @@ class SwoolefyException
     {
         $app->response->header('Content-Type', 'application/json; charset=UTF-8');
 
-        $queryString = isset($app->request->server['QUERY_STRING']) ? '?' . $app->request->server['QUERY_STRING'] : '';
+        $queryString  = isset($app->request->server['QUERY_STRING']) ? '?' . $app->request->server['QUERY_STRING'] : '';
         $exceptionMsg = $throwable->getMessage();
 
         if (isset($app->request->post) && !empty($app->request->post)) {
@@ -152,8 +152,11 @@ class SwoolefyException
      * @param string $errorMsg
      * @param string $errorType
      */
-    public static function shutHalt($errorMsg, $errorType = SwoolefyException::EXCEPTION_ERR, \Throwable $throwable = null)
-    {
+    public static function shutHalt(
+        $errorMsg,
+        $errorType = SwoolefyException::EXCEPTION_ERR,
+        \Throwable $throwable = null
+    ) {
         $logger = LogManager::getInstance()->getLogger('error_log');
         if (!is_object($logger)) {
             _each("【Warning】Missing set 'error_log' component on " . __CLASS__ . '::' . __FUNCTION__);
@@ -162,13 +165,13 @@ class SwoolefyException
 
         $logFilePath = $logger->getLogFilePath();
         if (is_file($logFilePath)) {
-            $logFilesSize = filesize($logFilePath);
+            $logFileSize = filesize($logFilePath);
         } else {
             @file_put_contents($logFilePath, '');
         }
 
         // 定时清除这个log文件
-        if (isset($logFilesSize) && $logFilesSize > 20 * 1024 * 1024) {
+        if (isset($logFileSize) && $logFileSize > 20 * 1024 * 1024) {
             @file_put_contents($logFilePath, '');
         }
 

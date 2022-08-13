@@ -35,7 +35,7 @@ class Swoole extends BaseObject
      * $mixed_params rpc,udp,websocket传递的参数寄存属性
      * @var mixed
      */
-    protected $mixedParams;
+    private $mixedParams;
 
     /**
      * $rpc_pack_header rpc的包头数据
@@ -82,7 +82,7 @@ class Swoole extends BaseObject
     }
 
     /**
-     * init 当执行run方法时,首先会执行init->bootstrap
+     * init 当执行run方法时首先会执行init->bootstrap
      * @param mixed $recv
      * @return void
      */
@@ -91,7 +91,7 @@ class Swoole extends BaseObject
     }
 
     /**
-     * bootstrap 当执行run方法时,首先会执行init->bootstrap
+     * bootstrap
      * @param mixed $recv
      * @return void
      */
@@ -100,7 +100,7 @@ class Swoole extends BaseObject
     }
 
     /**
-     * call 调用创建处理实例
+     * run instance
      * @return void
      * @throws \Exception
      */
@@ -116,7 +116,7 @@ class Swoole extends BaseObject
     }
 
     /**
-     * getCurrentWorkerId 获取当前执行进程的id
+     * getCurrentWorkerId
      * @return int
      */
     public static function getCurrentWorkerId()
@@ -125,7 +125,7 @@ class Swoole extends BaseObject
     }
 
     /**
-     * isWorkerProcess 判断当前进程是否是worker进程
+     * isWorkerProcess
      * @return bool
      * @throws \Exception
      */
@@ -135,7 +135,7 @@ class Swoole extends BaseObject
     }
 
     /**
-     * isTaskProcess 判断当前进程是否是异步task进程
+     * isTaskProcess
      * @return bool
      * @throws \Exception
      */
@@ -191,7 +191,7 @@ class Swoole extends BaseObject
     }
 
     /**
-     * getRpcPackHeader  获取rpc的pack头信息,只适用于rpc服务
+     * getRpcPackHeader
      * @return array
      * @throws Exception
      */
@@ -208,7 +208,7 @@ class Swoole extends BaseObject
     }
 
     /**
-     * getRpcPackBodyParams 获取rpc的包体数据
+     * getRpcPackBodyParams
      * @return mixed
      * @throws Exception
      */
@@ -225,7 +225,7 @@ class Swoole extends BaseObject
     }
 
     /**
-     * getUdpData 获取udp的数据
+     * getUdpData
      * @return mixed
      * @throws Exception
      */
@@ -243,7 +243,7 @@ class Swoole extends BaseObject
     }
 
     /**
-     * getWebsocketMsg 获取websocket的信息
+     * getWebsocketMsg
      * @return mixed
      * @throws Exception
      */

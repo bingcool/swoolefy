@@ -24,7 +24,7 @@ class WebsocketHandler extends Swoole implements HandlerInterface
     /**
      * 数据分隔符
      */
-    const EOF = '::';
+    const EOF = SWOOLEFY_EOF_FLAG;
 
     /**
      * __construct

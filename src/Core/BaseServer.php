@@ -219,7 +219,6 @@ class BaseServer
      */
     public static function setWorkerProcessName($worker_process_name, $worker_id, $worker_num = 1)
     {
-        // 设置worker的进程
         if ($worker_id >= $worker_num) {
             cli_set_process_title(static::getAppPrefix() . ':' . $worker_process_name . "-task" . $worker_id);
         } else {

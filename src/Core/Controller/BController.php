@@ -43,7 +43,7 @@ class BController extends \Swoolefy\Core\AppObject
     public function __construct()
     {
         $app = Application::getApp();
-        $this->request = $app->request;
+        $this->request  = $app->request;
         $this->response = $app->response;
         $this->app_conf = $app->app_conf;
         if (Coroutine::getCid() > 0) {

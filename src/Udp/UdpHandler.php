@@ -22,7 +22,7 @@ class UdpHandler extends Swoole implements HandlerInterface
     /**
      * 数据分隔符
      */
-    const EOF = '::';
+    const EOF = SWOOLEFY_EOF_FLAG;
 
     /**
      * $client_info

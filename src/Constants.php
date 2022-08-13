@@ -32,7 +32,7 @@ defined('SWOOLEFY_COM_FUNC') or define('SWOOLEFY_COM_FUNC', 'func');
 defined('SWOOLEFY_ENABLE_POOLS') or define('SWOOLEFY_ENABLE_POOLS', 'enable_pools');
 defined('SWOOLEFY_POOLS_NUM') or define('SWOOLEFY_POOLS_NUM', 'pools_num');
 
-// 定义sysCollector的收集类型
+// sysCollector
 defined('SWOOLEFY_SYS_COLLECTOR_UDP') or define('SWOOLEFY_SYS_COLLECTOR_UDP', 'sys_collector_udp');
 defined('SWOOLEFY_SYS_COLLECTOR_SWOOLEREDIS') or define('SWOOLEFY_SYS_COLLECTOR_SWOOLEREDIS', 'sys_collector_swoole_redis');
 defined('SWOOLEFY_SYS_COLLECTOR_PHPREDIS') or define('SWOOLEFY_SYS_COLLECTOR_PHPREDIS', 'sys_collector_phpredis');
@@ -46,8 +46,8 @@ defined('MQTT_PROTOCOL_LEVEL3') or define('MQTT_PROTOCOL_LEVEL3', 4);
 defined('MQTT_PROTOCOL_LEVEL5') or define('MQTT_PROTOCOL_LEVEL5', 5);
 
 
-// 定义版本
 defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '4.5.0');
+defined('SWOOLEFY_EOF_FLAG') or define('SWOOLEFY_EOF_FLAG', '::');
 
 class Constants {
 
