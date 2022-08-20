@@ -80,10 +80,9 @@ class Tick
                 if ($tickTaskInstance->isDefer() === false) {
                     $tickTaskInstance->end();
                 }
-                if (method_exists("Swoolefy\\Core\\Application", 'removeApp')) {
-                    if (is_object($tickTaskInstance)) {
-                        Application::removeApp($tickTaskInstance->coroutine_id);
-                    }
+
+                if (method_exists("Swoolefy\\Core\\Application", 'removeApp') && is_object($tickTaskInstance)) {
+                    Application::removeApp($tickTaskInstance->coroutine_id);
                 }
             }
 

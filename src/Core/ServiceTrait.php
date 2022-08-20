@@ -129,8 +129,7 @@ trait ServiceTrait
 
     /**
      *
-     * 获取执行到目前action为止，swoole server中的该worker中内存中已经加载的class文件
-     *
+     * 获取执行到目前action为止,swoole server中的该worker中内存中已经加载的class文件
      * @return array
      */
     public static function getIncludeFiles()
@@ -169,7 +168,7 @@ trait ServiceTrait
     }
 
     /**
-     * getConf 获取协议层对应的配置
+     * getConf
      * @return array
      */
     public static function getConf()
@@ -181,7 +180,7 @@ trait ServiceTrait
     }
 
     /**
-     * getAppConfig 获取应用层配置
+     * getAppConf
      * @return array
      */
     public static function getAppConf()
@@ -193,7 +192,7 @@ trait ServiceTrait
     }
 
     /**
-     * setAppConf 设置或重新设置原有的应用层配置
+     * setAppConf 重置覆盖应用层配置
      * @param array $config
      * @return bool
      */
@@ -204,16 +203,13 @@ trait ServiceTrait
     }
 
     /**
-     * getAppParams 应用参数
+     * getAppParams 应用层参数设置
      * @param array $params
      * @return array
      */
-    public function getAppParams(array $params = [])
+    public function getAppParams()
     {
-        if (isset(Swfy::$conf['app_conf']['params']) && !empty(Swfy::$conf['app_conf']['params'])) {
-            return Swfy::$conf['app_conf']['params'];
-        }
-        return $params;
+        return Swfy::$conf['app_conf']['params'] ?? [];
     }
 
     /**
@@ -252,7 +248,7 @@ trait ServiceTrait
         throw new \Exception("Not found task process,may be you use it before workerStart");
     }
 
-    /** isUserProcess 进程是否是process进程
+    /** isUserProcess 进程是否是user process进程
      * @return bool
      * @throws Exception
      */
@@ -265,7 +261,7 @@ trait ServiceTrait
         return false;
     }
 
-    /** isSelfProcess 进程是否是process进程
+    /** isSelfProcess 进程是否是user process进程
      * @return bool
      * @throws \Exception
      */
@@ -275,7 +271,7 @@ trait ServiceTrait
     }
 
     /**
-     * isHttpApp
+     * isHttpApp application
      * @return bool
      */
     public function isHttpApp()
@@ -284,7 +280,7 @@ trait ServiceTrait
     }
 
     /**
-     * isRpcApp 判断当前应用是否是Tcp
+     * isRpcApp application
      * @return bool
      */
     public function isRpcApp()
@@ -293,7 +289,7 @@ trait ServiceTrait
     }
 
     /**
-     * isWebsocketApp
+     * isWebsocketApp application
      * @return bool
      */
     public function isWebsocketApp()
@@ -302,7 +298,7 @@ trait ServiceTrait
     }
 
     /**
-     * isUdpApp
+     * isUdpApp application
      * @return bool
      */
     public function isUdpApp()
@@ -311,7 +307,7 @@ trait ServiceTrait
     }
 
     /**
-     * getServer 获取server对象
+     * getServer
      * @return \Swoole\Server|\Swoole\Http\Server|\Swoole\WebSocket\Server
      */
     public static function getServer()
@@ -336,7 +332,7 @@ trait ServiceTrait
             }
         }
 
-        return $routerMap;
+        return $routerMap ?? [];
     }
 
     /**

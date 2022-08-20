@@ -8,7 +8,7 @@ sftp-config.json
 *.lock
 *.idea
 *.log
-*.ini
+env.ini
 #dir
 /App
 /protocol

@@ -20,31 +20,30 @@ class Swoole extends BaseObject
     use \Swoolefy\Core\ComponentTrait, \Swoolefy\Core\ServiceTrait;
 
     /**
-     * $app_conf 当前应用层的配置
+     * 应用层配置
      * @var array
      */
     public $app_conf = null;
 
     /**
-     * $fd fd连接句柄标志
+     * fd连接句柄标志
      * @var int
      */
     public $fd = null;
 
     /**
-     * $mixed_params rpc,udp,websocket传递的参数寄存属性
+     * rpc、udp、websocket传递的参数寄存属性
      * @var mixed
      */
     private $mixedParams;
 
     /**
-     * $rpc_pack_header rpc的包头数据
+     * rpc的包头数据
      * @var array
      */
     protected $rpcPackHeader = [];
 
     /**
-     * $is_defer
      * @var bool
      */
     protected $isDefer = false;

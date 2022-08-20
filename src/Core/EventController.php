@@ -73,7 +73,7 @@ class EventController extends BaseObject
     }
 
     /**
-     * setApp  重置APP对象
+     * setApp
      * @param int $coroutine_id
      * @return bool
      * @throws \Exception
@@ -217,6 +217,14 @@ class EventController extends BaseObject
     public function setEnd()
     {
         $this->isEnd = true;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isEnd()
+    {
+        return $this->isEnd;
     }
 
     /**

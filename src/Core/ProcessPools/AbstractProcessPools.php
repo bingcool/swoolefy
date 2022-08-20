@@ -143,7 +143,7 @@ abstract class AbstractProcessPools
     }
 
     /**
-     * __start 创建process的成功回调处理
+     * __start
      * @param Process $process
      * @return void
      */

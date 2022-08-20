@@ -17,25 +17,25 @@ class Swfy
     use \Swoolefy\Core\ServiceTrait;
 
     /**
-     * $server swoole服务超全局变量
+     * global swoole server
      * @var \Swoole\Server
      */
     public static $server = null;
 
     /**
-     * $conf swoole服务对应协议层的配置
+     * global conf
      * @var array
      */
     public static $conf = [];
 
     /**
-     * $app_conf 应用层的配置
+     * application conf
      * @var array
      */
     public static $app_conf = [];
 
     /**
-     * $com_alias_name
+     * createComponent
      * @param string $com_alias_name
      * @param mixed $definition
      * @return mixed

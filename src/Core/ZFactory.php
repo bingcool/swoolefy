@@ -49,6 +49,7 @@ class ZFactory
     }
 
     /**
+     * newInstance
      * @param string $class
      * @param array $constructor
      * @return mixed

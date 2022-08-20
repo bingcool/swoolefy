@@ -281,6 +281,23 @@ class App extends \Swoolefy\Core\Component
     }
 
     /**
+     * setEnd
+     * @return void
+     */
+    public function setEnd()
+    {
+        $this->isEnd = true;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isEnd()
+    {
+        return $this->isEnd;
+    }
+
+    /**
      * request end
      * @return void
      */
@@ -297,23 +314,6 @@ class App extends \Swoolefy\Core\Component
         if (!$this->isEnd) {
             @$this->response->end();
         }
-    }
-
-    /**
-     * setEnd
-     * @return void
-     */
-    public function setEnd()
-    {
-        $this->isEnd = true;
-    }
-
-    /**
-     * @return bool
-     */
-    public function isEnd()
-    {
-        return $this->isEnd;
     }
 
 }

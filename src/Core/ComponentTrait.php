@@ -18,19 +18,19 @@ trait ComponentTrait
 {
 
     /**
-     * $container
+     * containers
      * @var array
      */
     protected $container = [];
 
     /**
-     * $pools_component 需要创建进程池的组件
+     * componentPools
      * @var array
      */
     protected $componentPools = [];
 
     /**
-     * $component_pools_obj_ids 进程池的组件对象id,区分非来自进程池的组件,因为来自进程的组件不能push到进程池，否则会污染
+     * componentPoolsObjIds 进程池的组件对象id,区分非来自进程池的组件,因为来自进程的组件不能push到进程池，否则会污染
      * @var array
      */
     protected $componentPoolsObjIds = [];
@@ -38,8 +38,8 @@ trait ComponentTrait
     /**
      * creatObject
      *
-     * @param string $com_alias_name 组件别名
-     * @param mixed $definition 组件定义类
+     * @param string $com_alias_name
+     * @param mixed $definition
      * @return   mixed
      * @throws   mixed
      */

@@ -22,13 +22,13 @@ use Swoolefy\Core\EventController;
 abstract class WebsocketServer extends BaseServer
 {
     /**
-     * $serverName
+     * serverName
      * @var string
      */
     const SERVER_NAME = SWOOLEFY_WEBSOCKET;
 
     /**
-     * $setting
+     * setting
      * @var array
      */
     public static $setting = [
@@ -44,7 +44,7 @@ abstract class WebsocketServer extends BaseServer
     ];
 
     /**
-     * $webServer
+     * webServer
      * @var \Swoole\WebSocket\Server
      */
     protected $webServer = null;
@@ -110,31 +110,7 @@ abstract class WebsocketServer extends BaseServer
          * WorkerStart
          */
         $this->webServer->on('WorkerStart', function (\Swoole\WebSocket\Server $server, $worker_id) {
-            // 记录主进程加载的公共files,worker重启不会在加载的
-            self::getIncludeFiles($worker_id);
-            // 启动动态运行时的Coroutine
-            self::runtimeEnableCoroutine();
-            // registerShutdown
-            self::registerShutdownFunction();
-            // 重启worker时，清空字节cache
-            self::clearCache();
-            // 重新设置进程名称
-            self::setWorkerProcessName(self::$config['worker_process_name'], $worker_id, self::$setting['worker_num']);
-            // 设置worker工作的进程组
-            self::setWorkerUserGroup(self::$config['www_user']);
-            // 启动时提前加载文件
-            self::startInclude();
-            // 记录worker的进程worker_pid与worker_id的映射
-            self::setWorkersPid($worker_id, $server->worker_pid);
-            // 超全局变量server
-            Swfy::setSwooleServer($this->webServer);
-            // 全局配置
-            Swfy::setConf(self::$config);
-            // 启动的初始化函数
-            (new EventApp())->registerApp(function (EventController $event) use ($server, $worker_id) {
-                $this->startCtrl->workerStart($server, $worker_id);
-                static::onWorkerStart($server, $worker_id);
-            });
+            $this->workerStartInit($server, $worker_id);
         });
 
         /**

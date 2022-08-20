@@ -20,13 +20,13 @@ class EventApp
 {
 
     /**
-     * $event_app 事件处理应用对象
+     * $eventApp 事件处理应用对象
      * @var EventController
      */
     protected $eventApp;
 
     /**
-     * $is_call 单例是否已调用执行函数，只能调用一次执行函数，即单例只能有一个入口执行函数
+     * $isCall 单例是否已调用执行函数，只能调用一次执行函数，即单例只能有一个入口执行函数
      * @var bool
      */
     protected $isCall = false;
@@ -110,7 +110,7 @@ class EventApp
     }
 
     /**
-     * getAppCid 获取当前应用实例的协程id
+     * getCid
      * @return int
      */
     public function getCid()
