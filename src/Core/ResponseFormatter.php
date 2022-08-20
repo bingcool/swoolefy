@@ -16,7 +16,7 @@ use Swoolefy\Core\Dto\BaseResponseDto;
 class ResponseFormatter
 {
     /**
-     * define response formatter
+     * define response formatter handle
      *
      * @param int $code
      * @param string $msg

@@ -62,13 +62,25 @@ class Session
      * cookie的设置
      * @var integer
      */
-    public $cookie_lifetime = 7776000;
+    public $cookie_lifetime  = 7776000;
+
+    /**
+     * @var int|mixed
+     */
     public $session_lifetime = 0;
+
+    /**
+     * @var mixed|string
+     */
     public $cookie_domain = '';
+
+    /**
+     * @var mixed|string
+     */
     public $cookie_path = '/';
 
     /**
-     * __construct 初始化
+     * __construct
      * @param array $config
      */
     public function __construct(array $config = [])
@@ -101,7 +113,7 @@ class Session
     }
 
     /**
-     * start 开启session
+     * start session
      * @param bool $readonly
      * @return bool
      * @throws \Exception
@@ -109,7 +121,7 @@ class Session
     public function start(bool $readonly = false)
     {
         /**
-         * 注册钩子程序，在请求结束后保存sesion,防止多次注册
+         * 注册钩子程序,在请求结束后保存sesion,防止多次注册
          */
         $app = Application::getApp();
         if (!$this->isStart) {

@@ -40,7 +40,7 @@ class UdpHandler extends Swoole implements HandlerInterface
     }
 
     /**
-     * init 当执行run方法时,首先会执行init->bootstrap
+     * init->bootstrap
      * @param mixed $recv
      * @return void
      */
@@ -49,7 +49,7 @@ class UdpHandler extends Swoole implements HandlerInterface
     }
 
     /**
-     * bootstrap 当执行run方法时,首先会执行init->bootstrap
+     * init->bootstrap
      * @param mixed $recv
      * @return void
      */
@@ -66,7 +66,7 @@ class UdpHandler extends Swoole implements HandlerInterface
     }
 
     /**
-     * run 完成初始化后，路由匹配和创建访问实例
+     * run
      * @param mixed $payload
      * @param mixed $clientInfo
      * @param array $extendData

@@ -16,7 +16,7 @@ use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Process\ProcessManager;
 use Swoolefy\Core\ProcessPools\PoolsManager;
 
-class EventCtrl implements \Swoolefy\Core\EventCtrlInterface
+class EventCtrl implements EventCtrlInterface
 {
     /**
      * init run in before start method
