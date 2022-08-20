@@ -98,7 +98,11 @@ class EventApp
             if (!($this->eventApp instanceof EventController)) {
                 $className = get_class($this->eventApp);
                 unset($this->eventApp);
-                throw new \Exception(sprintf("%s must extends \Swoolefy\Core\EventController, please check it", $className));
+                throw new \Exception(
+                    sprintf(
+                    "%s must extends \Swoolefy\Core\EventController, please check it",
+                    $className
+                ));
             }
         }
 
