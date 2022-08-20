@@ -103,7 +103,7 @@ class HttpRoute extends AppDispatch
         $this->request    = $this->app->request;
         $this->response   = $this->app->response;
         $this->app_conf   = $this->app->app_conf;
-        $this->routerUri = Swfy::getRouterMapUri($this->request->server['PATH_INFO']);
+        $this->routerUri  = Swfy::getRouterMapUri($this->request->server['PATH_INFO']);
         $this->extendData = $extendData;
     }
 
@@ -119,18 +119,18 @@ class HttpRoute extends AppDispatch
         }
 
         if ($this->app_conf['route_model'] == self::ROUTE_MODEL_PATHINFO) {
-            if ($this->routerUri == '/' || $this->routerUri == '//') {
+            if ($this->routerUri == DIRECTORY_SEPARATOR || $this->routerUri == '//') {
                 if (isset($this->app_conf['default_route']) && !empty($this->app_conf['default_route'])) {
-                    $this->routerUri = '/' . trim($this->app_conf['default_route'], '/');
+                    $this->routerUri = DIRECTORY_SEPARATOR . trim($this->app_conf['default_route'], DIRECTORY_SEPARATOR);
                 } else {
-                    $this->routerUri = '/' . $this->defaultRoute;
+                    $this->routerUri = DIRECTORY_SEPARATOR . $this->defaultRoute;
                 }
             }
 
-            $routeUri = trim($this->routerUri, '/');
+            $routeUri = trim($this->routerUri, DIRECTORY_SEPARATOR);
 
             if ($routeUri) {
-                $routeParams = explode('/', $routeUri);
+                $routeParams = explode(DIRECTORY_SEPARATOR, $routeUri);
                 $count = count($routeParams);
                 switch ($count) {
                     case 1 :
@@ -170,6 +170,7 @@ class HttpRoute extends AppDispatch
             $errorMsg = "{$controller}::{$action} is not allow access action";
             throw new \RuntimeException($errorMsg, 403);
         }
+
         if ($module) {
             // route params array
             $this->request->server['ROUTE_PARAMS'] = [3, [$module, $controller, $action]];
@@ -180,6 +181,7 @@ class HttpRoute extends AppDispatch
             $this->request->server['ROUTE_PARAMS'] = [2, [$controller, $action]];
             $this->invoke($module = null, $controller, $action);
         }
+
         return true;
     }
 
@@ -195,8 +197,7 @@ class HttpRoute extends AppDispatch
         ?string $module = null,
         ?string $controller = null,
         ?string $action = null
-    )
-    {
+    ) {
         $controller = $this->buildControllerClass($controller);
         if (!isset($this->app_conf['app_namespace'])) {
             $this->app_conf['app_namespace'] = APP_NAME;
@@ -289,8 +290,8 @@ class HttpRoute extends AppDispatch
                 $controller = array_pop($route_params);
             }
             // reset NotFound class route
-            $this->request->server['ROUTE'] = '/' . $controller . '/' . $action;
-            $class = trim(str_replace('/', '\\', $namespace . $this->controllerSuffix), '/');
+            $this->request->server['ROUTE'] = DIRECTORY_SEPARATOR . $controller . DIRECTORY_SEPARATOR . $action;
+            $class = trim(str_replace(DIRECTORY_SEPARATOR, '\\', $namespace . $this->controllerSuffix), DIRECTORY_SEPARATOR);
             return [$class, $action];
         }
     }
@@ -345,8 +346,8 @@ class HttpRoute extends AppDispatch
      */
     public static function resetRouteDispatch(string $route)
     {
-        $route = trim($route, '/');
-        Application::getApp()->request->server['PATH_INFO'] = '/' . $route;
+        $route = trim($route, DIRECTORY_SEPARATOR);
+        Application::getApp()->request->server['PATH_INFO'] = DIRECTORY_SEPARATOR . $route;
     }
 
     /**

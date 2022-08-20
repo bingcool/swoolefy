@@ -21,7 +21,13 @@ class ProcessController extends BController
         $taskMessageDto->taskData = ['order_id'=>123456,'user_id'=>10000];
         TaskManager::getInstance()->asyncTask($taskMessageDto);
 
-        throw new \Exception('dddddddddddddddddddd');
+        try {
+            throw new \Exception('ggggggggg');
+        }catch (\Throwable $throwable) {
+            throw new \Exception('bbbbbbbbbbbbbbbbb');
+        } finally {
+            var_dump('finish');
+        }
 
        $this->returnJson(['class' => __CLASS__, 'action'=>__FUNCTION__]);
     }

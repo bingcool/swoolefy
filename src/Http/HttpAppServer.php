@@ -17,7 +17,7 @@ use Swoole\Http\Response;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Task\TaskController;
 
-abstract class HttpAppServer extends \Swoolefy\Http\HttpServer
+abstract class HttpAppServer extends HttpServer
 {
 
     /**

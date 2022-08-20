@@ -47,7 +47,7 @@ class ServiceDispatch extends AppDispatch
     public function dispatch()
     {
         list($class, $action) = $this->callable;
-        $class = trim(str_replace('\\', '/', $class), '/');
+        $class = trim(str_replace('\\', DIRECTORY_SEPARATOR, $class), DIRECTORY_SEPARATOR);
 
         if (!isset(self::$routeCacheFileMap[$class])) {
             if (!$this->checkClass($class)) {
@@ -56,7 +56,7 @@ class ServiceDispatch extends AppDispatch
             }
         }
 
-        $class = str_replace('/', '\\', $class);
+        $class = str_replace(DIRECTORY_SEPARATOR, '\\', $class);
 
         /**@var \Swoolefy\Core\Task\TaskService $serviceInstance */
         $serviceInstance = new $class();
