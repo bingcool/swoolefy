@@ -118,6 +118,10 @@ class HttpRoute extends AppDispatch
             $this->app_conf['route_model'] = self::ROUTE_MODEL_PATHINFO;
         }
 
+        if (!isset($this->app_conf['app_namespace']) || $this->app_conf['app_namespace'] != APP_NAME ) {
+            $this->app_conf['app_namespace'] = APP_NAME;
+        }
+
         if ($this->app_conf['route_model'] == self::ROUTE_MODEL_PATHINFO) {
             if ($this->routerUri == DIRECTORY_SEPARATOR || $this->routerUri == '//') {
                 if (isset($this->app_conf['default_route']) && !empty($this->app_conf['default_route'])) {
@@ -186,7 +190,7 @@ class HttpRoute extends AppDispatch
     }
 
     /**
-     * invoke 路由与请求实例处理
+     * invoke router instance
      * @param string $module
      * @param string $controller
      * @param string $action
@@ -199,9 +203,6 @@ class HttpRoute extends AppDispatch
         ?string $action = null
     ) {
         $controller = $this->buildControllerClass($controller);
-        if (!isset($this->app_conf['app_namespace'])) {
-            $this->app_conf['app_namespace'] = APP_NAME;
-        }
         if ($module) {
             $filePath = APP_PATH . DIRECTORY_SEPARATOR . 'Module' . DIRECTORY_SEPARATOR . $module . DIRECTORY_SEPARATOR . $controller . '.php';
             $class    = $this->app_conf['app_namespace'] . '\\' . 'Module' . '\\' . $module . '\\' . $controller;
@@ -316,8 +317,8 @@ class HttpRoute extends AppDispatch
     }
 
     /**
-     * setRouteFileMap 缓存路由的映射
-     * @param string $route 请求的路由uri
+     * setRouteFileMap
+     * @param string $route
      * @return void
      */
     public function setRouteFileMap(string $route)

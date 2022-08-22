@@ -289,7 +289,7 @@ class PoolsHandler
         $startTime = time();
         while ($containerObject = $this->channel->pop($this->popTimeout)) {
             if (isset($containerObject->__objExpireTime) && time() > $containerObject->__objExpireTime) {
-                //re build
+                //rebuild object
                 $this->make(1);
                 if (time() - $startTime > 1) {
                     $isTimeOut = true;

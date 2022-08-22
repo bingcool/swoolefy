@@ -68,7 +68,7 @@ class CrontabManager
                 }
             }, $expression);
         } else {
-            \Swoole\Timer::tick(1000, function ($timer_id, $expression) use ($func, $cronName) {
+            \Swoole\Timer::tick(1000, function ($timerId, $expression) use ($func, $cronName) {
                 try {
                     $cronControllerInstance = new class extends AbstractCronController {
                         /**

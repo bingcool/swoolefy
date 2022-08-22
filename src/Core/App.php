@@ -94,7 +94,7 @@ class App extends \Swoolefy\Core\Component
         if (isset($conf['application_index'])) {
             $applicationIndex = $conf['application_index'];
             if (class_exists($applicationIndex)) {
-                $conf['application_index']::bootstrap($this->getRequestParams());
+                $applicationIndex::bootstrap($this->getRequestParams());
             }
         }
     }

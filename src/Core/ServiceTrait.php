@@ -108,10 +108,10 @@ trait ServiceTrait
      */
     public static function getInitIncludeFiles($dir = null)
     {
-        $result = false;
+        $result   = false;
         $workerId = self::getCurrentWorkerId();
-        if (isset(Swfy::$conf['setting']['log_file'])) {
-            $path = pathinfo(Swfy::$conf['setting']['log_file'], PATHINFO_DIRNAME);
+        if (isset(Swfy::getConf()['setting']['log_file'])) {
+            $path = pathinfo(Swfy::getConf()['setting']['log_file'], PATHINFO_DIRNAME);
             $filePath = $path . '/includes.json';
         }
 
@@ -129,7 +129,7 @@ trait ServiceTrait
 
     /**
      *
-     * 获取执行到目前action为止,swoole server中的该worker中内存中已经加载的class文件
+     * getIncludeFiles
      * @return array
      */
     public static function getIncludeFiles()
@@ -142,30 +142,6 @@ trait ServiceTrait
         ];
     }
 
-    /**
-     * @param $server
-     * @return bool
-     */
-    public static function setSwooleServer($server)
-    {
-        if (is_object($server)) {
-            Swfy::$server = $server;
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * @param array $conf
-     * @param bool
-     */
-    public static function setConf(array $conf)
-    {
-        if (is_array($conf)) {
-            Swfy::$conf = $conf;
-        }
-        return true;
-    }
 
     /**
      * getConf
@@ -192,24 +168,13 @@ trait ServiceTrait
     }
 
     /**
-     * setAppConf 重置覆盖应用层配置
-     * @param array $config
-     * @return bool
-     */
-    public static function setAppConf(array $conf = [])
-    {
-        Swfy::$app_conf = $conf;
-        return true;
-    }
-
-    /**
      * getAppParams 应用层参数设置
      * @param array $params
      * @return array
      */
-    public function getAppParams()
+    public static function getAppParams()
     {
-        return Swfy::$conf['app_conf']['params'] ?? [];
+        return Swfy::getConf()['app_conf']['params'] ?? [];
     }
 
     /**
