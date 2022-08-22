@@ -20,19 +20,54 @@ class Swfy
      * global swoole server
      * @var \Swoole\Server
      */
-    public static $server = null;
+    protected static $server;
 
     /**
      * global conf
      * @var array
      */
-    public static $conf = [];
+    protected static $conf = [];
 
     /**
      * application conf
      * @var array
      */
-    public static $app_conf = [];
+    protected static $app_conf = [];
+
+    /**
+     * @param $server
+     * @return bool
+     */
+    public static function setSwooleServer($server)
+    {
+        if (is_object($server)) {
+            static::$server = $server;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @param array $conf
+     * @param bool
+     */
+    public static function setConf(array $conf)
+    {
+        static::$conf = array_merge(static::$conf, $conf);
+        return true;
+    }
+
+    /**
+     * setAppConf
+     * @param array $appConf
+     * @return bool
+     */
+    public static function setAppConf(array $appConf = [])
+    {
+        static::$app_conf = array_merge(static::$app_conf, $appConf);
+        return true;
+    }
+
 
     /**
      * createComponent
