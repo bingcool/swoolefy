@@ -163,7 +163,11 @@ class EventController extends BaseObject
     {
         if (isset($this->eventHooks[self::HOOK_AFTER_REQUEST]) && !empty($this->eventHooks[self::HOOK_AFTER_REQUEST])) {
             foreach ($this->eventHooks[self::HOOK_AFTER_REQUEST] as $func) {
-                $func();
+                try {
+                    $func();
+                }catch (\Throwable $exception) {
+
+                }
             }
         }
     }

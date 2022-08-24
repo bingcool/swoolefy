@@ -20,13 +20,13 @@ class BService extends BaseObject
     use \Swoolefy\Core\ServiceTrait;
 
     /**
-     * $fd
+     * fd
      * @var int
      */
     protected $fd = null;
 
     /**
-     * $app_conf 应用层配置
+     * app_conf 应用层配置
      * @var array
      */
     protected $app_conf = null;

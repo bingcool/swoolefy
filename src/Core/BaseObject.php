@@ -146,7 +146,11 @@ class BaseObject
                     foreach ($logArr as $k => $info) {
                         unset($this->logs[$type][$action][$k]);
                         if (!empty($info)) {
-                            $logger->{$action}(...$info);
+                            try {
+                                $logger->{$action}(...$info);
+                            }catch (\Throwable $exception) {
+
+                            }
                         }
                     }
 

@@ -71,7 +71,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
         self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
         self::setSwooleSockType();
         self::setServerName(self::SERVER_NAME);
-        self::$server = $this->mqttServer = new \Swoole\Server(self::$config['host'], self::$config['port'], self::$swoole_process_model, self::$swoole_socket_type);
+        self::$server = $this->mqttServer = new \Swoole\Server(self::$config['host'], self::$config['port'], self::$swooleProcessModel, self::$swooleSocketType);
         $this->mqttServer->set(self::$setting);
         parent::__construct();
     }

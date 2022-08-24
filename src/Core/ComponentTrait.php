@@ -30,7 +30,7 @@ trait ComponentTrait
     protected $componentPools = [];
 
     /**
-     * componentPoolsObjIds 进程池的组件对象id,区分非来自进程池的组件,因为来自进程的组件不能push到进程池，否则会污染
+     * componentPoolsObjIds 进程池的组件对象id,区分非来自进程池的组件,因为来自进程的组件不能push到进程池,否则会污染
      * @var array
      */
     protected $componentPoolsObjIds = [];
@@ -48,7 +48,10 @@ trait ComponentTrait
         // dynamic create component object
         if ($com_alias_name) {
             if (!isset($this->container[$com_alias_name]) || !is_object($this->container[$com_alias_name])) {
-                if (is_array($definition) && isset($definition['class'])) {
+                if ($definition instanceof \Closure) {
+                    $object = call_user_func($definition, $com_alias_name);
+                    return $this->container[$com_alias_name] = $this->buildContainerObject($object);
+                } else if (is_array($definition) && isset($definition['class'])) {
                     $class = $definition['class'];
                     unset($definition['class']);
                     $params = [];
@@ -60,9 +63,6 @@ trait ComponentTrait
                         unset($definition[SWOOLEFY_COM_IS_DELAY]);
                     }
                     return $this->container[$com_alias_name] = $this->buildInstance($class, $definition, $params, $com_alias_name);
-                } else if ($definition instanceof \Closure) {
-                    $object = call_user_func($definition, $com_alias_name);
-                    return $this->container[$com_alias_name] = $this->buildContainerObject($object);
                 } else {
                     throw new \Exception(sprintf("component:%s must be set class", $com_alias_name));
                 }
@@ -302,7 +302,7 @@ trait ComponentTrait
 
         if (array_key_exists($name, $components)) {
             // mysql|redis进程池中直接赋值
-            if (in_array($name, $this->componentPools) && $cid > 0) {
+            if (in_array($name, $this->componentPools) && $cid >= 0) {
                 /** @var \Swoolefy\Core\Coroutine\PoolsHandler $poolHandler */
                 $poolHandler = CoroutinePools::getInstance()->getPool($name);
                 if (is_object($poolHandler)) {

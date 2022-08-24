@@ -70,7 +70,7 @@ abstract class TcpServer extends BaseServer
         self::$config['setting'] = self::$setting = array_merge(self::$setting, self::$config['setting']);
         self::setSwooleSockType();
         self::setServerName(self::SERVER_NAME);
-        self::$server = $this->tcpServer = new \Swoole\Server(self::$config['host'], self::$config['port'], self::$swoole_process_model, self::$swoole_socket_type);
+        self::$server = $this->tcpServer = new \Swoole\Server(self::$config['host'], self::$config['port'], self::$swooleProcessModel, self::$swooleSocketType);
         $this->tcpServer->set(self::$setting);
         parent::__construct();
     }
