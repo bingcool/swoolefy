@@ -9,7 +9,7 @@ class UuidController extends BController
     public function getUuid()
     {
         $redis = Application::getApp()->get('redis')->getObject();
-        $ids = \Common\Library\Uuid\UuidManager::getInstance()->getIncrIds($redis,500);
+        $ids   = \Common\Library\Uuid\UuidManager::getInstance()->getIncrIds($redis,500);
         dump($ids);
     }
 }

@@ -28,57 +28,56 @@ class BaseServer
     const PACK_CHECK_LENGTH = SWOOLEFY_PACK_CHECK_LENGTH;
 
     /**
-     * $config
+     * config
      * @var array
      */
-    public static $config = [];
+    protected static $config = [];
 
     /**
-     * $server swoole server
+     * server
      * @var \Swoole\Server
      */
-    public static $server = null;
+    protected static $server = null;
 
     /**
-     * $Service
-     * @var string 服务实例，适用于TCP,UDP,RPC
+     * service name
+     * @var string
      */
-    protected static $server_name = null;
+    protected static $serverName = null;
 
     /**
-     * $isEnableCoroutine 是否启用协程
      * @var bool
      */
     protected static $isEnableCoroutine = false;
 
     /**
-     * $pack_check_type pack检查的方式
+     * pack check type
      * @var
      */
     protected static $pack_check_type = null;
 
     /**
-     * $startTime 进程启动时间
+     * startTime
      * @var int
      */
     protected static $startTime = 0;
 
     /**
-     * $swoole_process_model swoole的进程模式，默认swoole_process
+     * process model
      * @var int
      */
-    protected static $swoole_process_model = SWOOLE_PROCESS;
+    protected static $swooleProcessModel = SWOOLE_PROCESS;
 
     /**
-     * $swoole_socket_type swoole的socket设置类型
+     * socket type
      * @var int
      */
-    protected static $swoole_socket_type = SWOOLE_SOCK_TCP;
+    protected static $swooleSocketType = SWOOLE_SOCK_TCP;
 
     /**
-     * @var string 默认启动处理类
+     * @var string
      */
-    protected static $start_handler_class = 'Swoolefy\\Core\\EventHandler';
+    protected static $startHandlerClass = 'Swoolefy\\Core\\EventHandler';
 
     /**
      * $startCtrl
@@ -127,10 +126,7 @@ class BaseServer
         ]
     ];
 
-    /**
-     * __construct 初始化swoole的内置服务与检查
-     * @throws \Exception
-     */
+
     public function __construct()
     {
         // set config
@@ -244,7 +240,7 @@ class BaseServer
      * setManagerProcessName
      * @param string $manager_process_name
      */
-    public static function setManagerProcessName($manager_process_name)
+    public static function setManagerProcessName(string $manager_process_name)
     {
         cli_set_process_title(static::getAppPrefix() . ':' . $manager_process_name);
     }
@@ -255,7 +251,7 @@ class BaseServer
      * @param int $worker_id
      * @param int $worker_num
      */
-    public static function setWorkerProcessName($worker_process_name, $worker_id, $worker_num = 1)
+    public static function setWorkerProcessName(string $worker_process_name, int $worker_id, int $worker_num = 1)
     {
         if ($worker_id >= $worker_num) {
             cli_set_process_title(static::getAppPrefix() . ':' . $worker_process_name . "-task" . $worker_id);
@@ -332,7 +328,7 @@ class BaseServer
      * @var \Swoole\Http\Response $response
      * @var \Swoole\Http\Request $request
      */
-    public static function filterFaviconIcon($request, $response)
+    public static function filterFaviconIcon(\Swoole\Http\Request $request, \Swoole\Http\Response $response)
     {
         if ($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
             return $response->end();
@@ -350,11 +346,11 @@ class BaseServer
 
     /**
      * setServerName
-     * @param string $server_name
+     * @param string $serverName
      */
-    public static function setServerName($server_name = null)
+    public static function setServerName(string $serverName)
     {
-        self::$server_name = $server_name;
+        self::$serverName = $serverName;
     }
 
     /**
@@ -363,7 +359,7 @@ class BaseServer
      */
     public static function getServerName()
     {
-        return self::$server_name;
+        return self::$serverName;
     }
 
     /**
@@ -495,8 +491,7 @@ class BaseServer
     }
 
     /**
-     * getIncludeFiles
-     * @param string $dir
+     * @param $worker_id
      * @return void
      */
     public static function getIncludeFiles($worker_id)
@@ -519,7 +514,7 @@ class BaseServer
      * @param int $worker_pid
      * @return void
      */
-    public static function setWorkersPid($worker_id, $worker_pid)
+    public static function setWorkersPid(int $worker_id, int $worker_pid)
     {
         $workerPidArr = self::getWorkersPid();
         $workerPidArr[$worker_id] = $worker_pid;
@@ -562,7 +557,7 @@ class BaseServer
      * @param int $worker_id
      * @return  bool
      */
-    public static function isWorkerProcess($worker_id)
+    public static function isWorkerProcess(int $worker_id)
     {
         if ($worker_id < static::$setting['worker_num']) {
             return true;
@@ -571,11 +566,11 @@ class BaseServer
     }
 
     /**
-     * isTaskProcess 进程是否是task进程
+     * isTaskProcess 是否task进程
      * @param int $worker_id
      * @return bool
      */
-    public static function isTaskProcess($worker_id)
+    public static function isTaskProcess(int $worker_id)
     {
         return static::isWorkerProcess($worker_id) ? false : true;
     }
@@ -593,22 +588,22 @@ class BaseServer
     }
 
     /**
-     * setSwooleSockType 设置socket的类型
+     * 设置socket类型
      * @return void
      */
     protected static function setSwooleSockType()
     {
         if (isset(static::$setting['swoole_process_mode']) && static::$setting['swoole_process_mode'] == SWOOLE_BASE) {
-            self::$swoole_process_model = SWOOLE_BASE;
+            self::$swooleProcessModel = SWOOLE_BASE;
         }
 
         if (self::isUseSsl()) {
-            self::$swoole_socket_type = SWOOLE_SOCK_TCP | SWOOLE_SSL;
+            self::$swooleSocketType = SWOOLE_SOCK_TCP | SWOOLE_SSL;
         }
     }
 
     /**
-     * serviceType 获取当前主服务器使用的协议,只需计算一次即可，寄存static变量
+     * serviceType 获取当前主服务器使用的协议,只需计算一次即可,寄存static变量
      * @return mixed
      */
     public static function getServiceProtocol()
@@ -624,7 +619,7 @@ class BaseServer
             $protocol = SWOOLEFY_HTTP;
             return $protocol;
         } else if (static::$server instanceof \Swoole\Server) {
-            if (self::$swoole_socket_type == SWOOLE_SOCK_UDP) {
+            if (self::$swooleSocketType == SWOOLE_SOCK_UDP) {
                 $protocol = SWOOLEFY_UDP;
             } else {
                 if (isset(static::$config['setting']['open_mqtt_protocol']) && (bool)static::$config['setting']['open_mqtt_protocol'] === true) {
@@ -643,7 +638,7 @@ class BaseServer
      * @param string $version
      * @return bool
      */
-    public static function compareSwooleVersion($version = '4.4.0')
+    public static function compareSwooleVersion(string $version = '4.4.0')
     {
         if (isset(static::$config['swoole_version']) && !empty(static::$config['swoole_version'])) {
             $version = static::$config['swoole_version'];
@@ -721,7 +716,6 @@ class BaseServer
         if (version_compare(swoole_version(), '4.2.0', '>')) {
             self::$isEnableCoroutine = true;
         } else {
-            // 低于4.0版本不能使用协程
             self::$isEnableCoroutine = false;
         }
     }
@@ -791,7 +785,7 @@ class BaseServer
     }
 
     /**
-     * setAutomicOfRequest 创建计算请求的原子计算实例,必须依赖于EnableSysCollector = true，否则设置没有意义,不生效
+     * setAutomicOfRequest 创建计算请求的原子计算实例,必须依赖于EnableSysCollector = true,否则设置没有意义,不生效
      * @param bool
      */
     public static function setAutomicOfRequest()
@@ -825,7 +819,7 @@ class BaseServer
     }
 
     /**
-     * isEnablePvCollector 是否启用计算请求次数
+     * isEnablePvCollector 是否启用计算请求次数qps统计
      * @return bool
      */
     public static function isEnablePvCollector()
@@ -874,7 +868,7 @@ class BaseServer
     }
 
     /**
-     * isRpcApp 判断当前应用是否是Tcp
+     * isRpcApp
      * @return bool
      */
     public static function isRpcApp()
@@ -932,13 +926,13 @@ class BaseServer
     }
 
     /**
-     * @param $subclass
-     * @param $parentclass
+     * @param string $subClass
+     * @param string $parentClass
      * @return bool
      */
-    public static function isSubclassOf($subclass, $parentclass)
+    public static function isSubclassOf(string $subClass, string $parentClass)
     {
-        if (is_subclass_of($subclass, $parentclass) || trim($subclass, '\\') == trim($parentclass, '\\')) {
+        if (is_subclass_of($subClass, $parentClass) || trim($subClass, '\\') == trim($parentClass, '\\')) {
             return true;
         }
         return false;
@@ -951,11 +945,11 @@ class BaseServer
      */
     public static function eventHandler()
     {
-        $starHandlerClass = isset(self::$config['event_handler']) ? self::$config['event_handler'] : self::$start_handler_class;
-        if (self::isSubclassOf($starHandlerClass, self::$start_handler_class)) {
+        $starHandlerClass = isset(self::$config['event_handler']) ? self::$config['event_handler'] : self::$startHandlerClass;
+        if (self::isSubclassOf($starHandlerClass, self::$startHandlerClass)) {
             return new $starHandlerClass();
         }
-        throw new \Exception("Config item of 'event_handler'=>{$starHandlerClass} must extends " . self::$start_handler_class . ' class');
+        throw new \Exception("Config item of 'event_handler'=>{$starHandlerClass} must extends " . self::$startHandlerClass . ' class');
     }
 
     /**
@@ -974,7 +968,7 @@ class BaseServer
     }
 
     /**
-     * registerShutdownFunction 注册异常处理函数
+     * registerShutdownFunction
      */
     public static function registerShutdownFunction()
     {
