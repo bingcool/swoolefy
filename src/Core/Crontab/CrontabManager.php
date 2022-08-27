@@ -52,7 +52,11 @@ class CrontabManager
         if (is_array($func)) {
             list($class, $action) = $func;
             if (!is_subclass_of($class, '\\Swoolefy\\Core\\Crontab\\AbstractCronController')) {
-                throw new \Exception(__CLASS__ ."::". __FUNCTION__ . " Params of func about Crontab Handle Controller need to extend Swoolefy\\Core\\Crontab\\AbstractCronController");
+                throw new \Exception(sprintf(
+                    "s%::s% Params of func about Crontab Handle Controller need to extend Swoolefy\\Core\\Crontab\\AbstractCronController",
+                    __CLASS__,
+                    __FUNCTION__
+                ));
             }
             \Swoole\Timer::tick(1000, function ($timerId, $expression) use ($class, $action, $cronName) {
                 try {
