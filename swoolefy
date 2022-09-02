@@ -12,10 +12,7 @@
 
 // 定义注册的应用名和对应使用的协议
 if (!defined('APP_NAMES')) {
-    define('APP_NAMES', [
-        'Test' => 'http',
-        'UdpService' => 'udp'
-    ]);
+    define('APP_NAMES', []);
 }
 
 // 定义环境
@@ -37,7 +34,7 @@ if (is_dir(__DIR__ . '/vendor/bingcool/swoolefy')) {
     $USERD_ENV = 'composer'; //composer安装使用
 } else {
     $SCORE_DIR = __DIR__;
-    $USERD_ENV = 'direct'; // 直接下载使用
+    $USERD_ENV = 'direct'; //直接下载使用
 }
 
 // 定义一个全局常量
