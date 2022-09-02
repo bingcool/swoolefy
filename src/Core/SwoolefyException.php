@@ -108,7 +108,6 @@ class SwoolefyException
             default:
                 break;
         }
-        return;
     }
 
     /**
