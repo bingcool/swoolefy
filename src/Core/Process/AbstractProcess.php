@@ -83,7 +83,7 @@ abstract class AbstractProcess
         $this->extendData = $extend_data;
         $this->processName = $processName;
         $this->enableCoroutine = true;
-        $this->swooleProcess = new \Swoole\Process([$this, '__start'], false, 2, $this->enableCoroutine);
+        $this->swooleProcess = new \Swoole\Process([$this, '__start'], false, SOCK_DGRAM, $this->enableCoroutine);
         Swfy::getServer()->addProcess($this->swooleProcess);
     }
 
