@@ -43,7 +43,7 @@ namespace Swoolefy\Core\Memory;
 class SysvmsgManager
 {
 
-    use \Workerfy\Traits\SingletonTrait;
+    use \Swoolefy\Core\SingletonTrait;
 
     /**
      * @var array

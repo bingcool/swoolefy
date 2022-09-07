@@ -242,7 +242,7 @@ class MainManager
         }
 
         if ($process_worker_num > $maxProcessNum) {
-            write_info("【Warning】Process Name={$process_name}, params of process_worker_num more then max_process_num={$maxProcessNum}");
+            $this->writeInfo("【Warning】Process Name={$process_name}, params of process_worker_num more then max_process_num={$maxProcessNum}");
             $process_worker_num = $maxProcessNum;
         }
 
@@ -295,7 +295,6 @@ class MainManager
                 $this->initStart();
                 // process->start 后，父进程会强制要求pdo,redis等API must be called in the coroutine中
                 $this->setRunning();
-                $this->installCliPipe();
                 $this->installSigchldSignal();
                 $this->installMasterStopSignal();
                 $this->installMasterReloadSignal();
@@ -415,7 +414,7 @@ class MainManager
                                     $processName = $process->getProcessName();
                                     $this->writeByProcessName($processName, WorkerProcess::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
                                 } catch (\Throwable $exception) {
-                                    write_info("【Error】Master handle Signal (SIGINT,SIGTERM) error Process={$processName},worker_id={$workerId} exit failed, error=" . $exception->getMessage());
+                                    $this->writeInfo("【Error】Master handle Signal (SIGINT,SIGTERM) error Process={$processName},worker_id={$workerId} exit failed, error=" . $exception->getMessage());
                                 }
                             }
                         }
@@ -482,7 +481,7 @@ class MainManager
                 );
                 @fwrite($ctlPipe, $info, strlen($info));
                 if ($status == 'stop') {
-                    write_info($info);
+                    $this->writeInfo($info);
                 }
             }
             unset($processes);
@@ -573,7 +572,7 @@ class MainManager
         // non block model
         while ($ret = \Swoole\Process::wait(false)) {
             if (!is_array($ret) || !isset($ret['pid'])) {
-                write_info("【Error】Swoole\Process::wait error");
+                $this->writeInfo("【Error】Swoole\Process::wait error");
                 return;
             }
             $pid  = $ret['pid'];
@@ -686,7 +685,7 @@ class MainManager
                     if (is_string($message)) {
                         $messageDto = unserialize($message);
                         if (!$messageDto instanceof MessageDto) {
-                            write_info("【Error】Accept message type error");
+                            $this->writeInfo("【Error】Accept message type error");
                             return;
                         } else {
                             $msg                 = $messageDto->data;
@@ -766,12 +765,12 @@ class MainManager
     }
 
     /**
-     * @param int $master_pid
+     * @param int $worker_master_pid
      * @return void
      */
-    public function saveMasterPidToFile(int $master_pid)
+    public function saveMasterPidToFile(int $worker_master_pid)
     {
-        @file_put_contents(PID_FILE, $master_pid);
+        @file_put_contents(WORKER_PID_FILE, $worker_master_pid);
     }
 
     /**
@@ -783,7 +782,7 @@ class MainManager
         if (empty($status)) {
             $status = $this->getProcessStatus();
         }
-        @file_put_contents(STATUS_FILE, json_encode($status, JSON_UNESCAPED_UNICODE));
+        @file_put_contents(WORKER_STATUS_FILE, json_encode($status, JSON_UNESCAPED_UNICODE));
     }
 
     /**
@@ -797,7 +796,7 @@ class MainManager
     public function createDynamicProcess(string $process_name, int $process_num = 2)
     {
         if ($this->isMasterExiting()) {
-            write_info("【Warning】 Master process is exiting now，forbidden to create dynamic process");
+            $this->writeInfo("【Warning】 Master process is exiting now，forbidden to create dynamic process");
             return false;
         }
 
@@ -805,7 +804,7 @@ class MainManager
         $this->getDynamicProcessNum($process_name);
         if ($this->processLists[$key]['dynamic_process_destroying'] ?? false) {
             $msg = "【Warning】 Process name={$process_name} is exiting now，forbidden to create dynamic process, please try again after moment";
-            write_info($msg);
+            $this->writeInfo($msg);
             throw new \Exception($msg);
         }
 
@@ -834,8 +833,8 @@ class MainManager
 
         if ($runningProcessWorkerNum >= $totalProcessNum) {
             $msg = "【Warning】 Children process num={$totalProcessNum}, achieve max_process_num，forbidden to create process";
-            write_info($msg);
-            throw new DynamicException($msg);
+            $this->writeInfo($msg);
+            throw new \Exception($msg);
         }
 
         for ($workerId = $runningProcessWorkerNum; $workerId < $totalProcessNum; $workerId++) {
@@ -855,7 +854,7 @@ class MainManager
                 $this->processWorkers[$key][$workerId] = $newProcess;
                 $newProcess->start();
                 $this->swooleEventAdd($newProcess);
-                write_info("【Info】Process name={$process_name},worker_id={$workerId} create successful", 'green');
+                $this->writeInfo("【Info】Process name={$process_name},worker_id={$workerId} create successful", 'green');
             } catch (\Throwable $throwable) {
                 unset($this->processWorkers[$key][$workerId], $newProcess);
                 $this->onHandleException->call($this, $throwable);
@@ -884,9 +883,9 @@ class MainManager
                     if ($this->processLists[$key]['dynamic_process_worker_num'] > 0) {
                         $this->processLists[$key]['dynamic_process_worker_num']--;
                     }
-                    write_info("【Info】Dynamic process={$process_name},worker_id={$workerId} destroy successful");
+                    $this->writeInfo("【Info】Dynamic process={$process_name},worker_id={$workerId} destroy successful");
                 } catch (\Throwable $e) {
-                    write_info("【Warning】DestroyDynamicProcess error message=" . $e->getMessage());
+                    $this->writeInfo("【Warning】DestroyDynamicProcess error message=" . $e->getMessage());
                 }
             }
         }
@@ -989,8 +988,8 @@ class MainManager
         list($msgSysvmsgInfo, $sysKernel) = $this->getSysvmsgInfo();
 
         $status['master'] = [
-            'start_script_file'  => START_SCRIPT_FILE,
-            'pid_file'           => PID_FILE,
+            'start_script_file'  => WORKER_START_SCRIPT_FILE,
+            'pid_file'           => WORKER_PID_FILE,
             'running_status'     => $running_status,
             'cli_params'         => $cliParams,
             'master_pid'         => $this->getMasterPid(),
@@ -1089,7 +1088,7 @@ class MainManager
             try {
                 $status = $this->getProcessStatus();
                 // save status
-                file_put_contents(STATUS_FILE, json_encode($status, JSON_UNESCAPED_UNICODE));
+                file_put_contents(WORKER_STATUS_FILE, json_encode($status, JSON_UNESCAPED_UNICODE));
                 // callable todo
                 if (is_callable($this->onReportStatus)) {
                     $this->onReportStatus->call($this, $status);
@@ -1341,75 +1340,6 @@ class MainManager
     }
 
     /**
-     * install Cli Pipe for listen cli command
-     * @return bool|null
-     * @throws RuntimeException
-     */
-    private function installCliPipe()
-    {
-        if (!$this->enablePipe) {
-            return false;
-        }
-
-        $pipeFile = $this->getCliPipeFile();
-        if (file_exists($pipeFile)) {
-            unlink($pipeFile);
-        }
-
-        if (!posix_mkfifo($pipeFile, 0777)) {
-            throw new RuntimeException("Create Cli Pipe failed");
-        }
-
-        $this->cliPipeFd = fopen($pipeFile, 'w+');
-        is_resource($this->cliPipeFd) && stream_set_blocking($this->cliPipeFd, false);
-        \Swoole\Event::add($this->cliPipeFd, function () {
-            try {
-                $pipeMsg = fread($this->cliPipeFd, 8192);
-                $pipeMsgDto = unserialize($pipeMsg);
-                if ($pipeMsgDto instanceof PipeMsgDto) {
-                    switch ($pipeMsgDto->action) {
-                        case CLI_ADD :
-                            !isset($num) && $num = ($pipeMsgDto->message ?? 1);
-                            $this->addProcessByCli($pipeMsgDto->targetHandler, $num);
-                            break;
-                        case CLI_REMOVE :
-                            !isset($num) && $num = ($pipeMsgDto->message ?? 1);
-                            $this->removeProcessByCli($pipeMsgDto->targetHandler, $num);
-                            break;
-                        case CLI_STATUS :
-                            $this->masterStatusToCliFifoPipe($pipeMsgDto->targetHandler);
-                            break;
-                        case CLI_STOP :
-                            foreach ($this->processWorkers as $processes) {
-                                ksort($processes);
-                                /**
-                                 * @var WorkerProcess $process
-                                 */
-                                foreach ($processes as $process) {
-                                    $processName = $process->getProcessName();
-                                    $workerId = $process->getProcessWorkerId();
-                                    $this->writeByProcessName($processName, WorkerProcess::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
-                                }
-                            }
-                            break;
-                        case CLI_PIPE :
-                            if ($this->onCliMsg instanceof \Closure) {
-                                $this->onCliMsg->call($this, $pipeMsgDto);
-                            }
-                            break;
-
-                        default:
-                            break;
-                    }
-                }
-
-            } catch (\Throwable $throwable) {
-                $this->onHandleException->call($this, $throwable);
-            }
-        });
-    }
-
-    /**
      * addProcessByCli
      * @param string $process_name
      * @param int $num
@@ -1422,7 +1352,7 @@ class MainManager
         if (isset($this->processLists[$key])) {
             $this->createDynamicProcess($process_name, $num);
         } else {
-            write_info("【Warning】Not exist children_process_name = {$process_name}, so add failed");
+            $this->writeInfo("【Warning】Not exist children_process_name = {$process_name}, so add failed");
         }
     }
 
@@ -1439,27 +1369,8 @@ class MainManager
         if (isset($this->processLists[$key])) {
             $this->destroyDynamicProcess($process_name, $num);
         } else {
-            write_info("【Warning】Not exist children_process_name = {$process_name}, remove failed");
+            $this->writeInfo("【Warning】Not exist children_process_name = {$process_name}, remove failed");
         }
-    }
-
-    /**
-     * getCliPipeFile
-     * @return string
-     */
-    public function getCliPipeFile()
-    {
-        if (function_exists('getCliPipeFile')) {
-            $pipeFile = getCliPipeFile();
-        } else {
-            $pathInfo     = pathinfo(PID_FILE);
-            $pathDir      = $pathInfo['dirname'];
-            $fileName     = $pathInfo['basename'];
-            $ext          = $pathInfo['extension'];
-            $pipeFileName = str_replace($ext, 'pipe', $fileName);
-            $pipeFile     = $pathDir . '/' . $pipeFileName;
-        }
-        return $pipeFile;
     }
 
     /**
@@ -1482,7 +1393,7 @@ class MainManager
      */
     private function installRegisterShutdownFunction()
     {
-        if(!in_master_process_env()) {
+        if(!$this->inMasterProcessEnv()) {
             return;
         }
 
@@ -1500,9 +1411,8 @@ class MainManager
                     @\Swoole\Event::del($this->cliPipeFd);
                     fclose($this->cliPipeFd);
                 }
-                @unlink($this->getCliPipeFile());
                 // remove sysvmsg queue
-                $sysvmsgManager = \Workerfy\Memory\SysvmsgManager::getInstance();
+                $sysvmsgManager = SysvmsgManager::getInstance();
                 $sysvmsgManager->destroyMsgQueue();
                 unset($sysvmsgManager);
                 // remove signal
@@ -1510,7 +1420,7 @@ class MainManager
                 @\Swoole\Process::signal(SIGUSR2, null);
                 @\Swoole\Process::signal(SIGTERM, null);
             }
-            write_info("【Warning】终端关闭，master进程stop, master_pid={$this->masterPid}");
+            $this->writeInfo("【Warning】终端关闭，master进程stop, master_pid={$this->masterPid}");
         };
     }
 
@@ -1523,8 +1433,8 @@ class MainManager
         if (!isset($this->masterPid)) {
             $this->masterPid = posix_getpid();
         }
-        cli_set_process_title("php-master:" . START_SCRIPT_FILE);
-        defined('MASTER_PID') OR define('MASTER_PID', $this->masterPid);
+        cli_set_process_title("php-worker-master:" . WORKER_START_SCRIPT_FILE);
+        defined('WORKER_MASTER_PID') OR define('WORKER_MASTER_PID', $this->masterPid);
     }
 
     /**
@@ -1620,7 +1530,7 @@ class MainManager
     {
         // todo
 
-        return $this->onRegisterLogger->call($this);
+        //return $this->onRegisterLogger->call($this);
     }
 
     /**
@@ -1686,8 +1596,8 @@ class MainManager
             foreach ($this->processWorkers as $processes) {
                 $childrenNum += count($processes);
             }
-            $startScriptFile = START_SCRIPT_FILE;
-            $pidFile         = PID_FILE;
+            $startScriptFile = WORKER_START_SCRIPT_FILE;
+            $pidFile         = WORKER_PID_FILE;
             $cpuNum          = swoole_cpu_num();
             $memory          = Helper::getMemoryUsage();
             $phpVersion      = PHP_VERSION;

@@ -94,6 +94,10 @@ abstract class AbstractProcess
      */
     public function __start(Process $process)
     {
+        if (method_exists(static::class, 'beforeStart') && version_compare(phpversion(), '8.0.0', '>=') ) {
+            $this->beforeStart();
+        }
+
         $this->installRegisterShutdownFunction();
         TableManager::getTable('table_process_map')->set(
             md5($this->processName), ['pid' => $this->swooleProcess->pid]

@@ -91,4 +91,60 @@ trait SystemTrait
         });
     }
 
+    /**
+     * @return bool
+     */
+    protected function inMasterProcessEnv()
+    {
+        $pid = posix_getpid();
+        if ((!defined('WORKER_MASTER_PID')) || (defined('WORKER_MASTER_PID') && $pid == MASTER_PID)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @return bool
+     */
+    protected function inChildrenProcessEnv()
+    {
+        return !$this->inMasterProcessEnv();
+    }
+
+    /**
+     * @param $msg
+     * @param $foreground
+     * @param $background
+     * @return void
+     */
+    protected function writeInfo($msg, $foreground = "red", $background = 'black')
+    {
+        // Create new Colors class
+        static $colors;
+        if (!isset($colors)) {
+            $colors = new \Swoolefy\Util\EachColor();
+        }
+        if($foreground == 'green') {
+            $foreground = 'light_green';
+        }
+        $formatMsg = "--------------{$msg} --------------";
+        echo $colors->getColoredString($formatMsg, $foreground, $background) . "\n\n";
+        if (defined("CTL_LOG_FILE")) {
+            if (defined('MAX_LOG_FILE_SIZE')) {
+                $maxLogFileSize = MAX_LOG_FILE_SIZE;
+            } else {
+                $maxLogFileSize = 10 * 1024 * 1024;
+            }
+            if (is_file(WORKER_CTL_LOG_FILE) && filesize(WORKER_CTL_LOG_FILE) > $maxLogFileSize) {
+                unlink(WORKER_CTL_LOG_FILE);
+            }
+            $logFd = fopen(WORKER_CTL_LOG_FILE, 'a+');
+            $date  = date("Y-m-d H:i:s");
+            $pid   = getmypid();
+            $writeMsg = "【{$date}】【PID={$pid}】" . $msg . "\n";
+            fwrite($logFd, $writeMsg);
+            fclose($logFd);
+        }
+    }
+
 }
