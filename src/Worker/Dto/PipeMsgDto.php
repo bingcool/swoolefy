@@ -9,7 +9,7 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Workerfy\Dto;
+namespace Swoolefy\Worker\Dto;
 
 class PipeMsgDto extends AbstractDto
 {

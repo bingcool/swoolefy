@@ -2,6 +2,7 @@
 
 namespace Test;
 
+use Swoole\Process;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\EventApp;
 use Swoolefy\Core\ProcessPools\PoolsManager;
@@ -40,7 +41,7 @@ class Event extends EventHandler
         //ProcessManager::getInstance()->addProcess('tick', \Test\Process\TickProcess\Tick::class);
 
         // 测试cron自定义进程
-        ProcessManager::getInstance()->addProcess('cron', \Test\Process\CronProcess\Cron::class);
+        //ProcessManager::getInstance()->addProcess('cron', \Test\Process\CronProcess\Cron::class);
         // 这里为什么获取不到pid,那是应为process需要server执行start后才会创建，而在这里只是创建实例，server还没正式启动
         //$pid = ProcessManager::getInstance()->getProcessByName('cron')->getPid();
         //var_dump('pid='.$pid);
@@ -59,6 +60,8 @@ class Event extends EventHandler
 
         // 这里为什么获取不到pid,那是应为process需要server执行start后才会创建，而在这里只是创建实例，server还没正式启动
         //$pid = ProcessManager::getInstance()->getProcessByName('redis_list_test')->getPid();
+
+        ProcessManager::getInstance()->addProcess('worker', \Test\Process\WorkerProcess\MainWorker::class, true,[],null, false);
 
     }
 

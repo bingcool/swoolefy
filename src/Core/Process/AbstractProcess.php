@@ -82,7 +82,7 @@ abstract class AbstractProcess
         $this->args = $args;
         $this->extendData = $extend_data;
         $this->processName = $processName;
-        $this->enableCoroutine = true;
+        $this->enableCoroutine = $enable_coroutine;
         $this->swooleProcess = new \Swoole\Process([$this, '__start'], false, 2, $this->enableCoroutine);
         Swfy::getServer()->addProcess($this->swooleProcess);
     }
@@ -137,11 +137,15 @@ abstract class AbstractProcess
 
         $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'php-swoolefy-user-process:' . $this->getProcessName());
 
+        var_dump('corutine_id='.\Swoole\Coroutine::getCid());
         try {
-            (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
-                $this->init();
-                $this->run();
-            });
+            // todo
+//            (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
+//                $this->init();
+//                $this->run();
+//            });
+            $this->init();
+            $this->run();
         } catch (\Throwable $throwable) {
             BaseServer::catchException($throwable);
         }

@@ -9,7 +9,7 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Workerfy\Dto;
+namespace Swoolefy\Worker\Dto;
 
 class MessageDto extends AbstractDto
 {
