@@ -165,11 +165,6 @@ abstract class WorkerProcess
     protected $cycleTimes = 5;
 
     /**
-     * @var array cli init params
-     */
-    protected $cliInitParams = [];
-
-    /**
      * @var int
      *
      */
@@ -317,7 +312,7 @@ abstract class WorkerProcess
                         if (is_string($message)) {
                             $messageDto = unserialize($message);
                             if (!$messageDto instanceof MessageDto) {
-                                write_info("【Error】Accept message type error");
+                                $this->writeInfo("【Error】Accept message type error");
                                 return;
                             } else {
                                 $msg                 = $messageDto->data;
@@ -414,7 +409,7 @@ abstract class WorkerProcess
                         $processName     = $this->getProcessName();
                         $workerId        = $this->getProcessWorkerId();
                         $this->masterLiveTimerId = null;
-                        write_info("【Warning】Check Parent Master Pid={$masterPid}，children process={$processName},worker_id={$workerId} start to exit");
+                        $this->writeInfo("【Warning】Check Parent Master Pid={$masterPid}，children process={$processName},worker_id={$workerId} start to exit");
                         $this->exit(true, 5);
                     };
 
@@ -443,7 +438,7 @@ abstract class WorkerProcess
                     }
 
                 }catch (\Throwable $throwable) {
-                    write_info("【Error】Check Master Error Msg={$throwable->getMessage()},trace={$throwable->getTraceAsString()}");
+                    $this->writeInfo("【Error】Check Master Error Msg={$throwable->getMessage()},trace={$throwable->getTraceAsString()}");
                 }
             });
 
@@ -485,9 +480,9 @@ abstract class WorkerProcess
                 $this->writeStopFormatInfo();
                 $processName = $this->getProcessName();
                 $workerId    = $this->getProcessWorkerId();
-                write_info("【Info】 Start to exit process={$processName}, worker_id={$workerId}");
+                $this->writeInfo("【Info】 Start to exit process={$processName}, worker_id={$workerId}");
             } catch (\Throwable $throwable) {
-                write_info("【Error】Exit error, Process={$processName}, error:" . $throwable->getMessage());
+                $this->writeInfo("【Error】Exit error, Process={$processName}, error:" . $throwable->getMessage());
             } finally {
                 Event::del($this->swooleProcess->pipe);
                 Event::exit();
@@ -513,9 +508,9 @@ abstract class WorkerProcess
                 $this->writeStopFormatInfo();
                 $processName = $this->getProcessName();
                 $workerId = $this->getProcessWorkerId();
-                write_info("【Info】Start to reboot process={$processName}, worker_id={$workerId}");
+                $this->writeInfo("【Info】Start to reboot process={$processName}, worker_id={$workerId}");
             } catch (\Throwable $throwable) {
-                write_info("【Error】Reboot error, Process={$processName}, error:" . $throwable->getMessage());
+                $this->writeInfo("【Error】Reboot error, Process={$processName}, error:" . $throwable->getMessage());
             } finally {
                 Event::del($this->swooleProcess->pipe);
                 Event::exit();
@@ -558,7 +553,7 @@ abstract class WorkerProcess
                 // out of memory
                 if (false !== strpos($error['message'], 'Allowed memory size of')) {
                     $processName = $this->getProcessName().'@'.$this->getProcessWorkerId();
-                    write_info("【Error】{$errorStr}, process_name={$processName}");
+                    $this->writeInfo("【Error】{$errorStr}, process_name={$processName}");
                 }
 
                 if(!in_array($error['type'], [E_NOTICE, E_WARNING]) ) {
@@ -585,7 +580,7 @@ abstract class WorkerProcess
         bool $is_use_master_proxy = true
     )
     {
-        $processManager      = \Workerfy\ProcessManager::getInstance();
+        $processManager      = \Swoolefy\Worker\MainManager::getInstance();
         $isMaster            = $processManager->isMaster($process_name);
         $fromProcessName     = $this->getProcessName();
         $fromProcessWorkerId = $this->getProcessWorkerId();
@@ -617,7 +612,7 @@ abstract class WorkerProcess
 
         foreach ($processWorkers as $process) {
             if ($process->isRebooting() || $process->isExiting()) {
-                write_info("【Warning】the process(worker_id={$this->getProcessWorkerId()}) is in isRebooting or isExiting status, not send msg to other process");
+                $this->writeInfo("【Warning】the process(worker_id={$this->getProcessWorkerId()}) is in isRebooting or isExiting status, not send msg to other process");
                 continue;
             }
 
@@ -685,9 +680,10 @@ abstract class WorkerProcess
     public function notifyMasterCreateDynamicProcess(string $dynamic_process_name, int $dynamic_process_num = 2)
     {
         if ($this->isDynamicDestroy) {
-            write_info("【Warning】process is destroying, forbidden dynamic create process");
+            $this->writeInfo("【Warning】process is destroying, forbidden dynamic create process");
             return;
         }
+
         $data = [
             'action' => MainManager::CREATE_DYNAMIC_PROCESS_WORKER,
             'process_name' => $dynamic_process_name,
@@ -696,6 +692,7 @@ abstract class WorkerProcess
                     'dynamic_process_num' => $dynamic_process_num
                 ]
         ];
+
         $this->writeToMasterProcess($data);
         $method = self::WORKERFY_ON_EVENT_CREATE_DYNAMIC_PROCESS;
         if(method_exists(static::class, $method)) {
@@ -933,7 +930,7 @@ abstract class WorkerProcess
     {
         if($this->isRebooting() || $this->isForceExit() || $this->isExiting()) {
             sleep(1);
-            write_info("【INFO】Process Wait to Exit or Reboot");
+            $this->writeInfo("【INFO】Process Wait to Exit or Reboot");
             return false;
         }
         return true;
@@ -1256,9 +1253,7 @@ abstract class WorkerProcess
                         sleep($randSleep);
                     }
                     $this->reboot($this->waitTime);
-                },
-                CrontabManager::loopChannelType,
-                1000);
+                });
         }
 
     }
@@ -1325,7 +1320,7 @@ abstract class WorkerProcess
     {
         if ($master_pid == $this->masterPid) {
             \Swoole\Coroutine::create(function () use ($master_pid) {
-                @file_put_contents(PID_FILE, $master_pid);
+                @file_put_contents(WORKER_PID_FILE, $master_pid);
             });
         }
     }
@@ -1412,7 +1407,7 @@ abstract class WorkerProcess
         // Get uid.
         $userInfo = posix_getpwnam($this->user);
         if (!$userInfo) {
-            write_info("【Warning】User {$this->user} not exist");
+            $this->writeInfo("【Warning】User {$this->user} not exist");
             $this->exit();
             return false;
         }
@@ -1421,7 +1416,7 @@ abstract class WorkerProcess
         if ($this->group) {
             $groupInfo = posix_getgrnam($this->group);
             if (!$groupInfo) {
-                write_info("【Warning】Group {$this->group} not exist");
+                $this->writeInfo("【Warning】Group {$this->group} not exist");
                 $this->exit();
                 return false;
             }
@@ -1433,7 +1428,7 @@ abstract class WorkerProcess
         // Set uid and gid.
         if ($uid !== posix_getuid() || $gid !== posix_getgid()) {
             if (!posix_setgid($gid) || !posix_initgroups($userInfo['name'], $gid) || !posix_setuid($uid)) {
-                write_info("【Warning】change gid or uid failed");
+                $this->writeInfo("【Warning】change gid or uid failed");
             }
         }
     }
@@ -1465,7 +1460,7 @@ abstract class WorkerProcess
         }
         $pid = $this->getPid();
         $logInfo = "start children_process【{$processType}】: {$processName}@{$workerId} started, pid={$pid}, master_pid={$this->getMasterPid()}";
-        write_info($logInfo, 'green');
+        $this->writeInfo($logInfo, 'green');
     }
 
     /**
@@ -1483,7 +1478,7 @@ abstract class WorkerProcess
         }
         $pid = $this->getPid();
         $logInfo = "stop children_process【{$processType}】: {$processName}@{$workerId} stopped, pid={$pid}, master_pid={$this->getMasterPid()}";
-        write_info($logInfo, 'red');
+        $this->writeInfo($logInfo, 'red');
     }
 
     /**
@@ -1499,7 +1494,7 @@ abstract class WorkerProcess
             $processType = self::PROCESS_DYNAMIC_TYPE_NAME;
             $pid         = $this->getPid();
             $logInfo     = "start children_process【{$processType}】: {$processName}@{$workerId} start(默认动态创建的进程不支持reload，可以使用 kill -10 pid 强制重启), Pid={$pid}";
-            write_info($logInfo, 'red');
+            $this->writeInfo($logInfo, 'red');
         }
     }
 

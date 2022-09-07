@@ -66,7 +66,6 @@ class Helper
 
         if (!empty($missing)) {
             $msg = "【Error】Missing init() method cli parameters of name : " . implode(', ', $missing);
-            write_info($msg);
             throw new InvalidArgumentException($msg);
         }
 
