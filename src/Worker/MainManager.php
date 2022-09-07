@@ -14,11 +14,8 @@ namespace Swoolefy\Worker;
 use Swoolefy\Worker\Dto\MessageDto;
 use Swoolefy\Worker\Dto\PipeMsgDto;
 use Swoolefy\Core\Table\TableManager;
-use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Memory\SysvmsgManager;
 use RuntimeException;
-use Workerfy\Exception\BroadcastException;
-use Workerfy\Exception\DynamicException;
 
 class MainManager
 {
@@ -449,7 +446,7 @@ class MainManager
             $this->startTime
         );
         fwrite($ctlPipe, $masterInfo);
-        foreach ($this->processWorkers as $key => $processes) {
+        foreach ($this->processWorkers as $processes) {
             ksort($processes);
             /** @var WorkerProcess $process */
             foreach ($processes as $processWorkerId => $process) {
@@ -809,7 +806,7 @@ class MainManager
         if ($this->processLists[$key]['dynamic_process_destroying'] ?? false) {
             $msg = "【Warning】 Process name={$process_name} is exiting now，forbidden to create dynamic process, please try again after moment";
             write_info($msg);
-            throw new DynamicException($msg);
+            throw new \Exception($msg);
         }
 
         if ($process_num <= 0) {
@@ -1284,7 +1281,7 @@ class MainManager
         if ($process_name) {
             $key = md5($process_name);
             if (!isset($this->processWorkers[$key])) {
-                $exception = new BroadcastException(sprintf(
+                $exception = new \Exception(sprintf(
                     "%s::%s not exist process=%s, please check it",
                     __CLASS__,
                     __FUNCTION__,
