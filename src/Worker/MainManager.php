@@ -1568,12 +1568,14 @@ class MainManager
         if (defined('ENABLE_WORKERFY_SWOOLE_TABLE') && ENABLE_WORKERFY_SWOOLE_TABLE == 1) {
             $tableManager = TableManager::getInstance();
             if ($simple) {
+                // todo
                 $allTableName = $tableManager->getAllTableName();
                 if (!empty($allTableName) && is_array($allTableName)) {
                     $allTableNameStr = implode(',', $allTableName);
                     $swooleTableInfo = "[{$allTableNameStr}]";
                 }
             } else {
+                //todo
                 $allTableInfo = $tableManager->getAllTableKeyMapRowValue();
                 if (!empty($allTableInfo)) {
                     $swooleTableInfo = $allTableInfo;
