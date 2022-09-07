@@ -14,9 +14,8 @@ namespace Swoolefy\Worker;
 use Swoole\Event;
 use Swoole\Process;
 use Swoole\Coroutine\Channel;
-use Workerfy\Coroutine\GoCoroutine;
-use Workerfy\Crontab\CrontabManager;
-use Workerfy\Dto\MessageDto;
+use Swoolefy\Core\Crontab\CrontabManager;
+use Swoolefy\Worker\Dto\MessageDto;
 
 /**
  * Class AbstractProcess
@@ -1325,7 +1324,7 @@ abstract class WorkerProcess
     protected function saveMasterId(int $master_pid)
     {
         if ($master_pid == $this->masterPid) {
-            GoCoroutine::go(function () use ($master_pid) {
+            \Swoole\Coroutine::create(function () use ($master_pid) {
                 @file_put_contents(PID_FILE, $master_pid);
             });
         }
