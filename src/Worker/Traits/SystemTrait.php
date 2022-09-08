@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Worker\Traits;
 
+use Swoolefy\Worker\Helper;
+
 trait SystemTrait
 {
     /**
@@ -97,7 +99,7 @@ trait SystemTrait
     protected function inMasterProcessEnv()
     {
         $pid = posix_getpid();
-        if ((!defined('WORKER_MASTER_PID')) || (defined('WORKER_MASTER_PID') && $pid == MASTER_PID)) {
+        if ((!defined('WORKER_MASTER_PID')) || (defined('WORKER_MASTER_PID') && $pid == WORKER_MASTER_PID)) {
             return true;
         }
         return false;
@@ -145,6 +147,15 @@ trait SystemTrait
             fwrite($logFd, $writeMsg);
             fclose($logFd);
         }
+    }
+
+    /**
+     * @param string $name
+     * @return array|false|string|null
+     */
+    protected function getCliParams(string $name = '')
+    {
+        return Helper::getCliParams($name);
     }
 
 }

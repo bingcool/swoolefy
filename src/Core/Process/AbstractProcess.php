@@ -143,13 +143,15 @@ abstract class AbstractProcess
 
         var_dump('corutine_id='.\Swoole\Coroutine::getCid());
         try {
-            // todo
-//            (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
-//                $this->init();
-//                $this->run();
-//            });
-            $this->init();
-            $this->run();
+            if(!$this->isWorkerService()) {
+                (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
+                    $this->init();
+                    $this->run();
+                });
+            }else {
+                $this->init();
+                $this->run();
+            }
         } catch (\Throwable $throwable) {
             BaseServer::catchException($throwable);
         }
@@ -192,8 +194,21 @@ abstract class AbstractProcess
         $pid = TableManager::getTable('table_process_map')->get(md5($this->processName), 'pid');
         if ($pid) {
             return $pid;
+        }else {
+            return posix_getpid();
         }
-        return null;
+    }
+
+    /**
+     * @return bool
+     */
+    protected function isWorkerService()
+    {
+        if(!defined('IS_WORKER_SERVICE') || empty(IS_WORKER_SERVICE)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

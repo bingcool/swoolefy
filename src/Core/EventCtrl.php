@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Core;
 
+use setasign\Fpdi\PdfParser\Filter\Flate;
 use Swoole\Server;
 use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Process\ProcessManager;
@@ -25,13 +26,30 @@ class EventCtrl implements EventCtrlInterface
     public function init()
     {
         static::onInit();
-        if (BaseServer::isEnableSysCollector()) {
-            ProcessManager::getInstance()->addProcess('swoolefy_system_collector', \Swoolefy\Core\SysCollector\SysProcess::class);
-        }
-        if (BaseServer::isEnableReload()) {
-            ProcessManager::getInstance()->addProcess('swoolefy_system_reload', \Swoolefy\AutoReload\ReloadProcess::class);
+
+        if(!$this->isWorkerService()) {
+            if (BaseServer::isEnableSysCollector()) {
+                ProcessManager::getInstance()->addProcess('swoolefy_system_collector', \Swoolefy\Core\SysCollector\SysProcess::class);
+            }
+            if (BaseServer::isEnableReload()) {
+                ProcessManager::getInstance()->addProcess('swoolefy_system_reload', \Swoolefy\AutoReload\ReloadProcess::class);
+            }
+        }else {
+            static::onWorkerServiceInit();
         }
         static::eachStartInfo();
+    }
+
+    /**
+     * @return bool
+     */
+    protected function isWorkerService()
+    {
+        if(!defined('IS_WORKER_SERVICE') || empty(IS_WORKER_SERVICE)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

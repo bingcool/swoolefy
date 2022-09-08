@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Worker;
 
+use Swoolefy\Core\BaseServer;
 use Swoolefy\Worker\Dto\MessageDto;
 use Swoolefy\Worker\Dto\PipeMsgDto;
 use Swoolefy\Core\Table\TableManager;
@@ -196,8 +197,7 @@ class MainManager
         $this->config = $config;
         $this->setCoroutineSetting(array_merge($this->defaultCoroutineSetting, $config['coroutine_setting'] ?? []));
         $this->registerRuntimeLog();
-        $this->onHandleException = function (\Throwable $e) {
-            //todo
+        $this->onHandleException = function (\Throwable $exception) {
         };
     }
 
@@ -922,7 +922,7 @@ class MainManager
      */
     private function daemon($is_daemon)
     {
-        if (defined('IS_DAEMON') && IS_DAEMON == true) {
+        if (defined('IS_DAEMON') && IS_DAEMON == 1) {
             $this->isDaemon = IS_DAEMON;
         }
 
@@ -1547,9 +1547,8 @@ class MainManager
      */
     private function getCliParams($showAll = false)
     {
-        // todo
         $cliParams = '';
-        $workerfyCliParams = getenv('WORKERFY_CLI_PARAMS') ? json_decode(getenv('WORKERFY_CLI_PARAMS'), true) : [];
+        $workerfyCliParams = getenv('WORKER_CLI_PARAMS') ? json_decode(getenv('WORKER_CLI_PARAMS'), true) : [];
 
         foreach ($workerfyCliParams as $param) {
             if ($value = getenv($param)) {
