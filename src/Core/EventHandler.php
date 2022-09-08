@@ -41,6 +41,11 @@ class EventHandler extends \Swoolefy\Core\EventCtrl
     }
 
     /**
+     * WorkerServiceInit
+     */
+    public function onWorkerServiceInit() {}
+
+    /**
      * onStart
      * @param $server
      * @return void

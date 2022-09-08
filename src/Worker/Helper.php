@@ -82,7 +82,7 @@ class Helper
             $value = @getenv($name);
             return $value !== false ? $value : null;
         } else {
-            $cliParams = getenv('WORKERFY_CLI_PARAMS') ? json_decode(getenv('WORKERFY_CLI_PARAMS'), true) : [];
+            $cliParams = getenv('WORKER_CLI_PARAMS') ? json_decode(getenv('WORKER_CLI_PARAMS'), true) : [];
             $params = [];
             foreach ($cliParams as $paramName) {
                 $value = @getenv($paramName);

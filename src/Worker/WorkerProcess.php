@@ -444,7 +444,7 @@ abstract class WorkerProcess
 
             if (PHP_OS != 'Darwin') {
                 $processTypeName = $this->getProcessTypeName();
-                $this->swooleProcess->name("php-process-worker[{$processTypeName}-{$this->getPid()}]:" . $this->getProcessName() . '@' . $this->getProcessWorkerId());
+                $this->swooleProcess->name("php-swoolefy-worker[{$processTypeName}-{$this->getPid()}]:" . $this->getProcessName() . '@' . $this->getProcessWorkerId());
             }
 
             $this->writeStartFormatInfo();
