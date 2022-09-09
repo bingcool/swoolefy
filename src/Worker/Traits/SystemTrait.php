@@ -16,38 +16,6 @@ use Swoolefy\Worker\Helper;
 trait SystemTrait
 {
     /**
-     * @param bool $enableCoroutine
-     * @return void
-     */
-    public function resetAsyncCoroutine(bool $enableCoroutine)
-    {
-        if (version_compare(swoole_version(), '4.6.0', '<')) {
-            \Swoole\Timer::set([
-                'enable_coroutine' => $enableCoroutine,
-            ]);
-        } else {
-            /**
-             * after swoole 4.6 Async AbstractEventHandle、Timer、Process::signal moveto Swoole\Async library
-             */
-            $isSetFlag = false;
-            if (class_exists('Swoole\Async')) {
-                \Swoole\Async::set([
-                    'enable_coroutine' => $enableCoroutine,
-                ]);
-                $isSetFlag = true;
-            }
-
-            if (!$isSetFlag) {
-                if (method_exists('Swoole\Timer', 'set')) {
-                    @\Swoole\Timer::set([
-                        'enable_coroutine' => $enableCoroutine,
-                    ]);
-                }
-            }
-        }
-    }
-
-    /**
      * getHookFlags
      * @param $hookFlags
      * @return int

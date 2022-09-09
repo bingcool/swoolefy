@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Worker;
 
+use Swoole\Coroutine\Channel;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Worker\Dto\MessageDto;
 use Swoolefy\Worker\Dto\PipeMsgDto;
@@ -680,7 +681,8 @@ class MainManager
                  * @var \Swoole\Process $swooleProcess
                  */
                 $swooleProcess = $process->getSwooleProcess();
-                \Swoole\Event::add($swooleProcess->pipe, function ($pipe) use ($swooleProcess) {
+                $channel = new \Swoole\Coroutine\Channel(1);
+                \Swoole\Event::add($swooleProcess->pipe, function ($pipe) use ($swooleProcess, $channel) {
                     $message = $swooleProcess->read(64 * 1024);
                     if (is_string($message)) {
                         $messageDto = unserialize($message);
@@ -1082,7 +1084,6 @@ class MainManager
 
         // 必须设置不使用协程，否则master进程存在异步IO,后面子进程reboot()时
         // 出现unable to create Swoole\Process with async-io threads
-        $this->resetAsyncCoroutine(false);
 
         $timerId = \Swoole\Timer::tick($tickTime * 1000, function () {
             try {

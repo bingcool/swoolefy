@@ -9,7 +9,7 @@ use Swoolefy\Core\Process\ProcessManager;
 use Swoolefy\Core\Timer\TickManager;
 
 
-class MainWorker extends AbstractProcess {
+class MainWorker1 {
 
     /**
      *
@@ -23,7 +23,7 @@ class MainWorker extends AbstractProcess {
         define('WORKER_STATUS_FILE',WORKER_PID_FILE_ROOT.'/status.txt');
         define('WORKER_CTL_LOG_FILE',WORKER_PID_FILE_ROOT.'/ctl.txt');
         define('WORKER_APP_ROOT', APP_NAME.'/workerDaemon');
-        define('WORKER_MASTER_ID', $this->getPid());
+        define('WORKER_MASTER_ID', getmypid());
         $this->parseCliEnvParams();
     }
 
@@ -61,6 +61,10 @@ class MainWorker extends AbstractProcess {
      */
     public function run()
     {
+        $this->beforeStart();
+
+        var_dump('cid='.\Swoole\Coroutine::getCid());
+
         try {
             $mainManager = \Swoolefy\Worker\MainManager::getInstance();
             $process_name = 'test-worker';

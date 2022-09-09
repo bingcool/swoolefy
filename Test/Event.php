@@ -10,6 +10,8 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\EventHandler;
 use Swoolefy\Core\Process\ProcessManager;
+use Test\Process\WorkerProcess\MainWorker1;
+use function foo\func;
 
 class Event extends EventHandler
 {
@@ -17,7 +19,6 @@ class Event extends EventHandler
      * onInit
      */
     public function onInit() {
-
         // log register
         $app_conf = Swfy::getAppConf();
         if(isset($app_conf['components']['log'])) {
@@ -70,6 +71,16 @@ class Event extends EventHandler
     public function onWorkerServiceInit()
     {
         ProcessManager::getInstance()->addProcess('worker', \Test\Process\WorkerProcess\MainWorker::class, true,[],null, false);
+
+
+//       $process = new \Swoole\Process(function () {
+//            (new MainWorker1())->run();
+//        }, false, 2, 0);
+
+
+        //$process->start();
+
+
     }
 
     /**

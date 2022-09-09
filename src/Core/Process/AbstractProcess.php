@@ -141,7 +141,6 @@ abstract class AbstractProcess
 
         $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'php-swoolefy-user-process:' . $this->getProcessName());
 
-        var_dump('corutine_id='.\Swoole\Coroutine::getCid());
         try {
             if(!$this->isWorkerService()) {
                 (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
