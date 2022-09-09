@@ -373,7 +373,10 @@ abstract class WorkerProcess
                             if ($actionHandleFlag === false) {
                                 \Swoole\Coroutine::create(function () use ($msg, $fromProcessName, $fromProcessWorkerId, $isProxyByMaster) {
                                     try {
-                                        $this->onPipeMsg($msg, $fromProcessName, $fromProcessWorkerId, $isProxyByMaster);
+                                        (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) use($msg, $fromProcessName, $fromProcessWorkerId, $isProxyByMaster) {
+                                            $this->onPipeMsg($msg, $fromProcessName, $fromProcessWorkerId, $isProxyByMaster);
+                                        });
+
                                     } catch (\Throwable $throwable) {
                                         $this->onHandleException($throwable);
                                     }
@@ -1196,7 +1199,9 @@ abstract class WorkerProcess
             $this->exitTimerId = \Swoole\Timer::after($waitTime * 1000, function () use ($pid) {
                 try {
                     $this->runtimeCoroutineWait($this->cycleTimes);
-                    $this->onShutDown();
+                    (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
+                        $this->onShutDown();
+                    });
                 } catch (\Throwable $throwable) {
                     $this->onHandleException($throwable);
                 } finally {
