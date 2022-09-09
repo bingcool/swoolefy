@@ -45,7 +45,7 @@ return [
         'daemonize'              => 0,
         'dispatch_mode'          => 3,
         'reload_async'           => true,
-        'enable_coroutine'       => 1,
+        'enable_coroutine'       => 0,
         'task_enable_coroutine'  => 1,
         // 压缩
         'http_compression'       => true,

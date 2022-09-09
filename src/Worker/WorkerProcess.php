@@ -15,6 +15,7 @@ use Swoole\Event;
 use Swoole\Process;
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\Crontab\CrontabManager;
+use Swoolefy\Core\EventController;
 use Swoolefy\Worker\Dto\MessageDto;
 
 /**
@@ -304,7 +305,6 @@ abstract class WorkerProcess
             $this->setUserAndGroup();
             $this->installRegisterShutdownFunction();
             $this->installErrorHandler();
-            $this->resetAsyncCoroutine(true);
             if ($this->async) {
                 Event::add($this->swooleProcess->pipe, function () {
                     try {
@@ -449,19 +449,20 @@ abstract class WorkerProcess
 
             $this->writeStartFormatInfo();
 
-            $targetAction = 'init';
-            if (method_exists(static::class, $targetAction)) {
-                $this->{$targetAction}();
-            }
+            (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
+                $targetAction = 'init';
+                if (method_exists(static::class, $targetAction)) {
+                    $this->{$targetAction}();
+                }
 
-            // reboot after handle can do send or record msg log or report msg
-            $method = self::WORKERFY_ON_EVENT_REBOOT;
-            if ($this->getRebootCount() > 0 && method_exists(static::class, $method)) {
-                $this->$method();
-            }
+                // reboot after handle can do send or record msg log or report msg
+                $method = self::WORKERFY_ON_EVENT_REBOOT;
+                if ($this->getRebootCount() > 0 && method_exists(static::class, $method)) {
+                    $this->$method();
+                }
 
-            $this->run();
-
+                $this->run();
+            });
         } catch (\Throwable $throwable) {
             $this->onHandleException($throwable);
         }
