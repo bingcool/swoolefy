@@ -1147,7 +1147,9 @@ abstract class WorkerProcess
             $timerId = \Swoole\Timer::after($waitTime * 1000, function () use ($pid) {
                 try {
                     $this->runtimeCoroutineWait($this->cycleTimes);
-                    $this->onShutDown();
+                    (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
+                        $this->onShutDown();
+                    });
                 } catch (\Throwable $throwable) {
                     $this->onHandleException($throwable);
                 } finally {

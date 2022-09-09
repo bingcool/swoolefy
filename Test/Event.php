@@ -2,16 +2,11 @@
 
 namespace Test;
 
-use Swoole\Process;
-use Swoolefy\Core\Application;
-use Swoolefy\Core\EventApp;
-use Swoolefy\Core\ProcessPools\PoolsManager;
 use Swoolefy\Core\Swfy;
+use Swoolefy\Core\Application;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\EventHandler;
 use Swoolefy\Core\Process\ProcessManager;
-use Test\Process\WorkerProcess\MainWorker1;
-use function foo\func;
 
 class Event extends EventHandler
 {
@@ -70,17 +65,7 @@ class Event extends EventHandler
      */
     public function onWorkerServiceInit()
     {
-        ProcessManager::getInstance()->addProcess('worker', \Test\Process\WorkerProcess\MainWorker::class, true,[],null, false);
-
-
-//       $process = new \Swoole\Process(function () {
-//            (new MainWorker1())->run();
-//        }, false, 2, 0);
-
-
-        //$process->start();
-
-
+        ProcessManager::getInstance()->addProcess('worker-service', \Test\Process\WorkerProcess\MainWorker::class, true,[],null, false);
     }
 
     /**

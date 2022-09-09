@@ -1084,7 +1084,6 @@ class MainManager
 
         // 必须设置不使用协程，否则master进程存在异步IO,后面子进程reboot()时
         // 出现unable to create Swoole\Process with async-io threads
-
         $timerId = \Swoole\Timer::tick($tickTime * 1000, function () {
             try {
                 $status = $this->getProcessStatus();
@@ -1434,7 +1433,7 @@ class MainManager
         if (!isset($this->masterPid)) {
             $this->masterPid = posix_getpid();
         }
-        cli_set_process_title("php-worker-master:" . WORKER_START_SCRIPT_FILE);
+        cli_set_process_title("php-swoolefy-worker-master:" . WORKER_START_SCRIPT_FILE);
         defined('WORKER_MASTER_PID') OR define('WORKER_MASTER_PID', $this->masterPid);
     }
 

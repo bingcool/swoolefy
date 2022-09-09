@@ -9,18 +9,18 @@ class PipeWorker extends \Swoolefy\Worker\WorkerProcess
 
     public function run()
     {
-        var_dump($this->getCliParams('name'));
+        var_dump('CID='.\Co::getCid());
         var_dump('PipeWorker');
         sleep(10);
 
 
         $db = Application::getApp()->get('db');
-        $result = $db->createCommand('select * from tbl_users where id=:user_id limit 1')->queryAll();
+        $result = $db->createCommand('select * from tbl_users limit 1')->queryAll();
         dump($result);
 
-        $this->reboot();
+        //$this->reboot();
 
-        //$this->notifyMasterCreateDynamicProcess($this->getProcessName(), 1);
+        $this->notifyMasterCreateDynamicProcess($this->getProcessName(), 1);
     }
 
     public function onHandleException(\Throwable $throwable, array $context = [])
