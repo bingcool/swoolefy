@@ -688,6 +688,10 @@ abstract class WorkerProcess
             return;
         }
 
+        if(!$this->isStaticProcess()) {
+            return;
+        }
+
         $data = [
             'action' => MainManager::CREATE_DYNAMIC_PROCESS_WORKER,
             'process_name' => $dynamic_process_name,

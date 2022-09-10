@@ -290,7 +290,6 @@ class MainManager
         try {
             if (!empty($this->processLists)) {
                 $this->installErrorHandler();
-                $this->daemon($is_daemon);
                 $this->setMasterPid();
                 $this->installReportStatus();
                 $this->initStart();
@@ -915,26 +914,6 @@ class MainManager
         $this->processLists[$key]['dynamic_process_worker_num'] = $dynamicProcessNum;
 
         return $dynamicProcessNum;
-    }
-
-    /**
-     * daemon
-     * @param bool $is_daemon
-     * @return void
-     */
-    private function daemon($is_daemon)
-    {
-        if (defined('IS_DAEMON') && IS_DAEMON == 1) {
-            $this->isDaemon = IS_DAEMON;
-        }
-
-        if ($is_daemon) {
-            $this->isDaemon = $is_daemon;
-        }
-
-        if ($this->isDaemon) {
-            \Swoole\Process::daemon(true, false);
-        }
     }
 
     /**
