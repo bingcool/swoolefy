@@ -72,6 +72,9 @@ class Event extends EventHandler
             case 'test-worker-cron':
                 ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, \Test\WorkerDaemon\MainCronWorker::class, true,[],null, false);
                 break;
+            case 'test-script1':
+                ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, \Test\Scripts\FixedUser::class);
+                break;
             default:
                 write('Missing onWorkerServiceInit handle');
                 exit(0);
