@@ -67,10 +67,10 @@ class Event extends EventHandler
     {
         switch (WORKER_SERVICE_NAME) {
             case 'test-worker':
-                ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, \Test\Process\WorkerProcess\MainWorker::class, true,[],null, false);
+                ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, \Test\WorkerDaemon\MainWorker::class, true,[],null, false);
                 break;
             case 'test-worker-cron':
-                ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, \Test\Process\WorkerProcess\MainCronWorker::class, true,[],null, false);
+                ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, \Test\WorkerDaemon\MainCronWorker::class, true,[],null, false);
                 break;
             default:
                 write('Missing onWorkerServiceInit handle');

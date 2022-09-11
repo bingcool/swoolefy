@@ -183,41 +183,52 @@ class EventCtrl implements EventCtrlInterface
 
         $conf                    = Swfy::getConf();
         $daemonize               = isset($conf['setting']['daemonize']) ? $conf['setting']['daemonize'] : false;
-        $listen_host             = isset($conf['host']) ? $conf['host'] : '127.0.0.1';
-        $listen_port             = isset($conf['port']) ? $conf['port'] : null;
-        $worker_num              = isset($conf['setting']['worker_num']) ? $conf['setting']['worker_num'] : 1;
-        $task_worker_num         = isset($conf['setting']['task_worker_num']) ? $conf['setting']['task_worker_num'] : 0;
-        $swoole_version          = swoole_version();
-        $php_version             = phpversion();
-        $swoolefy_version        = SWOOLEFY_VERSION;
-        $swoolefy_env            = defined('SWOOLEFY_ENV') ? SWOOLEFY_ENV : null;
-        $cpu_num                 = swoole_cpu_num();
-        $ip_list                 = json_encode(swoole_get_local_ip());
+        $listenHost             = isset($conf['host']) ? $conf['host'] : '127.0.0.1';
+        $listenPort             = isset($conf['port']) ? $conf['port'] : null;
+        $workerNum              = isset($conf['setting']['worker_num']) ? $conf['setting']['worker_num'] : 1;
+        $taskWorkerNum         = isset($conf['setting']['task_worker_num']) ? $conf['setting']['task_worker_num'] : 0;
+        $swooleVersion          = swoole_version();
+        $phpVersion             = phpversion();
+        $swoolefyVersion        = SWOOLEFY_VERSION;
+        $swoolefyEnv            = defined('SWOOLEFY_ENV') ? SWOOLEFY_ENV : null;
+        $cpuNum                 = swoole_cpu_num();
+        $ipList                 = json_encode(swoole_get_local_ip());
         $processListInfo         = array_values(ProcessManager::getInstance()->getProcessListInfo());
         $processListInfoStr      = json_encode($processListInfo, JSON_UNESCAPED_UNICODE);
         $poolsProcessListInfo    = array_values(PoolsManager::getInstance()->getProcessListInfo());
         $poolsProcessListInfoStr = json_encode($poolsProcessListInfo, JSON_UNESCAPED_UNICODE);
         $hostname                = gethostname();
 
+        if(isWorkerService()) {
+            $mainName = 'main worker';
+            $main_server = "【".WORKER_SERVICE_NAME."】";
+        }else {
+            $mainName = 'main server';
+        }
+
+        $this->each("Main Info: \n", 'light_green');
         $this->each(str_repeat('-', 50), 'light_green');
         $this->each("
-            main server         {$main_server}
-            swoolefy envirment  {$swoolefy_env}
+            {$mainName}         {$main_server}
+            swoolefy envirment  {$swoolefyEnv}
             daemonize           {$daemonize}
-            listen address      {$listen_host}
-            listen port         {$listen_port}
-            worker num          {$worker_num}
-            task worker num     {$task_worker_num}
-            cpu num             {$cpu_num}
-            swoole version      {$swoole_version}
-            php version         {$php_version}
-            swoolefy version    {$swoolefy_version}
-            ip_list             {$ip_list}
+            listen address      {$listenHost}
+            listen port         {$listenPort}
+            worker num          {$workerNum}
+            task worker num     {$taskWorkerNum}
+            cpu num             {$cpuNum}
+            swoole version      {$swooleVersion}
+            php version         {$phpVersion}
+            swoolefy version    {$swoolefyVersion}
+            ip_list             {$ipList}
             hostname            {$hostname}
             tips                执行 php swoolefy help 可以查看更多信息
 ", 'light_green');
         $this->each(str_repeat('-', 50) . "\n", 'light_green');
 
+        if(isWorkerService()) {
+            $this->each("Worker Info: \n", 'light_green');
+        }
     }
 
     /**

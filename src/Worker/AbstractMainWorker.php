@@ -40,7 +40,8 @@ abstract class AbstractMainWorker extends AbstractProcess {
                 }
             }
         });
-        define('WORKER_MASTER_ID', $this->getPid());
+
+        defined('WORKER_MASTER_ID') or define('WORKER_MASTER_ID', $this->getPid());
         defined('WORKER_CLI_PARAMS') or define('WORKER_CLI_PARAMS', json_encode($cliParams,JSON_UNESCAPED_UNICODE));
         return $cliParams;
     }

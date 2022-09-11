@@ -553,7 +553,7 @@ function workerStop($appName)
 {
     $pidFile = getPidFile($appName);
     if (!is_file($pidFile)) {
-        write("[Error] pid file={$pidFile} is not exist, please check the server whether running");
+        write("【Error] pid file={$pidFile} is not exist, please check the server whether running");
         exit(0);
     }
 
@@ -682,7 +682,7 @@ function statusServer($appName)
 function commonStatus($appName, $pidFile)
 {
     if (!is_file($pidFile)) {
-        write("pid file {$pidFile} is not exist, please check server weather is running");
+        write("【Error】pid file={$pidFile} is not exist, please check server weather is running");
         return;
     }
 
@@ -712,7 +712,7 @@ function commonStatus($appName, $pidFile)
 function workerStatus($pidFile)
 {
     if (!is_file($pidFile)) {
-        write("pid file {$pidFile} is not exist, please check server weather is running");
+        write("【Error】pid file={$pidFile} is not exist, please check server weather is running");
         return;
     }
 
