@@ -32,7 +32,6 @@ abstract class TcpServer extends BaseServer
         'reactor_num'     => 1,
         'worker_num'      => 1,
         'max_request'     => 1000,
-        'task_worker_num' => 1,
         'task_tmpdir'     => '/dev/shm',
         'daemonize'       => 0,
         'hook_flags'      => SWOOLE_HOOK_ALL | SWOOLE_HOOK_CURL,
@@ -160,28 +159,30 @@ abstract class TcpServer extends BaseServer
         /**
          * task
          */
-        if (parent::isTaskEnableCoroutine()) {
-            $this->tcpServer->on('task', function (\Swoole\Server $server, \Swoole\Server\Task $task) {
-                try {
-                    $data           = $task->data;
-                    $task_id        = $task->id;
-                    $from_worker_id = $task->worker_id;
-                    $task_data      = unserialize($data);
-                    static::onTask($server, $task_id, $from_worker_id, $task_data, $task);
-                } catch (\Throwable $e) {
-                    self::catchException($e);
-                }
-            });
+        if (!isWorkerService()) {
+            if (parent::isTaskEnableCoroutine()) {
+                $this->tcpServer->on('task', function (\Swoole\Server $server, \Swoole\Server\Task $task) {
+                    try {
+                        $data           = $task->data;
+                        $task_id        = $task->id;
+                        $from_worker_id = $task->worker_id;
+                        $task_data      = unserialize($data);
+                        static::onTask($server, $task_id, $from_worker_id, $task_data, $task);
+                    } catch (\Throwable $e) {
+                        self::catchException($e);
+                    }
+                });
 
-        } else {
-            $this->tcpServer->on('task', function (\Swoole\Server $server, $task_id, $from_worker_id, $data) {
-                try {
-                    $task_data = unserialize($data);
-                    static::onTask($server, $task_id, $from_worker_id, $task_data);
-                } catch (\Throwable $e) {
-                    self::catchException($e);
-                }
-            });
+            } else {
+                $this->tcpServer->on('task', function (\Swoole\Server $server, $task_id, $from_worker_id, $data) {
+                    try {
+                        $task_data = unserialize($data);
+                        static::onTask($server, $task_id, $from_worker_id, $task_data);
+                    } catch (\Throwable $e) {
+                        self::catchException($e);
+                    }
+                });
+            }
         }
 
         /**

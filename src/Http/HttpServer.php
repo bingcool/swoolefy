@@ -35,7 +35,6 @@ abstract class HttpServer extends BaseServer
         'reactor_num'     => 1,
         'worker_num'      => 1,
         'max_request'     => 1000,
-        'task_worker_num' => 1,
         'task_tmpdir'     => '/dev/shm',
         'daemonize'       => 0,
         'hook_flags'      => SWOOLE_HOOK_ALL | SWOOLE_HOOK_CURL,
@@ -118,6 +117,9 @@ abstract class HttpServer extends BaseServer
          * request
          */
         $this->webServer->on('request', function (Request $request, Response $response) {
+            if(isWorkerService()) {
+                return false;
+            }
             try {
                 parent::beforeHandle();
                 static::onRequest($request, $response);
@@ -130,28 +132,30 @@ abstract class HttpServer extends BaseServer
         /**
          * task
          */
-        if (parent::isTaskEnableCoroutine()) {
-            $this->webServer->on('task', function (\Swoole\Http\Server $server, \Swoole\Server\Task $task) {
-                try {
-                    $data           = $task->data;
-                    $task_id        = $task->id;
-                    $from_worker_id = $task->worker_id;
-                    $task_data      = unserialize($data);
-                    static::onTask($server, $task_id, $from_worker_id, $task_data, $task);
-                } catch (\Throwable $e) {
-                    self::catchException($e);
-                }
-            });
-        } else {
-            $this->webServer->on('task', function (\Swoole\Http\Server $server, $task_id, $from_worker_id, $data) {
-                try {
-                    $task_data = unserialize($data);
-                    static::onTask($server, $task_id, $from_worker_id, $task_data);
-                } catch (\Throwable $e) {
-                    self::catchException($e);
-                }
+        if (!isWorkerService()) {
+            if (parent::isTaskEnableCoroutine()) {
+                $this->webServer->on('task', function (\Swoole\Http\Server $server, \Swoole\Server\Task $task) {
+                    try {
+                        $data           = $task->data;
+                        $task_id        = $task->id;
+                        $from_worker_id = $task->worker_id;
+                        $task_data      = unserialize($data);
+                        static::onTask($server, $task_id, $from_worker_id, $task_data, $task);
+                    } catch (\Throwable $e) {
+                        self::catchException($e);
+                    }
+                });
+            } else {
+                $this->webServer->on('task', function (\Swoole\Http\Server $server, $task_id, $from_worker_id, $data) {
+                    try {
+                        $task_data = unserialize($data);
+                        static::onTask($server, $task_id, $from_worker_id, $task_data);
+                    } catch (\Throwable $e) {
+                        self::catchException($e);
+                    }
 
-            });
+                });
+            }
         }
 
         /**

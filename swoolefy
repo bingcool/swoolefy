@@ -1012,7 +1012,7 @@ function resetConf(&$conf)
             $path = pathinfo($conf['setting']['pid_file']);
             $conf['setting']['pid_file'] = $path['dirname'].'/'.WORKER_SERVICE_NAME.'/'.$path['filename'].'_worker.'.$path['extension'];
         }
-        unset($conf['setting']['admin_server']);
+        unset($conf['setting']['admin_server'], $conf['setting']['task_worker_num']);
     }
 }
 

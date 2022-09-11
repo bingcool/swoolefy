@@ -25,11 +25,11 @@ class PipeWorker extends \Swoolefy\Worker\WorkerProcess
 //            });
 //        });
 
-        $this->reboot();
+        //$this->reboot();
 
-//        if($this->isWorker0()) {
-//            $this->notifyMasterCreateDynamicProcess($this->getProcessName(), 1);
-//        }
+        if($this->isWorker0()) {
+            $this->notifyMasterCreateDynamicProcess($this->getProcessName(), 1);
+        }
     }
 
     public function onHandleException(\Throwable $throwable, array $context = [])

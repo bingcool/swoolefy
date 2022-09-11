@@ -133,7 +133,7 @@ abstract class AbstractProcess
                             return;
                         } else {
                             $message = json_decode($msg, true) ?? $msg;
-                            if(!$this->isWorkerService()) {
+                            if(!$this->isWorkerService() || $this->enableCoroutine) {
                                 (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) use ($message) {
                                     $this->onReceive($message);
                                 });
@@ -142,7 +142,7 @@ abstract class AbstractProcess
                             }
                         }
                     } catch (\Throwable $throwable) {
-                        BaseServer::catchException($throwable);
+                        $this->onHandleException($throwable);
                     }
                 });
             });
@@ -151,7 +151,7 @@ abstract class AbstractProcess
         $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'php-swoolefy-user-process:' . $this->getProcessName());
 
         try {
-            if(!$this->isWorkerService()) {
+            if(!$this->isWorkerService() || $this->enableCoroutine) {
                 (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
                     $this->init();
                     $this->run();
@@ -161,7 +161,7 @@ abstract class AbstractProcess
                 $this->run();
             }
         } catch (\Throwable $throwable) {
-            BaseServer::catchException($throwable);
+            $this->onHandleException($throwable);
         }
 
     }
@@ -314,7 +314,7 @@ abstract class AbstractProcess
                         $this->onShutDown();
                     });
                 } catch (\Throwable $throwable) {
-                    BaseServer::catchException($throwable);
+                    $this->onHandleException($throwable);
                 } finally {
                     \Swoole\Process::kill($this->getPid(), SIGTERM);
                 }
@@ -396,7 +396,7 @@ abstract class AbstractProcess
                 );
                 if(!in_array($error['type'], [E_NOTICE, E_WARNING]) ) {
                     $exception = new \Exception($errorStr, $error['type']);
-                    BaseServer::catchException($exception);
+                    $this->onHandleException($exception);
                 }
             }
         });
@@ -430,6 +430,17 @@ abstract class AbstractProcess
      */
     public function onReceive($msg, ...$args)
     {
+    }
+
+    /**
+     * onHandleException
+     * @param \Throwable $throwable
+     * @param array $context
+     * @return void
+     */
+    public function onHandleException(\Throwable $throwable, array $context = [])
+    {
+        BaseServer::catchException($throwable);
     }
 
 }

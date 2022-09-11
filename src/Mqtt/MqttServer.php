@@ -40,7 +40,6 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
         'reactor_num'        => 1,
         'worker_num'         => 1,
         'max_request'        => 1000,
-        'task_worker_num'    => 1,
         'task_tmpdir'        => '/dev/shm',
         'daemonize'          => 0,
         'open_mqtt_protocol' => true,
@@ -149,28 +148,30 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
         /**
          * task
          */
-        if (parent::isTaskEnableCoroutine()) {
-            $this->mqttServer->on('task', function (\Swoole\Server $server, \Swoole\Server\Task $task) {
-                try {
-                    $from_worker_id = $task->worker_id;
-                    $task_id = $task->id;
-                    $data = $task->data;
-                    $task_data = unserialize($data);
-                    static::onTask($server, $task_id, $from_worker_id, $task_data, $task);
-                } catch (\Throwable $e) {
-                    self::catchException($e);
-                }
-            });
+        if (!isWorkerService()) {
+            if (parent::isTaskEnableCoroutine()) {
+                $this->mqttServer->on('task', function (\Swoole\Server $server, \Swoole\Server\Task $task) {
+                    try {
+                        $from_worker_id = $task->worker_id;
+                        $task_id = $task->id;
+                        $data = $task->data;
+                        $task_data = unserialize($data);
+                        static::onTask($server, $task_id, $from_worker_id, $task_data, $task);
+                    } catch (\Throwable $e) {
+                        self::catchException($e);
+                    }
+                });
 
-        } else {
-            $this->mqttServer->on('task', function (\Swoole\Server $server, $task_id, $from_worker_id, $data) {
-                try {
-                    $task_data = unserialize($data);
-                    static::onTask($server, $task_id, $from_worker_id, $task_data);
-                } catch (\Throwable $e) {
-                    self::catchException($e);
-                }
-            });
+            } else {
+                $this->mqttServer->on('task', function (\Swoole\Server $server, $task_id, $from_worker_id, $data) {
+                    try {
+                        $task_data = unserialize($data);
+                        static::onTask($server, $task_id, $from_worker_id, $task_data);
+                    } catch (\Throwable $e) {
+                        self::catchException($e);
+                    }
+                });
+            }
         }
 
         /**
