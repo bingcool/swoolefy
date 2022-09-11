@@ -11,7 +11,6 @@
 
 namespace Swoolefy\Core;
 
-use setasign\Fpdi\PdfParser\Filter\Flate;
 use Swoole\Server;
 use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Process\ProcessManager;
@@ -45,11 +44,7 @@ class EventCtrl implements EventCtrlInterface
      */
     protected function isWorkerService()
     {
-        if(!defined('IS_WORKER_SERVICE') || empty(IS_WORKER_SERVICE)) {
-            return false;
-        }
-
-        return true;
+        return isWorkerService();
     }
 
     /**
@@ -79,7 +74,9 @@ class EventCtrl implements EventCtrlInterface
      */
     public function workerStart($server, $worker_id)
     {
-        $this->registerComponentPools();
+        if(!isWorkerService()) {
+            $this->registerComponentPools();
+        }
         static::onWorkerStart($server, $worker_id);
     }
 

@@ -33,7 +33,6 @@
         "ext-sockets": "*",
         "ext-mbstring": "*",
         "dragonmantank/cron-expression": "~3.2",
-        "simps/mqtt": "2.x-dev",
         "bingcool/library": "dev-master"
     },
     "autoload": {

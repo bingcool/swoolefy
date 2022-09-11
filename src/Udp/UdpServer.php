@@ -58,7 +58,6 @@ abstract class UdpServer extends BaseServer
         self::clearCache();
         self::$config = $config;
         self::$setting = array_merge(self::$setting, self::$config['setting']);
-        self::resetConf(self::$config, self::$setting);
         self::$config['setting'] = self::$setting;
         self::setSwooleSockType();
         self::setServerName(self::SERVER_NAME);

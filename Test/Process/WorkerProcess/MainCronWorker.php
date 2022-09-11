@@ -3,7 +3,7 @@ namespace Test\Process\WorkerProcess;
 
 use Swoolefy\Worker\AbstractMainWorker;
 
-class MainWorker extends AbstractMainWorker {
+class MainCronWorker extends AbstractMainWorker {
 
     protected function beforeStart()
     {

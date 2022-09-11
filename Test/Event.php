@@ -35,7 +35,7 @@ class Event extends EventHandler
             //ProcessManager::getInstance()->addProcess('test', \Test\Process\TestProcess\Test::class);
 
             // 创建一个定时器处理进程
-            //ProcessManager::getInstance()->addProcess('tick', \Test\Process\TickProcess\Tick::class);
+            ProcessManager::getInstance()->addProcess('tick', \Test\Process\TickProcess\Tick::class);
 
             // 测试cron自定义进程
             //ProcessManager::getInstance()->addProcess('cron', \Test\Process\CronProcess\Cron::class);
@@ -65,7 +65,17 @@ class Event extends EventHandler
      */
     public function onWorkerServiceInit()
     {
-        ProcessManager::getInstance()->addProcess('worker-service', \Test\Process\WorkerProcess\MainWorker::class, true,[],null, false);
+        switch (WORKER_SERVICE_NAME) {
+            case 'test-worker':
+                ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, \Test\Process\WorkerProcess\MainWorker::class, true,[],null, false);
+                break;
+            case 'test-worker-cron':
+                ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, \Test\Process\WorkerProcess\MainCronWorker::class, true,[],null, false);
+                break;
+            default:
+                write('Missing onWorkerServiceInit handle');
+                exit(0);
+        }
     }
 
     /**
@@ -75,6 +85,10 @@ class Event extends EventHandler
      */
     public function onWorkerStart($server, $worker_id)
     {
+        if($this->isWorkerService()) {
+            return;
+        }
+
         // 创建产生uuid的定时器
         $redis = Application::getApp()->get('redis')->getObject();
         \Common\Library\Uuid\UuidManager::getInstance($redis, 'uuid-key')->tickPreBatchGenerateIds(2,1000);

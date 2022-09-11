@@ -196,32 +196,6 @@ class BaseServer
     }
 
     /**
-     * @param $conf
-     * @param $setting
-     * @return void
-     */
-    protected function resetConf(&$conf, &$setting)
-    {
-        if(defined('IS_WORKER_SERVICE') && IS_WORKER_SERVICE == 1) {
-            $conf['port'] = $conf['port'] + 100;
-            $setting['enable_coroutine'] = 0;
-            $setting['reactor_num'] = 1;
-            $setting['worker_num'] = 1;
-            $setting['task_worker_num'] = 1;
-
-            if(isset($setting['log_file'])) {
-                $path = pathinfo($setting['log_file']);
-                $setting['log_file'] = $path['dirname'].'/'.$path['filename'].'_worker.'.$path['extension'];
-            }
-
-            if(isset($setting['pid_file'])) {
-                $path = pathinfo($setting['pid_file']);
-                $setting['pid_file'] = $path['dirname'].'/'.$path['filename'].'_worker.'.$path['extension'];
-            }
-        }
-    }
-
-    /**
      * checkVersion
      * @return void
      * @throws \Exception
