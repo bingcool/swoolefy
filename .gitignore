@@ -6,6 +6,7 @@ sftp-config.json
 env.ini
 cli-test.php
 worker.php
+cron.php
 /App
 /protocol
 /vendor

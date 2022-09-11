@@ -11,10 +11,7 @@
 
 namespace Swoolefy\Worker;
 
-use Swoole\Coroutine\Channel;
-use Swoolefy\Core\BaseServer;
 use Swoolefy\Worker\Dto\MessageDto;
-use Swoolefy\Worker\Dto\PipeMsgDto;
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Core\Memory\SysvmsgManager;
 use RuntimeException;
@@ -197,7 +194,6 @@ class MainManager
     {
         $this->config = $config;
         $this->setCoroutineSetting(array_merge($this->defaultCoroutineSetting, $config['coroutine_setting'] ?? []));
-        $this->registerRuntimeLog();
         $this->onHandleException = function (\Throwable $exception) {
         };
     }
@@ -285,7 +281,7 @@ class MainManager
      * start
      * @return mixed
      */
-    public function start(bool $is_daemon = false)
+    public function start()
     {
         try {
             if (!empty($this->processLists)) {
@@ -295,6 +291,7 @@ class MainManager
                 $this->initStart();
                 // process->start 后，父进程会强制要求pdo,redis等API must be called in the coroutine中
                 $this->setRunning();
+                $this->installCliPipe();
                 $this->installSigchldSignal();
                 $this->installMasterStopSignal();
                 $this->installMasterReloadSignal();
@@ -360,8 +357,8 @@ class MainManager
             }
         }
 
-        foreach ($this->processWorkers as $key => $workers) {
-            foreach ($workers as $workerId => $process) {
+        foreach ($this->processWorkers as $workers) {
+            foreach ($workers as $process) {
                 $process->start();
                 usleep(50000);
             }
@@ -500,7 +497,7 @@ class MainManager
     {
         \Swoole\Process::signal(SIGUSR2, function ($signo) {
             $this->isExit = false;
-            foreach ($this->processWorkers as $key => $processes) {
+            foreach ($this->processWorkers as $processes) {
                 foreach ($processes as $workerId => $process) {
                     $processName = $process->getProcessName();
                     $this->writeByProcessName($processName, WorkerProcess::WORKERFY_PROCESS_REBOOT_FLAG, $workerId);
@@ -905,7 +902,7 @@ class MainManager
         $dynamicProcessNum = 0;
         $key = md5($process_name);
         $processWorkers = $this->getProcessByName($process_name, -1);
-        foreach ($processWorkers as $worker_id => $process) {
+        foreach ($processWorkers as $process) {
             if ($process->isDynamicProcess()) {
                 ++$dynamicProcessNum;
             }
@@ -946,13 +943,13 @@ class MainManager
     {
         $status = [];
         $childrenNum = 0;
-        foreach ($this->processWorkers as $key => $processes) {
+        foreach ($this->processWorkers as $processes) {
             $childrenNum += count($processes);
             ksort($processes);
             /**
              * @var WorkerProcess $process
              */
-            foreach ($processes as $processWorkerId => $process) {
+            foreach ($processes as $process) {
                 $processName = $process->getProcessName();
                 $workerId = $process->getProcessWorkerId();
                 $this->writeByProcessName($processName, WorkerProcess::WORKERFY_PROCESS_STATUS_FLAG, $workerId);
@@ -991,9 +988,9 @@ class MainManager
 
         $runningChildrenNum = 0;
         $childrenStatus = [];
-        foreach ($this->processWorkers as $key => $processes) {
+        foreach ($this->processWorkers as $processes) {
             ksort($processes);
-            foreach ($processes as $processWorkerId => $process) {
+            foreach ($processes as $process) {
                 /**
                  * @var WorkerProcess $process
                  */
@@ -1112,8 +1109,8 @@ class MainManager
     public function getProcessByPid(int $pid)
     {
         $p = null;
-        foreach ($this->processWorkers as $key => $processes) {
-            foreach ($processes as $worker_id => $process) {
+        foreach ($this->processWorkers as $processes) {
+            foreach ($processes as $process) {
                 if ($process->getPid() == $pid) {
                     $p = $process;
                     break;
@@ -1319,6 +1316,61 @@ class MainManager
     }
 
     /**
+     * install Cli Pipe for listen cli command
+     * @return bool|null
+     * @throws \RuntimeException
+     */
+    private function installCliPipe()
+    {
+        if (!$this->enablePipe) {
+            return false;
+        }
+
+        $cliPipeFile = $this->getCliPipeFile();
+        if (file_exists($cliPipeFile)) {
+            unlink($cliPipeFile);
+        }
+
+        if (!posix_mkfifo($cliPipeFile, 0777)) {
+            throw new RuntimeException("Create Cli Pipe failed");
+        }
+
+        $this->cliPipeFd = fopen($cliPipeFile, 'w+');
+        is_resource($this->cliPipeFd) && stream_set_blocking($this->cliPipeFd, false);
+        \Swoole\Event::add($this->cliPipeFd, function () {
+            try {
+                $pipeMsg = fread($this->cliPipeFd, 8192);
+                $cliPipeMsgDto = unserialize($pipeMsg);
+                if ($cliPipeMsgDto instanceof \Swoolefy\Worker\Dto\PipeMsgDto) {
+                    switch ($cliPipeMsgDto->action) {
+                        case WORKER_CLI_STATUS :
+                            $this->masterStatusToCliFifoPipe($cliPipeMsgDto->targetHandler);
+                            break;
+                        case WORKER_CLI_STOP :
+                            foreach ($this->processWorkers as $processes) {
+                                ksort($processes);
+                                /**
+                                 * @var WorkerProcess $process
+                                 */
+                                foreach ($processes as $process) {
+                                    $processName = $process->getProcessName();
+                                    $workerId = $process->getProcessWorkerId();
+                                    $this->writeByProcessName($processName, WorkerProcess::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
+                                }
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
+            } catch (\Throwable $throwable) {
+                $this->onHandleException->call($this, $throwable);
+            }
+        });
+    }
+
+    /**
      * addProcessByCli
      * @param string $process_name
      * @param int $num
@@ -1350,6 +1402,15 @@ class MainManager
         } else {
             $this->writeInfo("【Warning】Not exist children_process_name = {$process_name}, remove failed");
         }
+    }
+
+    /**
+     * getCliPipeFile
+     * @return string
+     */
+    public function getCliPipeFile()
+    {
+        return WORKER_CLI_PIPE;
     }
 
     /**
@@ -1412,7 +1473,7 @@ class MainManager
         if (!isset($this->masterPid)) {
             $this->masterPid = posix_getpid();
         }
-        cli_set_process_title("php-swoolefy-worker-master:" . WORKER_START_SCRIPT_FILE);
+        cli_set_process_title(APP_NAME."-swoolefy-".WORKER_SERVICE_NAME."-php-worker-master:" . WORKER_START_SCRIPT_FILE);
         defined('WORKER_MASTER_PID') OR define('WORKER_MASTER_PID', $this->masterPid);
     }
 
@@ -1500,16 +1561,6 @@ class MainManager
         list($msgmax, $msgmnb, $msgmni) = $sysKernelInfo;
         $sysKernel = "[单个消息体最大字节msgmax:{$msgmax},队列的最大容量msgmnb:{$msgmnb},队列最大个数:{$msgmni}]";
         return [$msgSysvmsgInfo, $sysKernel];
-    }
-
-    /**
-     * @return Log\LogHandle
-     */
-    protected function registerRuntimeLog()
-    {
-        // todo
-
-        //return $this->onRegisterLogger->call($this);
     }
 
     /**
