@@ -4,11 +4,6 @@ namespace Test\WorkerDaemon;
 use Swoolefy\Worker\AbstractMainWorker;
 
 class MainCronWorker extends AbstractMainWorker {
-
-    protected function beforeStart()
-    {
-    }
-
     public function run()
     {
         try {

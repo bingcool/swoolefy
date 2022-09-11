@@ -3,6 +3,7 @@
 namespace Test\WorkerDaemon;
 
 use Swoolefy\Core\Application;
+use Swoolefy\Core\EventController;
 
 class PipeWorker extends \Swoolefy\Worker\WorkerProcess
 {
@@ -17,6 +18,12 @@ class PipeWorker extends \Swoolefy\Worker\WorkerProcess
         $db = Application::getApp()->get('db');
         $result = $db->createCommand('select * from tbl_users limit 1')->queryAll();
         dump($result);
+
+//        \Swoole\Coroutine::create(function () {
+//            (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp)  {
+//                var_dump('mmmmmmmmmmmmmmmmmmmmmmmmm');
+//            });
+//        });
 
         $this->reboot();
 

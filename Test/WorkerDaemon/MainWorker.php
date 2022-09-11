@@ -1,14 +1,10 @@
 <?php
 namespace Test\WorkerDaemon;
 
+use Swoolefy\Core\EventController;
 use Swoolefy\Worker\AbstractMainWorker;
 
 class MainWorker extends AbstractMainWorker {
-
-    protected function beforeStart()
-    {
-    }
-
     public function run()
     {
         try {
