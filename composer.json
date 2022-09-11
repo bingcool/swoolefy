@@ -22,7 +22,7 @@
     ],
     "minimum-stability": "dev",
     "require": {
-        "php" : ">=7.2.11",
+        "php" : ">=7.2.0",
         "ext-swoole" : ">=4.4.5",
         "ext-json": "*",
         "psr/log" : "*",
@@ -31,10 +31,8 @@
         "ext-pdo": "*",
         "ext-redis": "*",
         "ext-sockets": "*",
-        "ext-zend-opcache": "*",
         "ext-mbstring": "*",
         "dragonmantank/cron-expression": "~3.2",
-        "simps/mqtt": "2.x-dev",
         "bingcool/library": "dev-master"
     },
     "autoload": {

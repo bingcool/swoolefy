@@ -233,4 +233,28 @@ class TableManager
         }
         return $tableRows;
     }
+
+    /**
+     * get all table_name instance
+     * @return array
+     */
+    public function getAllTableName()
+    {
+        $tableNames = array_keys(BaseServer::$tableMemory);
+        return $tableNames;
+    }
+
+    /**
+     * getAllTableKeyMapRowValue
+     * @return array
+     */
+    public function getAllTableKeyMapRowValue()
+    {
+        $tableInfos = [];
+        $tableNames = $this->getAllTableName();
+        foreach ($tableNames as $tableName) {
+            $tableInfos[$tableName] = $this->getKeyMapRowValue($tableName);
+        }
+        return $tableInfos;
+    }
 }

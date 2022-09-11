@@ -82,7 +82,11 @@ abstract class AbstractProcess
         $this->args = $args;
         $this->extendData = $extend_data;
         $this->processName = $processName;
-        $this->enableCoroutine = true;
+        if($this->isWorkerService()) {
+            $this->enableCoroutine = $enable_coroutine;
+        }else {
+            $this->enableCoroutine = true;
+        }
         $this->swooleProcess = new \Swoole\Process([$this, '__start'], false, SOCK_DGRAM, $this->enableCoroutine);
         Swfy::getServer()->addProcess($this->swooleProcess);
     }
@@ -94,6 +98,11 @@ abstract class AbstractProcess
      */
     public function __start(Process $process)
     {
+        $this->parseCliEnvParams();
+        if (method_exists(static::class, 'beforeStart')) {
+            $this->beforeStart();
+        }
+
         $this->installRegisterShutdownFunction();
         TableManager::getTable('table_process_map')->set(
             md5($this->processName), ['pid' => $this->swooleProcess->pid]
@@ -138,14 +147,50 @@ abstract class AbstractProcess
         $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'php-swoolefy-user-process:' . $this->getProcessName());
 
         try {
-            (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
+            if(!$this->isWorkerService()) {
+                (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
+                    $this->init();
+                    $this->run();
+                });
+            }else {
                 $this->init();
                 $this->run();
-            });
+            }
         } catch (\Throwable $throwable) {
+            var_dump($throwable->getTraceAsString());
             BaseServer::catchException($throwable);
         }
 
+    }
+
+    /**
+     * @return array
+     */
+    protected function parseCliEnvParams()
+    {
+        $cliParams = [];
+        $args = array_splice($_SERVER['argv'], 3);
+        array_reduce($args, function ($result, $item) use (&$cliParams) {
+            // start daemon
+            if (in_array($item, ['-d', '-D'])) {
+                putenv('daemon=1');
+                defined('IS_DAEMON') OR define('IS_DAEMON', 1);
+            } else if (in_array($item, ['-f', '-F'])) {
+                // stop force
+                putenv('force=1');
+                $cliParams['force'] = 1;
+            } else {
+                $item = ltrim($item, '--');
+                putenv($item);
+                list($env, $value) = explode('=', $item);
+                if ($env && $value) {
+                    $cliParams[$env] = $value;
+                }
+            }
+        });
+        define('WORKER_MASTER_ID', $this->getPid());
+        defined('WORKER_CLI_PARAMS') or define('WORKER_CLI_PARAMS', json_encode($cliParams,JSON_UNESCAPED_UNICODE));
+        return $cliParams;
     }
 
     /**
@@ -184,8 +229,21 @@ abstract class AbstractProcess
         $pid = TableManager::getTable('table_process_map')->get(md5($this->processName), 'pid');
         if ($pid) {
             return $pid;
+        }else {
+            return posix_getpid();
         }
-        return null;
+    }
+
+    /**
+     * @return bool
+     */
+    protected function isWorkerService()
+    {
+        if(!defined('IS_WORKER_SERVICE') || empty(IS_WORKER_SERVICE)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
