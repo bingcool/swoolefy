@@ -6,7 +6,7 @@ use Swoolefy\Core\Application;
 
 class FixedUser extends \Swoolefy\Script\MainScript
 {
-    public function run()
+    public function fixName()
     {
         try {
             var_dump('CID='.\Co::getCid());
@@ -15,14 +15,11 @@ class FixedUser extends \Swoolefy\Script\MainScript
             $db = Application::getApp()->get('db');
             $result = $db->createCommand('select * from tbl_users limit 1')->queryAll();
             dump($result);
-
-            $this->exitAll();
         }catch (\Throwable $exception) {
             var_dump($exception->getMessage());
-            $this->exitAll();
         }
 
-        $this->exitAll();
+        //$this->exitAll();
     }
 
     public function onHandleException(\Throwable $throwable, array $context = [])

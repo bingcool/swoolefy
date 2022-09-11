@@ -14,9 +14,34 @@ namespace Swoolefy\Script;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Worker\AbstractMainWorker;
 
-abstract class MainScript extends AbstractMainWorker {
+class MainScript extends AbstractMainWorker {
 
     /**
+     * @return void
+     */
+    public function run()
+    {
+        $isExit = false;
+        try {
+            $action = getenv('a');
+            $this->{$action}();
+            $isExit = true;
+            $this->exitAll();
+        }catch (\Throwable $exception) {
+            write($exception->getMessage());
+            write($exception->getTraceAsString());
+            $this->exitAll();
+            $isExit = true;
+            return;
+        } finally {
+            if(!$isExit) {
+                $this->exitAll(true);
+            }
+        }
+    }
+
+    /**
+     * @param bool $force
      * @return void
      */
     protected function exitAll(bool $force = false)
@@ -29,5 +54,25 @@ abstract class MainScript extends AbstractMainWorker {
                 \Swoole\Process::kill($swooleMasterPid, SIGTERM);
             }
         }
+    }
+
+    /**
+     * @return string|void
+     */
+    public static function parseClass()
+    {
+        $class = getenv('r');
+        if(empty($class)) {
+            return '';
+        }
+        $routerArr = explode('/', trim($class, '/'));
+        $action = array_pop($routerArr);
+        $class = implode('\\', $routerArr);
+        if(!is_subclass_of($class, __CLASS__)) {
+            write("【Error】Missing class={$class} extends \Swoolefy\Script\MainScript");
+            return '';
+        }
+        putenv("a={$action}");
+        return $class;
     }
 }

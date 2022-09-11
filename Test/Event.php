@@ -73,7 +73,11 @@ class Event extends EventHandler
                 ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, \Test\WorkerDaemon\MainCronWorker::class, true,[],null, false);
                 break;
             case 'test-script1':
-                ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, \Test\Scripts\FixedUser::class);
+                $class = \Swoolefy\Script\MainScript::parseClass();
+                if(empty($class)) {
+                    exit(0);
+                }
+                ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, $class);
                 break;
             default:
                 write('Missing onWorkerServiceInit handle');
