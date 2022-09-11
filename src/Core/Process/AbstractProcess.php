@@ -133,9 +133,13 @@ abstract class AbstractProcess
                             return;
                         } else {
                             $message = json_decode($msg, true) ?? $msg;
-                            (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) use ($message) {
+                            if(!$this->isWorkerService()) {
+                                (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) use ($message) {
+                                    $this->onReceive($message);
+                                });
+                            }else {
                                 $this->onReceive($message);
-                            });
+                            }
                         }
                     } catch (\Throwable $throwable) {
                         BaseServer::catchException($throwable);
@@ -157,7 +161,6 @@ abstract class AbstractProcess
                 $this->run();
             }
         } catch (\Throwable $throwable) {
-            var_dump($throwable->getTraceAsString());
             BaseServer::catchException($throwable);
         }
 
