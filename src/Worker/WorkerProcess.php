@@ -73,6 +73,7 @@ abstract class WorkerProcess
     private $pid;
 
     /**
+     * worker master pid
      * @var int
      */
     private $masterPid;

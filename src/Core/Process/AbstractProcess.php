@@ -148,6 +148,25 @@ abstract class AbstractProcess
             });
         }
 
+        if(!$this->isWorkerService() || $this->enableCoroutine) {
+            \Swoole\Timer::tick((10+rand(1,10)) * 1000, function ($timerId) {
+                $swooleMasterPid = Swfy::getMasterPid();
+                if(!\Swoole\Process::kill($swooleMasterPid, 0)) {
+                    sleep(1);
+                    if(!\Swoole\Process::kill($swooleMasterPid, 0)) {
+                        \Swoole\Timer::clear($timerId);
+                        \Swoole\Process::kill($swooleMasterPid, SIGTERM);
+                    }
+                }else {
+                    $parentPid = posix_getppid();
+                    if($parentPid == 1) {
+                        \Swoole\Timer::clear($timerId);
+                        \Swoole\Process::kill($swooleMasterPid, SIGTERM);
+                    }
+                }
+            });
+        }
+
         $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'php-swoolefy-user-process:' . $this->getProcessName());
 
         try {

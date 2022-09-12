@@ -73,7 +73,7 @@ class Event extends EventHandler
                 ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, \Test\WorkerDaemon\MainCronWorker::class, true,[],null, false);
                 break;
             case 'test-script1':
-                $class = \Swoolefy\Script\MainScript::parseClass();
+                $class = \Swoolefy\Script\MainCliScript::parseClass();
                 if(empty($class)) {
                     exit(0);
                 }
