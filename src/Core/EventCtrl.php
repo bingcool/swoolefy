@@ -226,8 +226,10 @@ class EventCtrl implements EventCtrlInterface
 ", 'light_green');
         $this->each(str_repeat('-', 50) . "\n", 'light_green');
 
-        if(isWorkerService()) {
+        if(isWorkerService() && !isCliScript()) {
             $this->each("Worker Info: \n", 'light_green');
+        }else if(isCliScript()) {
+            $this->each("Cli Script Start: \n", 'light_green');
         }
     }
 

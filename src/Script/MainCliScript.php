@@ -14,7 +14,7 @@ namespace Swoolefy\Script;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Worker\AbstractMainWorker;
 
-class MainScript extends AbstractMainWorker {
+class MainCliScript extends AbstractMainWorker {
 
     /**
      * @return void
@@ -22,6 +22,7 @@ class MainScript extends AbstractMainWorker {
     public function run()
     {
         $isExit = false;
+        $this->setIsCliScript();
         try {
             $action = getenv('a');
             $this->{$action}();
@@ -38,6 +39,14 @@ class MainScript extends AbstractMainWorker {
                 $this->exitAll(true);
             }
         }
+    }
+
+    /**
+     * @return void
+     */
+    private function setIsCliScript()
+    {
+        defined('IS_CLI_SCRIPT') or define('IS_CLI_SCRIPT',1);
     }
 
     /**
@@ -63,16 +72,18 @@ class MainScript extends AbstractMainWorker {
     {
         $class = getenv('r');
         if(empty($class)) {
+            write("【Error】Missing cli router param --r=xxxxx");
             return '';
         }
         $routerArr = explode('/', trim($class, '/'));
         $action = array_pop($routerArr);
         $class = implode('\\', $routerArr);
         if(!is_subclass_of($class, __CLASS__)) {
-            write("【Error】Missing class={$class} extends \Swoolefy\Script\MainScript");
+            write("【Error】Missing class={$class} extends \Swoolefy\Script\MainCliScript");
             return '';
         }
         putenv("a={$action}");
+
         return $class;
     }
 }

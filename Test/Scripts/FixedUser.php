@@ -4,14 +4,14 @@ namespace Test\Scripts;
 
 use Swoolefy\Core\Application;
 
-class FixedUser extends \Swoolefy\Script\MainScript
+class FixedUser extends \Swoolefy\Script\MainCliScript
 {
     public function fixName()
     {
         try {
             var_dump('CID='.\Co::getCid());
             var_dump('PipeWorker');
-            sleep(5);
+            sleep(30);
             $db = Application::getApp()->get('db');
             $result = $db->createCommand('select * from tbl_users limit 1')->queryAll();
             dump($result);

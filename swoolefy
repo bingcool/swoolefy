@@ -262,7 +262,15 @@ function createProject($server_name)
 
 function isWorkerService()
 {
-    if(defined('IS_WORKER_SERVICE') && IS_WORKER_SERVICE ==1) {
+    if((defined('IS_WORKER_SERVICE') && IS_WORKER_SERVICE ==1) || isCliScript()) {
+        return true;
+    }
+    return false;
+}
+
+function isCliScript()
+{
+    if(defined('IS_CLI_SCRIPT') && IS_CLI_SCRIPT == 1) {
         return true;
     }
     return false;
@@ -271,27 +279,33 @@ function isWorkerService()
 function startServer($server_name)
 {
     foreach (APP_NAMES as $appName => $protocol) {
-        if ($appName == $server_name) {
-            switch ($protocol) {
-                case 'http':
-                    startHttpService($appName);
-                    break;
-                case 'websocket':
-                    startWebsocket($appName);
-                    break;
-                case 'rpc':
-                    startRpc($appName);
-                    break;
-                case 'udp':
-                    startUdp($appName);
-                    break;
-                case 'mqtt':
-                    startMqtt($appName);
-                    break;
-                default:
-                    write("Protocol is not in 【'http','websocket','rpc','udp','mqtt'】");
-                    break;
+        try {
+            if ($appName == $server_name) {
+                switch ($protocol) {
+                    case 'http':
+                        startHttpService($appName);
+                        break;
+                    case 'websocket':
+                        startWebsocket($appName);
+                        break;
+                    case 'rpc':
+                        startRpc($appName);
+                        break;
+                    case 'udp':
+                        startUdp($appName);
+                        break;
+                    case 'mqtt':
+                        startMqtt($appName);
+                        break;
+                    default:
+                        write("Protocol is not in 【'http','websocket','rpc','udp','mqtt'】");
+                        break;
+                }
             }
+        }catch (\Throwable $throwable) {
+            write($throwable->getMessage());
+            write($throwable->getTraceAsString());
+            exit(0);
         }
     }
 }
