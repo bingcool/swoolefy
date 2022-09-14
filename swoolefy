@@ -96,9 +96,7 @@ if(file_exists($envFile)) {
 
 defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', $cliEnv);
 
-if(isWorkerService()) {
-    parseCliEnvParams();
-}
+parseCliEnvParams();
 
 function parseCliEnvParams()
 {
@@ -122,7 +120,7 @@ function parseCliEnvParams()
             }
         }
     });
-    defined('WORKER_CLI_PARAMS') or define('WORKER_CLI_PARAMS', json_encode($cliParams,JSON_UNESCAPED_UNICODE));
+    defined('ENV_CLI_PARAMS') or define('ENV_CLI_PARAMS', json_encode($cliParams,JSON_UNESCAPED_UNICODE));
     return $cliParams;
 }
 
