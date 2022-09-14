@@ -1329,7 +1329,7 @@ abstract class WorkerProcess
     }
 
     /**
-     * worker0 save master_pid to file, because sometime the file will be delete
+     * worker0 save master_pid to file, because sometime the file will be deleted
      *
      * @param int $master_pid
      * @return void

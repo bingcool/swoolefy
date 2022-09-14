@@ -82,7 +82,7 @@ class Helper
             $value = @getenv($name);
             return $value !== false ? $value : null;
         } else {
-            $cliParams = getenv('WORKER_CLI_PARAMS') ? json_decode(getenv('WORKER_CLI_PARAMS'), true) : [];
+            $cliParams = getenv('ENV_CLI_PARAMS') ? json_decode(getenv('ENV_CLI_PARAMS'), true) : [];
             $params = [];
             foreach ($cliParams as $paramName) {
                 $value = @getenv($paramName);
@@ -95,39 +95,12 @@ class Helper
     }
 
     /**
-     * @param bool $format_flag
-     * @param bool $real_usage
+     * @param bool $formatFlag
+     * @param bool $realUsage
      * @return float|int|string
      */
-    public static function getMemoryUsage(bool $format_flag = true, bool $real_usage = true)
+    public static function getMemoryUsage(bool $formatFlag = true, bool $realUsage = true)
     {
-        $memoryNum = memory_get_usage($real_usage);
-        $format = 'bytes';
-        if ($format_flag) {
-            if ($memoryNum > 0 && $memoryNum < 1024) {
-                return number_format($memoryNum) . ' ' . $format;
-            }
-            if ($memoryNum >= 1024 && $memoryNum < pow(1024, 2)) {
-                $p = 1;
-                $format = 'KB';
-            }
-            if ($memoryNum >= pow(1024, 2) && $memoryNum < pow(1024, 3)) {
-                $p = 2;
-                $format = 'MB';
-            }
-            if ($memoryNum >= pow(1024, 3) && $memoryNum < pow(1024, 4)) {
-                $p = 3;
-                $format = 'GB';
-            }
-            if ($memoryNum >= pow(1024, 4) && $memoryNum < pow(1024, 5)) {
-                $p = 3;
-                $format = 'TB';
-            }
-
-            $memoryNum /= pow(1024, $p);
-            $memoryNum = number_format($memoryNum, 3) . ' ' . $format;
-        }
-
-        return $memoryNum;
+        return \Swoolefy\Util\Helper::getMemoryUsage($formatFlag, $realUsage);
     }
 }

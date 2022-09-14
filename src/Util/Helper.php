@@ -160,7 +160,6 @@ class Helper
      */
     public static function mbStrlen(string $str)
     {
-        // strlen()计算的是字节
         $len = strlen($str);
         if ($len <= 0) {
             return 0;
@@ -168,7 +167,7 @@ class Helper
         $count = 0;
         for ($i = 0; $i < $len; $i++) {
             $count++;
-            if (ord($str{$i}) >= 0x80) {
+            if (ord($str[$i]) >= 0x80) {
                 $i += 2;
             }
         }
@@ -373,5 +372,42 @@ class Helper
             return true;
         }
         return false;
+    }
+
+    /**
+     * @param bool $formatFlag
+     * @param bool $realUsage
+     * @return float|int|string
+     */
+    public static function getMemoryUsage(bool $formatFlag = true, bool $realUsage = true)
+    {
+        $memoryNum = memory_get_usage($realUsage);
+        $format = 'bytes';
+        if ($formatFlag) {
+            if ($memoryNum > 0 && $memoryNum < 1024) {
+                return number_format($memoryNum) . ' ' . $format;
+            }
+            if ($memoryNum >= 1024 && $memoryNum < pow(1024, 2)) {
+                $p = 1;
+                $format = 'KB';
+            }
+            if ($memoryNum >= pow(1024, 2) && $memoryNum < pow(1024, 3)) {
+                $p = 2;
+                $format = 'MB';
+            }
+            if ($memoryNum >= pow(1024, 3) && $memoryNum < pow(1024, 4)) {
+                $p = 3;
+                $format = 'GB';
+            }
+            if ($memoryNum >= pow(1024, 4) && $memoryNum < pow(1024, 5)) {
+                $p = 3;
+                $format = 'TB';
+            }
+
+            $memoryNum /= pow(1024, $p);
+            $memoryNum = number_format($memoryNum, 3) . ' ' . $format;
+        }
+
+        return $memoryNum;
     }
 }

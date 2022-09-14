@@ -10,7 +10,6 @@ class PipeWorker extends \Swoolefy\Worker\WorkerProcess
 
     public function run()
     {
-        var_dump(getenv('name'));
         var_dump('CID='.\Co::getCid());
         var_dump('PipeWorker');
         sleep(5);

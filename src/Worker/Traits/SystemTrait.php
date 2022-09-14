@@ -99,7 +99,7 @@ trait SystemTrait
         }
         $formatMsg = "--------------{$msg} --------------";
         echo $colors->getColoredString($formatMsg, $foreground, $background) . "\n\n";
-        if (defined("CTL_LOG_FILE")) {
+        if (defined('WORKER_CTL_LOG_FILE')) {
             if (defined('MAX_LOG_FILE_SIZE')) {
                 $maxLogFileSize = MAX_LOG_FILE_SIZE;
             } else {

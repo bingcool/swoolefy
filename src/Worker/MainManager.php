@@ -1578,7 +1578,7 @@ class MainManager
     private function getCliParams($showAll = false)
     {
         $cliParams = '';
-        $workerfyCliParams = getenv('WORKER_CLI_PARAMS') ? json_decode(getenv('WORKER_CLI_PARAMS'), true) : [];
+        $workerfyCliParams = getenv('ENV_CLI_PARAMS') ? json_decode(getenv('ENV_CLI_PARAMS'), true) : [];
 
         foreach ($workerfyCliParams as $param) {
             if ($value = getenv($param)) {

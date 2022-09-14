@@ -98,11 +98,10 @@ abstract class AbstractProcess
      */
     public function __start(Process $process)
     {
-        $this->parseCliEnvParams();
+        $this->setWorkerMasterPid();
         if (method_exists(static::class, 'beforeStart')) {
             $this->beforeStart();
         }
-
         $this->installRegisterShutdownFunction();
         TableManager::getTable('table_process_map')->set(
             md5($this->processName), ['pid' => $this->swooleProcess->pid]
@@ -183,36 +182,6 @@ abstract class AbstractProcess
             $this->onHandleException($throwable);
         }
 
-    }
-
-    /**
-     * @return array
-     */
-    protected function parseCliEnvParams()
-    {
-        $cliParams = [];
-        $args = array_splice($_SERVER['argv'], 3);
-        array_reduce($args, function ($result, $item) use (&$cliParams) {
-            // start daemon
-            if (in_array($item, ['-d', '-D'])) {
-                putenv('daemon=1');
-                defined('IS_DAEMON') OR define('IS_DAEMON', 1);
-            } else if (in_array($item, ['-f', '-F'])) {
-                // stop force
-                putenv('force=1');
-                $cliParams['force'] = 1;
-            } else {
-                $item = ltrim($item, '--');
-                putenv($item);
-                list($env, $value) = explode('=', $item);
-                if ($env && $value) {
-                    $cliParams[$env] = $value;
-                }
-            }
-        });
-        define('WORKER_MASTER_ID', $this->getPid());
-        defined('WORKER_CLI_PARAMS') or define('WORKER_CLI_PARAMS', json_encode($cliParams,JSON_UNESCAPED_UNICODE));
-        return $cliParams;
     }
 
     /**
@@ -315,6 +284,17 @@ abstract class AbstractProcess
         }
 
         return Swfy::getServer()->sendMessage($msg, $worker_id);
+    }
+
+    /**
+     * @return void
+     */
+    protected function setWorkerMasterPid()
+    {
+        defined('WORKER_MASTER_PID') or define('WORKER_MASTER_PID', $this->getPid());
+        if(defined('WORKER_PID_FILE')) {
+            file_put_contents(WORKER_PID_FILE, $this->getPid());
+        }
     }
 
     /**

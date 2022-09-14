@@ -13,13 +13,7 @@ namespace Swoolefy\Worker;
 
 use Swoolefy\Core\Process\AbstractProcess;
 
-abstract class AbstractMainWorker extends AbstractProcess {
+abstract class AbstractMainWorker extends AbstractProcess
+{
 
-    /**
-     * @return array
-     */
-    protected function setWorkerMasterPid()
-    {
-        defined('WORKER_MASTER_PID') or define('WORKER_MASTER_PID', $this->getPid());
-    }
 }
