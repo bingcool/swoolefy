@@ -536,6 +536,9 @@ class MainManager
      * @return void
      */
     protected function checkMasterToExit() {
+        if(IS_WORKER_SERVICE) {
+            return;
+        }
         if (count($this->processWorkers) == 0) {
             $this->saveStatusToFile();
             \Swoole\Coroutine::create(function () {

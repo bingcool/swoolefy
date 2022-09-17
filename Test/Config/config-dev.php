@@ -25,10 +25,17 @@ return [
     'components' => [
         // 用户行为记录的日志
         'log' => function($name) {
-            $logger = new \Swoolefy\Util\Log($name);
-            $logger->setChannel('application');
-            $logger->setLogFilePath(LOG_PATH.'/runtime.log');
-            return $logger;
+            if(IS_WORKER_SERVICE) {
+                $logger = new \Swoolefy\Util\Log($name);
+                $logger->setChannel('application');
+                $logger->setLogFilePath(LOG_PATH.'/worker.log');
+                return $logger;
+            }else {
+                $logger = new \Swoolefy\Util\Log($name);
+                $logger->setChannel('application');
+                $logger->setLogFilePath(LOG_PATH.'/runtime.log');
+                return $logger;
+            }
         },
 
         // 系统捕捉异常错误日志

@@ -13,7 +13,6 @@ namespace Swoolefy\Udp;
 
 use Swoole\Server;
 use Swoolefy\Core\EventApp;
-use Swoolefy\Core\Swfy;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\EventController;
 

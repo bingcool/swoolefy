@@ -648,7 +648,7 @@ function workerStop($appName)
             \Swoole\Process::kill($masterPid, SIGKILL);
         }
 
-        write("【Info】Master and Children Process Stop OK", 'light_green');
+        write("【Info】Master and Children Process Stop OK!", 'light_green');
     } else {
         write("【Warning】Master Process of Pid={$masterPid} is not running");
     }
@@ -870,8 +870,13 @@ function checkRunning(array &$config)
         if (is_file($pidFile)) {
             $pid = file_get_contents($pidFile);
             if (is_numeric($pid) && \Swoole\Process::kill($pid, 0)) {
-                write('【Warning】' . APP_NAME . " Server is running, pid={$pid}, pidFile={$pidFile}");
-                exit(0);
+                if(!IS_WORKER_SERVICE) {
+                    write('【Warning】' . '['.APP_NAME .']'. " Server is running, pid={$pid}, pidFile={$pidFile}");
+                    exit(0);
+                }else {
+                    write('【Warning】' .'['. WORKER_SERVICE_NAME .']'. " is running, pid={$pid}, pidFile={$pidFile}");
+                    exit(0);
+                }
             }
         }
     }
