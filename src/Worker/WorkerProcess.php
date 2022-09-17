@@ -116,7 +116,7 @@ abstract class WorkerProcess
     /**
      * @var int|float
      */
-    private $waitTime = 5;
+    private $waitTime = 10;
 
     /**
      * @var int
@@ -1126,7 +1126,7 @@ abstract class WorkerProcess
      * @param bool $includeDynamicProcess
      * @return bool
      */
-    public function reboot(float $wait_time = 0, bool $includeDynamicProcess = false)
+    public function reboot(float $waitTime = 10, bool $includeDynamicProcess = false)
     {
         if(!$includeDynamicProcess) {
             if (!$this->isStaticProcess()) {
@@ -1140,15 +1140,16 @@ abstract class WorkerProcess
             return false;
         }
 
-        if ($wait_time > 0) {
-            $waitTime = $wait_time;
-        }else {
+        if ($waitTime < 0) {
             $waitTime = $this->getWaitTime();
+        }
+
+        if ($waitTime <= 5) {
+            $waitTime = 5;
         }
 
         $pid = $this->getPid();
         if (Process::kill($pid, 0)) {
-
             $this->notifyMasterRebootNewProcess($this->getProcessName());
             $this->isReboot = true;
             $this->readyRebootTime = time() + $waitTime;
@@ -1183,17 +1184,17 @@ abstract class WorkerProcess
      * @param float $wait_time
      * @return bool
      */
-    public function exit(bool $is_force = false, ?float $wait_time = 0)
+    public function exit(bool $is_force = false, ?float $wait_time = 10)
     {
         // rebooting or exiting or force exiting status
         if (!$this->isDue()) {
             return false;
         }
 
-        if($wait_time > 0) {
-            $waitTime = $wait_time;
+        if ($wait_time <= 5) {
+            $waitTime = 5;
         }else {
-            $waitTime = $this->waitTime;
+            $waitTime = $wait_time;
         }
 
         $pid = $this->getPid();

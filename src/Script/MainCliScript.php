@@ -17,27 +17,27 @@ use Swoolefy\Worker\AbstractMainWorker;
 class MainCliScript extends AbstractMainWorker {
 
     /**
+     * @var bool
+     */
+    private $exitAll = false;
+
+    /**
      * @return void
      */
     public function run()
     {
-        $isExit = false;
         $this->setIsCliScript();
         try {
             $action = getenv('a');
             $this->{$action}();
-            $isExit = true;
             $this->exitAll();
         }catch (\Throwable $exception) {
             write($exception->getMessage());
             write($exception->getTraceAsString());
             $this->exitAll();
-            $isExit = true;
             return;
         } finally {
-            if(!$isExit) {
-                $this->exitAll(true);
-            }
+            $this->exitAll(true);
         }
     }
 
@@ -56,12 +56,13 @@ class MainCliScript extends AbstractMainWorker {
     protected function exitAll(bool $force = false)
     {
         $swooleMasterPid = Swfy::getMasterPid();
-        if(\Swoole\Process::kill($swooleMasterPid, 0)) {
+        if(\Swoole\Process::kill($swooleMasterPid, 0) && !$this->exitAll) {
             if($force) {
                 \Swoole\Process::kill($swooleMasterPid, SIGKILL);
             }else {
                 \Swoole\Process::kill($swooleMasterPid, SIGTERM);
             }
+            $this->exitAll = true;
         }
     }
 
