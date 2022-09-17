@@ -870,7 +870,7 @@ function checkRunning(array &$config)
         if (is_file($pidFile)) {
             $pid = file_get_contents($pidFile);
             if (is_numeric($pid) && \Swoole\Process::kill($pid, 0)) {
-                if(!IS_WORKER_SERVICE) {
+                if(!isWorkerService()) {
                     write('【Warning】' . '['.APP_NAME .']'. " Server is running, pid={$pid}, pidFile={$pidFile}");
                     exit(0);
                 }else {
