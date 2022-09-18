@@ -3,21 +3,16 @@
 namespace Test\WorkerDaemon;
 
 use Swoolefy\Core\Application;
-use Swoolefy\Core\EventController;
 
-class PipeWorker extends \Swoolefy\Worker\WorkerProcess
+class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
 {
-
-    public function init() {
-        $this->registerTickReboot(60);
-    }
-
     public function run()
     {
-        var_dump('CID='.\Co::getCid());
-        var_dump('PipeWorker');
-        sleep(5);
-
+        while (1) {
+            var_dump('CID='.\Co::getCid());
+            var_dump('PipeWorker');
+            sleep(5);
+        }
 //        $db = Application::getApp()->get('db');
 //        $result = $db->createCommand('select * from tbl_users limit 1')->queryAll();
 //        dump($result);

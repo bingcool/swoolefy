@@ -10,7 +10,7 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
     {
         try {
             var_dump('CID='.\Co::getCid());
-            var_dump('PipeWorker');
+            var_dump('Script test');
             sleep(10);
             $db = Application::getApp()->get('db');
             $result = $db->createCommand('select * from tbl_users limit 1')->queryAll();

@@ -16,7 +16,7 @@ if (!defined('APP_NAMES')) {
     define('APP_NAMES', []);
 }
 
-// 定义环境
+// env
 defined('SWOOLEFY_DEV') or define('SWOOLEFY_DEV', 'dev');
 defined('SWOOLEFY_TEST') or define('SWOOLEFY_TEST','test');
 defined('SWOOLEFY_GRA') or define('SWOOLEFY_GRA', 'gra');
@@ -29,13 +29,13 @@ defined('SWOOLEFY_ENVS') or define('SWOOLEFY_ENVS', [
 ]);
 
 
-// score目录
+// src dir
 if (is_dir(__DIR__ . '/vendor/bingcool/swoolefy')) {
     $SCORE_DIR = __DIR__ . '/vendor/bingcool/swoolefy';
-    $USERD_ENV = 'composer'; //composer安装使用
+    $USERD_ENV = 'composer';
 } else {
     $SCORE_DIR = __DIR__;
-    $USERD_ENV = 'direct'; //直接下载使用
+    $USERD_ENV = 'direct';
 }
 
 // 定义一个全局常量
@@ -1043,7 +1043,7 @@ function isDaemon()
 
 function resetConf(&$conf)
 {
-    if(defined('IS_WORKER_SERVICE') && IS_WORKER_SERVICE == 1) {
+    if(isWorkerService()) {
         $conf['port'] = WORKER_PORT;
         $conf['setting']['enable_coroutine'] = 0;
         $conf['setting']['reactor_num'] = 1;

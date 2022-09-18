@@ -323,7 +323,7 @@ class BaseServer
     }
 
     /**
-     * filterFaviconIcon google浏览器会自动发一次请求/favicon.ico,在这里过滤掉
+     * filterFaviconIcon
      * @return  mixed
      * @var \Swoole\Http\Response $response
      * @var \Swoole\Http\Request $request
