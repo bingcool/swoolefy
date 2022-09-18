@@ -20,7 +20,9 @@ abstract class AbstractMainWorker extends AbstractProcess
      */
     public function init()
     {
-        $mainManager = \Swoolefy\Worker\MainManager::getInstance();
-        $mainManager->loadConf(WORKER_CONF);
+        if(defined('WORKER_CONF')) {
+            $mainManager = \Swoolefy\Worker\MainManager::getInstance();
+            $mainManager->loadConf(WORKER_CONF);
+        }
     }
 }
