@@ -262,19 +262,31 @@ class MainManager
      */
     public function loadConf(array $conf)
     {
-        foreach($conf['worker_conf'] ?? [] as $config)
+        foreach($conf as $config)
         {
+            $async            = true;
+            $enableCoroutine  = true;
             $processName      = $config['process_name'];
             $processClass     = $config['handler'];
             $processWorkerNum = $config['worker_num'] ?? 1;
-            $async            = true;
             $args             = $config['args'] ?? [];
-            $extendData       = $config['extend_data'] ?? null;
-            $enableCoroutine  = true;
+            $this->parseArgs($args, $config);
+            $extendData = $config['extend_data'] ?? [];
             $this->addProcess($processName, $processClass, $processWorkerNum, $async, $args, $extendData, $enableCoroutine);
         }
 
         return $this;
+    }
+
+    /**
+     * @param array $args
+     * @param array $config
+     */
+    protected function parseArgs(array &$args, array $config)
+    {
+        $args['max_handle']              = $config['max_handle'] ?? 10000;
+        $args['life_time']               = $config['life_time'] ?? 3600;
+        $args['limit_run_coroutine_num'] = $config['limit_run_coroutine_num'] ?? null;
     }
 
     /**
@@ -335,7 +347,7 @@ class MainManager
                     $extendData      = $list['extend_data'] ?? null;
                     $enableCoroutine = $list['enable_coroutine'] ?? true;
                     /**
-                     * @var WorkerProcess $process
+                     * @var AbstractWorkerProcess $process
                      */
                     $process = new $processClass(
                         $processName,
@@ -409,7 +421,7 @@ class MainManager
                             foreach ($processes as $workerId => $process) {
                                 try {
                                     $processName = $process->getProcessName();
-                                    $this->writeByProcessName($processName, WorkerProcess::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
+                                    $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
                                 } catch (\Throwable $exception) {
                                     $this->writeInfo("【Error】Master handle Signal (SIGINT,SIGTERM) error Process={$processName},worker_id={$workerId} exit failed, error=" . $exception->getMessage());
                                 }
@@ -444,7 +456,7 @@ class MainManager
         fwrite($ctlPipe, $masterInfo);
         foreach ($this->processWorkers as $processes) {
             ksort($processes);
-            /** @var WorkerProcess $process */
+            /** @var AbstractBaseWorker $process */
             foreach ($processes as $processWorkerId => $process) {
                 $processName = $process->getProcessName();
                 $workerId    = $process->getProcessWorkerId();
@@ -455,10 +467,10 @@ class MainManager
                 }
                 $rebootCount = $process->getRebootCount();
                 $processType = $process->getProcessType();
-                if ($processType == WorkerProcess::PROCESS_STATIC_TYPE) {
-                    $processType = WorkerProcess::PROCESS_STATIC_TYPE_NAME;
+                if ($processType == AbstractBaseWorker::PROCESS_STATIC_TYPE) {
+                    $processType = AbstractBaseWorker::PROCESS_STATIC_TYPE_NAME;
                 } else {
-                    $processType = WorkerProcess::PROCESS_DYNAMIC_TYPE_NAME;
+                    $processType = AbstractBaseWorker::PROCESS_DYNAMIC_TYPE_NAME;
                 }
 
                 if (\Swoole\Process::kill($pid, 0)) {
@@ -500,7 +512,7 @@ class MainManager
             foreach ($this->processWorkers as $processes) {
                 foreach ($processes as $workerId => $process) {
                     $processName = $process->getProcessName();
-                    $this->writeByProcessName($processName, WorkerProcess::WORKERFY_PROCESS_REBOOT_FLAG, $workerId);
+                    $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_REBOOT_FLAG, $workerId);
                 }
             }
         });
@@ -584,7 +596,7 @@ class MainManager
                     case 0       :
                     case SIGTERM :
                     case SIGKILL :
-                        /**@var WorkerProcess $process */
+                        /**@var AbstractBaseWorker $process */
                         $process         = $this->getProcessByPid($pid);
                         $processName     = $process->getProcessName();
                         $processWorkerId = $process->getProcessWorkerId();
@@ -634,7 +646,7 @@ class MainManager
             $args            = $list['args'] ?? [];
             $extendData      = $list['extend_data'] ?? null;
             $enableCoroutine = $list['enable_coroutine'] ?? false;
-            /** @var WorkerProcess $newProcess */
+            /** @var AbstractBaseWorker $newProcess */
             $newProcess = new $processClass(
                 $processName,
                 $async,
@@ -659,10 +671,10 @@ class MainManager
     }
 
     /**
-     * @param WorkerProcess|null $currentProcess
+     * @param AbstractBaseWorker|null $currentProcess
      * @return mixed
      */
-    private function swooleEventAdd(?WorkerProcess $currentProcess = null)
+    private function swooleEventAdd(?AbstractBaseWorker $currentProcess = null)
     {
         $processWorkers = [];
         if (isset($currentProcess)) {
@@ -729,7 +741,7 @@ class MainManager
                                             $pid = $data['worker_pid'];
                                             $this->rebootWorker($pid);
                                             break;
-                                        case WorkerProcess::WORKERFY_PROCESS_STATUS_FLAG:
+                                        case AbstractBaseWorker::WORKERFY_PROCESS_STATUS_FLAG:
                                             $actionHandleFlag       = true;
                                             $workerId               = $data['worker_id'];
                                             $status                 = $data['status'] ?? [];
@@ -840,7 +852,7 @@ class MainManager
 
         for ($workerId = $runningProcessWorkerNum; $workerId < $totalProcessNum; $workerId++) {
             try {
-                /** @var WorkerProcess $newProcess */
+                /** @var AbstractBaseWorker $newProcess */
                 $newProcess = new $processClass(
                     $process_name,
                     $async,
@@ -850,7 +862,7 @@ class MainManager
                 );
                 $newProcess->setProcessWorkerId($workerId);
                 $newProcess->setMasterPid($this->masterPid);
-                $newProcess->setProcessType(WorkerProcess::PROCESS_DYNAMIC_TYPE);
+                $newProcess->setProcessType(AbstractBaseWorker::PROCESS_DYNAMIC_TYPE);
                 $newProcess->setStartTime();
                 $this->processWorkers[$key][$workerId] = $newProcess;
                 $newProcess->start();
@@ -880,7 +892,7 @@ class MainManager
             if ($process->isDynamicProcess()) {
                 $this->processLists[$key]['dynamic_process_destroying'] = true;
                 try {
-                    $this->writeByProcessName($process_name, WorkerProcess::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
+                    $this->writeByProcessName($process_name, AbstractBaseWorker::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
                     if ($this->processLists[$key]['dynamic_process_worker_num'] > 0) {
                         $this->processLists[$key]['dynamic_process_worker_num']--;
                     }
@@ -950,12 +962,12 @@ class MainManager
             $childrenNum += count($processes);
             ksort($processes);
             /**
-             * @var WorkerProcess $process
+             * @var AbstractBaseWorker $process
              */
             foreach ($processes as $process) {
                 $processName = $process->getProcessName();
                 $workerId = $process->getProcessWorkerId();
-                $this->writeByProcessName($processName, WorkerProcess::WORKERFY_PROCESS_STATUS_FLAG, $workerId);
+                $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_STATUS_FLAG, $workerId);
             }
         }
 
@@ -995,7 +1007,7 @@ class MainManager
             ksort($processes);
             foreach ($processes as $process) {
                 /**
-                 * @var WorkerProcess $process
+                 * @var AbstractBaseWorker $process
                  */
                 $processName = $process->getProcessName();
                 $workerId    = $process->getProcessWorkerId();
@@ -1006,10 +1018,10 @@ class MainManager
                 }
                 $rebootCount = $process->getRebootCount();
                 $processType = $process->getProcessType();
-                if ($processType == WorkerProcess::PROCESS_STATIC_TYPE) {
-                    $processType = WorkerProcess::PROCESS_STATIC_TYPE_NAME;
+                if ($processType == AbstractBaseWorker::PROCESS_STATIC_TYPE) {
+                    $processType = AbstractBaseWorker::PROCESS_STATIC_TYPE_NAME;
                 } else {
-                    $processType = WorkerProcess::PROCESS_DYNAMIC_TYPE_NAME;
+                    $processType = AbstractBaseWorker::PROCESS_DYNAMIC_TYPE_NAME;
                 }
                 if (\Swoole\Process::kill($pid, 0)) {
                     // loop report should be handed (exit) some deal process
@@ -1184,7 +1196,7 @@ class MainManager
 
         $processWorkers = [];
         $process = $this->getProcessByName($process_name, $process_worker_id);
-        if (is_object($process) && $process instanceof WorkerProcess) {
+        if (is_object($process) && $process instanceof AbstractBaseWorker) {
             $processWorkers = [$process_worker_id => $process];
         } else if (is_array($process)) {
             $processWorkers = $process;
@@ -1225,7 +1237,7 @@ class MainManager
 
         $processWorkers = [];
         $process = $this->getProcessByName($to_process_name, $to_process_worker_id);
-        if (is_object($process) && $process instanceof WorkerProcess) {
+        if (is_object($process) && $process instanceof AbstractBaseWorker) {
             $processWorkers = [$to_process_worker_id => $process];
         } else if (is_array($process)) {
             $processWorkers = $process;
@@ -1353,12 +1365,12 @@ class MainManager
                             foreach ($this->processWorkers as $processes) {
                                 ksort($processes);
                                 /**
-                                 * @var WorkerProcess $process
+                                 * @var AbstractBaseWorker $process
                                  */
                                 foreach ($processes as $process) {
                                     $processName = $process->getProcessName();
                                     $workerId = $process->getProcessWorkerId();
-                                    $this->writeByProcessName($processName, WorkerProcess::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
+                                    $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
                                 }
                             }
                             break;

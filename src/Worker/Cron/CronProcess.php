@@ -9,18 +9,32 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Worker;
+namespace Swoolefy\Worker\Cron;
 
-use Swoolefy\Core\Process\AbstractProcess;
+use \Swoolefy\Worker\AbstractWorkerProcess;
 
-abstract class AbstractMainWorker extends AbstractProcess
+class CronProcess extends AbstractWorkerProcess
 {
+
     /**
-     * @return void
+     * @var mixed
      */
-    public function init()
+    protected $taskList;
+
+    /**
+     * onInit
+     */
+    public function onInit()
     {
-        $mainManager = \Swoolefy\Worker\MainManager::getInstance();
-        $mainManager->loadConf(WORKER_CONF);
+        parent::onInit();
+        $this->taskList = $this->getArgs()['task_list'] ?? [];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function run()
+    {
+
     }
 }

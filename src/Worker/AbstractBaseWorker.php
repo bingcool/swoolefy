@@ -22,13 +22,13 @@ use Swoolefy\Worker\Dto\MessageDto;
  * Class AbstractProcess
  * @package Workerfy
  */
-abstract class WorkerProcess
+abstract class AbstractBaseWorker
 {
 
     use Traits\SystemTrait;
 
     /**
-     * @var WorkerProcess
+     * @var AbstractBaseWorker
      */
     protected static $processInstance;
 
@@ -614,7 +614,7 @@ abstract class WorkerProcess
 
         $processWorkers = [];
         $toTargetProcess = $processManager->getProcessByName($process_name, $process_worker_id);
-        if (is_object($toTargetProcess) && $toTargetProcess instanceof WorkerProcess) {
+        if (is_object($toTargetProcess) && $toTargetProcess instanceof AbstractBaseWorker) {
             $processWorkers = [$process_worker_id => $toTargetProcess];
         } else if (is_array($toTargetProcess)) {
             $processWorkers = $toTargetProcess;
@@ -1206,7 +1206,7 @@ abstract class WorkerProcess
 
             $this->clearRebootTimer();
 
-            $this->readyExitTime = time() + $wait_time;
+            $this->readyExitTime = time() + $waitTime;
 
             $channel = new Channel(1);
             $this->exitTimerId = \Swoole\Timer::after($waitTime * 1000, function () use ($pid) {
@@ -1255,9 +1255,10 @@ abstract class WorkerProcess
                 $tickTime  = (60 + $randNum) * 1000;
             }
 
-            \Swoole\Timer::tick($tickTime, function () use ($sleepTime) {
+            \Swoole\Timer::tick($tickTime, function ($timerId) use ($sleepTime) {
                 if (time() - $this->getStartTime() >= $sleepTime) {
                     $this->reboot($this->waitTime);
+                    \Swoole\Timer::clear($timerId);
                 }
             });
         } else {
@@ -1396,7 +1397,7 @@ abstract class WorkerProcess
     }
 
     /**
-     * @return WorkerProcess
+     * @return AbstractBaseWorker
      */
     public static function getProcessInstance()
     {

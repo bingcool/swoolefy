@@ -37,7 +37,7 @@ class CrontabManager
             throw new \Exception("If you want to use crontab, you need to install 'composer require dragonmantank/cron-expression' ");
         }
 
-        if (!CronExpression::isValidExpression($expression)) {
+        if (!is_numeric($expression) && !CronExpression::isValidExpression($expression)) {
             throw new \Exception("Crontab expression format is wrong, please check it");
         }
 
@@ -49,8 +49,9 @@ class CrontabManager
 
         $this->cronTasks[$cronNameKey] = [$expression, $func];
 
-        if (is_array($func)) {
-            list($class, $action) = $func;
+        $class = '';
+        if(is_array($func)) {
+            list($class,) = $func;
             if (!is_subclass_of($class, '\\Swoolefy\\Core\\Crontab\\AbstractCronController')) {
                 throw new \Exception(sprintf(
                     "s%::s% Params of func about Crontab Handle Controller need to extend Swoolefy\\Core\\Crontab\\AbstractCronController",
@@ -58,41 +59,77 @@ class CrontabManager
                     __FUNCTION__
                 ));
             }
-            \Swoole\Timer::tick(1000, function ($timerId, $expression) use ($class, $action, $cronName) {
-                try {
-                    /**
-                     * @var AbstractCronController $cronControllerInstance
-                     */
-                    $cronControllerInstance = new $class;
-                    $cronControllerInstance->runCron($cronName, $expression, null);
-                } catch (\Throwable $throwable) {
-                    BaseServer::catchException($throwable);
-                } finally {
-                    Application::removeApp($cronControllerInstance->coroutine_id);
-                }
-            }, $expression);
-        } else {
-            \Swoole\Timer::tick(1000, function ($timerId, $expression) use ($func, $cronName) {
-                try {
-                    $cronControllerInstance = new class extends AbstractCronController {
-                        /**
-                         * @inheritDoc
-                         */
-                        public function doCronTask(CronExpression $cron, string $cron_name)
-                        {
-                        }
-                    };
-
-                    $cronControllerInstance->runCron($cronName, $expression, $func);
-
-                } catch (\Throwable $throwable) {
-                    BaseServer::catchException($throwable);
-                } finally {
-                    Application::removeApp($cronControllerInstance->coroutine_id);
-                }
-            }, $expression);
         }
 
+        if(is_numeric($expression)) {
+            \Swoole\Timer::tick($expression * 1000, function ($timerId, $expression) use ($func, $cronName, $class) {
+                try {
+                    \Swoole\Coroutine::create(function () use ($expression, $func, $cronName, $class) {
+                        if ($func instanceof \Closure) {
+                            call_user_func($func, $expression, $cronName);
+                        }else if(is_array($func)) {
+                            /**
+                             * @var AbstractCronController $cronControllerInstance
+                             */
+                            $cronControllerInstance = new $class;
+                            $cronControllerInstance->doCronTask($expression, $cronName);
+
+                            if (!$cronControllerInstance->isDefer()) {
+                                $cronControllerInstance->end();
+                            }
+                        }
+                    });
+                } catch (\Throwable $throwable) {
+                    BaseServer::catchException($throwable);
+                } finally {
+                    if (isset($cronControllerInstance)) {
+                        Application::removeApp($cronControllerInstance->coroutine_id);
+                    }
+                }
+            }, $expression);
+
+        }else {
+            if (is_array($func)) {
+                \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($class, $cronName) {
+                    \Swoole\Coroutine::create(function () use ($timerId, $expression, $class, $cronName) {
+                        try {
+                            /**
+                             * @var AbstractCronController $cronControllerInstance
+                             */
+                            $cronControllerInstance = new $class;
+                            $cronControllerInstance->runCron($cronName, $expression, null);
+                        } catch (\Throwable $throwable) {
+                            BaseServer::catchException($throwable);
+                        } finally {
+                            Application::removeApp($cronControllerInstance->coroutine_id);
+                        }
+                    });
+                }, $expression);
+            } else {
+                \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($func, $cronName) {
+                    \Swoole\Coroutine::create(function () use($timerId, $expression, $func, $cronName ) {
+                        try {
+                            $cronControllerInstance = new class extends AbstractCronController {
+                                /**
+                                 * @inheritDoc
+                                 */
+                                public function doCronTask($cron, string $cron_name)
+                                {
+                                }
+                            };
+
+                            $cronControllerInstance->runCron($cronName, $expression, $func);
+
+                        } catch (\Throwable $throwable) {
+                            BaseServer::catchException($throwable);
+                        } finally {
+                            Application::removeApp($cronControllerInstance->coroutine_id);
+                        }
+                    });
+
+                }, $expression);
+            }
+        }
         unset($cronNameKey);
     }
 

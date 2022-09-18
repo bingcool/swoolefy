@@ -1,10 +1,9 @@
 <?php
-namespace Test\WorkerDaemon;
+namespace Test\WorkerCron;
 
-use Swoolefy\Core\EventController;
 use Swoolefy\Worker\AbstractMainWorker;
 
-class MainWorker extends AbstractMainWorker {
+class MainCronWorker extends AbstractMainWorker {
     /**
      * @return void
      */
@@ -14,7 +13,7 @@ class MainWorker extends AbstractMainWorker {
             $mainManager = \Swoolefy\Worker\MainManager::getInstance();
             $mainManager->start();
         }catch (\Throwable $exception) {
-            var_dump($exception->getMessage(), $exception->getTraceAsString());
+            $this->onHandleException($exception);
         }
     }
 }

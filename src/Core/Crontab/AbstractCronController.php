@@ -66,6 +66,7 @@ abstract class AbstractCronController extends ProcessController
                 } else {
                     $this->doCronTask($cron, $cron_name);
                 }
+
                 if (!$this->isDefer()) {
                     $this->end();
                 }
@@ -86,9 +87,9 @@ abstract class AbstractCronController extends ProcessController
     }
 
     /**
-     * @param CronExpression $cron
+     * @param CronExpression|float $cron
      * @param string $cron_name
      * @return mixed
      */
-    abstract public function doCronTask(CronExpression $cron, string $cron_name);
+    abstract public function doCronTask($cron, string $cron_name);
 }
