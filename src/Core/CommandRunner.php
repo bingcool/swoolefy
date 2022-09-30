@@ -110,7 +110,7 @@ class CommandRunner
      * 执行外部系统程序，包括php,shell so on
      * 禁止swoole提供的process->exec，因为swoole的process->exec调用的程序会替换当前子进程
      * @param string $execBinFile
-     * @param string $commandRouter
+     * @param string $execScript
      * @param array $args
      * @param bool $async
      * @param string $log
@@ -120,7 +120,7 @@ class CommandRunner
      */
     public function exec(
         string $execBinFile,
-        string $commandRouter,
+        string $execScript,
         array  $args = [],
         bool   $async = false,
         string $log = '/dev/null',
@@ -133,7 +133,7 @@ class CommandRunner
             $params = $this->parseEscapeShellArg($args);
         }
 
-        $path = $execBinFile . ' ' . $commandRouter . ' ' . $params;
+        $path = $execBinFile . ' ' . $execScript . ' ' . $params;
         $command = "{$path} >> {$log} 2>&1 && echo $$";
         if ($async) {
             // echo $! 表示输出进程id赋值在output数组中
@@ -162,6 +162,7 @@ class CommandRunner
     /**
      * @param callable $callable
      * @param string $execBinFile
+     * @param string $execScript
      * @param array $args
      * @return mixed
      * @throws Exception
@@ -169,6 +170,7 @@ class CommandRunner
     public function procOpen(
         callable $callable,
         string   $execBinFile,
+        string   $execScript,
         array    $args = []
     )
     {
@@ -178,7 +180,7 @@ class CommandRunner
             $params = $this->parseEscapeShellArg($args);
         }
 
-        $command = $execBinFile . ' ' . $params . '; echo $? >&3';
+        $command = $execBinFile .' '.$execScript.' ' . $params . '; echo $? >&3';
         $descriptors = array(
             // stdout
             0 => array('pipe', 'r'),

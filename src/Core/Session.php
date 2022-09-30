@@ -121,7 +121,7 @@ class Session
     public function start(bool $readonly = false)
     {
         /**
-         * 注册钩子程序,在请求结束后保存sesion,防止多次注册
+         * 注册钩子程序,在请求结束后保存session,防止多次注册
          */
         $app = Application::getApp();
         if (!$this->isStart) {

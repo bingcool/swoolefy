@@ -34,7 +34,8 @@ return [
                 // fork task
                 [
                     'cron_name' => 'send message', // 发送短信
-                    'run_cli' => 'php /home/wwwroot/swoolefy/Test/WorkerCron/ForkOrder/ForkOrderHandle.php', // fork执行的bin命令行
+                    'exec_bin_file' => 'php', // fork执行的bin命令行
+                    'exec_script' => '/home/wwwroot/swoolefy/Test/WorkerCron/ForkOrder/ForkOrderHandle.php',
                     //'cron_expression' => 10, // 每分钟执行一次
                     'cron_expression' => '*/1 * * * *', // 每分钟执行一次
                 ]
