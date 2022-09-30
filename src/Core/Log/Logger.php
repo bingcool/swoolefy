@@ -21,7 +21,7 @@ use Psr\Log\LoggerInterface;
  *
  * @author Jordi Boggiano <j.boggiano@seld.be>
  */
-class Logger implements LoggerInterface
+class Logger
 {
     /**
      * Detailed debug information
