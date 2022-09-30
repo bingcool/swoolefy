@@ -16,6 +16,25 @@ use Swoolefy\Core\Crontab\CrontabManager;
 
 class CronForkProcess extends CronProcess
 {
+
+    const FORK_TYPE_EXEC = 'exec';
+
+    const FORK_TYPE_PROC_OPEN = 'proc_open';
+
+    /**
+     * @var string
+     */
+    protected $forkType = self::FORK_TYPE_PROC_OPEN;
+
+    /**
+     * onInit
+     */
+    public function onInit()
+    {
+        parent::onInit();
+        $this->forkType  = $this->getArgs()['fork_type'] ?? self::FORK_TYPE_PROC_OPEN;
+    }
+
     /**
      * run
      */
@@ -29,12 +48,14 @@ class CronForkProcess extends CronProcess
                         CrontabManager::getInstance()->addRule($task['cron_name'], $task['cron_expression'], function ($cron_name, $expression) use($task) {
                             $runner = CommandRunner::getInstance($cron_name,1);
                             try {
-                                if($runner->isNextHandle(false))
-                                {
-                                    $execFile = $task['run_cli'];
-                                    $runner->procOpen(function ($pipe0, $pipe1, $pipe2, $status, $returnCode) use($task) {
-                                        $this->receiveCallBack($pipe0, $pipe1, $pipe2, $status, $returnCode, $task);
-                                    } , $execFile, []);
+                                if($runner->isNextHandle(false)) {
+                                    if($this->forkType == self::FORK_TYPE_PROC_OPEN) {
+                                        $runner->procOpen(function ($pipe0, $pipe1, $pipe2, $status, $returnCode) use($task) {
+                                            $this->receiveCallBack($pipe0, $pipe1, $pipe2, $status, $returnCode, $task);
+                                        } , $task['exec_bin_file'], $task['exec_script'], []);
+                                    }else {
+                                        $runner->exec($task['exec_bin_file'], $task['exec_script'], [], true);
+                                    }
                                 }
                             }catch (\Exception $e)
                             {
