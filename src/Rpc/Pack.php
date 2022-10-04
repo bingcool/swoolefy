@@ -11,7 +11,6 @@
 
 namespace Swoolefy\Rpc;
 
-use malkusch\lock\mutex\Mutex;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Application;
