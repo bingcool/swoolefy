@@ -98,12 +98,9 @@ class CommandRunner
             $runner->concurrent = $concurrent;
             $runner->channel = new Channel($runner->concurrent);
             static::$instances[$runnerName] = $runner;
-        } else {
-            /**@var CommandRunner $runner */
-            $runner = static::$instances[$runnerName];
         }
 
-        return $runner;
+        return static::$instances[$runnerName];
     }
 
     /**
@@ -215,7 +212,7 @@ class CommandRunner
                 $params = [$pipes[0], $pipes[1], $pipes[2], $status, $returnCode ?? -1];
                 return call_user_func_array($callable, $params);
             } catch (\Throwable $e) {
-                throw $e;
+                write("【Error】CommandRunner ErrorMsg={$e->getMessage()},trace={$e->getTraceAsString()}");
             } finally {
                 foreach ($pipes as $pipe) {
                     @fclose($pipe);

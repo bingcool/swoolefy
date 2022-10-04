@@ -28,7 +28,7 @@ return [
     'worker_process_name'      => 'php-swoolefy-http-worker',
     'www_user'                 => '',
     'host'                     => '0.0.0.0',
-    'port'                     => '9502',
+    'port'                     => '9501',
     'time_zone'                => 'PRC',
     'swoole_process_mode'      => SWOOLE_PROCESS,
     'include_files'            => [],

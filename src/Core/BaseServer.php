@@ -126,7 +126,9 @@ class BaseServer
         ]
     ];
 
-
+    /**
+     * __construct
+     */
     public function __construct()
     {
         // set config

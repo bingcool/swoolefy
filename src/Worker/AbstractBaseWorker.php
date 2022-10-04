@@ -432,6 +432,7 @@ abstract class AbstractBaseWorker
                         $parentPid = posix_getppid();
                         if($parentPid == 1) {
                             $masterPid = '1(system init)';
+                            $this->writeInfo("【Warning】This Process of Parent Process is System Init Process, Master Pid={$masterPid}，children process={$this->getProcessName()},worker_id={$this->getProcessWorkerId()} start to exit");
                             $exitFunction($timerId, $masterPid);
                         }
                     }

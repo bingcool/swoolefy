@@ -98,7 +98,7 @@ class BService extends BaseObject
     }
 
     /**
-     * return tcp 发送数据
+     * return tcp
      * @param int $fd
      * @param mixed $data
      * @param array $header
@@ -120,7 +120,7 @@ class BService extends BaseObject
     }
 
     /**
-     * sendTo udp 发送数据
+     * sendTo udp
      * @param $data
      * @param string $ip
      * @param string $port
@@ -145,7 +145,7 @@ class BService extends BaseObject
     }
 
     /**
-     * push websocket 发送数据
+     * push websocket
      * @param int $fd
      * @param mixed $data
      * @param int $opcode
