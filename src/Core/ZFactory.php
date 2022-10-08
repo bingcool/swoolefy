@@ -35,7 +35,7 @@ class ZFactory
 
         if($cid >= 0 && !Context::has(__CLASS__.'::'.__FUNCTION__)) {
             Context::set(__CLASS__.'::'.__FUNCTION__, 1);
-            defer(function () use($cid) {
+            \Swoole\Coroutine\defer(function () use($cid) {
                 self::removeInstance($cid);
             });
         }

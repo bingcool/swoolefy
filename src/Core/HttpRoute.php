@@ -47,7 +47,7 @@ class HttpRoute extends AppDispatch
     public $app_conf = null;
 
     /**
-     * $app 请求应用对象
+     * $app
      * @var App
      */
     protected $app = null;
@@ -279,7 +279,7 @@ class HttpRoute extends AppDispatch
 
     /**
      * redirectNotFound 重定向至NotFound类
-     * @return   array
+     * @return array
      */
     public function redirectNotFound()
     {

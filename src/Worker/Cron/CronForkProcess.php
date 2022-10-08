@@ -27,11 +27,17 @@ class CronForkProcess extends CronProcess
     protected $forkType = self::FORK_TYPE_PROC_OPEN;
 
     /**
+     * @var array
+     */
+    protected $params = [];
+
+    /**
      * onInit
      */
     public function onInit()
     {
         parent::onInit();
+        $this->params     = $this->getArgs()['params'] ?? [];
         $this->forkType  = $this->getArgs()['fork_type'] ?? self::FORK_TYPE_PROC_OPEN;
     }
 
@@ -52,9 +58,9 @@ class CronForkProcess extends CronProcess
                                     if($this->forkType == self::FORK_TYPE_PROC_OPEN) {
                                         $runner->procOpen(function ($pipe0, $pipe1, $pipe2, $status, $returnCode) use($task) {
                                             $this->receiveCallBack($pipe0, $pipe1, $pipe2, $status, $returnCode, $task);
-                                        } , $task['exec_bin_file'], $task['exec_script'], []);
+                                        } , $task['exec_bin_file'], $task['exec_script'], $this->params);
                                     }else {
-                                        $runner->exec($task['exec_bin_file'], $task['exec_script'], [], true);
+                                        $runner->exec($task['exec_bin_file'], $task['exec_script'], $this->params, true);
                                     }
                                 }
                             }catch (\Exception $e)
