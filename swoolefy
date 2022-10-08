@@ -48,7 +48,7 @@ defined("SWOOLEFY_CLI_PARAMS") or define('SWOOLEFY_CLI_PARAMS', $argv);
 defined('USERD_ENV') or define('USERD_ENV', $USERD_ENV);
 
 // include composer的自动加载类完成命名空间的注册
-include START_DIR_ROOT . '/vendor/autoload.php';
+include_once START_DIR_ROOT . '/vendor/autoload.php';
 
 // include App应用层的自定义的自动加载类命名空间
 if (isset($argv[2]) && in_array(trim($argv[2]), array_keys(APP_NAMES))) {

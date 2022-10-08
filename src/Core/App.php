@@ -81,7 +81,7 @@ class App extends \Swoolefy\Core\Component
         if (isset($this->app_conf['session_start']) && $this->app_conf['session_start']) {
             if (is_object($this->get('session'))) {
                 $this->get('session')->start();
-            };
+            }
         }
     }
 
@@ -263,7 +263,7 @@ class App extends \Swoolefy\Core\Component
     {
         if (\Swoole\Coroutine::getCid() > 0) {
             $this->isDefer = true;
-            defer(function () {
+            \Swoole\Coroutine::defer(function () {
                 $this->onAfterRequest();
                 $this->end();
             });
@@ -311,6 +311,7 @@ class App extends \Swoolefy\Core\Component
         $this->pushComponentPools();
         // remove App Instance
         Application::removeApp();
+        // end request
         if (!$this->isEnd) {
             @$this->response->end();
         }

@@ -13,15 +13,14 @@ return [
             'cron_name' => 'cancel order', // 取消订单
             'handler_class' => \Test\WorkerCron\LocalOrder\LocalOrderHandle::class, //处理类
             //'cron_expression' => '*/1 * * * *', // 每分钟执行一次
-
-            'cron_expression' => 10, // 每分钟执行一次
+            'cron_expression' => 10, // 10s执行一次
         ],
     ],
 
 
     // 定时fork进程处理任务
     [
-        'process_name' => 'worker-fork-task-cron',
+        'process_name' => 'test-fork-task-cron',
         'handler' => \Swoolefy\Worker\Cron\CronForkProcess::class,
         'worker_num' => 1, // 默认动态进程数量
         'max_handle' => 100, //消费达到10000后reboot进程
@@ -35,9 +34,11 @@ return [
                 [
                     'cron_name' => 'send message', // 发送短信
                     'exec_bin_file' => 'php', // fork执行的bin命令行
+                    'fork_type' => \Swoolefy\Worker\Cron\CronForkProcess::FORK_TYPE_EXEC,
                     'exec_script' => '/home/wwwroot/swoolefy/Test/WorkerCron/ForkOrder/ForkOrderHandle.php',
-                    //'cron_expression' => 10, // 每分钟执行一次
-                    'cron_expression' => '*/1 * * * *', // 每分钟执行一次
+                    'cron_expression' => 10, // 10s执行一次
+                    'params' => []
+                    //'cron_expression' => '*/1 * * * *', // 每分钟执行一次
                 ]
             ]
         ],
