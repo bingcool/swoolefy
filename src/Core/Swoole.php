@@ -317,7 +317,7 @@ class Swoole extends BaseObject
     {
         if (\Swoole\Coroutine::getCid() > 0) {
             $this->isDefer = true;
-            defer(function () {
+            \Swoole\Coroutine\defer(function () {
                 $this->end();
             });
         }
