@@ -72,7 +72,7 @@ class ContainerObjectDto extends AbstractDto
     {
         return $this->__object;
     }
-
+qq
     /**
      * @param $name
      * @param $arguments

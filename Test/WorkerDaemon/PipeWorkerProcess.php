@@ -8,6 +8,7 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
 {
     public function run()
     {
+        Application::getApp()->get('log')->addInfo('pllllllllllll');
         while (1) {
             var_dump('CID='.\Co::getCid());
             var_dump('PipeWorker');
@@ -23,7 +24,7 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
 //            });
 //        });
 
-        Application::getApp()->get('log')->addInfo('pllllllllllll');
+
 
 //        if($this->isWorker0()) {
 //            $this->notifyMasterCreateDynamicProcess($this->getProcessName(), 1);
