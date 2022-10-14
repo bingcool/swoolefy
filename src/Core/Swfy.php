@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Exception\SystemException;
+
 class Swfy
 {
 
@@ -124,7 +126,7 @@ class Swfy
     public static function __callStatic($action, $args = [])
     {
         // stop exec
-        throw new \Exception(sprintf(
+        throw new SystemException(sprintf(
                 "Calling unknown static method: %s::%s",
                 get_called_class(),
                 $action

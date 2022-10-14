@@ -13,6 +13,7 @@ namespace Swoolefy\Core;
 
 use Swoole\Coroutine\Channel;
 use Swoole\Coroutine\System;
+use Swoolefy\Exception\SystemException;
 
 class CommandRunner
 {
@@ -149,7 +150,7 @@ class CommandRunner
             }
             // when exec error save log
             if ($return != 0) {
-                throw new \Exception("CommandRunner Exec failed,reurnCode={$return},commandLine={$command}.");
+                throw new SystemException("CommandRunner Exec failed,reurnCode={$return},commandLine={$command}.");
             }
         }
 
@@ -194,7 +195,7 @@ class CommandRunner
             try {
                 $proc_process = proc_open($command, $descriptors, $pipes);
                 if (!is_resource($proc_process)) {
-                    throw new \Exception("Proc Open Command 【{$command}】 failed.");
+                    throw new SystemException("Proc Open Command 【{$command}】 failed.");
                 }
                 $status = proc_get_status($proc_process);
                 if ($status['pid'] ?? '') {
@@ -206,7 +207,7 @@ class CommandRunner
 
                     $returnCode = fgets($pipes[3], 10);
                     if ($returnCode != 0) {
-                        throw new \Exception("CommandRunner Proc Open failed,return Code={$returnCode},commandLine={$command}.");
+                        throw new SystemException("CommandRunner Proc Open failed,return Code={$returnCode},commandLine={$command}.");
                     }
                 }
                 $params = [$pipes[0], $pipes[1], $pipes[2], $status, $returnCode ?? -1];
@@ -282,7 +283,7 @@ class CommandRunner
      */
     private function __clone()
     {
-        throw new \Exception("Unable to clone.");
+        throw new SystemException("Unable to clone.");
     }
 
 }

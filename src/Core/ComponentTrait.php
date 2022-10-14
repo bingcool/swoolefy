@@ -13,6 +13,7 @@ namespace Swoolefy\Core;
 
 use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Dto\ContainerObjectDto;
+use Swoolefy\Exception\SystemException;
 
 trait ComponentTrait
 {
@@ -64,7 +65,7 @@ trait ComponentTrait
                     }
                     return $this->container[$com_alias_name] = $this->buildInstance($class, $definition, $params, $com_alias_name);
                 } else {
-                    throw new \Exception(sprintf("component:%s must be set class", $com_alias_name));
+                    throw new SystemException(sprintf("component:%s must be set class", $com_alias_name));
                 }
 
             } else {
@@ -178,7 +179,7 @@ trait ComponentTrait
                     $closure = $definition[$name];
                     $closure->call($object, $definition);
                 } else {
-                    throw new \Exception(sprintf("%s of component's config item 'func' is not Closure or %s instance is not exists of method", $com_alias_name, $com_alias_name));
+                    throw new SystemException(sprintf("%s of component's config item 'func' is not Closure or %s instance is not exists of method", $com_alias_name, $com_alias_name));
                 }
                 continue;
             } else if (isset($object->$name) && @is_array($object->$name)) {

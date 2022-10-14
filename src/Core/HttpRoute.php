@@ -12,6 +12,7 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Controller\BController;
+use Swoolefy\Exception\DispatchException;
 
 class HttpRoute extends AppDispatch
 {
@@ -172,7 +173,7 @@ class HttpRoute extends AppDispatch
         // forbidden call action
         if (in_array($action, static::$denyActions)) {
             $errorMsg = "{$controller}::{$action} is not allow access action";
-            throw new \RuntimeException($errorMsg, 403);
+            throw new DispatchException($errorMsg, 403);
         }
 
         if ($module) {
@@ -249,9 +250,16 @@ class HttpRoute extends AppDispatch
         }
 
         if ($isContinueAction === false) {
-            $errorMsg = "Call {$class}::_beforeAction() return false, forbidden continue call {$class}::{$targetAction}, please checkout it";
-            throw new \RuntimeException($errorMsg, 404);
+            $errorMsg = sprintf(
+                "Call %s::_beforeAction() return false, forbidden continue call %s::%s",
+                $class,
+                $class,
+                $targetAction
+            );
+
+            throw new DispatchException($errorMsg, 404);
         }
+
         // reflector object
         $reflector = new \ReflectionClass($controllerInstance);
         if ($reflector->hasMethod($targetAction)) {
@@ -265,7 +273,8 @@ class HttpRoute extends AppDispatch
                     $class,
                     $targetAction
                 );
-                throw new \RuntimeException($errorMsg, 500);
+
+                throw new DispatchException($errorMsg, 500);
             }
         } else {
             $errorMsg = sprintf(
@@ -273,7 +282,8 @@ class HttpRoute extends AppDispatch
                 $class,
                 $targetAction
             );
-            throw new \RuntimeException($errorMsg, 404);
+
+            throw new DispatchException($errorMsg, 404);
         }
     }
 
@@ -336,7 +346,7 @@ class HttpRoute extends AppDispatch
             return $this->redirectNotFound();
         } else {
             $errorMsg = "Class {$class} is not found";
-            throw new \RuntimeException($errorMsg, 404);
+            throw new DispatchException($errorMsg, 404);
         }
     }
 
@@ -390,9 +400,11 @@ class HttpRoute extends AppDispatch
                         $isValid = false;
                     }
                 }
+
                 if (!$isValid) {
-                    throw new \InvalidArgumentException("Invalid data received for parameter of {$name}" . '|||' . $this->request->server['REQUEST_URI']);
+                    throw new DispatchException("Invalid data received for parameter of {$name}" . '|||' . $this->request->server['REQUEST_URI']);
                 }
+
                 $args[] = $actionParams[$name] = $params[$name];
                 unset($params[$name]);
             } elseif ($param->isDefaultValueAvailable()) {
@@ -403,7 +415,7 @@ class HttpRoute extends AppDispatch
         }
 
         if (!empty($missing)) {
-            throw new \InvalidArgumentException("Missing required parameters of name : " . implode(', ', $missing) . '|||' . $this->request->server['REQUEST_URI'] . '|||' . json_encode($actionParams, JSON_UNESCAPED_UNICODE));
+            throw new DispatchException("Missing required parameters of name : " . implode(', ', $missing) . '|||' . $this->request->server['REQUEST_URI'] . '|||' . json_encode($actionParams, JSON_UNESCAPED_UNICODE));
         }
 
         $this->actionParams = $actionParams;

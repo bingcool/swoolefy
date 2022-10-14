@@ -17,6 +17,7 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Dto\TaskMessageDto;
+use Swoolefy\Exception\TaskException;
 
 class AsyncTask implements AsyncTaskInterface
 {
@@ -28,19 +29,19 @@ class AsyncTask implements AsyncTaskInterface
     public static function registerTask(TaskMessageDto $taskMessageDto)
     {
         if (empty($taskMessageDto->taskClass)) {
-            throw new \Exception("Missing TaskMessageDto->taskClass Params");
+            throw new TaskException("Missing TaskMessageDto->taskClass Params");
         }
 
         if (!is_subclass_of($taskMessageDto->taskClass,EventController::class) && !is_subclass_of($taskMessageDto->taskClass,BService::class)) {
-            throw new \Exception("TaskMessageDto->taskClass Need extends EventController or BService.");
+            throw new TaskException("TaskMessageDto->taskClass Need extends EventController or BService.");
         }
 
         if (empty($taskMessageDto->taskAction)) {
-            throw new \Exception("Missing TaskMessageDto->taskAction Params");
+            throw new TaskException("Missing TaskMessageDto->taskAction Params");
         }
 
         if (!is_array($taskMessageDto->taskData)) {
-            throw new \Exception("TaskMessageDto->taskData Type Error");
+            throw new TaskException("TaskMessageDto->taskData Type Error");
         }
 
         $taskMessageDto->taskClass = str_replace('/', '\\', trim($taskMessageDto->taskClass, '/'));
