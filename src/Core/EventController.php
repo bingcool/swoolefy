@@ -13,6 +13,7 @@ namespace Swoolefy\Core;
 
 use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Coroutine\CoroutineManager;
+use Swoolefy\Exception\SystemException;
 
 /**
  * Class EventController
@@ -121,9 +122,11 @@ class EventController extends BaseObject
         if (empty($coroutine_id)) {
             $coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
         }
+
         $exists = Application::issetApp($coroutine_id);
+        
         if ($exists) {
-            throw new \Exception("You had created EventApp Instance, yon can only registerApp once, so you can't create same coroutine");
+            throw new SystemException("You had created EventApp Instance, yon can only registerApp once, so you can't create same coroutine");
         }
         return true;
     }
@@ -133,7 +136,6 @@ class EventController extends BaseObject
      * @param callable $callback
      * @param bool $prepend
      * @return bool
-     * @throws Exception
      */
     public function afterRequest(callable $callback, bool $prepend = false)
     {

@@ -17,6 +17,7 @@ use Swoolefy\Core\BaseServer;
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\EventController;
 use Swoolefy\Core\Table\TableManager;
+use Swoolefy\Exception\SystemException;
 
 abstract class AbstractProcess
 {
@@ -275,12 +276,12 @@ abstract class AbstractProcess
         if ($worker_id >= 1) {
             $workerTaskTotalNum = (int)Swfy::getServer()->setting['worker_num'] + (int)Swfy::getServer()->setting['task_worker_num'];
             if ($worker_id >= $workerTaskTotalNum) {
-                throw new \Exception("Param of worker_id must <=$workerTaskTotalNum");
+                throw new SystemException("Param of worker_id must <=$workerTaskTotalNum");
             }
         }
 
         if (!$msg) {
-            throw new \Exception('Param of msg can not be null or empty');
+            throw new SystemException('Param of msg can not be null or empty');
         }
 
         return Swfy::getServer()->sendMessage($msg, $worker_id);
@@ -394,7 +395,7 @@ abstract class AbstractProcess
                     $error['line']
                 );
                 if(!in_array($error['type'], [E_NOTICE, E_WARNING]) ) {
-                    $exception = new \Exception($errorStr, $error['type']);
+                    $exception = new SystemException($errorStr, $error['type']);
                     $this->onHandleException($exception);
                 }
             }

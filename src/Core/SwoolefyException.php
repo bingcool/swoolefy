@@ -111,7 +111,7 @@ class SwoolefyException
     }
 
     /**
-     * 捕捉异常返回前端(重写)
+     * 捕捉异常(重写)
      * @param App $app
      * @param \Throwable $e
      */

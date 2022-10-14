@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Exception\SystemException;
+
 /**
  * Class EventApp
  * @package Swoolefy\Core
@@ -138,7 +140,7 @@ class EventApp
     {
         if ($this->isCall && \Swoole\Coroutine::getCid() > 0) {
             $className = get_class($this->eventApp);
-            throw new \Exception(sprintf("%s Single Coroutine Instance only be called one method, you had called", $className));
+            throw new SystemException(sprintf("%s Single Coroutine Instance only be called one method, you had called", $className));
         }
 
         try {

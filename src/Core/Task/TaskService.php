@@ -13,6 +13,7 @@ namespace Swoolefy\Core\Task;
 
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\BService;
+use Swoolefy\Exception\TaskException;
 
 class TaskService extends BService
 {
@@ -43,7 +44,7 @@ class TaskService extends BService
     {
         parent::__construct();
         if (!BaseServer::getServer()->taskworker) {
-            throw new \Exception(__CLASS__ . " only use in task process");
+            throw new TaskException(__CLASS__ . " only use in task process");
         }
     }
 

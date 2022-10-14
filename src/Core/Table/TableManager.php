@@ -12,6 +12,7 @@
 namespace Swoolefy\Core\Table;
 
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Exception\SystemException;
 
 class TableManager
 {
@@ -159,7 +160,7 @@ class TableManager
     {
         if (isset(BaseServer::$tableMemory)) {
             if (!isset(BaseServer::$tableMemory[$table])) {
-                throw new \Exception("Not exist Table={$table}");
+                throw new SystemException("Not exist Table={$table}");
             }
             return BaseServer::$tableMemory[$table];
         }

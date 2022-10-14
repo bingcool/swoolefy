@@ -16,6 +16,7 @@ use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\EventController;
 use Swoolefy\Core\Memory\AtomicManager;
 use Swoolefy\Core\Process\AbstractProcess;
+use Swoolefy\Exception\SystemException;
 
 class SysProcess extends AbstractProcess
 {
@@ -128,13 +129,13 @@ class SysProcess extends AbstractProcess
         $message = implode(SWOOLEFY_EOF_FLAG, [$service, $event, json_encode($data, JSON_UNESCAPED_UNICODE)]);
 
         if (empty($host) || empty($port) || empty($service) || empty($event)) {
-            throw new \Exception('Config about sys_collector_config of udp is wrong, host, port, service, event of params must be setting');
+            throw new SystemException('Config about sys_collector_config of udp is wrong, host, port, service, event of params must be setting');
         }
 
         if (!$udpClient->isConnected()) {
             $isConnected = $udpClient->connect($host, $port, $timeout);
             if (!$isConnected) {
-                throw new \Exception("SysProcess::sendByUdp of connect udp is failed");
+                throw new SystemException("SysProcess::sendByUdp of connect udp is failed");
             }
         }
 
@@ -191,11 +192,11 @@ class SysProcess extends AbstractProcess
         $channel  = $this->sysCollectorConfig['channel'] ?? SWOOLEFY_SYS_COLLECTOR_CHANNEL;
 
         if (!extension_loaded('redis')) {
-            throw new \Exception("Because you enable sys_collector, must be install extension of phpredis", 1);
+            throw new SystemException("Because you enable sys_collector, must be install extension of phpredis", 1);
         }
 
         if (empty($host) || empty($port) || empty($password)) {
-            throw new \Exception('Config of sys_collector_config of phpRedis is wrong, host, port, password of params must be setted');
+            throw new SystemException('Config of sys_collector_config of phpRedis is wrong, host, port, password of params must be setted');
         }
 
         $redisClient = new \Redis();

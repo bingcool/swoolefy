@@ -201,7 +201,6 @@ class PoolsManager
      * @param string $processName
      * @param bool $isRestartFullProcess
      * @return bool
-     * @throws Exception
      */
     public function rebootPools(string $processName, bool $isRestartFullProcess = false)
     {
@@ -237,7 +236,6 @@ class PoolsManager
      * @param \Closure $callback
      * @param float $timeOut
      * @return Process
-     * @throws Exception
      */
     public function writeByProcessPoolsName(string $processName, $data, \Closure $callback = null, float $timeOut = 3)
     {

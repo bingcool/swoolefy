@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Exception\SystemException;
 use Swoolefy\Rpc\RpcServer;
 use Swoolefy\Udp\UdpHandler;
 
@@ -107,8 +108,9 @@ class BService extends BaseObject
     public function send($fd, $data, array $header = [])
     {
         if (!BaseServer::isRpcApp()) {
-            throw new \Exception("BService::send() this method only can be called by tcp or rpc server!");
+            throw new SystemException("BService::send() this method only can be called by tcp or rpc server!");
         }
+
         if (BaseServer::isPackLength()) {
             $payload = [$data, $header];
             $data = \Swoolefy\Rpc\RpcServer::pack($payload);
@@ -117,6 +119,7 @@ class BService extends BaseObject
             $text = \Swoolefy\Rpc\RpcServer::pack($data);
             return Swfy::getServer()->send($fd, $text);
         }
+
     }
 
     /**
@@ -136,11 +139,13 @@ class BService extends BaseObject
             $port = $this->clientInfo['port'];
         }
         if (!BaseServer::isUdpApp()) {
-            throw new \Exception("BService::sendTo() this method only can be called by udp server!");
+            throw new SystemException("BService::sendTo() this method only can be called by udp server!");
         }
+
         if (is_array($data)) {
             $data = json_encode($data, JSON_UNESCAPED_UNICODE);
         }
+
         return Swfy::getServer()->sendto($ip, $port, $data, $server_socket);
     }
 
@@ -155,11 +160,11 @@ class BService extends BaseObject
     public function push($fd, $data, int $opcode = 1, bool $finish = true)
     {
         if (!BaseServer::isWebsocketApp()) {
-            throw new \Exception("BService::push() this method only can be called by websocket server!");
+            throw new SystemException("BService::push() this method only can be called by websocket server!");
         }
 
         if (!Swfy::getServer()->isEstablished($fd)) {
-            throw new \Exception("Websocket connection closed");
+            throw new SystemException("Websocket connection closed");
         }
 
         if (is_array($data)) {

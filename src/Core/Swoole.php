@@ -13,6 +13,7 @@ namespace Swoolefy\Core;
 
 use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Coroutine\CoroutineManager;
+use Swoolefy\Exception\SystemException;
 
 class Swoole extends BaseObject
 {
@@ -192,32 +193,30 @@ class Swoole extends BaseObject
     /**
      * getRpcPackHeader
      * @return array
-     * @throws Exception
      */
     public function getRpcPackHeader()
     {
         if (!$this->isWorkerProcess()) {
-            throw new \Exception(sprintf("%s::getRpcPackHeader() only can use in worker process", __CLASS__));
+            throw new SystemException(sprintf("%s::getRpcPackHeader() only can use in worker process", __CLASS__));
         }
         if (!BaseServer::isRpcApp()) {
-            throw new \Exception(sprintf("%s::getRpcPackHeader() method only can be called by TCP or RPC server!, because only rpc have pack setting", __CLASS__));
+            throw new SystemException(sprintf("%s::getRpcPackHeader() method only can be called by TCP or RPC server!, because only rpc have pack setting", __CLASS__));
         }
-        return $this->rpcPackHeader;
 
+        return $this->rpcPackHeader;
     }
 
     /**
      * getRpcPackBodyParams
      * @return mixed
-     * @throws Exception
      */
     public function getRpcPackBodyParams()
     {
         if (!$this->isWorkerProcess()) {
-            throw new \Exception(sprintf("%s::getRpcPackBodyParams() only can use in worker process", __CLASS__));
+            throw new SystemException(sprintf("%s::getRpcPackBodyParams() only can use in worker process", __CLASS__));
         }
         if (!BaseServer::isRpcApp()) {
-            throw new \Exception(sprintf("%s::getRpcPackBodyParams() method only can be called by TCP or RPC server!, because only rpc have pack setting", __CLASS__));
+            throw new SystemException(sprintf("%s::getRpcPackBodyParams() method only can be called by TCP or RPC server!, because only rpc have pack setting", __CLASS__));
         }
 
         return $this->mixedParams;
@@ -226,16 +225,15 @@ class Swoole extends BaseObject
     /**
      * getUdpData
      * @return mixed
-     * @throws Exception
      */
     public function getUdpData()
     {
         if (!$this->isWorkerProcess()) {
-            throw new \Exception(sprintf("%s::getUdpData() only can use in worker process", __CLASS__));
+            throw new SystemException(sprintf("%s::getUdpData() only can use in worker process", __CLASS__));
         }
 
         if (!BaseServer::isUdpApp()) {
-            throw new \Exception(sprintf("%s::getUdpData() method only can be called by UDP server", __CLASS__));
+            throw new SystemException(sprintf("%s::getUdpData() method only can be called by UDP server", __CLASS__));
         }
 
         return $this->mixedParams;

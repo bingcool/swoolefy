@@ -14,6 +14,7 @@ namespace Swoolefy\Core\Crontab;
 use Cron\CronExpression;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Exception\CronException;
 
 class CrontabManager
 {
@@ -34,17 +35,17 @@ class CrontabManager
     public function addRule(string $cronName, string $expression, $func)
     {
         if (!class_exists('Cron\\CronExpression')) {
-            throw new \Exception("If you want to use crontab, you need to install 'composer require dragonmantank/cron-expression' ");
+            throw new CronException("If you want to use crontab, you need to install 'composer require dragonmantank/cron-expression' ");
         }
 
         if (!is_numeric($expression) && !CronExpression::isValidExpression($expression)) {
-            throw new \Exception("Crontab expression format is wrong, please check it");
+            throw new CronException("Crontab expression format is wrong, please check it");
         }
 
         $cronNameKey = md5($cronName);
 
         if (isset($this->cronTasks[$cronNameKey])) {
-            throw new \Exception("Cron name=$cronName had been setting, you can not set same name again!");
+            throw new CronException("Cron name=$cronName had been setting, you can not set same name again!");
         }
 
         $this->cronTasks[$cronNameKey] = [$expression, $func];
@@ -53,7 +54,7 @@ class CrontabManager
         if(is_array($func)) {
             list($class,) = $func;
             if (!is_subclass_of($class, '\\Swoolefy\\Core\\Crontab\\AbstractCronController')) {
-                throw new \Exception(sprintf(
+                throw new CronException(sprintf(
                     "s%::s% Params of func about Crontab Handle Controller need to extend Swoolefy\\Core\\Crontab\\AbstractCronController",
                     __CLASS__,
                     __FUNCTION__

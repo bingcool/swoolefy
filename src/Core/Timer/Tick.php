@@ -15,6 +15,7 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Table\TableManager;
+use Swoolefy\Exception\TimerException;
 
 class Tick
 {
@@ -47,7 +48,7 @@ class Tick
     public static function tickTimer(int $time_interval_ms, $func, $params = null)
     {
         if ($time_interval_ms <= 0) {
-            throw new \Exception(get_called_class() . "::tickTimer() the first params 'time_interval' is requested more than 0 ms");
+            throw new TimerException(get_called_class() . "::tickTimer() the first params 'time_interval' is requested more than 0 ms");
         }
 
         $timerId = self::tick($time_interval_ms, $func, $params);
@@ -152,7 +153,7 @@ class Tick
     public static function afterTimer(int $time_interval_ms, $func, $params = null)
     {
         if ($time_interval_ms <= 0) {
-            throw new \Exception(get_called_class() . "::afterTimer() the first params 'time_interval' is requested more then 0 ms");
+            throw new TimerException(get_called_class() . "::afterTimer() the first params 'time_interval' is requested more then 0 ms");
         }
 
         $timerId = self::after($time_interval_ms, $func, $params);

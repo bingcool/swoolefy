@@ -40,6 +40,8 @@
 
 namespace Swoolefy\Core\Memory;
 
+use Swoolefy\Exception\SystemException;
+
 class SysvmsgManager
 {
 
@@ -121,7 +123,7 @@ class SysvmsgManager
 
         $msgKey = ftok($path_name, $project);
         if ($msgKey < 0) {
-            throw new \Exception(sprintf("【Warning】%s::%s create msg_key failed",
+            throw new SystemException(sprintf("【Warning】%s::%s create msg_key failed",
                 __CLASS__,
                 __FUNCTION__
             ));
@@ -175,7 +177,7 @@ class SysvmsgManager
     )
     {
         if ($msg_type <= 0) {
-            throw new \Exception(sprintf("【Warning】%s::%s third param of msg_flag_num need to > 0",
+            throw new SystemException(sprintf("【Warning】%s::%s third param of msg_flag_num need to > 0",
                 __CLASS__,
                 __FUNCTION__
             ));
@@ -184,7 +186,7 @@ class SysvmsgManager
         $msgQueueNameKey = md5($msg_queue_name);
         $msgTypeNameKey = md5($msg_type_name);
         if (isset($this->msgTypes[$msgQueueNameKey][$msgTypeNameKey])) {
-            throw new \Exception(sprintf("【Warning】%s::%s second params of msg_type_name=%s had setting",
+            throw new SystemException(sprintf("【Warning】%s::%s second params of msg_type_name=%s had setting",
                 __CLASS__,
                 __FUNCTION__,
                 $msg_type_name
@@ -216,7 +218,7 @@ class SysvmsgManager
     {
         $msgQueueNameKey = md5($msg_queue_name);
         if (!isset($this->msgQueues[$msgQueueNameKey])) {
-            throw new \Exception(sprintf("【Warning】%s::%s queue=%s is not exist",
+            throw new SystemException(sprintf("【Warning】%s::%s queue=%s is not exist",
                 __CLASS__,
                 __FUNCTION__,
                 $msg_queue_name
@@ -229,7 +231,7 @@ class SysvmsgManager
             if (isset($this->msgTypes[$msgQueueNameKey][$msgTypeNameKey])) {
                 $msgType = $this->msgTypes[$msgQueueNameKey][$msgTypeNameKey];
             } else {
-                throw new \Exception(sprintf("【Warning】%s::%s msg type=%s is not exist",
+                throw new SystemException(sprintf("【Warning】%s::%s msg type=%s is not exist",
                     __CLASS__,
                     __FUNCTION__,
                     $msg_type_name
@@ -240,7 +242,7 @@ class SysvmsgManager
         $msgQueue = $this->msgQueues[$msgQueueNameKey];
         $res = msg_send($msgQueue, $msgType, $msg, $serialize = true, $blocking = false, $errorCode);
         if ($res === false) {
-            throw new \Exception(sprintf("【Warning】%s::%s msg_send error, error code=%d",
+            throw new SystemException(sprintf("【Warning】%s::%s msg_send error, error code=%d",
                 __CLASS__,
                 __FUNCTION__,
                 $errorCode));
@@ -265,7 +267,7 @@ class SysvmsgManager
     {
         $msgQueueNameKey = md5($msg_queue_name);
         if (!isset($this->msgQueues[$msgQueueNameKey])) {
-            throw new \Exception(sprintf("【Warning】%s::%s queue=%s is not exist",
+            throw new SystemException(sprintf("【Warning】%s::%s queue=%s is not exist",
                 __CLASS__,
                 __FUNCTION__,
                 $msg_queue_name
@@ -277,7 +279,7 @@ class SysvmsgManager
             if (isset($this->msgTypes[$msgQueueNameKey][$msgTypeNameKey])) {
                 $msgTypeFlagNum = $this->msgTypes[$msgQueueNameKey][$msgTypeNameKey];
             } else {
-                throw new \Exception(sprintf("【Warning】%s::%s msg type=%s is not exist",
+                throw new SystemException(sprintf("【Warning】%s::%s msg type=%s is not exist",
                     __CLASS__,
                     __FUNCTION__,
                     $msg_type_name
@@ -290,7 +292,7 @@ class SysvmsgManager
         $msgQueue = $this->msgQueues[$msgQueueNameKey];
         $res = msg_receive($msgQueue, $msgTypeFlagNum, $msgType, $max_size, $msg, true, 0, $errorCode);
         if ($res === false) {
-            throw new \Exception(sprintf("【Warning】%s::%s. msg_receive() accept msg error, code=%d",
+            throw new SystemException(sprintf("【Warning】%s::%s. msg_receive() accept msg error, code=%d",
                 __CLASS__,
                 __FUNCTION__,
                 $errorCode
@@ -310,7 +312,7 @@ class SysvmsgManager
     {
         $msgQueueNameKey = md5($msg_queue_name);
         if (!isset($this->msgQueues[$msgQueueNameKey])) {
-            throw new \Exception(sprintf("【Warning】%s::%s. queue msg=%s is not exist",
+            throw new SystemException(sprintf("【Warning】%s::%s. queue msg=%s is not exist",
                 __CLASS__,
                 __FUNCTION__,
                 $msg_queue_name
@@ -340,7 +342,7 @@ class SysvmsgManager
             if (isset($this->msgTypes[$msgQueueNameKey][$msgTypeNameKey])) {
                 $msgType = $this->msgTypes[$msgQueueNameKey][$msgTypeNameKey];
             } else {
-                throw new \Exception(sprintf("【Warning】s%::s% msg type=s% is not exist",
+                throw new SystemException(sprintf("【Warning】s%::s% msg type=s% is not exist",
                     __CLASS__,
                     __FUNCTION__,
                     $msg_queue_name

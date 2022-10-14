@@ -578,7 +578,7 @@ class BaseServer
     }
 
     /**
-     * isUseSsl 判断是否使用ssl加密
+     * isUseSsl
      * @return bool
      */
     protected static function isUseSsl()
@@ -590,7 +590,7 @@ class BaseServer
     }
 
     /**
-     * 设置socket类型
+     * setSwooleSockType
      * @return void
      */
     protected static function setSwooleSockType()
@@ -666,7 +666,7 @@ class BaseServer
     }
 
     /**
-     * checkPackType 设置pack检查类型
+     * checkPackType
      * @return void
      */
     protected static function checkPackType()
@@ -682,7 +682,7 @@ class BaseServer
     }
 
     /**
-     * usePackEof 是否是pack的eof
+     * usePackEof
      * @return bool
      */
     public static function isPackEof()
@@ -694,7 +694,7 @@ class BaseServer
     }
 
     /**
-     * isPackLength 是否是pack的length
+     * isPackLength
      * @return bool
      * @throws mixed
      */
@@ -779,7 +779,6 @@ class BaseServer
     public static function getExceptionClass()
     {
         $exceptionHandlerClass = '\\Swoolefy\\Core\\SwoolefyException';
-        // 获取协议层配置
         if (isset(self::$config['exception_handler']) && !empty(self::$config['exception_handler'])) {
             $exceptionHandlerClass = self::$config['exception_handler'];
         }
