@@ -32,7 +32,7 @@ class BController extends \Swoolefy\Core\AppObject
     public $response = null;
 
     /**
-     * $app_conf
+     * $appConf
      * @var array
      */
     public $appConf = [];

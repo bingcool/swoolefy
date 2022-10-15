@@ -70,7 +70,6 @@ class Swfy
         return true;
     }
 
-
     /**
      * createComponent
      * @param string $com_alias_name

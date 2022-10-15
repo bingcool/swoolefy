@@ -51,14 +51,14 @@ trait AppTrait
      * 提前结束请求,可以在_beforeAction中调用
      * @param int $code
      * @param string $msg
-     * @param string $data
+     * @param mixed $data
      * @param string $formatter
      * @return bool
      */
     public function beforeEnd(
         int $code = 0,
         string $msg = '',
-        $data = '',
+        mixed $data = [],
         string $formatter = 'json'
     )
     {

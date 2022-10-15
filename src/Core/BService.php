@@ -24,13 +24,13 @@ class BService extends BaseObject
      * fd
      * @var int
      */
-    protected $fd = null;
+    protected $fd;
 
     /**
-     * app_conf 应用层配置
+     * appConf
      * @var array
      */
-    protected $app_conf = null;
+    protected $appConf = [];
 
     /**
      * @var mixed
@@ -52,7 +52,7 @@ class BService extends BaseObject
          */
         $app            = Application::getApp();
         $this->fd       = $app->getFd();
-        $this->app_conf = $app->appConf;
+        $this->appConf  = $app->getAppConf();
 
         if (BaseServer::isUdpApp()) {
             /**

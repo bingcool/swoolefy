@@ -83,7 +83,10 @@ class CrontabManager
                     BaseServer::catchException($throwable);
                 } finally {
                     if (isset($cronControllerInstance)) {
-                        Application::removeApp($cronControllerInstance->coroutine_id);
+                        /**
+                         * @var AbstractCronController $cronControllerInstance
+                        */
+                        Application::removeApp($cronControllerInstance->getCid());
                     }
                 }
             }, $expression);
