@@ -18,6 +18,9 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 
 目前完全支持swoole4.4+的协程，推荐使用新版swoole4.8+.
 
+主分支：master分支最低要求php8+，swoole5+    
+LTS分支：swoolefy-4.8-lts 长期维护，最低要求php >= php7.2 && php < php8.0, swoole4.8+   
+
 ### 实现的功能特性
 - [x] 架手脚一键创建项目           
 - [x] 路由与调度，MVC三层，多级配置      
