@@ -74,7 +74,7 @@ class ProcessManager
         string $processClass,
         bool   $async = true,
         array  $args = [],
-        ?array $extendData = null,
+        mixed $extendData = null,
         bool   $enableCoroutine = true
     )
     {

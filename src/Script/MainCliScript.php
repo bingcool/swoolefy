@@ -84,7 +84,6 @@ class MainCliScript extends AbstractMainWorker {
             return '';
         }
         putenv("a={$action}");
-
         return $class;
     }
 }

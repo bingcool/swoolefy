@@ -11,6 +11,7 @@
 
 namespace protocol\udp;
 
+use Swoole\Server;
 use Swoolefy\Core\Swfy;
 
 class UdpEventServer extends \Swoolefy\Udp\UdpEventServer
@@ -38,7 +39,7 @@ class UdpEventServer extends \Swoolefy\Udp\UdpEventServer
 
     /**
      * onFinish
-     * @param object $server
+     * @param Server $server
      * @param int $task_id
      * @param mixed $data
      * @return mixed
@@ -49,7 +50,7 @@ class UdpEventServer extends \Swoolefy\Udp\UdpEventServer
 
     /**
      * onPipeMessage
-     * @param object $server
+     * @param Server $server
      * @param int $src_worker_id
      * @param mixed $message
      * @return void

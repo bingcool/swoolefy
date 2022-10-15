@@ -56,10 +56,10 @@ class MqttEvent5
 
     /**
      * MqttEvent constructor.
-     * @param $fd
-     * @param $data
+     * @param int $fd
+     * @param mixed $data
      */
-    public function __construct($fd, $data)
+    public function __construct(int $fd, mixed $data)
     {
         $this->server = Swfy::getServer();
         $this->fd = $fd;

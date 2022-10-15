@@ -36,7 +36,7 @@ abstract class WebsocketServer extends BaseServer
         'max_request'     => 1000,
         'task_tmpdir'     => '/dev/shm',
         'daemonize'       => 0,
-        'hook_flags'      => SWOOLE_HOOK_ALL | SWOOLE_HOOK_CURL,
+        'hook_flags'      => SWOOLE_HOOK_ALL,
         'log_file'        => __DIR__ . '/log/log.txt',
         'pid_file'        => __DIR__ . '/log/server.pid',
     ];

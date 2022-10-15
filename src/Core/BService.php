@@ -62,7 +62,7 @@ class BService extends BaseObject
         }
 
         if (\Swoole\Coroutine::getCid() > 0) {
-            defer(function () {
+            \Swoole\Coroutine::defer(function () {
                 $this->defer();
             });
         }
@@ -80,13 +80,13 @@ class BService extends BaseObject
 
 
     /**
-     * @param $mixed_params
+     * @param mixed $mixedParams
      * @return void
      */
-    public function setMixedParams($mixed_params)
+    public function setMixedParams(mixed $mixedParams)
     {
         if(empty($this->mixedParams)) {
-            $this->mixedParams = $mixed_params;
+            $this->mixedParams = $mixedParams;
         }
     }
 
@@ -105,7 +105,7 @@ class BService extends BaseObject
      * @param array $header
      * @return mixed
      */
-    public function send($fd, $data, array $header = [])
+    public function send(int $fd, mixed $data, array $header = [])
     {
         if (!BaseServer::isRpcApp()) {
             throw new SystemException("BService::send() this method only can be called by tcp or rpc server!");
@@ -124,20 +124,27 @@ class BService extends BaseObject
 
     /**
      * sendTo udp
-     * @param $data
+     * @param mixed $data
      * @param string $ip
-     * @param string $port
+     * @param int|null $port
      * @param null $server_socket
      * @return mixed
      */
-    public function sendTo($data, string $ip = '', $port = '', $server_socket = null)
+    public function sendTo(
+        mixed $data,
+        string $ip = '',
+        ?int $port = null,
+        int $server_socket = -1
+    )
     {
         if (empty($ip)) {
             $ip = $this->clientInfo['address'];
         }
+
         if (empty($port)) {
             $port = $this->clientInfo['port'];
         }
+
         if (!BaseServer::isUdpApp()) {
             throw new SystemException("BService::sendTo() this method only can be called by udp server!");
         }
@@ -154,10 +161,15 @@ class BService extends BaseObject
      * @param int $fd
      * @param mixed $data
      * @param int $opcode
-     * @param bool $finish
+     * @param bool|int $finish
      * @return bool
      */
-    public function push($fd, $data, int $opcode = 1, bool $finish = true)
+    public function push(
+        int $fd,
+        mixed $data,
+        int $opcode = 1,
+        bool|int $finish = true
+    )
     {
         if (!BaseServer::isWebsocketApp()) {
             throw new SystemException("BService::push() this method only can be called by websocket server!");
@@ -171,7 +183,7 @@ class BService extends BaseObject
             $data = json_encode($data, JSON_UNESCAPED_UNICODE);
         }
 
-        $result = Swfy::getServer()->push($fd, $data, $opcode, $finish);
+        $result = Swfy::getServer()->push($fd, $data, $opcode, (int)$finish);
         return $result;
 
     }

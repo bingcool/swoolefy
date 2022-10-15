@@ -72,7 +72,6 @@ class EventApp
      * @param string|\Closure $class
      * @param array $args
      * @return $this
-     * @throws Exception
      */
     public function registerApp($class, array $args = [])
     {
@@ -100,7 +99,7 @@ class EventApp
             if (!($this->eventApp instanceof EventController)) {
                 $className = get_class($this->eventApp);
                 unset($this->eventApp);
-                throw new \Exception(
+                throw new SystemException(
                     sprintf(
                     "%s must extends \Swoolefy\Core\EventController, please check it",
                     $className
@@ -134,7 +133,6 @@ class EventApp
      * @param string $action
      * @param array $args
      * @return mixed
-     * @throws \Exception
      */
     public function __call(string $action, array $args = [])
     {
@@ -146,7 +144,6 @@ class EventApp
         try {
             $this->isCall = true;
             return $this->eventApp->$action(...$args);
-
         } catch (\Throwable $throwable) {
             BaseServer::catchException($throwable);
         }finally {

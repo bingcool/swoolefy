@@ -77,9 +77,8 @@ class EventController extends BaseObject
      * setApp
      * @param int $coroutine_id
      * @return bool
-     * @throws \Exception
      */
-    public function setApp($coroutine_id = null)
+    public function setApp(int $coroutine_id)
     {
         if ($coroutine_id) {
             Application::removeApp($this->coroutine_id);
@@ -87,6 +86,7 @@ class EventController extends BaseObject
             Application::setApp($this);
             return true;
         }
+
         return false;
     }
 
@@ -115,7 +115,6 @@ class EventController extends BaseObject
     /**
      * @param null $coroutine_id
      * @return bool
-     * @throws \Exception
      */
     public function canCreateApp($coroutine_id = null)
     {
@@ -241,7 +240,7 @@ class EventController extends BaseObject
     {
         if (\Swoole\Coroutine::getCid() >= 0) {
             $this->isDefer = true;
-            \Swoole\Coroutine\defer(function () {
+            \Swoole\Coroutine::defer(function () {
                 $this->end();
             });
         }

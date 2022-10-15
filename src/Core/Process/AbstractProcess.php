@@ -67,24 +67,24 @@ abstract class AbstractProcess
      * @param string $processName
      * @param bool $async
      * @param array $args
-     * @param null $extend_data
-     * @param bool $enable_coroutine
+     * @param mixed $extendData
+     * @param bool $enableCoroutine
      * @return void
      */
     public function __construct(
         string $processName,
         bool   $async = true,
         array  $args = [],
-               $extend_data = null,
-        bool   $enable_coroutine = true
+        mixed  $extendData = null,
+        bool $enableCoroutine = true
     )
     {
         $this->async = $async;
         $this->args = $args;
-        $this->extendData = $extend_data;
+        $this->extendData = $extendData;
         $this->processName = $processName;
         if($this->isWorkerService()) {
-            $this->enableCoroutine = $enable_coroutine;
+            $this->enableCoroutine = $enableCoroutine;
         }else {
             $this->enableCoroutine = true;
         }

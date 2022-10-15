@@ -79,7 +79,7 @@ abstract class AbstractProcessPools
         string $process_name,
         bool   $async = true,
         array  $args = [],
-        ?array $extend_data = null,
+        mixed $extend_data = null,
         bool   $enable_coroutine = true
     )
     {

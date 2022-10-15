@@ -268,10 +268,10 @@ class PoolsHandler
     }
 
     /**
-     * @param $object
+     * @param object $object
      * @return ContainerObjectDto
      */
-    private function buildContainerObject($object)
+    private function buildContainerObject(object $object)
     {
         $containerObjectDto                  = new ContainerObjectDto();
         $containerObjectDto->__coroutineId   = \Swoole\Coroutine::getCid();

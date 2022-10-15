@@ -17,25 +17,25 @@ class View
 {
     /**
      * $view smarty对象
-     * @var null
+     * @var object
      */
     public $view = null;
 
     /**
      * $content_type 响应文档类型
-     * @var null
+     * @var string
      */
     public $content_type = null;
 
     /**
      * $gzip_level 压缩等级,与$enable_gzip相关联
-     * @var integer
+     * @var int
      */
     public $gzip_level = 2;
 
     /**
      * $write_size 分段返回的大小，默认20000字节(稍微小于2M)
-     * @var integer
+     * @var int
      */
     public $write_size = 20000;
 

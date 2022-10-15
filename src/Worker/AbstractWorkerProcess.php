@@ -65,10 +65,10 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
     /**
      * CreateDynamicProcess
      *
-     * @param $dynamic_process_name
-     * @param $dynamic_process_num
+     * @param string $dynamic_process_name
+     * @param int $dynamic_process_num
      */
-    protected function onCreateDynamicProcessCallback($dynamic_process_name, $dynamic_process_num)
+    protected function onCreateDynamicProcessCallback(string $dynamic_process_name, int $dynamic_process_num)
     {
 
     }
@@ -76,10 +76,10 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
     /**
      * DestroyDynamicProcess
      *
-     * @param $dynamic_process_name
-     * @param $dynamic_process_num
+     * @param string $dynamic_process_name
+     * @param int $dynamic_process_num
      */
-    protected function onDestroyDynamicProcessCallback($dynamic_process_name, $dynamic_process_num)
+    protected function onDestroyDynamicProcessCallback(string $dynamic_process_name, int $dynamic_process_num)
     {
 
     }

@@ -97,7 +97,7 @@ class HttpRoute extends AppDispatch
      * __construct
      * @param mixed $extendData
      */
-    public function __construct($extendData = null)
+    public function __construct(mixed $extendData = null)
     {
         parent::__construct();
         $this->app        = Application::getApp();
@@ -366,7 +366,7 @@ class HttpRoute extends AppDispatch
      * @param $action
      * @param $params
      * @return array
-     * @throws \ReflectionException
+     * @throws DispatchException
      */
     protected function bindActionParams($controllerInstance, $action, $params)
     {

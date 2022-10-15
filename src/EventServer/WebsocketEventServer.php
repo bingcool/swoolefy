@@ -11,6 +11,7 @@
 
 namespace protocol\websocket;
 
+use Swoole\WebSocket\Server;
 use Swoolefy\Core\Swfy;
 
 class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
@@ -80,7 +81,7 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 
     /**
      * onMessageFromBinary
-     * @param object $server
+     * @param Server $server
      * @param mixed $frame
      * @return void
      */
@@ -90,7 +91,7 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 
     /**
      * onMessageFromClose
-     * @param object $server
+     * @param Server $server
      * @param mixed $frame
      * @return void
      */

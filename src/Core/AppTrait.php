@@ -46,7 +46,7 @@ trait AppTrait
      * @param string $action
      * @return bool
      */
-    public function _beforeAction($action)
+    public function _beforeAction(string $action)
     {
         return true;
     }
@@ -55,7 +55,7 @@ trait AppTrait
      * @param string $action
      * @return void
      */
-    public function _afterAction($action)
+    public function _afterAction(string $action)
     {
 
     }
@@ -532,7 +532,7 @@ trait AppTrait
     protected function returnJson(
         array  $data = [],
         int    $code = 0,
-               $msg = '',
+        string $msg = '',
         string $formatter = 'json'
     )
     {

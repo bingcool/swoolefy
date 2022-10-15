@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Core;
 
+use Swoole\Server;
 use Swoolefy\Core\Log\LogManager;
 
 class EventHandler extends \Swoolefy\Core\EventCtrl
@@ -47,7 +48,7 @@ class EventHandler extends \Swoolefy\Core\EventCtrl
 
     /**
      * onStart
-     * @param $server
+     * @param Server $server
      * @return void
      */
     public function onStart($server)
@@ -57,7 +58,7 @@ class EventHandler extends \Swoolefy\Core\EventCtrl
 
     /**
      * onManagerStart
-     * @param $server
+     * @param Server $server
      * @return void
      */
     public function onManagerStart($server)
@@ -67,7 +68,8 @@ class EventHandler extends \Swoolefy\Core\EventCtrl
 
     /**
      * onWorkerStart
-     * @param $server
+     * @param Server $server
+     * @param int $worker_id
      * @return void
      */
     public function onWorkerStart($server, $worker_id)
@@ -77,8 +79,8 @@ class EventHandler extends \Swoolefy\Core\EventCtrl
 
     /**
      * onWorkerStop
-     * @param $server
-     * @param $worker_id
+     * @param Server $server
+     * @param int $worker_id
      * @return void
      */
     public function onWorkerStop($server, $worker_id)
@@ -88,11 +90,11 @@ class EventHandler extends \Swoolefy\Core\EventCtrl
 
     /**
      * workerError
-     * @param  $server
-     * @param  $worker_id
-     * @param  $worker_pid
-     * @param  $exit_code
-     * @param  $signal
+     * @param  Server $server
+     * @param  int $worker_id
+     * @param  int $worker_pid
+     * @param  int $exit_code
+     * @param  int $signal
      * @return void
      */
     public function onWorkerError($server, $worker_id, $worker_pid, $exit_code, $signal)
@@ -102,8 +104,8 @@ class EventHandler extends \Swoolefy\Core\EventCtrl
 
     /**
      * workerExit
-     * @param  $server
-     * @param  $worker_id
+     * @param  Server $server
+     * @param  int $worker_id
      * @return void
      */
     public function onWorkerExit($server, $worker_id)
@@ -113,7 +115,7 @@ class EventHandler extends \Swoolefy\Core\EventCtrl
 
     /**
      * onManagerStop
-     * @param  $server
+     * @param  Server $server
      * @return void
      */
     public function onManagerStop($server)

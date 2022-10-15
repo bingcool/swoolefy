@@ -61,11 +61,13 @@ class BaseObject
 
     /**
      * setCid
-     * @param mixed $cid
+     * @param int $cid
      */
-    public function setCid($cid = null)
+    public function setCid(int $cid)
     {
-        $cid && $this->coroutine_id = $cid;
+        if($cid >=0 ) {
+            $this->coroutine_id = $cid;
+        }
     }
 
     /**
@@ -174,7 +176,7 @@ class BaseObject
      * @param mixed $value
      * @return bool
      */
-    public function setArgs(string $name, $value)
+    public function setArgs(string $name, mixed $value)
     {
         if ($name && $value) {
             $this->args[$name] = $value;
@@ -185,25 +187,15 @@ class BaseObject
 
     /**
      * getArgs 获取临时变量值
-     * @param string $name
+     * @param string|null $name
      * @return mixed
      */
-    public function getArgs(string $name = null)
+    public function getArgs(?string $name = null)
     {
         if (!$name) {
             return $this->args;
         }
         return $this->args[$name] ?? null;
-    }
-
-    /**
-     * _die 异常终端程序执行
-     * @param string $html
-     * @param string $msg
-     * @return void
-     */
-    public static function _die($html = '', $msg = '')
-    {
     }
 
     /**
@@ -217,14 +209,15 @@ class BaseObject
 
     /**
      * get component
-     * @return mixed
+     * @param string $name
+     * @return object|bool
      */
-    public function __get($name)
+    public function __get(string $name)
     {
         if (is_object(Application::getApp())) {
             return Application::getApp()->get($name);
         }
-        return false;
+        return null;
     }
 
 }

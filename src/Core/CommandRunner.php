@@ -114,7 +114,7 @@ class CommandRunner
      * @param string $log
      * @param bool $isExec
      * @return array
-     * @throws Exception
+     * @throws SystemException
      */
     public function exec(
         string $execBinFile,
@@ -163,7 +163,7 @@ class CommandRunner
      * @param string $execScript
      * @param array $args
      * @return mixed
-     * @throws Exception
+     * @throws SystemException
      */
     public function procOpen(
         callable $callable,

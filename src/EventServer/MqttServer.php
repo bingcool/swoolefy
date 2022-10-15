@@ -11,6 +11,7 @@
 
 namespace protocol\mqtt;
 
+use Swoole\Server;
 use Swoolefy\Core\Swfy;
 
 class MqttServer extends \Swoolefy\Mqtt\MqttServer
@@ -59,7 +60,7 @@ class MqttServer extends \Swoolefy\Mqtt\MqttServer
 
     /**
      * onPipeMessage
-     * @param object $server
+     * @param Server $server
      * @param int $src_worker_id
      * @param mixed $message
      * @return void
@@ -70,7 +71,7 @@ class MqttServer extends \Swoolefy\Mqtt\MqttServer
 
     /**
      * onClose tcp
-     * @param object $server
+     * @param Server $server
      * @param int $fd
      * @return void
      */

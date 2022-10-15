@@ -36,25 +36,6 @@ class WebsocketHandler extends Swoole implements HandlerInterface
     }
 
     /**
-     * init->bootstrap
-     * @param mixed $recv
-     * @return void
-     */
-    public function init($recv)
-    {
-    }
-
-    /**
-     * init->bootstrap
-     * @param mixed $recv
-     * @return void
-     */
-    public function bootstrap($recv)
-    {
-    }
-
-
-    /**
      * run
      * @param int $fd
      * @param mixed $payload
@@ -62,7 +43,7 @@ class WebsocketHandler extends Swoole implements HandlerInterface
      * @return mixed
      * @throws \Throwable
      */
-    public function run($fd, $payload, array $extendData = [])
+    public function run(?int $fd, mixed $payload, array $extendData = [])
     {
         try {
             // parse data
@@ -148,10 +129,10 @@ class WebsocketHandler extends Swoole implements HandlerInterface
     }
 
     /**
-     * author
+     * auth
      * @return void
      */
-    public function author()
+    public function auth()
     {
     }
 }

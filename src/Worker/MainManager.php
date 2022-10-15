@@ -205,7 +205,7 @@ class MainManager
      * @param int $process_worker_num
      * @param bool $async
      * @param array $args
-     * @param null $extend_data
+     * @param mixed $extend_data
      * @param bool $enable_coroutine
      * @throws Exception
      */
@@ -215,7 +215,7 @@ class MainManager
         int $process_worker_num = 1,
         bool $async = true,
         array $args = [],
-        ?array $extend_data = null,
+        mixed $extend_data = null,
         bool $enable_coroutine = true
     )
     {
