@@ -21,16 +21,15 @@ class Swoole extends BaseObject
     use \Swoolefy\Core\ComponentTrait, \Swoolefy\Core\ServiceTrait;
 
     /**
-     * 应用层配置
-     * @var array
-     */
-    public $app_conf = null;
-
-    /**
-     * fd连接句柄标志
      * @var int
      */
-    public $fd;
+    protected $fd;
+
+    /**
+     * $appConf
+     * @var array
+     */
+    public $appConf = [];
 
     /**
      * rpc、udp、websocket传递的参数寄存属性
@@ -55,7 +54,8 @@ class Swoole extends BaseObject
      */
     public function __construct(array $config = [])
     {
-        $this->app_conf = $config;
+        $this->appConf     = array_merge($this->appConf, $config);
+        $this->coroutineId = CoroutineManager::getInstance()->getCoroutineId();
     }
 
     /**
@@ -110,7 +110,6 @@ class Swoole extends BaseObject
      */
     public function run(?int $fd, mixed $recv)
     {
-        $this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
         $this->fd = $fd;
         $this->creatObject();
         Application::setApp($this);
@@ -149,19 +148,6 @@ class Swoole extends BaseObject
     }
 
     /**
-     * @param int $coroutineId
-     * @return int
-     */
-    public function setCid(?int $coroutineId = null)
-    {
-        if (empty($coroutineId)) {
-            $coroutineId = CoroutineManager::getInstance()->getCoroutineId();
-        }
-        $this->coroutine_id = $coroutineId;
-        return $this->coroutine_id;
-    }
-
-    /**
      * @param $mixedParams
      */
     public function setMixedParams(mixed $mixedParams)
@@ -183,15 +169,6 @@ class Swoole extends BaseObject
     public function getMixedParams()
     {
         return $this->mixedParams;
-    }
-
-    /**
-     * getCid
-     * @return int
-     */
-    public function getCid()
-    {
-        return $this->coroutine_id;
     }
 
     /**
@@ -262,7 +239,7 @@ class Swoole extends BaseObject
 
     /**
      * getFd worker进程中可以读取到值，task进程不能，默认返回null
-     * @return mixed
+     * @return int
      */
     public function getFd()
     {
@@ -298,8 +275,8 @@ class Swoole extends BaseObject
             return false;
         }
         foreach ($this->componentPools as $name) {
-            if (isset($this->container[$name])) {
-                $obj = $this->container[$name];
+            if (isset($this->containers[$name])) {
+                $obj = $this->containers[$name];
                 if (is_object($obj)) {
                     $objId = spl_object_id($obj);
                     if (in_array($objId, $this->componentPoolsObjIds)) {

@@ -13,19 +13,6 @@ namespace Swoolefy\Core;
 
 trait AppTrait
 {
-
-    /**
-     * $request
-     * @var \Swoole\Http\Request
-     */
-    public $request = null;
-
-    /**
-     * $response
-     * @var \Swoole\Http\Response
-     */
-    public $response = null;
-
     /**
      * $previousUrl
      * @var array

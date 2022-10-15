@@ -73,7 +73,7 @@ class ProcessManager
         string $processName,
         string $processClass,
         bool   $async = true,
-        array  $args = [],
+        array  $args  = [],
         mixed $extendData = null,
         bool   $enableCoroutine = true
     )
@@ -87,21 +87,17 @@ class ProcessManager
             TableManager::getInstance()->createTable($this->tableProcess);
         }
 
-        try {
-            /**@var AbstractProcess $process */
-            $process = new $processClass(
-                $processName,
-                $async,
-                $args,
-                $extendData,
-                $enableCoroutine
-            );
-            $this->processList[$key] = $process;
-            $this->processListInfo[$processName] = ['process_name' => $processName, 'class' => $processClass];
-            return $process;
-        } catch (\Exception $exception) {
-            throw $exception;
-        }
+        /**@var AbstractProcess $process */
+        $process = new $processClass(
+            $processName,
+            $async,
+            $args,
+            $extendData,
+            $enableCoroutine
+        );
+        $this->processList[$key] = $process;
+        $this->processListInfo[$processName] = ['process_name' => $processName, 'class' => $processClass];
+        return $process;
     }
 
     /**

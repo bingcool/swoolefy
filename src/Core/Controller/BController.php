@@ -35,7 +35,7 @@ class BController extends \Swoolefy\Core\AppObject
      * $app_conf
      * @var array
      */
-    public $app_conf = null;
+    public $appConf = [];
 
     /**
      * __construct
@@ -45,7 +45,7 @@ class BController extends \Swoolefy\Core\AppObject
         $app = Application::getApp();
         $this->request  = $app->request;
         $this->response = $app->response;
-        $this->app_conf = $app->app_conf;
+        $this->appConf  = $app->appConf;
         if (Coroutine::getCid() > 0) {
             \Swoole\Coroutine::defer(function () {
                 $this->defer();

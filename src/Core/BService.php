@@ -51,8 +51,8 @@ class BService extends BaseObject
          * @var Swoole $app
          */
         $app            = Application::getApp();
-        $this->fd       = $app->fd;
-        $this->app_conf = $app->app_conf;
+        $this->fd       = $app->getFd();
+        $this->app_conf = $app->appConf;
 
         if (BaseServer::isUdpApp()) {
             /**

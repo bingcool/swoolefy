@@ -16,9 +16,7 @@ use Swoolefy\Core\Dto\TaskMessageDto;
 interface AsyncTaskInterface
 {
     /**
-     * registerTask 注册并调用异步任务
-     * @param array $callable
-     * @param array $data
+     * @param TaskMessageDto $taskMessageDto
      * @return mixed
      */
     public static function registerTask(TaskMessageDto $taskMessageDto);

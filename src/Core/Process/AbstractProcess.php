@@ -80,8 +80,8 @@ abstract class AbstractProcess
     )
     {
         $this->async = $async;
-        $this->args = $args;
-        $this->extendData = $extendData;
+        $this->args  = $args;
+        $this->extendData  = $extendData;
         $this->processName = $processName;
         if($this->isWorkerService()) {
             $this->enableCoroutine = $enableCoroutine;

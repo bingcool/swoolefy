@@ -19,10 +19,10 @@ class BaseObject
 {
 
     /**
-     * $coroutine_id
-     * @var string
+     * $coroutineId
+     * @var int
      */
-    public $coroutine_id;
+    public $coroutineId;
 
     /**
      * @var \ArrayObject
@@ -61,12 +61,12 @@ class BaseObject
 
     /**
      * setCid
-     * @param int $cid
+     * @param int $coroutineId
      */
-    public function setCid(int $cid)
+    public function setCid(int $coroutineId)
     {
-        if($cid >=0 ) {
-            $this->coroutine_id = $cid;
+        if($coroutineId >=0 ) {
+            $this->coroutineId = $coroutineId;
         }
     }
 
@@ -76,7 +76,7 @@ class BaseObject
      */
     public function getCid()
     {
-        return $this->coroutine_id;
+        return $this->coroutineId;
     }
 
     /**

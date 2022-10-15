@@ -46,7 +46,7 @@ class AsyncTask implements AsyncTaskInterface
 
         $taskMessageDto->taskClass = str_replace('/', '\\', trim($taskMessageDto->taskClass, '/'));
 
-        $fd = is_object(Application::getApp()) ? Application::getApp()->fd : null;
+        $fd = is_object(Application::getApp()) ? Application::getApp()->getFd() : null;
         if (BaseServer::isUdpApp()) {
             /**
              * @var \Swoolefy\Udp\UdpHandler $app

@@ -61,7 +61,7 @@ class View
             $this->view = $smarty;
         }
         $this->content_type = $contentType;
-        isset(Application::getApp()->app_conf['gzip_level']) && $this->gzip_level = (int)Application::getApp()->app_conf['gzip_level'];
+        isset(Application::getApp()->appConf['gzip_level']) && $this->gzip_level = (int)Application::getApp()->appConf['gzip_level'];
     }
 
     /**
