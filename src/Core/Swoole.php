@@ -21,15 +21,15 @@ class Swoole extends BaseObject
     use \Swoolefy\Core\ComponentTrait, \Swoolefy\Core\ServiceTrait;
 
     /**
-     * @var int
-     */
-    protected $fd;
-
-    /**
      * $appConf
      * @var array
      */
     public $appConf = [];
+
+    /**
+     * @var int
+     */
+    protected $fd;
 
     /**
      * rpc、udp、websocket传递的参数寄存属性

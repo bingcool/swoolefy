@@ -13,11 +13,11 @@
 include START_DIR_ROOT . '/' . APP_NAME . '/Config/defines.php';
 
 // 加载应用层协议
-$app_config = include START_DIR_ROOT . '/' . APP_NAME . '/Config/config-' . SWOOLEFY_ENV . '.php';
+$appConf = include START_DIR_ROOT . '/' . APP_NAME . '/Config/config-' . SWOOLEFY_ENV . '.php';
 
 return [
     // 应用层配置
-    'app_conf'                 => $app_config,
+    'app_conf'                 => $appConf,
     'application_index'        => '',
     'event_handler'            => \Swoolefy\Core\EventHandler::class,
     'response_formatter'       => \Swoolefy\Core\ResponseFormatter::class,

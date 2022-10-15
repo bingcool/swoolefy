@@ -226,14 +226,14 @@ trait ComponentTrait
      * @param bool $isAll
      * @return bool
      */
-    public function clearComponent(string|array|bool $com_alias_name, bool $isAll = false)
+    public function clearComponent(string|array $com_alias_name, bool $isAll = false)
     {
         if ($isAll) {
             $this->containers = [];
             return true;
         }
 
-        if (!is_null($com_alias_name) && is_string($com_alias_name)) {
+        if (is_string($com_alias_name)) {
             $com_alias_name = (array)$com_alias_name;
         } else if (is_array($com_alias_name)) {
             $com_alias_name = array_unique($com_alias_name);
@@ -274,8 +274,8 @@ trait ComponentTrait
      */
     final public function get(string $name)
     {
-        $app_conf = BaseServer::getAppConf();
-        $components = $app_conf['components'];
+        $appConf = BaseServer::getAppConf();
+        $components = $appConf['components'];
         $cid = \Swoole\Coroutine::getCid();
         if (isset($this->containers[$name])) {
             if (is_object($this->containers[$name])) {
@@ -302,8 +302,8 @@ trait ComponentTrait
         }
 
         if (empty($this->componentPools)) {
-            if (isset($app_conf['enable_component_pools']) && is_array($app_conf['enable_component_pools']) && !empty($app_conf['enable_component_pools'])) {
-                $enableComponentPools = array_keys($app_conf['enable_component_pools']);
+            if (isset($appConf['enable_component_pools']) && is_array($appConf['enable_component_pools']) && !empty($appConf['enable_component_pools'])) {
+                $enableComponentPools = array_keys($appConf['enable_component_pools']);
                 $this->componentPools = $enableComponentPools;
             }
         }
