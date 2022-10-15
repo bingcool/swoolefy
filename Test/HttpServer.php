@@ -11,6 +11,7 @@
 
 namespace Test;
 
+use Swoole\Http\Server;
 use Swoolefy\Core\Application;
 
 class HttpServer extends \Swoolefy\Http\HttpAppServer {
@@ -26,15 +27,15 @@ class HttpServer extends \Swoolefy\Http\HttpAppServer {
 
 	/**
 	 * onWorkerStart 
-	 * @param   object $server    
-	 * @param   int    $worker_id 
+	 * @param Server $server
+	 * @param int $worker_id
 	 * @return  void
 	 */
 	public function onWorkerStart($server, $worker_id) {}
 
 	/**
 	 * onPipeMessage 
-	 * @param  object $server
+	 * @param  Server $server
 	 * @param  int $src_worker_id
 	 * @param  mixed $message
 	 * @return void
@@ -44,7 +45,7 @@ class HttpServer extends \Swoolefy\Http\HttpAppServer {
     /**
      * Worker Receive Task Process Msg
      *
-     * @param \Swoole\Server $server
+     * @param Server $server
      * @param int $task_id
      * @param mixed $data
      */
