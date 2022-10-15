@@ -1184,7 +1184,7 @@ class MainManager
      * @return bool
      * @throws \Exception
      */
-    public function writeByProcessName(string $process_name, $data, int $process_worker_id = 0)
+    public function writeByProcessName(string $process_name, mixed $data, int $process_worker_id = 0)
     {
         if ($this->isMaster($process_name)) {
             throw new \Exception("Master process can not write msg to master process self");
@@ -1224,7 +1224,7 @@ class MainManager
      * @throws \Exception
      */
     public function writeByMasterProxy(
-        $data,
+        mixed $data,
         string $from_process_name,
         int $from_process_worker_id,
         string $to_process_name,
@@ -1590,7 +1590,7 @@ class MainManager
      * @param bool $showAll
      * @return string
      */
-    private function getCliParams($showAll = false)
+    private function getCliParams(bool $showAll = false)
     {
         $cliParams = '';
         $workerfyCliParams = getenv('ENV_CLI_PARAMS') ? json_decode(getenv('ENV_CLI_PARAMS'), true) : [];

@@ -32,8 +32,7 @@ class CoroutineManager
      */
     public function getCoroutineId()
     {
-        $cid = \Swoole\Coroutine::getCid();
-        return $cid;
+        return \Swoole\Coroutine::getCid();
     }
 
     /**

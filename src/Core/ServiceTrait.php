@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Exception\SystemException;
+
 trait ServiceTrait
 {
     /**
@@ -59,7 +61,7 @@ trait ServiceTrait
 
     /**
      * getConnections
-     * @return object
+     * @return array
      */
     public static function getConnections()
     {
@@ -106,7 +108,7 @@ trait ServiceTrait
      * getIncludeFiles
      * @return array|bool
      */
-    public static function getInitIncludeFiles($dir = null)
+    public static function getInitIncludeFiles()
     {
         $result   = false;
         $workerId = self::getCurrentWorkerId();
@@ -161,8 +163,8 @@ trait ServiceTrait
      */
     public static function getAppConf()
     {
-        if (!empty(Swfy::$app_conf)) {
-            return Swfy::$app_conf;
+        if (!empty(Swfy::$appConf)) {
+            return Swfy::$appConf;
         }
         return BaseServer::getAppConf();
     }
@@ -187,9 +189,9 @@ trait ServiceTrait
     }
 
     /**
-     * isWorkerProcess 进程是否是worker进程
+     * isWorkerProcess
      * @return bool
-     * @throws Exception
+     * @throws SystemException
      */
     public static function isWorkerProcess()
     {
@@ -200,9 +202,9 @@ trait ServiceTrait
     }
 
     /**
-     * isTaskProcess 进程是否是task进程
+     * isTaskProcess
      * @return bool
-     * @throws Exception
+     * @throws SystemException
      */
     public static function isTaskProcess()
     {
@@ -210,10 +212,10 @@ trait ServiceTrait
         if (property_exists($server, 'taskworker')) {
             return $server->taskworker;
         }
-        throw new \Exception("Not found task process,may be you use it before workerStart");
+        throw new SystemException("Not found task process,may be you use it before workerStart");
     }
 
-    /** isUserProcess 进程是否是user process进程
+    /** isUserProcess
      * @return bool
      */
     public static function isUserProcess()

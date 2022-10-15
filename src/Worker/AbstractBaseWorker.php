@@ -11,7 +11,6 @@
 
 namespace Swoolefy\Worker;
 
-use mysql_xdevapi\Exception;
 use Swoole\Event;
 use Swoole\Process;
 use Swoole\Coroutine\Channel;

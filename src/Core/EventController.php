@@ -25,10 +25,10 @@ class EventController extends BaseObject
     use \Swoolefy\Core\ComponentTrait, \Swoolefy\Core\ServiceTrait;
 
     /**
-     * $app_conf 应用层配置
+     * $appConf
      * @var array
      */
-    protected $app_conf = null;
+    protected $appConf = [];
 
     /**
      * @var array
@@ -65,9 +65,9 @@ class EventController extends BaseObject
     public function __construct(...$args)
     {
         $this->creatObject();
-        $this->app_conf = Swfy::getAppConf();
-        $this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
-        if ($this->canCreateApp($this->coroutine_id)) {
+        $this->appConf = Swfy::getAppConf();
+        $this->coroutineId = CoroutineManager::getInstance()->getCoroutineId();
+        if ($this->canCreateApp($this->coroutineId)) {
             Application::setApp($this);
             $this->defer();
         }
@@ -75,14 +75,14 @@ class EventController extends BaseObject
 
     /**
      * setApp
-     * @param int $coroutine_id
+     * @param int $coroutineId
      * @return bool
      */
-    public function setApp(int $coroutine_id)
+    public function setApp(int $coroutineId)
     {
-        if ($coroutine_id) {
-            Application::removeApp($this->coroutine_id);
-            $this->coroutine_id = $coroutine_id;
+        if ($coroutineId) {
+            Application::removeApp($this->coroutineId);
+            $this->coroutineId = $coroutineId;
             Application::setApp($this);
             return true;
         }
@@ -91,42 +91,21 @@ class EventController extends BaseObject
     }
 
     /**
-     * @param int $coroutine_id
-     * @return int
-     */
-    public function setCid($coroutine_id = null)
-    {
-        if (empty($coroutine_id)) {
-            $coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
-        }
-        $this->coroutine_id = $coroutine_id;
-        return $this->coroutine_id;
-    }
-
-    /**
-     * getCid
-     * @return int
-     */
-    public function getCid()
-    {
-        return $this->coroutine_id;
-    }
-
-    /**
-     * @param null $coroutine_id
+     * @param int $coroutineId
      * @return bool
      */
-    public function canCreateApp($coroutine_id = null)
+    public function canCreateApp(int $coroutineId = null)
     {
-        if (empty($coroutine_id)) {
-            $coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
+        if (empty($coroutineId)) {
+            $coroutineId = CoroutineManager::getInstance()->getCoroutineId();
         }
 
-        $exists = Application::issetApp($coroutine_id);
+        $exists = Application::issetApp($coroutineId);
         
         if ($exists) {
             throw new SystemException("You had created EventApp Instance, yon can only registerApp once, so you can't create same coroutine");
         }
+
         return true;
     }
 
@@ -184,8 +163,8 @@ class EventController extends BaseObject
         }
 
         foreach ($this->componentPools as $name) {
-            if (isset($this->container[$name])) {
-                $obj = $this->container[$name];
+            if (isset($this->containers[$name])) {
+                $obj = $this->containers[$name];
                 if (is_object($obj)) {
                     $objId = spl_object_id($obj);
                     if (in_array($objId, $this->componentPoolsObjIds)) {
@@ -276,7 +255,7 @@ class EventController extends BaseObject
         // push obj pools
         $this->pushComponentPools();
         // remove App Instance
-        Application::removeApp($this->coroutine_id);
+        Application::removeApp($this->coroutineId);
     }
 
 }

@@ -72,15 +72,15 @@ abstract class AbstractProcessPools
      * @param bool $async
      * @param array $args
      * @param mixed $extend_data
-     * @param bool $enable_coroutine
+     * @param bool $enableCoroutine
      * @return void
      */
     public function __construct(
         string $process_name,
         bool   $async = true,
         array  $args = [],
-        mixed $extend_data = null,
-        bool   $enable_coroutine = true
+        mixed  $extend_data = null,
+        bool   $enableCoroutine = true
     )
     {
         $this->async = $async;
@@ -248,24 +248,26 @@ abstract class AbstractProcessPools
      * @return bool
      * @throws \Exception
      */
-    public function sendMessage($msg = null, ?int $worker_id = null)
+    public function sendMessage(mixed $msg = null, ?int $worker_id = null)
     {
         if (!$msg) {
             throw new \Exception('Param of msg can not be null or empty');
         }
+
         if ($worker_id === null) {
             $worker_id = $this->bindWorkerId;
         }
+
         return Swfy::getServer()->sendMessage($msg, $worker_id);
     }
 
     /**
      * 阻塞写数据
      * worker进程将通过swoole_client_select或者stream_select函数监听获取数数据
-     * @param $msg
-     * @return string
+     * @param string $msg
+     * @return int|false
      */
-    public function write($msg)
+    public function write(string $msg)
     {
         $this->swooleProcess->write($msg);
     }
@@ -330,9 +332,9 @@ abstract class AbstractProcessPools
     /**
      * 对于运行态的协程，还没有执行完的，设置一个再等待时间$re_wait_time
      * @param int $cycle_times 轮询次数
-     * @param int $re_wait_time 每次2s轮询
+     * @param float $re_wait_time 每次2s轮询
      */
-    private function runtimeCoroutineWait(int $cycle_times = 5, int $re_wait_time = 2)
+    private function runtimeCoroutineWait(int $cycle_times = 5, float $re_wait_time = 2.0 )
     {
         if ($cycle_times <= 0) {
             $cycle_times = 2;
@@ -375,7 +377,7 @@ abstract class AbstractProcessPools
      * @param mixed ...$args
      * @return void
      */
-    public function onReceive($msg, ...$args)
+    public function onReceive(mixed $msg, ...$args)
     {
     }
 
