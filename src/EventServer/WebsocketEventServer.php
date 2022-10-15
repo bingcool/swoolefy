@@ -29,7 +29,7 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 
     /**
      * onWorkerStart
-     * @param object $server
+     * @param Server $server
      * @param int $worker_id
      * @return   void
      */
@@ -39,7 +39,7 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 
     /**
      * onOpen
-     * @param object $server
+     * @param Server $server
      * @param object $request
      * @return void
      */
@@ -49,7 +49,7 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 
     /**
      * onFinish
-     * @param object $server
+     * @param Server $server
      * @param int $task_id
      * @param mixed $data
      * @return mixed
@@ -60,7 +60,7 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 
     /**
      * onPipeMessage
-     * @param object $server
+     * @param Server $server
      * @param int $src_worker_id
      * @param mixed $message
      * @return void
