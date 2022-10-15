@@ -30,7 +30,7 @@ class ServiceDispatch extends AppDispatch
      * @param mixed $params
      * @param array $rpcPackHeader
      */
-    public function __construct(array $callable, $params, array $rpcPackHeader = [])
+    public function __construct(array $callable, mixed $params, array $rpcPackHeader = [])
     {
         parent::__construct();
         $this->callable = $callable;
@@ -114,7 +114,11 @@ class ServiceDispatch extends AppDispatch
      * @return bool
      * @throws \Exception
      */
-    protected function errorHandle(string $class, string $action, $errorMethod = 'error404')
+    protected function errorHandle(
+        string $class,
+        string $action,
+        string $errorMethod = 'error404'
+    )
     {
         if (Swfy::isWorkerProcess()) {
             $notFoundInstance = $this->getErrorHandle();
@@ -146,7 +150,7 @@ class ServiceDispatch extends AppDispatch
      * @param int $task_id
      * @param mixed|null $task
      */
-    public function setFromWorkerIdAndTaskId(int $from_worker_id, int $task_id, $task = null)
+    public function setFromWorkerIdAndTaskId(int $from_worker_id, int $task_id, mixed $task = null)
     {
         $this->from_worker_id = $from_worker_id;
         $this->task_id = $task_id;
@@ -163,6 +167,7 @@ class ServiceDispatch extends AppDispatch
         if (isset(self::$routeCacheFileMap[$class])) {
             return true;
         }
+
         $file = ROOT_PATH . DIRECTORY_SEPARATOR . $class . '.php';
         if (is_file($file)) {
             self::$routeCacheFileMap[$class] = true;

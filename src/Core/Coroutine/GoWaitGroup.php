@@ -130,7 +130,11 @@ class GoWaitGroup
      * @param float $timeouts
      * @return void
      */
-    public function done(string $key = null, $data = null, float $timeout = -1)
+    public function done(
+        string $key = null,
+        mixed $data = null,
+        float $timeout = -1
+    )
     {
         if (!empty($key) && !empty($data)) {
             $this->result[$key] = $data;

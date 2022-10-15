@@ -57,7 +57,7 @@ class SwoolefyException
      * appException 自定义异常处理
      * @param \Throwable $exception 异常对象
      */
-    public static function appException($exception)
+    public static function appException(\Throwable $exception)
     {
         $error['message'] = $exception->getMessage();
         $trace = $exception->getTrace();
@@ -87,7 +87,7 @@ class SwoolefyException
      * @param int $errorLine
      * @return void
      */
-    public static function appError($errorNo, $errorString, $errorFile, $errorLine)
+    public static function appError(int $errorNo, string $errorString, string $errorFile, int $errorLine)
     {
         $errorStr = sprintf(
             "%s in file %s on line %d",
@@ -152,7 +152,7 @@ class SwoolefyException
      * @param string $errorType
      */
     public static function shutHalt(
-        $errorMsg,
+        string $errorMsg,
         $errorType = SwoolefyException::EXCEPTION_ERR,
         \Throwable $throwable = null
     ) {

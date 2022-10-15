@@ -22,12 +22,10 @@ class Application
     protected static $apps = [];
 
     /**
-     * setApp
-     * @param App|Swoole
-     * @return bool
-     * @throws \Exception
+     * @param App|Swoole|EventController $App
+     * @return bool|void
      */
-    public static function setApp($App)
+    public static function setApp(App|Swoole|EventController $App)
     {
         $closure = function ($appInstance) {
             $cid = $appInstance->getCid();
@@ -39,37 +37,24 @@ class Application
         };
 
         if (Swfy::isWorkerProcess()) {
-            if ($App instanceof \Swoolefy\Core\AppObject ||
-                $App instanceof \Swoolefy\Core\EventController ||
-                $App instanceof \Swoolefy\Core\Swoole
-
-            ) {
-               return $closure($App);
-            }
-
+            return $closure($App);
         } else if (Swfy::isTaskProcess()) {
-            if ($App instanceof \Swoolefy\Core\Swoole || $App instanceof \Swoolefy\Core\EventController) {
-                return $closure($App);
-            }
+            return $closure($App);
         } else {
-            // process进程中,本身不产生协程,默认返回-1,可以通过设置第四个参数enable_coroutine = true启用协程
-            // 同时可以使用go()创建协程,创建应用单例,单例继承于EventController类
-            if ($App instanceof \Swoolefy\Core\EventController) {
-                return $closure($App);
-            }
+            return $closure($App);
         }
     }
 
     /**
      * issetApp
-     * @param int $coroutine_id
+     * @param int $coroutineId
      * @return bool
      */
-    public static function issetApp($coroutine_id = null)
+    public static function issetApp($coroutineId = null)
     {
         $cid = CoroutineManager::getInstance()->getCoroutineId();
-        if ($coroutine_id) {
-            $cid = $coroutine_id;
+        if ($coroutineId) {
+            $cid = $coroutineId;
         }
         if (isset(self::$apps[$cid]) && self::$apps[$cid] instanceof EventController) {
             return true;
@@ -80,27 +65,27 @@ class Application
 
     /**
      * getApp
-     * @param int|null $coroutine_id
+     * @param int|null $coroutineId
      * @return App|Swoole|EventController|null
      */
-    public static function getApp(?int $coroutine_id = null)
+    public static function getApp(?int $coroutineId = null)
     {
         $cid = CoroutineManager::getInstance()->getCoroutineId();
-        if ($coroutine_id) {
-            $cid = $coroutine_id;
+        if ($coroutineId) {
+            $cid = $coroutineId;
         }
         return self::$apps[$cid] ?? null;
     }
 
     /**
      * removeApp
-     * @param int|null $coroutine_id
+     * @param int|null $coroutineId
      * @return bool
      */
-    public static function removeApp(?int $coroutine_id = null)
+    public static function removeApp(?int $coroutineId = null)
     {
-        if ($coroutine_id) {
-            $cid = $coroutine_id;
+        if ($coroutineId) {
+            $cid = $coroutineId;
         } else {
             $cid = CoroutineManager::getInstance()->getCoroutineId();
         }
@@ -113,10 +98,14 @@ class Application
     /**
      * @param int $code
      * @param string $msg
-     * @param string $data
+     * @param mixed $data
      * @return array
      */
-    public static function buildResponseData(int $code = 0, string $msg = '', $data = '')
+    public static function buildResponseData(
+        int $code = 0,
+        string $msg = '',
+        mixed $data = []
+    )
     {
         $responseFormatter = (!isset(Swfy::getConf()['response_formatter']) || empty(Swfy::getConf()['response_formatter'])) ? ResponseFormatter::class : Swfy::getConf()['response_formatter'];
         return $responseFormatter::formatterData($code, $msg, $data);

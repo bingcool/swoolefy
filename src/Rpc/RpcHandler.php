@@ -36,31 +36,14 @@ class RpcHandler extends Swoole implements HandlerInterface
     }
 
     /**
-     * init 当执行run方法时,首先会执行init->bootstrap
-     * @param mixed $recv
-     * @return void
-     */
-    public function init($recv)
-    {
-    }
-
-    /**
-     * bootstrap 当执行run方法时,首先会执行init->bootstrap
-     * @param mixed $recv
-     * @return void
-     */
-    public function bootstrap($recv)
-    {
-    }
-
-    /**
      * run 完成初始化后路由匹配和创建访问实例
      * @param int $fd
      * @param mixed $payload
+     * @param array $extendData
      * @return mixed
      * @throws \Throwable
      */
-    public function run($fd, $payload, array $extendData = [])
+    public function run(?int $fd, mixed $payload, array $extendData = [])
     {
         try {
             if ($this->isWorkerProcess()) {

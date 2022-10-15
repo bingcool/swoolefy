@@ -77,7 +77,7 @@ class Swfy
      * @param mixed $definition
      * @return mixed
      */
-    public static function createComponent(?string $com_alias_name, $definition = [])
+    public static function createComponent(string $com_alias_name, \Closure|array $definition = [])
     {
         return Application::getApp()->creatObject($com_alias_name, $definition);
     }
@@ -85,9 +85,10 @@ class Swfy
     /**
      * removeComponent
      * @param string|array $com_alias_name
+     * @param bool $isAll
      * @return bool
      */
-    public static function removeComponent(?string $com_alias_name = null)
+    public static function removeComponent(string|array $com_alias_name, bool $isAll = false)
     {
         return Application::getApp()->clearComponent($com_alias_name);
     }
@@ -97,17 +98,18 @@ class Swfy
      * @param string $com_alias_name
      * @return mixed
      */
-    public static function getComponent(?string $com_alias_name = null)
+    public static function getComponent(string $com_alias_name)
     {
         return Application::getApp()->getComponents($com_alias_name);
     }
 
     /**
-     * __call
-     * @return void
+     * @param string $action
+     * @param array $args
+     * @return mixed
      * @throws \Exception
      */
-    public function __call($action, $args = [])
+    public function __call(string $action, array $args = [])
     {
         // stop exec
         throw new \Exception(sprintf(
@@ -119,11 +121,12 @@ class Swfy
     }
 
     /**
-     * __callStatic
-     * @return void
-     * @throws \Exception
+     * @param string $action
+     * @param array $args
+     * @return mixed
+     * @throws SystemException
      */
-    public static function __callStatic($action, $args = [])
+    public static function __callStatic(string $action, array $args = [])
     {
         // stop exec
         throw new SystemException(sprintf(

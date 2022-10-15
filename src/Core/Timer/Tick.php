@@ -63,7 +63,7 @@ class Tick
      * @param array $params
      * @return  mixed
      */
-    public static function tick(int $time_interval_ms, $func, $params = null)
+    protected static function tick(int $time_interval_ms, $func, $params = null)
     {
         $tid = \Swoole\Timer::tick($time_interval_ms, function ($timerId, $params) use ($func) {
             try {
@@ -167,7 +167,7 @@ class Tick
      * @param null $params
      * @return bool|mixed
      */
-    public static function after(int $time_interval_ms, $func, $params = null)
+    protected static function after(int $time_interval_ms, $func, $params = null)
     {
         $timerId = \Swoole\Timer::after($time_interval_ms, function ($params) use ($func) {
             try {

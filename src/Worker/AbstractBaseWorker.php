@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Worker;
 
+use mysql_xdevapi\Exception;
 use Swoole\Event;
 use Swoole\Process;
 use Swoole\Coroutine\Channel;
@@ -246,7 +247,7 @@ abstract class AbstractBaseWorker
      * @param string $process_name
      * @param bool $async
      * @param array $args
-     * @param null $extend_data
+     * @param mixed $extend_data
      * @param bool $enable_coroutine
      * @return void
      */
@@ -254,7 +255,7 @@ abstract class AbstractBaseWorker
         string $process_name,
         bool $async = true,
         array $args = [],
-               $extend_data = null,
+        mixed $extend_data = null,
         bool $enable_coroutine = true
     )
     {

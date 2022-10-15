@@ -93,7 +93,7 @@ class PoolsManager
         int    $processNumBindWorker = 1,
         bool   $async = true,
         array  $args = [],
-               $extendData = null,
+        mixed  $extendData = null,
         bool   $enableCoroutine = true
     )
     {

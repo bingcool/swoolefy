@@ -215,7 +215,6 @@ trait ServiceTrait
 
     /** isUserProcess 进程是否是user process进程
      * @return bool
-     * @throws Exception
      */
     public static function isUserProcess()
     {
@@ -226,9 +225,8 @@ trait ServiceTrait
         return false;
     }
 
-    /** isSelfProcess 进程是否是user process进程
+    /**
      * @return bool
-     * @throws \Exception
      */
     public static function isSelfProcess()
     {
@@ -286,6 +284,7 @@ trait ServiceTrait
 
     /**
      * getRouters
+     * @return array
      */
     public static function getRouters()
     {

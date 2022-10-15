@@ -18,6 +18,6 @@ interface AppInterface
      * @param mixed $args
      * @return mixed
      */
-    public static function bootstrap($args);
+    public static function bootstrap(mixed $args);
 
 }

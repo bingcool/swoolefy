@@ -11,6 +11,7 @@
 
 namespace protocol\rpc;
 
+use Swoole\Server;
 use Swoolefy\Core\Swfy;
 
 class RpcServer extends \Swoolefy\Rpc\RpcServer
@@ -59,7 +60,7 @@ class RpcServer extends \Swoolefy\Rpc\RpcServer
 
     /**
      * onPipeMessage
-     * @param object $server
+     * @param Server $server
      * @param int $src_worker_id
      * @param mixed $message
      * @return void
@@ -70,7 +71,7 @@ class RpcServer extends \Swoolefy\Rpc\RpcServer
 
     /**
      * onClose tcp
-     * @param object $server
+     * @param Server $server
      * @param int $fd
      * @return void
      */

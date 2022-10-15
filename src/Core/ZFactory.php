@@ -21,7 +21,7 @@ class ZFactory
      * $_instances
      * @var array
      */
-    protected static $_instances = [];
+    private static $_instances = [];
 
     /**
      * getInstance

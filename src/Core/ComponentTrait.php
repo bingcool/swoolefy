@@ -40,11 +40,11 @@ trait ComponentTrait
      * creatObject
      *
      * @param string $com_alias_name
-     * @param mixed $definition
-     * @return   mixed
-     * @throws   mixed
+     * @param \Closure|array $definition
+     * @return mixed
+     * @throws SystemException
      */
-    public function creatObject(string $com_alias_name = null, $definition = [])
+    public function creatObject(string $com_alias_name = null, \Closure|array $definition = [])
     {
         // dynamic create component object
         if ($com_alias_name) {
@@ -194,10 +194,10 @@ trait ComponentTrait
     }
 
     /**
-     * @param $object
+     * @param object $object
      * @return ContainerObjectDto
      */
-    private function buildContainerObject($object)
+    private function buildContainerObject(object $object)
     {
         $containerObjectDto = new ContainerObjectDto();
         $containerObjectDto->__coroutineId = \Swoole\Coroutine::getCid();
@@ -223,10 +223,16 @@ trait ComponentTrait
     /**
      * clearComponent
      * @param string|array $component_alias_name
-     * @return boolean
+     * @param bool $isAll
+     * @return bool
      */
-    public function clearComponent(?string $com_alias_name = null)
+    public function clearComponent(string|array|bool $com_alias_name, bool $isAll = false)
     {
+        if ($isAll) {
+            $this->container = [];
+            return true;
+        }
+
         if (!is_null($com_alias_name) && is_string($com_alias_name)) {
             $com_alias_name = (array)$com_alias_name;
         } else if (is_array($com_alias_name)) {
@@ -234,11 +240,13 @@ trait ComponentTrait
         } else {
             return false;
         }
+
         foreach ($com_alias_name as $alias_name) {
             if (isset($this->container[$alias_name])) {
                 unset($this->container[$alias_name]);
             }
         }
+
         return true;
     }
 
@@ -262,8 +270,7 @@ trait ComponentTrait
 
     /**
      * @param string $name
-     * @return mixed
-     * @throws Exception
+     * @return object|bool
      */
     final public function get(string $name)
     {
@@ -320,6 +327,7 @@ trait ComponentTrait
             }
             return $this->creatObject($name, $components[$name]);
         }
+
         return false;
 
     }
@@ -328,9 +336,8 @@ trait ComponentTrait
      * __get
      * @param string $name
      * @return mixed
-     * @throws \Exception
      */
-    final public function __get($name)
+    final public function __get(string $name)
     {
         return $this->get($name);
     }
@@ -339,7 +346,7 @@ trait ComponentTrait
      * __unset
      * @param string $name
      */
-    public function __unset($name)
+    public function __unset(string $name)
     {
         unset($this->$name);
     }
@@ -360,7 +367,7 @@ trait ComponentTrait
      * @param mixed $value
      * @return mixed
      */
-    public function __set($name, $value)
+    public function __set(string $name, mixed $value)
     {
         if (isset($this->container[$name])) {
             return $this->container[$name];

@@ -40,24 +40,6 @@ class UdpHandler extends Swoole implements HandlerInterface
     }
 
     /**
-     * init->bootstrap
-     * @param mixed $recv
-     * @return void
-     */
-    public function init($recv)
-    {
-    }
-
-    /**
-     * init->bootstrap
-     * @param mixed $recv
-     * @return void
-     */
-    public function bootstrap($recv)
-    {
-    }
-
-    /**
      * @return mixed
      */
     public function getClientInfo()
@@ -73,7 +55,7 @@ class UdpHandler extends Swoole implements HandlerInterface
      * @return mixed
      * @throws \Throwable
      */
-    public function run($payload, $clientInfo, array $extendData = [])
+    public function run(mixed $payload, mixed $clientInfo, array $extendData = [])
     {
         try {
             parent::run($fd = null, $payload);

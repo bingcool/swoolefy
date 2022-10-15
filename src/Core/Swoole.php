@@ -30,7 +30,7 @@ class Swoole extends BaseObject
      * fd连接句柄标志
      * @var int
      */
-    public $fd = null;
+    public $fd;
 
     /**
      * rpc、udp、websocket传递的参数寄存属性
@@ -60,17 +60,19 @@ class Swoole extends BaseObject
 
     /**
      * init
+     * @param mixed $recv
      * @return void
      */
-    protected function _init($recv = null)
+    protected function _init(mixed $recv = null)
     {
         static::init($recv);
     }
 
     /**
      * bootstrap
+     * @param mixed $recv
      */
-    protected function _bootstrap($recv = null)
+    protected function _bootstrap(mixed $recv = null)
     {
         static::bootstrap($recv);
         if (isset(Swfy::getConf()['application_service']) && !empty(Swfy::getConf()['application_service'])) {
@@ -86,7 +88,7 @@ class Swoole extends BaseObject
      * @param mixed $recv
      * @return void
      */
-    protected function init($recv)
+    public function init(mixed $recv)
     {
     }
 
@@ -95,16 +97,18 @@ class Swoole extends BaseObject
      * @param mixed $recv
      * @return void
      */
-    protected function bootstrap($recv)
+    public function bootstrap(mixed $recv)
     {
     }
 
     /**
      * run instance
+     * @param int $fd
+     * @param mixed $recv
      * @return void
      * @throws \Exception
      */
-    public function run($fd, $recv)
+    public function run(?int $fd, mixed $recv)
     {
         $this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
         $this->fd = $fd;
@@ -145,32 +149,32 @@ class Swoole extends BaseObject
     }
 
     /**
-     * @param int $coroutine_id
+     * @param int $coroutineId
      * @return int
      */
-    public function setCid($coroutine_id = null)
+    public function setCid(?int $coroutineId = null)
     {
-        if (empty($coroutine_id)) {
-            $coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
+        if (empty($coroutineId)) {
+            $coroutineId = CoroutineManager::getInstance()->getCoroutineId();
         }
-        $this->coroutine_id = $coroutine_id;
+        $this->coroutine_id = $coroutineId;
         return $this->coroutine_id;
     }
 
     /**
-     * @param $mixed_params
+     * @param $mixedParams
      */
-    public function setMixedParams($mixed_params)
+    public function setMixedParams(mixed $mixedParams)
     {
-        $this->mixedParams = $mixed_params;
+        $this->mixedParams = $mixedParams;
     }
 
     /**
-     * @param array $rpc_pack_header
+     * @param array $rpcPackHeader
      */
-    public function setRpcPackHeader(array $rpc_pack_header)
+    public function setRpcPackHeader(array $rpcPackHeader)
     {
-        $this->rpcPackHeader = $rpc_pack_header;
+        $this->rpcPackHeader = $rpcPackHeader;
     }
 
     /**
@@ -242,16 +246,15 @@ class Swoole extends BaseObject
     /**
      * getWebsocketMsg
      * @return mixed
-     * @throws Exception
      */
     public function getWebsocketMsg()
     {
         if (!$this->isWorkerProcess()) {
-            throw new \Exception(sprintf("%s::getWebsocketMsg() only can use in worker process", __CLASS__));
+            throw new SystemException(sprintf("%s::getWebsocketMsg() only can use in worker process", __CLASS__));
         }
 
         if (!BaseServer::isWebsocketApp()) {
-            throw new \Exception(sprintf("%s::getWebsocketMsg() method only can be called by WEBSOCKET server", __CLASS__));
+            throw new SystemException(sprintf("%s::getWebsocketMsg() method only can be called by WEBSOCKET server", __CLASS__));
         }
 
         return $this->mixedParams;
@@ -267,7 +270,7 @@ class Swoole extends BaseObject
     }
 
     /**
-     * @return string | SwoolefyException
+     * @return string|SwoolefyException
      */
     public function getExceptionClass()
     {
@@ -276,7 +279,7 @@ class Swoole extends BaseObject
 
     /**
      * afterRequest 请求结束后注册钩子执行操作
-     * @param mixed $callback
+     * @param callable $callback
      * @param bool $prepend
      * @return bool
      */
