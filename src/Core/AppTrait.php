@@ -13,19 +13,6 @@ namespace Swoolefy\Core;
 
 trait AppTrait
 {
-
-    /**
-     * $request
-     * @var \Swoole\Http\Request
-     */
-    public $request = null;
-
-    /**
-     * $response
-     * @var \Swoole\Http\Response
-     */
-    public $response = null;
-
     /**
      * $previousUrl
      * @var array
@@ -46,7 +33,7 @@ trait AppTrait
      * @param string $action
      * @return bool
      */
-    public function _beforeAction($action)
+    public function _beforeAction(string $action)
     {
         return true;
     }
@@ -55,7 +42,7 @@ trait AppTrait
      * @param string $action
      * @return void
      */
-    public function _afterAction($action)
+    public function _afterAction(string $action)
     {
 
     }
@@ -64,14 +51,14 @@ trait AppTrait
      * 提前结束请求,可以在_beforeAction中调用
      * @param int $code
      * @param string $msg
-     * @param string $data
+     * @param mixed $data
      * @param string $formatter
      * @return bool
      */
     public function beforeEnd(
         int $code = 0,
         string $msg = '',
-        $data = '',
+        $data = [],
         string $formatter = 'json'
     )
     {

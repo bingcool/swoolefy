@@ -132,10 +132,10 @@ class ServiceDispatch extends AppDispatch
      */
     protected function getErrorHandle()
     {
-        $app_conf = Swfy::getAppConf();
+        $appConf = Swfy::getAppConf();
         $notFoundInstance = new \Swoolefy\Core\NotFound();
-        if (isset($app_conf['not_found_handler']) && is_string($app_conf['not_found_handler'])) {
-            $handle = $app_conf['not_found_handler'];
+        if (isset($appConf['not_found_handler']) && is_string($appConf['not_found_handler'])) {
+            $handle = $appConf['not_found_handler'];
             $notFoundInstance = new $handle;
         }
         return $notFoundInstance;

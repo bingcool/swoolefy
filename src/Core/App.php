@@ -35,16 +35,10 @@ class App extends \Swoolefy\Core\Component
     public $response = null;
 
     /**
-     * $app_conf 当前应用层的配置
+     * $appConf
      * @var array
      */
-    public $app_conf = null;
-
-    /**
-     * $coroutine_id
-     * @var int
-     */
-    public $coroutine_id;
+    public $appConf = [];
 
     /**
      * $controllerInstance
@@ -65,11 +59,12 @@ class App extends \Swoolefy\Core\Component
 
     /**
      * __construct
-     * @param array $config
+     * @param array $appConf
      */
-    public function __construct(array $conf = [])
+    public function __construct(array $appConf)
     {
-        $this->app_conf = $conf;
+        $this->appConf = $appConf;
+        $this->coroutineId = CoroutineManager::getInstance()->getCoroutineId();
     }
 
     /**
@@ -78,7 +73,7 @@ class App extends \Swoolefy\Core\Component
      */
     protected function _init()
     {
-        if (isset($this->app_conf['session_start']) && $this->app_conf['session_start']) {
+        if (isset($this->appConf['session_start']) && $this->appConf['session_start']) {
             if (is_object($this->get('session'))) {
                 $this->get('session')->start();
             }
@@ -111,7 +106,6 @@ class App extends \Swoolefy\Core\Component
     {
         try {
             $this->parseHeaders($request);
-            $this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
             parent::creatObject();
             $this->request  = $request;
             $this->response = $response;
@@ -161,7 +155,7 @@ class App extends \Swoolefy\Core\Component
         static $isResetAppConf;
         if (!isset($isResetAppConf)) {
             if (!empty($conf)) {
-                $this->app_conf = $conf;
+                $this->appConf = $conf;
                 Swfy::setAppConf($conf);
                 BaseServer::setAppConf($conf);
                 $isResetAppConf = true;
@@ -191,7 +185,7 @@ class App extends \Swoolefy\Core\Component
      */
     public function catchAll()
     {
-        if (isset($this->app_conf['catch_handle']) && $handle = $this->app_conf['catch_handle']) {
+        if (isset($this->appConf['catch_handle']) && $handle = $this->appConf['catch_handle']) {
             $this->isEnd = true;
             if ($handle instanceof \Closure) {
                 $handle->call($this, $this->request, $this->response);
@@ -213,15 +207,6 @@ class App extends \Swoolefy\Core\Component
     public function afterRequest(callable $callback, bool $prepend = false)
     {
         return Hook::addHook(Hook::HOOK_AFTER_REQUEST, $callback, $prepend);
-    }
-
-    /**
-     * getCid
-     * @return int
-     */
-    public function getCid()
-    {
-        return $this->coroutine_id;
     }
 
     /**
@@ -261,7 +246,7 @@ class App extends \Swoolefy\Core\Component
      */
     protected function defer()
     {
-        if (\Swoole\Coroutine::getCid() > 0) {
+        if (\Swoole\Coroutine::getCid() >= 0) {
             $this->isDefer = true;
             \Swoole\Coroutine::defer(function () {
                 $this->onAfterRequest();

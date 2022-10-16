@@ -27,10 +27,10 @@ class BService extends BaseObject
     protected $fd = null;
 
     /**
-     * app_conf 应用层配置
+     * appConf
      * @var array
      */
-    protected $app_conf = null;
+    protected $appConf = [];
 
     /**
      * @var mixed
@@ -52,7 +52,7 @@ class BService extends BaseObject
          */
         $app            = Application::getApp();
         $this->fd       = $app->fd;
-        $this->app_conf = $app->app_conf;
+        $this->appConf  = $app->appConf;
 
         if (BaseServer::isUdpApp()) {
             /**
@@ -61,8 +61,8 @@ class BService extends BaseObject
             $this->clientInfo = $app->getClientInfo();
         }
 
-        if (\Swoole\Coroutine::getCid() > 0) {
-            defer(function () {
+        if (\Swoole\Coroutine::getCid() >= 0) {
+            \Swoole\Coroutine::defer(function () {
                 $this->defer();
             });
         }
@@ -80,13 +80,13 @@ class BService extends BaseObject
 
 
     /**
-     * @param $mixed_params
+     * @param $mixedParams
      * @return void
      */
-    public function setMixedParams($mixed_params)
+    public function setMixedParams($mixedParams)
     {
         if(empty($this->mixedParams)) {
-            $this->mixedParams = $mixed_params;
+            $this->mixedParams = $mixedParams;
         }
     }
 
@@ -105,7 +105,7 @@ class BService extends BaseObject
      * @param array $header
      * @return mixed
      */
-    public function send($fd, $data, array $header = [])
+    public function send(int $fd, $data, array $header = [])
     {
         if (!BaseServer::isRpcApp()) {
             throw new SystemException("BService::send() this method only can be called by tcp or rpc server!");
@@ -127,17 +127,19 @@ class BService extends BaseObject
      * @param $data
      * @param string $ip
      * @param string $port
-     * @param null $server_socket
+     * @param int $serverSocket
      * @return mixed
      */
-    public function sendTo($data, string $ip = '', $port = '', $server_socket = null)
+    public function sendTo($data, string $ip = '', $port = '', int $serverSocket = -1)
     {
         if (empty($ip)) {
             $ip = $this->clientInfo['address'];
         }
+
         if (empty($port)) {
             $port = $this->clientInfo['port'];
         }
+
         if (!BaseServer::isUdpApp()) {
             throw new SystemException("BService::sendTo() this method only can be called by udp server!");
         }
@@ -146,7 +148,7 @@ class BService extends BaseObject
             $data = json_encode($data, JSON_UNESCAPED_UNICODE);
         }
 
-        return Swfy::getServer()->sendto($ip, $port, $data, $server_socket);
+        return Swfy::getServer()->sendto($ip, $port, $data, $serverSocket);
     }
 
     /**
@@ -154,10 +156,10 @@ class BService extends BaseObject
      * @param int $fd
      * @param mixed $data
      * @param int $opcode
-     * @param bool $finish
+     * @param int $finish
      * @return bool
      */
-    public function push($fd, $data, int $opcode = 1, bool $finish = true)
+    public function push(int $fd, $data, int $opcode = 1, int $finish = SWOOLE_WEBSOCKET_FLAG_FIN)
     {
         if (!BaseServer::isWebsocketApp()) {
             throw new SystemException("BService::push() this method only can be called by websocket server!");
@@ -253,7 +255,7 @@ class BService extends BaseObject
     }
 
     /**
-     * defer service实例协程销毁前可以做初始化一些静态变量
+     * defer
      * @return mixed
      */
     public function defer()

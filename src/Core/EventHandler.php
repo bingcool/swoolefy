@@ -24,16 +24,16 @@ class EventHandler extends \Swoolefy\Core\EventCtrl
     public function onInit()
     {
         // default register logger
-        $app_conf = Swfy::getAppConf();
-        if (isset($app_conf['components']['log'])) {
-            $log = $app_conf['components']['log'];
+        $appConf = Swfy::getAppConf();
+        if (isset($appConf['components']['log'])) {
+            $log = $appConf['components']['log'];
             if ($log instanceof \Closure) {
                 LogManager::getInstance()->registerLoggerByClosure($log, 'log');
             }
         }
 
-        if (isset($app_conf['components']['error_log'])) {
-            $log = $app_conf['components']['error_log'];
+        if (isset($appConf['components']['error_log'])) {
+            $log = $appConf['components']['error_log'];
             if ($log instanceof \Closure) {
                 LogManager::getInstance()->registerLoggerByClosure($log, 'error_log');
             }

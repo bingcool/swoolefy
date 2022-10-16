@@ -384,12 +384,12 @@ class BaseServer
 
     /**
      * setAppConf
-     * @param array $config
+     * @param array $appConf
      */
-    public static function setAppConf(array $conf = [])
+    public static function setAppConf(array $appConf = [])
     {
-        if (!empty($conf)) {
-            static::$config['app_conf'] = $conf;
+        if (!empty($appConf)) {
+            static::$config['app_conf'] = $appConf;
         }
     }
 

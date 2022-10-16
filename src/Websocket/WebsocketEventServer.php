@@ -13,7 +13,7 @@ namespace Swoolefy\Websocket;
 
 include_once SWOOLEFY_CORE_ROOT_PATH . '/MainEventInterface.php';
 
-use Swoole\Server;
+use Swoole\WebSocket\Server;
 use Swoole\WebSocket\Frame;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\WebsocketEventInterface;
@@ -56,8 +56,8 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
      */
     public function onRequest($request, $response)
     {
-        $app_conf = \Swoolefy\Core\Swfy::getAppConf();
-        $appInstance = new \Swoolefy\Core\App($app_conf);
+        $appConf = \Swoolefy\Core\Swfy::getAppConf();
+        $appInstance = new \Swoolefy\Core\App($appConf);
         $appInstance->run($request, $response);
     }
 
@@ -77,8 +77,8 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
 
         if ($finish) {
             if ($opcode == WEBSOCKET_OPCODE_TEXT) {
-                $app_conf = \Swoolefy\Core\Swfy::getAppConf();
-                $appInstance = new WebsocketHandler($app_conf);
+                $appConf = \Swoolefy\Core\Swfy::getAppConf();
+                $appInstance = new WebsocketHandler($appConf);
                 $appInstance->run($fd, $data);
             } else if ($opcode == WEBSOCKET_OPCODE_BINARY) {
                 static::onMessageFromBinary($server, $frame);

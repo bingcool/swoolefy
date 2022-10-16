@@ -12,6 +12,7 @@
 namespace Swoolefy\Core\Controller;
 
 use Swoole\Coroutine;
+use Swoolefy\Core\App;
 use Swoolefy\Core\Application;
 
 class BController extends \Swoolefy\Core\AppObject
@@ -32,21 +33,24 @@ class BController extends \Swoolefy\Core\AppObject
     public $response = null;
 
     /**
-     * $app_conf
+     * $appConf
      * @var array
      */
-    public $app_conf = null;
+    public $appConf = [];
 
     /**
      * __construct
      */
     public function __construct()
     {
+        /**
+         * @var App $app
+         */
         $app = Application::getApp();
         $this->request  = $app->request;
         $this->response = $app->response;
-        $this->app_conf = $app->app_conf;
-        if (Coroutine::getCid() > 0) {
+        $this->appConf  = $app->appConf;
+        if (Coroutine::getCid() >= 0) {
             \Swoole\Coroutine::defer(function () {
                 $this->defer();
             });

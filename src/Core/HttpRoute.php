@@ -42,10 +42,10 @@ class HttpRoute extends AppDispatch
     public $response = null;
 
     /**
-     * $app_conf 应用层配置值
+     * $appConf
      * @var array
      */
-    public $app_conf = null;
+    public $appConf = [];
 
     /**
      * $app
@@ -54,13 +54,13 @@ class HttpRoute extends AppDispatch
     protected $app = null;
 
     /**
-     * $require_uri
+     * $requireUri
      * @var string
      */
     protected $routerUri = null;
 
     /**
-     * $extendData 额外请求数据
+     * $extendData
      * @var mixed
      */
     protected $extendData = null;
@@ -103,7 +103,7 @@ class HttpRoute extends AppDispatch
         $this->app        = Application::getApp();
         $this->request    = $this->app->request;
         $this->response   = $this->app->response;
-        $this->app_conf   = $this->app->app_conf;
+        $this->appConf    = $this->app->appConf;
         $this->routerUri  = Swfy::getRouterMapUri($this->request->server['PATH_INFO']);
         $this->extendData = $extendData;
     }
@@ -115,18 +115,18 @@ class HttpRoute extends AppDispatch
      */
     public function dispatch()
     {
-        if (!isset($this->app_conf['route_model']) || !in_array($this->app_conf['route_model'], [self::ROUTE_MODEL_PATHINFO, self::ROUTE_MODEL_QUERY_PARAMS])) {
-            $this->app_conf['route_model'] = self::ROUTE_MODEL_PATHINFO;
+        if (!isset($this->appConf['route_model']) || !in_array($this->appConf['route_model'], [self::ROUTE_MODEL_PATHINFO, self::ROUTE_MODEL_QUERY_PARAMS])) {
+            $this->appConf['route_model'] = self::ROUTE_MODEL_PATHINFO;
         }
 
-        if (!isset($this->app_conf['app_namespace']) || $this->app_conf['app_namespace'] != APP_NAME ) {
-            $this->app_conf['app_namespace'] = APP_NAME;
+        if (!isset($this->appConf['app_namespace']) || $this->appConf['app_namespace'] != APP_NAME ) {
+            $this->appConf['app_namespace'] = APP_NAME;
         }
 
-        if ($this->app_conf['route_model'] == self::ROUTE_MODEL_PATHINFO) {
+        if ($this->appConf['route_model'] == self::ROUTE_MODEL_PATHINFO) {
             if ($this->routerUri == DIRECTORY_SEPARATOR || $this->routerUri == '//') {
-                if (isset($this->app_conf['default_route']) && !empty($this->app_conf['default_route'])) {
-                    $this->routerUri = DIRECTORY_SEPARATOR . trim($this->app_conf['default_route'], DIRECTORY_SEPARATOR);
+                if (isset($this->appConf['default_route']) && !empty($this->appConf['default_route'])) {
+                    $this->routerUri = DIRECTORY_SEPARATOR . trim($this->appConf['default_route'], DIRECTORY_SEPARATOR);
                 } else {
                     $this->routerUri = DIRECTORY_SEPARATOR . $this->defaultRoute;
                 }
@@ -155,7 +155,7 @@ class HttpRoute extends AppDispatch
                 }
             }
 
-        } else if ($this->app_conf['route_model'] == self::ROUTE_MODEL_QUERY_PARAMS) {
+        } else if ($this->appConf['route_model'] == self::ROUTE_MODEL_QUERY_PARAMS) {
             $module     = $this->request->get['m'] ?? null;
             $controller = $this->request->get['c'] ?? 'Index';
             $action     = $this->request->get['t'] ?? 'index';
@@ -206,7 +206,7 @@ class HttpRoute extends AppDispatch
         $controller = $this->buildControllerClass($controller);
         if ($module) {
             $filePath = APP_PATH . DIRECTORY_SEPARATOR . 'Module' . DIRECTORY_SEPARATOR . $module . DIRECTORY_SEPARATOR . $controller . '.php';
-            $class    = $this->app_conf['app_namespace'] . '\\' . 'Module' . '\\' . $module . '\\' . $controller;
+            $class    = $this->appConf['app_namespace'] . '\\' . 'Module' . '\\' . $module . '\\' . $controller;
 
             if (!$this->isExistRouteFile($class)) {
                 if (!is_file($filePath)) {
@@ -218,7 +218,7 @@ class HttpRoute extends AppDispatch
             }
 
         } else {
-            $class = $this->app_conf['app_namespace'] . '\\' . 'Controller' . '\\' . $controller;
+            $class = $this->appConf['app_namespace'] . '\\' . 'Controller' . '\\' . $controller;
             if (!$this->isExistRouteFile($class)) {
                 $filePath = APP_PATH . DIRECTORY_SEPARATOR . 'Controller' . DIRECTORY_SEPARATOR . $controller . '.php';
                 if (!is_file($filePath)) {
@@ -230,7 +230,7 @@ class HttpRoute extends AppDispatch
             }
         }
         // reset app conf
-        $this->app->setAppConf($this->app_conf);
+        $this->app->setAppConf($this->appConf);
 
         /**@var BController $controllerInstance */
         $controllerInstance = new $class();
@@ -239,7 +239,7 @@ class HttpRoute extends AppDispatch
         // invoke _beforeAction
         $isContinueAction = $controllerInstance->_beforeAction($action);
 
-        if (isset($this->app_conf['enable_action_prefix']) && $this->app_conf['enable_action_prefix']) {
+        if (isset($this->appConf['enable_action_prefix']) && $this->appConf['enable_action_prefix']) {
             $targetAction = $this->actionPrefix . ucfirst($action);
         } else {
             $targetAction = $action;
@@ -293,9 +293,9 @@ class HttpRoute extends AppDispatch
      */
     public function redirectNotFound()
     {
-        if (isset($this->app_conf['not_found_handler'])) {
+        if (isset($this->appConf['not_found_handler'])) {
             // reset NotFound class
-            list($namespace, $action) = $this->app_conf['not_found_handler'];
+            list($namespace, $action) = $this->appConf['not_found_handler'];
             $route_params = explode('\\', $namespace);
             if (is_array($route_params)) {
                 $controller = array_pop($route_params);
@@ -342,7 +342,7 @@ class HttpRoute extends AppDispatch
      */
     protected function fileNotFound(string $class)
     {
-        if (isset($this->app_conf['not_found_handler']) && is_array($this->app_conf['not_found_handler'])) {
+        if (isset($this->appConf['not_found_handler']) && is_array($this->appConf['not_found_handler'])) {
             return $this->redirectNotFound();
         } else {
             $errorMsg = "Class {$class} is not found";

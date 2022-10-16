@@ -11,6 +11,7 @@
 
 namespace protocol\websocket;
 
+use Swoole\WebSocket\Server;
 use Swoolefy\Core\Swfy;
 
 class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
@@ -28,7 +29,7 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 
     /**
      * onWorkerStart
-     * @param object $server
+     * @param Server $server
      * @param int $worker_id
      * @return   void
      */
@@ -38,8 +39,8 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 
     /**
      * onOpen
-     * @param object $server
-     * @param object $request
+     * @param Server $server
+     * @param \Swoole\Http\Request $request
      * @return void
      */
     public function onOpen($server, $request)
@@ -48,7 +49,7 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 
     /**
      * onFinish
-     * @param object $server
+     * @param Server $server
      * @param int $task_id
      * @param mixed $data
      * @return mixed
@@ -59,7 +60,7 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 
     /**
      * onPipeMessage
-     * @param object $server
+     * @param Server $server
      * @param int $src_worker_id
      * @param mixed $message
      * @return void
@@ -70,7 +71,7 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 
     /**
      * onClose
-     * @param object $server
+     * @param Server $server
      * @param int $fd
      * @return void
      */
@@ -80,7 +81,7 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 
     /**
      * onMessageFromBinary
-     * @param object $server
+     * @param Server $server
      * @param mixed $frame
      * @return void
      */
@@ -90,7 +91,7 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 
     /**
      * onMessageFromClose
-     * @param object $server
+     * @param Server $server
      * @param mixed $frame
      * @return void
      */

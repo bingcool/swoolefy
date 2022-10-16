@@ -223,7 +223,7 @@ trait ComponentTrait
     /**
      * clearComponent
      * @param string|array $component_alias_name
-     * @return boolean
+     * @return bool
      */
     public function clearComponent(?string $com_alias_name = null)
     {
@@ -267,8 +267,8 @@ trait ComponentTrait
      */
     final public function get(string $name)
     {
-        $app_conf = BaseServer::getAppConf();
-        $components = $app_conf['components'];
+        $appConf = BaseServer::getAppConf();
+        $components = $appConf['components'];
         $cid = \Swoole\Coroutine::getCid();
         if (isset($this->container[$name])) {
             if (is_object($this->container[$name])) {
@@ -295,8 +295,8 @@ trait ComponentTrait
         }
 
         if (empty($this->componentPools)) {
-            if (isset($app_conf['enable_component_pools']) && is_array($app_conf['enable_component_pools']) && !empty($app_conf['enable_component_pools'])) {
-                $enableComponentPools = array_keys($app_conf['enable_component_pools']);
+            if (isset($appConf['enable_component_pools']) && is_array($appConf['enable_component_pools']) && !empty($appConf['enable_component_pools'])) {
+                $enableComponentPools = array_keys($appConf['enable_component_pools']);
                 $this->componentPools = $enableComponentPools;
             }
         }
@@ -330,7 +330,7 @@ trait ComponentTrait
      * @return mixed
      * @throws \Exception
      */
-    final public function __get($name)
+    final public function __get(string $name)
     {
         return $this->get($name);
     }
@@ -339,7 +339,7 @@ trait ComponentTrait
      * __unset
      * @param string $name
      */
-    public function __unset($name)
+    public function __unset(string $name)
     {
         unset($this->$name);
     }
@@ -349,7 +349,7 @@ trait ComponentTrait
      * @param string $name
      * @return boolean
      */
-    public function __isset($name)
+    public function __isset(string $name)
     {
         return isset($this->$name);
     }
@@ -360,7 +360,7 @@ trait ComponentTrait
      * @param mixed $value
      * @return mixed
      */
-    public function __set($name, $value)
+    public function __set(string $name, $value)
     {
         if (isset($this->container[$name])) {
             return $this->container[$name];

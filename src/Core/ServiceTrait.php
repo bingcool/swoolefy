@@ -161,8 +161,8 @@ trait ServiceTrait
      */
     public static function getAppConf()
     {
-        if (!empty(Swfy::$app_conf)) {
-            return Swfy::$app_conf;
+        if (!empty(Swfy::$appConf)) {
+            return Swfy::$appConf;
         }
         return BaseServer::getAppConf();
     }

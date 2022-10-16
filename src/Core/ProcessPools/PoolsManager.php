@@ -14,6 +14,7 @@ namespace Swoolefy\Core\ProcessPools;
 use Swoole\Process;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Table\TableManager;
+use Swoolefy\Exception\SystemException;
 
 class PoolsManager
 {
@@ -140,12 +141,11 @@ class PoolsManager
      * @param string $processName
      * @param bool $isReturnAll 是否返回worker中绑定的所有process
      * @return AbstractProcessPools|array
-     * @throws Exception
      */
     public function getProcessPoolsByName(string $processName, bool $isReturnAll = false)
     {
         if (!Swfy::isWorkerProcess()) {
-            throw new \Exception("PoolsManager::getInstance() can not use in task or self process, only use in worker process");
+            throw new SystemException("PoolsManager::getInstance() can not use in task or self process, only use in worker process");
         }
         $workerId = Swfy::getCurrentWorkerId();
         $key = md5($processName);
@@ -164,12 +164,11 @@ class PoolsManager
      * getProcessByPid 通过进程id获取绑定当前worker进程的某个进程
      * @param int $pid
      * @return mixed
-     * @throws Exception
      */
     public function getProcessPoolsByPid(int $pid)
     {
         if (!Swfy::isWorkerProcess()) {
-            throw new \Exception("PoolsManager::getInstance() can not use in task or self process, only use in worker process");
+            throw new SystemException("PoolsManager::getInstance() can not use in task or self process, only use in worker process");
         }
 
         $table = TableManager::getTable('table_process_pools_map');

@@ -67,24 +67,24 @@ abstract class AbstractProcess
      * @param string $processName
      * @param bool $async
      * @param array $args
-     * @param null $extend_data
-     * @param bool $enable_coroutine
+     * @param mixed $extendData
+     * @param bool $enableCoroutine
      * @return void
      */
     public function __construct(
         string $processName,
         bool   $async = true,
         array  $args = [],
-               $extend_data = null,
-        bool   $enable_coroutine = true
+               $extendData = null,
+        bool   $enableCoroutine = true
     )
     {
         $this->async = $async;
         $this->args = $args;
-        $this->extendData = $extend_data;
+        $this->extendData = $extendData;
         $this->processName = $processName;
         if($this->isWorkerService()) {
-            $this->enableCoroutine = $enable_coroutine;
+            $this->enableCoroutine = $enableCoroutine;
         }else {
             $this->enableCoroutine = true;
         }
@@ -358,10 +358,10 @@ abstract class AbstractProcess
     /**
      * 对于运行态的协程，还没有执行完的，设置一个再等待时间$re_wait_time
      * @param int $cycle_times 轮询次数
-     * @param int $re_wait_time 每次2s轮询
+     * @param float $re_wait_time 每次2s轮询
      * @return void
      */
-    private function runtimeCoroutineWait(int $cycle_times = 5, int $re_wait_time = 2)
+    private function runtimeCoroutineWait(int $cycle_times = 5, float $re_wait_time = 2.0 )
     {
         if ($cycle_times <= 0) {
             $cycle_times = 2;

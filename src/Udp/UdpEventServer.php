@@ -71,7 +71,7 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface
     }
 
     /**
-     * @param $server
+     * @param Server $server
      * @param $task_id
      * @param $data
      * @return mixed

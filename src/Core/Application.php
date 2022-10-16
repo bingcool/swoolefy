@@ -23,7 +23,7 @@ class Application
 
     /**
      * setApp
-     * @param App|Swoole
+     * @param App|Swoole|EventController
      * @return bool
      * @throws \Exception
      */
@@ -62,15 +62,16 @@ class Application
 
     /**
      * issetApp
-     * @param int $coroutine_id
+     * @param int $coroutineId
      * @return bool
      */
-    public static function issetApp($coroutine_id = null)
+    public static function issetApp(int $coroutineId = null)
     {
         $cid = CoroutineManager::getInstance()->getCoroutineId();
-        if ($coroutine_id) {
-            $cid = $coroutine_id;
+        if ($coroutineId) {
+            $cid = $coroutineId;
         }
+
         if (isset(self::$apps[$cid]) && self::$apps[$cid] instanceof EventController) {
             return true;
         } else {
@@ -80,30 +81,31 @@ class Application
 
     /**
      * getApp
-     * @param int|null $coroutine_id
+     * @param int|null $coroutineId
      * @return App|Swoole|EventController|null
      */
-    public static function getApp(?int $coroutine_id = null)
+    public static function getApp(?int $coroutineId = null)
     {
         $cid = CoroutineManager::getInstance()->getCoroutineId();
-        if ($coroutine_id) {
-            $cid = $coroutine_id;
+        if ($coroutineId) {
+            $cid = $coroutineId;
         }
         return self::$apps[$cid] ?? null;
     }
 
     /**
      * removeApp
-     * @param int|null $coroutine_id
+     * @param int|null $coroutineId
      * @return bool
      */
-    public static function removeApp(?int $coroutine_id = null)
+    public static function removeApp(?int $coroutineId = null)
     {
-        if ($coroutine_id) {
-            $cid = $coroutine_id;
+        if ($coroutineId) {
+            $cid = $coroutineId;
         } else {
             $cid = CoroutineManager::getInstance()->getCoroutineId();
         }
+
         if (isset(self::$apps[$cid])) {
             unset(self::$apps[$cid]);
         }

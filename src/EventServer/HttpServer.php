@@ -11,6 +11,7 @@
 
 namespace protocol\http;
 
+use Swoole\Http\Server;
 use Swoolefy\Core\Swfy;
 
 class HttpServer extends \Swoolefy\Http\HttpAppServer
@@ -28,7 +29,7 @@ class HttpServer extends \Swoolefy\Http\HttpAppServer
 
     /**
      * onWorkerStart
-     * @param object $server
+     * @param Server $server
      * @param int $worker_id
      * @return  void
      */
@@ -38,7 +39,7 @@ class HttpServer extends \Swoolefy\Http\HttpAppServer
 
     /**
      * onPipeMessage
-     * @param object $server
+     * @param Server $server
      * @param int $src_worker_id
      * @param mixed $message
      * @return void

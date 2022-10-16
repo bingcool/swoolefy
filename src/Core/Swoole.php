@@ -21,16 +21,16 @@ class Swoole extends BaseObject
     use \Swoolefy\Core\ComponentTrait, \Swoolefy\Core\ServiceTrait;
 
     /**
-     * 应用层配置
+     * $appConf
      * @var array
      */
-    public $app_conf = null;
+    public $appConf = [];
 
     /**
-     * fd连接句柄标志
+     * $fd
      * @var int
      */
-    public $fd = null;
+    public $fd;
 
     /**
      * rpc、udp、websocket传递的参数寄存属性
@@ -51,15 +51,17 @@ class Swoole extends BaseObject
 
     /**
      * __construct
-     * @param array $config
+     * @param array $appConf
      */
-    public function __construct(array $config = [])
+    public function __construct(array $appConf = [])
     {
-        $this->app_conf = $config;
+        $this->appConf = $appConf;
+        $this->coroutineId = CoroutineManager::getInstance()->getCoroutineId();
     }
 
     /**
      * init
+     * @param mixed $recv
      * @return void
      */
     protected function _init($recv = null)
@@ -69,6 +71,7 @@ class Swoole extends BaseObject
 
     /**
      * bootstrap
+     * @param mixed $recv
      */
     protected function _bootstrap($recv = null)
     {
@@ -106,7 +109,6 @@ class Swoole extends BaseObject
      */
     public function run($fd, $recv)
     {
-        $this->coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
         $this->fd = $fd;
         $this->creatObject();
         Application::setApp($this);
@@ -145,32 +147,33 @@ class Swoole extends BaseObject
     }
 
     /**
-     * @param int $coroutine_id
+     * @param int $coroutineId
      * @return int
      */
-    public function setCid($coroutine_id = null)
+    public function setCid(int $coroutineId)
     {
-        if (empty($coroutine_id)) {
-            $coroutine_id = CoroutineManager::getInstance()->getCoroutineId();
+        if (empty($coroutineId)) {
+            $coroutineId = CoroutineManager::getInstance()->getCoroutineId();
         }
-        $this->coroutine_id = $coroutine_id;
-        return $this->coroutine_id;
+
+        $this->coroutineId = $coroutineId;
+        return $this->coroutineId;
     }
 
     /**
-     * @param $mixed_params
+     * @param $mixedParams
      */
-    public function setMixedParams($mixed_params)
+    public function setMixedParams($mixedParams)
     {
-        $this->mixedParams = $mixed_params;
+        $this->mixedParams = $mixedParams;
     }
 
     /**
-     * @param array $rpc_pack_header
+     * @param array $rpcPackHeader
      */
-    public function setRpcPackHeader(array $rpc_pack_header)
+    public function setRpcPackHeader(array $rpcPackHeader)
     {
-        $this->rpcPackHeader = $rpc_pack_header;
+        $this->rpcPackHeader = $rpcPackHeader;
     }
 
     /**
@@ -179,15 +182,6 @@ class Swoole extends BaseObject
     public function getMixedParams()
     {
         return $this->mixedParams;
-    }
-
-    /**
-     * getCid
-     * @return int
-     */
-    public function getCid()
-    {
-        return $this->coroutine_id;
     }
 
     /**
@@ -242,16 +236,15 @@ class Swoole extends BaseObject
     /**
      * getWebsocketMsg
      * @return mixed
-     * @throws Exception
      */
     public function getWebsocketMsg()
     {
         if (!$this->isWorkerProcess()) {
-            throw new \Exception(sprintf("%s::getWebsocketMsg() only can use in worker process", __CLASS__));
+            throw new SystemException(sprintf("%s::getWebsocketMsg() only can use in worker process", __CLASS__));
         }
 
         if (!BaseServer::isWebsocketApp()) {
-            throw new \Exception(sprintf("%s::getWebsocketMsg() method only can be called by WEBSOCKET server", __CLASS__));
+            throw new SystemException(sprintf("%s::getWebsocketMsg() method only can be called by WEBSOCKET server", __CLASS__));
         }
 
         return $this->mixedParams;
@@ -313,9 +306,9 @@ class Swoole extends BaseObject
      */
     protected function defer()
     {
-        if (\Swoole\Coroutine::getCid() > 0) {
+        if (\Swoole\Coroutine::getCid() >= 0) {
             $this->isDefer = true;
-            \Swoole\Coroutine\defer(function () {
+            \Swoole\Coroutine::defer(function () {
                 $this->end();
             });
         }

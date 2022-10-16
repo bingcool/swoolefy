@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Worker;
 
+use Swoolefy\Exception\WorkerException;
 use Swoolefy\Worker\Dto\MessageDto;
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Core\Memory\SysvmsgManager;
@@ -212,16 +213,16 @@ class MainManager
     public function addProcess(
         string $process_name,
         string $process_class,
-        int $process_worker_num = 1,
-        bool $async = true,
-        array $args = [],
+        int    $process_worker_num = 1,
+        bool   $async = true,
+        array  $args = [],
         ?array $extend_data = null,
-        bool $enable_coroutine = true
+        bool   $enable_coroutine = true
     )
     {
         $key = md5($process_name);
         if (isset($this->processLists[$key])) {
-            throw new RuntimeException("【Error】You can not add the same process={$process_name}");
+            throw new WorkerException("【Error】You can not add the same process={$process_name}");
         }
         if (!$enable_coroutine) {
             $enable_coroutine = true;

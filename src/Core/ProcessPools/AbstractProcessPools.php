@@ -71,21 +71,21 @@ abstract class AbstractProcessPools
      * @param string $process_name
      * @param bool $async
      * @param array $args
-     * @param mixed $extend_data
-     * @param bool $enable_coroutine
+     * @param mixed $extendData
+     * @param bool $enableCoroutine
      * @return void
      */
     public function __construct(
         string $process_name,
         bool   $async = true,
         array  $args = [],
-        ?array $extend_data = null,
-        bool   $enable_coroutine = true
+        ?array $extendData = null,
+        bool   $enableCoroutine = true
     )
     {
         $this->async = $async;
         $this->args = $args;
-        $this->extendData = $extend_data;
+        $this->extendData = $extendData;
         $this->processName = $process_name;
         $this->enableCoroutine = true;
         $this->swooleProcess = new \Swoole\Process([$this, '__start'], false, SOCK_DGRAM, $this->enableCoroutine);

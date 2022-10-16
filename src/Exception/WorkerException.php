@@ -9,9 +9,9 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Core;
+namespace Swoolefy\Exception;
 
-class AppObject extends BaseObject
+class WorkerException extends AbstractSwoolefyExeption
 {
 
 }

@@ -19,10 +19,10 @@ class BaseObject
 {
 
     /**
-     * $coroutine_id
-     * @var string
+     * $coroutineId
+     * @var int
      */
-    public $coroutine_id;
+    public $coroutineId;
 
     /**
      * @var \ArrayObject
@@ -61,11 +61,11 @@ class BaseObject
 
     /**
      * setCid
-     * @param mixed $cid
+     * @param int $coroutineId
      */
-    public function setCid($cid = null)
+    public function setCid(int $coroutineId)
     {
-        $cid && $this->coroutine_id = $cid;
+        $this->coroutineId = $coroutineId;
     }
 
     /**
@@ -74,7 +74,7 @@ class BaseObject
      */
     public function getCid()
     {
-        return $this->coroutine_id;
+        return $this->coroutineId;
     }
 
     /**
@@ -217,9 +217,10 @@ class BaseObject
 
     /**
      * get component
+     * @param string $name
      * @return mixed
      */
-    public function __get($name)
+    public function __get(string $name)
     {
         if (is_object(Application::getApp())) {
             return Application::getApp()->get($name);

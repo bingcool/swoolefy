@@ -34,7 +34,7 @@ class Swfy
      * application conf
      * @var array
      */
-    protected static $app_conf = [];
+    protected static $appConf = [];
 
     /**
      * @param $server
@@ -66,7 +66,7 @@ class Swfy
      */
     public static function setAppConf(array $appConf = [])
     {
-        static::$app_conf = array_merge(static::$app_conf, $appConf);
+        static::$appConf = array_merge(static::$appConf, $appConf);
         return true;
     }
 

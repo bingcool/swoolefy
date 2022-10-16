@@ -83,7 +83,7 @@ class Tick
                 }
 
                 if (method_exists("Swoolefy\\Core\\Application", 'removeApp') && is_object($tickTaskInstance)) {
-                    Application::removeApp($tickTaskInstance->coroutine_id);
+                    Application::removeApp($tickTaskInstance->getCid());
                 }
             }
 
@@ -189,7 +189,7 @@ class Tick
 
                 if (method_exists("Swoolefy\\Core\\Application", 'removeApp')) {
                     if (is_object($tickTaskInstance)) {
-                        Application::removeApp($tickTaskInstance->coroutine_id);
+                        Application::removeApp($tickTaskInstance->getCid());
                     }
                 }
             }
