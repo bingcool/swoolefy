@@ -65,11 +65,12 @@ class App extends \Swoolefy\Core\Component
 
     /**
      * __construct
-     * @param array $config
+     * @param array $appConf
      */
-    public function __construct(array $conf = [])
+    public function __construct(array $appConf = [])
     {
-        $this->appConf = $conf;
+        $this->appConf = $appConf;
+        $this->coroutineId = CoroutineManager::getInstance()->getCoroutineId();
     }
 
     /**
@@ -111,7 +112,6 @@ class App extends \Swoolefy\Core\Component
     {
         try {
             $this->parseHeaders($request);
-            $this->coroutineId = CoroutineManager::getInstance()->getCoroutineId();
             parent::creatObject();
             $this->request  = $request;
             $this->response = $response;
@@ -252,7 +252,7 @@ class App extends \Swoolefy\Core\Component
      */
     protected function defer()
     {
-        if (\Swoole\Coroutine::getCid() > 0) {
+        if (\Swoole\Coroutine::getCid() >= 0) {
             $this->isDefer = true;
             \Swoole\Coroutine::defer(function () {
                 $this->onAfterRequest();
