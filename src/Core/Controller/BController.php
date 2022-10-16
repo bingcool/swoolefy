@@ -46,7 +46,7 @@ class BController extends \Swoolefy\Core\AppObject
         $this->request  = $app->request;
         $this->response = $app->response;
         $this->appConf  = $app->appConf;
-        if (Coroutine::getCid() > 0) {
+        if (Coroutine::getCid() >= 0) {
             \Swoole\Coroutine::defer(function () {
                 $this->defer();
             });

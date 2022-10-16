@@ -50,11 +50,11 @@ class Swoole extends BaseObject
 
     /**
      * __construct
-     * @param array $config
+     * @param array $appConf
      */
-    public function __construct(array $config = [])
+    public function __construct(array $appConf = [])
     {
-        $this->appConf     = array_merge($this->appConf, $config);
+        $this->appConf     = array_merge($this->appConf, $appConf);
         $this->coroutineId = CoroutineManager::getInstance()->getCoroutineId();
     }
 
@@ -293,7 +293,7 @@ class Swoole extends BaseObject
      */
     protected function defer()
     {
-        if (\Swoole\Coroutine::getCid() > 0) {
+        if (\Swoole\Coroutine::getCid() >= 0) {
             $this->isDefer = true;
             \Swoole\Coroutine\defer(function () {
                 $this->end();
