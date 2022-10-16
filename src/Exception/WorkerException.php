@@ -9,24 +9,9 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Core;
+namespace Swoolefy\Exception;
 
-use Swoolefy\Core\Swfy;
-use Swoolefy\Core\Application;
-use Swoolefy\Exception\ExitException;
-
-trait AppObjectTrait
+class WorkerException extends AbstractSwoolefyExeption
 {
-    /**
-     * _die 异常终端程序执行
-     * @param string $html
-     * @param string $msg
-     * @throws ExitException
-     */
-    public static function _die(string $html = '', string $msg = '')
-    {
-        // request end
-        Application::getApp()->response->write($html);
-        throw new ExitException($msg);
-    }
+
 }

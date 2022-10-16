@@ -16,6 +16,7 @@ use Swoole\Process;
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\Crontab\CrontabManager;
 use Swoolefy\Core\EventController;
+use Swoolefy\Exception\WorkerException;
 use Swoolefy\Worker\Dto\MessageDto;
 
 /**
@@ -568,7 +569,7 @@ abstract class AbstractBaseWorker
                 }
 
                 if(!in_array($error['type'], [E_NOTICE, E_WARNING]) ) {
-                    $exception = new \Exception($errorStr, $error['type']);
+                    $exception = new WorkerException($errorStr, $error['type']);
                     $this->onHandleException($exception);
                 }
             }
@@ -578,15 +579,14 @@ abstract class AbstractBaseWorker
     /**
      * writeByProcessName worker send message to process
      * @param string $process_name
-     * @param $data
+     * @param mixed $data
      * @param int $process_worker_id process_worker_id=-1 all process
      * @param bool $is_use_master_proxy
      * @return bool
-     * @throws Exception
      */
     public function writeByProcessName(
         string $process_name,
-               $data,
+        mixed  $data,
         int $process_worker_id = 0,
         bool $is_use_master_proxy = true
     )
@@ -597,7 +597,7 @@ abstract class AbstractBaseWorker
         $fromProcessWorkerId = $this->getProcessWorkerId();
 
         if ($fromProcessName == $process_name && $process_worker_id == $fromProcessWorkerId) {
-            throw new \Exception('Process can\'t write message to myself');
+            throw new WorkerException('Process can\'t write message to myself');
         }
 
         if ($isMaster) {
@@ -652,7 +652,6 @@ abstract class AbstractBaseWorker
      * writeToMasterProcess direct semd message to other process
      * @param mixed $data
      * @return bool
-     * @throws Exception
      */
     public function writeToMasterProcess($data)
     {
@@ -672,7 +671,6 @@ abstract class AbstractBaseWorker
      * @param mixed $data
      * @param int $process_worker_id
      * @return void
-     * @throws Exception
      */
     public function writeToWorkerByMasterProxy(string $process_name, $data, int $process_worker_id = 0)
     {
@@ -686,7 +684,7 @@ abstract class AbstractBaseWorker
      * @param string $dynamic_process_name
      * @param int $dynamic_process_num
      * @return void
-     * @throws \Exception
+     * @throws WorkerException
      */
     public function notifyMasterCreateDynamicProcess(string $dynamic_process_name, int $dynamic_process_num = 2)
     {
