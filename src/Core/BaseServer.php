@@ -52,7 +52,7 @@ class BaseServer
 
     /**
      * pack check type
-     * @var
+     * @var int
      */
     protected static $pack_check_type = null;
 
