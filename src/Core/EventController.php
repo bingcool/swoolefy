@@ -48,7 +48,7 @@ class EventController extends BaseObject
     protected $isDefer = false;
 
     /**
-     * $event_hooks
+     * $eventHooks
      * @var array
      */
     protected $eventHooks = [];
@@ -94,18 +94,12 @@ class EventController extends BaseObject
      * @param int $coroutineId
      * @return bool
      */
-    public function canCreateApp(int $coroutineId = null)
+    protected function canCreateApp(int $coroutineId)
     {
-        if (empty($coroutineId)) {
-            $coroutineId = CoroutineManager::getInstance()->getCoroutineId();
-        }
-
         $exists = Application::issetApp($coroutineId);
-        
         if ($exists) {
             throw new SystemException("You had created EventApp Instance, yon can only registerApp once, so you can't create same coroutine");
         }
-
         return true;
     }
 
