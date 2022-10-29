@@ -358,10 +358,10 @@ abstract class AbstractProcess
     /**
      * 对于运行态的协程，还没有执行完的，设置一个再等待时间$re_wait_time
      * @param int $cycle_times 轮询次数
-     * @param int $re_wait_time 每次2s轮询
+     * @param float $re_wait_time 每次2s轮询
      * @return void
      */
-    private function runtimeCoroutineWait(int $cycle_times = 5, int $re_wait_time = 2)
+    private function runtimeCoroutineWait(int $cycle_times = 5, float $re_wait_time = 2.0 )
     {
         if ($cycle_times <= 0) {
             $cycle_times = 2;
