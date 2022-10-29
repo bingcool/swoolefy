@@ -13,6 +13,7 @@ namespace Swoolefy\Core;
 
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Exception\DispatchException;
+use Swoolefy\Exception\SystemException;
 
 class HttpRoute extends AppDispatch
 {
@@ -54,7 +55,7 @@ class HttpRoute extends AppDispatch
     protected $app = null;
 
     /**
-     * $require_uri
+     * $routerUri
      * @var string
      */
     protected $routerUri = null;
@@ -236,8 +237,6 @@ class HttpRoute extends AppDispatch
         $controllerInstance = new $class();
         // set Controller Instance
         $this->app->setControllerInstance($controllerInstance);
-        // invoke _beforeAction
-        $isContinueAction = $controllerInstance->_beforeAction($action);
 
         if (isset($this->appConf['enable_action_prefix']) && $this->appConf['enable_action_prefix']) {
             $targetAction = $this->actionPrefix . ucfirst($action);
@@ -246,8 +245,11 @@ class HttpRoute extends AppDispatch
         }
 
         if ($this->app->isEnd()) {
-            return false;
+            throw new SystemException('System Request End Error', 500);
         }
+
+        // invoke _beforeAction
+        $isContinueAction = $controllerInstance->_beforeAction($action);
 
         if ($isContinueAction === false) {
             $errorMsg = sprintf(
@@ -296,9 +298,9 @@ class HttpRoute extends AppDispatch
         if (isset($this->appConf['not_found_handler'])) {
             // reset NotFound class
             list($namespace, $action) = $this->appConf['not_found_handler'];
-            $route_params = explode('\\', $namespace);
-            if (is_array($route_params)) {
-                $controller = array_pop($route_params);
+            $routeParams = explode('\\', $namespace);
+            if (is_array($routeParams)) {
+                $controller = array_pop($routeParams);
             }
             // reset NotFound class route
             $this->request->server['ROUTE'] = DIRECTORY_SEPARATOR . $controller . DIRECTORY_SEPARATOR . $action;
