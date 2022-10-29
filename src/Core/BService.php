@@ -71,9 +71,9 @@ class BService extends BaseObject
     /**
      * beforeAction
      * @param string $action
-     * @return mixed
+     * @return bool
      */
-    public function _beforeAction(string $action)
+    public function _beforeAction(string $action): bool
     {
         return true;
     }
@@ -161,14 +161,14 @@ class BService extends BaseObject
      * @param int $fd
      * @param mixed $data
      * @param int $opcode
-     * @param bool|int $finish
+     * @param int $finish
      * @return bool
      */
     public function push(
         int $fd,
         mixed $data,
         int $opcode = 1,
-        bool|int $finish = true
+        int $finish = 1
     )
     {
         if (!BaseServer::isWebsocketApp()) {

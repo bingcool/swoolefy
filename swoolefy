@@ -48,7 +48,7 @@ defined("SWOOLEFY_CLI_PARAMS") or define('SWOOLEFY_CLI_PARAMS', $argv);
 defined('USERD_ENV') or define('USERD_ENV', $USERD_ENV);
 
 // include composer的自动加载类完成命名空间的注册
-include_once START_DIR_ROOT . '/vendor/autoload.php';
+include START_DIR_ROOT . '/vendor/autoload.php';
 
 // include App应用层的自定义的自动加载类命名空间
 if (isset($argv[2]) && in_array(trim($argv[2]), array_keys(APP_NAMES))) {
@@ -87,7 +87,7 @@ if(file_exists($envFile)) {
     $globalEnv = $options['global']['env'] ?? '';
     if(!in_array($globalEnv, SWOOLEFY_ENVS)) {
         write("
-                [Error] the env.ini global.env settting error"
+                [Error] The env.ini global.env settting error"
         );
         exit(0);
     }
@@ -176,7 +176,7 @@ function createProject($server_name)
 
     $protocol = APP_NAMES[$appName];
     if (!$protocol) {
-        write("[Error] app_name={$appName} is not in APP_NAME array in swoolefy file, please check it");
+        write("[Error] The app_name={$appName} is not in APP_NAME array in swoolefy file, please check it");
         exit(0);
     }
 
@@ -343,11 +343,7 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer')
         file_put_contents($routerFile, getRouters());
     }
 
-    if (isDaemon()) {
-        $config['setting']['daemonize'] = true;
-    }
-    makeDirLogAndPid($config);
-    setEnvParams($config);
+    commonHandle($config);
 
     $class = "{$app_name}\\{$event_server_file_name}";
     $http = new $class($config);
@@ -385,11 +381,7 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
         file_put_contents($routerFile, getServiceRouters());
     }
 
-    if (isDaemon()) {
-        $config['setting']['daemonize'] = true;
-    }
-    makeDirLogAndPid($config);
-    setEnvParams($config);
+    commonHandle($config);
 
     $class = "{$app_name}\\{$event_server_file_name}";
     $websocket = new $class($config);
@@ -423,11 +415,7 @@ function startRpc($app_name, $event_server_file_name = 'RpcServer')
         include $autoloaderFile;
     }
 
-    if (isDaemon()) {
-        $config['setting']['daemonize'] = true;
-    }
-    makeDirLogAndPid($config);
-    setEnvParams($config);
+    commonHandle($config);
 
     $class = "{$app_name}\\{$event_server_file_name}";
     $rpc = new $class($config);
@@ -466,11 +454,7 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer')
         file_put_contents($routerFile, getServiceRouters());
     }
 
-    if (isDaemon()) {
-        $config['setting']['daemonize'] = true;
-    }
-    makeDirLogAndPid($config);
-    setEnvParams($config);
+    commonHandle($config);
 
     $class = "{$app_name}\\{$event_server_file_name}";
     $udp = new $class($config);
@@ -504,15 +488,20 @@ function startMqtt($app_name, $event_server_file_name = 'MqttServer')
         include $autoloaderFile;
     }
 
+    commonHandle($config);
+
+    $class = "{$app_name}\\{$event_server_file_name}";
+    $mqtt = new $class($config);
+    $mqtt->start();
+}
+
+function commonHandle(&$config)
+{
     if (isDaemon()) {
         $config['setting']['daemonize'] = true;
     }
     makeDirLogAndPid($config);
     setEnvParams($config);
-
-    $class = "{$app_name}\\{$event_server_file_name}";
-    $mqtt = new $class($config);
-    $mqtt->start();
 }
 
 function stopServer($app_name)
@@ -558,7 +547,6 @@ function commonStop($app_name)
     }
 
     \Swoole\Process::kill($pid, SIGTERM);
-    \Swoole\Process::wait();
     // 如果'reload_async' => true,，则默认workerStop有30s的过度期停顿这个时间稍微会比较长，设置成60过期
     $nowtime = time();
     write("
@@ -595,7 +583,7 @@ function workerStop($appName)
 {
     $pidFile = getPidFile($appName);
     if (!is_file($pidFile)) {
-        write("【Error] pid file={$pidFile} is not exist, please check the server whether running");
+        write("【Error】 pid file={$pidFile} is not exist, please check the server whether running");
         exit(0);
     }
 

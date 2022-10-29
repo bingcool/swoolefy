@@ -111,7 +111,7 @@ class Swfy
     public function __call(string $action, array $args = [])
     {
         // stop exec
-        throw new \Exception(sprintf(
+        throw new SystemException(sprintf(
                 "Calling unknown method: %s::%s",
                 get_called_class(),
                 $action

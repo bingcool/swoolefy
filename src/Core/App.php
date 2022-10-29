@@ -154,16 +154,16 @@ class App extends \Swoolefy\Core\Component
 
     /**
      * setAppConf
-     * @param array $conf
+     * @param array $appConf
      */
-    public function setAppConf(array $conf = [])
+    public function setAppConf(array $appConf = [])
     {
         static $isResetAppConf;
         if (!isset($isResetAppConf)) {
-            if (!empty($conf)) {
-                $this->appConf = $conf;
-                Swfy::setAppConf($conf);
-                BaseServer::setAppConf($conf);
+            if (!empty($appConf)) {
+                $this->appConf = $appConf;
+                Swfy::setAppConf($appConf);
+                BaseServer::setAppConf($appConf);
                 $isResetAppConf = true;
             }
         }
