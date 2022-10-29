@@ -354,9 +354,9 @@ trait ComponentTrait
     /**
      * __isset
      * @param string $name
-     * @return boolean
+     * @return bool
      */
-    public function __isset($name)
+    public function __isset(string $name)
     {
         return isset($this->$name);
     }
