@@ -540,6 +540,7 @@ function commonStop($app_name)
         write("[Error] pid file={$pidFile} is not exist, please check the server whether running");
         exit(0);
     }
+
     $pid = intval(file_get_contents($pidFile));
     if (!\Swoole\Process::kill($pid, 0)) {
         write("[Error] Server Stop!");
@@ -550,7 +551,7 @@ function commonStop($app_name)
     // 如果'reload_async' => true,，则默认workerStop有30s的过度期停顿这个时间稍微会比较长，设置成60过期
     $nowtime = time();
     write("
-        Server begin to stopping at " . date("Y-m-d H:i:s") . ". please wait a moment..."
+        Server begin to stopping at " . date("Y-m-d H:i:s") . ", pid={$pid}. please wait a moment..."
     );
     while (true) {
         sleep(1);
@@ -938,7 +939,7 @@ function showAppHelp($cmd, $cmd_info)
         write($help_str, 'light_green');
     }
     if ($envStr) {
-        write("{$index}、ENV变量提供" . join(SWOOLEFY_ENVS, ' ') . '需要更多环境变量配置SWOOLEFY_ENVS常量设置', 'light_green');
+        write("{$index}、ENV变量提供" . implode(',', SWOOLEFY_ENVS) . '需要更多环境变量配置SWOOLEFY_ENVS常量设置', 'light_green');
         $index++;
         write("{$index}、-ENV可以省略，缺省以dev执行 对应不同的配置文件", 'light_green');
     }
