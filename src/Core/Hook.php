@@ -78,7 +78,7 @@ class Hook
             foreach (self::$hooks[$cid][$type] as $func) {
                 try {
                     $func();
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     BaseServer::catchException($e);
                 }
             }

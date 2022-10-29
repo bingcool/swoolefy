@@ -33,7 +33,7 @@ trait AppTrait
      * @param string $action
      * @return bool
      */
-    public function _beforeAction(string $action)
+    public function _beforeAction(string $action): bool
     {
         return true;
     }
