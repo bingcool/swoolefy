@@ -17,6 +17,7 @@ use Swoolefy\Core\BaseServer;
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\EventController;
 use Swoolefy\Core\Table\TableManager;
+use Swoolefy\Exception\SystemException;
 
 abstract class AbstractProcessPools
 {
@@ -84,11 +85,11 @@ abstract class AbstractProcessPools
     )
     {
         $this->async = $async;
-        $this->args = $args;
-        $this->extendData = $extend_data;
+        $this->args  = $args;
+        $this->extendData  = $extend_data;
         $this->processName = $process_name;
         $this->enableCoroutine = true;
-        $this->swooleProcess = new \Swoole\Process([$this, '__start'], false, SOCK_DGRAM, $this->enableCoroutine);
+        $this->swooleProcess   = new \Swoole\Process([$this, '__start'], false, SOCK_DGRAM, $this->enableCoroutine);
         Swfy::getServer()->addProcess($this->swooleProcess);
     }
 
@@ -251,7 +252,7 @@ abstract class AbstractProcessPools
     public function sendMessage(mixed $msg = null, ?int $worker_id = null)
     {
         if (!$msg) {
-            throw new \Exception('Param of msg can not be null or empty');
+            throw new SystemException('Missing msg params');
         }
 
         if ($worker_id === null) {

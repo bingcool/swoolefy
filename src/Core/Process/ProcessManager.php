@@ -74,7 +74,7 @@ class ProcessManager
         string $processClass,
         bool   $async = true,
         array  $args  = [],
-        mixed $extendData = null,
+        mixed  $extendData = null,
         bool   $enableCoroutine = true
     )
     {
@@ -154,7 +154,7 @@ class ProcessManager
      */
     public function reboot(string $processName)
     {
-        $process = $this->getProcessByName($processName);
+        $process  = $this->getProcessByName($processName);
         $killFlag = $process->getSwoolefyProcessKillFlag();
         $this->writeByProcessName($processName, $killFlag);
         return true;
@@ -170,7 +170,7 @@ class ProcessManager
      * @param float $timeOut
      * @return bool
      */
-    public function writeByProcessName(string $name, $data, \Closure $callback = null, float $timeOut = 3.0)
+    public function writeByProcessName(string $name, $data, \Closure $callback = null, float $timeOut = 3.0 )
     {
         $process = $this->getProcessByName($name);
         if ($process) {
@@ -193,7 +193,7 @@ class ProcessManager
      * @param float $timeOut
      * @return mixed
      */
-    public function readByProcessName(string $name, float $timeOut = 3)
+    public function readByProcessName(string $name, float $timeOut = 3.0 )
     {
         $process = $this->getProcessByName($name);
         if ($process) {
@@ -209,7 +209,7 @@ class ProcessManager
      * @param float $timeOut
      * @return mixed
      */
-    public function read(Process $swooleProcess, float $timeOut = 3)
+    public function read(Process $swooleProcess, float $timeOut = 3.0 )
     {
         $result = null;
         $read = [$swooleProcess];
