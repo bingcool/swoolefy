@@ -54,7 +54,6 @@ class Event extends EventHandler
             // redis的订阅进程
             //ProcessManager::getInstance()->addProcess('redis_subscribe_test', \Test\Process\SubscribeProcess\Subscribe::class);
 
-
             // 这里为什么获取不到pid,那是应为process需要server执行start后才会创建，而在这里只是创建实例，server还没正式启动
             //$pid = ProcessManager::getInstance()->getProcessByName('redis_list_test')->getPid();
         }

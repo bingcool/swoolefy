@@ -116,10 +116,10 @@ class TickManager
     /**
      * __callStatic
      * @param string $name
-     * @param mixed $args
+     * @param array $args
      * @return mixed
      */
-    public static function __callStatic(string $name, $args)
+    public static function __callStatic(string $name, array $args)
     {
         return false;
     }

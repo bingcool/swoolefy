@@ -91,7 +91,7 @@ class BaseServer
     public static $tableMemory = [];
 
     /**
-     * $_tasks 实时内存表保存数据,所有worker共享
+     * memory table
      * @var array
      */
     protected static $_table_tasks = [
@@ -167,6 +167,10 @@ class BaseServer
     protected function workerStartInit($server, $workerId)
     {
         try {
+            // global server
+            Swfy::setSwooleServer($server);
+            // global conf
+            Swfy::setConf(self::$config);
             // 启动动态运行时的Coroutine
             self::runtimeEnableCoroutine();
             // 记录主进程加载的公共files,worker重启不会在加载的
@@ -183,10 +187,6 @@ class BaseServer
             self::startInclude();
             // 记录worker的进程worker_pid与worker_id的映射
             self::setWorkersPid($workerId, $server->worker_pid);
-            // 超全局变量server
-            Swfy::setSwooleServer($server);
-            // 全局配置
-            Swfy::setConf(self::$config);
         }catch(\Throwable $e) {
             self::catchException($e);
         }
@@ -231,34 +231,34 @@ class BaseServer
 
     /**
      * setMasterProcessName
-     * @param string $master_process_name
+     * @param string $masterProcessName
      */
-    public static function setMasterProcessName(string $master_process_name)
+    public static function setMasterProcessName(string $masterProcessName)
     {
-        cli_set_process_title(static::getAppPrefix() . ':' . $master_process_name);
+        cli_set_process_title(static::getAppPrefix() . ':' . $masterProcessName);
     }
 
     /**
      * setManagerProcessName
-     * @param string $manager_process_name
+     * @param string $managerProcessName
      */
-    public static function setManagerProcessName(string $manager_process_name)
+    public static function setManagerProcessName(string $managerProcessName)
     {
-        cli_set_process_title(static::getAppPrefix() . ':' . $manager_process_name);
+        cli_set_process_title(static::getAppPrefix() . ':' . $managerProcessName);
     }
 
     /**
      * setWorkerProcessName
-     * @param string $worker_process_name
-     * @param int $worker_id
-     * @param int $worker_num
+     * @param string $workerProcessName
+     * @param int $workerId
+     * @param int $workerNum
      */
-    public static function setWorkerProcessName(string $worker_process_name, int $worker_id, int $worker_num = 1)
+    public static function setWorkerProcessName(string $workerProcessName, int $workerId, int $workerNum = 1)
     {
-        if ($worker_id >= $worker_num) {
-            cli_set_process_title(static::getAppPrefix() . ':' . $worker_process_name . "-task" . $worker_id);
+        if ($workerId >= $workerNum) {
+            cli_set_process_title(static::getAppPrefix() . ':' . $workerProcessName . "-task" . $workerId);
         } else {
-            cli_set_process_title(static::getAppPrefix() . ':' . $worker_process_name . "-worker" . $worker_id);
+            cli_set_process_title(static::getAppPrefix() . ':' . $workerProcessName . "-worker" . $workerId);
         }
     }
 
@@ -365,7 +365,7 @@ class BaseServer
     }
 
     /**
-     * getConfig 获取服务的全局配置
+     * getConf
      * @return array
      */
     public static function getConf()
@@ -472,9 +472,6 @@ class BaseServer
      */
     public static function setTimeZone()
     {
-        // 默认
-        $timezone = static::$config['time_zone'] ?? 'PRC';
-        date_default_timezone_set($timezone);
         return true;
     }
 
@@ -493,12 +490,12 @@ class BaseServer
     }
 
     /**
-     * @param $worker_id
+     * @param int $workerId
      * @return void
      */
-    public static function getIncludeFiles($worker_id)
+    public static function getIncludeFiles(int $workerId)
     {
-        if (isset(static::$setting['log_file']) && $worker_id == 0) {
+        if (isset(static::$setting['log_file']) && $workerId == 0) {
             $path = pathinfo(static::$setting['log_file'], PATHINFO_DIRNAME);
             $filePath = $path . '/includes.json';
             $includes = get_included_files();
@@ -512,14 +509,14 @@ class BaseServer
 
     /**
      * setWorkersPid 记录worker对应的进程worker_pid与worker_id的映射
-     * @param int $worker_id
-     * @param int $worker_pid
+     * @param int $workerId
+     * @param int $workerPid
      * @return void
      */
-    public static function setWorkersPid(int $worker_id, int $worker_pid)
+    public static function setWorkersPid(int $workerId, int $workerPid)
     {
         $workerPidArr = self::getWorkersPid();
-        $workerPidArr[$worker_id] = $worker_pid;
+        $workerPidArr[$workerId] = $workerPid;
         TableManager::set('table_workers_pid', 'workers_pid', ['workers_pid' => json_encode($workerPidArr)]);
     }
 
@@ -556,12 +553,12 @@ class BaseServer
 
     /**
      * isWorkerProcess 进程是否是worker进程
-     * @param int $worker_id
+     * @param int $workerId
      * @return  bool
      */
-    public static function isWorkerProcess(int $worker_id)
+    public static function isWorkerProcess(int $workerId)
     {
-        if ($worker_id < static::$setting['worker_num']) {
+        if ($workerId < static::$setting['worker_num']) {
             return true;
         }
         return false;
@@ -569,12 +566,12 @@ class BaseServer
 
     /**
      * isTaskProcess 是否task进程
-     * @param int $worker_id
+     * @param int $workerId
      * @return bool
      */
-    public static function isTaskProcess(int $worker_id)
+    public static function isTaskProcess(int $workerId)
     {
-        return static::isWorkerProcess($worker_id) ? false : true;
+        return static::isWorkerProcess($workerId) ? false : true;
     }
 
     /**

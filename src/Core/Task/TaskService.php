@@ -31,7 +31,7 @@ class TaskService extends BService
     protected $fromWorkerId;
 
     /**
-     * \Swoole\Server\Task 对象 swoole4.2.12+ 添加
+     * \Swoole\Server\Task
      * @var \Swoole\Server\Task
      */
     protected $task = null;
