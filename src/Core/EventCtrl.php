@@ -42,7 +42,7 @@ class EventCtrl implements EventCtrlInterface
     /**
      * @return bool
      */
-    protected function isWorkerService()
+    protected function isWorkerService(): bool
     {
         return isWorkerService();
     }

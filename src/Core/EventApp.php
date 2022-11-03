@@ -73,7 +73,7 @@ class EventApp
      * @param array $args
      * @return $this
      */
-    public function registerApp($class, array $args = [])
+    public function registerApp(\Closure|string $class, array $args = []): self
     {
         if ($class instanceof \Closure) {
             try {
@@ -114,7 +114,7 @@ class EventApp
      * getCid
      * @return int
      */
-    public function getCid()
+    public function getCid(): int
     {
         return $this->eventApp->getCid();
     }
@@ -122,7 +122,7 @@ class EventApp
     /**
      * @return EventController
      */
-    public function getEventApp()
+    public function getEventApp(): EventController
     {
         return $this->eventApp;
     }

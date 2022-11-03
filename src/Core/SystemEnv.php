@@ -16,7 +16,7 @@ class SystemEnv
     /**
      * @return bool
      */
-    public static function isDevEnv()
+    public static function isDevEnv(): bool
     {
         if (SWOOLEFY_ENV == SWOOLEFY_DEV) {
             return true;
@@ -27,7 +27,7 @@ class SystemEnv
     /**
      * @return bool
      */
-    public static function isTestEnv()
+    public static function isTestEnv(): bool
     {
         if (SWOOLEFY_ENV == SWOOLEFY_TEST) {
             return true;
@@ -38,7 +38,7 @@ class SystemEnv
     /**
      * @return bool
      */
-    public static function isGraEnv()
+    public static function isGraEnv(): bool
     {
         if (SWOOLEFY_ENV == SWOOLEFY_GRA) {
             return true;
@@ -49,7 +49,7 @@ class SystemEnv
     /**
      * @return bool
      */
-    public static function isPrdEnv()
+    public static function isPrdEnv(): bool
     {
         if (SWOOLEFY_ENV == SWOOLEFY_PRD) {
             return true;
@@ -60,7 +60,7 @@ class SystemEnv
     /**
      * @return bool
      */
-    public static function isDaemon()
+    public static function isDaemon(): bool
     {
         return self::isDaemon();
     }

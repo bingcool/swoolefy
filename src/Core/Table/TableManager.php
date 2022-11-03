@@ -95,7 +95,7 @@ class TableManager
      * @param string $key
      * @return bool
      */
-    public static function exist(string $table, string $key)
+    public static function exist(string $table, string $key): bool
     {
         return self::getTable($table)->exist($key);
     }
@@ -106,7 +106,7 @@ class TableManager
      * @param string $key
      * @return bool
      */
-    public static function del(string $table, string $key)
+    public static function del(string $table, string $key): bool
     {
         return self::getTable($table)->del($key);
 
@@ -120,7 +120,7 @@ class TableManager
      * @param int $incrBy
      * @return int
      */
-    public static function incr(string $table, string $key, string $field, int $incrBy = 1)
+    public static function incr(string $table, string $key, string $field, int $incrBy = 1): int
     {
         return self::getTable($table)->incr($key, $field, $incrBy);
     }
@@ -133,7 +133,7 @@ class TableManager
      * @param int $incrBy
      * @return int
      */
-    public static function decr(string $table, string $key, string $field, int $incrBy = 1)
+    public static function decr(string $table, string $key, string $field, int $incrBy = 1): int
     {
         return self::getTable($table)->decr($key, $field, $incrBy);
     }
@@ -142,28 +142,23 @@ class TableManager
      * getTables 获取已创建的内存表的名称
      * @return array
      */
-    public static function getTablesName()
+    public static function getTableNames(): array
     {
-        if (isset(BaseServer::$tableMemory)) {
-            return array_keys(BaseServer::$tableMemory);
-        }
-        return null;
+        return array_keys(BaseServer::$tableMemory);
     }
 
     /**
      * getTable 获取已创建的table实例对象
      * @param string|null $table
-     * @return \Swoole\Table|array
+     * @return \Swoole\Table
      * @throws SystemException
      */
-    public static function getTable(string $table)
+    public static function getTable(string $table): \Swoole\Table
     {
-        if (isset(BaseServer::$tableMemory)) {
-            if (!isset(BaseServer::$tableMemory[$table])) {
-                throw new SystemException("Not exist Table={$table}");
-            }
-            return BaseServer::$tableMemory[$table];
+        if (!isset(BaseServer::$tableMemory[$table])) {
+            throw new SystemException("Not exist Table={$table}");
         }
+        return BaseServer::$tableMemory[$table];
     }
 
     /**
@@ -171,7 +166,7 @@ class TableManager
      * @param string|null $table
      * @return bool
      */
-    public static function isExistTable(string $table)
+    public static function isExistTable(string $table): bool
     {
         if (isset(BaseServer::$tableMemory)) {
             if ($table) {
@@ -188,16 +183,18 @@ class TableManager
      * @param string $table
      * @return int
      */
-    public static function count(string $table = null)
+    public static function count(string $table = null): int
     {
+        $count = 0;
         $swooleTable = self::getTable($table);
         if ($swooleTable) {
             $count = $swooleTable->count();
         }
+
         if (is_numeric($count)) {
             return $count;
         }
-        return null;
+        return $count;
 
     }
 
@@ -206,7 +203,7 @@ class TableManager
      * @param string $table
      * @return array
      */
-    public static function getTableKeys(string $table)
+    public static function getTableKeys(string $table): array
     {
         $keys = [];
         $swooleTable = self::getTable($table);
@@ -223,7 +220,7 @@ class TableManager
      * @param string $table
      * @return array
      */
-    public static function getKeyMapRowValue(string $table)
+    public static function getKeyMapRowValue(string $table): array
     {
         $tableRows = [];
         $swooleTable = self::getTable($table);
@@ -239,7 +236,7 @@ class TableManager
      * get all table_name instance
      * @return array
      */
-    public function getAllTableName()
+    public function getAllTableName(): array
     {
         $tableNames = array_keys(BaseServer::$tableMemory);
         return $tableNames;
@@ -249,7 +246,7 @@ class TableManager
      * getAllTableKeyMapRowValue
      * @return array
      */
-    public function getAllTableKeyMapRowValue()
+    public function getAllTableKeyMapRowValue(): array
     {
         $tableInfos = [];
         $tableNames = $this->getAllTableName();

@@ -38,7 +38,7 @@ class Hook
         int $type,
         mixed $func,
         bool $prepend = false
-    )
+    ): bool
     {
         $cid = CoroutineManager::getInstance()->getCoroutineId();
         if (is_callable($func, true, $callable_name)) {

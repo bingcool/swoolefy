@@ -44,7 +44,7 @@ class BaseObject
      * className Returns the fully qualified name of this class.
      * @return string the fully qualified name of this class.
      */
-    public static function className()
+    public static function className(): string
     {
         return get_called_class();
     }
@@ -53,7 +53,7 @@ class BaseObject
      * @param \ArrayObject $context
      * @return bool
      */
-    public function setContext(\ArrayObject $context)
+    public function setContext(\ArrayObject $context): bool
     {
         $this->context = $context;
         return true;
@@ -62,19 +62,21 @@ class BaseObject
     /**
      * setCid
      * @param int $coroutineId
+     * @return bool
      */
-    public function setCid(int $coroutineId)
+    public function setCid(int $coroutineId): bool
     {
         if($coroutineId >=0 ) {
             $this->coroutineId = $coroutineId;
         }
+        return true;
     }
 
     /**
      * getCid
      * @return int
      */
-    public function getCid()
+    public function getCid(): int
     {
         return $this->coroutineId;
     }
@@ -82,7 +84,7 @@ class BaseObject
     /**
      * @return bool
      */
-    public function isSetContext()
+    public function isSetContext(): bool
     {
         if ($this->context instanceof \ArrayObject) {
             return true;
@@ -93,7 +95,7 @@ class BaseObject
     /**
      * @return ArrayObject
      */
-    public function getContext()
+    public function getContext(): ArrayObject
     {
         if ($this->context) {
             $context = $this->context;
@@ -125,7 +127,7 @@ class BaseObject
     /**
      * @return array
      */
-    public function getLogs()
+    public function getLogs(): array
     {
         return $this->logs;
     }
@@ -176,7 +178,7 @@ class BaseObject
      * @param mixed $value
      * @return bool
      */
-    public function setArgs(string $name, mixed $value)
+    public function setArgs(string $name, mixed $value): bool
     {
         if ($name && $value) {
             $this->args[$name] = $value;
@@ -202,7 +204,7 @@ class BaseObject
      * __toString
      * @return string
      */
-    public function __toString()
+    public function __toString(): string
     {
         return get_called_class();
     }
@@ -210,7 +212,7 @@ class BaseObject
     /**
      * get component
      * @param string $name
-     * @return object|bool
+     * @return object|null
      */
     public function __get(string $name)
     {

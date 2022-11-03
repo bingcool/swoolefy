@@ -66,6 +66,7 @@ class App extends \Swoolefy\Core\Component
     /**
      * __construct
      * @param array $appConf
+     * @return void
      */
     public function __construct(array $appConf = [])
     {
@@ -88,6 +89,7 @@ class App extends \Swoolefy\Core\Component
 
     /**
      * before request application handle
+     * @return void
      */
     protected function _bootstrap()
     {
@@ -105,7 +107,7 @@ class App extends \Swoolefy\Core\Component
      * @param Request $request
      * @param Response $response
      * @param mixed $extendData
-     * @return mixed
+     * @return void
      * @throws \Throwable
      */
     public function run(Request $request, Response $response, $extendData = null)
@@ -124,6 +126,7 @@ class App extends \Swoolefy\Core\Component
                 $route->dispatch();
             }
         } catch (\Throwable $throwable) {
+            /** @var SwoolefyException $exceptionHandle */
             $exceptionHandle = $this->getExceptionClass();
             $exceptionHandle::response($this, $throwable);
         } finally {
@@ -136,6 +139,7 @@ class App extends \Swoolefy\Core\Component
 
     /**
      * @param Request $request
+     * @return void
      */
     protected function parseHeaders(Request $request)
     {
@@ -155,6 +159,7 @@ class App extends \Swoolefy\Core\Component
     /**
      * setAppConf
      * @param array $appConf
+     * @return void
      */
     public function setAppConf(array $appConf = [])
     {
@@ -189,7 +194,7 @@ class App extends \Swoolefy\Core\Component
      * catchAll request
      * @return bool
      */
-    public function catchAll()
+    public function catchAll(): bool
     {
         if (isset($this->appConf['catch_handle']) && $handle = $this->appConf['catch_handle']) {
             $this->isEnd = true;
@@ -210,15 +215,16 @@ class App extends \Swoolefy\Core\Component
      * @param bool $prepend
      * @return bool
      */
-    public function afterRequest(callable $callback, bool $prepend = false)
+    public function afterRequest(callable $callback, bool $prepend = false): bool
     {
         return Hook::addHook(Hook::HOOK_AFTER_REQUEST, $callback, $prepend);
     }
 
     /**
-     * @return SwoolefyException|string
+     * @return string
+     *
      */
-    public function getExceptionClass()
+    public function getExceptionClass(): string
     {
         return BaseServer::getExceptionClass();
     }
@@ -227,7 +233,7 @@ class App extends \Swoolefy\Core\Component
      *pushComponentPools
      * @return bool
      */
-    public function pushComponentPools()
+    public function pushComponentPools(): bool
     {
         if (empty($this->componentPools) || empty($this->componentPoolsObjIds)) {
             return false;
@@ -244,6 +250,8 @@ class App extends \Swoolefy\Core\Component
                 }
             }
         }
+
+        return true;
     }
 
     /**

@@ -137,13 +137,13 @@ class CrontabManager
     }
 
     /**
-     * @param string|null $cron_name
+     * @param string|null $cronName
      * @return array|null
      */
-    public function getCronTaskByName(?string $cron_name = null)
+    public function getCronTaskByName(?string $cronName = null)
     {
-        if ($cron_name) {
-            $cronNameKey = md5($cron_name);
+        if ($cronName) {
+            $cronNameKey = md5($cronName);
             if (isset($this->cronTasks[$cronNameKey])) {
                 return $this->cronTasks[$cronNameKey];
             }

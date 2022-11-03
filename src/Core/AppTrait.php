@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core;
 
+use Swoole\Http\Response;
+
 trait AppTrait
 {
     /**
@@ -60,7 +62,7 @@ trait AppTrait
         string $msg = '',
         mixed $data = [],
         string $formatter = 'json'
-    )
+    ): bool
     {
         if (is_object(Application::getApp())) {
             Application::getApp()->setEnd();
@@ -74,7 +76,7 @@ trait AppTrait
      * isGet
      * @return bool
      */
-    public function isGet()
+    public function isGet(): bool
     {
         return (strtoupper($this->request->server['REQUEST_METHOD']) == 'GET') ? true : false;
     }
@@ -83,7 +85,7 @@ trait AppTrait
      * isPost
      * @return bool
      */
-    public function isPost()
+    public function isPost(): bool
     {
         return (strtoupper($this->request->server['REQUEST_METHOD']) == 'POST') ? true : false;
     }
@@ -92,7 +94,7 @@ trait AppTrait
      * isPut
      * @return bool
      */
-    public function isPut()
+    public function isPut(): bool
     {
         return (strtoupper($this->request->server['REQUEST_METHOD']) == 'PUT') ? true : false;
     }
@@ -101,7 +103,7 @@ trait AppTrait
      * isDelete
      * @return bool
      */
-    public function isDelete()
+    public function isDelete(): bool
     {
         return (strtoupper($this->request->server['REQUEST_METHOD']) == 'DELETE') ? true : false;
     }
@@ -110,7 +112,7 @@ trait AppTrait
      * isAjax
      * @return bool
      */
-    public function isAjax()
+    public function isAjax(): bool
     {
         return (isset($this->request->header['x-requested-with']) && strtolower($this->request->header['x-requested-with']) == 'xmlhttprequest') ? true : false;
     }
@@ -119,7 +121,7 @@ trait AppTrait
      * isSsl
      * @return bool
      */
-    public function isSsl()
+    public function isSsl(): bool
     {
         if (isset($this->request->server['HTTPS']) && ('1' == $this->request->server['HTTPS'] || 'on' == strtolower($this->request->server['HTTPS']))) {
             return true;
@@ -133,7 +135,7 @@ trait AppTrait
      * isMobile
      * @return bool
      */
-    public function isMobile()
+    public function isMobile(): bool
     {
         if (isset($this->request->server['HTTP_VIA']) && stristr($this->request->server['HTTP_VIA'], "wap")) {
             return true;
@@ -152,7 +154,7 @@ trait AppTrait
      * getRequest
      * @return \Swoole\Http\Request
      */
-    public function getRequest()
+    public function getRequest(): \Swoole\Http\Request
     {
         return $this->request;
     }
@@ -161,7 +163,7 @@ trait AppTrait
      * getResponse
      * @return \Swoole\Http\Response
      */
-    public function getResponse()
+    public function getResponse(): \Swoole\Http\Response
     {
         return $this->response;
     }
@@ -172,7 +174,7 @@ trait AppTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getRequestParams(string $name = null, $default = null)
+    public function getRequestParams(?string $name = null, $default = null): mixed
     {
         if (!$this->requestParams) {
             $get = isset($this->request->get) ? $this->request->get : [];
@@ -198,7 +200,7 @@ trait AppTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getQueryParams(string $name = null, $default = null)
+    public function getQueryParams(?string $name = null, mixed $default = null): mixed
     {
         $input = $this->request->get;
         if ($name) {
@@ -215,7 +217,7 @@ trait AppTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getPostParams(string $name = null, $default = null)
+    public function getPostParams(?string $name = null, mixed $default = null): mixed
     {
         if (!$this->postParams) {
             $input = $this->request->post ?? [];
@@ -240,7 +242,7 @@ trait AppTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getCookieParams(string $name = null, $default = null)
+    public function getCookieParams(?string $name = null, mixed $default = null): mixed
     {
         $cookies = $this->request->cookie;
         if ($name) {
@@ -263,9 +265,10 @@ trait AppTrait
     /**
      * getServerParam
      * @param string|null $name
+     * @param mixed $default
      * @return mixed
      */
-    public function getServerParams(string $name = null, $default = null)
+    public function getServerParams(?string $name = null, mixed $default = null): mixed
     {
         if ($name) {
             $name = strtoupper($name);
@@ -278,9 +281,10 @@ trait AppTrait
     /**
      * getHeaderParam
      * @param string|null $name
+     * @param mixed $default
      * @return mixed
      */
-    public function getHeaderParams(string $name = null, $default = null)
+    public function getHeaderParams(?string $name = null, $default = null): mixed
     {
         if ($name) {
             $name = strtolower($name);
@@ -295,16 +299,16 @@ trait AppTrait
      * getFilesParam
      * @return mixed
      */
-    public function getUploadFiles()
+    public function getUploadFiles(): mixed
     {
         return $this->request->files;
     }
 
     /**
      * getRawContent
-     * @return mixed
+     * @return string|false
      */
-    public function getRawContent()
+    public function getRawContent(): string|false
     {
         return $this->request->rawContent();
     }
@@ -313,7 +317,7 @@ trait AppTrait
      * getMethod
      * @return string
      */
-    public function getMethod()
+    public function getMethod(): string
     {
         return $this->request->server['REQUEST_METHOD'];
     }
@@ -322,7 +326,7 @@ trait AppTrait
      * getRequestUri
      * @return string
      */
-    public function getRequestUri()
+    public function getRequestUri(): string
     {
         return $this->request->server['PATH_INFO'];
     }
@@ -330,7 +334,7 @@ trait AppTrait
     /**
      * @return string
      */
-    public function getRequestUriMapRouterUri()
+    public function getRequestUriMapRouterUri(): string
     {
         return Swfy::getRouterMapUri($this->getRequestUri());
     }
@@ -339,16 +343,16 @@ trait AppTrait
      * getRoute
      * @return string
      */
-    public function getRoute()
+    public function getRoute(): string
     {
         return $this->request->server['ROUTE'];
     }
 
     /**
      * getQueryString
-     * @return string
+     * @return string|null
      */
-    public function getQueryString()
+    public function getQueryString(): string|null
     {
         if (isset($this->request->server['QUERY_STRING'])) {
             return $this->request->server['QUERY_STRING'];
@@ -360,7 +364,7 @@ trait AppTrait
      * getProtocol
      * @return string
      */
-    public function getProtocol()
+    public function getProtocol(): string
     {
         return $this->request->server['SERVER_PROTOCOL'];
     }
@@ -370,7 +374,7 @@ trait AppTrait
      * @param $ssl
      * @return string
      */
-    public function getHomeUrl(bool $ssl = false)
+    public function getHomeUrl(bool $ssl = false): string
     {
         $protocolVersion = $this->getProtocol();
         list($protocol, $version) = explode('/', $protocolVersion);
@@ -389,12 +393,12 @@ trait AppTrait
 
     /**
      * rememberUrl
-     * @param string $name
-     * @param string $url
+     * @param string|null $name
+     * @param string|null $url
      * @param bool $ssl
      * @return void
      */
-    public function rememberUrl(string $name = null, string $url = null, bool $ssl = false)
+    public function rememberUrl(?string $name = null, ?string $url = null, bool $ssl = false)
     {
         if ($url && $name) {
             $this->previousUrl[$name] = $url;
@@ -406,10 +410,10 @@ trait AppTrait
 
     /**
      * getPreviousUrl
-     * @param string $name
+     * @param string|null $name
      * @return mixed
      */
-    public function getPreviousUrl(string $name = null)
+    public function getPreviousUrl(?string $name = null)
     {
         if ($name) {
             if (isset($this->previousUrl[$name])) {
@@ -427,7 +431,7 @@ trait AppTrait
      * getRoute
      * @return array
      */
-    public function getRouteParams()
+    public function getRouteParams(): array
     {
         return $this->request->server['ROUTE_PARAMS'];
     }
@@ -436,7 +440,7 @@ trait AppTrait
      * getModule
      * @return string|null
      */
-    public function getModuleId()
+    public function getModuleId(): string|null
     {
         list($count, $routeParams) = $this->getRouteParams();
         if ($count == 3) {
@@ -449,7 +453,7 @@ trait AppTrait
      * getController
      * @return string
      */
-    public function getControllerId()
+    public function getControllerId(): string
     {
         list($count, $routeParams) = $this->getRouteParams();
         if ($count == 3) {
@@ -463,7 +467,7 @@ trait AppTrait
      * getAction
      * @return string
      */
-    public function getActionId()
+    public function getActionId(): string
     {
         list($count, $routeParams) = $this->getRouteParams();
         return array_pop($routeParams);
@@ -471,9 +475,9 @@ trait AppTrait
 
     /**
      * getQuery
-     * @return mixed
+     * @return array
      */
-    public function getQuery()
+    public function getQuery(): array
     {
         return $this->request->get;
     }
@@ -490,23 +494,23 @@ trait AppTrait
     }
 
     /**
-     * @param string|null $template_file
+     * @param string $templateFile
      * @param string $viewCom
      * @throws \Exception
      */
-    public function display(string $template_file = null, string $viewCom = 'view')
+    public function display(string $templateFile, string $viewCom = 'view')
     {
-        Application::getApp()->get($viewCom)->display($template_file);
+        Application::getApp()->get($viewCom)->display($templateFile);
     }
 
     /**
-     * @param string|null $template_file
+     * @param string $templateFile
      * @param string $viewCom
      * @throws \Exception
      */
-    public function fetch(string $template_file = null, string $viewCom = 'view')
+    public function fetch(string $templateFile, string $viewCom = 'view')
     {
-        Application::getApp()->get($viewCom)->display($template_file);
+        Application::getApp()->get($viewCom)->display($templateFile);
     }
 
     /**
@@ -519,7 +523,7 @@ trait AppTrait
     protected function returnJson(
         array  $data = [],
         int    $code = 0,
-        string $msg = '',
+        string $msg  = '',
         string $formatter = 'json'
     )
     {
@@ -531,6 +535,7 @@ trait AppTrait
      * jsonSerialize
      * @param array $data
      * @param string $formatter
+     * @return void
      */
     protected function jsonSerialize(array $data = [], string $formatter = 'json')
     {
@@ -683,7 +688,7 @@ trait AppTrait
     /**
      * getClientIP 获取客户端ip
      * @param int $type 返回类型 0:返回IP地址,1:返回IPV4地址数字
-     * @return  mixed
+     * @return mixed
      */
     public function getClientIP(int $type = 0)
     {
@@ -717,12 +722,12 @@ trait AppTrait
     }
 
     /**
-     * header,使用链式作用域
+     * header 使用链式作用域
      * @param string $name
      * @param string $value
-     * @return object
+     * @return \Swoole\Http\Response|\Swoole\Http2\Response
      */
-    public function header(string $name, $value)
+    public function header(string $name, $value): \Swoole\Http\Response|\Swoole\Http2\Response
     {
         $this->response->header($name, $value);
         return $this->response;
@@ -737,7 +742,7 @@ trait AppTrait
      * @param string $domain 有效域名
      * @param bool $secure Cookie是否仅仅通过安全的HTTPS连接传给客户端
      * @param bool $httpOnly 设置成TRUE，Cookie仅可通过HTTP协议访问
-     * @return mixed
+     * @return \Swoole\Http\Response|\Swoole\Http2\Response
      */
     public function setCookie(
         string $key,
@@ -747,7 +752,7 @@ trait AppTrait
         string $domain = '',
         bool   $secure = false,
         bool   $httpOnly = false
-    )
+    ): \Swoole\Http\Response|\Swoole\Http2\Response
     {
         $this->response->cookie($key, $value, $expire, $path, $domain, $secure, $httpOnly);
         return $this->response;
@@ -757,7 +762,7 @@ trait AppTrait
      * getHostName
      * @return string
      */
-    public function getHostName()
+    public function getHostName(): string
     {
         return $this->request->server['HTTP_HOST'];
     }
@@ -766,7 +771,7 @@ trait AppTrait
      * getBrowser 获取浏览器
      * @return string
      */
-    public function getBrowser()
+    public function getBrowser(): string
     {
         $sys = $this->request->server['HTTP_USER_AGENT'];
         if (stripos($sys, "Firefox/") > 0) {
@@ -809,7 +814,7 @@ trait AppTrait
      * getOS 客户端操作系统信息
      * @return string
      */
-    public static function getClientOS()
+    public static function getClientOS(): string
     {
         $agent = Application::getApp()->request->server['HTTP_USER_AGENT'];
 

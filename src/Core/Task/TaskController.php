@@ -85,7 +85,7 @@ class TaskController extends EventController
      * getTaskId
      * @return int
      */
-    public function getTaskId()
+    public function getTaskId(): int
     {
         return $this->taskId;
     }
@@ -94,16 +94,16 @@ class TaskController extends EventController
      * getFromWorkerId
      * @return int
      */
-    public function getFromWorkerId()
+    public function getFromWorkerId(): int
     {
         return $this->fromWorkerId;
     }
 
     /**
      * getTask
-     * @return mixed
+     * @return \Swoole\Server\Task
      */
-    public function getTask()
+    public function getTask(): \Swoole\Server\Task
     {
         return $this->task;
     }
