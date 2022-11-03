@@ -9,6 +9,7 @@ class TickController extends ProcessController {
 
     public function tickTest($data, $timer_id)
     {
+        var_dump($data, $timer_id);
         /**
          * @var \Common\Library\Db\Mysql $db
          */

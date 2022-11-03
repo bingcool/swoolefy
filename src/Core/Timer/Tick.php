@@ -39,33 +39,32 @@ class Tick
 
     /**
      * tickTimer
-     * @param int $time_interval_ms
-     * @param mixed $func
+     * @param int $timeIntervalMs
+     * @param \Closure|array $func
      * @param array $params
-     * @return mixed
-     * @throws mixed
+     * @return int
      */
-    public static function tickTimer(int $time_interval_ms, $func, $params = null)
+    public static function tickTimer(int $timeIntervalMs, \Closure|array $func, array $params = [])
     {
-        if ($time_interval_ms <= 0) {
-            throw new TimerException(get_called_class() . "::tickTimer() the first params 'time_interval' is requested more than 0 ms");
+        if ($timeIntervalMs <= 0) {
+            throw new TimerException(get_called_class() . "::tickTimer() the first params 'time_interval_ms' is requested more than 0 ms");
         }
 
-        $timerId = self::tick($time_interval_ms, $func, $params);
+        $timerId = self::tick($timeIntervalMs, $func, $params);
 
         return $timerId;
     }
 
     /**
      * tick
-     * @param int $time_interval_ms
-     * @param mixed $func
+     * @param int $timeIntervalMs
+     * @param \Closure|array $func
      * @param array $params
      * @return mixed
      */
-    protected static function tick(int $time_interval_ms, $func, $params = null)
+    protected static function tick(int $timeIntervalMs, \Closure|array $func, array $params = [])
     {
-        $tid = \Swoole\Timer::tick($time_interval_ms, function ($timerId, $params) use ($func) {
+        $tid = \Swoole\Timer::tick($timeIntervalMs, function ($timerId, $params) use ($func) {
             try {
                 if (is_array($func)) {
                     list($class, $action) = $func;
@@ -78,16 +77,18 @@ class Tick
             } catch (\Throwable $throwable) {
                 BaseServer::catchException($throwable);
             } finally {
-                if ($tickTaskInstance->isDefer() === false) {
-                    $tickTaskInstance->end();
-                }
+                if (isset($tickTaskInstance)) {
+                    if ($tickTaskInstance->isDefer() === false) {
+                        $tickTaskInstance->end();
+                    }
 
-                if (method_exists("Swoolefy\\Core\\Application", 'removeApp') && is_object($tickTaskInstance)) {
-                    Application::removeApp($tickTaskInstance->getCid());
+                    if (is_object($tickTaskInstance)) {
+                        Application::removeApp($tickTaskInstance->getCid());
+                    }
+                    unset($tickTaskInstance);
                 }
             }
-
-            unset($tickTaskInstance, $class, $action, $func);
+            unset($class, $action, $func);
 
         }, $params);
 
@@ -95,7 +96,7 @@ class Tick
             self::$_tick_tasks[$tid] = [
                 'callback'      => $func,
                 'params'        => $params,
-                'time_interval' => $time_interval_ms,
+                'time_interval' => $timeIntervalMs,
                 'timer_id'      => $tid,
                 'start_time'    => date('Y-m-d H:i:s', strtotime('now'))
             ];
@@ -108,26 +109,26 @@ class Tick
 
         }
 
-        return $tid ?: false;
+        return $tid;
     }
 
     /**
      * delTicker
-     * @param int $timer_id
+     * @param int $timerId
      * @return bool
      */
-    public static function delTicker(int $timer_id)
+    public static function delTicker(int $timerId)
     {
-        if (!\Swoole\Timer::exists($timer_id)) {
+        if (!\Swoole\Timer::exists($timerId)) {
             return true;
         }
 
-        $result = \Swoole\Timer::clear($timer_id);
+        $result = \Swoole\Timer::clear($timerId);
 
         if ($result) {
             foreach (self::$_tick_tasks as $tid => $value) {
-                if ($tid == $timer_id) {
-                    unset(self::$_tick_tasks[$timer_id], self::$_tasks_instances[$timer_id]);
+                if ($tid == $timerId) {
+                    unset(self::$_tick_tasks[$timerId], self::$_tasks_instances[$timerId]);
                 }
             }
 
@@ -135,8 +136,8 @@ class Tick
 
             if (isset($config['enable_table_tick_task']) && $config['enable_table_tick_task'] == true) {
                 TableManager::set('table_ticker', 'tick_timer_task', ['tick_tasks' => json_encode(self::$_tick_tasks)]);
-                return true;
             }
+            return true;
         }
 
         return false;
@@ -144,32 +145,32 @@ class Tick
 
     /**
      * afterTimer
-     * @param int $time_interval_ms
-     * @param mixed $func
+     * @param int $timeIntervalMs
+     * @param \Closure|array $func
      * @param array $params
-     * @return mixed
+     * @return int
      * @throws mixed
      */
-    public static function afterTimer(int $time_interval_ms, $func, $params = null)
+    public static function afterTimer(int $timeIntervalMs, \Closure|array $func, array $params = [])
     {
-        if ($time_interval_ms <= 0) {
-            throw new TimerException(get_called_class() . "::afterTimer() the first params 'time_interval' is requested more then 0 ms");
+        if ($timeIntervalMs <= 0) {
+            throw new TimerException(get_called_class() . "::afterTimer() the first params 'time_interval_ms' is requested more then 0 ms");
         }
 
-        $timerId = self::after($time_interval_ms, $func, $params);
+        $timerId = self::after($timeIntervalMs, $func, $params);
         return $timerId;
     }
 
     /**
      * after
-     * @param int $time_interval_ms
-     * @param mixed $func
-     * @param null $params
+     * @param int $timeIntervalMs
+     * @param \Closure|array $func
+     * @param array $params
      * @return bool|mixed
      */
-    protected static function after(int $time_interval_ms, $func, $params = null)
+    protected static function after(int $timeIntervalMs, \Closure|array $func, array $params = [])
     {
-        $timerId = \Swoole\Timer::after($time_interval_ms, function ($params) use ($func) {
+        $timerId = \Swoole\Timer::after($timeIntervalMs, function ($params) use ($func) {
             try {
                 $timer_id = null;
                 if (is_array($func)) {
@@ -180,29 +181,30 @@ class Tick
                     $tickTaskInstance = new TickController;
                     call_user_func($func, $params, $timer_id);
                 }
-            } catch (\Throwable $t) {
-                BaseServer::catchException($t);
+            } catch (\Throwable $throwable) {
+                BaseServer::catchException($throwable);
             } finally {
-                if ($tickTaskInstance->isDefer() === false) {
-                    $tickTaskInstance->end();
-                }
+                if (isset($tickTaskInstance)) {
+                    if ($tickTaskInstance->isDefer() === false) {
+                        $tickTaskInstance->end();
+                    }
 
-                if (method_exists("Swoolefy\\Core\\Application", 'removeApp')) {
                     if (is_object($tickTaskInstance)) {
                         Application::removeApp($tickTaskInstance->getCid());
                     }
+                    unset($tickTaskInstance);
                 }
             }
-            // 执行完之后,更新目前的一次性任务项
+
             self::updateRunAfterTick();
-            unset($tickTaskInstance, $class, $action, $func);
+            unset($class, $action, $func);
         }, $params);
 
         if ($timerId) {
             self::$_after_tasks[$timerId] = [
                 'callback'      => $func,
                 'params'        => $params,
-                'time_interval' => $time_interval_ms,
+                'time_interval' => $timeIntervalMs,
                 'timer_id'      => $timerId,
                 'start_time'    => date('Y-m-d H:i:s', strtotime('now'))
             ];

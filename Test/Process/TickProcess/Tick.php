@@ -26,6 +26,13 @@ class Tick extends AbstractProcess {
             [TickController::class, 'tickTest'],
             ['name'=>'swoolefy-tick']
         );
+
+        // 创建定时器处理实例
+//        TickManager::getInstance()->afterTimer(3000,
+//            [TickController::class, 'tickTest'],
+//            ['name'=>'swoolefy-tick']
+//        );
+
     }
 
     public function onReceive($str, ...$args)

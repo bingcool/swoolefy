@@ -22,38 +22,36 @@ class TickManager
 
     /**
      * tickTimer
-     * @param int $time_interval_ms
-     * @param mixed $func
-     * @param mixed $params
+     * @param int $timeIntervalMs
+     * @param \Closure|array $func
+     * @param array $params
      * @return int
      */
-    public static function tickTimer(int $time_interval_ms, $func, $params = null)
+    public static function tickTimer(int $timeIntervalMs, \Closure|array $func, array $params = [])
     {
-        return Tick::tickTimer($time_interval_ms, $func, $params);
+        return Tick::tickTimer($timeIntervalMs, $func, $params);
     }
 
     /**
      * afterTimer
-     * @param int $time_interval_ms
-     * @param mixed $func
+     * @param int $timeIntervalMs
+     * @param \Closure|array $func
      * @param mixed $params
      * @return int
      */
-    public static function afterTimer(int $time_interval_ms, $func, $params = null)
+    public static function afterTimer(int $timeIntervalMs, \Closure|array $func, array $params = [])
     {
-        return Tick::afterTimer($time_interval_ms, $func, $params);
+        return Tick::afterTimer($timeIntervalMs, $func, $params);
     }
 
     /**
      * clearTimer
-     * @param int $timer_id
+     * @param int $timerId
      * @return bool
      */
-    public static function clearTimer(int $timer_id)
+    public static function clearTimer(int $timerId)
     {
-        if (is_int($timer_id)) {
-            return Tick::delTicker($timer_id);
-        }
+        return Tick::delTicker($timerId);
     }
 
     /**
