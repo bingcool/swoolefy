@@ -31,14 +31,14 @@ class TaskService extends BService
     protected $fromWorkerId;
 
     /**
-     * \Swoole\Server\Task
+     *
      * @var \Swoole\Server\Task
      */
     protected $task = null;
 
     /**
      * __construct
-     * @throws \Exception
+     * @throws TaskException
      */
     public function __construct()
     {
