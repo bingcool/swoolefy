@@ -39,19 +39,19 @@ trait ComponentTrait
     /**
      * creatObject
      *
-     * @param string $com_alias_name
+     * @param string $comAliasName
      * @param \Closure|array $definition
      * @return mixed
      * @throws SystemException
      */
-    public function creatObject(string $com_alias_name = null, \Closure|array $definition = [])
+    public function creatObject(?string $comAliasName = null, \Closure|array $definition = [])
     {
         // dynamic create component object
-        if ($com_alias_name) {
-            if (!isset($this->containers[$com_alias_name]) || !is_object($this->containers[$com_alias_name])) {
+        if ($comAliasName) {
+            if (!isset($this->containers[$comAliasName]) || !is_object($this->containers[$comAliasName])) {
                 if ($definition instanceof \Closure) {
-                    $object = call_user_func($definition, $com_alias_name);
-                    return $this->containers[$com_alias_name] = $this->buildContainerObject($object);
+                    $object = call_user_func($definition, $comAliasName);
+                    return $this->containers[$comAliasName] = $this->buildContainerObject($object);
                 } else if (is_array($definition) && isset($definition['class'])) {
                     $class = $definition['class'];
                     unset($definition['class']);
@@ -63,13 +63,13 @@ trait ComponentTrait
                     if (isset($definition[SWOOLEFY_COM_IS_DELAY])) {
                         unset($definition[SWOOLEFY_COM_IS_DELAY]);
                     }
-                    return $this->containers[$com_alias_name] = $this->buildInstance($class, $definition, $params, $com_alias_name);
+                    return $this->containers[$comAliasName] = $this->buildInstance($class, $definition, $params, $comAliasName);
                 } else {
-                    throw new SystemException(sprintf("component:%s must be set class", $com_alias_name));
+                    throw new SystemException(sprintf("component:%s must be set class", $comAliasName));
                 }
 
             } else {
-                return $this->containers[$com_alias_name];
+                return $this->containers[$comAliasName];
             }
 
         }
@@ -130,13 +130,13 @@ trait ComponentTrait
 
     /**
      * @param string $class
-     * @param $definition
+     * @param array $definition
      * @param array $params
-     * @param string $com_alias_name
+     * @param string $comAliasName
      * @return object
-     * @throws \Exception
+     * @throws SystemException
      */
-    protected function buildInstance(string $class, array $definition, array $params, string $com_alias_name)
+    protected function buildInstance(string $class, array $definition, array $params, string $comAliasName)
     {
         /**@var \ReflectionClass $reflection */
         list ($reflection, $dependencies) = $this->getDependencies($class);
@@ -146,7 +146,7 @@ trait ComponentTrait
         }
 
         if (!$reflection->isInstantiable()) {
-            throw new \Exception($reflection->name);
+            throw new SystemException($reflection->name);
         }
 
         if (empty($definition)) {
@@ -179,7 +179,7 @@ trait ComponentTrait
                     $closure = $definition[$name];
                     $closure->call($object, $definition);
                 } else {
-                    throw new SystemException(sprintf("%s of component's config item 'func' is not Closure or %s instance is not exists of method", $com_alias_name, $com_alias_name));
+                    throw new SystemException(sprintf("%s of component's config item 'func' is not Closure or %s instance is not exists of method", $comAliasName, $comAliasName));
                 }
                 continue;
             } else if (isset($object->$name) && @is_array($object->$name)) {
@@ -209,39 +209,39 @@ trait ComponentTrait
 
     /**
      * getComponents
-     * @param string $com_alias_name
+     * @param string $comAliasName
      * @return mixed
      */
-    public function getComponents(?string $com_alias_name = null)
+    public function getComponents(?string $comAliasName = null)
     {
-        if ($com_alias_name && isset($this->containers[$com_alias_name])) {
-            return $this->containers[$com_alias_name];
+        if ($comAliasName && isset($this->containers[$comAliasName])) {
+            return $this->containers[$comAliasName];
         }
         return $this->containers;
     }
 
     /**
      * clearComponent
-     * @param string|array $component_alias_name
+     * @param string|array $comAliasName
      * @param bool $isAll
      * @return bool
      */
-    public function clearComponent(string|array $com_alias_name, bool $isAll = false): bool
+    public function clearComponent(string|array $comAliasName, bool $isAll = false): bool
     {
         if ($isAll) {
             $this->containers = [];
             return true;
         }
 
-        if (is_string($com_alias_name)) {
-            $com_alias_name = (array)$com_alias_name;
-        } else if (is_array($com_alias_name)) {
-            $com_alias_name = array_unique($com_alias_name);
+        if (is_string($comAliasName)) {
+            $comAliasName = (array)$comAliasName;
+        } else if (is_array($comAliasName)) {
+            $comAliasName = array_unique($comAliasName);
         } else {
             return false;
         }
 
-        foreach ($com_alias_name as $alias_name) {
+        foreach ($comAliasName as $alias_name) {
             if (isset($this->containers[$alias_name])) {
                 unset($this->containers[$alias_name]);
             }
