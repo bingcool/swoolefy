@@ -275,7 +275,7 @@ class Log
      * @param $method
      * @param $methodName
      */
-    public function __call($method, $args)
+    public function __call(string $method, array $args)
     {
         $methodName = $this->prefix . ucfirst($method);
         $this->$methodName(...$args);

@@ -59,9 +59,9 @@ class Timer
      * cancel tick timer
      *
      * @param Channel $channel
-     * @return mixed
+     * @return bool
      */
-    public static function cancel(Channel $channel)
+    public static function cancel(Channel $channel): bool
     {
         return $channel->push(1);
     }
