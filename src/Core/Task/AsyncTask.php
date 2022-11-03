@@ -104,7 +104,7 @@ class AsyncTask implements AsyncTaskInterface
      * getCurrentWorkerId 获取当前执行进程的id
      * @return int
      */
-    public static function getCurrentWorkerId()
+    public static function getCurrentWorkerId(): int
     {
         return Swfy::getServer()->worker_id;
     }
@@ -114,7 +114,7 @@ class AsyncTask implements AsyncTaskInterface
      * @return bool
      * @throws \Exception
      */
-    public static function isWorkerProcess()
+    public static function isWorkerProcess(): bool
     {
         return Swfy::isWorkerProcess();
     }
@@ -124,7 +124,7 @@ class AsyncTask implements AsyncTaskInterface
      * @return bool
      * @throws \Exception
      */
-    public static function isTaskProcess()
+    public static function isTaskProcess(): bool
     {
         return Swfy::isTaskProcess();
     }

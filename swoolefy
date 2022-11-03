@@ -258,7 +258,7 @@ function createProject($server_name)
     }
 }
 
-function isWorkerService()
+function isWorkerService(): bool
 {
     if((defined('IS_WORKER_SERVICE') && IS_WORKER_SERVICE ==1) || isCliScript()) {
         return true;
@@ -266,7 +266,7 @@ function isWorkerService()
     return false;
 }
 
-function isCliScript()
+function isCliScript(): bool
 {
     if(defined('IS_CLI_SCRIPT') && IS_CLI_SCRIPT == 1) {
         return true;

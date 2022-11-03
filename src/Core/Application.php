@@ -25,7 +25,7 @@ class Application
      * @param App|Swoole|EventController $App
      * @return bool|void
      */
-    public static function setApp(App|Swoole|EventController $App)
+    public static function setApp(App|Swoole|EventController $App): bool
     {
         $closure = function ($appInstance) {
             $cid = $appInstance->getCid();
@@ -50,7 +50,7 @@ class Application
      * @param int $coroutineId
      * @return bool
      */
-    public static function issetApp($coroutineId = null)
+    public static function issetApp($coroutineId = null): bool
     {
         $cid = CoroutineManager::getInstance()->getCoroutineId();
         if ($coroutineId) {
@@ -68,7 +68,7 @@ class Application
      * @param int|null $coroutineId
      * @return App|Swoole|EventController|null
      */
-    public static function getApp(?int $coroutineId = null)
+    public static function getApp(?int $coroutineId = null): App|Swoole|EventController|null
     {
         $cid = CoroutineManager::getInstance()->getCoroutineId();
         if ($coroutineId) {
@@ -82,7 +82,7 @@ class Application
      * @param int|null $coroutineId
      * @return bool
      */
-    public static function removeApp(?int $coroutineId = null)
+    public static function removeApp(?int $coroutineId = null): bool
     {
         if ($coroutineId) {
             $cid = $coroutineId;
@@ -105,7 +105,7 @@ class Application
         int $code = 0,
         string $msg = '',
         mixed $data = []
-    )
+    ): array
     {
         $responseFormatter = (!isset(Swfy::getConf()['response_formatter']) || empty(Swfy::getConf()['response_formatter'])) ? ResponseFormatter::class : Swfy::getConf()['response_formatter'];
         return $responseFormatter::formatterData($code, $msg, $data);

@@ -226,7 +226,7 @@ trait ComponentTrait
      * @param bool $isAll
      * @return bool
      */
-    public function clearComponent(string|array $com_alias_name, bool $isAll = false)
+    public function clearComponent(string|array $com_alias_name, bool $isAll = false): bool
     {
         if ($isAll) {
             $this->containers = [];
@@ -356,7 +356,7 @@ trait ComponentTrait
      * @param string $name
      * @return bool
      */
-    public function __isset(string $name)
+    public function __isset(string $name): bool
     {
         return isset($this->$name);
     }

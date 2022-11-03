@@ -70,7 +70,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
      * @param int $from_worker_id
      * @param mixed $data
      * @param mixed $task
-     * @return  boolean
+     * @return bool
      * @throws \Throwable
      */
     public function onTask($server, $task_id, $from_worker_id, $data, $task = null)
@@ -141,10 +141,10 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
 
     /**
      * isClientPackEof 根据设置判断客户端的分包方式
-     * @return boolean
-     * @throws Exception
+     * @return bool
+     * @throws \Exception
      */
-    final public static function isClientPackEof()
+    final public static function isClientPackEof(): bool
     {
         if (!isset(self::$config['packet']['client']['pack_check_type'])) {
             throw new \Exception("you must set ['packet']['client']  in the config file", 1);
@@ -157,8 +157,8 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
 
     /**
      * isClientPackLength 根据设置判断客户端的分包方式
-     * @return boolean
-     * @throws Exception
+     * @return bool
+     * @throws \Exception
      */
     final public static function isClientPackLength()
     {
@@ -172,7 +172,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
      * pack 根据配置设置,按照客户端的接受数据方式,打包数据发回给客户端
      * @param mixed $data
      * @return mixed
-     * @throws Exception
+     * @throws \Exception
      */
     final public static function pack($data)
     {

@@ -53,7 +53,7 @@ class Swfy
      * @param array $conf
      * @param bool
      */
-    public static function setConf(array $conf)
+    public static function setConf(array $conf): bool
     {
         static::$conf = array_merge(static::$conf, $conf);
         return true;
@@ -64,7 +64,7 @@ class Swfy
      * @param array $appConf
      * @return bool
      */
-    public static function setAppConf(array $appConf = [])
+    public static function setAppConf(array $appConf = []): bool
     {
         static::$appConf = array_merge(static::$appConf, $appConf);
         return true;
@@ -89,7 +89,7 @@ class Swfy
      */
     public static function removeComponent(string|array $com_alias_name, bool $isAll = false)
     {
-        return Application::getApp()->clearComponent($com_alias_name);
+        return Application::getApp()->clearComponent($com_alias_name, $isAll);
     }
 
     /**

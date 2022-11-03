@@ -40,7 +40,6 @@ abstract class AbstractCronController extends ProcessController
      * @param string $expression
      * @param callable|null $func
      * @return void
-     * @throws \Exception
      */
     public function runCron(string $cronName, string $expression, ?callable $func = null)
     {

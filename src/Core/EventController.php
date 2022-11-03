@@ -78,7 +78,7 @@ class EventController extends BaseObject
      * @param int $coroutineId
      * @return bool
      */
-    public function setApp(int $coroutineId)
+    public function setApp(int $coroutineId): bool
     {
         if ($coroutineId) {
             Application::removeApp($this->coroutineId);
@@ -94,7 +94,7 @@ class EventController extends BaseObject
      * @param int $coroutineId
      * @return bool
      */
-    protected function canCreateApp(int $coroutineId)
+    protected function canCreateApp(int $coroutineId): bool
     {
         $exists = Application::issetApp($coroutineId);
         if ($exists) {
@@ -228,7 +228,7 @@ class EventController extends BaseObject
     }
 
     /**
-     * end 重新初始化一些静态变量
+     * end unset var
      * @return mixed
      */
     public function end()

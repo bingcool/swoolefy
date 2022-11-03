@@ -63,7 +63,6 @@ class ZFactory
      * removeInstance
      * @param int $cid
      * @param string $class
-     * @return bool
      */
     public static function removeInstance(?int$cid = null, string $class = '')
     {
@@ -85,7 +84,7 @@ class ZFactory
      * @param string $class
      * @return string
      */
-    private static function parseClass(string $class = '')
+    private static function parseClass(string $class = ''): string
     {
         $class = str_replace('/', '\\', $class);
         $class = trim($class, '\\');

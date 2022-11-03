@@ -55,9 +55,7 @@ class BService extends BaseObject
         $this->appConf  = $app->getAppConf();
 
         if (BaseServer::isUdpApp()) {
-            /**
-             * @var UdpHandler $app
-             */
+            /** @var UdpHandler $app */
             $this->clientInfo = $app->getClientInfo();
         }
 
@@ -192,7 +190,7 @@ class BService extends BaseObject
      * isClientPackEof  根据设置判断客户端的分包方式eof
      * @return bool
      */
-    public function isClientPackEof()
+    public function isClientPackEof(): bool
     {
         return RpcServer::isClientPackEof();
     }

@@ -122,7 +122,7 @@ class Swoole extends BaseObject
      * getCurrentWorkerId
      * @return int
      */
-    public static function getCurrentWorkerId()
+    public static function getCurrentWorkerId(): int
     {
         return Swfy::getServer()->worker_id;
     }
@@ -132,7 +132,7 @@ class Swoole extends BaseObject
      * @return bool
      * @throws \Exception
      */
-    public static function isWorkerProcess()
+    public static function isWorkerProcess(): bool
     {
         return Swfy::isWorkerProcess();
     }
@@ -142,7 +142,7 @@ class Swoole extends BaseObject
      * @return bool
      * @throws \Exception
      */
-    public static function isTaskProcess()
+    public static function isTaskProcess(): bool
     {
         return Swfy::isTaskProcess();
     }

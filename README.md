@@ -41,7 +41,10 @@ LTS分支：swoolefy-4.8-lts 长期维护，最低要求php >= php7.2 && php < p
 - [x] 支持crontab计划任务                    
 - [x] 支持热更新reload worker                  
 - [x] 支持定时的系统信息采集，并以订阅发布，udp等方式收集至存贮端    
-- [x] 命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架      
+- [x] 命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架   
+- [x] 支持crontab的local和fork计划任务   
+- [x] 支持worker的daemon模式的进程消费模型   
+- [x] 支持跑console一次性脚本模式，跑完脚本自动退出，主要用于修复数据等   
 - [ ] 分布式服务注册（zk，etcd）       
 
 ### 常用组件
@@ -78,8 +81,14 @@ github: https://github.com/bingcool/library
 bingcool/workerfy 是基于swoole实现的多进程协程模型，专处理daemon后台进程处理      
 github: https://github.com/bingcool/workerfy   
 
+### 安装 
+
+```
+composer require bingcool/swoolefy
+```
      
-### 定义组件，开放式组件接口，闭包回调实现创建组件过程，return对象即可
+### 定义组件
+开放式组件接口，闭包回调实现创建组件过程，return对象即可
 ```
 
 // db|redis连接池
