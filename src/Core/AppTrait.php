@@ -371,7 +371,7 @@ trait AppTrait
 
     /**
      * getHomeUrl 获取当前请求的url
-     * @param $ssl
+     * @param bool $ssl
      * @return string
      */
     public function getHomeUrl(bool $ssl = false): string

@@ -110,7 +110,7 @@ class App extends \Swoolefy\Core\Component
      * @return void
      * @throws \Throwable
      */
-    public function run(Request $request, Response $response, $extendData = null)
+    public function run(Request $request, Response $response, mixed $extendData = null)
     {
         try {
             $this->parseHeaders($request);
@@ -185,7 +185,7 @@ class App extends \Swoolefy\Core\Component
     /**
      * @return BController
      */
-    public function getControllerInstance()
+    public function getControllerInstance(): BController
     {
         return $this->controllerInstance;
     }
