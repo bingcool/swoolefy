@@ -207,7 +207,8 @@ class CommandRunner
 
                     $returnCode = fgets($pipes[3], 10);
                     if ($returnCode != 0) {
-                        throw new SystemException("CommandRunner Proc Open failed,return Code={$returnCode},commandLine={$command}.");
+                        $errorMsg = static::$exitCodes[$returnCode] ?? 'Unknown Error';
+                        throw new SystemException("CommandRunner Proc Open failed,return Code={$returnCode},commandLine={$command}, errorMsg={$errorMsg}.");
                     }
                 }
                 $params = [$pipes[0], $pipes[1], $pipes[2], $status, $returnCode ?? -1];

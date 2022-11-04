@@ -13,6 +13,7 @@ namespace Swoolefy\Core\Coroutine;
 
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\Dto\ContainerObjectDto;
+use Swoolefy\Exception\SystemException;
 
 class PoolsHandler
 {
@@ -75,7 +76,7 @@ class PoolsHandler
     /**
      * @param float $pushTimeout
      */
-    public function setPushTimeout(float $pushTimeout = 3)
+    public function setPushTimeout(float $pushTimeout = 3.0)
     {
         $this->pushTimeout = $pushTimeout;
     }
@@ -92,7 +93,7 @@ class PoolsHandler
      * @param float $popTimeout
      * @return void
      */
-    public function setPopTimeout(float $popTimeout = 1)
+    public function setPopTimeout(float $popTimeout = 1.0)
     {
         $this->popTimeout = $popTimeout;
     }
@@ -178,43 +179,41 @@ class PoolsHandler
      * @param object $obj
      * @return void
      */
-    public function pushObj($obj)
+    public function pushObj(object $obj)
     {
-        if (is_object($obj)) {
-            \Swoole\Coroutine::create(function () use ($obj) {
-                $isPush = true;
-                if (isset($obj->__objExpireTime) && time() > $obj->__objExpireTime) {
-                    $isPush = false;
-                }
+        \Swoole\Coroutine::create(function () use ($obj) {
+            $isPush = true;
+            if (isset($obj->__objExpireTime) && time() > $obj->__objExpireTime) {
+                $isPush = false;
+            }
 
+            $length = $this->channel->length();
+            if ($length >= $this->poolsNum) {
+                $isPush = false;
+            }
+
+            if ($isPush) {
+                $this->channel->push($obj, $this->pushTimeout);
                 $length = $this->channel->length();
-                if ($length >= $this->poolsNum) {
-                    $isPush = false;
-                }
-
-                if ($isPush) {
-                    $this->channel->push($obj, $this->pushTimeout);
-                    $length = $this->channel->length();
-                    // 矫正
-                    if (($this->poolsNum - $length) == $this->callCount - 1) {
-                        --$this->callCount;
-                    } else {
-                        $this->callCount = $this->poolsNum - $length;
-                    }
-                } else {
-                    unset($obj);
+                // 矫正
+                if (($this->poolsNum - $length) == $this->callCount - 1) {
                     --$this->callCount;
+                } else {
+                    $this->callCount = $this->poolsNum - $length;
                 }
+            } else {
+                unset($obj);
+                --$this->callCount;
+            }
 
-                if ($this->callCount < 0) {
-                    $this->callCount = 0;
-                }
-            });
-        }
+            if ($this->callCount < 0) {
+                $this->callCount = 0;
+            }
+        });
     }
 
     /**
-     * @return mixed
+     * @return object
      * @throws \Exception
      */
     public function fetchObj()
@@ -252,14 +251,18 @@ class PoolsHandler
 
     /**
      * @param int $num
-     * @throws Exception
+     * @throws SystemException
      */
     protected function make(int $num = 1)
     {
+        if (is_null($this->callable)) {
+            throw new SystemException("Callable property missing Closure");
+        }
+
         for ($i = 0; $i < $num; $i++) {
             $obj = call_user_func($this->callable, $this->poolName);
             if (!is_object($obj)) {
-                throw new \Exception("Pools of {$this->poolName} build instance must return object");
+                throw new SystemException("Pools of {$this->poolName} build instance must return object");
             }
 
             $containerObject = $this->buildContainerObject($obj);
@@ -282,7 +285,7 @@ class PoolsHandler
     }
 
     /**
-     * @return mixed|null
+     * @return object|null
      */
     protected function pop()
     {
