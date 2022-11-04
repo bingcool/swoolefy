@@ -46,7 +46,7 @@ class MainCliScript extends AbstractMainWorker {
      */
     private function setIsCliScript()
     {
-        defined('IS_CLI_SCRIPT') or define('IS_CLI_SCRIPT',1);
+        defined('IS_CLI_SCRIPT') or define('IS_CLI_SCRIPT', 1);
     }
 
     /**
@@ -67,7 +67,7 @@ class MainCliScript extends AbstractMainWorker {
     }
 
     /**
-     * @return string|void
+     * @return string
      */
     public static function parseClass()
     {
