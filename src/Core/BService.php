@@ -199,7 +199,7 @@ class BService extends BaseObject
      * isClientPackLength 根据设置判断客户端的分包方式length
      * @return bool
      */
-    public function isClientPackLength()
+    public function isClientPackLength(): bool
     {
         if ($this->isClientPackEof()) {
             return false;

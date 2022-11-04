@@ -67,13 +67,13 @@ class TableManager
      * set
      * @param string $table
      * @param string $key
-     * @param array $field_value
+     * @param array $fieldValue
      * @return void
      */
-    public static function set(string $table, string $key, array $field_value = [])
+    public static function set(string $table, string $key, array $fieldValue = [])
     {
-        if (!empty($field_value)) {
-            self::getTable($table)->set($key, $field_value);
+        if (!empty($fieldValue)) {
+            self::getTable($table)->set($key, $fieldValue);
         }
     }
 

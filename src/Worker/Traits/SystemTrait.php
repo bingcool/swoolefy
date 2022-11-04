@@ -64,7 +64,7 @@ trait SystemTrait
     /**
      * @return bool
      */
-    protected function inMasterProcessEnv()
+    protected function inMasterProcessEnv(): bool
     {
         $pid = posix_getpid();
         if ((!defined('WORKER_MASTER_PID')) || (defined('WORKER_MASTER_PID') && $pid == WORKER_MASTER_PID)) {
@@ -76,7 +76,7 @@ trait SystemTrait
     /**
      * @return bool
      */
-    protected function inChildrenProcessEnv()
+    protected function inChildrenProcessEnv(): bool
     {
         return !$this->inMasterProcessEnv();
     }

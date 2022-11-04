@@ -139,7 +139,7 @@ class CommandRunner
         }
 
         if ($isExec) {
-            exec($command, $output, $return);
+            exec($command, $output, $returnCode);
             $pid = $output[0] ?? '';
             if ($pid) {
                 $this->channel->push([
@@ -149,12 +149,13 @@ class CommandRunner
                 ], 0.2);
             }
             // when exec error save log
-            if ($return != 0) {
-                throw new SystemException("CommandRunner Exec failed,reurnCode={$return},commandLine={$command}.");
+            if ($returnCode != 0) {
+                $errorMsg = static::$exitCodes[$returnCode] ?? 'Unknown Error';
+                throw new SystemException("CommandRunner Exec failed,reurnCode={$returnCode},commandLine={$command},errorMsg={$errorMsg}.");
             }
         }
 
-        return [$command, $output ?? [], $return ?? -1];
+        return [$command, $output ?? [], $returnCode ?? -1];
     }
 
     /**
