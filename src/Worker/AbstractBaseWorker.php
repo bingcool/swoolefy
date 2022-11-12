@@ -44,9 +44,9 @@ abstract class AbstractBaseWorker
     private $processName;
 
     /**
-     * @var bool|null
+     * @var bool
      */
-    private $async = null;
+    private $async = true;
 
     /**
      * @var array
@@ -804,7 +804,7 @@ abstract class AbstractBaseWorker
     /**
      * @return bool
      */
-    public function isWorker0()
+    public function isWorker0(): bool
     {
         return $this->getProcessWorkerId() == 0;
     }
@@ -849,12 +849,12 @@ abstract class AbstractBaseWorker
 
     /**
      * setProcessWorkerId
-     * @param int $id
+     * @param int $workerId
      * @return void
      */
-    public function setProcessWorkerId(int $id)
+    public function setProcessWorkerId(int $workerId)
     {
-        $this->processWorkerId = $id;
+        $this->processWorkerId = $workerId;
     }
 
     /**
@@ -884,7 +884,7 @@ abstract class AbstractBaseWorker
     /**
      * @return int
      */
-    public function getMasterPid()
+    public function getMasterPid(): int
     {
         return $this->masterPid;
     }
@@ -901,7 +901,7 @@ abstract class AbstractBaseWorker
      * getWaitTime
      * @return int
      */
-    public function getWaitTime()
+    public function getWaitTime(): int
     {
         return $this->waitTime;
     }
@@ -910,7 +910,7 @@ abstract class AbstractBaseWorker
      * isRebooting
      * @return bool
      */
-    public function isRebooting()
+    public function isRebooting(): bool
     {
         return $this->isReboot;
     }
@@ -919,7 +919,7 @@ abstract class AbstractBaseWorker
      * isExiting
      * @return bool
      */
-    public function isExiting()
+    public function isExiting(): bool
     {
         return $this->isExit;
     }
@@ -929,7 +929,7 @@ abstract class AbstractBaseWorker
      *
      * @return bool
      */
-    public function isForceExit()
+    public function isForceExit(): bool
     {
         return $this->isForceExit;
     }
@@ -939,7 +939,7 @@ abstract class AbstractBaseWorker
      *
      * @return bool
      */
-    public function isDue()
+    public function isDue(): bool
     {
         if($this->isRebooting() || $this->isForceExit() || $this->isExiting()) {
             sleep(1);
@@ -953,7 +953,7 @@ abstract class AbstractBaseWorker
      *
      * @return bool
      */
-    public function isStaticProcess()
+    public function isStaticProcess(): bool
     {
         if ($this->processType == self::PROCESS_STATIC_TYPE) {
             return true;
@@ -965,7 +965,7 @@ abstract class AbstractBaseWorker
      *
      * @return bool
      */
-    public function isDynamicProcess()
+    public function isDynamicProcess(): bool
     {
         return !$this->isStaticProcess();
     }
@@ -973,7 +973,7 @@ abstract class AbstractBaseWorker
     /**
      * @return Process
      */
-    public function getSwooleProcess()
+    public function getSwooleProcess(): Process
     {
         return $this->swooleProcess;
     }
@@ -983,7 +983,7 @@ abstract class AbstractBaseWorker
      *
      * @return int
      */
-    public function getProcessWorkerId()
+    public function getProcessWorkerId(): int
     {
         return $this->processWorkerId;
     }
@@ -992,7 +992,7 @@ abstract class AbstractBaseWorker
      * getPid
      * @return int
      */
-    public function getPid()
+    public function getPid(): int
     {
         return $this->swooleProcess->pid;
     }

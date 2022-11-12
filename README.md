@@ -16,9 +16,9 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 实现与底层的回调的解耦，支持协程调度，同步|异步调用，全局事件注册，心跳检查，异步任务，多进程(池)，连接池等，
 内置view、log、session、mysql、redis、mongodb等常用组件等。     
 
-目前完全支持swoole4.4+的协程，推荐使用新版swoole4.8+.
+推荐使用新版swoole4.8+.
 
-主分支：master分支最低要求php8+，swoole5+    
+主分支：master分支最低要求php8.0+，swoole5.0+    
 LTS分支：swoolefy-4.8-lts 长期维护，最低要求php >= php7.2 && php < php8.0, swoole4.8+   
 
 ### 实现的功能特性

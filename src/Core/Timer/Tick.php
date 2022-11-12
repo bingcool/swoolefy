@@ -117,7 +117,7 @@ class Tick
      * @param int $timerId
      * @return bool
      */
-    public static function delTicker(int $timerId)
+    public static function delTicker(int $timerId): bool
     {
         if (!\Swoole\Timer::exists($timerId)) {
             return true;

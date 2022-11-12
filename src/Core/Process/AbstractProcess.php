@@ -88,6 +88,7 @@ abstract class AbstractProcess
         }else {
             $this->enableCoroutine = true;
         }
+
         $this->swooleProcess = new \Swoole\Process([$this, '__start'], false, SOCK_DGRAM, $this->enableCoroutine);
         Swfy::getServer()->addProcess($this->swooleProcess);
     }
@@ -103,6 +104,7 @@ abstract class AbstractProcess
         if (method_exists(static::class, 'beforeStart')) {
             $this->beforeStart();
         }
+
         $this->installRegisterShutdownFunction();
         TableManager::getTable('table_process_map')->set(
             md5($this->processName), ['pid' => $this->swooleProcess->pid]
