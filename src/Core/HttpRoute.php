@@ -306,7 +306,7 @@ class HttpRoute extends AppDispatch
      * @param string $route 请求的路由uri
      * @return bool
      */
-    public function isExistRouteFile(string $route)
+    public function isExistRouteFile(string $route): bool
     {
         return isset(self::$routeCacheFileMap[$route]) ? self::$routeCacheFileMap[$route] : false;
     }

@@ -100,10 +100,6 @@ class Hook
             $cid = CoroutineManager::getInstance()->getCoroutineId();
         }
 
-        if (isset(self::$hooks[$cid])) {
-            return self::$hooks[$cid];
-        }
-
-        return null;
+        return self::$hooks[$cid] ?? null;
     }
 }
