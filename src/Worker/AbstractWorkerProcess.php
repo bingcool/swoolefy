@@ -29,7 +29,7 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
     protected $currentRunCoroutineLastCid = 50000;
 
     /**
-     * @var null
+     * @var int
      */
     protected $limitCurrentRunCoroutineNum = null;
 

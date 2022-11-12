@@ -32,6 +32,7 @@ class CronLocalProcess extends CronProcess
 
     /**
      * onInit
+     * @return void
      */
     public function onInit()
     {
@@ -43,6 +44,7 @@ class CronLocalProcess extends CronProcess
 
     /**
      * run
+     * @return void
      */
     public function run()
     {

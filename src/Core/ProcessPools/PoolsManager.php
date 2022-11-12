@@ -86,7 +86,7 @@ class PoolsManager
      * @param mixed $extendData
      * @param bool $enableCoroutine
      * @return void
-     * @throws Exception
+     * @throws SystemException
      */
     public function addProcessPools(
         string $processName,
@@ -105,12 +105,12 @@ class PoolsManager
         $this->totalProcessNum += ($this->workerNum * $processNumBindWorker);
 
         if ($this->totalProcessNum > self::PROCESS_NUM) {
-            throw new \Exception("PoolsManager Error : total user process num more then " . self::PROCESS_NUM);
+            throw new SystemException("PoolsManager Error : total user process num more then " . self::PROCESS_NUM);
         }
 
         $key = md5($processName);
         if (isset($this->processList[$key])) {
-            throw new \Exception("PoolsManager Error : you can not add the same process : $processName");
+            throw new SystemException("PoolsManager Error : you can not add the same process : $processName");
         }
 
         for ($i = 0; $i < $this->workerNum; $i++) {
@@ -247,9 +247,8 @@ class PoolsManager
             }
             $result = (bool)$process->getProcess()->write($data);
             if ($result && $callback instanceof \Closure) {
-                $msg = null;
                 $msg = $this->read($process->getProcess(), $timeOut);
-                call_user_func($callback, $msg);
+                call_user_func($callback, $msg ?? null);
             }
         }
 

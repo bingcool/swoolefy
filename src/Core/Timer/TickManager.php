@@ -13,6 +13,7 @@ namespace Swoolefy\Core\Timer;
 
 use Swoole\Timer;
 use Swoolefy\Core\Swfy;
+use Swoole\Timer\Iterator;
 use Swoolefy\Core\Table\TableManager;
 
 class TickManager
@@ -74,7 +75,7 @@ class TickManager
      * getAfterTasks
      * @return array
      */
-    public static function getAfterTasks()
+    public static function getAfterTasks(): array
     {
         $conf = Swfy::getConf();
         if (isset($conf['enable_table_tick_task'])) {
@@ -87,18 +88,18 @@ class TickManager
     }
 
     /**
-     * @param int $fd
+     * @param int $timerId
      * @return array
      */
-    public static function timerInfo(int $fd)
+    public static function timerInfo(int $timerId): ?array
     {
-        return Timer::info($fd);
+        return Timer::info($timerId);
     }
 
     /**
      * @return \Swoole\timer\Iterator
      */
-    public static function timerList()
+    public static function timerList(): Iterator
     {
         return Timer::list();
     }
@@ -106,7 +107,7 @@ class TickManager
     /**
      * @return array
      */
-    public static function timerStatus()
+    public static function timerStatus(): array
     {
         return Timer::stats();
     }

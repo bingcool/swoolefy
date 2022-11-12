@@ -95,6 +95,7 @@ class ProcessManager
             $extendData,
             $enableCoroutine
         );
+
         $this->processList[$key] = $process;
         $this->processListInfo[$processName] = ['process_name' => $processName, 'class' => $processClass];
         return $process;

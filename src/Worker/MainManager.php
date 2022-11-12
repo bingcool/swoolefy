@@ -301,7 +301,6 @@ class MainManager
                 $this->setMasterPid();
                 $this->installReportStatus();
                 $this->initStart();
-                // process->start 后，父进程会强制要求pdo,redis等API must be called in the coroutine中
                 $this->setRunning();
                 $this->installCliPipe();
                 $this->installSigchldSignal();
@@ -457,7 +456,7 @@ class MainManager
         foreach ($this->processWorkers as $processes) {
             ksort($processes);
             /** @var AbstractBaseWorker $process */
-            foreach ($processes as $processWorkerId => $process) {
+            foreach ($processes as $process) {
                 $processName = $process->getProcessName();
                 $workerId    = $process->getProcessWorkerId();
                 $pid         = $process->getPid();
@@ -548,9 +547,11 @@ class MainManager
      * @return void
      */
     protected function checkMasterToExit() {
-        if(IS_WORKER_SERVICE) {
+
+        if(isWorkerService()) {
             return;
         }
+
         if (count($this->processWorkers) == 0) {
             $this->saveStatusToFile();
             \Swoole\Coroutine::create(function () {
@@ -708,6 +709,7 @@ class MainManager
                             $toProcessWorkerId   = $messageDto->toProcessWorkerId;
                         }
                     }
+
                     if (isset($msg) && isset($fromProcessName) && isset($fromProcessWorkerId) && isset($toProcessName) && isset($toProcessWorkerId)) {
                         try {
                             if ($toProcessName == $this->getMasterWorkerName()) {
@@ -884,7 +886,7 @@ class MainManager
      * @return void
      * @throws WorkerException
      */
-    public function destroyDynamicProcess(string $process_name, $process_num = -1)
+    public function destroyDynamicProcess(string $process_name, int $process_num = -1)
     {
         $processWorkers = $this->getProcessByName($process_name, -1);
         $key = md5($process_name);
@@ -1152,7 +1154,7 @@ class MainManager
      * getProcessWorkerId
      * @return int
      */
-    public function getMasterWorkerId()
+    public function getMasterWorkerId(): int
     {
         return $this->masterWorkerId;
     }
@@ -1161,7 +1163,7 @@ class MainManager
      * getMasterWorkerName
      * @return string
      */
-    public function getMasterWorkerName()
+    public function getMasterWorkerName(): string
     {
         return MainManager::MASTER_WORKER_NAME;
     }
@@ -1170,7 +1172,7 @@ class MainManager
      * isMasterExiting
      * @return bool
      */
-    public function isMasterExiting()
+    public function isMasterExiting(): bool
     {
         return $this->isExit;
     }

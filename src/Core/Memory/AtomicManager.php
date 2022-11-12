@@ -29,12 +29,12 @@ class AtomicManager
     /**
      * addAtomic
      * @param string $name
-     * @param int $int
+     * @param int $initValue
      */
-    public function addAtomic(string $name, int $int = 0)
+    public function addAtomic(string $name, int $initValue = 0)
     {
         if (!isset($this->atomicList[$name])) {
-            $atomic = new \Swoole\Atomic($int);
+            $atomic = new \Swoole\Atomic($initValue);
             $this->atomicList[$name] = $atomic;
         }
     }
@@ -42,13 +42,13 @@ class AtomicManager
     /**
      * addAtomicLong
      * @param string $name
-     * @param int $int
+     * @param int $initValue
      * @return void
      */
-    public function addAtomicLong(string $name, int $int = 0)
+    public function addAtomicLong(string $name, int $initValue = 0)
     {
         if (!isset($this->atomicListLong[$name])) {
-            $atomic = new \Swoole\Atomic\Long($int);
+            $atomic = new \Swoole\Atomic\Long($initValue);
             $this->atomicListLong[$name] = $atomic;
         }
     }
@@ -56,7 +56,7 @@ class AtomicManager
     /**
      * getAtomic
      * @param string $name
-     * @return mixed
+     * @return \Swoole\Atomic
      */
     public function getAtomic(string $name)
     {
@@ -66,7 +66,7 @@ class AtomicManager
     /**
      * getAtomicLong
      * @param string $name
-     * @return mixed
+     * @return \Swoole\Atomic\Long
      */
     public function getAtomicLong(string $name)
     {

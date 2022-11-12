@@ -31,9 +31,9 @@ class MainCliScript extends AbstractMainWorker {
             $action = getenv('a');
             $this->{$action}();
             $this->exitAll();
-        }catch (\Throwable $exception) {
-            write($exception->getMessage());
-            write($exception->getTraceAsString());
+        }catch (\Throwable $throwable) {
+            write($throwable->getMessage());
+            write($throwable->getTraceAsString());
             $this->exitAll();
             return;
         } finally {

@@ -33,12 +33,13 @@ class CronForkProcess extends CronProcess
 
     /**
      * onInit
+     * @return void
      */
     public function onInit()
     {
         parent::onInit();
-        $this->params     = $this->getArgs()['params'] ?? [];
-        $this->forkType  = $this->getArgs()['fork_type'] ?? self::FORK_TYPE_PROC_OPEN;
+        $this->params   = $this->getArgs()['params'] ?? [];
+        $this->forkType = $this->getArgs()['fork_type'] ?? self::FORK_TYPE_PROC_OPEN;
     }
 
     /**
@@ -63,18 +64,18 @@ class CronForkProcess extends CronProcess
                                         $runner->exec($task['exec_bin_file'], $task['exec_script'], $this->params, true);
                                     }
                                 }
-                            }catch (\Exception $e)
+                            }catch (\Exception $exception)
                             {
-                                $this->onHandleException($e, $task);
+                                $this->onHandleException($exception, $task);
                             }
                         });
-                    }catch (\Throwable $exception) {
-                        $this->onHandleException($exception, $task);
+                    }catch (\Throwable $throwable) {
+                        $this->onHandleException($throwable, $task);
                     }
                 }
             }
-        }catch (\Throwable $exception) {
-            $this->onHandleException($exception);
+        }catch (\Throwable $throwable) {
+            $this->onHandleException($throwable);
         }
     }
 
