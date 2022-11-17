@@ -163,22 +163,29 @@ class EventCtrl implements EventCtrlInterface
         $protocol = BaseServer::getServiceProtocol();
         switch ($protocol) {
             case SWOOLEFY_HTTP :
-                $main_server = 'HttpServer';
+                $mainServer = 'HttpServer';
                 break;
             case SWOOLEFY_WEBSOCKET :
-                $main_server = 'WebsockServer';
+                $mainServer = 'WebsockServer';
                 break;
             case SWOOLEFY_TCP :
-                $main_server = 'RpcServer';
+                $mainServer = 'RpcServer';
                 break;
             case SWOOLEFY_UDP :
-                $main_server = 'UdpServer';
+                $mainServer = 'UdpServer';
                 break;
             case SWOOLEFY_MQTT :
-                $main_server = 'MqttServer';
+                $mainServer = 'MqttServer';
                 break;
             default:
-                $main_server = 'HttpServer';
+                $mainServer = 'HttpServer';
+        }
+
+        if(isWorkerService()) {
+            $mainName = 'main worker';
+            $mainServer = "【".WORKER_SERVICE_NAME."】";
+        }else {
+            $mainName = 'main server';
         }
 
         $conf                    = Swfy::getConf();
@@ -199,17 +206,10 @@ class EventCtrl implements EventCtrlInterface
         $poolsProcessListInfoStr = json_encode($poolsProcessListInfo, JSON_UNESCAPED_UNICODE);
         $hostname                = gethostname();
 
-        if(isWorkerService()) {
-            $mainName = 'main worker';
-            $main_server = "【".WORKER_SERVICE_NAME."】";
-        }else {
-            $mainName = 'main server';
-        }
-
         $this->each("Main Info: \n", 'light_green');
         $this->each(str_repeat('-', 50), 'light_green');
         $this->each("
-            {$mainName}         {$main_server}
+            {$mainName}         {$mainServer}
             swoolefy envirment  {$swoolefyEnv}
             daemonize           {$daemonize}
             listen address      {$listenHost}

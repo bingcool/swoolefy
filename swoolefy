@@ -104,10 +104,10 @@ function parseCliEnvParams()
     $args = array_splice($_SERVER['argv'], 3);
     array_reduce($args, function ($result, $item) use (&$cliParams) {
         // start daemon
-        if (in_array($item, ['-d', '-D'])) {
+        if (in_array($item, ['-D'])) {
             putenv('daemon=1');
             defined('IS_DAEMON') OR define('IS_DAEMON', 1);
-        } else if (in_array($item, ['-f', '-F'])) {
+        } else if (in_array($item, ['-f'])) {
             // stop force
             putenv('force=1');
             $cliParams['force'] = 1;
@@ -634,7 +634,7 @@ function workerStop($appName)
         }
 
         if (\Swoole\Process::kill($masterPid, 0)) {
-            \Swoole\Process::kill($masterPid, SIGKILL);
+            //\Swoole\Process::kill($masterPid, SIGKILL);
         }
 
         write("【Info】Master and Children Process Stop OK!", 'light_green');
