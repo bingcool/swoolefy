@@ -120,7 +120,8 @@ function parseCliEnvParams()
             }
         }
     });
-    defined('ENV_CLI_PARAMS') or define('ENV_CLI_PARAMS', json_encode($cliParams,JSON_UNESCAPED_UNICODE));
+    $cliParamsJson = json_encode($cliParams,JSON_UNESCAPED_UNICODE);
+    putenv("ENV_CLI_PARAMS={$cliParamsJson}");
     return $cliParams;
 }
 
@@ -163,7 +164,7 @@ function commandParser()
     return ['command' => $command, 'app_name' => trim($appName)];
 }
 
-function createProject($server_name)
+function createProject()
 {
     $dirs = ['Config', 'Service', 'Protocol'];
     $params = commandParser();
@@ -634,7 +635,7 @@ function workerStop($appName)
         }
 
         if (\Swoole\Process::kill($masterPid, 0)) {
-            //\Swoole\Process::kill($masterPid, SIGKILL);
+            \Swoole\Process::kill($masterPid, SIGKILL);
         }
 
         write("【Info】Master and Children Process Stop OK!", 'light_green');
@@ -645,7 +646,7 @@ function workerStop($appName)
     exit(0);
 }
 
-function makeDirLogAndPid(array $config)
+function makeDirLogAndPid(array &$config)
 {
     if (isset($config['setting']['log_file'])) {
         $path = pathinfo($config['setting']['log_file'], PATHINFO_DIRNAME);
@@ -664,6 +665,29 @@ function makeDirLogAndPid(array $config)
     if(isWorkerService()) {
         if (!is_dir(WORKER_PID_FILE_ROOT)) {
             mkdir(WORKER_PID_FILE_ROOT, 0777, true);
+        }
+    }
+
+    if (isCliScript()) {
+        $path = pathinfo($config['setting']['pid_file'], PATHINFO_DIRNAME);
+        $fileName = pathinfo($config['setting']['pid_file'], PATHINFO_FILENAME);
+        $config['setting']['pid_file'] = $path.'/'.$fileName.'_'.WORKER_PORT.'.pid';
+        register_shutdown_function(function () use($config) {
+            @unlink($config['setting']['pid_file']);
+        });
+
+        $files = scandir($path);
+        foreach($files as $f) {
+            $filePath = $path . '/' . $f;
+            if ($f == '.' || $f == '..' || is_dir($filePath)) {
+                continue;
+            }
+            $pid = file_get_contents($filePath);
+            if(is_numeric($pid)) {
+                if(!\Swoole\Process::kill($pid, 0)) {
+                    @unlink($filePath);
+                }
+            }
         }
     }
 
@@ -955,7 +979,7 @@ function commandHandler()
         switch ($command['command']) {
             case 'create':
             {
-                createProject($command['app_name']);
+                createProject();
                 break;
             }
             case "start":
