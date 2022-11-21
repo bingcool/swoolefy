@@ -63,8 +63,8 @@ class CrontabManager
 
         if(is_numeric($expression)) {
             \Swoole\Timer::tick($expression * 1000, function ($timerId, $expression) use ($func, $cronName, $class) {
-                try {
-                    \Swoole\Coroutine::create(function () use ($expression, $func, $cronName, $class) {
+                \Swoole\Coroutine::create(function () use ($expression, $func, $cronName, $class) {
+                    try {
                         if ($func instanceof \Closure) {
                             call_user_func($func, $expression, $cronName);
                         }else if(is_array($func)) {
@@ -78,17 +78,17 @@ class CrontabManager
                                 $cronControllerInstance->end();
                             }
                         }
-                    });
-                } catch (\Throwable $throwable) {
-                    BaseServer::catchException($throwable);
-                } finally {
-                    if (isset($cronControllerInstance)) {
-                        /**
-                         * @var AbstractCronController $cronControllerInstance
-                        */
-                        Application::removeApp($cronControllerInstance->getCid());
+                    } catch (\Throwable $throwable) {
+                        BaseServer::catchException($throwable);
+                    } finally {
+                        if (isset($cronControllerInstance)) {
+                            /**
+                             * @var AbstractCronController $cronControllerInstance
+                            */
+                            Application::removeApp($cronControllerInstance->getCid());
+                        }
                     }
-                }
+                });
             }, $expression);
 
         }else {
