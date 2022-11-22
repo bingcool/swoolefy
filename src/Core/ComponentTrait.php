@@ -241,9 +241,9 @@ trait ComponentTrait
             return false;
         }
 
-        foreach ($comAliasName as $alias_name) {
-            if (isset($this->containers[$alias_name])) {
-                unset($this->containers[$alias_name]);
+        foreach ($comAliasName as $aliasName) {
+            if (isset($this->containers[$aliasName])) {
+                unset($this->containers[$aliasName]);
             }
         }
 
@@ -330,6 +330,30 @@ trait ComponentTrait
 
         return false;
 
+    }
+
+    /**
+     *pushComponentPools
+     * @return bool
+     */
+    protected function pushComponentPools()
+    {
+        if (empty($this->componentPools) || empty($this->componentPoolsObjIds)) {
+            return false;
+        }
+
+        foreach ($this->componentPools as $name) {
+            if (isset($this->containers[$name])) {
+                $obj = $this->containers[$name];
+                if (is_object($obj)) {
+                    $objId = spl_object_id($obj);
+                    if (in_array($objId, $this->componentPoolsObjIds)) {
+                        CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
+                        unset($this->containers[$name]);
+                    }
+                }
+            }
+        }
     }
 
     /**

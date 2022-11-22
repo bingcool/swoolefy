@@ -11,7 +11,6 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 use Swoolefy\Exception\SystemException;
 
@@ -263,28 +262,6 @@ class Swoole extends BaseObject
     public function afterRequest(callable $callback, bool $prepend = false)
     {
         return Hook::addHook(Hook::HOOK_AFTER_REQUEST, $callback, $prepend);
-    }
-
-    /**
-     *pushComponentPools
-     * @return bool
-     */
-    public function pushComponentPools()
-    {
-        if (empty($this->componentPools) || empty($this->componentPoolsObjIds)) {
-            return false;
-        }
-        foreach ($this->componentPools as $name) {
-            if (isset($this->containers[$name])) {
-                $obj = $this->containers[$name];
-                if (is_object($obj)) {
-                    $objId = spl_object_id($obj);
-                    if (in_array($objId, $this->componentPoolsObjIds)) {
-                        CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
-                    }
-                }
-            }
-        }
     }
 
     /**
