@@ -156,7 +156,7 @@ class TableManager
     public static function getTable(string $table): \Swoole\Table
     {
         if (!isset(BaseServer::$tableMemory[$table])) {
-            throw new SystemException("Not exist Table={$table}");
+            throw new SystemException("Not exist Memory Table={$table}");
         }
         return BaseServer::$tableMemory[$table];
     }
@@ -168,12 +168,8 @@ class TableManager
      */
     public static function isExistTable(string $table): bool
     {
-        if (isset(BaseServer::$tableMemory)) {
-            if ($table) {
-                if (isset(BaseServer::$tableMemory[$table])) {
-                    return true;
-                }
-            }
+        if (isset(BaseServer::$tableMemory[$table])) {
+            return true;
         }
         return false;
     }
