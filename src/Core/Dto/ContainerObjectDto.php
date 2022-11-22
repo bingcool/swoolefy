@@ -83,4 +83,12 @@ class ContainerObjectDto extends AbstractDto
         return $this->__object->$name(...$arguments);
     }
 
+    /**
+     * @return void
+     */
+    public function __destruct()
+    {
+        unset($this->__object);
+    }
+
 }

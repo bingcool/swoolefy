@@ -14,7 +14,6 @@ namespace Swoolefy\Core;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoolefy\Core\Controller\BController;
-use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class App extends \Swoolefy\Core\Component
@@ -227,31 +226,6 @@ class App extends \Swoolefy\Core\Component
     public function getExceptionClass(): string
     {
         return BaseServer::getExceptionClass();
-    }
-
-    /**
-     *pushComponentPools
-     * @return bool
-     */
-    public function pushComponentPools(): bool
-    {
-        if (empty($this->componentPools) || empty($this->componentPoolsObjIds)) {
-            return false;
-        }
-
-        foreach ($this->componentPools as $name) {
-            if (isset($this->containers[$name])) {
-                $obj = $this->containers[$name];
-                if (is_object($obj)) {
-                    $objId = spl_object_id($obj);
-                    if (in_array($objId, $this->componentPoolsObjIds)) {
-                        CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
-                    }
-                }
-            }
-        }
-
-        return true;
     }
 
     /**
