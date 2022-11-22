@@ -325,6 +325,30 @@ trait ComponentTrait
     }
 
     /**
+     *pushComponentPools
+     * @return bool
+     */
+    protected function pushComponentPools()
+    {
+        if (empty($this->componentPools) || empty($this->componentPoolsObjIds)) {
+            return false;
+        }
+
+        foreach ($this->componentPools as $name) {
+            if (isset($this->container[$name])) {
+                $obj = $this->container[$name];
+                if (is_object($obj)) {
+                    $objId = spl_object_id($obj);
+                    if (in_array($objId, $this->componentPoolsObjIds)) {
+                        CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
+                        unset($this->container[$name]);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * __get
      * @param string $name
      * @return mixed
