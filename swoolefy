@@ -48,7 +48,7 @@ defined("SWOOLEFY_CLI_PARAMS") or define('SWOOLEFY_CLI_PARAMS', $argv);
 defined('USERD_ENV') or define('USERD_ENV', $USERD_ENV);
 
 // include composer的自动加载类完成命名空间的注册
-include_once START_DIR_ROOT . '/vendor/autoload.php';
+include START_DIR_ROOT . '/vendor/autoload.php';
 
 // include App应用层的自定义的自动加载类命名空间
 if (isset($argv[2]) && in_array(trim($argv[2]), array_keys(APP_NAMES))) {
@@ -87,7 +87,7 @@ if(file_exists($envFile)) {
     $globalEnv = $options['global']['env'] ?? '';
     if(!in_array($globalEnv, SWOOLEFY_ENVS)) {
         write("
-                [Error] the env.ini global.env settting error"
+                [Error] The env.ini global.env settting error"
         );
         exit(0);
     }
@@ -104,10 +104,10 @@ function parseCliEnvParams()
     $args = array_splice($_SERVER['argv'], 3);
     array_reduce($args, function ($result, $item) use (&$cliParams) {
         // start daemon
-        if (in_array($item, ['-d', '-D'])) {
+        if (in_array($item, ['-D'])) {
             putenv('daemon=1');
             defined('IS_DAEMON') OR define('IS_DAEMON', 1);
-        } else if (in_array($item, ['-f', '-F'])) {
+        } else if (in_array($item, ['-f'])) {
             // stop force
             putenv('force=1');
             $cliParams['force'] = 1;
@@ -120,7 +120,8 @@ function parseCliEnvParams()
             }
         }
     });
-    defined('ENV_CLI_PARAMS') or define('ENV_CLI_PARAMS', json_encode($cliParams,JSON_UNESCAPED_UNICODE));
+    $cliParamsJson = json_encode($cliParams,JSON_UNESCAPED_UNICODE);
+    putenv("ENV_CLI_PARAMS={$cliParamsJson}");
     return $cliParams;
 }
 
@@ -163,7 +164,7 @@ function commandParser()
     return ['command' => $command, 'app_name' => trim($appName)];
 }
 
-function createProject($server_name)
+function createProject()
 {
     $dirs = ['Config', 'Service', 'Protocol'];
     $params = commandParser();
@@ -176,7 +177,7 @@ function createProject($server_name)
 
     $protocol = APP_NAMES[$appName];
     if (!$protocol) {
-        write("[Error] app_name={$appName} is not in APP_NAME array in swoolefy file, please check it");
+        write("[Error] The app_name={$appName} is not in APP_NAME array in swoolefy file, please check it");
         exit(0);
     }
 
@@ -258,7 +259,7 @@ function createProject($server_name)
     }
 }
 
-function isWorkerService()
+function isWorkerService(): bool
 {
     if((defined('IS_WORKER_SERVICE') && IS_WORKER_SERVICE ==1) || isCliScript()) {
         return true;
@@ -266,7 +267,7 @@ function isWorkerService()
     return false;
 }
 
-function isCliScript()
+function isCliScript(): bool
 {
     if(defined('IS_CLI_SCRIPT') && IS_CLI_SCRIPT == 1) {
         return true;
@@ -343,11 +344,7 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer')
         file_put_contents($routerFile, getRouters());
     }
 
-    if (isDaemon()) {
-        $config['setting']['daemonize'] = true;
-    }
-    makeDirLogAndPid($config);
-    setEnvParams($config);
+    commonHandle($config);
 
     $class = "{$app_name}\\{$event_server_file_name}";
     $http = new $class($config);
@@ -385,11 +382,7 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
         file_put_contents($routerFile, getServiceRouters());
     }
 
-    if (isDaemon()) {
-        $config['setting']['daemonize'] = true;
-    }
-    makeDirLogAndPid($config);
-    setEnvParams($config);
+    commonHandle($config);
 
     $class = "{$app_name}\\{$event_server_file_name}";
     $websocket = new $class($config);
@@ -423,11 +416,7 @@ function startRpc($app_name, $event_server_file_name = 'RpcServer')
         include $autoloaderFile;
     }
 
-    if (isDaemon()) {
-        $config['setting']['daemonize'] = true;
-    }
-    makeDirLogAndPid($config);
-    setEnvParams($config);
+    commonHandle($config);
 
     $class = "{$app_name}\\{$event_server_file_name}";
     $rpc = new $class($config);
@@ -466,11 +455,7 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer')
         file_put_contents($routerFile, getServiceRouters());
     }
 
-    if (isDaemon()) {
-        $config['setting']['daemonize'] = true;
-    }
-    makeDirLogAndPid($config);
-    setEnvParams($config);
+    commonHandle($config);
 
     $class = "{$app_name}\\{$event_server_file_name}";
     $udp = new $class($config);
@@ -504,15 +489,20 @@ function startMqtt($app_name, $event_server_file_name = 'MqttServer')
         include $autoloaderFile;
     }
 
+    commonHandle($config);
+
+    $class = "{$app_name}\\{$event_server_file_name}";
+    $mqtt = new $class($config);
+    $mqtt->start();
+}
+
+function commonHandle(&$config)
+{
     if (isDaemon()) {
         $config['setting']['daemonize'] = true;
     }
     makeDirLogAndPid($config);
     setEnvParams($config);
-
-    $class = "{$app_name}\\{$event_server_file_name}";
-    $mqtt = new $class($config);
-    $mqtt->start();
 }
 
 function stopServer($app_name)
@@ -551,6 +541,7 @@ function commonStop($app_name)
         write("[Error] pid file={$pidFile} is not exist, please check the server whether running");
         exit(0);
     }
+
     $pid = intval(file_get_contents($pidFile));
     if (!\Swoole\Process::kill($pid, 0)) {
         write("[Error] Server Stop!");
@@ -558,11 +549,10 @@ function commonStop($app_name)
     }
 
     \Swoole\Process::kill($pid, SIGTERM);
-    \Swoole\Process::wait();
     // 如果'reload_async' => true,，则默认workerStop有30s的过度期停顿这个时间稍微会比较长，设置成60过期
     $nowtime = time();
     write("
-        Server begin to stopping at " . date("Y-m-d H:i:s") . ". please wait a moment..."
+        Server begin to stopping at " . date("Y-m-d H:i:s") . ", pid={$pid}. please wait a moment..."
     );
     while (true) {
         sleep(1);
@@ -595,7 +585,7 @@ function workerStop($appName)
 {
     $pidFile = getPidFile($appName);
     if (!is_file($pidFile)) {
-        write("【Error] pid file={$pidFile} is not exist, please check the server whether running");
+        write("【Error】 pid file={$pidFile} is not exist, please check the server whether running");
         exit(0);
     }
 
@@ -656,7 +646,7 @@ function workerStop($appName)
     exit(0);
 }
 
-function makeDirLogAndPid(array $config)
+function makeDirLogAndPid(array &$config)
 {
     if (isset($config['setting']['log_file'])) {
         $path = pathinfo($config['setting']['log_file'], PATHINFO_DIRNAME);
@@ -675,6 +665,29 @@ function makeDirLogAndPid(array $config)
     if(isWorkerService()) {
         if (!is_dir(WORKER_PID_FILE_ROOT)) {
             mkdir(WORKER_PID_FILE_ROOT, 0777, true);
+        }
+    }
+
+    if (isCliScript()) {
+        $path = pathinfo($config['setting']['pid_file'], PATHINFO_DIRNAME);
+        $fileName = pathinfo($config['setting']['pid_file'], PATHINFO_FILENAME);
+        $config['setting']['pid_file'] = $path.'/'.$fileName.'_'.WORKER_PORT.'.pid';
+        register_shutdown_function(function () use($config) {
+            @unlink($config['setting']['pid_file']);
+        });
+
+        $files = scandir($path);
+        foreach($files as $f) {
+            $filePath = $path . '/' . $f;
+            if ($f == '.' || $f == '..' || is_dir($filePath)) {
+                continue;
+            }
+            $pid = file_get_contents($filePath);
+            if(is_numeric($pid)) {
+                if(!\Swoole\Process::kill($pid, 0)) {
+                    @unlink($filePath);
+                }
+            }
         }
     }
 
@@ -950,7 +963,7 @@ function showAppHelp($cmd, $cmd_info)
         write($help_str, 'light_green');
     }
     if ($envStr) {
-        write("{$index}、ENV变量提供" . join(SWOOLEFY_ENVS, ' ') . '需要更多环境变量配置SWOOLEFY_ENVS常量设置', 'light_green');
+        write("{$index}、ENV变量提供" . implode(',', SWOOLEFY_ENVS) . '需要更多环境变量配置SWOOLEFY_ENVS常量设置', 'light_green');
         $index++;
         write("{$index}、-ENV可以省略，缺省以dev执行 对应不同的配置文件", 'light_green');
     }
@@ -966,7 +979,7 @@ function commandHandler()
         switch ($command['command']) {
             case 'create':
             {
-                createProject($command['app_name']);
+                createProject();
                 break;
             }
             case "start":

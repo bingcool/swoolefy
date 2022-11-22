@@ -275,7 +275,9 @@ class App extends \Swoolefy\Core\Component
         Application::removeApp();
         // end request
         if (!$this->isEnd) {
-            @$this->response->end();
+            if($this->response->isWritable()) {
+                @$this->response->end();
+            }
         }
     }
 

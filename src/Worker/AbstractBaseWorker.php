@@ -44,9 +44,9 @@ abstract class AbstractBaseWorker
     private $processName;
 
     /**
-     * @var bool|null
+     * @var bool
      */
-    private $async = null;
+    private $async = true;
 
     /**
      * @var array
@@ -848,12 +848,12 @@ abstract class AbstractBaseWorker
 
     /**
      * setProcessWorkerId
-     * @param int $id
+     * @param int $workerId
      * @return void
      */
-    public function setProcessWorkerId(int $id)
+    public function setProcessWorkerId(int $workerId)
     {
-        $this->processWorkerId = $id;
+        $this->processWorkerId = $workerId;
     }
 
     /**

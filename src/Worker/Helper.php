@@ -30,7 +30,7 @@ class Helper
             $name = $param->getName();
             if (array_key_exists($name, $params)) {
                 $isValid = true;
-                if ($param->getType()->getName() == 'array') {
+                if ($param->hasType() && $param->getType()->getName() == 'array') {
                     $params[$name] = (array)$params[$name];
                 } elseif (is_array($params[$name])) {
                     $isValid = false;
@@ -82,15 +82,13 @@ class Helper
             $value = @getenv($name);
             return $value !== false ? $value : null;
         } else {
-            $cliParams = getenv('ENV_CLI_PARAMS') ? json_decode(getenv('ENV_CLI_PARAMS'), true) : [];
-            $params = [];
-            foreach ($cliParams as $paramName) {
-                $value = @getenv($paramName);
-                if ($value !== false) {
-                    $params[$paramName] = $value;
-                }
+            $cliParams = getenv('ENV_CLI_PARAMS');
+            if(!empty($cliParams)) {
+                $cliParams = json_decode($cliParams, true);
+            }else {
+                $cliParams = [];
             }
-            return $params;
+            return $cliParams;
         }
     }
 

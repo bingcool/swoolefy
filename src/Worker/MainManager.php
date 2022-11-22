@@ -302,7 +302,6 @@ class MainManager
                 $this->setMasterPid();
                 $this->installReportStatus();
                 $this->initStart();
-                // process->start 后，父进程会强制要求pdo,redis等API must be called in the coroutine中
                 $this->setRunning();
                 $this->installCliPipe();
                 $this->installSigchldSignal();
@@ -458,7 +457,7 @@ class MainManager
         foreach ($this->processWorkers as $processes) {
             ksort($processes);
             /** @var AbstractBaseWorker $process */
-            foreach ($processes as $processWorkerId => $process) {
+            foreach ($processes as $process) {
                 $processName = $process->getProcessName();
                 $workerId    = $process->getProcessWorkerId();
                 $pid         = $process->getPid();
@@ -549,9 +548,11 @@ class MainManager
      * @return void
      */
     protected function checkMasterToExit() {
-        if(IS_WORKER_SERVICE) {
+
+        if(isWorkerService()) {
             return;
         }
+
         if (count($this->processWorkers) == 0) {
             $this->saveStatusToFile();
             \Swoole\Coroutine::create(function () {
@@ -709,6 +710,7 @@ class MainManager
                             $toProcessWorkerId   = $messageDto->toProcessWorkerId;
                         }
                     }
+
                     if (isset($msg) && isset($fromProcessName) && isset($fromProcessWorkerId) && isset($toProcessName) && isset($toProcessWorkerId)) {
                         try {
                             if ($toProcessName == $this->getMasterWorkerName()) {
