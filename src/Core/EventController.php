@@ -11,7 +11,6 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 use Swoolefy\Exception\SystemException;
 
@@ -141,29 +140,6 @@ class EventController extends BaseObject
                     $func();
                 }catch (\Throwable $exception) {
 
-                }
-            }
-        }
-    }
-
-    /**
-     *pushComponentPools
-     * @return bool
-     */
-    public function pushComponentPools()
-    {
-        if (empty($this->componentPools) || empty($this->componentPoolsObjIds)) {
-            return false;
-        }
-
-        foreach ($this->componentPools as $name) {
-            if (isset($this->containers[$name])) {
-                $obj = $this->containers[$name];
-                if (is_object($obj)) {
-                    $objId = spl_object_id($obj);
-                    if (in_array($objId, $this->componentPoolsObjIds)) {
-                        CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
-                    }
                 }
             }
         }
