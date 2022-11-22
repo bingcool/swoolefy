@@ -29,7 +29,7 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
     protected $currentRunCoroutineLastCid = 50000;
 
     /**
-     * @var null
+     * @var int
      */
     protected $limitCurrentRunCoroutineNum = null;
 
@@ -66,9 +66,9 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
      * CreateDynamicProcess
      *
      * @param string $dynamic_process_name
-     * @param string $dynamic_process_num
+     * @param int $dynamic_process_num
      */
-    protected function onCreateDynamicProcessCallback(string $dynamic_process_name, string $dynamic_process_num)
+    protected function onCreateDynamicProcessCallback(string $dynamic_process_name, int $dynamic_process_num)
     {
 
     }
@@ -77,9 +77,9 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
      * DestroyDynamicProcess
      *
      * @param string $dynamic_process_name
-     * @param string $dynamic_process_num
+     * @param int $dynamic_process_num
      */
-    protected function onDestroyDynamicProcessCallback(string $dynamic_process_name, string $dynamic_process_num)
+    protected function onDestroyDynamicProcessCallback(string $dynamic_process_name, int $dynamic_process_num)
     {
 
     }

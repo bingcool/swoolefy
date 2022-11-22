@@ -12,6 +12,7 @@
 namespace Swoolefy\Script;
 
 use Swoolefy\Core\Swfy;
+use Swoolefy\Worker\Helper;
 use Swoolefy\Worker\AbstractMainWorker;
 
 class MainCliScript extends AbstractMainWorker {
@@ -29,11 +30,12 @@ class MainCliScript extends AbstractMainWorker {
         $this->setIsCliScript();
         try {
             $action = getenv('a');
-            $this->{$action}();
+            list($method, $params) = Helper::parseActionParams($this, $action, Helper::getCliParams());
+            $this->{$action}(...$params);
             $this->exitAll();
-        }catch (\Throwable $exception) {
-            write($exception->getMessage());
-            write($exception->getTraceAsString());
+        }catch (\Throwable $throwable) {
+            write($throwable->getMessage());
+            write($throwable->getTraceAsString());
             $this->exitAll();
             return;
         } finally {
@@ -46,7 +48,7 @@ class MainCliScript extends AbstractMainWorker {
      */
     private function setIsCliScript()
     {
-        defined('IS_CLI_SCRIPT') or define('IS_CLI_SCRIPT',1);
+        defined('IS_CLI_SCRIPT') or define('IS_CLI_SCRIPT', 1);
     }
 
     /**
@@ -63,28 +65,31 @@ class MainCliScript extends AbstractMainWorker {
                 \Swoole\Process::kill($swooleMasterPid, SIGTERM);
             }
             $this->exitAll = true;
+            $pidFile = Swfy::getConf()['setting']['pid_file'];
+            @unlink($pidFile);
         }
     }
 
     /**
-     * @return string|void
+     * @return string
      */
     public static function parseClass()
     {
         $class = getenv('r');
         if(empty($class)) {
-            write("【Error】Missing cli router param --r=xxxxx");
+            write("【Error】Missing cli router param. eg: --r=Test/Scripts/FixedUser/fixName");
             return '';
         }
+
         $routerArr = explode('/', trim($class, '/'));
-        $action = array_pop($routerArr);
-        $class = implode('\\', $routerArr);
+        $action    = array_pop($routerArr);
+        $class     = implode('\\', $routerArr);
+
         if(!is_subclass_of($class, __CLASS__)) {
             write("【Error】Missing class={$class} extends \Swoolefy\Script\MainCliScript");
             return '';
         }
         putenv("a={$action}");
-
         return $class;
     }
 }
