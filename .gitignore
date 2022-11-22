@@ -4,7 +4,7 @@ sftp-config.json
 *.idea
 *.log
 env.ini
-cli-test.php
+cli.php
 worker.php
 cron.php
 script.php
