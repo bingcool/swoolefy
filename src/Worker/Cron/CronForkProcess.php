@@ -47,35 +47,31 @@ class CronForkProcess extends CronProcess
      */
     public function run()
     {
-        try {
-            parent::run();
-            if(!empty($this->taskList)) {
-                foreach($this->taskList as $task) {
-                    try {
-                        CrontabManager::getInstance()->addRule($task['cron_name'], $task['cron_expression'], function ($cron_name, $expression) use($task) {
-                            $runner = CommandRunner::getInstance($cron_name,1);
-                            try {
-                                if($runner->isNextHandle(false)) {
-                                    if($this->forkType == self::FORK_TYPE_PROC_OPEN) {
-                                        $runner->procOpen(function ($pipe0, $pipe1, $pipe2, $status, $returnCode) use($task) {
-                                            $this->receiveCallBack($pipe0, $pipe1, $pipe2, $status, $returnCode, $task);
-                                        } , $task['exec_bin_file'], $task['exec_script'], $this->params);
-                                    }else {
-                                        $runner->exec($task['exec_bin_file'], $task['exec_script'], $this->params, true);
-                                    }
+        parent::run();
+        if(!empty($this->taskList)) {
+            foreach($this->taskList as $task) {
+                try {
+                    CrontabManager::getInstance()->addRule($task['cron_name'], $task['cron_expression'], function ($cron_name, $expression) use($task) {
+                        $runner = CommandRunner::getInstance($cron_name,1);
+                        try {
+                            if($runner->isNextHandle(false)) {
+                                if($this->forkType == self::FORK_TYPE_PROC_OPEN) {
+                                    $runner->procOpen(function ($pipe0, $pipe1, $pipe2, $status, $returnCode) use($task) {
+                                        $this->receiveCallBack($pipe0, $pipe1, $pipe2, $status, $returnCode, $task);
+                                    } , $task['exec_bin_file'], $task['exec_script'], $this->params);
+                                }else {
+                                    $runner->exec($task['exec_bin_file'], $task['exec_script'], $this->params, true);
                                 }
-                            }catch (\Exception $exception)
-                            {
-                                $this->onHandleException($exception, $task);
                             }
-                        });
-                    }catch (\Throwable $throwable) {
-                        $this->onHandleException($throwable, $task);
-                    }
+                        }catch (\Exception $exception)
+                        {
+                            $this->onHandleException($exception, $task);
+                        }
+                    });
+                }catch (\Throwable $throwable) {
+                    $this->onHandleException($throwable, $task);
                 }
             }
-        }catch (\Throwable $throwable) {
-            $this->onHandleException($throwable);
         }
     }
 

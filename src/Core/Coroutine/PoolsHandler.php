@@ -280,7 +280,7 @@ class PoolsHandler
         $containerObjectDto->__coroutineId   = \Swoole\Coroutine::getCid();
         $containerObjectDto->__objInitTime   = time();
         $containerObjectDto->__object        = $object;
-        $containerObjectDto->__objExpireTime = time() + ($this->liveTime) + rand(1, 10);;
+        $containerObjectDto->__objExpireTime = time() + ($this->liveTime) + rand(1, 10);
         return $containerObjectDto;
     }
 
@@ -289,25 +289,15 @@ class PoolsHandler
      */
     protected function pop()
     {
-        $startTime = time();
-        while ($containerObject = $this->channel->pop($this->popTimeout)) {
-            if (isset($containerObject->__objExpireTime) && time() > $containerObject->__objExpireTime) {
-                //rebuild object
-                $this->make(1);
-                if (time() - $startTime > 1) {
-                    $isTimeOut = true;
-                    break;
-                }
-            } else {
-                break;
-            }
-        }
+        $containerObject = $this->channel->pop($this->popTimeout);
 
-        if ($containerObject === false || (isset($isTimeOut))) {
+        if (is_object($containerObject) && isset($containerObject->__objExpireTime) && time() > $containerObject->__objExpireTime) {
+            //rebuild object
             unset($containerObject);
-            $containerObject = $this->channel->pop($this->popTimeout);
-
+            $this->make(1);
         }
+
+        $containerObject = $this->channel->pop($this->popTimeout);
 
         return is_object($containerObject) ? $containerObject : null;
     }

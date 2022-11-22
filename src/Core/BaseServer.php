@@ -313,7 +313,7 @@ class BaseServer
      * setWorkerUserGroup 设置worker进程的工作组，默认是root
      * @param string $worker_user
      */
-    public static function setWorkerUserGroup($worker_user = null)
+    public static function setWorkerUserGroup(string $worker_user = null)
     {
         if ($worker_user) {
             $userInfo = posix_getpwnam($worker_user);
