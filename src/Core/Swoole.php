@@ -27,10 +27,9 @@ class Swoole extends BaseObject
     public $appConf = [];
 
     /**
-     * $fd
      * @var int
      */
-    public $fd;
+    protected $fd;
 
     /**
      * rpc、udp、websocket传递的参数寄存属性
@@ -55,7 +54,7 @@ class Swoole extends BaseObject
      */
     public function __construct(array $appConf = [])
     {
-        $this->appConf = $appConf;
+        $this->appConf     = array_merge($this->appConf, $appConf);
         $this->coroutineId = CoroutineManager::getInstance()->getCoroutineId();
     }
 

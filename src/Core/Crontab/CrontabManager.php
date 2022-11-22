@@ -30,7 +30,6 @@ class CrontabManager
      * @param string $cronName
      * @param string $expression
      * @param callable|array $func
-     * @throws Exception
      */
     public function addRule(string $cronName, string $expression, $func)
     {
@@ -64,8 +63,8 @@ class CrontabManager
 
         if(is_numeric($expression)) {
             \Swoole\Timer::tick($expression * 1000, function ($timerId, $expression) use ($func, $cronName, $class) {
-                try {
-                    \Swoole\Coroutine::create(function () use ($expression, $func, $cronName, $class) {
+                \Swoole\Coroutine::create(function () use ($expression, $func, $cronName, $class) {
+                    try {
                         if ($func instanceof \Closure) {
                             call_user_func($func, $expression, $cronName);
                         }else if(is_array($func)) {
@@ -79,14 +78,17 @@ class CrontabManager
                                 $cronControllerInstance->end();
                             }
                         }
-                    });
-                } catch (\Throwable $throwable) {
-                    BaseServer::catchException($throwable);
-                } finally {
-                    if (isset($cronControllerInstance)) {
-                        Application::removeApp($cronControllerInstance->getCid());
+                    } catch (\Throwable $throwable) {
+                        BaseServer::catchException($throwable);
+                    } finally {
+                        if (isset($cronControllerInstance)) {
+                            /**
+                             * @var AbstractCronController $cronControllerInstance
+                            */
+                            Application::removeApp($cronControllerInstance->getCid());
+                        }
                     }
-                }
+                });
             }, $expression);
 
         }else {
@@ -135,13 +137,13 @@ class CrontabManager
     }
 
     /**
-     * @param string|null $cron_name
+     * @param string|null $cronName
      * @return array|null
      */
-    public function getCronTaskByName(?string $cron_name = null)
+    public function getCronTaskByName(?string $cronName = null)
     {
-        if ($cron_name) {
-            $cronNameKey = md5($cron_name);
+        if ($cronName) {
+            $cronNameKey = md5($cronName);
             if (isset($this->cronTasks[$cronNameKey])) {
                 return $this->cronTasks[$cronNameKey];
             }
