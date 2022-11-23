@@ -292,12 +292,28 @@ trait ServiceTrait
     {
         static $routerMap;
         if(!isset($routerMap)) {
-            $routerFile = APP_NAME.'/Router.php';
-            if(is_file($routerFile)) {
-                $routerMap = include $routerFile;
-            }
-        }
+            $routerDir = APP_PATH.DIRECTORY_SEPARATOR.'Router';
+            $routerArr = [];
+            if(is_dir($routerDir)) {
+                $files = scandir($routerDir);
+                foreach ($files as $file) {
+                    $pathFile = $routerDir . DIRECTORY_SEPARATOR . $file;
+                    if ($pathFile == '.' || $pathFile == '..' || !is_file($pathFile)) {
+                        continue;
+                    }
 
+                    $fileType = pathinfo($pathFile, PATHINFO_EXTENSION);
+                    var_dump($fileType);
+                    if (in_array($fileType, ['php'])) {
+                        $routerTempArr = include $pathFile;
+                        if(is_array($routerTempArr)) {
+                            $routerArr = array_merge($routerArr, $routerTempArr);
+                        }
+                    }
+                }
+            }
+            $routerMap = $routerArr;
+        }
         return $routerMap ?? [];
     }
 

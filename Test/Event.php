@@ -32,10 +32,10 @@ class Event extends EventHandler
 
         if(!$this->isWorkerService()) {
             // 创建一个测试自定义进程
-            ProcessManager::getInstance()->addProcess('test', \Test\Process\TestProcess\Test::class);
+             ProcessManager::getInstance()->addProcess('test', \Test\Process\TestProcess\Test::class);
 
             // 创建一个定时器处理进程
-            ProcessManager::getInstance()->addProcess('tick', \Test\Process\TickProcess\Tick::class);
+            // ProcessManager::getInstance()->addProcess('tick', \Test\Process\TickProcess\Tick::class);
 
             // 测试cron自定义进程
             //ProcessManager::getInstance()->addProcess('cron', \Test\Process\CronProcess\Cron::class);

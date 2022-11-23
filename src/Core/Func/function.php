@@ -132,3 +132,13 @@ function get_one_free_port(array $excludePorts = []): int
 
     return $port;
 }
+/**
+ * 随机获取一个可监听的端口(php_socket模式)
+ *
+ * @param array $excludePorts 排除的端口
+ * @return int
+ */
+function getOneFreePort(array $excludePorts = []): int
+{
+    return get_one_free_port($excludePorts);
+}
