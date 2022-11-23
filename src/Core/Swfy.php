@@ -53,7 +53,7 @@ class Swfy
      * @param array $conf
      * @param bool
      */
-    public static function setConf(array $conf)
+    public static function setConf(array $conf): bool
     {
         static::$conf = array_merge(static::$conf, $conf);
         return true;
@@ -64,12 +64,11 @@ class Swfy
      * @param array $appConf
      * @return bool
      */
-    public static function setAppConf(array $appConf = [])
+    public static function setAppConf(array $appConf = []): bool
     {
         static::$appConf = array_merge(static::$appConf, $appConf);
         return true;
     }
-
 
     /**
      * createComponent
@@ -85,11 +84,12 @@ class Swfy
     /**
      * removeComponent
      * @param string|array $com_alias_name
+     * @param bool $isAll
      * @return bool
      */
-    public static function removeComponent(?string $com_alias_name = null)
+    public static function removeComponent($com_alias_name, bool $isAll = false)
     {
-        return Application::getApp()->clearComponent($com_alias_name);
+        return Application::getApp()->clearComponent($com_alias_name, $isAll);
     }
 
     /**
@@ -105,12 +105,12 @@ class Swfy
     /**
      * __call
      * @return void
-     * @throws \Exception
+     * @throws SystemException
      */
     public function __call($action, $args = [])
     {
         // stop exec
-        throw new \Exception(sprintf(
+        throw new SystemException(sprintf(
                 "Calling unknown method: %s::%s",
                 get_called_class(),
                 $action

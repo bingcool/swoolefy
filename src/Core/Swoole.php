@@ -186,6 +186,7 @@ class Swoole extends BaseObject
     /**
      * getRpcPackHeader
      * @return array
+     * @throws SystemException
      */
     public function getRpcPackHeader()
     {

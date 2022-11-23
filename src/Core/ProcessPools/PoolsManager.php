@@ -86,7 +86,7 @@ class PoolsManager
      * @param mixed $extendData
      * @param bool $enableCoroutine
      * @return void
-     * @throws Exception
+     * @throws SystemException
      */
     public function addProcessPools(
         string $processName,

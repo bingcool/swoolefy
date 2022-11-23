@@ -269,7 +269,7 @@ abstract class AbstractProcess
      * @param mixed $msg
      * @param int $worker_id
      * @return bool
-     * @throws \Exception
+     * @throws SystemException
      */
     public function sendMessage($msg = null, int $worker_id = 0)
     {

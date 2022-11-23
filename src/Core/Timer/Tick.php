@@ -42,8 +42,8 @@ class Tick
      * @param int $time_interval_ms
      * @param mixed $func
      * @param array $params
-     * @return  mixed
-     * @throws  mixed
+     * @return mixed
+     * @throws mixed
      */
     public static function tickTimer(int $time_interval_ms, $func, $params = null)
     {
@@ -61,7 +61,7 @@ class Tick
      * @param int $time_interval_ms
      * @param mixed $func
      * @param array $params
-     * @return  mixed
+     * @return mixed
      */
     public static function tick(int $time_interval_ms, $func, $params = null)
     {
@@ -114,7 +114,7 @@ class Tick
     /**
      * delTicker
      * @param int $timer_id
-     * @return   bool
+     * @return bool
      */
     public static function delTicker(int $timer_id)
     {

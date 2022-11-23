@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Exception\SystemException;
+
 trait ServiceTrait
 {
     /**
@@ -59,7 +61,7 @@ trait ServiceTrait
 
     /**
      * getConnections
-     * @return object
+     * @return array
      */
     public static function getConnections()
     {
@@ -106,7 +108,7 @@ trait ServiceTrait
      * getIncludeFiles
      * @return array|bool
      */
-    public static function getInitIncludeFiles($dir = null)
+    public static function getInitIncludeFiles()
     {
         $result   = false;
         $workerId = self::getCurrentWorkerId();
@@ -187,9 +189,9 @@ trait ServiceTrait
     }
 
     /**
-     * isWorkerProcess 进程是否是worker进程
+     * isWorkerProcess
      * @return bool
-     * @throws Exception
+     * @throws SystemException
      */
     public static function isWorkerProcess()
     {
@@ -200,9 +202,9 @@ trait ServiceTrait
     }
 
     /**
-     * isTaskProcess 进程是否是task进程
+     * isTaskProcess
      * @return bool
-     * @throws Exception
+     * @throws SystemException
      */
     public static function isTaskProcess()
     {
@@ -210,12 +212,11 @@ trait ServiceTrait
         if (property_exists($server, 'taskworker')) {
             return $server->taskworker;
         }
-        throw new \Exception("Not found task process,may be you use it before workerStart");
+        throw new SystemException("Not found task process,may be you use it before workerStart");
     }
 
-    /** isUserProcess 进程是否是user process进程
+    /** isUserProcess
      * @return bool
-     * @throws Exception
      */
     public static function isUserProcess()
     {
@@ -226,9 +227,8 @@ trait ServiceTrait
         return false;
     }
 
-    /** isSelfProcess 进程是否是user process进程
+    /**
      * @return bool
-     * @throws \Exception
      */
     public static function isSelfProcess()
     {
@@ -286,17 +286,34 @@ trait ServiceTrait
 
     /**
      * getRouters
+     * @return array
      */
     public static function getRouters()
     {
         static $routerMap;
         if(!isset($routerMap)) {
-            $routerFile = APP_NAME.'/Router.php';
-            if(is_file($routerFile)) {
-                $routerMap = include $routerFile;
-            }
-        }
+            $routerDir = APP_PATH.DIRECTORY_SEPARATOR.'Router';
+            $routerArr = [];
+            if(is_dir($routerDir)) {
+                $files = scandir($routerDir);
+                foreach ($files as $file) {
+                    $pathFile = $routerDir . DIRECTORY_SEPARATOR . $file;
+                    if ($pathFile == '.' || $pathFile == '..' || !is_file($pathFile)) {
+                        continue;
+                    }
 
+                    $fileType = pathinfo($pathFile, PATHINFO_EXTENSION);
+                    var_dump($fileType);
+                    if (in_array($fileType, ['php'])) {
+                        $routerTempArr = include $pathFile;
+                        if(is_array($routerTempArr)) {
+                            $routerArr = array_merge($routerArr, $routerTempArr);
+                        }
+                    }
+                }
+            }
+            $routerMap = $routerArr;
+        }
         return $routerMap ?? [];
     }
 

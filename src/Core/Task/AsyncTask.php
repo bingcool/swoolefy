@@ -25,6 +25,7 @@ class AsyncTask implements AsyncTaskInterface
     /**
      * @param TaskMessageDto $taskMessageDto
      * @return mixed
+     * @throws TaskException
      */
     public static function registerTask(TaskMessageDto $taskMessageDto)
     {
