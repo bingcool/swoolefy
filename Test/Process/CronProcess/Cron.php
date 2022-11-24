@@ -17,9 +17,6 @@ class Cron extends AbstractProcess {
     public function run() {
         try {
             $this->appConf = Swfy::getAppConf();
-
-            dump('klllll');
-
             // 闭包回调模式
             CrontabManager::getInstance()->addRule('cron_test', '*/1 * * * *', function($cron) {
                 $cid = \Swoole\Coroutine::getCid();
@@ -29,8 +26,14 @@ class Cron extends AbstractProcess {
             });
 
             // 抽离成CronController形式
-            CrontabManager::getInstance()->addRule('cron_test1', '*/1 * * * *', [CronController::class, 'doCronTask']);
+//            CrontabManager::getInstance()->addRule('cron_test1', '*/1 * * * *', [CronController::class, 'doCronTask']);
 
+//            CrontabManager::getInstance()->addRule('cron_test1', 2, [CronController::class, 'doCronTask']);
+//
+//            CrontabManager::getInstance()->addRule('cron_test1', 2, function () {
+//                $redis = Application::getApp()->get('redis');
+//                var_dump($redis);
+//            });
 
         }catch (\Throwable $e)
         {
