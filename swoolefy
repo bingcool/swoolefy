@@ -339,9 +339,9 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer')
         include $autoloaderFile;
     }
 
-    $routerFile = START_DIR_ROOT . "/{$app_name}/Router.php";
-    if(!file_exists($routerFile)) {
-        file_put_contents($routerFile, getRouters());
+    $routerDir = START_DIR_ROOT . "/{$app_name}/Router";
+    if(!is_dir($routerDir)) {
+        mkdir($routerDir);
     }
 
     commonHandle($config);
@@ -377,9 +377,9 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
         include $autoloaderFile;
     }
 
-    $routerFile = START_DIR_ROOT . "/{$app_name}/Router.php";
-    if(!file_exists($routerFile)) {
-        file_put_contents($routerFile, getServiceRouters());
+    $routerDir = START_DIR_ROOT . "/{$app_name}/Router";
+    if(!is_dir($routerDir)) {
+        mkdir($routerDir);
     }
 
     commonHandle($config);
@@ -450,9 +450,9 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer')
         include $autoloaderFile;
     }
 
-    $routerFile = START_DIR_ROOT . "/{$app_name}/Router.php";
-    if(!file_exists($routerFile)) {
-        file_put_contents($routerFile, getServiceRouters());
+    $routerDir = START_DIR_ROOT . "/{$app_name}/Router";
+    if(!is_dir($routerDir)) {
+        mkdir($routerDir);
     }
 
     commonHandle($config);

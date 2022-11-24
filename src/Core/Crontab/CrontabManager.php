@@ -28,10 +28,10 @@ class CrontabManager
 
     /**
      * @param string $cronName
-     * @param string $expression
+     * @param string|float $expression
      * @param callable|array $func
      */
-    public function addRule(string $cronName, string $expression, mixed $func)
+    public function addRule(string $cronName, string|float $expression, mixed $func)
     {
         if (!class_exists('Cron\\CronExpression')) {
             throw new CronException("If you want to use crontab, you need to install 'composer require dragonmantank/cron-expression' ");
@@ -66,6 +66,7 @@ class CrontabManager
                 \Swoole\Coroutine::create(function () use ($expression, $func, $cronName, $class) {
                     try {
                         if ($func instanceof \Closure) {
+                            $cronControllerInstance = $this->buildCronControllerInstance();
                             call_user_func($func, $expression, $cronName);
                         }else if(is_array($func)) {
                             /**
@@ -112,17 +113,8 @@ class CrontabManager
                 \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($func, $cronName) {
                     \Swoole\Coroutine::create(function () use($timerId, $expression, $func, $cronName ) {
                         try {
-                            $cronControllerInstance = new class extends AbstractCronController {
-                                /**
-                                 * @inheritDoc
-                                 */
-                                public function doCronTask($cron, string $cron_name)
-                                {
-                                }
-                            };
-
+                            $cronControllerInstance = $this->buildCronControllerInstance();
                             $cronControllerInstance->runCron($cronName, $expression, $func);
-
                         } catch (\Throwable $throwable) {
                             BaseServer::catchException($throwable);
                         } finally {
@@ -134,6 +126,21 @@ class CrontabManager
             }
         }
         unset($cronNameKey);
+    }
+
+    /**
+     * @return AbstractCronController
+     */
+    protected function buildCronControllerInstance(): AbstractCronController
+    {
+        return new class extends AbstractCronController {
+            /**
+             * @inheritDoc
+             */
+            public function doCronTask(CronExpression|float $cron, string $cronName)
+            {
+            }
+        };
     }
 
     /**

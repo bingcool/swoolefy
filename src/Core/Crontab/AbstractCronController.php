@@ -90,5 +90,5 @@ abstract class AbstractCronController extends ProcessController
      * @param string $cronName
      * @return mixed
      */
-    abstract public function doCronTask($cron, string $cronName);
+    abstract public function doCronTask(CronExpression|float $cron, string $cronName);
 }
