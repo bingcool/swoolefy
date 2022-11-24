@@ -190,16 +190,16 @@ class EventCtrl implements EventCtrlInterface
 
         $conf                    = Swfy::getConf();
         $daemonize               = isset($conf['setting']['daemonize']) ? $conf['setting']['daemonize'] : false;
-        $listenHost             = isset($conf['host']) ? $conf['host'] : '127.0.0.1';
-        $listenPort             = isset($conf['port']) ? $conf['port'] : null;
-        $workerNum              = isset($conf['setting']['worker_num']) ? $conf['setting']['worker_num'] : 1;
-        $taskWorkerNum         = isset($conf['setting']['task_worker_num']) ? $conf['setting']['task_worker_num'] : 0;
-        $swooleVersion          = swoole_version();
-        $phpVersion             = phpversion();
-        $swoolefyVersion        = SWOOLEFY_VERSION;
-        $swoolefyEnv            = defined('SWOOLEFY_ENV') ? SWOOLEFY_ENV : null;
-        $cpuNum                 = swoole_cpu_num();
-        $ipList                 = json_encode(swoole_get_local_ip());
+        $listenHost              = isset($conf['host']) ? $conf['host'] : '127.0.0.1';
+        $listenPort              = isset($conf['port']) ? $conf['port'] : null;
+        $workerNum               = isset($conf['setting']['worker_num']) ? $conf['setting']['worker_num'] : 1;
+        $taskWorkerNum           = isset($conf['setting']['task_worker_num']) ? $conf['setting']['task_worker_num'] : 0;
+        $swooleVersion           = swoole_version();
+        $phpVersion              = phpversion();
+        $swoolefyVersion         = SWOOLEFY_VERSION;
+        $swoolefyEnv             = defined('SWOOLEFY_ENV') ? SWOOLEFY_ENV : null;
+        $cpuNum                  = swoole_cpu_num();
+        $ipList                  = json_encode(swoole_get_local_ip());
         $processListInfo         = array_values(ProcessManager::getInstance()->getProcessListInfo());
         $processListInfoStr      = json_encode($processListInfo, JSON_UNESCAPED_UNICODE);
         $poolsProcessListInfo    = array_values(PoolsManager::getInstance()->getProcessListInfo());
