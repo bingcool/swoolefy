@@ -11,9 +11,9 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Exception\SystemException;
 use Swoolefy\Rpc\RpcServer;
 use Swoolefy\Udp\UdpHandler;
+use Swoolefy\Exception\SystemException;
 
 class BService extends BaseObject
 {
