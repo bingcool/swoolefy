@@ -202,7 +202,8 @@ class HttpRoute extends AppDispatch
         ?string $module = null,
         ?string $controller = null,
         ?string $action = null
-    ) {
+    ): bool
+    {
         $controller = $this->buildControllerClass($controller);
         if ($module) {
             $filePath = APP_PATH . DIRECTORY_SEPARATOR . 'Module' . DIRECTORY_SEPARATOR . $module . DIRECTORY_SEPARATOR . $controller . '.php';
@@ -236,8 +237,6 @@ class HttpRoute extends AppDispatch
         $controllerInstance = new $class();
         // set Controller Instance
         $this->app->setControllerInstance($controllerInstance);
-        // invoke _beforeAction
-        $isContinueAction = $controllerInstance->_beforeAction($action);
 
         if (isset($this->appConf['enable_action_prefix']) && $this->appConf['enable_action_prefix']) {
             $targetAction = $this->actionPrefix . ucfirst($action);
@@ -246,8 +245,11 @@ class HttpRoute extends AppDispatch
         }
 
         if ($this->app->isEnd()) {
-            return false;
+            throw new DispatchException('System Request End Error', 500);
         }
+
+        // invoke _beforeAction
+        $isContinueAction = $controllerInstance->_beforeAction($action);
 
         if ($isContinueAction === false) {
             $errorMsg = sprintf(
@@ -285,26 +287,8 @@ class HttpRoute extends AppDispatch
 
             throw new DispatchException($errorMsg, 404);
         }
-    }
 
-    /**
-     * redirectNotFound 重定向至NotFound类
-     * @return array
-     */
-    public function redirectNotFound()
-    {
-        if (isset($this->appConf['not_found_handler'])) {
-            // reset NotFound class
-            list($namespace, $action) = $this->appConf['not_found_handler'];
-            $route_params = explode('\\', $namespace);
-            if (is_array($route_params)) {
-                $controller = array_pop($route_params);
-            }
-            // reset NotFound class route
-            $this->request->server['ROUTE'] = DIRECTORY_SEPARATOR . $controller . DIRECTORY_SEPARATOR . $action;
-            $class = trim(str_replace(DIRECTORY_SEPARATOR, '\\', $namespace . $this->controllerSuffix), DIRECTORY_SEPARATOR);
-            return [$class, $action];
-        }
+        return true;
     }
 
     /**
@@ -321,7 +305,7 @@ class HttpRoute extends AppDispatch
      * @param string $route 请求的路由uri
      * @return bool
      */
-    public function isExistRouteFile(string $route)
+    public function isExistRouteFile(string $route): bool
     {
         return isset(self::$routeCacheFileMap[$route]) ? self::$routeCacheFileMap[$route] : false;
     }
@@ -340,10 +324,19 @@ class HttpRoute extends AppDispatch
      * @param string $class
      * @return array
      */
-    protected function fileNotFound(string $class)
+    protected function fileNotFound(string $class): array
     {
         if (isset($this->appConf['not_found_handler']) && is_array($this->appConf['not_found_handler'])) {
-            return $this->redirectNotFound();
+            // reset NotFound class
+            list($namespace, $action) = $this->appConf['not_found_handler'];
+            $routeParams = explode('\\', $namespace);
+            if (is_array($routeParams)) {
+                $controller = array_pop($routeParams);
+            }
+            // reset NotFound class route
+            $this->request->server['ROUTE'] = DIRECTORY_SEPARATOR . $controller . DIRECTORY_SEPARATOR . $action;
+            $class = trim(str_replace(DIRECTORY_SEPARATOR, '\\', $namespace . $this->controllerSuffix), DIRECTORY_SEPARATOR);
+            return [$class, $action];
         } else {
             $errorMsg = "Class {$class} is not found";
             throw new DispatchException($errorMsg, 404);
@@ -366,7 +359,7 @@ class HttpRoute extends AppDispatch
      * @param $action
      * @param $params
      * @return array
-     * @throws \ReflectionException
+     * @throws DispatchException
      */
     protected function bindActionParams($controllerInstance, $action, $params)
     {
@@ -377,7 +370,7 @@ class HttpRoute extends AppDispatch
             $name = $param->getName();
             if (array_key_exists($name, $params)) {
                 $isValid = true;
-                if ($param->isArray()) {
+                if ($param->hasType() && $param->getType()->getName() == 'array') {
                     $params[$name] = (array)$params[$name];
                 } elseif (is_array($params[$name])) {
                     $isValid = false;
@@ -426,7 +419,7 @@ class HttpRoute extends AppDispatch
     /**
      * @return array
      */
-    protected function buildParams()
+    protected function buildParams(): array
     {
         $get  = isset($this->request->get) ? $this->request->get : [];
         $post = isset($this->request->post) ? $this->request->post : [];

@@ -49,7 +49,6 @@ abstract class UdpServer extends BaseServer
     /**
      * __construct
      * @param array $config
-     * @throws \Exception
      */
     public function __construct(array $config = [])
     {

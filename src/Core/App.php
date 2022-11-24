@@ -14,7 +14,6 @@ namespace Swoolefy\Core;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoolefy\Core\Controller\BController;
-use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class App extends \Swoolefy\Core\Component
@@ -60,6 +59,7 @@ class App extends \Swoolefy\Core\Component
     /**
      * __construct
      * @param array $appConf
+     * @return void
      */
     public function __construct(array $appConf)
     {
@@ -82,6 +82,7 @@ class App extends \Swoolefy\Core\Component
 
     /**
      * before request application handle
+     * @return void
      */
     protected function _bootstrap()
     {
@@ -99,7 +100,7 @@ class App extends \Swoolefy\Core\Component
      * @param Request $request
      * @param Response $response
      * @param mixed $extendData
-     * @return mixed
+     * @return void
      * @throws \Throwable
      */
     public function run(Request $request, Response $response, $extendData = null)
@@ -118,6 +119,7 @@ class App extends \Swoolefy\Core\Component
                 $route->dispatch();
             }
         } catch (\Throwable $throwable) {
+            /** @var SwoolefyException $exceptionHandle */
             $exceptionHandle = $this->getExceptionClass();
             $exceptionHandle::response($this, $throwable);
         } finally {
@@ -130,6 +132,7 @@ class App extends \Swoolefy\Core\Component
 
     /**
      * @param Request $request
+     * @return void
      */
     protected function parseHeaders(Request $request)
     {
@@ -148,16 +151,17 @@ class App extends \Swoolefy\Core\Component
 
     /**
      * setAppConf
-     * @param array $conf
+     * @param array $appConf
+     * @return void
      */
-    public function setAppConf(array $conf = [])
+    public function setAppConf(array $appConf = [])
     {
         static $isResetAppConf;
         if (!isset($isResetAppConf)) {
-            if (!empty($conf)) {
-                $this->appConf = $conf;
-                Swfy::setAppConf($conf);
-                BaseServer::setAppConf($conf);
+            if (!empty($appConf)) {
+                $this->appConf = $appConf;
+                Swfy::setAppConf($appConf);
+                BaseServer::setAppConf($appConf);
                 $isResetAppConf = true;
             }
         }
@@ -174,7 +178,7 @@ class App extends \Swoolefy\Core\Component
     /**
      * @return BController
      */
-    public function getControllerInstance()
+    public function getControllerInstance(): BController
     {
         return $this->controllerInstance;
     }
@@ -183,7 +187,7 @@ class App extends \Swoolefy\Core\Component
      * catchAll request
      * @return bool
      */
-    public function catchAll()
+    public function catchAll(): bool
     {
         if (isset($this->appConf['catch_handle']) && $handle = $this->appConf['catch_handle']) {
             $this->isEnd = true;
@@ -204,7 +208,7 @@ class App extends \Swoolefy\Core\Component
      * @param bool $prepend
      * @return bool
      */
-    public function afterRequest(callable $callback, bool $prepend = false)
+    public function afterRequest(callable $callback, bool $prepend = false): bool
     {
         return Hook::addHook(Hook::HOOK_AFTER_REQUEST, $callback, $prepend);
     }

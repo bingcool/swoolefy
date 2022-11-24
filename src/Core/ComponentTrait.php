@@ -22,7 +22,7 @@ trait ComponentTrait
      * containers
      * @var array
      */
-    protected $container = [];
+    protected $containers = [];
 
     /**
      * componentPools
@@ -41,17 +41,17 @@ trait ComponentTrait
      *
      * @param string $com_alias_name
      * @param mixed $definition
-     * @return   mixed
-     * @throws   mixed
+     * @return mixed
+     * @throws mixed
      */
     public function creatObject(string $com_alias_name = null, $definition = [])
     {
         // dynamic create component object
         if ($com_alias_name) {
-            if (!isset($this->container[$com_alias_name]) || !is_object($this->container[$com_alias_name])) {
+            if (!isset($this->containers[$com_alias_name]) || !is_object($this->containers[$com_alias_name])) {
                 if ($definition instanceof \Closure) {
                     $object = call_user_func($definition, $com_alias_name);
-                    return $this->container[$com_alias_name] = $this->buildContainerObject($object);
+                    return $this->containers[$com_alias_name] = $this->buildContainerObject($object);
                 } else if (is_array($definition) && isset($definition['class'])) {
                     $class = $definition['class'];
                     unset($definition['class']);
@@ -63,13 +63,13 @@ trait ComponentTrait
                     if (isset($definition[SWOOLEFY_COM_IS_DELAY])) {
                         unset($definition[SWOOLEFY_COM_IS_DELAY]);
                     }
-                    return $this->container[$com_alias_name] = $this->buildInstance($class, $definition, $params, $com_alias_name);
+                    return $this->containers[$com_alias_name] = $this->buildInstance($class, $definition, $params, $com_alias_name);
                 } else {
                     throw new SystemException(sprintf("component:%s must be set class", $com_alias_name));
                 }
 
             } else {
-                return $this->container[$com_alias_name];
+                return $this->containers[$com_alias_name];
             }
 
         }
@@ -82,7 +82,7 @@ trait ComponentTrait
                 continue;
             }
 
-            if (isset($this->container[$comName]) && is_object($this->container[$comName])) {
+            if (isset($this->containers[$comName]) && is_object($this->containers[$comName])) {
                 continue;
             }
 
@@ -95,12 +95,12 @@ trait ComponentTrait
                     unset($component['constructor']);
                 }
                 $definition = $component;
-                $this->container[$comName] = $this->buildInstance($class, $definition, $params, $comName);
+                $this->containers[$comName] = $this->buildInstance($class, $definition, $params, $comName);
             } else {
-                $this->container[$comName] = false;
+                $this->containers[$comName] = false;
             }
         }
-        return $this->container;
+        return $this->containers;
 
     }
 
@@ -214,31 +214,39 @@ trait ComponentTrait
      */
     public function getComponents(?string $com_alias_name = null)
     {
-        if ($com_alias_name && isset($this->container[$com_alias_name])) {
-            return $this->container[$com_alias_name];
+        if ($com_alias_name && isset($this->containers[$com_alias_name])) {
+            return $this->containers[$com_alias_name];
         }
-        return $this->container;
+        return $this->containers;
     }
 
     /**
      * clearComponent
-     * @param string|array $component_alias_name
+     * @param string|array $comAliasName
+     * @param bool $isAll
      * @return bool
      */
-    public function clearComponent(?string $com_alias_name = null)
+    public function clearComponent(?string $comAliasName = null, bool $isAll = false)
     {
-        if (!is_null($com_alias_name) && is_string($com_alias_name)) {
-            $com_alias_name = (array)$com_alias_name;
-        } else if (is_array($com_alias_name)) {
-            $com_alias_name = array_unique($com_alias_name);
+        if ($isAll) {
+            $this->containers = [];
+            return true;
+        }
+
+        if (is_string($comAliasName)) {
+            $comAliasName = (array)$comAliasName;
+        } else if (is_array($comAliasName)) {
+            $comAliasName = array_unique($comAliasName);
         } else {
             return false;
         }
-        foreach ($com_alias_name as $alias_name) {
-            if (isset($this->container[$alias_name])) {
-                unset($this->container[$alias_name]);
+
+        foreach ($comAliasName as $aliasName) {
+            if (isset($this->containers[$aliasName])) {
+                unset($this->containers[$aliasName]);
             }
         }
+
         return true;
     }
 
@@ -263,16 +271,15 @@ trait ComponentTrait
     /**
      * @param string $name
      * @return mixed
-     * @throws Exception
      */
     final public function get(string $name)
     {
         $appConf = BaseServer::getAppConf();
         $components = $appConf['components'];
         $cid = \Swoole\Coroutine::getCid();
-        if (isset($this->container[$name])) {
-            if (is_object($this->container[$name])) {
-                $containerObject = $this->container[$name];
+        if (isset($this->containers[$name])) {
+            if (is_object($this->containers[$name])) {
+                $containerObject = $this->containers[$name];
                 // 同一个协程中的单例对象,解决在不同协程 $this->get('db') 时组件上下文污染问题
                 if (isset($containerObject->__coroutineId) && $containerObject->__coroutineId == $cid) {
                     return $containerObject;
@@ -307,15 +314,15 @@ trait ComponentTrait
                 /** @var \Swoolefy\Core\Coroutine\PoolsHandler $poolHandler */
                 $poolHandler = CoroutinePools::getInstance()->getPool($name);
                 if (is_object($poolHandler)) {
-                    $this->container[$name] = $poolHandler->fetchObj();
+                    $this->containers[$name] = $poolHandler->fetchObj();
                 }
                 // 若没有设置进程池处理实例,则降级到创建实例模式
-                if (isset($this->container[$name]) && is_object($this->container[$name])) {
-                    $objId = spl_object_id($this->container[$name]);
+                if (isset($this->containers[$name]) && is_object($this->containers[$name])) {
+                    $objId = spl_object_id($this->containers[$name]);
                     if (!in_array($objId, $this->componentPoolsObjIds)) {
                         array_push($this->componentPoolsObjIds, $objId);
                     }
-                    return $this->container[$name];
+                    return $this->containers[$name];
                 }
             }
             return $this->creatObject($name, $components[$name]);
@@ -335,13 +342,13 @@ trait ComponentTrait
         }
 
         foreach ($this->componentPools as $name) {
-            if (isset($this->container[$name])) {
-                $obj = $this->container[$name];
+            if (isset($this->containers[$name])) {
+                $obj = $this->containers[$name];
                 if (is_object($obj)) {
                     $objId = spl_object_id($obj);
                     if (in_array($objId, $this->componentPoolsObjIds)) {
                         CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
-                        unset($this->container[$name]);
+                        unset($this->containers[$name]);
                     }
                 }
             }
@@ -386,8 +393,8 @@ trait ComponentTrait
      */
     public function __set(string $name, $value)
     {
-        if (isset($this->container[$name])) {
-            return $this->container[$name];
+        if (isset($this->containers[$name])) {
+            return $this->containers[$name];
         } else {
             if (is_array($value) || $value instanceof \Closure) {
                 return $this->creatObject($name, $value);

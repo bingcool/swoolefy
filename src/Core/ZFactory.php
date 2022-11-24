@@ -21,7 +21,7 @@ class ZFactory
      * $_instances
      * @var array
      */
-    protected static $_instances = [];
+    private static $_instances = [];
 
     /**
      * getInstance
@@ -85,7 +85,7 @@ class ZFactory
      * @param string $class
      * @return string
      */
-    private static function parseClass(string $class = '')
+    private static function parseClass(string $class = ''): string
     {
         $class = str_replace('/', '\\', $class);
         $class = trim($class, '\\');

@@ -101,37 +101,44 @@ function _each(string $msg, string $foreground = "red", string $background = "bl
 /**
  * 随机获取一个可监听的端口(php_socket模式)
  *
+ * @param array $excludePorts 排除的端口
  * @return int
  */
-function get_one_free_port()
+function get_one_free_port(array $excludePorts = []): int
 {
-    $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-    if (!socket_bind($socket, "0.0.0.0", 0)) {
-        return false;
-    }
-    if (!socket_listen($socket)) {
-        return false;
-    }
-    if (!socket_getsockname($socket, $addr, $port)) {
-        return false;
-    }
-    socket_close($socket);
-    unset($socket);
+    $isValidPort = true;
+    do {
+        $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+        if (!socket_bind($socket, "0.0.0.0", 0)) {
+            return false;
+        }
+        if (!socket_listen($socket)) {
+            return false;
+        }
+        if (!socket_getsockname($socket, $addr, $port)) {
+            return false;
+        }
+        socket_close($socket);
+
+        if(empty($excludePorts)) {
+            $isValidPort = false;
+        }else {
+            if(!in_array($port, $excludePorts)) {
+                $isValidPort = false;
+            }
+        }
+        unset($socket);
+    }while($isValidPort);
+
     return $port;
 }
-
 /**
- * 随机获取一个可监听的端口(swoole_coroutine模式)
+ * 随机获取一个可监听的端口(php_socket模式)
  *
+ * @param array $excludePorts 排除的端口
  * @return int
  */
-function get_one_free_port_coro()
+function getOneFreePort(array $excludePorts = []): int
 {
-    $socket = new \Swoole\Coroutine\Socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
-    $socket->bind('0.0.0.0');
-    $socket->listen();
-    $port = $socket->getsockname()['port'];
-    $socket->close();
-    unset($socket);
-    return $port;
+    return get_one_free_port($excludePorts);
 }
