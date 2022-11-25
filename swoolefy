@@ -322,21 +322,10 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer')
     if (!file_exists($eventServerFile)) {
         $search_str = "protocol\\http";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/EventServer/{$event_server_file_name}.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/EventTemplate/{$event_server_file_name}.php");
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($eventServerFile, $file_content_string);
-    }
-
-    $autoloaderFile = START_DIR_ROOT . "/{$app_name}/autoloader.php";
-    if (!file_exists($autoloaderFile)) {
-        $search_str = "<{APP_NAME}>";
-        $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/autoloader.php");
-        $count = 1;
-        $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
-        file_put_contents($autoloaderFile, $file_content_string);
-        include $autoloaderFile;
     }
 
     $routerDir = START_DIR_ROOT . "/{$app_name}/Router";
@@ -360,21 +349,10 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
     if (!file_exists($eventServerFile)) {
         $search_str = "protocol\\websocket";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/EventServer/{$event_server_file_name}.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/EventTemplate/{$event_server_file_name}.php");
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($eventServerFile, $file_content_string);
-    }
-
-    $autoloaderFile = START_DIR_ROOT . "/{$app_name}/autoloader.php";
-    if (!file_exists($autoloaderFile)) {
-        $search_str = "<{APP_NAME}>";
-        $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/autoloader.php");
-        $count = 1;
-        $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
-        file_put_contents($autoloaderFile, $file_content_string);
-        include $autoloaderFile;
     }
 
     $routerDir = START_DIR_ROOT . "/{$app_name}/Router";
@@ -399,21 +377,10 @@ function startRpc($app_name, $event_server_file_name = 'RpcServer')
     if (!file_exists($eventServerFile)) {
         $search_str = "protocol\\rpc";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/EventServer/{$event_server_file_name}.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/EventTemplate/{$event_server_file_name}.php");
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($eventServerFile, $file_content_string);
-    }
-
-    $autoloaderFile = START_DIR_ROOT . "/{$app_name}/autoloader.php";
-    if (!file_exists($autoloaderFile)) {
-        $search_str = "<{APP_NAME}>";
-        $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/autoloader.php");
-        $count = 1;
-        $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
-        file_put_contents($autoloaderFile, $file_content_string);
-        include $autoloaderFile;
     }
 
     commonHandle($config);
@@ -433,21 +400,10 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer')
     if (!file_exists($eventServerFile)) {
         $search_str = "protocol\\udp";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/EventServer/{$event_server_file_name}.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/EventTemplate/{$event_server_file_name}.php");
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($eventServerFile, $file_content_string);
-    }
-
-    $autoloaderFile = START_DIR_ROOT . "/{$app_name}/autoloader.php";
-    if (!file_exists($autoloaderFile)) {
-        $search_str = "<{APP_NAME}>";
-        $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/autoloader.php");
-        $count = 1;
-        $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
-        file_put_contents($autoloaderFile, $file_content_string);
-        include $autoloaderFile;
     }
 
     $routerDir = START_DIR_ROOT . "/{$app_name}/Router";
@@ -472,21 +428,10 @@ function startMqtt($app_name, $event_server_file_name = 'MqttServer')
     if (!file_exists($eventServerFile)) {
         $search_str = "protocol\\mqtt";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/EventServer/{$event_server_file_name}.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/EventTemplate/{$event_server_file_name}.php");
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($eventServerFile, $file_content_string);
-    }
-
-    $autoloaderFile = START_DIR_ROOT . "/{$app_name}/autoloader.php";
-    if (!file_exists($autoloaderFile)) {
-        $search_str = "<{APP_NAME}>";
-        $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/autoloader.php");
-        $count = 1;
-        $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
-        file_put_contents($autoloaderFile, $file_content_string);
-        include $autoloaderFile;
     }
 
     commonHandle($config);
@@ -503,6 +448,29 @@ function commonHandle(&$config)
     }
     makeDirLogAndPid($config);
     setEnvParams($config);
+
+    $eventServerFile = START_DIR_ROOT . "/".APP_NAME."/Event.php";
+    if (!file_exists($eventServerFile)) {
+        $search_str = "protocol\\event";
+        $replace_str = APP_NAME;
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/EventTemplate/EventHandle.php");
+        $count = 1;
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
+        file_put_contents($eventServerFile, $file_content_string);
+    }
+
+    $autoloaderFile = START_DIR_ROOT . "/".APP_NAME."/autoloader.php";
+    if (!file_exists($autoloaderFile)) {
+        $search_str = "<{APP_NAME}>";
+        $replace_str = APP_NAME;
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/autoloader.php");
+        $count = 1;
+        $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
+        file_put_contents($autoloaderFile, $file_content_string);
+        include $autoloaderFile;
+    }
+
+
 }
 
 function stopServer($app_name)

@@ -1,6 +1,6 @@
 <?php
 
-namespace Test;
+namespace protocol\event;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
@@ -8,7 +8,7 @@ use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\EventHandler;
 use Swoolefy\Core\Process\ProcessManager;
 
-class Event extends EventHandler
+class EventHandle extends EventHandler
 {
     /**
      * onInit
@@ -30,7 +30,7 @@ class Event extends EventHandler
             }
         }
 
-        if(!$this->isWorkerService()) {
+        if (!$this->isWorkerService()) {
             // todo--refer to Test Demo
         }
     }
