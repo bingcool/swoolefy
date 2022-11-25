@@ -303,7 +303,6 @@ trait ServiceTrait
                     }
 
                     $fileType = pathinfo($pathFile, PATHINFO_EXTENSION);
-                    var_dump($fileType);
                     if (in_array($fileType, ['php'])) {
                         $routerTempArr = include $pathFile;
                         if(is_array($routerTempArr)) {
