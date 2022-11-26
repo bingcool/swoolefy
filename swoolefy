@@ -175,6 +175,11 @@ function createProject()
         exit(0);
     }
 
+    $envIniFile = START_DIR_ROOT . "/env.ini";
+    if (!file_exists($envIniFile)) {
+        file_put_contents($envIniFile, getDefaultEnvIni());
+    }
+
     $protocol = APP_NAMES[$appName];
     if (!$protocol) {
         write("[Error] The app_name={$appName} is not in APP_NAME array in swoolefy file, please check it");
@@ -1063,7 +1068,7 @@ LOGO;
 
 function getDefaultConfig()
 {
-    $config_content =
+    $content =
 <<<EOF
 <?php
 // 应用配置
@@ -1088,13 +1093,13 @@ return [
 ];
 
 EOF;
-    return $config_content;
+    return $content;
 }
 
 function getDefaultController()
 {
     $APP_NAME = APP_NAME;
-    $controller_content =
+    $content =
 <<<EOF
 <?php
 namespace {$APP_NAME}\Controller;
@@ -1108,13 +1113,13 @@ class IndexController extends BController {
     }
 }
 EOF;
-    return $controller_content;
+    return $content;
 }
 
 function getDefines()
 {
     $APP_NAME = APP_NAME;
-    $defines_content =
+    $content =
 
 <<<EOF
 <?php
@@ -1128,12 +1133,12 @@ defined('SMARTY_COMPILE_DIR') or define('SMARTY_COMPILE_DIR', APP_PATH.'/Runtime
 defined('SMARTY_CACHE_DIR') or define('SMARTY_CACHE_DIR', APP_PATH.'/Runtime/');
 
 EOF;
-    return $defines_content;
+    return $content;
 }
 
 function getRouters()
 {
-    $router_content =
+    $content =
         <<<EOF
 <?php
 
@@ -1142,7 +1147,7 @@ return [
 ];
 
 EOF;
-    return $router_content;
+    return $content;
 }
 
 function getServiceRouters()
@@ -1162,7 +1167,7 @@ EOF;
 function getDefaultModel()
 {
     $APP_NAME = APP_NAME;
-    $defines_content =
+    $content =
 <<<EOF
 <?php
 namespace {$APP_NAME}\Model;
@@ -1173,7 +1178,18 @@ class IndexModel extends Model {
     
 }
 EOF;
-    return $defines_content;
+    return $content;
+}
+
+function getDefaultEnvIni()
+{
+    $content =
+<<<EOF
+[global]
+# 开发环境env=dev, 测试环境env=test, 灰度环境env=gra, 生产环境env=prd
+env=dev
+EOF;
+    return $content;
 }
 
 function Run($callback = null)
