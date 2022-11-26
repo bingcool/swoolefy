@@ -16,7 +16,10 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 实现与底层的回调的解耦，支持协程调度，同步|异步调用，全局事件注册，心跳检查，异步任务，多进程(池)，连接池等，
 内置view、log、session、mysql、redis、mongodb等常用组件等。     
 
-目前完全支持swoole4.4+的协程，推荐使用新版swoole4.8+.
+推荐使用新版swoole4.8+.
+
+主分支：master分支最低要求php8.0+，swoole5.0+    
+LTS分支：swoolefy-4.8-lts 长期维护，最低要求php >= php7.2 && php < php8.0, swoole4.8+   
 
 ### 实现的功能特性
 - [x] 架手脚一键创建项目           
@@ -38,7 +41,10 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 - [x] 支持crontab计划任务                    
 - [x] 支持热更新reload worker                  
 - [x] 支持定时的系统信息采集，并以订阅发布，udp等方式收集至存贮端    
-- [x] 命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架      
+- [x] 命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架   
+- [x] 支持crontab的local和fork计划任务   
+- [x] 支持worker的daemon模式的进程消费模型   
+- [x] 支持跑console一次性脚本模式，跑完脚本自动退出，主要用于修复数据等   
 - [ ] 分布式服务注册（zk，etcd）       
 
 ### 常用组件
@@ -75,8 +81,68 @@ github: https://github.com/bingcool/library
 bingcool/workerfy 是基于swoole实现的多进程协程模型，专处理daemon后台进程处理      
 github: https://github.com/bingcool/workerfy   
 
-     
-### 定义组件，开放式组件接口，闭包回调实现创建组件过程，return对象即可
+### 一、安装 
+
+```
+// 下载代码到到你的自定义目录，这里定义为myproject
+composer create-project bingcool/swoolefy:4.8.* myproject
+```
+
+### 二、添加项目入口启动文件,并定义你的项目目录，命名为App
+
+```
+// 在myproject目录下添加cli.php, 这个是启动项目的入口文件
+<?php
+include './vendor/autoload.php';
+
+define('IS_WORKER_SERVICE', 0);
+date_default_timezone_set('Asia/Shanghai');
+
+define('APP_NAMES', [
+     // 你的项目命名为App，对应协议为http协议服务器，支持多个项目的，只需要在这里添加好项目名称与对应的协议即可
+    'App' => 'http' 
+]);
+
+include './swoolefy';
+
+```
+
+### 三、执行创建你定义的App项目
+```
+// 你定义的项目目录是App, 在myproject目录下执行下面命令行
+
+swoole-cli cli.php create App
+
+// 执行完上面命令行后，将会自动生成App项目目录以及内部子目录
+
+```
+
+### 四、启动项目
+
+```
+// 终端启动 ctl+c 停止进程
+swoole-cli cli.php start App
+
+// 守护进程方式启动,添加-D参数控制
+swooole-cli cli.php start App -D
+
+// 停止进程
+swooole-cli cli.php stop App
+
+// 查看进程状态
+swooole-cli cli.php status App
+
+```
+
+### 五、访问
+
+默认端口是9502,可以通过http::localhost:9502访问默认控制器
+
+至此一个最简单的http的服务就创建完成了，更多例子请参考项目下Test的demo
+
+
+### 定义组件
+开放式组件接口，闭包回调实现创建组件过程，return对象即可
 ```
 
 // db|redis连接池
@@ -254,11 +320,6 @@ class TestController extends BController {
 }
 
 ```
-     
-### 开发文档手册
-
-文档:[开发文档](https://www.kancloud.cn/bingcoolhuang/php-swoole-swoolefy/587501)     
-swoolefy官方QQ群：735672669，欢迎加入！    
 
 ### License
 MIT   
