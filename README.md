@@ -85,7 +85,7 @@ github: https://github.com/bingcool/workerfy
 
 ```
 // 下载代码到到你的自定义目录，这里定义为myproject
-composer create-project bingcool/swoolefy:5.0.* myproject
+composer create-project bingcool/swoolefy:~5.0 myproject
 ```
 
 ### 二、添加项目入口启动文件,并定义你的项目目录，命名为App
