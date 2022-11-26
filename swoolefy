@@ -1186,7 +1186,7 @@ function getDefaultEnvIni()
     $content =
 <<<EOF
 [global]
-# 开发环境env=dev, 测试环境env=test, 灰度环境env=gra, 生产环境env=prd
+##开发环境dev, 测试环境test, 灰度环境gra, 生产环境prd
 env=dev
 EOF;
     return $content;
