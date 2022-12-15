@@ -136,7 +136,7 @@ swooole-cli cli.php status App
 
 ### 五、访问
 
-默认端口是9502,可以通过http::localhost:9502访问默认控制器
+默认端口是9502,可以通过http://localhost:9502访问默认控制器
 
 至此一个最简单的http的服务就创建完成了，更多例子请参考项目下Test的demo
 
