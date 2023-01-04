@@ -649,7 +649,7 @@ abstract class AbstractBaseWorker
     }
 
     /**
-     * writeToMasterProcess direct semd message to other process
+     * writeToMasterProcess direct send message to other process
      * @param mixed $data
      * @return bool
      */
