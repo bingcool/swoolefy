@@ -71,7 +71,7 @@ return [
     ],
 
     // 热更新
-    'reload_conf'=>[
+    'reload_conf' => [
         'enable_reload'     => false,
         'after_seconds'     => 3,
         'monitor_path'      => APP_PATH, // 开发者自己定义目录
