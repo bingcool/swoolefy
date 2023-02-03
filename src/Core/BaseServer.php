@@ -135,8 +135,6 @@ class BaseServer
         Swfy::setConf(self::$config);
         // start runtime Coroutine
         self::setCoroutineSetting(self::$config['coroutine_setting'] ?? []);
-        // set timeZone
-        self::setTimeZone();
         // check extensions
         self::checkVersion();
         // check is run on cli
