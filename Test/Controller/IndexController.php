@@ -29,11 +29,6 @@ class IndexController extends BController {
         ]);
     }
 
-    public function afterSave()
-    {
-        var_dump(__FUNCTION__);
-    }
-
     public function testLog1()
     {
         $log = LogManager::getInstance()->getLogger('log');
@@ -41,6 +36,28 @@ class IndexController extends BController {
         $this->returnJson([
             'Controller' => $this->getControllerId(),
             'Action' => $this->getActionId()
+        ]);
+    }
+
+
+    public function testAddUser()
+    {
+        /**
+         * @var \Common\Library\Db\Mysql $db
+         */
+        $db = Application::getApp()->get('db');
+        $db->createCommand("insert into tbl_users (`user_name`,`sex`,`birthday`,`phone`) values(:user_name,:sex,:birthday,:phone)" )
+            ->insert([
+                ':user_name' => '李四-'.rand(1,9999),
+                ':sex' => 0,
+                ':birthday' => '1991-07-08',
+                ':phone' => 12345678
+            ]);
+
+        $rowCount = $db->getNumRows();
+
+        $this->returnJson([
+            'row_count' => $rowCount
         ]);
     }
 
@@ -60,50 +77,6 @@ class IndexController extends BController {
             'total' => $count,
             'list' => $list ?? []
         ]);
-    }
-
-    public function testAddUser()
-    {
-        /**
-         * @var \Common\Library\Db\Mysql $db
-         */
-        $db = Application::getApp()->get('db');
-        $db->createCommand("insert into tbl_order (`order_id`,`user_id`,`order_amount`,`order_product_ids`,`order_status`) values(:order_id,:user_id,:order_amount,:order_product_ids,:order_status)" )
-            ->insert([
-                ':order_id' => time() + 5,
-                ':user_id' => 10000,
-                ':order_amount' => 105,
-                ':order_product_ids' => json_encode([1,2,3,rand(1,1000)]),
-                ':order_status' => 1
-            ]);
-
-        $rowCount = $db->getNumRows();
-
-        $this->returnJson([
-            'row_count' => $rowCount
-        ]);
-    }
-
-    public function testRedis()
-    {
-        /**
-         * @var \Common\Library\Cache\Redis $redis
-         */
-        $redis = Application::getApp()->get('redis');
-        $redis->set('name','bingcool-'.rand(1,1000));
-        $value = $redis->get('name');
-        $this->returnJson(['value' => $value]);
-    }
-
-    public function testPredis()
-    {
-        /**
-         * @var \Common\Library\Cache\Predis $predis
-         */
-        $predis = Application::getApp()->get('predis');
-        $predis->set('predis-name','bingcool-'.rand(1,1000));
-        $value = $predis->get('predis-name');
-        $this->returnJson(['value' => $value]);
     }
 
     /**
@@ -136,7 +109,7 @@ class IndexController extends BController {
         ]);
     }
 
-    public function testTransation()
+    public function testTransactionAddOrder()
     {
         /**
          * @var \Common\Library\Db\Mysql $db
@@ -147,11 +120,14 @@ class IndexController extends BController {
 
         try {
             $db = Application::getApp()->get('db');
-            $db->createCommand("insert into tbl_order (`order_id`,`user_id`,`order_amount`,`order_product_ids`,`order_status`) values(:order_id,:user_id,:order_amount,:order_product_ids,:order_status)" )
+            $db->createCommand("insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`address`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:address,:order_product_ids,:order_status)" )
                 ->insert([
                     ':order_id' => time() + 5,
+                    ':receiver_user_name' => '张三',
+                    ':receiver_user_phone' => '12345666',
                     ':user_id' => 10000,
                     ':order_amount' => 105,
+                    ':address' => "深圳市宝安区xxxx",
                     ':order_product_ids' => json_encode([1,2,3,rand(1,1000)]),
                     ':order_status' => 1
                 ]);
@@ -171,9 +147,11 @@ class IndexController extends BController {
 
                     try {
 
-                        $db->createCommand("insert into tbl_order (`order_id`,`user_id`,`order_amount`,`order_product_ids`,`order_status`) values(:order_id,:user_id,:order_amount,:order_product_ids,:order_status)" )
+                        $db->createCommand("insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:order_product_ids,:order_status)" )
                             ->insert([
                                 ':order_id' => time() + 5,
+                                ':receiver_user_name' => '张三',
+                                ':receiver_user_phone' => '12345666',
                                 ':user_id' => 10000,
                                 ':order_amount' => 105,
                                 ':order_product_ids' => json_encode([1,2,3,rand(1,1000)]),
