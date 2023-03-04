@@ -52,7 +52,7 @@ LTS分支：swoolefy-4.8-lts 长期维护，最低要求php >= php7.2 && php < p
 高级特性
 - [x] 支持crontab的local调用和fork独立进程的计划任务        
 - [x] 支持worker下后台daemon模式的多进程协程消费模型,包括进程自动拉起，进程数动态调整，进程健康状态监控     
-- [x] 支持console终端脚本模式，跑完脚本自动退出，可用于修复数据、数据迁移等临时脚本行功能操作      
+- [x] 支持console终端脚本模式，跑完脚本自动退出，可用于修复数据、数据迁移等临时脚本功能      
 - [ ] 支持分布式服务注册（zk，etcd）       
 
 ### 常用组件
@@ -198,8 +198,8 @@ Config/config-dev.php
 
 return [
 
-// db|redis连接池
-'enable_component_pools' => [
+    // db|redis连接池
+    'enable_component_pools' => [
         // 取components的`DB`组件名称相对应
         'db' => [
             'pools_num' => 5, // db实例数
