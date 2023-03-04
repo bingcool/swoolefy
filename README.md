@@ -124,27 +124,29 @@ swoole-cli cli.php create App
 // 执行完上面命令行后，将会自动生成App项目目录以及内部子目录
 
 App
-├── Config
+├── Config       // 应用配置
 │   ├── config-dev.php
 │   ├── config-gra.php
 │   ├── config-prd.php
 │   ├── config-test.php
 │   └── defines.php
 ├── Controller
-│   └── IndexController.php
+│   └── IndexController.php // 控制器层
 ├── Log
 ├── Model
 │   └── ClientModel.php
-├── Module
-├── Protocol
+├── Module        // 模块层
+├── Protocol      // 协议配置
 │   ├── config-dev.php
 │   ├── config-gra.php
 │   ├── config-prd.php
 │   └── config-test.php
 ├── Runtime
-└── View
-    └── Index
-
+├── View
+│   └── Index
+│—— autoloader.php // 自定义项目自动加载
+|—— Event.php      // 事件实现类
+|—— HttpServer.php // http server
 ```
 
 ### 四、启动项目
