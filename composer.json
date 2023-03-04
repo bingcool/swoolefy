@@ -32,7 +32,7 @@
         "ext-redis": "*",
         "ext-sockets": "*",
         "ext-mbstring": "*",
-        "dragonmantank/cron-expression": "^3.2.0",
+        "dragonmantank/cron-expression": "~3.2.0",
         "bingcool/library": "dev-master"
     },
     "autoload": {
