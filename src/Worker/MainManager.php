@@ -206,9 +206,8 @@ class MainManager
      * @param int $process_worker_num
      * @param bool $async
      * @param array $args
-     * @param null $extend_data
+     * @param mixed $extend_data
      * @param bool $enable_coroutine
-     * @throws Exception
      */
     public function addProcess(
         string $process_name,
@@ -807,7 +806,7 @@ class MainManager
      * @param string $process_name
      * @param int $process_num
      * @return mixed
-     * @throws \Exception
+     * @throws WorkerException
      */
     public function createDynamicProcess(string $process_name, int $process_num = 2)
     {
@@ -821,7 +820,7 @@ class MainManager
         if ($this->processLists[$key]['dynamic_process_destroying'] ?? false) {
             $msg = "【Warning】 Process name={$process_name} is exiting now，forbidden to create dynamic process, please try again after moment";
             $this->writeInfo($msg);
-            throw new \Exception($msg);
+            throw new WorkerException($msg);
         }
 
         if ($process_num <= 0) {
@@ -850,7 +849,7 @@ class MainManager
         if ($runningProcessWorkerNum >= $totalProcessNum) {
             $msg = "【Warning】 Children process num={$totalProcessNum}, achieve max_process_num，forbidden to create process";
             $this->writeInfo($msg);
-            throw new \Exception($msg);
+            throw new WorkerException($msg);
         }
 
         for ($workerId = $runningProcessWorkerNum; $workerId < $totalProcessNum; $workerId++) {
@@ -885,9 +884,9 @@ class MainManager
      * @param string $process_name
      * @param int $process_num
      * @return void
-     * @throws \Exception
+     * @throws WorkerException
      */
-    public function destroyDynamicProcess(string $process_name, $process_num = -1)
+    public function destroyDynamicProcess(string $process_name, int $process_num = -1)
     {
         $processWorkers = $this->getProcessByName($process_name, -1);
         $key = md5($process_name);
@@ -913,7 +912,7 @@ class MainManager
      *
      * @param string $process_name
      * @return int
-     * @throws \Exception
+     * @throws WorkerException
      */
     public function getDynamicProcessNum(string $process_name)
     {
@@ -1105,7 +1104,6 @@ class MainManager
      * @param string $process_name
      * @param int $process_worker_id
      * @return mixed|null
-     * @throws \Exception
      */
     public function getProcessByName(string $process_name, int $process_worker_id = 0)
     {
@@ -1115,7 +1113,7 @@ class MainManager
         } else if ($process_worker_id < 0) {
             return $this->processWorkers[$key];
         } else {
-            throw new RuntimeException("Missing and not found process_name={$process_name}, worker_id={$process_worker_id}");
+            throw new WorkerException("Missing and not found process_name={$process_name}, worker_id={$process_worker_id}");
         }
     }
 
@@ -1145,7 +1143,6 @@ class MainManager
      * @param string $process_name
      * @param int $process_worker_id
      * @return mixed
-     * @throws \Exception
      */
     public function getPidByName(string $process_name, int $process_worker_id)
     {
@@ -1157,7 +1154,7 @@ class MainManager
      * getProcessWorkerId
      * @return int
      */
-    public function getMasterWorkerId()
+    public function getMasterWorkerId(): int
     {
         return $this->masterWorkerId;
     }
@@ -1166,7 +1163,7 @@ class MainManager
      * getMasterWorkerName
      * @return string
      */
-    public function getMasterWorkerName()
+    public function getMasterWorkerName(): string
     {
         return MainManager::MASTER_WORKER_NAME;
     }
@@ -1175,7 +1172,7 @@ class MainManager
      * isMasterExiting
      * @return bool
      */
-    public function isMasterExiting()
+    public function isMasterExiting(): bool
     {
         return $this->isExit;
     }
@@ -1185,16 +1182,15 @@ class MainManager
      * @param mixed $data
      * @param int $process_worker_id
      * @return bool
-     * @throws \Exception
      */
     public function writeByProcessName(string $process_name, $data, int $process_worker_id = 0)
     {
         if ($this->isMaster($process_name)) {
-            throw new \Exception("Master process can not write msg to master process self");
+            throw new WorkerException("Master process can not write msg to master process self");
         }
 
         if (!$this->isRunning()) {
-            throw new \Exception("Master process is not start, you can not use writeByProcessName(), please checkout it");
+            throw new WorkerException("Master process is not start, you can not use writeByProcessName(), please checkout it");
         }
 
         $processWorkers = [];
@@ -1224,7 +1220,6 @@ class MainManager
      * @param string $to_process_name
      * @param int $to_process_worker_id
      * @return bool
-     * @throws \Exception
      */
     public function writeByMasterProxy(
         $data,
@@ -1274,7 +1269,7 @@ class MainManager
         if ($process_name) {
             $key = md5($process_name);
             if (!isset($this->processWorkers[$key])) {
-                $exception = new \Exception(sprintf(
+                $exception = new WorkerException(sprintf(
                     "%s::%s not exist process=%s, please check it",
                     __CLASS__,
                     __FUNCTION__,
@@ -1593,7 +1588,7 @@ class MainManager
      * @param bool $showAll
      * @return string
      */
-    private function getCliParams($showAll = false)
+    private function getCliParams(bool $showAll = false)
     {
         $cliParams = '';
         $workerfyCliParams = getenv('ENV_CLI_PARAMS') ? json_decode(getenv('ENV_CLI_PARAMS'), true) : [];

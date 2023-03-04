@@ -247,7 +247,7 @@ abstract class AbstractBaseWorker
      * @param string $process_name
      * @param bool $async
      * @param array $args
-     * @param null $extend_data
+     * @param mixed $extend_data
      * @param bool $enable_coroutine
      * @return void
      */
@@ -569,7 +569,7 @@ abstract class AbstractBaseWorker
                 }
 
                 if(!in_array($error['type'], [E_NOTICE, E_WARNING]) ) {
-                    $exception = new \Exception($errorStr, $error['type']);
+                    $exception = new WorkerException($errorStr, $error['type']);
                     $this->onHandleException($exception);
                 }
             }
@@ -579,7 +579,7 @@ abstract class AbstractBaseWorker
     /**
      * writeByProcessName worker send message to process
      * @param string $process_name
-     * @param $data
+     * @param mixed $data
      * @param int $process_worker_id process_worker_id=-1 all process
      * @param bool $is_use_master_proxy
      * @return bool
@@ -649,7 +649,7 @@ abstract class AbstractBaseWorker
     }
 
     /**
-     * writeToMasterProcess direct semd message to other process
+     * writeToMasterProcess direct send message to other process
      * @param mixed $data
      * @return bool
      */
@@ -684,6 +684,7 @@ abstract class AbstractBaseWorker
      * @param string $dynamic_process_name
      * @param int $dynamic_process_num
      * @return void
+     * @throws WorkerException
      */
     public function notifyMasterCreateDynamicProcess(string $dynamic_process_name, int $dynamic_process_num = 2)
     {
@@ -803,7 +804,7 @@ abstract class AbstractBaseWorker
     /**
      * @return bool
      */
-    public function isWorker0()
+    public function isWorker0(): bool
     {
         return $this->getProcessWorkerId() == 0;
     }
@@ -883,7 +884,7 @@ abstract class AbstractBaseWorker
     /**
      * @return int
      */
-    public function getMasterPid()
+    public function getMasterPid(): int
     {
         return $this->masterPid;
     }
@@ -900,7 +901,7 @@ abstract class AbstractBaseWorker
      * getWaitTime
      * @return int
      */
-    public function getWaitTime()
+    public function getWaitTime(): int
     {
         return $this->waitTime;
     }
@@ -909,7 +910,7 @@ abstract class AbstractBaseWorker
      * isRebooting
      * @return bool
      */
-    public function isRebooting()
+    public function isRebooting(): bool
     {
         return $this->isReboot;
     }
@@ -918,7 +919,7 @@ abstract class AbstractBaseWorker
      * isExiting
      * @return bool
      */
-    public function isExiting()
+    public function isExiting(): bool
     {
         return $this->isExit;
     }
@@ -928,7 +929,7 @@ abstract class AbstractBaseWorker
      *
      * @return bool
      */
-    public function isForceExit()
+    public function isForceExit(): bool
     {
         return $this->isForceExit;
     }
@@ -938,7 +939,7 @@ abstract class AbstractBaseWorker
      *
      * @return bool
      */
-    public function isDue()
+    public function isDue(): bool
     {
         if($this->isRebooting() || $this->isForceExit() || $this->isExiting()) {
             sleep(1);
@@ -952,7 +953,7 @@ abstract class AbstractBaseWorker
      *
      * @return bool
      */
-    public function isStaticProcess()
+    public function isStaticProcess(): bool
     {
         if ($this->processType == self::PROCESS_STATIC_TYPE) {
             return true;
@@ -964,7 +965,7 @@ abstract class AbstractBaseWorker
      *
      * @return bool
      */
-    public function isDynamicProcess()
+    public function isDynamicProcess(): bool
     {
         return !$this->isStaticProcess();
     }
@@ -972,7 +973,7 @@ abstract class AbstractBaseWorker
     /**
      * @return Process
      */
-    public function getSwooleProcess()
+    public function getSwooleProcess(): Process
     {
         return $this->swooleProcess;
     }
@@ -982,7 +983,7 @@ abstract class AbstractBaseWorker
      *
      * @return int
      */
-    public function getProcessWorkerId()
+    public function getProcessWorkerId(): int
     {
         return $this->processWorkerId;
     }
@@ -991,7 +992,7 @@ abstract class AbstractBaseWorker
      * getPid
      * @return int
      */
-    public function getPid()
+    public function getPid(): int
     {
         return $this->swooleProcess->pid;
     }
