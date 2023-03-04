@@ -27,6 +27,8 @@ LTS分支：swoolefy-4.8-lts 长期维护，最低要求php >= php7.2 && php < p
 所有只能通过编译方式方式来生成swoole扩展，然后选择 swoolefy-4.8-lts 作为项目分支
 
 ### 实现的功能特性
+
+基础特性
 - [x] 架手脚一键创建项目           
 - [x] 路由与调度，MVC三层，多级配置      
 - [x] 支持composer的PSR-4规范，实现PSR-3的日志接口     
@@ -42,15 +44,16 @@ LTS分支：swoolefy-4.8-lts 长期维护，最低要求php >= php7.2 && php < p
 - [x] 异步务管理TaskManager，定时器管理TickManager，内存表管理TableManager  
 - [x] 自定义进程管理ProcessManager，进程池管理PoolsManger
 - [x] 支持底层异常错误的所有日志捕捉,支持全局日志,包括debug、info、notice、warning、error等级       
-- [x] 支持自定义进程的redis，rabitmq，kafka的订阅发布，消息队列等     
-- [x] 支持crontab计划任务                    
-- [x] 支持热更新reload worker                  
+- [x] 支持自定义进程的redis，rabbitmq，kafka的订阅发布，消息队列等      
+- [x] 支持热更新reload worker 监控以及更新                 
 - [x] 支持定时的系统信息采集，并以订阅发布，udp等方式收集至存贮端    
 - [x] 命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架   
-- [x] 支持crontab的local和fork计划任务   
-- [x] 支持worker的daemon模式的进程消费模型   
-- [x] 支持跑console一次性脚本模式，跑完脚本自动退出，主要用于修复数据等   
-- [ ] 分布式服务注册（zk，etcd）       
+
+高级特性
+- [x] 支持crontab的local调用和fork独立进程的计划任务        
+- [x] 支持worker下后台daemon模式的多进程协程消费模型,包括进程自动拉起，进程数动态调整，进程健康状态监控     
+- [x] 支持console终端脚本模式，跑完脚本自动退出，可用于修复数据、数据迁移等临时脚本行功能操作      
+- [ ] 支持分布式服务注册（zk，etcd）       
 
 ### 常用组件
 | 组件名称 | 安装 | 说明 |
@@ -75,7 +78,7 @@ LTS分支：swoolefy-4.8-lts 长期维护，最低要求php >= php7.2 && php < p
 - [x] RateLimit限流组件   
 - [x] Redis Public Subscribe组件    
 - [x] Db 、Redis、Curl协程连接池组件
-- [x] UUid 自增id组件  
+- [x] UUid 分布式自增id组件  
 - [x] Curl基础组件    
    
 github: https://github.com/bingcool/library    
@@ -120,6 +123,30 @@ swoole-cli cli.php create App
 
 // 执行完上面命令行后，将会自动生成App项目目录以及内部子目录
 
+App
+├── Config       // 应用配置
+│   ├── config-dev.php
+│   ├── config-gra.php
+│   ├── config-prd.php
+│   ├── config-test.php
+│   └── defines.php
+├── Controller
+│   └── IndexController.php // 控制器层
+├── Log
+├── Model
+│   └── ClientModel.php
+├── Module        // 模块层
+├── Protocol      // 协议配置
+│   ├── config-dev.php
+│   ├── config-gra.php
+│   ├── config-prd.php
+│   └── config-test.php
+├── Runtime
+├── View
+│   └── Index
+│—— autoloader.php // 自定义项目自动加载
+|—— Event.php      // 事件实现类
+|—— HttpServer.php // http server
 ```
 
 ### 四、启动项目
