@@ -198,8 +198,8 @@ Config/config-dev.php
 
 return [
 
-// db|redis连接池
-'enable_component_pools' => [
+    // db|redis连接池
+    'enable_component_pools' => [
         // 取components的`DB`组件名称相对应
         'db' => [
             'pools_num' => 5, // db实例数
