@@ -20,7 +20,7 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 
 LTS分支：swoolefy-4.8-lts 长期维护，最低要求php >= php7.2 && php < php8.0, 推荐直接swoole-v4.8+，需要通过源码编译安装
 
-选择哪个分支？
+选择哪个分支？  
 1、如果确定项目是使用php8+的，那么直接选择 swoole-v5.0+ 以上版本来编译安装或者直接使用swoole-cli-v5.0，然后选择 swooolefy-v5.0+ 作为项目分支
 
 2、如果确定项目是使用php7.2-php7.4的，那么选择 swoole-v4.8+ 版本来进行编译安装(不能直接使用 swoole-cli-v4.8+ 了, 因为其内置的是php8.1，与你的项目的php7不符合)
@@ -52,7 +52,7 @@ LTS分支：swoolefy-4.8-lts 长期维护，最低要求php >= php7.2 && php < p
 高级特性
 - [x] 支持crontab的local调用和fork独立进程的计划任务        
 - [x] 支持worker下后台daemon模式的多进程协程消费模型,包括进程自动拉起，进程数动态调整，进程健康状态监控     
-- [x] 支持console终端脚本模式，跑完脚本自动退出，可用于修复数据、数据迁移等临时脚本行功能操作      
+- [x] 支持console终端脚本模式，跑完脚本自动退出，可用于修复数据、数据迁移等临时脚本功能      
 - [ ] 支持分布式服务注册（zk，etcd）       
 
 ### 常用组件
@@ -169,134 +169,158 @@ swooole-cli cli.php status App
 ### 五、访问
 
 默认端口是9502,可以通过http://localhost:9502访问默认控制器
+```
+<?php
+namespace App\Controller;
+
+use Swoolefy\Core\Application;
+use Swoolefy\Core\Controller\BController;
+
+class IndexController extends BController {
+    public function index() {
+        Application::getApp()->response->write('<h1>Hello, Welcome to Swoolefy Framework! <h1>');
+    }
+}
+
+```
 
 至此一个最简单的http的服务就创建完成了，更多例子请参考项目下Test的demo
 
 
 ### 定义组件
+
+配置文件：
+Config/config-dev.php
+
 开放式组件接口，闭包回调实现创建组件过程，return对象即可
 ```
+<?php
+
+return [
 
 // db|redis连接池
-
 'enable_component_pools' => [
-    // 取components的`DB`组件名称相对应
-    'db' => [
-        'pools_num' => 5, // db实例数
-        'push_timeout' => 2, // db实例进入channel池最长等待时间，单位s
-        'pop_timeout' => 1, // db实例出channel池最长等待时间，单位s.在规定时间内获取不到db对象，将降级为实时创建db实例
-        'live_time' => 10 // db实例的有效期，单位s.过期后将被掉弃，重新创建新DB实例
+        // 取components的`DB`组件名称相对应
+        'db' => [
+            'pools_num' => 5, // db实例数
+            'push_timeout' => 2, // db实例进入channel池最长等待时间，单位s
+            'pop_timeout' => 1, // db实例出channel池最长等待时间，单位s.在规定时间内获取不到db对象，将降级为实时创建db实例
+            'live_time' => 10 // db实例的有效期，单位s.过期后将被掉弃，重新创建新DB实例
+        ],
+    
+        // 取components的`redis`组件名称相对应
+        'redis' => [
+            'pools_num' => 5,
+            'push_timeout' => 2,
+            'pop_timeout' => 1,
+            'live_time' => 10
+        ]
     ],
+    
 
-    // 取components的`redis`组件名称相对应
-    'redis' => [
-        'pools_num' => 5,
-        'push_timeout' => 2,
-        'pop_timeout' => 1,
-        'live_time' => 10
+    // 在应用层配置文件中,例如下面使用library的Redis、Db组件
+    components => [
+        // 例如创建phpredis扩展连接实例
+        'redis' => function($name) { // 定义组件名，闭包回调实现创建组件过程，return对象即可
+             $redis = new \Common\Library\Cache\Redis();
+             $redis->connect('127.0.0.1', 6379);
+             $redis->auth('123456789');
+             return $redis;   
+        },
+    
+        // predis组件的redis实例
+        'predis' => function($name) {
+            $parameters = [
+                'scheme' => 'tcp',
+                'host'   => '127.0.0.1',
+                'port'   => 6379,
+                'password' => '123456789'
+            ];
+            $predis = new \Common\Library\Cache\Predis();
+            $predis->setConfig($parameters);
+            return $predis;
+        },
+    
+         // 适配swoole的mysql客户端组件
+        'db' => function() {
+            $config = [
+                // 地址
+                'hostname'        => '127.0.0.1',
+                // 数据库
+                'database'        => 'bingcool',
+                // 用户名
+                'username'        => 'bingcool',
+                // 密码
+                'password'        => '123456789',
+                // 端口
+                'hostport'        => '3306',
+                // dsn
+                'dsn'             => '',
+                // 数据库连接参数
+                'params'          => [],
+                // 数据库编码,默认采用utf8
+                'charset'         => 'utf8',
+                // 数据库表前缀
+                'prefix'          => '',
+                // 是否断线重连
+                'break_reconnect' => true,
+                // 是否支持事务嵌套
+                'support_savepoint' => false
+            ];
+    
+            $db = new \Common\Library\Db\Mysql($config);
+            return $db;
+        },
+           
+        // 适配swoole的postgreSql客户端组件
+        'pg' => function() {
+            $config = [
+                // 地址
+                'hostname'        => '127.0.0.1',
+                // 数据库
+                'database'        => 'dbtest',
+                // 用户
+                'username'        => 'bingcool',
+                // 密码
+                'password'        => '123456789',
+                // 端口
+                'hostport'        => '5432',
+                // dsn
+                'dsn'             => '',
+                // 数据库连接参数
+                'params'          => [],
+                // 数据库编码,默认采用utf8
+                'charset'         => 'utf8',
+                // 数据库表前缀
+                'prefix'          => '',
+                // 是否断线重连
+                'break_reconnect' => true,
+                // 是否支持事务嵌套
+                'support_savepoint' => false
+            ];
+    
+            $pg = new \Common\Library\Db\Pgsql($config);
+            return $pg;
+        },
+    
+        // 其他的组件都可以通过闭包回调创建
+        // 数组配置型log组件
+        'log' => [
+            'class' => \Swoolefy\Util\Log::class,
+            'channel' => 'application',
+            'logFilePath' => rtrim(LOG_PATH,'/').'/runtime.log'
+        ],
+        // 或者log组件利用闭包回调创建
+        'log' => function($name) {
+            $channel= 'application';
+            $logFilePath = rtrim(LOG_PATH,'/').'/runtime.log';
+            $log = new \Swoolefy\Util\Log($channel, $logFilePath);
+            return $log;
+        },
     ]
-],
-
-// 在应用层配置文件中,例如下面使用library的Redis、Db组件
-
-components => [
-    // 例如创建phpredis扩展连接实例
-    'redis' => function($com_name) { // 定义组件名，闭包回调实现创建组件过程，return对象即可
-         $redis = new \Common\Library\Cache\Redis();
-         $redis->connect('127.0.0.1', 6379);
-         $redis->auth('123456789');
-         return $redis;   
-    },
-
-    // predis组件的redis实例
-    'predis' => function($name) {
-        $parameters = [
-            'scheme' => 'tcp',
-            'host'   => '127.0.0.1',
-            'port'   => 6379,
-            'password' => '123456789'
-        ];
-        $predis = new \Common\Library\Cache\Predis();
-        $predis->setConfig($parameters);
-        return $predis;
-    },
-
-     // 适配swoole的mysql客户端组件
-    'db' => function() {
-        $config = [
-            // 地址
-            'hostname'        => '127.0.0.1',
-            // 数据库
-            'database'        => 'bingcool',
-            // 用户名
-            'username'        => 'bingcool',
-            // 密码
-            'password'        => '123456789',
-            // 端口
-            'hostport'        => '3306',
-            // dsn
-            'dsn'             => '',
-            // 数据库连接参数
-            'params'          => [],
-            // 数据库编码,默认采用utf8
-            'charset'         => 'utf8',
-            // 数据库表前缀
-            'prefix'          => '',
-            // 是否断线重连
-            'break_reconnect' => true,
-            // 是否支持事务嵌套
-            'support_savepoint' => false
-        ];
-
-        $db = new \Common\Library\Db\Mysql($config);
-        return $db;
-    },
-       
-    // 适配swoole的postgreSql客户端组件
-    'pg' => function() {
-        $config = [
-            // 地址
-            'hostname'        => '127.0.0.1',
-            // 数据库
-            'database'        => 'dbtest',
-            // 用户
-            'username'        => 'bingcool',
-            // 密码
-            'password'        => '123456789',
-            // 端口
-            'hostport'        => '5432',
-            // dsn
-            'dsn'             => '',
-            // 数据库连接参数
-            'params'          => [],
-            // 数据库编码,默认采用utf8
-            'charset'         => 'utf8',
-            // 数据库表前缀
-            'prefix'          => '',
-            // 是否断线重连
-            'break_reconnect' => true,
-            // 是否支持事务嵌套
-            'support_savepoint' => false
-        ];
-
-        $pg = new \Common\Library\Db\Pgsql($config);
-        return $pg;
-    },
-
-    // 其他的组件都可以通过闭包回调创建
-    // 数组配置型log组件
-    'log' => [
-        'class' => \Swoolefy\Util\Log::class,
-        'channel' => 'application',
-        'logFilePath' => rtrim(LOG_PATH,'/').'/runtime.log'
-    ],
-    // 或者log组件利用闭包回调创建
-    'log' => function($name) {
-        $channel= 'application';
-        $logFilePath = rtrim(LOG_PATH,'/').'/runtime.log';
-        $log = new \Swoolefy\Util\Log($channel, $logFilePath);
-        return $log;
-    },
+    
+    // 其他配置
+    ......
 ]
 
 ```
