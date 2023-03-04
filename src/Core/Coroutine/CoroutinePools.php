@@ -98,7 +98,7 @@ class CoroutinePools
      * 使用完put对象入channel
      *
      * @param string $poolName
-     * @param $obj
+     * @param object $obj
      * @return void
      */
     public function putObj(string $poolName, $obj)

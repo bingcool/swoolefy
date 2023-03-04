@@ -21,7 +21,7 @@ class CoroutineManager
      * isEnableCoroutine
      * @return bool
      */
-    public function canEnableCoroutine()
+    public function canEnableCoroutine(): bool
     {
         return true;
     }
@@ -30,7 +30,7 @@ class CoroutineManager
      * getMainCoroutineId
      * @return int
      */
-    public function getCoroutineId()
+    public function getCoroutineId(): int
     {
         return \Swoole\Coroutine::getCid();
     }
@@ -38,7 +38,7 @@ class CoroutineManager
     /**
      * @return bool
      */
-    public function isCoroutine()
+    public function isCoroutine(): bool
     {
         if (\Swoole\Coroutine::getCid() > 0) {
             return true;
@@ -50,7 +50,7 @@ class CoroutineManager
      * getCoroutineStatus
      * @return array
      */
-    public function getCoroutineStatus()
+    public function getCoroutineStatus(): array
     {
         if ($this->canEnableCoroutine()) {
             if (method_exists('Swoole\\Coroutine', 'stats')) {
@@ -64,7 +64,7 @@ class CoroutineManager
      * listCoroutines
      * @return array
      */
-    public function listCoroutines()
+    public function listCoroutines(): array
     {
         if (method_exists('Swoole\\Coroutine', 'list')) {
             $cids = [];

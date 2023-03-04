@@ -14,6 +14,7 @@ namespace Swoolefy\Core\Coroutine;
 use Swoole\Coroutine;
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Exception\SystemException;
 
 class GoWaitGroup
 {
@@ -26,6 +27,11 @@ class GoWaitGroup
      * @var Channel
      */
     private $channel;
+
+    /**
+     * @var bool
+     */
+    private $waiting = false;
 
     /**
      * @var array
@@ -98,9 +104,9 @@ class GoWaitGroup
     {
         $goWait = new static();
         foreach ($callBacks as $key => $callBack) {
+            $goWait->count++;
             Coroutine::create(function () use ($key, $callBack, $goWait) {
                 try {
-                    $goWait->count++;
                     $goWait->initResult($key, null);
                     $result = call_user_func($callBack);
                     $goWait->done($key, $result, 3.0);
@@ -130,12 +136,20 @@ class GoWaitGroup
      * @param float $timeouts
      * @return void
      */
-    public function done(string $key = null, $data = null, float $timeout = -1)
+    public function done(
+        string $key = null,
+        mixed $data = null,
+        float $timeout = -1
+    )
     {
         if (!empty($key) && !empty($data)) {
             $this->result[$key] = $data;
         }
-        $this->channel->push(1, $timeout);
+        $count = $this->count -1;
+        $this->count = $count;
+        if ($this->count == 0 && $this->waiting) {
+            $this->channel->push(1, $timeout);
+        }
     }
 
     /**
@@ -153,7 +167,12 @@ class GoWaitGroup
      */
     public function wait(float $timeout = 0)
     {
-        while ($this->count-- > 0) {
+        if ($this->waiting) {
+            throw new SystemException('WaitGroup misuse: add called concurrently with wait');
+        }
+
+        if ($this->count > 0) {
+            $this->waiting = true;
             $this->channel->pop($timeout);
         }
         $result = $this->result;
