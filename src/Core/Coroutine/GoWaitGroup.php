@@ -138,11 +138,11 @@ class GoWaitGroup
      */
     public function done(
         string $key = null,
-        mixed $data = null,
+        $data = null,
         float $timeout = -1
     )
     {
-        if (!empty($key) && !empty($data)) {
+        if (!empty($key) && !is_null($data)) {
             $this->result[$key] = $data;
         }
         $count = $this->count -1;

@@ -84,11 +84,8 @@ class CoroutineManager
      * @param $limit
      * @return mixed
      */
-    public function getBackTrace($cid = 0, $options = DEBUG_BACKTRACE_PROVIDE_OBJECT, $limit = 0)
+    public function getBackTrace(int $cid = 0, int $options = DEBUG_BACKTRACE_PROVIDE_OBJECT, int $limit = 0)
     {
-        if (method_exists('Swoole\\Coroutine', 'getBackTrace')) {
-            return \Swoole\Coroutine::getBackTrace($cid, $options, $limit);
-        }
-        return null;
+        return \Swoole\Coroutine::getBackTrace($cid, $options, $limit);
     }
 }

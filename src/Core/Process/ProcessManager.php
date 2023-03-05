@@ -80,7 +80,7 @@ class ProcessManager
     {
         $key = md5($processName);
         if (isset($this->processList[$key])) {
-            throw new \Exception("You can not add the same process : $processName");
+            throw new \Exception("Error Add the same process : $processName");
         }
 
         if (!TableManager::isExistTable('table_process_map')) {

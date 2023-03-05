@@ -441,7 +441,7 @@ class BaseServer
 
     /**
      * getLocalIp
-     * @return string
+     * @return array
      */
     public static function getLocalIp()
     {

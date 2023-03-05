@@ -37,10 +37,10 @@ class Swfy
     protected static $appConf = [];
 
     /**
-     * @param $server
+     * @param object $server
      * @return bool
      */
-    public static function setSwooleServer($server)
+    public static function setSwooleServer(object $server)
     {
         if (is_object($server)) {
             static::$server = $server;
@@ -121,7 +121,7 @@ class Swfy
     /**
      * __callStatic
      * @return void
-     * @throws \Exception
+     * @throws SystemException
      */
     public static function __callStatic($action, $args = [])
     {

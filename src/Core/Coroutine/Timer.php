@@ -37,18 +37,13 @@ class Timer
                     $timeChannel->close();
                     break;
                 }
-                try {
-                    Coroutine::create(function ($callable) use($timeChannel) {
-                        try {
-                            $callable($timeChannel);
-                        }catch (\Throwable $exception) {
-                            BaseServer::catchException($exception);
-                        }
-                    }, $callable);
-                }catch (\Throwable $exception)
-                {
-                    BaseServer::catchException($exception);
-                }
+                Coroutine::create(function ($callable) use($timeChannel) {
+                    try {
+                        $callable($timeChannel);
+                    }catch (\Throwable $exception) {
+                        BaseServer::catchException($exception);
+                    }
+                }, $callable);
             }
         }, $second, $callable);
 
