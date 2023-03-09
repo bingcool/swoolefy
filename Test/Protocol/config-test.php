@@ -7,14 +7,13 @@
 +----------------------------------------------------------------------
 | @see https://github.com/bingcool/swoolefy
 +----------------------------------------------------------------------
-*/
+ */
 
 // 加载常量定义
 include START_DIR_ROOT.'/'.APP_NAME.'/Config/defines.php';
 
 // 加载应用层协议
 $appConf = include START_DIR_ROOT.'/'.APP_NAME.'/Config/config-'.SWOOLEFY_ENV.'.php';
-
 
 return [
     // 应用层配置
@@ -35,7 +34,7 @@ return [
     'runtime_enable_coroutine' => true,
 
     // swoole setting
-	'setting' => [
+    'setting' => [
         'admin_server'           => '0.0.0.0:9503',
         'reactor_num'            => 1,
         'worker_num'             => 4,
@@ -53,7 +52,7 @@ return [
         'http_compression_level' => 1,
         'log_file'               => '/tmp/' . APP_NAME . '/swoole_log.txt',
         'pid_file'               => '/data/' . APP_NAME . '/log/server.pid',
-	],
+    ],
 
     'coroutine_setting' => [
         'max_coroutine' => 50000
@@ -65,15 +64,15 @@ return [
     // 内存表定义
     'table' => [
         'table_process' => [
-             // 内存表建立的行数,取决于建立的process进程数,最小值64
-             'size' => 64,
-              // 定义字段
-              'fields'=> [
-                     ['pid','int', 10],
-                     ['process_name','string', 56],
-                  ]
-               ]
-     ],
+            // 内存表建立的行数,取决于建立的process进程数,最小值64
+            'size' => 64,
+            // 定义字段
+            'fields'=> [
+                ['pid','int', 10],
+                ['process_name','string', 56],
+            ]
+        ]
+    ],
 
     // 依赖于EnableSysCollector = true，否则设置没有意义,不生效
     'enable_pv_collector'  => false,
