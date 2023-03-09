@@ -68,30 +68,24 @@ if (isset($argv[2]) && in_array(trim($argv[2]), array_keys(APP_NAMES))) {
     }
 }
 
-// 判断当前环境,默认是dev(开发),test(测试),gra(灰度),prd(生产)
+// env params
 $cliParams = array_flip($argv);
 
 $cliEnv = SWOOLEFY_DEV;
 
-foreach (SWOOLEFY_ENVS as $env) {
-    if (isset($cliParams['-' . $env])) {
-        $cliEnv = $env;
-        break;
-    }
-}
+// system environment variables
+$env = getenv("SWOOLEFY_CLI_ENV");
 
-// 加载当前的env配置
-$envFile = __DIR__.'/env.ini';
-if(file_exists($envFile)) {
-    $options = parse_ini_file($envFile, true);
-    $globalEnv = $options['global']['env'] ?? '';
-    if(!in_array($globalEnv, SWOOLEFY_ENVS)) {
-        write("
-                [Error] The env.ini global.env settting error"
-        );
-        exit(0);
+if(in_array($env, SWOOLEFY_ENVS)) {
+    $cliEnv = $env;
+}else {
+    // cli command line set env eg -dev, -test, -gra, -prd
+    foreach (SWOOLEFY_ENVS as $env) {
+        if (isset($cliParams['-' . $env])) {
+            $cliEnv = $env;
+            break;
+        }
     }
-    $cliEnv = $globalEnv;
 }
 
 defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', $cliEnv);
@@ -173,11 +167,6 @@ function createProject()
     if (is_dir($appRootDir)) {
         write("You had create {$appName} project dir");
         exit(0);
-    }
-
-    $envIniFile = START_DIR_ROOT . "/env.ini";
-    if (!file_exists($envIniFile)) {
-        file_put_contents($envIniFile, getDefaultEnvIni());
     }
 
     $protocol = APP_NAMES[$appName];
@@ -523,7 +512,7 @@ function commonStop($app_name)
 
     \Swoole\Process::kill($pid, SIGTERM);
     // 如果'reload_async' => true,，则默认workerStop有30s的过度期停顿这个时间稍微会比较长，设置成60过期
-    $nowtime = time();
+    $nowTime = time();
     write("
         Server begin to stopping at " . date("Y-m-d H:i:s") . ", pid={$pid}. please wait a moment..."
     );
@@ -543,7 +532,7 @@ function commonStop($app_name)
             @unlink($pidFile);
             break;
         } else {
-            if (time() - $nowtime > 60) {
+            if (time() - $nowTime > 60) {
                 write("---------------------------stop info-----------------------");
                 write("Please use 'ps -ef | grep php-swoolefy' checkout swoole whether or not stop");
                 break;
@@ -1049,23 +1038,6 @@ function resetConf(&$conf)
     }
 }
 
-function showLogo()
-{
-    $logo =
-<<<LOGO
-  ______                                _           _ _ _ _
- /  ____|                              | |         |  _ _ _|  _   _
-|  (__     __      __   ___     ___    | |   ___   | |       | | | |
- \___  \   \ \ /\ / /  / _ \   / _ \   | |  / _ \  | |_ _ _  | | | |
- ____)  |   \ V  V /  | (_) | | (_) |  | | | ___/  |  _ _ _| | |_| |
-|_____ /     \_/\_/    \___/   \___/   |_|  \___|  | |        \__, |
-                                                   |_|           | |
-                                                              __ / |
-                                                             |_ _ /
-LOGO;
-    write($logo, 'light_green');
-}
-
 function getDefaultConfig()
 {
     $content =
@@ -1181,19 +1153,24 @@ EOF;
     return $content;
 }
 
-function getDefaultEnvIni()
+function showLogo()
 {
-    $content =
-<<<EOF
-[global]
-##开发环境dev, 测试环境test, 灰度环境gra, 生产环境prd
-env=dev
-EOF;
-    return $content;
+    $logo =
+        <<<LOGO
+  ______                                _           _ _ _ _
+ /  ____|                              | |         |  _ _ _|  _   _
+|  (__     __      __   ___     ___    | |   ___   | |       | | | |
+ \___  \   \ \ /\ / /  / _ \   / _ \   | |  / _ \  | |_ _ _  | | | |
+ ____)  |   \ V  V /  | (_) | | (_) |  | | | ___/  |  _ _ _| | |_| |
+|_____ /     \_/\_/    \___/   \___/   |_|  \___|  | |        \__, |
+                                                   |_|           | |
+                                                              __ / |
+                                                             |_ _ /
+LOGO;
+    write($logo, 'light_green');
 }
 
-function Run($callback = null)
-{
+(function ($callback = null) {
     $argv = SWOOLEFY_CLI_PARAMS;
     initCheck();
     showLogo();
@@ -1202,6 +1179,4 @@ function Run($callback = null)
         call_user_func($callback, $command);
     }
     commandHandler();
-}
-
-Run();
+})();
