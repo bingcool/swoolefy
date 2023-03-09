@@ -92,6 +92,25 @@ github: https://github.com/bingcool/workerfy
 
 ### 一、安装 
 
+1、先配置环境变量
+```
+// 独立物理机或者云主机配置系统环境变量
+vi /etc/profile
+在/etc/profile末尾添加一行标识环境，下面是支持的4个环境,框架将通过这个环境变量区分环境，加载不同的配置
+export SWOOLEFY_CLI_ENV='dev'  // 开发环境
+export SWOOLEFY_CLI_ENV='test' // 测试环境
+export SWOOLEFY_CLI_ENV='gra'  // 灰度环境
+export SWOOLEFY_CLI_ENV='prd'  // 生产环境
+// 最后是配置生效
+source /etc/profile
+
+```
+```
+// dockerfile 创建容器的, 可以根据不同环境生成的内置环境变量不同镜像，每个不同的环境镜像可以用在不同环境，代码将通过这个环境变量区分环境，加载不同的配置
+ENV SWOOLEFY_CLI_ENV dev
+
+```
+2、创建项目
 ```
 // 下载代码到到你的自定义目录，这里定义为myproject
 composer create-project bingcool/swoolefy:^4.8.2 myproject
@@ -117,6 +136,7 @@ include './swoolefy';
 ```
 
 ### 三、执行创建你定义的App项目
+
 ```
 // 你定义的项目目录是App, 在myproject目录下执行下面命令行
 
