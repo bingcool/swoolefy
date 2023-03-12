@@ -189,7 +189,7 @@ swooole-cli cli.php status App
 
 ### 五、访问
 
-默认端口是9502,可以通过http://localhost:9502访问默认控制器
+默认端口是9502,可以通过 http://localhost:9502 访问默认控制器
 ```
 <?php
 namespace App\Controller;
@@ -348,6 +348,7 @@ return [
 ### 使用组件
 ```
 use Swoolefy\Core\Application;
+
 class TestController extends BController {
     /**
     * 控制器
@@ -400,4 +401,4 @@ class TestController extends BController {
 
 ### License
 MIT   
-Copyright (c) 2017-2022 zengbing huang    
+Copyright (c) 2017-2023 zengbing huang    
