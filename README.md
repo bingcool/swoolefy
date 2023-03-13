@@ -17,9 +17,9 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 内置view、log、session、mysql、redis、mongodb等常用组件等。     
 
 ### 建议版本
-主分支：master分支最低要求php8.0+，swoole5.0+（或者swoole-cli-v5.0+）, 或者也可以使用swoole-cli4.8+, 因为其内置php8.1+  
+swoolefy-5.0+ 版本：目前主分支，最低要求php8.0+，swoole5.0+（或者swoole-cli-v5.0+）, 或者也可以使用swoole-cli4.8+, 因为其内置php8.1+  
 
-LTS分支：swoolefy-4.8-lts 长期维护，最低要求php >= php7.2 && php < php8.0, 推荐直接swoole-v4.8+，需要通过源码编译安装
+swoolefy-4.8-lts 版本：长期维护分支，最低要求php >= php7.2 && php < php8.0, 推荐直接swoole-v4.8+，需要通过源码编译安装
 
 选择哪个版本？  
 1、如果确定项目是使用php8+的，那么直接选择 swoole-v5.0+ 以上版本来编译安装或者直接使用swoole-cli-v5.0，然后选择 ```bingcool/swoolefy:~5.0.2``` 作为项目分支
