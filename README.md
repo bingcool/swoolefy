@@ -21,7 +21,7 @@ swoolefy-5.0+ 版本：
 目前主分支，最低要求php8.0+，swoole5.0+（或者swoole-cli-v5.0+）, 或者也可以使用swoole-cli4.8+, 因为其内置php8.1+  
 
 swoolefy-4.8-lts 版本：    
-长期维护分支，最低要求php >= php7.2 && php < php8.0, 推荐直接swoole-v4.8+，需要通过源码编译安装
+长期维护分支，最低要求php >= php7.2 && php < php8.0, 推荐直接swoole-v4.8+，需要通过源码编译安装swoole
 
 选择哪个版本？  
 1、如果确定项目是使用php8+的，那么直接选择 swoole-v5.0+ 以上版本来编译安装或者直接使用swoole-cli-v5.0，然后选择 ```bingcool/swoolefy:~5.0.2``` 作为项目分支
@@ -32,25 +32,25 @@ swoolefy-4.8-lts 版本：
 ### 实现的功能特性
 
 基础特性
-- [x] 架手脚一键创建项目           
-- [x] 路由与调度，MVC三层，多级配置      
+- [x] 支持架手脚一键创建项目           
+- [x] 支持路由映射与调度，MVC三层，多级配置         
 - [x] 支持composer的PSR-4规范，实现PSR-3的日志接口     
 - [x] 支持自定义注册不同根命名空间，快速多项目部署          
 - [x] 支持httpServer，实用轻量Api接口开发     
-- [x] 支持websocketServer,udpServer,mqttServer      
+- [x] 支持多协议websocketServer、udpServer、mqttServer      
 - [x] 支持基于tcp实现的rpc服务，开放式的系统接口，可自定义协议数据格式，并提供rpc-client协程组件
-- [x] 支持DI容器，组件IOC、配置化        
+- [x] 支持DI容器，组件IOC、配置化，Channel公共组件池            
 - [x] 支持协程单例注册,协程上下文变量寄存    
 - [x] 支持mysql、postgreSql协程组件、redis协程组件、mongodb组件     
 - [x] 支持mysql的协程连接池，redis协程池
 - [x] 支持protobuf buffer的数据接口结构验证，压缩传输等        
-- [x] 异步务管理TaskManager，定时器管理TickManager，内存表管理TableManager  
-- [x] 自定义进程管理ProcessManager，进程池管理PoolsManger
+- [x] 支持异步务管理TaskManager，定时器管理TickManager，内存表管理TableManager  
+- [x] 支持自定义进程管理ProcessManager，进程池管理PoolsManger
 - [x] 支持底层异常错误的所有日志捕捉,支持全局日志,包括debug、info、notice、warning、error等级       
 - [x] 支持自定义进程的redis，rabbitmq，kafka的订阅发布，消息队列等      
 - [x] 支持热更新reload worker 监控以及更新                 
 - [x] 支持定时的系统信息采集，并以订阅发布，udp等方式收集至存贮端    
-- [x] 命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架   
+- [x] 支持命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架   
 
 高级特性
 - [x] 支持crontab的local调用和fork独立进程的计划任务        
@@ -87,11 +87,6 @@ swoolefy-4.8-lts 版本：
 github: https://github.com/bingcool/library    
 
 
-
-### 关联项目
-bingcool/workerfy 是基于swoole实现的多进程协程模型，专处理daemon后台进程处理      
-github: https://github.com/bingcool/workerfy   
-
 ### 一、安装 
 
 1、先配置环境变量
@@ -108,7 +103,7 @@ source /etc/profile
 
 ```
 ```
-// dockerfile 创建容器的, 可以根据不同环境生成的内置环境变量不同镜像，每个不同的环境镜像可以用在不同环境，代码将通过这个环境变量区分环境，加载不同的配置
+// 如果是通过dockerfile 创建容器的, 可以根据不同环境生成的内置环境变量不同镜像，每个不同的环境镜像可以用在不同环境，代码将通过这个环境变量区分环境，加载不同的配置
 ENV SWOOLEFY_CLI_ENV dev
 
 ```
@@ -118,7 +113,7 @@ ENV SWOOLEFY_CLI_ENV dev
 composer create-project bingcool/swoolefy:~5.0 myproject
 ```
 
-### 二、添加项目入口启动文件,并定义你的项目目录，命名为App
+### 二、添加项目入口启动文件cli.php,并定义你的项目目录，命名为App
 
 ```
 // 在myproject目录下添加cli.php, 这个是启动项目的入口文件
@@ -199,7 +194,9 @@ namespace App\Controller;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 
+// 默认生成的IndexController
 class IndexController extends BController {
+
     public function index() {
         Application::getApp()->response->write('<h1>Hello, Welcome to Swoolefy Framework! <h1>');
     }
@@ -212,7 +209,7 @@ class IndexController extends BController {
 
 ### 定义组件
 
-配置文件：
+应用层配置文件：
 Config/config-dev.php
 
 开放式组件接口，闭包回调实现创建组件过程，return对象即可
@@ -333,6 +330,7 @@ return [
             'channel' => 'application',
             'logFilePath' => rtrim(LOG_PATH,'/').'/runtime.log'
         ],
+        
         // 或者log组件利用闭包回调创建
         'log' => function($name) {
             $channel= 'application';
@@ -366,8 +364,9 @@ class TestController extends BController {
 
         // predis组件
         $predis = Application::getApp()->predis;
-        //或者
+        //或者通过get指明组件名获取(推荐)
         // $predis = Application::getApp()->get('predis');
+        
         // 这个过程会发生协程调度
         $predis->set('predis','this is a predis instance');
         $predis->get('predis');
@@ -384,7 +383,7 @@ class TestController extends BController {
         ]);
         var_dump($numRows)         
 
-        //查询
+        // 查询
         $result = $db->createCommand('select * from user where id>:id')->queryOne([':id'=>100]);
         var_dump($result);    
 
@@ -400,6 +399,111 @@ class TestController extends BController {
 }
 
 ```
+
+
+### 默认协议层全局配置文件 Protocol/config-dev.php
+
+开发者可以根据实际使用适当调整配置项
+
+```
+<?php
+
+// 加载应用层常量定义
+include START_DIR_ROOT.'/'.APP_NAME.'/Config/defines.php';
+
+// 加载应用层协议
+$appConf = include START_DIR_ROOT.'/'.APP_NAME.'/Config/config-'.SWOOLEFY_ENV.'.php';
+
+
+return [
+    // 应用层配置
+    'app_conf'                 => $appConf, // 应用层配置
+    'application_index'        => '',
+    'event_handler'            => \Test\Event::class,
+    'exception_handler'        => \Test\Exception\ExceptionHandle::class,
+    'response_formatter'       => \Swoolefy\Core\ResponseFormatter::class,
+    'master_process_name'      => 'php-swoolefy-http-master',
+    'manager_process_name'     => 'php-swoolefy-http-manager',
+    'worker_process_name'      => 'php-swoolefy-http-worker',
+    'www_user'                 => '',
+    'host'                     => '0.0.0.0',
+    'port'                     => '9501',
+    'time_zone'                => 'PRC',
+    'swoole_process_mode'      => SWOOLE_PROCESS,
+    'include_files'            => [],
+    'runtime_enable_coroutine' => true,
+
+    // swoole setting
+	'setting' => [
+        'admin_server'           => '0.0.0.0:9503',
+        'reactor_num'            => 1,
+        'worker_num'             => 4,
+        'max_request'            => 10000,
+        'task_worker_num'        => 2,
+        'task_tmpdir'            => '/dev/shm',
+        'daemonize'              => 0,
+        'dispatch_mode'          => 3,
+        'reload_async'           => true,
+        'enable_coroutine'       => 1,
+        'task_enable_coroutine'  => 1,
+        // 压缩
+        'http_compression'       => true,
+        // $level 压缩等级，范围是 1-9，等级越高压缩后的尺寸越小，但 CPU 消耗更多。默认为 1, 最高为 9
+        'http_compression_level' => 1,
+        'log_file'               => '/tmp/' . APP_NAME . '/swoole_log.txt',
+        'pid_file'               => '/data/' . APP_NAME . '/log/server.pid',
+	],
+
+    'coroutine_setting' => [
+        'max_coroutine' => 50000
+    ],
+
+    // 是否内存化线上实时任务
+    'enable_table_tick_task' => true,
+
+    // 内存表定义
+    'table' => [
+        'table_process' => [
+             // 内存表建立的行数,取决于建立的process进程数,最小值64
+             'size' => 64,
+              // 定义字段
+              'fields'=> [
+                     ['pid','int', 10],
+                     ['process_name','string', 56],
+                  ]
+               ]
+     ],
+
+    // 依赖于EnableSysCollector = true，否则设置没有意义,不生效
+    'enable_pv_collector'  => false,
+    'enable_sys_collector' => true,
+    'sys_collector_conf' => [
+        'type'           => SWOOLEFY_SYS_COLLECTOR_UDP,
+        'host'           => '127.0.0.1',
+        'port'           => 9504,
+        'from_service'   => 'http-app',
+        'target_service' => 'collectorService/system',
+        'event'          => 'collect',
+        'tick_time'      => 2,
+        'callback'       => function () {
+            $sysCollector = new \Swoolefy\Core\SysCollector\SysCollector();
+            return $sysCollector->test();
+        }
+    ],
+
+    // 热更新
+    'reload_conf'=> [
+        'enable_reload'     => false, // 是否启用热文件更新功能       
+        'after_seconds'     => 3, // 检测到只要有文件更新，3s内不在检测，等待重启既可     
+        'monitor_path'      => APP_PATH, // 开发者自己定义目录
+        'reload_file_types' => ['.php', '.html', '.js'],
+        'ignore_dirs'       => [],
+        'callback'          => function () {}
+    ]
+];
+
+```
+
 
 ### License
 MIT   

@@ -48,18 +48,19 @@ class EventApp
      * class Close extends EventController {
      * // 继承于EventController，可以传入可变参数
      * public function __construct($server, $fd) {
-     * // 必须执行父类__construct()
-     * parent::__construct();
+     *      // 必须执行父类__construct()
+     *      parent::__construct();
      * }
      *
      * public function close() {
-     * //TODO
+     *      //TODO
      * }
-     *  }
-     *  同时go创建协程中，创建应用实例可以使用这个类注册实例，\App\AbstractEventHandle\Gocoroutine继承于\Swoolefy\Core\EventController
+     *
+     * }
+     *  同时go创建协程中，创建应用实例可以使用这个类注册实例，\App\AbstractEventHandle\Goroutine继承于\Swoolefy\Core\EventController
      * registerApp的第二个参数args是class的__construct参数
      *  go(function() {
-     *      $app = (new \Swoolefy\Core\EventApp)->registerApp(\App\AbstractEventHandle\Gocoroutine::class, ['name','id']);
+     *      $app = (new \Swoolefy\Core\EventApp)->registerApp(\App\AbstractEventHandle\Goroutine::class, ['name','id']);
      *      $app->test();
      * });
      * 也可以利用闭包形式,最后一个函数是传进来的闭包函数的形参,外部变量使用use引入

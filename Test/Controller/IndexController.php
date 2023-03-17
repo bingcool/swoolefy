@@ -4,6 +4,7 @@ namespace Test\Controller;
 use Swoolefy\Core\App;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
+use Swoolefy\Core\EventController;
 use Swoolefy\Core\Log\LogManager;
 
 class IndexController extends BController {
@@ -56,9 +57,29 @@ class IndexController extends BController {
 
         $rowCount = $db->getNumRows();
 
+        // 创建一个协助程单例
+        goApp(function (EventController $event) use($rowCount) {
+            /**
+             * @var \Common\Library\Db\Mysql $db
+             */
+            $db = Application::getApp()->get('db');
+            $db->createCommand("insert into tbl_users (`user_name`,`sex`,`birthday`,`phone`) values(:user_name,:sex,:birthday,:phone)" )
+                ->insert([
+                    ':user_name' => '李四-'.rand(1,9999),
+                    ':sex' => 0,
+                    ':birthday' => '1991-07-08',
+                    ':phone' => 12345678
+                ]);
+
+            $rowCount = $db->getNumRows();
+
+        });
+
         $this->returnJson([
             'row_count' => $rowCount
         ]);
+
+
     }
 
     public function testUserList()
@@ -138,7 +159,7 @@ class IndexController extends BController {
 
 
             go(function () {
-                (new \Swoolefy\Core\EventApp)->registerApp(function($event) {
+                (new \Swoolefy\Core\EventApp)->registerApp(function(EventController $event) {
                     /**
                      * @var \Common\Library\Db\Mysql $db
                      */
