@@ -142,3 +142,23 @@ function getOneFreePort(array $excludePorts = []): int
 {
     return get_one_free_port($excludePorts);
 }
+
+/**
+ * 协程单例
+ *
+ * @param \Closure $callback
+ * @param ...$params
+ * @return void
+ * @throws \Swoolefy\Exception\SystemException
+ */
+function goApp(\Closure $callback) {
+    go(function () use($callback) {
+        (new \Swoolefy\Core\EventApp)->registerApp(function($event) use($callback) {
+            try {
+                $callback($event);
+            }catch (\Throwable $throwable) {
+                \Swoolefy\Core\BaseServer::catchException($throwable);
+            }
+        });
+    });
+}
