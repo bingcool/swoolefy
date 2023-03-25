@@ -53,7 +53,7 @@ class PoolsHandler
     protected $liveTime = 10;
 
     /**
-     * @var null
+     * @var \Closure
      */
     protected $callable = null;
 

@@ -265,7 +265,7 @@ class CommandRunner
     protected function checkNextFlag()
     {
         if (!$this->isNextFlag) {
-            throw new \Exception('Missing call isNextHandle().');
+            throw new SystemException('Missing call isNextHandle().');
         }
         $this->isNextFlag = false;
     }

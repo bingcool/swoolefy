@@ -185,8 +185,8 @@ class BaseServer
             self::startInclude();
             // 记录worker的进程worker_pid与worker_id的映射
             self::setWorkersPid($workerId, $server->worker_pid);
-        }catch(\Throwable $e) {
-            self::catchException($e);
+        }catch(\Throwable $throwable) {
+            self::catchException($throwable);
         }
 
         (new EventApp())->registerApp(function (EventController $event) use ($server, $workerId) {
