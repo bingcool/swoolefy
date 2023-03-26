@@ -11,7 +11,6 @@
 
 namespace Swoolefy\Core\Coroutine;
 
-use Swoole\Coroutine;
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Exception\SystemException;
@@ -50,9 +49,9 @@ class GoWaitGroup
      * @param \Closure $callBack
      * @param mixed ...$params
      */
-    public function go(\Closure $callBack, ...$params)
+    public function goApp(\Closure $callBack, ...$params)
     {
-        Coroutine::create(function (...$params) use ($callBack) {
+        goApp(function () use ($callBack, $params) {
             try {
                 $this->count++;
                 call_user_func($callBack, ...$params);
@@ -60,7 +59,7 @@ class GoWaitGroup
                 $this->count--;
                 BaseServer::catchException($throwable);
             }
-        }, ...$params);
+        });
     }
 
     /**
@@ -105,7 +104,7 @@ class GoWaitGroup
         $goWait = new static();
         foreach ($callBacks as $key => $callBack) {
             $goWait->count++;
-            Coroutine::create(function () use ($key, $callBack, $goWait) {
+            goApp(function () use ($key, $callBack, $goWait) {
                 try {
                     $goWait->initResult($key, null);
                     $result = call_user_func($callBack);
@@ -138,11 +137,11 @@ class GoWaitGroup
      */
     public function done(
         string $key = null,
-        $data = null,
+        mixed $data = null,
         float $timeout = -1
     )
     {
-        if (!empty($key) && !is_null($data)) {
+        if (!empty($key) && !empty($data)) {
             $this->result[$key] = $data;
         }
         $count = $this->count -1;

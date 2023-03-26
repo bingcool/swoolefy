@@ -37,13 +37,14 @@ class Timer
                     $timeChannel->close();
                     break;
                 }
-                Coroutine::create(function ($callable) use($timeChannel) {
-                    try {
+                try {
+                    goApp(function ($callable) use($timeChannel, $callable) {
                         $callable($timeChannel);
-                    }catch (\Throwable $exception) {
-                        BaseServer::catchException($exception);
-                    }
-                }, $callable);
+                    });
+                }catch (\Throwable $exception)
+                {
+                    BaseServer::catchException($exception);
+                }
             }
         }, $second, $callable);
 
@@ -76,13 +77,9 @@ class Timer
 
         Coroutine::create(function ($second, $callable) use ($timeChannel) {
             while (!$timeChannel->pop($second)) {
-                Coroutine::create(function ($callable) use($timeChannel) {
-                    try {
-                        $callable($timeChannel);
-                    }catch (\Throwable $exception) {
-                        BaseServer::catchException($exception);
-                    }
-                }, $callable);
+                goApp(function ($callable) use($timeChannel, $callable) {
+                    $callable($timeChannel);
+                });
                 break;
             }
         }, $second, $callable);

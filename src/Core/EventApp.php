@@ -48,18 +48,19 @@ class EventApp
      * class Close extends EventController {
      * // 继承于EventController，可以传入可变参数
      * public function __construct($server, $fd) {
-     * // 必须执行父类__construct()
-     * parent::__construct();
+     *      // 必须执行父类__construct()
+     *      parent::__construct();
      * }
      *
      * public function close() {
-     * //TODO
+     *      //TODO
      * }
-     *  }
-     *  同时go创建协程中，创建应用实例可以使用这个类注册实例，\App\AbstractEventHandle\Gocoroutine继承于\Swoolefy\Core\EventController
+     *
+     * }
+     *  同时go创建协程中，创建应用实例可以使用这个类注册实例，\App\AbstractEventHandle\Goroutine继承于\Swoolefy\Core\EventController
      * registerApp的第二个参数args是class的__construct参数
      *  go(function() {
-     *      $app = (new \Swoolefy\Core\EventApp)->registerApp(\App\AbstractEventHandle\Gocoroutine::class, ['name','id']);
+     *      $app = (new \Swoolefy\Core\EventApp)->registerApp(\App\AbstractEventHandle\Goroutine::class, ['name','id']);
      *      $app->test();
      * });
      * 也可以利用闭包形式,最后一个函数是传进来的闭包函数的形参,外部变量使用use引入
@@ -69,23 +70,35 @@ class EventApp
      *      });
      * });
      *
+     * 强烈推荐使用
+     * goApp(function(EventController $event) use($name, $id) {
+     *      var_dump($event); //输出EventController 实例
+     * })
+     *
      * @param string|\Closure $class
      * @param array $args
      * @return $this
-     * @throws SystemException
      */
     public function registerApp($class, array $args = [])
     {
         if ($class instanceof \Closure) {
             try {
-                $this->eventApp = new EventController(...$args);
+                $cid = \Swoole\Coroutine::getCid();
+                if(Application::issetApp($cid)) {
+                    $app = Application::getApp();
+                    if ($app instanceof EventController) {
+                        $this->eventApp = $app;
+                    }else {
+                        $this->eventApp = new EventController(...$args);
+                    }
+                }else {
+                    $this->eventApp = new EventController(...$args);
+                }
+
                 call_user_func($class, $this->eventApp);
+
             } catch (\Exception | \Throwable $throwable) {
                 BaseServer::catchException($throwable);
-            } finally {
-                if (is_object($this->eventApp) && !$this->eventApp->isDefer()) {
-                    $this->eventApp->end();
-                }
             }
         } else {
             do {
@@ -115,7 +128,7 @@ class EventApp
      * getCid
      * @return int
      */
-    public function getCid()
+    public function getCid(): int
     {
         return $this->eventApp->getCid();
     }
@@ -123,7 +136,7 @@ class EventApp
     /**
      * @return EventController
      */
-    public function getEventApp()
+    public function getEventApp(): EventController
     {
         return $this->eventApp;
     }
@@ -134,7 +147,6 @@ class EventApp
      * @param string $action
      * @param array $args
      * @return mixed
-     * @throws \Exception
      */
     public function __call(string $action, array $args = [])
     {
@@ -146,13 +158,8 @@ class EventApp
         try {
             $this->isCall = true;
             return $this->eventApp->$action(...$args);
-
         } catch (\Throwable $throwable) {
             BaseServer::catchException($throwable);
-        }finally {
-            if (is_object($this->eventApp) && !$this->eventApp->isDefer()) {
-                $this->eventApp->end();
-            }
         }
     }
 
@@ -161,11 +168,8 @@ class EventApp
      */
     public function __destruct()
     {
-        $cid = null;
         if (is_object($this->eventApp) && $this->eventApp instanceof EventController) {
-            $cid = $this->eventApp->getCid();
             unset($this->eventApp);
         }
-        Application::removeApp($cid);
     }
 }

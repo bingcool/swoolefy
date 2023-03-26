@@ -11,9 +11,7 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Coroutine\CoroutineManager;
-use Swoolefy\Exception\SystemException;
 
 /**
  * Class EventController
@@ -67,19 +65,16 @@ class EventController extends BaseObject
         $this->creatObject();
         $this->appConf = Swfy::getAppConf();
         $this->coroutineId = CoroutineManager::getInstance()->getCoroutineId();
-        if ($this->canCreateApp($this->coroutineId)) {
-            Application::setApp($this);
-            $this->defer();
-        }
+        Application::setApp($this);
+        $this->defer();
     }
 
     /**
      * setApp
      * @param int $coroutineId
      * @return bool
-     * @throws \Exception
      */
-    public function setApp(?int $coroutineId = null)
+    public function setApp(int $coroutineId): bool
     {
         if ($coroutineId) {
             Application::removeApp($this->coroutineId);
@@ -87,26 +82,8 @@ class EventController extends BaseObject
             Application::setApp($this);
             return true;
         }
+
         return false;
-    }
-
-    /**
-     * @param null $coroutineId
-     * @return bool
-     * @throws \Exception
-     */
-    public function canCreateApp(int $coroutineId = null)
-    {
-        if (empty($coroutineId)) {
-            $coroutineId = CoroutineManager::getInstance()->getCoroutineId();
-        }
-
-        $exists = Application::issetApp($coroutineId);
-        
-        if ($exists) {
-            throw new SystemException("You had created EventApp Instance, yon can only registerApp once, so you can't create same coroutine");
-        }
-        return true;
     }
 
     /**
@@ -211,8 +188,8 @@ class EventController extends BaseObject
     }
 
     /**
-     * end 重新初始化一些静态变量
-     * @return mixed
+     * end unset var
+     * @return bool|void
      */
     public function end()
     {
