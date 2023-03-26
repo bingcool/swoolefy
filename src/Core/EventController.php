@@ -66,10 +66,8 @@ class EventController extends BaseObject
         $this->creatObject();
         $this->appConf = Swfy::getAppConf();
         $this->coroutineId = CoroutineManager::getInstance()->getCoroutineId();
-        if ($this->canCreateApp($this->coroutineId)) {
-            Application::setApp($this);
-            $this->defer();
-        }
+        Application::setApp($this);
+        $this->defer();
     }
 
     /**
@@ -87,19 +85,6 @@ class EventController extends BaseObject
         }
 
         return false;
-    }
-
-    /**
-     * @param int $coroutineId
-     * @return bool
-     */
-    protected function canCreateApp(int $coroutineId): bool
-    {
-        $exists = Application::issetApp($coroutineId);
-        if ($exists) {
-            throw new SystemException("You had created EventApp Instance, yon can only registerApp once, so you can't create same coroutine");
-        }
-        return true;
     }
 
     /**
@@ -205,7 +190,7 @@ class EventController extends BaseObject
 
     /**
      * end unset var
-     * @return mixed
+     * @return bool|void
      */
     public function end()
     {

@@ -78,14 +78,22 @@ class EventApp
     {
         if ($class instanceof \Closure) {
             try {
-                $this->eventApp = new EventController(...$args);
+                $cid = \Swoole\Coroutine::getCid();
+                if(Application::issetApp($cid)) {
+                    $app = Application::getApp();
+                    if ($app instanceof EventController) {
+                        $this->eventApp = $app;
+                    }else {
+                        $this->eventApp = new EventController(...$args);
+                    }
+                }else {
+                    $this->eventApp = new EventController(...$args);
+                }
+
                 call_user_func($class, $this->eventApp);
+
             } catch (\Exception | \Throwable $throwable) {
                 BaseServer::catchException($throwable);
-            } finally {
-                if (is_object($this->eventApp) && !$this->eventApp->isDefer()) {
-                    $this->eventApp->end();
-                }
             }
         } else {
             do {
@@ -147,10 +155,6 @@ class EventApp
             return $this->eventApp->$action(...$args);
         } catch (\Throwable $throwable) {
             BaseServer::catchException($throwable);
-        }finally {
-            if (is_object($this->eventApp) && !$this->eventApp->isDefer()) {
-                $this->eventApp->end();
-            }
         }
     }
 
@@ -159,11 +163,8 @@ class EventApp
      */
     public function __destruct()
     {
-        $cid = null;
         if (is_object($this->eventApp) && $this->eventApp instanceof EventController) {
-            $cid = $this->eventApp->getCid();
             unset($this->eventApp);
         }
-        Application::removeApp($cid);
     }
 }
