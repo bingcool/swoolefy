@@ -16,16 +16,20 @@ class Tick extends AbstractProcess {
     public function run() {
         // 协议层配置
         // $conf = Swfy::getConf();
-        go(function() {
-            $cid = \Swoole\Coroutine::getCid();
-        });
+//        go(function() {
+//            $cid = \Swoole\Coroutine::getCid();
+//        });
 
         var_dump('This is process tick, class='.__CLASS__);
         // 创建定时器处理实例
-        TickManager::getInstance()->tickTimer(3000,
-            [TickController::class, 'tickTest'],
-            ['name'=>'swoolefy-tick']
-        );
+//        TickManager::getInstance()->tickTimer(3000,
+//            [TickController::class, 'tickTest'],
+//            ['name'=>'swoolefy-tick']
+//        );
+
+        TickManager::getInstance()->tickTimer(3000, function () {
+            var_dump(spl_object_id(Application::getApp()->get('db')));
+        });
 
         // 创建定时器处理实例
 //        TickManager::getInstance()->afterTimer(3000,

@@ -2,6 +2,7 @@
 
 namespace Test\Process\TestProcess;
 
+use Swoolefy\Core\App;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Coroutine\GoWaitGroup;
@@ -28,6 +29,30 @@ class Test extends AbstractProcess
                 $result = GoWaitGroup::multiCall([
                         'key1' => function () {
                             sleep(3);
+
+                            $db = Application::getApp()->get('db');
+                            var_dump(spl_object_id($db), \Swoole\Coroutine::getCid() );
+
+                            (new \Swoolefy\Core\EventApp)->registerApp(function($event) {
+                                try {
+                                    $db = Application::getApp()->get('db');
+                                    var_dump(spl_object_id($db),\Swoole\Coroutine::getCid());
+                                }catch (\Throwable $throwable) {
+                                    \Swoolefy\Core\BaseServer::catchException($throwable);
+                                }
+                            });
+
+                            (new \Swoolefy\Core\EventApp)->registerApp(function($event) {
+                                try {
+                                    $db = Application::getApp()->get('db');
+                                    var_dump(spl_object_id($db), \Swoole\Coroutine::getCid() );
+                                }catch (\Throwable $throwable) {
+                                    \Swoolefy\Core\BaseServer::catchException($throwable);
+                                }
+                            });
+
+                            var_dump(spl_object_id(Application::getApp()->get('db')));
+
                             return "aaaaa";
                         },
                         'key2' => function () {
