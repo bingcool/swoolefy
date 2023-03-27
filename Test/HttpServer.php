@@ -60,7 +60,7 @@ class HttpServer extends \Swoolefy\Http\HttpAppServer {
          * @var \Common\Library\Db\Mysql $db
          */
         $db = Application::getApp()->get('db');
-        $result = $db->createCommand('select * from tbl_users where id=:user_id limit 1')->queryAll([
+        $result = $db->createCommand('select * from tbl_users where user_id=:user_id limit 1')->queryAll([
             ':user_id' => $userId
         ]);
 
