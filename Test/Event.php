@@ -32,19 +32,40 @@ class Event extends EventHandler
 
         if(!$this->isWorkerService()) {
             // 创建一个测试自定义进程
-            //ProcessManager::getInstance()->addProcess('test', \Test\Process\TestProcess\Test::class);
+            // ProcessManager::getInstance()->addProcess('test', \Test\Process\TestProcess\Test::class);
 
             // 创建一个定时器处理进程
-            ProcessManager::getInstance()->addProcess('tick', \Test\Process\TickProcess\Tick::class);
+            //ProcessManager::getInstance()->addProcess('tick', \Test\Process\TickProcess\Tick::class);
 
             // 测试cron自定义进程
-            ProcessManager::getInstance()->addProcess('cron', \Test\Process\CronProcess\Cron::class);
+            //ProcessManager::getInstance()->addProcess('cron', \Test\Process\CronProcess\Cron::class);
+
             // 这里为什么获取不到pid,那是应为process需要server执行start后才会创建，而在这里只是创建实例，server还没正式启动
             //$pid = ProcessManager::getInstance()->getProcessByName('cron')->getPid();
             //var_dump('pid='.$pid);
 
             // redis的队列消费
             //ProcessManager::getInstance()->addProcess('redis_list_test', \Test\Process\ListProcess\RedisList::class,true, [], null, true);
+
+            // amqp-direct 生产队列
+            //ProcessManager::getInstance()->addProcess('amqp-publish', \Test\Process\AmqpProcess\AmqpPublish::class);
+
+            // amqp-direct 消费队列
+            //ProcessManager::getInstance()->addProcess('amqp-consumer', \Test\Process\AmqpProcess\AmqpConsumer::class);
+            //ProcessManager::getInstance()->addProcess('amqp-consumer-1', \Test\Process\AmqpProcess\AmqpConsumer::class);
+
+            // amqp-fanout 生产队列
+            ProcessManager::getInstance()->addProcess('amqp-publish-fanout', \Test\Process\AmqpProcess\AmqpPublishFanout::class);
+            // amqp-fanout 消费队列1
+            ProcessManager::getInstance()->addProcess('amqp-consumer-fanout1', \Test\Process\AmqpProcess\AmqpConsumerFanout::class);
+            // amqp-fanout 消费队列2
+            ProcessManager::getInstance()->addProcess('amqp-consumer-fanout2', \Test\Process\AmqpProcess\AmqpConsumerFanout1::class);
+
+
+            // amqp-topic 生产队列
+            //ProcessManager::getInstance()->addProcess('amqp-publish-topic', \Test\Process\AmqpProcess\AmqpPublishTopic::class);
+            // amqp-topic 消费队列
+            //ProcessManager::getInstance()->addProcess('amqp-consumer-topic', \Test\Process\AmqpProcess\AmqpConsumerTopic::class);
 
 
             // worker进程绑定进程池
@@ -53,7 +74,6 @@ class Event extends EventHandler
 
             // redis的订阅进程
             //ProcessManager::getInstance()->addProcess('redis_subscribe_test', \Test\Process\SubscribeProcess\Subscribe::class);
-
 
             // 这里为什么获取不到pid,那是应为process需要server执行start后才会创建，而在这里只是创建实例，server还没正式启动
             //$pid = ProcessManager::getInstance()->getProcessByName('redis_list_test')->getPid();
@@ -67,10 +87,10 @@ class Event extends EventHandler
     {
         switch (WORKER_SERVICE_NAME) {
             case 'test-worker':
-                ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, \Test\WorkerDaemon\MainWorker::class, true,[],null, false);
+                ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, \Test\WorkerDaemon\MainWorker::class, true,  [],null, false);
                 break;
             case 'test-worker-cron':
-                ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, \Test\WorkerCron\MainCronWorker::class, true,[],null, false);
+                ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, \Test\WorkerCron\MainCronWorker::class, true,  [],null, false);
                 break;
             case 'test-script':
                 $class = \Swoolefy\Script\MainCliScript::parseClass();
