@@ -1,0 +1,93 @@
+<?php
+namespace Test\Process\AmqpProcess;
+
+use Swoolefy\Core\Process\AbstractProcess;
+use PhpAmqpLib\Connection\AMQPStreamConnection;
+use PhpAmqpLib\Exchange\AMQPExchangeType;
+
+
+class AmqpConsumerTopic extends AbstractProcess
+{
+    public function run()
+    {
+        $exchange = AMQPConst::AMQP_EXCHANGE_ROUTER_TOPIC;
+        $queue = AmqpConst::AMQP_QUEUE_TOPIC;
+        $consumerTag = AmqpConst::AMQP_CONSUMER_TAG;
+
+        $connection = new AMQPStreamConnection(
+            AmqpConst::AMQP_HOST,
+            AmqpConst::AMQP_PORT,
+            AmqpConst::AMQP_USER,
+            AmqpConst::AMQP_PASS,
+            AmqpConst::AMQP_VHOST
+        );
+        $channel = $connection->channel();
+
+        /*
+        The following code is the same both in the consumer and the producer.
+        In this way we are sure we always have a queue to consume from and an
+        exchange where to publish messages.
+        */
+
+        /*
+        queue: Queue from where to get the messages
+        consumer_tag: Consumer identifier
+        no_local: Don't receive messages published by this consumer.
+        no_ack: If set to true, automatic acknowledgement mode will be used by this consumer. See https://www.rabbitmq.com/confirms.html for details.
+        exclusive: Request exclusive consumer access, meaning only this consumer can access the queue
+        nowait:
+        callback: A PHP Callback
+        */
+
+        register_shutdown_function([$this, 'shutdown'], $channel, $connection);
+
+        $channel->basic_consume($queue, $consumerTag, false, false, false, false, [$this, 'process_message']);
+
+        // Loop as long as the channel has callbacks registered
+        $channel->consume();
+    }
+
+
+    /**
+     * @param \PhpAmqpLib\Message\AMQPMessage $message
+     */
+    public function process_message($message)
+    {
+        // 匹配出不同的route key 做不通的处理，类似策略模式
+        switch ($message->getRoutingKey()) {
+            case 'orderSaveEvent.send':
+                    var_dump($message->getBody());
+                    echo "---------\n";
+                break;
+            case 'orderSaveEvent.aa':
+                    var_dump($message->getBody());
+                    echo "---------\n";
+                break;
+            default:
+                break;
+        }
+
+        $message->ack();
+
+// Send a message with the string "quit" to cancel the consumer.
+        if ($message->body === 'quit') {
+            $message->getChannel()->basic_cancel($message->getConsumerTag());
+        }
+    }
+
+    /**
+     * @param \PhpAmqpLib\Channel\AMQPChannel $channel
+     * @param \PhpAmqpLib\Connection\AbstractConnection $connection
+     */
+    public function shutdown($channel, $connection)
+    {
+        $channel->close();
+        $connection->close();
+    }
+
+    public function onShutDown()
+    {
+        parent::onShutDown();
+    }
+
+}
