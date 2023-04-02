@@ -47,6 +47,26 @@ class Event extends EventHandler
             // redis的队列消费
             //ProcessManager::getInstance()->addProcess('redis_list_test', \Test\Process\ListProcess\RedisList::class,true, [], null, true);
 
+            // amqp-direct 生产队列
+            //ProcessManager::getInstance()->addProcess('amqp-publish', \Test\Process\AmqpProcess\AmqpPublish::class);
+
+            // amqp-direct 消费队列
+            //ProcessManager::getInstance()->addProcess('amqp-consumer', \Test\Process\AmqpProcess\AmqpConsumer::class);
+            //ProcessManager::getInstance()->addProcess('amqp-consumer-1', \Test\Process\AmqpProcess\AmqpConsumer::class);
+
+            // amqp-fanout 生产队列
+            ProcessManager::getInstance()->addProcess('amqp-publish-fanout', \Test\Process\AmqpProcess\AmqpPublishFanout::class);
+            // amqp-fanout 消费队列1
+            ProcessManager::getInstance()->addProcess('amqp-consumer-fanout1', \Test\Process\AmqpProcess\AmqpConsumerFanout::class);
+            // amqp-fanout 消费队列2
+            ProcessManager::getInstance()->addProcess('amqp-consumer-fanout2', \Test\Process\AmqpProcess\AmqpConsumerFanout1::class);
+
+
+            // amqp-topic 生产队列
+            //ProcessManager::getInstance()->addProcess('amqp-publish-topic', \Test\Process\AmqpProcess\AmqpPublishTopic::class);
+            // amqp-topic 消费队列
+            //ProcessManager::getInstance()->addProcess('amqp-consumer-topic', \Test\Process\AmqpProcess\AmqpConsumerTopic::class);
+
 
             // worker进程绑定进程池
             //PoolsManager::getInstance()->addProcessPools('worker-follower-task', \Test\Pools\TestBindWorker::class, 1,true, []);
