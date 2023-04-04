@@ -1,15 +1,29 @@
 <?php
 namespace Test\Process\AmqpProcess;
 
+use Common\Library\Amqp\AmqpTopicQueue;
+use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
-use PhpAmqpLib\Exchange\AMQPExchangeType;
-
 
 class AmqpConsumerTopic extends AbstractProcess
 {
     public function run()
     {
+        $this->handle1();
+    }
+
+    public function handle1() {
+        /**
+         * @var AmqpTopicQueue $amqpTopicConsumer
+         */
+        $amqpTopicConsumer = Application::getApp()->get('orderAddTopicQueue');
+        //$amqpTopicConsumer->consumer([$this, 'process_message']);
+        $amqpTopicConsumer->consumerWithTime([$this, 'process_message']);
+    }
+
+
+    public function handle2() {
         $exchange = AMQPConst::AMQP_EXCHANGE_ROUTER_TOPIC;
         $queue = AmqpConst::AMQP_QUEUE_TOPIC;
         $consumerTag = AmqpConst::AMQP_CONSUMER_TAG;
@@ -64,6 +78,8 @@ class AmqpConsumerTopic extends AbstractProcess
                     echo "---------\n";
                 break;
             default:
+                var_dump($message->getBody());
+                echo "---------\n";
                 break;
         }
 

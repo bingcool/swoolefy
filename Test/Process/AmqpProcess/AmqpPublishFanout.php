@@ -1,6 +1,8 @@
 <?php
 namespace Test\Process\AmqpProcess;
 
+use Common\Library\Amqp\AmqpFanoutQueue;
+use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Exchange\AMQPExchangeType;
@@ -10,6 +12,22 @@ class AmqpPublishFanout extends AbstractProcess {
 
     public function run()
     {
+        $this->handle1();
+    }
+
+    public function handle1() {
+        \Swoolefy\Core\Timer\TickManager::tickTimer(3000, function () {
+            /**
+             * @var AmqpFanoutQueue $amqpFanoutPublish
+             */
+            $amqpFanoutPublish = Application::getApp()->get('amqpOrderFanoutPublish');
+            $messageBody = "fanout publish".'-'.time();
+            $message = new AMQPMessage($messageBody, array('content_type' => 'text/plain', 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT));
+            $amqpFanoutPublish->publish($message);
+        });
+    }
+
+    public function handle2() {
         $exchange = AmqpConst::AMQP_EXCHANGE_ROUTER_FANOUT;
         $queue = AmqpConst::AMQP_QUEUE_TOPIC;
 
@@ -35,6 +53,5 @@ class AmqpPublishFanout extends AbstractProcess {
             $channel->close();
             $connection->close();
         });
-
     }
 }

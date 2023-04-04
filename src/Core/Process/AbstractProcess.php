@@ -140,7 +140,11 @@ abstract class AbstractProcess
                                     $this->onReceive($message);
                                 });
                             }else {
-                                $this->onReceive($message);
+                                \Swoole\Coroutine::create(function () use($message) {
+                                    (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) use ($message) {
+                                        $this->onReceive($message);
+                                    });
+                                });
                             }
                         }
                     } catch (\Throwable $throwable) {
@@ -360,7 +364,7 @@ abstract class AbstractProcess
     /**
      * 对于运行态的协程，还没有执行完的，设置一个再等待时间$re_wait_time
      * @param int $cycle_times 轮询次数
-     * @param float $re_wait_time 每次2s轮询
+     * @param float $re_wait_time 每次2s轮询等待
      * @return void
      */
     private function runtimeCoroutineWait(int $cycle_times = 5, float $re_wait_time = 2.0 )
