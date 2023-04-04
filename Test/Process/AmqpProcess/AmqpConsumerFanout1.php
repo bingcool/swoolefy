@@ -1,20 +1,33 @@
 <?php
 namespace Test\Process\AmqpProcess;
 
+use Common\Library\Amqp\AmqpFanoutQueue;
+use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Exchange\AMQPExchangeType;
 
-
-
 // fanout exchange 下，消费者需要指定queue
-
 class AmqpConsumerFanout1 extends AbstractProcess
 {
     public function run()
     {
+        $this->handle1();
+    }
+
+    public function handle1() {
+        /**
+         * @var AmqpFanoutQueue $amqpFanoutConsumer
+         */
+        $amqpFanoutConsumer = Application::getApp()->get('amqpExportFanoutQueue');
+        $amqpFanoutConsumer->consumer([$this, 'process_message']);
+        //$amqpFanoutConsumer->consumerWithTime([$this, 'process_message']);
+    }
+
+
+    public function handle2() {
         $exchange = AMQPConst::AMQP_EXCHANGE_ROUTER_FANOUT;
-        $queue    = AmqpConst::AMQP_QUEUE_FANOUT1;
+        $queue    = AmqpConst::AMQP_QUEUE_FANOUT;
 
         $consumerTag = AmqpConst::AMQP_CONSUMER_TAG;
 

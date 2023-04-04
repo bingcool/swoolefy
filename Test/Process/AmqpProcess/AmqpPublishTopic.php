@@ -1,17 +1,33 @@
 <?php
 namespace Test\Process\AmqpProcess;
 
+use Common\Library\Amqp\AmqpTopicQueue;
+use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Exchange\AMQPExchangeType;
 use PhpAmqpLib\Message\AMQPMessage;
-use Test\Process\AmqpProcess\AmqpConst;
-
 
 class AmqpPublishTopic extends AbstractProcess {
 
     public function run()
     {
+        $this->handle1();
+    }
+
+    public function handle1() {
+        \Swoolefy\Core\Timer\TickManager::tickTimer(3000, function () {
+            /**
+             * @var AmqpTopicQueue $amqpTopicPublish
+             */
+            $amqpTopicPublish = Application::getApp()->get('orderAddTopicQueue');
+            $messageBody = "amqp topic ".'-'.time();
+            $message = new AMQPMessage($messageBody, array('content_type' => 'text/plain', 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT));
+            $amqpTopicPublish->publish($message, 'orderSaveEvent.send');
+        });
+    }
+
+    public function handle2() {
         $exchange = AmqpConst::AMQP_EXCHANGE_ROUTER_TOPIC;
         $queue = AmqpConst::AMQP_QUEUE_TOPIC;
 
@@ -75,6 +91,5 @@ class AmqpPublishTopic extends AbstractProcess {
             $channel->close();
             $connection->close();
         });
-
     }
 }

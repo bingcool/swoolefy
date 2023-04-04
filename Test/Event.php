@@ -49,23 +49,22 @@ class Event extends EventHandler
 
             // amqp-direct 生产队列
             //ProcessManager::getInstance()->addProcess('amqp-publish', \Test\Process\AmqpProcess\AmqpPublish::class);
-
             // amqp-direct 消费队列
             //ProcessManager::getInstance()->addProcess('amqp-consumer', \Test\Process\AmqpProcess\AmqpConsumer::class);
             //ProcessManager::getInstance()->addProcess('amqp-consumer-1', \Test\Process\AmqpProcess\AmqpConsumer::class);
 
             // amqp-fanout 生产队列
-            ProcessManager::getInstance()->addProcess('amqp-publish-fanout', \Test\Process\AmqpProcess\AmqpPublishFanout::class);
+            //ProcessManager::getInstance()->addProcess('amqp-publish-fanout', \Test\Process\AmqpProcess\AmqpPublishFanout::class);
             // amqp-fanout 消费队列1
-            ProcessManager::getInstance()->addProcess('amqp-consumer-fanout1', \Test\Process\AmqpProcess\AmqpConsumerFanout::class);
+            //ProcessManager::getInstance()->addProcess('amqp-consumer-fanout', \Test\Process\AmqpProcess\AmqpConsumerFanout::class);
             // amqp-fanout 消费队列2
-            ProcessManager::getInstance()->addProcess('amqp-consumer-fanout2', \Test\Process\AmqpProcess\AmqpConsumerFanout1::class);
+            //ProcessManager::getInstance()->addProcess('amqp-consumer-fanout1', \Test\Process\AmqpProcess\AmqpConsumerFanout1::class);
 
 
             // amqp-topic 生产队列
-            //ProcessManager::getInstance()->addProcess('amqp-publish-topic', \Test\Process\AmqpProcess\AmqpPublishTopic::class);
+            ProcessManager::getInstance()->addProcess('amqp-publish-topic', \Test\Process\AmqpProcess\AmqpPublishTopic::class);
             // amqp-topic 消费队列
-            //ProcessManager::getInstance()->addProcess('amqp-consumer-topic', \Test\Process\AmqpProcess\AmqpConsumerTopic::class);
+            ProcessManager::getInstance()->addProcess('amqp-consumer-topic', \Test\Process\AmqpProcess\AmqpConsumerTopic::class);
 
 
             // worker进程绑定进程池
