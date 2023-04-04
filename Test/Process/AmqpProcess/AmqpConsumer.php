@@ -1,15 +1,32 @@
 <?php
 namespace Test\Process\AmqpProcess;
 
+use Common\Library\Amqp\AmqpDirectQueue;
+use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Exchange\AMQPExchangeType;
-
 
 class AmqpConsumer extends AbstractProcess
 {
     public function run()
     {
+        $this->handle1();
+    }
+
+    public function handle1() {
+        /**
+         * @var AmqpDirectQueue $amqpDirect
+         */
+        $amqpDirect = Application::getApp()->get('orderAddDirectQueue');
+        //$amqpDirect->consumer([$this, 'process_message']);
+        $amqpDirect->setConsumerExceptionHandler(function (\Throwable $e) {
+            var_dump($e->getMessage());
+        });
+        $amqpDirect->consumerWithTime([$this, 'process_message']);
+    }
+
+    public function handle2() {
         $exchange = AMQPConst::AMQP_EXCHANGE_ROUTER;
         $queue = AmqpConst::AMQP_QUEUE;
         $consumerTag = AmqpConst::AMQP_CONSUMER_TAG;
@@ -62,7 +79,6 @@ class AmqpConsumer extends AbstractProcess
         // Loop as long as the channel has callbacks registered
         $channel->consume();
     }
-
 
     /**
      * @param \PhpAmqpLib\Message\AMQPMessage $message

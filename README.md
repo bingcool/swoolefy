@@ -59,17 +59,17 @@ swoolefy-4.8-lts 版本：
 - [ ] 支持分布式服务注册（zk，etcd）       
 
 ### 常用组件
-| 组件名称             | 安装                                            | 说明                                                  |
-|------------------|-----------------------------------------------|-----------------------------------------------------|
-| predis           | composer require predis/predis:~1.1.7         | predis组件、或者Phpredis扩展                               |
-| mongodb          | composer require mongodb/mongodb:~1.3         | mongodb组件，需要使用mongodb必须安装此组件                        |
-| rpc-client       | composer require bingcool/rpc-client:dev-master | swoolefy的rpc客户端组件，当与rpc服务端通信时，需要安装此组件，支持在php-fpm中使用 |
-| cron-expression  | composer require dragonmantank/cron-expression | crontab计划任务组件，类似Linux的crobtab                       |  
-| redis lock       | composer require malkusch/lock                | Redis锁组件                                            |
-| amqp             | composer require php-amqplib/php-amqplib:~3.5.0 | amqp php原生实现amqp协议客户端                               |  
-| ffmpeg           | composer require php-ffmpeg/php-ffmpeg:~1.1.0 | php proc-open 调用ffmpeg处理音视频                         |  
-| validate         | composer require vlucas/valitron              | validate数据校验组件                                      |     
-| bingcool/library | composer require bingcool/library             | library组件库                                          |  
+| 组件名称             | 安装                                                    | 说明                                                  |
+|------------------|-------------------------------------------------------|-----------------------------------------------------|
+| predis           | composer require predis/predis:~1.1.7                 | predis组件、或者Phpredis扩展                               |
+| mongodb          | composer require mongodb/mongodb:~1.3                 | mongodb组件，需要使用mongodb必须安装此组件                        |
+| rpc-client       | composer require bingcool/rpc-client:dev-master       | swoolefy的rpc客户端组件，当与rpc服务端通信时，需要安装此组件，支持在php-fpm中使用 |
+| cron-expression  | composer require dragonmantank/cron-expression:~3.3.0 | crontab计划任务组件，类似Linux的crobtab                       |  
+| redis lock       | composer require malkusch/lock                        | Redis锁组件                                            |
+| amqp             | composer require php-amqplib/php-amqplib:~3.5.0       | amqp php原生实现amqp协议客户端                               |  
+| ffmpeg           | composer require php-ffmpeg/php-ffmpeg:~1.1.0         | php proc-open 调用ffmpeg处理音视频                         |  
+| validate         | composer require vlucas/valitron                      | validate数据校验组件                                      |     
+| bingcool/library | composer require bingcool/library                     | library组件库                                          |  
 
 ### bingcool/library 是swoolefy require 内置库，专为swoole协程实现的组件库        
 实现了包括：    

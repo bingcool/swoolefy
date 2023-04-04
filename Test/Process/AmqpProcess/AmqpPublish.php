@@ -1,16 +1,33 @@
 <?php
 namespace Test\Process\AmqpProcess;
 
+use Common\Library\Amqp\AmqpAbstract;
+use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Exchange\AMQPExchangeType;
 use PhpAmqpLib\Message\AMQPMessage;
 
-
 class AmqpPublish extends AbstractProcess {
 
     public function run()
     {
+        $this->handle1();
+    }
+
+    public function handle1() {
+        \Swoolefy\Core\Timer\TickManager::tickTimer(3000, function () {
+            /**
+             * @var AmqpAbstract $amqpDirect
+             */
+            $amqpDirect = Application::getApp()->get('orderAddDirectQueue');
+            $messageBody = "amqp direct ".'-'.time();
+            $message = new AMQPMessage($messageBody, array('content_type' => 'text/plain', 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT));
+            $amqpDirect->publish($message);
+        });
+    }
+
+    public function handle2() {
         $exchange = AmqpConst::AMQP_EXCHANGE_ROUTER;
         $queue = AmqpConst::AMQP_QUEUE;
 
@@ -53,6 +70,5 @@ class AmqpPublish extends AbstractProcess {
             $channel->close();
             $connection->close();
         });
-
     }
 }
