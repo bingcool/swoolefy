@@ -1,6 +1,8 @@
 <?php
 namespace Test\Process\AmqpProcess;
 
+use Common\Library\Amqp\AmqpDelayConsumerTrait;
+use Common\Library\Amqp\AmqpDelayTopicQueue;
 use Common\Library\Amqp\AmqpTopicQueue;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
@@ -24,6 +26,27 @@ class AmqpPublishTopic extends AbstractProcess {
             $messageBody = "amqp topic ".'-'.time();
             $message = new AMQPMessage($messageBody, array('content_type' => 'text/plain', 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT));
             $amqpTopicPublish->publish($message, 'orderSaveEvent.send');
+        });
+    }
+
+    /**
+     * topic 模式的延迟队列
+     * @return void
+     */
+    public function handle3() {
+        \Swoolefy\Core\Timer\TickManager::tickTimer(500, function () {
+            /**
+             * @var AmqpDelayTopicQueue $amqpDelayTopicPublish
+             */
+            $amqpDelayTopicPublish = Application::getApp()->get('orderDelayTopicQueue');
+            $messageBody = "amqp delay topic ".'-'.time();
+            $message = new AMQPMessage($messageBody, array('content_type' => 'text/plain', 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT));
+            $amqpDelayTopicPublish->publish($message, 'orderSaveEvent.send');
+
+
+            $messageBody = "amqp delay delay delay delay delay topic ".'-'.time();
+            $message = new AMQPMessage($messageBody, array('content_type' => 'text/plain', 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT));
+            $amqpDelayTopicPublish->publish($message, 'orderSaveEvent.sms');
         });
     }
 

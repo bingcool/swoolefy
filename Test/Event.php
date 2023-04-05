@@ -47,7 +47,7 @@ class Event extends EventHandler
             // redis的队列消费
             //ProcessManager::getInstance()->addProcess('redis_list_test', \Test\Process\ListProcess\RedisList::class,true, [], null, true);
 
-            // amqp-direct 生产队列
+            // amqp-direct 生产队
             //ProcessManager::getInstance()->addProcess('amqp-publish', \Test\Process\AmqpProcess\AmqpPublish::class);
             // amqp-direct 消费队列
             //ProcessManager::getInstance()->addProcess('amqp-consumer', \Test\Process\AmqpProcess\AmqpConsumer::class);
