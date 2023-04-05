@@ -11,7 +11,7 @@ class AmqpConsumerTopic extends AbstractProcess
 {
     public function run()
     {
-        $this->handle1();
+        $this->handle3();
     }
 
     public function handle1() {
@@ -19,8 +19,8 @@ class AmqpConsumerTopic extends AbstractProcess
          * @var AmqpTopicQueue $amqpTopicConsumer
          */
         $amqpTopicConsumer = Application::getApp()->get('orderAddTopicQueue');
-        //$amqpTopicConsumer->consumer([$this, 'process_message']);
-        $amqpTopicConsumer->consumerWithTime([$this, 'process_message']);
+        $amqpTopicConsumer->consumer([$this, 'process_message']);
+        //$amqpTopicConsumer->consumerWithTime([$this, 'process_message']);
     }
 
     public function handle3() {
@@ -78,23 +78,25 @@ class AmqpConsumerTopic extends AbstractProcess
      */
     public function process_message($message)
     {
+        $message->ack();
         // 匹配出不同的route key 做不通的处理，类似策略模式
         switch ($message->getRoutingKey()) {
             case 'orderSaveEvent.send':
-                    var_dump($message->getBody());
+                    echo "当前时间：".date('Y-m-d H:i:s')."\n";
+                    var_dump($message->getBody(), $message->getRoutingKey(),$message->getConsumerTag());
                     echo "---------\n";
                 break;
             case 'orderSaveEvent.aa':
-                    var_dump($message->getBody());
+                echo "当前时间：".date('Y-m-d H:i:s')."\n";
+                    var_dump($message->getBody(), $message->getRoutingKey());
                     echo "---------\n";
                 break;
             default:
-                var_dump($message->getBody());
+                echo "当前时间default：".date('Y-m-d H:i:s')."\n";
+                var_dump($message->getBody(), $message->getRoutingKey());
                 echo "---------\n";
                 break;
         }
-
-        $message->ack();
 
 // Send a message with the string "quit" to cancel the consumer.
         if ($message->body === 'quit') {

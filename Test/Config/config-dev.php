@@ -93,6 +93,7 @@ return [
             $amqpConfig->routingKey = $property['routing_key'];
             $amqpConfig->passive = $property['passive'];
             $amqpConfig->durable = $property['durable'];
+            $amqpConfig->exclusive = $property['exclusive'];
             $amqpConfig->autoDelete = $property['auto_delete'];
 
             $amqpDirect = new \Common\Library\Amqp\AmqpDirectQueue($connection, $amqpConfig);
@@ -117,6 +118,7 @@ return [
             $amqpConfig->routingKey = $property['routing_key'];
             $amqpConfig->passive = $property['passive'];
             $amqpConfig->durable = $property['durable'];
+            $amqpConfig->exclusive = $property['exclusive'];
             $amqpConfig->autoDelete = $property['auto_delete'];
 
             $amqpDirect = new \Common\Library\Amqp\AmqpDirectQueue($connection, $amqpConfig);
@@ -142,6 +144,7 @@ return [
             $amqpConfig->routingKey = $property['routing_key'];
             $amqpConfig->passive = $property['passive'];
             $amqpConfig->durable = $property['durable'];
+            $amqpConfig->exclusive = $property['exclusive'];
             $amqpConfig->autoDelete = $property['auto_delete'];
             $amqpConfig->arguments = $property['arguments'];
 
@@ -185,6 +188,7 @@ return [
             $amqpConfig->routingKey = $property['routing_key'];
             $amqpConfig->passive = $property['passive'];
             $amqpConfig->durable = $property['durable'];
+            $amqpConfig->exclusive = $property['exclusive'];
             $amqpConfig->autoDelete = $property['auto_delete'];
 
             $amqpFanoutConsumer = new \Common\Library\Amqp\AmqpFanoutQueue($connection, $amqpConfig);
@@ -208,6 +212,7 @@ return [
             $amqpConfig->routingKey = $property['routing_key'];
             $amqpConfig->passive = $property['passive'];
             $amqpConfig->durable = $property['durable'];
+            $amqpConfig->exclusive = $property['exclusive'];
             $amqpConfig->autoDelete = $property['auto_delete'];
 
             $amqpFanoutConsumer = new \Common\Library\Amqp\AmqpFanoutQueue($connection, $amqpConfig);
@@ -223,18 +228,21 @@ return [
             $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
             $amqpConfig->exchangeName = AmqpConst::AMQP_EXCHANGE_TOPIC_ORDER;
             $amqpConfig->queueName    = AmqpConst::AMQP_QUEUE_TOPIC_ORDER_ADD;
+
             $property = AmqpConst::AMQP_TOPIC[$amqpConfig->exchangeName][$amqpConfig->queueName];
             $amqpConfig->type = $property['type'];
             $amqpConfig->bindingKey = $property['binding_key'];
             $amqpConfig->routingKey = $property['routing_key'];
             $amqpConfig->passive = $property['passive'];
             $amqpConfig->durable = $property['durable'];
+            $amqpConfig->exclusive = $property['exclusive'];
             $amqpConfig->autoDelete = $property['auto_delete'];
+            $amqpConfig->consumerTag = $property['consumer_tag'];
 
             $AmqpTopicPublish = new \Common\Library\Amqp\AmqpTopicQueue($connection, $amqpConfig);
-            $AmqpTopicPublish->setAckHandler(function (\PhpAmqpLib\Message\AMQPMessage $message) {
-                echo "Message acked with content " . $message->body . PHP_EOL;
-            });
+//            $AmqpTopicPublish->setAckHandler(function (\PhpAmqpLib\Message\AMQPMessage $message) {
+//                echo "Message acked with content " . $message->body . PHP_EOL;
+//            });
             return $AmqpTopicPublish;
         },
 
@@ -256,14 +264,15 @@ return [
             $amqpConfig->routingKey = $property['routing_key'];
             $amqpConfig->passive = $property['passive'];
             $amqpConfig->durable = $property['durable'];
+            $amqpConfig->exclusive = $property['exclusive'];
             $amqpConfig->autoDelete = $property['auto_delete'];
             $amqpConfig->arguments = $property['arguments'];
 
-            $AmqpTopicPublish = new \Common\Library\Amqp\AmqpDelayTopicQueue($connection, $amqpConfig);
+            $amqpTopicPublish = new \Common\Library\Amqp\AmqpDelayTopicQueue($connection, $amqpConfig);
 //            $AmqpTopicPublish->setAckHandler(function (\PhpAmqpLib\Message\AMQPMessage $message) {
 //                echo "Message acked with content " . $message->body . PHP_EOL;
 //            });
-            return $AmqpTopicPublish;
+            return $amqpTopicPublish;
         },
 
     ],
