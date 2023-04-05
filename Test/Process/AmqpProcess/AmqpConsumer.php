@@ -98,7 +98,7 @@ class AmqpConsumer extends AbstractProcess
      */
     public function process_message($message)
     {
-        echo "\n--------\n";
+        echo "当前时间：".date('Y-m-d H:i:s')."\n";
         echo $message->body;
         echo "\n--------\n";
 

@@ -3,6 +3,7 @@ namespace Test\Process\AmqpProcess;
 
 use Common\Library\Amqp\AmqpAbstract;
 use Common\Library\Amqp\AmqpDelayDirectQueue;
+use Common\Library\Amqp\AmqpDirectQueue;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
@@ -19,7 +20,7 @@ class AmqpPublish extends AbstractProcess {
     public function handle1() {
         \Swoolefy\Core\Timer\TickManager::tickTimer(3000, function () {
             /**
-             * @var AmqpAbstract $amqpDirect
+             * @var AmqpDirectQueue $amqpDirect
              */
             $amqpDirect = Application::getApp()->get('orderAddDirectQueue');
             $messageBody = "amqp direct ".'-'.time();
@@ -38,7 +39,7 @@ class AmqpPublish extends AbstractProcess {
              * @var AmqpDelayDirectQueue $amqpDelayDirect
              */
             $amqpDelayDirect = Application::getApp()->get('orderDelayDirectQueue');
-            $messageBody = "amqp delay direct ".'-'.time();
+            $messageBody = "amqp delay direct ".'-'.date('Y-m-d H:i:s');
             $message = new AMQPMessage($messageBody, array('content_type' => 'text/plain', 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT));
 
             $amqpDelayDirect->publish($message);

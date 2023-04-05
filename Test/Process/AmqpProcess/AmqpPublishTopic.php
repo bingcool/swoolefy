@@ -1,7 +1,6 @@
 <?php
 namespace Test\Process\AmqpProcess;
 
-use Common\Library\Amqp\AmqpDelayConsumerTrait;
 use Common\Library\Amqp\AmqpDelayTopicQueue;
 use Common\Library\Amqp\AmqpTopicQueue;
 use Swoolefy\Core\Application;
@@ -14,17 +13,23 @@ class AmqpPublishTopic extends AbstractProcess {
 
     public function run()
     {
-        $this->handle1();
+        $this->handle3();
     }
 
     public function handle1() {
-        \Swoolefy\Core\Timer\TickManager::tickTimer(3000, function () {
+        \Swoolefy\Core\Timer\TickManager::afterTimer(5000, function () {
             /**
              * @var AmqpTopicQueue $amqpTopicPublish
              */
             $amqpTopicPublish = Application::getApp()->get('orderAddTopicQueue');
-            $messageBody = "amqp topic ".'-'.time();
-            $message = new AMQPMessage($messageBody, array('content_type' => 'text/plain', 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT));
+            $messageBody = "amqp topic ".'-'.date("Y-m-d H:i:s");
+            $message = new AMQPMessage(
+                $messageBody,
+                array(
+                    'content_type' => 'text/plain',
+                    'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT
+                )
+            );
             $amqpTopicPublish->publish($message, 'orderSaveEvent.send');
         });
     }
@@ -34,19 +39,32 @@ class AmqpPublishTopic extends AbstractProcess {
      * @return void
      */
     public function handle3() {
-        \Swoolefy\Core\Timer\TickManager::tickTimer(500, function () {
+        \Swoolefy\Core\Timer\TickManager::afterTimer(5000, function () {
             /**
              * @var AmqpDelayTopicQueue $amqpDelayTopicPublish
              */
             $amqpDelayTopicPublish = Application::getApp()->get('orderDelayTopicQueue');
-            $messageBody = "amqp delay topic ".'-'.time();
-            $message = new AMQPMessage($messageBody, array('content_type' => 'text/plain', 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT));
-            $amqpDelayTopicPublish->publish($message, 'orderSaveEvent.send');
+            $messageBody = "amqp delay topic ".'-'.date("Y-m-d H:i:s");
+            $message = new AMQPMessage(
+                $messageBody,
+                array(
+                    'content_type' => 'text/plain',
+                    'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
+                    'expiration' => 20000
+                )
+            );
+            $amqpDelayTopicPublish->publish($message, 'orderSaveEvent2.send');
 
-
-            $messageBody = "amqp delay delay delay delay delay topic ".'-'.time();
-            $message = new AMQPMessage($messageBody, array('content_type' => 'text/plain', 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT));
-            $amqpDelayTopicPublish->publish($message, 'orderSaveEvent.sms');
+//            $messageBody = "amqp delay delay delay delay delay topic ".'-'.date('Y-m-d H:i:s');
+//            $message = new AMQPMessage(
+//                $messageBody,
+//                array(
+//                    'content_type' => 'text/plain',
+//                    'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
+//                    'expiration' => 20000
+//                )
+//            );
+//            $amqpDelayTopicPublish->publish($message, 'orderSaveEvent2.sms');
         });
     }
 
@@ -54,7 +72,7 @@ class AmqpPublishTopic extends AbstractProcess {
         $exchange = AmqpConst::AMQP_EXCHANGE_ROUTER_TOPIC;
         $queue = AmqpConst::AMQP_QUEUE_TOPIC;
 
-        \Swoolefy\Core\Timer\TickManager::tickTimer(3000, function () use($exchange, $queue) {
+        \Swoolefy\Core\Timer\TickManager::afterTimer(5000, function () use($exchange, $queue) {
 
             $connection = new AMQPStreamConnection(
                 AmqpConst::AMQP_HOST,
