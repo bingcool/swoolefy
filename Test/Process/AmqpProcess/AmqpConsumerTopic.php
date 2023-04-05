@@ -1,6 +1,7 @@
 <?php
 namespace Test\Process\AmqpProcess;
 
+use Common\Library\Amqp\AmqpDelayTopicQueue;
 use Common\Library\Amqp\AmqpTopicQueue;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
@@ -20,6 +21,16 @@ class AmqpConsumerTopic extends AbstractProcess
         $amqpTopicConsumer = Application::getApp()->get('orderAddTopicQueue');
         //$amqpTopicConsumer->consumer([$this, 'process_message']);
         $amqpTopicConsumer->consumerWithTime([$this, 'process_message']);
+    }
+
+    public function handle3() {
+        /**
+         * @var AmqpDelayTopicQueue $amqpDelayTopicConsumer
+         */
+        $amqpDelayTopicConsumer = Application::getApp()->get('orderDelayTopicQueue');
+        //$amqpTopicConsumer->consumer([$this, 'process_message']);
+
+        $amqpDelayTopicConsumer->consumerWithTime([$this, 'process_message']);
     }
 
 
