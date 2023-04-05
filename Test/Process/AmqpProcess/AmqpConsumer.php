@@ -1,6 +1,7 @@
 <?php
 namespace Test\Process\AmqpProcess;
 
+use Common\Library\Amqp\AmqpDelayDirectQueue;
 use Common\Library\Amqp\AmqpDirectQueue;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
@@ -11,7 +12,7 @@ class AmqpConsumer extends AbstractProcess
 {
     public function run()
     {
-        $this->handle1();
+        $this->handle3();
     }
 
     public function handle1() {
@@ -24,6 +25,18 @@ class AmqpConsumer extends AbstractProcess
             var_dump($e->getMessage());
         });
         $amqpDirect->consumerWithTime([$this, 'process_message']);
+    }
+
+    public function handle3() {
+        /**
+         * @var AmqpDelayDirectQueue $amqpDelayDirect
+         */
+        $amqpDelayDirect = Application::getApp()->get('orderDelayDirectQueue');
+        //$amqpDelayDirect->consumer([$this, 'process_message']);
+//        $amqpDelayDirect->setConsumerExceptionHandler(function (\Throwable $e) {
+//            var_dump($e->getMessage());
+//        });
+        $amqpDelayDirect->consumerWithTime([$this, 'process_message']);
     }
 
     public function handle2() {

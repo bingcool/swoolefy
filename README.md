@@ -76,7 +76,8 @@ swoolefy-4.8-lts 版本：
 - [x] Db Mysql Model组件
 - [x] PostgreSql Model组件    
 - [x] Kafka Producer Consumer组件  
-- [x] Rabbitmq 组件   
+- [x] Rabbitmq Queue组件  
+- [x] Rabbitmq Delay Queue 死信延迟队列组件    
 - [x] Redis Cache组件  
 - [x] Redis Queue队列组件   
 - [x] Redis Delay Queue延迟队列组件            
@@ -119,8 +120,8 @@ composer create-project bingcool/swoolefy:~5.0 myproject
 ### 二、添加项目入口启动文件cli.php,并定义你的项目目录，命名为App
 
 ```
-// 在myproject目录下添加cli.php, 这个是启动项目的入口文件
 <?php
+// 在myproject目录下添加cli.php, 这个是启动项目的入口文件
 include './vendor/autoload.php';
 
 define('IS_WORKER_SERVICE', 0);
@@ -144,7 +145,7 @@ swoole-cli cli.php create App
 
 // 执行完上面命令行后，将会自动生成App项目目录以及内部子目录
 
-App
+App  // 项目目录
 ├── Config       // 应用配置
 │   ├── config-dev.php
 │   ├── config-gra.php

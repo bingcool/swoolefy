@@ -124,6 +124,34 @@ return [
             return $amqpDirect;
         },
 
+        // direct queue 延迟队列
+        'orderDelayDirectQueue' => function() use($dc) {
+            /**
+             * @var AMQPStreamConnection $connection
+             */
+            $connection = \Swoolefy\Core\Application::getApp()->get('amqpConnection')->getObject();
+            $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
+            $amqpConfig->exchangeName = AmqpConst::AMQP_EXCHANGE_DIRECT_ORDER;
+
+            // 延迟名称
+            $amqpConfig->queueName    = AmqpConst::AMQP_QUEUE_DIRECT_ORDER_ADD_DELAY;
+
+            $property = AmqpConst::AMQP_DIRECT[$amqpConfig->exchangeName][$amqpConfig->queueName];
+            $amqpConfig->type = $property['type'];
+            $amqpConfig->bindingKey = $property['binding_key'];
+            $amqpConfig->routingKey = $property['routing_key'];
+            $amqpConfig->passive = $property['passive'];
+            $amqpConfig->durable = $property['durable'];
+            $amqpConfig->autoDelete = $property['auto_delete'];
+            $amqpConfig->arguments = $property['arguments'];
+
+            $amqpDelayDirect = new \Common\Library\Amqp\AmqpDelayDirectQueue($connection, $amqpConfig);
+//            $amqpDelayDirect->setAckHandler(function (\PhpAmqpLib\Message\AMQPMessage $message) {
+//                echo "Message acked with content " . $message->body . PHP_EOL;
+//            });
+            return $amqpDelayDirect;
+        },
+
 
         // 交换机下的fanout模式数据广播方式投递
         'amqpOrderFanoutPublish' => function() use($dc) {
@@ -207,6 +235,34 @@ return [
             $AmqpTopicPublish->setAckHandler(function (\PhpAmqpLib\Message\AMQPMessage $message) {
                 echo "Message acked with content " . $message->body . PHP_EOL;
             });
+            return $AmqpTopicPublish;
+        },
+
+        // topic发布与消费实例
+        'orderDelayTopicQueue' => function() use($dc) {
+            /**
+             * @var AMQPStreamConnection $connection
+             */
+            $connection = \Swoolefy\Core\Application::getApp()->get('amqpConnection')->getObject();
+            $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
+            $amqpConfig->exchangeName = AmqpConst::AMQP_EXCHANGE_TOPIC_ORDER;
+
+            // 延迟队列
+            $amqpConfig->queueName    = AmqpConst::AMQP_QUEUE_TOPIC_ORDER_ADD_DELAY;
+
+            $property = AmqpConst::AMQP_TOPIC[$amqpConfig->exchangeName][$amqpConfig->queueName];
+            $amqpConfig->type = $property['type'];
+            $amqpConfig->bindingKey = $property['binding_key'];
+            $amqpConfig->routingKey = $property['routing_key'];
+            $amqpConfig->passive = $property['passive'];
+            $amqpConfig->durable = $property['durable'];
+            $amqpConfig->autoDelete = $property['auto_delete'];
+            $amqpConfig->arguments = $property['arguments'];
+
+            $AmqpTopicPublish = new \Common\Library\Amqp\AmqpDelayTopicQueue($connection, $amqpConfig);
+//            $AmqpTopicPublish->setAckHandler(function (\PhpAmqpLib\Message\AMQPMessage $message) {
+//                echo "Message acked with content " . $message->body . PHP_EOL;
+//            });
             return $AmqpTopicPublish;
         },
 

@@ -2,6 +2,7 @@
 namespace Test\Process\AmqpProcess;
 
 use Common\Library\Amqp\AmqpAbstract;
+use Common\Library\Amqp\AmqpDelayDirectQueue;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
@@ -12,7 +13,7 @@ class AmqpPublish extends AbstractProcess {
 
     public function run()
     {
-        $this->handle1();
+        $this->handle3();
     }
 
     public function handle1() {
@@ -24,6 +25,23 @@ class AmqpPublish extends AbstractProcess {
             $messageBody = "amqp direct ".'-'.time();
             $message = new AMQPMessage($messageBody, array('content_type' => 'text/plain', 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT));
             $amqpDirect->publish($message);
+        });
+    }
+
+    /**
+     * 延迟队列
+     * @return void
+     */
+    public function handle3() {
+        \Swoolefy\Core\Timer\TickManager::tickTimer(500, function () {
+            /**
+             * @var AmqpDelayDirectQueue $amqpDelayDirect
+             */
+            $amqpDelayDirect = Application::getApp()->get('orderDelayDirectQueue');
+            $messageBody = "amqp delay direct ".'-'.time();
+            $message = new AMQPMessage($messageBody, array('content_type' => 'text/plain', 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT));
+
+            $amqpDelayDirect->publish($message);
         });
     }
 
