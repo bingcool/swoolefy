@@ -136,7 +136,7 @@ class AmqpConst {
             // 定义queue 队列名称
             AmqpConst::AMQP_QUEUE_TOPIC_ORDER_ADD_DELAY => [
                 'type' => AMQPExchangeType::TOPIC,
-                'binding_key' => 'orderSaveEvent.#', // binding key
+                'binding_key' => 'orderSaveEvent2.#', // binding key
                 'routing_key' => '', //路由key
                 'passive' => false, //是否检测同名队列
                 'durable' => true, //是否开启队列持久化
@@ -147,7 +147,7 @@ class AmqpConst {
                     // 定义死信队列
                     'x-dead-letter-exchange' => AmqpConst::AMQP_EXCHANGE_TOPIC_ORDER, //在同一个交换机下，这个不要改变
                     'x-dead-letter-queue'    => AmqpConst::AMQP_QUEUE_TOPIC_ORDER_ADD_DELAY.'_dead',
-                    'x-dead-letter-routing-key' => 'orderSaveEvent.#', // 死信队列binding key, binding_key一致
+                    'x-dead-letter-routing-key' => 'orderSaveEvent2-all', // 死信队列binding key
                     'x-message-ttl' => 3 * 1000
                 ]
             ],
