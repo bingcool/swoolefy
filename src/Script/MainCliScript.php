@@ -12,6 +12,7 @@
 namespace Swoolefy\Script;
 
 use Swoolefy\Core\Swfy;
+use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Worker\Helper;
 use Swoolefy\Worker\AbstractMainWorker;
 
@@ -23,10 +24,29 @@ class MainCliScript extends AbstractMainWorker {
     private $exitAll = false;
 
     /**
+     * @var string
+     */
+    private $scriptTable = 'table_for_script';
+
+    /**
+     * @return void
+     */
+    public function init()
+    {
+
+    }
+
+    /**
      * @return void
      */
     public function run()
     {
+        if(!$this->isExecute()) {
+            write("【Error】一次性脚本进程异常不断重复自动重启，请检查");
+            $this->exitAll(true);
+            return;
+        }
+
         $this->setIsCliScript();
         try {
             $action = getenv('a');
@@ -41,6 +61,21 @@ class MainCliScript extends AbstractMainWorker {
         } finally {
             $this->exitAll(true);
         }
+    }
+
+    /**
+     * 记录脚本执行标志，只执行一次，防止自定义进程异常退出后swoole自动拉起，重复执行
+     *
+     * @return bool
+     */
+    protected function isExecute(): bool
+    {
+        $count = TableManager::count($this->scriptTable);
+        if($count > 0) {
+            return false;
+        }
+        TableManager::set($this->scriptTable,'script_flag', ['is_execute_flag' => 1]);
+        return true;
     }
 
     /**
