@@ -393,7 +393,7 @@ class BaseServer
      */
     public static function setAppConf(array $appConf = [])
     {
-        if (!empty($conf)) {
+        if (!empty($appConf)) {
             static::$config['app_conf'] = $appConf;
         }
     }
