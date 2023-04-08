@@ -21,11 +21,15 @@ use Swoolefy\Exception\SystemException;
 
 abstract class AbstractProcess
 {
-
     /**
      * @var Process
      */
     private $swooleProcess;
+
+    /**
+     * @var AbstractProcess
+     */
+    protected static $processInstance;
 
     /**
      * @var string
@@ -80,14 +84,15 @@ abstract class AbstractProcess
     )
     {
         $this->async = $async;
-        $this->args = $args;
-        $this->extendData = $extendData;
+        $this->args  = $args;
+        $this->extendData  = $extendData;
         $this->processName = $processName;
         if($this->isWorkerService()) {
             $this->enableCoroutine = $enableCoroutine;
         }else {
             $this->enableCoroutine = true;
         }
+
         $this->swooleProcess = new \Swoole\Process([$this, '__start'], false, SOCK_DGRAM, $this->enableCoroutine);
         Swfy::getServer()->addProcess($this->swooleProcess);
     }
@@ -103,6 +108,7 @@ abstract class AbstractProcess
         if (method_exists(static::class, 'beforeStart')) {
             $this->beforeStart();
         }
+
         $this->installRegisterShutdownFunction();
         TableManager::getTable('table_process_map')->set(
             md5($this->processName), ['pid' => $this->swooleProcess->pid]
@@ -138,7 +144,11 @@ abstract class AbstractProcess
                                     $this->onReceive($message);
                                 });
                             }else {
-                                $this->onReceive($message);
+                                \Swoole\Coroutine::create(function () use($message) {
+                                    (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) use ($message) {
+                                        $this->onReceive($message);
+                                    });
+                                });
                             }
                         }
                     } catch (\Throwable $throwable) {
@@ -168,6 +178,8 @@ abstract class AbstractProcess
         }
 
         $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'php-swoolefy-user-process:' . $this->getProcessName());
+
+        static::$processInstance = $this;
 
         try {
             if(!$this->isWorkerService() || $this->enableCoroutine) {
@@ -336,6 +348,14 @@ abstract class AbstractProcess
     }
 
     /**
+     * @return AbstractProcess
+     */
+    public static function getProcessInstance(): AbstractProcess
+    {
+        return self::$processInstance;
+    }
+
+    /**
      * getCurrentRunCoroutineNum 获取当前进程中正在运行的协程数量，可以通过这个值判断比较，防止协程过多创建，可以设置sleep等待
      * @return int
      */
@@ -358,7 +378,7 @@ abstract class AbstractProcess
     /**
      * 对于运行态的协程，还没有执行完的，设置一个再等待时间$re_wait_time
      * @param int $cycle_times 轮询次数
-     * @param float $re_wait_time 每次2s轮询
+     * @param float $re_wait_time 每次2s轮询等待
      * @return void
      */
     private function runtimeCoroutineWait(int $cycle_times = 5, float $re_wait_time = 2.0 )

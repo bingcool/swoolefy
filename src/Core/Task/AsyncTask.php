@@ -47,7 +47,7 @@ class AsyncTask implements AsyncTaskInterface
 
         $taskMessageDto->taskClass = str_replace('/', '\\', trim($taskMessageDto->taskClass, '/'));
 
-        $fd = is_object(Application::getApp()) ? Application::getApp()->fd : null;
+        $fd = is_object(Application::getApp()) ? Application::getApp()->getFd() : null;
         if (BaseServer::isUdpApp()) {
             /**
              * @var \Swoolefy\Udp\UdpHandler $app
@@ -93,6 +93,7 @@ class AsyncTask implements AsyncTaskInterface
         if (is_array($data)) {
             $data = json_encode($data, JSON_UNESCAPED_UNICODE);
         }
+
         if (BaseServer::isTaskEnableCoroutine() && $task instanceof \Swoole\Server\Task) {
             $task->finish($data);
         } else {
@@ -104,7 +105,7 @@ class AsyncTask implements AsyncTaskInterface
      * getCurrentWorkerId 获取当前执行进程的id
      * @return int
      */
-    public static function getCurrentWorkerId()
+    public static function getCurrentWorkerId(): int
     {
         return Swfy::getServer()->worker_id;
     }
@@ -114,7 +115,7 @@ class AsyncTask implements AsyncTaskInterface
      * @return bool
      * @throws \Exception
      */
-    public static function isWorkerProcess()
+    public static function isWorkerProcess(): bool
     {
         return Swfy::isWorkerProcess();
     }
@@ -124,7 +125,7 @@ class AsyncTask implements AsyncTaskInterface
      * @return bool
      * @throws \Exception
      */
-    public static function isTaskProcess()
+    public static function isTaskProcess(): bool
     {
         return Swfy::isTaskProcess();
     }

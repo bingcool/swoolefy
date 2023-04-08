@@ -52,7 +52,7 @@ class BaseServer
 
     /**
      * pack check type
-     * @var
+     * @var int
      */
     protected static $pack_check_type = null;
 
@@ -91,7 +91,7 @@ class BaseServer
     public static $tableMemory = [];
 
     /**
-     * $_tasks 实时内存表保存数据,所有worker共享
+     * memory table
      * @var array
      */
     protected static $_table_tasks = [
@@ -109,6 +109,13 @@ class BaseServer
             'size' => 4,
             'fields' => [
                 ['after_tasks', 'string', 8096]
+            ]
+        ],
+        // script 脚本记录执行标志，自定义进程不停重启执行
+        'table_for_script' => [
+            'size' => 1,
+            'fields' => [
+                ['is_execute_flag', 'int', 1]
             ]
         ],
     ];
@@ -167,6 +174,10 @@ class BaseServer
     protected function workerStartInit($server, $workerId)
     {
         try {
+            // global server
+            Swfy::setSwooleServer($server);
+            // global conf
+            Swfy::setConf(self::$config);
             // 启动动态运行时的Coroutine
             self::runtimeEnableCoroutine();
             // 记录主进程加载的公共files,worker重启不会在加载的
@@ -183,12 +194,8 @@ class BaseServer
             self::startInclude();
             // 记录worker的进程worker_pid与worker_id的映射
             self::setWorkersPid($workerId, $server->worker_pid);
-            // 超全局变量server
-            Swfy::setSwooleServer($server);
-            // 全局配置
-            Swfy::setConf(self::$config);
-        }catch(\Throwable $e) {
-            self::catchException($e);
+        }catch(\Throwable $throwable) {
+            self::catchException($throwable);
         }
 
         (new EventApp())->registerApp(function (EventController $event) use ($server, $workerId) {
@@ -231,34 +238,34 @@ class BaseServer
 
     /**
      * setMasterProcessName
-     * @param string $master_process_name
+     * @param string $masterProcessName
      */
-    public static function setMasterProcessName(string $master_process_name)
+    public static function setMasterProcessName(string $masterProcessName)
     {
-        cli_set_process_title(static::getAppPrefix() . ':' . $master_process_name);
+        cli_set_process_title(static::getAppPrefix() . ':' . $masterProcessName);
     }
 
     /**
      * setManagerProcessName
-     * @param string $manager_process_name
+     * @param string $managerProcessName
      */
-    public static function setManagerProcessName(string $manager_process_name)
+    public static function setManagerProcessName(string $managerProcessName)
     {
-        cli_set_process_title(static::getAppPrefix() . ':' . $manager_process_name);
+        cli_set_process_title(static::getAppPrefix() . ':' . $managerProcessName);
     }
 
     /**
      * setWorkerProcessName
-     * @param string $worker_process_name
-     * @param int $worker_id
-     * @param int $worker_num
+     * @param string $workerProcessName
+     * @param int $workerId
+     * @param int $workerNum
      */
-    public static function setWorkerProcessName(string $worker_process_name, int $worker_id, int $worker_num = 1)
+    public static function setWorkerProcessName(string $workerProcessName, int $workerId, int $workerNum = 1)
     {
-        if ($worker_id >= $worker_num) {
-            cli_set_process_title(static::getAppPrefix() . ':' . $worker_process_name . "-task" . $worker_id);
+        if ($workerId >= $workerNum) {
+            cli_set_process_title(static::getAppPrefix() . ':' . $workerProcessName . "-task" . $workerId);
         } else {
-            cli_set_process_title(static::getAppPrefix() . ':' . $worker_process_name . "-worker" . $worker_id);
+            cli_set_process_title(static::getAppPrefix() . ':' . $workerProcessName . "-worker" . $workerId);
         }
     }
 
@@ -313,7 +320,7 @@ class BaseServer
      * setWorkerUserGroup 设置worker进程的工作组，默认是root
      * @param string $worker_user
      */
-    public static function setWorkerUserGroup($worker_user = null)
+    public static function setWorkerUserGroup(string $worker_user = null)
     {
         if ($worker_user) {
             $userInfo = posix_getpwnam($worker_user);
@@ -365,7 +372,7 @@ class BaseServer
     }
 
     /**
-     * getConfig 获取服务的全局配置
+     * getConf
      * @return array
      */
     public static function getConf()

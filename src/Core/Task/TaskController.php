@@ -13,7 +13,7 @@ namespace Swoolefy\Core\Task;
 
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\EventController;
-use Swoolefy\Exception\TaskException;
+use Swoolefy\Exception\SystemException;
 
 class TaskController extends EventController
 {
@@ -39,14 +39,15 @@ class TaskController extends EventController
      * TaskController应用于http
      * TaskService应用于rpc、websocket、udp
      *
+     * @throws SystemException
      */
     public function __construct()
     {
         if (!BaseServer::isHttpApp()) {
-            throw new TaskException(__CLASS__ . " only use in http server task process");
+            throw new SystemException(__CLASS__ . " only use in http server task process");
         }
         if (!BaseServer::getServer()->taskworker) {
-            throw new TaskException(__CLASS__ . " only use in task process");
+            throw new SystemException(__CLASS__ . " only use in task process");
         }
         parent::__construct();
     }
@@ -84,7 +85,7 @@ class TaskController extends EventController
      * getTaskId
      * @return int
      */
-    public function getTaskId()
+    public function getTaskId(): int
     {
         return $this->taskId;
     }
@@ -93,16 +94,16 @@ class TaskController extends EventController
      * getFromWorkerId
      * @return int
      */
-    public function getFromWorkerId()
+    public function getFromWorkerId(): int
     {
         return $this->fromWorkerId;
     }
 
     /**
      * getTask
-     * @return mixed
+     * @return \Swoole\Server\Task
      */
-    public function getTask()
+    public function getTask(): \Swoole\Server\Task
     {
         return $this->task;
     }

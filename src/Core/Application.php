@@ -65,13 +65,12 @@ class Application
      * @param int $coroutineId
      * @return bool
      */
-    public static function issetApp(int $coroutineId = null)
+    public static function issetApp(int $coroutineId = null): bool
     {
         $cid = CoroutineManager::getInstance()->getCoroutineId();
         if ($coroutineId) {
             $cid = $coroutineId;
         }
-
         if (isset(self::$apps[$cid]) && self::$apps[$cid] instanceof EventController) {
             return true;
         } else {
@@ -98,14 +97,13 @@ class Application
      * @param int|null $coroutineId
      * @return bool
      */
-    public static function removeApp(?int $coroutineId = null)
+    public static function removeApp(?int $coroutineId = null): bool
     {
         if ($coroutineId) {
             $cid = $coroutineId;
         } else {
             $cid = CoroutineManager::getInstance()->getCoroutineId();
         }
-
         if (isset(self::$apps[$cid])) {
             unset(self::$apps[$cid]);
         }

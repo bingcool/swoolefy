@@ -30,9 +30,8 @@ class CrontabManager
      * @param string $cronName
      * @param string|float $expression
      * @param callable|array $func
-     * @throws CronException
      */
-    public function addRule(string $cronName, string $expression, $func)
+    public function addRule(string $cronName, $expression, $func)
     {
         if (!class_exists('Cron\\CronExpression')) {
             throw new CronException("If you want to use crontab, you need to install 'composer require dragonmantank/cron-expression' ");
@@ -116,7 +115,6 @@ class CrontabManager
                         try {
                             $cronControllerInstance = $this->buildCronControllerInstance();
                             $cronControllerInstance->runCron($cronName, $expression, $func);
-
                         } catch (\Throwable $throwable) {
                             BaseServer::catchException($throwable);
                         } finally {

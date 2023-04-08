@@ -51,7 +51,7 @@ class Context
      * @param mixed $value
      * @return bool
      */
-    public static function set(string $name, $value)
+    public static function set(string $name, $value): bool
     {
         $context = self::getContext();
         if ($context) {
@@ -63,7 +63,7 @@ class Context
 
     /**
      * @param string $name
-     * @return bool
+     * @return mixed
      */
     public static function get(string $name)
     {
@@ -78,7 +78,7 @@ class Context
      * @param string $name
      * @return bool
      */
-    public static function has(string $name)
+    public static function has(string $name): bool
     {
         $context = self::getContext();
         if ($context) {

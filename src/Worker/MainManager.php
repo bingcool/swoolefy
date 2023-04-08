@@ -15,6 +15,7 @@ use Swoolefy\Exception\WorkerException;
 use Swoolefy\Worker\Dto\MessageDto;
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Core\Memory\SysvmsgManager;
+use Swoolefy\Core\Process\AbstractProcess;
 use RuntimeException;
 
 class MainManager
@@ -298,7 +299,7 @@ class MainManager
         try {
             if (!empty($this->processLists)) {
                 $this->installErrorHandler();
-                $this->setMasterPid();
+                $this->setMasterPid(posix_getpid());
                 $this->installReportStatus();
                 $this->initStart();
                 $this->setRunning();
@@ -428,6 +429,12 @@ class MainManager
                         }
                         call_user_func($this->onRegisterShutdownFunction);
                         $this->isExit = false;
+                        if (method_exists(AbstractProcess::getProcessInstance(), '__destruct') && version_compare(phpversion(), '8.0.0', '>=') ) {
+                            AbstractProcess::getProcessInstance()->__destruct();
+                        }
+                        \Swoole\Event::del(AbstractProcess::getProcessInstance()->getProcess()->pipe);
+                        \Swoole\Event::exit();
+                        AbstractProcess::getProcessInstance()->getProcess()->exit(0);
                     }
                     break;
                 default:
@@ -576,7 +583,7 @@ class MainManager
     }
 
     /**
-     * rebootOrExitHandle 信号处理函数
+     * rebootOrExitHandle 子进程退出时，父进程接收的信号处理函数
      *
      * @return void
      */
@@ -863,7 +870,7 @@ class MainManager
                     $enableCoroutine
                 );
                 $newProcess->setProcessWorkerId($workerId);
-                $newProcess->setMasterPid($this->masterPid);
+                $newProcess->setMasterPid($this->getMasterPid());
                 $newProcess->setProcessType(AbstractBaseWorker::PROCESS_DYNAMIC_TYPE);
                 $newProcess->setStartTime();
                 $this->processWorkers[$key][$workerId] = $newProcess;
@@ -1388,7 +1395,6 @@ class MainManager
      * @param string $process_name
      * @param int $num
      * @return void
-     * @throws \Exception
      */
     private function addProcessByCli(string $process_name, int $num = 1)
     {
@@ -1405,7 +1411,6 @@ class MainManager
      * @param string $process_name
      * @param int $num
      * @return void
-     * @throws \Exception
      */
     private function removeProcessByCli(string $process_name, int $num = 1)
     {
@@ -1481,11 +1486,9 @@ class MainManager
      * setMasterPid
      * @return void
      */
-    private function setMasterPid()
+    private function setMasterPid(int $masterId)
     {
-        if (!isset($this->masterPid)) {
-            $this->masterPid = posix_getpid();
-        }
+        $this->masterPid = $masterId;
         cli_set_process_title(APP_NAME."-swoolefy-".WORKER_SERVICE_NAME."-php-worker-master:" . WORKER_START_SCRIPT_FILE);
         defined('WORKER_MASTER_PID') OR define('WORKER_MASTER_PID', $this->masterPid);
     }

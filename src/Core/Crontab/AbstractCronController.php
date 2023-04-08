@@ -18,13 +18,13 @@ abstract class AbstractCronController extends ProcessController
 {
 
     /**
-     * $cron_next_datetime 定时任务下一次执行时间
+     * $cronNextDatetime 定时任务下一次执行时间
      * @var array
      */
     protected static $cronNextDatetime = [];
 
     /**
-     * $offset_second 偏差时间1s
+     * $offsetSecond 偏差时间1s
      * @var int
      */
     protected static $offsetSecond = 1;
@@ -40,7 +40,6 @@ abstract class AbstractCronController extends ProcessController
      * @param string $expression
      * @param callable|null $func
      * @return void
-     * @throws \Exception
      */
     public function runCron(string $cronName, string $expression, ?callable $func = null)
     {

@@ -13,6 +13,7 @@ namespace Swoolefy\Core\Timer;
 
 use Swoole\Timer;
 use Swoolefy\Core\Swfy;
+use Swoole\Timer\Iterator;
 use Swoolefy\Core\Table\TableManager;
 
 class TickManager
@@ -22,38 +23,36 @@ class TickManager
 
     /**
      * tickTimer
-     * @param int $time_interval_ms
-     * @param mixed $func
-     * @param mixed $params
+     * @param int $timeIntervalMs
+     * @param \Closure|array $func
+     * @param array $params
      * @return int
      */
-    public static function tickTimer(int $time_interval_ms, $func, $params = null)
+    public static function tickTimer(int $timeIntervalMs, $func, array $params = [])
     {
-        return Tick::tickTimer($time_interval_ms, $func, $params);
+        return Tick::tickTimer($timeIntervalMs, $func, $params);
     }
 
     /**
      * afterTimer
-     * @param int $time_interval_ms
-     * @param mixed $func
+     * @param int $timeIntervalMs
+     * @param \Closure|array $func
      * @param mixed $params
      * @return int
      */
-    public static function afterTimer(int $time_interval_ms, $func, $params = null)
+    public static function afterTimer(int $timeIntervalMs, $func, array $params = [])
     {
-        return Tick::afterTimer($time_interval_ms, $func, $params);
+        return Tick::afterTimer($timeIntervalMs, $func, $params);
     }
 
     /**
      * clearTimer
-     * @param int $timer_id
+     * @param int $timerId
      * @return bool
      */
-    public static function clearTimer(int $timer_id)
+    public static function clearTimer(int $timerId)
     {
-        if (is_int($timer_id)) {
-            return Tick::delTicker($timer_id);
-        }
+        return Tick::delTicker($timerId);
     }
 
     /**
@@ -76,7 +75,7 @@ class TickManager
      * getAfterTasks
      * @return array
      */
-    public static function getAfterTasks()
+    public static function getAfterTasks(): array
     {
         $conf = Swfy::getConf();
         if (isset($conf['enable_table_tick_task'])) {
@@ -89,18 +88,18 @@ class TickManager
     }
 
     /**
-     * @param int $fd
+     * @param int $timerId
      * @return array
      */
-    public static function timerInfo(int $fd)
+    public static function timerInfo(int $timerId): ?array
     {
-        return Timer::info($fd);
+        return Timer::info($timerId);
     }
 
     /**
      * @return \Swoole\timer\Iterator
      */
-    public static function timerList()
+    public static function timerList(): Iterator
     {
         return Timer::list();
     }
@@ -108,7 +107,7 @@ class TickManager
     /**
      * @return array
      */
-    public static function timerStatus()
+    public static function timerStatus(): array
     {
         return Timer::stats();
     }
@@ -116,10 +115,10 @@ class TickManager
     /**
      * __callStatic
      * @param string $name
-     * @param mixed $args
+     * @param array $args
      * @return mixed
      */
-    public static function __callStatic(string $name, $args)
+    public static function __callStatic(string $name, array $args)
     {
         return false;
     }

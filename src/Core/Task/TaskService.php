@@ -31,13 +31,14 @@ class TaskService extends BService
     protected $fromWorkerId;
 
     /**
-     * \Swoole\Server\Task
+     *
      * @var \Swoole\Server\Task
      */
     protected $task = null;
 
     /**
      * __construct
+     * @throws TaskException
      */
     public function __construct()
     {
@@ -88,7 +89,7 @@ class TaskService extends BService
      * getTaskId
      * @return int
      */
-    public function getTaskId()
+    public function getTaskId(): int
     {
         return $this->taskId;
     }
@@ -97,7 +98,7 @@ class TaskService extends BService
      * getFromWorkerId
      * @return int
      */
-    public function getFromWorkerId()
+    public function getFromWorkerId(): int
     {
         return $this->fromWorkerId;
     }
@@ -106,7 +107,7 @@ class TaskService extends BService
      * getTask
      * @return \Swoole\Server\Task|null
      */
-    public function getTask()
+    public function getTask(): \Swoole\Server\Task
     {
         return $this->task;
     }

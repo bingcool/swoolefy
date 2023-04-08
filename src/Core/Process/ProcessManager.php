@@ -80,28 +80,25 @@ class ProcessManager
     {
         $key = md5($processName);
         if (isset($this->processList[$key])) {
-            throw new \Exception("Error Add the same process : $processName");
+            throw new \Exception("You can not add the same process : $processName");
         }
 
         if (!TableManager::isExistTable('table_process_map')) {
             TableManager::getInstance()->createTable($this->tableProcess);
         }
 
-        try {
-            /**@var AbstractProcess $process */
-            $process = new $processClass(
-                $processName,
-                $async,
-                $args,
-                $extendData,
-                $enableCoroutine
-            );
-            $this->processList[$key] = $process;
-            $this->processListInfo[$processName] = ['process_name' => $processName, 'class' => $processClass];
-            return $process;
-        } catch (\Exception $exception) {
-            throw $exception;
-        }
+        /**@var AbstractProcess $process */
+        $process = new $processClass(
+            $processName,
+            $async,
+            $args,
+            $extendData,
+            $enableCoroutine
+        );
+
+        $this->processList[$key] = $process;
+        $this->processListInfo[$processName] = ['process_name' => $processName, 'class' => $processClass];
+        return $process;
     }
 
     /**
@@ -158,7 +155,7 @@ class ProcessManager
      */
     public function reboot(string $processName)
     {
-        $process = $this->getProcessByName($processName);
+        $process  = $this->getProcessByName($processName);
         $killFlag = $process->getSwoolefyProcessKillFlag();
         $this->writeByProcessName($processName, $killFlag);
         return true;
@@ -174,7 +171,7 @@ class ProcessManager
      * @param float $timeOut
      * @return bool
      */
-    public function writeByProcessName(string $name, $data, \Closure $callback = null, float $timeOut = 3.0)
+    public function writeByProcessName(string $name, $data, \Closure $callback = null, float $timeOut = 3.0 )
     {
         $process = $this->getProcessByName($name);
         if ($process) {
@@ -197,7 +194,7 @@ class ProcessManager
      * @param float $timeOut
      * @return mixed
      */
-    public function readByProcessName(string $name, float $timeOut = 3)
+    public function readByProcessName(string $name, float $timeOut = 3.0 )
     {
         $process = $this->getProcessByName($name);
         if ($process) {
@@ -213,7 +210,7 @@ class ProcessManager
      * @param float $timeOut
      * @return mixed
      */
-    public function read(Process $swooleProcess, float $timeOut = 3)
+    public function read(Process $swooleProcess, float $timeOut = 3.0 )
     {
         $result = null;
         $read = [$swooleProcess];

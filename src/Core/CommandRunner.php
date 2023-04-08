@@ -114,7 +114,7 @@ class CommandRunner
      * @param string $log
      * @param bool $isExec
      * @return array
-     * @throws Exception
+     * @throws SystemException
      */
     public function exec(
         string $execBinFile,
@@ -139,7 +139,7 @@ class CommandRunner
         }
 
         if ($isExec) {
-            exec($command, $output, $return);
+            exec($command, $output, $returnCode);
             $pid = $output[0] ?? '';
             if ($pid) {
                 $this->channel->push([
@@ -149,12 +149,13 @@ class CommandRunner
                 ], 0.2);
             }
             // when exec error save log
-            if ($return != 0) {
-                throw new SystemException("CommandRunner Exec failed,reurnCode={$return},commandLine={$command}.");
+            if ($returnCode != 0) {
+                $errorMsg = static::$exitCodes[$returnCode] ?? 'Unknown Error';
+                throw new SystemException("CommandRunner Exec failed,reurnCode={$returnCode},commandLine={$command},errorMsg={$errorMsg}.");
             }
         }
 
-        return [$command, $output ?? [], $return ?? -1];
+        return [$command, $output ?? [], $returnCode ?? -1];
     }
 
     /**
@@ -163,7 +164,7 @@ class CommandRunner
      * @param string $execScript
      * @param array $args
      * @return mixed
-     * @throws Exception
+     * @throws SystemException
      */
     public function procOpen(
         callable $callable,
@@ -207,7 +208,8 @@ class CommandRunner
 
                     $returnCode = fgets($pipes[3], 10);
                     if ($returnCode != 0) {
-                        throw new SystemException("CommandRunner Proc Open failed,return Code={$returnCode},commandLine={$command}.");
+                        $errorMsg = static::$exitCodes[$returnCode] ?? 'Unknown Error';
+                        throw new SystemException("CommandRunner Proc Open failed,return Code={$returnCode},commandLine={$command}, errorMsg={$errorMsg}.");
                     }
                 }
                 $params = [$pipes[0], $pipes[1], $pipes[2], $status, $returnCode ?? -1];
@@ -263,7 +265,7 @@ class CommandRunner
     protected function checkNextFlag()
     {
         if (!$this->isNextFlag) {
-            throw new \Exception('Missing call isNextHandle().');
+            throw new SystemException('Missing call isNextHandle().');
         }
         $this->isNextFlag = false;
     }

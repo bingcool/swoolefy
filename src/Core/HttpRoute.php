@@ -13,6 +13,7 @@ namespace Swoolefy\Core;
 
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Exception\DispatchException;
+use Swoolefy\Exception\SystemException;
 
 class HttpRoute extends AppDispatch
 {
@@ -45,7 +46,7 @@ class HttpRoute extends AppDispatch
      * $appConf
      * @var array
      */
-    public $appConf = [];
+    protected $appConf = [];
 
     /**
      * $app
@@ -54,13 +55,13 @@ class HttpRoute extends AppDispatch
     protected $app = null;
 
     /**
-     * $requireUri
+     * $routerUri
      * @var string
      */
     protected $routerUri = null;
 
     /**
-     * $extendData
+     * $extendData 额外请求数据
      * @var mixed
      */
     protected $extendData = null;
@@ -245,7 +246,7 @@ class HttpRoute extends AppDispatch
         }
 
         if ($this->app->isEnd()) {
-            throw new DispatchException('System Request End Error', 500);
+            throw new SystemException('System Request End Error', 500);
         }
 
         // invoke _beforeAction

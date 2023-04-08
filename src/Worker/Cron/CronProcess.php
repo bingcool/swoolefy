@@ -23,6 +23,7 @@ class CronProcess extends AbstractWorkerProcess
 
     /**
      * onInit
+     * @return void
      */
     public function onInit()
     {
@@ -32,6 +33,7 @@ class CronProcess extends AbstractWorkerProcess
 
     /**
      * @inheritDoc
+     * @return mixed
      */
     public function run()
     {

@@ -32,9 +32,9 @@ class Helper
                 $isValid = true;
                 if ($param->hasType() && $param->getType()->getName() == 'array') {
                     $params[$name] = (array)$params[$name];
-                } elseif (is_array($params[$name])) {
+                } else if (is_array($params[$name])) {
                     $isValid = false;
-                } elseif (
+                } else if (
                     ($type = $param->getType()) !== null &&
                     $type->isBuiltin() &&
                     ($params[$name] !== null || !$type->allowsNull())

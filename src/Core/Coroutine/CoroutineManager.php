@@ -78,14 +78,13 @@ class CoroutineManager
     }
 
     /**
-     * getBackTrace
-     * @param $cid
-     * @param $options
-     * @param $limit
-     * @return mixed
+     * @param int $coroutineId
+     * @param int $options
+     * @param int $limit
+     * @return array|false
      */
-    public function getBackTrace(int $cid = 0, int $options = DEBUG_BACKTRACE_PROVIDE_OBJECT, int $limit = 0)
+    public function getBackTrace(int $coroutineId = 0, int $options = DEBUG_BACKTRACE_PROVIDE_OBJECT, int $limit = 0)
     {
-        return \Swoole\Coroutine::getBackTrace($cid, $options, $limit);
+        return \Swoole\Coroutine::getBackTrace($coroutineId, $options, $limit);
     }
 }

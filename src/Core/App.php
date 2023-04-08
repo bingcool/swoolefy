@@ -40,6 +40,12 @@ class App extends \Swoolefy\Core\Component
     public $appConf = [];
 
     /**
+     * $coroutineId
+     * @var int
+     */
+    public $coroutineId;
+
+    /**
      * $controllerInstance
      * @var BController
      */
@@ -61,7 +67,7 @@ class App extends \Swoolefy\Core\Component
      * @param array $appConf
      * @return void
      */
-    public function __construct(array $appConf)
+    public function __construct(array $appConf = [])
     {
         $this->appConf = $appConf;
         $this->coroutineId = CoroutineManager::getInstance()->getCoroutineId();
@@ -214,9 +220,10 @@ class App extends \Swoolefy\Core\Component
     }
 
     /**
-     * @return SwoolefyException|string
+     * @return string
+     *
      */
-    public function getExceptionClass()
+    public function getExceptionClass(): string
     {
         return BaseServer::getExceptionClass();
     }

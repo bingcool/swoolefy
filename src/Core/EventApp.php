@@ -70,11 +70,6 @@ class EventApp
      *      });
      * });
      *
-     * 强烈推荐使用
-     * goApp(function(EventController $event) use($name, $id) {
-     *      var_dump($event); //输出EventController 实例
-     * })
-     *
      * @param string|\Closure $class
      * @param array $args
      * @return $this

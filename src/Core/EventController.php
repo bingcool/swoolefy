@@ -12,6 +12,7 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Coroutine\CoroutineManager;
+use Swoolefy\Exception\SystemException;
 
 /**
  * Class EventController
@@ -34,13 +35,13 @@ class EventController extends BaseObject
     protected $logs = [];
 
     /**
-     * $isEnd
+     * $is_end
      * @var bool
      */
     protected $isEnd = false;
 
     /**
-     * $isDefer
+     * $is_defer
      * @var bool
      */
     protected $isDefer = false;
