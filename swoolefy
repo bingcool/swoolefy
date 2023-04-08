@@ -13,7 +13,8 @@
 // 定义注册的应用名和对应使用的协议
 
 if (!defined('APP_NAMES')) {
-    define('APP_NAMES', []);
+    write("【Error】 APP_NAMES Missing defined, please check it");
+    exit(0);
 }
 
 // env
@@ -63,7 +64,7 @@ if (isset($argv[2]) && in_array(trim($argv[2]), array_keys(APP_NAMES))) {
 } else {
     if ((isset($argv[1]) && $argv[1] != 'help') || (isset($argv[2]) && $argv[2] != 'help')) {
         help('');
-        write("[Error] app_name is not in APP_NAME array in swoolefy file, please check it");
+        write("【Error】app_name is not in APP_NAME array in swoolefy file, please check it");
         return false;
     }
 }

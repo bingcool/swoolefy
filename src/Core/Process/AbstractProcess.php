@@ -21,11 +21,15 @@ use Swoolefy\Exception\SystemException;
 
 abstract class AbstractProcess
 {
-
     /**
      * @var Process
      */
     private $swooleProcess;
+
+    /**
+     * @var AbstractProcess
+     */
+    protected static $processInstance;
 
     /**
      * @var string
@@ -174,6 +178,8 @@ abstract class AbstractProcess
         }
 
         $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'php-swoolefy-user-process:' . $this->getProcessName());
+
+        static::$processInstance = $this;
 
         try {
             if(!$this->isWorkerService() || $this->enableCoroutine) {
@@ -339,6 +345,14 @@ abstract class AbstractProcess
     public function isExiting()
     {
         return $this->isExiting;
+    }
+
+    /**
+     * @return AbstractProcess
+     */
+    public static function getProcessInstance(): AbstractProcess
+    {
+        return self::$processInstance;
     }
 
     /**

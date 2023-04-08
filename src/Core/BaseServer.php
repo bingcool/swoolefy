@@ -111,6 +111,13 @@ class BaseServer
                 ['after_tasks', 'string', 8096]
             ]
         ],
+        // script 脚本记录执行标志，自定义进程不停重启执行
+        'table_for_script' => [
+            'size' => 1,
+            'fields' => [
+                ['is_execute_flag', 'int', 1]
+            ]
+        ],
     ];
 
     /**
