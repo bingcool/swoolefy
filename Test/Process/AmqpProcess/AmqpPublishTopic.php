@@ -50,6 +50,8 @@ class AmqpPublishTopic extends AbstractProcess {
                 array(
                     'content_type' => 'text/plain',
                     'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
+                    //那如果我即给单条消息设置了时间expiration, 又给队列设置了时间x-message-ttl会怎么样?
+                    // 如果两者 都设置的话，则根据最短的那个时间来
                     'expiration' => 20000
                 )
             );

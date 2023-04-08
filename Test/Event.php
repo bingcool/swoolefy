@@ -67,6 +67,14 @@ class Event extends EventHandler
             ProcessManager::getInstance()->addProcess('amqp-consumer-topic', \Test\Process\AmqpProcess\AmqpConsumerTopic::class);
 
 
+
+            // kafka-topic 生产队列
+            //ProcessManager::getInstance()->addProcess('kafka-publish-topic', \Test\Process\Kafka\ProducerKafka::class);
+            // kafka-topic 消费队列
+            //ProcessManager::getInstance()->addProcess('kafka-consumer-topic', \Test\Process\Kafka\ConsumerKafka::class);
+
+
+
             // worker进程绑定进程池
             //PoolsManager::getInstance()->addProcessPools('worker-follower-task', \Test\Pools\TestBindWorker::class, 1,true, []);
 
