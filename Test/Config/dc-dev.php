@@ -1,7 +1,7 @@
 <?php
 
 use PhpAmqpLib\Connection\AMQPConnectionConfig;
-use Test\Config\AmqpConst;
+use Test\Config\AmqpConfig;
 
 return [
 
@@ -69,5 +69,5 @@ return [
             'keepalive' => true,
             'heartbeat' => 10,
         ]
-    ],
+    ]
 ];

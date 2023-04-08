@@ -3,7 +3,7 @@ namespace Test\Config;
 
 use PhpAmqpLib\Exchange\AMQPExchangeType;
 
-class AmqpConst {
+class AmqpConfig {
     // direct exchange
     const AMQP_EXCHANGE_DIRECT_ORDER = 'order_exchange_direct';
 
@@ -14,9 +14,9 @@ class AmqpConst {
 
     const AMQP_DIRECT = [
         // 定义exchange_name
-        AmqpConst::AMQP_EXCHANGE_DIRECT_ORDER => [
+        AmqpConfig::AMQP_EXCHANGE_DIRECT_ORDER => [
             // 定义queue 队列名称
-            AmqpConst::AMQP_QUEUE_DIRECT_ORDER_ADD => [
+            AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_ADD => [
                 'type' => AMQPExchangeType::DIRECT,
                 'binding_key' => '', // binding key
                 'routing_key' => '', //路由key
@@ -27,7 +27,7 @@ class AmqpConst {
                 'consumer_tag' => 'consumer', // 消费标志
             ],
             // 定义queue 队列名称
-            AmqpConst::AMQP_QUEUE_DIRECT_ORDER_EXPORT => [
+            AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_EXPORT => [
                 'type' => AMQPExchangeType::DIRECT,
                 'binding_key' => '', // binding key
                 'routing_key' => '', //路由key
@@ -39,7 +39,7 @@ class AmqpConst {
             ],
 
             // 延迟队列
-            AmqpConst::AMQP_QUEUE_DIRECT_ORDER_ADD_DELAY => [
+            AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_ADD_DELAY => [
                 'type' => AMQPExchangeType::DIRECT,
                 'binding_key' => '', // binding key
                 'routing_key' => '', //路由key
@@ -50,9 +50,9 @@ class AmqpConst {
                 'consumer_tag' => 'consumer', // 消费标志
                 'arguments' => [
                     // 定义死信队列
-                    'x-dead-letter-exchange' => AmqpConst::AMQP_EXCHANGE_DIRECT_ORDER, //在同一个交换机下，这个不要改变
-                    'x-dead-letter-queue'    => AmqpConst::AMQP_QUEUE_DIRECT_ORDER_ADD_DELAY.'_dead',
-                    'x-dead-letter-routing-key' => AmqpConst::AMQP_QUEUE_DIRECT_ORDER_ADD_DELAY.'_dead', // 死信队列binding key
+                    'x-dead-letter-exchange' => AmqpConfig::AMQP_EXCHANGE_DIRECT_ORDER, //在同一个交换机下，这个不要改变
+                    'x-dead-letter-queue'    => AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_ADD_DELAY.'_dead',
+                    'x-dead-letter-routing-key' => AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_ADD_DELAY.'_dead', // 死信队列binding key
                     'x-message-ttl' => 3 * 1000
                 ]
             ],
@@ -69,9 +69,9 @@ class AmqpConst {
 
     const AMQP_FANOUT = [
         // 定义exchange_name
-        AmqpConst::AMQP_EXCHANGE_FANOUT_ORDER => [
+        AmqpConfig::AMQP_EXCHANGE_FANOUT_ORDER => [
             // 定义queue 队列名称
-            AmqpConst::AMQP_QUEUE_FANOUT_ORDER_ADD => [
+            AmqpConfig::AMQP_QUEUE_FANOUT_ORDER_ADD => [
                 'type' => AMQPExchangeType::FANOUT,
                 'binding_key' => '', // binding key
                 'routing_key' => '', //路由key
@@ -82,7 +82,7 @@ class AmqpConst {
                 'consumer_tag' => 'consumeFanout1' // 消费标志
             ],
             // 定义queue 队列名称
-            AmqpConst::AMQP_QUEUE_FANOUT_ORDER_EXPORT => [
+            AmqpConfig::AMQP_QUEUE_FANOUT_ORDER_EXPORT => [
                 'type' => AMQPExchangeType::FANOUT,
                 'binding_key' => '', // binding key
                 'routing_key' => '', //路由key
@@ -108,9 +108,9 @@ class AmqpConst {
 
     const AMQP_TOPIC = [
         // 定义exchange_name
-        AmqpConst::AMQP_EXCHANGE_TOPIC_ORDER => [
+        AmqpConfig::AMQP_EXCHANGE_TOPIC_ORDER => [
             // 定义queue 队列名称
-            AmqpConst::AMQP_QUEUE_TOPIC_ORDER_ADD => [
+            AmqpConfig::AMQP_QUEUE_TOPIC_ORDER_ADD => [
                 'type' => AMQPExchangeType::TOPIC,
                 'binding_key' => 'orderSaveEvent.#', // binding key
                 'routing_key' => '', //路由key
@@ -122,7 +122,7 @@ class AmqpConst {
             ],
 
             // 定义queue 队列名称
-            AmqpConst::AMQP_QUEUE_TOPIC_ORDER_EXPORT => [
+            AmqpConfig::AMQP_QUEUE_TOPIC_ORDER_EXPORT => [
                 'type' => AMQPExchangeType::TOPIC,
                 'binding_key' => 'orderSaveEvent1.#', // binding key
                 'routing_key' => '', //路由key
@@ -134,7 +134,7 @@ class AmqpConst {
             ],
 
             // 定义queue 队列名称
-            AmqpConst::AMQP_QUEUE_TOPIC_ORDER_ADD_DELAY => [
+            AmqpConfig::AMQP_QUEUE_TOPIC_ORDER_ADD_DELAY => [
                 'type' => AMQPExchangeType::TOPIC,
                 'binding_key' => 'orderSaveEvent2.#', // binding key
                 'routing_key' => '', //路由key
@@ -145,8 +145,8 @@ class AmqpConst {
                 'consumer_tag' => 'consumeFanout1', // 消费标志
                 'arguments' => [
                     // 定义死信队列
-                    'x-dead-letter-exchange' => AmqpConst::AMQP_EXCHANGE_TOPIC_ORDER, //在同一个交换机下，这个不要改变
-                    'x-dead-letter-queue'    => AmqpConst::AMQP_QUEUE_TOPIC_ORDER_ADD_DELAY.'_dead',
+                    'x-dead-letter-exchange' => AmqpConfig::AMQP_EXCHANGE_TOPIC_ORDER, //在同一个交换机下，这个不要改变
+                    'x-dead-letter-queue'    => AmqpConfig::AMQP_QUEUE_TOPIC_ORDER_ADD_DELAY.'_dead',
                     'x-dead-letter-routing-key' => 'orderSaveEvent2-all', // 死信队列binding key
                     'x-message-ttl' => 3 * 1000
                 ]

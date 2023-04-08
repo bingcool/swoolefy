@@ -2,7 +2,8 @@
 // 应用配置
 use Common\Library\Amqp\AmqpStreamConnectionFactory;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
-use Test\Config\AmqpConst;
+use Test\Config\AmqpConfig;
+use Test\Config\KafkaConfig;
 
 $dc = include 'dc-dev.php';
 
@@ -73,7 +74,7 @@ return [
         'amqpConnection' => function() use($dc) {
             $connection = AmqpStreamConnectionFactory::create(
                 $dc['amqp_connection']['host_list'],
-                $dc['amqp_connection']['options'],
+                $dc['amqp_connection']['options']
             );
             return $connection;
         },
@@ -85,9 +86,9 @@ return [
              */
             $connection = \Swoolefy\Core\Application::getApp()->get('amqpConnection')->getObject();
             $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
-            $amqpConfig->exchangeName = AmqpConst::AMQP_EXCHANGE_DIRECT_ORDER;
-            $amqpConfig->queueName    = AmqpConst::AMQP_QUEUE_DIRECT_ORDER_ADD;
-            $property = AmqpConst::AMQP_DIRECT[$amqpConfig->exchangeName][$amqpConfig->queueName];
+            $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_DIRECT_ORDER;
+            $amqpConfig->queueName    = AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_ADD;
+            $property = AmqpConfig::AMQP_DIRECT[$amqpConfig->exchangeName][$amqpConfig->queueName];
             $amqpConfig->type = $property['type'];
             $amqpConfig->bindingKey = $property['binding_key'];
             $amqpConfig->routingKey = $property['routing_key'];
@@ -110,9 +111,9 @@ return [
              */
             $connection = \Swoolefy\Core\Application::getApp()->get('amqpConnection')->getObject();
             $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
-            $amqpConfig->exchangeName = AmqpConst::AMQP_EXCHANGE_DIRECT_ORDER;
-            $amqpConfig->queueName    = AmqpConst::AMQP_QUEUE_DIRECT_ORDER_EXPORT;
-            $property = AmqpConst::AMQP_DIRECT[$amqpConfig->exchangeName][$amqpConfig->queueName];
+            $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_DIRECT_ORDER;
+            $amqpConfig->queueName    = AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_EXPORT;
+            $property = AmqpConfig::AMQP_DIRECT[$amqpConfig->exchangeName][$amqpConfig->queueName];
             $amqpConfig->type = $property['type'];
             $amqpConfig->bindingKey = $property['binding_key'];
             $amqpConfig->routingKey = $property['routing_key'];
@@ -133,12 +134,12 @@ return [
              */
             $connection = \Swoolefy\Core\Application::getApp()->get('amqpConnection')->getObject();
             $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
-            $amqpConfig->exchangeName = AmqpConst::AMQP_EXCHANGE_DIRECT_ORDER;
+            $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_DIRECT_ORDER;
 
             // 延迟名称
-            $amqpConfig->queueName    = AmqpConst::AMQP_QUEUE_DIRECT_ORDER_ADD_DELAY;
+            $amqpConfig->queueName    = AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_ADD_DELAY;
 
-            $property = AmqpConst::AMQP_DIRECT[$amqpConfig->exchangeName][$amqpConfig->queueName];
+            $property = AmqpConfig::AMQP_DIRECT[$amqpConfig->exchangeName][$amqpConfig->queueName];
             $amqpConfig->type = $property['type'];
             $amqpConfig->bindingKey = $property['binding_key'];
             $amqpConfig->routingKey = $property['routing_key'];
@@ -163,7 +164,7 @@ return [
              */
             $connection = \Swoolefy\Core\Application::getApp()->get('amqpConnection')->getObject();
             $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
-            $amqpConfig->exchangeName = AmqpConst::AMQP_EXCHANGE_FANOUT_ORDER;
+            $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_FANOUT_ORDER;
             $amqpFanoutConsumer = new \Common\Library\Amqp\AmqpFanoutQueue($connection, $amqpConfig);
             $amqpFanoutConsumer->setAckHandler(function (\PhpAmqpLib\Message\AMQPMessage $message) {
                 echo "Message acked with content " . $message->body . PHP_EOL;
@@ -178,11 +179,11 @@ return [
              */
             $connection = \Swoolefy\Core\Application::getApp()->get('amqpConnection')->getObject();
             $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
-            $amqpConfig->exchangeName = AmqpConst::AMQP_EXCHANGE_FANOUT_ORDER;
-            $amqpConfig->queueName = AmqpConst::AMQP_QUEUE_FANOUT_ORDER_ADD;
+            $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_FANOUT_ORDER;
+            $amqpConfig->queueName = AmqpConfig::AMQP_QUEUE_FANOUT_ORDER_ADD;
 
             // fanout
-            $property = AmqpConst::AMQP_FANOUT[$amqpConfig->exchangeName][$amqpConfig->queueName];
+            $property = AmqpConfig::AMQP_FANOUT[$amqpConfig->exchangeName][$amqpConfig->queueName];
             $amqpConfig->type = $property['type'];
             $amqpConfig->bindingKey = $property['binding_key'];
             $amqpConfig->routingKey = $property['routing_key'];
@@ -202,11 +203,11 @@ return [
              */
             $connection = \Swoolefy\Core\Application::getApp()->get('amqpConnection')->getObject();
             $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
-            $amqpConfig->exchangeName = AmqpConst::AMQP_EXCHANGE_FANOUT_ORDER;
-            $amqpConfig->queueName = AmqpConst::AMQP_QUEUE_FANOUT_ORDER_EXPORT;
+            $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_FANOUT_ORDER;
+            $amqpConfig->queueName = AmqpConfig::AMQP_QUEUE_FANOUT_ORDER_EXPORT;
 
             // fanout
-            $property = AmqpConst::AMQP_FANOUT[$amqpConfig->exchangeName][$amqpConfig->queueName];
+            $property = AmqpConfig::AMQP_FANOUT[$amqpConfig->exchangeName][$amqpConfig->queueName];
             $amqpConfig->type = $property['type'];
             $amqpConfig->bindingKey = $property['binding_key'];
             $amqpConfig->routingKey = $property['routing_key'];
@@ -226,10 +227,10 @@ return [
              */
             $connection = \Swoolefy\Core\Application::getApp()->get('amqpConnection')->getObject();
             $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
-            $amqpConfig->exchangeName = AmqpConst::AMQP_EXCHANGE_TOPIC_ORDER;
-            $amqpConfig->queueName    = AmqpConst::AMQP_QUEUE_TOPIC_ORDER_ADD;
+            $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_TOPIC_ORDER;
+            $amqpConfig->queueName    = AmqpConfig::AMQP_QUEUE_TOPIC_ORDER_ADD;
 
-            $property = AmqpConst::AMQP_TOPIC[$amqpConfig->exchangeName][$amqpConfig->queueName];
+            $property = AmqpConfig::AMQP_TOPIC[$amqpConfig->exchangeName][$amqpConfig->queueName];
             $amqpConfig->type = $property['type'];
             $amqpConfig->bindingKey = $property['binding_key'];
             $amqpConfig->routingKey = $property['routing_key'];
@@ -253,12 +254,12 @@ return [
              */
             $connection = \Swoolefy\Core\Application::getApp()->get('amqpConnection')->getObject();
             $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
-            $amqpConfig->exchangeName = AmqpConst::AMQP_EXCHANGE_TOPIC_ORDER;
+            $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_TOPIC_ORDER;
 
             // 延迟队列
-            $amqpConfig->queueName    = AmqpConst::AMQP_QUEUE_TOPIC_ORDER_ADD_DELAY;
+            $amqpConfig->queueName    = AmqpConfig::AMQP_QUEUE_TOPIC_ORDER_ADD_DELAY;
 
-            $property = AmqpConst::AMQP_TOPIC[$amqpConfig->exchangeName][$amqpConfig->queueName];
+            $property = AmqpConfig::AMQP_TOPIC[$amqpConfig->exchangeName][$amqpConfig->queueName];
             $amqpConfig->type = $property['type'];
             $amqpConfig->bindingKey = $property['binding_key'];
             $amqpConfig->routingKey = $property['routing_key'];
@@ -273,6 +274,25 @@ return [
 //                echo "Message acked with content " . $message->body . PHP_EOL;
 //            });
             return $amqpTopicPublish;
+        },
+
+        // kafka-group1_producer生产者
+        'kafka_topic_order_group1_producer' => function() {
+            $kafkaConf = KafkaConfig::KAFKA_TOPICS[KafkaConfig::KAFKA_TOPIC_ORDER1];
+            $producer = new \Common\Library\Kafka\Producer($kafkaConf['metadata_broker_list'], $kafkaConf['topic_name']);
+            $producer->setGlobalProperty($kafkaConf['producer_global_property']);
+            $producer->setTopicProperty($kafkaConf['producer_topic_property']);
+            return $producer;
+        },
+
+        // kafka-group1_producer 消费者
+        'kafka_topic_order_group1_consumer' => function() {
+            $kafkaConf = KafkaConfig::KAFKA_TOPICS[KafkaConfig::KAFKA_TOPIC_ORDER1];
+            $consumer = new \Common\Library\Kafka\Consumer($kafkaConf['metadata_broker_list'], $kafkaConf['topic_name']);
+            $consumer->setGroupId($kafkaConf['group_id']);
+            $consumer->setGlobalProperty($kafkaConf['consumer_global_property']);
+            $consumer->setTopicProperty($kafkaConf['consumer_topic_property']);
+            return $consumer;
         },
 
     ],
