@@ -61,17 +61,19 @@ class Event extends EventHandler
             //ProcessManager::getInstance()->addProcess('amqp-consumer-fanout1', \Test\Process\AmqpProcess\AmqpConsumerFanout1::class);
 
 
-            // amqp-topic 生产队列
-            ProcessManager::getInstance()->addProcess('amqp-publish-topic', \Test\Process\AmqpProcess\AmqpPublishTopic::class);
+            // amqp-topic 生产队
+            //ProcessManager::getInstance()->addProcess('amqp-publish-topic', \Test\Process\AmqpProcess\AmqpPublishTopic::class);
             // amqp-topic 消费队列
-            ProcessManager::getInstance()->addProcess('amqp-consumer-topic', \Test\Process\AmqpProcess\AmqpConsumerTopic::class);
+            //ProcessManager::getInstance()->addProcess('amqp-consumer-topic', \Test\Process\AmqpProcess\AmqpConsumerTopic::class);
 
 
 
             // kafka-topic 生产队列
             //ProcessManager::getInstance()->addProcess('kafka-publish-topic', \Test\Process\Kafka\ProducerKafka::class);
             // kafka-topic 消费队列
-            //ProcessManager::getInstance()->addProcess('kafka-consumer-topic', \Test\Process\Kafka\ConsumerKafka::class);
+            //ProcessManager::getInstance()->addProcess('kafka-consumer-topic1', \Test\Process\Kafka\ConsumerKafka::class);
+            //ProcessManager::getInstance()->addProcess('kafka-consumer-topic2', \Test\Process\Kafka\ConsumerKafka::class);
+            //ProcessManager::getInstance()->addProcess('kafka-consumer-topic3', \Test\Process\Kafka\ConsumerKafka::class);
 
 
 
