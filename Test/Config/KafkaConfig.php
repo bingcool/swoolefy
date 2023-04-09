@@ -3,7 +3,7 @@ namespace Test\Config;
 
 class KafkaConfig
 {
-    const KAFKA_META_BROKER_LIST = '172.17.0.1:9092';
+    const KAFKA_META_BROKER_LIST = '192.168.1.101:9092';
 
     // topic name order1
     const KAFKA_TOPIC_ORDER1 = 'topicOrder1';
