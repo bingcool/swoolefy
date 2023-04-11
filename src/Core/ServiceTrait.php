@@ -317,10 +317,46 @@ trait ServiceTrait
     }
 
     /**
+     * @return array
+     */
+    public static function getHttpRouterMapUri(string $uri): array
+    {
+        $routerMap = self::getRouters();
+        if (isset($routerMap[$uri])) {
+            $routerHandle = $routerMap[$uri];
+
+            if(!isset($routerHandle['handle'])) {
+                $routerHandle['handle'] = $uri;
+            }else {
+                $routerHandle['handle'] = str_replace("\\","/", $routerHandle['handle'][0]).DIRECTORY_SEPARATOR.$routerHandle['handle'][1];
+            }
+            $beforeHandle = $afterHandle = [];
+            $handleUri = $routerHandle['handle'] ?? $uri;
+
+            foreach($routerHandle as $alias => $handle) {
+                if ($alias != 'handle') {
+                    $beforeHandle[] = $handle;
+                    unset($routerHandle[$alias]);
+                    continue;
+                }
+                unset($routerHandle[$alias]);
+                break;
+            }
+
+            $afterHandle = array_values($routerHandle);
+
+            return [$beforeHandle, $handleUri, $afterHandle];
+
+        }else {
+            return [[], $uri, []];
+        }
+    }
+
+    /**
      * @param string $uri
      * @return string
      */
-    public static function getRouterMapUri(string $uri)
+    public static function getRouterMapService(string $uri)
     {
         $routerMap = self::getRouters();
         return $routerMap[$uri] ?? $uri;
