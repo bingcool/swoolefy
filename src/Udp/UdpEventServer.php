@@ -49,7 +49,8 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface
     public function onPack($server, $data, $clientInfo)
     {
         $appInstance = new UdpHandler(Swfy::getAppConf());
-        $appInstance->run($data, $clientInfo);
+        $appInstance->setClientInfo($clientInfo);
+        $appInstance->run(null, $data);
     }
 
     /**
@@ -66,14 +67,15 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface
     {
         list($callable, $taskData, $clientInfo) = $data;
         $appInstance = new UdpHandler(Swfy::getAppConf());
-        $appInstance->run([$callable, $taskData], $clientInfo, [$from_worker_id, $task_id, $task]);
+        $appInstance->setClientInfo($clientInfo);
+        $appInstance->run(null, [$callable, $taskData], [$from_worker_id, $task_id, $task]);
         return true;
     }
 
     /**
      * @param Server $server
-     * @param $task_id
-     * @param $data
+     * @param int $task_id
+     * @param mixed $data
      * @return mixed
      */
     abstract public function onFinish($server, $task_id, $data);

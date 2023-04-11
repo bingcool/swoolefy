@@ -11,7 +11,6 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 use Swoolefy\Exception\SystemException;
 
@@ -32,7 +31,7 @@ class Swoole extends BaseObject
     protected $fd;
 
     /**
-     * rpc、udp、websocket传递的参数寄存属性
+     * rpc,udp,websocket传递的参数寄存属性
      * @var mixed
      */
     private $mixedParams;
@@ -60,67 +59,70 @@ class Swoole extends BaseObject
 
     /**
      * init
-     * @param mixed $recv
+     * @param mixed $payload
      * @return void
      */
-    protected function _init($recv = null)
+    protected function _init($payload = null)
     {
-        static::init($recv);
+        static::init($payload);
     }
 
     /**
      * bootstrap
-     * @param mixed $recv
+     * @param mixed $payload
      */
-    protected function _bootstrap($recv = null)
+    protected function _bootstrap($payload = null)
     {
-        static::bootstrap($recv);
+        static::bootstrap($payload);
         if (isset(Swfy::getConf()['application_service']) && !empty(Swfy::getConf()['application_service'])) {
             $applicationService = Swfy::getConf()['application_service'];
             if (class_exists($applicationService)) {
-                $applicationService::bootstrap($recv);
+                $applicationService::bootstrap($payload);
             }
         }
     }
 
     /**
      * init 当执行run方法时首先会执行init->bootstrap
-     * @param mixed $recv
+     * @param mixed $payload
      * @return void
      */
-    protected function init($recv)
+    public function init($payload)
     {
     }
 
     /**
      * bootstrap
-     * @param mixed $recv
+     * @param mixed $payload
      * @return void
      */
-    protected function bootstrap($recv)
+    public function bootstrap($payload)
     {
     }
 
     /**
      * run instance
+     * @param int|null $fd
+     * @param mixed $payload
+     * @param array $extendData
      * @return void
      * @throws \Exception
      */
-    public function run($fd, $recv)
+    public function run(?int $fd, $payload, array $extendData = [])
     {
         $this->fd = $fd;
         $this->creatObject();
         Application::setApp($this);
         $this->defer();
-        $this->_init($recv);
-        $this->_bootstrap($recv);
+        $this->_init($payload);
+        $this->_bootstrap($payload);
     }
 
     /**
      * getCurrentWorkerId
      * @return int
      */
-    public static function getCurrentWorkerId()
+    public static function getCurrentWorkerId(): int
     {
         return Swfy::getServer()->worker_id;
     }
@@ -130,7 +132,7 @@ class Swoole extends BaseObject
      * @return bool
      * @throws \Exception
      */
-    public static function isWorkerProcess()
+    public static function isWorkerProcess(): bool
     {
         return Swfy::isWorkerProcess();
     }
@@ -140,23 +142,9 @@ class Swoole extends BaseObject
      * @return bool
      * @throws \Exception
      */
-    public static function isTaskProcess()
+    public static function isTaskProcess(): bool
     {
         return Swfy::isTaskProcess();
-    }
-
-    /**
-     * @param int $coroutineId
-     * @return int
-     */
-    public function setCid(int $coroutineId)
-    {
-        if (empty($coroutineId)) {
-            $coroutineId = CoroutineManager::getInstance()->getCoroutineId();
-        }
-
-        $this->coroutineId = $coroutineId;
-        return $this->coroutineId;
     }
 
     /**
@@ -260,7 +248,7 @@ class Swoole extends BaseObject
     }
 
     /**
-     * @return string | SwoolefyException
+     * @return string|SwoolefyException
      */
     public function getExceptionClass()
     {
@@ -269,7 +257,7 @@ class Swoole extends BaseObject
 
     /**
      * afterRequest 请求结束后注册钩子执行操作
-     * @param mixed $callback
+     * @param callable $callback
      * @param bool $prepend
      * @return bool
      */
@@ -286,7 +274,7 @@ class Swoole extends BaseObject
     {
         if (\Swoole\Coroutine::getCid() >= 0) {
             $this->isDefer = true;
-            \Swoole\Coroutine::defer(function () {
+            \Swoole\Coroutine\defer(function () {
                 $this->end();
             });
         }
