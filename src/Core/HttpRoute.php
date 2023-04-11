@@ -89,6 +89,16 @@ class HttpRoute extends AppDispatch
     protected $actionParams = [];
 
     /**
+     * @var array
+     */
+    protected $beforeHandle = [];
+
+    /**
+     * @var array|mixed
+     */
+    protected $afterHandle = [];
+
+    /**
      * $denyActions
      * @var array
      */
@@ -105,7 +115,7 @@ class HttpRoute extends AppDispatch
         $this->request    = $this->app->request;
         $this->response   = $this->app->response;
         $this->appConf    = $this->app->appConf;
-        $this->routerUri  = Swfy::getRouterMapUri($this->request->server['PATH_INFO']);
+        list($this->beforeHandle, $this->routerUri, $this->afterHandle)  = Swfy::getHttpRouterMapUri($this->request->server['PATH_INFO']);
         $this->extendData = $extendData;
     }
 
@@ -249,6 +259,20 @@ class HttpRoute extends AppDispatch
             throw new SystemException('System Request End Error', 500);
         }
 
+        foreach($this->beforeHandle as $handle) {
+            $result = call_user_func($handle, $this->request, $this->response);
+            if ($result === false) {
+                $errorMsg = sprintf(
+                    "Call %s route handle return false, forbidden continue call %s::%s",
+                    $class,
+                    $class,
+                    $targetAction
+                );
+
+                throw new SystemException($errorMsg, 500);
+            }
+        }
+
         // invoke _beforeAction
         $isContinueAction = $controllerInstance->_beforeAction($action);
 
@@ -270,6 +294,15 @@ class HttpRoute extends AppDispatch
             if ($method->isPublic() && !$method->isStatic()) {
                 $controllerInstance->{$targetAction}(...$args);
                 $controllerInstance->_afterAction($action);
+
+                foreach ($this->afterHandle as $handle) {
+                    try {
+                        call_user_func($handle, $this->request, $this->response);
+                    }catch (\Throwable $exception) {
+                        // todo
+                    }
+                }
+
             } else {
                 $errorMsg = sprintf(
                     "Class method %s::%s is protected or private property, can't be called by Controller Instance",
