@@ -3,8 +3,6 @@ namespace Test\Config;
 
 class KafkaConfig
 {
-    const KAFKA_META_BROKER_LIST = '192.168.1.101:9092';
-
     // topic name order1
     const KAFKA_TOPIC_ORDER1 = 'topicOrder1';
 
@@ -12,7 +10,6 @@ class KafkaConfig
     // 参考配置 https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md
     const KAFKA_TOPICS = [
         self::KAFKA_TOPIC_ORDER1 => [
-            'metadata_broker_list' => self::KAFKA_META_BROKER_LIST,
             'topic_name' => self::KAFKA_TOPIC_ORDER1,
             'group_id'   => 'topic_orde_group1',
             // 生产端的全局配置

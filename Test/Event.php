@@ -66,8 +66,6 @@ class Event extends EventHandler
             // amqp-topic 消费队列
             ProcessManager::getInstance()->addProcess('amqp-consumer-topic', \Test\Process\AmqpProcess\AmqpConsumerTopic::class);
 
-
-
             // kafka-topic 生产队列
             //ProcessManager::getInstance()->addProcess('kafka-publish-topic', \Test\Process\Kafka\ProducerKafka::class);
             // kafka-topic 消费队列
