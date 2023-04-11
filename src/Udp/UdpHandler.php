@@ -40,6 +40,15 @@ class UdpHandler extends Swoole implements HandlerInterface
     }
 
     /**
+     * @param $clientInfo
+     * @return void
+     */
+    public function setClientInfo($clientInfo)
+    {
+        $this->clientInfo = $clientInfo;
+    }
+
+    /**
      * @return mixed
      */
     public function getClientInfo()
@@ -55,11 +64,10 @@ class UdpHandler extends Swoole implements HandlerInterface
      * @return mixed
      * @throws \Throwable
      */
-    public function run(mixed $payload, mixed $clientInfo, array $extendData = [])
+    public function run(?int $fd, mixed $payload, array $extendData = [])
     {
         try {
-            parent::run($fd = null, $payload);
-            $this->clientInfo = $clientInfo;
+            parent::run(null, $payload);
             if ($this->isWorkerProcess()) {
                 $dataGramItems = explode(static::EOF, $payload, 3);
                 if (count($dataGramItems) == 3) {

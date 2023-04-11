@@ -61,7 +61,7 @@ trait ServiceTrait
 
     /**
      * getConnections
-     * @return array
+     * @return \Swoole\Connection\Iterator
      */
     public static function getConnections()
     {

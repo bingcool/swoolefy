@@ -31,7 +31,7 @@ class Swoole extends BaseObject
     protected $fd;
 
     /**
-     * rpc、udp、websocket传递的参数寄存属性
+     * rpc,udp,websocket传递的参数寄存属性
      * @var mixed
      */
     private $mixedParams;
@@ -59,62 +59,62 @@ class Swoole extends BaseObject
 
     /**
      * init
-     * @param mixed $recv
+     * @param mixed $payload
      * @return void
      */
-    protected function _init(mixed $recv = null)
+    protected function _init(mixed $payload = null)
     {
-        static::init($recv);
+        static::init($payload);
     }
 
     /**
      * bootstrap
-     * @param mixed $recv
+     * @param mixed $payload
      */
-    protected function _bootstrap(mixed $recv = null)
+    protected function _bootstrap(mixed $payload = null)
     {
-        static::bootstrap($recv);
+        static::bootstrap($payload);
         if (isset(Swfy::getConf()['application_service']) && !empty(Swfy::getConf()['application_service'])) {
             $applicationService = Swfy::getConf()['application_service'];
             if (class_exists($applicationService)) {
-                $applicationService::bootstrap($recv);
+                $applicationService::bootstrap($payload);
             }
         }
     }
 
     /**
      * init 当执行run方法时首先会执行init->bootstrap
-     * @param mixed $recv
+     * @param mixed $payload
      * @return void
      */
-    public function init(mixed $recv)
+    public function init(mixed $payload)
     {
     }
 
     /**
      * bootstrap
-     * @param mixed $recv
+     * @param mixed $payload
      * @return void
      */
-    public function bootstrap(mixed $recv)
+    public function bootstrap(mixed $payload)
     {
     }
 
     /**
      * run instance
      * @param int $fd
-     * @param mixed $recv
+     * @param mixed $input
+     * @param array $extendData
      * @return void
-     * @throws \Exception
      */
-    public function run(?int $fd, mixed $recv)
+    public function run(?int $fd, mixed $payload, array $extendData = [])
     {
         $this->fd = $fd;
         $this->creatObject();
         Application::setApp($this);
         $this->defer();
-        $this->_init($recv);
-        $this->_bootstrap($recv);
+        $this->_init($payload);
+        $this->_bootstrap($payload);
     }
 
     /**
