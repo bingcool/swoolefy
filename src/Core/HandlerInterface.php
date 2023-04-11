@@ -14,10 +14,10 @@ namespace Swoolefy\Core;
 interface HandlerInterface
 {
 
-    public function init(mixed $recv);
+    public function init(mixed $payload);
 
-    public function bootstrap(mixed $recv);
+    public function bootstrap(mixed $payload);
 
-    public function run(?int $fd, mixed $recv, array $extendData);
+    public function run(?int $fd, mixed $payload, array $extendData);
 
 }
