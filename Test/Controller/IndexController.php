@@ -29,6 +29,10 @@ class IndexController extends BController {
             'Action' => $this->getActionId()
         ]);
     }
+    public function afterSave()
+    {
+
+    }
 
     public function testLog1()
     {
