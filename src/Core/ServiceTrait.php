@@ -323,6 +323,7 @@ trait ServiceTrait
     public static function getHttpRouterMapUri(string $uri): array
     {
         $routerMap = self::getRouters();
+        $uri = DIRECTORY_SEPARATOR.trim($uri,DIRECTORY_SEPARATOR);
         if (isset($routerMap[$uri])) {
             $routerHandle = $routerMap[$uri];
 

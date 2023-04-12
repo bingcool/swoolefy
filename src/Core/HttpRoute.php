@@ -219,7 +219,6 @@ class HttpRoute extends AppDispatch
         if ($module) {
             $filePath = APP_PATH . DIRECTORY_SEPARATOR . 'Module' . DIRECTORY_SEPARATOR . $module.DIRECTORY_SEPARATOR.'Controller' . DIRECTORY_SEPARATOR . $controller . '.php';
             $class    = $this->appConf['app_namespace'] . '\\' . 'Module' . '\\' . $module .'\\'.'Controller'. '\\' . $controller;
-
             if (!$this->isExistRouteFile($class)) {
                 if (!is_file($filePath)) {
                     $targetNotFoundClassArr = $this->fileNotFound($class);

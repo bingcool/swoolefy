@@ -94,9 +94,9 @@ class App extends \Swoolefy\Core\Component
     {
         $conf = BaseServer::getConf();
         if (isset($conf['application_bootstrap'])) {
-            $applicationIndex = $conf['application_bootstrap'];
-            if (class_exists($applicationIndex)) {
-                $applicationIndex::bootstrap($this->getRequestParams());
+            $applicationBootstrap = $conf['application_bootstrap'];
+            if (class_exists($applicationBootstrap)) {
+                $applicationBootstrap::handle($this->request, $this->response);
             }
         }
     }
@@ -124,13 +124,13 @@ class App extends \Swoolefy\Core\Component
                 $route = new HttpRoute($extendData);
                 $route->dispatch();
             }
+            $this->onAfterRequest();
         } catch (\Throwable $throwable) {
             /** @var SwoolefyException $exceptionHandle */
             $exceptionHandle = $this->getExceptionClass();
             $exceptionHandle::response($this, $throwable);
         } finally {
             if (!$this->isDefer) {
-                $this->onAfterRequest();
                 $this->end();
             }
         }
@@ -238,7 +238,6 @@ class App extends \Swoolefy\Core\Component
         if (\Swoole\Coroutine::getCid() >= 0) {
             $this->isDefer = true;
             \Swoole\Coroutine::defer(function () {
-                $this->onAfterRequest();
                 $this->end();
             });
         }

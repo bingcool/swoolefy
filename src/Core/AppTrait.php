@@ -12,6 +12,7 @@
 namespace Swoolefy\Core;
 
 use Swoole\Http\Response;
+use Swoolefy\Exception\SystemException;
 
 trait AppTrait
 {
@@ -50,7 +51,7 @@ trait AppTrait
     }
 
     /**
-     * 提前结束请求,可以在_beforeAction中调用
+     * 可以在Bootstrap| Route| _beforeAction中调用提前结束请求
      * @param int $code
      * @param string $msg
      * @param mixed $data
@@ -332,14 +333,6 @@ trait AppTrait
     }
 
     /**
-     * @return string
-     */
-    public function getRequestUriMapRouterUri(): string
-    {
-        return Swfy::getRouterMapService($this->getRequestUri());
-    }
-
-    /**
      * getRoute
      * @return string
      */
@@ -563,7 +556,6 @@ trait AppTrait
         if(is_object(Application::getApp())) {
             Application::getApp()->setEnd();
         }
-
         $this->response->end();
     }
 

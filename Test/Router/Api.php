@@ -27,8 +27,8 @@ return [
 
     '/index/index' => [
         'beforeHandle' => function(Request $request) {
-            $app = Application::getApp();
-            var_dump(get_class($app));
+            $name = Application::getApp()->getPostParams('name');
+            var_dump($name);
         },
 
         'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
