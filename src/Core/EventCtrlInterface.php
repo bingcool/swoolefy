@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core;
 
+use Swoole\Server;
+
 interface EventCtrlInterface
 {
     /**
@@ -21,47 +23,47 @@ interface EventCtrlInterface
 
     /**
      * onStart
-     * @param $server
+     * @param Server $server
      * @return void
      */
     public function start($server);
 
     /**
      * onManagerStart
-     * @param $server
+     * @param Server $server
      * @return void
      */
     public function managerStart($server);
 
     /**
      * onWorkerStart
-     * @param $server
+     * @param Server $server
      * @return void
      */
     public function workerStart($server, $worker_id);
 
     /**
      * onWorkerStop
-     * @param $server
-     * @param $worker_id
+     * @param Server $server
+     * @param int $worker_id
      * @return void
      */
     public function workerStop($server, $worker_id);
 
     /**
      * workerError
-     * @param $server
-     * @param $worker_id
-     * @param $worker_pid
-     * @param $exit_code
-     * @param $signal
+     * @param Server $server
+     * @param int $worker_id
+     * @param int $worker_pid
+     * @param int $exit_code
+     * @param int $signal
      * @return void
      */
     public function workerError($server, $worker_id, $worker_pid, $exit_code, $signal);
 
     /**
      * workerExit
-     * @param $server
+     * @param Server $server
      * @param $worker_id
      * @return void
      */
@@ -69,7 +71,7 @@ interface EventCtrlInterface
 
     /**
      * onManagerStop
-     * @param $server
+     * @param Server $server
      * @return void
      */
     public function managerStop($server);

@@ -20,16 +20,26 @@ class AbstractSwoolefyExeption extends \Exception
 
     /**
      * @param string $message
-     * @param int $code
      * @param array $contextData
+     * @param int $code
      * @param \Throwable|null $previous
-     * @return void
+     * @return mixed
+     * @throws AbstractSwoolefyExeption
      */
-    public static function throw(string $message, array $contextData, int $code = 0, ?\Throwable $previous = null)
+    public static function throw(string $message, array $contextData = [], int $code = -1, ?\Throwable $previous = null)
     {
         $throw = new static($message, $code, $previous);
-        $throw->contextData = $contextData;
+        $throw->setContextData($contextData);
         throw $throw;
+    }
+
+    /**
+     * @param array $contextData
+     * @return void
+     */
+    public function setContextData(array $contextData)
+    {
+        $this->contextData = $contextData;
     }
 
     /**

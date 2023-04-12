@@ -60,7 +60,7 @@ class Session
 
     /**
      * cookie的设置
-     * @var integer
+     * @var int
      */
     public $cookie_lifetime  = 7776000;
 

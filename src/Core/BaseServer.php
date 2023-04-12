@@ -142,8 +142,6 @@ class BaseServer
         Swfy::setConf(self::$config);
         // start runtime Coroutine
         self::setCoroutineSetting(self::$config['coroutine_setting'] ?? []);
-        // set timeZone
-        self::setTimeZone();
         // check extensions
         self::checkVersion();
         // check is run on cli
@@ -448,7 +446,7 @@ class BaseServer
 
     /**
      * getLocalIp
-     * @return array
+     * @return string
      */
     public static function getLocalIp()
     {
@@ -479,9 +477,6 @@ class BaseServer
      */
     public static function setTimeZone()
     {
-        // 默认
-        $timezone = static::$config['time_zone'] ?? 'PRC';
-        date_default_timezone_set($timezone);
         return true;
     }
 
@@ -500,12 +495,12 @@ class BaseServer
     }
 
     /**
-     * @param $worker_id
+     * @param int $workerId
      * @return void
      */
-    public static function getIncludeFiles($worker_id)
+    public static function getIncludeFiles(int $workerId)
     {
-        if (isset(static::$setting['log_file']) && $worker_id == 0) {
+        if (isset(static::$setting['log_file']) && $workerId == 0) {
             $path = pathinfo(static::$setting['log_file'], PATHINFO_DIRNAME);
             $filePath = $path . '/includes.json';
             $includes = get_included_files();
@@ -519,14 +514,14 @@ class BaseServer
 
     /**
      * setWorkersPid 记录worker对应的进程worker_pid与worker_id的映射
-     * @param int $worker_id
-     * @param int $worker_pid
+     * @param int $workerId
+     * @param int $workerPid
      * @return void
      */
-    public static function setWorkersPid(int $worker_id, int $worker_pid)
+    public static function setWorkersPid(int $workerId, int $workerPid)
     {
         $workerPidArr = self::getWorkersPid();
-        $workerPidArr[$worker_id] = $worker_pid;
+        $workerPidArr[$workerId] = $workerPid;
         TableManager::set('table_workers_pid', 'workers_pid', ['workers_pid' => json_encode($workerPidArr)]);
     }
 
@@ -563,12 +558,12 @@ class BaseServer
 
     /**
      * isWorkerProcess 进程是否是worker进程
-     * @param int $worker_id
+     * @param int $workerId
      * @return  bool
      */
-    public static function isWorkerProcess(int $worker_id)
+    public static function isWorkerProcess(int $workerId)
     {
-        if ($worker_id < static::$setting['worker_num']) {
+        if ($workerId < static::$setting['worker_num']) {
             return true;
         }
         return false;
@@ -576,12 +571,12 @@ class BaseServer
 
     /**
      * isTaskProcess 是否task进程
-     * @param int $worker_id
+     * @param int $workerId
      * @return bool
      */
-    public static function isTaskProcess(int $worker_id)
+    public static function isTaskProcess(int $workerId)
     {
-        return static::isWorkerProcess($worker_id) ? false : true;
+        return static::isWorkerProcess($workerId) ? false : true;
     }
 
     /**

@@ -18,7 +18,7 @@ $appConf = include START_DIR_ROOT . '/' . APP_NAME . '/Config/config-' . SWOOLEF
 return [
     // 应用层配置
     'app_conf'                 => $appConf,
-    'application_index'        => '',
+    'application_bootstrap'    => '',
     'event_handler'            => \Swoolefy\Core\EventHandler::class,
     'response_formatter'       => \Swoolefy\Core\ResponseFormatter::class,
     'exception_handler'        => '',

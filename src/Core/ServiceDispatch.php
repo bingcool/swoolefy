@@ -114,7 +114,11 @@ class ServiceDispatch extends AppDispatch
      * @return bool
      * @throws \Exception
      */
-    protected function errorHandle(string $class, string $action, $errorMethod = 'error404')
+    protected function errorHandle(
+        string $class,
+        string $action,
+        string $errorMethod = 'error404'
+    )
     {
         if (Swfy::isWorkerProcess()) {
             $notFoundInstance = $this->getErrorHandle();
@@ -163,6 +167,7 @@ class ServiceDispatch extends AppDispatch
         if (isset(self::$routeCacheFileMap[$class])) {
             return true;
         }
+
         $file = ROOT_PATH . DIRECTORY_SEPARATOR . $class . '.php';
         if (is_file($file)) {
             self::$routeCacheFileMap[$class] = true;

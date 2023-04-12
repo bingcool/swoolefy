@@ -105,12 +105,12 @@ class PoolsManager
         $this->totalProcessNum += ($this->workerNum * $processNumBindWorker);
 
         if ($this->totalProcessNum > self::PROCESS_NUM) {
-            throw new \Exception("PoolsManager Error : total user process num more then " . self::PROCESS_NUM);
+            throw new SystemException("PoolsManager Error : total user process num more then " . self::PROCESS_NUM);
         }
 
         $key = md5($processName);
         if (isset($this->processList[$key])) {
-            throw new \Exception("PoolsManager Error : you can not add the same process : $processName");
+            throw new SystemException("PoolsManager Error : you can not add the same process : $processName");
         }
 
         for ($i = 0; $i < $this->workerNum; $i++) {
@@ -141,6 +141,7 @@ class PoolsManager
      * @param string $processName
      * @param bool $isReturnAll 是否返回worker中绑定的所有process
      * @return AbstractProcessPools|array
+     * @throws SystemException
      */
     public function getProcessPoolsByName(string $processName, bool $isReturnAll = false)
     {
@@ -164,6 +165,7 @@ class PoolsManager
      * getProcessByPid 通过进程id获取绑定当前worker进程的某个进程
      * @param int $pid
      * @return mixed
+     * @throws SystemException
      */
     public function getProcessPoolsByPid(int $pid)
     {
@@ -236,7 +238,7 @@ class PoolsManager
      * @param float $timeOut
      * @return Process
      */
-    public function writeByProcessPoolsName(string $processName, $data, \Closure $callback = null, float $timeOut = 3)
+    public function writeByProcessPoolsName(string $processName, $data, \Closure $callback = null, float $timeOut = 3.0 )
     {
         $process = $this->getProcessPoolsByName($processName);
         if ($process) {
@@ -245,9 +247,8 @@ class PoolsManager
             }
             $result = (bool)$process->getProcess()->write($data);
             if ($result && $callback instanceof \Closure) {
-                $msg = null;
                 $msg = $this->read($process->getProcess(), $timeOut);
-                call_user_func($callback, $msg);
+                call_user_func($callback, $msg ?? null);
             }
         }
 
@@ -260,7 +261,7 @@ class PoolsManager
      * @param float $timeOut
      * @return mixed
      */
-    public function read(Process $swooleProcess, float $timeOut = 3)
+    public function read(Process $swooleProcess, float $timeOut = 3.0 )
     {
         $result = null;
         $read = [$swooleProcess];

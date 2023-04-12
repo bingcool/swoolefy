@@ -11,9 +11,9 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Exception\SystemException;
 use Swoolefy\Rpc\RpcServer;
 use Swoolefy\Udp\UdpHandler;
+use Swoolefy\Exception\SystemException;
 
 class BService extends BaseObject
 {
@@ -24,7 +24,7 @@ class BService extends BaseObject
      * fd
      * @var int
      */
-    protected $fd = null;
+    protected $fd;
 
     /**
      * appConf
@@ -51,17 +51,15 @@ class BService extends BaseObject
          * @var Swoole $app
          */
         $app            = Application::getApp();
-        $this->fd       = $app->fd;
-        $this->appConf  = $app->appConf;
+        $this->fd       = $app->getFd();
+        $this->appConf  = $app->getAppConf();
 
         if (BaseServer::isUdpApp()) {
-            /**
-             * @var UdpHandler $app
-             */
+            /** @var UdpHandler $app */
             $this->clientInfo = $app->getClientInfo();
         }
 
-        if (\Swoole\Coroutine::getCid() >= 0) {
+        if (\Swoole\Coroutine::getCid() >=0 ) {
             \Swoole\Coroutine::defer(function () {
                 $this->defer();
             });
@@ -71,16 +69,16 @@ class BService extends BaseObject
     /**
      * beforeAction
      * @param string $action
-     * @return mixed
+     * @return bool
      */
-    public function _beforeAction(string $action)
+    public function _beforeAction(string $action): bool
     {
         return true;
     }
 
 
     /**
-     * @param $mixedParams
+     * @param mixed $mixedParams
      * @return void
      */
     public function setMixedParams($mixedParams)
@@ -182,7 +180,7 @@ class BService extends BaseObject
      * isClientPackEof  根据设置判断客户端的分包方式eof
      * @return bool
      */
-    public function isClientPackEof()
+    public function isClientPackEof(): bool
     {
         return RpcServer::isClientPackEof();
     }
@@ -191,7 +189,7 @@ class BService extends BaseObject
      * isClientPackLength 根据设置判断客户端的分包方式length
      * @return bool
      */
-    public function isClientPackLength()
+    public function isClientPackLength(): bool
     {
         if ($this->isClientPackEof()) {
             return false;
@@ -255,7 +253,7 @@ class BService extends BaseObject
     }
 
     /**
-     * defer
+     * defer service实例协程销毁前可以做初始化一些静态变量
      * @return mixed
      */
     public function defer()

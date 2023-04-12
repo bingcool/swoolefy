@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Exception\SystemException;
+
 class ServerManager
 {
 
@@ -32,15 +34,15 @@ class ServerManager
      * addListener
      * @param string $host
      * @param int $port
-     * @param string $type
+     * @param int $type
      * @return mixed
      * @throws \Exception
      */
-    public function addListener(string $host, int $port, $type = SWOOLE_SOCK_TCP)
+    public function addListener(string $host, int $port, int $type = SWOOLE_SOCK_TCP)
     {
         $serverPort = Swfy::getServer()->addListener($host, $port, $type);
         if (!is_object($serverPort)) {
-            throw new \Exception("ServerManager::addListener port = {$port} failed", 1);
+            throw new SystemException("ServerManager::addListener port = {$port} failed", 1);
         }
         $this->serverPorts[$port] = $serverPort;
         return $serverPort;
@@ -69,17 +71,6 @@ class ServerManager
     {
         Swfy::getServer()->stop($workerId);
         return true;
-    }
-
-    /**
-     * getClientInfo
-     * @param int $fd
-     * @param mixed $extraData
-     * @return mixed
-     */
-    public function getClientInfo(int $fd, $extraData = null)
-    {
-        return Swfy::getServer()->getClientInfo($fd, $extraData);
     }
 
     /**

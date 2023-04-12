@@ -13,7 +13,7 @@ namespace Swoolefy\Websocket;
 
 include_once SWOOLEFY_CORE_ROOT_PATH . '/MainEventInterface.php';
 
-use Swoole\WebSocket\Server;
+use Swoole\Server;
 use Swoole\WebSocket\Frame;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\WebsocketEventInterface;
@@ -128,7 +128,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
     /**
      * onPipeMessage
      * @param Server $server
-     * @param int $src_worker_id
+     * @param int $from_worker_id
      * @param mixed $message
      * @return void
      */

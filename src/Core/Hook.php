@@ -61,12 +61,12 @@ class Hook
     /**
      * call hooks
      * @param int $type
-     * @param int $cid
+     * @param int $coroutineId
      * @return void
      */
-    public static function callHook($type, $cid = null)
+    public static function callHook(int $type, ?int $coroutineId = null)
     {
-        if (empty($cid)) {
+        if (empty($coroutineId)) {
             $cid = CoroutineManager::getInstance()->getCoroutineId();
         }
 
@@ -74,7 +74,7 @@ class Hook
             foreach (self::$hooks[$cid][$type] as $func) {
                 try {
                     $func();
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     BaseServer::catchException($e);
                 }
             }
@@ -87,17 +87,15 @@ class Hook
 
     /**
      * getHookCallable
-     * @param int $cid
+     * @param int $coroutineId
      * @return callable
      */
-    public static function getHookCallable($cid = null)
+    public static function getHookCallable(?int $coroutineId = null)
     {
-        if (empty($cid)) {
+        if (empty($coroutineId)) {
             $cid = CoroutineManager::getInstance()->getCoroutineId();
         }
-        if (isset(self::$hooks[$cid])) {
-            return self::$hooks[$cid];
-        }
-        return null;
+
+        return self::$hooks[$cid] ?? null;
     }
 }

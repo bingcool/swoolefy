@@ -12,7 +12,6 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Coroutine\CoroutineManager;
-use Swoolefy\Exception\SystemException;
 
 /**
  * Class EventController

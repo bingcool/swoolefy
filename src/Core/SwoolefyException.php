@@ -57,7 +57,7 @@ class SwoolefyException
      * appException 自定义异常处理
      * @param \Throwable $exception 异常对象
      */
-    public static function appException($exception)
+    public static function appException(\Throwable $exception)
     {
         $error['message'] = $exception->getMessage();
         $trace = $exception->getTrace();
@@ -87,7 +87,7 @@ class SwoolefyException
      * @param int $errorLine
      * @return void
      */
-    public static function appError($errorNo, $errorString, $errorFile, $errorLine)
+    public static function appError(int $errorNo, string $errorString, string $errorFile, int $errorLine)
     {
         $errorStr = sprintf(
             "%s in file %s on line %d",
@@ -122,6 +122,10 @@ class SwoolefyException
         $queryString  = isset($app->request->server['QUERY_STRING']) ? '?' . $app->request->server['QUERY_STRING'] : '';
         $exceptionMsg = $throwable->getMessage();
 
+        if(method_exists($throwable, 'getContextData')) {
+            $contextData = $throwable->getContextData();
+        }
+
         if (isset($app->request->post) && !empty($app->request->post)) {
             $postRaw = json_encode($app->request->post, JSON_UNESCAPED_UNICODE);
             $errorMsg = $exceptionMsg . ' in file ' . $throwable->getFile() . ' on line ' . $throwable->getLine() . ' ||| ' . $app->request->server['REQUEST_URI'] . $queryString.' ||| '.$postRaw;
@@ -138,7 +142,7 @@ class SwoolefyException
             $errorMsg = $exceptionMsg;
         }
 
-        $app->beforeEnd($code, $errorMsg);
+        $app->beforeEnd($code, $errorMsg, $contextData ?? []);
 
         $errorMsg .= ' ||| ' . $throwable->getTraceAsString();
 
@@ -152,7 +156,7 @@ class SwoolefyException
      * @param string $errorType
      */
     public static function shutHalt(
-        $errorMsg,
+        string $errorMsg,
         $errorType = SwoolefyException::EXCEPTION_ERR,
         \Throwable $throwable = null
     ) {
@@ -192,8 +196,6 @@ class SwoolefyException
         if (in_array(SWOOLEFY_ENV, [SWOOLEFY_DEV, SWOOLEFY_GRA])) {
             _each($errorMsg);
         }
-
-        return;
     }
 
 }

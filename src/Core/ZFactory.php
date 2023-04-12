@@ -63,9 +63,8 @@ class ZFactory
      * removeInstance
      * @param int $cid
      * @param string $class
-     * @return bool
      */
-    public static function removeInstance(?int$cid = null, string $class = '')
+    public static function removeInstance(?int $cid = null, string $class = '')
     {
         if (empty($cid)) {
             $cid = CoroutineManager::getInstance()->getCoroutineId();

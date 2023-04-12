@@ -93,10 +93,10 @@ class App extends \Swoolefy\Core\Component
     protected function _bootstrap()
     {
         $conf = BaseServer::getConf();
-        if (isset($conf['application_index'])) {
-            $applicationIndex = $conf['application_index'];
-            if (class_exists($applicationIndex)) {
-                $applicationIndex::bootstrap($this->getRequestParams());
+        if (isset($conf['application_bootstrap'])) {
+            $applicationBootstrap = $conf['application_bootstrap'];
+            if (class_exists($applicationBootstrap)) {
+                $applicationBootstrap::handle($this->request, $this->response);
             }
         }
     }
@@ -124,13 +124,13 @@ class App extends \Swoolefy\Core\Component
                 $route = new HttpRoute($extendData);
                 $route->dispatch();
             }
+            $this->onAfterRequest();
         } catch (\Throwable $throwable) {
             /** @var SwoolefyException $exceptionHandle */
             $exceptionHandle = $this->getExceptionClass();
             $exceptionHandle::response($this, $throwable);
         } finally {
             if (!$this->isDefer) {
-                $this->onAfterRequest();
                 $this->end();
             }
         }
@@ -214,8 +214,9 @@ class App extends \Swoolefy\Core\Component
      * @param bool $prepend
      * @return bool
      */
-    public function afterRequest(callable $callback, bool $prepend = false): bool
+    public function afterRequest($callback, bool $prepend = false): bool
     {
+        $callback = \Closure::fromCallable($callback);
         return Hook::addHook(Hook::HOOK_AFTER_REQUEST, $callback, $prepend);
     }
 
@@ -237,7 +238,6 @@ class App extends \Swoolefy\Core\Component
         if (\Swoole\Coroutine::getCid() >= 0) {
             $this->isDefer = true;
             \Swoole\Coroutine::defer(function () {
-                $this->onAfterRequest();
                 $this->end();
             });
         }

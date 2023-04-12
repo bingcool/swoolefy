@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Http;
 
-use Swoole\Http\Server;
+use Swoole\Server;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoolefy\Core\Swfy;

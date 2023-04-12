@@ -36,25 +36,6 @@ class WebsocketHandler extends Swoole implements HandlerInterface
     }
 
     /**
-     * init->bootstrap
-     * @param mixed $recv
-     * @return void
-     */
-    public function init($recv)
-    {
-    }
-
-    /**
-     * init->bootstrap
-     * @param mixed $recv
-     * @return void
-     */
-    public function bootstrap($recv)
-    {
-    }
-
-
-    /**
      * run
      * @param int $fd
      * @param mixed $payload
@@ -100,7 +81,7 @@ class WebsocketHandler extends Swoole implements HandlerInterface
                 if (!isset($isTaskProcess)) {
                     $service          = trim(str_replace('\\', '/', $service), '/');
                     $serviceHandle    = implode(self::EOF, [$service, $event]);
-                    $routerMapService = Swfy::getRouterMapUri($serviceHandle);
+                    $routerMapService = Swfy::getRouterMapService($serviceHandle);
                     $callable         = explode(self::EOF, $routerMapService);
                 }
 
@@ -148,10 +129,10 @@ class WebsocketHandler extends Swoole implements HandlerInterface
     }
 
     /**
-     * author
+     * auth
      * @return void
      */
-    public function author()
+    public function auth()
     {
     }
 }

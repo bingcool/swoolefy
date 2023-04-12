@@ -16,18 +16,16 @@ class NotFound extends BService
     /**
      * error404
      * @param string $class
-     * @return mixed
-     * @throws \Exception
+     * @return array
      */
     public function error404(string $class)
     {
         $code = 404;
-        $msg = sprintf(
+        $responseData = Application::buildResponseData($code, sprintf(
             "Not Found Class %s",
             $class
-        );
+        ));
 
-        $responseData = Application::buildResponseData($code, $msg);
         if (BaseServer::isRpcApp()) {
             $is_same_packet_struct = $this->serverClientPacketStructSame();
             if ($is_same_packet_struct) {
@@ -53,12 +51,12 @@ class NotFound extends BService
     public function error500(string $class, string $action)
     {
         $code = 500;
-        $msg = sprintf(
+        $responseData = Application::buildResponseData($code, sprintf(
             "Call Undefined Method Of %s::%s",
             $class,
             $action
-        );
-        $responseData = Application::buildResponseData($code, $msg);
+        ));
+
         if (BaseServer::isRpcApp()) {
             $is_same_packet_struct = $this->serverClientPacketStructSame();
             if ($is_same_packet_struct) {

@@ -20,7 +20,7 @@ class ResponseFormatter
      *
      * @param int $code
      * @param string $msg
-     * @param string $data
+     * @param mixed $data
      * @return array
      */
     public static function formatterData(int $code = 0, string $msg = '', $data = [])

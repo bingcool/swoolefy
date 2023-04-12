@@ -174,7 +174,6 @@ class Swoole extends BaseObject
     /**
      * getRpcPackHeader
      * @return array
-     * @throws SystemException
      */
     public function getRpcPackHeader()
     {
@@ -240,7 +239,7 @@ class Swoole extends BaseObject
 
     /**
      * getFd worker进程中可以读取到值，task进程不能，默认返回null
-     * @return mixed
+     * @return int
      */
     public function getFd()
     {

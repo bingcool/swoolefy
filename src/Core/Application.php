@@ -22,10 +22,8 @@ class Application
     protected static $apps = [];
 
     /**
-     * setApp
-     * @param App|Swoole|EventController
-     * @return bool
-     * @throws \Exception
+     * @param App|Swoole|EventController $App
+     * @return bool|void
      */
     public static function setApp($App)
     {
@@ -113,7 +111,7 @@ class Application
     /**
      * @param int $code
      * @param string $msg
-     * @param string $data
+     * @param mixed $data
      * @return array
      */
     public static function buildResponseData(int $code = 0, string $msg = '', $data = '')
