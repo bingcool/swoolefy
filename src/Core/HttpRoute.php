@@ -217,8 +217,8 @@ class HttpRoute extends AppDispatch
     {
         $controller = $this->buildControllerClass($controller);
         if ($module) {
-            $filePath = APP_PATH . DIRECTORY_SEPARATOR . 'Module' . DIRECTORY_SEPARATOR . $module . DIRECTORY_SEPARATOR . $controller . '.php';
-            $class    = $this->appConf['app_namespace'] . '\\' . 'Module' . '\\' . $module . '\\' . $controller;
+            $filePath = APP_PATH . DIRECTORY_SEPARATOR . 'Module' . DIRECTORY_SEPARATOR . $module.DIRECTORY_SEPARATOR.'Controller' . DIRECTORY_SEPARATOR . $controller . '.php';
+            $class    = $this->appConf['app_namespace'] . '\\' . 'Module' . '\\' . $module .'\\'.'Controller'. '\\' . $controller;
 
             if (!$this->isExistRouteFile($class)) {
                 if (!is_file($filePath)) {

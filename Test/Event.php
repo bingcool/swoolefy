@@ -62,9 +62,9 @@ class Event extends EventHandler
 
 
             // amqp-topic 生产队
-            ProcessManager::getInstance()->addProcess('amqp-publish-topic', \Test\Process\AmqpProcess\AmqpPublishTopic::class);
+            //ProcessManager::getInstance()->addProcess('amqp-publish-topic', \Test\Process\AmqpProcess\AmqpPublishTopic::class);
             // amqp-topic 消费队列
-            ProcessManager::getInstance()->addProcess('amqp-consumer-topic', \Test\Process\AmqpProcess\AmqpConsumerTopic::class);
+            //ProcessManager::getInstance()->addProcess('amqp-consumer-topic', \Test\Process\AmqpProcess\AmqpConsumerTopic::class);
 
             // kafka-topic 生产队列
             //ProcessManager::getInstance()->addProcess('kafka-publish-topic', \Test\Process\Kafka\ProducerKafka::class);
@@ -124,8 +124,8 @@ class Event extends EventHandler
         }
 
         // 创建产生uuid的定时器
-        $redis = Application::getApp()->get('redis')->getObject();
-        \Common\Library\Uuid\UuidManager::getInstance($redis, 'uuid-key')->tickPreBatchGenerateIds(2,1000);
+        //$redis = Application::getApp()->get('redis')->getObject();
+        //\Common\Library\Uuid\UuidManager::getInstance($redis, 'uuid-key')->tickPreBatchGenerateIds(2,1000);
     }
 
     public function onWorkerStop($server, $worker_id)

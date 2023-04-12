@@ -93,8 +93,8 @@ class App extends \Swoolefy\Core\Component
     protected function _bootstrap()
     {
         $conf = BaseServer::getConf();
-        if (isset($conf['application_index'])) {
-            $applicationIndex = $conf['application_index'];
+        if (isset($conf['application_bootstrap'])) {
+            $applicationIndex = $conf['application_bootstrap'];
             if (class_exists($applicationIndex)) {
                 $applicationIndex::bootstrap($this->getRequestParams());
             }
@@ -214,8 +214,9 @@ class App extends \Swoolefy\Core\Component
      * @param bool $prepend
      * @return bool
      */
-    public function afterRequest(callable $callback, bool $prepend = false): bool
+    public function afterRequest($callback, bool $prepend = false): bool
     {
+        $callback = \Closure::fromCallable($callback);
         return Hook::addHook(Hook::HOOK_AFTER_REQUEST, $callback, $prepend);
     }
 
