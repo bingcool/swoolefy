@@ -102,8 +102,8 @@ class Swoole extends BaseObject
 
     /**
      * run instance
-     * @param int $fd
-     * @param mixed $input
+     * @param int|null $fd
+     * @param mixed $payload
      * @param array $extendData
      * @return void
      */
@@ -283,8 +283,6 @@ class Swoole extends BaseObject
      */
     public function end()
     {
-        // call hook callable
-        Hook::callHook(Hook::HOOK_AFTER_REQUEST);
         // log handle
         $this->handleLog();
         // remove
