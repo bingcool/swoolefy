@@ -21,10 +21,10 @@ class Bootstrap implements BootstrapInterface
 {
     public static function handle(Request $request, Response $response)
     {
-        SystemException::throw(
-            "数据缺失",
-            ['uid' => 100]
-        );
+//        SystemException::throw(
+//            "数据缺失",
+//            ['uid' => 100]
+//        );
 
         //return Application::getApp()->beforeEnd(500);
     }

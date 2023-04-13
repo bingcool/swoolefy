@@ -26,7 +26,7 @@ class Cron extends AbstractProcess {
 //            });
 //
 //            // 抽离成CronController形式
-//            CrontabManager::getInstance()->addRule('cron_test1', '*/1 * * * *', [CronController::class, 'doCronTask']);
+            CrontabManager::getInstance()->addRule('cron_test1', '*/1 * * * *', [CronController::class, 'doCronTask']);
 
 //            CrontabManager::getInstance()->addRule('cron_test1', '*/1 * * * *', [CronController::class, 'doCronTask']);
 
