@@ -284,8 +284,6 @@ class Swoole extends BaseObject
      */
     public function end()
     {
-        // call hook callable
-        Hook::callHook(Hook::HOOK_AFTER_REQUEST);
         // log handle
         $this->handleLog();
         // remove

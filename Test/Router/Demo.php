@@ -11,6 +11,7 @@ use Swoolefy\Core\Application;
 
 return [
     '/demo/demo/test' => [
+
         'beforeHandle' => function(Request $request) {
             var_dump('beforeHandle');
         },

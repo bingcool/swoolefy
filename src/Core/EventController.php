@@ -188,6 +188,17 @@ class EventController extends BaseObject
     }
 
     /**
+     * afterHandle
+     */
+    public function afterHandle()
+    {
+        // call after action
+        $this->_afterAction();
+        // callHooks
+        $this->callAfterEventHook();
+    }
+
+    /**
      * end unset var
      * @return bool|void
      */
@@ -198,10 +209,6 @@ class EventController extends BaseObject
         }
         // set End
         $this->setEnd();
-        // call hook callable
-        static::_afterAction();
-        // callHooks
-        $this->callAfterEventHook();
         // handle log
         $this->handleLog();
         // remove

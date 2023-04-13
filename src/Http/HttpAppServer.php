@@ -87,11 +87,14 @@ abstract class HttpAppServer extends HttpServer
             $taskInstance->setFromWorkerId((int)$from_worker_id);
             $task && $taskInstance->setTask($task);
             $taskInstance->$action($taskData);
+            $taskInstance->afterHandle();
 
             unset($callable, $extendData, $fd);
 
         } catch (\Throwable $throwable) {
-            $taskInstance->end();
+            if(!$taskInstance->isDefer()) {
+                $taskInstance->end();
+            }
             throw $throwable;
         }
     }

@@ -85,6 +85,9 @@ class ServiceDispatch extends AppDispatch
                 $serviceInstance->{$action}($this->params);
                 // after Call
                 $serviceInstance->_afterAction($action);
+                // call hook callable
+                Hook::callHook(Hook::HOOK_AFTER_REQUEST);
+
             } else {
                 $this->errorHandle($class, $action, 'error500');
                 return false;
