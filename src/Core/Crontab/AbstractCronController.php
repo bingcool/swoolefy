@@ -64,6 +64,7 @@ abstract class AbstractCronController extends ProcessController
                     call_user_func($func, $cronName, $expression);
                 } else {
                     $this->doCronTask($cron, $cronName);
+                    $this->afterHandle();
                 }
 
                 if (!$this->isDefer()) {

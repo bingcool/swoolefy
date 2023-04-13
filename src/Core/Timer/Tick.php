@@ -74,6 +74,8 @@ class Tick
                     $tickTaskInstance = new TickController();
                     call_user_func($func, $params, $timerId);
                 }
+                // call after action
+                $tickTaskInstance->afterHandle();
             } catch (\Throwable $throwable) {
                 BaseServer::catchException($throwable);
             } finally {
@@ -181,6 +183,8 @@ class Tick
                     $tickTaskInstance = new TickController;
                     call_user_func($func, $params, $timer_id);
                 }
+                // call after action
+                $tickTaskInstance->afterHandle();
             } catch (\Throwable $throwable) {
                 BaseServer::catchException($throwable);
             } finally {
