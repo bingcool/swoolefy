@@ -10,6 +10,14 @@ use PhpAmqpLib\Exchange\AMQPExchangeType;
 // fanout exchange 下，消费者需要指定queue
 class AmqpConsumerFanout extends AbstractProcess
 {
+
+    public function init()
+    {
+        // 4.8 版本对于sockets的hook不完美，需要关闭
+        \Swoole\Runtime::setHookFlags(SWOOLE_HOOK_SOCKETS ^ SWOOLE_HOOK_SOCKETS);
+        parent::init();
+    }
+
     public function run()
     {
         $this->handle1();
