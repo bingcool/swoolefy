@@ -27,9 +27,21 @@ class Tick extends AbstractProcess {
 //            ['name'=>'swoolefy-tick']
 //        );
 
-        TickManager::getInstance()->tickTimer(3000, function () {
-            var_dump(spl_object_id(Application::getApp()->get('db')));
-        });
+//        TickManager::getInstance()->tickTimer(3000, function () {
+//            $count = Application::getApp()->get('db')->createCommand("select count(1) as total from tbl_users")->count();
+//            var_dump($count);
+//        });
+
+        $db = Application::getApp()->get('db');
+        while(1) {
+            try {
+                $count = $db->createCommand("select count(1) as total from tbl_users")->count();
+                var_dump($count);
+            }catch (\Throwable $exception) {
+                //var_dump($exception->getMessage());
+            }
+            sleep(3);
+        }
 
         // 创建定时器处理实例
 //        TickManager::getInstance()->afterTimer(3000,

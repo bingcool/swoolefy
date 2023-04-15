@@ -39,12 +39,18 @@ class EventHandler extends \Swoolefy\Core\EventCtrl
                 LogManager::getInstance()->registerLoggerByClosure($log, 'error_log');
             }
         }
+
+        if (!$this->isWorkerService()) {
+            // todo refer to Test Demo
+        }
     }
 
     /**
      * WorkerServiceInit
      */
-    public function onWorkerServiceInit() {}
+    public function onWorkerServiceInit() {
+        // todo refer to Test Demo
+    }
 
     /**
      * onStart

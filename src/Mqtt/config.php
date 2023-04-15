@@ -10,7 +10,7 @@
  */
 
 // 加载常量定义
-include START_DIR_ROOT . '/' . APP_NAME . '/Config/defines.php';
+include START_DIR_ROOT . '/' . APP_NAME . '/Config/constants.php';
 
 // 加载应用层协议
 $appConf = include START_DIR_ROOT . '/' . APP_NAME . '/Config/config-' . SWOOLEFY_ENV . '.php';
@@ -19,6 +19,7 @@ return [
     // 应用层配置
     'app_conf'                 => $appConf,
     'application_service'      => '',
+    'event_handler'            => \Swoolefy\Core\EventHandler::class,
     'exception_handler'        => \Swoolefy\Core\SwoolefyException::class,
     'master_process_name'      => 'php-swoolefy-mqtt-master',
     'manager_process_name'     => 'php-swoolefy-mqtt-manager',
@@ -54,8 +55,7 @@ return [
     'mqtt' => [
         'username'           => '',
         'password'           => '',
-        'protocol_level'     => 4, //mqtt3.1.3
-        'mqtt_event_handler' => \Swoolefy\Mqtt\MqttEvent::class
+        'mqtt_event_handler' => \Swoolefy\Mqtt\MqttEventV3::class
     ],
 
     // 依赖于EnableSysCollector = true，否则设置没有意义,不生效

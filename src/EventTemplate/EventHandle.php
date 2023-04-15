@@ -8,7 +8,7 @@ use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\EventHandler;
 use Swoolefy\Core\Process\ProcessManager;
 
-class EventHandle extends EventHandler
+class Event extends EventHandler
 {
     /**
      * onInit
@@ -31,7 +31,7 @@ class EventHandle extends EventHandler
         }
 
         if (!$this->isWorkerService()) {
-            // todo--refer to Test Demo
+            // todo refer to Test Demo
         }
     }
 
@@ -40,7 +40,7 @@ class EventHandle extends EventHandler
      */
     public function onWorkerServiceInit()
     {
-        // todo--refer to Test Demo
+        // todo refer to Test Demo
     }
 
     /**
@@ -63,6 +63,6 @@ class EventHandle extends EventHandler
      */
     public function onWorkerStop($server, $worker_id)
     {
-        //todo
+        // todo
     }
 }

@@ -11,11 +11,16 @@
 
 namespace Swoolefy\Mqtt;
 
+use Swoolefy\Core\Swfy;
 use Simps\MQTT\Protocol;
 use Simps\MQTT\Protocol\Types;
-use Swoolefy\Core\Swfy;
+use Simps\MQTT\Message\ConnAck;
+use Simps\MQTT\Message\PingResp;
+use Simps\MQTT\Message\PubAck;
+use Simps\MQTT\Message\SubAck;
+use Simps\MQTT\Message\UnSubAck;
 
-class MqttEvent5
+abstract class MqttEventV3
 {
 
     /**
@@ -50,16 +55,16 @@ class MqttEvent5
         Types::UNSUBACK => 'unSubscribeAck',
         Types::PINGREQ => 'pingReq',
         Types::PINGRESP => 'pingResp',
-        Types::DISCONNECT => 'disconnect',
-        Types::AUTH => 'auth'
+        Types::DISCONNECT => 'disconnect'
     ];
 
     /**
      * MqttEvent constructor.
      * @param int $fd
      * @param mixed $data
+     * @return void
      */
-    public function __construct(int $fd, mixed $data)
+    public function __construct($fd, $data)
     {
         $this->server = Swfy::getServer();
         $this->fd = $fd;
@@ -69,30 +74,9 @@ class MqttEvent5
     /**
      * @param $username
      * @param $password
-     * @param $authenticationMethod
-     * @param $authenticationData
      * @return bool
      */
-    public function verify(
-        $username,
-        $password,
-        $authentication_method,
-        $authentication_data
-    ): bool
-    {
-        // todo auth username and password
-        return true;
-    }
-
-    /**
-     * @param $code
-     * @param array $properties
-     * @return mixed
-     */
-    public function auth($code, array $properties)
-    {
-
-    }
+    abstract public function verify($username, $password): bool;
 
     /**
      * @param $protocol_name
@@ -101,35 +85,25 @@ class MqttEvent5
      * @param $password
      * @param $client_id
      * @param $keep_alive
-     * @param $properties
      * @param $clean_session
      * @param array $will
      * @return bool
      */
-    public function connect(
+    abstract public function connect(
         $protocol_name,
         $protocol_level,
         $username,
         $password,
         $client_id,
         $keep_alive,
-        $properties,
         $clean_session,
         array $will = []
-    ): bool
-    {
-        // todo client_id与fd在connect的时候关联起来，保存好关系在redis
-        return true;
-    }
+    ): bool;
 
     /**
      * @return bool
      */
-    public function disconnect(): bool
-    {
-        //todo client_id与fd在disconnect解除关联
-        return true;
-    }
+    abstract public function disconnect();
 
     /**
      * @param $topic
@@ -138,7 +112,6 @@ class MqttEvent5
      * @param $qos
      * @param $retain
      * @param $message_id
-     * @return mixed
      */
     public function publish(
         $topic,
@@ -150,12 +123,12 @@ class MqttEvent5
     )
     {
         // 循环发给订阅的客户端，这里要去除publish发布的连接端fd
-        // 读取$message的client_id，client_id与fd在connect的时候关联起来，保存好关系在redis
+        // 读取变量$message的client_id，client_id与fd在connect的时候关联起来，保存好关系在redis
         // 发布者可以通过向指定client_id发布消息，这时可以从关系中获取fd,从而向指定client_id发布消息
         foreach ($this->server->connections as $subFd) {
             $this->server->send(
                 $subFd,
-                Protocol\V5::pack(
+                Protocol\V3::pack(
                     [
                         'type' => Types::PUBLISH,
                         'topic' => $topic,
@@ -176,10 +149,7 @@ class MqttEvent5
      * @param $message_id
      * @return mixed
      */
-    public function subscribe($type, $topics, $message_id)
-    {
-        //todo
-    }
+    abstract public function subscribe($type, $topics, $message_id);
 
     /**
      * @param $type
@@ -187,36 +157,17 @@ class MqttEvent5
      * @param $message_id
      * @return mixed
      */
-    public function unSubscribe($type, $topics, $message_id)
-    {
-        //todo
-    }
+    abstract public function unSubscribe($type, $topics, $message_id);
 
     /**
      * @param $clean_session
      * @return void
      */
-    public function connectAck($clean_session, array $properties = [])
+    final public function connectAck($clean_session)
     {
-        $properties = array_merge([
-            'maximum_packet_size' => 1048576,
-            'retain_available' => true,
-            'shared_subscription_available' => true,
-            'subscription_identifier_available' => true,
-            'topic_alias_maximum' => 65535,
-            'wildcard_subscription_available' => true,
-        ], $properties);
-
         $this->server->send(
             $this->fd,
-            Protocol\V5::pack(
-                [
-                    'type' => Types::CONNACK,
-                    'code' => 0,
-                    'session_present' => $clean_session,
-                    'properties' => $properties
-                ]
-            )
+            (new ConnAck())->setCode(0)->setSessionPresent($clean_session)
         );
     }
 
@@ -226,7 +177,7 @@ class MqttEvent5
      */
     final public function pingReq()
     {
-        $this->server->send($this->fd, Protocol\V5::pack(['type' => Types::PINGRESP]));
+        $this->server->send($this->fd, (new PingResp()));
     }
 
     /**
@@ -237,12 +188,7 @@ class MqttEvent5
     {
         $this->server->send(
             $this->fd,
-            Protocol\V5::pack(
-                [
-                    'type' => Types::PUBACK,
-                    'message_id' => $message_id ?? '',
-                ]
-            )
+            (new PubAck())->setMessageId($message_id ?? '')
         );
     }
 
@@ -255,13 +201,8 @@ class MqttEvent5
     {
         $this->server->send(
             $this->fd,
-            Protocol\V5::pack(
-                [
-                    'type' => Types::SUBACK,
-                    'message_id' => $message_id ?? '',
-                    'codes' => $payload,
-                ]
-            )
+            (new SubAck())->setMessageId($message_id ?? '')
+                ->setCodes($payload)
         );
     }
 
@@ -273,12 +214,7 @@ class MqttEvent5
     {
         $this->server->send(
             $this->fd,
-            Protocol\V5::pack(
-                [
-                    'type' => Types::UNSUBACK,
-                    'message_id' => $message_id ?? '',
-                ]
-            )
+            (new UnSubAck())->setMessageId($message_id ?? '')
         );
     }
 
