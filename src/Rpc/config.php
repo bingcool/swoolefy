@@ -10,7 +10,7 @@
  */
 
 // 加载常量定义
-include START_DIR_ROOT . '/' . APP_NAME . '/Config/defines.php';
+include START_DIR_ROOT . '/' . APP_NAME . '/Config/constants.php';
 
 // 加载应用层协议
 $appConf = include START_DIR_ROOT . '/' . APP_NAME . '/Config/config-' . SWOOLEFY_ENV . '.php';
