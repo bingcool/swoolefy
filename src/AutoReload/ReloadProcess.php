@@ -50,11 +50,11 @@ class ReloadProcess extends AbstractProcess
     }
 
     /**
-     * @param $str
+     * @param $msg
      * @param mixed ...$args
      * @return mixed
      */
-    public function onReceive($str, ...$args)
+    public function onReceive($msg, ...$args)
     {
     }
 

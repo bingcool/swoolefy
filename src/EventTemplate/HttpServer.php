@@ -31,7 +31,7 @@ class HttpServer extends \Swoolefy\Http\HttpAppServer
      * onWorkerStart
      * @param Server $server
      * @param int $worker_id
-     * @return  void
+     * @return void
      */
     public function onWorkerStart($server, $worker_id)
     {

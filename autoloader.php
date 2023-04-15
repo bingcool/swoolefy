@@ -54,7 +54,7 @@ class autoloader {
     /**
      * register autoload
      */     
-    public static function register($prepend=false) { 
+    public static function register(bool $prepend = false) {
         if(!function_exists('__autoload')) { 
             spl_autoload_register(['autoloader', 'autoload'], true, $prepend);
         }else {

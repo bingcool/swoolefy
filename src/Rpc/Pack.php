@@ -31,99 +31,96 @@ class Pack extends BaseParse
     protected $_headers = [];
 
     /**
-     * $_pack_size 包的大小，实际应用应设置与package_max_length设置保持一致，默认2M
+     * pack 包的大小，实际应用应设置与package_max_length设置保持一致，默认2M
      * @var int
      */
-    protected static $packet_maxlen = 2 * 1024 * 1024;
+    protected static $packetMaxlength = 2 * 1024 * 1024;
 
     /**
      * $header_struct 析包结构,包含包头结构，key代表的是包头的字段，value代表的pack的类型
      * @var array
      */
-    protected static $header_struct = ['length' => 'N'];
+    protected static $headerStruct = ['length' => 'N'];
 
     /**
      * $unpack_length_type unpack包数据的类型, 默认null
-     * @var null
+     * @var null $unpackLengthType
      */
-    protected static $unpack_length_type = null;
+    protected static $unpackLengthType = null;
 
     /**
      * $pack_length_key 包的长度设定的key，与$header_struct里设置的长度的key一致
      * @var string
      */
-    protected static $pack_length_key = 'length';
+    protected static $packLngthKey = 'length';
 
     /**
      * $serialize_type 设置数据序列化的方式
      * @var string
      */
-    protected static $serialize_type = 'json';
+    protected static $serializeType = 'json';
 
     /**
      * $header_length 包头固定长度，单位字节,等于package_body_offset设置的值
      * @var int
      */
-    protected static $header_length = 30;
+    protected static $headerLength = 30;
 
     /**
      * setHeaderStruct 设置服务端包头结构体
-     * @param array $pack_header_struct 服务端包头结构体
+     * @param array $packHeaderStruct 服务端包头结构体
      */
-    public function setHeaderStruct(array $pack_header_struct = [])
+    public function setHeaderStruct(array $packHeaderStruct = [])
     {
-        self::$header_struct = array_merge(self::$header_struct, $pack_header_struct);
+        self::$headerStruct = array_merge(self::$headerStruct, $packHeaderStruct);
         return true;
     }
 
     /**
      * setPackLengthKey
-     * @param string $pack_length_key 包头长度key
+     * @param string $packLengthKey 包头长度key
      */
-    public function setPackLengthKey(string $pack_length_key = 'length')
+    public function setPackLengthKey(string $packLengthKey = 'length')
     {
-        self::$pack_length_key = $pack_length_key;
+        self::$packLngthKey = $packLengthKey;
         return true;
     }
 
     /**
      * setSerializeType
-     * @param string $serialize_type
+     * @param string $serializeType
      */
-    public function setSerializeType(string $serialize_type = 'json')
+    public function setSerializeType(string $serializeType = 'json')
     {
-        self::$serialize_type = $serialize_type;
+        self::$serializeType = $serializeType;
         return true;
     }
 
     /**
      * setHeaderLength
-     * @param int|null $header_length
+     * @param int $headerLength
      */
-    public function setHeaderLength(int $header_length = null)
+    public function setHeaderLength(int $headerLength)
     {
-        self::$header_length = $header_length;
+        self::$headerLength = $headerLength;
     }
 
     /**
      * setPacketMaxlength 包的最大长度
-     * @param int|null $packet_maxlength
+     * @param int|null $packetMaxLength
      */
-    public function setPacketMaxlength(int $packet_maxlength = null)
+    public function setPacketMaxlength(int $packetMaxLength)
     {
-        self::$packet_maxlen = $packet_maxlength;
+        self::$packetMaxlength = $packetMaxLength;
     }
 
     /**
      * decodePack swoole底层已经根据配置的解包协议分割tcp数据,data是一个完整的数据包
-     * @param $fd
-     * @param $data
+     * @param int $fd
+     * @param mixed $data
      * @return array|bool
      */
-    public function decodePack(
-        $fd,
-        $data
-    )
+    public function decodePack(int $fd, mixed $data)
     {
         /**
          * unpack包类型
@@ -133,20 +130,20 @@ class Pack extends BaseParse
         /**
          * 解析包头
          */
-        $header = unpack(self::$unpack_length_type, mb_strcut($data, 0, self::$header_length, 'UTF-8'));
+        $header = unpack(self::$unpackLengthType, mb_strcut($data, 0, self::$headerLength, 'UTF-8'));
 
         $this->filterHeader($header);
 
         /**
          * 包头包含的包体长度值
          */
-        $length = $header[self::$pack_length_key];
+        $length = $header[self::$packLngthKey];
 
         $this->_headers[$fd] = $header;
 
-        $pack_body = mb_strcut($data, self::$header_length, $length, 'UTF-8');
+        $pack_body = mb_strcut($data, self::$headerLength, $length, 'UTF-8');
 
-        $pack_data = $this->decode($pack_body, self::$serialize_type);
+        $pack_data = $this->decode($pack_body, self::$serializeType);
 
         if ($pack_data === null || $pack_data === false || $pack_data === '') {
             $error_msg = 'Parse Packet Error, May Be Packet Encoding Error';
@@ -168,32 +165,37 @@ class Pack extends BaseParse
      * parseUnpackType  设置unpack头的类型
      * @return string
      */
-    public function parseUnpackType(array $header_struct = [])
+    public function parseUnpackType(array $headerStruct = [])
     {
-        $pack_length_type = '';
-        if (self::$unpack_length_type) {
-            return self::$unpack_length_type;
+        $packLengthType = '';
+
+        if (self::$unpackLengthType) {
+            return self::$unpackLengthType;
         }
-        if ($header_struct) {
-            self::$header_struct = $header_struct;
+
+        if ($headerStruct) {
+            self::$headerStruct = $headerStruct;
         }
-        if (self::$header_struct) {
-            foreach (self::$header_struct as $key => $value) {
-                $pack_length_type .= ($value . $key) . '/';
+
+        if (self::$headerStruct) {
+            foreach (self::$headerStruct as $key => $value) {
+                $packLengthType .= ($value . $key) . '/';
             }
         }
-        $pack_length_type = trim($pack_length_type, '/');
-        self::$unpack_length_type = $pack_length_type;
-        return $pack_length_type;
+
+        $packLengthType = trim($packLengthType, '/');
+        self::$unpackLengthType = $packLengthType;
+        return $packLengthType;
     }
 
     /**
-     * sendErrorMessage
      * @param int $fd
-     * @param mixed $errno
-     * @return bool
+     * @param int $errno
+     * @param string $errorMsg
+     * @param array $header
+     * @return bool|void
      */
-    public function sendErrorMessage($fd, $errno, $errorMsg, array $header)
+    public function sendErrorMessage(int $fd, int $errno, string $errorMsg, array $header)
     {
         $responseData = Application::buildResponseData($errno, $errorMsg);
         if (BaseServer::isPackLength()) {
@@ -222,58 +224,62 @@ class Pack extends BaseParse
     /**
      * encodePack 数据封包
      * usages:
-     * $header = ['length'=>'','name'=>'bing'];头部字段信息,'length'字段可以为空
+     * $header = ['length'=>'','name'=>'bing'] 头部字段信息,'length'字段可以为空
      * @param mixed $data
      * @param array $header
-     * @param string $serialize_type
-     * @param array $heder_struct
+     * @param array $headerStruct
+     * @param string $packLengthKey
+     * @param int $serializeType
      * @return string
      */
     public static function encodePack(
-        $data,
-        array $header,
-        array $header_struct = [],
-        $pack_length_key = 'length',
-        $serialize_type = self::DECODE_JSON
+                $data,
+         array  $header,
+         array  $headerStruct = [],
+         string $packLengthKey = 'length',
+         int    $serializeType = self::DECODE_JSON
     )
     {
-        $bin_header_data = '';
-        $body = self::encode($data, $serialize_type);
+        $binHeaderData = '';
+        $body = self::encode($data, $serializeType);
         /**
          * 如果没有设置，客户端的包头结构体与服务端一致
          */
-        if (empty($header_struct)) {
-            $header_struct = self::$header_struct;
+        if (empty($headerStruct)) {
+            $headerStruct = self::$headerStruct;
         }
-        if (!isset($header_struct[$pack_length_key])) {
-            $header_struct[$pack_length_key] = '';
+
+        if (!isset($headerStruct[$packLengthKey])) {
+            $headerStruct[$packLengthKey] = '';
         }
-        foreach ($header_struct as $key => $value) {
+
+        foreach ($headerStruct as $key => $value) {
             if (isset($header[$key])) {
                 // length packet header
-                if ($key == $pack_length_key) {
-                    $bin_header_data .= pack($value, strlen($body));
+                if ($key == $packLengthKey) {
+                    $binHeaderData .= pack($value, strlen($body));
                 } else {
                     // other packet header
-                    $bin_header_data .= pack($value, $header[$key]);
+                    $binHeaderData .= pack($value, $header[$key]);
                 }
             }
         }
-        return $bin_header_data . $body;
+        return $binHeaderData . $body;
     }
 
     /**
      * encode 数据序列化
      * @param mixed $data
-     * @param int $serialize_type
+     * @param int $serializeType
      * @return string
      */
-    public static function encode($data, $serialize_type = self::DECODE_JSON)
+    public static function encode($data, int $serializeType = self::DECODE_JSON)
     {
-        if (is_string($serialize_type)) {
-            $serialize_type = self::SERIALIZE_TYPE[$serialize_type];
+        if (is_string($serializeType)) {
+            $serializeType = self::SERIALIZE_TYPE[$serializeType];
         }
-        switch ($serialize_type) {
+
+        switch ($serializeType) {
             // json
             case 1:
                 return json_encode($data, JSON_UNESCAPED_UNICODE);
@@ -285,16 +291,17 @@ class Pack extends BaseParse
 
     /**
      * decode 数据反序列化
-     * @param string $data
-     * @param mixed $unserialize_type
+     * @param mixed $data
+     * @param int  $unserializeType
      * @return mixed
      */
-    public static function decode($data, $unserialize_type = self::DECODE_JSON)
+    public static function decode($data, $unserializeType = self::DECODE_JSON)
     {
-        if (is_string($unserialize_type)) {
-            $unserialize_type = self::SERIALIZE_TYPE[$unserialize_type];
+        if (is_string($unserializeType)) {
+            $unserializeType = self::SERIALIZE_TYPE[$unserializeType];
         }
-        switch ($unserialize_type) {
+
+        switch ($unserializeType) {
             // json
             case 1:
                 return json_decode($data, true);
@@ -311,7 +318,7 @@ class Pack extends BaseParse
      * @param int $fd
      * @return bool
      */
-    public function delete($fd)
+    public function delete(int $fd)
     {
         unset($this->_buffers[$fd], $this->_headers[$fd]);
         return true;
@@ -319,11 +326,9 @@ class Pack extends BaseParse
 
     /**
      * destroy 当workerStop时,删除缓冲的不完整的僵尸式数据包，并强制断开这些链接
-     * @param mixed $server
-     * @param int $worker_id
      * @return bool
      */
-    public function destroy($server = null, $worker_id = null)
+    public function destroy()
     {
         if (!empty($this->_buffers)) {
             foreach ($this->_buffers as $fd => $data) {

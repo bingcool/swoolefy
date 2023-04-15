@@ -19,7 +19,7 @@ class Helper
      * @param string $email
      * @return bool
      */
-    public static function isValidateEmail(string $email)
+    public static function isValidateEmail(string $email): bool
     {
         return filter_var($email, FILTER_VALIDATE_EMAIL);
     }
@@ -29,7 +29,7 @@ class Helper
      * @param string $ip
      * @return bool
      */
-    public static function isValidateIp(string $ip)
+    public static function isValidateIp(string $ip): bool
     {
         $ipv4 = ip2long($ip);
         if (is_numeric($ipv4)) {
@@ -42,7 +42,7 @@ class Helper
      * getLocalIp
      * @return array
      */
-    public static function getLocalIp()
+    public static function getLocalIp(): array
     {
         return swoole_get_local_ip();
     }
@@ -50,9 +50,9 @@ class Helper
     /**
      * ip是否是公网IP
      * @param $ip
-     * @return bool|mixed
+     * @return bool
      */
-    public static function isInternalIp($ip)
+    public static function isInternalIp($ip): bool
     {
         $ip = ip2long($ip);
         if (!$ip) {
@@ -79,9 +79,9 @@ class Helper
      * randmd5 产生一个随机MD5字符的一部分
      * @param int $length
      * @param int $seed
-     * @return  string
+     * @return string
      */
-    public static function randMd5(int $length = 20, $seed = null)
+    public static function randMd5(int $length = 20, ?int $seed = null): string
     {
         if (empty($seed)) {
             $seed = self::randString(20);
@@ -92,11 +92,11 @@ class Helper
     /**
      * randString 随机生成一个字符串
      * @param int $length
-     * @param bool $number 只添加数字
+     * @param bool $is_number 只添加数字
      * @param array $ignore 忽略某些字符串
      * @return string
      */
-    public static function randString(int $length = 8, bool $is_number = false, array $ignore = [])
+    public static function randString(int $length = 8, bool $is_number = false, array $ignore = []): string
     {
         //字符池
         $strings = 'ABCDEFGHIJKLOMNOPQRSTUVWXYZ_abcdefghijklomnopqrstuvwxyz-';
@@ -126,7 +126,7 @@ class Helper
      * @param int $base
      * @return int
      */
-    public static function idHash(int $uid, int $base = 100)
+    public static function idHash(int $uid, int $base = 100): int
     {
         return intval($uid / $base);
     }
@@ -136,7 +136,7 @@ class Helper
      * @param int $rand_length
      * @return string
      */
-    public static function randTime(int $rand_length = 6)
+    public static function randTime(int $rand_length = 6): string
     {
         list($usec, $sec) = explode(" ", microtime());
         $min = intval('1' . str_repeat('0', $rand_length - 1));
@@ -148,7 +148,7 @@ class Helper
      * @param string $url the URL to be checked
      * @return bool whether the URL is relative
      */
-    public static function isRelative(string $url)
+    public static function isRelative(string $url): bool
     {
         return strncmp($url, '//', 2) && strpos($url, '://') === false;
     }
@@ -158,7 +158,7 @@ class Helper
      * @param string $str
      * @return int
      */
-    public static function mbStrlen(string $str)
+    public static function mbStrlen(string $str): int
     {
         $len = strlen($str);
         if ($len <= 0) {
@@ -180,7 +180,7 @@ class Helper
      * @param int $precision 精度
      * @return float
      */
-    public static function roundByPrecision(float $number, int $precision)
+    public static function roundByPrecision(float $number, int $precision): float
     {
         if (strpos($number, '.') && (strlen(substr($number, strpos($number, '.') + 1)) > $precision)) {
             $number = substr($number, 0, strpos($number, '.') + 1 + $precision + 1);
@@ -205,7 +205,7 @@ class Helper
      * @param string|array $needles
      * @return bool
      */
-    public static function contains(string $haystack, $needles)
+    public static function contains(string $haystack, $needles): bool
     {
         foreach ((array)$needles as $needle) {
             if ('' != $needle && mb_strpos($haystack, $needle) !== false) {
@@ -221,7 +221,7 @@ class Helper
      * @param string|array $needles
      * @return bool
      */
-    public static function endsWith(string $haystack, $needles)
+    public static function endsWith(string $haystack, $needles): bool
     {
         foreach ((array)$needles as $needle) {
             if ((string)$needle === static::substr($haystack, -static::length($needle))) {
@@ -237,7 +237,7 @@ class Helper
      * @param string|array $needles
      * @return bool
      */
-    public static function startsWith(string $haystack, $needles)
+    public static function startsWith(string $haystack, $needles): bool
     {
         foreach ((array)$needles as $needle) {
             if ('' != $needle && mb_strpos($haystack, $needle) === 0) {
@@ -252,7 +252,7 @@ class Helper
      * @param string $value
      * @return string
      */
-    public static function lower(string $value)
+    public static function lower(string $value): string
     {
         return mb_strtolower($value, 'UTF-8');
     }
@@ -262,7 +262,7 @@ class Helper
      * @param string $value
      * @return string
      */
-    public static function upper(string $value)
+    public static function upper(string $value): string
     {
         return mb_strtoupper($value, 'UTF-8');
     }
@@ -272,7 +272,7 @@ class Helper
      * @param string $value
      * @return int
      */
-    public static function length(string $value)
+    public static function length(string $value): int
     {
         return mb_strlen($value);
     }
@@ -296,7 +296,7 @@ class Helper
      * @param string $delimiter
      * @return string
      */
-    public static function snake(string $value, string $delimiter = '_')
+    public static function snake(string $value, string $delimiter = '_'): string
     {
         if (!ctype_lower($value)) {
             $value = preg_replace('/\s+/u', '', $value);
@@ -310,7 +310,7 @@ class Helper
      * @param string $value
      * @return string
      */
-    public static function camel(string $value)
+    public static function camel(string $value): string
     {
 
         return lcfirst(static::studly($value));
@@ -321,7 +321,7 @@ class Helper
      * @param string $value
      * @return string
      */
-    public static function studly(string $value)
+    public static function studly(string $value): string
     {
         $value = ucwords(str_replace(['-', '_'], ' ', $value));
         return str_replace(' ', '', $value);
@@ -332,7 +332,7 @@ class Helper
      * @param string $value
      * @return string
      */
-    public static function title(string $value)
+    public static function title(string $value): string
     {
         return mb_convert_case($value, MB_CASE_TITLE, 'UTF-8');
     }
@@ -343,7 +343,7 @@ class Helper
      * @param int $timeout 单位ms
      * @return bool
      */
-    public function asyncHttpClient(array $urls = [], int $timeout = 500)
+    public function asyncHttpClient(array $urls = [], int $timeout = 500): bool
     {
         if (!empty($urls)) {
             $conn = [];

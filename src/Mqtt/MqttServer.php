@@ -304,10 +304,10 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
         }
 
         $conf       = Swfy::getConf();
-        $eventClass = $conf['mqtt']['mqtt_event_handler'] ?? MqttEvent::class;
+        $eventClass = $conf['mqtt']['mqtt_event_handler'] ?? MqttEventV3::class;
 
         /**
-         * @var MqttEvent $mqttEvent
+         * @var MqttEventV3 $mqttEvent
          */
         $mqttEvent = new $eventClass($fd, $data);
 
@@ -315,7 +315,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
             switch ($type) {
                 case Types::CONNECT:
                     $protocol_name  = $data['protocol_name'];
-                    $protocol_level = $data['protocol_level'] ?? MQTT_PROTOCOL_LEVEL3;
+                    $protocol_level = $this->getProtocolLevel($mqttEvent) ?? MQTT_PROTOCOL_LEVEL3;
                     $username       = $data['user_name'] ?? '';
                     $password       = $data['password'] ?? '';
                     $clean_session  = $data['clean_session'] ?? 0;
@@ -378,6 +378,9 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
                     }
                     break;
 
+                case Types::PUBACK:
+
+                    break;
                 case Types::SUBSCRIBE:
                     $payload    = [];
                     $topics     = $data['topics'];
@@ -388,7 +391,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
                         $mqttEvent->subscribe($type, $topics, $message_id);
                     }
 
-                    foreach ($topics as $k => $qos) {
+                    foreach ($topics as $qos) {
                         if (is_numeric($qos) && $qos < 3) {
                             $payload[] = chr($qos);
                         } else {
@@ -448,10 +451,10 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
         }
 
         $conf       = Swfy::getConf();
-        $eventClass = $conf['mqtt']['mqtt_event_handler'] ?? MqttEvent5::class;
+        $eventClass = $conf['mqtt']['mqtt_event_handler'] ?? MqttEventV5::class;
 
         /**
-         * @var MqttEvent5 $mqttEvent
+         * @var MqttEventV5 $mqttEvent
          */
         $mqttEvent = new $eventClass($fd, $data);
 
@@ -459,7 +462,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
             switch ($type) {
                 case Types::CONNECT:
                     $protocol_name         = $data['protocol_name'];
-                    $protocol_level        = $data['protocol_level'];
+                    $protocol_level        = $this->getProtocolLevel($mqttEvent);
                     $username              = $data['user_name'] ?? '';
                     $password              = $data['password'] ?? '';
                     $clean_session         = $data['clean_session'] ?? 0;
@@ -578,6 +581,18 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
             return false;
         }
         return true;
+    }
+
+    /**
+     * @param $eventHandle
+     * @return int
+     */
+    private function getProtocolLevel($eventHandle): int
+    {
+        if ($eventHandle instanceof MqttEventV3) {
+            return MQTT_PROTOCOL_LEVEL_3_1_1;
+        }
+        return MQTT_PROTOCOL_LEVEL_5_0;
     }
 
     /**
