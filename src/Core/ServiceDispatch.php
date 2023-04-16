@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Exception\SystemException;
+
 class ServiceDispatch extends AppDispatch
 {
     /**
@@ -24,6 +26,16 @@ class ServiceDispatch extends AppDispatch
      * @var mixed
      */
     protected $params = null;
+
+    /**
+     * @var array
+     */
+    protected $beforeHandle = [];
+
+    /**
+     * @var array|mixed
+     */
+    protected $afterHandle = [];
 
     /**
      * @param array $callable
@@ -56,21 +68,36 @@ class ServiceDispatch extends AppDispatch
             }
         }
 
-        $class = str_replace(DIRECTORY_SEPARATOR, '\\', $class);
-
-        /**@var \Swoolefy\Core\Task\TaskService $serviceInstance */
-        $serviceInstance = new $class();
-        $serviceInstance->setMixedParams($this->params);
-
-        if (isset($this->from_worker_id) && isset($this->task_id)) {
-            $serviceInstance->setFromWorkerId($this->from_worker_id);
-            $serviceInstance->setTaskId($this->task_id);
-            if (!empty($this->task)) {
-                $serviceInstance->setTask($this->task);
-            }
-        }
-
         try {
+            $class = str_replace(DIRECTORY_SEPARATOR, '\\', $class);
+            foreach ($this->beforeHandle as $handle) {
+                $result = call_user_func($handle, $this->params);
+                if ($result === false) {
+                    $errorMsg = sprintf(
+                        "Call %s route handle return false, forbidden continue call %s::%s",
+                        $class,
+                        $class,
+                        $action
+                    );
+                    if (Swfy::isWorkerProcess()) {
+                        $this->getErrorHandle()->errorMsg($errorMsg);
+                    }
+                    return false;
+                }
+            }
+
+            /**@var \Swoolefy\Core\Task\TaskService $serviceInstance */
+            $serviceInstance = new $class();
+            $serviceInstance->setMixedParams($this->params);
+
+            if (isset($this->from_worker_id) && isset($this->task_id)) {
+                $serviceInstance->setFromWorkerId($this->from_worker_id);
+                $serviceInstance->setTaskId($this->task_id);
+                if (!empty($this->task)) {
+                    $serviceInstance->setTask($this->task);
+                }
+            }
+
             if (method_exists($serviceInstance, $action)) {
                 // before Call
                 $isContinueAction = $serviceInstance->_beforeAction($action);
@@ -85,6 +112,16 @@ class ServiceDispatch extends AppDispatch
                 $serviceInstance->{$action}($this->params);
                 // after Call
                 $serviceInstance->_afterAction($action);
+
+                // call after route handle
+                foreach ($this->afterHandle as $handle) {
+                    try {
+                        call_user_func($handle, $this->params);
+                    }catch (\Throwable $exception) {
+                        // todo
+                    }
+                }
+
                 // call hook callable
                 Hook::callHook(Hook::HOOK_AFTER_REQUEST);
 
@@ -177,6 +214,24 @@ class ServiceDispatch extends AppDispatch
             return true;
         }
         return false;
+    }
+
+    /**
+     * @param array $beforeHandle
+     * @return void
+     */
+    public function setBeforeHandle(array $beforeHandle = [])
+    {
+        $this->beforeHandle = $beforeHandle;
+    }
+
+    /**
+     * @param array $afterHandle
+     * @return void
+     */
+    public function setAfterHandle(array $afterHandle = [])
+    {
+        $this->afterHandle = $afterHandle;
     }
 
 }
