@@ -4,6 +4,7 @@ namespace Test\Controller;
 use Swoolefy\Core\App;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
+use Swoolefy\Core\EventController;
 use Swoolefy\Core\Log\LogManager;
 
 class IndexController extends BController {
@@ -44,6 +45,48 @@ class IndexController extends BController {
         ]);
     }
 
+
+    public function testAddUser()
+    {
+        /**
+         * @var \Common\Library\Db\Mysql $db
+         */
+        $db = Application::getApp()->get('db');
+        $db->createCommand("insert into tbl_users (`user_name`,`sex`,`birthday`,`phone`) values(:user_name,:sex,:birthday,:phone)" )
+            ->insert([
+                ':user_name' => '李四-'.rand(1,9999),
+                ':sex' => 0,
+                ':birthday' => '1991-07-08',
+                ':phone' => 12345678
+            ]);
+
+        $rowCount = $db->getNumRows();
+
+        // 创建一个协助程单例
+        goApp(function (EventController $event) use($rowCount) {
+            /**
+             * @var \Common\Library\Db\Mysql $db
+             */
+            $db = Application::getApp()->get('db');
+            $db->createCommand("insert into tbl_users (`user_name`,`sex`,`birthday`,`phone`) values(:user_name,:sex,:birthday,:phone)" )
+                ->insert([
+                    ':user_name' => '李四-'.rand(1,9999),
+                    ':sex' => 0,
+                    ':birthday' => '1991-07-08',
+                    ':phone' => 12345678
+                ]);
+
+            $rowCount = $db->getNumRows();
+
+        });
+
+        $this->returnJson([
+            'row_count' => $rowCount
+        ]);
+
+
+    }
+
     public function testUserList()
     {
         /**
@@ -60,50 +103,6 @@ class IndexController extends BController {
             'total' => $count,
             'list' => $list ?? []
         ]);
-    }
-
-    public function testAddUser()
-    {
-        /**
-         * @var \Common\Library\Db\Mysql $db
-         */
-        $db = Application::getApp()->get('db');
-        $db->createCommand("insert into tbl_order (`order_id`,`user_id`,`order_amount`,`order_product_ids`,`order_status`) values(:order_id,:user_id,:order_amount,:order_product_ids,:order_status)" )
-            ->insert([
-                ':order_id' => time() + 5,
-                ':user_id' => 10000,
-                ':order_amount' => 105,
-                ':order_product_ids' => json_encode([1,2,3,rand(1,1000)]),
-                ':order_status' => 1
-            ]);
-
-        $rowCount = $db->getNumRows();
-
-        $this->returnJson([
-            'row_count' => $rowCount
-        ]);
-    }
-
-    public function testRedis()
-    {
-        /**
-         * @var \Common\Library\Cache\Redis $redis
-         */
-        $redis = Application::getApp()->get('redis');
-        $redis->set('name','bingcool-'.rand(1,1000));
-        $value = $redis->get('name');
-        $this->returnJson(['value' => $value]);
-    }
-
-    public function testPredis()
-    {
-        /**
-         * @var \Common\Library\Cache\Predis $predis
-         */
-        $predis = Application::getApp()->get('predis');
-        $predis->set('predis-name','bingcool-'.rand(1,1000));
-        $value = $predis->get('predis-name');
-        $this->returnJson(['value' => $value]);
     }
 
     /**
@@ -136,7 +135,7 @@ class IndexController extends BController {
         ]);
     }
 
-    public function testTransation()
+    public function testTransactionAddOrder()
     {
         /**
          * @var \Common\Library\Db\Mysql $db
@@ -147,11 +146,14 @@ class IndexController extends BController {
 
         try {
             $db = Application::getApp()->get('db');
-            $db->createCommand("insert into tbl_order (`order_id`,`user_id`,`order_amount`,`order_product_ids`,`order_status`) values(:order_id,:user_id,:order_amount,:order_product_ids,:order_status)" )
+            $db->createCommand("insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`address`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:address,:order_product_ids,:order_status)" )
                 ->insert([
                     ':order_id' => time() + 5,
+                    ':receiver_user_name' => '张三',
+                    ':receiver_user_phone' => '12345666',
                     ':user_id' => 10000,
                     ':order_amount' => 105,
+                    ':address' => "深圳市宝安区xxxx",
                     ':order_product_ids' => json_encode([1,2,3,rand(1,1000)]),
                     ':order_status' => 1
                 ]);
@@ -161,36 +163,32 @@ class IndexController extends BController {
             $db->commit();
 
 
-            go(function () {
-                (new \Swoolefy\Core\EventApp)->registerApp(function($event) {
-                    /**
-                     * @var \Common\Library\Db\Mysql $db
-                     */
-                    $db = Application::getApp()->get('db');
-                    $db->beginTransaction();
+            goApp(function(EventController $event) {
+                /**
+                 * @var \Common\Library\Db\Mysql $db
+                 */
+                $db = Application::getApp()->get('db');
+                $db->beginTransaction();
+                try {
+                    $db->createCommand("insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:order_product_ids,:order_status)" )
+                        ->insert([
+                            ':order_id' => time() + 6,
+                            ':receiver_user_name' => '张三',
+                            ':receiver_user_phone' => '12345666',
+                            ':user_id' => 10000,
+                            ':order_amount' => 105,
+                            ':order_product_ids' => json_encode([1,2,3,rand(1,1000)]),
+                            ':order_status' => 1
+                        ]);
 
-                    try {
+                    $db->commit();
 
-                        $db->createCommand("insert into tbl_order (`order_id`,`user_id`,`order_amount`,`order_product_ids`,`order_status`) values(:order_id,:user_id,:order_amount,:order_product_ids,:order_status)" )
-                            ->insert([
-                                ':order_id' => time() + 5,
-                                ':user_id' => 10000,
-                                ':order_amount' => 105,
-                                ':order_product_ids' => json_encode([1,2,3,rand(1,1000)]),
-                                ':order_status' => 1
-                            ]);
-
-                        $db->commit();
-
-                    }catch (\Throwable $e) {
-                        $db->rollback();
-                        var_dump($e->getMessage());
-                    }
-                });
+                }catch (\Throwable $e) {
+                    $db->rollback();
+                    var_dump($e->getMessage());
+                }
             });
-
-        }catch (\Throwable $e)
-        {
+        }catch (\Throwable $e) {
             $db->rollback();
             var_dump($e->getMessage());
             return;
@@ -201,4 +199,64 @@ class IndexController extends BController {
         ]);
 
     }
+
+    public function ws()
+    {
+        Application::getApp()->response->write('<!DOCTYPE HTML>
+<html>
+   <head>
+   <meta charset="utf-8">
+   <title>菜鸟教程(runoob.com)</title>
+    
+      <script type="text/javascript">
+         function WebSocketTest()
+         {
+            if ("WebSocket" in window)
+            {
+               alert("您的浏览器支持 WebSocket!");
+               
+               // 打开一个 web socket
+               var ws = new WebSocket("ws://127.0.0.1:9502/");
+                
+               ws.onopen = function()
+               {
+                  // Web Socket 已连接上，使用 send() 方法发送数据
+                  
+                  ws.send("Chat::mychat::kkkkkkkkkkkkkkkkkkkkkkkkknnnnnnnnnnn");
+                  alert("数据发送中...");
+               };
+                
+               ws.onmessage = function (evt) 
+               { 
+                  var received_msg = evt.data;
+                  alert("数据已接收...");
+               };
+                
+               ws.onclose = function()
+               { 
+                  // 关闭 websocket
+                  alert("连接已关闭..."); 
+               };
+            }
+            
+            else
+            {
+               // 浏览器不支持 WebSocket
+               alert("您的浏览器不支持 WebSocket!");
+            }
+         }
+      </script>
+        
+   </head>
+   <body>
+   
+      <div id="sse">
+         <a href="javascript:WebSocketTest()">运行 WebSocket</a>
+      </div>
+      
+   </body>
+</html>');
+
+    }
+
 }
