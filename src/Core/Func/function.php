@@ -152,7 +152,7 @@ function getOneFreePort(array $excludePorts = []): int
  * @throws \Swoolefy\Exception\SystemException
  */
 function goApp(\Closure $callback) {
-    go(function () use($callback) {
+    \Swoole\Coroutine::create(function () use($callback) {
         (new \Swoolefy\Core\EventApp)->registerApp(function($event) use($callback) {
             try {
                 $callback($event);
