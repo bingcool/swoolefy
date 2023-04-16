@@ -92,16 +92,23 @@ class UdpHandler extends Swoole implements HandlerInterface
             if ($callable) {
 
                 if (!isset($isTaskProcess)) {
-                    $service          = trim(str_replace('\\', '/', $service), '/');
+                    $service          = trim(str_replace('\\', DIRECTORY_SEPARATOR, $service), DIRECTORY_SEPARATOR);
                     $serviceHandle    = implode(self::EOF, [$service, $event]);
-                    $routerMapService = Swfy::getRouterMapService($serviceHandle);
-                    $callable         = explode(self::EOF, $routerMapService);
+                    list($beforeHandle, $callable, $afterHandle) = Swfy::getRouterMapService($serviceHandle);
                 }
 
                 $dispatcher = new ServiceDispatch($callable, $params);
                 if (isset($isTaskProcess) && $isTaskProcess === true) {
                     list($from_worker_id, $task_id, $task) = $extendData;
                     $dispatcher->setFromWorkerIdAndTaskId($from_worker_id, $task_id, $task);
+                }
+
+                if (isset($beforeHandle)) {
+                    $dispatcher->setBeforeHandle($beforeHandle);
+                }
+
+                if (isset($afterHandle)) {
+                    $dispatcher->setAfterHandle($afterHandle);
                 }
 
                 $dispatcher->dispatch();

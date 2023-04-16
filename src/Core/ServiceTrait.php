@@ -370,11 +370,38 @@ trait ServiceTrait
 
     /**
      * @param string $uri
-     * @return string
+     * @return array
      */
     public static function getRouterMapService(string $uri)
     {
         $routerMap = self::getRouters();
-        return $routerMap[$uri] ?? $uri;
+        $uri = trim($uri,DIRECTORY_SEPARATOR);
+        if (isset($routerMap[$uri])) {
+            $routerHandle = $routerMap[$uri];
+            if(!isset($routerHandle['dispatch_route'])) {
+                throw new DispatchException('Missing dispatch_route option key');
+            }else {
+                $dispatchRoute = $routerHandle['dispatch_route'];
+            }
+
+            $beforeHandle = [];
+
+            foreach($routerHandle as $alias => $handle) {
+                if ($alias != 'dispatch_route') {
+                    $beforeHandle[] = $handle;
+                    unset($routerHandle[$alias]);
+                    continue;
+                }
+                unset($routerHandle[$alias]);
+                break;
+            }
+
+            $afterHandle = array_values($routerHandle);
+
+            return [$beforeHandle, $dispatchRoute, $afterHandle];
+
+        }else {
+            throw new DispatchException('Missing Dispatch Route Setting');
+        }
     }
 }
