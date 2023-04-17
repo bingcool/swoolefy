@@ -177,7 +177,7 @@ function createProject()
 
     if ($protocol == 'http') {
         $dirs = [
-            'Config', 'Controller', 'Model', 'Module', 'View', 'Runtime', 'Log', 'Protocol'
+            'Config', 'Controller', 'Model', 'Module', 'Runtime','Storage', 'Protocol'
         ];
     }
 
@@ -210,16 +210,10 @@ function createProject()
             }
             case 'Model':
             {
-                $modelFile = $appRootDir . '/' . $dir . '/ClientModel.php';
+                $modelFile = $appRootDir . '/' . $dir . '/DemoModel.php';
                 if (!file_exists($modelFile)) {
                     file_put_contents($modelFile, getDefaultModel());
                 }
-                break;
-            }
-            case 'View':
-            {
-                $viewControllerDir = $appRootDir . '/' . $dir . '/Index';
-                @mkdir($viewControllerDir, 0777, true);
                 break;
             }
             case 'Protocol':
@@ -1136,7 +1130,7 @@ namespace {$APP_NAME}\Model;
 
 use Common\Library\Db\Model;
 
-class IndexModel extends Model {
+class DemoModel extends Model {
     
 }
 EOF;
