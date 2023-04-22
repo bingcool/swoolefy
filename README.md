@@ -75,7 +75,7 @@ swoolefy-4.8-lts 版本：
 实现了包括：    
 - [x] Db Mysql Model组件
 - [x] PostgreSql Model组件    
-- [x] Kafka Producer Consumer组件  
+- [x] Kafka Producer Consumer组件
 - [x] Rabbitmq Queue组件  
 - [x] Rabbitmq Delay Queue 死信延迟队列组件    
 - [x] Redis Cache组件  
@@ -87,6 +87,7 @@ swoolefy-4.8-lts 版本：
 - [x] Db 、Redis、Curl协程连接池组件
 - [x] UUid 分布式自增id组件  
 - [x] Curl基础组件    
+- [x] Jwt 组件    
    
 github: https://github.com/bingcool/library    
 
