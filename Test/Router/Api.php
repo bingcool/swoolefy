@@ -39,5 +39,9 @@ return [
         'afterHandle1' => function(Request $request) {
 
         },
+    ],
+
+    '/token/jwt' => [
+        'dispatch_route' => [\Test\Controller\TokenController::class, 'jwt'],
     ]
 ];
