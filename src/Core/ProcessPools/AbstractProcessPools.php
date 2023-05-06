@@ -190,7 +190,7 @@ abstract class AbstractProcessPools
             });
         }
 
-        $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'php-swoolefy-user-process-worker' . $this->bindWorkerId . ':' . $this->getProcessName(true));
+        $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'php-swoolefy-user-process-pools' . $this->bindWorkerId . ':' . $this->getProcessName(true));
         try {
             (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
                 $this->init();

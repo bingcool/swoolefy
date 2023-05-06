@@ -109,8 +109,8 @@ class SysvmsgManager
             ));
         }
 
+        $pathNameKey     = md5($path_name);
         $msgQueueNameKey = md5($msg_queue_name);
-        $pathNameKey = md5($path_name);
 
         if (isset($this->msgProject[$pathNameKey][$project])) {
             throw new \Exception(sprintf("【Warning】%s::%s. the params of project is had setting",

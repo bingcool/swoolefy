@@ -105,8 +105,8 @@ class Text extends BaseParse
     /**
      * decode 数据反序列化
      * @param string $data
-     * @param mixed $unseralize_type
-     * @return   mixed
+     * @param mixed $unserialize_type
+     * @return mixed
      */
     public static function decode($data, $unserialize_type = self::DECODE_JSON)
     {
