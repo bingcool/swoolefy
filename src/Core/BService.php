@@ -59,7 +59,7 @@ class BService extends BaseObject
             $this->clientInfo = $app->getClientInfo();
         }
 
-        if (\Swoole\Coroutine::getCid() >=0 ) {
+        if (\Swoole\Coroutine::getCid() >= 0) {
             \Swoole\Coroutine::defer(function () {
                 $this->defer();
             });

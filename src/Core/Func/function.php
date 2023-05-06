@@ -63,14 +63,6 @@ function dump($var, $echo = true, $label = null, $strict = true)
 }
 
 /**
- * @param $debugData
- */
-function dd($debugData)
-{
-    dump($debugData);
-}
-
-/**
  * _die 异常终端程序执行
  * @param $msg
  * @param $code
