@@ -43,5 +43,6 @@ return [
 
     '/token/jwt' => [
         'dispatch_route' => [\Test\Controller\TokenController::class, 'jwt'],
-    ]
+    ],
+    
 ];
