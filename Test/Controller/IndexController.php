@@ -1,6 +1,7 @@
 <?php
 namespace Test\Controller;
 
+use QL\QueryList;
 use Swoolefy\Core\App;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;

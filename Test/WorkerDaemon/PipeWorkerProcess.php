@@ -8,7 +8,7 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
 {
     public function run()
     {
-        Application::getApp()->get('log')->addInfo('pllllllllllll');
+        //Application::getApp()->get('log')->addInfo('pllllllllllll');
 //        while (1) {
 //            var_dump('CID='.\Co::getCid());
 //            var_dump('PipeWorker');
@@ -33,10 +33,11 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
 //            $this->notifyMasterCreateDynamicProcess($this->getProcessName(), 1);
 //        }
 
-        if($this->isWorker0()) {
-            sleep(5);
-            $this->reboot();
-        }
+        var_dump($this->limitCurrentRunCoroutineNum);
+//        if($this->isWorker0()) {
+//            sleep(5);
+//            $this->reboot();
+//        }
     }
 
     public function onHandleException(\Throwable $throwable, array $context = [])

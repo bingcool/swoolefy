@@ -2,6 +2,7 @@
 namespace Test\Controller;
 
 use Swoolefy\Core\Controller\BController;
+use Test\Module\Order\OrderEntity;
 
 class ObjectController extends BController
 {
@@ -15,7 +16,7 @@ class ObjectController extends BController
         $struct = new \Swoolefy\Core\Struct();
         $struct->set('name','bingcool');
 
-        $orderObject = new \Test\Module\Order\OrderObject($userId);
+        $orderObject = new \Test\Module\Order\OrderEntity($userId);
         $orderObject->user_id = $userId;
         $orderObject->receiver_user_name = "张三";
         $orderObject->receiver_user_phone = "12344556";
@@ -25,7 +26,21 @@ class ObjectController extends BController
         $orderObject->json_data = ['name'=>'xiaomi', 'phone'=>123456789];
         $orderObject->order_status = 1;
         $orderObject->remark = 'test-remark-'.rand(1,1000).'-'.$struct->get('name');
+
+        //$orderObject->skipEvent(OrderEntity::AFTER_INSERT);
+
+        // 自定义 事件覆盖原事件
+        $orderObject->setEventHandle(OrderEntity::AFTER_INSERT, function () {
+            /**
+             * @var \Test\Module\Order\OrderEntity $this
+             */
+            $this->onAfterInsert();
+            var_dump('next onAfterInsert');
+
+        });
+
         $orderObject->save();
+
         if($orderObject->isExists()) {
             $this->returnJson($orderObject->getAttributes());
         }
@@ -40,7 +55,7 @@ class ObjectController extends BController
 
         $orderId = 1633494944;
 
-        $orderObject = new \Test\Module\Order\OrderObject($userId, $orderId);
+        $orderObject = new \Test\Module\Order\OrderEntity($userId, $orderId);
         if($orderObject->isExists())
         {
             $orderObject->user_id = $userId;
@@ -54,7 +69,7 @@ class ObjectController extends BController
             dump($orderObject);
         }else
         {
-            throw new \Exception('OrderObject is not exist');
+            throw new \Exception('OrderEntity is not exist');
         }
 
     }
