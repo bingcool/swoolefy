@@ -12,6 +12,8 @@
 
 // 定义注册的应用名和对应使用的协议
 
+use Swoolefy\Core\BaseServer;
+
 if (!defined('APP_NAMES')) {
     write("【Error】 APP_NAMES Missing defined, please check it");
     exit(0);
@@ -618,7 +620,7 @@ function makeDirLogAndPid(array &$config)
         }
     }
 
-    if(isWorkerService()) {
+    if(isWorkerService() && defined('WORKER_PID_FILE_ROOT')) {
         if (!is_dir(WORKER_PID_FILE_ROOT)) {
             mkdir(WORKER_PID_FILE_ROOT, 0777, true);
         }
@@ -703,7 +705,7 @@ function commonStatus($appName, $pidFile)
         return;
     }
 
-    $exec = 'ps -ef | grep php | grep ' . $appName . "-swoolefy" . ' | grep -v grep';
+    $exec = 'ps -ef | grep php | grep ' .BaseServer::getAppPrefix(). ' | grep -v grep';
 
     exec($exec, $output, $return);
 

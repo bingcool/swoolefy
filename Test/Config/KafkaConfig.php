@@ -11,7 +11,7 @@ class KafkaConfig
     const KAFKA_TOPICS = [
         self::KAFKA_TOPIC_ORDER1 => [
             'topic_name' => self::KAFKA_TOPIC_ORDER1,
-            'group_id'   => 'topic_orde_group1',
+            'group_id'   => 'topic_order_group1',
             // 生产端的全局配置
             'producer_global_property' => [
                 'enable.idempotence' => 0,
