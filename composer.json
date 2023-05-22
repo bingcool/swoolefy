@@ -34,8 +34,7 @@
         "ext-mbstring": "*",
         "ext-openssl": "*",
         "dragonmantank/cron-expression": "~3.3.1",
-        "bingcool/library": "dev-master",
-        "symfony/finder": "6.3.x-dev"
+        "bingcool/library": "dev-master"
     },
     "autoload": {
         "files": ["src/Constants.php","src/Core/Func/function.php"],
