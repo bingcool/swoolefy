@@ -52,7 +52,7 @@ class AmqpConfig {
                 'arguments' => [
                     // 延迟队列
                     'x-dead-letter-exchange' => AmqpConfig::AMQP_EXCHANGE_DIRECT_ORDER, //在同一个交换机下，这个不要改变
-                    'x-dead-letter-queue'    => AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_ADD_DELAY.'_dead', // 延迟队列名称，一定时间没有被消费，消息江北转发到此队列
+                    'x-dead-letter-queue'    => AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_ADD_DELAY.'_dead', // 延迟队列名称，一定时间没有被消费，消息将转发到此队列
                     'x-dead-letter-routing-key' => AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_ADD_DELAY.'_dead', // 队列binding key
                     'x-message-ttl' => 3 * 1000
                 ]
@@ -147,7 +147,7 @@ class AmqpConfig {
                 'arguments' => [
                     // 定义延迟队列
                     'x-dead-letter-exchange' => AmqpConfig::AMQP_EXCHANGE_TOPIC_ORDER, //在同一个交换机下，这个不要改变
-                    'x-dead-letter-queue'    => AmqpConfig::AMQP_QUEUE_TOPIC_ORDER_ADD_DELAY.'_dead', // 延迟队列名称，一定时间没有被消费，消息江北转发到此队列
+                    'x-dead-letter-queue'    => AmqpConfig::AMQP_QUEUE_TOPIC_ORDER_ADD_DELAY.'_dead', // 延迟队列名称，一定时间没有被消费，消息将转发到此队列
                     'x-dead-letter-routing-key' => 'orderSaveEvent2-all', // 队列binding key
                     'x-message-ttl' => 3 * 1000
                 ]
