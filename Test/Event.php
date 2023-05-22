@@ -92,6 +92,11 @@ class Event extends EventHandler
      */
     public function onWorkerServiceInit()
     {
+        if (!defined('WORKER_SERVICE_NAME')) {
+            write('Missing Defined Constant `WORKER_SERVICE_NAME`');
+            exit(0);
+        }
+
         switch (WORKER_SERVICE_NAME) {
             case 'test-worker':
                 ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, \Test\WorkerDaemon\MainWorker::class, true,  [],null, false);
