@@ -167,14 +167,7 @@ class SwoolefyException
         }
 
         $logFilePath = $logger->getLogFilePath();
-        if (is_file($logFilePath)) {
-            $logFileSize = filesize($logFilePath);
-        } else {
-            @file_put_contents($logFilePath, '');
-        }
-
-        // 定时清除这个log文件
-        if (isset($logFileSize) && $logFileSize > 20 * 1024 * 1024) {
+        if (!is_file($logFilePath)) {
             @file_put_contents($logFilePath, '');
         }
 
