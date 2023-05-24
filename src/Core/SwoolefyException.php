@@ -95,6 +95,7 @@ class SwoolefyException
             $errorFile,
             $errorLine
         );
+
         switch ($errorNo) {
             case E_ERROR:
                 static::shutHalt($errorStr, SwoolefyException::EXCEPTION_ERR);
@@ -118,7 +119,6 @@ class SwoolefyException
     public static function response(App $app, \Throwable $throwable)
     {
         $app->response->header('Content-Type', 'application/json; charset=UTF-8');
-
         $queryString  = isset($app->request->server['QUERY_STRING']) ? '?' . $app->request->server['QUERY_STRING'] : '';
         $exceptionMsg = $throwable->getMessage();
 
