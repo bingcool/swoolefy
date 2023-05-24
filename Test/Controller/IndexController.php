@@ -12,6 +12,8 @@ class IndexController extends BController {
 
     public function index()
     {
+        //$w = [];
+        var_dump($w);
         Application::getApp()->response->write('<h1>Hello, Welcome to Swoolefy Framework! <h1>');
     }
 

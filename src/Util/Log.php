@@ -157,7 +157,7 @@ class Log
     protected function getDateLogFile(string $date, string $logFilePath)
     {
         $fileInfo = pathinfo($logFilePath);
-        return $fileInfo['dirname'].DIRECTORY_SEPARATOR.$fileInfo['filename'].'_'.$date.DIRECTORY_SEPARATOR.'.'.$fileInfo['extension'];
+        return $fileInfo['dirname'].DIRECTORY_SEPARATOR.$fileInfo['filename'].'_'.$date.'.'.$fileInfo['extension'];
     }
 
     /**
@@ -165,7 +165,7 @@ class Log
      */
     protected function getDate()
     {
-        return date('Ymd','now');
+        return date('Ymd', time());
     }
 
     /**
