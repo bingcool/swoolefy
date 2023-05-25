@@ -73,6 +73,16 @@ class Log
     protected $prefix = 'add';
 
     /**
+     * @var string
+     */
+    protected $initDate;
+
+    /**
+     * @var string
+     */
+    protected $dateLogFilePath;
+
+    /**
      * @param string $type
      * @param string|null $channel
      * @param string|null $logFilePath
@@ -85,20 +95,17 @@ class Log
         string $channel = null,
         string $logFilePath = null,
         string $output = null,
-        string $dateformat = null)
-    {
+        string $dateformat = null
+    ) {
         $this->type = $type;
         $this->channel = $channel;
         $this->logFilePath = $logFilePath;
         $output && $this->output = $output;
         $channel && $this->logger = new Logger($this->channel);
-        if ($logFilePath) {
-            $this->handler = new StreamHandler($this->logFilePath);
-        }
         //$formatter object
         $this->formatter = new LineFormatter($this->output, $dateformat);
-        if ($this->handler) {
-            $this->handler->setFormatter($this->formatter);
+        if ($logFilePath) {
+            $this->setLogFilePath($logFilePath);
         }
     }
 
@@ -133,10 +140,32 @@ class Log
      */
     public function setLogFilePath(string $logFilePath)
     {
+        $this->initDate = $this->getDate();
+        $dateLogFilePath = $this->getDateLogFile($this->initDate, $logFilePath);
         $this->logFilePath = $logFilePath;
-        $this->handler = new StreamHandler($this->logFilePath);
+        $this->dateLogFilePath = $dateLogFilePath;
+        $this->handler = new StreamHandler($this->dateLogFilePath);
         $this->handler->setFormatter($this->formatter);
         return $this;
+    }
+
+    /**
+     * @param string $date
+     * @param string $logFilePath
+     * @return string
+     */
+    protected function getDateLogFile(string $date, string $logFilePath)
+    {
+        $fileInfo = pathinfo($logFilePath);
+        return $fileInfo['dirname'].DIRECTORY_SEPARATOR.$fileInfo['filename'].'_'.$date.'.'.$fileInfo['extension'];
+    }
+
+    /**
+     * @return string
+     */
+    protected function getDate()
+    {
+        return date('Ymd', time());
     }
 
     /**
@@ -164,7 +193,10 @@ class Log
      */
     public function getLogFilePath()
     {
-        return $this->logFilePath;
+        if($this->getDate() != $this->initDate) {
+            $this->setLogFilePath($this->logFilePath);
+        }
+        return $this->dateLogFilePath;
     }
 
     /**
