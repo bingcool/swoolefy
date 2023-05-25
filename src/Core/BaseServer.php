@@ -140,6 +140,8 @@ class BaseServer
     {
         // set config
         Swfy::setConf(self::$config);
+        // register handle error
+        self::registerErrorHandler();
         // start runtime Coroutine
         self::setCoroutineSetting(self::$config['coroutine_setting'] ?? []);
         // check extensions
@@ -985,7 +987,7 @@ class BaseServer
     public static function registerErrorHandler()
     {
         $exceptionClass = self::getExceptionClass();
-        set_error_handler($exceptionClass . '::appError');
+        set_error_handler("{$exceptionClass}::handleError");
     }
 
     /**
@@ -995,8 +997,6 @@ class BaseServer
     public static function beforeHandle()
     {
         self::atomicAdd();
-        // registerErrorHandler
-        self::registerErrorHandler();
     }
 
     /**

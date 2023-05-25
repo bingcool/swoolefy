@@ -68,7 +68,7 @@ class SwoolefyException
             $error['file'] = $exception->getFile();
             $error['line'] = $exception->getLine();
         }
-        $error['trace'] = $exception->getTraceAsString();
+
         $errorStr = sprintf(
             "%s in file %s on line %d",
             $error['message'],
@@ -80,35 +80,16 @@ class SwoolefyException
     }
 
     /**
-     * appError 获取用户程序错误
+     * appError 注册用户程序错误
      * @param int $errorNo
-     * @param string $errorString
+     * @param string $errorMessage
      * @param string $errorFile
      * @param int $errorLine
      * @return void
      */
-    public static function appError(int $errorNo, string $errorString, string $errorFile, int $errorLine)
+    public static function handleError(int $errorNo, string $errorMessage, string $errorFile, int $errorLine)
     {
-        $errorStr = sprintf(
-            "%s in file %s on line %d",
-            $errorString,
-            $errorFile,
-            $errorLine
-        );
-
-        switch ($errorNo) {
-            case E_ERROR:
-                static::shutHalt($errorStr, SwoolefyException::EXCEPTION_ERR);
-                break;
-            case E_WARNING:
-                static::shutHalt($errorStr, SwoolefyException::EXCEPTION_WARNING);
-                break;
-            case E_NOTICE:
-                static::shutHalt($errorStr, SwoolefyException::EXCEPTION_NOTICE);
-                break;
-            default:
-                break;
-        }
+        throw new \ErrorException($errorMessage, 0, $errorNo, $errorFile, $errorLine);
     }
 
     /**
