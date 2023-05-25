@@ -19,7 +19,6 @@ class Tick extends AbstractProcess {
 //        go(function() {
 //            $cid = \Swoole\Coroutine::getCid();
 //        });
-
         var_dump('This is process tick, class='.__CLASS__);
         // 创建定时器处理实例
 //        TickManager::getInstance()->tickTimer(3000,
