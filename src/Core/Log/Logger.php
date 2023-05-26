@@ -11,8 +11,6 @@
 
 namespace Swoolefy\Core\Log;
 
-use Psr\Log\LoggerInterface;
-
 /**
  * log channel
  *
