@@ -294,13 +294,14 @@ class Log
             $logInfo = json_encode($logInfo, JSON_UNESCAPED_UNICODE);
         }
 
-        $callable = function () use ($type, $logInfo, $context) {
+        $App = Application::getApp();
+        $callable = function () use ($type, $logInfo, $context, $App) {
             try {
                 $this->logger->setHandlers([]);
                 $this->logger->pushHandler($this->handler);
 
-                $this->logger->pushProcessor(function ($records) {
-                    return $this->pushProcessor($records);
+                $this->logger->pushProcessor(function ($records) use($App) {
+                    return $this->pushProcessor($records, $App);
                 });
 
                 // add records to the log
@@ -322,10 +323,11 @@ class Log
     /**
      * 可继承重写-定义公共的字段信息
      *
-     * @param $records
+     * @param array $records
+     * @param $App
      * @return array
      */
-    protected function pushProcessor($records): array
+    protected function pushProcessor($records, $App = null): array
     {
         $records['timestamp'] = microtime(true);
         $records['hostname']  = gethostname();
@@ -334,10 +336,9 @@ class Log
         $records['require_params'] = [];
         if (Swfy::isWorkerProcess()) {
             $records['process'] = 'worker';
-            $App = Application::getApp();
             if($App instanceof App) {
-                $records['url'] = $App->request;
-                $records['require_params'] = $App->getRequestParams();
+                $records['url'] = $App->getRequestUri();
+                $records['request_params'] = $App->getRequestParams();
             }
         }
 

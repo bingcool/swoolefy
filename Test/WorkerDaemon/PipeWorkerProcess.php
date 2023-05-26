@@ -3,6 +3,7 @@
 namespace Test\WorkerDaemon;
 
 use Swoolefy\Core\Application;
+use Swoolefy\Core\Log\LogManager;
 
 class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
 {
@@ -27,16 +28,17 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
 //            });
 //        });
 
-
-
+        $log = LogManager::getInstance()->getLogger('log');
+        $log->addInfo('test222222-log-id='.rand(1,1000),true);
+            var_dump('gggggggg');
 //        if($this->isWorker0()) {
 //            $this->notifyMasterCreateDynamicProcess($this->getProcessName(), 1);
 //        }
 
-        if($this->isWorker0()) {
-            sleep(5);
-            $this->reboot();
-        }
+//        if($this->isWorker0()) {
+//            sleep(5);
+//            $this->reboot();
+//        }
     }
 
     public function onHandleException(\Throwable $throwable, array $context = [])
