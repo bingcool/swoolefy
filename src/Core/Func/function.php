@@ -20,7 +20,7 @@ use Swoolefy\Core\SystemEnv;
  * @param $strict
  * @return string
  */
-function dump($var, $echo = true, $label = null, $strict = true)
+function mydump($var, $echo = true, $label = null, $strict = true)
 {
     $label = ($label === null) ? '' : rtrim($label) . ' ';
     if (!$strict) {
@@ -60,14 +60,6 @@ function dump($var, $echo = true, $label = null, $strict = true)
         return $output;
     }
 
-}
-
-/**
- * @param $debugData
- */
-function dd($debugData)
-{
-    dump($debugData);
 }
 
 /**
