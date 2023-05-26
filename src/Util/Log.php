@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Util;
 
+use Swoolefy\Core\App;
 use Swoolefy\Core\Log\Formatter\JsonFormatter;
 use Swoolefy\Core\Log\Formatter\NormalizerFormatter;
 use Swoolefy\Core\Swfy;
@@ -298,8 +299,8 @@ class Log
                 $this->logger->setHandlers([]);
                 $this->logger->pushHandler($this->handler);
 
-                $this->logger->pushProcessor(function ($record) {
-                    return $this->pushProcessor($record);
+                $this->logger->pushProcessor(function ($records) {
+                    return $this->pushProcessor($records);
                 });
 
                 // add records to the log
@@ -326,6 +327,20 @@ class Log
      */
     protected function pushProcessor($records): array
     {
+        $records['timestamp'] = microtime(true);
+        $records['hostname']  = gethostname();
+        $records['process'] = 'task_worker|self_worker';
+        $records['url'] = '';
+        $records['require_params'] = [];
+        if (Swfy::isWorkerProcess()) {
+            $records['process'] = 'worker';
+            $App = Application::getApp();
+            if($App instanceof App) {
+                $records['url'] = $App->request;
+                $records['require_params'] = $App->getRequestParams();
+            }
+        }
+
         return $records;
     }
 
