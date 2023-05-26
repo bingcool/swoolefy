@@ -1,8 +1,6 @@
 <?php
 namespace Test\Controller;
 
-use QL\QueryList;
-use Swoolefy\Core\App;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\EventController;
@@ -12,8 +10,8 @@ class IndexController extends BController {
 
     public function index()
     {
-        //$w = [];
-        var_dump($w);
+        $log = LogManager::getInstance()->getLogger('log');
+        $log->addInfo('test11111-log-id='.rand(1,1000),true, ['name'=>'bingcoolhuang']);
         Application::getApp()->response->write('<h1>Hello, Welcome to Swoolefy Framework! <h1>');
     }
 

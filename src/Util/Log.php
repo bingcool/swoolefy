@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Util;
 
+use Swoolefy\Core\Log\Formatter\JsonFormatter;
+use Swoolefy\Core\Log\Formatter\NormalizerFormatter;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Log\Logger;
@@ -46,7 +48,7 @@ class Log
     public $logFilePath = null;
 
     /**
-     * $output,默认定义输出日志的文本格式
+     * $output,默认定义输出日志的文本格式LineFormatter模式有效
      * @var string
      */
     public $output = "[%datetime%] %channel%:%level_name%:%message%:%context%\n";
@@ -102,8 +104,9 @@ class Log
         $this->logFilePath = $logFilePath;
         $output && $this->output = $output;
         $channel && $this->logger = new Logger($this->channel);
-        //$formatter object
-        $this->formatter = new LineFormatter($this->output, $dateformat);
+        // $formatter object
+        // $this->formatter = new LineFormatter($this->output, $dateformat);
+        $this->formatter = new JsonFormatter();
         if ($logFilePath) {
             $this->setLogFilePath($logFilePath);
         }
@@ -176,8 +179,16 @@ class Log
     public function setOutputFormat(string $output)
     {
         $this->output = $output;
-        $this->formatter = new LineFormatter($this->output, $dateformat = null);
         return $this;
+    }
+
+    /**
+     * @param NormalizerFormatter $formatter
+     * @return void
+     */
+    public function setFormatter(NormalizerFormatter $formatter)
+    {
+        $this->formatter = $formatter;
     }
 
     /**
@@ -200,7 +211,7 @@ class Log
     }
 
     /**
-     * @return string
+     * @return NormalizerFormatter
      */
     public function getOutputFormat()
     {
@@ -286,6 +297,11 @@ class Log
             try {
                 $this->logger->setHandlers([]);
                 $this->logger->pushHandler($this->handler);
+
+                $this->logger->pushProcessor(function ($record) {
+                    return $this->pushProcessor($record);
+                });
+
                 // add records to the log
                 $this->logger->addRecord($type, $logInfo, $context);
             } catch (\Exception $e) {
@@ -300,7 +316,17 @@ class Log
         } else {
             call_user_func($callable);
         }
+    }
 
+    /**
+     * 可继承重写-定义公共的字段信息
+     *
+     * @param $records
+     * @return array
+     */
+    protected function pushProcessor($records): array
+    {
+        return $records;
     }
 
     /**
