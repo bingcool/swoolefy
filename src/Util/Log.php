@@ -11,7 +11,9 @@
 
 namespace Swoolefy\Util;
 
+use MqttService\MqttEventHandle\EventHandleV3;
 use Swoolefy\Core\App;
+use Swoolefy\Core\EventController;
 use Swoolefy\Core\Log\Formatter\JsonFormatter;
 use Swoolefy\Core\Log\Formatter\NormalizerFormatter;
 use Swoolefy\Core\Swfy;
@@ -19,6 +21,7 @@ use Swoolefy\Core\Application;
 use Swoolefy\Core\Log\Logger;
 use Swoolefy\Core\Log\StreamHandler;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
+use Swoolefy\Core\Swoole;
 
 /**
  * Class Log
@@ -336,9 +339,12 @@ class Log
         $records['require_params'] = [];
         if (Swfy::isWorkerProcess()) {
             $records['process'] = 'worker';
-            if($App instanceof App) {
+            if ($App instanceof App) {
                 $records['url'] = $App->getRequestUri();
                 $records['request_params'] = $App->getRequestParams();
+            }else if ($App instanceof Swoole) {
+                $records['url'] = $App->getServiceHandle();
+                $records['request_params'] = $App->getMixedParams();
             }
         }
 
