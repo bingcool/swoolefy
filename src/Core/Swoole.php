@@ -48,6 +48,11 @@ class Swoole extends BaseObject
     protected $isDefer = false;
 
     /**
+     * @var string
+     */
+    protected $serviceHandle = '';
+
+    /**
      * __construct
      * @param array $appConf
      */
@@ -160,6 +165,23 @@ class Swoole extends BaseObject
     public function setRpcPackHeader(array $rpcPackHeader)
     {
         $this->rpcPackHeader = $rpcPackHeader;
+    }
+
+    /**
+     * @param string $serviceHandle
+     * @return void
+     */
+    public function setServiceHandle(string $serviceHandle)
+    {
+        $this->serviceHandle = $serviceHandle;
+    }
+
+    /**
+     * @return string
+     */
+    public function getServiceHandle()
+    {
+        return $this->serviceHandle;
     }
 
     /**
