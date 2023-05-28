@@ -11,9 +11,7 @@
 
 namespace Swoolefy\Util;
 
-use MqttService\MqttEventHandle\EventHandleV3;
 use Swoolefy\Core\App;
-use Swoolefy\Core\EventController;
 use Swoolefy\Core\Log\Formatter\JsonFormatter;
 use Swoolefy\Core\Log\Formatter\NormalizerFormatter;
 use Swoolefy\Core\Swfy;
@@ -334,11 +332,11 @@ class Log
     {
         $records['timestamp'] = microtime(true);
         $records['hostname']  = gethostname();
-        $records['process'] = 'task_worker|self_worker';
+        $records['process'] = 'task_worker|use_self_worker';
         $records['url'] = '';
         $records['require_params'] = [];
         if (Swfy::isWorkerProcess()) {
-            $records['process'] = 'worker';
+            $records['process'] = 'worker_process';
             if ($App instanceof App) {
                 $records['url'] = $App->getRequestUri();
                 $records['request_params'] = $App->getRequestParams();
@@ -346,6 +344,18 @@ class Log
                 $records['url'] = $App->getServiceHandle();
                 $records['request_params'] = $App->getMixedParams();
             }
+        }else if (Swfy::isTaskProcess()) {
+            $records['process'] = 'task_worker';
+        }else if (Swfy::isSelfProcess()) {
+            $records['process'] = 'use_self_worker';
+        }
+
+        if (defined('IS_WORKER_SERVICE') && IS_WORKER_SERVICE) {
+            $records['process'] = 'worker_service';
+        }
+
+        if (defined('IS_CLI_SCRIPT') && IS_CLI_SCRIPT) {
+            $records['process'] = 'cli_script_service';
         }
 
         return $records;

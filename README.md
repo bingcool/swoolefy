@@ -126,6 +126,7 @@ composer create-project bingcool/swoolefy:~5.0 myproject
 include './vendor/autoload.php';
 
 define('IS_WORKER_SERVICE', 0);
+define('IS_CLI_SCRIPT', 0);
 date_default_timezone_set('Asia/Shanghai');
 
 define('APP_NAMES', [
