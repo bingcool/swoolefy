@@ -33,7 +33,7 @@ swoolefy-4.8-lts 版本：
 
 基础特性
 - [x] 支持架手脚一键创建项目           
-- [x] 支持路由映射与调度，MVC三层，多级配置         
+- [x] 支持路由映射与调度,前置路由组件，后置路由组件，MVC三层，多级配置              
 - [x] 支持composer的PSR-4规范，实现PSR-3的日志接口     
 - [x] 支持自定义注册不同根命名空间，快速多项目部署          
 - [x] 支持httpServer，实用轻量Api接口开发     
@@ -126,6 +126,7 @@ composer create-project bingcool/swoolefy:^4.8.2 myproject
 include './vendor/autoload.php';
 
 define('IS_WORKER_SERVICE', 0);
+define('IS_CLI_SCRIPT', 0);
 date_default_timezone_set('Asia/Shanghai');
 
 define('APP_NAMES', [
