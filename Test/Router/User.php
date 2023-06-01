@@ -10,6 +10,11 @@ use Swoolefy\Core\Application;
  */
 
 return [
+
+    '/user/testAddUser' => [
+        'dispatch_route' => [\Test\Controller\IndexController::class, 'testAddUser'],
+    ],
+
     '/user/user-order/userList' => [
         'beforeHandle' => function(Request $request) {
             $name = Application::getApp()->getRequestParams('name');

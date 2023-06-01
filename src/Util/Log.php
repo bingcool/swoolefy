@@ -301,9 +301,11 @@ class Log
                 $this->logger->setHandlers([]);
                 $this->logger->pushHandler($this->handler);
 
-                $this->logger->pushProcessor(function ($records) use($App) {
-                    return $this->pushProcessor($records, $App);
-                });
+                if($this->formatter instanceof JsonFormatter) {
+                    $this->logger->pushProcessor(function ($records) use($App) {
+                        return $this->pushProcessor($records, $App);
+                    });
+                }
 
                 // add records to the log
                 $this->logger->addRecord($type, $logInfo, $context);

@@ -123,7 +123,7 @@ class SwoolefyException
             $errorMsg = $exceptionMsg;
         }
 
-        $app->beforeEnd($code, $errorMsg, $contextData ?? []);
+        $app->beforeEnd((int)$code, $errorMsg, $contextData ?? []);
 
         $errorMsg .= ' ||| ' . $throwable->getTraceAsString();
 
@@ -148,7 +148,7 @@ class SwoolefyException
         }
 
         $logFilePath = $logger->getLogFilePath();
-        if (!is_file($logFilePath)) {
+        if (!file_exists($logFilePath)) {
             @file_put_contents($logFilePath, '');
         }
 
