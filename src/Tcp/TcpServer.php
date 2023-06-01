@@ -34,7 +34,7 @@ abstract class TcpServer extends BaseServer
         'max_request'     => 1000,
         'task_tmpdir'     => '/dev/shm',
         'daemonize'       => 0,
-        'hook_flags'      => SWOOLE_HOOK_ALL | SWOOLE_HOOK_CURL,
+        'hook_flags'      => SWOOLE_HOOK_ALL,
         'log_file'        => __DIR__ . '/log/log.txt',
         'pid_file'        => __DIR__ . '/log/server.pid',
     ];
@@ -142,12 +142,12 @@ abstract class TcpServer extends BaseServer
             try {
                 parent::beforeHandle();
                 if (parent::isPackLength()) {
-                    $recv = $this->Pack->decodePack($fd, $data);
+                    $buffer = $this->Pack->decodePack($fd, $data);
                 } else {
-                    $recv = $this->Text->decodePackEof($data);
+                    $buffer = $this->Text->decodePackEof($data);
                 }
-                if ($recv) {
-                    static::onReceive($server, $fd, $reactor_id, $recv);
+                if ($buffer) {
+                    static::onReceive($server, $fd, $reactor_id, $buffer);
                 }
                 return true;
             } catch (\Throwable $e) {
@@ -219,7 +219,7 @@ abstract class TcpServer extends BaseServer
         $this->tcpServer->on('close', function (\Swoole\Server $server, $fd, $reactorId) {
             try {
                 if (parent::isPackLength()) {
-                    $this->Pack->destroy($server, $fd);
+                    $this->Pack->destroy();
                 }
                 (new EventApp())->registerApp(function (EventController $event) use ($server, $fd) {
                     static::onClose($server, $fd);

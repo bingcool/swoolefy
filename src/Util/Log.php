@@ -162,6 +162,9 @@ class Log
     protected function getDateLogFile(string $date, string $logFilePath)
     {
         $fileInfo = pathinfo($logFilePath);
+        if (!is_dir($fileInfo['dirname'])) {
+            mkdir($fileInfo['dirname'], 0777);
+        }
         return $fileInfo['dirname'].DIRECTORY_SEPARATOR.$fileInfo['filename'].'_'.$date.'.'.$fileInfo['extension'];
     }
 
@@ -301,9 +304,11 @@ class Log
                 $this->logger->setHandlers([]);
                 $this->logger->pushHandler($this->handler);
 
-                $this->logger->pushProcessor(function ($records) use($App) {
-                    return $this->pushProcessor($records, $App);
-                });
+                if($this->formatter instanceof JsonFormatter) {
+                    $this->logger->pushProcessor(function ($records) use($App) {
+                        return $this->pushProcessor($records, $App);
+                    });
+                }
 
                 // add records to the log
                 $this->logger->addRecord($type, $logInfo, $context);

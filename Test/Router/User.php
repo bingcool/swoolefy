@@ -10,10 +10,23 @@ use Swoolefy\Core\Application;
  */
 
 return [
+
+    '/user/testAddUser' => [
+        'dispatch_route' => [\Test\Controller\IndexController::class, 'testAddUser'],
+    ],
+
     '/user/user-order/userList' => [
         'beforeHandle' => function(Request $request) {
             $name = Application::getApp()->getRequestParams('name');
         },
         'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList'],
+    ],
+
+    '/user/user-order/save-order' => [
+        'beforeHandle' => function(Request $request) {
+            $name = Application::getApp()->getRequestParams('name');
+        },
+
+        'dispatch_route' => [\Test\Controller\ObjectController::class, 'saveOrder'],
     ]
 ];

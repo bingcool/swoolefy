@@ -13,6 +13,8 @@ namespace Swoolefy\Core;
 
 use Swoole\Server;
 use Swoolefy\Core\Coroutine\CoroutinePools;
+use Swoolefy\Core\Log\Formatter\LineFormatter;
+use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Process\ProcessManager;
 use Swoolefy\Core\ProcessPools\PoolsManager;
 
@@ -25,6 +27,7 @@ class EventCtrl implements EventCtrlInterface
     public function init()
     {
         static::onInit();
+        $this->registerSqlLogger();
 
         if(!$this->isWorkerService()) {
             if (BaseServer::isEnableSysCollector()) {
@@ -40,9 +43,31 @@ class EventCtrl implements EventCtrlInterface
     }
 
     /**
+     * 注册debug模式下sql日志打印
+     *
+     * @return void
+     */
+    protected function registerSqlLogger()
+    {
+        LogManager::getInstance()->registerLoggerByClosure(function ($name) {
+            $logger = new \Swoolefy\Util\Log($name);
+            $logger->setChannel('application');
+            $formatter = new LineFormatter("%message%\n");
+            $logger->setFormatter($formatter);
+            $baseSqlPath = pathinfo(LOG_PATH)['dirname'].DIRECTORY_SEPARATOR.'Sql';
+            if (!is_dir($baseSqlPath)) {
+                mkdir($baseSqlPath,0777);
+            }
+            $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'sql.log';
+            $logger->setLogFilePath($sqlFilePath);
+            return $logger;
+        }, 'sql_log');
+    }
+
+    /**
      * @return bool
      */
-    protected function isWorkerService()
+    protected function isWorkerService(): bool
     {
         return isWorkerService();
     }
@@ -163,53 +188,53 @@ class EventCtrl implements EventCtrlInterface
         $protocol = BaseServer::getServiceProtocol();
         switch ($protocol) {
             case SWOOLEFY_HTTP :
-                $main_server = 'HttpServer';
+                $mainServer = 'HttpServer';
                 break;
             case SWOOLEFY_WEBSOCKET :
-                $main_server = 'WebsockServer';
+                $mainServer = 'WebsockServer';
                 break;
             case SWOOLEFY_TCP :
-                $main_server = 'RpcServer';
+                $mainServer = 'RpcServer';
                 break;
             case SWOOLEFY_UDP :
-                $main_server = 'UdpServer';
+                $mainServer = 'UdpServer';
                 break;
             case SWOOLEFY_MQTT :
-                $main_server = 'MqttServer';
+                $mainServer = 'MqttServer';
                 break;
             default:
-                $main_server = 'HttpServer';
+                $mainServer = 'HttpServer';
+        }
+
+        if(isWorkerService()) {
+            $mainName = 'main worker';
+            $mainServer = "【".WORKER_SERVICE_NAME."】";
+        }else {
+            $mainName = 'main server';
         }
 
         $conf                    = Swfy::getConf();
         $daemonize               = isset($conf['setting']['daemonize']) ? $conf['setting']['daemonize'] : false;
-        $listenHost             = isset($conf['host']) ? $conf['host'] : '127.0.0.1';
-        $listenPort             = isset($conf['port']) ? $conf['port'] : null;
-        $workerNum              = isset($conf['setting']['worker_num']) ? $conf['setting']['worker_num'] : 1;
-        $taskWorkerNum         = isset($conf['setting']['task_worker_num']) ? $conf['setting']['task_worker_num'] : 0;
-        $swooleVersion          = swoole_version();
-        $phpVersion             = phpversion();
-        $swoolefyVersion        = SWOOLEFY_VERSION;
-        $swoolefyEnv            = defined('SWOOLEFY_ENV') ? SWOOLEFY_ENV : null;
-        $cpuNum                 = swoole_cpu_num();
-        $ipList                 = json_encode(swoole_get_local_ip());
+        $listenHost              = isset($conf['host']) ? $conf['host'] : '127.0.0.1';
+        $listenPort              = isset($conf['port']) ? $conf['port'] : null;
+        $workerNum               = isset($conf['setting']['worker_num']) ? $conf['setting']['worker_num'] : 1;
+        $taskWorkerNum           = isset($conf['setting']['task_worker_num']) ? $conf['setting']['task_worker_num'] : 0;
+        $swooleVersion           = swoole_version();
+        $phpVersion              = phpversion();
+        $swoolefyVersion         = SWOOLEFY_VERSION;
+        $swoolefyEnv             = defined('SWOOLEFY_ENV') ? SWOOLEFY_ENV : null;
+        $cpuNum                  = swoole_cpu_num();
+        $ipList                  = json_encode(swoole_get_local_ip());
         $processListInfo         = array_values(ProcessManager::getInstance()->getProcessListInfo());
         $processListInfoStr      = json_encode($processListInfo, JSON_UNESCAPED_UNICODE);
         $poolsProcessListInfo    = array_values(PoolsManager::getInstance()->getProcessListInfo());
         $poolsProcessListInfoStr = json_encode($poolsProcessListInfo, JSON_UNESCAPED_UNICODE);
         $hostname                = gethostname();
 
-        if(isWorkerService()) {
-            $mainName = 'main worker';
-            $main_server = "【".WORKER_SERVICE_NAME."】";
-        }else {
-            $mainName = 'main server';
-        }
-
         $this->each("Main Info: \n", 'light_green');
         $this->each(str_repeat('-', 50), 'light_green');
         $this->each("
-            {$mainName}         {$main_server}
+            {$mainName}         {$mainServer}
             swoolefy envirment  {$swoolefyEnv}
             daemonize           {$daemonize}
             listen address      {$listenHost}
