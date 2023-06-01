@@ -312,7 +312,7 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer')
     if (!file_exists($eventServerFile)) {
         $search_str = "protocol\\http";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/EventTemplate/{$event_server_file_name}.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/Stubs/{$event_server_file_name}.php");
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($eventServerFile, $file_content_string);
@@ -339,7 +339,7 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
     if (!file_exists($eventServerFile)) {
         $search_str = "protocol\\websocket";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/EventTemplate/{$event_server_file_name}.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/Stubs/{$event_server_file_name}.php");
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($eventServerFile, $file_content_string);
@@ -367,7 +367,7 @@ function startRpc($app_name, $event_server_file_name = 'RpcServer')
     if (!file_exists($eventServerFile)) {
         $search_str = "protocol\\rpc";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/EventTemplate/{$event_server_file_name}.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/Stubs/{$event_server_file_name}.php");
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($eventServerFile, $file_content_string);
@@ -390,7 +390,7 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer')
     if (!file_exists($eventServerFile)) {
         $search_str = "protocol\\udp";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/EventTemplate/{$event_server_file_name}.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/Stubs/{$event_server_file_name}.php");
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($eventServerFile, $file_content_string);
@@ -418,7 +418,7 @@ function startMqtt($app_name, $event_server_file_name = 'MqttServer')
     if (!file_exists($eventServerFile)) {
         $search_str = "protocol\\mqtt";
         $replace_str = "{$app_name}";
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/EventTemplate/{$event_server_file_name}.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/Stubs/{$event_server_file_name}.php");
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($eventServerFile, $file_content_string);
@@ -443,7 +443,7 @@ function commonHandle(&$config)
     if (!file_exists($eventServerFile)) {
         $search_str = "protocol\\event";
         $replace_str = APP_NAME;
-        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/EventTemplate/EventHandle.php");
+        $file_content_string = file_get_contents(SCORE_DIR_ROOT . "/src/Stubs/EventHandle.php");
         $count = 1;
         $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
         file_put_contents($eventServerFile, $file_content_string);
