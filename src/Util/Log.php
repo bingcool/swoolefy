@@ -162,6 +162,9 @@ class Log
     protected function getDateLogFile(string $date, string $logFilePath)
     {
         $fileInfo = pathinfo($logFilePath);
+        if (!is_dir($fileInfo['dirname'])) {
+            mkdir($fileInfo['dirname'], 0777);
+        }
         return $fileInfo['dirname'].DIRECTORY_SEPARATOR.$fileInfo['filename'].'_'.$date.'.'.$fileInfo['extension'];
     }
 
