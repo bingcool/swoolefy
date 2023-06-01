@@ -13,6 +13,8 @@ namespace Swoolefy\Core;
 
 use Swoole\Server;
 use Swoolefy\Core\Coroutine\CoroutinePools;
+use Swoolefy\Core\Log\Formatter\LineFormatter;
+use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Process\ProcessManager;
 use Swoolefy\Core\ProcessPools\PoolsManager;
 
@@ -25,6 +27,7 @@ class EventCtrl implements EventCtrlInterface
     public function init()
     {
         static::onInit();
+        $this->registerSqlLogger();
 
         if(!$this->isWorkerService()) {
             if (BaseServer::isEnableSysCollector()) {
@@ -37,6 +40,28 @@ class EventCtrl implements EventCtrlInterface
             static::onWorkerServiceInit();
         }
         static::eachStartInfo();
+    }
+
+    /**
+     * 注册debug模式下sql日志打印
+     *
+     * @return void
+     */
+    protected function registerSqlLogger()
+    {
+        LogManager::getInstance()->registerLoggerByClosure(function ($name) {
+            $logger = new \Swoolefy\Util\Log($name);
+            $logger->setChannel('application');
+            $formatter = new LineFormatter("%message%\n");
+            $logger->setFormatter($formatter);
+            $baseSqlPath = pathinfo(LOG_PATH)['dirname'].DIRECTORY_SEPARATOR.'Sql';
+            if (!is_dir($baseSqlPath)) {
+                mkdir($baseSqlPath,0777);
+            }
+            $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'sql.log';
+            $logger->setLogFilePath($sqlFilePath);
+            return $logger;
+        }, 'sql_log');
     }
 
     /**

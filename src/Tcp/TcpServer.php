@@ -142,12 +142,12 @@ abstract class TcpServer extends BaseServer
             try {
                 parent::beforeHandle();
                 if (parent::isPackLength()) {
-                    $recv = $this->Pack->decodePack($fd, $data);
+                    $buffer = $this->Pack->decodePack($fd, $data);
                 } else {
-                    $recv = $this->Text->decodePackEof($data);
+                    $buffer = $this->Text->decodePackEof($data);
                 }
-                if ($recv) {
-                    static::onReceive($server, $fd, $reactor_id, $recv);
+                if ($buffer) {
+                    static::onReceive($server, $fd, $reactor_id, $buffer);
                 }
                 return true;
             } catch (\Throwable $e) {

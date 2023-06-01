@@ -2,8 +2,8 @@
 
 namespace Test;
 
+use Common\Library\Db\PDOConnection;
 use Swoolefy\Core\Swfy;
-use Swoolefy\Core\Application;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\EventHandler;
 use Swoolefy\Core\Process\ProcessManager;
@@ -29,6 +29,11 @@ class Event extends EventHandler
                 LogManager::getInstance()->registerLoggerByClosure($log, 'error_log');
             }
         }
+
+        // 注册慢sql的宏函数处理
+        PDOConnection::registerSlowSqlFn(0.01, function ($runTime, $realSql) {
+            var_dump("slow sql 耗时：$runTime, sql：$realSql");
+        });
 
         if(!$this->isWorkerService()) {
             // 创建一个测试自定义进程
