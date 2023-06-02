@@ -50,7 +50,7 @@ class Text extends BaseParse
      *    $Pack = new Pack();
      *    $sendData = $Pack->encodePackEof($data, Pack::DECODE_JSON);
      * @param mixed $data
-     * @param int $seralize_type
+     * @param int $serialize_type
      * @param string $eof
      * @return string
      */
@@ -70,7 +70,7 @@ class Text extends BaseParse
      *    $Pack = new Pack();
      *    $res = $Pack->decodePackEof($data, Pack::DECODE_JSON);
      * @param string $data
-     * @param int $unseralize_type
+     * @param int $unserialize_type
      * @return  mixed
      */
     public function decodePackEof($data, $unserialize_type = '')
@@ -105,8 +105,8 @@ class Text extends BaseParse
     /**
      * decode 数据反序列化
      * @param string $data
-     * @param mixed $unseralize_type
-     * @return   mixed
+     * @param mixed $unserialize_type
+     * @return mixed
      */
     public static function decode($data, $unserialize_type = self::DECODE_JSON)
     {
