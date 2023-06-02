@@ -225,6 +225,11 @@ function createProject()
                         $apiFile = START_DIR_ROOT . "/{$appName}/{$dir}/Api.php";
                         @copy(SCORE_DIR_ROOT . '/src/Stubs/Api.php', $apiFile);
                         break;
+                    case 'udp':
+                    case 'websocket':
+                        $apiFile = START_DIR_ROOT . "/{$appName}/{$dir}/ServiceApi.php";
+                        @copy(SCORE_DIR_ROOT . '/src/Stubs/ServiceApi.php', $apiFile);
+                        break;
                     default:
                         break;
                 }
@@ -1103,34 +1108,6 @@ defined('LOG_PATH') or define('LOG_PATH', APP_PATH.'/Storage/Logs');
 
 EOF;
     return $content;
-}
-
-function getRouters()
-{
-    $content =
-        <<<EOF
-<?php
-
-return [
-    '/index/userList' => '/Index/getUserList'  
-];
-
-EOF;
-    return $content;
-}
-
-function getServiceRouters()
-{
-    $router_content =
-        <<<EOF
-<?php
-
-return [
-    'Service/Location/ReportLocationService::reportUserLocation' => 'UdpService/Service/Location/ReportLocationService::reportUserLocation'  
-];
-
-EOF;
-    return $router_content;
 }
 
 function getDefaultModel()
