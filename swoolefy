@@ -162,7 +162,7 @@ function commandParser()
 
 function createProject()
 {
-    $dirs = ['Config', 'Service', 'Protocol'];
+    $dirs = ['Config', 'Service', 'Protocol', 'Router', 'Storage'];
     $params = commandParser();
     $appName = $params['app_name'];
     $appRootDir = START_DIR_ROOT . "/{$appName}";
@@ -179,7 +179,7 @@ function createProject()
 
     if ($protocol == 'http') {
         $dirs = [
-            'Config', 'Controller', 'Model', 'Module', 'Runtime','Storage', 'Protocol'
+            'Config', 'Controller', 'Model', 'Module', 'Runtime', 'Router', 'Storage', 'Protocol'
         ];
     }
 
@@ -218,6 +218,17 @@ function createProject()
                 }
                 break;
             }
+            case 'Router':
+            {
+                switch ($protocol) {
+                    case 'http':
+                        $apiFile = START_DIR_ROOT . "/{$appName}/{$dir}/Api.php";
+                        @copy(SCORE_DIR_ROOT . '/src/Stubs/Api.php', $apiFile);
+                        break;
+                    default:
+                        break;
+                }
+            }
             case 'Protocol':
             {
                 $path = START_DIR_ROOT . "/{$appName}/Protocol";
@@ -226,19 +237,19 @@ function createProject()
                     if (!file_exists($configFile)) {
                         switch ($protocol) {
                             case 'http':
-                                copy(SCORE_DIR_ROOT . '/src/Http/config.php', $configFile);
+                                @copy(SCORE_DIR_ROOT . '/src/Http/config.php', $configFile);
                                 break;
                             case 'rpc':
-                                copy(SCORE_DIR_ROOT . '/src/Rpc/config.php', $configFile);
+                                @copy(SCORE_DIR_ROOT . '/src/Rpc/config.php', $configFile);
                                 break;
                             case 'udp':
-                                copy(SCORE_DIR_ROOT . '/src/Udp/config.php', $configFile);
+                                @copy(SCORE_DIR_ROOT . '/src/Udp/config.php', $configFile);
                                 break;
                             case 'websocket':
-                                copy(SCORE_DIR_ROOT . '/src/Websocket/config.php', $configFile);
+                                @copy(SCORE_DIR_ROOT . '/src/Websocket/config.php', $configFile);
                                 break;
                             case 'mqtt':
-                                copy(SCORE_DIR_ROOT . '/src/Mqtt/config.php', $configFile);
+                                @copy(SCORE_DIR_ROOT . '/src/Mqtt/config.php', $configFile);
                                 break;
                         }
 
@@ -1088,7 +1099,7 @@ function getDefines()
 defined('APP_NAME') or define('APP_NAME', "{$APP_NAME}");
 defined('APP_PATH') or define('APP_PATH', dirname(__DIR__));
 defined('ROOT_PATH') or define('ROOT_PATH', dirname(APP_PATH));
-defined('LOG_PATH') or define('LOG_PATH', APP_PATH.'/Storage/Log');
+defined('LOG_PATH') or define('LOG_PATH', APP_PATH.'/Storage/Logs');
 
 EOF;
     return $content;

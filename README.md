@@ -156,7 +156,6 @@ App  // 项目目录
 │   └── defines.php
 ├── Controller
 │   └── IndexController.php // 控制器层
-├── Log
 ├── Model
 │   └── ClientModel.php
 ├── Module        // 模块层
@@ -166,8 +165,11 @@ App  // 项目目录
 │   ├── config-prd.php
 │   └── config-test.php
 ├── Runtime
-├── View
-│   └── Index
+├── Router
+│   └── Api.php  // 路由文件，不同模块定义不同文件即可
+|—— Storage
+|   |—— Logs  // 日志文件目录
+|   |—— Sql   // sql日志目录
 │—— autoloader.php // 自定义项目自动加载
 |—— Event.php      // 事件实现类
 |—— HttpServer.php // http server
