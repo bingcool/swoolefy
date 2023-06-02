@@ -23,7 +23,6 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
     /**
      * __construct
      * @param array $config
-     * @throws \Exception
      */
     public function __construct(array $config = [])
     {
@@ -147,7 +146,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
     final public static function isClientPackEof(): bool
     {
         if (!isset(self::$config['packet']['client']['pack_check_type'])) {
-            throw new \Exception("you must set ['packet']['client']  in the config file", 1);
+            throw new \Exception("you must set ['packet']['client']  in the config file");
         }
         if (in_array(self::$config['packet']['client']['pack_check_type'], ['eof', 'EOF'])) {
             return true;
