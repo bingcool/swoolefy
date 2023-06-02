@@ -339,7 +339,7 @@ class Log
         $records['hostname']  = gethostname();
         $records['process'] = 'task_worker|use_self_worker';
         $records['url'] = '';
-        $records['require_params'] = [];
+        $records['request_params'] = [];
         if (Swfy::isWorkerProcess()) {
             $records['process'] = 'worker_process';
             if ($App instanceof App) {
