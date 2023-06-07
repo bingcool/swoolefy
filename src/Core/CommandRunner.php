@@ -151,7 +151,7 @@ class CommandRunner
             // when exec error save log
             if ($returnCode != 0) {
                 $errorMsg = static::$exitCodes[$returnCode] ?? 'Unknown Error';
-                throw new SystemException("CommandRunner Exec failed,reurnCode={$returnCode},commandLine={$command},errorMsg={$errorMsg}.");
+                throw new SystemException("CommandRunner Exec failed,return code ={$returnCode},commandLine={$command},errorMsg={$errorMsg}.");
             }
         }
 
@@ -213,7 +213,8 @@ class CommandRunner
                     }
                 }
                 $params = [$pipes[0], $pipes[1], $pipes[2], $status, $returnCode ?? -1];
-                return call_user_func_array($callable, $params);
+                $result = call_user_func_array($callable, $params);
+                return $result;
             } catch (\Throwable $e) {
                 write("【Error】CommandRunner ErrorMsg={$e->getMessage()},trace={$e->getTraceAsString()}");
             } finally {

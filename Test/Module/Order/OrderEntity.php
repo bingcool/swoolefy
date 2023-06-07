@@ -36,7 +36,7 @@ class OrderEntity extends ClientModel
     }
 
     /**
-     * @param $pk
+     * @param $id
      * @param mixed ...$params
      */
     public function loadByPk($id, ...$params)

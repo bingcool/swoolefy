@@ -5,9 +5,9 @@ use Swoolefy\Core\Crontab\AbstractCronController;
 
 class LocalOrderHandle extends AbstractCronController {
 
-    public function doCronTask($cron, string $cron_name)
+    public function doCronTask($cron, string $cronName)
     {
         var_dump(date('Y-m-d H:i:s'));
-        var_dump($cron_name);
+        var_dump($cronName);
     }
 }

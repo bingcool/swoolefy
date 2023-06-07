@@ -14,7 +14,7 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
             sleep(4);
             $db = Application::getApp()->get('db');
             $result = $db->createCommand('select * from tbl_users limit 1')->queryAll();
-            dump($result);
+            var_dump($result);
         }catch (\Throwable $exception) {
             var_dump($exception->getMessage());
         }

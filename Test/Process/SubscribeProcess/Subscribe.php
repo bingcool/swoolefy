@@ -11,14 +11,14 @@ class Subscribe extends AbstractProcess
      */
     public function run()
     {
-        $redis = Application::getApp()->get('redis');
+        $redis = Application::getApp()->get('redis')->getObject();
         $pubSub = new \Common\Library\PubSub\RedisPubSub($redis);
 
         $num = 1;
         \Swoole\Timer::tick(3000, function () use(& $num) {
             // 注册一个协程单例
             (new \Swoolefy\Core\EventApp())->registerApp(function () use(& $num) {
-                $redis = Application::getApp()->get('redis');
+                $redis = Application::getApp()->get('redis')->getObject();
                 $pubSub = new \Common\Library\PubSub\RedisPubSub($redis);
                 $pubSub->publish('test1','hello, test subscribe no='.$num);
                 $num++;
@@ -34,7 +34,7 @@ class Subscribe extends AbstractProcess
                     switch ($chan)
                     {
                         case 'test1':
-                            go(function () use($msg) {
+                            goApp(function () use($msg) {
                                 var_dump('redis receive subscribe msg ='.$msg);
                                 $handle = new SubscribeHandle();
                                 $handle->doRun($msg);
