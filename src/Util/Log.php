@@ -294,10 +294,6 @@ class Log
      */
     public function insertLog($logInfo, array $context = [], $type = Logger::INFO)
     {
-        if (is_array($logInfo)) {
-            $logInfo = json_encode($logInfo, JSON_UNESCAPED_UNICODE);
-        }
-
         $App = Application::getApp();
         $callable = function () use ($type, $logInfo, $context, $App) {
             try {
@@ -335,6 +331,8 @@ class Log
      */
     protected function pushProcessor($records, $App = null): array
     {
+        $records['cid'] = \Swoole\Coroutine::getCid();
+        $records['process_id'] = (int)getmypid();
         $records['timestamp'] = microtime(true);
         $records['hostname']  = gethostname();
         $records['process'] = 'task_worker|use_self_worker';

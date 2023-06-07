@@ -315,7 +315,7 @@ class Logger
         $ts->setTimezone(static::$timezone);
 
         $record = array(
-            'message' => (string)$message,
+            'message' => $message,
             'context' => $context,
             'level' => $level,
             'level_name' => $levelName,

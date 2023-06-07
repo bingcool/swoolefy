@@ -4,6 +4,7 @@ namespace Test\Controller;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\EventController;
+use Swoolefy\Core\Log\Formatter\LineFormatter;
 use Swoolefy\Core\Log\LogManager;
 
 class IndexController extends BController {
@@ -21,13 +22,19 @@ class IndexController extends BController {
         /**
          * @var \Swoolefy\Util\Log $log
          */
-        $log = Application::getApp()->log;
-        $log->addInfo('test-log-id='.rand(1,1000),true, ['name'=>'bincool','sex'=>1,'address'=>'shenzhen']);
+        $log = Application::getApp()->get('log');
+        $formatter = new LineFormatter("%message%\n");
+        $log->setFormatter($formatter);
+        $log->setLogFilePath($log->getLogFilePath());
+        $log->addInfo(['name' => 'bingcool','address'=>'深圳'],true, ['name'=>'bincool','sex'=>1,'address'=>'shenzhen']);
         Application::getApp()->afterRequest([$this, 'afterSave']);
+
+
+        LogManager::getInstance()->getLogger('sql_log')->addInfo(['name' => 'bingcoolcccccccccccccccccccccccccc','address'=>'深圳']);
 
         $this->returnJson([
             'Controller' => $this->getControllerId(),
-            'Action' => $this->getActionId()
+            'Action' => $this->getActionId().'-'.rand(1,1000)
         ]);
     }
     public function afterSave()
@@ -94,8 +101,7 @@ class IndexController extends BController {
          */
         $db = Application::getApp()->get('db');
         $count = $db->createCommand("select count(1) as total from tbl_users")->count();
-        if($count)
-        {
+        if($count) {
             $list = $db->createCommand('select * from tbl_users')->queryAll();
         }
         $db1 = Application::getApp()->get('db');

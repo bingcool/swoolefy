@@ -754,13 +754,7 @@ abstract class AbstractBaseWorker
                 }
 
                 // wait sleep
-                if(class_exists('Swoole\Coroutine\System'))
-                {
-                    \Swoole\Coroutine\System::sleep($dynamicDestroyProcessTime);
-                }else
-                {
-                    \Swoole\Coroutine::sleep($dynamicDestroyProcessTime);
-                }
+                \Swoole\Coroutine\System::sleep($dynamicDestroyProcessTime);
 
             }catch (\Throwable $exception) {
                 throw $exception;
