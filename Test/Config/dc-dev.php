@@ -7,13 +7,13 @@ return [
 
     'mysql_db' => [
         // 服务器地址
-        'hostname'        => '192.168.34.223',
+        'hostname'        => '127.0.0.1',
         // 数据库名
         'database'        => 'bingcool',
         // 用户名
         'username'        => 'root',
         // 密码
-        'password'        => 'root@galaxy1024',
+        'password'        => '123456',
         // 端口
         'hostport'        => '3306',
         // 连接dsn
