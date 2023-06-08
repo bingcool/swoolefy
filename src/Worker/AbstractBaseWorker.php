@@ -1125,7 +1125,7 @@ abstract class AbstractBaseWorker
      * @param bool $includeDynamicProcess
      * @return bool
      */
-    public function reboot(float $waitTime = 10, bool $includeDynamicProcess = false)
+    public function reboot(float $waitTime = 10, bool $includeDynamicProcess = true)
     {
         if(!$includeDynamicProcess) {
             if (!$this->isStaticProcess()) {
