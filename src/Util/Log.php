@@ -294,10 +294,6 @@ class Log
      */
     public function insertLog($logInfo, array $context = [], $type = Logger::INFO)
     {
-        if (is_array($logInfo)) {
-            $logInfo = json_encode($logInfo, JSON_UNESCAPED_UNICODE);
-        }
-
         $App = Application::getApp();
         $callable = function () use ($type, $logInfo, $context, $App) {
             try {
