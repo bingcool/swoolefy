@@ -30,14 +30,16 @@ return [
     'components' => [
         // 用户行为记录的日志
         'log' => function($name) {
+            $logger = new \Swoolefy\Util\Log($name);
+            $logger->setChannel('application');
             if(IS_WORKER_SERVICE) {
-                $logger = new \Swoolefy\Util\Log($name);
-                $logger->setChannel('application');
-                $logger->setLogFilePath(LOG_PATH.'/worker.log');
+                $logPath = LOG_PATH.'/worker.log';
+                if (IS_CLI_SCRIPT) {
+                    $logPath = LOG_PATH.'/script.log';
+                }
+                $logger->setLogFilePath($logPath);
                 return $logger;
-            }else {
-                $logger = new \Swoolefy\Util\Log($name);
-                $logger->setChannel('application');
+            } else {
                 $logger->setLogFilePath(LOG_PATH.'/runtime.log');
                 return $logger;
             }
