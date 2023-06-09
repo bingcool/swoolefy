@@ -38,8 +38,41 @@ class EventCtrl implements EventCtrlInterface
             }
         }else {
             static::onWorkerServiceInit();
+            $this->boostrapWorkerInit();
         }
         static::eachStartInfo();
+    }
+
+    /**
+     * @return void
+     */
+    protected function boostrapWorkerInit()
+    {
+        if (!defined('WORKER_SERVICE_NAME')) {
+            write('Missing Defined Constant `WORKER_SERVICE_NAME`');
+            exit(0);
+        }
+
+        if (!defined('PROCESS_CLASS')) {
+            write('Missing Defined Constant `PROCESS_CLASS`');
+            exit(0);
+        }
+
+        $processClassMap = PROCESS_CLASS;
+        if (SystemEnv::isDaemonService() || SystemEnv::isCronService()) {
+            $processClass = $processClassMap[APP_NAME];
+            ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, $processClass, true,  [],null, false);
+        }else if (SystemEnv::isScriptService()) {
+            $class = \Swoolefy\Script\MainCliScript::parseClass();
+            if(empty($class)) {
+                write('Not found CliScript Class');
+                exit(0);
+            }
+            ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, $class);
+        }else {
+            write('Missing onWorkerServiceInit handle');
+            exit(0);
+        }
     }
 
     /**
@@ -251,8 +284,10 @@ class EventCtrl implements EventCtrlInterface
 ", 'light_green');
         $this->each(str_repeat('-', 50) . "\n", 'light_green');
 
-        if(isWorkerService() && !isCliScript()) {
-            $this->each("Worker Info: \n", 'light_green');
+        if(isDaemonService()) {
+            $this->each("Daemon Worker Info: \n", 'light_green');
+        }else if (isCronService()) {
+            $this->each("Cron Worker Info: \n", 'light_green');
         }else if(isCliScript()) {
             $this->each("Cli Script Start: \n", 'light_green');
         }

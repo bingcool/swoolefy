@@ -9,7 +9,7 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
     public function fixName()
     {
         try {
-            var_dump('CID='.\Co::getCid());
+            var_dump('CID='.\Swoole\Coroutine::getCid());
             var_dump('Script test');
             sleep(4);
             $db = Application::getApp()->get('db');

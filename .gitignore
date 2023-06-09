@@ -5,7 +5,7 @@ sftp-config.json
 *.log
 env.ini
 cli.php
-worker.php
+daemon.php
 cron.php
 script.php
 /App

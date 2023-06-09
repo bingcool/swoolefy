@@ -76,6 +76,14 @@ class SystemEnv
     /**
      * @return bool
      */
+    public static function isDaemonService(): bool
+    {
+        return isDaemonService();
+    }
+
+    /**
+     * @return bool
+     */
     public static function isScriptService(): bool
     {
         return isCliScript();
