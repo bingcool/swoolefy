@@ -125,7 +125,7 @@ composer create-project bingcool/swoolefy:^4.8.2 myproject
 // 在myproject目录下添加cli.php, 这个是启动项目的入口文件
 include './vendor/autoload.php';
 
-define('IS_WORKER_SERVICE', 0);
+define('IS_DAEMON_SERVICE', 0);
 define('IS_CLI_SCRIPT', 0);
 date_default_timezone_set('Asia/Shanghai');
 
