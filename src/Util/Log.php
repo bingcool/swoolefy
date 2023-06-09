@@ -20,6 +20,7 @@ use Swoolefy\Core\Log\Logger;
 use Swoolefy\Core\Log\StreamHandler;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
 use Swoolefy\Core\Swoole;
+use Swoolefy\Core\SystemEnv;
 
 /**
  * Class Log
@@ -351,11 +352,11 @@ class Log
             $records['process'] = 'use_self_worker';
         }
 
-        if (defined('IS_WORKER_SERVICE') && IS_WORKER_SERVICE) {
+        if (SystemEnv::isWorkerService()) {
             $records['process'] = 'worker_service';
         }
 
-        if (defined('IS_CLI_SCRIPT') && IS_CLI_SCRIPT) {
+        if (SystemEnv::isScriptService()) {
             $records['process'] = 'cli_script_service';
         }
 
