@@ -183,17 +183,17 @@ function createProject()
         ];
     }
 
-    $daemonFile = START_DIR_ROOT.'/daemon1.php';
+    $daemonFile = START_DIR_ROOT.'/daemon.php';
     if (!file_exists($daemonFile)) {
         @copy(START_DIR_ROOT.'/src/Stubs/DaemonStub.php', $daemonFile);
     }
 
-    $cronFile = START_DIR_ROOT.'/cron1.php';
+    $cronFile = START_DIR_ROOT.'/cron.php';
     if (!file_exists($cronFile)) {
         @copy(START_DIR_ROOT.'/src/Stubs/CronStub.php', $cronFile);
     }
 
-    $scriptFile = START_DIR_ROOT.'/script1.php';
+    $scriptFile = START_DIR_ROOT.'/script.php';
     if (!file_exists($scriptFile)) {
         @copy(START_DIR_ROOT.'/src/Stubs/ScriptStub.php', $scriptFile);
     }
