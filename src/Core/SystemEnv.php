@@ -64,4 +64,29 @@ class SystemEnv
     {
         return self::isDaemon();
     }
+
+    /**
+     * @return bool
+     */
+    public static function isWorkerService(): bool
+    {
+        return isWorkerService();
+    }
+
+    /**
+     * @return bool
+     */
+    public static function isScriptService(): bool
+    {
+        return isCliScript();
+    }
+
+    /**
+     * @return bool
+     */
+    public static function isCronService(): bool
+    {
+        return isCronService();
+    }
+
 }
