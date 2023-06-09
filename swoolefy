@@ -267,10 +267,23 @@ function createProject()
 
 function isWorkerService(): bool
 {
-    if((defined('IS_WORKER_SERVICE') && IS_WORKER_SERVICE ==1) || isCliScript()) {
+    if((defined('IS_WORKER_SERVICE') && IS_WORKER_SERVICE ==1) || isCliScript() || isCronService()) {
         return true;
     }
     return false;
+}
+
+function isCronService(): bool
+{
+    if((defined('IS_CRON_SERVICE') && IS_CRON_SERVICE ==1)) {
+        return true;
+    }
+    return false;
+}
+
+function isScriptService(): bool
+{
+    return isCliScript();
 }
 
 function isCliScript(): bool

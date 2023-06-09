@@ -32,9 +32,9 @@ return [
         'log' => function($name) {
             $logger = new \Swoolefy\Util\Log($name);
             $logger->setChannel('application');
-            if(IS_WORKER_SERVICE) {
+            if(isWorkerService()) {
                 $logPath = LOG_PATH.'/worker.log';
-                if (IS_CLI_SCRIPT) {
+                if (isScriptService()) {
                     $logPath = LOG_PATH.'/script.log';
                 }
                 $logger->setLogFilePath($logPath);
