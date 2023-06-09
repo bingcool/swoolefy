@@ -517,7 +517,7 @@ function commonHandle(&$config)
 
 function stopServer($app_name)
 {
-    if(!orkerService()) {
+    if(!isWorkerService()) {
         echo "1、你确定停止应用【{$app_name}】? (yes or no):";
     }else {
         echo "1、你确定停止workerService【".WORKER_SERVICE_NAME."】? (yes or no):";
