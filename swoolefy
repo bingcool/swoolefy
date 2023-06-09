@@ -183,6 +183,21 @@ function createProject()
         ];
     }
 
+    $daemonFile = START_DIR_ROOT.'/daemon1.php';
+    if (!file_exists($daemonFile)) {
+        @copy(START_DIR_ROOT.'/src/Stubs/DaemonStub.php', $daemonFile);
+    }
+
+    $cronFile = START_DIR_ROOT.'/cron1.php';
+    if (!file_exists($cronFile)) {
+        @copy(START_DIR_ROOT.'/src/Stubs/CronStub.php', $cronFile);
+    }
+
+    $scriptFile = START_DIR_ROOT.'/script1.php';
+    if (!file_exists($scriptFile)) {
+        @copy(START_DIR_ROOT.'/src/Stubs/ScriptStub.php', $scriptFile);
+    }
+
     @mkdir($appRootDir, 0777, true);
     foreach ($dirs as $dir) {
         @mkdir($appRootDir . '/' . $dir, 0777, true);
@@ -267,7 +282,15 @@ function createProject()
 
 function isWorkerService(): bool
 {
-    if((defined('IS_WORKER_SERVICE') && IS_WORKER_SERVICE ==1) || isCliScript() || isCronService()) {
+    if(isDaemonService() || isCliScript() || isCronService()) {
+        return true;
+    }
+    return false;
+}
+
+function isDaemonService()
+{
+    if(defined('IS_DAEMON_SERVICE') && IS_DAEMON_SERVICE == 1 ) {
         return true;
     }
     return false;
@@ -275,7 +298,7 @@ function isWorkerService(): bool
 
 function isCronService(): bool
 {
-    if((defined('IS_CRON_SERVICE') && IS_CRON_SERVICE ==1)) {
+    if(defined('IS_CRON_SERVICE') && IS_CRON_SERVICE == 1 ) {
         return true;
     }
     return false;
@@ -494,7 +517,7 @@ function commonHandle(&$config)
 
 function stopServer($app_name)
 {
-    if(!isWorkerService()) {
+    if(!orkerService()) {
         echo "1、你确定停止应用【{$app_name}】? (yes or no):";
     }else {
         echo "1、你确定停止workerService【".WORKER_SERVICE_NAME."】? (yes or no):";
@@ -660,7 +683,9 @@ function makeDirLogAndPid(array &$config)
         $fileName = pathinfo($config['setting']['pid_file'], PATHINFO_FILENAME);
         $config['setting']['pid_file'] = $path.'/'.$fileName.'_'.WORKER_PORT.'.pid';
         register_shutdown_function(function () use($config) {
-            @unlink($config['setting']['pid_file']);
+            if (is_file($config['setting']['pid_file'])) {
+                @unlink($config['setting']['pid_file']);
+            }
         });
 
         $files = scandir($path);

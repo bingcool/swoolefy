@@ -97,35 +97,13 @@ class Event extends EventHandler
      */
     public function onWorkerServiceInit()
     {
-        if (!defined('WORKER_SERVICE_NAME')) {
-            write('Missing Defined Constant `WORKER_SERVICE_NAME`');
-            exit(0);
-        }
 
-        switch (WORKER_SERVICE_NAME) {
-            case 'test-worker':
-                ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, \Test\WorkerDaemon\MainWorker::class, true,  [],null, false);
-                break;
-            case 'test-worker-cron':
-                ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, \Test\WorkerCron\MainCronWorker::class, true,  [],null, false);
-                break;
-            case 'test-script':
-                $class = \Swoolefy\Script\MainCliScript::parseClass();
-                if(empty($class)) {
-                    exit(0);
-                }
-                ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, $class);
-                break;
-            default:
-                write('Missing onWorkerServiceInit handle');
-                exit(0);
-        }
     }
 
     /**
      * onWorkerStart
      * @param $server
-     * @return void
+     * @return mixed
      */
     public function onWorkerStart($server, $worker_id)
     {

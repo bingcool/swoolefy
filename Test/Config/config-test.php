@@ -25,7 +25,7 @@ return [
     'components' => [
         // 用户行为记录的日志
         'log' => function($name) {
-            if(IS_WORKER_SERVICE) {
+            if(IS_DAEMON_SERVICE) {
                 $logger = new \Swoolefy\Util\Log($name);
                 $logger->setChannel('application');
                 $logger->setLogFilePath(LOG_PATH.'/worker.log');

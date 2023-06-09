@@ -40,7 +40,7 @@ class EventHandler extends \Swoolefy\Core\EventCtrl
             }
         }
 
-        if (!$this->isWorkerService()) {
+        if (!SystemEnv::isWorkerService()) {
             // todo refer to Test Demo
         }
     }

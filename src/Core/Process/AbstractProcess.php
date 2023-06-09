@@ -16,6 +16,7 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Core\BaseServer;
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\EventController;
+use Swoolefy\Core\SystemEnv;
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Exception\SystemException;
 
@@ -243,11 +244,7 @@ abstract class AbstractProcess
      */
     protected function isWorkerService()
     {
-        if(!defined('IS_WORKER_SERVICE') || empty(IS_WORKER_SERVICE)) {
-            return false;
-        }
-
-        return true;
+        return SystemEnv::isWorkerService();
     }
 
     /**
