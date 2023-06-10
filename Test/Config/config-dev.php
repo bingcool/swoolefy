@@ -32,24 +32,33 @@ return [
         'log' => function($name) {
             $logger = new \Swoolefy\Util\Log($name);
             $logger->setChannel('application');
-            if(isWorkerService()) {
-                $logPath = LOG_PATH.'/worker.log';
-                if (isScriptService()) {
-                    $logPath = LOG_PATH.'/script.log';
-                }
-                $logger->setLogFilePath($logPath);
-                return $logger;
+            if(isDaemonService()) {
+                $logFilePath = LOG_PATH.'/daemon.log';
+            }else if (isScriptService()) {
+                $logFilePath = LOG_PATH.'/script.log';
+            }else if (isCronService()) {
+                $logFilePath = LOG_PATH.'/cron.log';
             } else {
-                $logger->setLogFilePath(LOG_PATH.'/runtime.log');
-                return $logger;
+                $logFilePath = LOG_PATH.'/runtime.log';
             }
+            $logger->setLogFilePath($logFilePath);
+            return $logger;
         },
 
         // 系统捕捉异常错误日志
         'error_log' => function($name) {
             $logger = new \Swoolefy\Util\Log($name);
             $logger->setChannel('application');
-            $logger->setLogFilePath(LOG_PATH.'/error.log');
+            if(isDaemonService()) {
+                $logFilePath = LOG_PATH.'/daemon_error.log';
+            }else if (isScriptService()) {
+                $logFilePath = LOG_PATH.'/script_error.log';
+            }else if (isCronService()) {
+                $logFilePath = LOG_PATH.'/cron_error.log';
+            } else {
+                $logFilePath = LOG_PATH.'/error.log';
+            }
+            $logger->setLogFilePath($logFilePath);
             return $logger;
         },
 
