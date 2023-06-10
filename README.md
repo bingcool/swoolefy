@@ -11,23 +11,23 @@
                                                              |_ _ /
 ```                                                            
 swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协程级应用服务框架，
-高度支持httpApi，websocket，udp服务器，以及基于tcp实现可扩展的rpc服务，
+高度支持httpApi，websocket，udp服务器，以及基于tcp实现可扩展的rpc服务，worker多进程消费模型  
 同时支持composer包方式安装部署项目。基于实用，swoolefy抽象Event事件处理类，
-实现与底层的回调的解耦，支持协程调度，同步|异步调用，全局事件注册，心跳检查，异步任务，多进程(池)，连接池等，
-内置view、log、session、mysql、redis、mongodb等常用组件等。     
+实现与底层的回调的解耦，支持协程单例调度，同步|异步调用，全局事件注册，心跳检查，异步任务，多进程(池)，连接池等，
+内置```log、session、mysql、pgsql、redis、mongodb、kafka、amqp```等常用组件等.    
 
 ### 建议版本
 swoolefy-5.0+ 版本：      
-目前主分支，最低要求php8.0+，swoole5.0+（或者swoole-cli-v5.0+）, 或者也可以使用swoole-cli4.8+, 因为其内置php8.1+  
+目前主分支，最低要求```php8.0+，swoole5.0+（或者swoole-cli-v5.0+)```, 或者也可以使用```swoole-cli-v4.8+```, 因为其内置php8.1+  
 
 swoolefy-4.8-lts 版本：    
-长期维护分支，最低要求php >= php7.2 && php < php8.0, 推荐直接swoole-v4.8+，需要通过源码编译安装swoole
+长期维护分支，最低要求```php >= php7.3 && php < php8.0```, 推荐直接swoole-v4.8+，需要通过源码编译安装swoole
 
 选择哪个版本？  
-1、如果确定项目是使用php8+的，那么直接选择 swoole-v5.0+ 以上版本来编译安装或者直接使用swoole-cli-v5.0，然后选择 ```bingcool/swoolefy:~5.0.2``` 作为项目分支
+1、如果确定项目是使用php8+的，那么直接选择 ```swoole-v5.0+```, 以上源码来编译安装或者直接使用```swoole-cli-v5.0```，然后选择 ```bingcool/swoolefy:~5.0.5``` 作为项目分支
 
-2、如果确定项目是使用php7.2-php7.4的，那么选择 swoole-v4.8+ 版本来进行编译安装(不能直接使用 swoole-cli-v4.8+ 了, 因为其内置的是php8.1，与你的项目的php7不符合)
-所有只能通过编译方式方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.8.2``` 作为项目分支
+2、如果确定项目是使用 ```php7.3 ~ php7.4``` 的，那么选择 swoole-v4.8+ 版本来进行编译安装(不能直接使用 swoole-cli-v4.8+ 了, 因为其内置的是php8.1，与你的项目的php7不符合)
+所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.8.5``` 作为项目分支
 
 ### 实现的功能特性
 
@@ -42,7 +42,9 @@ swoolefy-4.8-lts 版本：
 - [x] 支持DI容器，组件IOC、配置化，Channel公共组件池            
 - [x] 支持协程单例注册,协程上下文变量寄存    
 - [x] 支持mysql、postgreSql协程组件、redis协程组件、mongodb组件     
-- [x] 支持mysql的协程连接池，redis协程池
+- [x] 支持mysql协程连接池
+- [x] 支持redis协程池   
+- [x] 支持curl协程池   
 - [x] 支持protobuf buffer的数据接口结构验证，压缩传输等        
 - [x] 支持异步务管理TaskManager，定时器管理TickManager，内存表管理TableManager  
 - [x] 支持自定义进程管理ProcessManager，进程池管理PoolsManger
@@ -126,6 +128,7 @@ composer create-project bingcool/swoolefy:~5.0 myproject
 include './vendor/autoload.php';
 
 define('IS_DAEMON_SERVICE', 0);
+define('IS_CRON_SERVICE', 0);
 define('IS_CLI_SCRIPT', 0);
 date_default_timezone_set('Asia/Shanghai');
 
@@ -146,36 +149,42 @@ include './swoolefy';
 swoole-cli cli.php create App
 
 // 执行完上面命令行后，将会自动生成App项目目录以及内部子目录
+myproject
+|—— App  // 应用项目目录
+|     |── Config       // 应用配置
+|     │   ├── config-dev.php
+|     │   ├── config-gra.php
+|     │   ├── config-prd.php
+|     │   ├── config-test.php
+|     │   └── defines.php
+|     ├── Controller
+|     │   └── IndexController.php // 控制器层
+|     ├── Model
+|     │   └── ClientModel.php
+|     ├── Module        // 模块层
+|     ├── Protocol      // 协议配置
+|     │   ├── config-dev.php
+|     │   ├── config-gra.php
+|     │   ├── config-prd.php
+|     │   └── config-test.php
+|     ├── Router
+|     │   └── Api.php  // 路由文件，不同模块定义不同文件即可
+|     |—— Storage
+|     |   |—— Logs  // 日志文件目录
+|     |   |—— Sql   // sql日志目录
+|     │—— autoloader.php // 自定义项目自动加载
+|     |—— Event.php      // 事件实现类
+|     |—— HttpServer.php // http server
+|    
+|——— src //源码
+|——— cli.php // 应用启动入口文件
+|——— cron.php // 定时worker任务的多进程启动入口文件
+|——— daemon.php // 守护进程worker的多进程启动入口文件
+|——— script.php // 脚本启动入口文件
 
-App  // 项目目录
-├── Config       // 应用配置
-│   ├── config-dev.php
-│   ├── config-gra.php
-│   ├── config-prd.php
-│   ├── config-test.php
-│   └── defines.php
-├── Controller
-│   └── IndexController.php // 控制器层
-├── Model
-│   └── ClientModel.php
-├── Module        // 模块层
-├── Protocol      // 协议配置
-│   ├── config-dev.php
-│   ├── config-gra.php
-│   ├── config-prd.php
-│   └── config-test.php
-├── Runtime
-├── Router
-│   └── Api.php  // 路由文件，不同模块定义不同文件即可
-|—— Storage
-|   |—— Logs  // 日志文件目录
-|   |—— Sql   // sql日志目录
-│—— autoloader.php // 自定义项目自动加载
-|—— Event.php      // 事件实现类
-|—— HttpServer.php // http server
 ```
 
-### 四、启动项目
+### 四、启动应用项目
 
 ```
 // 终端启动 ctl+c 停止进程

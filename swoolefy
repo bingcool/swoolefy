@@ -179,7 +179,7 @@ function createProject()
 
     if ($protocol == 'http') {
         $dirs = [
-            'Config', 'Controller', 'Model', 'Module', 'Runtime', 'Router', 'Storage', 'Protocol'
+            'Config', 'Controller', 'Model', 'Module', 'Router', 'Storage', 'Protocol'
         ];
     }
 
