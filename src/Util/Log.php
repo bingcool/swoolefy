@@ -88,6 +88,21 @@ class Log
     protected $dateLogFilePath;
 
     /**
+     * @var string
+     */
+    protected $splitString = '_';
+
+    /**
+     * @var int
+     */
+    protected $rotateDay = 7;
+
+    /**
+     * @var bool
+     */
+    protected $doUnlink = false;
+
+    /**
      * @param string $type
      * @param string|null $channel
      * @param string|null $logFilePath
@@ -140,6 +155,15 @@ class Log
     }
 
     /**
+     * @param int $rotateDay
+     * @return void
+     */
+    public function setRotateDay(int $rotateDay)
+    {
+        $this->rotateDay = $rotateDay;
+    }
+
+    /**
      * setLogFilePath
      * @param string $logFilePath
      * @return $this
@@ -166,7 +190,37 @@ class Log
         if (!is_dir($fileInfo['dirname'])) {
             mkdir($fileInfo['dirname'], 0777);
         }
-        return $fileInfo['dirname'].DIRECTORY_SEPARATOR.$fileInfo['filename'].'_'.$date.'.'.$fileInfo['extension'];
+        return $fileInfo['dirname'].DIRECTORY_SEPARATOR.$fileInfo['filename'].$this->splitString.$date.'.'.$fileInfo['extension'];
+    }
+
+    /**
+     * @param string $logFilePath
+     * @return mixed
+     */
+    protected function unlinkHistoryDayLogFile(string $logFilePath)
+    {
+        if ($this->doUnlink) {
+            return;
+        }
+
+        $fileInfo = pathinfo($logFilePath);
+        $logDir = $fileInfo['dirname'];
+        $fileList = scandir($logDir);
+        $lastDay = date('Ymd', time() - 24 * 3600 * ($this->rotateDay + 1));
+        foreach ($fileList as $file) {
+            $pathFile = $logDir . DIRECTORY_SEPARATOR . $file;
+            if ($pathFile == '.' || $pathFile == '..' || !is_file($pathFile)) {
+                continue;
+            }
+            $fileName = pathinfo($pathFile, PATHINFO_FILENAME);
+            $fileArr = explode($this->splitString, $fileName);
+            $fileDate = array_pop($fileArr);
+
+            if (is_numeric($fileDate) && $fileDate < $lastDay ) {
+                unlink($pathFile);
+            }
+        }
+        $this->doUnlink = true;
     }
 
     /**
@@ -306,6 +360,8 @@ class Log
                         return $this->pushProcessor($records, $App);
                     });
                 }
+
+                $this->unlinkHistoryDayLogFile($this->logFilePath);
 
                 // add records to the log
                 $this->logger->addRecord($type, $logInfo, $context);

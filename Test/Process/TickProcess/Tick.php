@@ -2,6 +2,7 @@
 namespace Test\Process\TickProcess;
 
 use Swoole\Process;
+use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
