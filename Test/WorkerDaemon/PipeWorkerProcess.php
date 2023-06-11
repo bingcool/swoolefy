@@ -30,7 +30,7 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
 
         $log = LogManager::getInstance()->getLogger('log');
         $log->addInfo('test222222-log-id='.rand(1,1000),true);
-            var_dump('gggggggg');
+
 //        if($this->isWorker0()) {
 //            $this->notifyMasterCreateDynamicProcess($this->getProcessName(), 1);
 //        }
@@ -39,6 +39,13 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
 //            sleep(5);
 //            $this->reboot();
 //        }
+
+        /**
+         * @var \Common\Library\Db\Mysql $db
+         */
+        $db = Application::getApp()->get('db');
+        $count = $db->createCommand("select count(1) as total from tbl_users")->count();
+        var_dump('user count='.$count);
     }
 
     public function onHandleException(\Throwable $throwable, array $context = [])
