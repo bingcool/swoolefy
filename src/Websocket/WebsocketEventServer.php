@@ -11,12 +11,12 @@
 
 namespace Swoolefy\Websocket;
 
-include_once SWOOLEFY_CORE_ROOT_PATH . '/MainEventInterface.php';
-
-use Swoole\Server;
+use Swoole\Http\Request;
+use Swoole\Http\Response;
+use Swoole\WebSocket\Server;
 use Swoole\WebSocket\Frame;
 use Swoolefy\Core\Swfy;
-use Swoolefy\Core\WebsocketEventInterface;
+use Swoolefy\EventInterface\WebsocketEventInterface;
 
 abstract class WebsocketEventServer extends WebsocketServer implements WebsocketEventInterface
 {
@@ -37,7 +37,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
      * @param int $worker_id
      * @return void
      */
-    abstract public function onWorkerStart($server, $worker_id);
+    abstract public function onWorkerStart(Server $server, int $worker_id);
 
     /**
      * onOpen
@@ -45,16 +45,16 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
      * @param object $request
      * @return void
      */
-    abstract public function onOpen($server, $request);
+    abstract public function onOpen(Server $server, Request $request);
 
     /**
      * onRequest
-     * @param \Swoole\Http\Request $request
-     * @param \Swoole\Http\Response $response
+     * @param Request $request
+     * @param Response $response
      * @return void
      * @throws \Throwable
      */
-    public function onRequest($request, $response)
+    public function onRequest(Request $request, Response $response)
     {
         $appConf = \Swoolefy\Core\Swfy::getAppConf();
         $appInstance = new \Swoolefy\Core\App($appConf);
@@ -64,11 +64,11 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
     /**
      * onMessage
      * @param Server $server
-     * @param object $frame
+     * @param Frame $frame
      * @return void
      * @throws \Throwable
      */
-    public function onMessage($server, $frame)
+    public function onMessage(Server $server, Frame $frame)
     {
         $fd     = $frame->fd;
         $data   = $frame->data;
@@ -108,7 +108,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
      * @return bool
      * @throws \Throwable
      */
-    public function onTask($server, $task_id, $from_worker_id, $data, $task = null)
+    public function onTask(Server $server, int $task_id, int $from_worker_id, $data, $task = null)
     {
         list($callable, $taskData, $fd) = $data;
         $appInstance = new WebsocketHandler(Swfy::getAppConf());
@@ -123,7 +123,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
      * @param mixed $data
      * @return void
      */
-    abstract public function onFinish($server, $task_id, $data);
+    abstract public function onFinish(Server $server, int $task_id, $data);
 
     /**
      * onPipeMessage
@@ -132,7 +132,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
      * @param mixed $message
      * @return void
      */
-    abstract public function onPipeMessage($server, $from_worker_id, $message);
+    abstract public function onPipeMessage(Server $server, int $from_worker_id, $message);
 
     /**
      * onClose
@@ -140,15 +140,15 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
      * @param int $fd
      * @return void
      */
-    abstract public function onClose($server, $fd);
+    abstract public function onClose(Server $server, int $fd);
 
     /**
      * onMessageFromBinary
      * @param Server $server
-     * @param mixed $frame
+     * @param Frame $frame
      * @return void
      */
-    abstract public function onMessageFromBinary($server, $frame);
+    abstract public function onMessageFromBinary(Server $server, Frame $frame);
 
     /**
      * onMessageFromClose
@@ -156,6 +156,6 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
      * @param mixed $frame
      * @return void
      */
-    abstract public function onMessageFromClose($server, $frame);
+    abstract public function onMessageFromClose(Server $server, Frame $frame);
 
 }

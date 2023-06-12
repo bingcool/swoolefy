@@ -20,7 +20,6 @@ class UdpEventServer extends \Swoolefy\Udp\UdpEventServer
     /**
      * __construct
      * @param array $config
-     * @throws \Exception
      */
     public function __construct(array $config = [])
     {
@@ -33,7 +32,7 @@ class UdpEventServer extends \Swoolefy\Udp\UdpEventServer
      * @param int $worker_id
      * @return void
      */
-    public function onWorkerStart($server, $worker_id)
+    public function onWorkerStart(Server $server, int $worker_id)
     {
     }
 
@@ -44,7 +43,7 @@ class UdpEventServer extends \Swoolefy\Udp\UdpEventServer
      * @param mixed $data
      * @return mixed
      */
-    public function onFinish($server, $task_id, $data)
+    public function onFinish(Server $server, int $task_id, $data)
     {
     }
 
@@ -55,7 +54,7 @@ class UdpEventServer extends \Swoolefy\Udp\UdpEventServer
      * @param mixed $message
      * @return void
      */
-    public function onPipeMessage($server, $from_worker_id, $message)
+    public function onPipeMessage(Server $server, int $from_worker_id, $message)
     {
     }
 

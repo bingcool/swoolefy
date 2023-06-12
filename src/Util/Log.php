@@ -188,7 +188,7 @@ class Log
     {
         $fileInfo = pathinfo($logFilePath);
         if (!is_dir($fileInfo['dirname'])) {
-            mkdir($fileInfo['dirname'], 0777);
+            mkdir($fileInfo['dirname'], 0777, true);
         }
         return $fileInfo['dirname'].DIRECTORY_SEPARATOR.$fileInfo['filename'].$this->splitString.$date.'.'.$fileInfo['extension'];
     }

@@ -214,17 +214,13 @@ class IndexController extends BController {
          function WebSocketTest()
          {
             if ("WebSocket" in window)
-            {
-               alert("您的浏览器支持 WebSocket!");
-               
+            {  
                // 打开一个 web socket
                var ws = new WebSocket("ws://127.0.0.1:9502/");
                 
                ws.onopen = function()
-               {
-                  // Web Socket 已连接上，使用 send() 方法发送数据
-                  
-                  ws.send("Chat::mychat::kkkkkkkkkkkkkkkkkkkkkkkkknnnnnnnnnnn");
+               {                  
+                  ws.send("Chat::mychat::"+ Math.random() * (100 - 1) + 1);
                   alert("数据发送中...");
                };
                 

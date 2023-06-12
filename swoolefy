@@ -372,7 +372,7 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer')
 
     $routerDir = START_DIR_ROOT . "/{$app_name}/Router";
     if(!is_dir($routerDir)) {
-        mkdir($routerDir);
+        mkdir($routerDir,0777, true);
     }
 
     commonHandle($config);
@@ -399,7 +399,7 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
 
     $routerDir = START_DIR_ROOT . "/{$app_name}/Router";
     if(!is_dir($routerDir)) {
-        mkdir($routerDir);
+        mkdir($routerDir, 0777, true);
     }
 
     commonHandle($config);
@@ -450,7 +450,7 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer')
 
     $routerDir = START_DIR_ROOT . "/{$app_name}/Router";
     if(!is_dir($routerDir)) {
-        mkdir($routerDir);
+        mkdir($routerDir, 0777, true);
     }
 
     commonHandle($config);

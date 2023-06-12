@@ -11,8 +11,11 @@
 
 namespace protocol\websocket;
 
+use Swoole\WebSocket\Frame;
 use Swoole\WebSocket\Server;
 use Swoolefy\Core\Swfy;
+use Swoole\Http\Request;
+use Swoole\Http\Response;
 
 class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 {
@@ -20,7 +23,6 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
     /**
      * __construct
      * @param array $config
-     * @throws \Exception
      */
     public function __construct(array $config = [])
     {
@@ -33,17 +35,17 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
      * @param int $worker_id
      * @return   void
      */
-    public function onWorkerStart($server, $worker_id)
+    public function onWorkerStart(Server $server, int $worker_id)
     {
     }
 
     /**
      * onOpen
      * @param Server $server
-     * @param \Swoole\Http\Request $request
+     * @param Request $request
      * @return void
      */
-    public function onOpen($server, $request)
+    public function onOpen(Server $server, Request $request)
     {
     }
 
@@ -54,7 +56,7 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
      * @param mixed $data
      * @return mixed
      */
-    public function onFinish($server, $task_id, $data)
+    public function onFinish(Server $server, int $task_id, $data)
     {
     }
 
@@ -65,7 +67,7 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
      * @param mixed $message
      * @return void
      */
-    public function onPipeMessage($server, $from_worker_id, $message)
+    public function onPipeMessage(Server $server, int $from_worker_id, $message)
     {
     }
 
@@ -75,27 +77,27 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
      * @param int $fd
      * @return void
      */
-    public function onClose($server, $fd)
+    public function onClose(Server $server, int $fd)
     {
     }
 
     /**
      * onMessageFromBinary
      * @param Server $server
-     * @param mixed $frame
+     * @param Frame $frame
      * @return void
      */
-    public function onMessageFromBinary($server, $frame)
+    public function onMessageFromBinary(Server $server, Frame $frame)
     {
     }
 
     /**
      * onMessageFromClose
      * @param Server $server
-     * @param mixed $frame
+     * @param Frame $frame
      * @return void
      */
-    public function onMessageFromClose($server, $frame)
+    public function onMessageFromClose(Server $server, Frame $frame)
     {
     }
 
