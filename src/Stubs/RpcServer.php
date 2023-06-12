@@ -29,32 +29,32 @@ class RpcServer extends \Swoolefy\Rpc\RpcServer
 
     /**
      * onWorkerStart
-     * @param object $server
+     * @param Server $server
      * @param int $worker_id
      * @return void
      */
-    public function onWorkerStart($server, $worker_id)
+    public function onWorkerStart(Server $server, int $worker_id)
     {
     }
 
     /**
      * onConnect
-     * @param object $server
+     * @param Server $server
      * @param int $fd
      * @return void
      */
-    public function onConnect($server, $fd)
+    public function onConnect(Server $server, int $fd)
     {
     }
 
     /**
      * onFinish
-     * @param object $server
+     * @param Server $server
      * @param int $task_id
      * @param mixed $data
      * @return mixed
      */
-    public function onFinish($server, $task_id, $data)
+    public function onFinish(Server $server, int $task_id, $data)
     {
     }
 
@@ -65,7 +65,7 @@ class RpcServer extends \Swoolefy\Rpc\RpcServer
      * @param mixed $message
      * @return void
      */
-    public function onPipeMessage($server, $from_worker_id, $message)
+    public function onPipeMessage(Server $server, int $from_worker_id, $message)
     {
     }
 
@@ -75,7 +75,7 @@ class RpcServer extends \Swoolefy\Rpc\RpcServer
      * @param int $fd
      * @return void
      */
-    public function onClose($server, $fd)
+    public function onClose(Server $server, int $fd)
     {
     }
 

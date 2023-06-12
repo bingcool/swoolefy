@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Http;
 
-use Swoole\Server;
+use Swoole\Http\Server;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoolefy\Core\Swfy;
@@ -36,7 +36,7 @@ abstract class HttpAppServer extends HttpServer
      * @param int $worker_id
      * @return void
      */
-    abstract public function onWorkerStart($server, $worker_id);
+    abstract public function onWorkerStart(Server $server, int $worker_id);
 
     /**
      * onRequest
@@ -63,7 +63,7 @@ abstract class HttpAppServer extends HttpServer
      * @param mixed $message
      * @return void
      */
-    abstract public function onPipeMessage($server, $from_worker_id, $message);
+    abstract public function onPipeMessage(Server $server, int $from_worker_id, $message);
 
     /**
      * onTask
@@ -75,7 +75,7 @@ abstract class HttpAppServer extends HttpServer
      * @return void
      * @throws \Throwable
      */
-    public function onTask($server, $task_id, $from_worker_id, $data, $task = null)
+    public function onTask(Server $server, int $task_id, int $from_worker_id, $data, $task = null)
     {
         try {
             list($callable, $taskData, $fd) = $data;
@@ -106,7 +106,7 @@ abstract class HttpAppServer extends HttpServer
      * @param mixed $data
      * @return void
      */
-    public function onFinish($server, $task_id, $data)
+    public function onFinish(Server $server, int $task_id, $data)
     {
     }
 

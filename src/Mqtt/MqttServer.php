@@ -11,19 +11,16 @@
 
 namespace Swoolefy\Mqtt;
 
-include_once SWOOLEFY_CORE_ROOT_PATH . '/MainEventInterface.php';
-
 use Swoole\Server;
 use Simps\MQTT\Protocol;
 use Simps\MQTT\Protocol\Types;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\EventApp;
 use Swoolefy\Core\EventController;
-use Swoolefy\Core\RpcEventInterface;
 use Swoolefy\Core\Swfy;
 use Simps\MQTT\Hex\ReasonCode;
 
-abstract class MqttServer extends BaseServer implements RpcEventInterface
+abstract class MqttServer extends BaseServer
 {
 
     /**
@@ -260,14 +257,14 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
     }
 
     /**
-     * @param $server
-     * @param $fd
-     * @param $reactor_id
+     * @param Server $server
+     * @param int $fd
+     * @param int $reactor_id
      * @param $data
      * @return bool
      * @throws \Throwable
      */
-    public function onReceive($server, $fd, $reactor_id, $data)
+    public function onReceive(Server $server, int $fd, int $reactor_id, $data)
     {
         $conf          = Swfy::getConf();
         $protocolLevel = (int)($conf['mqtt']['protocol_level'] ?? MQTT_PROTOCOL_LEVEL3);
@@ -288,7 +285,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
      * @return bool
      * @throws \Throwable
      */
-    public function handleV3($server, $fd, &$data)
+    public function handleV3(Server $server, int $fd, &$data)
     {
         $data = Protocol\V3::unpack($data);
 
@@ -429,13 +426,13 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
     }
 
     /**
-     * @param $server
-     * @param $fd
+     * @param Server $server
+     * @param int $fd
      * @param $data
      * @return bool
      * @throws \Exception
      */
-    public function handleV5($server, $fd, &$data)
+    public function handleV5(Server $server, int $fd, &$data)
     {
         $data = Protocol\V5::unpack($data);
 
@@ -605,7 +602,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
      * @return bool
      * @throws \Throwable
      */
-    public function onTask($server, $task_id, $from_worker_id, $data, $task = null)
+    public function onTask(Server $server, int $task_id, int $from_worker_id, $data, $task = null)
     {
         //todo
     }
@@ -617,7 +614,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
      * @param $data
      * @return mixed
      */
-    public function onFinish($server, $task_id, $data)
+    public function onFinish(Server $server, int $task_id, $data)
     {
         // todo
     }
@@ -625,11 +622,11 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
     /**
      * onPipeMessage
      * @param Server $server
-     * @param int $src_worker_id
+     * @param int $from_worker_id
      * @param mixed $message
      * @return void
      */
-    public function onPipeMessage($server, $from_worker_id, $message)
+    public function onPipeMessage(Server $server, int $from_worker_id, $message)
     {
         //todo
     }
@@ -640,7 +637,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
      * @param int $worker_id
      * @return void
      */
-    abstract public function onWorkerStart($server, $worker_id);
+    abstract public function onWorkerStart(Server $server, int $worker_id);
 
     /**
      * onConnect
@@ -648,7 +645,7 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
      * @param int $fd
      * @return void
      */
-    abstract public function onConnect($server, $fd);
+    abstract public function onConnect(Server $server, int $fd);
 
     /**
      * onClose tcp
@@ -656,6 +653,6 @@ abstract class MqttServer extends BaseServer implements RpcEventInterface
      * @param int $fd
      * @return void
      */
-    abstract public function onClose($server, $fd);
+    abstract public function onClose(Server $server, int $fd);
 
 }

@@ -31,7 +31,7 @@ class HttpServer extends \Swoolefy\Http\HttpAppServer {
 	 * @param int $worker_id
 	 * @return  void
 	 */
-	public function onWorkerStart($server, $worker_id) {}
+	public function onWorkerStart(Server $server, int $worker_id) {}
 
 	/**
 	 * onPipeMessage 
@@ -40,7 +40,7 @@ class HttpServer extends \Swoolefy\Http\HttpAppServer {
 	 * @param  mixed $message
 	 * @return void
 	 */
-	public function onPipeMessage($server, $from_worker_id, $message) {}
+	public function onPipeMessage(Server $server, int $from_worker_id, $message) {}
 
     /**
      * Worker Receive Task Process Msg
@@ -49,7 +49,7 @@ class HttpServer extends \Swoolefy\Http\HttpAppServer {
      * @param int $task_id
      * @param mixed $data
      */
-	public function onFinish($server, $task_id, $data)
+	public function onFinish(Server $server, int $task_id, $data)
     {
         $msg = json_decode($data, true) ?? $data;
 
