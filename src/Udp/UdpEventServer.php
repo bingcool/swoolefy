@@ -11,11 +11,9 @@
 
 namespace Swoolefy\Udp;
 
-include_once SWOOLEFY_CORE_ROOT_PATH . '/MainEventInterface.php';
-
 use Swoole\Server;
 use Swoolefy\Core\Swfy;
-use Swoolefy\Core\UdpEventInterface;
+use Swoolefy\EventInterface\UdpEventInterface;
 
 abstract class UdpEventServer extends UdpServer implements UdpEventInterface
 {
@@ -23,7 +21,6 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface
     /**
      * __construct
      * @param array $config
-     * @throws \Exception
      */
     public function __construct(array $config = [])
     {
@@ -36,7 +33,7 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface
      * @param int $worker_id
      * @return mixed
      */
-    abstract public function onWorkerStart($server, $worker_id);
+    abstract public function onWorkerStart(Server $server, int $worker_id);
 
     /**
      * onPack
@@ -46,7 +43,7 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface
      * @return void
      * @throws \Throwable
      */
-    public function onPack($server, $data, $clientInfo)
+    public function onPack(Server $server, $data, $clientInfo)
     {
         $appInstance = new UdpHandler(Swfy::getAppConf());
         $appInstance->setClientInfo($clientInfo);
@@ -63,7 +60,7 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface
      * @return bool
      * @throws \Throwable
      */
-    public function onTask($server, $task_id, $from_worker_id, $data, $task = null)
+    public function onTask(Server $server, int $task_id, int $from_worker_id, $data, $task = null)
     {
         list($callable, $taskData, $clientInfo) = $data;
         $appInstance = new UdpHandler(Swfy::getAppConf());
@@ -78,7 +75,7 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface
      * @param mixed $data
      * @return mixed
      */
-    abstract public function onFinish($server, $task_id, $data);
+    abstract public function onFinish(Server $server, int $task_id, $data);
 
     /**
      * onPipeMessage
@@ -87,6 +84,6 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface
      * @param mixed $message
      * @return void
      */
-    abstract public function onPipeMessage($server, $from_worker_id, $message);
+    abstract public function onPipeMessage(Server $server, int $from_worker_id, $message);
 
 }

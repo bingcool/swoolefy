@@ -11,12 +11,10 @@
 
 namespace Swoolefy\Rpc;
 
-include_once SWOOLEFY_CORE_ROOT_PATH . '/MainEventInterface.php';
-
 use Swoole\Server;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Tcp\TcpServer;
-use Swoolefy\Core\RpcEventInterface;
+use Swoolefy\EventInterface\RpcEventInterface;
 
 abstract class RpcServer extends TcpServer implements RpcEventInterface
 {
@@ -36,7 +34,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
      * @param int $worker_id
      * @return void
      */
-    abstract public function onWorkerStart($server, $worker_id);
+    abstract public function onWorkerStart(Server $server, int $worker_id);
 
     /**
      * onConnect
@@ -44,7 +42,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
      * @param int $fd
      * @return void
      */
-    abstract public function onConnect($server, $fd);
+    abstract public function onConnect(Server $server, int $fd);
 
     /**
      * onReceive 接收数据时的回调处理，$data是一个完整的数据包，底层已经封装好，只需要配置好，直接使用即可
@@ -55,7 +53,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
      * @return bool
      * @throws \Throwable
      */
-    public function onReceive($server, $fd, $reactor_id, $data)
+    public function onReceive(Server $server, int $fd, $reactor_id, $data)
     {
         $appInstance = new RpcHandler(Swfy::getAppConf());
         $appInstance->run($fd, $data);
@@ -72,7 +70,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
      * @return bool
      * @throws \Throwable
      */
-    public function onTask($server, $task_id, $from_worker_id, $data, $task = null)
+    public function onTask(Server $server, int $task_id, int $from_worker_id, $data, $task = null)
     {
         list($callable, $taskData, $fd) = $data;
         $appInstance = new RpcHandler(Swfy::getAppConf());
@@ -87,7 +85,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
      * @param $data
      * @return mixed
      */
-    abstract public function onFinish($server, $task_id, $data);
+    abstract public function onFinish(Server $server, int $task_id, $data);
 
     /**
      * onPipeMessage
@@ -96,7 +94,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
      * @param mixed $message
      * @return void
      */
-    abstract public function onPipeMessage($server, $from_worker_id, $message);
+    abstract public function onPipeMessage(Server $server, int $from_worker_id, $message);
 
     /**
      * onClose tcp
@@ -104,7 +102,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
      * @param int $fd
      * @return void
      */
-    abstract public function onClose($server, $fd);
+    abstract public function onClose(Server $server, int $fd);
 
     /**
      * buildPackHandler 创建pack处理对象
