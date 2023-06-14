@@ -680,9 +680,6 @@ class BaseServer
         } else {
             self::$pack_check_type = self::PACK_CHECK_LENGTH;
         }
-        if (self::$pack_check_type) {
-            self::$server->pack_check_type = self::$pack_check_type;
-        }
     }
 
     /**
