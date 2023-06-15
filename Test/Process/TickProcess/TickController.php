@@ -18,7 +18,7 @@ class TickController extends ProcessController {
 
         $list = \Swoole\Timer::list();
         foreach($list as $timer_id) {
-            var_dump(\Swoole\Timer::info($timer_id));
+            //var_dump(\Swoole\Timer::info($timer_id));
         }
     }
 }
