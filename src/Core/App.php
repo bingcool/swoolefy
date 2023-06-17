@@ -190,6 +190,14 @@ class App extends \Swoolefy\Core\Component
     }
 
     /**
+     * @return void
+     */
+    protected function unsetObjectInstance()
+    {
+        $this->controllerInstance = null;
+    }
+
+    /**
      * catchAll request
      * @return bool
      */
@@ -284,6 +292,8 @@ class App extends \Swoolefy\Core\Component
         $this->pushComponentPools();
         // remove App Instance
         Application::removeApp();
+        // unset controllerInstance
+        $this->unsetObjectInstance();
         // end request
         if (!$this->isEnd) {
             if($this->response->isWritable()) {
