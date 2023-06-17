@@ -22,7 +22,7 @@
     ],
     "minimum-stability": "dev",
     "require": {
-        "php" : ">=8.0.0",
+        "php" : "^8.1",
         "ext-swoole" : ">=4.8.12",
         "ext-json": "*",
         "psr/log" : "*",

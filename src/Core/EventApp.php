@@ -40,7 +40,7 @@ class EventApp
      *
      * public function onClose($server, $fd) {
      * // 只需要注册一次就好
-     * go(function() {
+     * \Swoole\Coroutine::create(function() {
      *      (new \Swoolefy\Core\EventApp())->registerApp(\App\AbstractEventHandle\Close::class, $server, $fd)->close();
      * })
      *
@@ -59,12 +59,12 @@ class EventApp
      * }
      *  同时go创建协程中，创建应用实例可以使用这个类注册实例，\App\AbstractEventHandle\Goroutine继承于\Swoolefy\Core\EventController
      * registerApp的第二个参数args是class的__construct参数
-     *  go(function() {
+     *  \Swoole\Coroutine::create(function() {
      *      $app = (new \Swoolefy\Core\EventApp)->registerApp(\App\AbstractEventHandle\Goroutine::class, ['name','id']);
      *      $app->test();
      * });
      * 也可以利用闭包形式,最后一个函数是传进来的闭包函数的形参,外部变量使用use引入
-     * go(function() {
+     * \Swoole\Coroutine::create(function() {
      *      (new \Swoolefy\Core\EventApp)->registerApp(function($event) use($name, $id) {
      *          var_dump($event); //输出EventController 实例
      *      });
