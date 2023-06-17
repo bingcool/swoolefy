@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Worker\Cron;
 
-use \Swoolefy\Worker\AbstractWorkerProcess;
+use Swoolefy\Worker\AbstractWorkerProcess;
 
 class CronProcess extends AbstractWorkerProcess
 {
