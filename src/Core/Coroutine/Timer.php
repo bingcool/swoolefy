@@ -37,14 +37,9 @@ class Timer
                     $timeChannel->close();
                     break;
                 }
-                try {
-                    goApp(function () use($timeChannel, $callable) {
-                        $callable($timeChannel);
-                    });
-                }catch (\Throwable $exception)
-                {
-                    BaseServer::catchException($exception);
-                }
+                goApp(function () use($timeChannel, $callable) {
+                    $callable($timeChannel);
+                });
             }
         }, $second, $callable);
 
