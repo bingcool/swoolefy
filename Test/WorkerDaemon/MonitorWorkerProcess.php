@@ -11,7 +11,7 @@ class MonitorWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
     public function run()
     {
         sleep(10);
-        LogManager::getInstance()->getLogger('log')->addInfo('worker hello!');
-        $this->notifyMasterCreateDynamicProcess('test-pipe-worker',1);
+        //LogManager::getInstance()->getLogger('log')->addInfo('worker hello!');
+        //$this->notifyMasterCreateDynamicProcess('test-pipe-worker',1);
     }
 }

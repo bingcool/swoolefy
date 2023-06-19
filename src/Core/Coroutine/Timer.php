@@ -38,7 +38,7 @@ class Timer
                     break;
                 }
                 try {
-                    goApp(function ($callable) use($timeChannel, $callable) {
+                    goApp(function () use($timeChannel, $callable) {
                         $callable($timeChannel);
                     });
                 }catch (\Throwable $exception)
@@ -77,7 +77,7 @@ class Timer
 
         Coroutine::create(function ($second, $callable) use ($timeChannel) {
             while (!$timeChannel->pop($second)) {
-                goApp(function ($callable) use($timeChannel, $callable) {
+                goApp(function () use($timeChannel, $callable) {
                     $callable($timeChannel);
                 });
                 break;

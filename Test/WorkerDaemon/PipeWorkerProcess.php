@@ -3,17 +3,29 @@
 namespace Test\WorkerDaemon;
 
 use Swoolefy\Core\Application;
+use Swoolefy\Core\EventController;
 
 class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
 {
     public function run()
     {
         //Application::getApp()->get('log')->addInfo('pllllllllllll');
-//        while (1) {
-//            var_dump('CID='.\Co::getCid());
-//            var_dump('PipeWorker');
-//            sleep(5);
-//        }
+        while (1) {
+            var_dump('CID='.\Swoole\Coroutine::getCid());
+            var_dump('PipeWorker');
+            $a = 1;
+            $b = 2;
+            $c = 3;
+            goApp(function ($a, $b) use($c) {
+                goApp(function () use($a, $b) {
+                    goApp(function () use($a, $b) {
+                        var_dump($a, $b);
+                    });
+                });
+            }, $a, $b);
+
+            sleep(5);
+        }
 
 
 
