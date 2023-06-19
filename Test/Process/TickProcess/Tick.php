@@ -16,7 +16,7 @@ class Tick extends AbstractProcess {
     public function run() {
         // 协议层配置
         // $conf = Swfy::getConf();
-        go(function() {
+        goApp(function() {
             $cid = \Swoole\Coroutine::getCid();
         });
 

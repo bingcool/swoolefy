@@ -31,7 +31,7 @@ class RedisList extends AbstractProcess {
                 {
                     $data = $queue->pop(3);
                     // 创建协程单例
-                    go(function () use($data){
+                    goApp(function () use($data){
                         $list = new \Test\Process\ListProcess\ListController($data);
                         $list->doHandle();
                     });

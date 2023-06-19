@@ -34,7 +34,7 @@ class Subscribe extends AbstractProcess
                     switch ($chan)
                     {
                         case 'test1':
-                            go(function () use($msg) {
+                            goApp(function () use($msg) {
                                 var_dump('redis receive subscribe msg ='.$msg);
                                 $handle = new SubscribeHandle();
                                 $handle->doRun($msg);
