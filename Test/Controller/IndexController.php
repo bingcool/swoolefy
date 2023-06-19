@@ -70,7 +70,7 @@ class IndexController extends BController {
         $rowCount = $db->getNumRows();
 
         // 创建一个协助程单例
-        goApp(function (EventController $event) use($rowCount) {
+        goApp(function () use($rowCount) {
             /**
              * @var \Common\Library\Db\Mysql $db
              */
@@ -169,7 +169,7 @@ class IndexController extends BController {
             $db->commit();
 
 
-            goApp(function(EventController $event) {
+            goApp(function() {
                 /**
                  * @var \Common\Library\Db\Mysql $db
                  */
