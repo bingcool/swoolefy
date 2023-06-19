@@ -13,7 +13,6 @@ namespace Swoolefy\Core\Coroutine;
 
 use Swoole\Coroutine;
 use Swoole\Coroutine\Channel;
-use Swoolefy\Core\BaseServer;
 
 class Timer
 {
