@@ -13,7 +13,6 @@ namespace Swoolefy\Core\Coroutine;
 
 use Swoole\Coroutine;
 use Swoole\Coroutine\Channel;
-use Swoolefy\Core\BaseServer;
 
 class Timer
 {
@@ -37,14 +36,9 @@ class Timer
                     $timeChannel->close();
                     break;
                 }
-                try {
-                    goApp(function ($callable) use($timeChannel, $callable) {
-                        $callable($timeChannel);
-                    });
-                }catch (\Throwable $exception)
-                {
-                    BaseServer::catchException($exception);
-                }
+                goApp(function () use($timeChannel, $callable) {
+                    $callable($timeChannel);
+                });
             }
         }, $second, $callable);
 
@@ -77,7 +71,7 @@ class Timer
 
         Coroutine::create(function ($second, $callable) use ($timeChannel) {
             while (!$timeChannel->pop($second)) {
-                goApp(function ($callable) use($timeChannel, $callable) {
+                goApp(function () use($timeChannel, $callable) {
                     $callable($timeChannel);
                 });
                 break;
