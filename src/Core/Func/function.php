@@ -164,8 +164,6 @@ function goApp(callable $callback, ...$params) {
                 $callback(...$params);
             }catch (\Throwable $throwable) {
                 \Swoolefy\Core\BaseServer::catchException($throwable);
-            } finally {
-                // do not thing
             }
         });
     });
