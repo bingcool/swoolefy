@@ -151,16 +151,17 @@ function makeServerName(string $appName)
 /**
  * 协程单例
  *
- * @param \Closure $callback
+ * @param \Closure|callable $callback
  * @param ...$params
- * @return void
+ * @return int|false
  * @throws \Swoolefy\Exception\SystemException
  */
-function goApp(\Closure $callback) {
-    \Swoole\Coroutine::create(function () use($callback) {
-        (new \Swoolefy\Core\EventApp)->registerApp(function($event) use($callback) {
+function goApp(callable $callback, ...$params) {
+    return \Swoole\Coroutine::create(function () use($callback, $params) {
+        (new \Swoolefy\Core\EventApp)->registerApp(function($event) use($callback, $params) {
             try {
-                $callback($event);
+                array_push($params, $event);
+                $callback(...$params);
             }catch (\Throwable $throwable) {
                 \Swoolefy\Core\BaseServer::catchException($throwable);
             }

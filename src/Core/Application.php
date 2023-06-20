@@ -65,7 +65,7 @@ class Application
      */
     public static function issetApp(int $coroutineId = null): bool
     {
-        $cid = CoroutineManager::getInstance()->getCoroutineId();
+        $cid = \Swoole\Coroutine::getCid();
         if ($coroutineId) {
             $cid = $coroutineId;
         }
@@ -83,7 +83,7 @@ class Application
      */
     public static function getApp(?int $coroutineId = null)
     {
-        $cid = CoroutineManager::getInstance()->getCoroutineId();
+        $cid = \Swoole\Coroutine::getCid();
         if ($coroutineId) {
             $cid = $coroutineId;
         }
@@ -100,7 +100,7 @@ class Application
         if ($coroutineId) {
             $cid = $coroutineId;
         } else {
-            $cid = CoroutineManager::getInstance()->getCoroutineId();
+            $cid = \Swoole\Coroutine::getCid();
         }
         if (isset(self::$apps[$cid])) {
             unset(self::$apps[$cid]);
