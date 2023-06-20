@@ -3,6 +3,7 @@
 namespace Test;
 
 use Common\Library\Db\PDOConnection;
+use Swoolefy\Core\Application;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\EventHandler;
@@ -118,6 +119,6 @@ class Event extends EventHandler
 
     public function onWorkerStop($server, $worker_id)
     {
-        //var_dump(Application::getApp()->get('db'));
+        var_dump(Application::getApp()->get('db'));
     }
 }
