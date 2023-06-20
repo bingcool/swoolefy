@@ -11,6 +11,10 @@
 
 namespace Swoolefy\Worker;
 
+/**
+ * 由swoole的自定义进程作为管理进程--拉起的子进程
+ */
+
 abstract class AbstractWorkerProcess extends AbstractBaseWorker
 {
     /**
