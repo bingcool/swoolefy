@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Exception;
 
-class AbstractSwoolefyExeption extends \Exception
+class AbstractSwoolefyExeption extends \RuntimeException
 {
     /**
      * @var array
@@ -20,17 +20,17 @@ class AbstractSwoolefyExeption extends \Exception
 
     /**
      * @param string $message
-     * @param array $contextData
      * @param int $code
+     * @param array $contextData
      * @param \Throwable|null $previous
      * @return mixed
      * @throws AbstractSwoolefyExeption
      */
-    public static function throw(string $message, array $contextData = [], int $code = -1, ?\Throwable $previous = null)
+    public static function throw(string $message, int $code = -1, array $contextData = [], ?\Throwable $previous = null)
     {
         $throw = new static($message, $code, $previous);
         $throw->setContextData($contextData);
-        throw $throw;
+        return $throw;
     }
 
     /**
