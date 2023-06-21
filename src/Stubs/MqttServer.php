@@ -29,7 +29,7 @@ class MqttServer extends \Swoolefy\Mqtt\MqttServer
 
     /**
      * onWorkerStart
-     * @param object $server
+     * @param Server $server
      * @param int $worker_id
      * @return void
      */
@@ -39,7 +39,7 @@ class MqttServer extends \Swoolefy\Mqtt\MqttServer
 
     /**
      * onConnect
-     * @param object $server
+     * @param Server $server
      * @param int $fd
      * @return void
      */
@@ -49,7 +49,7 @@ class MqttServer extends \Swoolefy\Mqtt\MqttServer
 
     /**
      * onFinish
-     * @param object $server
+     * @param Server $server
      * @param int $task_id
      * @param mixed $data
      * @return mixed

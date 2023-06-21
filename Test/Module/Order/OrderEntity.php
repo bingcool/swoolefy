@@ -31,15 +31,14 @@ class OrderEntity extends ClientModel
         parent::__construct($userId, $id);
 
         if($id > 0) {
-            $this->loadByPk($id);
+            $this->loadById($id);
         }
     }
 
     /**
      * @param $id
-     * @param mixed ...$params
      */
-    public function loadByPk($id, ...$params)
+    public function loadById($id)
     {
         return $this->findOne('order_id=:order_id and user_id=:user_id', [
             ':order_id' => $id,
