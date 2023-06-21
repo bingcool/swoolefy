@@ -66,7 +66,7 @@ class ObjectController extends BController
             $orderObject->remark = 'test-remark-'.rand(1,1000);
 
             $orderObject->save();
-            dump($orderObject);
+            var_dump($orderObject);
         }else
         {
             throw new \Exception('OrderEntity is not exist');

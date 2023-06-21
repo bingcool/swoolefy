@@ -42,6 +42,7 @@ class ClientModel extends Model {
      */
     public function createPkValue()
     {
+        sleep(1);
         return time();
     }
 
