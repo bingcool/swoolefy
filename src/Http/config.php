@@ -9,15 +9,9 @@
  * +----------------------------------------------------------------------
  */
 
-// 加载常量定义
-include START_DIR_ROOT . '/' . APP_NAME . '/Config/constants.php';
-
-// 加载应用层协议
-$appConf = include START_DIR_ROOT . '/' . APP_NAME . '/Config/config-' . SWOOLEFY_ENV . '.php';
-
 return [
     // 应用层配置
-    'app_conf'                 => $appConf,
+    'app_conf'                 => \Swoolefy\Core\SystemEnv::loadAppConf(),
     'application_bootstrap'    => '',
     'event_handler'            => \Swoolefy\Core\EventHandler::class,
     'response_formatter'       => \Swoolefy\Core\ResponseFormatter::class,
