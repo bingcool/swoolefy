@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Exception\SystemException;
+
 class SystemEnv
 {
     /**
@@ -95,6 +97,27 @@ class SystemEnv
     public static function isCronService(): bool
     {
         return isCronService();
+    }
+
+    /**
+     * @return array
+     */
+    public static function loadAppConf()
+    {
+        $confFile = START_DIR_ROOT . '/' . APP_NAME . '/Config/config-' . SWOOLEFY_ENV . '.php';
+        if (!file_exists($confFile)) {
+            throw new SystemException("Not found app conf file:{$confFile}");
+        }
+
+        $constFile = START_DIR_ROOT . '/' . APP_NAME . '/Config/constants.php';
+
+        if (!file_exists($confFile)) {
+            throw new SystemException("Not found const file:{$constFile}");
+        }
+
+        include_once $constFile;
+
+        return include_once $confFile;
     }
 
 }

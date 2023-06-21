@@ -135,6 +135,10 @@ function getOneFreePort(array $excludePorts = []): int
     return get_one_free_port($excludePorts);
 }
 
+/**
+ * @param string $appName
+ * @return string
+ */
 function makeServerName(string $appName)
 {
     if (IS_DAEMON_SERVICE == 1 && IS_CRON_SERVICE == 0 && IS_CLI_SCRIPT == 0 ) {
