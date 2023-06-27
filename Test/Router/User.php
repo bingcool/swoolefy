@@ -32,5 +32,9 @@ return [
 
     '/testTransactionAddOrder' => [
         'dispatch_route' => [\Test\Controller\IndexController::class, 'testTransactionAddOrder'],
+    ],
+
+    '/order/list' => [
+        'dispatch_route' => [\Test\Controller\ObjectController::class, 'list'],
     ]
 ];

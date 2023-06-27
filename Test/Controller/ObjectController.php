@@ -3,6 +3,7 @@ namespace Test\Controller;
 
 use Swoolefy\Core\Controller\BController;
 use Test\Module\Order\OrderEntity;
+use Test\Module\Order\OrderList;
 
 class ObjectController extends BController
 {
@@ -73,4 +74,18 @@ class ObjectController extends BController
         }
 
     }
+
+
+    /**
+     * @throws \Exception
+     */
+    public function list()
+    {
+        $list = new OrderList();
+        $list->setOrderStatus(1);
+        $list->setOrderId(1687358116);
+        $list->find();
+
+    }
+
 }
