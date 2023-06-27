@@ -1,6 +1,8 @@
 <?php
 namespace Test\Process\TickProcess;
 
+use Common\Library\Db\Mysql;
+use Common\Library\Db\Query;
 use Swoole\Process;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Swfy;
@@ -31,16 +33,51 @@ class Tick extends AbstractProcess {
 //            $count = Application::getApp()->get('db')->createCommand("select count(1) as total from tbl_users")->count();
 //            var_dump($count);
 //        });
-
+        /**
+         * @var Mysql $db;
+         */
         $db = Application::getApp()->get('db');
         while(1) {
             try {
+
+                $data = [
+                    'user_name' => '李四ffffff-'.rand(1,9999),
+                    'sex' => 0,
+                    'birthday' => '1991-07-08',
+                    'phone' => 12345678,
+                    'gmt_create' =>date('Y-m-d H:i:s'),
+                ];
+
+                $query = new \Common\Library\Db\Query($db->getConnection());
+
+
+                //$query->table('tbl_users')->where(['user_id' => 615])->save($data);
+
+                // 批量插入
+                //$query->table('tbl_users')->insertAll([$data]);
+
+                //$query->table('tbl_users')->insertAll([$data]);
+
+                //$query->table('tbl_users')->where(['user_id' => 615])->delete();
+
+//                $list = $query->table('tbl_users')->limit(0,2)->select();
+//                var_dump($list[0]['user_id']);
+
+
+                $list = $query->table('tbl_users')->where(['user_id' => 616])->select();
+                var_dump($list);
+
+                //$this->testOrm($data);
+
+
                 $count = $db->createCommand("select count(1) as total from tbl_users")->count();
+
                 var_dump($count);
+
             }catch (\Throwable $exception) {
-                //var_dump($exception->getMessage());
+                var_dump($exception->getMessage(), $exception->getTraceAsString());
             }
-            sleep(3);
+            sleep(10);
         }
 
         // 创建定时器处理实例
@@ -48,6 +85,55 @@ class Tick extends AbstractProcess {
 //            [TickController::class, 'tickTest'],
 //            ['name'=>'swoolefy-tick']
 //        );
+
+    }
+
+
+    protected function testOrm($data)
+    {
+        $dc = [
+            'default'    =>    'mysql',
+            'connections'    =>    [
+                'mysql'    =>    [
+                    'type' => 'mysql',
+                    // 服务器地址
+                    'hostname'        => '192.168.34.223',
+                    // 数据库名
+                    'database'        => 'bingcool',
+                    // 用户名
+                    'username'        => 'root',
+                    // 密码
+                    'password'        => 'root@galaxy1024',
+                    // 端口
+                    'hostport'        => '3306',
+                    // 连接dsn
+                    'dsn'             => '',
+                    // 数据库连接参数
+                    'params'          => [],
+                    // 数据库编码默认采用utf8
+                    'charset'         => 'utf8mb4',
+                    // 数据库表前缀
+                    'prefix'          => '',
+                    // fetchType
+                    'fetch_type' => \PDO::FETCH_ASSOC,
+                    // 是否需要断线重连
+                    'break_reconnect' => true,
+                    // 是否支持事务嵌套
+                    'support_savepoint' => false,
+                    // sql执行日志条目设置,不能设置太大,适合调试使用,设置为0，则不使用
+                    'spend_log_limit' => 30,
+                    // 是否开启dubug
+                    'debug' => 1
+                ],
+            ]
+        ];
+
+        $manager = new \think\DbManager();
+        $manager->setConfig($dc);
+        $mysql = $manager->connect('mysql');
+        $query1 = new \think\db\Query($mysql);
+
+        $id = $query1->table('tbl_users')->insert($data, true);
 
     }
 
