@@ -50,8 +50,11 @@ class Tick extends AbstractProcess {
 
                 $query = new \Common\Library\Db\Query($db->getConnection());
 
+                // 插入
+               // $query->table('tbl_users')->save($data);
 
-                //$query->table('tbl_users')->where(['user_id' => 615])->save($data);
+                // 更新
+               // $query->table('tbl_users')->where(['user_id' => 615])->save($data);
 
                 // 批量插入
                 //$query->table('tbl_users')->insertAll([$data]);
@@ -60,14 +63,26 @@ class Tick extends AbstractProcess {
 
                 //$query->table('tbl_users')->where(['user_id' => 615])->delete();
 
-//                $list = $query->table('tbl_users')->limit(0,2)->select();
-//                var_dump($list[0]['user_id']);
+//                $list = $query->table('tbl_order')->select();
+//                var_dump($list);
+
+                $sql1 = $query->table('tbl_users a')
+                    ->field([
+                        'a.user_id',
+                        'a.user_name as name'
+                    ])
+                    ->rightJoin('tbl_order as b','a.user_id=b.user_id')
+                    ->page(1,3)->order('a.user_id', 'desc')
+                    ->buildSql();
+
+                $sql2 = $query->newQuery()->table($sql1)->alias('ab')
+                    ->leftJoin('tbl_order as bc','ab.user_id=bc.user_id')
+                    ->select();
+
+                var_dump($sql2);
 
 
-                $list = $query->table('tbl_users')->where(['user_id' => 616])->select();
-                var_dump($list);
-
-                //$this->testOrm($data);
+               // $this->testOrm($data);
 
 
                 $count = $db->createCommand("select count(1) as total from tbl_users")->count();
@@ -77,7 +92,7 @@ class Tick extends AbstractProcess {
             }catch (\Throwable $exception) {
                 var_dump($exception->getMessage(), $exception->getTraceAsString());
             }
-            sleep(10);
+            sleep(5);
         }
 
         // 创建定时器处理实例
@@ -97,13 +112,13 @@ class Tick extends AbstractProcess {
                 'mysql'    =>    [
                     'type' => 'mysql',
                     // 服务器地址
-                    'hostname'        => '192.168.34.223',
+                    'hostname'        => '127.0.0.1',
                     // 数据库名
                     'database'        => 'bingcool',
                     // 用户名
                     'username'        => 'root',
                     // 密码
-                    'password'        => 'root@galaxy1024',
+                    'password'        => '123456',
                     // 端口
                     'hostport'        => '3306',
                     // 连接dsn
@@ -133,7 +148,16 @@ class Tick extends AbstractProcess {
         $mysql = $manager->connect('mysql');
         $query1 = new \think\db\Query($mysql);
 
-        $id = $query1->table('tbl_users')->insert($data, true);
+        //$id = $query1->table('tbl_users')->insert($data, true);
+
+        $result = $query1->table('tbl_users as a')
+            ->rightJoin('tbl_order b','a.user_id=b.user_id')
+            ->page(1,5)->order('a.user_id', 'desc')
+            ->fetchSql()
+            ->select();
+
+        var_dump($result);
+
 
     }
 
