@@ -3,7 +3,6 @@ namespace Test\Model;
 
 use Swoolefy\Core\Application;
 use Common\Library\Db\Model;
-use Common\Library\Db\PDOConnection;
 use Swoolefy\Core\Swfy;
 
 class ClientModel extends Model {
@@ -29,12 +28,14 @@ class ClientModel extends Model {
      */
     public function getConnection()
     {
-//        return Application::getApp()->creatObject('client_db', function ($comName) {
-//            // 通过$this->userId动态获取对应数据库配置
-//                return call_user_func(Swfy::getAppConf()['components']['db']);
-//        });
-
-        return Application::getApp()->get('db');
+        // 通过query获取user对应所在的dbId
+        $dbId = 2;
+        $dbIdKey = 'db-id-'.$dbId;
+        return Application::getApp()->creatObject($dbIdKey, function ($comName) {
+                // 通过$this->userId动态获取对应数据库配置
+                return call_user_func(Swfy::getAppConf()['components']['db']);
+        });
+        //return Application::getApp()->get('db');
     }
 
     /**
@@ -44,18 +45,5 @@ class ClientModel extends Model {
     {
         sleep(1);
         return time();
-    }
-
-    /**
-     * @param $userId
-     * @return mixed
-     */
-    public static function getDbClient($userId)
-    {
-        $key = 'client_db_user_id_'.$userId;
-        return Application::getApp()->creatObject($key, function ($comName) {
-            // 通过$this->userId动态获取对应数据库配置
-            return call_user_func(Swfy::getAppConf()['components']['db']);
-        });
     }
 }
