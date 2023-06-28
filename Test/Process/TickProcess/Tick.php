@@ -1,6 +1,7 @@
 <?php
 namespace Test\Process\TickProcess;
 
+use Common\Library\Db\Facade\Db;
 use Common\Library\Db\Mysql;
 use Common\Library\Db\Query;
 use Swoole\Process;
@@ -10,6 +11,7 @@ use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
 use Swoolefy\Core\Process\ProcessManager;
 use Swoolefy\Core\Timer\TickManager;
+use Test\Module\Order\OrderEntity;
 
 
 class Tick extends AbstractProcess {
@@ -66,27 +68,39 @@ class Tick extends AbstractProcess {
 //                $list = $query->table('tbl_order')->select();
 //                var_dump($list);
 
-                $sql1 = $query->table('tbl_users a')
-                    ->field([
-                        'a.user_id',
-                        'a.user_name as name'
-                    ])
-                    ->rightJoin('tbl_order as b','a.user_id=b.user_id')
-                    ->page(1,3)->order('a.user_id', 'desc')
-                    ->buildSql();
-
-                $sql2 = $query->newQuery()->table($sql1)->alias('ab')
-                    ->leftJoin('tbl_order as bc','ab.user_id=bc.user_id')
-                    ->select();
-
-                var_dump($sql2);
+//                $sql1 = $query->table('tbl_users a')
+//                    ->field([
+//                        'a.user_id',
+//                        'a.user_name as name'
+//                    ])
+//                    ->rightJoin('tbl_order as b','a.user_id=b.user_id')
+//                    ->page(1,3)->order('a.user_id', 'desc')
+//                    ->buildSql();
+//
+//                $sql2 = $query->newQuery()->table($sql1)->alias('ab')
+//                    ->leftJoin('tbl_order as bc','ab.user_id=bc.user_id')
+//                    ->select();
+//
+//                var_dump($sql2);
 
 
                // $this->testOrm($data);
 
 
-                $count = $db->createCommand("select count(1) as total from tbl_users")->count();
+                $order = (new OrderEntity(10000))->newQuery()->table('tbl_users')->count();
 
+                var_dump($order);
+
+
+                $count = $query->newQuery()->table('tbl_users')->count();
+
+                var_dump($count);
+
+                $count = Db::connect('db')->table('tbl_users')->count();
+
+                var_dump($count);
+
+                $count = Db::connect('db')->query('select count(1) as total from tbl_order');
                 var_dump($count);
 
             }catch (\Throwable $exception) {

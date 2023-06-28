@@ -26,6 +26,9 @@ return [
         ]
     ],
 
+    // default_db
+    'default_db' => 'db',
+
     // 组件
     'components' => [
         // 用户行为记录的日志
