@@ -1,6 +1,7 @@
 <?php
 namespace Test\Process\TickProcess;
 
+use Common\Library\Db\Collection;
 use Swoole\Process;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
@@ -22,10 +23,19 @@ class Tick extends AbstractProcess {
 
         var_dump('This is process tick, class='.__CLASS__);
         // 创建定时器处理实例
-        TickManager::getInstance()->tickTimer(3000,
-            [TickController::class, 'tickTest'],
-            ['name'=>'swoolefy-tick']
-        );
+//        TickManager::getInstance()->tickTimer(3000,
+//            [TickController::class, 'tickTest'],
+//            ['name'=>'swoolefy-tick']
+//        );
+
+        $arr = [
+            ['name' => 'bingcool','user_id' => 23],
+            ['name' => 'bingcool2222','user_id' => 30],
+        ];
+
+        $colection = new Collection($arr);
+        $list = $colection->toArray();
+        var_dump($list);
     }
 
     public function onReceive($str, ...$args)
