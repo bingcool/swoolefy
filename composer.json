@@ -42,12 +42,6 @@
             "Swoolefy\\": "src/"
         }
     },
-    "repositories": [
-        {
-            "type": "path",
-            "url": "../library"
-        }
-    ],
     "require-dev": {
         "kwn/php-rdkafka-stubs": "@dev",
         "swoole/ide-helper": "@dev"
