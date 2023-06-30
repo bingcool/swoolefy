@@ -83,9 +83,13 @@ class ObjectController extends BController
     {
         $list = new OrderList();
         $list->setOrderStatus(1);
-        $list->setOrderId(1687358116);
-        $list->find();
-
+        $list->setOrderId(1687344505);
+        $result = $list->find();
+        $count = $list->total();
+        $this->returnJson([
+            'total' => $count,
+            'list' => $result
+        ]);
     }
 
 }
