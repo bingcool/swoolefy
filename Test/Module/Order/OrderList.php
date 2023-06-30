@@ -1,7 +1,8 @@
 <?php
 namespace Test\Module\Order;
 
-use Common\Library\Db\SqlBuilder;
+use Test\Library\ListItemFormatter;
+use Common\Library\Db\Query;
 use Test\Library\ListObject;
 
 class OrderList extends ListObject
@@ -18,18 +19,8 @@ class OrderList extends ListObject
 
     public function __construct()
     {
-        $this->initFormatter();
+        parent::__construct();
     }
-
-
-    public function initFormatter()
-    {
-        if (!$this->formatter) {
-            $this->formatter = new OrderFormatter();
-        }
-        return $this->formatter;
-    }
-
 
     public function setOrderId(int|array $orderId)
     {
@@ -63,44 +54,58 @@ class OrderList extends ListObject
         $this->orderStatus = $status;
     }
 
-    public function buildParams(): array
+    protected function buildFormatter(): ?ListItemFormatter
     {
-        $sql = '';
-        $params = [];
+        if (!$this->formatter) {
+            return new OrderFormatter();
+        }
+        return null;
+    }
+
+    protected function buildQuery(): Query
+    {
+        return (new OrderEntity(11111))->newQuery()->table('tbl_order');
+    }
+
+    protected function buildParams()
+    {
+        if ($this->hadBuildParams) {
+            return;
+        }
+        $this->hadBuildParams = true;
 
         if (!empty($this->orderId)) {
-            SqlBuilder::buildIntWhere($this->alias, 'order_id', $this->orderId, $sql, $params);
+            $this->query->whereIn('order_id', $this->orderId);
         }
 
         if (!empty($this->userId)) {
-            SqlBuilder::buildIntWhere($this->alias, 'user_id', $this->userId, $sql, $params);
+            $this->query->whereIn('user_id', $this->userId);
         }
 
         if (!empty($this->address)) {
-            SqlBuilder::buildLike($this->alias, 'address', $this->address, $sql, $params);
+            $this->query->where('address', $this->address);
         }
 
         if (!empty($this->orderStatus)) {
-            SqlBuilder::buildEqualWhere($this->alias, 'order_status', $this->orderStatus, $sql, $params);
+            $this->query->where('order_status', $this->orderStatus);
         }
-
-        return [$sql, $params];
     }
 
     public function total(): int
     {
-        return 0;
+        $this->buildParams();
+        return $this->query->count();
     }
 
     public function find()
     {
-        list($whereSql, $params) = $this->buildParams();
-        $order = $this->buildOrderBy();
-        $limit = $this->buildLimit();
-        $fields = '*';
-        $sql = "select * from tbl_order as {$this->alias} where {$whereSql} {$order} $limit";
-        $result = (new OrderEntity(10000))->getFields();
-        var_dump($result);
+        $this->buildParams();
+        $this->buildOrderBy();
+        $this->buildLimit();
 
+        $list = $this->query->select()->toArray();
+        return $list;
     }
+
+
 }

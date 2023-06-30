@@ -87,21 +87,31 @@ class Tick extends AbstractProcess {
                // $this->testOrm($data);
 
 
-                $order = (new OrderEntity(10000))->newQuery()->table('tbl_users')->count();
+//                $order = (new OrderEntity(10000))->newQuery()->table('tbl_users')->count();
+//
+//                var_dump($order);
+//
+//
+//                $count = $query->newQuery()->table('tbl_users')->count();
+//
+//                var_dump($count);
+//
+//                $count = Db::connect('db')->table('tbl_users')->count();
+//
+//                var_dump($count);
+//
+//                $count = Db::connect('db')->query('select count(1) as total from tbl_order');
+//                var_dump($count);
 
-                var_dump($order);
+                $result = $query->newQuery()->table('tbl_order')->where('order_id',1687344503)->field(['user_id' => 'id'])->cursor();
 
+                foreach ($result as $item) {
+                    var_dump($item);
+                    break;
+                }
 
-                $count = $query->newQuery()->table('tbl_users')->count();
-
-                var_dump($count);
-
-                $count = Db::connect('db')->table('tbl_users')->count();
-
-                var_dump($count);
-
-                $count = Db::connect('db')->query('select count(1) as total from tbl_order');
-                var_dump($count);
+//                $order = OrderEntity::where('order_id', '=', 1687344503)->find();
+//                var_dump($order);
 
             }catch (\Throwable $exception) {
                 var_dump($exception->getMessage(), $exception->getTraceAsString());

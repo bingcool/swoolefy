@@ -1,6 +1,7 @@
 <?php
 namespace Test\Library;
 
+use Common\Library\Db\Query;
 use Swoolefy\Exception\SystemException;
 
 abstract class ListObject
@@ -18,7 +19,7 @@ abstract class ListObject
     /**
      * @var array
      */
-    protected $multiBrderBy = [];
+    protected $multiOrderBy = [];
 
     /**
      * @var bool
@@ -31,9 +32,25 @@ abstract class ListObject
     protected $isEnablePage = false;
 
     /**
-     * @var
+     * @var ListItemFormatter
      */
     protected $formatter;
+
+    /**
+     * @var Query
+     */
+    protected $query;
+
+    /**
+     * @var bool
+     */
+    protected $hadBuildParams = false;
+
+    public function __construct()
+    {
+        $this->query = $this->buildQuery();
+        $this->formatter = $this->buildFormatter();
+    }
 
     /**
      * @param int $pageSize
@@ -91,7 +108,7 @@ abstract class ListObject
                 break;
         }
 
-        $this->multiBrderBy[] = "{$orderByField} {$orderSort}";
+        $this->multiOrderBy[$orderByField] = "{$orderSort}";
     }
 
     /**
@@ -99,12 +116,9 @@ abstract class ListObject
      */
     public function buildOrderBy()
     {
-        $orderBySql = '';
-        if (!empty($this->multiBrderBy)) {
-            $orderBySql = 'ORDER BY '.implode(',', $this->multiBrderBy);
+        if (!empty($this->multiOrderBy)) {
+            $this->query->order($this->multiOrderBy);
         }
-
-        return $orderBySql;
     }
 
     /**
@@ -112,29 +126,29 @@ abstract class ListObject
      */
     protected function buildLimit()
     {
-        $limitSql = '';
-
         if (!empty($this->pageSize) && $this->isEnablePage) {
-            if (!is_null($this->offset) && (int) $this->offset > 0 ) {
-                $limitSql = " LIMIT {$this->pageSize} OFFSET {$this->offset}";
-            } else {
-                $limitSql = " LIMIT {$this->pageSize}";
-            }
+            $this->query->limit($this->offset, $this->pageSize);
         }
-        return $limitSql;
     }
 
     /**
      * @return mixed
      */
-    public function getFormatter()
+    public function getFormatter(): ?ListItemFormatter
     {
         return $this->formatter;
     }
 
-    abstract public function initFormatter();
+    public function getQuery(): ?Query
+    {
+        return $this->query;
+    }
 
-    abstract public function buildParams(): array;
+    abstract protected function buildFormatter(): ?ListItemFormatter;
+
+    abstract protected function buildQuery(): ?Query;
+
+    abstract protected function buildParams();
 
     abstract public function total(): int;
 
