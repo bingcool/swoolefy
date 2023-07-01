@@ -11,10 +11,8 @@
 
 namespace Swoolefy\Tcp;
 
-use Swoolefy\Core\Swfy;
 use Swoolefy\Core\EventApp;
 use Swoolefy\Core\BaseServer;
-use Swoolefy\Core\EventController;
 
 abstract class TcpServer extends BaseServer
 {
@@ -131,7 +129,7 @@ abstract class TcpServer extends BaseServer
          */
         $this->tcpServer->on('connect', function (\Swoole\Server $server, $fd) {
             try {
-                (new EventApp())->registerApp(function (EventController $event) use ($server, $fd) {
+                (new EventApp())->registerApp(function () use ($server, $fd) {
                     static::onConnect($server, $fd);
                 });
             } catch (\Throwable $e) {
@@ -194,7 +192,7 @@ abstract class TcpServer extends BaseServer
          */
         $this->tcpServer->on('finish', function (\Swoole\Server $server, $task_id, $data) {
             try {
-                (new EventApp())->registerApp(function (EventController $event) use ($server, $task_id, $data) {
+                (new EventApp())->registerApp(function () use ($server, $task_id, $data) {
                     static::onFinish($server, $task_id, $data);
                 });
                 return true;
@@ -225,7 +223,7 @@ abstract class TcpServer extends BaseServer
                 if (parent::isPackLength()) {
                     $this->Pack->destroy();
                 }
-                (new EventApp())->registerApp(function (EventController $event) use ($server, $fd) {
+                (new EventApp())->registerApp(function () use ($server, $fd) {
                     static::onClose($server, $fd);
                 });
             } catch (\Throwable $e) {
@@ -239,7 +237,7 @@ abstract class TcpServer extends BaseServer
         $this->tcpServer->on('WorkerStop', function (\Swoole\Server $server, $worker_id) {
             \Swoole\Coroutine::create(function () use ($server, $worker_id) {
                 try {
-                    (new EventApp())->registerApp(function (EventController $event) use ($server, $worker_id) {
+                    (new EventApp())->registerApp(function () use ($server, $worker_id) {
                         $this->startCtrl->workerStop($server, $worker_id);
                     });
                 } catch (\Throwable $e) {
@@ -254,7 +252,7 @@ abstract class TcpServer extends BaseServer
         $this->tcpServer->on('WorkerExit', function (\Swoole\Server $server, $worker_id) {
             \Swoole\Coroutine::create(function () use ($server, $worker_id) {
                 try {
-                    (new EventApp())->registerApp(function (EventController $event) use ($server, $worker_id) {
+                    (new EventApp())->registerApp(function () use ($server, $worker_id) {
                         $this->startCtrl->workerExit($server, $worker_id);
                     });
                 } catch (\Throwable $e) {

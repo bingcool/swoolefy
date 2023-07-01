@@ -16,7 +16,6 @@ use Simps\MQTT\Protocol;
 use Simps\MQTT\Protocol\Types;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\EventApp;
-use Swoolefy\Core\EventController;
 use Swoolefy\Core\Swfy;
 use Simps\MQTT\Hex\ReasonCode;
 
@@ -180,7 +179,7 @@ abstract class MqttServer extends BaseServer
          */
         $this->mqttServer->on('finish', function (\Swoole\Server $server, $task_id, $data) {
             try {
-                (new EventApp())->registerApp(function (EventController $event) use ($server, $task_id, $data) {
+                (new EventApp())->registerApp(function () use ($server, $task_id, $data) {
                     static::onFinish($server, $task_id, $data);
                 });
                 return true;
@@ -194,7 +193,7 @@ abstract class MqttServer extends BaseServer
          */
         $this->mqttServer->on('pipeMessage', function (\Swoole\Server $server, $from_worker_id, $message) {
             try {
-                (new EventApp())->registerApp(function (EventController $event) use ($server, $from_worker_id, $message) {
+                (new EventApp())->registerApp(function () use ($server, $from_worker_id, $message) {
                     static::onPipeMessage($server, $from_worker_id, $message);
                 });
                 return true;
@@ -208,7 +207,7 @@ abstract class MqttServer extends BaseServer
          */
         $this->mqttServer->on('close', function (\Swoole\Server $server, $fd, $reactorId) {
             try {
-                (new EventApp())->registerApp(function (EventController $event) use ($server, $fd) {
+                (new EventApp())->registerApp(function () use ($server, $fd) {
                     static::onClose($server, $fd);
                 });
             } catch (\Throwable $e) {
@@ -222,7 +221,7 @@ abstract class MqttServer extends BaseServer
         $this->mqttServer->on('WorkerStop', function (\Swoole\Server $server, $worker_id) {
             \Swoole\Coroutine::create(function () use ($server, $worker_id) {
                 try {
-                    (new EventApp())->registerApp(function (EventController $event) use ($server, $worker_id) {
+                    (new EventApp())->registerApp(function () use ($server, $worker_id) {
                         $this->startCtrl->workerStop($server, $worker_id);
                     });
                 } catch (\Throwable $e) {
@@ -237,7 +236,7 @@ abstract class MqttServer extends BaseServer
         $this->mqttServer->on('WorkerExit', function (\Swoole\Server $server, $worker_id) {
             \Swoole\Coroutine::create(function () use ($server, $worker_id) {
                 try {
-                    (new EventApp())->registerApp(function (EventController $event) use ($server, $worker_id) {
+                    (new EventApp())->registerApp(function () use ($server, $worker_id) {
                         $this->startCtrl->workerExit($server, $worker_id);
                     });
                 } catch (\Throwable $e) {

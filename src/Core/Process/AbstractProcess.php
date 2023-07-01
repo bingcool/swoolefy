@@ -15,7 +15,6 @@ use Swoole\Process;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\BaseServer;
 use Swoole\Coroutine\Channel;
-use Swoolefy\Core\EventController;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Exception\SystemException;
@@ -314,7 +313,7 @@ abstract class AbstractProcess
             \Swoole\Coroutine::create(function () {
                 try {
                     $this->runtimeCoroutineWait();
-                    (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $event) {
+                    (new \Swoolefy\Core\EventApp)->registerApp(function () {
                         $this->onShutDown();
                     });
                 } catch (\Throwable $throwable) {

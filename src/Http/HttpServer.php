@@ -11,12 +11,10 @@
 
 namespace Swoolefy\Http;
 
-use Swoolefy\Core\Application;
 use Swoolefy\Core\EventApp;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoolefy\Core\BaseServer;
-use Swoolefy\Core\EventController;
 
 abstract class HttpServer extends BaseServer
 {
@@ -167,7 +165,7 @@ abstract class HttpServer extends BaseServer
          */
         $this->webServer->on('finish', function (\Swoole\Http\Server $server, $task_id, $data) {
             try {
-                (new EventApp())->registerApp(function (EventController $event) use ($server, $task_id, $data) {
+                (new EventApp())->registerApp(function () use ($server, $task_id, $data) {
                     static::onFinish($server, $task_id, $data);
                 });
                 return true;
@@ -181,7 +179,7 @@ abstract class HttpServer extends BaseServer
          */
         $this->webServer->on('pipeMessage', function (\Swoole\Http\Server $server, $from_worker_id, $message) {
             try {
-                (new EventApp())->registerApp(function (EventController $event) use ($server, $from_worker_id, $message) {
+                (new EventApp())->registerApp(function () use ($server, $from_worker_id, $message) {
                     static::onPipeMessage($server, $from_worker_id, $message);
                 });
                 return true;
@@ -211,7 +209,7 @@ abstract class HttpServer extends BaseServer
         $this->webServer->on('WorkerExit', function (\Swoole\Http\Server $server, $worker_id) {
             \Swoole\Coroutine::create(function () use ($server, $worker_id) {
                 try {
-                    (new EventApp())->registerApp(function (EventController $event) use ($server, $worker_id) {
+                    (new EventApp())->registerApp(function () use ($server, $worker_id) {
                         $this->startCtrl->workerExit($server, $worker_id);
                     });
                 } catch (\Throwable $e) {
