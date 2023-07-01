@@ -40,7 +40,12 @@ return [
         },
     ],
 
+    '/index/testLog' => [
+        'dispatch_route' => [\Test\Controller\IndexController::class, 'testLog'],
+    ],
+
     '/token/jwt' => [
         'dispatch_route' => [\Test\Controller\TokenController::class, 'jwt'],
-    ]
+    ],
+    
 ];

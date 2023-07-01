@@ -1,8 +1,11 @@
 <?php
+
 namespace Test\Process\TestProcess;
 
+use Swoolefy\Core\App;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\Coroutine\GoWaitGroup;
 use Swoolefy\Core\Process\AbstractProcess;
 
 class Test extends AbstractProcess

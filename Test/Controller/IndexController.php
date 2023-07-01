@@ -1,10 +1,10 @@
 <?php
 namespace Test\Controller;
 
-use Swoolefy\Core\App;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\EventController;
+use Swoolefy\Core\Log\Formatter\LineFormatter;
 use Swoolefy\Core\Log\LogManager;
 
 class IndexController extends BController {
@@ -12,7 +12,7 @@ class IndexController extends BController {
     public function index()
     {
         $log = LogManager::getInstance()->getLogger('log');
-        $log->addInfo('test11111-log-id='.rand(1,1000),true);
+        $log->addInfo('test11111-log-id='.rand(1,1000),true, ['name'=>'bingcoolhuang']);
         Application::getApp()->response->write('<h1>Hello, Welcome to Swoolefy Framework! <h1>');
     }
 
@@ -22,19 +22,24 @@ class IndexController extends BController {
         /**
          * @var \Swoolefy\Util\Log $log
          */
-        $log = Application::getApp()->log;
-        $log->addInfo('test-log-id='.rand(1,1000),true, ['name'=>'bincool','sex'=>1,'address'=>'shenzhen']);
+        $log = Application::getApp()->get('log');
+        $formatter = new LineFormatter("%message%\n");
+        $log->setFormatter($formatter);
+        $log->setLogFilePath($log->getLogFilePath());
+        $log->addInfo(['name' => 'bingcool','address'=>'深圳'],true, ['name'=>'bincool','sex'=>1,'address'=>'shenzhen']);
         Application::getApp()->afterRequest([$this, 'afterSave']);
+
+
+        LogManager::getInstance()->getLogger('sql_log')->addInfo(['name' => 'bingcoolcccccccccccccccccccccccccc','address'=>'深圳']);
 
         $this->returnJson([
             'Controller' => $this->getControllerId(),
-            'Action' => $this->getActionId()
+            'Action' => $this->getActionId().'-'.rand(1,1000)
         ]);
     }
-
     public function afterSave()
     {
-        var_dump(__FUNCTION__);
+
     }
 
     public function testLog1()
@@ -65,7 +70,7 @@ class IndexController extends BController {
         $rowCount = $db->getNumRows();
 
         // 创建一个协助程单例
-        goApp(function (EventController $event) use($rowCount) {
+        goApp(function () use($rowCount) {
             /**
              * @var \Common\Library\Db\Mysql $db
              */
@@ -96,8 +101,7 @@ class IndexController extends BController {
          */
         $db = Application::getApp()->get('db');
         $count = $db->createCommand("select count(1) as total from tbl_users")->count();
-        if($count)
-        {
+        if($count) {
             $list = $db->createCommand('select * from tbl_users')->queryAll();
         }
         $db1 = Application::getApp()->get('db');
@@ -165,7 +169,7 @@ class IndexController extends BController {
             $db->commit();
 
 
-            goApp(function(EventController $event) {
+            goApp(function() {
                 /**
                  * @var \Common\Library\Db\Mysql $db
                  */
@@ -227,7 +231,7 @@ class IndexController extends BController {
                ws.onmessage = function (evt) 
                { 
                   var received_msg = evt.data;
-                  alert("数据已接收...");
+                  alert("数据已接收，返回的数据:" + received_msg);
                };
                 
                ws.onclose = function()

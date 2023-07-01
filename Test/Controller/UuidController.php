@@ -10,6 +10,6 @@ class UuidController extends BController
     {
         $redis = Application::getApp()->get('redis')->getObject();
         $ids   = \Common\Library\Uuid\UuidManager::getInstance()->getIncrIds($redis,500);
-        dump($ids);
+        var_dump($ids);
     }
 }

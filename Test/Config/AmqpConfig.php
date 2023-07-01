@@ -38,8 +38,9 @@ class AmqpConfig {
                 'consumer_tag' => 'consumer' // 消费标志
             ],
 
-            // 延迟队列
+            // 死信队列实现延迟队列
             AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_ADD_DELAY => [
+                // 定义死信队列
                 'type' => AMQPExchangeType::DIRECT,
                 'binding_key' => '', // binding key
                 'routing_key' => '', //路由key
@@ -49,10 +50,10 @@ class AmqpConfig {
                 'auto_delete' => false, //通道关闭后是否删除队列
                 'consumer_tag' => 'consumer', // 消费标志
                 'arguments' => [
-                    // 定义死信队列
+                    // 延迟队列
                     'x-dead-letter-exchange' => AmqpConfig::AMQP_EXCHANGE_DIRECT_ORDER, //在同一个交换机下，这个不要改变
-                    'x-dead-letter-queue'    => AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_ADD_DELAY.'_dead',
-                    'x-dead-letter-routing-key' => AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_ADD_DELAY.'_dead', // 死信队列binding key
+                    'x-dead-letter-queue'    => AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_ADD_DELAY.'_dead', // 延迟队列名称，一定时间没有被消费，消息将转发到此队列
+                    'x-dead-letter-routing-key' => AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_ADD_DELAY.'_dead', // 队列binding key
                     'x-message-ttl' => 3 * 1000
                 ]
             ],
@@ -144,10 +145,10 @@ class AmqpConfig {
                 'auto_delete' => false, //通道关闭后是否删除队列
                 'consumer_tag' => 'consumeFanout1', // 消费标志
                 'arguments' => [
-                    // 定义死信队列
+                    // 定义延迟队列
                     'x-dead-letter-exchange' => AmqpConfig::AMQP_EXCHANGE_TOPIC_ORDER, //在同一个交换机下，这个不要改变
-                    'x-dead-letter-queue'    => AmqpConfig::AMQP_QUEUE_TOPIC_ORDER_ADD_DELAY.'_dead',
-                    'x-dead-letter-routing-key' => 'orderSaveEvent2-all', // 死信队列binding key
+                    'x-dead-letter-queue'    => AmqpConfig::AMQP_QUEUE_TOPIC_ORDER_ADD_DELAY.'_dead', // 延迟队列名称，一定时间没有被消费，消息将转发到此队列
+                    'x-dead-letter-routing-key' => 'orderSaveEvent2-all', // 队列binding key
                     'x-message-ttl' => 3 * 1000
                 ]
             ],

@@ -9,6 +9,7 @@ class TickController extends ProcessController {
 
     public function tickTest($data, $timer_id)
     {
+        var_dump($data, $timer_id);
         /**
          * @var \Common\Library\Db\Mysql $db
          */
@@ -18,7 +19,7 @@ class TickController extends ProcessController {
 
         $list = \Swoole\Timer::list();
         foreach($list as $timer_id) {
-            //var_dump(\Swoole\Timer::info($timer_id));
+            var_dump(\Swoole\Timer::info($timer_id));
         }
     }
 }

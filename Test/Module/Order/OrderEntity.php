@@ -3,7 +3,7 @@ namespace Test\Module\Order;
 
 use Test\Model\ClientModel;
 
-class OrderObject extends ClientModel 
+class OrderEntity extends ClientModel
 {
     /**
      * @var string
@@ -16,7 +16,13 @@ class OrderObject extends ClientModel
     protected $pk = 'order_id';
 
     /**
-     * OrderObject constructor.
+     * 定义场景来处理不同的事件数据
+     * @var string
+     */
+    protected $scene;
+
+    /**
+     * OrderEntity constructor.
      * @param $userId
      * @param int $id
      */
@@ -25,15 +31,14 @@ class OrderObject extends ClientModel
         parent::__construct($userId, $id);
 
         if($id > 0) {
-            $this->loadByPk($id);
+            $this->loadById($id);
         }
     }
 
     /**
-     * @param $pk
-     * @param mixed ...$params
+     * @param $id
      */
-    public function loadByPk($id, ...$params)
+    public function loadById($id)
     {
         return $this->findOne('order_id=:order_id and user_id=:user_id', [
             ':order_id' => $id,
