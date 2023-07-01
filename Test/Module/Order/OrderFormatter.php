@@ -1,14 +1,18 @@
 <?php
 namespace Test\Module\Order;
 
-use Test\Library\ListItemFormatter;
-use Test\Library\ListObject;
+use Common\Library\Component\ListItemFormatter;
 
 class OrderFormatter extends ListItemFormatter
 {
-
-    protected function format($data)
+    protected function buildMapData($list)
     {
+        $this->mapData['user_info'] = [];
+    }
+
+    protected function format($data): array
+    {
+        $data['bg'] = 'mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm';
         return $data;
     }
 }
