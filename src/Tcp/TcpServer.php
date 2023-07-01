@@ -98,7 +98,9 @@ abstract class TcpServer extends BaseServer
         $this->tcpServer->on('ManagerStart', function (\Swoole\Server $server) {
             try {
                 self::setManagerProcessName(self::$config['manager_process_name']);
-                $this->startCtrl->managerStart($server);
+                (new EventApp())->registerApp(function () use ($server) {
+                    $this->startCtrl->managerStart($server);
+                });
             } catch (\Throwable $e) {
                 self::catchException($e);
             }
@@ -109,7 +111,9 @@ abstract class TcpServer extends BaseServer
          */
         $this->tcpServer->on('ManagerStop', function (\Swoole\Server $server) {
             try {
-                $this->startCtrl->managerStop($server);
+                (new EventApp())->registerApp(function () use ($server) {
+                    $this->startCtrl->managerStop($server);
+                });
             } catch (\Throwable $e) {
                 self::catchException($e);
             }

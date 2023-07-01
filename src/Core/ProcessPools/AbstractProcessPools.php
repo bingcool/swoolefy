@@ -178,7 +178,7 @@ abstract class AbstractProcessPools
                             return;
                         } else {
                             $message = json_decode($msg, true) ?? $msg;
-                            (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) use ($message) {
+                            (new \Swoolefy\Core\EventApp)->registerApp(function () use ($message) {
                                 $this->onReceive($message);
                             });
                         }
@@ -191,7 +191,7 @@ abstract class AbstractProcessPools
 
         $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'php-swoolefy-user-process-worker' . $this->bindWorkerId . ':' . $this->getProcessName(true));
         try {
-            (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
+            (new \Swoolefy\Core\EventApp)->registerApp(function () {
                 $this->init();
                 $this->run();
             });

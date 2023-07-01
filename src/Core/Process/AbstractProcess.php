@@ -141,12 +141,12 @@ abstract class AbstractProcess
                         } else {
                             $message = json_decode($msg, true) ?? $msg;
                             if(!$this->isWorkerService() || $this->enableCoroutine) {
-                                (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) use ($message) {
+                                (new \Swoolefy\Core\EventApp)->registerApp(function () use ($message) {
                                     $this->onReceive($message);
                                 });
                             }else {
                                 \Swoole\Coroutine::create(function () use($message) {
-                                    (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) use ($message) {
+                                    (new \Swoolefy\Core\EventApp)->registerApp(function () use ($message) {
                                         $this->onReceive($message);
                                     });
                                 });
@@ -183,15 +183,10 @@ abstract class AbstractProcess
         static::$processInstance = $this;
 
         try {
-            if(!$this->isWorkerService() || $this->enableCoroutine) {
-                (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
-                    $this->init();
-                    $this->run();
-                });
-            }else {
+            (new \Swoolefy\Core\EventApp)->registerApp(function () {
                 $this->init();
                 $this->run();
-            }
+            });
         } catch (\Throwable $throwable) {
             $this->onHandleException($throwable);
         }

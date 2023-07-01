@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Http;
 
+use Swoolefy\Core\Application;
 use Swoolefy\Core\EventApp;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
@@ -87,7 +88,9 @@ abstract class HttpServer extends BaseServer
         $this->webServer->on('ManagerStart', function (\Swoole\Http\Server $server) {
             try {
                 self::setManagerProcessName(self::$config['manager_process_name']);
-                $this->startCtrl->managerStart($server);
+                (new EventApp())->registerApp(function () use ($server) {
+                    $this->startCtrl->managerStart($server);
+                });
             } catch (\Throwable $e) {
                 self::catchException($e);
             }
@@ -98,7 +101,9 @@ abstract class HttpServer extends BaseServer
          */
         $this->webServer->on('ManagerStop', function (\Swoole\Http\Server $server) {
             try {
-                $this->startCtrl->managerStop($server);
+                (new EventApp())->registerApp(function () use ($server) {
+                    $this->startCtrl->managerStop($server);
+                });
             } catch (\Throwable $e) {
                 self::catchException($e);
             }
@@ -118,6 +123,7 @@ abstract class HttpServer extends BaseServer
             if(isWorkerService()) {
                 return false;
             }
+
             try {
                 parent::beforeHandle();
                 static::onRequest($request, $response);

@@ -88,7 +88,9 @@ abstract class WebsocketServer extends BaseServer
         $this->webServer->on('ManagerStart', function (\Swoole\WebSocket\Server $server) {
             try {
                 self::setManagerProcessName(self::$config['manager_process_name']);
-                $this->startCtrl->managerStart($server);
+                (new EventApp())->registerApp(function () use ($server) {
+                    $this->startCtrl->managerStart($server);
+                });
             } catch (\Throwable $e) {
                 self::catchException($e);
             }
@@ -99,7 +101,9 @@ abstract class WebsocketServer extends BaseServer
          */
         $this->webServer->on('ManagerStop', function (\Swoole\WebSocket\Server $server) {
             try {
-                $this->startCtrl->managerStop($server);
+                (new EventApp())->registerApp(function () use ($server) {
+                    $this->startCtrl->managerStop($server);
+                });
             } catch (\Throwable $e) {
                 self::catchException($e);
             }

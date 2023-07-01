@@ -85,7 +85,9 @@ abstract class UdpServer extends BaseServer
         $this->udpServer->on('ManagerStart', function (Server $server) {
             try {
                 self::setManagerProcessName(self::$config['manager_process_name']);
-                $this->startCtrl->managerStart($server);
+                (new EventApp())->registerApp(function () use ($server) {
+                    $this->startCtrl->managerStart($server);
+                });
             } catch (\Throwable $e) {
                 self::catchException($e);
             }
@@ -96,7 +98,9 @@ abstract class UdpServer extends BaseServer
          */
         $this->udpServer->on('ManagerStop', function (Server $server) {
             try {
-                $this->startCtrl->managerStop($server);
+                (new EventApp())->registerApp(function () use ($server) {
+                    $this->startCtrl->managerStop($server);
+                });
             } catch (\Throwable $e) {
                 self::catchException($e);
             }
