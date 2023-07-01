@@ -15,7 +15,6 @@ use Swoolefy\Core\EventApp;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoolefy\Core\BaseServer;
-use Swoolefy\Core\EventController;
 
 abstract class HttpServer extends BaseServer
 {
