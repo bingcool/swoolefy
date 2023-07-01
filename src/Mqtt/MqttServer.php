@@ -93,7 +93,9 @@ abstract class MqttServer extends BaseServer
         $this->mqttServer->on('ManagerStart', function (\Swoole\Server $server) {
             try {
                 self::setManagerProcessName(self::$config['manager_process_name']);
-                $this->startCtrl->managerStart($server);
+                (new EventApp())->registerApp(function () use ($server) {
+                    $this->startCtrl->managerStart($server);
+                });
             } catch (\Throwable $e) {
                 self::catchException($e);
             }
@@ -104,7 +106,9 @@ abstract class MqttServer extends BaseServer
          */
         $this->mqttServer->on('ManagerStop', function (\Swoole\Server $server) {
             try {
-                $this->startCtrl->managerStop($server);
+                (new EventApp())->registerApp(function () use ($server) {
+                    $this->startCtrl->managerStop($server);
+                });
             } catch (\Throwable $e) {
                 self::catchException($e);
             }
@@ -190,7 +194,7 @@ abstract class MqttServer extends BaseServer
          */
         $this->mqttServer->on('pipeMessage', function (\Swoole\Server $server, $from_worker_id, $message) {
             try {
-                (new EventApp())->registerApp(function (EventController $event) use ($server, $from_worker_id, $message) {
+                (new EventApp())->registerApp(function () use ($server, $from_worker_id, $message) {
                     static::onPipeMessage($server, $from_worker_id, $message);
                 });
                 return true;
@@ -204,7 +208,7 @@ abstract class MqttServer extends BaseServer
          */
         $this->mqttServer->on('close', function (\Swoole\Server $server, $fd, $reactorId) {
             try {
-                (new EventApp())->registerApp(function (EventController $event) use ($server, $fd) {
+                (new EventApp())->registerApp(function () use ($server, $fd) {
                     static::onClose($server, $fd);
                 });
             } catch (\Throwable $e) {
@@ -218,7 +222,7 @@ abstract class MqttServer extends BaseServer
         $this->mqttServer->on('WorkerStop', function (\Swoole\Server $server, $worker_id) {
             \Swoole\Coroutine::create(function () use ($server, $worker_id) {
                 try {
-                    (new EventApp())->registerApp(function (EventController $event) use ($server, $worker_id) {
+                    (new EventApp())->registerApp(function () use ($server, $worker_id) {
                         $this->startCtrl->workerStop($server, $worker_id);
                     });
                 } catch (\Throwable $e) {
@@ -233,7 +237,7 @@ abstract class MqttServer extends BaseServer
         $this->mqttServer->on('WorkerExit', function (\Swoole\Server $server, $worker_id) {
             \Swoole\Coroutine::create(function () use ($server, $worker_id) {
                 try {
-                    (new EventApp())->registerApp(function (EventController $event) use ($server, $worker_id) {
+                    (new EventApp())->registerApp(function () use ($server, $worker_id) {
                         $this->startCtrl->workerExit($server, $worker_id);
                     });
                 } catch (\Throwable $e) {

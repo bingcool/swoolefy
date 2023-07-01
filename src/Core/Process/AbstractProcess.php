@@ -15,7 +15,6 @@ use Swoole\Process;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\BaseServer;
 use Swoole\Coroutine\Channel;
-use Swoolefy\Core\EventController;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Exception\SystemException;
@@ -141,12 +140,12 @@ abstract class AbstractProcess
                         } else {
                             $message = json_decode($msg, true) ?? $msg;
                             if(!$this->isWorkerService() || $this->enableCoroutine) {
-                                (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) use ($message) {
+                                (new \Swoolefy\Core\EventApp)->registerApp(function () use ($message) {
                                     $this->onReceive($message);
                                 });
                             }else {
                                 \Swoole\Coroutine::create(function () use($message) {
-                                    (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) use ($message) {
+                                    (new \Swoolefy\Core\EventApp)->registerApp(function () use ($message) {
                                         $this->onReceive($message);
                                     });
                                 });
@@ -183,15 +182,10 @@ abstract class AbstractProcess
         static::$processInstance = $this;
 
         try {
-            if(!$this->isWorkerService() || $this->enableCoroutine) {
-                (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
-                    $this->init();
-                    $this->run();
-                });
-            }else {
+            (new \Swoolefy\Core\EventApp)->registerApp(function () {
                 $this->init();
                 $this->run();
-            }
+            });
         } catch (\Throwable $throwable) {
             $this->onHandleException($throwable);
         }
@@ -278,7 +272,7 @@ abstract class AbstractProcess
      * @param mixed $msg
      * @param int $worker_id
      * @return bool
-     * @throws \Exception
+     * @throws SystemException
      */
     public function sendMessage($msg = null, int $worker_id = 0)
     {
@@ -319,7 +313,7 @@ abstract class AbstractProcess
             \Swoole\Coroutine::create(function () {
                 try {
                     $this->runtimeCoroutineWait();
-                    (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $event) {
+                    (new \Swoolefy\Core\EventApp)->registerApp(function () {
                         $this->onShutDown();
                     });
                 } catch (\Throwable $throwable) {
