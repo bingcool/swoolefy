@@ -50,7 +50,6 @@ abstract class HttpServer extends BaseServer
     /**
      * __construct
      * @param array $config
-     * @throws \Exception
      */
     public function __construct(array $config = [])
     {
@@ -88,7 +87,9 @@ abstract class HttpServer extends BaseServer
         $this->webServer->on('ManagerStart', function (\Swoole\Http\Server $server) {
             try {
                 self::setManagerProcessName(self::$config['manager_process_name']);
-                $this->startCtrl->managerStart($server);
+                (new EventApp())->registerApp(function () use ($server) {
+                    $this->startCtrl->managerStart($server);
+                });
             } catch (\Throwable $e) {
                 self::catchException($e);
             }
@@ -99,7 +100,9 @@ abstract class HttpServer extends BaseServer
          */
         $this->webServer->on('ManagerStop', function (\Swoole\Http\Server $server) {
             try {
-                $this->startCtrl->managerStop($server);
+                (new EventApp())->registerApp(function () use ($server) {
+                    $this->startCtrl->managerStop($server);
+                });
             } catch (\Throwable $e) {
                 self::catchException($e);
             }
@@ -119,6 +122,7 @@ abstract class HttpServer extends BaseServer
             if(isWorkerService()) {
                 return false;
             }
+
             try {
                 parent::beforeHandle();
                 static::onRequest($request, $response);
@@ -162,7 +166,7 @@ abstract class HttpServer extends BaseServer
          */
         $this->webServer->on('finish', function (\Swoole\Http\Server $server, $task_id, $data) {
             try {
-                (new EventApp())->registerApp(function (EventController $event) use ($server, $task_id, $data) {
+                (new EventApp())->registerApp(function () use ($server, $task_id, $data) {
                     static::onFinish($server, $task_id, $data);
                 });
                 return true;
@@ -176,7 +180,7 @@ abstract class HttpServer extends BaseServer
          */
         $this->webServer->on('pipeMessage', function (\Swoole\Http\Server $server, $from_worker_id, $message) {
             try {
-                (new EventApp())->registerApp(function (EventController $event) use ($server, $from_worker_id, $message) {
+                (new EventApp())->registerApp(function () use ($server, $from_worker_id, $message) {
                     static::onPipeMessage($server, $from_worker_id, $message);
                 });
                 return true;
@@ -206,7 +210,7 @@ abstract class HttpServer extends BaseServer
         $this->webServer->on('WorkerExit', function (\Swoole\Http\Server $server, $worker_id) {
             \Swoole\Coroutine::create(function () use ($server, $worker_id) {
                 try {
-                    (new EventApp())->registerApp(function (EventController $event) use ($server, $worker_id) {
+                    (new EventApp())->registerApp(function () use ($server, $worker_id) {
                         $this->startCtrl->workerExit($server, $worker_id);
                     });
                 } catch (\Throwable $e) {

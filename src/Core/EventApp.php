@@ -77,24 +77,20 @@ class EventApp
     public function registerApp(\Closure|string $class, array $args = []): self
     {
         if ($class instanceof \Closure) {
-            try {
-                $cid = \Swoole\Coroutine::getCid();
-                if(Application::issetApp($cid)) {
-                    $app = Application::getApp();
-                    if ($app instanceof EventController) {
-                        $this->eventApp = $app;
-                    }else {
-                        $this->eventApp = new EventController(...$args);
-                    }
+            $cid = \Swoole\Coroutine::getCid();
+            if(Application::issetApp($cid)) {
+                $app = Application::getApp();
+                if ($app instanceof EventController) {
+                    $this->eventApp = $app;
                 }else {
                     $this->eventApp = new EventController(...$args);
                 }
-
-                call_user_func($class, $this->eventApp);
-
-            } catch (\Exception | \Throwable $throwable) {
-                BaseServer::catchException($throwable);
+            }else {
+                $this->eventApp = new EventController(...$args);
             }
+
+            call_user_func($class, $this->eventApp);
+
         } else {
             do {
                 if (is_string($class)) {

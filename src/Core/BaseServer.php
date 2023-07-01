@@ -198,7 +198,7 @@ class BaseServer
             self::catchException($throwable);
         }
 
-        (new EventApp())->registerApp(function (EventController $event) use ($server, $workerId) {
+        (new EventApp())->registerApp(function () use ($server, $workerId) {
             $this->startCtrl->workerStart($server, $workerId);
             static::onWorkerStart($server, $workerId);
         });

@@ -15,7 +15,6 @@ use Swoole\Event;
 use Swoole\Process;
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\Crontab\CrontabManager;
-use Swoolefy\Core\EventController;
 use Swoolefy\Exception\WorkerException;
 use Swoolefy\Worker\Dto\MessageDto;
 
@@ -380,7 +379,7 @@ abstract class AbstractBaseWorker
                             if ($actionHandleFlag === false) {
                                 \Swoole\Coroutine::create(function () use ($msg, $fromProcessName, $fromProcessWorkerId, $isProxyByMaster) {
                                     try {
-                                        (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) use($msg, $fromProcessName, $fromProcessWorkerId, $isProxyByMaster) {
+                                        (new \Swoolefy\Core\EventApp)->registerApp(function () use($msg, $fromProcessName, $fromProcessWorkerId, $isProxyByMaster) {
                                             $this->onPipeMsg($msg, $fromProcessName, $fromProcessWorkerId, $isProxyByMaster);
                                         });
 
@@ -460,7 +459,7 @@ abstract class AbstractBaseWorker
 
             $this->writeStartFormatInfo();
 
-            (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
+            (new \Swoolefy\Core\EventApp)->registerApp(function () {
                 $targetAction = 'init';
                 if (method_exists(static::class, $targetAction)) {
                     $this->{$targetAction}();
@@ -1151,7 +1150,7 @@ abstract class AbstractBaseWorker
             $timerId = \Swoole\Timer::after($waitTime * 1000, function () use ($pid) {
                 try {
                     $this->runtimeCoroutineWait($this->cycleTimes);
-                    (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
+                    (new \Swoolefy\Core\EventApp)->registerApp(function () {
                         $this->onShutDown();
                     });
                 } catch (\Throwable $throwable) {
@@ -1205,7 +1204,7 @@ abstract class AbstractBaseWorker
             $this->exitTimerId = \Swoole\Timer::after($waitTime * 1000, function () use ($pid) {
                 try {
                     $this->runtimeCoroutineWait($this->cycleTimes);
-                    (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
+                    (new \Swoolefy\Core\EventApp)->registerApp(function () {
                         $this->onShutDown();
                     });
                 } catch (\Throwable $throwable) {
