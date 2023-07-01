@@ -16,7 +16,6 @@ use Simps\MQTT\Protocol;
 use Simps\MQTT\Protocol\Types;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\EventApp;
-use Swoolefy\Core\EventController;
 use Swoolefy\Core\Swfy;
 use Simps\MQTT\Hex\ReasonCode;
 
@@ -180,7 +179,7 @@ abstract class MqttServer extends BaseServer
          */
         $this->mqttServer->on('finish', function (\Swoole\Server $server, $task_id, $data) {
             try {
-                (new EventApp())->registerApp(function (EventController $event) use ($server, $task_id, $data) {
+                (new EventApp())->registerApp(function () use ($server, $task_id, $data) {
                     static::onFinish($server, $task_id, $data);
                 });
                 return true;

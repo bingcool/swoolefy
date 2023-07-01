@@ -14,7 +14,6 @@ namespace Swoolefy\Udp;
 use Swoole\Server;
 use Swoolefy\Core\EventApp;
 use Swoolefy\Core\BaseServer;
-use Swoolefy\Core\EventController;
 
 abstract class UdpServer extends BaseServer
 {

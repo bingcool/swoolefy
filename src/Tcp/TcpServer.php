@@ -11,10 +11,8 @@
 
 namespace Swoolefy\Tcp;
 
-use Swoolefy\Core\Swfy;
 use Swoolefy\Core\EventApp;
 use Swoolefy\Core\BaseServer;
-use Swoolefy\Core\EventController;
 
 abstract class TcpServer extends BaseServer
 {
