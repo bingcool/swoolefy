@@ -1,9 +1,9 @@
 <?php
 namespace Test\Module\Order;
 
-use Test\Library\ListItemFormatter;
+use Common\Library\Component\ListItemFormatter;
 use Common\Library\Db\Query;
-use Test\Library\ListObject;
+use Common\Library\Component\ListObject;
 
 class OrderList extends ListObject
 {
@@ -91,20 +91,23 @@ class OrderList extends ListObject
         }
     }
 
-    public function total(): int
-    {
-        $this->buildParams();
-        return $this->query->count();
-    }
-
     public function find()
     {
         $this->buildParams();
         $this->buildOrderBy();
         $this->buildLimit();
-
-        $list = $this->query->select()->toArray();
+        $list = $this->query->select();
+        if ( $formatter = $this->getFormatter()) {
+            $formatter->setListData($list);
+            $list = $formatter->result();
+        }
         return $list;
+    }
+
+    public function total(): int
+    {
+        $this->buildParams();
+        return $this->query->count();
     }
 
 

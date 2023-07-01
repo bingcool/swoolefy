@@ -12,6 +12,10 @@ class UserOrderController extends BController
          * @var \Common\Library\Db\Mysql $db
          */
         $db = Application::getApp()->get('db');
+        $count = $db->newQuery()->table('tbl_users')->count();
+
+        var_dump($count);
+
         $count = $db->createCommand("select count(1) as total from tbl_users")->count();
         if($count) {
             $list = $db->createCommand('select * from tbl_users order by user_id desc limit 0, 10')->queryAll();
