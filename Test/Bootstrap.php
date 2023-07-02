@@ -11,6 +11,7 @@
 
 namespace Test;
 
+use Common\Library\Db\Facade\Db;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoolefy\Core\Application;
@@ -21,6 +22,9 @@ class Bootstrap implements BootstrapInterface
 {
     public static function handle(Request $request, Response $response)
     {
+//        $list = Db::table('tbl_users')->where('user_id','=', 203)->select();
+//        var_dump($list);
+
 //        SystemException::throw(
 //            "数据缺失",
 //            ['uid' => 100]

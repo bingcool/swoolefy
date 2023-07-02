@@ -37,7 +37,7 @@ class ObjectController extends BController
              * @var \Test\Module\Order\OrderEntity $this
              */
             $this->onAfterInsert();
-            var_dump('next onAfterInsert');
+            //var_dump('next onAfterInsert');
 
         });
 
