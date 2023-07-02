@@ -26,7 +26,7 @@ class TestTask extends TaskController
         var_dump('Task Process Find Db Result as：');
         print_r($result);
 
-        $cid = \Co::getCid();
+        $cid = \Swoole\Coroutine::getCid();
         $db1 = $this->get('db');
         var_dump("协程Cid={$cid}, Db spl_object_id=".spl_object_id($db).', spl_object_id='.spl_object_id($db1));
 
@@ -35,7 +35,7 @@ class TestTask extends TaskController
             // registerApp闭包里面必须通过这样的组件获取组件实例
             $db  = $this->get('db');
             $db1 = $this->get('db');
-            $cid = \Co::getCid();
+            $cid = \Swoole\Coroutine::getCid();
 
             var_dump("协程1-Cid={$cid}, Db spl_object_id=".spl_object_id($db).', spl_object_id='.spl_object_id($db1));
 
@@ -44,7 +44,7 @@ class TestTask extends TaskController
                 // registerApp闭包里面必须通过这样的组件获取组件实例
                 $db = Application::getApp()->get('db');
                 $db1 = $this->get('db');
-                $cid = \Co::getCid();
+                $cid = \Swoole\Coroutine::getCid();
                 var_dump("协程2-Cid={$cid}, Db spl_object_id=".spl_object_id($db).', spl_object_id='.spl_object_id($db1));
             });
         });
