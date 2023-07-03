@@ -2,10 +2,13 @@
 
 use PhpAmqpLib\Connection\AMQPConnectionConfig;
 use Test\Config\AmqpConfig;
+use Swoolefy\Core\SystemEnv;
 
 return [
 
     'mysql_db' => [
+        // 类型
+        'type' => 'mysql',
         // 服务器地址
         'hostname'        => '127.0.0.1',
         // 数据库名
@@ -33,7 +36,7 @@ return [
         // sql执行日志条目设置,不能设置太大,适合调试使用,设置为0，则不使用
         'spend_log_limit' => 30,
         // 是否开启dubug
-        'debug' => 1
+        'debug' => SystemEnv::isPrdEnv() ? 0 : 1
     ],
 
     'predis' => [
