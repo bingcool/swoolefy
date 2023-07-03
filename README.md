@@ -281,6 +281,8 @@ return [
          // 适配swoole的mysql客户端组件
         'db' => function() {
             $config = [
+                // 类型
+                'type'            => 'mysql',
                 // 地址
                 'hostname'        => '127.0.0.1',
                 // 数据库
