@@ -14,35 +14,23 @@ class ProcessController extends BController
     public function sendTaskWorker()
     {
         // 投递异步任务到task进程
-
         $taskMessageDto = new TaskMessageDto();
         $taskMessageDto->taskClass = \Test\Task\TestTask::class;
         $taskMessageDto->taskAction = 'doRun';
         $taskMessageDto->taskData = ['order_id'=>123456,'user_id'=>10000];
         TaskManager::getInstance()->asyncTask($taskMessageDto);
-
-        try {
-            throw new \Exception('ggggggggg');
-        }catch (\Throwable $throwable) {
-            throw new \Exception('bbbbbbbbbbbbbbbbb');
-        } finally {
-            var_dump('finish');
-        }
-
-       $this->returnJson(['class' => __CLASS__, 'action'=>__FUNCTION__]);
+        $this->returnJson(['class' => __CLASS__, 'action'=>__FUNCTION__]);
     }
 
     /**
      * worker 进程向自定义进程IPC通信
      */
-    public function sendUserWorker()
+    public function sendUserWorker($name = '')
     {
         $processName = 'test';
-
         ProcessManager::getInstance()->writeByProcessName($processName,'hello, Test Process', function ($msg) {
             var_dump($msg);
         });
-
         $this->returnJson(['class' => __CLASS__, 'action'=>__FUNCTION__]);
 
     }

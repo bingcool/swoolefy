@@ -14,7 +14,6 @@ namespace Swoolefy\Udp;
 use Swoole\Server;
 use Swoolefy\Core\EventApp;
 use Swoolefy\Core\BaseServer;
-use Swoolefy\Core\EventController;
 
 abstract class UdpServer extends BaseServer
 {
@@ -85,7 +84,9 @@ abstract class UdpServer extends BaseServer
         $this->udpServer->on('ManagerStart', function (Server $server) {
             try {
                 self::setManagerProcessName(self::$config['manager_process_name']);
-                $this->startCtrl->managerStart($server);
+                (new EventApp())->registerApp(function () use ($server) {
+                    $this->startCtrl->managerStart($server);
+                });
             } catch (\Throwable $e) {
                 self::catchException($e);
             }
@@ -96,7 +97,9 @@ abstract class UdpServer extends BaseServer
          */
         $this->udpServer->on('ManagerStop', function (Server $server) {
             try {
-                $this->startCtrl->managerStop($server);
+                (new EventApp())->registerApp(function () use ($server) {
+                    $this->startCtrl->managerStop($server);
+                });
             } catch (\Throwable $e) {
                 self::catchException($e);
             }
@@ -155,7 +158,7 @@ abstract class UdpServer extends BaseServer
          */
         $this->udpServer->on('finish', function (Server $server, $task_id, $data) {
             try {
-                (new EventApp())->registerApp(function ($event) use ($server, $task_id, $data) {
+                (new EventApp())->registerApp(function () use ($server, $task_id, $data) {
                     static::onFinish($server, $task_id, $data);
                 });
             } catch (\Throwable $e) {
@@ -168,7 +171,7 @@ abstract class UdpServer extends BaseServer
          */
         $this->udpServer->on('pipeMessage', function (Server $server, $from_worker_id, $message) {
             try {
-                (new EventApp())->registerApp(function (EventController $event) use ($server, $from_worker_id, $message) {
+                (new EventApp())->registerApp(function () use ($server, $from_worker_id, $message) {
                     static::onPipeMessage($server, $from_worker_id, $message);
                 });
                 return true;
@@ -183,7 +186,7 @@ abstract class UdpServer extends BaseServer
         $this->udpServer->on('WorkerStop', function (Server $server, $worker_id) {
             \Swoole\Coroutine::create(function () use ($server, $worker_id) {
                 try {
-                    (new EventApp())->registerApp(function (EventController $event) use ($server, $worker_id) {
+                    (new EventApp())->registerApp(function () use ($server, $worker_id) {
                         $this->startCtrl->workerStop($server, $worker_id);
                     });
                 } catch (\Throwable $e) {
@@ -198,7 +201,7 @@ abstract class UdpServer extends BaseServer
         $this->udpServer->on('WorkerExit', function (Server $server, $worker_id) {
             \Swoole\Coroutine::create(function () use ($server, $worker_id) {
                 try {
-                    (new EventApp())->registerApp(function (EventController $event) use ($server, $worker_id) {
+                    (new EventApp())->registerApp(function () use ($server, $worker_id) {
                         $this->startCtrl->workerExit($server, $worker_id);
                     });
                 } catch (\Throwable $e) {

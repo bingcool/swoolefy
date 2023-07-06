@@ -15,7 +15,6 @@ use Swoole\Event;
 use Swoole\Process;
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\Crontab\CrontabManager;
-use Swoolefy\Core\EventController;
 use Swoolefy\Exception\WorkerException;
 use Swoolefy\Worker\Dto\MessageDto;
 

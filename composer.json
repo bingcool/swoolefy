@@ -23,7 +23,7 @@
     "minimum-stability": "dev",
     "require": {
         "php" : "^7.3",
-        "ext-swoole" : ">=4.8.0,<5.0.0",
+        "ext-swoole" : "^4.8",
         "ext-json": "*",
         "psr/log" : "*",
         "ext-pcntl" : "*",
@@ -33,7 +33,7 @@
         "ext-sockets": "*",
         "ext-mbstring": "*",
         "ext-openssl": "*",
-        "dragonmantank/cron-expression": "~3.2.0",
+        "dragonmantank/cron-expression": "~3.3.1",
         "bingcool/library": "^4.8"
     },
     "autoload": {
@@ -46,5 +46,4 @@
         "kwn/php-rdkafka-stubs": "@dev",
         "swoole/ide-helper": "@dev"
     }
-
 }

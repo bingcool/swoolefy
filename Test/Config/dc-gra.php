@@ -1,8 +1,12 @@
 <?php
 
+use Swoolefy\Core\SystemEnv;
+
 return [
 
     'mysql_db' => [
+        // 类型
+        'type' => 'mysql',
         // 服务器地址
         'hostname'        => '127.0.0.1',
         // 数据库名
@@ -30,7 +34,7 @@ return [
         // sql执行日志条目设置,不能设置太大,适合调试使用,设置为0，则不使用
         'spend_log_limit' => 30,
         // 是否开启dubug
-        'debug' => 1
+        'debug' => SystemEnv::isPrdEnv() ? 0 : 1
     ],
 
     'predis' => [
@@ -42,5 +46,31 @@ return [
     'redis' => [
         'host'   => '127.0.0.1',
         'port'   => 6379,
-    ]
+    ],
+
+    'amqp_connection' => [
+        'host_list' => [
+            [
+                'host' => '172.17.0.1',
+                'port' => 5672,
+                'user' => 'admin',
+                'password' => 'admin',
+                'vhost' => 'my_vhost'
+            ]
+        ],
+        'options' => [
+            'is_lazy' => true, //必须设置true
+            'insist' => false,
+            'login_method' => 'AMQPLAIN',
+            'login_response' => '',
+            'locale' => 'en_US',
+            'connection_timeout' => 3.0,
+            'read_write_timeout' => 3.0,
+            'context' => null,
+            'keepalive' => true,
+            'heartbeat' => 10,
+        ]
+    ],
+
+    'kafka_broker_list' => ['127.0.0.1:9092'],
 ];

@@ -110,8 +110,8 @@ class Event extends EventHandler
         }
 
         // 创建产生uuid的定时器
-        $redis = Application::getApp()->get('redis')->getObject();
-        \Common\Library\Uuid\UuidManager::getInstance($redis, 'uuid-key')->tickPreBatchGenerateIds(2,1000);
+        //$redis = Application::getApp()->get('redis')->getObject();
+        //\Common\Library\Uuid\UuidManager::getInstance($redis, 'uuid-key')->tickPreBatchGenerateIds(2,1000);
     }
 
     public function onWorkerStop($server, $worker_id)

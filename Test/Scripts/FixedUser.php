@@ -2,6 +2,7 @@
 
 namespace Test\Scripts;
 
+use Common\Library\Db\Mysql;
 use Swoolefy\Core\Application;
 
 class FixedUser extends \Swoolefy\Script\MainCliScript
@@ -12,8 +13,11 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
             var_dump('CID='.\Swoole\Coroutine::getCid());
             var_dump('Script test');
             sleep(4);
+            /**
+             * @var Mysql $db
+             */
             $db = Application::getApp()->get('db');
-            $result = $db->createCommand('select * from tbl_users limit 1')->queryAll();
+            $result = $db->newQuery()->setDebug()->table('tbl_order')->limit(1)->select();
             var_dump($result);
         }catch (\Throwable $exception) {
             var_dump($exception->getMessage());

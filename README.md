@@ -75,8 +75,8 @@ swoolefy-4.8-lts 版本：
 
 ### bingcool/library 是swoolefy require 内置库，专为swoole协程实现的组件库        
 实现了包括：    
-- [x] Db Mysql Model组件
-- [x] PostgreSql Model组件    
+- [x] Db ORM Model 组件(支持mysql,postSql,sqlite,Oracle)
+- [x] DB Query Builder 链式操作查询组件      
 - [x] Kafka Producer Consumer组件
 - [x] Rabbitmq Queue组件  
 - [x] Rabbitmq Delay Queue 死信延迟队列组件    
@@ -281,6 +281,8 @@ return [
          // 适配swoole的mysql客户端组件
         'db' => function() {
             $config = [
+                // 类型
+                'type'            => 'mysql',
                 // 地址
                 'hostname'        => '127.0.0.1',
                 // 数据库
@@ -398,8 +400,38 @@ class TestController extends BController {
             ':username'=>'bingcool-test',
             ':sex' => 1
         ]);
-        var_dump($numRows)         
-
+        var_dump($numRows)
+        
+        // DB Query查询
+         $db = Application::getApp()->db;
+         $db->newQuery()->table('user')->where([
+            'user_id' => 10000
+         ])->select()
+         
+         // DB 插入单条数据
+         $data = [
+            'username'=>'bingcool-test',
+            'sex' => 1
+         ]
+         $db = Application::getApp()->db;
+         $db->newQuery()->table('user')->insert($data);
+         
+         // DB 插入多条数据
+         $data = 
+         [
+            [
+                'username'=>'bingcool-test1111',
+                'sex' => 1
+            ],
+            [
+                'username'=>'bingcool-test2222',
+                'sex' => 1
+            ]
+         ]
+         $db = Application::getApp()->db;
+         $db->newQuery()->table('user')->insertAll($data);
+         
+         
         // 查询
         $result = $db->createCommand('select * from user where id>:id')->queryOne([':id'=>100]);
         var_dump($result);    

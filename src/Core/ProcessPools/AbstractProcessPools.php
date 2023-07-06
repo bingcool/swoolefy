@@ -15,8 +15,8 @@ use Swoole\Process;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\BaseServer;
 use Swoole\Coroutine\Channel;
-use Swoolefy\Core\EventController;
 use Swoolefy\Core\Table\TableManager;
+use Swoolefy\Exception\SystemException;
 
 abstract class AbstractProcessPools
 {
@@ -178,7 +178,7 @@ abstract class AbstractProcessPools
                             return;
                         } else {
                             $message = json_decode($msg, true) ?? $msg;
-                            (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) use ($message) {
+                            (new \Swoolefy\Core\EventApp)->registerApp(function () use ($message) {
                                 $this->onReceive($message);
                             });
                         }
@@ -191,7 +191,7 @@ abstract class AbstractProcessPools
 
         $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'php-swoolefy-user-process-worker' . $this->bindWorkerId . ':' . $this->getProcessName(true));
         try {
-            (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
+            (new \Swoolefy\Core\EventApp)->registerApp(function () {
                 $this->init();
                 $this->run();
             });
@@ -262,10 +262,10 @@ abstract class AbstractProcessPools
     /**
      * 阻塞写数据
      * worker进程将通过swoole_client_select或者stream_select函数监听获取数数据
-     * @param $msg
-     * @return string
+     * @param string $msg
+     * @return int|false
      */
-    public function write($msg)
+    public function write(string $msg)
     {
         $this->swooleProcess->write($msg);
     }
@@ -282,7 +282,7 @@ abstract class AbstractProcessPools
             \Swoole\Coroutine::create(function () {
                 try {
                     $this->runtimeCoroutineWait();
-                    (new \Swoolefy\Core\EventApp)->registerApp(function (EventController $eventApp) {
+                    (new \Swoolefy\Core\EventApp)->registerApp(function () {
                         $this->onShutDown();
                     });
                 } catch (\Throwable $throwable) {
@@ -330,9 +330,9 @@ abstract class AbstractProcessPools
     /**
      * 对于运行态的协程，还没有执行完的，设置一个再等待时间$re_wait_time
      * @param int $cycle_times 轮询次数
-     * @param int $re_wait_time 每次2s轮询
+     * @param float $re_wait_time 每次2s轮询
      */
-    private function runtimeCoroutineWait(int $cycle_times = 5, int $re_wait_time = 2)
+    private function runtimeCoroutineWait(int $cycle_times = 5, float $re_wait_time = 2.0 )
     {
         if ($cycle_times <= 0) {
             $cycle_times = 2;

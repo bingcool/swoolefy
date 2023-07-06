@@ -52,6 +52,7 @@ class Helper
                         $isValid = false;
                     }
                 }
+
                 if (!$isValid) {
                     throw new InvalidArgumentException("Cli Received invalid parameter of {$name}");
                 }
