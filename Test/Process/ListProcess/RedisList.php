@@ -17,11 +17,16 @@ class RedisList extends AbstractProcess {
      */
     public function run()
     {
-        $redis = Application::getApp()->get('predis');
+        \Swoole\Timer::tick(2000, function () {
+            goApp(function () {
+                $redis = Application::getApp()->get('predis')->getObject();
+                $queue = new \Common\Library\Queues\Queue($redis, $this->queseKey);
+                $queue->push(['name'=> 'bingcool','num' => rand(1,10000)]);
+            });
+        });
 
+        $redis = Application::getApp()->get('predis')->getObject();
         $queue = new \Common\Library\Queues\Queue($redis, $this->queseKey);
-
-        $queue->push(['name'=> 'bingcool']);
 
         while (true)
         {
