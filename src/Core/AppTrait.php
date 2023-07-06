@@ -11,9 +11,6 @@
 
 namespace Swoolefy\Core;
 
-use Swoole\Http\Response;
-use Swoolefy\Exception\SystemException;
-
 trait AppTrait
 {
     /**
@@ -621,13 +618,9 @@ trait AppTrait
             Application::getApp()->setEnd();
         }
         $url = $url . $queryString;
-        if (version_compare(swoole_version(), '4.4.5', '>')) {
-            $this->response->redirect($url, $httpStatus);
-        } else {
-            $this->status($httpStatus);
-            $this->response->header('Location', $url);
-            $this->response->end();
-        }
+        $this->status($httpStatus);
+        $this->response->header('Location', $url);
+        $this->response->end();
     }
 
     /**

@@ -1542,9 +1542,9 @@ abstract class AbstractBaseWorker
      * @param array $context
      * @return void
      */
-    public function onHandleException(\Throwable $throwable, array $context = [])
+    protected function onHandleException(\Throwable $throwable, array $context = [])
     {
-        //todo
+        \Swoolefy\Core\BaseServer::catchException($throwable);
     }
 
 }
