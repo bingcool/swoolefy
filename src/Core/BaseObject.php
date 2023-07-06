@@ -22,7 +22,7 @@ class BaseObject
      * $coroutineId
      * @var int
      */
-    public $coroutineId;
+    public $coroutineId = null;
 
     /**
      * @var \ArrayObject
@@ -78,7 +78,7 @@ class BaseObject
      */
     public function getCid(): int
     {
-        return $this->coroutineId;
+        return $this->coroutineId ?? \Swoole\Coroutine::getCid();
     }
 
     /**

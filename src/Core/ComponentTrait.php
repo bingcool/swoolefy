@@ -263,7 +263,7 @@ trait ComponentTrait
      * getOpenPoolsOfComponent
      * @return array
      */
-    public function getOpenPoolsOfComponent()
+    public function getEnablePoolsOfComponent()
     {
         return $this->componentPools ?? [];
     }

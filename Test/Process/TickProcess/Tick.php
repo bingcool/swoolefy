@@ -59,7 +59,7 @@ class Tick extends AbstractProcess {
                // $query->table('tbl_users')->where(['user_id' => 615])->save($data);
 
                 // 批量插入
-                $query->table('tbl_users')->insertAll([$data]);
+                //$query->table('tbl_users')->insertAll([$data]);
 
                 //$query->table('tbl_users')->insertAll([$data]);
 

@@ -41,7 +41,7 @@ class Event extends EventHandler
             // ProcessManager::getInstance()->addProcess('test', \Test\Process\TestProcess\Test::class);
 
             // 创建一个定时器处理进程
-            ProcessManager::getInstance()->addProcess('tick', \Test\Process\TickProcess\Tick::class);
+            //ProcessManager::getInstance()->addProcess('tick', \Test\Process\TickProcess\Tick::class);
 
             // 测试cron自定义进程
             //ProcessManager::getInstance()->addProcess('cron', \Test\Process\CronProcess\Cron::class);
@@ -51,7 +51,7 @@ class Event extends EventHandler
             //var_dump('pid='.$pid);
 
             // redis的队列消费
-            //ProcessManager::getInstance()->addProcess('redis_list_test', \Test\Process\ListProcess\RedisList::class,true, [], null, true);
+            // ProcessManager::getInstance()->addProcess('redis_list_test', \Test\Process\ListProcess\RedisList::class,true, [], null, true);
 
             // amqp-direct 生产队
             //ProcessManager::getInstance()->addProcess('amqp-publish', \Test\Process\AmqpProcess\AmqpPublish::class);
@@ -86,7 +86,7 @@ class Event extends EventHandler
 
 
             // redis的订阅进程
-            //ProcessManager::getInstance()->addProcess('redis_subscribe_test', \Test\Process\SubscribeProcess\Subscribe::class);
+            ProcessManager::getInstance()->addProcess('redis_subscribe_test', \Test\Process\SubscribeProcess\Subscribe::class);
 
             // 这里为什么获取不到pid,那是应为process需要server执行start后才会创建，而在这里只是创建实例，server还没正式启动
             //$pid = ProcessManager::getInstance()->getProcessByName('redis_list_test')->getPid();

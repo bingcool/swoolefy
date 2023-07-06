@@ -22,7 +22,7 @@ class OrderList extends ListObject
         parent::__construct();
     }
 
-    public function setOrderId(int|array $orderId)
+    public function setOrderId($orderId)
     {
         if (is_int($orderId)) {
             $orderIds = [$orderId];
@@ -33,7 +33,7 @@ class OrderList extends ListObject
         $this->orderId = $orderIds;
     }
 
-    public function setUserId(int|array $userId)
+    public function setUserId($userId)
     {
         if (is_int($userId)) {
             $userIds = [$userId];
@@ -64,7 +64,8 @@ class OrderList extends ListObject
 
     protected function buildQuery(): Query
     {
-        return (new OrderEntity(11111))->newQuery()->table('tbl_order');
+        $model = new OrderEntity(11111);
+        return $model->newQuery()->table($model->getTableName());
     }
 
     protected function buildParams()
