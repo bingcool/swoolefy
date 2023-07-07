@@ -89,6 +89,9 @@ class SwoolefyException
      */
     public static function handleError(int $errorNo, string $errorMessage, string $errorFile, int $errorLine)
     {
+        if (in_array($errorNo, [E_NOTICE, E_DEPRECATED, E_STRICT])) {
+            return;
+        }
         throw new \ErrorException($errorMessage, 0, $errorNo, $errorFile, $errorLine);
     }
 
