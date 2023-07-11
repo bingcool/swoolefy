@@ -44,6 +44,10 @@ class ReloadProcess extends AbstractProcess
                 $autoReload->setIgnoreDirs();
             }
 
+            if (isset($reloadConfig['reloadFn'])) {
+                $autoReload->setReloadFn($reloadConfig['reloadFn']);
+            }
+
             $autoReload->init();
             $autoReload->watch($reloadConfig['monitor_path'])->onReload($reloadConfig['callback']);
         }

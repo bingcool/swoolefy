@@ -66,6 +66,11 @@ class Reload
     /**
      * @var \Closure
      */
+    protected $reloadFn;
+
+    /**
+     * @var \Closure
+     */
     protected $callback;
 
     /**
@@ -122,19 +127,24 @@ class Reload
      */
     protected function reload()
     {
-        Swfy::getServer()->reload();
-        //clear listen
-        $this->clearWatch();
-        //re listen
-        foreach ($this->rootDirs as $root) {
-            $this->watch($root);
+        if ($this->reloadFn instanceof \Closure) {
+            call_user_func($this->reloadFn);
+        }else {
+            Swfy::getServer()->reload();
+            //clear listen
+            $this->clearWatch();
+            //re listen
+            foreach ($this->rootDirs as $root) {
+                $this->watch($root);
+            }
+            //reloading
+            $this->reloading = false;
+            $isReloadSuccess = !$this->reloading;
+            if ($this->callback instanceof \Closure) {
+                $this->callback->call($this, $isReloadSuccess);
+            }
         }
-        //reloading
-        $this->reloading = false;
-        $isReloadSuccess = !$this->reloading;
-        if ($this->callback instanceof \Closure) {
-            $this->callback->call($this, $isReloadSuccess);
-        }
+
     }
 
     /**
@@ -258,6 +268,12 @@ class Reload
     public function setIgnoreDirs(array $ignore_dirs = [])
     {
         $this->ignoreDirs = array_merge($this->ignoreDirs, $ignore_dirs);
+        return $this;
+    }
+
+    public function setReloadFn(\Closure $fn)
+    {
+        $this->reloadFn = $fn;
         return $this;
     }
 }
