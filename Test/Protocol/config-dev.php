@@ -90,8 +90,13 @@ return [
         'enable_reload'     => false,
         'after_seconds'     => 3,
         'monitor_path'      => APP_PATH, // 开发者自己定义目录
-        'reload_file_types' => ['.php', '.html', '.js'],
+        'reload_file_types' => ['.php', '.html', '.js','.lua'],
         'ignore_dirs'       => [],
-        'callback'          => function () {}
+        'reloadFn'          => function () {
+            //exec('nginx -s reload');
+        },
+        'callback'          => function () {
+            var_dump("huanngcollll");
+        }
     ]
 ];
