@@ -12,7 +12,6 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Coroutine\Context;
-use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class ZFactory
 {
@@ -31,8 +30,7 @@ class ZFactory
      */
     public static function getInstance(string $class = '', array $constructor = [])
     {
-        $cid = CoroutineManager::getInstance()->getCoroutineId();
-
+        $cid = \Swoole\Coroutine::getCid();
         if($cid >= 0 && !Context::has(__CLASS__.'::'.__FUNCTION__)) {
             Context::set(__CLASS__.'::'.__FUNCTION__, 1);
             \Swoole\Coroutine\defer(function () use($cid) {
@@ -44,6 +42,7 @@ class ZFactory
         if (isset(static::$_instances[$cid][$class]) && is_object(static::$_instances[$cid][$class])) {
             return static::$_instances[$cid][$class];
         }
+
         static::$_instances[$cid][$class] = new $class(...$constructor);
         return static::$_instances[$cid][$class];
     }
@@ -67,8 +66,9 @@ class ZFactory
     public static function removeInstance(?int $cid = null, string $class = '')
     {
         if (empty($cid)) {
-            $cid = CoroutineManager::getInstance()->getCoroutineId();
+            $cid = \Swoole\Coroutine::getCid();
         }
+
         if (isset(static::$_instances[$cid]) && empty($class)) {
             unset(static::$_instances[$cid]);
         } else if (isset(static::$_instances[$cid]) && !empty($class)) {
@@ -77,6 +77,7 @@ class ZFactory
                 unset(static::$_instances[$cid][$class]);
             }
         }
+
         return true;
     }
 
