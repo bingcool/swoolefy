@@ -51,7 +51,7 @@ trait ComponentTrait
             if (!isset($this->containers[$comAliasName]) || !is_object($this->containers[$comAliasName])) {
                 if ($definition instanceof \Closure) {
                     $object = call_user_func($definition, $comAliasName);
-                    return $this->containers[$comAliasName] = $this->buildContainerObject($object);
+                    return $this->containers[$comAliasName] = $this->buildContainerObject($object, $comAliasName);
                 } else if (is_array($definition) && isset($definition['class'])) {
                     $class = $definition['class'];
                     unset($definition['class']);
@@ -190,20 +190,21 @@ trait ComponentTrait
             $object->$name = $value;
         }
 
-        return $this->buildContainerObject($object);
+        return $this->buildContainerObject($object, $comAliasName);
     }
 
     /**
      * @param object $object
      * @return ContainerObjectDto
      */
-    private function buildContainerObject($object)
+    private function buildContainerObject(object $object, string $comAliasName)
     {
         $containerObjectDto = new ContainerObjectDto();
         $containerObjectDto->__coroutineId = \Swoole\Coroutine::getCid();
         $containerObjectDto->__objInitTime = time();
         $containerObjectDto->__object = $object;
         $containerObjectDto->__objExpireTime = null;
+        $containerObjectDto->__comAliasName = $comAliasName;
         return $containerObjectDto;
     }
 
