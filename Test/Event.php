@@ -8,6 +8,7 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\EventHandler;
 use Swoolefy\Core\Process\ProcessManager;
+use Swoolefy\Core\SystemEnv;
 
 class Event extends EventHandler
 {
@@ -119,6 +120,8 @@ class Event extends EventHandler
 
     public function onWorkerStop($server, $worker_id)
     {
-        var_dump(Application::getApp()->get('db'));
+        if (!SystemEnv::isScriptService()) {
+            // var_dump(Application::getApp()->get('db'));
+        }
     }
 }

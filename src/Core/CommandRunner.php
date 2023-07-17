@@ -139,7 +139,9 @@ class CommandRunner
         }
 
         if ($isExec) {
-            exec($command, $output, $returnCode);
+            $exec = (new Exec())->run($command);
+            $output = $exec->getOutput();
+            $returnCode = $exec->getReturnCode();
             $pid = $output[0] ?? '';
             if ($pid) {
                 $this->channel->push([

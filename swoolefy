@@ -13,6 +13,7 @@
 // 定义注册的应用名和对应使用的协议
 
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\Exec;
 
 if (!defined('APP_NAMES')) {
     write("【Error】 APP_NAMES Missing defined, please check it");
@@ -566,8 +567,7 @@ function commonStop($app_name)
     );
     while (true) {
         sleep(1);
-
-        if(\Swoole\Process::kill($pid, 0) && time() > 30) {
+        if(\Swoole\Process::kill($pid, 0) && (time() - $nowTime) > 10) {
             \Swoole\Process::kill($pid, SIGKILL);
             sleep(1);
         }
@@ -580,7 +580,20 @@ function commonStop($app_name)
             @unlink($pidFile);
             break;
         } else {
-            if (time() - $nowTime > 60) {
+            if ((time() - $nowTime) > 20) {
+                $exec = (new Exec())->run('pgrep -P '.$pid);
+                $output = $exec->getOutput();
+                $managerProcessId = -1;
+                $workerProcessIds = [];
+                if (isset($output[0])) {
+                    $managerProcessId = current($output);
+                    $workerProcessIds = (new Exec())->run('pgrep -P '.$managerProcessId)->getOutput();
+                }
+                foreach ([$pid, $managerProcessId, ...$workerProcessIds] as $processId) {
+                    if ( $processId > 0  && \Swoole\Process::kill($processId, 0) ) {
+                        \Swoole\Process::kill($processId, SIGKILL);
+                    }
+                }
                 write("---------------------------stop info-----------------------");
                 write("Please use 'ps -ef | grep php-swoolefy' checkout swoole whether or not stop");
                 break;

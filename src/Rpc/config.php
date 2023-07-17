@@ -74,6 +74,7 @@ return [
         'after_seconds'     => 3,
         'monitor_path'      => APP_PATH, // 开发者自己定义目录
         'reload_file_types' => ['.php', '.html', '.js'],
+        //'reloadFn'          => function () {}, // 定义此项，reload将被接管
         'ignore_dirs'       => [],
         'callback'          => function () {}
     ]

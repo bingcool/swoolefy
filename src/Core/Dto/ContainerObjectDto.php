@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core\Dto;
 
+use Swoolefy\Core\Application;
+
 class ContainerObjectDto extends AbstractDto
 {
     /**
@@ -33,11 +35,16 @@ class ContainerObjectDto extends AbstractDto
      */
     private $__object;
 
+    /**
+     * @var string
+     */
+    private $__comAliasName;
+
 
     /**
      * @var array
      */
-    private $__attributes = ['__coroutineId','__objInitTime','__objExpireTime','__object'];
+    private $__attributes = ['__coroutineId','__objInitTime','__objExpireTime','__object','__comAliasName'];
 
     /**
      * @param $name
@@ -80,6 +87,10 @@ class ContainerObjectDto extends AbstractDto
      */
     public function __call($name, $arguments)
     {
+        $cid = \Swoole\Coroutine::getCid();
+        if ($cid != $this->__coroutineId) {
+            return Application::getApp()->get($this->__comAliasName)->$name(...$arguments);
+        }
         return $this->__object->$name(...$arguments);
     }
 
