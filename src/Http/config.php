@@ -58,13 +58,13 @@ return [
     'table' => [
         'table_process' => [
              // 内存表建立的行数,取决于建立的process进程数,最小值64
-             'size' => 64,
+            'size' => 64,
               // 定义字段
-              'fields'=> [
-                     ['pid','int', 10],
-                     ['process_name','string', 56],
-                  ]
-               ]
+            'fields'=> [
+                ['pid','int', 10],
+                ['process_name','string', 56],
+            ]
+        ]
      ],
 
     // 依赖于enable_sys_collector = true，否则设置没有意义,不生效
@@ -90,6 +90,7 @@ return [
         'after_seconds'     => 3,
         'monitor_path'      => APP_PATH, // 开发者自己定义目录
         'reload_file_types' => ['.php', '.html', '.js'],
+        //'reloadFn'          => function () {}, // 定义此项，reload将被接管
         'ignore_dirs'       => [],
         'callback'          => function () {}
     ]
