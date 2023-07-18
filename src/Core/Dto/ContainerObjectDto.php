@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core\Dto;
 
+use Swoolefy\Core\Application;
+
 class ContainerObjectDto extends AbstractDto
 {
     /**
@@ -33,11 +35,16 @@ class ContainerObjectDto extends AbstractDto
      */
     private $__object;
 
+    /**
+     * @var string
+     */
+    private $__comAliasName;
+
 
     /**
      * @var array
      */
-    private $__attributes = ['__coroutineId','__objInitTime','__objExpireTime','__object'];
+    private $__attributes = ['__coroutineId','__objInitTime','__objExpireTime','__object','__comAliasName'];
 
     /**
      * @param $name
