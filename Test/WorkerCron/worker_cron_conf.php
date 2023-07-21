@@ -1,4 +1,7 @@
 <?php
+
+use Common\Library\HttpClient\RawResponse;
+
 return [
     // 独立进程本地处理任务
     [
@@ -46,8 +49,8 @@ return [
 
     // 定时请求远程url触发远程url的任务处理
     [
-        'process_name' => 'test-fork-task-cron', // 进程名称
-        'handler' => \Swoolefy\Worker\Cron\CronForkProcess::class,
+        'process_name' => 'test-url-task-cron', // 进程名称
+        'handler' => \Swoolefy\Worker\Cron\CronUrlProcess::class,
         'worker_num' => 1, // 默认动态进程数量
         'max_handle' => 100, //消费达到10000后reboot进程
         'life_time'  => 3600, // 每隔3600s重启进程
@@ -66,7 +69,11 @@ return [
                     'options' => [], // curl option
                     'headers' => [], // 请求头
                     'params' => [], // post参数
-                    'cron_expression' => 10, // 10s执行一次
+//                    'callback' => function(RawResponse $response) {
+//                        (new \Test\WorkerCron\CurlQuery\RemoteUrl())->handle($response);
+//                    },
+                    'callback' => [\Test\WorkerCron\CurlQuery\RemoteUrl::class, 'handle'],
+                    'cron_expression' => 3, // 10s执行一次
                     //'cron_expression' => '*/1 * * * *', // 每分钟执行一次
                 ]
             ]
