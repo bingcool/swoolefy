@@ -188,12 +188,18 @@ myproject
 
 ```
 // 终端启动 ctl+c 停止进程
+php cli.php start App
+或者    
 swoole-cli cli.php start App
 
 // 守护进程方式启动,添加-D参数控制
+php cli.php start App -D
+或者  
 swooole-cli cli.php start App -D
 
 // 停止进程
+php cli.php stop App
+或者   
 swooole-cli cli.php stop App
 
 // 查看进程状态
