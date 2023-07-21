@@ -40,26 +40,19 @@ class CronUrlProcess extends CronProcess
                         $httpClient = new CurlHttpClient();
                         $httpClient->setOptionArray($task['options'] ?? []);
                         $httpClient->setHeaderArray($task['headers'] ?? []);
-                        $method = strtoupper($task['method']);
-                        switch ($method) {
-                            case 'GET':
-                                $httpClient->get(
-                                    $task['url'],
-                                    $task['params'] ?? [],
-                                    $task['connect_time_out'] ?? 10,
-                                    $task['curl_time_out'] ?? 11,
-                                );
-                                break;
-                            case 'POST':
-                                $httpClient->post(
-                                    $task['url'],
-                                    $task['params'] ?? [],
-                                    $task['connect_time_out'] ?? 10,
-                                    $task['curl_time_out'] ?? 11,
-                                );
-                                break;
-                            default:
-                                break;
+                        $method = strtolower($task['method']);
+                        $rawResponse = $httpClient->{$method}(
+                            $task['url'],
+                            $task['params'] ?? [],
+                            $task['connect_time_out'] ?? 5,
+                            $task['curl_time_out'] ?? 10,
+                        );
+
+                        if (is_array($task['callback']) && count($task['callback']) == 2) {
+                            list($class, $action) = $task['callback'];
+                            (new $class)->{$action}($rawResponse, $task);
+                        } else if (isset($task['callback']) && $task['callback'] instanceof \Closure) {
+                            call_user_func($task['callback'], $rawResponse, $task);
                         }
                     });
                 }catch (\Throwable $throwable) {
