@@ -81,8 +81,8 @@ class ObjectController extends BController
     {
         $list = new OrderList();
         $list->setOrderStatus(1);
+        $list->setPage(1);
         $list->setPageSize(10);
-        $list->setOffset(0);
         //$list->setOrderId(1687344505);
         $result = $list->find();
         $count = $list->total();
