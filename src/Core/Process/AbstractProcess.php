@@ -159,7 +159,7 @@ abstract class AbstractProcess
         }
 
         if(!$this->isWorkerService() || $this->enableCoroutine) {
-            \Swoole\Timer::tick((10+rand(1,10)) * 1000, function ($timerId) {
+            \Swoole\Timer::tick((10 + rand(1,10)) * 1000, function ($timerId) {
                 $swooleMasterPid = Swfy::getMasterPid();
                 if(!\Swoole\Process::kill($swooleMasterPid, 0)) {
                     sleep(1);
