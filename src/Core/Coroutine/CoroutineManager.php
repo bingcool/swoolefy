@@ -66,15 +66,12 @@ class CoroutineManager
      */
     public function listCoroutines(): array
     {
-        if (method_exists('Swoole\\Coroutine', 'list')) {
-            $cids = [];
-            $coros = \Swoole\Coroutine::list();
-            foreach ($coros as $cid) {
-                array_push($cids, $cid);
-            }
-            return $cids;
+        $cids = [];
+        $coros = \Swoole\Coroutine::list();
+        foreach ($coros as $cid) {
+            array_push($cids, $cid);
         }
-        return [];
+        return $cids;
     }
 
     /**
