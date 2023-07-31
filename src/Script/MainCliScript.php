@@ -13,10 +13,10 @@ namespace Swoolefy\Script;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Table\TableManager;
-use Swoolefy\Worker\Helper;
-use Swoolefy\Worker\AbstractMainWorker;
+use Swoolefy\Worker\Helper;;
+use Swoolefy\Worker\Script\AbstractScriptWorker;
 
-class MainCliScript extends AbstractMainWorker {
+class MainCliScript extends AbstractScriptWorker {
 
     /**
      * @var bool
