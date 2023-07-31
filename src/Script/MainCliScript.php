@@ -41,7 +41,7 @@ class MainCliScript extends AbstractScriptWorker {
      */
     public function run()
     {
-        if(!$this->isExecuted()) {
+        if($this->isExecuted()) {
             write("【Error】一次性脚本进程异常不断重复自动重启，请检查");
             $this->exitAll(true);
             return;
@@ -72,10 +72,10 @@ class MainCliScript extends AbstractScriptWorker {
     {
         $count = TableManager::count($this->scriptTable);
         if($count > 0) {
-            return false;
+            return true;
         }
         TableManager::set($this->scriptTable,'script_flag', ['is_execute_flag' => 1]);
-        return true;
+        return false;
     }
 
     /**
