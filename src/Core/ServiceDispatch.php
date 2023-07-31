@@ -11,8 +11,6 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Exception\SystemException;
-
 class ServiceDispatch extends AppDispatch
 {
     /**
@@ -36,6 +34,21 @@ class ServiceDispatch extends AppDispatch
      * @var array|mixed
      */
     protected $afterHandle = [];
+
+    /**
+     * @var int|null
+     */
+    protected $fromWorkerId = null;
+
+    /**
+     * @var int|null
+     */
+    protected $taskId = null;
+
+    /**
+     * @var mixed
+     */
+    protected $task = null;
 
     /**
      * @param array $callable
@@ -90,9 +103,9 @@ class ServiceDispatch extends AppDispatch
             $serviceInstance = new $class();
             $serviceInstance->setMixedParams($this->params);
 
-            if (isset($this->from_worker_id) && isset($this->task_id)) {
-                $serviceInstance->setFromWorkerId($this->from_worker_id);
-                $serviceInstance->setTaskId($this->task_id);
+            if (isset($this->fromWorkerId) && isset($this->taskId)) {
+                $serviceInstance->setFromWorkerId($this->fromWorkerId);
+                $serviceInstance->setTaskId($this->taskId);
                 if (!empty($this->task)) {
                     $serviceInstance->setTask($this->task);
                 }
@@ -192,8 +205,8 @@ class ServiceDispatch extends AppDispatch
      */
     public function setFromWorkerIdAndTaskId(int $from_worker_id, int $task_id, $task = null)
     {
-        $this->from_worker_id = $from_worker_id;
-        $this->task_id = $task_id;
+        $this->fromWorkerId = $from_worker_id;
+        $this->taskId = $task_id;
         $this->task = $task;
     }
 
