@@ -11,7 +11,6 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Exception\DispatchException;
 use Swoolefy\Exception\SystemException;
 
 trait ServiceTrait
