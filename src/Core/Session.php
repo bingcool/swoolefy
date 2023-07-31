@@ -86,11 +86,13 @@ class Session
     public function __construct(array $config = [])
     {
         if (isset($config['cookie_key']) && !empty($config['cookie_key'])) {
-            $this->coookie_key = $config['cookie_key'];
+            $this->cookie_key = $config['cookie_key'];
         }
+
         if (isset($config['cookie_lifetime']) && !empty($config['cookie_lifetime'])) {
             $this->cookie_lifetime = $config['cookie_lifetime'];
         }
+
         if (!isset($config['session_lifetime'])) {
             $this->session_lifetime = $this->cookie_lifetime + 7200;
         } else {
@@ -100,12 +102,15 @@ class Session
                 $this->session_lifetime = $config['session_lifetime'];
             }
         }
+
         if (isset($config['cookie_path']) && !empty($config['cookie_path'])) {
             $this->cookie_path = $config['cookie_path'];
         }
+
         if (isset($config['cache_driver']) && !empty($config['cache_driver'])) {
             $this->cache_driver = $config['cache_driver'];
         }
+
         if (isset($config['cookie_domain'])) {
             $this->cookie_domain = $config['cookie_domain'];
         }
