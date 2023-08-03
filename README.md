@@ -55,7 +55,14 @@ swoolefy-4.8-lts 版本：
 - [x] 支持命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架   
 
 高级特性
-- [x] 支持crontab的local调用和fork独立进程的计划任务        
+- [x] 支持crontab的local调用和fork独立进程的计划任务    
+    
+    | 支持方式  |                说明                 |
+    |:---------------------------------:|:---:|
+    | local |            独立进程定时执行代码             |
+    | fork  |   独立进程定时拉起一个新的进程，由新的进程去支持任务，可异步   |
+    | url   | 独立进程定时发起远程url请求，可设置callback回调处理结果 |
+
 - [x] 支持worker下后台daemon模式的多进程协程消费模型,包括进程自动拉起，进程数动态调整，进程健康状态监控     
 - [x] 支持console终端脚本模式，跑完脚本自动退出，可用于修复数据、数据迁移等临时脚本功能      
 - [ ] 支持分布式服务注册（zk，etcd）       
@@ -146,7 +153,7 @@ include './swoolefy';
 ```
 // 你定义的项目目录是App, 在myproject目录下执行下面命令行
 
-swoole-cli cli.php create App
+swoole-cli cli.php create App 或者 php cli.php create App   
 
 // 执行完上面命令行后，将会自动生成App项目目录以及内部子目录
 myproject
