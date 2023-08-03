@@ -272,6 +272,7 @@ class PoolsHandler
 
     /**
      * @param object $object
+     * @param string $poolName
      * @return ContainerObjectDto
      */
     private function buildContainerObject(object $object, string $poolName)
