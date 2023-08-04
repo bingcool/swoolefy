@@ -153,7 +153,7 @@ include './swoolefy';
 ```
 // 你定义的项目目录是App, 在myproject目录下执行下面命令行
 
-swoole-cli cli.php create App
+swoole-cli cli.php create App 或者 php cli.php create App   
 
 // 执行完上面命令行后，将会自动生成App项目目录以及内部子目录
 myproject

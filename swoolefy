@@ -854,7 +854,7 @@ function monitorServer($app_name)
     $pidFile = getPidFile($app_name);
 
     if (!is_file($pidFile)) {
-        write("[CheckSever] pid file {$pidFile} is not exist, please check server weather is running");
+        write("【CheckSever】 pid file {$pidFile} is not exist, please check server weather is running");
         return;
     }
 
@@ -862,7 +862,7 @@ function monitorServer($app_name)
     if (!\Swoole\Process::kill($pid, 0)) {
         sleep(2);
         if(!\Swoole\Process::kill($pid, 0)) {
-            write("[CheckSever] server had shutdown, now restarting .....");
+            write("【CheckSever】 server had shutdown, now restarting .....");
             startServer($app_name);
         }
     }

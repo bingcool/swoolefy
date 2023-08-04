@@ -265,21 +265,23 @@ class PoolsHandler
                 throw new SystemException("Pools of {$this->poolName} build instance must return object");
             }
 
-            $containerObject = $this->buildContainerObject($obj);
+            $containerObject = $this->buildContainerObject($obj, $this->poolName);
             $this->channel->push($containerObject, $this->pushTimeout);
         }
     }
 
     /**
      * @param object $object
+     * @param string $poolName
      * @return ContainerObjectDto
      */
-    private function buildContainerObject(object $object)
+    private function buildContainerObject(object $object, string $poolName)
     {
         $containerObjectDto                  = new ContainerObjectDto();
         $containerObjectDto->__coroutineId   = \Swoole\Coroutine::getCid();
         $containerObjectDto->__objInitTime   = time();
         $containerObjectDto->__object        = $object;
+        $containerObjectDto->__comAliasName  = $poolName;
         $containerObjectDto->__objExpireTime = time() + ($this->liveTime) + rand(1, 10);
         return $containerObjectDto;
     }
