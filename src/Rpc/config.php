@@ -32,6 +32,8 @@ return [
         'max_request'           => 1000,
         'task_worker_num'       => 2,
         'task_tmpdir'           => '/dev/shm',
+        'task_enable_coroutine' => 1,
+        'task_max_request'      => 1000,
         'daemonize'             => 0,
         'dispatch_mode'         => 2,
         'open_length_check'     => 1,
@@ -40,7 +42,8 @@ return [
         'package_body_offset'   => 34,    //第几个字节开始计算长度
         'package_max_length'    => 2000000,//协议最大长度
         'enable_coroutine'      => 1,
-        'task_enable_coroutine' => 1,
+        'enable_preemptive_scheduler' => 1,
+        'stats_file'            => '/tmp/' . APP_NAME . '/stats.log',
         'log_file'              => '/tmp/' . APP_NAME . '/swoole_log.txt',
         'pid_file'              => '/data/' . APP_NAME . '/log/server.pid',
     ],
