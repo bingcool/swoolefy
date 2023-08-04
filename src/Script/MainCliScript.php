@@ -52,6 +52,7 @@ class MainCliScript extends AbstractScriptWorker {
             $action = getenv('a');
             list($method, $params) = Helper::parseActionParams($this, $action, Helper::getCliParams());
             $this->{$action}(...$params);
+            $this->waitCoroutineFinish();
             $this->exitAll();
         }catch (\Throwable $throwable) {
             write($throwable->getMessage());
@@ -76,6 +77,24 @@ class MainCliScript extends AbstractScriptWorker {
         }
         TableManager::set($this->scriptTable,'script_flag', ['is_execute_flag' => 1]);
         return false;
+    }
+
+    /**
+     * 防止脚本创建协程时，主进程脚本直接退出了，会把协程也退出，导致协程没执行，所以需要等待一段时间，让协程执行完
+     *
+     * @param float $timeOut
+     * @return void
+     */
+    protected function waitCoroutineFinish(float $timeOut = 5.0)
+    {
+        $time = time();
+        while (true) {
+            $status = \Swoole\Coroutine::stats();
+            if ($status['coroutine_num'] == 1 || time() > ($time + $timeOut)) {
+                break;
+            }
+            \Swoole\Coroutine\System::sleep(0.5);
+        }
     }
 
     /**
