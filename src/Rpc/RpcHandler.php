@@ -36,24 +36,6 @@ class RpcHandler extends Swoole implements HandlerInterface
     }
 
     /**
-     * init 当执行run方法时,首先会执行init->bootstrap
-     * @param mixed $payload
-     * @return void
-     */
-    public function init($payload)
-    {
-    }
-
-    /**
-     * bootstrap 当执行run方法时,首先会执行init->bootstrap
-     * @param mixed $payload
-     * @return void
-     */
-    public function bootstrap($payload)
-    {
-    }
-
-    /**
      * run 完成初始化后路由匹配和创建访问实例
      * @param int $fd
      * @param mixed $payload

@@ -25,24 +25,27 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
             var_dump("name=".$name);
             var_dump('CID='.\Swoole\Coroutine::getCid());
             var_dump('Script test');
-            sleep(5);
+            sleep(2);
 
             var_dump('spl_object_id='.spl_object_id($this->db));
             $result1 = $this->db->newQuery()->table('tbl_users')->limit(1)->select()->toArray();
             //var_dump($result1);
 
             goApp(function () {
-                var_dump('CID11='.\Swoole\Coroutine::getCid());
-                var_dump('spl_object_id-11='.spl_object_id($this->db));
-                $result1 = $this->db->newQuery()->table('tbl_users')->limit(1)->order('user_id','desc')->select()->toArray();
-                //var_dump($result1);
+                try {
+                    var_dump('CID11='.\Swoole\Coroutine::getCid());
+                    var_dump('spl_object_id-11='.spl_object_id($this->db));
+                    $result1 = Application::getApp()->get('db')->newQuery()->table('tbl_users')->limit(1)->select()->toArray();
+                    var_dump($result1);
+                }catch (\Throwable $exception) {
+                    var_dump($exception->getMessage());
+                }
+
             });
 
         }catch (\Throwable $exception) {
             var_dump($exception->getMessage());
         }
-
-        //$this->exitAll();
     }
 
     public function onHandleException(\Throwable $throwable, array $context = [])

@@ -52,7 +52,6 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
      * @param Request $request
      * @param Response $response
      * @return void
-     * @throws \Throwable
      */
     public function onRequest(Request $request, Response $response)
     {
