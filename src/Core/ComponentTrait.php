@@ -203,8 +203,15 @@ trait ComponentTrait
         $containerObjectDto->__coroutineId = \Swoole\Coroutine::getCid();
         $containerObjectDto->__objInitTime = time();
         $containerObjectDto->__object = $object;
-        $containerObjectDto->__objExpireTime = null;
         $containerObjectDto->__comAliasName = $comAliasName;
+
+        if (!empty($appConf['enable_component_pools']) && is_array($appConf['enable_component_pools'])) {
+            $liveTime = $appConf['enable_component_pools'][$comAliasName]['live_time'] ?? 10;
+            $containerObjectDto->__objExpireTime = time() + $liveTime + rand(1, 10);
+        }else {
+            $containerObjectDto->__objExpireTime = null;
+        }
+
         return $containerObjectDto;
     }
 
@@ -303,7 +310,7 @@ trait ComponentTrait
         }
 
         if (empty($this->componentPools)) {
-            if (isset($appConf['enable_component_pools']) && is_array($appConf['enable_component_pools']) && !empty($appConf['enable_component_pools'])) {
+            if (!empty($appConf['enable_component_pools']) && is_array($appConf['enable_component_pools']) ) {
                 $enableComponentPools = array_keys($appConf['enable_component_pools']);
                 $this->componentPools = $enableComponentPools;
             }
