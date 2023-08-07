@@ -35,7 +35,7 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
                 try {
                     var_dump('CID11='.\Swoole\Coroutine::getCid());
                     var_dump('spl_object_id-11='.spl_object_id($this->db));
-                    $result1 = Application::getApp()->get('db')->newQuery()->table('tbl_users')->limit(1)->select()->toArray();
+                    $result1 = $this->db->newQuery()->table('tbl_users')->limit(1)->select()->toArray();
                     var_dump($result1);
                 }catch (\Throwable $exception) {
                     var_dump($exception->getMessage());
