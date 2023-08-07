@@ -183,7 +183,7 @@ class PoolsHandler
     {
         \Swoole\Coroutine::create(function () use ($obj) {
             $isPush = true;
-            if (isset($obj->__objExpireTime) && time() > $obj->__objExpireTime) {
+            if (!is_null($obj->__objExpireTime) && time() > $obj->__objExpireTime) {
                 $isPush = false;
             }
 
@@ -267,11 +267,13 @@ class PoolsHandler
 
             $containerObject = $this->buildContainerObject($obj, $this->poolName);
             $this->channel->push($containerObject, $this->pushTimeout);
+            unset($obj);
         }
     }
 
     /**
      * @param object $object
+     * @param string $poolName
      * @return ContainerObjectDto
      */
     private function buildContainerObject(object $object, string $poolName)
@@ -291,14 +293,12 @@ class PoolsHandler
     protected function pop()
     {
         $containerObject = $this->channel->pop($this->popTimeout);
-
-        if (is_object($containerObject) && isset($containerObject->__objExpireTime) && time() > $containerObject->__objExpireTime) {
+        if (is_object($containerObject) && !is_null($containerObject->__objExpireTime) && time() > $containerObject->__objExpireTime) {
             //rebuild object
             unset($containerObject);
             $this->make(1);
+            $containerObject = $this->channel->pop($this->popTimeout);
         }
-
-        $containerObject = $this->channel->pop($this->popTimeout);
 
         return is_object($containerObject) ? $containerObject : null;
     }

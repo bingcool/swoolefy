@@ -188,7 +188,7 @@ class IndexController extends BController {
                         ]);
 
                     $db->commit();
-
+                    var_dump('commit');
                 }catch (\Throwable $e) {
                     $db->rollback();
                     var_dump($e->getMessage());

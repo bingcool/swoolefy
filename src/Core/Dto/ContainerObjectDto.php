@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Core\Dto;
 
+use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 
 class ContainerObjectDto extends AbstractDto
@@ -87,6 +88,26 @@ class ContainerObjectDto extends AbstractDto
      */
     public function __call($name, $arguments)
     {
+        $cid = \Swoole\Coroutine::getCid();
+        $appConf = Swfy::getAppConf();
+        if (!empty($appConf['enable_component_pools']) && is_array($appConf['enable_component_pools'])) {
+            if (Swfy::isWorkerProcess()) {
+                if (!isset($appConf['enable_component_pools'][$this->__comAliasName])) {
+                    if ($cid != $this->__coroutineId) {
+                        return Application::getApp()->get($this->__comAliasName)->$name(...$arguments);
+                    }
+                }
+            }else {
+                if ($cid != $this->__coroutineId) {
+                    return Application::getApp()->get($this->__comAliasName)->$name(...$arguments);
+                }
+            }
+        }else {
+            if ($cid != $this->__coroutineId) {
+                return Application::getApp()->get($this->__comAliasName)->$name(...$arguments);
+            }
+        }
+
         return $this->__object->$name(...$arguments);
     }
 
