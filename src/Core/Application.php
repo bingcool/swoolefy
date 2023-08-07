@@ -87,7 +87,7 @@ class Application
         if ($coroutineId) {
             $cid = $coroutineId;
         } else {
-            $cid = CoroutineManager::getInstance()->getCoroutineId();
+            $cid = \Swoole\Coroutine::getCid();
         }
         if (isset(self::$apps[$cid])) {
             unset(self::$apps[$cid]);

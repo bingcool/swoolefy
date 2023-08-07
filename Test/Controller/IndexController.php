@@ -9,6 +9,8 @@ use Swoolefy\Core\Log\LogManager;
 
 class IndexController extends BController {
 
+    protected $db;
+
     public function index()
     {
         $log = LogManager::getInstance()->getLogger('log');
@@ -144,18 +146,29 @@ class IndexController extends BController {
     public function testTransactionAddOrder()
     {
         /**
-         * @var \Common\Library\Db\Mysql $db
-         */
-        $db = Application::getApp()->get('db');
+         * @var \Common\Library\Db\Mysql $db1
+        */
+        $this->db = Application::getApp()->get('db');
 
-        $db->beginTransaction();
+        $this->db->newQuery()->query(
+            "insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`address`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:address,:order_product_ids,:order_status)",
+            [
+                ':order_id' => time() + 6,
+                ':receiver_user_name' => '张三-444555',
+                ':receiver_user_phone' => '12345666',
+                ':user_id' => 10000,
+                ':order_amount' => 105,
+                ':address' => "深圳市宝安区xxxx",
+                ':order_product_ids' => json_encode([1,2,3,rand(1,1000)]),
+                ':order_status' => 1
+            ]);
 
-        try {
-            $db = Application::getApp()->get('db');
-            $db->createCommand("insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`address`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:address,:order_product_ids,:order_status)" )
-                ->insert([
-                    ':order_id' => time() + 5,
-                    ':receiver_user_name' => '张三',
+        goApp(function () {
+            $this->db->newQuery()->query(
+                "insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`address`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:address,:order_product_ids,:order_status)",
+                [
+                    ':order_id' => time() + 7,
+                    ':receiver_user_name' => '张三-992',
                     ':receiver_user_phone' => '12345666',
                     ':user_id' => 10000,
                     ':order_amount' => 105,
@@ -163,46 +176,135 @@ class IndexController extends BController {
                     ':order_product_ids' => json_encode([1,2,3,rand(1,1000)]),
                     ':order_status' => 1
                 ]);
+        });
 
-            $rowCount = $db->getNumRows();
+        goApp(function() {
+            /**
+             * @var \Common\Library\Db\Mysql $db1
+             */
+            $db1 = Application::getApp()->get('db');
+            var_dump('beginTransaction');
 
-            $db->commit();
+            try {
+                $db1->beginTransaction();
+
+//                    $db1->createCommand("insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`address`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:address,:order_product_ids,:order_status)" )
+//                        ->insert([
+//                            ':order_id' => time() + 6,
+//                            ':receiver_user_name' => '张三-2',
+//                            ':receiver_user_phone' => '12345666',
+//                            ':user_id' => 10000,
+//                            ':order_amount' => 105,
+//                            ':address' => "深圳市宝安区xxxx",
+//                            ':order_product_ids' => json_encode([1,2,3,rand(1,1000)]),
+//                            ':order_status' => 1
+//                        ]);
+//                    var_dump('hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh');
+
+                $db1->newQuery()->query(
+                    "insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`address`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:address,:order_product_ids,:order_status)",
+                    [
+                        ':order_id' => time() + 9,
+                        ':receiver_user_name' => '张三-2',
+                        ':receiver_user_phone' => '12345666',
+                        ':user_id' => 10000,
+                        ':order_amount' => 105,
+                        ':address' => "深圳市宝安区xxxx",
+                        ':order_product_ids' => json_encode([1,2,3,rand(1,1000)]),
+                        ':order_status' => 1
+                    ]);
 
 
-            goApp(function() {
-                /**
-                 * @var \Common\Library\Db\Mysql $db
-                 */
-                $db = Application::getApp()->get('db');
-                $db->beginTransaction();
-                try {
-                    $db->createCommand("insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:order_product_ids,:order_status)" )
-                        ->insert([
-                            ':order_id' => time() + 6,
-                            ':receiver_user_name' => '张三',
-                            ':receiver_user_phone' => '12345666',
-                            ':user_id' => 10000,
-                            ':order_amount' => 105,
-                            ':order_product_ids' => json_encode([1,2,3,rand(1,1000)]),
-                            ':order_status' => 1
-                        ]);
+                $db1->commit();
 
-                    $db->commit();
-
-                }catch (\Throwable $e) {
-                    $db->rollback();
-                    var_dump($e->getMessage());
-                }
-            });
-        }catch (\Throwable $e) {
-            $db->rollback();
-            var_dump($e->getMessage());
-            return;
-        }
+            }catch (\Throwable $e) {
+                var_dump($e->getMessage());
+                $db1->rollback();
+            }
+        });
 
         $this->returnJson([
-            'num' => $rowCount
+            'num' => rand(1,1000)
         ]);
+
+
+//
+//        try {
+//            /**
+//             * @var \Common\Library\Db\Mysql $db
+//             */
+//            $db = Application::getApp()->get('db');
+//            $db->beginTransaction();
+//            $db->createCommand("insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`address`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:address,:order_product_ids,:order_status)" )
+//                ->insert([
+//                    ':order_id' => time() + 5,
+//                    ':receiver_user_name' => '张三-1',
+//                    ':receiver_user_phone' => '12345666',
+//                    ':user_id' => 10000,
+//                    ':order_amount' => 105,
+//                    ':address' => "深圳市宝安区xxxx",
+//                    ':order_product_ids' => json_encode([1,2,3,rand(1,1000)]),
+//                    ':order_status' => 1
+//                ]);
+//
+//            $rowCount = $db->getNumRows();
+//
+//            goApp(function() {
+//                /**
+//                 * @var \Common\Library\Db\Mysql $db1
+//                 */
+//                $db1 = Application::getApp()->get('db');
+//                var_dump('beginTransaction');
+//
+//                try {
+//                    $db1->beginTransaction();
+//
+////                    $db1->createCommand("insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`address`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:address,:order_product_ids,:order_status)" )
+////                        ->insert([
+////                            ':order_id' => time() + 6,
+////                            ':receiver_user_name' => '张三-2',
+////                            ':receiver_user_phone' => '12345666',
+////                            ':user_id' => 10000,
+////                            ':order_amount' => 105,
+////                            ':address' => "深圳市宝安区xxxx",
+////                            ':order_product_ids' => json_encode([1,2,3,rand(1,1000)]),
+////                            ':order_status' => 1
+////                        ]);
+////                    var_dump('hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh');
+//
+//                    $db1->newQuery()->query(
+//                        "insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`address`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:address,:order_product_ids,:order_status)",
+//                        [
+//                        ':order_id' => time() + 6,
+//                        ':receiver_user_name' => '张三-2',
+//                        ':receiver_user_phone' => '12345666',
+//                        ':user_id' => 10000,
+//                        ':order_amount' => 105,
+//                        ':address' => "深圳市宝安区xxxx",
+//                        ':order_product_ids' => json_encode([1,2,3,rand(1,1000)]),
+//                        ':order_status' => 1
+//                    ]);
+//
+//
+//                    $db1->commit();
+//
+//                }catch (\Throwable $e) {
+//                    var_dump($e->getMessage());
+//                    $db1->rollback();
+//                }
+//            });
+//
+//
+//
+//            $db->commit();
+//        }catch (\Throwable $e) {
+//            $db->rollback();
+//            var_dump($e->getMessage());
+//        }
+//
+//        $this->returnJson([
+//            'num' => $rowCount
+//        ]);
 
     }
 
