@@ -90,14 +90,8 @@ class ContainerObjectDto extends AbstractDto
     {
         $cid = \Swoole\Coroutine::getCid();
         $appConf = Swfy::getAppConf();
-        if (!empty($appConf['enable_component_pools']) && is_array($appConf['enable_component_pools'])) {
-            if (Swfy::isWorkerProcess()) {
-                if (!isset($appConf['enable_component_pools'][$this->__comAliasName])) {
-                    if ($cid != $this->__coroutineId) {
-                        return Application::getApp()->get($this->__comAliasName)->$name(...$arguments);
-                    }
-                }
-            }else {
+        if (!empty($appConf['enable_component_pools']) && is_array($appConf['enable_component_pools']) && Swfy::isWorkerProcess()) {
+            if (!isset($appConf['enable_component_pools'][$this->__comAliasName])) {
                 if ($cid != $this->__coroutineId) {
                     return Application::getApp()->get($this->__comAliasName)->$name(...$arguments);
                 }

@@ -157,6 +157,11 @@ class MainManager
     private $onRegisterShutdownFunction;
 
     /**
+     * @var \Closure
+     */
+    protected $closure;
+
+    /**
      * @var int
      */
     const NUM_PEISHU = 8;
@@ -1531,25 +1536,22 @@ class MainManager
     private function getSwooleTableInfo(bool $simple = true)
     {
         $swooleTableInfo = "Disable swoole table (unenabled)";
-        if (defined('ENABLE_WORKERFY_SWOOLE_TABLE') && ENABLE_WORKERFY_SWOOLE_TABLE == 1) {
-            $tableManager = TableManager::getInstance();
-            if ($simple) {
-                // todo
-                $allTableName = $tableManager->getAllTableName();
-                if (!empty($allTableName) && is_array($allTableName)) {
-                    $allTableNameStr = implode(',', $allTableName);
-                    $swooleTableInfo = "[{$allTableNameStr}]";
-                }
-            } else {
-                //todo
-                $allTableInfo = $tableManager->getAllTableKeyMapRowValue();
-                if (!empty($allTableInfo)) {
-                    $swooleTableInfo = $allTableInfo;
-                } else {
-                    $swooleTableInfo = "swoole table (enabled), but missing table_name";
-                }
+        $tableManager = TableManager::getInstance();
+        if ($simple) {
+            // todo
+            $allTableName = $tableManager->getAllTableName();
+            if (!empty($allTableName) && is_array($allTableName)) {
+                $allTableNameStr = implode(',', $allTableName);
+                $swooleTableInfo = "[{$allTableNameStr}]";
             }
-
+        } else {
+            //todo
+            $allTableInfo = $tableManager->getAllTableKeyMapRowValue();
+            if (!empty($allTableInfo)) {
+                $swooleTableInfo = $allTableInfo;
+            } else {
+                $swooleTableInfo = "swoole table (enabled), but missing table_name";
+            }
         }
         return $swooleTableInfo;
     }
