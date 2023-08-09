@@ -104,7 +104,7 @@ class SystemEnv
      */
     public static function loadAppConf()
     {
-        $confFile = START_DIR_ROOT . '/' . APP_NAME . '/Config/config-' . SWOOLEFY_ENV . '.php';
+        $confFile = START_DIR_ROOT . '/' . APP_NAME . '/Config/config.php';
         if (!file_exists($confFile)) {
             throw new SystemException("Not found app conf file:{$confFile}");
         }
@@ -115,9 +115,24 @@ class SystemEnv
             throw new SystemException("Not found const file:{$constFile}");
         }
 
-        include_once $constFile;
+        include $constFile;
 
-        return include_once $confFile;
+        return include $confFile;
+    }
+
+    /**
+     * 加载环境变量文件
+     *
+     * @return array
+     */
+    public static function loadDcEnv()
+    {
+        $dcFile = START_DIR_ROOT . '/' . APP_NAME . '/Config/dc-' . SWOOLEFY_ENV . '.php';
+        if (file_exists($dcFile)) {
+            return include START_DIR_ROOT . '/' . APP_NAME . '/Config/dc-' . SWOOLEFY_ENV . '.php';
+        }else {
+            return [];
+        }
     }
 
 }

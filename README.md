@@ -159,21 +159,21 @@ swoole-cli cli.php create App 或者 php cli.php create App
 myproject
 |—— App  // 应用项目目录
 |     |── Config       // 应用配置
-|     │   ├── config-dev.php
-|     │   ├── config-gra.php
-|     │   ├── config-prd.php
-|     │   ├── config-test.php
+|     │   ├── dc-dev.php
+|     │   ├── dc-gra.php
+|     │   ├── dc-prd.php
+|     │   ├── dc-test.php
 |     │   └── defines.php
+|     |   |—— config.php
+|     |
 |     ├── Controller
 |     │   └── IndexController.php // 控制器层
 |     ├── Model
 |     │   └── ClientModel.php
 |     ├── Module        // 模块层
 |     ├── Protocol      // 协议配置
-|     │   ├── config-dev.php
-|     │   ├── config-gra.php
-|     │   ├── config-prd.php
-|     │   └── config-test.php
+|     │   ├── conf.php  // 全局配置
+|     │
 |     ├── Router
 |     │   └── Api.php  // 路由文件，不同模块定义不同文件即可
 |     |—— Storage
