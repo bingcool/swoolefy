@@ -1,17 +1,13 @@
 <?php
 namespace Test\Process\ListProcess;
 
-use Swoole\Process;
-use Swoolefy\Core\Swfy;
+use Common\Library\Queues\Queue;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
-use Swoolefy\Core\Process\ProcessManager;
-use Swoolefy\Core\Timer\TickManager;
-use Swoolefy\Core\Crontab\CrontabManager;
 
 class RedisList extends AbstractProcess {
 
-    public $queseKey = 'order:list';
+    const queue_order_list = 'queue:order:list';
     /**
      * @inheritDoc
      */
@@ -19,21 +15,23 @@ class RedisList extends AbstractProcess {
     {
         \Swoole\Timer::tick(2000, function () {
             goApp(function () {
-                $redis = Application::getApp()->get('predis')->getObject();
-                $queue = new \Common\Library\Queues\Queue($redis, $this->queseKey);
+                /**
+                 * @var Queue $queue
+                 */
+                $queue = Application::getApp()->get('queue');
                 $queue->push(['name'=> 'bingcool','num' => rand(1,10000)]);
             });
         });
 
-        $redis = Application::getApp()->get('predis')->getObject();
-        $queue = new \Common\Library\Queues\Queue($redis, $this->queseKey);
+        /**
+         * @var Queue $queue
+         */
+        $queue = Application::getApp()->get('queue');
 
-        while (true)
-        {
+        while (true) {
             try {
                 // 控制协程并发数
-                if($this->getCurrentRunCoroutineNum() <= 20)
-                {
+                if($this->getCurrentRunCoroutineNum() <= 20) {
                     $data = $queue->pop(3);
                     // 创建协程单例
                     goApp(function () use($data){

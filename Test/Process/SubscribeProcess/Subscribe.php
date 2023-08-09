@@ -13,9 +13,7 @@ class Subscribe extends AbstractProcess
      */
     public function run()
     {
-        $redis = Application::getApp()->get('redis')->getObject();
-        $pubSub = new \Common\Library\PubSub\RedisPubSub($redis);
-
+        $pubSub = Application::getApp()->get('redis-subscribe');
         $num = 1;
         $timeNow = time();
 
@@ -25,18 +23,15 @@ class Subscribe extends AbstractProcess
                 Timer::cancel($timeChannel);
             }
             // 注册一个协程单例
-            $redis = Application::getApp()->get('redis')->getObject();
-            $pubSub = new \Common\Library\PubSub\RedisPubSub($redis);
+            $pubSub = Application::getApp()->get('redis-subscribe');
             $pubSub->publish('test1','hello, test subscribe no='.$num);
             $num++;
         });
 
-        while (true)
-        {
+        while (true) {
             try {
                 $pubSub->subscribe(['test1'], function($redis, $chan, $msg) use($pubSub) {
-                    switch ($chan)
-                    {
+                    switch ($chan) {
                         case 'test1':
                             sleep(1);
                                 var_dump('redis receive subscribe msg ='.$msg);
@@ -46,8 +41,7 @@ class Subscribe extends AbstractProcess
 
                     }
                 });
-            }catch (\Throwable $e)
-            {
+            }catch (\Throwable $e) {
 
             }
         }
