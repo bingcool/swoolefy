@@ -9,6 +9,8 @@
  * +----------------------------------------------------------------------
  */
 
+$dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
+
 return [
     // 应用层配置
     'app_conf'                 => \Swoolefy\Core\SystemEnv::loadAppConf(),

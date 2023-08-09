@@ -6,7 +6,7 @@ use Swoolefy\Core\Application;
 use Test\Config\AmqpConfig;
 use Test\Config\KafkaConfig;
 
-$dc = include 'dc-dev.php';
+$dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
 
 return [
 

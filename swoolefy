@@ -210,12 +210,19 @@ function createProject()
                     file_put_contents($definesFile, getDefines());
                 }
 
+                $configFile = $appRootDir . '/' . $dir . '/config.php';
+                if (!file_exists($configFile)) {
+                    file_put_contents($configFile, getDefaultConfig());
+                }
+
                 foreach (SWOOLEFY_ENVS as $env) {
-                    $configFile = $appRootDir . '/' . $dir . '/config-' . $env . '.php';
-                    if (!file_exists($configFile)) {
-                        file_put_contents($configFile, getDefaultConfig());
+                    $dcFile = $appRootDir . '/' . $dir . '/dc-' . $env . '.php';
+                    var_dump($dcFile);
+                    if (!file_exists($dcFile)) {
+                        @copy(SCORE_DIR_ROOT . '/src/Stubs/Dc.php', $dcFile);
                     }
                 }
+
                 break;
             }
             case 'Controller':
@@ -253,28 +260,26 @@ function createProject()
             case 'Protocol':
             {
                 $path = START_DIR_ROOT . "/{$appName}/Protocol";
-                foreach (SWOOLEFY_ENVS as $env) {
-                    $configFile = $path . "/config-{$env}.php";
-                    if (!file_exists($configFile)) {
-                        switch ($protocol) {
-                            case 'http':
-                                @copy(SCORE_DIR_ROOT . '/src/Http/config.php', $configFile);
-                                break;
-                            case 'rpc':
-                                @copy(SCORE_DIR_ROOT . '/src/Rpc/config.php', $configFile);
-                                break;
-                            case 'udp':
-                                @copy(SCORE_DIR_ROOT . '/src/Udp/config.php', $configFile);
-                                break;
-                            case 'websocket':
-                                @copy(SCORE_DIR_ROOT . '/src/Websocket/config.php', $configFile);
-                                break;
-                            case 'mqtt':
-                                @copy(SCORE_DIR_ROOT . '/src/Mqtt/config.php', $configFile);
-                                break;
-                        }
-
+                $configFile = $path . "/conf.php";
+                if (!file_exists($configFile)) {
+                    switch ($protocol) {
+                        case 'http':
+                            @copy(SCORE_DIR_ROOT . '/src/Http/config.php', $configFile);
+                            break;
+                        case 'rpc':
+                            @copy(SCORE_DIR_ROOT . '/src/Rpc/config.php', $configFile);
+                            break;
+                        case 'udp':
+                            @copy(SCORE_DIR_ROOT . '/src/Udp/config.php', $configFile);
+                            break;
+                        case 'websocket':
+                            @copy(SCORE_DIR_ROOT . '/src/Websocket/config.php', $configFile);
+                            break;
+                        case 'mqtt':
+                            @copy(SCORE_DIR_ROOT . '/src/Mqtt/config.php', $configFile);
+                            break;
                     }
+
                 }
             }
         }
@@ -355,7 +360,7 @@ function startServer($server_name)
 function startHttpService($app_name, $event_server_file_name = 'HttpServer')
 {
     $path = START_DIR_ROOT . "/{$app_name}/Protocol";
-    $config = include $path . "/config-" . SWOOLEFY_ENV . ".php";
+    $config = include $path . "/conf.php";
     checkRunning($config);
     if($config['app_conf'] === true) {
         $config['app_conf'] = include START_DIR_ROOT . '/' . APP_NAME . '/Config/config-' . SWOOLEFY_ENV . '.php';
@@ -386,7 +391,7 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer')
 function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServer')
 {
     $path = START_DIR_ROOT . "/{$app_name}/Protocol";
-    $config = include $path . "/config-" . SWOOLEFY_ENV . ".php";
+    $config = include $path . "/conf.php";
     checkRunning($config);
     $eventServerFile = START_DIR_ROOT . "/{$app_name}/{$event_server_file_name}.php";
     if (!file_exists($eventServerFile)) {
@@ -413,7 +418,7 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
 function startRpc($app_name, $event_server_file_name = 'RpcServer')
 {
     $path = START_DIR_ROOT . "/{$app_name}/Protocol";
-    $config = include $path . "/config-" . SWOOLEFY_ENV . ".php";
+    $config = include $path . "/conf.php";
     checkRunning($config);
 
     $eventServerFile = START_DIR_ROOT . "/{$app_name}/{$event_server_file_name}.php";
@@ -436,7 +441,7 @@ function startRpc($app_name, $event_server_file_name = 'RpcServer')
 function startUdp($app_name, $event_server_file_name = 'UdpEventServer')
 {
     $path = START_DIR_ROOT . "/{$app_name}/Protocol";
-    $config = include $path . "/config-" . SWOOLEFY_ENV . ".php";
+    $config = include $path . "/conf.php";
     checkRunning($config);
 
     $eventServerFile = START_DIR_ROOT . "/{$app_name}/{$event_server_file_name}.php";
@@ -464,7 +469,7 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer')
 function startMqtt($app_name, $event_server_file_name = 'MqttServer')
 {
     $path = START_DIR_ROOT . "/{$app_name}/Protocol";
-    $config = include $path . "/config-" . SWOOLEFY_ENV . ".php";
+    $config = include $path . "/conf.php";
     checkRunning($config);
 
     $eventServerFile = START_DIR_ROOT . "/{$app_name}/{$event_server_file_name}.php";
@@ -1100,8 +1105,29 @@ function getDefaultConfig()
     $content =
 <<<EOF
 <?php
-// 应用配置
+// 加载环境配置变量
+\$dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
+
 return [
+
+    // db|redis连接池
+    'enable_component_pools' => [
+        'db' => [
+            'pools_num' => 5,
+            'push_timeout' => 2,
+            'pop_timeout' => 1,
+            'live_time' => 10
+        ],
+
+        'redis' => [
+            'pools_num' => 5,
+            'push_timeout' => 2,
+            'pop_timeout' => 1,
+            'live_time' => 10
+        ]
+    ],
+    
+    // 组件
     'components' => [
         // 用户行为记录的日志
         'log' => function(\$name) {
@@ -1135,7 +1161,22 @@ return [
             }
             \$logger->setLogFilePath(\$logFilePath);
             return \$logger;
+        },
+        
+        // mysql 实例
+        'db' => function() use(\$dc) {
+            \$db = new \Common\Library\Db\Mysql(\$dc['mysql_db']);
+            return \$db;
+        },
+        
+        // redis 实例
+        'redis' => function() use(\$dc) {
+            \$redis = new \Common\Library\Cache\Redis();
+            \$redis->connect(\$dc['redis']['host'], \$dc['redis']['port']);
+            return \$redis;
         }
+        
+        // todo
     ]
 ];
 
