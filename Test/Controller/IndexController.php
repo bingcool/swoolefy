@@ -156,7 +156,7 @@ class IndexController extends BController {
         $this->db->newQuery()->query(
             "insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`address`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:address,:order_product_ids,:order_status)",
             [
-                ':order_id' => time() + 6,
+                ':order_id' => Application::getApp()->get('uuid')->getOneId(),
                 ':receiver_user_name' => '张三-444555',
                 ':receiver_user_phone' => '12345666',
                 ':user_id' => 10000,
@@ -166,13 +166,13 @@ class IndexController extends BController {
                 ':order_status' => 1
             ]);
 
-        goApp(function () {
+        goApp(function ()  {
             try {
                 $this->db->beginTransaction();
                 $this->db->newQuery()->query(
                     "insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`address`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:address,:order_product_ids,:order_status)",
                     [
-                        ':order_id' => time() + 7,
+                        ':order_id' => Application::getApp()->get('uuid')->getOneId(),
                         ':receiver_user_name' => '张三-992',
                         ':receiver_user_phone' => '12345666',
                         ':user_id' => 10000,
@@ -193,7 +193,7 @@ class IndexController extends BController {
             $this->db->newQuery()->query(
                 "insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`address`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:address,:order_product_ids,:order_status)",
                 [
-                    ':order_id' => time() + 8,
+                    ':order_id' => Application::getApp()->get('uuid')->getOneId(),
                     ':receiver_user_name' => '张三-992',
                     ':receiver_user_phone' => '12345666',
                     ':user_id' => 10000,
@@ -206,7 +206,7 @@ class IndexController extends BController {
 
         });
 
-        goApp(function() {
+        goApp(function()  {
             /**
              * @var \Common\Library\Db\Mysql $db1
              */
@@ -218,7 +218,7 @@ class IndexController extends BController {
                 $db1->newQuery()->query(
                     "insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`address`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:address,:order_product_ids,:order_status)",
                     [
-                        ':order_id' => time() + 9,
+                        ':order_id' => Application::getApp()->get('uuid')->getOneId(),
                         ':receiver_user_name' => '张三-2',
                         ':receiver_user_phone' => '12345666',
                         ':user_id' => 10000,

@@ -2,6 +2,7 @@
 // 应用配置
 use Common\Library\Amqp\AmqpStreamConnectionFactory;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
+use Swoolefy\Core\Application;
 use Test\Config\AmqpConfig;
 use Test\Config\KafkaConfig;
 
@@ -83,6 +84,11 @@ return [
                 'port'   => $dc['predis']['port'],
             ]);
             return $predis;
+        },
+
+        'uuid' => function() use($dc) {
+            $redis = Application::getApp()->get('redis')->getObject();
+            return \Common\Library\Uuid\UuidManager::getInstance($redis, 'uuid-key');
         },
 
         'amqpConnection' => function() use($dc) {
