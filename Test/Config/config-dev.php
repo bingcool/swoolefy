@@ -91,6 +91,23 @@ return [
             return \Common\Library\Uuid\UuidManager::getInstance($redis, 'uuid-key');
         },
 
+        'queue' => function() {
+            $redis = Application::getApp()->get('redis')->getObject();
+            return new \Common\Library\Queues\Queue($redis,\Test\Process\ListProcess\RedisList::queue_order_list);
+        },
+
+        'redis-subscribe' => function() {
+            $redis = Application::getApp()->get('redis')->getObject();
+            return new \Common\Library\PubSub\RedisPubSub($redis);
+        },
+
+        'rateLimit' => function() {
+            $redis = Application::getApp()->get('redis')->getObject();
+            $rateLimit =  new \Common\Library\RateLimit\RedisLimit($redis);
+            $rateLimit->setLimitParams(60,60, 3600);
+            return $rateLimit;
+        },
+
         'amqpConnection' => function() use($dc) {
             $connection = AmqpStreamConnectionFactory::create(
                 $dc['amqp_connection']['host_list'],

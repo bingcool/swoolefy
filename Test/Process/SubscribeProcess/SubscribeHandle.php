@@ -3,6 +3,7 @@ namespace Test\Process\SubscribeProcess;
 
 use Swoolefy\Core\Application;
 use Swoolefy\Core\EventController;
+use Test\Module\Order\OrderList;
 
 class SubscribeHandle extends EventController
 {
