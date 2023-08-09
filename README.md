@@ -153,27 +153,27 @@ include './swoolefy';
 ```
 // 你定义的项目目录是App, 在myproject目录下执行下面命令行
 
-swoole-cli cli.php create App
+swoole-cli cli.php create App 或者 php cli.php create App   
 
 // 执行完上面命令行后，将会自动生成App项目目录以及内部子目录
 myproject
 |—— App  // 应用项目目录
 |     |── Config       // 应用配置
-|     │   ├── config-dev.php
-|     │   ├── config-gra.php
-|     │   ├── config-prd.php
-|     │   ├── config-test.php
+|     │   ├── dc-dev.php
+|     │   ├── dc-gra.php
+|     │   ├── dc-prd.php
+|     │   ├── dc-test.php
 |     │   └── defines.php
+|     |   |—— config.php
+|     |
 |     ├── Controller
 |     │   └── IndexController.php // 控制器层
 |     ├── Model
 |     │   └── ClientModel.php
 |     ├── Module        // 模块层
 |     ├── Protocol      // 协议配置
-|     │   ├── config-dev.php
-|     │   ├── config-gra.php
-|     │   ├── config-prd.php
-|     │   └── config-test.php
+|     │   ├── conf.php  // 全局配置
+|     │
 |     ├── Router
 |     │   └── Api.php  // 路由文件，不同模块定义不同文件即可
 |     |—— Storage
@@ -267,6 +267,8 @@ return [
         ]
     ],
     
+     // default_db
+    'default_db' => 'db',
 
     // 在应用层配置文件中,例如下面使用library的Redis、Db组件
     components => [
