@@ -8,8 +8,8 @@ class UuidController extends BController
 {
     public function getUuid()
     {
-        $redis = Application::getApp()->get('redis')->getObject();
-        $ids   = \Common\Library\Uuid\UuidManager::getInstance()->getIncrIds($redis,500);
-        var_dump($ids);
+        $uuid = Application::getApp()->get('uuid');
+        $ids  = $uuid->getIncrIds(100);
+        $this->returnJson($ids);
     }
 }

@@ -13,7 +13,7 @@ class LocalOrderHandle extends AbstractCronController {
         $db = Application::getApp()->get('db');
         $db->createCommand("insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:order_product_ids,:order_status)" )
             ->insert([
-                ':order_id' => time() + 5,
+                ':order_id' => Application::getApp()->get('uuid')->getOneId(),
                 ':receiver_user_name' => '张三',
                 ':receiver_user_phone' => '12345666',
                 ':user_id' => 10000,
@@ -32,7 +32,7 @@ class LocalOrderHandle extends AbstractCronController {
             try {
                 $db->createCommand("insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:order_product_ids,:order_status)" )
                     ->insert([
-                        ':order_id' => time() + 6,
+                        ':order_id' => Application::getApp()->get('uuid')->getOneId(),
                         ':receiver_user_name' => '张三',
                         ':receiver_user_phone' => '12345666',
                         ':user_id' => 10000,

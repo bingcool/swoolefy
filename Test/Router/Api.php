@@ -47,5 +47,10 @@ return [
     '/token/jwt' => [
         'dispatch_route' => [\Test\Controller\TokenController::class, 'jwt'],
     ],
-    
+
+
+    '/getUuid' => [
+        'dispatch_route' => [\Test\Controller\UuidController::class, 'getUuid'],
+    ],
+
 ];
