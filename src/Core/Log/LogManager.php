@@ -75,7 +75,7 @@ class LogManager
      * @param string $type
      * @return Log
      */
-    public function getLogger(string $type)
+    public function getLogger(string $type): Log
     {
         $logger = $this->logger[$type] ?? null;
         if ($logger) {
@@ -87,6 +87,7 @@ class LogManager
                 }
             }
         }
+        return $logger;
     }
 
 }
