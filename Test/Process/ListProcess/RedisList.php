@@ -4,6 +4,7 @@ namespace Test\Process\ListProcess;
 use Common\Library\Queues\Queue;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
+use Test\Factory;
 
 class RedisList extends AbstractProcess {
 
@@ -15,18 +16,12 @@ class RedisList extends AbstractProcess {
     {
         \Swoole\Timer::tick(2000, function () {
             goApp(function () {
-                /**
-                 * @var Queue $queue
-                 */
-                $queue = Application::getApp()->get('queue');
+                $queue = Factory::getQueue();
                 $queue->push(['name'=> 'bingcool','num' => rand(1,10000)]);
             });
         });
 
-        /**
-         * @var Queue $queue
-         */
-        $queue = Application::getApp()->get('queue');
+        $queue = Factory::getQueue();
 
         while (true) {
             try {

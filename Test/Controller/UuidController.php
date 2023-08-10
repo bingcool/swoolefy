@@ -3,13 +3,13 @@ namespace Test\Controller;
 
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
+use Test\Factory;
 
 class UuidController extends BController
 {
     public function getUuid()
     {
-        $uuid = Application::getApp()->get('uuid');
-        $ids  = $uuid->getIncrIds(100);
+        $ids = Factory::getUUid()->getIncrIds(10);
         $this->returnJson($ids);
     }
 }

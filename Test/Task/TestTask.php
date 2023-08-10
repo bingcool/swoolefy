@@ -4,6 +4,7 @@ namespace Test\Task;
 
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Task\TaskController;
+use Test\Factory;
 
 class TestTask extends TaskController
 {
@@ -15,10 +16,7 @@ class TestTask extends TaskController
         var_dump("Task Process Receive data from workerId={$fromWorkerId} and msg=".$msg);
 
         $userId = $taskData['user_id'];
-        /**
-         * @var \Common\Library\Db\Mysql $db
-         */
-        $db = Application::getApp()->get('db');
+        $db = Factory::getDb();
         $result = $db->createCommand('select * from tbl_users where user_id=:user_id limit 1')->queryAll([
             ':user_id' => $userId
         ]);
@@ -42,7 +40,7 @@ class TestTask extends TaskController
             // 再嵌套协程单例应用
             goApp(function () {
                 // registerApp闭包里面必须通过这样的组件获取组件实例
-                $db = Application::getApp()->get('db');
+                $db = Factory::getDb();
                 $db1 = $this->get('db');
                 $cid = \Swoole\Coroutine::getCid();
                 var_dump("协程2-Cid={$cid}, Db spl_object_id=".spl_object_id($db).', spl_object_id='.spl_object_id($db1));

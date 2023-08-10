@@ -1,18 +1,11 @@
 <?php
 namespace Test\Process\TickProcess;
 
-use Common\Library\Db\Facade\Db;
 use Common\Library\Db\Mysql;
-use Common\Library\Db\Query;
-use Swoole\Process;
-use Swoolefy\Core\Log\LogManager;
-use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
-use Swoolefy\Core\Process\ProcessManager;
 use Swoolefy\Core\Timer\TickManager;
-use Test\Module\Order\OrderEntity;
-
+use Test\Factory;
 
 class Tick extends AbstractProcess {
 
@@ -32,13 +25,12 @@ class Tick extends AbstractProcess {
 //        );
 
 //        TickManager::getInstance()->tickTimer(3000, function () {
-//            $count = Application::getApp()->get('db')->createCommand("select count(1) as total from tbl_users")->count();
+//            $count = Factory::getDb()->createCommand("select count(1) as total from tbl_users")->count();
 //            var_dump($count);
 //        });
-        /**
-         * @var Mysql $db;
-         */
-        $db = Application::getApp()->get('db');
+
+        $db = Factory::getDb();
+
         while(1) {
             try {
 

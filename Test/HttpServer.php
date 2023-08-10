@@ -56,10 +56,7 @@ class HttpServer extends \Swoolefy\Http\HttpAppServer {
         var_dump('Worker Process onFinish Receive Task Worker msg='.$data);
 
         $userId = $msg['user_id'];
-        /**
-         * @var \Common\Library\Db\Mysql $db
-         */
-        $db = Application::getApp()->get('db');
+        $db = Factory::getDb();
         $result = $db->createCommand('select * from tbl_users where user_id=:user_id limit 1')->queryAll([
             ':user_id' => $userId
         ]);

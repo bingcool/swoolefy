@@ -3,6 +3,7 @@ namespace Test\WorkerCron\LocalOrder;
 
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Crontab\AbstractCronController;
+use Test\Factory;
 
 class LocalOrderHandle extends AbstractCronController {
 
@@ -10,7 +11,7 @@ class LocalOrderHandle extends AbstractCronController {
     {
         var_dump(date('Y-m-d H:i:s'));
 
-        $db = Application::getApp()->get('db');
+        $db = Factory::getDb();
         $db->createCommand("insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:order_product_ids,:order_status)" )
             ->insert([
                 ':order_id' => Application::getApp()->get('uuid')->getOneId(),
@@ -24,10 +25,7 @@ class LocalOrderHandle extends AbstractCronController {
 
         var_dump('save');
         goApp(function() {
-            /**
-             * @var \Common\Library\Db\Mysql $db
-             */
-            $db = Application::getApp()->get('db');
+            $db = Factory::getDb();
             $db->beginTransaction();
             try {
                 $db->createCommand("insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:order_product_ids,:order_status)" )

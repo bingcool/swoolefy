@@ -2,13 +2,12 @@
 
 namespace Test\Process\TestProcess;
 
-use Swoolefy\Core\App;
-use Swoolefy\Core\Application;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Coroutine\GoWaitGroup;
 use Swoolefy\Core\Process\AbstractProcess;
+use Test\Factory;
 
-class Test extends AbstractProcess
+class MultiCall extends AbstractProcess
 {
 
     /**
@@ -18,24 +17,17 @@ class Test extends AbstractProcess
     {
         while (true) {
             try {
-                $cid = \Swoole\Coroutine::getCid();
-                /**
-                 * @var \Common\Library\Db\Mysql $db
-                 */
-                //$db = Application::getApp()->get('db');
-                //var_dump("This is Test Process, cid={$cid}, class=".__CLASS__.", db_object_id=".spl_object_id($db));
-                sleep(5);
-
+                sleep(2);
                 $result = GoWaitGroup::multiCall([
                         'key1' => function () {
                             sleep(3);
 
-                            $db = Application::getApp()->get('db');
+                            $db = Factory::getDb();
                             var_dump(spl_object_id($db), \Swoole\Coroutine::getCid() );
 
                             (new \Swoolefy\Core\EventApp)->registerApp(function($event) {
                                 try {
-                                    $db = Application::getApp()->get('db');
+                                    $db = Factory::getDb();
                                     var_dump(spl_object_id($db),\Swoole\Coroutine::getCid());
                                 }catch (\Throwable $throwable) {
                                     \Swoolefy\Core\BaseServer::catchException($throwable);
@@ -44,14 +36,14 @@ class Test extends AbstractProcess
 
                             (new \Swoolefy\Core\EventApp)->registerApp(function($event) {
                                 try {
-                                    $db = Application::getApp()->get('db');
+                                    $db = Factory::getDb();
                                     var_dump(spl_object_id($db), \Swoole\Coroutine::getCid() );
                                 }catch (\Throwable $throwable) {
                                     \Swoolefy\Core\BaseServer::catchException($throwable);
                                 }
                             });
 
-                            var_dump(spl_object_id(Application::getApp()->get('db')));
+                            var_dump(spl_object_id(Factory::getDb()));
 
                             return "aaaaa";
                         },

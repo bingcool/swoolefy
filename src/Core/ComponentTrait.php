@@ -278,7 +278,7 @@ trait ComponentTrait
 
     /**
      * @param string $name
-     * @return object|bool
+     * @return ContainerObjectDto|bool
      */
     final public function get(string $name)
     {
