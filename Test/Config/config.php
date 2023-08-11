@@ -108,6 +108,18 @@ return [
             return $rateLimit;
         },
 
+        'redis-order-lock' => function() {
+            $redis = Application::getApp()->get('redis')->getObject();
+            $lock = new \Common\Library\Lock\PHPRedisMutex([$redis],'order_lock', 10);
+            return $lock;
+        },
+
+        'predis-order-lock' => function() {
+            $redis = Application::getApp()->get('predis')->getObject();
+            $lock = new \Common\Library\Lock\PredisMutex([$redis],'order_lock-1', 10);
+            return $lock;
+        },
+
         'amqpConnection' => function() use($dc) {
             $connection = AmqpStreamConnectionFactory::create(
                 $dc['amqp_connection']['host_list'],
