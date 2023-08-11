@@ -52,7 +52,7 @@ class Event extends EventHandler
             //var_dump('pid='.$pid);
 
             // redis的队列消费
-            //ProcessManager::getInstance()->addProcess('redis_list_test', \Test\Process\ListProcess\RedisList::class,true, [], null, true);
+            // ProcessManager::getInstance()->addProcess('redis_list_test', \Test\Process\ListProcess\RedisList::class,true, [], null, true);
 
             // amqp-direct 生产队
             //ProcessManager::getInstance()->addProcess('amqp-publish', \Test\Process\AmqpProcess\AmqpPublish::class);
@@ -68,15 +68,17 @@ class Event extends EventHandler
             //ProcessManager::getInstance()->addProcess('amqp-consumer-fanout1', \Test\Process\AmqpProcess\AmqpConsumerFanout1::class);
 
 
-            // amqp-topic 生产队列
-           // ProcessManager::getInstance()->addProcess('amqp-publish-topic', \Test\Process\AmqpProcess\AmqpPublishTopic::class);
+            // amqp-topic 生产队
+            //ProcessManager::getInstance()->addProcess('amqp-publish-topic', \Test\Process\AmqpProcess\AmqpPublishTopic::class);
             // amqp-topic 消费队列
-           // ProcessManager::getInstance()->addProcess('amqp-consumer-topic', \Test\Process\AmqpProcess\AmqpConsumerTopic::class);
+            //ProcessManager::getInstance()->addProcess('amqp-consumer-topic', \Test\Process\AmqpProcess\AmqpConsumerTopic::class);
 
             // kafka-topic 生产队列
             //ProcessManager::getInstance()->addProcess('kafka-publish-topic', \Test\Process\Kafka\ProducerKafka::class);
             // kafka-topic 消费队列
-            //ProcessManager::getInstance()->addProcess('kafka-consumer-topic', \Test\Process\Kafka\ConsumerKafka::class);
+            //ProcessManager::getInstance()->addProcess('kafka-consumer-topic1', \Test\Process\Kafka\ConsumerKafka::class);
+            //ProcessManager::getInstance()->addProcess('kafka-consumer-topic2', \Test\Process\Kafka\ConsumerKafka::class);
+            //ProcessManager::getInstance()->addProcess('kafka-consumer-topic3', \Test\Process\Kafka\ConsumerKafka::class);
 
 
 
@@ -85,7 +87,10 @@ class Event extends EventHandler
 
 
             // redis的订阅进程
-            //ProcessManager::getInstance()->addProcess('redis_subscribe_test', \Test\Process\SubscribeProcess\Subscribe::class);
+            // ProcessManager::getInstance()->addProcess('redis_subscribe_test', \Test\Process\SubscribeProcess\Subscribe::class);
+
+            // multi call 并发调用进程
+            // ProcessManager::getInstance()->addProcess('multi-call', \Test\Process\TestProcess\MultiCall::class);
 
             // 这里为什么获取不到pid,那是应为process需要server执行start后才会创建，而在这里只是创建实例，server还没正式启动
             //$pid = ProcessManager::getInstance()->getProcessByName('redis_list_test')->getPid();
@@ -103,7 +108,7 @@ class Event extends EventHandler
     /**
      * onWorkerStart
      * @param $server
-     * @return mixed
+     * @return void
      */
     public function onWorkerStart($server, $worker_id)
     {
@@ -112,7 +117,7 @@ class Event extends EventHandler
         }
 
         // 创建产生uuid的定时器
-        //Application::getApp()->get('uuid')->tickPreBatchGenerateIds(2, 100);
+        Factory::getUUid()->tickPreBatchGenerateIds(2, 100);
     }
 
     public function onWorkerStop($server, $worker_id)

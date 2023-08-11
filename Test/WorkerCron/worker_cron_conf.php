@@ -1,4 +1,7 @@
 <?php
+
+use Common\Library\HttpClient\RawResponse;
+
 return [
     // 独立进程本地处理任务
     [

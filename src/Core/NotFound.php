@@ -14,7 +14,6 @@ namespace Swoolefy\Core;
 class NotFound extends BService
 {
     /**
-     * error404
      * @param string $class
      * @return array
      */

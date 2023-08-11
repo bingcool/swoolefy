@@ -157,6 +157,11 @@ class MainManager
     private $onRegisterShutdownFunction;
 
     /**
+     * @var \Closure
+     */
+    protected $closure;
+
+    /**
      * @var int
      */
     const NUM_PEISHU = 8;

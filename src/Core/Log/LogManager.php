@@ -75,9 +75,19 @@ class LogManager
      * @param string $type
      * @return Log
      */
-    public function getLogger(string $type)
+    public function getLogger(string $type): Log
     {
-        return $this->logger[$type] ?? null;
+        $logger = $this->logger[$type] ?? null;
+        if ($logger) {
+            $hour = (int)date('H');
+            if (in_array($hour,[23,0,1,2,3,4,5,6,7,8])) {
+                $logFilePath = $logger->getLogFilePath();
+                if (!is_file($logFilePath)) {
+                    @file_put_contents($logFilePath, '');
+                }
+            }
+        }
+        return $logger;
     }
 
 }

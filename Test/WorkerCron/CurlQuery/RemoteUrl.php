@@ -13,6 +13,6 @@ class RemoteUrl {
      */
     public function handle(RawResponse $response) {
         // 做简单的响应处理
-        //var_dump($response->getHeaders());
+        var_dump($response->getHeaders());
     }
 }

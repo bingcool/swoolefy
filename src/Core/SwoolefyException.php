@@ -150,11 +150,6 @@ class SwoolefyException
             return;
         }
 
-        $logFilePath = $logger->getLogFilePath();
-        if (!file_exists($logFilePath)) {
-            @file_put_contents($logFilePath, '');
-        }
-
         switch ($errorType) {
             case SwoolefyException::EXCEPTION_ERR:
                 $logger->addError($errorMsg);

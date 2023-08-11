@@ -53,4 +53,8 @@ return [
         'dispatch_route' => [\Test\Controller\UuidController::class, 'getUuid'],
     ],
 
+    '/lock-test1' => [
+        'dispatch_route' => [\Test\Controller\LockController::class, 'locktest1'],
+    ],
+    
 ];

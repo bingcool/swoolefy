@@ -37,7 +37,7 @@ class ObjectController extends BController
              * @var \Test\Module\Order\OrderEntity $this
              */
             $this->onAfterInsert();
-            var_dump('next onAfterInsert');
+            //var_dump('next onAfterInsert');
 
         });
 
@@ -81,7 +81,7 @@ class ObjectController extends BController
     {
         $list = new OrderList();
         $list->setOrderStatus(1);
-        $list->setPage(1);
+        $list->setPage(0);
         $list->setPageSize(10);
         //$list->setOrderId(1687344505);
         $result = $list->find();

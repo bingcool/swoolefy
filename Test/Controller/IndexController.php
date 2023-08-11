@@ -6,6 +6,7 @@ use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\EventController;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
 use Swoolefy\Core\Log\LogManager;
+use Test\Factory;
 
 class IndexController extends BController {
 
@@ -60,10 +61,7 @@ class IndexController extends BController {
 
     public function testAddUser()
     {
-        /**
-         * @var \Common\Library\Db\Mysql $db
-         */
-        $db = Application::getApp()->get('db');
+        $db = Factory::getDb();
         $db->createCommand("insert into tbl_users (`user_name`,`sex`,`birthday`,`phone`) values(:user_name,:sex,:birthday,:phone)" )
             ->insert([
                 ':user_name' => '李四-'.rand(1,9999),
@@ -76,10 +74,7 @@ class IndexController extends BController {
 
         // 创建一个协助程单例
         goApp(function () use($rowCount) {
-            /**
-             * @var \Common\Library\Db\Mysql $db
-             */
-            $db = Application::getApp()->get('db');
+            $db = Factory::getDb();
             $db->createCommand("insert into tbl_users (`user_name`,`sex`,`birthday`,`phone`) values(:user_name,:sex,:birthday,:phone)" )
                 ->insert([
                     ':user_name' => '李四-'.rand(1,9999),
@@ -101,15 +96,11 @@ class IndexController extends BController {
 
     public function testUserList()
     {
-        /**
-         * @var \Common\Library\Db\Mysql $db
-         */
-        $db = Application::getApp()->get('db');
+        $db = Factory::getDb();
         $count = $db->createCommand("select count(1) as total from tbl_users")->count();
         if($count) {
             $list = $db->createCommand('select * from tbl_users')->queryAll();
         }
-        $db1 = Application::getApp()->get('db');
         $this->returnJson([
             'total' => $count,
             'list' => $list ?? []
@@ -123,10 +114,7 @@ class IndexController extends BController {
      */
     public function testOrderList(int $uid, int $page = 1, int $limit = 20)
     {
-        /**
-         * @var \Common\Library\Db\Mysql $db
-         */
-        $db = Application::getApp()->get('db');
+        $db = Factory::getDb();
         $offset = ($page -1) * $limit;
 
         $count = $db->createCommand("select count(1) as total from tbl_order where user_id=:uid")->count([':uid'=>$uid]);
@@ -148,15 +136,12 @@ class IndexController extends BController {
 
     public function testTransactionAddOrder()
     {
-        /**
-         * @var \Common\Library\Db\Mysql $db
-        */
-        $this->db = Application::getApp()->get('db');
+        $this->db = Factory::getDb();
 
         $this->db->newQuery()->query(
             "insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`address`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:address,:order_product_ids,:order_status)",
             [
-                ':order_id' => Application::getApp()->get('uuid')->getOneId(),
+                ':order_id' => Factory::getUUid()->getOneId(),
                 ':receiver_user_name' => '张三-444555',
                 ':receiver_user_phone' => '12345666',
                 ':user_id' => 10000,
@@ -172,7 +157,7 @@ class IndexController extends BController {
                 $this->db->newQuery()->query(
                     "insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`address`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:address,:order_product_ids,:order_status)",
                     [
-                        ':order_id' => Application::getApp()->get('uuid')->getOneId(),
+                        ':order_id' => Factory::getUUid()->getOneId(),
                         ':receiver_user_name' => '张三-992',
                         ':receiver_user_phone' => '12345666',
                         ':user_id' => 10000,
@@ -193,7 +178,7 @@ class IndexController extends BController {
             $this->db->newQuery()->query(
                 "insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`address`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:address,:order_product_ids,:order_status)",
                 [
-                    ':order_id' => Application::getApp()->get('uuid')->getOneId(),
+                    ':order_id' => Factory::getUUid()->getOneId(),
                     ':receiver_user_name' => '张三-992',
                     ':receiver_user_phone' => '12345666',
                     ':user_id' => 10000,
@@ -207,18 +192,14 @@ class IndexController extends BController {
         });
 
         goApp(function()  {
-            /**
-             * @var \Common\Library\Db\Mysql $db1
-             */
-            $db1 = Application::getApp()->get('db');
+            $db1 = Factory::getDb();
             var_dump('beginTransaction');
-
             try {
                 $db1->beginTransaction();
                 $db1->newQuery()->query(
                     "insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`address`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:address,:order_product_ids,:order_status)",
                     [
-                        ':order_id' => Application::getApp()->get('uuid')->getOneId(),
+                        ':order_id' => Factory::getUUid()->getOneId(),
                         ':receiver_user_name' => '张三-2',
                         ':receiver_user_phone' => '12345666',
                         ':user_id' => 10000,
