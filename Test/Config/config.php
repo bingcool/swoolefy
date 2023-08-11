@@ -104,7 +104,6 @@ return [
         'rateLimit' => function() {
             $redis = Application::getApp()->get('redis')->getObject();
             $rateLimit =  new \Common\Library\RateLimit\RedisLimit($redis);
-            $rateLimit->setLimitParams(60,60, 3600);
             return $rateLimit;
         },
 

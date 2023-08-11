@@ -56,5 +56,9 @@ return [
     '/lock-test1' => [
         'dispatch_route' => [\Test\Controller\LockController::class, 'locktest1'],
     ],
-    
+
+    '/rate-test1' => [
+        'dispatch_route' => [\Test\Controller\RateLimitController::class, 'ratetest1'],
+    ],
+
 ];
