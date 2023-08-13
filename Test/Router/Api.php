@@ -63,4 +63,8 @@ return [
         'dispatch_route' => [\Test\Controller\RateLimitController::class, 'ratetest1'],
     ],
 
+    '/validate-test1' => [
+        'dispatch_route' => [\Test\Controller\ValidateController::class, 'test1'],
+    ],
+
 ];
