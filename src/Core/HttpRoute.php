@@ -441,7 +441,7 @@ class HttpRoute extends AppDispatch
         }
 
         if (!empty($missing)) {
-            throw new DispatchException("Missing required parameters of name : " . implode(', ', $missing) . '|||' . $this->request->server['REQUEST_URI'] . '|||' . json_encode($actionParams, JSON_UNESCAPED_UNICODE));
+            throw new DispatchException("Missing function required params [" . implode(', ', $missing) . '] |||' . $this->request->server['REQUEST_URI'] . '|||' . json_encode($actionParams, JSON_UNESCAPED_UNICODE));
         }
 
         $this->actionParams = $actionParams;

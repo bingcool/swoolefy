@@ -13,6 +13,7 @@ namespace Swoolefy\Core\Controller;
 
 use Swoole\Coroutine;
 use Swoolefy\Core\App;
+use Common\Library\Validate;
 use Swoolefy\Core\Application;
 
 class BController extends \Swoolefy\Core\AppObject
@@ -39,6 +40,11 @@ class BController extends \Swoolefy\Core\AppObject
     public $appConf = [];
 
     /**
+     * @var Validate
+     */
+    protected $validate;
+
+    /**
      * __construct
      */
     public function __construct()
@@ -50,11 +56,28 @@ class BController extends \Swoolefy\Core\AppObject
         $this->request  = $app->request;
         $this->response = $app->response;
         $this->appConf  = $app->appConf;
+        $this->validate = new Validate();
         if (Coroutine::getCid() >= 0) {
             \Swoole\Coroutine::defer(function () {
                 $this->defer();
             });
         }
+    }
+
+    /**
+     * @param array $params
+     * @param array $rules
+     * @return Validate
+     */
+    protected function validate(array $params, array $rules, array $message = [])
+    {
+        foreach ($rules as $name=>$rule) {
+            $this->validate->rule($name, $rule);
+        }
+        $this->validate->message($message);
+        $this->validate->failException(true);
+        $this->validate->check($params);
+        return $this->validate;
     }
 
     /**
