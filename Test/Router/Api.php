@@ -4,6 +4,7 @@ namespace Test\Router;
 
 use Swoole\Http\Request;
 use Swoolefy\Core\Application;
+use Swoolefy\Core\Coroutine\Context;
 
 /**
  * Controller 下的控制器路由
@@ -27,6 +28,7 @@ return [
 
     '/index/index' => [
         'beforeHandle' => function(Request $request) {
+            Context::set('name', 'bingcool');
             $name = Application::getApp()->getPostParams('name');
         },
 

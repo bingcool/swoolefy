@@ -9,6 +9,7 @@ class UuidController extends BController
 {
     public function getUuid()
     {
+        $this->input();
         $ids = Factory::getUUid()->getIncrIds(10);
         $this->returnJson($ids);
     }
