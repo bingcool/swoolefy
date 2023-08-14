@@ -536,6 +536,10 @@ abstract class MqttServer extends BaseServer
                     }
                     break;
 
+                case Types::PUBACK:
+
+                    break;
+
                 case Types::SUBSCRIBE:
                     $payload    = [];
                     $topics     = $data['topics'];
