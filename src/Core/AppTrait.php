@@ -193,6 +193,16 @@ trait AppTrait
     }
 
     /**
+     * @param string|null $name
+     * @param $default
+     * @return mixed
+     */
+    public function input(?string $name = null, $default = null)
+    {
+        return $this->getRequestParams($name, $default);
+    }
+
+    /**
      * getQueryParams 获取get参数
      * @param string|null $name
      * @param mixed $default
