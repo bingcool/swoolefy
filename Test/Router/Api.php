@@ -67,4 +67,8 @@ return [
         'dispatch_route' => [\Test\Controller\ValidateController::class, 'test1'],
     ],
 
+    '/ws' => [
+        'dispatch_route' => [\Test\Controller\WsController::className(), 'test1'],
+    ]
+
 ];
