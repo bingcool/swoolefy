@@ -210,14 +210,18 @@ function createProject()
                     file_put_contents($definesFile, getDefines());
                 }
 
+                $componentFile = $appRootDir . '/' . $dir . '/Component.php';
+                if (!file_exists($componentFile)) {
+                    @copy(SCORE_DIR_ROOT . '/src/Stubs/Component.php', $componentFile);
+                }
+
                 $configFile = $appRootDir . '/' . $dir . '/config.php';
                 if (!file_exists($configFile)) {
-                    file_put_contents($configFile, getDefaultConfig());
+                    @copy(SCORE_DIR_ROOT . '/src/Stubs/Config.php', $configFile);
                 }
 
                 foreach (SWOOLEFY_ENVS as $env) {
                     $dcFile = $appRootDir . '/' . $dir . '/dc-' . $env . '.php';
-                    var_dump($dcFile);
                     if (!file_exists($dcFile)) {
                         @copy(SCORE_DIR_ROOT . '/src/Stubs/Dc.php', $dcFile);
                     }
@@ -1098,90 +1102,6 @@ function resetConf(&$conf)
         }
         unset($conf['setting']['admin_server'], $conf['setting']['task_worker_num']);
     }
-}
-
-function getDefaultConfig()
-{
-    $content =
-<<<EOF
-<?php
-// 加载环境配置变量
-\$dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
-
-return [
-
-    // db|redis连接池
-    'enable_component_pools' => [
-        'db' => [
-            'pools_num' => 5,
-            'push_timeout' => 2,
-            'pop_timeout' => 1,
-            'live_time' => 10
-        ],
-
-        'redis' => [
-            'pools_num' => 5,
-            'push_timeout' => 2,
-            'pop_timeout' => 1,
-            'live_time' => 10
-        ]
-    ],
-    
-    // 组件
-    'components' => [
-        // 用户行为记录的日志
-        'log' => function(\$name) {
-            \$logger = new \Swoolefy\Util\Log(\$name);
-            \$logger->setChannel('application');
-            if(isDaemonService()) {
-                \$logFilePath = LOG_PATH.'/daemon.log';
-            }else if (isScriptService()) {
-                \$logFilePath = LOG_PATH.'/script.log';
-            }else if (isCronService()) {
-                \$logFilePath = LOG_PATH.'/cron.log';
-            } else {
-                \$logFilePath = LOG_PATH.'/runtime.log';
-            }
-            \$logger->setLogFilePath(\$logFilePath);
-            return \$logger;
-        },
-
-        // 系统捕捉异常错误日志
-        'error_log' => function(\$name) {
-            \$logger = new \Swoolefy\Util\Log(\$name);
-            \$logger->setChannel('application');
-            if(isDaemonService()) {
-                \$logFilePath = LOG_PATH.'/daemon_error.log';
-            }else if (isScriptService()) {
-                \$logFilePath = LOG_PATH.'/script_error.log';
-            }else if (isCronService()) {
-                \$logFilePath = LOG_PATH.'/cron_error.log';
-            } else {
-                \$logFilePath = LOG_PATH.'/error.log';
-            }
-            \$logger->setLogFilePath(\$logFilePath);
-            return \$logger;
-        },
-        
-        // mysql 实例
-        'db' => function() use(\$dc) {
-            \$db = new \Common\Library\Db\Mysql(\$dc['mysql_db']);
-            return \$db;
-        },
-        
-        // redis 实例
-        'redis' => function() use(\$dc) {
-            \$redis = new \Common\Library\Cache\Redis();
-            \$redis->connect(\$dc['redis']['host'], \$dc['redis']['port']);
-            return \$redis;
-        }
-        
-        // todo
-    ]
-];
-
-EOF;
-    return $content;
 }
 
 function getDefaultController()
