@@ -317,11 +317,7 @@ class MainManager
             $this->saveMasterPidToFile($masterPid);
             $this->saveStatusToFile();
             if ($masterPid && is_callable($this->onStart)) {
-                try {
-                    $this->onStart && $this->onStart->call($this, $masterPid);
-                } catch (\Throwable $throwable) {
-                    throw $throwable;
-                }
+                $this->onStart && $this->onStart->call($this, $masterPid);
             }
             return $masterPid;
         } catch (\Throwable $throwable) {
