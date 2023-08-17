@@ -1,18 +1,18 @@
 <?php
 /**
-+----------------------------------------------------------------------
-| swoolefy framework bases on swoole extension development, we can use it easily!
-+----------------------------------------------------------------------
-| Licensed ( https://opensource.org/licenses/MIT )
-+----------------------------------------------------------------------
-| @see https://github.com/bingcool/swoolefy
-+----------------------------------------------------------------------
-*/
+ * +----------------------------------------------------------------------
+ * | swoolefy framework bases on swoole extension development, we can use it easily!
+ * +----------------------------------------------------------------------
+ * | Licensed ( https://opensource.org/licenses/MIT )
+ * +----------------------------------------------------------------------
+ * | @see https://github.com/bingcool/swoolefy
+ * +----------------------------------------------------------------------
+ */
 
 namespace Swoolefy;
 
 // 定义当前core的根路径
-defined('SWOOLEFY_CORE_ROOT_PATH') or define('SWOOLEFY_CORE_ROOT_PATH', __DIR__.'/Core');
+defined('SWOOLEFY_CORE_ROOT_PATH') or define('SWOOLEFY_CORE_ROOT_PATH', __DIR__ . '/Core');
 
 // 定义打包检查类型
 defined('SWOOLEFY_PACK_CHECK_LENGTH') or define('SWOOLEFY_PACK_CHECK_LENGTH', 'length');
@@ -48,19 +48,20 @@ defined('MQTT_PROTOCOL_LEVEL5') or define('MQTT_PROTOCOL_LEVEL5', 5);
 defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '5.0.12');
 defined('SWOOLEFY_EOF_FLAG') or define('SWOOLEFY_EOF_FLAG', '::');
 
-defined('WORKER_CLI_STOP') or define('WORKER_CLI_STOP','stop');
-defined('WORKER_CLI_STATUS') or define('WORKER_CLI_STATUS','status');
+defined('WORKER_CLI_STOP') or define('WORKER_CLI_STOP', 'stop');
+defined('WORKER_CLI_STATUS') or define('WORKER_CLI_STATUS', 'status');
 
-class Constants {
+class Constants
+{
 
-	/**
-	 * swoolefy version
-	 */
-	const SWOOLEFY_VERSION = SWOOLEFY_VERSION;
+    /**
+     * swoolefy version
+     */
+    const SWOOLEFY_VERSION = SWOOLEFY_VERSION;
 
     /**
      * swoolefy env
      */
-	const SWOOLEFY_ENV = SWOOLEFY_ENV;
+    const SWOOLEFY_ENV = SWOOLEFY_ENV;
 
 }
