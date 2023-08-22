@@ -14,6 +14,7 @@ namespace Swoolefy\Core;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Exception\DispatchException;
 use Swoolefy\Exception\SystemException;
+use Swoolefy\Http\Route;
 
 class HttpRoute extends AppDispatch
 {
@@ -91,6 +92,11 @@ class HttpRoute extends AppDispatch
     /**
      * @var array
      */
+    protected $middleware = [];
+
+    /**
+     * @var array
+     */
     protected $beforeHandle = [];
 
     /**
@@ -115,7 +121,7 @@ class HttpRoute extends AppDispatch
         $this->request    = $this->app->request;
         $this->response   = $this->app->response;
         $this->appConf    = $this->app->appConf;
-        list($this->beforeHandle, $this->routerUri, $this->afterHandle)  = Swfy::getHttpRouterMapUri($this->request->server['PATH_INFO']);
+        list($this->middleware, $this->beforeHandle, $this->routerUri, $this->afterHandle)  = self::getHttpRouterMapUri($this->request->server['PATH_INFO']);
         $this->extendData = $extendData;
     }
 
@@ -256,6 +262,12 @@ class HttpRoute extends AppDispatch
 
         if ($this->app->isEnd()) {
             throw new SystemException('System Request End Error', 500);
+        }
+
+        foreach ($this->middleware as $middlewareHandle) {
+            if ($middlewareHandle instanceof RouteMiddleware) {
+                (new $middlewareHandle)->handle($this->request, $this->response);
+            }
         }
 
         foreach($this->beforeHandle as $handle) {
@@ -461,6 +473,57 @@ class HttpRoute extends AppDispatch
         }
         $params = $get + $post;
         return $params;
+    }
+
+    /**
+     * @return array
+     */
+    protected static function getHttpRouterMapUri(string $uri): array
+    {
+        $routerMap = Route::loadRouteFile();
+        $uri = DIRECTORY_SEPARATOR.trim($uri,DIRECTORY_SEPARATOR);
+        if (isset($routerMap[$uri]['route_meta'])) {
+            $routerMeta = $routerMap[$uri]['route_meta'];
+            $middleware = $routerMap[$uri]['group_meta']['middleware'] ?? [];
+            if(!isset($routerMeta['dispatch_route'])) {
+                $routerMeta['dispatch_route'] = $uri;
+            }else {
+                $dispatchRoute = str_replace("\\",DIRECTORY_SEPARATOR, $routerMeta['dispatch_route'][0]);
+                $dispatchRouteItems = explode(DIRECTORY_SEPARATOR, $dispatchRoute);
+                $itemNum = count($dispatchRouteItems);
+                if(!in_array($itemNum, [3,5])) {
+                    throw new DispatchException("Dispatch Route Class Error");
+                }
+
+                if($itemNum == 3) {
+                    $controllerName = substr($dispatchRouteItems[2], 0 ,strlen($dispatchRouteItems[2]) - strlen('Controller'));
+                    $routeUri = DIRECTORY_SEPARATOR.$controllerName.DIRECTORY_SEPARATOR.$routerMeta['dispatch_route'][1];
+                }else if($itemNum == 5) {
+                    $moduleName = $dispatchRouteItems[2];
+                    $controllerName = substr($dispatchRouteItems[4], 0 ,strlen($dispatchRouteItems[4]) - strlen('Controller'));
+                    $routeUri = DIRECTORY_SEPARATOR.$moduleName.DIRECTORY_SEPARATOR.$controllerName.DIRECTORY_SEPARATOR.$routerMeta['dispatch_route'][1];
+                }
+            }
+
+            $beforeHandle = [];
+
+            foreach($routerMeta as $alias => $handle) {
+                if ($alias != 'dispatch_route') {
+                    $beforeHandle[] = $handle;
+                    unset($routerMeta[$alias]);
+                    continue;
+                }
+                unset($routerMeta[$alias]);
+                break;
+            }
+
+            $afterHandle = array_values($routerMeta);
+
+            return [$middleware, $beforeHandle, $routeUri, $afterHandle];
+
+        }else {
+            throw new DispatchException('Missing route meta');
+        }
     }
 
     /**
