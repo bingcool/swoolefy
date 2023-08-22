@@ -144,57 +144,6 @@ class Swfy
     }
 
     /**
-     * @return array
-     */
-    public static function getHttpRouterMapUri(string $uri): array
-    {
-        $routerMap = self::getRoutes();
-        $uri = DIRECTORY_SEPARATOR.trim($uri,DIRECTORY_SEPARATOR);
-        if (isset($routerMap[$uri])) {
-            $routerHandle = $routerMap[$uri];
-
-            if(!isset($routerHandle['dispatch_route'])) {
-                $routerHandle['dispatch_route'] = $uri;
-            }else {
-                $dispatchRoute = str_replace("\\",DIRECTORY_SEPARATOR, $routerHandle['dispatch_route'][0]);
-                $dispatchRouteItems = explode(DIRECTORY_SEPARATOR, $dispatchRoute);
-                $itemNum = count($dispatchRouteItems);
-                if(!in_array($itemNum, [3,5])) {
-                    throw new DispatchException("Dispatch Route Class Error");
-                }
-
-                if($itemNum == 3) {
-                    $controllerName = substr($dispatchRouteItems[2], 0 ,strlen($dispatchRouteItems[2]) - strlen('Controller'));
-                    $routeUri = DIRECTORY_SEPARATOR.$controllerName.DIRECTORY_SEPARATOR.$routerHandle['dispatch_route'][1];
-                }else if($itemNum == 5) {
-                    $moduleName = $dispatchRouteItems[2];
-                    $controllerName = substr($dispatchRouteItems[4], 0 ,strlen($dispatchRouteItems[4]) - strlen('Controller'));
-                    $routeUri = DIRECTORY_SEPARATOR.$moduleName.DIRECTORY_SEPARATOR.$controllerName.DIRECTORY_SEPARATOR.$routerHandle['dispatch_route'][1];
-                }
-            }
-
-            $beforeHandle = [];
-
-            foreach($routerHandle as $alias => $handle) {
-                if ($alias != 'dispatch_route') {
-                    $beforeHandle[] = $handle;
-                    unset($routerHandle[$alias]);
-                    continue;
-                }
-                unset($routerHandle[$alias]);
-                break;
-            }
-
-            $afterHandle = array_values($routerHandle);
-
-            return [$beforeHandle, $routeUri, $afterHandle];
-
-        }else {
-            return [[], $uri, []];
-        }
-    }
-
-    /**
      * @param string $uri
      * @return array
      */
