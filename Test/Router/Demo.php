@@ -4,79 +4,52 @@ namespace Test\Router;
 
 use Swoole\Http\Request;
 use Swoolefy\Http\Route;
+use Test\Middleware\Route\ValidLoginMiddleware;
 
 /**
  * Module/Controller 下的控制器路由
  */
 
-//return [
-//    '/demo/demo/test' => [
-//        'beforeHandle' => function(Request $request) {
-//            var_dump('beforeHandle');
-//        },
-//
-//        'dispatch_route' => [\Test\Module\Demo\Controller\DemoController::class, 'test'],
-//
-//        'afterHandle' => function(Request $request) {
-//            var_dump('afterHandle');
-//        },
-//
-//        'afterHandle1' => function(Request $request) {
-//            var_dump('afterHandle1');
-//        },
-//    ]
-//];
 Route::group([
     // 路由前缀
-    'prefix' => 'api',
+    'prefix' => 'demo',
     // 路由中间件
     'middleware' => [
-        'validate',
-        'loginHandle',
+        ValidLoginMiddleware::class
     ],
-], function ($groupMeta) {
-    Route::get('/demo/test', [
+], function () {
+    // /demo/test
+    Route::post('/test', [
         'beforeHandle' => function(Request $request) {
             var_dump('beforeHandle');
         },
-
         'dispatch_route' => [\Test\Module\Demo\Controller\DemoController::class, 'test'],
 
         'afterHandle' => function(Request $request) {
             var_dump('afterHandle');
         },
+        'afterHandle1' => function(Request $request) {
+            var_dump('afterHandle1');
+        },
+    ]);
 
+    // /demo/test1
+    Route::get('/test1', [
+        'beforeHandle' => function(Request $request) {
+            var_dump('beforeHandle');
+        },
+        'dispatch_route' => [\Test\Module\Demo\Controller\DemoController::class, 'test1'],
+
+        'afterHandle' => function(Request $request) {
+            var_dump('afterHandle');
+        },
         'afterHandle1' => function(Request $request) {
             var_dump('afterHandle1');
         },
     ]);
 });
 
-Route::group([
-    // 路由前缀
-    'prefix' => 'api1',
-    // 路由中间件
-    'middleware' => [
-        'validate',
-        'loginHandle',
-    ],
-], function ($groupMeta) {
-    Route::get('/demo/test', [
-        'beforeHandle' => function(Request $request) {
-            var_dump('beforeHandle');
-        },
 
-        'dispatch_route' => [\Test\Module\Demo\Controller\DemoController::class, 'test'],
-
-        'afterHandle' => function(Request $request) {
-            var_dump('afterHandle');
-        },
-
-        'afterHandle1' => function(Request $request) {
-            var_dump('afterHandle1');
-        },
-    ]);
-});
 
 
 

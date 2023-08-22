@@ -81,7 +81,7 @@ class WebsocketHandler extends Swoole implements HandlerInterface
                     $service          = trim(str_replace('\\', DIRECTORY_SEPARATOR, $service), DIRECTORY_SEPARATOR);
                     $serviceHandle    = implode(self::EOF, [$service, $event]);
                     $this->setServiceHandle($serviceHandle);
-                    list($beforeHandle, $callable, $afterHandle) = Swfy::getRouterMapService($serviceHandle);
+                    list($beforeHandle, $callable, $afterHandle) = ServiceDispatch::getRouterMapService($serviceHandle);
                 }
 
                 $dispatcher = new ServiceDispatch($callable, $params);

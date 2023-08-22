@@ -105,6 +105,11 @@ class HttpRoute extends AppDispatch
     protected $afterHandle = [];
 
     /**
+     * @var string
+     */
+    protected $routeMethod;
+
+    /**
      * $denyActions
      * @var array
      */
@@ -121,7 +126,7 @@ class HttpRoute extends AppDispatch
         $this->request    = $this->app->request;
         $this->response   = $this->app->response;
         $this->appConf    = $this->app->appConf;
-        list($this->middleware, $this->beforeHandle, $this->routerUri, $this->afterHandle)  = self::getHttpRouterMapUri($this->request->server['PATH_INFO']);
+        list($this->middleware, $this->beforeHandle, $this->routerUri, $this->afterHandle, $this->routeMethod)  = self::getHttpRouterMapUri($this->request->server['PATH_INFO']);
         $this->extendData = $extendData;
     }
 
@@ -132,6 +137,11 @@ class HttpRoute extends AppDispatch
      */
     public function dispatch()
     {
+        $method = $this->app->getMethod();
+        if ($method != 'ANY' && $method != $this->routeMethod) {
+            throw new DispatchException("Not Allow Route Method.You should use [$this->routeMethod] method.");
+        }
+
         if (!isset($this->appConf['route_model']) || !in_array($this->appConf['route_model'], [self::ROUTE_MODEL_PATHINFO, self::ROUTE_MODEL_QUERY_PARAMS])) {
             $this->appConf['route_model'] = self::ROUTE_MODEL_PATHINFO;
         }
@@ -265,22 +275,32 @@ class HttpRoute extends AppDispatch
         }
 
         foreach ($this->middleware as $middlewareHandle) {
-            if ($middlewareHandle instanceof RouteMiddleware) {
-                (new $middlewareHandle)->handle($this->request, $this->response);
+            if (class_exists($middlewareHandle)) {
+                $middlewareHandleEntity = new $middlewareHandle;
+                if ($middlewareHandleEntity instanceof RouteMiddleware) {
+                    $middlewareHandleEntity->handle($this->request, $this->response);
+                }
             }
         }
 
         foreach($this->beforeHandle as $handle) {
-            $result = call_user_func($handle, $this->request, $this->response);
-            if ($result === false) {
-                $errorMsg = sprintf(
-                    "Call %s route handle return false, forbidden continue call %s::%s",
-                    $class,
-                    $class,
-                    $targetAction
-                );
+            if ($handle instanceof \Closure) {
+                $result = call_user_func($handle, $this->request, $this->response);
+                if ($result === false) {
+                    $errorMsg = sprintf(
+                        "Call %s route handle return false, forbidden continue call %s::%s",
+                        $class,
+                        $class,
+                        $targetAction
+                    );
 
-                throw new SystemException($errorMsg, 500);
+                    throw new SystemException($errorMsg, 500);
+                }
+            }else if (class_exists($handle)) {
+                $middlewareHandleEntity = new $handle;
+                if ($middlewareHandleEntity instanceof RouteMiddleware) {
+                    $middlewareHandleEntity->handle($this->request, $this->response);
+                }
             }
         }
 
@@ -305,10 +325,16 @@ class HttpRoute extends AppDispatch
             if ($method->isPublic() && !$method->isStatic()) {
                 $controllerInstance->{$targetAction}(...$args);
                 $controllerInstance->_afterAction($action);
-
                 foreach ($this->afterHandle as $handle) {
                     try {
-                        call_user_func($handle, $this->request, $this->response);
+                        if ($handle instanceof \Closure) {
+                            call_user_func($handle, $this->request, $this->response);
+                        }else if (class_exists($handle)) {
+                            $middlewareHandleEntity = new $handle;
+                            if ($middlewareHandleEntity instanceof RouteMiddleware) {
+                                $middlewareHandleEntity->handle($this->request, $this->response);
+                            }
+                        }
                     }catch (\Throwable $exception) {
                         // todo
                     }
@@ -476,6 +502,7 @@ class HttpRoute extends AppDispatch
     }
 
     /**
+     * @param string $uri
      * @return array
      */
     protected static function getHttpRouterMapUri(string $uri): array
@@ -485,6 +512,7 @@ class HttpRoute extends AppDispatch
         if (isset($routerMap[$uri]['route_meta'])) {
             $routerMeta = $routerMap[$uri]['route_meta'];
             $middleware = $routerMap[$uri]['group_meta']['middleware'] ?? [];
+            $method = $routerMap[$uri]['method'];
             if(!isset($routerMeta['dispatch_route'])) {
                 $routerMeta['dispatch_route'] = $uri;
             }else {
@@ -519,10 +547,10 @@ class HttpRoute extends AppDispatch
 
             $afterHandle = array_values($routerMeta);
 
-            return [$middleware, $beforeHandle, $routeUri, $afterHandle];
+            return [$middleware, $beforeHandle, $routeUri, $afterHandle, $method];
 
         }else {
-            throw new DispatchException('Missing route meta');
+            throw new DispatchException('Not Found Route.');
         }
     }
 

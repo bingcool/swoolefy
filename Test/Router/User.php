@@ -4,38 +4,47 @@ namespace Test\Router;
 
 use Swoole\Http\Request;
 use Swoolefy\Core\Application;
+use Swoolefy\Core\Coroutine\Context;
+use Swoolefy\Http\Route;
 
 /**
  * Module/Controller 下的控制器路由
  */
 
-return [
+Route::group([
+    // 路由前缀
+    'prefix' => 'user',
+    // 路由中间件
+    'middleware' => []
+], function () {
 
-    '/user/testAddUser' => [
+    Route::get('/user/testAddUser', [
         'dispatch_route' => [\Test\Controller\IndexController::class, 'testAddUser'],
-    ],
+    ]);
 
-    '/user/user-order/userList' => [
+
+    Route::get('/user/user-order/userList', [
         'beforeHandle' => function(Request $request) {
             $name = Application::getApp()->getRequestParams('name');
         },
         'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList'],
-    ],
+    ]);
 
-    '/user/user-order/save-order' => [
+    Route::get('/user/user-order/save-order', [
         'beforeHandle' => function(Request $request) {
             $name = Application::getApp()->getRequestParams('name');
         },
 
         'dispatch_route' => [\Test\Controller\ObjectController::class, 'saveOrder'],
-    ],
+    ]);
 
-    '/testTransactionAddOrder' => [
-
+    Route::get('/testTransactionAddOrder', [
         'dispatch_route' => [\Test\Controller\IndexController::class, 'testTransactionAddOrder'],
-    ],
+    ]);
 
-    '/order/list' => [
+    Route::get('/order/list', [
         'dispatch_route' => [\Test\Controller\ObjectController::class, 'list'],
-    ]
-];
+    ]);
+
+
+});
