@@ -14,6 +14,9 @@ use Swoolefy\Core\Coroutine\Context;
 
 class Route
 {
+    /**
+     * @var array
+     */
     protected static $routeMap;
 
     /**
@@ -61,6 +64,70 @@ class Route
         return self::$routeMap[$uri] = [
             'group_meta' => $groupMeta,
             'method' => 'POST',
+            'route_meta' => $routeMeta
+        ];
+    }
+
+    /**
+     * @param string $uri
+     * @param array $routeMeta
+     * @return array
+     */
+    public static function put(string $uri, array $routeMeta)
+    {
+        $groupMeta = Context::get('__current_request_group_meta') ?? [];
+        $uri = self::parseUri($uri, $groupMeta);
+        return self::$routeMap[$uri] = [
+            'group_meta' => $groupMeta,
+            'method' => 'PUT',
+            'route_meta' => $routeMeta
+        ];
+    }
+
+    /**
+     * @param string $uri
+     * @param array $routeMeta
+     * @return array
+     */
+    public static function delete(string $uri, array $routeMeta)
+    {
+        $groupMeta = Context::get('__current_request_group_meta') ?? [];
+        $uri = self::parseUri($uri, $groupMeta);
+        return self::$routeMap[$uri] = [
+            'group_meta' => $groupMeta,
+            'method' => 'DELETE',
+            'route_meta' => $routeMeta
+        ];
+    }
+
+    /**
+     * @param string $uri
+     * @param array $routeMeta
+     * @return array
+     */
+    public static function head(string $uri, array $routeMeta)
+    {
+        $groupMeta = Context::get('__current_request_group_meta') ?? [];
+        $uri = self::parseUri($uri, $groupMeta);
+        return self::$routeMap[$uri] = [
+            'group_meta' => $groupMeta,
+            'method' => 'HEAD',
+            'route_meta' => $routeMeta
+        ];
+    }
+
+    /**
+     * @param string $uri
+     * @param array $routeMeta
+     * @return array
+     */
+    public static function any(string $uri, array $routeMeta)
+    {
+        $groupMeta = Context::get('__current_request_group_meta') ?? [];
+        $uri = self::parseUri($uri, $groupMeta);
+        return self::$routeMap[$uri] = [
+            'group_meta' => $groupMeta,
+            'method' => 'ANY',
             'route_meta' => $routeMeta
         ];
     }
@@ -130,5 +197,24 @@ class Route
             }
         }
         closedir($handle);
+    }
+
+    /**
+     * @return bool
+     */
+    public static function hasCacheRoutes(): bool
+    {
+        return !empty(self::$routeMap) ? true : false;
+    }
+
+    /**
+     * @return bool
+     */
+    public static function hasRoute(string $uri): bool
+    {
+        if (isset(self::$routeMap[$uri])) {
+            return true;
+        }
+        return false;
     }
 }

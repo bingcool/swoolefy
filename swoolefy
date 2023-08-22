@@ -366,9 +366,6 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer')
     $path = START_DIR_ROOT . "/{$app_name}/Protocol";
     $config = include $path . "/conf.php";
     checkRunning($config);
-    if ($config['app_conf'] === true) {
-        $config['app_conf'] = include START_DIR_ROOT . '/' . APP_NAME . '/Config/config-' . SWOOLEFY_ENV . '.php';
-    }
 
     $eventServerFile = START_DIR_ROOT . "/{$app_name}/{$event_server_file_name}.php";
     if (!file_exists($eventServerFile)) {
@@ -424,7 +421,6 @@ function startRpc($app_name, $event_server_file_name = 'RpcServer')
     $path = START_DIR_ROOT . "/{$app_name}/Protocol";
     $config = include $path . "/conf.php";
     checkRunning($config);
-
     $eventServerFile = START_DIR_ROOT . "/{$app_name}/{$event_server_file_name}.php";
     if (!file_exists($eventServerFile)) {
         $search_str = "protocol\\rpc";
@@ -447,7 +443,6 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer')
     $path = START_DIR_ROOT . "/{$app_name}/Protocol";
     $config = include $path . "/conf.php";
     checkRunning($config);
-
     $eventServerFile = START_DIR_ROOT . "/{$app_name}/{$event_server_file_name}.php";
     if (!file_exists($eventServerFile)) {
         $search_str = "protocol\\udp";
@@ -475,7 +470,6 @@ function startMqtt($app_name, $event_server_file_name = 'MqttServer')
     $path = START_DIR_ROOT . "/{$app_name}/Protocol";
     $config = include $path . "/conf.php";
     checkRunning($config);
-
     $eventServerFile = START_DIR_ROOT . "/{$app_name}/{$event_server_file_name}.php";
     if (!file_exists($eventServerFile)) {
         $search_str = "protocol\\mqtt";
@@ -726,7 +720,7 @@ function makeDirLogAndPid(array &$config)
     }
 
     if (!isset($config['app_conf'])) {
-        write("[Error] " . APP_NAME . "/Protocol/config-" . SWOOLEFY_ENV . ".php" . " must include app_conf file and set app_conf");
+        write("[Error] " . APP_NAME . "/Protocol/conf.php" . " must include app_conf file and set app_conf");
         exit(0);
     }
 }
@@ -880,7 +874,7 @@ function monitorServer($app_name)
 function getPidFile($app_name)
 {
     $path = START_DIR_ROOT . "/{$app_name}/Protocol";
-    $config = include $path . '/config-' . SWOOLEFY_ENV . '.php';
+    $config = include $path . '/conf.php';
 
     if (!isWorkerService()) {
         if (isset($config['setting']['pid_file'])) {

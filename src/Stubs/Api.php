@@ -2,11 +2,16 @@
 
 use Swoole\Http\Request;
 use Swoolefy\Core\Application;
+use Swoolefy\Http\Route;
 
-return [
+Route::group([
+    // 路由前缀
+    'prefix' => 'api',
+    // 路由中间件
+    'middleware' => []
+], function () {
 
-    '/' => [
-
+    Route::get('/', [
         // 前置路由
         'beforeHandle' => function(Request $request) {
             var_dump('beforeHandle');
@@ -22,10 +27,11 @@ return [
 
         'afterHandle1' => function(Request $request) {
             var_dump('afterHandle1');
-        },
-    ],
+        }
+    ]);
 
-    '/index/index' => [
+
+    Route::get('/index/index', [
         // 前置路由
         'beforeHandle1' => function(Request $request) {
             $name = Application::getApp()->getPostParams('name');
@@ -38,13 +44,13 @@ return [
         // 控制器action
         'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
 
-        // 后置路由
+        // 后置路由1
         'afterHandle1' => function(Request $request) {
 
         },
-
+        // 后置路由2
         'afterHandle2' => function(Request $request) {
 
         },
-    ],
-];
+    ]);
+});

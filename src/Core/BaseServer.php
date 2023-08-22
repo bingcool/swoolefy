@@ -196,7 +196,7 @@ class BaseServer
             // 记录worker的进程worker_pid与worker_id的映射
             self::setWorkersPid($workerId, $server->worker_pid);
             // 加载路由文件
-            if (self::isHttpApp() && self::isWorkerProcess($workerId)) {
+            if (self::isHttpApp() && self::isWorkerProcess($workerId) && !SystemEnv::isWorkerService()) {
                 Route::loadRouteFile();
             }
         }catch(\Throwable $throwable) {

@@ -5,14 +5,19 @@ namespace Test\Router;
 use Swoole\Http\Request;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Coroutine\Context;
+use Swoolefy\Http\Route;
 
 /**
  * Controller 下的控制器路由
  */
 
-return [
-
-    '/' => [
+Route::group([
+    // 路由前缀
+    'prefix' => 'api',
+    // 路由中间件
+    'middleware' => []
+], function () {
+    Route::get('/', [
         'beforeHandle' => function(Request $request) {
             var_dump('beforeHandle');
         },
@@ -24,9 +29,10 @@ return [
         'afterHandle1' => function(Request $request) {
             var_dump('afterHandle1');
         },
-    ],
+    ]);
 
-    '/index/index' => [
+
+    Route::get('/index/index', [
         'beforeHandle' => function(Request $request) {
             Context::set('name', 'bingcool');
             $name = Application::getApp()->getPostParams('name');
@@ -40,35 +46,39 @@ return [
         'afterHandle1' => function(Request $request) {
 
         },
-    ],
+    ]);
 
-    '/index/testLog' => [
+    Route::get('/index/testLog', [
         'dispatch_route' => [\Test\Controller\IndexController::class, 'testLog'],
-    ],
+    ]);
 
-    '/token/jwt' => [
+
+    Route::get('/token/jwt', [
         'dispatch_route' => [\Test\Controller\TokenController::class, 'jwt'],
-    ],
+    ]);
 
 
-    '/getUuid' => [
+    Route::get('/getUuid', [
         'dispatch_route' => [\Test\Controller\UuidController::class, 'getUuid'],
-    ],
+    ]);
 
-    '/lock-test1' => [
+
+    Route::get('/lock-test1', [
         'dispatch_route' => [\Test\Controller\LockController::class, 'locktest1'],
-    ],
+    ]);
 
-    '/rate-test1' => [
+
+    Route::get('/rate-test1', [
         'dispatch_route' => [\Test\Controller\RateLimitController::class, 'ratetest1'],
-    ],
+    ]);
 
-    '/validate-test1' => [
+    Route::get('/validate-test1', [
         'dispatch_route' => [\Test\Controller\ValidateController::class, 'test1'],
-    ],
+    ]);
 
-    '/ws' => [
+
+    Route::get('/ws', [
         'dispatch_route' => [\Test\Controller\WsController::className(), 'test1'],
-    ]
+    ]);
 
-];
+});
