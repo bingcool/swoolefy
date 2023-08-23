@@ -7,6 +7,7 @@ use Swoolefy\Core\EventController;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
 use Swoolefy\Core\Log\LogManager;
 use Test\Factory;
+use Test\Logger\Log;
 
 class IndexController extends BController {
 
@@ -136,6 +137,8 @@ class IndexController extends BController {
 
     public function testTransactionAddOrder()
     {
+        Log::info("Hello");
+
         $this->db = Factory::getDb();
 
         $this->db->newQuery()->query(

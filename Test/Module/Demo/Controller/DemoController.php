@@ -9,4 +9,9 @@ class DemoController extends BController
     {
         $this->returnJson(['desc' => 'this is a demo']);
     }
+
+    public function test1()
+    {
+        $this->returnJson(['desc' => 'this is a demo2-'.rand(1,10000)]);
+    }
 }
