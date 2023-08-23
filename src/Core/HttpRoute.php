@@ -297,9 +297,9 @@ class HttpRoute extends AppDispatch
                     throw new SystemException($errorMsg, 500);
                 }
             }else if (class_exists($handle)) {
-                $middlewareHandleEntity = new $handle;
-                if ($middlewareHandleEntity instanceof RouteMiddleware) {
-                    $middlewareHandleEntity->handle($this->request, $this->response);
+                $handleEntity = new $handle;
+                if ($handleEntity instanceof RouteMiddleware) {
+                    $handleEntity->handle($this->request, $this->response);
                 }
             }
         }
@@ -330,9 +330,9 @@ class HttpRoute extends AppDispatch
                         if ($handle instanceof \Closure) {
                             call_user_func($handle, $this->request, $this->response);
                         }else if (class_exists($handle)) {
-                            $middlewareHandleEntity = new $handle;
-                            if ($middlewareHandleEntity instanceof RouteMiddleware) {
-                                $middlewareHandleEntity->handle($this->request, $this->response);
+                            $handleEntity = new $handle;
+                            if ($handleEntity instanceof RouteMiddleware) {
+                                $handleEntity->handle($this->request, $this->response);
                             }
                         }
                     }catch (\Throwable $exception) {
