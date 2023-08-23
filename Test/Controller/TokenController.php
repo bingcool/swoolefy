@@ -61,7 +61,7 @@ class TokenController extends BController
         }
 
         if (!$validator->validate($tokenObj, new RelatedTo('1234567890'))) {
-            var_dump($validator->getErrorMsg());
+            //var_dump($validator->getErrorMsg());
             echo 'Invalid token (2)!', PHP_EOL; // will not print this
         }
 
