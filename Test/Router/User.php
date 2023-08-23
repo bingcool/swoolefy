@@ -18,19 +18,19 @@ Route::group([
     'middleware' => []
 ], function () {
 
-    Route::get('/user/testAddUser', [
+    Route::get('/testAddUser', [
         'dispatch_route' => [\Test\Controller\IndexController::class, 'testAddUser'],
     ]);
 
 
-    Route::get('/user/user-order/userList', [
+    Route::get('/user-order/userList', [
         'beforeHandle' => function(Request $request) {
             $name = Application::getApp()->getRequestParams('name');
         },
         'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList'],
     ]);
 
-    Route::get('/user/user-order/save-order', [
+    Route::get('/user-order/save-order', [
         'beforeHandle' => function(Request $request) {
             $name = Application::getApp()->getRequestParams('name');
         },
