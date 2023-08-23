@@ -21,6 +21,6 @@ interface RouteMiddleware
      * @param Response $response
      * @return mixed
      */
-    public function handle(Request $request, ?Response $response = null);
+    public function handle(Request $request, Response $response);
 
 }

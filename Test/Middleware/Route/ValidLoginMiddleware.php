@@ -7,7 +7,7 @@ use Swoolefy\Core\RouteMiddleware;
 
 class ValidLoginMiddleware implements RouteMiddleware
 {
-    public function handle(Request $request, ?Response $response = null)
+    public function handle(Request $request, Response $response)
     {
         var_dump(__CLASS__);
     }
