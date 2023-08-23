@@ -24,16 +24,16 @@ swoolefy-4.8-lts 版本：
 长期维护分支，最低要求```php >= php7.3 && php < php8.0```, 推荐直接swoole-v4.8+，需要通过源码编译安装swoole
 
 选择哪个版本？  
-1、如果确定项目是使用php8+的，那么直接选择 ```swoole-v5.0+```, 以上源码来编译安装或者直接使用```swoole-cli-v5.0```，然后选择 ```bingcool/swoolefy:~5.0.5``` 作为项目分支
+1、如果确定项目是使用php8+的，那么直接选择 ```swoole-v5.0+```, 以上源码来编译安装或者直接使用```swoole-cli-v5.0```，然后选择 ```bingcool/swoolefy:~5.0.12``` 作为项目分支
 
 2、如果确定项目是使用 ```php7.3 ~ php7.4``` 的，那么选择 swoole-v4.8+ 版本来进行编译安装(不能直接使用 swoole-cli-v4.8+ 了, 因为其内置的是php8.1，与你的项目的php7不符合)
-所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.8.5``` 作为项目分支
+所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.8.12``` 作为项目分支
 
-### 实现的功能特性
+### 实现的功能特性    
 
 基础特性
 - [x] 支持架手脚一键创建项目           
-- [x] 支持路由映射与调度, 前置路由组件，后置路由组件，MVC三层，多级配置              
+- [x] 支持分组路由, 路由middleware, 前置路由组件, 后置路由组件,多模块应用                 
 - [x] 支持composer的PSR-4规范，实现PSR-3的日志接口     
 - [x] 支持自定义注册不同根命名空间，快速多项目部署          
 - [x] 支持httpServer，实用轻量Api接口开发     
@@ -41,7 +41,7 @@ swoolefy-4.8-lts 版本：
 - [x] 支持基于tcp实现的rpc服务，开放式的系统接口，可自定义协议数据格式，并提供rpc-client协程组件
 - [x] 支持DI容器，组件IOC、配置化，Channel公共组件池            
 - [x] 支持协程单例注册,协程上下文变量寄存    
-- [x] 支持mysql、postgreSql协程组件、redis协程组件、mongodb组件     
+- [x] 支持mysql、postgreSql、redis协程组件          
 - [x] 支持mysql协程连接池
 - [x] 支持redis协程池   
 - [x] 支持curl协程池   
@@ -96,7 +96,8 @@ swoolefy-4.8-lts 版本：
 - [x] Db 、Redis、Curl协程连接池组件
 - [x] UUid 分布式自增id组件  
 - [x] Curl基础组件    
-- [x] Jwt 组件    
+- [x] Jwt 组件   
+- [x] Validate组件    
    
 github: https://github.com/bingcool/library    
 
@@ -164,7 +165,8 @@ myproject
 |     │   ├── dc-prd.php
 |     │   ├── dc-test.php
 |     │   └── defines.php
-|     |   |—— config.php
+|     |   |—— config.php    // 应用层配置
+|     |   |—— Component.php //协程单例组件
 |     |
 |     ├── Controller
 |     │   └── IndexController.php // 控制器层
@@ -240,9 +242,8 @@ class IndexController extends BController {
 ### 定义组件
 
 应用层配置文件：
-Config/config-dev.php
+Config/config.php
 
-开放式组件接口，闭包回调实现创建组件过程，return对象即可
 ```
 <?php
 
@@ -270,115 +271,80 @@ return [
      // default_db
     'default_db' => 'db',
 
-    // 在应用层配置文件中,例如下面使用library的Redis、Db组件
-    components => [
-        // 例如创建phpredis扩展连接实例
-        'redis' => function($name) { // 定义组件名，闭包回调实现创建组件过程，return对象即可
-             $redis = new \Common\Library\Cache\Redis();
-             $redis->connect('127.0.0.1', 6379);
-             $redis->auth('123456789');
-             return $redis;   
-        },
-    
-        // predis组件的redis实例
-        'predis' => function($name) {
-            $parameters = [
-                'scheme' => 'tcp',
-                'host'   => '127.0.0.1',
-                'port'   => 6379,
-                'password' => '123456789'
-            ];
-            $predis = new \Common\Library\Cache\Predis();
-            $predis->setConfig($parameters);
-            return $predis;
-        },
-    
-         // 适配swoole的mysql客户端组件
-        'db' => function() {
-            $config = [
-                // 类型
-                'type'            => 'mysql',
-                // 地址
-                'hostname'        => '127.0.0.1',
-                // 数据库
-                'database'        => 'bingcool',
-                // 用户名
-                'username'        => 'bingcool',
-                // 密码
-                'password'        => '123456789',
-                // 端口
-                'hostport'        => '3306',
-                // dsn
-                'dsn'             => '',
-                // 数据库连接参数
-                'params'          => [],
-                // 数据库编码,默认采用utf8
-                'charset'         => 'utf8',
-                // 数据库表前缀
-                'prefix'          => '',
-                // 是否断线重连
-                'break_reconnect' => true,
-                // 是否支持事务嵌套
-                'support_savepoint' => false
-            ];
-    
-            $db = new \Common\Library\Db\Mysql($config);
-            return $db;
-        },
-           
-        // 适配swoole的postgreSql客户端组件
-        'pg' => function() {
-            $config = [
-                // 地址
-                'hostname'        => '127.0.0.1',
-                // 数据库
-                'database'        => 'dbtest',
-                // 用户
-                'username'        => 'bingcool',
-                // 密码
-                'password'        => '123456789',
-                // 端口
-                'hostport'        => '5432',
-                // dsn
-                'dsn'             => '',
-                // 数据库连接参数
-                'params'          => [],
-                // 数据库编码,默认采用utf8
-                'charset'         => 'utf8',
-                // 数据库表前缀
-                'prefix'          => '',
-                // 是否断线重连
-                'break_reconnect' => true,
-                // 是否支持事务嵌套
-                'support_savepoint' => false
-            ];
-    
-            $pg = new \Common\Library\Db\Pgsql($config);
-            return $pg;
-        },
-    
-        // 其他的组件都可以通过闭包回调创建
-        // 数组配置型log组件
-        'log' => [
-            'class' => \Swoolefy\Util\Log::class,
-            'channel' => 'application',
-            'logFilePath' => rtrim(LOG_PATH,'/').'/runtime.log'
-        ],
-        
-        // 或者log组件利用闭包回调创建
-        'log' => function($name) {
-            $channel= 'application';
-            $logFilePath = rtrim(LOG_PATH,'/').'/runtime.log';
-            $log = new \Swoolefy\Util\Log($channel, $logFilePath);
-            return $log;
-        },
-    ]
+    // 组件配置文件Component.php
+    components => include 'Component.php',
     
     // 其他配置
     ......
 ]
 
 ```
+
+组件Component.php:
+```
+
+$dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
+
+return [
+    // 用户行为记录的日志
+    'log' => function($name) {
+        $logger = new \Swoolefy\Util\Log($name);
+        $logger->setChannel('application');
+        if(isDaemonService()) {
+            $logFilePath = LOG_PATH.'/daemon.log';
+        }else if (isScriptService()) {
+            $logFilePath = LOG_PATH.'/script.log';
+        }else if (isCronService()) {
+            $logFilePath = LOG_PATH.'/cron.log';
+        } else {
+            $logFilePath = LOG_PATH.'/runtime.log';
+        }
+        $logger->setLogFilePath($logFilePath);
+        return $logger;
+    },
+
+    // 系统捕捉异常错误日志
+    'error_log' => function($name) {
+        $logger = new \Swoolefy\Util\Log($name);
+        $logger->setChannel('application');
+        if(isDaemonService()) {
+            $logFilePath = LOG_PATH.'/daemon_error.log';
+        }else if (isScriptService()) {
+            $logFilePath = LOG_PATH.'/script_error.log';
+        }else if (isCronService()) {
+            $logFilePath = LOG_PATH.'/cron_error.log';
+        } else {
+            $logFilePath = LOG_PATH.'/error.log';
+        }
+        $logger->setLogFilePath($logFilePath);
+        return $logger;
+    },
+
+    // MYSQL
+    'db' => function() use($dc) {
+        $db = new \Common\Library\Db\Mysql($dc['mysql_db']);
+        return $db;
+    },
+    
+    // Redis Cache
+    'redis' => function() use($dc) {
+        $redis = new \Common\Library\Cache\Redis();
+        $redis->connect($dc['redis']['host'], $dc['redis']['port']);
+        return $redis;
+    },
+    
+    // Predis Cache
+    'predis' => function() use($dc) {
+        $predis = new \Common\Library\Cache\predis([
+            'scheme' => $dc['predis']['scheme'],
+            'host'   => $dc['predis']['host'],
+            'port'   => $dc['predis']['port'],
+        ]);
+        return $predis;
+    }
+    
+```
+
 ### 使用组件
 ```
 use Swoolefy\Core\Application;
@@ -465,7 +431,7 @@ class TestController extends BController {
 ```
 
 
-### 默认协议层全局配置文件 Protocol/config-dev.php
+### 默认协议层全局配置文件 Protocol/conf.php
 
 开发者可以根据实际使用适当调整配置项
 
@@ -567,7 +533,67 @@ return [
 ];
 
 ```
+### 路由文件
+Router/api.php
+```
+<?php
 
+use Swoole\Http\Request;
+use Swoolefy\Core\Application;
+use Swoolefy\Http\Route;
+
+Route::group([
+    // 路由前缀
+    'prefix' => 'api',
+    // 路由中间件
+    'middleware' => []
+], function () {
+
+    Route::get('/', [
+        // 前置路由
+        'beforeHandle' => function(Request $request) {
+            var_dump('beforeHandle');
+        },
+
+        // 控制器action
+        'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
+
+        // 后置路由
+        'afterHandle' => function(Request $request) {
+            var_dump('afterHandle');
+        },
+
+        'afterHandle1' => function(Request $request) {
+            var_dump('afterHandle1');
+        }
+    ]);
+
+
+    Route::get('/index/index', [
+        // 前置路由
+        'beforeHandle1' => function(Request $request) {
+            $name = Application::getApp()->getPostParams('name');
+        },
+
+        'beforeHandle2' => function(Request $request) {
+            $name = Application::getApp()->getPostParams('name');
+        },
+
+        // 控制器action
+        'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
+
+        // 后置路由1
+        'afterHandle1' => function(Request $request) {
+
+        },
+        // 后置路由2
+        'afterHandle2' => function(Request $request) {
+
+        },
+    ]);
+});
+
+```
 
 ### License
 MIT   
