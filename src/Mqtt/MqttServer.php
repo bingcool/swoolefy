@@ -594,9 +594,9 @@ abstract class MqttServer extends BaseServer
     private function getProtocolLevel($eventHandle): int
     {
         if ($eventHandle instanceof MqttEventV3) {
-            return MQTT_PROTOCOL_LEVEL_3_1_1;
+            return MQTT_PROTOCOL_LEVEL3;
         }
-        return MQTT_PROTOCOL_LEVEL_5_0;
+        return MQTT_PROTOCOL_LEVEL5;
     }
 
     /**
