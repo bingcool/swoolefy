@@ -39,7 +39,9 @@ Route::group([
     ]);
 
     Route::get('/testTransactionAddOrder', [
+        'before-validate' => \Test\Middleware\Route\ValidLoginMiddleware::class,
         'dispatch_route' => [\Test\Controller\IndexController::class, 'testTransactionAddOrder'],
+        'after-validate' => \Test\Middleware\Route\ValidLoginMiddleware::class,
     ]);
 
     Route::get('/order/list', [
