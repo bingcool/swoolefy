@@ -595,6 +595,19 @@ class HttpRoute extends AppDispatch
     }
 
     /**
+     * @param string $uri
+     * @return bool
+     */
+    public function hasRoute(string $uri)
+    {
+        $routerMap = Route::loadRouteFile();
+        if (isset(self::$routeCache[$uri]) || isset($routerMap[$uri])) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * __destruct
      */
     public function __destruct()

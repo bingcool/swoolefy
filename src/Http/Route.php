@@ -161,9 +161,9 @@ class Route
     /**
      * @return array
      */
-    public static function loadRouteFile(): array
+    public static function loadRouteFile(bool $force = false): array
     {
-        if (empty(self::$routeMap)) {
+        if (empty(self::$routeMap) || $force) {
             self::scanRouteFiles(self::$routeRootDir);
             return self::$routeMap;
         }else {
@@ -197,24 +197,5 @@ class Route
             }
         }
         closedir($handle);
-    }
-
-    /**
-     * @return bool
-     */
-    public static function hasCacheRoutes(): bool
-    {
-        return !empty(self::$routeMap) ? true : false;
-    }
-
-    /**
-     * @return bool
-     */
-    public static function hasRoute(string $uri): bool
-    {
-        if (isset(self::$routeMap[$uri])) {
-            return true;
-        }
-        return false;
     }
 }
