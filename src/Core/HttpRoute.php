@@ -11,10 +11,10 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Http\Route;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Exception\DispatchException;
 use Swoolefy\Exception\SystemException;
-use Swoolefy\Http\Route;
 
 class HttpRoute extends AppDispatch
 {
@@ -110,6 +110,16 @@ class HttpRoute extends AppDispatch
     protected $routeMethod;
 
     /**
+     * @var array
+     */
+    protected $groupMeta;
+
+    /**
+     * @var array
+     */
+    protected static $routeCache;
+
+    /**
      * $denyActions
      * @var array
      */
@@ -126,7 +136,7 @@ class HttpRoute extends AppDispatch
         $this->request    = $this->app->request;
         $this->response   = $this->app->response;
         $this->appConf    = $this->app->appConf;
-        list($this->middleware, $this->beforeHandle, $this->routerUri, $this->afterHandle, $this->routeMethod)  = self::getHttpRouterMapUri($this->request->server['PATH_INFO']);
+        list($this->middleware, $this->beforeHandle, $this->routerUri, $this->afterHandle, $this->routeMethod, $this->groupMeta)  = self::getHttpRouterMapUri($this->request->server['PATH_INFO']);
         $this->extendData = $extendData;
     }
 
@@ -138,7 +148,7 @@ class HttpRoute extends AppDispatch
     public function dispatch()
     {
         $method = $this->app->getMethod();
-        if ($method != 'ANY' && $method != $this->routeMethod) {
+        if ($this->routeMethod != 'ANY' && $method != $this->routeMethod) {
             throw new DispatchException("Not Allow Route Method.You should use [$this->routeMethod] method.");
         }
 
@@ -274,35 +284,11 @@ class HttpRoute extends AppDispatch
             throw new SystemException('System Request End Error', 500);
         }
 
-        foreach ($this->middleware as $middlewareHandle) {
-            if (class_exists($middlewareHandle)) {
-                $middlewareHandleEntity = new $middlewareHandle;
-                if ($middlewareHandleEntity instanceof RouteMiddleware) {
-                    $middlewareHandleEntity->handle($this->request, $this->response);
-                }
-            }
-        }
+        // handle route group middles
+        $this->handleGroupRouteMiddles();
 
-        foreach($this->beforeHandle as $handle) {
-            if ($handle instanceof \Closure) {
-                $result = call_user_func($handle, $this->request, $this->response);
-                if ($result === false) {
-                    $errorMsg = sprintf(
-                        "Call %s route handle return false, forbidden continue call %s::%s",
-                        $class,
-                        $class,
-                        $targetAction
-                    );
-
-                    throw new SystemException($errorMsg, 500);
-                }
-            }else if (class_exists($handle)) {
-                $handleEntity = new $handle;
-                if ($handleEntity instanceof RouteMiddleware) {
-                    $handleEntity->handle($this->request, $this->response);
-                }
-            }
-        }
+        // handle before route middles
+        $this->handleBeforeRouteMiddles();
 
         // invoke _beforeAction
         $isContinueAction = $controllerInstance->_beforeAction($action);
@@ -325,21 +311,7 @@ class HttpRoute extends AppDispatch
             if ($method->isPublic() && !$method->isStatic()) {
                 $controllerInstance->{$targetAction}(...$args);
                 $controllerInstance->_afterAction($action);
-                foreach ($this->afterHandle as $handle) {
-                    try {
-                        if ($handle instanceof \Closure) {
-                            call_user_func($handle, $this->request, $this->response);
-                        }else if (class_exists($handle)) {
-                            $handleEntity = new $handle;
-                            if ($handleEntity instanceof RouteMiddleware) {
-                                $handleEntity->handle($this->request, $this->response);
-                            }
-                        }
-                    }catch (\Throwable $exception) {
-                        // todo
-                    }
-                }
-
+                $this->handleAfterRouteMiddles();
             } else {
                 $errorMsg = sprintf(
                     "Class method %s::%s is protected or private property, can't be called by Controller Instance",
@@ -389,6 +361,67 @@ class HttpRoute extends AppDispatch
     public function setRouteFileMap(string $route)
     {
         self::$routeCacheFileMap[$route] = true;
+    }
+
+    /**
+     * group middles
+     *
+     * @return void
+     */
+    private function handleGroupRouteMiddles()
+    {
+        foreach ($this->middleware as $middlewareHandle) {
+            if (class_exists($middlewareHandle)) {
+                $middlewareHandleEntity = new $middlewareHandle;
+                if ($middlewareHandleEntity instanceof RouteMiddleware) {
+                    $middlewareHandleEntity->handle($this->request, $this->response);
+                }
+            }
+        }
+    }
+
+    /**
+     * before route middles
+     * @return void
+     */
+    private function handleBeforeRouteMiddles()
+    {
+        foreach($this->beforeHandle as $handle) {
+            if ($handle instanceof \Closure) {
+                $result = call_user_func($handle, $this->request, $this->response);
+                if ($result === false) {
+                    throw new SystemException('beforeHandle route middle return false, Not Allow Coroutine To Next Middle', 500);
+                }
+            }else if (class_exists($handle)) {
+                $handleEntity = new $handle;
+                if ($handleEntity instanceof RouteMiddleware) {
+                    $handleEntity->handle($this->request, $this->response);
+                }
+            }
+        }
+    }
+
+    /**
+     * handleAfterRouteMiddles
+     *
+     * @return void
+     */
+    private function handleAfterRouteMiddles()
+    {
+        foreach ($this->afterHandle as $handle) {
+            try {
+                if ($handle instanceof \Closure) {
+                    call_user_func($handle, $this->request, $this->response);
+                }else if (class_exists($handle)) {
+                    $handleEntity = new $handle;
+                    if ($handleEntity instanceof RouteMiddleware) {
+                        $handleEntity->handle($this->request, $this->response);
+                    }
+                }
+            }catch (\Throwable $exception) {
+                // todo
+            }
+        }
     }
 
     /**
@@ -507,9 +540,14 @@ class HttpRoute extends AppDispatch
      */
     protected static function getHttpRouterMapUri(string $uri): array
     {
+        if (isset(self::$routeCache[$uri])) {
+            return self::$routeCache[$uri];
+        }
+
         $routerMap = Route::loadRouteFile();
         $uri = DIRECTORY_SEPARATOR.trim($uri,DIRECTORY_SEPARATOR);
         if (isset($routerMap[$uri]['route_meta'])) {
+            $groupMeta  = $routerMap[$uri]['group_meta'] ?? [];
             $routerMeta = $routerMap[$uri]['route_meta'];
             $middleware = $routerMap[$uri]['group_meta']['middleware'] ?? [];
             $method = $routerMap[$uri]['method'];
@@ -546,12 +584,27 @@ class HttpRoute extends AppDispatch
             }
 
             $afterHandle = array_values($routerMeta);
-
-            return [$middleware, $beforeHandle, $routeUri, $afterHandle, $method];
+            $routeCache = [$middleware, $beforeHandle, $routeUri, $afterHandle, $method, $groupMeta];
+            self::$routeCache[$uri] = $routeCache;
+            unset($routerMap[$uri]);
+            return $routeCache;
 
         }else {
             throw new DispatchException('Not Found Route.');
         }
+    }
+
+    /**
+     * @param string $uri
+     * @return bool
+     */
+    public function hasRoute(string $uri)
+    {
+        $routerMap = Route::loadRouteFile();
+        if (isset(self::$routeCache[$uri]) || isset($routerMap[$uri])) {
+            return true;
+        }
+        return false;
     }
 
     /**
