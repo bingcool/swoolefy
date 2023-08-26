@@ -95,22 +95,8 @@ class ServiceDispatch extends AppDispatch
 
         try {
             $class = str_replace(DIRECTORY_SEPARATOR, '\\', $class);
-            foreach ($this->beforeHandle as $handle) {
-                $result = call_user_func($handle, $this->params);
-                if ($result === false) {
-                    $errorMsg = sprintf(
-                        "Call %s route handle return false, forbidden continue call %s::%s",
-                        $class,
-                        $class,
-                        $action
-                    );
-                    if (Swfy::isWorkerProcess()) {
-                        $this->getErrorHandle()->errorMsg($errorMsg);
-                    }
-                    return false;
-                }
-            }
-
+            // call before route handle middle
+            $this->handleBeforeRouteMiddles();
             /**@var \Swoolefy\Core\Task\TaskService $serviceInstance */
             $serviceInstance = new $class();
             $serviceInstance->setMixedParams($this->params);
@@ -137,16 +123,8 @@ class ServiceDispatch extends AppDispatch
                 $serviceInstance->{$action}($this->params);
                 // after Call
                 $serviceInstance->_afterAction($action);
-
-                // call after route handle
-                foreach ($this->afterHandle as $handle) {
-                    try {
-                        call_user_func($handle, $this->params);
-                    }catch (\Throwable $exception) {
-                        // todo
-                    }
-                }
-
+                // call after route handle middle
+                $this->handleAfterRouteMiddles();
                 // call hook callable
                 Hook::callHook(Hook::HOOK_AFTER_REQUEST);
 
@@ -348,6 +326,51 @@ class ServiceDispatch extends AppDispatch
     public static function mergeRoutes(array $routes)
     {
         self::$routes = array_merge(self::$routes, $routes);
+    }
+
+    /**
+     * @return false|void
+     */
+    private function handleBeforeRouteMiddles()
+    {
+        foreach ($this->beforeHandle as $handle) {
+            if ($handle instanceof \Closure) {
+                $result = call_user_func($handle, $this->params);
+                if ($result === false) {
+                    if (Swfy::isWorkerProcess()) {
+                        $this->getErrorHandle()->errorMsg("beforeHandle route middle return false, Not Allow Coroutine To Next Middle");
+                    }
+                    return false;
+                }
+            }else if (is_string($handle) && class_exists($handle)) {
+                $handleEntity = new $handle();
+                if ($handle instanceof DispatchMiddle) {
+                    $handleEntity->handle($this->params);
+                }
+            }
+        }
+    }
+
+    /**
+     * @return void
+     */
+    private function handleAfterRouteMiddles()
+    {
+        foreach ($this->afterHandle as $handle) {
+            try {
+                if ($handle instanceof \Closure) {
+                    call_user_func($handle, $this->params);
+                } else if (is_string($handle) && class_exists($handle)) {
+                    $handleEntity = new $handle();
+                    if ($handle instanceof DispatchMiddle) {
+                        $handleEntity->handle($this->params);
+                    }
+                }
+            }catch (\Throwable $exception) {
+                // todo
+            }
+        }
+
     }
 
 }

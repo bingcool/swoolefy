@@ -34,7 +34,7 @@ return [
         'admin_server'           => '0.0.0.0:9503',
         'reactor_num'            => 1,
         'worker_num'             => 1,
-        'max_request'            => 10000,
+        'max_request'            => 100,
         'task_worker_num'        => 2,
         'task_tmpdir'            => '/dev/shm',
         'daemonize'              => 0,
