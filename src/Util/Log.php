@@ -422,8 +422,9 @@ class Log
     }
 
     /**
-     * @param $method
-     * @param $methodName
+     * @param string $method
+     * @param array $args
+     * @return void
      */
     public function __call(string $method, array $args)
     {
