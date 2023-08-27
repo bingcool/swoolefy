@@ -6,6 +6,7 @@ use Swoole\Http\Request;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Http\Route;
+use Test\Middleware\Route\ValidLoginMiddleware;
 
 /**
  * Controller 下的控制器路由
@@ -15,7 +16,9 @@ Route::group([
     // 路由前缀
     'prefix' => 'api',
     // 路由中间件
-    'middleware' => []
+    'middleware' => [
+        ValidLoginMiddleware::class
+    ]
 ], function () {
     Route::get('/', [
         'beforeHandle' => function(Request $request) {
