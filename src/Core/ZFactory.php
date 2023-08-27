@@ -59,11 +59,11 @@ class ZFactory
     }
 
     /**
-     * removeInstance
-     * @param int $cid
      * @param string $class
+     * @param int|null $cid
+     * @return bool
      */
-    public static function removeInstance(?int $cid = null, string $class = '')
+    public static function removeInstance(string $class = '', ?int $cid = null, )
     {
         if (empty($cid)) {
             $cid = \Swoole\Coroutine::getCid();
