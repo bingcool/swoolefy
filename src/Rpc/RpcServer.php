@@ -90,7 +90,7 @@ abstract class RpcServer extends TcpServer implements RpcEventInterface
     /**
      * onPipeMessage
      * @param Server $server
-     * @param int $src_worker_id
+     * @param int $from_worker_id
      * @param mixed $message
      * @return void
      */
