@@ -11,9 +11,9 @@
 
 namespace Swoolefy\Core\Controller;
 
-use Common\Library\Validate;
 use Swoole\Coroutine;
 use Swoolefy\Core\App;
+use Common\Library\Validate;
 use Swoolefy\Core\Application;
 
 class BController extends \Swoolefy\Core\AppObject
