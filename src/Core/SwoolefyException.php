@@ -12,6 +12,7 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Log\LogManager;
+use Swoolefy\Http\ResponseOutput;
 
 class SwoolefyException
 {
@@ -126,7 +127,7 @@ class SwoolefyException
             $errorMsg = $exceptionMsg;
         }
 
-        $app->beforeEnd((int)$code, $errorMsg, $contextData ?? []);
+        (new ResponseOutput($app->request, $app->response))->beforeEnd((int)$code, $errorMsg, $contextData ?? []);
 
         $errorMsg .= ' ||| ' . $throwable->getTraceAsString();
 
@@ -148,6 +149,11 @@ class SwoolefyException
         if (!is_object($logger)) {
             _each("【Warning】Missing set 'error_log' component on " . __CLASS__ . '::' . __FUNCTION__);
             return;
+        }
+
+        $logFilePath = $logger->getLogFilePath();
+        if (!file_exists($logFilePath)) {
+            @file_put_contents($logFilePath, '');
         }
 
         switch ($errorType) {

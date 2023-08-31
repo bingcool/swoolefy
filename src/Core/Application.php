@@ -109,18 +109,6 @@ class Application
     }
 
     /**
-     * @param int $code
-     * @param string $msg
-     * @param mixed $data
-     * @return array
-     */
-    public static function buildResponseData(int $code = 0, string $msg = '', $data = '')
-    {
-        $responseFormatter = (!isset(Swfy::getConf()['response_formatter']) || empty(Swfy::getConf()['response_formatter'])) ? ResponseFormatter::class : Swfy::getConf()['response_formatter'];
-        return $responseFormatter::formatterData($code, $msg, $data);
-    }
-
-    /**
      * __destruct
      */
     public function __destruct()

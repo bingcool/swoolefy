@@ -19,7 +19,9 @@ use Swoolefy\Core\Application;
 class BController extends \Swoolefy\Core\AppObject
 {
 
-    use \Swoolefy\Core\AppTrait, \Swoolefy\Core\ServiceTrait;
+    use \Swoolefy\Http\RequestParseTrait;
+    use \Swoolefy\Http\ResponseParseTrait;
+    use \Swoolefy\Core\ServiceTrait;
 
     /**
      * $request
@@ -42,7 +44,7 @@ class BController extends \Swoolefy\Core\AppObject
     /**
      * @var Validate
      */
-    protected $validate;
+    protected $validator;
 
     /**
      * __construct
@@ -56,12 +58,21 @@ class BController extends \Swoolefy\Core\AppObject
         $this->request  = $app->request;
         $this->response = $app->response;
         $this->appConf  = $app->appConf;
-        $this->validate = new Validate();
+        $this->validator = new Validate();
         if (Coroutine::getCid() >= 0) {
             \Swoole\Coroutine::defer(function () {
                 $this->defer();
             });
         }
+    }
+
+    /**
+     * @param string $action
+     * @return bool
+     */
+    public function _beforeAction(string $action): bool
+    {
+        return true;
     }
 
     /**
@@ -72,12 +83,22 @@ class BController extends \Swoolefy\Core\AppObject
     protected function validate(array $params, array $rules, array $message = [])
     {
         foreach ($rules as $name=>$rule) {
-            $this->validate->rule($name, $rule);
+            $this->validator->rule($name, $rule);
         }
-        $this->validate->message($message);
-        $this->validate->failException(true);
-        $this->validate->check($params);
-        return $this->validate;
+        $this->validator->message($message);
+        $this->validator->failException(true);
+        $this->validator->check($params);
+        return $this->validator;
+    }
+
+
+    /**
+     * @param string $action
+     * @return void
+     */
+    public function _afterAction(string $action)
+    {
+
     }
 
     /**

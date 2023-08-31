@@ -2,7 +2,7 @@
 
 namespace Test\Router;
 
-use Swoole\Http\Request;
+use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\Route;
 use Test\Middleware\Route\ValidLoginMiddleware;
 
@@ -20,30 +20,30 @@ Route::group([
 ], function () {
     // /demo/test
     Route::post('/test', [
-        'beforeHandle' => function(Request $request) {
+        'beforeHandle' => function(RequestInput $requestInput) {
             var_dump('beforeHandle');
         },
         'dispatch_route' => [\Test\Module\Demo\Controller\DemoController::class, 'test'],
 
-        'afterHandle' => function(Request $request) {
+        'afterHandle' => function(RequestInput $requestInput) {
             var_dump('afterHandle');
         },
-        'afterHandle1' => function(Request $request) {
+        'afterHandle1' => function(RequestInput $requestInput) {
             var_dump('afterHandle1');
         },
     ]);
 
     // /demo/test1
     Route::get('/test1', [
-        'beforeHandle' => function(Request $request) {
+        'beforeHandle' => function(RequestInput $requestInput) {
             var_dump('beforeHandle');
         },
         'dispatch_route' => [\Test\Module\Demo\Controller\DemoController::class, 'test1'],
 
-        'afterHandle' => function(Request $request) {
+        'afterHandle' => function(RequestInput $requestInput) {
             var_dump('afterHandle');
         },
-        'afterHandle1' => function(Request $request) {
+        'afterHandle1' => function(RequestInput $requestInput) {
             var_dump('afterHandle1');
         },
     ]);
