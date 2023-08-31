@@ -608,7 +608,7 @@ class HttpRoute extends AppDispatch
             return $routeCache;
 
         }else {
-            throw new DispatchException('Not Found Route.');
+            throw new DispatchException("Not Found Route [$uri].");
         }
     }
 
