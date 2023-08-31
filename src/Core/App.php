@@ -13,13 +13,14 @@ namespace Swoolefy\Core;
 
 use Swoole\Http\Request;
 use Swoole\Http\Response;
+use Swoolefy\Http\RequestInput;
+use Swoolefy\Http\ResponseOutput;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 
 class App extends \Swoolefy\Core\Component
 {
-
-    use \Swoolefy\Core\AppTrait, \Swoolefy\Core\ServiceTrait;
+    use \Swoolefy\Core\ServiceTrait;
 
     /**
      * $request
@@ -96,7 +97,7 @@ class App extends \Swoolefy\Core\Component
         if (isset($conf['application_bootstrap'])) {
             $applicationBootstrap = $conf['application_bootstrap'];
             if (class_exists($applicationBootstrap)) {
-                $applicationBootstrap::handle($this->request, $this->response);
+                $applicationBootstrap::handle((new RequestInput($this->request, $this->response)), (new ResponseOutput($this->request, $this->response)));
             }
         }
     }

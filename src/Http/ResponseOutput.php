@@ -9,15 +9,30 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Core;
+namespace Swoolefy\Http;
 
-interface AppInterface
+use Swoole\Http\Request;
+use Swoole\Http\Response;
+
+class ResponseOutput
 {
+    use ResponseParseTrait;
+
     /**
-     * bootstrap
-     * @param mixed $args
-     * @return mixed
+     * @var Request
      */
-    public static function bootstrap(mixed $args);
+    protected $request;
+
+    /**
+     * @var Response
+     */
+    protected $response;
+
+    public function __construct(Request $request, Response $response)
+    {
+        $this->request = $request;
+        $this->response = $response;
+    }
+
 
 }

@@ -11,15 +11,17 @@
 
 namespace Swoolefy\Core\Controller;
 
+use Common\Library\Validate;
 use Swoole\Coroutine;
 use Swoolefy\Core\App;
-use Common\Library\Validate;
 use Swoolefy\Core\Application;
 
 class BController extends \Swoolefy\Core\AppObject
 {
 
-    use \Swoolefy\Core\AppTrait, \Swoolefy\Core\ServiceTrait;
+    use \Swoolefy\Http\RequestParseTrait;
+    use \Swoolefy\Http\ResponseParseTrait;
+    use \Swoolefy\Core\ServiceTrait;
 
     /**
      * $request
@@ -65,6 +67,15 @@ class BController extends \Swoolefy\Core\AppObject
     }
 
     /**
+     * @param string $action
+     * @return bool
+     */
+    public function _beforeAction(string $action): bool
+    {
+        return true;
+    }
+
+    /**
      * @param array $params
      * @param array $rules
      * @return Validate
@@ -78,6 +89,16 @@ class BController extends \Swoolefy\Core\AppObject
         $this->validator->failException(true);
         $this->validator->check($params);
         return $this->validator;
+    }
+
+
+    /**
+     * @param string $action
+     * @return void
+     */
+    public function _afterAction(string $action)
+    {
+
     }
 
     /**

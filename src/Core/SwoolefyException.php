@@ -12,6 +12,7 @@
 namespace Swoolefy\Core;
 
 use Swoolefy\Core\Log\LogManager;
+use Swoolefy\Http\ResponseOutput;
 
 class SwoolefyException
 {
@@ -126,7 +127,7 @@ class SwoolefyException
             $errorMsg = $exceptionMsg;
         }
 
-        $app->beforeEnd((int)$code, $errorMsg, $contextData ?? []);
+        (new ResponseOutput($app->request, $app->response))->beforeEnd((int)$code, $errorMsg, $contextData ?? []);
 
         $errorMsg .= ' ||| ' . $throwable->getTraceAsString();
 

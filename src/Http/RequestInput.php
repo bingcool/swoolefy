@@ -9,18 +9,28 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Core;
+namespace Swoolefy\Http;
 
-use Swoolefy\Http\RequestInput;
-use Swoolefy\Http\ResponseOutput;
+use Swoole\Http\Request;
+use Swoole\Http\Response;
 
-interface RouteMiddleware
+class RequestInput
 {
-    /**
-     * @param RequestInput $requestInput
-     * @param ResponseOutput $responseOutput
-     * @return mixed
-     */
-    public function handle(RequestInput $requestInput, ResponseOutput $responseOutput);
+    use RequestParseTrait;
 
+    /**
+     * @var Request
+     */
+    protected $request;
+
+    /**
+     * @var Response
+     */
+    protected $response;
+
+    public function __construct(Request $request, Response $response)
+    {
+        $this->request = $request;
+        $this->response = $response;
+    }
 }

@@ -11,16 +11,16 @@
 
 namespace Swoolefy\Core;
 
-use Swoole\Http\Request;
-use Swoole\Http\Response;
+use Swoolefy\Http\RequestInput;
+use Swoolefy\Http\ResponseOutput;
 
 interface BootstrapInterface
 {
     /**
-     * @param Request $request
-     * @param Response $response
+     * @param RequestInput $requestInput
+     * @param ResponseOutput $responseOutput
      * @return mixed
      */
-    public static function handle(Request $request, Response $response);
+    public static function handle(RequestInput $requestInput, ResponseOutput $responseOutput);
 
 }
