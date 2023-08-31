@@ -2,9 +2,7 @@
 
 namespace Test\Router;
 
-use Swoole\Http\Request;
-use Swoolefy\Core\Application;
-use Swoolefy\Core\Coroutine\Context;
+use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\Route;
 
 /**
@@ -24,15 +22,16 @@ Route::group([
 
 
     Route::get('/user-order/userList', [
-        'beforeHandle' => function(Request $request) {
-            $name = Application::getApp()->getRequestParams('name');
+        'beforeHandle' => function(RequestInput $requestInput) {
+            $name = $requestInput->getRequestParams('name');
+            $requestInput->getMethod();
         },
         'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList'],
     ]);
 
     Route::get('/user-order/save-order', [
-        'beforeHandle' => function(Request $request) {
-            $name = Application::getApp()->getRequestParams('name');
+        'beforeHandle' => function(RequestInput $requestInput) {
+            $name = $requestInput->getRequestParams('name');
         },
 
         'dispatch_route' => [\Test\Controller\ObjectController::class, 'saveOrder'],

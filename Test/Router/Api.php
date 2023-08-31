@@ -2,9 +2,8 @@
 
 namespace Test\Router;
 
-use Swoole\Http\Request;
-use Swoolefy\Core\Application;
 use Swoolefy\Core\Coroutine\Context;
+use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\Route;
 
 /**
@@ -18,32 +17,38 @@ Route::group([
     'middleware' => []
 ], function () {
     Route::get('/', [
-        'beforeHandle' => function(Request $request) {
-            var_dump('beforeHandle');
+        'beforeHandle' => function(RequestInput $requestInput) {
+            $requestInput->setValue('name','黄增兵');
         },
+
+        'beforeHandle1' => function(RequestInput $requestInput) {
+            $name = $requestInput->getValue('name');
+            var_dump($name);
+        },
+
         'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
 
-        'afterHandle' => function(Request $request) {
+        'afterHandle' => function(RequestInput $requestInput) {
             var_dump('afterHandle');
         },
-        'afterHandle1' => function(Request $request) {
+        'afterHandle1' => function(RequestInput $requestInput) {
             var_dump('afterHandle1');
         },
     ]);
 
 
     Route::get('/index/index', [
-        'beforeHandle' => function(Request $request) {
+        'beforeHandle' => function(RequestInput $requestInput) {
             Context::set('name', 'bingcool');
-            $name = Application::getApp()->getPostParams('name');
+            $name = $requestInput->getPostParams('name');
         },
 
         'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
 
-        'afterHandle' => function(Request $request) {
+        'afterHandle' => function(RequestInput $requestInput) {
 
         },
-        'afterHandle1' => function(Request $request) {
+        'afterHandle1' => function(RequestInput $requestInput) {
 
         },
     ]);

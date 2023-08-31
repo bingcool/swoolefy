@@ -11,11 +11,11 @@
 
 namespace Swoolefy\Websocket;
 
-use Swoole\WebSocket\Frame;
-use Swoolefy\Core\Application;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Swoole;
+use Swoole\WebSocket\Frame;
 use Swoolefy\Core\ServiceDispatch;
+use Swoolefy\Core\ResponseFormatter;
 use Swoolefy\Core\HandlerInterface;
 
 class WebsocketHandler extends Swoole implements HandlerInterface
@@ -131,7 +131,7 @@ class WebsocketHandler extends Swoole implements HandlerInterface
     private function errorMsg(string $msg = '')
     {
         if (Swfy::isWorkerProcess()) {
-            $errorMsg = Application::buildResponseData(500, $msg);
+            $errorMsg = ResponseFormatter::buildResponseData(500, $msg);
         }
         return $errorMsg ?? [];
     }

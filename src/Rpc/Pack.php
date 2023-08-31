@@ -13,7 +13,7 @@ namespace Swoolefy\Rpc;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\BaseServer;
-use Swoolefy\Core\Application;
+use Swoolefy\Core\ResponseFormatter;
 
 class Pack extends BaseParse
 {
@@ -197,7 +197,7 @@ class Pack extends BaseParse
      */
     public function sendErrorMessage(int $fd, int $errno, string $errorMsg, array $header)
     {
-        $responseData = Application::buildResponseData($errno, $errorMsg);
+        $responseData = ResponseFormatter::buildResponseData($errno, $errorMsg);
         if (BaseServer::isPackLength()) {
             $payload = [$responseData, $header];
             $data = \Swoolefy\Rpc\RpcServer::pack($payload);
