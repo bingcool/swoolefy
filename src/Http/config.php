@@ -40,6 +40,7 @@ return [
         'daemonize'              => 0,
         'dispatch_mode'          => 3,
         'reload_async'           => true,
+        'enable_deadlock_check'  => false,
         'enable_coroutine'       => 1,
         'enable_preemptive_scheduler' => 1,
         // 压缩
