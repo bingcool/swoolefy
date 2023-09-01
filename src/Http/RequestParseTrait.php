@@ -316,7 +316,7 @@ trait RequestParseTrait
      * getQueryString
      * @return string|null
      */
-    public function getQueryString(): string|null
+    public function getQueryString(): ?string
     {
         if (isset($this->request->server['QUERY_STRING'])) {
             return $this->request->server['QUERY_STRING'];
@@ -404,7 +404,7 @@ trait RequestParseTrait
      * getModule
      * @return string|null
      */
-    public function getModuleId(): string|null
+    public function getModuleId(): ?string
     {
         list($count, $routeParams) = $this->getRouteParams();
         if ($count == 3) {
