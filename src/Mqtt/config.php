@@ -36,6 +36,8 @@ return [
         'daemonize'             => 0,
         'dispatch_mode'         => 2,
         'open_mqtt_protocol'    => true, // only for mqtt
+        'reload_async'          => true,
+        'enable_deadlock_check' => false,
         'enable_coroutine'      => 1,
         'task_enable_coroutine' => 1,
         'log_file'              => '/tmp/' . APP_NAME . '/swoole_log.txt',
