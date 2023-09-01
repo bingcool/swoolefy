@@ -12,9 +12,10 @@
 namespace Swoolefy\Core;
 
 use Swoole\Server;
+use Swoolefy\Http\Route;
+use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
-use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Process\ProcessManager;
 use Swoolefy\Core\ProcessPools\PoolsManager;
 
@@ -26,6 +27,9 @@ class EventCtrl implements EventCtrlInterface
      */
     public function init()
     {
+        if (BaseServer::isHttpApp() && !SystemEnv::isWorkerService()) {
+            Route::loadRouteFile();
+        }
         static::onInit();
         $this->registerSqlLogger();
 
