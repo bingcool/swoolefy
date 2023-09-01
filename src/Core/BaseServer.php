@@ -175,6 +175,10 @@ class BaseServer
     protected function workerStartInit($server, $workerId)
     {
         try {
+            // 加载路由文件
+            if (self::isHttpApp() && self::isWorkerProcess($workerId) && !SystemEnv::isWorkerService()) {
+                Route::loadRouteFile();
+            }
             // global server
             Swfy::setSwooleServer($server);
             // global conf
@@ -195,10 +199,7 @@ class BaseServer
             self::startInclude();
             // 记录worker的进程worker_pid与worker_id的映射
             self::setWorkersPid($workerId, $server->worker_pid);
-            // 加载路由文件
-            if (self::isHttpApp() && self::isWorkerProcess($workerId) && !SystemEnv::isWorkerService()) {
-                Route::loadRouteFile();
-            }
+
         }catch(\Throwable $throwable) {
             self::catchException($throwable);
         }

@@ -9,9 +9,9 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Core;
+namespace Swoolefy\Http;
 
-trait AppTrait
+trait RequestParseTrait
 {
     /**
      * $previousUrl
@@ -30,45 +30,9 @@ trait AppTrait
     protected $postParams = [];
 
     /**
-     * @param string $action
-     * @return bool
+     * @var array
      */
-    public function _beforeAction(string $action): bool
-    {
-        return true;
-    }
-
-    /**
-     * @param string $action
-     * @return void
-     */
-    public function _afterAction(string $action)
-    {
-
-    }
-
-    /**
-     * 可以在Bootstrap| Route| _beforeAction中调用提前结束请求
-     * @param int $code
-     * @param string $msg
-     * @param mixed $data
-     * @param string $formatter
-     * @return bool
-     */
-    public function beforeEnd(
-        int $code = 0,
-        string $msg = '',
-        $data = [],
-        string $formatter = 'json'
-    ): bool
-    {
-        if (is_object(Application::getApp())) {
-            Application::getApp()->setEnd();
-        }
-        $responseData = Application::buildResponseData($code, $msg, $data);
-        $this->jsonSerialize($responseData, $formatter);
-        return true;
-    }
+    protected $extendData = [];
 
     /**
      * isGet
@@ -172,7 +136,7 @@ trait AppTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getRequestParams(?string $name = null, $default = null)
+    public function getRequestParams(?string $name = null, $default = null): mixed
     {
         if (!$this->requestParams) {
             $get = isset($this->request->get) ? $this->request->get : [];
@@ -208,7 +172,7 @@ trait AppTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getQueryParams(string $name = null, $default = null)
+    public function getQueryParams(?string $name = null, mixed $default = null): mixed
     {
         $input = $this->request->get;
         if ($name) {
@@ -225,7 +189,7 @@ trait AppTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getPostParams(string $name = null, $default = null)
+    public function getPostParams(?string $name = null, mixed $default = null): mixed
     {
         if (!$this->postParams) {
             $input = $this->request->post ?? [];
@@ -250,7 +214,7 @@ trait AppTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getCookieParams(string $name = null, $default = null)
+    public function getCookieParams(?string $name = null, mixed $default = null): mixed
     {
         $cookies = $this->request->cookie;
         if ($name) {
@@ -276,7 +240,7 @@ trait AppTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getServerParams(string $name = null, $default = null)
+    public function getServerParams(?string $name = null, mixed $default = null): mixed
     {
         if ($name) {
             $name = strtoupper($name);
@@ -292,7 +256,7 @@ trait AppTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getHeaderParams(string $name = null, $default = null)
+    public function getHeaderParams(?string $name = null, $default = null): mixed
     {
         if ($name) {
             $name = strtolower($name);
@@ -307,16 +271,16 @@ trait AppTrait
      * getFilesParam
      * @return mixed
      */
-    public function getUploadFiles()
+    public function getUploadFiles(): mixed
     {
         return $this->request->files;
     }
 
     /**
      * getRawContent
-     * @return mixed
+     * @return string|false
      */
-    public function getRawContent()
+    public function getRawContent(): string|false
     {
         return $this->request->rawContent();
     }
@@ -352,7 +316,7 @@ trait AppTrait
      * getQueryString
      * @return string|null
      */
-    public function getQueryString()
+    public function getQueryString(): string|null
     {
         if (isset($this->request->server['QUERY_STRING'])) {
             return $this->request->server['QUERY_STRING'];
@@ -440,7 +404,7 @@ trait AppTrait
      * getModule
      * @return string|null
      */
-    public function getModuleId()
+    public function getModuleId(): string|null
     {
         list($count, $routeParams) = $this->getRouteParams();
         if ($count == 3) {
@@ -483,90 +447,6 @@ trait AppTrait
     }
 
     /**
-     * @param string $name
-     * @param $value
-     * @param string $viewCom
-     * @throws \Exception
-     */
-    public function assign(string $name, $value, string $viewCom = 'view')
-    {
-        Application::getApp()->get($viewCom)->assign($name, $value);
-    }
-
-    /**
-     * @param string $templateFile
-     * @param string $viewCom
-     * @throws \Exception
-     */
-    public function display(string $templateFile, string $viewCom = 'view')
-    {
-        Application::getApp()->get($viewCom)->display($templateFile);
-    }
-
-    /**
-     * @param string $templateFile
-     * @param string $viewCom
-     * @throws \Exception
-     */
-    public function fetch(string $templateFile, string $viewCom = 'view')
-    {
-        Application::getApp()->get($viewCom)->display($templateFile);
-    }
-
-    /**
-     * @param array $data
-     * @param int $code
-     * @param mixed $msg
-     * @param string $formatter
-     * @return void
-     */
-    protected function returnJson(
-        array  $data = [],
-        int    $code = 0,
-        string $msg  = '',
-        string $formatter = 'json'
-    )
-    {
-        $responseData = Application::buildResponseData($code, $msg, $data);
-        $this->jsonSerialize($responseData, $formatter);
-    }
-
-    /**
-     * jsonSerialize
-     * @param array $data
-     * @param string $formatter
-     * @return void
-     */
-    protected function jsonSerialize(array $data = [], string $formatter = 'json')
-    {
-        switch (strtoupper($formatter)) {
-            case 'JSON':
-                $this->response->header('Content-Type', 'application/json; charset=utf-8');
-                $jsonString = json_encode($data, JSON_UNESCAPED_UNICODE);
-                break;
-            default:
-                $jsonString = json_encode($data, JSON_UNESCAPED_UNICODE);
-                break;
-        }
-
-        if (strlen($jsonString) > 2 * 1024 * 1024) {
-            $chunks = str_split($jsonString, 2 * 1024 * 1024);
-            unset($jsonString);
-            foreach ($chunks as $k => $chunk) {
-                $this->response->write($chunk);
-                unset($chunks[$k]);
-            }
-        } else {
-            $this->response->write($jsonString);
-        }
-
-        if(is_object(Application::getApp())) {
-            Application::getApp()->setEnd();
-        }
-        $this->response->end();
-    }
-
-    /**
      * sendfile
      * @param string $filename
      * @param int $offset
@@ -597,83 +477,7 @@ trait AppTrait
         return $parseItems;
     }
 
-    /**
-     * redirect 重定向-使用这个函数后,要return,停止程序执行
-     * @param string $url
-     * @param array $params eg:['name'=>'ming','age'=>18]
-     * @param int $httpStatus default 301
-     * @return void
-     */
-    public function redirect(string $url, array $params = [], int $httpStatus = 301)
-    {
-        $queryString = '';
-        $url = trim($url);
-        if (strncmp($url, '//', 2) && strpos($url, '://') === false) {
-            if (strpos($url, '/') != 0) {
-                $url = '/' . $url;
-            }
-            list($protocol, $version) = explode('/', $this->getProtocol());
-            $protocol = strtolower($protocol) . '://';
-            $url = $protocol . $this->getHostName() . $url;
-        }
-        if ($params) {
-            if (strpos($url, '?') > 0) {
-                $queryString = http_build_query($params);
-            } else {
-                $queryString = '?';
-                $queryString .= http_build_query($params);
-            }
-        }
-        if (is_object(Application::getApp())) {
-            Application::getApp()->setEnd();
-        }
-        $url = $url . $queryString;
-        if (version_compare(swoole_version(), '4.4.5', '>')) {
-            $this->response->redirect($url, $httpStatus);
-        } else {
-            $this->status($httpStatus);
-            $this->response->header('Location', $url);
-            $this->response->end();
-        }
-    }
 
-    /**
-     * dump 调试函数
-     * @param mixed $var
-     * @param bool $echo
-     * @param mixed $label
-     * @param bool $strict
-     * @return string
-     */
-    public function dump($var, bool $echo = true, $label = null, bool $strict = true)
-    {
-        $label = ($label === null) ? '' : rtrim($label) . ' ';
-        if (!$strict) {
-            if (ini_get('html_errors')) {
-                $output = print_r($var, true);
-                $output = '<pre>' . $label . htmlspecialchars($output, ENT_QUOTES) . '</pre>';
-            } else {
-                $output = $label . print_r($var, true);
-            }
-        } else {
-            ob_start();
-            var_dump($var);
-            // 获取终端输出
-            $output = ob_get_clean();
-            @ob_end_clean();
-            if (!extension_loaded('xdebug')) {
-                $output = preg_replace('/\]\=\>\n(\s+)/m', '] => ', $output);
-                $output = '<pre>' . $label . htmlspecialchars($output, ENT_QUOTES) . '</pre>';
-            }
-        }
-        if ($echo) {
-            // 调试环境这个函数使用
-            if (!SystemEnv::isPrdEnv()) @$this->response->write($output);
-            return null;
-        } else {
-            return $output;
-        }
-    }
 
     /**
      * getRefererUrl 获取当前页面的上一级页面的来源url
@@ -702,10 +506,10 @@ trait AppTrait
             return $this->request->server['HTTP_X_FORWARDED_FOR'];
         }
         if (isset($this->request->server['REMOTE_ADDR'])) {
-            //没通过代理，或者通过代理而没设置x-real-ip的 
+            //没通过代理，或者通过代理而没设置x-real-ip的
             $ip = $this->request->server['REMOTE_ADDR'];
         }
-        // IP地址合法验证 
+        // IP地址合法验证
         $long = sprintf("%u", ip2long($ip));
         $ip = $long ? [$ip, $long] : ['0.0.0.0', 0];
         return $ip[$type];
@@ -721,49 +525,47 @@ trait AppTrait
     }
 
     /**
-     * header 使用链式作用域
-     * @param string $name
-     * @param string $value
-     * @return \Swoole\Http\Response|\Swoole\Http2\Response
-     */
-    public function header(string $name, $value)
-    {
-        $this->response->header($name, $value);
-        return $this->response;
-    }
-
-    /**
-     * setCookie 设置HTTP响应的cookie信息,PHP的setCookie()参数一致
-     * @param string $key Cookie名称
-     * @param string $value Cookie值
-     * @param int $expire 有效时间
-     * @param string $path 有效路径
-     * @param string $domain 有效域名
-     * @param bool $secure Cookie是否仅仅通过安全的HTTPS连接传给客户端
-     * @param bool $httpOnly 设置成TRUE，Cookie仅可通过HTTP协议访问
-     * @return \Swoole\Http\Response|\Swoole\Http2\Response
-     */
-    public function setCookie(
-        string $key,
-        string $value = '',
-        int    $expire = 0,
-        string $path = '/',
-        string $domain = '',
-        bool   $secure = false,
-        bool   $httpOnly = false
-    )
-    {
-        $this->response->cookie($key, $value, $expire, $path, $domain, $secure, $httpOnly);
-        return $this->response;
-    }
-
-    /**
      * getHostName
      * @return string
      */
     public function getHostName(): string
     {
         return $this->request->server['HTTP_HOST'];
+    }
+
+    /**
+     * @param string $key
+     * @param $value
+     * @return void
+     */
+    public function setValue(string $key, $value)
+    {
+        $this->extendData[$key] = $value;
+    }
+
+    /**
+     * @param string $key
+     * @return mixed
+     */
+    public function getValue(string $key)
+    {
+        return $this->extendData[$key];
+    }
+
+    /**
+     * @return array
+     */
+    public function getExtendData()
+    {
+        return $this->extendData;
+    }
+
+    /**
+     * @return void
+     */
+    public function setExtendData(array $extendData)
+    {
+        $this->extendData = $extendData;
     }
 
     /**
@@ -809,155 +611,5 @@ trait AppTrait
         return $exp[0] . '(' . $exp[1] . ')';
     }
 
-    /**
-     * getOS 客户端操作系统信息
-     * @return string
-     */
-    public static function getClientOS(): string
-    {
-        $agent = Application::getApp()->request->server['HTTP_USER_AGENT'];
 
-        if (preg_match('/win/i', $agent) && preg_match('/nt 6.1/i', $agent)) {
-            $clientOS = 'Windows 7';
-        } elseif (preg_match('/win/i', $agent) && preg_match('/nt 10.0/i', $agent)) {
-            $clientOS = 'Windows 10';
-        } elseif (preg_match('/win/i', $agent) && preg_match('/nt 6.2/i', $agent)) {
-            $clientOS = 'Windows 8';
-        } elseif (preg_match('/linux/i', $agent) && preg_match('/android/i', $agent)) {
-            $clientOS = 'Android';
-        } elseif (preg_match('/iPhone/i', $agent)) {
-            $clientOS = 'Ios';
-        } elseif (preg_match('/linux/i', $agent)) {
-            $clientOS = 'Linux';
-        } elseif (preg_match('/unix/i', $agent)) {
-            $clientOS = 'Unix';
-        } elseif (preg_match('/win/i', $agent) && preg_match('/nt 5.1/i', $agent)) {
-            $clientOS = 'Windows XP';
-        } elseif (preg_match('/win/i', $agent) && strpos($agent, '95')) {
-            $clientOS = 'Windows 95';
-        } elseif (preg_match('/win 9x/i', $agent) && strpos($agent, '4.90')) {
-            $clientOS = 'Windows ME';
-        } elseif (preg_match('/win/i', $agent) && preg_match('/98/i', $agent)) {
-            $clientOS = 'Windows 98';
-        } elseif (preg_match('/win/i', $agent) && preg_match('/nt 6.0/i', $agent)) {
-            $clientOS = 'Windows Vista';
-        } elseif (preg_match('/win/i', $agent) && preg_match('/nt 5/i', $agent)) {
-            $clientOS = 'Windows 2000';
-        } elseif (preg_match('/win/i', $agent) && preg_match('/nt/i', $agent)) {
-            $clientOS = 'Windows NT';
-        } elseif (preg_match('/win/i', $agent) && preg_match('/32/i', $agent)) {
-            $clientOS = 'Windows 32';
-        } elseif (preg_match('/linux/i', $agent) && preg_match('/android/i', $agent)) {
-            $clientOS = 'Android';
-        } elseif (preg_match('/iPhone/i', $agent)) {
-            $clientOS = 'Ios';
-        } elseif (preg_match('/linux/i', $agent)) {
-            $clientOS = 'Linux';
-        } elseif (preg_match('/unix/i', $agent)) {
-            $clientOS = 'Unix';
-        } elseif (preg_match('/sun/i', $agent) && preg_match('/os/i', $agent)) {
-            $clientOS = 'SunOS';
-        } elseif (preg_match('/ibm/i', $agent) && preg_match('/os/i', $agent)) {
-            $clientOS = 'IBM OS/2';
-        } elseif (preg_match('/Mac/i', $agent) && preg_match('/PC/i', $agent)) {
-            $clientOS = 'Macintosh';
-        } elseif (preg_match('/PowerPC/i', $agent)) {
-            $clientOS = 'PowerPC';
-        } elseif (preg_match('/AIX/i', $agent)) {
-            $clientOS = 'AIX';
-        } elseif (preg_match('/HPUX/i', $agent)) {
-            $clientOS = 'HPUX';
-        } elseif (preg_match('/NetBSD/i', $agent)) {
-            $clientOS = 'NetBSD';
-        } elseif (preg_match('/BSD/i', $agent)) {
-            $clientOS = 'BSD';
-        } elseif (preg_match('/OSF1/i', $agent)) {
-            $clientOS = 'OSF1';
-        } elseif (preg_match('/IRIX/i', $agent)) {
-            $clientOS = 'IRIX';
-        } elseif (preg_match('/FreeBSD/i', $agent)) {
-            $clientOS = 'FreeBSD';
-        } elseif (preg_match('/teleport/i', $agent)) {
-            $clientOS = 'teleport';
-        } elseif (preg_match('/flashget/i', $agent)) {
-            $clientOS = 'flashget';
-        } elseif (preg_match('/webzip/i', $agent)) {
-            $clientOS = 'webzip';
-        } elseif (preg_match('/offline/i', $agent)) {
-            $clientOS = 'offline';
-        } else {
-            $clientOS = 'Unknown';
-        }
-
-        return $clientOS;
-    }
-
-    /**
-     * sendHttpStatus
-     * @param int $code
-     * @return void
-     */
-    public function status(int $code)
-    {
-        $httpStatus = array(
-            // Informational 1xx
-            100,
-            101,
-
-            // Success 2xx
-            200,
-            201,
-            202,
-            203,
-            204,
-            205,
-            206,
-
-            // Redirection 3xx
-            300,
-            301,
-            302,  // 1.1
-            303,
-            304,
-            305,
-            // 306 is deprecated but reserved
-            307,
-
-            // Client Error 4xx
-            400,
-            401,
-            402,
-            403,
-            404,
-            405,
-            406,
-            407,
-            408,
-            409,
-            410,
-            411,
-            412,
-            413,
-            414,
-            415,
-            416,
-            417,
-
-            // Server Error 5xx
-            500,
-            501,
-            502,
-            503,
-            504,
-            505,
-            509
-        );
-        if (in_array($code, $httpStatus)) {
-            $this->response->status($code);
-        } else {
-            if (!SystemEnv::isPrdEnv()) {
-                $this->response->write('Error: ' . $code . 'is not a standard http code');
-            }
-        }
-    }
 }

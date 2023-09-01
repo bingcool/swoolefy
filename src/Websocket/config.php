@@ -41,6 +41,8 @@ return [
         'dispatch_mode'         => 2,
         'enable_coroutine'      => 1,
         'enable_preemptive_scheduler' => 1,
+        'reload_async'          => true,
+        'enable_deadlock_check' => false,
         'stats_file'            => '/tmp/' . APP_NAME . '/stats.log',
         'log_file'              => '/tmp/' . APP_NAME . '/swoole_log.txt',
         'pid_file'              => '/data/' . APP_NAME . '/log/server.pid',

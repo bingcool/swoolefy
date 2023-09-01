@@ -149,6 +149,11 @@ class MainManager
     /**
      * @var \Closure
      */
+    public $onRegisterLogger;
+
+    /**
+     * @var \Closure
+     */
     private $onRegisterShutdownFunction;
 
     /**

@@ -10,6 +10,7 @@
  */
 
 namespace Swoolefy\Http;
+
 use Swoolefy\Core\Coroutine\Context;
 
 class Route
@@ -150,11 +151,12 @@ class Route
      */
     protected static function parseUri(string $uri, $groupMeta): string
     {
-        if (isset($groupMeta['prefix'])) {
+        if (isset($groupMeta['prefix']) && !empty($groupMeta['prefix'])) {
             $uri = DIRECTORY_SEPARATOR.trim($groupMeta['prefix'],DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.trim($uri,DIRECTORY_SEPARATOR);
         }else {
             $uri = DIRECTORY_SEPARATOR.trim($uri,DIRECTORY_SEPARATOR);
         }
+        $uri = rtrim($uri, DIRECTORY_SEPARATOR);
         return $uri;
     }
 

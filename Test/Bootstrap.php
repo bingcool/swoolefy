@@ -11,13 +11,13 @@
 
 namespace Test;
 
-use Swoole\Http\Request;
-use Swoole\Http\Response;
 use Swoolefy\Core\BootstrapInterface;
+use Swoolefy\Http\RequestInput;
+use Swoolefy\Http\ResponseOutput;
 
 class Bootstrap implements BootstrapInterface
 {
-    public static function handle(Request $request, Response $response)
+    public static function handle(RequestInput $requestInput, ResponseOutput $responseOutput)
     {
 //        $list = Db::table('tbl_users')->where('user_id','=', 203)->select();
 //        var_dump($list);

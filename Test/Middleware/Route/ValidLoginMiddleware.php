@@ -1,17 +1,14 @@
 <?php
 namespace Test\Middleware\Route;
 
-use Swoole\Http\Request;
-use Swoole\Http\Response;
-use Swoolefy\Core\Application;
+use Swoolefy\Http\RequestInput;
+use Swoolefy\Http\ResponseOutput;
 use Swoolefy\Core\RouteMiddleware;
 
 class ValidLoginMiddleware implements RouteMiddleware
 {
-    public function handle(Request $request, Response $response)
+    public function handle(RequestInput $requestInput, ResponseOutput $responseOutput)
     {
-        $controller = Application::getApp()->getControllerId();
-        $actionId = Application::getApp()->getActionId();
-        //var_dump($controller, $actionId);
+        var_dump(__CLASS__);
     }
 }

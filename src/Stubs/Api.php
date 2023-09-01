@@ -1,8 +1,7 @@
 <?php
 
-use Swoole\Http\Request;
-use Swoolefy\Core\Application;
 use Swoolefy\Http\Route;
+use Swoolefy\Http\RequestInput;
 
 Route::group([
     // 路由前缀
@@ -15,7 +14,7 @@ Route::group([
 
     Route::get('/', [
         // 前置路由,闭包函数形式
-        'beforeHandle' => function(Request $request) {
+        'beforeHandle' => function(RequestInput $requestInput) {
             var_dump('beforeHandle');
         },
 
@@ -26,7 +25,7 @@ Route::group([
         'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
 
         // 后置路由
-        'afterHandle1' => function(Request $request) {
+        'afterHandle1' => function(RequestInput $requestInput) {
             var_dump('afterHandle');
         },
 
@@ -37,8 +36,8 @@ Route::group([
 
     Route::get('/index/index', [
         // 前置路由,闭包函数形式
-        'beforeHandle1' => function(Request $request) {
-            $name = Application::getApp()->getPostParams('name');
+        'beforeHandle1' => function(RequestInput $requestInput) {
+            $name = $requestInput->getPostParams('name');
         },
 
         // 前置路由,中间件类形式(推荐)
@@ -48,7 +47,7 @@ Route::group([
         'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
 
         // 后置路由1, 闭包函数形式
-        'afterHandle1' => function(Request $request) {
+        'afterHandle1' => function(RequestInput $requestInput) {
 
         },
 
