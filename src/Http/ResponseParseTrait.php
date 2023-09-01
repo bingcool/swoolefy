@@ -28,7 +28,7 @@ trait ResponseParseTrait
     public function beforeEnd(
         int $code = 0,
         string $msg = '',
-        mixed $data = [],
+        $data = [],
         string $formatter = 'json'
     ): bool
     {
@@ -102,7 +102,7 @@ trait ResponseParseTrait
     protected static function buildResponseData(
         int $code = 0,
         string $msg = '',
-        mixed $data = []
+        $data = []
     ): array
     {
         return ResponseFormatter::formatterData($code, $msg, $data);
@@ -188,7 +188,7 @@ trait ResponseParseTrait
      * @param string $value
      * @return \Swoole\Http\Response|\Swoole\Http2\Response
      */
-    public function header(string $name, $value): \Swoole\Http\Response|\Swoole\Http2\Response
+    public function header(string $name, $value)
     {
         $this->response->header($name, $value);
         return $this->response;
@@ -213,7 +213,7 @@ trait ResponseParseTrait
         string $domain = '',
         bool   $secure = false,
         bool   $httpOnly = false
-    ): \Swoole\Http\Response|\Swoole\Http2\Response
+    )
     {
         $this->response->cookie($key, $value, $expire, $path, $domain, $secure, $httpOnly);
         return $this->response;

@@ -17,7 +17,7 @@ Route::group([
 ], function () {
 
     Route::get('/testAddUser', [
-        'dispatch_route' => [\Test\Controller\IndexController::class, 'testAddUser'],
+        'dispatch_route' => [\Test\Controller\IndexController::class, 'testLog1'],
     ]);
 
 

@@ -136,7 +136,7 @@ trait RequestParseTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getRequestParams(?string $name = null, $default = null): mixed
+    public function getRequestParams(?string $name = null, $default = null)
     {
         if (!$this->requestParams) {
             $get = isset($this->request->get) ? $this->request->get : [];
@@ -172,7 +172,7 @@ trait RequestParseTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getQueryParams(?string $name = null, mixed $default = null): mixed
+    public function getQueryParams(?string $name = null, $default = null)
     {
         $input = $this->request->get;
         if ($name) {
@@ -189,7 +189,7 @@ trait RequestParseTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getPostParams(?string $name = null, mixed $default = null): mixed
+    public function getPostParams(?string $name = null, $default = null)
     {
         if (!$this->postParams) {
             $input = $this->request->post ?? [];
@@ -214,7 +214,7 @@ trait RequestParseTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getCookieParams(?string $name = null, mixed $default = null): mixed
+    public function getCookieParams(?string $name = null, $default = null)
     {
         $cookies = $this->request->cookie;
         if ($name) {
@@ -240,7 +240,7 @@ trait RequestParseTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getServerParams(?string $name = null, mixed $default = null): mixed
+    public function getServerParams(?string $name = null, $default = null)
     {
         if ($name) {
             $name = strtoupper($name);
@@ -256,7 +256,7 @@ trait RequestParseTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getHeaderParams(?string $name = null, $default = null): mixed
+    public function getHeaderParams(?string $name = null, $default = null)
     {
         if ($name) {
             $name = strtolower($name);
@@ -280,7 +280,7 @@ trait RequestParseTrait
      * getRawContent
      * @return string|false
      */
-    public function getRawContent(): string|false
+    public function getRawContent()
     {
         return $this->request->rawContent();
     }
@@ -316,7 +316,7 @@ trait RequestParseTrait
      * getQueryString
      * @return string|null
      */
-    public function getQueryString(): string|null
+    public function getQueryString()
     {
         if (isset($this->request->server['QUERY_STRING'])) {
             return $this->request->server['QUERY_STRING'];
@@ -404,7 +404,7 @@ trait RequestParseTrait
      * getModule
      * @return string|null
      */
-    public function getModuleId(): string|null
+    public function getModuleId()
     {
         list($count, $routeParams) = $this->getRouteParams();
         if ($count == 3) {
