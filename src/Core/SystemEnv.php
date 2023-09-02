@@ -135,4 +135,35 @@ class SystemEnv
         }
     }
 
+    /**
+     * 加载各个协程单例组件库
+     *
+     * @return array
+     */
+    public static function loadComponent()
+    {
+        $components = [];
+        $componentDir = START_DIR_ROOT . DIRECTORY_SEPARATOR . APP_NAME . '/Config/component';
+        if (!is_dir($componentDir)) {
+            $componentDir = START_DIR_ROOT . DIRECTORY_SEPARATOR . APP_NAME . '/Config/Component';
+            if (!is_dir($componentDir)) {
+                return $components;
+            }
+        }
+
+        $handle = opendir($componentDir);
+        while ($file = readdir($handle)) {
+            if($file == '.' || $file == '..' ){
+                continue;
+            }
+            $filePath = $componentDir.DIRECTORY_SEPARATOR.$file;
+            $fileType = pathinfo($filePath, PATHINFO_EXTENSION);
+            if (in_array($fileType, ['php'])) {
+                $component = include $filePath;
+                $components = array_merge($components, $component);
+            }
+        }
+        closedir($handle);
+        return $components;
+    }
 }
