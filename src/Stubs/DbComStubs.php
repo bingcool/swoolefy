@@ -9,31 +9,17 @@
  * +----------------------------------------------------------------------
  */
 
-// 加载环境配置变量
+use Swoolefy\Util\Log;
+use Common\Library\Db\Mysql;
+use Common\Library\Cache\Redis;
+
 $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
 
 return [
-
-    // db|redis连接池
-    'enable_component_pools' => [
-        'db' => [
-            'pools_num' => 5,
-            'push_timeout' => 2,
-            'pop_timeout' => 1,
-            'live_time' => 10
-        ],
-
-        'cache' => [
-            'pools_num' => 5,
-            'push_timeout' => 2,
-            'pop_timeout' => 1,
-            'live_time' => 10
-        ]
-    ],
-
-    // 默认DB组件
-    'default_db' => 'db',
-
-    // 组件
-    'components' => \Swoolefy\Core\SystemEnv::loadComponent()
+    // redis cache
+    // mysql db
+    'db' => function() use($dc) {
+        $db = new Mysql($dc['mysql_db']);
+        return $db;
+    }
 ];

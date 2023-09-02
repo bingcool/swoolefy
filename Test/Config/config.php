@@ -26,7 +26,7 @@ return [
     'default_db' => 'db',
 
     // 组件
-    'components' => include 'Component.php'
+    'components' => \Swoolefy\Core\SystemEnv::loadComponent()
 
 //    'catch_handle' => function(\Swoole\Http\Request $request, \Swoole\Http\Response $response) {
 //        $response->end(json_encode(['code'=>-1,'msg'=>'系统维护中']));

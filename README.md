@@ -12,7 +12,7 @@
 ```                                                            
 swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协程级应用服务框架，
 高度支持httpApi，websocket，udp服务器，以及基于tcp实现可扩展的rpc服务，worker多进程消费模型  
-同时支持composer包方式安装部署项目。基于实用，swoolefy抽象Event事件处理类，
+同时支持composer包方式安装部署项目。基于实用主义设计出发，swoolefy抽象Event事件处理类，
 实现与底层的回调的解耦，支持协程单例调度，同步|异步调用，全局事件注册，心跳检查，异步任务，多进程(池)，连接池等，
 内置```log、session、mysql、pgsql、redis、mongodb、kafka、amqp```等常用组件等.    
 
@@ -24,10 +24,10 @@ swoolefy-4.8-lts 版本：
 长期维护分支，最低要求```php >= php7.3 && php < php8.0```, 推荐直接swoole-v4.8+，需要通过源码编译安装swoole
 
 选择哪个版本？  
-1、如果确定项目是使用php8+的，那么直接选择 ```swoole-v5.0+```, 以上源码来编译安装或者直接使用```swoole-cli-v5.0```，然后选择 ```bingcool/swoolefy:~5.0.12``` 作为项目分支
+1、如果确定项目是使用php8+的，那么直接选择 ```swoole-v5.0+```, 以上源码来编译安装或者直接使用```swoole-cli-v5.0```，然后选择 ```bingcool/swoolefy:~5.0.14``` 作为项目分支
 
 2、如果确定项目是使用 ```php7.3 ~ php7.4``` 的，那么选择 swoole-v4.8+ 版本来进行编译安装(不能直接使用 swoole-cli-v4.8+ 了, 因为其内置的是php8.1，与你的项目的php7不符合)
-所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.8.12``` 作为项目分支
+所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.8.14``` 作为项目分支
 
 ### 实现的功能特性    
 
@@ -46,7 +46,9 @@ swoolefy-4.8-lts 版本：
 - [x] 支持redis协程池   
 - [x] 支持curl协程池   
 - [x] 支持protobuf buffer的数据接口结构验证，压缩传输等        
-- [x] 支持异步务管理TaskManager，定时器管理TickManager，内存表管理TableManager  
+- [x] 支持异步务管理TaskManager  
+- [x] 定时器管理TickManager  
+- [x] 内存表管理TableManager  
 - [x] 支持自定义进程管理ProcessManager，进程池管理PoolsManger
 - [x] 支持底层异常错误的所有日志捕捉,支持全局日志,包括debug、info、notice、warning、error等级       
 - [x] 支持自定义进程的redis，rabbitmq，kafka的订阅发布，消息队列等      
@@ -57,11 +59,11 @@ swoolefy-4.8-lts 版本：
 高级特性
 - [x] 支持crontab的local调用和fork独立进程的计划任务    
     
-    | 支持方式  |                说明                 |
-    |:---------------------------------:|:---:|
-    | local |            独立进程定时执行代码             |
-    | fork  |   独立进程定时拉起一个新的进程，由新的进程去支持任务，可异步   |
-    | url   | 独立进程定时发起远程url请求，可设置callback回调处理结果 |
+    | 支持方式  |                 说明                 |
+    |:----------------------------------:|:---:|
+    | local |            自定义进程内定时执行代码            |
+    | fork  |   自定义进程定时拉起一个新的进程，由新的进程去支持任务，可异步   |
+    | url   | 自定义进程定时发起远程url请求，可设置callback回调处理结果 |
 
 - [x] 支持worker下后台daemon模式的多进程协程消费模型,包括进程自动拉起，进程数动态调整，进程健康状态监控     
 - [x] 支持console终端脚本模式，跑完脚本自动退出，可用于修复数据、数据迁移等临时脚本功能      
@@ -161,10 +163,14 @@ swoole-cli cli.php create App 或者 php cli.php create App
 myproject
 |—— App  // 应用项目目录
 |     |── Config       // 应用配置
-|     │   ├── dc-dev.php
-|     │   ├── dc-gra.php
-|     │   ├── dc-prd.php
-|     │   ├── dc-test.php
+|     |   |__ component // 协程单例组件
+|     |      |—— database.php //数据库相关组件
+|     |      |—— log.php     // 日志相关组件
+|     |      |—— cache.php   // 缓存组件，可以继续添加其他组件，命名自由 
+|     │   ├── dc-dev.php   //dev环境配置项
+|     │   ├── dc-gra.php   //gre环境配置项
+|     │   ├── dc-prd.php   //prd环境配置项
+|     │   ├── dc-test.php  //test环境配置项
 |     │   └── defines.php
 |     |   |—— config.php    // 应用层配置
 |     |   |—— Component.php //协程单例组件
@@ -272,8 +278,8 @@ return [
      // default_db
     'default_db' => 'db',
 
-    // 组件配置文件Component.php
-    components => include 'Component.php',
+    // 记载组件配置
+    'components' => \Swoolefy\Core\SystemEnv::loadComponent()
     
     // 其他配置
     ......
@@ -437,18 +443,13 @@ class TestController extends BController {
 开发者可以根据实际使用适当调整配置项
 
 ```
+$dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
+
 <?php
-
-// 加载应用层常量定义
-include START_DIR_ROOT.'/'.APP_NAME.'/Config/defines.php';
-
-// 加载应用层协议
-$appConf = include START_DIR_ROOT.'/'.APP_NAME.'/Config/config-'.SWOOLEFY_ENV.'.php';
-
 
 return [
     // 应用层配置
-    'app_conf'                 => $appConf, // 应用层配置
+    'app_conf'                 => \Swoolefy\Core\SystemEnv::loadAppConf(), // 应用层配置
     'application_index'        => '',
     'event_handler'            => \Test\Event::class,
     'exception_handler'        => \Test\Exception\ExceptionHandle::class,
@@ -534,7 +535,7 @@ return [
 ];
 
 ```
-### 路由文件
+### 路由文件（类似laravel路由）
 Router/api.php
 ```
 <?php
@@ -595,6 +596,45 @@ Route::group([
 
     ]);
 });
+
+```
+
+### 数据库操作
+```
+
+$db = Application::getApp()->get('db');
+// 插入单条数据
+$db->newQuery()->table('tbl_users')->insert([
+            'user_name' => '李四-'.rand(1,9999),
+            'sex' => 0,
+            'birthday' => '1991-07-08',
+            'phone' => 12345678
+    ]);
+
+// 批量插入
+$db->newQuery()->table('tbl_users')->insertAll([
+            [
+                'user_name' => '李四-'.rand(1,9999),
+                'sex' => 0,
+                'birthday' => '1991-07-08',
+                'phone' => 12345678
+            ],
+            [
+                'user_name' => '李四-'.rand(1,9999),
+                'sex' => 0,
+                'birthday' => '1991-07-08',
+                'phone' => 12345678
+            ]
+    ]);
+
+
+// 查询列表
+$db->newQuery()->table('tbl_users')->where('id','>', 1)->field(['id', 'user_name'])->limit(0,10)->select();
+
+// 查询单条
+$db->newQuery()->table('tbl_users')->where(['id', '=', 100])->field(['id', 'user_name'])->find();
+
+.....还有很多其他链式操作
 
 ```
 

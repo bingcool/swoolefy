@@ -1,4 +1,5 @@
 <?php
+
 /**
  * +----------------------------------------------------------------------
  * | swoolefy framework bases on swoole extension development, we can use it easily!
@@ -15,97 +16,9 @@ use Swoolefy\Core\Application;
 use Test\Config\AmqpConfig;
 use Test\Config\KafkaConfig;
 
-
 $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
 
 return [
-    // 用户行为记录的日志
-    'log' => function($name) {
-        $logger = new \Swoolefy\Util\Log($name);
-        $logger->setChannel('application');
-        if(isDaemonService()) {
-            $logFilePath = LOG_PATH.'/daemon.log';
-        }else if (isScriptService()) {
-            $logFilePath = LOG_PATH.'/script.log';
-        }else if (isCronService()) {
-            $logFilePath = LOG_PATH.'/cron.log';
-        } else {
-            $logFilePath = LOG_PATH.'/runtime.log';
-        }
-        $logger->setLogFilePath($logFilePath);
-        return $logger;
-    },
-
-    // 系统捕捉异常错误日志
-    'error_log' => function($name) {
-        $logger = new \Swoolefy\Util\Log($name);
-        $logger->setChannel('application');
-        if(isDaemonService()) {
-            $logFilePath = LOG_PATH.'/daemon_error.log';
-        }else if (isScriptService()) {
-            $logFilePath = LOG_PATH.'/script_error.log';
-        }else if (isCronService()) {
-            $logFilePath = LOG_PATH.'/cron_error.log';
-        } else {
-            $logFilePath = LOG_PATH.'/error.log';
-        }
-        $logger->setLogFilePath($logFilePath);
-        return $logger;
-    },
-
-    'db' => function() use($dc) {
-        $db = new \Common\Library\Db\Mysql($dc['mysql_db']);
-        return $db;
-    },
-
-    'redis' => function() use($dc) {
-        $redis = new \Common\Library\Cache\Redis();
-        $redis->connect($dc['redis']['host'], $dc['redis']['port']);
-        return $redis;
-    },
-
-    'predis' => function() use($dc) {
-        $predis = new \Common\Library\Cache\predis([
-            'scheme' => $dc['predis']['scheme'],
-            'host'   => $dc['predis']['host'],
-            'port'   => $dc['predis']['port'],
-        ]);
-        return $predis;
-    },
-
-    'uuid' => function() use($dc) {
-        $redis = Application::getApp()->get('redis')->getObject();
-        return \Common\Library\Uuid\UuidManager::getInstance($redis, 'uuid-key');
-    },
-
-    'queue' => function() {
-        $redis = Application::getApp()->get('redis')->getObject();
-        return new \Common\Library\Queues\Queue($redis,\Test\Process\ListProcess\RedisList::queue_order_list);
-    },
-
-    'redis-subscribe' => function() {
-        $redis = Application::getApp()->get('redis')->getObject();
-        return new \Common\Library\PubSub\RedisPubSub($redis);
-    },
-
-    'rateLimit' => function() {
-        $redis = Application::getApp()->get('redis')->getObject();
-        $rateLimit =  new \Common\Library\RateLimit\RedisLimit($redis);
-        return $rateLimit;
-    },
-
-    'redis-order-lock' => function() {
-        $redis = Application::getApp()->get('redis')->getObject();
-        $lock = new \Common\Library\Lock\PHPRedisMutex([$redis],'order_lock', 10);
-        return $lock;
-    },
-
-    'predis-order-lock' => function() {
-        $redis = Application::getApp()->get('predis')->getObject();
-        $lock = new \Common\Library\Lock\PredisMutex([$redis],'order_lock-1', 10);
-        return $lock;
-    },
-
     'amqpConnection' => function() use($dc) {
         $connection = AmqpStreamConnectionFactory::create(
             $dc['amqp_connection']['host_list'],
@@ -309,27 +222,5 @@ return [
 //                echo "Message acked with content " . $message->body . PHP_EOL;
 //            });
         return $amqpTopicPublish;
-    },
-
-    // kafka-group1_producer生产者
-    'kafka_topic_order_group1_producer' => function() use($dc) {
-        $kafkaConf = KafkaConfig::KAFKA_TOPICS[KafkaConfig::KAFKA_TOPIC_ORDER1];
-        $producer = new \Common\Library\Kafka\Producer($dc['kafka_broker_list'], $kafkaConf['topic_name']);
-        if(\Swoolefy\Core\SystemEnv::isDevEnv()) {}
-        $producer->setGlobalProperty($kafkaConf['producer_global_property']);
-        $producer->setTopicProperty($kafkaConf['producer_topic_property']);
-        return $producer;
-    },
-
-    // kafka-group1_producer 消费者
-    'kafka_topic_order_group1_consumer' => function() use($dc) {
-        $kafkaConf = KafkaConfig::KAFKA_TOPICS[KafkaConfig::KAFKA_TOPIC_ORDER1];
-        $consumer = new \Common\Library\Kafka\Consumer($dc['kafka_broker_list'], $kafkaConf['topic_name']);
-        $consumer->setGroupId($kafkaConf['group_id']);
-        if(\Swoolefy\Core\SystemEnv::isDevEnv()) {}
-        $consumer->setGlobalProperty($kafkaConf['consumer_global_property']);
-        $consumer->setTopicProperty($kafkaConf['consumer_topic_property']);
-        return $consumer;
-    },
-
+    }
 ];
