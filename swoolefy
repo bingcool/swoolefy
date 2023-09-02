@@ -12,8 +12,8 @@
 
 // 定义注册的应用名和对应使用的协议
 
-use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Exec;
+use Swoolefy\Core\BaseServer;
 
 if (!defined('APP_NAMES')) {
     write("【Error】 APP_NAMES Missing defined, please check it");
@@ -210,9 +210,12 @@ function createProject()
                     file_put_contents($definesFile, getDefines());
                 }
 
-                $componentFile = $appRootDir . '/' . $dir . '/Component.php';
-                if (!file_exists($componentFile)) {
-                    @copy(SCORE_DIR_ROOT . '/src/Stubs/Component.php', $componentFile);
+                $componentDir = $appRootDir . '/' . $dir . '/component';
+                if (!is_dir($componentDir)) {
+                    @mkdir($componentDir, 0777, true);
+                    @copy(SCORE_DIR_ROOT . '/src/Stubs/DbComStubs.php', $componentDir.'/database.php');
+                    @copy(SCORE_DIR_ROOT . '/src/Stubs/LogComStubs.php', $componentDir.'/log.php');
+                    @copy(SCORE_DIR_ROOT . '/src/Stubs/CacheComStubs.php', $componentDir.'/cache.php');
                 }
 
                 $configFile = $appRootDir . '/' . $dir . '/config.php';

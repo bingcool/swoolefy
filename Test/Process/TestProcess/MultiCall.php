@@ -23,24 +23,16 @@ class MultiCall extends AbstractProcess
                             sleep(3);
 
                             $db = Factory::getDb();
-                            var_dump(spl_object_id($db), \Swoole\Coroutine::getCid() );
+                            var_dump(spl_object_id($db), \Swoole\Coroutine::getCid());
 
-                            (new \Swoolefy\Core\EventApp)->registerApp(function($event) {
-                                try {
-                                    $db = Factory::getDb();
-                                    var_dump(spl_object_id($db),\Swoole\Coroutine::getCid());
-                                }catch (\Throwable $throwable) {
-                                    \Swoolefy\Core\BaseServer::catchException($throwable);
-                                }
+                            goApp(function($event) {
+                                $db = Factory::getDb();
+                                var_dump(spl_object_id($db),\Swoole\Coroutine::getCid());
                             });
 
-                            (new \Swoolefy\Core\EventApp)->registerApp(function($event) {
-                                try {
-                                    $db = Factory::getDb();
-                                    var_dump(spl_object_id($db), \Swoole\Coroutine::getCid() );
-                                }catch (\Throwable $throwable) {
-                                    \Swoolefy\Core\BaseServer::catchException($throwable);
-                                }
+                            goApp(function($event) {
+                                $db = Factory::getDb();
+                                var_dump(spl_object_id($db), \Swoole\Coroutine::getCid());
                             });
 
                             var_dump(spl_object_id(Factory::getDb()));

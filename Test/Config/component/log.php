@@ -1,4 +1,5 @@
 <?php
+
 /**
  * +----------------------------------------------------------------------
  * | swoolefy framework bases on swoole extension development, we can use it easily!
@@ -9,16 +10,18 @@
  * +----------------------------------------------------------------------
  */
 
-use Swoolefy\Util\Log;
-use Common\Library\Db\Mysql;
-use Common\Library\Cache\Redis;
+use Common\Library\Amqp\AmqpStreamConnectionFactory;
+use PhpAmqpLib\Connection\AMQPStreamConnection;
+use Swoolefy\Core\Application;
+use Test\Config\AmqpConfig;
+use Test\Config\KafkaConfig;
 
 $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
 
 return [
     // 用户行为记录的日志
     'log' => function($name) {
-        $logger = new Log($name);
+        $logger = new \Swoolefy\Util\Log($name);
         $logger->setChannel('application');
         if(isDaemonService()) {
             $logFilePath = LOG_PATH.'/daemon.log';
@@ -35,7 +38,7 @@ return [
 
     // 系统捕捉异常错误日志
     'error_log' => function($name) {
-        $logger = new Log($name);
+        $logger = new \Swoolefy\Util\Log($name);
         $logger->setChannel('application');
         if(isDaemonService()) {
             $logFilePath = LOG_PATH.'/daemon_error.log';
@@ -48,18 +51,5 @@ return [
         }
         $logger->setLogFilePath($logFilePath);
         return $logger;
-    },
-
-    // mysql db
-    'db' => function() use($dc) {
-        $db = new Mysql($dc['mysql_db']);
-        return $db;
-    },
-
-    // redis cache
-    'cache' => function() use($dc) {
-        $redis = new Redis();
-        $redis->connect($dc['redis']['host'], $dc['redis']['port']);
-        return $redis;
     }
 ];
