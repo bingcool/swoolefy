@@ -11,8 +11,6 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Coroutine\CoroutineManager;
-
 class Application
 {
     /**

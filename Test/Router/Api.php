@@ -86,4 +86,10 @@ Route::group([
         'dispatch_route' => [\Test\Controller\WsController::className(), 'test1'],
     ]);
 
+    Route::get('/send-task-worker', [
+        'dispatch_route' => [\Test\Controller\ProcessController::className(), 'sendTaskWorker'],
+    ]);
+
+
+
 });

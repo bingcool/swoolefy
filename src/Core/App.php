@@ -199,6 +199,14 @@ class App extends \Swoolefy\Core\Component
     }
 
     /**
+     * @return int
+     */
+    public function getFd()
+    {
+        return $this->request->fd;
+    }
+
+    /**
      * catchAll request
      * @return bool
      */

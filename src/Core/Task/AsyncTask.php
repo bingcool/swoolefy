@@ -46,17 +46,15 @@ class AsyncTask implements AsyncTaskInterface
 
         $taskMessageDto->taskClass = str_replace('/', '\\', trim($taskMessageDto->taskClass, '/'));
 
-        $fd = is_object(Application::getApp()) ? Application::getApp()->getFd() : null;
+        $fd = null;
         if (BaseServer::isUdpApp()) {
-            /**
-             * @var \Swoolefy\Udp\UdpHandler $app
-             */
+            /**@var \Swoolefy\Udp\UdpHandler $app */
             $app = Application::getApp();
             if (is_object($app)) $fd = $app->getClientInfo();
         }
 
-        if (BaseServer::isHttpApp()) {
-            $fd = is_object(Application::getApp()) ? Application::getApp()->request->fd : null;
+        if (BaseServer::isHttpApp() || BaseServer::isWebsocketApp() || BaseServer::isRpcApp()) {
+            $fd = is_object(Application::getApp()) ? Application::getApp()->getFd() : null;
         }
 
         $taskId = Swfy::getServer()->task(serialize(
@@ -112,7 +110,6 @@ class AsyncTask implements AsyncTaskInterface
     /**
      * isWorkerProcess 判断当前进程是否是worker进程
      * @return bool
-     * @throws \Exception
      */
     public static function isWorkerProcess(): bool
     {
