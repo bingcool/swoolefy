@@ -271,7 +271,7 @@ trait ServiceTrait
         return BaseServer::isUdpApp();
     }
 
-    /**
+        /**
      * getServer
      * @return \Swoole\Server|\Swoole\Http\Server|\Swoole\WebSocket\Server
      */
@@ -283,4 +283,5 @@ trait ServiceTrait
             return BaseServer::getServer();
         }
     }
+
 }

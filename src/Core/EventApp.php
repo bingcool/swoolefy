@@ -145,13 +145,8 @@ class EventApp
             $className = get_class($this->eventApp);
             throw new SystemException(sprintf("%s Single Coroutine Instance only be called one method, you had called", $className));
         }
-
-        try {
-            $this->isCall = true;
-            return $this->eventApp->$action(...$args);
-        } catch (\Throwable $throwable) {
-            BaseServer::catchException($throwable);
-        }
+        $this->isCall = true;
+        return $this->eventApp->$action(...$args);
     }
 
     /**

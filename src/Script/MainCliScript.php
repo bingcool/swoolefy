@@ -29,6 +29,11 @@ class MainCliScript extends AbstractScriptWorker {
     private $scriptTable = 'table_for_script';
 
     /**
+     * @var array
+     */
+    protected $forbiddenActions = [];
+
+    /**
      * @return void
      */
     public function init()
@@ -50,6 +55,11 @@ class MainCliScript extends AbstractScriptWorker {
         $this->setIsCliScript();
         try {
             $action = getenv('a');
+            if (in_array($action, $this->forbiddenActions)) {
+                write("【Warning】function action [$action] forbidden to exec!");
+                $this->exitAll(true);
+                return;
+            }
             list($method, $params) = Helper::parseActionParams($this, $action, Helper::getCliParams());
             $this->{$action}(...$params);
             $this->waitCoroutineFinish();
@@ -131,14 +141,23 @@ class MainCliScript extends AbstractScriptWorker {
     {
         $class = getenv('r');
         if(empty($class)) {
-            write("【Error】Missing cli router param. eg: --r=Test/Scripts/FixedUser/fixName");
+            write("【Error】Missing cli router param. eg: --r=FixedUser/fixName --name=xxxx");
             return '';
         }
 
         $routerArr = explode('/', trim($class, '/'));
         $action    = array_pop($routerArr);
-        $class     = implode('\\', $routerArr);
 
+        if (defined('ROOT_NAMESPACE')) {
+            $rootNamespace = ROOT_NAMESPACE;
+            $nameSpace = $rootNamespace[APP_NAME];
+            $nameSpace = str_replace('\\', '/', $nameSpace);
+            $nameSpaceArr = explode('/', trim($nameSpace, '/'));
+            $routerArr = array_merge($nameSpaceArr, $routerArr);
+            $class     = implode('\\', $routerArr);
+        }else {
+            $class     = implode('\\', $routerArr);
+        }
         if(!is_subclass_of($class, __CLASS__)) {
             write("【Error】Missing class={$class} extends \Swoolefy\Script\MainCliScript");
             return '';
