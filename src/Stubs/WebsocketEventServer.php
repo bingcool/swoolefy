@@ -23,6 +23,7 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
     /**
      * __construct
      * @param array $config
+     * @throws \Exception
      */
     public function __construct(array $config = [])
     {

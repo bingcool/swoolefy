@@ -54,7 +54,7 @@ class Factory
     }
 
     /**
-     * @return UuidManager|ContainerObjectDto
+     * @return \Common\Library\Queues\Queue|ContainerObjectDto
      */
     public static function getQueue()
     {

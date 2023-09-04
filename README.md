@@ -69,7 +69,7 @@ swoolefy-4.8-lts 版本：
 - [x] 支持console终端脚本模式，跑完脚本自动退出，可用于修复数据、数据迁移等临时脚本功能      
 - [ ] 支持分布式服务注册（zk，etcd）       
 
-### 常用组件
+### 适配协程环境组件
 | 组件名称             | 安装                                                    | 说明                                                  |
 |------------------|-------------------------------------------------------|-----------------------------------------------------|
 | predis           | composer require predis/predis:~1.1.7                 | predis组件、或者Phpredis扩展                               |
@@ -79,7 +79,9 @@ swoolefy-4.8-lts 版本：
 | redis lock       | composer require malkusch/lock                        | Redis锁组件                                            |
 | amqp             | composer require php-amqplib/php-amqplib:~3.5.0       | amqp php原生实现amqp协议客户端                               |  
 | ffmpeg           | composer require php-ffmpeg/php-ffmpeg:~1.1.0         | php proc-open 调用ffmpeg处理音视频                         |  
-| validate         | composer require vlucas/valitron                      | validate数据校验组件                                      |     
+| validate         | composer require vlucas/valitron                      | validate数据校验组件                                      |    
+| guzzlehttp       | composer require guzzlehttp/guzzle                    | guzzlehttp 组件                                       | 
+| oauth 2.0        | composer require league/oauth2-server                 | oauth 2.0 授权认证组件                                    |   
 | bingcool/library | composer require bingcool/library                     | library组件库                                          |  
 
 ### bingcool/library 是swoolefy require 内置库，专为swoole协程实现的组件库        
@@ -157,7 +159,9 @@ include './swoolefy';
 ```
 // 你定义的项目目录是App, 在myproject目录下执行下面命令行
 
-swoole-cli cli.php create App 或者 php cli.php create App   
+swoole-cli cli.php create App 
+或者    
+php cli.php create App   
 
 // 执行完上面命令行后，将会自动生成App项目目录以及内部子目录
 myproject
@@ -173,7 +177,6 @@ myproject
 |     │   ├── dc-test.php  //test环境配置项
 |     │   └── defines.php
 |     |   |—— config.php    // 应用层配置
-|     |   |—— Component.php //协程单例组件
 |     |
 |     ├── Controller
 |     │   └── IndexController.php // 控制器层
@@ -278,7 +281,7 @@ return [
      // default_db
     'default_db' => 'db',
 
-    // 记载组件配置
+    // 加载组件配置
     'components' => \Swoolefy\Core\SystemEnv::loadComponent()
     
     // 其他配置

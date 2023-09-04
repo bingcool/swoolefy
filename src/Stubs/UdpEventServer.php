@@ -20,6 +20,7 @@ class UdpEventServer extends \Swoolefy\Udp\UdpEventServer
     /**
      * __construct
      * @param array $config
+     * @throws \Exception
      */
     public function __construct(array $config = [])
     {
