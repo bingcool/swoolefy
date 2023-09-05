@@ -11,7 +11,7 @@
 
 use Swoolefy\Util\Log;
 use Common\Library\Db\Mysql;
-use Common\Library\Cache\Redis;
+use Common\Library\Redis\Redis;
 
 $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
 
