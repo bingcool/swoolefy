@@ -175,10 +175,6 @@ class BaseServer
     protected function workerStartInit($server, $workerId)
     {
         try {
-            // 加载路由文件
-            if (self::isHttpApp() && self::isWorkerProcess($workerId) && !SystemEnv::isWorkerService()) {
-                Route::loadRouteFile();
-            }
             // global server
             Swfy::setSwooleServer($server);
             // global conf
