@@ -11,7 +11,7 @@
 
 namespace Test;
 
-use Common\Library\Cache\Redis;
+use Common\Library\Redis\Redis;
 use Common\Library\Db\Mysql;
 use Common\Library\Lock\PHPRedisMutex;
 use Common\Library\PubSub\RedisPubSub;
