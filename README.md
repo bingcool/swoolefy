@@ -129,7 +129,7 @@ ENV SWOOLEFY_CLI_ENV dev
 2、创建项目
 ```
 // 下载代码到到你的自定义目录，这里定义为myproject
-composer create-project bingcool/swoolefy:^4.8.14 myproject
+composer create-project bingcool/swoolefy:^4.8.16 myproject
 ```
 
 ### 二、添加项目入口启动文件cli.php,并定义你的项目目录，命名为App
@@ -338,14 +338,14 @@ return [
     
     // Redis Cache
     'redis' => function() use($dc) {
-        $redis = new \Common\Library\Cache\Redis();
+        $redis = new \Common\Library\Redis\Redis();
         $redis->connect($dc['redis']['host'], $dc['redis']['port']);
         return $redis;
     },
     
     // Predis Cache
     'predis' => function() use($dc) {
-        $predis = new \Common\Library\Cache\predis([
+        $predis = new \Common\Library\Redis\predis([
             'scheme' => $dc['predis']['scheme'],
             'host'   => $dc['predis']['host'],
             'port'   => $dc['predis']['port'],
