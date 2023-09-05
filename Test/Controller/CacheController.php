@@ -17,8 +17,8 @@ class CacheController extends BController
         $cache->set('bing-name',['name'=>'bingcool'], 10);
         var_dump($cache->get('bing-name'));
 
-        $this->returnJson([
-            'data' => $cache->get('bing-name')
-        ]);
+//        $this->returnJson([
+//            'data' => $cache->get('bing-name')
+//        ]);
     }
 }

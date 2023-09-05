@@ -103,7 +103,6 @@ class SwoolefyException
      */
     public static function response(App $app, \Throwable $throwable)
     {
-        $app->response->header('Content-Type', 'application/json; charset=UTF-8');
         $queryString  = isset($app->request->server['QUERY_STRING']) ? '?' . $app->request->server['QUERY_STRING'] : '';
         $exceptionMsg = $throwable->getMessage();
 
@@ -127,7 +126,7 @@ class SwoolefyException
             $errorMsg = $exceptionMsg;
         }
 
-        (new ResponseOutput($app->request, $app->response))->beforeEnd((int)$code, $errorMsg, $contextData ?? []);
+        (new ResponseOutput($app->request, $app->response))->returnJson($contextData ?? [], $code, $errorMsg);
 
         $errorMsg .= ' ||| ' . $throwable->getTraceAsString();
 

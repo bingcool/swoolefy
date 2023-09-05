@@ -11,7 +11,9 @@
 
 namespace Test;
 
+use Common\Library\Db\Facade\Db;
 use Swoolefy\Core\BootstrapInterface;
+use Swoolefy\Exception\SystemException;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\ResponseOutput;
 
@@ -19,14 +21,13 @@ class Bootstrap implements BootstrapInterface
 {
     public static function handle(RequestInput $requestInput, ResponseOutput $responseOutput)
     {
-//        $list = Db::table('tbl_users')->where('user_id','=', 203)->select();
+//        $list = Db::table('tbl_users')->where('user_id','=', 203)->select()->toArray();
 //        var_dump($list);
 
-//        SystemException::throw(
+//        throw SystemException::throw(
 //            "数据缺失",
+//            -1,
 //            ['uid' => 100]
 //        );
-
-        //return Application::getApp()->beforeEnd(500);
     }
 }
