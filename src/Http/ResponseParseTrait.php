@@ -18,29 +18,6 @@ use Swoolefy\Core\ResponseFormatter;
 trait ResponseParseTrait
 {
     /**
-     * 可以在Bootstrap| Route| _beforeAction中调用提前结束请求
-     * @param int $code
-     * @param string $msg
-     * @param mixed $data
-     * @param string $formatter
-     * @return bool
-     */
-    public function beforeEnd(
-        int $code = 0,
-        string $msg = '',
-        $data = [],
-        string $formatter = 'json'
-    ): bool
-    {
-        if (is_object(Application::getApp())) {
-            Application::getApp()->setEnd();
-        }
-        $responseData = static::buildResponseData($code, $msg, $data);
-        $this->jsonSerialize($responseData, $formatter);
-        return true;
-    }
-
-    /**
      * jsonSerialize
      * @param array $data
      * @param string $formatter
@@ -82,7 +59,7 @@ trait ResponseParseTrait
      * @param string $formatter
      * @return void
      */
-    protected function returnJson(
+    public function returnJson(
         array  $data = [],
         int    $code = 0,
         string $msg  = '',
