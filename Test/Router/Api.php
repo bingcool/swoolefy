@@ -90,6 +90,10 @@ Route::group([
         'dispatch_route' => [\Test\Controller\ProcessController::className(), 'sendTaskWorker'],
     ]);
 
+    Route::get('/cache/test', [
+        'dispatch_route' => [\Test\Controller\CacheController::className(), 'test'],
+    ]);
+
 
 
 });
