@@ -120,7 +120,7 @@ class Pack extends BaseParse
      * @param mixed $data
      * @return array|bool
      */
-    public function decodePack(int $fd, mixed $data)
+    public function decodePack(int $fd, $data)
     {
         /**
          * unpack包类型
