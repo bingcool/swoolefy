@@ -701,8 +701,7 @@ class MainManager
                  * @var \Swoole\Process $swooleProcess
                  */
                 $swooleProcess = $process->getSwooleProcess();
-                $channel = new \Swoole\Coroutine\Channel(1);
-                \Swoole\Event::add($swooleProcess->pipe, function ($pipe) use ($swooleProcess, $channel) {
+                \Swoole\Event::add($swooleProcess->pipe, function ($pipe) use ($swooleProcess) {
                     $message = $swooleProcess->read(64 * 1024);
                     if (is_string($message)) {
                         $messageDto = unserialize($message);
