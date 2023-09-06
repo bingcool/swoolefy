@@ -13,7 +13,6 @@ namespace Swoolefy\Core;
 
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Core\Memory\AtomicManager;
-use Swoolefy\Http\Route;
 
 class BaseServer
 {
@@ -244,7 +243,7 @@ class BaseServer
      */
     public static function setMasterProcessName(string $masterProcessName)
     {
-        cli_set_process_title(static::getAppPrefix() . ':' . $masterProcessName);
+        cli_set_process_title(static::getAppPrefix() . ':' . self::parseProcessName($masterProcessName));
     }
 
     /**
@@ -253,7 +252,26 @@ class BaseServer
      */
     public static function setManagerProcessName(string $managerProcessName)
     {
-        cli_set_process_title(static::getAppPrefix() . ':' . $managerProcessName);
+        cli_set_process_title(static::getAppPrefix() . ':' . self::parseProcessName($managerProcessName));
+    }
+
+    /**
+     * @param $processName
+     * @return mixed|string
+     */
+    private static function parseProcessName($processName)
+    {
+        if (SystemEnv::isWorkerService()) {
+            if (SystemEnv::isDaemonService()) {
+                $processName = $processName.'-daemon-php';
+            }else if (SystemEnv::isCronService()) {
+                $processName = $processName.'-cron-php';
+            }else if (SystemEnv::isScriptService()) {
+                $processName = $processName.'-script-php';
+            }
+        }
+
+        return $processName;
     }
 
     /**
