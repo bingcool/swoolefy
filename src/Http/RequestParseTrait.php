@@ -334,7 +334,7 @@ trait RequestParseTrait
     }
 
     /**
-     * getHomeUrl 获取当前请求的url
+     * get current HomeUrl
      * @param bool $ssl
      * @return string
      */
@@ -459,6 +459,22 @@ trait RequestParseTrait
     }
 
     /**
+     * @return \Swoole\Http\Request|\Swoole\Http2\Request
+     */
+    public function getSwooleRequest()
+    {
+        return $this->request;
+    }
+
+    /**
+     * @return \Swoole\Http\Response|\Swoole\Http2\Response
+     */
+    public function getSwooleResponse()
+    {
+        return $this->response;
+    }
+
+    /**
      * parseUrl
      * @param string $url
      * @return array
@@ -480,7 +496,7 @@ trait RequestParseTrait
 
 
     /**
-     * getRefererUrl 获取当前页面的上一级页面的来源url
+     * getRefererUrl
      * @return mixed
      */
     public function getRefererUrl()
@@ -489,7 +505,7 @@ trait RequestParseTrait
     }
 
     /**
-     * getClientIP 获取客户端ip
+     * getClientIP
      * @param int $type 返回类型 0:返回IP地址,1:返回IPV4地址数字
      * @return mixed
      */
@@ -516,7 +532,7 @@ trait RequestParseTrait
     }
 
     /**
-     * getFd 获取当前请求的fd
+     * getFd
      * @return int
      */
     public function getFd()
@@ -569,7 +585,7 @@ trait RequestParseTrait
     }
 
     /**
-     * getBrowser 获取浏览器
+     * getBrowserType
      * @return string
      */
     public function getBrowser(): string

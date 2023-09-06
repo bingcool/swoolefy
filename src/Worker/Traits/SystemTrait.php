@@ -103,7 +103,7 @@ trait SystemTrait
             if (defined('MAX_LOG_FILE_SIZE')) {
                 $maxLogFileSize = MAX_LOG_FILE_SIZE;
             } else {
-                $maxLogFileSize = 10 * 1024 * 1024;
+                $maxLogFileSize = 5 * 1024 * 1024;
             }
             if (is_file(WORKER_CTL_LOG_FILE) && filesize(WORKER_CTL_LOG_FILE) > $maxLogFileSize) {
                 unlink(WORKER_CTL_LOG_FILE);
