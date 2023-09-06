@@ -11,72 +11,14 @@
 
 namespace Swoolefy\Core;
 
-class NotFound extends BService
+class ExceptionResponseService extends BService
 {
     /**
-     * @param string $class
+     * error response
+     * @param string $msg
      * @return array
      */
-    public function error404(string $class)
-    {
-        $code = 404;
-        $responseData = ResponseFormatter::buildResponseData($code, sprintf(
-            "Not Found Class %s",
-            $class
-        ));
-
-        if (BaseServer::isRpcApp()) {
-            $is_same_packet_struct = $this->serverClientPacketStructSame();
-            if ($is_same_packet_struct) {
-                $fd = Application::getApp()->getFd();
-                $header = $this->getRpcPackHeader();
-                $this->send($fd, $responseData, $header);
-            }
-
-        } else if (BaseServer::isWebsocketApp()) {
-            $fd = Application::getApp()->getFd();
-            $this->push($fd, $responseData, $opcode = 1, $finish = true);
-        }
-        return $responseData;
-    }
-
-    /**
-     * error500
-     * @param string $class
-     * @param string $action
-     * @return mixed
-     * @throws \Exception
-     */
-    public function error500(string $class, string $action)
-    {
-        $code = 500;
-        $responseData = ResponseFormatter::buildResponseData($code, sprintf(
-            "Call Undefined Method Of %s::%s",
-            $class,
-            $action
-        ));
-
-        if (BaseServer::isRpcApp()) {
-            $is_same_packet_struct = $this->serverClientPacketStructSame();
-            if ($is_same_packet_struct) {
-                $fd = Application::getApp()->getFd();
-                $header = $this->getRpcPackHeader();
-                $this->send($fd, $responseData, $header);
-            }
-        } else if (BaseServer::isWebsocketApp()) {
-            $fd = Application::getApp()->getFd();
-            $this->push($fd, $responseData, $opcode = 1, $finish = true);
-        }
-        return $responseData;
-    }
-
-    /**
-     * error
-     * @param string $msg
-     * @return mixed
-     * @throws \Exception
-     */
-    public function errorMsg(string $msg, int $code = 500)
+    public function errorMsg(string $msg, int $code = -1)
     {
         $responseData = ResponseFormatter::buildResponseData($code, $msg);
         if (BaseServer::isRpcApp()) {
@@ -86,7 +28,6 @@ class NotFound extends BService
                 $header = $this->getRpcPackHeader();
                 $this->send($fd, $responseData, $header);
             }
-
         } else if (BaseServer::isWebsocketApp()) {
             $fd = Application::getApp()->getFd();
             $this->push($fd, $responseData, $opcode = 1, $finish = true);
