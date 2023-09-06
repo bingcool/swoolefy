@@ -142,7 +142,7 @@ function getOneFreePort(array $excludePorts = []): int
 function makeServerName(string $appName)
 {
     if (IS_DAEMON_SERVICE == 1 && IS_CRON_SERVICE == 0 && IS_CLI_SCRIPT == 0 ) {
-        return strtolower($appName.'-'.'worker');
+        return strtolower($appName.'-'.'daemon');
     }
 
     if (IS_CRON_SERVICE == 1) {
