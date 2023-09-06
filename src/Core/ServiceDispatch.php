@@ -60,7 +60,7 @@ class ServiceDispatch extends AppDispatch
     /**
      * @var array
      */
-    protected static $routes = [];
+    protected static $routeMap = [];
 
     /**
      * @param array $callable
@@ -83,20 +83,21 @@ class ServiceDispatch extends AppDispatch
      */
     public function dispatch()
     {
-        list($class, $action) = $this->callable;
-        $class = trim(str_replace('\\', DIRECTORY_SEPARATOR, $class), DIRECTORY_SEPARATOR);
-
-        if (!isset(self::$routeCacheFileMap[$class])) {
-            if (!$this->checkClass($class)) {
-                $this->errorHandle($class, $action, 'error404');
-                return false;
-            }
-        }
-
         try {
+            list($class, $action) = $this->callable;
+            $class = trim(str_replace('\\', DIRECTORY_SEPARATOR, $class), DIRECTORY_SEPARATOR);
+            if (!isset(self::$routeCacheFileMap[$class])) {
+                if (!$this->checkClass($class)) {
+                    throw new DispatchException("{$class} Not Found!");
+                }
+            }
             $class = str_replace(DIRECTORY_SEPARATOR, '\\', $class);
+
+            var_dump($this->params);
+
             // call before route handle middle
             $this->handleBeforeRouteMiddles();
+
             /**@var \Swoolefy\Core\Task\TaskService $serviceInstance */
             $serviceInstance = new $class();
             $serviceInstance->setMixedParams($this->params);
@@ -109,40 +110,26 @@ class ServiceDispatch extends AppDispatch
                 }
             }
 
-            if (method_exists($serviceInstance, $action)) {
-                // before Call
-                $isContinueAction = $serviceInstance->_beforeAction($action);
-                if ($isContinueAction === false) {
-                    // end
-                    if (Swfy::isWorkerProcess()) {
-                        $this->getErrorHandle()->errorMsg("Forbidden access, {$class}::_beforeAction return false ||| " . json_encode($this->params, JSON_UNESCAPED_UNICODE), 403);
-                    }
-                    return false;
-                }
-                // next action Call
-                $serviceInstance->{$action}($this->params);
-                // after Call
-                $serviceInstance->_afterAction($action);
-                // call after route handle middle
-                $this->handleAfterRouteMiddles();
-                // call hook callable
-                Hook::callHook(Hook::HOOK_AFTER_REQUEST);
+            // before Call
+            $isContinueAction = $serviceInstance->_beforeAction($action);
+            // next action Call
+            $serviceInstance->{$action}($this->params);
+            // after Call
+            $serviceInstance->_afterAction($action);
+            // call after route handle middle
+            $this->handleAfterRouteMiddles();
+            // call hook callable
+            Hook::callHook(Hook::HOOK_AFTER_REQUEST);
 
-            } else {
-                $this->errorHandle($class, $action, 'error500');
-                return false;
-            }
         } catch (\Throwable $throwable) {
             $exceptionMsg = $throwable->getMessage();
             $errorMsg     = $throwable->getMessage() . ' on ' . $throwable->getFile() . ' on line ' . $throwable->getLine() . ' ||| ' . $class . '::' . $action . ' ||| ' . json_encode($this->params, JSON_UNESCAPED_UNICODE) . '|||' . $throwable->getTraceAsString();
-
             if (Swfy::isWorkerProcess()) {
-                if(SystemEnv::isGraEnv() || SystemEnv::isPrdEnv()) {
+                if (SystemEnv::isGraEnv() || SystemEnv::isPrdEnv()) {
                     $errorMsg = $exceptionMsg;
                 }
-                $this->getErrorHandle()->errorMsg($errorMsg);
+                $this->getErrorHandle()->errorMsg($errorMsg, -1);
             }
-
             // record exception
             $exceptionClass = Application::getApp()->getExceptionClass();
             $exceptionClass::shutHalt($errorMsg, SwoolefyException::EXCEPTION_ERR, $throwable);
@@ -151,41 +138,17 @@ class ServiceDispatch extends AppDispatch
     }
 
     /**
-     * @param string $class
-     * @param string $action
-     * @param string $errorMethod
-     * @return bool
-     * @throws \Exception
+     * @return ExceptionResponseService
      */
-    protected function errorHandle(
-        string $class,
-        string $action,
-        string $errorMethod = 'error404'
-    )
-    {
-        if (Swfy::isWorkerProcess()) {
-            $notFoundInstance = $this->getErrorHandle();
-            $errorMsg = $notFoundInstance->{$errorMethod}($class, $action);
-        }
-
-        $msg = isset($errorMsg['msg']) ? $errorMsg['msg'] : sprintf("Call undefined method %s::%s", $class, $action);
-        $exceptionClass = Application::getApp()->getExceptionClass();
-        $exceptionClass::shutHalt($msg);
-        return true;
-    }
-
-    /**
-     * @return NotFound
-     */
-    protected function getErrorHandle()
+    public static function getErrorHandle()
     {
         $appConf = Swfy::getAppConf();
-        $notFoundInstance = new \Swoolefy\Core\NotFound();
-        if (isset($appConf['not_found_handler']) && is_string($appConf['not_found_handler'])) {
-            $handle = $appConf['not_found_handler'];
-            $notFoundInstance = new $handle;
+        $exceptionResponseService = new \Swoolefy\Core\ExceptionResponseService();
+        if (isset($appConf['exception_response_handler']) && is_string($appConf['exception_response_handler'])) {
+            $handle = $appConf['exception_response_handler'];
+            $exceptionResponseService = new $handle;
         }
-        return $notFoundInstance;
+        return $exceptionResponseService;
     }
 
     /**
@@ -240,12 +203,12 @@ class ServiceDispatch extends AppDispatch
     /**
      * @return array
      */
-    protected static function getRoutes(): array
+    public static function loadRouteFile(bool $force = false): array
     {
-        if (empty(self::$routes)) {
+        if (empty(self::$routeMap) || $force) {
             return self::scanRouteFiles(self::$routeRootDir);
         }else {
-            return self::$routes;
+            return self::$routeMap;
         }
     }
 
@@ -255,13 +218,13 @@ class ServiceDispatch extends AppDispatch
      */
     protected static function scanRouteFiles(string $routeRootDir)
     {
-        if (!is_dir($routeRootDir)){
+        if (!is_dir($routeRootDir)) {
             return [];
         }
 
         $handle = opendir($routeRootDir);
         while ($file = readdir($handle)) {
-            if($file == '.' || $file == '..' ){
+            if ($file == '.' || $file == '..' ) {
                 continue;
             }
 
@@ -276,10 +239,8 @@ class ServiceDispatch extends AppDispatch
                 }
             }
         }
-
         closedir($handle);
-
-        return self::$routes;
+        return self::$routeMap;
     }
 
     /**
@@ -288,7 +249,7 @@ class ServiceDispatch extends AppDispatch
      */
     public static function getRouterMapService(string $uri)
     {
-        $routerMap = self::getRoutes();
+        $routerMap = self::loadRouteFile();
         $uri = trim($uri,DIRECTORY_SEPARATOR);
         if (isset($routerMap[$uri])) {
             $routerHandle = $routerMap[$uri];
@@ -323,9 +284,9 @@ class ServiceDispatch extends AppDispatch
      * @param array $routes
      * @return void
      */
-    public static function mergeRoutes(array $routes)
+    protected static function mergeRoutes(array $routes)
     {
-        self::$routes = array_merge(self::$routes, $routes);
+        self::$routeMap = array_merge(self::$routeMap, $routes);
     }
 
     /**
@@ -337,14 +298,11 @@ class ServiceDispatch extends AppDispatch
             if ($handle instanceof \Closure) {
                 $result = call_user_func($handle, $this->params);
                 if ($result === false) {
-                    if (Swfy::isWorkerProcess()) {
-                        $this->getErrorHandle()->errorMsg("beforeHandle route middle return false, Not Allow Coroutine To Next Middle");
-                    }
-                    return false;
+                    throw new DispatchException('beforeHandle route middle return false, Not Allow Coroutine To Next Middle');
                 }
             }else if (is_string($handle) && class_exists($handle)) {
                 $handleEntity = new $handle();
-                if ($handle instanceof DispatchMiddle) {
+                if ($handleEntity instanceof DispatchMiddle) {
                     $handleEntity->handle($this->params);
                 }
             }
@@ -362,7 +320,7 @@ class ServiceDispatch extends AppDispatch
                     call_user_func($handle, $this->params);
                 } else if (is_string($handle) && class_exists($handle)) {
                     $handleEntity = new $handle();
-                    if ($handle instanceof DispatchMiddle) {
+                    if ($handleEntity instanceof DispatchMiddle) {
                         $handleEntity->handle($this->params);
                     }
                 }

@@ -18,6 +18,7 @@ use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
 use Swoolefy\Core\Process\ProcessManager;
 use Swoolefy\Core\ProcessPools\PoolsManager;
+use think\db\BaseQuery;
 
 class EventCtrl implements EventCtrlInterface
 {
@@ -27,8 +28,12 @@ class EventCtrl implements EventCtrlInterface
      */
     public function init()
     {
-        if (BaseServer::isHttpApp() && !SystemEnv::isWorkerService()) {
-            Route::loadRouteFile();
+        if (!SystemEnv::isWorkerService()) {
+            if (BaseServer::isHttpApp()) {
+                Route::loadRouteFile();
+            }else if (BaseServer::isWebsocketApp() || BaseServer::isUdpApp()) {
+                ServiceDispatch::loadRouteFile();
+            }
         }
         static::onInit();
         $this->registerSqlLogger();
