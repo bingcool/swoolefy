@@ -39,6 +39,7 @@ class RpcHandler extends Swoole implements HandlerInterface
      * run 完成初始化后路由匹配和创建访问实例
      * @param int $fd
      * @param mixed $payload
+     * @param array $extendData
      * @return mixed
      * @throws \Throwable
      */
@@ -90,6 +91,7 @@ class RpcHandler extends Swoole implements HandlerInterface
             }
 
         } catch (\Throwable $throwable) {
+            ServiceDispatch::getErrorHandle()->errorMsg($throwable->getMessage(), -1);
             throw $throwable;
         } finally {
             if (!$this->isDefer) {

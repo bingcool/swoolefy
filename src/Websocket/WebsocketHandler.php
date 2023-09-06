@@ -53,9 +53,12 @@ class WebsocketHandler extends Swoole implements HandlerInterface
                     list($service, $event, $params) = $payload;
                     if (is_string($params)) {
                         $params = json_decode($params, true) ?? $params;
+                        if (!is_array($params)) {
+                            return Swfy::getServer()->push($fd, $this->buildErrorMsg('Websocket Params must be json string'), 1, true);
+                        }
                     }
                 } else {
-                    return Swfy::getServer()->push($fd, json_encode($this->errorMsg('Websocket Params Missing')), $opcode = 1, $finish = true);
+                    return Swfy::getServer()->push($fd, $this->buildErrorMsg('Websocket Params Missing'), 1, true);
                 }
 
                 // heartbeat
@@ -100,8 +103,8 @@ class WebsocketHandler extends Swoole implements HandlerInterface
 
                 $dispatcher->dispatch();
             }
-
         } catch (\Throwable $throwable) {
+            ServiceDispatch::getErrorHandle()->errorMsg($throwable->getMessage(), -1);
             throw $throwable;
         } finally {
             if (!$this->isDefer) {
@@ -126,14 +129,14 @@ class WebsocketHandler extends Swoole implements HandlerInterface
 
     /**
      * @param string $msg
-     * @return array
+     * @return string
      */
-    private function errorMsg(string $msg = '')
+    private function buildErrorMsg(string $msg = '')
     {
         if (Swfy::isWorkerProcess()) {
-            $errorMsg = ResponseFormatter::buildResponseData(500, $msg);
+            $errorMsg = ResponseFormatter::buildResponseData(-1, $msg);
         }
-        return $errorMsg ?? [];
+        return json_encode($errorMsg ?? []);
     }
 
     /**

@@ -27,7 +27,9 @@ class WsController extends \Swoolefy\Core\Controller\BController
                 
                ws.onopen = function()
                {                  
-                  ws.send("Chat::mychat::"+ Math.random() * (100 - 1) + 1);
+                  var rand = Math.random() * (100 - 1) + 1;
+                  var data = { "name": "bingcool", "sex": "man", "rand": rand};
+                  ws.send("Chat::mychat::"+ JSON.stringify(data));
                   alert("数据发送中...");
                };
                 

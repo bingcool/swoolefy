@@ -27,8 +27,12 @@ class EventCtrl implements EventCtrlInterface
      */
     public function init()
     {
-        if (BaseServer::isHttpApp() && !SystemEnv::isWorkerService()) {
-            Route::loadRouteFile();
+        if (!SystemEnv::isWorkerService()) {
+            if (BaseServer::isHttpApp()) {
+                Route::loadRouteFile();
+            }else if (BaseServer::isWebsocketApp() || BaseServer::isUdpApp()) {
+                ServiceDispatch::loadRouteFile();
+            }
         }
         static::onInit();
         $this->registerSqlLogger();
