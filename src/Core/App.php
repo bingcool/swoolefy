@@ -35,6 +35,16 @@ class App extends \Swoolefy\Core\Component
     public $response = null;
 
     /**
+     * @var RequestInput
+     */
+    protected $requestInput;
+
+    /**
+     * @var ResponseOutput
+     */
+    protected $responseOutput;
+
+    /**
      * $appConf
      * @var array
      */
@@ -97,7 +107,7 @@ class App extends \Swoolefy\Core\Component
         if (isset($conf['application_bootstrap'])) {
             $applicationBootstrap = $conf['application_bootstrap'];
             if (class_exists($applicationBootstrap)) {
-                $applicationBootstrap::handle((new RequestInput($this->request, $this->response)), (new ResponseOutput($this->request, $this->response)));
+                $applicationBootstrap::handle($this->requestInput, $this->responseOutput);
             }
         }
     }
@@ -117,12 +127,14 @@ class App extends \Swoolefy\Core\Component
             parent::creatObject();
             $this->request  = $request;
             $this->response = $response;
+            $this->requestInput = new RequestInput($this->request, $this->response);
+            $this->responseOutput = new ResponseOutput($this->request, $this->response);
             Application::setApp($this);
             $this->defer();
             $this->_init();
             $this->_bootstrap();
             if (!$this->catchAll()) {
-                $route = new HttpRoute($extendData);
+                $route = new HttpRoute($this->requestInput, $this->responseOutput, $extendData);
                 $route->dispatch();
             }
             $this->onAfterRequest();
