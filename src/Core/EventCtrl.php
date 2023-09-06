@@ -18,7 +18,6 @@ use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
 use Swoolefy\Core\Process\ProcessManager;
 use Swoolefy\Core\ProcessPools\PoolsManager;
-use think\db\BaseQuery;
 
 class EventCtrl implements EventCtrlInterface
 {
