@@ -199,11 +199,12 @@ trait ResponseParseTrait
     /**
      * sendHttpStatus
      * @param int $code
-     * @return void
+     * @return \Swoole\Http\Response|\Swoole\Http2\Response
      */
     public function status(int $code)
     {
         $this->response->status($code);
+        return $this->response;
     }
 
 }

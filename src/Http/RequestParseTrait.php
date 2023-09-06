@@ -136,7 +136,7 @@ trait RequestParseTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getRequestParams(?string $name = null, $default = null): mixed
+    public function getRequestParams(?string $name = null, $default = null)
     {
         if (!$this->requestParams) {
             $get = isset($this->request->get) ? $this->request->get : [];
@@ -172,7 +172,7 @@ trait RequestParseTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getQueryParams(?string $name = null, mixed $default = null): mixed
+    public function getQueryParams(?string $name = null, $default = null)
     {
         $input = $this->request->get;
         if ($name) {
@@ -189,7 +189,7 @@ trait RequestParseTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getPostParams(?string $name = null, mixed $default = null): mixed
+    public function getPostParams(?string $name = null, $default = null)
     {
         if (!$this->postParams) {
             $input = $this->request->post ?? [];
@@ -214,7 +214,7 @@ trait RequestParseTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getCookieParams(?string $name = null, mixed $default = null): mixed
+    public function getCookieParams(?string $name = null, $default = null)
     {
         $cookies = $this->request->cookie;
         if ($name) {
@@ -240,7 +240,7 @@ trait RequestParseTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getServerParams(?string $name = null, mixed $default = null): mixed
+    public function getServerParams(?string $name = null, $default = null)
     {
         if ($name) {
             $name = strtoupper($name);
@@ -256,7 +256,7 @@ trait RequestParseTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getHeaderParams(?string $name = null, $default = null): mixed
+    public function getHeaderParams(?string $name = null, $default = null)
     {
         if ($name) {
             $name = strtolower($name);
@@ -280,7 +280,7 @@ trait RequestParseTrait
      * getRawContent
      * @return string|false
      */
-    public function getRawContent(): string|false
+    public function getRawContent()
     {
         return $this->request->rawContent();
     }
@@ -334,7 +334,7 @@ trait RequestParseTrait
     }
 
     /**
-     * getHomeUrl 获取当前请求的url
+     * get current HomeUrl
      * @param bool $ssl
      * @return string
      */
@@ -459,6 +459,22 @@ trait RequestParseTrait
     }
 
     /**
+     * @return \Swoole\Http\Request|\Swoole\Http2\Request
+     */
+    public function getSwooleRequest()
+    {
+        return $this->request;
+    }
+
+    /**
+     * @return \Swoole\Http\Response|\Swoole\Http2\Response
+     */
+    public function getSwooleResponse()
+    {
+        return $this->response;
+    }
+
+    /**
      * parseUrl
      * @param string $url
      * @return array
@@ -480,7 +496,7 @@ trait RequestParseTrait
 
 
     /**
-     * getRefererUrl 获取当前页面的上一级页面的来源url
+     * getRefererUrl
      * @return mixed
      */
     public function getRefererUrl()
@@ -489,7 +505,7 @@ trait RequestParseTrait
     }
 
     /**
-     * getClientIP 获取客户端ip
+     * getClientIP
      * @param int $type 返回类型 0:返回IP地址,1:返回IPV4地址数字
      * @return mixed
      */
@@ -516,7 +532,7 @@ trait RequestParseTrait
     }
 
     /**
-     * getFd 获取当前请求的fd
+     * getFd
      * @return int
      */
     public function getFd()
@@ -569,7 +585,7 @@ trait RequestParseTrait
     }
 
     /**
-     * getBrowser 获取浏览器
+     * getBrowserType
      * @return string
      */
     public function getBrowser(): string

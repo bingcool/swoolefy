@@ -34,18 +34,6 @@ class HttpRoute extends AppDispatch
     const ROUTE_MODEL_QUERY_PARAMS = ROUTE_MODEL_QUERY_PARAMS;
 
     /**
-     * $request
-     * @var \Swoole\Http\Request
-     */
-    public $request = null;
-
-    /**
-     * $response
-     * @var \Swoole\Http\Response
-     */
-    public $response = null;
-
-    /**
      * $appConf
      * @var array
      */
@@ -138,20 +126,19 @@ class HttpRoute extends AppDispatch
     protected static $denyActions = ['__construct', '_beforeAction', '_afterAction', '__destruct'];
 
     /**
-     * __construct
-     * @param mixed $extendData
+     * @param RequestInput $requestInput
+     * @param ResponseOutput $responseOutput
+     * @param $extendData
      */
-    public function __construct(mixed $extendData = null)
+    public function __construct(RequestInput $requestInput, ResponseOutput $responseOutput, $extendData = null)
     {
         parent::__construct();
         $this->app        = Application::getApp();
-        $this->request    = $this->app->request;
-        $this->response   = $this->app->response;
         $this->appConf    = $this->app->appConf;
-        $this->requestInput = new RequestInput($this->request, $this->response);
-        $this->responseOutput = new ResponseOutput($this->request, $this->response);
+        $this->requestInput = $requestInput;
+        $this->responseOutput = $responseOutput;
         $this->extendData = $extendData;
-        list($this->middleware, $this->beforeHandle, $this->routerUri, $this->afterHandle, $this->routeMethod, $this->groupMeta)  = self::getHttpRouterMapUri($this->request->server['PATH_INFO']);
+        list($this->middleware, $this->beforeHandle, $this->routerUri, $this->afterHandle, $this->routeMethod, $this->groupMeta)  = self::getHttpRouterMapUri($this->requestInput->getServerParams('PATH_INFO'));
     }
 
     /**
@@ -207,20 +194,16 @@ class HttpRoute extends AppDispatch
             }
 
         } else if ($this->appConf['route_model'] == self::ROUTE_MODEL_QUERY_PARAMS) {
-            $module     = $this->request->get['m'] ?? null;
-            $controller = $this->request->get['c'] ?? 'Index';
-            $action     = $this->request->get['t'] ?? 'index';
-
+            $module     = $this->requestInput->getQueryParams('m') ?? null;
+            $controller = $this->requestInput->getQueryParams('c') ?? 'Index';
+            $action     = $this->requestInput->getQueryParams('t') ?? 'index';
             if ($module) {
                 $this->routerUri = DIRECTORY_SEPARATOR . $module . DIRECTORY_SEPARATOR . $controller . DIRECTORY_SEPARATOR . $action;
             } else {
                 $this->routerUri = DIRECTORY_SEPARATOR . $controller . DIRECTORY_SEPARATOR . $action;
             }
         }
-        // reset route
-        $this->request->server['ROUTE'] = $this->routerUri;
-        // route params array attach to server
-        $this->request->server['ROUTE_PARAMS'] = [];
+
         // forbidden call action
         if (in_array($action, static::$denyActions)) {
             $errorMsg = "{$controller}::{$action} is not allow access action";
@@ -229,14 +212,17 @@ class HttpRoute extends AppDispatch
 
         if ($module) {
             // route params array
-            $this->request->server['ROUTE_PARAMS'] = [3, [$module, $controller, $action]];
+            $routeParams = [3, [$module, $controller, $action]];
             $this->invoke($module, $controller, $action);
-
         } else {
             // route params array
-            $this->request->server['ROUTE_PARAMS'] = [2, [$controller, $action]];
+            $routeParams = [2, [$controller, $action]];
             $this->invoke($module = null, $controller, $action);
         }
+
+        // route params array attach to server
+        $this->requestInput->getSwooleRequest()->server['ROUTE'] = $this->routerUri;
+        $this->requestInput->getSwooleRequest()->server['ROUTE_PARAMS'] = $routeParams;
 
         return true;
     }
@@ -323,7 +309,7 @@ class HttpRoute extends AppDispatch
         // reflector object
         $reflector = new \ReflectionClass($controllerInstance);
         if ($reflector->hasMethod($targetAction)) {
-            list($method, $args) = $this->bindActionParams($controllerInstance, $targetAction, $this->buildParams());
+            list($method, $args) = $this->bindActionParams($controllerInstance, $targetAction, $this->requestInput->getRequestParams());
             if ($method->isPublic() && !$method->isStatic()) {
                 $controllerInstance->{$targetAction}(...$args);
                 $controllerInstance->_afterAction($action);
@@ -454,7 +440,7 @@ class HttpRoute extends AppDispatch
                 $controller = array_pop($routeParams);
             }
             // reset NotFound class route
-            $this->request->server['ROUTE'] = DIRECTORY_SEPARATOR . $controller . DIRECTORY_SEPARATOR . $action;
+            $this->requestInput->getRequest()->server['ROUTE'] = DIRECTORY_SEPARATOR . $controller . DIRECTORY_SEPARATOR . $action;
             $class = trim(str_replace(DIRECTORY_SEPARATOR, '\\', $namespace . $this->controllerSuffix), DIRECTORY_SEPARATOR);
             return [$class, $action];
         } else {
@@ -515,7 +501,7 @@ class HttpRoute extends AppDispatch
                 }
 
                 if (!$isValid) {
-                    throw new DispatchException("Invalid data received for parameter of {$name}" . '|||' . $this->request->server['REQUEST_URI']);
+                    throw new DispatchException("Invalid data received for parameter of {$name}" . '|||' . $this->requestInput->getSwooleRequest()->server['REQUEST_URI']);
                 }
 
                 $args[] = $actionParams[$name] = $params[$name];
@@ -528,26 +514,12 @@ class HttpRoute extends AppDispatch
         }
 
         if (!empty($missing)) {
-            throw new DispatchException("Missing function required params [" . implode(', ', $missing) . '] |||' . $this->request->server['REQUEST_URI'] . '|||' . json_encode($actionParams, JSON_UNESCAPED_UNICODE));
+            throw new DispatchException("Missing function required params [" . implode(', ', $missing) . '] |||' . $this->requestInput->getSwooleRequest()->server['REQUEST_URI'] . '|||' . json_encode($actionParams, JSON_UNESCAPED_UNICODE));
         }
 
         $this->actionParams = $actionParams;
 
         return [$method, $args];
-    }
-
-    /**
-     * @return array
-     */
-    protected function buildParams(): array
-    {
-        $get  = isset($this->request->get) ? $this->request->get : [];
-        $post = isset($this->request->post) ? $this->request->post : [];
-        if (empty($post)) {
-            $post = json_decode($this->request->rawContent(), true) ?? [];
-        }
-        $params = $get + $post;
-        return $params;
     }
 
     /**
@@ -631,6 +603,6 @@ class HttpRoute extends AppDispatch
      */
     public function __destruct()
     {
-        unset($this->app, $this->request, $this->response, $this->requestInput, $this->responseOutput);
+        unset($this->app, $this->requestInput, $this->responseOutput);
     }
 }
