@@ -106,7 +106,7 @@ class GoWaitGroup
             $goWait->count++;
             goApp(function () use ($key, $callBack, $goWait) {
                 try {
-                    $goWait->initResult($key, null);
+                    $goWait->initResult($key);
                     $result = call_user_func($callBack);
                     $goWait->done($key, $result, 3.0);
                 } catch (\Throwable $throwable) {
@@ -132,12 +132,12 @@ class GoWaitGroup
     /**
      * @param string|null $key
      * @param mixed $data
-     * @param float $timeouts
+     * @param float $timeout
      * @return void
      */
     public function done(
         string $key = null,
-        mixed $data = null,
+        $data = null,
         float $timeout = -1
     )
     {
