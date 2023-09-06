@@ -93,8 +93,6 @@ class ServiceDispatch extends AppDispatch
             }
             $class = str_replace(DIRECTORY_SEPARATOR, '\\', $class);
 
-            var_dump($this->params);
-
             // call before route handle middle
             $this->handleBeforeRouteMiddles();
 
