@@ -15,6 +15,7 @@ use Swoole\Event;
 use Swoole\Process;
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\Crontab\CrontabManager;
+use Swoolefy\Core\SystemEnv;
 use Swoolefy\Exception\WorkerException;
 use Swoolefy\Worker\Dto\MessageDto;
 
@@ -454,7 +455,13 @@ abstract class AbstractBaseWorker
 
             if (PHP_OS != 'Darwin') {
                 $processTypeName = $this->getProcessTypeName();
-                $this->swooleProcess->name(APP_NAME."-swoolefy-".WORKER_SERVICE_NAME."-php-worker[{$processTypeName}-{$this->getPid()}]:" . $this->getProcessName() . '@' . $this->getProcessWorkerId());
+                if (SystemEnv::isDaemonService()) {
+                    $this->swooleProcess->name(APP_NAME."-swoolefy-".WORKER_SERVICE_NAME."-php-daemon[{$processTypeName}-{$this->getPid()}]:" . $this->getProcessName() . '@' . $this->getProcessWorkerId());
+                }else if (SystemEnv::isCronService()) {
+                    $this->swooleProcess->name(APP_NAME."-swoolefy-".WORKER_SERVICE_NAME."-php-cron[{$processTypeName}-{$this->getPid()}]:" . $this->getProcessName() . '@' . $this->getProcessWorkerId());
+                }else {
+                    $this->swooleProcess->name(APP_NAME."-swoolefy-".WORKER_SERVICE_NAME."-php-worker[{$processTypeName}-{$this->getPid()}]:" . $this->getProcessName() . '@' . $this->getProcessWorkerId());
+                }
             }
 
             $this->writeStartFormatInfo();

@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Worker;
 
+use Swoolefy\Core\SystemEnv;
 use Swoolefy\Exception\WorkerException;
 use Swoolefy\Worker\Dto\MessageDto;
 use Swoolefy\Core\Table\TableManager;
@@ -1489,7 +1490,14 @@ class MainManager
     private function setMasterPid(int $masterId)
     {
         $this->masterPid = $masterId;
-        cli_set_process_title(APP_NAME."-swoolefy-".WORKER_SERVICE_NAME."-php-worker-master:" . WORKER_START_SCRIPT_FILE);
+        if (SystemEnv::isDaemonService()) {
+            cli_set_process_title(APP_NAME."-swoolefy-".WORKER_SERVICE_NAME."-php-daemon-master:" . WORKER_START_SCRIPT_FILE);
+        }else if (SystemEnv::isCronService()) {
+            cli_set_process_title(APP_NAME."-swoolefy-".WORKER_SERVICE_NAME."-php-cron-master:" . WORKER_START_SCRIPT_FILE);
+        }else if (SystemEnv::isScriptService()) {
+            cli_set_process_title(APP_NAME."-swoolefy-".WORKER_SERVICE_NAME."-php-script-master:" . WORKER_START_SCRIPT_FILE);
+        }
+
         defined('WORKER_MASTER_PID') OR define('WORKER_MASTER_PID', $this->masterPid);
     }
 
@@ -1531,25 +1539,22 @@ class MainManager
     private function getSwooleTableInfo(bool $simple = true)
     {
         $swooleTableInfo = "Disable swoole table (unenabled)";
-        if (defined('ENABLE_WORKERFY_SWOOLE_TABLE') && ENABLE_WORKERFY_SWOOLE_TABLE == 1) {
-            $tableManager = TableManager::getInstance();
-            if ($simple) {
-                // todo
-                $allTableName = $tableManager->getAllTableName();
-                if (!empty($allTableName) && is_array($allTableName)) {
-                    $allTableNameStr = implode(',', $allTableName);
-                    $swooleTableInfo = "[{$allTableNameStr}]";
-                }
-            } else {
-                //todo
-                $allTableInfo = $tableManager->getAllTableKeyMapRowValue();
-                if (!empty($allTableInfo)) {
-                    $swooleTableInfo = $allTableInfo;
-                } else {
-                    $swooleTableInfo = "swoole table (enabled), but missing table_name";
-                }
+        $tableManager = TableManager::getInstance();
+        if ($simple) {
+            // todo
+            $allTableName = $tableManager->getAllTableName();
+            if (!empty($allTableName) && is_array($allTableName)) {
+                $allTableNameStr = implode(',', $allTableName);
+                $swooleTableInfo = "[{$allTableNameStr}]";
             }
-
+        } else {
+            //todo
+            $allTableInfo = $tableManager->getAllTableKeyMapRowValue();
+            if (!empty($allTableInfo)) {
+                $swooleTableInfo = $allTableInfo;
+            } else {
+                $swooleTableInfo = "swoole table (enabled), but missing table_name";
+            }
         }
         return $swooleTableInfo;
     }

@@ -159,7 +159,7 @@ abstract class AbstractProcess
         }
 
         if(!$this->isWorkerService() || $this->enableCoroutine) {
-            \Swoole\Timer::tick((10+rand(1,10)) * 1000, function ($timerId) {
+            \Swoole\Timer::tick((10 + rand(1,10)) * 1000, function ($timerId) {
                 $swooleMasterPid = Swfy::getMasterPid();
                 if(!\Swoole\Process::kill($swooleMasterPid, 0)) {
                     sleep(1);
@@ -177,8 +177,7 @@ abstract class AbstractProcess
             });
         }
 
-        $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'php-swoolefy-user-process:' . $this->getProcessName());
-
+        $this->setProcessName();
         static::$processInstance = $this;
 
         try {
@@ -190,6 +189,28 @@ abstract class AbstractProcess
             $this->onHandleException($throwable);
         }
 
+    }
+
+    /**
+     * setProcessName
+     *
+     * @return void
+     */
+    protected function setProcessName()
+    {
+        if (SystemEnv::isWorkerService()) {
+            if (SystemEnv::isScriptService()) {
+                $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . '-swoolefy-worker-script-php:' . getenv('r'));
+            }else if (SystemEnv::isDaemonService()) {
+                $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'swoolefy-worker-daemon-php:' . $this->getProcessName());
+            }else if (SystemEnv::isCronService()) {
+                $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'swoolefy-worker-cron-php:' . $this->getProcessName());
+            }else {
+                $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'php-swoolefy-user-process:' . $this->getProcessName());
+            }
+        }else {
+            $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'php-swoolefy-user-process:' . $this->getProcessName());
+        }
     }
 
     /**
