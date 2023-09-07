@@ -37,12 +37,12 @@ class App extends \Swoolefy\Core\Component
     /**
      * @var RequestInput
      */
-    protected $requestInput;
+    public $requestInput;
 
     /**
      * @var ResponseOutput
      */
-    protected $responseOutput;
+    public $responseOutput;
 
     /**
      * $appConf
