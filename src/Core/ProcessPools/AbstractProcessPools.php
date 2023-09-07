@@ -171,16 +171,14 @@ abstract class AbstractProcessPools
         if ($this->async) {
             \Swoole\Event::add($this->swooleProcess->pipe, function () {
                 $msg = $this->swooleProcess->read(64 * 1024);
-                \Swoole\Coroutine::create(function () use ($msg) {
+                goApp(function () use ($msg) {
                     try {
                         if ($msg == static::SWOOLEFY_PROCESS_KILL_FLAG) {
                             $this->reboot();
                             return;
                         } else {
                             $message = json_decode($msg, true) ?? $msg;
-                            (new \Swoolefy\Core\EventApp)->registerApp(function () use ($message) {
-                                $this->onReceive($message);
-                            });
+                            $this->onReceive($message);
                         }
                     } catch (\Throwable $throwable) {
                         BaseServer::catchException($throwable);
@@ -281,12 +279,10 @@ abstract class AbstractProcessPools
         if (!$this->isExiting) {
             $this->isExiting = true;
             $channel = new Channel(1);
-            \Swoole\Coroutine::create(function () {
+            goApp(function () {
                 try {
                     $this->runtimeCoroutineWait();
-                    (new \Swoolefy\Core\EventApp)->registerApp(function () {
-                        $this->onShutDown();
-                    });
+                    $this->onShutDown();
                 } catch (\Throwable $throwable) {
                     BaseServer::catchException($throwable);
                 } finally {

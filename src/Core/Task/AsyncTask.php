@@ -57,10 +57,12 @@ class AsyncTask implements AsyncTaskInterface
             $fd = is_object(Application::getApp()) ? Application::getApp()->getFd() : null;
         }
 
+        $arrayCopy = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
         $taskId = Swfy::getServer()->task(serialize(
             [
                 [$taskMessageDto->taskClass, $taskMessageDto->taskAction],
                 $taskMessageDto->taskData,
+                $arrayCopy ?? [],
                 $fd
             ]
         ));

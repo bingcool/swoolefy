@@ -78,7 +78,7 @@ abstract class HttpAppServer extends HttpServer
     public function onTask(Server $server, int $task_id, int $from_worker_id, $data, $task = null)
     {
         try {
-            list($callable, $taskData, $fd) = $data;
+            list($callable, $taskData, $contextData, $fd) = $data;
             list($className, $action) = $callable;
 
             /**@var TaskController $taskInstance */
@@ -86,6 +86,9 @@ abstract class HttpAppServer extends HttpServer
             $taskInstance->setTaskId((int)$task_id);
             $taskInstance->setFromWorkerId((int)$from_worker_id);
             $task && $taskInstance->setTask($task);
+            foreach ($contextData as $key => $value) {
+                \Swoolefy\Core\Coroutine\Context::set($key, $value);
+            }
             $taskInstance->$action($taskData);
             $taskInstance->afterHandle();
 
