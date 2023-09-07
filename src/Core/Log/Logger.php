@@ -306,33 +306,24 @@ class Logger
             static::$timezone = new \DateTimeZone(date_default_timezone_get() ?: 'UTC');
         }
 
-        // php7.1+ always has microseconds enabled, so we do not need this hack
-        if ($this->microsecondTimestamps && PHP_VERSION_ID < 70100) {
-            $ts = \DateTime::createFromFormat('U.u', sprintf('%.6F', microtime(true)), static::$timezone);
-        } else {
-            $ts = new \DateTime('now', static::$timezone);
-        }
-        $ts->setTimezone(static::$timezone);
-
         $record = array(
+            'datetime' => date('Y-m-d H:i:s'),
             'message' => $message,
-            'context' => $context,
-            'level' => $level,
-            'level_name' => $levelName,
-            'channel' => $this->name,
-            'datetime' => $ts,
-            'extra' => array(),
+            'context' => $context
         );
 
         foreach ($this->processors as $processor) {
             $record = call_user_func($processor, $record);
         }
 
+        $record['level'] = $level;
+        $record['level_name'] = $levelName;
+        $record['channel'] = $this->name;
+
         while ($handler = current($this->handlers)) {
             if (true === $handler->handle($record)) {
                 break;
             }
-
             next($this->handlers);
         }
 

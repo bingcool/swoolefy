@@ -20,7 +20,7 @@ use Swoolefy\Core\Log\Logger;
 use Swoolefy\Core\Log\StreamHandler;
 use Swoolefy\Core\Swoole;
 use Swoolefy\Core\SystemEnv;
-use Swoolefy\Http\RequestInput;
+use Swoolefy\Core\Coroutine\Context;
 
 /**
  * Class Log
@@ -395,25 +395,25 @@ class Log
         $records['trace_id'] = '';
         $cid = \Swoole\Coroutine::getCid();
         if ($cid >= 0) {
-            if (\Swoolefy\Core\Coroutine\Context::has('trace-id')) {
-                $records['trace_id'] = \Swoolefy\Core\Coroutine\Context::get('trace-id');
+            if (Context::has('trace-id')) {
+                $records['trace_id'] = Context::get('trace-id');
             }
         }
-        $records['cid'] = $cid;
-        $records['process_id'] = (int)getmypid();
+        $records['route'] = '';
+        $records['request_params'] = [];
+        $records['process'] = 'task_worker|use_self_worker';
         $records['timestamp'] = microtime(true);
         $records['hostname']  = gethostname();
-        $records['process'] = 'task_worker|use_self_worker';
-        $records['url'] = '';
-        $records['request_params'] = [];
+        $records['cid'] = $cid;
+        $records['process_id'] = (int)getmypid();
         if (Swfy::isWorkerProcess()) {
             $records['process'] = 'worker';
             if ($App instanceof App) {
                 $requestInput = $App->requestInput;
-                $records['url'] = $requestInput->getRequestUri();
+                $records['route'] = $requestInput->getRequestUri();
                 $records['request_params'] = $requestInput->getRequestParams();
             }else if ($App instanceof Swoole) {
-                $records['url'] = $App->getServiceHandle();
+                $records['route'] = $App->getServiceHandle();
                 $records['request_params'] = $App->getMixedParams();
             }
         }else if (Swfy::isTaskProcess()) {
@@ -436,12 +436,12 @@ class Log
     /**
      * @param string $method
      * @param array $args
-     * @return void
+     * @return mixed
      */
     public function __call(string $method, array $args)
     {
         $methodName = $this->prefix . ucfirst($method);
-        $this->$methodName(...$args);
+        return $this->$methodName(...$args);
     }
 
 }

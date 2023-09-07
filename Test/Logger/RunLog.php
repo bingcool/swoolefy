@@ -5,7 +5,7 @@ namespace Test\Logger;
 use Swoolefy\Util\Log as Logger;
 use Swoolefy\Core\Log\LogManager;
 
-class Log
+class RunLog
 {
     /**
      * @param $message
