@@ -22,7 +22,7 @@ class ProcessController extends BController
         $taskMessageDto->taskAction = 'doRun';
         $taskMessageDto->taskData = ['order_id'=>123456,'user_id'=>10000];
         TaskManager::getInstance()->asyncTask($taskMessageDto);
-        $this->returnJson(['class' => __CLASS__, 'action'=>__FUNCTION__]);
+        $this->returnJson(['class' => __CLASS__, 'action'=>__FUNCTION__.'-'.rand(1,10000)]);
     }
 
     /**

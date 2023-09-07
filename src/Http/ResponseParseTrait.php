@@ -66,23 +66,8 @@ trait ResponseParseTrait
         string $formatter = 'json'
     )
     {
-        $responseData = static::buildResponseData($code, $msg, $data);
+        $responseData = ResponseFormatter::formatDataArray($code, $msg, $data);
         $this->jsonSerialize($responseData, $formatter);
-    }
-
-    /**
-     * @param int $code
-     * @param string $msg
-     * @param mixed $data
-     * @return array
-     */
-    protected static function buildResponseData(
-        int $code = 0,
-        string $msg = '',
-        mixed $data = []
-    ): array
-    {
-        return ResponseFormatter::formatDataArray($code, $msg, $data);
     }
 
     /**
@@ -165,7 +150,7 @@ trait ResponseParseTrait
      * @param string $value
      * @return \Swoole\Http\Response|\Swoole\Http2\Response
      */
-    public function header(string $name, $value): \Swoole\Http\Response|\Swoole\Http2\Response
+    public function header(string $name, $value)
     {
         $this->response->header($name, $value);
         return $this->response;
@@ -190,7 +175,7 @@ trait ResponseParseTrait
         string $domain = '',
         bool   $secure = false,
         bool   $httpOnly = false
-    ): \Swoole\Http\Response|\Swoole\Http2\Response
+    )
     {
         $this->response->cookie($key, $value, $expire, $path, $domain, $secure, $httpOnly);
         return $this->response;

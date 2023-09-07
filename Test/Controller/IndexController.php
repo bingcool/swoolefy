@@ -20,7 +20,6 @@ class IndexController extends BController {
     {
         $log = LogManager::getInstance()->getLogger('log');
         $log->addInfo('test11111-log-id='.rand(1,1000),true, ['name'=>'bingcoolhuang']);
-        $a = $b['dd'];
         Application::getApp()->response->write('<h1>Hello, Welcome to Swoolefy Framework! <h1>');
     }
 
