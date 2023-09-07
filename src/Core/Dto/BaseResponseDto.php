@@ -24,6 +24,11 @@ class BaseResponseDto extends AbstractDto
     public $msg = '';
 
     /**
+     * @var string
+     */
+    public $trace_id =  '';
+
+    /**
      * @var array
      */
     public $data = [];

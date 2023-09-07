@@ -82,7 +82,7 @@ trait ResponseParseTrait
         mixed $data = []
     ): array
     {
-        return ResponseFormatter::formatterData($code, $msg, $data);
+        return ResponseFormatter::formatDataArray($code, $msg, $data);
     }
 
     /**

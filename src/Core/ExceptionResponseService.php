@@ -16,23 +16,23 @@ class ExceptionResponseService extends BService
     /**
      * error response
      * @param string $msg
-     * @return array
+     * @return mixed
      */
     public function errorMsg(string $msg, int $code = -1)
     {
-        $responseData = ResponseFormatter::buildResponseData($code, $msg);
+        $responseDataDto = ResponseFormatter::formatDataDto($code, $msg);
         if (BaseServer::isRpcApp()) {
             $is_same_packet_struct = $this->serverClientPacketStructSame();
             if ($is_same_packet_struct) {
                 $fd = Application::getApp()->getFd();
                 $header = $this->getRpcPackHeader();
-                $this->send($fd, $responseData, $header);
+                $this->send($fd, $responseDataDto, $header);
             }
         } else if (BaseServer::isWebsocketApp()) {
             $fd = Application::getApp()->getFd();
-            $this->push($fd, $responseData, $opcode = 1, $finish = true);
+            $this->push($fd, $responseDataDto, $opcode = 1, $finish = true);
         }
-        return $responseData;
+        return $responseDataDto;
     }
 
     /**

@@ -14,6 +14,7 @@ namespace Swoolefy\Core;
 use Swoolefy\Rpc\RpcServer;
 use Swoolefy\Udp\UdpHandler;
 use Swoolefy\Exception\SystemException;
+use Swoolefy\Core\Dto\BaseResponseDto;
 
 class BService extends BaseObject
 {
@@ -97,24 +98,39 @@ class BService extends BaseObject
     }
 
     /**
+     * @return mixed|string
+     */
+    private function getTraceId()
+    {
+        if (\Swoolefy\Core\Coroutine\Context::has('trace-id')) {
+            $traceId = \Swoolefy\Core\Coroutine\Context::get('trace-id');
+        }
+        return $traceId ?? '';
+    }
+
+    /**
      * return tcp
      * @param int $fd
-     * @param mixed $data
+     * @param BaseResponseDto $dataDto
      * @param array $header
      * @return mixed
      */
-    public function send(int $fd, mixed $data, array $header = [])
+    public function send(int $fd, BaseResponseDto $dataDto, array $header = [])
     {
         if (!BaseServer::isRpcApp()) {
             throw new SystemException("BService::send() this method only can be called by tcp or rpc server!");
         }
+        if (empty($dataDto->trace_id)) {
+            $dataDto->trace_id = $this->getTraceId();
+        }
 
         if (BaseServer::isPackLength()) {
-            $payload = [$data, $header];
+            $payload = [$dataDto->toArray(), $header];
             $data = \Swoolefy\Rpc\RpcServer::pack($payload);
             return Swfy::getServer()->send($fd, $data);
+
         } else if (BaseServer::isPackEof()) {
-            $text = \Swoolefy\Rpc\RpcServer::pack($data);
+            $text = \Swoolefy\Rpc\RpcServer::pack($dataDto->toArray());
             return Swfy::getServer()->send($fd, $text);
         }
 
@@ -122,14 +138,14 @@ class BService extends BaseObject
 
     /**
      * sendTo udp
-     * @param mixed $data
+     * @param BaseResponseDto $dataDto
      * @param string $ip
      * @param int|null $port
      * @param null $server_socket
      * @return mixed
      */
     public function sendTo(
-        mixed $data,
+        BaseResponseDto $dataDto,
         string $ip = '',
         ?int $port = null,
         int $server_socket = -1
@@ -147,9 +163,11 @@ class BService extends BaseObject
             throw new SystemException("BService::sendTo() this method only can be called by udp server!");
         }
 
-        if (is_array($data)) {
-            $data = json_encode($data, JSON_UNESCAPED_UNICODE);
+        if (empty($dataDto->trace_id)) {
+            $dataDto->trace_id = $this->getTraceId();
         }
+
+        $data = json_encode($dataDto->toArray(), JSON_UNESCAPED_UNICODE);
 
         return Swfy::getServer()->sendto($ip, $port, $data, $server_socket);
     }
@@ -157,14 +175,14 @@ class BService extends BaseObject
     /**
      * push websocket
      * @param int $fd
-     * @param mixed $data
+     * @param BaseResponseDto $dataDto
      * @param int $opcode
      * @param int $finish
      * @return bool
      */
     public function push(
         int $fd,
-        mixed $data,
+        BaseResponseDto $dataDto,
         int $opcode = 1,
         int $finish = 1
     )
@@ -177,9 +195,11 @@ class BService extends BaseObject
             throw new SystemException("Websocket connection closed");
         }
 
-        if (is_array($data)) {
-            $data = json_encode($data, JSON_UNESCAPED_UNICODE);
+        if (empty($dataDto->trace_id)) {
+            $dataDto->trace_id = $this->getTraceId();
         }
+
+        $data = json_encode($dataDto->toArray(), JSON_UNESCAPED_UNICODE);
 
         $result = Swfy::getServer()->push($fd, $data, $opcode, (int)$finish);
         return $result;
