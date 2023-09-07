@@ -409,7 +409,7 @@ class Log
         if (Swfy::isWorkerProcess()) {
             $records['process'] = 'worker';
             if ($App instanceof App) {
-                $requestInput = new RequestInput($App->request, $App->response);
+                $requestInput = $App->requestInput;
                 $records['url'] = $requestInput->getRequestUri();
                 $records['request_params'] = $requestInput->getRequestParams();
             }else if ($App instanceof Swoole) {
