@@ -388,7 +388,11 @@ class Log
      */
     protected function pushProcessor($records, $App = null): array
     {
-        $records['cid'] = \Swoole\Coroutine::getCid();
+        $records['trace_id'] = '';
+        if (($cid = \Swoole\Coroutine::getCid()) >= 0) {
+            $records['trace_id'] = \Swoolefy\Core\Coroutine\Context::get('trace-id') ?? '';
+        }
+        $records['cid'] = $cid;
         $records['process_id'] = (int)getmypid();
         $records['timestamp'] = microtime(true);
         $records['hostname']  = gethostname();

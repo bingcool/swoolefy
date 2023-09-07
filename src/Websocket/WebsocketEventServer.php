@@ -109,9 +109,9 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
      */
     public function onTask(Server $server, int $task_id, int $from_worker_id, $data, $task = null)
     {
-        list($callable, $taskData, $fd) = $data;
+        list($callable, $taskData, $contextData, $fd) = $data;
         $appInstance = new WebsocketHandler(Swfy::getAppConf());
-        $appInstance->run($fd, [$callable, $taskData], [$from_worker_id, $task_id, $task]);
+        $appInstance->run($fd, [$callable, $taskData], [$from_worker_id, $task_id, $task], $contextData ?? []);
         return true;
     }
 

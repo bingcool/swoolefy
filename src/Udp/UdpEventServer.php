@@ -62,10 +62,10 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface
      */
     public function onTask(Server $server, int $task_id, int $from_worker_id, $data, $task = null)
     {
-        list($callable, $taskData, $clientInfo) = $data;
+        list($callable, $taskData, $contextData, $clientInfo) = $data;
         $appInstance = new UdpHandler(Swfy::getAppConf());
         $appInstance->setClientInfo($clientInfo);
-        $appInstance->run(null, [$callable, $taskData], [$from_worker_id, $task_id, $task]);
+        $appInstance->run(null, [$callable, $taskData], [$from_worker_id, $task_id, $task], $contextData ?? []);
         return true;
     }
 

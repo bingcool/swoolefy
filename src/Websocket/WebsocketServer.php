@@ -16,6 +16,7 @@ use Swoolefy\Core\EventApp;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Util\Helper;
 
 abstract class WebsocketServer extends BaseServer
 {
@@ -148,6 +149,7 @@ abstract class WebsocketServer extends BaseServer
          */
         $this->webServer->on('message', function (\Swoole\WebSocket\Server $server, Frame $frame) {
             try {
+                \Swoolefy\Core\Coroutine\Context::set('trace-id', Helper::UUid());
                 parent::beforeHandle();
                 static::onMessage($server, $frame);
                 return true;

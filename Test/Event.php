@@ -115,7 +115,6 @@ class Event extends EventHandler
         if($this->isWorkerService() || Swfy::isTaskProcess()) {
             return;
         }
-
         // 创建产生uuid的定时器
         Factory::getUUid()->tickPreBatchGenerateIds(2, 100);
     }

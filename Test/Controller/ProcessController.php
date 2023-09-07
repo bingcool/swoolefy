@@ -3,6 +3,7 @@ namespace Test\Controller;
 
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\Dto\TaskMessageDto;
+use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Process\ProcessManager;
 use Swoolefy\Core\Task\TaskManager;
 
@@ -13,6 +14,8 @@ class ProcessController extends BController
      */
     public function sendTaskWorker()
     {
+        $log = LogManager::getInstance()->getLogger('log');
+        $log->addInfo('sendTaskWorker-log-id='.rand(1,1000),true, ['name'=>'bingcoolhuang']);
         // 投递异步任务到task进程
         $taskMessageDto = new TaskMessageDto();
         $taskMessageDto->taskClass = \Test\Task\TestTask::class;

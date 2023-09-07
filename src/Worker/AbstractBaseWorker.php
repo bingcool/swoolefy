@@ -339,7 +339,7 @@ abstract class AbstractBaseWorker
                                 switch ($msg) {
                                     case self::WORKERFY_PROCESS_REBOOT_FLAG :
                                         $actionHandleFlag = true;
-                                        \Swoole\Coroutine::create(function () {
+                                        goApp(function () {
                                             if ($this->isStaticProcess()) {
                                                 $this->reboot();
                                             } else {
@@ -350,7 +350,7 @@ abstract class AbstractBaseWorker
                                         break;
                                     case self::WORKERFY_PROCESS_EXIT_FLAG :
                                         $actionHandleFlag = true;
-                                        \Swoole\Coroutine::create(function () use ($fromProcessName) {
+                                        goApp(function () use ($fromProcessName) {
                                             if ($fromProcessName == MainManager::MASTER_WORKER_NAME) {
                                                 $this->exit(true,10);
                                             } else {
@@ -378,12 +378,9 @@ abstract class AbstractBaseWorker
 
                             }
                             if ($actionHandleFlag === false) {
-                                \Swoole\Coroutine::create(function () use ($msg, $fromProcessName, $fromProcessWorkerId, $isProxyByMaster) {
+                                goApp(function () use ($msg, $fromProcessName, $fromProcessWorkerId, $isProxyByMaster) {
                                     try {
-                                        (new \Swoolefy\Core\EventApp)->registerApp(function () use($msg, $fromProcessName, $fromProcessWorkerId, $isProxyByMaster) {
-                                            $this->onPipeMsg($msg, $fromProcessName, $fromProcessWorkerId, $isProxyByMaster);
-                                        });
-
+                                        $this->onPipeMsg($msg, $fromProcessName, $fromProcessWorkerId, $isProxyByMaster);
                                     } catch (\Throwable $throwable) {
                                         $this->onHandleException($throwable);
                                     }
@@ -391,7 +388,7 @@ abstract class AbstractBaseWorker
                             }
                         }
                     } catch (\Throwable $throwable) {
-                        \Swoole\Coroutine::create(function () use ($throwable) {
+                        goApp(function () use ($throwable) {
                             $this->onHandleException($throwable);
                         });
                     }

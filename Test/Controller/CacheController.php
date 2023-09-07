@@ -10,6 +10,17 @@ class CacheController extends BController
 {
     public function test()
     {
+        var_dump("parent cid =".\Swoole\Coroutine::getCid());
+        \Swoolefy\Core\Coroutine\Context::set('name','kkkkkkkkkkkkkkkkkkkkkkkk');
+        goApp(function () {
+            goApp(function () {
+                goApp(function () {
+                    $arrayCopy = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
+                    var_dump($arrayCopy);
+                });
+            });
+        });
+
         /**
          * @var RedisCache $cache
          */
