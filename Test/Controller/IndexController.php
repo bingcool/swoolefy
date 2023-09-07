@@ -7,7 +7,7 @@ use Swoolefy\Core\EventController;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
 use Swoolefy\Core\Log\LogManager;
 use Test\Factory;
-use Test\Logger\Log;
+use Test\Logger\RunLog;
 
 class IndexController extends BController {
 
@@ -18,8 +18,7 @@ class IndexController extends BController {
 
     public function index()
     {
-        $log = LogManager::getInstance()->getLogger('log');
-        $log->addInfo('test11111-log-id='.rand(1,1000),true, ['name'=>'bingcoolhuang']);
+        RunLog::info('test11111-log-id='.rand(1,1000),true, ['name'=>'bingcoolhuang']);
         Application::getApp()->response->write('<h1>Hello, Welcome to Swoolefy Framework! <h1>');
     }
 
@@ -137,7 +136,7 @@ class IndexController extends BController {
 
     public function testTransactionAddOrder()
     {
-        Log::info("Hello");
+        RunLog::info("Hello");
 
         $this->db = Factory::getDb();
 
