@@ -15,6 +15,7 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Worker\Helper;
 use Swoolefy\Worker\Script\AbstractScriptWorker;
+use Swoolefy\Core\Coroutine\Context;
 
 class MainCliScript extends AbstractScriptWorker {
 
@@ -52,8 +53,7 @@ class MainCliScript extends AbstractScriptWorker {
             return;
         }
 
-        $traceId = \Swoolefy\Core\Coroutine\Context::get('trace-id') ?? '';
-        if (empty($traceId)) {
+        if (!Context::has('trace-id')) {
             $this->generateTraceId();
         }
 
@@ -99,7 +99,7 @@ class MainCliScript extends AbstractScriptWorker {
      */
     private function generateTraceId()
     {
-        \Swoolefy\Core\Coroutine\Context::set('trace-id', \Swoolefy\Util\Helper::UUid());
+        Context::set('trace-id', \Swoolefy\Util\Helper::UUid());
     }
 
     /**
