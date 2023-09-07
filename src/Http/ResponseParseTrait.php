@@ -66,23 +66,8 @@ trait ResponseParseTrait
         string $formatter = 'json'
     )
     {
-        $responseData = static::buildResponseData($code, $msg, $data);
+        $responseData = ResponseFormatter::formatDataArray($code, $msg, $data);
         $this->jsonSerialize($responseData, $formatter);
-    }
-
-    /**
-     * @param int $code
-     * @param string $msg
-     * @param mixed $data
-     * @return array
-     */
-    protected static function buildResponseData(
-        int $code = 0,
-        string $msg = '',
-        $data = []
-    ): array
-    {
-        return ResponseFormatter::formatDataArray($code, $msg, $data);
     }
 
     /**
