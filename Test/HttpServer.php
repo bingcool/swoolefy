@@ -53,7 +53,7 @@ class HttpServer extends \Swoolefy\Http\HttpAppServer {
     {
         $msg = json_decode($data, true) ?? $data;
 
-        var_dump('Worker Process onFinish Receive Task Worker msg='.$data);
+        //var_dump('Worker Process onFinish Receive Task Worker msg='.$data);
 
         $userId = $msg['user_id'];
         $db = Factory::getDb();
@@ -61,7 +61,7 @@ class HttpServer extends \Swoolefy\Http\HttpAppServer {
             ':user_id' => $userId
         ]);
 
-        var_dump('Worker Process Find Db Result as：');
-        print_r($result);
+        //var_dump('Worker Process Find Db Result as：');
+        //print_r($result);
     }
 }	

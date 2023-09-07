@@ -12,7 +12,6 @@ class OrderFormatter extends ListItemFormatter
 
     protected function format($data): array
     {
-        $data['bg'] = 'mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm';
         return $data;
     }
 }
