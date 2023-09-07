@@ -13,6 +13,7 @@ namespace Swoolefy\Tcp;
 
 use Swoolefy\Core\EventApp;
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Util\Helper;
 
 abstract class TcpServer extends BaseServer
 {
@@ -142,6 +143,7 @@ abstract class TcpServer extends BaseServer
          */
         $this->tcpServer->on('receive', function (\Swoole\Server $server, $fd, $reactor_id, $data) {
             try {
+                \Swoolefy\Core\Coroutine\Context::set('trace-id', Helper::UUid());
                 parent::beforeHandle();
                 if (parent::isPackLength()) {
                     $buffer = $this->Pack->decodePack($fd, $data);

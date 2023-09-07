@@ -366,12 +366,16 @@ class Log
                 // add records to the log
                 $this->logger->addRecord($type, $logInfo, $context);
             } catch (\Exception $e) {
-
+                var_dump('record log error: '.$e->getMessage());
             }
         };
 
         if (\Swoole\Coroutine::getCid() > 0) {
-            \Swoole\Coroutine::create(function () use ($callable) {
+            $arrayCopy = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
+            \Swoole\Coroutine::create(function () use ($callable, $arrayCopy) {
+                foreach ($arrayCopy as $key=>$value) {
+                    \Swoolefy\Core\Coroutine\Context::set($key, $value);
+                }
                 call_user_func($callable);
             });
         } else {
@@ -388,7 +392,14 @@ class Log
      */
     protected function pushProcessor($records, $App = null): array
     {
-        $records['cid'] = \Swoole\Coroutine::getCid();
+        $records['trace_id'] = '';
+        $cid = \Swoole\Coroutine::getCid();
+        if ($cid >= 0) {
+            if (\Swoolefy\Core\Coroutine\Context::has('trace-id')) {
+                $records['trace_id'] = \Swoolefy\Core\Coroutine\Context::get('trace-id');
+            }
+        }
+        $records['cid'] = $cid;
         $records['process_id'] = (int)getmypid();
         $records['timestamp'] = microtime(true);
         $records['hostname']  = gethostname();
@@ -396,7 +407,7 @@ class Log
         $records['url'] = '';
         $records['request_params'] = [];
         if (Swfy::isWorkerProcess()) {
-            $records['process'] = 'worker_process';
+            $records['process'] = 'worker';
             if ($App instanceof App) {
                 $requestInput = new RequestInput($App->request, $App->response);
                 $records['url'] = $requestInput->getRequestUri();
@@ -406,17 +417,17 @@ class Log
                 $records['request_params'] = $App->getMixedParams();
             }
         }else if (Swfy::isTaskProcess()) {
-            $records['process'] = 'task_worker';
+            $records['process'] = 'task';
         }else if (Swfy::isSelfProcess()) {
-            $records['process'] = 'use_self_worker';
+            $records['process'] = 'use_self_process';
         }
 
-        if (SystemEnv::isWorkerService()) {
-            $records['process'] = 'worker_service';
-        }
-
-        if (SystemEnv::isScriptService()) {
-            $records['process'] = 'cli_script_service';
+        if (SystemEnv::isDaemonService()) {
+            $records['process'] = 'daemon';
+        }else if (SystemEnv::isCronService()) {
+            $records['process'] = 'cron';
+        } else if (SystemEnv::isScriptService()) {
+            $records['process'] = 'script';
         }
 
         return $records;

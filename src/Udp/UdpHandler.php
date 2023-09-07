@@ -60,10 +60,11 @@ class UdpHandler extends Swoole implements HandlerInterface
      * @param int|null $fd
      * @param mixed $payload
      * @param array $extendData
+     * @param array $contextData
      * @return mixed
      * @throws \Throwable
      */
-    public function run(?int $fd, $payload, array $extendData = [])
+    public function run(?int $fd, $payload, array $extendData = [], array $contextData = [])
     {
         try {
             parent::run(null, $payload);
@@ -73,6 +74,9 @@ class UdpHandler extends Swoole implements HandlerInterface
                     list($service, $event, $params) = $dataGramItems;
                     if (is_string($params)) {
                         $params = json_decode($params, true) ?? $params;
+                        if (!is_array($params)) {
+                            throw new \Exception('Udp params must be json string');
+                        }
                     }
                 } else if (count($dataGramItems) == 2) {
                     list($service, $event) = $dataGramItems;
@@ -85,6 +89,9 @@ class UdpHandler extends Swoole implements HandlerInterface
                 }
             } else {
                 $isTaskProcess = true;
+                foreach ($contextData as $key => $value) {
+                    \Swoolefy\Core\Coroutine\Context::set($key, $value);
+                }
                 list($callable, $params) = $payload;
             }
 

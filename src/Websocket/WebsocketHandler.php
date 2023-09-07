@@ -40,10 +40,11 @@ class WebsocketHandler extends Swoole implements HandlerInterface
      * @param int $fd
      * @param mixed $payload
      * @param array $extendData
+     * @param array $contextData
      * @return mixed
      * @throws \Throwable
      */
-    public function run($fd, $payload, array $extendData = [])
+    public function run($fd, $payload, array $extendData = [], array $contextData = [])
     {
         try {
             // parse data
@@ -76,6 +77,9 @@ class WebsocketHandler extends Swoole implements HandlerInterface
                 }
             } else {
                 $isTaskProcess = true;
+                foreach ($contextData as $key => $value) {
+                    \Swoolefy\Core\Coroutine\Context::set($key, $value);
+                }
                 list($callable, $params) = $payload;
             }
 

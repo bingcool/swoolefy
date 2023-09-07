@@ -63,7 +63,7 @@ class CrontabManager
 
         if(is_numeric($expression)) {
             \Swoole\Timer::tick($expression * 1000, function ($timerId, $expression) use ($func, $cronName, $class) {
-                \Swoole\Coroutine::create(function () use ($expression, $func, $cronName, $class) {
+                goApp(function () use ($expression, $func, $cronName, $class) {
                     try {
                         if ($func instanceof \Closure) {
                             $cronControllerInstance = $this->buildCronControllerInstance();
@@ -95,7 +95,7 @@ class CrontabManager
         }else {
             if (is_array($func)) {
                 \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($class, $cronName) {
-                    \Swoole\Coroutine::create(function () use ($timerId, $expression, $class, $cronName) {
+                    goApp(function () use ($timerId, $expression, $class, $cronName) {
                         try {
                             /**
                              * @var AbstractCronController $cronControllerInstance
@@ -111,7 +111,7 @@ class CrontabManager
                 }, $expression);
             } else {
                 \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($func, $cronName) {
-                    \Swoole\Coroutine::create(function () use($timerId, $expression, $func, $cronName ) {
+                    goApp(function () use($timerId, $expression, $func, $cronName ) {
                         try {
                             $cronControllerInstance = $this->buildCronControllerInstance();
                             $cronControllerInstance->runCron($cronName, $expression, $func);

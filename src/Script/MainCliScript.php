@@ -38,7 +38,7 @@ class MainCliScript extends AbstractScriptWorker {
      */
     public function init()
     {
-
+        $this->generateTraceId();
     }
 
     /**
@@ -50,6 +50,11 @@ class MainCliScript extends AbstractScriptWorker {
             write("【Error】一次性脚本进程异常不断重复自动重启，请检查");
             $this->exitAll(true);
             return;
+        }
+
+        $traceId = \Swoolefy\Core\Coroutine\Context::get('trace-id') ?? '';
+        if (empty($traceId)) {
+            $this->generateTraceId();
         }
 
         $this->setIsCliScript();
@@ -87,6 +92,14 @@ class MainCliScript extends AbstractScriptWorker {
         }
         TableManager::set($this->scriptTable,'script_flag', ['is_execute_flag' => 1]);
         return false;
+    }
+
+    /**
+     * @return void
+     */
+    private function generateTraceId()
+    {
+        \Swoolefy\Core\Coroutine\Context::set('trace-id', \Swoolefy\Util\Helper::UUid());
     }
 
     /**

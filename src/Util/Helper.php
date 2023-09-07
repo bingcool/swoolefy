@@ -99,7 +99,7 @@ class Helper
     public static function randString(int $length = 8, bool $is_number = false, array $ignore = []): string
     {
         //字符池
-        $strings = 'ABCDEFGHIJKLOMNOPQRSTUVWXYZ_abcdefghijklomnopqrstuvwxyz-';
+        $strings = 'ABCDEFGHIJKLOMNOPQRSTUVWXYZabcdefghijklomnopqrstuvwxyz';
         //数字池
         $numbers = '0123456789';
         if ($ignore && is_array($ignore)) {
@@ -118,6 +118,16 @@ class Helper
             $key .= $pattern[mt_rand(0, $max)];
         }
         return $key;
+    }
+
+    /**
+     * @return string
+     */
+    public static function UUid(): string
+    {
+        $randomBytes = random_bytes(10);
+        $uuid = bin2hex($randomBytes);
+        return $uuid;
     }
 
     /**

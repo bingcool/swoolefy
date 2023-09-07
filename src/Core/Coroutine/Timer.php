@@ -29,7 +29,7 @@ class Timer
             $second = 0.001;
         }
 
-        Coroutine::create(function ($second, $callable) use ($timeChannel) {
+        goApp(function ($second, $callable) use ($timeChannel) {
             while (true) {
                 $value = $timeChannel->pop($second);
                 if($value !== false) {
@@ -69,7 +69,7 @@ class Timer
             $second = 0.001;
         }
 
-        Coroutine::create(function ($second, $callable) use ($timeChannel) {
+        goApp(function ($second, $callable) use ($timeChannel) {
             while (!$timeChannel->pop($second)) {
                 goApp(function () use($timeChannel, $callable) {
                     $callable($timeChannel);

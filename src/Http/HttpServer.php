@@ -15,6 +15,7 @@ use Swoolefy\Core\EventApp;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Util\Helper;
 
 abstract class HttpServer extends BaseServer
 {
@@ -123,6 +124,8 @@ abstract class HttpServer extends BaseServer
             }
 
             try {
+                $traceId = $request->header['trace-id'] ?? Helper::UUid();
+                \Swoolefy\Core\Coroutine\Context::set('trace-id', $traceId);
                 parent::beforeHandle();
                 static::onRequest($request, $response);
                 return true;

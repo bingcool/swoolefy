@@ -71,7 +71,7 @@ abstract class AbstractProcessPools
      * @param string $process_name
      * @param bool $async
      * @param array $args
-     * @param mixed $extendData
+     * @param mixed $extend_data
      * @param bool $enableCoroutine
      * @return void
      */
@@ -79,16 +79,16 @@ abstract class AbstractProcessPools
         string $process_name,
         bool   $async = true,
         array  $args = [],
-        ?array $extendData = null,
+        mixed  $extend_data = null,
         bool   $enableCoroutine = true
     )
     {
         $this->async = $async;
-        $this->args = $args;
-        $this->extendData = $extendData;
+        $this->args  = $args;
+        $this->extendData  = $extend_data;
         $this->processName = $process_name;
         $this->enableCoroutine = true;
-        $this->swooleProcess = new \Swoole\Process([$this, '__start'], false, SOCK_DGRAM, $this->enableCoroutine);
+        $this->swooleProcess   = new \Swoole\Process([$this, '__start'], false, SOCK_DGRAM, $this->enableCoroutine);
         Swfy::getServer()->addProcess($this->swooleProcess);
     }
 
@@ -171,16 +171,14 @@ abstract class AbstractProcessPools
         if ($this->async) {
             \Swoole\Event::add($this->swooleProcess->pipe, function () {
                 $msg = $this->swooleProcess->read(64 * 1024);
-                \Swoole\Coroutine::create(function () use ($msg) {
+                goApp(function () use ($msg) {
                     try {
                         if ($msg == static::SWOOLEFY_PROCESS_KILL_FLAG) {
                             $this->reboot();
                             return;
                         } else {
                             $message = json_decode($msg, true) ?? $msg;
-                            (new \Swoolefy\Core\EventApp)->registerApp(function () use ($message) {
-                                $this->onReceive($message);
-                            });
+                            $this->onReceive($message);
                         }
                     } catch (\Throwable $throwable) {
                         BaseServer::catchException($throwable);
@@ -189,7 +187,7 @@ abstract class AbstractProcessPools
             });
         }
 
-        $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'php-swoolefy-user-process-worker' . $this->bindWorkerId . ':' . $this->getProcessName(true));
+        $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'php-swoolefy-user-process-pools' . $this->bindWorkerId . ':' . $this->getProcessName(true));
         try {
             (new \Swoolefy\Core\EventApp)->registerApp(function () {
                 $this->init();
@@ -251,11 +249,13 @@ abstract class AbstractProcessPools
     public function sendMessage($msg = null, ?int $worker_id = null)
     {
         if (!$msg) {
-            throw new \Exception('Param of msg can not be null or empty');
+            throw new SystemException('Missing msg params');
         }
+
         if ($worker_id === null) {
             $worker_id = $this->bindWorkerId;
         }
+
         return Swfy::getServer()->sendMessage($msg, $worker_id);
     }
 
@@ -279,12 +279,10 @@ abstract class AbstractProcessPools
         if (!$this->isExiting) {
             $this->isExiting = true;
             $channel = new Channel(1);
-            \Swoole\Coroutine::create(function () {
+            goApp(function () {
                 try {
                     $this->runtimeCoroutineWait();
-                    (new \Swoolefy\Core\EventApp)->registerApp(function () {
-                        $this->onShutDown();
-                    });
+                    $this->onShutDown();
                 } catch (\Throwable $throwable) {
                     BaseServer::catchException($throwable);
                 } finally {

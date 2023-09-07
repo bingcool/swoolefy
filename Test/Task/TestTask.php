@@ -3,6 +3,7 @@
 namespace Test\Task;
 
 use Swoolefy\Core\Application;
+use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Task\TaskController;
 use Test\Factory;
 
@@ -21,12 +22,12 @@ class TestTask extends TaskController
             ':user_id' => $userId
         ]);
 
-        var_dump('Task Process Find Db Result as：');
-        print_r($result);
+        //var_dump('Task Process Find Db Result as：');
+        //print_r($result);
 
         $cid = \Swoole\Coroutine::getCid();
         $db1 = $this->get('db');
-        var_dump("协程Cid={$cid}, Db spl_object_id=".spl_object_id($db).', spl_object_id='.spl_object_id($db1));
+        //var_dump("协程Cid={$cid}, Db spl_object_id=".spl_object_id($db).', spl_object_id='.spl_object_id($db1));
 
         // 创建协程单例，所有组件互相隔离在不同协程，特别是DB|Redis组件，必须要隔离，否则造成上下文污染
         goApp(function () {
@@ -35,7 +36,7 @@ class TestTask extends TaskController
             $db1 = $this->get('db');
             $cid = \Swoole\Coroutine::getCid();
 
-            var_dump("协程1-Cid={$cid}, Db spl_object_id=".spl_object_id($db).', spl_object_id='.spl_object_id($db1));
+            //var_dump("协程1-Cid={$cid}, Db spl_object_id=".spl_object_id($db).', spl_object_id='.spl_object_id($db1));
 
             // 再嵌套协程单例应用
             goApp(function () {
@@ -43,7 +44,10 @@ class TestTask extends TaskController
                 $db = Factory::getDb();
                 $db1 = $this->get('db');
                 $cid = \Swoole\Coroutine::getCid();
-                var_dump("协程2-Cid={$cid}, Db spl_object_id=".spl_object_id($db).', spl_object_id='.spl_object_id($db1));
+                //var_dump("协程2-Cid={$cid}, Db spl_object_id=".spl_object_id($db).', spl_object_id='.spl_object_id($db1));
+
+                $log = LogManager::getInstance()->getLogger('log');
+                $log->addInfo('task task-log-id='.rand(1,1000),true, ['name'=>'bingcoolhuang']);
             });
         });
 

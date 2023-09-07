@@ -18,6 +18,7 @@ use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\EventApp;
 use Swoolefy\Core\Swfy;
 use Simps\MQTT\Hex\ReasonCode;
+use Swoolefy\Util\Helper;
 
 abstract class MqttServer extends BaseServer
 {
@@ -138,6 +139,7 @@ abstract class MqttServer extends BaseServer
          */
         $this->mqttServer->on('receive', function (\Swoole\Server $server, $fd, $reactor_id, $data) {
             try {
+                \Swoolefy\Core\Coroutine\Context::set('trace-id', Helper::UUid());
                 static::onReceive($server, $fd, $reactor_id, $data);
                 return true;
             } catch (\Throwable $e) {
