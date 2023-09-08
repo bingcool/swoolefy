@@ -138,17 +138,16 @@ class HttpRoute extends AppDispatch
             case static::ITEM_NUM_3:
                 // Module/Controller/Action
                 $module = null;
-                $controller = $dispatchRouteItem[0];
-                $action = $this->dispatchRoute[2];
+                $controller = $dispatchRouteItem[2];
                 break;
             case static::ITEM_NUM_5 :
                 // Module/Controller/Action
                 $module = $dispatchRouteItem[2];
                 $controller = $dispatchRouteItem[4];
-                $action = $this->dispatchRoute[1];
                 break;
         }
 
+        $action = $this->dispatchRoute[1];
         // forbidden call action
         if (in_array($action, static::$denyActions)) {
             $errorMsg = "{$controller}::{$action} is not allow access action";
@@ -158,17 +157,14 @@ class HttpRoute extends AppDispatch
         if ($module) {
             // route params array
             $routeItems = [3, [$module, $controller, $action]];
-            $this->invoke($this->dispatchRoute[0], $action);
         } else {
             // route params array
             $routeItems = [2, [$controller, $action]];
-            $this->invoke($this->dispatchRoute[0], $action);
         }
-
         // route params array attach to server
+        $this->requestInput->getSwooleRequest()->server['ROUTE_ITEMS']    = $routeItems;
         $this->requestInput->getSwooleRequest()->server['DISPATCH_ROUTE'] = $this->dispatchRoute;
-        $this->requestInput->getSwooleRequest()->server['ROUTE_ITEMS'] = $routeItems;
-
+        $this->invoke($this->dispatchRoute[0], $action);
         return true;
     }
 
