@@ -19,7 +19,7 @@ Route::group([
     ],
 ], function () {
     // /demo/test
-    Route::post('/test', [
+    Route::get('/test', [
         'beforeHandle' => function(RequestInput $requestInput) {
             var_dump('beforeHandle');
         },

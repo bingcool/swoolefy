@@ -17,6 +17,25 @@ use Swoolefy\Core\ResponseFormatter;
 
 trait ResponseParseTrait
 {
+
+    /**
+     * @param array $data
+     * @param int $code
+     * @param mixed $msg
+     * @param string $formatter
+     * @return void
+     */
+    public function returnJson(
+        array  $data = [],
+        int    $code = 0,
+        string $msg  = '',
+        string $formatter = 'json'
+    )
+    {
+        $responseData = ResponseFormatter::formatDataArray($code, $msg, $data);
+        $this->jsonSerialize($responseData, $formatter);
+    }
+
     /**
      * jsonSerialize
      * @param array $data
@@ -27,7 +46,7 @@ trait ResponseParseTrait
     {
         switch (strtoupper($formatter)) {
             case 'JSON':
-                $this->response->header('Content-Type', 'application/json; charset=utf-8');
+                $this->withHeader('Content-Type', 'application/json; charset=utf-8');
                 $jsonString = json_encode($data, JSON_UNESCAPED_UNICODE);
                 break;
             default:
@@ -50,24 +69,6 @@ trait ResponseParseTrait
             Application::getApp()->setEnd();
         }
         $this->response->end();
-    }
-
-    /**
-     * @param array $data
-     * @param int $code
-     * @param mixed $msg
-     * @param string $formatter
-     * @return void
-     */
-    public function returnJson(
-        array  $data = [],
-        int    $code = 0,
-        string $msg  = '',
-        string $formatter = 'json'
-    )
-    {
-        $responseData = ResponseFormatter::formatDataArray($code, $msg, $data);
-        $this->jsonSerialize($responseData, $formatter);
     }
 
     /**
@@ -101,8 +102,8 @@ trait ResponseParseTrait
             Application::getApp()->setEnd();
         }
         $url = $url . $queryString;
-        $this->status($httpStatus);
-        $this->response->header('Location', $url);
+        $this->withStatus($httpStatus);
+        $this->withHeader('Location', $url);
         $this->response->end();
     }
 
@@ -150,7 +151,7 @@ trait ResponseParseTrait
      * @param string $value
      * @return \Swoole\Http\Response|\Swoole\Http2\Response
      */
-    public function header(string $name, $value)
+    public function withHeader(string $name, $value)
     {
         $this->response->header($name, $value);
         return $this->response;
@@ -184,11 +185,12 @@ trait ResponseParseTrait
     /**
      * sendHttpStatus
      * @param int $code
+     * @param string $reasonPhrase
      * @return \Swoole\Http\Response|\Swoole\Http2\Response
      */
-    public function status(int $code)
+    public function withStatus(int $code, string $reasonPhrase = '')
     {
-        $this->response->status($code);
+        $this->response->status($code, $reasonPhrase);
         return $this->response;
     }
 

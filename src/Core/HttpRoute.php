@@ -21,17 +21,9 @@ use Swoolefy\Exception\SystemException;
 class HttpRoute extends AppDispatch
 {
 
-    /**
-     * pathInfo model
-     * @var int
-     */
-    const ROUTE_MODEL_PATHINFO = ROUTE_MODEL_PATHINFO;
+    const ITEM_NUM_3 = 3;
 
-    /**
-     * params model
-     * @var int
-     */
-    const ROUTE_MODEL_QUERY_PARAMS = ROUTE_MODEL_QUERY_PARAMS;
+    const ITEM_NUM_5 = 5;
 
     /**
      * $appConf
@@ -57,32 +49,15 @@ class HttpRoute extends AppDispatch
 
     /**
      * $routerUri
-     * @var string
+     * @var array
      */
-    protected $routerUri = null;
+    protected $dispatchRoute = [];
 
     /**
      * $extendData 额外请求数据
      * @var mixed
      */
     protected $extendData = null;
-
-    /**
-     * @var string
-     */
-    private $controllerSuffix = 'Controller';
-
-    /**
-     * $defaultRoute
-     * @var string
-     */
-    private $defaultRoute = 'Index/index';
-
-    /**
-     * actionPrefix
-     * @var string
-     */
-    private $actionPrefix = 'action';
 
     /**
      * @var array
@@ -138,7 +113,7 @@ class HttpRoute extends AppDispatch
         $this->requestInput = $requestInput;
         $this->responseOutput = $responseOutput;
         $this->extendData = $extendData;
-        list($this->middleware, $this->beforeHandle, $this->routerUri, $this->afterHandle, $this->routeMethod, $this->groupMeta)  = self::getHttpRouterMapUri($this->requestInput->getServerParams('PATH_INFO'));
+        list($this->middleware, $this->beforeHandle, $this->dispatchRoute, $this->afterHandle, $this->routeMethod, $this->groupMeta)  = self::getHttpRouterMapUri($this->requestInput->getServerParams('PATH_INFO'));
     }
 
     /**
@@ -153,55 +128,25 @@ class HttpRoute extends AppDispatch
             throw new DispatchException("Not Allow Route Method.You should use [$this->routeMethod] method.");
         }
 
-        if (!isset($this->appConf['route_model']) || !in_array($this->appConf['route_model'], [self::ROUTE_MODEL_PATHINFO, self::ROUTE_MODEL_QUERY_PARAMS])) {
-            $this->appConf['route_model'] = self::ROUTE_MODEL_PATHINFO;
-        }
-
         if (!isset($this->appConf['app_namespace']) || $this->appConf['app_namespace'] != APP_NAME ) {
             $this->appConf['app_namespace'] = APP_NAME;
         }
 
-        if ($this->appConf['route_model'] == self::ROUTE_MODEL_PATHINFO) {
-            if ($this->routerUri == DIRECTORY_SEPARATOR || $this->routerUri == '//') {
-                if (isset($this->appConf['default_route']) && !empty($this->appConf['default_route'])) {
-                    $this->routerUri = DIRECTORY_SEPARATOR . trim($this->appConf['default_route'], DIRECTORY_SEPARATOR);
-                } else {
-                    $this->routerUri = DIRECTORY_SEPARATOR . $this->defaultRoute;
-                }
-            }
-
-            $routeUri = trim($this->routerUri, DIRECTORY_SEPARATOR);
-
-            if ($routeUri) {
-                $routeParams = explode(DIRECTORY_SEPARATOR, $routeUri);
-                $count = count($routeParams);
-                switch ($count) {
-                    case 1 :
-                        $module = null;
-                        $controller = $routeParams[0];
-                        $action = 'index';
-                        break;
-                    case 2 :
-                        $module = null;
-                        // Controller/Action
-                        list($controller, $action) = $routeParams;
-                        break;
-                    case 3 :
-                        // Module/Controller/Action
-                        list($module, $controller, $action) = $routeParams;
-                        break;
-                }
-            }
-
-        } else if ($this->appConf['route_model'] == self::ROUTE_MODEL_QUERY_PARAMS) {
-            $module     = $this->requestInput->getQueryParams('m') ?? null;
-            $controller = $this->requestInput->getQueryParams('c') ?? 'Index';
-            $action     = $this->requestInput->getQueryParams('t') ?? 'index';
-            if ($module) {
-                $this->routerUri = DIRECTORY_SEPARATOR . $module . DIRECTORY_SEPARATOR . $controller . DIRECTORY_SEPARATOR . $action;
-            } else {
-                $this->routerUri = DIRECTORY_SEPARATOR . $controller . DIRECTORY_SEPARATOR . $action;
-            }
+        $dispatchRouteItem = explode("\\", $this->dispatchRoute[0]);
+        $count = count($dispatchRouteItem);
+        switch ($count) {
+            case static::ITEM_NUM_3:
+                // Module/Controller/Action
+                $module = null;
+                $controller = $dispatchRouteItem[0];
+                $action = $this->dispatchRoute[2];
+                break;
+            case static::ITEM_NUM_5 :
+                // Module/Controller/Action
+                $module = $dispatchRouteItem[2];
+                $controller = $dispatchRouteItem[4];
+                $action = $this->dispatchRoute[1];
+                break;
         }
 
         // forbidden call action
@@ -212,60 +157,39 @@ class HttpRoute extends AppDispatch
 
         if ($module) {
             // route params array
-            $routeParams = [3, [$module, $controller, $action]];
-            $this->invoke($module, $controller, $action);
+            $routeItems = [3, [$module, $controller, $action]];
+            $this->invoke($this->dispatchRoute[0], $action);
         } else {
             // route params array
-            $routeParams = [2, [$controller, $action]];
-            $this->invoke($module = null, $controller, $action);
+            $routeItems = [2, [$controller, $action]];
+            $this->invoke($this->dispatchRoute[0], $action);
         }
 
         // route params array attach to server
-        $this->requestInput->getSwooleRequest()->server['ROUTE'] = $this->routerUri;
-        $this->requestInput->getSwooleRequest()->server['ROUTE_PARAMS'] = $routeParams;
+        $this->requestInput->getSwooleRequest()->server['DISPATCH_ROUTE'] = $this->dispatchRoute;
+        $this->requestInput->getSwooleRequest()->server['ROUTE_ITEMS'] = $routeItems;
 
         return true;
     }
 
     /**
-     * invoke router instance
-     * @param string $module
-     * @param string $controller
+     * @param string $class
      * @param string $action
      * @return bool
-     * @throws \Throwable
      */
     protected function invoke(
-        ?string $module = null,
-        ?string $controller = null,
-        ?string $action = null
+        string $class,
+        string $action
     ): bool
     {
-        $controller = $this->buildControllerClass($controller);
-        if ($module) {
-            $filePath = APP_PATH . DIRECTORY_SEPARATOR . 'Module' . DIRECTORY_SEPARATOR . $module.DIRECTORY_SEPARATOR.'Controller' . DIRECTORY_SEPARATOR . $controller . '.php';
-            $class    = $this->appConf['app_namespace'] . '\\' . 'Module' . '\\' . $module .'\\'.'Controller'. '\\' . $controller;
-            if (!$this->isExistRouteFile($class)) {
-                if (!is_file($filePath)) {
-                    $targetNotFoundClassArr = $this->fileNotFound($class);
-                    if (is_array($targetNotFoundClassArr)) list($class, $action) = $targetNotFoundClassArr;
-                } else {
-                    $this->setRouteFileMap($class);
-                }
-            }
-
-        } else {
-            $class = $this->appConf['app_namespace'] . '\\' . 'Controller' . '\\' . $controller;
-            if (!$this->isExistRouteFile($class)) {
-                $filePath = APP_PATH . DIRECTORY_SEPARATOR . 'Controller' . DIRECTORY_SEPARATOR . $controller . '.php';
-                if (!is_file($filePath)) {
-                    $targetNotFoundClassArr = $this->fileNotFound($class);
-                    if (is_array($targetNotFoundClassArr)) list($class, $action) = $targetNotFoundClassArr;
-                } else {
-                    $this->setRouteFileMap($class);
-                }
-            }
+        if (!class_exists($class)) {
+            list($class, $action) = $this->fileNotFound($class);
         }
+
+        if ($this->app->isEnd()) {
+            throw new SystemException('System Request End Error', 500);
+        }
+
         // reset app conf
         $this->app->setAppConf($this->appConf);
 
@@ -273,16 +197,6 @@ class HttpRoute extends AppDispatch
         $controllerInstance = new $class();
         // set Controller Instance
         $this->app->setControllerInstance($controllerInstance);
-
-        if (isset($this->appConf['enable_action_prefix']) && $this->appConf['enable_action_prefix']) {
-            $targetAction = $this->actionPrefix . ucfirst($action);
-        } else {
-            $targetAction = $action;
-        }
-
-        if ($this->app->isEnd()) {
-            throw new SystemException('System Request End Error', 500);
-        }
 
         // handle route group middles
         $this->handleGroupRouteMiddles();
@@ -300,7 +214,7 @@ class HttpRoute extends AppDispatch
                 "Call %s::_beforeAction() return false, forbidden continue call %s::%s",
                 $class,
                 $class,
-                $targetAction
+                $action
             );
 
             throw new DispatchException($errorMsg, 404);
@@ -308,17 +222,17 @@ class HttpRoute extends AppDispatch
 
         // reflector object
         $reflector = new \ReflectionClass($controllerInstance);
-        if ($reflector->hasMethod($targetAction)) {
-            list($method, $args) = $this->bindActionParams($controllerInstance, $targetAction, $this->requestInput->getRequestParams());
+        if ($reflector->hasMethod($action)) {
+            list($method, $args) = $this->bindActionParams($controllerInstance, $action, $this->requestInput->getRequestParams());
             if ($method->isPublic() && !$method->isStatic()) {
-                $controllerInstance->{$targetAction}(...$args);
+                $controllerInstance->{$action}(...$args);
                 $controllerInstance->_afterAction($action);
                 $this->handleAfterRouteMiddles();
             } else {
                 $errorMsg = sprintf(
                     "Class method %s::%s is protected or private property, can't be called by Controller Instance",
                     $class,
-                    $targetAction
+                    $action
                 );
 
                 throw new DispatchException($errorMsg, 500);
@@ -327,42 +241,13 @@ class HttpRoute extends AppDispatch
             $errorMsg = sprintf(
                 "Call undefined %s::%s method",
                 $class,
-                $targetAction
+                $action
             );
 
             throw new DispatchException($errorMsg, 404);
         }
 
         return true;
-    }
-
-    /**
-     * @param string $controller
-     * @return string
-     */
-    protected function buildControllerClass(string $controller)
-    {
-        return $controller . $this->controllerSuffix;
-    }
-
-    /**
-     * isExistRouteFile 判断是否存在请求的route文件
-     * @param string $route 请求的路由uri
-     * @return bool
-     */
-    public function isExistRouteFile(string $route): bool
-    {
-        return isset(self::$routeCacheFileMap[$route]) ? self::$routeCacheFileMap[$route] : false;
-    }
-
-    /**
-     * setRouteFileMap
-     * @param string $route
-     * @return void
-     */
-    public function setRouteFileMap(string $route)
-    {
-        self::$routeCacheFileMap[$route] = true;
     }
 
     /**
@@ -430,18 +315,11 @@ class HttpRoute extends AppDispatch
      * @param string $class
      * @return array
      */
-    protected function fileNotFound(string $class): array
+    private function fileNotFound(string $class): array
     {
         if (isset($this->appConf['not_found_handler']) && is_array($this->appConf['not_found_handler'])) {
             // reset NotFound class
-            list($namespace, $action) = $this->appConf['not_found_handler'];
-            $routeParams = explode('\\', $namespace);
-            if (is_array($routeParams)) {
-                $controller = array_pop($routeParams);
-            }
-            // reset NotFound class route
-            $this->requestInput->getRequest()->server['ROUTE'] = DIRECTORY_SEPARATOR . $controller . DIRECTORY_SEPARATOR . $action;
-            $class = trim(str_replace(DIRECTORY_SEPARATOR, '\\', $namespace . $this->controllerSuffix), DIRECTORY_SEPARATOR);
+            list($class, $action) = $this->appConf['not_found_handler'];
             return [$class, $action];
         } else {
             $errorMsg = "Class {$class} is not found";
@@ -544,20 +422,12 @@ class HttpRoute extends AppDispatch
             if(!isset($routerMeta['dispatch_route'])) {
                 $routerMeta['dispatch_route'] = $uri;
             }else {
+                $originDispatchRoute = $routerMeta['dispatch_route'];
                 $dispatchRoute = str_replace("\\",DIRECTORY_SEPARATOR, $routerMeta['dispatch_route'][0]);
                 $dispatchRouteItems = explode(DIRECTORY_SEPARATOR, $dispatchRoute);
                 $itemNum = count($dispatchRouteItems);
-                if(!in_array($itemNum, [3,5])) {
+                if(!in_array($itemNum, [static::ITEM_NUM_3, static::ITEM_NUM_5])) {
                     throw new DispatchException("Dispatch Route Class Error");
-                }
-
-                if($itemNum == 3) {
-                    $controllerName = substr($dispatchRouteItems[2], 0 ,strlen($dispatchRouteItems[2]) - strlen('Controller'));
-                    $routeUri = DIRECTORY_SEPARATOR.$controllerName.DIRECTORY_SEPARATOR.$routerMeta['dispatch_route'][1];
-                }else if($itemNum == 5) {
-                    $moduleName = $dispatchRouteItems[2];
-                    $controllerName = substr($dispatchRouteItems[4], 0 ,strlen($dispatchRouteItems[4]) - strlen('Controller'));
-                    $routeUri = DIRECTORY_SEPARATOR.$moduleName.DIRECTORY_SEPARATOR.$controllerName.DIRECTORY_SEPARATOR.$routerMeta['dispatch_route'][1];
                 }
             }
 
@@ -574,7 +444,7 @@ class HttpRoute extends AppDispatch
             }
 
             $afterHandle = array_values($routerMeta);
-            $routeCache = [$middleware, $beforeHandle, $routeUri, $afterHandle, $method, $groupMeta];
+            $routeCache = [$middleware, $beforeHandle, $originDispatchRoute, $afterHandle, $method, $groupMeta];
             self::$routeCache[$uri] = $routeCache;
             unset($routerMap[$uri]);
             return $routeCache;
