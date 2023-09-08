@@ -304,19 +304,19 @@ trait RequestParseTrait
     }
 
     /**
-     * getRoute
-     * @return string
+     * getDispatchRoute
+     * @return array
      */
-    public function getRoute(): string
+    public function getDispatchRoute(): string
     {
-        return $this->request->server['ROUTE'];
+        return $this->request->server['DISPATCH_ROUTE'] ?? [];
     }
 
     /**
      * getQueryString
      * @return string|null
      */
-    public function getQueryString()
+    public function getQueryString(): ?string
     {
         if (isset($this->request->server['QUERY_STRING'])) {
             return $this->request->server['QUERY_STRING'];
@@ -395,18 +395,18 @@ trait RequestParseTrait
      * getRoute
      * @return array
      */
-    public function getRouteParams(): array
+    public function getRouteItems(): array
     {
-        return $this->request->server['ROUTE_PARAMS'];
+        return $this->request->server['ROUTE_ITEMS'];
     }
 
     /**
      * getModule
      * @return string|null
      */
-    public function getModuleId()
+    public function getModuleId(): ?string
     {
-        list($count, $routeParams) = $this->getRouteParams();
+        list($count, $routeParams) = $this->getRouteItems();
         if ($count == 3) {
             return $routeParams[0];
         }
@@ -419,7 +419,7 @@ trait RequestParseTrait
      */
     public function getControllerId(): string
     {
-        list($count, $routeParams) = $this->getRouteParams();
+        list($count, $routeParams) = $this->getRouteItems();
         if ($count == 3) {
             return $routeParams[1];
         } else {
@@ -433,7 +433,7 @@ trait RequestParseTrait
      */
     public function getActionId(): string
     {
-        list($count, $routeParams) = $this->getRouteParams();
+        list($count, $routeParams) = $this->getRouteItems();
         return array_pop($routeParams);
     }
 
