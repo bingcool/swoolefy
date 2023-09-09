@@ -116,7 +116,7 @@ class Swoole extends BaseObject
     public function run(?int $fd, $payload, array $extendData = [])
     {
         $this->fd = $fd;
-        $this->creatObject();
+        $this->initCoreComponent();
         Application::setApp($this);
         $this->defer();
         $this->_init($payload);

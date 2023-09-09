@@ -124,7 +124,7 @@ class App extends \Swoolefy\Core\Component
     {
         try {
             $this->parseHeaders($request);
-            parent::creatObject();
+            $this->initCoreComponent();
             $this->request  = $request;
             $this->response = $response;
             $this->requestInput = new RequestInput($this->request, $this->response);

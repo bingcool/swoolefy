@@ -73,10 +73,10 @@ class Swfy
     /**
      * createComponent
      * @param string $com_alias_name
-     * @param mixed $definition
+     * @param \Closure $definition
      * @return mixed
      */
-    public static function createComponent(?string $com_alias_name, $definition = [])
+    public static function createComponent(?string $com_alias_name, \Closure $definition)
     {
         return Application::getApp()->creatObject($com_alias_name, $definition);
     }
