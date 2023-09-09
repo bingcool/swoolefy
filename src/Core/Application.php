@@ -49,7 +49,7 @@ class Application
             }
         } else {
             // process进程中,本身不产生协程,默认返回-1,可以通过设置第四个参数enable_coroutine = true启用协程
-            // 同时可以使用go()创建协程,创建应用单例,单例继承于EventController类
+            // 同时可以使用goApp()创建协程,创建应用单例,单例继承于EventController类
             if ($App instanceof \Swoolefy\Core\EventController) {
                 return $closure($App);
             }

@@ -48,7 +48,7 @@ class Route
         $uri = self::parseUri($uri, $groupMeta);
         return self::$routeMap[$uri] = [
             'group_meta' => $groupMeta,
-            'method' => 'GET',
+            'method' => ['GET'],
             'route_meta' => $routeMeta
         ];
     }
@@ -64,7 +64,7 @@ class Route
         $uri = self::parseUri($uri, $groupMeta);
         return self::$routeMap[$uri] = [
             'group_meta' => $groupMeta,
-            'method' => 'POST',
+            'method' => ['POST'],
             'route_meta' => $routeMeta
         ];
     }
@@ -80,7 +80,7 @@ class Route
         $uri = self::parseUri($uri, $groupMeta);
         return self::$routeMap[$uri] = [
             'group_meta' => $groupMeta,
-            'method' => 'PUT',
+            'method' => ['PUT'],
             'route_meta' => $routeMeta
         ];
     }
@@ -96,7 +96,7 @@ class Route
         $uri = self::parseUri($uri, $groupMeta);
         return self::$routeMap[$uri] = [
             'group_meta' => $groupMeta,
-            'method' => 'DELETE',
+            'method' => ['DELETE'],
             'route_meta' => $routeMeta
         ];
     }
@@ -112,7 +112,27 @@ class Route
         $uri = self::parseUri($uri, $groupMeta);
         return self::$routeMap[$uri] = [
             'group_meta' => $groupMeta,
-            'method' => 'HEAD',
+            'method' => ['HEAD'],
+            'route_meta' => $routeMeta
+        ];
+    }
+
+    /**
+     * @param array $methods
+     * @param string $uri
+     * @param array $routeMeta
+     * @return array
+     */
+    public static function match(array $methods, string $uri, array $routeMeta)
+    {
+        foreach ($methods as &$method) {
+            $method = strtoupper($method);
+        }
+        $groupMeta = Context::get('__current_request_group_meta') ?? [];
+        $uri = self::parseUri($uri, $groupMeta);
+        return self::$routeMap[$uri] = [
+            'group_meta' => $groupMeta,
+            'method' => $methods,
             'route_meta' => $routeMeta
         ];
     }

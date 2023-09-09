@@ -83,17 +83,27 @@ Route::group([
 
 
     Route::get('/ws', [
-        'dispatch_route' => [\Test\Controller\WsController::className(), 'test1'],
+        'dispatch_route' => [\Test\Controller\WsController::class, 'test1'],
     ]);
 
     Route::get('/send-task-worker', [
-        'dispatch_route' => [\Test\Controller\ProcessController::className(), 'sendTaskWorker'],
+        'dispatch_route' => [\Test\Controller\ProcessController::class, 'sendTaskWorker'],
     ]);
 
     Route::get('/cache/test', [
-        'dispatch_route' => [\Test\Controller\CacheController::className(), 'test'],
+        'dispatch_route' => [\Test\Controller\CacheController::class, 'test'],
     ]);
 
+    Route::match(['GET','POST'],'/cache/test1', [
+        'dispatch_route' => [\Test\Controller\CacheController::class, 'test1'],
+    ]);
 
+    Route::match(['GET','POST'],'/queue/push', [
+        'dispatch_route' => [\Test\Controller\QueueController::class, 'push'],
+    ]);
 
 });
+
+Route::match(['GET'],'/cache/test1', [
+    'dispatch_route' => [\Test\Controller\CacheController::class, 'test1'],
+]);

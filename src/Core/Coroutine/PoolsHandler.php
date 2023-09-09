@@ -203,7 +203,9 @@ class PoolsHandler
                 unset($obj);
                 --$this->callCount;
                 if ($this->channel->length() < $this->poolsNum) {
-                    $this->make(1);
+                    (new \Swoolefy\Core\EventApp)->registerApp(function() {
+                        $this->make(1);
+                    });
                 }
             }
 

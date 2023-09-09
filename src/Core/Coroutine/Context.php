@@ -54,11 +54,8 @@ class Context
     public static function set(string $name, $value): bool
     {
         $context = self::getContext();
-        if ($context) {
-            $context[$name] = $value;
-            return true;
-        }
-        return false;
+        $context[$name] = $value;
+        return true;
     }
 
     /**
@@ -68,10 +65,18 @@ class Context
     public static function get(string $name)
     {
         $context = self::getContext();
-        if ($context) {
-            return $context[$name];
-        }
-        return null;
+        return $context[$name];
+    }
+
+    /**
+     * @param string $name
+     * @return bool
+     */
+    public static function delete(string $name)
+    {
+        $context = self::getContext();
+        unset($context[$name]);
+        return true;
     }
 
     /**
@@ -81,10 +86,8 @@ class Context
     public static function has(string $name): bool
     {
         $context = self::getContext();
-        if ($context) {
-            if (isset($context[$name])) {
-                return true;
-            }
+        if (isset($context[$name])) {
+            return true;
         }
         return false;
     }
