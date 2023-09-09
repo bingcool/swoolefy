@@ -120,11 +120,11 @@ class App extends \Swoolefy\Core\Component
      * @return void
      * @throws \Throwable
      */
-    public function run(Request $request, Response $response, mixed $extendData = null)
+    public function run(Request $request, Response $response, $extendData = null)
     {
         try {
             $this->parseHeaders($request);
-            parent::creatObject();
+            $this->initCoreComponent();
             $this->request  = $request;
             $this->response = $response;
             $this->requestInput = new RequestInput($this->request, $this->response);

@@ -73,10 +73,10 @@ class Swfy
     /**
      * createComponent
      * @param string $com_alias_name
-     * @param mixed $definition
+     * @param \Closure $definition
      * @return mixed
      */
-    public static function createComponent(string $com_alias_name, \Closure|array $definition = [])
+    public static function createComponent(?string $com_alias_name, \Closure $definition)
     {
         return Application::getApp()->creatObject($com_alias_name, $definition);
     }
@@ -87,7 +87,7 @@ class Swfy
      * @param bool $isAll
      * @return bool
      */
-    public static function removeComponent(string|array $com_alias_name, bool $isAll = false)
+    public static function removeComponent($com_alias_name, bool $isAll = false)
     {
         return Application::getApp()->clearComponent($com_alias_name, $isAll);
     }
@@ -97,7 +97,7 @@ class Swfy
      * @param string $com_alias_name
      * @return mixed
      */
-    public static function getComponent(string $com_alias_name)
+    public static function getComponent(?string $com_alias_name = null)
     {
         return Application::getApp()->getComponents($com_alias_name);
     }

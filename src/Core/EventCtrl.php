@@ -110,7 +110,7 @@ class EventCtrl implements EventCtrlInterface
      */
     protected function isWorkerService(): bool
     {
-        return isWorkerService();
+        return SystemEnv::isWorkerService();
     }
 
     /**
@@ -140,7 +140,7 @@ class EventCtrl implements EventCtrlInterface
      */
     public function workerStart($server, $worker_id)
     {
-        if(!isWorkerService()) {
+        if(!SystemEnv::isWorkerService()) {
             $this->registerComponentPools();
         }
         static::onWorkerStart($server, $worker_id);
