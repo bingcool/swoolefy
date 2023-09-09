@@ -32,4 +32,30 @@ class CacheController extends BController
 //            'data' => $cache->get('bing-name')
 //        ]);
     }
+
+
+    public function test1()
+    {
+        var_dump("parent cid =".\Swoole\Coroutine::getCid());
+        \Swoolefy\Core\Coroutine\Context::set('name','kkkkkkkkkkkkkkkkkkkkkkkk');
+        goApp(function () {
+            goApp(function () {
+                goApp(function () {
+                    $arrayCopy = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
+                    var_dump($arrayCopy);
+                });
+            });
+        });
+
+        /**
+         * @var RedisCache $cache
+         */
+        $cache = Application::getApp()->get('cache');
+        $cache->set('bing-name',['name'=>'bingcool'], 10);
+        var_dump($cache->get('bing-name'));
+
+//        $this->returnJson([
+//            'data' => $cache->get('bing-name')
+//        ]);
+    }
 }

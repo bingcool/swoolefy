@@ -80,7 +80,7 @@ class HttpRoute extends AppDispatch
     protected $afterHandle = [];
 
     /**
-     * @var string
+     * @var array
      */
     protected $routeMethod;
 
@@ -124,8 +124,9 @@ class HttpRoute extends AppDispatch
     public function dispatch()
     {
         $method = $this->requestInput->getMethod();
-        if ($this->routeMethod != 'ANY' && $method != $this->routeMethod) {
-            throw new DispatchException("Not Allow Route Method.You should use [$this->routeMethod] method.");
+        if ($this->routeMethod != 'ANY' && !in_array($method, $this->routeMethod)) {
+            $routeMethods = implode(',', $this->routeMethod);
+            throw new DispatchException("Not Allow Route Method.You should use [$routeMethods] method.");
         }
 
         if (!isset($this->appConf['app_namespace']) || $this->appConf['app_namespace'] != APP_NAME ) {
@@ -136,12 +137,10 @@ class HttpRoute extends AppDispatch
         $count = count($dispatchRouteItem);
         switch ($count) {
             case static::ITEM_NUM_3:
-                // Module/Controller/Action
                 $module = null;
                 $controller = $dispatchRouteItem[2];
                 break;
             case static::ITEM_NUM_5 :
-                // Module/Controller/Action
                 $module = $dispatchRouteItem[2];
                 $controller = $dispatchRouteItem[4];
                 break;
