@@ -67,7 +67,7 @@ class Swoole extends BaseObject
      * @param mixed $payload
      * @return void
      */
-    protected function _init(mixed $payload = null)
+    protected function _init($payload = null)
     {
         static::init($payload);
     }
@@ -76,7 +76,7 @@ class Swoole extends BaseObject
      * bootstrap
      * @param mixed $payload
      */
-    protected function _bootstrap(mixed $payload = null)
+    protected function _bootstrap($payload = null)
     {
         static::bootstrap($payload);
         if (isset(Swfy::getConf()['application_service']) && !empty(Swfy::getConf()['application_service'])) {
@@ -92,7 +92,7 @@ class Swoole extends BaseObject
      * @param mixed $payload
      * @return void
      */
-    public function init(mixed $payload)
+    public function init($payload)
     {
     }
 
@@ -101,7 +101,7 @@ class Swoole extends BaseObject
      * @param mixed $payload
      * @return void
      */
-    public function bootstrap(mixed $payload)
+    public function bootstrap($payload)
     {
     }
 
@@ -111,11 +111,12 @@ class Swoole extends BaseObject
      * @param mixed $payload
      * @param array $extendData
      * @return void
+     * @throws \Exception
      */
-    public function run(?int $fd, mixed $payload, array $extendData = [])
+    public function run(?int $fd, $payload, array $extendData = [])
     {
         $this->fd = $fd;
-        $this->creatObject();
+        $this->initCoreComponent();
         Application::setApp($this);
         $this->defer();
         $this->_init($payload);
@@ -154,7 +155,7 @@ class Swoole extends BaseObject
     /**
      * @param $mixedParams
      */
-    public function setMixedParams(mixed $mixedParams)
+    public function setMixedParams($mixedParams)
     {
         $this->mixedParams = $mixedParams;
     }

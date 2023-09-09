@@ -37,71 +37,40 @@ trait ComponentTrait
     protected $componentPoolsObjIds = [];
 
     /**
+     * @return ContainerObjectDto|void
+     */
+    public function initCoreComponent()
+    {
+        $coreComponents = $this->coreComponents();
+        if (!empty($coreComponents)) {
+            $components = Swfy::getAppConf()['components'];
+            foreach ($coreComponents as $comAliasName) {
+                $func = $components[$comAliasName] ?? null;
+                if ($func instanceof \Closure && !isset($this->containers[$comAliasName])) {
+                    $object = call_user_func($func, $comAliasName);
+                    return $this->containers[$comAliasName] = $this->buildContainerObject($object, $comAliasName);
+                }
+            }
+        }
+    }
+
+    /**
      * creatObject
      *
      * @param string $comAliasName
-     * @param \Closure|array $definition
+     * @param \Closure $definition
      * @return mixed
      * @throws SystemException
      */
-    public function creatObject(?string $comAliasName = null, \Closure|array $definition = [])
+    public function creatObject(string $comAliasName, \Closure $definition)
     {
         // dynamic create component object
-        if ($comAliasName) {
-            if (!isset($this->containers[$comAliasName]) || !is_object($this->containers[$comAliasName])) {
-                if ($definition instanceof \Closure) {
-                    $object = call_user_func($definition, $comAliasName);
-                    return $this->containers[$comAliasName] = $this->buildContainerObject($object, $comAliasName);
-                } else if (is_array($definition) && isset($definition['class'])) {
-                    $class = $definition['class'];
-                    unset($definition['class']);
-                    $params = [];
-                    if (isset($definition['constructor'])) {
-                        $params = $definition['constructor'];
-                        unset($definition['constructor']);
-                    }
-                    if (isset($definition[SWOOLEFY_COM_IS_DELAY])) {
-                        unset($definition[SWOOLEFY_COM_IS_DELAY]);
-                    }
-                    return $this->containers[$comAliasName] = $this->buildInstance($class, $definition, $params, $comAliasName);
-                } else {
-                    throw new SystemException(sprintf("component:%s must be set class", $comAliasName));
-                }
-
-            } else {
-                return $this->containers[$comAliasName];
-            }
-
+        if (!isset($this->containers[$comAliasName]) || !is_object($this->containers[$comAliasName])) {
+            $object = call_user_func($definition, $comAliasName);
+            return $this->containers[$comAliasName] = $this->buildContainerObject($object, $comAliasName);
+        } else {
+            return $this->containers[$comAliasName];
         }
-        // create component object by config file
-        $coreComponents = $this->coreComponents();
-        $components = array_merge($coreComponents, BaseServer::getAppConf()['components']);
-        foreach ($components as $comName => $component) {
-            if ($component instanceof \Closure) {
-                // delay create
-                continue;
-            }
-
-            if (isset($this->containers[$comName]) && is_object($this->containers[$comName])) {
-                continue;
-            }
-
-            if (isset($component['class']) && !empty($component['class'])) {
-                $class = $component['class'];
-                unset($component['class']);
-                $params = [];
-                if (isset($component['constructor'])) {
-                    $params = $component['constructor'];
-                    unset($component['constructor']);
-                }
-                $definition = $component;
-                $this->containers[$comName] = $this->buildInstance($class, $definition, $params, $comName);
-            } else {
-                $this->containers[$comName] = false;
-            }
-        }
-        return $this->containers;
-
     }
 
     /**
@@ -126,71 +95,6 @@ trait ComponentTrait
         }
 
         return [$reflection, $dependencies];
-    }
-
-    /**
-     * @param string $class
-     * @param array $definition
-     * @param array $params
-     * @param string $comAliasName
-     * @return object
-     * @throws SystemException
-     */
-    protected function buildInstance(string $class, array $definition, array $params, string $comAliasName)
-    {
-        /**@var \ReflectionClass $reflection */
-        list ($reflection, $dependencies) = $this->getDependencies($class);
-
-        foreach ($params as $index => $param) {
-            $dependencies[$index] = $param;
-        }
-
-        if (!$reflection->isInstantiable()) {
-            throw new SystemException($reflection->name);
-        }
-
-        if (empty($definition)) {
-            $object = $reflection->newInstanceArgs($dependencies);
-            return $object;
-        }
-
-        $object = $reflection->newInstanceArgs($dependencies);
-
-        // 回调必须设置在配置的最后
-        if (isset($definition[SWOOLEFY_COM_FUNC])) {
-            $keys = array_keys($definition);
-            if (end($keys) != SWOOLEFY_COM_FUNC) {
-                $func = $definition[SWOOLEFY_COM_FUNC];
-                unset($definition[SWOOLEFY_COM_FUNC]);
-                $definition[SWOOLEFY_COM_FUNC] = $func;
-            }
-            unset($keys);
-        }
-
-        foreach ($definition as $name => $value) {
-            if ($name == SWOOLEFY_COM_IS_DELAY) {
-                continue;
-            }
-
-            if ($name == SWOOLEFY_COM_FUNC) {
-                if (is_string($definition[$name]) && method_exists($object, $definition[$name])) {
-                    call_user_func_array([$object, $definition[$name]], [$definition]);
-                } else if ($definition[$name] instanceof \Closure) {
-                    $closure = $definition[$name];
-                    $closure->call($object, $definition);
-                } else {
-                    throw new SystemException(sprintf("%s of component's config item 'func' is not Closure or %s instance is not exists of method", $comAliasName, $comAliasName));
-                }
-                continue;
-            } else if (isset($object->$name) && @is_array($object->$name)) {
-                $object->$name = array_merge_recursive($object->$name, $value);
-                continue;
-            }
-
-            $object->$name = $value;
-        }
-
-        return $this->buildContainerObject($object, $comAliasName);
     }
 
     /**
@@ -263,7 +167,7 @@ trait ComponentTrait
      * coreComponents 定义核心组件
      * @return array
      */
-    public function coreComponents()
+    protected function coreComponents()
     {
         return [];
     }

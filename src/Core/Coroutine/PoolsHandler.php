@@ -140,13 +140,11 @@ class PoolsHandler
     }
 
     /**
-     * @return Channel
+     * @return Channel|null
      */
     public function getChannel()
     {
-        if (isset($this->channel)) {
-            return $this->channel;
-        }
+        return $this->channel;
     }
 
     /**
@@ -204,6 +202,9 @@ class PoolsHandler
             } else {
                 unset($obj);
                 --$this->callCount;
+                if ($this->channel->length() < $this->poolsNum) {
+                    $this->make(1);
+                }
             }
 
             if ($this->callCount < 0) {
