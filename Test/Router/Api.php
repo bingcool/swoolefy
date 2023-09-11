@@ -30,7 +30,9 @@ Route::group([
 
         'afterHandle' => function(RequestInput $requestInput) {
             var_dump('afterHandle');
+            var_dump("after:".$requestInput->getValue('name'));
         },
+
         'afterHandle1' => function(RequestInput $requestInput) {
             var_dump('afterHandle1');
         },

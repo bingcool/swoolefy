@@ -19,13 +19,7 @@ return [
             'push_timeout' => 2,
             'pop_timeout' => 1,
             'live_time' => 10
-        ],
-        'queue' => [
-            'pools_num' => 5,
-            'push_timeout' => 2,
-            'pop_timeout' => 1,
-            'live_time' => 10
-        ],
+        ]
     ],
 
     // default_db

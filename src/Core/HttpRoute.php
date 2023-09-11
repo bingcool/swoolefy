@@ -222,6 +222,8 @@ class HttpRoute extends AppDispatch
             if ($method->isPublic() && !$method->isStatic()) {
                 $controllerInstance->{$action}(...$args);
                 $controllerInstance->_afterAction($action);
+                $extendData = $controllerInstance->getExtendData();
+                $this->requestInput->setExtendData($extendData);
                 $this->handleAfterRouteMiddles();
             } else {
                 $errorMsg = sprintf(
