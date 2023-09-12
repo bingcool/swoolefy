@@ -319,6 +319,7 @@ class Logger
         $record['level'] = $level;
         $record['level_name'] = $levelName;
         $record['channel'] = $this->name;
+        $record['extra'] = [];
 
         while ($handler = current($this->handlers)) {
             if (true === $handler->handle($record)) {
