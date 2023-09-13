@@ -3,6 +3,7 @@ namespace Test\Process\TickProcess;
 
 use Common\Library\Db\Mysql;
 use Swoolefy\Core\Application;
+use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\Process\AbstractProcess;
 use Swoolefy\Core\Timer\TickManager;
 use Test\Factory;
@@ -19,10 +20,11 @@ class Tick extends AbstractProcess {
 //        });
         var_dump('This is process tick, class='.__CLASS__);
         // 创建定时器处理实例
-//        TickManager::getInstance()->tickTimer(3000,
-//            [TickController::class, 'tickTest'],
-//            ['name'=>'swoolefy-tick']
-//        );
+        Context::set('test-tick','mmmmmmmmmmmmmm');
+        TickManager::getInstance()->tickTimer(3000,
+            [TickController::class, 'tickTest'],
+            ['name'=>'swoolefy-tick']
+        );
 
 //        TickManager::getInstance()->tickTimer(3000, function () {
 //            $count = Factory::getDb()->createCommand("select count(1) as total from tbl_users")->count();
@@ -95,12 +97,12 @@ class Tick extends AbstractProcess {
 //                $count = Db::connect('db')->query('select count(1) as total from tbl_order');
 //                var_dump($count);
 
-                $result = $query->newQuery()->table('tbl_order')->where('order_id',1687344503)->field(['user_id' => 'id'])->cursor();
-
-                foreach ($result as $item) {
-                    var_dump($item);
-                    break;
-                }
+//                $result = $query->newQuery()->table('tbl_order')->where('order_id',1687344503)->field(['user_id' => 'id'])->cursor();
+//
+//                foreach ($result as $item) {
+//                    var_dump($item);
+//                    break;
+//                }
 
 //                $order = OrderEntity::where('order_id', '=', 1687344503)->find();
 //                var_dump($order);

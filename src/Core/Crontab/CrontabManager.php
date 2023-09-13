@@ -14,6 +14,7 @@ namespace Swoolefy\Core\Crontab;
 use Cron\CronExpression;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Exception\CronException;
 
 class CrontabManager
@@ -61,8 +62,12 @@ class CrontabManager
             }
         }
 
+        $arrayCopy = Context::getContext()->getArrayCopy();
         if(is_numeric($expression)) {
-            \Swoole\Timer::tick($expression * 1000, function ($timerId, $expression) use ($func, $cronName, $class) {
+            \Swoole\Timer::tick($expression * 1000, function ($timerId, $expression) use ($func, $cronName, $class, $arrayCopy) {
+                foreach ($arrayCopy as $key=>$value) {
+                    Context::set($key, $value);
+                }
                 goApp(function () use ($expression, $func, $cronName, $class) {
                     try {
                         if ($func instanceof \Closure) {
@@ -80,7 +85,7 @@ class CrontabManager
                             }
                         }
                     } catch (\Throwable $throwable) {
-                        BaseServer::catchException($throwable);
+                       throw $throwable;
                     } finally {
                         if (isset($cronControllerInstance)) {
                             /**
@@ -94,7 +99,10 @@ class CrontabManager
 
         }else {
             if (is_array($func)) {
-                \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($class, $cronName) {
+                \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($class, $cronName, $arrayCopy) {
+                    foreach ($arrayCopy as $key=>$value) {
+                        Context::set($key, $value);
+                    }
                     goApp(function () use ($timerId, $expression, $class, $cronName) {
                         try {
                             /**
@@ -103,20 +111,23 @@ class CrontabManager
                             $cronControllerInstance = new $class;
                             $cronControllerInstance->runCron($cronName, $expression, null);
                         } catch (\Throwable $throwable) {
-                            BaseServer::catchException($throwable);
+                           throw $throwable;
                         } finally {
                             Application::removeApp($cronControllerInstance->coroutineId);
                         }
                     });
                 }, $expression);
             } else {
-                \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($func, $cronName) {
+                \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($func, $cronName, $arrayCopy) {
+                    foreach ($arrayCopy as $key=>$value) {
+                        Context::set($key, $value);
+                    }
                     goApp(function () use($timerId, $expression, $func, $cronName ) {
                         try {
                             $cronControllerInstance = $this->buildCronControllerInstance();
                             $cronControllerInstance->runCron($cronName, $expression, $func);
                         } catch (\Throwable $throwable) {
-                            BaseServer::catchException($throwable);
+                            throw $throwable;
                         } finally {
                             Application::removeApp($cronControllerInstance->coroutineId);
                         }

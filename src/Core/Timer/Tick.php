@@ -13,7 +13,7 @@ namespace Swoolefy\Core\Timer;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
-use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Exception\TimerException;
 
@@ -64,34 +64,39 @@ class Tick
      */
     protected static function tick(int $timeIntervalMs, $func, array $params = [])
     {
-        $tid = \Swoole\Timer::tick($timeIntervalMs, function ($timerId, $params) use ($func) {
-            try {
-                if (is_array($func)) {
-                    list($class, $action) = $func;
-                    $tickTaskInstance = new $class;
-                    $tickTaskInstance->{$action}(...[$params, $timerId]);
-                } else if ($func instanceof \Closure) {
-                    $tickTaskInstance = new TickController();
-                    call_user_func($func, $params, $timerId);
-                }
-                // call after action
-                $tickTaskInstance->afterHandle();
-            } catch (\Throwable $throwable) {
-                BaseServer::catchException($throwable);
-            } finally {
-                if (isset($tickTaskInstance)) {
-                    if ($tickTaskInstance->isDefer() === false) {
-                        $tickTaskInstance->end();
-                    }
-
-                    if (is_object($tickTaskInstance)) {
-                        Application::removeApp($tickTaskInstance->getCid());
-                    }
-                    unset($tickTaskInstance);
-                }
+        $arrayCopy = Context::getContext()->getArrayCopy();
+        $tid = \Swoole\Timer::tick($timeIntervalMs, function ($timerId, $params) use ($func, $arrayCopy) {
+            foreach ($arrayCopy as $key=>$value) {
+               Context::set($key, $value);
             }
-            unset($class, $action, $func);
+            goApp(function() use($timerId, $params, $func) {
+                try {
+                    if (is_array($func)) {
+                        list($class, $action) = $func;
+                        $tickTaskInstance = new $class;
+                        $tickTaskInstance->{$action}(...[$params, $timerId]);
+                    } else if ($func instanceof \Closure) {
+                        $tickTaskInstance = new TickController();
+                        call_user_func($func, $params, $timerId);
+                    }
+                    // call after action
+                    $tickTaskInstance->afterHandle();
+                } catch (\Throwable $throwable) {
+                    throw $throwable;
+                } finally {
+                    if (isset($tickTaskInstance)) {
+                        if ($tickTaskInstance->isDefer() === false) {
+                            $tickTaskInstance->end();
+                        }
 
+                        if (is_object($tickTaskInstance)) {
+                            Application::removeApp($tickTaskInstance->getCid());
+                        }
+                        unset($tickTaskInstance);
+                    }
+                }
+                unset($class, $action, $func);
+            });
         }, $params);
 
         if ($tid) {
@@ -172,36 +177,41 @@ class Tick
      */
     protected static function after(int $timeIntervalMs, $func, array $params = [])
     {
-        $timerId = \Swoole\Timer::after($timeIntervalMs, function ($params) use ($func) {
-            try {
-                $timer_id = null;
-                if (is_array($func)) {
-                    list($class, $action) = $func;
-                    $tickTaskInstance = new $class;
-                    $tickTaskInstance->{$action}(...[$params, $timer_id]);
-                } else if ($func instanceof \Closure) {
-                    $tickTaskInstance = new TickController;
-                    call_user_func($func, $params, $timer_id);
-                }
-                // call after action
-                $tickTaskInstance->afterHandle();
-            } catch (\Throwable $throwable) {
-                BaseServer::catchException($throwable);
-            } finally {
-                if (isset($tickTaskInstance)) {
-                    if ($tickTaskInstance->isDefer() === false) {
-                        $tickTaskInstance->end();
-                    }
-
-                    if (is_object($tickTaskInstance)) {
-                        Application::removeApp($tickTaskInstance->getCid());
-                    }
-                    unset($tickTaskInstance);
-                }
+        $arrayCopy = Context::getContext()->getArrayCopy();
+        $timerId = \Swoole\Timer::after($timeIntervalMs, function ($params) use ($func, $arrayCopy) {
+            foreach ($arrayCopy as $key=>$value) {
+                Context::set($key, $value);
             }
+            goApp(function () use($params, $func) {
+                try {
+                    $timer_id = null;
+                    if (is_array($func)) {
+                        list($class, $action) = $func;
+                        $tickTaskInstance = new $class;
+                        $tickTaskInstance->{$action}(...[$params, $timer_id]);
+                    } else if ($func instanceof \Closure) {
+                        call_user_func($func, $params, $timer_id);
+                    }
+                    // call after action
+                    $tickTaskInstance->afterHandle();
+                } catch (\Throwable $throwable) {
+                    throw $throwable;
+                } finally {
+                    if (isset($tickTaskInstance)) {
+                        if ($tickTaskInstance->isDefer() === false) {
+                            $tickTaskInstance->end();
+                        }
 
-            self::updateRunAfterTick();
-            unset($class, $action, $func);
+                        if (is_object($tickTaskInstance)) {
+                            Application::removeApp($tickTaskInstance->getCid());
+                        }
+                        unset($tickTaskInstance);
+                    }
+                }
+
+                self::updateRunAfterTick();
+                unset($class, $action, $func);
+            });
         }, $params);
 
         if ($timerId) {
