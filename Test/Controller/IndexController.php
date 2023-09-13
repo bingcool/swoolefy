@@ -50,8 +50,7 @@ class IndexController extends BController {
 
     public function testLog1()
     {
-        $log = LogManager::getInstance()->getLogger('log');
-        $log->addInfo('test11111-log-id='.rand(1,1000),true);
+        RunLog::info('test11111-log-id='.rand(1,1000),true);
         $this->returnJson([
             'Controller' => $this->getControllerId(),
             'Action' => $this->getActionId()

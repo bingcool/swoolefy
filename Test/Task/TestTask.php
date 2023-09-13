@@ -6,6 +6,7 @@ use Swoolefy\Core\Application;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Task\TaskController;
 use Test\Factory;
+use Test\Logger\RunLog;
 
 class TestTask extends TaskController
 {
@@ -46,8 +47,7 @@ class TestTask extends TaskController
                 $cid = \Swoole\Coroutine::getCid();
                 //var_dump("协程2-Cid={$cid}, Db spl_object_id=".spl_object_id($db).', spl_object_id='.spl_object_id($db1));
 
-                $log = LogManager::getInstance()->getLogger('log');
-                $log->addInfo('task task-log-id='.rand(1,1000),true, ['name'=>'bingcoolhuang']);
+                RunLog::info('task task-log-id='.rand(1,1000),true, ['name'=>'bingcoolhuang']);
             });
         });
 
