@@ -39,6 +39,7 @@ class MainCliScript extends AbstractScriptWorker {
      */
     public function init()
     {
+        write("【Info】 script start \n", 'green');
         $this->generateTraceId();
     }
 
@@ -65,6 +66,7 @@ class MainCliScript extends AbstractScriptWorker {
                 $this->exitAll(true);
                 return;
             }
+            write("【Info】 running action={$action}......\n", 'green');
             list($method, $params) = Helper::parseActionParams($this, $action, Helper::getCliParams());
             $this->{$action}(...$params);
             $this->waitCoroutineFinish();
@@ -136,14 +138,15 @@ class MainCliScript extends AbstractScriptWorker {
     {
         $swooleMasterPid = Swfy::getMasterPid();
         if(\Swoole\Process::kill($swooleMasterPid, 0) && !$this->exitAll) {
+            $pidFile = Swfy::getConf()['setting']['pid_file'];
+            @unlink($pidFile);
+            write("【Info】 script end! ", 'green');
             if($force) {
                 \Swoole\Process::kill($swooleMasterPid, SIGKILL);
             }else {
                 \Swoole\Process::kill($swooleMasterPid, SIGTERM);
             }
             $this->exitAll = true;
-            $pidFile = Swfy::getConf()['setting']['pid_file'];
-            @unlink($pidFile);
         }
     }
 
