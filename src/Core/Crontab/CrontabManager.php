@@ -103,7 +103,7 @@ class CrontabManager
                             $cronControllerInstance = new $class;
                             $cronControllerInstance->runCron($cronName, $expression, null);
                         } catch (\Throwable $throwable) {
-                            BaseServer::catchException($throwable);
+                           throw $throwable;
                         } finally {
                             Application::removeApp($cronControllerInstance->coroutineId);
                         }
@@ -116,7 +116,7 @@ class CrontabManager
                             $cronControllerInstance = $this->buildCronControllerInstance();
                             $cronControllerInstance->runCron($cronName, $expression, $func);
                         } catch (\Throwable $throwable) {
-                            BaseServer::catchException($throwable);
+                            throw $throwable;
                         } finally {
                             Application::removeApp($cronControllerInstance->coroutineId);
                         }
