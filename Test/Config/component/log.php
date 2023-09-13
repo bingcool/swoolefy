@@ -15,6 +15,7 @@ use PhpAmqpLib\Connection\AMQPStreamConnection;
 use Swoolefy\Core\Application;
 use Test\Config\AmqpConfig;
 use Test\Config\KafkaConfig;
+use Swoolefy\Core\SystemEnv;
 
 $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
 
@@ -23,11 +24,11 @@ return [
     'log' => function($name) {
         $logger = new \Swoolefy\Util\Log($name);
         $logger->setChannel('application');
-        if(isDaemonService()) {
+        if(SystemEnv::isDaemonService()) {
             $logFilePath = LOG_PATH.'/daemon.log';
-        }else if (isScriptService()) {
+        }else if (SystemEnv::isScriptService()) {
             $logFilePath = LOG_PATH.'/script.log';
-        }else if (isCronService()) {
+        }else if (SystemEnv::isCronService()) {
             $logFilePath = LOG_PATH.'/cron.log';
         } else {
             $logFilePath = LOG_PATH.'/runtime.log';
@@ -40,11 +41,11 @@ return [
     'error_log' => function($name) {
         $logger = new \Swoolefy\Util\Log($name);
         $logger->setChannel('application');
-        if(isDaemonService()) {
+        if(SystemEnv::isDaemonService()) {
             $logFilePath = LOG_PATH.'/daemon_error.log';
-        }else if (isScriptService()) {
+        }else if (SystemEnv::isScriptService()) {
             $logFilePath = LOG_PATH.'/script_error.log';
-        }else if (isCronService()) {
+        }else if (SystemEnv::isCronService()) {
             $logFilePath = LOG_PATH.'/cron_error.log';
         } else {
             $logFilePath = LOG_PATH.'/error.log';

@@ -57,7 +57,7 @@ class GoWaitGroup
                 call_user_func($callBack, ...$params);
             } catch (\Throwable $throwable) {
                 $this->count--;
-                BaseServer::catchException($throwable);
+                throw $throwable;
             }
         });
     }
@@ -111,7 +111,7 @@ class GoWaitGroup
                     $goWait->done($key, $result, 3.0);
                 } catch (\Throwable $throwable) {
                     $goWait->count--;
-                    BaseServer::catchException($throwable);
+                    throw $throwable;
                 }
             });
         }
