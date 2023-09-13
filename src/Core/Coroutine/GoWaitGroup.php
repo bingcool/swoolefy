@@ -132,12 +132,12 @@ class GoWaitGroup
     /**
      * @param string|null $key
      * @param mixed $data
-     * @param float $timeouts
+     * @param float $timeout
      * @return void
      */
     public function done(
         string $key = null,
-        mixed $data = null,
+        $data = null,
         float $timeout = -1
     )
     {
