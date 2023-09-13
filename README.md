@@ -41,7 +41,7 @@ swoolefy-4.8-lts 版本：
 - [x] 支持DI容器，组件IOC、配置化，Channel公共组件池            
 - [x] 支持协程单例注册,协程上下文变量寄存    
 - [x] 支持mysql、postgreSql、redis协程组件   
-- [x] 支持全局logger组件，trace追踪日志    
+- [x] 支持全局logger组件、trace链路追踪         
 - [x] 支持mysql协程连接池
 - [x] 支持redis协程池   
 - [x] 支持curl协程池   
