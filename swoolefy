@@ -551,9 +551,9 @@ function stopServer($app_name)
     }
 }
 
-function commonStop($app_name)
+function commonStop($appName)
 {
-    $pidFile = getPidFile($app_name);
+    $pidFile = getPidFile($appName);
     if (!is_file($pidFile)) {
         write("[Error] pid file={$pidFile} is not exist, please check the server whether running");
         exit(0);
@@ -642,37 +642,9 @@ function workerStop($appName)
             }
             fclose($pipe);
         }
-
         sleep(3);
-
-        if (getenv('force')) {
-            $result = @\Swoole\Process::kill($masterPid, SIGKILL);
-        } else {
-            $result = \Swoole\Process::kill($masterPid, SIGTERM);
-        }
-
-        if ($result) {
-            write("【Info】Master and Children Process start to stop, please wait a time", 'light_green');
-        }
-
-        $startStopTime = time();
-        while (\Swoole\Process::kill($masterPid, 0)) {
-            if (time() - $startStopTime > 10) {
-                break;
-            }
-            sleep(1);
-        }
-
-        if (\Swoole\Process::kill($masterPid, 0)) {
-            \Swoole\Process::kill($masterPid, SIGKILL);
-        }
-
-        write("【Info】Master and Children Process Stop OK!", 'light_green');
-    } else {
-        write("【Warning】Master Process of Pid={$masterPid} is not running");
+        commonStop($appName);
     }
-
-    exit(0);
 }
 
 function makeDirLogAndPid(array &$config)
