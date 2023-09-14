@@ -495,14 +495,15 @@ abstract class AbstractBaseWorker
                 $this->writeStopFormatInfo();
                 $processName = $this->getProcessName();
                 $workerId    = $this->getProcessWorkerId();
-                $this->writeInfo("【Info】 Start to exit process={$processName}, worker_id={$workerId}");
+                $this->writeInfo("【Start Running 】 process={$processName}, worker_id={$workerId}");
             } catch (\Throwable $throwable) {
                 $this->writeInfo("【Error】Exit error, Process={$processName}, error:" . $throwable->getMessage());
             } finally {
+                $this->writeInfo("【Start End 】 process={$processName}, worker_id={$workerId}");
+                $this->isExit = false;
                 Event::del($this->swooleProcess->pipe);
                 Event::exit();
                 $this->swooleProcess->exit($signo);
-                $this->isExit = false;
             }
         };
     }
@@ -1493,7 +1494,7 @@ abstract class AbstractBaseWorker
             $processType = self::PROCESS_DYNAMIC_TYPE_NAME;
         }
         $pid = $this->getPid();
-        $logInfo = "stop children_process【{$processType}】: {$processName}@{$workerId} stopped, pid={$pid}, master_pid={$this->getMasterPid()}";
+        $logInfo = "【stop start 】process_name={$processName},worker_id={$workerId}, pid={$pid}, master_pid={$this->getMasterPid()}";
         $this->writeInfo($logInfo, 'red');
     }
 
