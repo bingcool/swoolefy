@@ -5,7 +5,7 @@ use Swoolefy\Core\Controller\BController;
 
 class ValidateController extends BController
 {
-    public function test1(string $name, array $ids)
+    public function test1()
     {
         $params = [
             'name'=>'bingcool',
@@ -14,11 +14,11 @@ class ValidateController extends BController
         ];
 
         $this->validate($params, [
-            'id' => 'require',
+            'id' => 'required',
             'mail' =>'require|email'
         ],
         [
-            'id' => 'id必填'
+           'id' => 'id必填'
         ]
         );
 
