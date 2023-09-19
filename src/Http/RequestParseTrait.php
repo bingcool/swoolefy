@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Http;
 
+use Common\Library\Validate;
+
 trait RequestParseTrait
 {
     /**
@@ -33,6 +35,16 @@ trait RequestParseTrait
      * @var array
      */
     protected $extendData = [];
+
+    /**
+     * @var Validate
+     */
+    protected $validator;
+
+    /**
+     * @var array
+     */
+    protected $rules;
 
     /**
      * isGet
@@ -164,6 +176,16 @@ trait RequestParseTrait
     public function input(?string $name = null, $default = null)
     {
         return $this->getRequestParams($name, $default);
+    }
+
+    /**
+     * @param string|null $name
+     * @param $default
+     * @return mixed
+     */
+    public function all()
+    {
+        return $this->getRequestParams(null, null);
     }
 
     /**
@@ -582,6 +604,117 @@ trait RequestParseTrait
     public function setExtendData(array $extendData)
     {
         $this->extendData = $extendData;
+    }
+
+    /**
+     * validate request data
+     *
+     * @param array $params
+     * @param array $rules
+     * @return Validate|null
+     */
+    public function validate(array $params, array $rules, array $message = [])
+    {
+        if (empty($this->validator)) {
+            $this->validator = new Validate();
+        }
+
+        if (empty($rules)) {
+            return $this->validator;
+        }
+
+        $this->rules = $rules;
+        foreach ($rules as $name => $rule) {
+            $this->validator->rule($name, $rule);
+        }
+
+        if (!empty($message)) {
+            $this->validator->message($message);
+        }
+
+        $this->validator->failException(true);
+        $this->validator->check($params);
+
+        $fn = function ($method, $value, $fieldRules, $name) {
+            if (is_numeric($value)) {
+                if (is_string($fieldRules)) {
+                    $fieldRules = explode('|', $fieldRules);
+                }
+                foreach ($fieldRules as $fieldRule) {
+                    switch ($fieldRule) {
+                        case 'integer':
+                        case 'int':
+                            $this->request->{$method}[$name] = (int) $value;
+                            break;
+                        case 'float':
+                            $this->request->{$method}[$name] = (float) $value;
+                            break;
+                        case 'boolean':
+                        case 'bool':
+                            $this->request->{$method}[$name] = (bool) $value;
+                            break;
+                        case 'array':
+                            if (is_float(floatval($value))) {
+                                $this->request->{$method}[$name] = [floatval($value)];
+                            }else {
+                                $this->request->{$method}[$name] = [intval($value)];
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }else if(is_array($value)) {
+                $pname = $name;
+                $name = $name.".*";
+                if(isset($this->rules[$name])) {
+                    $fieldRules = $this->rules[$name];
+                    if (is_string($fieldRules)) {
+                        $fieldRules = explode('|', $fieldRules);
+                    }
+                    foreach ($fieldRules as $fieldRule) {
+                        switch ($fieldRule) {
+                            case 'integer':
+                            case 'int':
+                                $newValue = array_map('intval', $value);
+                                $this->request->{$method}[$pname] = $newValue;
+                                break;
+                            case 'float':
+                                $newValue = array_map('floatval', $value);
+                                $this->request->{$method}[$pname] = $newValue;
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+            }
+        };
+
+        foreach ($rules as $name => $fieldRules) {
+            if (isset($this->request->get[$name])) {
+                $value = $this->request->get[$name];
+                if ($fieldRules) {
+                    $fn('get', $value, $fieldRules,$name);
+                }
+            }
+
+            if (isset($this->request->post[$name])) {
+                $value = $this->request->post[$name];
+                if ($fieldRules) {
+                    $fn('post', $value, $fieldRules, $name);
+                }
+            }
+        }
+
+        $this->rules = [];
+
+        if ($this instanceof RequestInput) {
+            $this->postParams = [];
+            $this->requestParams = [];
+        }
+
+        return $this->validator;
     }
 
     /**
