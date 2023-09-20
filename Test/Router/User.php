@@ -23,8 +23,12 @@ Route::group([
 
     Route::get('/user-order/userList', [
         'beforeHandle' => function(RequestInput $requestInput) {
-            $name = $requestInput->getValue('name');
+            $name = $requestInput->input('name');
             var_dump($name);
+
+            $orderIds = $requestInput->input('order_ids');
+            var_dump($orderIds);
+
             $requestInput->getMethod();
         },
         'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList'],
@@ -46,6 +50,10 @@ Route::group([
 
     Route::get('/order/list', [
         'dispatch_route' => [\Test\Controller\ObjectController::class, 'list'],
+    ]);
+
+    Route::get('/order/add', [
+        'dispatch_route' => [\Test\Controller\ObjectController::class, 'saveOrder'],
     ]);
 
 

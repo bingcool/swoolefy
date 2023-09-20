@@ -133,7 +133,10 @@ class HttpRoute extends AppDispatch
             $this->appConf['app_namespace'] = APP_NAME;
         }
 
-        $dispatchRouteItem = explode("\\", $this->dispatchRoute[0]);
+        $controllerNamespace = $this->dispatchRoute[0];
+        $action = $this->dispatchRoute[1];
+
+        $dispatchRouteItem = explode("\\", $controllerNamespace);
         $count = count($dispatchRouteItem);
         switch ($count) {
             case static::ITEM_NUM_3:
@@ -146,11 +149,18 @@ class HttpRoute extends AppDispatch
                 break;
         }
 
-        $action = $this->dispatchRoute[1];
         // forbidden call action
         if (in_array($action, static::$denyActions)) {
             $errorMsg = "{$controller}::{$action} is not allow access action";
             throw new DispatchException($errorMsg, 403);
+        }
+
+        // validate class
+        $controllerValidateName = str_replace('Controller','Validation', $controllerNamespace);
+        if (method_exists($controllerValidateName, $action)) {
+            $validation = new $controllerValidateName();
+            $validateRule = $validation->{$action}();
+            $this->requestInput->validate($this->requestInput->all(), $validateRule['rules'] ?? [], $validateRule['messages'] ?? []);
         }
 
         if ($module) {
