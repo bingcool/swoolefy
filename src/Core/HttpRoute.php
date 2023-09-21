@@ -323,13 +323,13 @@ class HttpRoute extends AppDispatch
     }
 
     /**
-     * @param $controllerInstance
+     * @param BController $controllerInstance
      * @param $action
      * @param $params
      * @return array
      * @throws DispatchException
      */
-    protected function bindActionParams($controllerInstance, $action, $params)
+    protected function bindActionParams(BController $controllerInstance, $action, $params)
     {
         $method = new \ReflectionMethod($controllerInstance, $action);
         $args = $missing = $actionParams = [];
