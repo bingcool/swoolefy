@@ -224,36 +224,13 @@ class HttpRoute extends AppDispatch
 
             throw new DispatchException($errorMsg, 404);
         }
-
-        // reflector object
-        $reflector = new \ReflectionClass($controllerInstance);
-        if ($reflector->hasMethod($action)) {
-            list($method, $args) = $this->bindActionParams($controllerInstance, $action, $this->requestInput->getRequestParams());
-            if ($method->isPublic() && !$method->isStatic()) {
-                $controllerInstance->{$action}(...$args);
-                $controllerInstance->_afterAction($action);
-                $extendData = $controllerInstance->getExtendData();
-                $this->requestInput->setExtendData($extendData);
-                $this->handleAfterRouteMiddles();
-            } else {
-                $errorMsg = sprintf(
-                    "Class method %s::%s is protected or private property, can't be called by Controller Instance",
-                    $class,
-                    $action
-                );
-
-                throw new DispatchException($errorMsg, 500);
-            }
-        } else {
-            $errorMsg = sprintf(
-                "Call undefined %s::%s method",
-                $class,
-                $action
-            );
-
-            throw new DispatchException($errorMsg, 404);
-        }
-
+        // reflector params handle
+        list($method, $args) = $this->bindActionParams($controllerInstance, $action, $this->requestInput->all());
+        $controllerInstance->{$action}(...$args);
+        $controllerInstance->_afterAction($action);
+        $extendData = $controllerInstance->getExtendData();
+        $this->requestInput->setExtendData($extendData);
+        $this->handleAfterRouteMiddles();
         return true;
     }
 
@@ -352,7 +329,7 @@ class HttpRoute extends AppDispatch
      * @return array
      * @throws DispatchException
      */
-    protected function bindActionParams(object $controllerInstance, string $action, mixed $params): array
+    protected function bindActionParams($controllerInstance, $action, $params)
     {
         $method = new \ReflectionMethod($controllerInstance, $action);
         $args = $missing = $actionParams = [];

@@ -654,10 +654,12 @@ trait RequestParseTrait
                             $this->request->{$method}[$name] = (bool) $value;
                             break;
                         case 'array':
-                            if (is_float(floatval($value))) {
-                                $this->request->{$method}[$name] = [floatval($value)];
-                            }else {
+                            if (filter_var($value, FILTER_VALIDATE_INT) !== false) {
                                 $this->request->{$method}[$name] = [intval($value)];
+                            }else {
+                                if (filter_var($value, FILTER_VALIDATE_FLOAT) !== false) {
+                                    $this->request->{$method}[$name] = [floatval($value)];
+                                }
                             }
                             break;
                         default:

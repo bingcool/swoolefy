@@ -17,7 +17,7 @@ class UserOrderController extends BController
             $list = $query->select()->toArray();
         }
 
-        // var_dump($this->request->get);
+        var_dump($this->request->get);
 
         // 列表方式查询
 //        $orderList = new OrderList();
