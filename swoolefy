@@ -180,7 +180,7 @@ function createProject()
 
     if ($protocol == 'http') {
         $dirs = [
-            'Config', 'Controller', 'Model', 'Module', 'Router', 'Storage', 'Protocol'
+            'Config', 'Controller', 'Model', 'Module', 'Router', 'Validation', 'Storage', 'Protocol'
         ];
     }
 
@@ -248,6 +248,11 @@ function createProject()
                 }
                 break;
             }
+            case 'Module':
+                @mkdir($appRootDir . '/' . $dir.'/Demo/Controller', 0777, true);
+                @mkdir($appRootDir . '/' . $dir.'/Demo/Validation', 0777, true);
+                @mkdir($appRootDir . '/' . $dir.'/Demo/Exception', 0777, true);
+                break;
             case 'Router':
             {
                 switch ($protocol) {

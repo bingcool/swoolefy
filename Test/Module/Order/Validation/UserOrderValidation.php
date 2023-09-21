@@ -7,13 +7,15 @@ class UserOrderValidation
     {
         return [
             'rules' => [
-                'name' => 'int',
-                'order_ids' => 'array',
-                'order_ids.*' => 'int'
+                //'name' => '',
+//                'order_ids' => 'required|array',
+//                'order_ids.*' => 'int'
             ],
 
             'messages' => [
-                'name' => '名称必传',
+                //'name.int' => '名称必须为整行',
+                //'name.between' => '值只能是0,1',
+               // 'name.json' => '名称必须为整行',
             ]
         ];
     }
