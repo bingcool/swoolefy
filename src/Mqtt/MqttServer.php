@@ -12,13 +12,13 @@
 namespace Swoolefy\Mqtt;
 
 use Swoole\Server;
-use Simps\MQTT\Protocol;
-use Simps\MQTT\Protocol\Types;
+use Swoolefy\Util\Helper;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\EventApp;
 use Swoolefy\Core\Swfy;
+use Simps\MQTT\Protocol;
+use Simps\MQTT\Protocol\Types;
 use Simps\MQTT\Hex\ReasonCode;
-use Swoolefy\Util\Helper;
 
 abstract class MqttServer extends BaseServer
 {
