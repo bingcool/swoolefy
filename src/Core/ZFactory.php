@@ -60,13 +60,13 @@ class ZFactory
             $cid = \Swoole\Coroutine::getCid();
         }
 
-        if (isset(static::$_instances[$cid]) && empty($class)) {
-            unset(static::$_instances[$cid]);
-        } else if (isset(static::$_instances[$cid]) && !empty($class)) {
+        if (!empty($class) && isset(static::$_instances[$cid])) {
             $class = self::parseClass($class);
             if (isset(static::$_instances[$cid][$class])) {
                 unset(static::$_instances[$cid][$class]);
             }
+        }else if (isset(static::$_instances[$cid])) {
+            unset(static::$_instances[$cid]);
         }
 
         return true;

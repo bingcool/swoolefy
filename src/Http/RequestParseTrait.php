@@ -607,6 +607,21 @@ trait RequestParseTrait
     }
 
     /**
+     * 判断一个字段在请求中是否缺失
+     *
+     * @param string $name
+     * @return bool
+     */
+    public function missing(string $name): bool
+    {
+        $value = $this->input($name, null);
+        if (is_null($value)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * validate request data
      *
      * @param array $params

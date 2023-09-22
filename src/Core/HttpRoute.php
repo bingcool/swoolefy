@@ -157,7 +157,7 @@ class HttpRoute extends AppDispatch
 
         // validate class
         $controllerValidateName = str_replace('Controller','Validation', $controllerNamespace);
-        if (method_exists($controllerValidateName, $action)) {
+        if (method_exists($controllerValidateName, $action) && $controllerValidateName != $controllerNamespace) {
             $validation = new $controllerValidateName();
             $validateRule = $validation->{$action}();
             $this->requestInput->validate($this->requestInput->all(), $validateRule['rules'] ?? [], $validateRule['messages'] ?? []);
