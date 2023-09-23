@@ -78,7 +78,7 @@ class EventCtrl implements EventCtrlInterface
             }
             ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, $class);
         }else {
-            write('Missing onWorkerServiceInit handle');
+            write('Error Service Type');
             exit(0);
         }
     }
