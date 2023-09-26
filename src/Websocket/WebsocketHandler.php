@@ -98,11 +98,11 @@ class WebsocketHandler extends Swoole implements HandlerInterface
                 }
 
                 if (isset($beforeHandle)) {
-                    $dispatcher->setBeforeHandle($beforeHandle);
+                    $dispatcher->setBeforeMiddleware($beforeHandle);
                 }
 
                 if (isset($afterHandle)) {
-                    $dispatcher->setAfterHandle($afterHandle);
+                    $dispatcher->setAfterMiddleware($afterHandle);
                 }
 
                 $dispatcher->dispatch();

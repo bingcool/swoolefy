@@ -67,17 +67,17 @@ class HttpRoute extends AppDispatch
     /**
      * @var array
      */
-    protected $middleware = [];
+    protected $groupMiddleware = [];
 
     /**
      * @var array
      */
-    protected $beforeHandle = [];
+    protected $beforeMiddleware = [];
 
     /**
      * @var array|mixed
      */
-    protected $afterHandle = [];
+    protected $afterMiddleware = [];
 
     /**
      * @var array
@@ -113,7 +113,7 @@ class HttpRoute extends AppDispatch
         $this->requestInput = $requestInput;
         $this->responseOutput = $responseOutput;
         $this->extendData = $extendData;
-        list($this->middleware, $this->beforeHandle, $this->dispatchRoute, $this->afterHandle, $this->routeMethod, $this->groupMeta)  = self::getHttpRouterMapUri($this->requestInput->getServerParams('PATH_INFO'));
+        list($this->groupMiddleware, $this->beforeMiddleware, $this->dispatchRoute, $this->afterMiddleware, $this->routeMethod, $this->groupMeta)  = self::getHttpRouterMapUri($this->requestInput->getServerParams('PATH_INFO'));
     }
 
     /**
@@ -241,9 +241,9 @@ class HttpRoute extends AppDispatch
      */
     private function handleGroupRouteMiddles()
     {
-        foreach ($this->middleware as $middlewareHandle) {
-            if (class_exists($middlewareHandle)) {
-                $middlewareHandleEntity = new $middlewareHandle;
+        foreach ($this->groupMiddleware as $middleware) {
+            if (class_exists($middleware)) {
+                $middlewareHandleEntity = new $middleware;
                 if ($middlewareHandleEntity instanceof RouteMiddleware) {
                     $middlewareHandleEntity->handle($this->requestInput, $this->responseOutput);
                 }
@@ -257,14 +257,14 @@ class HttpRoute extends AppDispatch
      */
     private function handleBeforeRouteMiddles()
     {
-        foreach($this->beforeHandle as $handle) {
-            if ($handle instanceof \Closure) {
-                $result = call_user_func($handle, $this->requestInput, $this->responseOutput);
+        foreach($this->beforeMiddleware as $middleware) {
+            if ($middleware instanceof \Closure) {
+                $result = call_user_func($middleware, $this->requestInput, $this->responseOutput);
                 if ($result === false) {
                     throw new SystemException('beforeHandle route middle return false, Not Allow Coroutine To Next Middle', 500);
                 }
-            }else if (class_exists($handle)) {
-                $handleEntity = new $handle;
+            }else if (class_exists($middleware)) {
+                $handleEntity = new $middleware;
                 if ($handleEntity instanceof RouteMiddleware) {
                     $handleEntity->handle($this->requestInput, $this->responseOutput);
                 }
@@ -279,12 +279,12 @@ class HttpRoute extends AppDispatch
      */
     private function handleAfterRouteMiddles()
     {
-        foreach ($this->afterHandle as $handle) {
+        foreach ($this->afterMiddleware as $middleware) {
             try {
-                if ($handle instanceof \Closure) {
-                    call_user_func($handle, $this->requestInput, $this->responseOutput);
-                }else if (class_exists($handle)) {
-                    $handleEntity = new $handle;
+                if ($middleware instanceof \Closure) {
+                    call_user_func($middleware, $this->requestInput, $this->responseOutput);
+                }else if (class_exists($middleware)) {
+                    $handleEntity = new $middleware;
                     if ($handleEntity instanceof RouteMiddleware) {
                         $handleEntity->handle($this->requestInput, $this->responseOutput);
                     }
