@@ -30,12 +30,12 @@ class ServiceDispatch extends AppDispatch
     /**
      * @var array
      */
-    protected $beforeHandle = [];
+    protected $beforeMiddleware = [];
 
     /**
      * @var array|mixed
      */
-    protected $afterHandle = [];
+    protected $afterMiddleware = [];
 
     /**
      * @var int|null
@@ -92,6 +92,7 @@ class ServiceDispatch extends AppDispatch
                 }
             }
             $class = str_replace(DIRECTORY_SEPARATOR, '\\', $class);
+
             // call before route handle middle
             $this->handleBeforeRouteMiddles();
 
@@ -180,21 +181,21 @@ class ServiceDispatch extends AppDispatch
     }
 
     /**
-     * @param array $beforeHandle
+     * @param array $beforeMiddleware
      * @return void
      */
-    public function setBeforeHandle(array $beforeHandle = [])
+    public function setBeforeMiddleware(array $beforeMiddleware = [])
     {
-        $this->beforeHandle = $beforeHandle;
+        $this->beforeMiddleware = $beforeMiddleware;
     }
 
     /**
-     * @param array $afterHandle
+     * @param array $afterMiddleware
      * @return void
      */
-    public function setAfterHandle(array $afterHandle = [])
+    public function setAfterMiddleware(array $afterMiddleware = [])
     {
-        $this->afterHandle = $afterHandle;
+        $this->afterMiddleware = $afterMiddleware;
     }
 
     /**
@@ -291,14 +292,14 @@ class ServiceDispatch extends AppDispatch
      */
     private function handleBeforeRouteMiddles()
     {
-        foreach ($this->beforeHandle as $handle) {
-            if ($handle instanceof \Closure) {
-                $result = call_user_func($handle, $this->params);
+        foreach ($this->beforeMiddleware as $middleware) {
+            if ($middleware instanceof \Closure) {
+                $result = call_user_func($middleware, $this->params);
                 if ($result === false) {
                     throw new DispatchException('beforeHandle route middle return false, Not Allow Coroutine To Next Middle');
                 }
-            }else if (is_string($handle) && class_exists($handle)) {
-                $handleEntity = new $handle();
+            }else if (is_string($middleware) && class_exists($middleware)) {
+                $handleEntity = new $middleware();
                 if ($handleEntity instanceof DispatchMiddle) {
                     $handleEntity->handle($this->params);
                 }
@@ -311,12 +312,12 @@ class ServiceDispatch extends AppDispatch
      */
     private function handleAfterRouteMiddles()
     {
-        foreach ($this->afterHandle as $handle) {
+        foreach ($this->afterMiddleware as $middleware) {
             try {
-                if ($handle instanceof \Closure) {
-                    call_user_func($handle, $this->params);
-                } else if (is_string($handle) && class_exists($handle)) {
-                    $handleEntity = new $handle();
+                if ($middleware instanceof \Closure) {
+                    call_user_func($middleware, $this->params);
+                } else if (is_string($middleware) && class_exists($middleware)) {
+                    $handleEntity = new $middleware();
                     if ($handleEntity instanceof DispatchMiddle) {
                         $handleEntity->handle($this->params);
                     }
