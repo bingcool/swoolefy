@@ -149,6 +149,9 @@ abstract class AbstractProcessPools
      */
     public function __start(Process $process)
     {
+        $handleClass = static::class;
+        putenv("handle_class={$handleClass}");
+
         TableManager::getTable('table_process_pools_map')->set(
             md5($this->processName), ['pid' => $this->swooleProcess->pid, 'process_name' => $this->processName]
         );

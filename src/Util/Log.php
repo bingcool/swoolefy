@@ -400,6 +400,7 @@ class Log
             }
         }
         $records['route'] = '';
+        $records['handle_class'] = '';
         $records['request_params'] = [];
         $records['process'] = 'task_worker|use_self_worker';
         $records['timestamp'] = microtime(true);
@@ -420,14 +421,17 @@ class Log
             $records['process'] = 'task';
         }else if (Swfy::isSelfProcess()) {
             $records['process'] = 'use_self_process';
+            $records['handle_class'] = (string) getenv('handle_class');
         }
 
         if (SystemEnv::isDaemonService()) {
             $records['process'] = 'daemon';
+            $records['handle_class'] = (string) getenv('handle_class');
         }else if (SystemEnv::isCronService()) {
             $records['process'] = 'cron';
+            $records['handle_class'] = (string) getenv('handle_class');
         } else if (SystemEnv::isScriptService()) {
-            $records['process'] = 'script';
+            $records['route'] = (string) getenv('route');
         }
 
         return $records;

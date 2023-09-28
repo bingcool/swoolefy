@@ -42,7 +42,7 @@ class Cron extends AbstractProcess {
 
     }
 
-    public function onReceive($str, ...$args) {
+    public function onReceive($msg, ...$args) {
 
     }
 

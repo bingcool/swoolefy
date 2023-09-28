@@ -149,16 +149,16 @@ trait ResponseParseTrait
      * header 使用链式作用域
      * @param string $name
      * @param string $value
-     * @return \Swoole\Http\Response|\Swoole\Http2\Response
+     * @return ResponseOutput
      */
     public function withHeader(string $name, $value)
     {
         $this->response->header($name, $value);
-        return $this->response;
+        return $this;
     }
 
     /**
-     * setCookie 设置HTTP响应的cookie信息,PHP的setCookie()参数一致
+     * withCookie 设置HTTP响应的cookie信息,PHP的setCookie()参数一致
      * @param string $key Cookie名称
      * @param string $value Cookie值
      * @param int $expire 有效时间
@@ -166,9 +166,9 @@ trait ResponseParseTrait
      * @param string $domain 有效域名
      * @param bool $secure Cookie是否仅仅通过安全的HTTPS连接传给客户端
      * @param bool $httpOnly 设置成TRUE，Cookie仅可通过HTTP协议访问
-     * @return \Swoole\Http\Response|\Swoole\Http2\Response
+     * @return ResponseOutput
      */
-    public function setCookie(
+    public function withCookie(
         string $key,
         string $value = '',
         int    $expire = 0,
@@ -179,19 +179,19 @@ trait ResponseParseTrait
     )
     {
         $this->response->cookie($key, $value, $expire, $path, $domain, $secure, $httpOnly);
-        return $this->response;
+        return $this;
     }
 
     /**
      * sendHttpStatus
      * @param int $code
      * @param string $reasonPhrase
-     * @return \Swoole\Http\Response|\Swoole\Http2\Response
+     * @return ResponseOutput
      */
     public function withStatus(int $code, string $reasonPhrase = '')
     {
         $this->response->status($code, $reasonPhrase);
-        return $this->response;
+        return $this;
     }
 
 }
