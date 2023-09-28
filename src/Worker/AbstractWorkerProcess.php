@@ -11,6 +11,9 @@
 
 namespace Swoolefy\Worker;
 
+use Swoolefy\Core\SystemEnv;
+use Swoolefy\Core\Log\LogManager;
+
 /**
  * 由swoole的自定义进程作为管理进程--拉起的子进程
  */
@@ -42,6 +45,7 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
      */
     protected function init()
     {
+        $this->rebuildLogger();
         $this->maxHandle                   = $this->getArgs()['max_handle'] ?? $this->maxHandle;
         $this->lifeTime                    = $this->getArgs()['life_time'] ?? $this->lifeTime;
         $this->currentRunCoroutineLastCid  = $this->getArgs()['current_run_coroutine_last_cid'] ?? $this->maxHandle * 10;
@@ -56,6 +60,46 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
     protected function onInit()
     {
 
+    }
+
+    /**
+     * @param array $logTypes
+     * @param int $rotateDay
+     * @return void
+     */
+    protected function rebuildLogger(array $logTypes = [], int $rotateDay = 2)
+    {
+        if (empty($logTypes)) {
+            $logTypes = PROCESS_CLASS['Log'] ?? [];
+        }
+
+        foreach($logTypes as $logType) {
+            $logger = LogManager::getInstance()->getLogger($logType);
+            if ($logger) {
+                if ($rotateDay >= 5 ) {
+                    $rotateDay = 5;
+                }
+                $logger->setRotateDay($rotateDay);
+                $filePath = $logger->getLogFilePath();
+                $filePathDir = pathinfo($filePath, PATHINFO_DIRNAME);
+                $class = str_replace('\\', '/', static::class);
+                $items = explode('/', $class);
+                $nums = count($items);
+                if ($nums >= 2) {
+                    $fileName = $items[$nums - 2].'_'.$items[$nums -1];
+                }else {
+                    $fileName = array_pop($items);
+                }
+
+                if (SystemEnv::isDaemonService()) {
+                    $dir = "/daemon/{$logType}/" . $fileName . '.log';
+                }else if (SystemEnv::isCronService()) {
+                    $dir = "/cron/{$logType}/" . $fileName . '.log';
+                }
+                $filePath = $filePathDir . $dir;
+                $logger->setLogFilePath($filePath);
+            }
+        }
     }
 
     /**
