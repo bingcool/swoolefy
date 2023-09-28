@@ -264,9 +264,9 @@ class HttpRoute extends AppDispatch
                     throw new SystemException('beforeHandle route middle return false, Not Allow Coroutine To Next Middle', 500);
                 }
             }else if (class_exists($middleware)) {
-                $handleEntity = new $middleware;
-                if ($handleEntity instanceof RouteMiddleware) {
-                    $handleEntity->handle($this->requestInput, $this->responseOutput);
+                $middlewareEntity = new $middleware;
+                if ($middlewareEntity instanceof RouteMiddleware) {
+                    $middlewareEntity->handle($this->requestInput, $this->responseOutput);
                 }
             }
         }
@@ -284,9 +284,9 @@ class HttpRoute extends AppDispatch
                 if ($middleware instanceof \Closure) {
                     call_user_func($middleware, $this->requestInput, $this->responseOutput);
                 }else if (class_exists($middleware)) {
-                    $handleEntity = new $middleware;
-                    if ($handleEntity instanceof RouteMiddleware) {
-                        $handleEntity->handle($this->requestInput, $this->responseOutput);
+                    $middlewareEntity = new $middleware;
+                    if ($middlewareEntity instanceof RouteMiddleware) {
+                        $middlewareEntity->handle($this->requestInput, $this->responseOutput);
                     }
                 }
             }catch (\Throwable $exception) {
@@ -401,7 +401,7 @@ class HttpRoute extends AppDispatch
         if (isset($routerMap[$uri]['route_meta'])) {
             $groupMeta  = $routerMap[$uri]['group_meta'] ?? [];
             $routerMeta = $routerMap[$uri]['route_meta'];
-            $middleware = $routerMap[$uri]['group_meta']['middleware'] ?? [];
+            $groupMiddleware = $routerMap[$uri]['group_meta']['middleware'] ?? [];
             $method = $routerMap[$uri]['method'];
             if(!isset($routerMeta['dispatch_route'])) {
                 $routerMeta['dispatch_route'] = $uri;
@@ -415,11 +415,11 @@ class HttpRoute extends AppDispatch
                 }
             }
 
-            $beforeHandle = [];
+            $beforeMiddleware = [];
 
             foreach($routerMeta as $alias => $handle) {
                 if ($alias != 'dispatch_route') {
-                    $beforeHandle[] = $handle;
+                    $beforeMiddleware[] = $handle;
                     unset($routerMeta[$alias]);
                     continue;
                 }
@@ -427,12 +427,11 @@ class HttpRoute extends AppDispatch
                 break;
             }
 
-            $afterHandle = array_values($routerMeta);
-            $routeCache = [$middleware, $beforeHandle, $originDispatchRoute, $afterHandle, $method, $groupMeta];
-            self::$routeCache[$uri] = $routeCache;
+            $afterMiddleware = array_values($routerMeta);
+            $routeCacheItems = [$groupMiddleware, $beforeMiddleware, $originDispatchRoute, $afterMiddleware, $method, $groupMeta];
+            self::$routeCache[$uri] = $routeCacheItems;
             unset($routerMap[$uri]);
-            return $routeCache;
-
+            return $routeCacheItems;
         }else {
             throw new DispatchException("Not Found Route [$uri].");
         }

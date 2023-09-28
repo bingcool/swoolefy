@@ -3,6 +3,7 @@ namespace Test\WorkerCron\LocalOrder;
 
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Crontab\AbstractCronController;
+use Swoolefy\Core\Log\LogManager;
 use Test\Factory;
 
 class LocalOrderHandle extends AbstractCronController {
@@ -10,7 +11,6 @@ class LocalOrderHandle extends AbstractCronController {
     public function doCronTask($cron, string $cronName)
     {
         var_dump(date('Y-m-d H:i:s'));
-
         $db = Factory::getDb();
         $db->createCommand("insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:order_product_ids,:order_status)" )
             ->insert([

@@ -63,6 +63,11 @@ class ServiceDispatch extends AppDispatch
     protected static $routeMap = [];
 
     /**
+     * @var array
+     */
+    protected static $routeCache = [];
+
+    /**
      * @param array $callable
      * @param mixed $params
      * @param array $rpcPackHeader
@@ -110,6 +115,9 @@ class ServiceDispatch extends AppDispatch
 
             // before Call
             $isContinueAction = $serviceInstance->_beforeAction($action);
+            if ($isContinueAction === false) {
+                throw new DispatchException("_beforeAction forbidden, because return false");
+            }
             // next action Call
             $serviceInstance->{$action}($this->params);
             // after Call
@@ -249,6 +257,11 @@ class ServiceDispatch extends AppDispatch
     {
         $routerMap = self::loadRouteFile();
         $uri = trim($uri,DIRECTORY_SEPARATOR);
+
+        if (isset(self::$routeCache[$uri])) {
+            return self::$routeCache[$uri];
+        }
+
         if (isset($routerMap[$uri])) {
             $routerHandle = $routerMap[$uri];
             if(!isset($routerHandle['dispatch_route'])) {
@@ -257,11 +270,10 @@ class ServiceDispatch extends AppDispatch
                 $dispatchRoute = $routerHandle['dispatch_route'];
             }
 
-            $beforeHandle = [];
-
-            foreach($routerHandle as $alias => $handle) {
+            $beforeMiddleware = [];
+            foreach($routerHandle as $alias => $middleware) {
                 if ($alias != 'dispatch_route') {
-                    $beforeHandle[] = $handle;
+                    $beforeMiddleware[] = $middleware;
                     unset($routerHandle[$alias]);
                     continue;
                 }
@@ -269,10 +281,10 @@ class ServiceDispatch extends AppDispatch
                 break;
             }
 
-            $afterHandle = array_values($routerHandle);
-
-            return [$beforeHandle, $dispatchRoute, $afterHandle];
-
+            $afterMiddleware = array_values($routerHandle);
+            $routeItems = [$beforeMiddleware, $dispatchRoute, $afterMiddleware];
+            self::$routeCache[$uri] = $routeItems;
+            return $routeItems;
         }else {
             throw new DispatchException('Missing Dispatch Route Setting');
         }
@@ -299,9 +311,9 @@ class ServiceDispatch extends AppDispatch
                     throw new DispatchException('beforeHandle route middle return false, Not Allow Coroutine To Next Middle');
                 }
             }else if (is_string($middleware) && class_exists($middleware)) {
-                $handleEntity = new $middleware();
-                if ($handleEntity instanceof DispatchMiddle) {
-                    $handleEntity->handle($this->params);
+                $middlewareEntity = new $middleware();
+                if ($middlewareEntity instanceof DispatchMiddle) {
+                    $middlewareEntity->handle($this->params);
                 }
             }
         }
@@ -317,9 +329,9 @@ class ServiceDispatch extends AppDispatch
                 if ($middleware instanceof \Closure) {
                     call_user_func($middleware, $this->params);
                 } else if (is_string($middleware) && class_exists($middleware)) {
-                    $handleEntity = new $middleware();
-                    if ($handleEntity instanceof DispatchMiddle) {
-                        $handleEntity->handle($this->params);
+                    $middlewareEntity = new $middleware();
+                    if ($middlewareEntity instanceof DispatchMiddle) {
+                        $middlewareEntity->handle($this->params);
                     }
                 }
             }catch (\Throwable $exception) {

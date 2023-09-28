@@ -125,24 +125,6 @@ trait RequestParseTrait
     }
 
     /**
-     * getRequest
-     * @return \Swoole\Http\Request
-     */
-    public function getRequest(): \Swoole\Http\Request
-    {
-        return $this->request;
-    }
-
-    /**
-     * getResponse
-     * @return \Swoole\Http\Response
-     */
-    public function getResponse(): \Swoole\Http\Response
-    {
-        return $this->response;
-    }
-
-    /**
      * getRequestParam  获取请求参数，包括get,post
      * @param string $name
      * @param mixed $default

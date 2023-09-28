@@ -17,7 +17,8 @@ use Swoolefy\Worker\Helper;
 use Swoolefy\Worker\Script\AbstractScriptWorker;
 use Swoolefy\Core\Coroutine\Context;
 
-class MainCliScript extends AbstractScriptWorker {
+class MainCliScript extends AbstractScriptWorker
+{
 
     /**
      * @var bool
@@ -155,13 +156,13 @@ class MainCliScript extends AbstractScriptWorker {
      */
     public static function parseClass()
     {
-        $class = getenv('r');
-        if(empty($class)) {
+        $route = getenv('r');
+        if(empty($route)) {
             write("【Error】Missing cli router param. eg: --r=FixedUser/fixName --name=xxxx");
             return '';
         }
 
-        $routerArr = explode('/', trim($class, '/'));
+        $routerArr = explode('/', trim($route, '/'));
         $action    = array_pop($routerArr);
 
         if (defined('ROOT_NAMESPACE')) {
@@ -178,6 +179,8 @@ class MainCliScript extends AbstractScriptWorker {
             write("【Error】Missing class={$class} extends \Swoolefy\Script\MainCliScript");
             return '';
         }
+
+        putenv("route=$route");
         putenv("a={$action}");
         return $class;
     }

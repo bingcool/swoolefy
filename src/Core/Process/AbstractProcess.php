@@ -104,6 +104,9 @@ abstract class AbstractProcess
      */
     public function __start(Process $process)
     {
+        $handleClass = static::class;
+        putenv("handle_class={$handleClass}");
+
         $this->setWorkerMasterPid();
         if (method_exists(static::class, 'beforeStart')) {
             $this->beforeStart();

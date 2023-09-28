@@ -61,9 +61,9 @@ class BController extends \Swoolefy\Core\AppObject
 
     /**
      * @param string $action
-     * @return bool
+     * @return bool|null
      */
-    public function _beforeAction(string $action): bool
+    public function _beforeAction(string $action): ?bool
     {
         return true;
     }

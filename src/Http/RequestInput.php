@@ -11,26 +11,7 @@
 
 namespace Swoolefy\Http;
 
-use Swoole\Http\Request;
-use Swoole\Http\Response;
-
-class RequestInput
+class RequestInput extends HttpInputOut
 {
     use RequestParseTrait;
-
-    /**
-     * @var Request
-     */
-    protected $request;
-
-    /**
-     * @var Response
-     */
-    protected $response;
-
-    public function __construct(Request $request, Response $response)
-    {
-        $this->request = $request;
-        $this->response = $response;
-    }
 }
