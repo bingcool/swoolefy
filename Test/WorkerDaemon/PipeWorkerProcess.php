@@ -4,6 +4,7 @@ namespace Test\WorkerDaemon;
 
 use Swoolefy\Core\Application;
 use Swoolefy\Core\EventController;
+use Swoolefy\Core\Log\LogManager;
 
 class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
 {
@@ -11,6 +12,7 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
     {
         //Application::getApp()->get('log')->addInfo('pllllllllllll');
         while (1) {
+            LogManager::getInstance()->getLogger('log')->info('kkkkkkkkkkkkkkkk');
             var_dump('CID='.\Swoole\Coroutine::getCid());
             var_dump('PipeWorker');
             $a = 1;

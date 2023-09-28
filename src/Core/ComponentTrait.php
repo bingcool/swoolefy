@@ -84,7 +84,7 @@ trait ComponentTrait
         $dependencies = [];
         $reflection = new \ReflectionClass($class);
         $constructor = $reflection->getConstructor();
-        if ($constructor !== null) {
+        if (!is_null($constructor)) {
             foreach ($constructor->getParameters() as $param) {
                 if ($param->isDefaultValueAvailable()) {
                     $dependencies[] = $param->getDefaultValue();

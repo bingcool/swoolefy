@@ -305,6 +305,9 @@ abstract class AbstractBaseWorker
             if ($this->isExit) {
                 return false;
             }
+            $handleClass = static::class;
+            putenv("handle_class={$handleClass}");
+
             static::$processInstance = $this;
             $this->pid = $this->swooleProcess->pid;
             $this->coroutineId = \Swoole\Coroutine::getCid();

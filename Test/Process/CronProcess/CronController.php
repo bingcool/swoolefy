@@ -10,7 +10,7 @@ class CronController extends AbstractCronController {
     /**
      * @inheritDoc
      */
-    public function doCronTask(CronExpression|float $cron, string $cronName)
+    public function doCronTask($cron, string $cronName)
     {
         if($cron instanceof CronExpression) {
             $expression = $cron->getExpression();
