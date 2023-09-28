@@ -4,6 +4,7 @@ namespace Test\Scripts;
 
 use Common\Library\Db\Mysql;
 use Swoolefy\Core\Application;
+use Swoolefy\Core\Log\LogManager;
 use Test\Factory;
 
 class FixedUser extends \Swoolefy\Script\MainCliScript
@@ -16,7 +17,7 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
     public function init()
     {
         parent::init();
-        \Swoolefy\Core\Coroutine\Context::set('name','kkkkkkkkkkkkkkkkkkkkkkkk');
+        \Swoolefy\Core\Coroutine\Context::set('name', 'kkkkkkkkkkkkkkkkkkkkkkkk');
         goApp(function () {
             goApp(function () {
                 goApp(function () {
@@ -25,6 +26,10 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
                 });
             });
         });
+
+        $logger = LogManager::getInstance()->getLogger('log');
+        $logger->info('script test');
+
         $this->db = Factory::getDb();
     }
 

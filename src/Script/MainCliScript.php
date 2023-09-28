@@ -41,6 +41,7 @@ class MainCliScript extends AbstractScriptWorker
     public function init()
     {
         write("【Info】 script start \n", 'green');
+        parent::init();
         $this->generateTraceId();
     }
 

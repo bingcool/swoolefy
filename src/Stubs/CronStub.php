@@ -23,6 +23,8 @@ define('WORKER_CONF', include __DIR__.'/'.$_SERVER['argv'][2].'/WorkerCron/worke
 define('PROCESS_CLASS', [
     // 应用crom worker
     'Test' => \Test\WorkerCron\MainCronWorker::class,
+    // 组件日志名称
+    'Log'  => ['log', 'error_log']
 ]);
 
 define('APP_NAMES', [
