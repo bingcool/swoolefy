@@ -25,7 +25,7 @@ abstract class AbstractMainWorker extends AbstractProcess
      */
     public function init()
     {
-        $this->rebuildLogger();
+        $this->registerLogger();
         if(defined('WORKER_CONF') && !SystemEnv::isScriptService()) {
             $mainManager = \Swoolefy\Worker\MainManager::getInstance();
             $mainManager->loadConf(WORKER_CONF);
@@ -37,7 +37,7 @@ abstract class AbstractMainWorker extends AbstractProcess
      * @param int $rotateDay
      * @return void
      */
-    protected function rebuildLogger(array $logTypes = [], int $rotateDay = 1)
+    protected function registerLogger(array $logTypes = [], int $rotateDay = 1)
     {
         if (empty($logTypes)) {
             $logTypes = PROCESS_CLASS['Log'] ?? [];
@@ -55,9 +55,9 @@ abstract class AbstractMainWorker extends AbstractProcess
                     $filePathDir = pathinfo($filePath, PATHINFO_DIRNAME);
                     $class = str_replace('\\', '/', static::class);
                     $items = explode('/', $class);
-                    $nums = count($items);
-                    if ($nums >= 2) {
-                        $fileName = $items[$nums - 2].'_'.$items[$nums -1];
+                    $num = count($items);
+                    if ($num >= 2) {
+                        $fileName = $items[$num - 2].'_'.$items[$num -1];
                     }else {
                         $fileName = array_pop($items);
                     }
