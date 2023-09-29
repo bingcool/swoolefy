@@ -45,7 +45,7 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
      */
     protected function init()
     {
-        $this->rebuildLogger();
+        $this->registerLogger();
         $this->maxHandle                   = $this->getArgs()['max_handle'] ?? $this->maxHandle;
         $this->lifeTime                    = $this->getArgs()['life_time'] ?? $this->lifeTime;
         $this->currentRunCoroutineLastCid  = $this->getArgs()['current_run_coroutine_last_cid'] ?? $this->maxHandle * 10;
@@ -67,7 +67,7 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
      * @param int $rotateDay
      * @return void
      */
-    protected function rebuildLogger(array $logTypes = [], int $rotateDay = 2)
+    protected function registerLogger(array $logTypes = [], int $rotateDay = 2)
     {
         if (empty($logTypes)) {
             $logTypes = PROCESS_CLASS['Log'] ?? [];
@@ -84,9 +84,9 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
                 $filePathDir = pathinfo($filePath, PATHINFO_DIRNAME);
                 $class = str_replace('\\', '/', static::class);
                 $items = explode('/', $class);
-                $nums = count($items);
-                if ($nums >= 2) {
-                    $fileName = $items[$nums - 2].'_'.$items[$nums -1];
+                $num = count($items);
+                if ($num >= 2) {
+                    $fileName = $items[$num - 2].'_'.$items[$num -1];
                 }else {
                     $fileName = array_pop($items);
                 }
