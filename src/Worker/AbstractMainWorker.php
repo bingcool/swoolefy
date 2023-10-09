@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Worker;
 
+use Swoolefy\Core\SystemEnv;
+use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Process\AbstractProcess;
 
 /**
@@ -23,9 +25,47 @@ abstract class AbstractMainWorker extends AbstractProcess
      */
     public function init()
     {
-        if(defined('WORKER_CONF')) {
+        $this->registerLogger();
+        if(defined('WORKER_CONF') && !SystemEnv::isScriptService()) {
             $mainManager = \Swoolefy\Worker\MainManager::getInstance();
             $mainManager->loadConf(WORKER_CONF);
+        }
+    }
+
+    /**
+     * @param array $logTypes
+     * @param int $rotateDay
+     * @return void
+     */
+    protected function registerLogger(array $logTypes = [], int $rotateDay = 1)
+    {
+        if (empty($logTypes)) {
+            $logTypes = PROCESS_CLASS['Log'] ?? [];
+        }
+
+        if (SystemEnv::isScriptService()) {
+            foreach($logTypes as $logType) {
+                $logger = LogManager::getInstance()->getLogger($logType);
+                if ($logger) {
+                    if ($rotateDay >=2) {
+                        $rotateDay = 2;
+                    }
+                    $logger->setRotateDay($rotateDay);
+                    $filePath = $logger->getLogFilePath();
+                    $filePathDir = pathinfo($filePath, PATHINFO_DIRNAME);
+                    $class = str_replace('\\', '/', static::class);
+                    $items = explode('/', $class);
+                    $num = count($items);
+                    if ($num >= 2) {
+                        $fileName = $items[$num - 2].'_'.$items[$num -1];
+                    }else {
+                        $fileName = array_pop($items);
+                    }
+                    $dir = "/script/{$logType}/" . $fileName . '.log';
+                    $filePath = $filePathDir . $dir;
+                    $logger->setLogFilePath($filePath);
+                }
+            }
         }
     }
 }
