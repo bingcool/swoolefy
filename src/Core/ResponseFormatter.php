@@ -38,7 +38,7 @@ class ResponseFormatter
      * @param mixed $data
      * @return BaseResponseDto
      */
-    public static function formatDataDto(int $code = 0, string $msg = '', mixed $data = []): BaseResponseDto
+    public static function formatDataDto(int $code = 0, string $msg = '', $data = []): BaseResponseDto
     {
         $responseDto = new BaseResponseDto();
         $responseDto->code = $code;
