@@ -42,6 +42,14 @@ Route::group([
         'dispatch_route' => [\Test\Controller\ObjectController::class, 'saveOrder'],
     ]);
 
+    Route::get('/user-order/update-order', [
+        'beforeHandle' => function(RequestInput $requestInput) {
+            $name = $requestInput->getRequestParams('name');
+        },
+
+        'dispatch_route' => [\Test\Controller\ObjectController::class, 'updateOrder'],
+    ]);
+
     Route::get('/testTransactionAddOrder', [
         'before-validate' => \Test\Middleware\Route\ValidLoginMiddleware::class,
         'dispatch_route' => [\Test\Controller\IndexController::class, 'testTransactionAddOrder'],
