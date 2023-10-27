@@ -5,6 +5,8 @@ use Test\Model\ClientModel;
 
 class OrderEntity extends ClientModel
 {
+    use OrderEventTrait;
+
     /**
      * @var string
      */
@@ -40,40 +42,10 @@ class OrderEntity extends ClientModel
      */
     public function loadById($id)
     {
-        return $this->findOne('order_id=:order_id and user_id=:user_id', [
-            ':order_id' => $id,
-            ':user_id' => $this->userId
+        return $this->loadOne([
+            'order_id' => $id,
+            'user_id' => $this->userId
         ]);
-    }
-
-    /**
-     * @return bool
-     */
-    public function onBeforeInsert(): bool
-    {
-
-        // todo
-        var_dump(__CLASS__.'::'.__FUNCTION__);
-        return true;
-    }
-
-    public function onAfterInsert()
-    {
-        // todo
-        var_dump(__CLASS__.'::'.__FUNCTION__);
-    }
-
-    public function onBeforeUpdate(): bool
-    {
-        // todo
-        var_dump(__CLASS__.'::'.__FUNCTION__);
-        return true;
-    }
-
-    public function onAfterUpdate()
-    {
-        // todo
-        var_dump(__CLASS__.'::'.__FUNCTION__);
     }
 
     /**
@@ -83,7 +55,7 @@ class OrderEntity extends ClientModel
     public function setOrderProductIdsAttr($value)
     {
         if(is_array($value)) {
-            return json_encode($value);
+            return json_encode($value, JSON_UNESCAPED_UNICODE);
         }
 
         return $value;
@@ -95,8 +67,8 @@ class OrderEntity extends ClientModel
      */
     public function setJsonDataAttr($value)
     {
-        if(is_array($value)) {
-            return json_encode($value);
+        if (is_array($value)) {
+            return json_encode($value, JSON_UNESCAPED_UNICODE);
         }
 
         return $value;

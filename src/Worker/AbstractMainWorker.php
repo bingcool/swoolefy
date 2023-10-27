@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Worker;
 
+use Swoolefy\Core\SystemEnv;
 use Swoolefy\Core\Process\AbstractProcess;
 
 /**
@@ -23,9 +24,49 @@ abstract class AbstractMainWorker extends AbstractProcess
      */
     public function init()
     {
+        $workerConf = $this->parseWorkerConf();
+        if (!empty($workerConf)) {
+            $mainManager = \Swoolefy\Worker\MainManager::getInstance();
+            $mainManager->loadConf($workerConf);
+        }
+    }
+
+    /**
+     * @return array|mixed
+     */
+    protected function parseWorkerConf()
+    {
         if(defined('WORKER_CONF')) {
             $mainManager = \Swoolefy\Worker\MainManager::getInstance();
-            $mainManager->loadConf(WORKER_CONF);
+            $workerConfListNew = [];
+            $workerConfList = WORKER_CONF;
+            // Specify Process to Run When dev or test to debug, Avoid the impact of other processes
+            $onlyProcess = Helper::getCliParams('only-process');
+            if ($onlyProcess) {
+                $onlyProcessItems = explode(',', $onlyProcess);
+            }
+
+            if (!empty($onlyProcessItems) && (SystemEnv::isCronService() || SystemEnv::isDaemonService()) && (SystemEnv::isTestEnv() || SystemEnv::isDevEnv())) {
+                foreach ($workerConfList as  $workerConfItem) {
+                    $processName = $workerConfItem['process_name'];
+                    if (in_array($processName, $onlyProcessItems)) {
+                        $workerConfListNew[] = $workerConfItem;
+                    }
+                }
+
+                if (empty($workerConfListNew)) {
+                    write("Not Found Specify Process --only-process={$onlyProcess}, All Process Exited!");
+                    $masterPid = $mainManager->getMasterPid();
+                    // kill master to exit
+                    \Swoole\Process::kill($masterPid, SIGTERM);
+                }else {
+                    $workerConf = $workerConfListNew;
+                }
+            }else {
+                $workerConf = $workerConfList;
+            }
         }
+
+        return $workerConf ?? [];
     }
 }

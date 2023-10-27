@@ -55,7 +55,7 @@ class ObjectController extends BController
     {
         $userId = 10000;
 
-        $orderId = 1633494944;
+        $orderId = 1698317204;
 
         $orderObject = new \Test\Module\Order\OrderEntity($userId, $orderId);
         if($orderObject->isExists()) {
@@ -66,7 +66,7 @@ class ObjectController extends BController
             $orderObject->order_status = 1;
             $orderObject->remark = 'test-remark-'.rand(1,1000);
             $orderObject->save();
-            var_dump($orderObject);
+            $this->returnJson($orderObject->getAttributes());
         }else {
             throw new \Exception('OrderEntity is not exist');
         }
