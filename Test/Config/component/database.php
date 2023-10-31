@@ -22,5 +22,10 @@ return [
     'db' => function() use($dc) {
         $db = new \Common\Library\Db\Mysql($dc['mysql_db']);
         return $db;
+    },
+
+    'pg' => function() use($dc) {
+        $db = new \Common\Library\Db\Pgsql($dc['pg_db']);
+        return $db;
     }
 ];
