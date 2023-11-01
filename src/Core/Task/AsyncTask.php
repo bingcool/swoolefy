@@ -57,12 +57,12 @@ class AsyncTask implements AsyncTaskInterface
             $fd = is_object(Application::getApp()) ? Application::getApp()->getFd() : null;
         }
 
-        $arrayCopy = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
+        $contextData = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
         $taskId = Swfy::getServer()->task(serialize(
             [
                 [$taskMessageDto->taskClass, $taskMessageDto->taskAction],
                 $taskMessageDto->taskData,
-                $arrayCopy ?? [],
+                $contextData ?? [],
                 $fd
             ]
         ));
@@ -89,10 +89,12 @@ class AsyncTask implements AsyncTaskInterface
      */
     public static function finish(mixed $data, $task = null)
     {
-        if (is_array($data)) {
-            $data = json_encode($data, JSON_UNESCAPED_UNICODE);
+        $cid = \Swoole\Coroutine::getCid();
+        if ($cid >=0 ) {
+            $contextData = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
         }
-
+        $params = [$data, $contextData ?? []];
+        $data = serialize($params);
         if (BaseServer::isTaskEnableCoroutine() && $task instanceof \Swoole\Server\Task) {
             $task->finish($data);
         } else {

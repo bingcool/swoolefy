@@ -25,10 +25,10 @@ use Swoolefy\Core\Coroutine\Context;
 /**
  * Class Log
  * @package Swoolefy\Util
- * @method \Swoolefy\Util\Log info
- * @method \Swoolefy\Util\Log notice
- * @method \Swoolefy\Util\Log warning
- * @method \Swoolefy\Util\Log error
+ * @method \Swoolefy\Util\Log info($logInfo, bool $is_delay_batch = false, array $context = [])
+ * @method \Swoolefy\Util\Log notice($logInfo, bool $is_delay_batch = false, array $context = [])
+ * @method \Swoolefy\Util\Log warning($logInfo, bool $is_delay_batch = false, array $context = [])
+ * @method \Swoolefy\Util\Log error($logInfo, bool $is_delay_batch = false, array $context = [])
  */
 class Log
 {
