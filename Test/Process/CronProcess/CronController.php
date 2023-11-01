@@ -19,6 +19,16 @@ class CronController extends AbstractCronController {
             $keyValue = $redis->get('key');
             var_dump("This is Crontab process, keyValue={$keyValue}, expression={$expression}, class=".__CLASS__);
         }else {
+//            goApp(function () {
+//                $result = Factory::getDb()->newQuery()->table('tbl_users')->where(['user_id' => 10000])->find();
+//                var_dump($result);
+//            });
+//
+//            goApp(function () {
+//                $result = Factory::getDb()->newQuery()->table('tbl_users')->where(['user_id' => 46428])->order('')->find();
+//                var_dump($result);
+//            });
+
             var_dump("This is Crontab process, tick loop cron");
         }
     }

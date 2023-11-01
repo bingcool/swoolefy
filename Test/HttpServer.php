@@ -12,7 +12,6 @@
 namespace Test;
 
 use Swoole\Http\Server;
-use Swoolefy\Core\Application;
 
 class HttpServer extends \Swoolefy\Http\HttpAppServer {
 
@@ -51,17 +50,12 @@ class HttpServer extends \Swoolefy\Http\HttpAppServer {
      */
 	public function onFinish(Server $server, int $task_id, $data)
     {
-        $msg = json_decode($data, true) ?? $data;
-
+        var_dump('Finish-cid = '.\Swoole\Coroutine::getCid());
         //var_dump('Worker Process onFinish Receive Task Worker msg='.$data);
-
-        $userId = $msg['user_id'];
+        $userId = $data['user_id'];
         $db = Factory::getDb();
-        $result = $db->createCommand('select * from tbl_users where user_id=:user_id limit 1')->queryAll([
-            ':user_id' => $userId
-        ]);
-
+        $result = $db->newQuery()->table('tbl_users')->where(['user_id' => $userId])->find();
         //var_dump('Worker Process Find Db Result as：');
-        //print_r($result);
+        print_r($result);
     }
 }	

@@ -139,7 +139,8 @@ abstract class MqttServer extends BaseServer
          */
         $this->mqttServer->on('receive', function (\Swoole\Server $server, $fd, $reactor_id, $data) {
             try {
-                \Swoolefy\Core\Coroutine\Context::set('trace-id', Helper::UUid());
+                $traceId = Helper::UUid();
+                \Swoolefy\Core\Coroutine\Context::set('trace-id', $traceId);
                 static::onReceive($server, $fd, $reactor_id, $data);
                 return true;
             } catch (\Throwable $e) {

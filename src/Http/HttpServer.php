@@ -168,7 +168,12 @@ abstract class HttpServer extends BaseServer
          */
         $this->webServer->on('finish', function (\Swoole\Http\Server $server, $task_id, $data) {
             try {
-                (new EventApp())->registerApp(function () use ($server, $task_id, $data) {
+                $params = unserialize($data);
+                list($data, $contextData) = $params;
+                (new EventApp())->registerApp(function () use ($server, $task_id, $data, $contextData) {
+                    foreach ($contextData as $key=>$value) {
+                        \Swoolefy\Core\Coroutine\Context::set($key, $value);
+                    }
                     static::onFinish($server, $task_id, $data);
                 });
                 return true;

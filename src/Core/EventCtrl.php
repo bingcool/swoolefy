@@ -36,6 +36,7 @@ class EventCtrl implements EventCtrlInterface
         }
         static::onInit();
         $this->registerSqlLogger();
+        $this->registerGuzzleCurlLogger();
 
         if(!$this->isWorkerService()) {
             if (BaseServer::isEnableSysCollector()) {
@@ -78,7 +79,7 @@ class EventCtrl implements EventCtrlInterface
             }
             ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, $class);
         }else {
-            write('Missing onWorkerServiceInit handle');
+            write('Error Service Type');
             exit(0);
         }
     }
@@ -103,6 +104,28 @@ class EventCtrl implements EventCtrlInterface
             $logger->setLogFilePath($sqlFilePath);
             return $logger;
         }, 'sql_log');
+    }
+
+    /**
+     * 注册GuzzleCurlLog
+     *
+     * @return void
+     */
+    protected function registerGuzzleCurlLogger()
+    {
+        LogManager::getInstance()->registerLoggerByClosure(function ($name) {
+            $logger = new \Swoolefy\Util\Log($name);
+            $logger->setChannel('application');
+            $formatter = new LineFormatter("%message%\n");
+            $logger->setFormatter($formatter);
+            $baseSqlPath = pathinfo(LOG_PATH)['dirname'].DIRECTORY_SEPARATOR.'GuzzleCurl';
+            if (!is_dir($baseSqlPath)) {
+                mkdir($baseSqlPath,0777);
+            }
+            $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'guzzle_curl.log';
+            $logger->setLogFilePath($sqlFilePath);
+            return $logger;
+        }, 'guzzle_curl_log');
     }
 
     /**
