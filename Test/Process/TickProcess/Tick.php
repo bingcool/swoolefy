@@ -161,25 +161,9 @@ class Tick extends AbstractProcess {
             ]
         ];
 
-        $manager = new \think\DbManager();
-        $manager->setConfig($dc);
-        $mysql = $manager->connect('mysql');
-        $query1 = new \think\db\Query($mysql);
-
-        //$id = $query1->table('tbl_users')->insert($data, true);
-
-        $result = $query1->table('tbl_users as a')
-            ->rightJoin('tbl_order b','a.user_id=b.user_id')
-            ->page(1,5)->order('a.user_id', 'desc')
-            ->fetchSql()
-            ->select();
-
-        var_dump($result);
-
-
     }
 
-    public function onReceive($str, ...$args)
+    public function onReceive($msg, ...$args)
     {
 
     }

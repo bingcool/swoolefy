@@ -74,6 +74,20 @@ trait ComponentTrait
     }
 
     /**
+     * makeNewObject
+     *
+     * @param string $comAliasName
+     * @param \Closure $definition
+     * @return mixed
+     * @throws SystemException
+     */
+    public function makeNewObject(string $comAliasName, \Closure $definition)
+    {
+        // dynamic create component object
+        return call_user_func($definition, $comAliasName);
+    }
+
+    /**
      * getDependencies
      * @param string $class
      * @return array
