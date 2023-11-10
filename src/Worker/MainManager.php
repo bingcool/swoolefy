@@ -1349,7 +1349,7 @@ class MainManager
 
         $cliPipeFile = $this->getCliPipeFile();
         if (file_exists($cliPipeFile)) {
-            unlink($cliPipeFile);
+            @unlink($cliPipeFile);
         }
 
         if (!posix_mkfifo($cliPipeFile, 0777)) {

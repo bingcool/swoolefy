@@ -23,12 +23,8 @@ Route::group([
 
     Route::get('/user-order/userList', [
         'beforeHandle' => function(RequestInput $requestInput) {
-            $name = $requestInput->input('name');
-            var_dump($name);
-
-            $orderIds = $requestInput->input('order_ids');
-            var_dump($orderIds);
-
+            $requestInput->input('name');
+            $requestInput->input('order_ids');
             $requestInput->getMethod();
         },
         'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList'],
