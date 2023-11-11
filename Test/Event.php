@@ -33,7 +33,7 @@ class Event extends EventHandler
         }
 
         // 注册慢sql的宏函数处理
-        PDOConnection::registerSlowSqlFn(0.01, function ($runTime, $realSql) {
+        PDOConnection::registerSlowSqlFn(0.1, function ($runTime, $realSql) {
             var_dump("slow sql 耗时：$runTime, sql：$realSql");
         });
 

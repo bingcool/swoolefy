@@ -60,12 +60,14 @@ class ObjectController extends BController
         $orderObject = new \Test\Module\Order\OrderEntity($userId, $orderId);
         if($orderObject->isExists()) {
             $orderObject->user_id = $userId;
-            $orderObject->order_amount = 123.50;
-            $orderObject->order_product_ids = [1222,345,567,rand(1,1000)];
+            $orderObject->inc('order_amount', 1);
+            //$orderObject->exp('order_amount', 'order_amount * 2');
+            //$orderObject->order_product_ids = [1222,345,567,rand(1,1000)];
             $orderObject->json_data = ['name'=>'xiaomi', 'phone'=>123456789];
             $orderObject->order_status = 1;
             $orderObject->remark = 'test-remark-'.rand(1,1000);
             $orderObject->save();
+            $lastSql = $orderObject->getLastSql();
             $this->returnJson($orderObject->getAttributes());
         }else {
             throw new \Exception('OrderEntity is not exist');
