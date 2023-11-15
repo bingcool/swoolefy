@@ -125,15 +125,15 @@ function parseCliEnvParams()
 function initCheck()
 {
     try {
-        if (version_compare(phpversion(), '7.2.0', '<')) {
+        if (version_compare(phpversion(), '7.3.0', '<')) {
             write("
-                [Error] php version must >= 7.2.0, current php version = " . phpversion()
+                [Error] php version must >= 7.3.0, current php version = " . phpversion()
             );
             exit(0);
         }
-        if (version_compare(swoole_version(), '4.4.5', '<')) {
+        if (version_compare(swoole_version(), '4.8.5', '<')) {
             write("
-                [Error] the swoole version must >= 4.4.5, current swoole version = " . swoole_version()
+                [Error] the swoole version must >= 4.8.5, current swoole version = " . swoole_version()
             );
             exit(0);
         }
@@ -529,15 +529,22 @@ function commonHandle(&$config)
 
 function stopServer($app_name)
 {
-    if (!isWorkerService()) {
-        echo "1、你确定停止应用【{$app_name}】? (yes or no):";
-    } else {
-        echo "1、你确定停止workerService【" . WORKER_SERVICE_NAME . "】? (yes or no):";
+    $force = getenv('force');
+    if (empty($force)) {
+        if (!isWorkerService()) {
+            echo "1、你确定停止应用【{$app_name}】? (yes or no):";
+        } else {
+            echo "1、你确定停止workerService【" . WORKER_SERVICE_NAME . "】? (yes or no):";
+        }
     }
 
     $lineValue = '';
-    while ($lineValue == '') {
-        $lineValue = trim(fgets(STDIN));
+    if (empty($force)) {
+        while ($lineValue == '') {
+            $lineValue = trim(fgets(STDIN));
+        }
+    }else {
+        $lineValue = 'yes';
     }
 
     if (strtolower($lineValue) == 'yes') {
