@@ -100,7 +100,16 @@ class EventCtrl implements EventCtrlInterface
             if (!is_dir($baseSqlPath)) {
                 mkdir($baseSqlPath,0777);
             }
-            $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'sql.log';
+            if (SystemEnv::isDaemonService()) {
+                $sqlLogName = 'sql_daemon.log';
+            }else if (SystemEnv::isCronService()) {
+                $sqlLogName = 'sql_cron.log';
+            }else if (SystemEnv::isScriptService()) {
+                $sqlLogName = 'sql_script.log';
+            }else {
+                $sqlLogName = 'sql.log';
+            }
+            $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.$sqlLogName;
             $logger->setLogFilePath($sqlFilePath);
             return $logger;
         }, 'sql_log');

@@ -2,6 +2,7 @@
 
 namespace Test\Router;
 
+use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\Route;
 
@@ -22,7 +23,11 @@ Route::group([
 
 
     Route::get('/user-order/userList', [
+        // 针对该接口启动sql-debug
         'beforeHandle' => function(RequestInput $requestInput) {
+            Context::set('db_debug', true);
+        },
+        'beforeHandle1' => function(RequestInput $requestInput) {
             $requestInput->input('name');
             $requestInput->input('order_ids');
             $requestInput->getMethod();
