@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Core\Coroutine;
 
+use Common\Library\Db\PDOConnection;
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\Dto\ContainerObjectDto;
 use Swoolefy\Exception\SystemException;
@@ -190,6 +191,13 @@ class PoolsHandler
                 $isPush = false;
             }
 
+            $targetObj = $obj->getObject();
+            if ($targetObj instanceof PDOConnection) {
+                if ($targetObj->dynamicDebug === 1) {
+                    $targetObj->debug = 0;
+                }
+            }
+
             if ($isPush) {
                 $this->channel->push($obj, $this->pushTimeout);
                 $length = $this->channel->length();
@@ -224,6 +232,10 @@ class PoolsHandler
         try {
             $obj = $this->getObj();
             is_object($obj) && $this->callCount++;
+            $targetObj = $obj->getObject();
+            if ($targetObj instanceof PDOConnection) {
+                $targetObj->enableDynamicDebug();
+            }
             return $obj;
         } catch (\Exception $exception) {
             throw $exception;

@@ -11,7 +11,7 @@ return [
             'pools_num' => 5,
             'push_timeout' => 2,
             'pop_timeout' => 1,
-            'live_time' => 10
+            'live_time' => 100
         ],
 
         'redis' => [

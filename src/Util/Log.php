@@ -217,7 +217,7 @@ class Log
             $fileDate = array_pop($fileArr);
 
             if (is_numeric($fileDate) && $fileDate < $lastDay ) {
-                unlink($pathFile);
+                @unlink($pathFile);
             }
         }
         $this->doUnlink = true;
