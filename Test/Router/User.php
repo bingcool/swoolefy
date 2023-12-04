@@ -35,8 +35,11 @@ Route::group([
             $requestInput->input('order_ids');
             $requestInput->getMethod();
         },
+        'beforeHandle2' => [
+            GroupTestMiddleware::class
+        ],
         'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList'],
-        GroupTestMiddleware::class => GroupTestMiddleware::class
+        //GroupTestMiddleware::class => GroupTestMiddleware::class
     ]);
 
     Route::get('/user-order/save-order', [
