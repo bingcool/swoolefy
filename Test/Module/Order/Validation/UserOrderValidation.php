@@ -13,8 +13,8 @@ class UserOrderValidation
             ],
 
             'messages' => [
-                'name.required' => '名称必须',
-                'name.json' => '名称必须json字符串',
+//                'name.required' => '名称必须',
+//                'name.json' => '名称必须json字符串',
             ]
         ];
     }
