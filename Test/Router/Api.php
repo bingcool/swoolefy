@@ -5,6 +5,7 @@ namespace Test\Router;
 use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\Route;
+use Test\Middleware\Group\GroupTestMiddleware;
 
 /**
  * Controller 下的控制器路由
@@ -14,7 +15,9 @@ Route::group([
     // 路由前缀
     'prefix' => 'api',
     // 路由中间件
-    'middleware' => []
+    'middleware' => [
+        GroupTestMiddleware::class
+    ]
 ], function () {
     Route::get('/', [
         'beforeHandle' => function(RequestInput $requestInput) {

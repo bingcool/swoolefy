@@ -36,6 +36,7 @@ class EventCtrl implements EventCtrlInterface
         }
         static::onInit();
         $this->registerSqlLogger();
+        $this->registerGuzzleCurlLogger();
 
         if(!$this->isWorkerService()) {
             if (BaseServer::isEnableSysCollector()) {
@@ -99,10 +100,41 @@ class EventCtrl implements EventCtrlInterface
             if (!is_dir($baseSqlPath)) {
                 mkdir($baseSqlPath,0777);
             }
-            $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'sql.log';
+            if (SystemEnv::isDaemonService()) {
+                $sqlLogName = 'sql_daemon.log';
+            }else if (SystemEnv::isCronService()) {
+                $sqlLogName = 'sql_cron.log';
+            }else if (SystemEnv::isScriptService()) {
+                $sqlLogName = 'sql_script.log';
+            }else {
+                $sqlLogName = 'sql.log';
+            }
+            $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.$sqlLogName;
             $logger->setLogFilePath($sqlFilePath);
             return $logger;
         }, 'sql_log');
+    }
+
+    /**
+     * 注册GuzzleCurlLog
+     *
+     * @return void
+     */
+    protected function registerGuzzleCurlLogger()
+    {
+        LogManager::getInstance()->registerLoggerByClosure(function ($name) {
+            $logger = new \Swoolefy\Util\Log($name);
+            $logger->setChannel('application');
+            $formatter = new LineFormatter("%message%\n");
+            $logger->setFormatter($formatter);
+            $baseSqlPath = pathinfo(LOG_PATH)['dirname'].DIRECTORY_SEPARATOR.'GuzzleCurl';
+            if (!is_dir($baseSqlPath)) {
+                mkdir($baseSqlPath,0777);
+            }
+            $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'guzzle_curl.log';
+            $logger->setLogFilePath($sqlFilePath);
+            return $logger;
+        }, 'guzzle_curl_log');
     }
 
     /**

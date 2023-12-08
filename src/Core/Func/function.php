@@ -96,9 +96,9 @@ function makeServerName(string $appName)
  * @throws \Swoolefy\Exception\SystemException
  */
 function goApp(callable $callback, ...$params) {
-    $arrayCopy = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
-    return \Swoole\Coroutine::create(function () use($callback, $params, $arrayCopy) {
-        foreach ($arrayCopy as $key=>$value) {
+    $contextData = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
+    return \Swoole\Coroutine::create(function () use($callback, $params, $contextData) {
+        foreach ($contextData as $key=>$value) {
             \Swoolefy\Core\Coroutine\Context::set($key, $value);
         }
         (new \Swoolefy\Core\EventApp)->registerApp(function($event) use($callback, $params) {

@@ -45,7 +45,9 @@ class CrontabManager
         $cronNameKey = md5($cronName);
 
         if (isset($this->cronTasks[$cronNameKey])) {
-            throw new CronException("Cron name=$cronName had been setting, you can not set same name again!");
+            throw new CronException(sprintf("Cron name=s% had been setting, you can not set same name again",
+                $cronName)
+            );
         }
 
         $this->cronTasks[$cronNameKey] = [$expression, $func];

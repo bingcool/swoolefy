@@ -194,7 +194,12 @@ abstract class TcpServer extends BaseServer
          */
         $this->tcpServer->on('finish', function (\Swoole\Server $server, $task_id, $data) {
             try {
-                (new EventApp())->registerApp(function () use ($server, $task_id, $data) {
+                $params = unserialize($data);
+                list($data, $contextData) = $params;
+                (new EventApp())->registerApp(function () use ($server, $task_id, $data, $contextData) {
+                    foreach ($contextData as $key=>$value) {
+                        \Swoolefy\Core\Coroutine\Context::set($key, $value);
+                    }
                     static::onFinish($server, $task_id, $data);
                 });
                 return true;
