@@ -16,7 +16,7 @@ class ObjectController extends BController
         $userId = 10000;
 
         $struct = new \Swoolefy\Core\Struct();
-        $struct->set('name','bingcool');
+        $struct->set('name', 'bingcool');
 
         $orderObject = new \Test\Module\Order\OrderEntity($userId);
         $orderObject->user_id = $userId;
@@ -24,10 +24,10 @@ class ObjectController extends BController
         $orderObject->receiver_user_phone = "12344556";
         $orderObject->order_amount = 123.50;
         $orderObject->address = "广东省深圳xxxxxx";
-        $orderObject->order_product_ids = [1222,345,567,rand(1,1000)];
-        $orderObject->json_data = ['name'=>'xiaomi', 'phone'=>123456789];
+        $orderObject->order_product_ids = [1222, 345, 567, rand(1, 1000)];
+        $orderObject->json_data = ['name' => 'xiaomi', 'phone' => 123456789];
         $orderObject->order_status = 1;
-        $orderObject->remark = 'test-remark-'.rand(1,1000).'-'.$struct->get('name');
+        $orderObject->remark = 'test-remark-' . rand(1, 1000) . '-' . $struct->get('name');
         $orderObject->setFormatter(new OrderFormatter());
         //$orderObject->skipEvent(OrderEntity::AFTER_INSERT);
 
@@ -43,7 +43,7 @@ class ObjectController extends BController
 
         $orderObject->save();
 
-        if($orderObject->isExists()) {
+        if ($orderObject->isExists()) {
             $this->returnJson($orderObject->getAttributes());
         }
     }
@@ -55,18 +55,20 @@ class ObjectController extends BController
     {
         $userId = 10000;
 
-        $orderId = 1633494944;
+        $orderId = 1698317204;
 
         $orderObject = new \Test\Module\Order\OrderEntity($userId, $orderId);
         if($orderObject->isExists()) {
             $orderObject->user_id = $userId;
-            $orderObject->order_amount = 123.50;
-            $orderObject->order_product_ids = [1222,345,567,rand(1,1000)];
+            $orderObject->inc('order_amount', 1);
+            //$orderObject->exp('order_amount', 'order_amount * 2');
+            //$orderObject->order_product_ids = [1222,345,567,rand(1,1000)];
             $orderObject->json_data = ['name'=>'xiaomi', 'phone'=>123456789];
             $orderObject->order_status = 1;
             $orderObject->remark = 'test-remark-'.rand(1,1000);
             $orderObject->save();
-            var_dump($orderObject);
+            $lastSql = $orderObject->getLastSql();
+            $this->returnJson($orderObject->getAttributes());
         }else {
             throw new \Exception('OrderEntity is not exist');
         }
@@ -91,5 +93,4 @@ class ObjectController extends BController
             'list' => $result
         ]);
     }
-
 }

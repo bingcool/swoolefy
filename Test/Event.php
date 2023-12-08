@@ -33,7 +33,7 @@ class Event extends EventHandler
         }
 
         // 注册慢sql的宏函数处理
-        PDOConnection::registerSlowSqlFn(0.01, function ($runTime, $realSql) {
+        PDOConnection::registerSlowSqlFn(0.1, function ($runTime, $realSql) {
             var_dump("slow sql 耗时：$runTime, sql：$realSql");
         });
 
@@ -116,7 +116,7 @@ class Event extends EventHandler
             return;
         }
         // 创建产生uuid的定时器
-        Factory::getUUid()->tickPreBatchGenerateIds(2, 100);
+        //Factory::getUUid()->tickPreBatchGenerateIds(2, 100);
     }
 
     public function onWorkerStop($server, $worker_id)

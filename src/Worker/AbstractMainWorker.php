@@ -12,7 +12,6 @@
 namespace Swoolefy\Worker;
 
 use Swoolefy\Core\SystemEnv;
-use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Process\AbstractProcess;
 
 /**
@@ -25,47 +24,49 @@ abstract class AbstractMainWorker extends AbstractProcess
      */
     public function init()
     {
-        $this->registerLogger();
-        if(defined('WORKER_CONF') && !SystemEnv::isScriptService()) {
+        $workerConf = $this->parseWorkerConf();
+        if (!empty($workerConf)) {
             $mainManager = \Swoolefy\Worker\MainManager::getInstance();
-            $mainManager->loadConf(WORKER_CONF);
+            $mainManager->loadConf($workerConf);
         }
     }
 
     /**
-     * @param array $logTypes
-     * @param int $rotateDay
-     * @return void
+     * @return array|mixed
      */
-    protected function registerLogger(array $logTypes = [], int $rotateDay = 1)
+    protected function parseWorkerConf()
     {
-        if (empty($logTypes)) {
-            $logTypes = PROCESS_CLASS['Log'] ?? [];
-        }
+        if(defined('WORKER_CONF')) {
+            $mainManager = \Swoolefy\Worker\MainManager::getInstance();
+            $workerConfListNew = [];
+            $workerConfList = WORKER_CONF;
+            // Specify Process to Run When dev or test to debug, Avoid the impact of other processes
+            $onlyProcess = Helper::getCliParams('only-process');
+            if ($onlyProcess) {
+                $onlyProcessItems = explode(',', $onlyProcess);
+            }
 
-        if (SystemEnv::isScriptService()) {
-            foreach($logTypes as $logType) {
-                $logger = LogManager::getInstance()->getLogger($logType);
-                if ($logger) {
-                    if ($rotateDay >=2) {
-                        $rotateDay = 2;
+            if (!empty($onlyProcessItems) && (SystemEnv::isCronService() || SystemEnv::isDaemonService()) && (SystemEnv::isTestEnv() || SystemEnv::isDevEnv())) {
+                foreach ($workerConfList as  $workerConfItem) {
+                    $processName = $workerConfItem['process_name'];
+                    if (in_array($processName, $onlyProcessItems)) {
+                        $workerConfListNew[] = $workerConfItem;
                     }
-                    $logger->setRotateDay($rotateDay);
-                    $filePath = $logger->getLogFilePath();
-                    $filePathDir = pathinfo($filePath, PATHINFO_DIRNAME);
-                    $class = str_replace('\\', '/', static::class);
-                    $items = explode('/', $class);
-                    $num = count($items);
-                    if ($num >= 2) {
-                        $fileName = $items[$num - 2].'_'.$items[$num -1];
-                    }else {
-                        $fileName = array_pop($items);
-                    }
-                    $dir = "/script/{$logType}/" . $fileName . '.log';
-                    $filePath = $filePathDir . $dir;
-                    $logger->setLogFilePath($filePath);
                 }
+
+                if (empty($workerConfListNew)) {
+                    write("Not Found Specify Process --only-process={$onlyProcess}, All Process Exited!");
+                    $masterPid = $mainManager->getMasterPid();
+                    // kill master to exit
+                    \Swoole\Process::kill($masterPid, SIGTERM);
+                }else {
+                    $workerConf = $workerConfListNew;
+                }
+            }else {
+                $workerConf = $workerConfList;
             }
         }
+
+        return $workerConf ?? [];
     }
 }

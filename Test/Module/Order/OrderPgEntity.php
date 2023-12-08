@@ -1,24 +1,11 @@
 <?php
 namespace Test\Module\Order;
 
+use Swoolefy\Core\Application;
+use Swoolefy\Core\Swfy;
 use Test\Model\ClientModel;
 
-/**
- * @property int order_id 订单id
- * @property int user_id 下单用户id
- * @property string receiver_user_name 收货人
- * @property string receiver_user_phone 收货人手机号
- * @property string order_amount 订单金额
- * @property string order_product_ids 订单产品id
- * @property int order_status 订单状态
- * @property string address 物流地址
- * @property string remark 评论
- * @property string json_data 扩展数据
- * @property string gmt_create 创建时间
- * @property string gmt_modify 更新时间
- */
-
-class OrderEntity extends ClientModel
+class OrderPgEntity extends ClientModel
 {
     use OrderEventTrait;
 
@@ -50,6 +37,20 @@ class OrderEntity extends ClientModel
         if($id > 0) {
             $this->loadById($id);
         }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getConnection()
+    {
+        // 通过query获取user对应所在的dbId
+        $dbId = 2;
+        $dbIdKey = 'db-id-'.$dbId;
+        return Application::getApp()->creatObject($dbIdKey, function ($comName) {
+            // 通过$this->userId动态获取对应数据库配置
+            return call_user_func(Swfy::getAppConf()['components']['pg']);
+        });
     }
 
     /**

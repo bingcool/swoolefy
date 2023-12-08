@@ -415,11 +415,16 @@ class HttpRoute extends AppDispatch
                 }
             }
 
-            $beforeMiddleware = [];
-
+            $beforeMiddleware = $afterMiddleware = [];
             foreach($routerMeta as $alias => $handle) {
                 if ($alias != 'dispatch_route') {
-                    $beforeMiddleware[] = $handle;
+                    if (is_array($handle)) {
+                        foreach ($handle as $handleItem) {
+                            $beforeMiddleware[] = $handleItem;
+                        }
+                    }else {
+                        $beforeMiddleware[] = $handle;
+                    }
                     unset($routerMeta[$alias]);
                     continue;
                 }
@@ -427,7 +432,18 @@ class HttpRoute extends AppDispatch
                 break;
             }
 
-            $afterMiddleware = array_values($routerMeta);
+            $afterMiddlewareTemp = array_values($routerMeta);
+            foreach ($afterMiddlewareTemp as $afterMiddlewareItem) {
+                if (is_array($afterMiddlewareItem)) {
+                    foreach ($afterMiddlewareItem as $afterMiddlewareEvery) {
+                        $afterMiddleware[] = $afterMiddlewareEvery;
+                    }
+                }else {
+                    $afterMiddleware[] = $afterMiddlewareItem;
+                }
+            }
+
+
             $routeCacheItems = [$groupMiddleware, $beforeMiddleware, $originDispatchRoute, $afterMiddleware, $method, $groupMeta];
             self::$routeCache[$uri] = $routeCacheItems;
             unset($routerMap[$uri]);

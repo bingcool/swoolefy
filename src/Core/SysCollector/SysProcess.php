@@ -235,11 +235,11 @@ class SysProcess extends AbstractProcess
     }
 
     /**
-     * @param mixed $message
+     * @param mixed $msg
      * @param mixed ...$args
      * @return mixed|void
      */
-    public function onReceive($message, ...$args)
+    public function onReceive($msg, ...$args)
     {
     }
 

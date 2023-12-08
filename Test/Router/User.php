@@ -2,8 +2,10 @@
 
 namespace Test\Router;
 
+use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\Route;
+use Test\Middleware\Group\GroupTestMiddleware;
 
 /**
  * Module/Controller 下的控制器路由
@@ -13,7 +15,9 @@ Route::group([
     // 路由前缀
     'prefix' => 'user',
     // 路由中间件
-    'middleware' => []
+    'middleware' => [
+        GroupTestMiddleware::class
+    ]
 ], function () {
 
     Route::get('/testAddUser', [
@@ -22,16 +26,20 @@ Route::group([
 
 
     Route::get('/user-order/userList', [
+        // 针对该接口启动sql-debug
         'beforeHandle' => function(RequestInput $requestInput) {
-            $name = $requestInput->input('name');
-            var_dump($name);
-
-            $orderIds = $requestInput->input('order_ids');
-            var_dump($orderIds);
-
+            Context::set('db_debug', true);
+        },
+        'beforeHandle1' => function(RequestInput $requestInput) {
+            $requestInput->input('name');
+            $requestInput->input('order_ids');
             $requestInput->getMethod();
         },
+        'beforeHandle2' => [
+            GroupTestMiddleware::class
+        ],
         'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList'],
+        //GroupTestMiddleware::class => GroupTestMiddleware::class
     ]);
 
     Route::get('/user-order/save-order', [
@@ -41,6 +49,15 @@ Route::group([
 
         'dispatch_route' => [\Test\Controller\ObjectController::class, 'saveOrder'],
     ]);
+
+    Route::get('/user-order/update-order', [
+        'beforeHandle' => function(RequestInput $requestInput) {
+            $name = $requestInput->getRequestParams('name');
+        },
+
+        'dispatch_route' => [\Test\Controller\ObjectController::class, 'updateOrder'],
+    ]);
+
 
     Route::get('/testTransactionAddOrder', [
         'before-validate' => \Test\Middleware\Route\ValidLoginMiddleware::class,
@@ -56,5 +73,20 @@ Route::group([
         'dispatch_route' => [\Test\Controller\ObjectController::class, 'saveOrder'],
     ]);
 
+    Route::get('/user-order/save-pg-order', [
+        'beforeHandle' => function(RequestInput $requestInput) {
+            $name = $requestInput->getRequestParams('name');
+        },
+
+        'dispatch_route' => [\Test\Controller\PgController::class, 'savePgOrder'],
+    ]);
+
+    Route::get('/user-order/save-pg-order1', [
+        'beforeHandle' => function(RequestInput $requestInput) {
+            $name = $requestInput->getRequestParams('name');
+        },
+
+        'dispatch_route' => [\Test\Controller\PgController::class, 'savePgOrder1'],
+    ]);
 
 });
