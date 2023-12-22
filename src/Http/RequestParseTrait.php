@@ -554,6 +554,8 @@ trait RequestParseTrait
     }
 
     /**
+     * 设置自定义上下文透传的key-value数据
+     *
      * @param string $key
      * @param $value
      * @return void
@@ -564,12 +566,25 @@ trait RequestParseTrait
     }
 
     /**
+     * 获取自定义上下文透传的key-value数据
+     *
      * @param string $key
      * @return mixed
      */
     public function getValue(string $key)
     {
         return $this->extendData[$key];
+    }
+
+    /**
+     * 判断是否设置自定义上下文透传的key-value数据
+     *
+     * @param string $key
+     * @return bool
+     */
+    public function issetValue(string $key)
+    {
+        return isset($this->extendData[$key]);
     }
 
     /**
