@@ -163,6 +163,11 @@ class MainManager
     protected $closure;
 
     /**
+     * @var string
+     */
+    protected static $confPath;
+
+    /**
      * @var int
      */
     const NUM_PEISHU = 8;
@@ -249,15 +254,34 @@ class MainManager
             $this->writeInfo("【Warning】Process Name={$process_name}, params of process_worker_num more then max_process_num={$maxProcessNum}");
             $process_worker_num = $maxProcessNum;
         }
+        $this->setProcessLists($process_name, $process_class, $process_worker_num, $args, $extend_data);
+    }
 
+    /**
+     * @param string $processName
+     * @param string $processClass
+     * @param int $processWorkerNum
+     * @param array $args
+     * @param array $extendData
+     * @return void
+     */
+    protected function SetProcessLists(
+        string $processName,
+        string $processClass,
+        int $processWorkerNum,
+        array $args,
+        array $extendData
+    )
+    {
+        $key = md5($processName);
         $this->processLists[$key] = [
-            'process_name'       => $process_name,
-            'process_class'      => $process_class,
-            'process_worker_num' => $process_worker_num,
-            'async'              => $async,
+            'process_name'       => $processName,
+            'process_class'      => $processClass,
+            'process_worker_num' => $processWorkerNum,
+            'async'              => true,
             'args'               => $args,
-            'extend_data'        => $extend_data,
-            'enable_coroutine'   => $enable_coroutine
+            'extend_data'        => $extendData,
+            'enable_coroutine'   => true
         ];
     }
 
@@ -655,7 +679,7 @@ class MainManager
             $async           = $list['async'] ?? true;
             $args            = $list['args'] ?? [];
             $extendData      = $list['extend_data'] ?? null;
-            $enableCoroutine = $list['enable_coroutine'] ?? false;
+            $enableCoroutine = $list['enable_coroutine'] ?? true;
             /** @var AbstractBaseWorker $newProcess */
             $newProcess = new $processClass(
                 $processName,
@@ -861,29 +885,45 @@ class MainManager
         }
 
         for ($workerId = $runningProcessWorkerNum; $workerId < $totalProcessNum; $workerId++) {
-            try {
-                /** @var AbstractBaseWorker $newProcess */
-                $newProcess = new $processClass(
-                    $process_name,
-                    $async,
-                    $args,
-                    $extendData,
-                    $enableCoroutine
-                );
-                $newProcess->setProcessWorkerId($workerId);
-                $newProcess->setMasterPid($this->getMasterPid());
-                $newProcess->setProcessType(AbstractBaseWorker::PROCESS_DYNAMIC_TYPE);
-                $newProcess->setStartTime();
-                $this->processWorkers[$key][$workerId] = $newProcess;
-                $newProcess->start();
-                $this->swooleEventAdd($newProcess);
-                $this->writeInfo("【Info】Process name={$process_name},worker_id={$workerId} create successful", 'green');
-            } catch (\Throwable $throwable) {
-                unset($this->processWorkers[$key][$workerId], $newProcess);
-                $this->onHandleException->call($this, $throwable);
-            }
+            $this->forkNewProcess($processClass, $process_name, $workerId, $args, $extendData);
         }
+
         $this->getDynamicProcessNum($process_name);
+    }
+
+    /**
+     *
+     * @param $processClass
+     * @param $processName
+     * @param $workerId
+     * @param $args
+     * @param $extendData
+     * @return void
+     */
+    protected function forkNewProcess($processClass, $processName, $workerId, $args = [], $extendData = [])
+    {
+        try {
+            /** @var AbstractBaseWorker $newProcess */
+            $newProcess = new $processClass(
+                $processName,
+                true,
+                $args,
+                $extendData,
+                true
+            );
+            $key = md5($processName);
+            $newProcess->setProcessWorkerId($workerId);
+            $newProcess->setMasterPid($this->getMasterPid());
+            $newProcess->setProcessType(AbstractBaseWorker::PROCESS_DYNAMIC_TYPE);
+            $newProcess->setStartTime();
+            $this->processWorkers[$key][$workerId] = $newProcess;
+            $newProcess->start();
+            $this->swooleEventAdd($newProcess);
+            $this->writeInfo("【Info】Process name={$processName},worker_id={$workerId} create successful", 'green');
+        } catch (\Throwable $throwable) {
+            unset($this->processWorkers[$key][$workerId], $newProcess);
+            $this->onHandleException->call($this, $throwable);
+        }
     }
 
     /**
@@ -1105,6 +1145,12 @@ class MainManager
                 \Swoole\Timer::clear($timerId);
             });
         }
+
+// 主进程定时检测配置文件拉起进程
+//        \Swoole\Timer::tick(10 * 1000, function () {
+//            $this->tickForkNewProcess();
+//        });
+
     }
 
     /**
@@ -1590,6 +1636,68 @@ class MainManager
     private function getMaxProcessNum()
     {
         return (swoole_cpu_num()) * (self::NUM_PEISHU);
+    }
+
+    /**
+     * 实时加载配置文件路径
+     *
+     * @param string $confPath
+     * @return array
+     */
+    public static function loadConfByPath(string $confPath = '')
+    {
+        if (!empty(self::$confPath)) {
+            $confPath = self::$confPath;
+            return include $confPath;
+        }
+        self::$confPath = $confPath;
+        return include $confPath;
+    }
+
+    /**
+     * @return void
+     */
+    protected function tickForkNewProcess()
+    {
+        $conf = self::loadConfByPath();
+        // 新增-启动
+        foreach ($conf as &$config) {
+            $processName = $config['process_name'];
+            $key = md5($processName);
+            $config['key'] = $key;
+            if (!isset($this->processLists[$key])) {
+                $processName      = $config['process_name'];
+                $processClass     = $config['handler'];
+                if ($config['worker_num'] > $this->getMaxProcessNum()) {
+                    $config['worker_num'] = $this->getMaxProcessNum();
+                }
+                $processWorkerNum = $config['worker_num'] ?? 1;
+                $args             = $config['args'] ?? [];
+                $extendData       = $config['extend_data'] ?? [];
+                $this->parseArgs($args, $config);
+                for ($workerId=0; $workerId< $processWorkerNum; $workerId++) {
+                    $this->forkNewProcess($processClass, $processName, $workerId, $args, $extendData);
+                }
+                $this->setProcessLists($processName, $processClass, $processWorkerNum, $args, $extendData);
+            }
+        }
+
+        $confMap = array_column($conf, null, 'key');
+        // 删除-停止
+        foreach ($this->processLists as $key=>$item) {
+            if (!isset($confMap[$key])) {
+                $processes = $this->processWorkers[$key] ?? [];
+                foreach ($processes as $workerId => $process) {
+                    try {
+                        $processName = $process->getProcessName();
+                        $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
+                    } catch (\Throwable $exception) {
+                        $this->writeInfo("【Error】 Reload Command send stop Signal (SIGINT,SIGTERM) error Process={$processName},worker_id={$workerId} exit failed, error=" . $exception->getMessage());
+                    }
+                }
+                unset($this->processLists[$key], $this->processWorkers[$key]);
+            }
+        }
     }
 
     /**
