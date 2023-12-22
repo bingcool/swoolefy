@@ -86,7 +86,7 @@ swoolefy-4.8-lts 版本：
 
 ### bingcool/library 是swoolefy require 内置库，专为swoole协程实现的组件库        
 实现了包括：    
-- [x] Db ORM Model 组件(支持mysql,postSql,sqlite,Oracle)
+- [x] Db ORM Model 组件(支持mysql、 postSql、 sqlite、 Oracle)
 - [x] DB Query Builder 链式操作查询组件      
 - [x] Kafka Producer Consumer组件
 - [x] Rabbitmq Queue组件  
@@ -97,7 +97,7 @@ swoolefy-4.8-lts 版本：
 - [x] RedisLock锁组件   
 - [x] RateLimit限流组件   
 - [x] Redis Public Subscribe组件    
-- [x] Db 、Redis、Curl协程连接池组件
+- [x] Db、Redis、 Curl协程连接池组件
 - [x] UUid 分布式自增id组件  
 - [x] Curl基础组件    
 - [x] Jwt 组件   
@@ -196,7 +196,7 @@ myproject
 |     |—— HttpServer.php // http server
 |    
 |——— src //源码
-|——— cli.php // 应用启动入口文件
+|——— cli.php // http应用启动入口文件
 |——— cron.php // 定时worker任务的多进程启动入口文件
 |——— daemon.php // 守护进程worker的多进程启动入口文件
 |——— script.php // 脚本启动入口文件

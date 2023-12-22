@@ -15,7 +15,6 @@ class ConsumerKafka extends AbstractProcess
         $consumer = Application::getApp()->get('kafka_topic_order_group1_consumer');
 
         while (true) {
-
             $message = $consumer->consume();
 
             if (!empty($message)) {
