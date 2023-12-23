@@ -58,7 +58,12 @@ abstract class AbstractCronController extends ProcessController
                 static::$expression[$cronName][$expressionKey] = $expression;
                 static::$cronNextDatetime[$cronName][$expressionKey] = $cronNextDatetime;
             }
-            if (($nowTime >= static::$cronNextDatetime[$cronName][$expressionKey] && $nowTime < ($cronNextDatetime - static::$offsetSecond))) {
+
+            $runOnceCron = getenv('run-once-cron');
+            if (($nowTime >= static::$cronNextDatetime[$cronName][$expressionKey] && $nowTime < ($cronNextDatetime - static::$offsetSecond))
+                || ($runOnceCron == 1)
+            ) {
+                putenv('run-once-cron=0');
                 static::$cronNextDatetime[$cronName][$expressionKey] = $cronNextDatetime;
                 if ($func instanceof \Closure) {
                     call_user_func($func, $cronName, $expression);

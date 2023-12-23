@@ -243,6 +243,11 @@ abstract class AbstractBaseWorker
     const CHECK_MASTER_LIVE_TICK_TIME = 30;
 
     /**
+     * @var string
+     */
+    const RUN_ONCE_CRON = 'run-once-cron';
+
+    /**
      * AbstractProcess constructor.
      * @param string $process_name
      * @param bool $async
@@ -498,8 +503,8 @@ abstract class AbstractBaseWorker
                 $this->writeStopFormatInfo();
                 $processName = $this->getProcessName();
                 $workerId    = $this->getProcessWorkerId();
-                $this->writeInfo("【Start Running 】 process={$processName}, worker_id={$workerId}");
             } catch (\Throwable $throwable) {
+                $processName = isset($processName) ?? '';
                 $this->writeInfo("【Error】Exit error, Process={$processName}, error:" . $throwable->getMessage());
             } finally {
                 $this->writeInfo("【Start End 】 process={$processName}, worker_id={$workerId}");
@@ -1534,6 +1539,15 @@ abstract class AbstractBaseWorker
      */
     public function onPipeMsg($msg, string $from_process_name, int $from_process_worker_id, bool $is_proxy_by_master)
     {
+        $msg = json_decode($msg, true) ?? $msg;
+        if (is_array($msg) && isset($msg['action'])) {
+            switch ($msg['action']) {
+                //  有时需要人为手动跑一次cron脚本
+                case self::RUN_ONCE_CRON:
+                    putenv(self::RUN_ONCE_CRON."=1");
+                break;
+            }
+        }
     }
 
     /**

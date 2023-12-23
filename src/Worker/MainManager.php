@@ -1145,12 +1145,6 @@ class MainManager
                 \Swoole\Timer::clear($timerId);
             });
         }
-
-// 主进程定时检测配置文件拉起进程
-//        \Swoole\Timer::tick(10 * 1000, function () {
-//            $this->tickForkNewProcess();
-//        });
-
     }
 
     /**
@@ -1423,6 +1417,21 @@ class MainManager
                                     $processName = $process->getProcessName();
                                     $workerId = $process->getProcessWorkerId();
                                     $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
+                                }
+                            }
+                        case WORKER_CLI_SEND_MSG:
+                            $processName = $cliPipeMsgDto->targetHandler;
+                            $key = md5($processName);
+                            if (isset($this->processWorkers[$key])) {
+                                $processes = $this->processWorkers[$key];
+                                ksort($processes);
+                                foreach ($processes as $process) {
+                                    /**
+                                     * @var AbstractBaseWorker $process
+                                     */
+                                    $processName = $process->getProcessName();
+                                    $workerId = $process->getProcessWorkerId();
+                                    $this->writeByProcessName($processName, $cliPipeMsgDto->message, $workerId);
                                 }
                             }
                             break;
