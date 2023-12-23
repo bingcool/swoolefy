@@ -13,8 +13,8 @@ return [
         'args' => [
             'cron_name' => 'cancel-order', // 定时任务名称
             'handler_class' => \Test\WorkerCron\LocalOrder\LocalOrderHandle::class, //处理类
-            //'cron_expression' => '*/1 * * * *', // 每分钟执行一次
-            'cron_expression' => 10, // 10s执行一次
+            'cron_expression' => '*/1 * * * *', // 每分钟执行一次
+            //'cron_expression' => 10, // 10s执行一次
         ],
     ],
 ];

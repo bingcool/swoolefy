@@ -20,7 +20,7 @@ return [
                     'fork_type' => \Swoolefy\Worker\Cron\CronForkProcess::FORK_TYPE_EXEC,
                     'exec_script' => '/home/wwwroot/swoolefy/Test/WorkerCron/ForkOrder/ForkOrderHandle.php',
                     'cron_expression' => 10, // 10s执行一次
-                    'params' => []
+                    'params' => [],
                     //'cron_expression' => '*/1 * * * *', // 每分钟执行一次
                 ]
             ]

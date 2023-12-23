@@ -838,7 +838,8 @@ function workerStatus($pidFile)
     exit(0);
 }
 
-
+// 定时监控系统是否已经推出，推出的话，重新启动，类似supervisor，可使用Linux的crontab 定时监控
+// */1 * * * * php cli.php monitor test -D
 function monitorServer($app_name)
 {
     $pidFile = getPidFile($app_name);
@@ -853,8 +854,61 @@ function monitorServer($app_name)
         sleep(2);
         if (!\Swoole\Process::kill($pid, 0)) {
             write("【CheckSever】 server had shutdown, now restarting .....");
+            // 重新启动
             startServer($app_name);
         }
+    }
+}
+
+// 人为手动跑一次cron脚本
+// swoole-cli cron.php send Test --action=run-once-cron --name=test-local-cron-worker
+function sendMsgToServer($appName)
+{
+    $processName = getenv('name');
+    $action = getenv('action');
+    $msg = getenv('msg');
+    if (empty($msg)) {
+        $msg = '';
+    }
+
+    $pidFile = getPidFile($appName);
+    if (!is_file($pidFile)) {
+        write("【Error】 pid file={$pidFile} is not exist, please check the server whether running");
+        exit(0);
+    }
+
+    $masterPid = file_get_contents($pidFile);
+    if (is_numeric($masterPid) && $masterPid > 0) {
+        $masterPid = (int)$masterPid;
+    } else {
+        write("【Warning】Master Pid is invalid");
+        exit(0);
+    }
+
+    if (\Swoole\Process::kill($masterPid, 0)) {
+        $pipeMsgDto = new \Swoolefy\Worker\Dto\PipeMsgDto();
+        $pipeMsgDto->action = WORKER_CLI_SEND_MSG;
+        $pipeMsgDto->targetHandler = $processName;
+        $pipeMsgDto->message = json_encode([
+                'action' => $action,
+                'msg' => $msg
+        ]);
+        $pipeMsg = serialize($pipeMsgDto);
+
+        // mainWorker Process
+        $workerPid = file_get_contents(WORKER_PID_FILE);
+        if (\Swoole\Process::kill($workerPid, 0)) {
+            $cliPipeFile = WORKER_CLI_PIPE;
+            $pipe = @fopen($cliPipeFile, 'w+');
+            if (flock($pipe, LOCK_EX)) {
+                fwrite($pipe, $pipeMsg);
+                flock($pipe, LOCK_UN);
+            }
+            fclose($pipe);
+        }
+        sleep(1);
+        write("【Info】已向master进程发起跑脚本指令",'green');
+        exit(0);
     }
 }
 
@@ -1016,6 +1070,9 @@ function commandHandler()
                 monitorServer($command['app_name']);
                 break;
             }
+            case 'send':
+                sendMsgToServer($command['app_name']);
+                break;
             case 'help':
             default:
             {

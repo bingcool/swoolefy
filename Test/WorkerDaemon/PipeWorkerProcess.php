@@ -12,9 +12,14 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
     {
         //Application::getApp()->get('log')->addInfo('pllllllllllll');
         while (1) {
-            LogManager::getInstance()->getLogger('log')->info('kkkkkkkkkkkkkkkk');
-            var_dump('CID='.\Swoole\Coroutine::getCid());
-            var_dump('PipeWorker');
+            if ($this->isExiting()) {
+                sleep(1);
+                continue;
+            }
+
+//            LogManager::getInstance()->getLogger('log')->info('kkkkkkkkkkkkkkkk');
+//            var_dump('CID='.\Swoole\Coroutine::getCid());
+//            var_dump('PipeWorker');
             $a = 1;
             $b = 2;
             $c = 3;
@@ -26,7 +31,8 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
                 });
             }, $a, $b);
 
-            sleep(5);
+            sleep(10);
+            var_dump("gggggggggggggggggggggggggg");
         }
 
 
