@@ -1394,17 +1394,8 @@ class MainManager
                             $this->masterStatusToCliFifoPipe($cliPipeMsgDto->targetHandler);
                             break;
                         case WORKER_CLI_STOP :
-                            foreach ($this->processWorkers as $processes) {
-                                ksort($processes);
-                                /**
-                                 * @var AbstractBaseWorker $process
-                                 */
-                                foreach ($processes as $process) {
-                                    $processName = $process->getProcessName();
-                                    $workerId = $process->getProcessWorkerId();
-                                    $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
-                                }
-                            }
+                            $this->stopAllChildrenProcessCommand();
+                            break;
                         case WORKER_CLI_SEND_MSG :
                             $processName = $cliPipeMsgDto->targetHandler;
                             $key = md5($processName);
@@ -1416,28 +1407,36 @@ class MainManager
                                     $key = md5($processName);
                                     if (!isset($this->processLists[$key])) {
                                         $config = $this->parseLoadConf($processName);
+                                        if (empty($config)) {
+                                            return $this->responseMsgByPipe("找不到进程名【{$processName}】的配置项！");
+                                        }
+                                        $this->responseMsgByPipe("进程【{$processName}】已开始启动，请留意！");
                                         $this->startChildrenProcessCommand($config);
                                     }else {
-                                        $this->restartChildrenProcessCommand($processName);
+                                        if (isset($this->processWorkers[$key])) {
+                                            $this->responseMsgByPipe("进程【{$processName}】已存在，请使用restart命令重启！");
+                                        }
                                     }
                                     break;
                                 // 重启指定进程
                                 case 'restart' :
                                     $key = md5($processName);
                                     if (isset($this->processWorkers[$key])) {
+                                        $this->responseMsgByPipe("进程【{$processName}】已开始重启，请留意！");
                                         $this->restartChildrenProcessCommand($processName);
                                     }else {
-                                        $config = $this->parseLoadConf($processName);
-                                        $this->startChildrenProcessCommand($config);
+                                        $this->responseMsgByPipe("进程【{$processName}】不存在，请检查进程名称是否正确！");
                                     }
                                     break;
                                 // 停止指定进程
                                 case 'stop':
+                                    $this->responseMsgByPipe("进程【{$processName}】开始逐步停止，请留意！");
                                     $this->stopChildrenProcessCommand($processName);
                                     break;
                                 default:
                                     if (isset($this->processWorkers[$key])) {
                                         $processes = $this->processWorkers[$key];
+                                        $this->responseMsgByPipe("子进程【{$processName}】已接收到指令，请留意！");
                                         ksort($processes);
                                         foreach ($processes as $process) {
                                             /**
