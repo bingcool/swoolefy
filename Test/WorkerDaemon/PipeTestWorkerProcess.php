@@ -12,7 +12,7 @@ class PipeTestWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
     {
         while (1) {
             var_dump("PipeTestWorkerProcess PipeTestWorkerProcess PipeTestWorkerProcess");
-            sleep(2);
+            sleep(20);
         }
 
 
