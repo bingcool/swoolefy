@@ -27,6 +27,7 @@ abstract class AbstractBaseWorker
 {
 
     use Traits\SystemTrait;
+    use Traits\ChildrenCommandTrait;
 
     /**
      * @var AbstractBaseWorker
@@ -177,6 +178,22 @@ abstract class AbstractBaseWorker
      *
      */
     protected $initSystemCoroutineNum = 2;
+
+    /**
+     * 系统内置管道通信命令
+     *
+     * @var array[]
+     */
+    protected $systemCommandHandle = [
+        'run-once-cron' => [self::class, 'runOnceCronCommand'],
+    ];
+
+    /**
+     * 自定义管道通信命令
+     *
+     * @var array
+     */
+    protected $customCommandHandle = [];
 
     /**
      * static process
@@ -941,7 +958,7 @@ abstract class AbstractBaseWorker
     }
 
     /**
-     * loop consumer
+     * loop consumer,满足true才能继续执行业务
      *
      * @return bool
      */
@@ -1249,6 +1266,11 @@ abstract class AbstractBaseWorker
      */
     protected function registerTickReboot($cron_expression)
     {
+        // 定时任务模式下不能设置定时重启，否则长时间执行的任务会被kill掉
+        if (SystemEnv::isCronService()) {
+            return;
+        }
+
         if (is_numeric($cron_expression)) {
             $randNum = rand(30, 60);
             // for Example reboot/600s after 600s reboot this process
@@ -1275,7 +1297,7 @@ abstract class AbstractBaseWorker
                 $cron_expression,
                 function () use ($randSleep, $isWorkerId0) {
                     if(!$isWorkerId0) {
-                        sleep($randSleep);
+                        $this->reboot($this->waitTime + $randSleep);
                     }
                     $this->reboot($this->waitTime);
                 });
@@ -1531,6 +1553,9 @@ abstract class AbstractBaseWorker
     public abstract function run();
 
     /**
+     * 处理自定义命令函数，终端向某个进程发送指令，eg:
+     * php cron.php send Test --name=test-local-cron-worker --action=run-once-cron
+     *
      * @param mixed $msg
      * @param string $from_process_name
      * @param int $from_process_worker_id
@@ -1539,13 +1564,25 @@ abstract class AbstractBaseWorker
      */
     public function onPipeMsg($msg, string $from_process_name, int $from_process_worker_id, bool $is_proxy_by_master)
     {
-        $msg = json_decode($msg, true) ?? $msg;
-        if (is_array($msg) && isset($msg['action'])) {
-            switch ($msg['action']) {
-                //  有时需要人为手动跑一次cron脚本
-                case self::RUN_ONCE_CRON:
-                    putenv(self::RUN_ONCE_CRON."=1");
-                break;
+        if (is_string($msg)) {
+            $msg = json_decode($msg, true) ?? $msg;
+            if (is_array($msg) && isset($msg['action'])) {
+                $commandHandleList = array_merge($this->systemCommandHandle, $this->customCommandHandle);
+                $commandHandleItem = $commandHandleList[$msg['action']] ?? [];
+                if (!empty($commandHandleItem) && is_array($commandHandleItem) && count($commandHandleItem) == 2) {
+                    list($class, $method) = $commandHandleItem;
+                    if ($class == self::class || is_subclass_of($class, self::class)) {
+                        if (class_exists(static::class, $method)) {
+                            $this->{$method}($msg, $from_process_name, $from_process_worker_id, $is_proxy_by_master);
+                        }else {
+                            $this->writeInfo("{$from_process_name} is not exist method = {$method}");
+                        }
+                    }else {
+                        (new $class)->{$method}($msg, $from_process_name, $from_process_worker_id, $is_proxy_by_master);
+                    }
+                }else {
+                    $this->writeInfo(sprintf("onPipeMsg accept msg=%s is not match property of customCommandHandle key, please check it", json_encode($msg, JSON_UNESCAPED_UNICODE)), 'red');
+                }
             }
         }
     }

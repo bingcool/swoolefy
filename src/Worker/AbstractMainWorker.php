@@ -36,6 +36,9 @@ abstract class AbstractMainWorker extends AbstractProcess
      */
     protected function parseWorkerConf()
     {
+        // 指定只启动某一个进程，开发，调试使用
+        // php daemon.php start Test --only-process=order-sync
+        // php cron.php start Test --only-process=order-sync
         if(defined('WORKER_CONF')) {
             $mainManager = \Swoolefy\Worker\MainManager::getInstance();
             $workerConfListNew = [];
