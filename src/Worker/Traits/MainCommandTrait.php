@@ -27,6 +27,19 @@ trait MainCommandTrait {
         return $config;
     }
 
+    /**
+     * 向终端返回信息
+     *
+     * @param string $msg
+     * @return mixed
+     */
+    protected function responseMsgByPipe(string $msg)
+    {
+        $ctlPipe = fopen(WORKER_CTL_PIPE, 'w+');
+        fwrite($ctlPipe, $msg);
+        fclose($ctlPipe);
+    }
+
     protected function restartChildrenProcessCommand(string $processName)
     {
         // 重启
@@ -82,6 +95,28 @@ trait MainCommandTrait {
              * @var AbstractBaseWorker $process
              */
             foreach ($processList as $process) {
+                $processName = $process->getProcessName();
+                $workerId = $process->getProcessWorkerId();
+                $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
+            }
+        }
+
+        if (isset($this->processLists[$key])) {
+            unset($this->processLists[$key]);
+        }
+    }
+
+    /**
+     * @return void
+     */
+    protected function stopAllChildrenProcessCommand()
+    {
+        foreach ($this->processWorkers as $processes) {
+            ksort($processes);
+            /**
+             * @var AbstractBaseWorker $process
+             */
+            foreach ($processes as $process) {
                 $processName = $process->getProcessName();
                 $workerId = $process->getProcessWorkerId();
                 $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_EXIT_FLAG, $workerId);

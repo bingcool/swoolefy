@@ -893,8 +893,29 @@ function sendMsgToServer($appName)
                 'action' => $action,
                 'msg' => $msg
         ]);
-        $pipeMsg = serialize($pipeMsgDto);
 
+        // Event::add监控数据就绪返回
+        $ctlPipeFile = WORKER_CTL_PIPE;
+        if (file_exists($ctlPipeFile)) {
+            unlink($ctlPipeFile);
+        }
+        posix_mkfifo($ctlPipeFile, 0777);
+        $ctlPipe = fopen($ctlPipeFile, 'w+');
+        stream_set_blocking($ctlPipe, false);
+        \Swoole\Timer::after(5000, function () {
+            \Swoole\Event::exit();
+        });
+        \Swoole\Event::add($ctlPipe, function () use ($ctlPipe) {
+            $msg = fread($ctlPipe, 8192);
+            if (empty($msg)) {
+                $msg = '【Info】已向master进程发起跑脚本指令';
+            }
+            write($msg, 'light_green');
+            \Swoole\Event::exit();
+        });
+
+        // 发送数据
+        $pipeMsg = serialize($pipeMsgDto);
         // mainWorker Process
         $workerPid = file_get_contents(WORKER_PID_FILE);
         if (\Swoole\Process::kill($workerPid, 0)) {
@@ -906,8 +927,10 @@ function sendMsgToServer($appName)
             }
             fclose($pipe);
         }
-        sleep(1);
-        write("【Info】已向master进程发起跑脚本指令",'green');
+
+        \Swoole\Event::wait();
+        fclose($ctlPipe);
+        unlink($ctlPipeFile);
         exit(0);
     }
 }
