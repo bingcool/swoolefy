@@ -32,8 +32,6 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
             }, $a, $b);
 
             sleep(10);
-            $this->reboot();
-
             var_dump("gggggggggggggggggggggggggg");
         }
 

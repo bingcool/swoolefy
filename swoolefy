@@ -111,7 +111,9 @@ function parseCliEnvParams()
         } else {
             $item = ltrim($item, '--');
             putenv($item);
-            list($env, $value) = explode('=', $item);
+            $itemArr = explode('=', $item);
+            $env = $itemArr[0] ?? '';
+            $value = $item[1] ?? '';
             if ($env && $value) {
                 $cliParams[$env] = $value;
             }
