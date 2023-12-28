@@ -1374,7 +1374,7 @@ class MainManager
             return false;
         }
 
-        $cliPipeFile = $this->getCliPipeFile();
+        $cliPipeFile = $this->getCliToWorkerPipeFile();
         if (file_exists($cliPipeFile)) {
             @unlink($cliPipeFile);
         }
@@ -1498,9 +1498,9 @@ class MainManager
      * getCliPipeFile
      * @return string
      */
-    public function getCliPipeFile()
+    public function getCliToWorkerPipeFile()
     {
-        return WORKER_CLI_PIPE;
+        return CLI_TO_WORKER_PIPE;
     }
 
     /**
