@@ -524,7 +524,7 @@ abstract class AbstractBaseWorker
                 $processName = isset($processName) ?? '';
                 $this->writeInfo("【Error】Exit error, Process={$processName}, error:" . $throwable->getMessage());
             } finally {
-                $this->writeInfo("【Start End 】 process={$processName}, worker_id={$workerId}");
+                $this->writeInfo("【 Stop Finish 】 process={$processName}, worker_id={$workerId}");
                 $this->isExit = false;
                 Event::del($this->swooleProcess->pipe);
                 Event::exit();
@@ -1518,13 +1518,8 @@ abstract class AbstractBaseWorker
     {
         $processName = $this->getProcessName();
         $workerId = $this->getProcessWorkerId();
-        if ($this->getProcessType() == self::PROCESS_STATIC_TYPE) {
-            $processType = self::PROCESS_STATIC_TYPE_NAME;
-        } else {
-            $processType = self::PROCESS_DYNAMIC_TYPE_NAME;
-        }
         $pid = $this->getPid();
-        $logInfo = "【stop start 】process_name={$processName},worker_id={$workerId}, pid={$pid}, master_pid={$this->getMasterPid()}";
+        $logInfo = "【 Ready To Stop 】process_name={$processName},worker_id={$workerId}, pid={$pid}, master_pid={$this->getMasterPid()}";
         $this->writeInfo($logInfo, 'red');
     }
 
