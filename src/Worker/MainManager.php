@@ -225,11 +225,11 @@ class MainManager
     public function addProcess(
         string $process_name,
         string $process_class,
-        int $process_worker_num = 1,
-        bool $async = true,
-        array $args = [],
-        mixed $extend_data = null,
-        bool $enable_coroutine = true
+        int    $process_worker_num = 1,
+        bool   $async = true,
+        array  $args = [],
+        ?array $extend_data = null,
+        bool   $enable_coroutine = true
     )
     {
         $key = md5($process_name);
@@ -834,6 +834,7 @@ class MainManager
         }
 
         $key = md5($process_name);
+        // 初始更新存贮动态进程数量
         $this->storageDynamicProcessNum($process_name);
         if ($this->processLists[$key]['dynamic_process_destroying'] ?? false) {
             $msg = "【Warning】 Process name={$process_name} is exiting now，forbidden to create dynamic process, please try again after moment";
@@ -873,7 +874,7 @@ class MainManager
         for ($workerId = $runningProcessWorkerNum; $workerId < $totalProcessNum; $workerId++) {
             $this->forkNewProcess($processClass, $process_name, $workerId, $args, $extendData);
         }
-
+        // 创建动态进程后,更新存贮动态进程数量
         $this->storageDynamicProcessNum($process_name);
     }
 
@@ -1217,7 +1218,7 @@ class MainManager
      * @param int $process_worker_id
      * @return bool
      */
-    public function writeByProcessName(string $process_name, mixed $data, int $process_worker_id = 0)
+    public function writeByProcessName(string $process_name, $data, int $process_worker_id = 0)
     {
         if ($this->isMaster($process_name)) {
             throw new WorkerException("Master process can not write msg to master process self");
@@ -1256,7 +1257,7 @@ class MainManager
      * @return bool
      */
     public function writeByMasterProxy(
-        mixed $data,
+        $data,
         string $from_process_name,
         int $from_process_worker_id,
         string $to_process_name,
@@ -1373,7 +1374,7 @@ class MainManager
             return false;
         }
 
-        $cliPipeFile = $this->getCliPipeFile();
+        $cliPipeFile = $this->getCliToWorkerPipeFile();
         if (file_exists($cliPipeFile)) {
             @unlink($cliPipeFile);
         }
@@ -1497,9 +1498,9 @@ class MainManager
      * getCliPipeFile
      * @return string
      */
-    public function getCliPipeFile()
+    public function getCliToWorkerPipeFile()
     {
-        return WORKER_CLI_PIPE;
+        return CLI_TO_WORKER_PIPE;
     }
 
     /**
