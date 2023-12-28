@@ -20,6 +20,14 @@ if (!defined('APP_NAMES')) {
     exit(0);
 }
 
+if (isset($_SERVER['argv'][2])) {
+    $_SERVER['argv'][2] = ucfirst($_SERVER['argv'][2]);
+}
+
+if (isset($argv[2])) {
+    $argv[2] = ucfirst($argv[2]);
+}
+
 // env
 defined('SWOOLEFY_DEV') or define('SWOOLEFY_DEV', 'dev');
 defined('SWOOLEFY_TEST') or define('SWOOLEFY_TEST', 'test');
@@ -67,7 +75,7 @@ if (isset($argv[2]) && in_array(trim($argv[2]), array_keys(APP_NAMES))) {
 } else {
     if (isset($argv[2]) && $argv[2] != 'help') {
         help('');
-        write("【Error】app_name is not in APP_NAME array in swoolefy file, please check it");
+        write("【Error】App Name 【{$argv[2]}】is not defined in array, please check it");
         return false;
     }
 }
