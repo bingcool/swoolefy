@@ -101,7 +101,7 @@ class CoroutinePools
      * @param object $obj
      * @return void
      */
-    public function putObj(string $poolName, $obj)
+    public function putObj(string $poolName, object $obj)
     {
         $this->getPool($poolName)->pushObj($obj);
     }

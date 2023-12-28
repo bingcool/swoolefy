@@ -31,8 +31,9 @@ class CrontabManager
      * @param string $cronName
      * @param string|float $expression
      * @param callable|array $func
+     * @param callable $callback
      */
-    public function addRule(string $cronName, $expression, $func)
+    public function addRule(string $cronName, $expression, $func, \Closure $callback = null)
     {
         if (!class_exists('Cron\\CronExpression')) {
             throw new CronException("If you want to use crontab, you need to install 'composer require dragonmantank/cron-expression' ");
@@ -45,7 +46,9 @@ class CrontabManager
         $cronNameKey = md5($cronName);
 
         if (isset($this->cronTasks[$cronNameKey])) {
-            throw new CronException("Cron name=$cronName had been setting, you can not set same name again!");
+            throw new CronException(sprintf("Cron name=s% had been setting, you can not set same name again",
+                $cronName)
+            );
         }
 
         $this->cronTasks[$cronNameKey] = [$expression, $func];
@@ -64,11 +67,11 @@ class CrontabManager
 
         $arrayCopy = Context::getContext()->getArrayCopy();
         if(is_numeric($expression)) {
-            \Swoole\Timer::tick($expression * 1000, function ($timerId, $expression) use ($func, $cronName, $class, $arrayCopy) {
+            \Swoole\Timer::tick($expression * 1000, function ($timerId, $expression) use ($func, $cronName, $class, $arrayCopy, $callback) {
                 foreach ($arrayCopy as $key=>$value) {
                     Context::set($key, $value);
                 }
-                goApp(function () use ($expression, $func, $cronName, $class) {
+                goApp(function () use ($expression, $func, $cronName, $class, $callback) {
                     try {
                         if ($func instanceof \Closure) {
                             $cronControllerInstance = $this->buildCronControllerInstance();
@@ -93,17 +96,21 @@ class CrontabManager
                             */
                             Application::removeApp($cronControllerInstance->getCid());
                         }
+
+                        if (is_callable($callback)) {
+                            call_user_func($callback);
+                        }
                     }
                 });
             }, $expression);
 
         }else {
             if (is_array($func)) {
-                \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($class, $cronName, $arrayCopy) {
+                \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($class, $cronName, $arrayCopy, $callback) {
                     foreach ($arrayCopy as $key=>$value) {
                         Context::set($key, $value);
                     }
-                    goApp(function () use ($timerId, $expression, $class, $cronName) {
+                    goApp(function () use ($timerId, $expression, $class, $cronName, $callback) {
                         try {
                             /**
                              * @var AbstractCronController $cronControllerInstance
@@ -114,15 +121,18 @@ class CrontabManager
                            throw $throwable;
                         } finally {
                             Application::removeApp($cronControllerInstance->coroutineId);
+                            if (is_callable($callback)) {
+                                call_user_func($callback);
+                            }
                         }
                     });
                 }, $expression);
             } else {
-                \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($func, $cronName, $arrayCopy) {
+                \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($func, $cronName, $arrayCopy, $callback) {
                     foreach ($arrayCopy as $key=>$value) {
                         Context::set($key, $value);
                     }
-                    goApp(function () use($timerId, $expression, $func, $cronName ) {
+                    goApp(function () use($timerId, $expression, $func, $cronName, $callback) {
                         try {
                             $cronControllerInstance = $this->buildCronControllerInstance();
                             $cronControllerInstance->runCron($cronName, $expression, $func);
@@ -130,6 +140,9 @@ class CrontabManager
                             throw $throwable;
                         } finally {
                             Application::removeApp($cronControllerInstance->coroutineId);
+                            if (is_callable($callback)) {
+                                call_user_func($callback);
+                            }
                         }
                     });
 

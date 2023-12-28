@@ -17,7 +17,7 @@ define('WORKER_CLI_PIPE',WORKER_PID_FILE_ROOT.'/cli.pipe');
 define('WORKER_CTL_PIPE',WORKER_PID_FILE_ROOT.'/ctl.pipe');
 date_default_timezone_set('Asia/Shanghai');
 
-define('WORKER_CONF', include __DIR__.'/'.$_SERVER['argv'][2].'/WorkerDaemon/worker_common_conf.php');
+define('WORKER_CONF', \Swoolefy\Worker\MainManager::loadConfByPath(__DIR__.'/'.$_SERVER['argv'][2].'/WorkerDaemon/worker_common_conf.php'));
 
 define('PROCESS_CLASS', [
     // 应用daemon worker

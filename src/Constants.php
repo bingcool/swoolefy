@@ -48,19 +48,21 @@ defined('MQTT_PROTOCOL_LEVEL5') or define('MQTT_PROTOCOL_LEVEL5', 5);
 defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '4.8.19');
 defined('SWOOLEFY_EOF_FLAG') or define('SWOOLEFY_EOF_FLAG', '::');
 
-defined('WORKER_CLI_STOP') or define('WORKER_CLI_STOP','stop');
-defined('WORKER_CLI_STATUS') or define('WORKER_CLI_STATUS','status');
+defined('WORKER_CLI_STOP') or define('WORKER_CLI_STOP', 'stop');
+defined('WORKER_CLI_STATUS') or define('WORKER_CLI_STATUS', 'status');
+defined('WORKER_CLI_SEND_MSG') or define('WORKER_CLI_SEND_MSG', 'send');
 
-class Constants {
+class Constants
+{
 
-	/**
-	 * swoolefy version
-	 */
-	const SWOOLEFY_VERSION = SWOOLEFY_VERSION;
+    /**
+     * swoolefy version
+     */
+    const SWOOLEFY_VERSION = SWOOLEFY_VERSION;
 
     /**
      * swoolefy env
      */
-	const SWOOLEFY_ENV = SWOOLEFY_ENV;
+    const SWOOLEFY_ENV = SWOOLEFY_ENV;
 
 }

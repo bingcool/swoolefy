@@ -65,6 +65,7 @@ class Struct
      * set property value
      * @param string $property
      * @param mixed $value
+     * @param bool $replace
      * @return mixed
      */
     public function set(string $property, $value, bool $replace = false)
@@ -98,7 +99,7 @@ class Struct
 
     /**
      * @param string $property
-     * @param $value
+     * @param mixed $value
      * @return mixed
      */
     public function __set(string $property, $value)
@@ -108,7 +109,7 @@ class Struct
 
     /**
      * @param string $property
-     * @return string
+     * @return mixed
      */
     public function __get(string $property)
     {
