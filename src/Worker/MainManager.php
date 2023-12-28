@@ -834,7 +834,7 @@ class MainManager
         }
 
         $key = md5($process_name);
-        $this->getDynamicProcessNum($process_name);
+        $this->storageDynamicProcessNum($process_name);
         if ($this->processLists[$key]['dynamic_process_destroying'] ?? false) {
             $msg = "【Warning】 Process name={$process_name} is exiting now，forbidden to create dynamic process, please try again after moment";
             $this->writeInfo($msg);
@@ -874,7 +874,7 @@ class MainManager
             $this->forkNewProcess($processClass, $process_name, $workerId, $args, $extendData);
         }
 
-        $this->getDynamicProcessNum($process_name);
+        $this->storageDynamicProcessNum($process_name);
     }
 
     /**
@@ -942,13 +942,13 @@ class MainManager
     }
 
     /**
-     * getDynamicProcessNum
+     * storageDynamicProcessNum
      *
      * @param string $process_name
      * @return int
      * @throws WorkerException
      */
-    public function getDynamicProcessNum(string $process_name)
+    public function storageDynamicProcessNum(string $process_name)
     {
         $dynamicProcessNum = 0;
         $key = md5($process_name);
