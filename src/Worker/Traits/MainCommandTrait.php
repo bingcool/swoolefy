@@ -35,9 +35,9 @@ trait MainCommandTrait {
      */
     protected function responseMsgByPipe(string $msg)
     {
-        $ctlPipe = fopen(WORKER_CTL_PIPE, 'w+');
-        fwrite($ctlPipe, $msg);
-        fclose($ctlPipe);
+        $workerToCliPipeFile = fopen(WORKER_TO_CLI_PIPE, 'w+');
+        fwrite($workerToCliPipeFile, $msg);
+        fclose($workerToCliPipeFile);
     }
 
     protected function restartChildrenProcessCommand(string $processName)

@@ -648,8 +648,8 @@ function workerStop($appName)
         // mainWorker Process
         $workerPid = file_get_contents(WORKER_PID_FILE);
         if (\Swoole\Process::kill($workerPid, 0)) {
-            $cliPipeFile = WORKER_CLI_PIPE;
-            $pipe = @fopen($cliPipeFile, 'w+');
+            $cliToWorkerPipeFile = CLI_TO_WORKER_PIPE;
+            $pipe = @fopen($cliToWorkerPipeFile, 'w+');
             if (flock($pipe, LOCK_EX)) {
                 fwrite($pipe, $pipeMsg);
                 flock($pipe, LOCK_UN);
@@ -801,42 +801,41 @@ function workerStatus($pidFile)
         exit(0);
     }
 
-    $cliPipeFile = WORKER_CLI_PIPE;
-    $ctlPipeFile = WORKER_CTL_PIPE;
-    if (filetype($cliPipeFile) != 'fifo' || !file_exists($cliPipeFile)) {
+    $cliToWorkerPipeFile = CLI_TO_WORKER_PIPE;
+    $workerToCliPipeFile = WORKER_TO_CLI_PIPE;
+    if (filetype($cliToWorkerPipeFile) != 'fifo' || !file_exists($cliToWorkerPipeFile)) {
         write("【Warning】 Master Process is not enable cli pipe, so can not show status");
         exit(0);
     }
 
-    $pipe = fopen($cliPipeFile, 'r+');
+    $pipe = fopen($cliToWorkerPipeFile, 'r+');
     $pipeMsgDto = new \Swoolefy\Worker\Dto\PipeMsgDto();
     $pipeMsgDto->action = WORKER_CLI_STATUS;
-    $pipeMsgDto->targetHandler = $ctlPipeFile;
-
+    $pipeMsgDto->targetHandler = $workerToCliPipeFile;
     $pipeMsg = serialize($pipeMsgDto);
-    if (file_exists($ctlPipeFile)) {
-        unlink($ctlPipeFile);
+    if (file_exists($workerToCliPipeFile)) {
+        unlink($workerToCliPipeFile);
     }
 
-    posix_mkfifo($ctlPipeFile, 0777);
-    $ctlPipe = fopen($ctlPipeFile, 'w+');
+    // cli监控worker返回数据
+    posix_mkfifo($workerToCliPipeFile, 0777);
+    $ctlPipe = fopen($workerToCliPipeFile, 'w+');
     stream_set_blocking($ctlPipe, false);
-    \Swoole\Timer::after(3000, function () {
+    \Swoole\Timer::after(10000, function () {
         \Swoole\Event::exit();
     });
-
     \Swoole\Event::add($ctlPipe, function () use ($ctlPipe) {
         $msg = fread($ctlPipe, 8192);
         write($msg, 'light_green');
-        \Swoole\Event::exit();
     });
 
     sleep(1);
+    // 向worker发送数据
     fwrite($pipe, $pipeMsg);
     \Swoole\Event::wait();
     fclose($ctlPipe);
     fclose($pipe);
-    unlink($ctlPipeFile);
+    unlink($workerToCliPipeFile);
     exit(0);
 }
 
@@ -896,13 +895,13 @@ function sendMsgToServer($appName)
                 'msg' => $msg
         ]);
 
-        // Event::add监控数据就绪返回
-        $ctlPipeFile = WORKER_CTL_PIPE;
-        if (file_exists($ctlPipeFile)) {
-            unlink($ctlPipeFile);
+        // cli终端Event::add监控数据就绪返回
+        $workerToCliPipeFile = WORKER_TO_CLI_PIPE;
+        if (file_exists($workerToCliPipeFile)) {
+            unlink($workerToCliPipeFile);
         }
-        posix_mkfifo($ctlPipeFile, 0777);
-        $ctlPipe = fopen($ctlPipeFile, 'w+');
+        posix_mkfifo($workerToCliPipeFile, 0777);
+        $ctlPipe = fopen($workerToCliPipeFile, 'w+');
         stream_set_blocking($ctlPipe, false);
         \Swoole\Timer::after(5000, function () {
             \Swoole\Event::exit();
@@ -916,13 +915,13 @@ function sendMsgToServer($appName)
             \Swoole\Event::exit();
         });
 
-        // 发送数据
+        // 发送数据toWorker
         $pipeMsg = serialize($pipeMsgDto);
         // mainWorker Process
         $workerPid = file_get_contents(WORKER_PID_FILE);
         if (\Swoole\Process::kill($workerPid, 0)) {
-            $cliPipeFile = WORKER_CLI_PIPE;
-            $pipe = @fopen($cliPipeFile, 'w+');
+            $cliToWorkerPipeFile = CLI_TO_WORKER_PIPE;
+            $pipe = @fopen($cliToWorkerPipeFile, 'w+');
             if (flock($pipe, LOCK_EX)) {
                 fwrite($pipe, $pipeMsg);
                 flock($pipe, LOCK_UN);
@@ -932,7 +931,7 @@ function sendMsgToServer($appName)
 
         \Swoole\Event::wait();
         fclose($ctlPipe);
-        unlink($ctlPipeFile);
+        unlink($workerToCliPipeFile);
         exit(0);
     }
 }

@@ -14,8 +14,8 @@ define('WORKER_PID_FILE_ROOT', '/tmp/workerfy/log/'.WORKER_SERVICE_NAME);
 define('WORKER_PID_FILE', WORKER_PID_FILE_ROOT.'/worker.pid');
 define('WORKER_STATUS_FILE',WORKER_PID_FILE_ROOT.'/status.log');
 define('WORKER_CTL_LOG_FILE',WORKER_PID_FILE_ROOT.'/ctl.log');
-define('WORKER_CLI_PIPE',WORKER_PID_FILE_ROOT.'/cli.pipe');
-define('WORKER_CTL_PIPE',WORKER_PID_FILE_ROOT.'/ctl.pipe');
+define('CLI_TO_WORKER_PIPE',WORKER_PID_FILE_ROOT.'/cli.pipe');
+define('WORKER_TO_CLI_PIPE',WORKER_PID_FILE_ROOT.'/ctl.pipe');
 date_default_timezone_set('Asia/Shanghai');
 
 define('WORKER_CONF', \Swoolefy\Worker\MainManager::loadConfByPath(__DIR__.'/'.$_SERVER['argv'][2].'/WorkerCron/worker_cron_conf.php'));

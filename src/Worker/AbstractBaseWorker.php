@@ -275,10 +275,10 @@ abstract class AbstractBaseWorker
      */
     public function __construct(
         string $process_name,
-        bool $async = true,
-        array $args = [],
-        mixed $extend_data = null,
-        bool $enable_coroutine = true
+        bool   $async = true,
+        array  $args = [],
+               $extend_data = null,
+        bool   $enable_coroutine = true
     )
     {
         $this->async           = $async;
@@ -524,7 +524,7 @@ abstract class AbstractBaseWorker
                 $processName = isset($processName) ?? '';
                 $this->writeInfo("【Error】Exit error, Process={$processName}, error:" . $throwable->getMessage());
             } finally {
-                $this->writeInfo("【Start End 】 process={$processName}, worker_id={$workerId}");
+                $this->writeInfo("【Exit Finish 】 process={$processName}, worker_id={$workerId}");
                 $this->isExit = false;
                 Event::del($this->swooleProcess->pipe);
                 Event::exit();
@@ -615,7 +615,7 @@ abstract class AbstractBaseWorker
      */
     public function writeByProcessName(
         string $process_name,
-        mixed  $data,
+               $data,
         int $process_worker_id = 0,
         bool $is_use_master_proxy = true
     )
@@ -1518,13 +1518,8 @@ abstract class AbstractBaseWorker
     {
         $processName = $this->getProcessName();
         $workerId = $this->getProcessWorkerId();
-        if ($this->getProcessType() == self::PROCESS_STATIC_TYPE) {
-            $processType = self::PROCESS_STATIC_TYPE_NAME;
-        } else {
-            $processType = self::PROCESS_DYNAMIC_TYPE_NAME;
-        }
         $pid = $this->getPid();
-        $logInfo = "【stop start 】process_name={$processName},worker_id={$workerId}, pid={$pid}, master_pid={$this->getMasterPid()}";
+        $logInfo = "【 Ready To Stop 】process_name={$processName},worker_id={$workerId}, pid={$pid}, master_pid={$this->getMasterPid()}";
         $this->writeInfo($logInfo, 'red');
     }
 
