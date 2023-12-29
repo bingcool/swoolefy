@@ -180,22 +180,6 @@ abstract class AbstractBaseWorker
     protected $initSystemCoroutineNum = 2;
 
     /**
-     * 系统内置管道通信命令
-     *
-     * @var array[]
-     */
-    protected $systemCommandHandle = [
-        'run-once-cron' => [self::class, 'runOnceCronCommand'],
-    ];
-
-    /**
-     * 自定义管道通信命令
-     *
-     * @var array
-     */
-    protected $customCommandHandle = [];
-
-    /**
      * static process
      * @var int
      */
