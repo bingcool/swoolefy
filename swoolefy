@@ -12,6 +12,7 @@
 
 // 定义注册的应用名和对应使用的协议
 
+use http\Env;
 use Swoolefy\Core\Exec;
 use Swoolefy\Core\BaseServer;
 
@@ -66,6 +67,8 @@ include START_DIR_ROOT . '/vendor/autoload.php';
 if (isset($argv[2]) && in_array(trim($argv[2]), array_keys(APP_NAMES))) {
     $appName = trim($argv[2]);
     defined('APP_NAME') or define('APP_NAME', $appName);
+    defined('APP_PATH') or define('APP_PATH', __DIR__.'/'.$appName);
+    defined('ROOT_PATH') or define('ROOT_PATH', __DIR__);
     if (trim($argv[1]) != 'create') {
         $autoloaderFile = START_DIR_ROOT . "/{$appName}/autoloader.php";
         if (file_exists($autoloaderFile)) {
@@ -347,6 +350,11 @@ function isCliScript(): bool
 
 function startServer($server_name)
 {
+    global $beforeFunc;
+    if (isset($beforeFunc) && is_callable($beforeFunc)) {
+        call_user_func($beforeFunc);
+    }
+
     foreach (APP_NAMES as $appName => $protocol) {
         try {
             if ($appName == $server_name) {
@@ -1171,6 +1179,21 @@ function resetConf(&$conf)
             $conf['setting']['pid_file'] = $path['dirname'] . '/' . WORKER_SERVICE_NAME . '/' . $path['filename'] . '_worker.' . $path['extension'];
         }
         unset($conf['setting']['admin_server'], $conf['setting']['task_worker_num']);
+    }
+}
+
+
+if (!function_exists('env')) {
+    /**
+     * Gets the value of an environment variable.
+     *
+     * @param  string  $key
+     * @param  mixed  $default
+     * @return mixed
+     */
+    function env($key, $default = null)
+    {
+        return \Swoolefy\Core\SystemEnv::get($key, $default);
     }
 }
 

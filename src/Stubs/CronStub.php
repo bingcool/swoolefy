@@ -31,4 +31,9 @@ define('APP_NAMES', [
     'Test' => 'http'
 ]);
 
+// 启动前处理,比如加载.env
+$beforeFunc = function () {
+
+};
+
 include './swoolefy';
