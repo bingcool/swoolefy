@@ -22,6 +22,7 @@ class LocalOrderHandle extends AbstractCronController {
                 ':order_status' => 1
             ]);
 
+        var_dump(env("HOST_NAME"));
         sleep(2);
         var_dump("insert successful");
 

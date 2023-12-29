@@ -15,6 +15,22 @@ use Swoolefy\Worker\MainManager;
 
 trait ChildrenCommandTrait {
     /**
+     * 系统内置管道通信命令
+     *
+     * @var array
+     */
+    protected $systemCommandHandle = [
+        'run-once-cron' => [self::class, 'runOnceCronCommand'],
+    ];
+
+    /**
+     * 自定义管道通信命令
+     *
+     * @var array
+     */
+    protected $customCommandHandle = [];
+
+    /**
      * 手动执行一次cron脚本
      * @param $msg
      * @param string $from_process_name

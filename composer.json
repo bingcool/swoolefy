@@ -34,7 +34,8 @@
         "ext-mbstring": "*",
         "ext-openssl": "*",
         "dragonmantank/cron-expression": "~3.3.1",
-        "bingcool/library": "^4.8"
+        "bingcool/library": "dev-master",
+        "vlucas/phpdotenv": "~5.6"
     },
     "autoload": {
         "files": ["src/Constants.php","src/Core/Func/function.php"],
