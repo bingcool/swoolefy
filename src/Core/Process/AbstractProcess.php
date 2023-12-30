@@ -112,6 +112,8 @@ abstract class AbstractProcess
             $this->beforeStart();
         }
 
+        BaseServer::reloadGlobalConf();
+
         $this->installRegisterShutdownFunction();
         TableManager::getTable('table_process_map')->set(
             md5($this->processName), ['pid' => $this->swooleProcess->pid]
