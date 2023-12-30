@@ -894,6 +894,11 @@ function sendMsgToServer($appName)
         exit(0);
     }
 
+    global $beforeFunc;
+    if (in_array($action, ['start','restart']) && isset($beforeFunc) && is_callable($beforeFunc)) {
+        call_user_func($beforeFunc);
+    }
+
     if (\Swoole\Process::kill($masterPid, 0)) {
         $pipeMsgDto = new \Swoolefy\Worker\Dto\PipeMsgDto();
         $pipeMsgDto->action = WORKER_CLI_SEND_MSG;
