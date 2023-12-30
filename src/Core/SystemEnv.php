@@ -117,6 +117,20 @@ class SystemEnv
     }
 
     /**
+     * 此方法实时加载配置文件-磁盘IO，业务中建议使用Swfy::getConf()来读取配置
+     *
+     * @return array
+     */
+    public static function loadGlobalConf()
+    {
+        $path = START_DIR_ROOT . '/'.APP_NAME.'/Protocol';
+        $conf = include $path .'/conf.php';
+        return $conf;
+    }
+
+    /**
+     * 此方法实时加载配置文件-磁盘IO，业务中建议使用Swfy::getAppConf()来读取配置
+     *
      * @return array
      */
     public static function loadAppConf()

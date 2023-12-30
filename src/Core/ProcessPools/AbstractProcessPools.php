@@ -156,6 +156,8 @@ abstract class AbstractProcessPools
             md5($this->processName), ['pid' => $this->swooleProcess->pid, 'process_name' => $this->processName]
         );
 
+        BaseServer::reloadGlobalConf();
+
         if (extension_loaded('pcntl')) {
             pcntl_async_signals(true);
         }

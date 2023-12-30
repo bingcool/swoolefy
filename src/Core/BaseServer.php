@@ -138,8 +138,6 @@ class BaseServer
      */
     public function __construct()
     {
-        // set config
-        Swfy::setConf(self::$config);
         // register handle error
         self::registerErrorHandler();
         // start runtime Coroutine
@@ -176,8 +174,6 @@ class BaseServer
         try {
             // global server
             Swfy::setSwooleServer($server);
-            // global conf
-            Swfy::setConf(self::$config);
             // 启动动态运行时的Coroutine
             self::runtimeEnableCoroutine();
             // 记录主进程加载的公共files,worker重启不会在加载的
@@ -397,6 +393,9 @@ class BaseServer
      */
     public static function getConf()
     {
+        if (empty(static::$config)) {
+            static::$config = SystemEnv::loadGlobalConf();
+        }
         return static::$config;
     }
 
@@ -406,7 +405,7 @@ class BaseServer
      */
     public static function getAppConf()
     {
-        return static::$config['app_conf'];
+        return self::getConf()['app_conf'];
     }
 
     /**
@@ -418,6 +417,16 @@ class BaseServer
         if (!empty($appConf)) {
             static::$config['app_conf'] = $appConf;
         }
+    }
+
+    /**
+     * 重新加载最新的配置
+     *
+     * @return void
+     */
+    public static function reloadGlobalConf()
+    {
+        static::$config = SystemEnv::loadGlobalConf();
     }
 
     /**
