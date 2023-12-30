@@ -25,18 +25,6 @@ class Swfy
     protected static $server;
 
     /**
-     * global conf
-     * @var array
-     */
-    protected static $conf = [];
-
-    /**
-     * application conf
-     * @var array
-     */
-    protected static $appConf = [];
-
-    /**
      * @param $server
      * @return bool
      */
@@ -47,27 +35,6 @@ class Swfy
             return true;
         }
         return false;
-    }
-
-    /**
-     * @param array $conf
-     * @param bool
-     */
-    public static function setConf(array $conf): bool
-    {
-        static::$conf = array_merge(static::$conf, $conf);
-        return true;
-    }
-
-    /**
-     * setAppConf
-     * @param array $appConf
-     * @return bool
-     */
-    public static function setAppConf(array $appConf = []): bool
-    {
-        static::$appConf = array_merge(static::$appConf, $appConf);
-        return true;
     }
 
     /**

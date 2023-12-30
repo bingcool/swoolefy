@@ -10,9 +10,6 @@
  * +----------------------------------------------------------------------
  */
 
-// 定义注册的应用名和对应使用的协议
-
-use http\Env;
 use Swoolefy\Core\Exec;
 use Swoolefy\Core\BaseServer;
 
@@ -389,8 +386,7 @@ function startServer($server_name)
 
 function startHttpService($app_name, $event_server_file_name = 'HttpServer')
 {
-    $path = START_DIR_ROOT . "/{$app_name}/Protocol";
-    $config = include $path . "/conf.php";
+    $config = loadGlobalConf($app_name);
     checkRunning($config);
 
     $eventServerFile = START_DIR_ROOT . "/{$app_name}/{$event_server_file_name}.php";
@@ -417,8 +413,7 @@ function startHttpService($app_name, $event_server_file_name = 'HttpServer')
 
 function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServer')
 {
-    $path = START_DIR_ROOT . "/{$app_name}/Protocol";
-    $config = include $path . "/conf.php";
+    $config = loadGlobalConf($app_name);
     checkRunning($config);
     $eventServerFile = START_DIR_ROOT . "/{$app_name}/{$event_server_file_name}.php";
     if (!file_exists($eventServerFile)) {
@@ -444,8 +439,7 @@ function startWebsocket($app_name, $event_server_file_name = 'WebsocketEventServ
 
 function startRpc($app_name, $event_server_file_name = 'RpcServer')
 {
-    $path = START_DIR_ROOT . "/{$app_name}/Protocol";
-    $config = include $path . "/conf.php";
+    $config = loadGlobalConf($app_name);
     checkRunning($config);
     $eventServerFile = START_DIR_ROOT . "/{$app_name}/{$event_server_file_name}.php";
     if (!file_exists($eventServerFile)) {
@@ -466,8 +460,7 @@ function startRpc($app_name, $event_server_file_name = 'RpcServer')
 
 function startUdp($app_name, $event_server_file_name = 'UdpEventServer')
 {
-    $path = START_DIR_ROOT . "/{$app_name}/Protocol";
-    $config = include $path . "/conf.php";
+    $config = loadGlobalConf($app_name);
     checkRunning($config);
     $eventServerFile = START_DIR_ROOT . "/{$app_name}/{$event_server_file_name}.php";
     if (!file_exists($eventServerFile)) {
@@ -493,8 +486,7 @@ function startUdp($app_name, $event_server_file_name = 'UdpEventServer')
 
 function startMqtt($app_name, $event_server_file_name = 'MqttServer')
 {
-    $path = START_DIR_ROOT . "/{$app_name}/Protocol";
-    $config = include $path . "/conf.php";
+    $config = loadGlobalConf($app_name);
     checkRunning($config);
     $eventServerFile = START_DIR_ROOT . "/{$app_name}/{$event_server_file_name}.php";
     if (!file_exists($eventServerFile)) {
@@ -1182,19 +1174,13 @@ function resetConf(&$conf)
     }
 }
 
+function loadGlobalConf() {
+    return \Swoolefy\Core\SystemEnv::loadGlobalConf();
+}
 
-if (!function_exists('env')) {
-    /**
-     * Gets the value of an environment variable.
-     *
-     * @param  string  $key
-     * @param  mixed  $default
-     * @return mixed
-     */
-    function env($key, $default = null)
-    {
-        return \Swoolefy\Core\SystemEnv::get($key, $default);
-    }
+function env($key, $default = null)
+{
+    return \Swoolefy\Core\SystemEnv::get($key, $default);
 }
 
 function getDefaultController()

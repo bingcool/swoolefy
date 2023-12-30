@@ -151,9 +151,6 @@ trait ServiceTrait
      */
     public static function getConf()
     {
-        if (!empty(Swfy::$conf)) {
-            return Swfy::$conf;
-        }
         return BaseServer::getConf();
     }
 
@@ -163,9 +160,6 @@ trait ServiceTrait
      */
     public static function getAppConf()
     {
-        if (!empty(Swfy::$appConf)) {
-            return Swfy::$appConf;
-        }
         return BaseServer::getAppConf();
     }
 
@@ -176,7 +170,7 @@ trait ServiceTrait
      */
     public static function getAppParams()
     {
-        return Swfy::getConf()['app_conf']['params'] ?? [];
+        return Swfy::getAppConf()['app_conf']['params'] ?? [];
     }
 
     /**

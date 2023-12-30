@@ -14,6 +14,7 @@ namespace Swoolefy\Worker;
 use Swoole\Event;
 use Swoole\Process;
 use Swoole\Coroutine\Channel;
+use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Crontab\CrontabManager;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Exception\WorkerException;
@@ -313,6 +314,7 @@ abstract class AbstractBaseWorker
             }
             $handleClass = static::class;
             putenv("handle_class={$handleClass}");
+            BaseServer::reloadGlobalConf();
 
             static::$processInstance = $this;
             $this->pid = $this->swooleProcess->pid;

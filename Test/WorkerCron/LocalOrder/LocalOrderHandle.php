@@ -4,6 +4,7 @@ namespace Test\WorkerCron\LocalOrder;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Crontab\AbstractCronController;
 use Swoolefy\Core\Log\LogManager;
+use Swoolefy\Core\Swfy;
 use Test\Factory;
 
 class LocalOrderHandle extends AbstractCronController {
@@ -23,6 +24,10 @@ class LocalOrderHandle extends AbstractCronController {
             ]);
 
         var_dump(env("HOST_NAME"));
+        var_dump(env('HOST_PASSWORD'));
+        var_dump(Swfy::getConf()['bjg']);
+
+
         sleep(2);
         var_dump("insert successful");
 

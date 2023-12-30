@@ -179,7 +179,6 @@ class App extends \Swoolefy\Core\Component
         if (!isset($isResetAppConf)) {
             if (!empty($appConf)) {
                 $this->appConf = $appConf;
-                Swfy::setAppConf($appConf);
                 BaseServer::setAppConf($appConf);
                 $isResetAppConf = true;
             }
