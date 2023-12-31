@@ -153,14 +153,19 @@ class SystemEnv
 
     /**
      * 加载环境变量文件
-     *
+     * @param string $env
      * @return array
      */
-    public static function loadDcEnv()
+    public static function loadDcEnv(string $env = '')
     {
-        $dcFile = START_DIR_ROOT . DIRECTORY_SEPARATOR . APP_NAME . '/Config/dc-' . SWOOLEFY_ENV . '.php';
+        if (empty($env)) {
+            $dcFile = START_DIR_ROOT . DIRECTORY_SEPARATOR . APP_NAME . '/Config/dc.php';
+        }else {
+            $dcFile = START_DIR_ROOT . DIRECTORY_SEPARATOR . APP_NAME . '/Config/dc-' . $env . '.php';
+        }
+
         if (file_exists($dcFile)) {
-            return include START_DIR_ROOT . DIRECTORY_SEPARATOR . APP_NAME . '/Config/dc-' . SWOOLEFY_ENV . '.php';
+            return include START_DIR_ROOT . DIRECTORY_SEPARATOR . APP_NAME . '/Config/dc.php';
         }else {
             return [];
         }
