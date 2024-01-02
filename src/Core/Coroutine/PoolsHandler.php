@@ -194,7 +194,7 @@ class PoolsHandler
             $targetObj = $obj->getObject();
             if ($targetObj instanceof PDOConnection) {
                 if ($targetObj->dynamicDebug === 1) {
-                    $targetObj->debug = 0;
+                    $targetObj->setDebug(0);
                 }
             }
 
