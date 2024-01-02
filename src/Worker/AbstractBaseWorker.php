@@ -245,11 +245,6 @@ abstract class AbstractBaseWorker
     const CHECK_MASTER_LIVE_TICK_TIME = 30;
 
     /**
-     * @var string
-     */
-    const RUN_ONCE_CRON = 'run-once-cron';
-
-    /**
      * AbstractProcess constructor.
      * @param string $process_name
      * @param bool $async
@@ -499,7 +494,7 @@ abstract class AbstractBaseWorker
      */
     private function exitSingleHandle(int $signo)
     {
-        return function() use($signo){
+        return function() use($signo) {
             try {
                 // destroy
                 $this->exitAndRebootDefer();
