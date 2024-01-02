@@ -233,11 +233,9 @@ function createProject()
                     @copy(SCORE_DIR_ROOT . '/src/Stubs/Config.php', $configFile);
                 }
 
-                foreach (SWOOLEFY_ENVS as $env) {
-                    $dcFile = $appRootDir . '/' . $dir . '/dc-' . $env . '.php';
-                    if (!file_exists($dcFile)) {
-                        @copy(SCORE_DIR_ROOT . '/src/Stubs/Dc.php', $dcFile);
-                    }
+                $dcFile = $appRootDir . '/' . $dir . '/dc.php';
+                if (!file_exists($dcFile)) {
+                    @copy(SCORE_DIR_ROOT . '/src/Stubs/Dc.php', $dcFile);
                 }
 
                 break;
@@ -1215,9 +1213,6 @@ function getDefines()
 
         <<<EOF
 <?php
-defined('APP_NAME') or define('APP_NAME', "{$APP_NAME}");
-defined('APP_PATH') or define('APP_PATH', dirname(__DIR__));
-defined('ROOT_PATH') or define('ROOT_PATH', dirname(APP_PATH));
 defined('LOG_PATH') or define('LOG_PATH', APP_PATH.'/Storage/Logs');
 
 EOF;

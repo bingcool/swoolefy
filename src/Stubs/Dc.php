@@ -8,15 +8,15 @@ return [
         // 类型
         'type' => 'mysql',
         // 服务器地址
-        'hostname'        => '127.0.0.1',
+        'hostname'        => env('DB_HOST_NAME','127.0.0.1'),
         // 数据库名
-        'database'        => 'bingcool',
+        'database'        => env('DB_HOST_DATABASE'),
         // 用户名
-        'username'        => 'root',
+        'username'        => env('DB_USER_NAME'),
         // 密码
-        'password'        => '123456',
+        'password'        => env('DB_PASSWORD'),
         // 端口
-        'hostport'        => '3306',
+        'hostport'        => env('DB_HOST_PORT'),
         // 连接dsn
         'dsn'             => '',
         // 数据库连接参数
@@ -39,13 +39,13 @@ return [
 
     'predis' => [
         'scheme' => 'tcp',
-        'host'   => '127.0.0.1',
-        'port'   => 6379,
+        'host'   => env('REDIS_HOST'),
+        'port'   => env('REDIS_PORT'),
     ],
 
     'redis' => [
-        'host'   => '127.0.0.1',
-        'port'   => 6379,
+        'host'   => env('REDIS_HOST'),
+        'port'   => env('REDIS_PORT'),
     ],
 
     'amqp_connection' => [
