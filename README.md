@@ -176,11 +176,8 @@ myproject
 |     |      |—— database.php //数据库相关组件
 |     |      |—— log.php     // 日志相关组件
 |     |      |—— cache.php   // 缓存组件，可以继续添加其他组件，命名自由 
-|     │   ├── dc-dev.php   //dev环境配置项
-|     │   ├── dc-gra.php   //gre环境配置项
-|     │   ├── dc-prd.php   //prd环境配置项
-|     │   ├── dc-test.php  //test环境配置项
-|     │   └── defines.php
+|     │   ├── dc.php   //环境配置项
+|     │   └── constants.php
 |     |   |—— config.php    // 应用层配置
 |     |
 |     ├── Controller
@@ -196,6 +193,7 @@ myproject
 |     |—— Storage
 |     |   |—— Logs  // 日志文件目录
 |     |   |—— Sql   // sql日志目录
+|     |__ .env     // 环境变量文件
 |     │—— autoloader.php // 自定义项目自动加载
 |     |—— Event.php      // 事件实现类
 |     |—— HttpServer.php // http server
