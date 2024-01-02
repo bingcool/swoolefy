@@ -11,8 +11,6 @@
 
 namespace Swoolefy\Worker\Traits;
 
-use Swoolefy\Worker\MainManager;
-
 trait ChildrenCommandTrait {
     /**
      * 系统内置管道通信命令
@@ -40,7 +38,7 @@ trait ChildrenCommandTrait {
      */
     protected function runOnceCronCommand($msg, string $from_process_name, int $from_process_worker_id, bool $is_proxy_by_master)
     {
-        putenv(self::RUN_ONCE_CRON."=1");
+        putenv("run-once-cron=1");
     }
 }
 
