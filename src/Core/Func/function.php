@@ -36,16 +36,21 @@ function get_one_free_port(array $excludePorts = []): int
     $isValidPort = true;
     do {
         $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-        if (!socket_bind($socket, "0.0.0.0", 0)) {
-            return false;
+        try {
+            if (!socket_bind($socket, "0.0.0.0", 0)) {
+                throw new \Swoolefy\Exception\SystemException("get_one_free_port call socket_bind() failed");
+            }
+            if (!socket_listen($socket)) {
+                throw new \Swoolefy\Exception\SystemException("get_one_free_port call socket_listen() failed");
+            }
+            if (!socket_getsockname($socket, $addr, $port)) {
+                throw new \Swoolefy\Exception\SystemException("get_one_free_port call socket_getsockname() failed");
+            }
+        }catch (\Throwable $exception) {
+            throw $exception;
+        }finally {
+            socket_close($socket);
         }
-        if (!socket_listen($socket)) {
-            return false;
-        }
-        if (!socket_getsockname($socket, $addr, $port)) {
-            return false;
-        }
-        socket_close($socket);
 
         if(empty($excludePorts)) {
             $isValidPort = false;
