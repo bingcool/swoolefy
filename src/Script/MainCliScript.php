@@ -141,7 +141,15 @@ class MainCliScript extends AbstractScriptWorker
         $swooleMasterPid = Swfy::getMasterPid();
         if(\Swoole\Process::kill($swooleMasterPid, 0) && !$this->exitAll) {
             $pidFile = Swfy::getConf()['setting']['pid_file'];
-            @unlink($pidFile);
+            if (is_file($pidFile)) {
+                @unlink($pidFile);
+            }else {
+                $pidFile = parseScriptPidFile($pidFile);
+                if (is_file($pidFile)) {
+                    @unlink($pidFile);
+                }
+            }
+
             write("【Info】 script end! ", 'green');
             if($force) {
                 \Swoole\Process::kill($swooleMasterPid, SIGKILL);

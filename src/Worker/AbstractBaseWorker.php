@@ -494,7 +494,7 @@ abstract class AbstractBaseWorker
      */
     private function exitSingleHandle(int $signo)
     {
-        return function() use($signo){
+        return function() use($signo) {
             try {
                 // destroy
                 $this->exitAndRebootDefer();

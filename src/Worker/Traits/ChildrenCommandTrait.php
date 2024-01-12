@@ -11,8 +11,6 @@
 
 namespace Swoolefy\Worker\Traits;
 
-use Swoolefy\Worker\MainManager;
-
 trait ChildrenCommandTrait {
     /**
      * 系统内置管道通信命令

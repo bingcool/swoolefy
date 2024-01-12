@@ -81,7 +81,7 @@ class SystemEnv
      */
     public static function isDaemon(): bool
     {
-        return self::isDaemon();
+        return isDaemon();
     }
 
     /**
