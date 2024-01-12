@@ -35,7 +35,6 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
         try {
             $name = getenv('name');
             var_dump("name=".$name);
-            var_dump('CID='.\Swoole\Coroutine::getCid());
             var_dump('Script test');
             sleep(2);
 

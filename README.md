@@ -142,6 +142,11 @@ include './vendor/autoload.php';
 define('IS_DAEMON_SERVICE', 0);
 define('IS_CRON_SERVICE', 0);
 define('IS_CLI_SCRIPT', 0);
+// 应用父目录
+defined('ROOT_PATH') or define('ROOT_PATH', __DIR__);
+// 启动目录
+defined('START_DIR_ROOT') or define('START_DIR_ROOT', __DIR__);
+
 date_default_timezone_set('Asia/Shanghai');
 
 define('APP_NAMES', [
@@ -215,14 +220,14 @@ php cli.php start App
 swoole-cli cli.php start App
 
 // 守护进程方式启动,添加-D参数控制
-php cli.php start App -D
+php cli.php start App --daemon=1
 或者  
-swooole-cli cli.php start App -D
+swooole-cli cli.php start App --daemon=1
 
 // 停止进程
 php cli.php stop App
 或者   
-swooole-cli cli.php stop App
+swooole-cli cli.php stop App --force=1
 
 // 查看进程状态
 swooole-cli cli.php status App
@@ -488,8 +493,8 @@ return [
         'http_compression'       => true,
         // $level 压缩等级，范围是 1-9，等级越高压缩后的尺寸越小，但 CPU 消耗更多。默认为 1, 最高为 9
         'http_compression_level' => 1,
-        'log_file'               => '/tmp/' . APP_NAME . '/swoole_log.txt',
-        'pid_file'               => '/data/' . APP_NAME . '/log/server.pid',
+        'log_file'               => \Swoolefy\Core\SystemEnv::loadLogFile('/tmp/' . APP_NAME . '/swoole_log.txt'),
+        'pid_file'               => \Swoolefy\Core\SystemEnv::loadPidFile('/data/' . APP_NAME . '/log/server.pid'),
 	],
 
     'coroutine_setting' => [
