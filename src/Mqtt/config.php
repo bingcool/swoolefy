@@ -40,8 +40,8 @@ return [
         'enable_deadlock_check' => false,
         'enable_coroutine'      => 1,
         'task_enable_coroutine' => 1,
-        'log_file'              => '/tmp/' . APP_NAME . '/swoole_log.txt',
-        'pid_file'              => '/data/' . APP_NAME . '/log/server.pid',
+        'log_file'              => \Swoolefy\Core\SystemEnv::loadLogFile('/tmp/' . APP_NAME . '/swoole_log.txt'),
+        'pid_file'              => \Swoolefy\Core\SystemEnv::loadPidFile('/data/' . APP_NAME . '/log/server.pid'),
     ],
 
     'coroutine_setting' => [
