@@ -271,18 +271,18 @@ return [
     'enable_component_pools' => [
         // 取components的`DB`组件名称相对应
         'db' => [
-            'pools_num' => 5, // db实例数
-            'push_timeout' => 2, // db实例进入channel池最长等待时间，单位s
-            'pop_timeout' => 1, // db实例出channel池最长等待时间，单位s.在规定时间内获取不到db对象，将降级为实时创建db实例
-            'live_time' => 10 // db实例的有效期，单位s.过期后将被掉弃，重新创建新DB实例
+            'max_pool_num' => 5, // db实例数
+            'max_push_timeout' => 2, // db实例进入channel池最长等待时间，单位s
+            'max_pop_timeout' => 1, // db实例出channel池最长等待时间，单位s.在规定时间内获取不到db对象，将降级为实时创建db实例
+            'max_life_timeout' => 10 // db实例的有效期，单位s.过期后将被掉弃，重新创建新DB实例
         ],
     
         // 取components的`redis`组件名称相对应
         'redis' => [
-            'pools_num' => 5,
-            'push_timeout' => 2,
-            'pop_timeout' => 1,
-            'live_time' => 10
+            'max_pool_num' => 5,
+            'max_push_timeout' => 2,
+            'max_pop_timeout' => 1,
+            'max_life_timeout' => 10
         ]
     ],
     

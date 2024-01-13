@@ -51,7 +51,7 @@ class PoolsHandler
     /**
      * @var int
      */
-    protected $liveTime = 10;
+    protected $lifeTime = 10;
 
     /**
      * @var \Closure
@@ -108,20 +108,20 @@ class PoolsHandler
     }
 
     /**
-     * @param int $liveTime
+     * @param int $lifeTime
      * @return void
      */
-    public function setLiveTime(int $liveTime)
+    public function setLifeTime(int $lifeTime)
     {
-        $this->liveTime = $liveTime;
+        $this->lifeTime = $lifeTime;
     }
 
     /**
      * @return int
      */
-    public function getLiveTime()
+    public function getLifeTime()
     {
-        return $this->liveTime;
+        return $this->lifeTime;
     }
 
     /**
@@ -138,6 +138,14 @@ class PoolsHandler
     public function getCapacity()
     {
         return $this->channel->capacity;
+    }
+
+    /**
+     * @return int
+     */
+    public function getCurrentNum()
+    {
+        return $this->channel->length();
     }
 
     /**
@@ -255,7 +263,7 @@ class PoolsHandler
             }
         } else {
             if ($this->callCount >= $this->poolsNum || $this->channel->isEmpty()) {
-                usleep(15 * 1000);
+                usleep(10 * 1000);
             }
         }
         if ($this->channel->length() > 0) {
@@ -298,7 +306,7 @@ class PoolsHandler
         $containerObjectDto->__objInitTime   = time();
         $containerObjectDto->__object        = $object;
         $containerObjectDto->__comAliasName  = $poolName;
-        $containerObjectDto->__objExpireTime = time() + ($this->liveTime) + rand(1, 10);
+        $containerObjectDto->__objExpireTime = time() + ($this->lifeTime) + rand(1, 10);
         return $containerObjectDto;
     }
 
@@ -316,5 +324,15 @@ class PoolsHandler
         }
 
         return is_object($containerObject) ? $containerObject : null;
+    }
+
+    public function clearPool()
+    {
+        if ($length = $this->channel->length() > 0) {
+            for ($i=0; $i<$length; $i++) {
+                $obj = $this->channel->pop(0.01);
+                unset($obj);
+            }
+        }
     }
 }
