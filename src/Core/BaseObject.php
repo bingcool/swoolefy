@@ -178,7 +178,7 @@ class BaseObject
      * @param mixed $value
      * @return bool
      */
-    public function setArgs(string $name, mixed $value): bool
+    public function setArgs(string $name, $value): bool
     {
         if ($name && $value) {
             $this->args[$name] = $value;

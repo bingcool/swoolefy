@@ -87,7 +87,7 @@ class AsyncTask implements AsyncTaskInterface
      * @param mixed $task
      * @return void
      */
-    public static function finish(mixed $data, $task = null)
+    public static function finish($data, $task = null)
     {
         $cid = \Swoole\Coroutine::getCid();
         if ($cid >=0 ) {

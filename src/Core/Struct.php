@@ -35,7 +35,7 @@ class Struct
      * @param mixed $default
      * @return string
      */
-    public function get(string $property, mixed $default = null)
+    public function get(string $property, $default = null)
     {
         if (isset($this->stdClass->{$property})) {
             return $this->stdClass->{$property};
@@ -102,7 +102,7 @@ class Struct
      * @param mixed $value
      * @return mixed
      */
-    public function __set(string $property, mixed $value)
+    public function __set(string $property, $value)
     {
         return $this->set($property, $value, true);
     }

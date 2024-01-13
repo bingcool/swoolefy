@@ -57,14 +57,14 @@ class UdpHandler extends Swoole implements HandlerInterface
 
     /**
      * run
-     * @param mixed $fd
+     * @param int|null $fd
      * @param mixed $payload
      * @param array $extendData
      * @param array $contextData
      * @return mixed
      * @throws \Throwable
      */
-    public function run(?int $fd, mixed $payload, array $extendData = [], array $contextData = [])
+    public function run(?int $fd, $payload, array $extendData = [], array $contextData = [])
     {
         try {
             parent::run(null, $payload);

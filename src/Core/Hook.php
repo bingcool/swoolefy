@@ -34,11 +34,7 @@ class Hook
      * @param bool $prepend
      * @return bool
      */
-    public static function addHook(
-        int $type,
-        mixed $func,
-        bool $prepend = false
-    ): bool
+    public static function addHook($type, $func, bool $prepend = false)
     {
         $cid = CoroutineManager::getInstance()->getCoroutineId();
         if (is_callable($func, true, $callable_name)) {

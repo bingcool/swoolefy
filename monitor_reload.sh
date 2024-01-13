@@ -19,9 +19,9 @@ basepath=$(cd `dirname $0`; pwd)
 cd $basepath
 
 # 先停止
-/usr/bin/php cli.php stop $appName -f
+/usr/bin/php cli.php stop $appName --force=1
 # 守护进程模式启动
-/usr/bin/php cli.php start $appName -D
+/usr/bin/php cli.php start $appName --daemon=1
 
 while true; do
    file_changes=$(inotifywait -r -e modify,create,delete "$basepath" --format '%w%f')
@@ -30,9 +30,9 @@ while true; do
        echo "PHP files modified:$php_files"
        sleep 10;
        # 先停止
-       /usr/bin/php cli.php stop $appName -f
+       /usr/bin/php cli.php stop $appName --force=1
        # 守护进程模式启动
-       /usr/bin/php cli.php start $appName -D
+       /usr/bin/php cli.php start $appName --daemon=1
    fi
 done
 

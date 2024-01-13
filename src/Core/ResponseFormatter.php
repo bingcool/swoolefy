@@ -24,7 +24,7 @@ class ResponseFormatter
      * @param mixed $data
      * @return array
      */
-    public static function formatDataArray(int $code = 0, string $msg = '', mixed $data = []): array
+    public static function formatDataArray(int $code = 0, string $msg = '', $data = [])
     {
         $responseDto = static::formatDataDto($code, $msg, $data);
         return $responseDto->toArray();
@@ -38,7 +38,7 @@ class ResponseFormatter
      * @param mixed $data
      * @return BaseResponseDto
      */
-    public static function formatDataDto(int $code = 0, string $msg = '', mixed $data = []): BaseResponseDto
+    public static function formatDataDto(int $code = 0, string $msg = '', $data = []): BaseResponseDto
     {
         $responseDto = new BaseResponseDto();
         $responseDto->code = $code;
@@ -59,7 +59,7 @@ class ResponseFormatter
     final public static function buildResponseData(
         int $code = 0,
         string $msg = '',
-        mixed $data = []
+        $data = []
     ): array
     {
         $responseFormatter = (!isset(Swfy::getConf()['response_formatter']) || empty(Swfy::getConf()['response_formatter'])) ? ResponseFormatter::class : Swfy::getConf()['response_formatter'];

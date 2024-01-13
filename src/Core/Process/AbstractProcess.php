@@ -79,8 +79,8 @@ abstract class AbstractProcess
         string $processName,
         bool   $async = true,
         array  $args = [],
-        mixed  $extendData = null,
-        bool $enableCoroutine = true
+               $extendData = null,
+        bool   $enableCoroutine = true
     )
     {
         $this->async = $async;

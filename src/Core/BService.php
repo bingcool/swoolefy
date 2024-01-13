@@ -82,7 +82,7 @@ class BService extends BaseObject
      * @param mixed $mixedParams
      * @return void
      */
-    public function setMixedParams(mixed $mixedParams)
+    public function setMixedParams($mixedParams)
     {
         if(empty($this->mixedParams)) {
             $this->mixedParams = $mixedParams;
@@ -98,7 +98,7 @@ class BService extends BaseObject
     }
 
     /**
-     * @return mixed|string
+     * @return string
      */
     private function getTraceId()
     {

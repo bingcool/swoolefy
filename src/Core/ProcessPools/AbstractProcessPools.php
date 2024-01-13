@@ -251,7 +251,7 @@ abstract class AbstractProcessPools
      * @return bool
      * @throws \Exception
      */
-    public function sendMessage(mixed $msg = null, ?int $worker_id = null)
+    public function sendMessage($msg = null, ?int $worker_id = null)
     {
         if (!$msg) {
             throw new SystemException('Missing msg params');

@@ -44,7 +44,7 @@ class WebsocketHandler extends Swoole implements HandlerInterface
      * @return mixed
      * @throws \Throwable
      */
-    public function run(?int $fd, mixed $payload, array $extendData = [], array $contextData = [])
+    public function run($fd, $payload, array $extendData = [], array $contextData = [])
     {
         try {
             // parse data
