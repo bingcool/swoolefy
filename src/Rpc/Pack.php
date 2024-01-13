@@ -233,7 +233,7 @@ class Pack extends BaseParse
      * @return string
      */
     public static function encodePack(
-         mixed  $data,
+                $data,
          array  $header,
          array  $headerStruct = [],
          string $packLengthKey = 'length',

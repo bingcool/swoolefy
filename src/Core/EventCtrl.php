@@ -225,13 +225,25 @@ class EventCtrl implements EventCtrlInterface
     }
 
     /**
+     * @param array $appConf
+     * @return bool
+     */
+    protected function isEnableComponentPools(array $appConf): bool
+    {
+        if (isset($appConf['enable_component_pools']) && is_array($appConf['enable_component_pools']) && !empty($appConf['enable_component_pools'])) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * 在workerStart可以创建一个协程池Channel
      * 'enable_component_pools' => [
      *      'redis' => [
-     *              'pools_num'=>10,
-     *              'push_timeout'=>1.5,
-     *              'pop_timeout'=>1,
-     *              'live_time'=>10 * 60
+     *              'max_pool_num' => 5,
+     *              'max_push_timeout' => 2,
+     *              'max_pop_timeout' => 1,
+     *              'max_life_timeout' => 10
      *      ]
      * ],
      *
@@ -240,15 +252,38 @@ class EventCtrl implements EventCtrlInterface
     protected function registerComponentPools()
     {
         $appConf = BaseServer::getAppConf();
-        if (isset($appConf['enable_component_pools']) && is_array($appConf['enable_component_pools']) && !empty($appConf['enable_component_pools'])) {
+        if ($this->isEnableComponentPools($appConf)) {
             $components = array_keys($appConf['components']);
-            foreach ($appConf['enable_component_pools'] as $poolName => $component_pool_config) {
+            foreach ($appConf['enable_component_pools'] as $poolName => $componentPoolConfig) {
                 if (!in_array($poolName, $components)) {
                     continue;
                 }
 
                 $callable = $appConf['components'][$poolName];
-                CoroutinePools::getInstance()->addPool($poolName, $component_pool_config, $callable);
+                CoroutinePools::getInstance()->addPool($poolName, $componentPoolConfig, $callable);
+            }
+
+            \Swoole\Timer::tick(60*1000, function () {
+                $this->clearComponentPools();
+            });
+        }
+    }
+
+    /**
+     * @return void
+     */
+    protected function clearComponentPools()
+    {
+        $appConf = BaseServer::getAppConf();
+        if ($this->isEnableComponentPools($appConf)) {
+            $components = array_keys($appConf['components']);
+            foreach ($appConf['enable_component_pools'] as $poolName => $componentPoolConfig) {
+                if (!in_array($poolName, $components)) {
+                    continue;
+                }
+                if (isset($componentPoolConfig['enable_tick_clear_pool']) && !empty($componentPoolConfig['enable_tick_clear_pool'])) {
+                    CoroutinePools::getInstance()->getPool($poolName)->clearPool();
+                }
             }
         }
     }

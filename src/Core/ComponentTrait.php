@@ -125,7 +125,7 @@ trait ComponentTrait
 
         $appConf = BaseServer::getAppConf();
         if (!empty($appConf['enable_component_pools']) && is_array($appConf['enable_component_pools'])) {
-            $liveTime = $appConf['enable_component_pools'][$comAliasName]['live_time'] ?? 10;
+            $liveTime = $appConf['enable_component_pools'][$comAliasName]['max_life_timeout'] ?? 10;
             $containerObjectDto->__objExpireTime = time() + $liveTime + rand(1, 10);
         }else {
             $containerObjectDto->__objExpireTime = null;
@@ -153,7 +153,7 @@ trait ComponentTrait
      * @param bool $isAll
      * @return bool
      */
-    public function clearComponent(string|array $comAliasName, bool $isAll = false): bool
+    public function clearComponent($comAliasName = null, bool $isAll = false)
     {
         if ($isAll) {
             $this->containers = [];
@@ -318,7 +318,7 @@ trait ComponentTrait
      * @param mixed $value
      * @return mixed
      */
-    public function __set(string $name, mixed $value)
+    public function __set(string $name, $value)
     {
         if (isset($this->containers[$name])) {
             return $this->containers[$name];
