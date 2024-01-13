@@ -2,13 +2,9 @@
 namespace Swoolefy\Cmd;
 
 use Swoolefy\Core\Exec;
-use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-#[AsCommand(
-    name: 'stop',
-)]
 class StopCmd extends BaseCmd
 {
     protected static $defaultName = 'stop';
@@ -88,7 +84,6 @@ class StopCmd extends BaseCmd
         ---------------------stop info-------------------\n    
         Server Stop  OK. server stop at " . date("Y-m-d H:i:s")
                 );
-                @unlink($pidFile);
                 break;
             } else {
                 if ((time() - $nowTime) > 20) {

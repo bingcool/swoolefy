@@ -2,13 +2,8 @@
 namespace Swoolefy\Cmd;
 
 use Swoolefy\Core\BaseServer;
-use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-
-#[AsCommand(
-    name: 'status',
-)]
 class StatusCmd extends BaseCmd
 {
     protected static $defaultName = 'status';

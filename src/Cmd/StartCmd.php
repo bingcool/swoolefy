@@ -1,13 +1,9 @@
 <?php
 namespace Swoolefy\Cmd;
 
-use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-#[AsCommand(
-    name: 'start',
-)]
 class StartCmd extends BaseCmd
 {
     protected static $defaultName = 'start';

@@ -123,7 +123,7 @@ class SystemEnv
      */
     public static function loadGlobalConf()
     {
-        $path = START_DIR_ROOT . '/'.APP_NAME.'/Protocol';
+        $path = APP_PATH.'/Protocol';
         $conf = include $path .'/conf.php';
         return $conf;
     }
@@ -135,12 +135,12 @@ class SystemEnv
      */
     public static function loadAppConf()
     {
-        $confFile = START_DIR_ROOT . DIRECTORY_SEPARATOR . APP_NAME . '/Config/config.php';
+        $confFile = APP_PATH . '/Config/config.php';
         if (!file_exists($confFile)) {
             throw new SystemException("Not found app conf file:{$confFile}");
         }
 
-        $constFile = START_DIR_ROOT . DIRECTORY_SEPARATOR . APP_NAME . '/Config/constants.php';
+        $constFile = APP_PATH . '/Config/constants.php';
 
         if (!file_exists($confFile)) {
             throw new SystemException("Not found const file:{$constFile}");
@@ -152,6 +152,35 @@ class SystemEnv
     }
 
     /**
+     * 不同应用,logFile定义不同目录
+     * @param string $logFile
+     * @return string
+     */
+    public static function loadLogFile(string $logFile)
+    {
+        if (SystemEnv::isWorkerService()) {
+            $path = pathinfo($logFile);
+            return $path['dirname'] . '/' . WORKER_SERVICE_NAME . '/' . $path['filename'] . '_worker.' . $path['extension'];
+        }
+        return $logFile;
+    }
+
+    /**
+     * 不同应用,pidFile定义不同目录
+     *
+     * @param string $pidFile
+     * @return string
+     */
+    public static function loadPidFile(string $pidFile)
+    {
+        if (SystemEnv::isWorkerService()) {
+            $path = pathinfo($pidFile);
+            return $path['dirname'] . '/' . WORKER_SERVICE_NAME . '/' . $path['filename'] . '_worker.' . $path['extension'];
+        }
+        return $pidFile;
+    }
+
+    /**
      * 加载环境变量文件
      * @param string $env
      * @return array
@@ -159,13 +188,13 @@ class SystemEnv
     public static function loadDcEnv(string $env = '')
     {
         if (empty($env)) {
-            $dcFile = START_DIR_ROOT . DIRECTORY_SEPARATOR . APP_NAME . '/Config/dc.php';
+            $dcFile = APP_PATH . '/Config/dc.php';
         }else {
-            $dcFile = START_DIR_ROOT . DIRECTORY_SEPARATOR . APP_NAME . '/Config/dc-' . $env . '.php';
+            $dcFile = APP_PATH . '/Config/dc-' . $env . '.php';
         }
 
         if (file_exists($dcFile)) {
-            return include START_DIR_ROOT . DIRECTORY_SEPARATOR . APP_NAME . '/Config/dc.php';
+            return include APP_PATH . '/Config/dc.php';
         }else {
             return [];
         }
@@ -179,9 +208,9 @@ class SystemEnv
     public static function loadComponent()
     {
         $components = [];
-        $componentDir = START_DIR_ROOT . DIRECTORY_SEPARATOR . APP_NAME . '/Config/component';
+        $componentDir = APP_PATH . '/Config/component';
         if (!is_dir($componentDir)) {
-            $componentDir = START_DIR_ROOT . DIRECTORY_SEPARATOR . APP_NAME . '/Config/Component';
+            $componentDir = APP_PATH . '/Config/Component';
             if (!is_dir($componentDir)) {
                 return $components;
             }
