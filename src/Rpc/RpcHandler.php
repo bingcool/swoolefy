@@ -43,7 +43,7 @@ class RpcHandler extends Swoole implements HandlerInterface
      * @return mixed
      * @throws \Throwable
      */
-    public function run(?int $fd, mixed $payload, array $extendData = [])
+    public function run($fd, $payload, array $extendData = [])
     {
         try {
             if ($this->isWorkerProcess()) {

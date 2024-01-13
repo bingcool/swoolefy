@@ -72,7 +72,7 @@ class ServiceDispatch extends AppDispatch
      * @param mixed $params
      * @param array $rpcPackHeader
      */
-    public function __construct(array $callable, mixed $params, array $rpcPackHeader = [])
+    public function __construct(array $callable, $params, array $rpcPackHeader = [])
     {
         parent::__construct();
         $this->callable = $callable;
@@ -162,7 +162,7 @@ class ServiceDispatch extends AppDispatch
      * @param int $task_id
      * @param mixed|null $task
      */
-    public function setFromWorkerIdAndTaskId(int $from_worker_id, int $task_id, mixed $task = null)
+    public function setFromWorkerIdAndTaskId(int $from_worker_id, int $task_id, $task = null)
     {
         $this->fromWorkerId = $from_worker_id;
         $this->taskId = $task_id;

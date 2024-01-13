@@ -262,8 +262,9 @@ class BaseCmd extends Command
         return (int)getenv('daemon');
     }
 
-    protected function loadGlobalConf() {
-        return \Swoolefy\Core\SystemEnv::loadGlobalConf();
+    protected function loadGlobalConf()
+    {
+        return loadGlobalConf();
     }
 
     protected function info(string $message)

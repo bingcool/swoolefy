@@ -91,29 +91,29 @@ class SysvmsgManager
      * @param string $path_name
      * @param string $project
      * @return bool
-     * @throws \Exception
+     * @throws SystemException
      */
     public function addMsgFtok(string $msg_queue_name, string $path_name, string $project)
     {
         if (!extension_loaded('sysvmsg')) {
-            throw new \Exception(sprintf("【Warning】%s::%s missing sysvmsg extension",
+            throw new SystemException(sprintf("【Warning】%s::%s missing sysvmsg extension",
                 __CLASS__,
                 __FUNCTION__
             ));
         }
 
         if (strlen($project) != 1) {
-            throw new \Exception(sprintf("【Warning】%s::%s. the params of project require only one string charset",
+            throw new SystemException(sprintf("【Warning】%s::%s. the params of project require only one string charset",
                 __CLASS__,
                 __FUNCTION__
             ));
         }
 
-        $pathNameKey     = md5($path_name);
         $msgQueueNameKey = md5($msg_queue_name);
+        $pathNameKey = md5($path_name);
 
         if (isset($this->msgProject[$pathNameKey][$project])) {
-            throw new \Exception(sprintf("【Warning】%s::%s. the params of project is had setting",
+            throw new SystemException(sprintf("【Warning】%s::%s. the params of project is had setting",
                 __CLASS__,
                 __FUNCTION__
             ));
@@ -306,7 +306,7 @@ class SysvmsgManager
      *
      * @param string $msg_queue_name
      * @return \SysvMessageQueue|resource
-     * @throws \Exception
+     * @throws SystemException
      */
     public function getMsgQueue(string $msg_queue_name)
     {

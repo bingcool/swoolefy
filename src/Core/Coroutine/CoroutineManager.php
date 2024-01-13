@@ -80,7 +80,7 @@ class CoroutineManager
      * @param int $limit
      * @return array|false
      */
-    public function getBackTrace(int $coroutineId = 0, int $options = DEBUG_BACKTRACE_PROVIDE_OBJECT, int $limit = 0): array|false
+    public function getBackTrace(int $coroutineId = 0, int $options = DEBUG_BACKTRACE_PROVIDE_OBJECT, int $limit = 0)
     {
         return \Swoole\Coroutine::getBackTrace($coroutineId, $options, $limit);
     }
