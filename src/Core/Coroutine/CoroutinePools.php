@@ -25,41 +25,41 @@ class CoroutinePools
      * @var array
      */
     const DefaultConfig = [
-        'pools_num'    => 30,
-        'push_timeout' => 2,
-        'pop_timeout'  => 1,
-        'live_time'    => 10
+        'max_pool_num' => 30,
+        'max_push_timeout'   => 2,
+        'max_pop_timeout'    => 1,
+        'max_life_timeout'   => 10
     ];
 
     /**
      * @param string $poolName
-     * @param array $config
+     * @param array $poolConfig
      * @param callable $constructor
      */
     public function addPool(
         string   $poolName,
-        array    $config,
+        array    $poolConfig,
         callable $constructor
     )
     {
-        $config                 = array_merge(self::DefaultConfig, $config);
+        $poolConfig             = array_merge(self::DefaultConfig, $poolConfig);
         $poolName               = trim($poolName);
-        $this->pools[$poolName] = call_user_func(function () use ($poolName, $config, $constructor) {
+        $this->pools[$poolName] = call_user_func(function () use ($poolName, $poolConfig, $constructor) {
             $poolsHandler = new PoolsHandler();
-            if (isset($config['pools_num']) && is_numeric($config['pools_num'])) {
-                $poolsHandler->setPoolsNum($config['pools_num']);
+            if (isset($poolConfig['max_pool_num']) && is_numeric($poolConfig['max_pool_num'])) {
+                $poolsHandler->setPoolsNum($poolConfig['max_pool_num']);
             }
 
-            if (isset($config['push_timeout'])) {
-                $poolsHandler->setPushTimeout($config['push_timeout']);
+            if (isset($poolConfig['max_push_timeout'])) {
+                $poolsHandler->setPushTimeout($poolConfig['max_push_timeout']);
             }
 
-            if (isset($config['pop_timeout'])) {
-                $poolsHandler->setPopTimeout($config['pop_timeout']);
+            if (isset($poolConfig['max_pop_timeout'])) {
+                $poolsHandler->setPopTimeout($poolConfig['max_pop_timeout']);
             }
 
-            if (isset($config['live_time'])) {
-                $poolsHandler->setLiveTime($config['live_time']);
+            if (isset($poolConfig['max_life_timeout'])) {
+                $poolsHandler->setLifeTime($poolConfig['max_life_timeout']);
             }
 
             $poolsHandler->setBuildCallable($constructor);

@@ -8,17 +8,19 @@ return [
     // db|redis连接池
     'enable_component_pools' => [
         'db' => [
-            'pools_num' => 5,
-            'push_timeout' => 2,
-            'pop_timeout' => 1,
-            'live_time' => 100
+            'max_pool_num' => 5,
+            'max_push_timeout' => 2,
+            'max_pop_timeout' => 1,
+            'max_life_timeout' => 10,
+            'enable_tick_clear' => 0
         ],
 
         'redis' => [
-            'pools_num' => 5,
-            'push_timeout' => 2,
-            'pop_timeout' => 1,
-            'live_time' => 10
+            'max_pool_num' => 5,
+            'max_push_timeout' => 2,
+            'max_pop_timeout' => 1,
+            'max_life_timeout' => 10,
+            'enable_tick_clear' => 0
         ]
     ],
 
