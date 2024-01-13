@@ -68,6 +68,8 @@ class Hook
     {
         if (empty($coroutineId)) {
             $cid = CoroutineManager::getInstance()->getCoroutineId();
+        }else {
+            $cid = $coroutineId;
         }
 
         if (isset(self::$hooks[$cid][$type])) {
