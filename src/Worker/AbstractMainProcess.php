@@ -17,7 +17,7 @@ use Swoolefy\Core\Process\AbstractProcess;
 /**
  * swoole的自定义进程作为管理进程
  */
-abstract class AbstractMainWorker extends AbstractProcess
+abstract class AbstractMainProcess extends AbstractProcess
 {
     /**
      * @return void

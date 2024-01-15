@@ -1,9 +1,9 @@
 <?php
 namespace Test\WorkerCron;
 
-use Swoolefy\Worker\AbstractMainWorker;
+use Swoolefy\Worker\AbstractMainProcess;
 
-class MainCronWorker extends AbstractMainWorker {
+class MainCronProcess extends AbstractMainProcess {
     /**
      * @return void
      */

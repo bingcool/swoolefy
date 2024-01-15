@@ -11,9 +11,9 @@
 
 namespace Swoolefy\Worker\Script;
 
-use Swoolefy\Worker\AbstractMainWorker;
+use Swoolefy\Worker\AbstractMainProcess;
 
-abstract class AbstractScriptWorker extends AbstractMainWorker
+abstract class AbstractScriptProcess extends AbstractMainProcess
 {
 
 }

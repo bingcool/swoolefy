@@ -2,9 +2,9 @@
 namespace Test\WorkerDaemon;
 
 use Swoolefy\Core\EventController;
-use Swoolefy\Worker\AbstractMainWorker;
+use Swoolefy\Worker\AbstractMainProcess;
 
-class MainWorker extends AbstractMainWorker {
+class MainProcess extends AbstractMainProcess {
     /**
      * @return void
      */

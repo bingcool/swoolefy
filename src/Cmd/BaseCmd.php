@@ -259,7 +259,7 @@ class BaseCmd extends Command
 
     protected function isDaemon()
     {
-        return (int)getenv('daemon');
+        return isDaemon();
     }
 
     protected function loadGlobalConf()
