@@ -56,6 +56,12 @@ class CreateCmd extends BaseCmd
         }
 
         @mkdir($appPathDir, 0777, true);
+
+        $envFile = $appPathDir.'/.env';
+        if (!is_file($envFile)) {
+            @file_put_contents($envFile, $this->getEnvFileContent());
+        }
+
         foreach ($dirs as $dir) {
             @mkdir($appPathDir . '/' . $dir, 0777, true);
             switch ($dir) {
@@ -196,6 +202,28 @@ class IndexController extends BController {
     }
 }
 EOF;
+        return $content;
+    }
+
+
+    protected function getEnvFileContent()
+    {
+        $content =
+            <<<EOF
+#mysqL配置
+DB_HOST_NAME=192.168.1.101
+DB_HOST_DATABASE=bingcool
+DB_USER_NAME=root
+DB_PASSWORD=123456
+DB_HOST_PORT=3306
+
+
+#redis配置
+REDIS_HOST=192.168.1.101
+REDIS_PORT=6379
+REDIS_DB=1
+EOF;
+
         return $content;
     }
 
