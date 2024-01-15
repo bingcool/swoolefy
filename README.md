@@ -198,7 +198,7 @@ myproject
 |     |—— Storage
 |     |   |—— Logs  // 日志文件目录
 |     |   |—— Sql   // sql日志目录
-|     |__ .env     // 环境变量文件
+|     |__ .env     // 自动生成环境变量文件
 |     │—— autoloader.php // 自定义项目自动加载
 |     |—— Event.php      // 事件实现类
 |     |—— HttpServer.php // http server
@@ -274,7 +274,8 @@ return [
             'max_pool_num' => 5, // db实例数
             'max_push_timeout' => 2, // db实例进入channel池最长等待时间，单位s
             'max_pop_timeout' => 1, // db实例出channel池最长等待时间，单位s.在规定时间内获取不到db对象，将降级为实时创建db实例
-            'max_life_timeout' => 10 // db实例的有效期，单位s.过期后将被掉弃，重新创建新DB实例
+            'max_life_timeout' => 10, // db实例的有效期，单位s.过期后将被掉弃，重新创建新DB实例
+            'enable_tick_clear_pool' => 0 // 是否每分钟定时清空pool，防止长时间一直占用链接，max_pool_num设置很大的时候需要设置，否则不需要设置
         ],
     
         // 取components的`redis`组件名称相对应
@@ -282,7 +283,8 @@ return [
             'max_pool_num' => 5,
             'max_push_timeout' => 2,
             'max_pop_timeout' => 1,
-            'max_life_timeout' => 10
+            'max_life_timeout' => 10,
+            'enable_tick_clear_pool' => 0 // 是否每分钟定时清空pool，防止长时间一直占用链接，max_pool_num设置很大的时候需要设置，否则不需要设置
         ]
     ],
     
