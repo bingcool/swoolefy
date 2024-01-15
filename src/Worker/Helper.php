@@ -22,7 +22,7 @@ class Helper
      * @return array
      * @throws \ReflectionException
      */
-    public static function parseActionParams(object $instance, string $action, array $params)
+    public static function parseActionParams($instance, string $action, array $params)
     {
         $method = new \ReflectionMethod($instance, $action);
         $args = $missing = $actionParams = [];

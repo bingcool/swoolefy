@@ -60,9 +60,9 @@ function isDaemon(): bool
 {
     $daemon = getenv('daemon');
     if (empty($daemon)) {
-        return true;
+        return false;
     }
-    return false;
+    return true;
 }
 
 function loadGlobalConf()

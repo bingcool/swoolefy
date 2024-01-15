@@ -11,7 +11,10 @@
 
 namespace Swoolefy\Worker\Traits;
 
-trait ChildrenCommandTrait {
+/**
+ * worker process 接收指令处理
+ */
+trait WorkerProcessCommandTrait {
     /**
      * 系统内置管道通信命令
      *

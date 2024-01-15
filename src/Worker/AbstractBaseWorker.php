@@ -28,7 +28,7 @@ abstract class AbstractBaseWorker
 {
 
     use Traits\SystemTrait;
-    use Traits\ChildrenCommandTrait;
+    use Traits\WorkerProcessCommandTrait;
 
     /**
      * @var AbstractBaseWorker

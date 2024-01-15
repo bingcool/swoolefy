@@ -14,10 +14,10 @@ namespace Swoolefy\Script;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Worker\Helper;
-use Swoolefy\Worker\Script\AbstractScriptWorker;
+use Swoolefy\Worker\Script\AbstractScriptProcess;
 use Swoolefy\Core\Coroutine\Context;
 
-class MainCliScript extends AbstractScriptWorker
+class MainCliScript extends AbstractScriptProcess
 {
 
     /**
