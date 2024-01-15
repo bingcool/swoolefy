@@ -23,7 +23,7 @@ use RuntimeException;
 class MainManager
 {
 
-    use Traits\SingletonTrait, Traits\SystemTrait, Traits\MainCommandTrait;
+    use Traits\SingletonTrait, Traits\SystemTrait, Traits\MainProcessCommandTrait;
 
     /**
      * @var array
@@ -1395,7 +1395,7 @@ class MainManager
                             $this->masterStatusToCliFifoPipe($cliPipeMsgDto->targetHandler);
                             break;
                         case WORKER_CLI_STOP :
-                            $this->stopAllChildrenProcessCommand();
+                            $this->stopAllWorkerProcessCommand();
                             break;
                         case WORKER_CLI_SEND_MSG :
                             $processName = $cliPipeMsgDto->targetHandler;
@@ -1412,7 +1412,7 @@ class MainManager
                                             return $this->responseMsgByPipe("找不到进程名【{$processName}】的配置项！");
                                         }
                                         $this->responseMsgByPipe("进程【{$processName}】已开始启动，请留意！");
-                                        $this->startChildrenProcessCommand($config);
+                                        $this->startWorkerProcessCommand($config);
                                     }else {
                                         if (isset($this->processWorkers[$key])) {
                                             $this->responseMsgByPipe("进程【{$processName}】已存在，请使用restart命令重启！");
@@ -1424,7 +1424,7 @@ class MainManager
                                     $key = md5($processName);
                                     if (isset($this->processWorkers[$key])) {
                                         $this->responseMsgByPipe("进程【{$processName}】已开始重启，请留意！");
-                                        $this->restartChildrenProcessCommand($processName);
+                                        $this->restartWorkerProcessCommand($processName);
                                     }else {
                                         $this->responseMsgByPipe("进程【{$processName}】不存在，请检查进程名称是否正确！");
                                     }
@@ -1432,7 +1432,7 @@ class MainManager
                                 // 停止指定进程
                                 case 'stop':
                                     $this->responseMsgByPipe("进程【{$processName}】开始逐步停止，请留意！");
-                                    $this->stopChildrenProcessCommand($processName);
+                                    $this->stopWorkerProcessCommand($processName);
                                     break;
                                 default:
                                     if (isset($this->processWorkers[$key])) {

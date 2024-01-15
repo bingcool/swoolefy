@@ -13,9 +13,11 @@ namespace Swoolefy\Worker\Traits;
 
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Worker\AbstractBaseWorker;
-use Swoolefy\Worker\MainManager;
 
-trait MainCommandTrait {
+/**
+ * 父进程接收指令处理
+ */
+trait MainProcessCommandTrait {
 
     protected function parseLoadConf(string $processName): array
     {
@@ -40,7 +42,7 @@ trait MainCommandTrait {
         fclose($workerToCliPipeFile);
     }
 
-    protected function restartChildrenProcessCommand(string $processName)
+    protected function restartWorkerProcessCommand(string $processName)
     {
         // 重启
         $key = md5($processName);
@@ -61,7 +63,7 @@ trait MainCommandTrait {
      * @param array $config
      * @return void
      */
-    protected function startChildrenProcessCommand(array $config)
+    protected function startWorkerProcessCommand(array $config)
     {
         if (empty($config)) {
             return;
@@ -85,7 +87,7 @@ trait MainCommandTrait {
         $this->setProcessLists($processName, $processClass, $processWorkerNum, $args, $extendData);
     }
 
-    protected function stopChildrenProcessCommand(string $processName)
+    protected function stopWorkerProcessCommand(string $processName)
     {
         $key = md5($processName);
         if (isset($this->processWorkers[$key])) {
@@ -109,7 +111,7 @@ trait MainCommandTrait {
     /**
      * @return void
      */
-    protected function stopAllChildrenProcessCommand()
+    protected function stopAllWorkerProcessCommand()
     {
         foreach ($this->processWorkers as $processes) {
             ksort($processes);
