@@ -20,7 +20,7 @@ class GoWaitGroup
     /**
      * @var int
      */
-    private $count = 0;
+    public $count = 0;
 
     /**
      * @var Channel
@@ -87,7 +87,7 @@ class GoWaitGroup
      *   };
      *
      *   call callable
-     *   $result = GoWaitGroup::multiCall([
+     *   $result = GoWaitGroup::batchParallelRunWait([
      *      'key1' => $callBack1,
      *      'key2' => $callBack2,
      *      'key3' => $callBack3
@@ -99,7 +99,7 @@ class GoWaitGroup
      * @param float $timeOut
      * @return array
      */
-    public static function multiCall(array $callBacks, float $timeOut = 3.0)
+    public static function batchParallelRunWait(array $callBacks, float $timeOut = 3.0): array
     {
         $goWait = new static();
         foreach ($callBacks as $key => $callBack) {
@@ -108,7 +108,7 @@ class GoWaitGroup
                 try {
                     $goWait->initResult($key, null);
                     $result = call_user_func($callBack);
-                    $goWait->done($key, $result, 3.0);
+                    $goWait->done($key, $result ?? null, 3.0);
                 } catch (\Throwable $throwable) {
                     $goWait->count--;
                     throw $throwable;
@@ -141,7 +141,7 @@ class GoWaitGroup
         float $timeout = -1
     )
     {
-        if (!empty($key) && !empty($data)) {
+        if (!is_null($key) && $key != '') {
             $this->result[$key] = $data;
         }
         $count = $this->count -1;

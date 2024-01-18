@@ -18,7 +18,7 @@ class MultiCall extends AbstractProcess
         while (true) {
             try {
                 sleep(2);
-                $result = GoWaitGroup::multiCall([
+                $result = GoWaitGroup::batchParallelRunWait([
                         'key1' => function () {
                             sleep(3);
 

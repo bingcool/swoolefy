@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core\Coroutine;
 
+use Swoolefy\Core\SystemEnv;
+
 /**
  * Class Parallel
  * @package Workerfy\Coroutine
@@ -68,30 +70,66 @@ class Parallel
     }
 
     /**
+     * runWait 并发后等待结果返回
+     *
      * @param float $timeOut
      * @return array
      */
-    public function wait(float $timeOut = 5.0)
+    public function runWait(float $timeOut = 5.0)
     {
         if (empty($this->callbacks)) {
             return [];
         }
-
-        $chunks = array_chunk($this->callbacks, $this->concurrent, true);
-        $result = $this->callbacks = [];
-        foreach ($chunks as $k => $chunk) {
-            foreach ($chunk as $key => $callable) {
-                if (in_array($key, $this->ignoreCallbacks)) unset($chunk[$key]);
+        $result = [];
+        $start = 0;
+        while ($items = array_slice($this->callbacks, $start, $this->concurrent, true)) {
+            $start = $start + $this->concurrent;
+            foreach ($items as $key => $callable) {
+                if (in_array($key, $this->ignoreCallbacks)) {
+                    unset($items[$key]);
+                }
             }
 
-            if ($chunk) {
-                $res = GoWaitGroup::multiCall($chunk, $timeOut);
+            if ($items) {
+                $res = GoWaitGroup::batchParallelRunWait($items, $timeOut);
             }
 
-            unset($chunks[$k]);
             $result = array_merge($result, $res ?? []);
         }
+        $this->callbacks = [];
         return $result;
+    }
+
+    /**
+     * 并发限制协程数量闭包处理
+     *
+     * @param int $concurrent 限制的并发协程数量
+     * @param array $list 数组
+     * @param \Closure $handleFn 回调处理
+     * @return void
+     */
+    public static function run(int $concurrent, array &$list, \Closure $handleFn, float $sleepTime = 0.01)
+    {
+        $start = 0;
+        while ($items = array_slice($list, $start, $concurrent, true)) {
+            $start = $start + $concurrent;
+            foreach ($items as $key=>$item) {
+                goApp(function () use ($key, $item, $handleFn) {
+                    $handleFn($item, $key);
+                });
+            }
+
+            if (SystemEnv::isWorkerService()) {
+                if ($sleepTime >= 0.5) {
+                    $sleepTime = 0.5;
+                }
+                \Swoole\Coroutine\System::sleep($sleepTime);
+            }
+        }
+
+        if (isset($items)) {
+            unset($items);
+        }
     }
 
     /**

@@ -27,13 +27,24 @@ while true; do
    file_changes=$(inotifywait -r -e modify,create,delete "$basepath" --format '%w%f')
    php_files=$(echo "$file_changes" | grep -E '\.php$')
    if [ -n "$php_files" ]; then
-       echo "PHP files modified:$php_files"
-       sleep 10;
-       # 先停止
-       /usr/bin/php cli.php stop $appName --force=1
-       # 守护进程模式启动
-       /usr/bin/php cli.php start $appName --daemon=1
+        echo "PHP files modified:$php_files"
+        sleep 10;
+        # 先停止
+        /usr/bin/php cli.php stop $appName --force=1
+        # 守护进程模式启动
+        /usr/bin/php cli.php start $appName --daemon=1
+   else
+        env_files=$(echo "$file_changes" | grep -E '\.env$')
+            if [ -n "$env_files" ]; then
+                echo "Env files modified:$env_files"
+                sleep 10;
+                # 先停止
+                /usr/bin/php cli.php stop $appName --force=1
+                # 守护进程模式启动
+                /usr/bin/php cli.php start $appName --daemon=1
+            fi
    fi
+
 done
 
 
