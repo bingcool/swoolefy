@@ -901,7 +901,7 @@ class MainManager
             $key = md5($processName);
             $newProcess->setProcessWorkerId($workerId);
             $newProcess->setMasterPid($this->getMasterPid());
-            $newProcess->setProcessType(AbstractBaseWorker::PROCESS_DYNAMIC_TYPE);
+            $newProcess->setProcessType(AbstractBaseWorker::PROCESS_STATIC_TYPE_NAME);
             $newProcess->setStartTime();
             $this->processWorkers[$key][$workerId] = $newProcess;
             $newProcess->start();

@@ -19,6 +19,10 @@ use Swoolefy\Worker\AbstractBaseWorker;
  */
 trait MainProcessCommandTrait {
 
+    /**
+     * @param string $processName
+     * @return array
+     */
     protected function parseLoadConf(string $processName): array
     {
         $conf = self::loadConfByPath();
@@ -42,6 +46,10 @@ trait MainProcessCommandTrait {
         fclose($workerToCliPipeFile);
     }
 
+    /**
+     * @param string $processName
+     * @return void
+     */
     protected function restartWorkerProcessCommand(string $processName)
     {
         // 重启
@@ -87,6 +95,10 @@ trait MainProcessCommandTrait {
         $this->setProcessLists($processName, $processClass, $processWorkerNum, $args, $extendData);
     }
 
+    /**
+     * @param string $processName
+     * @return void
+     */
     protected function stopWorkerProcessCommand(string $processName)
     {
         $key = md5($processName);

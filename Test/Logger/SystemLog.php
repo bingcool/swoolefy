@@ -3,5 +3,5 @@ namespace Test\Logger;
 
 class SystemLog extends AbstractLog
 {
-    public static $type ='error_log';
+    public static $infoLogType ='system_error_log';
 }
