@@ -28,12 +28,7 @@ class EventCtrl implements EventCtrlInterface
     public function init()
     {
         // log register
-        $logComponents = include CONFIG_COMPONENT_PATH.DIRECTORY_SEPARATOR.'log.php';
-        foreach ($logComponents as $name=>$logFn) {
-            if($logFn instanceof \Closure) {
-                LogManager::getInstance()->registerLoggerByClosure($logFn, $name);
-            }
-        }
+        SystemEnv::registerLogComponents();
 
         if (!SystemEnv::isWorkerService()) {
             if (BaseServer::isHttpApp()) {

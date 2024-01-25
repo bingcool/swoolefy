@@ -4,6 +4,7 @@ namespace Test\Module\Order\Controller;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Test\Factory;
+use Test\Logger\RunLog;
 use Test\Module\Order\OrderList;
 
 class UserOrderController extends BController
