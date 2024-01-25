@@ -3,6 +3,7 @@
 namespace Test;
 
 use Common\Library\Db\PDOConnection;
+use Predis\Command\Redis\CONFIG;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Log\LogManager;
@@ -16,21 +17,6 @@ class Event extends EventHandler
      * onInit
      */
     public function onInit() {
-        // log register
-        $appConf = Swfy::getAppConf();
-        if(isset($appConf['components']['log'])) {
-            $log = $appConf['components']['log'];
-            if($log instanceof \Closure) {
-                LogManager::getInstance()->registerLoggerByClosure($log, 'log');
-            }
-        }
-
-        if(isset($appConf['components']['error_log'])) {
-            $log = $appConf['components']['error_log'];
-            if($log instanceof \Closure) {
-                LogManager::getInstance()->registerLoggerByClosure($log, 'error_log');
-            }
-        }
 
         // 注册慢sql的宏函数处理
         PDOConnection::registerSlowSqlFn(0.1, function ($runTime, $realSql) {

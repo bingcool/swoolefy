@@ -28,6 +28,10 @@ class LogManager
      */
     protected $logger;
 
+    public const SQL_LOG = 'sql_log';
+
+    public const GUZZLE_CURL_LOG = 'guzzle_curl_log';
+
     /**
      * __construct
      * @param mixed $log

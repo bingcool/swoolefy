@@ -20,24 +20,25 @@ use Swoolefy\Core\SystemEnv;
 $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
 
 return [
-    // 用户行为记录的日志
-    'log' => function($name) {
+    // 用户行为记录的info日志
+    'info_log' => function($name) {
         $logger = new \Swoolefy\Util\Log($name);
+        $logger->setRotateDay(1);
         $logger->setChannel('application');
         if(SystemEnv::isDaemonService()) {
-            $logFilePath = LOG_PATH.'/daemon.log';
+            $logFilePath = LOG_PATH.'/daemon_info.log';
         }else if (SystemEnv::isScriptService()) {
-            $logFilePath = LOG_PATH.'/script.log';
+            $logFilePath = LOG_PATH.'/script_info.log';
         }else if (SystemEnv::isCronService()) {
-            $logFilePath = LOG_PATH.'/cron.log';
+            $logFilePath = LOG_PATH.'/cron_info.log';
         } else {
-            $logFilePath = LOG_PATH.'/runtime.log';
+            $logFilePath = LOG_PATH.'/cli_info.log';
         }
         $logger->setLogFilePath($logFilePath);
         return $logger;
     },
 
-    // 系统捕捉异常错误日志
+    // 用户行为记录的error日志
     'error_log' => function($name) {
         $logger = new \Swoolefy\Util\Log($name);
         $logger->setChannel('application');
@@ -48,7 +49,24 @@ return [
         }else if (SystemEnv::isCronService()) {
             $logFilePath = LOG_PATH.'/cron_error.log';
         } else {
-            $logFilePath = LOG_PATH.'/error.log';
+            $logFilePath = LOG_PATH.'/cli_error.log';
+        }
+        $logger->setLogFilePath($logFilePath);
+        return $logger;
+    },
+
+    // 系统捕捉抛出异常错误日志
+    'system_error_log' => function($name) {
+        $logger = new \Swoolefy\Util\Log($name);
+        $logger->setChannel('application');
+        if(SystemEnv::isDaemonService()) {
+            $logFilePath = LOG_PATH.'/daemon_system_error.log';
+        }else if (SystemEnv::isScriptService()) {
+            $logFilePath = LOG_PATH.'/script_system_error.log';
+        }else if (SystemEnv::isCronService()) {
+            $logFilePath = LOG_PATH.'/cron_system_error.log';
+        } else {
+            $logFilePath = LOG_PATH.'/cli_system_error.log';
         }
         $logger->setLogFilePath($logFilePath);
         return $logger;

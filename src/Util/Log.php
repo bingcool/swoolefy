@@ -206,7 +206,7 @@ class Log
         $fileInfo = pathinfo($logFilePath);
         $logDir = $fileInfo['dirname'];
         $fileList = scandir($logDir);
-        $lastDay = date('Ymd', time() - 24 * 3600 * ($this->rotateDay + 1));
+        $lastDay = date('Ymd', time() - 24 * 3600 * ($this->rotateDay));
         foreach ($fileList as $file) {
             $pathFile = $logDir . DIRECTORY_SEPARATOR . $file;
             if ($pathFile == '.' || $pathFile == '..' || !is_file($pathFile)) {
@@ -216,7 +216,7 @@ class Log
             $fileArr = explode($this->splitString, $fileName);
             $fileDate = array_pop($fileArr);
 
-            if (is_numeric($fileDate) && $fileDate < $lastDay ) {
+            if (is_numeric($fileDate) && $fileDate < $lastDay && file_exists($pathFile)) {
                 @unlink($pathFile);
             }
         }

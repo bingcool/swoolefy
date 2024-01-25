@@ -27,6 +27,14 @@ class EventCtrl implements EventCtrlInterface
      */
     public function init()
     {
+        // log register
+        $logComponents = include CONFIG_COMPONENT_PATH.DIRECTORY_SEPARATOR.'log.php';
+        foreach ($logComponents as $name=>$logFn) {
+            if($logFn instanceof \Closure) {
+                LogManager::getInstance()->registerLoggerByClosure($logFn, $name);
+            }
+        }
+
         if (!SystemEnv::isWorkerService()) {
             if (BaseServer::isHttpApp()) {
                 Route::loadRouteFile();
@@ -34,6 +42,7 @@ class EventCtrl implements EventCtrlInterface
                 ServiceDispatch::loadRouteFile();
             }
         }
+
         static::onInit();
         $this->registerSqlLogger();
         $this->registerGuzzleCurlLogger();
@@ -93,6 +102,7 @@ class EventCtrl implements EventCtrlInterface
     {
         LogManager::getInstance()->registerLoggerByClosure(function ($name) {
             $logger = new \Swoolefy\Util\Log($name);
+            $logger->setRotateDay(2);
             $logger->setChannel('application');
             $formatter = new LineFormatter("%message%\n");
             $logger->setFormatter($formatter);
@@ -112,7 +122,7 @@ class EventCtrl implements EventCtrlInterface
             $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.$sqlLogName;
             $logger->setLogFilePath($sqlFilePath);
             return $logger;
-        }, 'sql_log');
+        }, LogManager::SQL_LOG);
     }
 
     /**
@@ -124,6 +134,7 @@ class EventCtrl implements EventCtrlInterface
     {
         LogManager::getInstance()->registerLoggerByClosure(function ($name) {
             $logger = new \Swoolefy\Util\Log($name);
+            $logger->setRotateDay(2);
             $logger->setChannel('application');
             $formatter = new LineFormatter("%message%\n");
             $logger->setFormatter($formatter);
@@ -134,7 +145,7 @@ class EventCtrl implements EventCtrlInterface
             $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'guzzle_curl.log';
             $logger->setLogFilePath($sqlFilePath);
             return $logger;
-        }, 'guzzle_curl_log');
+        }, LogManager::GUZZLE_CURL_LOG);
     }
 
     /**
