@@ -122,6 +122,6 @@ LOGO;
     $application->add(new ReloadCmd());
     $application->add(new SendCmd());
     $application->add(new MonitorCmd());
-    //showLogo();
+    showLogo();
     $application->run();
 })();
