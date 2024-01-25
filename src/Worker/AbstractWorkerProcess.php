@@ -45,7 +45,6 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
      */
     protected function init()
     {
-        $this->registerLogger();
         $this->maxHandle                   = $this->getArgs()['max_handle'] ?? $this->maxHandle;
         $this->lifeTime                    = $this->getArgs()['life_time'] ?? $this->lifeTime;
         $this->currentRunCoroutineLastCid  = $this->getArgs()['current_run_coroutine_last_cid'] ?? $this->maxHandle * 10;
@@ -63,15 +62,17 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
     }
 
     /**
-     * @param array $logTypes
+     * registerLogComponents
+     *
      * @param int $rotateDay
      * @return void
      */
-    protected function registerLogger(int $rotateDay = 2)
+    public static function registerLogComponents(int $rotateDay = 2)
     {
-        $logComponents = SystemEnv::registerLogComponents();
-        foreach($logComponents as $logType=>$fn) {
-            $logger = LogManager::getInstance()->getLogger($logType);
+        // log register
+        $logComponents = include CONFIG_COMPONENT_PATH.DIRECTORY_SEPARATOR.'log.php';
+        foreach($logComponents as $logType => $fn) {
+            $logger = LogManager::getInstance()->registerLoggerByClosure($fn, $logType);
             if ($logger) {
                 if ($rotateDay >= 3 ) {
                     $rotateDay = 3;
@@ -89,9 +90,9 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
                 }
 
                 if (SystemEnv::isDaemonService()) {
-                    $dir = "/daemon/{$logType}/" . $fileName . '.log';
+                    $dir = "/{$logType}/" . $fileName . '.log';
                 }else if (SystemEnv::isCronService()) {
-                    $dir = "/cron/{$logType}/" . $fileName . '.log';
+                    $dir = "/{$logType}/" . $fileName . '.log';
                 }
 
                 $filePath = $filePathDir . $dir;

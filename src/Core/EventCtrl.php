@@ -28,7 +28,11 @@ class EventCtrl implements EventCtrlInterface
     public function init()
     {
         // log register
-        SystemEnv::registerLogComponents();
+        if (SystemEnv::isDaemonService() || SystemEnv::isCronService()) {
+            \Swoolefy\Worker\AbstractWorkerProcess::registerLogComponents();
+        }else {
+            SystemEnv::registerLogComponents();
+        }
 
         if (!SystemEnv::isWorkerService()) {
             if (BaseServer::isHttpApp()) {
