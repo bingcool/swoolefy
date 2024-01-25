@@ -67,17 +67,14 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
      * @param int $rotateDay
      * @return void
      */
-    protected function registerLogger(array $logTypes = [], int $rotateDay = 2)
+    protected function registerLogger(int $rotateDay = 2)
     {
-        if (empty($logTypes)) {
-            $logTypes = PROCESS_CLASS['Log'] ?? [];
-        }
-
-        foreach($logTypes as $logType) {
+        $logComponents = SystemEnv::registerLogComponents();
+        foreach($logComponents as $logType=>$fn) {
             $logger = LogManager::getInstance()->getLogger($logType);
             if ($logger) {
-                if ($rotateDay >= 5 ) {
-                    $rotateDay = 5;
+                if ($rotateDay >= 3 ) {
+                    $rotateDay = 3;
                 }
                 $logger->setRotateDay($rotateDay);
                 $filePath = $logger->getLogFilePath();
@@ -96,6 +93,7 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
                 }else if (SystemEnv::isCronService()) {
                     $dir = "/cron/{$logType}/" . $fileName . '.log';
                 }
+
                 $filePath = $filePathDir . $dir;
                 $logger->setLogFilePath($filePath);
             }

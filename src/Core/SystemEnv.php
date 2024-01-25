@@ -14,6 +14,7 @@ namespace Swoolefy\Core;
 use PhpOption\Option;
 use Dotenv\Repository\Adapter\PutenvAdapter;
 use Dotenv\Repository\RepositoryBuilder;
+use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Exception\SystemException;
 
 class SystemEnv
@@ -231,6 +232,22 @@ class SystemEnv
         closedir($handle);
         return $components;
     }
+
+    /**
+     * @return void
+     */
+    public static function registerLogComponents(): array
+    {
+        // log register
+        $logComponents = include CONFIG_COMPONENT_PATH.DIRECTORY_SEPARATOR.'log.php';
+        foreach ($logComponents as $name=>$logFn) {
+            if($logFn instanceof \Closure) {
+                LogManager::getInstance()->registerLoggerByClosure($logFn, $name);
+            }
+        }
+        return $logComponents;
+    }
+
     /**
      * Enable the putenv adapter.
      *
