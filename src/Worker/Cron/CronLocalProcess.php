@@ -49,11 +49,16 @@ class CronLocalProcess extends CronProcess
     public function run()
     {
         try {
-            CrontabManager::getInstance()->addRule($this->cronName, $this->cronExpression, [$this->handleClass,'doCronTask'], function () {
-                // 定时任务处理完之后，达到一定时间，判断然后重启进程
-                if ( (time() > $this->getStartTime() + 3600) && $this->isDue()) {
-                    $this->reboot(5);
-                }
+            CrontabManager::getInstance()->addRule($this->cronName, $this->cronExpression, [$this->handleClass,'doCronTask'],
+                function () {
+                    $this->handing = true;
+                },
+                function () {
+                    $this->handing = false;
+                    // 定时任务处理完之后，达到一定时间，判断然后重启进程
+                    if ( (time() > $this->getStartTime() + 3600) && $this->isDue()) {
+                        $this->reboot(5);
+                    }
             });
         }catch (\Throwable $exception) {
             $this->onHandleException($exception, $this->getArgs());

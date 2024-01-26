@@ -2,6 +2,7 @@
 namespace Swoolefy\Cmd;
 
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\SystemEnv;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -24,7 +25,7 @@ class StatusCmd extends BaseCmd
         $appName = $input->getArgument('app_name');
         $pidFile = $this->getPidFile($appName);
 
-        if (!isWorkerService()) {
+        if (!SystemEnv::isWorkerService()) {
             $this->commonStatus($appName, $pidFile);
         } else {
             $this->workerStatus($pidFile);
