@@ -31,9 +31,10 @@ class CrontabManager
      * @param string $cronName
      * @param string|float $expression
      * @param callable|array $func
+     * @param callable $callPreFn
      * @param callable $callback
      */
-    public function addRule(string $cronName, string|float $expression, mixed $func, \Closure $callback = null)
+    public function addRule(string $cronName, string|float $expression, mixed $func, \Closure $callPreFn = null, \Closure $callback = null)
     {
         if (!class_exists('Cron\\CronExpression')) {
             throw new CronException("If you want to use crontab, you need to install 'composer require dragonmantank/cron-expression' ");
@@ -67,12 +68,16 @@ class CrontabManager
 
         $arrayCopy = Context::getContext()->getArrayCopy();
         if(is_numeric($expression)) {
-            \Swoole\Timer::tick($expression * 1000, function ($timerId, $expression) use ($func, $cronName, $class, $arrayCopy, $callback) {
+            \Swoole\Timer::tick($expression * 1000, function ($timerId, $expression) use ($func, $cronName, $class, $arrayCopy, $callPreFn, $callback) {
                 foreach ($arrayCopy as $key=>$value) {
                     Context::set($key, $value);
                 }
-                goApp(function () use ($expression, $func, $cronName, $class, $callback) {
+                goApp(function () use ($expression, $func, $cronName, $class, $callPreFn, $callback) {
                     try {
+                        if (is_callable($callPreFn)) {
+                            call_user_func($callPreFn);
+                        }
+
                         if ($func instanceof \Closure) {
                             $cronControllerInstance = $this->buildCronControllerInstance();
                             call_user_func($func, $expression, $cronName);

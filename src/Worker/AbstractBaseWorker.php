@@ -112,6 +112,11 @@ abstract class AbstractBaseWorker
     private $isForceExit = false;
 
     /**
+     * @var bool 业务正在处理中
+     */
+    public $handing = false;
+
+    /**
      * @var int
      */
     private $processType = 1;// 1-静态进程，2-动态进程
@@ -430,14 +435,32 @@ abstract class AbstractBaseWorker
                         sleep(2);
                         if(!$this->isMasterLive()) {
                             $masterPid  = $this->getMasterPid();
-                            $exitFunction($timerId, $masterPid);
+                            // cron防止任务还在进行中,强制退出
+                            if (SystemEnv::isCronService()) {
+                                if (!$this->handing) {
+                                    $exitFunction($timerId, $masterPid);
+                                }else {
+                                    $this->writeInfo("【Warning】 Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}......");
+                                }
+                            }else {
+                                $exitFunction($timerId, $masterPid);
+                            }
                         }
                     }else {
                         $parentPid = posix_getppid();
                         if($parentPid == 1) {
                             $masterPid = '1(system init)';
                             $this->writeInfo("【Warning】This Process of Parent Process is System Init Process, Master Pid={$masterPid}，children process={$this->getProcessName()},worker_id={$this->getProcessWorkerId()} start to exit");
-                            $exitFunction($timerId, $masterPid);
+                            // cron防止任务还在进行中,强制退出
+                            if (SystemEnv::isCronService()) {
+                                if (!$this->handing) {
+                                    $exitFunction($timerId, $masterPid);
+                                } else {
+                                    $this->writeInfo("【Warning】 Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}......");
+                                }
+                            }else {
+                                $exitFunction($timerId, $masterPid);
+                            }
                         }
                     }
 
