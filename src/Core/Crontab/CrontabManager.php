@@ -13,7 +13,6 @@ namespace Swoolefy\Core\Crontab;
 
 use Cron\CronExpression;
 use Swoolefy\Core\Application;
-use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Exception\CronException;
 
@@ -75,8 +74,15 @@ class CrontabManager
                 goApp(function () use ($expression, $func, $cronName, $class, $callPreFn, $callback) {
                     try {
                         if (is_callable($callPreFn)) {
-                            call_user_func($callPreFn);
+                            $isNext = call_user_func($callPreFn);
                         }
+
+                        // 返回false停止继续往下执行
+                        if (isset($isNext) && $isNext === false) {
+                            return false;
+                        }
+
+                        $isNext = true;
 
                         if ($func instanceof \Closure) {
                             $cronControllerInstance = $this->buildCronControllerInstance();
@@ -102,7 +108,7 @@ class CrontabManager
                             Application::removeApp($cronControllerInstance->getCid());
                         }
 
-                        if (is_callable($callback)) {
+                        if (is_callable($callback) && $isNext) {
                             call_user_func($callback);
                         }
                     }
@@ -111,12 +117,23 @@ class CrontabManager
 
         }else {
             if (is_array($func)) {
-                \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($class, $cronName, $arrayCopy, $callback) {
+                \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($class, $cronName, $arrayCopy, $callPreFn, $callback) {
                     foreach ($arrayCopy as $key=>$value) {
                         Context::set($key, $value);
                     }
-                    goApp(function () use ($timerId, $expression, $class, $cronName, $callback) {
+                    goApp(function () use ($timerId, $expression, $class, $cronName, $callPreFn, $callback) {
                         try {
+                            if (is_callable($callPreFn)) {
+                                $isNext = call_user_func($callPreFn);
+                            }
+
+                            // 返回false停止继续往下执行
+                            if (isset($isNext) && $isNext === false) {
+                                return false;
+                            }
+
+                            $isNext = true;
+
                             /**
                              * @var AbstractCronController $cronControllerInstance
                              */
@@ -126,26 +143,37 @@ class CrontabManager
                            throw $throwable;
                         } finally {
                             Application::removeApp($cronControllerInstance->coroutineId);
-                            if (is_callable($callback)) {
+                            if (is_callable($callback) && $isNext) {
                                 call_user_func($callback);
                             }
                         }
                     });
                 }, $expression);
             } else {
-                \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($func, $cronName, $arrayCopy, $callback) {
+                \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($func, $cronName, $arrayCopy, $callPreFn, $callback) {
                     foreach ($arrayCopy as $key=>$value) {
                         Context::set($key, $value);
                     }
-                    goApp(function () use($timerId, $expression, $func, $cronName, $callback) {
+                    goApp(function () use($timerId, $expression, $func, $cronName, $callPreFn, $callback) {
                         try {
+                            if (is_callable($callPreFn)) {
+                                $isNext = call_user_func($callPreFn);
+                            }
+
+                            // 返回false停止继续往下执行
+                            if (isset($isNext) && $isNext === false) {
+                                return false;
+                            }
+
+                            $isNext = true;
+
                             $cronControllerInstance = $this->buildCronControllerInstance();
                             $cronControllerInstance->runCron($cronName, $expression, $func);
                         } catch (\Throwable $throwable) {
                             throw $throwable;
                         } finally {
                             Application::removeApp($cronControllerInstance->coroutineId);
-                            if (is_callable($callback)) {
+                            if (is_callable($callback) && $isNext) {
                                 call_user_func($callback);
                             }
                         }
