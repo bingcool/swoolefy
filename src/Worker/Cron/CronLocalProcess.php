@@ -39,6 +39,8 @@ class CronLocalProcess extends CronProcess
         parent::onInit();
         $this->cronName       = $this->getArgs()['cron_name'];
         $this->cronExpression = $this->getArgs()['cron_expression'];
+        $this->withoutOverlapping = $this->getArgs()['without_over_lapping'] ?? $this->withoutOverlapping;
+        $this->runInBackground = $this->getArgs()['run_in_background'] ?? $this->runInBackground;
         $this->handleClass    = $this->getArgs()['handler_class'];
     }
 
@@ -49,11 +51,27 @@ class CronLocalProcess extends CronProcess
     public function run()
     {
         try {
-            CrontabManager::getInstance()->addRule($this->cronName, $this->cronExpression, [$this->handleClass,'doCronTask'], function () {
-                // 定时任务处理完之后，达到一定时间，判断然后重启进程
-                if ( (time() > $this->getStartTime() + 3600) && $this->isDue()) {
-                    $this->reboot(5);
-                }
+            CrontabManager::getInstance()->addRule($this->cronName, $this->cronExpression, [$this->handleClass,'doCronTask'],
+                function () {
+                    // 上一个任务未执行完，下一个任务到来时不执行，返回false结束
+                    if ($this->withoutOverlapping && $this->handing) {
+                        return false;
+                    }
+                    $this->handing = true;
+                    return true;
+                },
+                function () {
+                    $this->handing = false;
+                    // 任务业务处理完，接收waitToExit=true的指令，进程退出
+                    if ($this->waitToExit) {
+                        $this->exit(true, 10);
+                        return false;
+                    }
+
+                    // 定时任务处理完之后，达到一定时间，判断然后重启进程
+                    if ( (time() > $this->getStartTime() + 3600) && $this->isDue()) {
+                        $this->reboot(5);
+                    }
             });
         }catch (\Throwable $exception) {
             $this->onHandleException($exception, $this->getArgs());

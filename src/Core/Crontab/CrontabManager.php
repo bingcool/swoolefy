@@ -13,7 +13,6 @@ namespace Swoolefy\Core\Crontab;
 
 use Cron\CronExpression;
 use Swoolefy\Core\Application;
-use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Exception\CronException;
 
@@ -31,9 +30,10 @@ class CrontabManager
      * @param string $cronName
      * @param string|float $expression
      * @param callable|array $func
+     * @param callable $callPreFn
      * @param callable $callback
      */
-    public function addRule(string $cronName, $expression, $func, \Closure $callback = null)
+    public function addRule(string $cronName, string|float $expression, mixed $func, \Closure $callPreFn = null, \Closure $callback = null)
     {
         if (!class_exists('Cron\\CronExpression')) {
             throw new CronException("If you want to use crontab, you need to install 'composer require dragonmantank/cron-expression' ");
@@ -67,12 +67,23 @@ class CrontabManager
 
         $arrayCopy = Context::getContext()->getArrayCopy();
         if(is_numeric($expression)) {
-            \Swoole\Timer::tick($expression * 1000, function ($timerId, $expression) use ($func, $cronName, $class, $arrayCopy, $callback) {
+            \Swoole\Timer::tick($expression * 1000, function ($timerId, $expression) use ($func, $cronName, $class, $arrayCopy, $callPreFn, $callback) {
                 foreach ($arrayCopy as $key=>$value) {
                     Context::set($key, $value);
                 }
-                goApp(function () use ($expression, $func, $cronName, $class, $callback) {
+                goApp(function () use ($expression, $func, $cronName, $class, $callPreFn, $callback) {
                     try {
+                        if (is_callable($callPreFn)) {
+                            $isNext = call_user_func($callPreFn);
+                        }
+
+                        // 返回false停止继续往下执行
+                        if (isset($isNext) && $isNext === false) {
+                            return false;
+                        }
+
+                        $isNext = true;
+
                         if ($func instanceof \Closure) {
                             $cronControllerInstance = $this->buildCronControllerInstance();
                             call_user_func($func, $expression, $cronName);
@@ -97,7 +108,7 @@ class CrontabManager
                             Application::removeApp($cronControllerInstance->getCid());
                         }
 
-                        if (is_callable($callback)) {
+                        if (is_callable($callback) && $isNext) {
                             call_user_func($callback);
                         }
                     }
@@ -106,12 +117,23 @@ class CrontabManager
 
         }else {
             if (is_array($func)) {
-                \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($class, $cronName, $arrayCopy, $callback) {
+                \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($class, $cronName, $arrayCopy, $callPreFn, $callback) {
                     foreach ($arrayCopy as $key=>$value) {
                         Context::set($key, $value);
                     }
-                    goApp(function () use ($timerId, $expression, $class, $cronName, $callback) {
+                    goApp(function () use ($timerId, $expression, $class, $cronName, $callPreFn, $callback) {
                         try {
+                            if (is_callable($callPreFn)) {
+                                $isNext = call_user_func($callPreFn);
+                            }
+
+                            // 返回false停止继续往下执行
+                            if (isset($isNext) && $isNext === false) {
+                                return false;
+                            }
+
+                            $isNext = true;
+
                             /**
                              * @var AbstractCronController $cronControllerInstance
                              */
@@ -121,26 +143,37 @@ class CrontabManager
                            throw $throwable;
                         } finally {
                             Application::removeApp($cronControllerInstance->coroutineId);
-                            if (is_callable($callback)) {
+                            if (is_callable($callback) && $isNext) {
                                 call_user_func($callback);
                             }
                         }
                     });
                 }, $expression);
             } else {
-                \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($func, $cronName, $arrayCopy, $callback) {
+                \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($func, $cronName, $arrayCopy, $callPreFn, $callback) {
                     foreach ($arrayCopy as $key=>$value) {
                         Context::set($key, $value);
                     }
-                    goApp(function () use($timerId, $expression, $func, $cronName, $callback) {
+                    goApp(function () use($timerId, $expression, $func, $cronName, $callPreFn, $callback) {
                         try {
+                            if (is_callable($callPreFn)) {
+                                $isNext = call_user_func($callPreFn);
+                            }
+
+                            // 返回false停止继续往下执行
+                            if (isset($isNext) && $isNext === false) {
+                                return false;
+                            }
+
+                            $isNext = true;
+
                             $cronControllerInstance = $this->buildCronControllerInstance();
                             $cronControllerInstance->runCron($cronName, $expression, $func);
                         } catch (\Throwable $throwable) {
                             throw $throwable;
                         } finally {
                             Application::removeApp($cronControllerInstance->coroutineId);
-                            if (is_callable($callback)) {
+                            if (is_callable($callback) && $isNext) {
                                 call_user_func($callback);
                             }
                         }

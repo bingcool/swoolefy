@@ -1,6 +1,7 @@
 <?php
 namespace Swoolefy\Cmd;
 
+use Swoolefy\Core\SystemEnv;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Input\InputArgument;
@@ -153,7 +154,7 @@ class BaseCmd extends Command
 
     protected function resetConf(&$conf)
     {
-        if (isWorkerService()) {
+        if (SystemEnv::isWorkerService()) {
             $conf['port'] = WORKER_PORT;
             $conf['setting']['enable_coroutine'] = 0;
             $conf['setting']['reactor_num'] = 1;
@@ -259,7 +260,7 @@ class BaseCmd extends Command
 
     protected function isDaemon()
     {
-        return (int)getenv('daemon');
+        return isDaemon();
     }
 
     protected function loadGlobalConf()
