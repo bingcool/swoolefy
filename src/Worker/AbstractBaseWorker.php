@@ -112,11 +112,6 @@ abstract class AbstractBaseWorker
     private $isForceExit = false;
 
     /**
-     * @var bool 业务正在处理中
-     */
-    public $handing = false;
-
-    /**
      * @var int
      */
     private $processType = 1;// 1-静态进程，2-动态进程
@@ -184,6 +179,29 @@ abstract class AbstractBaseWorker
      *
      */
     protected $initSystemCoroutineNum = 2;
+
+    /**
+     * @var bool 业务正在处理中
+     * 只对cron的local模式有效
+     */
+    public $handing = false;
+
+    /**
+     * @var int 默认定时的一个任务未执行完，另一个任务不执行，防止不断重复
+     * 只对cron的local模式有效
+     */
+    protected $withoutOverlapping = 1;
+
+    /**
+     * @var int 定时任务后台运行，不受stop指令影响，正在执行的任务会继续执行
+     * 只对cron的local模式有效
+     */
+    protected $runInBackground = 1;
+
+    /**
+     * @var bool cron接收到退出指令，但因业务还在执行中，只能设置waitToExit=true,等业务处理完了再退出
+     */
+    protected $waitToExit = false;
 
     /**
      * static process
@@ -362,10 +380,16 @@ abstract class AbstractBaseWorker
                                     case self::WORKERFY_PROCESS_EXIT_FLAG :
                                         $actionHandleFlag = true;
                                         goApp(function () use ($fromProcessName) {
-                                            if ($fromProcessName == MainManager::MASTER_WORKER_NAME) {
-                                                $this->exit(true,10);
-                                            } else {
-                                                $this->exit(false, 30);
+                                            // 定时任务进程业务正在执行中时
+                                            if (SystemEnv::isCronService() && $this->runInBackground && $this->handing) {
+                                                // 设置进程等待退出，进程将在业务处理完后退出
+                                                $this->waitToExit = true;
+                                            }else {
+                                                if ($fromProcessName == MainManager::MASTER_WORKER_NAME) {
+                                                    $this->exit(true,10);
+                                                } else {
+                                                    $this->exit(false, 30);
+                                                }
                                             }
                                         });
                                         break;
@@ -440,7 +464,7 @@ abstract class AbstractBaseWorker
                                 if (!$this->handing) {
                                     $exitFunction($timerId, $masterPid);
                                 }else {
-                                    $this->writeInfo("【Warning】 Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}......");
+                                    $this->writeInfo("【Warning】 Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
                                 }
                             }else {
                                 $exitFunction($timerId, $masterPid);
@@ -456,7 +480,7 @@ abstract class AbstractBaseWorker
                                 if (!$this->handing) {
                                     $exitFunction($timerId, $masterPid);
                                 } else {
-                                    $this->writeInfo("【Warning】 Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}......");
+                                    $this->writeInfo("【Warning】 Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
                                 }
                             }else {
                                 $exitFunction($timerId, $masterPid);
@@ -1206,33 +1230,33 @@ abstract class AbstractBaseWorker
 
     /**
      *
-     * @param bool $is_force
-     * @param float $wait_time
+     * @param bool $isForce
+     * @param float $waitTime
      * @return bool
      */
-    public function exit(bool $is_force = false, ?float $wait_time = 10)
+    public function exit(bool $isForce = false, ?float $waitTime = 10)
     {
         // rebooting or exiting or force exiting status
         if (!$this->isDue()) {
             return false;
         }
 
-        if ($wait_time <= 5) {
+        if ($waitTime <= 5) {
             $waitTime = 5;
-        }else {
-            $waitTime = $wait_time;
         }
 
         $pid = $this->getPid();
         if (Process::kill($pid, 0)) {
             $this->isExit = true;
-            if ($is_force) {
+            if ($isForce) {
                 $this->isForceExit = true;
             }
 
             $this->clearRebootTimer();
 
             $this->readyExitTime = time() + $waitTime;
+
+            $this->waitToExit = false;
 
             $channel = new Channel(1);
             $this->exitTimerId = \Swoole\Timer::after($waitTime * 1000, function () use ($pid) {
