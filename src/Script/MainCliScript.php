@@ -40,7 +40,6 @@ class MainCliScript extends AbstractScriptProcess
      */
     public function init()
     {
-        write("【Info】 script start \n", 'green');
         parent::init();
         $this->generateTraceId();
     }
@@ -51,7 +50,7 @@ class MainCliScript extends AbstractScriptProcess
     public function run()
     {
         if($this->isExecuted()) {
-            write("【Error】一次性脚本进程异常不断重复自动重启，请检查");
+            fmtPrintError("一次性脚本进程异常不断重复自动重启，请检查");
             $this->exitAll(true);
             return;
         }
@@ -64,18 +63,19 @@ class MainCliScript extends AbstractScriptProcess
         try {
             $action = getenv('a');
             if (in_array($action, $this->forbiddenActions)) {
-                write("【Warning】function action [$action] forbidden to exec!");
+                fmtPrintError("Function action=[$action] forbidden to exec!");
                 $this->exitAll(true);
                 return;
             }
-            write("running action={$action}......\n", 'green');
+            $route = getenv('route');
+            fmtPrintInfo("Running Script: route={$route}, action={$action}......");
             list($method, $params) = Helper::parseActionParams($this, $action, Helper::getCliParams());
             $this->{$action}(...$params);
             $this->waitCoroutineFinish();
             $this->exitAll();
         }catch (\Throwable $throwable) {
-            write($throwable->getMessage());
-            write($throwable->getTraceAsString());
+            fmtPrintError($throwable->getMessage());
+            fmtPrintError($throwable->getTraceAsString());
             $this->exitAll();
             return;
         } finally {
@@ -150,7 +150,7 @@ class MainCliScript extends AbstractScriptProcess
                 }
             }
 
-            write("【Info】 script end! ", 'green');
+            fmtPrintInfo("script end! ");
             if($force) {
                 \Swoole\Process::kill($swooleMasterPid, SIGKILL);
             }else {
@@ -167,7 +167,7 @@ class MainCliScript extends AbstractScriptProcess
     {
         $route = getenv('r');
         if(empty($route)) {
-            write("【Error】Missing cli router param. eg: --r=FixedUser/fixName --name=xxxx");
+            fmtPrintError("【Error】Missing cli router param. eg: --r=FixedUser/fixName --name=xxxx");
             return '';
         }
 
@@ -185,10 +185,9 @@ class MainCliScript extends AbstractScriptProcess
             $class     = implode('\\', $routerArr);
         }
         if(!is_subclass_of($class, __CLASS__)) {
-            write("【Error】Missing class={$class} extends \Swoolefy\Script\MainCliScript");
+            fmtPrintError("【Error】Missing class={$class} extends \Swoolefy\Script\MainCliScript");
             return '';
         }
-
         putenv("route=$route");
         putenv("a={$action}");
         return $class;

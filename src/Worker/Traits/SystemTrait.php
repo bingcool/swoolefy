@@ -86,12 +86,11 @@ trait SystemTrait
      *
      * @param $msg
      * @param $foreground
-     * @param $background
      * @return void
      */
-    private function writeLog($msg, $foreground = "red", $background = 'black')
+    private function fmtWriteLog($msg, $foreground = "red")
     {
-        $formatMsg = "--------------{$msg} --------------";
+        $formatMsg = $msg;
         if($foreground == 'green') {
             initConsoleStyleIo()->write("<info>$formatMsg</info>", true);
         }else {

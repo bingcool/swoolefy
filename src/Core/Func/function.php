@@ -59,12 +59,29 @@ function getOneFreePort(array $excludePorts = []): int
     return get_one_free_port($excludePorts);
 }
 
-function write($msg, $foreground = "red", $background = "black")
+function fmtPrintInfo($msg, bool $newLine = true)
 {
-    if ($foreground == 'red') {
-        initConsoleStyleIo()->error($msg);
+    if (is_array($msg)) {
+        initConsoleStyleIo()->definitionList($msg);
     }else {
         initConsoleStyleIo()->info($msg);
+    }
+
+    if ($newLine) {
+        initConsoleStyleIo()->newLine();
+    }
+}
+
+function fmtPrintError($msg, bool $newLine = true)
+{
+    if (is_array($msg)) {
+        initConsoleStyleIo()->definitionList($msg);
+    }else {
+        initConsoleStyleIo()->error($msg);
+    }
+
+    if ($newLine) {
+        initConsoleStyleIo()->newLine();
     }
 }
 

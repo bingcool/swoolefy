@@ -146,7 +146,7 @@ class SwoolefyException
     ) {
         $logger = LogManager::getInstance()->getLogger('error_log');
         if (!is_object($logger)) {
-            write("【Warning】Missing set 'error_log' component on " . __CLASS__ . '::' . __FUNCTION__);
+            fmtPrintError("【Warning】Missing set 'error_log' component on " . __CLASS__ . '::' . __FUNCTION__);
             return;
         }
 
@@ -171,7 +171,7 @@ class SwoolefyException
         }
 
         if (in_array(SWOOLEFY_ENV, [SWOOLEFY_DEV, SWOOLEFY_GRA])) {
-            write($errorMsg);
+            fmtPrintError($errorMsg);
         }
     }
 

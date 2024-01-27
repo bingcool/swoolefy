@@ -46,12 +46,12 @@ class StartCmd extends BaseCmd
                             $this->startMqtt($appName);
                             break;
                         default:
-                            $this->error("Protocol is not in 【'http','websocket','rpc','udp','mqtt'】");
+                            fmtPrintError("Protocol is not in 【'http','websocket','rpc','udp','mqtt'】");
                             break;
                     }
                 }
             } catch (\Throwable $throwable) {
-                $this->error($throwable->getMessage());
+                fmtPrintError($throwable->getMessage());
                 exit(0);
             }
         }
