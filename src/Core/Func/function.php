@@ -10,22 +10,6 @@
  */
 
 /**
- * _each
- * @param $msg
- * @param string $foreground
- * @param string $background
- */
-function _each(string $msg, string $foreground = "red", string $background = "black")
-{
-    // Create new Colors class
-    static $colors;
-    if (!isset($colors)) {
-        $colors = new \Swoolefy\Util\EachColor();
-    }
-    echo $colors->getColoredString($msg, $foreground, $background);
-}
-
-/**
  * 随机获取一个可监听的端口(php_socket模式)
  *
  * @param array $excludePorts 排除的端口
@@ -73,6 +57,43 @@ function get_one_free_port(array $excludePorts = []): int
 function getOneFreePort(array $excludePorts = []): int
 {
     return get_one_free_port($excludePorts);
+}
+
+function fmtPrintInfo($msg, bool $newLine = true)
+{
+    if (is_array($msg)) {
+        initConsoleStyleIo()->definitionList($msg);
+    }else {
+        initConsoleStyleIo()->info($msg);
+    }
+
+    if ($newLine) {
+        initConsoleStyleIo()->newLine();
+    }
+}
+
+function fmtPrintError($msg, bool $newLine = true)
+{
+    if (is_array($msg)) {
+        initConsoleStyleIo()->definitionList($msg);
+    }else {
+        initConsoleStyleIo()->error($msg);
+    }
+
+    if ($newLine) {
+        initConsoleStyleIo()->newLine();
+    }
+}
+
+function initConsoleStyleIo()
+{
+    static $consoleStyleIo;
+    if (!isset($consoleStyleIo)) {
+        $input = new \Symfony\Component\Console\Input\ArgvInput();
+        $output = new \Symfony\Component\Console\Output\ConsoleOutput();
+        $consoleStyleIo = new \Symfony\Component\Console\Style\SymfonyStyle($input, $output);
+    }
+    return $consoleStyleIo;
 }
 
 /**

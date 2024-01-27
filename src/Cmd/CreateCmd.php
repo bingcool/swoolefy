@@ -20,13 +20,13 @@ class CreateCmd extends BaseCmd
         $appName = $input->getArgument('app_name');
         $appPathDir = APP_PATH;
         if (is_dir($appPathDir)) {
-            $this->error("You had create {$appName} project dir");
+            fmtPrintError("You had create {$appName} project dir");
             exit(0);
         }
 
         $protocol = APP_NAMES[$appName];
         if (!$protocol) {
-            $this->error("The app_name={$appName} is not in APP_NAME array in swoolefy file, please check it");
+            fmtPrintError("The app_name={$appName} is not in APP_NAME array in swoolefy file, please check it");
             exit(0);
         }
 

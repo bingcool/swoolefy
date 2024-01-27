@@ -82,23 +82,21 @@ trait SystemTrait
     }
 
     /**
+     * 系统内部日志
+     *
      * @param $msg
      * @param $foreground
-     * @param $background
      * @return void
      */
-    protected function writeInfo($msg, $foreground = "red", $background = 'black')
+    private function fmtWriteLog($msg, $foreground = "red")
     {
-        // Create new Colors class
-        static $colors;
-        if (!isset($colors)) {
-            $colors = new \Swoolefy\Util\EachColor();
-        }
+        $formatMsg = $msg;
         if($foreground == 'green') {
-            $foreground = 'light_green';
+            initConsoleStyleIo()->write("<info>$formatMsg</info>", true);
+        }else {
+            initConsoleStyleIo()->write("<error>$formatMsg</error>", true);
         }
-        $formatMsg = "--------------{$msg} --------------";
-        echo $colors->getColoredString($formatMsg, $foreground, $background) . "\n\n";
+
         if (defined('WORKER_CTL_LOG_FILE')) {
             if (defined('MAX_LOG_FILE_SIZE')) {
                 $maxLogFileSize = MAX_LOG_FILE_SIZE;

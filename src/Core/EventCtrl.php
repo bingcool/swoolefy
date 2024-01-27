@@ -17,7 +17,6 @@ use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
 use Swoolefy\Core\Process\ProcessManager;
-use Swoolefy\Core\ProcessPools\PoolsManager;
 
 class EventCtrl implements EventCtrlInterface
 {
@@ -66,12 +65,12 @@ class EventCtrl implements EventCtrlInterface
     protected function boostrapWorkerInit()
     {
         if (!defined('WORKER_SERVICE_NAME')) {
-            write('Missing Defined Constant `WORKER_SERVICE_NAME`');
+            fmtPrintError('Missing Defined Constant `WORKER_SERVICE_NAME`');
             exit(0);
         }
 
         if (!defined('PROCESS_CLASS')) {
-            write('Missing Defined Constant `PROCESS_CLASS`');
+            fmtPrintError('Missing Defined Constant `PROCESS_CLASS`');
             exit(0);
         }
 
@@ -82,12 +81,12 @@ class EventCtrl implements EventCtrlInterface
         }else if (SystemEnv::isScriptService()) {
             $class = \Swoolefy\Script\MainCliScript::parseClass();
             if(empty($class)) {
-                write('Not found CliScript Class');
+                fmtPrintError('Not found CliScript Class');
                 exit(0);
             }
             ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, $class);
         }else {
-            write('Error Service Type');
+            fmtPrintError('Error Service Type');
             exit(0);
         }
     }
@@ -324,7 +323,7 @@ class EventCtrl implements EventCtrlInterface
                 $mainServer = 'HttpServer';
         }
 
-        if(isWorkerService()) {
+        if(SystemEnv::isWorkerService()) {
             $mainName = 'main worker';
             $mainServer = "【".WORKER_SERVICE_NAME."】";
         }else {
@@ -343,49 +342,40 @@ class EventCtrl implements EventCtrlInterface
         $swoolefyEnv             = defined('SWOOLEFY_ENV') ? SWOOLEFY_ENV : null;
         $cpuNum                  = swoole_cpu_num();
         $ipList                  = json_encode(swoole_get_local_ip());
-        $processListInfo         = array_values(ProcessManager::getInstance()->getProcessListInfo());
-        $processListInfoStr      = json_encode($processListInfo, JSON_UNESCAPED_UNICODE);
-        $poolsProcessListInfo    = array_values(PoolsManager::getInstance()->getProcessListInfo());
-        $poolsProcessListInfoStr = json_encode($poolsProcessListInfo, JSON_UNESCAPED_UNICODE);
+        //$processListInfo         = array_values(ProcessManager::getInstance()->getProcessListInfo());
+        //$processListInfoStr      = json_encode($processListInfo, JSON_UNESCAPED_UNICODE);
+        //$poolsProcessListInfo    = array_values(PoolsManager::getInstance()->getProcessListInfo());
+        //$poolsProcessListInfoStr = json_encode($poolsProcessListInfo, JSON_UNESCAPED_UNICODE);
         $hostname                = gethostname();
 
-        $this->each("Main Info: \n", 'light_green');
-        $this->each(str_repeat('-', 50), 'light_green');
-        $this->each("
-            {$mainName}         {$mainServer}
-            swoolefy envirment  {$swoolefyEnv}
-            daemonize           {$daemonize}
-            listen address      {$listenHost}
-            listen port         {$listenPort}
-            worker num          {$workerNum}
-            task worker num     {$taskWorkerNum}
-            cpu num             {$cpuNum}
-            swoole version      {$swooleVersion}
-            php version         {$phpVersion}
-            swoolefy version    {$swoolefyVersion}
-            ip_list             {$ipList}
-            hostname            {$hostname}
-            tips                执行 php swoolefy help 可以查看更多信息
-", 'light_green');
-        $this->each(str_repeat('-', 50) . "\n", 'light_green');
+        $consoleStyleIo = initConsoleStyleIo();
+        $line = str_repeat('-', 50);
+        $consoleStyleIo->write("<info>$line</info>", true);
+        $consoleStyleIo->write("<info>Main Info:</info>");
+        $consoleStyleIo->write("<info>
+    {$mainName}         {$mainServer}
+    swoolefy envirment  {$swoolefyEnv}
+    daemonize           {$daemonize}
+    listen address      {$listenHost}
+    listen port         {$listenPort}
+    worker num          {$workerNum}
+    task worker num     {$taskWorkerNum}
+    cpu num             {$cpuNum}
+    swoole version      {$swooleVersion}
+    php version         {$phpVersion}
+    swoolefy version    {$swoolefyVersion}
+    ip_list             {$ipList}
+    hostname            {$hostname}
+    tips                执行 php swoolefy help 可以查看更多信息
+</info>");
 
-        if(isDaemonService()) {
-            $this->each("Daemon Worker Info: \n", 'light_green');
-        }else if (isCronService()) {
-            $this->each("Cron Worker Info: \n", 'light_green');
-        }else if(isCliScript()) {
-            $this->each("Cli Script Start: \n", 'light_green');
+        $consoleStyleIo->write("<info>$line</info>", true);
+        if(SystemEnv::isDaemonService()) {
+            $consoleStyleIo->write("<info>Daemon Worker Info:\n</info>",true);
+        }else if (SystemEnv::isCronService()) {
+            $consoleStyleIo->write("<info>Cron Worker Info:</info>", true);
+        }else if(SystemEnv::isScriptService()) {
+            $consoleStyleIo->write("<info>Cli Script Start:</info>",true);
         }
-    }
-
-    /**
-     * _each
-     * @param string $msg
-     * @param string $foreground
-     * @param string $background
-     */
-    protected function each(string $msg, string $foreground = "red", string $background = "black")
-    {
-        _each($msg, $foreground, $background);
     }
 } 

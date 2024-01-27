@@ -21,19 +21,10 @@ class StopCmd extends BaseCmd
         $force = $input->getOption('force');
         if (empty($force)) {
             if (!isWorkerService()) {
-                echo "1、你确定停止应用【{$appName}】? (yes or no):";
+                $lineValue = initConsoleStyleIo()->ask( "1、你确定停止应用【{$appName}】? (yes or no)");
             } else {
-                echo "1、你确定停止workerService【" . WORKER_SERVICE_NAME . "】? (yes or no):";
+                $lineValue = initConsoleStyleIo()->ask( "1、你确定停止workerService【" . WORKER_SERVICE_NAME . "】? (yes or no)");
             }
-        }
-
-        $lineValue = '';
-        if (empty($force)) {
-            while ($lineValue == '') {
-                $lineValue = trim(fgets(STDIN));
-            }
-        }else {
-            $lineValue = 'yes';
         }
 
         if (strtolower($lineValue) == 'yes') {
@@ -44,9 +35,9 @@ class StopCmd extends BaseCmd
             }
         } else {
             if (!isWorkerService()) {
-                $this->info("\n你已放弃停止应用{$appName},应用继续running中");
+                fmtPrintInfo("\n你已放弃停止应用{$appName},应用继续running中");
             } else {
-                $this->info("\n你已放弃停止workerService【" . WORKER_SERVICE_NAME . "】,应用继续running中");
+                fmtPrintInfo("\n你已放弃停止workerService【" . WORKER_SERVICE_NAME . "】,应用继续running中");
             }
             exit(0);
         }
@@ -58,20 +49,20 @@ class StopCmd extends BaseCmd
     {
         $pidFile = $this->getPidFile($appName);
         if (!is_file($pidFile)) {
-            $this->error("Pid file={$pidFile} is not exist, please check the server whether running");
+            fmtPrintError("Pid file={$pidFile} is not exist, please check the server whether running");
             exit(0);
         }
 
         $pid = intval(file_get_contents($pidFile));
         if (!\Swoole\Process::kill($pid, 0)) {
-            $this->error("Server Stop!");
+            fmtPrintError("Server Stop!");
             exit(0);
         }
 
         \Swoole\Process::kill($pid, SIGTERM);
         // 如果'reload_async' => true,，则默认workerStop有30s的过度期停顿这个时间稍微会比较长，设置成60过期
         $nowTime = time();
-        $this->info("Server begin to stopping at " . date("Y-m-d H:i:s") . ", pid={$pid}. please wait a moment...");
+        fmtPrintInfo("Server begin to stopping at " . date("Y-m-d H:i:s") . ", pid={$pid}. please wait a moment...");
         while (true) {
             sleep(1);
             if (\Swoole\Process::kill($pid, 0) && (time() - $nowTime) > 10) {
@@ -80,10 +71,11 @@ class StopCmd extends BaseCmd
             }
 
             if (!\Swoole\Process::kill($pid, 0)) {
-                $this->info("
+                fmtPrintInfo("
         ---------------------stop info-------------------\n    
         Server Stop  OK. server stop at " . date("Y-m-d H:i:s")
                 );
+                @unlink($pidFile);
                 break;
             } else {
                 if ((time() - $nowTime) > 20) {
@@ -100,8 +92,8 @@ class StopCmd extends BaseCmd
                             \Swoole\Process::kill($processId, SIGKILL);
                         }
                     }
-                    $this->info("---------------------------stop info-----------------------");
-                    $this->info("Please use 'ps -ef | grep php-swoolefy' checkout swoole whether or not stop");
+                    fmtPrintInfo("---------------------------stop info-----------------------");
+                    fmtPrintInfo("Please use 'ps -ef | grep php-swoolefy' checkout swoole whether or not stop");
                     break;
                 }
             }
@@ -114,7 +106,7 @@ class StopCmd extends BaseCmd
     {
         $pidFile = $this->getPidFile($appName);
         if (!is_file($pidFile)) {
-            $this->error("Pid file={$pidFile} is not exist, please check the server whether running");
+            fmtPrintError("Pid file={$pidFile} is not exist, please check the server whether running");
             exit(0);
         }
 
@@ -122,7 +114,7 @@ class StopCmd extends BaseCmd
         if (is_numeric($masterPid) && $masterPid > 0) {
             $masterPid = (int)$masterPid;
         } else {
-            $this->error("Master Pid is invalid");
+            fmtPrintError("Master Pid is invalid");
             exit(0);
         }
 

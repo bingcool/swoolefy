@@ -14,10 +14,14 @@ class BaseCmd extends Command
     /**
      * @var OutputInterface
      */
-    protected $output;
+    protected $consoleStyleIo;
 
+    /**
+     * @return void
+     */
     protected function configure()
     {
+        putenv('COLUMNS=200');
         $this->addArgument('app_name', InputArgument::REQUIRED, 'The app name');
         // 是否守护进程启动
         $this->addOption('daemon', null,InputOption::VALUE_OPTIONAL, 'Daemon model run app', 0);
@@ -33,7 +37,7 @@ class BaseCmd extends Command
 
     protected function initialize(InputInterface $input, OutputInterface $output)
     {
-        $this->output = $output;
+        $this->consoleStyleIo = new \Symfony\Component\Console\Style\SymfonyStyle($input, $output);;
         $this->initCheck($input, $output);
         $this->parseConstant($input, $output);
         $this->parseOptions($input, $output);
@@ -42,7 +46,7 @@ class BaseCmd extends Command
     protected function parseConstant(InputInterface $input, OutputInterface $output)
     {
         if (!defined('APP_NAMES')) {
-            $this->error('APP_NAMES Missing defined, please check it');
+            fmtPrintError('APP_NAMES Missing defined, please check it');
             exit(0);
         }
 
@@ -90,7 +94,9 @@ class BaseCmd extends Command
         putenv("ENV_CLI_PARAMS={$cliParamsJson}");
     }
 
-
+    /**
+     * @return array
+     */
     protected function beforeInputOptions()
     {
         $options = [];
@@ -107,14 +113,19 @@ class BaseCmd extends Command
         return $options;
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return void
+     */
     protected function initCheck(InputInterface $input, OutputInterface $output)
     {
         $appName = $input->getArgument('app_name');
         if (version_compare(phpversion(), '7.3.0', '<')) {
-           $this->error("php version must >= 7.3.0, current php version = " . phpversion());
+           fmtPrintError("php version must >= 7.3.0, current php version = " . phpversion());
         }
         if (version_compare(swoole_version(), '4.8.5', '<')) {
-           $this->error("the swoole version must >= 4.8.5, current swoole version = " . swoole_version());
+           fmtPrintError("the swoole version must >= 4.8.5, current swoole version = " . swoole_version());
         }
 
         if (function_exists('apc_clear_cache')) {
@@ -132,6 +143,10 @@ class BaseCmd extends Command
         }
     }
 
+    /**
+     * @param array $config
+     * @return void
+     */
     protected function checkRunning(array &$config)
     {
         $this->resetConf($config);
@@ -141,10 +156,10 @@ class BaseCmd extends Command
                 $pid = file_get_contents($pidFile);
                 if (is_numeric($pid) && \Swoole\Process::kill($pid, 0)) {
                     if (!isWorkerService()) {
-                        $this->error('[' . APP_NAME . ']' . " Server is running, pid={$pid}, pidFile={$pidFile}");
+                        fmtPrintError('[' . APP_NAME . ']' . " Server is running, pid={$pid}, pidFile={$pidFile}");
                         exit(0);
                     } else {
-                        $this->error('[' . WORKER_SERVICE_NAME . ']' . " is running, pid={$pid}, pidFile={$pidFile}");
+                        fmtPrintError('[' . WORKER_SERVICE_NAME . ']' . " is running, pid={$pid}, pidFile={$pidFile}");
                         exit(0);
                     }
                 }
@@ -152,6 +167,10 @@ class BaseCmd extends Command
         }
     }
 
+    /**
+     * @param $conf
+     * @return void
+     */
     protected function resetConf(&$conf)
     {
         if (SystemEnv::isWorkerService()) {
@@ -164,6 +183,10 @@ class BaseCmd extends Command
         }
     }
 
+    /**
+     * @param $config
+     * @return void
+     */
     protected function commonHandle(&$config)
     {
         if ($this->isDaemon()) {
@@ -192,6 +215,10 @@ class BaseCmd extends Command
         }
     }
 
+    /**
+     * @param $appName
+     * @return mixed|string
+     */
     protected function getPidFile($appName)
     {
         $path = APP_PATH . "/Protocol";
@@ -206,6 +233,10 @@ class BaseCmd extends Command
         return $pidFile ?? '';
     }
 
+    /**
+     * @param array $config
+     * @return void
+     */
     protected function makeDirLogAndPid(array &$config)
     {
         if (isset($config['setting']['log_file'])) {
@@ -253,7 +284,7 @@ class BaseCmd extends Command
         }
 
         if (!isset($config['app_conf'])) {
-            $this->error(APP_NAME . "/Protocol/conf.php" . " must include app_conf file and set app_conf");
+            fmtPrintError(APP_NAME . "/Protocol/conf.php" . " must include app_conf file and set app_conf");
             exit(0);
         }
     }
@@ -266,15 +297,5 @@ class BaseCmd extends Command
     protected function loadGlobalConf()
     {
         return loadGlobalConf();
-    }
-
-    protected function info(string $message)
-    {
-        $this->output->writeln("<info>{$message}</info>");
-    }
-
-    protected function error(string $message)
-    {
-        $this->output->writeln("<error>{$message}</error>");
     }
 }

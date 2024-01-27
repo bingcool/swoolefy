@@ -14,6 +14,8 @@ return [
             'cron_name' => 'cancel-order', // 定时任务名称
             'handler_class' => \Test\WorkerCron\LocalOrder\LocalOrderHandle::class, //处理类
             //'cron_expression' => '*/1 * * * *', // 每分钟执行一次
+            'without_over_lapping' => 1, // 已经启动的任务还没有结束运行，跳过新任务
+            'run_in_background' => 1, // 后台运行，不受主进程的退出影响
             'cron_expression' => 10, // 10s执行一次
         ],
     ],

@@ -177,7 +177,7 @@ class CommandRunner
                 $result = call_user_func_array($callable, $params);
                 return $result;
             } catch (\Throwable $e) {
-                write("【Error】CommandRunner ErrorMsg={$e->getMessage()},trace={$e->getTraceAsString()}");
+                fmtPrintError("CommandRunner ErrorMsg={$e->getMessage()},trace={$e->getTraceAsString()}");
             } finally {
                 foreach ($pipes as $pipe) {
                     @fclose($pipe);

@@ -17,7 +17,7 @@ class SendCmd extends BaseCmd
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         if (!isWorkerService()) {
-            $this->error("send command only for Worker,Cron Service, do not support cli application");
+            fmtPrintError("send command only for Worker,Cron Service, do not support cli application");
             return 0;
         }
 
@@ -31,7 +31,7 @@ class SendCmd extends BaseCmd
 
         $pidFile = $this->getPidFile($appName);
         if (!is_file($pidFile)) {
-            $this->error("Pid file={$pidFile} is not exist, please check the server whether running");
+            fmtPrintError("Pid file={$pidFile} is not exist, please check the server whether running");
             exit(0);
         }
 
@@ -39,7 +39,7 @@ class SendCmd extends BaseCmd
         if (is_numeric($masterPid) && $masterPid > 0) {
             $masterPid = (int)$masterPid;
         } else {
-            $this->error("Master Pid is invalid");
+            fmtPrintError("Master Pid is invalid");
             exit(0);
         }
 
@@ -73,7 +73,7 @@ class SendCmd extends BaseCmd
                 if (empty($msg)) {
                     $msg = '已向master进程发起跑脚本指令';
                 }
-                $this->info($msg);
+                fmtPrintInfo($msg);
                 \Swoole\Event::exit();
             });
 
