@@ -21,6 +21,7 @@ class BaseCmd extends Command
      */
     protected function configure()
     {
+        putenv('COLUMNS=200');
         $this->addArgument('app_name', InputArgument::REQUIRED, 'The app name');
         // 是否守护进程启动
         $this->addOption('daemon', null,InputOption::VALUE_OPTIONAL, 'Daemon model run app', 0);
