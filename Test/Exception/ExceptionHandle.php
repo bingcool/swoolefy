@@ -15,7 +15,7 @@ class ExceptionHandle extends \Swoolefy\Core\SwoolefyException
     {
         $logger = LogManager::getInstance()->getLogger('system_error_log');
         if (!is_object($logger)) {
-            _each("【Warning】Missing set 'error_log' component on " . __CLASS__ . '::' . __FUNCTION__);
+            write("【Warning】Missing set 'error_log' component on " . __CLASS__ . '::' . __FUNCTION__);
             return;
         }
 
@@ -35,9 +35,9 @@ class ExceptionHandle extends \Swoolefy\Core\SwoolefyException
         }
 
         if (in_array(SWOOLEFY_ENV, [SWOOLEFY_DEV, SWOOLEFY_GRA])) {
-            _each($errorMsg);
+            write($errorMsg);
             if (is_object($throwable)) {
-                _each($throwable->getMessage());
+                write($throwable->getMessage());
             }
         }
     }

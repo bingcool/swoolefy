@@ -25,19 +25,10 @@ class StopCmd extends BaseCmd
         $force = $input->getOption('force');
         if (empty($force)) {
             if (!isWorkerService()) {
-                echo "1、你确定停止应用【{$appName}】? (yes or no):";
+                $lineValue = initConsoleStyleIo()->ask( "1、你确定停止应用【{$appName}】? (yes or no)");
             } else {
-                echo "1、你确定停止workerService【" . WORKER_SERVICE_NAME . "】? (yes or no):";
+                $lineValue = initConsoleStyleIo()->ask( "1、你确定停止workerService【" . WORKER_SERVICE_NAME . "】? (yes or no)");
             }
-        }
-
-        $lineValue = '';
-        if (empty($force)) {
-            while ($lineValue == '') {
-                $lineValue = trim(fgets(STDIN));
-            }
-        }else {
-            $lineValue = 'yes';
         }
 
         if (strtolower($lineValue) == 'yes') {

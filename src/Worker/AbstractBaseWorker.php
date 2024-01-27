@@ -348,7 +348,7 @@ abstract class AbstractBaseWorker
                         if (is_string($message)) {
                             $messageDto = unserialize($message);
                             if (!$messageDto instanceof MessageDto) {
-                                $this->writeInfo("【Error】Accept message type error");
+                                $this->writeLog("【Error】Accept message type error");
                                 return;
                             } else {
                                 $msg                 = $messageDto->data;
@@ -451,7 +451,7 @@ abstract class AbstractBaseWorker
                         $processName     = $this->getProcessName();
                         $workerId        = $this->getProcessWorkerId();
                         $this->masterLiveTimerId = null;
-                        $this->writeInfo("【Warning】Check Parent Master Pid={$masterPid}，children process={$processName},worker_id={$workerId} start to exit");
+                        $this->writeLog("【Warning】Check Parent Master Pid={$masterPid}，children process={$processName},worker_id={$workerId} start to exit");
                         $this->exit(true, 5);
                     };
 
@@ -464,7 +464,7 @@ abstract class AbstractBaseWorker
                                 if (!$this->handing) {
                                     $exitFunction($timerId, $masterPid);
                                 }else {
-                                    $this->writeInfo("【Warning】 Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
+                                    $this->writeLog("【Warning】 Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
                                 }
                             }else {
                                 $exitFunction($timerId, $masterPid);
@@ -474,13 +474,13 @@ abstract class AbstractBaseWorker
                         $parentPid = posix_getppid();
                         if($parentPid == 1) {
                             $masterPid = '1(system init)';
-                            $this->writeInfo("【Warning】This Process of Parent Process is System Init Process, Master Pid={$masterPid}，children process={$this->getProcessName()},worker_id={$this->getProcessWorkerId()} start to exit");
+                            $this->writeLog("【Warning】This Process of Parent Process is System Init Process, Master Pid={$masterPid}，children process={$this->getProcessName()},worker_id={$this->getProcessWorkerId()} start to exit");
                             // cron防止任务还在进行中,强制退出
                             if (SystemEnv::isCronService()) {
                                 if (!$this->handing) {
                                     $exitFunction($timerId, $masterPid);
                                 } else {
-                                    $this->writeInfo("【Warning】 Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
+                                    $this->writeLog("【Warning】 Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
                                 }
                             }else {
                                 $exitFunction($timerId, $masterPid);
@@ -499,7 +499,7 @@ abstract class AbstractBaseWorker
                     }
 
                 }catch (\Throwable $throwable) {
-                    $this->writeInfo("【Error】Check Master Error Msg={$throwable->getMessage()},trace={$throwable->getTraceAsString()}");
+                    $this->writeLog("【Error】Check Master Error Msg={$throwable->getMessage()},trace={$throwable->getTraceAsString()}");
                 }
             });
 
@@ -550,9 +550,9 @@ abstract class AbstractBaseWorker
                 $workerId    = $this->getProcessWorkerId();
             } catch (\Throwable $throwable) {
                 $processName = isset($processName) ?? '';
-                $this->writeInfo("【Error】Exit error, Process={$processName}, error:" . $throwable->getMessage());
+                $this->writeLog("【Error】Exit error, Process={$processName}, error:" . $throwable->getMessage());
             } finally {
-                $this->writeInfo("【Exit Finish 】 process={$processName}, worker_id={$workerId}");
+                $this->writeLog("【Exit Finish 】 process={$processName}, worker_id={$workerId}");
                 $this->isExit = false;
                 Event::del($this->swooleProcess->pipe);
                 Event::exit();
@@ -577,9 +577,9 @@ abstract class AbstractBaseWorker
                 $this->writeStopFormatInfo();
                 $processName = $this->getProcessName();
                 $workerId = $this->getProcessWorkerId();
-                $this->writeInfo("【Info】Start to reboot process={$processName}, worker_id={$workerId}");
+                $this->writeLog("【Info】Start to reboot process={$processName}, worker_id={$workerId}");
             } catch (\Throwable $throwable) {
-                $this->writeInfo("【Error】Reboot error, Process={$processName}, error:" . $throwable->getMessage());
+                $this->writeLog("【Error】Reboot error, Process={$processName}, error:" . $throwable->getMessage());
             } finally {
                 Event::del($this->swooleProcess->pipe);
                 Event::exit();
@@ -622,7 +622,7 @@ abstract class AbstractBaseWorker
                 // out of memory
                 if (false !== strpos($error['message'], 'Allowed memory size of')) {
                     $processName = $this->getProcessName().'@'.$this->getProcessWorkerId();
-                    $this->writeInfo("【Error】{$errorStr}, process_name={$processName}");
+                    $this->writeLog("【Error】{$errorStr}, process_name={$processName}");
                 }
 
                 if(!in_array($error['type'], [E_NOTICE, E_WARNING]) ) {
@@ -680,7 +680,7 @@ abstract class AbstractBaseWorker
 
         foreach ($processWorkers as $process) {
             if ($process->isRebooting() || $process->isExiting()) {
-                $this->writeInfo("【Warning】the process(worker_id={$this->getProcessWorkerId()}) is in isRebooting or isExiting status, not send msg to other process");
+                $this->writeLog("【Warning】the process(worker_id={$this->getProcessWorkerId()}) is in isRebooting or isExiting status, not send msg to other process");
                 continue;
             }
 
@@ -746,7 +746,7 @@ abstract class AbstractBaseWorker
     public function notifyMasterCreateDynamicProcess(string $dynamic_process_name, int $dynamic_process_num = 2)
     {
         if ($this->isDynamicDestroy) {
-            $this->writeInfo("【Warning】process is destroying, forbidden dynamic create process");
+            $this->writeLog("【Warning】process is destroying, forbidden dynamic create process");
             return;
         }
 
@@ -994,7 +994,7 @@ abstract class AbstractBaseWorker
     {
         if($this->isRebooting() || $this->isForceExit() || $this->isExiting()) {
             sleep(1);
-            $this->writeInfo("【INFO】Process Wait to Exit or Reboot");
+            $this->writeLog("【INFO】Process Wait to Exit or Reboot");
             return false;
         }
         return true;
@@ -1482,7 +1482,7 @@ abstract class AbstractBaseWorker
         // Get uid.
         $userInfo = posix_getpwnam($this->user);
         if (!$userInfo) {
-            $this->writeInfo("【Warning】User {$this->user} not exist");
+            $this->writeLog("【Warning】User {$this->user} not exist");
             $this->exit();
             return false;
         }
@@ -1491,7 +1491,7 @@ abstract class AbstractBaseWorker
         if ($this->group) {
             $groupInfo = posix_getgrnam($this->group);
             if (!$groupInfo) {
-                $this->writeInfo("【Warning】Group {$this->group} not exist");
+                $this->writeLog("【Warning】Group {$this->group} not exist");
                 $this->exit();
                 return false;
             }
@@ -1503,7 +1503,7 @@ abstract class AbstractBaseWorker
         // Set uid and gid.
         if ($uid !== posix_getuid() || $gid !== posix_getgid()) {
             if (!posix_setgid($gid) || !posix_initgroups($userInfo['name'], $gid) || !posix_setuid($uid)) {
-                $this->writeInfo("【Warning】change gid or uid failed");
+                $this->writeLog("【Warning】change gid or uid failed");
             }
         }
     }
@@ -1535,7 +1535,7 @@ abstract class AbstractBaseWorker
         }
         $pid = $this->getPid();
         $logInfo = "start children_process【{$processType}】: {$processName}@{$workerId} started, pid={$pid}, master_pid={$this->getMasterPid()}";
-        $this->writeInfo($logInfo, 'green');
+        $this->writeLog($logInfo, 'green');
     }
 
     /**
@@ -1548,7 +1548,7 @@ abstract class AbstractBaseWorker
         $workerId = $this->getProcessWorkerId();
         $pid = $this->getPid();
         $logInfo = "【 Ready To Stop 】process_name={$processName},worker_id={$workerId}, pid={$pid}, master_pid={$this->getMasterPid()}";
-        $this->writeInfo($logInfo, 'red');
+        $this->writeLog($logInfo, 'red');
     }
 
     /**
@@ -1564,7 +1564,7 @@ abstract class AbstractBaseWorker
             $processType = self::PROCESS_DYNAMIC_TYPE_NAME;
             $pid         = $this->getPid();
             $logInfo     = "start children_process【{$processType}】: {$processName}@{$workerId} start(默认动态创建的进程不支持reload，可以使用 kill -10 pid 强制重启), Pid={$pid}";
-            $this->writeInfo($logInfo, 'red');
+            $this->writeLog($logInfo, 'red');
         }
     }
 
@@ -1598,13 +1598,13 @@ abstract class AbstractBaseWorker
                         if (class_exists(static::class, $method)) {
                             $this->{$method}($msg, $from_process_name, $from_process_worker_id, $is_proxy_by_master);
                         }else {
-                            $this->writeInfo("{$from_process_name} is not exist method = {$method}");
+                            $this->writeLog("{$from_process_name} is not exist method = {$method}");
                         }
                     }else {
                         (new $class)->{$method}($msg, $from_process_name, $from_process_worker_id, $is_proxy_by_master);
                     }
                 }else {
-                    $this->writeInfo(sprintf("onPipeMsg accept msg=%s is not match property of customCommandHandle key, please check it", json_encode($msg, JSON_UNESCAPED_UNICODE)), 'red');
+                    $this->writeLog(sprintf("onPipeMsg accept msg=%s is not match property of customCommandHandle key, please check it", json_encode($msg, JSON_UNESCAPED_UNICODE)), 'red');
                 }
             }
         }

@@ -85,16 +85,6 @@ function parseScriptPidFile(string $pidFile): string
     return $pidFile;
 
 }
-function write($msg, $foreground = "red", $background = "black")
-{
-    // Create new Colors class
-    static $colors;
-    if (!isset($colors)) {
-        $colors = new \Swoolefy\Util\EachColor();
-    }
-    echo $colors->getColoredString($msg, $foreground, $background) . "\n\n";
-}
-
 
 function showLogo()
 {
@@ -110,7 +100,7 @@ function showLogo()
                                                               __ / |
                                                              |_ _ /
 LOGO;
-    write($logo, 'light_green');
+    initConsoleStyleIo()->write("<info>$logo</info>", true);
 }
 
 (function () {

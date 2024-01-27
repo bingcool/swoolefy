@@ -68,7 +68,7 @@ class MainCliScript extends AbstractScriptProcess
                 $this->exitAll(true);
                 return;
             }
-            write("【Info】 running action={$action}......\n", 'green');
+            write("running action={$action}......\n", 'green');
             list($method, $params) = Helper::parseActionParams($this, $action, Helper::getCliParams());
             $this->{$action}(...$params);
             $this->waitCoroutineFinish();
