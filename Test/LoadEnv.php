@@ -30,7 +30,7 @@ class LoadEnv
         $response = $client->get($url);
         if (!empty($response->getBody())) {
             file_put_contents(APP_PATH. '/.env', $response->getBody());
-            write("env文件加载成功",'green');
+            fmtPrintInfo(".env文件加载成功");
         }
     }
 }

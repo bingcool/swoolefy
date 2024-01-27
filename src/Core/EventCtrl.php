@@ -65,12 +65,12 @@ class EventCtrl implements EventCtrlInterface
     protected function boostrapWorkerInit()
     {
         if (!defined('WORKER_SERVICE_NAME')) {
-            write('Missing Defined Constant `WORKER_SERVICE_NAME`');
+            fmtPrintError('Missing Defined Constant `WORKER_SERVICE_NAME`');
             exit(0);
         }
 
         if (!defined('PROCESS_CLASS')) {
-            write('Missing Defined Constant `PROCESS_CLASS`');
+            fmtPrintError('Missing Defined Constant `PROCESS_CLASS`');
             exit(0);
         }
 
@@ -81,12 +81,12 @@ class EventCtrl implements EventCtrlInterface
         }else if (SystemEnv::isScriptService()) {
             $class = \Swoolefy\Script\MainCliScript::parseClass();
             if(empty($class)) {
-                write('Not found CliScript Class');
+                fmtPrintError('Not found CliScript Class');
                 exit(0);
             }
             ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, $class);
         }else {
-            write('Error Service Type');
+            fmtPrintError('Error Service Type');
             exit(0);
         }
     }
@@ -371,11 +371,11 @@ class EventCtrl implements EventCtrlInterface
 
         $consoleStyleIo->write("<info>$line</info>", true);
         if(SystemEnv::isDaemonService()) {
-            $consoleStyleIo->write("<info>Daemon Worker Info:\n</info>");
+            $consoleStyleIo->write("<info>Daemon Worker Info:\n</info>",true);
         }else if (SystemEnv::isCronService()) {
-            $consoleStyleIo->write("<info>Cron Worker Info:</info>");
+            $consoleStyleIo->write("<info>Cron Worker Info:</info>", true);
         }else if(SystemEnv::isScriptService()) {
-            $consoleStyleIo->write("<info>Cli Script Start:</info>");
+            $consoleStyleIo->write("<info>Cli Script Start:</info>",true);
         }
     }
 } 

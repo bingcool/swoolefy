@@ -45,7 +45,7 @@ class BaseCmd extends Command
     protected function parseConstant(InputInterface $input, OutputInterface $output)
     {
         if (!defined('APP_NAMES')) {
-            $this->error('APP_NAMES Missing defined, please check it');
+            fmtPrintError('APP_NAMES Missing defined, please check it');
             exit(0);
         }
 
@@ -121,10 +121,10 @@ class BaseCmd extends Command
     {
         $appName = $input->getArgument('app_name');
         if (version_compare(phpversion(), '7.3.0', '<')) {
-           $this->error("php version must >= 7.3.0, current php version = " . phpversion());
+           fmtPrintError("php version must >= 7.3.0, current php version = " . phpversion());
         }
         if (version_compare(swoole_version(), '4.8.5', '<')) {
-           $this->error("the swoole version must >= 4.8.5, current swoole version = " . swoole_version());
+           fmtPrintError("the swoole version must >= 4.8.5, current swoole version = " . swoole_version());
         }
 
         if (function_exists('apc_clear_cache')) {
@@ -155,10 +155,10 @@ class BaseCmd extends Command
                 $pid = file_get_contents($pidFile);
                 if (is_numeric($pid) && \Swoole\Process::kill($pid, 0)) {
                     if (!isWorkerService()) {
-                        $this->error('[' . APP_NAME . ']' . " Server is running, pid={$pid}, pidFile={$pidFile}");
+                        fmtPrintError('[' . APP_NAME . ']' . " Server is running, pid={$pid}, pidFile={$pidFile}");
                         exit(0);
                     } else {
-                        $this->error('[' . WORKER_SERVICE_NAME . ']' . " is running, pid={$pid}, pidFile={$pidFile}");
+                        fmtPrintError('[' . WORKER_SERVICE_NAME . ']' . " is running, pid={$pid}, pidFile={$pidFile}");
                         exit(0);
                     }
                 }
@@ -283,7 +283,7 @@ class BaseCmd extends Command
         }
 
         if (!isset($config['app_conf'])) {
-            $this->error(APP_NAME . "/Protocol/conf.php" . " must include app_conf file and set app_conf");
+            fmtPrintError(APP_NAME . "/Protocol/conf.php" . " must include app_conf file and set app_conf");
             exit(0);
         }
     }
@@ -296,15 +296,5 @@ class BaseCmd extends Command
     protected function loadGlobalConf()
     {
         return loadGlobalConf();
-    }
-
-    protected function info(string $message)
-    {
-        $this->consoleStyleIo->write("<info>{$message}</info>", true);
-    }
-
-    protected function error(string $message)
-    {
-        $this->consoleStyleIo->write("<error>{$message}</error>", true);
     }
 }
