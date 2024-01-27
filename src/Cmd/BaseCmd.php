@@ -14,8 +14,11 @@ class BaseCmd extends Command
     /**
      * @var OutputInterface
      */
-    protected $output;
+    protected $consoleStyleIo;
 
+    /**
+     * @return void
+     */
     protected function configure()
     {
         $this->addArgument('app_name', InputArgument::REQUIRED, 'The app name');
@@ -33,7 +36,7 @@ class BaseCmd extends Command
 
     protected function initialize(InputInterface $input, OutputInterface $output)
     {
-        $this->output = $output;
+        $this->consoleStyleIo = new \Symfony\Component\Console\Style\SymfonyStyle($input, $output);;
         $this->initCheck($input, $output);
         $this->parseConstant($input, $output);
         $this->parseOptions($input, $output);
@@ -90,7 +93,9 @@ class BaseCmd extends Command
         putenv("ENV_CLI_PARAMS={$cliParamsJson}");
     }
 
-
+    /**
+     * @return array
+     */
     protected function beforeInputOptions()
     {
         $options = [];
@@ -107,6 +112,11 @@ class BaseCmd extends Command
         return $options;
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return void
+     */
     protected function initCheck(InputInterface $input, OutputInterface $output)
     {
         $appName = $input->getArgument('app_name');
@@ -132,6 +142,10 @@ class BaseCmd extends Command
         }
     }
 
+    /**
+     * @param array $config
+     * @return void
+     */
     protected function checkRunning(array &$config)
     {
         $this->resetConf($config);
@@ -152,6 +166,10 @@ class BaseCmd extends Command
         }
     }
 
+    /**
+     * @param $conf
+     * @return void
+     */
     protected function resetConf(&$conf)
     {
         if (SystemEnv::isWorkerService()) {
@@ -164,6 +182,10 @@ class BaseCmd extends Command
         }
     }
 
+    /**
+     * @param $config
+     * @return void
+     */
     protected function commonHandle(&$config)
     {
         if ($this->isDaemon()) {
@@ -192,6 +214,10 @@ class BaseCmd extends Command
         }
     }
 
+    /**
+     * @param $appName
+     * @return mixed|string
+     */
     protected function getPidFile($appName)
     {
         $path = APP_PATH . "/Protocol";
@@ -206,6 +232,10 @@ class BaseCmd extends Command
         return $pidFile ?? '';
     }
 
+    /**
+     * @param array $config
+     * @return void
+     */
     protected function makeDirLogAndPid(array &$config)
     {
         if (isset($config['setting']['log_file'])) {
@@ -270,11 +300,11 @@ class BaseCmd extends Command
 
     protected function info(string $message)
     {
-        $this->output->writeln("<info>{$message}</info>");
+        $this->consoleStyleIo->write("<info>{$message}</info>", true);
     }
 
     protected function error(string $message)
     {
-        $this->output->writeln("<error>{$message}</error>");
+        $this->consoleStyleIo->write("<error>{$message}</error>", true);
     }
 }
