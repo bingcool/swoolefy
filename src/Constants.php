@@ -45,7 +45,7 @@ defined('ROUTE_MODEL_QUERY_PARAMS') or define('ROUTE_MODEL_QUERY_PARAMS', 2);
 defined('MQTT_PROTOCOL_LEVEL3') or define('MQTT_PROTOCOL_LEVEL3', 4);
 defined('MQTT_PROTOCOL_LEVEL5') or define('MQTT_PROTOCOL_LEVEL5', 5);
 
-defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '5.0.19');
+defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '5.0.20');
 defined('SWOOLEFY_EOF_FLAG') or define('SWOOLEFY_EOF_FLAG', '::');
 
 defined('WORKER_CLI_STOP') or define('WORKER_CLI_STOP', 'stop');

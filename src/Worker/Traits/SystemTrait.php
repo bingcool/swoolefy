@@ -85,18 +85,32 @@ trait SystemTrait
      * 系统内部日志
      *
      * @param $msg
-     * @param $foreground
      * @return void
      */
-    private function fmtWriteLog($msg, $foreground = "red")
+    private function fmtWriteInfo($msg)
     {
-        $formatMsg = $msg;
-        if($foreground == 'green') {
-            initConsoleStyleIo()->write("<info>$formatMsg</info>", true);
-        }else {
-            initConsoleStyleIo()->write("<error>$formatMsg</error>", true);
-        }
+        initConsoleStyleIo()->write("<info>$msg</info>", true);
+        $this->writeLog($msg);
+    }
 
+    /**
+     * 系统内部日志
+     *
+     * @param $msg
+     * @return void
+     */
+    private function fmtWriteError($msg)
+    {
+        initConsoleStyleIo()->write("<error>$msg</error>", true);
+        $this->writeLog($msg);
+    }
+
+    /**
+     * @param string $msg
+     * @return void
+     */
+    private function writeLog(string $msg)
+    {
         if (defined('WORKER_CTL_LOG_FILE')) {
             if (defined('MAX_LOG_FILE_SIZE')) {
                 $maxLogFileSize = MAX_LOG_FILE_SIZE;

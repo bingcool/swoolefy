@@ -252,7 +252,7 @@ class MainManager
         }
 
         if ($process_worker_num > $maxProcessNum) {
-            $this->fmtWriteLog("Process Name={$process_name}, params of process_worker_num more then max_process_num={$maxProcessNum}",'green');
+            $this->fmtWriteInfo("Process Name={$process_name}, params of process_worker_num more then max_process_num={$maxProcessNum}");
             $process_worker_num = $maxProcessNum;
         }
         $this->setProcessLists($process_name, $process_class, $process_worker_num, $args, $extend_data);
@@ -453,7 +453,7 @@ class MainManager
                                     $processName = $process->getProcessName();
                                     $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
                                 } catch (\Throwable $exception) {
-                                    $this->fmtWriteLog("Master handle Signal (SIGINT,SIGTERM) error Process={$processName},worker_id={$workerId} exit failed, error=" . $exception->getMessage());
+                                    $this->fmtWriteError("Master handle Signal (SIGINT,SIGTERM) error Process={$processName},worker_id={$workerId} exit failed, error=" . $exception->getMessage());
                                 }
                             }
                         }
@@ -526,7 +526,7 @@ class MainManager
                 );
                 @fwrite($ctlPipe, $info, strlen($info));
                 if ($status == 'stop') {
-                    $this->fmtWriteLog($info);
+                    $this->fmtWriteInfo($info);
                 }
             }
             unset($processes);
@@ -599,7 +599,7 @@ class MainManager
         // non block model
         while ($ret = \Swoole\Process::wait(false)) {
             if (!is_array($ret) || !isset($ret['pid'])) {
-                $this->fmtWriteLog("Swoole\Process::wait error");
+                $this->fmtWriteError("Swoole\Process::wait error");
                 return;
             }
             $pid  = $ret['pid'];
@@ -716,7 +716,7 @@ class MainManager
                     if (is_string($message)) {
                         $messageDto = unserialize($message);
                         if (!$messageDto instanceof MessageDto) {
-                            $this->fmtWriteLog("Accept message type error");
+                            $this->fmtWriteError("Accept message type error");
                             return;
                         } else {
                             $msg                 = $messageDto->data;
@@ -829,7 +829,7 @@ class MainManager
     public function createDynamicProcess(string $process_name, int $process_num = 2)
     {
         if ($this->isMasterExiting()) {
-            $this->fmtWriteLog("Master process is exiting now，forbidden to create dynamic process",'green');
+            $this->fmtWriteInfo("Master process is exiting now，forbidden to create dynamic process");
             return false;
         }
 
@@ -904,7 +904,7 @@ class MainManager
             $this->processWorkers[$key][$workerId] = $newProcess;
             $newProcess->start();
             $this->swooleEventAdd($newProcess);
-            $this->fmtWriteLog("Process name={$processName},worker_id={$workerId} create successful", 'green');
+            $this->fmtWriteInfo("Process name={$processName},worker_id={$workerId} create successful");
         } catch (\Throwable $throwable) {
             unset($this->processWorkers[$key][$workerId], $newProcess);
             $this->onHandleException->call($this, $throwable);
@@ -931,9 +931,9 @@ class MainManager
                     if ($this->processLists[$key]['dynamic_process_worker_num'] > 0) {
                         $this->processLists[$key]['dynamic_process_worker_num']--;
                     }
-                    $this->fmtWriteLog("Dynamic process={$process_name},worker_id={$workerId} destroy successful",'green');
+                    $this->fmtWriteInfo("Dynamic process={$process_name},worker_id={$workerId} destroy successful");
                 } catch (\Throwable $e) {
-                    $this->fmtWriteLog("DestroyDynamicProcess error message=" . $e->getMessage());
+                    $this->fmtWriteError("DestroyDynamicProcess error message=" . $e->getMessage());
                 }
             }
         }
@@ -1472,7 +1472,7 @@ class MainManager
         if (isset($this->processLists[$key])) {
             $this->createDynamicProcess($process_name, $num);
         } else {
-            $this->fmtWriteLog("Not exist children_process_name = {$process_name}, so add failed",'green');
+            $this->fmtWriteInfo("Not exist children_process_name = {$process_name}, so add failed");
         }
     }
 
@@ -1488,7 +1488,7 @@ class MainManager
         if (isset($this->processLists[$key])) {
             $this->destroyDynamicProcess($process_name, $num);
         } else {
-            $this->fmtWriteLog("Not exist children_process_name = {$process_name}, remove failed");
+            $this->fmtWriteError("Not exist children_process_name = {$process_name}, remove failed");
         }
     }
 
@@ -1548,7 +1548,7 @@ class MainManager
                 @\Swoole\Process::signal(SIGUSR2, null);
                 @\Swoole\Process::signal(SIGTERM, null);
             }
-            $this->fmtWriteLog("终端关闭，master进程stop, master_pid={$this->masterPid}",'green');
+            $this->fmtWriteInfo("终端关闭，master进程stop, master_pid={$this->masterPid}");
         };
     }
 
@@ -1735,7 +1735,7 @@ class MainManager
                         $processName = $process->getProcessName();
                         $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
                     } catch (\Throwable $exception) {
-                        $this->fmtWriteLog("Reload Command send stop Signal (SIGINT,SIGTERM) error Process={$processName},worker_id={$workerId} exit failed, error=" . $exception->getMessage());
+                        $this->fmtWriteError("Reload Command send stop Signal (SIGINT,SIGTERM) error Process={$processName},worker_id={$workerId} exit failed, error=" . $exception->getMessage());
                     }
                 }
                 unset($this->processLists[$key], $this->processWorkers[$key]);
