@@ -1299,8 +1299,11 @@ abstract class AbstractBaseWorker
      */
     protected function registerTickReboot($cron_expression)
     {
-        // 定时任务模式下不能设置定时重启，否则长时间执行的任务会被kill掉
-        if (SystemEnv::isCronService()) {
+        /**
+         * local模式下的定时任务模式下不能设置定时重启，否则长时间执行的任务会被kill掉,而是在回调函数注册callback闭包来判断是否达到重启时间
+         * @see \Swoolefy\Worker\Cron\CronLocalProcess
+         */
+        if (SystemEnv::isCronService() && $this instanceof \Swoolefy\Worker\Cron\CronLocalProcess) {
             return;
         }
 

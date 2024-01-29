@@ -133,7 +133,7 @@ trait SystemTrait
      * @param string $name
      * @return array|false|string|null
      */
-    protected function getCliParams(string $name = '')
+    protected function getOptionParams(string $name = '')
     {
         return Helper::getCliParams($name);
     }

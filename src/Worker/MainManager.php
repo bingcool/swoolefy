@@ -489,7 +489,12 @@ class MainManager
             'running',
             $this->startTime
         );
-        fwrite($ctlPipe, $masterInfo);
+        $separator = $this->getSeparator();
+        fwrite($ctlPipe,'Master Process Runtime:'.$separator);
+        fwrite($ctlPipe,str_repeat('-',50).$separator);
+        fwrite($ctlPipe, $masterInfo,null);
+        fwrite($ctlPipe,str_repeat('-',50).$separator.$separator);
+        fwrite($ctlPipe,'Children Process Runtime:'.$separator);
         foreach ($this->processWorkers as $processes) {
             ksort($processes);
             /** @var AbstractBaseWorker $process */
@@ -524,7 +529,7 @@ class MainManager
                     $rebootCount,
                     $processType
                 );
-                @fwrite($ctlPipe, $info, strlen($info));
+                @fwrite($ctlPipe, $info, null);
                 if ($status == 'stop') {
                     $this->fmtWriteInfo($info);
                 }
@@ -1011,7 +1016,7 @@ class MainManager
         $swooleVersion   = swoole_version();
         $enableCliPipe   = is_resource($this->cliPipeFd) ? 1 : 0;
         $swooleTableInfo = $this->getSwooleTableInfo(false);
-        $cliParams       = $this->getCliParams(true);
+        $cliParams       = $this->getOptionParams(true);
         $hostName        = gethostname();
         list($msgSysvmsgInfo, $sysKernel) = $this->getSysvmsgInfo();
 
@@ -1747,15 +1752,16 @@ class MainManager
      * @param bool $showAll
      * @return string
      */
-    private function getCliParams(bool $showAll = false)
+    private function getOptionParams(bool $showAll = false)
     {
         $cliParams = '';
         $envCliParams = getenv('ENV_CLI_PARAMS') ? json_decode(getenv('ENV_CLI_PARAMS'), true) : [];
 
-        foreach ($envCliParams as $param) {
-            if ($value = getenv($param)) {
-                $cliParams .= '--' . $param . '=' . $value . ' ';
+        foreach ($envCliParams as $env=>$value) {
+            if (in_array($env, ['help','quiet','verbose','version','ansi','no-interaction'])) {
+                continue;
             }
+            $cliParams .= '--' . $env . '=' . $value . ' ';
         }
 
         $cliParams = trim($cliParams);
@@ -1807,49 +1813,51 @@ class MainManager
             $enableCliPipe   = is_resource($this->cliPipeFd) ? 1 : 0;
             list($msgSysvmsgInfo, $sysKernel) = $this->getSysvmsgInfo();
             $swooleTableInfo = $this->getSwooleTableInfo();
-            $cliParams       = $this->getCliParams(false);
+            $cliParams       = $this->getOptionParams(false);
             $maxNum          = $this->getMaxProcessNum();
             $hostname        = gethostname();
-            $info            =
-                <<<EOF
-\r
- Master Process Runtime:
-        | 
-        master_name: $process_name
-        master_worker_id(default 0): $worker_id
-        swoole_master_pid: $pid
-        master_status：$status
-        start_time：$start_time,
-        cli_params：$cliParams,
-        start_script_file: $startScriptFile
-        pid_file: $pidFile
-        children_num: $childrenNum
-        cpu_num: $cpuNum
-        max_process_num(cpu_num * 8): $maxNum
-        memory: $memory
-        php_version: $phpVersion
-        swoole_version: $swooleVersion
-        enable_cli_pipe: $enableCliPipe
-        sysvmsg_kernel: $sysKernel
-        sysvmsg_status: $msgSysvmsgInfo
-        swoole_table_name: $swooleTableInfo
-        hostname: $hostname
-        
- 
- Children Process Runtime:
-        |
-EOF;
+            $infoItem = [
+                'master_name' => $process_name,
+                'master_worker_id(default 0)' => $worker_id,
+                'swoole_master_pid' => $pid,
+                'master_status' => $status,
+                'start_time'=> $start_time,
+                'cli_option_params' => $cliParams,
+                'start_script_file' => $startScriptFile,
+                'pid_file' =>  $pidFile,
+                'children_num' => $childrenNum,
+                'cpu_num' => $cpuNum,
+                'max_process_num(cpu_num * 8)' => $maxNum,
+                'memory' => $memory,
+                'php_version' => $phpVersion,
+                'swoole_version' => $swooleVersion,
+                'enable_cli_pipe' => $enableCliPipe,
+                'sysvmsg_kernel' => $sysKernel,
+                'sysvmsg_status' => $msgSysvmsgInfo,
+                'swoole_table_name' => $swooleTableInfo,
+                'hostname'=> $hostname,
+            ];
+            $formattedData = [];
+            foreach ($infoItem as $name=>$value) {
+                $formattedData[] = $name.':'.$value;
+            }
+            $info = implode($this->getSeparator(), $formattedData).$this->getSeparator();
         } else {
+            // worker info
             $memory = $this->processStatusList[$process_name][$worker_id]['memory'] ?? '--';
-            $info =
-                <<<EOF
-        
-        【{$process_name}@{$worker_id}】【{$process_type}】: 进程名称name: $process_name, 进程编号worker_id: $worker_id, 进程Pid: $pid, 进程状态status：$status, 启动(重启)时间：$start_time, 内存占用：$memory, reboot次数：$reboot_count
-\r
-EOF;
-
+            $info = "【{$process_name}@{$worker_id}】【{$process_type}】: 进程名称name: $process_name, 进程编号worker_id: $worker_id, 进程Pid: $pid, 进程状态status：$status, 启动(重启)时间：$start_time, 内存占用：$memory, reboot次数：$reboot_count";
         }
+
         return $info;
     }
+
+    /**
+     * @return string
+     */
+    private function getSeparator()
+    {
+        return PHP_EOL;
+    }
+
 
 }
