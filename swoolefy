@@ -27,6 +27,11 @@ function isWorkerService(): bool
     return false;
 }
 
+function isCliService()
+{
+    return !isWorkerService();
+}
+
 function isDaemonService(): bool
 {
     if (defined('IS_DAEMON_SERVICE') && IS_DAEMON_SERVICE == 1) {
