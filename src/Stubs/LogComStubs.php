@@ -10,6 +10,7 @@
  */
 
 use Swoolefy\Util\Log;
+use Swoolefy\Core\SystemEnv;
 use Common\Library\Db\Mysql;
 use Common\Library\Redis\Redis;
 
@@ -20,14 +21,14 @@ return [
     'log' => function($name) {
         $logger = new Log($name);
         $logger->setChannel('application');
-        if(isDaemonService()) {
-            $logFilePath = LOG_PATH.'/daemon.log';
-        }else if (isScriptService()) {
-            $logFilePath = LOG_PATH.'/script.log';
-        }else if (isCronService()) {
-            $logFilePath = LOG_PATH.'/cron.log';
+        if(SystemEnv::isDaemonService()) {
+            $logFilePath = LOG_PATH.'/daemon/info.log';
+        }else if (SystemEnv::isScriptService()) {
+            $logFilePath = LOG_PATH.'/script/info.log';
+        }else if (SystemEnv::isCronService()) {
+            $logFilePath = LOG_PATH.'/cron/info.log';
         } else {
-            $logFilePath = LOG_PATH.'/runtime.log';
+            $logFilePath = LOG_PATH.'/cli/info.log';
         }
         $logger->setLogFilePath($logFilePath);
         return $logger;
@@ -37,22 +38,33 @@ return [
     'error_log' => function($name) {
         $logger = new Log($name);
         $logger->setChannel('application');
-        if(isDaemonService()) {
-            $logFilePath = LOG_PATH.'/daemon_error.log';
-        }else if (isScriptService()) {
-            $logFilePath = LOG_PATH.'/script_error.log';
-        }else if (isCronService()) {
-            $logFilePath = LOG_PATH.'/cron_error.log';
+        if(SystemEnv::isDaemonService()) {
+            $logFilePath = LOG_PATH.'/daemon/error.log';
+        }else if (SystemEnv::isScriptService()) {
+            $logFilePath = LOG_PATH.'/script/error.log';
+        }else if (SystemEnv::isCronService()) {
+            $logFilePath = LOG_PATH.'/cron/error.log';
         } else {
-            $logFilePath = LOG_PATH.'/error.log';
+            $logFilePath = LOG_PATH.'/cli/error.log';
         }
         $logger->setLogFilePath($logFilePath);
         return $logger;
     },
 
-    // mysql db
-    'db' => function() use($dc) {
-        $db = new Mysql($dc['mysql_db']);
-        return $db;
+    // 系统捕捉抛出异常错误日志
+    'system_error_log' => function($name) {
+        $logger = new \Swoolefy\Util\Log($name);
+        $logger->setChannel('application');
+        if(SystemEnv::isDaemonService()) {
+            $logFilePath = LOG_PATH.'/daemon/system_error.log';
+        }else if (SystemEnv::isScriptService()) {
+            $logFilePath = LOG_PATH.'/script/system_error.log';
+        }else if (SystemEnv::isCronService()) {
+            $logFilePath = LOG_PATH.'/cron/system_error.log';
+        } else {
+            $logFilePath = LOG_PATH.'/cli/system_error.log';
+        }
+        $logger->setLogFilePath($logFilePath);
+        return $logger;
     }
 ];
