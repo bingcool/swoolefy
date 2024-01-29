@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Core\Log;
 
+use Swoolefy\Exception\SystemException;
 use \Swoolefy\Util\Log;
 
 /**
@@ -71,6 +72,9 @@ class LogManager
     public function registerLoggerByClosure(\Closure $func, string $type)
     {
         $logger = $this->logger[$type] = call_user_func($func, $type);
+        if (!$logger instanceof \Swoolefy\Util\Log) {
+            throw new SystemException("registerLoggerByClosure only for \Swoolefy\Util\Log, not sopport other component");
+        }
         $logger->setType($type);
     }
 
