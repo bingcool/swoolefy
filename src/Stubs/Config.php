@@ -20,14 +20,16 @@ return [
             'max_pool_num' => 5,
             'max_push_timeout' => 2,
             'max_pop_timeout' => 1,
-            'max_life_timeout' => 10
+            'max_life_timeout' => 10,
+            'enable_tick_clear_pool' => 0
         ],
 
         'cache' => [
             'max_pool_num' => 5,
             'max_push_timeout' => 2,
             'max_pop_timeout' => 1,
-            'max_life_timeout' => 10
+            'max_life_timeout' => 10,
+            'enable_tick_clear_pool' => 0
         ]
     ],
 

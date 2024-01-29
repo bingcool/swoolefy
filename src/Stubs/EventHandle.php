@@ -14,21 +14,6 @@ class Event extends EventHandler
      * onInit
      */
     public function onInit() {
-        // log register
-        $appConf = Swfy::getAppConf();
-        if(isset($appConf['components']['log'])) {
-            $log = $appConf['components']['log'];
-            if($log instanceof \Closure) {
-                LogManager::getInstance()->registerLoggerByClosure($log, 'log');
-            }
-        }
-
-        if(isset($appConf['components']['error_log'])) {
-            $log = $appConf['components']['error_log'];
-            if($log instanceof \Closure) {
-                LogManager::getInstance()->registerLoggerByClosure($log, 'error_log');
-            }
-        }
 
         if (!$this->isWorkerService()) {
             // todo refer to Test Demo
