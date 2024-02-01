@@ -19,9 +19,6 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
     public function init()
     {
         parent::init();
-        RunLog::info("jjjjjjjjjjjjjjjjjjjjjjjjjjjjjj");
-        RunLog::error("kkkkkkkkk");
-
         \Swoolefy\Core\Coroutine\Context::set('name','kkkkkkkkkkkkkkkkkkkkkkkk');
         Context::set('db_debug', true);
         goApp(function () {
@@ -37,6 +34,22 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
 
     public function fixName()
     {
+        $db = Factory::getDb();
+        $db->newQuery()->table('tbl_users')->field('user_id,user_name')->chunk(10, function ($rows) {
+            foreach ($rows as $row) {
+                var_dump($row);
+            }
+        },'user_id');
+
+
+//        $users = $db->newQuery()->table('tbl_users')->field('user_id,user_name')->cursor();
+//        foreach ($users as $row) {
+//            var_dump($row);
+//            //\swoole\Coroutine::sleep(0.01);
+//        }
+
+
+
         $list = [
             [
                 'name' => 1
