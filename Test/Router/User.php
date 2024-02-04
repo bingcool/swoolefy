@@ -42,6 +42,23 @@ Route::group([
         //GroupTestMiddleware::class => GroupTestMiddleware::class
     ]);
 
+    Route::post('/user-order/userList', [
+        // 针对该接口启动sql-debug
+        'beforeHandle' => function(RequestInput $requestInput) {
+            Context::set('db_debug', true);
+        },
+        'beforeHandle1' => function(RequestInput $requestInput) {
+            $requestInput->input('name');
+            $requestInput->input('order_ids');
+            $requestInput->getMethod();
+        },
+        'beforeHandle2' => [
+            GroupTestMiddleware::class
+        ],
+        'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList'],
+        //GroupTestMiddleware::class => GroupTestMiddleware::class
+    ]);
+
     Route::get('/user-order/save-order', [
         'beforeHandle' => function(RequestInput $requestInput) {
             $name = $requestInput->getRequestParams('name');

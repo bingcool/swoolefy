@@ -56,7 +56,7 @@ class EventCtrl implements EventCtrlInterface
             static::onWorkerServiceInit();
             $this->boostrapWorkerInit();
         }
-        static::eachStartInfo();
+        static::printStartInfo();
     }
 
     /**
@@ -300,7 +300,7 @@ class EventCtrl implements EventCtrlInterface
     /**
      * eachStartInfo
      */
-    protected function eachStartInfo()
+    protected function printStartInfo()
     {
         $protocol = BaseServer::getServiceProtocol();
         switch ($protocol) {
