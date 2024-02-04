@@ -15,6 +15,7 @@ use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\ResponseOutput;
+use Swoolefy\Http\HttpRoute;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 
