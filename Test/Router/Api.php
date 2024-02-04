@@ -21,7 +21,7 @@ Route::group([
 ], function () {
     Route::get('/', [
         'beforeHandle' => function(RequestInput $requestInput) {
-            $requestInput->setValue('name','黄增兵');
+            $requestInput->setValue('name','bingcool');
         },
 
         'beforeHandle1' => function(RequestInput $requestInput) {
