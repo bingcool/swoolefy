@@ -11,11 +11,6 @@ use Test\Logger\RunLog;
 
 class FixedUser extends \Swoolefy\Script\MainCliScript
 {
-    /**
-     * @var Mysql
-     */
-    protected $db;
-
     public function init()
     {
         parent::init();
@@ -29,17 +24,16 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
                 });
             });
         });
-        $this->db = Factory::getDb();
     }
 
     public function fixName()
     {
-        $db = Factory::getDb();
-        $db->newQuery()->table('tbl_users')->field('user_id,user_name')->chunk(10, function ($rows) {
-            foreach ($rows as $row) {
-                var_dump($row);
-            }
-        },'user_id');
+//        $db = Factory::getDb();
+//        $db->newQuery()->table('tbl_users')->field('user_id,user_name')->chunk(10, function ($rows) {
+//            foreach ($rows as $row) {
+//                var_dump($row);
+//            }
+//        },'user_id');
 
 
 //        $users = $db->newQuery()->table('tbl_users')->field('user_id,user_name')->cursor();
@@ -50,24 +44,24 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
 
 
 
-        $list = [
-            [
-                'name' => 1
-            ],
-            [
-                'name' => 2
-            ],
-            [
-                'name' => 3
-            ],
-            [
-                'name' => 4
-            ],
-            [
-                'name' => 5
-            ]
-        ];
-
+//        $list = [
+//            [
+//                'name' => 1
+//            ],
+//            [
+//                'name' => 2
+//            ],
+//            [
+//                'name' => 3
+//            ],
+//            [
+//                'name' => 4
+//            ],
+//            [
+//                'name' => 5
+//            ]
+//        ];
+//
 //        Parallel::run(2, $list, function ($item) {
 //            $db2 = Factory::getDb();
 //            var_dump('cid='.\Swoole\Coroutine::getCid().'spl_object_id-22='.spl_object_id($db2));
@@ -76,36 +70,39 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
 //        }, 0.01);
 
 
-        $parallel = new Parallel(10);
-//        $parallel->add(function () {
-//            sleep(2);
-//            var_dump("ali");
-//        },'ali');
-//
-//        $parallel->add(function () {
-//            sleep(2);
-//            var_dump("tengxu");
-//        },'tengxu');
-//
-//        $parallel->add(function () {
-//            sleep(2);
-//            var_dump("baidu");
-//        },'baidu');
-//
-//        $parallel->add(function () {
-//            sleep(5);
-//            var_dump("zijie");
-//        },'zijie');
+        $parallel = new Parallel();
+        $parallel->add(function () {
+            sleep(2);
+            return "阿里巴巴";
+        },'ali');
 
-        $result = $parallel->runWait();
-        $parallel = new Parallel(2);
-        foreach ($list as &$item) {
-            $parallel->add(function () use($item) {
-                return $item['name'].'-'.'name';
-            });
-        }
+        $parallel->add(function () {
+            sleep(2);
+            return "腾讯";
+        },'tengxu');
 
-        $result = $parallel->runWait();
+        $parallel->add(function () {
+            sleep(2);
+            return "百度";
+        },'baidu');
+
+        $parallel->add(function () {
+            sleep(5);
+            return "字节跳动";
+        },'zijie');
+
+        $result = $parallel->runWait(10);
+
+//        $parallel = new Parallel(2);
+//        foreach ($list as &$item) {
+//            $parallel->add(function () use($item) {
+//                return $item['name'].'-'.'name';
+//            });
+//        }
+//        $result = $parallel->runWait();
+
+
+
         var_dump($result);
 
 //        try {

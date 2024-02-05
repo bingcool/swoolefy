@@ -49,9 +49,12 @@ class Route
      */
     public static function get(string $uri, array $routeMeta)
     {
-        $groupMeta = Context::get('__current_request_group_meta') ?? [];
-        $uri = self::parseUri($uri, $groupMeta);
+        $groupMeta = [];
+        if (Context::has('__current_request_group_meta')) {
+            $groupMeta = Context::get('__current_request_group_meta') ?? [];
+        }
 
+        $uri = self::parseUri($uri, $groupMeta);
         return self::$routeMap[$uri]['GET'] = [
             'group_meta' => $groupMeta,
             'method' => ['GET'],
@@ -66,7 +69,11 @@ class Route
      */
     public static function post(string $uri, array $routeMeta)
     {
-        $groupMeta = Context::get('__current_request_group_meta') ?? [];
+        $groupMeta = [];
+        if (Context::has('__current_request_group_meta')) {
+            $groupMeta = Context::get('__current_request_group_meta') ?? [];
+        }
+
         $uri = self::parseUri($uri, $groupMeta);
         return self::$routeMap[$uri]['POST'] = [
             'group_meta' => $groupMeta,
@@ -82,7 +89,11 @@ class Route
      */
     public static function put(string $uri, array $routeMeta)
     {
-        $groupMeta = Context::get('__current_request_group_meta') ?? [];
+        $groupMeta = [];
+        if (Context::has('__current_request_group_meta')) {
+            $groupMeta = Context::get('__current_request_group_meta') ?? [];
+        }
+
         $uri = self::parseUri($uri, $groupMeta);
         return self::$routeMap[$uri]['PUT'] = [
             'group_meta' => $groupMeta,
@@ -98,7 +109,11 @@ class Route
      */
     public static function delete(string $uri, array $routeMeta)
     {
-        $groupMeta = Context::get('__current_request_group_meta') ?? [];
+        $groupMeta = [];
+        if (Context::has('__current_request_group_meta')) {
+            $groupMeta = Context::get('__current_request_group_meta') ?? [];
+        }
+
         $uri = self::parseUri($uri, $groupMeta);
         return self::$routeMap[$uri]['DELETE'] = [
             'group_meta' => $groupMeta,
@@ -114,7 +129,11 @@ class Route
      */
     public static function head(string $uri, array $routeMeta)
     {
-        $groupMeta = Context::get('__current_request_group_meta') ?? [];
+        $groupMeta = [];
+        if (Context::has('__current_request_group_meta')) {
+            $groupMeta = Context::get('__current_request_group_meta') ?? [];
+        }
+
         $uri = self::parseUri($uri, $groupMeta);
         return self::$routeMap[$uri]['HEAD'] = [
             'group_meta' => $groupMeta,
@@ -131,9 +150,13 @@ class Route
      */
     public static function match(array $methods, string $uri, array $routeMeta)
     {
+        $groupMeta = [];
+        if (Context::has('__current_request_group_meta')) {
+            $groupMeta = Context::get('__current_request_group_meta') ?? [];
+        }
+
         foreach ($methods as $method) {
             $method = strtoupper($method);
-            $groupMeta = Context::get('__current_request_group_meta') ?? [];
             $uri = self::parseUri($uri, $groupMeta);
             self::$routeMap[$uri][$method] = [
                 'group_meta' => $groupMeta,
@@ -150,8 +173,12 @@ class Route
      */
     public static function any(string $uri, array $routeMeta)
     {
-        foreach (self::HTTP_METHODS as $method) {
+        $groupMeta = [];
+        if (Context::has('__current_request_group_meta')) {
             $groupMeta = Context::get('__current_request_group_meta') ?? [];
+        }
+
+        foreach (self::HTTP_METHODS as $method) {
             $uri = self::parseUri($uri, $groupMeta);
             self::$routeMap[$uri][$method] = [
                 'group_meta' => $groupMeta,
