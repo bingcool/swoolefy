@@ -33,10 +33,11 @@ class Parallel
 {
 
     /**
+     * 协程最大限制并发数
+     *
      * @var int
      */
-    private $concurrent = 5;
-
+    private $maxConcurrent = 50;
     /**
      * @var callable[]
      */
@@ -48,12 +49,12 @@ class Parallel
     private $ignoreCallbacks = [];
 
     /**
-     * Parallel constructor.
-     * @param int $concurrent
+     * 协程最大限制并发数
+     * @param int $maxConcurrent
      */
-    public function __construct(int $concurrent = 5)
+    public function __construct(int $maxConcurrent = 50)
     {
-        $this->concurrent = $concurrent;
+        $this->maxConcurrent = $maxConcurrent;
     }
 
     /**
@@ -82,8 +83,12 @@ class Parallel
         }
         $result = [];
         $start = 0;
-        while ($items = array_slice($this->callbacks, $start, $this->concurrent, true)) {
-            $start = $start + $this->concurrent;
+        $concurrent = count($this->callbacks);
+        if ($concurrent > $this->maxConcurrent) {
+            $concurrent = $this->maxConcurrent;
+        }
+        while ($items = array_slice($this->callbacks, $start, $concurrent, true)) {
+            $start = $start + $concurrent;
             foreach ($items as $key => $callable) {
                 if (in_array($key, $this->ignoreCallbacks)) {
                     unset($items[$key]);
@@ -106,6 +111,7 @@ class Parallel
      * @param int $concurrent 限制的并发协程数量
      * @param array $list 数组
      * @param \Closure $handleFn 回调处理
+     * @param float $sleepTime
      * @return void
      */
     public static function run(int $concurrent, array &$list, \Closure $handleFn, float $sleepTime = 0.01)

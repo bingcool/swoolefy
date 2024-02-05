@@ -46,6 +46,8 @@ trait RequestParseTrait
      */
     protected $rules;
 
+    protected $groupMeta = [];
+
     /**
      * isGet
      * @return bool
@@ -252,6 +254,35 @@ trait RequestParseTrait
             return $value;
         }
         return $this->request->server;
+    }
+
+    /**
+     * 设置路由分组元信息
+     * @param array $groupMeta
+     * @return void
+     */
+    public function setHttpGroupMeta(array $groupMeta)
+    {
+        $this->groupMeta = $groupMeta;
+    }
+
+    /**
+     * 路由分组元信息
+     * @return array
+     */
+    public function getHttpGroupMeta(): array
+    {
+        return $this->groupMeta ?? [];
+    }
+
+    /**
+     * 路由分组前缀
+     *
+     * @return mixed
+     */
+    public function getHttpRoutePrefix()
+    {
+        return $this->getHttpGroupMeta()['prefix'] ?? '';
     }
 
     /**
