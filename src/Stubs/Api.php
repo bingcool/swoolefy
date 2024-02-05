@@ -2,7 +2,27 @@
 
 use Swoolefy\Http\Route;
 use Swoolefy\Http\RequestInput;
+use Swoolefy\Core\Coroutine\Context;
 
+// 直接路由-不分组
+Route::get('/index/index', [
+    'beforeHandle' => function(RequestInput $requestInput) {
+        Context::set('name', 'bingcool');
+        $name = $requestInput->getPostParams('name');
+    },
+
+    // 这里需要替换长对应的控制器命名空间
+    'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
+
+    'afterHandle' => function(RequestInput $requestInput) {
+
+    },
+    'afterHandle1' => function(RequestInput $requestInput) {
+
+    },
+]);
+
+// 分组路由
 Route::group([
     // 路由前缀
     'prefix' => 'api',
@@ -21,6 +41,12 @@ Route::group([
         // 前置路由,中间件类形式(推荐)
         'beforeHandle2' => \Test\Middleware\Route\ValidLoginMiddleware::class,
 
+        // 前置路由,中间件数组类形式(推荐)
+        'beforeHandle3' => [
+            \Test\Middleware\Route\ValidLoginMiddleware::class,
+            \Test\Middleware\Route\ValidLoginMiddleware::class,
+        ],
+
         // 控制器action
         'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
 
@@ -31,28 +57,11 @@ Route::group([
 
         // 前置路由,中间件类形式(推荐)
         'afterHandle2' => \Test\Middleware\Route\ValidLoginMiddleware::class,
-    ]);
 
-
-    Route::get('/index/index', [
-        // 前置路由,闭包函数形式
-        'beforeHandle1' => function(RequestInput $requestInput) {
-            $name = $requestInput->getPostParams('name');
-        },
-
-        // 前置路由,中间件类形式(推荐)
-        'beforeHandle2' => \Test\Middleware\Route\ValidLoginMiddleware::class,
-
-        // 控制器action
-        'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
-
-        // 后置路由1, 闭包函数形式
-        'afterHandle1' => function(RequestInput $requestInput) {
-
-        },
-
-        // 前置路由,中间件类形式(推荐)
-        'afterHandle2' => \Test\Middleware\Route\ValidLoginMiddleware::class,
-
+        // 前置路由,中间件数组类形式(推荐)
+        'afterHandle3' => [
+            \Test\Middleware\Route\ValidLoginMiddleware::class,
+            \Test\Middleware\Route\ValidLoginMiddleware::class
+        ],
     ]);
 });
