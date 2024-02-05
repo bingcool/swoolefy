@@ -9,7 +9,7 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Core;
+namespace Swoolefy\Http;
 
 class MimeType
 {

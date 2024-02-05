@@ -308,43 +308,54 @@ $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
 return [
     // 用户行为记录的日志
     'log' => function($name) {
-        $logger = new \Swoolefy\Util\Log($name);
+        $logger = new Log($name);
         $logger->setChannel('application');
-        if(isDaemonService()) {
-            $logFilePath = LOG_PATH.'/daemon.log';
-        }else if (isScriptService()) {
-            $logFilePath = LOG_PATH.'/script.log';
-        }else if (isCronService()) {
-            $logFilePath = LOG_PATH.'/cron.log';
+        if(SystemEnv::isDaemonService()) {
+            $logFilePath = LOG_PATH.'/daemon/info.log';
+        }else if (SystemEnv::isScriptService()) {
+            $logFilePath = LOG_PATH.'/script/info.log';
+        }else if (SystemEnv::isCronService()) {
+            $logFilePath = LOG_PATH.'/cron/info.log';
         } else {
-            $logFilePath = LOG_PATH.'/runtime.log';
+            $logFilePath = LOG_PATH.'/cli/info.log';
         }
         $logger->setLogFilePath($logFilePath);
         return $logger;
     },
 
-    // 系统捕捉异常错误日志
+    // 用户行为记录错误日志
     'error_log' => function($name) {
-        $logger = new \Swoolefy\Util\Log($name);
+        $logger = new Log($name);
         $logger->setChannel('application');
-        if(isDaemonService()) {
-            $logFilePath = LOG_PATH.'/daemon_error.log';
-        }else if (isScriptService()) {
-            $logFilePath = LOG_PATH.'/script_error.log';
-        }else if (isCronService()) {
-            $logFilePath = LOG_PATH.'/cron_error.log';
+        if(SystemEnv::isDaemonService()) {
+            $logFilePath = LOG_PATH.'/daemon/error.log';
+        }else if (SystemEnv::isScriptService()) {
+            $logFilePath = LOG_PATH.'/script/error.log';
+        }else if (SystemEnv::isCronService()) {
+            $logFilePath = LOG_PATH.'/cron/error.log';
         } else {
-            $logFilePath = LOG_PATH.'/error.log';
+            $logFilePath = LOG_PATH.'/cli/error.log';
         }
         $logger->setLogFilePath($logFilePath);
         return $logger;
     },
 
-    // MYSQL
-    'db' => function() use($dc) {
-        $db = new \Common\Library\Db\Mysql($dc['mysql_db']);
-        return $db;
-    },
+    // 系统捕捉抛出异常错误日志
+    'system_error_log' => function($name) {
+        $logger = new \Swoolefy\Util\Log($name);
+        $logger->setChannel('application');
+        if(SystemEnv::isDaemonService()) {
+            $logFilePath = LOG_PATH.'/daemon/system_error.log';
+        }else if (SystemEnv::isScriptService()) {
+            $logFilePath = LOG_PATH.'/script/system_error.log';
+        }else if (SystemEnv::isCronService()) {
+            $logFilePath = LOG_PATH.'/cron/system_error.log';
+        } else {
+            $logFilePath = LOG_PATH.'/cli/system_error.log';
+        }
+        $logger->setLogFilePath($logFilePath);
+        return $logger;
+    }
     
     // Redis Cache
     'redis' => function() use($dc) {
@@ -556,6 +567,25 @@ Router/api.php
 use Swoolefy\Http\Route;
 use Swoolefy\Http\RequestInput;
 
+// 直接路由-不分组
+Route::get('/index/index', [
+    'beforeHandle' => function(RequestInput $requestInput) {
+        Context::set('name', 'bingcool');
+        $name = $requestInput->getPostParams('name');
+    },
+
+    // 这里需要替换长对应的控制器命名空间
+    'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
+
+    'afterHandle' => function(RequestInput $requestInput) {
+
+    },
+    'afterHandle1' => function(RequestInput $requestInput) {
+
+    },
+]);
+
+// 分组路由
 Route::group([
     // 路由前缀
     'prefix' => 'api',
@@ -574,6 +604,12 @@ Route::group([
         // 前置路由,中间件类形式(推荐)
         'beforeHandle2' => \Test\Middleware\Route\ValidLoginMiddleware::class,
 
+        // 前置路由,中间件数组类形式(推荐)
+        'beforeHandle3' => [
+            \Test\Middleware\Route\ValidLoginMiddleware::class,
+            \Test\Middleware\Route\ValidLoginMiddleware::class,
+        ],
+
         // 控制器action
         'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
 
@@ -584,29 +620,12 @@ Route::group([
 
         // 前置路由,中间件类形式(推荐)
         'afterHandle2' => \Test\Middleware\Route\ValidLoginMiddleware::class,
-    ]);
 
-
-    Route::get('/index/index', [
-        // 前置路由,闭包函数形式
-        'beforeHandle1' => function(RequestInput $requestInput) {
-            $name = $requestInput->getPostParams('name');
-        },
-
-        // 前置路由,中间件类形式(推荐)
-        'beforeHandle2' => \Test\Middleware\Route\ValidLoginMiddleware::class,
-
-        // 控制器action
-        'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
-
-        // 后置路由1, 闭包函数形式
-        'afterHandle1' => function(RequestInput $requestInput) {
-
-        },
-
-        // 前置路由,中间件类形式(推荐)
-        'afterHandle2' => \Test\Middleware\Route\ValidLoginMiddleware::class,
-
+        // 前置路由,中间件数组类形式(推荐)
+        'afterHandle3' => [
+            \Test\Middleware\Route\ValidLoginMiddleware::class,
+            \Test\Middleware\Route\ValidLoginMiddleware::class
+        ],
     ]);
 });
 
@@ -651,6 +670,89 @@ $db->newQuery()->table('tbl_users')->where(['id', '=', 100])->field(['id', 'user
 
 ```
 
+### 协程单例，协程并发
+```
+// 协程单例使用goApp直接调用创建, 每个协程的DB，redis,kafka,mq的socket对象相互隔离，互不影响，代码通用
+
+goApp(function() {
+    $db = Application::getApp()->get('db');
+    // 查询列表
+    $db->newQuery()->table('tbl_users')->where('id','>', 1)->field(['id', 'user_name'])->limit(0,10)->select();
+    // redis
+    $redis = Application::getApp()->get('redis');
+    $redis->set('name','bingcool')
+})
+
+
+
+// 协程并发-协程并发迭代数组处理数据(针对数据量大，无需关注返回数据)
+
+$list = [
+    [
+        'name' => ’name-1'
+    ],
+    [
+        'name' =>  ’name-2'
+    ],
+    [
+        'name' =>  ’name-3'
+    ],
+    [
+        'name' =>  ’name-4'
+    ],
+    [
+        'name' =>  ’name-5'
+    ]
+];
+
+// 并发2个协程-循环迭代数组-回调函数处理
+Parallel::run(2, $list, function ($item) {
+    var_dump($item['name']);
+}, 0.01);
+
+
+
+// 协程并发-协程并发处理并等待结果(针对并发量少，并且需要返回数据的)
+
+$parallel = new Parallel();
+$parallel->add(function () {
+    sleep(2);
+    return "阿里巴巴";
+},'ali');
+
+$parallel->add(function () {
+    sleep(2);
+    return "腾讯";
+},'tengxu');
+
+$parallel->add(function () {
+    sleep(2);
+    return "百度";
+},'baidu');
+
+$parallel->add(function () {
+    sleep(5);
+    return "字节跳动";
+},'zijie');
+
+// 并发等待返回数据
+$result = $parallel->runWait(10);
+array(4) {
+  ["ali"]=>
+  string(12) "阿里巴巴"
+  ["tengxu"]=>
+  string(6) "腾讯"
+  ["baidu"]=>
+  string(6) "百度"
+  ["zijie"]=>
+  string(12) "字节跳动"
+}
+
+
+```
+
+
+
 ### License
 MIT   
-Copyright (c) 2017-2023 zengbing huang    
+Copyright (c) 2017-2024 zengbing huang    
