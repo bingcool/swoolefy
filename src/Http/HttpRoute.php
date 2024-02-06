@@ -9,12 +9,14 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Core;
+namespace Swoolefy\Http;
 
-use Swoolefy\Http\Route;
-use Swoolefy\Http\RequestInput;
-use Swoolefy\Http\ResponseOutput;
+use Swoolefy\Core\App;
+use Swoolefy\Core\AppDispatch;
+use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
+use Swoolefy\Core\Coroutine\Context;
+use Swoolefy\Core\RouteMiddleware;
 use Swoolefy\Exception\DispatchException;
 use Swoolefy\Exception\SystemException;
 
@@ -80,14 +82,19 @@ class HttpRoute extends AppDispatch
     protected $afterMiddleware = [];
 
     /**
-     * @var array
+     * @var string
      */
-    protected $routeMethod;
+    protected $httpMethod;
 
     /**
      * @var array
      */
     protected $groupMeta;
+
+    /**
+     * @var RouteOption
+     */
+    protected $routeOption;
 
     /**
      * @var array
@@ -113,7 +120,9 @@ class HttpRoute extends AppDispatch
         $this->requestInput = $requestInput;
         $this->responseOutput = $responseOutput;
         $this->extendData = $extendData;
-        list($this->groupMiddleware, $this->beforeMiddleware, $this->dispatchRoute, $this->afterMiddleware, $this->routeMethod, $this->groupMeta)  = self::getHttpRouterMapUri($this->requestInput->getServerParams('PATH_INFO'));
+        $this->httpMethod = $this->requestInput->getMethod();
+        list($this->groupMiddleware, $this->beforeMiddleware, $this->dispatchRoute, $this->afterMiddleware, $this->groupMeta, $this->routeOption)  = self::getHttpRouterMapUri($this->requestInput->getRequestUri(), $this->httpMethod);
+        $this->requestInput->setHttpGroupMeta($this->groupMeta);
     }
 
     /**
@@ -123,12 +132,6 @@ class HttpRoute extends AppDispatch
      */
     public function dispatch()
     {
-        $method = $this->requestInput->getMethod();
-        if ($this->routeMethod != 'ANY' && !in_array($method, $this->routeMethod)) {
-            $routeMethods = implode(',', $this->routeMethod);
-            throw new DispatchException("Not Allow Route Method.You should use [$routeMethods] method.");
-        }
-
         if (!isset($this->appConf['app_namespace']) || $this->appConf['app_namespace'] != APP_NAME ) {
             $this->appConf['app_namespace'] = APP_NAME;
         }
@@ -198,16 +201,31 @@ class HttpRoute extends AppDispatch
         // reset app conf
         $this->app->setAppConf($this->appConf);
 
-        /**@var BController $controllerInstance */
-        $controllerInstance = new $class();
-        // set Controller Instance
-        $this->app->setControllerInstance($controllerInstance);
+        // 是否动态开启db-debug
+        if ($this->routeOption->isEnableDbDebug()) {
+            Context::set('db_debug', true);
+        }
+
+        // rateLimiterMiddleware handle
+        if ($rateLimiterMiddleware = $this->routeOption->getRateLimiterMiddleware()) {
+            if (class_exists($rateLimiterMiddleware)) {
+                $rateLimiter = new $rateLimiterMiddleware();
+                if ($rateLimiter instanceof RouteMiddleware) {
+                    $rateLimiter->handle($this->requestInput, $this->responseOutput);
+                }
+            }
+        }
 
         // handle route group middles
         $this->handleGroupRouteMiddles();
 
         // handle before route middles
         $this->handleBeforeRouteMiddles();
+
+        /**@var BController $controllerInstance */
+        $controllerInstance = new $class();
+        // set Controller Instance
+        $this->app->setControllerInstance($controllerInstance);
 
         // set extend data
         $controllerInstance->setExtendData($this->requestInput->getExtendData());
@@ -388,21 +406,21 @@ class HttpRoute extends AppDispatch
      * @param string $uri
      * @return array
      */
-    protected static function getHttpRouterMapUri(string $uri): array
+    protected static function getHttpRouterMapUri(string $uri, string $method): array
     {
         $uri = DIRECTORY_SEPARATOR.trim($uri,DIRECTORY_SEPARATOR);
-
-        if (isset(self::$routeCache[$uri])) {
-            return self::$routeCache[$uri];
+        $method = strtoupper($method);
+        if (isset(self::$routeCache[$uri][$method])) {
+            return self::$routeCache[$uri][$method];
         }
 
         $routerMap = Route::loadRouteFile();
-
-        if (isset($routerMap[$uri]['route_meta'])) {
-            $groupMeta  = $routerMap[$uri]['group_meta'] ?? [];
-            $routerMeta = $routerMap[$uri]['route_meta'];
-            $groupMiddleware = $routerMap[$uri]['group_meta']['middleware'] ?? [];
-            $method = $routerMap[$uri]['method'];
+        if (isset($routerMap[$uri][$method]['route_meta'])) {
+            $routerMapInfo = $routerMap[$uri][$method];
+            $groupMeta  = $routerMapInfo['group_meta'] ?? [];
+            $routerMeta = $routerMapInfo['route_meta'];
+            $groupMiddleware = $routerMapInfo['group_meta']['middleware'] ?? [];
+            $routeOption = $routerMapInfo['route_option'];
             if(!isset($routerMeta['dispatch_route'])) {
                 $routerMeta['dispatch_route'] = $uri;
             }else {
@@ -443,10 +461,9 @@ class HttpRoute extends AppDispatch
                 }
             }
 
-
-            $routeCacheItems = [$groupMiddleware, $beforeMiddleware, $originDispatchRoute, $afterMiddleware, $method, $groupMeta];
-            self::$routeCache[$uri] = $routeCacheItems;
-            unset($routerMap[$uri]);
+            $routeCacheItems = [$groupMiddleware, $beforeMiddleware, $originDispatchRoute, $afterMiddleware, $groupMeta, $routeOption];
+            self::$routeCache[$uri][$method] = $routeCacheItems;
+            unset($routerMap[$uri][$method]);
             return $routeCacheItems;
         }else {
             throw new DispatchException("Not Found Route [$uri].");
