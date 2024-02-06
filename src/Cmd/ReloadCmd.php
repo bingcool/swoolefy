@@ -1,6 +1,7 @@
 <?php
 namespace Swoolefy\Cmd;
 
+use Swoolefy\Core\SystemEnv;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -20,7 +21,7 @@ class ReloadCmd extends BaseCmd
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        if (isWorkerService()) {
+        if (SystemEnv::isWorkerService()) {
             fmtPrintError("WorkerServer, CronService, ScriptService is not support reload command");
             return 0;
         }
