@@ -115,7 +115,7 @@ class EventCtrl implements EventCtrlInterface
             }else if (SystemEnv::isScriptService()) {
                 $sqlLogName = 'sql_script.log';
             }else {
-                $sqlLogName = 'sql.log';
+                $sqlLogName = 'sql_cli.log';
             }
             $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.$sqlLogName;
             $logger->setLogFilePath($sqlFilePath);
@@ -140,7 +140,17 @@ class EventCtrl implements EventCtrlInterface
             if (!is_dir($baseSqlPath)) {
                 mkdir($baseSqlPath,0777);
             }
-            $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'guzzle_curl.log';
+
+            if (SystemEnv::isDaemonService()) {
+                $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_daemon.log';
+            }else if (SystemEnv::isCronService()) {
+                $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_cron.log';
+            }else if (SystemEnv::isScriptService()) {
+                $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_script.log';
+            }else {
+                $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_cli.log';
+            }
+
             $logger->setLogFilePath($sqlFilePath);
             return $logger;
         }, LogManager::GUZZLE_CURL_LOG);

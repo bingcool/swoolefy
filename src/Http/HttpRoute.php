@@ -15,6 +15,7 @@ use Swoolefy\Core\App;
 use Swoolefy\Core\AppDispatch;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
+use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\RouteMiddleware;
 use Swoolefy\Exception\DispatchException;
 use Swoolefy\Exception\SystemException;
@@ -91,6 +92,11 @@ class HttpRoute extends AppDispatch
     protected $groupMeta;
 
     /**
+     * @var RouteOption
+     */
+    protected $routeOption;
+
+    /**
      * @var array
      */
     protected static $routeCache;
@@ -115,7 +121,7 @@ class HttpRoute extends AppDispatch
         $this->responseOutput = $responseOutput;
         $this->extendData = $extendData;
         $this->httpMethod = $this->requestInput->getMethod();
-        list($this->groupMiddleware, $this->beforeMiddleware, $this->dispatchRoute, $this->afterMiddleware, $this->groupMeta)  = self::getHttpRouterMapUri($this->requestInput->getServerParams('PATH_INFO'), $this->httpMethod);
+        list($this->groupMiddleware, $this->beforeMiddleware, $this->dispatchRoute, $this->afterMiddleware, $this->groupMeta, $this->routeOption)  = self::getHttpRouterMapUri($this->requestInput->getRequestUri(), $this->httpMethod);
         $this->requestInput->setHttpGroupMeta($this->groupMeta);
     }
 
@@ -194,6 +200,21 @@ class HttpRoute extends AppDispatch
 
         // reset app conf
         $this->app->setAppConf($this->appConf);
+
+        // 是否动态开启db-debug
+        if ($this->routeOption->isEnableDbDebug()) {
+            Context::set('db_debug', true);
+        }
+
+        // rateLimiterMiddleware handle
+        if ($rateLimiterMiddleware = $this->routeOption->getRateLimiterMiddleware()) {
+            if (class_exists($rateLimiterMiddleware)) {
+                $rateLimiter = new $rateLimiterMiddleware();
+                if ($rateLimiter instanceof RouteMiddleware) {
+                    $rateLimiter->handle($this->requestInput, $this->responseOutput);
+                }
+            }
+        }
 
         // handle route group middles
         $this->handleGroupRouteMiddles();
@@ -399,6 +420,7 @@ class HttpRoute extends AppDispatch
             $groupMeta  = $routerMapInfo['group_meta'] ?? [];
             $routerMeta = $routerMapInfo['route_meta'];
             $groupMiddleware = $routerMapInfo['group_meta']['middleware'] ?? [];
+            $routeOption = $routerMapInfo['route_option'];
             if(!isset($routerMeta['dispatch_route'])) {
                 $routerMeta['dispatch_route'] = $uri;
             }else {
@@ -439,7 +461,7 @@ class HttpRoute extends AppDispatch
                 }
             }
 
-            $routeCacheItems = [$groupMiddleware, $beforeMiddleware, $originDispatchRoute, $afterMiddleware, $groupMeta];
+            $routeCacheItems = [$groupMiddleware, $beforeMiddleware, $originDispatchRoute, $afterMiddleware, $groupMeta, $routeOption];
             self::$routeCache[$uri][$method] = $routeCacheItems;
             unset($routerMap[$uri][$method]);
             return $routeCacheItems;
