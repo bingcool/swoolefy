@@ -80,8 +80,8 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
                 $logger->setRotateDay($rotateDay);
                 $filePath = $logger->getLogFilePath();
                 $filePathDir = pathinfo($filePath, PATHINFO_DIRNAME);
-                $class = str_replace('\\', '/', static::class);
-                $items = explode('/', $class);
+                $class = str_replace('\\', DIRECTORY_SEPARATOR, static::class);
+                $items = explode(DIRECTORY_SEPARATOR, $class);
                 $num = count($items);
                 if ($num >= 2) {
                     $fileName = $items[$num - 2].'_'.$items[$num -1];
@@ -90,12 +90,12 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
                 }
 
                 if (SystemEnv::isDaemonService()) {
-                    $dir = "/{$logType}/" . $fileName . '.log';
+                    $dir = "{$logType}" .DIRECTORY_SEPARATOR. $fileName . '.log';
                 }else if (SystemEnv::isCronService()) {
-                    $dir = "/{$logType}/" . $fileName . '.log';
+                    $dir = "{$logType}" .DIRECTORY_SEPARATOR. $fileName . '.log';
                 }
 
-                $filePath = $filePathDir . $dir;
+                $filePath = $filePathDir . DIRECTORY_SEPARATOR .$dir;
                 $logger->setLogFilePath($filePath);
             }
         }
