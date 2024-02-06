@@ -54,18 +54,21 @@ class Route
             $groupMeta = Context::get('__current_request_group_meta') ?? [];
         }
 
+        $routeOption = new RouteOption();
         $uri = self::parseUri($uri, $groupMeta);
-        return self::$routeMap[$uri]['GET'] = [
+        self::$routeMap[$uri]['GET'] = [
             'group_meta' => $groupMeta,
             'method' => ['GET'],
-            'route_meta' => $routeMeta
+            'route_meta' => $routeMeta,
+            'route_option' => &$routeOption
         ];
+        return $routeOption;
     }
 
     /**
      * @param string $uri
      * @param array $routeMeta
-     * @return array
+     * @return RouteOption
      */
     public static function post(string $uri, array $routeMeta)
     {
@@ -74,18 +77,22 @@ class Route
             $groupMeta = Context::get('__current_request_group_meta') ?? [];
         }
 
+        $routeOption = new RouteOption();
         $uri = self::parseUri($uri, $groupMeta);
-        return self::$routeMap[$uri]['POST'] = [
+        self::$routeMap[$uri]['POST'] = [
             'group_meta' => $groupMeta,
             'method' => ['POST'],
-            'route_meta' => $routeMeta
+            'route_meta' => $routeMeta,
+            'route_option' => &$routeOption
         ];
+
+        return $routeOption;
     }
 
     /**
      * @param string $uri
      * @param array $routeMeta
-     * @return array
+     * @return RouteOption
      */
     public static function put(string $uri, array $routeMeta)
     {
@@ -94,18 +101,21 @@ class Route
             $groupMeta = Context::get('__current_request_group_meta') ?? [];
         }
 
+        $routeOption = new RouteOption();
         $uri = self::parseUri($uri, $groupMeta);
-        return self::$routeMap[$uri]['PUT'] = [
+        self::$routeMap[$uri]['PUT'] = [
             'group_meta' => $groupMeta,
             'method' => ['PUT'],
-            'route_meta' => $routeMeta
+            'route_meta' => $routeMeta,
+            'route_option' => &$routeOption
         ];
+        return $routeOption;
     }
 
     /**
      * @param string $uri
      * @param array $routeMeta
-     * @return array
+     * @return RouteOption
      */
     public static function delete(string $uri, array $routeMeta)
     {
@@ -114,18 +124,21 @@ class Route
             $groupMeta = Context::get('__current_request_group_meta') ?? [];
         }
 
+        $routeOption = new RouteOption();
         $uri = self::parseUri($uri, $groupMeta);
-        return self::$routeMap[$uri]['DELETE'] = [
+        self::$routeMap[$uri]['DELETE'] = [
             'group_meta' => $groupMeta,
             'method' => ['DELETE'],
-            'route_meta' => $routeMeta
+            'route_meta' => $routeMeta,
+            'route_option' => &$routeOption
         ];
+        return $routeOption;
     }
 
     /**
      * @param string $uri
      * @param array $routeMeta
-     * @return array
+     * @return RouteOption
      */
     public static function head(string $uri, array $routeMeta)
     {
@@ -134,19 +147,22 @@ class Route
             $groupMeta = Context::get('__current_request_group_meta') ?? [];
         }
 
+        $routeOption = new RouteOption();
         $uri = self::parseUri($uri, $groupMeta);
-        return self::$routeMap[$uri]['HEAD'] = [
+        self::$routeMap[$uri]['HEAD'] = [
             'group_meta' => $groupMeta,
             'method' => ['HEAD'],
-            'route_meta' => $routeMeta
+            'route_meta' => $routeMeta,
+            'route_option' => &$routeOption
         ];
+        return $routeOption;
     }
 
     /**
      * @param array $methods
      * @param string $uri
      * @param array $routeMeta
-     * @return array
+     * @return RouteOption
      */
     public static function match(array $methods, string $uri, array $routeMeta)
     {
@@ -155,21 +171,24 @@ class Route
             $groupMeta = Context::get('__current_request_group_meta') ?? [];
         }
 
+        $routeOption = new RouteOption();
         foreach ($methods as $method) {
             $method = strtoupper($method);
             $uri = self::parseUri($uri, $groupMeta);
             self::$routeMap[$uri][$method] = [
                 'group_meta' => $groupMeta,
                 'method' => [$method],
-                'route_meta' => $routeMeta
+                'route_meta' => $routeMeta,
+                'route_option' => &$routeOption
             ];
         }
+        return $routeOption;
     }
 
     /**
      * @param string $uri
      * @param array $routeMeta
-     * @return array
+     * @return RouteOption
      */
     public static function any(string $uri, array $routeMeta)
     {
@@ -178,14 +197,17 @@ class Route
             $groupMeta = Context::get('__current_request_group_meta') ?? [];
         }
 
+        $routeOption = new RouteOption();
         foreach (self::HTTP_METHODS as $method) {
             $uri = self::parseUri($uri, $groupMeta);
             self::$routeMap[$uri][$method] = [
                 'group_meta' => $groupMeta,
                 'method' => [$method],
-                'route_meta' => $routeMeta
+                'route_meta' => $routeMeta,
+                'route_option' => &$routeOption
             ];
         }
+        return $routeOption;
     }
 
     /**
