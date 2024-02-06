@@ -6,6 +6,7 @@ use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\Route;
 use Test\Middleware\Group\GroupTestMiddleware;
+use Test\Middleware\Route\RateLimiterMiddleware;
 
 /**
  * Module/Controller 下的控制器路由
@@ -25,11 +26,7 @@ Route::group([
     ]);
 
 
-    Route::get('/user-order/userList', [
-        // 针对该接口启动sql-debug
-        'beforeHandle' => function(RequestInput $requestInput) {
-            Context::set('db_debug', true);
-        },
+    Route::any('/user-order/userList', [
         'beforeHandle1' => function(RequestInput $requestInput) {
             $requestInput->input('name');
             $requestInput->input('order_ids');
@@ -40,7 +37,7 @@ Route::group([
         ],
         'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList'],
         //GroupTestMiddleware::class => GroupTestMiddleware::class
-    ]);
+    ])->enableDbDebug(true)->withRateLimiterMiddleware(RateLimiterMiddleware::class);
 
     Route::post('/user-order/userList', [
         // 针对该接口启动sql-debug
