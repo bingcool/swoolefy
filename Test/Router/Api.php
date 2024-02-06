@@ -11,6 +11,23 @@ use Test\Middleware\Group\GroupTestMiddleware;
  * Controller 下的控制器路由
  */
 
+Route::get('/index/index', [
+    'beforeHandle' => function(RequestInput $requestInput) {
+        Context::set('name', 'bingcool');
+        $name = $requestInput->getPostParams('name');
+    },
+
+    'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
+
+    'afterHandle' => function(RequestInput $requestInput) {
+
+    },
+    'afterHandle1' => function(RequestInput $requestInput) {
+
+    },
+]);
+
+// 分组路由
 Route::group([
     // 路由前缀
     'prefix' => 'api',
@@ -21,7 +38,7 @@ Route::group([
 ], function () {
     Route::get('/', [
         'beforeHandle' => function(RequestInput $requestInput) {
-            $requestInput->setValue('name','黄增兵');
+            $requestInput->setValue('name','bingcool');
         },
 
         'beforeHandle1' => function(RequestInput $requestInput) {
@@ -38,23 +55,6 @@ Route::group([
 
         'afterHandle1' => function(RequestInput $requestInput) {
             var_dump('afterHandle1');
-        },
-    ]);
-
-
-    Route::get('/index/index', [
-        'beforeHandle' => function(RequestInput $requestInput) {
-            Context::set('name', 'bingcool');
-            $name = $requestInput->getPostParams('name');
-        },
-
-        'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
-
-        'afterHandle' => function(RequestInput $requestInput) {
-
-        },
-        'afterHandle1' => function(RequestInput $requestInput) {
-
         },
     ]);
 
