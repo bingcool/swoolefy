@@ -16,7 +16,7 @@ class CreateCmd extends BaseCmd
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $dirs = ['Config', 'Service', 'Protocol', 'Router', 'Storage'];
+        $dirs = ['Config', 'Service', 'Protocol', 'Router', 'Storage', 'Middleware'];
         $appName = $input->getArgument('app_name');
         $appPathDir = APP_PATH;
         if (is_dir($appPathDir)) {
@@ -31,9 +31,7 @@ class CreateCmd extends BaseCmd
         }
 
         if ($protocol == 'http') {
-            $dirs = [
-                'Config', 'Controller', 'Model', 'Module', 'Router', 'Validation', 'Storage', 'Protocol'
-            ];
+            $dirs = ['Config', 'Controller', 'Model', 'Module', 'Router', 'Validation', 'Storage', 'Protocol', 'Middleware'];
         }
 
         $daemonFile = START_DIR_ROOT . '/daemon.php';
@@ -105,10 +103,12 @@ class CreateCmd extends BaseCmd
                     break;
                 }
                 case 'Module':
-                    @mkdir($appPathDir . '/' . $dir.'/Demo/Controller', 0777, true);
-                    @mkdir($appPathDir . '/' . $dir.'/Demo/Validation', 0777, true);
-                    @mkdir($appPathDir . '/' . $dir.'/Demo/Exception', 0777, true);
+                {
+                    @mkdir($appPathDir . '/' . $dir . '/Demo/Controller', 0777, true);
+                    @mkdir($appPathDir . '/' . $dir . '/Demo/Validation', 0777, true);
+                    @mkdir($appPathDir . '/' . $dir . '/Demo/Exception', 0777, true);
                     break;
+                }
                 case 'Router':
                 {
                     switch ($protocol) {
@@ -124,6 +124,7 @@ class CreateCmd extends BaseCmd
                         default:
                             break;
                     }
+                    break;
                 }
                 case 'Protocol':
                 {
@@ -148,7 +149,23 @@ class CreateCmd extends BaseCmd
                                 break;
                         }
                     }
+                    break;
                 }
+                case 'Middleware':
+                {
+                    switch ($protocol) {
+                        case "http":
+                            @mkdir($appPathDir . '/' . $dir.'/Group', 0777, true);
+                            @mkdir($appPathDir . '/' . $dir.'/Route', 0777, true);
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                }
+
+                default:
+                    break;
             }
         }
         return 0;
@@ -219,6 +236,7 @@ DB_HOST_PORT=3306
 #redis配置
 REDIS_HOST=192.168.1.101
 REDIS_PORT=6379
+REDIS_PASSWORD=
 REDIS_DB=1
 EOF;
 
