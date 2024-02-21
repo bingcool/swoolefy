@@ -263,25 +263,41 @@ class ServiceDispatch extends AppDispatch
         }
 
         if (isset($routerMap[$uri])) {
-            $routerHandle = $routerMap[$uri];
-            if(!isset($routerHandle['dispatch_route'])) {
+            $routerHandleMiddleware = $routerMap[$uri];
+            if(!isset($routerHandleMiddleware['dispatch_route'])) {
                 throw new DispatchException('Missing dispatch_route option key');
             }else {
-                $dispatchRoute = $routerHandle['dispatch_route'];
+                $dispatchRoute = $routerHandleMiddleware['dispatch_route'];
             }
 
-            $beforeMiddleware = [];
-            foreach($routerHandle as $alias => $middleware) {
+            $beforeMiddleware = $afterMiddleware = [];
+            foreach($routerHandleMiddleware as $alias => $handle) {
                 if ($alias != 'dispatch_route') {
-                    $beforeMiddleware[] = $middleware;
-                    unset($routerHandle[$alias]);
+                    if (is_array($handle)) {
+                        foreach ($handle as $handleItem) {
+                            $beforeMiddleware[] = $handleItem;
+                        }
+                    }else {
+                        $beforeMiddleware[] = $handle;
+                    }
+                    unset($routerHandleMiddleware[$alias]);
                     continue;
                 }
-                unset($routerHandle[$alias]);
+                unset($routerHandleMiddleware[$alias]);
                 break;
             }
 
-            $afterMiddleware = array_values($routerHandle);
+            $afterMiddlewareTemp = array_values($routerHandleMiddleware);
+            foreach ($afterMiddlewareTemp as $afterMiddlewareItem) {
+                if (is_array($afterMiddlewareItem)) {
+                    foreach ($afterMiddlewareItem as $afterMiddlewareEvery) {
+                        $afterMiddleware[] = $afterMiddlewareEvery;
+                    }
+                }else {
+                    $afterMiddleware[] = $afterMiddlewareItem;
+                }
+            }
+
             $routeItems = [$beforeMiddleware, $dispatchRoute, $afterMiddleware];
             self::$routeCache[$uri] = $routeItems;
             return $routeItems;
