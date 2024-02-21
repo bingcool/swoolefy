@@ -34,7 +34,7 @@ return [
         return $logger;
     },
 
-    // 系统捕捉异常错误日志
+    // 用户行为记录的错误日志
     'error_log' => function($name) {
         $logger = new Log($name);
         $logger->setChannel('application');
@@ -51,7 +51,7 @@ return [
         return $logger;
     },
 
-    // 系统捕捉抛出异常错误日志
+    // 系统内置自动捕捉抛出异常错误日志
     'system_error_log' => function($name) {
         $logger = new \Swoolefy\Util\Log($name);
         $logger->setChannel('application');
