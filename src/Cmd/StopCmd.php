@@ -23,6 +23,7 @@ class StopCmd extends BaseCmd
     {
         $appName = $input->getArgument('app_name');
         $force = $input->getOption('force');
+        $lineValue = "";
         if (empty($force)) {
             if (!isWorkerService()) {
                 $lineValue = initConsoleStyleIo()->ask( "1、你确定停止应用【{$appName}】? (yes or no)");
@@ -31,7 +32,7 @@ class StopCmd extends BaseCmd
             }
         }
 
-        if (strtolower($lineValue) == 'yes') {
+        if (strtolower($lineValue) == 'yes' || $force) {
             if (!isWorkerService()) {
                 $this->commonStop($appName);
             } else {

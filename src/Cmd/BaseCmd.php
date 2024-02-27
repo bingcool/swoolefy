@@ -27,6 +27,7 @@ class BaseCmd extends Command
         $this->addOption('daemon', null,InputOption::VALUE_OPTIONAL, 'Daemon model run app', 0);
         // 强制停止
         $this->addOption('force', null,InputOption::VALUE_OPTIONAL, 'Force stop app', 0);
+
         $options = $this->beforeInputOptions();
         foreach ($options as $name=>$value) {
             if (!$this->getDefinition()->hasOption($name)) {
