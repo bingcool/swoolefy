@@ -77,7 +77,7 @@ class CrontabManager
                             $isNext = call_user_func($callPreFn);
                         }
 
-                        // 返回false停止继续往下执行
+                        // return false to over function
                         if (isset($isNext) && $isNext === false) {
                             return false;
                         }
@@ -127,7 +127,7 @@ class CrontabManager
                                 $isNext = call_user_func($callPreFn);
                             }
 
-                            // 返回false停止继续往下执行
+                            // return false to over function
                             if (isset($isNext) && $isNext === false) {
                                 return false;
                             }
@@ -160,7 +160,7 @@ class CrontabManager
                                 $isNext = call_user_func($callPreFn);
                             }
 
-                            // 返回false停止继续往下执行
+                            // return false to over function
                             if (isset($isNext) && $isNext === false) {
                                 return false;
                             }

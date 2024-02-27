@@ -62,6 +62,14 @@ class Factory
     }
 
     /**
+     * @return \Common\Library\Queues\RedisDelayQueue|ContainerObjectDto
+     */
+    public static function getDelayQueue()
+    {
+        return \Swoolefy\Core\Application::getApp()->get('delayQueue');
+    }
+
+    /**
      * @return RedisPubSub|ContainerObjectDto
      */
     public static function getRedisSubscribe()
