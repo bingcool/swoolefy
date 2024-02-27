@@ -18,33 +18,24 @@ ps aux | grep inotifywait | grep -v grep | awk '{print $1}'| xargs kill -15
 basepath=$(cd `dirname $0`; pwd)
 cd $basepath
 
-# 先停止
-/usr/bin/php cli.php stop $appName --force=1
-# 守护进程模式启动
-/usr/bin/php cli.php start $appName --daemon=1
-
 while true; do
    file_changes=$(inotifywait -r -e modify,create,delete "$basepath" --format '%w%f')
    php_files=$(echo "$file_changes" | grep -E '\.php$')
-   if [ -n "$php_files" ]; then
-        echo "PHP files modified:$php_files"
-        sleep 10;
-        # 先停止
-        /usr/bin/php cli.php stop $appName --force=1
-        # 守护进程模式启动
-        /usr/bin/php cli.php start $appName --daemon=1
-   else
-        env_files=$(echo "$file_changes" | grep -E '\.env$')
-            if [ -n "$env_files" ]; then
-                echo "Env files modified:$env_files"
-                sleep 10;
-                # 先停止
-                /usr/bin/php cli.php stop $appName --force=1
-                # 守护进程模式启动
-                /usr/bin/php cli.php start $appName --daemon=1
-            fi
-   fi
+   env_files=$(echo "$file_changes" | grep -E '\.env$')
 
+      if [ -n "$php_files" ]; then
+          for execBinFile in cli.php daemon.php cron.php; do
+              if [ "$execBinFile" = "cli.php" ]; then
+                  sleep 10;
+              else
+                  sleep 1;
+              fi
+              # 先停止
+              /usr/bin/php $execBinFile stop $appName --force=1
+              # 守护进程模式启动
+              /usr/bin/php $execBinFile start $appName --daemon=1
+         done
+      fi
 done
 
 
