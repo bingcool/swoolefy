@@ -358,6 +358,7 @@ class BaseServer
         if ($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
             return $response->end();
         }
+        return null;
     }
 
     /**

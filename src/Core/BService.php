@@ -113,13 +113,14 @@ class BService extends BaseObject
      * @param int $fd
      * @param BaseResponseDto $dataDto
      * @param array $header
-     * @return mixed
+     * @return bool
      */
-    public function send(int $fd, BaseResponseDto $dataDto, array $header = [])
+    public function send(int $fd, BaseResponseDto $dataDto, array $header = []): bool
     {
         if (!BaseServer::isRpcApp()) {
             throw new SystemException("BService::send() this method only can be called by tcp or rpc server!");
         }
+
         if (empty($dataDto->trace_id)) {
             $dataDto->trace_id = $this->getTraceId();
         }
@@ -133,7 +134,7 @@ class BService extends BaseObject
             $text = \Swoolefy\Rpc\RpcServer::pack($dataDto->toArray());
             return Swfy::getServer()->send($fd, $text);
         }
-
+        return false;
     }
 
     /**
@@ -142,15 +143,14 @@ class BService extends BaseObject
      * @param string $ip
      * @param int|null $port
      * @param null $server_socket
-     * @return mixed
+     * @return bool
      */
     public function sendTo(
         BaseResponseDto $dataDto,
         string $ip = '',
         ?int $port = null,
         int $server_socket = -1
-    )
-    {
+    ): bool {
         if (empty($ip)) {
             $ip = $this->clientInfo['address'];
         }
@@ -185,7 +185,7 @@ class BService extends BaseObject
         BaseResponseDto $dataDto,
         int $opcode = 1,
         int $finish = 1
-    )
+    ): bool
     {
         if (!BaseServer::isWebsocketApp()) {
             throw new SystemException("BService::push() this method only can be called by websocket server!");
