@@ -48,14 +48,5 @@
     "require-dev": {
         "kwn/php-rdkafka-stubs": "@dev",
         "swoole/ide-helper": "@dev"
-    },
-    "repositories": [
-        {
-            "type": "path",
-            "url": "/home/wwwroot/library",
-            "options": {
-                "symlink": true
-            }
-        }
-    ]
+    }
 }
