@@ -14,7 +14,7 @@ class RedisList extends AbstractProcess {
      */
     public function run()
     {
-        goAfter(2000, function () {
+        goTick(2000, function () {
             $queue = Factory::getQueue();
             $queue->push(['name'=> 'bingcool','num' => rand(1,10000)]);
         });
@@ -36,6 +36,7 @@ class RedisList extends AbstractProcess {
                         $list->doHandle();
                     });
 
+                    //$queue->retry($data);
                     //var_dump('This is Redis List Queue process, pop item='.$data);
                 }
 

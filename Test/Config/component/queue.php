@@ -26,10 +26,10 @@ return [
 
     'delayQueue' => function() {
         $redis = Application::getApp()->get('redis')->getObject();
-        //return new \Common\Library\Queues\RedisDelayQueue($redis,\Test\Process\QueueProcess\Queue::queue_order_list);
+        return new \Common\Library\Queues\RedisDelayQueue($redis,\Test\Process\QueueProcess\Queue::queue_order_list);
 
-        $predis = Application::getApp()->get('predis')->getObject();
-        return new \Common\Library\Queues\PredisDelayQueue($predis,\Test\Process\QueueProcess\Queue::queue_order_list);
+//        $predis = Application::getApp()->get('predis')->getObject();
+//        return new \Common\Library\Queues\PredisDelayQueue($predis,\Test\Process\QueueProcess\Queue::queue_order_list);
     }
 
 ];
