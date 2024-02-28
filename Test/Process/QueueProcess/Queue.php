@@ -10,17 +10,19 @@ class Queue extends AbstractProcess {
     {
         goAfter(2000, function () {
             Factory::getDelayQueue()
-                ->addItem(["order_id" => 1111], 10)
-                ->addItem(["order_id" => 2222], 10)
+                ->addItem(["order_id" => 1111], 2)
+                ->addItem(["order_id" => 2222], 2)
                 ->push();
         });
 
         while (true) {
             $items = Factory::getDelayQueue()->pop();
+//            var_dump($items);
             foreach ($items as $item) {
-                var_dump(date("Y-m-d H:i:s"));
                 var_dump($item);
+                //Factory::getDelayQueue()->retry($item, 5);
             }
+
             sleep(1);
         }
     }
