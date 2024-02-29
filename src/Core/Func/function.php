@@ -137,3 +137,47 @@ function goApp(callable $callback, ...$params) {
         });
     });
 }
+
+/**
+ * @param int $timeMs
+ * @param callable $callable
+ * @return void
+ */
+function goTick(int $timeMs, callable $callable)
+{
+    if (\Swoole\Coroutine::getCid() >= 0) {
+        \Swoolefy\Core\Coroutine\Timer::tick($timeMs, $callable);
+    }else {
+        \Swoole\Timer::tick($timeMs, function () use($callable) {
+            (new \Swoolefy\Core\EventApp)->registerApp(function() use($callable) {
+                try {
+                    $callable();
+                }catch (\Throwable $throwable) {
+                    \Swoolefy\Core\BaseServer::catchException($throwable);
+                }
+            });
+        });
+    }
+}
+
+/**
+ * @param int $timeMs
+ * @param callable $callable
+ * @return void
+ */
+function goAfter(int $timeMs, callable $callable)
+{
+    if (\Swoole\Coroutine::getCid() >= 0) {
+        \Swoolefy\Core\Coroutine\Timer::after($timeMs, $callable);
+    }else {
+        \Swoole\Timer::after($timeMs, function () use($callable) {
+            (new \Swoolefy\Core\EventApp)->registerApp(function() use($callable) {
+                try {
+                    $callable();
+                }catch (\Throwable $throwable) {
+                    \Swoolefy\Core\BaseServer::catchException($throwable);
+                }
+            });
+        });
+    }
+}
