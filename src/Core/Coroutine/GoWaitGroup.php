@@ -96,10 +96,10 @@ class GoWaitGroup
      *   var_dump($result);
      *
      * @param array $callBacks
-     * @param float $timeOut
+     * @param float $maxTimeOut
      * @return array
      */
-    public static function batchParallelRunWait(array $callBacks, float $timeOut = 3.0): array
+    public static function batchParallelRunWait(array $callBacks, float $maxTimeOut = 3.0): array
     {
         $goWait = new static();
         foreach ($callBacks as $key => $callBack) {
@@ -115,7 +115,7 @@ class GoWaitGroup
                 }
             });
         }
-        $result = $goWait->wait($timeOut);
+        $result = $goWait->wait($maxTimeOut);
         return $result;
     }
 
