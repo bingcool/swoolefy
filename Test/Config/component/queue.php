@@ -22,5 +22,14 @@ return [
     'queue' => function() {
         $redis = Application::getApp()->get('redis')->getObject();
         return new \Common\Library\Queues\Queue($redis,\Test\Process\ListProcess\RedisList::queue_order_list);
+    },
+
+    'delayQueue' => function() {
+        $redis = Application::getApp()->get('redis')->getObject();
+        return new \Common\Library\Queues\RedisDelayQueue($redis,\Test\Process\QueueProcess\Queue::queue_order_list);
+
+//        $predis = Application::getApp()->get('predis')->getObject();
+//        return new \Common\Library\Queues\PredisDelayQueue($predis,\Test\Process\QueueProcess\Queue::queue_order_list);
     }
+
 ];

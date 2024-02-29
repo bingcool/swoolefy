@@ -52,7 +52,7 @@ class CronLocalProcess extends CronProcess
     {
         try {
             CrontabManager::getInstance()->addRule($this->cronName, $this->cronExpression, [$this->handleClass,'doCronTask'],
-                function () {
+                function (): bool {
                     // 上一个任务未执行完，下一个任务到来时不执行，返回false结束
                     if ($this->withoutOverlapping && $this->handing) {
                         return false;

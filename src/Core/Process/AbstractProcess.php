@@ -335,9 +335,7 @@ abstract class AbstractProcess
             goApp(function () {
                 try {
                     $this->runtimeCoroutineWait();
-                    (new \Swoolefy\Core\EventApp)->registerApp(function () {
-                        $this->onShutDown();
-                    });
+                    $this->onShutDown();
                 } catch (\Throwable $throwable) {
                     $this->onHandleException($throwable);
                 } finally {
