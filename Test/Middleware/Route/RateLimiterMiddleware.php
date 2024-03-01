@@ -17,6 +17,8 @@ class RateLimiterMiddleware implements RouteMiddleware
         $rateLimit->setLimitParams(30, 60, 120);
         if ($rateLimit->isLimit()) {
             throw new \Exception("请求过快，请稍后重试！");
+        }else {
+            var_dump(__CLASS__);
         }
     }
 }
