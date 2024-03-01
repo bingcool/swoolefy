@@ -20,7 +20,7 @@ class MonitorCmd extends BaseCmd
         $selfScript = $_SERVER['argv'][0];
         $appName = $input->getArgument('app_name');
         $pidFile = $this->getPidFile($appName);
-        // 认为执行stop后，会删除pidFile,防止监控不断重启进程。只有异常情况下的进程停止，pidFile会存在，不被删除，然后会监控判断是否需要重启
+        // 人为执行stop命令后，会删除pidFile,防止监控不断重启进程。只有异常情况下的进程停止，pidFile会存在，不被删除，然后会监控判断是否需要重启
         if (!is_file($pidFile)) {
             fmtPrintError("Pid file={$pidFile} is not exist, please check server weather is running");
             return 0;
