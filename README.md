@@ -24,10 +24,10 @@ swoolefy-4.8-lts 版本：
 长期维护分支，最低要求```php >= php7.3 && php < php8.0```, 推荐直接swoole-v4.8+，需要通过源码编译安装swoole
 
 选择哪个版本？  
-1、如果确定项目是使用php8+的，那么直接选择 ```swoole-v5.0+```, 以上源码来编译安装或者直接使用```swoole-cli-v5.0```，然后选择 ```bingcool/swoolefy:~5.0.14``` 作为项目分支
+1、如果确定项目是使用php8+的，那么直接选择 ```swoole-v5.0+```, 以上源码来编译安装或者直接使用```swoole-cli-v5.x```，然后选择 ```bingcool/swoolefy:~5.1.0``` 作为项目分支
 
 2、如果确定项目是使用 ```php7.3 ~ php7.4``` 的，那么选择 swoole-v4.8+ 版本来进行编译安装(不能直接使用 swoole-cli-v4.8+ 了, 因为其内置的是php8.1，与你的项目的php7不符合)
-所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.8.14``` 作为项目分支
+所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.9.0``` 作为项目分支
 
 ### 实现的功能特性    
 
@@ -41,7 +41,9 @@ swoolefy-4.8-lts 版本：
 - [x] 支持DI容器，组件IOC、配置化，Channel公共组件池            
 - [x] 支持协程单例注册,协程上下文变量寄存    
 - [x] 支持mysql、postgreSql、redis协程组件   
-- [x] 支持全局logger组件、trace链路追踪         
+- [x] 支持全局logger组件、trace链路追踪组件     
+- [x] 支持分布式锁组件       
+- [x] 支持滑动窗口的流量速率组件        
 - [x] 支持mysql协程连接池
 - [x] 支持redis协程池   
 - [x] 支持curl协程池   
