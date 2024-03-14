@@ -9,6 +9,8 @@
  * +----------------------------------------------------------------------
  */
 
+use Swoole\Coroutine\Channel;
+
 /**
  * 随机获取一个可监听的端口(php_socket模式)
  *
@@ -141,14 +143,17 @@ function goApp(callable $callback, ...$params) {
 /**
  * @param int $timeMs
  * @param callable $callable
- * @return void
+ * @param bool $withoutOverlapping 是否每个时间任务都执行，不管上个定时任务是否一致性完毕。
+ * $withoutOverlapping=true 将不会重叠执行，必须等上一个任务执行完毕，下一轮时间到了,也不会执行，必须等到上一轮任务结束后，再接着执行
+ * $withoutOverlapping=false 允许任务重叠执行，不管上一个任务的是否执行完毕，下一轮时间到了，任务将在一个新的协程中执行。默认false
+ * @return Channel|int
  */
-function goTick(int $timeMs, callable $callable)
+function goTick(int $timeMs, callable $callable, bool $withoutOverlapping = false)
 {
     if (\Swoole\Coroutine::getCid() >= 0) {
-        \Swoolefy\Core\Coroutine\Timer::tick($timeMs, $callable);
+        return \Swoolefy\Core\Coroutine\Timer::tick($timeMs, $callable, $withoutOverlapping);
     }else {
-        \Swoole\Timer::tick($timeMs, function () use($callable) {
+        return \Swoole\Timer::tick($timeMs, function () use($callable) {
             (new \Swoolefy\Core\EventApp)->registerApp(function() use($callable) {
                 try {
                     $callable();
@@ -163,14 +168,14 @@ function goTick(int $timeMs, callable $callable)
 /**
  * @param int $timeMs
  * @param callable $callable
- * @return void
+ * @return Channel|int
  */
 function goAfter(int $timeMs, callable $callable)
 {
     if (\Swoole\Coroutine::getCid() >= 0) {
-        \Swoolefy\Core\Coroutine\Timer::after($timeMs, $callable);
+        return \Swoolefy\Core\Coroutine\Timer::after($timeMs, $callable);
     }else {
-        \Swoole\Timer::after($timeMs, function () use($callable) {
+        return \Swoole\Timer::after($timeMs, function () use($callable) {
             (new \Swoolefy\Core\EventApp)->registerApp(function() use($callable) {
                 try {
                     $callable();
