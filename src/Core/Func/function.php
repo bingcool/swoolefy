@@ -143,15 +143,15 @@ function goApp(callable $callback, ...$params) {
 /**
  * @param int $timeMs
  * @param callable $callable
- * @param bool $withoutOverlapping 是否每个时间任务都执行，不管上个定时任务是否一致性完毕。
- * $withoutOverlapping=true 将不会重叠执行，必须等上一个任务执行完毕，下一轮时间到了,也不会执行，必须等到上一轮任务结束后，再接着执行
- * $withoutOverlapping=false 允许任务重叠执行，不管上一个任务的是否执行完毕，下一轮时间到了，任务将在一个新的协程中执行。默认false
+ * @param bool $withBlockLapping 是否每个时间任务都执行，不管上个定时任务是否一致性完毕。
+ * $withBlockLapping=true 将不会重叠执行，必须等上一个任务执行完毕，下一轮时间到了,也不会执行，必须等到上一轮任务结束后，再接着执行
+ * $withBlockLapping=false 允许任务重叠执行，不管上一个任务的是否执行完毕，下一轮时间到了，任务将在一个新的协程中执行。默认false
  * @return Channel|int
  */
-function goTick(int $timeMs, callable $callable, bool $withoutOverlapping = false)
+function goTick(int $timeMs, callable $callable, bool $withBlockLapping = false)
 {
     if (\Swoole\Coroutine::getCid() >= 0) {
-        return \Swoolefy\Core\Coroutine\Timer::tick($timeMs, $callable, $withoutOverlapping);
+        return \Swoolefy\Core\Coroutine\Timer::tick($timeMs, $callable, $withBlockLapping);
     }else {
         return \Swoole\Timer::tick($timeMs, function () use($callable) {
             (new \Swoolefy\Core\EventApp)->registerApp(function() use($callable) {

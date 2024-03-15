@@ -19,12 +19,12 @@ class Timer
     /**
      * @param int $timeMs
      * @param callable $callable
-     * @param bool $withoutOverlapping 是否每个时间任务都执行，不管上个定时任务是否一致性完毕。
-     * $withoutOverlapping=true 将不会重叠执行，必须等上一个任务执行完毕，下一轮时间到了,也不会执行，必须等到上一轮任务结束后，再接着执行
-     * $withoutOverlapping=false 允许任务重叠执行，不管上一个任务的是否执行完毕，下一轮时间到了，任务将在一个新的协程中执行。默认false
+     * @param bool $withBlockLapping 是否每个时间轮任务都执行，不管上个定时任务是否一致性完毕。
+     * $withBlockLapping=true 将不会重叠执行，必须等上一个任务执行完毕，下一轮时间到了,也不会执行，必须等到上一轮任务结束后，再接着执行，即所谓的阻塞执行
+     * $withBlockLapping=false 允许任务重叠执行，不管上一个任务的是否执行完毕，下一轮时间到了，任务将在一个新的协程中执行。默认false
      * @return Channel
      */
-    public static function tick(int $timeMs, callable $callable, bool $withoutOverlapping = false)
+    public static function tick(int $timeMs, callable $callable, bool $withBlockLapping = false)
     {
         $timeChannel = new Channel(1);
         $second  = round($timeMs / 1000, 3);
@@ -32,7 +32,7 @@ class Timer
             $second = 0.001;
         }
 
-        goApp(function ($second, $callable) use ($timeChannel, $withoutOverlapping) {
+        goApp(function ($second, $callable) use ($timeChannel, $withBlockLapping) {
             while (true) {
                 $value = $timeChannel->pop($second);
                 if($value !== false) {
@@ -41,7 +41,7 @@ class Timer
                 }
 
                 // block
-                if ($withoutOverlapping) {
+                if ($withBlockLapping) {
                     try {
                         $callable($timeChannel);
                     }catch (\Throwable $throwable) {
