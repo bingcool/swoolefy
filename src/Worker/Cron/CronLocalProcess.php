@@ -39,7 +39,7 @@ class CronLocalProcess extends CronProcess
         parent::onInit();
         $this->cronName       = $this->getArgs()['cron_name'];
         $this->cronExpression = $this->getArgs()['cron_expression'];
-        $this->withoutOverlapping = $this->getArgs()['without_over_lapping'] ?? $this->withoutOverlapping;
+        $this->withBlockLapping = $this->getArgs()['with_block_lapping'] ?? $this->withBlockLapping;
         $this->runInBackground = $this->getArgs()['run_in_background'] ?? $this->runInBackground;
         $this->handleClass    = $this->getArgs()['handler_class'];
     }
@@ -54,7 +54,7 @@ class CronLocalProcess extends CronProcess
             CrontabManager::getInstance()->addRule($this->cronName, $this->cronExpression, [$this->handleClass,'doCronTask'],
                 function (): bool {
                     // 上一个任务未执行完，下一个任务到来时不执行，返回false结束
-                    if ($this->withoutOverlapping && $this->handing) {
+                    if ($this->withBlockLapping && $this->handing) {
                         return false;
                     }
                     $this->handing = true;
