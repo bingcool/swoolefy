@@ -28,8 +28,6 @@ define('PROCESS_CLASS', []);
 // 定义脚本文件夹的根目录
 define('ROOT_NAMESPACE', [
     'Test' => '\\Test\\Scripts',
-    // 组件日志名称
-    'Log'  => ['log', 'error_log']
 ]);
 
 define('APP_NAMES', [

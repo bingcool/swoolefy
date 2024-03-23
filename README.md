@@ -24,15 +24,16 @@ swoolefy-4.8-lts 版本：
 长期维护分支，最低要求```php >= php7.3 && php < php8.0```, 推荐直接swoole-v4.8+，需要通过源码编译安装swoole
 
 选择哪个版本？  
-1、如果确定项目是使用php8+的，那么直接选择 ```swoole-v5.0+```, 以上源码来编译安装或者直接使用```swoole-cli-v5.0```，然后选择 ```bingcool/swoolefy:~5.0.14``` 作为项目分支
+1、如果确定项目是使用php8+的，那么直接选择 ```swoole-v5.0+```, 以上源码来编译安装或者直接使用```swoole-cli-v5.x```，然后选择 ```bingcool/swoolefy:~5.1.0``` 作为项目分支
 
 2、如果确定项目是使用 ```php7.3 ~ php7.4``` 的，那么选择 swoole-v4.8+ 版本来进行编译安装(不能直接使用 swoole-cli-v4.8+ 了, 因为其内置的是php8.1，与你的项目的php7不符合)
-所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.8.14``` 作为项目分支
+所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.9.0``` 作为项目分支
 
 ### 实现的功能特性    
 
 基础特性
-- [x] 支持架手脚一键创建项目           
+- [x] 支持架手脚一键创建项目        
+- [x] 支持swagger一键生成api文档     
 - [x] 支持分组路由, 路由middleware, 前置路由组件, 后置路由组件,多模块应用
 - [x] 支持自定义注册不同根命名空间，快速多项目部署          
 - [x] 支持httpServer，实用轻量Api接口开发     
@@ -41,7 +42,9 @@ swoolefy-4.8-lts 版本：
 - [x] 支持DI容器，组件IOC、配置化，Channel公共组件池            
 - [x] 支持协程单例注册,协程上下文变量寄存    
 - [x] 支持mysql、postgreSql、redis协程组件   
-- [x] 支持全局logger组件、trace链路追踪         
+- [x] 支持全局logger组件、trace链路追踪组件     
+- [x] 支持分布式锁组件       
+- [x] 支持滑动窗口的流量速率组件        
 - [x] 支持mysql协程连接池
 - [x] 支持redis协程池   
 - [x] 支持curl协程池   
@@ -129,7 +132,7 @@ ENV SWOOLEFY_CLI_ENV dev
 2、创建项目
 ```
 // 下载代码到到你的自定义目录，这里定义为myproject
-composer create-project bingcool/swoolefy:~5.0 myproject
+composer create-project bingcool/swoolefy:~5.1 myproject
 ```
 
 ### 二、添加项目入口启动文件cli.php,并定义你的项目目录，命名为App
@@ -208,6 +211,7 @@ myproject
 |——— cron.php // 定时worker任务的多进程启动入口文件
 |——— daemon.php // 守护进程worker的多进程启动入口文件
 |——— script.php // 脚本启动入口文件
+|——— swag.php // 生成swagger接口文档入口文件
 
 ```
 
@@ -751,6 +755,151 @@ array(4) {
 
 ```
 
+### swagger接口文档生成
+
+在Test/Module/Order/Validation下，每个文件对应一个Controller的方法，可以使用php8的attribute注解定义好接口，然后执行 php swag.php Test 即可自动生成openapi.yaml文件
+在浏览器直接访问: http:127.0.0.1:9501/swagger.html
+
+```
+<?php
+namespace Test\Module\Order\Validation;
+
+use OpenApi\Attributes as OA;
+use Test\Module\Swag;
+
+class UserOrderValidation
+{
+    // Post请求的参数
+    #[OA\Post(
+        path: '/user/user-order/userList',
+        summary:'订单保存',
+        description:'保存订单',
+        tags: [Swag::MODULE_TAG_ORDER], // 根据Swag.php的注册的tag值来设置，相同的tag的接口将汇集在同一个模块下
+        security: [['apiKeyAuth' => []], ['appId' => []]], //指定了在哪些接口上应用SecurityScheme中已经定义的安全方案
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: "application/json",// 或者application/x-www-form-urlencoded
+                schema: new OA\Schema(
+                    type: 'object',
+                    required:['name'],
+                    properties: [
+                        // 字符串
+                        new OA\Property(property: 'name', type: 'string', description:'名称'
+                        ),
+                        // 字符串
+                        new OA\Property(property: 'email', type: 'string', description:'邮件'
+                        ),
+                        // 整型
+                        new OA\Property(property: 'product_num', type: 'integer', description:'产品数量'
+                        ),
+                        // 数组 phone => [1111, 22222]
+                        new OA\Property(property: 'phone', type: 'array', description:'电话', items: new OA\Items(
+                            type: 'integer'
+                        )),
+
+                        // 一维关联数组(对象) address = ['sheng' => '广东省', 'city' => '深圳市'，'area'=>'宝安区'],
+                        new OA\Property(property: 'address', type: 'object', description:'居住地址',
+                            properties:[
+                                // sheng
+                                new OA\Property(property: 'sheng', type: 'string', description:'省份'
+                                ),
+                                // city
+                                new OA\Property(property: 'city', type: 'string', description:'城市'
+                                ),
+                                // area
+                                new OA\Property(property: 'area', type: 'string', description:'县/区'
+                                ),
+                            ]
+                        ),
+
+                        // 二维关联数组 addressList => [
+                        //      ['sheng' => '广东省', 'city' => '深圳市'，'area'=>'宝安区'],
+                        //      ['sheng' => '广东省', 'city' => '深圳市'，'area'=>'宝安区']
+                        //  ]
+                        new OA\Property(property: 'addressList', type: 'array', description:'地址列表', items: new OA\Items(
+                            type: 'object',
+                            properties:[
+                                // sheng
+                                new OA\Property(property: 'sheng', type: 'string', description:'省份'
+                                ),
+                                // city
+                                new OA\Property(property: 'city', type: 'string', description:'城市'
+                                ),
+                                // area
+                                new OA\Property(property: 'area', type: 'string', description:'县/区'
+                                ),
+                            ]
+                        )),
+                    ]
+                )
+            )
+        )
+    )]
+
+    #[OA\Response(
+        response: 200,
+        description: '操作成功'
+    )]
+
+    public function userList(): array
+    {
+        return [
+            'rules' => [
+                    'name' => 'required|float|json',
+                    'order_ids' => 'required|array',
+                    'order_ids.*' => 'int'
+            ],
+
+            'messages' => [
+                    'name.required' => '名称必须',
+                    'name.json' => '名称必须json字符串',
+            ]
+        ];
+    }
+
+    /**
+     * @return array[]
+     */
+    #[OA\Get(
+        path: '/user/user-order/userList1',
+        summary:'订单列表',
+        description:'获取订单列表内容111',
+        tags: [Swag::MODULE_TAG_ORDER],// 根据Swag.php的注册的tag值来设置，相同的tag的接口将汇集在同一个模块下
+        security: [['apiKeyAuth' => []], ['appId' => []]], //指定了在哪些接口上应用SecurityScheme中已经定义的安全方案
+    )]
+    // Get Query
+    #[OA\QueryParameter(name: 'order_id', description: "订单ID", required: true, allowEmptyValue: false, allowReserved: true, schema: new OA\Schema(type:'integer')
+    )]
+    // Get Query
+    #[OA\QueryParameter(name: 'product_name', description: '产品名称', required: true, allowEmptyValue: true, allowReserved: true, schema: new OA\Schema(type:'string')
+    )]
+
+    // Get Query array eg: ids[1]=22&ids[2]=333
+    #[OA\QueryParameter(name: 'product_ids', description: '产品名称', required: true, allowEmptyValue: true, allowReserved: true, schema: new OA\Schema(
+        type:'array',
+        items: new OA\Items(
+            type:'integer'
+        )
+    ))]
+    #[OA\Response(
+        response: 200,
+        description: '操作成功'
+    )]
+    public function userList1(): array
+    {
+        return [
+            'rules' => [
+               
+            ],
+
+            'messages' => [
+            ]
+        ];
+    }
+}
+
+```
 
 
 ### License

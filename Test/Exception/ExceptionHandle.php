@@ -36,9 +36,6 @@ class ExceptionHandle extends \Swoolefy\Core\SwoolefyException
 
         if (in_array(SWOOLEFY_ENV, [SWOOLEFY_DEV, SWOOLEFY_GRA])) {
             fmtPrintError($errorMsg);
-            if (is_object($throwable)) {
-                fmtPrintError($throwable->getMessage());
-            }
         }
     }
 }

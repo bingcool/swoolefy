@@ -53,6 +53,11 @@ class CreateCmd extends BaseCmd
             @copy(START_DIR_ROOT . '/src/Stubs/ScriptStub.php', $scriptFile);
         }
 
+        $swagFile = START_DIR_ROOT . '/swag.php';
+        if (!file_exists($swagFile)) {
+            @copy(START_DIR_ROOT . '/src/Stubs/swag.php', $swagFile);
+        }
+
         @mkdir($appPathDir, 0777, true);
 
         $envFile = $appPathDir.'/.env';
