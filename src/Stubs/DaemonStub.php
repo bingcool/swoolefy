@@ -27,8 +27,6 @@ define('WORKER_CONF', \Swoolefy\Worker\MainManager::loadConfByPath(__DIR__.'/'.$
 define('PROCESS_CLASS', [
     // 应用daemon worker
     'Test' => \Test\WorkerDaemon\MainProcess::class,
-    // 组件日志名称
-    'Log'  => ['log', 'error_log']
 ]);
 
 define('APP_NAMES', [

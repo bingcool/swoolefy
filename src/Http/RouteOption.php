@@ -55,7 +55,10 @@ class RouteOption extends \stdClass
      * 限流中间件类名，将注册到路由中间件数组表头第一个执行
      *
      * @param string $rateLimiterMiddleware
-     * @param string $runAfterMiddleware //在那个middle之后再运行这个rateLimiterMiddleware, 有可能rateLimiterMiddleware依赖上游的rateLimiterMiddleware的数据
+     * @param string $runAfterMiddleware
+     * 在那个middle之后再运行这个rateLimiterMiddleware, 有可能rateLimiterMiddleware依赖上游的rateLimiterMiddleware的数据
+     * 如果runAfterMiddleware为空，那么rateLimiterMiddleware将是第一个执行的中间件，执行顺序为$rateLimiterMiddleware->groupMiddleware->routeMiddleware
+     * 如果runAfterMiddleware不为空，那么rateLimiterMiddleware将根据这个设置runAfterMiddleware，在它之后执行，这个runAfterMiddleware可以是groupMiddleware或者routeMiddleware其中一个
      * @return $this
      */
     public function withRateLimiterMiddleware(string $rateLimiterMiddleware, string $runAfterMiddleware = '')

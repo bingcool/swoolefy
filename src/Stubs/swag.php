@@ -11,8 +11,7 @@ if (!isset($_SERVER['argv'][1])) {
     exit("【Error】missing source dir\n");
 }
 
-// php swag.php Test/Module
-
+// 执行 php swag.php Test 即可生成接口文档
 $items = explode('/', $_SERVER['argv'][1]);
 $appName = $items[0];
 $argv[2] = $_SERVER['argv'][2] = '-o';
@@ -31,6 +30,8 @@ if (!is_dir($path)) {
     }
 }
 
+$argv[1] = $_SERVER['argv'][1] = $appName.'/Module';
+
 if (!class_exists('OpenApi\Attributes\Server')) {
     exit("Missing zircote/swagger-php, please install it!\n");
 }
@@ -39,6 +40,7 @@ $dotenv = Dotenv\Dotenv::createImmutable(__DIR__.'/'.$appName);
 $envArr = $dotenv->load();
 
 // 不同环境定义不同网站host
-defined('WEB_SITE_HOST') or define('WEB_SITE_HOST', $envArr['web_site_host'] ?? 'http://bing.swoolefy.com');
+defined('WEB_SITE_HOST') or define('WEB_SITE_HOST', $envArr['WEB_SITE_HOST'] ?? 'http://bing.swoolefy.com');
+
 echo "文档开始生成......\n";
 include "vendor/bin/openapi";
