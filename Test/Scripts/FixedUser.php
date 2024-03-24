@@ -24,6 +24,7 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
                 });
             });
         });
+        sleep(10);
     }
 
     public function fixName()
@@ -90,6 +91,10 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
             sleep(5);
             return "字节跳动";
         },'zijie');
+
+        RunLog::info("this is script test log");
+
+        throw new \Exception("vvv");
 
         $result = $parallel->runWait(10);
 

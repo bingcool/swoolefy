@@ -41,10 +41,16 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
     protected $limitCurrentRunCoroutineNum = null;
 
     /**
+     * @var bool
+     */
+    protected $registerLogFlag = true;
+
+    /**
      * init
      */
     protected function init()
     {
+        $this->registerLogFlag && $this->registerLogComponents();
         $this->maxHandle                   = $this->getArgs()['max_handle'] ?? $this->maxHandle;
         $this->lifeTime                    = $this->getArgs()['life_time'] ?? $this->lifeTime;
         $this->currentRunCoroutineLastCid  = $this->getArgs()['current_run_coroutine_last_cid'] ?? $this->maxHandle * 10;
@@ -65,22 +71,29 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
      * registerLogComponents
      *
      * @param int $rotateDay
+     * @param string $handleClass
      * @return void
      */
-    public static function registerLogComponents(int $rotateDay = 2)
+    public static function registerLogComponents(int $rotateDay = 2, string $handleClass = null)
     {
         // log register
         $logComponents = include CONFIG_COMPONENT_PATH.DIRECTORY_SEPARATOR.'log.php';
         foreach($logComponents as $logType => $fn) {
-            $logger = LogManager::getInstance()->registerLoggerByClosure($fn, $logType);
+            LogManager::getInstance()->registerLoggerByClosure($fn, $logType);
+            $logger = LogManager::getInstance()->getLogger($logType);
             if ($logger) {
                 if ($rotateDay >= 3 ) {
                     $rotateDay = 3;
                 }
+
+                if (empty($handleClass)) {
+                    $handleClass = static::class;
+                }
+
                 $logger->setRotateDay($rotateDay);
                 $filePath = $logger->getLogFilePath();
                 $filePathDir = pathinfo($filePath, PATHINFO_DIRNAME);
-                $class = str_replace('\\', DIRECTORY_SEPARATOR, static::class);
+                $class = str_replace('\\', DIRECTORY_SEPARATOR, $handleClass);
                 $items = explode(DIRECTORY_SEPARATOR, $class);
                 $num = count($items);
                 if ($num >= 2) {
@@ -94,7 +107,6 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
                 }else if (SystemEnv::isCronService()) {
                     $dir = "{$logType}" .DIRECTORY_SEPARATOR. $fileName . '.log';
                 }
-
                 $filePath = $filePathDir . DIRECTORY_SEPARATOR .$dir;
                 $logger->setLogFilePath($filePath);
             }
