@@ -5,6 +5,7 @@ return [
     [
         'process_name' => 'test-fork-task-cron', // 进程名称
         'handler' => \Swoolefy\Worker\Cron\CronForkProcess::class,
+        'description' => '发送短信',
         'worker_num' => 1, // 默认动态进程数量
         'max_handle' => 100, //消费达到10000后reboot进程
         'life_time'  => 3600, // 每隔3600s重启进程
