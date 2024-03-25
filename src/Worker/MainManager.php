@@ -322,6 +322,7 @@ class MainManager
         $args['max_handle']              = $config['max_handle'] ?? 10000;
         $args['life_time']               = $config['life_time'] ?? 3600;
         $args['limit_run_coroutine_num'] = $config['limit_run_coroutine_num'] ?? null;
+        $args['description']             = $config['description'] ?? '';
     }
 
     /**

@@ -5,6 +5,7 @@ return [
     [
         'process_name' => 'test-fork-task-cron', // 进程名称
         'handler' => \Swoolefy\Worker\Cron\CronForkProcess::class,
+        'description' => '发送短信',
         'worker_num' => 1, // 默认动态进程数量
         'max_handle' => 100, //消费达到10000后reboot进程
         'life_time'  => 3600, // 每隔3600s重启进程
@@ -42,7 +43,7 @@ return [
                 // fork task
                 [
                     'cron_name' => 'send message', // 发送短信
-                    'url'   => 'https://www.baidu.com',
+                    'url'   => 'http://www.baidu.com',
                     'method' => 'get',
                     'connect_time_out' => 10, //连接对方主机最长等待时间
                     'curl_time_out' => 15, // 整个请求最长等待总时间，要比connection_time_out大

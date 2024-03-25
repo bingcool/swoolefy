@@ -58,6 +58,22 @@ Route::group([
         //GroupTestMiddleware::class => GroupTestMiddleware::class
     ]);
 
+    Route::any('/user-order/userList1', [
+        'beforeHandle2' => [
+            ValidLoginMiddleware::class
+        ],
+        'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList1'],
+        //GroupTestMiddleware::class => GroupTestMiddleware::class
+    ]);
+
+    Route::any('/user-order/logOrder', [
+        'beforeHandle2' => [
+            ValidLoginMiddleware::class
+        ],
+        'dispatch_route' => [\Test\Module\Order\Controller\LogOrderController::class, 'testLog'],
+        //GroupTestMiddleware::class => GroupTestMiddleware::class
+    ]);
+
     Route::get('/user-order/save-order', [
         'beforeHandle' => function(RequestInput $requestInput) {
             $name = $requestInput->getRequestParams('name');

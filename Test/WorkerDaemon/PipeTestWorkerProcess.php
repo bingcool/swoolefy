@@ -12,6 +12,8 @@ class PipeTestWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
     public function run()
     {
         while (1) {
+//            RunLog::info("PipeTestWorkerProcess test log");
+//            RunLog::error("PipeTestWorkerProcess error log  test");
             var_dump("PipeTestWorkerProcess PipeTestWorkerProcess PipeTestWorkerProcess");
             sleep(20);
         }

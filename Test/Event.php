@@ -25,7 +25,7 @@ class Event extends EventHandler
 
         if(!$this->isWorkerService()) {
             // 创建一个测试自定义进程
-            // ProcessManager::getInstance()->addProcess('test', \Test\Process\TestProcess\Test::class);
+            // ProcessManager::getInstance()->addProcess('test', \Test\Process\TestProcess\MultiCall::class);
 
             // 创建一个定时器处理进程
             // ProcessManager::getInstance()->addProcess('tick', \Test\Process\TickProcess\Tick::class);
@@ -38,7 +38,7 @@ class Event extends EventHandler
             //var_dump('pid='.$pid);
 
             // redis的队列消费
-            ProcessManager::getInstance()->addProcess('redis_list_test', \Test\Process\ListProcess\RedisList::class,true, [], null, true);
+            // ProcessManager::getInstance()->addProcess('redis_list_test', \Test\Process\ListProcess\RedisList::class,true, [], null, true);
 
             // redis的延迟队列消费
             // ProcessManager::getInstance()->addProcess('redis_delay_list_test', \Test\Process\QueueProcess\Queue::class,true, [], null, true);
