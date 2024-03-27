@@ -1,5 +1,6 @@
 <?php
 include './vendor/autoload.php';
+resisterNamespace($_SERVER['argv'][2]);
 
 define('IS_DAEMON_SERVICE', 0);
 define('IS_CRON_SERVICE', 0);

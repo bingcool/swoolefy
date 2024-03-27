@@ -135,13 +135,6 @@ class BaseCmd extends Command
         if (function_exists('opcache_reset')) {
             opcache_reset();
         }
-
-        if (static::getDefaultName() != 'create') {
-            $autoloaderFile = START_DIR_ROOT ."/{$appName}". "/autoloader.php";
-            if (file_exists($autoloaderFile)) {
-                include $autoloaderFile;
-            }
-        }
     }
 
     /**
@@ -212,7 +205,6 @@ class BaseCmd extends Command
             $count = 1;
             $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
             file_put_contents($autoloaderFile, $file_content_string);
-            include $autoloaderFile;
         }
     }
 

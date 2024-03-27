@@ -11,6 +11,7 @@ use Test\Logger\RunLog;
 
 class FixedUser extends \Swoolefy\Script\MainCliScript
 {
+    const command = 'fixed:user:name';
 
     public function init()
     {
@@ -25,7 +26,7 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
                 });
             });
         });
-        sleep(5);
+        sleep(10);
         date_default_timezone_set('Asia/Shanghai');
         file_put_contents('/home/wwwroot/swoolefy/Test/WorkerCron/ForkOrder/order1.log','date='.date('Y-m-d H:i:s').',pid='.getmypid()."\n",FILE_APPEND);
 
