@@ -116,6 +116,18 @@ function makeServerName(string $appName)
 }
 
 /**
+ * @param $appName
+ * @return void
+ */
+function resisterNamespace($appName)
+{
+    $file = $appName.'/autoloader.php';
+    if (file_exists($file)) {
+        include $file;
+    }
+}
+
+/**
  * 协程单例
  *
  * @param \Closure|callable $callback

@@ -23,6 +23,14 @@ use Swoolefy\Script\MainCliScript;
 
 class GenerateMysql extends MainCliScript
 {
+    /**
+     * @var string
+     */
+    const command = "gen:mysql:schema";
+
+    /**
+     * @return void
+     */
     public function generate()
     {
         $db = getenv('db');
