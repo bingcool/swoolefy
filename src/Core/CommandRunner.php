@@ -91,6 +91,7 @@ class CommandRunner
         }
 
         $path = $execBinFile . ' ' . $execScript . ' ' . $params;
+        $path = trim($path,' ');
         $command = "{$path} >> {$log} 2>&1 && echo $$";
         if ($async) {
             // echo $! 表示输出进程id赋值在output数组中
@@ -141,6 +142,7 @@ class CommandRunner
         }
 
         $command = $execBinFile .' '.$execScript.' ' . $params . '; echo $? >&3';
+        $command = trim($command,' ');
         $descriptors = array(
             // stdout
             0 => array('pipe', 'r'),

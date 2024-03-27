@@ -16,6 +16,7 @@ use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Worker\Helper;
 use Swoolefy\Worker\Script\AbstractScriptProcess;
 use Swoolefy\Core\Coroutine\Context;
+use Test\Scripts\Kernel;
 
 class MainCliScript extends AbstractScriptProcess
 {
@@ -67,8 +68,8 @@ class MainCliScript extends AbstractScriptProcess
                 $this->exitAll(true);
                 return;
             }
-            $route = getenv('route');
-            fmtPrintInfo("Running Script: route={$route}, action={$action}......");
+            $route = getenv('command');
+            fmtPrintInfo("Running Script: class={$route}, action={$action}......");
             list($method, $params) = Helper::parseActionParams($this, $action, Helper::getCliParams());
             $this->{$action}(...$params);
             $this->waitCoroutineFinish();
@@ -166,30 +167,39 @@ class MainCliScript extends AbstractScriptProcess
      */
     public static function parseClass()
     {
-        $route = getenv('r');
-        if(empty($route)) {
-            fmtPrintError("【Error】Missing cli router param. eg: --r=FixedUser/fixName --name=xxxx");
+        $command = getenv('r');
+        if(empty($command)) {
+            fmtPrintError("【Error】Missing cli command param. eg: --r=fixed:user:name --name=xxxx");
             return '';
         }
-
-        $routerArr = explode('/', trim($route, '/'));
-        $action    = array_pop($routerArr);
 
         if (defined('ROOT_NAMESPACE')) {
             $rootNamespace = ROOT_NAMESPACE;
             $nameSpace = $rootNamespace[APP_NAME];
             $nameSpace = str_replace('\\', '/', $nameSpace);
             $nameSpaceArr = explode('/', trim($nameSpace, '/'));
-            $routerArr = array_merge($nameSpaceArr, $routerArr);
-            $class     = implode('\\', $routerArr);
+
+            $kernelNameSpace = array_merge($nameSpaceArr, ['Kernel']);
+            $kernelClass     = implode('\\', $kernelNameSpace);
+
+            $commands = (new $kernelClass())->commands ?? [];
+
+            if (!isset($commands[$command])) {
+                return '';
+            }
+
+            $class = $commands[$command][0];
+            $action = $commands[$command][1];
+
         }else {
-            $class     = implode('\\', $routerArr);
+            return '';
         }
+
         if(!is_subclass_of($class, __CLASS__)) {
             fmtPrintError("【Error】Missing class={$class} extends \Swoolefy\Script\MainCliScript");
             return '';
         }
-        putenv("route=$route");
+        putenv("command=$class");
         putenv("a={$action}");
         return $class;
     }
