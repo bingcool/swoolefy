@@ -141,7 +141,7 @@ composer create-project bingcool/swoolefy:~5.1 myproject
 <?php
 // 在myproject目录下添加cli.php, 这个是启动项目的入口文件
 include './vendor/autoload.php';
-resisterNamespace($_SERVER['argv'][2]);
+registerNamespace($_SERVER['argv'][2]);
 
 define('IS_DAEMON_SERVICE', 0);
 define('IS_CRON_SERVICE', 0);
