@@ -132,7 +132,7 @@ ENV SWOOLEFY_CLI_ENV dev
 2、创建项目
 ```
 // 下载代码到到你的自定义目录，这里定义为myproject
-composer create-project bingcool/swoolefy:^4.8.17 myproject
+composer create-project bingcool/swoolefy:^4.8.22 myproject
 ```
 
 ### 二、添加项目入口启动文件cli.php,并定义你的项目目录，命名为App
@@ -141,6 +141,7 @@ composer create-project bingcool/swoolefy:^4.8.17 myproject
 <?php
 // 在myproject目录下添加cli.php, 这个是启动项目的入口文件
 include './vendor/autoload.php';
+registerNamespace($_SERVER['argv'][2]);
 
 define('IS_DAEMON_SERVICE', 0);
 define('IS_CRON_SERVICE', 0);
