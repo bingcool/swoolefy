@@ -821,7 +821,10 @@ class MainManager
         if (empty($status)) {
             $status = $this->getProcessStatus();
         }
-        @file_put_contents(WORKER_STATUS_FILE, json_encode($status, JSON_UNESCAPED_UNICODE));
+
+        if (!SystemEnv::isScriptService()) {
+            @file_put_contents(WORKER_STATUS_FILE, json_encode($status, JSON_UNESCAPED_UNICODE));
+        }
     }
 
     /**
@@ -1123,7 +1126,9 @@ class MainManager
             try {
                 $status = $this->getProcessStatus();
                 // save status
-                file_put_contents(WORKER_STATUS_FILE, json_encode($status, JSON_UNESCAPED_UNICODE));
+                if (!SystemEnv::isScriptService()) {
+                    file_put_contents(WORKER_STATUS_FILE, json_encode($status, JSON_UNESCAPED_UNICODE));
+                }
                 // callable todo
                 if (is_callable($this->onReportStatus)) {
                     $this->onReportStatus->call($this, $status);

@@ -1,6 +1,6 @@
 <?php
 include './vendor/autoload.php';
-resisterNamespace($_SERVER['argv'][2]);
+registerNamespace($_SERVER['argv'][2]);
 
 define('IS_DAEMON_SERVICE', 0);
 define('IS_CRON_SERVICE', 0);
@@ -8,10 +8,14 @@ define('IS_CLI_SCRIPT', 1);
 
 define('WORKER_SERVICE_NAME', makeServerName($_SERVER['argv'][2]));
 
+$options = \Swoolefy\Core\SystemEnv::inputOptions();
+$command =\Swoolefy\Core\SystemEnv::getOption('r');
+$workPidFile = $command.'@'.substr(md5(json_encode($options)),0, 12);
+
 define('WORKER_PORT', get_one_free_port([9501, 9602, 9603]));
 define('WORKER_START_SCRIPT_FILE', $_SERVER['PWD'].'/'.$_SERVER['SCRIPT_FILENAME']);
 define('WORKER_PID_FILE_ROOT', '/tmp/workerfy/log/'.WORKER_SERVICE_NAME);
-define('WORKER_PID_FILE', WORKER_PID_FILE_ROOT.'/worker.pid');
+define('WORKER_PID_FILE', WORKER_PID_FILE_ROOT."/{$workPidFile}.pid");
 define('WORKER_STATUS_FILE',WORKER_PID_FILE_ROOT.'/status.log');
 define('WORKER_CTL_LOG_FILE',WORKER_PID_FILE_ROOT.'/ctl.log');
 define('CLI_TO_WORKER_PIPE',WORKER_PID_FILE_ROOT.'/cli.pipe');

@@ -119,7 +119,7 @@ function makeServerName(string $appName)
  * @param $appName
  * @return void
  */
-function resisterNamespace($appName)
+function registerNamespace($appName)
 {
     $file = $appName.'/autoloader.php';
     if (file_exists($file)) {

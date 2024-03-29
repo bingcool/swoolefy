@@ -3,7 +3,7 @@
 return // 定时fork进程处理任务
     [
         [
-        'process_name' => '系统fork模式任务调度', // 进程名称
+        'process_name' => 'system-schedule-task', // 进程名称
         'handler' => \Swoolefy\Worker\Cron\CronForkProcess::class,
         'description' => '系统fork模式任务调度',
         'worker_num' => 1, // 默认动态进程数量
