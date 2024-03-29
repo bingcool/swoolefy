@@ -20,12 +20,13 @@ class Kernel
 //            'command' => User\FixedUser::command,
 //            //'cron_expression' => 10, // 10s执行一次
 //            'cron_expression' => '*/1 * * * *', // 每分钟执行一次
+//            'desc' => '',
 //        ],
         [
             'command' => User\FixedUser::command,
             'cron_expression' => 11, // 10s执行一次
-            'with_block_lapping' => 1,
             //'cron_expression' => '*/1 * * * *', // 每分钟执行一次
+            'desc' => '',
         ],
     ];
 
@@ -41,9 +42,9 @@ class Kernel
         $scheduleList = [];
         foreach (self::$schedule as $item) {
             $item['cron_name'] = $item['command'].'-'.$item['cron_expression'];
-            $item['exec_bin_file'] = '/usr/bin/php';
+            $item['exec_bin_file'] = $_SERVER['_'] ?? '/usr/bin/php';
             $item['fork_type'] = \Swoolefy\Worker\Cron\CronForkProcess::FORK_TYPE_PROC_OPEN;
-            $item['exec_script'] = "script.php start {$appName} --r={$item['command']} --daemon=1";
+            $item['exec_script'] = "script.php start {$appName} --c={$item['command']} --daemon=1";
             $item['params'] = [];
             $scheduleList[] = $item;
         }
