@@ -16,7 +16,6 @@ use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Worker\Helper;
 use Swoolefy\Worker\Script\AbstractScriptProcess;
 use Swoolefy\Core\Coroutine\Context;
-use Test\Scripts\Kernel;
 
 class MainCliScript extends AbstractScriptProcess
 {
@@ -152,6 +151,10 @@ class MainCliScript extends AbstractScriptProcess
                 }
             }
 
+            if (file_exists(WORKER_PID_FILE)) {
+                @unlink(WORKER_PID_FILE);
+            }
+
             fmtPrintInfo("script end! ");
             if($force) {
                 \Swoole\Process::kill($swooleMasterPid, SIGKILL);
@@ -181,14 +184,11 @@ class MainCliScript extends AbstractScriptProcess
 
             $kernelNameSpace = array_merge($nameSpaceArr, ['Kernel']);
             $kernelClass     = implode('\\', $kernelNameSpace);
-
-            $commands = (new $kernelClass())->commands ?? [];
-
+            $commands = $kernelClass::$commands ?? [];
             if (!isset($commands[$command])) {
                 return '';
             }
-
-            $class = $commands[$command][0];
+            $class  = $commands[$command][0];
             $action = $commands[$command][1];
 
         }else {

@@ -4,10 +4,10 @@ namespace Test\Scripts;
 
 class Kernel
 {
-    public $commands = [
+    public static $commands = [
         GenerateMysql::command => [GenerateMysql::class, 'generate'],
         GeneratePg::command    => [GeneratePg::class, 'generate'],
-        FixedUser::command     => [FixedUser::class, 'fixName']
+        User\FixedUser::command     => [User\FixedUser::class, 'fixName']
     ];
 
     /**
@@ -16,13 +16,18 @@ class Kernel
      * @var array[]
      */
     public static $schedule = [
+//        [
+//            'command' => User\FixedUser::command,
+//            //'cron_expression' => 10, // 10s执行一次
+//            'cron_expression' => '*/1 * * * *', // 每分钟执行一次
+//        ],
         [
-            'command' => FixedUser::command,
-            'cron_expression' => 10, // 10s执行一次
+            'command' => User\FixedUser::command,
+            'cron_expression' => 11, // 10s执行一次
+            'with_block_lapping' => 1,
             //'cron_expression' => '*/1 * * * *', // 每分钟执行一次
         ],
     ];
-
 
 
     /**

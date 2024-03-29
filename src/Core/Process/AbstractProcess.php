@@ -131,6 +131,16 @@ abstract class AbstractProcess
             TableManager::getTable('table_process_map')->del(md5($this->processName));
             \Swoole\Event::del($process->pipe);
             \Swoole\Event::exit();
+
+            // 脚本模式下.任务进程退出时，父进程也得退出
+            if (SystemEnv::isScriptService()) {
+                $swooleMasterPid = Swfy::getMasterPid();
+                \Swoole\Process::kill($swooleMasterPid, SIGTERM);
+                if(file_exists(WORKER_PID_FILE_ROOT)) {
+                    @unlink(WORKER_PID_FILE_ROOT);
+                }
+            }
+
             $this->swooleProcess->exit(0);
         });
 

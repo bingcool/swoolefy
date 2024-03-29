@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Worker\Cron;
 
+use Swoole\Coroutine\System;
 use Swoolefy\Core\CommandRunner;
 use Swoolefy\Core\Crontab\CrontabManager;
 
@@ -54,6 +55,7 @@ class CronForkProcess extends CronProcess
                 try {
                     CrontabManager::getInstance()->addRule($task['cron_name'], $task['cron_expression'], function ($cron_name, $expression) use($task, $forkType, $params) {
                         $runner = CommandRunner::getInstance($cron_name,1);
+                        $this->randSleepTime($task['cron_expression']);
                         try {
                             if($runner->isNextHandle(false)) {
                                 if($forkType == self::FORK_TYPE_PROC_OPEN) {
@@ -75,6 +77,39 @@ class CronForkProcess extends CronProcess
             }
         }
     }
+
+    /**
+     * @param string $cronExpression
+     * @return  bool
+     */
+    protected function randSleepTime($cronExpression)
+    {
+        if (is_numeric($cronExpression)) {
+            return true;
+        }
+
+        $todo = false;
+        $expressionArr = explode(' ', trim($cronExpression));
+        $firstItem = $expressionArr[0];
+        if ($firstItem == '*') {
+            $todo = true;
+        }else {
+            $firstItemArr = explode('/', $firstItem);
+            if (isset($firstItemArr[1]) && is_numeric($firstItemArr[1])) {
+                $todo = true;
+            }
+        }
+        if ($todo) {
+            $randNumArr = [0.2, 0.5, 0.8, 1.0, 1.5, 1.8, 2.0];
+            $index = array_rand($randNumArr);
+            $sleepTime = $randNumArr[$index] ?? 0.2;
+            System::sleep($sleepTime);
+        }
+
+        return true;
+    }
+
+    // 生成
 
     /**
      * receive cli process return CallBack handle
