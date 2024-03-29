@@ -211,7 +211,7 @@ abstract class AbstractProcess
     {
         if (SystemEnv::isWorkerService()) {
             if (SystemEnv::isScriptService()) {
-                $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . '-swoolefy-worker-script-php:' . getenv('r'));
+                $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . '-swoolefy-worker-script-php:' . getenv('c'));
             }else if (SystemEnv::isDaemonService()) {
                 $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'swoolefy-worker-daemon-php:' . $this->getProcessName());
             }else if (SystemEnv::isCronService()) {
