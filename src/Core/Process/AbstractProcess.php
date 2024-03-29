@@ -136,8 +136,8 @@ abstract class AbstractProcess
             if (SystemEnv::isScriptService()) {
                 $swooleMasterPid = Swfy::getMasterPid();
                 \Swoole\Process::kill($swooleMasterPid, SIGTERM);
-                if(file_exists(WORKER_PID_FILE_ROOT)) {
-                    @unlink(WORKER_PID_FILE_ROOT);
+                if(file_exists(WORKER_PID_FILE)) {
+                    @unlink(WORKER_PID_FILE);
                 }
             }
 

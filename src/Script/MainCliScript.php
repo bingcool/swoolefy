@@ -170,9 +170,9 @@ class MainCliScript extends AbstractScriptProcess
      */
     public static function parseClass()
     {
-        $command = getenv('r');
+        $command = getenv('c');
         if(empty($command)) {
-            fmtPrintError("【Error】Missing cli command param. eg: --r=fixed:user:name --name=xxxx");
+            fmtPrintError("【Error】Missing cli command param. eg: --c=fixed:user:name --name=xxxx");
             return '';
         }
 
