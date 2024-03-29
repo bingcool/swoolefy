@@ -288,17 +288,13 @@ class HttpRoute extends AppDispatch
     private function handleAfterRouteMiddles()
     {
         foreach ($this->afterMiddlewares as $middleware) {
-            try {
-                if ($middleware instanceof \Closure) {
-                    call_user_func($middleware, $this->requestInput, $this->responseOutput);
-                }else if (class_exists($middleware)) {
-                    $middlewareEntity = new $middleware;
-                    if ($middlewareEntity instanceof RouteMiddleware) {
-                        $middlewareEntity->handle($this->requestInput, $this->responseOutput);
-                    }
+            if ($middleware instanceof \Closure) {
+                call_user_func($middleware, $this->requestInput, $this->responseOutput);
+            }else if (class_exists($middleware)) {
+                $middlewareEntity = new $middleware;
+                if ($middlewareEntity instanceof RouteMiddleware) {
+                    $middlewareEntity->handle($this->requestInput, $this->responseOutput);
                 }
-            }catch (\Throwable $exception) {
-                // todo
             }
         }
     }

@@ -1,5 +1,6 @@
 <?php
 include './vendor/autoload.php';
+registerNamespace($_SERVER['argv'][2]);
 
 define('WORKER_PORT',9602);
 define('IS_DAEMON_SERVICE', 1);
@@ -27,8 +28,6 @@ define('WORKER_CONF', \Swoolefy\Worker\MainManager::loadConfByPath(__DIR__.'/'.$
 define('PROCESS_CLASS', [
     // 应用daemon worker
     'Test' => \Test\WorkerDaemon\MainProcess::class,
-    // 组件日志名称
-    'Log'  => ['log', 'error_log']
 ]);
 
 define('APP_NAMES', [

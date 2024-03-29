@@ -322,6 +322,7 @@ class MainManager
         $args['max_handle']              = $config['max_handle'] ?? 10000;
         $args['life_time']               = $config['life_time'] ?? 3600;
         $args['limit_run_coroutine_num'] = $config['limit_run_coroutine_num'] ?? null;
+        $args['description']             = $config['description'] ?? '';
     }
 
     /**
@@ -820,7 +821,10 @@ class MainManager
         if (empty($status)) {
             $status = $this->getProcessStatus();
         }
-        @file_put_contents(WORKER_STATUS_FILE, json_encode($status, JSON_UNESCAPED_UNICODE));
+
+        if (!SystemEnv::isScriptService()) {
+            @file_put_contents(WORKER_STATUS_FILE, json_encode($status, JSON_UNESCAPED_UNICODE));
+        }
     }
 
     /**
@@ -1002,6 +1006,7 @@ class MainManager
             $childrenNum += count($processes);
             ksort($processes);
             /**
+             * 获取每个子进程runtime状态
              * @var AbstractBaseWorker $process
              */
             foreach ($processes as $process) {
@@ -1064,6 +1069,7 @@ class MainManager
                     $processType = AbstractBaseWorker::PROCESS_DYNAMIC_TYPE_NAME;
                 }
                 if (\Swoole\Process::kill($pid, 0)) {
+                    $key = md5($processName);
                     // loop report should be handed (exit) some deal process
                     $this->rebootOrExitHandle();
                     $processStatus = 'running';
@@ -1075,7 +1081,8 @@ class MainManager
                         'start_time'   => $startTime,
                         'reboot_count' => $rebootCount,
                         'status'       => $processStatus,
-                        'runtime'      => $this->processStatusList[$processName][$workerId] ?? []
+                        'runtime'      => $this->processStatusList[$processName][$workerId] ?? [],
+                        'description'  => $this->processLists[$key]['args']['description'] ?? '',
                     ];
                     $runningChildrenNum++;
                 }
@@ -1119,7 +1126,9 @@ class MainManager
             try {
                 $status = $this->getProcessStatus();
                 // save status
-                file_put_contents(WORKER_STATUS_FILE, json_encode($status, JSON_UNESCAPED_UNICODE));
+                if (!SystemEnv::isScriptService()) {
+                    file_put_contents(WORKER_STATUS_FILE, json_encode($status, JSON_UNESCAPED_UNICODE));
+                }
                 // callable todo
                 if (is_callable($this->onReportStatus)) {
                     $this->onReportStatus->call($this, $status);
@@ -1845,7 +1854,7 @@ class MainManager
         } else {
             // worker info
             $memory = $this->processStatusList[$process_name][$worker_id]['memory'] ?? '--';
-            $info = "【{$process_name}@{$worker_id}】【{$process_type}】: 进程名称name: $process_name, 进程编号worker_id: $worker_id, 进程Pid: $pid, 进程状态status：$status, 启动(重启)时间：$start_time, 内存占用：$memory, reboot次数：$reboot_count";
+            $info = "【{$process_name}@{$worker_id}】【{$process_type}】: 进程名称name: $process_name, 进程编号worker_id: $worker_id, 进程Pid: $pid, 进程状态status：$status, 启动(重启)时间：$start_time, 内存占用：$memory, reboot次数：$reboot_count\n-----------\n";
         }
 
         return $info;

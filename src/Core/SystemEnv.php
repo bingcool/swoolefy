@@ -16,6 +16,7 @@ use Dotenv\Repository\Adapter\PutenvAdapter;
 use Dotenv\Repository\RepositoryBuilder;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Exception\SystemException;
+use Symfony\Component\Console\Input\ArgvInput;
 
 class SystemEnv
 {
@@ -115,6 +116,44 @@ class SystemEnv
     public static function isCronService(): bool
     {
         return isCronService();
+    }
+
+    /**
+     * @return array
+     */
+    public static function  inputOptions()
+    {
+        $options = [];
+        $argv = new ArgvInput();
+        $token = $argv->__toString();
+        $items = explode(' ', $token);
+        foreach ($items as $item) {
+            if (str_starts_with($item, '--') || str_starts_with($item, '-')) {
+                $item = trim($item,'-');
+                $values = explode('=', $item, 2);
+                $options[trim($values[0])] = trim($values[1]);
+            }
+        }
+        return $options;
+    }
+
+    /**
+     * @param string $name
+     * @return array|string
+     */
+    public static function getOption(string $name, bool $force = false)
+    {
+        static $options;
+        if ($force) {
+            $options = self::inputOptions();
+        }else {
+            if (!isset($options)) {
+                $options = self::inputOptions();
+            }
+        }
+        $value =  trim($options[$name],'\'') ?? '';
+        $value = trim($value,' ');
+        return $value;
     }
 
     /**

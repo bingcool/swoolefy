@@ -1,6 +1,7 @@
 <?php
 
 include './vendor/autoload.php';
+registerNamespace($_SERVER['argv'][2]);
 
 define('WORKER_PORT', 9603);
 define('IS_DAEMON_SERVICE', 0);
@@ -28,8 +29,6 @@ define('WORKER_CONF', \Swoolefy\Worker\MainManager::loadConfByPath(__DIR__.'/'.$
 define('PROCESS_CLASS', [
     // 应用crom worker
     'Test' => \Test\WorkerCron\MainCronProcess::class,
-    // 组件日志名称
-    'Log'  => ['log', 'error_log']
 ]);
 
 define('APP_NAMES', [

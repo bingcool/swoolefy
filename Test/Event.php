@@ -25,7 +25,7 @@ class Event extends EventHandler
 
         if(!$this->isWorkerService()) {
             // 创建一个测试自定义进程
-            // ProcessManager::getInstance()->addProcess('test', \Test\Process\TestProcess\Test::class);
+            // ProcessManager::getInstance()->addProcess('test', \Test\Process\TestProcess\MultiCall::class);
 
             // 创建一个定时器处理进程
             // ProcessManager::getInstance()->addProcess('tick', \Test\Process\TickProcess\Tick::class);

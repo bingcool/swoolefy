@@ -104,7 +104,7 @@ class StatusCmd extends BaseCmd
             $msg = fread($ctlPipe, 8192);
             fmtPrintInfo($msg);
         });
-        sleep(2);
+        sleep(1);
         // 向worker发送数据
         fwrite($pipe, $pipeMsg);
         \Swoole\Event::wait();

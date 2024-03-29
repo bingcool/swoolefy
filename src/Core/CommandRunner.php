@@ -91,6 +91,7 @@ class CommandRunner
         }
 
         $path = $execBinFile . ' ' . $execScript . ' ' . $params;
+        $path = trim($path,' ');
         $command = "{$path} >> {$log} 2>&1 && echo $$";
         if ($async) {
             // echo $! 表示输出进程id赋值在output数组中
@@ -141,6 +142,7 @@ class CommandRunner
         }
 
         $command = $execBinFile .' '.$execScript.' ' . $params . '; echo $? >&3';
+        $command = trim($command,' ');
         $descriptors = array(
             // stdout
             0 => array('pipe', 'r'),
@@ -160,20 +162,21 @@ class CommandRunner
                     throw new SystemException("Proc Open Command 【{$command}】 failed.");
                 }
                 $status = proc_get_status($proc_process);
-                if ($status['pid'] ?? '') {
-                    $this->channel->push([
-                        'pid' => $status['pid'],
-                        'command' => $command,
-                        'start_time' => time()
-                    ], 0.2);
+                $statusProperty = [
+                    'pid' => $status['pid'] ?? '',
+                    'command' => $command,
+                    'start_time' => time()
+                ];
 
+                if ($status['pid'] ?? '') {
+                    $this->channel->push($statusProperty, 0.2);
                     $returnCode = fgets($pipes[3], 10);
                     if ($returnCode != 0) {
                         $errorMsg = static::$exitCodes[$returnCode] ?? 'Unknown Error';
                         throw new SystemException("CommandRunner Proc Open failed,return Code={$returnCode},commandLine={$command}, errorMsg={$errorMsg}.");
                     }
                 }
-                $params = [$pipes[0], $pipes[1], $pipes[2], $status, $returnCode ?? -1];
+                $params = [$pipes[0], $pipes[1], $pipes[2], $statusProperty, $returnCode ?? -1];
                 $result = call_user_func_array($callable, $params);
                 return $result;
             } catch (\Throwable $e) {
@@ -200,7 +203,8 @@ class CommandRunner
             while ($item = $this->channel->pop(0.05)) {
                 $pid = $item['pid'];
                 $startTime = $item['start_time'];
-                if (\Swoole\Process::kill($pid, 0) && ($startTime + 60) > time()) {
+                // 60s 内还未执行完的进程才统计，重新推入channel.超过60s的进程即使还存在，也算执行完毕了。
+                if (\Swoole\Process::kill($pid, 0) && time() < ($startTime + 60)) {
                     $itemList[] = $item;
                 }
             }
