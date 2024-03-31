@@ -1,5 +1,4 @@
 <?php
-
 /**
  * +----------------------------------------------------------------------
  * | swoolefy framework bases on swoole extension development, we can use it easily!
@@ -14,6 +13,10 @@ namespace Swoolefy\Http;
 
 class RouteOption extends \stdClass
 {
+    const API_LIMIT_NUM_KEY = '__api_limit_num';
+
+    const API_LIMIT_WINDOW_SIZE_TIME_KEY = '__api_limit_window_size_time';
+
     /**
      * @var bool 路由动态开启DB的debug
      */
@@ -25,6 +28,16 @@ class RouteOption extends \stdClass
      * @var string
      */
     protected $rateLimiterMiddleware;
+
+    /**
+     * @var int
+     */
+    protected $limitNum;
+
+    /**
+     * @var int
+     */
+    protected $windowSizeTime;
 
     /**
      * 在那个middle之后再运行这个rateLimiterMiddleware, 有可能rateLimiterMiddleware依赖上游的rateLimiterMiddleware的数据
@@ -56,12 +69,24 @@ class RouteOption extends \stdClass
      * 限流中间件类名，将注册到路由中间件数组表头第一个执行
      *
      * @param string $rateLimiterMiddleware
-     * @param string $runAfterMiddleware //在那个middle之后再运行这个rateLimiterMiddleware, 有可能rateLimiterMiddleware依赖上游的rateLimiterMiddleware的数据
+     * @param int $limitNum
+     * @param int $windowSizeTime
+     * @param string $runAfterMiddleware
+     * 在那个middle之后再运行这个rateLimiterMiddleware, 有可能rateLimiterMiddleware依赖上游的rateLimiterMiddleware的数据
+     * 如果runAfterMiddleware为空，那么rateLimiterMiddleware将是第一个执行的中间件，执行顺序为$rateLimiterMiddleware->groupMiddleware->routeMiddleware
+     * 如果runAfterMiddleware不为空，那么rateLimiterMiddleware将根据这个设置runAfterMiddleware，在它之后执行，这个runAfterMiddleware可以是groupMiddleware或者routeMiddleware其中一个
      * @return $this
      */
-    public function withRateLimiterMiddleware(string $rateLimiterMiddleware, string $runAfterMiddleware = '')
+    public function withRateLimiterMiddleware(
+        string $rateLimiterMiddleware,
+        int $limitNum,
+        int $windowSizeTime,
+        string $runAfterMiddleware = ''
+    )
     {
         $this->rateLimiterMiddleware = $rateLimiterMiddleware;
+        $this->limitNum = $limitNum;
+        $this->windowSizeTime = $windowSizeTime;
         $this->runAfterMiddleware = $runAfterMiddleware;
         return $this;
     }
@@ -72,6 +97,22 @@ class RouteOption extends \stdClass
     public function getRateLimiterMiddleware()
     {
         return $this->rateLimiterMiddleware;
+    }
+
+    /**
+     * @return int
+     */
+    public function getLimitNum()
+    {
+        return $this->limitNum;
+    }
+
+    /**
+     * @return int
+     */
+    public function getWindowSizeTime()
+    {
+        return $this->windowSizeTime;
     }
 
     /**

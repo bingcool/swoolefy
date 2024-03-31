@@ -12,7 +12,7 @@
 namespace Swoolefy\Core\Log;
 
 use Swoolefy\Exception\SystemException;
-use \Swoolefy\Util\Log;
+use Swoolefy\Util\Log;
 
 /**
  * Class LogManager
