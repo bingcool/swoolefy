@@ -1,5 +1,6 @@
 <?php
 include './vendor/autoload.php';
+registerNamespace($_SERVER['argv'][2]);
 
 define('WORKER_PORT',9602);
 define('IS_DAEMON_SERVICE', 1);

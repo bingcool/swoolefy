@@ -19,7 +19,7 @@ $argv[3] = $_SERVER['argv'][3] = "swaggerui/openapi-{$appName}.yaml";
 $argc = count($argv);
 
 include 'vendor/autoload.php';
-include "Test/autoloader.php";
+registerNamespace($_SERVER['argv'][2]);
 
 $path = __DIR__.'/'.$appName;
 if (!is_dir($path)) {

@@ -131,6 +131,16 @@ abstract class AbstractProcess
             TableManager::getTable('table_process_map')->del(md5($this->processName));
             \Swoole\Event::del($process->pipe);
             \Swoole\Event::exit();
+
+            // 脚本模式下.任务进程退出时，父进程也得退出
+            if (SystemEnv::isScriptService()) {
+                $swooleMasterPid = Swfy::getMasterPid();
+                \Swoole\Process::kill($swooleMasterPid, SIGTERM);
+                if(file_exists(WORKER_PID_FILE)) {
+                    @unlink(WORKER_PID_FILE);
+                }
+            }
+
             $this->swooleProcess->exit(0);
         });
 
@@ -201,7 +211,7 @@ abstract class AbstractProcess
     {
         if (SystemEnv::isWorkerService()) {
             if (SystemEnv::isScriptService()) {
-                $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . '-swoolefy-worker-script-php:' . getenv('r'));
+                $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . '-swoolefy-worker-script-php:' . getenv('c'));
             }else if (SystemEnv::isDaemonService()) {
                 $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'swoolefy-worker-daemon-php:' . $this->getProcessName());
             }else if (SystemEnv::isCronService()) {

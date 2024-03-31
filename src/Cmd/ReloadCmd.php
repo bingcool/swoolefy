@@ -15,7 +15,7 @@ class ReloadCmd extends BaseCmd
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        if (isWorkerService()) {
+        if (SystemEnv::isWorkerService()) {
             fmtPrintError("WorkerServer, CronService, ScriptService is not support reload command");
             return 0;
         }
