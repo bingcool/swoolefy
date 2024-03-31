@@ -67,8 +67,8 @@ class MainCliScript extends AbstractScriptProcess
                 $this->exitAll(true);
                 return;
             }
-            $route = getenv('command');
-            fmtPrintInfo("Running Script: class={$route}, action={$action}......");
+            $handleClass = getenv('handle_class');
+            fmtPrintInfo("Running Script: class={$handleClass}, action={$action}......");
             list($method, $params) = Helper::parseActionParams($this, $action, Helper::getCliParams());
             $this->{$action}(...$params);
             $this->waitCoroutineFinish();
@@ -199,7 +199,7 @@ class MainCliScript extends AbstractScriptProcess
             fmtPrintError("【Error】Missing class={$class} extends \Swoolefy\Script\MainCliScript");
             return '';
         }
-        putenv("command=$class");
+        putenv("handle_class={$class}");
         putenv("a={$action}");
         return $class;
     }
