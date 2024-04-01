@@ -13,6 +13,7 @@ namespace Swoolefy\Script;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Table\TableManager;
+use Swoolefy\Exception\SystemException;
 use Swoolefy\Worker\Helper;
 use Swoolefy\Worker\Script\AbstractScriptProcess;
 use Swoolefy\Core\Coroutine\Context;
@@ -29,6 +30,12 @@ class MainCliScript extends AbstractScriptProcess
      * @var string
      */
     private $scriptTable = 'table_for_script';
+
+    /**
+     *
+     * @var float
+     */
+    protected $maxWaitTime = 5.0;
 
     /**
      * @var array
@@ -67,11 +74,11 @@ class MainCliScript extends AbstractScriptProcess
                 $this->exitAll(true);
                 return;
             }
-            $route = getenv('command');
-            fmtPrintInfo("Running Script: class={$route}, action={$action}......");
+            $class = getenv('command');
+            fmtPrintInfo("Running Script: class={$class}, action={$action}......");
             list($method, $params) = Helper::parseActionParams($this, $action, Helper::getCliParams());
             $this->{$action}(...$params);
-            $this->waitCoroutineFinish();
+            $this->waitCoroutineFinish($this->maxWaitTime);
             $this->exitAll();
         }catch (\Throwable $throwable) {
             fmtPrintError($throwable->getMessage().': trace='.$throwable->getTraceAsString());
@@ -108,17 +115,17 @@ class MainCliScript extends AbstractScriptProcess
     }
 
     /**
-     * 防止脚本创建协程时，主进程脚本直接退出了，会把协程也退出，导致协程没执行，所以需要等待一段时间，让协程执行完
+     * 防止脚本创建协程时，进程脚本继续往下执行，会直接执行existAll()退出了，会把未执行完的协程也退出了，导致协程没执行完毕，所以需要等待一段时间，让协程执行完
      *
-     * @param float $timeOut
+     * @param float $maxTimeOut 最长等待时间单位秒
      * @return void
      */
-    protected function waitCoroutineFinish(float $timeOut = 5.0)
+    protected function waitCoroutineFinish(float $maxTimeOut = 5.0)
     {
         $time = time();
         while (true) {
             $status = \Swoole\Coroutine::stats();
-            if ($status['coroutine_num'] == 1 || time() > ($time + $timeOut)) {
+            if ($status['coroutine_num'] == 1 || time() > ($time + $maxTimeOut)) {
                 break;
             }
             \Swoole\Coroutine\System::sleep(0.5);
@@ -172,8 +179,7 @@ class MainCliScript extends AbstractScriptProcess
     {
         $command = getenv('c');
         if(empty($command)) {
-            fmtPrintError("【Error】Missing cli command param. eg: --c=fixed:user:name --name=xxxx");
-            return '';
+            throw new SystemException("【Error】Missing cli command param. eg: --c=fixed:user:name --name=xxxx");
         }
 
         if (defined('ROOT_NAMESPACE')) {
@@ -186,18 +192,16 @@ class MainCliScript extends AbstractScriptProcess
             $kernelClass     = implode('\\', $kernelNameSpace);
             $commands = $kernelClass::$commands ?? [];
             if (!isset($commands[$command])) {
-                return '';
+                throw new SystemException("【Error】{$kernelClass}::commands property not defined command={$command}.");
             }
             $class  = $commands[$command][0];
             $action = $commands[$command][1];
-
         }else {
-            return '';
+            throw new SystemException("【Error】script.php not defined const ROOT_NAMESPACE.");
         }
 
         if(!is_subclass_of($class, __CLASS__)) {
-            fmtPrintError("【Error】Missing class={$class} extends \Swoolefy\Script\MainCliScript");
-            return '';
+            throw new SystemException("【Error】class={$class} bust be extended \Swoolefy\Script\MainCliScript");
         }
         putenv("command=$class");
         putenv("a={$action}");
