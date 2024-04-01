@@ -74,8 +74,8 @@ class MainCliScript extends AbstractScriptProcess
                 $this->exitAll(true);
                 return;
             }
-            $class = getenv('command');
-            fmtPrintInfo("Running Script: class={$class}, action={$action}......");
+            $handleClass = getenv('handle_class');
+            fmtPrintInfo("Running Script: class={$handleClass}, action={$action}......");
             list($method, $params) = Helper::parseActionParams($this, $action, Helper::getCliParams());
             $this->{$action}(...$params);
             $this->waitCoroutineFinish($this->maxWaitTime);
@@ -203,7 +203,7 @@ class MainCliScript extends AbstractScriptProcess
         if(!is_subclass_of($class, __CLASS__)) {
             throw new SystemException("【Error】class={$class} bust be extended \Swoolefy\Script\MainCliScript");
         }
-        putenv("command=$class");
+        putenv("handle_class={$class}");
         putenv("a={$action}");
         return $class;
     }
