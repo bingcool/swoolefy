@@ -2,7 +2,9 @@
 /**
  * 自动生成swagger接口文档入口
  */
-// 应用父目录
+
+include 'vendor/autoload.php';
+
 defined('ROOT_PATH') or define('ROOT_PATH', __DIR__);
 // 启动目录
 defined('START_DIR_ROOT') or define('START_DIR_ROOT', __DIR__);
@@ -10,6 +12,7 @@ defined('START_DIR_ROOT') or define('START_DIR_ROOT', __DIR__);
 if (!isset($_SERVER['argv'][1])) {
     exit("【Error】missing source dir\n");
 }
+registerNamespace($_SERVER['argv'][1]);
 
 // 执行 php swag.php Test 即可生成接口文档
 $items = explode('/', $_SERVER['argv'][1]);
@@ -17,9 +20,6 @@ $appName = $items[0];
 $argv[2] = $_SERVER['argv'][2] = '-o';
 $argv[3] = $_SERVER['argv'][3] = "swaggerui/openapi-{$appName}.yaml";
 $argc = count($argv);
-
-include 'vendor/autoload.php';
-registerNamespace($_SERVER['argv'][2]);
 
 $path = __DIR__.'/'.$appName;
 if (!is_dir($path)) {
@@ -42,5 +42,5 @@ $envArr = $dotenv->load();
 // 不同环境定义不同网站host
 defined('WEB_SITE_HOST') or define('WEB_SITE_HOST', $envArr['WEB_SITE_HOST'] ?? 'http://bing.swoolefy.com');
 
-echo "文档开始生成......\n";
+echo "文档开始生成......".PHP_EOL;
 include "vendor/bin/openapi";

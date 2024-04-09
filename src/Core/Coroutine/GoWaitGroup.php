@@ -144,8 +144,7 @@ class GoWaitGroup
         if (!is_null($key) && $key != '') {
             $this->result[$key] = $data;
         }
-        $count = $this->count -1;
-        $this->count = $count;
+        $this->count--;
         if ($this->count == 0 && $this->waiting) {
             $this->channel->push(1, $timeout);
         }
