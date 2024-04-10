@@ -83,9 +83,9 @@ class CreateCmd extends BaseCmd
                         @copy(ROOT_PATH . '/src/Stubs/CacheComStubs.php', $componentDir.'/cache.php');
                     }
 
-                    $configFile = $appPathDir . '/' . $dir . '/config.php';
+                    $configFile = $appPathDir . '/' . $dir . '/app.php';
                     if (!file_exists($configFile)) {
-                        @copy(ROOT_PATH . '/src/Stubs/Config.php', $configFile);
+                        @copy(ROOT_PATH . '/src/Stubs/AppConf.php', $configFile);
                     }
 
                     $dcFile = $appPathDir . '/' . $dir . '/dc.php';

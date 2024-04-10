@@ -187,7 +187,7 @@ myproject
 |     |      |—— cache.php   // 缓存组件，可以继续添加其他组件，命名自由 
 |     │   ├── dc.php   //环境配置项
 |     │   └── constants.php
-|     |   |—— config.php    // 应用层配置
+|     |   |—— app.php    // 应用层配置
 |     |
 |     ├── Controller
 |     │   └── IndexController.php // 控制器层
@@ -265,7 +265,7 @@ class IndexController extends BController {
 ### 定义组件
 
 应用层配置文件：
-Config/config.php
+Config/app.php
 
 ```
 <?php

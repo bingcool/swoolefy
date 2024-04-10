@@ -12,11 +12,9 @@ use Swoolefy\Core\Crontab\CrontabManager;
 
 class Cron extends AbstractProcess {
 
-    private $appConf;
-
     public function run() {
         try {
-            $this->appConf = Swfy::getAppConf();
+            $appConf = Swfy::getAppConf();
             // 闭包回调模式
 //            CrontabManager::getInstance()->addRule('cron_test', '*/1 * * * *', function($cron) {
 //                $cid = \Swoole\Coroutine::getCid();
