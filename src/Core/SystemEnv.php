@@ -175,7 +175,7 @@ class SystemEnv
      */
     public static function loadAppConf()
     {
-        $confFile = APP_PATH . '/Config/config.php';
+        $confFile = APP_PATH . '/Config/app.php';
         if (!file_exists($confFile)) {
             throw new SystemException("Not found app conf file:{$confFile}");
         }
