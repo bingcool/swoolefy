@@ -914,7 +914,7 @@ class MainManager
             $key = md5($processName);
             $newProcess->setProcessWorkerId($workerId);
             $newProcess->setMasterPid($this->getMasterPid());
-            $newProcess->setProcessType(AbstractBaseWorker::PROCESS_STATIC_TYPE_NAME);
+            $newProcess->setProcessType(AbstractBaseWorker::PROCESS_STATIC_TYPE);
             $newProcess->setStartTime();
             $this->processWorkers[$key][$workerId] = $newProcess;
             $newProcess->start();
@@ -1444,7 +1444,12 @@ class MainManager
                                         $this->responseMsgByPipe("进程【{$processName}】已开始重启，请留意！");
                                         $this->restartWorkerProcessCommand($processName);
                                     }else {
-                                        $this->responseMsgByPipe("进程【{$processName}】不存在，请检查进程名称是否正确！");
+                                        $config = $this->parseLoadConf($processName);
+                                        if (empty($config)) {
+                                            return $this->responseMsgByPipe("找不到进程名【{$processName}】的配置项！");
+                                        }
+                                        $this->responseMsgByPipe("进程【{$processName}】已开始启动，请留意！");
+                                        $this->startWorkerProcessCommand($config);
                                     }
                                     break;
                                 // 停止指定进程
