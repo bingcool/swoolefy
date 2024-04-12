@@ -13,7 +13,6 @@ namespace Swoolefy\Worker;
 
 use Swoole\Http\Request;
 use Swoole\Http\Response;
-use Swoolefy\Core\CommandRunner;
 use Swoolefy\Worker\Dto\PipeMsgDto;
 
 class CtlApi
@@ -28,39 +27,50 @@ class CtlApi
      */
     public $response;
 
-    public $processStatusList = [];
+    public $processRuntimeList = [];
+
+    public $reportTime;
 
     const API_LIST = '/process-list';
     const API_START = '/process-start';
     const API_STOP = '/process-stop';
     const API_STATUS = '/process-status';
 
-    const BIN_FILE = '/usr/bin/php';
-
+    /**
+     * @param Request $request
+     * @param Response $response
+     */
     public function __construct(Request $request, Response $response)
     {
         $this->request = $request;
         $this->response = $response;
         $statusFileList = file_get_contents(WORKER_STATUS_FILE);
         $statusFileList = json_decode($statusFileList, true);
-        $this->processStatusList = $statusFileList['master']['children_process'] ?? [];
+        $this->processRuntimeList = $statusFileList['master']['children_process'] ?? [];
+        $this->reportTime = $statusFileList['master']['report_time'];
     }
 
+    /**
+     * @return bool|void
+     */
     public function handle()
     {
         $params = $this->request->get;
         $uri = $this->request->server['request_uri'];
-        $pid = $params["pid"];
-        $processName = $params['process_name'];
+        $processName = $params['process_name'] ?? '';
+
         switch ($uri) {
+            case self::API_LIST:
+                $this->list();
+                break;
             case self::API_START:
-                $this->start($pid, $processName);
+                $this->start($processName);
                 break;
             case self::API_STOP:
-                $this->stop($pid, $processName);
+                $this->stop($processName);
                 break;
             case self::API_STATUS:
-                $this->status($pid, $processName);
+                $this->status($processName);
                 break;
             default:
                 $this->response->status(404);
@@ -70,66 +80,124 @@ class CtlApi
     }
 
     /**
+     * @return void
+     */
+    public function list()
+    {
+        $confList = MainManager::loadConfByPath();
+        foreach ($confList as &$confItem) {
+            $processName = $confItem['process_name'];
+            $processRuntimeItems = $this->processRuntimeList[$processName] ?? [];
+            $confItem['process_list'] = [];
+            if (empty($processRuntimeItems)) {
+                $confItem['running'] = 0;
+                $confItem['start_time'] = '';
+                $confItem['report_time'] = $this->reportTime;
+            }else {
+                $confItem['running'] = 0;
+                $confItem['start_time'] = '';
+                $confItem['report_time'] = $this->reportTime;
+
+                foreach ($processRuntimeItems as $processRuntimeItem) {
+                    if (isset($processRuntimeItem['pid']) ) {
+                        $pid = $processRuntimeItem['pid'];
+                        if (\Swoole\Process::kill($pid, 0)) {
+                            $confItem['running'] = 1;
+                            $confItem['start_time'] = $processRuntimeItem['start_time'];
+                            break;
+                        }else {
+                            $confItem['running'] = 0;
+                            $confItem['start_time'] = $processRuntimeItem['start_time'];
+                        }
+                    }
+                }
+                $confItem['process_list'] = $processRuntimeItems;
+            }
+        }
+        $this->returnSuccess($confList);
+    }
+
+    /**
      * @param Response $response
      */
-    public function start(int $pid, string $processName)
+    public function start(string $processName)
     {
-        $processStatus = $this->processStatusList[$processName] ?? [];
-        if (empty($processStatus)) {
-            return $this->returnFail('process not found', []);
-        }
+        $action = 'restart';
+        $this->sendPipeCommand($processName, $action);
+        $this->returnSuccess(['action' => $action, 'time'=>date('Y-m-d H:i:s')]);
+    }
 
-        $pid = $processStatus['pid'] ?? 0;
-        $runner = CommandRunner::getInstance(__FUNCTION__);
-        $runner->isNextHandle(false);
-        if (\swoole\process::kill($pid, 0)) {
-            $pipeMsgDto = new PipeMsgDto();
-            $pipeMsgDto->action = WORKER_CLI_SEND_MSG;
-            $pipeMsgDto->targetHandler = $processName;
-            $pipeMsgDto->message = json_encode([
-                'action' => 'restart',
-                'msg' => ''
-            ]);
-            // 发送数据toWorker
-            $pipeMsg = serialize($pipeMsgDto);
-            $cliToWorkerPipeFile = CLI_TO_WORKER_PIPE;
-            $pipe = @fopen($cliToWorkerPipeFile, 'w+');
-            if (flock($pipe, LOCK_EX)) {
-                fwrite($pipe, $pipeMsg);
-                flock($pipe, LOCK_UN);
+    public function stop(string $processName)
+    {
+        $action = 'stop';
+        $this->sendPipeCommand($processName, $action);
+        $this->returnSuccess(['action' => $action, 'time'=>date('Y-m-d H:i:s')]);
+    }
+
+    /**
+     * @param string $processName
+     * @return mixed
+     */
+    public function status(string $processName)
+    {
+        sleep(1);
+        $processRuntimeItems = $this->processRuntimeList[$processName] ?? [];
+        if (empty($processRuntimeItems)) {
+            sleep(6);
+            $processRuntimeItems = $this->processRuntimeList[$processName] ?? [];
+            if (empty($processRuntimeItems)) {
+                return $this->returnSuccess(['status' => 0, 'time'=>date('Y-m-d H:i:s')]);
+            }else {
+                foreach ($processRuntimeItems as $processRuntimeItem) {
+                    if (isset($processRuntimeItem['pid']) ) {
+                        $pid = $processRuntimeItem['pid'];
+                        if (\Swoole\Process::kill($pid, 0)) {
+                            $status = 0;
+                            break;
+                        }
+                    }
+                }
             }
-            fclose($pipe);
         }else {
-            $pipeMsgDto = new PipeMsgDto();
-            $pipeMsgDto->action = WORKER_CLI_SEND_MSG;
-            $pipeMsgDto->targetHandler = $processName;
-            $pipeMsgDto->message = json_encode([
-                'action' => 'start',
-                'msg' => ''
-            ]);
-            // 发送数据toWorker
-            $pipeMsg = serialize($pipeMsgDto);
-            $cliToWorkerPipeFile = CLI_TO_WORKER_PIPE;
-            $pipe = @fopen($cliToWorkerPipeFile, 'w+');
-            if (flock($pipe, LOCK_EX)) {
-                fwrite($pipe, $pipeMsg);
-                flock($pipe, LOCK_UN);
+            foreach ($processRuntimeItems as $processRuntimeItem) {
+                if (isset($processRuntimeItem['pid']) ) {
+                    $pid = $processRuntimeItem['pid'];
+                    if (\Swoole\Process::kill($pid, 0)) {
+                        $status = 1;
+                        break;
+                    }
+                }
             }
-            fclose($pipe);
         }
-
-        $this->returnSuccess(['name' => 'bingcool']);
+        return $this->returnSuccess(['status' => $status ?? 0, 'time'=>date('Y-m-d H:i:s')]);
     }
 
-    public function stop(): void
+    /**
+     * @param string $processName
+     * @param string $action
+     * @return void
+     */
+    protected function sendPipeCommand(string $processName, string $action, int $pid = 0)
     {
-        $uri = $this->request->server['request_uri'];
+        $pipeMsgDto = new PipeMsgDto();
+        $pipeMsgDto->action = WORKER_CLI_SEND_MSG;
+        $pipeMsgDto->targetHandler = $processName;
+        $pipeMsgDto->message = json_encode([
+            'action' => $action,
+            'msg' => $pid
+        ]);
+
+        // 发送数据toWorker
+        $pipeMsg = serialize($pipeMsgDto);
+        $cliToWorkerPipeFile = CLI_TO_WORKER_PIPE;
+        $pipe = @fopen($cliToWorkerPipeFile, 'w+');
+        if (flock($pipe, LOCK_EX)) {
+            fwrite($pipe, $pipeMsg);
+            flock($pipe, LOCK_UN);
+        }
+        fclose($pipe);
     }
 
-    public function status(): void
-    {
-
-    }
     public function returnSuccess(array $data)
     {
         $this->response->header('Content-Type', 'application/json');

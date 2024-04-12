@@ -126,21 +126,23 @@ abstract class HttpServer extends BaseServer
                 return true;
             }
 
-            if(isWorkerService()) {
+            if(SystemEnv::isWorkerService()) {
                 if ((SystemEnv::isCronService() || SystemEnv::isDaemonService()) && self::isHttpApp()) {
-                   (new CtlApi($request, $response))->handle();
-                    return true;
+                    goApp(function () use($request, $response) {
+                        (new CtlApi($request, $response))->handle();
+                        return true;
+                    });
                 }
-            }
-
-            try {
-                $traceId = $request->header['trace-id'] ?? Helper::UUid();
-                \Swoolefy\Core\Coroutine\Context::set('trace-id', $traceId);
-                parent::beforeHandle();
-                static::onRequest($request, $response);
-                return true;
-            } catch (\Throwable $e) {
-                self::catchException($e);
+            }else {
+                try {
+                    $traceId = $request->header['trace-id'] ?? Helper::UUid();
+                    \Swoolefy\Core\Coroutine\Context::set('trace-id', $traceId);
+                    parent::beforeHandle();
+                    static::onRequest($request, $response);
+                    return true;
+                } catch (\Throwable $e) {
+                    self::catchException($e);
+                }
             }
         });
 

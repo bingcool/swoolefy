@@ -916,7 +916,7 @@ abstract class AbstractBaseWorker
     /**
      * @param int $process_type
      */
-    public function setProcessType(int $process_type = 1)
+    public function setProcessType(int $process_type = self::PROCESS_STATIC_TYPE)
     {
         $this->processType = $process_type;
     }
@@ -1534,15 +1534,15 @@ abstract class AbstractBaseWorker
         $workerId = $this->getProcessWorkerId();
         if ($this->getProcessType() == self::PROCESS_STATIC_TYPE) {
             if ($this->getRebootCount() > 0) {
-                $processType = 'static-reboot';
+                $processTypeName = 'static-reboot';
             } else {
-                $processType = self::PROCESS_STATIC_TYPE_NAME;
+                $processTypeName = self::PROCESS_STATIC_TYPE_NAME;
             }
         } else {
-            $processType = self::PROCESS_DYNAMIC_TYPE_NAME;
+            $processTypeName = self::PROCESS_DYNAMIC_TYPE_NAME;
         }
         $pid = $this->getPid();
-        $logInfo = "--start children_process【{$processType}】: {$processName}@{$workerId} started, pid={$pid}, master_pid={$this->getMasterPid()}";
+        $logInfo = "--start children_process【{$processTypeName}】: {$processName}@{$workerId} started, pid={$pid}, master_pid={$this->getMasterPid()}";
         $this->fmtWriteInfo($logInfo);
     }
 
