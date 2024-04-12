@@ -24,7 +24,7 @@ class Kernel
 //        ],
         [
             'command' => User\FixedUser::command,
-            'cron_expression' => 11, // 10s执行一次
+            'cron_expression' => 3600, // 10s执行一次
             //'cron_expression' => '*/1 * * * *', // 每分钟执行一次
             'desc' => '',
         ],

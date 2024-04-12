@@ -15,7 +15,9 @@ use Swoolefy\Core\EventApp;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\SystemEnv;
 use Swoolefy\Util\Helper;
+use Swoolefy\Worker\CtlApi;
 
 abstract class HttpServer extends BaseServer
 {
@@ -119,8 +121,16 @@ abstract class HttpServer extends BaseServer
          * request
          */
         $this->webServer->on('request', function (Request $request, Response $response) {
+            if ($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
+                $response->end();
+                return true;
+            }
+
             if(isWorkerService()) {
-                return false;
+                if ((SystemEnv::isCronService() || SystemEnv::isDaemonService()) && self::isHttpApp()) {
+                   (new CtlApi($request, $response))->handle();
+                    return true;
+                }
             }
 
             try {

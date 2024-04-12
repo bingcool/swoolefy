@@ -653,7 +653,13 @@ class MainManager
      */
     private function rebootWorker(int $pid)
     {
+        /**
+         * @var AbstractBaseWorker $process
+         */
         $process            = $this->getProcessByPid($pid);
+        if (!is_object($process)) {
+            return;
+        }
         $processName        = $process->getProcessName();
         $processType        = $process->getProcessType();
         $processWorkerId    = $process->getProcessWorkerId();
