@@ -1205,6 +1205,7 @@ abstract class AbstractBaseWorker
 
         $pid = $this->getPid();
         if (Process::kill($pid, 0)) {
+            // 优先通知master进程先拉起子进程
             $this->notifyMasterRebootNewProcess($this->getProcessName());
             $this->isReboot = true;
             $this->readyRebootTime = time() + $waitTime;
@@ -1219,7 +1220,8 @@ abstract class AbstractBaseWorker
                 } catch (\Throwable $throwable) {
                     $this->onHandleException($throwable);
                 } finally {
-                    $this->kill($pid, SIGUSR1);
+                    // 自身进程退出
+                    $this->kill($pid, SIGTERM);
                 }
             });
 
