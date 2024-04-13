@@ -81,9 +81,9 @@ class LogManager
     /**
      * getLogger
      * @param string $type
-     * @return Log
+     * @return Log|null
      */
-    public function getLogger(string $type): Log
+    public function getLogger(string $type): ?Log
     {
         $logger = $this->logger[$type] ?? null;
         if ($logger) {

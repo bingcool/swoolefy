@@ -102,9 +102,9 @@ class CtlApi
      * @param int $pageSize
      * @return void
      */
-    public function list(string $searchProcessName = '', int $page =1, int $pageSize = 20)
+    public function list(string $searchProcessName = '', int $page = 1, int $pageSize = 20)
     {
-        $confList = MainManager::loadConfByPath();
+        $confList = MainManager::loadWorkerConf(true);
         foreach ($confList as &$confItem) {
             $processName = $confItem['process_name'];
             $processRuntimeItems = $this->processRuntimeList[$processName] ?? [];
