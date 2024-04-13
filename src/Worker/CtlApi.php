@@ -27,8 +27,14 @@ class CtlApi
      */
     public $response;
 
+    /**
+     * @var array|mixed
+     */
     public $processRuntimeList = [];
 
+    /**
+     * @var mixed
+     */
     public $reportTime;
 
     const API_LIST = '/process-list';
@@ -55,34 +61,48 @@ class CtlApi
      */
     public function handle()
     {
-        $params = $this->request->get;
-        $uri = $this->request->server['request_uri'];
-        $processName = $params['process_name'] ?? '';
-
-        switch ($uri) {
-            case self::API_LIST:
-                $this->list();
-                break;
-            case self::API_START:
-                $this->start($processName);
-                break;
-            case self::API_STOP:
-                $this->stop($processName);
-                break;
-            case self::API_STATUS:
-                $this->status($processName);
-                break;
-            default:
-                $this->response->status(404);
-                $this->response->end('404 Not Found');
-                break;
+        try {
+            $params = $this->request->get;
+            $uri = $this->request->server['request_uri'];
+            $processName = $params['process_name'] ?? '';
+            switch ($uri) {
+                case self::API_LIST:
+                    $page = $params['page'] ?? 1;
+                    $pageSize = $params['page_size'] ?? 20;
+                    $this->list($processName, $page, $pageSize);
+                    break;
+                case self::API_START:
+                    $this->start($processName);
+                    break;
+                case self::API_STOP:
+                    $this->stop($processName);
+                    break;
+                case self::API_STATUS:
+                    $this->status($processName);
+                    break;
+                default:
+                    $this->returnFail('找不到对应的uri',[
+                        'uri' => $uri,
+                        'process_name' => $processName
+                    ]);
+                    break;
+            }
+        }catch (\Throwable $throwable) {
+            $this->returnFail($throwable->getMessage(), [
+                'file' => $throwable->getFile(),
+                'line' => $throwable->getLine(),
+                'trace' => $throwable->getTraceAsString()
+            ]);
         }
     }
 
     /**
+     * @param string $searchProcessName
+     * @param int $page
+     * @param int $pageSize
      * @return void
      */
-    public function list()
+    public function list(string $searchProcessName = '', int $page =1, int $pageSize = 20)
     {
         $confList = MainManager::loadConfByPath();
         foreach ($confList as &$confItem) {
@@ -114,7 +134,30 @@ class CtlApi
                 $confItem['process_list'] = $processRuntimeItems;
             }
         }
-        $this->returnSuccess($confList);
+
+        unset($confItem);
+
+        $searchList = [];
+        if (!empty($searchProcessName)) {
+            foreach ($confList as $confItem) {
+                $res = preg_match("/$searchProcessName/", $confItem['process_name']);
+                if ($res > 0) {
+                    $searchList[] = $confItem;
+                }
+            }
+        }
+
+        if (!empty($searchList)) {
+            $confList = $searchList;
+        }
+
+        $total = count($confList);
+        $confList = array_slice($confList, ($page - 1) * $pageSize, $pageSize);
+
+        $this->returnSuccess([
+            'total' => $total,
+            'list' => $confList
+        ]);
     }
 
     /**
@@ -124,14 +167,18 @@ class CtlApi
     {
         $action = 'restart';
         $this->sendPipeCommand($processName, $action);
-        $this->returnSuccess(['action' => $action, 'time'=>date('Y-m-d H:i:s')]);
+        $this->returnSuccess(['action' => $action, 'time' => date('Y-m-d H:i:s')]);
     }
 
+    /**
+     * @param string $processName
+     * @return void
+     */
     public function stop(string $processName)
     {
         $action = 'stop';
         $this->sendPipeCommand($processName, $action);
-        $this->returnSuccess(['action' => $action, 'time'=>date('Y-m-d H:i:s')]);
+        $this->returnSuccess(['action' => $action, 'time' => date('Y-m-d H:i:s')]);
     }
 
     /**
@@ -140,13 +187,12 @@ class CtlApi
      */
     public function status(string $processName)
     {
-        sleep(1);
         $processRuntimeItems = $this->processRuntimeList[$processName] ?? [];
         if (empty($processRuntimeItems)) {
-            sleep(6);
+            sleep(5);
             $processRuntimeItems = $this->processRuntimeList[$processName] ?? [];
             if (empty($processRuntimeItems)) {
-                return $this->returnSuccess(['status' => 0, 'time'=>date('Y-m-d H:i:s')]);
+                $status = 0;
             }else {
                 foreach ($processRuntimeItems as $processRuntimeItem) {
                     if (isset($processRuntimeItem['pid']) ) {
@@ -169,7 +215,7 @@ class CtlApi
                 }
             }
         }
-        return $this->returnSuccess(['status' => $status ?? 0, 'time'=>date('Y-m-d H:i:s')]);
+        return $this->returnSuccess(['status' => $status ?? 0, 'time' => date('Y-m-d H:i:s')]);
     }
 
     /**
