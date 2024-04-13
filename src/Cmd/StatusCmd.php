@@ -51,9 +51,7 @@ class StatusCmd extends BaseCmd
         }
 
         foreach ($output as $value) {
-            fmtPrintInfo(
-                trim($value)
-            );
+            fmtPrintInfo(trim($value));
         }
     }
 
