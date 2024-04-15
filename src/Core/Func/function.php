@@ -116,6 +116,16 @@ function makeServerName(string $appName)
 }
 
 /**
+ * @param $key
+ * @param $default
+ * @return mixed
+ */
+function env($key, $default = null)
+{
+    return \Swoolefy\Core\SystemEnv::get($key, $default);
+}
+
+/**
  * @param $appName
  * @return void
  */

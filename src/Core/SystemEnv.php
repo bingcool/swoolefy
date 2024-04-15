@@ -179,15 +179,6 @@ class SystemEnv
         if (!file_exists($confFile)) {
             throw new SystemException("Not found app conf file:{$confFile}");
         }
-
-        $constFile = APP_PATH . '/Config/constants.php';
-
-        if (!file_exists($confFile)) {
-            throw new SystemException("Not found const file:{$constFile}");
-        }
-
-        include $constFile;
-
         return include $confFile;
     }
 

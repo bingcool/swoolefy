@@ -75,11 +75,6 @@ function loadGlobalConf()
     return \Swoolefy\Core\SystemEnv::loadGlobalConf();
 }
 
-function env($key, $default = null)
-{
-    return \Swoolefy\Core\SystemEnv::get($key, $default);
-}
-
 function parseScriptPidFile(string $pidFile): string
 {
     if (isScriptService()) {

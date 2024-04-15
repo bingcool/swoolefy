@@ -21,6 +21,7 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
             goApp(function () {
                 goApp(function () {
                     $arrayCopy = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
+                    sleep(2);
                     //var_dump($arrayCopy);
                 });
             });
