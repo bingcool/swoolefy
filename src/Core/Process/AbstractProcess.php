@@ -481,7 +481,6 @@ abstract class AbstractProcess
      */
     public function onHandleException(\Throwable $throwable, array $context = [])
     {
-        var_dump($throwable->getMessage());
         BaseServer::catchException($throwable);
     }
 

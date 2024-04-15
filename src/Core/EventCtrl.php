@@ -79,9 +79,10 @@ class EventCtrl implements EventCtrlInterface
             $processClass = $processClassMap[APP_NAME];
             ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, $processClass, true,  [],null, false);
         }else if (SystemEnv::isScriptService()) {
-            $class = \Swoolefy\Script\MainCliScript::parseClass();
-            if(empty($class)) {
-                fmtPrintError('Not found CliScript Class');
+            try {
+                $class = \Swoolefy\Script\MainCliScript::parseClass();
+            }catch (\Throwable $throwable) {
+                fmtPrintError($throwable->getMessage());
                 exit(0);
             }
             ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, $class);

@@ -13,6 +13,7 @@ namespace Swoolefy\Worker;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\SystemEnv;
+use Swoolefy\Exception\SystemException;
 use Swoolefy\Exception\WorkerException;
 use Swoolefy\Worker\Dto\MessageDto;
 use Swoolefy\Core\Table\TableManager;
@@ -914,7 +915,7 @@ class MainManager
             $key = md5($processName);
             $newProcess->setProcessWorkerId($workerId);
             $newProcess->setMasterPid($this->getMasterPid());
-            $newProcess->setProcessType(AbstractBaseWorker::PROCESS_STATIC_TYPE_NAME);
+            $newProcess->setProcessType(AbstractBaseWorker::PROCESS_STATIC_TYPE);
             $newProcess->setStartTime();
             $this->processWorkers[$key][$workerId] = $newProcess;
             $newProcess->start();
@@ -1440,11 +1441,17 @@ class MainManager
                                 // 重启指定进程
                                 case 'restart' :
                                     $key = md5($processName);
+                                    $config = $this->parseLoadConf($processName);
                                     if (isset($this->processWorkers[$key])) {
                                         $this->responseMsgByPipe("进程【{$processName}】已开始重启，请留意！");
                                         $this->restartWorkerProcessCommand($processName);
                                     }else {
-                                        $this->responseMsgByPipe("进程【{$processName}】不存在，请检查进程名称是否正确！");
+                                        $config = $this->parseLoadConf($processName);
+                                        if (empty($config)) {
+                                            return $this->responseMsgByPipe("找不到进程名【{$processName}】的配置项！");
+                                        }
+                                        $this->responseMsgByPipe("进程【{$processName}】已开始启动，请留意！");
+                                        $this->startWorkerProcessCommand($config);
                                     }
                                     break;
                                 // 停止指定进程
@@ -1687,16 +1694,15 @@ class MainManager
      * @param string $confPath
      * @return array
      */
-    public static function loadConfByPath(string $confPath = '')
+    public static function loadWorkerConf(bool $isAll = false)
     {
-        if (!empty(self::$confPath)) {
-            $confPath = self::$confPath;
-            $conf = include $confPath;
-            return $conf;
+        if(function_exists('loadWorkerConf')) {
+            $conf = loadWorkerConf($isAll);
+        }else {
+            throw new SystemException("Undefined loadWorkerConf() function.");
         }
-        self::$confPath = $confPath;
-        $conf = include $confPath;
-        self::findDuplicateProcessName($confPath, $conf);
+
+        self::findDuplicateProcessName($conf);
         return $conf;
     }
 
@@ -1705,14 +1711,14 @@ class MainManager
      * @param array $conf
      * @return void
      */
-    private static function findDuplicateProcessName(string $confPath, array &$conf)
+    private static function findDuplicateProcessName(array &$conf)
     {
         $processNames = array_column($conf, 'process_name');
         $uniqueProcessNames = array_unique($processNames);
         $duplicateProcessNames = array_diff_assoc($processNames, $uniqueProcessNames);
         if (!empty($duplicateProcessNames)) {
             $processNameStr = implode(',', $duplicateProcessNames);
-            fmtPrintError("{$confPath} 存在重复命名的进程[{$processNameStr}],请检查");
+            fmtPrintError("conf配置项存在重复命名的进程[{$processNameStr}],请检查");
             exit(0);
         }
     }
@@ -1722,7 +1728,7 @@ class MainManager
      */
     protected function tickForkNewProcess()
     {
-        $conf = self::loadConfByPath();
+        $conf = self::loadWorkerConf();
         // 新增-启动
         foreach ($conf as &$config) {
             $processName = $config['process_name'];
