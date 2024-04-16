@@ -104,7 +104,7 @@ class CtlApi
      */
     public function list(string $searchProcessName = '', int $page = 1, int $pageSize = 20)
     {
-        $confList = MainManager::loadWorkerConf(true);
+        $confList = MainManager::includeWorkerConf();
         foreach ($confList as &$confItem) {
             $processName = $confItem['process_name'];
             $processRuntimeItems = $this->processRuntimeList[$processName] ?? [];
@@ -167,6 +167,7 @@ class CtlApi
     {
         $action = 'restart';
         $this->sendPipeCommand($processName, $action);
+        $this->lockProcessRuntimeFile($processName, $action);
         $this->returnSuccess(['action' => $action, 'time' => date('Y-m-d H:i:s')]);
     }
 
@@ -178,6 +179,7 @@ class CtlApi
     {
         $action = 'stop';
         $this->sendPipeCommand($processName, $action);
+        $this->lockProcessRuntimeFile($processName, $action);
         $this->returnSuccess(['action' => $action, 'time' => date('Y-m-d H:i:s')]);
     }
 
@@ -216,6 +218,40 @@ class CtlApi
             }
         }
         return $this->returnSuccess(['status' => $status ?? 0, 'time' => date('Y-m-d H:i:s')]);
+    }
+
+    /**
+     * @param string $processName
+     * @param string $action
+     * @return void
+     */
+    protected function lockProcessRuntimeFile(string $processName, string $action)
+    {
+        $workerConfLockFile = WORKER_PID_FILE_ROOT.'/confctl.json';
+        $fileContent = file_get_contents($workerConfLockFile);
+        if (!empty($fileContent)) {
+            $fileProcessConfList = json_decode($fileContent, true);
+        }
+
+        if (isset($fileProcessConfList[$processName])) {
+            if ($action == 'stop') {
+                $fileProcessConfList[$processName] = [
+                    'start_time' => '',
+                    'stop_time'  => date('Y-m-d H:i:s'),
+                    'running'    => 0,
+                ];
+            }else if (in_array($action, ['restart', 'start'])) {
+                $fileProcessConfList[$processName] = [
+                    'start_time' => date('Y-m-d H:i:s'),
+                    'stop_time'  => '',
+                    'running'    => 1,
+                ];
+            }
+        }
+
+        if (!empty($fileProcessConfList)) {
+            file_put_contents($workerConfLockFile, json_encode($fileProcessConfList, JSON_UNESCAPED_UNICODE));
+        }
     }
 
     /**
