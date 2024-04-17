@@ -30,7 +30,7 @@ class LocalOrderHandle extends AbstractCronController {
 
         RunLog::info("this is a cron test log");
         var_dump("cron start");
-        sleep(120);
+        sleep(3);
         var_dump("cron end");
 
 //        goApp(function() {

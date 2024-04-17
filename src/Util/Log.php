@@ -213,7 +213,7 @@ class Log
                 continue;
             }
             $fileName = pathinfo($pathFile, PATHINFO_FILENAME);
-            $fileArr = explode($this->splitString, $fileName);
+            $fileArr  = explode($this->splitString, $fileName);
             $fileDate = array_pop($fileArr);
 
             if (is_numeric($fileDate) && $fileDate < $lastDay && file_exists($pathFile)) {
