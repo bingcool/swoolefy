@@ -4,6 +4,7 @@ namespace Test\WorkerDaemon;
 
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Log\LogManager;
+use Test\Logger\RunLog;
 
 class MonitorWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
 {
