@@ -234,7 +234,10 @@ class CtlApi
             $fileProcessConfList = json_decode($fileContent, true);
         }
 
-        if (isset($fileProcessConfList[$processName])) {
+        $confList = MainManager::includeWorkerConf();
+        $confListMap = array_column($confList, null, 'process_name');
+
+        if (isset($confListMap[$processName])) {
             if ($action == 'stop') {
                 $fileProcessConfList[$processName] = [
                     'start_time' => '',

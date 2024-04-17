@@ -1,4 +1,5 @@
 <?php
+// workerService 模式下要关闭opcache.enable_cli
 include './vendor/autoload.php';
 registerNamespace($_SERVER['argv'][2]);
 
