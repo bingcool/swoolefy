@@ -17,6 +17,7 @@ use Swoolefy\Cmd\StartCmd;
 use Swoolefy\Cmd\CreateCmd;
 use Swoolefy\Cmd\StatusCmd;
 use Swoolefy\Cmd\StopCmd;
+use Swoolefy\Cmd\RestartCmd;
 use Symfony\Component\Console\Application;
 
 function isWorkerService(): bool
@@ -78,9 +79,14 @@ function loadGlobalConf()
 function parseScriptPidFile(string $pidFile): string
 {
     if (isScriptService()) {
-        $path = pathinfo($pidFile, PATHINFO_DIRNAME);
-        $fileName = pathinfo($pidFile, PATHINFO_FILENAME);
-        $pidFile = $path . '/' . $fileName . '_' . WORKER_PORT . '.pid';
+        if (!$pidFile) {
+            throw new InvalidArgumentException('The provided pid file path is empty or invalid.');
+        }
+        $pathInfo = pathinfo($pidFile);
+        if (!is_numeric(WORKER_PORT)) {
+            throw new RuntimeException('The WORKER_PORT is not a valid number.');
+        }
+        $pidFile = sprintf('%s%s%s_%s.pid', $pathInfo['dirname'], DIRECTORY_SEPARATOR, $pathInfo['filename'], WORKER_PORT);
     }
     return $pidFile;
 
@@ -112,6 +118,7 @@ LOGO;
     $application->add(new ReloadCmd());
     $application->add(new SendCmd());
     $application->add(new MonitorCmd());
+    $application->add(new RestartCmd());
     showLogo();
     $application->run();
 })();
