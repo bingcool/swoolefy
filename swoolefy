@@ -17,6 +17,7 @@ use Swoolefy\Cmd\StartCmd;
 use Swoolefy\Cmd\CreateCmd;
 use Swoolefy\Cmd\StatusCmd;
 use Swoolefy\Cmd\StopCmd;
+use Swoolefy\Cmd\RestartCmd;
 use Symfony\Component\Console\Application;
 
 function isWorkerService(): bool
@@ -117,6 +118,7 @@ LOGO;
     $application->add(new ReloadCmd());
     $application->add(new SendCmd());
     $application->add(new MonitorCmd());
+    $application->add(new RestartCmd());
     showLogo();
     $application->run();
 })();

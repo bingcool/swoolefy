@@ -154,7 +154,7 @@ class CommandRunner
             3 => array('pipe', 'w')
         );
 
-        goApp(function () use ($callable, $command, $descriptors) {
+        $fn = function ($command, $descriptors, $callable) {
             // in $callable forbidden create coroutine, because $proc_process had been bind in current coroutine
             try {
                 $proc_process = proc_open($command, $descriptors, $pipes);
@@ -187,8 +187,15 @@ class CommandRunner
                 }
                 proc_close($proc_process);
             }
-        });
+        };
 
+        if (\Swoole\Coroutine::getCid() >= 0) {
+            goApp(function () use ($fn, $callable, $command, $descriptors) {
+                $fn($command, $descriptors, $callable);
+            });
+        }else {
+            $fn($command, $descriptors, $callable);
+        }
     }
 
     /**
