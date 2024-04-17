@@ -24,12 +24,7 @@ defined('START_DIR_ROOT') or define('START_DIR_ROOT', __DIR__);
 date_default_timezone_set('Asia/Shanghai');
 
 // 定义加载配置函数
-function loadWorkerConf(bool $isAll = false)
-{
-    return include __DIR__.'/'.$_SERVER['argv'][2].'/WorkerDaemon/worker_common_conf.php';
-}
-
-define('WORKER_CONF', loadWorkerConf(false));
+define('WORKER_CONF', \Swoolefy\Worker\MainManager::loadWorkerConf(__DIR__.'/'.$_SERVER['argv'][2].'/WorkerDaemon/worker_common_conf.php'));
 
 define('PROCESS_CLASS', [
     // 应用daemon worker
