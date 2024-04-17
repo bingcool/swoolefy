@@ -14,7 +14,6 @@ namespace Swoolefy\Worker;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoolefy\Worker\Dto\PipeMsgDto;
-use Symfony\Component\Filesystem\Filesystem;
 
 class CtlApi
 {
