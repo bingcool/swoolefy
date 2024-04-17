@@ -25,9 +25,9 @@ trait MainProcessCommandTrait {
      */
     protected function parseLoadConf(string $processName): array
     {
-        $conf = self::loadWorkerConf();
+        $conf = self::includeWorkerConf();
         // 新增-启动
-        $confMap = array_column($conf, null,'process_name');
+        $confMap = array_column($conf, null, 'process_name');
         // 读取最新的配置
         $config = $confMap[$processName] ?? [];
         return $config;
