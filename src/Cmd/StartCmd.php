@@ -81,7 +81,16 @@ class StartCmd extends BaseCmd
         $this->commonHandle($config);
         $class = "{$appName}\\{$serverName}";
         $http = new $class($config);
-        $http->start();
+
+        $time = date('Y-m-d H:i:s');
+        try {
+            var_dump('start start');
+            file_put_contents('error.log', "[{$time}] start start");
+            $http->start();
+        }catch (\Throwable $throwable) {
+            file_put_contents('error.log', "[{$time}] ".$throwable->getMessage());
+        }
+
     }
 
     protected function startWebsocket($appName)
