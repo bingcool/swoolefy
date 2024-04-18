@@ -79,8 +79,14 @@ class RestartCmd extends BaseCmd
         while (true) {
             $pidFile = $this->getPidFile($appName);
             sleep(1);
+
+            $next = false;
+            if (time() - $time > $waitTime) {
+                $next = true;
+            }
+
             // 判断pid文件是否存在
-            if (!is_file($pidFile) || time() - $time > $waitTime) {
+            if (!is_file($pidFile) && !$next) {
                 continue;
             }
 
