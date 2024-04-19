@@ -42,7 +42,7 @@ class Kernel
         $scheduleList = [];
         foreach (self::$schedule as $item) {
             $item['cron_name'] = $item['command'].'-'.$item['cron_expression'];
-            $item['exec_bin_file'] = $_SERVER['_'] ?? '/usr/bin/php';
+            $item['exec_bin_file'] = defined('PHP_BIN_FILE') ? PHP_BIN_FILE : '/usr/bin/php';
             $item['fork_type'] = \Swoolefy\Worker\Cron\CronForkProcess::FORK_TYPE_PROC_OPEN;
             $item['exec_script'] = "script.php start {$appName} --c={$item['command']} --daemon=1";
             $item['params'] = [];

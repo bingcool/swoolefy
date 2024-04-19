@@ -15,6 +15,7 @@ define('WORKER_PORT',9506);
 define('IS_DAEMON_SERVICE', 1);
 define('IS_CRON_SERVICE', 0);
 define('IS_CLI_SCRIPT', 0);
+define('PHP_BIN_FILE','/usr/bin/swoole-cli');
 
 define('WORKER_SERVICE_NAME', makeServerName($_SERVER['argv'][2]));
 

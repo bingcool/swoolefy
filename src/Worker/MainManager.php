@@ -1420,14 +1420,14 @@ class MainManager
                             $this->stopAllWorkerProcessCommand();
                             break;
                         case WORKER_CLI_RESTART :
-                            goApp(function () {
-                                // todo
-                                $runner = CommandRunner::getInstance('restart');
+                            \Swoole\Coroutine::create(function () {
+                               // todo
+                                $runner = CommandRunner::getInstance('restart-'.time());
                                 $runner->isNextHandle(false);
-                                $scriptFile = WORKER_START_SCRIPT_FILE;
-                                $appName = 'test';
-                                list($command, $output) = $runner->exec('/usr/bin/php', "{$scriptFile} restart {$appName} --force=1", [],true);
-                                var_dump($command, $output);
+                                $execBinFile = defined('PHP_BIN_FILE') ? PHP_BIN_FILE : '/usr/bin/php';
+                                $scriptFile  = WORKER_START_SCRIPT_FILE;
+                                $appName     = APP_NAME;
+                                list($command, $output) = $runner->exec($execBinFile, "{$scriptFile} restart {$appName} --force=1", [],true, 'nobup.log');
                             });
                             break;
                         case WORKER_CLI_SEND_MSG :
