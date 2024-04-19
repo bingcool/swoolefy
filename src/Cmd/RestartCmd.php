@@ -70,7 +70,7 @@ class RestartCmd extends BaseCmd
         }
 
         // 重新启动
-        $binFile = $_SERVER['_'] ?? '/usr/bin/php';
+        $binFile = defined('PHP_BIN_FILE') ? PHP_BIN_FILE : '/usr/bin/php';
         $waitTime = 10;
         if (SystemEnv::isWorkerService()) {
             $selfFile = WORKER_START_SCRIPT_FILE;

@@ -92,10 +92,19 @@ class CommandRunner
 
         $path = $execBinFile . ' ' . $execScript . ' ' . $params;
         $path = trim($path,' ');
-        $command = "{$path} >> {$log} 2>&1 && echo $$";
+        if ($log) {
+            $command = "{$path} >> {$log} 2>&1 & echo $$";
+        }else {
+            $command = "{$path} 2>&1 & echo $$";
+        }
+
         if ($async) {
             // echo $! 表示输出进程id赋值在output数组中
-            $command = "nohup {$path} >> {$log} 2>&1 & echo $!";
+            if ($log) {
+                $command = "nohup {$path} >> {$log} 2>&1 & echo $!";
+            }else {
+                $command = "nohup {$path} 2>&1 & echo $!";
+            }
         }
 
         if ($isExec) {

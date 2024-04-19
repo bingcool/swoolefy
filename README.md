@@ -154,6 +154,7 @@ registerNamespace(APP_PATH);
 define('IS_WORKER_SERVICE', 0);
 define('IS_CLI_SCRIPT', 0);
 define('IS_CRON_SERVICE', 0);
+define('PHP_BIN_FILE','/usr/bin/swoole-cli');    
 
 date_default_timezone_set('Asia/Shanghai');
 

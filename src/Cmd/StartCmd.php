@@ -78,10 +78,14 @@ class StartCmd extends BaseCmd
         if (!is_dir($routeDir)) {
             mkdir($routeDir, 0777, true);
         }
-        $this->commonHandle($config);
-        $class = "{$appName}\\{$serverName}";
-        $http = new $class($config);
-        $http->start();
+        try {
+            $this->commonHandle($config);
+            $class = "{$appName}\\{$serverName}";
+            $http = new $class($config);
+            $http->start();
+        }catch (\Throwable $throwable) {
+            file_put_contents('error1.log', '['.date('Y-m-d H:i:s').']'. $throwable->getMessage().PHP_EOL, FILE_APPEND);
+        }
     }
 
     protected function startWebsocket($appName)
