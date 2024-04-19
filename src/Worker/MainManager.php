@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Worker;
 
+use Swoolefy\Core\CommandRunner;
+use Swoolefy\Core\Exec;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Exception\SystemException;
@@ -1416,6 +1418,17 @@ class MainManager
                             break;
                         case WORKER_CLI_STOP :
                             $this->stopAllWorkerProcessCommand();
+                            break;
+                        case WORKER_CLI_RESTART :
+                            goApp(function () {
+                                // todo
+                                $runner = CommandRunner::getInstance('restart');
+                                $runner->isNextHandle(false);
+                                $scriptFile = WORKER_START_SCRIPT_FILE;
+                                $appName = 'test';
+                                list($command, $output) = $runner->exec('/usr/bin/php', "{$scriptFile} restart {$appName} --force=1", [],true);
+                                var_dump($command, $output);
+                            });
                             break;
                         case WORKER_CLI_SEND_MSG :
                             $processName = $cliPipeMsgDto->targetHandler;

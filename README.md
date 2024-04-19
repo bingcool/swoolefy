@@ -140,31 +140,43 @@ composer create-project bingcool/swoolefy:~5.1 myproject
 ```
 <?php
 // 在myproject目录下添加cli.php, 这个是启动项目的入口文件
-include './vendor/autoload.php';
-registerNamespace($_SERVER['argv'][2]);
 
-define('IS_DAEMON_SERVICE', 0);
-define('IS_CRON_SERVICE', 0);
-define('IS_CLI_SCRIPT', 0);
-// 应用父目录
-defined('ROOT_PATH') or define('ROOT_PATH', __DIR__);
+include __DIR__.'/vendor/autoload.php';
 // 启动目录
 defined('START_DIR_ROOT') or define('START_DIR_ROOT', __DIR__);
+// 应用父目录
+defined('ROOT_PATH') or define('ROOT_PATH',__DIR__);
+// 应用目录
+defined('APP_PATH') or define('APP_PATH',__DIR__.'/'.ucfirst($_SERVER['argv'][2]));
+
+registerNamespace(APP_PATH);
+
+define('IS_WORKER_SERVICE', 0);
+define('IS_CLI_SCRIPT', 0);
+define('IS_CRON_SERVICE', 0);
 
 date_default_timezone_set('Asia/Shanghai');
 
 define('APP_NAMES', [
-     // 你的项目命名为App，对应协议为http协议服务器，支持多个项目的，只需要在这里添加好项目名称与对应的协议即可
-    'App' => 'http', 
-    'Test' => 'http
+    // 你的项目命名为App，对应协议为http协议服务器，支持多个项目的，只需要在这里添加好项目名称与对应的协议即可
+    'Test' => 'http',
+    'Erp'  => 'http',
+    'UdpService' => 'udp'
 ]);
 
 // 启动前处理,比如加载.env
 $beforeFunc = function () {
-    
+    try {
+        if (\Swoolefy\Core\SystemEnv::isDevEnv()) {
+            LoadEnv::load('192.168.25.53:8848','swoolefy','pwa-test','nacos','nacos');
+        }
+    }catch (\Throwable $throwable) {
+
+    }
 };
 
-include './swoolefy';
+include __DIR__.'/swoolefy';
+
 
 ```
 
