@@ -127,11 +127,12 @@ function env($key, $default = null)
 
 /**
  * @param $appName
+ * @param $path
  * @return void
  */
-function registerNamespace($appName)
+function registerNamespace($appPath)
 {
-    $file = $appName.'/autoloader.php';
+    $file = $appPath.'/autoloader.php';
     if (file_exists($file)) {
         include $file;
     }

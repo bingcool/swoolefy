@@ -57,6 +57,18 @@ class RestartCmd extends BaseCmd
             }
         }
 
+        fmtPrintInfo("-----------正在重启进程中，请等待-----------");
+
+        if (SystemEnv::isWorkerService() || SystemEnv::isCronService()) {
+            while (true) {
+                if (\Swoole\Process::kill($masterPid, 0)) {
+                    sleep(1);
+                }else {
+                    break;
+                }
+            }
+        }
+
         // 重新启动
         $binFile = $_SERVER['_'] ?? '/usr/bin/php';
         $waitTime = 10;
@@ -82,18 +94,6 @@ class RestartCmd extends BaseCmd
             }, $binFile, $scriptFile);
         });
 
-        fmtPrintInfo("-----------正在重启进程中，请等待-----------");
-
-        if (SystemEnv::isWorkerService() || SystemEnv::isCronService()) {
-            while (true) {
-                if (\Swoole\Process::kill($masterPid, 0)) {
-                    sleep(1);
-                }else {
-                    break;
-                }
-            }
-        }
-
         $time = time();
         while (true) {
             sleep(1);
@@ -104,10 +104,7 @@ class RestartCmd extends BaseCmd
                 }
             }
 
-            var_dump(file_get_contents($pidFile));
-
             $newMasterPid = intval(file_get_contents($pidFile));
-            var_dump($pidFile, $masterPid, $newMasterPid);
             // 新拉起的主进程id已经存在，说明新拉起的主进程已经启动成功
             if ($newMasterPid > 0 && $newMasterPid != $masterPid && \Swoole\Process::kill($newMasterPid, 0)) {
                 fmtPrintInfo("-----------进程重启成功！------------");

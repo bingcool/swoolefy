@@ -42,6 +42,8 @@ class CtlApi
     const API_STOP = '/process-stop';
     const API_STATUS = '/process-status';
 
+    const MASTER_RESTART = '/master-server-restart';
+
     /**
      * @param Request $request
      * @param Response $response
@@ -79,6 +81,9 @@ class CtlApi
                     break;
                 case self::API_STATUS:
                     $this->status($processName);
+                    break;
+                case self::MASTER_RESTART:
+                    $this->restartServer($processName);
                     break;
                 default:
                     $this->returnFail('找不到对应的uri',[
@@ -255,6 +260,31 @@ class CtlApi
         if (!empty($fileProcessConfList)) {
             file_put_contents($workerConfLockFile, json_encode($fileProcessConfList, JSON_UNESCAPED_UNICODE));
         }
+    }
+
+    /**
+     * @param string $processName
+     * @return void
+     */
+    public function restartServer(string $processName)
+    {
+        $pipeMsgDto = new \Swoolefy\Worker\Dto\PipeMsgDto();
+        $pipeMsgDto->action = WORKER_CLI_RESTART;
+        $pipeMsg = serialize($pipeMsgDto);
+
+        // mainWorker Process
+        $workerPid = file_get_contents(WORKER_PID_FILE);
+        if (\Swoole\Process::kill($workerPid, 0)) {
+            $cliToWorkerPipeFile = CLI_TO_WORKER_PIPE;
+            $pipe = @fopen($cliToWorkerPipeFile, 'w+');
+            if (flock($pipe, LOCK_EX)) {
+                fwrite($pipe, $pipeMsg);
+                flock($pipe, LOCK_UN);
+            }
+            fclose($pipe);
+        }
+
+        $this->returnSuccess([]);
     }
 
     /**
