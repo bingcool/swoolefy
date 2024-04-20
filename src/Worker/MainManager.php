@@ -11,18 +11,14 @@
 
 namespace Swoolefy\Worker;
 
-use Swoolefy\Core\CommandRunner;
-use Swoolefy\Core\Exec;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\SystemEnv;
-use Swoolefy\Exception\SystemException;
 use Swoolefy\Exception\WorkerException;
 use Swoolefy\Worker\Dto\MessageDto;
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Core\Memory\SysvmsgManager;
 use Swoolefy\Core\Process\AbstractProcess;
 use RuntimeException;
-use Symfony\Component\Filesystem\Filesystem;
 
 class MainManager
 {
@@ -1420,15 +1416,10 @@ class MainManager
                             $this->stopAllWorkerProcessCommand();
                             break;
                         case WORKER_CLI_RESTART :
-                            \Swoole\Coroutine::create(function () {
-                               // todo
-                                $runner = CommandRunner::getInstance('restart-'.time());
-                                $runner->isNextHandle(false);
-                                $execBinFile = defined('PHP_BIN_FILE') ? PHP_BIN_FILE : '/usr/bin/php';
-                                $scriptFile  = WORKER_START_SCRIPT_FILE;
-                                $appName     = APP_NAME;
-                                list($command, $output) = $runner->exec($execBinFile, "{$scriptFile} restart {$appName} --force=1", [],true, 'nobup.log');
-                            });
+                            $dateTime = date('Y-m-d H:i:s');
+                            $this->fmtWriteInfo("[{$dateTime}] 重启整个服务，所有进程将重启");
+                            // todo 此方法目前未足够完善
+                            $this->reStartServerCommand();
                             break;
                         case WORKER_CLI_SEND_MSG :
                             $processName = $cliPipeMsgDto->targetHandler;
@@ -1562,7 +1553,7 @@ class MainManager
      */
     private function installRegisterShutdownFunction()
     {
-        if(!$this->inMasterProcessEnv()) {
+        if (!$this->inMasterProcessEnv()) {
             return;
         }
 

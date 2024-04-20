@@ -154,7 +154,7 @@ registerNamespace(APP_PATH);
 define('IS_WORKER_SERVICE', 0);
 define('IS_CLI_SCRIPT', 0);
 define('IS_CRON_SERVICE', 0);
-define('PHP_BIN_FILE','/usr/bin/swoole-cli');    
+define('PHP_BIN_FILE','/usr/bin/php');    
 
 date_default_timezone_set('Asia/Shanghai');
 
@@ -186,9 +186,10 @@ include __DIR__.'/swoolefy';
 ```
 // 你定义的项目目录是App, 在myproject目录下执行下面命令行
 
-swoole-cli cli.php create App 
-或者    
 php cli.php create App   
+或者  
+swoole-cli cli.php create App 
+
 
 // 执行完上面命令行后，将会自动生成App项目目录以及内部子目录
 myproject
@@ -249,6 +250,11 @@ swooole-cli cli.php stop App --force=1
 
 // 查看进程状态
 swooole-cli cli.php status App
+
+// 完全重启服务
+php cli.php restart App    
+或者    
+swooole-cli cli.php restart App
 
 ```
 
