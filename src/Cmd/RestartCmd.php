@@ -61,7 +61,7 @@ class RestartCmd extends BaseCmd
 
         if (SystemEnv::isWorkerService() || SystemEnv::isCronService()) {
             while (true) {
-                if (\Swoole\Process::kill($masterPid, 0)) {
+                if ($masterPid > 0 && \Swoole\Process::kill($masterPid, 0)) {
                     sleep(1);
                 }else {
                     break;

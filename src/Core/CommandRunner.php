@@ -56,7 +56,6 @@ class CommandRunner
                 $concurrent = 10;
             }
             $runner->concurrent = $concurrent;
-            $runner->channel = new Channel($runner->concurrent);
             static::$instances[$runnerName] = $runner;
         }
 
@@ -112,6 +111,10 @@ class CommandRunner
             $output = $exec->getOutput();
             $returnCode = $exec->getReturnCode();
             $pid = $output[0] ?? '';
+            if (!$this->channel instanceof Channel) {
+                $this->channel = new Channel($this->concurrent);
+            }
+
             if ($pid) {
                 $this->channel->push([
                     'pid' => $pid,
@@ -177,6 +180,10 @@ class CommandRunner
                     'start_time' => time()
                 ];
 
+                if (!$this->channel instanceof Channel) {
+                    $this->channel = new Channel($this->concurrent);
+                }
+
                 if ($status['pid'] ?? '') {
                     $this->channel->push($statusProperty, 0.2);
                     $returnCode = fgets($pipes[3], 10);
@@ -214,7 +221,7 @@ class CommandRunner
     public function isNextHandle(bool $isNeedCheck = true)
     {
         $this->isNextFlag = true;
-        if ($this->channel->isFull() && $isNeedCheck) {
+        if ($this->channel instanceof Channel && $this->channel->isFull() && $isNeedCheck) {
             $itemList = [];
             while ($item = $this->channel->pop(0.05)) {
                 $pid = $item['pid'];
