@@ -119,7 +119,7 @@ class StopCmd extends BaseCmd
             exit(0);
         }
 
-        if (\Swoole\Process::kill($masterPid, 0)) {
+        if ($masterPid > 0 && \Swoole\Process::kill($masterPid, 0)) {
             $pipeMsgDto = new \Swoolefy\Worker\Dto\PipeMsgDto();
             $pipeMsgDto->action = WORKER_CLI_STOP;
             $pipeMsg = serialize($pipeMsgDto);

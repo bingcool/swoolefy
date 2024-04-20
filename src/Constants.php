@@ -12,7 +12,7 @@
 namespace Swoolefy;
 
 // 定义当前core的根路径
-defined('SWOOLEFY_CORE_ROOT_PATH') or define('SWOOLEFY_CORE_ROOT_PATH', __DIR__.'/Core');
+defined('SWOOLEFY_CORE_ROOT_PATH') or define('SWOOLEFY_CORE_ROOT_PATH', __DIR__ . '/Core');
 
 // 定义打包检查类型
 defined('SWOOLEFY_PACK_CHECK_LENGTH') or define('SWOOLEFY_PACK_CHECK_LENGTH', 'length');
@@ -50,6 +50,7 @@ defined('SWOOLEFY_EOF_FLAG') or define('SWOOLEFY_EOF_FLAG', '::');
 
 defined('WORKER_CLI_STOP') or define('WORKER_CLI_STOP', 'stop');
 defined('WORKER_CLI_STATUS') or define('WORKER_CLI_STATUS', 'status');
+defined('WORKER_CLI_RESTART') or define('WORKER_CLI_RESTART', 'restart');
 defined('WORKER_CLI_SEND_MSG') or define('WORKER_CLI_SEND_MSG', 'send');
 
 class Constants

@@ -32,8 +32,9 @@ class MonitorCmd extends BaseCmd
             if (!\Swoole\Process::kill($pid, 0)) {
                 fmtPrintInfo("[CheckSever] server had shutdown, now restarting .....");
                 // 重新启动
+                $binFile = defined('PHP_BIN_FILE') ? PHP_BIN_FILE : '/usr/bin/php';
                 $exec = new Exec();
-                $exec->run("nohup /usr/bin/php {$selfScript} start {$appName} --daemon=1 > /dev/null 2>&1 &");
+                $exec->run("nohup {$binFile} {$selfScript} start {$appName} --daemon=1 > /dev/null 2>&1 &");
             }
             sleep(3);
             exit(0);

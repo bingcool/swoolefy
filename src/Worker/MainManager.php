@@ -13,7 +13,6 @@ namespace Swoolefy\Worker;
 
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\SystemEnv;
-use Swoolefy\Exception\SystemException;
 use Swoolefy\Exception\WorkerException;
 use Swoolefy\Worker\Dto\MessageDto;
 use Swoolefy\Core\Table\TableManager;
@@ -1416,6 +1415,12 @@ class MainManager
                         case WORKER_CLI_STOP :
                             $this->stopAllWorkerProcessCommand();
                             break;
+                        case WORKER_CLI_RESTART :
+                            $dateTime = date('Y-m-d H:i:s');
+                            $this->fmtWriteInfo("[{$dateTime}] 重启整个服务，所有进程将重启");
+                            // todo 此方法目前未足够完善
+                            $this->reStartServerCommand();
+                            break;
                         case WORKER_CLI_SEND_MSG :
                             $processName = $cliPipeMsgDto->targetHandler;
                             $key = md5($processName);
@@ -1548,7 +1553,7 @@ class MainManager
      */
     private function installRegisterShutdownFunction()
     {
-        if(!$this->inMasterProcessEnv()) {
+        if (!$this->inMasterProcessEnv()) {
             return;
         }
 

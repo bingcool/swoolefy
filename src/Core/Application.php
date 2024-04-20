@@ -34,13 +34,7 @@ class Application
             return true;
         };
 
-        if ($App instanceof \Swoolefy\Core\AppObject ||
-            $App instanceof \Swoolefy\Core\EventController ||
-            $App instanceof \Swoolefy\Core\Swoole
-
-        ) {
-            return $closure($App);
-        }
+        return $closure($App);
     }
 
     /**
@@ -48,7 +42,7 @@ class Application
      * @param int $coroutineId
      * @return bool
      */
-    public static function issetApp(int $coroutineId = null): bool
+    public static function issetApp($coroutineId = null): bool
     {
         $cid = \Swoole\Coroutine::getCid();
         if ($coroutineId) {

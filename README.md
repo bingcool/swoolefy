@@ -140,31 +140,44 @@ composer create-project bingcool/swoolefy:^4.8.22 myproject
 ```
 <?php
 // 在myproject目录下添加cli.php, 这个是启动项目的入口文件
-include './vendor/autoload.php';
-registerNamespace($_SERVER['argv'][2]);
 
-define('IS_DAEMON_SERVICE', 0);
-define('IS_CRON_SERVICE', 0);
-define('IS_CLI_SCRIPT', 0);
-// 应用父目录
-defined('ROOT_PATH') or define('ROOT_PATH', __DIR__);
+include __DIR__.'/vendor/autoload.php';
 // 启动目录
 defined('START_DIR_ROOT') or define('START_DIR_ROOT', __DIR__);
+// 应用父目录
+defined('ROOT_PATH') or define('ROOT_PATH',__DIR__);
+// 应用目录
+defined('APP_PATH') or define('APP_PATH',__DIR__.'/'.ucfirst($_SERVER['argv'][2]));
+
+registerNamespace(APP_PATH);
+
+define('IS_WORKER_SERVICE', 0);
+define('IS_CLI_SCRIPT', 0);
+define('IS_CRON_SERVICE', 0);
+define('PHP_BIN_FILE','/usr/bin/php');    
 
 date_default_timezone_set('Asia/Shanghai');
 
 define('APP_NAMES', [
-     // 你的项目命名为App，对应协议为http协议服务器，支持多个项目的，只需要在这里添加好项目名称与对应的协议即可
-    'App' => 'http', 
-    'Test' => 'http
+    // 你的项目命名为App，对应协议为http协议服务器，支持多个项目的，只需要在这里添加好项目名称与对应的协议即可
+    'Test' => 'http',
+    'Erp'  => 'http',
+    'UdpService' => 'udp'
 ]);
 
 // 启动前处理,比如加载.env
 $beforeFunc = function () {
-    
+    try {
+        if (\Swoolefy\Core\SystemEnv::isDevEnv()) {
+            LoadEnv::load('192.168.25.53:8848','swoolefy','pwa-test','nacos','nacos');
+        }
+    }catch (\Throwable $throwable) {
+
+    }
 };
 
-include './swoolefy';
+include __DIR__.'/swoolefy';
+
 
 ```
 
@@ -173,9 +186,10 @@ include './swoolefy';
 ```
 // 你定义的项目目录是App, 在myproject目录下执行下面命令行
 
-swoole-cli cli.php create App 
-或者    
 php cli.php create App   
+或者  
+swoole-cli cli.php create App 
+
 
 // 执行完上面命令行后，将会自动生成App项目目录以及内部子目录
 myproject
@@ -187,7 +201,7 @@ myproject
 |     |      |—— cache.php   // 缓存组件，可以继续添加其他组件，命名自由 
 |     │   ├── dc.php   //环境配置项
 |     │   └── constants.php
-|     |   |—— config.php    // 应用层配置
+|     |   |—— app.php    // 应用层配置
 |     |
 |     ├── Controller
 |     │   └── IndexController.php // 控制器层
@@ -237,6 +251,11 @@ swooole-cli cli.php stop App --force=1
 // 查看进程状态
 swooole-cli cli.php status App
 
+// 完全重启服务
+php cli.php restart App    
+或者    
+swooole-cli cli.php restart App
+
 ```
 
 ### 五、访问
@@ -265,7 +284,7 @@ class IndexController extends BController {
 ### 定义组件
 
 应用层配置文件：
-Config/config.php
+Config/app.php
 
 ```
 <?php

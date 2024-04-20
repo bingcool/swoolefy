@@ -56,7 +56,6 @@ class CommandRunner
                 $concurrent = 10;
             }
             $runner->concurrent = $concurrent;
-            $runner->channel = new Channel($runner->concurrent);
             static::$instances[$runnerName] = $runner;
         }
 
@@ -92,10 +91,19 @@ class CommandRunner
 
         $path = $execBinFile . ' ' . $execScript . ' ' . $params;
         $path = trim($path,' ');
-        $command = "{$path} >> {$log} 2>&1 && echo $$";
+        if ($log) {
+            $command = "{$path} >> {$log} 2>&1 & echo $$";
+        }else {
+            $command = "{$path} 2>&1 & echo $$";
+        }
+
         if ($async) {
             // echo $! 表示输出进程id赋值在output数组中
-            $command = "nohup {$path} >> {$log} 2>&1 & echo $!";
+            if ($log) {
+                $command = "nohup {$path} >> {$log} 2>&1 & echo $!";
+            }else {
+                $command = "nohup {$path} 2>&1 & echo $!";
+            }
         }
 
         if ($isExec) {
@@ -103,6 +111,10 @@ class CommandRunner
             $output = $exec->getOutput();
             $returnCode = $exec->getReturnCode();
             $pid = $output[0] ?? '';
+            if (!$this->channel instanceof Channel) {
+                $this->channel = new Channel($this->concurrent);
+            }
+
             if ($pid) {
                 $this->channel->push([
                     'pid' => $pid,
@@ -168,6 +180,10 @@ class CommandRunner
                     'start_time' => time()
                 ];
 
+                if (!$this->channel instanceof Channel) {
+                    $this->channel = new Channel($this->concurrent);
+                }
+
                 if ($status['pid'] ?? '') {
                     $this->channel->push($statusProperty, 0.2);
                     $returnCode = fgets($pipes[3], 10);
@@ -205,7 +221,7 @@ class CommandRunner
     public function isNextHandle(bool $isNeedCheck = true)
     {
         $this->isNextFlag = true;
-        if ($this->channel->isFull() && $isNeedCheck) {
+        if ($this->channel instanceof Channel && $this->channel->isFull() && $isNeedCheck) {
             $itemList = [];
             while ($item = $this->channel->pop(0.05)) {
                 $pid = $item['pid'];

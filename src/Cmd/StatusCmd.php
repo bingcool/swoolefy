@@ -20,10 +20,10 @@ class StatusCmd extends BaseCmd
         $appName = $input->getArgument('app_name');
         $pidFile = $this->getPidFile($appName);
 
-        if (!SystemEnv::isWorkerService()) {
-            $this->commonStatus($appName, $pidFile);
-        } else {
+        if (SystemEnv::isWorkerService()) {
             $this->workerStatus($pidFile);
+        } else {
+            $this->commonStatus($appName, $pidFile);
         }
         return 0;
     }

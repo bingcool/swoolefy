@@ -31,7 +31,11 @@ class RestartCmd extends BaseCmd
         }
 
         $pidFile = $this->getPidFile($appName);
-        $masterPid = intval(file_get_contents($pidFile));
+        $masterPid = 0;
+        if (file_exists($pidFile)) {
+            $masterPid = intval(file_get_contents($pidFile));
+        }
+
 
         if (strtolower($lineValue) == 'yes' || $force) {
             if (SystemEnv::isWorkerService()) {
@@ -49,8 +53,20 @@ class RestartCmd extends BaseCmd
             }
         }
 
+        fmtPrintInfo("-----------正在重启进程中，请等待-----------");
+
+        if (SystemEnv::isWorkerService() || SystemEnv::isCronService()) {
+            while (true) {
+                if ($masterPid > 0 && \Swoole\Process::kill($masterPid, 0)) {
+                    sleep(1);
+                }else {
+                    break;
+                }
+            }
+        }
+
         // 重新启动
-        $binFile = $_SERVER['_'] ?? '/usr/bin/php';
+        $binFile = defined('PHP_BIN_FILE') ? PHP_BIN_FILE : '/usr/bin/php';
         $waitTime = 10;
         if (SystemEnv::isWorkerService()) {
             $selfFile = WORKER_START_SCRIPT_FILE;
@@ -59,13 +75,13 @@ class RestartCmd extends BaseCmd
             }else if (SystemEnv::isDaemonService()) {
                 $selfFile = 'daemon.php';
             }
-
-            $scriptFile = "{$selfFile} start {$appName} --daemon=1";
             // 最长20s
-            $waitTime = 20;
+            $waitTime = 60;
         }else {
-            $scriptFile = "cli.php start {$appName} --daemon=1";
+            $selfFile = 'cli.php';
         }
+
+        $scriptFile = "$selfFile start {$appName} --daemon=1";
 
         \Swoole\Coroutine::create(function () use ($binFile, $scriptFile) {
             $runner = CommandRunner::getInstance('restart');
@@ -74,26 +90,21 @@ class RestartCmd extends BaseCmd
             }, $binFile, $scriptFile);
         });
 
-        fmtPrintInfo("-----------正在重启进程中，请等待-----------");
         $time = time();
         while (true) {
-            $pidFile = $this->getPidFile($appName);
             sleep(1);
-
-            $next = false;
-            if (time() - $time > $waitTime) {
-                $next = true;
-            }
-
             // 判断pid文件是否存在
-            if (!is_file($pidFile) && !$next) {
-                continue;
+            if (!file_exists($pidFile)) {
+                if (time() - $time < $waitTime) {
+                    continue;
+                }
             }
 
             $newMasterPid = intval(file_get_contents($pidFile));
             // 新拉起的主进程id已经存在，说明新拉起的主进程已经启动成功
-            if ($newMasterPid != $masterPid && \Swoole\Process::kill($newMasterPid, 0)) {
+            if ($newMasterPid > 0 && $newMasterPid != $masterPid && \Swoole\Process::kill($newMasterPid, 0)) {
                 fmtPrintInfo("-----------进程重启成功！------------");
+                fmtPrintInfo("-----------可以使用 php {$selfFile} status {$appName} 查看进程是否启动成功状态信息!------------");
                 exit(0);
             }
 
