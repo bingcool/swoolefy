@@ -126,8 +126,7 @@ function env($key, $default = null)
 }
 
 /**
- * @param $appName
- * @param $path
+ * @param $appPath
  * @return void
  */
 function registerNamespace($appPath)
