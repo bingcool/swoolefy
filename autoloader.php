@@ -69,4 +69,4 @@ class autoloader
 // include file
 autoloader::register();
 // include constants
-include ROOT_PATH.'/Config/constants.php';
+include APP_PATH.'/Config/constants.php';

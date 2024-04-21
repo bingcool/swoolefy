@@ -21,10 +21,10 @@ class SendCmd extends BaseCmd
             return 0;
         }
 
-        $appName = $input->getArgument('app_name');
+        $appName     = $input->getArgument('app_name');
         $processName = getenv('name');
-        $action = getenv('action');
-        $msg = getenv('msg');
+        $action      = getenv('action');
+        $msg         = getenv('msg');
         if (empty($msg)) {
             $msg = '';
         }

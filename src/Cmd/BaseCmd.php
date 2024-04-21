@@ -121,10 +121,10 @@ class BaseCmd extends Command
      */
     protected function initCheck(InputInterface $input, OutputInterface $output)
     {
-        $appName = $input->getArgument('app_name');
         if (version_compare(phpversion(), '7.3.0', '<')) {
            fmtPrintError("php version must >= 7.3.0, current php version = " . phpversion());
         }
+
         if (version_compare(swoole_version(), '4.8.5', '<')) {
            fmtPrintError("the swoole version must >= 4.8.5, current swoole version = " . swoole_version());
         }
@@ -132,6 +132,7 @@ class BaseCmd extends Command
         if (function_exists('apc_clear_cache')) {
             apc_clear_cache();
         }
+
         if (function_exists('opcache_reset')) {
             opcache_reset();
         }
@@ -277,7 +278,7 @@ class BaseCmd extends Command
         }
 
         if (!isset($config['app_conf'])) {
-            fmtPrintError(APP_NAME . "/Protocol/conf.php" . " must include app_conf file and set app_conf");
+            fmtPrintError(APP_NAME . '/Protocol/conf.php must include app_conf file and set app_conf');
             exit(0);
         }
     }
