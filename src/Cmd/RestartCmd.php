@@ -27,10 +27,10 @@ class RestartCmd extends BaseCmd
         $force = $input->getOption('force');
         $lineValue = "";
         if (empty($force)) {
-            if (!isWorkerService()) {
-                $lineValue = initConsoleStyleIo()->ask( "1、你确定 【重启】 应用【{$appName}】? (yes or no)");
-            } else {
+            if (SystemEnv::isWorkerService()) {
                 $lineValue = initConsoleStyleIo()->ask( "1、你确定 【重启】 workerService【" . WORKER_SERVICE_NAME . "】? (yes or no)");
+            } else {
+                $lineValue = initConsoleStyleIo()->ask( "1、你确定 【重启】 应用【{$appName}】? (yes or no)");
             }
         }
 
