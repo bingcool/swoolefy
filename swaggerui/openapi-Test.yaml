@@ -100,9 +100,9 @@ paths:
         -
           name: product_ids
           in: query
-          description: 产品名称
+          description: 产品ids
           required: true
-          allowEmptyValue: true
+          allowEmptyValue: false
           allowReserved: true
           schema:
             type: array

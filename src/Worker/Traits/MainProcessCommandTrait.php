@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Worker\Traits;
 
+use Swoolefy\Core\CommandRunner;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Worker\AbstractBaseWorker;
 
@@ -25,9 +26,9 @@ trait MainProcessCommandTrait {
      */
     protected function parseLoadConf(string $processName): array
     {
-        $conf = self::loadConfByPath();
+        $conf = self::includeWorkerConf();
         // 新增-启动
-        $confMap = array_column($conf, null,'process_name');
+        $confMap = array_column($conf, null, 'process_name');
         // 读取最新的配置
         $config = $confMap[$processName] ?? [];
         return $config;
@@ -136,5 +137,21 @@ trait MainProcessCommandTrait {
                 $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
             }
         }
+    }
+
+    /**
+     * 重启整个swoole server服务. 所有进程都将重启
+     *
+     * @return void
+     */
+    protected function reStartServerCommand()
+    {
+        $runner = CommandRunner::getInstance('restart-'.time());
+        $runner->isNextHandle(false);
+        $execBinFile = defined('PHP_BIN_FILE') ? PHP_BIN_FILE : '/usr/bin/php';
+        $scriptFile  = WORKER_START_SCRIPT_FILE;
+        $appName     = APP_NAME;
+        list($command) = $runner->exec($execBinFile, "{$scriptFile} restart {$appName} --force=1", [],true, 'nobup_restart.log', false);
+        exec($command, $output, $code);
     }
 }

@@ -6,18 +6,19 @@ use Swoolefy\Core\SystemEnv;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Swoolefy\Core\CommandRunner;
 
 #[AsCommand(
-    name: 'stop',
+    name: 'restart',
 )]
-class StopCmd extends BaseCmd
+class RestartCmd extends BaseCmd
 {
-    protected static $defaultName = 'stop';
+    protected static $defaultName = 'restart';
 
     protected function configure()
     {
         parent::configure();
-        $this->setDescription('stop the application')->setHelp('use php cli.php stop XXXXX or php daemon.php stop XXXXX');
+        $this->setDescription('stop the application')->setHelp('use php cli.php restart XXXXX or php cron.php|daemon.php restart XXXXX');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -27,11 +28,18 @@ class StopCmd extends BaseCmd
         $lineValue = "";
         if (empty($force)) {
             if (SystemEnv::isWorkerService()) {
-                $lineValue = initConsoleStyleIo()->ask( "1、你确定 [停止] workerService【" . WORKER_SERVICE_NAME . "】? (yes or no)");
+                $lineValue = initConsoleStyleIo()->ask( "1、你确定 【重启】 workerService【" . WORKER_SERVICE_NAME . "】? (yes or no)");
             } else {
-                $lineValue = initConsoleStyleIo()->ask( "1、你确定 [停止] 应用【{$appName}】? (yes or no)");
+                $lineValue = initConsoleStyleIo()->ask( "1、你确定 【重启】 应用【{$appName}】? (yes or no)");
             }
         }
+
+        $pidFile = $this->getPidFile($appName);
+        $masterPid = 0;
+        if (file_exists($pidFile)) {
+            $masterPid = intval(file_get_contents($pidFile));
+        }
+
 
         if (strtolower($lineValue) == 'yes' || $force) {
             if (SystemEnv::isWorkerService()) {
@@ -41,28 +49,88 @@ class StopCmd extends BaseCmd
             }
         } else {
             if (SystemEnv::isWorkerService()) {
-                fmtPrintInfo(PHP_EOL."你已放弃停止workerService【" . WORKER_SERVICE_NAME . "】,应用继续running中");
+                fmtPrintInfo("\n你已放弃【重启】workerService【" . WORKER_SERVICE_NAME . "】,应用继续running中");
+                exit(0);
             } else {
-                fmtPrintInfo(PHP_EOL."你已放弃停止应用{$appName},应用继续running中");
+                fmtPrintInfo("\n你已放弃【重启】应用【{$appName}】,应用继续running中");
+                exit(0);
             }
-            exit(0);
         }
 
-        return 0;
+        fmtPrintInfo("-----------正在重启进程中，请等待-----------");
+
+        if (SystemEnv::isWorkerService() || SystemEnv::isCronService()) {
+            while (true) {
+                if ($masterPid > 0 && \Swoole\Process::kill($masterPid, 0)) {
+                    sleep(1);
+                }else {
+                    break;
+                }
+            }
+        }
+
+        // 重新启动
+        $binFile = defined('PHP_BIN_FILE') ? PHP_BIN_FILE : '/usr/bin/php';
+        $waitTime = 10;
+        if (SystemEnv::isWorkerService()) {
+            $selfFile = WORKER_START_SCRIPT_FILE;
+            if (SystemEnv::isCronService()) {
+                $selfFile = 'cron.php';
+            }else if (SystemEnv::isDaemonService()) {
+                $selfFile = 'daemon.php';
+            }
+            // 最长20s
+            $waitTime = 60;
+        }else {
+            $selfFile = 'cli.php';
+        }
+
+        $scriptFile = "$selfFile start {$appName} --daemon=1";
+
+        \Swoole\Coroutine::create(function () use ($binFile, $scriptFile) {
+            $runner = CommandRunner::getInstance('restart');
+            $runner->isNextHandle(false);
+            $runner->procOpen(function () {
+            }, $binFile, $scriptFile);
+        });
+
+        $time = time();
+        while (true) {
+            sleep(1);
+            // 判断pid文件是否存在
+            if (!file_exists($pidFile)) {
+                if (time() - $time < $waitTime) {
+                    continue;
+                }
+            }
+
+            $newMasterPid = intval(file_get_contents($pidFile));
+            // 新拉起的主进程id已经存在，说明新拉起的主进程已经启动成功
+            if ($newMasterPid > 0 && $newMasterPid != $masterPid && \Swoole\Process::kill($newMasterPid, 0)) {
+                fmtPrintInfo("-----------进程重启成功！------------");
+                fmtPrintInfo("-----------可以使用 php {$selfFile} status {$appName} 查看进程是否启动成功状态信息!------------");
+                exit(0);
+            }
+
+            // 等待10s，判断是否启动成功
+            if (time() - $time > $waitTime) {
+                fmtPrintError("-----------请使用 php {$selfFile} status {$appName} 查看进程是否启动成功!------------");
+                exit(0);
+            }
+        }
     }
 
     protected function commonStop($appName)
     {
         $pidFile = $this->getPidFile($appName);
         if (!is_file($pidFile)) {
-            fmtPrintError("Pid file={$pidFile} is not exist, please check the server whether running");
-            exit(0);
+            return;
         }
 
         $pid = intval(file_get_contents($pidFile));
         if (!\Swoole\Process::kill($pid, 0)) {
-            fmtPrintError("Server Stop!");
-            exit(0);
+            fmtPrintInfo("Server has been stopped");
+            return;
         }
 
         \Swoole\Process::kill($pid, SIGTERM);
@@ -104,27 +172,28 @@ class StopCmd extends BaseCmd
                 }
             }
         }
-        \Swoole\Process::wait();
-        exit(0);
     }
 
     protected function workerStop($appName)
     {
         $pidFile = $this->getPidFile($appName);
         if (!is_file($pidFile)) {
-            fmtPrintError("Pid file={$pidFile} is not exist, please check the server whether running");
-            exit(0);
+            return;
         }
 
         $masterPid = file_get_contents($pidFile);
         if (is_numeric($masterPid) && $masterPid > 0) {
             $masterPid = (int)$masterPid;
         } else {
-            fmtPrintError("Master Pid is invalid");
-            exit(0);
+            return;
         }
 
-        if ($masterPid > 0 && \Swoole\Process::kill($masterPid, 0)) {
+        if (!\Swoole\Process::kill($masterPid, 0)) {
+            fmtPrintInfo("Server has been stopped");
+            return;
+        }
+
+        if (\Swoole\Process::kill($masterPid, 0)) {
             $pipeMsgDto = new \Swoolefy\Worker\Dto\PipeMsgDto();
             $pipeMsgDto->action = WORKER_CLI_STOP;
             $pipeMsg = serialize($pipeMsgDto);

@@ -7,7 +7,7 @@ use Swoolefy\Core\Application;
 use Swoolefy\Script\MainCliScript;
 
 /**
- * 执行命令生成表属性： php script.php start Test --r=GenerateMysql/generate --db=db --table=tbl_users
+ * 执行命令生成表属性： php script.php start Test --c=gen:mysql:schema --db=db --table=tbl_users
  */
 
 /**
@@ -23,6 +23,14 @@ use Swoolefy\Script\MainCliScript;
 
 class GenerateMysql extends MainCliScript
 {
+    /**
+     * @var string
+     */
+    const command = "gen:mysql:schema";
+
+    /**
+     * @return void
+     */
     public function generate()
     {
         $db = getenv('db');

@@ -1,5 +1,5 @@
 <?php
-namespace Test\Process\ListProcess;
+namespace Test\Process\LockProcess;
 
 use Swoolefy\Core\Process\AbstractProcess;
 use Test\Factory;

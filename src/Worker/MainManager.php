@@ -653,7 +653,13 @@ class MainManager
      */
     private function rebootWorker(int $pid)
     {
+        /**
+         * @var AbstractBaseWorker $process
+         */
         $process            = $this->getProcessByPid($pid);
+        if (!is_object($process)) {
+            return;
+        }
         $processName        = $process->getProcessName();
         $processType        = $process->getProcessType();
         $processWorkerId    = $process->getProcessWorkerId();
@@ -821,7 +827,10 @@ class MainManager
         if (empty($status)) {
             $status = $this->getProcessStatus();
         }
-        @file_put_contents(WORKER_STATUS_FILE, json_encode($status, JSON_UNESCAPED_UNICODE));
+
+        if (!SystemEnv::isScriptService()) {
+            @file_put_contents(WORKER_STATUS_FILE, json_encode($status, JSON_UNESCAPED_UNICODE));
+        }
     }
 
     /**
@@ -905,7 +914,7 @@ class MainManager
             $key = md5($processName);
             $newProcess->setProcessWorkerId($workerId);
             $newProcess->setMasterPid($this->getMasterPid());
-            $newProcess->setProcessType(AbstractBaseWorker::PROCESS_STATIC_TYPE_NAME);
+            $newProcess->setProcessType(AbstractBaseWorker::PROCESS_STATIC_TYPE);
             $newProcess->setStartTime();
             $this->processWorkers[$key][$workerId] = $newProcess;
             $newProcess->start();
@@ -1123,7 +1132,9 @@ class MainManager
             try {
                 $status = $this->getProcessStatus();
                 // save status
-                file_put_contents(WORKER_STATUS_FILE, json_encode($status, JSON_UNESCAPED_UNICODE));
+                if (!SystemEnv::isScriptService()) {
+                    file_put_contents(WORKER_STATUS_FILE, json_encode($status, JSON_UNESCAPED_UNICODE));
+                }
                 // callable todo
                 if (is_callable($this->onReportStatus)) {
                     $this->onReportStatus->call($this, $status);
@@ -1404,6 +1415,12 @@ class MainManager
                         case WORKER_CLI_STOP :
                             $this->stopAllWorkerProcessCommand();
                             break;
+                        case WORKER_CLI_RESTART :
+                            $dateTime = date('Y-m-d H:i:s');
+                            $this->fmtWriteInfo("[{$dateTime}] 重启整个服务，所有进程将重启");
+                            // todo 此方法目前未足够完善
+                            $this->reStartServerCommand();
+                            break;
                         case WORKER_CLI_SEND_MSG :
                             $processName = $cliPipeMsgDto->targetHandler;
                             $key = md5($processName);
@@ -1416,6 +1433,7 @@ class MainManager
                                     if (!isset($this->processLists[$key])) {
                                         $config = $this->parseLoadConf($processName);
                                         if (empty($config)) {
+                                            $this->fmtWriteError("找不到进程名【{$processName}】的配置项！");
                                             return $this->responseMsgByPipe("找不到进程名【{$processName}】的配置项！");
                                         }
                                         $this->responseMsgByPipe("进程【{$processName}】已开始启动，请留意！");
@@ -1433,7 +1451,12 @@ class MainManager
                                         $this->responseMsgByPipe("进程【{$processName}】已开始重启，请留意！");
                                         $this->restartWorkerProcessCommand($processName);
                                     }else {
-                                        $this->responseMsgByPipe("进程【{$processName}】不存在，请检查进程名称是否正确！");
+                                        $config = $this->parseLoadConf($processName);
+                                        if (empty($config)) {
+                                            return $this->responseMsgByPipe("找不到进程名【{$processName}】的配置项！");
+                                        }
+                                        $this->responseMsgByPipe("进程【{$processName}】已开始启动，请留意！");
+                                        $this->startWorkerProcessCommand($config);
                                     }
                                     break;
                                 // 停止指定进程
@@ -1530,7 +1553,7 @@ class MainManager
      */
     private function installRegisterShutdownFunction()
     {
-        if(!$this->inMasterProcessEnv()) {
+        if (!$this->inMasterProcessEnv()) {
             return;
         }
 
@@ -1676,79 +1699,98 @@ class MainManager
      * @param string $confPath
      * @return array
      */
-    public static function loadConfByPath(string $confPath = '')
+    public static function loadWorkerConf(string $confPath)
     {
-        if (!empty(self::$confPath)) {
-            $confPath = self::$confPath;
-            $conf = include $confPath;
-            return $conf;
+        if (function_exists('customLoadWorkerConf')) {
+            $conf = customLoadWorkerConf($confPath);
+        }else {
+            $conf = self::defaultLoadWorkerConf($confPath);
         }
-        self::$confPath = $confPath;
-        $conf = include $confPath;
-        self::findDuplicateProcessName($confPath, $conf);
         return $conf;
     }
+
+    /**
+     * @return array
+     */
+    public static function includeWorkerConf()
+    {
+        $fileConfPath = self::$confPath;
+        $conf = include $fileConfPath;
+        self::findDuplicateProcessName($conf);
+        return $conf;
+    }
+
+    /**
+     * @param string $confPath
+     * @return array
+     */
+    protected static function defaultLoadWorkerConf(string $confPath)
+    {
+        if (empty(self::$confPath)) {
+            self::$confPath = realpath($confPath);
+        }
+
+        $currentProcessConfList = self::includeWorkerConf();
+
+        $workerConfLockFile = WORKER_PID_FILE_ROOT.'/confctl.json';
+        if (!file_exists($workerConfLockFile)) {
+            file_put_contents($workerConfLockFile, json_encode([], JSON_UNESCAPED_UNICODE));
+        }
+
+        $fileContent = file_get_contents($workerConfLockFile);
+
+        if (!empty($fileContent)) {
+            $fileProcessConfListMap = json_decode($fileContent, true);
+        }else {
+            $fileProcessConfListMap = [];
+        }
+
+        $currentProcessConfListMap = array_column($currentProcessConfList, null, 'process_name');
+        // 最新的进程不包括历史的进程的，将lockfile中的进程删除
+        foreach ($fileProcessConfListMap as $processName => $fileProcessConf) {
+            if (!isset($currentProcessConfListMap[$processName])) {
+                unset($fileProcessConfListMap[$processName]);
+            }
+        }
+
+        if (!empty($currentProcessConfListMap)) {
+            foreach ($currentProcessConfListMap as $processName => $currentProcessConf) {
+                if (!isset($fileProcessConfListMap[$processName])) {
+                    $fileProcessConfListMap[$processName] = [
+                        'start_time' => date('Y-m-d H:i:s'),
+                        'stop_time'  => '',
+                        'running'    => 1,
+                    ];
+                }
+            }
+        }
+
+        // lockFile标志为running=0停止状态的，这里无需启动
+        foreach ($fileProcessConfListMap as $processName => $fileProcessConf) {
+            if (isset($currentProcessConfListMap[$processName]) && $fileProcessConf['running'] == 0) {
+                unset($currentProcessConfListMap[$processName]);
+            }
+        }
+
+        file_put_contents($workerConfLockFile, json_encode($fileProcessConfListMap, JSON_UNESCAPED_UNICODE));
+
+        return array_values($currentProcessConfListMap);
+   }
 
     /**
      * @param string $confPath
      * @param array $conf
      * @return void
      */
-    private static function findDuplicateProcessName(string $confPath, array &$conf)
+    private static function findDuplicateProcessName(array &$conf)
     {
         $processNames = array_column($conf, 'process_name');
         $uniqueProcessNames = array_unique($processNames);
         $duplicateProcessNames = array_diff_assoc($processNames, $uniqueProcessNames);
         if (!empty($duplicateProcessNames)) {
             $processNameStr = implode(',', $duplicateProcessNames);
-            fmtPrintError("{$confPath} 存在重复命名的进程[{$processNameStr}],请检查");
+            fmtPrintError("conf配置项存在重复命名的进程[{$processNameStr}],请检查");
             exit(0);
-        }
-    }
-
-    /**
-     * @return void
-     */
-    protected function tickForkNewProcess()
-    {
-        $conf = self::loadConfByPath();
-        // 新增-启动
-        foreach ($conf as &$config) {
-            $processName = $config['process_name'];
-            $key = md5($processName);
-            $config['key'] = $key;
-            if (!isset($this->processLists[$key])) {
-                $processName      = $config['process_name'];
-                $processClass     = $config['handler'];
-                if ($config['worker_num'] > $this->getMaxProcessNum()) {
-                    $config['worker_num'] = $this->getMaxProcessNum();
-                }
-                $processWorkerNum = $config['worker_num'] ?? 1;
-                $args             = $config['args'] ?? [];
-                $extendData       = $config['extend_data'] ?? [];
-                $this->parseArgs($args, $config);
-                for ($workerId=0; $workerId< $processWorkerNum; $workerId++) {
-                    $this->forkNewProcess($processClass, $processName, $workerId, $args, $extendData);
-                }
-                $this->setProcessLists($processName, $processClass, $processWorkerNum, $args, $extendData);
-            }
-        }
-
-        $confMap = array_column($conf, null, 'key');
-        // 删除-停止
-        foreach ($this->processLists as $key=>$item) {
-            if (!isset($confMap[$key])) {
-                $processes = $this->processWorkers[$key] ?? [];
-                foreach ($processes as $workerId => $process) {
-                    try {
-                        $processName = $process->getProcessName();
-                        $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
-                    } catch (\Throwable $exception) {
-                        $this->fmtWriteError("Reload Command send stop Signal (SIGINT,SIGTERM) error Process={$processName},worker_id={$workerId} exit failed, error=" . $exception->getMessage());
-                    }
-                }
-                unset($this->processLists[$key], $this->processWorkers[$key]);
-            }
         }
     }
 

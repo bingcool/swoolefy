@@ -116,6 +116,28 @@ function makeServerName(string $appName)
 }
 
 /**
+ * @param $key
+ * @param $default
+ * @return mixed
+ */
+function env($key, $default = null)
+{
+    return \Swoolefy\Core\SystemEnv::get($key, $default);
+}
+
+/**
+ * @param $appPath
+ * @return void
+ */
+function registerNamespace($appPath)
+{
+    $file = $appPath.'/autoloader.php';
+    if (file_exists($file)) {
+        include $file;
+    }
+}
+
+/**
  * 协程单例
  *
  * @param \Closure|callable $callback

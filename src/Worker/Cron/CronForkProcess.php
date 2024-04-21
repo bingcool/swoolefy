@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Worker\Cron;
 
+use Swoole\Coroutine\System;
 use Swoolefy\Core\CommandRunner;
 use Swoolefy\Core\Crontab\CrontabManager;
 
@@ -39,7 +40,6 @@ class CronForkProcess extends CronProcess
     {
         parent::onInit();
         $this->params   = $this->getArgs()['params'] ?? [];
-        $this->forkType = $this->getArgs()['fork_type'] ?? self::FORK_TYPE_PROC_OPEN;
     }
 
     /**
@@ -50,17 +50,20 @@ class CronForkProcess extends CronProcess
         parent::run();
         if(!empty($this->taskList)) {
             foreach($this->taskList as $task) {
+                $forkType = $task['fork_type'] ?? $this->forkType;
+                $params   = $task['params'] ?? [];
                 try {
-                    CrontabManager::getInstance()->addRule($task['cron_name'], $task['cron_expression'], function ($cron_name, $expression) use($task) {
+                    CrontabManager::getInstance()->addRule($task['cron_name'], $task['cron_expression'], function ($cron_name, $expression) use($task, $forkType, $params) {
                         $runner = CommandRunner::getInstance($cron_name,1);
+                        $this->randSleepTime($task['cron_expression']);
                         try {
                             if($runner->isNextHandle(false)) {
-                                if($this->forkType == self::FORK_TYPE_PROC_OPEN) {
+                                if($forkType == self::FORK_TYPE_PROC_OPEN) {
                                     $runner->procOpen(function ($pipe0, $pipe1, $pipe2, $status, $returnCode) use($task) {
                                         $this->receiveCallBack($pipe0, $pipe1, $pipe2, $status, $returnCode, $task);
-                                    } , $task['exec_bin_file'], $task['exec_script'], $this->params);
+                                    } , $task['exec_bin_file'], $task['exec_script'], $params);
                                 }else {
-                                    $runner->exec($task['exec_bin_file'], $task['exec_script'], $this->params, true);
+                                    $runner->exec($task['exec_bin_file'], $task['exec_script'], $params, true);
                                 }
                             }
                         }catch (\Exception $exception)
@@ -74,6 +77,39 @@ class CronForkProcess extends CronProcess
             }
         }
     }
+
+    /**
+     * @param string $cronExpression
+     * @return  bool
+     */
+    protected function randSleepTime($cronExpression)
+    {
+        if (is_numeric($cronExpression)) {
+            return true;
+        }
+
+        $todo = false;
+        $expressionArr = explode(' ', trim($cronExpression));
+        $firstItem = $expressionArr[0];
+        if ($firstItem == '*') {
+            $todo = true;
+        }else {
+            $firstItemArr = explode('/', $firstItem);
+            if (isset($firstItemArr[1]) && is_numeric($firstItemArr[1])) {
+                $todo = true;
+            }
+        }
+        if ($todo) {
+            $randNumArr = [0.2, 0.5, 0.8, 1.0, 1.5, 1.8, 2.0];
+            $index = array_rand($randNumArr);
+            $sleepTime = $randNumArr[$index] ?? 0.2;
+            System::sleep($sleepTime);
+        }
+
+        return true;
+    }
+
+    // 生成
 
     /**
      * receive cli process return CallBack handle

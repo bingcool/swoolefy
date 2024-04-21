@@ -112,6 +112,16 @@ abstract class AbstractProcess
             $this->beforeStart();
         }
 
+        // fork 进程会复制swoole master 进程的server socket 资源,然后fork出来的子进程退出时，还可能持续几十秒处理完业务才退出。而此时swoole再启动时，端口被还没退出的子进程占用的，导致重启时，可能会显示端口占用
+        // 这里子进程直接关闭socket的fd,,只影响当前进程，不影响swoole master进程监听.也就是父子进程socket资源的复制，关闭socket不相互影响
+        if (SystemEnv::isWorkerService()) {
+            // 非协程环境才可以
+            if (\Swoole\Coroutine::getCid() <= 0 && is_object(BaseServer::getServer())) {
+                $socket = BaseServer::getServer()->getSocket();
+                socket_close($socket);
+            }
+        }
+
         BaseServer::reloadGlobalConf();
 
         $this->installRegisterShutdownFunction();
@@ -131,6 +141,16 @@ abstract class AbstractProcess
             TableManager::getTable('table_process_map')->del(md5($this->processName));
             \Swoole\Event::del($process->pipe);
             \Swoole\Event::exit();
+
+            // 脚本模式下.任务进程退出时，父进程也得退出
+            if (SystemEnv::isScriptService()) {
+                $swooleMasterPid = Swfy::getMasterPid();
+                \Swoole\Process::kill($swooleMasterPid, SIGTERM);
+                if(file_exists(WORKER_PID_FILE)) {
+                    @unlink(WORKER_PID_FILE);
+                }
+            }
+
             $this->swooleProcess->exit(0);
         });
 
@@ -201,7 +221,7 @@ abstract class AbstractProcess
     {
         if (SystemEnv::isWorkerService()) {
             if (SystemEnv::isScriptService()) {
-                $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . '-swoolefy-worker-script-php:' . getenv('r'));
+                $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . '-swoolefy-worker-script-php:' . getenv('c'));
             }else if (SystemEnv::isDaemonService()) {
                 $this->swooleProcess->name(BaseServer::getAppPrefix() . ':' . 'swoolefy-worker-daemon-php:' . $this->getProcessName());
             }else if (SystemEnv::isCronService()) {

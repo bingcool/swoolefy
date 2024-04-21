@@ -121,7 +121,7 @@ class HttpRoute extends AppDispatch
         $this->responseOutput = $responseOutput;
         $this->extendData = $extendData;
         $this->httpMethod = $this->requestInput->getMethod();
-        list($this->groupMiddlewares, $this->beforeMiddlewares, $this->dispatchRoute, $this->afterMiddlewares, $this->groupMeta, $this->routeOption)  = self::getHttpRouterMapUri($this->requestInput->getRequestUri(), $this->httpMethod);
+        list($this->groupMiddlewares, $this->beforeMiddlewares, $this->dispatchRoute, $this->afterMiddlewares, $this->groupMeta, $this->routeOption)  = $this->getHttpRouterMapUri($this->requestInput->getRequestUri(), $this->httpMethod);
         $this->requestInput->setHttpGroupMeta($this->groupMeta);
     }
 
@@ -200,6 +200,9 @@ class HttpRoute extends AppDispatch
 
         // reset app conf
         $this->app->setAppConf($this->appConf);
+        // api limit rate
+        $this->requestInput->setValue(RouteOption::API_LIMIT_NUM_KEY, $this->routeOption->getLimitNum());
+        $this->requestInput->setValue(RouteOption::API_LIMIT_WINDOW_SIZE_TIME_KEY, $this->routeOption->getWindowSizeTime());
 
         // 是否动态开启db-debug
         if ($this->routeOption->isEnableDbDebug()) {
@@ -392,7 +395,7 @@ class HttpRoute extends AppDispatch
      * @param string $uri
      * @return array
      */
-    protected static function getHttpRouterMapUri(string $uri, string $method): array
+    protected function getHttpRouterMapUri(string $uri, string $method): array
     {
         $uri = DIRECTORY_SEPARATOR.trim($uri,DIRECTORY_SEPARATOR);
         $method = strtoupper($method);
@@ -406,6 +409,9 @@ class HttpRoute extends AppDispatch
             $groupMeta  = $routerMapInfo['group_meta'] ?? [];
             $routerMeta = $routerMapInfo['route_meta'];
             $groupMiddlewares = $routerMapInfo['group_meta']['middleware'] ?? [];
+            /**
+             * @var RouteOption $routeOption
+             */
             $routeOption = $routerMapInfo['route_option'];
             if(!isset($routerMeta['dispatch_route'])) {
                 $routerMeta['dispatch_route'] = $uri;
@@ -447,7 +453,6 @@ class HttpRoute extends AppDispatch
                 }
             }
 
-            // rateLimiterMiddleware handle
             $rateLimiterMiddleware = $routeOption->getRateLimiterMiddleware();
             $runAfterMiddleware    = $routeOption->getRunAfterMiddleware();
             if ($rateLimiterMiddleware && empty($runAfterMiddleware)) {

@@ -19,5 +19,8 @@ use Swoolefy\Script\MainCliScript;
 
 class GeneratePg extends GenerateMysql
 {
-
+    /**
+     * @var string
+     */
+    const command = "gen:pgsql:schema";
 }

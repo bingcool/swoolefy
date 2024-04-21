@@ -121,10 +121,10 @@ class BaseCmd extends Command
      */
     protected function initCheck(InputInterface $input, OutputInterface $output)
     {
-        $appName = $input->getArgument('app_name');
         if (version_compare(phpversion(), '7.3.0', '<')) {
            fmtPrintError("php version must >= 7.3.0, current php version = " . phpversion());
         }
+
         if (version_compare(swoole_version(), '4.8.5', '<')) {
            fmtPrintError("the swoole version must >= 4.8.5, current swoole version = " . swoole_version());
         }
@@ -132,15 +132,9 @@ class BaseCmd extends Command
         if (function_exists('apc_clear_cache')) {
             apc_clear_cache();
         }
+
         if (function_exists('opcache_reset')) {
             opcache_reset();
-        }
-
-        if (static::getDefaultName() != 'create') {
-            $autoloaderFile = START_DIR_ROOT ."/{$appName}". "/autoloader.php";
-            if (file_exists($autoloaderFile)) {
-                include $autoloaderFile;
-            }
         }
     }
 
@@ -212,7 +206,6 @@ class BaseCmd extends Command
             $count = 1;
             $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
             file_put_contents($autoloaderFile, $file_content_string);
-            include $autoloaderFile;
         }
     }
 
@@ -285,7 +278,7 @@ class BaseCmd extends Command
         }
 
         if (!isset($config['app_conf'])) {
-            fmtPrintError(APP_NAME . "/Protocol/conf.php" . " must include app_conf file and set app_conf");
+            fmtPrintError(APP_NAME . '/Protocol/conf.php must include app_conf file and set app_conf');
             exit(0);
         }
     }

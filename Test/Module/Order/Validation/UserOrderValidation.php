@@ -113,7 +113,7 @@ class UserOrderValidation
     )]
 
     // Get Query array eg: ids[1]=22&ids[2]=333
-    #[OA\QueryParameter(name: 'product_ids', description: '产品名称', required: true, allowEmptyValue: true, allowReserved: true, schema: new OA\Schema(
+    #[OA\QueryParameter(name: 'product_ids', description: '产品ids', required: true, allowEmptyValue: false, allowReserved: true, schema: new OA\Schema(
         type:'array',
         items: new OA\Items(
             type:'integer'
