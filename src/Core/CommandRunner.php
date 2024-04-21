@@ -56,7 +56,6 @@ class CommandRunner
                 $concurrent = 10;
             }
             $runner->concurrent = $concurrent;
-            $runner->channel = new Channel($runner->concurrent);
             static::$instances[$runnerName] = $runner;
         }
 
@@ -91,10 +90,20 @@ class CommandRunner
         }
 
         $path = $execBinFile . ' ' . $execScript . ' ' . $params;
-        $command = "{$path} >> {$log} 2>&1 && echo $$";
+        $path = trim($path,' ');
+        if ($log) {
+            $command = "{$path} >> {$log} 2>&1 & echo $$";
+        }else {
+            $command = "{$path} 2>&1 & echo $$";
+        }
+
         if ($async) {
             // echo $! 表示输出进程id赋值在output数组中
-            $command = "nohup {$path} >> {$log} 2>&1 & echo $!";
+            if ($log) {
+                $command = "nohup {$path} >> {$log} 2>&1 & echo $!";
+            }else {
+                $command = "nohup {$path} 2>&1 & echo $!";
+            }
         }
 
         if ($isExec) {
@@ -102,6 +111,10 @@ class CommandRunner
             $output = $exec->getOutput();
             $returnCode = $exec->getReturnCode();
             $pid = $output[0] ?? '';
+            if (!$this->channel instanceof Channel) {
+                $this->channel = new Channel($this->concurrent);
+            }
+
             if ($pid) {
                 $this->channel->push([
                     'pid' => $pid,
@@ -141,6 +154,7 @@ class CommandRunner
         }
 
         $command = $execBinFile .' '.$execScript.' ' . $params . '; echo $? >&3';
+        $command = trim($command,' ');
         $descriptors = array(
             // stdout
             0 => array('pipe', 'r'),
@@ -152,7 +166,7 @@ class CommandRunner
             3 => array('pipe', 'w')
         );
 
-        goApp(function () use ($callable, $command, $descriptors) {
+        $fn = function ($command, $descriptors, $callable) {
             // in $callable forbidden create coroutine, because $proc_process had been bind in current coroutine
             try {
                 $proc_process = proc_open($command, $descriptors, $pipes);
@@ -160,20 +174,25 @@ class CommandRunner
                     throw new SystemException("Proc Open Command 【{$command}】 failed.");
                 }
                 $status = proc_get_status($proc_process);
-                if ($status['pid'] ?? '') {
-                    $this->channel->push([
-                        'pid' => $status['pid'],
-                        'command' => $command,
-                        'start_time' => time()
-                    ], 0.2);
+                $statusProperty = [
+                    'pid' => $status['pid'] ?? '',
+                    'command' => $command,
+                    'start_time' => time()
+                ];
 
+                if (!$this->channel instanceof Channel) {
+                    $this->channel = new Channel($this->concurrent);
+                }
+
+                if ($status['pid'] ?? '') {
+                    $this->channel->push($statusProperty, 0.2);
                     $returnCode = fgets($pipes[3], 10);
                     if ($returnCode != 0) {
                         $errorMsg = static::$exitCodes[$returnCode] ?? 'Unknown Error';
                         throw new SystemException("CommandRunner Proc Open failed,return Code={$returnCode},commandLine={$command}, errorMsg={$errorMsg}.");
                     }
                 }
-                $params = [$pipes[0], $pipes[1], $pipes[2], $status, $returnCode ?? -1];
+                $params = [$pipes[0], $pipes[1], $pipes[2], $statusProperty, $returnCode ?? -1];
                 $result = call_user_func_array($callable, $params);
                 return $result;
             } catch (\Throwable $e) {
@@ -184,8 +203,15 @@ class CommandRunner
                 }
                 proc_close($proc_process);
             }
-        });
+        };
 
+        if (\Swoole\Coroutine::getCid() >= 0) {
+            goApp(function () use ($fn, $callable, $command, $descriptors) {
+                $fn($command, $descriptors, $callable);
+            });
+        }else {
+            $fn($command, $descriptors, $callable);
+        }
     }
 
     /**
@@ -195,12 +221,13 @@ class CommandRunner
     public function isNextHandle(bool $isNeedCheck = true)
     {
         $this->isNextFlag = true;
-        if ($this->channel->isFull() && $isNeedCheck) {
+        if ($this->channel instanceof Channel && $this->channel->isFull() && $isNeedCheck) {
             $itemList = [];
             while ($item = $this->channel->pop(0.05)) {
                 $pid = $item['pid'];
                 $startTime = $item['start_time'];
-                if (\Swoole\Process::kill($pid, 0) && ($startTime + 60) > time()) {
+                // 60s 内还未执行完的进程才统计，重新推入channel.超过60s的进程即使还存在，也算执行完毕了。
+                if (\Swoole\Process::kill($pid, 0) && time() < ($startTime + 60)) {
                     $itemList[] = $item;
                 }
             }

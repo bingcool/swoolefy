@@ -213,7 +213,7 @@ class Log
                 continue;
             }
             $fileName = pathinfo($pathFile, PATHINFO_FILENAME);
-            $fileArr = explode($this->splitString, $fileName);
+            $fileArr  = explode($this->splitString, $fileName);
             $fileDate = array_pop($fileArr);
 
             if (is_numeric($fileDate) && $fileDate < $lastDay && file_exists($pathFile)) {
@@ -400,7 +400,7 @@ class Log
             }
         }
         $records['route'] = '';
-        $records['handle_class'] = '';
+        $records['handle_class'] = (string) getenv('handle_class');
         $records['request_params'] = [];
         $records['process'] = 'task_worker|use_self_worker';
         $records['timestamp'] = microtime(true);
@@ -408,7 +408,7 @@ class Log
         $records['cid'] = $cid;
         $records['process_id'] = (int)getmypid();
         if (Swfy::isWorkerProcess()) {
-            $records['process'] = 'worker';
+            $records['process'] = 'cli_worker';
             if ($App instanceof App) {
                 $requestInput = $App->requestInput;
                 $records['route'] = $requestInput->getRequestUri();
@@ -418,20 +418,18 @@ class Log
                 $records['request_params'] = $App->getMixedParams();
             }
         }else if (Swfy::isTaskProcess()) {
-            $records['process'] = 'task';
+            $records['process'] = 'cli_task';
         }else if (Swfy::isSelfProcess()) {
-            $records['process'] = 'use_self_process';
-            $records['handle_class'] = (string) getenv('handle_class');
+            $records['process'] = 'cli_use_self_process';
         }
 
         if (SystemEnv::isDaemonService()) {
             $records['process'] = 'daemon';
-            $records['handle_class'] = (string) getenv('handle_class');
         }else if (SystemEnv::isCronService()) {
             $records['process'] = 'cron';
-            $records['handle_class'] = (string) getenv('handle_class');
         } else if (SystemEnv::isScriptService()) {
-            $records['route'] = (string) getenv('route');
+            $records['process'] = 'script';
+            $records['route'] = (string) getenv('c');
         }
 
         return $records;

@@ -1,9 +1,8 @@
 <?php
 
-namespace Test\Scripts;
 
-use Common\Library\Db\Mysql;
-use Swoolefy\Core\Application;
+namespace Test\Scripts\User;
+
 use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\Coroutine\Parallel;
 use Test\Factory;
@@ -11,20 +10,29 @@ use Test\Logger\RunLog;
 
 class FixedUser extends \Swoolefy\Script\MainCliScript
 {
+    const command = 'fixed:user:name';
+
     public function init()
     {
         parent::init();
-        \Swoolefy\Core\Coroutine\Context::set('name','kkkkkkkkkkkkkkkkkkkkkkkk');
+        \Swoolefy\Core\Coroutine\Context::set('name', 'kkkkkkkkkkkkkkkkkkkkkkkk');
         Context::set('db_debug', true);
         goApp(function () {
             goApp(function () {
                 goApp(function () {
                     $arrayCopy = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
+                    sleep(2);
                     //var_dump($arrayCopy);
                 });
             });
         });
-        sleep(10);
+        sleep(30);
+        date_default_timezone_set('Asia/Shanghai');
+        file_put_contents(
+            '/home/wwwroot/swoolefy/Test/WorkerCron/ForkOrder/order1.log',
+            'date=' . date('Y-m-d H:i:s') . ',pid=' . getmypid() . "\n",
+            FILE_APPEND
+        );
     }
 
     public function fixName()
@@ -42,7 +50,6 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
 //            var_dump($row);
 //            //\swoole\Coroutine::sleep(0.01);
 //        }
-
 
 
 //        $list = [
@@ -75,26 +82,26 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
         $parallel->add(function () {
             sleep(2);
             return "阿里巴巴";
-        },'ali');
+        }, 'ali');
 
         $parallel->add(function () {
             sleep(2);
             return "腾讯";
-        },'tengxu');
+        }, 'tengxu');
 
         $parallel->add(function () {
             sleep(2);
             return "百度";
-        },'baidu');
+        }, 'baidu');
 
         $parallel->add(function () {
             sleep(5);
             return "字节跳动";
-        },'zijie');
+        }, 'zijie');
 
         RunLog::info("this is script test log");
 
-        throw new \Exception("vvv");
+        //throw new \Exception("vvv");
 
         $result = $parallel->runWait(10);
 
@@ -107,7 +114,6 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
 //        $result = $parallel->runWait();
 
 
-
         var_dump($result);
 
 //        try {
@@ -116,10 +122,10 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
 //            //var_dump('Script test');
 //            sleep(2);
 //
-            $db1 = Factory::getDb();
-            var_dump('cid='.\Swoole\Coroutine::getCid().'spl_object_id-11='.spl_object_id($db1));
-            $result1 = $db1->newQuery()->table('tbl_users')->limit(1)->select()->toArray();
-            //var_dump($result1);
+        $db1 = Factory::getDb();
+        var_dump('cid=' . \Swoole\Coroutine::getCid() . 'spl_object_id-11=' . spl_object_id($db1));
+        $result1 = $db1->newQuery()->table('tbl_users')->limit(1)->select()->toArray();
+        //var_dump($result1);
 //
 //            goApp(function () {
 //                $db2 = Factory::getDb();

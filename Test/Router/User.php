@@ -39,7 +39,9 @@ Route::group([
         ],
         'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList'],
         //GroupTestMiddleware::class => GroupTestMiddleware::class
-    ])->enableDbDebug(true)->withRateLimiterMiddleware(RateLimiterMiddleware::class,  GroupTestMiddleware::class);
+    ])
+    ->enableDbDebug(true)
+    ->withRateLimiterMiddleware(RateLimiterMiddleware::class,  60,60,GroupTestMiddleware::class);
 
     Route::post('/user-order/userList', [
         // 针对该接口启动sql-debug

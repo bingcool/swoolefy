@@ -27,6 +27,9 @@ abstract class AbstractMainProcess extends AbstractProcess
         $workerConf = $this->parseWorkerConf();
         if (!empty($workerConf)) {
             $mainManager = \Swoolefy\Worker\MainManager::getInstance();
+            $mainManager->onHandleException = function (\Throwable $throwable) {
+                fmtPrintError(sprintf("管理进程报错,err:%s, line: %d, trace=%s", $throwable->getMessage(), $throwable->getLine(), $throwable->getTraceAsString()));
+            };
             $mainManager->loadConf($workerConf);
         }
     }

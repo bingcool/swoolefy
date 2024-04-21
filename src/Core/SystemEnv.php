@@ -16,6 +16,7 @@ use Dotenv\Repository\Adapter\PutenvAdapter;
 use Dotenv\Repository\RepositoryBuilder;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Exception\SystemException;
+use Symfony\Component\Console\Input\ArgvInput;
 
 class SystemEnv
 {
@@ -118,6 +119,44 @@ class SystemEnv
     }
 
     /**
+     * @return array
+     */
+    public static function  inputOptions()
+    {
+        $options = [];
+        $argv = new ArgvInput();
+        $token = $argv->__toString();
+        $items = explode(' ', $token);
+        foreach ($items as $item) {
+            if (str_starts_with($item, '--') || str_starts_with($item, '-')) {
+                $item = trim($item,'-');
+                $values = explode('=', $item, 2);
+                $options[trim($values[0])] = trim($values[1]);
+            }
+        }
+        return $options;
+    }
+
+    /**
+     * @param string $name
+     * @return array|string
+     */
+    public static function getOption(string $name, bool $force = false)
+    {
+        static $options;
+        if ($force) {
+            $options = self::inputOptions();
+        }else {
+            if (!isset($options)) {
+                $options = self::inputOptions();
+            }
+        }
+        $value =  trim($options[$name],'\'') ?? '';
+        $value = trim($value,' ');
+        return $value;
+    }
+
+    /**
      * 此方法实时加载配置文件-磁盘IO，业务中建议使用Swfy::getConf()来读取配置
      *
      * @return array
@@ -136,19 +175,10 @@ class SystemEnv
      */
     public static function loadAppConf()
     {
-        $confFile = APP_PATH . '/Config/config.php';
+        $confFile = APP_PATH . '/Config/app.php';
         if (!file_exists($confFile)) {
             throw new SystemException("Not found app conf file:{$confFile}");
         }
-
-        $constFile = APP_PATH . '/Config/constants.php';
-
-        if (!file_exists($confFile)) {
-            throw new SystemException("Not found const file:{$constFile}");
-        }
-
-        include $constFile;
-
         return include $confFile;
     }
 

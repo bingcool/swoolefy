@@ -15,7 +15,9 @@ use Swoolefy\Core\EventApp;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\SystemEnv;
 use Swoolefy\Util\Helper;
+use Swoolefy\Worker\CtlApi;
 
 abstract class HttpServer extends BaseServer
 {
@@ -119,18 +121,28 @@ abstract class HttpServer extends BaseServer
          * request
          */
         $this->webServer->on('request', function (Request $request, Response $response) {
-            if(isWorkerService()) {
-                return false;
+            if ($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
+                $response->end();
+                return true;
             }
 
-            try {
-                $traceId = $request->header['trace-id'] ?? Helper::UUid();
-                \Swoolefy\Core\Coroutine\Context::set('trace-id', $traceId);
-                parent::beforeHandle();
-                static::onRequest($request, $response);
-                return true;
-            } catch (\Throwable $e) {
-                self::catchException($e);
+            if(SystemEnv::isWorkerService()) {
+                if ((SystemEnv::isCronService() || SystemEnv::isDaemonService()) && self::isHttpApp()) {
+                    goApp(function () use($request, $response) {
+                        (new CtlApi($request, $response))->handle();
+                        return true;
+                    });
+                }
+            }else {
+                try {
+                    $traceId = $request->header['trace-id'] ?? Helper::UUid();
+                    \Swoolefy\Core\Coroutine\Context::set('trace-id', $traceId);
+                    parent::beforeHandle();
+                    static::onRequest($request, $response);
+                    return true;
+                } catch (\Throwable $e) {
+                    self::catchException($e);
+                }
             }
         });
 

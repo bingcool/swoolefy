@@ -15,12 +15,12 @@ return [
             'handler_class' => \Test\WorkerCron\LocalOrder\LocalOrderHandle::class, //处理类
             //'cron_expression' => '*/1 * * * *', // 每分钟执行一次
             'with_block_lapping' => 0, // with_block_lapping = 1,表示每轮任务只能阻塞执行，必须等上一轮任务执行完毕，下一轮才能执行; with_block_lapping = 0, 表示每轮任务时间到了，都可执行,是并发非租塞的
-            'run_in_background' => 1, // 后台运行，不受主进程的退出影响传
+            'run_in_background' => 1, // 后台运行，不受主进程的退出影响
             'cron_expression' => 5, // 10s执行一次
         ],
     ],
 
-//    // 独立进程本地处理任务
+     // 独立进程本地处理任务
 //    [
 //        'process_name' => 'test-local-cron-worker11', // 进程名称
 //        'handler' => \Swoolefy\Worker\Cron\CronLocalProcess::class,
