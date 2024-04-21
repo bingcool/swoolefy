@@ -166,15 +166,13 @@ define('APP_NAMES', [
 ]);
 
 // 启动前处理,比如加载.env
-$beforeFunc = function () {
-    try {
-        if (\Swoolefy\Core\SystemEnv::isDevEnv()) {
-            LoadEnv::load('192.168.25.53:8848','swoolefy','pwa-test','nacos','nacos');
-        }
-    }catch (\Throwable $throwable) {
-
-    }
-};
+//$beforeFunc = function () {
+//    try {
+//        \Test\LoadEnv::load('192.168.1.101:8848','swoolefy','test','nacos-test','123456');
+//    }catch (\Throwable $exception) {
+//
+//    }
+//};
 
 include __DIR__.'/swoolefy';
 

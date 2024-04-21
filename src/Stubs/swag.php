@@ -8,16 +8,12 @@ if (!isset($_SERVER['argv'][1])) {
     exit("【Error】missing source dir\n");
 }
 
-defined('ROOT_PATH') or define('ROOT_PATH', __DIR__);
-// 启动目录
-defined('START_DIR_ROOT') or define('START_DIR_ROOT', __DIR__);
-
 // 启动目录
 defined('START_DIR_ROOT') or define('START_DIR_ROOT', __DIR__);
 // 应用父目录
 defined('ROOT_PATH') or define('ROOT_PATH', __DIR__);
-// 应用目录
-defined('APP_PATH') or define('APP_PATH', __DIR__.'/'.ucfirst($_SERVER['argv'][2]));
+// 应用目录(此处获取的$_SERVER['argv'][1])
+defined('APP_PATH') or define('APP_PATH', __DIR__.'/'.ucfirst($_SERVER['argv'][1]));
 
 registerNamespace(APP_PATH);
 
