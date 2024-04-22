@@ -1,5 +1,5 @@
 <?php
-namespace Test\Module\Order\Validation;
+namespace Test\Module\Demo\Validation;
 
 class DemoValidation
 {

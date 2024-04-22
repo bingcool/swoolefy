@@ -95,7 +95,7 @@ class Exec
     /**
      * @return array
      */
-    public function getOutput(): array
+    public function getOutput(): ?array
     {
         return $this->output;
     }

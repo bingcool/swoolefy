@@ -49,6 +49,12 @@ return [
         'http_compression_level' => 1,
         'log_file'               => \Swoolefy\Core\SystemEnv::loadLogFile('/tmp/' . APP_NAME . '/swoole_log.txt'),
         'pid_file'               => \Swoolefy\Core\SystemEnv::loadPidFile('/data/' . APP_NAME . '/log/server.pid'),
+
+        // 静态处理
+        'document_root' => START_DIR_ROOT.'/swaggerui',
+        'enable_static_handler' => true,
+        'http_autoindex' => true,
+        'http_index_files' => ['index.html', 'index.txt'],
     ],
 
     'coroutine_setting' => [

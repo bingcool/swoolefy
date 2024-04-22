@@ -39,11 +39,6 @@ class Context
                 $app->setContext($context);
                 return $context;
             }
-        } else if (Swfy::isUserProcess()) {
-            throw new SystemException(sprintf( "s%::s% in UserProcess must use in App Instance",
-                __CLASS__,
-                __FUNCTION__)
-            );
         }
 
         return null;

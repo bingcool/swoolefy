@@ -34,13 +34,7 @@ class Application
             return true;
         };
 
-        if (Swfy::isWorkerProcess()) {
-            return $closure($App);
-        } else if (Swfy::isTaskProcess()) {
-            return $closure($App);
-        } else {
-            return $closure($App);
-        }
+        return $closure($App);
     }
 
     /**

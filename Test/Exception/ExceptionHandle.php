@@ -14,6 +14,7 @@ class ExceptionHandle extends \Swoolefy\Core\SwoolefyException
     public static function shutHalt($errorMsg, $errorType = SwoolefyException::EXCEPTION_ERR, \Throwable $throwable = null)
     {
         $logger = LogManager::getInstance()->getLogger('system_error_log');
+
         if (!is_object($logger)) {
             fmtPrintError("Missing set 'error_log' component on " . __CLASS__ . '::' . __FUNCTION__);
             return;
@@ -36,9 +37,6 @@ class ExceptionHandle extends \Swoolefy\Core\SwoolefyException
 
         if (in_array(SWOOLEFY_ENV, [SWOOLEFY_DEV, SWOOLEFY_GRA])) {
             fmtPrintError($errorMsg);
-            if (is_object($throwable)) {
-                fmtPrintError($throwable->getMessage());
-            }
         }
     }
 }

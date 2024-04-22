@@ -187,10 +187,10 @@ abstract class AbstractBaseWorker
     public $handing = false;
 
     /**
-     * @var int 默认定时的一个任务未执行完，另一个任务不执行，防止不断重复
-     * 只对cron的local模式有效
+     * @var int $withBlockLapping = 1,表示每轮任务只能阻塞执行，必须等上一轮任务执行完毕，下一轮才能执行; $withBlockLapping = 0, 表示每轮任务时间到了，都可执行,不管上一轮任务是否已经结束,是并发非租塞的
+     * 只对cron的local模式有效,默认=0，可并发执行每轮任务
      */
-    protected $withoutOverlapping = 1;
+    protected $withBlockLapping = 0;
 
     /**
      * @var int 定时任务后台运行，不受stop指令影响，正在执行的任务会继续执行
@@ -916,7 +916,7 @@ abstract class AbstractBaseWorker
     /**
      * @param int $process_type
      */
-    public function setProcessType(int $process_type = 1)
+    public function setProcessType(int $process_type = self::PROCESS_STATIC_TYPE)
     {
         $this->processType = $process_type;
     }
@@ -1205,6 +1205,7 @@ abstract class AbstractBaseWorker
 
         $pid = $this->getPid();
         if (Process::kill($pid, 0)) {
+            // 优先通知master进程先拉起子进程
             $this->notifyMasterRebootNewProcess($this->getProcessName());
             $this->isReboot = true;
             $this->readyRebootTime = time() + $waitTime;
@@ -1219,7 +1220,8 @@ abstract class AbstractBaseWorker
                 } catch (\Throwable $throwable) {
                     $this->onHandleException($throwable);
                 } finally {
-                    $this->kill($pid, SIGUSR1);
+                    // 自身进程退出
+                    $this->kill($pid, SIGTERM);
                 }
             });
 
@@ -1534,15 +1536,15 @@ abstract class AbstractBaseWorker
         $workerId = $this->getProcessWorkerId();
         if ($this->getProcessType() == self::PROCESS_STATIC_TYPE) {
             if ($this->getRebootCount() > 0) {
-                $processType = 'static-reboot';
+                $processTypeName = 'static-reboot';
             } else {
-                $processType = self::PROCESS_STATIC_TYPE_NAME;
+                $processTypeName = self::PROCESS_STATIC_TYPE_NAME;
             }
         } else {
-            $processType = self::PROCESS_DYNAMIC_TYPE_NAME;
+            $processTypeName = self::PROCESS_DYNAMIC_TYPE_NAME;
         }
         $pid = $this->getPid();
-        $logInfo = "--start children_process【{$processType}】: {$processName}@{$workerId} started, pid={$pid}, master_pid={$this->getMasterPid()}";
+        $logInfo = "--start children_process【{$processTypeName}】: {$processName}@{$workerId} started, pid={$pid}, master_pid={$this->getMasterPid()}";
         $this->fmtWriteInfo($logInfo);
     }
 

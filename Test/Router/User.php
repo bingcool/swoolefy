@@ -7,6 +7,7 @@ use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\Route;
 use Test\Middleware\Group\GroupTestMiddleware;
 use Test\Middleware\Route\RateLimiterMiddleware;
+use Test\Middleware\Route\ValidLoginMiddleware;
 
 /**
  * Module/Controller 下的控制器路由
@@ -17,7 +18,8 @@ Route::group([
     'prefix' => 'user',
     // 路由中间件
     'middleware' => [
-        GroupTestMiddleware::class
+        GroupTestMiddleware::class,
+        ValidLoginMiddleware::class
     ]
 ], function () {
 
@@ -33,11 +35,13 @@ Route::group([
             $requestInput->getMethod();
         },
         'beforeHandle2' => [
-            GroupTestMiddleware::class
+            ValidLoginMiddleware::class
         ],
         'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList'],
         //GroupTestMiddleware::class => GroupTestMiddleware::class
-    ])->enableDbDebug(true)->withRateLimiterMiddleware(RateLimiterMiddleware::class);
+    ])
+    ->enableDbDebug(true)
+    ->withRateLimiterMiddleware(RateLimiterMiddleware::class,  60,60,GroupTestMiddleware::class);
 
     Route::post('/user-order/userList', [
         // 针对该接口启动sql-debug
@@ -53,6 +57,22 @@ Route::group([
             GroupTestMiddleware::class
         ],
         'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList'],
+        //GroupTestMiddleware::class => GroupTestMiddleware::class
+    ]);
+
+    Route::any('/user-order/userList1', [
+        'beforeHandle2' => [
+            ValidLoginMiddleware::class
+        ],
+        'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList1'],
+        //GroupTestMiddleware::class => GroupTestMiddleware::class
+    ]);
+
+    Route::any('/user-order/logOrder', [
+        'beforeHandle2' => [
+            ValidLoginMiddleware::class
+        ],
+        'dispatch_route' => [\Test\Module\Order\Controller\LogOrderController::class, 'testLog'],
         //GroupTestMiddleware::class => GroupTestMiddleware::class
     ]);
 

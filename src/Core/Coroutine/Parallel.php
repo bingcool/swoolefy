@@ -73,10 +73,10 @@ class Parallel
     /**
      * runWait 并发后等待结果返回
      *
-     * @param float $timeOut
+     * @param float $maxTimeOut
      * @return array
      */
-    public function runWait(float $timeOut = 5.0)
+    public function runWait(float $maxTimeOut = 5.0)
     {
         if (empty($this->callbacks)) {
             return [];
@@ -96,7 +96,7 @@ class Parallel
             }
 
             if ($items) {
-                $res = GoWaitGroup::batchParallelRunWait($items, $timeOut);
+                $res = GoWaitGroup::batchParallelRunWait($items, $maxTimeOut);
             }
 
             $result = array_merge($result, $res ?? []);
@@ -106,9 +106,9 @@ class Parallel
     }
 
     /**
-     * 并发限制协程数量闭包处理
+     * 并发限制协程数量闭包处理,无需等待结果返回
      *
-     * @param int $concurrent 限制的并发协程数量
+     * @param int $concurrent 限制的每批并发协程数量,防止瞬间产生大量的协程拖垮下游服务或者DB
      * @param array $list 数组
      * @param \Closure $handleFn 回调处理
      * @param float $sleepTime
