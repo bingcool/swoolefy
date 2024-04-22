@@ -69,17 +69,17 @@ class HttpRoute extends AppDispatch
     /**
      * @var array
      */
-    protected $groupMiddleware = [];
+    protected $groupMiddlewares = [];
 
     /**
      * @var array
      */
-    protected $beforeMiddleware = [];
+    protected $beforeMiddlewares = [];
 
     /**
      * @var array|mixed
      */
-    protected $afterMiddleware = [];
+    protected $afterMiddlewares = [];
 
     /**
      * @var string
@@ -121,7 +121,7 @@ class HttpRoute extends AppDispatch
         $this->responseOutput = $responseOutput;
         $this->extendData = $extendData;
         $this->httpMethod = $this->requestInput->getMethod();
-        list($this->groupMiddleware, $this->beforeMiddleware, $this->dispatchRoute, $this->afterMiddleware, $this->groupMeta, $this->routeOption)  = self::getHttpRouterMapUri($this->requestInput->getRequestUri(), $this->httpMethod);
+        list($this->groupMiddlewares, $this->beforeMiddlewares, $this->dispatchRoute, $this->afterMiddlewares, $this->groupMeta, $this->routeOption)  = $this->getHttpRouterMapUri($this->requestInput->getRequestUri(), $this->httpMethod);
         $this->requestInput->setHttpGroupMeta($this->groupMeta);
     }
 
@@ -200,20 +200,13 @@ class HttpRoute extends AppDispatch
 
         // reset app conf
         $this->app->setAppConf($this->appConf);
+        // api limit rate
+        $this->requestInput->setValue(RouteOption::API_LIMIT_NUM_KEY, $this->routeOption->getLimitNum());
+        $this->requestInput->setValue(RouteOption::API_LIMIT_WINDOW_SIZE_TIME_KEY, $this->routeOption->getWindowSizeTime());
 
         // 是否动态开启db-debug
         if ($this->routeOption->isEnableDbDebug()) {
             Context::set('db_debug', true);
-        }
-
-        // rateLimiterMiddleware handle
-        if ($rateLimiterMiddleware = $this->routeOption->getRateLimiterMiddleware()) {
-            if (class_exists($rateLimiterMiddleware)) {
-                $rateLimiter = new $rateLimiterMiddleware();
-                if ($rateLimiter instanceof RouteMiddleware) {
-                    $rateLimiter->handle($this->requestInput, $this->responseOutput);
-                }
-            }
         }
 
         // handle route group middles
@@ -259,7 +252,7 @@ class HttpRoute extends AppDispatch
      */
     private function handleGroupRouteMiddles()
     {
-        foreach ($this->groupMiddleware as $middleware) {
+        foreach ($this->groupMiddlewares as $middleware) {
             if (class_exists($middleware)) {
                 $middlewareHandleEntity = new $middleware;
                 if ($middlewareHandleEntity instanceof RouteMiddleware) {
@@ -275,7 +268,7 @@ class HttpRoute extends AppDispatch
      */
     private function handleBeforeRouteMiddles()
     {
-        foreach($this->beforeMiddleware as $middleware) {
+        foreach($this->beforeMiddlewares as $middleware) {
             if ($middleware instanceof \Closure) {
                 $result = call_user_func($middleware, $this->requestInput, $this->responseOutput);
                 if ($result === false) {
@@ -297,18 +290,14 @@ class HttpRoute extends AppDispatch
      */
     private function handleAfterRouteMiddles()
     {
-        foreach ($this->afterMiddleware as $middleware) {
-            try {
-                if ($middleware instanceof \Closure) {
-                    call_user_func($middleware, $this->requestInput, $this->responseOutput);
-                }else if (class_exists($middleware)) {
-                    $middlewareEntity = new $middleware;
-                    if ($middlewareEntity instanceof RouteMiddleware) {
-                        $middlewareEntity->handle($this->requestInput, $this->responseOutput);
-                    }
+        foreach ($this->afterMiddlewares as $middleware) {
+            if ($middleware instanceof \Closure) {
+                call_user_func($middleware, $this->requestInput, $this->responseOutput);
+            }else if (class_exists($middleware)) {
+                $middlewareEntity = new $middleware;
+                if ($middlewareEntity instanceof RouteMiddleware) {
+                    $middlewareEntity->handle($this->requestInput, $this->responseOutput);
                 }
-            }catch (\Throwable $exception) {
-                // todo
             }
         }
     }
@@ -406,7 +395,7 @@ class HttpRoute extends AppDispatch
      * @param string $uri
      * @return array
      */
-    protected static function getHttpRouterMapUri(string $uri, string $method): array
+    protected function getHttpRouterMapUri(string $uri, string $method): array
     {
         $uri = DIRECTORY_SEPARATOR.trim($uri,DIRECTORY_SEPARATOR);
         $method = strtoupper($method);
@@ -419,7 +408,10 @@ class HttpRoute extends AppDispatch
             $routerMapInfo = $routerMap[$uri][$method];
             $groupMeta  = $routerMapInfo['group_meta'] ?? [];
             $routerMeta = $routerMapInfo['route_meta'];
-            $groupMiddleware = $routerMapInfo['group_meta']['middleware'] ?? [];
+            $groupMiddlewares = $routerMapInfo['group_meta']['middleware'] ?? [];
+            /**
+             * @var RouteOption $routeOption
+             */
             $routeOption = $routerMapInfo['route_option'];
             if(!isset($routerMeta['dispatch_route'])) {
                 $routerMeta['dispatch_route'] = $uri;
@@ -433,15 +425,15 @@ class HttpRoute extends AppDispatch
                 }
             }
 
-            $beforeMiddleware = $afterMiddleware = [];
+            $beforeMiddlewares = $afterMiddlewares = [];
             foreach($routerMeta as $alias => $handle) {
                 if ($alias != 'dispatch_route') {
                     if (is_array($handle)) {
                         foreach ($handle as $handleItem) {
-                            $beforeMiddleware[] = $handleItem;
+                            $beforeMiddlewares[] = $handleItem;
                         }
                     }else {
-                        $beforeMiddleware[] = $handle;
+                        $beforeMiddlewares[] = $handle;
                     }
                     unset($routerMeta[$alias]);
                     continue;
@@ -453,21 +445,64 @@ class HttpRoute extends AppDispatch
             $afterMiddlewareTemp = array_values($routerMeta);
             foreach ($afterMiddlewareTemp as $afterMiddlewareItem) {
                 if (is_array($afterMiddlewareItem)) {
-                    foreach ($afterMiddlewareItem as $afterMiddlewareEvery) {
-                        $afterMiddleware[] = $afterMiddlewareEvery;
+                    foreach ($afterMiddlewareItem as $afterMiddlewareEntry) {
+                        $afterMiddlewares[] = $afterMiddlewareEntry;
                     }
                 }else {
-                    $afterMiddleware[] = $afterMiddlewareItem;
+                    $afterMiddlewares[] = $afterMiddlewareItem;
                 }
             }
 
-            $routeCacheItems = [$groupMiddleware, $beforeMiddleware, $originDispatchRoute, $afterMiddleware, $groupMeta, $routeOption];
+            $rateLimiterMiddleware = $routeOption->getRateLimiterMiddleware();
+            $runAfterMiddleware    = $routeOption->getRunAfterMiddleware();
+            if ($rateLimiterMiddleware && empty($runAfterMiddleware)) {
+                // 放在Group Middleware最前面执行
+                array_unshift($groupMiddlewares, $rateLimiterMiddleware);
+            }else if ($rateLimiterMiddleware && class_exists($rateLimiterMiddleware)) {
+                $tempGroupMiddlewares = [];
+                $isMatch = self::parseLateMiddleware($groupMiddlewares, $rateLimiterMiddleware, $runAfterMiddleware,$tempGroupMiddlewares);
+                $groupMiddlewares = $tempGroupMiddlewares;
+                unset($tempGroupMiddlewares);
+
+                // Group Middlewares 没有匹配到，继续BeforeMiddlewares来匹配
+                if (!$isMatch) {
+                    $tempBeforeMiddlewares = [];
+                    self::parseLateMiddleware($beforeMiddlewares, $rateLimiterMiddleware, $runAfterMiddleware,$tempBeforeMiddlewares);
+                    $beforeMiddlewares = $tempBeforeMiddlewares;
+                    unset($tempBeforeMiddlewares);
+                }
+            }
+
+            $routeCacheItems = [$groupMiddlewares, $beforeMiddlewares, $originDispatchRoute, $afterMiddlewares, $groupMeta, $routeOption];
             self::$routeCache[$uri][$method] = $routeCacheItems;
             unset($routerMap[$uri][$method]);
             return $routeCacheItems;
         }else {
             throw new DispatchException("Not Found Route [$uri].");
         }
+    }
+
+    /**
+     * @param $middlewares
+     * @param $rateLimiterMiddleware
+     * @param $runAfterMiddleware
+     * @param $tempMiddlewares
+     * @return bool
+     */
+    protected static function parseLateMiddleware($middlewares, $rateLimiterMiddleware, $runAfterMiddleware, &$tempMiddlewares): bool
+    {
+        $isMatch = false;
+        foreach ($middlewares as $middleware) {
+            $tempMiddlewares[] = $middleware;
+            if (is_string($middleware) && $runAfterMiddleware == $middleware) {
+                if (!in_array($rateLimiterMiddleware, $tempMiddlewares)) {
+                    // 在runAfterMiddleware后插入rateLimiterMiddleware
+                    $tempMiddlewares[] = $rateLimiterMiddleware;
+                    $isMatch = true;
+                }
+            }
+        }
+        return $isMatch;
     }
 
     /**

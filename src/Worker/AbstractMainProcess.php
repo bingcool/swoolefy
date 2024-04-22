@@ -15,7 +15,7 @@ use Swoolefy\Core\SystemEnv;
 use Swoolefy\Core\Process\AbstractProcess;
 
 /**
- * swoole的自定义进程作为管理进程
+ * swoole 自定义进程作为管理进程
  */
 abstract class AbstractMainProcess extends AbstractProcess
 {
@@ -27,6 +27,9 @@ abstract class AbstractMainProcess extends AbstractProcess
         $workerConf = $this->parseWorkerConf();
         if (!empty($workerConf)) {
             $mainManager = \Swoolefy\Worker\MainManager::getInstance();
+            $mainManager->onHandleException = function (\Throwable $throwable) {
+                fmtPrintError(sprintf("管理进程报错,err:%s, line: %d, trace=%s", $throwable->getMessage(), $throwable->getLine(), $throwable->getTraceAsString()));
+            };
             $mainManager->loadConf($workerConf);
         }
     }
@@ -37,14 +40,14 @@ abstract class AbstractMainProcess extends AbstractProcess
     protected function parseWorkerConf()
     {
         // 指定只启动某一个进程，开发，调试使用
-        // php daemon.php start Test --only-process=order-sync
-        // php cron.php start Test --only-process=order-sync
+        // php daemon.php start Test --only=order-sync
+        // php cron.php start Test --only=order-sync
         if(defined('WORKER_CONF')) {
             $mainManager = \Swoolefy\Worker\MainManager::getInstance();
             $workerConfListNew = [];
             $workerConfList = WORKER_CONF;
             // Specify Process to Run When dev or test to debug, Avoid the impact of other processes
-            $onlyProcess = Helper::getCliParams('only-process');
+            $onlyProcess = Helper::getCliParams('only');
             if ($onlyProcess) {
                 $onlyProcessItems = explode(',', $onlyProcess);
             }

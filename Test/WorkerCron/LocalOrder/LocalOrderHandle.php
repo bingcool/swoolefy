@@ -6,6 +6,7 @@ use Swoolefy\Core\Crontab\AbstractCronController;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Swfy;
 use Test\Factory;
+use Test\Logger\RunLog;
 
 class LocalOrderHandle extends AbstractCronController {
 
@@ -27,8 +28,9 @@ class LocalOrderHandle extends AbstractCronController {
 //        var_dump(env('HOST_PASSWORD'));
 //        var_dump(Swfy::getConf()['bjg']);
 
+        RunLog::info("this is a cron test log");
         var_dump("cron start");
-        sleep(120);
+        sleep(3);
         var_dump("cron end");
 
 //        goApp(function() {

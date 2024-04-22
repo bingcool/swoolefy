@@ -1,0 +1,130 @@
+openapi: 3.0.0
+info:
+  title: 用户订单中心
+  description: 用户订单模块
+  version: v1.0.0
+servers:
+  -
+    url: 'http://127.0.0.1/'
+    description: 开发环境
+  -
+    url: 'http://127.0.0.1/'
+    description: 测试环境
+paths:
+  /user/user-order/logOrder:
+    get:
+      tags:
+        - 日志模块
+      summary: 订单日志
+      description: 获取订单日志
+      operationId: def2c7a8a98482903ed02cde34208bef
+      responses:
+        '200':
+          description: 操作成功
+      security:
+        -
+          apiKeyAuth: []
+        -
+          appId: []
+  /user/user-order/userList:
+    post:
+      tags:
+        - 订单模块
+      summary: 订单列表
+      description: 获取订单列表内容
+      operationId: dd492fc1c1e218406fdf1aebc8443232
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+              properties:
+                name:
+                  description: 名称
+                  type: string
+                email:
+                  description: 邮件
+                  type: string
+                product_num:
+                  description: 产品数量
+                  type: integer
+                phone:
+                  description: 电话
+                  type: array
+                  items: { type: integer }
+                address:
+                  description: 居住地址
+                  properties: { sheng: { description: 省份, type: string }, city: { description: 城市, type: string }, area: { description: 县/区, type: string } }
+                  type: object
+                addressList:
+                  description: 地址列表
+                  type: array
+                  items: { properties: { sheng: { description: 省份, type: string }, city: { description: 城市, type: string }, area: { description: 县/区, type: string } }, type: object }
+              type: object
+      responses:
+        '200':
+          description: 操作成功
+      security:
+        -
+          apiKeyAuth: []
+        -
+          appId: []
+  /user/user-order/userList1:
+    get:
+      tags:
+        - 订单模块
+      summary: 订单列表111
+      description: 获取订单列表内容111
+      operationId: 6adf287d947fc4df48a99b14439d4cc6
+      parameters:
+        -
+          name: order_id
+          in: query
+          description: 订单ID
+          required: true
+          allowEmptyValue: false
+          allowReserved: true
+          schema:
+            type: integer
+        -
+          name: product_name
+          in: query
+          description: 产品名称
+          required: true
+          allowEmptyValue: true
+          allowReserved: true
+          schema:
+            type: string
+        -
+          name: product_ids
+          in: query
+          description: 产品ids
+          required: true
+          allowEmptyValue: false
+          allowReserved: true
+          schema:
+            type: array
+            items:
+              type: integer
+      responses:
+        '200':
+          description: 操作成功
+      security:
+        -
+          apiKeyAuth: []
+        -
+          appId: []
+components:
+  securitySchemes:
+    apiKeyAuth:
+      type: apiKey
+      description: 认证授权token
+      name: token
+      in: header
+    appId:
+      type: apiKey
+      description: 应用ID
+      name: app_id
+      in: header

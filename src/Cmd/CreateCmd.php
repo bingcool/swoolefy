@@ -53,6 +53,11 @@ class CreateCmd extends BaseCmd
             @copy(START_DIR_ROOT . '/src/Stubs/ScriptStub.php', $scriptFile);
         }
 
+        $swagFile = START_DIR_ROOT . '/swag.php';
+        if (!file_exists($swagFile)) {
+            @copy(START_DIR_ROOT . '/src/Stubs/swag.php', $swagFile);
+        }
+
         @mkdir($appPathDir, 0777, true);
 
         $envFile = $appPathDir.'/.env';
@@ -78,9 +83,9 @@ class CreateCmd extends BaseCmd
                         @copy(ROOT_PATH . '/src/Stubs/CacheComStubs.php', $componentDir.'/cache.php');
                     }
 
-                    $configFile = $appPathDir . '/' . $dir . '/config.php';
+                    $configFile = $appPathDir . '/' . $dir . '/app.php';
                     if (!file_exists($configFile)) {
-                        @copy(ROOT_PATH . '/src/Stubs/Config.php', $configFile);
+                        @copy(ROOT_PATH . '/src/Stubs/AppConf.php', $configFile);
                     }
 
                     $dcFile = $appPathDir . '/' . $dir . '/dc.php';
@@ -197,6 +202,7 @@ EOF;
 
             <<<EOF
 <?php
+defined('APP_PATH') or define('APP_PATH', dirname(__DIR__));
 defined('LOG_PATH') or define('LOG_PATH', APP_PATH.'/Storage/Logs');
 defined('CONFIG_PATH') or define('CONFIG_PATH', APP_PATH.'/Config');
 defined('CONFIG_COMPONENT_PATH') or define('CONFIG_COMPONENT_PATH', CONFIG_PATH.'/component');

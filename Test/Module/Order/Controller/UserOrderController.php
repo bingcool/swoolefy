@@ -1,17 +1,24 @@
 <?php
 namespace Test\Module\Order\Controller;
 
+use Common\Library\Db\Query;
+use phpseclib3\Math\PrimeField\Integer;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Test\Factory;
 use Test\Logger\RunLog;
 use Test\Module\Order\OrderList;
+use OpenApi\Attributes as OA;
 
 class UserOrderController extends BController
 {
+    /**
+     * @return void
+     * @see \Test\Module\Order\Validation\UserOrderValidation::userList()
+     */
     public function userList()
     {
-//        $db = Factory::getDb();
+        $db = Factory::getDb();
 //        $query = $db->newQuery()->table('tbl_users')->where('user_id','>', '100')->limit(0,10);
 //        $count = $query->count();
 //        if ($count > 0) {
@@ -19,6 +26,15 @@ class UserOrderController extends BController
 //        }
 //
 //        var_dump($this->request->get);
+
+        $uid = 100;
+        $sql = $db->newQuery()->table('tbl_users')->when($uid > 90,function (Query $query) {
+            $query->where('user_id','>', '100')->limit(0,10);
+        })->fetchSql()->select();
+
+
+        var_dump($sql);
+
 
         // 列表方式查询
         $orderList = new OrderList();

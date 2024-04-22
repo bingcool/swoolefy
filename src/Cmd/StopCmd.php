@@ -2,6 +2,7 @@
 namespace Swoolefy\Cmd;
 
 use Swoolefy\Core\Exec;
+use Swoolefy\Core\SystemEnv;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -23,25 +24,26 @@ class StopCmd extends BaseCmd
     {
         $appName = $input->getArgument('app_name');
         $force = $input->getOption('force');
+        $lineValue = "";
         if (empty($force)) {
-            if (!isWorkerService()) {
-                $lineValue = initConsoleStyleIo()->ask( "1、你确定停止应用【{$appName}】? (yes or no)");
+            if (SystemEnv::isWorkerService()) {
+                $lineValue = initConsoleStyleIo()->ask( "1、你确定 [停止] workerService【" . WORKER_SERVICE_NAME . "】? (yes or no)");
             } else {
-                $lineValue = initConsoleStyleIo()->ask( "1、你确定停止workerService【" . WORKER_SERVICE_NAME . "】? (yes or no)");
+                $lineValue = initConsoleStyleIo()->ask( "1、你确定 [停止] 应用【{$appName}】? (yes or no)");
             }
         }
 
-        if (strtolower($lineValue) == 'yes') {
-            if (!isWorkerService()) {
-                $this->commonStop($appName);
-            } else {
+        if (strtolower($lineValue) == 'yes' || $force) {
+            if (SystemEnv::isWorkerService()) {
                 $this->workerStop($appName);
+            } else {
+                $this->commonStop($appName);
             }
         } else {
-            if (!isWorkerService()) {
-                fmtPrintInfo("\n你已放弃停止应用{$appName},应用继续running中");
+            if (SystemEnv::isWorkerService()) {
+                fmtPrintInfo(PHP_EOL."你已放弃停止workerService【" . WORKER_SERVICE_NAME . "】,应用继续running中");
             } else {
-                fmtPrintInfo("\n你已放弃停止workerService【" . WORKER_SERVICE_NAME . "】,应用继续running中");
+                fmtPrintInfo(PHP_EOL."你已放弃停止应用{$appName},应用继续running中");
             }
             exit(0);
         }
@@ -122,7 +124,7 @@ class StopCmd extends BaseCmd
             exit(0);
         }
 
-        if (\Swoole\Process::kill($masterPid, 0)) {
+        if ($masterPid > 0 && \Swoole\Process::kill($masterPid, 0)) {
             $pipeMsgDto = new \Swoolefy\Worker\Dto\PipeMsgDto();
             $pipeMsgDto->action = WORKER_CLI_STOP;
             $pipeMsg = serialize($pipeMsgDto);

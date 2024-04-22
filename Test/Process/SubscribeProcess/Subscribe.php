@@ -18,7 +18,7 @@ class Subscribe extends AbstractProcess
         $num = 1;
         $timeNow = time();
 
-        Timer::tick(500, function ($timeChannel) use(& $num, $timeNow) {
+        goTick(500, function ($timeChannel) use(&$num, $timeNow) {
             if (time() - $timeNow > 3) {
                 var_dump('close close');
                 Timer::cancel($timeChannel);
