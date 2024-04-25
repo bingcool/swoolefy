@@ -1,7 +1,7 @@
 <?php
 namespace Swoolefy\Cmd;
 
-use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\Exec;
 use Swoolefy\Core\SystemEnv;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
@@ -46,17 +46,20 @@ class StatusCmd extends BaseCmd
             return;
         }
 
-        $exec = 'ps -ef | grep php | grep ' . BaseServer::getAppPrefix() . ' | grep -v grep';
-
-        exec($exec, $output, $return);
-
-        if (empty($output)) {
-            fmtPrintInfo("'ps -ef' not match {$appName}-swoolefy");
-            return;
+        $exec = (new Exec())->run('pgrep -P ' . $pid);
+        $output = $exec->getOutput();
+        $managerProcessId = -1;
+        $workerProcessIds = [];
+        if (isset($output[0])) {
+            $managerProcessId = current($output);
+            $workerProcessIds = (new Exec())->run('pgrep -P ' . $managerProcessId)->getOutput();
         }
-
-        foreach ($output as $value) {
-            fmtPrintInfo(trim($value));
+        $workerNum = count($workerProcessIds);
+        fmtPrintInfo("MasterPid={$pid} -> ManagerPid={$managerProcessId}, Worker process num={$workerNum} As :", false);
+        foreach ($workerProcessIds as $processId) {
+            if ($processId > 0 && \Swoole\Process::kill($processId, 0)) {
+                fmtPrintInfo("---ManagerPid={$managerProcessId} -> WorkerPid={$processId}, running!",false);
+            }
         }
     }
 
@@ -96,7 +99,7 @@ class StatusCmd extends BaseCmd
             unlink($workerToCliPipeFile);
         }
 
-        // cli监控worker返回数据
+        // cli monitor worker response data msg
         posix_mkfifo($workerToCliPipeFile, 0777);
         $ctlPipe = fopen($workerToCliPipeFile, 'w+');
         stream_set_blocking($ctlPipe, false);
@@ -108,7 +111,7 @@ class StatusCmd extends BaseCmd
             fmtPrintInfo($msg);
         });
         sleep(1);
-        // 向worker发送数据
+        // send to worker
         fwrite($pipe, $pipeMsg);
         \Swoole\Event::wait();
         fclose($ctlPipe);
