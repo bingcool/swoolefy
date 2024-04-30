@@ -95,13 +95,7 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
                 $filePathDir = pathinfo($filePath, PATHINFO_DIRNAME);
                 $class = str_replace('\\', DIRECTORY_SEPARATOR, $handleClass);
                 $items = explode(DIRECTORY_SEPARATOR, $class);
-                $num = count($items);
-                if ($num >= 2) {
-                    $fileName = $items[$num - 2].'_'.$items[$num -1];
-                }else {
-                    $fileName = array_pop($items);
-                }
-
+                $fileName = array_pop($items);
                 if (SystemEnv::isDaemonService()) {
                     $dir = "{$logType}" .DIRECTORY_SEPARATOR. $fileName . '.log';
                 }else if (SystemEnv::isCronService()) {
