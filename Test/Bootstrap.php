@@ -21,13 +21,6 @@ class Bootstrap implements BootstrapInterface
 {
     public static function handle(RequestInput $requestInput, ResponseOutput $responseOutput)
     {
-//        $list = Db::table('tbl_users')->where('user_id','=', 203)->select()->toArray();
-//        var_dump($list);
-          $requestInput->setValue('name', 'mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm');
-//        throw SystemException::throw(
-//            "数据缺失",
-//            -1,
-//            ['uid' => 100]
-//        );
+          $requestInput->setValue('name', 'boostrap');
     }
 }
