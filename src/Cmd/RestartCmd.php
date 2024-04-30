@@ -69,8 +69,8 @@ class RestartCmd extends BaseCmd
             }
         }
 
-        // 重新启动
-        $binFile = defined('PHP_BIN_FILE') ? PHP_BIN_FILE : '/usr/bin/php';
+        // send restart command to main worker process
+        $binFile = SystemEnv::PhpBinFile();
         $waitTime = 10;
         if (SystemEnv::isWorkerService()) {
             $selfFile = WORKER_START_SCRIPT_FILE;
@@ -79,8 +79,8 @@ class RestartCmd extends BaseCmd
             }else if (SystemEnv::isDaemonService()) {
                 $selfFile = 'daemon.php';
             }
-            // 最长20s
-            $waitTime = 60;
+            // sleep max 30s
+            $waitTime = 30;
         }else {
             $selfFile = 'cli.php';
         }
@@ -94,10 +94,10 @@ class RestartCmd extends BaseCmd
             }, $binFile, $scriptFile);
         });
 
+        $phpBinFile = SystemEnv::PhpBinFile();
         $time = time();
         while (true) {
             sleep(1);
-            // 判断pid文件是否存在
             if (!file_exists($pidFile)) {
                 if (time() - $time < $waitTime) {
                     continue;
@@ -108,13 +108,13 @@ class RestartCmd extends BaseCmd
             // 新拉起的主进程id已经存在，说明新拉起的主进程已经启动成功
             if ($newMasterPid > 0 && $newMasterPid != $masterPid && \Swoole\Process::kill($newMasterPid, 0)) {
                 fmtPrintInfo("-----------进程重启成功！------------");
-                fmtPrintInfo("-----------可以使用 php {$selfFile} status {$appName} 查看进程是否启动成功状态信息!------------");
+                fmtPrintInfo("-----------可以使用 {$phpBinFile} {$selfFile} status {$appName} 查看进程是否启动成功状态信息!------------");
                 exit(0);
             }
 
-            // 等待10s，判断是否启动成功
+            // wait time out
             if (time() - $time > $waitTime) {
-                fmtPrintError("-----------请使用 php {$selfFile} status {$appName} 查看进程是否启动成功!------------");
+                fmtPrintError("-----------请使用 {$phpBinFile} {$selfFile} status {$appName} 查看进程是否启动成功!------------");
                 exit(0);
             }
         }
@@ -134,7 +134,7 @@ class RestartCmd extends BaseCmd
         }
 
         \Swoole\Process::kill($pid, SIGTERM);
-        // 如果'reload_async' => true,，则默认workerStop有30s的过度期停顿这个时间稍微会比较长，设置成60过期
+        // if 'reload_async' => true,则默认workerStop有30s的过度期停顿这个时间稍微会比较长，设置成60过期
         $nowTime = time();
         fmtPrintInfo("Server begin to stopping at " . date("Y-m-d H:i:s") . ", pid={$pid}. please wait a moment...");
         while (true) {
