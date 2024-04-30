@@ -273,7 +273,7 @@ class Pack extends BaseParse
      * @param int $serializeType
      * @return string
      */
-    public static function encode(mixed $data, int $serializeType = self::DECODE_JSON)
+    public static function encode($data, int $serializeType = self::DECODE_JSON)
     {
         if (is_string($serializeType)) {
             $serializeType = self::SERIALIZE_TYPE[$serializeType];
@@ -295,7 +295,7 @@ class Pack extends BaseParse
      * @param int  $unserializeType
      * @return mixed
      */
-    public static function decode(mixed $data, $unserializeType = self::DECODE_JSON)
+    public static function decode($data, $unserializeType = self::DECODE_JSON)
     {
         if (is_string($unserializeType)) {
             $unserializeType = self::SERIALIZE_TYPE[$unserializeType];

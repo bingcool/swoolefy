@@ -66,7 +66,7 @@ class StopCmd extends BaseCmd
         }
 
         \Swoole\Process::kill($pid, SIGTERM);
-        // 如果'reload_async' => true,，则默认workerStop有30s的过度期停顿这个时间稍微会比较长，设置成60过期
+        // if 'reload_async' => true,则默认workerStop有30s的过度期停顿这个时间稍微会比较长，设置成60过期
         $nowTime = time();
         fmtPrintInfo("Server begin to stopping at " . date("Y-m-d H:i:s") . ", pid={$pid}. please wait a moment...");
         while (true) {
