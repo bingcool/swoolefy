@@ -17,6 +17,7 @@ use Swoolefy\Exception\SystemException;
  * Class EventApp
  * @package Swoolefy\Core
  * @mixin EventController
+ * @inheritDoc 此类主要是框架内部使用，业务层面不要调用此类
  */
 class EventApp
 {
