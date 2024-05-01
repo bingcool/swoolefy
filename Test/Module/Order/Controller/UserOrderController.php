@@ -7,6 +7,7 @@ use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Test\Factory;
 use Test\Logger\RunLog;
+use Test\Module\Order\OrderEntity;
 use Test\Module\Order\OrderList;
 use OpenApi\Attributes as OA;
 
@@ -28,17 +29,22 @@ class UserOrderController extends BController
 //        var_dump($this->request->get);
 
         $uid = 100;
-        $sql = $db->newQuery()->table('tbl_users')->when($uid > 90,function (Query $query) {
+        $sql = $db->newQuery()->table(OrderEntity::getTableName())->when($uid > 90,function (Query $query) {
             $query->where('user_id','>', '100')->limit(0,10);
         })->fetchSql()->select();
 
+        $data = (new OrderEntity(10000, 1675835225))->getAttributes();
+        var_dump($data);
 
-        var_dump($sql);
-
+        // Entity 链路方式查询
+        $num1 = (new OrderEntity(0, 0))->Query()->where('user_id','=', 10000)->limit(1)->select();
+        //var_dump($num1);
 
         // 列表方式查询
         $orderList = new OrderList();
-        $orderList->setUserId([101,102]);
+        $orderList->setUserId([10000]);
+        $orderList->setPage(1);
+        $orderList->setPageSize(10);
         $count = $orderList->total();
         $list  = $orderList->find();
 
