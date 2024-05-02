@@ -20,7 +20,7 @@ class GoWaitGroup
     /**
      * @var int
      */
-    public $count = 0;
+    private $count = 0;
 
     /**
      * @var Channel
@@ -43,23 +43,6 @@ class GoWaitGroup
     public function __construct()
     {
         $this->channel = new Channel(1);
-    }
-
-    /**
-     * @param \Closure $callBack
-     * @param mixed ...$params
-     */
-    public function goApp(\Closure $callBack, ...$params)
-    {
-        goApp(function () use ($callBack, $params) {
-            try {
-                $this->count++;
-                call_user_func($callBack, ...$params);
-            } catch (\Throwable $throwable) {
-                $this->count--;
-                throw $throwable;
-            }
-        });
     }
 
     /**
@@ -102,15 +85,16 @@ class GoWaitGroup
     public static function batchParallelRunWait(array $callBacks, float $maxTimeOut = 3.0): array
     {
         $goWait = new static();
+        $count  = count($callBacks);
+        $goWait->add($count);
         foreach ($callBacks as $key => $callBack) {
-            $goWait->count++;
             goApp(function () use ($key, $callBack, $goWait) {
                 try {
                     $goWait->initResult($key, null);
                     $result = call_user_func($callBack);
                     $goWait->done($key, $result ?? null, 3.0);
                 } catch (\Throwable $throwable) {
-                    $goWait->count--;
+                    $goWait->add(-1);
                     throw $throwable;
                 }
             });
@@ -118,6 +102,23 @@ class GoWaitGroup
         $result = $goWait->wait($maxTimeOut);
         return $result;
     }
+
+    /**
+     * @param int $delta
+     * @return void
+     */
+    public function add(int $delta = 1)
+    {
+        if ($this->waiting) {
+            throw new SystemException('WaitGroup misuse: add called concurrently with wait');
+        }
+        $count = $this->count + $delta;
+        if ($count < 0) {
+            throw new SystemException('WaitGroup misuse: negative counter');
+        }
+        $this->count = $count;
+    }
+
 
     /**
      * start
@@ -172,10 +173,19 @@ class GoWaitGroup
         if ($this->count > 0) {
             $this->waiting = true;
             $this->channel->pop($timeout);
+            $this->waiting = false;
         }
         $result = $this->result;
         $this->reset();
         return $result;
+    }
+
+    /**
+     * @return int
+     */
+    public function count(): int
+    {
+        return $this->count;
     }
 
     /**
