@@ -4,7 +4,9 @@ namespace Test;
 
 use Common\Library\Db\PDOConnection;
 use Predis\Command\Redis\CONFIG;
+use Swoole\Coroutine\WaitGroup;
 use Swoolefy\Core\Application;
+use Swoolefy\Core\Coroutine\GoWaitGroup;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\EventHandler;
@@ -22,6 +24,8 @@ class Event extends EventHandler
         PDOConnection::registerSlowSqlFn(0.1, function ($runTime, $realSql) {
             var_dump("slow sql 耗时：$runTime, sql：$realSql");
         });
+
+        $wairGroup = new GoWaitGroup();
 
         if(!$this->isWorkerService()) {
             // 创建一个测试自定义进程

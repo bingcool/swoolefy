@@ -52,6 +52,35 @@ class MultiCall extends AbstractProcess
 
                 var_dump($result);
 
+
+                // 不同逻辑时可以分开单个处理
+                $goWaitGroup = new GoWaitGroup();
+                $goWaitGroup->add(1);
+                goApp(function () use ($goWaitGroup) {
+                    $db = Factory::getDb();
+                    var_dump(spl_object_id($db), \Swoole\Coroutine::getCid());
+                    $goWaitGroup->done('key1', 'aaaaa11111');
+                });
+
+                $goWaitGroup->add(1);
+                goApp(function () use ($goWaitGroup) {
+                    $db = Factory::getDb();
+                    sleep(5);
+                    var_dump(spl_object_id($db), \Swoole\Coroutine::getCid());
+                    $goWaitGroup->done('key2', 'bbbbb1111');
+                });
+
+                $goWaitGroup->add(1);
+                goApp(function () use ($goWaitGroup) {
+                    $db = Factory::getDb();
+                    var_dump(spl_object_id($db), \Swoole\Coroutine::getCid());
+                    sleep(3);
+                    $goWaitGroup->done('key3', 'cccccccc1111');
+                });
+
+                $result = $goWaitGroup->wait(6);
+                var_dump($result);
+
             } catch (\Throwable $e) {
                 BaseServer::catchException($e);
             }
