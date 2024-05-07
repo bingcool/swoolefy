@@ -302,7 +302,7 @@ class CtlApi
             'msg' => $pid
         ]);
 
-        // 发送数据toWorker
+        // send to Worker
         $pipeMsg = serialize($pipeMsgDto);
         $cliToWorkerPipeFile = CLI_TO_WORKER_PIPE;
         $pipe = @fopen($cliToWorkerPipeFile, 'w+');

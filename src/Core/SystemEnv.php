@@ -119,6 +119,14 @@ class SystemEnv
     }
 
     /**
+     * @return string
+     */
+    public static function PhpBinFile(): string
+    {
+        return defined('PHP_BIN_FILE') ? PHP_BIN_FILE : '/usr/bin/php';
+    }
+
+    /**
      * @return array
      */
     public static function  inputOptions()
