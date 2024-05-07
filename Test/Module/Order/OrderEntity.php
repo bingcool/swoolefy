@@ -25,7 +25,7 @@ class OrderEntity extends ClientModel
     /**
      * @var string
      */
-    protected $table = 'tbl_order';
+    protected static $table = 'tbl_order';
 
     /**
      * @var string

@@ -2,6 +2,7 @@
 namespace Swoolefy\Cmd;
 
 use Swoolefy\Core\Exec;
+use Swoolefy\Core\SystemEnv;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -35,8 +36,8 @@ class MonitorCmd extends BaseCmd
             sleep(5);
             if (!\Swoole\Process::kill($pid, 0)) {
                 fmtPrintInfo("[CheckSever] server had shutdown, now restarting .....");
-                // 重新启动
-                $binFile = defined('PHP_BIN_FILE') ? PHP_BIN_FILE : '/usr/bin/php';
+                // fork a process to excel restart command.
+                $binFile = SystemEnv::PhpBinFile();
                 $exec = new Exec();
                 $exec->run("nohup {$binFile} {$selfScript} start {$appName} --daemon=1 > /dev/null 2>&1 &");
             }

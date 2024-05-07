@@ -378,7 +378,7 @@ abstract class AbstractProcessPools
      * @param mixed ...$args
      * @return void
      */
-    public function onReceive(mixed $msg, ...$args)
+    public function onReceive($msg, ...$args)
     {
     }
 

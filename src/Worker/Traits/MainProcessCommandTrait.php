@@ -148,7 +148,7 @@ trait MainProcessCommandTrait {
     {
         $runner = CommandRunner::getInstance('restart-'.time());
         $runner->isNextHandle(false);
-        $execBinFile = defined('PHP_BIN_FILE') ? PHP_BIN_FILE : '/usr/bin/php';
+        $execBinFile = SystemEnv::PhpBinFile();
         $scriptFile  = WORKER_START_SCRIPT_FILE;
         $appName     = APP_NAME;
         list($command) = $runner->exec($execBinFile, "{$scriptFile} restart {$appName} --force=1", [],true, 'nobup_restart.log', false);
