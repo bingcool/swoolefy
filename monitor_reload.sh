@@ -3,12 +3,12 @@
 # alpine需安装: apk add inotify-tools
 
 # 应用名称,启动时通过第一个参数传进来eg:
-# 当前终端启动：./monitor_reload.sh Test
-# 后台进程启动 nohup ./monitor_reload.sh Test >> /dev/null 2>&1 &
+# 当前终端启动：/bin/bash monitor_reload.sh Test
+# 后台进程启动 nohup /bin/bash monitor_reload.sh Test >> /dev/null 2>&1 &
 
 appName="$1"
 
-phpBinFile='/usr/bin/php'
+phpBinFile="/usr/bin/php"
 scripts=("cli.php")
 
 # 监控目录
@@ -21,9 +21,9 @@ while true; do
    file_changes=$(inotifywait -r -e modify,create,delete "$basepath" --format '%w%f')
    php_files=$(echo "$file_changes" | grep -E '\.php$')
     if [ -n "$php_files" ]; then
-        for execBinFile in "${scripts[@]}";do
+        for execBinFile in "${scripts[@]}"; do
             echo "PHP files modified:$php_files"
-            sleep 5;
+            sleep 5
             #守护进程模式重启动
             nohup $phpBinFile $execBinFile restart $appName --force=1 >> /dev/null 2>&1 &
        done
