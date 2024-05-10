@@ -29,6 +29,8 @@ swoolefy-4.8-lts 版本：
 2、如果确定项目是使用 ```php7.3 ~ php7.4``` 的，那么选择 swoole-v4.8+ 版本来进行编译安装(不能直接使用 swoole-cli-v4.8+ 了, 因为其内置的是php8.1，与你的项目的php7不符合)
 所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.9.0``` 作为项目分支
 
+3、依赖编译： ./configure --enable-openssl --enable-sockets --enable-swoole-curl    
+
 ### 实现的功能特性    
 
 基础特性
@@ -158,10 +160,16 @@ define('PHP_BIN_FILE','/usr/bin/php');
 
 date_default_timezone_set('Asia/Shanghai');
 
-define('APP_NAMES', [
-    // 你的项目命名为App，对应协议为http协议服务器，支持多个项目的，只需要在这里添加好项目名称与对应的协议即可
-    'App'  => 'http',
-    'Test' => 'http',
+// 你的项目命名为App，对应协议为http协议服务器，支持多个项目的，只需要在这里添加好项目名称与对应的协议即可
+define('APP_META_ARR', [
+    'Test'  => [
+        'protocol' => 'http',
+        'worker_port' => 9501,
+    ],
+    'App' => [
+        'protocol' => 'http',
+        'worker_port' => 9502,
+    ]
 ]);
 
 // 启动前处理,比如加载.env
