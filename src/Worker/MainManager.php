@@ -454,7 +454,9 @@ class MainManager
                                     $processName = $process->getProcessName();
                                     $this->writeByProcessName($processName, AbstractBaseWorker::WORKERFY_PROCESS_EXIT_FLAG, $workerId);
                                 } catch (\Throwable $exception) {
-                                    $this->fmtWriteError("Master handle Signal (SIGINT,SIGTERM) error Process={$processName},worker_id={$workerId} exit failed, error=" . $exception->getMessage());
+                                    if (isset($processName)) {
+                                        $this->fmtWriteError("Master handle Signal (SIGINT,SIGTERM) error Process={$processName},worker_id={$workerId} exit failed, error=" . $exception->getMessage());
+                                    }
                                 }
                             }
                         }
@@ -921,7 +923,9 @@ class MainManager
             $this->swooleEventAdd($newProcess);
             $this->fmtWriteInfo("Process name={$processName},worker_id={$workerId} create successful");
         } catch (\Throwable $throwable) {
-            unset($this->processWorkers[$key][$workerId], $newProcess);
+            if (isset($key)) {
+                unset($this->processWorkers[$key][$workerId], $newProcess);
+            }
             $this->onHandleException->call($this, $throwable);
         }
     }
@@ -1419,7 +1423,7 @@ class MainManager
                             $dateTime = date('Y-m-d H:i:s');
                             $this->fmtWriteInfo("[{$dateTime}] 重启整个服务，所有进程将重启");
                             // todo 此方法目前未足够完善
-                            $this->reStartServerCommand();
+                            $this->restartServerCommand();
                             break;
                         case WORKER_CLI_SEND_MSG :
                             $processName = $cliPipeMsgDto->targetHandler;

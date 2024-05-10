@@ -10,7 +10,15 @@ defined('APP_PATH') or define('APP_PATH',__DIR__.'/'.ucfirst($_SERVER['argv'][2]
 
 registerNamespace(APP_PATH);
 
-define('WORKER_PORT', 9506);
+$appName = ucfirst($_SERVER['argv'][2]);
+define('APP_META_ARR', [
+    'Test' => [
+        'protocol' => 'http',
+        'worker_port' => 9506,
+    ]
+]);
+
+define('WORKER_PORT', APP_META_ARR[$appName]['worker_port']);
 define('IS_DAEMON_SERVICE', 0);
 define('IS_CRON_SERVICE', 1);
 define('IS_CLI_SCRIPT', 0);
@@ -34,10 +42,6 @@ define('WORKER_CONF', \Swoolefy\Worker\MainManager::loadWorkerConf(__DIR__.'/'.$
 define('PROCESS_CLASS', [
     // 应用crom worker
     'Test' => \Test\WorkerCron\MainCronProcess::class,
-]);
-
-define('APP_NAMES', [
-    'Test' => 'http'
 ]);
 
 // 启动前处理,比如加载.env

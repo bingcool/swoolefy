@@ -414,7 +414,7 @@ class HttpRoute extends AppDispatch
              */
             $routeOption = $routerMapInfo['route_option'];
             if(!isset($routerMeta['dispatch_route'])) {
-                $routerMeta['dispatch_route'] = $uri;
+                throw new DispatchException("Missing dispatch_route");
             }else {
                 $originDispatchRoute = $routerMeta['dispatch_route'];
                 $dispatchRoute = str_replace("\\",DIRECTORY_SEPARATOR, $routerMeta['dispatch_route'][0]);

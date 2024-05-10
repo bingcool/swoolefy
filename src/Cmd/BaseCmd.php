@@ -46,8 +46,8 @@ class BaseCmd extends Command
 
     protected function parseConstant(InputInterface $input, OutputInterface $output)
     {
-        if (!defined('APP_NAMES')) {
-            fmtPrintError('APP_NAMES Missing defined, please check it');
+        if (!defined('APP_META_ARR')) {
+            fmtPrintError('APP_META_ARR Missing defined, please check it');
             exit(0);
         }
 
