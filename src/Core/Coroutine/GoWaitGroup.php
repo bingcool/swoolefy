@@ -152,7 +152,7 @@ class GoWaitGroup
 
     /**
      * @param string $key
-     * @param null $data
+     * @param mixed|null $data
      */
     public function initResult(string $key, $data = null)
     {
