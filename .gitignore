@@ -3,6 +3,7 @@ sftp-config.json
 *.lock
 *.idea
 *.log
+*.restart.log
 cli.php
 daemon.php
 cron.php

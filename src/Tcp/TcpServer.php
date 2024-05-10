@@ -13,6 +13,7 @@ namespace Swoolefy\Tcp;
 
 use Swoolefy\Core\EventApp;
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\SystemEnv;
 use Swoolefy\Util\Helper;
 
 abstract class TcpServer extends BaseServer
@@ -163,7 +164,7 @@ abstract class TcpServer extends BaseServer
         /**
          * task
          */
-        if (!isWorkerService()) {
+        if (!SystemEnv::isWorkerService()) {
             if (parent::isTaskEnableCoroutine()) {
                 $this->tcpServer->on('task', function (\Swoole\Server $server, \Swoole\Server\Task $task) {
                     try {

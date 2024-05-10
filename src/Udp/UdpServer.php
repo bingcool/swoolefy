@@ -14,6 +14,7 @@ namespace Swoolefy\Udp;
 use Swoole\Server;
 use Swoolefy\Core\EventApp;
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\SystemEnv;
 use Swoolefy\Util\Helper;
 
 abstract class UdpServer extends BaseServer
@@ -130,7 +131,7 @@ abstract class UdpServer extends BaseServer
         /**
          * task
          */
-        if(!isWorkerService()) {
+        if(!SystemEnv::isWorkerService()) {
             if (parent::isTaskEnableCoroutine()) {
                 $this->udpServer->on('task', function (Server $server, \Swoole\Server\Task $task) {
                     try {

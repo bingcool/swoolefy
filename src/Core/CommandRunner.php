@@ -265,7 +265,7 @@ class CommandRunner
      */
     protected function parseEscapeShellArg(array $args)
     {
-        return implode(' ', array_map('escapeshellarg', $args));
+        return implode(' ', $args);
     }
 
     /**

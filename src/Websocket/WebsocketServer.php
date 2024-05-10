@@ -16,6 +16,7 @@ use Swoolefy\Core\EventApp;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\SystemEnv;
 use Swoolefy\Util\Helper;
 
 abstract class WebsocketServer extends BaseServer
@@ -161,7 +162,7 @@ abstract class WebsocketServer extends BaseServer
         /**
          * task
          */
-        if (!isWorkerService()) {
+        if (!SystemEnv::isWorkerService()) {
             if (parent::isTaskEnableCoroutine()) {
                 $this->webServer->on('task', function (\Swoole\WebSocket\Server $server, \Swoole\Server\Task $task) {
                     try {

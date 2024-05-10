@@ -1419,7 +1419,7 @@ class MainManager
                             $dateTime = date('Y-m-d H:i:s');
                             $this->fmtWriteInfo("[{$dateTime}] 重启整个服务，所有进程将重启");
                             // todo 此方法目前未足够完善
-                            $this->reStartServerCommand();
+                            $this->restartServerCommand();
                             break;
                         case WORKER_CLI_SEND_MSG :
                             $processName = $cliPipeMsgDto->targetHandler;

@@ -144,7 +144,7 @@ trait MainProcessCommandTrait {
      *
      * @return void
      */
-    protected function reStartServerCommand()
+    protected function restartServerCommand()
     {
         $runner = CommandRunner::getInstance('restart-'.time());
         $runner->isNextHandle(false);

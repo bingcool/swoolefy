@@ -149,7 +149,7 @@ abstract class HttpServer extends BaseServer
         /**
          * task
          */
-        if (!isWorkerService()) {
+        if (!SystemEnv::isWorkerService()) {
             if (parent::isTaskEnableCoroutine()) {
                 $this->webServer->on('task', function (\Swoole\Http\Server $server, \Swoole\Server\Task $task) {
                     try {
