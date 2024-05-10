@@ -28,7 +28,7 @@ class CreateCmd extends BaseCmd
             exit(0);
         }
 
-        $protocol = APP_NAMES[$appName];
+        $protocol = APP_META_ARR[$appName]['protocol'];
         if (!$protocol) {
             fmtPrintError("The app_name={$appName} is not in APP_NAME array in swoolefy file, please check it");
             exit(0);
