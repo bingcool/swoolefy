@@ -1,13 +1,9 @@
 <?php
 namespace Swoolefy\Cmd;
 
-use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-#[AsCommand(
-    name: 'create',
-)]
 class CreateCmd extends BaseCmd
 {
     protected static $defaultName = 'create';
@@ -28,7 +24,7 @@ class CreateCmd extends BaseCmd
             exit(0);
         }
 
-        $protocol = APP_NAMES[$appName];
+        $protocol = APP_META_ARR[$appName]['protocol'];
         if (!$protocol) {
             fmtPrintError("The app_name={$appName} is not in APP_NAME array in swoolefy file, please check it");
             exit(0);

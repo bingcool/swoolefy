@@ -12,7 +12,6 @@
 namespace Swoolefy\Core\Coroutine;
 
 use Swoole\Coroutine\Channel;
-use Swoolefy\Core\BaseServer;
 use Swoolefy\Exception\SystemException;
 
 class GoWaitGroup
@@ -160,10 +159,10 @@ class GoWaitGroup
     }
 
     /**
-     * @param float $timeout
+     * @param float $maxTimeout
      * @return array
      */
-    public function wait(float $timeout = 0)
+    public function wait(float $maxTimeout = 3.0)
     {
         if ($this->waiting) {
             throw new SystemException('WaitGroup misuse: add called concurrently with wait');
@@ -171,7 +170,7 @@ class GoWaitGroup
 
         if ($this->count > 0) {
             $this->waiting = true;
-            $this->channel->pop($timeout);
+            $this->channel->pop($maxTimeout);
         }
         $result = $this->result;
         $this->reset();

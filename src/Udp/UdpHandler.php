@@ -95,8 +95,8 @@ class UdpHandler extends Swoole implements HandlerInterface
                 list($callable, $params) = $payload;
             }
 
-            if ($callable) {
-                if (!isset($isTaskProcess)) {
+            if (isset($callable)) {
+                if (!isset($isTaskProcess) && isset($service) && isset($event)) {
                     $service          = trim(str_replace('\\', DIRECTORY_SEPARATOR, $service), DIRECTORY_SEPARATOR);
                     $serviceHandle    = implode(self::EOF, [$service, $event]);
                     $this->setServiceHandle($serviceHandle);

@@ -80,7 +80,9 @@ class Tick
                         call_user_func($func, $params, $timerId);
                     }
                     // call after action
-                    $tickTaskInstance->afterHandle();
+                    if (isset($tickTaskInstance)) {
+                        $tickTaskInstance->afterHandle();
+                    }
                 } catch (\Throwable $throwable) {
                     throw $throwable;
                 } finally {
@@ -193,7 +195,9 @@ class Tick
                         call_user_func($func, $params, $timer_id);
                     }
                     // call after action
-                    $tickTaskInstance->afterHandle();
+                    if (isset($tickTaskInstance)) {
+                        $tickTaskInstance->afterHandle();
+                    }
                 } catch (\Throwable $throwable) {
                     throw $throwable;
                 } finally {

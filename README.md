@@ -14,7 +14,7 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 高度支持httpApi，websocket，udp服务器，以及基于tcp实现可扩展的rpc服务，worker多进程消费模型  
 同时支持composer包方式安装部署项目。基于实用主义设计出发，swoolefy抽象Event事件处理类，
 实现与底层的回调的解耦，支持协程单例调度，同步|异步调用，全局事件注册，心跳检查，异步任务，多进程(池)，连接池等，
-内置```log、session、mysql、pgsql、redis、mongodb、kafka、amqp```等常用组件等.    
+内置```log、session、mysql、pgsql、redis、mongodb、kafka、amqp、uuid、route midelware、cache、queue、rateLimit、traceId```等常用组件等.    
 
 ### 建议版本
 swoolefy-5.0+ 版本：      
@@ -29,12 +29,14 @@ swoolefy-4.8-lts 版本：
 2、如果确定项目是使用 ```php7.3 ~ php7.4``` 的，那么选择 swoole-v4.8+ 版本来进行编译安装(不能直接使用 swoole-cli-v4.8+ 了, 因为其内置的是php8.1，与你的项目的php7不符合)
 所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.9.0``` 作为项目分支
 
+3、依赖编译： ./configure --enable-openssl --enable-sockets --enable-swoole-curl    
+
 ### 实现的功能特性    
 
 基础特性
-- [x] 支持架手脚一键创建项目        
+- [x] 支持架手脚一键创建项目自动生成最小项目骨架         
 - [x] 支持swagger一键生成api文档     
-- [x] 支持分组路由, 路由middleware, 前置路由组件, 后置路由组件,多模块应用
+- [x] 支持分组路由, 路由中间件middleware, 前置路由组件, 后置路由组件middleware,多模块应用    
 - [x] 支持自定义注册不同根命名空间，快速多项目部署          
 - [x] 支持httpServer，实用轻量Api接口开发     
 - [x] 支持多协议websocketServer、udpServer、mqttServer      
@@ -57,19 +59,19 @@ swoolefy-4.8-lts 版本：
 - [x] 支持自定义进程的redis，rabbitmq，kafka的订阅发布，消息队列等      
 - [x] 支持热更新reload worker 监控以及更新                 
 - [x] 支持定时的系统信息采集，并以订阅发布，udp等方式收集至存贮端    
-- [x] 支持命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架   
+- [x] 支持命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架, 并对外提供控制启动|停止|重启|查看状态的api接口，可开发成可视化控制页面    
 
 高级特性
-- [x] 支持crontab的local调用和fork独立进程的计划任务    
+- [x] 支持cron计划任务模式. 类似crontab，支持local|fork|remote url三种方式      
     
-    | 支持方式  |                 说明                 |
-    |:----------------------------------:|:---:|
-    | local |            自定义进程内定时执行代码            |
-    | fork  |   自定义进程定时拉起一个新的进程，由新的进程去支持任务，可异步   |
-    | url   | 自定义进程定时发起远程url请求，可设置callback回调处理结果 |
+    | 支持方式  |                          说明                           |
+    |:-----------------------------------------------------:|:---:|
+    | local |                     自定义进程内定时执行代码                      |
+    | fork  | 自定义进程定时拉起一个新的进程，由新的进程去执行任务，可异步，类似laravel的schedule计划任务 |
+    | url   |          自定义进程定时发起远程url请求，可设置callback回调处理结果           |
 
-- [x] 支持worker下后台daemon模式的多进程协程消费模型,包括进程自动拉起，进程数动态调整，进程健康状态监控     
-- [x] 支持console终端脚本模式，跑完脚本自动退出，可用于修复数据、数据迁移等临时脚本功能      
+- [x] 支持daemon模式.worker下后台daemon模式的多进程协程消费模型,包括进程自动拉起，进程数动态调整，进程健康状态监控     
+- [x] 支持console终端脚本模式. 跑完脚本自动退出，可用于修复数据、数据迁移等临时脚本功能      
 - [ ] 支持分布式服务注册（zk，etcd）       
 
 ### 适配协程环境组件
@@ -158,10 +160,16 @@ define('PHP_BIN_FILE','/usr/bin/php');
 
 date_default_timezone_set('Asia/Shanghai');
 
-define('APP_NAMES', [
-    // 你的项目命名为App，对应协议为http协议服务器，支持多个项目的，只需要在这里添加好项目名称与对应的协议即可
-    'App'  => 'http',
-    'Test' => 'http',
+// 你的项目命名为App，对应协议为http协议服务器，支持多个项目的，只需要在这里添加好项目名称与对应的协议即可
+define('APP_META_ARR', [
+    'Test'  => [
+        'protocol' => 'http',
+        'worker_port' => 9501,
+    ],
+    'App' => [
+        'protocol' => 'http',
+        'worker_port' => 9502,
+    ]
 ]);
 
 // 启动前处理,比如加载.env
@@ -269,6 +277,11 @@ use Swoolefy\Core\Controller\BController;
 class IndexController extends BController {
 
     public function index() {
+        // 最简单的协程单例，goApp()即可创建一个协程,在单例中的db,redis等其他注册的组件都是单例的，不同协程单例相互隔离  
+        goApp(function() {
+            var_dump('this is a coroutine single app test');
+        });
+        
         Application::getApp()->response->write('<h1>Hello, Welcome to Swoolefy Framework! <h1>');
     }
 }

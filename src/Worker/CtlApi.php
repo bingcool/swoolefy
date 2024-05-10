@@ -13,6 +13,9 @@ namespace Swoolefy\Worker;
 
 use Swoole\Http\Request;
 use Swoole\Http\Response;
+use Swoolefy\Core\CommandRunner;
+use Swoolefy\Core\Swfy;
+use Swoolefy\Core\SystemEnv;
 use Swoolefy\Worker\Dto\PipeMsgDto;
 
 class CtlApi
@@ -41,7 +44,6 @@ class CtlApi
     const API_START = '/process-start';
     const API_STOP = '/process-stop';
     const API_STATUS = '/process-status';
-
     const MASTER_RESTART = '/master-server-restart';
 
     /**
@@ -227,6 +229,52 @@ class CtlApi
 
     /**
      * @param string $processName
+     * @return void
+     */
+    public function restartServer(string $processName)
+    {
+        $logPhpFile = START_DIR_ROOT.'/restart.log';
+        if (!file_exists($logPhpFile)) {
+            file_put_contents($logPhpFile,'');
+        }
+
+        $fileSize = filesize($logPhpFile);
+        if ($fileSize > 2 * 1024 * 1024) {
+            unlink($logPhpFile);
+            file_put_contents($logPhpFile,'');
+        }
+
+        if (SystemEnv::isCronService()) {
+            $serverName = 'cron';
+        }else {
+            $serverName = 'daemon';
+        }
+
+        $runner = CommandRunner::getInstance('restart-'.time());
+        $runner->isNextHandle(false);
+        $execBinFile = SystemEnv::PhpBinFile();
+        $scriptFile  = WORKER_START_SCRIPT_FILE;
+        $appName     = APP_NAME;
+        list($command) = $runner->exec($execBinFile, "{$scriptFile} restart {$appName} --force=1", [],true, '/dev/null', false);
+
+        $message = [
+            'date' => date('Y-m-d H:i:s'),
+            'app_name' => $appName,
+            'server_name' => $serverName,
+            'command' => $command,
+            'message' => 'restarting...'
+        ];
+
+        file_put_contents($logPhpFile,json_encode($message, JSON_UNESCAPED_UNICODE).PHP_EOL,FILE_APPEND);
+
+        $this->returnSuccess([
+            'action' => 'restart',
+            'time' => date('Y-m-d H:i:s')
+        ]);
+    }
+
+    /**
+     * @param string $processName
      * @param string $action
      * @return void
      */
@@ -260,31 +308,6 @@ class CtlApi
         if (!empty($fileProcessConfList)) {
             file_put_contents($workerConfLockFile, json_encode($fileProcessConfList, JSON_UNESCAPED_UNICODE));
         }
-    }
-
-    /**
-     * @param string $processName
-     * @return void
-     */
-    public function restartServer(string $processName)
-    {
-        $pipeMsgDto = new \Swoolefy\Worker\Dto\PipeMsgDto();
-        $pipeMsgDto->action = WORKER_CLI_RESTART;
-        $pipeMsg = serialize($pipeMsgDto);
-
-        // mainWorker Process
-        $workerPid = file_get_contents(WORKER_PID_FILE);
-        if (\Swoole\Process::kill($workerPid, 0)) {
-            $cliToWorkerPipeFile = CLI_TO_WORKER_PIPE;
-            $pipe = @fopen($cliToWorkerPipeFile, 'w+');
-            if (flock($pipe, LOCK_EX)) {
-                fwrite($pipe, $pipeMsg);
-                flock($pipe, LOCK_UN);
-            }
-            fclose($pipe);
-        }
-
-        $this->returnSuccess([]);
     }
 
     /**

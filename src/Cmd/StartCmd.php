@@ -22,8 +22,9 @@ class StartCmd extends BaseCmd
         }
 
         $serverName = $input->getArgument('app_name');
-        foreach (APP_NAMES as $appName => $protocol) {
+        foreach (APP_META_ARR as $appName => $appItem) {
             try {
+                $protocol = $appItem['protocol'];
                 if ($appName == $serverName) {
                     switch ($protocol) {
                         case 'http':
