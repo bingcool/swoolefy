@@ -56,7 +56,7 @@ class HttpRoute extends AppDispatch
     protected $dispatchRoute = [];
 
     /**
-     * $extendData 额外请求数据
+     * $extendData
      * @var mixed
      */
     protected $extendData = null;
