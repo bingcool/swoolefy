@@ -117,7 +117,7 @@ trait ServiceTrait
             $filePath = $path . '/includes.json';
         }
 
-        if (is_file($filePath)) {
+        if (isset($filePath) && is_file($filePath)) {
             $includes_string = file_get_contents($filePath);
             if ($includes_string) {
                 $result = [
