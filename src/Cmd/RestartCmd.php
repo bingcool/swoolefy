@@ -24,7 +24,7 @@ class RestartCmd extends BaseCmd
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $appName = $input->getArgument('app_name');
-        $force = $input->getOption('force');
+        $force   = $input->getOption('force');
         $lineValue = "";
         if (empty($force)) {
             if (SystemEnv::isWorkerService()) {
@@ -49,17 +49,17 @@ class RestartCmd extends BaseCmd
             }
         } else {
             if (SystemEnv::isWorkerService()) {
-                fmtPrintInfo("\n你已放弃【重启】workerService【" . WORKER_SERVICE_NAME . "】,应用继续running中");
+                fmtPrintInfo(PHP_EOL."你已放弃【重启】workerService【" . WORKER_SERVICE_NAME . "】,应用继续running中");
                 exit(0);
             } else {
-                fmtPrintInfo("\n你已放弃【重启】应用【{$appName}】,应用继续running中");
+                fmtPrintInfo(PHP_EOL."你已放弃【重启】应用【{$appName}】,应用继续running中");
                 exit(0);
             }
         }
 
         fmtPrintInfo("-----------正在重启进程中，请等待-----------");
 
-        if (SystemEnv::isWorkerService() || SystemEnv::isCronService()) {
+        if (SystemEnv::isWorkerService()) {
             while (true) {
                 if ($masterPid > 0 && \Swoole\Process::kill($masterPid, 0)) {
                     sleep(1);
@@ -67,34 +67,27 @@ class RestartCmd extends BaseCmd
                     break;
                 }
             }
+        }else {
+            sleep(1);
         }
 
         // send restart command to main worker process
-        $binFile = SystemEnv::PhpBinFile();
-        $waitTime = 10;
+        $phpBinFile = SystemEnv::PhpBinFile();
+        $waitTime   = 10;
         if (SystemEnv::isWorkerService()) {
-            $selfFile = WORKER_START_SCRIPT_FILE;
-            if (SystemEnv::isCronService()) {
-                $selfFile = 'cron.php';
-            }else if (SystemEnv::isDaemonService()) {
-                $selfFile = 'daemon.php';
-            }
             // sleep max 30s
             $waitTime = 30;
-        }else {
-            $selfFile = 'cli.php';
         }
-
+        $selfFile = WORKER_START_SCRIPT_FILE;
         $scriptFile = "$selfFile start {$appName} --daemon=1";
 
-        \Swoole\Coroutine::create(function () use ($binFile, $scriptFile) {
-            $runner = CommandRunner::getInstance('restart');
+        \Swoole\Coroutine::create(function () use ($phpBinFile, $scriptFile) {
+            $runner = CommandRunner::getInstance('restart-'.time());
             $runner->isNextHandle(false);
             $runner->procOpen(function () {
-            }, $binFile, $scriptFile);
+            }, $phpBinFile, $scriptFile);
         });
 
-        $phpBinFile = SystemEnv::PhpBinFile();
         $time = time();
         while (true) {
             sleep(1);
