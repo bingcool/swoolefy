@@ -81,7 +81,7 @@ class SendCmd extends BaseCmd
                 \Swoole\Event::exit();
             });
 
-            // 发送数据toWorker
+            // send msg to Worker
             $pipeMsg = serialize($pipeMsgDto);
             // mainWorker Process
             $workerPid = file_get_contents(WORKER_PID_FILE);
