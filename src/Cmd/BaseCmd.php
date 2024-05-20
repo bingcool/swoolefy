@@ -84,7 +84,7 @@ class BaseCmd extends Command
     protected function parseOptions(InputInterface $input, OutputInterface $output)
     {
         $daemon = $input->getOption('daemon');
-        $force = $input->getOption('force');
+        $force  = $input->getOption('force');
         defined('IS_DAEMON') or define('IS_DAEMON', $daemon);
         defined('IS_FORCE') or define('IS_FORCE', $force);
         $options = $input->getOptions();
@@ -100,10 +100,10 @@ class BaseCmd extends Command
      */
     protected function beforeInputOptions()
     {
-        $options = [];
-        $argv = new ArgvInput();
+        $argv  = new ArgvInput();
         $token = $argv->__toString();
         $items = explode(' ', $token);
+        $options = [];
         foreach ($items as $item) {
             if (str_starts_with($item, '--') || str_starts_with($item, '-')) {
                 $item = trim($item,'-');
@@ -150,7 +150,7 @@ class BaseCmd extends Command
             if (is_file($pidFile)) {
                 $pid = file_get_contents($pidFile);
                 if (is_numeric($pid) && \Swoole\Process::kill($pid, 0)) {
-                    if (!isWorkerService()) {
+                    if (!SystemEnv::isWorkerService()) {
                         fmtPrintError('[' . APP_NAME . ']' . " Server is running, pid={$pid}, pidFile={$pidFile}");
                         exit(0);
                     } else {
@@ -233,6 +233,7 @@ class BaseCmd extends Command
      */
     protected function makeDirLogAndPid(array &$config)
     {
+        // log file
         if (isset($config['setting']['log_file'])) {
             $path = pathinfo($config['setting']['log_file'], PATHINFO_DIRNAME);
             if (!is_dir($path)) {
@@ -240,6 +241,7 @@ class BaseCmd extends Command
             }
         }
 
+        // pid file
         if (isset($config['setting']['pid_file'])) {
             $path = pathinfo($config['setting']['pid_file'], PATHINFO_DIRNAME);
             if (!is_dir($path)) {
@@ -253,15 +255,9 @@ class BaseCmd extends Command
             }
         }
 
-        if (isCliScript()) {
+        if (isset($config['setting']['pid_file'])) {
             $path = pathinfo($config['setting']['pid_file'], PATHINFO_DIRNAME);
             $config['setting']['pid_file'] = parseScriptPidFile($config['setting']['pid_file']);
-            register_shutdown_function(function () use ($config) {
-                if (is_file($config['setting']['pid_file'])) {
-                    @unlink($config['setting']['pid_file']);
-                }
-            });
-
             $files = scandir($path);
             foreach ($files as $f) {
                 $filePath = $path . '/' . $f;
