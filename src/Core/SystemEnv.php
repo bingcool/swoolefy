@@ -107,7 +107,7 @@ class SystemEnv
      */
     public static function isScriptService(): bool
     {
-        return isCliScript();
+        return isScriptService();
     }
 
     /**

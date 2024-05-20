@@ -22,7 +22,7 @@ use Symfony\Component\Console\Application;
 
 function isWorkerService(): bool
 {
-    if (isDaemonService() || isCliScript() || isCronService()) {
+    if (isDaemonService() || isScriptService() || isCronService()) {
         return true;
     }
     return false;
@@ -50,11 +50,6 @@ function isCronService(): bool
 }
 
 function isScriptService(): bool
-{
-    return isCliScript();
-}
-
-function isCliScript(): bool
 {
     if (defined('IS_CLI_SCRIPT') && IS_CLI_SCRIPT == 1) {
         return true;

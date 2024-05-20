@@ -23,7 +23,7 @@ class StopCmd extends BaseCmd
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $appName = $input->getArgument('app_name');
-        $force = $input->getOption('force');
+        $force   = $input->getOption('force');
         $lineValue = "";
         if (empty($force)) {
             if (SystemEnv::isWorkerService()) {
@@ -37,7 +37,7 @@ class StopCmd extends BaseCmd
             if (SystemEnv::isWorkerService()) {
                 $this->workerStop($appName);
             } else {
-                $this->commonStop($appName);
+                $this->serverStop($appName);
             }
         } else {
             if (SystemEnv::isWorkerService()) {
@@ -51,7 +51,7 @@ class StopCmd extends BaseCmd
         return 0;
     }
 
-    protected function commonStop($appName)
+    protected function serverStop($appName)
     {
         $pidFile = $this->getPidFile($appName);
         if (!is_file($pidFile)) {
@@ -141,7 +141,7 @@ class StopCmd extends BaseCmd
                 fclose($pipe);
             }
             sleep(3);
-            $this->commonStop($appName);
+            $this->serverStop($appName);
         }
     }
 }
