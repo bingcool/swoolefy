@@ -17,7 +17,7 @@ class ClientModel extends Model {
      * @param int $userId
      * @param int $id
      */
-    public function __construct(int $userId, int $id = 0)
+    public function __construct(int $userId = 0, int $id = 0)
     {
         $this->userId = $userId;
         parent::__construct($userId);

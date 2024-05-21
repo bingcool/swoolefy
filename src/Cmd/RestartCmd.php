@@ -41,7 +41,7 @@ class RestartCmd extends BaseCmd
             if (SystemEnv::isWorkerService()) {
                 $this->workerStop($appName);
             } else {
-                $this->commonStop($appName);
+                $this->serverStop($appName);
             }
         } else {
             if (SystemEnv::isWorkerService()) {
@@ -74,7 +74,7 @@ class RestartCmd extends BaseCmd
             // sleep max 30s
             $waitTime = 30;
         }
-        $selfFile = WORKER_START_SCRIPT_FILE;
+        $selfFile   = WORKER_START_SCRIPT_FILE;
         $scriptFile = "$selfFile start {$appName} --daemon=1";
 
         \Swoole\Coroutine::create(function () use ($phpBinFile, $scriptFile) {
@@ -109,7 +109,7 @@ class RestartCmd extends BaseCmd
         }
     }
 
-    protected function commonStop($appName)
+    protected function serverStop($appName)
     {
         $pidFile = $this->getPidFile($appName);
         if (!is_file($pidFile)) {
@@ -199,7 +199,7 @@ class RestartCmd extends BaseCmd
                 fclose($pipe);
             }
             sleep(3);
-            $this->commonStop($appName);
+            $this->serverStop($appName);
         }
     }
 }

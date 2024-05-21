@@ -24,12 +24,12 @@ class StatusCmd extends BaseCmd
         if (SystemEnv::isWorkerService()) {
             $this->workerStatus($pidFile);
         } else {
-            $this->commonStatus($appName, $pidFile);
+            $this->serverStatus($appName, $pidFile);
         }
         return 0;
     }
 
-    protected function commonStatus($appName, $pidFile)
+    protected function serverStatus($appName, $pidFile)
     {
         if (!is_file($pidFile)) {
             fmtPrintError("Pid file={$pidFile} is not exist, please check server weather is running");
