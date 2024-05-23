@@ -172,7 +172,7 @@ abstract class AbstractBaseWorker
      * 停止时，存在挂起的协程，进行轮询次数协程是否恢复，并执行完毕，默认5次,子类可以重置
      * @var int
      */
-    protected $cycleTimes = 5;
+    protected $cycleTimes = 20;
 
     /**
      * @var int
@@ -1439,21 +1439,21 @@ abstract class AbstractBaseWorker
      * @param int $re_wait_time
      * @return void
      */
-    private function runtimeCoroutineWait(int $cycle_times = 5, int $re_wait_time = 2)
+    private function runtimeCoroutineWait(int $cycle_times = 20)
     {
         if ($cycle_times <= 0) {
-            $cycle_times = 2;
+            $cycle_times = 10;
         }
         while ($cycle_times > 0) {
             // current run coroutine
             $runCoroutineNum = $this->getCurrentRunCoroutineNum();
-            // wait to coroutine to finish of doing something
-            if ($runCoroutineNum > ($this->initSystemCoroutineNum ?: 2)) {
+            // wait to coroutine to finish of doing something, $this->initSystemCoroutineNum+1 是因为除了主协程，当前函数自身也是跑在after的协程回调函数中的，所以多一个协程
+            if ($runCoroutineNum > ($this->initSystemCoroutineNum + 1)) {
                 --$cycle_times;
                 if (\Swoole\Coroutine::getCid() > 0) {
-                    \Swoole\Coroutine\System::sleep($re_wait_time);
+                    \Swoole\Coroutine\System::sleep(1);
                 } else {
-                    sleep($re_wait_time);
+                    sleep(1);
                 }
             } else {
                 break;
