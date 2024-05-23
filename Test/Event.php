@@ -25,7 +25,7 @@ class Event extends EventHandler
             var_dump("slow sql 耗时：$runTime, sql：$realSql");
         });
 
-        $wairGroup = new GoWaitGroup();
+        $waitGroup = new GoWaitGroup();
 
         if(!$this->isWorkerService()) {
             // 创建一个测试自定义进程
