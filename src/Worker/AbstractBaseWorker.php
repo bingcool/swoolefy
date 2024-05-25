@@ -169,10 +169,10 @@ abstract class AbstractBaseWorker
     private $rebootCount = 0;
 
     /**
-     * 停止时，存在挂起的协程，进行轮询次数协程是否恢复，并执行完毕，默认5次,子类可以重置
-     * @var int
+     * 接收到退出指令时，最长等待多长时间退出，最大时间达到后强制退出，不关注进程是否完成业务操作
+     * @var int 最长等待时间，单位秒
      */
-    protected $cycleTimes = 20;
+    protected $maxWaitTimeOfExit = 30;
 
     /**
      * @var int
@@ -202,6 +202,14 @@ abstract class AbstractBaseWorker
      * @var bool cron接收到退出指令，但因业务还在执行中，只能设置waitToExit=true,等业务处理完了再退出
      */
     protected $waitToExit = false;
+
+
+    /**
+     * 是否是使用loopHandle函数业务处理
+     *
+     * @var bool
+     */
+    protected $useLoopHnadle = false;
 
     /**
      * static process
@@ -385,11 +393,14 @@ abstract class AbstractBaseWorker
                                             if (SystemEnv::isCronService() && $this->runInBackground && $this->handing) {
                                                 // 设置进程等待退出，进程将在业务处理完后退出
                                                 $this->waitToExit = true;
-                                            }else {
+                                            }else if ($this->useLoopHnadle) {
+                                                // 进程如果使用封装的loopHandle处理业务时，进程将在业务处理完后退出
+                                                $this->waitToExit = true;
+                                            } else {
                                                 if ($fromProcessName == MainManager::MASTER_WORKER_NAME) {
                                                     $this->exit(true,10);
                                                 } else {
-                                                    $this->exit(false, 30);
+                                                    $this->exit(false, 10);
                                                 }
                                             }
                                         });
@@ -1213,7 +1224,7 @@ abstract class AbstractBaseWorker
             $channel = new Channel(1);
             $timerId = \Swoole\Timer::after($waitTime * 1000, function () use ($pid) {
                 try {
-                    $this->runtimeCoroutineWait($this->cycleTimes);
+                    $this->runtimeCoroutineWait($this->maxWaitTimeOfExit);
                     (new \Swoolefy\Core\EventApp)->registerApp(function () {
                         $this->onShutDown();
                     });
@@ -1267,22 +1278,9 @@ abstract class AbstractBaseWorker
 
             $channel = new Channel(1);
             $this->exitTimerId = \Swoole\Timer::after($waitTime * 1000, function () use ($pid) {
-                try {
-                    $this->runtimeCoroutineWait($this->cycleTimes);
-                    (new \Swoolefy\Core\EventApp)->registerApp(function () {
-                        $this->onShutDown();
-                    });
-                } catch (\Throwable $throwable) {
-                    $this->onHandleException($throwable);
-                } finally {
-                    if ($this->isForceExit) {
-                        $this->kill($pid, SIGKILL);
-                    } else {
-                        $this->kill($pid, SIGTERM);
-                    }
-                }
+                $this->waitToExit = true;
+                $this->exitNow($pid, $this->maxWaitTimeOfExit);
             });
-
             // block wait to exit
             if (\Swoole\Coroutine::getCid() > 0) {
                 $channel->pop(-1);
@@ -1291,6 +1289,32 @@ abstract class AbstractBaseWorker
             return true;
         }
 
+    }
+
+    /**
+     * 即刻退出进程
+     *
+     * @param int $pid
+     * @param int $maxWaitTimeOfExit
+     * @return void
+     */
+    protected function exitNow(int $pid, int $maxWaitTimeOfExit)
+    {
+        $this->isExit = true;
+        try {
+            $this->runtimeCoroutineWait($maxWaitTimeOfExit);
+            (new \Swoolefy\Core\EventApp)->registerApp(function () {
+                $this->onShutDown();
+            });
+        } catch (\Throwable $throwable) {
+            $this->onHandleException($throwable);
+        } finally {
+            if ($this->isForceExit) {
+                $this->kill($pid, SIGKILL);
+            } else {
+                $this->kill($pid, SIGTERM);
+            }
+        }
     }
 
     /**
@@ -1435,21 +1459,20 @@ abstract class AbstractBaseWorker
     /**
      * wait to coroutine
      *
-     * @param int $cycle_times
-     * @param int $re_wait_time
+     * @param int $maxWaitTime
      * @return void
      */
-    private function runtimeCoroutineWait(int $cycle_times = 20)
+    private function runtimeCoroutineWait(int $maxWaitTime = 20)
     {
-        if ($cycle_times <= 0) {
-            $cycle_times = 10;
+        if ($maxWaitTime <= 10) {
+            $maxWaitTime = 10;
         }
-        while ($cycle_times > 0) {
+        while ($maxWaitTime > 0) {
             // current run coroutine
             $runCoroutineNum = $this->getCurrentRunCoroutineNum();
             // wait to coroutine to finish of doing something, $this->initSystemCoroutineNum+1 是因为除了主协程，当前函数自身也是跑在after的协程回调函数中的，所以多一个协程
             if ($runCoroutineNum > ($this->initSystemCoroutineNum + 1)) {
-                --$cycle_times;
+                --$maxWaitTime;
                 if (\Swoole\Coroutine::getCid() > 0) {
                     \Swoole\Coroutine\System::sleep(1);
                 } else {
