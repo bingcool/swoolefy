@@ -68,6 +68,55 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
     }
 
     /**
+     * 守护进程循环处理
+     *
+     * @return void
+     */
+    protected function loopHandle()
+    {
+
+    }
+
+    /**
+     * run 入口封装while 循环处理，业务只需要关注loopHandle实现业务即可
+     *
+     * @return void
+     */
+    public function run()
+    {
+        // 封装while 循环处理，业务只需要关注loopHandle实现业务即可
+        if (method_exists(static::class, 'loopHandle')) {
+            /**如果重写run函数，也需要按照以下模式处理
+             * 1.设置$this->useLoopHandle = true
+             * 2.自己处理进程退出,添加下面代码段，eg:
+             * if ($this->waitToExit) {
+                $pid = $this->getPid();
+                $this->exitNow($pid, 5);
+             }
+             */
+
+            $this->useLoopHnadle = true;
+            while (true) {
+                if (!$this->isDue()) {
+                    continue;
+                }
+
+                try {
+                    $this->loopHandle();
+                }catch (\Throwable $throwable) {
+                    $this->onHandleException($throwable);
+                }
+
+                // 当接受到进程退出指令后，会设置waitToExit=true, 等主流程的执行完主业务流程后（即loopHandle业务），进程再退出
+                if ($this->waitToExit) {
+                    $pid = $this->getPid();
+                    $this->exitNow($pid, 5);
+                }
+            }
+        }
+    }
+
+    /**
      * registerLogComponents
      *
      * @param int $rotateDay
