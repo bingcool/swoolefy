@@ -209,7 +209,7 @@ abstract class AbstractBaseWorker
      *
      * @var bool
      */
-    protected $useLoopHnadle = false;
+    protected $useLoopHandle = false;
 
     /**
      * static process
@@ -393,9 +393,11 @@ abstract class AbstractBaseWorker
                                             if (SystemEnv::isCronService() && $this->runInBackground && $this->handing) {
                                                 // 设置进程等待退出，进程将在业务处理完后退出
                                                 $this->waitToExit = true;
-                                            }else if ($this->useLoopHnadle) {
+                                                $this->isExit     = true;
+                                            }else if ($this->useLoopHandle) {
                                                 // 进程如果使用封装的loopHandle处理业务时，进程将在业务处理完后退出
                                                 $this->waitToExit = true;
+                                                $this->isExit     = true;
                                             } else {
                                                 if ($fromProcessName == MainManager::MASTER_WORKER_NAME) {
                                                     $this->exit(true,10);
@@ -456,7 +458,10 @@ abstract class AbstractBaseWorker
 
             $this->initSystemCoroutineNum = $this->getCurrentRunCoroutineNum();
 
-            $this->masterLiveTimerId = \Swoole\Timer::tick(($this->args['check_master_live_tick_time'] + rand(1, 5)) * 1000, function ($timerId) {
+            // 定时检查到master主进程死掉的进行的检查次数
+            $tickCheckMasterOffCount = 0;
+
+            $this->masterLiveTimerId = \Swoole\Timer::tick(($this->args['check_master_live_tick_time'] + rand(1, 5)) * 1000, function ($timerId) use(&$tickCheckMasterOffCount) {
                 try {
                     $exitFunction = function ($timerId, $masterPid) {
                         \Swoole\Timer::clear($timerId);
@@ -467,36 +472,43 @@ abstract class AbstractBaseWorker
                         $this->exit(true, 5);
                     };
 
+                    // run Exit function
+                    $runExitFn = function ($timerId, $masterPid, $exitFunction, $tickCheckMasterOffCount) {
+                        if (SystemEnv::isCronService()) {
+                            // cron防止任务还在进行中,强制退出
+                            if (!$this->handing) {
+                                $exitFunction($timerId, $masterPid);
+                            }else {
+                                $this->fmtWriteInfo("Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
+                            }
+                        }else if (SystemEnv::isDaemonService()) {
+                            // daemon防止任务还在进行中,强制退出
+                            // 定时检查到主进程 $$tickCheckMasterOffCount 次已经kill掉了，但子进程也不能一直不退出，否则成了僵尸进程了，这里做一个兜底退出，1800秒后强制退出
+                            $lastTime = $this->args['check_master_live_tick_time'] * $tickCheckMasterOffCount;
+                            $this->fmtWriteInfo("Daemon Process={$this->getProcessName()} last master off time={$lastTime}, tickCheckMasterOffCount={$tickCheckMasterOffCount}, pid={$this->getPid()}");
+                            if (!$this->useLoopHandle || ($lastTime > 1800) ) {
+                                $exitFunction($timerId, $masterPid);
+                            }else {
+                                $this->fmtWriteInfo("Daemon Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
+                            }
+                        }else {
+                            $exitFunction($timerId, $masterPid);
+                        }
+                    };
+
                     if (!$this->isMasterLive()) {
                         sleep(2);
                         if(!$this->isMasterLive()) {
                             $masterPid  = $this->getMasterPid();
-                            // cron防止任务还在进行中,强制退出
-                            if (SystemEnv::isCronService()) {
-                                if (!$this->handing) {
-                                    $exitFunction($timerId, $masterPid);
-                                }else {
-                                    $this->fmtWriteInfo("Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
-                                }
-                            }else {
-                                $exitFunction($timerId, $masterPid);
-                            }
+                            $tickCheckMasterOffCount++;
+                            $runExitFn($timerId, $masterPid, $exitFunction, $tickCheckMasterOffCount);
                         }
                     }else {
                         $parentPid = posix_getppid();
                         if($parentPid == 1) {
                             $masterPid = '1(system init)';
                             $this->fmtWriteInfo("This Process of Parent Process is System Init Process, Master Pid={$masterPid}，children process={$this->getProcessName()},worker_id={$this->getProcessWorkerId()} start to exit");
-                            // cron防止任务还在进行中,强制退出
-                            if (SystemEnv::isCronService()) {
-                                if (!$this->handing) {
-                                    $exitFunction($timerId, $masterPid);
-                                } else {
-                                    $this->fmtWriteInfo("Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
-                                }
-                            }else {
-                                $exitFunction($timerId, $masterPid);
-                            }
+                            $runExitFn($timerId, $masterPid, $exitFunction, $tickCheckMasterOffCount);
                         }
                     }
 
@@ -1008,7 +1020,7 @@ abstract class AbstractBaseWorker
      */
     public function isDue(): bool
     {
-        if($this->isRebooting() || $this->isForceExit() || $this->isExiting()) {
+        if($this->isRebooting() || $this->isForceExit() || $this->isExiting() || $this->waitToExit) {
             sleep(1);
             $this->fmtWriteInfo("Process Wait to Exit or Reboot");
             return false;

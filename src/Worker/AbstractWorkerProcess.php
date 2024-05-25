@@ -84,7 +84,7 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
      */
     public function run()
     {
-        // 封装while 循环处理，业务只需要关注loopHandle实现业务即可
+        // 封装while(true)循环处理，业务只需要关注loopHandle实现业务即可
         if (method_exists(static::class, 'loopHandle')) {
             /**如果重写run函数，也需要按照以下模式处理
              * 1.设置$this->useLoopHandle = true
@@ -95,7 +95,7 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
              }
              */
 
-            $this->useLoopHnadle = true;
+            $this->useLoopHandle = true;
             while (true) {
                 if (!$this->isDue()) {
                     continue;
@@ -107,6 +107,7 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
                     $this->onHandleException($throwable);
                 }
 
+                \Swoole\Coroutine::sleep(0.05);
                 // 当接受到进程退出指令后，会设置waitToExit=true, 等主流程的执行完主业务流程后（即loopHandle业务），进程再退出
                 if ($this->waitToExit) {
                     $pid = $this->getPid();
