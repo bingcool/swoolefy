@@ -169,10 +169,10 @@ abstract class AbstractBaseWorker
     private $rebootCount = 0;
 
     /**
-     * 停止时，存在挂起的协程，进行轮询次数协程是否恢复，并执行完毕，默认5次,子类可以重置
-     * @var int
+     * 接收到退出指令时，最长等待多长时间退出，最大时间达到后强制退出，不关注进程是否完成业务操作
+     * @var int 最长等待时间，单位秒
      */
-    protected $cycleTimes = 5;
+    protected $maxWaitTimeOfExit = 30;
 
     /**
      * @var int
@@ -202,6 +202,14 @@ abstract class AbstractBaseWorker
      * @var bool cron接收到退出指令，但因业务还在执行中，只能设置waitToExit=true,等业务处理完了再退出
      */
     protected $waitToExit = false;
+
+
+    /**
+     * 是否是使用loopHandle函数业务处理
+     *
+     * @var bool
+     */
+    protected $useLoopHandle = false;
 
     /**
      * static process
@@ -385,11 +393,16 @@ abstract class AbstractBaseWorker
                                             if (SystemEnv::isCronService() && $this->runInBackground && $this->handing) {
                                                 // 设置进程等待退出，进程将在业务处理完后退出
                                                 $this->waitToExit = true;
-                                            }else {
+                                                $this->isExit     = true;
+                                            }else if ($this->useLoopHandle) {
+                                                // 进程如果使用封装的loopHandle处理业务时，进程将在业务处理完后退出
+                                                $this->waitToExit = true;
+                                                $this->isExit     = true;
+                                            } else {
                                                 if ($fromProcessName == MainManager::MASTER_WORKER_NAME) {
                                                     $this->exit(true,10);
                                                 } else {
-                                                    $this->exit(false, 30);
+                                                    $this->exit(false, 10);
                                                 }
                                             }
                                         });
@@ -445,7 +458,10 @@ abstract class AbstractBaseWorker
 
             $this->initSystemCoroutineNum = $this->getCurrentRunCoroutineNum();
 
-            $this->masterLiveTimerId = \Swoole\Timer::tick(($this->args['check_master_live_tick_time'] + rand(1, 5)) * 1000, function ($timerId) {
+            // 定时检查到master主进程死掉的进行的检查次数
+            $tickCheckMasterOffCount = 0;
+
+            $this->masterLiveTimerId = \Swoole\Timer::tick(($this->args['check_master_live_tick_time'] + rand(1, 5)) * 1000, function ($timerId) use(&$tickCheckMasterOffCount) {
                 try {
                     $exitFunction = function ($timerId, $masterPid) {
                         \Swoole\Timer::clear($timerId);
@@ -456,36 +472,43 @@ abstract class AbstractBaseWorker
                         $this->exit(true, 5);
                     };
 
+                    // run Exit function
+                    $runExitFn = function ($timerId, $masterPid, $exitFunction, $tickCheckMasterOffCount) {
+                        if (SystemEnv::isCronService()) {
+                            // cron防止任务还在进行中,强制退出
+                            if (!$this->handing) {
+                                $exitFunction($timerId, $masterPid);
+                            }else {
+                                $this->fmtWriteInfo("Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
+                            }
+                        }else if (SystemEnv::isDaemonService()) {
+                            // daemon防止任务还在进行中,强制退出
+                            // 定时检查到主进程 $$tickCheckMasterOffCount 次已经kill掉了，但子进程也不能一直不退出，否则成了僵尸进程了，这里做一个兜底退出，1800秒后强制退出
+                            $lastTime = $this->args['check_master_live_tick_time'] * $tickCheckMasterOffCount;
+                            $this->fmtWriteInfo("Daemon Process={$this->getProcessName()} last master off time={$lastTime}, tickCheckMasterOffCount={$tickCheckMasterOffCount}, pid={$this->getPid()}");
+                            if (!$this->useLoopHandle || ($lastTime > 1800) ) {
+                                $exitFunction($timerId, $masterPid);
+                            }else {
+                                $this->fmtWriteInfo("Daemon Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
+                            }
+                        }else {
+                            $exitFunction($timerId, $masterPid);
+                        }
+                    };
+
                     if (!$this->isMasterLive()) {
                         sleep(2);
                         if(!$this->isMasterLive()) {
                             $masterPid  = $this->getMasterPid();
-                            // cron防止任务还在进行中,强制退出
-                            if (SystemEnv::isCronService()) {
-                                if (!$this->handing) {
-                                    $exitFunction($timerId, $masterPid);
-                                }else {
-                                    $this->fmtWriteInfo("Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
-                                }
-                            }else {
-                                $exitFunction($timerId, $masterPid);
-                            }
+                            $tickCheckMasterOffCount++;
+                            $runExitFn($timerId, $masterPid, $exitFunction, $tickCheckMasterOffCount);
                         }
                     }else {
                         $parentPid = posix_getppid();
                         if($parentPid == 1) {
                             $masterPid = '1(system init)';
                             $this->fmtWriteInfo("This Process of Parent Process is System Init Process, Master Pid={$masterPid}，children process={$this->getProcessName()},worker_id={$this->getProcessWorkerId()} start to exit");
-                            // cron防止任务还在进行中,强制退出
-                            if (SystemEnv::isCronService()) {
-                                if (!$this->handing) {
-                                    $exitFunction($timerId, $masterPid);
-                                } else {
-                                    $this->fmtWriteInfo("Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
-                                }
-                            }else {
-                                $exitFunction($timerId, $masterPid);
-                            }
+                            $runExitFn($timerId, $masterPid, $exitFunction, $tickCheckMasterOffCount);
                         }
                     }
 
@@ -997,7 +1020,7 @@ abstract class AbstractBaseWorker
      */
     public function isDue(): bool
     {
-        if($this->isRebooting() || $this->isForceExit() || $this->isExiting()) {
+        if($this->isRebooting() || $this->isForceExit() || $this->isExiting() || $this->waitToExit) {
             sleep(1);
             $this->fmtWriteInfo("Process Wait to Exit or Reboot");
             return false;
@@ -1213,7 +1236,7 @@ abstract class AbstractBaseWorker
             $channel = new Channel(1);
             $timerId = \Swoole\Timer::after($waitTime * 1000, function () use ($pid) {
                 try {
-                    $this->runtimeCoroutineWait($this->cycleTimes);
+                    $this->runtimeCoroutineWait($this->maxWaitTimeOfExit);
                     (new \Swoolefy\Core\EventApp)->registerApp(function () {
                         $this->onShutDown();
                     });
@@ -1267,22 +1290,9 @@ abstract class AbstractBaseWorker
 
             $channel = new Channel(1);
             $this->exitTimerId = \Swoole\Timer::after($waitTime * 1000, function () use ($pid) {
-                try {
-                    $this->runtimeCoroutineWait($this->cycleTimes);
-                    (new \Swoolefy\Core\EventApp)->registerApp(function () {
-                        $this->onShutDown();
-                    });
-                } catch (\Throwable $throwable) {
-                    $this->onHandleException($throwable);
-                } finally {
-                    if ($this->isForceExit) {
-                        $this->kill($pid, SIGKILL);
-                    } else {
-                        $this->kill($pid, SIGTERM);
-                    }
-                }
+                $this->waitToExit = true;
+                $this->exitNow($pid, $this->maxWaitTimeOfExit);
             });
-
             // block wait to exit
             if (\Swoole\Coroutine::getCid() > 0) {
                 $channel->pop(-1);
@@ -1291,6 +1301,32 @@ abstract class AbstractBaseWorker
             return true;
         }
 
+    }
+
+    /**
+     * 即刻退出进程
+     *
+     * @param int $pid
+     * @param int $maxWaitTimeOfExit
+     * @return void
+     */
+    protected function exitNow(int $pid, int $maxWaitTimeOfExit)
+    {
+        $this->isExit = true;
+        try {
+            $this->runtimeCoroutineWait($maxWaitTimeOfExit);
+            (new \Swoolefy\Core\EventApp)->registerApp(function () {
+                $this->onShutDown();
+            });
+        } catch (\Throwable $throwable) {
+            $this->onHandleException($throwable);
+        } finally {
+            if ($this->isForceExit) {
+                $this->kill($pid, SIGKILL);
+            } else {
+                $this->kill($pid, SIGTERM);
+            }
+        }
     }
 
     /**
@@ -1435,25 +1471,24 @@ abstract class AbstractBaseWorker
     /**
      * wait to coroutine
      *
-     * @param int $cycle_times
-     * @param int $re_wait_time
+     * @param int $maxWaitTime
      * @return void
      */
-    private function runtimeCoroutineWait(int $cycle_times = 5, int $re_wait_time = 2)
+    private function runtimeCoroutineWait(int $maxWaitTime = 20)
     {
-        if ($cycle_times <= 0) {
-            $cycle_times = 2;
+        if ($maxWaitTime <= 10) {
+            $maxWaitTime = 10;
         }
-        while ($cycle_times > 0) {
+        while ($maxWaitTime > 0) {
             // current run coroutine
             $runCoroutineNum = $this->getCurrentRunCoroutineNum();
-            // wait to coroutine to finish of doing something
-            if ($runCoroutineNum > ($this->initSystemCoroutineNum ?: 2)) {
-                --$cycle_times;
+            // wait to coroutine to finish of doing something, $this->initSystemCoroutineNum+1 是因为除了主协程，当前函数自身也是跑在after的协程回调函数中的，所以多一个协程
+            if ($runCoroutineNum > ($this->initSystemCoroutineNum + 1)) {
+                --$maxWaitTime;
                 if (\Swoole\Coroutine::getCid() > 0) {
-                    \Swoole\Coroutine\System::sleep($re_wait_time);
+                    \Swoole\Coroutine\System::sleep(1);
                 } else {
-                    sleep($re_wait_time);
+                    sleep(1);
                 }
             } else {
                 break;
