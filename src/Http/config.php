@@ -64,6 +64,9 @@ return [
 
     // 是否内存化线上实时任务
     'enable_table_tick_task' => true,
+    // 是否开启内存回收
+    'enable_gc_mem_cache' => true,
+    'gc_mem_cache_tick_time' => 10,
 
     // 内存表定义
     'table' => [

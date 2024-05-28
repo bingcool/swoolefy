@@ -53,6 +53,10 @@ return [
 
     'enable_table_tick_task' => true,
 
+    // 是否开启内存回收
+    'enable_gc_mem_cache' => true,
+    'gc_mem_cache_tick_time' => 10,
+
     // 依赖于EnableSysCollector = true，否则设置没有意义,不生效
     'enable_pv_collector'  => true,
     'enable_sys_collector' => true,
