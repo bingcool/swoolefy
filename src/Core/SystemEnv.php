@@ -159,7 +159,7 @@ class SystemEnv
                 $options = self::inputOptions();
             }
         }
-        $value =  trim($options[$name],'\'') ?? '';
+        $value = trim($options[$name],'\'') ?? '';
         $value = trim($value,' ');
         return $value;
     }
@@ -305,6 +305,14 @@ class SystemEnv
     public static function disablePutenv()
     {
         static::$putenv = false;
+        static::$repository = null;
+    }
+
+    /**
+     * @return void
+     */
+    public static function clearEnvRepository()
+    {
         static::$repository = null;
     }
 

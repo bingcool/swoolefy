@@ -195,6 +195,7 @@ class EventCtrl implements EventCtrlInterface
         if(!SystemEnv::isWorkerService()) {
             $this->registerComponentPools();
         }
+        $this->registerGcMemCaches();
         static::onWorkerStart($server, $worker_id);
     }
 
@@ -305,6 +306,20 @@ class EventCtrl implements EventCtrlInterface
                     CoroutinePools::getInstance()->getPool($poolName)->clearPool();
                 }
             }
+        }
+    }
+
+    /**
+     * @return void
+     */
+    protected function registerGcMemCaches()
+    {
+        $conf =BaseServer::getConf();
+        if (isset($conf['enable_gc_mem_cache']) && !empty($conf['enable_gc_mem_cache'])) {
+            $time = $conf['gc_mem_cache_tick_time'] ?? 30;
+            \Swoole\Timer::tick($time * 1000, function () {
+                gc_mem_caches();
+            });
         }
     }
 
