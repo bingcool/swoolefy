@@ -1320,6 +1320,7 @@ abstract class AbstractBaseWorker
         } catch (\Throwable $throwable) {
             $this->onHandleException($throwable);
         } finally {
+            $this->writeLog("【{$this->getProcessName()}】进程退出，pid={$this->getPid()}");
             if ($this->isForceExit) {
                 $this->kill($pid, SIGKILL);
             } else {

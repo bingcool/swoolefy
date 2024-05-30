@@ -154,7 +154,7 @@ class BaseCmd extends Command
                         fmtPrintError('[' . APP_NAME . ']' . " Server is running, pid={$pid}, pidFile={$pidFile}");
                         exit(0);
                     } else {
-                        fmtPrintError('[' . WORKER_SERVICE_NAME . ']' . " is running, pid={$pid}, pidFile={$pidFile}");
+                        fmtPrintError('[' . WORKER_SERVICE_NAME . '-server]' . " is running, pid={$pid}, pidFile={$pidFile}");
                         exit(0);
                     }
                 }

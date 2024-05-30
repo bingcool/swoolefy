@@ -113,6 +113,11 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
                     $pid = $this->getPid();
                     $this->exitNow($pid, 5);
                 }
+
+                // 定时任务处理完之后，判断达到一定时间，然后重启进程
+                if ( (time() > $this->getStartTime() + 3600) && $this->isDue()) {
+                    $this->reboot(5);
+                }
             }
         }
     }
