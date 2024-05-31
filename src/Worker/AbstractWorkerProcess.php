@@ -26,7 +26,7 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
     protected $maxHandle = 10000;
 
     /**
-     * @var int
+     * @var int|string
      */
     protected $lifeTime = 3600;
 
@@ -115,8 +115,10 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
                 }
 
                 // 定时任务处理完之后，判断达到一定时间，然后重启进程
-                if ( (time() > $this->getStartTime() + 3600) && $this->isDue()) {
-                    $this->reboot(5);
+                if (is_numeric($this->lifeTime)) {
+                    if ( (time() > $this->getStartTime() + $this->lifeTime) && $this->isDue()) {
+                        $this->reboot(5);
+                    }
                 }
             }
         }

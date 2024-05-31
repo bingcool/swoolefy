@@ -479,7 +479,7 @@ abstract class AbstractBaseWorker
                             if (!$this->handing) {
                                 $exitFunction($timerId, $masterPid);
                             }else {
-                                $this->fmtWriteInfo("Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
+                                $this->fmtWriteInfo("【cron-task-handing】Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
                             }
                         }else if (SystemEnv::isDaemonService()) {
                             // daemon防止任务还在进行中,强制退出
@@ -489,7 +489,7 @@ abstract class AbstractBaseWorker
                             if (!$this->useLoopHandle || ($lastTime > 1800) ) {
                                 $exitFunction($timerId, $masterPid);
                             }else {
-                                $this->fmtWriteInfo("Daemon Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
+                                $this->fmtWriteInfo("【daemon-task-handing】Daemon Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
                             }
                         }else {
                             $exitFunction($timerId, $masterPid);
@@ -512,7 +512,7 @@ abstract class AbstractBaseWorker
                         }
                     }
 
-                    if ($this->isMasterLive() && $this->getProcessWorkerId() == 0 && $this->masterPid) {
+                    if ($this->isMasterLive() && $this->isWorker0() && $this->masterPid && $this->isDue()) {
                         $this->saveMasterId($this->masterPid);
                     }
 
@@ -1235,17 +1235,7 @@ abstract class AbstractBaseWorker
 
             $channel = new Channel(1);
             $timerId = \Swoole\Timer::after($waitTime * 1000, function () use ($pid) {
-                try {
-                    $this->runtimeCoroutineWait($this->maxWaitTimeOfExit);
-                    (new \Swoolefy\Core\EventApp)->registerApp(function () {
-                        $this->onShutDown();
-                    });
-                } catch (\Throwable $throwable) {
-                    $this->onHandleException($throwable);
-                } finally {
-                    // 自身进程退出
-                    $this->kill($pid, SIGTERM);
-                }
+                $this->exitNow($pid, 5);
             });
 
             $this->rebootTimerId = $timerId;
@@ -1332,10 +1322,10 @@ abstract class AbstractBaseWorker
     /**
      * registerTickReboot register time reboot, will be called in init() function
      *
-     * @param $cron_expression
+     * @param int|string $lifeTime
      * @return void
      */
-    protected function registerTickReboot($cron_expression)
+    protected function registerTickReboot($lifeTime)
     {
         /**
          * local模式下的定时任务模式下不能设置定时重启，否则长时间执行的任务会被kill掉,而是在回调函数注册callback闭包来判断是否达到重启时间
@@ -1345,19 +1335,21 @@ abstract class AbstractBaseWorker
             return;
         }
 
-        if (is_numeric($cron_expression)) {
-            $randNum = rand(30, 60);
+        // daemon下使用loopHandle模式，则不注册定时重启，会在业务处理完后重启
+        if ($this->useLoopHandle && is_numeric($lifeTime)) {
+            return;
+        }
+
+        if (is_numeric($lifeTime)) {
+            $randTickTime = rand(10, 15);
+            $tickTime = $randTickTime * 1000;
             // for Example reboot/600s after 600s reboot this process
-            if ($cron_expression < 120) {
-                $sleepTime = 60;
-                $tickTime  = (30 + $randNum) * 1000;
-            } else {
-                $sleepTime = $cron_expression;
-                $tickTime  = (60 + $randNum) * 1000;
+            if ($lifeTime < 60) {
+                $lifeTime = 60;
             }
 
-            \Swoole\Timer::tick($tickTime, function ($timerId) use ($sleepTime) {
-                if (time() - $this->getStartTime() >= $sleepTime) {
+            \Swoole\Timer::tick($tickTime, function ($timerId) use ($lifeTime) {
+                if (time() >=  $this->getStartTime() + $lifeTime) {
                     $this->reboot($this->waitTime);
                     \Swoole\Timer::clear($timerId);
                 }
@@ -1368,7 +1360,7 @@ abstract class AbstractBaseWorker
             // cron expression of timer to reboot this process
             CrontabManager::getInstance()->addRule(
                 'system-register-tick-reboot',
-                $cron_expression,
+                $lifeTime,
                 function () use ($randSleep, $isWorkerId0) {
                     if(!$isWorkerId0) {
                         $this->reboot($this->waitTime + $randSleep);

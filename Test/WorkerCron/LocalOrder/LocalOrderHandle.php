@@ -37,7 +37,7 @@ class LocalOrderHandle extends AbstractCronController {
 
 
         sleep(60);
-        AbstractBaseWorker::getProcessInstance()->reboot(3);
+        //AbstractBaseWorker::getProcessInstance()->reboot(3);
         var_dump("cron end");
 
 //        goApp(function() {
