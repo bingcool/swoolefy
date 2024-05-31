@@ -83,8 +83,15 @@ class CronLocalProcess extends CronProcess
                         return false;
                     }
 
-                    // 定时任务处理完之后，达到一定时间，判断然后重启进程
-                    if ( (time() > $this->getStartTime() + 3600) && $this->isDue()) {
+                    // 定时任务处理完之后，判断达到一定时间，然后重启进程
+                    if (!is_numeric($this->lifeTime)) {
+                        $this->lifeTime = 3600;
+                    }else {
+                        if ($this->lifeTime < 60) {
+                            $this->lifeTime = 60;
+                        }
+                    }
+                    if ( (time() > $this->getStartTime() + $this->lifeTime) && $this->isDue()) {
                         $this->reboot(5);
                     }
             });

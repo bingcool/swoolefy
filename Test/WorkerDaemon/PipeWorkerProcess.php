@@ -23,7 +23,7 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
             }, $a, $b);
 
             var_dump('start start');
-            sleep(120);
+            sleep(15);
             var_dump("gggggggggggggggggggggggggg");
     }
 
