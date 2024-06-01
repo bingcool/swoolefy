@@ -22,9 +22,9 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
                 });
             }, $a, $b);
 
-            var_dump('start start');
-            sleep(15);
-            var_dump("end end end ");
+            var_dump('start start, pid='.$this->getPid());
+            sleep(10);
+            var_dump("end end end,pid=".$this->getPid());
     }
 
 //    public function run()
