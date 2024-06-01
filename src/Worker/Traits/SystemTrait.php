@@ -87,7 +87,7 @@ trait SystemTrait
      * @param $msg
      * @return void
      */
-    private function fmtWriteInfo($msg)
+    protected function fmtWriteInfo($msg)
     {
         initConsoleStyleIo()->write("<info>$msg</info>", true);
         $this->writeLog($msg);
@@ -99,7 +99,7 @@ trait SystemTrait
      * @param $msg
      * @return void
      */
-    private function fmtWriteError($msg)
+    protected function fmtWriteError($msg)
     {
         initConsoleStyleIo()->write("<error>$msg</error>", true);
         $this->writeLog($msg);
@@ -109,7 +109,7 @@ trait SystemTrait
      * @param string $msg
      * @return void
      */
-    private function writeLog(string $msg)
+    protected function writeLog(string $msg)
     {
         if (defined('WORKER_CTL_LOG_FILE')) {
             if (defined('MAX_LOG_FILE_SIZE')) {

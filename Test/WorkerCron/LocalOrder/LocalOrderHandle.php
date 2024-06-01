@@ -5,6 +5,8 @@ use Swoolefy\Core\Application;
 use Swoolefy\Core\Crontab\AbstractCronController;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Swfy;
+use Swoolefy\Core\SystemEnv;
+use Swoolefy\Worker\AbstractBaseWorker;
 use Test\Factory;
 use Test\Logger\RunLog;
 
@@ -27,10 +29,15 @@ class LocalOrderHandle extends AbstractCronController {
 //        var_dump(env("HOST_NAME"));
 //        var_dump(env('HOST_PASSWORD'));
 //        var_dump(Swfy::getConf()['bjg']);
-
+        SystemEnv::clearEnvRepository();
         RunLog::info("this is a cron test log");
         var_dump("cron start");
         sleep(3);
+        var_dump(SystemEnv::get('WEB_SITE_HOST'));
+
+
+        sleep(60);
+        //AbstractBaseWorker::getProcessInstance()->reboot(3);
         var_dump("cron end");
 
 //        goApp(function() {

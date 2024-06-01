@@ -479,17 +479,17 @@ abstract class AbstractBaseWorker
                             if (!$this->handing) {
                                 $exitFunction($timerId, $masterPid);
                             }else {
-                                $this->fmtWriteInfo("Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
+                                $this->fmtWriteInfo("【cron-task-handing】Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
                             }
                         }else if (SystemEnv::isDaemonService()) {
                             // daemon防止任务还在进行中,强制退出
-                            // 定时检查到主进程 $$tickCheckMasterOffCount 次已经kill掉了，但子进程也不能一直不退出，否则成了僵尸进程了，这里做一个兜底退出，1800秒后强制退出
+                            // 定时检查到主进程 $tickCheckMasterOffCount 次已经kill掉了，但子进程也不能一直不退出，否则成了僵尸进程了，这里做一个兜底退出，1800秒后强制退出
                             $lastTime = $this->args['check_master_live_tick_time'] * $tickCheckMasterOffCount;
                             $this->fmtWriteInfo("Daemon Process={$this->getProcessName()} last master off time={$lastTime}, tickCheckMasterOffCount={$tickCheckMasterOffCount}, pid={$this->getPid()}");
                             if (!$this->useLoopHandle || ($lastTime > 1800) ) {
                                 $exitFunction($timerId, $masterPid);
                             }else {
-                                $this->fmtWriteInfo("Daemon Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
+                                $this->fmtWriteInfo("【daemon-task-handing】Daemon Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
                             }
                         }else {
                             $exitFunction($timerId, $masterPid);
@@ -512,7 +512,7 @@ abstract class AbstractBaseWorker
                         }
                     }
 
-                    if ($this->isMasterLive() && $this->getProcessWorkerId() == 0 && $this->masterPid) {
+                    if ($this->isMasterLive() && $this->isWorker0() && $this->masterPid && $this->isDue()) {
                         $this->saveMasterId($this->masterPid);
                     }
 
@@ -1022,7 +1022,7 @@ abstract class AbstractBaseWorker
     {
         if($this->isRebooting() || $this->isForceExit() || $this->isExiting() || $this->waitToExit) {
             sleep(1);
-            $this->fmtWriteInfo("Process Wait to Exit or Reboot");
+            $this->fmtWriteInfo("【{$this->getProcessName()}】Process Wait to Exit or Reboot，Do not something");
             return false;
         }
         return true;
@@ -1200,11 +1200,11 @@ abstract class AbstractBaseWorker
     /**
      * reboot
      *
-     * @param float $wait_time
+     * @param float $afterWaitTime
      * @param bool $includeDynamicProcess
      * @return bool
      */
-    public function reboot(float $waitTime = 10, bool $includeDynamicProcess = true)
+    public function reboot(float $afterWaitTime = 10, bool $includeDynamicProcess = true)
     {
         if(!$includeDynamicProcess) {
             if (!$this->isStaticProcess()) {
@@ -1218,12 +1218,12 @@ abstract class AbstractBaseWorker
             return false;
         }
 
-        if ($waitTime < 0) {
-            $waitTime = $this->getWaitTime();
+        if ($afterWaitTime < 0) {
+            $afterWaitTime = $this->getWaitTime();
         }
 
-        if ($waitTime <= 5) {
-            $waitTime = 5;
+        if ($afterWaitTime <= 5) {
+            $afterWaitTime = 5;
         }
 
         $pid = $this->getPid();
@@ -1231,21 +1231,11 @@ abstract class AbstractBaseWorker
             // 优先通知master进程先拉起子进程
             $this->notifyMasterRebootNewProcess($this->getProcessName());
             $this->isReboot = true;
-            $this->readyRebootTime = time() + $waitTime;
+            $this->readyRebootTime = time() + $afterWaitTime;
 
             $channel = new Channel(1);
-            $timerId = \Swoole\Timer::after($waitTime * 1000, function () use ($pid) {
-                try {
-                    $this->runtimeCoroutineWait($this->maxWaitTimeOfExit);
-                    (new \Swoolefy\Core\EventApp)->registerApp(function () {
-                        $this->onShutDown();
-                    });
-                } catch (\Throwable $throwable) {
-                    $this->onHandleException($throwable);
-                } finally {
-                    // 自身进程退出
-                    $this->kill($pid, SIGTERM);
-                }
+            $timerId = \Swoole\Timer::after($afterWaitTime * 1000, function () use ($pid) {
+                $this->exitNow($pid, 20);
             });
 
             $this->rebootTimerId = $timerId;
@@ -1290,7 +1280,6 @@ abstract class AbstractBaseWorker
 
             $channel = new Channel(1);
             $this->exitTimerId = \Swoole\Timer::after($waitTime * 1000, function () use ($pid) {
-                $this->waitToExit = true;
                 $this->exitNow($pid, $this->maxWaitTimeOfExit);
             });
             // block wait to exit
@@ -1321,6 +1310,7 @@ abstract class AbstractBaseWorker
         } catch (\Throwable $throwable) {
             $this->onHandleException($throwable);
         } finally {
+            $this->writeLog("【{$this->getProcessName()}】进程退出，pid={$this->getPid()}");
             if ($this->isForceExit) {
                 $this->kill($pid, SIGKILL);
             } else {
@@ -1332,32 +1322,41 @@ abstract class AbstractBaseWorker
     /**
      * registerTickReboot register time reboot, will be called in init() function
      *
-     * @param $cron_expression
      * @return void
      */
-    protected function registerTickReboot($cron_expression)
+    protected function registerTickReboot()
     {
         /**
          * local模式下的定时任务模式下不能设置定时重启，否则长时间执行的任务会被kill掉,而是在回调函数注册callback闭包来判断是否达到重启时间
          * @see \Swoolefy\Worker\Cron\CronLocalProcess
          */
         if (SystemEnv::isCronService() && $this instanceof \Swoolefy\Worker\Cron\CronLocalProcess) {
+            if (!is_numeric($this->lifeTime)) {
+                $this->lifeTime = 3600;
+            }else {
+                if ($this->lifeTime < 60) {
+                    $this->lifeTime = 60;
+                }
+            }
             return;
         }
 
-        if (is_numeric($cron_expression)) {
-            $randNum = rand(30, 60);
+        $lifeTime = $this->lifeTime;
+        // daemon下使用loopHandle模式，则不注册定时重启，会在业务处理完后重启
+        if ($this->useLoopHandle && is_numeric($lifeTime)) {
+            return;
+        }
+
+        if (is_numeric($lifeTime)) {
+            $randTickTime = rand(10, 15);
+            $tickTime = $randTickTime * 1000;
             // for Example reboot/600s after 600s reboot this process
-            if ($cron_expression < 120) {
-                $sleepTime = 60;
-                $tickTime  = (30 + $randNum) * 1000;
-            } else {
-                $sleepTime = $cron_expression;
-                $tickTime  = (60 + $randNum) * 1000;
+            if ($lifeTime < 60) {
+                $lifeTime = 60;
             }
 
-            \Swoole\Timer::tick($tickTime, function ($timerId) use ($sleepTime) {
-                if (time() - $this->getStartTime() >= $sleepTime) {
+            \Swoole\Timer::tick($tickTime, function ($timerId) use ($lifeTime) {
+                if (time() >=  $this->getStartTime() + $lifeTime) {
                     $this->reboot($this->waitTime);
                     \Swoole\Timer::clear($timerId);
                 }
@@ -1368,10 +1367,10 @@ abstract class AbstractBaseWorker
             // cron expression of timer to reboot this process
             CrontabManager::getInstance()->addRule(
                 'system-register-tick-reboot',
-                $cron_expression,
+                $lifeTime,
                 function () use ($randSleep, $isWorkerId0) {
                     if(!$isWorkerId0) {
-                        $this->reboot($this->waitTime + $randSleep);
+                        $this->reboot($randSleep);
                     }
                     $this->reboot($this->waitTime);
                 });

@@ -142,7 +142,7 @@ abstract class AbstractProcess
             \Swoole\Event::del($process->pipe);
             \Swoole\Event::exit();
 
-            // 脚本模式下.任务进程退出时，父进程也得退出
+            // script 模式下.任务进程退出时，父进程也得退出
             if (SystemEnv::isScriptService()) {
                 $swooleMasterPid = Swfy::getMasterPid();
                 \Swoole\Process::kill($swooleMasterPid, SIGTERM);

@@ -50,6 +50,10 @@ return [
 
     'enable_table_tick_task' => true,
 
+    // 是否开启内存回收
+    'enable_gc_mem_cache' => true,
+    'gc_mem_cache_tick_time' => 10,
+
     'mqtt' => [
         'username'           => '',
         'password'           => '',
