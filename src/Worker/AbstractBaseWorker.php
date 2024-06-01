@@ -1022,7 +1022,7 @@ abstract class AbstractBaseWorker
     {
         if($this->isRebooting() || $this->isForceExit() || $this->isExiting() || $this->waitToExit) {
             sleep(1);
-            $this->fmtWriteInfo("Process Wait to Exit or Reboot");
+            $this->fmtWriteInfo("【{$this->getProcessName()}】Process Wait to Exit or Reboot，Do not something");
             return false;
         }
         return true;
@@ -1322,19 +1322,26 @@ abstract class AbstractBaseWorker
     /**
      * registerTickReboot register time reboot, will be called in init() function
      *
-     * @param int|string $lifeTime
      * @return void
      */
-    protected function registerTickReboot($lifeTime)
+    protected function registerTickReboot()
     {
         /**
          * local模式下的定时任务模式下不能设置定时重启，否则长时间执行的任务会被kill掉,而是在回调函数注册callback闭包来判断是否达到重启时间
          * @see \Swoolefy\Worker\Cron\CronLocalProcess
          */
         if (SystemEnv::isCronService() && $this instanceof \Swoolefy\Worker\Cron\CronLocalProcess) {
+            if (!is_numeric($this->lifeTime)) {
+                $this->lifeTime = 3600;
+            }else {
+                if ($this->lifeTime < 60) {
+                    $this->lifeTime = 60;
+                }
+            }
             return;
         }
 
+        $lifeTime = $this->lifeTime;
         // daemon下使用loopHandle模式，则不注册定时重启，会在业务处理完后重启
         if ($this->useLoopHandle && is_numeric($lifeTime)) {
             return;

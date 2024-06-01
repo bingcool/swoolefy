@@ -24,7 +24,7 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
 
             var_dump('start start');
             sleep(15);
-            var_dump("gggggggggggggggggggggggggg");
+            var_dump("end end end ");
     }
 
 //    public function run()

@@ -55,7 +55,7 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
         $this->lifeTime                    = $this->getArgs()['life_time'] ?? $this->lifeTime;
         $this->currentRunCoroutineLastCid  = $this->getArgs()['current_run_coroutine_last_cid'] ?? $this->maxHandle * 10;
         $this->limitCurrentRunCoroutineNum = $this->getArgs()['limit_run_coroutine_num'] ?? null;
-        $this->registerTickReboot($this->lifeTime);
+        $this->registerTickReboot();
         $this->onInit();
     }
 
@@ -98,6 +98,7 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
             $this->useLoopHandle = true;
             while (true) {
                 if (!$this->isDue()) {
+                    $this->fmtWriteInfo("【{$this->getProcessName()}】守护进程退出|重启中，不再处理任务");
                     continue;
                 }
 
