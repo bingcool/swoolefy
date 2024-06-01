@@ -1200,11 +1200,11 @@ abstract class AbstractBaseWorker
     /**
      * reboot
      *
-     * @param float $wait_time
+     * @param float $afterWaitTime
      * @param bool $includeDynamicProcess
      * @return bool
      */
-    public function reboot(float $waitTime = 10, bool $includeDynamicProcess = true)
+    public function reboot(float $afterWaitTime = 10, bool $includeDynamicProcess = true)
     {
         if(!$includeDynamicProcess) {
             if (!$this->isStaticProcess()) {
@@ -1218,12 +1218,12 @@ abstract class AbstractBaseWorker
             return false;
         }
 
-        if ($waitTime < 0) {
-            $waitTime = $this->getWaitTime();
+        if ($afterWaitTime < 0) {
+            $afterWaitTime = $this->getWaitTime();
         }
 
-        if ($waitTime <= 5) {
-            $waitTime = 5;
+        if ($afterWaitTime <= 5) {
+            $afterWaitTime = 5;
         }
 
         $pid = $this->getPid();
@@ -1231,11 +1231,11 @@ abstract class AbstractBaseWorker
             // 优先通知master进程先拉起子进程
             $this->notifyMasterRebootNewProcess($this->getProcessName());
             $this->isReboot = true;
-            $this->readyRebootTime = time() + $waitTime;
+            $this->readyRebootTime = time() + $afterWaitTime;
 
             $channel = new Channel(1);
-            $timerId = \Swoole\Timer::after($waitTime * 1000, function () use ($pid) {
-                $this->exitNow($pid, 5);
+            $timerId = \Swoole\Timer::after($afterWaitTime * 1000, function () use ($pid) {
+                $this->exitNow($pid, 15);
             });
 
             $this->rebootTimerId = $timerId;
@@ -1370,7 +1370,7 @@ abstract class AbstractBaseWorker
                 $lifeTime,
                 function () use ($randSleep, $isWorkerId0) {
                     if(!$isWorkerId0) {
-                        $this->reboot($this->waitTime + $randSleep);
+                        $this->reboot($randSleep);
                     }
                     $this->reboot($this->waitTime);
                 });
