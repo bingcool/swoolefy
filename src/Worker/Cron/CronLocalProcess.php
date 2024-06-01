@@ -68,7 +68,7 @@ class CronLocalProcess extends CronProcess
                     }
 
                     if (!$this->isDue()) {
-                        $this->fmtWriteInfo("【{$this->getProcessName()}】进程退出中，不再处理任务");
+                        $this->fmtWriteInfo("【{$this->getProcessName()}】定时任务进程退出|重启中，暂时不再处理任务");
                         return false;
                     }
 
@@ -84,15 +84,10 @@ class CronLocalProcess extends CronProcess
                     }
 
                     // 定时任务处理完之后，判断达到一定时间，然后重启进程
-                    if (!is_numeric($this->lifeTime)) {
-                        $this->lifeTime = 3600;
-                    }else {
-                        if ($this->lifeTime < 60) {
-                            $this->lifeTime = 60;
+                    if (is_numeric($this->lifeTime)) {
+                        if ( (time() > $this->getStartTime() + $this->lifeTime) && $this->isDue()) {
+                            $this->reboot(5);
                         }
-                    }
-                    if ( (time() > $this->getStartTime() + $this->lifeTime) && $this->isDue()) {
-                        $this->reboot(5);
                     }
             });
         }catch (\Throwable $exception) {
