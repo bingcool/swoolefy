@@ -61,6 +61,16 @@ function getOneFreePort(array $excludePorts = []): int
     return get_one_free_port($excludePorts);
 }
 
+/**
+ * json_validate
+ */
+if (!function_exists('json_validate')) {
+    function json_validate(string $string): bool {
+        json_decode($string);
+        return json_last_error() === JSON_ERROR_NONE;
+    }
+}
+
 function fmtPrintInfo($msg, bool $newLine = true)
 {
     if (is_array($msg)) {

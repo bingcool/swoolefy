@@ -253,7 +253,13 @@ class CtlApi
         $runner = CommandRunner::getInstance('restart-'.time());
         $runner->isNextHandle(false);
         $execBinFile = SystemEnv::PhpBinFile();
-        $scriptFile  = WORKER_START_SCRIPT_FILE;
+
+        if (str_contains($_SERVER['SCRIPT_FILENAME'], $_SERVER['PWD'])) {
+            $scriptFile = $_SERVER['SCRIPT_FILENAME'];
+        }else {
+            $scriptFile = WORKER_START_SCRIPT_FILE;
+        }
+
         $appName     = APP_NAME;
         list($command) = $runner->exec($execBinFile, "{$scriptFile} restart {$appName} --force=1", [],true, '/dev/null', false);
 
