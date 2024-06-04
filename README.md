@@ -157,7 +157,7 @@ define('IS_WORKER_SERVICE', 0);
 define('IS_CLI_SCRIPT', 0);
 define('IS_CRON_SERVICE', 0);
 define('PHP_BIN_FILE','/usr/bin/php');    
-define('WORKER_START_SCRIPT_FILE', $_SERVER['PWD'].'/'.$_SERVER['SCRIPT_FILENAME']);
+define('WORKER_START_SCRIPT_FILE', str_contains($_SERVER['SCRIPT_FILENAME'], $_SERVER['PWD']) ? $_SERVER['SCRIPT_FILENAME'] : $_SERVER['PWD'].'/'.$_SERVER['SCRIPT_FILENAME']);
 
 date_default_timezone_set('Asia/Shanghai');
 
