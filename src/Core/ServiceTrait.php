@@ -69,12 +69,12 @@ trait ServiceTrait
     }
 
     /**
-     * getWorkersPid
+     * getWorkerIdMapPid
      * @return array
      */
-    public static function getWorkersPid()
+    public static function getWorkerIdMapPid()
     {
-        return BaseServer::getWorkersPid();
+        return BaseServer::getWorkerIdMapPid();
     }
 
     /**
