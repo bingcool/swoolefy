@@ -1235,7 +1235,7 @@ abstract class AbstractBaseWorker
 
             $channel = new Channel(1);
             $timerId = \Swoole\Timer::after($afterWaitTime * 1000, function () use ($pid) {
-                $this->exitNow($pid, 20);
+                $this->exitNow($pid, 15);
             });
 
             $this->rebootTimerId = $timerId;

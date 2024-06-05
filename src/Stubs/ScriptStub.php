@@ -30,7 +30,7 @@ $options = \Swoolefy\Core\SystemEnv::inputOptions();
 $command =\Swoolefy\Core\SystemEnv::getOption('c');
 $workPidFile = $command.'@'.substr(md5(json_encode($options)),0, 12);
 
-define('WORKER_START_SCRIPT_FILE', $_SERVER['PWD'].'/'.$_SERVER['SCRIPT_FILENAME']);
+define('WORKER_START_SCRIPT_FILE', str_contains($_SERVER['SCRIPT_FILENAME'], $_SERVER['PWD']) ? $_SERVER['SCRIPT_FILENAME'] : $_SERVER['PWD'].'/'.$_SERVER['SCRIPT_FILENAME']);
 define('WORKER_PID_FILE_ROOT', '/tmp/workerfy/log/'.WORKER_SERVICE_NAME);
 define('WORKER_PID_FILE', WORKER_PID_FILE_ROOT."/{$workPidFile}.pid");
 define('WORKER_STATUS_FILE',WORKER_PID_FILE_ROOT.'/status.log');

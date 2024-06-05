@@ -27,7 +27,7 @@ define('PHP_BIN_FILE','/usr/bin/php');
 
 define('WORKER_SERVICE_NAME', makeServerName($_SERVER['argv'][2]));
 
-define('WORKER_START_SCRIPT_FILE', $_SERVER['PWD'].'/'.$_SERVER['SCRIPT_FILENAME']);
+define('WORKER_START_SCRIPT_FILE', str_contains($_SERVER['SCRIPT_FILENAME'], $_SERVER['PWD']) ? $_SERVER['SCRIPT_FILENAME'] : $_SERVER['PWD'].'/'.$_SERVER['SCRIPT_FILENAME']);
 define('WORKER_PID_FILE_ROOT', '/tmp/workerfy/log/'.WORKER_SERVICE_NAME);
 define('WORKER_PID_FILE', WORKER_PID_FILE_ROOT.'/worker.pid');
 define('WORKER_STATUS_FILE',WORKER_PID_FILE_ROOT.'/status.log');

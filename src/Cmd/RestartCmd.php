@@ -74,7 +74,13 @@ class RestartCmd extends BaseCmd
             // sleep max 30s
             $waitTime = 30;
         }
-        $selfFile   = WORKER_START_SCRIPT_FILE;
+
+        if (str_contains($_SERVER['SCRIPT_FILENAME'], $_SERVER['PWD'])) {
+            $selfFile = $_SERVER['SCRIPT_FILENAME'];
+        }else {
+            $selfFile = WORKER_START_SCRIPT_FILE;
+        }
+
         $scriptFile = "$selfFile start {$appName} --daemon=1";
 
         \Swoole\Coroutine::create(function () use ($phpBinFile, $scriptFile) {
