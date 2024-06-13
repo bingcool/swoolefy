@@ -16,7 +16,7 @@ class RedisList extends AbstractProcess {
     {
         goTick(2000, function () {
             $queue = Factory::getQueue();
-            $queue->push(['name'=> 'bingcool','num' => rand(1,10000)]);
+            $queue->push(['name'=> 'bingcoolggg','num' => rand(1,10000)], ['name'=> 'bingcoolffff','num' => rand(1,10000)]);
         });
 
         $queue = Factory::getQueue();
@@ -30,10 +30,11 @@ class RedisList extends AbstractProcess {
                         continue;
                     }
                     $data = $result[1];
+                    var_dump($data);
                     // 创建协程单例
                     goApp(function () use($data) {
                         $list = new \Test\Process\ListProcess\ListController($data);
-                        $list->doHandle();
+                        //$list->doHandle();
                     });
 
                     //$queue->retry($data);

@@ -20,8 +20,11 @@ $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
 
 return [
     'queue' => function() {
-        $redis = Application::getApp()->get('redis')->getObject();
-        return new \Common\Library\Queues\Queue($redis,\Test\Process\ListProcess\RedisList::queue_order_list);
+//        $redis = Application::getApp()->get('redis')->getObject();
+//        return new \Common\Library\Queues\Queue($redis,\Test\Process\ListProcess\RedisList::queue_order_list);
+
+        $predis = Application::getApp()->get('predis')->getObject();
+        return new \Common\Library\Queues\Queue($predis,\Test\Process\QueueProcess\Queue::queue_order_list);
     },
 
     'delayQueue' => function() {
