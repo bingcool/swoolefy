@@ -76,6 +76,11 @@ class OrderEntity extends ClientModel
         return $value;
     }
 
+    public function getOrderProductIdsAttr($value)
+    {
+        return json_decode($value, true);
+    }
+
     /**
      * @param $value
      * @return false|string
