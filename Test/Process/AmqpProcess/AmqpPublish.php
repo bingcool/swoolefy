@@ -14,7 +14,7 @@ class AmqpPublish extends AbstractProcess {
 
     public function run()
     {
-        $this->handle3();
+        $this->handle1();
     }
 
     public function handle1() {
@@ -34,15 +34,28 @@ class AmqpPublish extends AbstractProcess {
      * @return void
      */
     public function handle3() {
-        \Swoolefy\Core\Timer\TickManager::tickTimer(500, function () {
+        \Swoolefy\Core\Timer\TickManager::tickTimer(3000, function () {
             /**
              * @var AmqpDelayDirectQueue $amqpDelayDirect
              */
             $amqpDelayDirect = Application::getApp()->get('orderDelayDirectQueue');
-            $messageBody = "amqp delay direct ".'-'.date('Y-m-d H:i:s');
-            $message = new AMQPMessage($messageBody, array('content_type' => 'text/plain', 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT));
 
-            $amqpDelayDirect->publish($message);
+            $messages = [
+                ['body' => date('Y-m-d H:i:s').'-Low priority message-1', 'priority' => 1, 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT],
+//                ['body' => 'Medium priority message-5', 'priority' => 5, 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT],
+                //['body' => date('Y-m-d H:i:s').'High priority message-10', 'priority' => 10, 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT]
+            ];
+
+            foreach ($messages as $msgData) {
+                $message = new AMQPMessage(
+                    $msgData['body'],
+                    [
+                        'content_type' => 'text/plain',
+                        'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
+                        'priority' => $msgData['priority']
+                    ]);
+                $amqpDelayDirect->publish($message);
+            }
         });
     }
 

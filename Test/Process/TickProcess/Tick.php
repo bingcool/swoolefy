@@ -2,6 +2,7 @@
 namespace Test\Process\TickProcess;
 
 use Common\Library\Db\Mysql;
+use Common\Library\Encryption\Encrypter;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\Process\AbstractProcess;
@@ -32,6 +33,20 @@ class Tick extends AbstractProcess {
 //        });
 
         $db = Factory::getDb();
+
+        $arr = ["name" => 'bingcool','sex' => 33];
+
+        $key = 'fgthfgthfgthfgth';
+
+        $encrypt = new Encrypter($key, 'AES-128-CBC');
+        $token = $encrypt->encrypt($arr);
+        var_dump($token);
+
+        $resArr = $encrypt->decrypt($token);
+
+        var_dump($resArr);
+
+
 
         while(1) {
             try {

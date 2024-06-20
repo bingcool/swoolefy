@@ -27,7 +27,7 @@ return [
 
     'rateLimit' => function() {
         $redis = Application::getApp()->get('redis')->getObject();
-        $rateLimit =  new \Common\Library\RateLimit\RedisLimit($redis);
+        $rateLimit =  new \Common\Library\RateLimit\DurationLimiter($redis);
         return $rateLimit;
     },
 

@@ -84,10 +84,12 @@ return [
     'amqp_connection' => [
         'host_list' => [
             [
-                'host' => '172.17.0.1',
+                'host' => '192.168.23.53',
                 'port' => 5672,
-                'user' => 'admin',
-                'password' => 'admin',
+//                'user' => 'admin',
+//                'password' => 'admin',
+                'user' => 'rabbitmq',
+                'password' => '123456',
                 'vhost' => 'my_vhost'
             ]
         ],
