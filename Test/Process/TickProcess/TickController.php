@@ -13,6 +13,5 @@ class TickController extends ProcessController {
         //$total = Factory::getDb()->createCommand('select count(1) as total from tbl_users')->count();
         //var_dump('This is TickController, class='.__CLASS__.', User Total='.$total);
         $contextData = Context::get('test-tick');
-        var_dump($contextData);
     }
 }

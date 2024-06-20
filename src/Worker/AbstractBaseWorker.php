@@ -475,14 +475,14 @@ abstract class AbstractBaseWorker
                     // run Exit function
                     $runExitFn = function ($timerId, $masterPid, $exitFunction, $tickCheckMasterOffCount) {
                         if (SystemEnv::isCronService()) {
-                            // cron防止任务还在进行中,强制退出
+                            // cron model 任务还在进行中,防止强制退出
                             if (!$this->handing) {
                                 $exitFunction($timerId, $masterPid);
                             }else {
                                 $this->fmtWriteInfo("【cron-task-handing】Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
                             }
                         }else if (SystemEnv::isDaemonService()) {
-                            // daemon防止任务还在进行中,强制退出
+                            // daemon model 任务还在进行中,防止强制退出
                             // 定时检查到主进程 $tickCheckMasterOffCount 次已经kill掉了，但子进程也不能一直不退出，否则成了僵尸进程了，这里做一个兜底退出，1800秒后强制退出
                             $lastTime = $this->args['check_master_live_tick_time'] * $tickCheckMasterOffCount;
                             $this->fmtWriteInfo("Daemon Process={$this->getProcessName()} last master off time={$lastTime}, tickCheckMasterOffCount={$tickCheckMasterOffCount}, pid={$this->getPid()}");
@@ -1578,7 +1578,7 @@ abstract class AbstractBaseWorker
             $processTypeName = self::PROCESS_DYNAMIC_TYPE_NAME;
         }
         $pid = $this->getPid();
-        $logInfo = "--start children_process【{$processTypeName}】: {$processName}@{$workerId} started, pid={$pid}, master_pid={$this->getMasterPid()}";
+        $logInfo = "--start children_process【{$processTypeName}】: {$processName}@{$workerId} started, pid={$pid}, worker_master_pid={$this->getMasterPid()}";
         $this->fmtWriteInfo($logInfo);
     }
 

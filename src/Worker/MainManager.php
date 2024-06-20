@@ -1040,7 +1040,7 @@ class MainManager
             'pid_file'           => WORKER_PID_FILE,
             'running_status'     => $running_status,
             'cli_params'         => $cliParams,
-            'master_pid'         => $this->getMasterPid(),
+            'worker_master_pid'         => $this->getMasterPid(),
             'cpu_num'            => $cpuNum,
             'memory'             => Helper::getMemoryUsage(),
             'php_version'        => $phpVersion,
@@ -1584,7 +1584,7 @@ class MainManager
                 @\Swoole\Process::signal(SIGUSR2, null);
                 @\Swoole\Process::signal(SIGTERM, null);
             }
-            $this->fmtWriteInfo("终端关闭，master进程stop, master_pid={$this->masterPid}");
+            $this->fmtWriteInfo("终端关闭，master进程stop, worker_master_pid={$this->masterPid}");
         };
     }
 
