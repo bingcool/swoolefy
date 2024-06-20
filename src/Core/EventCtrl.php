@@ -45,7 +45,7 @@ class EventCtrl implements EventCtrlInterface
         $this->registerSqlLogger();
         $this->registerGuzzleCurlLogger();
 
-        if(!$this->isWorkerService()) {
+        if(!SystemEnv::isWorkerService()) {
             if (BaseServer::isEnableSysCollector()) {
                 ProcessManager::getInstance()->addProcess('swoolefy_system_collector', \Swoolefy\Core\SysCollector\SysProcess::class);
             }

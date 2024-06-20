@@ -4,6 +4,7 @@ namespace Test\Process\AmqpProcess;
 use Common\Library\Amqp\AmqpDelayDirectQueue;
 use Common\Library\Amqp\AmqpDirectQueue;
 use Swoolefy\Core\Application;
+use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Process\AbstractProcess;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Exchange\AMQPExchangeType;
@@ -12,7 +13,7 @@ class AmqpConsumer extends AbstractProcess
 {
     public function run()
     {
-        $this->handle3();
+        $this->handle1();
     }
 
     public function handle1() {
@@ -20,10 +21,10 @@ class AmqpConsumer extends AbstractProcess
          * @var AmqpDirectQueue $amqpDirect
          */
         $amqpDirect = Application::getApp()->get('orderAddDirectQueue');
-        //$amqpDirect->consumer([$this, 'process_message']);
         $amqpDirect->setConsumerExceptionHandler(function (\Throwable $e) {
             var_dump($e->getMessage());
         });
+        //$amqpDirect->consumer([$this, 'process_message']);
         $amqpDirect->consumerWithTime([$this, 'process_message']);
     }
 
@@ -98,7 +99,7 @@ class AmqpConsumer extends AbstractProcess
      */
     public function process_message($message)
     {
-        echo "当前时间：".date('Y-m-d H:i:s')."\n";
+        echo "当前时间：".date('Y-m-d H:i:s').PHP_EOL."当前进程ID：".posix_getpid().PHP_EOL;
         echo $message->body;
         echo "\n--------\n";
 
@@ -119,6 +120,17 @@ class AmqpConsumer extends AbstractProcess
     {
         $channel->close();
         $connection->close();
+    }
+
+    /**
+     * onHandleException
+     * @param \Throwable $throwable
+     * @param array $context
+     * @return void
+     */
+    public function onHandleException(\Throwable $throwable, array $context = [])
+    {
+        var_dump($throwable->getMessage());
     }
 
 }

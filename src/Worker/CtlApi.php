@@ -147,8 +147,8 @@ class CtlApi
         $searchList = [];
         if (!empty($searchProcessName)) {
             foreach ($confList as $confItem) {
-                $res = preg_match("/$searchProcessName/", $confItem['process_name']);
-                if ($res > 0) {
+                $hasKeyWord = str_contains($confItem['process_name'], $searchProcessName);
+                if ($hasKeyWord) {
                     $searchList[] = $confItem;
                 }
             }
