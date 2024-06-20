@@ -11,11 +11,11 @@
 
 namespace Test;
 
+use Common\Library\RateLimit\DurationLimiter;
 use Common\Library\Redis\Redis;
 use Common\Library\Db\Mysql;
 use Common\Library\Lock\PHPRedisMutex;
 use Common\Library\PubSub\RedisPubSub;
-use Common\Library\RateLimit\RedisLimit;
 use Common\Library\Uuid\UuidManager;
 use Swoolefy\Core\Dto\ContainerObjectDto;
 
@@ -77,8 +77,13 @@ class Factory
         return \Swoolefy\Core\Application::getApp()->get('redis-subscribe');
     }
 
+    public static function getAmqpConnection()
+    {
+        return \Swoolefy\Core\Application::getApp()->get('amqpConnection')->getObject();
+    }
+
     /**
-     * @return RedisLimit|ContainerObjectDto
+     * @return DurationLimiter|ContainerObjectDto
      */
     public static function getRateLimit()
     {
