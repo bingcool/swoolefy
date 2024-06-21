@@ -223,7 +223,7 @@ use Swoolefy\Core\Controller\BController;
 
 class IndexController extends BController {
     public function index() {
-        Application::getApp()->response->write('<h1>Hello, Welcome to Swoolefy Framework! <h1>');
+        Application::getApp()->swooleResponse->write('<h1>Hello, Welcome to Swoolefy Framework! <h1>');
     }
 }
 EOF;

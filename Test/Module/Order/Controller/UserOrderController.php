@@ -5,6 +5,7 @@ use Common\Library\Db\Query;
 use phpseclib3\Math\PrimeField\Integer;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
+use Swoolefy\Http\RequestInput;
 use Test\Factory;
 use Test\Logger\RunLog;
 use Test\Module\Order\OrderEntity;
@@ -17,7 +18,7 @@ class UserOrderController extends BController
      * @return void
      * @see \Test\Module\Order\Validation\UserOrderValidation::userList()
      */
-    public function userList()
+    public function userList(RequestInput $requestInput)
     {
         $db = Factory::getDb();
 //        $query = $db->newQuery()->table('tbl_users')->where('user_id','>', '100')->limit(0,10);

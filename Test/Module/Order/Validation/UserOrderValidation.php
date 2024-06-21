@@ -79,11 +79,15 @@ class UserOrderValidation
         description: '操作成功'
     )]
 
+
+    /**
+     * @see \Test\Module\Order\Controller\UserOrderController::userList()
+     */
     public function userList(): array
     {
         return [
             'rules' => [
-                //'name' => 'required|float|json',
+                'name' => 'required|int',
 //                'order_ids' => 'required|array',
 //                'order_ids.*' => 'int'
             ],

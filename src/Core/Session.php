@@ -137,11 +137,11 @@ class Session
         $this->driver = $app->get($driver_component_name);
         $this->isStart = true;
         $this->readonly = $readonly;
-        $cookie_session_id = isset($app->request->cookie[$this->cookie_key]) ? $app->request->cookie[$this->cookie_key] : null;
+        $cookie_session_id = isset($app->swooleRequest->cookie[$this->cookie_key]) ? $app->swooleRequest->cookie[$this->cookie_key] : null;
         $this->session_id = $cookie_session_id;
         if (empty($cookie_session_id)) {
             $sess_id = Helper::randMd5(40);
-            $app->response->cookie($this->cookie_key, $sess_id, time() + $this->cookie_lifetime, $this->cookie_path, $this->cookie_domain, false, false);
+            $app->swooleResponse->cookie($this->cookie_key, $sess_id, time() + $this->cookie_lifetime, $this->cookie_path, $this->cookie_domain, false, false);
             $this->session_id = $sess_id;
         }
         $this->_SESSION = $this->load($this->session_id);
