@@ -5,10 +5,10 @@ info:
   version: v1.0.0
 servers:
   -
-    url: 'http://127.0.0.1/'
+    url: 'http://127.0.0.188/'
     description: 开发环境
   -
-    url: 'http://127.0.0.1/'
+    url: 'http://127.0.0.188/'
     description: 测试环境
 paths:
   /user/user-order/logOrder:
