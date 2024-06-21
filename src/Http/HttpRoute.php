@@ -220,8 +220,6 @@ class HttpRoute extends AppDispatch
         // set Controller Instance
         $this->app->setControllerInstance($controllerInstance);
 
-        // set extend data
-        $controllerInstance->setExtendData($this->requestInput->getExtendData());
         // invoke _beforeAction
         $isContinueAction = $controllerInstance->_beforeAction($action);
 
@@ -239,8 +237,6 @@ class HttpRoute extends AppDispatch
         list($method, $args) = $this->bindActionParams($controllerInstance, $action, $this->requestInput->all());
         $controllerInstance->{$action}(...$args);
         $controllerInstance->_afterAction($action);
-        $extendData = $controllerInstance->getExtendData();
-        $this->requestInput->setExtendData($extendData);
         $this->handleAfterRouteMiddles();
         return true;
     }
@@ -326,7 +322,7 @@ class HttpRoute extends AppDispatch
     public static function resetRouteDispatch(string $route)
     {
         $route = trim($route, DIRECTORY_SEPARATOR);
-        Application::getApp()->request->server['PATH_INFO'] = DIRECTORY_SEPARATOR . $route;
+        Application::getApp()->swooleRequest->server['PATH_INFO'] = DIRECTORY_SEPARATOR . $route;
     }
 
     /**
@@ -340,16 +336,19 @@ class HttpRoute extends AppDispatch
     {
         $method = new \ReflectionMethod($controllerInstance, $action);
         $args = $missing = $actionParams = [];
-
         foreach ($method->getParameters() as $param) {
             $name = $param->getName();
-            if (array_key_exists($name, $params)) {
+            if ($param->hasType() && $param->getType()->getName() == RequestInput::class) {
+                $args[] = $this->requestInput;
+            }else if ($param->hasType() && $param->getType()->getName() == ResponseOutput::class) {
+                $args[] = $this->responseOutput;
+            }else if (array_key_exists($name, $params)) {
                 $isValid = true;
                 if ($param->hasType() && $param->getType()->getName() == 'array') {
                     $params[$name] = (array)$params[$name];
-                } elseif (is_array($params[$name])) {
+                } else if (is_array($params[$name])) {
                     $isValid = false;
-                } elseif (
+                } else if (
                     ($type = $param->getType()) !== null &&
                     $type->isBuiltin() &&
                     ($params[$name] !== null || !$type->allowsNull())
@@ -375,7 +374,7 @@ class HttpRoute extends AppDispatch
 
                 $args[] = $actionParams[$name] = $params[$name];
                 unset($params[$name]);
-            } elseif ($param->isDefaultValueAvailable()) {
+            } else if ($param->isDefaultValueAvailable()) {
                 $args[] = $actionParams[$name] = $param->getDefaultValue();
             } else {
                 $missing[] = $name;

@@ -103,18 +103,18 @@ class SwoolefyException
      */
     public static function response(App $app, \Throwable $throwable)
     {
-        $queryString  = isset($app->request->server['QUERY_STRING']) ? '?' . $app->request->server['QUERY_STRING'] : '';
+        $queryString  = isset($app->swooleRequest->server['QUERY_STRING']) ? '?' . $app->swooleRequest->server['QUERY_STRING'] : '';
         $exceptionMsg = $throwable->getMessage();
 
         if(method_exists($throwable, 'getContextData')) {
             $contextData = $throwable->getContextData();
         }
 
-        if (isset($app->request->post) && !empty($app->request->post)) {
-            $postRaw = json_encode($app->request->post, JSON_UNESCAPED_UNICODE);
-            $errorMsg = $exceptionMsg . ' in file ' . $throwable->getFile() . ' on line ' . $throwable->getLine() . ' ||| ' . $app->request->server['REQUEST_URI'] . $queryString.' ||| '.$postRaw;
+        if (isset($app->swooleRequest->post) && !empty($app->swooleRequest->post)) {
+            $postRaw = json_encode($app->swooleRequest->post, JSON_UNESCAPED_UNICODE);
+            $errorMsg = $exceptionMsg . ' in file ' . $throwable->getFile() . ' on line ' . $throwable->getLine() . ' ||| ' . $app->swooleRequest->server['REQUEST_URI'] . $queryString.' ||| '.$postRaw;
         } else {
-            $errorMsg = $exceptionMsg . ' in file ' . $throwable->getFile() . ' on line ' . $throwable->getLine() . ' ||| ' . $app->request->server['REQUEST_URI'] . $queryString;
+            $errorMsg = $exceptionMsg . ' in file ' . $throwable->getFile() . ' on line ' . $throwable->getLine() . ' ||| ' . $app->swooleRequest->server['REQUEST_URI'] . $queryString;
         }
 
         if (($code = $throwable->getCode()) == 0) {
@@ -126,7 +126,7 @@ class SwoolefyException
             $errorMsg = $exceptionMsg;
         }
 
-        (new ResponseOutput($app->request, $app->response))->returnJson($contextData ?? [], $code, $errorMsg);
+        (new ResponseOutput($app->swooleRequest, $app->swooleResponse))->returnJson($contextData ?? [], $code, $errorMsg);
 
         $errorMsg .= ' ||| ' . $throwable->getTraceAsString();
 

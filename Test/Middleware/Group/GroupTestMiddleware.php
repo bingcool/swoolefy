@@ -9,6 +9,6 @@ class GroupTestMiddleware implements RouteMiddleware
 {
     public function handle(RequestInput $requestInput, ResponseOutput $responseOutput)
     {
-        var_dump(__CLASS__);
+        //var_dump(__CLASS__);
     }
 }

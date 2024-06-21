@@ -13,26 +13,24 @@ namespace Swoolefy\Core\Controller;
 
 use Swoole\Coroutine;
 use Swoolefy\Core\App;
+use Swoole\Http\Request as SwooleRequest;
+use Swoole\Http\Response as SwooleResponse;
 use Swoolefy\Core\Application;
 
 class BController extends \Swoolefy\Core\AppObject
 {
-
-    use \Swoolefy\Http\RequestParseTrait;
     use \Swoolefy\Http\ResponseParseTrait;
     use \Swoolefy\Core\ServiceTrait;
 
     /**
-     * $request
-     * @var \Swoole\Http\Request
+     * @var SwooleRequest
      */
-    public $request = null;
+    public $swooleRequest = null;
 
     /**
-     * $response
-     * @var \Swoole\Http\Response
+     * @var SwooleResponse
      */
-    public $response = null;
+    public $swooleResponse = null;
 
     /**
      * $appConf
@@ -49,8 +47,8 @@ class BController extends \Swoolefy\Core\AppObject
          * @var App $app
          */
         $app = Application::getApp();
-        $this->request  = $app->request;
-        $this->response = $app->response;
+        $this->swooleRequest  = $app->swooleRequest;
+        $this->swooleResponse = $app->swooleResponse;
         $this->appConf  = $app->appConf;
         if (Coroutine::getCid() >= 0) {
             \Swoole\Coroutine::defer(function () {
