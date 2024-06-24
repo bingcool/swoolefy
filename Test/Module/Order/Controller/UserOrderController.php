@@ -8,6 +8,7 @@ use Swoolefy\Core\Controller\BController;
 use Swoolefy\Http\RequestInput;
 use Test\Factory;
 use Test\Logger\RunLog;
+use Test\Module\Order\Dto\UserOrderDto\UserListDto;
 use Test\Module\Order\OrderEntity;
 use Test\Module\Order\OrderList;
 use OpenApi\Attributes as OA;
@@ -18,7 +19,7 @@ class UserOrderController extends BController
      * @return void
      * @see \Test\Module\Order\Validation\UserOrderValidation::userList()
      */
-    public function userList(RequestInput $requestInput)
+    public function userList(RequestInput $requestInput, UserListDto $userListDto)
     {
         $db = Factory::getDb();
 //        $query = $db->newQuery()->table('tbl_users')->where('user_id','>', '100')->limit(0,10);
@@ -27,7 +28,9 @@ class UserOrderController extends BController
 //            $list = $query->select()->toArray();
 //        }
 //
-//        var_dump($this->request->get);
+        var_dump($requestInput->get());
+
+        var_dump($userListDto->name);
 
         $uid = 100;
         $sql = $db->newQuery()->table(OrderEntity::getTableName())->when($uid > 90,function (Query $query) {
@@ -35,7 +38,7 @@ class UserOrderController extends BController
         })->fetchSql()->select();
 
         $data = (new OrderEntity(10000, 1675835225))->getAttributes();
-        var_dump($data);
+        //var_dump($data);
 
         // Entity 链路方式查询
         $num1 = (new OrderEntity(0, 0))->Query()->where('user_id','=', 10000)->limit(1)->select();
