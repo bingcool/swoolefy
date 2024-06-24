@@ -10,8 +10,10 @@ class UuidController extends BController
 {
     public function getUuid(RequestInput $requestInput)
     {
-        $requestInput->setTrustedProxies(['127.0.0.1']);
         $input = $requestInput->input();
+        var_dump($input);
+
+        var_dump($requestInput->get('id'));
 
         $ids = Factory::getUUid()->getIncrIds(10);
         foreach ($ids as &$id) {

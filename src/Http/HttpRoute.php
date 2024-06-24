@@ -16,6 +16,7 @@ use Swoolefy\Core\AppDispatch;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\Coroutine\Context;
+use Swoolefy\Core\Dto\AbstractDto;
 use Swoolefy\Core\RouteMiddleware;
 use Swoolefy\Exception\DispatchException;
 use Swoolefy\Exception\SystemException;
@@ -338,10 +339,20 @@ class HttpRoute extends AppDispatch
         $args = $missing = $actionParams = [];
         foreach ($method->getParameters() as $param) {
             $name = $param->getName();
-            if ($param->hasType() && $param->getType()->getName() == RequestInput::class) {
+            $hasType = $param->hasType();
+            $typeName = $param->getType()->getName();
+            if ($hasType && $typeName == RequestInput::class) {
                 $args[] = $this->requestInput;
-            }else if ($param->hasType() && $param->getType()->getName() == ResponseOutput::class) {
+            }else if ($hasType && $typeName == ResponseOutput::class) {
                 $args[] = $this->responseOutput;
+            }else if ($hasType && class_exists($typeName) && is_subclass_of($typeName,AbstractDto::class)) {
+                $paramDto     = new $typeName();
+                $inputParams  = $this->requestInput->input();
+                $propertyList = get_object_vars($paramDto);
+                foreach ($propertyList as $property => $value) {
+                    $paramDto->{$property} = $inputParams[$property] ?? $value;
+                }
+                $args[] = $paramDto;
             }else if (array_key_exists($name, $params)) {
                 $isValid = true;
                 if ($param->hasType() && $param->getType()->getName() == 'array') {

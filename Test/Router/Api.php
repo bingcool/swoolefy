@@ -14,7 +14,7 @@ use Test\Middleware\Group\GroupTestMiddleware;
 Route::get('/index/index', [
     'beforeHandle' => function(RequestInput $requestInput) {
         Context::set('name', 'bingcool');
-        $name = $requestInput->getPostParams('name');
+        $name = $requestInput->post('name');
     },
 
     'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
