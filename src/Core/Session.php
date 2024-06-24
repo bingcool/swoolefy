@@ -312,7 +312,7 @@ class Session
         if ($ttl >= 0) {
             return $ttl;
         }
-        return null;
+        return $ttl ?? null;
     }
 
     /**
