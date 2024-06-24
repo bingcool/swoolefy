@@ -18,7 +18,7 @@ class Session
 {
     /**
      * $driver 缓存驱动的实例
-     * @var string
+     * @var \Redis
      */
     public $driver = null;
 
