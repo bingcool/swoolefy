@@ -12,7 +12,6 @@
 namespace Swoolefy\Http;
 
 use Common\Library\Validate;
-use mysql_xdevapi\BaseResult;
 
 trait RequestParseTrait
 {
