@@ -8,7 +8,7 @@ use Swoolefy\Core\Coroutine\Context;
 Route::get('/index/index', [
     'beforeHandle' => function(RequestInput $requestInput) {
         Context::set('name', 'bingcool');
-        $name = $requestInput->getPostParams('name');
+        $name = $requestInput->post('name');
     },
 
     // 这里需要替换长对应的控制器命名空间

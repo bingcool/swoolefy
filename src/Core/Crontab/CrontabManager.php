@@ -142,9 +142,11 @@ class CrontabManager
                         } catch (\Throwable $throwable) {
                            throw $throwable;
                         } finally {
-                            Application::removeApp($cronControllerInstance->coroutineId);
-                            if (is_callable($callback) && $isNext) {
-                                call_user_func($callback);
+                            if (isset($cronControllerInstance)) {
+                                Application::removeApp($cronControllerInstance->coroutineId);
+                                if (is_callable($callback) && $isNext) {
+                                    call_user_func($callback);
+                                }
                             }
                         }
                     });
@@ -172,9 +174,11 @@ class CrontabManager
                         } catch (\Throwable $throwable) {
                             throw $throwable;
                         } finally {
-                            Application::removeApp($cronControllerInstance->coroutineId);
-                            if (is_callable($callback) && $isNext) {
-                                call_user_func($callback);
+                            if (isset($cronControllerInstance)) {
+                                Application::removeApp($cronControllerInstance->coroutineId);
+                                if (is_callable($callback) && $isNext) {
+                                    call_user_func($callback);
+                                }
                             }
                         }
                     });

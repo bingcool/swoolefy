@@ -11,7 +11,7 @@ class WsController extends \Swoolefy\Core\Controller\BController
 
     public function test1()
     {
-        Application::getApp()->response->write('<!DOCTYPE HTML>
+        Application::getApp()->swooleResponse->write('<!DOCTYPE HTML>
 <html>
    <head>
    <meta charset="utf-8">

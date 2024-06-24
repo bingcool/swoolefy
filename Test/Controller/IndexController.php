@@ -6,6 +6,7 @@ use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\EventController;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
 use Swoolefy\Core\Log\LogManager;
+use Swoolefy\Http\RequestInput;
 use Test\Factory;
 use Test\Logger\RunLog;
 
@@ -19,11 +20,11 @@ class IndexController extends BController {
     public function index()
     {
         RunLog::info('test11111-log-id='.rand(1,1000),true, ['name'=>'bingcoolhuang']);
-        Application::getApp()->response->write('<h1>Hello, Welcome to Swoolefy Framework! <h1>');
+        Application::getApp()->swooleResponse->write('<h1>Hello, Welcome to Swoolefy Framework! <h1>');
     }
 
 
-    public function testLog()
+    public function testLog(RequestInput $requestInput)
     {
         /**
          * @var \Swoolefy\Util\Log $log
@@ -39,8 +40,8 @@ class IndexController extends BController {
         LogManager::getInstance()->getLogger('sql_log')->addInfo(['name' => 'bingcoolcccccccccccccccccccccccccc','address'=>'深圳']);
 
         $this->returnJson([
-            'Controller' => $this->getControllerId(),
-            'Action' => $this->getActionId().'-'.rand(1,1000)
+            'Controller' => $requestInput->getControllerId(),
+            'Action' => $requestInput->getActionId().'-'.rand(1,1000)
         ]);
     }
     public function afterSave()
@@ -48,12 +49,12 @@ class IndexController extends BController {
 
     }
 
-    public function testLog1()
+    public function testLog1(RequestInput $requestInput)
     {
         RunLog::info('test11111-log-id='.rand(1,1000),true);
         $this->returnJson([
-            'Controller' => $this->getControllerId(),
-            'Action' => $this->getActionId()
+            'Controller' => $requestInput->getControllerId(),
+            'Action' => $requestInput->getActionId()
         ]);
     }
 
