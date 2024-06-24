@@ -12,6 +12,7 @@
 namespace Swoolefy\Http;
 
 use Common\Library\Validate;
+use Swoolefy\Util\IpUtils;
 
 trait RequestParseTrait
 {
@@ -46,7 +47,15 @@ trait RequestParseTrait
      */
     protected $rules;
 
+    /**
+     * @var array
+     */
     protected $groupMeta = [];
+
+    /**
+     * @var array
+     */
+    protected $trustedProxies = [];
 
     /**
      * isGet
@@ -649,6 +658,88 @@ trait RequestParseTrait
             return true;
         }
         return false;
+    }
+
+    /**
+     * @param string $name
+     * @return bool
+     */
+    public function hasHeader(string $name)
+    {
+        $headers = $this->getSwooleRequest()->header;
+        return isset($headers[$name]) ? true : false;
+    }
+
+    /**
+     * @param string $name
+     * @return bool
+     */
+    public function hasCookie(string $name)
+    {
+        $cookies = $this->getSwooleRequest()->cookie;
+        return isset($cookies[$name]) ? true : false;
+    }
+
+    /**
+     * Returns the user.
+     *
+     * @return string|null
+     */
+    public function getUser()
+    {
+        return $this->getSwooleRequest()->header['PHP_AUTH_USER'] ?? null;
+    }
+
+    /**
+     * Returns the password.
+     *
+     * @return string|null
+     */
+    public function getPassword()
+    {
+        return $this->getSwooleRequest()->header['PHP_AUTH_PW'] ?? null;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getUserInfo()
+    {
+        $userinfo = $this->getUser();
+
+        $pass = $this->getPassword();
+        if ('' != $pass) {
+            $userinfo .= ":$pass";
+        }
+
+        return $userinfo;
+    }
+
+    /**
+     * @param array $proxies
+     * @return void
+     */
+    public function setTrustedProxies(array $proxies)
+    {
+        $this->trustedProxies = $proxies;
+    }
+
+    /**
+     * 是否来自可信任的IP
+     *
+     * @return bool
+     */
+    public function isFromTrustedProxy()
+    {
+        return !empty($this->trustedProxies) && IpUtils::checkIp($this->getClientIP(0), $this->trustedProxies);
+    }
+
+    /**
+     * @return array
+     */
+    public function getTrustedProxies()
+    {
+        return $this->trustedProxies;
     }
 
     /**

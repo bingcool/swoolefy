@@ -93,6 +93,24 @@ class ResponseOutput extends HttpInputOut
     }
 
     /**
+     * getProtocol
+     * @return string
+     */
+    public function getProtocol(): string
+    {
+        return $this->swooleRequest->server['SERVER_PROTOCOL'];
+    }
+
+    /**
+     * getHostName
+     * @return string
+     */
+    public function getHostName(): string
+    {
+        return $this->swooleRequest->server['HTTP_HOST'];
+    }
+
+    /**
      * header 使用链式作用域
      * @param string $name
      * @param string $value
