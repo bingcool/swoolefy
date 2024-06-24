@@ -192,6 +192,7 @@ class Tick
                         $tickTaskInstance = new $class;
                         $tickTaskInstance->{$action}(...[$params, $timer_id]);
                     } else if ($func instanceof \Closure) {
+                        $tickTaskInstance = new TickController();
                         call_user_func($func, $params, $timer_id);
                     }
                     // call after action
