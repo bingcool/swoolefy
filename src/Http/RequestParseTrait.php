@@ -54,7 +54,7 @@ trait RequestParseTrait
      */
     public function isGet(): bool
     {
-        return (strtoupper($this->request->server['REQUEST_METHOD']) == 'GET') ? true : false;
+        return (strtoupper($this->swooleRequest->server['REQUEST_METHOD']) == 'GET') ? true : false;
     }
 
     /**
@@ -63,7 +63,7 @@ trait RequestParseTrait
      */
     public function isPost(): bool
     {
-        return (strtoupper($this->request->server['REQUEST_METHOD']) == 'POST') ? true : false;
+        return (strtoupper($this->swooleRequest->server['REQUEST_METHOD']) == 'POST') ? true : false;
     }
 
     /**
@@ -72,7 +72,7 @@ trait RequestParseTrait
      */
     public function isPut(): bool
     {
-        return (strtoupper($this->request->server['REQUEST_METHOD']) == 'PUT') ? true : false;
+        return (strtoupper($this->swooleRequest->server['REQUEST_METHOD']) == 'PUT') ? true : false;
     }
 
     /**
@@ -81,7 +81,7 @@ trait RequestParseTrait
      */
     public function isDelete(): bool
     {
-        return (strtoupper($this->request->server['REQUEST_METHOD']) == 'DELETE') ? true : false;
+        return (strtoupper($this->swooleRequest->server['REQUEST_METHOD']) == 'DELETE') ? true : false;
     }
 
     /**
@@ -90,7 +90,7 @@ trait RequestParseTrait
      */
     public function isAjax(): bool
     {
-        return (isset($this->request->header['x-requested-with']) && strtolower($this->request->header['x-requested-with']) == 'xmlhttprequest') ? true : false;
+        return (isset($this->swooleRequest->header['x-requested-with']) && strtolower($this->swooleRequest->header['x-requested-with']) == 'xmlhttprequest') ? true : false;
     }
 
     /**
@@ -99,9 +99,9 @@ trait RequestParseTrait
      */
     public function isSsl(): bool
     {
-        if (isset($this->request->server['HTTPS']) && ('1' == $this->request->server['HTTPS'] || 'on' == strtolower($this->request->server['HTTPS']))) {
+        if (isset($this->swooleRequest->server['HTTPS']) && ('1' == $this->swooleRequest->server['HTTPS'] || 'on' == strtolower($this->swooleRequest->server['HTTPS']))) {
             return true;
-        } elseif (isset($this->request->server['SERVER_PORT']) && ('443' == $this->request->server['SERVER_PORT'])) {
+        } elseif (isset($this->swooleRequest->server['SERVER_PORT']) && ('443' == $this->swooleRequest->server['SERVER_PORT'])) {
             return true;
         }
         return false;
@@ -113,13 +113,13 @@ trait RequestParseTrait
      */
     public function isMobile(): bool
     {
-        if (isset($this->request->server['HTTP_VIA']) && stristr($this->request->server['HTTP_VIA'], "wap")) {
+        if (isset($this->swooleRequest->server['HTTP_VIA']) && stristr($this->swooleRequest->server['HTTP_VIA'], "wap")) {
             return true;
-        } elseif (isset($this->request->server['HTTP_ACCEPT']) && strpos(strtoupper($this->request->server['HTTP_ACCEPT']), "VND.WAP.WML")) {
+        } elseif (isset($this->swooleRequest->server['HTTP_ACCEPT']) && strpos(strtoupper($this->swooleRequest->server['HTTP_ACCEPT']), "VND.WAP.WML")) {
             return true;
-        } elseif (isset($this->request->server['HTTP_X_WAP_PROFILE']) || isset($this->request->server['HTTP_PROFILE'])) {
+        } elseif (isset($this->swooleRequest->server['HTTP_X_WAP_PROFILE']) || isset($this->swooleRequest->server['HTTP_PROFILE'])) {
             return true;
-        } elseif (isset($this->request->server['HTTP_USER_AGENT']) && preg_match('/(blackberry|configuration\/cldc|hp |hp-|htc |htc_|htc-|iemobile|kindle|midp|mmp|motorola|mobile|nokia|opera mini|opera |Googlebot-Mobile|YahooSeeker\/M1A1-R2D2|android|iphone|ipod|mobi|palm|palmos|pocket|portalmmm|ppc;|smartphone|sonyericsson|sqh|spv|symbian|treo|up.browser|up.link|vodafone|windows ce|xda |xda_)/i', $this->request->server['HTTP_USER_AGENT'])) {
+        } elseif (isset($this->swooleRequest->server['HTTP_USER_AGENT']) && preg_match('/(blackberry|configuration\/cldc|hp |hp-|htc |htc_|htc-|iemobile|kindle|midp|mmp|motorola|mobile|nokia|opera mini|opera |Googlebot-Mobile|YahooSeeker\/M1A1-R2D2|android|iphone|ipod|mobi|palm|palmos|pocket|portalmmm|ppc;|smartphone|sonyericsson|sqh|spv|symbian|treo|up.browser|up.link|vodafone|windows ce|xda |xda_)/i', $this->swooleRequest->server['HTTP_USER_AGENT'])) {
             return true;
         } else {
             return false;
@@ -135,10 +135,10 @@ trait RequestParseTrait
     public function getRequestParams(?string $name = null, $default = null)
     {
         if (!$this->requestParams) {
-            $get = isset($this->request->get) ? $this->request->get : [];
-            $post = isset($this->request->post) ? $this->request->post : [];
+            $get = isset($this->swooleRequest->get) ? $this->swooleRequest->get : [];
+            $post = isset($this->swooleRequest->post) ? $this->swooleRequest->post : [];
             if (empty($post)) {
-                $post = json_decode($this->request->rawContent(), true) ?? [];
+                $post = json_decode($this->swooleRequest->rawContent(), true) ?? [];
             }
             $this->requestParams = array_merge($get, $post);
             unset($get, $post);
@@ -167,6 +167,26 @@ trait RequestParseTrait
      * @param $default
      * @return mixed
      */
+    public function post(?string $name = null, $default = null)
+    {
+        return $this->getPostParams($name, $default);
+    }
+
+    /**
+     * @param string|null $name
+     * @param $default
+     * @return array|mixed
+     */
+    public function get(?string $name = null, $default = null)
+    {
+        return $this->getQueryParams($name, $default);
+    }
+
+    /**
+     * @param string|null $name
+     * @param $default
+     * @return mixed
+     */
     public function all()
     {
         return $this->getRequestParams(null, null);
@@ -178,9 +198,9 @@ trait RequestParseTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getQueryParams(?string $name = null, $default = null)
+    protected function getQueryParams(?string $name = null, $default = null)
     {
-        $input = $this->request->get;
+        $input = $this->swooleRequest->get;
         if ($name) {
             $value = $input[$name] ?? $default;
         } else {
@@ -195,12 +215,12 @@ trait RequestParseTrait
      * @param mixed $default
      * @return mixed
      */
-    public function getPostParams(?string $name = null, $default = null)
+    protected function getPostParams(?string $name = null, $default = null)
     {
         if (!$this->postParams) {
-            $input = $this->request->post ?? [];
+            $input = $this->swooleRequest->post ?? [];
             if (!$input) {
-                $input = json_decode($this->request->rawContent(), true) ?? [];
+                $input = json_decode($this->swooleRequest->rawContent(), true) ?? [];
             }
             $this->postParams = $input;
         }
@@ -222,7 +242,7 @@ trait RequestParseTrait
      */
     public function getCookieParams(?string $name = null, $default = null)
     {
-        $cookies = $this->request->cookie;
+        $cookies = $this->swooleRequest->cookie;
         if ($name) {
             $value = $cookies[$name] ?? $default;
         } else {
@@ -237,7 +257,7 @@ trait RequestParseTrait
      */
     public function getData()
     {
-        return $this->request->getData();
+        return $this->swooleRequest->getData();
     }
 
     /**
@@ -250,10 +270,10 @@ trait RequestParseTrait
     {
         if ($name) {
             $name = strtoupper($name);
-            $value = $this->request->server[$name] ?? $default;
+            $value = $this->swooleRequest->server[$name] ?? $default;
             return $value;
         }
-        return $this->request->server;
+        return $this->swooleRequest->server;
     }
 
     /**
@@ -295,11 +315,11 @@ trait RequestParseTrait
     {
         if ($name) {
             $name = strtolower($name);
-            $value = $this->request->header[$name] ?? $default;
+            $value = $this->swooleRequest->header[$name] ?? $default;
             return $value;
         }
 
-        return $this->request->header;
+        return $this->swooleRequest->header;
     }
 
     /**
@@ -308,7 +328,7 @@ trait RequestParseTrait
      */
     public function getUploadFiles(): mixed
     {
-        return $this->request->files;
+        return $this->swooleRequest->files;
     }
 
     /**
@@ -317,7 +337,7 @@ trait RequestParseTrait
      */
     public function getRawContent()
     {
-        return $this->request->rawContent();
+        return $this->swooleRequest->rawContent();
     }
 
     /**
@@ -326,7 +346,7 @@ trait RequestParseTrait
      */
     public function getMethod(): string
     {
-        return $this->request->server['REQUEST_METHOD'];
+        return $this->swooleRequest->server['REQUEST_METHOD'];
     }
 
     /**
@@ -335,7 +355,7 @@ trait RequestParseTrait
      */
     public function getRequestUri(): string
     {
-        return $this->request->server['PATH_INFO'];
+        return $this->swooleRequest->server['PATH_INFO'];
     }
 
     /**
@@ -344,7 +364,7 @@ trait RequestParseTrait
      */
     public function getDispatchRoute(): string
     {
-        return $this->request->server['DISPATCH_ROUTE'] ?? [];
+        return $this->swooleRequest->server['DISPATCH_ROUTE'] ?? [];
     }
 
     /**
@@ -353,8 +373,8 @@ trait RequestParseTrait
      */
     public function getQueryString(): ?string
     {
-        if (isset($this->request->server['QUERY_STRING'])) {
-            return $this->request->server['QUERY_STRING'];
+        if (isset($this->swooleRequest->server['QUERY_STRING'])) {
+            return $this->swooleRequest->server['QUERY_STRING'];
         }
         return null;
     }
@@ -365,7 +385,7 @@ trait RequestParseTrait
      */
     public function getProtocol(): string
     {
-        return $this->request->server['SERVER_PROTOCOL'];
+        return $this->swooleRequest->server['SERVER_PROTOCOL'];
     }
 
     /**
@@ -432,7 +452,7 @@ trait RequestParseTrait
      */
     public function getRouteItems(): array
     {
-        return $this->request->server['ROUTE_ITEMS'];
+        return $this->swooleRequest->server['ROUTE_ITEMS'];
     }
 
     /**
@@ -478,7 +498,7 @@ trait RequestParseTrait
      */
     public function getQuery(): array
     {
-        return $this->request->get;
+        return $this->swooleRequest->get;
     }
 
     /**
@@ -490,23 +510,7 @@ trait RequestParseTrait
      */
     public function sendfile(string $filename, int $offset = 0, int $length = 0)
     {
-        $this->response->sendfile($filename, $offset, $length);
-    }
-
-    /**
-     * @return \Swoole\Http\Request|\Swoole\Http2\Request
-     */
-    public function getSwooleRequest()
-    {
-        return $this->request;
-    }
-
-    /**
-     * @return \Swoole\Http\Response|\Swoole\Http2\Response
-     */
-    public function getSwooleResponse()
-    {
-        return $this->response;
+        $this->swooleResponse->sendfile($filename, $offset, $length);
     }
 
     /**
@@ -528,15 +532,13 @@ trait RequestParseTrait
         return $parseItems;
     }
 
-
-
     /**
      * getRefererUrl
      * @return mixed
      */
     public function getRefererUrl()
     {
-        return $this->request->server['HTTP_REFERER'] ?? '';
+        return $this->swooleRequest->server['HTTP_REFERER'] ?? '';
     }
 
     /**
@@ -547,18 +549,18 @@ trait RequestParseTrait
     public function getClientIP(int $type = 0)
     {
         // 通过nginx的代理
-        if (isset($this->request->server['HTTP_X_REAL_IP']) && strcasecmp($this->request->server['HTTP_X_REAL_IP'], "unknown")) {
-            $ip = $this->request->server['HTTP_X_REAL_IP'];
+        if (isset($this->swooleRequest->server['HTTP_X_REAL_IP']) && strcasecmp($this->swooleRequest->server['HTTP_X_REAL_IP'], "unknown")) {
+            $ip = $this->swooleRequest->server['HTTP_X_REAL_IP'];
         }
-        if (isset($this->request->server['HTTP_CLIENT_IP']) && strcasecmp($this->request->server['HTTP_CLIENT_IP'], "unknown")) {
-            $ip = $this->request->server["HTTP_CLIENT_IP"];
+        if (isset($this->swooleRequest->server['HTTP_CLIENT_IP']) && strcasecmp($this->swooleRequest->server['HTTP_CLIENT_IP'], "unknown")) {
+            $ip = $this->swooleRequest->server["HTTP_CLIENT_IP"];
         }
-        if (isset($this->request->server['HTTP_X_FORWARDED_FOR']) and strcasecmp($this->request->server['HTTP_X_FORWARDED_FOR'], "unknown")) {
-            return $this->request->server['HTTP_X_FORWARDED_FOR'];
+        if (isset($this->swooleRequest->server['HTTP_X_FORWARDED_FOR']) and strcasecmp($this->swooleRequest->server['HTTP_X_FORWARDED_FOR'], "unknown")) {
+            return $this->swooleRequest->server['HTTP_X_FORWARDED_FOR'];
         }
-        if (isset($this->request->server['REMOTE_ADDR'])) {
+        if (isset($this->swooleRequest->server['REMOTE_ADDR'])) {
             //没通过代理，或者通过代理而没设置x-real-ip的
-            $ip = $this->request->server['REMOTE_ADDR'];
+            $ip = $this->swooleRequest->server['REMOTE_ADDR'];
         }
         // IP地址合法验证
         $long = sprintf("%u", ip2long($ip));
@@ -572,7 +574,7 @@ trait RequestParseTrait
      */
     public function getFd()
     {
-        return $this->request->fd;
+        return $this->swooleRequest->fd;
     }
 
     /**
@@ -581,7 +583,7 @@ trait RequestParseTrait
      */
     public function getHostName(): string
     {
-        return $this->request->server['HTTP_HOST'];
+        return $this->swooleRequest->server['HTTP_HOST'];
     }
 
     /**
@@ -687,21 +689,21 @@ trait RequestParseTrait
                     switch ($fieldRule) {
                         case 'integer':
                         case 'int':
-                            $this->request->{$method}[$name] = (int) $value;
+                            $this->swooleRequest->{$method}[$name] = (int) $value;
                             break;
                         case 'float':
-                            $this->request->{$method}[$name] = (float) $value;
+                            $this->swooleRequest->{$method}[$name] = (float) $value;
                             break;
                         case 'boolean':
                         case 'bool':
-                            $this->request->{$method}[$name] = (bool) $value;
+                            $this->swooleRequest->{$method}[$name] = (bool) $value;
                             break;
                         case 'array':
                             if (filter_var($value, FILTER_VALIDATE_INT) !== false) {
-                                $this->request->{$method}[$name] = [intval($value)];
+                                $this->swooleRequest->{$method}[$name] = [intval($value)];
                             }else {
                                 if (filter_var($value, FILTER_VALIDATE_FLOAT) !== false) {
-                                    $this->request->{$method}[$name] = [floatval($value)];
+                                    $this->swooleRequest->{$method}[$name] = [floatval($value)];
                                 }
                             }
                             break;
@@ -722,11 +724,11 @@ trait RequestParseTrait
                             case 'integer':
                             case 'int':
                                 $newValue = array_map('intval', $value);
-                                $this->request->{$method}[$pname] = $newValue;
+                                $this->swooleRequest->{$method}[$pname] = $newValue;
                                 break;
                             case 'float':
                                 $newValue = array_map('floatval', $value);
-                                $this->request->{$method}[$pname] = $newValue;
+                                $this->swooleRequest->{$method}[$pname] = $newValue;
                                 break;
                             default:
                                 break;
@@ -737,23 +739,22 @@ trait RequestParseTrait
         };
 
         foreach ($rules as $name => $fieldRules) {
-            if (isset($this->request->get[$name])) {
-                $value = $this->request->get[$name];
+            if (isset($this->swooleRequest->get[$name])) {
+                $value = $this->swooleRequest->get[$name];
                 if ($fieldRules) {
                     $fn('get', $value, $fieldRules,$name);
                 }
             }
 
-            if (isset($this->request->post[$name])) {
-                $value = $this->request->post[$name];
+            if (isset($this->swooleRequest->post[$name])) {
+                $value = $this->swooleRequest->post[$name];
                 if ($fieldRules) {
                     $fn('post', $value, $fieldRules, $name);
                 }
             }
         }
-
         $this->rules = [];
-
+        // more import
         if ($this instanceof RequestInput) {
             $this->postParams = [];
             $this->requestParams = [];
@@ -768,7 +769,7 @@ trait RequestParseTrait
      */
     public function getBrowser(): string
     {
-        $sys = $this->request->server['HTTP_USER_AGENT'];
+        $sys = $this->swooleRequest->server['HTTP_USER_AGENT'];
         if (stripos($sys, "Firefox/") > 0) {
             preg_match("/Firefox\/([^;)]+)+/i", $sys, $b);
             $exp[0] = "Firefox";

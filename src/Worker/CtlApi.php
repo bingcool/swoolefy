@@ -11,24 +11,23 @@
 
 namespace Swoolefy\Worker;
 
-use Swoole\Http\Request;
-use Swoole\Http\Response;
 use Swoolefy\Core\CommandRunner;
-use Swoolefy\Core\Swfy;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Worker\Dto\PipeMsgDto;
+use Swoole\Http\Request as SwooleRequest;
+use Swoole\Http\Response as SwooleResponse;
 
 class CtlApi
 {
     /**
-     * @var Request
+     * @var SwooleRequest
      */
-    public $request;
+    public $swooleRequest;
 
     /**
-     * @var Response
+     * @var SwooleResponse
      */
-    public $response;
+    public $swooleResponse;
 
     /**
      * @var array|mixed
@@ -47,13 +46,13 @@ class CtlApi
     const MASTER_RESTART = '/master-server-restart';
 
     /**
-     * @param Request $request
-     * @param Response $response
+     * @param SwooleRequest $swooleRequest
+     * @param SwooleResponse $swooleResponse
      */
-    public function __construct(Request $request, Response $response)
+    public function __construct(SwooleRequest $swooleRequest, SwooleResponse $swooleResponse)
     {
-        $this->request = $request;
-        $this->response = $response;
+        $this->swooleRequest = $swooleRequest;
+        $this->swooleResponse = $swooleResponse;
         $statusFileList = file_get_contents(WORKER_STATUS_FILE);
         $statusFileList = json_decode($statusFileList, true);
         $this->processRuntimeList = $statusFileList['master']['children_process'] ?? [];
@@ -66,8 +65,8 @@ class CtlApi
     public function handle()
     {
         try {
-            $params = $this->request->get;
-            $uri = $this->request->server['request_uri'];
+            $params = $this->swooleRequest->get;
+            $uri = $this->swooleRequest->server['request_uri'];
             $processName = $params['process_name'] ?? '';
             switch ($uri) {
                 case self::API_LIST:
@@ -147,8 +146,8 @@ class CtlApi
         $searchList = [];
         if (!empty($searchProcessName)) {
             foreach ($confList as $confItem) {
-                $res = preg_match("/$searchProcessName/", $confItem['process_name']);
-                if ($res > 0) {
+                $hasKeyWord = str_contains($confItem['process_name'], $searchProcessName);
+                if ($hasKeyWord) {
                     $searchList[] = $confItem;
                 }
             }
@@ -168,7 +167,7 @@ class CtlApi
     }
 
     /**
-     * @param Response $response
+     * @param SwooleResponse $response
      */
     public function start(string $processName)
     {
@@ -344,8 +343,8 @@ class CtlApi
 
     public function returnSuccess(array $data)
     {
-        $this->response->header('Content-Type', 'application/json');
-        return $this->response->end(json_encode([
+        $this->swooleResponse->header('Content-Type', 'application/json');
+        return $this->swooleResponse->end(json_encode([
             'code' => 0,
             'msg' => 'success',
             'data' => $data
@@ -354,8 +353,8 @@ class CtlApi
 
     public function returnFail(string $msg, array $data)
     {
-        $this->response->header('Content-Type', 'application/json');
-        return $this->response->end(json_encode([
+        $this->swooleResponse->header('Content-Type', 'application/json');
+        return $this->swooleResponse->end(json_encode([
             'code' => -1,
             'msg' => $msg,
             'data' => $data

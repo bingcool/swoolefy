@@ -11,11 +11,11 @@
 
 namespace Swoolefy\Core;
 
-use Swoole\Http\Request;
-use Swoole\Http\Response;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\ResponseOutput;
 use Swoolefy\Http\HttpRoute;
+use Swoole\Http\Request as SwooleRequest;
+use Swoole\Http\Response as SwooleResponse;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 
@@ -24,16 +24,14 @@ class App extends \Swoolefy\Core\Component
     use \Swoolefy\Core\ServiceTrait;
 
     /**
-     * $request
-     * @var Request
+     * @var SwooleRequest
      */
-    public $request = null;
+    public $swooleRequest = null;
 
     /**
-     * $response
-     * @var Response
+     * @var SwooleResponse
      */
-    public $response = null;
+    public $swooleResponse = null;
 
     /**
      * @var RequestInput
@@ -115,21 +113,21 @@ class App extends \Swoolefy\Core\Component
 
     /**
      * run
-     * @param Request $request
-     * @param Response $response
+     * @param SwooleRequest $swooleRequest
+     * @param SwooleResponse $swooleResponse
      * @param mixed $extendData
      * @return void
      * @throws \Throwable
      */
-    public function run(Request $request, Response $response, $extendData = null)
+    public function run(SwooleRequest $swooleRequest, SwooleResponse $swooleResponse, $extendData = null)
     {
         try {
-            $this->parseHeaders($request);
+            $this->parseHeaders($swooleRequest);
             $this->initCoreComponent();
-            $this->request  = $request;
-            $this->response = $response;
-            $this->requestInput = new RequestInput($this->request, $this->response);
-            $this->responseOutput = new ResponseOutput($this->request, $this->response);
+            $this->swooleRequest  = $swooleRequest;
+            $this->swooleResponse = $swooleResponse;
+            $this->requestInput = new RequestInput($this->swooleRequest, $this->swooleResponse);
+            $this->responseOutput = new ResponseOutput($this->swooleRequest, $this->swooleResponse);
             Application::setApp($this);
             $this->defer();
             $this->_init();
@@ -151,10 +149,10 @@ class App extends \Swoolefy\Core\Component
     }
 
     /**
-     * @param Request $request
+     * @param SwooleRequest $request
      * @return void
      */
-    protected function parseHeaders(Request $request)
+    protected function parseHeaders(SwooleRequest $request)
     {
         foreach ($request->server as $key => $value) {
             $upper = strtoupper($key);
@@ -215,7 +213,7 @@ class App extends \Swoolefy\Core\Component
      */
     public function getFd()
     {
-        return $this->request->fd;
+        return $this->swooleRequest->fd;
     }
 
     /**
@@ -227,10 +225,10 @@ class App extends \Swoolefy\Core\Component
         if (isset($this->appConf['catch_handle']) && $handle = $this->appConf['catch_handle']) {
             $this->isEnd = true;
             if ($handle instanceof \Closure) {
-                $handle->call($this, $this->request, $this->response);
+                $handle->call($this, $this->swooleRequest, $this->swooleResponse);
             } else {
-                $this->response->header('Content-Type', 'text/html; charset=UTF-8');
-                $this->response->end($handle);
+                $this->swooleResponse->header('Content-Type', 'text/html; charset=UTF-8');
+                $this->swooleResponse->end($handle);
             }
             return true;
         }
@@ -317,8 +315,8 @@ class App extends \Swoolefy\Core\Component
         $this->unsetObjectInstance();
         // end request
         if (!$this->isEnd) {
-            if($this->response->isWritable()) {
-                @$this->response->end();
+            if($this->swooleResponse->isWritable()) {
+                @$this->swooleResponse->end();
             }
         }
     }
