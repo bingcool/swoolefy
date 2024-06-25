@@ -14,6 +14,7 @@ class UuidController extends BController
         var_dump($input);
 
         var_dump($requestInput->get('id'));
+        var_dump($requestInput->getProtocol());
 
         $ids = Factory::getUUid()->getIncrIds(10);
         foreach ($ids as &$id) {

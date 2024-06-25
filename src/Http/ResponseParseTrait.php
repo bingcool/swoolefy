@@ -46,22 +46,22 @@ trait ResponseParseTrait
         switch (strtoupper($formatter)) {
             case 'JSON':
                 $this->swooleResponse->header('Content-Type', 'application/json; charset=utf-8');
-                $jsonString = json_encode($data, JSON_UNESCAPED_UNICODE);
+                $responseContent = json_encode($data, JSON_UNESCAPED_UNICODE);
                 break;
             default:
-                $jsonString = json_encode($data, JSON_UNESCAPED_UNICODE);
+                $responseContent = json_encode($data, JSON_UNESCAPED_UNICODE);
                 break;
         }
 
-        if (strlen($jsonString) > 2 * 1024 * 1024) {
-            $chunks = str_split($jsonString, 2 * 1024 * 1024);
-            unset($jsonString);
+        if (strlen($responseContent) > 2 * 1024 * 1024) {
+            $chunks = str_split($responseContent, 2 * 1024 * 1024);
+            unset($responseContent);
             foreach ($chunks as $k => $chunk) {
                 $this->swooleResponse->write($chunk);
                 unset($chunks[$k]);
             }
         } else {
-            $this->swooleResponse->write($jsonString);
+            $this->swooleResponse->write($responseContent);
         }
 
         if(is_object(Application::getApp())) {

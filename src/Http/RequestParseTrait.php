@@ -202,6 +202,15 @@ trait RequestParseTrait
     }
 
     /**
+     * @return string
+     */
+    public function path()
+    {
+        $pattern = trim($this->getSwooleRequest()->server['path_info'], '/');
+        return $pattern === '' ? '/' : $pattern;
+    }
+
+    /**
      * getQueryParams 获取get参数
      * @param string|null $name
      * @param mixed $default

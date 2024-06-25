@@ -29,47 +29,6 @@ class StatusCmd extends BaseCmd
         return 0;
     }
 
-    protected function serverStatus($appName, $pidFile)
-    {
-        if (!is_file($pidFile)) {
-            fmtPrintError("Pid file={$pidFile} is not exist, please check server weather is running");
-            return;
-        }
-
-        $pid = intval(file_get_contents($pidFile));
-        if (!\Swoole\Process::kill($pid, 0)) {
-            fmtPrintError("Server Maybe Shutdown, You can use 'ps -ef | grep php-swoolefy' ");
-            return;
-        }
-
-        $exec = (new Exec())->run('pgrep -P ' . $pid);
-        $output = $exec->getOutput();
-        $managerProcessId = -1;
-        $workerProcessIds = [];
-        if (isset($output[0])) {
-            $managerProcessId = current($output);
-            $workerProcessIds = (new Exec())->run('pgrep -P ' . $managerProcessId)->getOutput();
-        }
-
-        $output = new \Symfony\Component\Console\Output\ConsoleOutput();
-        $table  = new \Symfony\Component\Console\Helper\Table($output);
-        $table->setHeaders(['进程名称', '进程ID','父进程ID', '进程状态']);
-        $table->setRows(array(
-            array('master process', $pid,'--','running'),
-            array('manager process', $managerProcessId, $pid, 'running')
-        ));
-
-        foreach ($workerProcessIds as $id=>$processId) {
-            $table->addRow(array("worker process-{$id}", $processId, $managerProcessId, 'running'));
-        }
-
-        $tableStyle = new TableStyle();
-        $tableStyle->setCellRowFormat('<info>%s</info>');
-        $table->setStyle($tableStyle);
-
-        $table->render();
-    }
-
     protected function workerStatus($pidFile)
     {
         if (!is_file($pidFile)) {
