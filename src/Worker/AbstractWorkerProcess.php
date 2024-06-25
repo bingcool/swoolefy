@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Worker;
 
+use DirectoryIterator;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Core\Log\LogManager;
 
@@ -159,6 +160,19 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
                 }else if (SystemEnv::isCronService()) {
                     $dir = "{$logType}" .DIRECTORY_SEPARATOR. $fileName . '.log';
                 }
+                // 清理可能提前生成的空日志，直接挂载cron|daemon目录下
+                if (SystemEnv::isCronService() || SystemEnv::isDaemonService()) {
+                    foreach (new DirectoryIterator($filePathDir) as $fileInfo) {
+                        if ($fileInfo->isDot()) {
+                            continue;
+                        }
+                        $extension = pathinfo($fileInfo->getFilename(), PATHINFO_EXTENSION);
+                        if ($extension == 'log') {
+                            unlink($fileInfo->getPathname());
+                        }
+                    }
+                }
+
                 $filePath = $filePathDir . DIRECTORY_SEPARATOR .$dir;
                 $logger->setLogFilePath($filePath);
             }
