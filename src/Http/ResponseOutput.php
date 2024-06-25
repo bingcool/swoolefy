@@ -131,6 +131,8 @@ class ResponseOutput extends HttpInputOut
      * @param string $domain 有效域名
      * @param bool $secure Cookie是否仅仅通过安全的HTTPS连接传给客户端
      * @param bool $httpOnly 设置成TRUE，Cookie仅可通过HTTP协议访问
+     * @param string $samesite 设置成TRUE，Cookie仅可通过HTTP协议访问
+     * @param string $priority 设置成TRUE，Cookie仅可通过HTTP协议访问
      * @return ResponseOutput
      */
     public function withCookie(
@@ -140,10 +142,12 @@ class ResponseOutput extends HttpInputOut
         string $path = '/',
         string $domain = '',
         bool   $secure = false,
-        bool   $httpOnly = false
+        bool   $httpOnly = false,
+        string $samesite = '',
+        string $priority = ''
     )
     {
-        $this->swooleResponse->cookie($key, $value, $expire, $path, $domain, $secure, $httpOnly);
+        $this->swooleResponse->cookie($key, $value, $expire, $path, $domain, $secure, $httpOnly, $samesite, $priority);
         return $this;
     }
 

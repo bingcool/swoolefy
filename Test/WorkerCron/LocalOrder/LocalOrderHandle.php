@@ -31,6 +31,7 @@ class LocalOrderHandle extends AbstractCronController {
 //        var_dump(Swfy::getConf()['bjg']);
         SystemEnv::clearEnvRepository();
         RunLog::info("this is a cron test log");
+        RunLog::error("this is a cron test log");
         var_dump("cron start");
         sleep(3);
         var_dump(SystemEnv::get('WEB_SITE_HOST'));
