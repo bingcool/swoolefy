@@ -260,6 +260,18 @@ trait ComponentTrait
     }
 
     /**
+     * @param string $name
+     * @return bool
+     */
+    public function has(string $name)
+    {
+        if(isset($this->containers[$name]) && is_object($this->containers[$name])) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
      *pushComponentPools
      * @return bool
      */
