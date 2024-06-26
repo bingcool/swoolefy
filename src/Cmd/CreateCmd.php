@@ -122,13 +122,13 @@ class CreateCmd extends BaseCmd
                 {
                     switch ($protocol) {
                         case 'http':
-                            $apiFile = $appPathDir . "/{$dir}/Api.php";
-                            @copy(ROOT_PATH . '/src/Stubs/Api.php', $apiFile);
+                            $apiFile = $appPathDir . "/{$dir}/api.php";
+                            @copy(ROOT_PATH . '/src/Stubs/api.php', $apiFile);
                             break;
                         case 'udp':
                         case 'websocket':
-                            $apiFile = $appPathDir . "/{$dir}/ServiceApi.php";
-                            @copy(ROOT_PATH . '/src/Stubs/ServiceApi.php', $apiFile);
+                            $apiFile = $appPathDir . "/{$dir}/serviceApi.php";
+                            @copy(ROOT_PATH . '/src/Stubs/serviceApi.php', $apiFile);
                             break;
                         default:
                             break;
