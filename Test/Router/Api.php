@@ -107,6 +107,10 @@ Route::group([
         'dispatch_route' => [\Test\Controller\QueueController::class, 'push'],
     ]);
 
+    Route::match(['GET','POST'],'/captcha/image', [
+        'dispatch_route' => [\Test\Controller\CaptchaController::class, 'test'],
+    ]);
+
 });
 
 Route::match(['GET'],'/cache/test1', [

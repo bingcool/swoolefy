@@ -1561,6 +1561,15 @@ abstract class AbstractBaseWorker
     }
 
     /**
+     * @param string $name
+     * @return bool
+     */
+    public function getOption(string $name)
+    {
+        return getenv($name);
+    }
+
+    /**
      * writeStartFormatInfo
      * @return void
      */

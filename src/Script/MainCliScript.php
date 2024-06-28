@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Script;
 
+use Swoolefy\Core\Exec;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Exception\SystemException;
@@ -71,7 +72,7 @@ class MainCliScript extends AbstractScriptProcess
             $action = getenv('a');
             if (in_array($action, $this->forbiddenActions)) {
                 fmtPrintError("Function action=[$action] forbidden to exec!");
-                $this->exitAll(true);
+                $this->exitAll(true, 0);
                 return;
             }
             $handleClass = getenv('handle_class');
@@ -87,7 +88,7 @@ class MainCliScript extends AbstractScriptProcess
             }catch (\Throwable $exception) {
             }
         } finally {
-            $this->exitAll(true);
+            $this->exitAll(true, 0);
         }
     }
 
@@ -142,12 +143,18 @@ class MainCliScript extends AbstractScriptProcess
 
     /**
      * @param bool $force
+     * @param int $waitTime
      * @return void
      */
-    protected function exitAll(bool $force = false)
+    protected function exitAll(bool $force = false, int $waitTime = 3)
     {
+        if ($waitTime > 0) {
+            \Swoole\Coroutine\System::sleep($waitTime);
+        }
         $swooleMasterPid = Swfy::getMasterPid();
-        if(\Swoole\Process::kill($swooleMasterPid, 0) && !$this->exitAll) {
+        $exist = \Swoole\Process::kill($swooleMasterPid, 0);
+
+        if($exist && !$this->exitAll) {
             $pidFile = Swfy::getConf()['setting']['pid_file'];
             if (is_file($pidFile)) {
                 @unlink($pidFile);
@@ -164,13 +171,32 @@ class MainCliScript extends AbstractScriptProcess
 
             fmtPrintInfo("script end! ");
             if($force) {
-                \Swoole\Process::kill($swooleMasterPid, SIGKILL);
+                @\Swoole\Process::kill($swooleMasterPid, SIGKILL);
             }else {
-                \Swoole\Process::kill($swooleMasterPid, SIGTERM);
+                @\Swoole\Process::kill($swooleMasterPid, SIGTERM);
             }
             $this->exitAll = true;
+        }else if ($exist) {
+            // 进程存在,强制退出
+            \Swoole\Coroutine\System::sleep(5);
+            if (\Swoole\Process::kill($swooleMasterPid, 0)) {
+                $exec = (new Exec())->run('pgrep -P ' . $swooleMasterPid);
+                $output = $exec->getOutput();
+                $managerProcessId = -1;
+                $workerProcessIds = [];
+                if (isset($output[0])) {
+                    $managerProcessId = current($output);
+                    $workerProcessIds = (new Exec())->run('pgrep -P ' . $managerProcessId)->getOutput();
+                }
+                foreach ([$swooleMasterPid, $managerProcessId, ...$workerProcessIds] as $processId) {
+                    if ($processId > 0 && \Swoole\Process::kill($processId, 0)) {
+                        @\Swoole\Process::kill($processId, SIGKILL);
+                    }
+                }
+            }
         }
     }
+
 
     /**
      * @return string
