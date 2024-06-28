@@ -37,7 +37,7 @@ define('WORKER_CTL_CONF_FILE',WORKER_PID_FILE_ROOT.'/confctl.json');
 
 date_default_timezone_set('Asia/Shanghai');
 
-define('WORKER_CONF', \Swoolefy\Worker\MainManager::loadWorkerConf(__DIR__.'/'.$_SERVER['argv'][2].'/WorkerCron/worker_cron_conf.php'));
+define('WORKER_CONF', \Swoolefy\Worker\MainManager::loadWorkerConf(__DIR__.'/'.$appName.'/WorkerCron/worker_cron_conf.php'));
 
 define('PROCESS_CLASS', [
     // 应用crom worker
