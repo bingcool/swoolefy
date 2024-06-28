@@ -19,13 +19,6 @@ namespace Swoolefy\Util;
 class IpUtils
 {
     /**
-     * This class should not be instantiated.
-     */
-    private function __construct()
-    {
-    }
-
-    /**
      * Checks if an IPv4 or IPv6 address is contained in the list of given IPs or subnets.
      *
      * @param string|array $ips List of IPs or subnets (can be a string if only a single one)

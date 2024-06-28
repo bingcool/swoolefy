@@ -106,7 +106,9 @@ swoolefy-4.8-lts 版本：
 - [x] UUid 分布式自增id组件  
 - [x] Curl基础组件    
 - [x] Jwt 组件   
-- [x] Validate组件    
+- [x] Validate 组件    
+- [x] Encrypt 加密解密组件   
+- [x] Captcha 验证码组件    
    
 github: https://github.com/bingcool/library    
 

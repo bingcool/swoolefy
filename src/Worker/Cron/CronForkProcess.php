@@ -59,8 +59,8 @@ class CronForkProcess extends CronProcess
                         try {
                             if($runner->isNextHandle(false)) {
                                 if($forkType == self::FORK_TYPE_PROC_OPEN) {
-                                    $runner->procOpen(function ($pipe0, $pipe1, $pipe2, $status, $returnCode) use($task) {
-                                        $this->receiveCallBack($pipe0, $pipe1, $pipe2, $status, $returnCode, $task);
+                                    $runner->procOpen(function ($pipe0, $pipe1, $pipe2, $status) use($task) {
+                                        $this->receiveCallBack($pipe0, $pipe1, $pipe2, $status, $task);
                                     } , $task['exec_bin_file'], $task['exec_script'], $params);
                                 }else {
                                     $runner->exec($task['exec_bin_file'], $task['exec_script'], $params, true);
@@ -118,10 +118,9 @@ class CronForkProcess extends CronProcess
      * @param $pipe1
      * @param $pipe2
      * @param $status
-     * @param $returnCode
      * @param $task
      */
-    protected function receiveCallBack($pipe0, $pipe1, $pipe2, $status, $returnCode, $task)
+    protected function receiveCallBack($pipe0, $pipe1, $pipe2, $status, $task)
     {
 
     }

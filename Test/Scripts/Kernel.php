@@ -3,6 +3,7 @@
 namespace Test\Scripts;
 
 use Swoolefy\Core\SystemEnv;
+use Swoolefy\Worker\Cron\CronForkProcess;
 
 class Kernel
 {
@@ -26,8 +27,15 @@ class Kernel
 //        ],
         [
             'command' => User\FixedUser::command,
-            'cron_expression' => 3600, // 10s执行一次
+            'fork_type' => CronForkProcess::FORK_TYPE_PROC_OPEN,
+            'cron_expression' => 20, // 10s执行一次
             //'cron_expression' => '*/1 * * * *', // 每分钟执行一次
+            'argv' => [
+                'name' => 'bingcool',
+                'age' => 18,
+                'sex' => 'man',
+                'desc' => "fff kkkmm"
+            ],
             'desc' => '',
         ],
     ];
@@ -45,8 +53,25 @@ class Kernel
         foreach (self::$schedule as $item) {
             $item['cron_name'] = $item['command'].'-'.$item['cron_expression'];
             $item['exec_bin_file'] = SystemEnv::PhpBinFile();
-            $item['fork_type'] = \Swoolefy\Worker\Cron\CronForkProcess::FORK_TYPE_PROC_OPEN;
-            $item['exec_script'] = "script.php start {$appName} --c={$item['command']} --daemon=1";
+            if (!isset($item['fork_type'])) {
+                $item['fork_type'] = CronForkProcess::FORK_TYPE_PROC_OPEN;
+            }
+
+            if (!isset($item['argv'])) {
+                $item['argv'] = [];
+            }
+            $item['argv']['daemon'] = 1;
+
+            $argvOptions = [];
+            foreach ($item['argv'] as $argvName=>$argvValue) {
+                if (str_contains($argvValue, ' ')) {
+                    $argvOptions[] = "--{$argvName}='{$argvValue}'";
+                }else {
+                    $argvOptions[] = "--{$argvName}={$argvValue}";
+                }
+            }
+            $argv = implode(' ', $argvOptions);
+            $item['exec_script'] = "script.php start {$appName} --c={$item['command']} $argv";
             $item['params'] = [];
             $scheduleList[] = $item;
         }
