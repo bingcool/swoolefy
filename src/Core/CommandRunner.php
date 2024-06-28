@@ -13,6 +13,7 @@ namespace Swoolefy\Core;
 
 use Swoole\Coroutine\Channel;
 use Swoole\Coroutine\System;
+use Swoole\Process;
 use Swoolefy\Exception\SystemException;
 
 class CommandRunner
@@ -184,15 +185,16 @@ class CommandRunner
                     $this->channel = new Channel($this->concurrent);
                 }
 
-                if ($status['pid'] ?? '') {
+                if (isset($status['pid']) && $status['pid'] > 0) {
                     $this->channel->push($statusProperty, 0.2);
-                    $returnCode = fgets($pipes[3], 10);
-                    if ($returnCode != 0) {
+                }else {
+                    if (!Process::kill($status['pid'], 0)) {
+                        $returnCode = fgets($pipes[3], 10);
                         $errorMsg = static::$exitCodes[$returnCode] ?? 'Unknown Error';
                         throw new SystemException("CommandRunner Proc Open failed,return Code={$returnCode},commandLine={$command}, errorMsg={$errorMsg}.");
                     }
                 }
-                $params = [$pipes[0], $pipes[1], $pipes[2], $statusProperty, $returnCode ?? -1];
+                $params = [$pipes[0], $pipes[1], $pipes[2], $statusProperty];
                 $result = call_user_func_array($callable, $params);
                 return $result;
             } catch (\Throwable $e) {

@@ -19,8 +19,8 @@ use Swoolefy\Core\Application;
 
 class BController extends \Swoolefy\Core\AppObject
 {
-    use \Swoolefy\Http\ResponseParseTrait;
     use \Swoolefy\Core\ServiceTrait;
+    use \Swoolefy\Http\ResponseParseTrait;
 
     /**
      * @var SwooleRequest
