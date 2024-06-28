@@ -1,9 +1,7 @@
 <?php
 namespace Swoolefy\Cmd;
 
-use Swoolefy\Core\Exec;
 use Swoolefy\Core\SystemEnv;
-use Symfony\Component\Console\Helper\TableStyle;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
