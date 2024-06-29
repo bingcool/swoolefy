@@ -106,7 +106,9 @@ swoolefy-4.8-lts 版本：
 - [x] UUid 分布式自增id组件  
 - [x] Curl基础组件    
 - [x] Jwt 组件   
-- [x] Validate组件    
+- [x] Validate 组件    
+- [x] Encrypt 加密解密组件   
+- [x] Captcha 验证码组件    
    
 github: https://github.com/bingcool/library    
 
@@ -144,12 +146,16 @@ composer create-project bingcool/swoolefy:^4.9.0 myproject
 // 在myproject目录下添加cli.php, 这个是启动项目的入口文件
 
 include __DIR__.'/vendor/autoload.php';
+
+$appName = ucfirst($_SERVER['argv'][2]);
+// 定义app name
+define('APP_NAME', $appName);
 // 启动目录
 defined('START_DIR_ROOT') or define('START_DIR_ROOT', __DIR__);
 // 应用父目录
 defined('ROOT_PATH') or define('ROOT_PATH',__DIR__);
 // 应用目录
-defined('APP_PATH') or define('APP_PATH',__DIR__.'/'.ucfirst($_SERVER['argv'][2]));
+defined('APP_PATH') or define('APP_PATH',__DIR__.'/'.$appName);
 
 registerNamespace(APP_PATH);
 
@@ -157,7 +163,7 @@ define('IS_WORKER_SERVICE', 0);
 define('IS_CLI_SCRIPT', 0);
 define('IS_CRON_SERVICE', 0);
 define('PHP_BIN_FILE','/usr/bin/php');    
-define('WORKER_START_SCRIPT_FILE', $_SERVER['PWD'].'/'.$_SERVER['SCRIPT_FILENAME']);
+define('WORKER_START_SCRIPT_FILE', str_contains($_SERVER['SCRIPT_FILENAME'], $_SERVER['PWD']) ? $_SERVER['SCRIPT_FILENAME'] : $_SERVER['PWD'].'/'.$_SERVER['SCRIPT_FILENAME']);
 
 date_default_timezone_set('Asia/Shanghai');
 
