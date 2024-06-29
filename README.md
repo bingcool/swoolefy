@@ -146,12 +146,16 @@ composer create-project bingcool/swoolefy:~5.1 myproject
 // 在myproject目录下添加cli.php, 这个是启动项目的入口文件
 
 include __DIR__.'/vendor/autoload.php';
+
+$appName = ucfirst($_SERVER['argv'][2]);
+// 定义app name
+define('APP_NAME', $appName);
 // 启动目录
 defined('START_DIR_ROOT') or define('START_DIR_ROOT', __DIR__);
 // 应用父目录
 defined('ROOT_PATH') or define('ROOT_PATH',__DIR__);
 // 应用目录
-defined('APP_PATH') or define('APP_PATH',__DIR__.'/'.ucfirst($_SERVER['argv'][2]));
+defined('APP_PATH') or define('APP_PATH',__DIR__.'/'.$appName);
 
 registerNamespace(APP_PATH);
 
