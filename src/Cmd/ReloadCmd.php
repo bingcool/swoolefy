@@ -4,6 +4,7 @@ namespace Swoolefy\Cmd;
 use Swoolefy\Core\SystemEnv;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+
 class ReloadCmd extends BaseCmd
 {
     protected static $defaultName = 'reload';
