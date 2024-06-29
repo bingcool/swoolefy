@@ -54,14 +54,10 @@ class BaseCmd extends Command
         }
 
         if ($input->getArgument('app_name')) {
-            $input->setArgument('app_name', ucfirst($input->getArgument('app_name')));
+            $input->setArgument('app_name', APP_NAME);
         }
 
-        $appName = $input->getArgument('app_name');
-        $appName = trim($appName);
-
-        defined('APP_NAME') or define('APP_NAME', $appName);
-        defined('APP_PATH') or define('APP_PATH', ROOT_PATH.'/'.$appName);
+        defined('APP_PATH') or define('APP_PATH', ROOT_PATH.'/'.APP_NAME);
         // env
         defined('SWOOLEFY_DEV') or define('SWOOLEFY_DEV', 'dev');
         defined('SWOOLEFY_TEST') or define('SWOOLEFY_TEST', 'test');
