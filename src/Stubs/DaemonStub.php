@@ -47,11 +47,6 @@ define('PROCESS_CLASS', [
     'Test' => \Test\WorkerDaemon\MainProcess::class,
 ]);
 
-define('APP_NAMES', [
-    // 应用协议
-    'Test' => 'http'
-]);
-
 // 启动前处理,比如加载.env
 $beforeFunc = function () {
 

@@ -50,8 +50,4 @@ define('ROOT_NAMESPACE', [
     'Test' => '\\Test\\Scripts'
 ]);
 
-define('APP_NAMES', [
-    'Test' => 'http'
-]);
-
 include __DIR__.'/swoolefy';

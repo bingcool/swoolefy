@@ -100,7 +100,7 @@ class UdpHandler extends Swoole implements HandlerInterface
                     $service          = trim(str_replace('\\', DIRECTORY_SEPARATOR, $service), DIRECTORY_SEPARATOR);
                     $serviceHandle    = implode(self::EOF, [$service, $event]);
                     $this->setServiceHandle($serviceHandle);
-                    list($beforeHandle, $callable, $afterHandle) = ServiceDispatch::getRouterMapService($serviceHandle);
+                    list($beforeMiddleware, $callable, $afterMiddleware) = ServiceDispatch::getRouterMapService($serviceHandle);
                 }
 
                 $dispatcher = new ServiceDispatch($callable, $params);
@@ -109,12 +109,12 @@ class UdpHandler extends Swoole implements HandlerInterface
                     $dispatcher->setFromWorkerIdAndTaskId($fromWorkerId, $taskId, $task);
                 }
 
-                if (isset($beforeHandle)) {
-                    $dispatcher->setBeforeMiddleware($beforeHandle);
+                if (isset($beforeMiddleware)) {
+                    $dispatcher->setBeforeMiddleware($beforeMiddleware);
                 }
 
-                if (isset($afterHandle)) {
-                    $dispatcher->setAfterMiddleware($afterHandle);
+                if (isset($afterMiddleware)) {
+                    $dispatcher->setAfterMiddleware($afterMiddleware);
                 }
 
                 $dispatcher->dispatch();
