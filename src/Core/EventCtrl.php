@@ -52,6 +52,9 @@ class EventCtrl implements EventCtrlInterface
             if (BaseServer::isEnableReload()) {
                 ProcessManager::getInstance()->addProcess('swoolefy_system_reload', \Swoolefy\AutoReload\ReloadProcess::class);
             }
+
+            $this->registerStartLog();
+
         }else {
             static::onWorkerServiceInit();
             $this->boostrapWorkerInit();
@@ -157,6 +160,21 @@ class EventCtrl implements EventCtrlInterface
         }, LogManager::GUZZLE_CURL_LOG);
     }
 
+    /**
+     * @return void
+     */
+    protected function registerStartLog()
+    {
+        if (defined('SERVER_START_LOG')) {
+            $pathDir = pathinfo(SERVER_START_LOG);
+            if (!is_dir($pathDir['dirname'])) {
+                mkdir($pathDir['dirname'], 0777, true);
+            }
+            $startLog = ['start_time' => date('Y-m-d H:i:s')];
+            file_put_contents(SERVER_START_LOG, json_encode($startLog));
+            chmod(SERVER_START_LOG, 0777);
+        }
+    }
     /**
      * @return bool
      */

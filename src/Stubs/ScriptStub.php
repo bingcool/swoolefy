@@ -24,7 +24,7 @@ define('APP_META_ARR', [
 define('WORKER_PORT', APP_META_ARR[$appName]['worker_port']);
 define('IS_DAEMON_SERVICE', 0);
 define('IS_CRON_SERVICE', 0);
-define('IS_CLI_SCRIPT', 1);
+define('IS_SCRIPT_SERVICE', 1);
 define('PHP_BIN_FILE','/usr/bin/php');
 define('WORKER_SERVICE_NAME', makeServerName($_SERVER['argv'][2]));
 

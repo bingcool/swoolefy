@@ -114,7 +114,7 @@ function initConsoleStyleIo()
  */
 function makeServerName(string $appName)
 {
-    if (IS_DAEMON_SERVICE == 1 && IS_CRON_SERVICE == 0 && IS_CLI_SCRIPT == 0 ) {
+    if (IS_DAEMON_SERVICE == 1 && IS_CRON_SERVICE == 0 && IS_SCRIPT_SERVICE == 0 ) {
         return strtolower($appName.'-'.'daemon');
     }
 
@@ -122,7 +122,12 @@ function makeServerName(string $appName)
         return strtolower($appName.'-'.'cron');
     }
 
-    return strtolower($appName.'-'.'script');
+    if (IS_SCRIPT_SERVICE == 1) {
+        return strtolower($appName.'-'.'script');
+    }
+
+    return strtolower($appName.'-'.'cli');
+
 }
 
 /**
