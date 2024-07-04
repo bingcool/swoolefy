@@ -27,7 +27,7 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
                 });
             });
         });
-        sleep(60);
+        sleep(10);
         date_default_timezone_set('Asia/Shanghai');
         file_put_contents(
             '/home/wwwroot/swoolefy/Test/WorkerCron/ForkOrder/order1.log',
