@@ -2,20 +2,17 @@
 
 namespace protocol\event;
 
-use Swoolefy\Core\Swfy;
-use Swoolefy\Core\Application;
-use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\EventHandler;
-use Swoolefy\Core\Process\ProcessManager;
+use Swoolefy\Core\SystemEnv;
 
-class Event extends EventHandler
+class EventHandle extends EventHandler
 {
     /**
      * onInit
      */
     public function onInit() {
 
-        if (!$this->isWorkerService()) {
+        if (!SystemEnv::isWorkerService()) {
             // todo refer to Test Demo
         }
     }
@@ -36,7 +33,7 @@ class Event extends EventHandler
      */
     public function onWorkerStart($server, $worker_id)
     {
-        if ($this->isWorkerService()) {
+        if (!SystemEnv::isWorkerService()) {
             // todo
         }
     }

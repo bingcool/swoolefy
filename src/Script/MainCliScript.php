@@ -138,7 +138,7 @@ class MainCliScript extends AbstractScriptProcess
      */
     private function setIsCliScript()
     {
-        defined('IS_CLI_SCRIPT') or define('IS_CLI_SCRIPT', 1);
+        defined('IS_SCRIPT_SERVICE') or define('IS_SCRIPT_SERVICE', 1);
     }
 
     /**
