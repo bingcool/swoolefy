@@ -257,13 +257,19 @@ class SystemEnv
 
         $handle = opendir($componentDir);
         while ($file = readdir($handle)) {
-            if($file == '.' || $file == '..' ){
+            if($file == '.' || $file == '..' ) {
                 continue;
             }
             $filePath = $componentDir.DIRECTORY_SEPARATOR.$file;
             $fileType = pathinfo($filePath, PATHINFO_EXTENSION);
             if (in_array($fileType, ['php'])) {
                 $component = include $filePath;
+                $intersectKeys = array_intersect_key($components, $component);
+                if (!empty($intersectKeys)) {
+                    $intersectNames      = array_keys($intersectKeys);
+                    $intersectNameString = implode(',', $intersectNames);
+                    throw new SystemException("Config Component 组件合并后数组key, 存在相同的组件名称[ {$intersectNameString} ], 互相覆盖");
+                }
                 $components = array_merge($components, $component);
             }
         }
