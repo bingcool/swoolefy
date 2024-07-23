@@ -35,13 +35,12 @@
         "ext-mbstring": "*",
         "ext-openssl": "*",
         "dragonmantank/cron-expression": "~3.3.1",
-        "bingcool/library": "dev-master",
         "vlucas/phpdotenv": "~5.6",
         "symfony/console": "~6.4.2",
         "zircote/swagger-php": "4.8.7",
         "symfony/rate-limiter": "6.4.x-dev",
         "endroid/qr-code": "v5.0.5",
-        "webman/captcha": "dev-master"
+        "bingcool/library": "dev-master"
     },
     "autoload": {
         "files": ["src/Constants.php","src/Core/Func/function.php"],
