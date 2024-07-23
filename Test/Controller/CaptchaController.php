@@ -4,7 +4,7 @@ namespace Test\Controller;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\ResponseOutput;
-use Webman\Captcha\CaptchaBuilder;
+use Common\Library\Captcha\CaptchaBuilder;
 
 class CaptchaController extends BController
 {
