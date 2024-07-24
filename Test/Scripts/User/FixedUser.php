@@ -3,6 +3,7 @@
 
 namespace Test\Scripts\User;
 
+use Common\Library\Captcha\CaptchaBuilder;
 use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\Coroutine\Parallel;
 use Test\Factory;
