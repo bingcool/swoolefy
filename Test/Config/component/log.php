@@ -23,7 +23,6 @@ return [
     // 用户行为记录的info日志
     'info_log' => function($name) {
         $logger = new \Swoolefy\Util\Log($name);
-        $logger->setRotateDay(1);
         $logger->setChannel('application');
         if(SystemEnv::isDaemonService()) {
             $logFilePath = LOG_PATH.'/daemon/info.log';

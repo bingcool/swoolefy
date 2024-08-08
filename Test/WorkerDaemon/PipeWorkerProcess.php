@@ -6,6 +6,7 @@ use Common\Library\Db\Raw;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\EventController;
 use Swoolefy\Core\Log\LogManager;
+use Test\Logger\RunLog;
 use Test\Module\Order\OrderEntity;
 
 class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
@@ -26,6 +27,10 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
 
             var_dump('start start');
 
+        RunLog::info("loopHandle");
+
+        sleep(120);
+        return;
 
         $userId = 10000;
         $receiver_user_name = '李四';
@@ -141,6 +146,7 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
     public function onHandleException(\Throwable $throwable, array $context = [])
     {
         parent::onHandleException($throwable, $context);
+        sleep(1);
         var_dump($throwable->getMessage());
     }
 }

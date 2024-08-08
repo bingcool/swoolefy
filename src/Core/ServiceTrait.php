@@ -146,7 +146,7 @@ trait ServiceTrait
 
 
     /**
-     * getConf
+     * getConf 全局conf
      * @return array
      */
     public static function getConf()
@@ -155,7 +155,7 @@ trait ServiceTrait
     }
 
     /**
-     * getAppConf
+     * getAppConf 应用配置
      * @return array
      */
     public static function getAppConf()

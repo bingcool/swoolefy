@@ -58,6 +58,9 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
         $this->limitCurrentRunCoroutineNum = $this->getArgs()['limit_run_coroutine_num'] ?? null;
         $this->registerTickReboot();
         $this->onInit();
+        if ($this->getRebootCount() > 0) {
+            \Swoole\Coroutine\System::sleep(0.3);
+        }
     }
 
     /**
@@ -109,7 +112,7 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
                     $this->onHandleException($throwable);
                 }
 
-                \Swoole\Coroutine::sleep(0.05);
+                \Swoole\Coroutine::sleep(0.03);
                 // 当接受到进程退出指令后，会设置waitToExit=true, 等主流程的执行完主业务流程后（即loopHandle业务），进程再退出
                 if ($this->waitToExit) {
                     $pid = $this->getPid();

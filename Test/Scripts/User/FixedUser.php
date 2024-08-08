@@ -6,6 +6,7 @@ namespace Test\Scripts\User;
 use Common\Library\Captcha\CaptchaBuilder;
 use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\Coroutine\Parallel;
+use Swoolefy\Util\Log;
 use Test\Factory;
 use Test\Logger\RunLog;
 
@@ -28,6 +29,7 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
                 });
             });
         });
+        RunLog::info("init");
         sleep(10);
         date_default_timezone_set('Asia/Shanghai');
         file_put_contents(

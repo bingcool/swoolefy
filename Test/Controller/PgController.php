@@ -3,6 +3,8 @@ namespace Test\Controller;
 
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
+use Swoolefy\Http\RequestInput;
+use Test\Logger\RunLog;
 use Test\Module\Order\OrderEntity;
 use Test\Module\Order\OrderFormatter;
 
@@ -90,6 +92,13 @@ class PgController extends BController
             $this->returnJson($orderObject->getAttributes());
         }
 
+    }
+
+    public function removeUser(RequestInput $requestInput)
+    {
+        RunLog::info("removeUser");
+        $uid = $requestInput->input('uid');
+        var_dump($uid);
     }
 
 }
