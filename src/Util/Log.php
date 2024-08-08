@@ -87,10 +87,6 @@ class Log
      */
     protected $dateLogFilePath;
 
-    /**
-     * @var string
-     */
-    protected $splitString = '_';
 
     /**
      * @var int
@@ -187,10 +183,17 @@ class Log
     protected function getDateLogFile(string $date, string $logFilePath)
     {
         $fileInfo = pathinfo($logFilePath);
-        if (!is_dir($fileInfo['dirname'])) {
-            mkdir($fileInfo['dirname'], 0777, true);
+        if (!str_contains($fileInfo['dirname'], $date)) {
+            $logDatePath = $fileInfo['dirname'].DIRECTORY_SEPARATOR.$date;
+        }else {
+            $logDatePath = $fileInfo['dirname'];
         }
-        return $fileInfo['dirname'].DIRECTORY_SEPARATOR.$fileInfo['filename'].$this->splitString.$date.'.'.$fileInfo['extension'];
+
+        if (!is_dir($logDatePath)) {
+            mkdir($logDatePath, 0777, true);
+        }
+
+        return $logDatePath.DIRECTORY_SEPARATOR.$fileInfo['filename'].'.'.$fileInfo['extension'];
     }
 
     /**
@@ -203,24 +206,31 @@ class Log
             return;
         }
 
-        $fileInfo = pathinfo($logFilePath);
-        $logDir = $fileInfo['dirname'];
-        $fileList = scandir($logDir);
-        $lastDay = date('Ymd', time() - 24 * 3600 * ($this->rotateDay));
-        foreach ($fileList as $file) {
-            $pathFile = $logDir . DIRECTORY_SEPARATOR . $file;
-            if ($pathFile == '.' || $pathFile == '..' || !is_file($pathFile)) {
-                continue;
+        $pattern = '/^(.*?)([\/][0-9]{8})/';
+        if (preg_match($pattern, $logFilePath, $matches)) {
+            $parentDir = DIRECTORY_SEPARATOR.trim($matches[1],'/');
+            $logDirList = scandir($parentDir);
+            $lastDay = date('Ymd', time() - 24 * 3600 * ($this->rotateDay));
+            foreach ($logDirList as $logDateDir) {
+                if ($logDateDir == '.' || $logDateDir == '..') {
+                    continue;
+                }
+                $fullDateLogPath= $parentDir.DIRECTORY_SEPARATOR.$logDateDir;
+                if (is_dir($fullDateLogPath) && is_numeric($logDateDir) && $logDateDir < $lastDay) {
+                    if (defined('LINUX_RM_SHELL')) {
+                        $shell = constant('LINUX_RM_SHELL');
+                    }else {
+                        $shell = 'rm -rf';
+                    }
+                    try {
+                        @exec($shell.' '.$fullDateLogPath, $output, $return_var);
+                    }catch (\Throwable $e) {
+                        var_dump($e->getMessage());
+                    }
+                }
             }
-            $fileName = pathinfo($pathFile, PATHINFO_FILENAME);
-            $fileArr  = explode($this->splitString, $fileName);
-            $fileDate = array_pop($fileArr);
-
-            if (is_numeric($fileDate) && $fileDate < $lastDay && file_exists($pathFile)) {
-                @unlink($pathFile);
-            }
+            $this->doUnlink = true;
         }
-        $this->doUnlink = true;
     }
 
     /**
@@ -361,7 +371,7 @@ class Log
                     });
                 }
 
-                $this->unlinkHistoryDayLogFile($this->logFilePath);
+                $this->unlinkHistoryDayLogFile($this->dateLogFilePath);
 
                 // add records to the log
                 $this->logger->addRecord($type, $logInfo, $context);

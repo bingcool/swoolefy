@@ -123,4 +123,8 @@ Route::group([
         'dispatch_route' => [\Test\Controller\PgController::class, 'savePgOrder1'],
     ]);
 
+    Route::delete('/remove-use', [
+        'dispatch_route' => [\Test\Controller\PgController::class, 'removeUser'],
+    ]);
+
 });
