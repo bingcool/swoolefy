@@ -48,6 +48,7 @@ defined('MQTT_PROTOCOL_LEVEL5') or define('MQTT_PROTOCOL_LEVEL5', 5);
 defined('SWOOLEFY_VERSION') or define('SWOOLEFY_VERSION', '4.9.3');
 defined('SWOOLEFY_EOF_FLAG') or define('SWOOLEFY_EOF_FLAG', '::');
 
+defined('WORKER_CLI_START') or define('WORKER_CLI_START', 'start');
 defined('WORKER_CLI_STOP') or define('WORKER_CLI_STOP', 'stop');
 defined('WORKER_CLI_STATUS') or define('WORKER_CLI_STATUS', 'status');
 defined('WORKER_CLI_RESTART') or define('WORKER_CLI_RESTART', 'restart');
