@@ -1786,7 +1786,7 @@ class MainManager
      * @param array $conf
      * @return void
      */
-    private static function findDuplicateProcessName(array &$conf)
+    public static function findDuplicateProcessName(array &$conf)
     {
         $processNames = array_column($conf, 'process_name');
         $uniqueProcessNames = array_unique($processNames);

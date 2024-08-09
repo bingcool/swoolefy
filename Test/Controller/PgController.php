@@ -92,4 +92,11 @@ class PgController extends BController
 
     }
 
+    public function removeUser(RequestInput $requestInput)
+    {
+        RunLog::info("removeUser");
+        $uid = $requestInput->input('uid');
+        var_dump($uid);
+    }
+
 }

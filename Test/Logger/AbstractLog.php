@@ -20,11 +20,11 @@ abstract class AbstractLog
 
     /**
      * @param $message
-     * @param bool $is_delay_batch
      * @param array $context
+     * @param bool $is_delay_batch
      * @return void
      */
-    public static function info($message, bool $is_delay_batch = false, array $context = [])
+    public static function info($message, array $context = [], bool $is_delay_batch = false)
     {
         /**
          * @var Logger $logger
@@ -36,11 +36,11 @@ abstract class AbstractLog
 
     /**
      * @param $message
-     * @param bool $is_delay_batch
      * @param array $context
+     * @param bool $is_delay_batch
      * @return void
      */
-    public static function error($message, bool $is_delay_batch = false, array $context = [])
+    public static function error($message, array $context = [], bool $is_delay_batch = false)
     {
         if (empty(static::$errorLogType)) {
             throw new SystemException("Miss Property errorLogType");

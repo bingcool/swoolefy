@@ -488,7 +488,15 @@ class HttpRoute extends AppDispatch
             unset($routerMap[$uri][$method]);
             return $routeCacheItems;
         }else {
-            throw new DispatchException("Not Found Route [$uri].");
+            if (!isset($routerMap[$uri])) {
+                throw new DispatchException("Not Found Route [$uri].");
+            }else if (isset($routerMap[$uri]) && !isset($routerMap[$uri][$method])) {
+                $methods = array_keys($routerMap[$uri]);
+                $methods = implode(',', $methods);
+                throw new DispatchException("Only Support Http Method=[{$methods}], But You Current Request Method={$method}, route=[$uri], Please check route config.");
+            }else {
+                throw new DispatchException("Not Match Route [$uri].");
+            }
         }
     }
 

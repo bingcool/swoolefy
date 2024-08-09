@@ -42,7 +42,7 @@ class TestTask extends TaskController
                 $cid = \Swoole\Coroutine::getCid();
                 //var_dump("协程2-Cid={$cid}, Db spl_object_id=".spl_object_id($db).', spl_object_id='.spl_object_id($db1));
 
-                RunLog::info('task task-log-id='.rand(1,1000),true, ['name'=>'bingcoolhuang']);
+                RunLog::info('task task-log-id='.rand(1,1000),['name'=>'bingcoolhuang'],true);
             });
         });
 

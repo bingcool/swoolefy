@@ -19,7 +19,7 @@ class IndexController extends BController {
 
     public function index()
     {
-        RunLog::info('test11111-log-id='.rand(1,1000),true, ['name'=>'bingcoolhuang']);
+        RunLog::info('test11111-log-id='.rand(1,1000),['name'=>'bingcoolhuang'], true);
         Application::getApp()->swooleResponse->write('<h1>Hello, Welcome to Swoolefy Framework! <h1>');
     }
 
@@ -51,7 +51,7 @@ class IndexController extends BController {
 
     public function testLog1(RequestInput $requestInput)
     {
-        RunLog::info('test11111-log-id='.rand(1,1000),true);
+        RunLog::info('test11111-log-id='.rand(1,1000));
         $this->returnJson([
             'Controller' => $requestInput->getControllerId(),
             'Action' => $requestInput->getActionId()
