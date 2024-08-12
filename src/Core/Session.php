@@ -309,7 +309,7 @@ class Session
     {
         $isExists = $this->driver->exists($this->session_id);
         $isExists && $ttl = $this->driver->ttl($this->session_id);
-        if ($ttl >= 0) {
+        if (isset($ttl) && $ttl >= 0) {
             return $ttl;
         }
         return $ttl ?? null;

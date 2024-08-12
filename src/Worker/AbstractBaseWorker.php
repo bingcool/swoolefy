@@ -354,6 +354,7 @@ abstract class AbstractBaseWorker
                 Event::add($this->swooleProcess->pipe, function () {
                     try {
                         $message = $this->swooleProcess->read(64 * 1024);
+                        $isProxyByMaster = true;
                         if (is_string($message)) {
                             $messageDto = unserialize($message);
                             if (!$messageDto instanceof MessageDto) {
@@ -367,8 +368,6 @@ abstract class AbstractBaseWorker
                             }
                             if (!isset($isProxyByMaster) || is_null($isProxyByMaster) || $isProxyByMaster === false) {
                                 $isProxyByMaster = false;
-                            } else {
-                                $isProxyByMaster = true;
                             }
                         }
                         if (isset($msg) && isset($fromProcessName) && isset($fromProcessWorkerId)) {
@@ -579,7 +578,10 @@ abstract class AbstractBaseWorker
                 $isError = true;
             } finally {
                 if (!$isError) {
-                    $this->fmtWriteInfo("Exit Finish Process={$processName}, worker_id={$workerId}",'green');
+                    if (!isset($workerId)) {
+                        $workerId = '';
+                    }
+                    $this->fmtWriteInfo("Exit Finish Process={$processName}, worker_id={$workerId}");
                 }
                 $this->isExit = false;
                 Event::del($this->swooleProcess->pipe);
@@ -599,6 +601,7 @@ abstract class AbstractBaseWorker
     private function rebootSingleHandle()
     {
         return function () {
+            $processName = '';
             try {
                 // destroy
                 $this->exitAndRebootDefer();
