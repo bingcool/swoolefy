@@ -309,7 +309,7 @@ class Session
     {
         $isExists = $this->driver->exists($this->session_id);
         $isExists && $ttl = $this->driver->ttl($this->session_id);
-        if ($ttl >= 0) {
+        if (isset($ttl) && $ttl >= 0) {
             return $ttl;
         }
         return $ttl ?? null;
@@ -347,11 +347,10 @@ class Session
 
     /**
      * reGenerateSessionId 重新生成session_id
-     * @param bool $ismerge 生成新的session_id是否继承合并当前session的数据，默认true,如需要产生一个完全新的空的$this->_SESSION，可以设置false
+     * @param bool $isMerge 生成新的session_id是否继承合并当前session的数据，默认true,如需要产生一个完全新的空的$this->_SESSION，可以设置false
      * @return void
-     * @throws \Exception
      */
-    public function reGenerateSessionId(bool $ismerge = true)
+    public function reGenerateSessionId(bool $isMerge = true)
     {
         $session_data = $this->_SESSION;
         // 先cookie的session_id失效
@@ -360,7 +359,7 @@ class Session
         $this->session_id = null;
         // 产生新的session_id和返回空的$_SESSION数组
         $this->start();
-        if ($ismerge) {
+        if ($isMerge) {
             $this->_SESSION = array_merge($this->_SESSION, $session_data);
         }
     }

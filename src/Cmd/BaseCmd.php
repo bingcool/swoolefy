@@ -247,7 +247,7 @@ class BaseCmd extends Command
             }
         }
 
-        if (isWorkerService() && defined('WORKER_PID_FILE_ROOT')) {
+        if (SystemEnv::isWorkerService() && defined('WORKER_PID_FILE_ROOT')) {
             if (!is_dir(WORKER_PID_FILE_ROOT)) {
                 mkdir(WORKER_PID_FILE_ROOT, 0777, true);
             }

@@ -176,8 +176,10 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
                     }
                 }
 
-                $filePath = $filePathDir . DIRECTORY_SEPARATOR .$dir;
-                $logger->setLogFilePath($filePath);
+                if (isset($dir)) {
+                    $filePath = $filePathDir . DIRECTORY_SEPARATOR .$dir;
+                    $logger->setLogFilePath($filePath);
+                }
             }
         }
     }

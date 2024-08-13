@@ -37,6 +37,14 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
             'date=' . date('Y-m-d H:i:s') . ',pid=' . getmypid() . "\n",
             FILE_APPEND
         );
+
+        $client = new \GuzzleHttp\Client([
+            'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(), // 只需把handler注入进来即可
+            'base_uri' => "http://127.0.0.1:9501",
+        ]);
+        $response = $client->get('/api/send-task-worker');
+        $result = $response->getBody()->getContents();
+        $result = json_decode($result, true);
     }
 
     public function fixName()

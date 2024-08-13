@@ -142,6 +142,7 @@ class HttpRoute extends AppDispatch
 
         $dispatchRouteItem = explode("\\", $controllerNamespace);
         $count = count($dispatchRouteItem);
+        $controller = '';
         switch ($count) {
             case static::ITEM_NUM_3:
                 $module = null;
@@ -167,7 +168,7 @@ class HttpRoute extends AppDispatch
             $this->requestInput->validate($this->requestInput->all(), $validateRule['rules'] ?? [], $validateRule['messages'] ?? []);
         }
 
-        if ($module) {
+        if (isset($module)) {
             // route params array
             $routeItems = [3, [$module, $controller, $action]];
         } else {
