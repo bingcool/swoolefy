@@ -19,6 +19,11 @@ class ReloadCmd extends BaseCmd
         $this->setDescription('reload the application worker process')->setHelp('use php cli.php reload XXXXX');
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return int
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         if (SystemEnv::isWorkerService()) {
@@ -30,7 +35,7 @@ class ReloadCmd extends BaseCmd
         $pidFile = $this->getPidFile($appName);
 
         if (!is_file($pidFile)) {
-            fmtPrintError("Pid file {$pidFile} is not exist, please check server is running");
+            fmtPrintError("Pid file {$pidFile} is not exist, please check the server if is running");
             return 0;
         }
 

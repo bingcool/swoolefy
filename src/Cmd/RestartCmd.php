@@ -21,6 +21,11 @@ class RestartCmd extends BaseCmd
         $this->setDescription('stop the application')->setHelp('use php cli.php restart XXXXX or php cron.php|daemon.php restart XXXXX');
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return void
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $appName = $input->getArgument('app_name');
@@ -122,7 +127,11 @@ class RestartCmd extends BaseCmd
         }
     }
 
-    protected function serverStop($appName)
+    /**
+     * @param string $appName
+     * @return void
+     */
+    protected function serverStop(string $appName)
     {
         $pidFile = $this->getPidFile($appName);
         if (!is_file($pidFile)) {

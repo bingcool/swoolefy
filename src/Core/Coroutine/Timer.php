@@ -19,7 +19,7 @@ class Timer
     /**
      * @param int $timeMs
      * @param callable $callable
-     * @param bool $withBlockLapping 是否每个时间轮任务都执行，不管上个定时任务是否一致性完毕。
+     * @param bool $withBlockLapping 是否每个时间轮任务都执行，不管上个定时任务是否已执行完毕.默认false,允许重叠执行
      * $withBlockLapping=true 将不会重叠执行，必须等上一个任务执行完毕，下一轮时间到了,也不会执行，必须等到上一轮任务结束后，再接着执行，即所谓的阻塞执行
      * $withBlockLapping=false 允许任务重叠执行，不管上一个任务的是否执行完毕，下一轮时间到了，任务将在一个新的协程中执行。默认false
      * @return Channel
