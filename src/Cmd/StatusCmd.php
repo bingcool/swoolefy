@@ -19,6 +19,11 @@ class StatusCmd extends BaseCmd
         $this->setDescription('Show status of the application')->setHelp('use php cli.php status XXXXX or php daemon.php status XXXXX');
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return int
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $appName = $input->getArgument('app_name');
@@ -32,7 +37,11 @@ class StatusCmd extends BaseCmd
         return 0;
     }
 
-    protected function workerStatus($pidFile)
+    /**
+     * @param string $pidFile
+     * @return void
+     */
+    protected function workerStatus(string $pidFile)
     {
         if (!is_file($pidFile)) {
             fmtPrintError("Pid file={$pidFile} is not exist, please check server weather is running");
