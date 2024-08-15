@@ -123,7 +123,7 @@ class SystemEnv
      */
     public static function PhpBinFile(): string
     {
-        return defined('PHP_BIN_FILE') ? PHP_BIN_FILE : '/usr/bin/php';
+        return defined('PHP_BIN_FILE') ? constant('PHP_BIN_FILE') : '/usr/bin/php';
     }
 
     /**

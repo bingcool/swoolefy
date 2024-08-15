@@ -21,6 +21,7 @@ class Bootstrap implements BootstrapInterface
 {
     public static function handle(RequestInput $requestInput, ResponseOutput $responseOutput)
     {
+          \Swoolefy\Core\Coroutine\Context::set('lang_locale', 'zh_CN');
           $requestInput->setValue('name', 'boostrap');
     }
 }

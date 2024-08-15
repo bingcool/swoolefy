@@ -14,6 +14,11 @@ class StartCmd extends BaseCmd
         $this->setDescription('start the application')->setHelp('use php cli.php start XXXXX or php daemon.php start XXXXX');
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return int|void
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         global $beforeFunc;
