@@ -63,7 +63,7 @@ class Context
     public static function get(string $name)
     {
         $context = self::getContext();
-        return $context[$name];
+        return $context[$name] ?? null;
     }
 
     /**

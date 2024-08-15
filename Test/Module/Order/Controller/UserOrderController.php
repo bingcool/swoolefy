@@ -52,6 +52,9 @@ class UserOrderController extends BController
         $count = $orderList->total();
         $list  = $orderList->find();
 
+        $namemsg = Factory::getTranslator()->trans('hello');
+        var_dump($namemsg);
+
         goApp(function () {
             // 列表方式查询
             $orderList = new OrderList();
