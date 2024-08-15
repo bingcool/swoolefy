@@ -18,6 +18,7 @@ use Common\Library\Lock\PHPRedisMutex;
 use Common\Library\PubSub\RedisPubSub;
 use Common\Library\Uuid\UuidManager;
 use Swoolefy\Core\Dto\ContainerObjectDto;
+use Symfony\Component\Translation\Translator;
 
 class Factory
 {
@@ -96,5 +97,13 @@ class Factory
     public static function getRedisLock()
     {
         return \Swoolefy\Core\Application::getApp()->get('redis-order-lock');
+    }
+
+    /**
+     * @return Translator|ContainerObjectDto
+     */
+    public static function getTranslator()
+    {
+        return \Swoolefy\Core\Application::getApp()->get('translator');
     }
 }
