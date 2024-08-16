@@ -11,7 +11,6 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Application;
 use Swoolefy\Util\Helper;
 
 class Session
@@ -133,16 +132,16 @@ class Session
             $app->afterRequest([$this, 'save']);
         }
 
-        $driver_component_name = $this->cache_driver;
-        $this->driver = $app->get($driver_component_name);
+        $driverComponentName = $this->cache_driver;
+        $this->driver = $app->get($driverComponentName);
         $this->isStart = true;
         $this->readonly = $readonly;
-        $cookie_session_id = isset($app->swooleRequest->cookie[$this->cookie_key]) ? $app->swooleRequest->cookie[$this->cookie_key] : null;
-        $this->session_id = $cookie_session_id;
-        if (empty($cookie_session_id)) {
-            $sess_id = Helper::randMd5(40);
-            $app->swooleResponse->cookie($this->cookie_key, $sess_id, time() + $this->cookie_lifetime, $this->cookie_path, $this->cookie_domain, false, false);
-            $this->session_id = $sess_id;
+        $cookieSessionId = isset($app->swooleRequest->cookie[$this->cookie_key]) ? $app->swooleRequest->cookie[$this->cookie_key] : null;
+        $this->session_id = $cookieSessionId;
+        if (empty($cookieSessionId)) {
+            $sessId = Helper::randMd5(40);
+            $app->swooleResponse->cookie($this->cookie_key, $sessId, time() + $this->cookie_lifetime, $this->cookie_path, $this->cookie_domain, false, false);
+            $this->session_id = $sessId;
         }
         $this->_SESSION = $this->load($this->session_id);
         return true;
@@ -285,7 +284,7 @@ class Session
         if (is_null($key)) {
             return $this->_SESSION;
         }
-        return $this->_SESSION[$key];
+        return $this->_SESSION[$key] ?? null;
     }
 
     /**
@@ -346,13 +345,21 @@ class Session
     }
 
     /**
+     * @return bool
+     */
+    public function clear()
+    {
+        return $this->destroy();
+    }
+
+    /**
      * reGenerateSessionId 重新生成session_id
      * @param bool $isMerge 生成新的session_id是否继承合并当前session的数据，默认true,如需要产生一个完全新的空的$this->_SESSION，可以设置false
      * @return void
      */
     public function reGenerateSessionId(bool $isMerge = true)
     {
-        $session_data = $this->_SESSION;
+        $sessionData = $this->_SESSION;
         // 先cookie的session_id失效
         setcookie($this->cookie_key, $this->session_id, time() - 600, $this->cookie_path, $this->cookie_domain);
         // 设置session_id=null
@@ -360,7 +367,7 @@ class Session
         // 产生新的session_id和返回空的$_SESSION数组
         $this->start();
         if ($isMerge) {
-            $this->_SESSION = array_merge($this->_SESSION, $session_data);
+            $this->_SESSION = array_merge($this->_SESSION, $sessionData);
         }
     }
 
