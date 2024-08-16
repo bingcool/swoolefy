@@ -27,6 +27,8 @@ return [
     // default_db
     'default_db' => 'db',
 
+    'session_start' => false,
+
     // 组件
     'components' => \Swoolefy\Core\SystemEnv::loadComponent()
 
