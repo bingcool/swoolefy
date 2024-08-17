@@ -11,7 +11,6 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Application;
 use Swoolefy\Util\Helper;
 
 class Session

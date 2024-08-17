@@ -23,7 +23,7 @@ class Application
      * @param App|Swoole|EventController $App
      * @return bool|void
      */
-    public static function setApp($App)
+    public static function setApp($App): bool
     {
         $closure = function ($appInstance) {
             $cid = $appInstance->getCid();
