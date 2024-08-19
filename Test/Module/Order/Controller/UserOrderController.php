@@ -6,7 +6,7 @@ use phpseclib3\Math\PrimeField\Integer;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Http\RequestInput;
-use Test\Factory;
+use Test\App;
 use Test\Logger\RunLog;
 use Test\Module\Order\Dto\UserOrderDto\UserListDto;
 use Test\Module\Order\OrderEntity;
@@ -21,7 +21,7 @@ class UserOrderController extends BController
      */
     public function userList(RequestInput $requestInput, UserListDto $userListDto)
     {
-        $db = Factory::getDb();
+        $db = App::getDb();
 //        $query = $db->newQuery()->table('tbl_users')->where('user_id','>', '100')->limit(0,10);
 //        $count = $query->count();
 //        if ($count > 0) {
@@ -52,7 +52,7 @@ class UserOrderController extends BController
         $count = $orderList->total();
         $list  = $orderList->find();
 
-        $namemsg = Factory::getTranslator()->trans('hello');
+        $namemsg = App::getTranslator()->trans('hello');
         var_dump($namemsg);
 
         goApp(function () {
@@ -71,7 +71,7 @@ class UserOrderController extends BController
 
     public function userList1()
     {
-//        $db = Factory::getDb();
+//        $db = App::getDb();
 //        $query = $db->newQuery()->table('tbl_users')->where('user_id','>', '100')->limit(0,10);
 //        $count = $query->count();
 //        if ($count > 0) {

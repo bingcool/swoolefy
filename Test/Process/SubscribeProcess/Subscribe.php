@@ -4,7 +4,7 @@ namespace Test\Process\SubscribeProcess;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Coroutine\Timer;
 use Swoolefy\Core\Process\AbstractProcess;
-use Test\Factory;
+use Test\App;
 use Test\Module\Order\OrderList;
 
 class Subscribe extends AbstractProcess
@@ -14,7 +14,7 @@ class Subscribe extends AbstractProcess
      */
     public function run()
     {
-        $pubSub = Factory::getRedisSubscribe();
+        $pubSub = App::getRedisSubscribe();
         $num = 1;
         $timeNow = time();
 
@@ -24,7 +24,7 @@ class Subscribe extends AbstractProcess
                 Timer::cancel($timeChannel);
             }
             // 注册一个协程单例
-            $pubSub = Factory::getRedisSubscribe();
+            $pubSub = App::getRedisSubscribe();
             $pubSub->publish('test1','hello, test subscribe no='.$num);
             $num++;
         });
