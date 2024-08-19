@@ -20,7 +20,7 @@ use Common\Library\Uuid\UuidManager;
 use Swoolefy\Core\Dto\ContainerObjectDto;
 use Symfony\Component\Translation\Translator;
 
-class Factory
+class App
 {
     /**
      * @return Mysql|ContainerObjectDto

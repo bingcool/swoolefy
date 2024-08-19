@@ -51,7 +51,7 @@ class CrontabManager
             );
         }
 
-        $this->cronTasks[$cronNameKey] = [$expression, $func];
+        $this->cronTasks[$cronNameKey] = ['expression' => $expression, 'func' => $func, 'timer_id' => 0, 'cron_name' => $cronName];
 
         $class = '';
         if(is_array($func)) {
@@ -67,7 +67,7 @@ class CrontabManager
 
         $arrayCopy = Context::getContext()->getArrayCopy();
         if(is_numeric($expression)) {
-            \Swoole\Timer::tick($expression * 1000, function ($timerId, $expression) use ($func, $cronName, $class, $arrayCopy, $callPreFn, $callback) {
+            $timerId = \Swoole\Timer::tick($expression * 1000, function ($timerId, $expression) use ($func, $cronName, $class, $arrayCopy, $callPreFn, $callback) {
                 foreach ($arrayCopy as $key=>$value) {
                     Context::set($key, $value);
                 }
@@ -117,7 +117,7 @@ class CrontabManager
 
         }else {
             if (is_array($func)) {
-                \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($class, $cronName, $arrayCopy, $callPreFn, $callback) {
+                $timerId = \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($class, $cronName, $arrayCopy, $callPreFn, $callback) {
                     foreach ($arrayCopy as $key=>$value) {
                         Context::set($key, $value);
                     }
@@ -152,7 +152,7 @@ class CrontabManager
                     });
                 }, $expression);
             } else {
-                \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($func, $cronName, $arrayCopy, $callPreFn, $callback) {
+                $timerId = \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($func, $cronName, $arrayCopy, $callPreFn, $callback) {
                     foreach ($arrayCopy as $key=>$value) {
                         Context::set($key, $value);
                     }
@@ -186,6 +186,9 @@ class CrontabManager
                 }, $expression);
             }
         }
+
+        $this->cronTasks[$cronNameKey]['timer_id'] = $timerId ?? 0;
+
         unset($cronNameKey);
     }
 
@@ -218,6 +221,18 @@ class CrontabManager
             return null;
         }
         return $this->cronTasks;
+    }
+
+    /**
+     * @param string $cronName
+     * @return void
+     */
+    public function removeCronTaskByName(string $cronName)
+    {
+        $cronNameKey = md5($cronName);
+        if (isset($this->cronTasks[$cronNameKey])) {
+            unset($this->cronTasks[$cronNameKey]);
+        }
     }
 
 }

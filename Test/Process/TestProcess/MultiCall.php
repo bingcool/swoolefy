@@ -5,7 +5,7 @@ namespace Test\Process\TestProcess;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Coroutine\GoWaitGroup;
 use Swoolefy\Core\Process\AbstractProcess;
-use Test\Factory;
+use Test\App;
 
 class MultiCall extends AbstractProcess
 {
@@ -22,20 +22,20 @@ class MultiCall extends AbstractProcess
                         'key1' => function () {
                             sleep(3);
 
-                            $db = Factory::getDb();
+                            $db = App::getDb();
                             var_dump(spl_object_id($db), \Swoole\Coroutine::getCid());
 
                             goApp(function($event) {
-                                $db = Factory::getDb();
+                                $db = App::getDb();
                                 var_dump(spl_object_id($db),\Swoole\Coroutine::getCid());
                             });
 
                             goApp(function($event) {
-                                $db = Factory::getDb();
+                                $db = App::getDb();
                                 var_dump(spl_object_id($db), \Swoole\Coroutine::getCid());
                             });
 
-                            var_dump(spl_object_id(Factory::getDb()));
+                            var_dump(spl_object_id(App::getDb()));
 
                             return "aaaaa";
                         },
@@ -57,14 +57,14 @@ class MultiCall extends AbstractProcess
                 $goWaitGroup = new GoWaitGroup();
                 $goWaitGroup->add(1);
                 goApp(function () use ($goWaitGroup) {
-                    $db = Factory::getDb();
+                    $db = App::getDb();
                     var_dump(spl_object_id($db), \Swoole\Coroutine::getCid());
                     $goWaitGroup->done('key1', 'aaaaa11111');
                 });
 
                 $goWaitGroup->add(1);
                 goApp(function () use ($goWaitGroup) {
-                    $db = Factory::getDb();
+                    $db = App::getDb();
                     sleep(5);
                     var_dump(spl_object_id($db), \Swoole\Coroutine::getCid());
                     $goWaitGroup->done('key2', 'bbbbb1111');
@@ -72,7 +72,7 @@ class MultiCall extends AbstractProcess
 
                 $goWaitGroup->add(1);
                 goApp(function () use ($goWaitGroup) {
-                    $db = Factory::getDb();
+                    $db = App::getDb();
                     var_dump(spl_object_id($db), \Swoole\Coroutine::getCid());
                     sleep(3);
                     $goWaitGroup->done('key3', 'cccccccc1111');

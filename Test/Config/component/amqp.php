@@ -32,7 +32,7 @@ return [
         /**
          * @var AMQPStreamConnection $connection
          */
-        $connection = \Test\Factory::getAmqpConnection();
+        $connection = \Test\App::getAmqpConnection();
         $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_DIRECT_ORDER;
         $amqpConfig->queueName    = AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_ADD;
@@ -59,7 +59,7 @@ return [
         /**
          * @var AMQPStreamConnection $connection
          */
-        $connection = \Test\Factory::getAmqpConnection();
+        $connection = \Test\App::getAmqpConnection();
         $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_DIRECT_ORDER;
         $amqpConfig->queueName    = AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_EXPORT;
@@ -84,7 +84,7 @@ return [
         /**
          * @var AMQPStreamConnection $connection
          */
-        $connection = \Test\Factory::getAmqpConnection();
+        $connection = \Test\App::getAmqpConnection();
         $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_DIRECT_ORDER;
 
@@ -115,7 +115,7 @@ return [
         /**
          * @var AMQPStreamConnection $connection
          */
-        $connection = \Test\Factory::getAmqpConnection();
+        $connection = \Test\App::getAmqpConnection();
         $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_FANOUT_ORDER;
         $amqpFanoutConsumer = new \Common\Library\Amqp\AmqpFanoutQueue($connection, $amqpConfig);
@@ -130,7 +130,7 @@ return [
         /**
          * @var AMQPStreamConnection $connection
          */
-        $connection = \Test\Factory::getAmqpConnection();
+        $connection = \Test\App::getAmqpConnection();
         $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_FANOUT_ORDER;
         $amqpConfig->queueName = AmqpConfig::AMQP_QUEUE_FANOUT_ORDER_ADD;
@@ -156,7 +156,7 @@ return [
         /**
          * @var AMQPStreamConnection $connection
          */
-        $connection = \Test\Factory::getAmqpConnection();
+        $connection = \Test\App::getAmqpConnection();
         $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_FANOUT_ORDER;
         $amqpConfig->queueName = AmqpConfig::AMQP_QUEUE_FANOUT_ORDER_EXPORT;
@@ -182,7 +182,7 @@ return [
         /**
          * @var AMQPStreamConnection $connection
          */
-        $connection = \Test\Factory::getAmqpConnection();
+        $connection = \Test\App::getAmqpConnection();
         $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_TOPIC_ORDER;
         $amqpConfig->queueName    = AmqpConfig::AMQP_QUEUE_TOPIC_ORDER_ADD;
@@ -209,7 +209,7 @@ return [
         /**
          * @var AMQPStreamConnection $connection
          */
-        $connection = \Test\Factory::getAmqpConnection();
+        $connection = \Test\App::getAmqpConnection();
         $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_TOPIC_ORDER;
 

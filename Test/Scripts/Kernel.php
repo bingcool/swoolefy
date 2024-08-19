@@ -51,7 +51,6 @@ class Kernel
         $appName = $_SERVER['argv'][2];
         $scheduleList = [];
         foreach (self::$schedule as $item) {
-            $item['cron_name'] = $item['command'].'-'.$item['cron_expression'];
             $item['exec_bin_file'] = SystemEnv::PhpBinFile();
             if (!isset($item['fork_type'])) {
                 $item['fork_type'] = CronForkProcess::FORK_TYPE_PROC_OPEN;
@@ -72,6 +71,9 @@ class Kernel
             }
             $argv = implode(' ', $argvOptions);
             $item['exec_script'] = "script.php start {$appName} --c={$item['command']} $argv";
+            if (!isset($item['cron_name'])) {
+                $item['cron_name'] = $item['command'].'-'.$item['cron_expression'].' '.$argv;
+            }
             $item['params'] = [];
             $scheduleList[] = $item;
         }

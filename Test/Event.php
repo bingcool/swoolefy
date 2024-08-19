@@ -112,7 +112,7 @@ class Event extends EventHandler
             return;
         }
         // 创建产生uuid的定时器
-        //Factory::getUUid()->tickPreBatchGenerateIds(2, 100);
+        //App::getUUid()->tickPreBatchGenerateIds(2, 100);
     }
 
     public function onWorkerStop($server, $worker_id)

@@ -7,7 +7,7 @@ use Swoolefy\Core\Application;
 use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\Process\AbstractProcess;
 use Swoolefy\Core\Timer\TickManager;
-use Test\Factory;
+use Test\App;
 
 class Tick extends AbstractProcess {
 
@@ -28,11 +28,11 @@ class Tick extends AbstractProcess {
         );
 
 //        TickManager::getInstance()->tickTimer(3000, function () {
-//            $count = Factory::getDb()->createCommand("select count(1) as total from tbl_users")->count();
+//            $count = App::getDb()->createCommand("select count(1) as total from tbl_users")->count();
 //            var_dump($count);
 //        });
 
-        $db = Factory::getDb();
+        $db = App::getDb();
 
         $arr = ["name" => 'bingcool','sex' => 33];
 
