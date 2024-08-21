@@ -212,7 +212,32 @@ class CommandRunner
                 $fn($command, $descriptors, $callable);
             });
         }else {
-            $fn($command, $descriptors, $callable);
+            $fn1 = function ($command, $descriptors, $callable) {
+                try {
+                    $proc_process = proc_open($command, $descriptors, $pipes);
+                    if (!is_resource($proc_process)) {
+                        throw new SystemException("Proc Open Command 【{$command}】 failed.");
+                    }
+                    $status = proc_get_status($proc_process);
+                    $statusProperty = [
+                        'pid' => $status['pid'] ?? '',
+                        'command' => $command,
+                        'start_time' => time()
+                    ];
+                    $params = [$pipes[0], $pipes[1], $pipes[2], $statusProperty];
+                    $result = call_user_func_array($callable, $params);
+                    return $result;
+                }catch (\Throwable $e) {
+                    fmtPrintError("CommandRunner ErrorMsg={$e->getMessage()},trace={$e->getTraceAsString()}");
+                } finally {
+                    foreach ($pipes as $pipe) {
+                        @fclose($pipe);
+                    }
+                    proc_close($proc_process);
+                }
+            };
+
+            $fn1($command, $descriptors, $callable);
         }
     }
 

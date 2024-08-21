@@ -86,14 +86,21 @@ class RestartCmd extends BaseCmd
             $selfFile = WORKER_START_SCRIPT_FILE;
         }
 
-        $scriptFile = "$selfFile start {$appName} --daemon=1";
+        $scriptFile = implode(' ',[$selfFile, 'start', $appName, '--daemon=1']);
 
-        \Swoole\Coroutine::create(function () use ($phpBinFile, $scriptFile) {
+        if (swoole_version() > '5.0.0') {
+            \Swoole\Coroutine::create(function () use ($phpBinFile, $scriptFile) {
+                $runner = CommandRunner::getInstance('restart-'.time());
+                $runner->isNextHandle(false);
+                $runner->procOpen(function () {
+                }, $phpBinFile, $scriptFile);
+            });
+        }else {
             $runner = CommandRunner::getInstance('restart-'.time());
             $runner->isNextHandle(false);
-            $runner->procOpen(function () {
-            }, $phpBinFile, $scriptFile);
-        });
+            list($commandScript,) = $runner->exec($phpBinFile, $scriptFile, [],false,'/dev/null',false);
+            @exec($commandScript, $output);
+        }
 
         $time = time();
         while (true) {
