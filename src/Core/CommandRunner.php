@@ -181,11 +181,11 @@ class CommandRunner
                     'start_time' => time()
                 ];
 
-                if (!$this->channel instanceof Channel) {
-                    $this->channel = new Channel($this->concurrent);
-                }
-
-                if (isset($status['pid']) && $status['pid'] > 0) {
+                // 协程环境设置channel控制并发数，isNextHandle()函数判断是否可以并发拉起下一个进程
+                if (isset($status['pid']) && $status['pid'] > 0 && \Swoole\Coroutine::getCid() >= 0) {
+                    if (!$this->channel instanceof Channel) {
+                        $this->channel = new Channel($this->concurrent);
+                    }
                     $this->channel->push($statusProperty, 0.2);
                 }else {
                     if (!Process::kill($status['pid'], 0)) {
@@ -217,10 +217,20 @@ class CommandRunner
     }
 
     /**
-     * @param bool $isNeedCheck
+     * @param bool $isNeedCheck 是否需要控制并发拉起进程，在while循环中，一般需要调用该函数来控制并发拉起进程。不控制的话，将瞬间拉起大量进程，导致系统崩溃.eg:
+     * while(true){
+     *    // 是否满足拉起下一个进程.这个函数主要是判断拉起的进程数是否已达到最大并发数.
+     *    if(CommandRunner::getInstance()->isNextHandle(true,60)) {
+     *          // todo
+     *          CommandRunner::getInstance()->procOpen(function($pipes,$statusProperty){
+     *              todo
+     *          },'/bin/sh','ls -l')
+     *      }
+     * }
+     * @param int $timeOut 规定时间内达到，强制拉起下一个进程
      * @return bool
      */
-    public function isNextHandle(bool $isNeedCheck = true)
+    public function isNextHandle(bool $isNeedCheck = true, int $timeOut = 60)
     {
         $this->isNextFlag = true;
         if ($this->channel instanceof Channel && $this->channel->isFull() && $isNeedCheck) {
@@ -228,8 +238,8 @@ class CommandRunner
             while ($item = $this->channel->pop(0.05)) {
                 $pid = $item['pid'];
                 $startTime = $item['start_time'];
-                // 60s 内还未执行完的进程才统计，重新推入channel.超过60s的进程即使还存在，也算执行完毕了。
-                if (\Swoole\Process::kill($pid, 0) && time() < ($startTime + 60)) {
+                // $timeOut 内还未执行完的进程才统计，重新推入channel.超过60s的进程即使还存在，也算执行完毕了。
+                if (\Swoole\Process::kill($pid, 0) && time() < ($startTime + $timeOut)) {
                     $itemList[] = $item;
                 }
             }
@@ -241,7 +251,7 @@ class CommandRunner
             if ($this->channel->length() < $this->concurrent) {
                 $isNext = true;
             } else {
-                System::sleep(0.1);
+                System::sleep(0.3);
             }
         } else {
             $isNext = true;
