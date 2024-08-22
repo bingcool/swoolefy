@@ -238,8 +238,8 @@ abstract class WebsocketServer extends BaseServer
          * accept http
          */
         if (isset(self::$config['accept_http'])) {
-            $accept_http = filter_var(self::$config['accept_http'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-            if ($accept_http) {
+            $acceptHttpRequest = filter_var(self::$config['accept_http'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if ($acceptHttpRequest) {
                 $this->webServer->on('request', function (Request $request, Response $response) {
                     try {
                         if ($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
