@@ -12,7 +12,7 @@ return [
         // 服务调度handle
         'dispatch_route' => [\UdpService\Service\Location\ReportLocationService::class, 'reportUserLocation'],
 
-         // 后置handle
+        // 后置handle
         'afterHandle1' => function($params) {
 
         },
