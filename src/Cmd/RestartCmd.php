@@ -17,6 +17,11 @@ class RestartCmd extends BaseCmd
         $this->setDescription('stop the application')->setHelp('use php cli.php restart XXXXX or php cron.php|daemon.php restart XXXXX');
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return void
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $appName = $input->getArgument('app_name');
@@ -81,14 +86,21 @@ class RestartCmd extends BaseCmd
             $selfFile = WORKER_START_SCRIPT_FILE;
         }
 
-        $scriptFile = "$selfFile start {$appName} --daemon=1";
+        $scriptFile = implode(' ',[$selfFile, 'start', $appName, '--daemon=1']);
 
-        \Swoole\Coroutine::create(function () use ($phpBinFile, $scriptFile) {
+        if (swoole_version() > '5.0.0') {
+            \Swoole\Coroutine::create(function () use ($phpBinFile, $scriptFile) {
+                $runner = CommandRunner::getInstance('restart-'.time());
+                $runner->isNextHandle(false);
+                $runner->procOpen(function () {
+                }, $phpBinFile, $scriptFile);
+            });
+        }else {
             $runner = CommandRunner::getInstance('restart-'.time());
             $runner->isNextHandle(false);
-            $runner->procOpen(function () {
-            }, $phpBinFile, $scriptFile);
-        });
+            list($commandScript,) = $runner->exec($phpBinFile, $scriptFile, [],false,'/dev/null',false);
+            @exec($commandScript, $output);
+        }
 
         $time = time();
         while (true) {
@@ -102,10 +114,13 @@ class RestartCmd extends BaseCmd
             $newMasterPid = intval(file_get_contents($pidFile));
             // 新拉起的主进程id已经存在，说明新拉起的主进程已经启动成功
             if ($newMasterPid > 0 && $newMasterPid != $masterPid && \Swoole\Process::kill($newMasterPid, 0)) {
-                fmtPrintInfo("-----------进程重启成功！------------");
+                if (SystemEnv::isWorkerService()) {
+                    fmtPrintInfo("-----------进程重启成功啦！------------");
+                }
                 fmtPrintInfo("-----------可以使用 {$phpBinFile} {$selfFile} status {$appName} 查看进程是否启动成功状态信息!------------");
                 if (!SystemEnv::isWorkerService()) {
                     $this->serverStatus($appName, $pidFile);
+                    fmtPrintInfo("-----------看到进程表格，进程重启成功啦！------------");
                 }
                 exit(0);
             }
@@ -118,7 +133,11 @@ class RestartCmd extends BaseCmd
         }
     }
 
-    protected function serverStop($appName)
+    /**
+     * @param string $appName
+     * @return void
+     */
+    protected function serverStop(string $appName)
     {
         $pidFile = $this->getPidFile($appName);
         if (!is_file($pidFile)) {

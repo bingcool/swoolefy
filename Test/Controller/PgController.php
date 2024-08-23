@@ -3,6 +3,8 @@ namespace Test\Controller;
 
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
+use Swoolefy\Http\RequestInput;
+use Test\Logger\RunLog;
 use Test\Module\Order\OrderEntity;
 use Test\Module\Order\OrderFormatter;
 

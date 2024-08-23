@@ -14,6 +14,11 @@ class SendCmd extends BaseCmd
         $this->setDescription('send message to the worker service')->setHelp('use php daemon.php send XXXXX --name=xxxxx --action=start');
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return int|void
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         if (!isWorkerService()) {

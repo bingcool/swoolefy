@@ -142,6 +142,7 @@ class HttpRoute extends AppDispatch
 
         $dispatchRouteItem = explode("\\", $controllerNamespace);
         $count = count($dispatchRouteItem);
+        $controller = '';
         switch ($count) {
             case static::ITEM_NUM_3:
                 $module = null;
@@ -167,7 +168,7 @@ class HttpRoute extends AppDispatch
             $this->requestInput->validate($this->requestInput->all(), $validateRule['rules'] ?? [], $validateRule['messages'] ?? []);
         }
 
-        if ($module) {
+        if (isset($module)) {
             // route params array
             $routeItems = [3, [$module, $controller, $action]];
         } else {
@@ -222,22 +223,22 @@ class HttpRoute extends AppDispatch
         $this->app->setControllerInstance($controllerInstance);
 
         // invoke _beforeAction
-        $isContinueAction = $controllerInstance->_beforeAction($action);
+        $isContinueAction = $controllerInstance->_beforeAction($this->requestInput, $action);
 
         if ($isContinueAction === false) {
             $errorMsg = sprintf(
-                "Call %s::_beforeAction() return false, forbidden continue call %s::%s",
+                "Call %s::_beforeAction() return false, forbidden call %s::%s",
                 $class,
                 $class,
                 $action
             );
 
-            throw new DispatchException($errorMsg, 404);
+            throw new DispatchException($errorMsg, 403);
         }
         // reflector params handle
         list($method, $args) = $this->bindActionParams($controllerInstance, $action, $this->requestInput->all());
         $controllerInstance->{$action}(...$args);
-        $controllerInstance->_afterAction($action);
+        $controllerInstance->_afterAction($this->requestInput, $action);
         $this->handleAfterRouteMiddles();
         return true;
     }

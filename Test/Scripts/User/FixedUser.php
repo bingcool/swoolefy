@@ -7,7 +7,7 @@ use Common\Library\Captcha\CaptchaBuilder;
 use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\Coroutine\Parallel;
 use Swoolefy\Util\Log;
-use Test\Factory;
+use Test\App;
 use Test\Logger\RunLog;
 
 class FixedUser extends \Swoolefy\Script\MainCliScript

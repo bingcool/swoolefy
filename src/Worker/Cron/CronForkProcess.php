@@ -48,32 +48,48 @@ class CronForkProcess extends CronProcess
     public function run()
     {
         parent::run();
-        if(!empty($this->taskList)) {
-            foreach($this->taskList as $task) {
+        $this->runCronTask();
+    }
+
+    /**
+     * @param array $taskList
+     * @return void
+     */
+    protected function registerCronTask(array $taskList)
+    {
+        if(!empty($taskList)) {
+            foreach($taskList as $task) {
                 $forkType = $task['fork_type'] ?? $this->forkType;
                 $params   = $task['params'] ?? [];
-                try {
-                    CrontabManager::getInstance()->addRule($task['cron_name'], $task['cron_expression'], function ($cron_name, $expression) use($task, $forkType, $params) {
-                        $runner = CommandRunner::getInstance($cron_name,1);
-                        $this->randSleepTime($task['cron_expression']);
-                        try {
-                            if($runner->isNextHandle(false)) {
-                                if($forkType == self::FORK_TYPE_PROC_OPEN) {
-                                    $runner->procOpen(function ($pipe0, $pipe1, $pipe2, $status) use($task) {
-                                        $this->receiveCallBack($pipe0, $pipe1, $pipe2, $status, $task);
-                                    } , $task['exec_bin_file'], $task['exec_script'], $params);
-                                }else {
-                                    $runner->exec($task['exec_bin_file'], $task['exec_script'], $params, true);
+
+                $isNewAddFlag = $this->isNewAddTask($task);
+                if ($isNewAddFlag) {
+                    try {
+                        CrontabManager::getInstance()->addRule($task['cron_name'], $task['cron_expression'], function ($cron_name, $expression) use($task, $forkType, $params) {
+                            $runner = CommandRunner::getInstance($cron_name,1);
+                            $this->randSleepTime($task['cron_expression']);
+                            try {
+                                if($runner->isNextHandle(false)) {
+                                    if($forkType == self::FORK_TYPE_PROC_OPEN) {
+                                        $runner->procOpen(function ($pipe0, $pipe1, $pipe2, $status) use($task) {
+                                            $this->receiveCallBack($pipe0, $pipe1, $pipe2, $status, $task);
+                                        } , $task['exec_bin_file'], $task['exec_script'], $params);
+                                    }else {
+                                        $runner->exec($task['exec_bin_file'], $task['exec_script'], $params, true);
+                                    }
                                 }
+                            }catch (\Exception $exception) {
+                                $this->onHandleException($exception, $task);
                             }
-                        }catch (\Exception $exception) {
-                            $this->onHandleException($exception, $task);
-                        }
-                    });
-                }catch (\Throwable $throwable) {
-                    $this->onHandleException($throwable, $task);
+                        });
+                    }catch (\Throwable $throwable) {
+                        $this->onHandleException($throwable, $task);
+                    }
                 }
             }
+
+            // 解除已暂停的定时任务
+            $this->unregisterCronTask($taskList);
         }
     }
 

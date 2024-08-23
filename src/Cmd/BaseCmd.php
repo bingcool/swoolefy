@@ -171,7 +171,6 @@ class BaseCmd extends Command
             $conf['setting']['enable_coroutine'] = 0;
             $conf['setting']['reactor_num'] = 1;
             $conf['setting']['worker_num'] = 1;
-            $conf['setting']['task_worker_num'] = 1;
             unset($conf['setting']['admin_server'], $conf['setting']['task_worker_num']);
         }
     }
@@ -190,7 +189,7 @@ class BaseCmd extends Command
         if (!file_exists($eventServerFile)) {
             $search_str = "protocol\\event";
             $replace_str = APP_NAME;
-            $file_content_string = file_get_contents(ROOT_PATH . "/src/Stubs/EventHandle.php");
+            $file_content_string = file_get_contents(ROOT_PATH . "/src/Stubs/event_handle.stub.php");
             $count = 1;
             $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
             file_put_contents($eventServerFile, $file_content_string);
@@ -208,10 +207,10 @@ class BaseCmd extends Command
     }
 
     /**
-     * @param $appName
+     * @param string $appName
      * @return mixed|string
      */
-    protected function getPidFile($appName)
+    protected function getPidFile(string $appName)
     {
         $path = APP_PATH . "/Protocol";
         $config = include $path . '/conf.php';
@@ -247,7 +246,7 @@ class BaseCmd extends Command
             }
         }
 
-        if (isWorkerService() && defined('WORKER_PID_FILE_ROOT')) {
+        if (SystemEnv::isWorkerService() && defined('WORKER_PID_FILE_ROOT')) {
             if (!is_dir(WORKER_PID_FILE_ROOT)) {
                 mkdir(WORKER_PID_FILE_ROOT, 0777, true);
             }
@@ -277,7 +276,12 @@ class BaseCmd extends Command
         }
     }
 
-    protected function serverStatus($appName, $pidFile)
+    /**
+     * @param string $appName
+     * @param string $pidFile
+     * @return void
+     */
+    protected function serverStatus(string $appName, string $pidFile)
     {
         if (!is_file($pidFile)) {
             fmtPrintError("Pid file={$pidFile} is not exist, please check server weather is running");

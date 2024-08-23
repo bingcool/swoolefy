@@ -36,22 +36,22 @@ class CreateCmd extends BaseCmd
 
         $daemonFile = START_DIR_ROOT . '/daemon.php';
         if (!file_exists($daemonFile)) {
-            @copy(START_DIR_ROOT . '/src/Stubs/DaemonStub.php', $daemonFile);
+            @copy(START_DIR_ROOT . '/src/Stubs/daemon.stub.php', $daemonFile);
         }
 
         $cronFile = START_DIR_ROOT . '/cron.php';
         if (!file_exists($cronFile)) {
-            @copy(START_DIR_ROOT . '/src/Stubs/CronStub.php', $cronFile);
+            @copy(START_DIR_ROOT . '/src/Stubs/cron.stub.php', $cronFile);
         }
 
         $scriptFile = START_DIR_ROOT . '/script.php';
         if (!file_exists($scriptFile)) {
-            @copy(START_DIR_ROOT . '/src/Stubs/ScriptStub.php', $scriptFile);
+            @copy(START_DIR_ROOT . '/src/Stubs/script.stub.php', $scriptFile);
         }
 
         $swagFile = START_DIR_ROOT . '/swag.php';
         if (!file_exists($swagFile)) {
-            @copy(START_DIR_ROOT . '/src/Stubs/swag.php', $swagFile);
+            @copy(START_DIR_ROOT . '/src/Stubs/swag.stub.php', $swagFile);
         }
 
         @mkdir($appPathDir, 0777, true);
@@ -74,19 +74,19 @@ class CreateCmd extends BaseCmd
                     $componentDir = $appPathDir . '/' . $dir . '/component';
                     if (!is_dir($componentDir)) {
                         @mkdir($componentDir, 0777, true);
-                        @copy(ROOT_PATH . '/src/Stubs/DbComStubs.php', $componentDir.'/database.php');
-                        @copy(ROOT_PATH . '/src/Stubs/LogComStubs.php', $componentDir.'/log.php');
-                        @copy(ROOT_PATH . '/src/Stubs/CacheComStubs.php', $componentDir.'/cache.php');
+                        @copy(ROOT_PATH . '/src/Stubs/db.stub.php', $componentDir.'/database.php');
+                        @copy(ROOT_PATH . '/src/Stubs/log.stub.php', $componentDir.'/log.php');
+                        @copy(ROOT_PATH . '/src/Stubs/cache.stub.php', $componentDir.'/cache.php');
                     }
 
                     $configFile = $appPathDir . '/' . $dir . '/app.php';
                     if (!file_exists($configFile)) {
-                        @copy(ROOT_PATH . '/src/Stubs/AppConf.php', $configFile);
+                        @copy(ROOT_PATH . '/src/Stubs/app.conf.stub.php', $configFile);
                     }
 
                     $dcFile = $appPathDir . '/' . $dir . '/dc.php';
                     if (!file_exists($dcFile)) {
-                        @copy(ROOT_PATH . '/src/Stubs/Dc.php', $dcFile);
+                        @copy(ROOT_PATH . '/src/Stubs/dc.stub.php', $dcFile);
                     }
 
                     break;
@@ -119,12 +119,12 @@ class CreateCmd extends BaseCmd
                     switch ($protocol) {
                         case 'http':
                             $apiFile = $appPathDir . "/{$dir}/api.php";
-                            @copy(ROOT_PATH . '/src/Stubs/api.php', $apiFile);
+                            @copy(ROOT_PATH . '/src/Stubs/api.stub.php', $apiFile);
                             break;
                         case 'udp':
                         case 'websocket':
-                            $apiFile = $appPathDir . "/{$dir}/serviceApi.php";
-                            @copy(ROOT_PATH . '/src/Stubs/serviceApi.php', $apiFile);
+                            $apiFile = $appPathDir . "/{$dir}/service.php";
+                            @copy(ROOT_PATH . '/src/Stubs/service.api.stub.php', $apiFile);
                             break;
                         default:
                             break;

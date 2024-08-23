@@ -146,6 +146,7 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
     public function onHandleException(\Throwable $throwable, array $context = [])
     {
         parent::onHandleException($throwable, $context);
+        sleep(1);
         var_dump($throwable->getMessage());
     }
 }
