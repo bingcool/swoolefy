@@ -189,7 +189,7 @@ class BaseCmd extends Command
         if (!file_exists($eventServerFile)) {
             $search_str = "protocol\\event";
             $replace_str = APP_NAME;
-            $file_content_string = file_get_contents(ROOT_PATH . "/src/Stubs/EventHandle.php");
+            $file_content_string = file_get_contents(ROOT_PATH . "/src/Stubs/event_handle.stub.php");
             $count = 1;
             $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
             file_put_contents($eventServerFile, $file_content_string);

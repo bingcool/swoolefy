@@ -260,7 +260,8 @@ class CtlApi
         }
 
         $appName     = APP_NAME;
-        list($command) = $runner->exec($execBinFile, "{$scriptFile} restart {$appName} --force=1", [],true, '/dev/null', false);
+        $execScript= implode(' ',[$scriptFile,'restart',$appName,'--force=1']);
+        list($command) = $runner->exec($execBinFile, $execScript, [],true, '/dev/null', false);
 
         $message = [
             'date' => date('Y-m-d H:i:s'),
