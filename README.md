@@ -109,6 +109,7 @@ swoolefy-4.8-lts 版本：
 - [x] Validate 组件    
 - [x] Encrypt 加密解密组件   
 - [x] Captcha 验证码组件    
+- [x] translation 国际化（I18N）    
    
 github: https://github.com/bingcool/library    
 
@@ -227,7 +228,7 @@ myproject
 |     │   ├── conf.php  // 全局配置
 |     │
 |     ├── Router
-|     │   └── Api.php  // 路由文件，不同模块定义不同文件即可
+|     │   └── api.php  // 路由文件，不同模块定义不同文件即可
 |     |—— Storage
 |     |   |—— Logs  // 日志文件目录
 |     |   |—— Sql   // sql日志目录

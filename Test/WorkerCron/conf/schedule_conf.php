@@ -13,12 +13,12 @@ return // 定时fork进程处理任务
         'extend_data' => [],
         'args' => [
             // 定时任务列表
-            // 'task_list' => \Test\Scripts\Kernel::buildScheduleTaskList()
+            'task_list' => \Test\Scripts\Kernel::buildScheduleTaskList()
 
              // 动态定时任务列表，可以存在数据库中
-            'task_list' => function () {
-                return include __DIR__ . '/schedule_task.php';
-            }
+//            'task_list' => function () {
+//                return include __DIR__ . '/schedule_task.php';
+//            }
         ],
     ],
 ];

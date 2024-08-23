@@ -29,6 +29,7 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
                 });
             });
         });
+        var_dump('fixed:user:name');
         RunLog::info("init");
         sleep(10);
         date_default_timezone_set('Asia/Shanghai');

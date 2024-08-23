@@ -15,6 +15,11 @@ use OpenApi\Attributes as OA;
 
 class UserOrderController extends BController
 {
+
+    public function _beforeAction(RequestInput $requestInput, string $action)
+    {
+        var_dump('_beforeAction='.$action);
+    }
     /**
      * @return void
      * @see \Test\Module\Order\Validation\UserOrderValidation::userList()
