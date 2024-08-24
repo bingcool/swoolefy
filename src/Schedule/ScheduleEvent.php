@@ -9,7 +9,7 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Core;
+namespace Swoolefy\Schedule;
 
 use Swoolefy\Core\Dto\AbstractDto;
 use Swoolefy\Worker\Cron\CronForkProcess;
