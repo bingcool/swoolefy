@@ -2,7 +2,7 @@
 
 namespace Test\Scripts;
 
-use Swoolefy\Core\Schedule;
+use Swoolefy\Core\Schedule\Schedule;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Worker\Cron\CronForkProcess;
 

@@ -9,7 +9,9 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Core;
+namespace Swoolefy\Core\Schedule;
+
+use Swoolefy\Core\SingletonTrait;
 
 class Schedule
 {
@@ -45,7 +47,7 @@ class Schedule
      */
     public function addScheduleEvent(ScheduleEvent $event)
     {
-        $this->scheduleEvents[] = $event;
+        $this->scheduleEvents[] = $event->toArray();
         return $this;
     }
 
@@ -56,10 +58,14 @@ class Schedule
     {
         $scheduleMeta = [];
         foreach ($this->scheduleEvents as $event) {
-            /**
-             * @var ScheduleEvent $event
-             */
-            $scheduleMeta[] = $event->toArray();
+            if ($event instanceof ScheduleEvent) {
+                /**
+                 * @var ScheduleEvent $event
+                 */
+                $scheduleMeta[] = $event->toArray();
+            }else if (is_array($event)) {
+                $scheduleMeta[] = $event;
+            }
         }
 
         return $scheduleMeta;
