@@ -27,7 +27,7 @@ class ScheduleEvent extends AbstractDto
      *
      * @var string
      */
-    public $expression = '* * * * *';
+    public $cron_expression = '* * * * *';
 
     /**
      * @var string
@@ -65,7 +65,7 @@ class ScheduleEvent extends AbstractDto
      */
     public function cron($cronExpression): self
     {
-        $this->expression = $cronExpression;
+        $this->cron_expression = $cronExpression;
         return $this;
     }
 
@@ -558,7 +558,7 @@ class ScheduleEvent extends AbstractDto
      */
     protected function spliceIntoPosition($position, $value)
     {
-        $segments = explode(' ', $this->expression);
+        $segments = explode(' ', $this->cron_expression);
 
         $segments[$position - 1] = $value;
 
