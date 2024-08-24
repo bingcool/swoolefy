@@ -27,6 +27,7 @@ return [
     // default_db
     'default_db' => 'db',
 
+    // 是否启用session组件
     'session_start' => false,
 
     // 组件
