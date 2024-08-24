@@ -2,8 +2,8 @@
 
 namespace Test\Scripts;
 
+use Swoolefy\Core\Schedule\Schedule;
 use Swoolefy\Core\SystemEnv;
-use Swoolefy\Schedule\Schedule;
 use Swoolefy\Worker\Cron\CronForkProcess;
 
 class Kernel
