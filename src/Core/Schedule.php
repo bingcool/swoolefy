@@ -15,7 +15,23 @@ class Schedule
 {
     use SingletonTrait;
 
+    const SUNDAY = 0;
+    const MONDAY = 1;
+    const TUESDAY = 2;
+    const WEDNESDAY = 3;
+    const THURSDAY = 4;
+    const FRIDAY = 5;
+    const SATURDAY = 6;
+
+    /**
+     * @var array
+     */
     public $scheduleEvents = [];
+
+    /**
+     * @param string $command
+     * @return ScheduleEvent
+     */
     public function command(string $command): ScheduleEvent
     {
         $this->scheduleEvents[] = $event = new ScheduleEvent();
@@ -23,6 +39,10 @@ class Schedule
         return $event;
     }
 
+    /**
+     * @param ScheduleEvent $event
+     * @return $this
+     */
     public function addScheduleEvent(ScheduleEvent $event)
     {
         $this->scheduleEvents[] = $event;
