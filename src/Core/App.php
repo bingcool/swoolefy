@@ -203,7 +203,7 @@ class App extends \Swoolefy\Core\Component
     /**
      * @return void
      */
-    protected function unsetObjectInstance()
+    protected function removeControllerInstance()
     {
         $this->controllerInstance = null;
     }
@@ -312,7 +312,7 @@ class App extends \Swoolefy\Core\Component
         // remove App Instance
         Application::removeApp();
         // unset controllerInstance
-        $this->unsetObjectInstance();
+        $this->removeControllerInstance();
         // end request
         if (!$this->isEnd) {
             if($this->swooleResponse->isWritable()) {
