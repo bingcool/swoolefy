@@ -7,7 +7,7 @@ use Common\Library\Captcha\CaptchaBuilder;
 use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\Coroutine\Parallel;
 use Swoolefy\Util\Log;
-use Test\Factory;
+use Test\App;
 use Test\Logger\RunLog;
 
 class FixedUser extends \Swoolefy\Script\MainCliScript
@@ -29,6 +29,7 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
                 });
             });
         });
+        var_dump('fixed:user:name');
         RunLog::info("init");
         sleep(10);
         date_default_timezone_set('Asia/Shanghai');
@@ -50,7 +51,7 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
     public function fixName()
     {
         return;
-//        $db = Factory::getDb();
+//        $db = App::getDb();
 //        $db->newQuery()->table('tbl_users')->field('user_id,user_name')->chunk(10, function ($rows) {
 //            foreach ($rows as $row) {
 //                var_dump($row);
@@ -84,7 +85,7 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
 //        ];
 //
 //        Parallel::run(2, $list, function ($item) {
-//            $db2 = Factory::getDb();
+//            $db2 = App::getDb();
 //            var_dump('cid='.\Swoole\Coroutine::getCid().'spl_object_id-22='.spl_object_id($db2));
 //            var_dump($item['name']);
 //            $result1 = $db2->newQuery()->table('tbl_users')->limit(1)->select()->toArray();
@@ -135,19 +136,19 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
 //            //var_dump('Script test');
 //            sleep(2);
 //
-        //$db1 = Factory::getDb();
+        //$db1 = App::getDb();
         //var_dump('cid=' . \Swoole\Coroutine::getCid() . 'spl_object_id-11=' . spl_object_id($db1));
         //$result1 = $db1->newQuery()->table('tbl_users')->limit(1)->select()->toArray();
         //var_dump($result1);
 //
 //            goApp(function () {
-//                $db2 = Factory::getDb();
+//                $db2 = App::getDb();
 //                var_dump('cid='.\Swoole\Coroutine::getCid().'spl_object_id-22='.spl_object_id($db2));
 //                $result1 = $db2->newQuery()->table('tbl_users')->limit(1)->select()->toArray();
 //            });
 //
 //            goApp(function () {
-//                $db3 = Factory::getDb();
+//                $db3 = App::getDb();
 //                var_dump('cid='.\Swoole\Coroutine::getCid().'spl_object_id-33='.spl_object_id($db3));
 //                $result1 = $db3->newQuery()->table('tbl_users')->limit(1)->select()->toArray();
 //            });

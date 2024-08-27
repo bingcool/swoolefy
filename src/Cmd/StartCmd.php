@@ -68,12 +68,12 @@ class StartCmd extends BaseCmd
         $this->checkRunning($config);
         $eventServerFile = APP_PATH.'/'.$serverName.'.php';
         if (!file_exists($eventServerFile)) {
-            $search_str = "protocol\\http";
-            $replace_str = "{$appName}";
-            $file_content_string = file_get_contents(ROOT_PATH . '/src/Stubs/'.$serverName.'.php');
+            $searchStr = "protocol\\http";
+            $replaceStr = "{$appName}";
+            $fileContentString = file_get_contents(ROOT_PATH . '/src/Stubs/'.$serverName.'.stub.php');
             $count = 1;
-            $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
-            file_put_contents($eventServerFile, $file_content_string);
+            $fileContentString = str_replace($searchStr, $replaceStr, $fileContentString, $count);
+            file_put_contents($eventServerFile, $fileContentString);
         }
 
         $routeDir = APP_PATH.'/Router';
@@ -93,12 +93,12 @@ class StartCmd extends BaseCmd
         $this->checkRunning($config);
         $eventServerFile = APP_PATH.'/'.$serverName.'.php';
         if (!file_exists($eventServerFile)) {
-            $search_str = "protocol\\websocket";
-            $replace_str = "{$appName}";
-            $file_content_string = file_get_contents(ROOT_PATH . '/src/Stubs/'.$serverName.'.php');
+            $searchStr = "protocol\\websocket";
+            $replaceStr = "{$appName}";
+            $fileContentString = file_get_contents(ROOT_PATH . '/src/Stubs/'.$serverName.'.stub.php');
             $count = 1;
-            $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
-            file_put_contents($eventServerFile, $file_content_string);
+            $fileContentString = str_replace($searchStr, $replaceStr, $fileContentString, $count);
+            file_put_contents($eventServerFile, $fileContentString);
         }
         $routerDir = APP_PATH . "/Router";
         if (!is_dir($routerDir)) {
@@ -117,12 +117,12 @@ class StartCmd extends BaseCmd
         $this->checkRunning($config);
         $eventServerFile = APP_PATH.'/'.$serverName.'.php';
         if (!file_exists($eventServerFile)) {
-            $search_str = "protocol\\rpc";
-            $replace_str = "{$appName}";
-            $file_content_string = file_get_contents(ROOT_PATH . '/src/Stubs/'.$serverName.'.php');
+            $searchStr = "protocol\\rpc";
+            $replaceStr = "{$appName}";
+            $fileContentString = file_get_contents(ROOT_PATH . '/src/Stubs/'.$serverName.'.stub.php');
             $count = 1;
-            $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
-            file_put_contents($eventServerFile, $file_content_string);
+            $fileContentString = str_replace($searchStr, $replaceStr, $fileContentString, $count);
+            file_put_contents($eventServerFile, $fileContentString);
         }
 
         $this->commonHandle($config);
@@ -138,12 +138,12 @@ class StartCmd extends BaseCmd
         $this->checkRunning($config);
         $eventServerFile = APP_PATH.'/'.$serverName.'.php';
         if (!file_exists($eventServerFile)) {
-            $search_str = "protocol\\udp";
-            $replace_str = "{$appName}";
-            $file_content_string = file_get_contents(ROOT_PATH . '/src/Stubs/'.$serverName.'.php');
+            $searchStr = "protocol\\udp";
+            $replaceStr = "{$appName}";
+            $fileContentString = file_get_contents(ROOT_PATH . '/src/Stubs/'.$serverName.'.stub.php');
             $count = 1;
-            $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
-            file_put_contents($eventServerFile, $file_content_string);
+            $fileContentString = str_replace($searchStr, $replaceStr, $fileContentString, $count);
+            file_put_contents($eventServerFile, $fileContentString);
         }
 
         $routerDir = APP_PATH . "/Router";
@@ -164,12 +164,12 @@ class StartCmd extends BaseCmd
         $this->checkRunning($config);
         $eventServerFile = APP_PATH.'/'.$serverName.'.php';
         if (!file_exists($eventServerFile)) {
-            $search_str = "protocol\\mqtt";
-            $replace_str = "{$appName}";
-            $file_content_string = file_get_contents(ROOT_PATH . '/src/Stubs/'.$serverName.'.php');
+            $searchStr = "protocol\\mqtt";
+            $replaceStr = "{$appName}";
+            $fileContentString = file_get_contents(ROOT_PATH . '/src/Stubs/'.$serverName.'.stub.php');
             $count = 1;
-            $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
-            file_put_contents($eventServerFile, $file_content_string);
+            $fileContentString = str_replace($searchStr, $replaceStr, $fileContentString, $count);
+            file_put_contents($eventServerFile, $fileContentString);
         }
         $this->commonHandle($config);
         $class = "{$appName}\\{$serverName}";

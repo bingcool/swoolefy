@@ -2,6 +2,7 @@
 
 namespace Test\Scripts;
 
+use Swoolefy\Core\Schedule\Schedule;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Worker\Cron\CronForkProcess;
 
@@ -13,32 +14,19 @@ class Kernel
         User\FixedUser::command => [User\FixedUser::class, 'fixName']
     ];
 
-    /**
-     * 任务调度配置
-     *
-     * @var array[]
-     */
-    public static $schedule = [
-//        [
-//            'command' => User\FixedUser::command,
-//            //'cron_expression' => 10, // 10s执行一次
-//            'cron_expression' => '*/1 * * * *', // 每分钟执行一次
-//            'desc' => '',
-//        ],
-        [
-            'command' => User\FixedUser::command,
-            'fork_type' => CronForkProcess::FORK_TYPE_PROC_OPEN,
-            'cron_expression' => 20, // 10s执行一次
-            //'cron_expression' => '*/1 * * * *', // 每分钟执行一次
-            'argv' => [
-                'name' => 'bingcool',
-                'age' => 18,
-                'sex' => 'man',
-                'desc' => "fff kkkmm"
-            ],
-            'desc' => '',
-        ],
-    ];
+    public static function schedule()
+    {
+        $schedule = Schedule::getInstance();
+        $schedule->command(User\FixedUser::command)
+            ->cron(10)
+            ->addArgs('name', 'bingcool')
+            ->addArgs('age', 18)
+            ->addArgs('sex', 'man')
+            ->addArgs('desc', "fff kkkmm")
+            ->forkType(CronForkProcess::FORK_TYPE_PROC_OPEN);
+
+        return $schedule->toArray();
+    }
 
 
     /**
@@ -50,8 +38,8 @@ class Kernel
     {
         $appName = $_SERVER['argv'][2];
         $scheduleList = [];
-        foreach (self::$schedule as $item) {
-            $item['cron_name'] = $item['command'].'-'.$item['cron_expression'];
+
+        foreach (self::schedule() as $item) {
             $item['exec_bin_file'] = SystemEnv::PhpBinFile();
             if (!isset($item['fork_type'])) {
                 $item['fork_type'] = CronForkProcess::FORK_TYPE_PROC_OPEN;
@@ -72,6 +60,9 @@ class Kernel
             }
             $argv = implode(' ', $argvOptions);
             $item['exec_script'] = "script.php start {$appName} --c={$item['command']} $argv";
+            if (!isset($item['cron_name'])) {
+                $item['cron_name'] = $item['command'].'-'.$item['cron_expression'].' '.$argv;
+            }
             $item['params'] = [];
             $scheduleList[] = $item;
         }

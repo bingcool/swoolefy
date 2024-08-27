@@ -4,7 +4,7 @@ namespace Test\Controller;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\ResponseOutput;
-use Test\Factory;
+use Test\App;
 
 class UuidController extends BController
 {
@@ -16,7 +16,7 @@ class UuidController extends BController
         var_dump($requestInput->get('id'));
         var_dump($requestInput->getProtocol());
 
-        $ids = Factory::getUUid()->getIncrIds(10);
+        $ids = App::getUUid()->getIncrIds(10);
         foreach ($ids as &$id) {
             $id = (string)$id;
         }

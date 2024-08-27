@@ -53,7 +53,7 @@ class HttpServer extends \Swoolefy\Http\HttpAppServer {
         var_dump('Finish-cid = '.\Swoole\Coroutine::getCid());
         //var_dump('Worker Process onFinish Receive Task Worker msg='.$data);
         $userId = $data['user_id'];
-        $db = Factory::getDb();
+        $db = App::getDb();
         $result = $db->newQuery()->table('tbl_users')->where(['user_id' => $userId])->find();
         //var_dump('Worker Process Find Db Result as：');
         print_r($result);

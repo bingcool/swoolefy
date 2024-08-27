@@ -43,4 +43,9 @@ return [
         return $lock;
     },
 
+    'session' => function() {
+        $session = new \Swoolefy\Core\Session();
+        return $session;
+    },
+
 ];

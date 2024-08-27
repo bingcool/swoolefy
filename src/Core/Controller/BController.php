@@ -16,6 +16,7 @@ use Swoolefy\Core\App;
 use Swoole\Http\Request as SwooleRequest;
 use Swoole\Http\Response as SwooleResponse;
 use Swoolefy\Core\Application;
+use Swoolefy\Http\RequestInput;
 
 class BController extends \Swoolefy\Core\AppObject
 {
@@ -58,20 +59,22 @@ class BController extends \Swoolefy\Core\AppObject
     }
 
     /**
+     * @param RequestInput $requestInput
      * @param string $action
-     * @return bool|null
+     * @return bool
      */
-    public function _beforeAction(string $action): ?bool
+    public function _beforeAction(RequestInput $requestInput, string $action)
     {
         return true;
     }
 
 
     /**
+     * @param RequestInput $requestInput
      * @param string $action
-     * @return void
+     * @return mixed
      */
-    public function _afterAction(string $action)
+    public function _afterAction(RequestInput $requestInput, string $action)
     {
 
     }

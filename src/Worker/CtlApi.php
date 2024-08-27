@@ -171,7 +171,7 @@ class CtlApi
      */
     public function start(string $processName)
     {
-        $action = 'restart';
+        $action = WORKER_CLI_RESTART;
         $this->sendPipeCommand($processName, $action);
         $this->lockProcessRuntimeFile($processName, $action);
         $this->returnSuccess(['action' => $action, 'time' => date('Y-m-d H:i:s')]);
@@ -183,7 +183,7 @@ class CtlApi
      */
     public function stop(string $processName)
     {
-        $action = 'stop';
+        $action = WORKER_CLI_STOP;
         $this->sendPipeCommand($processName, $action);
         $this->lockProcessRuntimeFile($processName, $action);
         $this->returnSuccess(['action' => $action, 'time' => date('Y-m-d H:i:s')]);
@@ -259,8 +259,9 @@ class CtlApi
             $scriptFile = WORKER_START_SCRIPT_FILE;
         }
 
-        $appName     = APP_NAME;
-        list($command) = $runner->exec($execBinFile, "{$scriptFile} restart {$appName} --force=1", [],true, '/dev/null', false);
+        $appName    = APP_NAME;
+        $execScript = implode(' ',[$scriptFile, 'restart', $appName, '--force=1']);
+        list($command) = $runner->exec($execBinFile, $execScript, [],true, '/dev/null', false);
 
         $message = [
             'date' => date('Y-m-d H:i:s'),
