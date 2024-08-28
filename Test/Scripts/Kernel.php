@@ -14,6 +14,9 @@ class Kernel
         User\FixedUser::command => [User\FixedUser::class, 'fixName']
     ];
 
+    /**
+     * @return Schedule
+     */
     public static function schedule()
     {
         $schedule = Schedule::getInstance();
@@ -25,7 +28,15 @@ class Kernel
             ->addArgs('desc', "fff kkkmm")
             ->forkType(CronForkProcess::FORK_TYPE_PROC_OPEN);
 
-        return $schedule->toArray();
+        $schedule->command(User\FixedUser::command)
+            ->everyMinute()
+            ->addArgs('name', 'bingcool')
+            ->addArgs('age', 18)
+            ->addArgs('sex', 'man')
+            ->addArgs('desc', "fff kkkmm")
+            ->forkType(CronForkProcess::FORK_TYPE_PROC_OPEN);
+
+        return $schedule;
     }
 
 
@@ -39,7 +50,7 @@ class Kernel
         $appName = $_SERVER['argv'][2];
         $scheduleList = [];
 
-        foreach (self::schedule() as $item) {
+        foreach (self::schedule()->toArray() as $item) {
             $item['exec_bin_file'] = SystemEnv::PhpBinFile();
             if (!isset($item['fork_type'])) {
                 $item['fork_type'] = CronForkProcess::FORK_TYPE_PROC_OPEN;
