@@ -61,7 +61,6 @@ class CronForkProcess extends CronProcess
             foreach($taskList as $task) {
                 $forkType = $task['fork_type'] ?? $this->forkType;
                 $params   = $task['params'] ?? [];
-
                 $isNewAddFlag = $this->isNewAddTask($task);
                 if ($isNewAddFlag) {
                     try {
