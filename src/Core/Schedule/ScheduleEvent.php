@@ -49,6 +49,22 @@ class ScheduleEvent extends AbstractDto
      */
     public $timezone = null;
 
+
+    /**
+     * @var FilterDto[]
+     */
+    public $filters = [];
+
+    /**
+     * @var string
+     */
+    const BETWEEN_TIMEAT = 'timeAt';
+
+    /**
+     *
+     */
+    const BETWEEN_DATEAT = 'dateAt';
+
     /**
      * @param string $command
      * @return $this
@@ -67,6 +83,64 @@ class ScheduleEvent extends AbstractDto
     {
         $this->cron_expression = $cronExpression;
         return $this;
+    }
+
+    /**
+     * 在某些时间段内执行
+     *
+     * @param string $start
+     * @param string $end
+     * @return $this
+     */
+    public function between(string $start, string $end): self
+    {
+        $betweenTime = $this->parseBetweenTime($start, $end);
+        $filter = new FilterDto();
+        $filter->setFn($this->validateBetweenTime());
+        $filter->setParams($betweenTime);
+        $this->filters[] = $filter;
+        return $this;
+    }
+
+    /**
+     * 跳过某些时段,不能执行
+     *
+     * @param string $start
+     * @param string $end
+     * @return $this
+     */
+    public function skip(string $start, string $end): self
+    {
+        $skipTime = $this->parseBetweenTime($start, $end);
+        $filter = new FilterDto();
+        $filter->setFn($this->validateSkipTime());
+        $filter->setParams($skipTime);
+        $this->filters[] = $filter;
+        return $this;
+    }
+
+    /**
+     * @param $start
+     * @param $end
+     * @return array
+     */
+    protected function parseBetweenTime($start, $end)
+    {
+        if ($this->isValidTime($start) && $this->isValidTime($end)) {
+            $betweenTime = [
+                'start' => $start,
+                'end' => $end,
+                'type' => self::BETWEEN_TIMEAT
+            ];
+        }else if ($this->isValidDateTime($start) && $this->isValidDateTime($end)) {
+            $betweenTime = [
+                'start' => date('Y-m-d H:i', strtotime($start)),
+                'end' =>  date('Y-m-d H:i', strtotime($end)),
+                'type' => self::BETWEEN_DATEAT
+            ];
+        }
+
+        return $betweenTime ?? [];
     }
 
     /**
@@ -566,10 +640,103 @@ class ScheduleEvent extends AbstractDto
     }
 
     /**
+     * @param $time
+     * @return bool
+     */
+    protected  function isValidTime($time)
+    {
+        $pattern = '/^([01]?[0-9]|2[0-3]):([0-5]?[0-9])$/';
+        return preg_match($pattern, $time) === 1;
+    }
+
+    /**
+     * @param $time
+     * @return bool
+     */
+    protected  function isValidDateTime($dateTime)
+    {
+        $timestamp = strtotime($dateTime);
+        if (is_numeric($timestamp) && $timestamp > 0) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @param array $between
+     * @return \Closure
+     */
+    protected function validateBetweenTime(): \Closure
+    {
+        return function ($between) {
+            if (!empty($between)) {
+                $start = $between['start'];
+                $end   = $between['end'];
+                $type  = $between['type'];
+                $time = time();
+                switch ($type) {
+                    case self::BETWEEN_TIMEAT:
+                        $date      = date('Y-m-d');
+                        $startTime = strtotime($date.' '.$start);
+                        $endTime   = strtotime($date.' '.$end);
+                        break;
+                    case self::BETWEEN_DATEAT:
+                        $startTime = strtotime($start);
+                        $endTime   = strtotime($end);
+                        break;
+                    default:
+                        return false;
+                }
+
+                if ($startTime <= $time && $time <= $endTime) {
+                    return true;
+                }
+                return false;
+            }
+            return true;
+        };
+    }
+
+    /**
+     * @param array $between
+     * @return \Closure
+     */
+    protected function validateSkipTime(): \Closure
+    {
+        return function ($between) {
+            if (!empty($between)) {
+                $start = $between['start'];
+                $end   = $between['end'];
+                $type  = $between['type'];
+                $time = time();
+                switch ($type) {
+                    case self::BETWEEN_TIMEAT:
+                        $date      = date('Y-m-d');
+                        $startTime = strtotime($date.' '.$start);
+                        $endTime   = strtotime($date.' '.$end);
+                        break;
+                    case self::BETWEEN_DATEAT:
+                        $startTime = strtotime($start);
+                        $endTime   = strtotime($end);
+                        break;
+                    default:
+                        return false;
+                }
+
+                if ($startTime <= $time && $time <= $endTime) {
+                    return false;
+                }
+                return true;
+            }
+            return true;
+        };
+    }
+
+    /**
      * @return string
      */
     public function getCronExpression()
     {
-        return $this->expression;
+        return $this->cron_expression;
     }
 }
