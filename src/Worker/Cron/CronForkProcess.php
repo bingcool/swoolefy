@@ -14,6 +14,7 @@ namespace Swoolefy\Worker\Cron;
 use Swoole\Coroutine\System;
 use Swoolefy\Core\CommandRunner;
 use Swoolefy\Core\Crontab\CrontabManager;
+use Swoolefy\Core\Schedule\FilterDto;
 
 class CronForkProcess extends CronProcess
 {
@@ -66,6 +67,17 @@ class CronForkProcess extends CronProcess
                 if ($isNewAddFlag) {
                     try {
                         CrontabManager::getInstance()->addRule($task['cron_name'], $task['cron_expression'], function ($cron_name, $expression) use($task, $forkType, $params) {
+                            if (isset($task['filters']) && !empty($task['filters'])) {
+                                foreach ($task['filters'] as $filter) {
+                                    if ($filter instanceof FilterDto) {
+                                        $canDue = call_user_func($filter->getFn(), $filter->getParams());
+                                        if ($canDue == false) {
+                                            return;
+                                        }
+                                    }
+                                }
+                            }
+
                             $runner = CommandRunner::getInstance($cron_name,1);
                             $this->randSleepTime($task['cron_expression']);
                             try {

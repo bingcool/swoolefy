@@ -62,7 +62,7 @@ class CronProcess extends AbstractWorkerProcess
         // 剔除已暂停的计划任务
         $cronMetaList = CrontabManager::getInstance()->getCronTaskByName();
         if(!empty($cronMetaList)) {
-            $taskCronNameList = array_column($taskList, 'cron_name');
+            $taskCronNameList    = array_column($taskList, 'cron_name');
             $taskCronNameKeyList = array_map(function ($item) {
                 return md5($item);
             }, $taskCronNameList);

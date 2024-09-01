@@ -28,13 +28,13 @@ class Kernel
             ->addArgs('desc', "fff kkkmm")
             ->forkType(CronForkProcess::FORK_TYPE_PROC_OPEN);
 
-        $schedule->command(User\FixedUser::command)
-            ->everyMinute()
-            ->addArgs('name', 'bingcool')
-            ->addArgs('age', 18)
-            ->addArgs('sex', 'man')
-            ->addArgs('desc', "fff kkkmm")
-            ->forkType(CronForkProcess::FORK_TYPE_PROC_OPEN);
+//        $schedule->command(User\FixedUser::command)
+//            ->everyMinute()
+//            ->addArgs('name', 'bingcool')
+//            ->addArgs('age', 18)
+//            ->addArgs('sex', 'man')
+//            ->addArgs('desc', "fff kkkmm")
+//            ->forkType(CronForkProcess::FORK_TYPE_PROC_OPEN);
 
         return $schedule;
     }

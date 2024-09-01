@@ -123,7 +123,7 @@ trait SystemTrait
             $logFd = fopen(WORKER_CTL_LOG_FILE, 'a+');
             $date  = date("Y-m-d H:i:s");
             $pid   = getmypid();
-            $writeMsg = "【{$date}】【PID={$pid}】" . $msg . "\n";
+            $writeMsg = "【{$date}】【PID={$pid}】" . $msg . PHP_EOL;
             fwrite($logFd, $writeMsg);
             fclose($logFd);
         }
