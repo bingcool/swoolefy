@@ -224,6 +224,15 @@ class CrontabManager
     }
 
     /**
+     * @param string|null $cronName
+     * @return array|null
+     */
+    public function getRunCronTaskList()
+    {
+        return $this->cronTasks;
+    }
+
+    /**
      * @param string $cronName
      * @return void
      */
@@ -231,6 +240,11 @@ class CrontabManager
     {
         $cronNameKey = md5($cronName);
         if (isset($this->cronTasks[$cronNameKey])) {
+            $cronTask = $this->cronTasks[$cronNameKey];
+            $timerId  = $cronTask['timer_id'];
+            if (\Swoole\Timer::exists($timerId)) {
+                \Swoole\Timer::clear($timerId);
+            }
             unset($this->cronTasks[$cronNameKey]);
         }
     }
