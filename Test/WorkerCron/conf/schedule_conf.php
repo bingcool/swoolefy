@@ -1,5 +1,7 @@
 <?php
 
+use Test\Scripts\Kernel;
+
 return // 定时fork进程处理任务
     [
         [
@@ -13,7 +15,7 @@ return // 定时fork进程处理任务
         'extend_data' => [],
         'args' => [
             // 定时任务列表
-            'task_list' => \Test\Scripts\Kernel::buildScheduleTaskList()
+            'task_list' => Kernel::buildScheduleTaskList(Kernel::schedule())
 
              // 动态定时任务列表，可以存在数据库中
 //            'task_list' => function () {
