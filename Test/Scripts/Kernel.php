@@ -45,12 +45,12 @@ class Kernel
      *
      * @return array
      */
-    public static function buildScheduleTaskList()
+    public static function buildScheduleTaskList(Schedule $schedule)
     {
         $appName = $_SERVER['argv'][2];
         $scheduleList = [];
 
-        foreach (self::schedule()->toArray() as $item) {
+        foreach ($schedule->toArray() as $item) {
             $item['exec_bin_file'] = SystemEnv::PhpBinFile();
             if (!isset($item['fork_type'])) {
                 $item['fork_type'] = CronForkProcess::FORK_TYPE_PROC_OPEN;
