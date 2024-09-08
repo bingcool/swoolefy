@@ -132,7 +132,7 @@ abstract class TcpServer extends BaseServer
         $this->tcpServer->on('connect', function (\Swoole\Server $server, $fd) {
             try {
                 (new EventApp())->registerApp(function () use ($server, $fd) {
-                    static::onConnect($server, $fd);
+                    $this->onConnect($server, $fd);
                 });
             } catch (\Throwable $e) {
                 self::catchException($e);
@@ -201,7 +201,7 @@ abstract class TcpServer extends BaseServer
                     foreach ($contextData as $key=>$value) {
                         \Swoolefy\Core\Coroutine\Context::set($key, $value);
                     }
-                    static::onFinish($server, $task_id, $data);
+                    $this->onFinish($server, $task_id, $data);
                 });
                 return true;
             } catch (\Throwable $e) {
@@ -215,7 +215,7 @@ abstract class TcpServer extends BaseServer
         $this->tcpServer->on('pipeMessage', function (\Swoole\Server $server, $from_worker_id, $message) {
             try {
                 (new EventApp())->registerApp(function () use ($server, $from_worker_id, $message) {
-                    static::onPipeMessage($server, $from_worker_id, $message);
+                    $this->onPipeMessage($server, $from_worker_id, $message);
                 });
                 return true;
             } catch (\Throwable $e) {
@@ -232,7 +232,7 @@ abstract class TcpServer extends BaseServer
                     $this->Pack->destroy();
                 }
                 (new EventApp())->registerApp(function () use ($server, $fd) {
-                    static::onClose($server, $fd);
+                    $this->onClose($server, $fd);
                 });
             } catch (\Throwable $e) {
                 self::catchException($e);
