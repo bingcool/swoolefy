@@ -5,6 +5,7 @@ namespace Test;
 use Common\Library\Db\PDOConnection;
 use Predis\Command\Redis\CONFIG;
 use Swoole\Coroutine\WaitGroup;
+use Swoole\Server;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Coroutine\GoWaitGroup;
 use Swoolefy\Core\Swfy;

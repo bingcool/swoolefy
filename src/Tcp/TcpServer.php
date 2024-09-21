@@ -271,7 +271,7 @@ abstract class TcpServer extends BaseServer
 
         /**
          * WorkerError
-         * tips此回调是在manager进程中发生的，不能使用创建协程和使用协程api,否则报错
+         * tips：此回调是在manager进程中发生的，不能使用创建协程和使用协程api,否则报错
          */
         $this->tcpServer->on('WorkerError', function (\Swoole\Server $server, $worker_id, $worker_pid, $exit_code, $signal) {
             try {
