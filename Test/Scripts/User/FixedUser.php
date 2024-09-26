@@ -4,6 +4,7 @@
 namespace Test\Scripts\User;
 
 use Common\Library\Captcha\CaptchaBuilder;
+use Common\Library\Db\Facade\Db;
 use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\Coroutine\Parallel;
 use Swoolefy\Util\Log;
@@ -30,8 +31,8 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
             });
         });
         var_dump('fixed:user:name');
-        RunLog::info("init");
-        sleep(60);
+        RunLog::info("FixedUser");
+        sleep(10);
         date_default_timezone_set('Asia/Shanghai');
         file_put_contents(
             '/home/wwwroot/swoolefy/Test/WorkerCron/ForkOrder/order1.log',
