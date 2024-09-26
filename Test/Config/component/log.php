@@ -33,6 +33,7 @@ return [
         } else {
             $logFilePath = LOG_PATH.'/cli/info.log';
         }
+        $logger->enableHourly();
         $logger->setLogFilePath($logFilePath);
         return $logger;
     },
