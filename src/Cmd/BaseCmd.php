@@ -58,7 +58,6 @@ class BaseCmd extends Command
         }
 
         defined('APP_PATH') or define('APP_PATH', ROOT_PATH.'/'.APP_NAME);
-        // env
         defined('SWOOLEFY_DEV') or define('SWOOLEFY_DEV', 'dev');
         defined('SWOOLEFY_TEST') or define('SWOOLEFY_TEST', 'test');
         defined('SWOOLEFY_GRA') or define('SWOOLEFY_GRA', 'gra');
