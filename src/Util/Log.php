@@ -99,6 +99,11 @@ class Log
     protected $doUnlink = false;
 
     /**
+     * @var bool
+     */
+    protected $hourly = false;
+
+    /**
      * @param string $type
      * @param string|null $channel
      * @param string|null $logFilePath
@@ -160,6 +165,14 @@ class Log
     }
 
     /**
+     * @return void
+     */
+    public function enableHourly()
+    {
+        $this->hourly = true;
+    }
+
+    /**
      * setLogFilePath
      * @param string $logFilePath
      * @return $this
@@ -193,7 +206,14 @@ class Log
             mkdir($logDatePath, 0777, true);
         }
 
-        return $logDatePath.DIRECTORY_SEPARATOR.$fileInfo['filename'].'.'.$fileInfo['extension'];
+        if ($this->hourly) {
+            $hour = date('H', time());
+            $fileName = $fileInfo['filename'].'-'.$hour.'.'.$fileInfo['extension'];
+        }else {
+            $fileName = $fileInfo['filename'].'.'.$fileInfo['extension'];
+        }
+
+        return $logDatePath.DIRECTORY_SEPARATOR.$fileName;
     }
 
     /**
