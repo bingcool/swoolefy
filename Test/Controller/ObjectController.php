@@ -18,7 +18,7 @@ class ObjectController extends BController
         $struct = new \Swoolefy\Core\Struct();
         $struct->set('name', 'bingcool');
 
-        $orderObject = new \Test\Module\Order\OrderEntity($userId);
+        $orderObject = new \Test\Module\Order\OrderEntity();
         $orderObject->user_id = $userId;
         $orderObject->receiver_user_name = "张三";
         $orderObject->receiver_user_phone = "12344556";
@@ -57,7 +57,7 @@ class ObjectController extends BController
 
         $orderId = 1698317204;
 
-        $orderObject = new \Test\Module\Order\OrderEntity($userId, $orderId);
+        $orderObject = new \Test\Module\Order\OrderEntity($userId);
         if($orderObject->isExists()) {
             $orderObject->user_id = $userId;
             $orderObject->inc('order_amount', 1);

@@ -203,6 +203,7 @@ function goTick(int $timeMs, callable $callable, bool $withBlockLapping = false)
 }
 
 /**
+ * one times task exec after $timeMs
  * @param int $timeMs
  * @param callable $callable
  * @return Channel|int

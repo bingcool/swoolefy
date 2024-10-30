@@ -1,6 +1,7 @@
 <?php
 namespace Test\Module\Order;
 
+use Common\Library\Db\Concern\SoftDelete;
 use Test\Model\ClientModel;
 
 /**
@@ -20,6 +21,7 @@ use Test\Model\ClientModel;
 
 class OrderEntity extends ClientModel
 {
+    use SoftDelete;
     use OrderEventTrait;
 
     /**
@@ -39,27 +41,12 @@ class OrderEntity extends ClientModel
     protected $scene;
 
     /**
-     * OrderEntity constructor.
-     * @param $userId
-     * @param int $id
-     */
-    public function __construct($userId, $id = 0)
-    {
-        parent::__construct($userId, $id);
-
-        if($id > 0) {
-            $this->loadById($id);
-        }
-    }
-
-    /**
      * @param $id
      */
     public function loadById($id)
     {
         return $this->loadOne([
             'order_id' => $id,
-            'user_id' => $this->userId
         ]);
     }
 
