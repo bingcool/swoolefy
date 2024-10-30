@@ -42,7 +42,8 @@
         "endroid/qr-code": "v5.0.5",
         "bingcool/library": "dev-master",
         "symfony/translation": "6.4.x-dev",
-        "nesbot/carbon": "*"
+        "nesbot/carbon": "*",
+        "swoole/phpy": "dev-main"
     },
     "autoload": {
         "files": ["src/Constants.php","src/Core/Func/function.php"],

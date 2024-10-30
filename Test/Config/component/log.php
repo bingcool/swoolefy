@@ -33,6 +33,7 @@ return [
         } else {
             $logFilePath = LOG_PATH.'/cli/info.log';
         }
+        // 日志文件名按小时分文件记录
         $logger->enableHourly();
         $logger->setLogFilePath($logFilePath);
         return $logger;
