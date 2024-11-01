@@ -43,7 +43,8 @@
         "bingcool/library": "dev-master",
         "symfony/translation": "6.4.x-dev",
         "nesbot/carbon": "*",
-        "swoole/phpy": "dev-main"
+        "swoole/phpy": "dev-main",
+        "topthink/think-orm": "3.0.x-dev"
     },
     "autoload": {
         "files": ["src/Constants.php","src/Core/Func/function.php"],

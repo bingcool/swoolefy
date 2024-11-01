@@ -48,8 +48,10 @@ class MainCliScript extends AbstractScriptProcess
      */
     public function init()
     {
+        if (!Context::has('trace-id')) {
+            $this->generateTraceId();
+        }
         parent::init();
-        $this->generateTraceId();
     }
 
     /**
@@ -61,10 +63,6 @@ class MainCliScript extends AbstractScriptProcess
             fmtPrintError("一次性脚本进程异常不断重复自动重启，请检查");
             $this->exitAll(true);
             return;
-        }
-
-        if (!Context::has('trace-id')) {
-            $this->generateTraceId();
         }
 
         $this->setIsCliScript();
