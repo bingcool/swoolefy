@@ -34,7 +34,7 @@ return [
         // sql执行日志条目设置,不能设置太大,适合调试使用,设置为0，则不使用
         'spend_log_limit' => 30,
         // 是否开启dubug
-        'debug' => 0
+        'debug' => 1
     ],
 
     'pg_db' => [

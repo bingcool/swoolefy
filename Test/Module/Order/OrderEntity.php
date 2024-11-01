@@ -2,6 +2,7 @@
 namespace Test\Module\Order;
 
 use Common\Library\Db\Concern\SoftDelete;
+use python\ast\alias;
 use Test\Model\ClientModel;
 
 /**
@@ -77,7 +78,18 @@ class OrderEntity extends ClientModel
         if (is_array($value)) {
             return json_encode($value, JSON_UNESCAPED_UNICODE);
         }
+        return $value;
+    }
 
+    /**
+     * @param $value
+     * @return array
+     */
+    public function getJsonDataAttr($value)
+    {
+        if (!is_array($value)) {
+            return json_decode($value, true);
+        }
         return $value;
     }
 

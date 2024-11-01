@@ -10,6 +10,7 @@ class TestDbQuery extends \Swoolefy\Script\MainCliScript
 
     public function init()
     {
+        parent::init();
         $uid = 100;
         $db = App::getDb()->getObject();
         $sql = (new OrderEntity())
@@ -29,19 +30,26 @@ class TestDbQuery extends \Swoolefy\Script\MainCliScript
 
         //var_dump($list);
 
-        $order = (new OrderEntity())->loadById(1685959471);
-        $order->json_data = [1111, 2222, 3333];
-        $order->save();
+        $order = new OrderEntity();
+        $order->loadById(1685959471);
+//        OrderEntity::withoutTrashed()
+//            ->where([
+//                'order_id' => 1685959471
+//            ])->restore();
+//        $order->json_data = [1111, 2222, 3333, 44444, rand(100,2000)];
+//        $order->save();
+//
+        //$order->delete();
 
         /**
          * @var OrderEntity $order1
          */
-        $order1 = OrderEntity::query()
-            ->field('user_id')
-            ->where('user_id', '=',102)
+        $order1 = OrderEntity::connection($db)
+            ->where('user_id', '=',10003)
             ->first();
 
-        var_dump($order1->getAttributes());
+        //var_dump($order1);
+        //var_dump($order1->getAttributes());
 
         // 进行软删
 //        OrderEntity::query()
@@ -51,9 +59,21 @@ class TestDbQuery extends \Swoolefy\Script\MainCliScript
 
 
         $orderList = (new OrderEntity())->getQuery()
+            ->field('*')
             ->where('user_id', '=', 101)
-            ->select();
+            ->json(['json_data'])
+            ->filter(function ($result) {
+                return $result;
+            })
+            ->each(function ($item) {
+                $item['name'] = 'bingcool';
+                return $item;
+            })
+            ->select()
+            ->toArray();
 
+        //var_dump($orderList);
+        return;
         /**
          * @var OrderEntity $orderItem
          */
