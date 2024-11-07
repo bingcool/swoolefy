@@ -12,9 +12,7 @@
 namespace Swoolefy\Core\Coroutine;
 
 use ArrayObject;
-use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
-use Swoolefy\Exception\SystemException;
 
 class Context
 {
