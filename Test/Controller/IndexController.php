@@ -19,7 +19,8 @@ class IndexController extends BController {
 
     public function index()
     {
-        RunLog::info('test11111-log-id='.rand(1,1000),['name'=>'bingcoolhuang'], true);
+        //RunLog::info('test11111-log-id='.rand(1,1000),['name'=>'bingcoolhuang'], true);
+        Application::getApp()->swooleResponse->status(200);
         Application::getApp()->swooleResponse->write('<h1>Hello, Welcome to Swoolefy Framework! <h1>');
     }
 
