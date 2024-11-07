@@ -35,6 +35,10 @@ class OrderEntity extends ClientModel
      */
     protected $pk = 'order_id';
 
+    protected $casts = [
+        'json_data' => 'array'
+    ];
+
     /**
      * 定义场景来处理不同的事件数据
      * @var string
@@ -69,28 +73,28 @@ class OrderEntity extends ClientModel
         return json_decode($value, true);
     }
 
-    /**
-     * @param $value
-     * @return false|string
-     */
-    public function setJsonDataAttr($value)
-    {
-        if (is_array($value)) {
-            return json_encode($value, JSON_UNESCAPED_UNICODE);
-        }
-        return $value;
-    }
-
-    /**
-     * @param $value
-     * @return array
-     */
-    public function getJsonDataAttr($value)
-    {
-        if (!is_array($value)) {
-            return json_decode($value, true);
-        }
-        return $value;
-    }
+//    /**
+//     * @param $value
+//     * @return false|string
+//     */
+//    public function setJsonDataAttr($value)
+//    {
+//        if (is_array($value)) {
+//            return json_encode($value, JSON_UNESCAPED_UNICODE);
+//        }
+//        return $value;
+//    }
+//
+//    /**
+//     * @param $value
+//     * @return array
+//     */
+//    public function getJsonDataAttr($value)
+//    {
+//        if (!is_array($value)) {
+//            return json_decode($value, true);
+//        }
+//        return $value;
+//    }
 
 }
