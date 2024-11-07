@@ -2,6 +2,8 @@
 namespace Test\Scripts\User;
 
 use Common\Library\Db\Query;
+use python\json;
+use Swoolefy\Core\Application;
 use Test\App;
 use Test\Module\Order\OrderEntity;
 class TestDbQuery extends \Swoolefy\Script\MainCliScript
@@ -30,14 +32,17 @@ class TestDbQuery extends \Swoolefy\Script\MainCliScript
 
         //var_dump($list);
 
-        $order = new OrderEntity();
-        $order->loadById(1685959471);
 //        OrderEntity::withoutTrashed()
 //            ->where([
 //                'order_id' => 1685959471
 //            ])->restore();
-//        $order->json_data = [1111, 2222, 3333, 44444, rand(100,2000)];
-//        $order->save();
+
+        $order = new OrderEntity();
+        $order->loadById(1685959471);
+        $order->json_data = ['1111llll', 2222, 3333, 44444, rand(100,2000)];
+        $order->save();
+
+        //var_dump($order->getAttributes());
 //
         //$order->delete();
 
@@ -49,7 +54,7 @@ class TestDbQuery extends \Swoolefy\Script\MainCliScript
             ->first();
 
         //var_dump($order1);
-        //var_dump($order1->getAttributes());
+       // var_dump($order1->getAttributes());
 
         // 进行软删
 //        OrderEntity::query()
@@ -58,9 +63,14 @@ class TestDbQuery extends \Swoolefy\Script\MainCliScript
 //            ->delete();
 
 
-        $orderList = (new OrderEntity())->getQuery()
+        $orderList = OrderEntity::connection($db)
             ->field('*')
-            ->where('user_id', '=', 101)
+            //->whereIn('user_id', [102])
+            ->whereJsonContains('expend_data->address', ['add' => '深圳'])
+            //->whereJsonContains('expend_data->phone', '123456')
+            //->whereJsonContains('expend_data->name', 'xiaomi1')
+            ->where('order_product_ids', '<>', '')
+            ->whereJsonContains('order_product_ids','1222')
             ->json(['json_data'])
             ->filter(function ($result) {
                 return $result;
@@ -69,20 +79,29 @@ class TestDbQuery extends \Swoolefy\Script\MainCliScript
                 $item['name'] = 'bingcool';
                 return $item;
             })
-            ->select()
-            ->toArray();
+            ->limit(5)
+            ->select();
 
-        //var_dump($orderList);
-        return;
         /**
          * @var OrderEntity $orderItem
          */
-        foreach ($orderList as $orderItem) {
+        foreach ($orderList as $k=>$raw) {
             // 填充到Model实体,方便IDE提示
-            $orderItem = (new OrderEntity())->fill($orderItem);
-            var_dump($orderItem->json_data);
+            $orderItem = OrderEntity::fill($raw);
+            var_dump($orderItem->order_id);
         }
-        var_dump("bbbb");
+
+
+//        $list = (new Query(Application::getApp()->get('pg')->getConnection()))
+//            ->table('tbl_order')
+//            ->json(['json_data'])
+//            ->whereJsonContains('expend_data->>address',[['add1' => '深圳']])
+//            ->limit(5)
+//            ->select();
+//        var_dump($list);
+
+
+        //var_dump("bbbb");
         //var_dump($order2);
 
         // var_dump($order->getAttributes());
