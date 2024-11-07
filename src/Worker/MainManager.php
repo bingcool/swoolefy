@@ -294,8 +294,7 @@ class MainManager
      */
     public function loadConf(array $conf)
     {
-        foreach($conf as $config)
-        {
+        foreach($conf as $config) {
             $async            = true;
             $enableCoroutine  = true;
             $processName      = $config['process_name'];

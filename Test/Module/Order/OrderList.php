@@ -64,7 +64,7 @@ class OrderList extends ListObject
 
     protected function buildQuery(): Query
     {
-        $model = new OrderEntity(11111);
+        $model = new OrderEntity();
         return $model->newQuery()->table($model->getTableName());
     }
 

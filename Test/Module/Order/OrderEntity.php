@@ -1,6 +1,8 @@
 <?php
 namespace Test\Module\Order;
 
+use Common\Library\Db\Concern\SoftDelete;
+use python\ast\alias;
 use Test\Model\ClientModel;
 
 /**
@@ -20,6 +22,7 @@ use Test\Model\ClientModel;
 
 class OrderEntity extends ClientModel
 {
+    use SoftDelete;
     use OrderEventTrait;
 
     /**
@@ -32,25 +35,15 @@ class OrderEntity extends ClientModel
      */
     protected $pk = 'order_id';
 
+    protected $casts = [
+        'json_data' => 'array'
+    ];
+
     /**
      * 定义场景来处理不同的事件数据
      * @var string
      */
     protected $scene;
-
-    /**
-     * OrderEntity constructor.
-     * @param $userId
-     * @param int $id
-     */
-    public function __construct($userId, $id = 0)
-    {
-        parent::__construct($userId, $id);
-
-        if($id > 0) {
-            $this->loadById($id);
-        }
-    }
 
     /**
      * @param $id
@@ -59,7 +52,6 @@ class OrderEntity extends ClientModel
     {
         return $this->loadOne([
             'order_id' => $id,
-            'user_id' => $this->userId
         ]);
     }
 
@@ -81,17 +73,28 @@ class OrderEntity extends ClientModel
         return json_decode($value, true);
     }
 
-    /**
-     * @param $value
-     * @return false|string
-     */
-    public function setJsonDataAttr($value)
-    {
-        if (is_array($value)) {
-            return json_encode($value, JSON_UNESCAPED_UNICODE);
-        }
-
-        return $value;
-    }
+//    /**
+//     * @param $value
+//     * @return false|string
+//     */
+//    public function setJsonDataAttr($value)
+//    {
+//        if (is_array($value)) {
+//            return json_encode($value, JSON_UNESCAPED_UNICODE);
+//        }
+//        return $value;
+//    }
+//
+//    /**
+//     * @param $value
+//     * @return array
+//     */
+//    public function getJsonDataAttr($value)
+//    {
+//        if (!is_array($value)) {
+//            return json_decode($value, true);
+//        }
+//        return $value;
+//    }
 
 }

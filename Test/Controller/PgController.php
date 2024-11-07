@@ -39,7 +39,8 @@ class PgController extends BController
             'order_product_ids' => json_encode($order_product_ids),
             'json_data' => json_encode($json_data),
             'order_status' => $order_status,
-            'remark' => $remark
+            'remark' => $remark,
+            'expend_data' => '{"name":"xiaomi","phone":123456789}',
         ]);
         $id = $query->getLastInsID();
 

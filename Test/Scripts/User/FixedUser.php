@@ -1,14 +1,8 @@
 <?php
-
-
 namespace Test\Scripts\User;
 
-use Common\Library\Captcha\CaptchaBuilder;
-use Common\Library\Db\Facade\Db;
 use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\Coroutine\Parallel;
-use Swoolefy\Util\Log;
-use Test\App;
 use Test\Logger\RunLog;
 
 class FixedUser extends \Swoolefy\Script\MainCliScript

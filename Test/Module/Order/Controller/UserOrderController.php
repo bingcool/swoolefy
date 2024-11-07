@@ -33,20 +33,20 @@ class UserOrderController extends BController
 //            $list = $query->select()->toArray();
 //        }
 //
-        var_dump($requestInput->get());
-
-        var_dump($userListDto->name);
+//        var_dump($requestInput->get());
+//
+//        var_dump($userListDto->name);
 
         $uid = 100;
         $sql = $db->newQuery()->table(OrderEntity::getTableName())->when($uid > 90,function (Query $query) {
             $query->where('user_id','>', '100')->limit(0,10);
         })->fetchSql()->select();
 
-        $data = (new OrderEntity(10000, 1675835225))->getAttributes();
+        $data = (new OrderEntity())->getAttributes();
         //var_dump($data);
 
         // Entity 链路方式查询
-        $num1 = (new OrderEntity(0, 0))->Query()->where('user_id','=', 10000)->limit(1)->select();
+        $num1 = (new OrderEntity())->getQuery()->where('user_id','=', 10000)->limit(1)->select();
         //var_dump($num1);
 
         // 列表方式查询

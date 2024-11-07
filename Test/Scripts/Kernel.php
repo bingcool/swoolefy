@@ -5,13 +5,16 @@ namespace Test\Scripts;
 use Swoolefy\Core\Schedule\Schedule;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Worker\Cron\CronForkProcess;
+use Test\Scripts\User\TestDbQuery;
 
 class Kernel
 {
     public static $commands = [
         GenerateMysql::command => [GenerateMysql::class, 'generate'],
         GeneratePg::command    => [GeneratePg::class, 'generate'],
-        User\FixedUser::command => [User\FixedUser::class, 'fixName']
+        User\FixedUser::command => [User\FixedUser::class, 'fixName'],
+        Phpy\Py::command => [Phpy\Py::class, 'testPhpy'],
+        TestDbQuery::command => [TestDbQuery::class, 'testDbQuery'],
     ];
 
     /**
