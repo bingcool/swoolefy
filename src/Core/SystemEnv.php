@@ -119,6 +119,21 @@ class SystemEnv
     }
 
     /**
+     * 定时任务调度调用脚本模式，即Kernel.php的schedule定义的定时计划任务
+     *
+     * @return bool
+     */
+    public static function cronScheduleScriptModel(): bool
+    {
+        $model = SystemEnv::getOption('schedule_model');
+        if (str_contains(strtolower($model), 'cron')) {
+            return true;
+        }else {
+            return false;
+        }
+    }
+
+    /**
      * @return string
      */
     public static function PhpBinFile(): string
@@ -158,6 +173,9 @@ class SystemEnv
             if (!isset($options)) {
                 $options = self::inputOptions();
             }
+        }
+        if (!isset($options[$name])) {
+            return null;
         }
         $value = trim($options[$name],'\'') ?? '';
         $value = trim($value,' ');

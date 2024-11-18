@@ -39,8 +39,22 @@ class TestDbQuery extends \Swoolefy\Script\MainCliScript
 
         $order = new OrderEntity();
         $order->loadById(1685959471);
-        $order->json_data = ['1111llll', 2222, 3333, 44444, rand(100,2000)];
+
+        $order->json_data = ['1111llll', 2222, 3333, 44444, rand(1,1000)];
+
+        $order->lockShareWhere([
+            'user_id' => 10003
+        ]);
         $order->save();
+
+        $order->json_data = ['1111llll', 2222, 3333, 44444, rand(1,1000)];
+
+        $order->lockShareWhere([
+            'user_id' => 10003
+        ]);
+        $order->save();
+
+        return;
 
         //var_dump($order->getAttributes());
 //
@@ -54,7 +68,7 @@ class TestDbQuery extends \Swoolefy\Script\MainCliScript
             ->first();
 
         //var_dump($order1);
-       // var_dump($order1->getAttributes());
+        var_dump($order1->getAttributes());
 
         // 进行软删
 //        OrderEntity::query()
@@ -64,7 +78,7 @@ class TestDbQuery extends \Swoolefy\Script\MainCliScript
 
 
         $orderList = OrderEntity::connection($db)
-            ->field('*')
+            //->field('*')
             //->whereIn('user_id', [102])
             ->whereJsonContains('expend_data->address', ['add' => '深圳'])
             //->whereJsonContains('expend_data->phone', '123456')
@@ -82,10 +96,13 @@ class TestDbQuery extends \Swoolefy\Script\MainCliScript
             ->limit(5)
             ->select();
 
+       // var_dump($orderList->toArray());
+
         /**
          * @var OrderEntity $orderItem
          */
         foreach ($orderList as $k=>$raw) {
+            var_dump($raw['user_id']);
             // 填充到Model实体,方便IDE提示
             $orderItem = OrderEntity::fill($raw);
             var_dump($orderItem->order_id);
