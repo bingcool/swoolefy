@@ -213,10 +213,13 @@ class MainCliScript extends AbstractScriptProcess
             $nameSpaceArr = explode('/', trim($nameSpace, '/'));
 
             $kernelNameSpace = array_merge($nameSpaceArr, ['Kernel']);
-            $kernelClass     = implode('\\', $kernelNameSpace);
-            $commands = $kernelClass::$commands ?? [];
+            /**
+             * @var \Swoolefy\Script\AbstractKernel $kernelClass
+             */
+            $kernelClass = implode('\\', $kernelNameSpace);
+            $commands = $kernelClass::getCommands() ?? [];
             if (!isset($commands[$command])) {
-                throw new SystemException("【Error】{$kernelClass}::commands property not defined command={$command}.");
+                throw new SystemException("【Error】 Kernel::commands property not defined command={$command}.");
             }
             $class  = $commands[$command][0];
             $action = $commands[$command][1];
