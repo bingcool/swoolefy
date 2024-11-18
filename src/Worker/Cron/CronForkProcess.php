@@ -89,7 +89,7 @@ class CronForkProcess extends CronProcess
                                         $runner->exec($task['exec_bin_file'], $task['exec_script'], $params, true);
                                     }
                                 }
-                            }catch (\Exception $exception) {
+                            }catch (\Throwable $exception) {
                                 $this->onHandleException($exception, $task);
                             }
                         });

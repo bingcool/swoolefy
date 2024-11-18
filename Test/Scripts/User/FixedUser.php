@@ -4,8 +4,9 @@ namespace Test\Scripts\User;
 use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\Coroutine\Parallel;
 use Test\Logger\RunLog;
+use Swoolefy\Script\MainCliScript;
 
-class FixedUser extends \Swoolefy\Script\MainCliScript
+class FixedUser extends MainCliScript
 {
     const command = 'fixed:user:name';
 

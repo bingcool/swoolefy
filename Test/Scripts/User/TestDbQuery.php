@@ -2,11 +2,11 @@
 namespace Test\Scripts\User;
 
 use Common\Library\Db\Query;
-use python\json;
-use Swoolefy\Core\Application;
 use Test\App;
 use Test\Module\Order\OrderEntity;
-class TestDbQuery extends \Swoolefy\Script\MainCliScript
+use Swoolefy\Script\MainCliScript;
+
+class TestDbQuery extends MainCliScript
 {
     const command = 'test:db:query';
 
