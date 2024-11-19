@@ -651,7 +651,7 @@ trait RequestParseTrait
      */
     public function setExtendData(array $extendData)
     {
-        $this->extendData = $extendData;
+        $this->extendData = array_merge($this->extendData, $extendData);
     }
 
     /**
@@ -687,6 +687,16 @@ trait RequestParseTrait
     {
         $cookies = $this->getSwooleRequest()->cookie;
         return isset($cookies[$name]) ? true : false;
+    }
+
+    /**
+     * @param string $name
+     * @param $default
+     * @return mixed|null
+     */
+    public function cookie(string $name, $default = null)
+    {
+        return $this->getSwooleRequest()->cookie[$name] ?? $default;
     }
 
     /**
@@ -854,7 +864,7 @@ trait RequestParseTrait
             }
         }
         $this->rules = [];
-        // more import
+        // more call this method
         if ($this instanceof RequestInput) {
             $this->postParams = [];
             $this->requestParams = [];
