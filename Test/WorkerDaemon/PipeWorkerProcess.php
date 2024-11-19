@@ -82,7 +82,7 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
             /**
              * @var OrderEntity $order
              */
-            $order = (new OrderEntity($userId, 0))->fill($item);
+            $order = (new OrderEntity())->fill($item);
             var_dump($order->order_product_ids);
         }
 

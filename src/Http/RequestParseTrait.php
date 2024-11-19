@@ -633,7 +633,7 @@ trait RequestParseTrait
      * @param string $key
      * @return bool
      */
-    public function issetValue(string $key)
+    public function hasKeyValue(string $key)
     {
         return isset($this->extendData[$key]);
     }

@@ -1,16 +1,12 @@
 <?php
-
-
 namespace Test\Scripts\User;
 
-use Common\Library\Captcha\CaptchaBuilder;
 use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\Coroutine\Parallel;
-use Swoolefy\Util\Log;
-use Test\App;
 use Test\Logger\RunLog;
+use Swoolefy\Script\MainCliScript;
 
-class FixedUser extends \Swoolefy\Script\MainCliScript
+class FixedUser extends MainCliScript
 {
     const command = 'fixed:user:name';
 
@@ -30,7 +26,7 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
             });
         });
         var_dump('fixed:user:name');
-        RunLog::info("init");
+        RunLog::info("FixedUser");
         sleep(10);
         date_default_timezone_set('Asia/Shanghai');
         file_put_contents(
@@ -38,14 +34,6 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
             'date=' . date('Y-m-d H:i:s') . ',pid=' . getmypid() . "\n",
             FILE_APPEND
         );
-
-        $client = new \GuzzleHttp\Client([
-            'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(), // 只需把handler注入进来即可
-            'base_uri' => "http://127.0.0.1:9501",
-        ]);
-        $response = $client->get('/api/send-task-worker');
-        $result = $response->getBody()->getContents();
-        $result = json_decode($result, true);
     }
 
     public function fixName()

@@ -3,15 +3,18 @@
 namespace Test\Scripts;
 
 use Swoolefy\Core\Schedule\Schedule;
-use Swoolefy\Core\SystemEnv;
+use Swoolefy\Script\AbstractKernel;
 use Swoolefy\Worker\Cron\CronForkProcess;
+use Test\Scripts\User\TestDbQuery;
 
-class Kernel
+class Kernel extends AbstractKernel
 {
     public static $commands = [
         GenerateMysql::command => [GenerateMysql::class, 'generate'],
         GeneratePg::command    => [GeneratePg::class, 'generate'],
-        User\FixedUser::command => [User\FixedUser::class, 'fixName']
+        User\FixedUser::command => [User\FixedUser::class, 'fixName'],
+        Phpy\Py::command => [Phpy\Py::class, 'testPhpy'],
+        TestDbQuery::command => [TestDbQuery::class, 'testDbQuery'],
     ];
 
     /**
@@ -38,47 +41,5 @@ class Kernel
 
         return $schedule;
     }
-
-
-    /**
-     * 配置化调度
-     *
-     * @return array
-     */
-    public static function buildScheduleTaskList(Schedule $schedule)
-    {
-        $appName = $_SERVER['argv'][2];
-        $scheduleList = [];
-
-        foreach ($schedule->toArray() as $item) {
-            $item['exec_bin_file'] = SystemEnv::PhpBinFile();
-            if (!isset($item['fork_type'])) {
-                $item['fork_type'] = CronForkProcess::FORK_TYPE_PROC_OPEN;
-            }
-
-            if (!isset($item['argv'])) {
-                $item['argv'] = [];
-            }
-            $item['argv']['daemon'] = 1;
-
-            $argvOptions = [];
-            foreach ($item['argv'] as $argvName=>$argvValue) {
-                if (str_contains($argvValue, ' ')) {
-                    $argvOptions[] = "--{$argvName}='{$argvValue}'";
-                }else {
-                    $argvOptions[] = "--{$argvName}={$argvValue}";
-                }
-            }
-            $argv = implode(' ', $argvOptions);
-            $item['exec_script'] = "script.php start {$appName} --c={$item['command']} $argv";
-            if (!isset($item['cron_name'])) {
-                $item['cron_name'] = $item['command'].'-'.$item['cron_expression'].' '.$argv;
-            }
-            $item['params'] = [];
-            $scheduleList[] = $item;
-        }
-        return $scheduleList;
-    }
-
 
 }

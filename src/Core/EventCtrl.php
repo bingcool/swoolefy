@@ -26,8 +26,11 @@ class EventCtrl implements EventCtrlInterface
      */
     public function init()
     {
+        if (SystemEnv::isScriptService()) {
+            \Swoolefy\Script\MainCliScript::parseClass();
+        }
         // log register
-        if (SystemEnv::isDaemonService() || SystemEnv::isCronService()) {
+        if (SystemEnv::isDaemonService() || SystemEnv::isCronService() || SystemEnv::cronScheduleScriptModel()) {
             \Swoolefy\Worker\AbstractWorkerProcess::registerLogComponents();
         }else {
             SystemEnv::registerLogComponents();
