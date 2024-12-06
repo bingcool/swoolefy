@@ -71,5 +71,14 @@ return [
         }
         $logger->setLogFilePath($logFilePath);
         return $logger;
+    },
+
+    // 请求日志
+    'request_log' => function($name) {
+        $logger = new \Swoolefy\Util\Log($name);
+        $logger->setChannel('application');
+        $logFilePath = LOG_PATH.'/request/request.log';
+        $logger->setLogFilePath($logFilePath);
+        return $logger;
     }
 ];

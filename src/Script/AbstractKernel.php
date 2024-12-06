@@ -37,7 +37,7 @@ abstract class AbstractKernel {
      */
     public static function buildScheduleTaskList(Schedule $schedule)
     {
-        $appName = $_SERVER['argv'][2];
+        $appName = APP_NAME;
         $scheduleList = [];
 
         foreach ($schedule->toArray() as $item) {

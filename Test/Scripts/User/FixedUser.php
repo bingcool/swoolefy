@@ -27,13 +27,29 @@ class FixedUser extends MainCliScript
         });
         var_dump('fixed:user:name');
         RunLog::info("FixedUser");
-        sleep(10);
+        //sleep(10);
+        goApp(function () {
+                $client = new \Common\Library\HttpClient\CurlHttpClient();
+                $response = $client->get('http://127.0.0.1:9501/test-curl');
+                var_dump($response->getDecodeBody());
+        });
+        var_dump('curl next');
+        goAfter(5000, function () {
+            var_dump('sleep 5s name='.Context::get('name'));
+        });
+        sleep(20);
         date_default_timezone_set('Asia/Shanghai');
         file_put_contents(
             '/home/wwwroot/swoolefy/Test/WorkerCron/ForkOrder/order1.log',
             'date=' . date('Y-m-d H:i:s') . ',pid=' . getmypid() . "\n",
             FILE_APPEND
         );
+
+        $this->test1(name: 'kkkkkkkkkkkkkkkkkkkkkkkk');
+    }
+    public function test1(string $name)
+    {
+
     }
 
     public function fixName()
