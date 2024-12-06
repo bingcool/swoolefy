@@ -16,6 +16,7 @@ use Swoolefy\Core\BootstrapInterface;
 use Swoolefy\Exception\SystemException;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\ResponseOutput;
+use Test\Logger\RequestLog;
 
 class Bootstrap implements BootstrapInterface
 {
@@ -23,5 +24,6 @@ class Bootstrap implements BootstrapInterface
     {
           \Swoolefy\Core\Coroutine\Context::set('lang_locale', 'zh_CN');
           $requestInput->setValue('name', 'boostrap');
+          RequestLog::info('RequestLog RequestLog');
     }
 }
