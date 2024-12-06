@@ -61,7 +61,7 @@ class MainCliScript extends AbstractScriptProcess
     {
         if($this->isExecuted()) {
             fmtPrintError("一次性脚本进程异常不断重复自动重启，请检查");
-            $this->exitAll(true);
+            $this->exitAll(true, 5);
             return;
         }
 
