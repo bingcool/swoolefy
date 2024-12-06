@@ -14,14 +14,14 @@ class FixedUser extends MainCliScript
     {
         var_dump($this->getOption('name'));
         parent::init();
-        \Swoolefy\Core\Coroutine\Context::set('name', 'kkkkkkkkkkkkkkkkkkkkkkkk');
+        Context::set('name', 'kkkkkkkkkkkkkkkkkkkkkkkk');
         Context::set('db_debug', true);
         goApp(function () {
             goApp(function () {
                 goApp(function () {
                     $arrayCopy = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
                     sleep(2);
-                    //var_dump($arrayCopy);
+                    var_dump($arrayCopy);
                 });
             });
         });
