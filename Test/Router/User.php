@@ -131,3 +131,8 @@ Route::group([
     ]);
 
 });
+
+
+Route::get('/test-curl', [
+    'dispatch_route' => [\Test\Controller\PgController::class, 'testCurl'],
+]);
