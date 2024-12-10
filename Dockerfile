@@ -19,6 +19,7 @@ RUN /bin/sh -c set -ex \
     openssl-dev \
     postgresql-dev \
     sqlite-dev \
+    libpq-dev \
     php${PHP_VERSION}-dev \
     php${PHP_VERSION} \
     php${PHP_VERSION}-openssl \
@@ -58,8 +59,8 @@ RUN /bin/sh -c set -ex \
     && apk add --no-cache \
     # 基础工具和库gcc、g++、make等集合，运行时阶段不需要
     #build-base \
-    bash curl git make wget tar xz tzdata pcre ca-certificates \
-    inotify-tools jq libstdc++ libpq-dev openssl \
+    bash curl git wget tar xz tzdata pcre ca-certificates \
+    inotify-tools jq libstdc++ openssl \
     php${PHP_VERSION}-dev \
     php${PHP_VERSION} \
     php${PHP_VERSION}-opcache \
