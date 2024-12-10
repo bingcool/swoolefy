@@ -5,12 +5,13 @@ LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 # 设置环境变量以避免交互式配置提示
 ENV SWOOLE_VERSION=5.1.6 \
     PHP_VERSION=82 \
-    SWOOLEFY_ENV=dev \
+    SWOOLEFY_CLI_ENV=dev \
     TZ=Asia/Shanghai
 
 RUN /bin/sh -c set -ex \
     && apk update \
     && apk add --no-cache --virtual .build-deps \
+    # build-base包含基础工具和库gcc、g++、make等集合，构建阶段需要依赖编译swoole
     build-base \
     curl make wget tar xz \
     curl-dev \

@@ -30,8 +30,8 @@ swoolefy-4.8-lts 版本：
 所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.9.0``` 作为项目分支
 
 3、依赖编译： ./configure --enable-openssl --enable-sockets --enable-swoole-curl --enable-swoole-pgsql
-安装出现问题参考：https://github.com/swoole/swoole-src/issues/5375 
 
+4、若不希望自己构建，也可以直接使用本目录下的Dockerfile来构建镜像       
 ### 实现的功能特性    
 
 基础特性
