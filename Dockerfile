@@ -10,12 +10,11 @@ ENV SWOOLE_VERSION=5.1.6 \
 
 RUN /bin/sh -c set -ex \
     && apk update \
-    && apk add --no-cache \
-    curl make wget tar xz \
+    && apk add --no-cache --virtual .build-deps \
     build-base \
-    composer \
-    c-ares-dev \
+    curl make wget tar xz \
     curl-dev \
+    c-ares-dev \
     librdkafka-dev \
     openssl-dev \
     postgresql-dev \
@@ -38,11 +37,12 @@ RUN /bin/sh -c set -ex \
     --enable-swoole-sqlite \
     && make && make install \
     && apk del --purge *-dev \
+    && apk del .build-deps \
     && rm -rf /var/cache/apk/* /tmp/* /usr/share/man /usr/share/doc /usr/share/php${PHP_VERSION}
 
 
 
-#目标阶段：创建目标镜像
+#运行时目标阶段：创建目标镜像
 FROM alpine:3.20.3
 LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 
@@ -56,8 +56,10 @@ ENV SWOOLE_VERSION=5.1.6 \
 RUN /bin/sh -c set -ex \
     && apk update \
     && apk add --no-cache \
+    # 基础工具和库gcc、g++、make等集合，运行时阶段不需要
+    #build-base \
     bash curl git make wget tar xz tzdata pcre ca-certificates \
-    inotify-tools jq build-base libstdc++ libpq-dev openssl \
+    inotify-tools jq libstdc++ libpq-dev openssl \
     php${PHP_VERSION}-dev \
     php${PHP_VERSION} \
     php${PHP_VERSION}-opcache \
@@ -114,11 +116,8 @@ RUN /bin/sh -c set -ex \
     && php -v && php -m \
     && echo -e "\033[42;37m Build Completed :).\033[0m\n"
 
-#复制编译好的swoole扩展
+#copy编译好的swoole扩展
 COPY --from=ext-build /usr/lib/php${PHP_VERSION}/modules/swoole.so /usr/lib/php${PHP_VERSION}/modules/swoole.so
-
-#暴露端口
-EXPOSE 9091
 
 # 设置工作目录
 WORKDIR /home/wwwroot
