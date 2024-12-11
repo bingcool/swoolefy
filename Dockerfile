@@ -95,9 +95,13 @@ RUN /bin/sh -c set -ex \
     php${PHP_VERSION}-gettext \
     php${PHP_VERSION}-iconv \
     php${PHP_VERSION}-imap \
+    php${PHP_VERSION}-sodium \
+    php${PHP_VERSION}-sysvshm \
+    php${PHP_VERSION}-sysvmsg \
+    php${PHP_VERSION}-sysvsem \
     php${PHP_VERSION}-pear \
     php${PHP_VERSION}-posix \
-    php${PHP_VERSION}-sockets  \
+    php${PHP_VERSION}-sockets \
     php${PHP_VERSION}-pcntl \
     php${PHP_VERSION}-pecl-redis \
     php${PHP_VERSION}-pecl-imagick \

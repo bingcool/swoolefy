@@ -8,6 +8,7 @@ use Swoole\Coroutine\WaitGroup;
 use Swoole\Server;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Coroutine\GoWaitGroup;
+use Swoolefy\Core\ProcessPools\PoolsManager;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\EventHandler;
@@ -80,7 +81,7 @@ class Event extends EventHandler
 
 
             // worker进程绑定进程池
-            //PoolsManager::getInstance()->addProcessPools('worker-follower-task', \Test\Pools\TestBindWorker::class, 1,true, []);
+            PoolsManager::getInstance()->addProcessPools('worker-follower-task', \Test\Pools\TestBindWorker::class, 1,true, []);
 
 
             // redis的订阅进程

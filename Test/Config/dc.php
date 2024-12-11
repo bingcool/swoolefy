@@ -107,5 +107,5 @@ return [
         ]
     ],
 
-    'kafka_broker_list' => ['127.0.0.1:9092'],
+    'kafka_broker_list' => ['192.168.23.53:9092'],
 ];
