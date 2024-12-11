@@ -23,7 +23,7 @@ class AmqpPublish extends AbstractProcess {
              * @var AmqpDirectQueue $amqpDirect
              */
             $amqpDirect = Application::getApp()->get('orderAddDirectQueue');
-            $messageBody = "amqp direct ".'-'.time();
+            $messageBody = "amqp direct ".'time:'.time();
             $message = new AMQPMessage($messageBody, array('content_type' => 'text/plain', 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT));
             $amqpDirect->publish($message);
         });
