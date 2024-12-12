@@ -8,7 +8,8 @@ ENV SWOOLE_VERSION=5.1.6 \
     SWOOLEFY_CLI_ENV=dev \
     TZ=Asia/Shanghai
 
-RUN /bin/sh -c set -ex \
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
+    && /bin/sh -c set -ex \
     && apk update \
     && apk add --no-cache --virtual .build-deps \
     # build-base包含基础工具和库gcc、g++、make等集合，构建阶段需要依赖编译swoole
@@ -55,7 +56,8 @@ ENV SWOOLE_VERSION=5.1.6 \
     TZ=Asia/Shanghai
 
 #安装必要的依赖和PHP及其扩展
-RUN /bin/sh -c set -ex \
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
+    && /bin/sh -c set -ex \
     && apk update \
     && apk add --no-cache \
     # 基础工具和库gcc、g++、make等集合，运行时阶段不需要
