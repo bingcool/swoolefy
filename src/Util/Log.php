@@ -379,15 +379,14 @@ class Log
      */
     public function insertLog($logInfo, array $context = [], $type = Logger::INFO)
     {
-        $App = Application::getApp();
-        $callable = function () use ($type, $logInfo, $context, $App) {
+        $callable = function () use ($type, $logInfo, $context) {
             try {
                 $this->logger->setHandlers([]);
                 $this->logger->pushHandler($this->handler);
 
                 if($this->formatter instanceof JsonFormatter) {
-                    $this->logger->pushProcessor(function ($records) use($App) {
-                        return $this->pushProcessor($records, $App);
+                    $this->logger->pushProcessor(function ($records) {
+                        return $this->pushProcessor($records);
                     });
                 }
 
@@ -422,6 +421,7 @@ class Log
      */
     protected function pushProcessor($records, $App = null): array
     {
+        $App = Application::getApp();
         $records['trace_id'] = '';
         $cid = \Swoole\Coroutine::getCid();
         if ($cid >= 0) {
