@@ -215,6 +215,8 @@ class EventController extends BaseObject
         ZFactory::removeInstance();
         // push obj pools
         $this->pushComponentPools();
+        // remove all component
+        Application::getApp()->clearComponent(null, true);
         // remove App Instance
         Application::removeApp($this->coroutineId);
     }
