@@ -102,4 +102,11 @@ class PgController extends BController
         var_dump($uid);
     }
 
+    public function testCurl(RequestInput $requestInput)
+    {
+        sleep(10);
+        $this->returnJson();
+    }
+
+
 }

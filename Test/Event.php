@@ -8,6 +8,7 @@ use Swoole\Coroutine\WaitGroup;
 use Swoole\Server;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Coroutine\GoWaitGroup;
+use Swoolefy\Core\ProcessPools\PoolsManager;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\EventHandler;
