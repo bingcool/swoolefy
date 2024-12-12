@@ -126,7 +126,7 @@ class App extends \Swoolefy\Core\Component
             $this->initCoreComponent();
             $this->swooleRequest  = $swooleRequest;
             $this->swooleResponse = $swooleResponse;
-            $this->requestInput = new RequestInput($this->swooleRequest, $this->swooleResponse);
+            $this->requestInput   = new RequestInput($this->swooleRequest, $this->swooleResponse);
             $this->responseOutput = new ResponseOutput($this->swooleRequest, $this->swooleResponse);
             Application::setApp($this);
             $this->defer();
@@ -309,6 +309,8 @@ class App extends \Swoolefy\Core\Component
         ZFactory::removeInstance();
         // push obj pools
         $this->pushComponentPools();
+        // remove all component
+        Application::getApp()->clearComponent(null, true);
         // remove App Instance
         Application::removeApp();
         // unset controllerInstance
@@ -319,6 +321,14 @@ class App extends \Swoolefy\Core\Component
                 @$this->swooleResponse->end();
             }
         }
+    }
+
+    /**
+     * __destruct
+     */
+    public function __destruct()
+    {
+        var_dump('APP___destruct');
     }
 
 }
