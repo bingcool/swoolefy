@@ -286,6 +286,7 @@ class EventCtrl implements EventCtrlInterface
      *              'max_push_timeout' => 2,
      *              'max_pop_timeout' => 1,
      *              'max_life_timeout' => 10
+     *              'enable_tick_clear_pool' => 1 //max_pool_num 足够大时需要设置这个定时回收
      *      ]
      * ],
      *

@@ -81,7 +81,7 @@ class Event extends EventHandler
 
 
             // worker进程绑定进程池
-            PoolsManager::getInstance()->addProcessPools('worker-follower-task', \Test\Pools\TestBindWorker::class, 1,true, []);
+            //PoolsManager::getInstance()->addProcessPools('worker-follower-task', \Test\Pools\TestBindWorker::class, 1,true, []);
 
 
             // redis的订阅进程

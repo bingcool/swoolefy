@@ -201,7 +201,7 @@ trait ComponentTrait
      */
     final public function get(string $name)
     {
-        $appConf = BaseServer::getAppConf();
+        $appConf    = BaseServer::getAppConf();
         $components = $appConf['components'];
         $cid = \Swoole\Coroutine::getCid();
         if (isset($this->containers[$name])) {

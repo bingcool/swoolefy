@@ -127,20 +127,19 @@ class Session
         /**
          * 注册钩子程序,在请求结束后保存session,防止多次注册
          */
-        $app = Application::getApp();
         if (!$this->isStart) {
-            $app->afterRequest([$this, 'save']);
+            Application::getApp()->afterRequest([$this, 'save']);
         }
 
         $driverComponentName = $this->cache_driver;
-        $this->driver = $app->get($driverComponentName);
+        $this->driver = Application::getApp()->get($driverComponentName);
         $this->isStart = true;
         $this->readonly = $readonly;
-        $cookieSessionId = isset($app->swooleRequest->cookie[$this->cookie_key]) ? $app->swooleRequest->cookie[$this->cookie_key] : null;
+        $cookieSessionId = isset(Application::getApp()->swooleRequest->cookie[$this->cookie_key]) ? Application::getApp()->swooleRequest->cookie[$this->cookie_key] : null;
         $this->session_id = $cookieSessionId;
         if (empty($cookieSessionId)) {
             $sessId = Helper::randMd5(40);
-            $app->swooleResponse->cookie($this->cookie_key, $sessId, time() + $this->cookie_lifetime, $this->cookie_path, $this->cookie_domain, false, false);
+            Application::getApp()->swooleResponse->cookie($this->cookie_key, $sessId, time() + $this->cookie_lifetime, $this->cookie_path, $this->cookie_domain, false, false);
             $this->session_id = $sessId;
         }
         $this->_SESSION = $this->load($this->session_id);

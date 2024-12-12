@@ -69,8 +69,8 @@ class UserOrderController extends BController
         });
 
         $this->returnJson([
-            'total' => $count,
-            'list'  => $list
+            'total' => $count ?? 0,
+            'list'  => []
         ]);
     }
 
