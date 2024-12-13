@@ -26,7 +26,7 @@ class ZFactory
      * @param array $constructor
      * @return mixed
      */
-    public static function getInstance(string $class = '', array $constructor = [])
+    public static function getInstance(string $class, array $constructor = [])
     {
         $cid = \Swoole\Coroutine::getCid();
         $class = self::parseClass($class);

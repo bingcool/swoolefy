@@ -40,7 +40,7 @@ class RouteOption extends \stdClass
     protected $windowSizeTime;
 
     /**
-     * 在那个middle之后再运行这个rateLimiterMiddleware, 有可能rateLimiterMiddleware依赖上游的rateLimiterMiddleware的数据
+     * 在某个middle之后再运行这个rateLimiterMiddleware, 有可能rateLimiterMiddleware依赖上游的rateLimiterMiddleware的数据
      * 可以是某个group middlewares或者route的before middlewares之后
      * @var string
      */
