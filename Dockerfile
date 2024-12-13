@@ -58,7 +58,7 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
     # 基础工具和库gcc、g++、make等集合，运行时阶段不需要
     #build-base \
     bash curl git wget tar xz tzdata pcre ca-certificates \
-    inotify-tools jq libstdc++ openssl \
+    inotify-tools jq libstdc++ openssl procps tini \
     php${PHP_VERSION}-dev \
     php${PHP_VERSION} \
     php${PHP_VERSION}-opcache \
@@ -123,3 +123,9 @@ COPY --from=ext-build /usr/lib/php${PHP_VERSION}/modules/swoole.so /usr/lib/php$
 
 # 设置工作目录
 WORKDIR /home/wwwroot
+
+#设置 tini 作为入口点
+ENTRYPOINT ["/sbin/tini", "--"]
+
+#设置默认命令和参数
+CMD ["/bin/sh", "-c", "while true; do sleep 30; done"]
