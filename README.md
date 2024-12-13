@@ -31,7 +31,15 @@ swoolefy-4.8-lts 版本：
 
 3、依赖编译： ./configure --enable-openssl --enable-sockets --enable-swoole-curl --enable-swoole-pgsql
 
-4、若不希望自己构建，也可以直接使用本目录下的Dockerfile来构建镜像       
+4、若不希望自己编译构建，也可以直接使用本目录下的Dockerfile来构建镜像:     
+```
+// 构建镜像
+docker build -t swoolefy-php74:v1 .
+
+// 启动容器
+docker run -d -it --name=swoolefy-php74 -v swoolefy-php74:v1
+
+```
 ### 实现的功能特性    
 
 基础特性
