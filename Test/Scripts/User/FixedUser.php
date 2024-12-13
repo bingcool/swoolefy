@@ -28,11 +28,11 @@ class FixedUser extends MainCliScript
         var_dump('fixed:user:name');
         RunLog::info("FixedUser");
         //sleep(10);
-        goApp(function () {
-                $client = new \Common\Library\HttpClient\CurlHttpClient();
-                $response = $client->get('http://127.0.0.1:9501/test-curl');
-                var_dump($response->getDecodeBody());
-        });
+//        goApp(function () {
+//                $client = new \Common\Library\HttpClient\CurlHttpClient();
+//                $response = $client->get('http://127.0.0.1:9501/test-curl');
+//                var_dump($response->getDecodeBody());
+//        });
         var_dump('curl next');
         goAfter(5000, function () {
             var_dump('sleep 5s name='.Context::get('name'));
