@@ -2,12 +2,13 @@
 FROM alpine:3.20.3 as ext-build
 LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 
-# 设置环境变量以避免交互式配置提示
+#根据实际构建来设置环境变量
 ENV SWOOLE_VERSION=5.1.6 \
-    PHP_VERSION=82 \
-    SWOOLEFY_CLI_ENV=dev \
-    TZ=Asia/Shanghai
+    PHP_VERSION=83 \
+    SWOOLEFY_CLI_ENV=dev
 
+
+ENV TZ=Asia/Shanghai
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
     && /bin/sh -c set -ex \
     && apk update \
@@ -49,12 +50,13 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 FROM alpine:3.20.3
 LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 
-# 设置环境变量
+#根据实际构建来设置环境变量
 ENV SWOOLE_VERSION=5.1.6 \
-    PHP_VERSION=82 \
-    SWOOLEFY_ENV=dev \
-    TZ=Asia/Shanghai
+    PHP_VERSION=83 \
+    SWOOLEFY_ENV=dev
 
+
+ENV TZ=Asia/Shanghai
 #安装必要的依赖和PHP及其扩展
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
     && /bin/sh -c set -ex \
@@ -135,3 +137,7 @@ ENTRYPOINT ["/sbin/tini", "--"]
 
 #设置默认命令和参数
 CMD ["/bin/sh", "-c", "while true; do sleep 30; done"]
+
+#服务作为容器来编排容器，可以shell来监听信号，先退出应用，然后容器再退出
+#COPY . /home/wwwroot/swoolefy
+#CMD ["/home/wwwroot/swoolefy/docker-start.sh"]
