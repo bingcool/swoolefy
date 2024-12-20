@@ -216,7 +216,7 @@ class EventController extends BaseObject
         // push obj pools
         $this->pushComponentPools();
         // remove all component
-        Application::getApp()->clearComponent(null, true);
+        $this->clearComponent(null, true);
         // remove App Instance
         Application::removeApp($this->coroutineId);
     }
