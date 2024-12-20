@@ -2,9 +2,9 @@
 FROM alpine:3.15 as ext-build
 LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 
-# 设置环境变量以避免交互式配置提示
-ENV SWOOLE_VERSION=4.8.13 \
-    PHP_VERSION=7 \
+# swoole4.8.X最高只支持到php7.4
+ENV MY_SWOOLE_VERSION=4.8.13 \
+    MY_PHP_VERSION=7 \
     SWOOLEFY_CLI_ENV=dev \
     TZ=Asia/Shanghai
 
@@ -19,16 +19,16 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
     c-ares-dev \
     librdkafka-dev \
     openssl-dev \
-    php${PHP_VERSION}-dev \
-    php${PHP_VERSION} \
-    php${PHP_VERSION}-openssl \
-    php${PHP_VERSION}-sockets \
-    php${PHP_VERSION}-pdo \
-    php${PHP_VERSION}-pdo_pgsql \
-    php${PHP_VERSION}-pgsql \
-    php${PHP_VERSION}-mysqlnd \
-    && wget https://github.com/swoole/swoole-src/archive/refs/tags/v${SWOOLE_VERSION}.tar.gz -O - -q | tar -xz \
-    && cd swoole-src-${SWOOLE_VERSION} && phpize${PHP_VERSION} && ./configure --with-php-config=/usr/bin/php-config${PHP_VERSION} \
+    php${MY_PHP_VERSION}-dev \
+    php${MY_PHP_VERSION} \
+    php${MY_PHP_VERSION}-openssl \
+    php${MY_PHP_VERSION}-sockets \
+    php${MY_PHP_VERSION}-pdo \
+    php${MY_PHP_VERSION}-pdo_pgsql \
+    php${MY_PHP_VERSION}-pgsql \
+    php${MY_PHP_VERSION}-mysqlnd \
+    && wget https://github.com/swoole/swoole-src/archive/refs/tags/v${MY_SWOOLE_VERSION}.tar.gz -O - -q | tar -xz \
+    && cd swoole-src-${MY_SWOOLE_VERSION} && phpize${MY_PHP_VERSION} && ./configure --with-php-config=/usr/bin/php-config${MY_PHP_VERSION} \
     --enable-mysqlnd \
     --enable-openssl \
     --enable-sockets \
@@ -36,7 +36,7 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
     && make && make install \
     && apk del --purge *-dev \
     && apk del .build-deps \
-    && rm -rf /var/cache/apk/* /tmp/* /usr/share/man /usr/share/doc /usr/share/php${PHP_VERSION}
+    && rm -rf /var/cache/apk/* /tmp/* /usr/share/man /usr/share/doc /usr/share/php${MY_PHP_VERSION}
 
 
 
@@ -45,8 +45,8 @@ FROM alpine:3.15
 LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 
 # 设置环境变量
-ENV SWOOLE_VERSION=4.8.13 \
-    PHP_VERSION=7 \
+ENV MY_SWOOLE_VERSION=4.8.13 \
+    MY_PHP_VERSION=7 \
     SWOOLEFY_ENV=dev \
     TZ=Asia/Shanghai
 
@@ -59,67 +59,67 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
     #build-base \
     bash curl git wget tar xz tzdata pcre ca-certificates \
     inotify-tools jq libstdc++ openssl procps tini \
-    php${PHP_VERSION}-dev \
-    php${PHP_VERSION} \
-    php${PHP_VERSION}-opcache \
-    php${PHP_VERSION}-openssl \
-    php${PHP_VERSION}-curl \
-    php${PHP_VERSION}-zip \
-    php${PHP_VERSION}-mbstring \
-    php${PHP_VERSION}-gd \
-    php${PHP_VERSION}-intl \
-    php${PHP_VERSION}-pdo \
-    php${PHP_VERSION}-pdo_mysql \
-    php${PHP_VERSION}-pdo_pgsql \
-    php${PHP_VERSION}-mysqli \
-    php${PHP_VERSION}-pgsql \
-    php${PHP_VERSION}-pdo_sqlite \
-    php${PHP_VERSION}-sqlite3 \
-    php${PHP_VERSION}-mysqlnd \
-    php${PHP_VERSION}-bcmath \
-    php${PHP_VERSION}-ctype \
-    php${PHP_VERSION}-dom \
-    php${PHP_VERSION}-fileinfo \
-    php${PHP_VERSION}-json \
-    php${PHP_VERSION}-simplexml \
-    php${PHP_VERSION}-xmlreader \
-    php${PHP_VERSION}-xmlwriter \
-    php${PHP_VERSION}-tokenizer \
-    php${PHP_VERSION}-xml \
-    php${PHP_VERSION}-phar \
-    php${PHP_VERSION}-session \
-    php${PHP_VERSION}-ftp \
-    php${PHP_VERSION}-gettext \
-    php${PHP_VERSION}-iconv \
-    php${PHP_VERSION}-imap \
-    php${PHP_VERSION}-sodium \
-    php${PHP_VERSION}-sysvshm \
-    php${PHP_VERSION}-sysvmsg \
-    php${PHP_VERSION}-sysvsem \
-    php${PHP_VERSION}-pear \
-    php${PHP_VERSION}-posix \
-    php${PHP_VERSION}-sockets \
-    php${PHP_VERSION}-pcntl \
-    php${PHP_VERSION}-pecl-redis \
-    php${PHP_VERSION}-pecl-imagick \
-    php${PHP_VERSION}-pecl-amqp \
-    php${PHP_VERSION}-pecl-rdkafka \
-    php${PHP_VERSION}-pecl-mongodb \
-    && echo "opcache.enable_cli = 'Off'" >> /etc/php${PHP_VERSION}/conf.d/00_opcache.ini \
-    && echo "extension=swoole" >> /etc/php${PHP_VERSION}/conf.d/99_swoole.ini \
+    php${MY_PHP_VERSION}-dev \
+    php${MY_PHP_VERSION} \
+    php${MY_PHP_VERSION}-opcache \
+    php${MY_PHP_VERSION}-openssl \
+    php${MY_PHP_VERSION}-curl \
+    php${MY_PHP_VERSION}-zip \
+    php${MY_PHP_VERSION}-mbstring \
+    php${MY_PHP_VERSION}-gd \
+    php${MY_PHP_VERSION}-intl \
+    php${MY_PHP_VERSION}-pdo \
+    php${MY_PHP_VERSION}-pdo_mysql \
+    php${MY_PHP_VERSION}-pdo_pgsql \
+    php${MY_PHP_VERSION}-mysqli \
+    php${MY_PHP_VERSION}-pgsql \
+    php${MY_PHP_VERSION}-pdo_sqlite \
+    php${MY_PHP_VERSION}-sqlite3 \
+    php${MY_PHP_VERSION}-mysqlnd \
+    php${MY_PHP_VERSION}-bcmath \
+    php${MY_PHP_VERSION}-ctype \
+    php${MY_PHP_VERSION}-dom \
+    php${MY_PHP_VERSION}-fileinfo \
+    php${MY_PHP_VERSION}-json \
+    php${MY_PHP_VERSION}-simplexml \
+    php${MY_PHP_VERSION}-xmlreader \
+    php${MY_PHP_VERSION}-xmlwriter \
+    php${MY_PHP_VERSION}-tokenizer \
+    php${MY_PHP_VERSION}-xml \
+    php${MY_PHP_VERSION}-phar \
+    php${MY_PHP_VERSION}-session \
+    php${MY_PHP_VERSION}-ftp \
+    php${MY_PHP_VERSION}-gettext \
+    php${MY_PHP_VERSION}-iconv \
+    php${MY_PHP_VERSION}-imap \
+    php${MY_PHP_VERSION}-sodium \
+    php${MY_PHP_VERSION}-sysvshm \
+    php${MY_PHP_VERSION}-sysvmsg \
+    php${MY_PHP_VERSION}-sysvsem \
+    php${MY_PHP_VERSION}-pear \
+    php${MY_PHP_VERSION}-posix \
+    php${MY_PHP_VERSION}-sockets \
+    php${MY_PHP_VERSION}-pcntl \
+    php${MY_PHP_VERSION}-pecl-redis \
+    php${MY_PHP_VERSION}-pecl-imagick \
+    php${MY_PHP_VERSION}-pecl-amqp \
+    php${MY_PHP_VERSION}-pecl-rdkafka \
+    php${MY_PHP_VERSION}-pecl-mongodb \
+    && echo "opcache.enable_cli = 'Off'" >> /etc/php${MY_PHP_VERSION}/conf.d/00_opcache.ini \
+    && echo "extension=swoole" >> /etc/php${MY_PHP_VERSION}/conf.d/99_swoole.ini \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
-    && ln -sf /usr/bin/php${PHP_VERSION} /usr/bin/php \
-    && ln -sf /usr/bin/php-config${PHP_VERSION} /usr/bin/php-config \
-    && ln -sf /usr/bin/phpize${PHP_VERSION} /usr/bin/phpize \
+    && ln -sf /usr/bin/php${MY_PHP_VERSION} /usr/bin/php \
+    && ln -sf /usr/bin/php-config${MY_PHP_VERSION} /usr/bin/php-config \
+    && ln -sf /usr/bin/phpize${MY_PHP_VERSION} /usr/bin/phpize \
     && apk del --purge *-dev \
-    && rm -rf /var/cache/apk/* /tmp/* /usr/share/man /usr/share/doc /usr/share/php${PHP_VERSION} \
+    && rm -rf /var/cache/apk/* /tmp/* /usr/share/man /usr/share/doc /usr/share/php${MY_PHP_VERSION} \
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
     && composer config -g repo.packagist composer https://mirrors.aliyun.com/composer/ \
     && php -v && php -m \
     && echo -e "\033[42;37m Build Completed :).\033[0m\n"
 
 #copy编译好的swoole扩展
-COPY --from=ext-build /usr/lib/php${PHP_VERSION}/modules/swoole.so /usr/lib/php${PHP_VERSION}/modules/swoole.so
+COPY --from=ext-build /usr/lib/php${MY_PHP_VERSION}/modules/swoole.so /usr/lib/php${MY_PHP_VERSION}/modules/swoole.so
 
 # 设置工作目录
 WORKDIR /home/wwwroot
@@ -129,3 +129,7 @@ ENTRYPOINT ["/sbin/tini", "--"]
 
 #设置默认命令和参数
 CMD ["/bin/sh", "-c", "while true; do sleep 30; done"]
+
+#服务作为容器来编排容器，可以shell来监听信号，先退出应用，然后容器再退出
+#COPY . /home/wwwroot/swoolefy
+#CMD ["/home/wwwroot/swoolefy/docker-start.sh"]
