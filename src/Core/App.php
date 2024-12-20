@@ -310,7 +310,7 @@ class App extends \Swoolefy\Core\Component
         // push obj pools
         $this->pushComponentPools();
         // remove all component
-        Application::getApp()->clearComponent(null, true);
+        $this->clearComponent(null, true);
         // remove App Instance
         Application::removeApp();
         // unset controllerInstance
