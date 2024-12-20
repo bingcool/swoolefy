@@ -48,6 +48,11 @@ class BaseCmd extends Command
 
     protected function parseConstant(InputInterface $input, OutputInterface $output)
     {
+        if (!defined('APP_NAME')) {
+            fmtPrintError('APP_NAME Missing defined, please check it');
+            exit(0);
+        }
+
         if (!defined('APP_META_ARR')) {
             fmtPrintError('APP_META_ARR Missing defined, please check it');
             exit(0);
@@ -69,13 +74,13 @@ class BaseCmd extends Command
             SWOOLEFY_PRD,
         ]);
 
-        $cliEnv = SWOOLEFY_DEV;
         // system environment variables
         $env = getenv("SWOOLEFY_CLI_ENV");
-        if (in_array($env, SWOOLEFY_ENVS)) {
-            $cliEnv = $env;
+        if (!in_array($env, SWOOLEFY_ENVS)) {
+            fmtPrintError('SWOOLEFY_CLI_ENV not in [dev, test, gra, prd]');
+            exit(0);
         }
-        defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', $cliEnv);
+        defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', $env);
     }
 
     protected function parseOptions(InputInterface $input, OutputInterface $output)
