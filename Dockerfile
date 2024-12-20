@@ -47,7 +47,7 @@ LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 # 设置环境变量
 ENV MY_SWOOLE_VERSION=4.8.13 \
     MY_PHP_VERSION=7 \
-    SWOOLEFY_ENV=dev \
+    SWOOLEFY_CLI_ENV=dev \
     TZ=Asia/Shanghai
 
 #安装必要的依赖和PHP及其扩展
