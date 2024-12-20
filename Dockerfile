@@ -57,7 +57,7 @@ LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 #根据实际构建来设置环境变量
 ENV MY_SWOOLE_VERSION=5.1.6 \
     MY_PHP_VERSION=83 \
-    SWOOLEFY_ENV=dev
+    SWOOLEFY_CLI_ENV=dev
 
 
 ENV TZ=Asia/Shanghai
