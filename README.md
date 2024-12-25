@@ -21,7 +21,7 @@ swoolefy-5.1.x 版本：
 目前主分支，最低要求```php8.1+，swoole5.1.x``` 
 
 swoolefy-4.8-lts 版本：    
-长期维护分支，最低要求```pphp7.3 ~ php7.4, swoole4.8.x```, 推荐直接swoole-v4.8.13，需要通过源码编译安装swoole
+长期维护分支，最低要求```php7.3 ~ php7.4, swoole4.8.x```, 推荐直接swoole-v4.8.13，需要通过源码编译安装swoole
 
 选择哪个版本？  
 1、如果确定项目是使用php8+的，那么直接选择 ```swoole-v5.1+```, 以上源码来编译安装或者直接使用```swoole-cli-v5.x```，然后选择 ```bingcool/swoolefy:~5.1.3``` 作为项目分支
