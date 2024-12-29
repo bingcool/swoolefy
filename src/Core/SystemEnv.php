@@ -275,7 +275,7 @@ class SystemEnv
 
         $handle = opendir($componentDir);
         while ($file = readdir($handle)) {
-            if($file == '.' || $file == '..' ) {
+            if ($file == '.' || $file == '..' ) {
                 continue;
             }
             $filePath = $componentDir.DIRECTORY_SEPARATOR.$file;
@@ -303,7 +303,7 @@ class SystemEnv
         // log register
         $logComponents = include CONFIG_COMPONENT_PATH.DIRECTORY_SEPARATOR.'log.php';
         foreach ($logComponents as $name=>$logFn) {
-            if($logFn instanceof \Closure) {
+            if ($logFn instanceof \Closure) {
                 LogManager::getInstance()->registerLoggerByClosure($logFn, $name);
             }
         }

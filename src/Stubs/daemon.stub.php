@@ -18,7 +18,8 @@ define('APP_META_ARR', [
     'Test' => [
         'protocol' => 'http',
         'worker_port' => 9506,
-    ]
+    ],
+    // todo
 ]);
 
 define('WORKER_PORT', APP_META_ARR[$appName]['worker_port']);
@@ -40,11 +41,12 @@ define('WORKER_CTL_CONF_FILE',WORKER_PID_FILE_ROOT.'/confctl.json');
 
 date_default_timezone_set('Asia/Shanghai');
 // 定义加载配置函数
-define('WORKER_CONF', \Swoolefy\Worker\MainManager::loadWorkerConf(__DIR__.'/'.$appName.'/WorkerDaemon/worker_common_conf.php'));
+define('WORKER_CONF', \Swoolefy\Worker\MainManager::loadWorkerConf(__DIR__.'/'.$appName.'/WorkerDaemon/worker_daemon_conf.php'));
 
 define('PROCESS_CLASS', [
     // 应用daemon worker
-    'Test' => \Test\WorkerDaemon\MainProcess::class,
+    'Test' => \Test\WorkerDaemon\MainDaemonProcess::class,
+    // todo
 ]);
 
 // 启动前处理,比如加载.env

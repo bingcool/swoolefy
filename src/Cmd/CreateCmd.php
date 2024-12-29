@@ -35,7 +35,7 @@ class CreateCmd extends BaseCmd
         }
 
         if ($protocol == 'http') {
-            $dirs = ['Config', 'Controller', 'Model', 'Module', 'Router', 'Validation', 'Storage', 'Protocol', 'Middleware'];
+            $dirs = ['Config', 'Controller', 'Model', 'Module', 'Router', 'Validation', 'Storage', 'Protocol', 'Middleware','Scripts'];
         }
 
         $daemonFile = START_DIR_ROOT . '/daemon.php';
@@ -171,6 +171,16 @@ class CreateCmd extends BaseCmd
                             break;
                     }
                     break;
+                }
+                case 'Scripts':
+                {
+                    $scriptPath = $appPathDir . '/' . $dir;
+                    $kernelFile = ROOT_PATH.'/src/Script/Kernel.php';
+                    $kernelFileContent = file_get_contents($kernelFile);
+                    $kernelFileContent = str_replace('namespace Swoolefy\Script', "namespace {$appName}\\{$dir}", $kernelFileContent);
+                    if (!file_exists($scriptPath.'/Kernel.php')) {
+                        @file_put_contents($scriptPath.'/Kernel.php', $kernelFileContent);
+                    }
                 }
 
                 default:
