@@ -19,6 +19,7 @@ define('APP_META_ARR', [
         'protocol' => 'http',
         'worker_port' => 9506,
     ]
+    // todo
 ]);
 
 define('WORKER_PORT', APP_META_ARR[$appName]['worker_port']);
@@ -45,6 +46,7 @@ define('WORKER_CONF', \Swoolefy\Worker\MainManager::loadWorkerConf(__DIR__.'/'.$
 define('PROCESS_CLASS', [
     // 应用crom worker
     'Test' => \Test\WorkerCron\MainCronProcess::class,
+    // todo
 ]);
 
 // 启动前处理,比如加载.env

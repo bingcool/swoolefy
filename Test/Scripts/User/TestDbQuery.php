@@ -37,22 +37,34 @@ class TestDbQuery extends MainCliScript
 //                'order_id' => 1685959471
 //            ])->restore();
 
+
         $order = new OrderEntity();
-        $order->loadById(1685959471);
+        try {
+            $order->getConnection()->beginTransaction();
+            $order->loadById(1675835369);
 
-        $order->json_data = ['1111llll', 2222, 3333, 44444, rand(1,1000)];
+            $order->json_data = ['1111llll', 2222, 3333, 44444, rand(1,1000)];
 
-        $order->lockShareWhere([
-            'user_id' => 10003
-        ]);
-        $order->save();
+            $order->lockShareWhere([
+                'user_id' => 10000
+            ]);
+            $order->save();
 
-        $order->json_data = ['1111llll', 2222, 3333, 44444, rand(1,1000)];
+            $order->json_data = ['1111llll', 2222, 3333, 44444, rand(1,1000)];
 
-        $order->lockShareWhere([
-            'user_id' => 10003
-        ]);
-        $order->save();
+            $order->lockShareWhere([
+                'user_id' => 10000
+            ]);
+
+            $order->save();
+
+            $order->getConnection()->commit();
+
+            var_dump('commit success');
+        }catch (\Throwable $throwable) {
+            $order->getConnection()->rollBack();
+            var_dump($throwable->getMessage());
+        }
 
         return;
 
