@@ -44,7 +44,7 @@ class ZFactory
      * @param array $constructor
      * @return mixed
      */
-    public static function newInstance(string $class = '', array $constructor = [])
+    public static function newInstance(string $class, array $constructor = [])
     {
         return new $class(...$constructor);
     }

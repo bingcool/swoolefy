@@ -40,10 +40,10 @@ return [
         $logger->setChannel('application');
         if(SystemEnv::isDaemonService()) {
             $logFilePath = LOG_PATH.'/daemon/error.log';
+        }else if (SystemEnv::isCronService() || SystemEnv::cronScheduleScriptModel()) {
+            $logFilePath = LOG_PATH.'/cron/error.log';
         }else if (SystemEnv::isScriptService()) {
             $logFilePath = LOG_PATH.'/script/error.log';
-        }else if (SystemEnv::isCronService()) {
-            $logFilePath = LOG_PATH.'/cron/error.log';
         } else {
             $logFilePath = LOG_PATH.'/cli/error.log';
         }

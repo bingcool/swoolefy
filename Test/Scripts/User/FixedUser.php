@@ -45,7 +45,7 @@ class FixedUser extends MainCliScript
             FILE_APPEND
         );
 
-        $this->test1('kkkkkkkkkkkkkkkkkkkkkkkk');
+        $this->test1(name: 'kkkkkkkkkkkkkkkkkkkkkkkk');
     }
     public function test1(string $name)
     {

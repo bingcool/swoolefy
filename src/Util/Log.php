@@ -243,9 +243,7 @@ class Log
                         $shell = 'rm -rf';
                     }
                     try {
-                        if (is_dir($fullDateLogPath)) {
-                            @exec($shell.' '.$fullDateLogPath, $output, $return_var);
-                        }
+                        @exec($shell.' '.$fullDateLogPath, $output, $return_var);
                     }catch (\Throwable $e) {
                         var_dump($e->getMessage());
                     }

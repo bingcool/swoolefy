@@ -275,7 +275,7 @@ class SystemEnv
 
         $handle = opendir($componentDir);
         while ($file = readdir($handle)) {
-            if($file == '.' || $file == '..' ) {
+            if ($file == '.' || $file == '..' ) {
                 continue;
             }
             $filePath = $componentDir.DIRECTORY_SEPARATOR.$file;
