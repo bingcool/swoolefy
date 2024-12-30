@@ -17,7 +17,10 @@ class GenerateDaemonService extends MainCliScript {
 
     const command = "gen:daemon:service";
 
-    public function generate() {
+    public function generate()
+    {
+        fmtPrintInfo("------开始初始化生成daemon服务项目-------");
+
         $serviceName = $this->getOption('service');
         if (empty($serviceName)) {
             $serviceName = 'WorkerDaemon';
@@ -56,6 +59,8 @@ class GenerateDaemonService extends MainCliScript {
         if (!is_file($testProcessFile)) {
             file_put_contents($testProcessFile, $this->generateTestProcess());
         }
+
+        fmtPrintInfo("------已生成daemon服务项目-------");
     }
 
     protected function generateTemplate() {

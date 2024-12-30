@@ -15,8 +15,9 @@ class GenerateCronService extends MainCliScript {
 
     const command = "gen:cron:service";
 
-    public function generate() {
-
+    public function generate()
+    {
+        fmtPrintInfo("------开始初始化生成cron服务项目-------");
         $serviceName = $this->getOption('service');
         if (empty($serviceName)) {
             $serviceName = 'WorkerCron';
@@ -34,7 +35,7 @@ class GenerateCronService extends MainCliScript {
             mkdir($confPath, 0777, true);
         }
 
-        $sceduleConFile = $servicePath."/schedule_conf.php";
+        $sceduleConFile = $confPath."/schedule_conf.php";
         if (!is_file($sceduleConFile)) {
             file_put_contents($sceduleConFile, $this->generateTemplate());
         }
@@ -48,6 +49,8 @@ class GenerateCronService extends MainCliScript {
         if (!is_file($mainCronProcessFile)) {
             file_put_contents($mainCronProcessFile, $this->generateTemplateMain());
         }
+
+        fmtPrintInfo("------已生成cron服务项目-------");
     }
 
     protected function generateTemplate() {
