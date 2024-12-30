@@ -34,10 +34,10 @@ swoolefy-4.8-lts 版本：
 4、若不希望自己编译构建，也可以直接使用本目录下的Dockerfile来构建镜像:     
 ```
 // 构建镜像
-docker build -t swoolefy-php82:v1 .
+docker build -t swoolefy-php83:v1 .
 
 // 启动容器
-docker run -d -it --name=swoolefy-php82 -v swoolefy-php82:v1
+docker run -d -it --name=swoolefy-php83 -v swoolefy-php83:v1
 
 ```
 ### 实现的功能特性    
@@ -241,6 +241,8 @@ myproject
 |     |—— Storage
 |     |   |—— Logs  // 日志文件目录
 |     |   |—— Sql   // sql日志目录
+|     |—— Scripts
+|     |   |—— Kernel.php    // 计划任务定义    
 |     |__ .env     // 自动生成环境变量文件
 |     │—— autoloader.php // 自定义项目自动加载
 |     |—— Event.php      // 事件实现类
@@ -255,7 +257,7 @@ myproject
 
 ```
 
-### 四、启动应用项目
+### 四、启动http应用项目
 
 ```
 // 终端启动 ctl+c 停止进程
@@ -280,6 +282,33 @@ swooole-cli cli.php status App
 php cli.php restart App    
 或者    
 swooole-cli cli.php restart App
+
+```
+
+```
+// 创建生成Cron定时计划任务服务,默认生成WorkerCron目录
+
+php script.php start App --c=gen:cron:service
+
+// 启动Cron服务,添加--daemon=1以守护进程启动
+php cron.php start App
+
+// 停止Cron服务
+php cron.php stop App
+
+```
+
+```
+// 创建生成Daemon常驻进程消费服务,默认生成WorkerDaemon目录
+
+php script.php start App --c=gen:daemon:service
+
+// 启动Daemon服务，添加--daemon=1以守护进程启动
+php daemon.php start App 
+
+// 停止Daemon服务
+php daemon.php stop App
+
 
 ```
 
