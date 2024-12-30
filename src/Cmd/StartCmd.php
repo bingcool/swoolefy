@@ -57,7 +57,7 @@ class StartCmd extends BaseCmd
                     }
                 }
             } catch (\Throwable $throwable) {
-                fmtPrintError($throwable->getMessage());
+                fmtPrintError($throwable->getMessage().', trace='.$throwable->getTraceAsString());
                 exit(0);
             }
         }

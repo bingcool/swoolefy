@@ -37,7 +37,7 @@ if (!is_dir($path)) {
 $argv[1] = $_SERVER['argv'][1] = $appName.'/Module';
 
 if (!class_exists('OpenApi\Attributes\Server')) {
-    exit("Missing zircote/swagger-php, please install it!\n");
+    exit("Missing zircote/swagger-php, please composer install it!\n");
 }
 
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__.'/'.$appName);
