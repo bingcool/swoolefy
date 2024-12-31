@@ -47,7 +47,10 @@ return [
         'http_compression'       => true,
         // $level 压缩等级，范围是 1-9，等级越高压缩后的尺寸越小，但 CPU 消耗更多。默认为 1, 最高为 9
         'http_compression_level' => 1,
-        'log_file'               => \Swoolefy\Core\SystemEnv::loadLogFile('/tmp/' . APP_NAME . '/swoole_log.txt'),
+        'log_file'               => \Swoolefy\Core\SystemEnv::loadLogFile('/tmp/' . APP_NAME . '/swoole.log'),
+        'log_rotation'           => SWOOLE_LOG_ROTATION_DAILY,
+        //开启/关闭Swoole错误信息
+        'display_errors'         => true,
         'pid_file'               => \Swoolefy\Core\SystemEnv::loadPidFile('/data/' . APP_NAME . '/log/server.pid'),
 
         // 静态处理
@@ -65,7 +68,7 @@ return [
     // 是否内存化线上实时任务
     'enable_table_tick_task' => true,
     // 是否开启内存回收
-    'enable_gc_mem_cache' => true,
+    'gc_mem_cache_enable' => true,
     'gc_mem_cache_tick_time' => 10,
 
     // 内存表定义

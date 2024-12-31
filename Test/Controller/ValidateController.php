@@ -2,10 +2,11 @@
 namespace Test\Controller;
 
 use Swoolefy\Core\Controller\BController;
+use Swoolefy\Http\RequestInput;
 
 class ValidateController extends BController
 {
-    public function test1()
+    public function test1(RequestInput $requestInput)
     {
         $params = [
 //            'name'=>'bingcool',
@@ -25,7 +26,7 @@ class ValidateController extends BController
             ]
         ];
 
-        $this->validate($params, [
+        $requestInput->validate($params, [
             // 'id' => 'required',
 //            'mail' =>'require|email',
 //            'user_ids' => 'required|array',

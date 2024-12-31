@@ -35,27 +35,27 @@ class CreateCmd extends BaseCmd
         }
 
         if ($protocol == 'http') {
-            $dirs = ['Config', 'Controller', 'Model', 'Module', 'Router', 'Validation', 'Storage', 'Protocol', 'Middleware'];
+            $dirs = ['Config', 'Controller', 'Model', 'Module', 'Router', 'Validation', 'Storage', 'Protocol', 'Middleware','Scripts'];
         }
 
         $daemonFile = START_DIR_ROOT . '/daemon.php';
         if (!file_exists($daemonFile)) {
-            @copy(START_DIR_ROOT . '/src/Stubs/DaemonStub.php', $daemonFile);
+            @copy(START_DIR_ROOT . '/src/Stubs/daemon.stub.php', $daemonFile);
         }
 
         $cronFile = START_DIR_ROOT . '/cron.php';
         if (!file_exists($cronFile)) {
-            @copy(START_DIR_ROOT . '/src/Stubs/CronStub.php', $cronFile);
+            @copy(START_DIR_ROOT . '/src/Stubs/cron.stub.php', $cronFile);
         }
 
         $scriptFile = START_DIR_ROOT . '/script.php';
         if (!file_exists($scriptFile)) {
-            @copy(START_DIR_ROOT . '/src/Stubs/ScriptStub.php', $scriptFile);
+            @copy(START_DIR_ROOT . '/src/Stubs/script.stub.php', $scriptFile);
         }
 
         $swagFile = START_DIR_ROOT . '/swag.php';
         if (!file_exists($swagFile)) {
-            @copy(START_DIR_ROOT . '/src/Stubs/swag.php', $swagFile);
+            @copy(START_DIR_ROOT . '/src/Stubs/swag.stub.php', $swagFile);
         }
 
         @mkdir($appPathDir, 0777, true);
@@ -78,19 +78,19 @@ class CreateCmd extends BaseCmd
                     $componentDir = $appPathDir . '/' . $dir . '/component';
                     if (!is_dir($componentDir)) {
                         @mkdir($componentDir, 0777, true);
-                        @copy(ROOT_PATH . '/src/Stubs/DbComStubs.php', $componentDir.'/database.php');
-                        @copy(ROOT_PATH . '/src/Stubs/LogComStubs.php', $componentDir.'/log.php');
-                        @copy(ROOT_PATH . '/src/Stubs/CacheComStubs.php', $componentDir.'/cache.php');
+                        @copy(ROOT_PATH . '/src/Stubs/db.stub.php', $componentDir.'/database.php');
+                        @copy(ROOT_PATH . '/src/Stubs/log.stub.php', $componentDir.'/log.php');
+                        @copy(ROOT_PATH . '/src/Stubs/cache.stub.php', $componentDir.'/cache.php');
                     }
 
                     $configFile = $appPathDir . '/' . $dir . '/app.php';
                     if (!file_exists($configFile)) {
-                        @copy(ROOT_PATH . '/src/Stubs/AppConf.php', $configFile);
+                        @copy(ROOT_PATH . '/src/Stubs/app.conf.stub.php', $configFile);
                     }
 
                     $dcFile = $appPathDir . '/' . $dir . '/dc.php';
                     if (!file_exists($dcFile)) {
-                        @copy(ROOT_PATH . '/src/Stubs/Dc.php', $dcFile);
+                        @copy(ROOT_PATH . '/src/Stubs/dc.stub.php', $dcFile);
                     }
 
                     break;
@@ -122,13 +122,13 @@ class CreateCmd extends BaseCmd
                 {
                     switch ($protocol) {
                         case 'http':
-                            $apiFile = $appPathDir . "/{$dir}/Api.php";
-                            @copy(ROOT_PATH . '/src/Stubs/Api.php', $apiFile);
+                            $apiFile = $appPathDir . "/{$dir}/api.php";
+                            @copy(ROOT_PATH . '/src/Stubs/api.stub.php', $apiFile);
                             break;
                         case 'udp':
                         case 'websocket':
-                            $apiFile = $appPathDir . "/{$dir}/ServiceApi.php";
-                            @copy(ROOT_PATH . '/src/Stubs/ServiceApi.php', $apiFile);
+                            $apiFile = $appPathDir . "/{$dir}/service.php";
+                            @copy(ROOT_PATH . '/src/Stubs/service.api.stub.php', $apiFile);
                             break;
                         default:
                             break;
@@ -172,6 +172,16 @@ class CreateCmd extends BaseCmd
                     }
                     break;
                 }
+                case 'Scripts':
+                {
+                    $scriptPath = $appPathDir . '/' . $dir;
+                    $kernelFile = ROOT_PATH.'/src/Script/Kernel.php';
+                    $kernelFileContent = file_get_contents($kernelFile);
+                    $kernelFileContent = str_replace('namespace Swoolefy\Script', "namespace {$appName}\\{$dir}", $kernelFileContent);
+                    if (!file_exists($scriptPath.'/Kernel.php')) {
+                        @file_put_contents($scriptPath.'/Kernel.php', $kernelFileContent);
+                    }
+                }
 
                 default:
                     break;
@@ -202,7 +212,6 @@ EOF;
 
             <<<EOF
 <?php
-defined('APP_PATH') or define('APP_PATH', dirname(__DIR__));
 defined('LOG_PATH') or define('LOG_PATH', APP_PATH.'/Storage/Logs');
 defined('CONFIG_PATH') or define('CONFIG_PATH', APP_PATH.'/Config');
 defined('CONFIG_COMPONENT_PATH') or define('CONFIG_COMPONENT_PATH', CONFIG_PATH.'/component');
@@ -223,7 +232,7 @@ use Swoolefy\Core\Controller\BController;
 
 class IndexController extends BController {
     public function index() {
-        Application::getApp()->response->write('<h1>Hello, Welcome to Swoolefy Framework! <h1>');
+        Application::getApp()->swooleResponse->write('<h1>Hello, Welcome to Swoolefy Framework! <h1>');
     }
 }
 EOF;

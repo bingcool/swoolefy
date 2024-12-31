@@ -294,8 +294,7 @@ class MainManager
      */
     public function loadConf(array $conf)
     {
-        foreach($conf as $config)
-        {
+        foreach($conf as $config) {
             $async            = true;
             $enableCoroutine  = true;
             $processName      = $config['process_name'];
@@ -545,7 +544,7 @@ class MainManager
     /**
      * 主进程注册监听自定义的SIGUSR2作为通知子进程重启的信号
      * 每个子进程收到重启指令后，等待wait_time后正式退出，那么在这个wait_time过程
-     * 子进程逻辑应该通过$this->isRebooting() || $this->isExiting()判断是否在重启状态中，这个状态中不能再处理新的任务数据
+     * 子进程逻辑业务中应该通过$this->isRebooting() || $this->isExiting()判断是否在重启状态中，这个状态中不能再处理新的任务数据
      *
      * @return void
      */
@@ -1040,7 +1039,7 @@ class MainManager
             'pid_file'           => WORKER_PID_FILE,
             'running_status'     => $running_status,
             'cli_params'         => $cliParams,
-            'master_pid'         => $this->getMasterPid(),
+            'worker_master_pid'         => $this->getMasterPid(),
             'cpu_num'            => $cpuNum,
             'memory'             => Helper::getMemoryUsage(),
             'php_version'        => $phpVersion,
@@ -1432,7 +1431,7 @@ class MainManager
                             $action = $receiveMessage['action'] ?? '';
                             switch ($action) {
                                 // 启动指定进程
-                                case 'start' :
+                                case WORKER_CLI_START :
                                     $key = md5($processName);
                                     if (!isset($this->processLists[$key])) {
                                         $config = $this->parseLoadConf($processName);
@@ -1449,7 +1448,7 @@ class MainManager
                                     }
                                     break;
                                 // 重启指定进程
-                                case 'restart' :
+                                case WORKER_CLI_RESTART :
                                     $key = md5($processName);
                                     if (isset($this->processWorkers[$key])) {
                                         $this->responseMsgByPipe("进程【{$processName}】已开始重启，请留意！");
@@ -1464,7 +1463,7 @@ class MainManager
                                     }
                                     break;
                                 // 停止指定进程
-                                case 'stop':
+                                case WORKER_CLI_STOP:
                                     $this->responseMsgByPipe("进程【{$processName}】开始逐步停止，请留意！");
                                     $this->stopWorkerProcessCommand($processName);
                                     break;
@@ -1584,7 +1583,7 @@ class MainManager
                 @\Swoole\Process::signal(SIGUSR2, null);
                 @\Swoole\Process::signal(SIGTERM, null);
             }
-            $this->fmtWriteInfo("终端关闭，master进程stop, master_pid={$this->masterPid}");
+            $this->fmtWriteInfo("终端关闭，master进程stop, worker_master_pid={$this->masterPid}");
         };
     }
 
@@ -1786,7 +1785,7 @@ class MainManager
      * @param array $conf
      * @return void
      */
-    private static function findDuplicateProcessName(array &$conf)
+    public static function findDuplicateProcessName(array &$conf)
     {
         $processNames = array_column($conf, 'process_name');
         $uniqueProcessNames = array_unique($processNames);

@@ -69,12 +69,12 @@ trait ServiceTrait
     }
 
     /**
-     * getWorkersPid
+     * getWorkerIdMapPid
      * @return array
      */
-    public static function getWorkersPid()
+    public static function getWorkerIdMapPid()
     {
-        return BaseServer::getWorkersPid();
+        return BaseServer::getWorkerIdMapPid();
     }
 
     /**
@@ -146,7 +146,7 @@ trait ServiceTrait
 
 
     /**
-     * getConf
+     * getConf 全局conf
      * @return array
      */
     public static function getConf()
@@ -155,7 +155,7 @@ trait ServiceTrait
     }
 
     /**
-     * getAppConf
+     * getAppConf 应用配置
      * @return array
      */
     public static function getAppConf()

@@ -51,7 +51,7 @@ function isCronService(): bool
 
 function isScriptService(): bool
 {
-    if (defined('IS_CLI_SCRIPT') && IS_CLI_SCRIPT == 1) {
+    if (defined('IS_SCRIPT_SERVICE') && IS_SCRIPT_SERVICE == 1) {
         return true;
     }
     return false;

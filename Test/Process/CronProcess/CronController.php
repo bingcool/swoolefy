@@ -3,7 +3,7 @@ namespace Test\Process\CronProcess;
 
 use Cron\CronExpression;
 use Swoolefy\Core\Crontab\AbstractCronController;
-use Test\Factory;
+use Test\App;
 
 class CronController extends AbstractCronController {
 
@@ -14,18 +14,18 @@ class CronController extends AbstractCronController {
     {
         if($cron instanceof CronExpression) {
             $expression = $cron->getExpression();
-            $redis = Factory::getRedis();
+            $redis = App::getRedis();
             $redis->set('key','key-id='.rand(1,1000));
             $keyValue = $redis->get('key');
             var_dump("This is Crontab process, keyValue={$keyValue}, expression={$expression}, class=".__CLASS__);
         }else {
 //            goApp(function () {
-//                $result = Factory::getDb()->newQuery()->table('tbl_users')->where(['user_id' => 10000])->find();
+//                $result = App::getDb()->newQuery()->table('tbl_users')->where(['user_id' => 10000])->find();
 //                var_dump($result);
 //            });
 //
 //            goApp(function () {
-//                $result = Factory::getDb()->newQuery()->table('tbl_users')->where(['user_id' => 46428])->order('')->find();
+//                $result = App::getDb()->newQuery()->table('tbl_users')->where(['user_id' => 46428])->order('')->find();
 //                var_dump($result);
 //            });
 

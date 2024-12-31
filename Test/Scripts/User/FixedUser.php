@@ -1,43 +1,61 @@
 <?php
-
-
 namespace Test\Scripts\User;
 
 use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\Coroutine\Parallel;
-use Test\Factory;
 use Test\Logger\RunLog;
+use Swoolefy\Script\MainCliScript;
 
-class FixedUser extends \Swoolefy\Script\MainCliScript
+class FixedUser extends MainCliScript
 {
     const command = 'fixed:user:name';
 
     public function init()
     {
+        var_dump($this->getOption('name'));
         parent::init();
-        \Swoolefy\Core\Coroutine\Context::set('name', 'kkkkkkkkkkkkkkkkkkkkkkkk');
+        Context::set('name', 'kkkkkkkkkkkkkkkkkkkkkkkk');
         Context::set('db_debug', true);
         goApp(function () {
             goApp(function () {
                 goApp(function () {
                     $arrayCopy = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
                     sleep(2);
-                    //var_dump($arrayCopy);
+                    var_dump($arrayCopy);
                 });
             });
         });
-        sleep(30);
+        var_dump('fixed:user:name');
+        RunLog::info("FixedUser");
+        //sleep(10);
+//        goApp(function () {
+//                $client = new \Common\Library\HttpClient\CurlHttpClient();
+//                $response = $client->get('http://127.0.0.1:9501/test-curl');
+//                var_dump($response->getDecodeBody());
+//        });
+        var_dump('curl next');
+        goAfter(5000, function () {
+            var_dump('sleep 5s name='.Context::get('name'));
+        });
+        sleep(20);
         date_default_timezone_set('Asia/Shanghai');
         file_put_contents(
             '/home/wwwroot/swoolefy/Test/WorkerCron/ForkOrder/order1.log',
             'date=' . date('Y-m-d H:i:s') . ',pid=' . getmypid() . "\n",
             FILE_APPEND
         );
+
+        $this->test1(name: 'kkkkkkkkkkkkkkkkkkkkkkkk');
+    }
+    public function test1(string $name)
+    {
+
     }
 
     public function fixName()
     {
-//        $db = Factory::getDb();
+        return;
+//        $db = App::getDb();
 //        $db->newQuery()->table('tbl_users')->field('user_id,user_name')->chunk(10, function ($rows) {
 //            foreach ($rows as $row) {
 //                var_dump($row);
@@ -71,7 +89,7 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
 //        ];
 //
 //        Parallel::run(2, $list, function ($item) {
-//            $db2 = Factory::getDb();
+//            $db2 = App::getDb();
 //            var_dump('cid='.\Swoole\Coroutine::getCid().'spl_object_id-22='.spl_object_id($db2));
 //            var_dump($item['name']);
 //            $result1 = $db2->newQuery()->table('tbl_users')->limit(1)->select()->toArray();
@@ -122,19 +140,19 @@ class FixedUser extends \Swoolefy\Script\MainCliScript
 //            //var_dump('Script test');
 //            sleep(2);
 //
-        $db1 = Factory::getDb();
-        var_dump('cid=' . \Swoole\Coroutine::getCid() . 'spl_object_id-11=' . spl_object_id($db1));
-        $result1 = $db1->newQuery()->table('tbl_users')->limit(1)->select()->toArray();
+        //$db1 = App::getDb();
+        //var_dump('cid=' . \Swoole\Coroutine::getCid() . 'spl_object_id-11=' . spl_object_id($db1));
+        //$result1 = $db1->newQuery()->table('tbl_users')->limit(1)->select()->toArray();
         //var_dump($result1);
 //
 //            goApp(function () {
-//                $db2 = Factory::getDb();
+//                $db2 = App::getDb();
 //                var_dump('cid='.\Swoole\Coroutine::getCid().'spl_object_id-22='.spl_object_id($db2));
 //                $result1 = $db2->newQuery()->table('tbl_users')->limit(1)->select()->toArray();
 //            });
 //
 //            goApp(function () {
-//                $db3 = Factory::getDb();
+//                $db3 = App::getDb();
 //                var_dump('cid='.\Swoole\Coroutine::getCid().'spl_object_id-33='.spl_object_id($db3));
 //                $result1 = $db3->newQuery()->table('tbl_users')->limit(1)->select()->toArray();
 //            });

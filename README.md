@@ -17,20 +17,29 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 内置```log、session、mysql、pgsql、redis、mongodb、kafka、amqp、uuid、route midelware、cache、queue、rateLimit、traceId```等常用组件等.    
 
 ### 建议版本
-swoolefy-5.0+ 版本：      
-目前主分支，最低要求```php8.0+，swoole5.0+（或者swoole-cli-v5.0+)```, 或者也可以使用```swoole-cli-v4.8+```, 因为其内置php8.1+  
+swoolefy-5.1.x 版本：      
+目前主分支，最低要求```php8.1+，swoole5.1.x``` 
 
 swoolefy-4.8-lts 版本：    
-长期维护分支，最低要求```php >= php7.3 && php < php8.0```, 推荐直接swoole-v4.8+，需要通过源码编译安装swoole
+长期维护分支，最低要求```php7.3 ~ php7.4, swoole4.8.x```, 推荐直接swoole-v4.8.13，需要通过源码编译安装swoole
 
 选择哪个版本？  
-1、如果确定项目是使用php8+的，那么直接选择 ```swoole-v5.0+```, 以上源码来编译安装或者直接使用```swoole-cli-v5.x```，然后选择 ```bingcool/swoolefy:~5.1.0``` 作为项目分支
+1、如果确定项目是使用php8+的，那么直接选择 ```swoole-v5.1+```, 以上源码来编译安装或者直接使用```swoole-cli-v5.x```，然后选择 ```bingcool/swoolefy:~5.1.3``` 作为项目分支
 
 2、如果确定项目是使用 ```php7.3 ~ php7.4``` 的，那么选择 swoole-v4.8+ 版本来进行编译安装(不能直接使用 swoole-cli-v4.8+ 了, 因为其内置的是php8.1，与你的项目的php7不符合)
 所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.9.0``` 作为项目分支
 
-3、依赖编译： ./configure --enable-openssl --enable-sockets --enable-swoole-curl    
+3、依赖编译： ./configure --enable-openssl --enable-sockets --enable-swoole-curl --enable-swoole-pgsql
 
+4、若不希望自己编译构建，也可以直接使用本目录下的Dockerfile来构建镜像:     
+```
+// 构建镜像
+docker build -t swoolefy-php83:v1 .
+
+// 启动容器
+docker run -d -it --name=swoolefy-php83 -v swoolefy-php83:v1
+
+```
 ### 实现的功能特性    
 
 基础特性
@@ -106,14 +115,17 @@ swoolefy-4.8-lts 版本：
 - [x] UUid 分布式自增id组件  
 - [x] Curl基础组件    
 - [x] Jwt 组件   
-- [x] Validate组件    
+- [x] Validate 组件    
+- [x] Encrypt 加密解密组件   
+- [x] Captcha 验证码组件    
+- [x] translation 国际化（I18N）    
    
 github: https://github.com/bingcool/library    
 
 
 ### 一、安装 
 
-1、先配置环境变量
+1、先配置环境变量(必须设置)
 ```
 // 独立物理机或者云主机配置系统环境变量
 vi /etc/profile
@@ -144,26 +156,33 @@ composer create-project bingcool/swoolefy:~5.1 myproject
 // 在myproject目录下添加cli.php, 这个是启动项目的入口文件
 
 include __DIR__.'/vendor/autoload.php';
+
+$appName = ucfirst($_SERVER['argv'][2]);
+// 定义app name
+define('APP_NAME', $appName);
 // 启动目录
 defined('START_DIR_ROOT') or define('START_DIR_ROOT', __DIR__);
 // 应用父目录
 defined('ROOT_PATH') or define('ROOT_PATH',__DIR__);
 // 应用目录
-defined('APP_PATH') or define('APP_PATH',__DIR__.'/'.ucfirst($_SERVER['argv'][2]));
+defined('APP_PATH') or define('APP_PATH',__DIR__.'/'.$appName);
 
 registerNamespace(APP_PATH);
 
 define('IS_WORKER_SERVICE', 0);
-define('IS_CLI_SCRIPT', 0);
+define('IS_DAEMON_SERVICE', 0);
+define('IS_SCRIPT_SERVICE', 0);
 define('IS_CRON_SERVICE', 0);
-define('PHP_BIN_FILE','/usr/bin/php');    
-define('WORKER_START_SCRIPT_FILE', $_SERVER['PWD'].'/'.$_SERVER['SCRIPT_FILENAME']);
+define('PHP_BIN_FILE','/usr/bin/php');
+
+define('WORKER_START_SCRIPT_FILE', str_contains($_SERVER['SCRIPT_FILENAME'], $_SERVER['PWD']) ? $_SERVER['SCRIPT_FILENAME'] : $_SERVER['PWD'].'/'.$_SERVER['SCRIPT_FILENAME']);
+define('WORKER_SERVICE_NAME', makeServerName($appName));
+define('SERVER_START_LOG', '/tmp/workerfy/log/'.WORKER_SERVICE_NAME.'/start.log');
 
 date_default_timezone_set('Asia/Shanghai');
-
 // 你的项目命名为App，对应协议为http协议服务器，支持多个项目的，只需要在这里添加好项目名称与对应的协议即可
 define('APP_META_ARR', [
-    'Test'  => [
+    'Test' => [
         'protocol' => 'http',
         'worker_port' => 9501,
     ],
@@ -218,10 +237,12 @@ myproject
 |     │   ├── conf.php  // 全局配置
 |     │
 |     ├── Router
-|     │   └── Api.php  // 路由文件，不同模块定义不同文件即可
+|     │   └── api.php  // 路由文件，不同模块定义不同文件即可
 |     |—— Storage
 |     |   |—— Logs  // 日志文件目录
 |     |   |—— Sql   // sql日志目录
+|     |—— Scripts
+|     |   |—— Kernel.php    // 计划任务定义    
 |     |__ .env     // 自动生成环境变量文件
 |     │—— autoloader.php // 自定义项目自动加载
 |     |—— Event.php      // 事件实现类
@@ -236,7 +257,7 @@ myproject
 
 ```
 
-### 四、启动应用项目
+### 四、启动http应用项目
 
 ```
 // 终端启动 ctl+c 停止进程
@@ -261,6 +282,33 @@ swooole-cli cli.php status App
 php cli.php restart App    
 或者    
 swooole-cli cli.php restart App
+
+```
+
+```
+// 创建生成Cron定时计划任务服务,默认生成WorkerCron目录
+
+php script.php start App --c=gen:cron:service
+
+// 启动Cron服务,添加--daemon=1以守护进程启动
+php cron.php start App
+
+// 停止Cron服务
+php cron.php stop App
+
+```
+
+```
+// 创建生成Daemon常驻进程消费服务,默认生成WorkerDaemon目录
+
+php script.php start App --c=gen:daemon:service
+
+// 启动Daemon服务，添加--daemon=1以守护进程启动
+php daemon.php start App 
+
+// 停止Daemon服务
+php daemon.php stop App
+
 
 ```
 
@@ -935,4 +983,4 @@ class UserOrderValidation
 
 ### License
 MIT   
-Copyright (c) 2017-2024 zengbing huang    
+Copyright (c) 2017-2025 zengbing huang    

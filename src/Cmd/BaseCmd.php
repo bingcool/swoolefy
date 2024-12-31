@@ -1,8 +1,10 @@
 <?php
 namespace Swoolefy\Cmd;
 
+use Swoolefy\Core\Exec;
 use Swoolefy\Core\SystemEnv;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Helper\TableStyle;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -46,21 +48,21 @@ class BaseCmd extends Command
 
     protected function parseConstant(InputInterface $input, OutputInterface $output)
     {
+        if (!defined('APP_NAME')) {
+            fmtPrintError('APP_NAME Missing defined, please check it');
+            exit(0);
+        }
+
         if (!defined('APP_META_ARR')) {
             fmtPrintError('APP_META_ARR Missing defined, please check it');
             exit(0);
         }
 
         if ($input->getArgument('app_name')) {
-            $input->setArgument('app_name', ucfirst($input->getArgument('app_name')));
+            $input->setArgument('app_name', APP_NAME);
         }
 
-        $appName = $input->getArgument('app_name');
-        $appName = trim($appName);
-
-        defined('APP_NAME') or define('APP_NAME', $appName);
-        defined('APP_PATH') or define('APP_PATH', ROOT_PATH.'/'.$appName);
-        // env
+        defined('APP_PATH') or define('APP_PATH', ROOT_PATH.'/'.APP_NAME);
         defined('SWOOLEFY_DEV') or define('SWOOLEFY_DEV', 'dev');
         defined('SWOOLEFY_TEST') or define('SWOOLEFY_TEST', 'test');
         defined('SWOOLEFY_GRA') or define('SWOOLEFY_GRA', 'gra');
@@ -72,13 +74,13 @@ class BaseCmd extends Command
             SWOOLEFY_PRD,
         ]);
 
-        $cliEnv = SWOOLEFY_DEV;
         // system environment variables
         $env = getenv("SWOOLEFY_CLI_ENV");
-        if (in_array($env, SWOOLEFY_ENVS)) {
-            $cliEnv = $env;
+        if (!in_array($env, SWOOLEFY_ENVS)) {
+            fmtPrintError('SWOOLEFY_CLI_ENV not in [dev, test, gra, prd]');
+            exit(0);
         }
-        defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', $cliEnv);
+        defined('SWOOLEFY_ENV') or define('SWOOLEFY_ENV', $env);
     }
 
     protected function parseOptions(InputInterface $input, OutputInterface $output)
@@ -173,7 +175,6 @@ class BaseCmd extends Command
             $conf['setting']['enable_coroutine'] = 0;
             $conf['setting']['reactor_num'] = 1;
             $conf['setting']['worker_num'] = 1;
-            $conf['setting']['task_worker_num'] = 1;
             unset($conf['setting']['admin_server'], $conf['setting']['task_worker_num']);
         }
     }
@@ -192,7 +193,7 @@ class BaseCmd extends Command
         if (!file_exists($eventServerFile)) {
             $search_str = "protocol\\event";
             $replace_str = APP_NAME;
-            $file_content_string = file_get_contents(ROOT_PATH . "/src/Stubs/EventHandle.php");
+            $file_content_string = file_get_contents(ROOT_PATH . "/src/Stubs/event_handle.stub.php");
             $count = 1;
             $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
             file_put_contents($eventServerFile, $file_content_string);
@@ -210,10 +211,10 @@ class BaseCmd extends Command
     }
 
     /**
-     * @param $appName
+     * @param string $appName
      * @return mixed|string
      */
-    protected function getPidFile($appName)
+    protected function getPidFile(string $appName)
     {
         $path = APP_PATH . "/Protocol";
         $config = include $path . '/conf.php';
@@ -249,7 +250,7 @@ class BaseCmd extends Command
             }
         }
 
-        if (isWorkerService() && defined('WORKER_PID_FILE_ROOT')) {
+        if (SystemEnv::isWorkerService() && defined('WORKER_PID_FILE_ROOT')) {
             if (!is_dir(WORKER_PID_FILE_ROOT)) {
                 mkdir(WORKER_PID_FILE_ROOT, 0777, true);
             }
@@ -277,6 +278,67 @@ class BaseCmd extends Command
             fmtPrintError(APP_NAME . '/Protocol/conf.php must include app_conf file and set app_conf');
             exit(0);
         }
+    }
+
+    /**
+     * @param string $appName
+     * @param string $pidFile
+     * @return void
+     */
+    protected function serverStatus(string $appName, string $pidFile)
+    {
+        if (!is_file($pidFile)) {
+            fmtPrintError("Pid file={$pidFile} is not exist, please check server weather is running");
+            return;
+        }
+
+        $pid = intval(file_get_contents($pidFile));
+        if (!\Swoole\Process::kill($pid, 0)) {
+            fmtPrintError("Server Maybe Shutdown, You can use 'ps -ef | grep php-swoolefy' ");
+            return;
+        }
+
+        $exec = (new Exec())->run('pgrep -P ' . $pid);
+        $output = $exec->getOutput();
+        $managerProcessId = -1;
+        $workerProcessIds = [];
+        if (isset($output[0])) {
+            $managerProcessId = current($output);
+            $workerProcessIds = (new Exec())->run('pgrep -P ' . $managerProcessId)->getOutput();
+        }
+
+        $output = new \Symfony\Component\Console\Output\ConsoleOutput();
+        $table  = new \Symfony\Component\Console\Helper\Table($output);
+        $table->setHeaders(['进程名称', '进程ID','父进程ID', '进程状态', '启动时间']);
+        if (defined('SERVER_START_LOG') && is_file(SERVER_START_LOG)) {
+            $startContent = file_get_contents(SERVER_START_LOG);
+            $startContent = json_decode($startContent, true);
+            if (isset($startContent['start_time'])) {
+                $startTime = $startContent['start_time'] ?? '';
+            }
+        }
+
+        if (!empty($startTime)) {
+            $table->setRows(array(
+                array('master process', $pid,'--','running', $startTime),
+                array('manager process', $managerProcessId, $pid, 'running', $startTime)
+            ));
+        }else {
+            $table->setRows(array(
+                array('master process', $pid,'--','running','--'),
+                array('manager process', $managerProcessId, $pid, 'running','--')
+            ));
+        }
+
+        foreach ($workerProcessIds as $id=>$processId) {
+            $table->addRow(array("worker process-{$id}", $processId, $managerProcessId, 'running', '--'));
+        }
+
+        $tableStyle = new TableStyle();
+        $tableStyle->setCellRowFormat('<info>%s</info>');
+        $table->setStyle($tableStyle);
+
+        $table->render();
     }
 
     protected function isDaemon()

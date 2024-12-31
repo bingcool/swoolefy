@@ -14,7 +14,7 @@ use Test\Middleware\Group\GroupTestMiddleware;
 Route::get('/index/index', [
     'beforeHandle' => function(RequestInput $requestInput) {
         Context::set('name', 'bingcool');
-        $name = $requestInput->getPostParams('name');
+        $name = $requestInput->post('name');
     },
 
     'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
@@ -105,6 +105,10 @@ Route::group([
 
     Route::match(['GET','POST'],'/queue/push', [
         'dispatch_route' => [\Test\Controller\QueueController::class, 'push'],
+    ]);
+
+    Route::match(['GET','POST'],'/captcha/image', [
+        'dispatch_route' => [\Test\Controller\CaptchaController::class, 'test'],
     ]);
 
 });

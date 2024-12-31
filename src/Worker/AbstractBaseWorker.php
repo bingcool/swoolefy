@@ -354,6 +354,7 @@ abstract class AbstractBaseWorker
                 Event::add($this->swooleProcess->pipe, function () {
                     try {
                         $message = $this->swooleProcess->read(64 * 1024);
+                        $isProxyByMaster = true;
                         if (is_string($message)) {
                             $messageDto = unserialize($message);
                             if (!$messageDto instanceof MessageDto) {
@@ -367,8 +368,6 @@ abstract class AbstractBaseWorker
                             }
                             if (!isset($isProxyByMaster) || is_null($isProxyByMaster) || $isProxyByMaster === false) {
                                 $isProxyByMaster = false;
-                            } else {
-                                $isProxyByMaster = true;
                             }
                         }
                         if (isset($msg) && isset($fromProcessName) && isset($fromProcessWorkerId)) {
@@ -475,14 +474,14 @@ abstract class AbstractBaseWorker
                     // run Exit function
                     $runExitFn = function ($timerId, $masterPid, $exitFunction, $tickCheckMasterOffCount) {
                         if (SystemEnv::isCronService()) {
-                            // cron防止任务还在进行中,强制退出
+                            // cron model 任务还在进行中,防止强制退出
                             if (!$this->handing) {
                                 $exitFunction($timerId, $masterPid);
                             }else {
                                 $this->fmtWriteInfo("【cron-task-handing】Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
                             }
                         }else if (SystemEnv::isDaemonService()) {
-                            // daemon防止任务还在进行中,强制退出
+                            // daemon model 任务还在进行中,防止强制退出
                             // 定时检查到主进程 $tickCheckMasterOffCount 次已经kill掉了，但子进程也不能一直不退出，否则成了僵尸进程了，这里做一个兜底退出，1800秒后强制退出
                             $lastTime = $this->args['check_master_live_tick_time'] * $tickCheckMasterOffCount;
                             $this->fmtWriteInfo("Daemon Process={$this->getProcessName()} last master off time={$lastTime}, tickCheckMasterOffCount={$tickCheckMasterOffCount}, pid={$this->getPid()}");
@@ -530,11 +529,11 @@ abstract class AbstractBaseWorker
             if (PHP_OS != 'Darwin') {
                 $processTypeName = $this->getProcessTypeName();
                 if (SystemEnv::isDaemonService()) {
-                    $this->swooleProcess->name(APP_NAME."-swoolefy-".WORKER_SERVICE_NAME."-php-daemon[{$processTypeName}-{$this->getPid()}]:" . $this->getProcessName() . '@' . $this->getProcessWorkerId());
+                    $this->swooleProcess->name(APP_NAME."-swoolefy-".WORKER_SERVICE_NAME."-php-daemon[{$processTypeName}-{$this->masterPid}-{$this->getPid()}]:" . $this->getProcessName() . '@' . $this->getProcessWorkerId());
                 }else if (SystemEnv::isCronService()) {
-                    $this->swooleProcess->name(APP_NAME."-swoolefy-".WORKER_SERVICE_NAME."-php-cron[{$processTypeName}-{$this->getPid()}]:" . $this->getProcessName() . '@' . $this->getProcessWorkerId());
+                    $this->swooleProcess->name(APP_NAME."-swoolefy-".WORKER_SERVICE_NAME."-php-cron[{$processTypeName}-{$this->masterPid}-{$this->getPid()}]:" . $this->getProcessName() . '@' . $this->getProcessWorkerId());
                 }else {
-                    $this->swooleProcess->name(APP_NAME."-swoolefy-".WORKER_SERVICE_NAME."-php-worker[{$processTypeName}-{$this->getPid()}]:" . $this->getProcessName() . '@' . $this->getProcessWorkerId());
+                    $this->swooleProcess->name(APP_NAME."-swoolefy-".WORKER_SERVICE_NAME."-php-worker[{$processTypeName}-{$this->masterPid}-{$this->getPid()}]:" . $this->getProcessName() . '@' . $this->getProcessWorkerId());
                 }
             }
 
@@ -579,7 +578,10 @@ abstract class AbstractBaseWorker
                 $isError = true;
             } finally {
                 if (!$isError) {
-                    $this->fmtWriteInfo("Exit Finish Process={$processName}, worker_id={$workerId}",'green');
+                    if (!isset($workerId)) {
+                        $workerId = '';
+                    }
+                    $this->fmtWriteInfo("Exit Finish Process={$processName}, worker_id={$workerId}");
                 }
                 $this->isExit = false;
                 Event::del($this->swooleProcess->pipe);
@@ -599,6 +601,7 @@ abstract class AbstractBaseWorker
     private function rebootSingleHandle()
     {
         return function () {
+            $processName = '';
             try {
                 // destroy
                 $this->exitAndRebootDefer();
@@ -1561,6 +1564,15 @@ abstract class AbstractBaseWorker
     }
 
     /**
+     * @param string $name
+     * @return bool
+     */
+    public function getOption(string $name)
+    {
+        return getenv($name);
+    }
+
+    /**
      * writeStartFormatInfo
      * @return void
      */
@@ -1578,7 +1590,7 @@ abstract class AbstractBaseWorker
             $processTypeName = self::PROCESS_DYNAMIC_TYPE_NAME;
         }
         $pid = $this->getPid();
-        $logInfo = "--start children_process【{$processTypeName}】: {$processName}@{$workerId} started, pid={$pid}, master_pid={$this->getMasterPid()}";
+        $logInfo = "--start children_process【{$processTypeName}】: {$processName}@{$workerId} started, pid={$pid}, worker_master_pid={$this->getMasterPid()}";
         $this->fmtWriteInfo($logInfo);
     }
 

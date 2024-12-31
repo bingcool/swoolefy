@@ -87,10 +87,6 @@ class Log
      */
     protected $dateLogFilePath;
 
-    /**
-     * @var string
-     */
-    protected $splitString = '_';
 
     /**
      * @var int
@@ -101,6 +97,11 @@ class Log
      * @var bool
      */
     protected $doUnlink = false;
+
+    /**
+     * @var bool
+     */
+    protected $hourly = false;
 
     /**
      * @param string $type
@@ -164,6 +165,14 @@ class Log
     }
 
     /**
+     * @return void
+     */
+    public function enableHourly()
+    {
+        $this->hourly = true;
+    }
+
+    /**
      * setLogFilePath
      * @param string $logFilePath
      * @return $this
@@ -187,10 +196,24 @@ class Log
     protected function getDateLogFile(string $date, string $logFilePath)
     {
         $fileInfo = pathinfo($logFilePath);
-        if (!is_dir($fileInfo['dirname'])) {
-            mkdir($fileInfo['dirname'], 0777, true);
+        if (!str_contains($fileInfo['dirname'], $date)) {
+            $logDatePath = $fileInfo['dirname'].DIRECTORY_SEPARATOR.$date;
+        }else {
+            $logDatePath = $fileInfo['dirname'];
         }
-        return $fileInfo['dirname'].DIRECTORY_SEPARATOR.$fileInfo['filename'].$this->splitString.$date.'.'.$fileInfo['extension'];
+
+        if (!is_dir($logDatePath)) {
+            mkdir($logDatePath, 0777, true);
+        }
+
+        if ($this->hourly) {
+            $hour = date('H', time());
+            $fileName = $fileInfo['filename'].'-'.$hour.'.'.$fileInfo['extension'];
+        }else {
+            $fileName = $fileInfo['filename'].'.'.$fileInfo['extension'];
+        }
+
+        return $logDatePath.DIRECTORY_SEPARATOR.$fileName;
     }
 
     /**
@@ -203,24 +226,31 @@ class Log
             return;
         }
 
-        $fileInfo = pathinfo($logFilePath);
-        $logDir = $fileInfo['dirname'];
-        $fileList = scandir($logDir);
-        $lastDay = date('Ymd', time() - 24 * 3600 * ($this->rotateDay));
-        foreach ($fileList as $file) {
-            $pathFile = $logDir . DIRECTORY_SEPARATOR . $file;
-            if ($pathFile == '.' || $pathFile == '..' || !is_file($pathFile)) {
-                continue;
+        $pattern = '/^(.*?)([\/][0-9]{8})/';
+        if (preg_match($pattern, $logFilePath, $matches)) {
+            $parentDir = DIRECTORY_SEPARATOR.trim($matches[1],'/');
+            $logDirList = scandir($parentDir);
+            $lastDay = date('Ymd', time() - 24 * 3600 * ($this->rotateDay));
+            foreach ($logDirList as $logDateDir) {
+                if ($logDateDir == '.' || $logDateDir == '..') {
+                    continue;
+                }
+                $fullDateLogPath= $parentDir.DIRECTORY_SEPARATOR.$logDateDir;
+                if (is_dir($fullDateLogPath) && is_numeric($logDateDir) && $logDateDir < $lastDay) {
+                    if (defined('LINUX_RM_SHELL')) {
+                        $shell = constant('LINUX_RM_SHELL');
+                    }else {
+                        $shell = 'rm -rf';
+                    }
+                    try {
+                        @exec($shell.' '.$fullDateLogPath, $output, $return_var);
+                    }catch (\Throwable $e) {
+                        var_dump($e->getMessage());
+                    }
+                }
             }
-            $fileName = pathinfo($pathFile, PATHINFO_FILENAME);
-            $fileArr  = explode($this->splitString, $fileName);
-            $fileDate = array_pop($fileArr);
-
-            if (is_numeric($fileDate) && $fileDate < $lastDay && file_exists($pathFile)) {
-                @unlink($pathFile);
-            }
+            $this->doUnlink = true;
         }
-        $this->doUnlink = true;
     }
 
     /**
@@ -349,19 +379,18 @@ class Log
      */
     public function insertLog($logInfo, array $context = [], $type = Logger::INFO)
     {
-        $App = Application::getApp();
-        $callable = function () use ($type, $logInfo, $context, $App) {
+        $callable = function () use ($type, $logInfo, $context) {
             try {
                 $this->logger->setHandlers([]);
                 $this->logger->pushHandler($this->handler);
 
                 if($this->formatter instanceof JsonFormatter) {
-                    $this->logger->pushProcessor(function ($records) use($App) {
-                        return $this->pushProcessor($records, $App);
+                    $this->logger->pushProcessor(function ($records) {
+                        return $this->pushProcessor($records);
                     });
                 }
 
-                $this->unlinkHistoryDayLogFile($this->logFilePath);
+                $this->unlinkHistoryDayLogFile($this->dateLogFilePath);
 
                 // add records to the log
                 $this->logger->addRecord($type, $logInfo, $context);
@@ -392,6 +421,7 @@ class Log
      */
     protected function pushProcessor($records, $App = null): array
     {
+        $App = Application::getApp();
         $records['trace_id'] = '';
         $cid = \Swoole\Coroutine::getCid();
         if ($cid >= 0) {

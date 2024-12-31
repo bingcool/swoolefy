@@ -26,8 +26,11 @@ class EventCtrl implements EventCtrlInterface
      */
     public function init()
     {
+        if (SystemEnv::isScriptService()) {
+            \Swoolefy\Script\MainCliScript::parseClass();
+        }
         // log register
-        if (SystemEnv::isDaemonService() || SystemEnv::isCronService()) {
+        if (SystemEnv::isDaemonService() || SystemEnv::isCronService() || SystemEnv::cronScheduleScriptModel()) {
             \Swoolefy\Worker\AbstractWorkerProcess::registerLogComponents();
         }else {
             SystemEnv::registerLogComponents();
@@ -45,13 +48,16 @@ class EventCtrl implements EventCtrlInterface
         $this->registerSqlLogger();
         $this->registerGuzzleCurlLogger();
 
-        if(!$this->isWorkerService()) {
+        if(!SystemEnv::isWorkerService()) {
             if (BaseServer::isEnableSysCollector()) {
                 ProcessManager::getInstance()->addProcess('swoolefy_system_collector', \Swoolefy\Core\SysCollector\SysProcess::class);
             }
             if (BaseServer::isEnableReload()) {
                 ProcessManager::getInstance()->addProcess('swoolefy_system_reload', \Swoolefy\AutoReload\ReloadProcess::class);
             }
+
+            $this->registerStartLog();
+
         }else {
             static::onWorkerServiceInit();
             $this->boostrapWorkerInit();
@@ -143,20 +149,35 @@ class EventCtrl implements EventCtrlInterface
             }
 
             if (SystemEnv::isDaemonService()) {
-                $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_daemon.log';
+                $curlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_daemon.log';
             }else if (SystemEnv::isCronService()) {
-                $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_cron.log';
+                $curlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_cron.log';
             }else if (SystemEnv::isScriptService()) {
-                $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_script.log';
+                $curlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_script.log';
             }else {
-                $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_cli.log';
+                $curlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_cli.log';
             }
 
-            $logger->setLogFilePath($sqlFilePath);
+            $logger->setLogFilePath($curlFilePath);
             return $logger;
         }, LogManager::GUZZLE_CURL_LOG);
     }
 
+    /**
+     * @return void
+     */
+    protected function registerStartLog()
+    {
+        if (defined('SERVER_START_LOG')) {
+            $pathDir = pathinfo(SERVER_START_LOG);
+            if (!is_dir($pathDir['dirname'])) {
+                mkdir($pathDir['dirname'], 0777, true);
+            }
+            $startLog = ['start_time' => date('Y-m-d H:i:s')];
+            file_put_contents(SERVER_START_LOG, json_encode($startLog));
+            chmod(SERVER_START_LOG, 0777);
+        }
+    }
     /**
      * @return bool
      */
@@ -265,6 +286,7 @@ class EventCtrl implements EventCtrlInterface
      *              'max_push_timeout' => 2,
      *              'max_pop_timeout' => 1,
      *              'max_life_timeout' => 10
+     *              'enable_tick_clear_pool' => 1 //max_pool_num 足够大时需要设置这个定时回收
      *      ]
      * ],
      *
@@ -315,7 +337,7 @@ class EventCtrl implements EventCtrlInterface
     protected function registerGcMemCaches()
     {
         $conf =BaseServer::getConf();
-        if (isset($conf['enable_gc_mem_cache']) && !empty($conf['enable_gc_mem_cache'])) {
+        if (isset($conf['gc_mem_cache_enable']) && !empty($conf['gc_mem_cache_enable'])) {
             $time = $conf['gc_mem_cache_tick_time'] ?? 30;
             \Swoole\Timer::tick($time * 1000, function () {
                 gc_mem_caches();

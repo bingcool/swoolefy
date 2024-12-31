@@ -27,7 +27,7 @@ return [
 
     'rateLimit' => function() {
         $redis = Application::getApp()->get('redis')->getObject();
-        $rateLimit =  new \Common\Library\RateLimit\RedisLimit($redis);
+        $rateLimit =  new \Common\Library\RateLimit\DurationLimiter($redis);
         return $rateLimit;
     },
 
@@ -41,6 +41,11 @@ return [
         $redis = Application::getApp()->get('predis')->getObject();
         $lock = new \Common\Library\Lock\PredisMutex([$redis],'order_lock-1', 10);
         return $lock;
+    },
+
+    'session' => function() {
+        $session = new \Swoolefy\Core\Session();
+        return $session;
     },
 
 ];

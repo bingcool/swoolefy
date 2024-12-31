@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Worker;
 
+use DirectoryIterator;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Core\Log\LogManager;
 
@@ -57,6 +58,9 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
         $this->limitCurrentRunCoroutineNum = $this->getArgs()['limit_run_coroutine_num'] ?? null;
         $this->registerTickReboot();
         $this->onInit();
+        if ($this->getRebootCount() > 0) {
+            \Swoole\Coroutine\System::sleep(0.3);
+        }
     }
 
     /**
@@ -108,7 +112,7 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
                     $this->onHandleException($throwable);
                 }
 
-                \Swoole\Coroutine::sleep(0.05);
+                \Swoole\Coroutine::sleep(0.03);
                 // 当接受到进程退出指令后，会设置waitToExit=true, 等主流程的执行完主业务流程后（即loopHandle业务），进程再退出
                 if ($this->waitToExit) {
                     $pid = $this->getPid();
@@ -151,16 +155,31 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
                 $logger->setRotateDay($rotateDay);
                 $filePath = $logger->getLogFilePath();
                 $filePathDir = pathinfo($filePath, PATHINFO_DIRNAME);
+                if (SystemEnv::cronScheduleScriptModel()) {
+                    $handleClass = getenv('handle_class');
+                }
                 $class = str_replace('\\', DIRECTORY_SEPARATOR, $handleClass);
                 $items = explode(DIRECTORY_SEPARATOR, $class);
-                $fileName = array_pop($items);
-                if (SystemEnv::isDaemonService()) {
-                    $dir = "{$logType}" .DIRECTORY_SEPARATOR. $fileName . '.log';
-                }else if (SystemEnv::isCronService()) {
-                    $dir = "{$logType}" .DIRECTORY_SEPARATOR. $fileName . '.log';
+                unset($items[0]);
+                $fileName = implode('_', $items);
+                $dir = "{$logType}" .DIRECTORY_SEPARATOR. $fileName . '.log';
+                // 清理可能提前生成的空日志，直接挂载cron|daemon目录下
+                if (SystemEnv::isCronService() || SystemEnv::isDaemonService() || SystemEnv::cronScheduleScriptModel()) {
+                    foreach (new DirectoryIterator($filePathDir) as $fileInfo) {
+                        if ($fileInfo->isDot()) {
+                            continue;
+                        }
+                        $extension = pathinfo($fileInfo->getFilename(), PATHINFO_EXTENSION);
+                        if ($extension == 'log') {
+                            unlink($fileInfo->getPathname());
+                        }
+                    }
                 }
-                $filePath = $filePathDir . DIRECTORY_SEPARATOR .$dir;
-                $logger->setLogFilePath($filePath);
+
+                if (isset($dir)) {
+                    $filePath = $filePathDir . DIRECTORY_SEPARATOR .$dir;
+                    $logger->setLogFilePath($filePath);
+                }
             }
         }
     }

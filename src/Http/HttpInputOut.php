@@ -11,42 +11,42 @@
 
 namespace Swoolefy\Http;
 
-use Swoole\Http\Request;
-use Swoole\Http\Response;
+use Swoole\Http\Request as SwooleRequest;
+use Swoole\Http\Response as SwooleResponse;
 
 class HttpInputOut
 {
     /**
-     * @var Request
+     * @var SwooleRequest
      */
-    protected $request;
+    protected $swooleRequest;
 
     /**
-     * @var Response
+     * @var SwooleResponse
      */
-    protected $response;
+    protected $swooleResponse;
 
-    public function __construct(Request $request, Response $response)
+    public function __construct(SwooleRequest $swooleRequest, SwooleResponse $swooleResponse)
     {
-        $this->request = $request;
-        $this->response = $response;
+        $this->swooleRequest  = $swooleRequest;
+        $this->swooleResponse = $swooleResponse;
     }
 
     /**
      * getRequest
-     * @return Request
+     * @return SwooleRequest
      */
-    public function getRequest(): Request
+    public function getSwooleRequest(): SwooleRequest
     {
-        return $this->request;
+        return $this->swooleRequest;
     }
 
     /**
      * getResponse
-     * @return Response
+     * @return SwooleResponse
      */
-    public function getResponse(): Response
+    public function getSwooleResponse(): SwooleResponse
     {
-        return $this->response;
+        return $this->swooleResponse;
     }
 }

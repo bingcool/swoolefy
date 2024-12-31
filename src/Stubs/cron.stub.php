@@ -2,32 +2,35 @@
 // workerService 模式下要关闭opcache.enable_cli
 include __DIR__.'/vendor/autoload.php';
 
+$appName = ucfirst($_SERVER['argv'][2]);
+// 定义app name
+define('APP_NAME', $appName);
 // 启动目录
 defined('START_DIR_ROOT') or define('START_DIR_ROOT', __DIR__);
 // 应用父目录
 defined('ROOT_PATH') or define('ROOT_PATH',__DIR__);
 // 应用目录
-defined('APP_PATH') or define('APP_PATH',__DIR__.'/'.ucfirst($_SERVER['argv'][2]));
+defined('APP_PATH') or define('APP_PATH',__DIR__.'/'.$appName);
 
 registerNamespace(APP_PATH);
 
-$appName = ucfirst($_SERVER['argv'][2]);
 define('APP_META_ARR', [
     'Test' => [
         'protocol' => 'http',
         'worker_port' => 9506,
     ]
+    // todo
 ]);
 
 define('WORKER_PORT', APP_META_ARR[$appName]['worker_port']);
-define('IS_DAEMON_SERVICE', 1);
-define('IS_CRON_SERVICE', 0);
-define('IS_CLI_SCRIPT', 0);
+define('IS_DAEMON_SERVICE', 0);
+define('IS_CRON_SERVICE', 1);
+define('IS_SCRIPT_SERVICE', 0);
 define('PHP_BIN_FILE','/usr/bin/php');
 
 define('WORKER_SERVICE_NAME', makeServerName($_SERVER['argv'][2]));
 
-define('WORKER_START_SCRIPT_FILE', $_SERVER['PWD'].'/'.$_SERVER['SCRIPT_FILENAME']);
+define('WORKER_START_SCRIPT_FILE', str_contains($_SERVER['SCRIPT_FILENAME'], $_SERVER['PWD']) ? $_SERVER['SCRIPT_FILENAME'] : $_SERVER['PWD'].'/'.$_SERVER['SCRIPT_FILENAME']);
 define('WORKER_PID_FILE_ROOT', '/tmp/workerfy/log/'.WORKER_SERVICE_NAME);
 define('WORKER_PID_FILE', WORKER_PID_FILE_ROOT.'/worker.pid');
 define('WORKER_STATUS_FILE',WORKER_PID_FILE_ROOT.'/status.log');
@@ -37,17 +40,18 @@ define('WORKER_TO_CLI_PIPE',WORKER_PID_FILE_ROOT.'/ctl.pipe');
 define('WORKER_CTL_CONF_FILE',WORKER_PID_FILE_ROOT.'/confctl.json');
 
 date_default_timezone_set('Asia/Shanghai');
-// 定义加载配置函数
-define('WORKER_CONF', \Swoolefy\Worker\MainManager::loadWorkerConf(__DIR__.'/'.$_SERVER['argv'][2].'/WorkerDaemon/worker_common_conf.php'));
+
+define('WORKER_CONF', \Swoolefy\Worker\MainManager::loadWorkerConf(__DIR__.'/'.$appName.'/WorkerCron/worker_cron_conf.php'));
 
 define('PROCESS_CLASS', [
-    // 应用daemon worker
-    'Test' => \Test\WorkerDaemon\MainProcess::class,
+    // 应用crom worker
+    'Test' => \Test\WorkerCron\MainCronProcess::class,
+    // todo
 ]);
 
 // 启动前处理,比如加载.env
 $beforeFunc = function () {
-
+    // var_dump(APP_PATH);
 };
 
 include __DIR__.'/swoolefy';

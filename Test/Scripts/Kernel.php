@@ -2,56 +2,44 @@
 
 namespace Test\Scripts;
 
-use Swoolefy\Core\SystemEnv;
+use Swoolefy\Core\Schedule\Schedule;
+use Swoolefy\Script\AbstractKernel;
+use Swoolefy\Worker\Cron\CronForkProcess;
+use Test\Scripts\User\TestDbQuery;
 
-class Kernel
+class Kernel extends AbstractKernel
 {
     public static $commands = [
         GenerateMysql::command => [GenerateMysql::class, 'generate'],
         GeneratePg::command    => [GeneratePg::class, 'generate'],
-        User\FixedUser::command => [User\FixedUser::class, 'fixName']
+        User\FixedUser::command => [User\FixedUser::class, 'fixName'],
+        Phpy\Py::command => [Phpy\Py::class, 'testPhpy'],
+        TestDbQuery::command => [TestDbQuery::class, 'testDbQuery'],
     ];
 
     /**
-     * 任务调度配置
-     *
-     * @var array[]
+     * @return Schedule
      */
-    public static $schedule = [
-//        [
-//            'command' => User\FixedUser::command,
-//            //'cron_expression' => 10, // 10s执行一次
-//            'cron_expression' => '*/1 * * * *', // 每分钟执行一次
-//            'desc' => '',
-//        ],
-        [
-            'command' => User\FixedUser::command,
-            'cron_expression' => 3600, // 10s执行一次
-            //'cron_expression' => '*/1 * * * *', // 每分钟执行一次
-            'desc' => '',
-        ],
-    ];
-
-
-    /**
-     * 配置化调度
-     *
-     * @return array
-     */
-    public static function buildScheduleTaskList()
+    public static function schedule()
     {
-        $appName = $_SERVER['argv'][2];
-        $scheduleList = [];
-        foreach (self::$schedule as $item) {
-            $item['cron_name'] = $item['command'].'-'.$item['cron_expression'];
-            $item['exec_bin_file'] = SystemEnv::PhpBinFile();
-            $item['fork_type'] = \Swoolefy\Worker\Cron\CronForkProcess::FORK_TYPE_PROC_OPEN;
-            $item['exec_script'] = "script.php start {$appName} --c={$item['command']} --daemon=1";
-            $item['params'] = [];
-            $scheduleList[] = $item;
-        }
-        return $scheduleList;
-    }
+        $schedule = Schedule::getInstance();
+        $schedule->command(User\FixedUser::command)
+            ->cron(10)
+            ->addArgs('name', 'bingcool')
+            ->addArgs('age', 18)
+            ->addArgs('sex', 'man')
+            ->addArgs('desc', "fff kkkmm")
+            ->forkType(CronForkProcess::FORK_TYPE_PROC_OPEN);
 
+//        $schedule->command(User\FixedUser::command)
+//            ->everyMinute()
+//            ->addArgs('name', 'bingcool')
+//            ->addArgs('age', 18)
+//            ->addArgs('sex', 'man')
+//            ->addArgs('desc', "fff kkkmm")
+//            ->forkType(CronForkProcess::FORK_TYPE_PROC_OPEN);
+
+        return $schedule;
+    }
 
 }

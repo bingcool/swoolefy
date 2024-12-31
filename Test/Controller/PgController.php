@@ -3,6 +3,8 @@ namespace Test\Controller;
 
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
+use Swoolefy\Http\RequestInput;
+use Test\Logger\RunLog;
 use Test\Module\Order\OrderEntity;
 use Test\Module\Order\OrderFormatter;
 
@@ -37,7 +39,8 @@ class PgController extends BController
             'order_product_ids' => json_encode($order_product_ids),
             'json_data' => json_encode($json_data),
             'order_status' => $order_status,
-            'remark' => $remark
+            'remark' => $remark,
+            'expend_data' => '{"name":"xiaomi","phone":123456789}',
         ]);
         $id = $query->getLastInsID();
 
@@ -91,5 +94,19 @@ class PgController extends BController
         }
 
     }
+
+    public function removeUser(RequestInput $requestInput)
+    {
+        RunLog::info("removeUser");
+        $uid = $requestInput->input('uid');
+        var_dump($uid);
+    }
+
+    public function testCurl(RequestInput $requestInput)
+    {
+        sleep(10);
+        $this->returnJson();
+    }
+
 
 }
