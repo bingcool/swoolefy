@@ -26,7 +26,7 @@ class TableManager
      */
     public static function createTable(array $tables = [])
     {
-        if(!$tables) {
+        if (!$tables) {
             return false;
         }
 
