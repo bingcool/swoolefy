@@ -149,16 +149,16 @@ class EventCtrl implements EventCtrlInterface
             }
 
             if (SystemEnv::isDaemonService()) {
-                $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_daemon.log';
+                $curlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_daemon.log';
             }else if (SystemEnv::isCronService()) {
-                $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_cron.log';
+                $curlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_cron.log';
             }else if (SystemEnv::isScriptService()) {
-                $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_script.log';
+                $curlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_script.log';
             }else {
-                $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_cli.log';
+                $curlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.'curl_cli.log';
             }
 
-            $logger->setLogFilePath($sqlFilePath);
+            $logger->setLogFilePath($curlFilePath);
             return $logger;
         }, LogManager::GUZZLE_CURL_LOG);
     }
