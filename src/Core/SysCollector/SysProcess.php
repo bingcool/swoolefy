@@ -83,7 +83,7 @@ class SysProcess extends AbstractProcess
                         'from_service'  => $this->sysCollectorConfig['from_service'] ?? '',
                         'timestamp'     => date('Y-m-d H:i:s')
                     ];
-                    $data['sys_collector_message'] = $collectionInfo;
+                    $data['sys_collector_message'] = $collectionInfo ?? '';
                     switch ($type) {
                         case SWOOLEFY_SYS_COLLECTOR_UDP:
                             $this->sendByUdp($data);

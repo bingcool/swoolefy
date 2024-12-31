@@ -32,7 +32,7 @@ return [
         /**
          * @var AMQPStreamConnection $connection
          */
-        $connection = \Swoolefy\Core\Application::getApp()->get('amqpConnection')->getObject();
+        $connection = \Test\App::getAmqpConnection();
         $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_DIRECT_ORDER;
         $amqpConfig->queueName    = AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_ADD;
@@ -44,6 +44,8 @@ return [
         $amqpConfig->durable = $property['durable'];
         $amqpConfig->exclusive = $property['exclusive'];
         $amqpConfig->autoDelete = $property['auto_delete'];
+        $amqpConfig->arguments  = $property['arguments'];
+        //$amqpConfig->consumerTag = $property['consumer_tag'].'_pid_'.posix_getpid(); // 最好设置成唯一标志
 
         $amqpDirect = new \Common\Library\Amqp\AmqpDirectQueue($connection, $amqpConfig);
         $amqpDirect->setAckHandler(function (\PhpAmqpLib\Message\AMQPMessage $message) {
@@ -57,7 +59,7 @@ return [
         /**
          * @var AMQPStreamConnection $connection
          */
-        $connection = \Swoolefy\Core\Application::getApp()->get('amqpConnection')->getObject();
+        $connection = \Test\App::getAmqpConnection();
         $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_DIRECT_ORDER;
         $amqpConfig->queueName    = AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_EXPORT;
@@ -69,6 +71,8 @@ return [
         $amqpConfig->durable = $property['durable'];
         $amqpConfig->exclusive = $property['exclusive'];
         $amqpConfig->autoDelete = $property['auto_delete'];
+        $amqpConfig->arguments  = $property['arguments'];
+        $amqpConfig->consumerTag = $property['consumer_tag'].'_pid_'.posix_getpid(); // 最好设置成唯一标志
 
         $amqpDirect = new \Common\Library\Amqp\AmqpDirectQueue($connection, $amqpConfig);
 
@@ -80,7 +84,7 @@ return [
         /**
          * @var AMQPStreamConnection $connection
          */
-        $connection = \Swoolefy\Core\Application::getApp()->get('amqpConnection')->getObject();
+        $connection = \Test\App::getAmqpConnection();
         $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_DIRECT_ORDER;
 
@@ -96,6 +100,7 @@ return [
         $amqpConfig->exclusive = $property['exclusive'];
         $amqpConfig->autoDelete = $property['auto_delete'];
         $amqpConfig->arguments = $property['arguments'];
+        $amqpConfig->consumerTag = $property['consumer_tag'].'_pid_'.posix_getpid(); // 最好设置成唯一标志
 
         $amqpDelayDirect = new \Common\Library\Amqp\AmqpDelayDirectQueue($connection, $amqpConfig);
 //            $amqpDelayDirect->setAckHandler(function (\PhpAmqpLib\Message\AMQPMessage $message) {
@@ -110,7 +115,7 @@ return [
         /**
          * @var AMQPStreamConnection $connection
          */
-        $connection = \Swoolefy\Core\Application::getApp()->get('amqpConnection')->getObject();
+        $connection = \Test\App::getAmqpConnection();
         $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_FANOUT_ORDER;
         $amqpFanoutConsumer = new \Common\Library\Amqp\AmqpFanoutQueue($connection, $amqpConfig);
@@ -125,7 +130,7 @@ return [
         /**
          * @var AMQPStreamConnection $connection
          */
-        $connection = \Swoolefy\Core\Application::getApp()->get('amqpConnection')->getObject();
+        $connection = \Test\App::getAmqpConnection();
         $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_FANOUT_ORDER;
         $amqpConfig->queueName = AmqpConfig::AMQP_QUEUE_FANOUT_ORDER_ADD;
@@ -139,6 +144,8 @@ return [
         $amqpConfig->durable = $property['durable'];
         $amqpConfig->exclusive = $property['exclusive'];
         $amqpConfig->autoDelete = $property['auto_delete'];
+        $amqpConfig->arguments = $property['arguments'];
+        $amqpConfig->consumerTag = $property['consumer_tag'].'_pid_'.posix_getpid();
 
         $amqpFanoutConsumer = new \Common\Library\Amqp\AmqpFanoutQueue($connection, $amqpConfig);
         return $amqpFanoutConsumer;
@@ -149,7 +156,7 @@ return [
         /**
          * @var AMQPStreamConnection $connection
          */
-        $connection = \Swoolefy\Core\Application::getApp()->get('amqpConnection')->getObject();
+        $connection = \Test\App::getAmqpConnection();
         $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_FANOUT_ORDER;
         $amqpConfig->queueName = AmqpConfig::AMQP_QUEUE_FANOUT_ORDER_EXPORT;
@@ -163,6 +170,8 @@ return [
         $amqpConfig->durable = $property['durable'];
         $amqpConfig->exclusive = $property['exclusive'];
         $amqpConfig->autoDelete = $property['auto_delete'];
+        $amqpConfig->arguments = $property['arguments'];
+        $amqpConfig->consumerTag = $property['consumer_tag'].'_pid_'.posix_getpid();
 
         $amqpFanoutConsumer = new \Common\Library\Amqp\AmqpFanoutQueue($connection, $amqpConfig);
         return $amqpFanoutConsumer;
@@ -173,7 +182,7 @@ return [
         /**
          * @var AMQPStreamConnection $connection
          */
-        $connection = \Swoolefy\Core\Application::getApp()->get('amqpConnection')->getObject();
+        $connection = \Test\App::getAmqpConnection();
         $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_TOPIC_ORDER;
         $amqpConfig->queueName    = AmqpConfig::AMQP_QUEUE_TOPIC_ORDER_ADD;
@@ -186,7 +195,7 @@ return [
         $amqpConfig->durable = $property['durable'];
         $amqpConfig->exclusive = $property['exclusive'];
         $amqpConfig->autoDelete = $property['auto_delete'];
-        $amqpConfig->consumerTag = $property['consumer_tag'];
+        $amqpConfig->consumerTag = $property['consumer_tag'].'_pid_'.posix_getpid(); // 最好设置成唯一标志
 
         $AmqpTopicPublish = new \Common\Library\Amqp\AmqpTopicQueue($connection, $amqpConfig);
 //            $AmqpTopicPublish->setAckHandler(function (\PhpAmqpLib\Message\AMQPMessage $message) {
@@ -200,7 +209,7 @@ return [
         /**
          * @var AMQPStreamConnection $connection
          */
-        $connection = \Swoolefy\Core\Application::getApp()->get('amqpConnection')->getObject();
+        $connection = \Test\App::getAmqpConnection();
         $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_TOPIC_ORDER;
 
@@ -216,6 +225,7 @@ return [
         $amqpConfig->exclusive = $property['exclusive'];
         $amqpConfig->autoDelete = $property['auto_delete'];
         $amqpConfig->arguments = $property['arguments'];
+        $amqpConfig->consumerTag = $property['consumer_tag'].'_pid_'.posix_getpid(); // 最好设置成唯一标志
 
         $amqpTopicPublish = new \Common\Library\Amqp\AmqpDelayTopicQueue($connection, $amqpConfig);
 //            $AmqpTopicPublish->setAckHandler(function (\PhpAmqpLib\Message\AMQPMessage $message) {

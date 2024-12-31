@@ -5,8 +5,10 @@ namespace Test;
 use Common\Library\Db\PDOConnection;
 use Predis\Command\Redis\CONFIG;
 use Swoole\Coroutine\WaitGroup;
+use Swoole\Server;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Coroutine\GoWaitGroup;
+use Swoolefy\Core\ProcessPools\PoolsManager;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\EventHandler;
@@ -27,12 +29,12 @@ class Event extends EventHandler
 
         $waitGroup = new GoWaitGroup();
 
-        if(!$this->isWorkerService()) {
+        if(!SystemEnv::isWorkerService()) {
             // 创建一个测试自定义进程
             // ProcessManager::getInstance()->addProcess('test', \Test\Process\TestProcess\MultiCall::class);
 
             // 创建一个定时器处理进程
-            ProcessManager::getInstance()->addProcess('tick', \Test\Process\TickProcess\Tick::class);
+            // ProcessManager::getInstance()->addProcess('tick', \Test\Process\TickProcess\Tick::class);
 
             // 测试cron自定义进程
             // ProcessManager::getInstance()->addProcess('cron', \Test\Process\CronProcess\Cron::class);
@@ -49,10 +51,13 @@ class Event extends EventHandler
 
 
             // amqp-direct 生产队
-            //ProcessManager::getInstance()->addProcess('amqp-publish', \Test\Process\AmqpProcess\AmqpPublish::class);
+           // ProcessManager::getInstance()->addProcess('amqp-publish', \Test\Process\AmqpProcess\AmqpPublish::class);
             // amqp-direct 消费队列
-            //ProcessManager::getInstance()->addProcess('amqp-consumer', \Test\Process\AmqpProcess\AmqpConsumer::class);
-            //ProcessManager::getInstance()->addProcess('amqp-consumer-1', \Test\Process\AmqpProcess\AmqpConsumer::class);
+           // ProcessManager::getInstance()->addProcess('amqp-consumer', \Test\Process\AmqpProcess\AmqpConsumer::class);
+            // amqp-direct 消费队列
+           // ProcessManager::getInstance()->addProcess('amqp-consumer1', \Test\Process\AmqpProcess\AmqpConsumer::class);
+
+            // ProcessManager::getInstance()->addProcess('amqp-consumer-1', \Test\Process\AmqpProcess\AmqpConsumer::class);
 
             // amqp-fanout 生产队列
             //ProcessManager::getInstance()->addProcess('amqp-publish-fanout', \Test\Process\AmqpProcess\AmqpPublishFanout::class);
@@ -73,7 +78,6 @@ class Event extends EventHandler
             //ProcessManager::getInstance()->addProcess('kafka-consumer-topic1', \Test\Process\Kafka\ConsumerKafka::class);
             //ProcessManager::getInstance()->addProcess('kafka-consumer-topic2', \Test\Process\Kafka\ConsumerKafka::class);
             //ProcessManager::getInstance()->addProcess('kafka-consumer-topic3', \Test\Process\Kafka\ConsumerKafka::class);
-
 
 
             // worker进程绑定进程池
@@ -110,7 +114,7 @@ class Event extends EventHandler
             return;
         }
         // 创建产生uuid的定时器
-        //Factory::getUUid()->tickPreBatchGenerateIds(2, 100);
+        //App::getUUid()->tickPreBatchGenerateIds(2, 100);
     }
 
     public function onWorkerStop($server, $worker_id)

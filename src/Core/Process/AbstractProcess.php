@@ -454,6 +454,15 @@ abstract class AbstractProcess
     }
 
     /**
+     * @param string $name
+     * @return bool
+     */
+    public function getOption(string $name)
+    {
+        return getenv($name);
+    }
+
+    /**
      * init
      * @return void
      */

@@ -11,14 +11,13 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Application;
 use Swoolefy\Util\Helper;
 
 class Session
 {
     /**
      * $driver 缓存驱动的实例
-     * @var string
+     * @var \Redis
      */
     public $driver = null;
 
@@ -128,21 +127,20 @@ class Session
         /**
          * 注册钩子程序,在请求结束后保存session,防止多次注册
          */
-        $app = Application::getApp();
         if (!$this->isStart) {
-            $app->afterRequest([$this, 'save']);
+            Application::getApp()->afterRequest([$this, 'save']);
         }
 
-        $driver_component_name = $this->cache_driver;
-        $this->driver = $app->get($driver_component_name);
+        $driverComponentName = $this->cache_driver;
+        $this->driver = Application::getApp()->get($driverComponentName);
         $this->isStart = true;
         $this->readonly = $readonly;
-        $cookie_session_id = isset($app->request->cookie[$this->cookie_key]) ? $app->request->cookie[$this->cookie_key] : null;
-        $this->session_id = $cookie_session_id;
-        if (empty($cookie_session_id)) {
-            $sess_id = Helper::randMd5(40);
-            $app->response->cookie($this->cookie_key, $sess_id, time() + $this->cookie_lifetime, $this->cookie_path, $this->cookie_domain, false, false);
-            $this->session_id = $sess_id;
+        $cookieSessionId = isset(Application::getApp()->swooleRequest->cookie[$this->cookie_key]) ? Application::getApp()->swooleRequest->cookie[$this->cookie_key] : null;
+        $this->session_id = $cookieSessionId;
+        if (empty($cookieSessionId)) {
+            $sessId = Helper::randMd5(40);
+            Application::getApp()->swooleResponse->cookie($this->cookie_key, $sessId, time() + $this->cookie_lifetime, $this->cookie_path, $this->cookie_domain, false, false);
+            $this->session_id = $sessId;
         }
         $this->_SESSION = $this->load($this->session_id);
         return true;
@@ -285,7 +283,7 @@ class Session
         if (is_null($key)) {
             return $this->_SESSION;
         }
-        return $this->_SESSION[$key];
+        return $this->_SESSION[$key] ?? null;
     }
 
     /**
@@ -309,10 +307,10 @@ class Session
     {
         $isExists = $this->driver->exists($this->session_id);
         $isExists && $ttl = $this->driver->ttl($this->session_id);
-        if ($ttl >= 0) {
+        if (isset($ttl) && $ttl >= 0) {
             return $ttl;
         }
-        return null;
+        return $ttl ?? null;
     }
 
     /**
@@ -346,22 +344,29 @@ class Session
     }
 
     /**
-     * reGenerateSessionId 重新生成session_id
-     * @param bool $ismerge 生成新的session_id是否继承合并当前session的数据，默认true,如需要产生一个完全新的空的$this->_SESSION，可以设置false
-     * @return void
-     * @throws \Exception
+     * @return bool
      */
-    public function reGenerateSessionId(bool $ismerge = true)
+    public function clear()
     {
-        $session_data = $this->_SESSION;
+        return $this->destroy();
+    }
+
+    /**
+     * reGenerateSessionId 重新生成session_id
+     * @param bool $isMerge 生成新的session_id是否继承合并当前session的数据，默认true,如需要产生一个完全新的空的$this->_SESSION，可以设置false
+     * @return void
+     */
+    public function reGenerateSessionId(bool $isMerge = true)
+    {
+        $sessionData = $this->_SESSION;
         // 先cookie的session_id失效
         setcookie($this->cookie_key, $this->session_id, time() - 600, $this->cookie_path, $this->cookie_domain);
         // 设置session_id=null
         $this->session_id = null;
         // 产生新的session_id和返回空的$_SESSION数组
         $this->start();
-        if ($ismerge) {
-            $this->_SESSION = array_merge($this->_SESSION, $session_data);
+        if ($isMerge) {
+            $this->_SESSION = array_merge($this->_SESSION, $sessionData);
         }
     }
 

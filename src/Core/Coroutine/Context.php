@@ -12,9 +12,7 @@
 namespace Swoolefy\Core\Coroutine;
 
 use ArrayObject;
-use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Application;
-use Swoolefy\Exception\SystemException;
 
 class Context
 {
@@ -63,7 +61,7 @@ class Context
     public static function get(string $name)
     {
         $context = self::getContext();
-        return $context[$name];
+        return $context[$name] ?? null;
     }
 
     /**

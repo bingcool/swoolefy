@@ -4,7 +4,7 @@ namespace Test\Module\Order\Controller;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
-use Swoolefy\Core\Log\LogManager;
+use Swoolefy\Http\RequestInput;
 
 class LogOrderController extends BController
 {
@@ -12,7 +12,7 @@ class LogOrderController extends BController
      * @return void
      * @see \Test\Module\Order\Validation\LogOrderValidation::testLog()
      */
-    public function testLog()
+    public function testLog(RequestInput $requestInput)
     {
         /**
          * @var \Swoolefy\Util\Log $log
@@ -24,8 +24,8 @@ class LogOrderController extends BController
         $log->addInfo(['name' => 'bingcool','address'=>'深圳'],true, ['name'=>'bincool','sex'=>1,'address'=>'shenzhen']);
 
         $this->returnJson([
-            'Controller' => $this->getControllerId(),
-            'Action' => $this->getActionId().'-'.rand(1,1000)
+            'Controller' => $requestInput->getControllerId(),
+            'Action' => $requestInput->getActionId().'-'.rand(1,1000)
         ]);
     }
 }

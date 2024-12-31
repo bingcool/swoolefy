@@ -13,26 +13,25 @@ namespace Swoolefy\Core\Controller;
 
 use Swoole\Coroutine;
 use Swoolefy\Core\App;
+use Swoole\Http\Request as SwooleRequest;
+use Swoole\Http\Response as SwooleResponse;
 use Swoolefy\Core\Application;
+use Swoolefy\Http\RequestInput;
 
 class BController extends \Swoolefy\Core\AppObject
 {
-
-    use \Swoolefy\Http\RequestParseTrait;
-    use \Swoolefy\Http\ResponseParseTrait;
     use \Swoolefy\Core\ServiceTrait;
+    use \Swoolefy\Http\ResponseParseTrait;
 
     /**
-     * $request
-     * @var \Swoole\Http\Request
+     * @var SwooleRequest
      */
-    public $request = null;
+    public $swooleRequest = null;
 
     /**
-     * $response
-     * @var \Swoole\Http\Response
+     * @var SwooleResponse
      */
-    public $response = null;
+    public $swooleResponse = null;
 
     /**
      * $appConf
@@ -49,8 +48,8 @@ class BController extends \Swoolefy\Core\AppObject
          * @var App $app
          */
         $app = Application::getApp();
-        $this->request  = $app->request;
-        $this->response = $app->response;
+        $this->swooleRequest  = $app->swooleRequest;
+        $this->swooleResponse = $app->swooleResponse;
         $this->appConf  = $app->appConf;
         if (Coroutine::getCid() >= 0) {
             \Swoole\Coroutine::defer(function () {
@@ -60,20 +59,22 @@ class BController extends \Swoolefy\Core\AppObject
     }
 
     /**
+     * @param RequestInput $requestInput
      * @param string $action
-     * @return bool|null
+     * @return bool
      */
-    public function _beforeAction(string $action): ?bool
+    public function _beforeAction(RequestInput $requestInput, string $action)
     {
         return true;
     }
 
 
     /**
+     * @param RequestInput $requestInput
      * @param string $action
-     * @return void
+     * @return mixed
      */
-    public function _afterAction(string $action)
+    public function _afterAction(RequestInput $requestInput, string $action)
     {
 
     }

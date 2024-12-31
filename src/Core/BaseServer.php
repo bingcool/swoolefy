@@ -188,8 +188,8 @@ class BaseServer
             self::setWorkerUserGroup(self::$config['www_user']);
             // 启动时提前加载文件
             self::startInclude();
-            // 记录worker的进程worker_pid与worker_id的映射
-            self::setWorkersPid($workerId, $server->worker_pid);
+            // 记录worker的进程worker_id与worker_pid的映射
+            self::setWorkerIdMapPid($workerId, $server->worker_pid);
 
         }catch(\Throwable $throwable) {
             self::catchException($throwable);
@@ -545,23 +545,23 @@ class BaseServer
     }
 
     /**
-     * setWorkersPid 记录worker对应的进程worker_pid与worker_id的映射
+     * setWorkerIdMapPid 记录worker对应的进程worker_id与worker_pid的映射
      * @param int $workerId
      * @param int $workerPid
      * @return void
      */
-    public static function setWorkersPid(int $workerId, int $workerPid)
+    public static function setWorkerIdMapPid(int $workerId, int $workerPid)
     {
-        $workerPidArr = self::getWorkersPid();
-        $workerPidArr[$workerId] = $workerPid;
-        TableManager::set('table_workers_pid', 'workers_pid', ['workers_pid' => json_encode($workerPidArr)]);
+        $workerIdPidArr = self::getWorkerIdMapPid();
+        $workerIdPidArr[$workerId] = $workerPid;
+        TableManager::set('table_workers_pid', 'workers_pid', ['workers_pid' => json_encode($workerIdPidArr)]);
     }
 
     /**
-     * getWorkersPid 获取线上的实时的进程worker_pid与worker_id的映射
+     * getWorkersPid 获取线上的实时的进程worker_id与worker_pid的映射
      * @return array
      */
-    public static function getWorkersPid()
+    public static function getWorkerIdMapPid()
     {
         return json_decode(TableManager::get('table_workers_pid', 'workers_pid', 'workers_pid'), true);
     }

@@ -16,6 +16,7 @@ use Swoolefy\Core\AppDispatch;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\Coroutine\Context;
+use Swoolefy\Core\Dto\AbstractDto;
 use Swoolefy\Core\RouteMiddleware;
 use Swoolefy\Exception\DispatchException;
 use Swoolefy\Exception\SystemException;
@@ -141,6 +142,7 @@ class HttpRoute extends AppDispatch
 
         $dispatchRouteItem = explode("\\", $controllerNamespace);
         $count = count($dispatchRouteItem);
+        $controller = '';
         switch ($count) {
             case static::ITEM_NUM_3:
                 $module = null;
@@ -166,7 +168,7 @@ class HttpRoute extends AppDispatch
             $this->requestInput->validate($this->requestInput->all(), $validateRule['rules'] ?? [], $validateRule['messages'] ?? []);
         }
 
-        if ($module) {
+        if (isset($module)) {
             // route params array
             $routeItems = [3, [$module, $controller, $action]];
         } else {
@@ -220,27 +222,23 @@ class HttpRoute extends AppDispatch
         // set Controller Instance
         $this->app->setControllerInstance($controllerInstance);
 
-        // set extend data
-        $controllerInstance->setExtendData($this->requestInput->getExtendData());
         // invoke _beforeAction
-        $isContinueAction = $controllerInstance->_beforeAction($action);
+        $isContinueAction = $controllerInstance->_beforeAction($this->requestInput, $action);
 
         if ($isContinueAction === false) {
             $errorMsg = sprintf(
-                "Call %s::_beforeAction() return false, forbidden continue call %s::%s",
+                "Call %s::_beforeAction() return false, forbidden call %s::%s",
                 $class,
                 $class,
                 $action
             );
 
-            throw new DispatchException($errorMsg, 404);
+            throw new DispatchException($errorMsg, 403);
         }
         // reflector params handle
         list($method, $args) = $this->bindActionParams($controllerInstance, $action, $this->requestInput->all());
         $controllerInstance->{$action}(...$args);
-        $controllerInstance->_afterAction($action);
-        $extendData = $controllerInstance->getExtendData();
-        $this->requestInput->setExtendData($extendData);
+        $controllerInstance->_afterAction($this->requestInput, $action);
         $this->handleAfterRouteMiddles();
         return true;
     }
@@ -326,7 +324,7 @@ class HttpRoute extends AppDispatch
     public static function resetRouteDispatch(string $route)
     {
         $route = trim($route, DIRECTORY_SEPARATOR);
-        Application::getApp()->request->server['PATH_INFO'] = DIRECTORY_SEPARATOR . $route;
+        Application::getApp()->swooleRequest->server['PATH_INFO'] = DIRECTORY_SEPARATOR . $route;
     }
 
     /**
@@ -340,16 +338,29 @@ class HttpRoute extends AppDispatch
     {
         $method = new \ReflectionMethod($controllerInstance, $action);
         $args = $missing = $actionParams = [];
-
         foreach ($method->getParameters() as $param) {
             $name = $param->getName();
-            if (array_key_exists($name, $params)) {
+            $hasType = $param->hasType();
+            $typeName = $param->getType()->getName();
+            if ($hasType && $typeName == RequestInput::class) {
+                $args[] = $this->requestInput;
+            }else if ($hasType && $typeName == ResponseOutput::class) {
+                $args[] = $this->responseOutput;
+            }else if ($hasType && class_exists($typeName) && is_subclass_of($typeName,AbstractDto::class)) {
+                $paramDto     = new $typeName();
+                $inputParams  = $this->requestInput->input();
+                $propertyList = get_object_vars($paramDto);
+                foreach ($propertyList as $property => $value) {
+                    $paramDto->{$property} = $inputParams[$property] ?? $value;
+                }
+                $args[] = $paramDto;
+            }else if (array_key_exists($name, $params)) {
                 $isValid = true;
                 if ($param->hasType() && $param->getType()->getName() == 'array') {
                     $params[$name] = (array)$params[$name];
-                } elseif (is_array($params[$name])) {
+                } else if (is_array($params[$name])) {
                     $isValid = false;
-                } elseif (
+                } else if (
                     ($type = $param->getType()) !== null &&
                     $type->isBuiltin() &&
                     ($params[$name] !== null || !$type->allowsNull())
@@ -375,7 +386,7 @@ class HttpRoute extends AppDispatch
 
                 $args[] = $actionParams[$name] = $params[$name];
                 unset($params[$name]);
-            } elseif ($param->isDefaultValueAvailable()) {
+            } else if ($param->isDefaultValueAvailable()) {
                 $args[] = $actionParams[$name] = $param->getDefaultValue();
             } else {
                 $missing[] = $name;
@@ -478,7 +489,15 @@ class HttpRoute extends AppDispatch
             unset($routerMap[$uri][$method]);
             return $routeCacheItems;
         }else {
-            throw new DispatchException("Not Found Route [$uri].");
+            if (!isset($routerMap[$uri])) {
+                throw new DispatchException("Not Found Route [$uri].");
+            }else if (isset($routerMap[$uri]) && !isset($routerMap[$uri][$method])) {
+                $methods = array_keys($routerMap[$uri]);
+                $methods = implode(',', $methods);
+                throw new DispatchException("Only Support Http Method=[{$methods}], But You Current Request Method={$method}, route=[$uri], Please check route config.");
+            }else {
+                throw new DispatchException("Not Match Route [$uri].");
+            }
         }
     }
 

@@ -5,6 +5,13 @@ use Test\Model\ClientModel;
 
 trait OrderEventTrait
 {
+    protected function onBeforeSave(): bool
+    {
+        // todo
+        var_dump(__CLASS__.'::'.__FUNCTION__);
+        return true;
+    }
+
     /**
      * @return bool
      */

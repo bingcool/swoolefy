@@ -151,7 +151,8 @@ trait MainProcessCommandTrait {
         $execBinFile = SystemEnv::PhpBinFile();
         $scriptFile  = WORKER_START_SCRIPT_FILE;
         $appName     = APP_NAME;
-        list($command) = $runner->exec($execBinFile, "{$scriptFile} restart {$appName} --force=1", [],true, 'nobup_restart.log', false);
+        $execScript  = implode(' ', [$scriptFile, 'restart', $appName, '--force=1']);
+        list($command) = $runner->exec($execBinFile, $execScript, [],true, 'nobup_restart.log', false);
         exec($command, $output, $code);
     }
 }

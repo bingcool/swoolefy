@@ -61,6 +61,16 @@ function getOneFreePort(array $excludePorts = []): int
     return get_one_free_port($excludePorts);
 }
 
+/**
+ * json_validate
+ */
+if (!function_exists('json_validate')) {
+    function json_validate(string $string): bool {
+        json_decode($string);
+        return json_last_error() === JSON_ERROR_NONE;
+    }
+}
+
 function fmtPrintInfo($msg, bool $newLine = true)
 {
     if (is_array($msg)) {
@@ -104,7 +114,7 @@ function initConsoleStyleIo()
  */
 function makeServerName(string $appName)
 {
-    if (IS_DAEMON_SERVICE == 1 && IS_CRON_SERVICE == 0 && IS_CLI_SCRIPT == 0 ) {
+    if (IS_DAEMON_SERVICE == 1 && IS_CRON_SERVICE == 0 && IS_SCRIPT_SERVICE == 0 ) {
         return strtolower($appName.'-'.'daemon');
     }
 
@@ -112,7 +122,12 @@ function makeServerName(string $appName)
         return strtolower($appName.'-'.'cron');
     }
 
-    return strtolower($appName.'-'.'script');
+    if (IS_SCRIPT_SERVICE == 1) {
+        return strtolower($appName.'-'.'script');
+    }
+
+    return strtolower($appName.'-'.'cli');
+
 }
 
 /**
@@ -165,7 +180,7 @@ function goApp(callable $callback, ...$params) {
 /**
  * @param int $timeMs
  * @param callable $callable
- * @param bool $withBlockLapping 是否每个时间任务都执行，不管上个定时任务是否一致性完毕。
+ * @param bool $withBlockLapping 是否每个时间任务都执行，不管上个定时任务是否已执行完毕。
  * $withBlockLapping=true 将不会重叠执行，必须等上一个任务执行完毕，下一轮时间到了,也不会执行，必须等到上一轮任务结束后，再接着执行
  * $withBlockLapping=false 允许任务重叠执行，不管上一个任务的是否执行完毕，下一轮时间到了，任务将在一个新的协程中执行。默认false
  * @return Channel|int
@@ -188,6 +203,7 @@ function goTick(int $timeMs, callable $callable, bool $withBlockLapping = false)
 }
 
 /**
+ * one times task exec after $timeMs
  * @param int $timeMs
  * @param callable $callable
  * @return Channel|int

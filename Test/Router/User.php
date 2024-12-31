@@ -7,6 +7,7 @@ use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\Route;
 use Test\Middleware\Group\GroupTestMiddleware;
 use Test\Middleware\Route\RateLimiterMiddleware;
+use Test\Middleware\Route\SendMailMiddleware;
 use Test\Middleware\Route\ValidLoginMiddleware;
 
 /**
@@ -38,12 +39,15 @@ Route::group([
             ValidLoginMiddleware::class
         ],
         'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList'],
-        //GroupTestMiddleware::class => GroupTestMiddleware::class
+        // 后置中间件
+        'afterMiddleware' => [
+            SendMailMiddleware::class
+        ]
     ])
     ->enableDbDebug(true)
     ->withRateLimiterMiddleware(RateLimiterMiddleware::class,  60,60,GroupTestMiddleware::class);
 
-    Route::post('/user-order/userList', [
+    Route::post('/user-order/userList1', [
         // 针对该接口启动sql-debug
         'beforeHandle' => function(RequestInput $requestInput) {
             Context::set('db_debug', true);
@@ -53,11 +57,10 @@ Route::group([
             $requestInput->input('order_ids');
             $requestInput->getMethod();
         },
-        'beforeHandle2' => [
-            GroupTestMiddleware::class
-        ],
         'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList'],
-        //GroupTestMiddleware::class => GroupTestMiddleware::class
+        'afterMiddleware' => [
+            SendMailMiddleware::class
+        ]
     ]);
 
     Route::any('/user-order/userList1', [
@@ -123,4 +126,13 @@ Route::group([
         'dispatch_route' => [\Test\Controller\PgController::class, 'savePgOrder1'],
     ]);
 
+    Route::delete('/remove-use', [
+        'dispatch_route' => [\Test\Controller\PgController::class, 'removeUser'],
+    ]);
+
 });
+
+
+Route::get('/test-curl', [
+    'dispatch_route' => [\Test\Controller\PgController::class, 'testCurl'],
+]);

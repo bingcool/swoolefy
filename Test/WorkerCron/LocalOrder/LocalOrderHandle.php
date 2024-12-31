@@ -7,14 +7,14 @@ use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Worker\AbstractBaseWorker;
-use Test\Factory;
+use Test\App;
 use Test\Logger\RunLog;
 
 class LocalOrderHandle extends AbstractCronController {
 
     public function doCronTask($cron, string $cronName)
     {
-//        $db = Factory::getDb();
+//        $db = App::getDb();
 //        $db->createCommand("insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:order_product_ids,:order_status)" )
 //            ->insert([
 //                ':order_id' => Application::getApp()->get('uuid')->getOneId(),
@@ -31,6 +31,7 @@ class LocalOrderHandle extends AbstractCronController {
 //        var_dump(Swfy::getConf()['bjg']);
         SystemEnv::clearEnvRepository();
         RunLog::info("this is a cron test log");
+        RunLog::error("this is a cron test log");
         var_dump("cron start");
         sleep(3);
         var_dump(SystemEnv::get('WEB_SITE_HOST'));
@@ -41,7 +42,7 @@ class LocalOrderHandle extends AbstractCronController {
         var_dump("cron end");
 
 //        goApp(function() {
-//            $db = Factory::getDb();
+//            $db = App::getDb();
 //            $db->beginTransaction();
 //            try {
 //                $db->createCommand("insert into tbl_order (`order_id`,`receiver_user_name`,`receiver_user_phone`,`user_id`,`order_amount`,`order_product_ids`,`order_status`) values(:order_id,:receiver_user_name,:receiver_user_phone,:user_id,:order_amount,:order_product_ids,:order_status)" )

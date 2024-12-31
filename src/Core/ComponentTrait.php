@@ -201,7 +201,7 @@ trait ComponentTrait
      */
     final public function get(string $name)
     {
-        $appConf = BaseServer::getAppConf();
+        $appConf    = BaseServer::getAppConf();
         $components = $appConf['components'];
         $cid = \Swoole\Coroutine::getCid();
         if (isset($this->containers[$name])) {
@@ -257,6 +257,18 @@ trait ComponentTrait
 
         return false;
 
+    }
+
+    /**
+     * @param string $name
+     * @return bool
+     */
+    public function has(string $name)
+    {
+        if(isset($this->containers[$name]) && is_object($this->containers[$name])) {
+            return true;
+        }
+        return false;
     }
 
     /**

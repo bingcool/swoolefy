@@ -23,17 +23,18 @@ return [
     // 用户行为记录的info日志
     'info_log' => function($name) {
         $logger = new \Swoolefy\Util\Log($name);
-        $logger->setRotateDay(1);
         $logger->setChannel('application');
         if(SystemEnv::isDaemonService()) {
             $logFilePath = LOG_PATH.'/daemon/info.log';
+        }else if (SystemEnv::isCronService() || SystemEnv::cronScheduleScriptModel()) {
+            $logFilePath = LOG_PATH.'/cron/info.log';
         }else if (SystemEnv::isScriptService()) {
             $logFilePath = LOG_PATH.'/script/info.log';
-        }else if (SystemEnv::isCronService()) {
-            $logFilePath = LOG_PATH.'/cron/info.log';
         } else {
             $logFilePath = LOG_PATH.'/cli/info.log';
         }
+        // 日志文件名按小时分文件记录
+        $logger->enableHourly();
         $logger->setLogFilePath($logFilePath);
         return $logger;
     },
@@ -44,10 +45,10 @@ return [
         $logger->setChannel('application');
         if(SystemEnv::isDaemonService()) {
             $logFilePath = LOG_PATH.'/daemon/error.log';
+        }else if (SystemEnv::isCronService() || SystemEnv::cronScheduleScriptModel()) {
+            $logFilePath = LOG_PATH.'/cron/error.log';
         }else if (SystemEnv::isScriptService()) {
             $logFilePath = LOG_PATH.'/script/error.log';
-        }else if (SystemEnv::isCronService()) {
-            $logFilePath = LOG_PATH.'/cron/error.log';
         } else {
             $logFilePath = LOG_PATH.'/cli/error.log';
         }
@@ -61,13 +62,22 @@ return [
         $logger->setChannel('application');
         if(SystemEnv::isDaemonService()) {
             $logFilePath = LOG_PATH.'/daemon/system_error.log';
+        }else if (SystemEnv::isCronService() || SystemEnv::cronScheduleScriptModel()) {
+            $logFilePath = LOG_PATH.'/cron/system_error.log';
         }else if (SystemEnv::isScriptService()) {
             $logFilePath = LOG_PATH.'/script/system_error.log';
-        }else if (SystemEnv::isCronService()) {
-            $logFilePath = LOG_PATH.'/cron/system_error.log';
         } else {
             $logFilePath = LOG_PATH.'/cli/system_error.log';
         }
+        $logger->setLogFilePath($logFilePath);
+        return $logger;
+    },
+
+    // 请求日志
+    'request_log' => function($name) {
+        $logger = new \Swoolefy\Util\Log($name);
+        $logger->setChannel('application');
+        $logFilePath = LOG_PATH.'/request/request.log';
         $logger->setLogFilePath($logFilePath);
         return $logger;
     }

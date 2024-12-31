@@ -119,11 +119,26 @@ class SystemEnv
     }
 
     /**
+     * 定时任务调度调用脚本模式，即Kernel.php的schedule定义的定时计划任务
+     *
+     * @return bool
+     */
+    public static function cronScheduleScriptModel(): bool
+    {
+        $model = SystemEnv::getOption('schedule_model');
+        if (str_contains(strtolower($model), 'cron')) {
+            return true;
+        }else {
+            return false;
+        }
+    }
+
+    /**
      * @return string
      */
     public static function PhpBinFile(): string
     {
-        return defined('PHP_BIN_FILE') ? PHP_BIN_FILE : '/usr/bin/php';
+        return defined('PHP_BIN_FILE') ? constant('PHP_BIN_FILE') : '/usr/bin/php';
     }
 
     /**
@@ -158,6 +173,9 @@ class SystemEnv
             if (!isset($options)) {
                 $options = self::inputOptions();
             }
+        }
+        if (!isset($options[$name])) {
+            return null;
         }
         $value = trim($options[$name],'\'') ?? '';
         $value = trim($value,' ');
@@ -257,13 +275,19 @@ class SystemEnv
 
         $handle = opendir($componentDir);
         while ($file = readdir($handle)) {
-            if($file == '.' || $file == '..' ){
+            if ($file == '.' || $file == '..' ) {
                 continue;
             }
             $filePath = $componentDir.DIRECTORY_SEPARATOR.$file;
             $fileType = pathinfo($filePath, PATHINFO_EXTENSION);
             if (in_array($fileType, ['php'])) {
                 $component = include $filePath;
+                $intersectKeys = array_intersect_key($components, $component);
+                if (!empty($intersectKeys)) {
+                    $intersectNames      = array_keys($intersectKeys);
+                    $intersectNameString = implode(',', $intersectNames);
+                    throw new SystemException("Config Component 组件合并后数组key, 存在相同的组件名称[ {$intersectNameString} ], 互相覆盖");
+                }
                 $components = array_merge($components, $component);
             }
         }
@@ -279,7 +303,7 @@ class SystemEnv
         // log register
         $logComponents = include CONFIG_COMPONENT_PATH.DIRECTORY_SEPARATOR.'log.php';
         foreach ($logComponents as $name=>$logFn) {
-            if($logFn instanceof \Closure) {
+            if ($logFn instanceof \Closure) {
                 LogManager::getInstance()->registerLoggerByClosure($logFn, $name);
             }
         }

@@ -20,6 +20,11 @@ class StopCmd extends BaseCmd
         $this->setDescription('stop the application')->setHelp('use php cli.php stop XXXXX or php daemon.php stop XXXXX');
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return int|void
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $appName = $input->getArgument('app_name');
@@ -51,7 +56,11 @@ class StopCmd extends BaseCmd
         return 0;
     }
 
-    protected function serverStop($appName)
+    /**
+     * @param string $appName
+     * @return void
+     */
+    protected function serverStop(string $appName)
     {
         $pidFile = $this->getPidFile($appName);
         if (!is_file($pidFile)) {
@@ -61,7 +70,7 @@ class StopCmd extends BaseCmd
 
         $pid = intval(file_get_contents($pidFile));
         if (!\Swoole\Process::kill($pid, 0)) {
-            fmtPrintError("Server Stop!");
+            fmtPrintInfo("Server Had Stopped!");
             exit(0);
         }
 
@@ -108,7 +117,11 @@ class StopCmd extends BaseCmd
         exit(0);
     }
 
-    protected function workerStop($appName)
+    /**
+     * @param string $appName
+     * @return void
+     */
+    protected function workerStop(string $appName)
     {
         $pidFile = $this->getPidFile($appName);
         if (!is_file($pidFile)) {

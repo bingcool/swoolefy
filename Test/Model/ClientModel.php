@@ -13,29 +13,21 @@ class ClientModel extends Model {
     protected $userId;
 
     /**
-     * ClientModel constructor.
-     * @param int $userId
-     * @param int $id
-     */
-    public function __construct(int $userId = 0, int $id = 0)
-    {
-        $this->userId = $userId;
-        parent::__construct($userId);
-    }
-
-    /**
      * @inheritDoc
      */
     public function getConnection()
     {
+        if (is_object($this->connection)) {
+            return $this->connection;
+        }
         // 通过query获取user对应所在的dbId
-        $dbId = 2;
-        $dbIdKey = 'db-id-'.$dbId;
-        return Application::getApp()->creatObject($dbIdKey, function ($comName) {
-                // 通过$this->userId动态获取对应数据库配置
-                return call_user_func(Swfy::getAppConf()['components']['db']);
-        });
-        //return Application::getApp()->get('db');
+//        $dbId = 2;
+//        $dbIdKey = 'db-id-'.$dbId;
+//        return Application::getApp()->creatObject($dbIdKey, function ($comName) {
+//                // 通过$this->userId动态获取对应数据库配置
+//                return call_user_func(Swfy::getAppConf()['components']['db']);
+//        });
+        return Application::getApp()->get('db');
     }
 
     /**

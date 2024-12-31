@@ -17,7 +17,7 @@ class AmqpPublishTopic extends AbstractProcess {
     }
 
     public function handle1() {
-        \Swoolefy\Core\Timer\TickManager::afterTimer(5000, function () {
+        \Swoolefy\Core\Timer\TickManager::tickTimer(3000, function () {
             /**
              * @var AmqpTopicQueue $amqpTopicPublish
              */
@@ -39,7 +39,7 @@ class AmqpPublishTopic extends AbstractProcess {
      * @return void
      */
     public function handle3() {
-        \Swoolefy\Core\Timer\TickManager::afterTimer(5000, function () {
+        \Swoolefy\Core\Timer\TickManager::tickTimer(3000, function () {
             /**
              * @var AmqpDelayTopicQueue $amqpDelayTopicPublish
              */
@@ -52,7 +52,7 @@ class AmqpPublishTopic extends AbstractProcess {
                     'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
                     //那如果我即给单条消息设置了时间expiration, 又给队列设置了时间x-message-ttl会怎么样?
                     // 如果两者 都设置的话，则根据最短的那个时间来
-                    'expiration' => 20000
+                    'expiration' => 10000
                 )
             );
             $amqpDelayTopicPublish->publish($message, 'orderSaveEvent2.send');

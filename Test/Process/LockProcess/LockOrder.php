@@ -2,7 +2,7 @@
 namespace Test\Process\LockProcess;
 
 use Swoolefy\Core\Process\AbstractProcess;
-use Test\Factory;
+use Test\App;
 
 class LockOrder extends AbstractProcess {
     /**

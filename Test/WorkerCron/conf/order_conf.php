@@ -2,16 +2,16 @@
 
 return [
     // 定时请求远程url触发远程url的任务处理
-//    [
-//        'process_name' => 'test-url-task-cron', // 进程名称
-//        'handler' => \Swoolefy\Worker\Cron\CronUrlProcess::class,
-//        'worker_num' => 1, // 默认动态进程数量
-//        'max_handle' => 100, //消费达到10000后reboot进程
-//        'life_time'  => 3600, // 每隔3600s重启进程
-//        'limit_run_coroutine_num' => 10, // 当前进程的实时协程数量，如果协程数量超过此设置的数量，则禁止继续消费队列处理业务，而是在等待
-//        'extend_data' => [],
-//        'args' => [
-//            // 定时任务列表
+    [
+        'process_name' => 'test-url-task-cron', // 进程名称
+        'handler' => \Swoolefy\Worker\Cron\CronUrlProcess::class,
+        'worker_num' => 1, // 默认动态进程数量
+        'max_handle' => 100, //消费达到10000后reboot进程
+        'life_time'  => 3600, // 每隔3600s重启进程
+        'limit_run_coroutine_num' => 10, // 当前进程的实时协程数量，如果协程数量超过此设置的数量，则禁止继续消费队列处理业务，而是在等待
+        'extend_data' => [],
+        'args' => [
+            // 定时任务列表
 //            'task_list' => [
 //                // fork task
 //                [
@@ -27,10 +27,18 @@ return [
 ////                        (new \Test\WorkerCron\CurlQuery\RemoteUrl())->handle($response);
 ////                    },
 //                    'callback' => [\Test\WorkerCron\CurlQuery\RemoteUrl::class, 'handle'],
-//                    'cron_expression' => 3, // 10s执行一次
+//                    'cron_expression' => 10, // 10s执行一次
 //                    //'cron_expression' => '*/1 * * * *', // 每分钟执行一次
 //                ]
-//            ]
-//        ],
-//    ]
+//            ],
+
+
+            // 动态定时任务列表，可以存在数据库中
+            'task_list' => function () {
+                return include __DIR__.'/remote_task.php';
+            }
+
+
+        ],
+    ]
 ];

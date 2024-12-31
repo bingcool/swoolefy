@@ -4,7 +4,7 @@ namespace Test\Process\ListProcess;
 use Common\Library\Queues\Queue;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
-use Test\Factory;
+use Test\App;
 
 class RedisList extends AbstractProcess {
 
@@ -15,11 +15,11 @@ class RedisList extends AbstractProcess {
     public function run()
     {
         goTick(2000, function () {
-            $queue = Factory::getQueue();
-            $queue->push(['name'=> 'bingcool','num' => rand(1,10000)]);
+            $queue = App::getQueue();
+            $queue->push(['name'=> 'bingcoolggg','num' => rand(1,10000)], ['name'=> 'bingcoolffff','num' => rand(1,10000)]);
         });
 
-        $queue = Factory::getQueue();
+        $queue = App::getQueue();
 
         while (true) {
             try {
@@ -30,10 +30,11 @@ class RedisList extends AbstractProcess {
                         continue;
                     }
                     $data = $result[1];
+                    var_dump($data);
                     // 创建协程单例
                     goApp(function () use($data) {
                         $list = new \Test\Process\ListProcess\ListController($data);
-                        $list->doHandle();
+                        //$list->doHandle();
                     });
 
                     //$queue->retry($data);

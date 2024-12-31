@@ -21,6 +21,11 @@ class RestartCmd extends BaseCmd
         $this->setDescription('stop the application')->setHelp('use php cli.php restart XXXXX or php cron.php|daemon.php restart XXXXX');
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return void
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $appName = $input->getArgument('app_name');
@@ -78,15 +83,28 @@ class RestartCmd extends BaseCmd
             // sleep max 30s
             $waitTime = 30;
         }
-        $selfFile   = WORKER_START_SCRIPT_FILE;
-        $scriptFile = "$selfFile start {$appName} --daemon=1";
 
-        \Swoole\Coroutine::create(function () use ($phpBinFile, $scriptFile) {
+        if (str_contains($_SERVER['SCRIPT_FILENAME'], $_SERVER['PWD'])) {
+            $selfFile = $_SERVER['SCRIPT_FILENAME'];
+        }else {
+            $selfFile = WORKER_START_SCRIPT_FILE;
+        }
+
+        $scriptFile = implode(' ',[$selfFile, 'start', $appName, '--daemon=1']);
+
+        if (swoole_version() > '5.0.0') {
+            \Swoole\Coroutine::create(function () use ($phpBinFile, $scriptFile) {
+                $runner = CommandRunner::getInstance('restart-'.time());
+                $runner->isNextHandle(false);
+                $runner->procOpen(function () {
+                }, $phpBinFile, $scriptFile);
+            });
+        }else {
             $runner = CommandRunner::getInstance('restart-'.time());
             $runner->isNextHandle(false);
-            $runner->procOpen(function () {
-            }, $phpBinFile, $scriptFile);
-        });
+            list($commandScript,) = $runner->exec($phpBinFile, $scriptFile, [],false,'/dev/null',false);
+            @exec($commandScript, $output);
+        }
 
         $time = time();
         while (true) {
@@ -100,20 +118,31 @@ class RestartCmd extends BaseCmd
             $newMasterPid = intval(file_get_contents($pidFile));
             // 新拉起的主进程id已经存在，说明新拉起的主进程已经启动成功
             if ($newMasterPid > 0 && $newMasterPid != $masterPid && \Swoole\Process::kill($newMasterPid, 0)) {
-                fmtPrintInfo("-----------进程重启成功！------------");
-                fmtPrintInfo("-----------可以使用 {$phpBinFile} {$selfFile} status {$appName} 查看进程是否启动成功状态信息!------------");
+                if (SystemEnv::isWorkerService()) {
+                    fmtPrintInfo("-----------进程重启完成------------");
+                }
+                if (SystemEnv::isWorkerService()) {
+                    fmtPrintInfo("-----------看到此处，进程重启成功啦！重启成功啦！重启成功啦！------------");
+                }else {
+                    $this->serverStatus($appName, $pidFile);
+                    fmtPrintInfo("-----------看到进程表格，进程重启成功啦！重启成功啦！重启成功啦！------------");
+                }
                 exit(0);
             }
 
             // wait time out
             if (time() - $time > $waitTime) {
-                fmtPrintError("-----------请使用 {$phpBinFile} {$selfFile} status {$appName} 查看进程是否启动成功!------------");
+                fmtPrintError("-----------无法确定是否重起成功，请使用 {$phpBinFile} {$selfFile} status {$appName} 查看进程是否启动成功!------------");
                 exit(0);
             }
         }
     }
 
-    protected function serverStop($appName)
+    /**
+     * @param string $appName
+     * @return void
+     */
+    protected function serverStop(string $appName)
     {
         $pidFile = $this->getPidFile($appName);
         if (!is_file($pidFile)) {

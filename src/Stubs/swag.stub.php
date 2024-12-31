@@ -19,7 +19,7 @@ registerNamespace(APP_PATH);
 
 
 // 执行 php swag.php Test 即可生成接口文档
-$items = explode('/', $_SERVER['argv'][1]);
+$items = explode(DIRECTORY_SEPARATOR, $_SERVER['argv'][1]);
 $appName = $items[0];
 $argv[2] = $_SERVER['argv'][2] = '-o';
 $argv[3] = $_SERVER['argv'][3] = "swaggerui/openapi-{$appName}.yaml";
@@ -30,14 +30,14 @@ if (!is_dir($path)) {
     $appName = ucfirst($appName);
     $path = __DIR__.'/'.$appName;
     if (!is_dir($path)) {
-        exit("【Error】 找不到对应的项目目录\n");
+        exit("【Error】 找不到对应的项目目录".PHP_EOL);
     }
 }
 
 $argv[1] = $_SERVER['argv'][1] = $appName.'/Module';
 
 if (!class_exists('OpenApi\Attributes\Server')) {
-    exit("Missing zircote/swagger-php, please install it!\n");
+    exit("Missing zircote/swagger-php, please composer install it!\n");
 }
 
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__.'/'.$appName);

@@ -94,6 +94,7 @@ class Hook
      */
     public static function getHookCallable(?int $coroutineId = null)
     {
+        $cid = 0;
         if (empty($coroutineId)) {
             $cid = CoroutineManager::getInstance()->getCoroutineId();
         }
