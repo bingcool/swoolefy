@@ -10,11 +10,11 @@ use Test\Scripts\User\TestDbQuery;
 class Kernel extends AbstractKernel
 {
     public static $commands = [
-        GenerateMysql::command => [GenerateMysql::class, 'generate'],
-        GeneratePg::command    => [GeneratePg::class, 'generate'],
-        User\FixedUser::command => [User\FixedUser::class, 'fixName'],
-        Phpy\Py::command => [Phpy\Py::class, 'testPhpy'],
-        TestDbQuery::command => [TestDbQuery::class, 'testDbQuery'],
+        GenerateMysql::command => [GenerateMysql::class, 'handle'],
+        GeneratePg::command    => [GeneratePg::class, 'handle'],
+        User\FixedUser::command => [User\FixedUser::class, 'handle'],
+        Phpy\Py::command => [Phpy\Py::class, 'handle'],
+        TestDbQuery::command => [TestDbQuery::class, 'handle'],
     ];
 
     /**

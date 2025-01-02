@@ -17,7 +17,7 @@ class TestScript extends MainCliScript {
      */
     const command = "test:script";
 
-    public function test() {
+    public function handle() {
         echo "this is a test script\n";
     }
 }

@@ -17,7 +17,7 @@ class GenerateDaemonService extends MainCliScript {
 
     const command = "gen:daemon:service";
 
-    public function generate()
+    public function handle()
     {
         fmtPrintInfo("------开始初始化生成daemon服务项目-------");
 
@@ -91,7 +91,8 @@ namespace <TEMP_APP_NAME>\WorkerDaemon;
 
 use Swoolefy\Worker\AbstractMainProcess;
 
-class MainDaemonProcess extends AbstractMainProcess {
+class MainDaemonProcess extends AbstractMainProcess 
+{
     /**
      * @return void
      */
