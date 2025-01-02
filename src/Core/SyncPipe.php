@@ -62,9 +62,10 @@ class SyncPipe
     protected function execute(Closure $function, float $maxTimeOut = 3.0, $param = null)
     {
         $goWait = new GoWaitGroup();
-        $count  = count([$function]);
+        $callBacks = [$function];
+        $count  = count($callBacks);
         $goWait->add($count);
-        foreach ([$function] as $key => $callBack) {
+        foreach ($callBacks as $key => $callBack) {
             goApp(function () use ($key, $callBack, $param, $goWait) {
                 try {
                     $goWait->initResult($key, null);
