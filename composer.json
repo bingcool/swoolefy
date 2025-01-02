@@ -47,7 +47,7 @@
         }
     },
     "require-dev": {
-        "kwn/php-rdkafka-stubs": "@dev",
-        "swoole/ide-helper": "@dev"
+        "kwn/php-rdkafka-stubs": "~4.8",
+        "swoole/ide-helper": "~4.8"
     }
 }
