@@ -15,11 +15,6 @@ class MainDaemonProcess extends AbstractMainProcess {
             $mainManager->onReportStatus = function (array $status) {
             };
 
-            // 启动上报函数
-//            \Swoole\Timer::after(10 * 1000, function () {
-//                var_dump("start success！");
-//            });
-
             $mainManager->start();
         }catch (\Throwable $exception) {
             var_dump($exception->getMessage(), $exception->getTraceAsString());

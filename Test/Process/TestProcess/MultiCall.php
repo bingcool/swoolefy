@@ -5,6 +5,7 @@ namespace Test\Process\TestProcess;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Coroutine\GoWaitGroup;
 use Swoolefy\Core\Process\AbstractProcess;
+use Swoolefy\Core\SyncPipe;
 use Test\App;
 
 class MultiCall extends AbstractProcess
@@ -15,12 +16,40 @@ class MultiCall extends AbstractProcess
      */
     public function run()
     {
+        $this->syncPipeCall();
+    }
+
+    protected function syncPipeCall()
+    {
+        $syncPipe = new SyncPipe();
+
+        $result = $syncPipe->start(function () {
+                return 'aaaaa';
+            })->then(function ($param) {
+                var_dump($param);
+                sleep(5);
+                //return "bbbbb";
+            })->then(function ($param) {
+                var_dump($param);
+                return "ccccc";
+            })->run();
+
+        var_dump($result);
+
+        var_dump('main syncPipeCall coroutine ');
+
+    }
+
+    protected function parallelCall()
+    {
         while (true) {
             try {
                 sleep(2);
                 $result = GoWaitGroup::batchParallelRunWait([
-                        'key1' => function () {
+                        'key1' => function ($param) {
                             sleep(3);
+
+                            var_dump($param);
 
                             $db = App::getDb();
                             var_dump(spl_object_id($db), \Swoole\Coroutine::getCid());
@@ -48,7 +77,10 @@ class MultiCall extends AbstractProcess
                             return "cccccccc";
                         }
                     ]
-                , 5);
+                    , 5,[
+                        'key1' => 'param1',
+                        'key2' => 'param2',
+                    ]);
 
                 var_dump($result);
 
