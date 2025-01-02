@@ -15,7 +15,7 @@ class Py extends \Swoolefy\Script\MainCliScript
 {
     const command = 'test:phpy';
 
-    public function testPhpy()
+    public function handle()
     {
         if (!class_exists('\PyCore')) {
             fmtPrintError("请安装phpy扩展");

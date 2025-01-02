@@ -28,7 +28,7 @@ class GenerateMysql extends MainCliScript
     /**
      * @return void
      */
-    public function generate()
+    public function handle()
     {
         $db        = getenv('db');
         $tableName = getenv('table');
