@@ -6,7 +6,7 @@ $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
 return [
 
     // db|redis连接池
-    'enable_component_pools' => [
+    'component_pools' => [
         'db' => [
             'max_pool_num' => 5,
             'max_push_timeout' => 2,
