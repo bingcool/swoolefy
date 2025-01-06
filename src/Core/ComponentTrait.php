@@ -124,8 +124,8 @@ trait ComponentTrait
         $containerObjectDto->__comAliasName = $comAliasName;
 
         $appConf = BaseServer::getAppConf();
-        if (!empty($appConf['enable_component_pools']) && is_array($appConf['enable_component_pools'])) {
-            $liveTime = $appConf['enable_component_pools'][$comAliasName]['max_life_timeout'] ?? 10;
+        if (!empty($appConf['component_pools']) && is_array($appConf['component_pools'])) {
+            $liveTime = $appConf['component_pools'][$comAliasName]['max_life_timeout'] ?? 10;
             $containerObjectDto->__objExpireTime = time() + $liveTime + rand(1, 10);
         }else {
             $containerObjectDto->__objExpireTime = null;
@@ -229,8 +229,8 @@ trait ComponentTrait
         }
 
         if (empty($this->componentPools)) {
-            if (!empty($appConf['enable_component_pools']) && is_array($appConf['enable_component_pools']) ) {
-                $enableComponentPools = array_keys($appConf['enable_component_pools']);
+            if (!empty($appConf['component_pools']) && is_array($appConf['component_pools']) ) {
+                $enableComponentPools = array_keys($appConf['component_pools']);
                 $this->componentPools = $enableComponentPools;
             }
         }
