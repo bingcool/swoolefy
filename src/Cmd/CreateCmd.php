@@ -20,7 +20,7 @@ class CreateCmd extends BaseCmd
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $dirs = ['Config', 'Service', 'Protocol', 'Router', 'Storage', 'Middleware'];
+        $dirs = ['Config', 'Service', 'Protocol', 'Router', 'Storage', 'Middleware', 'Scripts'];
         $appName = $input->getArgument('app_name');
         $appPathDir = APP_PATH;
         if (is_dir($appPathDir)) {
