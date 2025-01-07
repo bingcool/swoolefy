@@ -171,7 +171,7 @@ class EventController extends BaseObject
      */
     protected function defer()
     {
-        if (\Swoole\Coroutine::getCid() >= 0) {
+        if (\Swoole\Coroutine::getCid() >= 0 ) {
             $this->isDefer = true;
             \Swoole\Coroutine::defer(function () {
                 $this->end();
