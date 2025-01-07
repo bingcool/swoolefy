@@ -22,7 +22,7 @@ use Swoolefy\Worker\Dto\MessageDto;
 
 /**
  * Class AbstractProcess
- * @package Workerfy
+ * @package Swoolefy\Worker
  */
 abstract class AbstractBaseWorker
 {

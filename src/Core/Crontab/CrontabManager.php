@@ -12,7 +12,6 @@
 namespace Swoolefy\Core\Crontab;
 
 use Cron\CronExpression;
-use Swoolefy\Core\Application;
 use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Exception\CronException;
 
@@ -85,9 +84,8 @@ class CrontabManager
                         $isNext = true;
 
                         if ($func instanceof \Closure) {
-                            $cronControllerInstance = $this->buildCronControllerInstance();
                             call_user_func($func, $expression, $cronName);
-                        }else if(is_array($func)) {
+                        }else if (is_array($func)) {
                             /**
                              * @var AbstractCronController $cronControllerInstance
                              */
@@ -101,13 +99,6 @@ class CrontabManager
                     } catch (\Throwable $throwable) {
                        throw $throwable;
                     } finally {
-                        if (isset($cronControllerInstance)) {
-                            /**
-                             * @var AbstractCronController $cronControllerInstance
-                            */
-                            Application::removeApp($cronControllerInstance->getCid());
-                        }
-
                         if (is_callable($callback) && $isNext) {
                             call_user_func($callback);
                         }
@@ -142,11 +133,8 @@ class CrontabManager
                         } catch (\Throwable $throwable) {
                            throw $throwable;
                         } finally {
-                            if (isset($cronControllerInstance)) {
-                                Application::removeApp($cronControllerInstance->coroutineId);
-                                if (is_callable($callback) && $isNext) {
-                                    call_user_func($callback);
-                                }
+                            if (is_callable($callback) && $isNext) {
+                                call_user_func($callback);
                             }
                         }
                     });
@@ -174,11 +162,8 @@ class CrontabManager
                         } catch (\Throwable $throwable) {
                             throw $throwable;
                         } finally {
-                            if (isset($cronControllerInstance)) {
-                                Application::removeApp($cronControllerInstance->coroutineId);
-                                if (is_callable($callback) && $isNext) {
-                                    call_user_func($callback);
-                                }
+                            if (is_callable($callback) && $isNext) {
+                                call_user_func($callback);
                             }
                         }
                     });
