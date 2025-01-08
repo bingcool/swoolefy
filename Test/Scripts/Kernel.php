@@ -35,6 +35,7 @@ class Kernel extends AbstractKernel
         GenerateCronService::command  => [GenerateCronService::class, 'handle'],
         GenerateDaemonService::command  => [GenerateDaemonService::class, 'handle'],
         TestScript::command    => [TestScript::class, 'handle'],
+        User\FixedUser::command => [User\FixedUser::class, 'handle'],
     ];
 
     /**
