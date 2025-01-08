@@ -140,7 +140,7 @@ source /etc/profile
 ```
 ```
 // 如果是通过dockerfile 创建容器的, 可以根据不同环境生成的内置环境变量不同镜像，每个不同的环境镜像可以用在不同环境，代码将通过这个环境变量区分环境，加载不同的配置
-ENV SWOOLEFY_CLI_ENV dev
+ENV SWOOLEFY_CLI_ENV=dev
 
 ```
 2、创建项目
