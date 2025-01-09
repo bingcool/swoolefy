@@ -146,7 +146,7 @@ ENV SWOOLEFY_CLI_ENV=dev
 2、创建项目
 ```
 // 下载代码到到你的自定义目录，这里定义为myproject
-composer create-project bingcool/swoolefy:~5.1 myproject
+composer create-project bingcool/swoolefy:^5.1 myproject
 ```
 
 ### 二、添加项目入口启动文件cli.php,并定义你的项目目录，命名为App
