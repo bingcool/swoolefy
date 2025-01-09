@@ -140,13 +140,13 @@ source /etc/profile
 ```
 ```
 // 如果是通过dockerfile 创建容器的, 可以根据不同环境生成的内置环境变量不同镜像，每个不同的环境镜像可以用在不同环境，代码将通过这个环境变量区分环境，加载不同的配置
-ENV SWOOLEFY_CLI_ENV dev
+ENV SWOOLEFY_CLI_ENV=dev
 
 ```
 2、创建项目
 ```
 // 下载代码到到你的自定义目录，这里定义为myproject
-composer create-project bingcool/swoolefy:~5.1 myproject
+composer create-project bingcool/swoolefy:^5.1 myproject
 ```
 
 ### 二、添加项目入口启动文件cli.php,并定义你的项目目录，命名为App
@@ -351,7 +351,7 @@ Config/app.php
 return [
 
     // db|redis连接池
-    'enable_component_pools' => [
+    'component_pools' => [
         // 取components的`DB`组件名称相对应
         'db' => [
             'max_pool_num' => 5, // db实例数

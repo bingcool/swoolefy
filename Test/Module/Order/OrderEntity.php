@@ -4,19 +4,22 @@ namespace Test\Module\Order;
 use Common\Library\Db\Concern\SoftDelete;
 use Test\Model\ClientModel;
 
+// 生成的表【tbl_order】的属性
 /**
  * @property int order_id 订单id
  * @property int user_id 下单用户id
  * @property string receiver_user_name 收货人
  * @property string receiver_user_phone 收货人手机号
- * @property string order_amount 订单金额
+ * @property float order_amount 订单金额
  * @property string order_product_ids 订单产品id
  * @property int order_status 订单状态
  * @property string address 物流地址
  * @property string remark 评论
+ * @property string expend_data json类型-数据
  * @property string json_data 扩展数据
  * @property string gmt_create 创建时间
  * @property string gmt_modify 更新时间
+ * @property string deleted_at 删除时间
  */
 
 class OrderEntity extends ClientModel

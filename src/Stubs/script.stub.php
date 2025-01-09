@@ -22,6 +22,13 @@ define('APP_META_ARR', [
     // todo
 ]);
 
+// 定义脚本文件夹的根目录
+define('ROOT_NAMESPACE', [
+    'Test' => '\\Test\\Scripts'
+    // todo
+]);
+
+
 define('WORKER_PORT', APP_META_ARR[$appName]['worker_port']);
 define('IS_DAEMON_SERVICE', 0);
 define('IS_CRON_SERVICE', 0);
@@ -45,11 +52,5 @@ date_default_timezone_set('Asia/Shanghai');
 
 // script 为空即可
 define('PROCESS_CLASS', []);
-
-// 定义脚本文件夹的根目录
-define('ROOT_NAMESPACE', [
-    'Test' => '\\Test\\Scripts'
-    // todo
-]);
 
 include __DIR__.'/swoolefy';

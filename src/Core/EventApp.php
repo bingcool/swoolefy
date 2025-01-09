@@ -79,14 +79,14 @@ class EventApp
     {
         if ($class instanceof \Closure) {
             $cid = \Swoole\Coroutine::getCid();
-            if(Application::issetApp($cid)) {
+            if (Application::issetApp($cid)) {
                 $app = Application::getApp();
                 if ($app instanceof EventController) {
                     $this->eventApp = $app;
-                }else {
+                } else {
                     $this->eventApp = new EventController(...$args);
                 }
-            }else {
+            } else {
                 $this->eventApp = new EventController(...$args);
             }
 

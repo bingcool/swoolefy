@@ -21,13 +21,14 @@ class Tick extends AbstractProcess {
 //        });
         var_dump('This is process tick, class='.__CLASS__);
         // 创建定时器处理实例
-        Context::set('test-tick','mmmmmmmmmmmmmm');
+//        Context::set('test-tick','mmmmmmmmmmmmmm');
         TickManager::getInstance()->tickTimer(3000,
             [TickController::class, 'tickTest'],
             ['name'=>'swoolefy-tick']
         );
 
 //        TickManager::getInstance()->tickTimer(3000, function () {
+//            var_dump("cid=".\Swoole\Coroutine::getCid());
 //            $count = App::getDb()->createCommand("select count(1) as total from tbl_users")->count();
 //            var_dump($count);
 //        });
