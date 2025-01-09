@@ -272,7 +272,7 @@ class EventCtrl implements EventCtrlInterface
      */
     protected function isEnableComponentPools(array $appConf): bool
     {
-        if (isset($appConf['enable_component_pools']) && is_array($appConf['enable_component_pools']) && !empty($appConf['enable_component_pools'])) {
+        if (isset($appConf['component_pools']) && is_array($appConf['component_pools']) && !empty($appConf['component_pools'])) {
             return true;
         }
         return false;
@@ -280,7 +280,7 @@ class EventCtrl implements EventCtrlInterface
 
     /**
      * 在workerStart可以创建一个协程池Channel
-     * 'enable_component_pools' => [
+     * 'component_pools' => [
      *      'redis' => [
      *              'max_pool_num' => 5,
      *              'max_push_timeout' => 2,
@@ -297,7 +297,7 @@ class EventCtrl implements EventCtrlInterface
         $appConf = BaseServer::getAppConf();
         if ($this->isEnableComponentPools($appConf)) {
             $components = array_keys($appConf['components']);
-            foreach ($appConf['enable_component_pools'] as $poolName => $componentPoolConfig) {
+            foreach ($appConf['component_pools'] as $poolName => $componentPoolConfig) {
                 if (!in_array($poolName, $components)) {
                     continue;
                 }
@@ -320,7 +320,7 @@ class EventCtrl implements EventCtrlInterface
         $appConf = BaseServer::getAppConf();
         if ($this->isEnableComponentPools($appConf)) {
             $components = array_keys($appConf['components']);
-            foreach ($appConf['enable_component_pools'] as $poolName => $componentPoolConfig) {
+            foreach ($appConf['component_pools'] as $poolName => $componentPoolConfig) {
                 if (!in_array($poolName, $components)) {
                     continue;
                 }

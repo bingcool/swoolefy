@@ -45,9 +45,9 @@ abstract class AbstractCronController extends ProcessController
     {
         $expressionKey = md5($expression);
         /**@var CronExpression $cron */
-        if(method_exists(CronExpression::class,'factory')) {
+        if (method_exists(CronExpression::class,'factory')) {
             $cron = CronExpression::factory($expression);
-        }else {
+        } else {
             $cron = new CronExpression($expression);
         }
 

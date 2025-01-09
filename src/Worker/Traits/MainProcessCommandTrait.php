@@ -18,7 +18,8 @@ use Swoolefy\Worker\AbstractBaseWorker;
 /**
  * 父进程接收指令处理
  */
-trait MainProcessCommandTrait {
+trait MainProcessCommandTrait
+{
 
     /**
      * @param string $processName

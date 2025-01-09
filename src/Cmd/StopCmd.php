@@ -66,7 +66,7 @@ class StopCmd extends BaseCmd
 
         $pid = intval(file_get_contents($pidFile));
         if (!\Swoole\Process::kill($pid, 0)) {
-            fmtPrintError("Server Stop!");
+            fmtPrintInfo("Server Had Stopped!");
             exit(0);
         }
 

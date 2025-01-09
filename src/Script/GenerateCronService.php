@@ -15,7 +15,7 @@ class GenerateCronService extends MainCliScript {
 
     const command = "gen:cron:service";
 
-    public function generate()
+    public function handle()
     {
         fmtPrintInfo("------开始初始化生成cron服务项目-------");
         $serviceName = $this->getOption('service');

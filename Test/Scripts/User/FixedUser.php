@@ -52,7 +52,7 @@ class FixedUser extends MainCliScript
 
     }
 
-    public function fixName()
+    public function handle()
     {
         return;
 //        $db = App::getDb();
