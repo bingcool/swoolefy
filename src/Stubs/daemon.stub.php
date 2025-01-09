@@ -22,6 +22,12 @@ define('APP_META_ARR', [
     // todo
 ]);
 
+define('PROCESS_CLASS', [
+    // 应用daemon worker
+    'Test' => \Test\WorkerDaemon\MainDaemonProcess::class,
+    // todo
+]);
+
 define('WORKER_PORT', APP_META_ARR[$appName]['worker_port']);
 define('IS_DAEMON_SERVICE', 1);
 define('IS_CRON_SERVICE', 0);
@@ -42,12 +48,6 @@ define('WORKER_CTL_CONF_FILE',WORKER_PID_FILE_ROOT.'/confctl.json');
 date_default_timezone_set('Asia/Shanghai');
 // 定义加载配置函数
 define('WORKER_CONF', \Swoolefy\Worker\MainManager::loadWorkerConf(__DIR__.'/'.$appName.'/WorkerDaemon/worker_daemon_conf.php'));
-
-define('PROCESS_CLASS', [
-    // 应用daemon worker
-    'Test' => \Test\WorkerDaemon\MainDaemonProcess::class,
-    // todo
-]);
 
 // 启动前处理,比如加载.env
 $beforeFunc = function () {

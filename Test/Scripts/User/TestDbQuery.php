@@ -137,7 +137,7 @@ class TestDbQuery extends MainCliScript
         return;
     }
 
-    public function testDbQuery()
+    public function handle()
     {
 
     }

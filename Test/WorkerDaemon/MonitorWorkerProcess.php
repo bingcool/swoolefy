@@ -1,7 +1,7 @@
 <?php
 namespace Test\WorkerDaemon;
 
-class TestWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
+class MonitorWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
 {
     public function run()
     {

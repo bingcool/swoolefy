@@ -12,7 +12,6 @@
 namespace Swoolefy\Core\Timer;
 
 use Swoolefy\Core\Swfy;
-use Swoolefy\Core\Application;
 use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Exception\TimerException;
@@ -76,7 +75,6 @@ class Tick
                         $tickTaskInstance = new $class;
                         $tickTaskInstance->{$action}(...[$params, $timerId]);
                     } else if ($func instanceof \Closure) {
-                        $tickTaskInstance = new TickController();
                         call_user_func($func, $params, $timerId);
                     }
                     // call after action
@@ -89,10 +87,6 @@ class Tick
                     if (isset($tickTaskInstance)) {
                         if ($tickTaskInstance->isDefer() === false) {
                             $tickTaskInstance->end();
-                        }
-
-                        if (is_object($tickTaskInstance)) {
-                            Application::removeApp($tickTaskInstance->getCid());
                         }
                         unset($tickTaskInstance);
                     }
@@ -192,7 +186,6 @@ class Tick
                         $tickTaskInstance = new $class;
                         $tickTaskInstance->{$action}(...[$params, $timer_id]);
                     } else if ($func instanceof \Closure) {
-                        $tickTaskInstance = new TickController();
                         call_user_func($func, $params, $timer_id);
                     }
                     // call after action
@@ -205,10 +198,6 @@ class Tick
                     if (isset($tickTaskInstance)) {
                         if ($tickTaskInstance->isDefer() === false) {
                             $tickTaskInstance->end();
-                        }
-
-                        if (is_object($tickTaskInstance)) {
-                            Application::removeApp($tickTaskInstance->getCid());
                         }
                         unset($tickTaskInstance);
                     }
