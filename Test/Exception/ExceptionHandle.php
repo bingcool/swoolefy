@@ -35,7 +35,7 @@ class ExceptionHandle extends \Swoolefy\Core\SwoolefyException
                 break;
         }
 
-        if (in_array(SWOOLEFY_ENV, [SWOOLEFY_DEV, SWOOLEFY_GRA])) {
+        if (in_array(SWOOLEFY_ENV, [SWOOLEFY_DEV, SWOOLEFY_TEST])) {
             fmtPrintError($errorMsg);
         }
     }
