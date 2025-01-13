@@ -15,7 +15,7 @@ class SendCmd extends BaseCmd
     protected function configure()
     {
         parent::configure();
-        $this->setDescription('send message to the worker service')->setHelp('use php daemon.php send XXXXX --name=xxxxx --action=start');
+        $this->setDescription('send message to the worker service')->setHelp('<info>use php daemon.php send XXXXX --name=xxxxx --action=start</info>');
     }
 
     /**

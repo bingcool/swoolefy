@@ -32,7 +32,7 @@ class BaseCmd extends Command
 
         $options = $this->beforeInputOptions();
         foreach ($options as $name=>$value) {
-            if (!$this->getDefinition()->hasOption($name)) {
+            if (!$this->getDefinition()->hasOption($name) && !in_array($name, ['help'])) {
                 $this->addOption($name,null, InputOption::VALUE_OPTIONAL,'', '');
             }
         }
@@ -110,7 +110,7 @@ class BaseCmd extends Command
             if (str_starts_with($item, '--') || str_starts_with($item, '-')) {
                 $item = trim($item,'-');
                 $values = explode('=', $item, 2);
-                $options[trim($values[0])] = trim($values[1]);
+                $options[trim($values[0])] = trim($values[1] ?? 1);
             }
         }
         return $options;

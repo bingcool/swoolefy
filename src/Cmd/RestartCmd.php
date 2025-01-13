@@ -18,7 +18,7 @@ class RestartCmd extends BaseCmd
     protected function configure()
     {
         parent::configure();
-        $this->setDescription('stop the application')->setHelp('use php cli.php restart XXXXX or php cron.php|daemon.php restart XXXXX');
+        $this->setDescription('stop the application')->setHelp('<info>use php cli.php restart XXXXX or php cron.php|daemon.php restart XXXXX</info>');
     }
 
     /**
