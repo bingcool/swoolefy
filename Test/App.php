@@ -35,7 +35,7 @@ class App
      */
     public static function makeNewDb()
     {
-        \Swoolefy\Core\Application::getApp()->makeNewObject('db');
+        return \Swoolefy\Core\Application::getApp()->makeNewObject('db');
     }
 
     /**
