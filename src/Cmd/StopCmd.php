@@ -13,7 +13,7 @@ class StopCmd extends BaseCmd
     protected function configure()
     {
         parent::configure();
-        $this->setDescription('stop the application')->setHelp('use php cli.php stop XXXXX or php daemon.php stop XXXXX');
+        $this->setDescription('stop the application')->setHelp('<info>use php cli.php stop XXXXX or php daemon.php stop XXXXX</info>');
     }
 
     /**

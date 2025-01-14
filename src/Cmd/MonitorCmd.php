@@ -13,7 +13,7 @@ class MonitorCmd extends BaseCmd
     protected function configure()
     {
         parent::configure();
-        $this->setDescription('monitor the application weather stop')->setHelp('use php cli.php monitor XXXXX or use php daemon.php monitor XXXXX');
+        $this->setDescription('monitor the application weather stop')->setHelp('<info>use php cli.php monitor XXXXX or use php daemon.php monitor XXXXX</info>');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)

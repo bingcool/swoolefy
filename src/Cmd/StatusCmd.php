@@ -12,7 +12,7 @@ class StatusCmd extends BaseCmd
     protected function configure()
     {
         parent::configure();
-        $this->setDescription('Show status of the application')->setHelp('use php cli.php status XXXXX or php daemon.php status XXXXX');
+        $this->setDescription('Show status of the application')->setHelp('<info>use php cli.php status XXXXX or php daemon.php status XXXXX</info>');
     }
 
     /**

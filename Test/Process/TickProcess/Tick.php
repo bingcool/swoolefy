@@ -33,7 +33,7 @@ class Tick extends AbstractProcess {
 //            var_dump($count);
 //        });
 
-        $db = App::getDb();
+        $db = App::makeNewDb();
 
         $arr = ["name" => 'bingcool','sex' => 33];
 
