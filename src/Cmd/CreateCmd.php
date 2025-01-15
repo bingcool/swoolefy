@@ -11,7 +11,7 @@ class CreateCmd extends BaseCmd
     protected function configure()
     {
         parent::configure();
-        $this->setDescription('create application init skeleton')->setHelp('use php cli.php create XXXXX');
+        $this->setDescription('create application init skeleton')->setHelp('<info>use php cli.php create XXXXX</info>info>');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)

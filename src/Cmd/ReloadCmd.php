@@ -12,7 +12,7 @@ class ReloadCmd extends BaseCmd
     protected function configure()
     {
         parent::configure();
-        $this->setDescription('reload the application worker process')->setHelp('use php cli.php reload XXXXX');
+        $this->setDescription('reload the application worker process')->setHelp('<info>use php cli.php reload XXXXX</info>');
     }
 
     /**

@@ -14,6 +14,7 @@ class RateLimiterMiddleware implements RouteMiddleware
         $uri = $requestInput->getRequestUri();
         $rateLimit = App::getRateLimit();
         $rateLimit->setRateKey($uri);
+
         // 每10s内滑动窗口限制2次请求
         $rateLimit->setLimitParams($requestInput->getValue(RouteOption::API_LIMIT_NUM_KEY), $requestInput->getValue(RouteOption::API_LIMIT_WINDOW_SIZE_TIME_KEY));
         if ($rateLimit->isLimit()) {
