@@ -49,12 +49,12 @@ class Kernel extends AbstractKernel
 //            ->cron(10);
 
         $schedule->command(User\FixedUser::command)
-            ->cron(10)
+            ->cron(5)
             ->addArgs('name', 'bingcool')
             ->addArgs('age', 18)
             ->addArgs('sex', 'man')
             ->addArgs('desc', "fffkkkmm")
-            ->withBlockLapping()
+            //->withBlockLapping()
             ->forkType(CronForkProcess::FORK_TYPE_PROC_OPEN);
 
         return $schedule;
