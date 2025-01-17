@@ -168,9 +168,6 @@ class CommandRunner
 
         $command = $execBinFile .' '.$execScript.' ' . $argvOption . '; echo $? >&3; echo $! >&4';
         $command = trim($command);
-
-        var_dump($command);
-
         $descriptors = array(
             // stdout
             0 => array('pipe', 'r'),
@@ -180,8 +177,8 @@ class CommandRunner
             2 => array('pipe', 'w'),
             // return exist code
             3 => array('pipe', 'w'),
-//            // return process pid
-//            4 => array('pipe', 'w'),
+            // return process pid
+            4 => array('pipe', 'w'),
         );
 
         $fn = function ($command, $descriptors, $callable) use($extend) {
@@ -192,7 +189,7 @@ class CommandRunner
                     throw new SystemException("Proc Open Command 【{$command}】 failed.");
                 }
                 $status = proc_get_status($proc_process);
-                //$status['pid'] = (int)trim(fgets($pipes[4], 10));
+                $status['pid'] = (int)trim(fgets($pipes[4], 10));
 
                 $runProcessMetaDto = new RunProcessMetaDto();
                 $runProcessMetaDto->pid = $status['pid'] ?? 0;
