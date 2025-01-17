@@ -78,7 +78,7 @@ class RestartCmd extends BaseCmd
 
         // send restart command to main worker process
         $phpBinFile = SystemEnv::PhpBinFile();
-        $waitTime   = 10;
+        $waitTime   = 20;
         if (SystemEnv::isWorkerService()) {
             // sleep max 30s
             $waitTime = 30;

@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Worker\Cron;
 
+use Swoole\Coroutine\Channel;
 use Swoole\Coroutine\System;
 use Swoolefy\Core\CommandRunner;
 use Swoolefy\Core\Crontab\CrontabManager;
@@ -83,7 +84,7 @@ class CronForkProcess extends CronProcess
                                 }
                             }
 
-                            $runner = CommandRunner::getInstance($cron_name,5);
+                            $runner = CronForkRunner::getInstance($cron_name,5);
                             // 确保任务不会重叠运行.如果上一次任务仍在运行，则跳过本次执行
                             if (isset($task['with_block_lapping']) && $task['with_block_lapping'] == true) {
                                 $runningForkProcess = $runner->getRunningForkProcess();
@@ -106,7 +107,7 @@ class CronForkProcess extends CronProcess
                                             $this->receiveCallBack($pipe0, $pipe1, $pipe2, $statusProperty, $task);
                                         }, $extend);
                                     }else {
-                                        $runner->exec($task['exec_bin_file'], $task['exec_script'], $argv, true);
+                                        $runner->exec($task['exec_bin_file'], $task['exec_script'], $argv, true,'/dev/null', true, $extend);
                                     }
                                 }
                             }catch (\Throwable $exception) {
