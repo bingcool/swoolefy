@@ -21,10 +21,10 @@ return [
 //    ],
     [
         'cron_name' => "shell",
-        'cron_expression' => 10,
+        'cron_expression' => 5,
         'exec_bin_file' => "nohup /bin/bash",
         'exec_script' => APP_PATH.'/Python/shell.sh > /dev/null 2>&1 & echo $! > pidfile.pid',
-        'with_block_lapping' => true,
+        'with_block_lapping' => false,
         'argv' => [],
         'extend' => [],
         'description' => '',

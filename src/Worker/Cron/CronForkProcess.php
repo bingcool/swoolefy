@@ -88,7 +88,9 @@ class CronForkProcess extends CronProcess
                             if (isset($task['with_block_lapping']) && $task['with_block_lapping'] == true) {
                                 $runningForkProcess = $runner->getRunningForkProcess();
                                 if (!empty($runningForkProcess)) {
-                                    var_dump('with_time='.date('Y-m-d H:i:s'));
+                                    if (env('CRON_DEBUG')) {
+                                        var_dump('with_block_lapping阻塞重叠中不执行下一轮，time='.date('Y-m-d H:i:s'));
+                                    }
                                     return;
                                 }
                             }
@@ -98,7 +100,7 @@ class CronForkProcess extends CronProcess
                                 $argv     = $task['argv'] ?? [];
                                 $extend   = $task['extend'] ?? [];
                                 // 不限制并发处理
-                                if ($runner->isNextHandle(false)) {
+                                if ($runner->isNextHandle(true, 120)) {
                                     if ($forkType == self::FORK_TYPE_PROC_OPEN) {
                                         $runner->procOpen($task['exec_bin_file'], $task['exec_script'], $argv, function ($pipe0, $pipe1, $pipe2, $statusProperty) use($task) {
                                             $this->receiveCallBack($pipe0, $pipe1, $pipe2, $statusProperty, $task);

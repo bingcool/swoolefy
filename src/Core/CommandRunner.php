@@ -25,7 +25,9 @@ class CommandRunner
      */
     protected static $instances = [];
 
-    protected static $tickerChannel;
+    protected static $checkTickerChannel;
+
+    protected static $cleanExistChannel;
 
     /**
      * @var Channel
@@ -67,17 +69,22 @@ class CommandRunner
             static::$instances[$runnerName] = $runner;
         }
 
-        if (is_null(static::$tickerChannel)) {
-            static::$tickerChannel = goTick(10 * 1000, function () {
+        if (is_null(static::$checkTickerChannel)) {
+            static::$checkTickerChannel = goTick(10 * 1000, function () {
                 /**@var CommandRunner $runner */
                 foreach (static::$instances as $runner) {
-                    $runner->clearExistForkProcess();
+                    $runner->gcExistForkProcess();
                 }
             });
         }
 
+        if (is_null(static::$cleanExistChannel)) {
+            $runner->cleanCleanExistPidFile();
+        }
+
         return static::$instances[$runnerName];
     }
+
 
     /**
      * 执行外部系统程序，包括php,shell so on
@@ -124,8 +131,8 @@ class CommandRunner
         }
 
         if ($isExec) {
-            $exec = (new Exec())->run($command);
-            $output = $exec->getOutput();
+            $exec       = (new Exec())->run($command);
+            $output     = $exec->getOutput();
             $returnCode = $exec->getReturnCode();
             $pid = $output[0] ?? '';
             if (!$this->channel instanceof Channel) {
@@ -134,7 +141,7 @@ class CommandRunner
 
             if ($pid) {
                 $runProcessMetaDto = new RunProcessMetaDto();
-                $runProcessMetaDto->pid = $pid;
+                $runProcessMetaDto->pid = (int)trim($pid);
                 $runProcessMetaDto->command = $command;
                 $runProcessMetaDto->pid_file = '';
                 $runProcessMetaDto->check_total_count = 0;
@@ -220,19 +227,18 @@ class CommandRunner
                         $runProcessMetaDto->pid = 0;
                     }
                     $runProcessMetaDto->pid_file = $cronScriptPidFile;
+                    $this->debug("拉起新的进程pid_file:".$runProcessMetaDto->pid_file);
+                }else {
+                    $this->debug("拉起新的进程pid:".$runProcessMetaDto->pid);
                 }
-
-                $statusProperty = $runProcessMetaDto->toArray();
-
-//                var_dump($statusProperty);
 
                 // 协程环境设置channel控制并发数，isNextHandle()函数判断是否可以并发拉起下一个进程
                 if (\Swoole\Coroutine::getCid() >= 0) {
                     if (!$this->channel instanceof Channel) {
                         $this->channel = new Channel($this->concurrent);
                     }
-                    var_dump('push');
                     $this->channel->push($runProcessMetaDto, 0.2);
+                    $this->debug("after push channel length=".$this->channel->length());
                 }else {
                     if (!Process::kill($status['pid'], 0)) {
                         $returnCode = fgets($pipes[3], 10);
@@ -286,16 +292,16 @@ class CommandRunner
     public function isNextHandle(bool $isNeedCheck = true, int $timeOut = 60)
     {
         $this->isNextFlag = true;
-        $this->clearExistForkProcess();
-        if ($this->channel instanceof Channel && $this->channel->isFull() && $isNeedCheck) {
+        $this->gcExistForkProcess();
+        if ($this->channel instanceof Channel && $this->channel->length() >= $this->concurrent && $isNeedCheck) {
             $itemList = [];
             /**
              * @var RunProcessMetaDto $runProcessMetaItem
              */
             while ($runProcessMetaItem = $this->channel->pop(0.02)) {
-                $startTime = strtotime($runProcessMetaItem->start_time);
+                $startTime  = strtotime($runProcessMetaItem->start_time);
                 $itemList[] = $runProcessMetaItem;
-                // 进程已经存在，并且已经执行超过了规定时间=，强制拉起下一个进程
+                // 进程已经存在，并且已经执行超过了规定时间,强制拉起下一个进程
                 if (\Swoole\Process::kill($runProcessMetaItem->pid, 0) &&  time() > ($timeOut + $startTime)) {
                     $isNext = true;
                     break;
@@ -316,6 +322,13 @@ class CommandRunner
                 System::sleep(0.3);
                 $isNext = false;
             }
+
+            if ($isNext) {
+                $this->debug("暂时未达到最大的并发进程，满足时间点触发，继续拉起新进程，isNextHandle() return true");
+            }else {
+                $this->debug("已达到最大的并发进程数，将禁止继续拉起进程，isNextHandle() return false");
+            }
+
         } else {
             $isNext = true;
         }
@@ -352,18 +365,17 @@ class CommandRunner
     }
 
     /**
-     * 清空已经退出的进程
+     * 回收已经退出的进程
      *
      * @return array
      */
-    protected function clearExistForkProcess()
+    protected function gcExistForkProcess()
     {
         $itemList = [];
         /**
          * @var RunProcessMetaDto $runProcessMetaItem
          */
         if ($this->channel instanceof Channel) {
-            var_dump("length=".$this->channel->length());
             while ($runProcessMetaItem = $this->channel->pop(0.02)) {
                 $pid = $runProcessMetaItem->pid;
                 // pid文件存在，但进程已经退出，删除pid文件
@@ -399,6 +411,8 @@ class CommandRunner
             foreach ($itemList as $runProcessMetaItem) {
                 $this->channel->push($runProcessMetaItem, 0.1);
             }
+
+            $this->debug("定时检查运行中进程数量=".$this->channel->length());
         }
         return $itemList;
     }
@@ -434,6 +448,50 @@ class CommandRunner
             }
         }
         return implode(' ', $args);
+    }
+
+    /**
+     * @return void
+     */
+    private function cleanCleanExistPidFile()
+    {
+        static::$cleanExistChannel = goTick(120 * 1000, function () {
+            foreach (static::$instances as $runner) {
+                $processList = $runner->gcExistForkProcess();
+                if ($processList) {
+                    /**
+                     * @var RunProcessMetaDto $runProcessMetaDto
+                     */
+                    $runProcessMetaDto = array_shift($processList);
+                    if (!empty($runProcessMetaDto->pid_file)) {
+                        $path = pathinfo($runProcessMetaDto->pid_file, PATHINFO_DIRNAME);
+                        if (is_dir($path)) {
+                            $files = scandir($path);
+                            // 过滤掉 "." 和 ".." 条目
+                            $files = array_diff($files, array('.', '..'));
+                            foreach ($files as $file) {
+                                $fullPathPidFile = $path . '/' . $file;
+                                if (is_file($fullPathPidFile) && str_contains($file, '.pid')) {
+                                    $pid = (int)file_get_contents($fullPathPidFile);
+                                    if (($pid > 0 && !\Swoole\Process::kill($pid, 0)) || empty($pid)) {
+                                        $this->debug("删除进程退出的pid文件：{$fullPathPidFile}");
+                                        @unlink($fullPathPidFile);
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    public function debug(string $info)
+    {
+        if ($debug = env('CRON_DEBUG')) {
+            fmtPrintNote($info, false);
+        }
     }
 
     /**
