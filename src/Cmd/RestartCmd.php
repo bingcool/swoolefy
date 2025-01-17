@@ -96,8 +96,8 @@ class RestartCmd extends BaseCmd
             \Swoole\Coroutine::create(function () use ($phpBinFile, $scriptFile) {
                 $runner = CommandRunner::getInstance('restart-'.time());
                 $runner->isNextHandle(false);
-                $runner->procOpen(function () {
-                }, $phpBinFile, $scriptFile);
+                $runner->procOpen($phpBinFile, $scriptFile, [], function () {
+                });
             });
         }else {
             $runner = CommandRunner::getInstance('restart-'.time());
