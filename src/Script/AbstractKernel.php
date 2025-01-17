@@ -17,6 +17,10 @@ use Swoolefy\Worker\Cron\CronForkProcess;
 
 abstract class AbstractKernel {
 
+    const OPTION_SCHEDULE_MODEL = '--schedule_model';
+
+    const OPTION_SCHEDULE_CRON_SCRIPT_PID_FILE = '--cron_script_pid_file';
+
     public static $commands = [];
 
     public static function getCommands()
@@ -37,7 +41,7 @@ abstract class AbstractKernel {
      */
     public static function buildScheduleTaskList(Schedule $schedule)
     {
-        $appName = APP_NAME;
+        $appName      = APP_NAME;
         $scheduleList = [];
 
         foreach ($schedule->toArray() as $item) {
@@ -59,15 +63,50 @@ abstract class AbstractKernel {
                     $argvOptions[] = "--{$argvName}={$argvValue}";
                 }
             }
-            $argvOptions[] = "--schedule_model=cron";
+
+            // cron模式
+            $scheduleModel = self::OPTION_SCHEDULE_MODEL;
+            $argvOptions[] = "{$scheduleModel}=cron";
+
             $argv = implode(' ', $argvOptions);
-            $item['exec_script'] = "script.php start {$appName} --c={$item['command']} $argv";
             if (!isset($item['cron_name'])) {
-                $item['cron_name'] = $item['command'].'-'.$item['cron_expression'].' '.$argv;
+                $item['cron_name'] = ($item['command'] ?? 'schedule').'-'.$item['cron_expression'].' '.$argv;
             }
-            $item['params'] = [];
+
+            // 动态处理定时任务触发时的callback函数
+            $item['call_fns'] = array_merge($item['call_fns'], [[\Swoolefy\Core\Schedule\DynamicCallFn::class, 'generatePidFile']]);
+
+            $scheduleModelOption     = self::getScheduleModelOptionField();
+            $command                 = $item['command'];
+            $item['exec_script']     = "script.php start {$appName} --c={$command}";
+            $item['argv']            = $argvOptions;
+            $item['extend'] = [
+                $scheduleModelOption => 'cron',
+            ];
+
             $scheduleList[] = $item;
         }
         return $scheduleList;
     }
+
+    public static function getScheduleModelOptionField()
+    {
+        return str_replace("--","", self::OPTION_SCHEDULE_MODEL);
+    }
+
+    public static function getCronScriptPidFileOptionField()
+    {
+        return str_replace("--","", self::OPTION_SCHEDULE_CRON_SCRIPT_PID_FILE);
+    }
+
+    public static function getCronScriptFullPidFile($fileName)
+    {
+        $cronScriptPidDir = WORKER_PID_FILE_ROOT.'/cron_script';
+        if (!is_dir($cronScriptPidDir)) {
+            mkdir($cronScriptPidDir, 0777, true);
+        }
+        return $cronScriptPidDir.'/'.$fileName;
+    }
+
+
 }
