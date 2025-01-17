@@ -1,6 +1,7 @@
 <?php
 
 use Swoolefy\Core\SystemEnv;
+use Swoolefy\Worker\Cron\CronForkProcess;
 
 return [
 //    [
@@ -28,6 +29,6 @@ return [
         'argv' => [],
         'extend' => [],
         'description' => '',
-        'fork_type' => 'proc_open',
+        'fork_type' => CronForkProcess::FORK_TYPE_EXEC,
     ]
 ];

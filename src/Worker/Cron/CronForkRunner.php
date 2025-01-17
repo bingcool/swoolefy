@@ -9,20 +9,26 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Core;
+namespace Swoolefy\Worker\Cron;
 
 use Swoole\Coroutine\Channel;
 use Swoole\Coroutine\System;
 use Swoole\Process;
+use Swoolefy\Core\Exec;
 use Swoolefy\Core\Dto\RunProcessMetaDto;
 use Swoolefy\Exception\SystemException;
+use Swoolefy\Script\AbstractKernel;
 
-class CommandRunner
+class CronForkRunner
 {
     /**
      * @var array
      */
     protected static $instances = [];
+
+    protected static $checkTickerChannel;
+
+    protected static $cleanExistChannel;
 
     /**
      * @var Channel
@@ -47,12 +53,12 @@ class CommandRunner
     /**
      * @param string $runnerName
      * @param int $concurrent
-     * @return CommandRunner
+     * @return CronForkRunner
      */
     public static function getInstance(string $runnerName, int $concurrent = 5)
     {
         if (!isset(static::$instances[$runnerName])) {
-            /**@var CommandRunner $runner */
+            /**@var CronForkRunner $runner */
             $runner = new static();
             if ($concurrent >= 10) {
                 $concurrent = 10;
@@ -62,6 +68,19 @@ class CommandRunner
                 $runner->channel = new Channel($concurrent);
             }
             static::$instances[$runnerName] = $runner;
+        }
+
+        if (is_null(static::$checkTickerChannel)) {
+            static::$checkTickerChannel = goTick(10 * 1000, function () {
+                /**@var CronForkRunner $runner */
+                foreach (static::$instances as $runner) {
+                    $runner->gcExistForkProcess();
+                }
+            });
+        }
+
+        if (is_null(static::$cleanExistChannel)) {
+            $runner->cleanCleanExistPidFile();
         }
 
         return static::$instances[$runnerName];
@@ -131,6 +150,20 @@ class CommandRunner
                 $runProcessMetaDto->check_total_count = 0;
                 $runProcessMetaDto->check_pid_not_exist_count = 0;
                 $runProcessMetaDto->start_time = date('Y-m-d H:i:s');
+
+                $cronScriptPidFileOption = AbstractKernel::getCronScriptPidFileOptionField();
+                if (isset($extend[$cronScriptPidFileOption])) {
+                    $cronScriptPidFile = $extend[$cronScriptPidFileOption];
+                    if (is_file($cronScriptPidFile)) {
+                        $runProcessMetaDto->pid = (int)trim(file_get_contents($cronScriptPidFile));
+                    }else {
+                        $runProcessMetaDto->pid = 0;
+                    }
+                    $runProcessMetaDto->pid_file = $cronScriptPidFile;
+                    $this->debug("拉起新的进程pid_file:".$runProcessMetaDto->pid_file);
+                }else {
+                    $this->debug("拉起新的进程pid:".$runProcessMetaDto->pid);
+                }
                 $this->channel->push($runProcessMetaDto, 0.2);
             }
             // when exec error save log
@@ -167,10 +200,8 @@ class CommandRunner
         }
 
         $command = $execBinFile .' '.$execScript.' ' . $argvOption . '; echo $? >&3; echo $! >&4';
+
         $command = trim($command);
-
-        var_dump($command);
-
         $descriptors = array(
             // stdout
             0 => array('pipe', 'r'),
@@ -180,8 +211,8 @@ class CommandRunner
             2 => array('pipe', 'w'),
             // return exist code
             3 => array('pipe', 'w'),
-//            // return process pid
-//            4 => array('pipe', 'w'),
+            // return process pid
+            4 => array('pipe', 'w'),
         );
 
         $fn = function ($command, $descriptors, $callable) use($extend) {
@@ -192,7 +223,9 @@ class CommandRunner
                     throw new SystemException("Proc Open Command 【{$command}】 failed.");
                 }
                 $status = proc_get_status($proc_process);
-                //$status['pid'] = (int)trim(fgets($pipes[4], 10));
+                $status['pid'] = (int)trim(fgets($pipes[4], 10));
+
+                $cronScriptPidFileOption = AbstractKernel::getCronScriptPidFileOptionField();
 
                 $runProcessMetaDto = new RunProcessMetaDto();
                 $runProcessMetaDto->pid = $status['pid'] ?? 0;
@@ -202,7 +235,18 @@ class CommandRunner
                 $runProcessMetaDto->check_pid_not_exist_count = 0;
                 $runProcessMetaDto->start_time = date('Y-m-d H:i:s');
 
-               // $this->debug("拉起新的进程pid:".$runProcessMetaDto->pid);
+                if (isset($extend[$cronScriptPidFileOption])) {
+                    $cronScriptPidFile = $extend[$cronScriptPidFileOption];
+                    if (is_file($cronScriptPidFile)) {
+                        $runProcessMetaDto->pid = (int)trim(file_get_contents($cronScriptPidFile));
+                    }else {
+                        $runProcessMetaDto->pid = 0;
+                    }
+                    $runProcessMetaDto->pid_file = $cronScriptPidFile;
+                    $this->debug("拉起新的进程pid_file:".$runProcessMetaDto->pid_file);
+                }else {
+                    $this->debug("拉起新的进程pid:".$runProcessMetaDto->pid);
+                }
 
                 // 协程环境设置channel控制并发数，isNextHandle()函数判断是否可以并发拉起下一个进程
                 if (\Swoole\Coroutine::getCid() >= 0) {
@@ -210,6 +254,7 @@ class CommandRunner
                         $this->channel = new Channel($this->concurrent);
                     }
                     $this->channel->push($runProcessMetaDto, 0.2);
+                    $this->debug("after push channel length=".$this->channel->length());
                 }else {
                     if (!Process::kill($status['pid'], 0)) {
                         $returnCode = fgets($pipes[3], 10);
@@ -293,6 +338,13 @@ class CommandRunner
                 System::sleep(0.3);
                 $isNext = false;
             }
+
+            if ($isNext) {
+                $this->debug("暂时未达到最大的并发进程，满足时间点触发，继续拉起新进程，isNextHandle() return true");
+            }else {
+                $this->debug("已达到最大的并发进程数，将禁止继续拉起进程，isNextHandle() return false");
+            }
+
         } else {
             $isNext = true;
         }
@@ -322,7 +374,7 @@ class CommandRunner
 
             // 取出来判断running的进程后，要再次push回去
             foreach ($allItemList as $runProcessMetaItem) {
-               $this->channel->push($runProcessMetaItem, 0.1);
+                $this->channel->push($runProcessMetaItem, 0.1);
             }
         }
         return $runningItemList;
@@ -375,6 +427,8 @@ class CommandRunner
             foreach ($itemList as $runProcessMetaItem) {
                 $this->channel->push($runProcessMetaItem, 0.1);
             }
+
+            $this->debug("定时检查运行中进程数量=".$this->channel->length());
         }
         return $itemList;
     }
@@ -410,6 +464,50 @@ class CommandRunner
             }
         }
         return implode(' ', $args);
+    }
+
+    /**
+     * @return void
+     */
+    private function cleanCleanExistPidFile()
+    {
+        static::$cleanExistChannel = goTick(120 * 1000, function () {
+            foreach (static::$instances as $runner) {
+                $processList = $runner->gcExistForkProcess();
+                if ($processList) {
+                    /**
+                     * @var RunProcessMetaDto $runProcessMetaDto
+                     */
+                    $runProcessMetaDto = array_shift($processList);
+                    if (!empty($runProcessMetaDto->pid_file)) {
+                        $path = pathinfo($runProcessMetaDto->pid_file, PATHINFO_DIRNAME);
+                        if (is_dir($path)) {
+                            $files = scandir($path);
+                            // 过滤掉 "." 和 ".." 条目
+                            $files = array_diff($files, array('.', '..'));
+                            foreach ($files as $file) {
+                                $fullPathPidFile = $path . '/' . $file;
+                                if (is_file($fullPathPidFile) && str_contains($file, '.pid')) {
+                                    $pid = (int)file_get_contents($fullPathPidFile);
+                                    if (($pid > 0 && !\Swoole\Process::kill($pid, 0)) || empty($pid)) {
+                                        $this->debug("删除进程退出的pid文件：{$fullPathPidFile}");
+                                        @unlink($fullPathPidFile);
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    public function debug(string $info)
+    {
+        if (env('CRON_DEBUG')) {
+            fmtPrintNote($info, false);
+        }
     }
 
     /**
