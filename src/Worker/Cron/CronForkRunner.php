@@ -37,9 +37,9 @@ class CronForkRunner
     protected static $deleteExistTickerChannel;
 
     /**
-     * @var Channel
+     * @var array
      */
-    protected $channel;
+    protected $runProcessMetaPool = [];
 
     /**
      * @var int
@@ -80,9 +80,6 @@ class CronForkRunner
                 $concurrent = 10;
             }
             $runner->concurrent = $concurrent;
-            if (\Swoole\Coroutine::getCid() >= 0) {
-                $runner->channel = new Channel($concurrent);
-            }
             static::$instances[$runnerName] = $runner;
         }
 
@@ -148,9 +145,6 @@ class CronForkRunner
             $output     = $exec->getOutput();
             $returnCode = $exec->getReturnCode();
             $pid = $output[0] ?? '';
-            if (!$this->channel instanceof Channel) {
-                $this->channel = new Channel($this->concurrent);
-            }
 
             if ($pid) {
                 $runProcessMetaDto = new RunProcessMetaDto();
@@ -175,7 +169,7 @@ class CronForkRunner
                 }else {
                     $this->debug("拉起新的进程pid:".$runProcessMetaDto->pid);
                 }
-                $this->channel->push($runProcessMetaDto, 0.2);
+                $this->runProcessMetaPool[] = $runProcessMetaDto;
             }
             // when exec error save log
             if ($returnCode != 0) {
@@ -193,7 +187,7 @@ class CronForkRunner
      * @param array $args
      * @param callable $callable
      * @param array $extend
-     * @return void
+     * @return array|null
      * @throws SystemException
      */
     public function procOpen(
@@ -262,11 +256,8 @@ class CronForkRunner
 
                 // 协程环境设置channel控制并发数，isNextHandle()函数判断是否可以并发拉起下一个进程
                 if (\Swoole\Coroutine::getCid() >= 0) {
-                    if (!$this->channel instanceof Channel) {
-                        $this->channel = new Channel($this->concurrent);
-                    }
-                    $this->channel->push($runProcessMetaDto, 0.2);
-                    $this->debug("after push channel length=".$this->channel->length());
+                    $this->runProcessMetaPool[] = $runProcessMetaDto;
+                    $this->debug("拉起后当前runProcessMetaPool的Size=".count($this->runProcessMetaPool));
                 }else {
                     if (!Process::kill($status['pid'], 0)) {
                         $returnCode = fgets($pipes[3], 10);
@@ -286,7 +277,6 @@ class CronForkRunner
                 }
                 proc_close($proc_process);
             }
-            return null;
         };
 
         if (!is_callable($callable)) {
@@ -322,40 +312,41 @@ class CronForkRunner
     {
         $this->isNextFlag = true;
         $this->gcExitProcess();
-        if ($this->channel instanceof Channel && $this->channel->length() >= $this->concurrent && $isNeedCheck) {
-            $itemList = [];
+        if (count($this->runProcessMetaPool) >= $this->concurrent && $isNeedCheck) {
             /**
              * @var RunProcessMetaDto $runProcessMetaItem
              */
-            while ($runProcessMetaItem = $this->channel->pop(0.02)) {
+            foreach ($this->runProcessMetaPool as $runProcessMetaItem) {
                 $startTime  = $runProcessMetaItem->start_timestamp;
-                $itemList[] = $runProcessMetaItem;
                 // 进程已经存在，并且已经执行超过了规定时间,强制拉起下一个进程
                 if (\Swoole\Process::kill($runProcessMetaItem->pid, 0) &&  time() > ($timeOut + $startTime)) {
                     $isNext = true;
                     break;
                 }
-            }
-            // 重新push进channel
-            foreach ($itemList as $runProcessMetaItem) {
-                $this->channel->push($runProcessMetaItem);
-            }
-            // 满足直接return
-            if (isset($isNext)) {
-                return $isNext;
+
+                // 寄存都已退出进程
+                if (!\Swoole\Process::kill($runProcessMetaItem->pid, 0)) {
+                    $exitProcess[] = $runProcessMetaItem;
+                }
             }
 
-            if ($this->channel->length() < $this->concurrent) {
-                $isNext = true;
-            } else {
-                System::sleep(0.3);
-                $isNext = false;
+            if (!isset($isNext)) {
+                // 所有的进程都已退出，则需要重新拉起进程
+                if (isset($exitProcess) && is_array($exitProcess) && count($this->runProcessMetaPool) == count($exitProcess)) {
+                    $isNext = true;
+                    // 清空进程元信息池
+                    $this->runProcessMetaPool = [];
+                }else {
+                    System::sleep(0.3);
+                    $isNext = false;
+                }
             }
-            $this->debug("进入isNextHandle()方法，channel length=".$this->channel->length());
+
+            $this->debug("进入isNextHandle()方法，runProcessMetaPool的Size=".count($this->runProcessMetaPool));
             if ($isNext) {
-                $this->debug("暂时未达到最大的并发进程，满足时间点触发，继续拉起新进程，isNextHandle() return true");
+                $this->debug("暂时未达到最大的并发进程数={$this->concurrent}，满足时间点触发，继续拉起新进程，isNextHandle() return true");
             }else {
-                $this->debug("已达到最大的并发进程数，将禁止继续拉起进程，isNextHandle() return false");
+                $this->debug("已达到最大的并发进程数={$this->concurrent}，将禁止继续拉起进程，isNextHandle() return false");
             }
 
         } else {
@@ -395,22 +386,14 @@ class CronForkRunner
      */
     public function getRunningForkProcess()
     {
-        $allItemList = $runningItemList = [];
+        $runningItemList = [];
         /**
          * @var RunProcessMetaDto $runProcessMetaItem
          */
-        if ($this->channel instanceof Channel) {
-            while ($runProcessMetaItem = $this->channel->pop(0.02)) {
-                $allItemList[] = $runProcessMetaItem;
-                $pid = $runProcessMetaItem->pid;
-                if (\Swoole\Process::kill($pid, 0)) {
-                    $runningItemList[] = $runProcessMetaItem;
-                }
-            }
-
-            // channel取出来判断running的进程后，需要再次push回去channel
-            foreach ($allItemList as $runProcessMetaItem) {
-                $this->channel->push($runProcessMetaItem, 0.1);
+        foreach ($this->runProcessMetaPool as $runProcessMetaItem) {
+            $pid = $runProcessMetaItem->pid;
+            if (\Swoole\Process::kill($pid, 0)) {
+                $runningItemList[] = $runProcessMetaItem;
             }
         }
         return $runningItemList;
@@ -427,8 +410,8 @@ class CronForkRunner
         /**
          * @var RunProcessMetaDto $runProcessMetaItem
          */
-        if ($this->channel instanceof Channel) {
-            while ($runProcessMetaItem = $this->channel->pop(0.02)) {
+        if (count($this->runProcessMetaPool) > 0) {
+            foreach ($this->runProcessMetaPool as $runProcessMetaItem) {
                 $pid = $runProcessMetaItem->pid;
                 // pid文件存在，但进程已经退出，删除pid文件
                 $pidFile = $runProcessMetaItem->pid_file;
@@ -460,11 +443,9 @@ class CronForkRunner
                 }
             }
 
-            foreach ($itemList as $runProcessMetaItem) {
-                $this->channel->push($runProcessMetaItem, 0.1);
-            }
+            $this->runProcessMetaPool = $itemList;
 
-            $this->debug("定时检查运行中进程数量=".$this->channel->length());
+            $this->debug("定时检查运行中进程数量=".count($this->runProcessMetaPool));
         }
         return $itemList;
     }
@@ -531,7 +512,6 @@ class CronForkRunner
         if (!$this->isNextFlag) {
             throw new SystemException('Missing call isNextHandle().');
         }
-        $this->isNextFlag = false;
     }
 
     protected function debug(string $info)

@@ -11,7 +11,6 @@
 
 namespace Swoolefy\Core;
 
-use Swoole\Coroutine\Channel;
 use Swoole\Coroutine\System;
 use Swoole\Process;
 use Swoolefy\Core\Dto\RunProcessMetaDto;
@@ -25,9 +24,9 @@ class CommandRunner
     protected static $instances = [];
 
     /**
-     * @var Channel
+     * @var array
      */
-    protected $channel;
+    protected $runProcessMetaPool = [];
 
     /**
      * @var int
@@ -58,9 +57,6 @@ class CommandRunner
                 $concurrent = 10;
             }
             $runner->concurrent = $concurrent;
-            if (\Swoole\Coroutine::getCid() >= 0) {
-                $runner->channel = new Channel($concurrent);
-            }
             static::$instances[$runnerName] = $runner;
         }
 
@@ -119,10 +115,6 @@ class CommandRunner
             $output     = $exec->getOutput();
             $returnCode = $exec->getReturnCode();
             $pid = $output[0] ?? '';
-            if (!$this->channel instanceof Channel) {
-                $this->channel = new Channel($this->concurrent);
-            }
-
             if ($pid) {
                 $runProcessMetaDto = new RunProcessMetaDto();
                 $runProcessMetaDto->pid = (int)trim($pid);
@@ -130,8 +122,9 @@ class CommandRunner
                 $runProcessMetaDto->pid_file = '';
                 $runProcessMetaDto->check_total_count = 0;
                 $runProcessMetaDto->check_pid_not_exist_count = 0;
-                $runProcessMetaDto->start_time = date('Y-m-d H:i:s');
-                $this->channel->push($runProcessMetaDto, 0.2);
+                $runProcessMetaDto->start_timestamp = time();
+                $runProcessMetaDto->start_date_time = date('Y-m-d H:i:s');
+                $this->runProcessMetaPool[] = $runProcessMetaDto;
             }
             // when exec error save log
             if ($returnCode != 0) {
@@ -197,26 +190,22 @@ class CommandRunner
                 $runProcessMetaDto->pid_file = '';
                 $runProcessMetaDto->check_total_count = 0;
                 $runProcessMetaDto->check_pid_not_exist_count = 0;
-                $runProcessMetaDto->start_time = date('Y-m-d H:i:s');
+                $runProcessMetaDto->start_timestamp = time();
+                $runProcessMetaDto->start_date_time = date('Y-m-d H:i:s');
 
                // $this->debug("拉起新的进程pid:".$runProcessMetaDto->pid);
 
                 // 协程环境设置channel控制并发数，isNextHandle()函数判断是否可以并发拉起下一个进程
-                if (\Swoole\Coroutine::getCid() >= 0) {
-                    if (!$this->channel instanceof Channel) {
-                        $this->channel = new Channel($this->concurrent);
-                    }
-                    $this->channel->push($runProcessMetaDto, 0.2);
-                }else {
-                    if (!Process::kill($status['pid'], 0)) {
-                        $returnCode = fgets($pipes[3], 10);
-                        $errorMsg   = static::$exitCodes[$returnCode] ?? 'Unknown Error';
-                        throw new SystemException("CommandRunner Proc Open failed,return Code={$returnCode},commandLine={$command}, errorMsg={$errorMsg}.");
-                    }
+                $this->runProcessMetaPool[] = $runProcessMetaDto;
+                if (!Process::kill($status['pid'], 0)) {
+                    $returnCode = fgets($pipes[3], 10);
+                    $errorMsg   = static::$exitCodes[$returnCode] ?? 'Unknown Error';
+                    throw new SystemException("CommandRunner Proc Open failed,return Code={$returnCode},commandLine={$command}, errorMsg={$errorMsg}.");
                 }
-                $params = [$pipes[0], $pipes[1], $pipes[2], $runProcessMetaDto->toArray()];
-                $result = call_user_func_array($callable, $params);
-                return $result;
+                $statusProperty = $runProcessMetaDto->toArray();
+                $params = [$pipes[0], $pipes[1], $pipes[2], $statusProperty];
+                call_user_func_array($callable, $params);
+                return $statusProperty;
             } catch (\Throwable $e) {
                 fmtPrintError("CommandRunner ErrorMsg={$e->getMessage()},trace={$e->getTraceAsString()}");
             } finally {
@@ -225,7 +214,6 @@ class CommandRunner
                 }
                 proc_close($proc_process);
             }
-            return null;
         };
 
         if (!is_callable($callable)) {
@@ -260,35 +248,36 @@ class CommandRunner
     public function isNextHandle(bool $isNeedCheck = true, int $timeOut = 60)
     {
         $this->isNextFlag = true;
-        $this->gcExistForkProcess();
-        if ($this->channel instanceof Channel && $this->channel->length() >= $this->concurrent && $isNeedCheck) {
-            $itemList = [];
+        $this->gcExitProcess();
+        if (count($this->runProcessMetaPool) >= $this->concurrent && $isNeedCheck) {
+            $exitProcess = [];
             /**
              * @var RunProcessMetaDto $runProcessMetaItem
              */
-            while ($runProcessMetaItem = $this->channel->pop(0.02)) {
+            foreach ($this->runProcessMetaPool as $runProcessMetaItem) {
                 $startTime  = strtotime($runProcessMetaItem->start_time);
-                $itemList[] = $runProcessMetaItem;
                 // 进程已经存在，并且已经执行超过了规定时间,强制拉起下一个进程
                 if (\Swoole\Process::kill($runProcessMetaItem->pid, 0) &&  time() > ($timeOut + $startTime)) {
                     $isNext = true;
                     break;
                 }
-            }
-            // 重新push进channel
-            foreach ($itemList as $runProcessMetaItem) {
-                $this->channel->push($runProcessMetaItem);
-            }
-            // 满足直接return
-            if (isset($isNext)) {
-                return $isNext;
+
+                // 寄存都已退出进程
+                if (!\Swoole\Process::kill($runProcessMetaItem->pid, 0)) {
+                    $exitProcess[] = $runProcessMetaItem;
+                }
             }
 
-            if ($this->channel->length() < $this->concurrent) {
-                $isNext = true;
-            } else {
-                System::sleep(0.3);
-                $isNext = false;
+            if (!isset($isNext)) {
+                // 所有的进程都已退出
+                if (count($this->runProcessMetaPool) == count($exitProcess)) {
+                    $isNext = true;
+                    // 清空进程元信息池
+                    $this->runProcessMetaPool = [];
+                }else {
+                    System::sleep(0.3);
+                    $isNext = false;
+                }
             }
         } else {
             $isNext = true;
@@ -304,22 +293,14 @@ class CommandRunner
      */
     public function getRunningForkProcess()
     {
-        $runningItemList = $allItemList = [];
+        $runningItemList = [];
         /**
          * @var RunProcessMetaDto $runProcessMetaItem
          */
-        if ($this->channel instanceof Channel) {
-            while ($runProcessMetaItem = $this->channel->pop(0.02)) {
-                $allItemList[] = $runProcessMetaItem;
-                $pid = $runProcessMetaItem->pid;
-                if (\Swoole\Process::kill($pid, 0)) {
-                    $runningItemList[] = $runProcessMetaItem;
-                }
-            }
-
-            // 取出来判断running的进程后，要再次push回去
-            foreach ($allItemList as $runProcessMetaItem) {
-               $this->channel->push($runProcessMetaItem, 0.1);
+        foreach ($this->runProcessMetaPool as $runProcessMetaItem) {
+            $pid = $runProcessMetaItem->pid;
+            if (\Swoole\Process::kill($pid, 0)) {
+                $runningItemList[] = $runProcessMetaItem;
             }
         }
         return $runningItemList;
@@ -330,14 +311,14 @@ class CommandRunner
      *
      * @return array
      */
-    protected function gcExistForkProcess()
+    protected function gcExitProcess()
     {
         $itemList = [];
         /**
          * @var RunProcessMetaDto $runProcessMetaItem
          */
-        if ($this->channel instanceof Channel) {
-            while ($runProcessMetaItem = $this->channel->pop(0.02)) {
+        if (count($this->runProcessMetaPool) > 0) {
+            foreach ($this->runProcessMetaPool as $runProcessMetaItem) {
                 $pid = $runProcessMetaItem->pid;
                 // pid文件存在，但进程已经退出，删除pid文件
                 $pidFile = $runProcessMetaItem->pid_file;
@@ -369,9 +350,8 @@ class CommandRunner
                 }
             }
 
-            foreach ($itemList as $runProcessMetaItem) {
-                $this->channel->push($runProcessMetaItem, 0.1);
-            }
+            // 最新的存在的进程元信息池
+            $this->runProcessMetaPool = $itemList;
         }
         return $itemList;
     }
@@ -384,7 +364,6 @@ class CommandRunner
         if (!$this->isNextFlag) {
             throw new SystemException('Missing call isNextHandle().');
         }
-        $this->isNextFlag = false;
     }
 
     /**

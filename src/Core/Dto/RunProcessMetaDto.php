@@ -11,8 +11,6 @@
 
 namespace Swoolefy\Core\Dto;
 
-use Swoolefy\Script\AbstractKernel;
-
 class RunProcessMetaDto extends AbstractDto
 {
     /**
