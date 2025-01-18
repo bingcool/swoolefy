@@ -74,7 +74,7 @@ class RestartCmd extends BaseCmd
 
         // send restart command to main worker process
         $phpBinFile = SystemEnv::PhpBinFile();
-        $waitTime   = 10;
+        $waitTime   = 15;
         if (SystemEnv::isWorkerService()) {
             // sleep max 30s
             $waitTime = 30;
@@ -88,19 +88,12 @@ class RestartCmd extends BaseCmd
 
         $scriptFile = implode(' ',[$selfFile, 'start', $appName, '--daemon=1']);
 
-        if (swoole_version() > '5.0.0') {
-            \Swoole\Coroutine::create(function () use ($phpBinFile, $scriptFile) {
-                $runner = CommandRunner::getInstance('restart-'.time());
-                $runner->isNextHandle(false);
-                $runner->procOpen(function () {
-                }, $phpBinFile, $scriptFile);
-            });
-        }else {
-            $runner = CommandRunner::getInstance('restart-'.time());
-            $runner->isNextHandle(false);
-            list($commandScript,) = $runner->exec($phpBinFile, $scriptFile, [],false,'/dev/null',false);
-            @exec($commandScript, $output);
-        }
+        $runner = CommandRunner::getInstance('restart-'.time());
+        $runner->isNextHandle(false);
+        $runner->procOpen($phpBinFile, $scriptFile, [], function () {});
+
+//        list($commandScript,) = $runner->exec($phpBinFile, $scriptFile, [],false,'/dev/null',false);
+//        @exec($commandScript, $output);
 
         $time = time();
         while (true) {

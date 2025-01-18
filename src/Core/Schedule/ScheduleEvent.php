@@ -45,6 +45,11 @@ class ScheduleEvent extends AbstractDto
     public $description = '';
 
     /**
+     * @var bool
+     */
+    public $with_block_lapping = false;
+
+    /**
      * @var null
      */
     public $timezone = null;
@@ -54,6 +59,8 @@ class ScheduleEvent extends AbstractDto
      * @var FilterDto[]
      */
     public $filters = [];
+
+    public $call_fns = [];
 
     /**
      * @var string
@@ -620,6 +627,15 @@ class ScheduleEvent extends AbstractDto
     public function description(string $description = ''): self
     {
         $this->description = $description;
+        return $this;
+    }
+
+    /**
+     * @return $this
+     */
+    public function withBlockLapping(): self
+    {
+        $this->with_block_lapping = true;
         return $this;
     }
 
