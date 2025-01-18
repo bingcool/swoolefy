@@ -9,7 +9,7 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Core\Dto;
+namespace Swoolefy\Worker\Dto;
 
 class RunProcessMetaDto extends AbstractDto
 {

@@ -15,7 +15,7 @@ use Swoole\Coroutine\Channel;
 use Swoole\Coroutine\System;
 use Swoole\Process;
 use Swoolefy\Core\Exec;
-use Swoolefy\Core\Dto\RunProcessMetaDto;
+use Swoolefy\Worker\Dto\RunProcessMetaDto;
 use Swoolefy\Exception\SystemException;
 use Swoolefy\Script\AbstractKernel;
 
