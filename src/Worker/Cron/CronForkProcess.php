@@ -11,9 +11,7 @@
 
 namespace Swoolefy\Worker\Cron;
 
-use Swoole\Coroutine\Channel;
 use Swoole\Coroutine\System;
-use Swoolefy\Core\CommandRunner;
 use Swoolefy\Core\Crontab\CrontabManager;
 use Swoolefy\Core\Schedule\FilterDto;
 
@@ -100,7 +98,7 @@ class CronForkProcess extends CronProcess
                             try {
                                 $argv     = $task['argv'] ?? [];
                                 $extend   = $task['extend'] ?? [];
-                                // 不限制并发处理
+                                // 限制并发处理
                                 if ($runner->isNextHandle(true, 120)) {
                                     if ($forkType == self::FORK_TYPE_PROC_OPEN) {
                                         $runner->procOpen($task['exec_bin_file'], $task['exec_script'], $argv, function ($pipe0, $pipe1, $pipe2, $statusProperty) use($task) {

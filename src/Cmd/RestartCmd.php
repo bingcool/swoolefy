@@ -94,11 +94,8 @@ class RestartCmd extends BaseCmd
 
         $runner = CommandRunner::getInstance('restart-'.time());
         $runner->isNextHandle(false);
-        $runner->procOpen($phpBinFile, $scriptFile, [], function () {
-        });
+        $runner->procOpen($phpBinFile, $scriptFile, [], function () {});
 
-//        $runner = CommandRunner::getInstance('restart-'.time());
-//        $runner->isNextHandle(false);
 //        list($commandScript,) = $runner->exec($phpBinFile, $scriptFile, [],false,'/dev/null',false);
 //        @exec($commandScript, $output);
 

@@ -26,9 +26,15 @@ class CronForkRunner
      */
     protected static $instances = [];
 
-    protected static $checkTickerChannel;
+    /**
+     * @var Channel
+     */
+    protected static $checkRunningTickerChannel;
 
-    protected static $cleanExistChannel;
+    /**
+     * @var Channel
+     */
+    protected static $deleteExistTickerChannel;
 
     /**
      * @var Channel
@@ -39,6 +45,16 @@ class CronForkRunner
      * @var int
      */
     protected $concurrent = 5;
+
+    /**
+     * @var int
+     */
+    protected $checkTickerTime = 10;
+
+    /**
+     * @var int
+     */
+    protected $deleteExistTickerTime= 120;
 
     /**
      * @var bool
@@ -70,22 +86,16 @@ class CronForkRunner
             static::$instances[$runnerName] = $runner;
         }
 
-        if (is_null(static::$checkTickerChannel)) {
-            static::$checkTickerChannel = goTick(10 * 1000, function () {
-                /**@var CronForkRunner $runner */
-                foreach (static::$instances as $runner) {
-                    $runner->gcExistForkProcess();
-                }
-            });
+        if (is_null(static::$checkRunningTickerChannel)) {
+            $runner->registerTickOfCheckRunningProcess();
         }
 
-        if (is_null(static::$cleanExistChannel)) {
-            $runner->cleanCleanExistPidFile();
+        if (is_null(static::$deleteExistTickerChannel)) {
+            $runner->registerTickOfDeleteExistPidFile();
         }
 
         return static::$instances[$runnerName];
     }
-
 
     /**
      * 执行外部系统程序，包括php,shell so on
@@ -149,7 +159,8 @@ class CronForkRunner
                 $runProcessMetaDto->pid_file = '';
                 $runProcessMetaDto->check_total_count = 0;
                 $runProcessMetaDto->check_pid_not_exist_count = 0;
-                $runProcessMetaDto->start_time = date('Y-m-d H:i:s');
+                $runProcessMetaDto->start_timestamp = time();
+                $runProcessMetaDto->start_date_time = date('Y-m-d H:i:s');
 
                 $cronScriptPidFileOption = AbstractKernel::getCronScriptPidFileOptionField();
                 if (isset($extend[$cronScriptPidFileOption])) {
@@ -201,7 +212,7 @@ class CronForkRunner
 
         $command = $execBinFile .' '.$execScript.' ' . $argvOption . '; echo $? >&3; echo $! >&4';
 
-        $command = trim($command);
+        $command      = trim($command);
         $descriptors = array(
             // stdout
             0 => array('pipe', 'r'),
@@ -233,7 +244,8 @@ class CronForkRunner
                 $runProcessMetaDto->pid_file = '';
                 $runProcessMetaDto->check_total_count = 0;
                 $runProcessMetaDto->check_pid_not_exist_count = 0;
-                $runProcessMetaDto->start_time = date('Y-m-d H:i:s');
+                $runProcessMetaDto->start_timestamp = time();
+                $runProcessMetaDto->start_date_time = date('Y-m-d H:i:s');
 
                 if (isset($extend[$cronScriptPidFileOption])) {
                     $cronScriptPidFile = $extend[$cronScriptPidFileOption];
@@ -262,9 +274,10 @@ class CronForkRunner
                         throw new SystemException("CommandRunner Proc Open failed,return Code={$returnCode},commandLine={$command}, errorMsg={$errorMsg}.");
                     }
                 }
-                $params = [$pipes[0], $pipes[1], $pipes[2], $runProcessMetaDto->toArray()];
-                $result = call_user_func_array($callable, $params);
-                return $result;
+                $statusProperty = $runProcessMetaDto->toArray();
+                $params = [$pipes[0], $pipes[1], $pipes[2], $statusProperty];
+                call_user_func_array($callable, $params);
+                return $statusProperty;
             } catch (\Throwable $e) {
                 fmtPrintError("CommandRunner ErrorMsg={$e->getMessage()},trace={$e->getTraceAsString()}");
             } finally {
@@ -308,14 +321,14 @@ class CronForkRunner
     public function isNextHandle(bool $isNeedCheck = true, int $timeOut = 60)
     {
         $this->isNextFlag = true;
-        $this->gcExistForkProcess();
+        $this->gcExitProcess();
         if ($this->channel instanceof Channel && $this->channel->length() >= $this->concurrent && $isNeedCheck) {
             $itemList = [];
             /**
              * @var RunProcessMetaDto $runProcessMetaItem
              */
             while ($runProcessMetaItem = $this->channel->pop(0.02)) {
-                $startTime  = strtotime($runProcessMetaItem->start_time);
+                $startTime  = $runProcessMetaItem->start_timestamp;
                 $itemList[] = $runProcessMetaItem;
                 // 进程已经存在，并且已经执行超过了规定时间,强制拉起下一个进程
                 if (\Swoole\Process::kill($runProcessMetaItem->pid, 0) &&  time() > ($timeOut + $startTime)) {
@@ -338,7 +351,7 @@ class CronForkRunner
                 System::sleep(0.3);
                 $isNext = false;
             }
-
+            $this->debug("进入isNextHandle()方法，channel length=".$this->channel->length());
             if ($isNext) {
                 $this->debug("暂时未达到最大的并发进程，满足时间点触发，继续拉起新进程，isNextHandle() return true");
             }else {
@@ -346,10 +359,33 @@ class CronForkRunner
             }
 
         } else {
+            $this->debug("暂时未达到最大的并发进程，满足时间点触发，继续拉起新进程，isNextHandle() return true");
             $isNext = true;
         }
 
         return $isNext ?? false;
+    }
+
+    /**
+     * @param array $args
+     * @return string
+     */
+    protected function parseEscapeShellArg(array $args)
+    {
+        if (empty($args)) {
+            return "";
+        }
+        // 关联数组
+        if ((function_exists('array_is_list') && array_is_list($args)) || (count(array_keys($args)) > 0 && !isset($args[0]))) {
+            foreach ($args as $argvName=>$argvValue) {
+                if (str_contains($argvValue, ' ')) {
+                    $argvOptions[] = "--{$argvName}='{$argvValue}'";
+                }else {
+                    $argvOptions[] = "--{$argvName}={$argvValue}";
+                }
+            }
+        }
+        return implode(' ', $args);
     }
 
     /**
@@ -359,7 +395,7 @@ class CronForkRunner
      */
     public function getRunningForkProcess()
     {
-        $runningItemList = $allItemList = [];
+        $allItemList = $runningItemList = [];
         /**
          * @var RunProcessMetaDto $runProcessMetaItem
          */
@@ -372,7 +408,7 @@ class CronForkRunner
                 }
             }
 
-            // 取出来判断running的进程后，要再次push回去
+            // channel取出来判断running的进程后，需要再次push回去channel
             foreach ($allItemList as $runProcessMetaItem) {
                 $this->channel->push($runProcessMetaItem, 0.1);
             }
@@ -385,7 +421,7 @@ class CronForkRunner
      *
      * @return array
      */
-    protected function gcExistForkProcess()
+    public function gcExitProcess()
     {
         $itemList = [];
         /**
@@ -433,47 +469,32 @@ class CronForkRunner
         return $itemList;
     }
 
-    /**
-     * @throws \Exception
-     */
-    protected function checkNextFlag()
-    {
-        if (!$this->isNextFlag) {
-            throw new SystemException('Missing call isNextHandle().');
-        }
-        $this->isNextFlag = false;
-    }
-
-    /**
-     * @param array $args
-     * @return string
-     */
-    protected function parseEscapeShellArg(array $args)
-    {
-        if (empty($args)) {
-            return "";
-        }
-        // 关联数组
-        if ((function_exists('array_is_list') && array_is_list($args)) || (count(array_keys($args)) > 0 && !isset($args[0]))) {
-            foreach ($args as $argvName=>$argvValue) {
-                if (str_contains($argvValue, ' ')) {
-                    $argvOptions[] = "--{$argvName}='{$argvValue}'";
-                }else {
-                    $argvOptions[] = "--{$argvName}={$argvValue}";
-                }
-            }
-        }
-        return implode(' ', $args);
-    }
 
     /**
      * @return void
      */
-    private function cleanCleanExistPidFile()
+    public function registerTickOfCheckRunningProcess()
     {
-        static::$cleanExistChannel = goTick(120 * 1000, function () {
+        static::$checkRunningTickerChannel = goTick($this->checkTickerTime * 1000, function () {
+            /**@var CronForkRunner $runner */
             foreach (static::$instances as $runner) {
-                $processList = $runner->gcExistForkProcess();
+                $runner->gcExitProcess();
+            }
+        });
+    }
+
+    /**
+     * 注册定时器定时删除已退出进程的pidFile
+     * @return void
+     */
+    public function registerTickOfDeleteExistPidFile()
+    {
+        static::$deleteExistTickerChannel = goTick($this->deleteExistTickerTime * 1000, function () {
+            /**
+             * @var CronForkRunner $runner
+             */
+            foreach (static::$instances as $runner) {
+                $processList = $runner->gcExitProcess();
                 if ($processList) {
                     /**
                      * @var RunProcessMetaDto $runProcessMetaDto
@@ -483,7 +504,6 @@ class CronForkRunner
                         $path = pathinfo($runProcessMetaDto->pid_file, PATHINFO_DIRNAME);
                         if (is_dir($path)) {
                             $files = scandir($path);
-                            // 过滤掉 "." 和 ".." 条目
                             $files = array_diff($files, array('.', '..'));
                             foreach ($files as $file) {
                                 $fullPathPidFile = $path . '/' . $file;
@@ -503,7 +523,18 @@ class CronForkRunner
         });
     }
 
-    public function debug(string $info)
+    /**
+     * @throws \Exception
+     */
+    protected function checkNextFlag()
+    {
+        if (!$this->isNextFlag) {
+            throw new SystemException('Missing call isNextHandle().');
+        }
+        $this->isNextFlag = false;
+    }
+
+    protected function debug(string $info)
     {
         if (env('CRON_DEBUG')) {
             fmtPrintNote($info, false);
