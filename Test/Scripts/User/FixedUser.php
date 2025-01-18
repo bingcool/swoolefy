@@ -31,7 +31,7 @@ class FixedUser extends MainCliScript
             var_dump('sleep 5s name='.Context::get('name'));
         });
         sleep(60);
-        $this->test1(name: 'kkkkkkkkkkkkkkkkkkkkkkkk');
+        $this->test1('kkkkkkkkkkkkkkkkkkkkkkkk');
     }
     public function test1(string $name)
     {
