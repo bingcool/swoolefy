@@ -1,6 +1,7 @@
 <?php
 
 use Swoolefy\Core\SystemEnv;
+use Swoolefy\Worker\Cron\CronForkProcess;
 
 return [
 //    [
