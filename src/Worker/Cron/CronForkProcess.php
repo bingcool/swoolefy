@@ -63,7 +63,7 @@ class CronForkProcess extends CronProcess
                 $isNewAddFlag = $this->isNewAddTask($task);
                 if ($isNewAddFlag) {
                     try {
-                        CrontabManager::getInstance()->addRule($task['cron_name'], $task['cron_expression'], function ($cron_name, $expression) use($task, $forkType) {
+                        CrontabManager::getInstance()->addRule($task['cron_name'], $task['cron_expression'], function ($expression, $cron_name) use($task, $forkType) {
                             if (isset($task['filters']) && !empty($task['filters'])) {
                                 foreach ($task['filters'] as $filter) {
                                     if ($filter instanceof FilterDto) {
@@ -82,13 +82,13 @@ class CronForkProcess extends CronProcess
                                 }
                             }
 
-                            $runner = CronForkRunner::getInstance($cron_name,5);
+                            $runner = CronForkRunner::getInstance(md5($cron_name),5);
                             // 确保任务不会重叠运行.如果上一次任务仍在运行，则跳过本次执行
                             if (isset($task['with_block_lapping']) && $task['with_block_lapping'] == true) {
                                 $runningForkProcess = $runner->getRunningForkProcess();
                                 if (!empty($runningForkProcess)) {
                                     if (env('CRON_DEBUG')) {
-                                        var_dump('with_block_lapping阻塞重叠中不执行下一轮，time='.date('Y-m-d H:i:s'));
+                                        fmtPrintNote('with_block_lapping阻塞重叠中不执行下一轮，time='.date('Y-m-d H:i:s'));
                                     }
                                     return;
                                 }

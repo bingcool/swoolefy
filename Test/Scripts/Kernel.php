@@ -54,7 +54,7 @@ class Kernel extends AbstractKernel
             ->addArgs('age', 18)
             ->addArgs('sex', 'man')
             ->addArgs('desc', "fffkkkmm")
-            //->withBlockLapping()
+            ->withBlockLapping()
             ->forkType(CronForkProcess::FORK_TYPE_PROC_OPEN);
 
         return $schedule;

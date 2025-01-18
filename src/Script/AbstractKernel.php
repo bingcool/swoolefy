@@ -70,6 +70,7 @@ abstract class AbstractKernel {
 
             $argv = implode(' ', $argvOptions);
             if (!isset($item['cron_name'])) {
+                // cron_name 唯一
                 $item['cron_name'] = ($item['command'] ?? 'schedule').'-'.$item['cron_expression'].' '.$argv;
             }
 
