@@ -33,7 +33,7 @@ class Tick extends AbstractProcess {
 //            var_dump($count);
 //        });
 
-        $db = App::getDb();
+        $db = App::makeNewDb();
 
         $arr = ["name" => 'bingcool','sex' => 33];
 
@@ -63,7 +63,7 @@ class Tick extends AbstractProcess {
                 $query = new \Common\Library\Db\Query($db->getConnection());
 
                 // 插入
-               // $query->table('tbl_users')->save($data);
+                //$query->table('tbl_users')->save($data);
 
                 // 更新
                // $query->table('tbl_users')->where(['user_id' => 615])->save($data);

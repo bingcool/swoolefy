@@ -31,6 +31,14 @@ class App
     }
 
     /**
+     * @return Mysql|ContainerObjectDto
+     */
+    public static function makeNewDb()
+    {
+        return \Swoolefy\Core\Application::getApp()->makeNewObject('db');
+    }
+
+    /**
      * @return Redis|ContainerObjectDto
      */
     public static function getRedis()

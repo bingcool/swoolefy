@@ -15,7 +15,7 @@ class StartCmd extends BaseCmd
     protected function configure()
     {
         parent::configure();
-        $this->setDescription('start the application')->setHelp('use php cli.php start XXXXX or php daemon.php start XXXXX');
+        $this->setDescription('start the application')->setHelp('<info>use php cli.php start XXXXX or php daemon.php start XXXXX</info>');
     }
 
     /**

@@ -12,7 +12,6 @@
 namespace Swoolefy\Worker\Cron;
 
 use Swoole\Coroutine\System;
-use Swoolefy\Core\CommandRunner;
 use Swoolefy\Core\Crontab\CrontabManager;
 use Swoolefy\Core\Schedule\FilterDto;
 
@@ -61,11 +60,10 @@ class CronForkProcess extends CronProcess
         if(!empty($taskList)) {
             foreach($taskList as $task) {
                 $forkType = $task['fork_type'] ?? $this->forkType;
-                $params   = $task['params'] ?? [];
                 $isNewAddFlag = $this->isNewAddTask($task);
                 if ($isNewAddFlag) {
                     try {
-                        CrontabManager::getInstance()->addRule($task['cron_name'], $task['cron_expression'], function ($cron_name, $expression) use($task, $forkType, $params) {
+                        CrontabManager::getInstance()->addRule($task['cron_name'], $task['cron_expression'], function ($expression, $cron_name) use($task, $forkType) {
                             if (isset($task['filters']) && !empty($task['filters'])) {
                                 foreach ($task['filters'] as $filter) {
                                     if ($filter instanceof FilterDto) {
@@ -77,16 +75,37 @@ class CronForkProcess extends CronProcess
                                 }
                             }
 
-                            $runner = CommandRunner::getInstance($cron_name,1);
+                            if (isset($task['call_fns']) && !empty($task['call_fns'])) {
+                                foreach ($task['call_fns'] as $fnItems) {
+                                    list($handler, $action) = $fnItems;
+                                    (new $handler)->$action($task);
+                                }
+                            }
+
+                            $runner = CronForkRunner::getInstance(md5($cron_name),5);
+                            // 确保任务不会重叠运行.如果上一次任务仍在运行，则跳过本次执行
+                            if (isset($task['with_block_lapping']) && $task['with_block_lapping'] == true) {
+                                $runningForkProcess = $runner->getRunningForkProcess();
+                                if (!empty($runningForkProcess)) {
+                                    if (env('CRON_DEBUG')) {
+                                        fmtPrintNote('with_block_lapping阻塞重叠中不执行下一轮，time='.date('Y-m-d H:i:s'));
+                                    }
+                                    return;
+                                }
+                            }
+
                             $this->randSleepTime($task['cron_expression']);
                             try {
-                                if($runner->isNextHandle(false)) {
-                                    if($forkType == self::FORK_TYPE_PROC_OPEN) {
-                                        $runner->procOpen(function ($pipe0, $pipe1, $pipe2, $status) use($task) {
-                                            $this->receiveCallBack($pipe0, $pipe1, $pipe2, $status, $task);
-                                        } , $task['exec_bin_file'], $task['exec_script'], $params);
+                                $argv     = $task['argv'] ?? [];
+                                $extend   = $task['extend'] ?? [];
+                                // 限制并发处理
+                                if ($runner->isNextHandle(true, 120)) {
+                                    if ($forkType == self::FORK_TYPE_PROC_OPEN) {
+                                        $runner->procOpen($task['exec_bin_file'], $task['exec_script'], $argv, function ($pipe0, $pipe1, $pipe2, $statusProperty) use($task) {
+                                            $this->receiveCallBack($pipe0, $pipe1, $pipe2, $statusProperty, $task);
+                                        }, $extend);
                                     }else {
-                                        $runner->exec($task['exec_bin_file'], $task['exec_script'], $params, true);
+                                        $runner->exec($task['exec_bin_file'], $task['exec_script'], $argv, true,'/dev/null', true, $extend);
                                     }
                                 }
                             }catch (\Throwable $exception) {
@@ -135,18 +154,16 @@ class CronForkProcess extends CronProcess
         return true;
     }
 
-    // 生成
-
     /**
      * receive cli process return CallBack handle
      *
      * @param $pipe0
      * @param $pipe1
      * @param $pipe2
-     * @param $status
+     * @param $statusProperty
      * @param $task
      */
-    protected function receiveCallBack($pipe0, $pipe1, $pipe2, $status, $task)
+    protected function receiveCallBack($pipe0, $pipe1, $pipe2, $statusProperty, $task)
     {
 
     }
