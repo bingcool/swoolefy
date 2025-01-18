@@ -36,6 +36,8 @@ class Kernel extends AbstractKernel
         GenerateDaemonService::command  => [GenerateDaemonService::class, 'handle'],
         TestScript::command    => [TestScript::class, 'handle'],
         User\FixedUser::command => [User\FixedUser::class, 'handle'],
+
+        User\RunnerForkProcess::command => [User\RunnerForkProcess::class, 'handle'],
     ];
 
     /**
