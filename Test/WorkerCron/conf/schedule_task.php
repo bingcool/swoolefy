@@ -1,30 +1,14 @@
 <?php
 
 use Swoolefy\Core\SystemEnv;
+use Swoolefy\Worker\Cron\CronForkProcess;
 
 return [
-    [
-        'command' => "fixed:user:name",
-        'cron_expression' => '20', //每分钟执行一次
-        'desc' => '',
-        'fork_type' => 'proc_open',
-        'argv' => [
-            'name' => 'bingcool',
-            'age' => 18,
-            'sex' => 'man',
-            'desc' => "fff kkkmm",
-            'daemon' => 1
-        ],
-        'exec_bin_file' => SystemEnv::PhpBinFile(),
-        'exec_script' => "script.php start test --c=fixed:user:name --name=bingcool --age=18 --sex=man --desc='fff kkkmm' --daemon=1",
-        'cron_name' => "fixed:user:name-20 --name=bingcool --age=18 --sex=man --desc='fff kkkmm' --daemon=1",
-        'params' => []
-    ],
 //    [
-//        'command' => "fixed:user:name",
+//        'cron_name' => "fixed:user:name",
 //        'cron_expression' => '30', //每分钟执行一次
-//        'desc' => '',
-//        'fork_type' => 'proc_open',
+//        'exec_bin_file' => SystemEnv::PhpBinFile(),
+//        'exec_script' => "script.php start test --c=fixed:user:name",
 //        'argv' => [
 //            'name' => 'bingcool',
 //            'age' => 18,
@@ -32,9 +16,19 @@ return [
 //            'desc' => "fff kkkmm",
 //            'daemon' => 1
 //        ],
-//        'exec_bin_file' => SystemEnv::PhpBinFile(),
-//        'exec_script' => "script.php start test --c=fixed:user:name --name=bingcool --age=18 --sex=man --desc='fff kkkmm' --daemon=1",
-//        'cron_name' => "fixed:user:name-30 --name=bingcool --age=18 --sex=man --desc='fff kkkmm' --daemon=1",
-//        'params' => []
-//    ]
+//        'extend' => [],
+//        'description' => '',
+//        'fork_type' => 'proc_open',
+//    ],
+    [
+        'cron_name' => "shell",
+        'cron_expression' => 5,
+        'exec_bin_file' => "nohup /bin/bash",
+        'exec_script' => APP_PATH.'/Python/shell.sh > /dev/null 2>&1 & echo $! > pidfile.pid',
+        'with_block_lapping' => true,
+        'argv' => [],
+        'extend' => [],
+        'description' => '',
+        'fork_type' => CronForkProcess::FORK_TYPE_EXEC,
+    ]
 ];

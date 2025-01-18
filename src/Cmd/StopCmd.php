@@ -17,7 +17,7 @@ class StopCmd extends BaseCmd
     protected function configure()
     {
         parent::configure();
-        $this->setDescription('stop the application')->setHelp('use php cli.php stop XXXXX or php daemon.php stop XXXXX');
+        $this->setDescription('stop the application')->setHelp('<info>use php cli.php stop XXXXX or php daemon.php stop XXXXX</info>');
     }
 
     /**
@@ -88,7 +88,7 @@ class StopCmd extends BaseCmd
             if (!\Swoole\Process::kill($pid, 0)) {
                 fmtPrintInfo("
         ---------------------stop info-------------------\n    
-        Server Stop  OK. server stop at " . date("Y-m-d H:i:s")
+        Server Stopped Finish!!!. Server stop at " . date("Y-m-d H:i:s")
                 );
                 @unlink($pidFile);
                 break;

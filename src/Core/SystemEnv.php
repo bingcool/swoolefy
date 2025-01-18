@@ -16,6 +16,7 @@ use Dotenv\Repository\Adapter\PutenvAdapter;
 use Dotenv\Repository\RepositoryBuilder;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Exception\SystemException;
+use Swoolefy\Script\AbstractKernel;
 use Symfony\Component\Console\Input\ArgvInput;
 
 class SystemEnv
@@ -125,7 +126,8 @@ class SystemEnv
      */
     public static function cronScheduleScriptModel(): bool
     {
-        $model = SystemEnv::getOption('schedule_model');
+        $scheduleModelOptionField = AbstractKernel::getScheduleModelOptionField();
+        $model = SystemEnv::getOption($scheduleModelOptionField);
         if (str_contains(strtolower($model), 'cron')) {
             return true;
         }else {

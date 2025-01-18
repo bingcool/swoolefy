@@ -21,6 +21,10 @@ class SyncPipe
 
     protected $isStart = false;
 
+    /**
+     * @param Closure $function
+     * @return $this
+     */
     public function start(Closure $function)
     {
         $this->pipeFunctions[] = $function;
@@ -28,6 +32,10 @@ class SyncPipe
         return $this;
     }
 
+    /**
+     * @param Closure $function
+     * @return $this
+     */
     public function then(Closure $function)
     {
         if (!$this->isStart) {
@@ -37,6 +45,12 @@ class SyncPipe
         return $this;
     }
 
+    /**
+     * @param bool $enableCoroutine 启用协程单例，每个then function都在协程中执行，协程组件都是互相独立的，但流程依然是串行执行的
+     * @param float $maxTimeout
+     * @return mixed|null
+     * @throws \Throwable
+     */
     public function run(bool $enableCoroutine = false, float $maxTimeout = 30.0)
     {
         $param = null;
@@ -59,6 +73,12 @@ class SyncPipe
         return $param;
     }
 
+    /**
+     * @param Closure $function
+     * @param float $maxTimeOut
+     * @param $param
+     * @return array
+     */
     protected function execute(Closure $function, float $maxTimeOut = 3.0, $param = null)
     {
         $goWait = new GoWaitGroup();

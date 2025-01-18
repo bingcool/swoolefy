@@ -46,9 +46,8 @@ define('WORKER_TO_CLI_PIPE',WORKER_PID_FILE_ROOT.'/ctl.pipe');
 define('WORKER_CTL_CONF_FILE',WORKER_PID_FILE_ROOT.'/confctl.json');
 
 date_default_timezone_set('Asia/Shanghai');
-// 定义加载配置函数
-define('WORKER_CONF', \Swoolefy\Worker\MainManager::loadWorkerConf(__DIR__.'/'.$appName.'/WorkerDaemon/worker_daemon_conf.php'));
-
+// 定义配置文件
+define('WORKER_CONF_FILE', __DIR__.'/'.$appName.'/WorkerDaemon/worker_daemon_conf.php');
 // 启动前处理,比如加载.env
 $beforeFunc = function () {
 

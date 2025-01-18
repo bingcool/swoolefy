@@ -77,14 +77,19 @@ trait ComponentTrait
      * makeNewObject
      *
      * @param string $comAliasName
-     * @param \Closure $definition
      * @return mixed
      * @throws SystemException
      */
-    public function makeNewObject(string $comAliasName, \Closure $definition)
+    public function makeNewObject(string $comAliasName)
     {
         // dynamic create component object
-        return call_user_func($definition, $comAliasName);
+        $components = Swfy::getAppConf()['components'];
+        $definition = $components[$comAliasName] ?? null;
+        if (!is_callable($definition)) {
+            throw new SystemException("Component '{$comAliasName}' definition is not callable");
+        }
+        $object = call_user_func($definition, $comAliasName);
+        return $this->buildContainerObject($object, $comAliasName);
     }
 
     /**

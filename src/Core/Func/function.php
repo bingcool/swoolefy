@@ -97,6 +97,32 @@ function fmtPrintError($msg, bool $newLine = true)
     }
 }
 
+function fmtPrintWarning($msg, bool $newLine = true)
+{
+    if (is_array($msg)) {
+        initConsoleStyleIo()->definitionList($msg);
+    }else {
+        initConsoleStyleIo()->warning($msg);
+    }
+
+    if ($newLine) {
+        initConsoleStyleIo()->newLine();
+    }
+}
+
+function fmtPrintNote($msg, bool $newLine = true)
+{
+    if (is_array($msg)) {
+        initConsoleStyleIo()->definitionList($msg);
+    }else {
+        initConsoleStyleIo()->note($msg);
+    }
+
+    if ($newLine) {
+        initConsoleStyleIo()->newLine();
+    }
+}
+
 function initConsoleStyleIo()
 {
     static $consoleStyleIo;
