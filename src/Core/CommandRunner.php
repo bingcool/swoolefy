@@ -13,7 +13,7 @@ namespace Swoolefy\Core;
 
 use Swoole\Coroutine\System;
 use Swoole\Process;
-use Swoolefy\Core\Dto\RunProcessMetaDto;
+use Swoolefy\Worker\Dto\RunProcessMetaDto;
 use Swoolefy\Exception\SystemException;
 
 class CommandRunner
