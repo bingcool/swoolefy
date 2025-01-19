@@ -173,10 +173,10 @@ class CronForkProcess extends CronProcess
      * @param $pipe0
      * @param $pipe1
      * @param $pipe2
-     * @param $statusProperty
+     * @param ScheduleEvent $scheduleTask
      * @param $task
      */
-    protected function receiveCallBack($pipe0, $pipe1, $pipe2, $statusProperty, ScheduleEvent $task)
+    protected function receiveCallBack($pipe0, $pipe1, $pipe2, $statusProperty, ScheduleEvent $scheduleTask)
     {
 
     }
