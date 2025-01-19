@@ -102,7 +102,7 @@ class CronForkRunner
      * @param string $execScript
      * @param array $args
      * @param bool $async
-     * @param string $log
+     * @param string $output
      * @param bool $isExec
      * @param array $extend
      * @return array
@@ -113,7 +113,7 @@ class CronForkRunner
         string $execScript,
         array  $args = [],
         bool   $async = false,
-        string $log = '/dev/null',
+        string $output = '/dev/null',
         bool   $isExec = true,
         array  $extend = []
     )
@@ -126,16 +126,16 @@ class CronForkRunner
 
         $path = $execBinFile . ' ' . $execScript . ' ' . $argvOption;
         $path = trim($path,' ');
-        if ($log) {
-            $command = "{$path} >> {$log} 2>&1; echo $$";
+        if ($output) {
+            $command = "{$path} >> {$output} 2>&1; echo $$";
         }else {
             $command = "{$path} 2>&1; echo $$";
         }
 
         if ($async) {
             // echo $! 表示输出进程id赋值在output数组中
-            if ($log) {
-                $command = "nohup {$path} >> {$log} 2>&1 & \n echo $!";
+            if ($output) {
+                $command = "nohup {$path} >> {$output} 2>&1 & \n echo $!";
             }else {
                 $command = "nohup {$path} 2>&1 & \n echo $!";
             }
@@ -143,9 +143,9 @@ class CronForkRunner
 
         if ($isExec) {
             $exec       = (new Exec())->run($command);
-            $output     = $exec->getOutput();
+            $execOutput = $exec->getOutput();
             $returnCode = $exec->getReturnCode();
-            $pid = $output[0] ?? '';
+            $pid        = $execOutput[0] ?? '';
 
             if ($pid) {
                 $runProcessMetaDto = new RunProcessMetaDto();
@@ -179,7 +179,7 @@ class CronForkRunner
             }
         }
 
-        return [$command, $output ?? [], $returnCode ?? -1];
+        return [$command, $execOutput ?? [], $returnCode ?? -1, $pid ?? 0];
     }
 
     /**

@@ -70,8 +70,8 @@ class CommandRunner
      * @param string $execBinFile
      * @param string $execScript
      * @param array $args
-     * @param bool $async
-     * @param string $log
+     * @param bool $async 脚本设置nohup异步模式时，最好要设置output,如果不需要输出到文件，可以设置成/dev/null
+     * @param string $output
      * @param bool $isExec
      * @param array $extend
      * @return array
@@ -82,7 +82,7 @@ class CommandRunner
         string $execScript,
         array  $args = [],
         bool   $async = false,
-        string $log = '/dev/null',
+        string $output = '/dev/null',
         bool   $isExec = true,
         array  $extend = []
     )
@@ -95,16 +95,16 @@ class CommandRunner
 
         $path = $execBinFile . ' ' . $execScript . ' ' . $argvOption;
         $path = trim($path,' ');
-        if ($log) {
-            $command = "{$path} >> {$log} 2>&1; echo $$";
+        if ($output) {
+            $command = "{$path} >> {$output} 2>&1; echo $$";
         }else {
             $command = "{$path} 2>&1; echo $$";
         }
 
         if ($async) {
             // echo $! 表示输出进程id赋值在output数组中
-            if ($log) {
-                $command = "nohup {$path} >> {$log} 2>&1 & \n echo $!";
+            if ($output) {
+                $command = "nohup {$path} >> {$output} 2>&1 & \n echo $!";
             }else {
                 $command = "nohup {$path} 2>&1 & \n echo $!";
             }
@@ -112,9 +112,9 @@ class CommandRunner
 
         if ($isExec) {
             $exec       = (new Exec())->run($command);
-            $output     = $exec->getOutput();
+            $execOutput = $exec->getOutput();
             $returnCode = $exec->getReturnCode();
-            $pid = $output[0] ?? '';
+            $pid        = $execOutput[0] ?? '';
             if ($pid) {
                 $runProcessMetaDto = new RunProcessMetaDto();
                 $runProcessMetaDto->pid = (int)trim($pid);
@@ -133,7 +133,7 @@ class CommandRunner
             }
         }
 
-        return [$command, $output ?? [], $returnCode ?? -1];
+        return [$command, $execOutput ?? [], $returnCode ?? -1, $pid ?? 0];
     }
 
     /**
