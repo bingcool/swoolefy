@@ -15,7 +15,8 @@ use Swoole\Coroutine\Channel;
 use Swoole\Coroutine\System;
 use Swoole\Process;
 use Swoolefy\Core\Exec;
-use Swoolefy\Core\Dto\RunProcessMetaDto;
+use Swoolefy\Core\SystemEnv;
+use Swoolefy\Worker\Dto\RunProcessMetaDto;
 use Swoolefy\Exception\SystemException;
 use Swoolefy\Script\AbstractKernel;
 
@@ -101,7 +102,7 @@ class CronForkRunner
      * @param string $execScript
      * @param array $args
      * @param bool $async
-     * @param string $log
+     * @param string $output
      * @param bool $isExec
      * @param array $extend
      * @return array
@@ -112,7 +113,7 @@ class CronForkRunner
         string $execScript,
         array  $args = [],
         bool   $async = false,
-        string $log = '/dev/null',
+        string $output = '/dev/null',
         bool   $isExec = true,
         array  $extend = []
     )
@@ -125,26 +126,26 @@ class CronForkRunner
 
         $path = $execBinFile . ' ' . $execScript . ' ' . $argvOption;
         $path = trim($path,' ');
-        if ($log) {
-            $command = "{$path} >> {$log} 2>&1; echo $$";
+        if ($output) {
+            $command = "{$path} >> {$output} 2>&1; echo $$";
         }else {
             $command = "{$path} 2>&1; echo $$";
         }
 
         if ($async) {
             // echo $! 表示输出进程id赋值在output数组中
-            if ($log) {
-                $command = "nohup {$path} >> {$log} 2>&1; echo $!";
+            if ($output) {
+                $command = "nohup {$path} >> {$output} 2>&1 & \n echo $!";
             }else {
-                $command = "nohup {$path} 2>&1; echo $!";
+                $command = "nohup {$path} 2>&1 & \n echo $!";
             }
         }
 
         if ($isExec) {
             $exec       = (new Exec())->run($command);
-            $output     = $exec->getOutput();
+            $execOutput = $exec->getOutput();
             $returnCode = $exec->getReturnCode();
-            $pid = $output[0] ?? '';
+            $pid        = $execOutput[0] ?? '';
 
             if ($pid) {
                 $runProcessMetaDto = new RunProcessMetaDto();
@@ -178,7 +179,7 @@ class CronForkRunner
             }
         }
 
-        return [$command, $output ?? [], $returnCode ?? -1];
+        return [$command, $execOutput ?? [], $returnCode ?? -1, $pid ?? 0];
     }
 
     /**
@@ -204,9 +205,18 @@ class CronForkRunner
             $argvOption = $this->parseEscapeShellArg($args);
         }
 
-        $command = $execBinFile .' '.$execScript.' ' . $argvOption . '; echo $? >&3; echo $! >&4';
+        if (SystemEnv::cronScheduleScriptModel()) {
+            $command = $execBinFile .' '.$execScript.' ' . $argvOption."\n echo $? >&3; echo $! >&4";
+        }else {
+            if (!str_starts_with($execBinFile, 'nohup')) {
+                $command = 'nohup '.$execBinFile .' '.$execScript.' ' . $argvOption.' 2>&1 &';
+            }else {
+                $command = $execBinFile .' '.$execScript.' ' . $argvOption;
+            }
+            $command = trim($command). "\n echo $? >&3; echo $! >&4";
+        }
 
-        $command      = trim($command);
+        $command     = trim($command);
         $descriptors = array(
             // stdout
             0 => array('pipe', 'r'),
@@ -216,7 +226,7 @@ class CronForkRunner
             2 => array('pipe', 'w'),
             // return exist code
             3 => array('pipe', 'w'),
-            // return process pid
+            // return daemon process pid
             4 => array('pipe', 'w'),
         );
 
@@ -230,8 +240,6 @@ class CronForkRunner
                 $status = proc_get_status($proc_process);
                 $status['pid'] = (int)trim(fgets($pipes[4], 10));
 
-                $cronScriptPidFileOption = AbstractKernel::getCronScriptPidFileOptionField();
-
                 $runProcessMetaDto = new RunProcessMetaDto();
                 $runProcessMetaDto->pid = $status['pid'] ?? 0;
                 $runProcessMetaDto->command = $command;
@@ -241,6 +249,7 @@ class CronForkRunner
                 $runProcessMetaDto->start_timestamp = time();
                 $runProcessMetaDto->start_date_time = date('Y-m-d H:i:s');
 
+                $cronScriptPidFileOption = AbstractKernel::getCronScriptPidFileOptionField();
                 if (isset($extend[$cronScriptPidFileOption])) {
                     $cronScriptPidFile = $extend[$cronScriptPidFileOption];
                     if (is_file($cronScriptPidFile)) {
@@ -302,7 +311,7 @@ class CronForkRunner
      *    // 是否满足拉起下一个进程.这个函数主要是判断拉起的进程数是否已达到最大并发数.
      *    if ($runner->isNextHandle(true, 60)) {
      *         // todo
-     *         $runner->procOpen('/bin/sh','ls -l',[])
+     *         $runner->procOpen('ls -l','',[])
      *     }
      * })
      * @param int $timeOut 规定时间内达到，强制拉起下一个进程
