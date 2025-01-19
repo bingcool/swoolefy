@@ -46,11 +46,11 @@ abstract class AbstractKernel {
 
         foreach ($schedule->toArray() as $item) {
             $item['exec_bin_file'] = SystemEnv::PhpBinFile();
-            if (!isset($item['fork_type'])) {
+            if (empty($item['fork_type'])) {
                 $item['fork_type'] = CronForkProcess::FORK_TYPE_PROC_OPEN;
             }
 
-            if (!isset($item['argv'])) {
+            if (empty($item['argv'])) {
                 $item['argv'] = [];
             }
             $item['argv']['daemon'] = 1;
@@ -69,7 +69,7 @@ abstract class AbstractKernel {
             $argvOptions[] = "{$scheduleModel}=cron";
 
             $argv = implode(' ', $argvOptions);
-            if (!isset($item['cron_name'])) {
+            if (empty($item['cron_name'])) {
                 // cron_name 唯一
                 $item['cron_name'] = ($item['command'] ?? 'schedule').'-'.$item['cron_expression'].' '.$argv;
             }
@@ -85,6 +85,7 @@ abstract class AbstractKernel {
                 $scheduleModelOption => 'cron',
             ];
 
+            unset($item['command']);
             $scheduleList[] = $item;
         }
         return $scheduleList;
