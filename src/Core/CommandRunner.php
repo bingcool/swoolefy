@@ -13,7 +13,7 @@ namespace Swoolefy\Core;
 
 use Swoole\Coroutine\System;
 use Swoole\Process;
-use Swoolefy\Core\Dto\RunProcessMetaDto;
+use Swoolefy\Worker\Dto\RunProcessMetaDto;
 use Swoolefy\Exception\SystemException;
 
 class CommandRunner
@@ -70,8 +70,8 @@ class CommandRunner
      * @param string $execBinFile
      * @param string $execScript
      * @param array $args
-     * @param bool $async
-     * @param string $log
+     * @param bool $async 脚本设置nohup异步模式时，最好要设置output,如果不需要输出到文件，可以设置成/dev/null
+     * @param string $output
      * @param bool $isExec
      * @param array $extend
      * @return array
@@ -82,7 +82,7 @@ class CommandRunner
         string $execScript,
         array  $args = [],
         bool   $async = false,
-        string $log = '/dev/null',
+        string $output = '/dev/null',
         bool   $isExec = true,
         array  $extend = []
     )
@@ -95,26 +95,26 @@ class CommandRunner
 
         $path = $execBinFile . ' ' . $execScript . ' ' . $argvOption;
         $path = trim($path,' ');
-        if ($log) {
-            $command = "{$path} >> {$log} 2>&1; echo $$";
+        if ($output) {
+            $command = "{$path} >> {$output} 2>&1; echo $$";
         }else {
             $command = "{$path} 2>&1; echo $$";
         }
 
         if ($async) {
             // echo $! 表示输出进程id赋值在output数组中
-            if ($log) {
-                $command = "nohup {$path} >> {$log} 2>&1; echo $!";
+            if ($output) {
+                $command = "nohup {$path} >> {$output} 2>&1 & \n echo $!";
             }else {
-                $command = "nohup {$path} 2>&1; echo $!";
+                $command = "nohup {$path} 2>&1 & \n echo $!";
             }
         }
 
         if ($isExec) {
             $exec       = (new Exec())->run($command);
-            $output     = $exec->getOutput();
+            $execOutput = $exec->getOutput();
             $returnCode = $exec->getReturnCode();
-            $pid = $output[0] ?? '';
+            $pid        = $execOutput[0] ?? '';
             if ($pid) {
                 $runProcessMetaDto = new RunProcessMetaDto();
                 $runProcessMetaDto->pid = (int)trim($pid);
@@ -133,7 +133,7 @@ class CommandRunner
             }
         }
 
-        return [$command, $output ?? [], $returnCode ?? -1];
+        return [$command, $execOutput ?? [], $returnCode ?? -1, $pid ?? 0];
     }
 
     /**
@@ -142,7 +142,7 @@ class CommandRunner
      * @param array $args
      * @param callable $callable
      * @param array $extend
-     * @return void
+     * @return mixed
      * @throws SystemException
      */
     public function procOpen(
@@ -159,7 +159,7 @@ class CommandRunner
             $argvOption = $this->parseEscapeShellArg($args);
         }
 
-        $command = $execBinFile .' '.$execScript.' ' . $argvOption . '; echo $? >&3; echo $! >&4';
+        $command = $execBinFile .' '.$execScript.' ' . $argvOption . " \n echo $? >&3; echo $! >&4; echo $$ >&5;";
         $command = trim($command);
         $descriptors = array(
             // stdout
@@ -170,8 +170,10 @@ class CommandRunner
             2 => array('pipe', 'w'),
             // return exist code
             3 => array('pipe', 'w'),
-            // return process pid
+            // 后台运行的进程的pid,eg: nohup的后台进程
             4 => array('pipe', 'w'),
+            // 当前运行的进程的pid,eg：ls -l
+            5 => array('pipe', 'w'),
         );
 
         $fn = function ($command, $descriptors, $callable) use($extend) {
@@ -183,6 +185,9 @@ class CommandRunner
                 }
                 $status = proc_get_status($proc_process);
                 $status['pid'] = (int)trim(fgets($pipes[4], 10));
+                if ($status['pid'] == 0) {
+                    $status['pid'] = (int)trim(fgets($pipes[5], 10));
+                }
 
                 $runProcessMetaDto = new RunProcessMetaDto();
                 $runProcessMetaDto->pid = $status['pid'] ?? 0;
@@ -193,9 +198,6 @@ class CommandRunner
                 $runProcessMetaDto->start_timestamp = time();
                 $runProcessMetaDto->start_date_time = date('Y-m-d H:i:s');
 
-               // $this->debug("拉起新的进程pid:".$runProcessMetaDto->pid);
-
-                // 协程环境设置channel控制并发数，isNextHandle()函数判断是否可以并发拉起下一个进程
                 $this->runProcessMetaPool[] = $runProcessMetaDto;
                 if (!Process::kill($status['pid'], 0)) {
                     $returnCode = fgets($pipes[3], 10);
@@ -239,7 +241,7 @@ class CommandRunner
      *    // 是否满足拉起下一个进程.这个函数主要是判断拉起的进程数是否已达到最大并发数.
      *    if ($runner->isNextHandle(true, 60)) {
      *         // todo
-     *         $runner->procOpen('/bin/sh','ls -l',[])
+     *         $runner->procOpen('ls -l','',[])
      *     }
      * })
      * @param int $timeOut 规定时间内达到，强制拉起下一个进程

@@ -71,11 +71,11 @@ class EventApp
      *      });
      * });
      *
-     * @param string|\Closure $class
+     * @param \Closure|string $class
      * @param array $args
      * @return $this
      */
-    public function registerApp(\Closure|string $class, array $args = []): self
+    public function registerApp($class, array $args = [])
     {
         if ($class instanceof \Closure) {
             $cid = \Swoole\Coroutine::getCid();
