@@ -105,7 +105,11 @@ class CronForkProcess extends CronProcess
                                             $this->receiveCallBack($pipe0, $pipe1, $pipe2, $statusProperty, $task);
                                         }, $extend);
                                     }else {
-                                        $runner->exec($task['exec_bin_file'], $task['exec_script'], $argv, true,'/dev/null', true, $extend);
+                                        $output = '/dev/null';
+                                        if (!empty($task['output'])) {
+                                            $output = $task['output'];
+                                        }
+                                        $runner->exec($task['exec_bin_file'], $task['exec_script'], $argv, true,$output, true, $extend);
                                     }
                                 }
                             }catch (\Throwable $exception) {

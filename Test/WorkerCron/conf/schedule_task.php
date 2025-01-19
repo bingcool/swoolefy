@@ -17,10 +17,11 @@ return [
         'cron_name' => "shell",
         'cron_expression' => 5,
         'exec_bin_file' => "/bin/bash",
-        'exec_script' => APP_PATH.'/Python/shell.sh > /dev/null',
+        'exec_script' => APP_PATH.'/Python/shell.sh',
         'with_block_lapping' => true,
+        'output' => '/dev/null',
         'extend' => [],
         'description' => '',
-        'fork_type' => CronForkProcess::FORK_TYPE_EXEC,
+        'fork_type' => CronForkProcess::FORK_TYPE_PROC_OPEN,
     ]
 ];
