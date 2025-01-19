@@ -71,7 +71,7 @@ class EventApp
      *      });
      * });
      *
-     * @param string|\Closure $class
+     * @param \Closure|string $class
      * @param array $args
      * @return $this
      */

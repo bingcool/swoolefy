@@ -44,7 +44,7 @@ class CronUrlProcess extends CronProcess
         if(!empty($taskList)) {
             foreach($taskList as $task) {
                 try {
-                    $isNewAddFlag = $this->isNewAddTask($task);
+                    $isNewAddFlag = $this->isNewAddTask($task['cron_name']);
                     if ($isNewAddFlag) {
                         CrontabManager::getInstance()->addRule($task['cron_name'], $task['cron_expression'], function ($expression, $cron_name) use($task) {
                             $httpClient = new CurlHttpClient();
