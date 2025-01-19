@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Worker\Dto;
 
+use Swoolefy\Core\Schedule\DynamicCallFn;
+use Swoolefy\Core\Schedule\FilterDto;
 use Swoolefy\Core\Schedule\ScheduleEvent;
 use Swoolefy\Worker\Cron\CronForkProcess;
 
@@ -73,6 +75,16 @@ class CronForkTaskMetaDto extends AbstractDto
      * @var string
      */
     public $fork_type = CronForkProcess::FORK_TYPE_PROC_OPEN;
+
+    /**
+     * @var FilterDto[]
+     */
+    public $filters = [];
+
+    /**
+     * @var DynamicCallFn[]
+     */
+    public $call_fns = [];
 
     /**
      *
