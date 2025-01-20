@@ -15,12 +15,14 @@ return // 定时fork进程处理任务
         'extend_data' => [],
         'args' => [
             // 定时任务列表
-            'task_list' => Kernel::buildScheduleTaskList(Kernel::schedule())
+            //'task_list' => Kernel::buildScheduleTaskList(Kernel::schedule()),
 
-             // 动态定时任务列表，可以存在数据库中
-//            'task_list' => function () {
-//                return include __DIR__ . '/schedule_task.php';
-//            }
+            // 动态定时任务列表，可以存在数据库中
+            'task_list' => function () {
+                //$list1 = include __DIR__ . '/schedule_task.php';
+                $list2 = Kernel::buildScheduleTaskList(Kernel::schedule());
+                return array_merge($list1 ?? [], $list2 ?? []);
+            }
         ],
     ],
 ];

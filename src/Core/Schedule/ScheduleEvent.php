@@ -11,49 +11,19 @@
 
 namespace Swoolefy\Core\Schedule;
 
-use Swoolefy\Core\Dto\AbstractDto;
-use Swoolefy\Worker\Cron\CronForkProcess;
+use Swoolefy\Worker\Dto\CronForkTaskMetaDto;
 
-class ScheduleEvent extends AbstractDto
+class ScheduleEvent extends CronForkTaskMetaDto
 {
-
     /**
      * @var string
      */
     public $command;
 
     /**
-     * The cron expression representing the event's frequency.
-     *
-     * @var string
-     */
-    public $cron_expression = '* * * * *';
-
-    /**
-     * @var string
-     */
-    public $fork_type = CronForkProcess::FORK_TYPE_PROC_OPEN;
-
-    /**
-     * @var array
-     */
-    public $argv = [];
-
-    /**
-     * @var string
-     */
-    public $description = '';
-
-    /**
      * @var null
      */
     public $timezone = null;
-
-
-    /**
-     * @var FilterDto[]
-     */
-    public $filters = [];
 
     /**
      * @var string
@@ -61,7 +31,7 @@ class ScheduleEvent extends AbstractDto
     const BETWEEN_TIMEAT = 'timeAt';
 
     /**
-     *
+     * @var string
      */
     const BETWEEN_DATEAT = 'dateAt';
 
@@ -620,6 +590,15 @@ class ScheduleEvent extends AbstractDto
     public function description(string $description = ''): self
     {
         $this->description = $description;
+        return $this;
+    }
+
+    /**
+     * @return $this
+     */
+    public function withBlockLapping(): self
+    {
+        $this->with_block_lapping = true;
         return $this;
     }
 

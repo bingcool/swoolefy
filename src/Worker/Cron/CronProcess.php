@@ -76,12 +76,12 @@ class CronProcess extends AbstractWorkerProcess
     }
 
     /**
-     * @param array $task
+     * @param string $cronName
      * @return bool
      */
-    protected function isNewAddTask(array $task)
+    protected function isNewAddTask(string $cronName)
     {
-        $cronTask = CrontabManager::getInstance()->getCronTaskByName($task['cron_name']);
+        $cronTask = CrontabManager::getInstance()->getCronTaskByName($cronName);
         if (!empty($cronTask) && is_array($cronTask)) {
             $timerId = $cronTask['timer_id'];
             if (!\Swoole\Timer::exists($timerId)) {

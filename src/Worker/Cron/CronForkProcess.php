@@ -12,9 +12,9 @@
 namespace Swoolefy\Worker\Cron;
 
 use Swoole\Coroutine\System;
-use Swoolefy\Core\CommandRunner;
 use Swoolefy\Core\Crontab\CrontabManager;
 use Swoolefy\Core\Schedule\FilterDto;
+use Swoolefy\Core\Schedule\ScheduleEvent;
 
 class CronForkProcess extends CronProcess
 {
@@ -59,15 +59,22 @@ class CronForkProcess extends CronProcess
     protected function registerCronTask(array $taskList)
     {
         if(!empty($taskList)) {
-            foreach($taskList as $task) {
-                $forkType = $task['fork_type'] ?? $this->forkType;
-                $params   = $task['params'] ?? [];
-                $isNewAddFlag = $this->isNewAddTask($task);
+            foreach($taskList as $taskItem) {
+                /**
+                 * @var ScheduleEvent $scheduleTask
+                 */
+                $scheduleTask = ScheduleEvent::load($taskItem);
+                if(!empty($scheduleTask->fork_type)) {
+                    $forkType = $this->forkType;
+                }else {
+                    $forkType = CronForkProcess::FORK_TYPE_PROC_OPEN;
+                }
+                $isNewAddFlag = $this->isNewAddTask($scheduleTask->cron_name);
                 if ($isNewAddFlag) {
                     try {
-                        CrontabManager::getInstance()->addRule($task['cron_name'], $task['cron_expression'], function ($cron_name, $expression) use($task, $forkType, $params) {
-                            if (isset($task['filters']) && !empty($task['filters'])) {
-                                foreach ($task['filters'] as $filter) {
+                        CrontabManager::getInstance()->addRule($scheduleTask->cron_name, $scheduleTask->cron_expression, function () use($scheduleTask, $forkType) {
+                            if (!empty($scheduleTask->filters)) {
+                                foreach ($scheduleTask->filters as $filter) {
                                     if ($filter instanceof FilterDto) {
                                         $canDue = call_user_func($filter->getFn(), $filter->getParams());
                                         if ($canDue == false) {
@@ -77,24 +84,49 @@ class CronForkProcess extends CronProcess
                                 }
                             }
 
-                            $runner = CommandRunner::getInstance($cron_name,1);
-                            $this->randSleepTime($task['cron_expression']);
+                            if (!empty($scheduleTask->call_fns)) {
+                                foreach ($scheduleTask->call_fns as $fnItems) {
+                                    list($handler, $action) = $fnItems;
+                                    (new $handler)->$action($scheduleTask);
+                                }
+                            }
+
+                            $runner = CronForkRunner::getInstance(md5($scheduleTask->cron_name),5);
+                            // 确保任务不会重叠运行.如果上一次任务仍在运行，则跳过本次执行
+                            if (isset($scheduleTask->with_block_lapping) && $scheduleTask->with_block_lapping == true) {
+                                $runningForkProcess = $runner->getRunningForkProcess();
+                                if (!empty($runningForkProcess)) {
+                                    if (env('CRON_DEBUG')) {
+                                        fmtPrintNote('with_block_lapping阻塞重叠中不执行下一轮，time='.date('Y-m-d H:i:s'));
+                                    }
+                                    return;
+                                }
+                            }
+
+                            $this->randSleepTime($scheduleTask->cron_expression);
                             try {
-                                if($runner->isNextHandle(false)) {
-                                    if($forkType == self::FORK_TYPE_PROC_OPEN) {
-                                        $runner->procOpen(function ($pipe0, $pipe1, $pipe2, $status) use($task) {
-                                            $this->receiveCallBack($pipe0, $pipe1, $pipe2, $status, $task);
-                                        } , $task['exec_bin_file'], $task['exec_script'], $params);
+                                $argv     = $scheduleTask->argv ?? [];
+                                $extend   = $scheduleTask->extend ?? [];
+                                // 限制并发处理
+                                if ($runner->isNextHandle(true, 120)) {
+                                    if ($forkType == self::FORK_TYPE_PROC_OPEN) {
+                                        $runner->procOpen($scheduleTask->exec_bin_file, $scheduleTask->exec_script, $argv, function ($pipe0, $pipe1, $pipe2, $statusProperty) use($scheduleTask) {
+                                            $this->receiveCallBack($pipe0, $pipe1, $pipe2, $statusProperty, $scheduleTask);
+                                        }, $extend);
                                     }else {
-                                        $runner->exec($task['exec_bin_file'], $task['exec_script'], $params, true);
+                                        $output = '/dev/null';
+                                        if (!empty($scheduleTask->output)) {
+                                            $output = $scheduleTask->output;
+                                        }
+                                        $runner->exec($scheduleTask->exec_bin_file, $scheduleTask->exec_script, $argv, true,$output, true, $extend);
                                     }
                                 }
                             }catch (\Throwable $exception) {
-                                $this->onHandleException($exception, $task);
+                                $this->onHandleException($exception, $scheduleTask->toArray());
                             }
                         });
                     }catch (\Throwable $throwable) {
-                        $this->onHandleException($throwable, $task);
+                        $this->onHandleException($throwable, $scheduleTask->toArray());
                     }
                 }
             }
@@ -135,18 +167,16 @@ class CronForkProcess extends CronProcess
         return true;
     }
 
-    // 生成
-
     /**
      * receive cli process return CallBack handle
      *
      * @param $pipe0
      * @param $pipe1
      * @param $pipe2
-     * @param $status
+     * @param ScheduleEvent $scheduleTask
      * @param $task
      */
-    protected function receiveCallBack($pipe0, $pipe1, $pipe2, $status, $task)
+    protected function receiveCallBack($pipe0, $pipe1, $pipe2, $statusProperty, ScheduleEvent $scheduleTask)
     {
 
     }

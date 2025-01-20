@@ -36,6 +36,8 @@ class Kernel extends AbstractKernel
         GenerateDaemonService::command  => [GenerateDaemonService::class, 'handle'],
         TestScript::command    => [TestScript::class, 'handle'],
         User\FixedUser::command => [User\FixedUser::class, 'handle'],
+
+        User\RunnerForkProcess::command => [User\RunnerForkProcess::class, 'handle'],
     ];
 
     /**
@@ -45,15 +47,16 @@ class Kernel extends AbstractKernel
     {
         $schedule = Schedule::getInstance();
 
-        $schedule->command(\Swoolefy\Script\TestScript::command)
-            ->cron(10);
+//        $schedule->command(\Swoolefy\Script\TestScript::command)
+//            ->cron(10);
 
         $schedule->command(User\FixedUser::command)
-            ->cron(10)
+            ->cron(5)
             ->addArgs('name', 'bingcool')
             ->addArgs('age', 18)
             ->addArgs('sex', 'man')
-            ->addArgs('desc', "fff kkkmm")
+            ->addArgs('desc', "fffkkkmm")
+            //->withBlockLapping()
             ->forkType(CronForkProcess::FORK_TYPE_PROC_OPEN);
 
         return $schedule;
