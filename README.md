@@ -239,6 +239,7 @@ myproject
 |     ├── Router
 |     │   └── api.php  // 路由文件，不同模块定义不同文件即可
 |     |—— Storage
+|     |   |—— Crontab  // cron service的调度日志
 |     |   |—— Logs  // 日志文件目录
 |     |   |—— Sql   // sql日志目录
 |     |—— Scripts
