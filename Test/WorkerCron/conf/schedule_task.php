@@ -14,7 +14,7 @@ return [
         'output' => '/dev/null',
         'extend' => [],
         'description' => '',
-        'fork_type' => CronForkProcess::FORK_TYPE_PROC_OPEN,
+        'fork_type' => CronForkProcess::FORK_TYPE_EXEC,
         'success_callback' => function(\Swoolefy\Core\Schedule\ScheduleEvent $event){
             //var_dump($event->cron_name);
         },
@@ -28,6 +28,6 @@ return [
         'output' => '/dev/null',
         'extend' => [],
         'description' => '',
-        'fork_type' => CronForkProcess::FORK_TYPE_PROC_OPEN,
+        'fork_type' => CronForkProcess::FORK_TYPE_EXEC,
     ]
 ];
