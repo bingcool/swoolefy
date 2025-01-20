@@ -39,12 +39,12 @@ class CronProcess extends AbstractWorkerProcess
     {
         $taskList = $this->taskList;
         if ($taskList instanceof \Closure) {
-            // 马上执行一次
+            // 启动执行一次
             $this->registerCronTask($taskList());
             // 定时拉取最新cron配置
-            \Swoolefy\Core\Coroutine\Timer::tick(10 * 1000, function () use($taskList) {
-                $taskListNew = $taskList();
-                $this->registerCronTask($taskListNew);
+            \Swoolefy\Core\Coroutine\Timer::tick(20 * 1000, function () use($taskList) {
+                $lastTaskList = $taskList();
+                $this->registerCronTask($lastTaskList);
             });
         }else {
             $this->registerCronTask($taskList);
@@ -62,7 +62,7 @@ class CronProcess extends AbstractWorkerProcess
         // 剔除已暂停的计划任务
         $runCronTaskList = CrontabManager::getInstance()->getRunCronTaskList();
         if(!empty($runCronTaskList)) {
-            $taskCronNameList = array_column($taskList, 'cron_name');
+            $taskCronNameList    = array_column($taskList, 'cron_name');
             $taskCronNameKeyList = array_map(function ($item) {
                 return md5($item);
             }, $taskCronNameList);
@@ -70,6 +70,8 @@ class CronProcess extends AbstractWorkerProcess
                 if (!in_array($cronNameKey, $taskCronNameKeyList)) {
                     // 删除已经暂停的计划任务
                     CrontabManager::getInstance()->removeCronTaskByName($cronTask['cron_name']);
+                    // 删除已经暂停的计划任务对应的runner
+                    CronForkRunner::removeRunner(md5($cronTask['cron_name']));
                 }
             }
         }

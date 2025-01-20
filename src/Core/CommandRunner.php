@@ -378,13 +378,16 @@ class CommandRunner
             return "";
         }
         // 关联数组
-        if ((function_exists('array_is_list') && array_is_list($args)) || (count(array_keys($args)) > 0 && !isset($args[0]))) {
+        if (count(array_keys($args)) > 0 && !isset($args[0])) {
             foreach ($args as $argvName=>$argvValue) {
                 if (str_contains($argvValue, ' ')) {
                     $argvOptions[] = "--{$argvName}='{$argvValue}'";
                 }else {
                     $argvOptions[] = "--{$argvName}={$argvValue}";
                 }
+            }
+            if (!empty($argvOptions)) {
+                $args = $argvOptions;
             }
         }
         return implode(' ', $args);

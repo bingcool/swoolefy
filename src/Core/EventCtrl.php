@@ -12,6 +12,7 @@
 namespace Swoolefy\Core;
 
 use Swoole\Server;
+use Swoolefy\Core\Log\Formatter\JsonFormatter;
 use Swoolefy\Http\Route;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Coroutine\CoroutinePools;
@@ -46,6 +47,7 @@ class EventCtrl implements EventCtrlInterface
 
         static::onInit();
         $this->registerSqlLogger();
+        $this->registerCrontabLogger();
         $this->registerGuzzleCurlLogger();
 
         if(!SystemEnv::isWorkerService()) {
@@ -128,6 +130,32 @@ class EventCtrl implements EventCtrlInterface
             $logger->setLogFilePath($sqlFilePath);
             return $logger;
         }, LogManager::SQL_LOG);
+    }
+
+    /**
+     * 注册cron服务下的计划任务crontab调度日志
+     *
+     * @return void
+     */
+    protected function registerCrontabLogger()
+    {
+        if (!SystemEnv::isCronService()) {
+            return;
+        }
+
+        LogManager::getInstance()->registerLoggerByClosure(function ($name) {
+            $logger = new \Swoolefy\Util\Log($name);
+            $logger->setRotateDay(2);
+            $logger->setChannel('application');
+            $baseCronPath = pathinfo(LOG_PATH)['dirname'].DIRECTORY_SEPARATOR.'Crontab';
+            if (!is_dir($baseCronPath)) {
+                mkdir($baseCronPath,0777);
+            }
+            $cronLogName = 'cron.log';
+            $cronFilePath = $baseCronPath.DIRECTORY_SEPARATOR.$cronLogName;
+            $logger->setLogFilePath($cronFilePath);
+            return $logger;
+        }, LogManager::CRON_LOG);
     }
 
     /**
