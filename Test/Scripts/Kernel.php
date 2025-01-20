@@ -11,6 +11,7 @@
 
 namespace Test\Scripts;
 
+use Swoolefy\Core\Schedule\ScheduleEvent;
 use Swoolefy\Script\AbstractKernel;
 use Swoolefy\Script\GenerateMysql;
 use Swoolefy\Script\GeneratePg;
@@ -57,7 +58,10 @@ class Kernel extends AbstractKernel
             ->addArgs('sex', 'man')
             ->addArgs('desc', "fffkkkmm")
             //->withBlockLapping()
-            ->forkType(CronForkProcess::FORK_TYPE_PROC_OPEN);
+            ->forkType(CronForkProcess::FORK_TYPE_PROC_OPEN)
+            ->SuccessCallback(function(ScheduleEvent $event) {
+
+            });
 
         return $schedule;
     }
