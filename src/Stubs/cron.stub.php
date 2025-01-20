@@ -47,7 +47,8 @@ define('WORKER_CTL_CONF_FILE',WORKER_PID_FILE_ROOT.'/confctl.json');
 
 date_default_timezone_set('Asia/Shanghai');
 
-define('WORKER_CONF', \Swoolefy\Worker\MainManager::loadWorkerConf(__DIR__.'/'.$appName.'/WorkerCron/worker_cron_conf.php'));
+// 定义配置文件
+define('WORKER_CONF_FILE', __DIR__.'/'.$appName.'/WorkerCron/worker_cron_conf.php');
 
 // 启动前处理,比如加载.env
 $beforeFunc = function () {
