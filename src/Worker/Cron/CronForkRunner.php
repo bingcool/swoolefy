@@ -96,6 +96,18 @@ class CronForkRunner
     }
 
     /**
+     * @param string $runnerName
+     * @return void
+     */
+    public static function removeRunner(string $runnerName)
+    {
+        if (isset(static::$instances[$runnerName])) {
+            self::debug("Remove runner:{$runnerName}");
+            unset(static::$instances[$runnerName]);
+        }
+    }
+
+    /**
      * 执行外部系统程序，包括php,shell so on
      * 禁止swoole提供的process->exec，因为swoole的process->exec调用的程序会替换当前子进程
      * @param string $execBinFile
@@ -317,7 +329,7 @@ class CronForkRunner
      * @param int $timeOut 规定时间内达到，强制拉起下一个进程
      * @return bool
      */
-    public function isNextHandle(bool $isNeedCheck = true, int $timeOut = 60)
+    public function isNextHandle(bool $isNeedCheck = true, int $timeOut = 60): bool
     {
         $this->isNextFlag = true;
         $this->gcExitProcess();
@@ -376,13 +388,17 @@ class CronForkRunner
             return "";
         }
         // 关联数组
-        if ((function_exists('array_is_list') && array_is_list($args)) || (count(array_keys($args)) > 0 && !isset($args[0]))) {
+        if ((count(array_keys($args)) > 0 && !isset($args[0]))) {
+            $this->debug("argv关联数组");
             foreach ($args as $argvName=>$argvValue) {
                 if (str_contains($argvValue, ' ')) {
                     $argvOptions[] = "--{$argvName}='{$argvValue}'";
                 }else {
                     $argvOptions[] = "--{$argvName}={$argvValue}";
                 }
+            }
+            if (!empty($argvOptions)) {
+                $args = $argvOptions;
             }
         }
         return implode(' ', $args);
@@ -454,7 +470,7 @@ class CronForkRunner
 
             $this->runProcessMetaPool = $itemList;
 
-            $this->debug("定时检查运行中进程数量=".count($this->runProcessMetaPool));
+            $this->debug("定时检查每个Runner运行中Fork进程数量=".count($this->runProcessMetaPool));
         }
         return $itemList;
     }
@@ -466,6 +482,7 @@ class CronForkRunner
     public function registerTickOfCheckRunningProcess()
     {
         static::$checkRunningTickerChannel = goTick($this->checkTickerTime * 1000, function () {
+            $this->debug("定时检查Runner任务数量=".count(static::$instances));
             /**@var CronForkRunner $runner */
             foreach (static::$instances as $runner) {
                 $runner->gcExitProcess();
@@ -523,7 +540,7 @@ class CronForkRunner
         }
     }
 
-    protected function debug(string $info)
+    protected static function debug(string $info)
     {
         if (env('CRON_DEBUG')) {
             fmtPrintNote($info, false);

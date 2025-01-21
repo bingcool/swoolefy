@@ -77,6 +77,16 @@ class CronForkTaskMetaDto extends AbstractDto
     public $fork_type = CronForkProcess::FORK_TYPE_PROC_OPEN;
 
     /**
+     * @var \Closure
+     */
+    public $success_callback = '';
+
+    /**
+     * @var \Closure
+     */
+    public $fail_callback = '';
+
+    /**
      * @var FilterDto[]
      */
     public $filters = [];

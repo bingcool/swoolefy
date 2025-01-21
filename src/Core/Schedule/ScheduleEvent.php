@@ -603,6 +603,26 @@ class ScheduleEvent extends CronForkTaskMetaDto
     }
 
     /**
+     * @param \Closure $callback
+     * @return $this
+     */
+    public function SuccessCallback(\Closure $callback): self
+    {
+        $this->success_callback = $callback;
+        return $this;
+    }
+
+    /**
+     * @param \Closure $callback
+     * @return $this
+     */
+    public function FailCallback(\Closure $callback): self
+    {
+        $this->fail_callback = $callback;
+        return $this;
+    }
+
+    /**
      * Splice the given value into the given position of the expression.
      *
      * @param  int  $position
