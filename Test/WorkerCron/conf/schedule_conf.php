@@ -20,8 +20,8 @@ return
 
             // 动态定时任务列表，可以存在数据库中
             'task_list' => function () {
-                $list1 = include __DIR__ . '/schedule_task.php';
-                //$list2 = Kernel::buildScheduleTaskList(Kernel::schedule());
+                //$list1 = include __DIR__ . '/schedule_task.php';
+                $list2 = Kernel::buildScheduleTaskList(Kernel::schedule());
                 return array_merge($list1 ?? [], $list2 ?? []);
             }
         ],
