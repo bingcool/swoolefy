@@ -70,8 +70,13 @@ abstract class AbstractKernel {
 
             $argv = implode(' ', $argvOptions);
             if (empty($item['cron_name'])) {
+                if (str_contains($item['cron_expression'], ' ')) {
+                    $cron_expression = '\''.$item["cron_expression"].'\'';
+                }else {
+                    $cron_expression = $item["cron_expression"];
+                }
                 // cron_name 唯一
-                $item['cron_name'] = ($item['command'] ?? 'schedule').'-'.$item['cron_expression'].' '.$argv;
+                $item['cron_name'] = ($item['command'] ?? 'schedule').' --cron_expression='.$cron_expression.' '.$argv;
             }
 
             // 动态处理定时任务触发时的callback函数
