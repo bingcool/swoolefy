@@ -57,10 +57,10 @@ class Kernel extends AbstractKernel
             ->addArgs('age', 18)
             ->addArgs('sex', 'man')
             ->addArgs('desc', "fffkkkmm")
-            //->withBlockLapping()
+            ->withBlockLapping()
             ->forkType(CronForkProcess::FORK_TYPE_PROC_OPEN)
-            ->SuccessCallback(function(ScheduleEvent $event) {
-
+            ->ForkSuccessCallback(function(ScheduleEvent $event) {
+                var_dump($event->cron_name);
             });
 
         return $schedule;

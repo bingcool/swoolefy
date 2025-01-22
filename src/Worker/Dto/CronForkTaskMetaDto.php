@@ -79,12 +79,12 @@ class CronForkTaskMetaDto extends AbstractDto
     /**
      * @var \Closure
      */
-    public $success_callback = '';
+    public $fork_success_callback = '';
 
     /**
      * @var \Closure
      */
-    public $fail_callback = '';
+    public $fork_fail_callback = '';
 
     /**
      * @var FilterDto[]

@@ -603,22 +603,26 @@ class ScheduleEvent extends CronForkTaskMetaDto
     }
 
     /**
+     * fork process success
+     *
      * @param \Closure $callback
      * @return $this
      */
-    public function SuccessCallback(\Closure $callback): self
+    public function ForkSuccessCallback(\Closure $callback): self
     {
-        $this->success_callback = $callback;
+        $this->fork_success_callback = $callback;
         return $this;
     }
 
     /**
+     * fork process fail
+     *
      * @param \Closure $callback
      * @return $this
      */
-    public function FailCallback(\Closure $callback): self
+    public function ForkFailCallback(\Closure $callback): self
     {
-        $this->fail_callback = $callback;
+        $this->fork_fail_callback = $callback;
         return $this;
     }
 

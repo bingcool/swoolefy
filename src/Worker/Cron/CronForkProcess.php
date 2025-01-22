@@ -66,7 +66,7 @@ class CronForkProcess extends CronProcess
                  */
                 $scheduleTask = ScheduleEvent::load($taskItem);
                 if(!empty($scheduleTask->fork_type)) {
-                    $forkType = $this->forkType;
+                    $forkType = $scheduleTask->fork_type;
                 }else {
                     $forkType = CronForkProcess::FORK_TYPE_PROC_OPEN;
                 }
@@ -94,7 +94,7 @@ class CronForkProcess extends CronProcess
 
                             $scheduleTaskItems = $scheduleTask->toArray();
                             // 日志无需打印回调闭包函数
-                            $scheduleTaskItems['success_callback'] = $scheduleTaskItems['fail_callback'] = '';
+                            $scheduleTaskItems['fork_success_callback'] = $scheduleTaskItems['fork_fail_callback'] = '';
 
                             $logger = LogManager::getInstance()->getLogger(LogManager::CRON_LOG);
                             $runner = CronForkRunner::getInstance(md5($scheduleTask->cron_name),5);
@@ -135,24 +135,24 @@ class CronForkProcess extends CronProcess
                                         if (!empty($scheduleTask->output)) {
                                             $output = $scheduleTask->output;
                                         }
-                                        $runner->exec($scheduleTask->exec_bin_file, $scheduleTask->exec_script, $argv, true, $output, true, $extend);
-                                    }
-
-                                    $logger->addInfo("cron任务fork进程成功,cron_name=$scheduleTask->cron_name, cron_expression=".$scheduleTask->cron_expression, false, $scheduleTaskItems);
-
-                                    if (is_callable($scheduleTask->success_callback)) {
-                                        try {
-                                            call_user_func($scheduleTask->success_callback, $scheduleTask);
-                                        }catch (\Throwable $throwable) {
-                                            // 忽略异常
+                                        list($command, $execOutput, $returnCode, $pid) = $runner->exec($scheduleTask->exec_bin_file, $scheduleTask->exec_script, $argv, true, $output, true, $extend);
+                                        if ($returnCode == 0 || \Swoole\Process::kill($pid, 0)) {
+                                            if (is_callable($scheduleTask->fork_success_callback)) {
+                                                try {
+                                                    call_user_func($scheduleTask->fork_success_callback, $scheduleTask);
+                                                }catch (\Throwable $throwable) {
+                                                    // 忽略异常
+                                                }
+                                            }
                                         }
                                     }
+                                    $logger->addInfo("cron任务fork进程成功,cron_name=$scheduleTask->cron_name, cron_expression=".$scheduleTask->cron_expression, false, $scheduleTaskItems);
                                 }
                             }catch (\Throwable $exception) {
                                 $logger->addInfo("fork进程失败,cron_name=$scheduleTask->cron_name, cron_expression=".$scheduleTask->cron_expression." error=".$exception->getMessage() , false, $scheduleTaskItems);
-                                if (is_callable($scheduleTask->fail_callback)) {
+                                if (is_callable($scheduleTask->fork_fail_callback)) {
                                     try {
-                                        call_user_func($scheduleTask->fail_callback, $scheduleTask, $exception);
+                                        call_user_func($scheduleTask->fork_fail_callback, $scheduleTask, $exception);
                                     }catch (\Throwable $throwable) {
                                         // 忽略异常
                                     }
@@ -161,9 +161,9 @@ class CronForkProcess extends CronProcess
                             }
                         });
                     }catch (\Throwable $throwable) {
-                        if (is_callable($scheduleTask->fail_callback)) {
+                        if (is_callable($scheduleTask->fork_fail_callback)) {
                             try {
-                                call_user_func($scheduleTask->fail_callback, $scheduleTask, $throwable);
+                                call_user_func($scheduleTask->fork_fail_callback, $scheduleTask, $throwable);
                             }catch (\Throwable $throwable) {
                                 // 忽略异常
                             }
@@ -214,11 +214,19 @@ class CronForkProcess extends CronProcess
      * @param $pipe0
      * @param $pipe1
      * @param $pipe2
+     * @param $statusProperty
      * @param ScheduleEvent $scheduleTask
      * @param $task
      */
     protected function receiveCallBack($pipe0, $pipe1, $pipe2, $statusProperty, ScheduleEvent $scheduleTask)
     {
-
+        // fork Process success callback handing
+        if (is_callable($scheduleTask->fork_success_callback)) {
+            try {
+                call_user_func($scheduleTask->fork_success_callback, $scheduleTask);
+            }catch (\Throwable $throwable) {
+                // 忽略异常
+            }
+        }
     }
 }
