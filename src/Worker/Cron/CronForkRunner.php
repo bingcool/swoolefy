@@ -291,7 +291,9 @@ class CronForkRunner
                 call_user_func_array($callable, $params);
                 return $statusProperty;
             } catch (\Throwable $e) {
-                fmtPrintError("CommandRunner ErrorMsg={$e->getMessage()},trace={$e->getTraceAsString()}");
+                $msg = "CommandRunner ErrorMsg={$e->getMessage()},trace={$e->getTraceAsString()}";
+                fmtPrintError($msg);
+                throw new SystemException($msg);
             } finally {
                 foreach ($pipes as $pipe) {
                     @fclose($pipe);
