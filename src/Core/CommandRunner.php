@@ -209,7 +209,9 @@ class CommandRunner
                 call_user_func_array($callable, $params);
                 return $statusProperty;
             } catch (\Throwable $e) {
-                fmtPrintError("CommandRunner ErrorMsg={$e->getMessage()},trace={$e->getTraceAsString()}");
+                $msg = "CommandRunner ErrorMsg={$e->getMessage()},trace={$e->getTraceAsString()}";
+                fmtPrintError($msg);
+                throw new SystemException($msg);
             } finally {
                 foreach ($pipes as $pipe) {
                     @fclose($pipe);
@@ -378,13 +380,16 @@ class CommandRunner
             return "";
         }
         // 关联数组
-        if ((function_exists('array_is_list') && array_is_list($args)) || (count(array_keys($args)) > 0 && !isset($args[0]))) {
+        if (count(array_keys($args)) > 0 && !isset($args[0])) {
             foreach ($args as $argvName=>$argvValue) {
                 if (str_contains($argvValue, ' ')) {
                     $argvOptions[] = "--{$argvName}='{$argvValue}'";
                 }else {
                     $argvOptions[] = "--{$argvName}={$argvValue}";
                 }
+            }
+            if (!empty($argvOptions)) {
+                $args = $argvOptions;
             }
         }
         return implode(' ', $args);
