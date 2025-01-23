@@ -12,6 +12,12 @@ use Test\Module\Order\OrderEntity;
 class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
 {
 
+    /**
+     * loopHandle 将循环处理
+     *
+     * @return void
+     * @throws \Common\Library\Exception\DbException
+     */
     public function loopHandle()
     {
         $a = 1;

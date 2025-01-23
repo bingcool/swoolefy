@@ -30,18 +30,12 @@ class CronForkProcess extends CronProcess
     protected $forkType = self::FORK_TYPE_PROC_OPEN;
 
     /**
-     * @var array
-     */
-    protected $params = [];
-
-    /**
      * onInit
      * @return void
      */
     public function onInit()
     {
         parent::onInit();
-        $this->params   = $this->getArgs()['params'] ?? [];
     }
 
     /**
@@ -49,8 +43,22 @@ class CronForkProcess extends CronProcess
      */
     public function run()
     {
-        parent::run();
-        $this->runCronTask();
+        try {
+            parent::run();
+            $this->runCronTask();
+        } catch (\Throwable $throwable) {
+            $context = [
+                'file' => $throwable->getFile(),
+                'line' => $throwable->getLine(),
+                'message' => $throwable->getMessage(),
+                'code' => $throwable->getCode(),
+                "reboot_count" => $this->getRebootCount(),
+                'trace' => $throwable->getTraceAsString(),
+            ];
+            parent::onHandleException($throwable, $context);
+            sleep(2);
+            $this->reboot();
+        }
     }
 
     /**

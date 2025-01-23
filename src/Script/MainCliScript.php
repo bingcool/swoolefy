@@ -119,9 +119,9 @@ class MainCliScript extends AbstractScriptProcess
      */
     private function saveCronScriptPidFile()
     {
-        $cronScriptPidFile = str_replace("-","", AbstractKernel::OPTION_SCHEDULE_CRON_SCRIPT_PID_FILE);
-        $pidFile = $this->getOption($cronScriptPidFile);
         if (SystemEnv::cronScheduleScriptModel()) {
+            $cronScriptPidFile = str_replace("-","", AbstractKernel::OPTION_SCHEDULE_CRON_SCRIPT_PID_FILE);
+            $pidFile = $this->getOption($cronScriptPidFile);
             file_put_contents($pidFile, Swfy::getMasterPid());
         }
     }
@@ -219,30 +219,31 @@ class MainCliScript extends AbstractScriptProcess
             throw new SystemException("【Error】Missing cli command param. eg: --c=fixed:user:name --name=xxxx");
         }
 
-        if (defined('ROOT_NAMESPACE')) {
-            $rootNamespace = ROOT_NAMESPACE;
-            $nameSpace = $rootNamespace[APP_NAME];
-            $nameSpace = str_replace('\\', '/', $nameSpace);
-            $nameSpaceArr = explode('/', trim($nameSpace, '/'));
-
-            $kernelNameSpace = array_merge($nameSpaceArr, ['Kernel']);
-            /**
-             * @var \Swoolefy\Script\AbstractKernel $kernelClass
-             */
-            $kernelClass = implode('\\', $kernelNameSpace);
-            $commands = $kernelClass::getCommands() ?? [];
-            if (!isset($commands[$command])) {
-                throw new SystemException("【Error】 Kernel::commands property not defined command={$command}.");
-            }
-            $class  = $commands[$command][0];
-            $action = $commands[$command][1];
-        }else {
+        if (!defined('ROOT_NAMESPACE')) {
             throw new SystemException("【Error】script.php not defined const ROOT_NAMESPACE.");
         }
+
+        $rootNamespace = ROOT_NAMESPACE;
+        $nameSpace = $rootNamespace[APP_NAME];
+        $nameSpace = str_replace('\\', '/', $nameSpace);
+        $nameSpaceArr = explode('/', trim($nameSpace, '/'));
+
+        $kernelNameSpace = array_merge($nameSpaceArr, ['Kernel']);
+        /**
+         * @var \Swoolefy\Script\AbstractKernel $kernelClass
+         */
+        $kernelClass = implode('\\', $kernelNameSpace);
+        $commands = $kernelClass::getCommands() ?? [];
+        if (!isset($commands[$command])) {
+            throw new SystemException("【Error】 Kernel::commands property not defined command={$command}.");
+        }
+        $class  = $commands[$command][0];
+        $action = $commands[$command][1];
 
         if(!is_subclass_of($class, __CLASS__)) {
             throw new SystemException("【Error】class={$class} bust be extended \Swoolefy\Script\MainCliScript");
         }
+
         putenv("handle_class={$class}");
         putenv("a={$action}");
         return $class;

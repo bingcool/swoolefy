@@ -1704,11 +1704,7 @@ class MainManager
      */
     public static function loadWorkerConf(string $confPath)
     {
-        if (function_exists('customLoadWorkerConf')) {
-            $conf = customLoadWorkerConf($confPath);
-        }else {
-            $conf = self::defaultLoadWorkerConf($confPath);
-        }
+        $conf = self::defaultLoadWorkerConf($confPath);
         return $conf;
     }
 
