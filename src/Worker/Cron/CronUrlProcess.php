@@ -13,6 +13,7 @@ namespace Swoolefy\Worker\Cron;
 
 use Swoolefy\Core\Crontab\CrontabManager;
 use Common\Library\HttpClient\CurlHttpClient;
+use Swoolefy\Worker\Dto\CronUrlTaskMetaDto;
 
 class CronUrlProcess extends CronProcess
 {
@@ -31,8 +32,22 @@ class CronUrlProcess extends CronProcess
      */
     public function run()
     {
-        parent::run();
-        $this->runCronTask();
+        try {
+            parent::run();
+            $this->runCronTask();
+        }catch (\Throwable $throwable) {
+            $context = [
+                'file' => $throwable->getFile(),
+                'line' => $throwable->getLine(),
+                'message' => $throwable->getMessage(),
+                'code' => $throwable->getCode(),
+                "reboot_count" => $this->getRebootCount(),
+                'trace' => $throwable->getTraceAsString(),
+            ];
+            parent::onHandleException($throwable, $context);
+            sleep(2);
+            $this->reboot();
+        }
     }
 
     /**
@@ -44,25 +59,45 @@ class CronUrlProcess extends CronProcess
         if(!empty($taskList)) {
             foreach($taskList as $task) {
                 try {
-                    $isNewAddFlag = $this->isNewAddTask($task['cron_name']);
+                    $scheduleUrlTask = CronUrlTaskMetaDto::load($task);
+                    $isNewAddFlag = $this->isNewAddTask($scheduleUrlTask->cron_name);
                     if ($isNewAddFlag) {
-                        CrontabManager::getInstance()->addRule($task['cron_name'], $task['cron_expression'], function ($expression, $cron_name) use($task) {
+                        CrontabManager::getInstance()->addRule($task['cron_name'], $task['cron_expression'], function ($expression, $cron_name) use($scheduleUrlTask) {
+                            if (is_array($scheduleUrlTask->before_callback) && count($scheduleUrlTask->before_callback) == 2) {
+                                list($class, $action) = $scheduleUrlTask->before_callback;
+                                (new $class)->{$action}($scheduleUrlTask);
+                            }else if ($scheduleUrlTask->before_callback instanceof \Closure) {
+                                $res = call_user_func($scheduleUrlTask->before_callback, $scheduleUrlTask);
+                                if ($res === false) {
+                                    $this->fmtWriteNote("cron_name=$cron_name task meta of before_callback return false, stop cron task");
+                                    return false;
+                                }
+                            }
+
                             $httpClient = new CurlHttpClient();
-                            $httpClient->setOptionArray($task['options'] ?? []);
-                            $httpClient->setHeaderArray($task['headers'] ?? []);
-                            $method = strtolower($task['method']);
+                            $httpClient->setOptionArray($scheduleUrlTask->options ?? []);
+                            $httpClient->setHeaderArray($scheduleUrlTask->headers ?? []);
+                            $method = strtolower($scheduleUrlTask->method);
                             $rawResponse = $httpClient->{$method}(
-                                $task['url'],
-                                $task['params'] ?? [],
-                                $task['connect_time_out'] ?? 5,
-                                $task['curl_time_out'] ?? 10,
+                                $scheduleUrlTask->url,
+                                $scheduleUrlTask->params ?? [],
+                                $scheduleUrlTask->connect_time_out ?? 30,
+                                $scheduleUrlTask->request_time_out ?? 60,
                             );
 
-                            if (isset($task['callback']) && is_array($task['callback']) && count($task['callback']) == 2) {
-                                list($class, $action) = $task['callback'];
-                                (new $class)->{$action}($rawResponse, $task);
-                            } else if (isset($task['callback']) && $task['callback'] instanceof \Closure) {
-                                call_user_func($task['callback'], $rawResponse, $task);
+                            if (is_array($scheduleUrlTask->response_callback) && count($scheduleUrlTask->response_callback) == 2) {
+                                list($class, $action) = $scheduleUrlTask->response_callback;
+                                (new $class)->{$action}($rawResponse, $scheduleUrlTask);
+                            }else if ($scheduleUrlTask->response_callback instanceof \Closure) {
+                                call_user_func($scheduleUrlTask->response_callback, $rawResponse, $scheduleUrlTask);
+                            }
+
+
+                            if (is_array($scheduleUrlTask->after_callback) && count($scheduleUrlTask->after_callback) == 2) {
+                                list($class, $action) = $scheduleUrlTask->after_callback;
+                                (new $class)->{$action}($scheduleUrlTask);
+                            }else if ($scheduleUrlTask->after_callback instanceof \Closure) {
+                                call_user_func($scheduleUrlTask->after_callback, $scheduleUrlTask);
                             }
                         });
                     }
@@ -70,9 +105,9 @@ class CronUrlProcess extends CronProcess
                     $this->onHandleException($throwable, $task);
                 }
             }
-
-            // 解除已暂停的定时任务
-            $this->unregisterCronTask($taskList);
         }
+
+        // 解除已暂停的定时任务
+        $this->unregisterCronTask($taskList);
     }
 }

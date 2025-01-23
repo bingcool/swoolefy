@@ -63,12 +63,12 @@ class CronLocalProcess extends CronProcess
                 function (): bool {
                     // 上一个任务未执行完，下一个任务到来时不执行，返回false结束
                     if ($this->withBlockLapping && $this->handing) {
-                        $this->fmtWriteInfo("【{$this->getProcessName()}】进程定时任务还在处理中，暂时不再处理下一个任务");
+                        $this->fmtWriteNote("【{$this->getProcessName()}】进程定时任务还在处理中，暂时不再处理下一个任务");
                         return false;
                     }
 
                     if (!$this->isDue()) {
-                        $this->fmtWriteInfo("【{$this->getProcessName()}】定时任务进程退出|重启中，暂时不再处理任务");
+                        $this->fmtWriteNote("【{$this->getProcessName()}】定时任务进程退出|重启中，暂时不再处理任务");
                         return false;
                     }
 
