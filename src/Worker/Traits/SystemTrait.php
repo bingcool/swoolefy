@@ -89,7 +89,31 @@ trait SystemTrait
      */
     protected function fmtWriteInfo($msg)
     {
-        initConsoleStyleIo()->write("<info>$msg</info>", true);
+        initConsoleStyleIo()->info($msg);
+        $this->writeLog($msg);
+    }
+
+    /**
+     * 系统内部日志
+     *
+     * @param $msg
+     * @return void
+     */
+    protected function fmtWriteNote($msg)
+    {
+        initConsoleStyleIo()->note($msg);
+        $this->writeLog($msg);
+    }
+
+    /**
+     * 系统内部日志
+     *
+     * @param $msg
+     * @return void
+     */
+    protected function fmtWriteWarning($msg)
+    {
+        initConsoleStyleIo()->warning($msg);
         $this->writeLog($msg);
     }
 
@@ -101,7 +125,7 @@ trait SystemTrait
      */
     protected function fmtWriteError($msg)
     {
-        initConsoleStyleIo()->write("<error>$msg</error>", true);
+        initConsoleStyleIo()->error($msg);
         $this->writeLog($msg);
     }
 

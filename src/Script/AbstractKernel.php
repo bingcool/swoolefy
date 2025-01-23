@@ -46,11 +46,11 @@ abstract class AbstractKernel {
 
         foreach ($schedule->toArray() as $item) {
             $item['exec_bin_file'] = SystemEnv::PhpBinFile();
-            if (!isset($item['fork_type'])) {
+            if (empty($item['fork_type'])) {
                 $item['fork_type'] = CronForkProcess::FORK_TYPE_PROC_OPEN;
             }
 
-            if (!isset($item['argv'])) {
+            if (empty($item['argv'])) {
                 $item['argv'] = [];
             }
             $item['argv']['daemon'] = 1;
@@ -69,9 +69,14 @@ abstract class AbstractKernel {
             $argvOptions[] = "{$scheduleModel}=cron";
 
             $argv = implode(' ', $argvOptions);
-            if (!isset($item['cron_name'])) {
+            if (empty($item['cron_name'])) {
+                if (str_contains($item['cron_expression'], ' ')) {
+                    $cron_expression = '\''.$item["cron_expression"].'\'';
+                }else {
+                    $cron_expression = $item["cron_expression"];
+                }
                 // cron_name 唯一
-                $item['cron_name'] = ($item['command'] ?? 'schedule').'-'.$item['cron_expression'].' '.$argv;
+                $item['cron_name'] = ($item['command'] ?? 'schedule').' --cron_expression='.$cron_expression.' '.$argv;
             }
 
             // 动态处理定时任务触发时的callback函数
@@ -85,6 +90,7 @@ abstract class AbstractKernel {
                 $scheduleModelOption => 'cron',
             ];
 
+            unset($item['command']);
             $scheduleList[] = $item;
         }
         return $scheduleList;
