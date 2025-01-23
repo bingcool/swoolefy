@@ -42,10 +42,16 @@ abstract class AbstractMainProcess extends AbstractProcess
         // 指定只启动某一个进程，开发，调试使用
         // php daemon.php start Test --only=order-sync
         // php cron.php start Test --only=order-sync
-        if(defined('WORKER_CONF_FILE')) {
+
+        if (function_exists('customLoadWorkerConf')) {
+            $workerConfList = customLoadWorkerConf();
+        }else if(defined('WORKER_CONF_FILE')) {
             $mainManager = \Swoolefy\Worker\MainManager::getInstance();
-            $workerConfListNew = [];
             $workerConfList = \Swoolefy\Worker\MainManager::loadWorkerConf(WORKER_CONF_FILE);
+        }
+
+        $workerConfListNew = [];
+        if(!empty($workerConfList)) {
             // Specify Process to Run When dev or test to debug, Avoid the impact of other processes
             $onlyProcess = Helper::getCliParams('only');
             if ($onlyProcess) {
