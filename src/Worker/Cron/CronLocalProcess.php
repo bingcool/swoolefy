@@ -12,6 +12,8 @@
 namespace Swoolefy\Worker\Cron;
 
 use Swoolefy\Core\Crontab\CrontabManager;
+use Swoolefy\Exception\SystemException;
+use Swoolefy\Worker\Dto\CronLocalTaskMetaDto;
 
 class CronLocalProcess extends CronProcess
 {
@@ -38,18 +40,37 @@ class CronLocalProcess extends CronProcess
     protected $registerLogFlag = false;
 
     /**
+     * @var CronLocalTaskMetaDto
+     */
+    protected $cronLocalTaskMetaDto;
+
+    /**
      * onInit
      * @return void
      */
     public function onInit()
     {
         $this->handleClass    = $this->getArgs()['handler_class'];
+        if (empty($this->handleClass)) {
+            throw new SystemException("handleClass is empty");
+        }
+
+        if (!is_subclass_of($this->handleClass, \Swoolefy\Core\Crontab\AbstractCronController::class)) {
+            throw new SystemException("handleClass should be extend Swoolefy\Core\Crontab\AbstractCronController");
+        }
+
         !$this->registerLogFlag && $this->registerLogComponents(2, $this->handleClass);
         parent::onInit();
-        $this->cronName       = $this->getArgs()['cron_name'];
-        $this->cronExpression = $this->getArgs()['cron_expression'];
+        $this->cronName         = $this->getArgs()['cron_name'];
+        $this->cronExpression   = $this->getArgs()['cron_expression'];
         $this->withBlockLapping = $this->getArgs()['with_block_lapping'] ?? $this->withBlockLapping;
-        $this->runInBackground = $this->getArgs()['run_in_background'] ?? $this->runInBackground;
+        $this->runInBackground  = $this->getArgs()['run_in_background'] ?? $this->runInBackground;
+        $this->cronLocalTaskMetaDto = new CronLocalTaskMetaDto();
+        $this->cronLocalTaskMetaDto->cron_name = $this->cronName;
+        $this->cronLocalTaskMetaDto->cron_expression = $this->cronExpression;
+        $this->cronLocalTaskMetaDto->handler_class = $this->handleClass;
+        $this->cronLocalTaskMetaDto->with_block_lapping = $this->withBlockLapping;
+        $this->cronLocalTaskMetaDto->run_in_background = $this->runInBackground;
     }
 
     /**
@@ -59,7 +80,7 @@ class CronLocalProcess extends CronProcess
     public function run()
     {
         try {
-            CrontabManager::getInstance()->addRule($this->cronName, $this->cronExpression, [$this->handleClass,'doCronTask'],
+            CrontabManager::getInstance()->addRule($this->cronName, $this->cronExpression, [$this->handleClass, 'doCronTask'],
                 function (): bool {
                     // 上一个任务未执行完，下一个任务到来时不执行，返回false结束
                     if ($this->withBlockLapping && $this->handing) {

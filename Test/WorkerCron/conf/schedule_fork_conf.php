@@ -3,8 +3,7 @@
 use Test\Scripts\Kernel;
 
 // 定时fork进程处理任务
-return
-    [
+return [
         [
         'process_name' => 'system-schedule-task', // 进程名称
         'handler' => \Swoolefy\Worker\Cron\CronForkProcess::class,
