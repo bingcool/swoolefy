@@ -188,13 +188,13 @@ abstract class AbstractBaseWorker
 
     /**
      * @var int $withBlockLapping = 1,表示每轮任务只能阻塞执行，必须等上一轮任务执行完毕，下一轮才能执行; $withBlockLapping = 0, 表示每轮任务时间到了，都可执行,不管上一轮任务是否已经结束,是并发非租塞的
-     * 只对cron的local模式有效,默认=0，可并发执行每轮任务
+     * 只对cron的local | fork 这两种模式有效,默认=0，可并发执行每轮任务
      */
     protected $withBlockLapping = 0;
 
     /**
-     * @var int 定时任务后台运行，不受stop指令影响，正在执行的任务会继续执行
-     * 只对cron的local模式有效
+     * @var int 定时任务后台运行，不受stop指令影响，正在执行的任务会继续执行，只对cron的local模式有效。由于fork的模式，默认就是拉起进程在后台运行的了
+     *
      */
     protected $runInBackground = 1;
 

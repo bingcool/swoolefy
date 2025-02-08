@@ -364,7 +364,7 @@ class EventCtrl implements EventCtrlInterface
      */
     protected function registerGcMemCaches()
     {
-        $conf =BaseServer::getConf();
+        $conf = BaseServer::getConf();
         if (isset($conf['gc_mem_cache_enable']) && !empty($conf['gc_mem_cache_enable'])) {
             $time = $conf['gc_mem_cache_tick_time'] ?? 30;
             \Swoole\Timer::tick($time * 1000, function () {
