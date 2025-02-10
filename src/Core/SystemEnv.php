@@ -149,7 +149,7 @@ class SystemEnv
     public static function  inputOptions()
     {
         $options = [];
-        $argv = new ArgvInput();
+        $argv  = new ArgvInput();
         $token = $argv->__toString();
         $items = explode(' ', $token);
         foreach ($items as $item) {
@@ -266,7 +266,7 @@ class SystemEnv
      */
     public static function loadComponent()
     {
-        $components = [];
+        $components   = [];
         $componentDir = APP_PATH . '/Config/component';
         if (!is_dir($componentDir)) {
             $componentDir = APP_PATH . '/Config/Component';

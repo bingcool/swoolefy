@@ -143,19 +143,48 @@ class EventCtrl implements EventCtrlInterface
             return;
         }
 
-        LogManager::getInstance()->registerLoggerByClosure(function ($name) {
+        $rotateDay = 2;
+        LogManager::getInstance()->registerLoggerByClosure(function ($name) use($rotateDay) {
             $logger = new \Swoolefy\Util\Log($name);
-            $logger->setRotateDay(2);
+            $logger->setRotateDay($rotateDay);
             $logger->setChannel('application');
             $baseCronPath = pathinfo(LOG_PATH)['dirname'].DIRECTORY_SEPARATOR.'Crontab';
             if (!is_dir($baseCronPath)) {
                 mkdir($baseCronPath,0777);
             }
-            $cronLogName = 'cron.log';
+            $cronLogName = 'cron_fork.log';
             $cronFilePath = $baseCronPath.DIRECTORY_SEPARATOR.$cronLogName;
             $logger->setLogFilePath($cronFilePath);
             return $logger;
-        }, LogManager::CRON_LOG);
+        }, LogManager::CRON_FORK_LOG);
+
+        LogManager::getInstance()->registerLoggerByClosure(function ($name) use($rotateDay) {
+            $logger = new \Swoolefy\Util\Log($name);
+            $logger->setRotateDay($rotateDay);
+            $logger->setChannel('application');
+            $baseCronPath = pathinfo(LOG_PATH)['dirname'].DIRECTORY_SEPARATOR.'Crontab';
+            if (!is_dir($baseCronPath)) {
+                mkdir($baseCronPath,0777);
+            }
+            $cronLogName = 'cron_local.log';
+            $cronFilePath = $baseCronPath.DIRECTORY_SEPARATOR.$cronLogName;
+            $logger->setLogFilePath($cronFilePath);
+            return $logger;
+        }, LogManager::CRON_LOCAL_LOG);
+
+        LogManager::getInstance()->registerLoggerByClosure(function ($name) use($rotateDay) {
+            $logger = new \Swoolefy\Util\Log($name);
+            $logger->setRotateDay($rotateDay);
+            $logger->setChannel('application');
+            $baseCronPath = pathinfo(LOG_PATH)['dirname'].DIRECTORY_SEPARATOR.'Crontab';
+            if (!is_dir($baseCronPath)) {
+                mkdir($baseCronPath,0777);
+            }
+            $cronLogName = 'cron_url.log';
+            $cronFilePath = $baseCronPath.DIRECTORY_SEPARATOR.$cronLogName;
+            $logger->setLogFilePath($cronFilePath);
+            return $logger;
+        }, LogManager::CRON_URL_LOG);
     }
 
     /**

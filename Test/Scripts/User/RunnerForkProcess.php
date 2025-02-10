@@ -22,9 +22,9 @@ class RunnerForkProcess extends MainCliScript
 //        });
 
         $status = $runner->procOpen("ps -eo pid,cmd | awk '{print $1}'","", [], function($pipe0, $pipe1, $pipe2, $status) {
-            while ($output = fgets($pipe1)) {
-                //var_dump(trim($output));
-            }
+//            while ($output = fgets($pipe1)) {
+//                var_dump(trim($output));
+//            }
         });
 
         goApp(function() use($runner) {
