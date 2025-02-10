@@ -75,8 +75,8 @@ class MainCliScript extends AbstractScriptProcess
                 return;
             }
             $handleClass = getenv('handle_class');
-            fmtPrintInfo("Running Script: class={$handleClass}, action={$action}......");
             list($method, $params) = Helper::parseActionParams($this, $action, Helper::getCliParams());
+            fmtPrintInfo("Running Script: {$handleClass}::{$action}()");
             $this->{$action}(...$params);
             $this->waitCoroutineFinish($this->maxWaitTime);
             $this->exitAll();
