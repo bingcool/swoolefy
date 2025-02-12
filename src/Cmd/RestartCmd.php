@@ -111,11 +111,12 @@ class RestartCmd extends BaseCmd
             $newMasterPid = intval(file_get_contents($pidFile));
             // 新拉起的主进程id已经存在，说明新拉起的主进程已经启动成功
             if ($newMasterPid > 0 && $newMasterPid != $masterPid && \Swoole\Process::kill($newMasterPid, 0)) {
+                $serverName = WORKER_SERVICE_NAME;
                 if (SystemEnv::isWorkerService()) {
-                    fmtPrintInfo("-----------进程重启完成------------");
+                    fmtPrintInfo("-----------{$serverName}服务重启完成!------------");
                 }
                 if (SystemEnv::isWorkerService()) {
-                    fmtPrintInfo("-----------看到此处，进程重启成功啦！重启成功啦！重启成功啦！------------");
+                    fmtPrintInfo("-----------看到此处，{$serverName}服务重启成功啦！重启成功啦！重启成功啦！------------");
                 }else {
                     $this->serverStatus($appName, $pidFile);
                     fmtPrintInfo("-----------看到进程表格，进程重启成功啦！重启成功啦！重启成功啦！------------");
