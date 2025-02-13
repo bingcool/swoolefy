@@ -3,6 +3,7 @@
 namespace Test\Router;
 
 use Swoolefy\Core\Coroutine\Context;
+use Swoolefy\Http\Middleware\CorsMiddleware;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\Route;
 use Test\Middleware\Group\GroupTestMiddleware;
@@ -36,6 +37,7 @@ Route::group([
             $requestInput->getMethod();
         },
         'beforeHandle2' => [
+            CorsMiddleware::class,
             ValidLoginMiddleware::class
         ],
         'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList'],
@@ -73,6 +75,7 @@ Route::group([
 
     Route::any('/user-order/logOrder', [
         'beforeHandle2' => [
+            CorsMiddleware::class,
             ValidLoginMiddleware::class
         ],
         'dispatch_route' => [\Test\Module\Order\Controller\LogOrderController::class, 'testLog'],
