@@ -31,7 +31,11 @@ class LogManager
 
     public const SQL_LOG = 'sql_log';
 
-    public const CRON_LOG = 'cron_log';
+    public const CRON_FORK_LOG = 'cron_fork_log';
+
+    public const CRON_LOCAL_LOG = 'cron_local_log';
+
+    public const CRON_URL_LOG = 'cron_url_log';
 
     public const GUZZLE_CURL_LOG = 'guzzle_curl_log';
 

@@ -340,7 +340,7 @@ trait ComponentTrait
         if (isset($this->containers[$name])) {
             return $this->containers[$name];
         } else {
-            if (is_array($value) || $value instanceof \Closure) {
+            if ($value instanceof \Closure || is_array($value)) {
                 return $this->creatObject($name, $value);
             }
             return false;
