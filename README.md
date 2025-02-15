@@ -18,14 +18,14 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 内置```log、session、mysql、pgsql、redis、mongodb、kafka、amqp、uuid、route midelware、cache、queue、rateLimit、traceId```等常用组件等.    
 
 ### 二、建议版本
-1、swoolefy-5.1.x 版本：      
-目前主分支，最低要求```php8.1+，swoole5.1.x``` 
+1、swoolefy-6.x.x 版本：      
+目前主分支，最低要求```php8.1+，swoole > 5.1.x， 推荐 swoole-6.x.x+ 以上最新版本``` 
 
 2、swoolefy-4.8-lts 版本：    
-长期维护分支，最低要求```php7.3 ~ php7.4, swoole4.8.x```, 推荐直接swoole-v4.8.13，需要通过源码编译安装swoole
+长期维护分支，最低要求```php7.3 ~ php7.4, swoole-4.8.x, 推荐直接swoole-v4.8.13```
 
 选择哪个版本？  
-1、如果确定项目是使用php8+的，那么直接选择 ```swoole-v5.1+```, 以上源码来编译安装或者直接使用```swoole-cli-v5.x```，然后选择 ```bingcool/swoolefy:~5.1.9``` 作为项目分支
+1、如果确定项目是使用php81+的，那么直接选择 ```swoole-5.1.x，推荐直接使用 swoole-6.x.x+ 以上最新版本更好``` 以上版本安装，然后选择 ```bingcool/swoolefy:~6.0.0``` 作为项目分支
 
 2、如果确定项目是使用 ```php7.3 ~ php7.4``` 的，那么选择 swoole-v4.8+ 版本来进行编译安装(不能直接使用 swoole-cli-v4.8+ 了, 因为其内置的是php8.1，与你的项目的php7不符合)
 所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.9.9``` 作为项目分支
