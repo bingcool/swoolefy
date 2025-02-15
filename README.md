@@ -35,10 +35,10 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 4、若不希望自己编译构建，也可以直接使用本目录下的Dockerfile来构建镜像:     
 ```
 // 构建镜像
-docker build -t swoolefy-php83:v1 .
+docker build -t swoolefy-php83-swoole6:v1 -f ./php8-swoole6.Dockerfile .   
 
 // 启动容器
-docker run -d -it --name=swoolefy-php83 -v swoolefy-php83:v1
+docker run -d -it --name=swoolefy-php83-v6 swoolefy-php83-swoole6:v1
 
 ```
 ### 三、实现的功能特性    
