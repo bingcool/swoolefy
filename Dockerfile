@@ -35,7 +35,7 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
     php${MY_PHP_VERSION}-sqlite3 \
     php${MY_PHP_VERSION}-mysqlnd \
     && wget https://github.com/swoole/swoole-src/archive/refs/tags/v${MY_SWOOLE_VERSION}.tar.gz -O - -q | tar -xz \
-    && cd swoole-src-${MY_SWOOLE_VERSION} && phpize${MY_PHP_VERSION} && ./configure --with-php-config=/usr/bin/php-config${MY_PHP_VERSION} \
+    && cd swoole-src-${MY_SWOOLE_VERSION} && /usr/bin/phpize${MY_PHP_VERSION} && ./configure --with-php-config=/usr/bin/php-config${MY_PHP_VERSION} \
     --enable-mysqlnd \
     --enable-openssl \
     --enable-sockets \
