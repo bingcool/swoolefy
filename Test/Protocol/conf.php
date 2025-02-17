@@ -31,7 +31,7 @@ return [
 
     'setting' => [
         'reactor_num'            => 4,
-        'worker_num'             => 8,
+        'worker_num'             => 2,
         'max_request'            => 20000,
         'task_worker_num'        => 1,
         'task_tmpdir'            => '/dev/shm',
