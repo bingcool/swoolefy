@@ -60,10 +60,10 @@ class CronUrlProcess extends CronProcess
         if(!empty($taskList)) {
             foreach($taskList as $task) {
                 try {
-                    $scheduleUrlTask = CronUrlTaskMetaDto::load($task);
-                    $isNewAddFlag = $this->isNewAddTask($scheduleUrlTask->cron_name);
+                    $isNewAddFlag = $this->isNewAddTask($task['cron_name']);
                     if ($isNewAddFlag) {
-                        CrontabManager::getInstance()->addRule($task['cron_name'], $task['cron_expression'], function ($expression, $cron_name) use($scheduleUrlTask) {
+                        CrontabManager::getInstance()->addRule($task['cron_name'], $task['cron_expression'], function ($expression, $cron_name) use($task) {
+                            $scheduleUrlTask = CronUrlTaskMetaDto::load($task);
                             $logger = LogManager::getInstance()->getLogger(LogManager::CRON_URL_LOG);
                             try {
                                 $logger->addInfo("【{$cron_name}】开始处理远程请求url定时任务，url={$scheduleUrlTask->url}");
