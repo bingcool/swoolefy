@@ -12,7 +12,9 @@ return [
         'request_time_out' => 15, // 整个请求最长等待总时间，要比connection_time_out大
         'options' => [], // curl option
         'headers' => [], // 请求头
-        'params' => [], // post参数
+        'params' => [
+            'name' => 'bingcool'
+        ], // get|post参数
 //        'callback' => function(RawResponse $response) {
 //            (new \Test\WorkerCron\CurlQuery\RemoteUrl())->handle($response);
 //        },
