@@ -14,10 +14,10 @@ $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
 return [
     // 应用层配置
     'app_conf'                 => \Swoolefy\Core\SystemEnv::loadAppConf(),
-    'application_bootstrap'    => '',
-    'event_handler'            => \Swoolefy\Core\EventHandler::class,
+    'application_bootstrap'    => \Test\Bootstrap::class,
+    'event_handler'            => \Test\Event::class,
+    'exception_handler'        => \Test\Exception\ExceptionHandle::class,
     'response_formatter'       => \Swoolefy\Core\ResponseFormatter::class,
-    'exception_handler'        => '',
     'master_process_name'      => 'php-swoolefy-http-master',
     'manager_process_name'     => 'php-swoolefy-http-manager',
     'worker_process_name'      => 'php-swoolefy-http-worker',
