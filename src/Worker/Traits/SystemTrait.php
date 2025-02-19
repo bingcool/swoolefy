@@ -141,10 +141,14 @@ trait SystemTrait
             } else {
                 $maxLogFileSize = 5 * 1024 * 1024;
             }
+
             if (is_file(WORKER_CTL_LOG_FILE) && filesize(WORKER_CTL_LOG_FILE) > $maxLogFileSize) {
                 unlink(WORKER_CTL_LOG_FILE);
             }
-            $logFd = fopen(WORKER_CTL_LOG_FILE, 'a+');
+            
+            $logFd = fopen('text.txt', 'a+');
+            var_dump($logFd);
+
             $date  = date("Y-m-d H:i:s");
             $pid   = getmypid();
             $writeMsg = "【{$date}】【PID={$pid}】" . $msg . PHP_EOL;
