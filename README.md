@@ -25,10 +25,10 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 长期维护分支，最低要求```php7.3 ~ php7.4, swoole-4.8.x, 推荐直接swoole-v4.8.13```
 
 选择哪个版本？  
-1、如果确定项目是使用php81+的，那么直接选择 ```swoole-5.1.x，推荐直接使用 swoole-6.x.x+ 以上最新版本更好``` 以上版本安装，然后选择 ```bingcool/swoolefy:~6.0.0``` 作为项目分支
+1、如果确定项目是使用php81+的，那么直接选择 ```swoole > 5.1.x，推荐直接使用 swoole-6.x.x+ 以上最新版本更好``` 安装，然后选择 ```bingcool/swoolefy:^6.0``` 作为项目分支安装最新稳定版本   
 
 2、如果确定项目是使用 ```php7.3 ~ php7.4``` 的，那么选择 swoole-v4.8+ 版本来进行编译安装(不能直接使用 swoole-cli-v4.8+ 了, 因为其内置的是php8.1，与你的项目的php7不符合)
-所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.9.9``` 作为项目分支
+所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.9``` 作为项目分支稳定版本   
 
 3、依赖编译： ./configure --enable-openssl --enable-sockets --enable-swoole-curl --enable-swoole-pgsql
 
@@ -131,7 +131,7 @@ github: https://github.com/bingcool/library
 // 独立物理机或者云主机配置系统环境变量
 vi /etc/profile
 
-在/etc/profile末尾添加一行标识环境，下面是支持的4个环境,框架将通过这个环境变量区分环境，加载不同的配置
+在/etc/profile末尾添加一行，标识环境变量，下面是支持的4个环境,框架将通过这个环境变量区分环境，加载不同的配置
 
 export SWOOLEFY_CLI_ENV='dev'  // 开发环境
 export SWOOLEFY_CLI_ENV='test' // 测试环境
@@ -150,7 +150,7 @@ ENV SWOOLEFY_CLI_ENV=dev
 #### 2、创建项目
 ```
 // 下载代码到到你的自定义目录，这里定义为myproject
-composer create-project bingcool/swoolefy:^5.1 myproject
+composer create-project bingcool/swoolefy:^6.0 myproject   
 ```
 
 ### 七、添加项目入口启动文件cli.php,并定义你的项目目录，命名为App
