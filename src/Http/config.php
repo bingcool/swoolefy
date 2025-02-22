@@ -68,12 +68,13 @@ return [
         //开启/关闭Swoole错误信息
         'display_errors'         => true,
         'pid_file'               => \Swoolefy\Core\SystemEnv::loadPidFile('/data/' . APP_NAME . '/log/server.pid'),
+        'hook_flags'             => \Swoolefy\Core\SystemEnv::loadHookFlag(),
 
         // 静态处理
-        'document_root' => START_DIR_ROOT.'/swaggerui',
-        'enable_static_handler' => true,
-        'http_autoindex' => true,
-        'http_index_files' => ['index.html', 'index.txt'],
+        'document_root'          => START_DIR_ROOT.'/swaggerui',
+        'enable_static_handler'  => true,
+        'http_autoindex'         => true,
+        'http_index_files'       => ['index.html', 'index.txt'],
     ],
 
 
