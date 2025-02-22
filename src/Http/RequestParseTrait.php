@@ -144,12 +144,10 @@ trait RequestParseTrait
     public function getRequestParams(?string $name = null, $default = null)
     {
         if (!$this->requestParams) {
-            $get = isset($this->swooleRequest->get) ? $this->swooleRequest->get : [];
+            $get  = isset($this->swooleRequest->get) ? $this->swooleRequest->get : [];
             $post = isset($this->swooleRequest->post) ? $this->swooleRequest->post : [];
-            if (empty($post)) {
-                $post = json_decode($this->swooleRequest->rawContent(), true) ?? [];
-            }
-            $this->requestParams = array_merge($get, $post);
+            $input = json_decode($this->swooleRequest->rawContent(), true) ?? [];
+            $this->requestParams = array_merge($get, $post, $input);
             unset($get, $post);
         }
 
@@ -216,7 +214,7 @@ trait RequestParseTrait
      * @param mixed $default
      * @return mixed
      */
-    protected function getQueryParams(?string $name = null, $default = null)
+    public function getQueryParams(?string $name = null, $default = null)
     {
         $input = $this->swooleRequest->get;
         if ($name) {

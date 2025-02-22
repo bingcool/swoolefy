@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Worker\Traits;
 
+use Swoolefy\Core\Swfy;
 use Swoolefy\Worker\Helper;
 
 trait SystemTrait
@@ -23,15 +24,8 @@ trait SystemTrait
     protected function getHookFlags($hookFlags)
     {
         if (empty($hookFlags)) {
-            if (version_compare(swoole_version(), '4.7.0', '>=')) {
-                $hookFlags = SWOOLE_HOOK_ALL | SWOOLE_HOOK_NATIVE_CURL;
-            } else if (version_compare(swoole_version(), '4.6.0', '>=')) {
-                $hookFlags = SWOOLE_HOOK_ALL ^ SWOOLE_HOOK_CURL | SWOOLE_HOOK_NATIVE_CURL;
-            } else {
-                $hookFlags = SWOOLE_HOOK_ALL ^ SWOOLE_HOOK_CURL;
-            }
+            $hookFlags = Swfy::getConf()['setting']['hook_flags'] ?? SWOOLE_HOOK_ALL;
         }
-
         return $hookFlags;
     }
 
@@ -147,8 +141,6 @@ trait SystemTrait
             }
             
             $logFd = fopen('text.txt', 'a+');
-            var_dump($logFd);
-
             $date  = date("Y-m-d H:i:s");
             $pid   = getmypid();
             $writeMsg = "【{$date}】【PID={$pid}】" . $msg . PHP_EOL;

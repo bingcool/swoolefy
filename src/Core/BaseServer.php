@@ -291,7 +291,6 @@ class BaseServer
      */
     public static function setCoroutineSetting(array $setting)
     {
-        $setting['hook_flags'] = self::getHookFlags($setting);
         $setting = array_merge(\Swoole\Coroutine::getOptions() ?? [], $setting);
         !empty($setting) && \Swoole\Coroutine::set($setting);
         return true;
@@ -770,24 +769,6 @@ class BaseServer
         return self::setCoroutineSetting(self::$config['coroutine_setting'] ?? []);
     }
 
-    /**
-     * getHookFlags
-     */
-    public static function getHookFlags(array $coroutine_setting = [])
-    {
-        $hookFlags = $coroutine_setting['hook_flags'] ?? '';
-        if (empty($hookFlags)) {
-            if (version_compare(swoole_version(), '4.7.0', '>=')) {
-                $hookFlags = SWOOLE_HOOK_ALL | SWOOLE_HOOK_NATIVE_CURL;
-            } else if (version_compare(swoole_version(), '4.6.0', '>=')) {
-                $hookFlags = SWOOLE_HOOK_ALL ^ SWOOLE_HOOK_CURL | SWOOLE_HOOK_NATIVE_CURL;
-            } else {
-                $hookFlags = SWOOLE_HOOK_ALL ^ SWOOLE_HOOK_CURL;
-            }
-        }
-
-        return $hookFlags;
-    }
 
     /**
      * catchException

@@ -65,6 +65,7 @@ return [
         'enable_deadlock_check' => false,
         'log_file'              => \Swoolefy\Core\SystemEnv::loadLogFile('/tmp/' . APP_NAME . '/swoole_log.txt'),
         'pid_file'              => \Swoolefy\Core\SystemEnv::loadPidFile('/data/' . APP_NAME . '/log/server.pid'),
+        'hook_flags'             => \Swoolefy\Core\SystemEnv::loadHookFlag(),
     ],
 
     'coroutine_setting' => [
