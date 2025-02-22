@@ -8,6 +8,7 @@ ENV MY_SWOOLE_VERSION=6.0.1 \
     MY_PHP_VERSION=83 \
     SWOOLEFY_CLI_ENV=dev
 
+# docker的宿主机必须要支持io_uring
 # swoole6+支持io_uring且依赖liburing-dev
 
 ENV TZ=Asia/Shanghai
