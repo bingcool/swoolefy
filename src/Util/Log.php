@@ -395,7 +395,7 @@ class Log
                 // add records to the log
                 $this->logger->addRecord($type, $logInfo, $context);
             } catch (\Exception $e) {
-                var_dump('record log error: '.$e->getMessage());
+                fmtPrintError('record log error: '.$e->getMessage());
             }
         };
 

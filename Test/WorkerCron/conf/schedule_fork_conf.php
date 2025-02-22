@@ -3,8 +3,7 @@
 use Test\Scripts\Kernel;
 
 // 定时fork进程处理任务
-return
-    [
+return [
         [
         'process_name' => 'system-schedule-task', // 进程名称
         'handler' => \Swoolefy\Worker\Cron\CronForkProcess::class,
@@ -20,7 +19,7 @@ return
 
             // 动态定时任务列表，可以存在数据库中
             'task_list' => function () {
-                //$list1 = include __DIR__ . '/schedule_task.php';
+                //$list1 = include __DIR__ . '/fork_task.php';
                 $list2 = Kernel::buildScheduleTaskList(Kernel::schedule());
                 return array_merge($list1 ?? [], $list2 ?? []);
             }

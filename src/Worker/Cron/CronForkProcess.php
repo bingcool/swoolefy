@@ -30,18 +30,12 @@ class CronForkProcess extends CronProcess
     protected $forkType = self::FORK_TYPE_PROC_OPEN;
 
     /**
-     * @var array
-     */
-    protected $params = [];
-
-    /**
      * onInit
      * @return void
      */
     public function onInit()
     {
         parent::onInit();
-        $this->params   = $this->getArgs()['params'] ?? [];
     }
 
     /**
@@ -49,8 +43,22 @@ class CronForkProcess extends CronProcess
      */
     public function run()
     {
-        parent::run();
-        $this->runCronTask();
+        try {
+            parent::run();
+            $this->runCronTask();
+        } catch (\Throwable $throwable) {
+            $context = [
+                'file' => $throwable->getFile(),
+                'line' => $throwable->getLine(),
+                'message' => $throwable->getMessage(),
+                'code' => $throwable->getCode(),
+                "reboot_count" => $this->getRebootCount(),
+                'trace' => $throwable->getTraceAsString(),
+            ];
+            parent::onHandleException($throwable, $context);
+            sleep(2);
+            $this->reboot();
+        }
     }
 
     /**
@@ -96,7 +104,7 @@ class CronForkProcess extends CronProcess
                             // 日志无需打印回调闭包函数
                             $scheduleTaskItems['fork_success_callback'] = $scheduleTaskItems['fork_fail_callback'] = '';
 
-                            $logger = LogManager::getInstance()->getLogger(LogManager::CRON_LOG);
+                            $logger = LogManager::getInstance()->getLogger(LogManager::CRON_FORK_LOG);
                             $runner = CronForkRunner::getInstance(md5($scheduleTask->cron_name),5);
                             // 确保任务不会重叠运行.如果上一次任务仍在运行，则跳过本次执行
                             if (isset($scheduleTask->with_block_lapping) && $scheduleTask->with_block_lapping == true) {
@@ -114,7 +122,7 @@ class CronForkProcess extends CronProcess
                                 }
                             }
 
-                            $logger->addInfo("cron任务开始执行,cron_name=$scheduleTask->cron_name, cron_expression=".$scheduleTask->cron_expression, false, $scheduleTaskItems);
+                            $logger->addInfo("cron_fork任务开始执行,cron_name=$scheduleTask->cron_name, cron_expression=".$scheduleTask->cron_expression, false, $scheduleTaskItems);
 
                             $this->randSleepTime($scheduleTask->cron_expression);
                             try {
@@ -123,7 +131,7 @@ class CronForkProcess extends CronProcess
                                 // 限制并发处理
                                 $isNextHandle = $runner->isNextHandle(true, 120);
                                 if (!$isNextHandle) {
-                                    $logger->addInfo("达到最大限制并发数，禁止fork进程,cron_name=$scheduleTask->cron_name, cron_expression=".$scheduleTask->cron_expression, false, $scheduleTaskItems);
+                                    $logger->addInfo("cron_fork任务达到最大限制并发数，禁止fork进程,cron_name=$scheduleTask->cron_name, cron_expression=".$scheduleTask->cron_expression, false, $scheduleTaskItems);
                                 }
                                 if ($isNextHandle) {
                                     if ($forkType == self::FORK_TYPE_PROC_OPEN) {
@@ -146,10 +154,10 @@ class CronForkProcess extends CronProcess
                                             }
                                         }
                                     }
-                                    $logger->addInfo("cron任务fork进程成功,cron_name=$scheduleTask->cron_name, cron_expression=".$scheduleTask->cron_expression, false, $scheduleTaskItems);
+                                    $logger->addInfo("cron_fork任务fork进程成功,cron_name=$scheduleTask->cron_name, cron_expression=".$scheduleTask->cron_expression, false, $scheduleTaskItems);
                                 }
                             }catch (\Throwable $exception) {
-                                $logger->addInfo("fork进程失败,cron_name=$scheduleTask->cron_name, cron_expression=".$scheduleTask->cron_expression." error=".$exception->getMessage() , false, $scheduleTaskItems);
+                                $logger->addInfo("cron_fork进程失败,cron_name=$scheduleTask->cron_name, cron_expression=".$scheduleTask->cron_expression." error=".$exception->getMessage() , false, $scheduleTaskItems);
                                 if (is_callable($scheduleTask->fork_fail_callback)) {
                                     try {
                                         call_user_func($scheduleTask->fork_fail_callback, $scheduleTask, $exception);

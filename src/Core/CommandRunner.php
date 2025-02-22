@@ -266,7 +266,7 @@ class CommandRunner
                     break;
                 }
 
-                // 寄存都已退出进程
+                // 已退出进程
                 if (!\Swoole\Process::kill($runProcessMetaItem->pid, 0)) {
                     $exitProcess[] = $runProcessMetaItem;
                 }

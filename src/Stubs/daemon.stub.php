@@ -1,5 +1,5 @@
 <?php
-// workerService 模式下要关闭opcache.enable_cli
+// workerService 模式下要关闭opcache.enable_cli，开启后主要影响是include不会再从磁盘加载，可能会影响某些功能
 include __DIR__.'/vendor/autoload.php';
 
 $appName = ucfirst($_SERVER['argv'][2]);
