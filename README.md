@@ -9,40 +9,41 @@
                                                    |_|           | |
                                                               __ / |
                                                              |_ _ /
-```                                                            
+```  
+### 一、简介    
 swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协程级应用服务框架，
 高度支持httpApi，websocket，udp服务器，以及基于tcp实现可扩展的rpc服务，worker多进程消费模型  
 同时支持composer包方式安装部署项目。基于实用主义设计出发，swoolefy抽象Event事件处理类，
 实现与底层的回调的解耦，支持协程单例调度，同步|异步调用，全局事件注册，心跳检查，异步任务，多进程(池)，连接池等，
 内置```log、session、mysql、pgsql、redis、mongodb、kafka、amqp、uuid、route midelware、cache、queue、rateLimit、traceId```等常用组件等.    
 
-### 建议版本
-swoolefy-5.1.x 版本：      
-目前主分支，最低要求```php8.1+，swoole5.1.x``` 
+### 二、建议版本
+1、swoolefy-6.x.x 版本：      
+目前主分支，最低要求```php8.1+，swoole > 5.1.x， 推荐 swoole-6.x.x+ 以上最新版本``` 
 
-swoolefy-4.8-lts 版本：    
-长期维护分支，最低要求```php7.3 ~ php7.4, swoole4.8.x```, 推荐直接swoole-v4.8.13，需要通过源码编译安装swoole
+2、swoolefy-4.8-lts 版本：    
+长期维护分支，最低要求```php7.3 ~ php7.4, swoole-4.8.x, 推荐直接swoole-v4.8.13```
 
 选择哪个版本？  
-1、如果确定项目是使用php8+的，那么直接选择 ```swoole-v5.1+```, 以上源码来编译安装或者直接使用```swoole-cli-v5.x```，然后选择 ```bingcool/swoolefy:~5.1.3``` 作为项目分支
+1、如果确定项目是使用php81+的，那么直接选择 ```swoole > 5.1.x，推荐直接使用 swoole-6.x.x+ 以上最新版本更好``` 安装，然后选择 ```bingcool/swoolefy:^6.0``` 作为项目分支安装最新稳定版本   
 
 2、如果确定项目是使用 ```php7.3 ~ php7.4``` 的，那么选择 swoole-v4.8+ 版本来进行编译安装(不能直接使用 swoole-cli-v4.8+ 了, 因为其内置的是php8.1，与你的项目的php7不符合)
-所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.9.0``` 作为项目分支
+所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.9``` 作为项目分支稳定版本   
 
 3、依赖编译： ./configure --enable-openssl --enable-sockets --enable-swoole-curl --enable-swoole-pgsql
 
 4、若不希望自己编译构建，也可以直接使用本目录下的Dockerfile来构建镜像:     
 ```
 // 构建镜像
-docker build -t swoolefy-php83:v1 .
+docker build -t swoolefy-php83-swoole6:v1 -f ./php8-swoole6.Dockerfile .   
 
 // 启动容器
-docker run -d -it --name=swoolefy-php83 -v swoolefy-php83:v1
+docker run -d -it --name=swoolefy-php83-v6 swoolefy-php83-swoole6:v1
 
 ```
-### 实现的功能特性    
+### 三、实现的功能特性    
 
-基础特性
+#### 基础特性
 - [x] 支持架手脚一键创建项目自动生成最小项目骨架         
 - [x] 支持swagger一键生成api文档     
 - [x] 支持分组路由, 路由中间件middleware, 前置路由组件, 后置路由组件middleware,多模块应用    
@@ -70,7 +71,7 @@ docker run -d -it --name=swoolefy-php83 -v swoolefy-php83:v1
 - [x] 支持定时的系统信息采集，并以订阅发布，udp等方式收集至存贮端    
 - [x] 支持命令行形式高度封装启动|停止控制的脚本，简单命令即可管理整个框架, 并对外提供控制启动|停止|重启|查看状态的api接口，可开发成可视化控制页面    
 
-高级特性
+##### 高级特性
 - [x] 支持cron计划任务模式. 类似crontab，支持local|fork|remote url三种方式      
     
     | 支持方式  |                          说明                           |
@@ -83,7 +84,7 @@ docker run -d -it --name=swoolefy-php83 -v swoolefy-php83:v1
 - [x] 支持console终端脚本模式. 跑完脚本自动退出，可用于修复数据、数据迁移等临时脚本功能      
 - [ ] 支持分布式服务注册（zk，etcd）       
 
-### 适配协程环境组件
+### 四、适配协程环境组件
 | 组件名称             | 安装                                                    | 说明                                                  |
 |------------------|-------------------------------------------------------|-----------------------------------------------------|
 | predis           | composer require predis/predis:~1.1.7                 | predis组件、或者Phpredis扩展                               |
@@ -98,7 +99,7 @@ docker run -d -it --name=swoolefy-php83 -v swoolefy-php83:v1
 | oauth 2.0        | composer require league/oauth2-server                 | oauth 2.0 授权认证组件                                    |   
 | bingcool/library | composer require bingcool/library                     | library组件库                                          |  
 
-### bingcool/library 是swoolefy require 内置库，专为swoole协程实现的组件库        
+### 五、bingcool/library 是swoolefy require 内置库，专为swoole协程实现的组件库        
 实现了包括：    
 - [x] Db ORM Model 组件(支持mysql、 postSql、 sqlite、 Oracle)
 - [x] DB Query Builder 链式操作查询组件      
@@ -123,17 +124,20 @@ docker run -d -it --name=swoolefy-php83 -v swoolefy-php83:v1
 github: https://github.com/bingcool/library    
 
 
-### 一、安装 
+### 六、安装 
 
-1、先配置环境变量(必须设置)
+#### 1、先配置环境变量(必须设置)
 ```
 // 独立物理机或者云主机配置系统环境变量
 vi /etc/profile
-在/etc/profile末尾添加一行标识环境，下面是支持的4个环境,框架将通过这个环境变量区分环境，加载不同的配置
+
+在/etc/profile末尾添加一行，标识环境变量，下面是支持的4个环境,框架将通过这个环境变量区分环境，加载不同的配置
+
 export SWOOLEFY_CLI_ENV='dev'  // 开发环境
 export SWOOLEFY_CLI_ENV='test' // 测试环境
 export SWOOLEFY_CLI_ENV='gra'  // 灰度环境
 export SWOOLEFY_CLI_ENV='prd'  // 生产环境
+
 // 最后是配置生效
 source /etc/profile
 
@@ -143,13 +147,13 @@ source /etc/profile
 ENV SWOOLEFY_CLI_ENV=dev
 
 ```
-2、创建项目
+#### 2、创建项目
 ```
 // 下载代码到到你的自定义目录，这里定义为myproject
-composer create-project bingcool/swoolefy:^5.1 myproject
+composer create-project bingcool/swoolefy:^6.0 myproject   
 ```
 
-### 二、添加项目入口启动文件cli.php,并定义你的项目目录，命名为App
+### 七、添加项目入口启动文件cli.php,并定义你的项目目录，命名为App
 
 ```
 <?php
@@ -206,7 +210,7 @@ include __DIR__.'/swoolefy';
 
 ```
 
-### 三、执行创建你定义的App项目
+### 八、执行创建你定义的App项目
 
 ```
 // 你定义的项目目录是App, 在myproject目录下执行下面命令行
@@ -258,7 +262,7 @@ myproject
 
 ```
 
-### 四、启动http应用项目
+### 九、启动http应用项目
 
 ```
 // 终端启动 ctl+c 停止进程
@@ -313,7 +317,7 @@ php daemon.php stop App
 
 ```
 
-### 五、访问
+### 十、访问
 
 默认端口是9502,可以通过 http://localhost:9502 访问默认控制器
 ```
@@ -341,10 +345,9 @@ class IndexController extends BController {
 至此一个最简单的http的服务就创建完成了，更多例子请参考项目下Test的demo
 
 
-### 定义组件
+### 十一、定义组件
 
-应用层配置文件：
-Config/app.php
+1、应用层配置文件：Config/app.php
 
 ```
 <?php
@@ -384,7 +387,7 @@ return [
 
 ```
 
-组件Component.php:
+2、组件Component.php
 ```
 
 $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
@@ -460,7 +463,7 @@ return [
     
 ```
 
-### 使用组件
+### 十二、使用组件
 ```
 use Swoolefy\Core\Application;
 
@@ -546,7 +549,7 @@ class TestController extends BController {
 ```
 
 
-### 默认协议层全局配置文件 Protocol/conf.php
+### 十三、默认协议层全局配置文件 Protocol/conf.php
 
 开发者可以根据实际使用适当调整配置项
 
@@ -643,8 +646,8 @@ return [
 ];
 
 ```
-### 路由文件（类似laravel路由）
-Router/api.php
+### 十四、路由文件（类似laravel路由）
+1、Router/api.php
 ```
 <?php
 
@@ -715,7 +718,7 @@ Route::group([
 
 ```
 
-### 数据库操作
+### 十五、数据库操作
 ```
 
 $db = Application::getApp()->get('db');
@@ -754,7 +757,8 @@ $db->newQuery()->table('tbl_users')->where(['id', '=', 100])->field(['id', 'user
 
 ```
 
-### 协程单例，协程并发
+### 十六、协程单例，协程并发
+1. 协程单例   
 ```
 // 协程单例使用goApp直接调用创建, 每个协程的DB，redis,kafka,mq的socket对象相互隔离，互不影响，代码通用
 
@@ -767,8 +771,9 @@ goApp(function() {
     $redis->set('name','bingcool')
 })
 
-
-
+```
+2. 协程并发  
+```
 // 协程并发-协程并发迭代数组处理数据(针对数据量大，无需关注返回数据)
 
 $list = [
@@ -835,7 +840,7 @@ array(4) {
 
 ```
 
-### swagger接口文档生成
+### 十七、swagger接口文档生成
 
 在Test/Module/Order/Validation下，每个文件对应一个Controller的方法，可以使用php8的attribute注解定义好接口，然后执行 php swag.php Test 即可自动生成openapi.yaml文件
 在浏览器直接访问: http:127.0.0.1:9501/swagger.html

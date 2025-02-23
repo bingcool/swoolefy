@@ -43,6 +43,8 @@ return [
         'log_file'               => \Swoolefy\Core\SystemEnv::loadLogFile('/tmp/' . APP_NAME . '/swoole.log'),
         'log_rotation'           => SWOOLE_LOG_ROTATION_DAILY,
         'pid_file'              => \Swoolefy\Core\SystemEnv::loadPidFile('/data/' . APP_NAME . '/log/server.pid'),
+
+        'hook_flags'             => \Swoolefy\Core\SystemEnv::loadHookFlag(),
     ],
 
     'coroutine_setting' => [

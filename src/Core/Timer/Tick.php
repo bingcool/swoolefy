@@ -106,7 +106,7 @@ class Tick
 
             $conf = Swfy::getConf();
 
-            if (isset($conf['enable_table_tick_task']) && $conf['enable_table_tick_task'] == true) {
+            if (isset($conf['enable_table_tick_task']) && !empty($conf['enable_table_tick_task'])) {
                 TableManager::set('table_ticker', 'tick_timer_task', ['tick_tasks' => json_encode(self::$_tick_tasks)]);
             }
 
@@ -137,7 +137,7 @@ class Tick
 
             $config = Swfy::getConf();
 
-            if (isset($config['enable_table_tick_task']) && $config['enable_table_tick_task'] == true) {
+            if (isset($config['enable_table_tick_task']) && !empty($config['enable_table_tick_task'])) {
                 TableManager::set('table_ticker', 'tick_timer_task', ['tick_tasks' => json_encode(self::$_tick_tasks)]);
             }
             return true;
@@ -218,7 +218,7 @@ class Tick
             ];
 
             $conf = Swfy::getConf();
-            if (isset($conf['enable_table_tick_task']) && $conf['enable_table_tick_task'] == true) {
+            if (isset($conf['enable_table_tick_task']) && !empty($conf['enable_table_tick_task'])) {
                 TableManager::set('table_after', 'after_timer_task', ['after_tasks' => json_encode(self::$_after_tasks)]);
             }
         }
@@ -243,7 +243,7 @@ class Tick
             }
 
             $conf = Swfy::getConf();
-            if (isset($conf['enable_table_tick_task']) && $conf['enable_table_tick_task'] == true) {
+            if (isset($conf['enable_table_tick_task']) && !empty($conf['enable_table_tick_task'])) {
                 TableManager::set('table_after', 'after_timer_task', ['after_tasks' => json_encode(self::$_after_tasks)]);
             }
         }

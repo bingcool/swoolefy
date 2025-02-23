@@ -20,22 +20,23 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
      */
     public function loopHandle()
     {
-        $a = 1;
-        $b = 2;
-        $c = 3;
-        goApp(function ($a, $b) use($c) {
-                goApp(function () use($a, $b) {
-                    goApp(function () use($a, $b) {
-                        var_dump($a, $b);
-                    });
-                });
-            }, $a, $b);
-
-            var_dump('start start');
-
-        RunLog::info("loopHandle");
-
-        sleep(120);
+        var_dump("ggggg");
+        sleep(1);
+//        $a = 1;
+//        $b = 2;
+//        $c = 3;
+//        goApp(function ($a, $b) use($c) {
+//                goApp(function () use($a, $b) {
+//                    goApp(function () use($a, $b) {
+//                        var_dump($a, $b);
+//                    });
+//                });
+//            }, $a, $b);
+//
+//        var_dump('start start');
+//        // RunLog::info("loopHandle");
+//
+//        sleep(120);
         return;
 
         $userId = 10000;
