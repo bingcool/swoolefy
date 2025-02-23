@@ -30,10 +30,10 @@ return [
     'runtime_enable_coroutine' => true,
 
     'setting' => [
-        'reactor_num'            => 1,
-        'worker_num'             => 5,
-        'max_request'            => 1000,
-        'task_worker_num'        => 2,
+        'reactor_num'            => 4,
+        'worker_num'             => 8,
+        'max_request'            => 20000,
+        'task_worker_num'        => 1,
         'task_tmpdir'            => '/dev/shm',
         'task_enable_coroutine'  => 1,
         'task_max_request'       => 1000,
@@ -43,6 +43,22 @@ return [
         'enable_deadlock_check'  => false,
         'enable_coroutine'       => 1,
         'enable_preemptive_scheduler' => 1,
+        // 参数将决定最多同时有多少个等待accept的连接,建议128~512
+        'backlog'                => 256,
+        // 在PHP ZTS下，如果使用SWOOLE_PROCESS模式，一定要设置该值为 true
+        'single_thread'          => false,
+        // 退出前最大等待时间
+        'max_wait_time'          => 10,
+        // 最大并发连接数
+        'max_concurrency'        => 200000,
+        // 启用心跳检测，单位为秒
+        'open_tcp_keepalive'     => true,
+        // web服务可以设置稍微大点,120s没有数据传输就进行检测
+        'tcp_keepidle'           => 120,
+        // 1s探测一次
+        'tcp_keepinterval'       => 1,
+        // 探测的次数，超过5次后还没回包close此连接
+        'tcp_keepcount'          => 5,
         // 压缩
         'http_compression'       => true,
         // $level 压缩等级，范围是 1-9，等级越高压缩后的尺寸越小，但 CPU 消耗更多。默认为 1, 最高为 9
@@ -52,12 +68,13 @@ return [
         //开启/关闭Swoole错误信息
         'display_errors'         => true,
         'pid_file'               => \Swoolefy\Core\SystemEnv::loadPidFile('/data/' . APP_NAME . '/log/server.pid'),
+        'hook_flags'             => \Swoolefy\Core\SystemEnv::loadHookFlag(),
 
         // 静态处理
-        'document_root' => START_DIR_ROOT.'/swaggerui',
-        'enable_static_handler' => true,
-        'http_autoindex' => true,
-        'http_index_files' => ['index.html', 'index.txt'],
+        'document_root'          => START_DIR_ROOT.'/swaggerui',
+        'enable_static_handler'  => true,
+        'http_autoindex'         => true,
+        'http_index_files'       => ['index.html', 'index.txt'],
     ],
 
 

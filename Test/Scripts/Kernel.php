@@ -39,6 +39,7 @@ class Kernel extends AbstractKernel
         User\FixedUser::command => [User\FixedUser::class, 'handle'],
 
         User\RunnerForkProcess::command => [User\RunnerForkProcess::class, 'handle'],
+        User\Purl::command => [User\Purl::class, 'handle'],
     ];
 
     /**
