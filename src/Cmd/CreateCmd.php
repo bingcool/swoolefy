@@ -21,7 +21,7 @@ class CreateCmd extends BaseCmd
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $dirs = ['Config', 'Service', 'Protocol', 'Router', 'Storage', 'Middleware', 'Scripts'];
-        $appName = $input->getArgument('app_name');
+        $appName = APP_NAME;
         $appPathDir = APP_PATH;
         if (is_dir($appPathDir)) {
             fmtPrintError("You had create {$appName} project dir");
