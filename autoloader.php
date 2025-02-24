@@ -18,7 +18,7 @@ class autoloader
     private static $baseDirectory = START_DIR_ROOT;
 
     /**
-     * Root Namespace
+     * Root Dir Map Namespace
      * @var array
      */
     private static $rootNamespace = ["<{APP_NAME}>"];
@@ -38,9 +38,12 @@ class autoloader
         if (isset(self::$classMapNamespace[$className])) {
             return;
         }
-        foreach (self::$rootNamespace as $k => $namespace) {
+        foreach (self::$rootNamespace as $appDir => $namespace) {
             if (0 === strpos($className, $namespace)) {
                 $parts = explode('\\', $className);
+                if (!is_numeric($appDir)) {
+                    $parts[0] = $appDir;
+                }
                 $filepath = self::$baseDirectory . DIRECTORY_SEPARATOR . implode(DIRECTORY_SEPARATOR, $parts) . '.php';
                 if (is_file($filepath)) {
                     $res = require_once $filepath;
