@@ -17,6 +17,7 @@ use Dotenv\Repository\RepositoryBuilder;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Exception\SystemException;
 use Swoolefy\Script\AbstractKernel;
+use Symfony\Component\Console\Helper\TableStyle;
 use Symfony\Component\Console\Input\ArgvInput;
 
 class SystemEnv
@@ -264,7 +265,7 @@ class SystemEnv
      *
      * @return array
      */
-    public static function loadComponent()
+    public static function loadComponents()
     {
         $components   = [];
         $componentDir = APP_PATH . '/Config/component';
@@ -430,5 +431,26 @@ class SystemEnv
         }else {
             return SWOOLE_HOOK_ALL;
         }
+    }
+
+    /**
+     * @return void
+     */
+    public static function formatPrintStartLog($startTime = '')
+    {
+        if (empty($startTime) && defined('SERVER_START_LOG') && is_file(SERVER_START_LOG)) {
+            $startContent = file_get_contents(SERVER_START_LOG);
+            $startContent = json_decode($startContent, true);
+            if (isset($startContent['start_time'])) {
+                $startTime = $startContent['start_time'] ?? '';
+            }
+        }
+        $tableStyle = new TableStyle();
+        $tableStyle->setCellRowFormat('<info>%s</info>');
+        $baseInfoOutput = new \Symfony\Component\Console\Output\ConsoleOutput();
+        $baseTable      = new \Symfony\Component\Console\Helper\Table($baseInfoOutput);
+        $baseTable->setHeaders(['服务应用', '端口', '进程状态', '启动时间']);
+        $baseTable->addRow([WORKER_SERVICE_NAME, $startContent['port'] ?? '', 'running', $startTime]);
+        $baseTable->setStyle($tableStyle)->render();
     }
 }

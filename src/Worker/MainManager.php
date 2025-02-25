@@ -1884,7 +1884,7 @@ class MainManager
             ];
             $formattedData = [];
             foreach ($infoItem as $name=>$value) {
-                $formattedData[] = $name.':'.$value;
+                $formattedData[] = $name.': '.$value;
             }
             $info = implode($this->getSeparator(), $formattedData).$this->getSeparator();
         } else {

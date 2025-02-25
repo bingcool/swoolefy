@@ -12,7 +12,6 @@
 namespace Swoolefy\Core;
 
 use Swoole\Server;
-use Swoolefy\Core\Log\Formatter\JsonFormatter;
 use Swoolefy\Http\Route;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Coroutine\CoroutinePools;
@@ -49,7 +48,9 @@ class EventCtrl implements EventCtrlInterface
         $this->registerSqlLogger();
         $this->registerCrontabLogger();
         $this->registerGuzzleCurlLogger();
-
+        if (!SystemEnv::isScriptService()) {
+            $this->registerStartLog();
+        }
         if(!SystemEnv::isWorkerService()) {
             if (BaseServer::isEnableSysCollector()) {
                 ProcessManager::getInstance()->addProcess('swoolefy_system_collector', \Swoolefy\Core\SysCollector\SysProcess::class);
@@ -57,9 +58,6 @@ class EventCtrl implements EventCtrlInterface
             if (BaseServer::isEnableReload()) {
                 ProcessManager::getInstance()->addProcess('swoolefy_system_reload', \Swoolefy\AutoReload\ReloadProcess::class);
             }
-
-            $this->registerStartLog();
-
         }else {
             static::onWorkerServiceInit();
             $this->boostrapWorkerInit();
@@ -230,7 +228,7 @@ class EventCtrl implements EventCtrlInterface
             if (!is_dir($pathDir['dirname'])) {
                 mkdir($pathDir['dirname'], 0777, true);
             }
-            $startLog = ['start_time' => date('Y-m-d H:i:s')];
+            $startLog = ['app_name' => WORKER_SERVICE_NAME, 'port' => Swfy::getConf()['port'],'start_time' => date('Y-m-d H:i:s')];
             file_put_contents(SERVER_START_LOG, json_encode($startLog));
             chmod(SERVER_START_LOG, 0777);
         }
@@ -481,6 +479,10 @@ class EventCtrl implements EventCtrlInterface
             $consoleStyleIo->write("<info>Cron Worker Info:</info>", true);
         }else if(SystemEnv::isScriptService()) {
             $consoleStyleIo->write("<info>Cli Script Start:</info>",true);
+        }
+
+        if (SystemEnv::isDaemon() && !SystemEnv::isScriptService()) {
+            SystemEnv::formatPrintStartLog();
         }
     }
 } 
