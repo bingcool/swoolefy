@@ -37,5 +37,5 @@ return [
     'default_db' => 'db',
 
     // 组件
-    'components' => \Swoolefy\Core\SystemEnv::loadComponent()
+    'components' => \Swoolefy\Core\SystemEnv::loadComponents()
 ];
