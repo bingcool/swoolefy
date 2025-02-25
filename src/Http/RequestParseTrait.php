@@ -214,7 +214,7 @@ trait RequestParseTrait
      * @param mixed $default
      * @return mixed
      */
-    protected function getQueryParams(?string $name = null, $default = null)
+    public function getQueryParams(?string $name = null, $default = null)
     {
         $input = $this->swooleRequest->get;
         if ($name) {

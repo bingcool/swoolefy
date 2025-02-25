@@ -298,6 +298,16 @@ class BaseCmd extends Command
             return;
         }
 
+        if (defined('SERVER_START_LOG') && is_file(SERVER_START_LOG)) {
+            $startContent = file_get_contents(SERVER_START_LOG);
+            $startContent = json_decode($startContent, true);
+            if (isset($startContent['start_time'])) {
+                $startTime = $startContent['start_time'] ?? '';
+            }
+        }
+
+        SystemEnv::formatPrintStartLog($startTime ?? '');
+
         $exec = (new Exec())->run('pgrep -P ' . $pid);
         $output = $exec->getOutput();
         $managerProcessId = -1;
