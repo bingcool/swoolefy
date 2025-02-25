@@ -449,8 +449,8 @@ class SystemEnv
         $tableStyle->setCellRowFormat('<info>%s</info>');
         $baseInfoOutput = new \Symfony\Component\Console\Output\ConsoleOutput();
         $baseTable      = new \Symfony\Component\Console\Helper\Table($baseInfoOutput);
-        $baseTable->setHeaders(['服务应用', '端口', '进程状态', '启动时间']);
-        $baseTable->addRow([WORKER_SERVICE_NAME, $startContent['port'] ?? '', 'running', $startTime]);
+        $baseTable->setHeaders(['服务应用', '端口','环境', '进程状态', '启动时间']);
+        $baseTable->addRow([WORKER_SERVICE_NAME, $startContent['port'] ?? '', SWOOLEFY_ENV, 'running', $startTime]);
         $baseTable->setStyle($tableStyle)->render();
     }
 }
