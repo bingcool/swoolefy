@@ -131,7 +131,7 @@ github: https://github.com/bingcool/library
 // 独立物理机或者云主机配置系统环境变量
 vi /etc/profile
 
-在/etc/profile末尾添加一行标识环境，下面是支持的4个环境,框架将通过这个环境变量区分环境，加载不同的配置
+在/etc/profile末尾添加一行，标识环境变量，下面是支持的4个环境,框架将通过这个环境变量区分环境，加载不同的配置
 
 export SWOOLEFY_CLI_ENV='dev'  // 开发环境
 export SWOOLEFY_CLI_ENV='test' // 测试环境
@@ -181,7 +181,8 @@ define('PHP_BIN_FILE','/usr/bin/php');
 
 define('WORKER_START_SCRIPT_FILE', str_contains($_SERVER['SCRIPT_FILENAME'], $_SERVER['PWD']) ? $_SERVER['SCRIPT_FILENAME'] : $_SERVER['PWD'].'/'.$_SERVER['SCRIPT_FILENAME']);
 define('WORKER_SERVICE_NAME', makeServerName($appName));
-define('SERVER_START_LOG', '/tmp/workerfy/log/'.WORKER_SERVICE_NAME.'/start.log');
+define('WORKER_PID_FILE_ROOT', '/tmp/workerfy/log/'.WORKER_SERVICE_NAME);
+define('SERVER_START_LOG', WORKER_PID_FILE_ROOT.'/start.log');
 
 date_default_timezone_set('Asia/Shanghai');
 // 你的项目命名为App，对应协议为http协议服务器，支持多个项目的，只需要在这里添加好项目名称与对应的协议即可
