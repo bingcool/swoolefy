@@ -86,7 +86,7 @@ class StopCmd extends BaseCmd
             }
 
             if (!\Swoole\Process::kill($pid, 0)) {
-                fmtPrintInfo("
+                fmtPrintNote("
         ---------------------stop info-------------------\n    
         Server Stopped Finish!!!. Server stop at " . date("Y-m-d H:i:s")
                 );
@@ -107,8 +107,8 @@ class StopCmd extends BaseCmd
                             \Swoole\Process::kill($processId, SIGKILL);
                         }
                     }
-                    fmtPrintInfo("---------------------------stop info-----------------------");
-                    fmtPrintInfo("Please use 'ps -ef | grep php-swoolefy' checkout swoole whether or not stop");
+                    fmtPrintNote("---------------------------stop info-----------------------");
+                    fmtPrintNote("Please use 'ps -ef | grep php-swoolefy' checkout swoole whether or not stop");
                     break;
                 }
             }
