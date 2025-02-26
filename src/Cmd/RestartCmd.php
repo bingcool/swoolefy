@@ -101,9 +101,6 @@ class RestartCmd extends BaseCmd
         $runner->isNextHandle(false);
         $runner->procOpen($phpBinFile, $scriptFile, [], function () {});
 
-//        list($commandScript,) = $runner->exec($phpBinFile, $scriptFile, [],false,'/dev/null',false);
-//        @exec($commandScript, $output);
-
         $time = time();
         while (true) {
             sleep(1);
@@ -113,7 +110,7 @@ class RestartCmd extends BaseCmd
                 }
             }
 
-            $fn = function ($appName, $pidFile) {
+            $fn = function ($appName, $pidFile) use($restartPidFile) {
                 $serverName = WORKER_SERVICE_NAME;
                 if (SystemEnv::isWorkerService()) {
                     fmtPrintInfo("-----------{$serverName}服务重启完成!------------");
@@ -123,6 +120,9 @@ class RestartCmd extends BaseCmd
                 }else {
                     $this->serverStatus($appName, $pidFile);
                     fmtPrintInfo("-----------看到进程表格，进程重启成功啦！重启成功啦！重启成功啦！------------");
+                }
+                if (file_exists($restartPidFile)) {
+                    unlink($restartPidFile);
                 }
                 exit(0);
             };
