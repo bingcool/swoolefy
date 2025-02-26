@@ -76,9 +76,15 @@ class RestartCmd extends BaseCmd
             sleep(1);
         }
 
+        // delete restart pid file
+        $restartPidFile = SystemEnv::getRestartModelPidFile();
+        if (file_exists($restartPidFile)) {
+            unlink($restartPidFile);
+        }
+
         // send restart command to main worker process
         $phpBinFile = SystemEnv::PhpBinFile();
-        $waitTime   = 15;
+        $waitTime   = 30;
         if (SystemEnv::isWorkerService()) {
             // sleep max 30s
             $waitTime = 30;
@@ -90,8 +96,7 @@ class RestartCmd extends BaseCmd
             $selfFile = WORKER_START_SCRIPT_FILE;
         }
 
-        $scriptFile = implode(' ',[$selfFile, 'start', $appName, '--daemon=1']);
-
+        $scriptFile = implode(' ', [$selfFile, 'start', $appName, '--daemon=1', '--start-model=restart']);
         $runner = CommandRunner::getInstance('restart-'.time());
         $runner->isNextHandle(false);
         $runner->procOpen($phpBinFile, $scriptFile, [], function () {});
@@ -108,24 +113,38 @@ class RestartCmd extends BaseCmd
                 }
             }
 
-            $newMasterPid = intval(file_get_contents($pidFile));
-            // 新拉起的主进程id已经存在，说明新拉起的主进程已经启动成功
-            if ($newMasterPid > 0 && $newMasterPid != $masterPid && \Swoole\Process::kill($newMasterPid, 0)) {
+            $fn = function ($appName, $pidFile) {
                 $serverName = WORKER_SERVICE_NAME;
                 if (SystemEnv::isWorkerService()) {
                     fmtPrintInfo("-----------{$serverName}服务重启完成!------------");
                 }
                 if (SystemEnv::isWorkerService()) {
-                    fmtPrintInfo("-----------看到此处，{$serverName}服务重启成功啦！重启成功啦！重启成功啦！------------");
+                    fmtPrintInfo("-----------看到此处，【{$serverName}】服务重启成功啦！重启成功啦！重启成功啦！------------");
                 }else {
                     $this->serverStatus($appName, $pidFile);
                     fmtPrintInfo("-----------看到进程表格，进程重启成功啦！重启成功啦！重启成功啦！------------");
                 }
                 exit(0);
+            };
+
+            // 新拉起的主进程id已经存在，说明新拉起的主进程已经启动成功
+            if (file_exists($pidFile)) {
+                $newMasterPid = intval(file_get_contents($pidFile));
+                if ($newMasterPid > 0 && $newMasterPid != $masterPid && \Swoole\Process::kill($newMasterPid, 0)) {
+                    $fn($appName, $pidFile);
+                }
             }
 
             // wait time out
             if (time() - $time > $waitTime) {
+                // restart model 重启命令会记录restartPidFile, 所以仍需要判断一下
+                if (file_exists($restartPidFile)) {
+                    $restartPid = file_get_contents($restartPidFile);
+                    // 存在的restartPid就是新拉起的主进程id
+                    if ($restartPid > 0 && \Swoole\Process::kill($restartPid, 0)) {
+                        $fn($appName, $restartPidFile);
+                    }
+                }
                 fmtPrintError("-----------无法确定是否重起成功，请使用 {$phpBinFile} {$selfFile} status {$appName} 查看进程是否启动成功!------------");
                 exit(0);
             }

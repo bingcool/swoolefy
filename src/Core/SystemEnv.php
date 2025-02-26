@@ -145,6 +145,22 @@ class SystemEnv
     }
 
     /**
+     * @return bool
+     */
+    public static function isRestartModel(): bool
+    {
+        return SystemEnv::getOption('start-model', true) == 'restart';
+    }
+
+    /**
+     * @return string
+     */
+    public static function getRestartModelPidFile(): string
+    {
+        return WORKER_PID_FILE_ROOT.'/restart-pid.log';
+    }
+
+    /**
      * @return array
      */
     public static function  inputOptions()
