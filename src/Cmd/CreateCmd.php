@@ -83,9 +83,9 @@ class CreateCmd extends BaseCmd
                         @copy(ROOT_PATH . '/src/Stubs/cache.stub.php', $componentDir.'/cache.php');
                     }
 
-                    $configFile = $appPathDir . '/' . $dir . '/app.php';
-                    if (!file_exists($configFile)) {
-                        @copy(ROOT_PATH . '/src/Stubs/app.conf.stub.php', $configFile);
+                    $confFile = $appPathDir . '/' . $dir . '/app.php';
+                    if (!file_exists($confFile)) {
+                        @copy(ROOT_PATH . '/src/Stubs/app.conf.stub.php', $confFile);
                     }
 
                     $dcFile = $appPathDir . '/' . $dir . '/dc.php';
@@ -113,9 +113,20 @@ class CreateCmd extends BaseCmd
                 }
                 case 'Module':
                 {
-                    @mkdir($appPathDir . '/' . $dir . '/Demo/Controller', 0777, true);
-                    @mkdir($appPathDir . '/' . $dir . '/Demo/Validation', 0777, true);
-                    @mkdir($appPathDir . '/' . $dir . '/Demo/Exception', 0777, true);
+                    $controllerDir = $appPathDir . '/' . $dir . '/Demo/Controller';
+                    if (!is_dir($controllerDir)) {
+                        @mkdir($controllerDir, 0777, true);
+                    }
+
+                    $validationDir = $appPathDir . '/' . $dir . '/Demo/Validation';
+                    if (!is_dir($validationDir)) {
+                        @mkdir($validationDir, 0777, true);
+                    }
+
+                    $exceptionDir = $appPathDir . '/' . $dir . '/Demo/Exception';
+                    if (!is_dir($exceptionDir)) {
+                        @mkdir($exceptionDir, 0777, true);
+                    }
                     break;
                 }
                 case 'Router':
@@ -123,12 +134,16 @@ class CreateCmd extends BaseCmd
                     switch ($protocol) {
                         case 'http':
                             $apiFile = $appPathDir . "/{$dir}/api.php";
-                            @copy(ROOT_PATH . '/src/Stubs/api.stub.php', $apiFile);
+                            if (!file_exists($apiFile)) {
+                                @copy(ROOT_PATH . '/src/Stubs/api.stub.php', $apiFile);
+                            }
                             break;
                         case 'udp':
                         case 'websocket':
                             $apiFile = $appPathDir . "/{$dir}/service.php";
-                            @copy(ROOT_PATH . '/src/Stubs/service.api.stub.php', $apiFile);
+                            if (!file_exists($apiFile)) {
+                                @copy(ROOT_PATH . '/src/Stubs/service.stub.php', $apiFile);
+                            }
                             break;
                         default:
                             break;
@@ -137,24 +152,24 @@ class CreateCmd extends BaseCmd
                 }
                 case 'Protocol':
                 {
-                    $path = $appPathDir . "/Protocol";
-                    $configFile = $path . "/conf.php";
-                    if (!file_exists($configFile)) {
+                    $path       = $appPathDir . "/Protocol";
+                    $confFile   = $path . "/conf.php";
+                    if (!file_exists($confFile)) {
                         switch ($protocol) {
                             case 'http':
-                                @copy(ROOT_PATH . '/src/Http/config.php', $configFile);
+                                @copy(ROOT_PATH . '/src/Http/conf.stub.php', $confFile);
                                 break;
                             case 'rpc':
-                                @copy(ROOT_PATH . '/src/Rpc/config.php', $configFile);
+                                @copy(ROOT_PATH . '/src/Rpc/conf.stub.php', $confFile);
                                 break;
                             case 'udp':
-                                @copy(ROOT_PATH . '/src/Udp/config.php', $configFile);
+                                @copy(ROOT_PATH . '/src/Udp/conf.stub.php', $confFile);
                                 break;
                             case 'websocket':
-                                @copy(ROOT_PATH . '/src/Websocket/config.php', $configFile);
+                                @copy(ROOT_PATH . '/src/Websocket/conf.stub.php', $confFile);
                                 break;
                             case 'mqtt':
-                                @copy(ROOT_PATH . '/src/Mqtt/config.php', $configFile);
+                                @copy(ROOT_PATH . '/src/Mqtt/conf.stub.php', $confFile);
                                 break;
                         }
                     }
@@ -164,8 +179,15 @@ class CreateCmd extends BaseCmd
                 {
                     switch ($protocol) {
                         case "http":
-                            @mkdir($appPathDir . '/' . $dir.'/Group', 0777, true);
-                            @mkdir($appPathDir . '/' . $dir.'/Route', 0777, true);
+                            $groupDir = $appPathDir . '/' . $dir . '/Group';
+                            if (!is_dir($groupDir)) {
+                                @mkdir($groupDir, 0777, true);
+                            }
+
+                            $routeDir = $appPathDir . '/' . $dir.'/Route';
+                            if (!is_dir($routeDir)) {
+                                @mkdir($routeDir, 0777, true);
+                            }
                             break;
                         default:
                             break;
