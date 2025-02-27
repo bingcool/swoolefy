@@ -21,6 +21,7 @@ return [
             'task_list' => function () {
                 $list1 = include __DIR__ . '/fork_task.php';
                 //$list2 = Kernel::buildScheduleTaskList(Kernel::schedule());
+                var_dump($list1);
                 return array_merge($list1 ?? [], $list2 ?? []);
             }
         ],

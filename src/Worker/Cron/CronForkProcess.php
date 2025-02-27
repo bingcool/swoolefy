@@ -15,8 +15,10 @@ use Swoole\Coroutine\System;
 use Swoolefy\Core\Crontab\CrontabManager;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Schedule\BetweenFilterDto;
+use Swoolefy\Core\Schedule\DynamicCallFn;
 use Swoolefy\Core\Schedule\ScheduleEvent;
 use Swoolefy\Core\Schedule\SkipFilterDto;
+use Swoolefy\Script\AbstractKernel;
 
 class CronForkProcess extends CronProcess
 {
@@ -74,11 +76,34 @@ class CronForkProcess extends CronProcess
                  * @var ScheduleEvent $scheduleTask
                  */
                 $scheduleTask = ScheduleEvent::load($taskItem);
+                // 调用其他类型语言脚本(python)可以不必设置此参数,直接置空
+                if (!isset($taskItem['run_type'])) {
+                    $scheduleTask->run_type = '';
+                }
+
                 if(!empty($scheduleTask->fork_type)) {
                     $forkType = $scheduleTask->fork_type;
                 }else {
                     $forkType = CronForkProcess::FORK_TYPE_PROC_OPEN;
                 }
+
+                // parse argvOptions
+                $argvList = $scheduleTask->argv ?? [];
+                $argvOptions = [];
+                foreach ($argvList as $argvName=>$argvValue) {
+                    if (is_string($argvName)) {
+                        if (str_contains($argvValue, ' ')) {
+                            $argvOptions[] = "--{$argvName}='{$argvValue}'";
+                        }else {
+                            $argvOptions[] = "--{$argvName}={$argvValue}";
+                        }
+                    }else if (is_numeric($argvName)) {
+                        $argvOptions[] = $argvValue;
+                    }
+                }
+                // set new argvOptions
+                $scheduleTask->argv = $argvOptions;
+
                 $isNewAddFlag = $this->isNewAddTask($scheduleTask->cron_name);
                 if ($isNewAddFlag) {
                     try {
@@ -98,20 +123,26 @@ class CronForkProcess extends CronProcess
                                         if (empty($cronBetween)) {
                                             $msg = "配置项cron_between格式错误, cron_name=$scheduleTask->cron_name,time=".date('Y-m-d H:i:s');
                                             $logger->addInfo($msg, false, $scheduleTaskItems);
-                                            fmtPrintNote($msg);
+                                            if (env('CRON_DEBUG')) {
+                                                fmtPrintNote($msg);
+                                            }
                                             return;
                                         }
                                         $canDue = (new BetweenFilterDto())->filter($cronBetween);
                                         if ($canDue == false) {
                                             $msg = "当前不在设定的允许between时间段内，不能执行任务, cron_name=$scheduleTask->cron_name, time=".date('Y-m-d H:i:s');
                                             $logger->addInfo($msg, false, $scheduleTaskItems);
-                                            fmtPrintNote($msg);
+                                            if (env('CRON_DEBUG')) {
+                                                fmtPrintNote($msg);
+                                            }
                                             return;
                                         }
                                     }else {
                                         $msg = "配置项cron_between格式错误, cron_name=$scheduleTask->cron_name,time=".date('Y-m-d H:i:s');
                                         $logger->addInfo($msg, false, $scheduleTaskItems);
-                                        fmtPrintNote($msg);
+                                        if (env('CRON_DEBUG')) {
+                                            fmtPrintNote($msg);
+                                        }
                                         return;
                                     }
                                 }
@@ -128,30 +159,48 @@ class CronForkProcess extends CronProcess
                                         if (empty($cronSkip)) {
                                             $msg = "配置项cron_skip格式错误, cron_name=$scheduleTask->cron_name,time=".date('Y-m-d H:i:s');
                                             $logger->addInfo($msg, false, $scheduleTaskItems);
-                                            fmtPrintNote($msg);
+                                            if (env('CRON_DEBUG')) {
+                                                fmtPrintNote($msg);
+                                            }
                                             return;
                                         }
                                         $canDue = (new SkipFilterDto())->filter($cronSkip);
                                         if ($canDue == false) {
                                             $msg = "当前时间任务在skip时间段内,cron_name=$scheduleTask->cron_name, 不能执行任务，time=".date('Y-m-d H:i:s');
                                             $logger->addInfo($msg, false, $scheduleTaskItems);
-                                            fmtPrintNote($msg);
+                                            if (env('CRON_DEBUG')) {
+                                                fmtPrintNote($msg);
+                                            }
                                             return;
                                         }
                                     }else {
                                         $msg = "配置项cron_skip格式错误, cron_name=$scheduleTask->cron_name,time=".date('Y-m-d H:i:s');
                                         $logger->addInfo($msg, false, $scheduleTaskItems);
-                                        fmtPrintNote($msg);
+                                        if (env('CRON_DEBUG')) {
+                                            fmtPrintNote($msg);
+                                        }
                                         return;
                                     }
                                 }
                             }
 
-                            if (!empty($scheduleTask->call_fns)) {
-                                foreach ($scheduleTask->call_fns as $fnItems) {
-                                    list($handler, $action) = $fnItems;
-                                    (new $handler)->$action($scheduleTask);
+                            $argv = $scheduleTask->argv ?? [];
+                            // !!!import swoolefy script run type
+                            if ($this->isSwoolefyRunType($scheduleTask->run_type)) {
+                                $scheduleModelOption = AbstractKernel::getScheduleModelOptionField();
+                                $scheduleTask->extend[$scheduleModelOption] = 'cron';
+                                (new DynamicCallFn())->generatePidFile($scheduleTask);
+
+                                if (!in_array('--daemon=1', $argv)) {
+                                    $scheduleTask->argv[] = '--daemon=1';
                                 }
+
+                                if (!in_array(AbstractKernel::OPTION_SCHEDULE_MODEL.'=cron', $argv)) {
+                                    $scheduleTask->argv[] = AbstractKernel::OPTION_SCHEDULE_MODEL.'=cron';
+                                }
+
+                                // swoolefy run type,use proc_open will good
+                                $forkType = CronForkProcess::FORK_TYPE_PROC_OPEN;
                             }
 
                             // 日志无需打印回调闭包函数
@@ -173,7 +222,6 @@ class CronForkProcess extends CronProcess
                             }
 
                             $logger->addInfo("cron_fork任务开始执行,cron_name=$scheduleTask->cron_name, cron_expression=".$scheduleTask->cron_expression, false, $scheduleTaskItems);
-
                             $this->randSleepTime($scheduleTask->cron_expression);
                             try {
                                 $argv     = $scheduleTask->argv ?? [];
@@ -286,5 +334,15 @@ class CronForkProcess extends CronProcess
                 // 忽略异常
             }
         }
+    }
+
+    /**
+     *
+     * @param string $runType
+     * @return bool
+     */
+    protected function isSwoolefyRunType($runType)
+    {
+        return str_contains(strtolower($runType), ScheduleEvent::RUN_TYPE);
     }
 }

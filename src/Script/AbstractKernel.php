@@ -56,8 +56,7 @@ abstract class AbstractKernel {
             if (empty($item['argv'])) {
                 $item['argv'] = [];
             }
-            $item['argv']['daemon'] = 1;
-
+            $item['argv']['daemon'] = $item['daemon'] ?? 1;
             $argvOptions = [];
             foreach ($item['argv'] as $argvName=>$argvValue) {
                 if (str_contains($argvValue, ' ')) {
@@ -66,7 +65,6 @@ abstract class AbstractKernel {
                     $argvOptions[] = "--{$argvName}={$argvValue}";
                 }
             }
-
             // cron模式
             $scheduleModel = self::OPTION_SCHEDULE_MODEL;
             $argvOptions[] = "{$scheduleModel}=cron";
@@ -82,17 +80,11 @@ abstract class AbstractKernel {
                 $item['cron_name'] = ($item['command'] ?? 'schedule').' --cron_expression='.$cron_expression.' '.$argv;
             }
 
-            // 动态处理定时任务触发时的callback函数
-            $item['call_fns'] = array_merge($item['call_fns'], [[\Swoolefy\Core\Schedule\DynamicCallFn::class, 'generatePidFile']]);
-
-            $scheduleModelOption     = self::getScheduleModelOptionField();
-            $command                 = $item['command'];
-            $item['exec_script']     = "script.php start {$appName} --c={$command}";
-            $item['argv']            = $argvOptions;
-            $item['extend'] = [
-                $scheduleModelOption => 'cron',
-            ];
-
+            $command  = $item['command'];
+            if (empty($item['exec_script'])) {
+                $item['exec_script'] = "script.php start {$appName} --c={$command}";
+            }
+            $item['argv'] = $argvOptions;
             unset($item['command']);
             $scheduleList[] = $item;
         }
