@@ -111,6 +111,10 @@ Route::group([
         'dispatch_route' => [\Test\Controller\CaptchaController::class, 'test'],
     ]);
 
+    Route::match(['GET'],'/bank/addBank', [
+        'dispatch_route' => [\Test\Controller\ObjectController::class, 'addBank'],
+    ]);
+
 });
 
 Route::match(['GET'],'/cache/test1', [

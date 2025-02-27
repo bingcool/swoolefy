@@ -1,7 +1,6 @@
 <?php
 namespace Test\Controller;
 
-use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Test\App;
 
