@@ -64,14 +64,6 @@ class Schedule
                  */
                 $scheduleMeta[] = $event->toArray();
             }else if (is_array($event)) {
-                if (!isset($event['filters'])) {
-                    $filter = new FilterDto();
-                    $filter->setFn(function ($params) {
-                        return true;
-                    });
-                    $filter->setParams([]);
-                    $event['filters'][] = $filter;
-                }
                 $scheduleMeta[] = $event;
             }
         }

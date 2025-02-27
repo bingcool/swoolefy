@@ -45,7 +45,10 @@ abstract class AbstractKernel {
         $scheduleList = [];
 
         foreach ($schedule->toArray() as $item) {
-            $item['exec_bin_file'] = SystemEnv::PhpBinFile();
+            if (empty($item['exec_bin_file'])) {
+                $item['exec_bin_file'] = SystemEnv::PhpBinFile();
+            }
+
             if (empty($item['fork_type'])) {
                 $item['fork_type'] = CronForkProcess::FORK_TYPE_PROC_OPEN;
             }

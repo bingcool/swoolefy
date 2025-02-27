@@ -12,7 +12,6 @@
 namespace Swoolefy\Worker\Dto;
 
 use Swoolefy\Core\Schedule\DynamicCallFn;
-use Swoolefy\Core\Schedule\FilterDto;
 use Swoolefy\Core\Schedule\ScheduleEvent;
 use Swoolefy\Worker\Cron\CronForkProcess;
 
@@ -87,9 +86,14 @@ class CronForkTaskMetaDto extends AbstractDto
     public $fork_fail_callback = '';
 
     /**
-     * @var FilterDto[]
+     * @var array
      */
-    public $filters = [];
+    public $cron_between = [];
+
+    /**
+     * @var array
+     */
+    public $cron_skip = [];
 
     /**
      * @var DynamicCallFn[]

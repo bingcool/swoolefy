@@ -18,6 +18,7 @@ class TestScript extends MainCliScript {
     const command = "test:script";
 
     public function handle() {
+        file_put_contents(APP_PATH.'/test1.txt', date('Y-m-d H:i:s'));
         echo "this is a test script\n";
     }
 }

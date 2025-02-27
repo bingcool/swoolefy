@@ -14,8 +14,9 @@ namespace Swoolefy\Worker\Cron;
 use Swoole\Coroutine\System;
 use Swoolefy\Core\Crontab\CrontabManager;
 use Swoolefy\Core\Log\LogManager;
-use Swoolefy\Core\Schedule\FilterDto;
+use Swoolefy\Core\Schedule\BetweenFilterDto;
 use Swoolefy\Core\Schedule\ScheduleEvent;
+use Swoolefy\Core\Schedule\SkipFilterDto;
 
 class CronForkProcess extends CronProcess
 {
@@ -82,13 +83,66 @@ class CronForkProcess extends CronProcess
                 if ($isNewAddFlag) {
                     try {
                         CrontabManager::getInstance()->addRule($scheduleTask->cron_name, $scheduleTask->cron_expression, function () use($scheduleTask, $forkType) {
-                            if (!empty($scheduleTask->filters)) {
-                                foreach ($scheduleTask->filters as $filter) {
-                                    if ($filter instanceof FilterDto) {
-                                        $canDue = call_user_func($filter->getFn(), $filter->getParams());
-                                        if ($canDue == false) {
+                            $scheduleTaskItems = $scheduleTask->toArray();
+                            $logger = LogManager::getInstance()->getLogger(LogManager::CRON_FORK_LOG);
+                            $runner = CronForkRunner::getInstance(md5($scheduleTask->cron_name),5);
+
+                            if (!empty($scheduleTask->cron_between)) {
+                                $cronBetweenArr = $scheduleTask->cron_between;
+                                if (is_array($cronBetweenArr) && count($cronBetweenArr) == 2) {
+                                    $cronBetweenArr = [[$cronBetweenArr[0], $cronBetweenArr[1]]];
+                                }
+                                foreach ($cronBetweenArr as $cronBetween) {
+                                    if (is_array($cronBetween) && count($cronBetween) == 2) {
+                                        $cronBetween = $scheduleTask->parseBetweenTime($cronBetween[0], $cronBetween[1]);
+                                        if (empty($cronBetween)) {
+                                            $msg = "配置项cron_between格式错误, cron_name=$scheduleTask->cron_name,time=".date('Y-m-d H:i:s');
+                                            $logger->addInfo($msg, false, $scheduleTaskItems);
+                                            fmtPrintNote($msg);
                                             return;
                                         }
+                                        $canDue = (new BetweenFilterDto())->filter($cronBetween);
+                                        if ($canDue == false) {
+                                            $msg = "当前不在设定的允许between时间段内，不能执行任务, cron_name=$scheduleTask->cron_name, time=".date('Y-m-d H:i:s');
+                                            $logger->addInfo($msg, false, $scheduleTaskItems);
+                                            fmtPrintNote($msg);
+                                            return;
+                                        }
+                                    }else {
+                                        $msg = "配置项cron_between格式错误, cron_name=$scheduleTask->cron_name,time=".date('Y-m-d H:i:s');
+                                        $logger->addInfo($msg, false, $scheduleTaskItems);
+                                        fmtPrintNote($msg);
+                                        return;
+                                    }
+                                }
+                            }
+
+                            if (!empty($scheduleTask->cron_skip)) {
+                                $cronSkipArr = $scheduleTask->cron_skip;
+                                if (is_array($cronSkipArr) && count($cronSkipArr) == 2) {
+                                    $cronSkipArr = [[$cronSkipArr[0], $cronSkipArr[1]]];
+                                }
+                                foreach ($cronSkipArr as $cronSkip) {
+                                    if (is_array($cronSkip) && count($cronSkip) == 2) {
+                                        $cronSkip = $scheduleTask->parseBetweenTime($cronSkip[0], $cronSkip[1]);
+                                        if (empty($cronSkip)) {
+                                            $msg = "配置项cron_skip格式错误, cron_name=$scheduleTask->cron_name,time=".date('Y-m-d H:i:s');
+                                            $logger->addInfo($msg, false, $scheduleTaskItems);
+                                            fmtPrintNote($msg);
+                                            return;
+                                        }
+                                        $canDue = (new SkipFilterDto())->filter($cronSkip);
+                                        if ($canDue == false) {
+                                            $msg = "当前时间任务在skip时间段内,cron_name=$scheduleTask->cron_name, 不能执行任务，time=".date('Y-m-d H:i:s');
+                                            $logger->addInfo($msg, false, $scheduleTaskItems);
+                                            fmtPrintNote($msg);
+                                            return;
+                                        }
+                                    }else {
+                                        $msg = "配置项cron_skip格式错误, cron_name=$scheduleTask->cron_name,time=".date('Y-m-d H:i:s');
+                                        $logger->addInfo($msg, false, $scheduleTaskItems);
+                                        fmtPrintNote($msg);
+                                        return;
                                     }
                                 }
                             }
@@ -100,12 +154,8 @@ class CronForkProcess extends CronProcess
                                 }
                             }
 
-                            $scheduleTaskItems = $scheduleTask->toArray();
                             // 日志无需打印回调闭包函数
                             $scheduleTaskItems['fork_success_callback'] = $scheduleTaskItems['fork_fail_callback'] = '';
-
-                            $logger = LogManager::getInstance()->getLogger(LogManager::CRON_FORK_LOG);
-                            $runner = CronForkRunner::getInstance(md5($scheduleTask->cron_name),5);
                             // 确保任务不会重叠运行.如果上一次任务仍在运行，则跳过本次执行
                             if (isset($scheduleTask->with_block_lapping) && $scheduleTask->with_block_lapping == true) {
                                 $runningForkProcess = $runner->getRunningForkProcess();
