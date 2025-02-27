@@ -58,6 +58,7 @@ class Kernel extends AbstractKernel
             ->addArgs('age', 18)
             ->addArgs('sex', 'man')
             ->addArgs('desc', "fffkkkmm")
+            ->between("2025-01-01","2025-03-01")
             ->withBlockLapping()
             ->forkType(CronForkProcess::FORK_TYPE_PROC_OPEN)
             ->ForkSuccessCallback(function(ScheduleEvent $event) {
