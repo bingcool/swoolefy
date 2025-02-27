@@ -190,7 +190,8 @@ class BaseServer
             self::startInclude();
             // 记录worker的进程worker_id与worker_pid的映射
             self::setWorkerIdMapPid($workerId, $server->worker_pid);
-
+            // restart model时记录新重启的masterPid
+            self::saveRestartModelMasterPid();
         }catch(\Throwable $throwable) {
             self::catchException($throwable);
         }
@@ -563,6 +564,17 @@ class BaseServer
     public static function getWorkerIdMapPid()
     {
         return json_decode(TableManager::get('table_workers_pid', 'workers_pid', 'workers_pid'), true);
+    }
+
+    /**
+     * @return void
+     */
+    public static function saveRestartModelMasterPid()
+    {
+        if (SystemEnv::isRestartModel()) {
+            $pidFile = SystemEnv::getRestartModelPidFile();
+            file_put_contents($pidFile, Swfy::getMasterPid());
+        }
     }
 
     /**
