@@ -2,6 +2,7 @@
 namespace Test\Controller;
 
 use Swoolefy\Core\Controller\BController;
+use Test\Model\ClientModel;
 use Test\Module\Order\OrderEntity;
 use Test\Module\Order\OrderFormatter;
 use Test\Module\Order\OrderList;
@@ -92,5 +93,59 @@ class ObjectController extends BController
             'total' => $count,
             'list' => $result
         ]);
+    }
+
+    public function addBank()
+    {
+        /**
+         * @var ClientModel $model
+         */
+        $model = new class extends ClientModel
+        {
+            /**
+             * @var string
+             */
+            protected static $table = 'tbl_banks';
+
+            /**
+             * @var string
+             */
+            protected $pk = 'id';
+
+            protected $casts = [
+                'address' => 'array'
+            ];
+
+            /**
+             * @return int|mixed
+             */
+            public function createPkValue()
+            {
+
+            }
+        };
+
+        $model->setData([
+            'name' => 'bank-'.rand(1, 1000),
+            'address' => [
+                'sheng' => '广东省',
+                'city' => '深圳市'
+            ],
+        ]);
+
+        $model->save();
+
+        $this->returnJson($model->getAttributes());
+
+//        $id = $model->getConnection()->newQuery()->table('tbl_banks')->insert([
+//            'name' => 'bank-'.rand(1, 1000),
+//            'address' => [
+//                'sheng' => '广东省',
+//                'city' => '深圳市'
+//            ],
+//        ]);
+//        var_dump($id);
+
+
     }
 }
