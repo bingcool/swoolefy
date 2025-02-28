@@ -387,7 +387,7 @@ class SystemEnv
      * @param  mixed  $default
      * @return mixed
      */
-    public static function get($key, $default = null)
+    public static function getEnv($key, $default = null)
     {
         return Option::fromValue(static::getEnvRepository()->get($key))
             ->map(function ($value) {
