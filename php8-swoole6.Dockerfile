@@ -117,7 +117,7 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
     php${MY_PHP_VERSION}-pecl-amqp \
     php${MY_PHP_VERSION}-pecl-rdkafka \
     php${MY_PHP_VERSION}-pecl-mongodb \
-    && echo "opcache.enable_cli = 'Off'" >> /etc/php${MY_PHP_VERSION}/conf.d/00_opcache.ini \
+    && echo "opcache.enable_cli='Off'" >> /etc/php${MY_PHP_VERSION}/conf.d/00_opcache.ini \
     && echo "extension=swoole" >> /etc/php${MY_PHP_VERSION}/conf.d/99_swoole.ini \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
     && ln -sf /usr/bin/php${MY_PHP_VERSION} /usr/bin/php \
