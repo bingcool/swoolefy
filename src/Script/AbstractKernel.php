@@ -56,7 +56,11 @@ abstract class AbstractKernel {
             if (empty($item['argv'])) {
                 $item['argv'] = [];
             }
-            $item['argv']['daemon'] = $item['daemon'] ?? 1;
+
+            $scheduleModelOption = AbstractKernel::getScheduleModelOptionField();
+            $item['argv']['daemon'] = 1;
+            $item['argv'][$scheduleModelOption] = 'cron';
+
             $argvOptions = [];
             foreach ($item['argv'] as $argvName=>$argvValue) {
                 if (str_contains($argvValue, ' ')) {
@@ -65,11 +69,8 @@ abstract class AbstractKernel {
                     $argvOptions[] = "--{$argvName}={$argvValue}";
                 }
             }
-            // cron模式
-            $scheduleModel = self::OPTION_SCHEDULE_MODEL;
-            $argvOptions[] = "{$scheduleModel}=cron";
 
-            $argv = implode(' ', $argvOptions);
+            $argvOptions = implode(' ', $argvOptions);
             if (empty($item['cron_name'])) {
                 if (str_contains($item['cron_expression'], ' ')) {
                     $cron_expression = '\''.$item["cron_expression"].'\'';
@@ -77,14 +78,14 @@ abstract class AbstractKernel {
                     $cron_expression = $item["cron_expression"];
                 }
                 // cron_name 唯一
-                $item['cron_name'] = ($item['command'] ?? 'schedule').' --cron_expression='.$cron_expression.' '.$argv;
+                $item['cron_name'] = ($item['command'] ?? 'schedule').' --cron_expression='.$cron_expression.' '.$argvOptions;
             }
 
             $command  = $item['command'];
             if (empty($item['exec_script'])) {
                 $item['exec_script'] = "script.php start {$appName} --c={$command}";
             }
-            $item['argv'] = $argvOptions;
+
             unset($item['command']);
             $scheduleList[] = $item;
         }
