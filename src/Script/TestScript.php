@@ -20,6 +20,7 @@ class TestScript extends MainCliScript {
     public function handle()
     {
         file_put_contents(START_DIR_ROOT.'/test.log', date('Y-m-d H:i:s').PHP_EOL, FILE_APPEND);
+        sleep(10);
         echo "this is a test script\n";
     }
 }
