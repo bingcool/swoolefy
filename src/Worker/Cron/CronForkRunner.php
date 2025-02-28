@@ -217,7 +217,8 @@ class CronForkRunner
             $argvOption = $this->parseEscapeShellArg($args);
         }
 
-        if (SystemEnv::cronScheduleScriptModel()) {
+        $scheduleModelOptionField = AbstractKernel::getScheduleModelOptionField();
+        if (isset($extend[$scheduleModelOptionField]) && str_contains(strtolower($extend[$scheduleModelOptionField]),'cron')) {
             $command = $execBinFile .' '.$execScript.' ' . $argvOption."\n echo $? >&3; echo $! >&4";
         }else {
             if (!str_starts_with($execBinFile, 'nohup')) {
@@ -342,13 +343,13 @@ class CronForkRunner
             foreach ($this->runProcessMetaPool as $runProcessMetaItem) {
                 $startTime  = $runProcessMetaItem->start_timestamp;
                 // 进程已经存在，并且已经执行超过了规定时间,强制拉起下一个进程
-                if (\Swoole\Process::kill($runProcessMetaItem->pid, 0) &&  time() > ($timeOut + $startTime)) {
+                if ($runProcessMetaItem->pid > 0  && \Swoole\Process::kill($runProcessMetaItem->pid, 0) &&  time() > ($timeOut + $startTime)) {
                     $isNext = true;
                     break;
                 }
 
                 // 寄存都已退出进程
-                if (!\Swoole\Process::kill($runProcessMetaItem->pid, 0)) {
+                if ($runProcessMetaItem->pid > 0 && !\Swoole\Process::kill($runProcessMetaItem->pid, 0)) {
                     $exitProcess[] = $runProcessMetaItem;
                 }
             }
@@ -367,7 +368,7 @@ class CronForkRunner
 
             $this->debug("进入isNextHandle()方法，runProcessMetaPool的Size=".count($this->runProcessMetaPool));
             if ($isNext) {
-                $this->debug("暂时未达到最大的并发进程数={$this->concurrent}，满足时间点触发，继续拉起新进程，isNextHandle() return true");
+                $this->debug("暂时未达到最大的并发进程数={$this->concurrent}，此时满足时间点触发，继续拉起新进程，isNextHandle() return true");
             }else {
                 $this->debug("已达到最大的并发进程数={$this->concurrent}，将禁止继续拉起进程，isNextHandle() return false");
             }
@@ -390,18 +391,20 @@ class CronForkRunner
             return "";
         }
         // 关联数组
-        if ((count(array_keys($args)) > 0 && !isset($args[0]))) {
-            $this->debug("argv关联数组");
-            foreach ($args as $argvName=>$argvValue) {
+        foreach ($args as $argvName=>$argvValue) {
+            if (is_string($argvName)) {
                 if (str_contains($argvValue, ' ')) {
                     $argvOptions[] = "--{$argvName}='{$argvValue}'";
                 }else {
                     $argvOptions[] = "--{$argvName}={$argvValue}";
                 }
+            }else if (is_numeric($argvName)) {
+                $argvOptions[] = $argvValue;
             }
-            if (!empty($argvOptions)) {
-                $args = $argvOptions;
-            }
+        }
+
+        if (!empty($argvOptions)) {
+            $args = $argvOptions;
         }
         return implode(' ', $args);
     }
@@ -419,7 +422,7 @@ class CronForkRunner
          */
         foreach ($this->runProcessMetaPool as $runProcessMetaItem) {
             $pid = $runProcessMetaItem->pid;
-            if (\Swoole\Process::kill($pid, 0)) {
+            if ($pid > 0 && \Swoole\Process::kill($pid, 0)) {
                 $runningItemList[] = $runProcessMetaItem;
             }
         }

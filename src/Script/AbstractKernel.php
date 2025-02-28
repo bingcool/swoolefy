@@ -45,7 +45,10 @@ abstract class AbstractKernel {
         $scheduleList = [];
 
         foreach ($schedule->toArray() as $item) {
-            $item['exec_bin_file'] = SystemEnv::PhpBinFile();
+            if (empty($item['exec_bin_file'])) {
+                $item['exec_bin_file'] = SystemEnv::PhpBinFile();
+            }
+
             if (empty($item['fork_type'])) {
                 $item['fork_type'] = CronForkProcess::FORK_TYPE_PROC_OPEN;
             }
@@ -53,7 +56,10 @@ abstract class AbstractKernel {
             if (empty($item['argv'])) {
                 $item['argv'] = [];
             }
+
+            $scheduleModelOption = AbstractKernel::getScheduleModelOptionField();
             $item['argv']['daemon'] = 1;
+            $item['argv'][$scheduleModelOption] = 'cron';
 
             $argvOptions = [];
             foreach ($item['argv'] as $argvName=>$argvValue) {
@@ -64,11 +70,7 @@ abstract class AbstractKernel {
                 }
             }
 
-            // cron模式
-            $scheduleModel = self::OPTION_SCHEDULE_MODEL;
-            $argvOptions[] = "{$scheduleModel}=cron";
-
-            $argv = implode(' ', $argvOptions);
+            $argvOptions = implode(' ', $argvOptions);
             if (empty($item['cron_name'])) {
                 if (str_contains($item['cron_expression'], ' ')) {
                     $cron_expression = '\''.$item["cron_expression"].'\'';
@@ -76,19 +78,13 @@ abstract class AbstractKernel {
                     $cron_expression = $item["cron_expression"];
                 }
                 // cron_name 唯一
-                $item['cron_name'] = ($item['command'] ?? 'schedule').' --cron_expression='.$cron_expression.' '.$argv;
+                $item['cron_name'] = ($item['command'] ?? 'schedule').' --cron_expression='.$cron_expression.' '.$argvOptions;
             }
 
-            // 动态处理定时任务触发时的callback函数
-            $item['call_fns'] = array_merge($item['call_fns'], [[\Swoolefy\Core\Schedule\DynamicCallFn::class, 'generatePidFile']]);
-
-            $scheduleModelOption     = self::getScheduleModelOptionField();
-            $command                 = $item['command'];
-            $item['exec_script']     = "script.php start {$appName} --c={$command}";
-            $item['argv']            = $argvOptions;
-            $item['extend'] = [
-                $scheduleModelOption => 'cron',
-            ];
+            $command  = $item['command'];
+            if (empty($item['exec_script'])) {
+                $item['exec_script'] = "script.php start {$appName} --c={$command}";
+            }
 
             unset($item['command']);
             $scheduleList[] = $item;

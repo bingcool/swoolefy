@@ -64,11 +64,7 @@ class ScheduleEvent extends CronForkTaskMetaDto
      */
     public function between(string $start, string $end): self
     {
-        $betweenTime = $this->parseBetweenTime($start, $end);
-        $filter = new FilterDto();
-        $filter->setFn($this->validateBetweenTime());
-        $filter->setParams($betweenTime);
-        $this->filters[] = $filter;
+        $this->cron_between[] = [$start, $end];
         return $this;
     }
 
@@ -81,11 +77,7 @@ class ScheduleEvent extends CronForkTaskMetaDto
      */
     public function skip(string $start, string $end): self
     {
-        $skipTime = $this->parseBetweenTime($start, $end);
-        $filter = new FilterDto();
-        $filter->setFn($this->validateSkipTime());
-        $filter->setParams($skipTime);
-        $this->filters[] = $filter;
+        $this->cron_skip[] = [$start, $end];
         return $this;
     }
 
@@ -94,19 +86,19 @@ class ScheduleEvent extends CronForkTaskMetaDto
      * @param $end
      * @return array
      */
-    protected function parseBetweenTime($start, $end)
+    public function parseBetweenTime($start, $end)
     {
         if ($this->isValidTime($start) && $this->isValidTime($end)) {
             $betweenTime = [
                 'start' => $start,
-                'end' => $end,
-                'type' => self::BETWEEN_TIMEAT
+                'end'   => $end,
+                'type'  => self::BETWEEN_TIMEAT
             ];
         }else if ($this->isValidDateTime($start) && $this->isValidDateTime($end)) {
             $betweenTime = [
                 'start' => date('Y-m-d H:i', strtotime($start)),
-                'end' =>  date('Y-m-d H:i', strtotime($end)),
-                'type' => self::BETWEEN_DATEAT
+                'end'   => date('Y-m-d H:i', strtotime($end)),
+                'type'  => self::BETWEEN_DATEAT
             ];
         }
 
@@ -663,76 +655,6 @@ class ScheduleEvent extends CronForkTaskMetaDto
             return true;
         }
         return false;
-    }
-
-    /**
-     * @param array $between
-     * @return \Closure
-     */
-    protected function validateBetweenTime(): \Closure
-    {
-        return function ($between) {
-            if (!empty($between)) {
-                $start = $between['start'];
-                $end   = $between['end'];
-                $type  = $between['type'];
-                $time = time();
-                switch ($type) {
-                    case self::BETWEEN_TIMEAT:
-                        $date      = date('Y-m-d');
-                        $startTime = strtotime($date.' '.$start);
-                        $endTime   = strtotime($date.' '.$end);
-                        break;
-                    case self::BETWEEN_DATEAT:
-                        $startTime = strtotime($start);
-                        $endTime   = strtotime($end);
-                        break;
-                    default:
-                        return false;
-                }
-
-                if ($startTime <= $time && $time <= $endTime) {
-                    return true;
-                }
-                return false;
-            }
-            return true;
-        };
-    }
-
-    /**
-     * @param array $between
-     * @return \Closure
-     */
-    protected function validateSkipTime(): \Closure
-    {
-        return function ($between) {
-            if (!empty($between)) {
-                $start = $between['start'];
-                $end   = $between['end'];
-                $type  = $between['type'];
-                $time = time();
-                switch ($type) {
-                    case self::BETWEEN_TIMEAT:
-                        $date      = date('Y-m-d');
-                        $startTime = strtotime($date.' '.$start);
-                        $endTime   = strtotime($date.' '.$end);
-                        break;
-                    case self::BETWEEN_DATEAT:
-                        $startTime = strtotime($start);
-                        $endTime   = strtotime($end);
-                        break;
-                    default:
-                        return false;
-                }
-
-                if ($startTime <= $time && $time <= $endTime) {
-                    return false;
-                }
-                return true;
-            }
-            return true;
-        };
     }
 
     /**

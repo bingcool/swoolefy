@@ -12,12 +12,14 @@
 namespace Swoolefy\Worker\Dto;
 
 use Swoolefy\Core\Schedule\DynamicCallFn;
-use Swoolefy\Core\Schedule\FilterDto;
 use Swoolefy\Core\Schedule\ScheduleEvent;
 use Swoolefy\Worker\Cron\CronForkProcess;
 
 class CronForkTaskMetaDto extends AbstractDto
 {
+
+    const RUN_TYPE = 'swoolefy';
+
     /**
      * 计划任务名称
      *
@@ -42,6 +44,13 @@ class CronForkTaskMetaDto extends AbstractDto
      * @var string
      */
     public $exec_script = '';
+
+    /**
+     * swoolefy的script脚本值必须设置为swoolefy
+     *
+     * @var string
+     */
+    public $run_type = self::RUN_TYPE;
 
     /**
      * 是否阻塞执行
@@ -77,6 +86,13 @@ class CronForkTaskMetaDto extends AbstractDto
     public $fork_type = CronForkProcess::FORK_TYPE_PROC_OPEN;
 
     /**
+     * cron模式下固定以守护进程跑脚本
+     *
+     * @var int
+     */
+    public $daemon = 1;
+
+    /**
      * @var \Closure
      */
     public $fork_success_callback = '';
@@ -87,14 +103,14 @@ class CronForkTaskMetaDto extends AbstractDto
     public $fork_fail_callback = '';
 
     /**
-     * @var FilterDto[]
+     * @var array
      */
-    public $filters = [];
+    public $cron_between = [];
 
     /**
-     * @var DynamicCallFn[]
+     * @var array
      */
-    public $call_fns = [];
+    public $cron_skip = [];
 
     /**
      *

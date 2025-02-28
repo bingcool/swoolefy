@@ -50,7 +50,8 @@ class Kernel extends AbstractKernel
         $schedule = Schedule::getInstance();
 
 //        $schedule->command(\Swoolefy\Script\TestScript::command)
-//            ->cron(10);
+//            ->cron(15)
+//            ->withBlockLapping();
 
         $schedule->command(User\FixedUser::command)
             ->cron(5)
@@ -58,10 +59,10 @@ class Kernel extends AbstractKernel
             ->addArgs('age', 18)
             ->addArgs('sex', 'man')
             ->addArgs('desc', "fffkkkmm")
+            ->between("2025-01-01","2025-03-01")
             ->withBlockLapping()
-            ->forkType(CronForkProcess::FORK_TYPE_PROC_OPEN)
             ->ForkSuccessCallback(function(ScheduleEvent $event) {
-                var_dump($event->cron_name);
+                //var_dump($event->cron_name, $event->argv);
             });
 
         return $schedule;

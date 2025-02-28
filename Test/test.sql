@@ -32,6 +32,13 @@ create table tbl_order
     PRIMARY KEY (`order_id`)
 )engine=innodb,charset=utf8mb4,comment="订单表";
 
+CREATE TABLE `tbl_banks` (
+    `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+    `name` varchar(255) NOT NULL DEFAULT '' COMMENT '银行名称',
+    `address` json DEFAULT NULL COMMENT '数据',
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 
 
 

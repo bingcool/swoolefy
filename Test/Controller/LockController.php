@@ -1,7 +1,6 @@
 <?php
 namespace Test\Controller;
 
-use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Test\App;
 
@@ -16,8 +15,7 @@ class LockController extends BController
 //            return ['id' =>rand(1,10000)];
 //        });
 
-
-        $lock = Application::getApp()->get('predis-order-lock');
+        $lock   = App::getRedisLock();
         $result = $lock->synchronized(function () {
             var_dump('test 1---获取到锁='.date('Y-m-d H:i:s'));
             $result = App::getDb()->newQuery()->table('tbl_users')->limit(1)->select();

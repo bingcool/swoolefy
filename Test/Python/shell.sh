@@ -2,4 +2,4 @@
 
 echo "Appending to file gggggg"
 
-sleep 60
+sleep 5
