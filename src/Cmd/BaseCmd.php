@@ -320,14 +320,6 @@ class BaseCmd extends Command
         $output = new \Symfony\Component\Console\Output\ConsoleOutput();
         $table  = new \Symfony\Component\Console\Helper\Table($output);
         $table->setHeaders(['进程名称', '进程ID','父进程ID', '进程状态', '启动时间']);
-        if (defined('SERVER_START_LOG') && is_file(SERVER_START_LOG)) {
-            $startContent = file_get_contents(SERVER_START_LOG);
-            $startContent = json_decode($startContent, true);
-            if (isset($startContent['start_time'])) {
-                $startTime = $startContent['start_time'] ?? '';
-            }
-        }
-
         if (!empty($startTime)) {
             $table->setRows(array(
                 array('master process', $pid,'--','running', $startTime),
@@ -346,9 +338,7 @@ class BaseCmd extends Command
 
         $tableStyle = new TableStyle();
         $tableStyle->setCellRowFormat('<info>%s</info>');
-        $table->setStyle($tableStyle);
-
-        $table->render();
+        $table->setStyle($tableStyle)->render();
     }
 
     protected function isDaemon()

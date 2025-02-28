@@ -29,11 +29,11 @@ class Kernel extends AbstractKernel
      * @var array
      */
     public static $commands = [
-        GenerateMysql::command => [GenerateMysql::class, 'handle'],
-        GeneratePg::command    => [GeneratePg::class, 'handle'],
-        GenerateCronService::command  => [GenerateCronService::class, 'handle'],
-        GenerateDaemonService::command  => [GenerateDaemonService::class, 'handle'],
-        TestScript::command    => [TestScript::class, 'handle'],
+        GenerateMysql::command         => [GenerateMysql::class, 'handle'],
+        GeneratePg::command            => [GeneratePg::class, 'handle'],
+        GenerateCronService::command   => [GenerateCronService::class, 'handle'],
+        GenerateDaemonService::command => [GenerateDaemonService::class, 'handle'],
+        TestScript::command            => [TestScript::class, 'handle'],
     ];
 
     /**

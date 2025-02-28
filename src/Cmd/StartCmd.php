@@ -1,7 +1,9 @@
 <?php
 namespace Swoolefy\Cmd;
 
+use Swoolefy\Core\SystemEnv;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class StartCmd extends BaseCmd
@@ -10,7 +12,12 @@ class StartCmd extends BaseCmd
 
     protected function configure()
     {
+        $this->addOption('start-model', null,InputOption::VALUE_OPTIONAL, 'start model', '');
         parent::configure();
+        $restartPidFile = SystemEnv::getRestartModelPidFile();
+        if (file_exists($restartPidFile)) {
+            unlink($restartPidFile);
+        }
         $this->setDescription('start the application')->setHelp('<info>use php cli.php start XXXXX or php daemon.php start XXXXX</info>');
     }
 

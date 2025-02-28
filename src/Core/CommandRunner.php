@@ -380,17 +380,20 @@ class CommandRunner
             return "";
         }
         // 关联数组
-        if (count(array_keys($args)) > 0 && !isset($args[0])) {
-            foreach ($args as $argvName=>$argvValue) {
+        foreach ($args as $argvName=>$argvValue) {
+            if (is_string($argvName)) {
                 if (str_contains($argvValue, ' ')) {
                     $argvOptions[] = "--{$argvName}='{$argvValue}'";
                 }else {
                     $argvOptions[] = "--{$argvName}={$argvValue}";
                 }
+            }else if (is_numeric($argvName)) {
+                $argvOptions[] = $argvValue;
             }
-            if (!empty($argvOptions)) {
-                $args = $argvOptions;
-            }
+        }
+
+        if (!empty($argvOptions)) {
+            $args = $argvOptions;
         }
         return implode(' ', $args);
     }
