@@ -115,12 +115,14 @@ class MainCliScript extends AbstractScriptProcess
     }
 
     /**
+     * cron调用script时命令中带有option参数 --schedule_model=cron ----cron_script_pid_file=xxxxxxxx
+     *
      * @return void
      */
     private function saveCronScriptPidFile()
     {
         if (SystemEnv::cronScheduleScriptModel()) {
-            $cronScriptPidFile = str_replace("-","", AbstractKernel::OPTION_SCHEDULE_CRON_SCRIPT_PID_FILE);
+            $cronScriptPidFile = str_replace("--","", AbstractKernel::OPTION_SCHEDULE_CRON_SCRIPT_PID_FILE);
             $pidFile = $this->getOption($cronScriptPidFile);
             file_put_contents($pidFile, Swfy::getMasterPid());
         }

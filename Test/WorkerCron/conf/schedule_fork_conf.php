@@ -20,8 +20,7 @@ return [
             // 动态定时任务列表，可以存在数据库中
             'task_list' => function () {
                 $list1 = include __DIR__ . '/fork_task.php';
-                //$list2 = Kernel::buildScheduleTaskList(Kernel::schedule());
-                var_dump($list1);
+                $list2 = Kernel::buildScheduleTaskList(Kernel::schedule());
                 return array_merge($list1 ?? [], $list2 ?? []);
             }
         ],

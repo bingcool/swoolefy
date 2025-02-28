@@ -87,23 +87,6 @@ class CronForkProcess extends CronProcess
                     $forkType = CronForkProcess::FORK_TYPE_PROC_OPEN;
                 }
 
-                // parse argvOptions
-                $argvList = $scheduleTask->argv ?? [];
-                $argvOptions = [];
-                foreach ($argvList as $argvName=>$argvValue) {
-                    if (is_string($argvName)) {
-                        if (str_contains($argvValue, ' ')) {
-                            $argvOptions[] = "--{$argvName}='{$argvValue}'";
-                        }else {
-                            $argvOptions[] = "--{$argvName}={$argvValue}";
-                        }
-                    }else if (is_numeric($argvName)) {
-                        $argvOptions[] = $argvValue;
-                    }
-                }
-                // set new argvOptions
-                $scheduleTask->argv = $argvOptions;
-
                 $isNewAddFlag = $this->isNewAddTask($scheduleTask->cron_name);
                 if ($isNewAddFlag) {
                     try {
@@ -184,20 +167,16 @@ class CronForkProcess extends CronProcess
                                 }
                             }
 
-                            $argv = $scheduleTask->argv ?? [];
                             // !!!import swoolefy script run type
                             if ($this->isSwoolefyRunType($scheduleTask->run_type)) {
                                 $scheduleModelOption = AbstractKernel::getScheduleModelOptionField();
+                                // set schedule_model, cron_script_pid_file in extend array
                                 $scheduleTask->extend[$scheduleModelOption] = 'cron';
                                 (new DynamicCallFn())->generatePidFile($scheduleTask);
 
-                                if (!in_array('--daemon=1', $argv)) {
-                                    $scheduleTask->argv[] = '--daemon=1';
-                                }
-
-                                if (!in_array(AbstractKernel::OPTION_SCHEDULE_MODEL.'=cron', $argv)) {
-                                    $scheduleTask->argv[] = AbstractKernel::OPTION_SCHEDULE_MODEL.'=cron';
-                                }
+                                // set schedule_model, cron_script_pid_file in argv array
+                                $scheduleTask->argv['daemon'] = 1;
+                                $scheduleTask->argv[$scheduleModelOption] = 'cron';
 
                                 // swoolefy run type,use proc_open will good
                                 $forkType = CronForkProcess::FORK_TYPE_PROC_OPEN;
@@ -242,6 +221,7 @@ class CronForkProcess extends CronProcess
                                             $output = $scheduleTask->output;
                                         }
                                         list($command, $execOutput, $returnCode, $pid) = $runner->exec($scheduleTask->exec_bin_file, $scheduleTask->exec_script, $argv, true, $output, true, $extend);
+                                        \Swoole\Coroutine\System::sleep(0.1);
                                         if ($returnCode == 0 || \Swoole\Process::kill($pid, 0)) {
                                             if (is_callable($scheduleTask->fork_success_callback)) {
                                                 try {

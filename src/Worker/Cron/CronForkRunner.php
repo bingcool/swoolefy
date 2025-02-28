@@ -217,7 +217,8 @@ class CronForkRunner
             $argvOption = $this->parseEscapeShellArg($args);
         }
 
-        if (SystemEnv::cronScheduleScriptModel()) {
+        $scheduleModelOptionField = AbstractKernel::getScheduleModelOptionField();
+        if (isset($extend[$scheduleModelOptionField]) && str_contains(strtolower($extend[$scheduleModelOptionField]),'cron')) {
             $command = $execBinFile .' '.$execScript.' ' . $argvOption."\n echo $? >&3; echo $! >&4";
         }else {
             if (!str_starts_with($execBinFile, 'nohup')) {
@@ -390,18 +391,20 @@ class CronForkRunner
             return "";
         }
         // 关联数组
-        if ((count(array_keys($args)) > 0 && !isset($args[0]))) {
-            $this->debug("argv关联数组");
-            foreach ($args as $argvName=>$argvValue) {
+        foreach ($args as $argvName=>$argvValue) {
+            if (is_string($argvName)) {
                 if (str_contains($argvValue, ' ')) {
                     $argvOptions[] = "--{$argvName}='{$argvValue}'";
                 }else {
                     $argvOptions[] = "--{$argvName}={$argvValue}";
                 }
+            }else if (is_numeric($argvName)) {
+                $argvOptions[] = $argvValue;
             }
-            if (!empty($argvOptions)) {
-                $args = $argvOptions;
-            }
+        }
+
+        if (!empty($argvOptions)) {
+            $args = $argvOptions;
         }
         return implode(' ', $args);
     }
