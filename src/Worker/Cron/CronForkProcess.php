@@ -221,6 +221,10 @@ class CronForkProcess extends CronProcess
                                             $output = $scheduleTask->output;
                                         }
                                         list($command, $execOutput, $returnCode, $pid) = $runner->exec($scheduleTask->exec_bin_file, $scheduleTask->exec_script, $argv, true, $output, true, $extend);
+
+                                        if (env('CRON_DEBUG')) {
+                                            fmtPrintNote("Exec进程执行结果command={$command},returnCode={$returnCode},pid={$pid}，time=".date('Y-m-d H:i:s'));
+                                        }
                                         \Swoole\Coroutine\System::sleep(0.1);
                                         if ($returnCode == 0 || \Swoole\Process::kill($pid, 0)) {
                                             if (is_callable($scheduleTask->fork_success_callback)) {

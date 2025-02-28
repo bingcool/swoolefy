@@ -157,7 +157,7 @@ class CronForkRunner
             $exec       = (new Exec())->run($command);
             $execOutput = $exec->getOutput();
             $returnCode = $exec->getReturnCode();
-            $pid        = $execOutput[0] ?? '';
+            $pid        = $execOutput[0] ?? -1;
 
             if ($pid) {
                 $runProcessMetaDto = new RunProcessMetaDto();
