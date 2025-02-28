@@ -163,7 +163,7 @@ function makeServerName(string $appName)
  */
 function env($key, $default = null)
 {
-    return \Swoolefy\Core\SystemEnv::get($key, $default);
+    return \Swoolefy\Core\SystemEnv::getEnv($key, $default);
 }
 
 /**

@@ -21,7 +21,7 @@ class ZFactory
     private static $_instances = [];
 
     /**
-     * getInstance
+     * getInstance coroutine singleton 协程单例
      * @param string $class
      * @param array $constructor
      * @return mixed
@@ -50,6 +50,7 @@ class ZFactory
     }
 
     /**
+     * destroy current coroutine instances
      * @param string $class
      * @param int|null $cid
      * @return bool

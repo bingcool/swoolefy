@@ -1590,7 +1590,7 @@ abstract class AbstractBaseWorker
             $processTypeName = self::PROCESS_DYNAMIC_TYPE_NAME;
         }
         $pid = $this->getPid();
-        $logInfo = "--start children_process【{$processTypeName}】: {$processName}@{$workerId} started, pid={$pid}, worker_master_pid={$this->getMasterPid()}";
+        $logInfo = "start children_process【{$processTypeName}】: {$processName}@{$workerId} started, pid={$pid}, worker_master_pid={$this->getMasterPid()}";
         $this->fmtWriteInfo($logInfo);
     }
 
@@ -1619,7 +1619,7 @@ abstract class AbstractBaseWorker
             $workerId    = $this->getProcessWorkerId();
             $processType = self::PROCESS_DYNAMIC_TYPE_NAME;
             $pid         = $this->getPid();
-            $logInfo     = "--start children_process【{$processType}】: {$processName}@{$workerId} start(默认动态创建的进程不支持reload，可以使用 kill -10 pid 强制重启), Pid={$pid}";
+            $logInfo     = "start children_process【{$processType}】: {$processName}@{$workerId} start(默认动态创建的进程不支持reload，可以使用 kill -10 pid 强制重启), Pid={$pid}";
             $this->fmtWriteInfo($logInfo);
         }
     }
