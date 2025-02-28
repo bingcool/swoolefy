@@ -183,24 +183,20 @@ class MainCliScript extends AbstractScriptProcess
             }
 
             fmtPrintInfo("script end! ");
-            if($force) {
+
+            if ($force) {
                 @\Swoole\Process::kill($swooleMasterPid, SIGKILL);
             }else {
                 @\Swoole\Process::kill($swooleMasterPid, SIGTERM);
             }
+
             $this->exitAll = true;
         }else if ($exist) {
-            // 进程存在,强制退出
+            // strict kill exit process
             \Swoole\Coroutine\System::sleep(5);
             if (\Swoole\Process::kill($swooleMasterPid, 0)) {
-                $exec = (new Exec())->run('pgrep -P ' . $swooleMasterPid);
-                $output = $exec->getOutput();
-                $managerProcessId = -1;
-                $workerProcessIds = [];
-                if (isset($output[0])) {
-                    $managerProcessId = current($output);
-                    $workerProcessIds = (new Exec())->run('pgrep -P ' . $managerProcessId)->getOutput();
-                }
+                $managerProcessId = Swfy::getServer()->manager_pid;
+                $workerProcessIds = (new Exec())->run('pgrep -P ' . $managerProcessId)->getOutput();
                 foreach ([$swooleMasterPid, $managerProcessId, ...$workerProcessIds] as $processId) {
                     if ($processId > 0 && \Swoole\Process::kill($processId, 0)) {
                         @\Swoole\Process::kill($processId, SIGKILL);
@@ -218,11 +214,11 @@ class MainCliScript extends AbstractScriptProcess
     {
         $command = getenv('c');
         if(empty($command)) {
-            throw new SystemException("【Error】Missing cli command param. eg: --c=fixed:user:name --name=xxxx");
+            throw new SystemException("【Error】Missing cli command param. eg: --c=fixed:user:name --name=xxxx ");
         }
 
         if (!defined('ROOT_NAMESPACE')) {
-            throw new SystemException("【Error】script.php not defined const ROOT_NAMESPACE.");
+            throw new SystemException("【Error】The script.php not define const `ROOT_NAMESPACE`.");
         }
 
         $rootNamespace = ROOT_NAMESPACE;
