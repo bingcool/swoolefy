@@ -22,7 +22,7 @@ return [
             ["14:00","18:00"]
         ],
 
-        'fork_type' => CronForkProcess::FORK_TYPE_PROC_OPEN,
+        'fork_type' => CronForkProcess::FORK_TYPE_EXEC,
         'fork_success_callback' => function(\Swoolefy\Core\Schedule\ScheduleEvent $event) {
             //var_dump($event->cron_name);
         },
@@ -39,7 +39,7 @@ return [
         'argv' => [
             'name' => 'bingcoolhuang'
         ],
-        'fork_type' => CronForkProcess::FORK_TYPE_PROC_OPEN,
+        'fork_type' => CronForkProcess::FORK_TYPE_EXEC,
         'fork_success_callback' => function(ScheduleEvent $event) {
             // var_dump($event->cron_name);
         }
