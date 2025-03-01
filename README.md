@@ -276,8 +276,9 @@ php cli.php start App --daemon=1
 或者  
 swooole-cli cli.php start App --daemon=1
 
-// 停止进程
+// 停止进程 
 php cli.php stop App
+
 或者   
 swooole-cli cli.php stop App --force=1
 
@@ -296,11 +297,27 @@ swooole-cli cli.php restart App
 
 php script.php start App --c=gen:cron:service
 
-// 启动Cron服务,添加--daemon=1以守护进程启动
+// 启动Cron服务, CTRL+C 停止进程
+
 php cron.php start App
 
-// 停止Cron服务
+// --daemon=1 以守护进程启动
+
+php cron.php start App --daemon=1
+
+// 重启Cron服务
+
+php cron.php restart App
+
+
+
+// 停止Cron服务，终端交互询问需要输入`yes` or `no` 再次确认是否需要停止服务
+
 php cron.php stop App
+
+// --force=1 强制停止Cron服务，不询问直接停止服务
+
+php cron.php stop App --force=1
 
 ```
 
@@ -309,11 +326,28 @@ php cron.php stop App
 
 php script.php start App --c=gen:daemon:service
 
-// 启动Daemon服务，添加--daemon=1以守护进程启动
+// 启动Daemon服务，CTRL+C 停止进程
+
 php daemon.php start App 
 
-// 停止Daemon服务
+// --daemon=1 以守护进程启动
+
+php daemon.php start App --daemon=1
+
+// 重启Daemon服务
+
+php daemon.php restart App
+
+
+
+
+// 停止Daemon服务, 终端交互询问是否需要输入`yes` or `no` 再次确认是否需要停止服务
+
 php daemon.php stop App
+
+// --force=1 强制停止Daemon服务，不询问直接停止服务
+
+php daemon.php stop App --force=1
 
 
 ```
