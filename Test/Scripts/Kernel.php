@@ -19,7 +19,6 @@ use Swoolefy\Script\GenerateCronService;
 use Swoolefy\Script\GenerateDaemonService;
 use Swoolefy\Script\TestScript;
 use Swoolefy\Core\Schedule\Schedule;
-use Swoolefy\Worker\Cron\CronForkProcess;
 use Test\Scripts\User;
 
 class Kernel extends AbstractKernel

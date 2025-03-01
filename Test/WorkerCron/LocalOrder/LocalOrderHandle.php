@@ -34,7 +34,7 @@ class LocalOrderHandle extends AbstractCronController {
 //        RunLog::error("this is a cron test log");
         var_dump("cron start");
         sleep(20);
-        var_dump(SystemEnv::get('WEB_SITE_HOST'));
+        var_dump(SystemEnv::getEnv('WEB_SITE_HOST'));
 
         //AbstractBaseWorker::getProcessInstance()->reboot(3);
         var_dump("cron end");
