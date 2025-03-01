@@ -24,7 +24,7 @@ class DynamicCallFn {
     public function generatePidFile(ScheduleEvent $scheduleTask)
     {
         $fileName = md5($scheduleTask->cron_name.time()).'.pid';
-        $pidFile = AbstractKernel::getCronScriptFullPidFile($fileName);
+        $pidFile  = AbstractKernel::getCronScriptFullPidFile($fileName);
         $cronScriptPidFileOption = AbstractKernel::getCronScriptPidFileOptionField();
         $scheduleTask->argv[$cronScriptPidFileOption]   = $pidFile;
         $scheduleTask->extend[$cronScriptPidFileOption] = $pidFile;

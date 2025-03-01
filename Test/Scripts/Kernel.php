@@ -19,7 +19,6 @@ use Swoolefy\Script\GenerateCronService;
 use Swoolefy\Script\GenerateDaemonService;
 use Swoolefy\Script\TestScript;
 use Swoolefy\Core\Schedule\Schedule;
-use Swoolefy\Worker\Cron\CronForkProcess;
 use Test\Scripts\User;
 
 class Kernel extends AbstractKernel
@@ -59,10 +58,9 @@ class Kernel extends AbstractKernel
             ->addArgs('age', 18)
             ->addArgs('sex', 'man')
             ->addArgs('desc', "fffkkkmm")
-            ->between("2025-01-01","2025-03-01")
             ->withBlockLapping()
             ->ForkSuccessCallback(function(ScheduleEvent $event) {
-                //var_dump($event->cron_name, $event->argv);
+                var_dump("fork successful!");
             });
 
         return $schedule;

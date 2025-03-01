@@ -95,9 +95,21 @@ class ScheduleEvent extends CronForkTaskMetaDto
                 'type'  => self::BETWEEN_TIMEAT
             ];
         }else if ($this->isValidDateTime($start) && $this->isValidDateTime($end)) {
+            if (str_contains($start, ':')) {
+                $startDateTime = date('Y-m-d H:i:00', strtotime($start));
+            }else {
+                $startDateTime = date('Y-m-d 00:00:00', strtotime($start));
+            }
+
+            if (str_contains($end, ':')) {
+                $endDateTime = date('Y-m-d H:i:59', strtotime($end));
+            }else {
+                $endDateTime = date('Y-m-d 23:59:59', strtotime($end));
+            }
+
             $betweenTime = [
-                'start' => date('Y-m-d H:i', strtotime($start)),
-                'end'   => date('Y-m-d H:i', strtotime($end)),
+                'start' => $startDateTime,
+                'end'   => $endDateTime,
                 'type'  => self::BETWEEN_DATEAT
             ];
         }

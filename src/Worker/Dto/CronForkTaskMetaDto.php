@@ -11,7 +11,6 @@
 
 namespace Swoolefy\Worker\Dto;
 
-use Swoolefy\Core\Schedule\DynamicCallFn;
 use Swoolefy\Core\Schedule\ScheduleEvent;
 use Swoolefy\Worker\Cron\CronForkProcess;
 
@@ -98,6 +97,7 @@ class CronForkTaskMetaDto extends AbstractDto
     public $fork_success_callback = '';
 
     /**
+     * 暂不support setting fork_fail_callback 闭包函数
      * @var \Closure
      */
     public $fork_fail_callback = '';
