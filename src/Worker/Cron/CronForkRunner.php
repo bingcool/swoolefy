@@ -13,10 +13,9 @@ namespace Swoolefy\Worker\Cron;
 
 use Swoole\Coroutine\Channel;
 use Swoole\Coroutine\System;
-use Swoole\Process;
 use Swoolefy\Core\Exec;
-use Swoolefy\Core\SystemEnv;
 use Swoolefy\Worker\Dto\RunProcessMetaDto;
+use Swoolefy\Worker\Dto\CronForkTaskMetaDto;
 use Swoolefy\Exception\SystemException;
 use Swoolefy\Script\AbstractKernel;
 
@@ -36,6 +35,11 @@ class CronForkRunner
      * @var Channel
      */
     protected static $deleteExistTickerChannel;
+
+    /**
+     * @var string
+     */
+    protected $cronName = '';
 
     /**
      * @var array
@@ -68,11 +72,17 @@ class CronForkRunner
     public static $exitCodes = Exec::EXIT_CODES;
 
     /**
+     * fork fail code
+     * @var int
+     */
+    const FORK_FAIL_CODE = 10000;
+
+    /**
      * @param string $runnerName
      * @param int $concurrent
      * @return CronForkRunner
      */
-    public static function getInstance(string $runnerName, int $concurrent = 5)
+    public static function getInstance(string $runnerName, int $concurrent = 5, string $cronName = '')
     {
         if (!isset(static::$instances[$runnerName])) {
             /**@var CronForkRunner $runner */
@@ -80,6 +90,13 @@ class CronForkRunner
             if ($concurrent >= 10) {
                 $concurrent = 10;
             }
+
+            if (!empty($cronName)) {
+                $runner->cronName = $cronName;
+            }else {
+                $runner->cronName = $runnerName;
+            }
+
             $runner->concurrent = $concurrent;
             static::$instances[$runnerName] = $runner;
         }
@@ -93,6 +110,15 @@ class CronForkRunner
         }
 
         return static::$instances[$runnerName];
+    }
+
+    /**
+     * @param $runnerName
+     * @return void
+     */
+    public function setCronName($runnerName)
+    {
+        $this->cronName = $runnerName;
     }
 
     /**
@@ -178,16 +204,16 @@ class CronForkRunner
                         $runProcessMetaDto->pid = 0;
                     }
                     $runProcessMetaDto->pid_file = $cronScriptPidFile;
-                    $this->debug("拉起新的进程pid_file:".$runProcessMetaDto->pid_file);
+                    $this->debug("【{$this->cronName}】拉起新的进程pid_file:".$runProcessMetaDto->pid_file);
                 }else {
-                    $this->debug("拉起新的进程pid:".$runProcessMetaDto->pid);
+                    $this->debug("【{$this->cronName}】拉起新的进程pid:".$runProcessMetaDto->pid);
                 }
                 $this->runProcessMetaPool[] = $runProcessMetaDto;
             }
             // when exec error save log
             if ($returnCode != 0) {
                 $errorMsg = static::$exitCodes[$returnCode] ?? 'Unknown Error';
-                throw new SystemException("CommandRunner Exec failed,return code ={$returnCode},commandLine={$command},errorMsg={$errorMsg}.");
+                throw new SystemException("【{$this->cronName}】CommandRunner Exec failed,return code ={$returnCode},commandLine={$command},errorMsg={$errorMsg}.");
             }
         }
 
@@ -218,8 +244,9 @@ class CronForkRunner
         }
 
         $scheduleModelOptionField = AbstractKernel::getScheduleModelOptionField();
-        if (isset($extend[$scheduleModelOptionField]) && str_contains(strtolower($extend[$scheduleModelOptionField]),'cron')) {
+        if (isset($extend[$scheduleModelOptionField]) && str_contains(strtolower($extend[$scheduleModelOptionField]), 'cron')) {
             $command = $execBinFile .' '.$execScript.' ' . $argvOption."\n echo $? >&3; echo $! >&4";
+            $runType = CronForkTaskMetaDto::RUN_TYPE;
         }else {
             if (!str_starts_with($execBinFile, 'nohup')) {
                 $command = 'nohup '.$execBinFile .' '.$execScript.' ' . $argvOption.' 2>&1 &';
@@ -227,6 +254,7 @@ class CronForkRunner
                 $command = $execBinFile .' '.$execScript.' ' . $argvOption;
             }
             $command = trim($command). "\n echo $? >&3; echo $! >&4";
+            $runType = 'other';
         }
 
         $command     = trim($command);
@@ -243,18 +271,18 @@ class CronForkRunner
             4 => array('pipe', 'w'),
         );
 
-        $fn = function ($command, $descriptors, $callable) use($extend) {
+        $fn = function ($command, $descriptors, $callable) use($extend, $runType) {
             // in $callable forbidden create coroutine, because $proc_process had been bind in current coroutine
             try {
                 $proc_process = proc_open($command, $descriptors, $pipes);
                 if (!is_resource($proc_process)) {
-                    throw new SystemException("Proc Open Command 【{$command}】 failed.");
+                    throw new SystemException("【{$this->cronName}】Proc Open Command 【{$command}】 failed.");
                 }
                 $status = proc_get_status($proc_process);
                 $status['pid'] = (int)trim(fgets($pipes[4], 10));
 
                 $runProcessMetaDto = new RunProcessMetaDto();
-                $runProcessMetaDto->pid = $status['pid'] ?? 0;
+                $runProcessMetaDto->pid = $status['pid'] ?? -1;
                 $runProcessMetaDto->command = $command;
                 $runProcessMetaDto->pid_file = '';
                 $runProcessMetaDto->check_total_count = 0;
@@ -263,7 +291,7 @@ class CronForkRunner
                 $runProcessMetaDto->start_date_time = date('Y-m-d H:i:s');
 
                 $cronScriptPidFileOption = AbstractKernel::getCronScriptPidFileOptionField();
-                if (isset($extend[$cronScriptPidFileOption])) {
+                if (isset($extend[$cronScriptPidFileOption]) || $runType == CronForkTaskMetaDto::RUN_TYPE) {
                     $cronScriptPidFile = $extend[$cronScriptPidFileOption];
                     if (is_file($cronScriptPidFile)) {
                         $runProcessMetaDto->pid = (int)trim(file_get_contents($cronScriptPidFile));
@@ -271,30 +299,25 @@ class CronForkRunner
                         $runProcessMetaDto->pid = 0;
                     }
                     $runProcessMetaDto->pid_file = $cronScriptPidFile;
-                    $this->debug("拉起新的进程pid_file:".$runProcessMetaDto->pid_file);
+                    $this->debug("【{$this->cronName}】拉起新的(swoolefy script)进程pid_file:".$runProcessMetaDto->pid_file);
                 }else {
-                    $this->debug("拉起新的进程pid:".$runProcessMetaDto->pid);
+                    $this->debug("【{$this->cronName}】拉起新的进程pid:".$runProcessMetaDto->pid);
                 }
+
+                $statusProperty = $runProcessMetaDto->toArray();
+                $params = [$pipes[0], $pipes[1], $pipes[2], $statusProperty];
 
                 // 协程环境设置channel控制并发数，isNextHandle()函数判断是否可以并发拉起下一个进程
                 if (\Swoole\Coroutine::getCid() >= 0) {
                     $this->runProcessMetaPool[] = $runProcessMetaDto;
-                    $this->debug("拉起后当前runProcessMetaPool的Size=".count($this->runProcessMetaPool));
-                }else {
-                    if (!Process::kill($status['pid'], 0)) {
-                        $returnCode = fgets($pipes[3], 10);
-                        $errorMsg   = static::$exitCodes[$returnCode] ?? 'Unknown Error';
-                        throw new SystemException("CommandRunner Proc Open failed,return Code={$returnCode},commandLine={$command}, errorMsg={$errorMsg}.");
-                    }
+                    $this->debug("【{$this->cronName}】拉起后当前runProcessMetaPool的Size=".count($this->runProcessMetaPool));
                 }
-                $statusProperty = $runProcessMetaDto->toArray();
-                $params = [$pipes[0], $pipes[1], $pipes[2], $statusProperty];
                 call_user_func_array($callable, $params);
                 return $statusProperty;
             } catch (\Throwable $e) {
-                $msg = "CommandRunner ErrorMsg={$e->getMessage()},trace={$e->getTraceAsString()}";
+                $msg = "【{$this->cronName}】CommandRunner ErrorMsg={$e->getMessage()},trace={$e->getTraceAsString()}";
                 fmtPrintError($msg);
-                throw new SystemException($msg);
+                throw new SystemException($msg, $e->getCode());
             } finally {
                 foreach ($pipes as $pipe) {
                     @fclose($pipe);
@@ -366,15 +389,15 @@ class CronForkRunner
                 }
             }
 
-            $this->debug("进入isNextHandle()方法，runProcessMetaPool的Size=".count($this->runProcessMetaPool));
+            $this->debug("【{$this->cronName}】进入isNextHandle()方法，runProcessMetaPool的Size=".count($this->runProcessMetaPool));
             if ($isNext) {
-                $this->debug("暂时未达到最大的并发进程数={$this->concurrent}，此时满足时间点触发，继续拉起新进程，isNextHandle() return true");
+                $this->debug("【{$this->cronName}】暂时未达到最大的并发进程数={$this->concurrent}，此时满足时间点触发，继续拉起新进程，isNextHandle() return true");
             }else {
-                $this->debug("已达到最大的并发进程数={$this->concurrent}，将禁止继续拉起进程，isNextHandle() return false");
+                $this->debug("【{$this->cronName}】已达到最大的并发进程数={$this->concurrent}，将禁止继续拉起进程，isNextHandle() return false");
             }
 
         } else {
-            $this->debug("暂时未达到最大的并发进程，满足时间点触发，继续拉起新进程，isNextHandle() return true");
+            $this->debug("【{$this->cronName}】暂时未达到最大的并发进程，满足时间点触发，继续拉起新进程，isNextHandle() return true");
             $isNext = true;
         }
 
@@ -475,7 +498,7 @@ class CronForkRunner
 
             $this->runProcessMetaPool = $itemList;
 
-            $this->debug("定时检查每个Runner运行中Fork进程数量=".count($this->runProcessMetaPool));
+            $this->debug("【{$this->cronName}】定时检查每个cron任务中Runner运行中Fork进程数量=".count($this->runProcessMetaPool));
         }
         return $itemList;
     }
@@ -487,7 +510,7 @@ class CronForkRunner
     public function registerTickOfCheckRunningProcess()
     {
         static::$checkRunningTickerChannel = goTick($this->checkTickerTime * 1000, function () {
-            $this->debug("定时检查Runner任务数量=".count(static::$instances));
+            $this->debug("定时检查cron服务总的进行中的定时Runner任务数量=".count(static::$instances));
             /**@var CronForkRunner $runner */
             foreach (static::$instances as $runner) {
                 $runner->gcExitProcess();
