@@ -19,6 +19,9 @@ use Swoolefy\Core\Crontab\CrontabManager;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Exception\WorkerException;
 use Swoolefy\Worker\Dto\MessageDto;
+use Symfony\Component\Console\Output\ConsoleOutput;
+use Symfony\Component\Console\Helper\Table;
+use Symfony\Component\Console\Helper\TableStyle;
 
 /**
  * Class AbstractProcess
@@ -1590,8 +1593,17 @@ abstract class AbstractBaseWorker
             $processTypeName = self::PROCESS_DYNAMIC_TYPE_NAME;
         }
         $pid = $this->getPid();
+
+        $tableStyle = new TableStyle();
+        $tableStyle->setCellRowFormat('<info>%s</info>');
+        $baseInfoOutput = new ConsoleOutput();
+        $baseTable      = new Table($baseInfoOutput);
+        $baseTable->setHeaders(['服务应用','环境', '进程类型','进程名称', 'master进程pid','当前进程pid', '当前进程workerId']);
+        $baseTable->addRow([WORKER_SERVICE_NAME, SWOOLEFY_ENV, $processTypeName, $processName, $this->getMasterPid(), $pid, $workerId]);
+        $baseTable->setStyle($tableStyle)->render();
+
         $logInfo = "start children_process【{$processTypeName}】: {$processName}@{$workerId} started, pid={$pid}, worker_master_pid={$this->getMasterPid()}";
-        $this->fmtWriteInfo($logInfo);
+        $this->writeLog($logInfo);
     }
 
     /**
