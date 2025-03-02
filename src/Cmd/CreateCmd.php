@@ -142,7 +142,7 @@ class CreateCmd extends BaseCmd
                         case 'websocket':
                             $apiFile = $appPathDir . "/{$dir}/service.php";
                             if (!file_exists($apiFile)) {
-                                @copy(ROOT_PATH . '/src/Stubs/service.stub.php', $apiFile);
+                                @copy(ROOT_PATH . '/src/Stubs/service.api.stub.php', $apiFile);
                             }
                             break;
                         default:
@@ -189,10 +189,33 @@ class CreateCmd extends BaseCmd
                                 @mkdir($routeDir, 0777, true);
                             }
                             break;
+                        case "udp":
+                        case "websocket":
+                            $middlewareDir = $appPathDir . '/' . $dir;
+                            if (!is_dir($middlewareDir)) {
+                                @mkdir($middlewareDir, 0777, true);
+                            }
                         default:
                             break;
                     }
                     break;
+                }
+                case 'Service':
+                {
+                    switch ($protocol)
+                    {
+                        case 'udp':
+                        case 'websocket':
+                        case 'rpc':
+                        case 'mqtt':
+                            $serviceDir = $appPathDir . '/' . $dir;
+                            if (!is_dir($serviceDir)) {
+                                @mkdir($serviceDir, 0777, true);
+                            }
+                            break;
+                        default:
+                            break;
+                    }
                 }
                 case 'Scripts':
                 {
