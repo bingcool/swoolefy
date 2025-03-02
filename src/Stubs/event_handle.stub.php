@@ -5,7 +5,7 @@ namespace protocol\event;
 use Swoolefy\Core\EventHandler;
 use Swoolefy\Core\SystemEnv;
 
-class EventHandle extends EventHandler
+class Event extends EventHandler
 {
     /**
      * onInit
