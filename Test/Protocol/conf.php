@@ -48,7 +48,7 @@ return [
         // 在PHP ZTS下，如果使用SWOOLE_PROCESS模式，一定要设置该值为 true
         'single_thread'          => false,
         // 退出前最大等待时间
-        'max_wait_time'          => 10,
+        'max_wait_time'          => 5,
         // 最大并发连接数
         'max_concurrency'        => 200000,
         // 启用心跳检测，单位为秒

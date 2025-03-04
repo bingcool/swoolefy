@@ -186,7 +186,6 @@ abstract class AbstractProcess
                     sleep(1);
                     if(!\Swoole\Process::kill($swooleMasterPid, 0)) {
                         \Swoole\Timer::clear($timerId);
-                        \Swoole\Process::kill($swooleMasterPid, SIGTERM);
                     }
                 }else {
                     $parentPid = posix_getppid();
