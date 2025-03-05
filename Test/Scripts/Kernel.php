@@ -39,6 +39,7 @@ class Kernel extends AbstractKernel
 
         User\RunnerForkProcess::command => [User\RunnerForkProcess::class, 'handle'],
         User\Purl::command => [User\Purl::class, 'handle'],
+        User\TestPgQuery::command => [User\TestPgQuery::class, 'handle'],
     ];
 
     /**

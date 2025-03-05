@@ -106,6 +106,7 @@ abstract class AbstractProcess
     {
         $handleClass = static::class;
         putenv("handle_class={$handleClass}");
+        BaseServer::reloadGlobalConf();
 
         $this->setWorkerMasterPid();
         if (method_exists(static::class, 'beforeStart')) {
@@ -121,8 +122,6 @@ abstract class AbstractProcess
                 socket_close($socket);
             }
         }
-
-        BaseServer::reloadGlobalConf();
 
         $this->installRegisterShutdownFunction();
         TableManager::getTable('table_process_map')->set(
@@ -145,8 +144,10 @@ abstract class AbstractProcess
             // script 模式下.任务进程退出时，父进程也得退出
             if (SystemEnv::isScriptService()) {
                 $swooleMasterPid = Swfy::getMasterPid();
-                \Swoole\Process::kill($swooleMasterPid, SIGTERM);
-                if(file_exists(WORKER_PID_FILE)) {
+                if (\Swoole\Process::kill($swooleMasterPid, 0)) {
+                    \Swoole\Process::kill($swooleMasterPid, SIGTERM);
+                }
+                if (file_exists(WORKER_PID_FILE)) {
                     @unlink(WORKER_PID_FILE);
                 }
             }
