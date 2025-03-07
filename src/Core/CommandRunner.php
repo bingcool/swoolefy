@@ -142,6 +142,7 @@ class CommandRunner
      * @param array $args
      * @param callable $callable
      * @param array $extend
+     * @param bool $async
      * @return mixed
      * @throws SystemException
      */
@@ -150,7 +151,8 @@ class CommandRunner
         string   $execScript,
         array    $args = [],
         ?callable $callable = null,
-        array    $extend = []
+        array    $extend = [],
+        bool     $async = false
     )
     {
         $this->checkNextFlag();
@@ -158,7 +160,11 @@ class CommandRunner
         if ($args) {
             $argvOption = $this->parseEscapeShellArg($args);
         }
-
+        if (!str_starts_with($execBinFile, 'nohup') && $async) {
+            $execScript = str_replace( '2>&1'," ", $execScript);
+            $execScript = rtrim($execScript, '&');
+            $execScript = $execScript.' ' . $argvOption.' 2>&1 &';
+        }
         $command = $execBinFile .' '.$execScript.' ' . $argvOption . " \n echo $? >&3; echo $! >&4; echo $$ >&5;";
         $command = trim($command);
         $descriptors = array(

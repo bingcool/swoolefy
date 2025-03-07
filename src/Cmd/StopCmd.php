@@ -86,10 +86,8 @@ class StopCmd extends BaseCmd
             }
 
             if (!\Swoole\Process::kill($pid, 0)) {
-                fmtPrintNote("
-        ---------------------stop info-------------------\n    
-        Server Stopped Finish!!!. Server stop at " . date("Y-m-d H:i:s")
-                );
+                fmtPrintNote("---------------------stop info-------------------");
+                fmtPrintNote("【{$appName}】 Server Stopped Finish!!!. Server stop at " . date("Y-m-d H:i:s"));
                 @unlink($pidFile);
                 break;
             } else {
