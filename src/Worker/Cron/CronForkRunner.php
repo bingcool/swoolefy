@@ -186,15 +186,7 @@ class CronForkRunner
             $pid        = $execOutput[0] ?? -1;
 
             if ($pid) {
-                $runProcessMetaDto = new RunProcessMetaDto();
-                $runProcessMetaDto->pid = (int)trim($pid);
-                $runProcessMetaDto->command = $command;
-                $runProcessMetaDto->pid_file = '';
-                $runProcessMetaDto->check_total_count = 0;
-                $runProcessMetaDto->check_pid_not_exist_count = 0;
-                $runProcessMetaDto->start_timestamp = time();
-                $runProcessMetaDto->start_date_time = date('Y-m-d H:i:s');
-
+                $runProcessMetaDto = $this->createRunProcessMeta((int)trim($pid), $command);
                 $cronScriptPidFileOption = AbstractKernel::getCronScriptPidFileOptionField();
                 if (isset($extend[$cronScriptPidFileOption])) {
                     $cronScriptPidFile = $extend[$cronScriptPidFileOption];
@@ -249,6 +241,8 @@ class CronForkRunner
             $runType = CronForkTaskMetaDto::RUN_TYPE;
         }else {
             if (!str_starts_with($execBinFile, 'nohup')) {
+                $execScript = str_replace( '2>&1'," ", $execScript);
+                $execScript = rtrim($execScript, '&');
                 $command = 'nohup '.$execBinFile .' '.$execScript.' ' . $argvOption.' 2>&1 &';
             }else {
                 $command = $execBinFile .' '.$execScript.' ' . $argvOption;
@@ -281,14 +275,7 @@ class CronForkRunner
                 $status = proc_get_status($proc_process);
                 $status['pid'] = (int)trim(fgets($pipes[4], 10));
 
-                $runProcessMetaDto = new RunProcessMetaDto();
-                $runProcessMetaDto->pid = $status['pid'] ?? -1;
-                $runProcessMetaDto->command = $command;
-                $runProcessMetaDto->pid_file = '';
-                $runProcessMetaDto->check_total_count = 0;
-                $runProcessMetaDto->check_pid_not_exist_count = 0;
-                $runProcessMetaDto->start_timestamp = time();
-                $runProcessMetaDto->start_date_time = date('Y-m-d H:i:s');
+                $runProcessMetaDto = $this->createRunProcessMeta($status['pid'] ?? -1, $command);
 
                 $cronScriptPidFileOption = AbstractKernel::getCronScriptPidFileOptionField();
                 if (isset($extend[$cronScriptPidFileOption]) || $runType == CronForkTaskMetaDto::RUN_TYPE) {
@@ -339,6 +326,29 @@ class CronForkRunner
         }else {
             $fn($command, $descriptors, $callable);
         }
+    }
+
+    /**
+     * @param int $pid
+     * @param string $command
+     * @param string $pidFile
+     * @return RunProcessMetaDto
+     */
+    private function createRunProcessMeta(
+        int $pid,
+        string $command,
+        string $pidFile = ''
+    ): RunProcessMetaDto
+    {
+        $dto = new RunProcessMetaDto();
+        $dto->pid = $pid;
+        $dto->command = $command;
+        $dto->pid_file = $pidFile;
+        $dto->check_total_count = 0;
+        $dto->check_pid_not_exist_count = 0;
+        $dto->start_timestamp = time();
+        $dto->start_date_time = date('Y-m-d H:i:s');
+        return $dto;
     }
 
     /**
@@ -437,7 +447,7 @@ class CronForkRunner
      *
      * @return array
      */
-    public function getRunningForkProcess()
+    public function getRunningForkProcess(): array
     {
         $runningItemList = [];
         /**
