@@ -11,6 +11,7 @@
 
 namespace Test;
 
+use Common\Library\Db\Pgsql;
 use Common\Library\RateLimit\DurationLimiter;
 use Common\Library\Redis\Redis;
 use Common\Library\Db\Mysql;
@@ -28,6 +29,14 @@ class App
     public static function getDb()
     {
         return \Swoolefy\Core\Application::getApp()->get('db');
+    }
+
+    /**
+     * @return Pgsql|ContainerObjectDto
+     */
+    public static function getPgSql()
+    {
+        return \Swoolefy\Core\Application::getApp()->get('pg');
     }
 
     /**

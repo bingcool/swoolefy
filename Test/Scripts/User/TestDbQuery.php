@@ -135,6 +135,13 @@ class TestDbQuery extends MainCliScript
 
         // var_dump($order->getAttributes());
         return;
+
+//        $res = OrderEntity::query()->alias('a')->whereExists(function ($query) {
+//            /**
+//             * @var Query $query
+//             */
+//            $query->from(OrderEntity::getTableName(),'b')->fieldRaw(1)->whereIn('b.user_id', [101, 102])->whereColumn('a.user_id', '=', 'b.user_id');
+//        })->select()->toArray();
     }
 
     public function handle()

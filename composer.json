@@ -49,6 +49,7 @@
     },
     "require-dev": {
         "kwn/php-rdkafka-stubs": "dev-master",
-        "swoole/ide-helper": "dev-master"
+        "swoole/ide-helper": "dev-master",
+        "viest/php-ext-xlswriter-ide-helper": "dev-master"
     }
 }
