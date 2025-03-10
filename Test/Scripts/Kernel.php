@@ -39,6 +39,8 @@ class Kernel extends AbstractKernel
 
         User\RunnerForkProcess::command => [User\RunnerForkProcess::class, 'handle'],
         User\Purl::command => [User\Purl::class, 'handle'],
+        User\TestPgQuery::command => [User\TestPgQuery::class, 'handle'],
+        User\TestDbQuery::command => [User\TestDbQuery::class, 'handle'],
     ];
 
     /**
@@ -58,10 +60,9 @@ class Kernel extends AbstractKernel
             ->addArgs('age', 18)
             ->addArgs('sex', 'man')
             ->addArgs('desc', "fffkkkmm")
-            ->between("2025-01-01","2025-03-01")
             ->withBlockLapping()
             ->ForkSuccessCallback(function(ScheduleEvent $event) {
-                //var_dump($event->cron_name, $event->argv);
+                var_dump("fork successful!");
             });
 
         return $schedule;

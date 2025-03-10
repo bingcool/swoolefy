@@ -34,8 +34,8 @@ class MonitorCmd extends BaseCmd
                 fmtPrintInfo("[CheckSever] server had shutdown, now restarting .....");
                 // fork a process to excel restart command.
                 $binFile = SystemEnv::PhpBinFile();
-                $exec = new Exec();
-                $exec->run("nohup {$binFile} {$selfScript} start {$appName} --daemon=1 > /dev/null 2>&1 &");
+                $exec    = new Exec();
+                $exec->run("{$binFile} {$selfScript} start {$appName} --daemon=1");
             }
             sleep(3);
             exit(0);

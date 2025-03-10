@@ -164,26 +164,26 @@ class RestartCmd extends BaseCmd
             return;
         }
 
+        $maxWaitTime = 20;
+
         \Swoole\Process::kill($pid, SIGTERM);
         // if 'reload_async' => true,则默认workerStop有30s的过度期停顿这个时间稍微会比较长，设置成60过期
         $nowTime = time();
         fmtPrintInfo("Server begin to stopping at " . date("Y-m-d H:i:s") . ", pid={$pid}. please wait a moment...");
         while (true) {
             sleep(1);
-            if (\Swoole\Process::kill($pid, 0) && (time() - $nowTime) > 10) {
+            if (\Swoole\Process::kill($pid, 0) && (time() - $nowTime) > ($maxWaitTime - 5)) {
                 \Swoole\Process::kill($pid, SIGKILL);
                 sleep(1);
             }
 
             if (!\Swoole\Process::kill($pid, 0)) {
-                fmtPrintInfo("
-        ---------------------stop info-------------------\n    
-        Server Stop  OK. server stop at " . date("Y-m-d H:i:s")
-                );
+                fmtPrintInfo("---------------------stop info-------------------");
+                fmtPrintInfo("Server Stop  OK. server stop at " . date("Y-m-d H:i:s"));
                 @unlink($pidFile);
                 break;
             } else {
-                if ((time() - $nowTime) > 20) {
+                if ((time() - $nowTime) > $maxWaitTime) {
                     $exec = (new Exec())->run('pgrep -P ' . $pid);
                     $output = $exec->getOutput();
                     $managerProcessId = -1;
@@ -192,13 +192,21 @@ class RestartCmd extends BaseCmd
                         $managerProcessId = current($output);
                         $workerProcessIds = (new Exec())->run('pgrep -P ' . $managerProcessId)->getOutput();
                     }
-                    foreach ([$pid, $managerProcessId, ...$workerProcessIds] as $processId) {
+                    $allProcessIds = [$pid, $managerProcessId, ...$workerProcessIds];
+                    foreach ($allProcessIds as $processId) {
                         if ($processId > 0 && \Swoole\Process::kill($processId, 0)) {
                             \Swoole\Process::kill($processId, SIGKILL);
                         }
                     }
-                    fmtPrintInfo("---------------------------stop info-----------------------");
-                    fmtPrintInfo("Please use 'ps -ef | grep php-swoolefy' checkout swoole whether or not stop");
+                    sleep(2);
+                    if (!\Swoole\Process::kill($pid, 0)) {
+                        fmtPrintInfo("---------------------stop info-------------------");
+                        fmtPrintInfo("Server Stop  OK. server stop at " . date("Y-m-d H:i:s"));
+                        @unlink($pidFile);
+                    }else {
+                        fmtPrintInfo("---------------------------stop info-----------------------");
+                        fmtPrintInfo("Please use 'ps -ef | grep php-swoolefy' checkout swoole whether or not stop");
+                    }
                     break;
                 }
             }
