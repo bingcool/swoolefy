@@ -110,7 +110,7 @@ class RestartCmd extends BaseCmd
                 }
             }
 
-            $fn = function ($appName, $pidFile) use($restartPidFile) {
+            $successFn = function ($appName, $pidFile) use($restartPidFile) {
                 $serverName = WORKER_SERVICE_NAME;
                 if (SystemEnv::isWorkerService()) {
                     fmtPrintInfo("-----------{$serverName}服务重启完成!------------");
@@ -131,7 +131,7 @@ class RestartCmd extends BaseCmd
             if (file_exists($pidFile)) {
                 $newMasterPid = intval(file_get_contents($pidFile));
                 if ($newMasterPid > 0 && $newMasterPid != $masterPid && \Swoole\Process::kill($newMasterPid, 0)) {
-                    $fn($appName, $pidFile);
+                    $successFn($appName, $pidFile);
                 }
             }
 
@@ -142,7 +142,7 @@ class RestartCmd extends BaseCmd
                     $restartPid = file_get_contents($restartPidFile);
                     // 存在的restartPid就是新拉起的主进程id
                     if ($restartPid > 0 && \Swoole\Process::kill($restartPid, 0)) {
-                        $fn($appName, $restartPidFile);
+                        $successFn($appName, $restartPidFile);
                     }
                 }
                 fmtPrintError("-----------无法确定是否重起成功，请使用 {$phpBinFile} {$selfFile} status {$appName} 查看进程是否启动成功!------------");
