@@ -119,7 +119,7 @@ docker run -d -it --name=swoolefy-php83-v6 swoolefy-php83-swoole6:v1
 - [x] Validate 组件    
 - [x] Encrypt 加密解密组件   
 - [x] Captcha 验证码组件    
-- [x] translation 国际化（I18N）    
+- [x] Translation 国际化（I18N）    
    
 github: https://github.com/bingcool/library    
 
