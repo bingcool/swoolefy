@@ -282,12 +282,12 @@ class CronForkRunner
                     $cronScriptPidFile = $extend[$cronScriptPidFileOption];
                     if (is_file($cronScriptPidFile)) {
                         $runProcessMetaDto->pid = (int)trim(file_get_contents($cronScriptPidFile));
-                    }else {
+                    } else {
                         $runProcessMetaDto->pid = 0;
                     }
                     $runProcessMetaDto->pid_file = $cronScriptPidFile;
                     $this->debug("【{$this->cronName}】拉起新的(swoolefy script)进程pid_file:".$runProcessMetaDto->pid_file);
-                }else {
+                } else {
                     $this->debug("【{$this->cronName}】拉起新的进程pid:".$runProcessMetaDto->pid);
                 }
 
@@ -393,7 +393,7 @@ class CronForkRunner
                     $isNext = true;
                     // 清空进程元信息池
                     $this->runProcessMetaPool = [];
-                }else {
+                } else {
                     System::sleep(0.3);
                     $isNext = false;
                 }
@@ -402,7 +402,7 @@ class CronForkRunner
             $this->debug("【{$this->cronName}】进入isNextHandle()方法，runProcessMetaPool的Size=".count($this->runProcessMetaPool));
             if ($isNext) {
                 $this->debug("【{$this->cronName}】暂时未达到最大的并发进程数={$this->concurrent}，此时满足时间点触发，继续拉起新进程，isNextHandle() return true");
-            }else {
+            } else {
                 $this->debug("【{$this->cronName}】已达到最大的并发进程数={$this->concurrent}，将禁止继续拉起进程，isNextHandle() return false");
             }
 
@@ -428,10 +428,10 @@ class CronForkRunner
             if (is_string($argvName)) {
                 if (str_contains($argvValue, ' ')) {
                     $argvOptions[] = "--{$argvName}='{$argvValue}'";
-                }else {
+                } else {
                     $argvOptions[] = "--{$argvName}={$argvValue}";
                 }
-            }else if (is_numeric($argvName)) {
+            } else if (is_numeric($argvName)) {
                 $argvOptions[] = $argvValue;
             }
         }
@@ -484,13 +484,13 @@ class CronForkRunner
                         $pid = (int)file_get_contents($pidFile);
                         if (!\Swoole\Process::kill($pid, 0)) {
                             unlink($pidFile);
-                        }else {
+                        } else {
                             // 进程已正常
                             $runProcessMetaItem->pid = $pid;
                             $runProcessMetaItem->check_total_count++;
                             $itemList[] = $runProcessMetaItem;
                         }
-                    }else {
+                    } else {
                         // 检测10次后，依然没有pid文件生成，说明此时脚本的启动已经可能异常了
                         if ($runProcessMetaItem->check_pid_not_exist_count < 10) {
                             $runProcessMetaItem->check_total_count++;
@@ -498,7 +498,7 @@ class CronForkRunner
                             $itemList[] = $runProcessMetaItem;
                         }
                     }
-                }else {
+                } else {
                     if (\Swoole\Process::kill($pid, 0)) {
                         $runProcessMetaItem->check_total_count++;
                         $itemList[] = $runProcessMetaItem;
