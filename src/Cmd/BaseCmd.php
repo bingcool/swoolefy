@@ -183,7 +183,7 @@ class BaseCmd extends Command
      * @param $config
      * @return void
      */
-    protected function commonHandle(&$config)
+    protected function commonHandleFile(&$config)
     {
         if ($this->isDaemon()) {
             $config['setting']['daemonize'] = true;
