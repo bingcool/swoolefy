@@ -28,6 +28,9 @@ class CreateCmd extends BaseCmd
             exit(0);
         }
 
+        fmtPrintInfo("开始创建【{$appName}】应用骨架，请稍等......");
+        sleep(1);
+
         $protocol = APP_META_ARR[$appName]['protocol'];
         if (!$protocol) {
             fmtPrintError("The app_name={$appName} is not in APP_NAME array in swoolefy file, please check it");
@@ -232,7 +235,36 @@ class CreateCmd extends BaseCmd
                     break;
             }
         }
+        $this->copyServerFile($appName, $protocol);
+        fmtPrintInfo("应用创建成功啦，应用名称为：【{$appName}】，你现在可以使用命令 php cli.php start {$appName} 来启动应用");
         return 0;
+    }
+
+    /**
+     * @param $appName
+     * @param $protocol
+     * @return void
+     */
+    protected function copyServerFile($appName, $protocol)
+    {
+        $this->commonHandleFile();
+        $protocolInfo = $this->protocolMap[$protocol] ?? [];
+        if (empty($protocolInfo)) {
+            $namespace = 'protocol\\http';
+            $serverName = 'HttpServer';
+        } else {
+            $namespace = $protocolInfo['namespace'];
+            $serverName = $protocolInfo['server_name'];
+        }
+        $eventServerFile = APP_PATH.'/'.$serverName.'.php';
+        if (!file_exists($eventServerFile)) {
+            $searchStr = $namespace;
+            $replaceStr = "{$appName}";
+            $fileContentString = file_get_contents(ROOT_PATH . '/src/Stubs/'.$serverName.'.stub.php');
+            $count = 1;
+            $fileContentString = str_replace($searchStr, $replaceStr, $fileContentString, $count);
+            file_put_contents($eventServerFile, $fileContentString);
+        }
     }
 
     protected function getDefaultModel($appName)

@@ -119,7 +119,7 @@ docker run -d -it --name=swoolefy-php83-v6 swoolefy-php83-swoole6:v1
 - [x] Validate 组件    
 - [x] Encrypt 加密解密组件   
 - [x] Captcha 验证码组件    
-- [x] translation 国际化（I18N）    
+- [x] Translation 国际化（I18N）    
    
 github: https://github.com/bingcool/library    
 
@@ -150,7 +150,7 @@ ENV SWOOLEFY_CLI_ENV=dev
 #### 2、创建项目
 ```
 // 下载代码到到你的自定义目录，这里定义为myproject
-composer create-project bingcool/swoolefy:^5.1 myproject
+composer create-project bingcool/swoolefy:^6.0 myproject   
 ```
 
 ### 七、添加项目入口启动文件cli.php,并定义你的项目目录，命名为App
@@ -182,7 +182,8 @@ define('PHP_BIN_FILE','/usr/bin/php');
 define('WORKER_START_SCRIPT_FILE', str_contains($_SERVER['SCRIPT_FILENAME'], $_SERVER['PWD']) ? $_SERVER['SCRIPT_FILENAME'] : $_SERVER['PWD'].'/'.$_SERVER['SCRIPT_FILENAME']);
 define('WORKER_SERVICE_NAME', makeServerName($appName));
 define('WORKER_PID_FILE_ROOT', '/tmp/workerfy/log/'.WORKER_SERVICE_NAME);
-define('SERVER_START_LOG', WORKER_PID_FILE_ROOT.'/start.log');
+define('WORKER_CTL_LOG_FILE',WORKER_PID_FILE_ROOT.'/ctl.log'); 
+define('SERVER_START_LOG_JSON_FILE', WORKER_PID_FILE_ROOT.'/start.json');
 
 date_default_timezone_set('Asia/Shanghai');
 // 你的项目命名为App，对应协议为http协议服务器，支持多个项目的，只需要在这里添加好项目名称与对应的协议即可

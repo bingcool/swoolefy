@@ -314,7 +314,18 @@ class BaseServer
      */
     public static function getAppPrefix()
     {
-        return self::getAppName() . '-swoolefy';
+        if (SystemEnv::isWorkerService()) {
+            if (SystemEnv::isDaemonService()) {
+                $serviceName = 'daemon';
+            } else if (SystemEnv::isCronService()) {
+                $serviceName = 'cron';
+            } else if (SystemEnv::isScriptService()) {
+                $serviceName = 'script';
+            }
+        } else {
+            $serviceName = 'cli';
+        }
+        return '['.self::getAppName() . '-'.$serviceName.'-swoolefy'.']';
     }
 
     /**

@@ -87,7 +87,7 @@ class StopCmd extends BaseCmd
 
             if (!\Swoole\Process::kill($pid, 0)) {
                 fmtPrintNote("---------------------stop info-------------------");
-                fmtPrintNote("【{$appName}】 Server Stopped Finish!!!. Server stop at " . date("Y-m-d H:i:s"));
+                fmtPrintNote("【{$appName}】 Server Stopped Finish !!!. Server stop at " . date("Y-m-d H:i:s"));
                 @unlink($pidFile);
                 break;
             } else {
@@ -111,6 +111,8 @@ class StopCmd extends BaseCmd
                 }
             }
         }
+
+        $this->writeLog("停止服务：".WORKER_SERVICE_NAME);
         \Swoole\Process::wait();
         exit(0);
     }
@@ -139,10 +141,9 @@ class StopCmd extends BaseCmd
             $pipeMsgDto = new \Swoolefy\Worker\Dto\PipeMsgDto();
             $pipeMsgDto->action = WORKER_CLI_STOP;
             $pipeMsg = serialize($pipeMsgDto);
-
             // mainWorker Process
             $workerPid = file_get_contents(WORKER_PID_FILE);
-            if (\Swoole\Process::kill($workerPid, 0)) {
+            if ($workerPid > 0 && \Swoole\Process::kill($workerPid, 0)) {
                 $cliToWorkerPipeFile = CLI_TO_WORKER_PIPE;
                 $pipe = @fopen($cliToWorkerPipeFile, 'w+');
                 if (flock($pipe, LOCK_EX)) {

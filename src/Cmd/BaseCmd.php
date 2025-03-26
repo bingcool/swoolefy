@@ -19,6 +19,32 @@ class BaseCmd extends Command
     protected $consoleStyleIo;
 
     /**
+     * @var array[]
+     */
+    protected $protocolMap = [
+        'http' => [
+            'namespace' => 'protocol\\http',
+            'server_name' => 'HttpServer'
+        ],
+        'rpc' => [
+            'namespace' => 'protocol\\rpc',
+            'server_name' => 'RpcServer'
+        ],
+        'udp' => [
+            'namespace' => 'protocol\\udp',
+            'server_name' => 'UdpEventServer'
+        ],
+        'websocket' => [
+            'namespace' => 'protocol\\websocket',
+            'server_name' => 'WebsocketEventServer'
+        ],
+        'mqtt' => [
+            'namespace' => 'protocol\\mqtt',
+            'server_name' => 'MqttServer'
+        ],
+    ];
+
+    /**
      * @return void
      */
     protected function configure()
@@ -141,6 +167,7 @@ class BaseCmd extends Command
     }
 
     /**
+     * when start, check config
      * @param array $config
      * @return void
      */
@@ -162,6 +189,11 @@ class BaseCmd extends Command
                 }
             }
         }
+        if ($this->isDaemon()) {
+            $config['setting']['daemonize'] = true;
+        }
+
+        $this->makeDirLogAndPid($config);
     }
 
     /**
@@ -180,15 +212,10 @@ class BaseCmd extends Command
     }
 
     /**
-     * @param $config
      * @return void
      */
-    protected function commonHandle(&$config)
+    protected function commonHandleFile()
     {
-        if ($this->isDaemon()) {
-            $config['setting']['daemonize'] = true;
-        }
-        $this->makeDirLogAndPid($config);
         $eventServerFile = APP_PATH . "/Event.php";
         if (!file_exists($eventServerFile)) {
             $search_str = "protocol\\event";
@@ -298,8 +325,8 @@ class BaseCmd extends Command
             return;
         }
 
-        if (defined('SERVER_START_LOG') && is_file(SERVER_START_LOG)) {
-            $startContent = file_get_contents(SERVER_START_LOG);
+        if (defined('SERVER_START_LOG_JSON_FILE') && is_file(SERVER_START_LOG_JSON_FILE)) {
+            $startContent = file_get_contents(SERVER_START_LOG_JSON_FILE);
             $startContent = json_decode($startContent, true);
             if (isset($startContent['start_time'])) {
                 $startTime = $startContent['start_time'] ?? '';
@@ -349,5 +376,34 @@ class BaseCmd extends Command
     protected function loadGlobalConf()
     {
         return loadGlobalConf();
+    }
+
+    /**
+     * @param string $msg
+     * @return void
+     */
+    protected function writeLog(string $msg)
+    {
+        if (defined('WORKER_CTL_LOG_FILE')) {
+            if (defined('MAX_LOG_FILE_SIZE')) {
+                $maxLogFileSize = constant('MAX_LOG_FILE_SIZE');
+            } else {
+                $maxLogFileSize = 5 * 1024 * 1024;
+            }
+
+            if (is_file(WORKER_CTL_LOG_FILE) && filesize(WORKER_CTL_LOG_FILE) > $maxLogFileSize) {
+                unlink(WORKER_CTL_LOG_FILE);
+            }
+
+            if (!is_dir(dirname(WORKER_CTL_LOG_FILE))) {
+                mkdir(dirname(WORKER_CTL_LOG_FILE), 0777, true);
+            }
+
+            $logFd = fopen(WORKER_CTL_LOG_FILE, 'a+');
+            $date  = date("Y-m-d H:i:s");
+            $writeMsg = "【{$date}】" . $msg . PHP_EOL;
+            fwrite($logFd, $writeMsg);
+            fclose($logFd);
+        }
     }
 }

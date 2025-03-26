@@ -454,8 +454,8 @@ class SystemEnv
      */
     public static function formatPrintStartLog($startTime = '')
     {
-        if (empty($startTime) && defined('SERVER_START_LOG') && is_file(SERVER_START_LOG)) {
-            $startContent = file_get_contents(SERVER_START_LOG);
+        if (empty($startTime) && defined('SERVER_START_LOG_JSON_FILE') && is_file(SERVER_START_LOG_JSON_FILE)) {
+            $startContent = file_get_contents(SERVER_START_LOG_JSON_FILE);
             $startContent = json_decode($startContent, true);
             if (isset($startContent['start_time'])) {
                 $startTime = $startContent['start_time'] ?? '';
