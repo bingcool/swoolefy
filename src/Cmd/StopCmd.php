@@ -111,6 +111,8 @@ class StopCmd extends BaseCmd
                 }
             }
         }
+
+        $this->writeLog("停止服务：".WORKER_SERVICE_NAME);
         \Swoole\Process::wait();
         exit(0);
     }

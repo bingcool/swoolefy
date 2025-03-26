@@ -531,13 +531,7 @@ abstract class AbstractBaseWorker
 
             if (PHP_OS != 'Darwin') {
                 $processTypeName = $this->getProcessTypeName();
-                if (SystemEnv::isDaemonService()) {
-                    $this->swooleProcess->name(APP_NAME."-swoolefy-".WORKER_SERVICE_NAME."-php-daemon[{$processTypeName}-{$this->masterPid}-{$this->getPid()}]:" . $this->getProcessName() . '@' . $this->getProcessWorkerId());
-                }else if (SystemEnv::isCronService()) {
-                    $this->swooleProcess->name(APP_NAME."-swoolefy-".WORKER_SERVICE_NAME."-php-cron[{$processTypeName}-{$this->masterPid}-{$this->getPid()}]:" . $this->getProcessName() . '@' . $this->getProcessWorkerId());
-                }else {
-                    $this->swooleProcess->name(APP_NAME."-swoolefy-".WORKER_SERVICE_NAME."-php-worker[{$processTypeName}-{$this->masterPid}-{$this->getPid()}]:" . $this->getProcessName() . '@' . $this->getProcessWorkerId());
-                }
+                $this->swooleProcess->name(BaseServer::getAppPrefix()."-php-worker[{$processTypeName}-{$this->masterPid}-{$this->getPid()}]:" . $this->getProcessName() . '@' . $this->getProcessWorkerId());
             }
 
             $this->writeStartFormatInfo();

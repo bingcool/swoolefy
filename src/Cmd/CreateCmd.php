@@ -247,36 +247,15 @@ class CreateCmd extends BaseCmd
      */
     protected function copyServerFile($appName, $protocol)
     {
-        $config = $this->loadGlobalConf();
-        $this->commonHandleFile($config);
-        switch ($protocol)
-        {
-            case 'http':
-                $namespace = 'protocol\\http';
-                $serverName = 'HttpServer';
-                break;
-            case 'rpc':
-                $namespace = "protocol\\rpc";
-                $serverName = 'RpcServer';
-                break;
-            case 'udp':
-                $namespace = "protocol\\udp";
-                $serverName = 'UdpEventServer';
-                break;
-            case 'websocket':
-                $namespace = "protocol\\websocket";
-                $serverName = 'WebsocketEventServer';
-                break;
-            case 'mqtt':
-                $namespace = 'protocol\\mqtt';
-                $serverName = 'MqttServer';
-                break;
-            default:
-                $namespace = 'protocol\\http';
-                $serverName = 'HttpServer';
-                break;
+        $this->commonHandleFile();
+        $protocolInfo = $this->protocolMap[$protocol] ?? [];
+        if (empty($protocolInfo)) {
+            $namespace = 'protocol\\http';
+            $serverName = 'HttpServer';
+        } else {
+            $namespace = $protocolInfo['namespace'];
+            $serverName = $protocolInfo['server_name'];
         }
-        $this->checkRunning($config);
         $eventServerFile = APP_PATH.'/'.$serverName.'.php';
         if (!file_exists($eventServerFile)) {
             $searchStr = $namespace;
