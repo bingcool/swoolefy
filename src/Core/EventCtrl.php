@@ -223,14 +223,14 @@ class EventCtrl implements EventCtrlInterface
      */
     protected function registerStartLog()
     {
-        if (defined('SERVER_START_LOG')) {
-            $pathDir = pathinfo(SERVER_START_LOG);
+        if (defined('SERVER_START_LOG_JSON_FILE')) {
+            $pathDir = pathinfo(SERVER_START_LOG_JSON_FILE);
             if (!is_dir($pathDir['dirname'])) {
                 mkdir($pathDir['dirname'], 0777, true);
             }
             $startLog = ['app_name' => WORKER_SERVICE_NAME, 'port' => Swfy::getConf()['port'],'start_time' => date('Y-m-d H:i:s')];
-            file_put_contents(SERVER_START_LOG, json_encode($startLog));
-            chmod(SERVER_START_LOG, 0777);
+            file_put_contents(SERVER_START_LOG_JSON_FILE, json_encode($startLog));
+            chmod(SERVER_START_LOG_JSON_FILE, 0777);
         }
     }
     /**

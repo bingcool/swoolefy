@@ -62,6 +62,8 @@ class RestartCmd extends BaseCmd
             }
         }
 
+        $this->writeLog("重启服务：".WORKER_SERVICE_NAME);
+
         fmtPrintInfo("-----------正在重启进程中，请等待-----------");
 
         if (SystemEnv::isWorkerService()) {
