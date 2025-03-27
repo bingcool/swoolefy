@@ -40,19 +40,19 @@ class StartCmd extends BaseCmd
                 if ($appName == $serverName) {
                     switch ($protocol) {
                         case 'http':
-                            $this->startHttpService($appName);
+                            $this->startHttpServer($appName,$protocol);
                             break;
                         case 'websocket':
-                            $this->startWebsocket($appName);
+                            $this->startWebsocket($appName,$protocol);
                             break;
                         case 'rpc':
-                            $this->startRpc($appName);
+                            $this->startRpc($appName,$protocol);
                             break;
                         case 'udp':
-                            $this->startUdp($appName);
+                            $this->startUdp($appName,$protocol);
                             break;
                         case 'mqtt':
-                            $this->startMqtt($appName);
+                            $this->startMqtt($appName,$protocol);
                             break;
                         default:
                             fmtPrintError("Protocol is not in 【'http','websocket','rpc','udp','mqtt'】");
@@ -67,120 +67,44 @@ class StartCmd extends BaseCmd
         return 0;
     }
 
-
-    protected function startHttpService(string $appName)
+    protected function startHttpServer(string $appName, string $protocol)
     {
-        $serverName = 'HttpServer';
-        $config = $this->loadGlobalConf();
-        $this->checkRunning($config);
-        $eventServerFile = APP_PATH.'/'.$serverName.'.php';
-        if (!file_exists($eventServerFile)) {
-            $searchStr = "protocol\\http";
-            $replaceStr = "{$appName}";
-            $fileContentString = file_get_contents(ROOT_PATH . '/src/Stubs/'.$serverName.'.stub.php');
-            $count = 1;
-            $fileContentString = str_replace($searchStr, $replaceStr, $fileContentString, $count);
-            file_put_contents($eventServerFile, $fileContentString);
-        }
-
-        $routeDir = APP_PATH.'/Router';
-        if (!is_dir($routeDir)) {
-            mkdir($routeDir, 0777, true);
-        }
-        $this->commonHandle($config);
-        $class = "{$appName}\\{$serverName}";
-        $http = new $class($config);
-        $http->start();
+        $serverName = $this->protocolMap[$protocol]['server_name'];
+        $this->startServer($appName, $serverName);
     }
 
-    protected function startWebsocket($appName)
+    protected function startWebsocket(string $appName, string $protocol)
     {
-        $serverName = 'WebsocketEventServer';
-        $config = $this->loadGlobalConf();
-        $this->checkRunning($config);
-        $eventServerFile = APP_PATH.'/'.$serverName.'.php';
-        if (!file_exists($eventServerFile)) {
-            $searchStr = "protocol\\websocket";
-            $replaceStr = "{$appName}";
-            $fileContentString = file_get_contents(ROOT_PATH . '/src/Stubs/'.$serverName.'.stub.php');
-            $count = 1;
-            $fileContentString = str_replace($searchStr, $replaceStr, $fileContentString, $count);
-            file_put_contents($eventServerFile, $fileContentString);
-        }
-        $routerDir = APP_PATH . "/Router";
-        if (!is_dir($routerDir)) {
-            mkdir($routerDir, 0777, true);
-        }
-        $this->commonHandle($config);
-        $class = "{$appName}\\{$serverName}";
-        $websocket = new $class($config);
-        $websocket->start();
+        $serverName = $this->protocolMap[$protocol]['server_name'];
+        $this->startServer($appName, $serverName);
     }
 
-    function startRpc($appName)
+    protected function startRpc(string $appName, string $protocol)
     {
-        $serverName = 'RpcServer';
-        $config = $this->loadGlobalConf();
-        $this->checkRunning($config);
-        $eventServerFile = APP_PATH.'/'.$serverName.'.php';
-        if (!file_exists($eventServerFile)) {
-            $searchStr = "protocol\\rpc";
-            $replaceStr = "{$appName}";
-            $fileContentString = file_get_contents(ROOT_PATH . '/src/Stubs/'.$serverName.'.stub.php');
-            $count = 1;
-            $fileContentString = str_replace($searchStr, $replaceStr, $fileContentString, $count);
-            file_put_contents($eventServerFile, $fileContentString);
-        }
-
-        $this->commonHandle($config);
-        $class = "{$appName}\\{$serverName}";
-        $rpc = new $class($config);
-        $rpc->start();
+        $serverName = $this->protocolMap[$protocol]['server_name'];
+        $this->startServer($appName, $serverName);
     }
 
-    function startUdp($appName)
+    protected function startUdp(string $appName, string $protocol)
     {
-        $serverName = 'UdpEventServer';
-        $config = $this->loadGlobalConf();
-        $this->checkRunning($config);
-        $eventServerFile = APP_PATH.'/'.$serverName.'.php';
-        if (!file_exists($eventServerFile)) {
-            $searchStr = "protocol\\udp";
-            $replaceStr = "{$appName}";
-            $fileContentString = file_get_contents(ROOT_PATH . '/src/Stubs/'.$serverName.'.stub.php');
-            $count = 1;
-            $fileContentString = str_replace($searchStr, $replaceStr, $fileContentString, $count);
-            file_put_contents($eventServerFile, $fileContentString);
-        }
-
-        $routerDir = APP_PATH . "/Router";
-        if (!is_dir($routerDir)) {
-            mkdir($routerDir, 0777, true);
-        }
-
-        $this->commonHandle($config);
-        $class = "{$appName}\\{$serverName}";
-        $udp = new $class($config);
-        $udp->start();
+        $serverName = $this->protocolMap[$protocol]['server_name'];
+        $this->startServer($appName, $serverName);
     }
 
-    protected function startMqtt($appName)
+    protected function startMqtt(string $appName, string $protocol)
     {
-        $serverName = 'MqttServer';
+        $serverName = $this->protocolMap[$protocol]['server_name'];
+        $this->startServer($appName, $serverName);
+    }
+
+    protected function startServer(string $appName, string $serverName)
+    {
+
+        $this->writeLog("启动服务：".WORKER_SERVICE_NAME);
         $config = $this->loadGlobalConf();
         $this->checkRunning($config);
-        $eventServerFile = APP_PATH.'/'.$serverName.'.php';
-        if (!file_exists($eventServerFile)) {
-            $searchStr = "protocol\\mqtt";
-            $replaceStr = "{$appName}";
-            $fileContentString = file_get_contents(ROOT_PATH . '/src/Stubs/'.$serverName.'.stub.php');
-            $count = 1;
-            $fileContentString = str_replace($searchStr, $replaceStr, $fileContentString, $count);
-            file_put_contents($eventServerFile, $fileContentString);
-        }
-        $this->commonHandle($config);
         $class = "{$appName}\\{$serverName}";
-        $mqtt = new $class($config);
-        $mqtt->start();
+        $server = new $class($config);
+        $server->start();
     }
 }

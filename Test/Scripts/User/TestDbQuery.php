@@ -12,9 +12,12 @@ class TestDbQuery extends MainCliScript
 
     public function init()
     {
-        parent::init();
+        var_dump('test db query');
         $uid = 100;
         $db = App::getDb()->getObject();
+
+        parent::init();
+
         $sql = (new OrderEntity())
             ->setConnection($db)
             ->getQuery()

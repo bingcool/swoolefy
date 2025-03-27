@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Worker;
 
+use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Exception\WorkerException;
@@ -1595,11 +1596,11 @@ class MainManager
     {
         $this->masterPid = $masterId;
         if (SystemEnv::isDaemonService()) {
-            cli_set_process_title(APP_NAME."-swoolefy-".WORKER_SERVICE_NAME."-php-daemon-master:" . WORKER_START_SCRIPT_FILE);
+            cli_set_process_title(BaseServer::getAppPrefix()."-php-daemon-master:" . WORKER_START_SCRIPT_FILE);
         }else if (SystemEnv::isCronService()) {
-            cli_set_process_title(APP_NAME."-swoolefy-".WORKER_SERVICE_NAME."-php-cron-master:" . WORKER_START_SCRIPT_FILE);
+            cli_set_process_title(BaseServer::getAppPrefix()."-php-cron-master:" . WORKER_START_SCRIPT_FILE);
         }else if (SystemEnv::isScriptService()) {
-            cli_set_process_title(APP_NAME."-swoolefy-".WORKER_SERVICE_NAME."-php-script-master:" . WORKER_START_SCRIPT_FILE);
+            cli_set_process_title(BaseServer::getAppPrefix()."-php-script-master:" . WORKER_START_SCRIPT_FILE);
         }
 
         defined('WORKER_MASTER_PID') OR define('WORKER_MASTER_PID', $this->masterPid);
