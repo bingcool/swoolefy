@@ -27,21 +27,21 @@ return [
             //var_dump($event->cron_name);
         },
     ],
-    [
-        'cron_name' => "swoolefy-php",
-        'run_type'  => \Swoolefy\Worker\Dto\CronForkTaskMetaDto::RUN_TYPE,
-        'cron_expression' => 15,
-        'exec_bin_file' => SystemEnv::PhpBinFile(),
-        'exec_script' => '/home/wwwroot/swoolefy/script.php start '.APP_NAME.' --c=test:script',
-        'with_block_lapping' => true,
-        'output' => '/dev/null',
-        'description' => '',
-        'argv' => [
-            'name' => 'bingcoolhuang'
-        ],
-        'fork_type' => CronForkProcess::FORK_TYPE_EXEC,
-        'fork_success_callback' => function(ScheduleEvent $event) {
-            // var_dump($event->cron_name);
-        }
-    ]
+//    [
+//        'cron_name' => "swoolefy-php",
+//        'run_type'  => \Swoolefy\Worker\Dto\CronForkTaskMetaDto::RUN_TYPE,
+//        'cron_expression' => 15,
+//        'exec_bin_file' => SystemEnv::PhpBinFile(),
+//        'exec_script' => '/home/wwwroot/swoolefy/script.php start '.APP_NAME.' --c=test:script',
+//        'with_block_lapping' => true,
+//        'output' => '/dev/null',
+//        'description' => '',
+//        'argv' => [
+//            'name' => 'bingcoolhuang'
+//        ],
+//        'fork_type' => CronForkProcess::FORK_TYPE_EXEC,
+//        'fork_success_callback' => function(ScheduleEvent $event) {
+//            // var_dump($event->cron_name);
+//        }
+//    ]
 ];
