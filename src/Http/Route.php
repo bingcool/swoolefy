@@ -245,7 +245,7 @@ class Route
         }
         $handle = opendir($routeRootDir);
         while ($file = readdir($handle)) {
-            if($file == '.' || $file == '..' ){
+            if ($file == '.' || $file == '..' ) {
                 continue;
             }
 

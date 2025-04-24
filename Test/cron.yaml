@@ -1,0 +1,36 @@
+shell-1:
+  cron_name: "shell-1"
+  cron_expression: 15
+  exec_bin_file: "/bin/bash"
+  exec_script: "/home/wwwroot/swoolefy/Test/Python/shell.sh --type=1"
+  with_block_lapping: true
+  output: "/dev/null"
+  description: "shell-1"
+  cron_between: [['00:01', "23:00"]]
+  cron_skip: []
+  fork_type: "exec"
+
+
+shell-2:
+  cron_name: "shell-2"
+  cron_expression: 15
+  exec_bin_file: "/bin/bash"
+  exec_script: "/home/wwwroot/swoolefy/Test/Python/shell.sh --type=2"
+  with_block_lapping: true
+  output: "/dev/null"
+  description: "shell-1"
+  cron_between: [[ '00:01', "23:00" ]]
+  cron_skip: []
+  fork_type: "exec"
+
+shell-3:
+  cron_name: "shell-3"
+  cron_expression: 15
+  exec_bin_file: "/bin/bash"
+  exec_script: "/home/wwwroot/swoolefy/Test/Python/shell.sh --type=3"
+  with_block_lapping: true
+  output: "/dev/null"
+  description: "shell-1"
+  cron_between: [[ '00:01', "23:00" ]]
+  cron_skip: []
+  fork_type: "exec"

@@ -19,6 +19,12 @@ class CronForkTaskMetaDto extends AbstractDto
 
     const RUN_TYPE = 'swoolefy';
 
+    const CRON_META_ORIGIN_DB = 'db';
+
+    const CRON_META_ORIGIN_YAML = 'yaml';
+
+    const CRON_META_ORIGIN_PHP = 'php';
+
     /**
      * 计划任务名称
      *
