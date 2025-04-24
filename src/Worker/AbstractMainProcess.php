@@ -45,13 +45,13 @@ abstract class AbstractMainProcess extends AbstractProcess
 
         if (function_exists('customLoadWorkerConf')) {
             $workerConfList = customLoadWorkerConf();
-        }else if(defined('WORKER_CONF_FILE')) {
+        } else if (defined('WORKER_CONF_FILE')) {
             $mainManager = \Swoolefy\Worker\MainManager::getInstance();
             $workerConfList = \Swoolefy\Worker\MainManager::loadWorkerConf(WORKER_CONF_FILE);
         }
 
         $workerConfListNew = [];
-        if(!empty($workerConfList)) {
+        if (!empty($workerConfList)) {
             // Specify Process to Run When dev or test to debug, Avoid the impact of other processes
             $onlyProcess = Helper::getCliParams('only');
             if ($onlyProcess) {
@@ -71,10 +71,10 @@ abstract class AbstractMainProcess extends AbstractProcess
                     $masterPid = $mainManager->getMasterPid();
                     // kill master to exit
                     \Swoole\Process::kill($masterPid, SIGTERM);
-                }else {
+                } else {
                     $workerConf = $workerConfListNew;
                 }
-            }else {
+            } else {
                 $workerConf = $workerConfList;
             }
         }
