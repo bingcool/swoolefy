@@ -54,7 +54,7 @@ class CronForkRunner
     /**
      * @var int
      */
-    protected $checkTickerTime = 10;
+    protected $checkTickerTime = 20;
 
     /**
      * @var int

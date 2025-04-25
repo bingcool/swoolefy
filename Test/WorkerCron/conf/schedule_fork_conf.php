@@ -33,8 +33,9 @@ return [
 //                    echo "行号: " . $e->getParsedLine() . "\n";
 //                    echo "详细信息: " . $e->getMessage();
 //                }
-//                // 读取数据库模式
-                $list4 = (new \Test\Module\Cron\Service\CronTaskService())->cronTaskList();
+
+                // 读取数据库cronaTask配置模式
+                $list4 = (new \Test\Module\Cron\Service\CronTaskService())->fetchCronTask(1);
                 // 返回taskList
                 $taskList = array_merge($list1 ?? [], $list2 ?? [], $list3 ?? [], $list4 ?? []);
                 if (!empty($taskList)) {
