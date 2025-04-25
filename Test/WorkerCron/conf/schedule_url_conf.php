@@ -32,13 +32,17 @@ return [
 //                ]
 //            ],
 
-
-            // 动态定时任务列表，可以存在数据库中
+            // 动态定时任务列表，读取数据库cronaTask配置模式
             'task_list' => function () {
-                return include __DIR__.'/remote_task.php';
+                $list4 = (new \Test\Module\Cron\Service\CronTaskService())->fetchCronTask(2);
+                // 返回taskList
+                $taskList = array_merge($list1 ?? [], $list2 ?? [], $list3 ?? [], $list4 ?? []);
+                if (!empty($taskList)) {
+                    return $taskList;
+                } else {
+                    return [];
+                }
             }
-
-
         ],
     ]
 ];
