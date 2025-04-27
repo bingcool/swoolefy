@@ -28,11 +28,6 @@ class CronForkProcess extends CronProcess
     const FORK_TYPE_PROC_OPEN = 'proc_open';
 
     /**
-     * @var string
-     */
-    protected $forkType = self::FORK_TYPE_PROC_OPEN;
-
-    /**
      * onInit
      * @return void
      */
@@ -120,7 +115,7 @@ class CronForkProcess extends CronProcess
 
             try {
                 CrontabManager::getInstance()->addRule($scheduleTask->cron_name, $scheduleTask->cron_expression, function () use($scheduleTask, $forkType) {
-                    $logId = uniqid();
+                    $execBatchId = uniqid();
                     $scheduleTaskItems = $scheduleTask->toArray();
                     $logger = LogManager::getInstance()->getLogger(LogManager::CRON_FORK_LOG);
                     $runner = CronForkRunner::getInstance(md5($scheduleTask->cron_name),5, $scheduleTask->cron_name);
@@ -137,7 +132,7 @@ class CronForkProcess extends CronProcess
                                     $msg = "【{$scheduleTask->cron_name}】配置项cron_between格式错误, time=".date('Y-m-d H:i:s');
                                     $logger->addInfo($msg, false, $scheduleTaskItems);
                                     $this->debug($msg);
-                                    $this->logCronTaskRuntime($scheduleTask, $logId, "【{$scheduleTask->cron_name}】配置项cron_between格式错误");
+                                    $this->logCronTaskRuntime($scheduleTask, $execBatchId, "【{$scheduleTask->cron_name}】配置项cron_between格式错误");
                                     return;
                                 }
                                 $canDue = (new BetweenFilterDto())->filter($cronBetween);
@@ -145,14 +140,14 @@ class CronForkProcess extends CronProcess
                                     $msg = "【{$scheduleTask->cron_name}】当前不在设定的允许between时间段内，不能执行任务, time=".date('Y-m-d H:i:s');
                                     $logger->addInfo($msg, false, $scheduleTaskItems);
                                     $this->debug($msg);
-                                    $this->logCronTaskRuntime($scheduleTask, $logId,"【{$scheduleTask->cron_name}】当前不在设定的允许between时间段内，不能执行任务");
+                                    $this->logCronTaskRuntime($scheduleTask, $execBatchId,"【{$scheduleTask->cron_name}】当前不在设定的允许between时间段内，不能执行任务");
                                     return;
                                 }
                             } else {
                                 $msg = "【{$scheduleTask->cron_name}】配置项cron_between格式错误, time=".date('Y-m-d H:i:s');
                                 $logger->addInfo($msg, false, $scheduleTaskItems);
                                 $this->debug($msg);
-                                $this->logCronTaskRuntime($scheduleTask, $logId, "【{$scheduleTask->cron_name}】配置项cron_between格式错误");
+                                $this->logCronTaskRuntime($scheduleTask, $execBatchId, "【{$scheduleTask->cron_name}】配置项cron_between格式错误");
                                 return;
                             }
                         }
@@ -170,7 +165,7 @@ class CronForkProcess extends CronProcess
                                     $msg = "【{$scheduleTask->cron_name}】配置项cron_skip格式错误, time=".date('Y-m-d H:i:s');
                                     $logger->addInfo($msg, false, $scheduleTaskItems);
                                     $this->debug($msg);
-                                    $this->logCronTaskRuntime($scheduleTask, $logId,"【{$scheduleTask->cron_name}】配置项cron_skip格式错误");
+                                    $this->logCronTaskRuntime($scheduleTask, $execBatchId,"【{$scheduleTask->cron_name}】配置项cron_skip格式错误");
                                     return;
                                 }
                                 $canDue = (new SkipFilterDto())->filter($cronSkip);
@@ -178,14 +173,14 @@ class CronForkProcess extends CronProcess
                                     $msg = "【{$scheduleTask->cron_name}】当前时间任务在skip时间段内,不能执行任务，time=".date('Y-m-d H:i:s');
                                     $logger->addInfo($msg, false, $scheduleTaskItems);
                                     $this->debug($msg);
-                                    $this->logCronTaskRuntime($scheduleTask, $logId,"【{$scheduleTask->cron_name}】当前时间任务在skip时间段内,不能执行任务");
+                                    $this->logCronTaskRuntime($scheduleTask, $execBatchId,"【{$scheduleTask->cron_name}】当前时间任务在skip时间段内,不能执行任务");
                                     return;
                                 }
                             } else {
                                 $msg = "【{$scheduleTask->cron_name}】配置项cron_skip格式错误, time=".date('Y-m-d H:i:s');
                                 $logger->addInfo($msg, false, $scheduleTaskItems);
                                 $this->debug($msg);
-                                $this->logCronTaskRuntime($scheduleTask, $logId,"【{$scheduleTask->cron_name}】配置项cron_skip格式错误");
+                                $this->logCronTaskRuntime($scheduleTask, $execBatchId,"【{$scheduleTask->cron_name}】配置项cron_skip格式错误");
                                 return;
                             }
                         }
@@ -220,7 +215,7 @@ class CronForkProcess extends CronProcess
                         }
                     }
 
-                    $this->logCronTaskRuntime($scheduleTask, $logId,"【{$scheduleTask->cron_name}】cron_fork任务开始执行, cron_expression=".$scheduleTask->cron_expression);
+                    $this->logCronTaskRuntime($scheduleTask, $execBatchId,"【{$scheduleTask->cron_name}】cron_fork任务开始执行, cron_expression=".$scheduleTask->cron_expression);
                     $logger->addInfo("【{$scheduleTask->cron_name}】cron_fork任务开始执行, cron_expression=".$scheduleTask->cron_expression, false, $scheduleTaskItems);
                     $this->randSleepTime($scheduleTask->cron_expression);
                     try {
@@ -233,7 +228,8 @@ class CronForkProcess extends CronProcess
                         }
                         if ($isNextHandle) {
                             if ($forkType == self::FORK_TYPE_PROC_OPEN) {
-                                $runner->procOpen($scheduleTask->exec_bin_file, $scheduleTask->exec_script, $argv, function ($pipe0, $pipe1, $pipe2, $statusProperty) use($scheduleTask) {
+                                $runner->procOpen($scheduleTask->exec_bin_file, $scheduleTask->exec_script, $argv, function ($pipe0, $pipe1, $pipe2, $statusProperty) use($scheduleTask, $execBatchId) {
+                                    $statusProperty['exec_batch_id'] = $execBatchId;
                                     $this->receiveCallBack($pipe0, $pipe1, $pipe2, $statusProperty, $scheduleTask);
                                 }, $extend);
                             }else {
@@ -247,7 +243,12 @@ class CronForkProcess extends CronProcess
                                 $logger->addInfo($msg, false, $scheduleTaskItems);
                                 $this->debug($msg);
 
-                                $this->logCronTaskRuntime($scheduleTask,$logId,"【{$scheduleTask->cron_name}】Exec进程执行结果command={$command},returnCode={$returnCode},pid={$pid}");
+                                $this->logCronTaskRuntime(
+                                    $scheduleTask,
+                                    $execBatchId,
+                                    "【{$scheduleTask->cron_name}】Exec 拉起进程执行结果command={$command},returnCode={$returnCode},pid={$pid}",
+                                    $pid
+                                );
 
                                 \Swoole\Coroutine\System::sleep(0.1);
                                 if ($returnCode == 0 || \Swoole\Process::kill($pid, 0)) {
@@ -261,7 +262,7 @@ class CronForkProcess extends CronProcess
                                 }
                             }
                             $logger->addInfo("{$scheduleTask->cron_name}】cron_fork任务fork进程成功, cron_expression=".$scheduleTask->cron_expression, false, $scheduleTaskItems);
-                            $this->logCronTaskRuntime($scheduleTask, $logId,"【{$scheduleTask->cron_name}】cron_fork任务fork进程成功, cron_expression=".$scheduleTask->cron_expression);
+                            $this->logCronTaskRuntime($scheduleTask, $execBatchId,"【{$scheduleTask->cron_name}】cron_fork任务fork进程成功, cron_expression=".$scheduleTask->cron_expression);
                         }
                     }catch (\Throwable $exception) {
                         $logger->addInfo("【{$scheduleTask->cron_name}】cron_fork进程失败, cron_expression=".$scheduleTask->cron_expression." error=".$exception->getMessage() , false, $scheduleTaskItems);
@@ -273,7 +274,7 @@ class CronForkProcess extends CronProcess
                             }
                         }
                         $this->onHandleException($exception, $scheduleTask->toArray());
-                        $this->logCronTaskRuntime($scheduleTask, $logId,"【{$scheduleTask->cron_name}】cron_fork进程失败, cron_expression=".$scheduleTask->cron_expression." error=".$exception->getMessage());
+                        $this->logCronTaskRuntime($scheduleTask, $execBatchId,"【{$scheduleTask->cron_name}】cron_fork进程失败, cron_expression=".$scheduleTask->cron_expression." error=".$exception->getMessage());
                     }
                 }, null,null, $scheduleTask->toArray());
             }catch (\Throwable $throwable) {
@@ -333,6 +334,14 @@ class CronForkProcess extends CronProcess
      */
     protected function receiveCallBack($pipe0, $pipe1, $pipe2, $statusProperty, ScheduleEvent $scheduleTask)
     {
+        if (isset($statusProperty['pid']) && $statusProperty['pid'] > 0) {
+            $this->logCronTaskRuntime(
+                $scheduleTask,
+                $statusProperty['exec_batch_id'] ?? '',
+                "PROC_OPEN 拉起脚本的进程PID={$statusProperty['pid']}",
+                $statusProperty['pid']
+            );
+        }
         // fork Process success callback handing
         if (is_callable($scheduleTask->fork_success_callback)) {
             try {

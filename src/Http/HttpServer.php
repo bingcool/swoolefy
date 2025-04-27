@@ -77,6 +77,7 @@ abstract class HttpServer extends BaseServer
         $this->webServer->on('Start', function (\Swoole\Http\Server $server) {
             try {
                 self::setMasterProcessName(self::$config['master_process_name']);
+                $this->saveCronScriptPidFile();
                 $this->startCtrl->start($server);
             } catch (\Throwable $e) {
                 self::catchException($e);

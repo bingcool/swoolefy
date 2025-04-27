@@ -11,5 +11,16 @@ interface CronTaskInterface
      */
     public function fetchCronTask(int $execType);
 
-    public function logCronTaskRuntime(ScheduleEvent|CronUrlTaskMetaDto $scheduleTask, string $logId, string $message);
+    /**
+     * @param ScheduleEvent|CronUrlTaskMetaDto $scheduleTask
+     * @param string $execBatchId
+     * @param string $message
+     * @return mixed
+     */
+    public function logCronTaskRuntime(
+        ScheduleEvent|CronUrlTaskMetaDto $scheduleTask,
+        string $execBatchId,
+        string $message,
+        int $pid = 0
+    );
 }

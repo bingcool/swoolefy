@@ -5,6 +5,7 @@ use Swoolefy\Core\Schedule\ScheduleEvent;
 use Swoolefy\Worker\Cron\CronProcess;
 use Swoolefy\Worker\Dto\CronUrlTaskMetaDto;
 use Test\Module\Cron\CronTaskEntity;
+use Test\Module\Cron\CronTaskLogEntity;
 
 class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface {
 
@@ -50,7 +51,7 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface {
         $newTaskList = [];
         foreach ($taskList as $item) {
             $cronForkTask = ScheduleEvent::load($item);
-            $cronForkTask->task_id = $item['id'];
+            $cronForkTask->cron_task_id = $item['id'];
             $cronForkTask->cron_db_log_class = static::class;
             $cronForkTask->cron_meta_origin = ScheduleEvent::CRON_META_ORIGIN_DB;
             if (!empty($item['name'])) {
@@ -88,12 +89,13 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface {
         $newTaskList = [];
         foreach ($taskList as $item) {
             $cronHttpTask = new CronUrlTaskMetaDto();
-            $cronHttpTask->task_id = $item['id'];
+            $cronHttpTask->cron_task_id = $item['id'];
             $cronHttpTask->cron_db_log_class = static::class;
             $cronHttpTask->cron_meta_origin = ScheduleEvent::CRON_META_ORIGIN_DB;
             if (!empty($item['name'])) {
                 $cronHttpTask->cron_name = $item['name'];
             }
+
             if (!empty($item['expression'])) {
                 $cronHttpTask->cron_expression = $item['expression'];
             }
@@ -132,12 +134,23 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface {
 
     /**
      * @param ScheduleEvent|CronUrlTaskMetaDto $scheduleTask
-     * @param string $logId
+     * @param string $execBatchId
      * @param string $message
      * @return void
      */
-    public function logCronTaskRuntime(ScheduleEvent|CronUrlTaskMetaDto $scheduleTask, string $logId, string $message)
+    public function logCronTaskRuntime(
+        ScheduleEvent|CronUrlTaskMetaDto $scheduleTask,
+        string $execBatchId,
+        string $message,
+        int $pid = 0,
+    )
     {
-        var_dump($logId."-----".$message);
+        CronTaskLogEntity::query()->insert([
+            'cron_id' => $scheduleTask->cron_task_id,
+            'exec_batch_id' => $execBatchId,
+            'pid' => $pid,
+            'task_item' => $scheduleTask->toArray(),
+            'message' => $message
+        ]);
     }
 }

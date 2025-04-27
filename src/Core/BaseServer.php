@@ -13,6 +13,7 @@ namespace Swoolefy\Core;
 
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Core\Memory\AtomicManager;
+use Swoolefy\Script\AbstractKernel;
 
 class BaseServer
 {
@@ -231,6 +232,22 @@ class BaseServer
 
         if (!extension_loaded('mbstring')) {
             throw new \Exception("Missing install mbstring extentions,please install it", 1);
+        }
+    }
+
+    /**
+     * cron调用script时命令中带有option参数 --schedule_model=cron ----cron_script_pid_file=xxxxxxxx
+     *
+     * @return void
+     */
+    public static function saveCronScriptPidFile()
+    {
+        if (SystemEnv::cronScheduleScriptModel()) {
+            $cronScriptPidFile = str_replace("--","", AbstractKernel::OPTION_SCHEDULE_CRON_SCRIPT_PID_FILE);
+            $pidFile = SystemEnv::getOption($cronScriptPidFile);
+            if ($pidFile) {
+                file_put_contents($pidFile, Swfy::getMasterPid());
+            }
         }
     }
 

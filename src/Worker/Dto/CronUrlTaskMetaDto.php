@@ -18,7 +18,7 @@ class CronUrlTaskMetaDto extends AbstractDto
      *
      * @var int
      */
-    public $task_id = 0;
+    public $cron_task_id = 0;
 
     /**
      * db cron task Meta配置模式下的日志入库类
