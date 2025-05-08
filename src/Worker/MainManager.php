@@ -11,7 +11,6 @@
 
 namespace Swoolefy\Worker;
 
-use phpseclib3\Crypt\EC\BaseCurves\Base;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\SystemEnv;

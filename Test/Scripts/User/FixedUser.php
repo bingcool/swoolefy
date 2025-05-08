@@ -26,7 +26,7 @@ class FixedUser extends MainCliScript
             });
         });
         var_dump('fixed:user:name');
-        RunLog::info("FixedUser");
+        //RunLog::info("FixedUser");
         goAfter(5000, function () {
             var_dump('sleep 5s name='.Context::get('name'));
         });

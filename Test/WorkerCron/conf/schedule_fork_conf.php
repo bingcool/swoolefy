@@ -1,5 +1,7 @@
 <?php
 
+use Symfony\Component\Yaml\Yaml;
+use Symfony\Component\Yaml\Exception\ParseException;
 use Test\Scripts\Kernel;
 
 // 定时fork进程处理任务
@@ -19,9 +21,28 @@ return [
 
             // 动态定时任务列表，可以存在数据库中
             'task_list' => function () {
-                $list1 = include __DIR__ . '/fork_task.php';
-                $list2 = Kernel::buildScheduleTaskList(Kernel::schedule());
-                return array_merge($list1 ?? [], $list2 ?? []);
+                //$list1 = include __DIR__ . '/fork_task.php';
+                // $list2 = Kernel::buildScheduleTaskList(Kernel::schedule());
+
+                // 读取yaml文件模式
+//                try {
+//                    $list3 = array_values(Yaml::parseFile(APP_PATH.'/cron.yaml'));
+//                }catch (ParseException $e) {
+//                    echo "YAML 解析错误: \n";
+//                    echo "文件: " . $e->getParsedFile() . "\n";
+//                    echo "行号: " . $e->getParsedLine() . "\n";
+//                    echo "详细信息: " . $e->getMessage();
+//                }
+
+                // 读取数据库cronTask配置模式
+                $list4 = (new \Test\Module\Cron\Service\CronTaskService())->fetchCronTask(1);
+                // 返回taskList
+                $taskList = array_merge($list1 ?? [], $list2 ?? [], $list3 ?? [], $list4 ?? []);
+                if (!empty($taskList)) {
+                    return $taskList;
+                } else {
+                    return [];
+                }
             }
         ],
     ],

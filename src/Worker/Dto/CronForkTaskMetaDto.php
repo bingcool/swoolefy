@@ -19,6 +19,26 @@ class CronForkTaskMetaDto extends AbstractDto
 
     const RUN_TYPE = 'swoolefy';
 
+    const CRON_META_ORIGIN_DB = 'db';
+
+    const CRON_META_ORIGIN_YAML = 'yaml';
+
+    const CRON_META_ORIGIN_PHP = 'php';
+
+    /**
+     * db cron task Meta配置模式下的数据库的任务id
+     *
+     * @var int
+     */
+    public $cron_task_id = 0;
+
+    /**
+     * db cron task Meta配置模式下的日志入库类
+     *
+     * @var string
+     */
+    public $cron_db_log_class = '';
+
     /**
      * 计划任务名称
      *
