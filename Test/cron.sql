@@ -36,7 +36,6 @@ CREATE TABLE `cron_task_log` (
     `exec_batch_id` varchar(64) NOT NULL DEFAULT '' COMMENT '每轮执行的批次id',
     `pid` int NOT NULL DEFAULT '0' COMMENT '定时脚本执行时的进程pid',
     `task_item` text DEFAULT NULL COMMENT '执行任务项meta信息',
-    `task_item` text DEFAULT NULL COMMENT '执行任务项meta信息',
     `message` text DEFAULT NULL COMMENT '运行态记录信息',
     `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
