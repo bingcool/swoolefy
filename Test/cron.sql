@@ -1,5 +1,6 @@
 CREATE TABLE `cron_task` (
     `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+    `node_id` int unsigned NOT NULL DEFAAULT '1' COMMENT '节点ID',
     `name` varchar(128) NOT NULL DEFAULT '' COMMENT '任务名称',
     `expression` varchar(128) NOT NULL DEFAULT '' COMMENT 'cron表达式',
     `command` varchar(256) NOT NULL DEFAULT '' COMMENT '执行命令',
@@ -18,6 +19,7 @@ CREATE TABLE `cron_task` (
     `deleted_at` datetime DEFAULT NULL COMMENT '删除时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uniq_name` (`name`),
+    KEY `node_id` (`node_id`),
     KEY `expression` (`expression`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='定时任务表';
 

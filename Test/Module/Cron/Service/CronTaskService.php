@@ -14,7 +14,7 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface {
      * @return array
      * @throws \Common\Library\Exception\DbException
      */
-    public function fetchCronTask(int $execType) {
+    public function fetchCronTask(int $execType, $nodeId) {
         $list = CronTaskEntity::query()->field([
             'id',
             'name',
@@ -28,6 +28,7 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface {
             'updated_at' // 此字段非常重要
         ])->where([
             'status' => 1,
+            'node_id' => $nodeId,
             'exec_type' => $execType
         ])->select()->toArray();
 

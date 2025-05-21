@@ -29,6 +29,8 @@ return [
         'fetch_type' => \PDO::FETCH_ASSOC,
         // 是否需要断线重连
         'break_reconnect' => true,
+        // 是否自动参数绑定,默认是true
+        'auto_param_bind' => true,
         // 是否支持事务嵌套
         'support_savepoint' => false,
         // sql执行日志条目设置,不能设置太大,适合调试使用,设置为0，则不使用
@@ -62,6 +64,8 @@ return [
         'fetch_type' => \PDO::FETCH_ASSOC,
         // 是否需要断线重连
         'break_reconnect' => true,
+        // 是否自动参数绑定,默认是true
+        'auto_param_bind' => true,
         // 是否支持事务嵌套
         'support_savepoint' => false,
         // sql执行日志条目设置,不能设置太大,适合调试使用,设置为0，则不使用
