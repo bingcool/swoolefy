@@ -1,5 +1,6 @@
 <?php
 
+use Swoolefy\Worker\Cron\CronProcess;
 use Symfony\Component\Yaml\Yaml;
 use Symfony\Component\Yaml\Exception\ParseException;
 use Test\Scripts\Kernel;
@@ -35,7 +36,7 @@ return [
 //                }
 
                 // 读取数据库cronTask配置模式
-                $list4 = (new \Test\Module\Cron\Service\CronTaskService())->fetchCronTask(1);
+                $list4 = (new \Test\Module\Cron\Service\CronTaskService())->fetchCronTask(CronProcess::EXEC_FORK_TYPE, env('CRON_NODE_ID'));
                 // 返回taskList
                 $taskList = array_merge($list1 ?? [], $list2 ?? [], $list3 ?? [], $list4 ?? []);
                 if (!empty($taskList)) {

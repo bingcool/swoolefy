@@ -3,6 +3,7 @@ namespace Test\Scripts\User;
 
 use Common\Library\Db\Query;
 use Test\App;
+use Test\Module\Cron\CronTaskLogEntity;
 use Test\Module\Order\OrderEntity;
 use Swoolefy\Script\MainCliScript;
 

@@ -9,7 +9,7 @@ interface CronTaskInterface
     /**
      * @return void
      */
-    public function fetchCronTask(int $execType);
+    public function fetchCronTask(int $execType, $nodeId);
 
     /**
      * @param ScheduleEvent|CronUrlTaskMetaDto $scheduleTask

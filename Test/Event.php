@@ -23,7 +23,7 @@ class Event extends EventHandler
     public function onInit()
     {
         // 注册慢sql的宏函数处理
-        PDOConnection::registerSlowSqlFn(0.1, function ($runTime, $realSql, $traceId) {
+        PDOConnection::registerSlowSqlFn(1, function ($runTime, $realSql, $traceId) {
             var_dump("链路ID： $traceId, slow sql 耗时：$runTime, sql：$realSql");
         });
 
