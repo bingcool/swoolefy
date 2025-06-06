@@ -112,10 +112,6 @@ class CronUrlProcess extends CronProcess
                             }
                         }
 
-                        $msg = "【{$cron_name}】远程请求url定时任务执行成功，url={$scheduleUrlTask->url}";
-                        $logger->addInfo($msg);
-                        $this->logCronTaskRuntime($scheduleUrlTask, $execBatchId, $msg);
-
                         $httpClient = new CurlHttpClient();
                         $httpClient->setOptionArray($scheduleUrlTask->options ?? []);
                         $httpClient->setHeaderArray($scheduleUrlTask->headers ?? []);
@@ -127,7 +123,9 @@ class CronUrlProcess extends CronProcess
                             $scheduleUrlTask->request_time_out ?? 120,
                         );
 
-                        $responseLogMsg = "【{$cron_name}】response_callback-远程请求执行响应逻辑，url={$scheduleUrlTask->url}";
+                        $msg = "【{$cron_name}】远程请求url定时任务执行成功，url={$scheduleUrlTask->url}";
+                        $logger->addInfo($msg);
+                        $this->logCronTaskRuntime($scheduleUrlTask, $execBatchId, $msg);
 
                         if (is_object($rawResponse)) {
                             $responseResult = $rawResponse->getBody();
@@ -135,6 +133,7 @@ class CronUrlProcess extends CronProcess
                             $this->logCronTaskRuntime($scheduleUrlTask, $execBatchId, $msg);
                         }
 
+                        $responseLogMsg = "【{$cron_name}】response_callback-远程请求执行响应逻辑，url={$scheduleUrlTask->url}";
                         if (is_array($scheduleUrlTask->response_callback) && count($scheduleUrlTask->response_callback) == 2) {
                             $logger->addInfo($responseLogMsg);
                             list($class, $action) = $scheduleUrlTask->response_callback;
@@ -156,7 +155,9 @@ class CronUrlProcess extends CronProcess
                     }catch (\Throwable $throwable) {
                         $errorMsg= sprintf("【{$cron_name}】远程请求定时任务处理报错，url={$scheduleUrlTask->url},error=%s, trace=%s", $throwable->getMessage(), $throwable->getTraceAsString());
                         $logger->addError($errorMsg);
-                        $this->logCronTaskRuntime($scheduleUrlTask, $execBatchId, $errorMsg);
+
+                        $recordMsg = sprintf("【{$cron_name}】远程请求定时任务处理报错，url={$scheduleUrlTask->url},error=%s", $throwable->getMessage());
+                        $this->logCronTaskRuntime($scheduleUrlTask, $execBatchId, $recordMsg);
                         throw $throwable;
                     }
                 });
