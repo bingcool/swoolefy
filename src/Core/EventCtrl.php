@@ -480,8 +480,10 @@ class EventCtrl implements EventCtrlInterface
             $consoleStyleIo->write("<info>Cli Script Start:</info>",true);
         }
 
-        // @see \Swoolefy\Worker\AbstractBaseWorker::writeStartFormatInfo()
-        self::consoleTableReader(['服务应用','环境', '进程类型','进程名称', 'master_pid','当前pid', '当前workerId'], []);
+        if (SystemEnv::isWorkerService()) {
+            // @see \Swoolefy\Worker\AbstractBaseWorker::writeStartFormatInfo()
+            self::consoleTableReader(['服务应用','环境', '进程类型','进程名称', 'master_pid','当前pid', '当前workerId'], []);
+        }
 
         if (SystemEnv::isDaemon() && !SystemEnv::isScriptService()) {
             SystemEnv::formatPrintStartLog();
