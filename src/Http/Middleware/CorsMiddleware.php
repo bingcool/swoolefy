@@ -35,7 +35,7 @@ class CorsMiddleware implements RouteMiddleware
            return false;
         }
 
-        if (!$requestInput->hasHeader('origin')) {
+        if (!in_array('*', $this->options['allowedOrigins']) && !$requestInput->hasHeader('origin')) {
             $responseOutput->withStatus(403)->getSwooleResponse()->end('403 Forbidden Of `Origin` header not present');
             return false;
         }
@@ -108,9 +108,12 @@ class CorsMiddleware implements RouteMiddleware
         $origin = $requestInput->hasHeader('origin');
         if (in_array('*', $this->options['allowedOrigins']) && !$this->options['supportsCredentials']) {
             $responseOutput->withHeader("Access-Control-Allow-Origin", '*');
-        }else if (in_array($origin, $this->options['allowedOrigins']) && count($this->options['allowedOrigins']) == 1) {
+        } else if (in_array($origin, $this->options['allowedOrigins']) && count($this->options['allowedOrigins']) == 1) {
             $responseOutput->withHeader("Access-Control-Allow-Origin", $origin);
         }
+
+        // 动态设置Origin时必须添加Vary头
+        $responseOutput->withHeader("Vary", 'Origin');
 
         $responseOutput->withHeader("Access-Control-Allow-Methods", implode(', ', $this->options['allowedMethods']));
         $responseOutput->withHeader("Access-Control-Allow-Headers", implode(', ', $this->options['allowedHeaders']));
