@@ -40,7 +40,8 @@
         "symfony/translation": "6.4.x-dev",
         "zircote/swagger-php": "4.8.7",
         "bingcool/library": "dev-master",
-        "symfony/yaml": "7.3.x-dev"
+        "symfony/yaml": "7.3.x-dev",
+        "guzzlehttp/guzzle": "8.0.x-dev"
     },
     "autoload": {
         "files": ["src/Constants.php","src/Core/Func/function.php"],

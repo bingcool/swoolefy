@@ -1,6 +1,7 @@
 <?php
 
 include __DIR__.'/vendor/autoload.php';
+date_default_timezone_set('Asia/Shanghai');
 
 $appName = ucfirst($_SERVER['argv'][2]);
 // 定义app name
@@ -47,8 +48,6 @@ define('WORKER_STATUS_FILE',WORKER_PID_FILE_ROOT.'/status.log');
 define('WORKER_CTL_LOG_FILE',WORKER_PID_FILE_ROOT.'/ctl.log');
 define('CLI_TO_WORKER_PIPE',WORKER_PID_FILE_ROOT.'/cli.pipe');
 define('WORKER_TO_CLI_PIPE',WORKER_PID_FILE_ROOT.'/ctl.pipe');
-
-date_default_timezone_set('Asia/Shanghai');
 
 // script 为空即可
 define('PROCESS_CLASS', []);

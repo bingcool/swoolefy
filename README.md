@@ -159,6 +159,7 @@ composer create-project bingcool/swoolefy:^6.0 myproject
 <?php
 // 在myproject目录下添加cli.php, 这个是启动项目的入口文件
 
+date_default_timezone_set('Asia/Shanghai');
 include __DIR__.'/vendor/autoload.php';
 
 $appName = ucfirst($_SERVER['argv'][2]);
@@ -185,7 +186,6 @@ define('WORKER_PID_FILE_ROOT', '/tmp/workerfy/log/'.WORKER_SERVICE_NAME);
 define('WORKER_CTL_LOG_FILE',WORKER_PID_FILE_ROOT.'/ctl.log'); 
 define('SERVER_START_LOG_JSON_FILE', WORKER_PID_FILE_ROOT.'/start.json');
 
-date_default_timezone_set('Asia/Shanghai');
 // 你的项目命名为App，对应协议为http协议服务器，支持多个项目的，只需要在这里添加好项目名称与对应的协议即可
 define('APP_META_ARR', [
     'Test' => [

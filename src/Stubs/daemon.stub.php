@@ -1,6 +1,7 @@
 <?php
 // workerService 模式下要关闭opcache.enable_cli，开启后主要影响是include不会再从磁盘加载，可能会影响某些功能
 include __DIR__.'/vendor/autoload.php';
+date_default_timezone_set('Asia/Shanghai');
 
 $appName = ucfirst($_SERVER['argv'][2]);
 // 定义app name
@@ -46,7 +47,6 @@ define('WORKER_TO_CLI_PIPE',WORKER_PID_FILE_ROOT.'/ctl.pipe');
 define('WORKER_CTL_CONF_FILE',WORKER_PID_FILE_ROOT.'/confctl.json');
 define('SERVER_START_LOG_JSON_FILE', WORKER_PID_FILE_ROOT.'/start.json');
 
-date_default_timezone_set('Asia/Shanghai');
 // 定义配置文件
 define('WORKER_CONF_FILE', __DIR__.'/'.$appName.'/WorkerDaemon/worker_daemon_conf.php');
 // 启动前处理,比如加载.env
