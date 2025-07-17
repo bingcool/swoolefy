@@ -55,7 +55,7 @@ class OrderProcessDatahub extends \Swoolefy\Worker\AbstractWorkerProcess
 
                         // 没有数据
                         if (isset($result['recordCount']) && $result['recordCount'] == 0) {
-                            $this->fmtWriteError('没有数据');
+                            $this->fmtWriteInfo('没有数据');
                             sleep(10);
                             break;
                         }

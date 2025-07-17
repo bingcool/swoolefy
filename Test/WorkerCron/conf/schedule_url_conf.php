@@ -14,37 +14,21 @@ return [
         'extend_data' => [],
         'args' => [
             // 定时任务列表
-//            'task_list' => [
-//                // fork task
-//                [
-//                    'cron_name' => 'send message', // 发送短信
-//                    'url'   => 'http://www.baidu.com',
-//                    'method' => 'get',
-//                    'connect_time_out' => 10, //连接对方主机最长等待时间
-//                    'curl_time_out' => 15, // 整个请求最长等待总时间，要比connection_time_out大
-//                    'options' => [], // curl option
-//                    'headers' => [], // 请求头
-//                    'params' => [], // post参数
-////                    'callback' => function(RawResponse $response) {
-////                        (new \Test\WorkerCron\CurlQuery\RemoteUrl())->handle($response);
-////                    },
-//                    'callback' => [\Test\WorkerCron\CurlQuery\RemoteUrl::class, 'handle'],
-//                    'cron_expression' => 10, // 10s执行一次
-//                    //'cron_expression' => '*/1 * * * *', // 每分钟执行一次
-//                ]
-//            ],
+            'task_list' => array_merge(
+                require_once __DIR__.'/remote_task.php',
+            )
 
             // 动态定时任务列表，读取数据库cronaTask配置模式
-            'task_list' => function () {
-                $list4 = (new \Test\Module\Cron\Service\CronTaskService())->fetchCronTask(CronProcess::EXEC_URL_TYPE, env('CRON_NODE_ID'));
-                // 返回taskList
-                $taskList = array_merge($list1 ?? [], $list2 ?? [], $list3 ?? [], $list4 ?? []);
-                if (!empty($taskList)) {
-                    return $taskList;
-                } else {
-                    return [];
-                }
-            }
+//            'task_list' => function () {
+//                $list4 = (new \Test\Module\Cron\Service\CronTaskService())->fetchCronTask(CronProcess::EXEC_URL_TYPE, env('CRON_NODE_ID'));
+//                // 返回taskList
+//                $taskList = array_merge($list1 ?? [], $list2 ?? [], $list3 ?? [], $list4 ?? []);
+//                if (!empty($taskList)) {
+//                    return $taskList;
+//                } else {
+//                    return [];
+//                }
+//            }
         ],
     ]
 ];
