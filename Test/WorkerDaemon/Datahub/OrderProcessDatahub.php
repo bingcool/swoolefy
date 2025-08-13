@@ -55,7 +55,7 @@ class OrderProcessDatahub extends \Swoolefy\Worker\AbstractWorkerProcess
 
                         // 没有数据
                         if (isset($result['recordCount']) && $result['recordCount'] == 0) {
-                            $this->fmtWriteInfo('没有数据');
+                            $this->fmtWriteInfo('datahub没有数据');
                             sleep(10);
                             break;
                         }
@@ -80,6 +80,7 @@ class OrderProcessDatahub extends \Swoolefy\Worker\AbstractWorkerProcess
                                 }
                             } catch (\Throwable $exception) {
                                 $this->fmtWriteError("for循环处理异常：".$exception->getMessage());
+                                // todo 记录异常信息入库,是否需要二次处理
                                 sleep(5);
                             } finally {
                                 // 业务处理完毕，自动提交
