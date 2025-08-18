@@ -127,7 +127,7 @@ abstract class HttpServer extends BaseServer
                 return true;
             }
 
-            if(SystemEnv::isWorkerService()) {
+            if (SystemEnv::isWorkerService()) {
                 if ((SystemEnv::isCronService() || SystemEnv::isDaemonService()) && self::isHttpApp()) {
                     goApp(function () use($request, $response) {
                         (new CtlApi($request, $response))->handle();
@@ -136,13 +136,20 @@ abstract class HttpServer extends BaseServer
                 }
             }else {
                 try {
-                    $traceId = $request->header['trace-id'] ?? Helper::UUid();
+                    /**
+                     * @var \OpenTelemetry\SDK\Trace\Span $span
+                     */
+                    list ($span, $scope, $traceId) = $this->startOpenTelemetry($request);
+                    if (empty($traceId)) {
+                        $traceId = $request->header['trace-id'] ?? Helper::UUid();
+                    }
                     \Swoolefy\Core\Coroutine\Context::set('trace-id', $traceId);
-                    parent::beforeHandle();
                     static::onRequest($request, $response);
+                    isset($span) && $this->endOpenTelemetry($span, $scope);
                     return true;
                 } catch (\Throwable $e) {
                     self::catchException($e);
+                    isset($span) && $this->errorOpenTelemetry($span, $scope, $e);
                 }
             }
         });

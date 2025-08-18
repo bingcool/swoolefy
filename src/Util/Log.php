@@ -207,7 +207,7 @@ class Log
         }
 
         if ($this->hourly) {
-            $hour = date('H', time());
+            $hour = join("",[date('H', time()), 'h']);
             $fileName = $fileInfo['filename'].'-'.$hour.'.'.$fileInfo['extension'];
         }else {
             $fileName = $fileInfo['filename'].'.'.$fileInfo['extension'];
@@ -399,17 +399,7 @@ class Log
             }
         };
 
-        if (\Swoole\Coroutine::getCid() > 0) {
-            $arrayCopy = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
-            \Swoole\Coroutine::create(function () use ($callable, $arrayCopy) {
-                foreach ($arrayCopy as $key=>$value) {
-                    \Swoolefy\Core\Coroutine\Context::set($key, $value);
-                }
-                call_user_func($callable);
-            });
-        } else {
-            call_user_func($callable);
-        }
+        call_user_func($callable);
     }
 
     /**
