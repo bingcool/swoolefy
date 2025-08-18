@@ -2,8 +2,7 @@
 namespace Test\Module\Order\Controller;
 
 use Common\Library\Db\Query;
-use phpseclib3\Math\PrimeField\Integer;
-use Swoolefy\Core\Application;
+use GuzzleHttp\Client;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Http\RequestInput;
 use Test\App;
@@ -11,7 +10,6 @@ use Test\Logger\RunLog;
 use Test\Module\Order\Dto\UserOrderDto\UserListDto;
 use Test\Module\Order\OrderEntity;
 use Test\Module\Order\OrderList;
-use OpenApi\Attributes as OA;
 
 class UserOrderController extends BController
 {
@@ -67,6 +65,15 @@ class UserOrderController extends BController
             $count = $orderList->total();
             $list  = $orderList->find();
         });
+
+
+        RunLog::info("userList userList userList");
+
+        $client = new Client([
+            'base_uri' => 'https://www.baidu.com',
+        ]);
+
+        $client->get('/', []);
 
         $this->returnJson([
             'total' => $count ?? 0,

@@ -54,7 +54,8 @@ docker run -d -it --name=swoolefy-php83-v6 swoolefy-php83-swoole6:v1
 - [x] 支持DI容器，组件IOC、配置化，Channel公共组件池            
 - [x] 支持协程单例注册,协程上下文变量寄存    
 - [x] 支持mysql、postgreSql、redis协程组件   
-- [x] 支持全局logger组件、trace链路追踪组件     
+- [x] 支持全局logger组件，包括system log, runtime log,  request log, sql log     
+- [x] 支持opentelemetry的trace链路追踪组件        
 - [x] 支持分布式锁组件       
 - [x] 支持滑动窗口的流量速率组件        
 - [x] 支持mysql协程连接池

@@ -1,6 +1,9 @@
 <?php
 namespace Test\Controller;
 
+use GuzzleHttp\Client;
+use http\Header;
+use OpenTelemetry\SDK\Common\Http\Psr\Client\Discovery\Guzzle;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\EventController;
@@ -19,7 +22,23 @@ class IndexController extends BController {
 
     public function index()
     {
+
+
         RunLog::info('test11111-log-id='.rand(1,1000),['name'=>'bingcoolhuang'], true);
+
+        $client = new Client([
+            'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+        ]);
+
+        $client->request('GET', 'http://127.0.0.1:9501/user/user-order/userList?name=bingcool',[
+            'headers' => [
+                'User-Agent' => 'MyApp/1.0',         // 自定义 User-Agent
+                'Authorization' => 'Bearer YOUR_TOKEN', // 认证头
+                'X-Custom-Header' => 'value',        // 自定义头
+                'Accept' => 'application/json',      // 指定响应格式
+            ],
+        ]);
+
         Application::getApp()->swooleResponse->status(200);
         Application::getApp()->swooleResponse->write('<h1>Hello, Welcome to Swoolefy Framework! <h1>');
     }

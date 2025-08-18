@@ -11,6 +11,11 @@
 
 namespace Swoolefy\Http;
 
+use OpenTelemetry\API\Globals;
+use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
+use OpenTelemetry\API\Trace\SpanKind;
+use OpenTelemetry\API\Trace\StatusCode;
+use Common\Library\OpenTelemetry\SemConv\TraceAttributes;
 use Swoole\Http\Server;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
@@ -50,6 +55,85 @@ abstract class HttpAppServer extends HttpServer
         $appInstance = new \Swoolefy\Core\App(Swfy::getAppConf());
         $appInstance->run($request, $response);
         return true;
+    }
+
+    /**
+     * @param Request $request
+     * @return array
+     */
+    protected function startOpenTelemetry(Request $request)
+    {
+        if (!env('OTEL_PHP_AUTOLOAD_ENABLED', false)) {
+            return [null, null, null];
+        }
+
+        $tracer = Globals::tracerProvider()->getTracer(env('OTEL_TRACING_NAME','swoolefy-http-request'), '1.0.0');
+        $route = $request->server['path_info'] ?? '';
+        $method = $request->server['request_method'] ?? '';
+        $inputBody = $queryParams = [];
+        if ($method == 'POST' || $method == 'PUT' || $method == 'DELETE') {
+            $post = $request->post ?? [];
+            $input = json_decode($request->rawContent(), true) ?? [];
+            $inputBody = array_merge($post, $input);
+        }else if ($method == 'GET') {
+            $queryParams = $request->get ?? [];
+        }
+        $carrier = $request->header;
+        $parentContext = TraceContextPropagator::getInstance()->extract($carrier);
+        $spanName = $route ? sprintf("%s %s %s (server)", "HTTP", $method, $route) : sprintf("%s %s %s (server)", "HTTP", $method, "/");
+        $span = $tracer->spanBuilder($spanName)
+            ->setSpanKind(SpanKind::KIND_SERVER)
+            ->setParent($parentContext)
+            ->startSpan()
+            ->setAttribute(TraceAttributes::HTTP_REQUEST_METHOD, $method)
+            ->setAttribute(TraceAttributes::URL_PATH, $route)
+            ->setAttribute(TraceAttributes::HTTP_REQUEST_BODY, json_encode($inputBody, JSON_UNESCAPED_UNICODE))
+            ->setAttribute(TraceAttributes::HTTP_REQUEST_HEADERS, json_encode($request->header, JSON_UNESCAPED_UNICODE))
+            ->setAttribute(TraceAttributes::HTTP_REQUEST_QUERY_PARAMS, json_encode($queryParams, JSON_UNESCAPED_UNICODE))
+            ->setAttribute(TraceAttributes::HTTP_USER_AGENT, $headers['User-Agent'] ?? 'unknown')
+            ->setAttribute(TraceAttributes::HTTP_USER_AGENT, $headers['User-Agent'] ?? 'unknown')
+            ->setAttribute(TraceAttributes::SERVER_ADDRESS, gethostname())
+        ;
+        $scope = $span->activate();
+        $traceId = $span->getContext()->getTraceId();
+        return  [$span, $scope, $traceId];
+    }
+
+    /**
+     * @param $span
+     * @param $scope
+     * @return void
+     */
+    protected function endOpenTelemetry($span, $scope)
+    {
+        if (!env('OTEL_PHP_AUTOLOAD_ENABLED', false)) {
+            return;
+        }
+        $span->setStatus(StatusCode::STATUS_OK, "Successful");
+        $scope->detach();
+        $span->end();
+    }
+
+    /**
+     * @param $span
+     * @param $scope
+     * @param $exception
+     * @return void
+     */
+    protected function errorOpenTelemetry($span, $scope, $exception)
+    {
+        if (!env('OTEL_PHP_AUTOLOAD_ENABLED', false)) {
+            return;
+        }
+        /**
+         * @var \OpenTelemetry\SDK\Trace\Span $span
+         */
+        if ($exception) {
+            $span->recordException($exception);
+            $span->setStatus(StatusCode::STATUS_ERROR, $exception->getMessage());
+            $scope->detach();
+            $span->end();
+        }
     }
 
     /**
