@@ -419,6 +419,7 @@ class Log
                 $records['trace_id'] = Context::get('trace-id');
             }
         }
+        $records['method'] = '';
         $records['route'] = '';
         $records['handle_class'] = (string) getenv('handle_class');
         $records['request_params'] = [];
@@ -431,6 +432,7 @@ class Log
             $records['process'] = 'cli_worker';
             if ($App instanceof App) {
                 $requestInput = $App->requestInput;
+                $records['method'] = $requestInput->getMethod();
                 $records['route'] = $requestInput->getRequestUri();
                 $records['request_params'] = $requestInput->getRequestParams();
             }else if ($App instanceof Swoole) {
