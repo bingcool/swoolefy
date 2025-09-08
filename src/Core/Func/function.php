@@ -190,6 +190,9 @@ function goApp(callable $callback, ...$params) {
     $contextData = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
     return \Swoole\Coroutine::create(function () use($callback, $params, $contextData) {
         foreach ($contextData as $key=>$value) {
+            if (is_object($value)) {
+                continue;
+            }
             \Swoolefy\Core\Coroutine\Context::set($key, $value);
         }
         (new \Swoolefy\Core\EventApp)->registerApp(function($event) use($callback, $params) {

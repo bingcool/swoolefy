@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Websocket;
 
+use Common\Library\CurlProxy\OpentelemetryMiddleware;
 use Swoole\WebSocket\Frame;
 use Swoolefy\Core\EventApp;
 use Swoole\Http\Request;
@@ -150,7 +151,7 @@ abstract class WebsocketServer extends BaseServer
          */
         $this->webServer->on('message', function (\Swoole\WebSocket\Server $server, Frame $frame) {
             try {
-                \Swoolefy\Core\Coroutine\Context::set('trace-id', Helper::UUid());
+                \Swoolefy\Core\Coroutine\Context::set(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID, Helper::UUid());
                 parent::beforeHandle();
                 static::onMessage($server, $frame);
                 return true;

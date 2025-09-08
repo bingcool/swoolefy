@@ -30,8 +30,8 @@ return [
     'runtime_enable_coroutine' => true,
 
     'setting' => [
-        'reactor_num'            => 4,
-        'worker_num'             => 4,
+        'reactor_num'            => 2,
+        'worker_num'             => 1,
         'max_request'            => 20000,
         'task_worker_num'        => 1,
         'task_tmpdir'            => '/dev/shm',

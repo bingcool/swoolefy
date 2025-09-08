@@ -66,14 +66,45 @@ class UserOrderController extends BController
             $list  = $orderList->find();
         });
 
+//        goApp(function () {
+//            $client = new Client([
+//                'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+//            ]);
+//            $client->request('GET', 'http://127.0.0.1:9501/user/user-order/userList1?name=bingcool',[
+//                'headers' => [
+//                    'User-Agent' => 'MyApp/1.0',         // 自定义 User-Agent
+//                    'Authorization' => 'Bearer YOUR_TOKEN', // 认证头
+//                    'X-Custom-Header' => 'value',        // 自定义头
+//                    'Accept' => 'application/json',      // 指定响应格式
+//                ],
+//            ]);
+//        });
+
+        $client = new Client([
+                'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+            ]);
+        $client->request('GET', 'http://127.0.0.1:9501/user/user-order/userList1?name=bingcool',[
+            'headers' => [
+                'User-Agent' => 'MyApp/1.0',         // 自定义 User-Agent
+                'Authorization' => 'Bearer YOUR_TOKEN', // 认证头
+                'X-Custom-Header' => 'value',        // 自定义头
+                'Accept' => 'application/json',      // 指定响应格式
+            ],
+        ]);
 
         RunLog::info("userList userList userList");
 
-        $client = new Client([
-            'base_uri' => 'https://www.baidu.com',
-        ]);
+//        goApp(function () {
+//            (new Client([
+//                'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+//                'base_uri' => 'https://www.baidu.com',
+//            ]))->get('/', []);
+//        });
 
-        $client->get('/', []);
+       (new Client([
+            'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+            'base_uri' => 'https://www.baidu.com',
+        ]))->get('/', []);
 
         $this->returnJson([
             'total' => $count ?? 0,

@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Util;
 
+use Common\Library\CurlProxy\OpentelemetryMiddleware;
 use Swoolefy\Core\App;
 use Swoolefy\Core\Log\Formatter\JsonFormatter;
 use Swoolefy\Core\Log\Formatter\NormalizerFormatter;
@@ -20,7 +21,7 @@ use Swoolefy\Core\Log\Logger;
 use Swoolefy\Core\Log\StreamHandler;
 use Swoolefy\Core\Swoole;
 use Swoolefy\Core\SystemEnv;
-use Swoolefy\Core\Coroutine\Context;
+use Swoolefy\Core\Coroutine\Context as SwooleContext;
 
 /**
  * Class Log
@@ -415,8 +416,8 @@ class Log
         $records['trace_id'] = '';
         $cid = \Swoole\Coroutine::getCid();
         if ($cid >= 0) {
-            if (Context::has('trace-id')) {
-                $records['trace_id'] = Context::get('trace-id');
+            if (SwooleContext::has(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID)) {
+                $records['trace_id'] = SwooleContext::get(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID);
             }
         }
         $records['method'] = '';

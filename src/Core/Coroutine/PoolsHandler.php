@@ -239,9 +239,11 @@ class PoolsHandler
     {
         try {
             $obj = $this->getObj();
-            is_object($obj) && $this->callCount++;
-            $targetObj = $obj->getObject();
-            if ($targetObj instanceof PDOConnection) {
+            if (is_object($obj)) {
+                $this->callCount++;
+                $targetObj = $obj->getObject();
+            }
+            if (isset($targetObj) && $targetObj instanceof PDOConnection) {
                 $targetObj->enableDynamicDebug();
             }
             return $obj;

@@ -11,10 +11,12 @@
 
 namespace Swoolefy\Http;
 
-use OpenTelemetry\API\Globals;
-use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
-use OpenTelemetry\API\Trace\SpanKind;
-use OpenTelemetry\API\Trace\StatusCode;
+use Common\Library\OpenTelemetry\HttpEntryInstrumentation;
+use Common\Library\OpenTelemetry\API\Globals;
+use Common\Library\OpenTelemetry\API\Instrumentation\Configurator;
+use Common\Library\OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
+use Common\Library\OpenTelemetry\API\Trace\SpanKind;
+use Common\Library\OpenTelemetry\API\Trace\StatusCode;
 use Common\Library\OpenTelemetry\SemConv\TraceAttributes;
 use Swoole\Http\Server;
 use Swoole\Http\Request;
@@ -64,19 +66,27 @@ abstract class HttpAppServer extends HttpServer
     protected function startOpenTelemetry(Request $request)
     {
         if (!env('OTEL_PHP_AUTOLOAD_ENABLED', false)) {
-            return [null, null, null];
+            return [null, null, null, null];
         }
+
+        $provider = HttpEntryInstrumentation::register(true);
+        Configurator::create()->withTracerProvider($provider)->activate();
 
         $tracer = Globals::tracerProvider()->getTracer(env('OTEL_TRACING_NAME','swoolefy-http-request'), '1.0.0');
         $route = $request->server['path_info'] ?? '';
         $method = $request->server['request_method'] ?? '';
-        $inputBody = $queryParams = [];
+        $inputBody = [];
         if ($method == 'POST' || $method == 'PUT' || $method == 'DELETE') {
             $post = $request->post ?? [];
             $input = json_decode($request->rawContent(), true) ?? [];
             $inputBody = array_merge($post, $input);
         }else if ($method == 'GET') {
             $queryParams = $request->get ?? [];
+            $queryString = "";
+            foreach ($queryParams as $key => $value) {
+                $queryString .= $key . "=" . $value . "&";
+            }
+            $queryString = rtrim($queryString, "&");
         }
         $carrier = $request->header;
         $parentContext = TraceContextPropagator::getInstance()->extract($carrier);
@@ -85,18 +95,25 @@ abstract class HttpAppServer extends HttpServer
             ->setSpanKind(SpanKind::KIND_SERVER)
             ->setParent($parentContext)
             ->startSpan()
+            ->setAttribute(TraceAttributes::COROUTINE_ID, \Swoole\Coroutine::getCid())
             ->setAttribute(TraceAttributes::HTTP_REQUEST_METHOD, $method)
             ->setAttribute(TraceAttributes::URL_PATH, $route)
             ->setAttribute(TraceAttributes::HTTP_REQUEST_BODY, json_encode($inputBody, JSON_UNESCAPED_UNICODE))
             ->setAttribute(TraceAttributes::HTTP_REQUEST_HEADERS, json_encode($request->header, JSON_UNESCAPED_UNICODE))
-            ->setAttribute(TraceAttributes::HTTP_REQUEST_QUERY_PARAMS, json_encode($queryParams, JSON_UNESCAPED_UNICODE))
+            ->setAttribute(TraceAttributes::HTTP_REQUEST_QUERY_PARAMS, $queryString)
             ->setAttribute(TraceAttributes::HTTP_USER_AGENT, $headers['User-Agent'] ?? 'unknown')
             ->setAttribute(TraceAttributes::HTTP_USER_AGENT, $headers['User-Agent'] ?? 'unknown')
             ->setAttribute(TraceAttributes::SERVER_ADDRESS, gethostname())
         ;
         $scope = $span->activate();
         $traceId = $span->getContext()->getTraceId();
-        return  [$span, $scope, $traceId];
+        if (isset($carrier[TraceContextPropagator::TRACEPARENT])) {
+            $traceparent = $carrier[TraceContextPropagator::TRACEPARENT];
+        }else {
+            // {version}-{trace-id}-{parent-id}-{trace-flags}
+            $traceparent = join('-', ["00", $traceId, $span->getContext()->getSpanId(), $span->getContext()->getTraceFlags() ? "01" : "00"]);
+        }
+        return  [$span, $scope, $traceId, $traceparent ?? ""];
     }
 
     /**
@@ -109,6 +126,9 @@ abstract class HttpAppServer extends HttpServer
         if (!env('OTEL_PHP_AUTOLOAD_ENABLED', false)) {
             return;
         }
+        /**
+         * @var \Common\Library\OpenTelemetry\SDK\Trace\Span $span
+         */
         $span->setStatus(StatusCode::STATUS_OK, "Successful");
         $scope->detach();
         $span->end();
@@ -126,7 +146,7 @@ abstract class HttpAppServer extends HttpServer
             return;
         }
         /**
-         * @var \OpenTelemetry\SDK\Trace\Span $span
+         * @var \Common\Library\OpenTelemetry\SDK\Trace\Span $span
          */
         if ($exception) {
             $span->recordException($exception);
