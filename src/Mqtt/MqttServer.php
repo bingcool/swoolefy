@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Mqtt;
 
+use Common\Library\CurlProxy\OpentelemetryMiddleware;
 use Swoole\Server;
 use Swoolefy\Util\Helper;
 use Swoolefy\Core\BaseServer;
@@ -140,7 +141,7 @@ abstract class MqttServer extends BaseServer
         $this->mqttServer->on('receive', function (\Swoole\Server $server, $fd, $reactor_id, $data) {
             try {
                 $traceId = Helper::UUid();
-                \Swoolefy\Core\Coroutine\Context::set('trace-id', $traceId);
+                \Swoolefy\Core\Coroutine\Context::set('OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID', $traceId);
                 static::onReceive($server, $fd, $reactor_id, $data);
                 return true;
             } catch (\Throwable $e) {

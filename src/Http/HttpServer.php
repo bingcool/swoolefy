@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Http;
 
+use Common\Library\CurlProxy\OpentelemetryMiddleware;
 use Swoolefy\Core\EventApp;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
@@ -18,6 +19,7 @@ use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Util\Helper;
 use Swoolefy\Worker\CtlApi;
+use Swoolefy\Core\Coroutine\Context as SwooleContext;
 
 abstract class HttpServer extends BaseServer
 {
@@ -137,13 +139,14 @@ abstract class HttpServer extends BaseServer
             }else {
                 try {
                     /**
-                     * @var \OpenTelemetry\SDK\Trace\Span $span
+                     * @var \Common\Library\OpenTelemetry\SDK\Trace\Span $span
                      */
-                    list ($span, $scope, $traceId) = $this->startOpenTelemetry($request);
+                    list ($span, $scope, $traceId, $traceparent) = $this->startOpenTelemetry($request);
                     if (empty($traceId)) {
-                        $traceId = $request->header['trace-id'] ?? Helper::UUid();
+                        $traceId = $request->header[OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID] ?? Helper::UUid();
                     }
-                    \Swoolefy\Core\Coroutine\Context::set('trace-id', $traceId);
+                    SwooleContext::set(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID, $traceId);
+                    SwooleContext::set(OpentelemetryMiddleware::OPENTELEMETRY_TRACEPARENT_ID, $traceparent ?? "");
                     static::onRequest($request, $response);
                     isset($span) && $this->endOpenTelemetry($span, $scope);
                     return true;

@@ -39,7 +39,7 @@
         "symfony/console": "~6.4.2",
         "symfony/translation": "6.4.x-dev",
         "zircote/swagger-php": "4.8.7",
-        "bingcool/library": "dev-master",
+        "bingcool/library": "dev-library-6.x",
         "symfony/yaml": "7.3.x-dev",
         "guzzlehttp/guzzle": "~7.9.3"
     },
@@ -53,5 +53,17 @@
         "kwn/php-rdkafka-stubs": "dev-master",
         "swoole/ide-helper": "dev-master",
         "viest/php-ext-xlswriter-ide-helper": "dev-master"
+    },
+    "repositories": {
+        "bingcool/library": {
+            "type": "path",
+            "url": "../library"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": false,
+            "tbachert/spi": false
+        }
     }
 }

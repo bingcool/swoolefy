@@ -59,7 +59,7 @@ Route::group([
             $requestInput->input('order_ids');
             $requestInput->getMethod();
         },
-        'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList'],
+        'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList1'],
         'afterMiddleware' => [
             SendMailMiddleware::class
         ]

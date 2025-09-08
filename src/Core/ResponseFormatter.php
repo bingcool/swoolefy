@@ -11,7 +11,8 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Coroutine\Context;
+use Common\Library\CurlProxy\OpentelemetryMiddleware;
+use Swoolefy\Core\Coroutine\Context as SwooleContext;
 use Swoolefy\Core\Dto\BaseResponseDto;
 
 class ResponseFormatter
@@ -43,8 +44,8 @@ class ResponseFormatter
         $responseDto = new BaseResponseDto();
         $responseDto->code = $code;
         $responseDto->msg  = $msg;
-        if (Context::has('trace-id')) {
-            $responseDto->trace_id = Context::get('trace-id');
+        if (SwooleContext::has(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID)) {
+            $responseDto->trace_id = SwooleContext::get(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID);
         }
         $responseDto->data = $data;
         return $responseDto;

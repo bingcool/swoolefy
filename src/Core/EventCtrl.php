@@ -11,8 +11,6 @@
 
 namespace Swoolefy\Core;
 
-use Common\Library\OpenTelemetry\GuzzleAutoInstrumentation\GuzzleInstrumentation;
-use Common\Library\OpenTelemetry\HttpEntryInstrumentation;
 use Swoole\Server;
 use Swoolefy\Http\Route;
 use Swoolefy\Core\Log\LogManager;
@@ -47,14 +45,6 @@ class EventCtrl implements EventCtrlInterface
             }else if (BaseServer::isWebsocketApp() || BaseServer::isUdpApp()) {
                 ServiceDispatch::loadRouteFile();
             }
-        }
-
-        if (env('OTEL_PHP_AUTOLOAD_ENABLED',false)) {
-            HttpEntryInstrumentation::register();
-        }
-
-        if (env('OTEL_INSTRUMENTATION_GUZZLE_ENABLED', false)) {
-            GuzzleInstrumentation::register();
         }
 
         static::onInit();

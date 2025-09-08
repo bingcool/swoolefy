@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Core;
 
+use Common\Library\CurlProxy\OpentelemetryMiddleware;
 use Swoolefy\Rpc\RpcServer;
 use Swoolefy\Udp\UdpHandler;
 use Swoolefy\Exception\SystemException;
@@ -102,8 +103,8 @@ class BService extends BaseObject
      */
     private function getTraceId()
     {
-        if (\Swoolefy\Core\Coroutine\Context::has('trace-id')) {
-            $traceId = \Swoolefy\Core\Coroutine\Context::get('trace-id');
+        if (\Swoolefy\Core\Coroutine\Context::has(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID)) {
+            $traceId = \Swoolefy\Core\Coroutine\Context::get(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID);
         }
         return $traceId ?? '';
     }
