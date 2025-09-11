@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Core;
 
+use Common\Library\OpenTelemetry\HttpEntryInstrumentation;
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Core\Memory\AtomicManager;
 use Swoolefy\Script\AbstractKernel;
@@ -193,6 +194,10 @@ class BaseServer
             self::setWorkerIdMapPid($workerId, $server->worker_pid);
             // restart model时记录新重启的masterPid
             self::saveRestartModelMasterPid();
+            // 注册opentelemetry trace
+            if (env("OTEL_PHP_AUTOLOAD_ENABLED", false)) {
+                HttpEntryInstrumentation::register(true);
+            }
         }catch(\Throwable $throwable) {
             self::catchException($throwable);
         }
