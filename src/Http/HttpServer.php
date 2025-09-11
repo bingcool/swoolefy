@@ -136,7 +136,7 @@ abstract class HttpServer extends BaseServer
                         return true;
                     });
                 }
-            }else {
+            } else {
                 try {
                     /**
                      * @var \Common\Library\OpenTelemetry\SDK\Trace\Span $span

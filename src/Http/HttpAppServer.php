@@ -11,9 +11,7 @@
 
 namespace Swoolefy\Http;
 
-use Common\Library\OpenTelemetry\HttpEntryInstrumentation;
 use Common\Library\OpenTelemetry\API\Globals;
-use Common\Library\OpenTelemetry\API\Instrumentation\Configurator;
 use Common\Library\OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
 use Common\Library\OpenTelemetry\API\Trace\SpanKind;
 use Common\Library\OpenTelemetry\API\Trace\StatusCode;
@@ -68,9 +66,6 @@ abstract class HttpAppServer extends HttpServer
         if (!env('OTEL_PHP_AUTOLOAD_ENABLED', false)) {
             return [null, null, null, null];
         }
-
-        $provider = HttpEntryInstrumentation::register(true);
-        Configurator::create()->withTracerProvider($provider)->activate();
 
         $tracer = Globals::tracerProvider()->getTracer(env('OTEL_TRACING_NAME','swoolefy-http-request'), '1.0.0');
         $route = $request->server['path_info'] ?? '';
