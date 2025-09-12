@@ -66,8 +66,13 @@ abstract class HttpAppServer extends HttpServer
         if (!env('OTEL_PHP_AUTOLOAD_ENABLED', false)) {
             return [null, null, null, null];
         }
-
+        /**
+         * @var \Common\Library\OpenTelemetry\SDK\Trace\Tracer $tracer
+         */
         $tracer = Globals::tracerProvider()->getTracer(env('OTEL_TRACING_NAME','swoolefy-http-request'), '1.0.0');
+        \Swoole\Coroutine::defer(function () use($tracer) {
+            Globals::tracerProvider()->forceFlush();
+        });
         $route = $request->server['path_info'] ?? '';
         $method = $request->server['request_method'] ?? '';
         $inputBody = [];
