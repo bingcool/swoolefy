@@ -83,6 +83,23 @@ class IndexController extends BController {
                 'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
             ]))->request('GET', 'http://127.0.0.1:9501/user/user-order/userList1?name=bingcool');
 
+            $client = (new Client([
+                'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+            ]))->request('GET', 'http://127.0.0.1:9501/user/user-order/userList1?name=bingcool');
+
+            $client = (new Client([
+                'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+            ]))->request('GET', 'http://127.0.0.1:9501/user/user-order/userList1?name=bingcool');
+
+            $client = (new Client([
+                'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+            ]))->request('GET', 'http://127.0.0.1:9501/user/user-order/userList1?name=bingcool');
+
+            $client = (new Client([
+                'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+                'base_uri' => 'https://www.baidu.com/',
+            ]))->get('/', []);
+
         });
 
 //        sleep(3);

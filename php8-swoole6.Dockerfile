@@ -6,8 +6,8 @@ LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 #根据实际构建来设置环境变量
 ENV MY_SWOOLE_VERSION=6.0.2 \
     MY_PHP_VERSION=83 \
-    SWOOLEFY_CLI_ENV=dev \
-    MY_OPENTELEMETRY_VERSION=1.2.0
+    SWOOLEFY_CLI_ENV=dev
+
 
 ENV TZ=Asia/Shanghai
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
@@ -44,10 +44,6 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
     --enable-swoole-pgsql \
     --enable-swoole-sqlite \
     && make && make install \
-    && cd ..\
-    && wget https://pecl.php.net/get/opentelemetry-${MY_OPENTELEMETRY_VERSION}.tgz -O - -q | tar -xz \
-    && cd opentelemetry-${MY_OPENTELEMETRY_VERSION} && /usr/bin/phpize${MY_PHP_VERSION} && ./configure --with-php-config=/usr/bin/php-config${MY_PHP_VERSION} \
-    && make && make install \
     && apk del --purge *-dev \
     && apk del .build-deps \
     && rm -rf /var/cache/apk/* /tmp/* /usr/share/man /usr/share/doc /usr/share/php${MY_PHP_VERSION}
@@ -62,6 +58,7 @@ LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 ENV MY_SWOOLE_VERSION=6.0.2 \
     MY_PHP_VERSION=83 \
     SWOOLEFY_CLI_ENV=dev
+
 
 ENV TZ=Asia/Shanghai
 #安装必要的依赖和PHP及其扩展
@@ -121,7 +118,6 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
     php${MY_PHP_VERSION}-pecl-rdkafka \
     php${MY_PHP_VERSION}-pecl-mongodb \
     && echo "opcache.enable_cli='Off'" >> /etc/php${MY_PHP_VERSION}/conf.d/00_opcache.ini \
-    && echo "extension=opentelemetry" >> /etc/php${MY_PHP_VERSION}/conf.d/98_opentelemetry.ini \
     && echo "extension=swoole" >> /etc/php${MY_PHP_VERSION}/conf.d/99_swoole.ini \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
     && ln -sf /usr/bin/php${MY_PHP_VERSION} /usr/bin/php \
@@ -136,7 +132,6 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
 #copy编译好的swoole扩展
 COPY --from=ext-build /usr/lib/php${MY_PHP_VERSION}/modules/swoole.so /usr/lib/php${MY_PHP_VERSION}/modules/swoole.so
-COPY --from=ext-build /usr/lib/php${MY_PHP_VERSION}/modules/opentelemetry.so /usr/lib/php${MY_PHP_VERSION}/modules/opentelemetry.so
 
 # 设置工作目录
 WORKDIR /home/wwwroot
