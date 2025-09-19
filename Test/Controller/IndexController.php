@@ -71,7 +71,7 @@ class IndexController extends BController {
             'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
         ]))->request('GET', 'http://127.0.0.1:9501/user/user-order/userList?name=bingcool');
 
-        goApp(function () use ($client) {
+        goApp(function () {
             //sleep(1);
             $client = (new Client([
                 'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
