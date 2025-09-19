@@ -133,6 +133,10 @@ Route::group([
         'dispatch_route' => [\Test\Controller\PgController::class, 'removeUser'],
     ]);
 
+    Route::get('/pg/user-list', [
+        'dispatch_route' => [\Test\Controller\PgController::class, 'userList'],
+    ]);
+
 });
 
 

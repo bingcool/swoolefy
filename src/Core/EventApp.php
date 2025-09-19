@@ -93,14 +93,11 @@ class EventApp
             call_user_func($class, $this->eventApp);
 
         } else {
-            do {
-                if (is_string($class)) {
-                    $this->eventApp = new $class(...$args);
-                } else if (is_object($class)) {
-                    $this->eventApp = $class;
-                }
-                break;
-            } while (0);
+            if (is_string($class)) {
+                $this->eventApp = new $class(...$args);
+            } else if (is_object($class)) {
+                $this->eventApp = $class;
+            }
 
             if (!($this->eventApp instanceof EventController)) {
                 $className = get_class($this->eventApp);

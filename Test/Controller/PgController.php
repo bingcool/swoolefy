@@ -1,9 +1,11 @@
 <?php
 namespace Test\Controller;
 
+use Common\Library\Db\Sql;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Http\RequestInput;
+use Test\App;
 use Test\Logger\RunLog;
 use Test\Module\Order\OrderEntity;
 use Test\Module\Order\OrderFormatter;
@@ -106,6 +108,32 @@ class PgController extends BController
     {
         sleep(10);
         $this->returnJson();
+    }
+
+    public function userList(RequestInput $requestInput)
+    {
+        $table = Sql::table('tbl_user')->as('user_t1');
+
+        $query = App::getPgSql()
+            ->newQuery()
+            ->from($table)
+            ->field($table->C("*"))
+            ->where($table->C('id'),'>', 0)
+            ->fetchSql()
+            ->buildSql();
+
+        $subTable = Sql::table(Sql::buildSubSql($query))->as('user_t2');
+
+        $query = App::getPgSql()
+            ->newQuery()
+            ->from($subTable)
+            ->field($subTable->C("user_name"))
+            ->fetchSql()
+            ->select();
+
+        var_dump($query);
+
+
     }
 
 
