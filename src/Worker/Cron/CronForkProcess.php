@@ -261,7 +261,7 @@ class CronForkProcess extends CronProcess
                                     }
                                 }
                             }
-                            $logger->addInfo("{$scheduleTask->cron_name}】cron_fork任务fork进程成功, cron_expression=".$scheduleTask->cron_expression, false, $scheduleTaskItems);
+                            $logger->addInfo("【{$scheduleTask->cron_name}】cron_fork任务fork进程成功, cron_expression=".$scheduleTask->cron_expression, false, $scheduleTaskItems);
                             $this->logCronTaskRuntime($scheduleTask, $execBatchId,"【{$scheduleTask->cron_name}】cron_fork任务fork进程成功, cron_expression=".$scheduleTask->cron_expression);
                         }
                     }catch (\Throwable $exception) {
