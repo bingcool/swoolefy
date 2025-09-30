@@ -13,6 +13,7 @@ use Test\Logger\RunLog;
 use Test\Module\Order\Dto\UserOrderDto\UserListDto;
 use Test\Module\Order\OrderEntity;
 use Test\Module\Order\OrderList;
+use Test\Mytest;
 
 class UserOrderController extends BController
 {
@@ -125,13 +126,34 @@ class UserOrderController extends BController
 
         var_dump($querySql);
 
+
         // 列表方式查询
-        $orderList = new OrderList();
-        $orderList->setUserId([10000]);
-        $orderList->setPage(1);
-        $orderList->setPageSize(10);
-        $count = $orderList->total();
-        $list  = $orderList->find();
+       // $orderList = new OrderList();
+//        $orderList->setUserId([10000]);
+//        $orderList->setPage(1);
+//        $orderList->setPageSize(10);
+//        $count = $orderList->total();
+//        $list  = $orderList->find();
+
+        goApp(function () {
+            // 列表方式查询
+            $orderList = new OrderList();
+            $orderList->setUserId([10000]);
+            $orderList->setPage(1);
+            $orderList->setPageSize(10);
+            $count = $orderList->total();
+            $list  = $orderList->find();
+        });
+
+        goApp(function () {
+            // 列表方式查询
+            $orderList = new OrderList();
+            $orderList->setUserId([10000]);
+            $orderList->setPage(1);
+            $orderList->setPageSize(10);
+            $count = $orderList->total();
+            $list  = $orderList->find();
+        });
 
 //        $namemsg = App::getTranslator()->trans('hello');
 //        var_dump($namemsg);
@@ -202,15 +224,30 @@ class UserOrderController extends BController
 //        var_dump($this->request->get);
 
         // 列表方式查询
-        $orderList = new OrderList();
-        $orderList->setUserId([101,102]);
-        $count = $orderList->total();
-        $list  = $orderList->find();
+        goApp(function () {
+            // 列表方式查询
+            $orderList = new OrderList();
+            $orderList->setUserId([10000]);
+            $orderList->setPage(1);
+            $orderList->setPageSize(10);
+            $count = $orderList->total();
+            $list  = $orderList->find();
+        });
+
+        goApp(function () {
+            // 列表方式查询
+            $orderList = new OrderList();
+            $orderList->setUserId([10000]);
+            $orderList->setPage(1);
+            $orderList->setPageSize(10);
+            $count = $orderList->total();
+            $list  = $orderList->find();
+        });
 
 
         $this->returnJson([
-            'total' => $count,
-            'list'  => $list
+            'total' => $count ?? 0,
+            'list'  => $list ?? []
         ]);
     }
 }

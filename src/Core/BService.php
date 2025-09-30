@@ -16,6 +16,7 @@ use Swoolefy\Rpc\RpcServer;
 use Swoolefy\Udp\UdpHandler;
 use Swoolefy\Exception\SystemException;
 use Swoolefy\Core\Dto\BaseResponseDto;
+use Swoolefy\Core\Coroutine\Context as SwooleContext;
 
 class BService extends BaseObject
 {
@@ -103,8 +104,8 @@ class BService extends BaseObject
      */
     private function getTraceId()
     {
-        if (\Swoolefy\Core\Coroutine\Context::has(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID)) {
-            $traceId = \Swoolefy\Core\Coroutine\Context::get(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID);
+        if (SwooleContext::has(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID)) {
+            $traceId = SwooleContext::get(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID);
         }
         return $traceId ?? '';
     }
