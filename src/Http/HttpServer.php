@@ -127,7 +127,7 @@ abstract class HttpServer extends BaseServer
                 return true;
             }
 
-            if(SystemEnv::isWorkerService()) {
+            if (SystemEnv::isWorkerService()) {
                 if ((SystemEnv::isCronService() || SystemEnv::isDaemonService()) && self::isHttpApp()) {
                     goApp(function () use($request, $response) {
                         (new CtlApi($request, $response))->handle();

@@ -1,6 +1,7 @@
 <?php
 
 include __DIR__.'/vendor/autoload.php';
+date_default_timezone_set('Asia/Shanghai');
 
 $appName = ucfirst($_SERVER['argv'][2]);
 // 定义app name
@@ -27,8 +28,7 @@ define('ROOT_NAMESPACE', [
     'Test' => '\\Test\\Scripts'
     // todo
 ]);
-
-
+// 定义服务端口
 define('WORKER_PORT', APP_META_ARR[$appName]['worker_port']);
 define('IS_DAEMON_SERVICE', 0);
 define('IS_CRON_SERVICE', 0);
@@ -47,8 +47,6 @@ define('WORKER_STATUS_FILE',WORKER_PID_FILE_ROOT.'/status.log');
 define('WORKER_CTL_LOG_FILE',WORKER_PID_FILE_ROOT.'/ctl.log');
 define('CLI_TO_WORKER_PIPE',WORKER_PID_FILE_ROOT.'/cli.pipe');
 define('WORKER_TO_CLI_PIPE',WORKER_PID_FILE_ROOT.'/ctl.pipe');
-
-date_default_timezone_set('Asia/Shanghai');
 
 // script 为空即可
 define('PROCESS_CLASS', []);

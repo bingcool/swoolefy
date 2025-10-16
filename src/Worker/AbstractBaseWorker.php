@@ -1592,7 +1592,7 @@ abstract class AbstractBaseWorker
         // table header：\Swoolefy\Core\EventCtl::printStartInfo()
         EventCtrl::consoleTableReader([], [WORKER_SERVICE_NAME, SWOOLEFY_ENV, $processTypeName, $processName, $this->getMasterPid(), $pid, $workerId]);
 
-        $logInfo = "start children_process【{$processTypeName}】: {$processName}@{$workerId} started, pid={$pid}, worker_master_pid={$this->getMasterPid()}";
+        $logInfo = "start children_process【{$processTypeName}】:{$processName}@{$workerId} started, pid={$pid}, worker_master_pid={$this->getMasterPid()}";
         $this->writeLog($logInfo);
     }
 

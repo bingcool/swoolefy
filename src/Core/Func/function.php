@@ -190,6 +190,9 @@ function goApp(callable $callback, ...$params) {
     $contextData = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
     return \Swoole\Coroutine::create(function () use($callback, $params, $contextData) {
         foreach ($contextData as $key=>$value) {
+            if (is_object($value)) {
+                continue;
+            }
             \Swoolefy\Core\Coroutine\Context::set($key, $value);
         }
         (new \Swoolefy\Core\EventApp)->registerApp(function($event) use($callback, $params) {
@@ -204,8 +207,9 @@ function goApp(callable $callback, ...$params) {
 }
 
 /**
- * @param int $timeMs
- * @param callable $callable
+ * goTick 定时器
+ * @param int $timeMs 毫秒
+ * @param callable $callable 闭包函数
  * @param bool $withBlockLapping 是否每个时间任务都执行，不管上个定时任务是否已执行完毕。
  * $withBlockLapping=true 将不会重叠执行，必须等上一个任务执行完毕，下一轮时间到了,也不会执行，必须等到上一轮任务结束后，再接着执行
  * $withBlockLapping=false 允许任务重叠执行，不管上一个任务的是否执行完毕，下一轮时间到了，任务将在一个新的协程中执行。默认false
@@ -230,8 +234,8 @@ function goTick(int $timeMs, callable $callable, bool $withBlockLapping = false)
 
 /**
  * one times task exec after $timeMs
- * @param int $timeMs
- * @param callable $callable
+ * @param int $timeMs 毫秒
+ * @param callable $callable 闭包函数
  * @return Channel|int
  */
 function goAfter(int $timeMs, callable $callable)
