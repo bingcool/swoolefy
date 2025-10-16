@@ -92,6 +92,12 @@ class OrderList extends ListObject
         }
     }
 
+    public function total(): int
+    {
+        $this->buildParams();
+        return $this->query->clone()->count();
+    }
+
     public function find()
     {
         $this->buildParams();
@@ -104,12 +110,5 @@ class OrderList extends ListObject
         }
         return $list;
     }
-
-    public function total(): int
-    {
-        $this->buildParams();
-        return $this->query->count();
-    }
-
 
 }

@@ -133,7 +133,7 @@ class CommandRunner
             }
         }
 
-        return [$command, $execOutput ?? [], $returnCode ?? -1, $pid ?? 0];
+        return [$command, $execOutput ?? [], $returnCode ?? -1, (int)$pid ?? 0];
     }
 
     /**
@@ -168,9 +168,9 @@ class CommandRunner
         $command = $execBinFile .' '.$execScript.' ' . $argvOption . " \n echo $? >&3; echo $! >&4; echo $$ >&5;";
         $command = trim($command);
         $descriptors = array(
-            // stdout
+            // stdin is a pipe that the child process will read from, parent process write
             0 => array('pipe', 'r'),
-            // stdin
+            // stdout is a pipe that the child process will write to, parent process read
             1 => array('pipe', 'w'),
             // stderr
             2 => array('pipe', 'w'),
@@ -228,7 +228,7 @@ class CommandRunner
 
         if (!is_callable($callable)) {
             $callable = function ($pipe0, $pipe1, $pipe2, $statusProperty) {
-
+                // $output = stream_get_contents($pipe1);
             };
         }
 

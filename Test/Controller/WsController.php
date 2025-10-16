@@ -23,13 +23,13 @@ class WsController extends \Swoolefy\Core\Controller\BController
             if ("WebSocket" in window)
             {  
                // 打开一个 web socket
-               var ws = new WebSocket("ws://127.0.0.1:9502/");
+               var ws = new WebSocket("ws://127.0.0.1:9504/");
                 
                ws.onopen = function()
                {                  
                   var rand = Math.random() * (100 - 1) + 1;
                   var data = { "name": "bingcool", "sex": "man", "rand": rand};
-                  ws.send("Chat::mychat::"+ JSON.stringify(data));
+                  ws.send("Service/Demo/ReportMsg::"+ JSON.stringify(data));
                   alert("数据发送中...");
                };
                 

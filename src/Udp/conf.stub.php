@@ -22,7 +22,7 @@ return [
     'worker_process_name'      => 'php-swoolefy-udp-worker',
     'www_user'                 => '',
     'host'                     => '0.0.0.0',
-    'port'                     => '9505',
+    'port'                     => defined('WORKER_PORT') ? WORKER_PORT : 9505,
     'time_zone'                => 'PRC',
     'runtime_enable_coroutine' => true,
 
@@ -62,7 +62,7 @@ return [
         //开启/关闭Swoole错误信息
         'display_errors'        => true,
         'pid_file'              => \Swoolefy\Core\SystemEnv::loadPidFile('/data/' . APP_NAME . '/log/server.pid'),
-        'hook_flags'             => \Swoolefy\Core\SystemEnv::loadHookFlag(),
+        'hook_flags'            => \Swoolefy\Core\SystemEnv::loadHookFlag(),
     ],
 
     'coroutine_setting' => [

@@ -23,7 +23,7 @@ return [
     'worker_process_name'      => 'php-swoolefy-rpc-worker',
     'www_user'                 => '',
     'host'                     => '0.0.0.0',
-    'port'                     => '9504',
+    'port'                     => defined('WORKER_PORT') ? WORKER_PORT : 9504,
     'time_zone'                => 'PRC',
     'runtime_enable_coroutine' => true,
 

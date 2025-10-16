@@ -14,6 +14,7 @@ namespace Swoolefy\Udp;
 use Swoolefy\Core\Swoole;
 use Swoolefy\Core\ServiceDispatch;
 use Swoolefy\Core\HandlerInterface;
+use Swoolefy\Core\Coroutine\Context as SwooleContent;
 
 class UdpHandler extends Swoole implements HandlerInterface
 {
@@ -69,42 +70,38 @@ class UdpHandler extends Swoole implements HandlerInterface
         try {
             parent::run(null, $payload);
             if ($this->isWorkerProcess()) {
-                $dataGramItems = explode(static::EOF, $payload, 3);
-                if (count($dataGramItems) == 3) {
-                    list($service, $event, $params) = $dataGramItems;
+                $isTaskProcess = false;
+                $dataGramItems = explode(static::EOF, $payload, 2);
+                if (count($dataGramItems) == 2) {
+                    list($endPoint, $params) = $dataGramItems;
                     if (is_string($params)) {
                         $params = json_decode($params, true) ?? $params;
                         if (!is_array($params)) {
                             throw new \Exception('Udp params must be json string');
                         }
                     }
-                } else if (count($dataGramItems) == 2) {
-                    list($service, $event) = $dataGramItems;
-                    $params = [];
+                } else if (count($dataGramItems) == 1) {
+                    $endPoint = current($dataGramItems);
+                    $params   = [];
                 } else {
-                    throw new \Exception('Udp dataGramItems parse error');
-                }
-                if ($service && $event) {
-                    $callable = [$service, $event];
+                    throw new \Exception('Udp dataGramItems Parse Error, Payload: ' . $payload);
                 }
             } else {
                 $isTaskProcess = true;
                 foreach ($contextData as $key => $value) {
-                    \Swoolefy\Core\Coroutine\Context::set($key, $value);
+                    SwooleContent::set($key, $value);
                 }
                 list($callable, $params) = $payload;
             }
 
-            if (isset($callable)) {
-                if (!isset($isTaskProcess) && isset($service) && isset($event)) {
-                    $service          = trim(str_replace('\\', DIRECTORY_SEPARATOR, $service), DIRECTORY_SEPARATOR);
-                    $serviceHandle    = implode(self::EOF, [$service, $event]);
-                    $this->setServiceHandle($serviceHandle);
-                    list($beforeMiddleware, $callable, $afterMiddleware) = ServiceDispatch::getRouterMapService($serviceHandle);
-                }
-
-                $dispatcher = new ServiceDispatch($callable, $params);
-                if (isset($isTaskProcess) && $isTaskProcess === true) {
+            if (isset($endPoint) || isset($callable)) {
+                if ($isTaskProcess === false) {
+                    $endPoint = trim(str_replace('\\', DIRECTORY_SEPARATOR, $endPoint), DIRECTORY_SEPARATOR);
+                    $this->setServiceHandle($endPoint);
+                    list($beforeMiddleware, $callable, $afterMiddleware) = ServiceDispatch::getEndPointMapService($endPoint);
+                    $dispatcher = new ServiceDispatch($callable, $params);
+                }else if ($isTaskProcess === true) {
+                    $dispatcher = new ServiceDispatch($callable, $params);
                     list($fromWorkerId, $taskId, $task) = $extendData;
                     $dispatcher->setFromWorkerIdAndTaskId($fromWorkerId, $taskId, $task);
                 }

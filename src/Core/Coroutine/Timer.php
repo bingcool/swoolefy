@@ -17,7 +17,7 @@ use Swoolefy\Core\Application;
 class Timer
 {
     /**
-     * @param int $timeMs
+     * @param int $timeMs 单位：毫秒
      * @param callable $callable
      * @param bool $withBlockLapping 是否每个时间轮任务都执行，不管上个定时任务是否已执行完毕.默认false,允许重叠执行
      * $withBlockLapping=true 阻塞执行,将不会重叠执行，必须等上一个任务执行完毕，下一轮时间到了,也不会执行，必须等到上一轮任务结束后，再接着执行，即所谓的阻塞执行
@@ -27,14 +27,14 @@ class Timer
     public static function tick(int $timeMs, callable $callable, bool $withBlockLapping = false)
     {
         $timeChannel = new Channel(1);
-        $second  = round($timeMs / 1000, 3);
-        if ($second < 0.001) {
-            $second = 0.001;
+        $timeSecond = round($timeMs / 1000, 3);
+        if ($timeSecond < 0.01) {
+            $timeSecond = 0.01;
         }
 
-        goApp(function ($second, $callable) use ($timeChannel, $withBlockLapping) {
+        goApp(function ($timeSecond, $callable) use ($timeChannel, $withBlockLapping) {
             while (true) {
-                $value = $timeChannel->pop($second);
+                $value = $timeChannel->pop($timeSecond);
                 if($value !== false) {
                     $timeChannel->close();
                     break;
@@ -60,7 +60,7 @@ class Timer
                 }
 
             }
-        }, $second, $callable);
+        }, $timeSecond, $callable);
 
         return $timeChannel;
     }
@@ -87,26 +87,26 @@ class Timer
     }
 
     /**
-     * @param int $timeMs
+     * @param int $timeMs 单位：毫秒
      * @param callable $callable
      * @return Channel
      */
     public static function after(int $timeMs, callable $callable)
     {
         $timeChannel = new Channel(1);
-        $second  = round($timeMs / 1000, 3);
-        if ($second < 0.001) {
-            $second = 0.001;
+        $timeSecond  = round($timeMs / 1000, 3);
+        if ($timeSecond < 0.01) {
+            $timeSecond = 0.01;
         }
 
-        goApp(function ($second, $callable) use ($timeChannel) {
-            while (!$timeChannel->pop($second)) {
+        goApp(function ($timeSecond, $callable) use ($timeChannel) {
+            while (!$timeChannel->pop($timeSecond)) {
                 goApp(function () use($timeChannel, $callable) {
                     $callable($timeChannel);
                 });
                 break;
             }
-        }, $second, $callable);
+        }, $timeSecond, $callable);
 
         return $timeChannel;
     }

@@ -37,7 +37,7 @@ class CreateCmd extends BaseCmd
             exit(0);
         }
 
-        if ($protocol == 'http') {
+        if ($protocol == self::HTTP_PROTOCOL) {
             $dirs = ['Config', 'Controller', 'Model', 'Module', 'Router', 'Validation', 'Storage', 'Protocol', 'Middleware','Scripts'];
         }
 
@@ -135,14 +135,14 @@ class CreateCmd extends BaseCmd
                 case 'Router':
                 {
                     switch ($protocol) {
-                        case 'http':
+                        case self::HTTP_PROTOCOL:
                             $apiFile = $appPathDir . "/{$dir}/api.php";
                             if (!file_exists($apiFile)) {
                                 @copy(ROOT_PATH . '/src/Stubs/api.stub.php', $apiFile);
                             }
                             break;
-                        case 'udp':
-                        case 'websocket':
+                        case self::UDP_PROTOCOL:
+                        case self::WEBSOCKET_PROTOCOL:
                             $apiFile = $appPathDir . "/{$dir}/service.php";
                             if (!file_exists($apiFile)) {
                                 @copy(ROOT_PATH . '/src/Stubs/service.api.stub.php', $apiFile);
@@ -159,19 +159,19 @@ class CreateCmd extends BaseCmd
                     $confFile   = $path . "/conf.php";
                     if (!file_exists($confFile)) {
                         switch ($protocol) {
-                            case 'http':
+                            case self::HTTP_PROTOCOL:
                                 @copy(ROOT_PATH . '/src/Http/conf.stub.php', $confFile);
                                 break;
-                            case 'rpc':
+                            case self::RPC_PROTOCOL:
                                 @copy(ROOT_PATH . '/src/Rpc/conf.stub.php', $confFile);
                                 break;
-                            case 'udp':
+                            case self::UDP_PROTOCOL:
                                 @copy(ROOT_PATH . '/src/Udp/conf.stub.php', $confFile);
                                 break;
-                            case 'websocket':
+                            case self::WEBSOCKET_PROTOCOL:
                                 @copy(ROOT_PATH . '/src/Websocket/conf.stub.php', $confFile);
                                 break;
-                            case 'mqtt':
+                            case self::MQTT_PROTOCOL:
                                 @copy(ROOT_PATH . '/src/Mqtt/conf.stub.php', $confFile);
                                 break;
                         }
@@ -181,7 +181,7 @@ class CreateCmd extends BaseCmd
                 case 'Middleware':
                 {
                     switch ($protocol) {
-                        case "http":
+                        case self::HTTP_PROTOCOL:
                             $groupDir = $appPathDir . '/' . $dir . '/Group';
                             if (!is_dir($groupDir)) {
                                 @mkdir($groupDir, 0777, true);
@@ -192,8 +192,8 @@ class CreateCmd extends BaseCmd
                                 @mkdir($routeDir, 0777, true);
                             }
                             break;
-                        case "udp":
-                        case "websocket":
+                        case self::UDP_PROTOCOL:
+                        case self::WEBSOCKET_PROTOCOL:
                             $middlewareDir = $appPathDir . '/' . $dir;
                             if (!is_dir($middlewareDir)) {
                                 @mkdir($middlewareDir, 0777, true);
@@ -207,10 +207,10 @@ class CreateCmd extends BaseCmd
                 {
                     switch ($protocol)
                     {
-                        case 'udp':
-                        case 'websocket':
-                        case 'rpc':
-                        case 'mqtt':
+                        case self::UDP_PROTOCOL:
+                        case self::WEBSOCKET_PROTOCOL:
+                        case self::RPC_PROTOCOL:
+                        case self::MQTT_PROTOCOL:
                             $serviceDir = $appPathDir . '/' . $dir;
                             if (!is_dir($serviceDir)) {
                                 @mkdir($serviceDir, 0777, true);
@@ -219,6 +219,15 @@ class CreateCmd extends BaseCmd
                         default:
                             break;
                     }
+
+                    // 初始化service模版
+                    if ($protocol == self::UDP_PROTOCOL || $protocol == self::WEBSOCKET_PROTOCOL) {
+                        $serviceFile = $appPathDir . '/' . $dir . '/DemoService.php';
+                        if (!file_exists($serviceFile)) {
+                            file_put_contents($serviceFile, $this->getDefaultService($appName));
+                        }
+                    }
+                    break;
                 }
                 case 'Scripts':
                 {
@@ -230,7 +239,6 @@ class CreateCmd extends BaseCmd
                         @file_put_contents($scriptPath.'/Kernel.php', $kernelFileContent);
                     }
                 }
-
                 default:
                     break;
             }
@@ -310,6 +318,25 @@ use Swoolefy\Core\Controller\BController;
 class IndexController extends BController {
     public function index() {
         Application::getApp()->swooleResponse->write('<h1>Hello, Welcome to Swoolefy Framework! <h1>');
+    }
+}
+EOF;
+        return $content;
+    }
+
+    protected function getDefaultService($appName)
+    {
+        $content =
+            <<<EOF
+<?php
+namespace {$appName}\Service;
+
+class DemoService extends \Swoolefy\Core\BService
+{
+    // udp上报消息
+    public function reportMsg()
+    {
+        var_dump(\$this->getMixedParams());
     }
 }
 EOF;

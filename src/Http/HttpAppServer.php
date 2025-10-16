@@ -73,13 +73,13 @@ abstract class HttpAppServer extends HttpServer
         $route = $request->server['path_info'] ?? '';
         $method = $request->server['request_method'] ?? '';
         $inputBody = [];
+        $queryString = "";
         if ($method == 'POST' || $method == 'PUT' || $method == 'DELETE') {
             $post = $request->post ?? [];
             $input = json_decode($request->rawContent(), true) ?? [];
             $inputBody = array_merge($post, $input);
         }else if ($method == 'GET') {
             $queryParams = $request->get ?? [];
-            $queryString = "";
             foreach ($queryParams as $key => $value) {
                 $queryString .= $key . "=" . $value . "&";
             }

@@ -64,10 +64,13 @@ function getOneFreePort(array $excludePorts = []): int
 /**
  * json_validate
  */
-if (!function_exists('json_validate')) {
-    function json_validate(string $string): bool {
-        json_decode($string);
-        return json_last_error() === JSON_ERROR_NONE;
+if (\PHP_VERSION_ID < 80300 && !function_exists('json_validate')) {
+    function json_validate(string $json, int $depth = 512, int $flags = 0): bool {
+        if (0 !== $flags && \defined('JSON_INVALID_UTF8_IGNORE') && \JSON_INVALID_UTF8_IGNORE !== $flags) {
+            throw new \ValueError('json_validate(): Argument #3 ($flags) must be a valid flag (allowed flags: JSON_INVALID_UTF8_IGNORE)');
+        }
+        json_decode($json, true, $depth, $flags);
+        return \JSON_ERROR_NONE === json_last_error();
     }
 }
 

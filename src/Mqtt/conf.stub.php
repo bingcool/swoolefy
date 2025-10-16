@@ -22,7 +22,7 @@ return [
     'worker_process_name'      => 'php-swoolefy-mqtt-worker',
     'www_user'                 => '',
     'host'                     => '0.0.0.0',
-    'port'                     => '1883',
+    'port'                     => defined('WORKER_PORT') ? WORKER_PORT : 1883,
     'time_zone'                => 'PRC',
     'runtime_enable_coroutine' => true,
 

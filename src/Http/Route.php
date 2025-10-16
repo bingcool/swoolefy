@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Http;
 
-use Swoolefy\Core\Coroutine\Context;
+use Swoolefy\Core\Coroutine\Context as SwooleContext;
 
 class Route
 {
@@ -37,9 +37,9 @@ class Route
      */
     public static function group(array $groupMeta, callable $fn)
     {
-        Context::set('__current_request_group_meta', $groupMeta);
+        SwooleContext::set('__current_request_group_meta', $groupMeta);
         $fn($groupMeta);
-        Context::set('__current_request_group_meta', []);
+        SwooleContext::set('__current_request_group_meta', []);
     }
 
     /**
@@ -48,8 +48,8 @@ class Route
     public static function getGroupMeta()
     {
         $groupMeta = [];
-        if (Context::has('__current_request_group_meta')) {
-            $groupMeta = Context::get('__current_request_group_meta') ?? [];
+        if (SwooleContext::has('__current_request_group_meta')) {
+            $groupMeta = SwooleContext::get('__current_request_group_meta') ?? [];
         }
         return $groupMeta;
     }
@@ -63,8 +63,8 @@ class Route
     {
         $groupMeta = self::getGroupMeta();
         $routeOption = new RouteOption();
-        $uri = self::parseUri($uri, $groupMeta);
-        self::$routeMap[$uri]['GET'] = [
+        $newUri = self::parseUri($uri, $groupMeta);
+        self::$routeMap[$newUri]['GET'] = [
             'group_meta' => $groupMeta,
             'method' => ['GET'],
             'route_meta' => $routeMeta,
@@ -82,8 +82,8 @@ class Route
     {
         $groupMeta = self::getGroupMeta();
         $routeOption = new RouteOption();
-        $uri = self::parseUri($uri, $groupMeta);
-        self::$routeMap[$uri]['POST'] = [
+        $newUri = self::parseUri($uri, $groupMeta);
+        self::$routeMap[$newUri]['POST'] = [
             'group_meta' => $groupMeta,
             'method' => ['POST'],
             'route_meta' => $routeMeta,
@@ -102,8 +102,8 @@ class Route
     {
         $groupMeta = self::getGroupMeta();
         $routeOption = new RouteOption();
-        $uri = self::parseUri($uri, $groupMeta);
-        self::$routeMap[$uri]['PUT'] = [
+        $newUri = self::parseUri($uri, $groupMeta);
+        self::$routeMap[$newUri]['PUT'] = [
             'group_meta' => $groupMeta,
             'method' => ['PUT'],
             'route_meta' => $routeMeta,
@@ -121,8 +121,8 @@ class Route
     {
         $groupMeta = self::getGroupMeta();
         $routeOption = new RouteOption();
-        $uri = self::parseUri($uri, $groupMeta);
-        self::$routeMap[$uri]['DELETE'] = [
+        $newUri = self::parseUri($uri, $groupMeta);
+        self::$routeMap[$newUri]['DELETE'] = [
             'group_meta' => $groupMeta,
             'method' => ['DELETE'],
             'route_meta' => $routeMeta,
@@ -140,8 +140,8 @@ class Route
     {
         $groupMeta = self::getGroupMeta();
         $routeOption = new RouteOption();
-        $uri = self::parseUri($uri, $groupMeta);
-        self::$routeMap[$uri]['HEAD'] = [
+        $newUri = self::parseUri($uri, $groupMeta);
+        self::$routeMap[$newUri]['HEAD'] = [
             'group_meta' => $groupMeta,
             'method' => ['HEAD'],
             'route_meta' => $routeMeta,
@@ -162,8 +162,8 @@ class Route
         $routeOption = new RouteOption();
         foreach ($methods as $method) {
             $method = strtoupper($method);
-            $uri = self::parseUri($uri, $groupMeta);
-            self::$routeMap[$uri][$method] = [
+            $newUri = self::parseUri($uri, $groupMeta);
+            self::$routeMap[$newUri][$method] = [
                 'group_meta' => $groupMeta,
                 'method' => [$method],
                 'route_meta' => $routeMeta,
@@ -182,9 +182,9 @@ class Route
     {
         $groupMeta = self::getGroupMeta();
         $routeOption = new RouteOption();
+        $newUri = self::parseUri($uri, $groupMeta);
         foreach (self::HTTP_METHODS as $method) {
-            $uri = self::parseUri($uri, $groupMeta);
-            self::$routeMap[$uri][$method] = [
+            self::$routeMap[$newUri][$method] = [
                 'group_meta' => $groupMeta,
                 'method' => [$method],
                 'route_meta' => $routeMeta,

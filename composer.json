@@ -20,10 +20,11 @@
     "bin": [
         "bin/swoolefy"
     ],
-    "minimum-stability": "dev",
+    "minimum-stability": "stable",
+    "prefer-stable": true,
     "require": {
-        "php" : "^8.1",
-        "ext-swoole" : ">=5.1.0",
+        "php" : "^8.2",
+        "ext-swoole" : ">=6.0",
         "ext-json": "*",
         "ext-curl":"*",
         "psr/log" : "*",
@@ -58,5 +59,11 @@
             "php-http/discovery": false,
             "tbachert/spi": false
         }
-    }
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../library"
+        }
+    ]
 }

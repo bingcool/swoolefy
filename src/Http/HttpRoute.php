@@ -18,6 +18,7 @@ use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\Dto\AbstractDto;
 use Swoolefy\Core\RouteMiddleware;
+use Swoolefy\Core\SystemEnv;
 use Swoolefy\Exception\DispatchException;
 use Swoolefy\Exception\SystemException;
 
@@ -122,7 +123,14 @@ class HttpRoute extends AppDispatch
         $this->responseOutput = $responseOutput;
         $this->extendData = $extendData;
         $this->httpMethod = $this->requestInput->getMethod();
-        list($this->groupMiddlewares, $this->beforeMiddlewares, $this->dispatchRoute, $this->afterMiddlewares, $this->groupMeta, $this->routeOption)  = $this->getHttpRouterMapUri($this->requestInput->getRequestUri(), $this->httpMethod);
+        list(
+            $this->groupMiddlewares,
+            $this->beforeMiddlewares,
+            $this->dispatchRoute,
+            $this->afterMiddlewares,
+            $this->groupMeta,
+            $this->routeOption,
+        )  = $this->getHttpRouterMapUri($this->requestInput->getRequestUri(), $this->httpMethod);
         $this->requestInput->setHttpGroupMeta($this->groupMeta);
     }
 
@@ -238,9 +246,28 @@ class HttpRoute extends AppDispatch
         // reflector params handle
         list($method, $args) = $this->bindActionParams($controllerInstance, $action, $this->requestInput->all());
         $controllerInstance->{$action}(...$args);
+        if (!SystemEnv::isPrdEnv()) {
+            fmtPrintInfo(sprintf("[request end] %s: [%s %s] 请求耗时: %ss",
+                date('Y-m-d H:i:s'),
+                $this->requestInput->getSwooleRequest()->server['REQUEST_METHOD'],
+                $this->requestInput->getRequestUri(),
+                round($this->requestEndTime() - $this->requestInput->getRequestTimeFloat(), 3),
+            ));
+        }
         $controllerInstance->_afterAction($this->requestInput, $action);
         $this->handleAfterRouteMiddles();
         return true;
+    }
+
+    /**
+     * @return float
+     */
+    protected function requestEndTime()
+    {
+        $microtime = microtime(true);
+        $seconds = floor($microtime);
+        $milliseconds = round(($microtime - $seconds) * 1000);
+        return floatval($seconds . '.' . sprintf('%03d', $milliseconds));
     }
 
     /**

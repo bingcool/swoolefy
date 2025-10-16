@@ -209,7 +209,7 @@ class PoolsHandler
             if ($isPush) {
                 $this->channel->push($obj, $this->pushTimeout);
                 $length = $this->channel->length();
-                // 矫正
+                // 修正
                 if (($this->poolsNum - $length) == $this->callCount - 1) {
                     --$this->callCount;
                 } else {

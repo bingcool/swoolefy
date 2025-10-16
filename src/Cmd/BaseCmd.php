@@ -20,6 +20,12 @@ class BaseCmd extends Command
     const FORCE = 'force';
 
     const START_MODEL = 'start_model';
+
+    const HTTP_PROTOCOL = 'http';
+    const UDP_PROTOCOL = 'udp';
+    const WEBSOCKET_PROTOCOL = 'websocket';
+    const MQTT_PROTOCOL = 'mqtt';
+    const RPC_PROTOCOL = 'rpc';
     /**
      * @var OutputInterface
      */
@@ -29,23 +35,23 @@ class BaseCmd extends Command
      * @var array[]
      */
     protected $protocolMap = [
-        'http' => [
+        self::HTTP_PROTOCOL => [
             'namespace' => 'protocol\\http',
             'server_name' => 'HttpServer'
         ],
-        'rpc' => [
+        self::RPC_PROTOCOL => [
             'namespace' => 'protocol\\rpc',
             'server_name' => 'RpcServer'
         ],
-        'udp' => [
+        self::UDP_PROTOCOL => [
             'namespace' => 'protocol\\udp',
             'server_name' => 'UdpEventServer'
         ],
-        'websocket' => [
+        self::WEBSOCKET_PROTOCOL => [
             'namespace' => 'protocol\\websocket',
             'server_name' => 'WebsocketEventServer'
         ],
-        'mqtt' => [
+        self::MQTT_PROTOCOL => [
             'namespace' => 'protocol\\mqtt',
             'server_name' => 'MqttServer'
         ],
@@ -262,13 +268,6 @@ class BaseCmd extends Command
             }
         }
         return $pidFile ?? '';
-    }
-
-    protected function get(string $path)
-    {
-        if (!is_dir($path)) {
-            mkdir($path, 0777, true);
-        }
     }
 
     /**
