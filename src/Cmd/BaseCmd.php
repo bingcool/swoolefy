@@ -13,6 +13,13 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class BaseCmd extends Command
 {
+    const APP_NAME = 'app_name';
+
+    const DAEMON = 'daemon';
+
+    const FORCE = 'force';
+
+    const START_MODEL = 'start_model';
     /**
      * @var OutputInterface
      */
@@ -50,11 +57,11 @@ class BaseCmd extends Command
     protected function configure()
     {
         putenv('COLUMNS=200');
-        $this->addArgument('app_name', InputArgument::REQUIRED, 'The app name');
+        $this->addArgument(self::APP_NAME, InputArgument::REQUIRED, 'The app name');
         // 是否守护进程启动
-        $this->addOption('daemon', null,InputOption::VALUE_OPTIONAL, 'Daemon model run app', 0);
+        $this->addOption(self::DAEMON, null,InputOption::VALUE_OPTIONAL, 'Daemon model run app', 0);
         // 强制停止
-        $this->addOption('force', null,InputOption::VALUE_OPTIONAL, 'Force stop app', 0);
+        $this->addOption(self::FORCE, null,InputOption::VALUE_OPTIONAL, 'Force stop app', 0);
 
         $options = $this->beforeInputOptions();
         foreach ($options as $name=>$value) {
@@ -84,8 +91,8 @@ class BaseCmd extends Command
             exit(0);
         }
 
-        if ($input->getArgument('app_name')) {
-            $input->setArgument('app_name', APP_NAME);
+        if ($input->getArgument(self::APP_NAME)) {
+            $input->setArgument(self::APP_NAME, APP_NAME);
         }
 
         defined('APP_PATH') or define('APP_PATH', ROOT_PATH.'/'.APP_NAME);
@@ -111,8 +118,8 @@ class BaseCmd extends Command
 
     protected function parseOptions(InputInterface $input, OutputInterface $output)
     {
-        $daemon = $input->getOption('daemon');
-        $force  = $input->getOption('force');
+        $daemon = $input->getOption(self::DAEMON);
+        $force  = $input->getOption(self::FORCE);
         defined('IS_DAEMON') or define('IS_DAEMON', $daemon);
         defined('IS_FORCE') or define('IS_FORCE', $force);
         $options = $input->getOptions();
@@ -208,6 +215,8 @@ class BaseCmd extends Command
             $conf['setting']['reactor_num'] = 1;
             $conf['setting']['worker_num'] = 1;
             unset($conf['setting']['admin_server'], $conf['setting']['task_worker_num']);
+        }else {
+            $conf['port'] = WORKER_PORT;
         }
     }
 
@@ -253,6 +262,13 @@ class BaseCmd extends Command
             }
         }
         return $pidFile ?? '';
+    }
+
+    protected function get(string $path)
+    {
+        if (!is_dir($path)) {
+            mkdir($path, 0777, true);
+        }
     }
 
     /**

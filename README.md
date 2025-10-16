@@ -175,18 +175,6 @@ defined('APP_PATH') or define('APP_PATH',__DIR__.'/'.$appName);
 
 registerNamespace(APP_PATH);
 
-define('IS_WORKER_SERVICE', 0);
-define('IS_DAEMON_SERVICE', 0);
-define('IS_SCRIPT_SERVICE', 0);
-define('IS_CRON_SERVICE', 0);
-define('PHP_BIN_FILE','/usr/bin/php');
-
-define('WORKER_START_SCRIPT_FILE', str_contains($_SERVER['SCRIPT_FILENAME'], $_SERVER['PWD']) ? $_SERVER['SCRIPT_FILENAME'] : $_SERVER['PWD'].'/'.$_SERVER['SCRIPT_FILENAME']);
-define('WORKER_SERVICE_NAME', makeServerName($appName));
-define('WORKER_PID_FILE_ROOT', '/tmp/workerfy/log/'.WORKER_SERVICE_NAME);
-define('WORKER_CTL_LOG_FILE',WORKER_PID_FILE_ROOT.'/ctl.log'); 
-define('SERVER_START_LOG_JSON_FILE', WORKER_PID_FILE_ROOT.'/start.json');
-
 // 你的项目命名为App，对应协议为http协议服务器，支持多个项目的，只需要在这里添加好项目名称与对应的协议即可
 define('APP_META_ARR', [
     'Test' => [
@@ -198,6 +186,19 @@ define('APP_META_ARR', [
         'worker_port' => 9502,
     ]
 ]);
+// 定义服务端口
+define('WORKER_PORT', APP_META_ARR[$appName]['worker_port']);
+define('IS_WORKER_SERVICE', 0);
+define('IS_DAEMON_SERVICE', 0);
+define('IS_SCRIPT_SERVICE', 0);
+define('IS_CRON_SERVICE', 0);
+define('PHP_BIN_FILE','/usr/bin/php');
+
+define('WORKER_START_SCRIPT_FILE', str_contains($_SERVER['SCRIPT_FILENAME'], $_SERVER['PWD']) ? $_SERVER['SCRIPT_FILENAME'] : $_SERVER['PWD'].'/'.$_SERVER['SCRIPT_FILENAME']);
+define('WORKER_SERVICE_NAME', makeServerName($appName));
+define('WORKER_PID_FILE_ROOT', '/tmp/workerfy/log/'.WORKER_SERVICE_NAME);
+define('WORKER_CTL_LOG_FILE',WORKER_PID_FILE_ROOT.'/ctl.log'); 
+define('SERVER_START_LOG_JSON_FILE', WORKER_PID_FILE_ROOT.'/start.json');
 
 // 启动前处理,比如加载.env
 //$beforeFunc = function () {
