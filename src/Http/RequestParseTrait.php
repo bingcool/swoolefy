@@ -375,6 +375,15 @@ trait RequestParseTrait
     }
 
     /**
+     * getRequestTimeFloat
+     * @return float
+     */
+    public function getRequestTimeFloat()
+    {
+        return $this->swooleRequest->server['REQUEST_TIME_FLOAT'];
+    }
+
+    /**
      * getDispatchRoute
      * @return array
      */
