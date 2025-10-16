@@ -264,13 +264,6 @@ class BaseCmd extends Command
         return $pidFile ?? '';
     }
 
-    protected function get(string $path)
-    {
-        if (!is_dir($path)) {
-            mkdir($path, 0777, true);
-        }
-    }
-
     /**
      * @param array $config
      * @return void
