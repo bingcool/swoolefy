@@ -210,6 +210,10 @@ class SystemEnv
     {
         $path = APP_PATH.'/Protocol';
         $conf = include $path .'/conf.php';
+        // 端口由入口启动文件定义
+        if (defined('WORKER_PORT')) {
+            $conf['port'] = WORKER_PORT;
+        }
         return $conf;
     }
 

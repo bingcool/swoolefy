@@ -22,7 +22,7 @@ class IndexController extends BController {
 
     public function index()
     {
-        RunLog::info('test11111-log-id='.rand(1,1000),['name'=>'bingcoolhuang'], true);
+        RunLog::info('test11111-log-id='.rand(1,1000),['name'=>'bingcoolhuang', 'start_model'=> getenv('start_model')], true);
         //var_dump("root-go-cid=".\Swoole\Coroutine::getCid());
 //        goApp(function () {
 //

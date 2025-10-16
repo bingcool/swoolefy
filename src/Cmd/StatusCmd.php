@@ -26,9 +26,8 @@ class StatusCmd extends BaseCmd
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $appName = $input->getArgument('app_name');
+        $appName = $input->getArgument(self::APP_NAME);
         $pidFile = $this->getPidFile($appName);
-
         if (SystemEnv::isWorkerService()) {
             $this->workerStatus($pidFile);
         } else {

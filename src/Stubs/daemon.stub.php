@@ -28,7 +28,7 @@ define('PROCESS_CLASS', [
     'Test' => \Test\WorkerDaemon\MainDaemonProcess::class,
     // todo
 ]);
-
+// 定义服务端口
 define('WORKER_PORT', APP_META_ARR[$appName]['worker_port']);
 define('IS_DAEMON_SERVICE', 1);
 define('IS_CRON_SERVICE', 0);

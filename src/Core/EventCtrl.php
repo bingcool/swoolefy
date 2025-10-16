@@ -493,11 +493,11 @@ class EventCtrl implements EventCtrlInterface
     /**
      * @param $tableHeader
      * @param $tableRow
+     * @see \Swoolefy\Worker\AbstractBaseWorker::writeStartFormatInfo()
      * @return void
      */
     public static function consoleTableReader($tableHeader = [], $tableRow = [])
     {
-        // @see \Swoolefy\Worker\AbstractBaseWorker::writeStartFormatInfo()
         $tableStyle = new TableStyle();
         $tableStyle->setCellRowFormat('<info>%s</info>');
         $baseInfoOutput = new ConsoleOutput();

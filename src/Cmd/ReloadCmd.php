@@ -31,7 +31,7 @@ class ReloadCmd extends BaseCmd
             return 0;
         }
 
-        $appName = $input->getArgument('app_name');
+        $appName = $input->getArgument(self::APP_NAME);
         $pidFile = $this->getPidFile($appName);
 
         if (!is_file($pidFile)) {

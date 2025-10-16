@@ -23,7 +23,7 @@ class MonitorCmd extends BaseCmd
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $selfScript = $_SERVER['argv'][0];
-        $appName    = $input->getArgument('app_name');
+        $appName    = $input->getArgument(self::APP_NAME);
         $pidFile    = $this->getPidFile($appName);
         // 人为执行stop命令后，会删除pidFile,防止监控不断重启进程。只有异常情况下的进程停止，pidFile会存在，不被删除，然后会监控判断是否需要重启
         if (!is_file($pidFile)) {

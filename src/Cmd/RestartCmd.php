@@ -4,9 +4,10 @@ namespace Swoolefy\Cmd;
 use Swoolefy\Core\Exec;
 use Swoolefy\Core\SystemEnv;
 use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\Console\Output\OutputInterface;
-use Swoolefy\Core\CommandRunner;
 
 #[AsCommand(
     name: 'restart',
@@ -28,8 +29,8 @@ class RestartCmd extends BaseCmd
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $appName = $input->getArgument('app_name');
-        $force   = $input->getOption('force');
+        $appName = $input->getArgument(self::APP_NAME);
+        $force   = $input->getOption(self::FORCE);
         $lineValue = "";
         if (empty($force)) {
             if (SystemEnv::isWorkerService()) {
@@ -64,18 +65,20 @@ class RestartCmd extends BaseCmd
 
         $this->writeLog("重启服务：".WORKER_SERVICE_NAME);
 
-        fmtPrintInfo("-----------正在重启进程中，请等待-----------");
-
-        if (SystemEnv::isWorkerService()) {
-            while (true) {
-                if ($masterPid > 0 && \Swoole\Process::kill($masterPid, 0)) {
-                    sleep(1);
-                }else {
-                    break;
-                }
+        while (true) {
+            if ($masterPid > 0 && \Swoole\Process::kill($masterPid, 0)) {
+                fmtPrintNote("-----------原服务进程正在退出中...-----------");
+                sleep(1);
+            }else {
+                fmtPrintNote("-----------原服务进程已退出-----------");
+                break;
             }
-        }else {
-            sleep(1);
+        }
+
+        fmtPrintInfo("-----------正在重启服务进程中，请等待-----------");
+        while (!$this->isPortReleased('127.0.0.1',WORKER_PORT)) {
+            fmtPrintInfo("-----------正在重启服务进程中，请等待-----------");
+            sleep(3);
         }
 
         // delete restart pid file
@@ -98,10 +101,17 @@ class RestartCmd extends BaseCmd
             $selfFile = WORKER_START_SCRIPT_FILE;
         }
 
-        $scriptFile = implode(' ', [$selfFile, 'start', $appName, '--daemon=1', '--start-model=restart']);
-        $runner = CommandRunner::getInstance('restart-'.time());
-        $runner->isNextHandle(false);
-        $runner->procOpen($phpBinFile, $scriptFile, [], function () {});
+        $appNameOption = self::APP_NAME;
+        $daemonOption = join('', ["--", self::DAEMON]);
+        $startModelOption = join('', ["--", self::START_MODEL]);
+        $input = new ArrayInput([
+            'command' => "start",
+            $appNameOption => $appName,
+            $daemonOption => 1,
+            $startModelOption => 'restart',
+        ]);
+        $output = new ConsoleOutput();
+        $this->getApplication()->run($input, $output);
 
         $time = time();
         while (true) {
@@ -153,6 +163,23 @@ class RestartCmd extends BaseCmd
         }
     }
 
+    /**
+     * 判断端口是否已经释放
+     *
+     * @param $host
+     * @param $port
+     * @return bool
+     */
+    protected function isPortReleased($host, $port) {
+        $timeout = 1;
+        $connection = @fsockopen($host, $port, $errno, $err, $timeout);
+        if ($connection) {
+            fclose($connection);
+            return false;
+        } else {
+            return true;
+        }
+    }
     /**
      * @param string $appName
      * @return void
