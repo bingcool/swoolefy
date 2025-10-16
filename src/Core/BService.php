@@ -102,8 +102,8 @@ class BService extends BaseObject
      */
     private function getTraceId()
     {
-        if (\Swoolefy\Core\Coroutine\Context::has('trace-id')) {
-            $traceId = \Swoolefy\Core\Coroutine\Context::get('trace-id');
+        if (\Swoolefy\Core\Coroutine\Context::has('x-trace-id')) {
+            $traceId = \Swoolefy\Core\Coroutine\Context::get('x-trace-id');
         }
         return $traceId ?? '';
     }

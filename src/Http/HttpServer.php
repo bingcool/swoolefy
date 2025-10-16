@@ -136,8 +136,8 @@ abstract class HttpServer extends BaseServer
                 }
             }else {
                 try {
-                    $traceId = $request->header['trace-id'] ?? Helper::UUid();
-                    \Swoolefy\Core\Coroutine\Context::set('trace-id', $traceId);
+                    $traceId = $request->header['x-trace-id'] ?? Helper::UUid();
+                    \Swoolefy\Core\Coroutine\Context::set('x-trace-id', $traceId);
                     parent::beforeHandle();
                     static::onRequest($request, $response);
                     return true;

@@ -415,8 +415,8 @@ class Log
         $records['trace_id'] = '';
         $cid = \Swoole\Coroutine::getCid();
         if ($cid >= 0) {
-            if (Context::has('trace-id')) {
-                $records['trace_id'] = Context::get('trace-id');
+            if (Context::has('x-trace-id')) {
+                $records['trace_id'] = Context::get('x-trace-id');
             }
         }
         $records['method'] = '';

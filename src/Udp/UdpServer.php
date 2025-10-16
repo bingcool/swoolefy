@@ -119,7 +119,7 @@ abstract class UdpServer extends BaseServer
          */
         $this->udpServer->on('Packet', function (Server $server, $data, $clientInfo) {
             try {
-                \Swoolefy\Core\Coroutine\Context::set('trace-id', Helper::UUid());
+                \Swoolefy\Core\Coroutine\Context::set('x-trace-id', Helper::UUid());
                 parent::beforeHandle();
                 static::onPack($server, $data, $clientInfo);
                 return true;

@@ -49,7 +49,7 @@ class MainCliScript extends AbstractScriptProcess
      */
     public function init()
     {
-        if (!Context::has('trace-id')) {
+        if (!Context::has('x-trace-id')) {
             $this->generateTraceId();
         }
         BaseServer::saveCronScriptPidFile();
@@ -111,7 +111,7 @@ class MainCliScript extends AbstractScriptProcess
      */
     private function generateTraceId()
     {
-        Context::set('trace-id', \Swoolefy\Util\Helper::UUid());
+        Context::set('x-trace-id', \Swoolefy\Util\Helper::UUid());
     }
 
     /**
