@@ -64,16 +64,23 @@ class UserOrderController extends BController
 //        var_dump($userListDto->name);
 
         $uid = 100;
-        $sql = $db->newQuery()->table(OrderEntity::getTableName())->when($uid > 90,function (Query $query) {
-            $query->where('user_id','>', '100')->limit(0,10);
-        })->fetchSql()->select();
+        $pageList = $db->newQuery()->table(OrderEntity::getTableName())->when($uid > 90,function (Query $query) {
+            $query->where('user_id','>', '0');
+        })->paginateX(1,1706266299345000000);
+
+        var_dump($pageList->items(), $pageList->lastId());
 
         $data = (new OrderEntity())->getAttributes();
         //var_dump($data);
 
         // Entity 链路方式查询
-        $num1 = (new OrderEntity())->getQuery()->where('user_id','=', 10000)->limit(1)->select();
-        //var_dump($num1);
+        $query = (new OrderEntity())->getQuery()
+            ->where('user_id','>', 0);
+
+        $total1 = $query->clone()->count();
+        $list1  = $query->limit(1)->select();
+
+        //var_dump($total1, $list1);
 
         $subTable = (new OrderEntity())->getQuery()
             ->table(OrderEntity::getTableName())
