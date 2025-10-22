@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Http;
 
-use Swoolefy\Core\Coroutine\Context;
+use Swoolefy\Core\Coroutine\Context as SwooleContext;
 
 class Route
 {
@@ -37,9 +37,9 @@ class Route
      */
     public static function group(array $groupMeta, callable $fn)
     {
-        Context::set('__current_request_group_meta', $groupMeta);
+        SwooleContext::set('__current_request_group_meta', $groupMeta);
         $fn($groupMeta);
-        Context::set('__current_request_group_meta', []);
+        SwooleContext::set('__current_request_group_meta', []);
     }
 
     /**
@@ -48,8 +48,8 @@ class Route
     public static function getGroupMeta()
     {
         $groupMeta = [];
-        if (Context::has('__current_request_group_meta')) {
-            $groupMeta = Context::get('__current_request_group_meta') ?? [];
+        if (SwooleContext::has('__current_request_group_meta')) {
+            $groupMeta = SwooleContext::get('__current_request_group_meta') ?? [];
         }
         return $groupMeta;
     }

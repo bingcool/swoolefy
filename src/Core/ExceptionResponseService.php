@@ -22,8 +22,8 @@ class ExceptionResponseService extends BService
     {
         $responseDataDto = ResponseFormatter::formatDataDto($code, $msg);
         if (BaseServer::isRpcApp()) {
-            $is_same_packet_struct = $this->serverClientPacketStructSame();
-            if ($is_same_packet_struct) {
+            $isSamePacketStruct = $this->serverClientPacketStructSame();
+            if ($isSamePacketStruct) {
                 $fd = Application::getApp()->getFd();
                 $header = $this->getRpcPackHeader();
                 $this->send($fd, $responseDataDto, $header);
@@ -42,19 +42,19 @@ class ExceptionResponseService extends BService
     protected function serverClientPacketStructSame()
     {
         $conf = Swfy::getConf();
-        $server_pack_header_struct = $conf['packet']['server']['pack_header_struct'];
-        $client_pack_header_struct = $conf['packet']['client']['pack_header_struct'];
-        if (is_array($server_pack_header_struct) && is_array($client_pack_header_struct)) {
-            $server_num = count(array_keys($server_pack_header_struct));
-            $client_num = count(array_keys($client_pack_header_struct));
-            if ($server_num == $client_num) {
-                $is_same_packet_struct = true;
-                foreach ($server_pack_header_struct as $k => $value) {
-                    if ($client_pack_header_struct[$k] != $value) {
-                        $is_same_packet_struct = false;
+        $serverPackHeaderStruct = $conf['packet']['server']['pack_header_struct'];
+        $clientPackHeaderStruct = $conf['packet']['client']['pack_header_struct'];
+        if (is_array($serverPackHeaderStruct) && is_array($clientPackHeaderStruct)) {
+            $serverNum = count(array_keys($serverPackHeaderStruct));
+            $clientNum = count(array_keys($clientPackHeaderStruct));
+            if ($serverNum == $clientNum) {
+                $isSamePacketStruct = true;
+                foreach ($serverPackHeaderStruct as $k => $value) {
+                    if ($clientPackHeaderStruct[$k] != $value) {
+                        $isSamePacketStruct = false;
                     }
                 }
-                return $is_same_packet_struct;
+                return $isSamePacketStruct;
             }
         }
         return false;
