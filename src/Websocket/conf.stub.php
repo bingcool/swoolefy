@@ -23,7 +23,7 @@ return [
     'worker_process_name'      => 'php-swoolefy-websocket-worker',
     'www_user'                 => '',
     'host'                     => '0.0.0.0',
-    'port'                     => '9503',
+    'port'                     => defined('WORKER_PORT') ? WORKER_PORT : 9503,
     'accept_http'              => false, // only for websocket
     'time_zone'                => 'PRC',
     'runtime_enable_coroutine' => true,
