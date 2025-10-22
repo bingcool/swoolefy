@@ -23,8 +23,8 @@ class StopCmd extends BaseCmd
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $appName = $input->getArgument('app_name');
-        $force   = $input->getOption('force');
+        $appName = $input->getArgument(self::APP_NAME);
+        $force   = $input->getOption(self::FORCE);
         $lineValue = "";
         if (empty($force)) {
             if (SystemEnv::isWorkerService()) {

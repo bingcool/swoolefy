@@ -12,7 +12,7 @@ class StartCmd extends BaseCmd
 
     protected function configure()
     {
-        $this->addOption('start-model', null,InputOption::VALUE_OPTIONAL, 'start model', '');
+        $this->addOption(self::START_MODEL, null,InputOption::VALUE_OPTIONAL, 'start model', '');
         parent::configure();
         $restartPidFile = SystemEnv::getRestartModelPidFile();
         if (file_exists($restartPidFile)) {
@@ -33,7 +33,7 @@ class StartCmd extends BaseCmd
             call_user_func($beforeFunc);
         }
 
-        $serverName = $input->getArgument('app_name');
+        $serverName = $input->getArgument(self::APP_NAME);
         foreach (APP_META_ARR as $appName => $appItem) {
             try {
                 $protocol = $appItem['protocol'];
