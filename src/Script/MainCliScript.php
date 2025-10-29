@@ -11,9 +11,9 @@
 
 namespace Swoolefy\Script;
 
+use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Exec;
 use Swoolefy\Core\Swfy;
-use Swoolefy\Core\SystemEnv;
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Exception\SystemException;
 use Swoolefy\Worker\Helper;
@@ -49,10 +49,10 @@ class MainCliScript extends AbstractScriptProcess
      */
     public function init()
     {
-        if (!Context::has('trace-id')) {
+        if (!Context::has('x-trace-id')) {
             $this->generateTraceId();
         }
-        $this->saveCronScriptPidFile();
+        BaseServer::saveCronScriptPidFile();
         parent::init();
     }
 
@@ -111,21 +111,7 @@ class MainCliScript extends AbstractScriptProcess
      */
     private function generateTraceId()
     {
-        Context::set('trace-id', \Swoolefy\Util\Helper::UUid());
-    }
-
-    /**
-     * cron调用script时命令中带有option参数 --schedule_model=cron ----cron_script_pid_file=xxxxxxxx
-     *
-     * @return void
-     */
-    private function saveCronScriptPidFile()
-    {
-        if (SystemEnv::cronScheduleScriptModel()) {
-            $cronScriptPidFile = str_replace("--","", AbstractKernel::OPTION_SCHEDULE_CRON_SCRIPT_PID_FILE);
-            $pidFile = $this->getOption($cronScriptPidFile);
-            file_put_contents($pidFile, Swfy::getMasterPid());
-        }
+        Context::set('x-trace-id', \Swoolefy\Util\Helper::UUid());
     }
 
     /**

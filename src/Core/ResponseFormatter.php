@@ -43,8 +43,8 @@ class ResponseFormatter
         $responseDto = new BaseResponseDto();
         $responseDto->code = $code;
         $responseDto->msg  = $msg;
-        if (Context::has('trace-id')) {
-            $responseDto->trace_id = Context::get('trace-id');
+        if (Context::has('x-trace-id')) {
+            $responseDto->trace_id = Context::get('x-trace-id');
         }
         $responseDto->data = $data;
         return $responseDto;

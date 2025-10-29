@@ -22,7 +22,7 @@ trait ResponseParseTrait
      * @param int $code
      * @param mixed $msg
      * @param string $formatter
-     * @return void
+     * @return mixed
      */
     public function returnJson(
         array  $data = [],

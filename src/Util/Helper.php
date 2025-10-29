@@ -123,10 +123,13 @@ class Helper
     /**
      * @return string
      */
-    public static function UUid(): string
+    public static function UUid(int $length = 10, bool $isMd5 = false): string
     {
-        $randomBytes = random_bytes(10);
+        $randomBytes = random_bytes($length);
         $uuid = bin2hex($randomBytes);
+        if ($isMd5) {
+            return md5($uuid);
+        }
         return $uuid;
     }
 

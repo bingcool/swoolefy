@@ -14,6 +14,25 @@ namespace Swoolefy\Worker\Dto;
 class CronUrlTaskMetaDto extends AbstractDto
 {
     /**
+     * db cron task Meta配置模式下的数据库的任务id
+     *
+     * @var int
+     */
+    public $cron_task_id = 0;
+
+    /**
+     * db cron task Meta配置模式下的日志入库类
+     *
+     * @var string
+     */
+    public $cron_db_log_class = '';
+
+    /**
+     * @var string
+     */
+    public $cron_meta_origin = 'php';
+
+    /**
      * 计划任务名称
      *
      * @var string

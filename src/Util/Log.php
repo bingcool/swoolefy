@@ -207,7 +207,7 @@ class Log
         }
 
         if ($this->hourly) {
-            $hour = date('H', time());
+            $hour = join("",[date('H', time()), 'h']);
             $fileName = $fileInfo['filename'].'-'.$hour.'.'.$fileInfo['extension'];
         }else {
             $fileName = $fileInfo['filename'].'.'.$fileInfo['extension'];
@@ -399,17 +399,7 @@ class Log
             }
         };
 
-        if (\Swoole\Coroutine::getCid() > 0) {
-            $arrayCopy = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
-            \Swoole\Coroutine::create(function () use ($callable, $arrayCopy) {
-                foreach ($arrayCopy as $key=>$value) {
-                    \Swoolefy\Core\Coroutine\Context::set($key, $value);
-                }
-                call_user_func($callable);
-            });
-        } else {
-            call_user_func($callable);
-        }
+        call_user_func($callable);
     }
 
     /**
@@ -425,10 +415,11 @@ class Log
         $records['trace_id'] = '';
         $cid = \Swoole\Coroutine::getCid();
         if ($cid >= 0) {
-            if (Context::has('trace-id')) {
-                $records['trace_id'] = Context::get('trace-id');
+            if (Context::has('x-trace-id')) {
+                $records['trace_id'] = Context::get('x-trace-id');
             }
         }
+        $records['method'] = '';
         $records['route'] = '';
         $records['handle_class'] = (string) getenv('handle_class');
         $records['request_params'] = [];
@@ -441,6 +432,7 @@ class Log
             $records['process'] = 'cli_worker';
             if ($App instanceof App) {
                 $requestInput = $App->requestInput;
+                $records['method'] = $requestInput->getMethod();
                 $records['route'] = $requestInput->getRequestUri();
                 $records['request_params'] = $requestInput->getRequestParams();
             }else if ($App instanceof Swoole) {

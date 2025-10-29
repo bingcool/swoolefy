@@ -144,7 +144,7 @@ abstract class TcpServer extends BaseServer
          */
         $this->tcpServer->on('receive', function (\Swoole\Server $server, $fd, $reactor_id, $data) {
             try {
-                \Swoolefy\Core\Coroutine\Context::set('trace-id', Helper::UUid());
+                \Swoolefy\Core\Coroutine\Context::set('x-trace-id', Helper::UUid());
                 parent::beforeHandle();
                 if (parent::isPackLength()) {
                     $buffer = $this->Pack->decodePack($fd, $data);

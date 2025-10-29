@@ -17,6 +17,9 @@ use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
 use Swoolefy\Core\Process\ProcessManager;
+use Symfony\Component\Console\Helper\Table;
+use Symfony\Component\Console\Helper\TableStyle;
+use Symfony\Component\Console\Output\ConsoleOutput;
 
 class EventCtrl implements EventCtrlInterface
 {
@@ -445,10 +448,6 @@ class EventCtrl implements EventCtrlInterface
         $swoolefyEnv             = defined('SWOOLEFY_ENV') ? SWOOLEFY_ENV : null;
         $cpuNum                  = swoole_cpu_num();
         $ipList                  = json_encode(swoole_get_local_ip());
-        //$processListInfo         = array_values(ProcessManager::getInstance()->getProcessListInfo());
-        //$processListInfoStr      = json_encode($processListInfo, JSON_UNESCAPED_UNICODE);
-        //$poolsProcessListInfo    = array_values(PoolsManager::getInstance()->getProcessListInfo());
-        //$poolsProcessListInfoStr = json_encode($poolsProcessListInfo, JSON_UNESCAPED_UNICODE);
         $hostname                = gethostname();
 
         $consoleStyleIo = initConsoleStyleIo();
@@ -481,8 +480,35 @@ class EventCtrl implements EventCtrlInterface
             $consoleStyleIo->write("<info>Cli Script Start:</info>",true);
         }
 
+        if (SystemEnv::isWorkerService()) {
+            // @see \Swoolefy\Worker\AbstractBaseWorker::writeStartFormatInfo()
+            self::consoleTableReader(['服务应用','环境', '进程类型','进程名称', 'master_pid','当前pid', '当前workerId'], []);
+        }
+
         if (SystemEnv::isDaemon() && !SystemEnv::isScriptService()) {
             SystemEnv::formatPrintStartLog();
         }
     }
-} 
+
+    /**
+     * @param $tableHeader
+     * @param $tableRow
+     * @see \Swoolefy\Worker\AbstractBaseWorker::writeStartFormatInfo()
+     * @return void
+     */
+    public static function consoleTableReader($tableHeader = [], $tableRow = [])
+    {
+        $tableStyle = new TableStyle();
+        $tableStyle->setCellRowFormat('<info>%s</info>');
+        $baseInfoOutput = new ConsoleOutput();
+        $table      = new Table($baseInfoOutput);
+        $table->setColumnWidths([15, 5, 10, 30, 10, 10, 10]);
+        if (!empty($tableHeader)) {
+            $table->setHeaders($tableHeader);
+        }
+        if (!empty($tableRow)) {
+            $table->addRow($tableRow);
+        }
+        $table->setStyle($tableStyle)->render();
+    }
+}

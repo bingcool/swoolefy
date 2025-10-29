@@ -54,7 +54,7 @@ class CronForkRunner
     /**
      * @var int
      */
-    protected $checkTickerTime = 10;
+    protected $checkTickerTime = 20;
 
     /**
      * @var int
@@ -280,10 +280,16 @@ class CronForkRunner
                 $cronScriptPidFileOption = AbstractKernel::getCronScriptPidFileOptionField();
                 if (isset($extend[$cronScriptPidFileOption]) || $runType == CronForkTaskMetaDto::RUN_TYPE) {
                     $cronScriptPidFile = $extend[$cronScriptPidFileOption];
-                    if (is_file($cronScriptPidFile)) {
-                        $runProcessMetaDto->pid = (int)trim(file_get_contents($cronScriptPidFile));
-                    } else {
-                        $runProcessMetaDto->pid = 0;
+                    $runProcessMetaDto->pid = 0;
+                    // 稍微延迟等待脚本的pid文件写入完成
+                    $maxWaitTime = 5;
+                    while ($maxWaitTime > 0) {
+                        if (is_file($cronScriptPidFile)) {
+                            $runProcessMetaDto->pid = (int)trim(file_get_contents($cronScriptPidFile));
+                            break;
+                        }
+                        sleep(1);
+                        $maxWaitTime--;
                     }
                     $runProcessMetaDto->pid_file = $cronScriptPidFile;
                     $this->debug("【{$this->cronName}】拉起新的(swoolefy script)进程pid_file:".$runProcessMetaDto->pid_file);

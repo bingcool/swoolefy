@@ -83,7 +83,7 @@ class WebsocketHandler extends Swoole implements HandlerInterface
                 list($callable, $params) = $payload;
             }
 
-            if ($callable) {
+            if (isset($callable) && isset($service) && isset($event)) {
                 if (!isset($isTaskProcess)) {
                     $service          = trim(str_replace('\\', DIRECTORY_SEPARATOR, $service), DIRECTORY_SEPARATOR);
                     $serviceHandle    = implode(self::EOF, [$service, $event]);

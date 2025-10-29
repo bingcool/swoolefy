@@ -77,6 +77,7 @@ abstract class HttpServer extends BaseServer
         $this->webServer->on('Start', function (\Swoole\Http\Server $server) {
             try {
                 self::setMasterProcessName(self::$config['master_process_name']);
+                $this->saveCronScriptPidFile();
                 $this->startCtrl->start($server);
             } catch (\Throwable $e) {
                 self::catchException($e);
@@ -126,7 +127,7 @@ abstract class HttpServer extends BaseServer
                 return true;
             }
 
-            if(SystemEnv::isWorkerService()) {
+            if (SystemEnv::isWorkerService()) {
                 if ((SystemEnv::isCronService() || SystemEnv::isDaemonService()) && self::isHttpApp()) {
                     goApp(function () use($request, $response) {
                         (new CtlApi($request, $response))->handle();
@@ -135,8 +136,8 @@ abstract class HttpServer extends BaseServer
                 }
             }else {
                 try {
-                    $traceId = $request->header['trace-id'] ?? Helper::UUid();
-                    \Swoolefy\Core\Coroutine\Context::set('trace-id', $traceId);
+                    $traceId = $request->header['x-trace-id'] ?? Helper::UUid();
+                    \Swoolefy\Core\Coroutine\Context::set('x-trace-id', $traceId);
                     parent::beforeHandle();
                     static::onRequest($request, $response);
                     return true;

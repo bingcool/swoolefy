@@ -34,11 +34,11 @@
         "ext-sockets": "*",
         "ext-mbstring": "*",
         "ext-openssl": "*",
-        "dragonmantank/cron-expression": "~3.3.1",
-        "bingcool/library": "dev-master",
+        "dragonmantank/cron-expression": "~3.3.0",
+        "bingcool/library": "dev-library-php74-81",
         "vlucas/phpdotenv": "~5.6",
-        "symfony/console": "~5.4.34",
-        "zircote/swagger-php": "4.8.7"
+        "symfony/console": "~5.4.0",
+        "zircote/swagger-php": "~4.8.0"
     },
     "autoload": {
         "files": ["src/Constants.php","src/Core/Func/function.php"],

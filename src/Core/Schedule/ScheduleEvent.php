@@ -20,6 +20,8 @@ class ScheduleEvent extends CronForkTaskMetaDto
      */
     public $command;
 
+    public $cron_meta_origin = 'php';
+
     /**
      * @var null
      */
@@ -612,7 +614,7 @@ class ScheduleEvent extends CronForkTaskMetaDto
      * @param \Closure $callback
      * @return $this
      */
-    public function ForkSuccessCallback(\Closure $callback): self
+    public function forkSuccessCallback(\Closure $callback): self
     {
         $this->fork_success_callback = $callback;
         return $this;
@@ -624,7 +626,7 @@ class ScheduleEvent extends CronForkTaskMetaDto
      * @param \Closure $callback
      * @return $this
      */
-    public function ForkFailCallback(\Closure $callback): self
+    public function forkFailCallback(\Closure $callback): self
     {
         $this->fork_fail_callback = $callback;
         return $this;

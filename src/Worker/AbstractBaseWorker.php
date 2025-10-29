@@ -16,6 +16,7 @@ use Swoole\Process;
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Crontab\CrontabManager;
+use Swoolefy\Core\EventCtrl;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Exception\WorkerException;
 use Swoolefy\Worker\Dto\MessageDto;
@@ -1588,15 +1589,10 @@ abstract class AbstractBaseWorker
         }
         $pid = $this->getPid();
 
-        $tableStyle = new TableStyle();
-        $tableStyle->setCellRowFormat('<info>%s</info>');
-        $baseInfoOutput = new ConsoleOutput();
-        $baseTable      = new Table($baseInfoOutput);
-        $baseTable->setHeaders(['服务应用','环境', '进程类型','进程名称', 'master进程pid','当前进程pid', '当前进程workerId']);
-        $baseTable->addRow([WORKER_SERVICE_NAME, SWOOLEFY_ENV, $processTypeName, $processName, $this->getMasterPid(), $pid, $workerId]);
-        $baseTable->setStyle($tableStyle)->render();
+        // table header：\Swoolefy\Core\EventCtl::printStartInfo()
+        EventCtrl::consoleTableReader([], [WORKER_SERVICE_NAME, SWOOLEFY_ENV, $processTypeName, $processName, $this->getMasterPid(), $pid, $workerId]);
 
-        $logInfo = "start children_process【{$processTypeName}】: {$processName}@{$workerId} started, pid={$pid}, worker_master_pid={$this->getMasterPid()}";
+        $logInfo = "start children_process【{$processTypeName}】:{$processName}@{$workerId} started, pid={$pid}, worker_master_pid={$this->getMasterPid()}";
         $this->writeLog($logInfo);
     }
 
