@@ -126,7 +126,7 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
     && apk del --purge *-dev \
     && rm -rf /var/cache/apk/* /tmp/* /usr/share/man /usr/share/doc /usr/share/php${MY_PHP_VERSION} \
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
-    && composer config -g repo.packagist composer https://mirrors.aliyun.com/composer/ \
+    && composer config -g repos.packagist composer https://mirrors.tencent.com/composer/ \
     && php -v && php -m \
     && echo -e "\033[42;37m Build Completed :).\033[0m\n"
 

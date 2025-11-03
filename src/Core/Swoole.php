@@ -154,27 +154,32 @@ class Swoole extends BaseObject
 
     /**
      * @param $mixedParams
+     * @return $this
      */
     public function setMixedParams($mixedParams)
     {
         $this->mixedParams = $mixedParams;
+        return $this;
     }
 
     /**
      * @param array $rpcPackHeader
+     * @return $this
      */
     public function setRpcPackHeader(array $rpcPackHeader)
     {
         $this->rpcPackHeader = $rpcPackHeader;
+        return $this;
     }
 
     /**
      * @param string $serviceHandle
-     * @return void
+     * @return $this
      */
     public function setServiceHandle(string $serviceHandle)
     {
         $this->serviceHandle = $serviceHandle;
+        return $this;
     }
 
     /**
@@ -295,7 +300,7 @@ class Swoole extends BaseObject
     {
         if (\Swoole\Coroutine::getCid() >= 0) {
             $this->isDefer = true;
-            \Swoole\Coroutine\defer(function () {
+            \Swoole\Coroutine::defer(function () {
                 $this->end();
             });
         }

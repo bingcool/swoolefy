@@ -61,7 +61,7 @@ class Kernel extends AbstractKernel
             ->addArgs('sex', 'man')
             ->addArgs('desc', "fffkkkmm")
             ->withBlockLapping()
-            ->ForkSuccessCallback(function(ScheduleEvent $event) {
+            ->forkSuccessCallback(function(ScheduleEvent $event) {
                 var_dump("fork successful!");
             });
 

@@ -77,8 +77,7 @@ class ServiceDispatch extends AppDispatch
         parent::__construct();
         $this->callable = $callable;
         $this->params   = $params;
-        Application::getApp()->setMixedParams($params);
-        Application::getApp()->setRpcPackHeader($rpcPackHeader);
+        Application::getApp()->setMixedParams($params)->setRpcPackHeader($rpcPackHeader);
     }
 
     /**
@@ -250,20 +249,22 @@ class ServiceDispatch extends AppDispatch
     }
 
     /**
-     * @param string $uri
+     * getEndPointMapService 末端服务映射
+     *
+     * @param string $endPoint
      * @return array
      */
-    public static function getRouterMapService(string $uri)
+    public static function getEndPointMapService(string $endPoint)
     {
-        $routerMap = self::loadRouteFile();
-        $uri = trim($uri,DIRECTORY_SEPARATOR);
+        $endPointMap = self::loadRouteFile();
+        $endPoint = trim($endPoint,DIRECTORY_SEPARATOR);
 
-        if (isset(self::$routeCache[$uri])) {
-            return self::$routeCache[$uri];
+        if (isset(self::$routeCache[$endPoint])) {
+            return self::$routeCache[$endPoint];
         }
 
-        if (isset($routerMap[$uri])) {
-            $routerHandleMiddleware = $routerMap[$uri];
+        if (isset($endPointMap[$endPoint])) {
+            $routerHandleMiddleware = $endPointMap[$endPoint];
             if(!isset($routerHandleMiddleware['dispatch_route'])) {
                 throw new DispatchException('Missing dispatch_route option key');
             }else {
@@ -299,10 +300,10 @@ class ServiceDispatch extends AppDispatch
             }
 
             $routeItems = [$beforeMiddleware, $dispatchRoute, $afterMiddleware];
-            self::$routeCache[$uri] = $routeItems;
+            self::$routeCache[$endPoint] = $routeItems;
             return $routeItems;
         }else {
-            throw new DispatchException('Missing Dispatch Route Setting');
+            throw new DispatchException('Missing Dispatch EndPoint Path Setting');
         }
     }
 

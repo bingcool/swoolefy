@@ -68,6 +68,7 @@ class RpcHandler extends Swoole implements HandlerInterface
 
             parent::run($fd, $payload);
             if ($this->isWorkerProcess()) {
+                $isTaskProcess = false;
                 // packet_length_checkout
                 if (BaseServer::isPackLength() || BaseServer::isPackEof()) {
                     if (is_array($body) && count($body) == 2) {
@@ -81,7 +82,7 @@ class RpcHandler extends Swoole implements HandlerInterface
                 list($callable, $params) = $payload;
             }
 
-            if ($callable) {
+            if (isset($callable)) {
                 $dispatcher = new ServiceDispatch($callable, $params, $this->header);
                 if (isset($isTaskProcess) && $isTaskProcess === true) {
                     list($from_worker_id, $task_id, $task) = $extendData;
@@ -89,7 +90,6 @@ class RpcHandler extends Swoole implements HandlerInterface
                 }
                 $dispatcher->dispatch();
             }
-
         } catch (\Throwable $throwable) {
             ServiceDispatch::getErrorHandle()->errorMsg($throwable->getMessage(), -1);
             throw $throwable;
