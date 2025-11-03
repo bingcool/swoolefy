@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Core;
 
-use Swoolefy\Core\Coroutine\Context;
+use Swoolefy\Core\Coroutine\Context as SwooleContext;
 use Swoolefy\Core\Dto\BaseResponseDto;
 
 class ResponseFormatter
@@ -43,8 +43,8 @@ class ResponseFormatter
         $responseDto = new BaseResponseDto();
         $responseDto->code = $code;
         $responseDto->msg  = $msg;
-        if (Context::has('x-trace-id')) {
-            $responseDto->trace_id = Context::get('x-trace-id');
+        if (SwooleContext::has('x-trace-id')) {
+            $responseDto->trace_id = SwooleContext::get('x-trace-id');
         }
         $responseDto->data = $data;
         return $responseDto;

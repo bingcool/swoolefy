@@ -18,6 +18,7 @@ use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Util\Helper;
 use Swoolefy\Worker\CtlApi;
+use Swoolefy\Core\Coroutine\Context as SwooleContext;
 
 abstract class HttpServer extends BaseServer
 {
@@ -134,10 +135,10 @@ abstract class HttpServer extends BaseServer
                         return true;
                     });
                 }
-            }else {
+            } else {
                 try {
                     $traceId = $request->header['x-trace-id'] ?? Helper::UUid();
-                    \Swoolefy\Core\Coroutine\Context::set('x-trace-id', $traceId);
+                    SwooleContext::set('x-trace-id', $traceId);
                     parent::beforeHandle();
                     static::onRequest($request, $response);
                     return true;

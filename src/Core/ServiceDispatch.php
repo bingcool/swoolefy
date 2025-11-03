@@ -249,60 +249,62 @@ class ServiceDispatch extends AppDispatch
     }
 
     /**
-     * @param string $uri
+     * getEndPointMapService 末端服务映射
+     *
+     * @param string $endPoint
      * @return array
      */
-    public static function getRouterMapService(string $uri)
+    public static function getEndPointMapService(string $endPoint)
     {
-        $routerMap = self::loadRouteFile();
-        $uri = trim($uri,DIRECTORY_SEPARATOR);
+        $endPointMap = self::loadRouteFile();
+        $endPoint = trim($endPoint,DIRECTORY_SEPARATOR);
 
-        if (isset(self::$routeCache[$uri])) {
-            return self::$routeCache[$uri];
+        if (isset(self::$routeCache[$endPoint])) {
+            return self::$routeCache[$endPoint];
         }
 
-        if (isset($routerMap[$uri])) {
-            $routerHandleMiddleware = $routerMap[$uri];
-            if(!isset($routerHandleMiddleware['dispatch_route'])) {
-                throw new DispatchException('Missing dispatch_route option key');
-            }else {
-                $dispatchRoute = $routerHandleMiddleware['dispatch_route'];
-            }
+        if (!isset($endPointMap[$endPoint])) {
+            throw new DispatchException('Missing Dispatch EndPoint Path Setting');
+        }
 
-            $beforeMiddleware = $afterMiddleware = [];
-            foreach($routerHandleMiddleware as $alias => $handle) {
-                if ($alias != 'dispatch_route') {
-                    if (is_array($handle)) {
-                        foreach ($handle as $handleItem) {
-                            $beforeMiddleware[] = $handleItem;
-                        }
-                    }else {
-                        $beforeMiddleware[] = $handle;
-                    }
-                    unset($routerHandleMiddleware[$alias]);
-                    continue;
-                }
-                unset($routerHandleMiddleware[$alias]);
-                break;
-            }
+        $routerHandleMiddleware = $endPointMap[$endPoint];
+        if(!isset($routerHandleMiddleware['dispatch_route'])) {
+            throw new DispatchException('Missing dispatch_route option key');
+        }else {
+            $dispatchRoute = $routerHandleMiddleware['dispatch_route'];
+        }
 
-            $afterMiddlewareTemp = array_values($routerHandleMiddleware);
-            foreach ($afterMiddlewareTemp as $afterMiddlewareItem) {
-                if (is_array($afterMiddlewareItem)) {
-                    foreach ($afterMiddlewareItem as $afterMiddlewareEvery) {
-                        $afterMiddleware[] = $afterMiddlewareEvery;
+        $beforeMiddleware = $afterMiddleware = [];
+        foreach($routerHandleMiddleware as $alias => $handle) {
+            if ($alias != 'dispatch_route') {
+                if (is_array($handle)) {
+                    foreach ($handle as $handleItem) {
+                        $beforeMiddleware[] = $handleItem;
                     }
                 }else {
-                    $afterMiddleware[] = $afterMiddlewareItem;
+                    $beforeMiddleware[] = $handle;
                 }
+                unset($routerHandleMiddleware[$alias]);
+                continue;
             }
-
-            $routeItems = [$beforeMiddleware, $dispatchRoute, $afterMiddleware];
-            self::$routeCache[$uri] = $routeItems;
-            return $routeItems;
-        }else {
-            throw new DispatchException('Missing Dispatch Route Setting');
+            unset($routerHandleMiddleware[$alias]);
+            break;
         }
+
+        $afterMiddlewareTemp = array_values($routerHandleMiddleware);
+        foreach ($afterMiddlewareTemp as $afterMiddlewareItem) {
+            if (is_array($afterMiddlewareItem)) {
+                foreach ($afterMiddlewareItem as $afterMiddlewareEvery) {
+                    $afterMiddleware[] = $afterMiddlewareEvery;
+                }
+            }else {
+                $afterMiddleware[] = $afterMiddlewareItem;
+            }
+        }
+
+        $routeItems = [$beforeMiddleware, $dispatchRoute, $afterMiddleware];
+        self::$routeCache[$endPoint] = $routeItems;
+        return $routeItems;
     }
 
     /**
