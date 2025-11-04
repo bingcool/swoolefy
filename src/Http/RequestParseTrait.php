@@ -375,6 +375,15 @@ trait RequestParseTrait
     }
 
     /**
+     * getRequestTimeFloat
+     * @return float
+     */
+    public function getRequestTimeFloat()
+    {
+        return $this->swooleRequest->server['REQUEST_TIME_FLOAT'];
+    }
+
+    /**
      * getDispatchRoute
      * @return array
      */
@@ -564,6 +573,7 @@ trait RequestParseTrait
      */
     public function getClientIP(int $type = 0)
     {
+        $ip = '0.0.0.0';
         // 通过nginx的代理
         if (isset($this->swooleRequest->server['HTTP_X_REAL_IP']) && strcasecmp($this->swooleRequest->server['HTTP_X_REAL_IP'], "unknown")) {
             $ip = $this->swooleRequest->server['HTTP_X_REAL_IP'];

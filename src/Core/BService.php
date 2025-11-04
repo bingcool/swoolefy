@@ -15,6 +15,7 @@ use Swoolefy\Rpc\RpcServer;
 use Swoolefy\Udp\UdpHandler;
 use Swoolefy\Exception\SystemException;
 use Swoolefy\Core\Dto\BaseResponseDto;
+use Swoolefy\Core\Coroutine\Context as SwooleContext;
 
 class BService extends BaseObject
 {
@@ -102,8 +103,8 @@ class BService extends BaseObject
      */
     private function getTraceId()
     {
-        if (\Swoolefy\Core\Coroutine\Context::has('x-trace-id')) {
-            $traceId = \Swoolefy\Core\Coroutine\Context::get('x-trace-id');
+        if (SwooleContext::has('x-trace-id')) {
+            $traceId = SwooleContext::get('x-trace-id');
         }
         return $traceId ?? '';
     }

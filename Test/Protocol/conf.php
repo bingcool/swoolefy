@@ -23,14 +23,14 @@ return [
     'worker_process_name'      => 'php-swoolefy-http-worker',
     'www_user'                 => '',
     'host'                     => '0.0.0.0',
-    'port'                     => '9501',
+    'port'                     => defined('WORKER_PORT') ? WORKER_PORT : 9501,
     'time_zone'                => 'PRC',
     'swoole_process_mode'      => SWOOLE_PROCESS,
     'include_files'            => [],
     'runtime_enable_coroutine' => true,
 
     'setting' => [
-        'reactor_num'            => 4,
+        'reactor_num'            => 2,
         'worker_num'             => 4,
         'max_request'            => 20000,
         'task_worker_num'        => 1,

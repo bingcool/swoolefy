@@ -17,6 +17,7 @@ use Swoole\WebSocket\Frame;
 use Swoolefy\Core\ServiceDispatch;
 use Swoolefy\Core\ResponseFormatter;
 use Swoolefy\Core\HandlerInterface;
+use Swoolefy\Core\Coroutine\Context as SwooleContent;
 
 class WebsocketHandler extends Swoole implements HandlerInterface
 {
@@ -25,6 +26,11 @@ class WebsocketHandler extends Swoole implements HandlerInterface
      * 数据分隔符
      */
     const EOF = SWOOLEFY_EOF_FLAG;
+
+    /**
+     * 内部指定的ping的endPoint末端
+     */
+    const PingEndPoint = 'swoolefy/websocket/ping';
 
     /**
      * __construct
@@ -49,9 +55,9 @@ class WebsocketHandler extends Swoole implements HandlerInterface
         try {
             // parse data
             if ($this->isWorkerProcess()) {
-                $payload = explode(static::EOF, $payload, 3);
-                if (is_array($payload) && count($payload) == 3) {
-                    list($service, $event, $params) = $payload;
+                $dataGramItems = explode(static::EOF, $payload, 2);
+                if (count($dataGramItems) == 2) {
+                    list($endPoint, $params) = $dataGramItems;
                     if (is_string($params)) {
                         $params = json_decode($params, true) ?? $params;
                         if (!is_array($params)) {
@@ -59,11 +65,11 @@ class WebsocketHandler extends Swoole implements HandlerInterface
                         }
                     }
                 } else {
-                    return Swfy::getServer()->push($fd, $this->buildErrorMsg('Websocket Params Missing'), 1, true);
+                    return Swfy::getServer()->push($fd, $this->buildErrorMsg('Websocket Payload Parse Error, Payload: '.$payload), 1, true);
                 }
 
                 // heartbeat
-                if ($this->ping($event)) {
+                if ($this->ping($endPoint)) {
                     $pingFrame = new Frame;
                     $pingFrame->opcode = WEBSOCKET_OPCODE_PONG;
                     return Swfy::getServer()->push($fd, $pingFrame);
@@ -72,27 +78,23 @@ class WebsocketHandler extends Swoole implements HandlerInterface
 
             parent::run($fd, $payload);
             if ($this->isWorkerProcess()) {
-                if ($service && $event) {
-                    $callable = [$service, $event];
-                }
+                $isTaskProcess = false;
             } else {
                 $isTaskProcess = true;
                 foreach ($contextData as $key => $value) {
-                    \Swoolefy\Core\Coroutine\Context::set($key, $value);
+                    SwooleContent::set($key, $value);
                 }
                 list($callable, $params) = $payload;
             }
 
-            if (isset($callable) && isset($service) && isset($event)) {
-                if (!isset($isTaskProcess)) {
-                    $service          = trim(str_replace('\\', DIRECTORY_SEPARATOR, $service), DIRECTORY_SEPARATOR);
-                    $serviceHandle    = implode(self::EOF, [$service, $event]);
-                    $this->setServiceHandle($serviceHandle);
-                    list($beforeMiddleware, $callable, $afterMiddleware) = ServiceDispatch::getRouterMapService($serviceHandle);
-                }
-
-                $dispatcher = new ServiceDispatch($callable, $params);
-                if (isset($isTaskProcess) && $isTaskProcess === true) {
+            if (isset($endPoint) || isset($callable)) {
+                if ($isTaskProcess === false) {
+                    $endPoint = trim(str_replace('\\', DIRECTORY_SEPARATOR, $endPoint), DIRECTORY_SEPARATOR);
+                    $this->setServiceHandle($endPoint);
+                    list($beforeMiddleware, $callable, $afterMiddleware) = ServiceDispatch::getEndPointMapService($endPoint);
+                    $dispatcher = new ServiceDispatch($callable, $params);
+                }else if ($isTaskProcess === true) {
+                    $dispatcher = new ServiceDispatch($callable, $params);
                     list($fromWorkerId, $taskId, $task) = $extendData;
                     $dispatcher->setFromWorkerIdAndTaskId($fromWorkerId, $taskId, $task);
                 }
@@ -120,12 +122,12 @@ class WebsocketHandler extends Swoole implements HandlerInterface
 
     /**
      * ping
-     * @param string $evnet
+     * @param string $endPoint
      * @return bool
      */
-    public function ping(string $event)
+    public function ping(string $endPoint)
     {
-        if (strtolower($event) == 'ping') {
+        if (strtolower($endPoint) == self::PingEndPoint) {
             return true;
         }
         return false;

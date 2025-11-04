@@ -10,16 +10,23 @@ class UuidController extends BController
 {
     public function getUuid(RequestInput $requestInput)
     {
-        $input = $requestInput->input();
-        var_dump($input);
-
-        var_dump($requestInput->get('id'));
-        var_dump($requestInput->getProtocol());
-
         $ids = App::getUUid()->getIncrIds(10);
         foreach ($ids as &$id) {
             $id = (string)$id;
         }
+        $array = [1, 3, 5, 8, 10];
+        $result = array_find($array, function($value) {
+            if ($value % 2 === 0) {
+                return true;
+            }
+        });
+        var_dump($result);
+
+        $is = json_validate("ggggggggggg");
+
+        var_dump($is);
+
+
         $this->returnJson($ids);
     }
 }

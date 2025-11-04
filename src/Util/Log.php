@@ -20,7 +20,7 @@ use Swoolefy\Core\Log\Logger;
 use Swoolefy\Core\Log\StreamHandler;
 use Swoolefy\Core\Swoole;
 use Swoolefy\Core\SystemEnv;
-use Swoolefy\Core\Coroutine\Context;
+use Swoolefy\Core\Coroutine\Context as SwooleContext;
 
 /**
  * Class Log
@@ -415,8 +415,8 @@ class Log
         $records['trace_id'] = '';
         $cid = \Swoole\Coroutine::getCid();
         if ($cid >= 0) {
-            if (Context::has('x-trace-id')) {
-                $records['trace_id'] = Context::get('x-trace-id');
+            if (SwooleContext::has('x-trace-id')) {
+                $records['trace_id'] = SwooleContext::get('x-trace-id');
             }
         }
         $records['method'] = '';

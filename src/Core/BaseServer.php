@@ -331,6 +331,7 @@ class BaseServer
      */
     public static function getAppPrefix()
     {
+        $serviceName = 'cli';
         if (SystemEnv::isWorkerService()) {
             if (SystemEnv::isDaemonService()) {
                 $serviceName = 'daemon';
@@ -339,8 +340,6 @@ class BaseServer
             } else if (SystemEnv::isScriptService()) {
                 $serviceName = 'script';
             }
-        } else {
-            $serviceName = 'cli';
         }
         return '['.self::getAppName() . '-'.$serviceName.'-swoolefy'.']';
     }
