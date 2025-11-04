@@ -263,48 +263,48 @@ class ServiceDispatch extends AppDispatch
             return self::$routeCache[$endPoint];
         }
 
-        if (isset($endPointMap[$endPoint])) {
-            $routerHandleMiddleware = $endPointMap[$endPoint];
-            if(!isset($routerHandleMiddleware['dispatch_route'])) {
-                throw new DispatchException('Missing dispatch_route option key');
-            }else {
-                $dispatchRoute = $routerHandleMiddleware['dispatch_route'];
-            }
-
-            $beforeMiddleware = $afterMiddleware = [];
-            foreach($routerHandleMiddleware as $alias => $handle) {
-                if ($alias != 'dispatch_route') {
-                    if (is_array($handle)) {
-                        foreach ($handle as $handleItem) {
-                            $beforeMiddleware[] = $handleItem;
-                        }
-                    }else {
-                        $beforeMiddleware[] = $handle;
-                    }
-                    unset($routerHandleMiddleware[$alias]);
-                    continue;
-                }
-                unset($routerHandleMiddleware[$alias]);
-                break;
-            }
-
-            $afterMiddlewareTemp = array_values($routerHandleMiddleware);
-            foreach ($afterMiddlewareTemp as $afterMiddlewareItem) {
-                if (is_array($afterMiddlewareItem)) {
-                    foreach ($afterMiddlewareItem as $afterMiddlewareEvery) {
-                        $afterMiddleware[] = $afterMiddlewareEvery;
-                    }
-                }else {
-                    $afterMiddleware[] = $afterMiddlewareItem;
-                }
-            }
-
-            $routeItems = [$beforeMiddleware, $dispatchRoute, $afterMiddleware];
-            self::$routeCache[$endPoint] = $routeItems;
-            return $routeItems;
-        }else {
+        if (!isset($endPointMap[$endPoint])) {
             throw new DispatchException('Missing Dispatch EndPoint Path Setting');
         }
+
+        $routerHandleMiddleware = $endPointMap[$endPoint];
+        if(!isset($routerHandleMiddleware['dispatch_route'])) {
+            throw new DispatchException('Missing dispatch_route option key');
+        }else {
+            $dispatchRoute = $routerHandleMiddleware['dispatch_route'];
+        }
+
+        $beforeMiddleware = $afterMiddleware = [];
+        foreach($routerHandleMiddleware as $alias => $handle) {
+            if ($alias != 'dispatch_route') {
+                if (is_array($handle)) {
+                    foreach ($handle as $handleItem) {
+                        $beforeMiddleware[] = $handleItem;
+                    }
+                }else {
+                    $beforeMiddleware[] = $handle;
+                }
+                unset($routerHandleMiddleware[$alias]);
+                continue;
+            }
+            unset($routerHandleMiddleware[$alias]);
+            break;
+        }
+
+        $afterMiddlewareTemp = array_values($routerHandleMiddleware);
+        foreach ($afterMiddlewareTemp as $afterMiddlewareItem) {
+            if (is_array($afterMiddlewareItem)) {
+                foreach ($afterMiddlewareItem as $afterMiddlewareEvery) {
+                    $afterMiddleware[] = $afterMiddlewareEvery;
+                }
+            }else {
+                $afterMiddleware[] = $afterMiddlewareItem;
+            }
+        }
+
+        $routeItems = [$beforeMiddleware, $dispatchRoute, $afterMiddleware];
+        self::$routeCache[$endPoint] = $routeItems;
+        return $routeItems;
     }
 
     /**
