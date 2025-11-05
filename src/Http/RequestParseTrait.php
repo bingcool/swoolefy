@@ -108,9 +108,9 @@ trait RequestParseTrait
      */
     public function isSsl(): bool
     {
-        if (isset($this->swooleRequest->server['HTTPS']) && ('1' == $this->swooleRequest->server['HTTPS'] || 'on' == strtolower($this->swooleRequest->server['HTTPS']))) {
+        if (isset($this->swooleRequest->server['HTTPS']) && ($this->swooleRequest->server['HTTPS'] == '1' || strtolower($this->swooleRequest->server['HTTPS']) == 'on' )) {
             return true;
-        } elseif (isset($this->swooleRequest->server['SERVER_PORT']) && ('443' == $this->swooleRequest->server['SERVER_PORT'])) {
+        } elseif (isset($this->swooleRequest->server['SERVER_PORT']) && ( $this->swooleRequest->server['SERVER_PORT'] == '443')) {
             return true;
         }
         return false;
@@ -573,6 +573,7 @@ trait RequestParseTrait
      */
     public function getClientIP(int $type = 0)
     {
+        $ip = '0.0.0.0';
         // 通过nginx的代理
         if (isset($this->swooleRequest->server['HTTP_X_REAL_IP']) && strcasecmp($this->swooleRequest->server['HTTP_X_REAL_IP'], "unknown")) {
             $ip = $this->swooleRequest->server['HTTP_X_REAL_IP'];
