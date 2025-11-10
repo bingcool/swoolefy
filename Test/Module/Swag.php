@@ -1,26 +1,26 @@
 <?php
 namespace Test\Module;
 
-use OpenApi\Attributes as OA;
-#[OA\Server(
+use OpenApi\Attributes as OPA;
+#[OPA\Server(
     url:WEB_SITE_HOST,description: '开发环境'
 )]
 
-#[OA\Server(
+#[OPA\Server(
     url:WEB_SITE_HOST,description: '测试环境'
 )]
 
 // 定义认证的请求头token
-#[OA\SecurityScheme(
+#[OPA\SecurityScheme(
     type: 'apiKey',description: '认证授权token',in: 'header', securityScheme: 'apiKeyAuth',name: 'token'
 )]
 
 // 定义认证的其他请求头
-#[OA\SecurityScheme(
+#[OPA\SecurityScheme(
     type: 'apiKey',description: '应用ID',in: 'header', securityScheme: 'appId',name: 'app_id'
 )]
 
-#[OA\Info(
+#[OPA\Info(
     version:'v1.0.0',
     title:'用户订单中心',
     description:'用户订单模块',
