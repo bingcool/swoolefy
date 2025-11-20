@@ -44,7 +44,7 @@ class HttpServer extends \Swoolefy\Http\HttpAppServer {
     /**
      * Worker Receive Task Process Msg
      *
-     * @param Server $server
+     * @param Server $server.
      * @param int $task_id
      * @param mixed $data
      */

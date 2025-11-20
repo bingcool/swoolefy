@@ -30,9 +30,9 @@ class RpcHandler extends Swoole implements HandlerInterface
      * __construct
      * @param array $config
      */
-    public function __construct(array $config = [])
+    public function __construct()
     {
-        parent::__construct($config);
+        parent::__construct();
     }
 
     /**

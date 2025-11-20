@@ -366,12 +366,12 @@ class BaseServer
 
     /**
      * setWorkerUserGroup 设置worker进程的工作组，默认是root
-     * @param string $worker_user
+     * @param null|string $workerUser
      */
-    public static function setWorkerUserGroup(string $worker_user = null)
+    public static function setWorkerUserGroup(?string $workerUser = null)
     {
-        if ($worker_user) {
-            $userInfo = posix_getpwnam($worker_user);
+        if ($workerUser) {
+            $userInfo = posix_getpwnam($workerUser);
             if ($userInfo) {
                 posix_setuid($userInfo['uid']);
                 posix_setgid($userInfo['gid']);
