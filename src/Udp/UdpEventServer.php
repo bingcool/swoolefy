@@ -45,7 +45,7 @@ abstract class UdpEventServer extends UdpServer implements UdpEventInterface
      */
     public function onPack(Server $server, $data, $clientInfo)
     {
-        $appInstance = new UdpHandler(Swfy::getAppConf());
+        $appInstance = new UdpHandler();
         $appInstance->setClientInfo($clientInfo);
         $appInstance->run(null, $data);
     }

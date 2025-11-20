@@ -52,7 +52,7 @@ abstract class HttpAppServer extends HttpServer
      */
     public function onRequest(Request $request, Response $response)
     {
-        $appInstance = new \Swoolefy\Core\App(Swfy::getAppConf());
+        $appInstance = new \Swoolefy\Core\App();
         $appInstance->run($request, $response);
         return true;
     }

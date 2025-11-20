@@ -77,9 +77,9 @@ class App extends \Swoolefy\Core\Component
      * @param array $appConf
      * @return void
      */
-    public function __construct(array $appConf = [])
+    public function __construct()
     {
-        $this->appConf = $appConf;
+        $this->appConf = Swfy::getAppConf();
         $this->coroutineId = CoroutineManager::getInstance()->getCoroutineId();
     }
 

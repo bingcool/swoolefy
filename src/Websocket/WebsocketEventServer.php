@@ -55,8 +55,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
      */
     public function onRequest(Request $request, Response $response)
     {
-        $appConf = \Swoolefy\Core\Swfy::getAppConf();
-        $appInstance = new \Swoolefy\Core\App($appConf);
+        $appInstance = new \Swoolefy\Core\App();
         $appInstance->run($request, $response);
     }
 
@@ -77,7 +76,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
         if ($finish) {
             if ($opcode == WEBSOCKET_OPCODE_TEXT) {
                 $appConf = \Swoolefy\Core\Swfy::getAppConf();
-                $appInstance = new WebsocketHandler($appConf);
+                $appInstance = new WebsocketHandler();
                 $appInstance->run($fd, $data);
             } else if ($opcode == WEBSOCKET_OPCODE_BINARY) {
                 static::onMessageFromBinary($server, $frame);
@@ -110,7 +109,7 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
     public function onTask(Server $server, int $task_id, int $from_worker_id, $data, $task = null)
     {
         list($callable, $taskData, $contextData, $fd) = $data;
-        $appInstance = new WebsocketHandler(Swfy::getAppConf());
+        $appInstance = new WebsocketHandler();
         $appInstance->run($fd, [$callable, $taskData], [$from_worker_id, $task_id, $task], $contextData ?? []);
         return true;
     }
