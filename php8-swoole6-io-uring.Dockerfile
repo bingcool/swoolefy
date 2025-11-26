@@ -4,7 +4,7 @@ LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 
 #swoole6.x最高只支持到php81,php82,php83,php84.
 #根据实际构建来设置环境变量
-ENV MY_SWOOLE_VERSION=6.1.2 \
+ENV MY_SWOOLE_VERSION=6.1.3 \
     MY_PHP_VERSION=83 \
     SWOOLEFY_CLI_ENV=dev
 
@@ -61,7 +61,7 @@ FROM alpine:3.20.3
 LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 
 #根据实际构建来设置环境变量
-ENV MY_SWOOLE_VERSION=6.1.2 \
+ENV MY_SWOOLE_VERSION=6.1.3 \
     MY_PHP_VERSION=83 \
     SWOOLEFY_CLI_ENV=dev
 
@@ -130,6 +130,7 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
     && ln -sf /usr/bin/php-config${MY_PHP_VERSION} /usr/bin/php-config \
     && ln -sf /usr/bin/phpize${MY_PHP_VERSION} /usr/bin/phpize \
     && apk del --purge *-dev \
+    # swoole6+支持io_uring运行时且依赖linux-headers,liburing
     && apk add linux-headers liburing-dev \
     && rm -rf /var/cache/apk/* /tmp/* /usr/share/man /usr/share/doc /usr/share/php${MY_PHP_VERSION} \
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
