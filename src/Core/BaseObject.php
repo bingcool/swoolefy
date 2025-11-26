@@ -66,9 +66,7 @@ class BaseObject
      */
     public function setCid(int $coroutineId): bool
     {
-        if($coroutineId >=0 ) {
-            $this->coroutineId = $coroutineId;
-        }
+        $this->coroutineId = $coroutineId;
         return true;
     }
 

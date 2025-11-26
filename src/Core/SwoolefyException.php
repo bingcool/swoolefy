@@ -90,7 +90,9 @@ class SwoolefyException
      */
     public static function handleError(int $errorNo, string $errorMessage, string $errorFile, int $errorLine)
     {
-        if ((\PHP_VERSION_ID >= 80400 && in_array($errorNo, [E_NOTICE, E_DEPRECATED])) || in_array($errorNo, [E_NOTICE, E_DEPRECATED, E_STRICT]) ) {
+        if ((\PHP_VERSION_ID >= 80400 && in_array($errorNo, [E_NOTICE, E_DEPRECATED])) ||
+            (\PHP_VERSION_ID < 80400 && in_array($errorNo, [E_NOTICE, E_DEPRECATED, E_STRICT]))
+        ) {
             return;
         }
         throw new \ErrorException($errorMessage, 0, $errorNo, $errorFile, $errorLine);
