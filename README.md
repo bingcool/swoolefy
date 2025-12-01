@@ -35,10 +35,11 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 4、若不希望自己编译构建，也可以直接使用本目录下的Dockerfile来构建镜像:     
 ```
 // 构建镜像
-docker build --no-cache -t swoolefy-php83-swoole61:v1 -f ./php8-swoole61.Dockerfile .   
+docker build --no-cache -t swoolefy-php83-swoole61:v1 -f ./php83-swoole61.Dockerfile .   
 
-// 启动容器
-docker run -d -it --name=swoolefy-php83-v6 swoolefy-php83-swoole61:v1
+// 启动容器(开发环境下 --security-opt seccomp=unconfined的作用是禁用这个默认配置，让容器内的进程可以使用所有系统调用比如io_uring)   
+// 生产环境下建议使用配置文件方式 --security-opt seccomp=./seccomp_profile.json     
+docker run -d -it --security-opt seccomp=unconfined --name=swoolefy-php83-v6 swoolefy-php83-swoole61:v1
 
 ```
 ### 三、实现的功能特性    

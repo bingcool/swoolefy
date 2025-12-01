@@ -22,10 +22,8 @@ class IndexController extends BController {
 
     public function index()
     {
-//        goApp(function () {
-//            file_put_contents("/tmp/bingcool.txt", "bingcool-log-id=".rand(1,1000));
-//            var_dump("root-go-cid=".\Swoole\Coroutine::getCid());
-//        });
+        file_put_contents("/tmp/bingcool.txt", "bingcool-log-id=".rand(1,1000));
+        var_dump("root-go-cid=".\Swoole\Coroutine::getCid());
 
         var_dump("index-index-index");
 
