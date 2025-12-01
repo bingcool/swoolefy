@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Http;
 
-use Common\Library\CurlProxy\OpentelemetryMiddleware;
+use Swoole\Coroutine;
 use Swoolefy\Core\EventApp;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
@@ -20,6 +20,7 @@ use Swoolefy\Core\SystemEnv;
 use Swoolefy\Util\Helper;
 use Swoolefy\Worker\CtlApi;
 use Swoolefy\Core\Coroutine\Context as SwooleContext;
+use Common\Library\CurlProxy\OpentelemetryMiddleware;
 
 abstract class HttpServer extends BaseServer
 {
@@ -148,11 +149,20 @@ abstract class HttpServer extends BaseServer
                     SwooleContext::set(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID, $traceId);
                     SwooleContext::set(OpentelemetryMiddleware::OPENTELEMETRY_TRACEPARENT_ID, $traceparent ?? "");
                     static::onRequest($request, $response);
-                    isset($span) && $this->endOpenTelemetry($span, $scope);
+                    if (isset($span)) {
+                        Coroutine::defer(function () use ($span) {
+                            SwooleContext::set(OpentelemetryMiddleware::IS_CALL_ENDOPENTELEMETRY, 1);
+                            $this->endOpenTelemetry($span);
+                        });
+                    }
                     return true;
                 } catch (\Throwable $e) {
                     self::catchException($e);
-                    isset($span) && $this->errorOpenTelemetry($span, $scope, $e);
+                    if (isset($span) && !SwooleContext::has(OpentelemetryMiddleware::IS_CALL_ENDOPENTELEMETRY)) {
+                        Coroutine::defer(function () use ($span, $e) {
+                            $this->errorOpenTelemetry($span, $e);
+                        });
+                    }
                 }
             }
         });

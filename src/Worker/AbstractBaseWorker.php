@@ -447,13 +447,13 @@ abstract class AbstractBaseWorker
                 });
             }
 
-            // exit signo
+            // exit signal
             Process::signal(SIGTERM, function ($signo) {
                 $function = $this->exitSingleHandle($signo);
                 $function();
             });
 
-            // reboot signo
+            // reboot signal
             Process::signal(SIGUSR1, function ($signo) {
                 $function = $this->rebootSingleHandle();
                 $function();

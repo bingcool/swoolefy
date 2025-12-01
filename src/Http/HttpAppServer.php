@@ -119,10 +119,9 @@ abstract class HttpAppServer extends HttpServer
 
     /**
      * @param $span
-     * @param $scope
      * @return void
      */
-    protected function endOpenTelemetry($span, $scope)
+    protected function endOpenTelemetry($span)
     {
         if (!env('OTEL_PHP_AUTOLOAD_ENABLED', false)) {
             return;
@@ -136,11 +135,10 @@ abstract class HttpAppServer extends HttpServer
 
     /**
      * @param $span
-     * @param $scope
      * @param $exception
      * @return void
      */
-    protected function errorOpenTelemetry($span, $scope, $exception)
+    protected function errorOpenTelemetry($span, $exception)
     {
         if (!env('OTEL_PHP_AUTOLOAD_ENABLED', false)) {
             return;
