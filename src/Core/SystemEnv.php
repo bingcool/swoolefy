@@ -428,7 +428,6 @@ class SystemEnv
      */
     public static function loadHookFlag()
     {
-        ob_start();
         return SWOOLE_HOOK_ALL;
     }
 
