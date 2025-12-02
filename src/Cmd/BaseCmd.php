@@ -383,11 +383,17 @@ class BaseCmd extends Command
         $table->setStyle($tableStyle)->render();
     }
 
+    /**
+     * @return bool
+     */
     protected function isDaemon()
     {
         return isDaemon();
     }
 
+    /**
+     * @return array
+     */
     protected function loadGlobalConf()
     {
         return loadGlobalConf();

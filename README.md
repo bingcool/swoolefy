@@ -39,6 +39,7 @@ docker build --no-cache -t swoolefy-php83-swoole61:v1 -f ./php83-swoole61.Docker
 
 // 启动容器(开发环境下 --security-opt seccomp=unconfined的作用是禁用这个默认配置，让容器内的进程可以使用所有系统调用比如io_uring)   
 // 生产环境下建议使用配置文件方式 --security-opt seccomp=./seccomp_profile.json     
+// @see https://github.com/moby/moby/blob/v28.3.3/profiles/seccomp/default.json      
 docker run -d -it --security-opt seccomp=unconfined --name=swoolefy-php83-v6 swoolefy-php83-swoole61:v1
 
 ```
