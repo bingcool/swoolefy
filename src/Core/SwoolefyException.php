@@ -108,7 +108,7 @@ class SwoolefyException
         $queryString  = isset($app->swooleRequest->server['QUERY_STRING']) ? '?' . $app->swooleRequest->server['QUERY_STRING'] : '';
         $exceptionMsg = $throwable->getMessage();
 
-        if(method_exists($throwable, 'getContextData')) {
+        if (method_exists($throwable, 'getContextData')) {
             $contextData = $throwable->getContextData();
         }
 

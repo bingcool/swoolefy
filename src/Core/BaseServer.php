@@ -301,10 +301,24 @@ class BaseServer
      */
     public static function setWorkerProcessName(string $workerProcessName, int $workerId, int $workerNum = 1)
     {
+        $taskServerName = 'task';
+        $workerServerName = 'worker';
+        if (SystemEnv::isWorkerService()) {
+            if (SystemEnv::isDaemonService()) {
+                $taskServerName = 'daemon-task';
+                $workerServerName = 'daemon-worker';
+            }else if (SystemEnv::isCronService()) {
+                $taskServerName = 'cron-task';
+                $workerServerName = 'cron-worker';
+            }else if (SystemEnv::isScriptService()) {
+                $taskServerName = 'script-task';
+                $workerServerName = 'script-worker';
+            }
+        }
         if ($workerId >= $workerNum) {
-            cli_set_process_title(static::getAppPrefix() . ':' . $workerProcessName . "-task" . $workerId);
+            cli_set_process_title(static::getAppPrefix() . ':' . $workerProcessName . "-" . $taskServerName. $workerId);
         } else {
-            cli_set_process_title(static::getAppPrefix() . ':' . $workerProcessName . "-worker" . $workerId);
+            cli_set_process_title(static::getAppPrefix() . ':' . $workerProcessName . "-". $workerServerName . $workerId);
         }
     }
 
