@@ -59,5 +59,11 @@
             "php-http/discovery": true,
             "tbachert/spi": true
         }
+    },
+    "repositories": {
+        "jcc": {
+            "type": "path",
+            "url": "../library"
+        }
     }
 }

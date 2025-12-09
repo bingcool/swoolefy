@@ -14,7 +14,6 @@ namespace Swoolefy\Http;
 use Swoole\Http\Server;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
-use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Task\TaskController;
 
 abstract class HttpAppServer extends HttpServer
@@ -47,7 +46,7 @@ abstract class HttpAppServer extends HttpServer
      */
     public function onRequest(Request $request, Response $response)
     {
-        $appInstance = new \Swoolefy\Core\App(Swfy::getAppConf());
+        $appInstance = new \Swoolefy\Core\App();
         $appInstance->run($request, $response);
         return true;
     }

@@ -133,7 +133,7 @@ class CommandRunner
             }
         }
 
-        return [$command, $execOutput ?? [], $returnCode ?? -1, (int)$pid ?? 0];
+        return [$command, $execOutput ?? [], $returnCode ?? -1, intval($pid ?? 0)];
     }
 
     /**

@@ -296,10 +296,24 @@ class BaseServer
      */
     public static function setWorkerProcessName(string $workerProcessName, int $workerId, int $workerNum = 1)
     {
+        $taskServerName = 'task';
+        $workerServerName = 'worker';
+        if (SystemEnv::isWorkerService()) {
+            if (SystemEnv::isDaemonService()) {
+                $taskServerName = 'daemon-task';
+                $workerServerName = 'daemon-worker';
+            }else if (SystemEnv::isCronService()) {
+                $taskServerName = 'cron-task';
+                $workerServerName = 'cron-worker';
+            }else if (SystemEnv::isScriptService()) {
+                $taskServerName = 'script-task';
+                $workerServerName = 'script-worker';
+            }
+        }
         if ($workerId >= $workerNum) {
-            cli_set_process_title(static::getAppPrefix() . ':' . $workerProcessName . "-task" . $workerId);
+            cli_set_process_title(static::getAppPrefix() . ':' . $workerProcessName . "-" . $taskServerName. $workerId);
         } else {
-            cli_set_process_title(static::getAppPrefix() . ':' . $workerProcessName . "-worker" . $workerId);
+            cli_set_process_title(static::getAppPrefix() . ':' . $workerProcessName . "-". $workerServerName . $workerId);
         }
     }
 
@@ -331,6 +345,7 @@ class BaseServer
      */
     public static function getAppPrefix()
     {
+        $serviceName = 'cli';
         if (SystemEnv::isWorkerService()) {
             if (SystemEnv::isDaemonService()) {
                 $serviceName = 'daemon';
@@ -339,8 +354,6 @@ class BaseServer
             } else if (SystemEnv::isScriptService()) {
                 $serviceName = 'script';
             }
-        } else {
-            $serviceName = 'cli';
         }
         return '['.self::getAppName() . '-'.$serviceName.'-swoolefy'.']';
     }
@@ -362,12 +375,12 @@ class BaseServer
 
     /**
      * setWorkerUserGroup 设置worker进程的工作组，默认是root
-     * @param string $worker_user
+     * @param null|string $workerUser
      */
-    public static function setWorkerUserGroup(string $worker_user = null)
+    public static function setWorkerUserGroup(?string $workerUser = null)
     {
-        if ($worker_user) {
-            $userInfo = posix_getpwnam($worker_user);
+        if ($workerUser) {
+            $userInfo = posix_getpwnam($workerUser);
             if ($userInfo) {
                 posix_setuid($userInfo['uid']);
                 posix_setgid($userInfo['gid']);
