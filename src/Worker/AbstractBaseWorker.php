@@ -20,9 +20,6 @@ use Swoolefy\Core\EventCtrl;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Exception\WorkerException;
 use Swoolefy\Worker\Dto\MessageDto;
-use Symfony\Component\Console\Output\ConsoleOutput;
-use Symfony\Component\Console\Helper\Table;
-use Symfony\Component\Console\Helper\TableStyle;
 
 /**
  * Class AbstractProcess

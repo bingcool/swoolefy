@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Script;
 
+use Common\Library\CurlProxy\OpentelemetryMiddleware;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Exec;
 use Swoolefy\Core\Swfy;
@@ -18,7 +19,7 @@ use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Exception\SystemException;
 use Swoolefy\Worker\Helper;
 use Swoolefy\Worker\Script\AbstractScriptProcess;
-use Swoolefy\Core\Coroutine\Context;
+use Swoolefy\Core\Coroutine\Context as SwooleContext;
 
 class MainCliScript extends AbstractScriptProcess
 {
@@ -49,7 +50,7 @@ class MainCliScript extends AbstractScriptProcess
      */
     public function init()
     {
-        if (!Context::has('x-trace-id')) {
+        if (!SwooleContext::has(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID)) {
             $this->generateTraceId();
         }
         BaseServer::saveCronScriptPidFile();
@@ -111,7 +112,7 @@ class MainCliScript extends AbstractScriptProcess
      */
     private function generateTraceId()
     {
-        Context::set('x-trace-id', \Swoolefy\Util\Helper::UUid());
+        SwooleContext::set(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID, \Swoolefy\Util\Helper::UUid());
     }
 
     /**

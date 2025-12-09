@@ -22,7 +22,7 @@ return [
 
             // 动态定时任务列表，可以存在数据库中
             'task_list' => function () {
-                //$list1 = include __DIR__ . '/fork_task.php';
+                $list1 = include __DIR__ . '/fork_task.php';
                 // $list2 = Kernel::buildScheduleTaskList(Kernel::schedule());
 
                 // 读取yaml文件模式
@@ -36,7 +36,7 @@ return [
 //                }
 
                 // 读取数据库cronTask配置模式
-                $list4 = (new \Test\Module\Cron\Service\CronTaskService())->fetchCronTask(CronProcess::EXEC_FORK_TYPE, env('CRON_NODE_ID'));
+                //$list4 = (new \Test\Module\Cron\Service\CronTaskService())->fetchCronTask(CronProcess::EXEC_FORK_TYPE, env('CRON_NODE_ID'));
                 // 返回taskList
                 $taskList = array_merge($list1 ?? [], $list2 ?? [], $list3 ?? [], $list4 ?? []);
                 if (!empty($taskList)) {

@@ -42,7 +42,7 @@ class CacheController extends BController
             goApp(function () {
                 goApp(function () {
                     $arrayCopy = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
-                    var_dump($arrayCopy);
+                    //var_dump($arrayCopy);
                 });
             });
         });
@@ -51,11 +51,16 @@ class CacheController extends BController
          * @var RedisCache $cache
          */
         $cache = Application::getApp()->get('cache');
-        $cache->set('bing-name',['name'=>'bingcool'], 10);
-        var_dump($cache->get('bing-name'));
-
-//        $this->returnJson([
-//            'data' => $cache->get('bing-name')
-//        ]);
+        $data = [
+            'bing-name' => ["name" => "bingcool"],
+            'age' => '300',
+            'city' => 'Beijing',
+            'job' => 'Engineer'
+        ];
+        $cache->setMultiple($data, 600, false);
+        var_dump($cache->get('age'));
+        $this->returnJson([
+            'data' => $cache->get('bing-name')
+        ]);
     }
 }

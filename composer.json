@@ -56,14 +56,8 @@
     },
     "config": {
         "allow-plugins": {
-            "php-http/discovery": true,
-            "tbachert/spi": true
-        }
-    },
-    "repositories": {
-        "jcc": {
-            "type": "path",
-            "url": "../library"
+            "php-http/discovery": false,
+            "tbachert/spi": false
         }
     }
 }

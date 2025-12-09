@@ -83,7 +83,11 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
          */
         $db = Application::getApp()->get('db');
         $query = $db->newQuery();
-        $result = $query->table('tbl_order')->order('order_id', 'desc')->limit(1)->select();
+        $result = $query
+            ->table('tbl_order')
+            ->order('order_id', 'desc')
+            ->limit(1)
+            ->select();
         foreach ($result as $item)
         {
             /**
