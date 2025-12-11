@@ -33,13 +33,13 @@ return [
 
     'redis-order-lock' => function() {
         $redis = Application::getApp()->get('redis')->getObject();
-        $lock = new \Common\Library\Lock\PHPRedisMutex([$redis],'order_lock', 10);
+        $lock = new \Common\Library\Lock\PHPRedisMutex([$redis],'order_lock', 5);
         return $lock;
     },
 
     'predis-order-lock' => function() {
         $redis = Application::getApp()->get('predis')->getObject();
-        $lock = new \Common\Library\Lock\PredisMutex([$redis],'order_lock-1', 10);
+        $lock = new \Common\Library\Lock\PredisMutex([$redis],'order_lock-1', 5);
         return $lock;
     },
 

@@ -340,15 +340,7 @@ class BaseCmd extends Command
             return;
         }
 
-        if (defined('SERVER_START_LOG_JSON_FILE') && is_file(SERVER_START_LOG_JSON_FILE)) {
-            $startContent = file_get_contents(SERVER_START_LOG_JSON_FILE);
-            $startContent = json_decode($startContent, true);
-            if (isset($startContent['start_time'])) {
-                $startTime = $startContent['start_time'] ?? '';
-            }
-        }
-
-        SystemEnv::formatPrintStartLog($startTime ?? '');
+        SystemEnv::formatPrintStartLog();
 
         $exec = (new Exec())->run('pgrep -P ' . $pid);
         $output = $exec->getOutput();

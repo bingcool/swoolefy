@@ -203,7 +203,6 @@ function goApp(callable $callback, ...$params) {
                 array_push($params, $event);
                 $callback(...$params);
             }catch (\Throwable $throwable) {
-                var_dump($throwable->getMessage());
                 \Swoolefy\Core\BaseServer::catchException($throwable);
             }
         });
