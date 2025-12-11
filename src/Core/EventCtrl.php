@@ -468,7 +468,7 @@ class EventCtrl implements EventCtrlInterface
     swoolefy version    {$swoolefyVersion}
     ip_list             {$ipList}
     hostname            {$hostname}
-    tips                执行 php swoolefy help 可以查看更多信息
+    tips                执行 php cli.php help 可以查看更多信息
 </info>");
 
         $consoleStyleIo->write("<info>$line</info>", true);
