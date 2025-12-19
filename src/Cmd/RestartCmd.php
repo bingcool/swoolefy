@@ -125,7 +125,7 @@ class RestartCmd extends BaseCmd
             $successFn = function ($appName, $pidFile) use($restartPidFile) {
                 $serverName = WORKER_SERVICE_NAME;
                 if (SystemEnv::isWorkerService()) {
-                    fmtPrintInfo("-----------{$serverName}服务重启完成!------------");
+                    fmtPrintInfo("-----------【{$serverName}】服务重启完成!------------");
                 }
                 if (SystemEnv::isWorkerService()) {
                     fmtPrintInfo("-----------看到此处，【{$serverName}】服务重启成功啦！重启成功啦！重启成功啦！------------");

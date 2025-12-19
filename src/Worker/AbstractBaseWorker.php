@@ -20,9 +20,6 @@ use Swoolefy\Core\EventCtrl;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Exception\WorkerException;
 use Swoolefy\Worker\Dto\MessageDto;
-use Symfony\Component\Console\Output\ConsoleOutput;
-use Symfony\Component\Console\Helper\Table;
-use Symfony\Component\Console\Helper\TableStyle;
 
 /**
  * Class AbstractProcess
@@ -447,13 +444,13 @@ abstract class AbstractBaseWorker
                 });
             }
 
-            // exit signo
+            // exit signal
             Process::signal(SIGTERM, function ($signo) {
                 $function = $this->exitSingleHandle($signo);
                 $function();
             });
 
-            // reboot signo
+            // reboot signal
             Process::signal(SIGUSR1, function ($signo) {
                 $function = $this->rebootSingleHandle();
                 $function();

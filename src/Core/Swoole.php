@@ -56,9 +56,9 @@ class Swoole extends BaseObject
      * __construct
      * @param array $appConf
      */
-    public function __construct(array $appConf = [])
+    public function __construct()
     {
-        $this->appConf     = array_merge($this->appConf, $appConf);
+        $this->appConf     = Swfy::getAppConf();
         $this->coroutineId = CoroutineManager::getInstance()->getCoroutineId();
     }
 

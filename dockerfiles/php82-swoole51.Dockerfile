@@ -2,10 +2,10 @@
 FROM alpine:3.20.3 as ext-build
 LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 
-#swoole6.x最高只支持到php81,php82,php83,php84.
+#swoole5.1.x最高只支持到php83.
 #根据实际构建来设置环境变量
-ENV MY_SWOOLE_VERSION=6.1.0 \
-    MY_PHP_VERSION=83 \
+ENV MY_SWOOLE_VERSION=5.1.8 \
+    MY_PHP_VERSION=82 \
     SWOOLEFY_CLI_ENV=dev
 
 
@@ -43,7 +43,6 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
     --enable-cares \
     --enable-swoole-pgsql \
     --enable-swoole-sqlite \
-    --enable-swoole-stdext \
     && make && make install \
     && apk del --purge *-dev \
     && apk del .build-deps \
@@ -56,8 +55,8 @@ FROM alpine:3.20.3
 LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 
 #根据实际构建来设置环境变量
-ENV MY_SWOOLE_VERSION=6.1.0 \
-    MY_PHP_VERSION=83 \
+ENV MY_SWOOLE_VERSION=5.1.8 \
+    MY_PHP_VERSION=82 \
     SWOOLEFY_CLI_ENV=dev
 
 
@@ -118,7 +117,7 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
     php${MY_PHP_VERSION}-pecl-amqp \
     php${MY_PHP_VERSION}-pecl-rdkafka \
     php${MY_PHP_VERSION}-pecl-mongodb \
-    && echo "opcache.enable_cli='Off'" >> /etc/php${MY_PHP_VERSION}/conf.d/00_opcache.ini \
+    && echo "opcache.enable_cli = 'Off'" >> /etc/php${MY_PHP_VERSION}/conf.d/00_opcache.ini \
     && echo "extension=swoole" >> /etc/php${MY_PHP_VERSION}/conf.d/99_swoole.ini \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
     && ln -sf /usr/bin/php${MY_PHP_VERSION} /usr/bin/php \
@@ -127,7 +126,7 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
     && apk del --purge *-dev \
     && rm -rf /var/cache/apk/* /tmp/* /usr/share/man /usr/share/doc /usr/share/php${MY_PHP_VERSION} \
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
-    && composer config -g repos.packagist composer https://mirrors.tencent.com/composer/ \
+    && composer config -g repo.packagist composer https://mirrors.tencent.com/composer/ \
     && php -v && php -m \
     && echo -e "\033[42;37m Build Completed :).\033[0m\n"
 

@@ -30,9 +30,9 @@ class RpcHandler extends Swoole implements HandlerInterface
      * __construct
      * @param array $config
      */
-    public function __construct(array $config = [])
+    public function __construct()
     {
-        parent::__construct($config);
+        parent::__construct();
     }
 
     /**
@@ -82,7 +82,7 @@ class RpcHandler extends Swoole implements HandlerInterface
                 list($callable, $params) = $payload;
             }
 
-            if (isset($callable)) {
+            if (isset($callable) && isset($params)) {
                 $dispatcher = new ServiceDispatch($callable, $params, $this->header);
                 if (isset($isTaskProcess) && $isTaskProcess === true) {
                     list($from_worker_id, $task_id, $task) = $extendData;

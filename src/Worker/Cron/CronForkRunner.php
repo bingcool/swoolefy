@@ -99,6 +99,8 @@ class CronForkRunner
 
             $runner->concurrent = $concurrent;
             static::$instances[$runnerName] = $runner;
+        } else {
+            $runner = static::$instances[$runnerName];
         }
 
         if (is_null(static::$checkRunningTickerChannel)) {

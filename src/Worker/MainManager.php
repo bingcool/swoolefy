@@ -1715,6 +1715,9 @@ class MainManager
     public static function includeWorkerConf()
     {
         $fileConfPath = self::$confPath;
+        if (empty($fileConfPath)) {
+            $fileConfPath = WORKER_CONF_FILE;
+        }
         $conf = include $fileConfPath;
         self::findDuplicateProcessName($conf);
         return $conf;

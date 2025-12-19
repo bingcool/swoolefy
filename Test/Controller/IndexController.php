@@ -22,6 +22,11 @@ class IndexController extends BController {
 
     public function index()
     {
+        file_put_contents("/tmp/bingcool.txt", "bingcool-log-id=".rand(1,1000));
+        var_dump("root-go-cid=".\Swoole\Coroutine::getCid());
+
+        var_dump("index-index-index");
+
         RunLog::info('test11111-log-id='.rand(1,1000),['name'=>'bingcoolhuang', 'start_model'=> getenv('start_model')], true);
         //var_dump("root-go-cid=".\Swoole\Coroutine::getCid());
 //        goApp(function () {
@@ -66,6 +71,11 @@ class IndexController extends BController {
 //                ]);
 //            });
 //        });
+
+//        (new Client([
+//            'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+//            'base_uri' => 'https://www.baidu.com',
+//        ]))->get('/', []);
 
         $client = (new Client([
             'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),

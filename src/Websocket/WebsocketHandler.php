@@ -36,9 +36,9 @@ class WebsocketHandler extends Swoole implements HandlerInterface
      * __construct
      * @param array $config
      */
-    public function __construct(array $config = [])
+    public function __construct()
     {
-        parent::__construct($config);
+        parent::__construct();
     }
 
     /**
@@ -87,7 +87,7 @@ class WebsocketHandler extends Swoole implements HandlerInterface
                 list($callable, $params) = $payload;
             }
 
-            if (isset($callable) || isset($callable)) {
+            if (isset($endPoint) || isset($callable)) {
                 if ($isTaskProcess === false) {
                     $endPoint = trim(str_replace('\\', DIRECTORY_SEPARATOR, $endPoint), DIRECTORY_SEPARATOR);
                     $this->setServiceHandle($endPoint);

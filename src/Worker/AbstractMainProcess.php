@@ -68,9 +68,11 @@ abstract class AbstractMainProcess extends AbstractProcess
 
                 if (empty($workerConfListNew)) {
                     fmtPrintError("Not Found Specify Process --only={$onlyProcess}, All Process Exited!");
-                    $masterPid = $mainManager->getMasterPid();
-                    // kill master to exit
-                    \Swoole\Process::kill($masterPid, SIGTERM);
+                    if (isset($mainManager)) {
+                        $masterPid = $mainManager->getMasterPid();
+                        // kill master to exit
+                        \Swoole\Process::kill($masterPid, SIGTERM);
+                    }
                 } else {
                     $workerConf = $workerConfListNew;
                 }

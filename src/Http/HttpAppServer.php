@@ -11,16 +11,16 @@
 
 namespace Swoolefy\Http;
 
-use Common\Library\OpenTelemetry\API\Globals;
-use Common\Library\OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
-use Common\Library\OpenTelemetry\API\Trace\SpanKind;
-use Common\Library\OpenTelemetry\API\Trace\StatusCode;
-use Common\Library\OpenTelemetry\SemConv\TraceAttributes;
 use Swoole\Http\Server;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
-use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Task\TaskController;
+use Common\Library\OpenTelemetry\API\Globals;
+use Common\Library\OpenTelemetry\API\Trace\SpanKind;
+use Common\Library\OpenTelemetry\API\Trace\StatusCode;
+use Common\Library\OpenTelemetry\SemConv\TraceAttributes;
+use Common\Library\OpenTelemetry\Contrib\Context\Swoole\SwooleContextScope;
+use Common\Library\OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
 
 abstract class HttpAppServer extends HttpServer
 {
@@ -52,7 +52,7 @@ abstract class HttpAppServer extends HttpServer
      */
     public function onRequest(Request $request, Response $response)
     {
-        $appInstance = new \Swoolefy\Core\App(Swfy::getAppConf());
+        $appInstance = new \Swoolefy\Core\App();
         $appInstance->run($request, $response);
         return true;
     }
@@ -88,7 +88,7 @@ abstract class HttpAppServer extends HttpServer
         $carrier = $request->header;
         $parentContext = TraceContextPropagator::getInstance()->extract($carrier);
         $spanName = $route ? sprintf("%s %s %s (server)", "HTTP", $method, $route) : sprintf("%s %s %s (server)", "HTTP", $method, "/");
-        $span = $tracer->spanBuilder($spanName)
+        $rootSpan = $tracer->spanBuilder($spanName)
             ->setSpanKind(SpanKind::KIND_SERVER)
             ->setParent($parentContext)
             ->startSpan()
@@ -102,23 +102,26 @@ abstract class HttpAppServer extends HttpServer
             ->setAttribute(TraceAttributes::HTTP_USER_AGENT, $headers['User-Agent'] ?? 'unknown')
             ->setAttribute(TraceAttributes::SERVER_ADDRESS, gethostname())
         ;
-        $scope = $span->activate();
-        $traceId = $span->getContext()->getTraceId();
+        $scope   = $rootSpan->activate();
+        $traceId = $rootSpan->getContext()->getTraceId();
         if (isset($carrier[TraceContextPropagator::TRACEPARENT])) {
             $traceparent = $carrier[TraceContextPropagator::TRACEPARENT];
-        }else {
+        } else {
             // {version}-{trace-id}-{parent-id}-{trace-flags}
-            $traceparent = join('-', ["00", $traceId, $span->getContext()->getSpanId(), $span->getContext()->getTraceFlags() ? "01" : "00"]);
+            $traceparent = join('-', ["00", $traceId, $rootSpan->getContext()->getSpanId(), $rootSpan->getContext()->getTraceFlags() ? "01" : "00"]);
         }
-        return  [$span, $scope, $traceId, $traceparent ?? ""];
+        /**
+         * @var SwooleContextScope $scope
+         */
+        $scope->detach();
+        return  [$rootSpan, $scope, $traceId, $traceparent ?? ""];
     }
 
     /**
      * @param $span
-     * @param $scope
      * @return void
      */
-    protected function endOpenTelemetry($span, $scope)
+    protected function endOpenTelemetry($span)
     {
         if (!env('OTEL_PHP_AUTOLOAD_ENABLED', false)) {
             return;
@@ -127,17 +130,15 @@ abstract class HttpAppServer extends HttpServer
          * @var \Common\Library\OpenTelemetry\SDK\Trace\Span $span
          */
         $span->setStatus(StatusCode::STATUS_OK, "Successful");
-        $scope->detach();
         $span->end();
     }
 
     /**
      * @param $span
-     * @param $scope
      * @param $exception
      * @return void
      */
-    protected function errorOpenTelemetry($span, $scope, $exception)
+    protected function errorOpenTelemetry($span, $exception)
     {
         if (!env('OTEL_PHP_AUTOLOAD_ENABLED', false)) {
             return;
@@ -148,7 +149,6 @@ abstract class HttpAppServer extends HttpServer
         if ($exception) {
             $span->recordException($exception);
             $span->setStatus(StatusCode::STATUS_ERROR, $exception->getMessage());
-            $scope->detach();
             $span->end();
         }
     }

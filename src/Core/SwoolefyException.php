@@ -90,7 +90,9 @@ class SwoolefyException
      */
     public static function handleError(int $errorNo, string $errorMessage, string $errorFile, int $errorLine)
     {
-        if (in_array($errorNo, [E_NOTICE, E_DEPRECATED, E_STRICT])) {
+        if ((\PHP_VERSION_ID >= 80400 && in_array($errorNo, [E_NOTICE, E_DEPRECATED])) ||
+            (\PHP_VERSION_ID < 80400 && in_array($errorNo, [E_NOTICE, E_DEPRECATED, E_STRICT]))
+        ) {
             return;
         }
         throw new \ErrorException($errorMessage, 0, $errorNo, $errorFile, $errorLine);
@@ -106,7 +108,7 @@ class SwoolefyException
         $queryString  = isset($app->swooleRequest->server['QUERY_STRING']) ? '?' . $app->swooleRequest->server['QUERY_STRING'] : '';
         $exceptionMsg = $throwable->getMessage();
 
-        if(method_exists($throwable, 'getContextData')) {
+        if (method_exists($throwable, 'getContextData')) {
             $contextData = $throwable->getContextData();
         }
 
@@ -138,11 +140,12 @@ class SwoolefyException
      * shutHalt 记录日志(重写)
      * @param string $errorMsg
      * @param string $errorType
+     * @param \Throwable|null $throwable
      */
     public static function shutHalt(
         string $errorMsg,
-        $errorType = SwoolefyException::EXCEPTION_ERR,
-        \Throwable $throwable = null
+        $errorType,
+        \Throwable|null $throwable
     ) {
         $logger = LogManager::getInstance()->getLogger('error_log');
         if (!is_object($logger)) {
