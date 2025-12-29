@@ -30,7 +30,7 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 2、如果确定项目是使用 ```php7.3 ~ php7.4``` 的，那么选择 swoole-v4.8+ 版本来进行编译安装(不能直接使用 swoole-cli-v4.8+ 了, 因为其内置的是php8.1，与你的项目的php7不符合)
 所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.9``` 作为项目分支稳定版本   
 
-3、依赖编译： ./configure --enable-openssl --enable-sockets --enable-swoole-curl --enable-swoole-pgsql
+3、依赖编译： ./configure --enable-openssl --enable-sockets --enable-swoole-curl --enable-swoole-pgsql --enable-swoole-stdext --enable-iouring     
 
 4、若不希望自己编译构建，也可以直接使用本目录下的Dockerfile来构建镜像:     
 ```

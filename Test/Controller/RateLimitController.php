@@ -10,7 +10,7 @@ class RateLimitController extends BController
     {
         $rateLimit = App::getRateLimit();
         $rateLimit->setRateKey('rate-order-search');
-        $rateLimit->setLimitParams(120, 30, 1800);
+        $rateLimit->setLimitParams(5, 5);
         if (!$rateLimit->isLimit()) {
             $this->returnJson(['msg' => 'ok-'.rand(1, 1000)]);
         }else {

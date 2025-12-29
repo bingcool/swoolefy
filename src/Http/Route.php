@@ -11,7 +11,9 @@
 
 namespace Swoolefy\Http;
 
+use Swoolefy\Core\RouteMiddlewareInterface;
 use Swoolefy\Core\Coroutine\Context as SwooleContext;
+use Swoolefy\Http\Middleware\CorsMiddlewareInterface;
 
 class Route
 {
@@ -31,15 +33,20 @@ class Route
     const HTTP_METHODS = ['GET','POST','PUT','DELETE','HEAD','OPTION'];
 
     /**
+     * __CURRENT_REQUEST_GROUP_META
+     */
+    const __CURRENT_REQUEST_GROUP_META = '__current_request_group_meta';
+
+    /**
      * @param array $groupMeta
      * @param callable $fn
      * @return void
      */
     public static function group(array $groupMeta, callable $fn)
     {
-        SwooleContext::set('__current_request_group_meta', $groupMeta);
+        SwooleContext::set(self::__CURRENT_REQUEST_GROUP_META, $groupMeta);
         $fn($groupMeta);
-        SwooleContext::set('__current_request_group_meta', []);
+        SwooleContext::set(self::__CURRENT_REQUEST_GROUP_META, []);
     }
 
     /**
@@ -48,8 +55,8 @@ class Route
     public static function getGroupMeta()
     {
         $groupMeta = [];
-        if (SwooleContext::has('__current_request_group_meta')) {
-            $groupMeta = SwooleContext::get('__current_request_group_meta') ?? [];
+        if (SwooleContext::has(self::__CURRENT_REQUEST_GROUP_META)) {
+            $groupMeta = SwooleContext::get(self::__CURRENT_REQUEST_GROUP_META) ?? [];
         }
         return $groupMeta;
     }
@@ -68,8 +75,10 @@ class Route
             'group_meta' => $groupMeta,
             'method' => ['GET'],
             'route_meta' => $routeMeta,
-            'route_option' => &$routeOption
+            'route_option' => &$routeOption,
+            'enable_cors_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
         ];
+
         return $routeOption;
     }
 
@@ -87,7 +96,8 @@ class Route
             'group_meta' => $groupMeta,
             'method' => ['POST'],
             'route_meta' => $routeMeta,
-            'route_option' => &$routeOption
+            'route_option' => &$routeOption,
+            'enable_core_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
         ];
 
         return $routeOption;
@@ -107,7 +117,8 @@ class Route
             'group_meta' => $groupMeta,
             'method' => ['PUT'],
             'route_meta' => $routeMeta,
-            'route_option' => &$routeOption
+            'route_option' => &$routeOption,
+            'enable_core_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
         ];
         return $routeOption;
     }
@@ -126,7 +137,8 @@ class Route
             'group_meta' => $groupMeta,
             'method' => ['DELETE'],
             'route_meta' => $routeMeta,
-            'route_option' => &$routeOption
+            'route_option' => &$routeOption,
+            'enable_core_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
         ];
         return $routeOption;
     }
@@ -167,7 +179,8 @@ class Route
                 'group_meta' => $groupMeta,
                 'method' => [$method],
                 'route_meta' => $routeMeta,
-                'route_option' => &$routeOption
+                'route_option' => &$routeOption,
+                'enable_core_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
             ];
         }
         return $routeOption;
@@ -188,7 +201,8 @@ class Route
                 'group_meta' => $groupMeta,
                 'method' => [$method],
                 'route_meta' => $routeMeta,
-                'route_option' => &$routeOption
+                'route_option' => &$routeOption,
+                'enable_core_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
             ];
         }
         return $routeOption;
@@ -260,5 +274,83 @@ class Route
             }
         }
         closedir($handle);
+    }
+
+    /**
+     * 设置OPTIONS方法
+     * @param $groupMeta
+     * @param $routeMeta
+     * @param $newUri
+     * @return bool
+     */
+    protected static function setCoresOptionMethod(&$groupMeta, &$routeMeta, $newUri): bool
+    {
+        // 分组级别已启用coresMiddleware
+        $enableGroupCoresMiddleware = self::isEnableGroupCoresMiddleware($groupMeta);
+        if (!$enableGroupCoresMiddleware) {
+            // 分组没启用,那么检测单个路由是否启用coresMiddleware
+            $enableCoresMiddleware = self::isEnableRouteCoresMiddleware($routeMeta);
+            if ($enableCoresMiddleware) {
+                self::$routeMap[$newUri]['OPTIONS'] = [
+                    'group_meta' => [],
+                    'method' => ['OPTIONS'],
+                    'route_meta' => [],
+                    'route_option' => null,
+                ];
+            }
+        } else {
+            $enableCoresMiddleware = $enableGroupCoresMiddleware;
+        }
+        return $enableCoresMiddleware;
+    }
+
+    /**
+     * 分组级别cores middleware
+     *
+     * @param $groupMeta
+     * @return array
+     */
+    protected static function isEnableGroupCoresMiddleware(&$groupMeta): bool
+    {
+        foreach ($groupMeta['middleware'] ?? [] as $handle) {
+            if (is_string($handle)) {
+                if (is_subclass_of($handle, CorsMiddlewareInterface::class)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+
+    /** 单个路由级别的cores middleware
+     * @param $routeMeta
+     * @return bool
+     */
+    protected static function isEnableRouteCoresMiddleware(&$routeMeta): bool
+    {
+        foreach($routeMeta as $alias => $handle) {
+            if ($alias != 'dispatch_route') {
+                if (is_array($handle)) {
+                    foreach ($handle as $handleItem) {
+                        if (is_string($handleItem)) {
+                            if (is_subclass_of($handleItem, CorsMiddlewareInterface::class)) {
+                                return true;
+                            }
+                        }
+                    }
+                } else {
+                    if (is_string($handle)) {
+                        if (is_subclass_of($handle, CorsMiddlewareInterface::class)) {
+                            return true;
+                        }
+                    }
+                }
+            } else {
+                // 找到 dispatch_route, 后面的都是 after middleware 这里直接return退出
+                break;
+            }
+        }
+        return false;
     }
 }

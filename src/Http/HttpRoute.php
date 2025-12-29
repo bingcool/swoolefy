@@ -17,7 +17,7 @@ use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\Dto\AbstractDto;
-use Swoolefy\Core\RouteMiddleware;
+use Swoolefy\Core\RouteMiddlewareInterface;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Exception\DispatchException;
 use Swoolefy\Exception\SystemException;
@@ -280,7 +280,7 @@ class HttpRoute extends AppDispatch
         foreach ($this->groupMiddlewares as $middleware) {
             if (class_exists($middleware)) {
                 $middlewareHandleEntity = new $middleware;
-                if ($middlewareHandleEntity instanceof RouteMiddleware) {
+                if ($middlewareHandleEntity instanceof RouteMiddlewareInterface) {
                     $middlewareHandleEntity->handle($this->requestInput, $this->responseOutput);
                 }
             }
@@ -301,7 +301,7 @@ class HttpRoute extends AppDispatch
                 }
             }else if (class_exists($middleware)) {
                 $middlewareEntity = new $middleware;
-                if ($middlewareEntity instanceof RouteMiddleware) {
+                if ($middlewareEntity instanceof RouteMiddlewareInterface) {
                     $middlewareEntity->handle($this->requestInput, $this->responseOutput);
                 }
             }
@@ -320,7 +320,7 @@ class HttpRoute extends AppDispatch
                 call_user_func($middleware, $this->requestInput, $this->responseOutput);
             }else if (class_exists($middleware)) {
                 $middlewareEntity = new $middleware;
-                if ($middlewareEntity instanceof RouteMiddleware) {
+                if ($middlewareEntity instanceof RouteMiddlewareInterface) {
                     $middlewareEntity->handle($this->requestInput, $this->responseOutput);
                 }
             }
@@ -371,9 +371,9 @@ class HttpRoute extends AppDispatch
             $typeName = $param->getType()->getName();
             if ($hasType && $typeName == RequestInput::class) {
                 $args[] = $this->requestInput;
-            }else if ($hasType && $typeName == ResponseOutput::class) {
+            } else if ($hasType && $typeName == ResponseOutput::class) {
                 $args[] = $this->responseOutput;
-            }else if ($hasType && class_exists($typeName) && is_subclass_of($typeName,AbstractDto::class)) {
+            } else if ($hasType && class_exists($typeName) && is_subclass_of($typeName,AbstractDto::class)) {
                 $paramDto     = new $typeName();
                 $inputParams  = $this->requestInput->input();
                 $propertyList = get_object_vars($paramDto);
@@ -381,7 +381,7 @@ class HttpRoute extends AppDispatch
                     $paramDto->{$property} = $inputParams[$property] ?? $value;
                 }
                 $args[] = $paramDto;
-            }else if (array_key_exists($name, $params)) {
+            } else if (array_key_exists($name, $params)) {
                 $isValid = true;
                 if ($param->hasType() && $param->getType()->getName() == 'array') {
                     $params[$name] = (array)$params[$name];
@@ -453,7 +453,7 @@ class HttpRoute extends AppDispatch
             $routeOption = $routerMapInfo['route_option'];
             if(!isset($routerMeta['dispatch_route'])) {
                 throw new DispatchException("Missing dispatch_route");
-            }else {
+            } else {
                 $originDispatchRoute = $routerMeta['dispatch_route'];
                 $dispatchRoute = str_replace("\\",DIRECTORY_SEPARATOR, $routerMeta['dispatch_route'][0]);
                 $dispatchRouteItems = explode(DIRECTORY_SEPARATOR, $dispatchRoute);
@@ -470,7 +470,7 @@ class HttpRoute extends AppDispatch
                         foreach ($handle as $handleItem) {
                             $beforeMiddlewares[] = $handleItem;
                         }
-                    }else {
+                    } else {
                         $beforeMiddlewares[] = $handle;
                     }
                     unset($routerMeta[$alias]);
@@ -486,7 +486,7 @@ class HttpRoute extends AppDispatch
                     foreach ($afterMiddlewareItem as $afterMiddlewareEntry) {
                         $afterMiddlewares[] = $afterMiddlewareEntry;
                     }
-                }else {
+                } else {
                     $afterMiddlewares[] = $afterMiddlewareItem;
                 }
             }
@@ -496,7 +496,7 @@ class HttpRoute extends AppDispatch
             if ($rateLimiterMiddleware && empty($runAfterMiddleware)) {
                 // 放在Group Middleware最前面执行
                 array_unshift($groupMiddlewares, $rateLimiterMiddleware);
-            }else if ($rateLimiterMiddleware && class_exists($rateLimiterMiddleware)) {
+            } else if ($rateLimiterMiddleware && class_exists($rateLimiterMiddleware)) {
                 $tempGroupMiddlewares = [];
                 $isMatch = self::parseLateMiddleware($groupMiddlewares, $rateLimiterMiddleware, $runAfterMiddleware,$tempGroupMiddlewares);
                 $groupMiddlewares = $tempGroupMiddlewares;
@@ -515,14 +515,14 @@ class HttpRoute extends AppDispatch
             self::$routeCache[$uri][$method] = $routeCacheItems;
             unset($routerMap[$uri][$method]);
             return $routeCacheItems;
-        }else {
+        } else {
             if (!isset($routerMap[$uri])) {
                 throw new DispatchException("Not Found Route [$uri].");
-            }else if (isset($routerMap[$uri]) && !isset($routerMap[$uri][$method])) {
+            } else if (isset($routerMap[$uri]) && !isset($routerMap[$uri][$method])) {
                 $methods = array_keys($routerMap[$uri]);
                 $methods = implode(',', $methods);
                 throw new DispatchException("Only Support Http Method=[{$methods}], But You Current Request Method={$method}, route=[$uri], Please check route config.");
-            }else {
+            } else {
                 throw new DispatchException("Not Match Route [$uri].");
             }
         }

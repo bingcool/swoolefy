@@ -3,9 +3,9 @@ namespace Test\Middleware\Route;
 
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\ResponseOutput;
-use Swoolefy\Core\RouteMiddleware;
+use Swoolefy\Core\RouteMiddlewareInterface;
 
-class SendMailMiddleware implements RouteMiddleware
+class SendMailMiddleware implements RouteMiddlewareInterface
 {
     public function handle(RequestInput $requestInput, ResponseOutput $responseOutput)
     {
