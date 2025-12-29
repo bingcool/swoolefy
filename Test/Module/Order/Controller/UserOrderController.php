@@ -29,7 +29,7 @@ class UserOrderController extends BController
     public function userList(RequestInput $requestInput, UserListDto $userListDto)
     {
         $db = App::getDb();
-
+        return $this->returnJson( []);
 //
 //        $t3 = Sql::table("tbl_banks")->as('t3');
 //        $sql = $db->newQuery()->table($t3)

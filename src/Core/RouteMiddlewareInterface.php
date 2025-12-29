@@ -14,7 +14,7 @@ namespace Swoolefy\Core;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\ResponseOutput;
 
-interface RouteMiddleware
+interface RouteMiddlewareInterface
 {
     /**
      * @param RequestInput $requestInput

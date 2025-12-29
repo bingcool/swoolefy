@@ -4,8 +4,8 @@ LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 
 #swoole6.x最高只支持到php81,php82,php83,php84.
 #根据实际构建来设置环境变量
-ENV MY_SWOOLE_VERSION=6.1.3 \
-    MY_PHP_VERSION=83 \
+ENV MY_SWOOLE_VERSION=6.1.5 \
+    MY_PHP_VERSION=84 \
     SWOOLEFY_CLI_ENV=dev
 
 
@@ -56,8 +56,8 @@ FROM alpine:3.20.3
 LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 
 #根据实际构建来设置环境变量
-ENV MY_SWOOLE_VERSION=6.1.3 \
-    MY_PHP_VERSION=83 \
+ENV MY_SWOOLE_VERSION=6.1.5 \
+    MY_PHP_VERSION=84 \
     SWOOLEFY_CLI_ENV=dev
 
 

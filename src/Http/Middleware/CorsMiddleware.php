@@ -11,12 +11,17 @@
 
 namespace Swoolefy\Http\Middleware;
 
-use Swoolefy\Core\RouteMiddleware;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\ResponseOutput;
+use Swoolefy\Core\Coroutine\Context as SwooleContext;
 
-class CorsMiddleware implements RouteMiddleware
+class CorsMiddleware implements CorsMiddlewareInterface
 {
+    /**
+     * __CORS_OPTIONS_HEADER_RESP
+     */
+    const __CORS_OPTIONS_HEADER_RESP = '__cors_options_header_resp';
+
     private $options = [
         'path'                   => ['*'],
         'allowedHeaders'         => ['*'],
@@ -24,11 +29,22 @@ class CorsMiddleware implements RouteMiddleware
         'allowedOrigins'         => ["*"],
         'allowedOriginsPatterns' => [],
         'exposedHeaders'         => [],
-        'maxAge'                 => 0,
+        'maxAge'                 => 86400,
         'supportsCredentials'    => false,
     ];
+
+    /**
+     * @param RequestInput $requestInput
+     * @param ResponseOutput $responseOutput
+     * @return bool|void
+     */
     public function handle(RequestInput $requestInput, ResponseOutput $responseOutput)
     {
+        // 一次http请求只需要执行一次
+        if (SwooleContext::has(self::__CORS_OPTIONS_HEADER_RESP)) {
+            return true;
+        }
+
         $path   = $requestInput->getRequestUri();
         if (!$this->isPathAllowed($path)) {
            $responseOutput->withStatus(403)->getSwooleResponse()->end('api path 403 Forbidden');
@@ -46,6 +62,10 @@ class CorsMiddleware implements RouteMiddleware
         }
 
         $this->setCorsHeaders($requestInput, $responseOutput);
+
+        if (!SwooleContext::has(self::__CORS_OPTIONS_HEADER_RESP)) {
+            SwooleContext::set(self::__CORS_OPTIONS_HEADER_RESP, true);
+        }
 
         $method = strtoupper($requestInput->getMethod());
         if ($method == 'OPTIONS') {
