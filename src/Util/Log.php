@@ -440,15 +440,15 @@ class Log
                 $records['route'] = $App->getServiceHandle();
                 $records['request_params'] = $App->getMixedParams();
             }
-        }else if (Swfy::isTaskProcess()) {
+        } else if (Swfy::isTaskProcess()) {
             $records['process'] = 'cli_task';
-        }else if (Swfy::isSelfProcess()) {
+        } else if (Swfy::isSelfProcess()) {
             $records['process'] = 'cli_use_self_process';
         }
 
         if (SystemEnv::isDaemonService()) {
             $records['process'] = 'daemon';
-        }else if (SystemEnv::isCronService()) {
+        } else if (SystemEnv::isCronService()) {
             $records['process'] = 'cron';
         } else if (SystemEnv::isScriptService()) {
             $records['process'] = 'script';
