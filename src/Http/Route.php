@@ -11,7 +11,6 @@
 
 namespace Swoolefy\Http;
 
-use Swoolefy\Core\RouteMiddlewareInterface;
 use Swoolefy\Core\Coroutine\Context as SwooleContext;
 use Swoolefy\Http\Middleware\CorsMiddlewareInterface;
 
@@ -30,7 +29,7 @@ class Route
     /**
      * http methods
      */
-    const HTTP_METHODS = ['GET','POST','PUT','DELETE','HEAD','OPTION'];
+    const HTTP_METHODS = ['GET','POST','PUT','DELETE','HEAD','OPTIONS'];
 
     /**
      * __CURRENT_REQUEST_GROUP_META
@@ -163,6 +162,25 @@ class Route
     }
 
     /**
+     * @param string $uri
+     * @param array $routeMeta
+     * @return RouteOption
+     */
+    public static function options(string $uri, array $routeMeta)
+    {
+        $groupMeta = self::getGroupMeta();
+        $routeOption = new RouteOption();
+        $newUri = self::parseUri($uri, $groupMeta);
+        self::$routeMap[$newUri]['OPTIONS'] = [
+            'group_meta' => $groupMeta,
+            'method' => ['OPTIONS'],
+            'route_meta' => $routeMeta,
+            'route_option' => &$routeOption
+        ];
+        return $routeOption;
+    }
+
+    /**
      * @param array $methods
      * @param string $uri
      * @param array $routeMeta
@@ -202,7 +220,7 @@ class Route
                 'method' => [$method],
                 'route_meta' => $routeMeta,
                 'route_option' => &$routeOption,
-                'enable_core_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
+                'enable_core_middleware' => true,
             ];
         }
         return $routeOption;
@@ -290,16 +308,16 @@ class Route
         if (!$enableGroupCoresMiddleware) {
             // 分组没启用,那么检测单个路由是否启用coresMiddleware
             $enableCoresMiddleware = self::isEnableRouteCoresMiddleware($routeMeta);
-            if ($enableCoresMiddleware) {
-                self::$routeMap[$newUri]['OPTIONS'] = [
-                    'group_meta' => [],
-                    'method' => ['OPTIONS'],
-                    'route_meta' => [],
-                    'route_option' => null,
-                ];
-            }
         } else {
             $enableCoresMiddleware = $enableGroupCoresMiddleware;
+        }
+        if ($enableCoresMiddleware) {
+            self::$routeMap[$newUri]['OPTIONS'] = [
+                'group_meta' => $groupMeta,
+                'method' => ['OPTIONS'],
+                'route_meta' => $routeMeta,
+                'route_option' => null,
+            ];
         }
         return $enableCoresMiddleware;
     }

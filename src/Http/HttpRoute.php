@@ -19,8 +19,10 @@ use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\Dto\AbstractDto;
 use Swoolefy\Core\RouteMiddlewareInterface;
 use Swoolefy\Core\SystemEnv;
+use Swoolefy\Exception\CorsRespException;
 use Swoolefy\Exception\DispatchException;
 use Swoolefy\Exception\SystemException;
+use Swoolefy\Http\Middleware\CorsMiddlewareInterface;
 
 class HttpRoute extends AppDispatch
 {
@@ -28,6 +30,8 @@ class HttpRoute extends AppDispatch
     const ITEM_NUM_3 = 3;
 
     const ITEM_NUM_5 = 5;
+
+    const DISPATCH_ROUTE = 'dispatch_route';
 
     /**
      * $appConf
@@ -164,8 +168,8 @@ class HttpRoute extends AppDispatch
 
         // forbidden call action
         if (in_array($action, static::$denyActions)) {
-            $errorMsg = "{$controller}::{$action} is not allow access action";
-            throw new DispatchException($errorMsg, 403);
+            $errorMsg = "{$controller}::{$action} is forbidden access this action";
+            throw new DispatchException($errorMsg, \Swoole\Http\Status::FORBIDDEN);
         }
 
         // validate class
@@ -205,25 +209,31 @@ class HttpRoute extends AppDispatch
         }
 
         if ($this->app->isEnd()) {
-            throw new SystemException('System Request End Error', 500);
+            throw new SystemException('System Request End Error', \Swoole\Http\Status::INTERNAL_SERVER_ERROR);
         }
 
         // reset app conf
         $this->app->setAppConf($this->appConf);
-        // api limit rate
-        $this->requestInput->setValue(RouteOption::API_LIMIT_NUM_KEY, $this->routeOption->getLimitNum());
-        $this->requestInput->setValue(RouteOption::API_LIMIT_WINDOW_SIZE_TIME_KEY, $this->routeOption->getWindowSizeTime());
 
-        // 是否动态开启db-debug
-        if ($this->routeOption->isEnableDbDebug()) {
-            Context::set('db_debug', true);
+        // api limit rate
+        if (is_object($this->routeOption)) {
+            $this->requestInput->setValue(RouteOption::API_LIMIT_NUM_KEY, $this->routeOption->getLimitNum());
+            $this->requestInput->setValue(RouteOption::API_LIMIT_WINDOW_SIZE_TIME_KEY, $this->routeOption->getWindowSizeTime());
+            // 是否动态开启db-debug
+            if ($this->routeOption->isEnableDbDebug()) {
+                Context::set('db_debug', true);
+            }
         }
 
-        // handle route group middles
-        $this->handleGroupRouteMiddles();
-
-        // handle before route middles
-        $this->handleBeforeRouteMiddles();
+        try {
+            // handle route group middles
+            $this->handleGroupRouteMiddles($this->httpMethod);
+            // handle before route middles
+            $this->handleBeforeRouteMiddles($this->httpMethod);
+        } catch (CorsRespException $e) {
+            // cors response and over finish and stop next call
+            return false;
+        }
 
         /**@var BController $controllerInstance */
         $controllerInstance = new $class();
@@ -241,7 +251,7 @@ class HttpRoute extends AppDispatch
                 $action
             );
 
-            throw new DispatchException($errorMsg, 403);
+            throw new DispatchException($errorMsg, \Swoole\Http\Status::FORBIDDEN);
         }
         // reflector params handle
         list($method, $args) = $this->bindActionParams($controllerInstance, $action, $this->requestInput->all());
@@ -275,11 +285,16 @@ class HttpRoute extends AppDispatch
      *
      * @return void
      */
-    private function handleGroupRouteMiddles()
+    private function handleGroupRouteMiddles(string $method)
     {
         foreach ($this->groupMiddlewares as $middleware) {
             if (class_exists($middleware)) {
                 $middlewareHandleEntity = new $middleware;
+                //  cors 跨域处理完直接响应返回，无需往下执行流程
+                if ($method == 'OPTIONS' && $middlewareHandleEntity instanceof CorsMiddlewareInterface) {
+                    $middlewareHandleEntity->handle($this->requestInput, $this->responseOutput);
+                    throw new CorsRespException();
+                }
                 if ($middlewareHandleEntity instanceof RouteMiddlewareInterface) {
                     $middlewareHandleEntity->handle($this->requestInput, $this->responseOutput);
                 }
@@ -291,16 +306,21 @@ class HttpRoute extends AppDispatch
      * before route middles
      * @return void
      */
-    private function handleBeforeRouteMiddles()
+    private function handleBeforeRouteMiddles(string $method)
     {
         foreach($this->beforeMiddlewares as $middleware) {
             if ($middleware instanceof \Closure) {
                 $result = call_user_func($middleware, $this->requestInput, $this->responseOutput);
                 if ($result === false) {
-                    throw new SystemException('beforeHandle route middle return false, Not Allow Coroutine To Next Middle', 500);
+                    throw new SystemException('beforeHandle route middle return false, Not Allow Coroutine To Next Middle', \Swoole\Http\Status::INTERNAL_SERVER_ERROR);
                 }
             }else if (class_exists($middleware)) {
                 $middlewareEntity = new $middleware;
+                //  cors 跨域处理完直接响应返回，无需往下执行流程
+                if ($method == 'OPTIONS' && $middlewareEntity instanceof CorsMiddlewareInterface) {
+                    $middlewareEntity->handle($this->requestInput, $this->responseOutput);
+                    throw new CorsRespException();
+                }
                 if ($middlewareEntity instanceof RouteMiddlewareInterface) {
                     $middlewareEntity->handle($this->requestInput, $this->responseOutput);
                 }
@@ -338,8 +358,8 @@ class HttpRoute extends AppDispatch
             list($class, $action) = $this->appConf['not_found_handler'];
             return [$class, $action];
         } else {
-            $errorMsg = "Class {$class} is not found";
-            throw new DispatchException($errorMsg, 404);
+            $errorMsg = "Class `{$class}` Not Found";
+            throw new DispatchException($errorMsg, \Swoole\Http\Status::NOT_FOUND);
         }
     }
 
@@ -450,22 +470,22 @@ class HttpRoute extends AppDispatch
             /**
              * @var RouteOption $routeOption
              */
-            $routeOption = $routerMapInfo['route_option'];
-            if(!isset($routerMeta['dispatch_route'])) {
-                throw new DispatchException("Missing dispatch_route");
+            $routeOption = $routerMapInfo['route_option'] ?? null;
+            if (!isset($routerMeta[self::DISPATCH_ROUTE])) {
+                throw new DispatchException("Missing `dispatch_route` item ");
             } else {
-                $originDispatchRoute = $routerMeta['dispatch_route'];
-                $dispatchRoute = str_replace("\\",DIRECTORY_SEPARATOR, $routerMeta['dispatch_route'][0]);
+                $originDispatchRoute = $routerMeta[self::DISPATCH_ROUTE];
+                $dispatchRoute = str_replace("\\",DIRECTORY_SEPARATOR, $routerMeta[self::DISPATCH_ROUTE][0]);
                 $dispatchRouteItems = explode(DIRECTORY_SEPARATOR, $dispatchRoute);
                 $itemNum = count($dispatchRouteItems);
-                if(!in_array($itemNum, [static::ITEM_NUM_3, static::ITEM_NUM_5])) {
+                if (!in_array($itemNum, [static::ITEM_NUM_3, static::ITEM_NUM_5])) {
                     throw new DispatchException("Dispatch Route Class Error");
                 }
             }
 
             $beforeMiddlewares = $afterMiddlewares = [];
             foreach($routerMeta as $alias => $handle) {
-                if ($alias != 'dispatch_route') {
+                if ($alias != self::DISPATCH_ROUTE) {
                     if (is_array($handle)) {
                         foreach ($handle as $handleItem) {
                             $beforeMiddlewares[] = $handleItem;
@@ -491,8 +511,12 @@ class HttpRoute extends AppDispatch
                 }
             }
 
-            $rateLimiterMiddleware = $routeOption->getRateLimiterMiddleware();
-            $runAfterMiddleware    = $routeOption->getRunAfterMiddleware();
+            $rateLimiterMiddleware = $runAfterMiddleware = '';
+            if (is_object($routeOption)) {
+                $rateLimiterMiddleware = $routeOption->getRateLimiterMiddleware();
+                $runAfterMiddleware    = $routeOption->getRunAfterMiddleware();
+            }
+
             if ($rateLimiterMiddleware && empty($runAfterMiddleware)) {
                 // 放在Group Middleware最前面执行
                 array_unshift($groupMiddlewares, $rateLimiterMiddleware);
