@@ -66,6 +66,9 @@ class Tick
         $arrayCopy = Context::getContext()->getArrayCopy();
         $tid = \Swoole\Timer::tick($timeIntervalMs, function ($timerId, $params) use ($func, $arrayCopy) {
             foreach ($arrayCopy as $key=>$value) {
+                if (is_object($value)) {
+                    continue;
+                }
                Context::set($key, $value);
             }
             goApp(function() use($timerId, $params, $func) {
@@ -176,6 +179,9 @@ class Tick
         $arrayCopy = Context::getContext()->getArrayCopy();
         $timerId = \Swoole\Timer::after($timeIntervalMs, function ($params) use ($func, $arrayCopy) {
             foreach ($arrayCopy as $key=>$value) {
+                if (is_object($value)) {
+                    continue;
+                }
                 Context::set($key, $value);
             }
             goApp(function () use($params, $func) {
