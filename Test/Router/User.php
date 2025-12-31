@@ -20,6 +20,7 @@ Route::group([
     'prefix' => 'user',
     // 路由中间件
     'middleware' => [
+        CorsMiddleware::class,
         GroupTestMiddleware::class,
         ValidLoginMiddleware::class
     ]

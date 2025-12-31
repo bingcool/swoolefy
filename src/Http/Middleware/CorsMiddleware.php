@@ -45,19 +45,19 @@ class CorsMiddleware implements CorsMiddlewareInterface
             return true;
         }
 
-        $path   = $requestInput->getRequestUri();
+        $path = $requestInput->getRequestUri();
         if (!$this->isPathAllowed($path)) {
-           $responseOutput->withStatus(403)->getSwooleResponse()->end('api path 403 Forbidden');
+           $responseOutput->withStatus(\Swoole\Http\Status::FORBIDDEN)->getSwooleResponse()->end('api path 403 Forbidden');
            return false;
         }
 
         if (!in_array('*', $this->options['allowedOrigins']) && !$requestInput->hasHeader('origin')) {
-            $responseOutput->withStatus(403)->getSwooleResponse()->end('403 Forbidden Of `Origin` header not present');
+            $responseOutput->withStatus(\Swoole\Http\Status::FORBIDDEN)->getSwooleResponse()->end('403 Forbidden Of `Origin` header not present');
             return false;
         }
 
         if (!$this->isOriginAllowed($requestInput)) {
-            $responseOutput->withStatus(403)->getSwooleResponse()->end('403 Forbidden');
+            $responseOutput->withStatus(\Swoole\Http\Status::FORBIDDEN)->getSwooleResponse()->end('403 Forbidden');
             return false;
         }
 
@@ -68,10 +68,11 @@ class CorsMiddleware implements CorsMiddlewareInterface
         }
 
         $method = strtoupper($requestInput->getMethod());
+
         if ($method == 'OPTIONS') {
-            $responseOutput->withStatus(204)->getSwooleResponse()->end();
-            return false;
+            $responseOutput->withStatus(\Swoole\Http\Status::NO_CONTENT)->getSwooleResponse()->end();
         }
+        return true;
     }
     /**
      * 检查路径是否匹配
