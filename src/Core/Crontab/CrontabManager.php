@@ -68,6 +68,9 @@ class CrontabManager
         if(is_numeric($expression)) {
             $timerId = \Swoole\Timer::tick($expression * 1000, function ($timerId, $expression) use ($func, $cronName, $class, $arrayCopy, $callPreFn, $callback) {
                 foreach ($arrayCopy as $key=>$value) {
+                    if (is_object($value)) {
+                        continue;
+                    }
                     Context::set($key, $value);
                 }
                 goApp(function () use ($expression, $func, $cronName, $class, $callPreFn, $callback) {
@@ -110,6 +113,9 @@ class CrontabManager
             if (is_array($func)) {
                 $timerId = \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($class, $cronName, $arrayCopy, $callPreFn, $callback) {
                     foreach ($arrayCopy as $key=>$value) {
+                        if (is_object($value)) {
+                            continue;
+                        }
                         Context::set($key, $value);
                     }
                     goApp(function () use ($timerId, $expression, $class, $cronName, $callPreFn, $callback) {

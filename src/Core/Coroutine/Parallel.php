@@ -108,7 +108,7 @@ class Parallel
     /**
      * 并发限制协程数量闭包处理,无需等待结果返回
      *
-     * @param int $concurrent 限制的每批并发协程数量,防止瞬间产生大量的协程拖垮下游服务或者DB
+     * @param int $concurrent 限制的每个批次并发协程数量,防止瞬间产生大量的协程拖垮下游服务或者DB
      * @param array $list 数组
      * @param \Closure $handleFn 回调处理
      * @param float $sleepTime
