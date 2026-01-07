@@ -91,7 +91,7 @@ class Event extends EventHandler
             // ProcessManager::getInstance()->addProcess('multi-call', \Test\Process\TestProcess\MultiCall::class);
 
             // Udp服务测试
-             ProcessManager::getInstance()->addProcess('cdp-test', \Test\Process\UdpTestProcess\Udp::class);
+            // ProcessManager::getInstance()->addProcess('cdp-test', \Test\Process\UdpTestProcess\Udp::class);
 
             // 这里为什么获取不到pid,那是应为process需要server执行start后才会创建，而在这里只是创建实例，server还没正式启动
             //$pid = ProcessManager::getInstance()->getProcessByName('redis_list_test')->getPid();
@@ -117,7 +117,7 @@ class Event extends EventHandler
             return;
         }
         // 创建产生uuid的定时器
-        App::getUUid()->registerTickPreBatchGenerateIds(2001, 100);
+        // App::getUUid()->registerTickPreBatchGenerateIds(2001, 100);
     }
 
     public function onWorkerStop($server, $worker_id)

@@ -10,8 +10,9 @@ class ExceptionHandle extends \Swoolefy\Core\SwoolefyException
      * shutHalt 输出错误日志
      * @param string $errorMsg
      * @param string $errorType
+     * @param \Throwable|null $throwable
      */
-    public static function shutHalt($errorMsg, $errorType = SwoolefyException::EXCEPTION_ERR, \Throwable $throwable = null)
+    public static function shutHalt($errorMsg, $errorType, ?\Throwable $throwable)
     {
         $logger = LogManager::getInstance()->getLogger('system_error_log');
 

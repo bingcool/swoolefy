@@ -23,7 +23,7 @@ class RouteOption extends \stdClass
     protected $dbDebug = false;
 
     /**
-     * 限流中间件类,需实现\Swoolefy\Core\RouteMiddleware
+     * 限流中间件类,需实现@see \Swoolefy\Core\RouteMiddlewareInterface
      *
      * @var string
      */

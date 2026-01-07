@@ -145,7 +145,7 @@ class SwoolefyException
     public static function shutHalt(
         string $errorMsg,
         $errorType,
-        \Throwable|null $throwable
+        ?\Throwable $throwable
     ) {
         $logger = LogManager::getInstance()->getLogger('error_log');
         if (!is_object($logger)) {

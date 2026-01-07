@@ -78,6 +78,7 @@ return [
         $logger = new \Swoolefy\Util\Log($name);
         $logger->setChannel('application');
         $logFilePath = LOG_PATH.'/request/request.log';
+        $logger->enableHourly();
         $logger->setLogFilePath($logFilePath);
         return $logger;
     }

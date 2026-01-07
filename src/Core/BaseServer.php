@@ -1048,7 +1048,7 @@ class BaseServer
     public static function registerErrorHandler()
     {
         $exceptionClass = self::getExceptionClass();
-        set_error_handler("{$exceptionClass}::handleError");
+        set_error_handler([$exceptionClass, 'handleError']);
     }
 
     /**

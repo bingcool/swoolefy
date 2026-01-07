@@ -14,7 +14,6 @@ namespace Swoolefy\Http;
 use Swoole\Http\Server;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
-use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Task\TaskController;
 
 abstract class HttpAppServer extends HttpServer

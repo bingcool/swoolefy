@@ -20,6 +20,7 @@ Route::group([
     'prefix' => 'user',
     // 路由中间件
     'middleware' => [
+        CorsMiddleware::class,
         GroupTestMiddleware::class,
         ValidLoginMiddleware::class
     ]
@@ -59,7 +60,7 @@ Route::group([
             $requestInput->input('order_ids');
             $requestInput->getMethod();
         },
-        'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList'],
+        'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList1'],
         'afterMiddleware' => [
             SendMailMiddleware::class
         ]
@@ -131,6 +132,10 @@ Route::group([
 
     Route::delete('/remove-use', [
         'dispatch_route' => [\Test\Controller\PgController::class, 'removeUser'],
+    ]);
+
+    Route::get('/pg/user-list', [
+        'dispatch_route' => [\Test\Controller\PgController::class, 'userList'],
     ]);
 
 });

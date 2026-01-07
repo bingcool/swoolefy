@@ -32,7 +32,7 @@ class CrontabManager
      * @param callable $callPreFn
      * @param callable $callback
      */
-    public function addRule(string $cronName, $expression, $func, \Closure $callPreFn = null, \Closure $callback = null)
+    public function addRule(string $cronName, $expression, $func, \Closure $callPreFn = null, \Closure $callback = null, array $extend = [])
     {
         if (!class_exists('Cron\\CronExpression')) {
             throw new CronException("If you want to use crontab, you need to install 'composer require dragonmantank/cron-expression' ");
@@ -50,7 +50,7 @@ class CrontabManager
             );
         }
 
-        $this->cronTasks[$cronNameKey] = ['expression' => $expression, 'func' => $func, 'timer_id' => 0, 'cron_name' => $cronName];
+        $this->cronTasks[$cronNameKey] = ['expression' => $expression, 'func' => $func, 'timer_id' => 0, 'cron_name' => $cronName, 'extend' => $extend];
 
         $class = '';
         if(is_array($func)) {

@@ -140,10 +140,10 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface {
      * @return void
      */
     public function logCronTaskRuntime(
-        ScheduleEvent|CronUrlTaskMetaDto $scheduleTask,
+        $scheduleTask,
         string $execBatchId,
         string $message,
-        int $pid = 0,
+        int $pid = 0
     )
     {
         CronTaskLogEntity::query()->insert([
