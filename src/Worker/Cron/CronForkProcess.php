@@ -45,7 +45,7 @@ class CronForkProcess extends CronProcess
             parent::run();
             $this->runCronTask();
         } catch (\Throwable $throwable) {
-            $context = [
+            $contextData = [
                 'file' => $throwable->getFile(),
                 'line' => $throwable->getLine(),
                 'message' => $throwable->getMessage(),
@@ -53,7 +53,7 @@ class CronForkProcess extends CronProcess
                 "reboot_count" => $this->getRebootCount(),
                 'trace' => $throwable->getTraceAsString(),
             ];
-            parent::onHandleException($throwable, $context);
+            parent::onHandleException($throwable, $contextData);
             sleep(2);
             $this->reboot();
         }
@@ -90,7 +90,6 @@ class CronForkProcess extends CronProcess
         if (!$registerAgain) {
             $isNewAddFlag = $this->isNewAddTask($taskItem['cron_name']);
             if ($isNewAddFlag) {
-
                 $scheduleTask = ScheduleEvent::load($taskItem);
                 $startMsg = "【{$scheduleTask->cron_name}】注册定时任务启动";
                 $this->logCronTaskRuntime($scheduleTask, "", $startMsg);

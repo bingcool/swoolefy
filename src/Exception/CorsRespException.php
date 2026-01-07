@@ -9,18 +9,9 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Core;
+namespace Swoolefy\Exception;
 
-use Swoolefy\Http\RequestInput;
-use Swoolefy\Http\ResponseOutput;
-
-interface RouteMiddleware
+class CorsRespException extends AbstractSwoolefyExeption
 {
-    /**
-     * @param RequestInput $requestInput
-     * @param ResponseOutput $responseOutput
-     * @return mixed
-     */
-    public function handle(RequestInput $requestInput, ResponseOutput $responseOutput);
 
 }

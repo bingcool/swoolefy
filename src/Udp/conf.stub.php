@@ -62,7 +62,7 @@ return [
         //开启/关闭Swoole错误信息
         'display_errors'        => true,
         'pid_file'              => \Swoolefy\Core\SystemEnv::loadPidFile('/data/' . APP_NAME . '/log/server.pid'),
-        'hook_flags'             => \Swoolefy\Core\SystemEnv::loadHookFlag(),
+        'hook_flags'            => \Swoolefy\Core\SystemEnv::loadHookFlag(),
     ],
 
     'coroutine_setting' => [

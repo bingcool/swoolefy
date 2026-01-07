@@ -18,7 +18,7 @@ use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Exception\SystemException;
 use Swoolefy\Worker\Helper;
 use Swoolefy\Worker\Script\AbstractScriptProcess;
-use Swoolefy\Core\Coroutine\Context;
+use Swoolefy\Core\Coroutine\Context as SwooleContext;
 
 class MainCliScript extends AbstractScriptProcess
 {
@@ -49,7 +49,7 @@ class MainCliScript extends AbstractScriptProcess
      */
     public function init()
     {
-        if (!Context::has('x-trace-id')) {
+        if (!SwooleContext::has('x-trace-id')) {
             $this->generateTraceId();
         }
         BaseServer::saveCronScriptPidFile();
@@ -61,7 +61,7 @@ class MainCliScript extends AbstractScriptProcess
      */
     public function run()
     {
-        if($this->isExecuted()) {
+        if ($this->isExecuted()) {
             fmtPrintError("一次性脚本进程异常不断重复自动重启，请检查");
             $this->exitAll(true, 5);
             return;
@@ -76,7 +76,7 @@ class MainCliScript extends AbstractScriptProcess
             }
             $handleClass = getenv('handle_class');
             list($method, $params) = Helper::parseActionParams($this, $action, Helper::getCliParams());
-            fmtPrintInfo("Running Script: {$handleClass}::{$action}()");
+            fmtPrintInfo(sprintf("Running Script Method: %s::%s", $handleClass, $action));
             $this->{$action}(...$params);
             $this->waitCoroutineFinish($this->maxWaitTime);
             $this->exitAll();
@@ -111,7 +111,7 @@ class MainCliScript extends AbstractScriptProcess
      */
     private function generateTraceId()
     {
-        Context::set('x-trace-id', \Swoolefy\Util\Helper::UUid());
+        SwooleContext::set('x-trace-id', \Swoolefy\Util\Helper::UUid());
     }
 
     /**
@@ -224,7 +224,7 @@ class MainCliScript extends AbstractScriptProcess
         $class  = $commands[$command][0];
         $action = $commands[$command][1];
 
-        if(!is_subclass_of($class, __CLASS__)) {
+        if (!is_subclass_of($class, __CLASS__)) {
             throw new SystemException("【Error】class={$class} bust be extended \Swoolefy\Script\MainCliScript");
         }
 

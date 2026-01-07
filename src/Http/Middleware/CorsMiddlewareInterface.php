@@ -9,19 +9,11 @@
  * +----------------------------------------------------------------------
  */
 
-namespace Swoolefy\Script;
+namespace Swoolefy\Http\Middleware;
 
-class TestScript extends MainCliScript {
-    /**
-     * @var string
-     */
-    const command = "test:script";
+use Swoolefy\Core\RouteMiddlewareInterface;
 
-    public function handle()
-    {
-        $name = $this->getOption('name');
-        file_put_contents(START_DIR_ROOT.'/test.log', date('Y-m-d H:i:s').'-name:'.$name.PHP_EOL, FILE_APPEND);
-        sleep(10);
-        echo "this is a test script\n";
-    }
+interface CorsMiddlewareInterface extends RouteMiddlewareInterface
+{
+
 }

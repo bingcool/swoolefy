@@ -18,6 +18,7 @@ use Swoole\Http\Response;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Util\Helper;
+use Swoolefy\Core\Coroutine\Context as SwooleContext;
 
 abstract class WebsocketServer extends BaseServer
 {
@@ -150,7 +151,7 @@ abstract class WebsocketServer extends BaseServer
          */
         $this->webServer->on('message', function (\Swoole\WebSocket\Server $server, Frame $frame) {
             try {
-                \Swoolefy\Core\Coroutine\Context::set('x-trace-id', Helper::UUid());
+                SwooleContext::set('x-trace-id', Helper::UUid());
                 parent::beforeHandle();
                 static::onMessage($server, $frame);
                 return true;
@@ -196,7 +197,7 @@ abstract class WebsocketServer extends BaseServer
                 list($data, $contextData) = $params;
                 (new EventApp())->registerApp(function () use ($server, $task_id, $data, $contextData) {
                     foreach ($contextData as $key=>$value) {
-                        \Swoolefy\Core\Coroutine\Context::set($key, $value);
+                        SwooleContext::set($key, $value);
                     }
                     static::onFinish($server, $task_id, $data);
                 });

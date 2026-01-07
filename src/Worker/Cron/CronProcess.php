@@ -183,17 +183,16 @@ class CronProcess extends AbstractWorkerProcess
     }
 
     /**
-     * @param ScheduleEvent|CronUrlTaskMetaDto $scheduleTask
+     * @param array $taskItem
      * @param string $execBatchId
      * @param string $message
-     * @param int $pid
      * @return void
      */
     protected function logCronTaskRuntime(
-        $scheduleTask,
+        ScheduleEvent|CronUrlTaskMetaDto $scheduleTask,
         string $execBatchId,
         string $message,
-        int $pid = 0
+        int $pid = 0,
     )
     {
         if (isset($scheduleTask->cron_task_id) && $scheduleTask->cron_task_id > 0 && !empty($scheduleTask->cron_db_log_class)) {
