@@ -119,6 +119,9 @@ Route::group([
         'dispatch_route' => [\Test\Controller\RedisController::class, 'testRedis'],
     ]);
 
+    Route::match(['GET'],'/transaction/test', [
+        'dispatch_route' => [\Test\Controller\TransactionController::class, 'test'],
+    ]);
 });
 
 Route::match(['GET'],'/cache/test1', [

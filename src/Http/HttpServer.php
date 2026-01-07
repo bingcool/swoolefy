@@ -11,7 +11,6 @@
 
 namespace Swoolefy\Http;
 
-use Common\Library\CurlProxy\OpentelemetryMiddleware;
 use Swoole\Coroutine;
 use Swoolefy\Core\EventApp;
 use Swoole\Http\Request;
@@ -21,6 +20,7 @@ use Swoolefy\Core\SystemEnv;
 use Swoolefy\Util\Helper;
 use Swoolefy\Worker\CtlApi;
 use Swoolefy\Core\Coroutine\Context as SwooleContext;
+use Common\Library\CurlProxy\OpentelemetryMiddleware;
 
 abstract class HttpServer extends BaseServer
 {

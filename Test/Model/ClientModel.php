@@ -3,7 +3,6 @@ namespace Test\Model;
 
 use Swoolefy\Core\Application;
 use Common\Library\Db\Model;
-use Swoolefy\Core\Swfy;
 
 class ClientModel extends Model {
 
