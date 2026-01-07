@@ -434,7 +434,7 @@ class SystemEnv
     /**
      * @return void
      */
-    public static function formatPrintStartLog($startTime = '')
+    public static function formatPrintStartLog()
     {
         if (empty($startTime) && defined('SERVER_START_LOG_JSON_FILE') && is_file(SERVER_START_LOG_JSON_FILE)) {
             $startContent = file_get_contents(SERVER_START_LOG_JSON_FILE);
@@ -448,7 +448,7 @@ class SystemEnv
         $baseInfoOutput = new \Symfony\Component\Console\Output\ConsoleOutput();
         $baseTable      = new \Symfony\Component\Console\Helper\Table($baseInfoOutput);
         $baseTable->setHeaders(['服务应用', '端口','环境', '进程状态', '启动时间']);
-        $baseTable->addRow([WORKER_SERVICE_NAME, $startContent['port'] ?? '', SWOOLEFY_ENV, 'running', $startTime]);
+        $baseTable->addRow([WORKER_SERVICE_NAME, $startContent['port'] ?? '', SWOOLEFY_ENV, 'running', $startTime ?? '']);
         $baseTable->setStyle($tableStyle)->render();
     }
 }
