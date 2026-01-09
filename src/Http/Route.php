@@ -96,7 +96,7 @@ class Route
             'method' => ['POST'],
             'route_meta' => $routeMeta,
             'route_option' => &$routeOption,
-            'enable_core_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
+            'enable_cors_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
         ];
 
         return $routeOption;
@@ -117,7 +117,7 @@ class Route
             'method' => ['PUT'],
             'route_meta' => $routeMeta,
             'route_option' => &$routeOption,
-            'enable_core_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
+            'enable_cors_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
         ];
         return $routeOption;
     }
@@ -137,7 +137,7 @@ class Route
             'method' => ['DELETE'],
             'route_meta' => $routeMeta,
             'route_option' => &$routeOption,
-            'enable_core_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
+            'enable_cors_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
         ];
         return $routeOption;
     }
@@ -198,7 +198,7 @@ class Route
                 'method' => [$method],
                 'route_meta' => $routeMeta,
                 'route_option' => &$routeOption,
-                'enable_core_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
+                'enable_cors_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
             ];
         }
         return $routeOption;
@@ -220,7 +220,7 @@ class Route
                 'method' => [$method],
                 'route_meta' => $routeMeta,
                 'route_option' => &$routeOption,
-                'enable_core_middleware' => true,
+                'enable_cors_middleware' => true,
             ];
         }
         return $routeOption;
@@ -303,8 +303,15 @@ class Route
      */
     protected static function setCoresOptionMethod(&$groupMeta, &$routeMeta, $newUri): bool
     {
-        // 分组级别已启用coresMiddleware
-        $enableGroupCoresMiddleware = self::isEnableGroupCoresMiddleware($groupMeta);
+        // 检测分组是否启用coresMiddleware
+        if (isset($groupMeta['enable_group_cors_middleware'])) {
+            $enableGroupCoresMiddleware = $groupMeta['enable_group_cors_middleware'];
+        } else {
+            // 分组级别已启用coresMiddleware
+            $enableGroupCoresMiddleware = self::isEnableGroupCoresMiddleware($groupMeta);
+            $groupMeta['enable_group_cors_middleware'] = $enableGroupCoresMiddleware;
+        }
+
         if (!$enableGroupCoresMiddleware) {
             // 分组没启用,那么检测单个路由是否启用coresMiddleware
             $enableCoresMiddleware = self::isEnableRouteCoresMiddleware($routeMeta);
