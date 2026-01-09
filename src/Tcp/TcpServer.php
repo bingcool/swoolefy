@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Tcp;
 
+use Common\Library\CurlProxy\OpentelemetryMiddleware;
 use Swoolefy\Core\EventApp;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\SystemEnv;
@@ -144,7 +145,7 @@ abstract class TcpServer extends BaseServer
          */
         $this->tcpServer->on('receive', function (\Swoole\Server $server, $fd, $reactor_id, $data) {
             try {
-                \Swoolefy\Core\Coroutine\Context::set('x-trace-id', Helper::UUid());
+                \Swoolefy\Core\Coroutine\Context::set(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID, Helper::UUid());
                 parent::beforeHandle();
                 if (parent::isPackLength()) {
                     $buffer = $this->Pack->decodePack($fd, $data);

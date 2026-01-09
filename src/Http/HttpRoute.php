@@ -256,8 +256,8 @@ class HttpRoute extends AppDispatch
         list($method, $args) = $this->bindActionParams($controllerInstance, $action, $this->requestInput->all());
         $controllerInstance->{$action}(...$args);
         if (!SystemEnv::isPrdEnv()) {
-            if (SwooleContext::has('x-trace-id')) {
-                $traceId = SwooleContext::get('x-trace-id');
+            if (SwooleContext::has(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID)) {
+                $traceId = SwooleContext::get(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID);
             }
             fmtPrintInfo(sprintf("[request end] %s: [%s %s] 请求耗时: %ss \n[request id] %s",
                 date('Y-m-d H:i:s'),

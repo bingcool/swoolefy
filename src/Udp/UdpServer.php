@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Udp;
 
+use Common\Library\CurlProxy\OpentelemetryMiddleware;
 use Swoole\Server;
 use Swoolefy\Core\EventApp;
 use Swoolefy\Core\BaseServer;
@@ -119,7 +120,7 @@ abstract class UdpServer extends BaseServer
          */
         $this->udpServer->on('Packet', function (Server $server, $data, $clientInfo) {
             try {
-                \Swoolefy\Core\Coroutine\Context::set('x-trace-id', Helper::UUid());
+                \Swoolefy\Core\Coroutine\Context::set(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID, Helper::UUid());
                 parent::beforeHandle();
                 static::onPack($server, $data, $clientInfo);
                 return true;

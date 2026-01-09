@@ -20,6 +20,7 @@ use Swoolefy\Core\SystemEnv;
 use Swoolefy\Util\Helper;
 use Swoolefy\Worker\CtlApi;
 use Swoolefy\Core\Coroutine\Context as SwooleContext;
+use Common\Library\CurlProxy\OpentelemetryMiddleware;
 
 abstract class HttpServer extends BaseServer
 {
@@ -138,8 +139,8 @@ abstract class HttpServer extends BaseServer
                 }
             } else {
                 try {
-                    $traceId = $request->header['x-trace-id'] ?? Helper::UUid();
-                    SwooleContext::set('x-trace-id', $traceId);
+                    $traceId = $request->header[OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID] ?? Helper::UUid();
+                    SwooleContext::set(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID, $traceId);
                     parent::beforeHandle();
                     static::onRequest($request, $response);
                     return true;
