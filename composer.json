@@ -59,5 +59,11 @@
             "php-http/discovery": false,
             "tbachert/spi": false
         }
-    }
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../library"
+        }
+    ]
 }

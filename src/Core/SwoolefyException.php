@@ -137,7 +137,7 @@ class SwoolefyException
     }
 
     /**
-     * shutHalt 记录日志(重写)
+     * shutHalt 记录日志(可继承覆盖重写)
      * @param string $errorMsg
      * @param string $errorType
      * @param \Throwable|null $throwable

@@ -26,8 +26,8 @@ class CorsMiddleware implements CorsMiddlewareInterface
         'allowedPath'            => ['*'],
         'allowedHeaders'         => ['*'],
         'allowedMethods'         => ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        'allowedOrigins'         => ['a.example.com'],
-        'allowedOriginsPatterns' => [],
+        'allowedOrigins'         => [],
+        'allowedOriginsPatterns' => ['*.example.com'],
         'exposedHeaders'         => [],
         'maxAge'                 => 86400,
         'supportsCredentials'    => false,
@@ -111,7 +111,7 @@ class CorsMiddleware implements CorsMiddlewareInterface
     /**
      * @param RequestInput $requestInput
      * @param ResponseOutput $responseOutput
-     * @return bool|void
+     * @return bool
      */
     public function handle(RequestInput $requestInput, ResponseOutput $responseOutput)
     {
@@ -122,6 +122,35 @@ class CorsMiddleware implements CorsMiddlewareInterface
 
         $this->init();
 
+        // 跨域请求
+        if ($requestInput->hasHeader('origin')) {
+            $preflightResult = $this->handlePreflight($requestInput, $responseOutput);
+            if (!$preflightResult) {
+                return false;
+            }
+            $this->setCorsHeaders($requestInput, $responseOutput);
+        }
+
+        if (!SwooleContext::has(self::__CORS_OPTIONS_HEADER_RESP)) {
+            SwooleContext::set(self::__CORS_OPTIONS_HEADER_RESP, true);
+        }
+
+        $method = strtoupper($requestInput->getMethod());
+        if ($method == 'OPTIONS') {
+            $responseOutput->withStatus(\Swoole\Http\Status::NO_CONTENT)->getSwooleResponse()->end();
+        }
+        return true;
+    }
+
+    /**
+     * Options 预检请求处理
+     *
+     * @param RequestInput $requestInput
+     * @param ResponseOutput $responseOutput
+     * @return bool
+     */
+    protected function handlePreflight(RequestInput $requestInput, ResponseOutput $responseOutput): bool
+    {
         $forbiddenStatus403 = \Swoole\Http\Status::FORBIDDEN;
         if (!in_array('*', $this->options['allowedOrigins']) && !$requestInput->hasHeader('origin')) {
             $responseOutput->withStatus($forbiddenStatus403)->getSwooleResponse()->end(
@@ -142,26 +171,16 @@ class CorsMiddleware implements CorsMiddlewareInterface
             return false;
         }
 
-        $this->setCorsHeaders($requestInput, $responseOutput);
-
-        if (!SwooleContext::has(self::__CORS_OPTIONS_HEADER_RESP)) {
-            SwooleContext::set(self::__CORS_OPTIONS_HEADER_RESP, true);
-        }
-
-        $method = strtoupper($requestInput->getMethod());
-
-        if ($method == 'OPTIONS') {
-            $responseOutput->withStatus(\Swoole\Http\Status::NO_CONTENT)->getSwooleResponse()->end();
-        }
         return true;
     }
+
     /**
      * 检查路径是否匹配
      *
      * @param string $path 当前请求路径
      * @return bool
     */
-    private function isPathAllowed(string $path): bool
+    protected function isPathAllowed(string $path): bool
     {
         if (empty($this->options['allowedPath'])) {
             return true;
@@ -179,7 +198,7 @@ class CorsMiddleware implements CorsMiddlewareInterface
      * @param RequestInput $requestInput
      * @return bool
      */
-    private function isOriginAllowed(RequestInput $requestInput): bool
+    protected function isOriginAllowed(RequestInput $requestInput): bool
     {
         if (in_array('*', $this->options['allowedOrigins'])) {
             return true;
@@ -206,7 +225,7 @@ class CorsMiddleware implements CorsMiddlewareInterface
      * @param ResponseOutput $responseOutput
      * @return void
      */
-    private function setCorsHeaders(RequestInput $requestInput, ResponseOutput $responseOutput): void
+    protected function setCorsHeaders(RequestInput $requestInput, ResponseOutput $responseOutput): void
     {
         $origin = $requestInput->getHeaderParams('origin');
         if (in_array('*', $this->options['allowedOrigins']) && !$this->options['supportsCredentials']) {

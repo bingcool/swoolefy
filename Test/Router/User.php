@@ -47,13 +47,13 @@ Route::group([
             SendMailMiddleware::class
         ]
     ])
-    ->enableDbDebug(true)
+    ->enableDbDebug(false)
     ->withRateLimiterMiddleware(RateLimiterMiddleware::class,  60,60,GroupTestMiddleware::class);
 
     Route::post('/user-order/userList1', [
         // 针对该接口启动sql-debug
         'beforeHandle' => function(RequestInput $requestInput) {
-            Context::set('db_debug', true);
+            Context::set('db_debug', false);
         },
         'beforeHandle1' => function(RequestInput $requestInput) {
             $requestInput->input('name');
@@ -64,7 +64,7 @@ Route::group([
         'afterMiddleware' => [
             SendMailMiddleware::class
         ]
-    ]);
+    ])->enableDbDebug(false);
 
     Route::any('/user-order/userList1', [
         'beforeHandle2' => [

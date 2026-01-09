@@ -7,6 +7,7 @@ use Common\Library\Db\Sql;
 use GuzzleHttp\Client;
 use malkusch\lock\mutex\PgAdvisoryLockMutex;
 use Swoolefy\Core\Controller\BController;
+use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Http\RequestInput;
 use Test\App;
 use Test\Logger\RunLog;
@@ -67,7 +68,7 @@ class UserOrderController extends BController
             $query->where('user_id','>', '0');
         })->paginateX(1,1706266299345000000);
 
-        var_dump($pageList->items(), $pageList->lastId());
+        //var_dump($pageList->items(), $pageList->lastId());
 
         $data = (new OrderEntity())->getAttributes();
         //var_dump($data);
@@ -127,24 +128,23 @@ class UserOrderController extends BController
                 ),
         )->whereRaw(sprintf("%s=%d", $t1->C('user_id'), 10000000000))
             ->order([$t1->C('user_id') => 'desc'])
-        ->fetchSql()
             ->select();
 
-        var_dump($querySql);
+        //var_dump($querySql);
 
 
         // 列表方式查询
-       // $orderList = new OrderList();
-//        $orderList->setUserId([10000]);
-//        $orderList->setPage(1);
-//        $orderList->setPageSize(10);
-//        $count = $orderList->total();
-//        $list  = $orderList->find();
+        $orderList = new OrderList();
+        $orderList->setUserId([10000]);
+        $orderList->setPage(1);
+        $orderList->setPageSize(10);
+        $count = $orderList->total();
+        $list  = $orderList->find();
 
         goApp(function () {
             // 列表方式查询
             $orderList = new OrderList();
-            $orderList->setUserId([10000]);
+            $orderList->setUserId([10000000]);
             $orderList->setPage(1);
             $orderList->setPageSize(10);
             $count = $orderList->total();
@@ -186,19 +186,19 @@ class UserOrderController extends BController
 //            ]);
 //        });
 
-        $client = new Client([
-                'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
-            ]);
-        $client->request('GET', 'http://127.0.0.1:9501/user/user-order/userList1?name=bingcool',[
-            'headers' => [
-                'User-Agent' => 'MyApp/1.0',         // 自定义 User-Agent
-                'Authorization' => 'Bearer YOUR_TOKEN', // 认证头
-                'X-Custom-Header' => 'value',        // 自定义头
-                'Accept' => 'application/json',      // 指定响应格式
-            ],
-        ]);
-
-        RunLog::info("userList userList userList");
+//        $client = new Client([
+//                'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+//            ]);
+//        $client->request('GET', 'http://127.0.0.1:9501/user/user-order/userList1?name=bingcool',[
+//            'headers' => [
+//                'User-Agent' => 'MyApp/1.0',         // 自定义 User-Agent
+//                'Authorization' => 'Bearer YOUR_TOKEN', // 认证头
+//                'X-Custom-Header' => 'value',        // 自定义头
+//                'Accept' => 'application/json',      // 指定响应格式
+//            ],
+//        ]);
+//
+//        RunLog::info("userList userList userList");
 
 //        goApp(function () {
 //            (new Client([
@@ -207,10 +207,10 @@ class UserOrderController extends BController
 //            ]))->get('/', []);
 //        });
 
-       (new Client([
-            'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
-            'base_uri' => 'https://www.baidu.com',
-        ]))->get('/', []);
+//       (new Client([
+//            'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+//            'base_uri' => 'https://www.baidu.com',
+//        ]))->get('/', []);
 
         $this->returnJson([
             'total' => $count ?? 0,
