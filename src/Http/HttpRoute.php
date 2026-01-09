@@ -11,11 +11,12 @@
 
 namespace Swoolefy\Http;
 
+use Common\Library\CurlProxy\OpentelemetryMiddleware;
 use Swoolefy\Core\App;
 use Swoolefy\Core\AppDispatch;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
-use Swoolefy\Core\Coroutine\Context;
+use Swoolefy\Core\Coroutine\Context as SwooleContext;
 use Swoolefy\Core\Dto\AbstractDto;
 use Swoolefy\Core\RouteMiddlewareInterface;
 use Swoolefy\Core\SystemEnv;
@@ -220,9 +221,7 @@ class HttpRoute extends AppDispatch
             $this->requestInput->setValue(RouteOption::API_LIMIT_NUM_KEY, $this->routeOption->getLimitNum());
             $this->requestInput->setValue(RouteOption::API_LIMIT_WINDOW_SIZE_TIME_KEY, $this->routeOption->getWindowSizeTime());
             // 是否动态开启db-debug
-            if ($this->routeOption->isEnableDbDebug()) {
-                Context::set('db_debug', true);
-            }
+            SwooleContext::set('db_debug', $this->routeOption->isEnableDbDebug());
         }
 
         try {
@@ -257,11 +256,15 @@ class HttpRoute extends AppDispatch
         list($method, $args) = $this->bindActionParams($controllerInstance, $action, $this->requestInput->all());
         $controllerInstance->{$action}(...$args);
         if (!SystemEnv::isPrdEnv()) {
-            fmtPrintInfo(sprintf("[request end] %s: [%s %s] 请求耗时: %ss",
+            if (SwooleContext::has('x-trace-id')) {
+                $traceId = SwooleContext::get('x-trace-id');
+            }
+            fmtPrintInfo(sprintf("[request end] %s: [%s %s] 请求耗时: %ss \n[request id] %s",
                 date('Y-m-d H:i:s'),
                 $this->requestInput->getSwooleRequest()->server['REQUEST_METHOD'],
                 $this->requestInput->getRequestUri(),
                 round($this->requestEndTime() - $this->requestInput->getRequestTimeFloat(), 3),
+                $traceId,
             ));
         }
         $controllerInstance->_afterAction($this->requestInput, $action);
@@ -290,10 +293,13 @@ class HttpRoute extends AppDispatch
         foreach ($this->groupMiddlewares as $middleware) {
             if (class_exists($middleware)) {
                 $middlewareHandleEntity = new $middleware;
-                //  cors 跨域处理完直接响应返回，无需往下执行流程
-                if ($method == 'OPTIONS' && $middlewareHandleEntity instanceof CorsMiddlewareInterface) {
-                    $middlewareHandleEntity->handle($this->requestInput, $this->responseOutput);
-                    throw new CorsRespException();
+                //  1、cors 跨域options预检测处理完直接响应返回，无需往下执行流程
+                //  2、正式的跨域请求，handle()返回false预检不通过, 无需往下执行流程
+                if ($middlewareHandleEntity instanceof CorsMiddlewareInterface) {
+                    $preflightResult = $middlewareHandleEntity->handle($this->requestInput, $this->responseOutput);
+                    if ($method == 'OPTIONS' || empty($preflightResult)) {
+                        throw new CorsRespException();
+                    }
                 }
                 if ($middlewareHandleEntity instanceof RouteMiddlewareInterface) {
                     $middlewareHandleEntity->handle($this->requestInput, $this->responseOutput);
@@ -308,7 +314,7 @@ class HttpRoute extends AppDispatch
      */
     private function handleBeforeRouteMiddles(string $method)
     {
-        foreach($this->beforeMiddlewares as $middleware) {
+        foreach ($this->beforeMiddlewares as $middleware) {
             if ($middleware instanceof \Closure) {
                 $result = call_user_func($middleware, $this->requestInput, $this->responseOutput);
                 if ($result === false) {
@@ -316,10 +322,13 @@ class HttpRoute extends AppDispatch
                 }
             }else if (class_exists($middleware)) {
                 $middlewareEntity = new $middleware;
-                //  cors 跨域处理完直接响应返回，无需往下执行流程
-                if ($method == 'OPTIONS' && $middlewareEntity instanceof CorsMiddlewareInterface) {
-                    $middlewareEntity->handle($this->requestInput, $this->responseOutput);
-                    throw new CorsRespException();
+                //  1、cors 跨域options预检测处理完直接响应返回，无需往下执行流程
+                //  2、正式的跨域请求，handle()返回false预检不通过, 无需往下执行流程
+                if ($middlewareEntity instanceof CorsMiddlewareInterface) {
+                    $preflightResult = $middlewareEntity->handle($this->requestInput, $this->responseOutput);
+                    if ($method == 'OPTIONS' || empty($preflightResult)) {
+                        throw new CorsRespException();
+                    }
                 }
                 if ($middlewareEntity instanceof RouteMiddlewareInterface) {
                     $middlewareEntity->handle($this->requestInput, $this->responseOutput);
