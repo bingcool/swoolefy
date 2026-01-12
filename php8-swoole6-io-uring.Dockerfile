@@ -4,7 +4,7 @@ LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 
 #swoole6.x最高只支持到php81,php82,php83,php84.
 #根据实际构建来设置环境变量
-ENV MY_SWOOLE_VERSION=6.0.2 \
+ENV MY_SWOOLE_VERSION=6.1.6 \
     MY_PHP_VERSION=83 \
     SWOOLEFY_CLI_ENV=dev
 
@@ -18,7 +18,7 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
     && apk add --no-cache --virtual .build-deps \
     # build-base包含基础工具和库gcc、g++、make等集合，构建阶段需要依赖编译swoole
     build-base \
-    # swoole apline linux io_uring依赖以下三项
+    # swoole apline linux io_uring依赖liburing
     linux-headers liburing liburing-dev \
     curl make wget tar xz pkgconfig \
     curl-dev \
@@ -60,7 +60,7 @@ FROM alpine:3.20.3
 LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 
 #根据实际构建来设置环境变量
-ENV MY_SWOOLE_VERSION=6.0.2 \
+ENV MY_SWOOLE_VERSION=6.1.5 \
     MY_PHP_VERSION=83 \
     SWOOLEFY_CLI_ENV=dev
 
@@ -132,7 +132,7 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
     && apk add linux-headers liburing-dev \
     && rm -rf /var/cache/apk/* /tmp/* /usr/share/man /usr/share/doc /usr/share/php${MY_PHP_VERSION} \
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
-    && composer config -g repo.packagist composer https://mirrors.aliyun.com/composer/ \
+    && composer config -g repo.packagist composer https://mirrors.tencent.com/composer/ \
     && php -v && php -m \
     && echo -e "\033[42;37m Build Completed :).\033[0m\n"
 

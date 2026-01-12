@@ -94,7 +94,8 @@ docker run -d -it --name=swoolefy-php83-v6 swoolefy-php83-swoole6:v1
 | cron-expression  | composer require dragonmantank/cron-expression:~3.3.0 | crontab计划任务组件，类似Linux的crobtab                       |  
 | redis lock       | composer require malkusch/lock                        | Redis锁组件                                            |
 | amqp             | composer require php-amqplib/php-amqplib:~3.5.0       | amqp php原生实现amqp协议客户端                               |  
-| ffmpeg           | composer require php-ffmpeg/php-ffmpeg:~1.1.0         | php proc-open 调用ffmpeg处理音视频                         |  
+| ffmpeg           | composer require php-ffmpeg/php-ffmpeg:~1.3.0         | php proc-open 调用ffmpeg处理音视频                         |  
+| image            | composer require intervention/image:~3.11.0           | php 图像处理组件                                          |    
 | validate         | composer require vlucas/valitron                      | validate数据校验组件                                      |    
 | guzzlehttp       | composer require guzzlehttp/guzzle                    | guzzlehttp 组件                                       | 
 | oauth 2.0        | composer require league/oauth2-server                 | oauth 2.0 授权认证组件                                    |   
