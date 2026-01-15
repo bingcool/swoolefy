@@ -31,7 +31,7 @@ class PoolsManager
      */
     private $tableProcess = [
         // 进程内存表
-        'table_process_pools_map' => [
+        AbstractProcessPools::SWOOLEFY_PROCESS_POOLS_MAP_TABLE_NAME => [
             // 内存表建立的行数,取决于建立的process进程数,最小值64
             'size' => self::PROCESS_NUM,
             // 字段

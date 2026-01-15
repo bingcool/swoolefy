@@ -14,9 +14,8 @@ class TransactionController extends BController
             goApp(function () {
                 // 协程单例不受外部的事务影响，db连接实例都是不一样的
                 $db = App::getDb();
-                $db->createCommand("insert into tbl_users (`user_id`,`user_name`,`sex`,`birthday`,`phone`) values(:user_name,:sex,:birthday,:phone)" )
+                $db->createCommand("insert into tbl_users (`user_name`,`sex`,`birthday`,`phone`) values(:user_name,:sex,:birthday,:phone)" )
                     ->insert([
-                        ':user_id' => 46457,
                         ':user_name' => '李四-'.rand(1,9999),
                         ':sex' => 0,
                         ':birthday' => '1991-07-08',
@@ -24,7 +23,7 @@ class TransactionController extends BController
                     ]);
 
                 $rowCount = $db->getNumRows();
-                var_dump("c1=".$rowCount);
+                var_dump("c1=".$rowCount.',object_id='.spl_object_id($db));
             });
 
             $db->beginTransaction();
@@ -38,7 +37,7 @@ class TransactionController extends BController
                     ]);
                 $rowCount = $db->getNumRows();
                 $db->commit();
-                var_dump("c3=".$rowCount);
+                var_dump("c3=".$rowCount.',object_id='.spl_object_id($db));
             } catch (\Exception $e) {
                 var_dump($e->getMessage());
                 $db->rollBack();
@@ -54,7 +53,7 @@ class TransactionController extends BController
                 ]);
 
             $rowCount = $db->getNumRows();
-            var_dump("c2=".$rowCount);
+            var_dump("c2=".$rowCount.',object_id='.spl_object_id($db));
             $db->commit();
         } catch (\Exception $e) {
             var_dump($e->getMessage());

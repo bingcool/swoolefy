@@ -47,7 +47,7 @@ Route::group([
             SendMailMiddleware::class
         ]
     ])
-    ->enableDbDebug(false)
+    ->enableDbDebug(true)
     ->withRateLimiterMiddleware(RateLimiterMiddleware::class,  60,60,GroupTestMiddleware::class);
 
     Route::post('/user-order/userList1', [

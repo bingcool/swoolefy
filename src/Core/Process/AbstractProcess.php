@@ -67,6 +67,11 @@ abstract class AbstractProcess
     const SWOOLEFY_PROCESS_KILL_FLAG = "action::restart::action::reboot";
 
     /**
+     * SWOOLEFY_PROCESS_TABLE_NAME
+     */
+    const SWOOLEFY_PROCESS_MAP_TABLE_NAME = 'table_process_map';
+
+    /**
      * AbstractProcess constructor.
      * @param string $processName
      * @param bool $async
@@ -124,7 +129,7 @@ abstract class AbstractProcess
         }
 
         $this->installRegisterShutdownFunction();
-        TableManager::getTable('table_process_map')->set(
+        TableManager::getTable(self::SWOOLEFY_PROCESS_MAP_TABLE_NAME)->set(
             md5($this->processName), ['pid' => $this->swooleProcess->pid]
         );
 
@@ -137,7 +142,7 @@ abstract class AbstractProcess
             if (method_exists(static::class, '__destruct') && version_compare(phpversion(), '8.0.0', '>=') ) {
                 $this->__destruct();
             }
-            TableManager::getTable('table_process_map')->del(md5($this->processName));
+            TableManager::getTable(self::SWOOLEFY_PROCESS_MAP_TABLE_NAME)->del(md5($this->processName));
             \Swoole\Event::del($process->pipe);
             \Swoole\Event::exit();
 
@@ -267,7 +272,7 @@ abstract class AbstractProcess
      */
     public function getPid()
     {
-        $pid = TableManager::getTable('table_process_map')->get(md5($this->processName), 'pid');
+        $pid = TableManager::getTable(self::SWOOLEFY_PROCESS_MAP_TABLE_NAME)->get(md5($this->processName), 'pid');
         if ($pid) {
             return $pid;
         }else {
