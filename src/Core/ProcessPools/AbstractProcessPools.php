@@ -67,6 +67,11 @@ abstract class AbstractProcessPools
     const SWOOLEFY_PROCESS_KILL_FLAG = "action::restart::action::reboot";
 
     /**
+     * SWOOLEFY_PROCESS_POOLS_MAP_TABLE_NAME
+     */
+    const SWOOLEFY_PROCESS_POOLS_MAP_TABLE_NAME = 'table_process_pools_map';
+
+    /**
      * AbstractProcessPools constructor.
      * @param string $process_name
      * @param bool $async
@@ -108,7 +113,7 @@ abstract class AbstractProcessPools
      */
     public function getPid()
     {
-        $pid = TableManager::getTable('table_process_pools_map')->get(md5($this->processName), 'pid');
+        $pid = TableManager::getTable(self::SWOOLEFY_PROCESS_POOLS_MAP_TABLE_NAME)->get(md5($this->processName), 'pid');
         if ($pid) {
             return $pid;
         }
@@ -152,7 +157,7 @@ abstract class AbstractProcessPools
         $handleClass = static::class;
         putenv("handle_class={$handleClass}");
 
-        TableManager::getTable('table_process_pools_map')->set(
+        TableManager::getTable(self::SWOOLEFY_PROCESS_POOLS_MAP_TABLE_NAME)->set(
             md5($this->processName), ['pid' => $this->swooleProcess->pid, 'process_name' => $this->processName]
         );
 
@@ -167,7 +172,7 @@ abstract class AbstractProcessPools
             if (method_exists(static::class, '__destruct') && version_compare(phpversion(), '8.0.0', '>=') ) {
                 $this->__destruct();
             }
-            TableManager::getTable('table_process_pools_map')->del(md5($this->processName));
+            TableManager::getTable(self::SWOOLEFY_PROCESS_POOLS_MAP_TABLE_NAME)->del(md5($this->processName));
             \Swoole\Event::del($process->pipe);
             \Swoole\Event::exit();
             $this->swooleProcess->exit(0);

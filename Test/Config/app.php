@@ -31,7 +31,7 @@ return [
     'session_start' => false,
 
     // 组件
-    'components' => \Swoolefy\Core\SystemEnv::loadComponents()
+    'components' => \Swoolefy\Core\SystemEnv::loadComponents(),
 
 //    'catch_handle' => function(\Swoole\Http\Request $request, \Swoole\Http\Response $response) {
 //        $response->end(json_encode(['code'=>-1,'msg'=>'系统维护中']));

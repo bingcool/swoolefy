@@ -11,14 +11,13 @@
 
 use Swoolefy\Util\Log;
 use Swoolefy\Core\SystemEnv;
-use Common\Library\Db\Mysql;
-use Common\Library\Redis\Redis;
+use Swoolefy\Core\SwoolefyException;
 
 $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
 
 return [
-    // 用户行为记录的日志
-    'log' => function($name) {
+    // 用户行为记录的信息日志
+    'info_log' => function($name) {
         $logger = new Log($name);
         $logger->setChannel('application');
         if(SystemEnv::isDaemonService()) {
