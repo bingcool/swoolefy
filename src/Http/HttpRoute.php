@@ -259,7 +259,7 @@ class HttpRoute extends AppDispatch
             if (SwooleContext::has(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID)) {
                 $traceId = SwooleContext::get(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID);
             }
-            fmtPrintInfo(sprintf("[request end] %s: [%s %s] 请求耗时: %ss \n[request id] %s",
+            fmtPrintInfo(sprintf("[request end] %s: [%s %s] 请求耗时: %s秒,[request-id] %s",
                 date('Y-m-d H:i:s'),
                 $this->requestInput->getSwooleRequest()->server['REQUEST_METHOD'],
                 $this->requestInput->getRequestUri(),
