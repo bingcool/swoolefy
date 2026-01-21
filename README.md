@@ -95,11 +95,11 @@ docker run -d -it --security-opt seccomp=unconfined --name=swoolefy-php83-v6 swo
 | rpc-client       | composer require bingcool/rpc-client:dev-master       | swoolefy的rpc客户端组件，当与rpc服务端通信时，需要安装此组件，支持在php-fpm中使用 |
 | cron-expression  | composer require dragonmantank/cron-expression:~3.3.0 | crontab计划任务组件，类似Linux的crobtab                       |  
 | redis lock       | composer require malkusch/lock                        | Redis锁组件                                            |
-| amqp             | composer require php-amqplib/php-amqplib:~3.5.0       | amqp php原生实现amqp协议客户端                               |  
-| ffmpeg           | composer require php-ffmpeg/php-ffmpeg:~1.3.0         | php proc-open 调用ffmpeg处理音视频                         |  
+| amqp             | composer require php-amqplib/php-amqplib:~3.7.0       | amqp php原生实现amqp协议客户端                               |  
+| ffmpeg           | composer require php-ffmpeg/php-ffmpeg:~1.4.0         | php proc-open 调用ffmpeg处理音视频                         |  
 | image            | composer require intervention/image:~3.11.0           | php 图像处理组件                                          |    
 | validate         | composer require vlucas/valitron                      | validate数据校验组件                                      |    
-| guzzlehttp       | composer require guzzlehttp/guzzle                    | guzzlehttp 组件                                       | 
+| guzzlehttp       | composer require guzzlehttp/guzzle:~7.9.0             |  guzzlehttp 组件                                      | 
 | oauth 2.0        | composer require league/oauth2-server                 | oauth 2.0 授权认证组件                                    |   
 | bingcool/library | composer require bingcool/library                     | library组件库                                          |  
 
@@ -118,7 +118,7 @@ docker run -d -it --security-opt seccomp=unconfined --name=swoolefy-php83-v6 swo
 - [x] Redis Public Subscribe组件    
 - [x] Db、Redis、 Curl协程连接池组件
 - [x] UUid 分布式自增id组件  
-- [x] Open telemetry 链路追踪组件      
+- [x] OpenTelemetry 链路追踪组件      
 - [x] Curl基础组件    
 - [x] Jwt 组件   
 - [x] Validate 组件    
