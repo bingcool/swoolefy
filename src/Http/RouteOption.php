@@ -51,7 +51,7 @@ class RouteOption extends \stdClass
      * @param bool $debug
      * @return $this
      */
-    public function enableDbDebug(bool $debug = false)
+    public function enableDbDebug(bool $debug)
     {
         $this->dbDebug = $debug;
         return $this;

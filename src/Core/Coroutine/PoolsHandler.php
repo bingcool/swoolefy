@@ -14,6 +14,7 @@ namespace Swoolefy\Core\Coroutine;
 use Common\Library\Db\PDOConnection;
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\Dto\ContainerObjectDto;
+use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Exception\SystemException;
 
 class PoolsHandler
@@ -201,9 +202,8 @@ class PoolsHandler
 
             $targetObj = $obj->getObject();
             if ($targetObj instanceof PDOConnection) {
-                if ($targetObj->dynamicDebug === 1) {
-                    $targetObj->setDebug(0);
-                }
+                // 恢复默认false
+                $targetObj->dynamicDebug = false;
             }
 
             if ($isPush) {
@@ -243,11 +243,18 @@ class PoolsHandler
                 $this->callCount++;
                 $targetObj = $obj->getObject();
             }
+            // 动态设置是否动态调试输出sql
             if (isset($targetObj) && $targetObj instanceof PDOConnection) {
                 $targetObj->enableDynamicDebug();
             }
             return $obj;
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
+            $msg = sprintf("fetchObj from pool=[%s] failed, error:%s", $this->poolName, $exception->getMessage());
+            $systemLogger = LogManager::getInstance()->getLogger('system_error_log');
+            if (is_object($systemLogger)) {
+                $systemLogger->addError($msg);
+            }
+            fmtPrintError($msg);
             throw $exception;
         }
     }

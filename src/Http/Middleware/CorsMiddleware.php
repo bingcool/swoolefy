@@ -11,61 +11,182 @@
 
 namespace Swoolefy\Http\Middleware;
 
-use Swoolefy\Core\RouteMiddleware;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\ResponseOutput;
+use Swoolefy\Core\Coroutine\Context as SwooleContext;
 
-class CorsMiddleware implements RouteMiddleware
+class CorsMiddleware implements CorsMiddlewareInterface
 {
+    /**
+     * __CORS_OPTIONS_HEADER_RESP
+     */
+    const __CORS_OPTIONS_HEADER_RESP = '__cors_options_header_resp';
+
     private $options = [
-        'path'                   => ['*'],
+        'allowedPath'            => ['*'],
         'allowedHeaders'         => ['*'],
         'allowedMethods'         => ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        'allowedOrigins'         => ["*"],
-        'allowedOriginsPatterns' => [],
+        'allowedOrigins'         => [],
+        'allowedOriginsPatterns' => ['*.example.com'],
         'exposedHeaders'         => [],
-        'maxAge'                 => 0,
+        'maxAge'                 => 86400,
         'supportsCredentials'    => false,
     ];
-    public function handle(RequestInput $requestInput, ResponseOutput $responseOutput)
+
+    /**
+     * @var string $originPattern
+     */
+    protected $originPattern = null;
+
+    /**
+     * @return void
+     */
+    protected function init()
     {
-        $path   = $requestInput->getRequestUri();
-        if (!$this->isPathAllowed($path)) {
-           $responseOutput->withStatus(403)->getSwooleResponse()->end('api path 403 Forbidden');
-           return false;
+        $this->buildAllowedOrigins();
+        $this->buildAllowedOriginsPatterns();
+        $this->setAccessControlMaxAge();
+    }
+
+    /**
+     * allowedOrigins 配置全域名直接配置CORS_ALLOWED_ORIGINS=a.example.com,b.example.com
+     *
+     * @return void
+     */
+    protected function buildAllowedOrigins()
+    {
+        $allowedOrigins = env('CORS_ALLOWED_ORIGINS', '');
+        if (!empty($allowedOrigins)) {
+            $allowedOrigins = explode(',', $allowedOrigins);
+        } else {
+            $allowedOrigins = $this->options['allowedOrigins'];
+        }
+        foreach ($allowedOrigins as $allowedOrigin) {
+            $allowedOrigin = trim($allowedOrigin);
+            $allowedOrigin = trim($allowedOrigin,'/');
+            $newAllowedOrigins[] = sprintf('https://%s', $allowedOrigin);
+            $newAllowedOrigins[] = sprintf('http://%s', $allowedOrigin);
+        }
+        $this->options['allowedOrigins'] = $newAllowedOrigins ?? ['*'];
+    }
+
+    /**
+     * allowedOriginsPatterns 简化正则配置,支持子域名(或全域名)直接配置CORS_ALLOWED_ORIGINS_PATTERNS=*.example.com,*.example1.com
+     *
+     * @return void
+     */
+    protected function buildAllowedOriginsPatterns()
+    {
+        $allowedOriginsPatterns = env('CORS_ALLOWED_ORIGINS_PATTERNS', '');
+        if (!empty($allowedOriginsPatterns)) {
+            $allowedOriginsPatterns = explode(',', $allowedOriginsPatterns);
+        } else {
+            $allowedOriginsPatterns = $this->options['allowedOriginsPatterns'];
         }
 
+        $newAllowedOriginsPatterns = [];
+        foreach ($allowedOriginsPatterns as $allowedOriginsPattern) {
+            $allowedOriginsPattern = trim($allowedOriginsPattern);
+            $allowedOriginsPattern = trim($allowedOriginsPattern,'/');
+            $allowedOriginsPattern = str_replace('*.', '', $allowedOriginsPattern);
+            $newAllowedOriginsPatternHttp = '/^http:\/\/(.*\.)?'.$allowedOriginsPattern.'$/';
+            $newAllowedOriginsPatternHttps = '/^https:\/\/(.*\.)?'.$allowedOriginsPattern.'$/';
+            $newAllowedOriginsPatterns = array_merge(
+                $newAllowedOriginsPatterns, [$newAllowedOriginsPatternHttp, $newAllowedOriginsPatternHttps]);
+        }
+        $this->options['allowedOriginsPatterns'] = $newAllowedOriginsPatterns;
+    }
+
+    /**
+     * @return void
+     */
+    protected function setAccessControlMaxAge()
+    {
+        $maxAge = env('CORS_MAX_AGE', '');
+        if (!empty($maxAge) && is_numeric($maxAge)) {
+            $this->options['maxAge'] = $maxAge;
+        }
+    }
+
+    /**
+     * @param RequestInput $requestInput
+     * @param ResponseOutput $responseOutput
+     * @return bool
+     */
+    public function handle(RequestInput $requestInput, ResponseOutput $responseOutput)
+    {
+        // 一次http请求只需要执行一次
+        if (SwooleContext::has(self::__CORS_OPTIONS_HEADER_RESP)) {
+            return true;
+        }
+
+        $this->init();
+
+        // 跨域请求
+        if ($requestInput->hasHeader('origin')) {
+            $preflightResult = $this->handlePreflight($requestInput, $responseOutput);
+            if (!$preflightResult) {
+                return false;
+            }
+            $this->setCorsHeaders($requestInput, $responseOutput);
+        }
+
+        if (!SwooleContext::has(self::__CORS_OPTIONS_HEADER_RESP)) {
+            SwooleContext::set(self::__CORS_OPTIONS_HEADER_RESP, true);
+        }
+
+        $method = strtoupper($requestInput->getMethod());
+        if ($method == 'OPTIONS') {
+            $responseOutput->withStatus(\Swoole\Http\Status::NO_CONTENT)->getSwooleResponse()->end();
+        }
+        return true;
+    }
+
+    /**
+     * Options 预检请求处理
+     *
+     * @param RequestInput $requestInput
+     * @param ResponseOutput $responseOutput
+     * @return bool
+     */
+    protected function handlePreflight(RequestInput $requestInput, ResponseOutput $responseOutput): bool
+    {
+        $forbiddenStatus403 = \Swoole\Http\Status::FORBIDDEN;
         if (!in_array('*', $this->options['allowedOrigins']) && !$requestInput->hasHeader('origin')) {
-            $responseOutput->withStatus(403)->getSwooleResponse()->end('403 Forbidden Of `Origin` header not present');
+            $responseOutput->withStatus($forbiddenStatus403)->getSwooleResponse()->end(
+                sprintf('%d Forbidden Of `Origin` header not present', $forbiddenStatus403));
             return false;
         }
 
         if (!$this->isOriginAllowed($requestInput)) {
-            $responseOutput->withStatus(403)->getSwooleResponse()->end('403 Forbidden');
+            $responseOutput->withStatus($forbiddenStatus403)->getSwooleResponse()->end(
+                sprintf('`Origin` %d Forbidden', $forbiddenStatus403));
             return false;
         }
 
-        $this->setCorsHeaders($requestInput, $responseOutput);
-
-        $method = strtoupper($requestInput->getMethod());
-        if ($method == 'OPTIONS') {
-            $responseOutput->withStatus(204)->getSwooleResponse()->end();
+        $path = $requestInput->getRequestUri();
+        if (!$this->isPathAllowed($path)) {
+            $responseOutput->withStatus($forbiddenStatus403)->getSwooleResponse()->end(
+                sprintf("api %d Forbidden, path={$path}", $forbiddenStatus403));
             return false;
         }
+
+        return true;
     }
+
     /**
      * 检查路径是否匹配
      *
      * @param string $path 当前请求路径
      * @return bool
     */
-    private function isPathAllowed(string $path): bool
+    protected function isPathAllowed(string $path): bool
     {
-        if (empty($this->options['path'])) {
+        if (empty($this->options['allowedPath'])) {
             return true;
         }
 
-        foreach ($this->options['path'] as $pattern) {
+        foreach ($this->options['allowedPath'] as $pattern) {
             if ($pattern == '*' || fnmatch($pattern, $path)) {
                 return true;
             }
@@ -77,7 +198,7 @@ class CorsMiddleware implements RouteMiddleware
      * @param RequestInput $requestInput
      * @return bool
      */
-    private function isOriginAllowed(RequestInput $requestInput): bool
+    protected function isOriginAllowed(RequestInput $requestInput): bool
     {
         if (in_array('*', $this->options['allowedOrigins'])) {
             return true;
@@ -91,6 +212,7 @@ class CorsMiddleware implements RouteMiddleware
 
         foreach ($this->options['allowedOriginsPatterns'] as $pattern) {
             if (preg_match($pattern, $origin)) {
+                $this->originPattern = $pattern;
                 return true;
             }
         }
@@ -103,12 +225,18 @@ class CorsMiddleware implements RouteMiddleware
      * @param ResponseOutput $responseOutput
      * @return void
      */
-    private function setCorsHeaders(RequestInput $requestInput, ResponseOutput $responseOutput): void
+    protected function setCorsHeaders(RequestInput $requestInput, ResponseOutput $responseOutput): void
     {
-        $origin = $requestInput->hasHeader('origin');
+        $origin = $requestInput->getHeaderParams('origin');
         if (in_array('*', $this->options['allowedOrigins']) && !$this->options['supportsCredentials']) {
             $responseOutput->withHeader("Access-Control-Allow-Origin", '*');
-        } else if (in_array($origin, $this->options['allowedOrigins']) && count($this->options['allowedOrigins']) == 1) {
+        } else if (in_array($origin, $this->options['allowedOrigins'])) {
+            $responseOutput->withHeader("Access-Control-Allow-Origin", $origin);
+            // set support Cookie
+            if ($this->options['supportsCredentials']) {
+                $responseOutput->withHeader("Access-Control-Allow-Credentials", 'true');
+            }
+        } else if (!empty($this->originPattern)) {
             $responseOutput->withHeader("Access-Control-Allow-Origin", $origin);
         }
 
@@ -123,10 +251,6 @@ class CorsMiddleware implements RouteMiddleware
         // set cache time
         if ($this->options['maxAge'] > 0) {
             $responseOutput->withHeader("Access-Control-Max-Age", $this->options['maxAge']);
-        }
-        // set support Cookie
-        if ($this->options['supportsCredentials']) {
-            $responseOutput->withHeader("Access-Control-Allow-Credentials", true);
         }
     }
 

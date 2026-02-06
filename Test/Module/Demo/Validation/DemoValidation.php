@@ -1,8 +1,16 @@
 <?php
 namespace Test\Module\Demo\Validation;
 
+use Test\Module\Demo\Controller\DemoController;
+
 class DemoValidation
 {
+    /**
+     * @see DemoController::test()
+     * 验证规则
+     *
+     * @return array
+     */
     public function test(): array
     {
         return [

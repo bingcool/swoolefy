@@ -1,7 +1,5 @@
 <?php
 
-use Swoolefy\Core\SystemEnv;
-
 return [
 
     'mysql_db' => [
@@ -33,10 +31,10 @@ return [
         'auto_param_bind' => true,
         // 是否支持事务嵌套
         'support_savepoint' => false,
-        // sql执行日志条目设置,不能设置太大,适合调试使用,设置为0，则不使用
-        'spend_log_limit' => 30,
         // 是否开启dubug
-        'debug' => 1
+        'debug' => 1,
+        // 打印sql输出终端(首先要开启debug或动态路由enableDbDebug)
+        'print_sql' => 1,
     ],
 
     'pg_db' => [
@@ -68,10 +66,10 @@ return [
         'auto_param_bind' => true,
         // 是否支持事务嵌套
         'support_savepoint' => false,
-        // sql执行日志条目设置,不能设置太大,适合调试使用,设置为0，则不使用
-        'spend_log_limit' => 30,
         // 是否开启dubug
-        'debug' => 0
+        'debug' => 0,
+        // 打印sql输出终端(首先要开启debug或动态路由enableDbDebug)
+        'print_sql' => 0
     ],
 
     'predis' => [

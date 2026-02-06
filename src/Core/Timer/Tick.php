@@ -64,10 +64,14 @@ class Tick
     protected static function tick(int $timeIntervalMs, \Closure|array $func, array $params = [])
     {
         $arrayCopy = Context::getContext()->getArrayCopy();
-        $tid = \Swoole\Timer::tick($timeIntervalMs, function ($timerId, $params) use ($func, $arrayCopy) {
+        $tid = \Swoole\Timer::tick($timeIntervalMs, function ($timerId, $params) use ($func, &$arrayCopy) {
             foreach ($arrayCopy as $key=>$value) {
+                if (is_object($value)) {
+                    continue;
+                }
                Context::set($key, $value);
             }
+            unset($arrayCopy);
             goApp(function() use($timerId, $params, $func) {
                 try {
                     if (is_array($func)) {
@@ -174,10 +178,14 @@ class Tick
     protected static function after(int $timeIntervalMs, \Closure|array $func, array $params = [])
     {
         $arrayCopy = Context::getContext()->getArrayCopy();
-        $timerId = \Swoole\Timer::after($timeIntervalMs, function ($params) use ($func, $arrayCopy) {
+        $timerId = \Swoole\Timer::after($timeIntervalMs, function ($params) use ($func, &$arrayCopy) {
             foreach ($arrayCopy as $key=>$value) {
+                if (is_object($value)) {
+                    continue;
+                }
                 Context::set($key, $value);
             }
+            unset($arrayCopy);
             goApp(function () use($params, $func) {
                 try {
                     $timer_id = null;

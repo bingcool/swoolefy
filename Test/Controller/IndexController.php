@@ -6,9 +6,11 @@ use http\Header;
 use OpenTelemetry\SDK\Common\Http\Psr\Client\Discovery\Guzzle;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
+use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\EventController;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
 use Swoolefy\Core\Log\LogManager;
+use Swoolefy\Core\Swoole;
 use Swoolefy\Http\RequestInput;
 use Test\App;
 use Test\Logger\RunLog;
@@ -22,12 +24,31 @@ class IndexController extends BController {
 
     public function index()
     {
-        file_put_contents("/tmp/bingcool.txt", "bingcool-log-id=".rand(1,1000));
-        var_dump("root-go-cid=".\Swoole\Coroutine::getCid());
+        // todo something
 
-        var_dump("index-index-index");
+        // 创建一个协程单例异步写入日志
+        goApp(function () {
+            // 写入文件,遇到write(), swoole底层将使用底层封装的io_uring实现异步
+            var_dump("开始写入日志文件");
+            // 此时，发生系统IO调用，会触发协程调度，cpu切换到其他协程执行逻辑
+            file_put_contents("/tmp/mylog.txt", "日志测试异步写入");
+            // 异步写入完成后，内核通知唤醒协程，继续执行逻辑
+            var_dump("完成写入日志文件");
+            $contextData = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
+            var_dump($contextData);
+        });
 
-        RunLog::info('test11111-log-id='.rand(1,1000),['name'=>'bingcoolhuang', 'start_model'=> getenv('start_model')], true);
+        // 写入日志到文件，发生协程挂起，cpu继续运行主流程，执行逻辑
+        var_dump("这是一个测试swoole的demo");
+
+        // todo something
+
+        return $this->returnJson([
+            'code' => 200,
+            'msg' => 'success',
+            'data' => []
+        ]);
+
         //var_dump("root-go-cid=".\Swoole\Coroutine::getCid());
 //        goApp(function () {
 //

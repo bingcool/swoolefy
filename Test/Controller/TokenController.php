@@ -27,6 +27,7 @@ class TokenController extends BController
 
         $now   = new DateTimeImmutable('now', new \DateTimeZone(date_default_timezone_get()));
         $token = $tokenBuilder
+            ->withHeader('cty', 'JWT')
             // Configures the issuer (iss claim)
             ->issuedBy('http://example.com')
             // Configures the audience (aud claim)
@@ -78,6 +79,8 @@ class TokenController extends BController
         if ($tokenObj->isExpired($now1)) {
             echo 'Invalid token  expire (5)!', PHP_EOL; // will not print this
         }
+
+        var_dump($tokenObj->claims()->get('uid'));
 
         // 获取过期时间，指定时区输出
         var_dump($tokenObj->claims()->get(RegisteredClaims::EXPIRATION_TIME)->setTimeZone(new \DateTimeZone(date_default_timezone_get()))->format('Y-m-d H:i:s'));

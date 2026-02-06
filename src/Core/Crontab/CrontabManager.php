@@ -66,10 +66,14 @@ class CrontabManager
 
         $arrayCopy = Context::getContext()->getArrayCopy();
         if(is_numeric($expression)) {
-            $timerId = \Swoole\Timer::tick($expression * 1000, function ($timerId, $expression) use ($func, $cronName, $class, $arrayCopy, $callPreFn, $callback) {
+            $timerId = \Swoole\Timer::tick($expression * 1000, function ($timerId, $expression) use ($func, $cronName, $class, &$arrayCopy, $callPreFn, $callback) {
                 foreach ($arrayCopy as $key=>$value) {
+                    if (is_object($value)) {
+                        continue;
+                    }
                     Context::set($key, $value);
                 }
+                unset($arrayCopy);
                 goApp(function () use ($expression, $func, $cronName, $class, $callPreFn, $callback) {
                     try {
                         if (is_callable($callPreFn)) {
@@ -108,10 +112,14 @@ class CrontabManager
 
         }else {
             if (is_array($func)) {
-                $timerId = \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($class, $cronName, $arrayCopy, $callPreFn, $callback) {
+                $timerId = \Swoole\Timer::tick(2000, function ($timerId, $expression) use ($class, $cronName, &$arrayCopy, $callPreFn, $callback) {
                     foreach ($arrayCopy as $key=>$value) {
+                        if (is_object($value)) {
+                            continue;
+                        }
                         Context::set($key, $value);
                     }
+                    unset($arrayCopy);
                     goApp(function () use ($timerId, $expression, $class, $cronName, $callPreFn, $callback) {
                         try {
                             if (is_callable($callPreFn)) {

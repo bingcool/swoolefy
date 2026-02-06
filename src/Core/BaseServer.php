@@ -1044,7 +1044,7 @@ class BaseServer
     public static function registerShutdownFunction()
     {
         $exceptionClass = self::getExceptionClass();
-        register_shutdown_function($exceptionClass . '::fatalError');
+        register_shutdown_function([$exceptionClass, 'fatalError']);
     }
 
     /**
@@ -1053,7 +1053,7 @@ class BaseServer
     public static function registerErrorHandler()
     {
         $exceptionClass = self::getExceptionClass();
-        set_error_handler("{$exceptionClass}::handleError");
+        set_error_handler([$exceptionClass, 'handleError']);
     }
 
     /**
