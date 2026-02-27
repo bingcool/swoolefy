@@ -20,4 +20,24 @@ class AbstractDto extends \stdClass
     {
         return (array)$this;
     }
+
+    /**
+     * __set
+     * @param  string $name
+     * @param  mixed $value
+     */
+    public function __set(string $name, $value)
+    {
+        $this->$name = $value;
+    }
+
+    /**
+     * __get
+     * @param  string $name
+     * @return mixed
+     */
+    public function __get(string $name)
+    {
+        return $this->$name ?? null;
+    }
 }
