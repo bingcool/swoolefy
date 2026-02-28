@@ -86,7 +86,7 @@ return [
     'amqp_connection' => [
         'host_list' => [
             [
-                'host' => '192.168.23.53',
+                'host' => '192.168.1.105',
                 'port' => 5672,
 //                'user' => 'admin',
 //                'password' => 'admin',
