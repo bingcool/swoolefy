@@ -6,6 +6,7 @@ use Swoolefy\Core\SystemEnv;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Swoolefy\Worker\Dto\PipeMsgDto;
 
 #[AsCommand(
     name: 'stop',
@@ -13,147 +14,420 @@ use Symfony\Component\Console\Output\OutputInterface;
 class StopCmd extends BaseCmd
 {
     protected static $defaultName = 'stop';
+    
+    // 定义睡眠时间
+    private const SLEEP_INTERVAL_SECOND = 1;
+    // 定义超时
+    private const MAX_KILL_TIMEOUT = 10;
+    private const MAX_STOP_TIMEOUT = 20;
+    private const MAX_WAIT_INTERVAL_SECOND = 3;
+    
+    // 定义信号
+    private const SIGNAL_TERMINATE = SIGTERM;
+    private const SIGNAL_KILL = SIGKILL;
+    
+    // 日志前缀
+    private const LOG_PREFIX = '[StopCmd]';
 
     protected function configure()
     {
         parent::configure();
-        $this->setDescription('stop the application')->setHelp('<info>use php cli.php stop XXXXX or php daemon.php stop XXXXX</info>');
+        $this->setDescription('stop the application')
+             ->setHelp('<info>use php cli.php stop XXXXX or php daemon.php stop XXXXX</info>');
     }
 
     /**
      * @param InputInterface $input
      * @param OutputInterface $output
-     * @return int|void
+     * @return int
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $appName = $input->getArgument(self::APP_NAME);
-        $force   = $input->getOption(self::FORCE);
-        $lineValue = "";
-        if (empty($force)) {
-            if (SystemEnv::isWorkerService()) {
-                $lineValue = initConsoleStyleIo()->ask( "1、你确定 [停止] workerService【" . WORKER_SERVICE_NAME . "】? (yes or no)");
-            } else {
-                $lineValue = initConsoleStyleIo()->ask( "1、你确定 [停止] 应用【{$appName}】? (yes or no)");
+        try {
+            $appName = $input->getArgument(self::APP_NAME);
+            $force = $input->getOption(self::FORCE);
+            
+            if (!$this->confirmStop($appName, $force)) {
+                $this->printCancelMessage($appName);
+                return 0;
             }
+            
+            $this->performStop($appName);
+            return 0;
+            
+        } catch (\Throwable $e) {
+            fmtPrintError("Stop failed: " . $e->getMessage());
+            $this->writeLog("停止服务失败: " . $e->getMessage());
+            return 1;
         }
-
-        if (strtolower($lineValue) == 'yes' || $force) {
-            if (SystemEnv::isWorkerService()) {
-                $this->workerStop($appName);
-            } else {
-                $this->serverStop($appName);
-            }
-        } else {
-            if (SystemEnv::isWorkerService()) {
-                fmtPrintInfo(PHP_EOL."你已放弃停止workerService【" . WORKER_SERVICE_NAME . "】,应用继续running中");
-            } else {
-                fmtPrintInfo(PHP_EOL."你已放弃停止应用{$appName},应用继续running中");
-            }
-            exit(0);
-        }
-
-        return 0;
     }
 
     /**
+     * 确认停止操作
+     * 
      * @param string $appName
-     * @return void
+     * @param mixed $force
+     * @return bool
      */
-    protected function serverStop(string $appName)
+    private function confirmStop(string $appName, $force): bool
     {
-        $pidFile = $this->getPidFile($appName);
-        if (!is_file($pidFile)) {
-            fmtPrintError("Pid file={$pidFile} is not exist, please check the server whether running");
-            exit(0);
+        if (!empty($force)) {
+            return true;
         }
-
-        $pid = intval(file_get_contents($pidFile));
-        if (!\Swoole\Process::kill($pid, 0)) {
-            fmtPrintInfo("Server Had Stopped!");
-            exit(0);
-        }
-
-        \Swoole\Process::kill($pid, SIGTERM);
-        // if 'reload_async' => true,则默认workerStop有30s的过度期停顿这个时间稍微会比较长，设置成60过期
-        $nowTime = time();
-        fmtPrintInfo("Server begin to stopping at " . date("Y-m-d H:i:s") . ", pid={$pid}. please wait a moment...");
-        while (true) {
-            sleep(1);
-            if (\Swoole\Process::kill($pid, 0) && (time() - $nowTime) > 10) {
-                \Swoole\Process::kill($pid, SIGKILL);
-                sleep(1);
-            }
-
-            if (!\Swoole\Process::kill($pid, 0)) {
-                fmtPrintNote("---------------------stop info-------------------");
-                fmtPrintNote("【{$appName}】 Server Stopped Finish !!!. Server stop at " . date("Y-m-d H:i:s"));
-                @unlink($pidFile);
-                break;
-            } else {
-                if ((time() - $nowTime) > 20) {
-                    $exec = (new Exec())->run('pgrep -P ' . $pid);
-                    $output = $exec->getOutput();
-                    $managerProcessId = -1;
-                    $workerProcessIds = [];
-                    if (isset($output[0])) {
-                        $managerProcessId = current($output);
-                        $workerProcessIds = (new Exec())->run('pgrep -P ' . $managerProcessId)->getOutput();
-                    }
-                    foreach ([$pid, $managerProcessId, ...$workerProcessIds] as $processId) {
-                        if ($processId > 0 && \Swoole\Process::kill($processId, 0)) {
-                            \Swoole\Process::kill($processId, SIGKILL);
-                        }
-                    }
-                    fmtPrintNote("---------------------------stop info-----------------------");
-                    fmtPrintNote("Please use 'ps -ef | grep php-swoolefy' checkout swoole whether or not stop");
-                    break;
-                }
-            }
-        }
-
-        $this->writeLog("停止服务：".WORKER_SERVICE_NAME);
-        \Swoole\Process::wait();
-        exit(0);
+        
+        $prompt = SystemEnv::isWorkerService() 
+            ? "你确定 [停止] workerService【" . WORKER_SERVICE_NAME . "】? (yes or no)"
+            : "你确定 [停止] 应用【{$appName}】? (yes or no)";
+            
+        $lineValue = initConsoleStyleIo()->ask($prompt);
+        return strtolower($lineValue) === 'yes';
     }
-
+    
     /**
+     * 打印取消消息
+     * 
      * @param string $appName
      * @return void
      */
-    protected function workerStop(string $appName)
+    private function printCancelMessage(string $appName): void
     {
-        $pidFile = $this->getPidFile($appName);
-        if (!is_file($pidFile)) {
-            fmtPrintError("Pid file={$pidFile} is not exist, please check the server whether running");
-            exit(0);
-        }
-
-        $masterPid = file_get_contents($pidFile);
-        if (is_numeric($masterPid) && $masterPid > 0) {
-            $masterPid = (int)$masterPid;
+        $message = SystemEnv::isWorkerService()
+            ? "你已放弃停止workerService【" . WORKER_SERVICE_NAME . "】,应用继续running中"
+            : "你已放弃停止应用{$appName},应用继续running中";
+            
+        fmtPrintInfo(PHP_EOL . $message);
+    }
+    
+    /**
+     * 执行停止操作
+     * 
+     * @param string $appName
+     * @return void
+     */
+    private function performStop(string $appName): void
+    {
+        if (SystemEnv::isWorkerService()) {
+            $this->workerStop($appName);
         } else {
-            fmtPrintError("Master Pid is invalid");
-            exit(0);
-        }
-
-        if ($masterPid > 0 && \Swoole\Process::kill($masterPid, 0)) {
-            $pipeMsgDto = new \Swoolefy\Worker\Dto\PipeMsgDto();
-            $pipeMsgDto->action = WORKER_CLI_STOP;
-            $pipeMsg = serialize($pipeMsgDto);
-            // mainWorker Process
-            $workerPid = file_get_contents(WORKER_PID_FILE);
-            if ($workerPid > 0 && \Swoole\Process::kill($workerPid, 0)) {
-                $cliToWorkerPipeFile = CLI_TO_WORKER_PIPE;
-                $pipe = @fopen($cliToWorkerPipeFile, 'w+');
-                if (flock($pipe, LOCK_EX)) {
-                    fwrite($pipe, $pipeMsg);
-                    flock($pipe, LOCK_UN);
-                }
-                fclose($pipe);
-            }
-            sleep(3);
             $this->serverStop($appName);
+        }
+        
+        $this->writeLog("停止服务: " . (SystemEnv::isWorkerService() ? WORKER_SERVICE_NAME : $appName));
+    }
+    
+    /**
+     * 停止普通服务器
+     * 
+     * @param string $appName
+     * @return void
+     */
+    protected function serverStop(string $appName): void
+    {
+        $pidFile = $this->getPidFile($appName);
+        $this->validatePidFile($pidFile, $appName);
+        
+        $pid = $this->readMasterPid($pidFile);
+        if (!$this->isProcessRunning($pid)) {
+            fmtPrintInfo("Server Had Stopped!");
+            return;
+        }
+        
+        $this->terminateProcess($pid, $appName);
+        $this->waitForProcessStop($pid, $pidFile, $appName);
+        \Swoole\Process::wait();
+    }
+
+    /**
+     * 停止Worker服务
+     * 
+     * @param string $appName
+     * @return void
+     */
+    protected function workerStop(string $appName): void
+    {
+        $pidFile = $this->getPidFile($appName);
+        $this->validatePidFile($pidFile, $appName);
+        
+        $masterPid = $this->readMasterPid($pidFile);
+        if (!$this->isProcessRunning($masterPid)) {
+            fmtPrintInfo("Worker Service Already Stopped!");
+            return;
+        }
+
+        $workerPid = $this->readWorkerPid();
+        $this->sendStopSignalToWorker($workerPid);
+        sleep(self::MAX_WAIT_INTERVAL_SECOND);
+        $this->serverStop($appName);
+    }
+    
+    /**
+     * 验证PID文件
+     * 
+     * @param string $pidFile
+     * @return void
+     * @throws \RuntimeException
+     */
+    private function validatePidFile(string $pidFile): void
+    {
+        if (!is_file($pidFile)) {
+            $errorMessage = "Pid file={$pidFile} does not exist, please check if the server is running";
+            fmtPrintError($errorMessage);
+            throw new \RuntimeException($errorMessage);
+        }
+    }
+    
+    /**
+     * 读取主进程PID
+     * 
+     * @param string $pidFile
+     * @return int
+     * @throws \RuntimeException
+     */
+    private function readMasterPid(string $pidFile): int
+    {
+        $pidContent = file_get_contents($pidFile);
+        $masterPid = is_numeric($pidContent) ? (int)$pidContent : 0;
+        
+        if ($masterPid <= 0) {
+            $errorMessage = "Master PID is invalid: {$pidContent}";
+            fmtPrintError($errorMessage);
+            throw new \RuntimeException($errorMessage);
+        }
+        
+        return $masterPid;
+    }
+    
+    /**
+     * 检查进程是否正在运行
+     * 
+     * @param int $pid
+     * @return bool
+     */
+    private function isProcessRunning(int $pid): bool
+    {
+        return $pid > 0 && \Swoole\Process::kill($pid, 0);
+    }
+    
+    /**
+     * 终止进程
+     * 
+     * @param int $pid
+     * @param string $appName
+     * @return void
+     */
+    private function terminateProcess(int $pid, string $appName): void
+    {
+        fmtPrintInfo(sprintf(
+            "[%s]Server begin to stopping at %s, pid=%d. Please wait a moment...",
+            $appName,
+            date("Y-m-d H:i:s"),
+            $pid
+        ));
+        
+        \Swoole\Process::kill($pid, self::SIGNAL_TERMINATE);
+    }
+    
+    /**
+     * 等待进程停止
+     * 
+     * @param int $pid
+     * @param string $pidFile
+     * @param string $appName
+     * @return void
+     */
+    private function waitForProcessStop(int $pid, string $pidFile, string $appName): void
+    {
+        $startTime = time();
+        
+        while (true) {
+            sleep(self::SLEEP_INTERVAL_SECOND);
+            
+            if (!$this->isProcessRunning($pid)) {
+                $this->handleSuccessfulStop($pidFile, $appName);
+                break;
+            }
+            
+            if ($this->shouldForceKill($startTime)) {
+                $this->forceKillProcesses($pid);
+                sleep(self::SLEEP_INTERVAL_SECOND);
+            }
+            
+            if ($this->isStopTimeout($startTime)) {
+                $this->handleStopTimeout($pid);
+                break;
+            }
+        }
+    }
+    
+    /**
+     * 处理成功停止
+     * 
+     * @param string $pidFile
+     * @param string $appName
+     * @return void
+     */
+    private function handleSuccessfulStop(string $pidFile, string $appName): void
+    {
+        fmtPrintNote("---------------------stop info-------------------");
+        fmtPrintNote(sprintf(
+            "【%s】 Server Stopped Successfully at %s",
+            $appName,
+            date("Y-m-d H:i:s")
+        ));
+        @unlink($pidFile);
+    }
+    
+    /**
+     * 判断是否应该强制杀死进程
+     * 
+     * @param int $startTime
+     * @return bool
+     */
+    private function shouldForceKill(int $startTime): bool
+    {
+        return (time() - $startTime) > self::MAX_KILL_TIMEOUT;
+    }
+    
+    /**
+     * 判断停止是否超时
+     * 
+     * @param int $startTime
+     * @return bool
+     */
+    private function isStopTimeout(int $startTime): bool
+    {
+        return (time() - $startTime) > self::MAX_STOP_TIMEOUT;
+    }
+    
+    /**
+     * 强制杀死进程树
+     * 
+     * @param int $masterPid
+     * @return void
+     */
+    private function forceKillProcesses(int $masterPid): void
+    {
+        $processIds = $this->getAllRelatedProcessIds($masterPid);
+        foreach ($processIds as $processId) {
+            if ($processId > 0 && $this->isProcessRunning($processId)) {
+                \Swoole\Process::kill($processId, self::SIGNAL_KILL);
+            }
+        }
+    }
+    
+    /**
+     * 获取所有相关的进程ID
+     * 
+     * @param int $masterPid
+     * @return array
+     */
+    private function getAllRelatedProcessIds(int $masterPid): array
+    {
+        $managerPid = $this->getChildProcessId($masterPid);
+        $workerPids = $managerPid > 0 ? $this->getChildProcessIds($managerPid) : [];
+        
+        return [$masterPid, $managerPid, ...$workerPids];
+    }
+    
+    /**
+     * 获取子进程ID
+     * 
+     * @param int $parentPid
+     * @return int
+     */
+    private function getChildProcessId(int $parentPid): int
+    {
+        $exec = (new Exec())->run('pgrep -P ' . $parentPid);
+        $output = $exec->getOutput();
+        return isset($output[0]) ? (int)current($output) : -1;
+    }
+    
+    /**
+     * 获取所有子进程IDs
+     * 
+     * @param int $parentPid
+     * @return array
+     */
+    private function getChildProcessIds(int $parentPid): array
+    {
+        $exec = (new Exec())->run('pgrep -P ' . $parentPid);
+        $output = $exec->getOutput();
+        return array_map('intval', $output);
+    }
+    
+    /**
+     * 处理停止超时
+     * 
+     * @param int $masterPid
+     * @return void
+     */
+    private function handleStopTimeout(int $masterPid): void
+    {
+        fmtPrintNote("---------------------------stop info-----------------------");
+        fmtPrintNote("Stop timeout reached. Force killing remaining processes.");
+        $this->forceKillProcesses($masterPid);
+        fmtPrintNote("Please use 'ps -ef | grep php-swoolefy' to check if processes are stopped");
+    }
+    
+    /**
+     * 向Worker发送停止信号
+     * @param int $workerPid
+     * @return void
+     */
+    private function sendStopSignalToWorker($workerPid): void
+    {
+        try {
+            if (!defined('CLI_TO_WORKER_PIPE')) {
+                return;
+            }
+            if ($workerPid > 0 && $this->isProcessRunning($workerPid)) {
+                $this->sendPipeMessage(CLI_TO_WORKER_PIPE, WORKER_CLI_STOP);
+            }
+        } catch (\Throwable $e) {
+            fmtPrintError("Failed to send stop signal to worker: " . $e->getMessage());
+        }
+    }
+    
+    /**
+     * 读取Worker PID
+     * 
+     * @return int
+     */
+    private function readWorkerPid(): int
+    {
+        if (!defined('WORKER_PID_FILE') || !is_file(WORKER_PID_FILE)) {
+            return 0;
+        }
+        
+        $workerPid = file_get_contents(WORKER_PID_FILE);
+        return is_numeric($workerPid) ? (int)$workerPid : 0;
+    }
+    
+    /**
+     * 发送管道消息
+     * 
+     * @param string $cliToWorkerPipe
+     * @param string $action
+     * @return void
+     */
+    private function sendPipeMessage(string $cliToWorkerPipe, string $action): void
+    {
+        $pipeMsgDto = new PipeMsgDto();
+        $pipeMsgDto->action = $action;
+        $pipeMsg = serialize($pipeMsgDto);
+        
+        $pipe = @fopen($cliToWorkerPipe, 'w+');
+        if ($pipe === false) {
+            return;
+        }
+        
+        try {
+            if (flock($pipe, LOCK_EX)) {
+                fwrite($pipe, $pipeMsg);
+                flock($pipe, LOCK_UN);
+            }
+        } finally {
+            fclose($pipe);
         }
     }
 }
