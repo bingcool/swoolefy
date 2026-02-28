@@ -4,6 +4,9 @@ namespace Test\Config;
 use PhpAmqpLib\Exchange\AMQPExchangeType;
 
 class AmqpConfig {
+
+    const AMQP_COMMON_DLX_EXCHANGE = 'common_dlx_exchange'; // 公共的死信交换机
+
     // direct exchange
     const AMQP_EXCHANGE_DIRECT_ORDER = 'order_exchange_direct';
 
@@ -33,8 +36,8 @@ class AmqpConfig {
             // 定义queue 队列名称
             AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_EXPORT => [
                 'type' => AMQPExchangeType::DIRECT,
-                'binding_key' => '', //binding_key.DIRECT 模式下 binding key 与routing_key要一致，并且唯一，精准投递
-                'routing_key' => '', //路由key. DIRECT 模式下 binding key 与routing_key要一致，并且唯一，精准投递
+                'binding_key' => 'order_export', //binding_key.DIRECT 模式下 binding key 与routing_key要一致，并且唯一，精准投递
+                'routing_key' => 'order_export', //路由key. DIRECT 模式下 binding key 与routing_key要一致，并且唯一，精准投递
                 'passive' => false, //是否检测同名队列
                 'durable' => true, //是否开启队列持久化
                 'exclusive' => false, //队列是否可以被其他队列访问
@@ -46,8 +49,8 @@ class AmqpConfig {
             AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_ADD_DELAY => [
                 // 定义死信队列
                 'type' => AMQPExchangeType::DIRECT,
-                'binding_key' => '', // binding key.DIRECT 模式下 binding key 与routing_key要一致，并且唯一，精准投递
-                'routing_key' => '', //路由key.DIRECT 模式下 binding key 与routing_key要一致，并且唯一，精准投递
+                'binding_key' => 'order_delay', // binding key.DIRECT 模式下 binding key 与routing_key要一致，并且唯一，精准投递
+                'routing_key' => 'order_delay', //路由key.DIRECT 模式下 binding key 与routing_key要一致，并且唯一，精准投递
                 'passive' => false, //是否检测同名队列
                 'durable' => true, //是否开启队列持久化
                 'exclusive' => false, //队列是否可以被其他队列访问
@@ -55,9 +58,8 @@ class AmqpConfig {
                 'consumer_tag' => 'consumer', // 消费标志
                 'arguments' => [
                     // 延迟队列
-                    'x-dead-letter-exchange' => AmqpConfig::AMQP_EXCHANGE_DIRECT_ORDER, //在同一个交换机下，这个不要改变
-                    'x-dead-letter-queue'    => AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_ADD_DELAY.'_dead', // 延迟队列名称，一定时间没有被消费，消息将转发到此队列
-                    'x-dead-letter-routing-key' => AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_ADD_DELAY.'_dead', // // 队列routing-key与binding key.这里默认创一个direct模式的死信队列。死信队列的routing-key与binding key一致
+                    'x-dead-letter-exchange' => AmqpConfig::AMQP_COMMON_DLX_EXCHANGE, // 公共死信交换机
+                    'x-dead-letter-queue'    => AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_ADD_DELAY.'_dlx', // 延迟队列名称，一定时间没有被消费，消息将转发到此队列
                     'x-message-ttl' => 3 * 1000,
                     // 延迟队列也可以设置优先级，设置优先最大值为10，投递的message的priority值越大，优先级越高
                     'x-max-priority' => 10
@@ -161,9 +163,8 @@ class AmqpConfig {
                 'consumer_tag' => 'consumeFanout1', // 消费标志
                 'arguments' => [
                     // 定义延迟队列
-                    'x-dead-letter-exchange' => AmqpConfig::AMQP_EXCHANGE_TOPIC_ORDER, //在同一个交换机下，这个不要改变
-                    'x-dead-letter-queue'    => AmqpConfig::AMQP_QUEUE_TOPIC_ORDER_ADD_DELAY.'_dead', // 延迟队列名称，一定时间没有被消费，消息将转发到此队列
-                    'x-dead-letter-routing-key' => 'orderSaveEvent2-all', // 队列routing-key与binding key.这里默认创一个direct模式的死信队列。死信队列的routing-key与binding key一致.注意这里key不使用通配符,它的行为类似于direct交换器
+                    'x-dead-letter-exchange' => AmqpConfig::AMQP_COMMON_DLX_EXCHANGE, // 公共死信交换机
+                    'x-dead-letter-queue'    => AmqpConfig::AMQP_QUEUE_TOPIC_ORDER_ADD_DELAY.'_dlx', // 延迟队列名称，一定时间没有被消费，消息将转发到此队列
                     'x-message-ttl' => 100 * 1000
                 ]
             ],
