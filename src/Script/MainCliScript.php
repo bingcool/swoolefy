@@ -81,11 +81,11 @@ class MainCliScript extends AbstractScriptProcess
             $this->{$action}(...$params);
             $this->waitCoroutineFinish($this->maxWaitTime);
             $this->exitAll();
-        }catch (\Throwable $throwable) {
+        } catch (\Throwable $throwable) {
             fmtPrintError($throwable->getMessage().': trace='.$throwable->getTraceAsString());
             try {
                 $this->onHandleException($throwable);
-            }catch (\Throwable $exception) {
+            } catch (\Throwable $exception) {
             }
         } finally {
             $this->exitAll(true, 0);
