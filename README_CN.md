@@ -29,8 +29,14 @@
 - 🔧 **易扩展**: 自定义进程、进程池、连接池机制
 - 🏗️ **多协议**: HTTP/WebSocket/TCP/UDP/MQTT 统一架构
 - 🎨 **易用性**: Laravel 风格的路由、中间件、ORM
-- 🔄 **热更新**: 文件修改自动重启 Worker，无需停机
-- 📊 **可观测**: OpenTelemetry 链路追踪、监控指标、日志系统
+- 🔄 **热更新**: 文件修改自动重启 Worker，无需停机 (开发环境)
+- 👥 **多进程管理**: 
+  - **守护进程 (Daemon)**: 常驻内存，自动拉起多个 Worker 进程，支持进程健康监控和动态扩缩容
+  - **Cron 计划任务**: 类似 Linux crontab，支持 local/fork/url 三种调度模式，定时执行业务逻辑
+- ⚛️ **协程并发**:
+  - **goApp()**: 一键创建协程单例，自动处理 DB/Redis/Curl 等组件的协程隔离
+  - **Parallel**: 限制最大并发数，防止瞬间创建大量协程拖垮下游服务
+  - **GoWaitGroup**: 类似 Go 语言的 WaitGroup，优雅的协程同步等待机制
 
 ---
 
@@ -204,36 +210,40 @@ php cli.php create Test
 
 ```
 myproject/
-├── Test/                          # 应用目录
-│   ├── Config/                    # 配置文件
-│   │   ├── component/             # 组件配置
-│   │   │   ├── database.php       # 数据库配置
-│   │   │   ├── log.php            # 日志配置
-│   │   │   └── cache.php          # 缓存配置
-│   │   ├── app.php                # 应用配置
-│   │   ├── dc.php                 # 数据中心配置
+├── Test/                          # 应用项目目录
+│   ├── Config/                    # 应用配置
+│   │   ├── component/             # 协程单例组件
+│   │   │   ├── database.php       # 数据库相关组件
+│   │   │   ├── log.php            # 日志相关组件
+│   │   │   └── cache.php          # 缓存组件，可继续添加其他组件
+│   │   ├── dc.php                 # 环境配置项
 │   │   └── constants.php          # 常量定义
+│   │   ├── app.php                # 应用层配置
 │   ├── Controller/                # 控制器层
 │   │   └── IndexController.php    # 默认控制器
 │   ├── Model/                     # 模型层
-│   │   └── ClientModel.php
-│   ├── Module/                    # 业务模块
+│   │   └── ClientModel.php        # 客户端模型
+│   ├── Module/                    # 模块层
+│   ├── Protocol/                  # 协议配置
+│   │   └── conf.php               # 全局配置
 │   ├── Router/                    # 路由配置
-│   │   └── api.php                # API 路由
+│   │   └── api.php                # 路由文件，不同模块定义不同文件
+│   ├── Storage/                   # 存储目录
+│   │   ├── Crontab/               # Cron service 的调度日志
+│   │   ├── Logs/                  # 日志文件目录
+│   │   └── Sql/                   # SQL 日志目录
 │   ├── Scripts/                   # 脚本程序
 │   │   └── Kernel.php             # 计划任务定义
-│   ├── Storage/                   # 存储目录
-│   │   ├── Crontab/               # 定时任务日志
-│   │   ├── Logs/                  # 应用日志
-│   │   └── Sql/                   # SQL 日志
-│   ├── Event.php                  # 事件处理器
-│   ├── HttpServer.php             # HTTP 服务器实现
-│   └── App.php                    # 应用组件快捷访问
-├── cli.php                        # 启动入口
-├── cron.php                       # 定时任务入口
-├── daemon.php                     # 守护进程入口
-├── script.php                     # 脚本程序入口
-└── swag.php                       # Swagger 文档生成
+│   ├── .env                       # 自动生成环境变量文件
+│   ├── autoloader.php             # 自定义项目自动加载
+│   ├── Event.php                  # 事件实现类
+│   └── HttpServer.php             # HTTP 服务器
+├── src/                           # 源码
+├── cli.php                        # HTTP 应用启动入口文件
+├── cron.php                       # 定时 worker 任务的多进程启动入口文件
+├── daemon.php                     # 守护进程 worker 的多进程启动入口文件
+├── script.php                     # 脚本启动入口文件
+└── swag.php                       # 生成 swagger 接口文档入口文件
 ```
 
 ### 6. 启动服务
@@ -274,36 +284,61 @@ php cli.php restart Test
 ┌─────────────────────────────────────────────────────┐
 │              Master Process (主进程)                 │
 │  - 管理 Reactor 线程                                  │
-│  - 管理 Task 进程池                                   │
-│  - 管理自定义进程                                    │
+│  - 接收并分发客户端连接                              │
 └──────────────┬──────────────────────────────────────┘
                │
-               ├──────────────────────────────────────┐
-               │                                      │
-    ┌──────────▼──────────┐              ┌───────────▼──────────┐
-    │  Manager Process    │              │   Task Processes     │
-    │  (管理 Worker 进程)   │              │   (异步任务处理)      │
-    │                     │              │   - onTask           │
-    └──────────┬──────────┘              └──────────────────────┘
+               ▼
+┌─────────────────────────────────────────────────────────┐
+│              Master Process (主进程)                     │
+│  - 管理 Reactor 线程                                      │
+│  - 接收并分发客户端连接                                  │
+└──────────────┬──────────────────────────────────────────┘
                │
-    ┌──────────▼──────────┐
-    │  Worker Processes   │◄───── 协程池 / 组件池
-    │  (业务逻辑处理)      │      - DB 连接池
-    │  - onRequest        │      - Redis 连接池
-    │  - onConnect        │      - Curl 连接池
-    │  - onReceive        │
-    └─────────────────────┘
-               ▲
-               │
-    ┌──────────┴──────────┐
-    │  Custom Processes   │
-    │  (自定义业务进程)    │
-    │  - Kafka 消费        │
-    │  - RabbitMQ 消费     │
-    │  - Cron 定时任务     │
-    │  - WebSocket 心跳    │
-    └─────────────────────┘
+               ▼
+┌─────────────────────────────────────────────────────────┐
+│              Manager Process (管理进程)                  │
+│  - 管理 Worker 进程池                                     │
+│  - 管理 Task 进程池                                       │
+│  - 管理自定义进程 (通过 addProcess 拉起)                  │
+│  - 进程重启和监控                                        │
+└──────────┬────────────────────┬─────────────────────────┘
+           │                    │
+           ├───────────┬────────┴──────────┐
+           │           │                    │
+    ┌──────▼──────┐ ┌──▼──────────┐ ┌──────▼──────────┐
+    │   Worker    │ │    Task     │ │  User Process   │
+    │  Processes  │ │  Processes  │ │  (MainProcess)  │
+    │  (业务处理)  │ │ (异步任务)   │ │  (管理进程)      │
+    │             │ │             │ │                 │
+    │ - onRequest │ │ - onTask    │ │ 通过 MainManager│
+    │ - onConnect │ │             │ │ 拉起多个 Worker │
+    │ - onReceive │ │             │ │                 │
+    │             │ │             │ │ - Cron 任务管理  │
+    │ 协程池/组件池│ │             │ │ - Daemon 常驻   │
+    │ - DB 连接池  │ │             │ │ - 动态进程管理  │
+    │ - Redis 池  │ │             │ │                 │
+    │ - Curl 池   │ │             │ │ run() -> start()│
+    └─────────────┘ └─────────────┘ └──────┬──────────┘
+                                           │
+                          ┌────────────────┼───────────────┐
+                          │                │               │
+                   ┌──────▼─────┐   ┌──────▼─────┐ ┌──────▼─────┐
+                   │   Cron     │   │   Daemon   │ │   Script   │
+                   │  Workers   │   │  Workers   │ │  Workers   │
+                   │ (定时任务)  │   │ (常驻进程)  │ │ (脚本进程)  │
+                   │            │   │            │ │            │
+                   │ - 定时调度  │   │ - 消息消费 │ │ - 临时脚本 │
+                   │ - 任务队列  │   │ - 数据处理 │ │ - 数据迁移 │
+                   │ - URL 请求  │   │ - 实时计算 │ │ - 修复工具 │
+                   └────────────┘   └────────────┘ └────────────┘
 ```
+
+**进程层级说明:**
+
+1. **Master Process**: 最高层级，管理 Reactor 线程和连接分发
+2. **Manager Process**: 第二层级，统一管理所有子进程
+3. **Worker/Task/User Process**: 第三层级，由 Manager 直接管理
+4. **Cron/Daemon/Script Workers**: 第四层级，由 User Process (MainProcess) 通过 `MainManager::start()` 拉起
 
 ### 请求处理流程
 
@@ -342,13 +377,59 @@ Client Request
 │ 3. HttpRoute::dispatch()│
 │    - 加载路由配置       │
 │    - 匹配路由           │
-│    - 执行中间件         │
-│    - 调用控制器 Action   │
+└───────────┬────────────┘
+            │
+            ↓
+┌────────────────────────────────┐
+│ 4. 执行中间件 (Middleware)     │
+│    - beforeHandle (前置中间件)  │
+│    - 验证/鉴权/CORS 等          │
+│    - 请求参数处理              │
+└───────────┬────────────────────┘
+            │
+            ↓
+┌────────────────────────────────┐
+│ 5. 调用控制器 Action            │
+│    - Controller::action()      │
+│    - 业务逻辑处理              │
+└───────────┬────────────────────┘
+            │
+            ↓
+┌─────────────────────────────────────┐
+│ 6. 执行业务 (Business Logic)         │
+│                                     │
+│  ┌─────────────────────────────┐   │
+│  │ goApp(function() {          │   │
+│  │     // 协程并发处理          │   │
+│  │     - DB 查询               │   │
+│  │     - Redis 操作            │   │
+│  │     - HTTP 请求             │   │
+│  │     - 文件 IO               │   │
+│  │ })                          │   │
+│  │                             │   │
+│  │ Parallel::run(50, $list,    │   │
+│  │     function($item) {       │   │
+│  │         // 限制并发数处理    │   │
+│  │     }                       │   │
+│  │ )                           │   │
+│  └─────────────────────────────┘   │
+│                                     │
+│  - 协程调度器自动切换               │
+│  - IO 密集型任务异步执行             │
+│  - CPU 继续执行其他协程              │
+└───────────┬─────────────────────────┘
+            │
+            ↓
+┌────────────────────────┐
+│ 7. 后置中间件          │
+│    - afterHandle       │
+│    - 响应格式化        │
+│    - 日志记录          │
 └───────────┬────────────┘
             │
             ↓
 ┌────────────────────────┐
-│ 4. App::end()          │
+│ 8. App::end()          │
 │    - handleLog()       │
 │    - pushComponentPools()│ ← 归还连接池
 │    - clearComponent()  │
@@ -461,12 +542,7 @@ class IndexController extends BController
      * 首页 Action
      */
     public function index()
-    {
-        // 写入日志 (协程异步 IO)
-        goApp(function () {
-            file_put_contents("/tmp/app.log", "访问日志\n", FILE_APPEND);
-        });
-        
+    { 
         // 返回 JSON
         return $this->returnJson([
             'code' => 200,
@@ -475,32 +551,6 @@ class IndexController extends BController
                 'message' => 'Welcome to Swoolefy!',
                 'time' => time(),
             ]
-        ]);
-    }
-    
-    /**
-     * 数据库操作示例
-     */
-    public function createUser(RequestInput $request)
-    {
-        // 获取验证后的数据
-        $validated = $this->validated();
-        
-        // 使用 DB 组件
-        $db = Application::getApp()->get('db');
-        
-        // 插入数据
-        $userId = $db->newQuery()
-            ->table('users')
-            ->insert([
-                'username' => $validated['username'],
-                'email' => $validated['email'],
-                'created_at' => date('Y-m-d H:i:s'),
-            ]);
-        
-        return $this->returnJson([
-            'code' => 200,
-            'data' => ['user_id' => $userId],
         ]);
     }
 }

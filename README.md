@@ -10,19 +10,227 @@
                                                               __ / |
                                                              |_ _ /
 ```  
-### 一、简介    
+
+[![License](https://img.shields.io/packagist/l/bingcool/swoolefy.svg)](https://packagist.org/packages/bingcool/swoolefy)
+[![Latest Stable Version](https://img.shields.io/packagist/v/bingcool/swoolefy.svg)](https://packagist.org/packages/bingcool/swoolefy)
+[![PHP Version Require](https://img.shields.io/packagist/php-v/bingcool/swoolefy.svg)](https://packagist.org/packages/bingcool/swoolefy)
+[![Total Downloads](https://img.shields.io/packagist/dt/bingcool/swoolefy.svg)](https://packagist.org/packages/bingcool/swoolefy)
+
+---
+### 一、📖 简介    
 swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协程级应用服务框架，
 高度支持httpApi，websocket，udp服务器，以及基于tcp实现可扩展的rpc服务，worker多进程消费模型  
 同时支持composer包方式安装部署项目。基于实用主义设计出发，swoolefy抽象Event事件处理类，
 实现与底层的回调的解耦，支持协程单例调度，同步|异步调用，全局事件注册，心跳检查，异步任务，多进程(池)，连接池等，
 内置```log、session、mysql、pgsql、redis、mongodb、kafka、amqp、uuid、route midelware、cache、queue、rateLimit、traceId```等常用组件等.    
 
-### 二、建议版本
-1、swoolefy-6.x.x 版本：      
-目前主分支，最低要求```php8.1+，swoole > 5.1.x， 推荐 swoole-6.x.x+ 以上最新版本``` 
+### 🎯 核心特性
 
-2、swoolefy-4.8-lts 版本：    
-长期维护分支，最低要求```php7.3 ~ php7.4, swoole-4.8.x, 推荐直接swoole-v4.8.13```
+- ⚡ **高性能**: 基于 Swoole 协程，单机支持数万并发连接
+- 🔧 **易扩展**: 自定义进程、进程池、连接池机制
+- 🏗️ **多协议**: HTTP/WebSocket/TCP/UDP/MQTT 统一架构
+- 🎨 **易用性**: Laravel 风格的路由、中间件、ORM
+- 🔄 **热更新**: 文件修改自动重启 Worker，无需停机 (开发环境)
+- 👥 **多进程管理**:
+    - **守护进程 (Daemon)**: 常驻内存，自动拉起多个 Worker 进程，支持进程健康监控和动态扩缩容
+    - **Cron 计划任务**: 类似 Linux crontab，支持 local/fork/url 三种调度模式，定时执行业务逻辑
+- ⚛️ **协程并发**:
+    - **goApp()**: 一键创建协程单例，自动处理 DB/Redis/Curl 等组件的协程隔离
+    - **Parallel**: 限制最大并发数，防止瞬间创建大量协程拖垮下游服务
+    - **GoWaitGroup**: 类似 Go 语言的 WaitGroup，优雅的协程同步等待机制
+- 📦 **组件化**:
+    - 专用bingcool/library @see https://github.com/bingcool/library
+
+
+### 🏛️ 架构设计
+
+### 进程模型
+
+```
+┌─────────────────────────────────────────────────────┐
+│              Master Process (主进程)                 │
+│  - 管理 Reactor 线程                                  │
+│  - 接收并分发客户端连接                              │
+└──────────────┬──────────────────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────────────────────┐
+│              Master Process (主进程)                     │
+│  - 管理 Reactor 线程                                      │
+│  - 接收并分发客户端连接                                  │
+└──────────────┬──────────────────────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────────────────────┐
+│              Manager Process (管理进程)                  │
+│  - 管理 Worker 进程池                                     │
+│  - 管理 Task 进程池                                       │
+│  - 管理自定义进程 (通过 addProcess 拉起)                  │
+│  - 进程重启和监控                                        │
+└──────────┬────────────────────┬─────────────────────────┘
+           │                    │
+           ├───────────┬────────┴──────────┐
+           │           │                    │
+    ┌──────▼──────┐ ┌──▼──────────┐ ┌──────▼──────────┐
+    │   Worker    │ │    Task     │ │  User Process   │
+    │  Processes  │ │  Processes  │ │  (MainProcess)  │
+    │  (业务处理)  │ │ (异步任务)   │ │  (管理进程)      │
+    │             │ │             │ │                 │
+    │ - onRequest │ │ - onTask    │ │ 通过 MainManager│
+    │ - onConnect │ │             │ │ 拉起多个 Worker │
+    │ - onReceive │ │             │ │                 │
+    │             │ │             │ │ - Cron 任务管理  │
+    │ 协程池/组件池│ │             │ │ - Daemon 常驻   │
+    │ - DB 连接池  │ │             │ │ - 动态进程管理  │
+    │ - Redis 池  │ │             │ │                 │
+    │ - Curl 池   │ │             │ │ run() -> start()│
+    └─────────────┘ └─────────────┘ └──────┬──────────┘
+                                           │
+                          ┌────────────────┼───────────────┐
+                          │                │               │
+                   ┌──────▼─────┐   ┌──────▼─────┐ ┌──────▼─────┐
+                   │   Cron     │   │   Daemon   │ │   Script   │
+                   │  Workers   │   │  Workers   │ │  Workers   │
+                   │ (定时任务)  │   │ (常驻进程)  │ │ (脚本进程)  │
+                   │            │   │            │ │            │
+                   │ - 定时调度  │   │ - 消息消费 │ │ - 临时脚本 │
+                   │ - 任务队列  │   │ - 数据处理 │ │ - 数据迁移 │
+                   │ - URL 请求  │   │ - 实时计算 │ │ - 修复工具 │
+                   └────────────┘   └────────────┘ └────────────┘
+```
+
+**进程层级说明:**
+
+1. **Master Process**: 最高层级，管理 Reactor 线程和连接分发
+2. **Manager Process**: 第二层级，统一管理所有子进程
+3. **Worker/Task/User Process**: 第三层级，由 Manager 直接管理
+4. **Cron/Daemon/Script Workers**: 第四层级，由 User Process (MainProcess) 通过 `MainManager::start()` 拉起
+
+### http请求处理流程
+
+```
+Client Request
+     ↓
+┌────────────────────────┐
+│ Swoole HTTP Server     │
+│ (Reactor 线程接收)      │
+└───────────┬────────────┘
+            │
+            ↓
+┌────────────────────────┐
+│ Worker Process         │
+│ (onRequest 回调)        │
+└───────────┬────────────┘
+            │
+            ↓
+┌────────────────────────┐
+│ 1. App::__construct()  │
+│    - 加载配置           │
+│    - 初始化协程 ID       │
+└───────────┬────────────┘
+            │
+            ↓
+┌────────────────────────┐
+│ 2. App::run()          │
+│    - parseHeaders()    │
+│    - initCoreComponent()│
+│    - Application::setApp()│ ← 绑定到协程上下文
+│    - defer()           │ ← 注册清理钩子
+└───────────┬────────────┘
+            │
+            ↓
+┌────────────────────────┐
+│ 3. HttpRoute::dispatch()│
+│    - 加载路由配置         │
+│    - 匹配路由            │
+└───────────┬──────────── ┘
+            │
+            ↓
+┌────────────────────────────────┐
+│ 4. 执行中间件 (Middleware)       │
+│    - beforeHandle (前置中间件)   │
+│    - 验证/鉴权/CORS 等           │
+│    - 请求参数处理                │
+└───────────┬────────────────────┘
+            │
+            ↓
+┌────────────────────────────────┐
+│ 5. 调用控制器 Action             │
+│    - Controller::action()      │
+│    - 业务逻辑处理                │
+└───────────┬────────────────────┘
+            │
+            ↓
+┌─────────────────────────────────────┐
+│ 6. 执行业务 (Business Logic)         │
+│                                     │
+│  ┌─────────────────────────────┐   │
+│  │ goApp(function() {          │   │
+│  │     // 协程并发处理           │   │
+│  │     - DB 查询                │   │
+│  │     - Redis 操作             │   │
+│  │     - HTTP 请求              │   │
+│  │     - 文件 IO                │   │
+│  │ })                          │   │
+│  │                             │   │
+│  │ Parallel::run(50, $list,    │   │
+│  │     function($item) {       │   │
+│  │         // 限制并发数处理     │   │
+│  │     }                       │   │
+│  │ )                           │   │
+│  └─────────────────────────────┘   │
+│                                    │
+│  - 协程调度器自动切换                 │
+│  - IO 密集型任务异步执行              │
+│  - CPU 继续执行其他协程               │
+└───────────┬────────────────────────┘
+            │
+            ↓
+┌────────────────────────┐
+│ 7. 后置中间件          │
+│    - afterHandle       │
+│    - 响应格式化        │
+│    - 日志记录          │
+└───────────┬────────────┘
+            │
+            ↓
+┌────────────────────────┐
+│ 8. App::end()          │
+│    - handleLog()       │
+│    - pushComponentPools()│ ← 归还连接池
+│    - clearComponent()  │
+│    - response->end()   │
+└───────────┬────────────┘
+            │
+            ↓
+Client Response
+```
+
+
+---
+
+### 二、📦 版本选择
+#### 6.x 版本 (推荐 - 最新稳定版)
+
+**最低要求:**
+- PHP >= 8.2
+- Swoole >= 6.0 (推荐使用 Swoole 6.x 最新版本)
+
+**安装命令:**
+```bash
+composer require bingcool/swoolefy:^6.0
+```
+
+### 4.9 LTS 版本 (长期维护版)
+
+**最低要求:**
+- PHP 7.3 ~ 7.4
+- Swoole 4.8.x (推荐 4.8.13+)
+
+**安装命令:**
+```bash
+composer require bingcool/swoolefy:^4.9
+```
 
 选择哪个版本？  
 1、如果确定项目是使用php81+的，那么直接选择 ```swoole > 5.1.x，推荐直接使用 swoole-6.x.x+ 以上最新版本更好``` 安装，然后选择 ```bingcool/swoolefy:^6.0``` 作为项目分支安装最新稳定版本   
@@ -43,7 +251,7 @@ docker build --no-cache -t swoolefy-php83-swoole61:v1 -f ./php83-swoole61.Docker
 docker run -d -it --security-opt seccomp=unconfined --name=swoolefy-php83-v6 swoolefy-php83-swoole61:v1
 
 ```
-### 三、实现的功能特性    
+### 三、⚙️ 实现的功能特性    
 
 #### 基础特性
 - [x] 支持架手脚一键创建项目自动生成最小项目骨架         
@@ -87,7 +295,7 @@ docker run -d -it --security-opt seccomp=unconfined --name=swoolefy-php83-v6 swo
 - [x] 支持console终端脚本模式. 跑完脚本自动退出，可用于修复数据、数据迁移等临时脚本功能      
 - [ ] 支持分布式服务注册（zk，etcd）       
 
-### 四、适配协程环境组件
+### 四、🔌 适配协程环境组件
 | 组件名称             | 安装                                                    | 说明                                                  |
 |------------------|-------------------------------------------------------|-----------------------------------------------------|
 | predis           | composer require predis/predis:~1.1.7                 | predis组件、或者Phpredis扩展                               |
@@ -103,7 +311,7 @@ docker run -d -it --security-opt seccomp=unconfined --name=swoolefy-php83-v6 swo
 | oauth 2.0        | composer require league/oauth2-server                 | oauth 2.0 授权认证组件                                    |   
 | bingcool/library | composer require bingcool/library                     | library组件库                                          |  
 
-### 五、bingcool/library 是swoolefy require 内置库，专为swoole协程实现的组件库        
+### 五、📚 bingcool/library 是 swoolefy require 内置库，专为 swoole 协程实现的组件库        
 实现了包括：    
 - [x] Db ORM Model 组件(支持mysql、 postSql、 sqlite、 Oracle)
 - [x] DB Query Builder 链式操作查询组件      
@@ -129,7 +337,7 @@ docker run -d -it --security-opt seccomp=unconfined --name=swoolefy-php83-v6 swo
 github: https://github.com/bingcool/library    
 
 
-### 六、安装 
+### 六、📥 安装 
 
 #### 1、先配置环境变量(必须设置)
 ```
@@ -158,7 +366,7 @@ ENV SWOOLEFY_CLI_ENV=dev
 composer create-project bingcool/swoolefy:^6.0 myproject   
 ```
 
-### 七、添加项目入口启动文件cli.php,并定义你的项目目录，命名为App
+### 七、📝 添加项目入口启动文件 cli.php,并定义你的项目目录，命名为 App
 
 ```
 <?php
@@ -218,7 +426,7 @@ include __DIR__.'/swoolefy';
 
 ```
 
-### 八、执行创建你定义的App项目
+### 八、📂 执行创建你定义的 App 项目
 
 ```
 // 你定义的项目目录是App, 在myproject目录下执行下面命令行
@@ -228,49 +436,49 @@ php cli.php create App
 swoole-cli cli.php create App 
 
 
-// 执行完上面命令行后，将会自动生成App项目目录以及内部子目录
+// 执行完上面命令行后，将会自动生成 App 项目目录以及内部子目录
 myproject
-|—— App  // 应用项目目录
+|—— App           // 应用项目目录
 |     |── Config       // 应用配置
-|     |   |__ component // 协程单例组件
-|     |      |—— database.php //数据库相关组件
-|     |      |—— log.php     // 日志相关组件
-|     |      |—— cache.php   // 缓存组件，可以继续添加其他组件，命名自由 
-|     │   ├── dc.php   //环境配置项
+|     |   |__ component  // 协程单例组件
+|     |      |—— database.php  // 数据库相关组件
+|     |      |—— log.php       // 日志相关组件
+|     |      |—— cache.php     // 缓存组件，可以继续添加其他组件，命名自由
+|     │   ├── dc.php          // 环境配置项
 |     │   └── constants.php
-|     |   |—— app.php    // 应用层配置
+|     |   |—— app.php         // 应用层配置
 |     |
 |     ├── Controller
-|     │   └── IndexController.php // 控制器层
+|     │   └── IndexController.php  // 控制器层
 |     ├── Model
-|     │   └── ClientModel.php
+|     │   └── ClientModel.php      // 数据模型层
 |     ├── Module        // 模块层
 |     ├── Protocol      // 协议配置
 |     │   ├── conf.php  // 全局配置
 |     │
 |     ├── Router
-|     │   └── api.php  // 路由文件，不同模块定义不同文件即可
+|     │   └── api.php   // 路由文件，不同模块定义不同文件即可
 |     |—— Storage
-|     |   |—— Crontab  // cron service的调度日志
-|     |   |—— Logs  // 日志文件目录
-|     |   |—— Sql   // sql日志目录
+|     |   |—— Crontab   // cron service 的调度日志
+|     |   |—— Logs      // 日志文件目录
+|     |   |—— Sql       // sql 日志目录
 |     |—— Scripts
-|     |   |—— Kernel.php    // 计划任务定义    
-|     |__ .env     // 自动生成环境变量文件
-|     │—— autoloader.php // 自定义项目自动加载
-|     |—— Event.php      // 事件实现类
-|     |—— HttpServer.php // http server
+|     |   |—— Kernel.php    // 计划任务定义
+|     |__ .env         // 自动生成环境变量文件
+|     │—— autoloader.php  // 自定义项目自动加载
+|     |—— Event.php       // 事件实现类
+|     |—— HttpServer.php  // http server
 |    
-|——— src //源码
-|——— cli.php // http应用启动入口文件
-|——— cron.php // 定时worker任务的多进程启动入口文件
-|——— daemon.php // 守护进程worker的多进程启动入口文件
-|——— script.php // 脚本启动入口文件
-|——— swag.php // 生成swagger接口文档入口文件
+|——— src            // 源码
+|——— cli.php        // http应用启动入口文件
+|——— cron.php       // 定时 worker 任务的多进程启动入口文件
+|——— daemon.php     // 守护进程 worker 的多进程启动入口文件
+|——— script.php     // 脚本启动入口文件
+|——— swag.php       // 生成 swagger 接口文档入口文件
 
 ```
 
-### 九、启动http应用项目
+### 九、🚀 启动 http应用项目
 
 ```
 // 终端启动 ctl+c 停止进程
@@ -359,7 +567,7 @@ php daemon.php stop App --force=1
 
 ```
 
-### 十、访问
+### 十、🌐 访问
 
 默认端口是9502,可以通过 http://localhost:9502 访问默认控制器
 ```
@@ -387,7 +595,7 @@ class IndexController extends BController {
 至此一个最简单的http的服务就创建完成了，更多例子请参考项目下Test的demo
 
 
-### 十一、定义组件
+### 十一、🧩 定义组件
 
 1、应用层配置文件：Config/app.php
 
@@ -505,7 +713,7 @@ return [
     
 ```
 
-### 十二、使用组件
+### 十二、💡 使用组件
 ```
 use Swoolefy\Core\Application;
 
@@ -591,7 +799,7 @@ class TestController extends BController {
 ```
 
 
-### 十三、默认协议层全局配置文件 Protocol/conf.php
+### 十三、⚙️ 默认协议层全局配置文件 Protocol/conf.php
 
 开发者可以根据实际使用适当调整配置项
 
@@ -688,7 +896,7 @@ return [
 ];
 
 ```
-### 十四、路由文件（类似laravel路由）
+### 十四、🛣️ 路由文件（类似 laravel 路由）
 1、Router/api.php
 ```
 <?php
@@ -760,7 +968,7 @@ Route::group([
 
 ```
 
-### 十五、数据库操作
+### 十五、🗄️ 数据库操作
 ```
 
 $db = Application::getApp()->get('db');
@@ -799,7 +1007,7 @@ $db->newQuery()->table('tbl_users')->where(['id', '=', 100])->field(['id', 'user
 
 ```
 
-### 十六、协程单例，协程并发
+### 十六、⚡ 协程单例，协程并发
 1. 协程单例   
 ```
 // 协程单例使用goApp直接调用创建, 每个协程的DB，redis,kafka,mq的socket对象相互隔离，互不影响，代码通用
@@ -882,7 +1090,7 @@ array(4) {
 
 ```
 
-### 十七、swagger接口文档生成
+### 十七、📄 swagger 接口文档生成
 
 在Test/Module/Order/Validation下，每个文件对应一个Controller的方法，可以使用php8的attribute注解定义好接口，然后执行 php swag.php Test 即可自动生成openapi.yaml文件
 在浏览器直接访问: http:127.0.0.1:9501/swagger.html
