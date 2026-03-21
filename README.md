@@ -39,7 +39,7 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
     - **Parallel**: 限制最大并发数，防止瞬间创建大量协程拖垮下游服务
     - **GoWaitGroup**: 类似 Go 语言的 WaitGroup，优雅的协程同步等待机制
 - 📦 **组件化**:
-    - 专用bingcool/library @see https://github.com/bingcool/library
+    - **bingcool/library** 大量常用协程组件库 @see https://github.com/bingcool/library
 
 
 ### 🏛️ 架构设计
@@ -91,11 +91,11 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
                    ┌──────▼─────┐   ┌──────▼─────┐ ┌──────▼─────┐
                    │   Cron     │   │   Daemon   │ │   Script   │
                    │  Workers   │   │  Workers   │ │  Workers   │
-                   │ (定时任务)  │   │ (常驻进程)  │ │ (脚本进程)  │
+                   │ (定时任务)  │   │ (常驻进程)   │ │ (脚本)  │
                    │            │   │            │ │            │
-                   │ - 定时调度  │   │ - 消息消费 │ │ - 临时脚本 │
-                   │ - 任务队列  │   │ - 数据处理 │ │ - 数据迁移 │
-                   │ - URL 请求  │   │ - 实时计算 │ │ - 修复工具 │
+                   │ - 定时调度  │   │ - 消息消费   │ │ - 临时脚本  │
+                   │ - 任务队列  │   │ - 数据处理   │ │ - 数据迁移   │ 
+                   │ - URL请求  │   │ - 实时计算   │ │ - 修复工具   │
                    └────────────┘   └────────────┘ └────────────┘
 ```
 
@@ -214,14 +214,14 @@ Client Response
 
 **最低要求:**
 - PHP >= 8.2
-- Swoole >= 6.0 (推荐使用 Swoole 6.x 最新版本)
+- Swoole >= 6.1 (推荐使用 Swoole 6.x 最新版本)
 
 **安装命令:**
 ```bash
-composer require bingcool/swoolefy:^6.0
+composer require bingcool/swoolefy:^6.1
 ```
 
-### 4.9 LTS 版本 (长期维护版)
+#### 4.9 LTS 版本 (长期维护版)
 
 **最低要求:**
 - PHP 7.3 ~ 7.4
@@ -232,8 +232,8 @@ composer require bingcool/swoolefy:^6.0
 composer require bingcool/swoolefy:^4.9
 ```
 
-选择哪个版本？  
-1、如果确定项目是使用php81+的，那么直接选择 ```swoole > 5.1.x，推荐直接使用 swoole-6.x.x+ 以上最新版本更好``` 安装，然后选择 ```bingcool/swoolefy:^6.0``` 作为项目分支安装最新稳定版本   
+**选择哪个版本?**  
+1、如果确定项目是使用php81+的，那么直接选择 ```swoole > 5.1.x，推荐直接使用 swoole-6.x.x+ 以上最新版本更好``` 安装，然后选择 ```bingcool/swoolefy:^6.1``` 作为项目分支安装最新稳定版本   
 
 2、如果确定项目是使用 ```php7.3 ~ php7.4``` 的，那么选择 swoole-v4.8+ 版本来进行编译安装(不能直接使用 swoole-cli-v4.8+ 了, 因为其内置的是php8.1，与你的项目的php7不符合)
 所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.9``` 作为项目分支稳定版本   
@@ -307,8 +307,9 @@ docker run -d -it --security-opt seccomp=unconfined --name=swoolefy-php83-v6 swo
 | ffmpeg           | composer require php-ffmpeg/php-ffmpeg:~1.4.0         | php proc-open 调用ffmpeg处理音视频                         |  
 | image            | composer require intervention/image:~3.11.0           | php 图像处理组件                                          |    
 | validate         | composer require vlucas/valitron                      | validate数据校验组件                                      |    
-| guzzlehttp       | composer require guzzlehttp/guzzle:~7.9.0             |  guzzlehttp 组件                                      | 
-| oauth 2.0        | composer require league/oauth2-server                 | oauth 2.0 授权认证组件                                    |   
+| guzzlehttp       | composer require guzzlehttp/guzzle:~7.9.0             | guzzlehttp 组件                                       | 
+| oauth 2.0        | composer require league/oauth2-server                 | oauth 2.0 授权认证组件                                    |  
+| php-standard-library        | composer require php-standard-library/php-standard-library                | php标准库(推荐)                                          |
 | bingcool/library | composer require bingcool/library                     | library组件库                                          |  
 
 ### 五、📚 bingcool/library 是 swoolefy require 内置库，专为 swoole 协程实现的组件库        
@@ -368,7 +369,7 @@ composer create-project bingcool/swoolefy:^6.0 myproject
 
 ### 七、📝 添加项目入口启动文件 cli.php,并定义你的项目目录，命名为 App
 
-```
+```php
 <?php
 // 在myproject目录下添加cli.php, 这个是启动项目的入口文件
 
@@ -444,9 +445,9 @@ myproject
 |     |      |—— database.php  // 数据库相关组件
 |     |      |—— log.php       // 日志相关组件
 |     |      |—— cache.php     // 缓存组件，可以继续添加其他组件，命名自由
-|     │   ├── dc.php          // 环境配置项
+|     │   ├── dc.php           // 环境配置项
 |     │   └── constants.php
-|     |   |—— app.php         // 应用层配置
+|     |   |—— app.php          // 应用层配置
 |     |
 |     ├── Controller
 |     │   └── IndexController.php  // 控制器层
@@ -464,10 +465,10 @@ myproject
 |     |   |—— Sql       // sql 日志目录
 |     |—— Scripts
 |     |   |—— Kernel.php    // 计划任务定义
-|     |__ .env         // 自动生成环境变量文件
-|     │—— autoloader.php  // 自定义项目自动加载
-|     |—— Event.php       // 事件实现类
-|     |—— HttpServer.php  // http server
+|     |__ .env              // 自动生成环境变量文件
+|     │—— autoloader.php    // 自定义项目自动加载
+|     |—— Event.php         // 事件实现类
+|     |—— HttpServer.php    // http server
 |    
 |——— src            // 源码
 |——— cli.php        // http应用启动入口文件
@@ -479,6 +480,8 @@ myproject
 ```
 
 ### 九、🚀 启动 http应用项目
+
+**http应用启动命令行**
 
 ```
 // 终端启动 ctl+c 停止进程
@@ -506,6 +509,8 @@ php cli.php restart App
 swooole-cli cli.php restart App
 
 ```
+
+**启动Cron定时计划任务服务**
 
 ```
 // 创建生成Cron定时计划任务服务,默认生成WorkerCron目录
@@ -535,6 +540,8 @@ php cron.php stop App
 php cron.php stop App --force=1
 
 ```
+
+**启动Daemon常驻进程服务**
 
 ```
 // 创建生成Daemon常驻进程消费服务,默认生成WorkerDaemon目录
@@ -570,7 +577,7 @@ php daemon.php stop App --force=1
 ### 十、🌐 访问
 
 默认端口是9502,可以通过 http://localhost:9502 访问默认控制器
-```
+```php
 <?php
 namespace App\Controller;
 
@@ -599,9 +606,8 @@ class IndexController extends BController {
 
 1、应用层配置文件：Config/app.php
 
-```
+```php
 <?php
-
 return [
 
     // db|redis连接池
@@ -638,7 +644,8 @@ return [
 ```
 
 2、组件Component.php
-```
+```php
+<?php
 
 $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
 
@@ -714,7 +721,7 @@ return [
 ```
 
 ### 十二、💡 使用组件
-```
+```php
 use Swoolefy\Core\Application;
 
 class TestController extends BController {
@@ -801,12 +808,12 @@ class TestController extends BController {
 
 ### 十三、⚙️ 默认协议层全局配置文件 Protocol/conf.php
 
-开发者可以根据实际使用适当调整配置项
+*配置项*
 
-```
+开发者可以根据实际使用适当调整
+
+```php
 $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
-
-<?php
 
 return [
     // 应用层配置
@@ -896,11 +903,15 @@ return [
 ];
 
 ```
-### 十四、🛣️ 路由文件（类似 laravel 路由）
-1、Router/api.php
-```
-<?php
+### 十四、🛣️ 路由系统
 
+支持类似 Laravel 的分组路由和中间件:
+
+*Router/api.php*
+
+```php
+
+<?php
 use Swoolefy\Http\Route;
 use Swoolefy\Http\RequestInput;
 
@@ -969,7 +980,7 @@ Route::group([
 ```
 
 ### 十五、🗄️ 数据库操作
-```
+```php
 
 $db = Application::getApp()->get('db');
 // 插入单条数据
@@ -1007,96 +1018,131 @@ $db->newQuery()->table('tbl_users')->where(['id', '=', 100])->field(['id', 'user
 
 ```
 
-### 十六、⚡ 协程单例，协程并发
-1. 协程单例   
-```
-// 协程单例使用goApp直接调用创建, 每个协程的DB，redis,kafka,mq的socket对象相互隔离，互不影响，代码通用
+### 十六、⚡ 协程单例
 
+*协程单例*  
+```php
+
+// 协程单例使用goApp直接调用创建, 每个协程的DB，redis,kafka,mq的socket对象相互隔离，互不影响，代码通用
 goApp(function() {
     $db = Application::getApp()->get('db');
     // 查询列表
     $db->newQuery()->table('tbl_users')->where('id','>', 1)->field(['id', 'user_name'])->limit(0,10)->select();
     // redis
     $redis = Application::getApp()->get('redis');
-    $redis->set('name','bingcool')
+    $redis->set('name','bingcool');
+   
+    // 再开启一个协程单例
+    goApp(function() {
+        // $db1与父级协程的$db完全隔离，不是同一个对象
+        $db1 = Application::getApp()->get('db');
+    })
 })
 
 ```
-2. 协程并发  
+
+*协程隔离示意图:*
+
+```php
+    协程 A (cid=1001)              协程 B (cid=1002)
+    ↓                              ↓
+    App Instance A                App Instance B
+    ↓                              ↓
+    containers['db'] A         containers['db'] B
+    ↓                              ↓
+    Redis Object A                Redis Object B
+    (独立 Socket 连接)              (独立 Socket 连接)
+
 ```
-// 协程并发-协程并发迭代数组处理数据(针对数据量大，无需关注返回数据)
+### 十七、⚡ 协程并发  
+#### Parallel 并发限制器
 
-$list = [
-    [
-        'name' => ’name-1'
-    ],
-    [
-        'name' =>  ’name-2'
-    ],
-    [
-        'name' =>  ’name-3'
-    ],
-    [
-        'name' =>  ’name-4'
-    ],
-    [
-        'name' =>  ’name-5'
-    ]
-];
+```php
+use Swoolefy\Core\Coroutine\Parallel;
 
-// 并发2个协程-循环迭代数组-回调函数处理
-Parallel::run(2, $list, function ($item) {
-    var_dump($item['name']);
-}, 0.01);
+// 场景：有 1000 个请求，限制每次并发 50 个
+$parallel = new Parallel(50);
 
-
-
-// 协程并发-协程并发处理并等待结果(针对并发量少，并且需要返回数据的)
-
-$parallel = new Parallel();
-$parallel->add(function () {
-    sleep(2);
-    return "阿里巴巴";
-},'ali');
-
-$parallel->add(function () {
-    sleep(2);
-    return "腾讯";
-},'tengxu');
-
-$parallel->add(function () {
-    sleep(2);
-    return "百度";
-},'baidu');
-
-$parallel->add(function () {
-    sleep(5);
-    return "字节跳动";
-},'zijie');
-
-// 并发等待返回数据
-$result = $parallel->runWait(10);
-array(4) {
-  ["ali"]=>
-  string(12) "阿里巴巴"
-  ["tengxu"]=>
-  string(6) "腾讯"
-  ["baidu"]=>
-  string(6) "百度"
-  ["zijie"]=>
-  string(12) "字节跳动"
+for ($i = 0; $i < 1000; $i++) {
+    $parallel->add(function() use ($i) {
+        // 协程任务
+        $result = file_get_contents("http://api.example.com/data?id={$i}");
+        return json_decode($result, true);
+    }, "key_{$i}");
 }
 
+// 长等待10s获取结果
+$results = $parallel->runWait(10.0);
+
+
+// 场景：少量的请求，通过add添加闭包
+$parallel = new Parallel();
+$parallel->add(function() {
+    return file_get_contents("http://api.example.com/data");
+}, "key1");
+
+$parallel->add(function() {
+    return file_get_contents("http://api.example.com/data");
+}, "key2");
+
+$parallel->add(function() {
+    return file_get_contents("http://api.example.com/data");
+}, "key3");
+
+// 最长等待10s获取结果
+$parallel->runWait(10.0)
+
 
 ```
 
-### 十七、📄 swagger 接口文档生成
+#### Parallel::run 迭代并发
+
+```php
+use Swoolefy\Core\Coroutine\Parallel;
+
+// 分批处理大数据集(无需等待数据返回)
+$list = range(1, 10000);
+
+Parallel::run(
+    100,           // 每批 100 个协程
+    $list,         // 数据数组
+    function($item) {
+        // 处理每个元素
+        echo "Processing: {$item}\n";
+    },
+    0.01          // 每批间隔 0.01 秒
+);
+```
+
+#### GoWaitGroup
+
+```php
+use Swoolefy\Core\Coroutine\GoWaitGroup;
+
+$wg = new GoWaitGroup();
+
+for ($i = 0; $i < 10; $i++) {
+    $wg->add();
+    go(function() use ($wg, $i) {
+        try {
+            // 并发任务
+            sleep(1);
+            echo "Task {$i} done\n";
+        } finally {
+            $wg->done();
+        }
+    });
+}
+
+$wg->wait();  // 等待所有任务完成
+```
+
+### 十八、📄 swagger 接口文档生成
 
 在Test/Module/Order/Validation下，每个文件对应一个Controller的方法，可以使用php8的attribute注解定义好接口，然后执行 php swag.php Test 即可自动生成openapi.yaml文件
 在浏览器直接访问: http:127.0.0.1:9501/swagger.html
 
-```
-<?php
+```php
 namespace Test\Module\Order\Validation;
 
 use OpenApi\Attributes as OA;
