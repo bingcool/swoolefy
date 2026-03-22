@@ -342,224 +342,369 @@ abstract class AbstractBaseWorker
                 return false;
             }
 
-            $handleClass = static::class;
-            putenv("handle_class={$handleClass}");
-            BaseServer::reloadGlobalConf();
-
-            static::$processInstance = $this;
-            $this->pid = $this->swooleProcess->pid;
-            $this->coroutineId = \Swoole\Coroutine::getCid();
-            @Process::signal(SIGUSR2, null);
-            $this->setUserAndGroup();
-            $this->installRegisterShutdownFunction();
-            $this->installErrorHandler();
-            if ($this->async) {
-                Event::add($this->swooleProcess->pipe, function () {
-                    try {
-                        $message = $this->swooleProcess->read(64 * 1024);
-                        $isProxyByMaster = true;
-                        if (is_string($message)) {
-                            $messageDto = unserialize($message);
-                            if (!$messageDto instanceof MessageDto) {
-                                $this->fmtWriteError("Accept message type error");
-                                return;
-                            } else {
-                                $msg                 = $messageDto->data;
-                                $fromProcessName     = $messageDto->fromProcessName;
-                                $fromProcessWorkerId = $messageDto->fromProcessWorkerId;
-                                $isProxyByMaster     = $messageDto->isProxy;
-                            }
-                            if (!isset($isProxyByMaster) || is_null($isProxyByMaster) || $isProxyByMaster === false) {
-                                $isProxyByMaster = false;
-                            }
-                        }
-                        if (isset($msg) && isset($fromProcessName) && isset($fromProcessWorkerId)) {
-                            $actionHandleFlag = false;
-                            if (is_string($msg)) {
-                                switch ($msg) {
-                                    case self::WORKERFY_PROCESS_REBOOT_FLAG :
-                                        $actionHandleFlag = true;
-                                        goApp(function () {
-                                            if ($this->isStaticProcess()) {
-                                                $this->reboot();
-                                            } else {
-                                                // from cli ctl, dynamic process can not reload. only exit
-                                                $this->exit(true, 10);
-                                            }
-                                        });
-                                        break;
-                                    case self::WORKERFY_PROCESS_EXIT_FLAG :
-                                        $actionHandleFlag = true;
-                                        goApp(function () use ($fromProcessName) {
-                                            // 定时任务进程业务正在执行中时
-                                            if (SystemEnv::isCronService() && $this->runInBackground && $this->handing) {
-                                                // 设置进程等待退出，进程将在业务处理完后退出
-                                                $this->waitToExit = true;
-                                                $this->isExit     = true;
-                                            }else if ($this->useLoopHandle) {
-                                                // 进程如果使用封装的loopHandle处理业务时，进程将在业务处理完后退出
-                                                $this->waitToExit = true;
-                                                $this->isExit     = true;
-                                            } else {
-                                                if ($fromProcessName == MainManager::MASTER_WORKER_NAME) {
-                                                    $this->exit(true,10);
-                                                } else {
-                                                    $this->exit(false, 10);
-                                                }
-                                            }
-                                        });
-                                        break;
-                                    case self::WORKERFY_PROCESS_STATUS_FLAG :
-                                        $actionHandleFlag = true;
-                                        $systemStatus = $this->getProcessSystemStatus();
-                                        if (!isset($systemStatus['record_time'])) {
-                                            $systemStatus['record_time'] = date('Y-m-d H:i:s');
-                                        }
-                                        $data = [
-                                            'action' => self::WORKERFY_PROCESS_STATUS_FLAG,
-                                            'process_name' => $this->getProcessName(),
-                                            'data' => [
-                                                'worker_id' => $this->getProcessWorkerId(),
-                                                'status' => $systemStatus ?? []
-                                            ]
-                                        ];
-                                        $this->writeToMasterProcess($data);
-                                        break;
-                                }
-
-                            }
-                            if ($actionHandleFlag === false) {
-                                goApp(function () use ($msg, $fromProcessName, $fromProcessWorkerId, $isProxyByMaster) {
-                                    try {
-                                        $this->onPipeMsg($msg, $fromProcessName, $fromProcessWorkerId, $isProxyByMaster);
-                                    } catch (\Throwable $throwable) {
-                                        $this->onHandleException($throwable);
-                                    }
-                                });
-                            }
-                        }
-                    } catch (\Throwable $throwable) {
-                        goApp(function () use ($throwable) {
-                            $this->onHandleException($throwable);
-                        });
-                    }
-                });
-            }
-
-            // exit signal
-            Process::signal(SIGTERM, function ($signo) {
-                $function = $this->exitSingleHandle($signo);
-                $function();
-            });
-
-            // reboot signal
-            Process::signal(SIGUSR1, function ($signo) {
-                $function = $this->rebootSingleHandle();
-                $function();
-            });
-
-            $this->initSystemCoroutineNum = $this->getCurrentRunCoroutineNum();
-
-            // 定时检查到master主进程死掉的进行的检查次数
-            $tickCheckMasterOffCount = 0;
-
-            $this->masterLiveTimerId = \Swoole\Timer::tick(($this->args['check_master_live_tick_time'] + rand(1, 5)) * 1000, function ($timerId) use(&$tickCheckMasterOffCount) {
-                try {
-                    $exitFunction = function ($timerId, $masterPid) {
-                        \Swoole\Timer::clear($timerId);
-                        $processName     = $this->getProcessName();
-                        $workerId        = $this->getProcessWorkerId();
-                        $this->masterLiveTimerId = null;
-                        $this->fmtWriteInfo("Check Parent Master Pid={$masterPid}，children process={$processName},worker_id={$workerId} start to exit");
-                        $this->exit(true, 5);
-                    };
-
-                    // run Exit function
-                    $runExitFn = function ($timerId, $masterPid, $exitFunction, $tickCheckMasterOffCount) {
-                        if (SystemEnv::isCronService()) {
-                            // cron model 任务还在进行中,防止强制退出
-                            if (!$this->handing) {
-                                $exitFunction($timerId, $masterPid);
-                            }else {
-                                $this->fmtWriteInfo("【cron-task-handing】Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
-                            }
-                        }else if (SystemEnv::isDaemonService()) {
-                            // daemon model 任务还在进行中,防止强制退出
-                            // 定时检查到主进程 $tickCheckMasterOffCount 次已经kill掉了，但子进程也不能一直不退出，否则成了僵尸进程了，这里做一个兜底退出，1800秒后强制退出
-                            $lastTime = $this->args['check_master_live_tick_time'] * $tickCheckMasterOffCount;
-                            $this->fmtWriteInfo("Daemon Process={$this->getProcessName()} last master off time={$lastTime}, tickCheckMasterOffCount={$tickCheckMasterOffCount}, pid={$this->getPid()}");
-                            if (!$this->useLoopHandle || ($lastTime > 1800) ) {
-                                $exitFunction($timerId, $masterPid);
-                            }else {
-                                $this->fmtWriteInfo("【daemon-task-handing】Daemon Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
-                            }
-                        }else {
-                            $exitFunction($timerId, $masterPid);
-                        }
-                    };
-
-                    if (!$this->isMasterLive()) {
-                        sleep(2);
-                        if(!$this->isMasterLive()) {
-                            $masterPid  = $this->getMasterPid();
-                            $tickCheckMasterOffCount++;
-                            $runExitFn($timerId, $masterPid, $exitFunction, $tickCheckMasterOffCount);
-                        }
-                    }else {
-                        $parentPid = posix_getppid();
-                        if($parentPid == 1) {
-                            $masterPid = '1(system init)';
-                            $this->fmtWriteInfo("This Process of Parent Process is System Init Process, Master Pid={$masterPid}，children process={$this->getProcessName()},worker_id={$this->getProcessWorkerId()} start to exit");
-                            $runExitFn($timerId, $masterPid, $exitFunction, $tickCheckMasterOffCount);
-                        }
-                    }
-
-                    if ($this->isMasterLive() && $this->isWorker0() && $this->masterPid && $this->isDue()) {
-                        $this->saveMasterId($this->masterPid);
-                    }
-
-                    // strict reboot exit process
-                    if(!empty($this->readyRebootTime) && $this->isRebooting() && time() - $this->readyRebootTime > 60) {
-                        \Swoole\Timer::clear($timerId);
-                        $this->exit(true, 1);
-                    }
-
-                }catch (\Throwable $throwable) {
-                    $this->fmtWriteError("Check Master Error Msg={$throwable->getMessage()},trace={$throwable->getTraceAsString()}");
-                }
-            });
-
-            if (PHP_OS != 'Darwin') {
-                $processTypeName = $this->getProcessTypeName();
-                $this->swooleProcess->name(BaseServer::getAppPrefix()."-php-worker[{$processTypeName}-{$this->masterPid}-{$this->getPid()}]:" . $this->getProcessName() . '@' . $this->getProcessWorkerId());
-            }
-
-            $this->writeStartFormatInfo();
-
-            (new \Swoolefy\Core\EventApp)->registerApp(function () {
-                $targetAction = 'init';
-                if (method_exists(static::class, $targetAction)) {
-                    $this->{$targetAction}();
-                }
-
-                // reboot after handle can do send or record msg log or report msg
-                $method = self::WORKERFY_ON_EVENT_REBOOT;
-                if ($this->getRebootCount() > 0 && method_exists(static::class, $method)) {
-                    $this->$method();
-                }
-
-                $this->run();
-            });
+            $this->initializeWorkerBootstrap($swooleProcess);
+            $this->registerAsyncPipeEvent();
+            $this->registerSignalHandlers();
+            $this->registerMasterLiveCheckTimer();
+            $this->setRuntimeProcessName();
+            $this->bootApplicationLifecycle();
+            return true;
         } catch (\Throwable $throwable) {
             $this->onHandleException($throwable);
+            return false;
         }
+    }
+
+    /**
+     * Worker startup bootstrap.
+     *
+     * @param Process $swooleProcess
+     * @return void
+     */
+    private function initializeWorkerBootstrap(Process $swooleProcess): void
+    {
+        $this->swooleProcess = $swooleProcess;
+        putenv("handle_class=" . static::class);
+        BaseServer::reloadGlobalConf();
+
+        static::$processInstance = $this;
+        $this->pid = $this->swooleProcess->pid;
+        $this->coroutineId = \Swoole\Coroutine::getCid();
+        $this->initSystemCoroutineNum = $this->getCurrentRunCoroutineNum();
+        @Process::signal(SIGUSR2, null);
+        $this->setUserAndGroup();
+        $this->installRegisterShutdownFunction();
+        $this->installErrorHandler();
+    }
+
+    /**
+     * Register process pipe event handler for async mode.
+     *
+     * @return void
+     */
+    private function registerAsyncPipeEvent(): void
+    {
+        if (!$this->async) {
+            return;
+        }
+
+        Event::add($this->swooleProcess->pipe, function () {
+            try {
+                $message = $this->swooleProcess->read(64 * 1024);
+                if (!is_string($message)) {
+                    return;
+                }
+                $messageData = $this->decodePipeMessage($message);
+                if ($messageData === null) {
+                    return;
+                }
+
+                $isHandled = $this->handleSystemPipeAction(
+                    $messageData->data,
+                    $messageData->fromProcessName
+                );
+                if ($isHandled) {
+                    return;
+                }
+
+                goApp(function () use ($messageData) {
+                    try {
+                        $this->onPipeMsg(
+                            $messageData->data,
+                            $messageData->fromProcessName,
+                            (int)$messageData->fromProcessWorkerId,
+                            (bool)$messageData->isProxy
+                        );
+                    } catch (\Throwable $throwable) {
+                        $this->onHandleException($throwable);
+                    }
+                });
+            } catch (\Throwable $throwable) {
+                goApp(function () use ($throwable) {
+                    $this->onHandleException($throwable);
+                });
+            }
+        });
+    }
+
+    /**
+     * Decode and validate pipe message body.
+     *
+     * @param string $message
+     * @return MessageDto|null
+     */
+    private function decodePipeMessage(string $message): ?MessageDto
+    {
+        $messageDto = unserialize($message);
+        if (!$messageDto instanceof MessageDto) {
+            $this->fmtWriteError("Accept message type error");
+            return null;
+        }
+
+        return $messageDto;
+    }
+
+    /**
+     * Handle builtin process actions from pipe.
+     *
+     * @param mixed $msg
+     * @param string $fromProcessName
+     * @return bool
+     */
+    private function handleSystemPipeAction($msg, string $fromProcessName): bool
+    {
+        if (!is_string($msg)) {
+            return false;
+        }
+
+        switch ($msg) {
+            case self::WORKERFY_PROCESS_REBOOT_FLAG:
+                goApp(function () {
+                    if ($this->isStaticProcess()) {
+                        $this->reboot();
+                    } else {
+                        // from cli ctl, dynamic process can not reload. only exit
+                        $this->exit(true, 10);
+                    }
+                });
+                return true;
+
+            case self::WORKERFY_PROCESS_EXIT_FLAG:
+                goApp(function () use ($fromProcessName) {
+                    // 定时任务进程业务正在执行中时
+                    if (SystemEnv::isCronService() && $this->runInBackground && $this->handing) {
+                        // 设置进程等待退出，进程将在业务处理完后退出
+                        $this->waitToExit = true;
+                        $this->isExit     = true;
+                    } else if ($this->useLoopHandle) {
+                        // 进程如果使用封装的loopHandle处理业务时，进程将在业务处理完后退出
+                        $this->waitToExit = true;
+                        $this->isExit     = true;
+                    } else {
+                        if ($fromProcessName == MainManager::MASTER_WORKER_NAME) {
+                            $this->exit(true, 10);
+                        } else {
+                            $this->exit(false, 10);
+                        }
+                    }
+                });
+                return true;
+
+            case self::WORKERFY_PROCESS_STATUS_FLAG:
+                $systemStatus = $this->getProcessSystemStatus();
+                if (!isset($systemStatus['record_time'])) {
+                    $systemStatus['record_time'] = date('Y-m-d H:i:s');
+                }
+                $data = [
+                    'action' => self::WORKERFY_PROCESS_STATUS_FLAG,
+                    'process_name' => $this->getProcessName(),
+                    'data' => [
+                        'worker_id' => $this->getProcessWorkerId(),
+                        'status' => $systemStatus ?? []
+                    ]
+                ];
+                $this->writeToMasterProcess($data);
+                return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Register process signal handlers.
+     *
+     * @return void
+     */
+    private function registerSignalHandlers(): void
+    {
+        // exit signal
+        Process::signal(SIGTERM, function ($signo) {
+            $this->handleExitSignal((int)$signo);
+        });
+
+        // reboot signal
+        Process::signal(SIGUSR1, function ($signo) {
+            $this->handleRebootSignal((int)$signo);
+        });
+    }
+
+    /**
+     * Handle exit signal callback.
+     *
+     * @param int $signo
+     * @return void
+     */
+    private function handleExitSignal(int $signo): void
+    {
+        $function = $this->exitSingleHandle($signo);
+        $function();
+    }
+
+    /**
+     * Handle reboot signal callback.
+     *
+     * @param int $signo
+     * @return void
+     */
+    private function handleRebootSignal(int $signo): void
+    {
+        $function = $this->rebootSingleHandle();
+        $function();
+    }
+
+    /**
+     * Register timer to detect master process liveness.
+     *
+     * @return void
+     */
+    private function registerMasterLiveCheckTimer(): void
+    {
+        // 定时检查到master主进程死掉的进行的检查次数
+        $tickCheckMasterOffCount = 0;
+        $tickMilliseconds = ($this->args['check_master_live_tick_time'] + rand(1, 5)) * 1000;
+        $this->masterLiveTimerId = \Swoole\Timer::tick($tickMilliseconds, function ($timerId) use (&$tickCheckMasterOffCount) {
+            $this->handleMasterLiveCheckTick((int)$timerId, $tickCheckMasterOffCount);
+        });
+    }
+
+    /**
+     * Handle one tick of master liveness check.
+     *
+     * @param int $timerId
+     * @param int $tickCheckMasterOffCount
+     * @return void
+     */
+    private function handleMasterLiveCheckTick(int $timerId, int &$tickCheckMasterOffCount): void
+    {
+        try {
+            if (!$this->isMasterLive()) {
+                sleep(2);
+                if (!$this->isMasterLive()) {
+                    $masterPid = $this->getMasterPid();
+                    $tickCheckMasterOffCount++;
+                    $this->runMasterOfflineExitStrategy($timerId, $masterPid, $tickCheckMasterOffCount);
+                }
+            } else {
+                $parentPid = posix_getppid();
+                if ($parentPid == 1) {
+                    $masterPid = '1(system init)';
+                    $this->fmtWriteInfo("This Process of Parent Process is System Init Process, Master Pid={$masterPid}，children process={$this->getProcessName()},worker_id={$this->getProcessWorkerId()} start to exit");
+                    $this->runMasterOfflineExitStrategy($timerId, $masterPid, $tickCheckMasterOffCount);
+                }
+            }
+
+            if ($this->isMasterLive() && $this->isWorker0() && $this->masterPid && $this->isDue()) {
+                $this->saveMasterId($this->masterPid);
+            }
+
+            // strict reboot exit process
+            if (!empty($this->readyRebootTime) && $this->isRebooting() && time() - $this->readyRebootTime > 60) {
+                \Swoole\Timer::clear($timerId);
+                $this->exit(true, 1);
+            }
+        } catch (\Throwable $throwable) {
+            $this->fmtWriteError("Check Master Error Msg={$throwable->getMessage()},trace={$throwable->getTraceAsString()}");
+        }
+    }
+
+    /**
+     * Execute exit strategy when master is offline.
+     *
+     * @param int $timerId
+     * @param mixed $masterPid
+     * @param int $tickCheckMasterOffCount
+     * @return void
+     */
+    private function runMasterOfflineExitStrategy(int $timerId, $masterPid, int $tickCheckMasterOffCount): void
+    {
+        if (SystemEnv::isCronService()) {
+            // cron model 任务还在进行中,防止强制退出
+            if (!$this->handing) {
+                $this->exitWhenMasterOffline($timerId, $masterPid);
+            } else {
+                $this->fmtWriteInfo("【cron-task-handing】Cron Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
+            }
+            return;
+        }
+
+        if (SystemEnv::isDaemonService()) {
+            // daemon model 任务还在进行中,防止强制退出
+            // 定时检查到主进程 $tickCheckMasterOffCount 次已经kill掉了，但子进程也不能一直不退出，否则成了僵尸进程了，这里做一个兜底退出，1800秒后强制退出
+            $lastTime = $this->args['check_master_live_tick_time'] * $tickCheckMasterOffCount;
+            $this->fmtWriteInfo("Daemon Process={$this->getProcessName()} last master off time={$lastTime}, tickCheckMasterOffCount={$tickCheckMasterOffCount}, pid={$this->getPid()}");
+            if (!$this->useLoopHandle || ($lastTime > 1800)) {
+                $this->exitWhenMasterOffline($timerId, $masterPid);
+            } else {
+                $this->fmtWriteInfo("【daemon-task-handing】Daemon Process={$this->getProcessName()} is handing, pid={$this->getPid()}");
+            }
+            return;
+        }
+
+        $this->exitWhenMasterOffline($timerId, $masterPid);
+    }
+
+    /**
+     * Exit current worker when master is unavailable.
+     *
+     * @param int $timerId
+     * @param mixed $masterPid
+     * @return void
+     */
+    private function exitWhenMasterOffline(int $timerId, $masterPid): void
+    {
+        \Swoole\Timer::clear($timerId);
+        $processName = $this->getProcessName();
+        $workerId = $this->getProcessWorkerId();
+        $this->masterLiveTimerId = null;
+        $this->fmtWriteInfo("Check Parent Master Pid={$masterPid}，children process={$processName},worker_id={$workerId} start to exit");
+        $this->exit(true, 5);
+    }
+
+    /**
+     * Set runtime process name for non-darwin systems.
+     *
+     * @return void
+     */
+    private function setRuntimeProcessName(): void
+    {
+        if (PHP_OS == 'Darwin') {
+            return;
+        }
+
+        $processTypeName = $this->getProcessTypeName();
+        $this->swooleProcess->name(BaseServer::getAppPrefix() . "-php-worker[{$processTypeName}-{$this->masterPid}-{$this->getPid()}]:" . $this->getProcessName() . '@' . $this->getProcessWorkerId());
+    }
+
+    /**
+     * Boot app lifecycle hooks and run worker entrypoint.
+     *
+     * @return void
+     */
+    private function bootApplicationLifecycle(): void
+    {
+        $this->writeStartFormatInfo();
+
+        (new \Swoolefy\Core\EventApp)->registerApp(function () {
+            $targetAction = 'init';
+            if (method_exists(static::class, $targetAction)) {
+                $this->{$targetAction}();
+            }
+
+            // reboot after handle can do send or record msg log or report msg
+            $method = self::WORKERFY_ON_EVENT_REBOOT;
+            if ($this->getRebootCount() > 0 && method_exists(static::class, $method)) {
+                $this->$method();
+            }
+
+            $this->run();
+        });
     }
 
     /**
      * @param int $signo
      * @return \Closure
      */
-    private function exitSingleHandle(int $signo)
+    private function exitSingleHandle(int $signo): \Closure
     {
         return function() use($signo) {
             try {
@@ -595,7 +740,7 @@ abstract class AbstractBaseWorker
      * @param int $signo
      * @return \Closure
      */
-    private function rebootSingleHandle()
+    private function rebootSingleHandle(): \Closure
     {
         return function () {
             $processName = '';
@@ -620,7 +765,7 @@ abstract class AbstractBaseWorker
     /**
      * exitAndRebootDefer
      */
-    private function exitAndRebootDefer()
+    private function exitAndRebootDefer(): void
     {
         // destroy
         if (method_exists(static::class, '__destruct') && version_compare(phpversion(), '8.0.0', '>=') ) {
@@ -898,7 +1043,7 @@ abstract class AbstractBaseWorker
      * @param string $processName
      * @return void
      */
-    private function notifyMasterRebootNewProcess(string $processName)
+    private function notifyMasterRebootNewProcess(string $processName): void
     {
         $data = [
             'action' => MainManager::REBOOT_PROCESS_WORKER,
@@ -1516,7 +1661,7 @@ abstract class AbstractBaseWorker
      * @param int $maxWaitTime
      * @return void
      */
-    private function runtimeCoroutineWait(int $maxWaitTime = 20)
+    private function runtimeCoroutineWait(int $maxWaitTime = 20): void
     {
         if ($maxWaitTime <= 10) {
             $maxWaitTime = 10;
@@ -1549,7 +1694,7 @@ abstract class AbstractBaseWorker
     /**
      * @return array
      */
-    private function getProcessSystemStatus()
+    private function getProcessSystemStatus(): array
     {
         return [
             'memory' => Helper::getMemoryUsage(),
