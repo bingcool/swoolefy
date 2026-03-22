@@ -319,10 +319,12 @@ abstract class AbstractBaseWorker
 
         $this->args['check_master_live_tick_time'] = self::CHECK_MASTER_LIVE_TICK_TIME;
 
-        if (isset($args['check_master_live_tick_time'])) {
-            if ($args['check_master_live_tick_time'] < self::CHECK_MASTER_LIVE_TICK_TIME) {
-                $this->args['check_master_live_tick_time'] = self::CHECK_MASTER_LIVE_TICK_TIME;
+        if (isset($args['check_master_live_tick_time']) && is_numeric($args['check_master_live_tick_time'])) {
+            $checkMasterLiveTickTime = (int)$args['check_master_live_tick_time'];
+            if ($checkMasterLiveTickTime < self::CHECK_MASTER_LIVE_TICK_TIME) {
+                $checkMasterLiveTickTime = self::CHECK_MASTER_LIVE_TICK_TIME;
             }
+            $this->args['check_master_live_tick_time'] = $checkMasterLiveTickTime;
         }
         $this->swooleProcess = new \Swoole\Process([$this, '__start'], false, 2, $enable_coroutine);
     }
@@ -568,7 +570,7 @@ abstract class AbstractBaseWorker
                 $processName = $this->getProcessName();
                 $workerId    = $this->getProcessWorkerId();
             } catch (\Throwable $throwable) {
-                $processName = isset($processName) ?? '';
+                $processName = $processName ?? '';
                 $this->fmtWriteError("Exit error, Process={$processName}, error:" . $throwable->getMessage());
                 $isError = true;
             } finally {
@@ -660,6 +662,40 @@ abstract class AbstractBaseWorker
     }
 
     /**
+     * Build transferable process message payload.
+     *
+     * @param string $fromProcessName
+     * @param int $fromProcessWorkerId
+     * @param mixed $data
+     * @param bool $isProxy
+     * @param string|null $toProcessName
+     * @param int|null $toProcessWorkerId
+     * @return MessageDto
+     */
+    private function buildMessageDto(
+        string $fromProcessName,
+        int $fromProcessWorkerId,
+        $data,
+        bool $isProxy,
+        ?string $toProcessName = null,
+        ?int $toProcessWorkerId = null
+    ): MessageDto
+    {
+        $messageDto                      = new MessageDto();
+        $messageDto->fromProcessName     = $fromProcessName;
+        $messageDto->fromProcessWorkerId = $fromProcessWorkerId;
+        $messageDto->data                = $data;
+        $messageDto->isProxy             = $isProxy;
+        if ($toProcessName !== null) {
+            $messageDto->toProcessName = $toProcessName;
+        }
+        if ($toProcessWorkerId !== null) {
+            $messageDto->toProcessWorkerId = $toProcessWorkerId;
+        }
+        return $messageDto;
+    }
+
+    /**
      * writeByProcessName worker send message to process
      * @param string $process_name
      * @param mixed $data
@@ -684,13 +720,14 @@ abstract class AbstractBaseWorker
         }
 
         if ($isMaster) {
-            $toProcessWorkerId               = 0;
-            $messageDto                      = new MessageDto();
-            $messageDto->fromProcessName     = $fromProcessName;
-            $messageDto->fromProcessWorkerId = $fromProcessWorkerId;
-            $messageDto->toProcessName       = $processManager->getMasterWorkerName();
-            $messageDto->toProcessWorkerId   = $toProcessWorkerId;
-            $messageDto->data                = $data;
+            $messageDto = $this->buildMessageDto(
+                $fromProcessName,
+                $fromProcessWorkerId,
+                $data,
+                true,
+                $processManager->getMasterWorkerName(),
+                0
+            );
             $message = serialize($messageDto);
             $this->getSwooleProcess()->write($message);
             return true;
@@ -704,31 +741,38 @@ abstract class AbstractBaseWorker
             $processWorkers = $toTargetProcess;
         }
 
+        $sent = false;
         foreach ($processWorkers as $process) {
             if ($process->isRebooting() || $process->isExiting()) {
                 $this->fmtWriteInfo("The process={$this->getProcessName()}, worker_id={$this->getProcessWorkerId()} is in isRebooting or isExiting status, not send msg to other process");
                 continue;
             }
 
-            $messageDto  = new MessageDto();
             if ($is_use_master_proxy) {
-                $messageDto->fromProcessName     = $fromProcessName;
-                $messageDto->fromProcessWorkerId = $fromProcessWorkerId;
-                $messageDto->toProcessName       = $process->getProcessName();
-                $messageDto->toProcessWorkerId   = $process->getProcessWorkerId();
-                $messageDto->data                = $data;
-                $messageDto->isProxy             = true;
+                $messageDto = $this->buildMessageDto(
+                    $fromProcessName,
+                    $fromProcessWorkerId,
+                    $data,
+                    true,
+                    $process->getProcessName(),
+                    $process->getProcessWorkerId()
+                );
                 $message = serialize($messageDto);
                 $this->getSwooleProcess()->write($message);
+                $sent = true;
             } else {
-                $messageDto->fromProcessName     = $fromProcessName;
-                $messageDto->fromProcessWorkerId = $fromProcessWorkerId;
-                $messageDto->data                = $data;
-                $messageDto->isProxy             = false;
+                $messageDto = $this->buildMessageDto(
+                    $fromProcessName,
+                    $fromProcessWorkerId,
+                    $data,
+                    false
+                );
                 $message = serialize($messageDto);
                 $process->getSwooleProcess()->write($message);
+                $sent = true;
             }
         }
+        return $sent;
     }
 
     /**
@@ -1287,7 +1331,7 @@ abstract class AbstractBaseWorker
             }
             return true;
         }
-
+        return false;
     }
 
     /**
@@ -1426,6 +1470,7 @@ abstract class AbstractBaseWorker
                 return false;
             }
         }
+        return false;
     }
 
     /**
