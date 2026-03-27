@@ -38,6 +38,134 @@ class IpUtils
     }
 
     /**
+     * 解析客户端真实IP。
+     * 仅当 REMOTE_ADDR 来自可信代理时，才解析转发头。
+     *
+     * @param array $server
+     * @param array $trustedProxies
+     * @return string
+     */
+    public static function resolveClientIp(array $server, array $trustedProxies = []): string
+    {
+        $remoteIp = $server['REMOTE_ADDR'] ?? '0.0.0.0';
+        $clientIp = $remoteIp;
+
+        if (self::isTrustedProxyRemoteIp($remoteIp, $trustedProxies)) {
+            $forwardedIp = self::extractClientIpFromForwardedHeaders($server, true);
+            if (!empty($forwardedIp)) {
+                $clientIp = $forwardedIp;
+            }
+        }
+
+        if (!self::isValidIp($clientIp)) {
+            return '0.0.0.0';
+        }
+
+        return $clientIp;
+    }
+
+    /**
+     * 请求是否来自可信代理
+     *
+     * @param string $remoteIp
+     * @param array $trustedProxies
+     * @return bool
+     */
+    public static function isTrustedProxyRemoteIp(string $remoteIp, array $trustedProxies = []): bool
+    {
+        if ($remoteIp === '' || empty($trustedProxies)) {
+            return false;
+        }
+
+        return self::checkIp($remoteIp, $trustedProxies);
+    }
+
+    /**
+     * 从转发头中提取客户端IP，默认仅接受公网IP
+     *
+     * @param array $server
+     * @param bool $publicOnly
+     * @return string|null
+     */
+    public static function extractClientIpFromForwardedHeaders(array $server, bool $publicOnly = true): ?string
+    {
+        $forwardedFor = $server['HTTP_X_FORWARDED_FOR'] ?? '';
+        if (is_string($forwardedFor) && strcasecmp($forwardedFor, 'unknown') !== 0) {
+            $ip = self::extractFirstValidIp($forwardedFor, $publicOnly);
+            if (!empty($ip)) {
+                return $ip;
+            }
+        }
+
+        foreach (['HTTP_X_REAL_IP', 'HTTP_CLIENT_IP'] as $headerName) {
+            $headerIp = $server[$headerName] ?? '';
+            if (!is_string($headerIp)) {
+                continue;
+            }
+
+            $headerIp = trim($headerIp);
+            if ($headerIp === '' || strcasecmp($headerIp, 'unknown') === 0) {
+                continue;
+            }
+
+            $isValid = $publicOnly ? self::isPublicIp($headerIp) : self::isValidIp($headerIp);
+            if ($isValid) {
+                return $headerIp;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 从逗号分隔IP串中提取第一个合法IP
+     *
+     * @param string $ipList
+     * @param bool $publicOnly
+     * @return string|null
+     */
+    public static function extractFirstValidIp(string $ipList, bool $publicOnly = false): ?string
+    {
+        $ips = explode(',', $ipList);
+        foreach ($ips as $item) {
+            $ip = trim($item);
+            if ($ip === '' || strcasecmp($ip, 'unknown') === 0) {
+                continue;
+            }
+
+            if (!self::isValidIp($ip)) {
+                continue;
+            }
+
+            if ($publicOnly && !self::isPublicIp($ip)) {
+                continue;
+            }
+
+            return $ip;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param string $ip
+     * @return bool
+     */
+    public static function isValidIp(string $ip): bool
+    {
+        return filter_var($ip, \FILTER_VALIDATE_IP) !== false;
+    }
+
+    /**
+     * @param string $ip
+     * @return bool
+     */
+    public static function isPublicIp(string $ip): bool
+    {
+        return filter_var($ip, \FILTER_VALIDATE_IP, \FILTER_FLAG_NO_PRIV_RANGE | \FILTER_FLAG_NO_RES_RANGE) !== false;
+    }
+
+    /**
      * Compares two IPv4 addresses.
      * In case a subnet is given, it checks if it contains the request IP.
      *
