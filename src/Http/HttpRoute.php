@@ -33,6 +33,10 @@ class HttpRoute extends AppDispatch
     const ITEM_NUM_5 = 5;
 
     const DISPATCH_ROUTE = 'dispatch_route';
+    const PARAM_KIND_REQUEST_INPUT = 'request_input';
+    const PARAM_KIND_RESPONSE_OUTPUT = 'response_output';
+    const PARAM_KIND_DTO = 'dto';
+    const PARAM_KIND_DEFAULT = 'default';
 
     /**
      * $appConf
@@ -109,6 +113,20 @@ class HttpRoute extends AppDispatch
     protected static $routeCache;
 
     /**
+     * 控制器 action 参数元数据缓存
+     *
+     * @var array
+     */
+    protected static $actionParamMetaCache = [];
+
+    /**
+     * 控制器命名空间解析缓存
+     *
+     * @var array
+     */
+    protected static $dispatchControllerMetaCache = [];
+
+    /**
      * $denyActions
      * @var array
      */
@@ -153,22 +171,10 @@ class HttpRoute extends AppDispatch
         $controllerNamespace = $this->dispatchRoute[0];
         $action = $this->dispatchRoute[1];
 
-        $dispatchRouteItem = explode("\\", $controllerNamespace);
-        $count = count($dispatchRouteItem);
-        $controller = '';
-        switch ($count) {
-            case static::ITEM_NUM_3:
-                $module = null;
-                $controller = $dispatchRouteItem[2];
-                break;
-            case static::ITEM_NUM_5 :
-                $module = $dispatchRouteItem[2];
-                $controller = $dispatchRouteItem[4];
-                break;
-        }
+        [$module, $controller] = self::parseDispatchControllerMeta($controllerNamespace);
 
         // forbidden call action
-        if (in_array($action, static::$denyActions)) {
+        if (in_array($action, static::$denyActions, true)) {
             $errorMsg = "{$controller}::{$action} is forbidden access this action";
             throw new DispatchException($errorMsg, \Swoole\Http\Status::FORBIDDEN);
         }
@@ -253,9 +259,10 @@ class HttpRoute extends AppDispatch
             throw new DispatchException($errorMsg, \Swoole\Http\Status::FORBIDDEN);
         }
         // reflector params handle
-        list($method, $args) = $this->bindActionParams($controllerInstance, $action, $this->requestInput->all());
+        $args = $this->bindActionParams($controllerInstance, $action, $this->requestInput->all());
         $controllerInstance->{$action}(...$args);
         if (!SystemEnv::isPrdEnv()) {
+            $traceId = '';
             if (SwooleContext::has(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID)) {
                 $traceId = SwooleContext::get(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID);
             }
@@ -290,22 +297,7 @@ class HttpRoute extends AppDispatch
      */
     private function handleGroupRouteMiddles(string $method)
     {
-        foreach ($this->groupMiddlewares as $middleware) {
-            if (class_exists($middleware)) {
-                $middlewareHandleEntity = new $middleware;
-                //  1、cors 跨域options预检测处理完直接响应返回，无需往下执行流程
-                //  2、正式的跨域请求，handle()返回false预检不通过, 无需往下执行流程
-                if ($middlewareHandleEntity instanceof CorsMiddlewareInterface) {
-                    $preflightResult = $middlewareHandleEntity->handle($this->requestInput, $this->responseOutput);
-                    if ($method == 'OPTIONS' || empty($preflightResult)) {
-                        throw new CorsRespException();
-                    }
-                }
-                if ($middlewareHandleEntity instanceof RouteMiddlewareInterface) {
-                    $middlewareHandleEntity->handle($this->requestInput, $this->responseOutput);
-                }
-            }
-        }
+        $this->runMiddlewares($this->groupMiddlewares, $method);
     }
 
     /**
@@ -314,27 +306,7 @@ class HttpRoute extends AppDispatch
      */
     private function handleBeforeRouteMiddles(string $method)
     {
-        foreach ($this->beforeMiddlewares as $middleware) {
-            if ($middleware instanceof \Closure) {
-                $result = call_user_func($middleware, $this->requestInput, $this->responseOutput);
-                if ($result === false) {
-                    throw new SystemException('beforeHandle route middle return false, Not Allow Coroutine To Next Middle', \Swoole\Http\Status::INTERNAL_SERVER_ERROR);
-                }
-            }else if (class_exists($middleware)) {
-                $middlewareEntity = new $middleware;
-                //  1、cors 跨域options预检测处理完直接响应返回，无需往下执行流程
-                //  2、正式的跨域请求，handle()返回false预检不通过, 无需往下执行流程
-                if ($middlewareEntity instanceof CorsMiddlewareInterface) {
-                    $preflightResult = $middlewareEntity->handle($this->requestInput, $this->responseOutput);
-                    if ($method == 'OPTIONS' || empty($preflightResult)) {
-                        throw new CorsRespException();
-                    }
-                }
-                if ($middlewareEntity instanceof RouteMiddlewareInterface) {
-                    $middlewareEntity->handle($this->requestInput, $this->responseOutput);
-                }
-            }
-        }
+        $this->runMiddlewares($this->beforeMiddlewares, $method, true, true);
     }
 
     /**
@@ -344,14 +316,51 @@ class HttpRoute extends AppDispatch
      */
     private function handleAfterRouteMiddles()
     {
-        foreach ($this->afterMiddlewares as $middleware) {
-            if ($middleware instanceof \Closure) {
-                call_user_func($middleware, $this->requestInput, $this->responseOutput);
-            }else if (class_exists($middleware)) {
-                $middlewareEntity = new $middleware;
-                if ($middlewareEntity instanceof RouteMiddlewareInterface) {
-                    $middlewareEntity->handle($this->requestInput, $this->responseOutput);
+        $this->runMiddlewares($this->afterMiddlewares, '', true, false, false);
+    }
+
+    /**
+     * 统一处理中间件，避免重复流程分支
+     *
+     * @param array $middlewares
+     * @param string $method
+     * @param bool $supportClosure
+     * @param bool $throwWhenClosureFalse
+     * @param bool $supportCors
+     * @return void
+     */
+    private function runMiddlewares(
+        array $middlewares,
+        string $method = '',
+        bool $supportClosure = false,
+        bool $throwWhenClosureFalse = false,
+        bool $supportCors = true
+    ): void {
+        foreach ($middlewares as $middleware) {
+            if ($supportClosure && $middleware instanceof \Closure) {
+                $result = $middleware($this->requestInput, $this->responseOutput);
+                if ($throwWhenClosureFalse && $result === false) {
+                    throw new SystemException('beforeHandle route middle return false, Not Allow Coroutine To Next Middle', \Swoole\Http\Status::INTERNAL_SERVER_ERROR);
                 }
+                continue;
+            }
+
+            if (!is_string($middleware) || !class_exists($middleware)) {
+                continue;
+            }
+
+            $middlewareEntity = new $middleware();
+            // cors middleware 一次调用即可，避免重复执行 handle()
+            if ($supportCors && $middlewareEntity instanceof CorsMiddlewareInterface) {
+                $preflightResult = $middlewareEntity->handle($this->requestInput, $this->responseOutput);
+                if ($method === 'OPTIONS' || empty($preflightResult)) {
+                    throw new CorsRespException();
+                }
+                continue;
+            }
+
+            if ($middlewareEntity instanceof RouteMiddlewareInterface) {
+                $middlewareEntity->handle($this->requestInput, $this->responseOutput);
             }
         }
     }
@@ -385,53 +394,69 @@ class HttpRoute extends AppDispatch
 
     /**
      * @param BController $controllerInstance
-     * @param $action
-     * @param $params
+     * @param string $action
+     * @param array $params
      * @return array
      * @throws DispatchException
      */
-    protected function bindActionParams(BController $controllerInstance, $action, $params)
+    protected function bindActionParams(BController $controllerInstance, string $action, array $params): array
     {
-        $method = new \ReflectionMethod($controllerInstance, $action);
+        $class = get_class($controllerInstance);
+        $cacheKey = $class . '::' . $action;
+        if (!isset(self::$actionParamMetaCache[$cacheKey])) {
+            self::$actionParamMetaCache[$cacheKey] = $this->buildActionParamMeta($class, $action);
+        }
+
+        $paramMetas = self::$actionParamMetaCache[$cacheKey];
         $args = $missing = $actionParams = [];
-        foreach ($method->getParameters() as $param) {
-            $name = $param->getName();
-            $hasType = $param->hasType();
-            $typeName = $param->getType()->getName();
-            if ($hasType && $typeName == RequestInput::class) {
+        $inputParams = null;
+
+        foreach ($paramMetas as $paramMeta) {
+            $kind = $paramMeta['kind'];
+            if ($kind === self::PARAM_KIND_REQUEST_INPUT) {
                 $args[] = $this->requestInput;
-            } else if ($hasType && $typeName == ResponseOutput::class) {
+                continue;
+            }
+
+            if ($kind === self::PARAM_KIND_RESPONSE_OUTPUT) {
                 $args[] = $this->responseOutput;
-            } else if ($hasType && class_exists($typeName) && is_subclass_of($typeName,AbstractDto::class)) {
-                $paramDto     = new $typeName();
-                $inputParams  = $this->requestInput->input();
+                continue;
+            }
+
+            if ($kind === self::PARAM_KIND_DTO) {
+                $dtoClass = $paramMeta['dto_class'];
+                $paramDto = new $dtoClass();
+                $inputParams = $inputParams ?? $this->requestInput->input();
                 $propertyList = get_object_vars($paramDto);
                 foreach ($propertyList as $property => $value) {
                     $paramDto->{$property} = $inputParams[$property] ?? $value;
                 }
                 $args[] = $paramDto;
-            } else if (array_key_exists($name, $params)) {
+                continue;
+            }
+
+            $name = $paramMeta['name'];
+            if (array_key_exists($name, $params)) {
                 $isValid = true;
-                if ($param->hasType() && $param->getType()->getName() == 'array') {
-                    $params[$name] = (array)$params[$name];
-                } else if (is_array($params[$name])) {
+                $value = $params[$name];
+                if ($paramMeta['is_array']) {
+                    $value = (array)$value;
+                } else if (is_array($value)) {
                     $isValid = false;
                 } else if (
-                    ($type = $param->getType()) !== null &&
-                    $type->isBuiltin() &&
-                    ($params[$name] !== null || !$type->allowsNull())
+                    !empty($paramMeta['builtin_type']) &&
+                    ($value !== null || !$paramMeta['allows_null'])
                 ) {
-                    $typeName = $type->getName();
-                    switch ($typeName) {
+                    switch ($paramMeta['builtin_type']) {
                         case 'int':
                         case 'integer':
-                            $params[$name] = filter_var($params[$name], FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE);
+                            $value = filter_var($value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE);
                             break;
                         case 'float':
-                            $params[$name] = filter_var($params[$name], FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE);
+                            $value = filter_var($value, FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE);
                             break;
                     }
-                    if ($params[$name] === null) {
+                    if ($value === null) {
                         $isValid = false;
                     }
                 }
@@ -440,11 +465,17 @@ class HttpRoute extends AppDispatch
                     throw new DispatchException("Invalid data received for parameter of {$name}" . '|||' . $this->requestInput->getSwooleRequest()->server['REQUEST_URI']);
                 }
 
-                $args[] = $actionParams[$name] = $params[$name];
+                $args[] = $actionParams[$name] = $value;
                 unset($params[$name]);
-            } else if ($param->isDefaultValueAvailable()) {
-                $args[] = $actionParams[$name] = $param->getDefaultValue();
-            } else {
+                continue;
+            }
+
+            if ($paramMeta['has_default']) {
+                $args[] = $actionParams[$name] = $paramMeta['default'];
+                continue;
+            }
+
+            if ($kind === self::PARAM_KIND_DEFAULT) {
                 $missing[] = $name;
             }
         }
@@ -455,7 +486,64 @@ class HttpRoute extends AppDispatch
 
         $this->actionParams = $actionParams;
 
-        return [$method, $args];
+        return $args;
+    }
+
+    /**
+     * 构建并缓存 action 参数元数据，减少每次请求反射成本
+     *
+     * @param string $class
+     * @param string $action
+     * @return array
+     */
+    private function buildActionParamMeta(string $class, string $action): array
+    {
+        $method = new \ReflectionMethod($class, $action);
+        $paramMetas = [];
+        foreach ($method->getParameters() as $param) {
+            $type = $param->getType();
+            $typeName = null;
+            $allowsNull = false;
+            $builtinType = null;
+
+            if ($type instanceof \ReflectionNamedType) {
+                $typeName = $type->getName();
+                $allowsNull = $type->allowsNull();
+                if ($type->isBuiltin()) {
+                    $builtinType = $typeName;
+                }
+            }
+
+            if ($typeName === RequestInput::class) {
+                $paramMetas[] = ['kind' => self::PARAM_KIND_REQUEST_INPUT];
+                continue;
+            }
+
+            if ($typeName === ResponseOutput::class) {
+                $paramMetas[] = ['kind' => self::PARAM_KIND_RESPONSE_OUTPUT];
+                continue;
+            }
+
+            if ($typeName && class_exists($typeName) && is_subclass_of($typeName, AbstractDto::class)) {
+                $paramMetas[] = [
+                    'kind' => self::PARAM_KIND_DTO,
+                    'dto_class' => $typeName,
+                ];
+                continue;
+            }
+
+            $paramMetas[] = [
+                'kind' => self::PARAM_KIND_DEFAULT,
+                'name' => $param->getName(),
+                'is_array' => $typeName === 'array',
+                'builtin_type' => $builtinType,
+                'allows_null' => $allowsNull,
+                'has_default' => $param->isDefaultValueAvailable(),
+                'default' => $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null,
+            ];
+        }
+
+        return $paramMetas;
     }
 
     /**
@@ -484,39 +572,22 @@ class HttpRoute extends AppDispatch
                 throw new DispatchException("Missing `dispatch_route` item ");
             } else {
                 $originDispatchRoute = $routerMeta[self::DISPATCH_ROUTE];
-                $dispatchRoute = str_replace("\\",DIRECTORY_SEPARATOR, $routerMeta[self::DISPATCH_ROUTE][0]);
-                $dispatchRouteItems = explode(DIRECTORY_SEPARATOR, $dispatchRoute);
-                $itemNum = count($dispatchRouteItems);
-                if (!in_array($itemNum, [static::ITEM_NUM_3, static::ITEM_NUM_5])) {
-                    throw new DispatchException("Dispatch Route Class Error");
-                }
+                self::parseDispatchControllerMeta($originDispatchRoute[0] ?? null);
             }
 
             $beforeMiddlewares = $afterMiddlewares = [];
-            foreach($routerMeta as $alias => $handle) {
-                if ($alias != self::DISPATCH_ROUTE) {
-                    if (is_array($handle)) {
-                        foreach ($handle as $handleItem) {
-                            $beforeMiddlewares[] = $handleItem;
-                        }
-                    } else {
-                        $beforeMiddlewares[] = $handle;
-                    }
-                    unset($routerMeta[$alias]);
+            $isAfterDispatchRoute = false;
+            foreach ($routerMeta as $alias => $handle) {
+                // 调度路由之后的是后置中间件
+                if ($alias === self::DISPATCH_ROUTE) {
+                    $isAfterDispatchRoute = true;
                     continue;
                 }
-                unset($routerMeta[$alias]);
-                break;
-            }
 
-            $afterMiddlewareTemp = array_values($routerMeta);
-            foreach ($afterMiddlewareTemp as $afterMiddlewareItem) {
-                if (is_array($afterMiddlewareItem)) {
-                    foreach ($afterMiddlewareItem as $afterMiddlewareEntry) {
-                        $afterMiddlewares[] = $afterMiddlewareEntry;
-                    }
+                if ($isAfterDispatchRoute) {
+                    $this->appendRouteMiddleware($afterMiddlewares, $handle);
                 } else {
-                    $afterMiddlewares[] = $afterMiddlewareItem;
+                    $this->appendRouteMiddleware($beforeMiddlewares, $handle);
                 }
             }
 
@@ -585,6 +656,55 @@ class HttpRoute extends AppDispatch
     }
 
     /**
+     * 按序展开 middleware 配置
+     *
+     * @param array $middlewares
+     * @param mixed $handle
+     * @return void
+     */
+    private function appendRouteMiddleware(array &$middlewares, $handle): void
+    {
+        if (is_array($handle)) {
+            foreach ($handle as $handleItem) {
+                $middlewares[] = $handleItem;
+            }
+            return;
+        }
+
+        $middlewares[] = $handle;
+    }
+
+    /**
+     * 解析 dispatch route controller 部分，包含格式校验和缓存
+     *
+     * @param mixed $controllerNamespace
+     * @return array [module|null, controller]
+     * @throws DispatchException
+     */
+    private static function parseDispatchControllerMeta($controllerNamespace): array
+    {
+        if (!is_string($controllerNamespace) || $controllerNamespace === '') {
+            throw new DispatchException("Dispatch Route Class Error");
+        }
+
+        if (isset(self::$dispatchControllerMetaCache[$controllerNamespace])) {
+            return self::$dispatchControllerMetaCache[$controllerNamespace];
+        }
+
+        $dispatchRouteItem = explode("\\", $controllerNamespace);
+        $count = count($dispatchRouteItem);
+        if ($count === static::ITEM_NUM_3) {
+            return self::$dispatchControllerMetaCache[$controllerNamespace] = [null, $dispatchRouteItem[2]];
+        }
+
+        if ($count === static::ITEM_NUM_5) {
+            return self::$dispatchControllerMetaCache[$controllerNamespace] = [$dispatchRouteItem[2], $dispatchRouteItem[4]];
+        }
+
+        throw new DispatchException("Dispatch Route Class Error");
+    }
+
+    /**
      * @param string $uri
      * @return bool
      */
@@ -592,10 +712,7 @@ class HttpRoute extends AppDispatch
     {
         $uri = DIRECTORY_SEPARATOR.trim($uri,DIRECTORY_SEPARATOR);
         $routerMap = Route::loadRouteFile();
-        if (isset(self::$routeCache[$uri]) || isset($routerMap[$uri])) {
-            return true;
-        }
-        return false;
+        return isset(self::$routeCache[$uri]) || isset($routerMap[$uri]);
     }
 
     /**
