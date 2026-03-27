@@ -171,7 +171,10 @@ class HttpRoute extends AppDispatch
         $controllerNamespace = $this->dispatchRoute[0];
         $action = $this->dispatchRoute[1];
 
-        [$module, $controller] = self::parseDispatchControllerMeta($controllerNamespace);
+        [$module, $controller] = self::parseDispatchControllerMeta(
+            $controllerNamespace,
+            $this->isEnableRouteMetaCache($this->routeOption)
+        );
 
         // forbidden call action
         if (in_array($action, static::$denyActions, true)) {
@@ -402,12 +405,16 @@ class HttpRoute extends AppDispatch
     protected function bindActionParams(BController $controllerInstance, string $action, array $params): array
     {
         $class = get_class($controllerInstance);
-        $cacheKey = $class . '::' . $action;
-        if (!isset(self::$actionParamMetaCache[$cacheKey])) {
-            self::$actionParamMetaCache[$cacheKey] = $this->buildActionParamMeta($class, $action);
+        if ($this->isEnableRouteMetaCache($this->routeOption)) {
+            $cacheKey = $class . '::' . $action;
+            if (!isset(self::$actionParamMetaCache[$cacheKey])) {
+                self::$actionParamMetaCache[$cacheKey] = $this->buildActionParamMeta($class, $action);
+            }
+            $paramMetas = self::$actionParamMetaCache[$cacheKey];
+        } else {
+            $paramMetas = $this->buildActionParamMeta($class, $action);
         }
 
-        $paramMetas = self::$actionParamMetaCache[$cacheKey];
         $args = $missing = $actionParams = [];
         $inputParams = null;
 
@@ -568,11 +575,12 @@ class HttpRoute extends AppDispatch
              * @var RouteOption $routeOption
              */
             $routeOption = $routerMapInfo['route_option'] ?? null;
+            $enableCacheRouteMeta = $this->isEnableRouteMetaCache($routeOption);
             if (!isset($routerMeta[self::DISPATCH_ROUTE])) {
                 throw new DispatchException("Missing `dispatch_route` item ");
             } else {
                 $originDispatchRoute = $routerMeta[self::DISPATCH_ROUTE];
-                self::parseDispatchControllerMeta($originDispatchRoute[0] ?? null);
+                self::parseDispatchControllerMeta($originDispatchRoute[0] ?? null, $enableCacheRouteMeta);
             }
 
             $beforeMiddlewares = $afterMiddlewares = [];
@@ -675,33 +683,48 @@ class HttpRoute extends AppDispatch
     }
 
     /**
-     * 解析 dispatch route controller 部分，包含格式校验和缓存
+     * 解析 dispatch route controller 部分，包含格式校验和按路由开关缓存
      *
      * @param mixed $controllerNamespace
+     * @param bool $enableCacheRouteMeta
      * @return array [module|null, controller]
      * @throws DispatchException
      */
-    private static function parseDispatchControllerMeta($controllerNamespace): array
+    private static function parseDispatchControllerMeta($controllerNamespace, bool $enableCacheRouteMeta = false): array
     {
         if (!is_string($controllerNamespace) || $controllerNamespace === '') {
             throw new DispatchException("Dispatch Route Class Error");
         }
 
-        if (isset(self::$dispatchControllerMetaCache[$controllerNamespace])) {
+        if ($enableCacheRouteMeta && isset(self::$dispatchControllerMetaCache[$controllerNamespace])) {
             return self::$dispatchControllerMetaCache[$controllerNamespace];
         }
 
         $dispatchRouteItem = explode("\\", $controllerNamespace);
         $count = count($dispatchRouteItem);
         if ($count === static::ITEM_NUM_3) {
-            return self::$dispatchControllerMetaCache[$controllerNamespace] = [null, $dispatchRouteItem[2]];
+            $dispatchControllerMeta = [null, $dispatchRouteItem[2]];
+        } else if ($count === static::ITEM_NUM_5) {
+            $dispatchControllerMeta = [$dispatchRouteItem[2], $dispatchRouteItem[4]];
+        } else {
+            throw new DispatchException("Dispatch Route Class Error");
         }
 
-        if ($count === static::ITEM_NUM_5) {
-            return self::$dispatchControllerMetaCache[$controllerNamespace] = [$dispatchRouteItem[2], $dispatchRouteItem[4]];
+        if ($enableCacheRouteMeta) {
+            self::$dispatchControllerMetaCache[$controllerNamespace] = $dispatchControllerMeta;
         }
 
-        throw new DispatchException("Dispatch Route Class Error");
+        return $dispatchControllerMeta;
+    }
+
+    /**
+     * 当前请求路由是否开启了路由元信息缓存
+     *
+     * @return bool
+     */
+    private function isEnableRouteMetaCache(RouteOption $routeOption): bool
+    {
+        return $routeOption->isEnableCacheRouteMeta();
     }
 
     /**

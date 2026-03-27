@@ -23,6 +23,11 @@ class RouteOption extends \stdClass
     protected $dbDebug = false;
 
     /**
+     * @var bool 是否开启路由元信息缓存(高并发接口建议开启)
+     */
+    protected $enableCacheRouteMeta = false;
+
+    /**
      * 限流中间件类,需实现\Swoolefy\Core\RouteMiddleware
      *
      * @var string
@@ -63,6 +68,26 @@ class RouteOption extends \stdClass
     public function isEnableDbDebug(): bool
     {
         return $this->dbDebug;
+    }
+
+    /**
+     * 路由元信息缓存开关（控制 HttpRoute 中 action 参数元信息和控制器命名空间解析缓存）
+     *
+     * @param bool $enable
+     * @return $this
+     */
+    public function enableCacheRouteMeta(bool $enable = true)
+    {
+        $this->enableCacheRouteMeta = $enable;
+        return $this;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isEnableCacheRouteMeta(): bool
+    {
+        return $this->enableCacheRouteMeta;
     }
 
     /**

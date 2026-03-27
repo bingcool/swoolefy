@@ -14,7 +14,7 @@ use Test\Middleware\Group\GroupTestMiddleware;
 Route::get('/index/index', [
     'beforeHandle' => function(RequestInput $requestInput) {
         Context::set('name', 'bingcool');
-        $name = $requestInput->post('name');
+        $name = $requestInput->input('name');
     },
 
     'dispatch_route' => [\Test\Controller\IndexController::class, 'index'],
@@ -25,7 +25,7 @@ Route::get('/index/index', [
     'afterHandle1' => function(RequestInput $requestInput) {
 
     },
-]);
+])->enableCacheRouteMeta(false);
 
 // 分组路由
 Route::group([
