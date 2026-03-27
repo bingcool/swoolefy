@@ -12,6 +12,7 @@
 namespace Swoolefy\Core\Coroutine;
 
 use Common\Library\Db\PDOConnection;
+use Swoole\Coroutine;
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\Dto\ContainerObjectDto;
 use Swoolefy\Core\Log\LogManager;
@@ -272,7 +273,7 @@ class PoolsHandler
             }
         } else {
             if ($this->callCount >= $this->poolsNum || $this->channel->isEmpty()) {
-                usleep(10 * 1000);
+                Coroutine\System::sleep(0.01);
             }
         }
         if ($this->channel->length() > 0) {
@@ -337,7 +338,7 @@ class PoolsHandler
 
     public function clearPool()
     {
-        if ($length = $this->channel->length() > 0) {
+        if (($length = $this->channel->length()) > 0) {
             for ($i=0; $i<$length; $i++) {
                 $obj = $this->channel->pop(0.01);
                 unset($obj);

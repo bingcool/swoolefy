@@ -22,9 +22,11 @@ class IndexController extends BController {
      */
     protected $db;
 
-    public function index()
+    public function index(RequestInput $request)
     {
         // todo something
+
+        var_dump($request->getClientIP());
 
         // 创建一个协程单例异步写入日志
         goApp(function () {
