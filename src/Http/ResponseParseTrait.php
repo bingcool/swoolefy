@@ -53,12 +53,11 @@ trait ResponseParseTrait
                 break;
         }
 
-        if (strlen($responseContent) > 2 * 1024 * 1024) {
-            $chunks = str_split($responseContent, 2 * 1024 * 1024);
-            unset($responseContent);
-            foreach ($chunks as $k => $chunk) {
-                $this->swooleResponse->write($chunk);
-                unset($chunks[$k]);
+        $chunkSize = 2 * 1024 * 1024;
+        $responseContentLength = strlen($responseContent);
+        if ($responseContentLength > $chunkSize) {
+            for ($offset = 0; $offset < $responseContentLength; $offset += $chunkSize) {
+                $this->swooleResponse->write(substr($responseContent, $offset, $chunkSize));
             }
         } else {
             $this->swooleResponse->write($responseContent);

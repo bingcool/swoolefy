@@ -98,8 +98,7 @@ abstract class HttpAppServer extends HttpServer
             ->setAttribute(TraceAttributes::HTTP_REQUEST_BODY, json_encode($inputBody, JSON_UNESCAPED_UNICODE))
             ->setAttribute(TraceAttributes::HTTP_REQUEST_HEADERS, json_encode($request->header, JSON_UNESCAPED_UNICODE))
             ->setAttribute(TraceAttributes::HTTP_REQUEST_QUERY_PARAMS, $queryString)
-            ->setAttribute(TraceAttributes::HTTP_USER_AGENT, $headers['User-Agent'] ?? 'unknown')
-            ->setAttribute(TraceAttributes::HTTP_USER_AGENT, $headers['User-Agent'] ?? 'unknown')
+            ->setAttribute(TraceAttributes::HTTP_USER_AGENT, $carrier['User-Agent'] ?? 'unknown')
             ->setAttribute(TraceAttributes::SERVER_ADDRESS, gethostname())
         ;
         $scope   = $rootSpan->activate();

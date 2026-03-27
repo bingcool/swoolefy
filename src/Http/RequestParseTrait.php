@@ -573,25 +573,28 @@ trait RequestParseTrait
      */
     public function getClientIP(int $type = 0)
     {
-        $ip = '0.0.0.0';
-        // 通过nginx的代理
-        if (isset($this->swooleRequest->server['HTTP_X_REAL_IP']) && strcasecmp($this->swooleRequest->server['HTTP_X_REAL_IP'], "unknown")) {
-            $ip = $this->swooleRequest->server['HTTP_X_REAL_IP'];
+        $server = $this->swooleRequest->server ?? [];
+        $remoteIp = $server['REMOTE_ADDR'] ?? '0.0.0.0';
+        $ip = $remoteIp;
+
+        // 仅在请求来自可信代理时才解析转发头，避免伪造 X-Forwarded-For/X-Real-IP
+        if ($this->isTrustedProxyRemoteIp($remoteIp)) {
+            $forwardedIp = $this->extractClientIpFromForwardedHeaders($server);
+            if (!empty($forwardedIp)) {
+                $ip = $forwardedIp;
+            }
         }
-        if (isset($this->swooleRequest->server['HTTP_CLIENT_IP']) && strcasecmp($this->swooleRequest->server['HTTP_CLIENT_IP'], "unknown")) {
-            $ip = $this->swooleRequest->server["HTTP_CLIENT_IP"];
+
+        if (!$this->isValidIp($ip)) {
+            $ip = '0.0.0.0';
         }
-        if (isset($this->swooleRequest->server['HTTP_X_FORWARDED_FOR']) and strcasecmp($this->swooleRequest->server['HTTP_X_FORWARDED_FOR'], "unknown")) {
-            return $this->swooleRequest->server['HTTP_X_FORWARDED_FOR'];
+
+        if ($type === 1) {
+            $long = ip2long($ip);
+            return $long === false ? 0 : sprintf("%u", $long);
         }
-        if (isset($this->swooleRequest->server['REMOTE_ADDR'])) {
-            //没通过代理，或者通过代理而没设置x-real-ip的
-            $ip = $this->swooleRequest->server['REMOTE_ADDR'];
-        }
-        // IP地址合法验证
-        $long = sprintf("%u", ip2long($ip));
-        $ip = $long ? [$ip, $long] : ['0.0.0.0', 0];
-        return $ip[$type];
+
+        return $ip;
     }
 
     /**
@@ -758,7 +761,8 @@ trait RequestParseTrait
      */
     public function isFromTrustedProxy()
     {
-        return !empty($this->trustedProxies) && IpUtils::checkIp($this->getClientIP(0), $this->trustedProxies);
+        $remoteIp = $this->swooleRequest->server['REMOTE_ADDR'] ?? '';
+        return $this->isTrustedProxyRemoteIp($remoteIp);
     }
 
     /**
@@ -767,6 +771,97 @@ trait RequestParseTrait
     public function getTrustedProxies()
     {
         return $this->trustedProxies;
+    }
+
+    /**
+     * 请求是否来自可信代理
+     *
+     * @param string $remoteIp
+     * @return bool
+     */
+    private function isTrustedProxyRemoteIp(string $remoteIp): bool
+    {
+        if (empty($this->trustedProxies) || $remoteIp === '') {
+            return false;
+        }
+        return IpUtils::checkIp($remoteIp, $this->trustedProxies);
+    }
+
+    /**
+     * 从转发头中提取客户端IP，优先取 X-Forwarded-For 中首个合法公网IP
+     *
+     * @param array $server
+     * @return string|null
+     */
+    private function extractClientIpFromForwardedHeaders(array $server): ?string
+    {
+        $forwardedFor = $server['HTTP_X_FORWARDED_FOR'] ?? '';
+        if (is_string($forwardedFor) && strcasecmp($forwardedFor, 'unknown') !== 0) {
+            $publicIp = $this->extractFirstValidIp($forwardedFor, true);
+            if (!empty($publicIp)) {
+                return $publicIp;
+            }
+        }
+
+        foreach (['HTTP_X_REAL_IP', 'HTTP_CLIENT_IP'] as $headerName) {
+            $headerIp = $server[$headerName] ?? '';
+            if (is_string($headerIp) && strcasecmp($headerIp, 'unknown') !== 0 && $this->isPublicIp($headerIp)) {
+                return $headerIp;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 从逗号分隔IP串中提取第一个合法IP
+     *
+     * @param string $ipList
+     * @param bool $publicOnly
+     * @return string|null
+     */
+    private function extractFirstValidIp(string $ipList, bool $publicOnly = false): ?string
+    {
+        $ips = explode(',', $ipList);
+        foreach ($ips as $item) {
+            $ip = trim($item);
+            if ($ip === '' || strcasecmp($ip, 'unknown') === 0) {
+                continue;
+            }
+
+            if (!$this->isValidIp($ip)) {
+                continue;
+            }
+
+            if ($publicOnly) {
+                $publicIp = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
+                if ($publicIp === false) {
+                    continue;
+                }
+            }
+
+            return $ip;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param string $ip
+     * @return bool
+     */
+    protected function isValidIp(string $ip): bool
+    {
+        return filter_var($ip, FILTER_VALIDATE_IP) !== false;
+    }
+
+    /**
+     * @param string $ip
+     * @return bool
+     */
+    protected function isPublicIp(string $ip): bool
+    {
+        return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false;
     }
 
     /**

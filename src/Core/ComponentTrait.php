@@ -48,7 +48,7 @@ trait ComponentTrait
                 $func = $components[$comAliasName] ?? null;
                 if ($func instanceof \Closure && !isset($this->containers[$comAliasName])) {
                     $object = call_user_func($func, $comAliasName);
-                    return $this->containers[$comAliasName] = $this->buildContainerObject($object, $comAliasName);
+                    $this->containers[$comAliasName] = $this->buildContainerObject($object, $comAliasName);
                 }
             }
         }
