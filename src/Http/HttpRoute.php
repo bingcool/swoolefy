@@ -624,6 +624,10 @@ class HttpRoute extends AppDispatch
             }
 
             $routeCacheItems = [$groupMiddlewares, $beforeMiddlewares, $originDispatchRoute, $afterMiddlewares, $groupMeta, $routeOption];
+            // double-check: 协程切换后其他协程可能已写入缓存，优先使用已有缓存
+            if (isset(self::$routeCache[$uri][$method])) {
+                return self::$routeCache[$uri][$method];
+            }
             self::$routeCache[$uri][$method] = $routeCacheItems;
             unset($routerMap[$uri][$method]);
             return $routeCacheItems;
@@ -722,8 +726,11 @@ class HttpRoute extends AppDispatch
      *
      * @return bool
      */
-    private function isEnableRouteMetaCache(RouteOption $routeOption): bool
+    private function isEnableRouteMetaCache(?RouteOption $routeOption): bool
     {
+        if ($routeOption === null) {
+            return false;
+        }
         return $routeOption->isEnableCacheRouteMeta();
     }
 
