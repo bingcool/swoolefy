@@ -25,16 +25,9 @@ class Application
      */
     public static function setApp(App|Swoole|EventController $App): bool
     {
-        $closure = function ($appInstance) {
-            $cid = $appInstance->getCid();
-            if (isset(self::$apps[$cid])) {
-                unset(self::$apps[$cid]);
-            }
-            self::$apps[$cid] = $appInstance;
-            return true;
-        };
-
-        return $closure($App);
+        $cid = $App->getCid();
+        self::$apps[$cid] = $App;
+        return true;
     }
 
     /**

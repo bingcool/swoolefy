@@ -1421,10 +1421,12 @@ abstract class AbstractBaseWorker
             if ($this->rebootTimerId) {
                 \Swoole\Timer::clear($this->rebootTimerId);
             }
-            $timerId = \Swoole\Timer::after($afterWaitTime * 1000, function () use ($pid) {
+            $timerId = \Swoole\Timer::after($afterWaitTime * 1000, function () use ($pid, $channel) {
+                // 先push解除pop阻塞，再执行退出，避免channel永久挂起
+                $channel->push(true);
                 $this->exitNow($pid, 15);
             });
-        
+
             $this->rebootTimerId = $timerId;
             // block wait to reboot
             if (\Swoole\Coroutine::getCid() > 0) {

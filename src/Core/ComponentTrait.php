@@ -291,9 +291,10 @@ trait ComponentTrait
                 $obj = $this->containers[$name];
                 if (is_object($obj)) {
                     $objId = spl_object_id($obj);
-                    if (in_array($objId, $this->componentPoolsObjIds)) {
+                    $key = array_search($objId, $this->componentPoolsObjIds);
+                    if ($key !== false) {
                         CoroutinePools::getInstance()->getPool($name)->pushObj($obj);
-                        unset($this->containers[$name]);
+                        unset($this->containers[$name], $this->componentPoolsObjIds[$key]);
                     }
                 }
             }
