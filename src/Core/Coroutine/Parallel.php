@@ -95,11 +95,12 @@ class Parallel
                 }
             }
 
+            $res = [];
             if ($items) {
                 $res = GoWaitGroup::batchParallelRunWait($items, $maxTimeOut);
             }
 
-            $result = array_merge($result, $res ?? []);
+            $result = array_merge($result, $res);
         }
         $this->callbacks = [];
         return $result;

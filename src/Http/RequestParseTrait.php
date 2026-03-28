@@ -387,7 +387,7 @@ trait RequestParseTrait
      * getDispatchRoute
      * @return array
      */
-    public function getDispatchRoute(): string
+    public function getDispatchRoute(): array
     {
         return $this->swooleRequest->server['DISPATCH_ROUTE'] ?? [];
     }
