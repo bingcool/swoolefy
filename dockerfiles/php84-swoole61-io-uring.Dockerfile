@@ -12,13 +12,13 @@ ENV MY_SWOOLE_VERSION=6.1.6 \
 # swoole6+支持io_uring且依赖liburing-dev
 
 ENV TZ=Asia/Shanghai
+# build-base: gcc, g++, make, etc. — required to compile Swoole in this stage.
+# Swoole io_uring on Alpine needs linux-headers and liburing (dev headers for build).
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
     && /bin/sh -c set -ex \
     && apk update \
     && apk add --no-cache --virtual .build-deps \
-    # build-base包含基础工具和库gcc、g++、make等集合，构建阶段需要依赖编译swoole
     build-base \
-    # swoole apline linux io_uring依赖liburing
     linux-headers liburing liburing-dev \
     curl make wget tar xz pkgconfig \
     curl-dev \
@@ -67,13 +67,12 @@ ENV MY_SWOOLE_VERSION=6.1.5 \
 
 
 ENV TZ=Asia/Shanghai
-#安装必要的依赖和PHP及其扩展
+# Runtime image: no build-base; only runtime deps and PHP extensions.
+# After apk del *-dev, reinstall linux-headers and liburing-dev for Swoole 6+ io_uring.
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
     && /bin/sh -c set -ex \
     && apk update \
     && apk add --no-cache \
-    # 基础工具和库gcc、g++、make等集合，运行时阶段不需要
-    #build-base \
     bash curl git wget tar xz tzdata pcre ca-certificates \
     inotify-tools jq libstdc++ openssl procps tini \
     php${MY_PHP_VERSION}-dev \
@@ -130,7 +129,6 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
     && ln -sf /usr/bin/php-config${MY_PHP_VERSION} /usr/bin/php-config \
     && ln -sf /usr/bin/phpize${MY_PHP_VERSION} /usr/bin/phpize \
     && apk del --purge *-dev \
-    # swoole6+支持io_uring运行时且依赖linux-headers,liburing
     && apk add linux-headers liburing-dev \
     && rm -rf /var/cache/apk/* /tmp/* /usr/share/man /usr/share/doc /usr/share/php${MY_PHP_VERSION} \
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
