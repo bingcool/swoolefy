@@ -37,6 +37,13 @@ class GoWaitGroup
     private $result = [];
 
     /**
+     * After wait() returns, late callbacks from timed-out (or finished) batches must not touch count/result/channel.
+     *
+     * @var bool
+     */
+    private $waitCompleted = false;
+
+    /**
      * WaitGroup constructor
      */
     public function __construct()
@@ -88,12 +95,12 @@ class GoWaitGroup
         $count  = count($callBacks);
         $goWait->add($count);
         foreach ($callBacks as $key => $callBack) {
-            goApp(function () use ($key, $callBack, $params, $goWait) {
+            goApp(function () use ($key, $callBack, $params, $goWait, $maxTimeOut) {
                 try {
                     $goWait->initResult($key, null);
                     $param = $params[$key] ?? null;
                     $result = call_user_func($callBack, $param);
-                    $goWait->done($key, $result ?? null, 3.0);
+                    $goWait->done($key, $result ?? null, $maxTimeOut);
                 } catch (\Throwable $throwable) {
                     $goWait->add(-1);
                     throw $throwable;
@@ -110,6 +117,9 @@ class GoWaitGroup
      */
     public function add(int $delta = 1)
     {
+        if ($this->waitCompleted) {
+            throw new SystemException('WaitGroup misuse: add after wait(), create a new GoWaitGroup instance');
+        }
         if ($this->waiting) {
             throw new SystemException('WaitGroup misuse: add called concurrently with wait');
         }
@@ -127,6 +137,9 @@ class GoWaitGroup
      */
     public function start()
     {
+        if ($this->waitCompleted) {
+            throw new SystemException('WaitGroup misuse: start after wait(), create a new GoWaitGroup instance');
+        }
         $this->count++;
         return $this->count;
     }
@@ -138,11 +151,14 @@ class GoWaitGroup
      * @return void
      */
     public function done(
-        string $key = null,
+        ?string $key = null,
         $data = null,
         float $timeout = -1
-    )
-    {
+    ){
+        // 忽略已经完成
+        if ($this->waitCompleted) {
+            return;
+        }
         if (!is_null($key) && $key != '') {
             $this->result[$key] = $data;
         }
@@ -158,6 +174,9 @@ class GoWaitGroup
      */
     public function initResult(string $key, $data = null)
     {
+        if ($this->waitCompleted) {
+            return;
+        }
         $this->result[$key] = $data;
     }
 
@@ -170,12 +189,17 @@ class GoWaitGroup
         if ($this->waiting) {
             throw new SystemException('WaitGroup misuse: add called concurrently with wait');
         }
+        if ($this->waitCompleted) {
+            throw new SystemException('WaitGroup misuse: wait() called again on the same instance');
+        }
 
         if ($this->count > 0) {
             $this->waiting = true;
             $this->channel->pop($maxTimeout);
             $this->waiting = false;
         }
+
+        $this->waitCompleted = true;
         $result = $this->result;
         $this->reset();
         return $result;
@@ -197,6 +221,8 @@ class GoWaitGroup
     {
         $this->result = [];
         $this->count = 0;
+        $this->waiting = false;
+        $this->waitCompleted = false;
     }
 
 }
