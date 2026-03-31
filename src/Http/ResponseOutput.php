@@ -38,11 +38,13 @@ class ResponseOutput extends HttpInputOut
             $url = $protocol . $this->getHostName() . $url;
         }
         if ($params) {
-            if (strpos($url, '?') > 0) {
-                $queryString = http_build_query($params);
-            } else {
-                $queryString = '?';
-                $queryString .= http_build_query($params);
+            $built = http_build_query($params);
+            if ($built !== '') {
+                if (strpos($url, '?') !== false) {
+                    $queryString = (substr($url, -1) === '?' ? '' : '&') . $built;
+                } else {
+                    $queryString = '?' . $built;
+                }
             }
         }
         if (is_object(Application::getApp())) {

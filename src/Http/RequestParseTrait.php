@@ -124,7 +124,7 @@ trait RequestParseTrait
     {
         if (isset($this->swooleRequest->server['HTTP_VIA']) && stristr($this->swooleRequest->server['HTTP_VIA'], "wap")) {
             return true;
-        } elseif (isset($this->swooleRequest->server['HTTP_ACCEPT']) && strpos(strtoupper($this->swooleRequest->server['HTTP_ACCEPT']), "VND.WAP.WML")) {
+        } elseif (isset($this->swooleRequest->server['HTTP_ACCEPT']) && strpos(strtoupper($this->swooleRequest->server['HTTP_ACCEPT']), 'VND.WAP.WML') !== false) {
             return true;
         } elseif (isset($this->swooleRequest->server['HTTP_X_WAP_PROFILE']) || isset($this->swooleRequest->server['HTTP_PROFILE'])) {
             return true;
@@ -546,14 +546,34 @@ trait RequestParseTrait
     public function parseUrl(string $url)
     {
         $parseUrlItems = parse_url($url);
-        $parseItems['protocol'] = $parseUrlItems['scheme'];
-        $parseItems['host'] = $parseUrlItems['host'];
-        $parseItems['port'] = $parseUrlItems['port'];
-        $parseItems['user'] = $parseUrlItems['user'];
-        $parseItems['pass'] = $parseUrlItems['pass'];
-        $parseItems['path'] = $parseUrlItems['path'];
-        $parseItems['id'] = $parseUrlItems['fragment'];
-        parse_str($parseUrlItems['query'], $parseItems['params']);
+        if ($parseUrlItems === false) {
+            return [
+                'protocol' => null,
+                'host'     => null,
+                'port'     => null,
+                'user'     => null,
+                'pass'     => null,
+                'path'     => null,
+                'id'       => null,
+                'params'   => [],
+            ];
+        }
+
+        $parseItems = [
+            'protocol' => $parseUrlItems['scheme'] ?? null,
+            'host'     => $parseUrlItems['host'] ?? null,
+            'port'     => $parseUrlItems['port'] ?? null,
+            'user'     => $parseUrlItems['user'] ?? null,
+            'pass'     => $parseUrlItems['pass'] ?? null,
+            'path'     => $parseUrlItems['path'] ?? null,
+            'id'       => $parseUrlItems['fragment'] ?? null,
+            'params'   => [],
+        ];
+
+        if (isset($parseUrlItems['query']) && $parseUrlItems['query'] !== '') {
+            parse_str($parseUrlItems['query'], $parseItems['params']);
+        }
+
         return $parseItems;
     }
 
