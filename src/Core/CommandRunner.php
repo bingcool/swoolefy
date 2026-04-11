@@ -182,8 +182,10 @@ class CommandRunner
             5 => array('pipe', 'w'),
         );
 
-        $fn = function ($command, $descriptors, $callable) use($extend) {
+        $fn = function ($command, $descriptors, $callable) use ($extend) {
             // in $callable forbidden create coroutine, because $proc_process had been bind in current coroutine
+            $pipes = [];
+            $proc_process = null;
             try {
                 $proc_process = proc_open($command, $descriptors, $pipes);
                 if (!is_resource($proc_process)) {
@@ -220,9 +222,13 @@ class CommandRunner
                 throw new SystemException($msg);
             } finally {
                 foreach ($pipes as $pipe) {
-                    @fclose($pipe);
+                    if (\is_resource($pipe)) {
+                        @fclose($pipe);
+                    }
                 }
-                proc_close($proc_process);
+                if (\is_resource($proc_process)) {
+                    proc_close($proc_process);
+                }
             }
         };
 

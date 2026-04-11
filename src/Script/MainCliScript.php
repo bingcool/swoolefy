@@ -169,14 +169,12 @@ class MainCliScript extends AbstractScriptProcess
                 @unlink(WORKER_PID_FILE);
             }
 
-            fmtPrintInfo("script end! ");
-
             if ($force) {
                 @\Swoole\Process::kill($swooleMasterPid, SIGKILL);
             }else {
                 @\Swoole\Process::kill($swooleMasterPid, SIGTERM);
             }
-
+            fmtPrintInfo("script end! ");
             $this->exitAll = true;
         }else if ($exist) {
             // strict kill exit process
@@ -184,7 +182,7 @@ class MainCliScript extends AbstractScriptProcess
             if (\Swoole\Process::kill($swooleMasterPid, 0)) {
                 $managerProcessId = Swfy::getServer()->manager_pid;
                 $workerProcessIds = (new Exec())->run('pgrep -P ' . $managerProcessId)->getOutput();
-                foreach ([$swooleMasterPid, $managerProcessId, ...$workerProcessIds] as $processId) {
+                foreach ([$swooleMasterPid, $managerProcessId, ...($workerProcessIds ?? [])] as $processId) {
                     if ($processId > 0 && \Swoole\Process::kill($processId, 0)) {
                         @\Swoole\Process::kill($processId, SIGKILL);
                     }

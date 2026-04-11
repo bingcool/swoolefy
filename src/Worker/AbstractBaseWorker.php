@@ -767,7 +767,11 @@ abstract class AbstractBaseWorker
      */
     private function exitAndRebootDefer(): void
     {
-        // 清理定时器资源
+        // destroy
+        if (method_exists(static::class, '__destruct') && version_compare(phpversion(), '8.0.0', '>=') ) {
+            $this->__destruct();
+        }
+
         if ($this->masterLiveTimerId) {
             @\Swoole\Timer::clear($this->masterLiveTimerId);
         }
@@ -1411,19 +1415,13 @@ abstract class AbstractBaseWorker
 
         $pid = $this->getPid();
         if (Process::kill($pid, 0)) {
-            // 优先通知 master 进程先拉起子进程
+            // 优先通知master进程先拉起子进程
             $this->notifyMasterRebootNewProcess($this->getProcessName());
             $this->isReboot = true;
             $this->readyRebootTime = time() + $afterWaitTime;
-        
+
             $channel = new Channel(1);
-            // 清除旧的 reboot 定时器，防止重复执行
-            if ($this->rebootTimerId) {
-                \Swoole\Timer::clear($this->rebootTimerId);
-            }
-            $timerId = \Swoole\Timer::after($afterWaitTime * 1000, function () use ($pid, $channel) {
-                // 先push解除pop阻塞，再执行退出，避免channel永久挂起
-                $channel->push(true);
+            $timerId = \Swoole\Timer::after($afterWaitTime * 1000, function () use ($pid) {
                 $this->exitNow($pid, 15);
             });
 
@@ -1468,10 +1466,6 @@ abstract class AbstractBaseWorker
             $this->waitToExit = false;
 
             $channel = new Channel(1);
-            // 清除旧的 exit 定时器，防止重复执行
-            if ($this->exitTimerId) {
-                \Swoole\Timer::clear($this->exitTimerId);
-            }
             $this->exitTimerId = \Swoole\Timer::after($waitTime * 1000, function () use ($pid) {
                 $this->exitNow($pid, $this->maxWaitTimeOfExit);
             });
@@ -1846,7 +1840,7 @@ abstract class AbstractBaseWorker
                 if (!empty($commandHandleItem) && is_array($commandHandleItem) && count($commandHandleItem) == 2) {
                     list($class, $method) = $commandHandleItem;
                     if ($class == self::class || is_subclass_of($class, self::class)) {
-                        if (method_exists(static::class, $method)) {
+                        if (class_exists(static::class, $method)) {
                             $this->{$method}($msg, $from_process_name, $from_process_worker_id, $is_proxy_by_master);
                         }
                     }else {
