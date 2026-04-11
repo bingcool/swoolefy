@@ -21,23 +21,25 @@ class RunnerForkProcess extends MainCliScript
 //            var_dump($status);
 //        });
 
-        $status = $runner->procOpen("ps -eo pid,cmd | awk '{print $1}'","", [], function($pipe0, $pipe1, $pipe2, $status) {
+//        $status = $runner->procOpen("ps -eo pid,cmd | awk '{print $1}'","", [], function($pipe0, $pipe1, $pipe2, $status) {
 //            while ($output = fgets($pipe1)) {
 //                var_dump(trim($output));
 //            }
-        });
+//        });
 
         goApp(function() use($runner) {
             \Co\defer(function() {
                 var_dump("defer");
             });
-            $runner->exec(
-                "/bin/bash",
-                "/home/wwwroot/swoolefy/Test/Python/shell.sh",
+            $outPut = $runner->exec(
+                "ls -la",
+                "",
                 [],
                 true,
-                "/dev/null"
+                ""
             );
+
+            var_dump($outPut);
         });
 
         var_dump('end');
