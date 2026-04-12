@@ -28,6 +28,12 @@ class StreamHandler extends AbstractProcessingHandler
     protected $filePermission;
     protected $useLocking;
     private $dirCreated;
+    protected $reopenInterval = 0;
+    protected $inodeCheckInterval = 1;
+    private $nextReopenAt = 0;
+    private $nextInodeCheckAt = 0;
+    private $streamDevice = null;
+    private $streamInode = null;
 
     /**
      * @param resource|string $stream
@@ -63,6 +69,10 @@ class StreamHandler extends AbstractProcessingHandler
             fclose($this->stream);
         }
         $this->stream = null;
+        $this->streamDevice = null;
+        $this->streamInode = null;
+        $this->nextReopenAt = 0;
+        $this->nextInodeCheckAt = 0;
     }
 
     /**
@@ -86,26 +96,40 @@ class StreamHandler extends AbstractProcessingHandler
     }
 
     /**
+     * Configure periodic stream reopen interval (seconds), 0 disables.
+     *
+     * @param int $seconds
+     * @return $this
+     */
+    public function setReopenInterval(int $seconds)
+    {
+        $this->reopenInterval = max(0, $seconds);
+        $this->nextReopenAt = 0;
+        return $this;
+    }
+
+    /**
+     * Configure inode check interval (seconds), 0 disables.
+     *
+     * @param int $seconds
+     * @return $this
+     */
+    public function setInodeCheckInterval(int $seconds)
+    {
+        $this->inodeCheckInterval = max(0, $seconds);
+        $this->nextInodeCheckAt = 0;
+        return $this;
+    }
+
+    /**
      * {@inheritdoc}
      */
     protected function write(array $record)
     {
         if (!is_resource($this->stream)) {
-            if (null === $this->url || '' === $this->url) {
-                throw new \Exception('Missing stream url, the stream can not be opened. This may be caused by a premature call to close().');
-            }
-            $this->createDir();
-            $this->errorMessage = null;
-            set_error_handler(array($this, 'customErrorHandler'));
-            $this->stream = fopen($this->url, 'a');
-            if ($this->filePermission !== null) {
-                @chmod($this->url, $this->filePermission);
-            }
-            restore_error_handler();
-            if (!is_resource($this->stream)) {
-                $this->stream = null;
-                throw new \UnexpectedValueException(sprintf('The stream or file "%s" could not be opened: ' . $this->errorMessage, $this->url));
-            }
+            $this->openStream();
+        } elseif ($this->shouldReopenStream()) {
+            $this->reopenStream();
         }
 
         if ($this->useLocking) {
@@ -135,6 +159,113 @@ class StreamHandler extends AbstractProcessingHandler
         $this->errorMessage = preg_replace('{^(fopen|mkdir)\(.*?\): }', '', $msg);
     }
 
+    private function shouldReopenStream(): bool
+    {
+        return $this->shouldReopenByInterval() || $this->shouldReopenByInodeChange();
+    }
+
+    private function shouldReopenByInterval(): bool
+    {
+        if ($this->reopenInterval <= 0) {
+            return false;
+        }
+
+        $now = time();
+        if ($this->nextReopenAt <= 0) {
+            $this->nextReopenAt = $now + $this->reopenInterval;
+            return false;
+        }
+
+        if ($now >= $this->nextReopenAt) {
+            $this->nextReopenAt = $now + $this->reopenInterval;
+            return true;
+        }
+
+        return false;
+    }
+
+    private function shouldReopenByInodeChange(): bool
+    {
+        if ($this->inodeCheckInterval <= 0 || !is_resource($this->stream)) {
+            return false;
+        }
+
+        $filePath = $this->getFilePathFromStream($this->url);
+        if ($filePath === null || $filePath === '') {
+            return false;
+        }
+
+        $now = time();
+        if ($this->nextInodeCheckAt > 0 && $now < $this->nextInodeCheckAt) {
+            return false;
+        }
+        $this->nextInodeCheckAt = $now + $this->inodeCheckInterval;
+
+        if ($this->streamInode === null || $this->streamDevice === null) {
+            $this->refreshStreamStat();
+            if ($this->streamInode === null || $this->streamDevice === null) {
+                return false;
+            }
+        }
+
+        clearstatcache(true, $filePath);
+        $pathStat = @stat($filePath);
+        if (!is_array($pathStat) || !isset($pathStat['ino'], $pathStat['dev'])) {
+            return false;
+        }
+
+        return ((int)$pathStat['ino'] !== (int)$this->streamInode) || ((int)$pathStat['dev'] !== (int)$this->streamDevice);
+    }
+
+    private function reopenStream()
+    {
+        $this->close();
+        $this->openStream();
+    }
+
+    private function openStream()
+    {
+        if (null === $this->url || '' === $this->url) {
+            throw new \Exception('Missing stream url, the stream can not be opened. This may be caused by a premature call to close().');
+        }
+        $this->createDir();
+        $this->errorMessage = null;
+        set_error_handler(array($this, 'customErrorHandler'));
+        $this->stream = fopen($this->url, 'a');
+        if ($this->filePermission !== null) {
+            @chmod($this->url, $this->filePermission);
+        }
+        restore_error_handler();
+        if (!is_resource($this->stream)) {
+            $this->stream = null;
+            throw new \UnexpectedValueException(sprintf('The stream or file "%s" could not be opened: ' . $this->errorMessage, $this->url));
+        }
+
+        $this->refreshStreamStat();
+        $now = time();
+        $this->nextReopenAt = ($this->reopenInterval > 0) ? ($now + $this->reopenInterval) : 0;
+        $this->nextInodeCheckAt = ($this->inodeCheckInterval > 0) ? ($now + $this->inodeCheckInterval) : 0;
+    }
+
+    private function refreshStreamStat()
+    {
+        if (!is_resource($this->stream)) {
+            $this->streamDevice = null;
+            $this->streamInode = null;
+            return;
+        }
+
+        $streamStat = @fstat($this->stream);
+        if (is_array($streamStat) && isset($streamStat['ino'], $streamStat['dev'])) {
+            $this->streamInode = (int)$streamStat['ino'];
+            $this->streamDevice = (int)$streamStat['dev'];
+            return;
+        }
+
+        $this->streamDevice = null;
+        $this->streamInode = null;
+    }
+
     /**
      * @param string $stream
      *
@@ -150,6 +281,24 @@ class StreamHandler extends AbstractProcessingHandler
         if ('file://' === substr($stream, 0, 7)) {
             return dirname(substr($stream, 7));
         }
+    }
+
+    /**
+     * @param string $stream
+     * @return string|null
+     */
+    private function getFilePathFromStream($stream)
+    {
+        $pos = strpos($stream, '://');
+        if ($pos === false) {
+            return $stream;
+        }
+
+        if ('file://' === substr($stream, 0, 7)) {
+            return substr($stream, 7);
+        }
+
+        return null;
     }
 
     private function createDir()

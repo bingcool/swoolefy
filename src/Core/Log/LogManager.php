@@ -56,11 +56,11 @@ class LogManager
      * @return void
      */
     public function registerLogger(
-        string $type,
-        string $channel = null,
-        string $logFilePath = null,
-        string $output = null,
-        string $dateformat = null
+        string  $type,
+        ?string  $channel = null,
+        ?string $logFilePath = null,
+        ?string  $output = null,
+        ?string  $dateformat = null
     )
     {
         if ($channel && $logFilePath) {
