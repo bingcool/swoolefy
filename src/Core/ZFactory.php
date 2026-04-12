@@ -22,9 +22,10 @@ class ZFactory
 
     /**
      * getInstance coroutine singleton 协程单例
-     * @param string $class
+     * @template T of object
+     * @param class-string<T> $class
      * @param array $constructor
-     * @return mixed
+     * @return T
      */
     public static function getInstance(string $class, array $constructor = [])
     {
@@ -40,9 +41,10 @@ class ZFactory
 
     /**
      * newInstance
-     * @param string $class
+     * @template T of object
+     * @param class-string<T> $class
      * @param array $constructor
-     * @return mixed
+     * @return T
      */
     public static function newInstance(string $class, array $constructor = [])
     {
@@ -74,8 +76,9 @@ class ZFactory
     }
 
     /**
-     * @param string $class
-     * @return string
+     * @template T of object
+     * @param class-string<T>|string $class
+     * @return class-string<T>|string
      */
     private static function parseClass(string $class = ''): string
     {
