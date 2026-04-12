@@ -26,10 +26,10 @@ use Swoolefy\Core\Coroutine\Context as SwooleContext;
 /**
  * Class Log
  * @package Swoolefy\Util
- * @method \Swoolefy\Util\Log info($logInfo, bool $is_delay_batch = false, array $context = [])
- * @method \Swoolefy\Util\Log notice($logInfo, bool $is_delay_batch = false, array $context = [])
- * @method \Swoolefy\Util\Log warning($logInfo, bool $is_delay_batch = false, array $context = [])
- * @method \Swoolefy\Util\Log error($logInfo, bool $is_delay_batch = false, array $context = [])
+ * @method \Swoolefy\Util\Log info($logInfo, bool $isDelayBatch = false, array $context = [])
+ * @method \Swoolefy\Util\Log notice($logInfo, bool $isDelayBatch = false, array $context = [])
+ * @method \Swoolefy\Util\Log warning($logInfo, bool $isDelayBatch = false, array $context = [])
+ * @method \Swoolefy\Util\Log error($logInfo, bool $isDelayBatch = false, array $context = [])
  */
 class Log
 {
@@ -105,6 +105,20 @@ class Log
     protected $hourly = false;
 
     /**
+     * Stream handler periodic reopen interval in seconds, 0 disables.
+     * 默认 不启用周期强制 reopen（0）
+     * @var int
+     */
+    protected $handlerReopenInterval = 0;
+
+    /**
+     * Stream handler inode check interval in seconds, 0 disables.
+     * 默认 启用 inode 检测，检查周期 2 秒（低频，避免每条日志都 stat）
+     * @var int
+     */
+    protected $handlerInodeCheckInterval = 2;
+
+    /**
      * @param string $type
      * @param string|null $channel
      * @param string|null $logFilePath
@@ -114,10 +128,10 @@ class Log
      */
     public function __construct(
         string $type,
-        string $channel = null,
-        string $logFilePath = null,
-        string $output = null,
-        string $dateformat = null
+        ?string $channel = null,
+        ?string $logFilePath = null,
+        ?string $output = null,
+        ?string $dateformat = null
     ) {
         $this->type = $type;
         $this->channel = $channel;
@@ -185,7 +199,39 @@ class Log
         $this->logFilePath = $logFilePath;
         $this->dateLogFilePath = $dateLogFilePath;
         $this->handler = new StreamHandler($this->dateLogFilePath);
+        $this->handler->setReopenInterval($this->handlerReopenInterval);
+        $this->handler->setInodeCheckInterval($this->handlerInodeCheckInterval);
         $this->handler->setFormatter($this->formatter);
+        return $this;
+    }
+
+    /**
+     * Configure stream handler periodic reopen interval.
+     *
+     * @param int $seconds
+     * @return $this
+     */
+    public function setHandlerReopenInterval(int $seconds)
+    {
+        $this->handlerReopenInterval = max(0, $seconds);
+        if ($this->handler instanceof StreamHandler) {
+            $this->handler->setReopenInterval($this->handlerReopenInterval);
+        }
+        return $this;
+    }
+
+    /**
+     * Configure stream handler inode check interval.
+     *
+     * @param int $seconds
+     * @return $this
+     */
+    public function setHandlerInodeCheckInterval(int $seconds)
+    {
+        $this->handlerInodeCheckInterval = max(0, $seconds);
+        if ($this->handler instanceof StreamHandler) {
+            $this->handler->setInodeCheckInterval($this->handlerInodeCheckInterval);
+        }
         return $this;
     }
 
@@ -312,62 +358,64 @@ class Log
     /**
      * addInfo
      * @param $logInfo
-     * @param bool $is_delay_batch
+     * @param bool $isDelayBatch
      * @param array $context
      */
-    public function addInfo($logInfo, bool $is_delay_batch = false, array $context = [])
+    public function addInfo($logInfo, bool $isDelayBatch = false, array $context = [])
     {
-        $this->handleLog(__FUNCTION__, $logInfo, $is_delay_batch, $context, Logger::INFO);
+        $this->handleLog(__FUNCTION__, $logInfo, $isDelayBatch, $context, Logger::INFO);
     }
 
     /**
      * addNotice
      * @param $logInfo
-     * @param bool $is_delay_batch
+     * @param bool $isDelayBatch
      * @param array $context
      * @param \Throwable
      */
-    public function addNotice($logInfo, bool $is_delay_batch = false, array $context = [])
+    public function addNotice($logInfo, bool $isDelayBatch = false, array $context = [])
     {
-        $this->handleLog(__FUNCTION__, $logInfo, $is_delay_batch, $context, Logger::NOTICE);
+        $this->handleLog(__FUNCTION__, $logInfo, $isDelayBatch, $context, Logger::NOTICE);
     }
 
     /**
      * addWarning
      * @param $logInfo
-     * @param bool $is_delay_batch
+     * @param bool $isDelayBatch
      * @param array $context
      */
-    public function addWarning($logInfo, bool $is_delay_batch = false, array $context = [])
+    public function addWarning($logInfo, bool $isDelayBatch = false, array $context = [])
     {
-        $this->handleLog(__FUNCTION__, $logInfo, $is_delay_batch, $context, Logger::WARNING);
+        $this->handleLog(__FUNCTION__, $logInfo, $isDelayBatch, $context, Logger::WARNING);
     }
 
     /**
      * addError
      * @param $logInfo
-     * @param bool $is_delay_batch
+     * @param bool $isDelayBatch
      * @param array $context
      */
-    public function addError($logInfo, bool $is_delay_batch = false, array $context = [])
+    public function addError($logInfo, bool $isDelayBatch = false, array $context = [])
     {
-        $this->handleLog(__FUNCTION__, $logInfo, $is_delay_batch, $context, Logger::ERROR);
+        $this->handleLog(__FUNCTION__, $logInfo, $isDelayBatch, $context, Logger::ERROR);
     }
 
     /**
      * @param $function
-     * @param $is_delay_batch
+     * @param $isDelayBatch
      * @param $logInfo
      * @param $context
      * @param $type
      * @return bool
      * @throws \Exception
      */
-    protected function handleLog($function, $logInfo, $is_delay_batch, $context, $type)
+    protected function handleLog($function, $logInfo, $isDelayBatch, $context, $type)
     {
-        $app = Application::getApp();
-        if (is_object($app) && $is_delay_batch && Swfy::isWorkerProcess()) {
-            $app->setLog($this->type, $function, [$logInfo, false, $context]);
+        if ($isDelayBatch && Swfy::isWorkerProcess()) {
+            $app = Application::getApp();
+            if (is_object($app)) {
+                $app->setLog($this->type, $function, [$logInfo, false, $context]);
+            }
             return true;
         }
         $this->insertLog($logInfo, $context, $type);
@@ -380,27 +428,23 @@ class Log
      */
     public function insertLog($logInfo, array $context = [], $type = Logger::INFO)
     {
-        $callable = function () use ($type, $logInfo, $context) {
-            try {
-                $this->logger->setHandlers([]);
-                $this->logger->pushHandler($this->handler);
+        try {
+            $this->logger->setHandlers([]);
+            $this->logger->pushHandler($this->handler);
 
-                if($this->formatter instanceof JsonFormatter) {
-                    $this->logger->pushProcessor(function ($records) {
-                        return $this->pushProcessor($records);
-                    });
-                }
-
-                $this->unlinkHistoryDayLogFile($this->dateLogFilePath);
-
-                // add records to the log
-                $this->logger->addRecord($type, $logInfo, $context);
-            } catch (\Exception $e) {
-                fmtPrintError('record log error: '.$e->getMessage());
+            if($this->formatter instanceof JsonFormatter) {
+                $this->logger->pushProcessor(function ($records) {
+                    return $this->pushProcessor($records);
+                });
             }
-        };
 
-        call_user_func($callable);
+            $this->unlinkHistoryDayLogFile($this->dateLogFilePath);
+
+            // add records to the log
+            $this->logger->addRecord($type, $logInfo, $context);
+        } catch (\Exception $e) {
+            fmtPrintError('insertLog record log error: '.$e->getMessage());
+        }
     }
 
     /**
@@ -410,7 +454,7 @@ class Log
      * @param $App
      * @return array
      */
-    protected function pushProcessor($records, $App = null): array
+    protected function pushProcessor($records): array
     {
         $App = Application::getApp();
         $records['trace_id'] = '';

@@ -40,6 +40,8 @@ class IndexController extends BController {
             var_dump($contextData);
         });
 
+        RunLog::info("test index index");
+
         // 写入日志到文件，发生协程挂起，cpu继续运行主流程，执行逻辑
         var_dump("这是一个测试swoole的demo");
 
