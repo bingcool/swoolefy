@@ -84,6 +84,12 @@ class Log
     protected $initDate;
 
     /**
+     * 日期/小时轮
+     * @var string
+     */
+    protected $initDateRound;
+
+    /**
      * @var string
      */
     protected $dateLogFilePath;
@@ -195,6 +201,7 @@ class Log
     public function setLogFilePath(string $logFilePath)
     {
         $this->initDate = $this->getDate();
+        $this->initDateRound = $this->getDateRound();
         $dateLogFilePath = $this->getDateLogFile($this->initDate, $logFilePath);
         $this->logFilePath = $logFilePath;
         $this->dateLogFilePath = $dateLogFilePath;
@@ -309,6 +316,18 @@ class Log
     }
 
     /**
+     * @return string
+     */
+    protected function getDateRound()
+    {
+        if ($this->hourly) {
+            return date('Ymd-H', time());
+        }else {
+            return date('Ymd', time());
+        }
+    }
+
+    /**
      * setOutputFormat
      * @param string $output
      * @return $this
@@ -341,7 +360,7 @@ class Log
      */
     public function getLogFilePath()
     {
-        if($this->getDate() != $this->initDate) {
+        if ($this->getDateRound() != $this->initDateRound) {
             $this->setLogFilePath($this->logFilePath);
         }
         return $this->dateLogFilePath;
@@ -429,6 +448,7 @@ class Log
     public function insertLog($logInfo, array $context = [], $type = Logger::INFO)
     {
         try {
+            $dateLogFilePath = $this->getLogFilePath();
             $this->logger->setHandlers([]);
             $this->logger->pushHandler($this->handler);
 
@@ -437,9 +457,7 @@ class Log
                     return $this->pushProcessor($records);
                 });
             }
-
-            $this->unlinkHistoryDayLogFile($this->dateLogFilePath);
-
+            $this->unlinkHistoryDayLogFile($dateLogFilePath);
             // add records to the log
             $this->logger->addRecord($type, $logInfo, $context);
         } catch (\Exception $e) {
