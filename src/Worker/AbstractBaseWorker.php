@@ -965,7 +965,7 @@ abstract class AbstractBaseWorker
             return;
         }
 
-        if(!$this->isStaticProcess()) {
+        if (!$this->isStaticProcess()) {
             return;
         }
 
@@ -1021,14 +1021,14 @@ abstract class AbstractBaseWorker
                 }
 
                 $method = self::WORKERFY_ON_EVENT_DESTROY_DYNAMIC_PROCESS;
-                if(method_exists(static::class, $method)) {
+                if (method_exists(static::class, $method)) {
                     $this->$method($dynamic_process_name, $dynamic_process_num);
                 }
 
                 // wait sleep
                 \Swoole\Coroutine\System::sleep($dynamicDestroyProcessTime);
 
-            }catch (\Throwable $exception) {
+            } catch (\Throwable $exception) {
                 throw $exception;
             } finally {
                 $this->isDynamicDestroy(false);
