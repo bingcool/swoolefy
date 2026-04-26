@@ -23,7 +23,7 @@ class UuidController extends BController
         });
         var_dump($result);
 
-        $is = json_validate("ggggggggggg");
+        $is = json_validate("\"ggggggggggg\"");
 
         var_dump($is);
 
