@@ -30,7 +30,7 @@ class StartCmd extends BaseCmd
      * @param OutputInterface $output
      * @return int|void
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         global $beforeFunc;
         if (isset($beforeFunc) && is_callable($beforeFunc)) {

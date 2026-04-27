@@ -20,7 +20,7 @@ class MonitorCmd extends BaseCmd
         $this->setDescription('monitor the application weather stop')->setHelp('<info>use php cli.php monitor XXXXX or use php daemon.php monitor XXXXX</info>');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $appName    = $input->getArgument(self::APP_NAME);
         $pidFile    = $this->getPidFile($appName);

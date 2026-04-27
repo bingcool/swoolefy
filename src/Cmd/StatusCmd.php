@@ -24,7 +24,7 @@ class StatusCmd extends BaseCmd
      * @param OutputInterface $output
      * @return int
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $appName = $input->getArgument(self::APP_NAME);
         $pidFile = $this->getPidFile($appName);

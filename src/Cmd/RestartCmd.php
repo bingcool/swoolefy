@@ -27,7 +27,7 @@ class RestartCmd extends BaseCmd
      * @param OutputInterface $output
      * @return void
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $appName = $input->getArgument(self::APP_NAME);
         $force   = $input->getOption(self::FORCE);

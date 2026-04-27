@@ -18,7 +18,7 @@ class CreateCmd extends BaseCmd
         $this->setDescription('create application init skeleton')->setHelp('<info>use php cli.php create XXXXX</info>info>');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $dirs = ['Config', 'Service', 'Protocol', 'Router', 'Storage', 'Middleware', 'Scripts'];
         $appName = APP_NAME;

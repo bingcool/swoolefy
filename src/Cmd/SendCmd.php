@@ -23,7 +23,7 @@ class SendCmd extends BaseCmd
      * @param OutputInterface $output
      * @return int|void
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         if (!isWorkerService()) {
             fmtPrintError("send command only for Worker,Cron Service, do not support cli application");
