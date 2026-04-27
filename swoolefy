@@ -106,14 +106,14 @@ LOGO;
 
 (function () {
     $application = new Application();
-    $application->add(new CreateCmd());
-    $application->add(new StartCmd());
-    $application->add(new StopCmd());
-    $application->add(new StatusCmd());
-    $application->add(new ReloadCmd());
-    $application->add(new SendCmd());
-    $application->add(new MonitorCmd());
-    $application->add(new RestartCmd());
+    $application->addCommand(new CreateCmd());
+    $application->addCommand(new StartCmd());
+    $application->addCommand(new StopCmd());
+    $application->addCommand(new StatusCmd());
+    $application->addCommand(new ReloadCmd());
+    $application->addCommand(new SendCmd());
+    $application->addCommand(new MonitorCmd());
+    $application->addCommand(new RestartCmd());
     showLogo();
     $application->run();
 })();
