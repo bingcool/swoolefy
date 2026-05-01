@@ -41,9 +41,10 @@
         "symfony/translation": "~7.4",
         "symfony/yaml": "~7.4",
         "zircote/swagger-php": "~4.8.0",
-        "bingcool/library": "dev-library-6.x",
         "doctrine/collections": "~3.0",
-        "php-standard-library/php-standard-library": "~6.1"
+        "php-standard-library/php-standard-library": "~6.1",
+        "bingcool/library": "dev-library-6.x",
+        "neuron-core/neuron-ai": "^3.3"
     },
     "autoload": {
         "files": ["src/Constants.php","src/Core/Func/function.php"],
