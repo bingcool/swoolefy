@@ -14,6 +14,7 @@ class ValidationRule extends AbstractValidationRule
         protected string|array $message = [],
         protected string $itemRule = '', // 数组item
         protected string|array $itemMessage = [],
+        protected string $itemClass = '', // 数组class
     ) {
     }
 
@@ -35,5 +36,10 @@ class ValidationRule extends AbstractValidationRule
     public function getItemMessage(): string|array
     {
         return $this->itemMessage;
+    }
+
+    public function getItemClass(): string
+    {
+        return $this->itemClass;
     }
 }

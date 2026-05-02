@@ -17,6 +17,10 @@ class LogOrderController extends BController
     {
         $logIds = $request->getLogIds();
 
+        $logContents = $request->getLogContents();
+
+        var_dump($logContents);
+
         /**
          * @var \Swoolefy\Util\Log $log
          */

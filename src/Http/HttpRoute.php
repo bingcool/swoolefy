@@ -12,6 +12,7 @@
 namespace Swoolefy\Http;
 
 use Common\Library\CurlProxy\OpentelemetryMiddleware;
+use Common\Library\Exception\ValidateException;
 use Swoolefy\Annotation\Validation\ValidationRule;
 use Swoolefy\Core\App;
 use Swoolefy\Core\AppDispatch;
@@ -450,6 +451,7 @@ class HttpRoute extends AppDispatch
                 }
                 $inputParams = $inputParams ?? $this->requestInput->input();
                 $this->fillActionParamObject($paramDto, $inputParams, $kind === self::PARAM_KIND_BASE_REQUEST ? ['requestInput' => true] : []);
+                $this->hydrateNestedDtoCollections($paramDto);
                 $args[] = $paramDto;
                 continue;
             }
@@ -544,6 +546,7 @@ class HttpRoute extends AppDispatch
             }
 
             $this->validateActionParamObjectRules($inputParams, $paramMeta['validation_rules'] ?? []);
+            $this->validateNestedDtoStrictKeys($inputParams, $paramMeta['validation_rules'] ?? []);
             $inputParams = $this->requestInput->input();
         }
     }
@@ -589,6 +592,237 @@ class HttpRoute extends AppDispatch
     }
 
     /**
+     * Hydrate nested DTO arrays declared via ValidationRule(itemClass: ...).
+     *
+     * @param object $object
+     * @return void
+     */
+    protected function hydrateNestedDtoCollections(object $object): void
+    {
+        $reflectionObject = new \ReflectionObject($object);
+        foreach ($reflectionObject->getProperties() as $property) {
+            if ($property->isStatic()) {
+                continue;
+            }
+
+            $attributes = $property->getAttributes(ValidationRule::class);
+            if (empty($attributes)) {
+                continue;
+            }
+
+            $property->setAccessible(true);
+            $value = $property->isInitialized($object) ? $property->getValue($object) : null;
+            if (!is_array($value)) {
+                continue;
+            }
+
+            foreach ($attributes as $attribute) {
+                $validationRule = $attribute->newInstance();
+                $itemClass = $validationRule->getItemClass();
+                if ($itemClass === '' || !class_exists($itemClass)) {
+                    continue;
+                }
+
+                $hydrated = [];
+                foreach ($value as $item) {
+                    if ($item instanceof $itemClass) {
+                        $hydrated[] = $item;
+                        continue;
+                    }
+
+                    if (!is_array($item)) {
+                        throw new DispatchException(sprintf(
+                            'Invalid nested item for `%s`, expected array or `%s`|||%s',
+                            $property->getName(),
+                            $itemClass,
+                            $this->requestInput->getSwooleRequest()->server['REQUEST_URI'] ?? ''
+                        ));
+                    }
+
+                    $dto = new $itemClass();
+                    $this->fillActionParamObject($dto, $item, []);
+                    $this->hydrateNestedDtoCollections($dto);
+                    $hydrated[] = $dto;
+                }
+
+                $property->setValue($object, $hydrated);
+            }
+        }
+    }
+
+    /**
+     * Reject unknown keys for nested DTO array items (strict schema).
+     *
+     * @param array $inputParams
+     * @param array $validationRules
+     * @return void
+     */
+    protected function validateNestedDtoStrictKeys(array $inputParams, array $validationRules): void
+    {
+        foreach ($validationRules as $property => $validationRule) {
+            $itemClass = $validationRule['item_class'] ?? '';
+            $nestedRules = $validationRule['nested_rules'] ?? [];
+            if ($itemClass === '' || empty($nestedRules)) {
+                continue;
+            }
+
+            if (!array_key_exists($property, $inputParams)) {
+                continue;
+            }
+
+            $items = $inputParams[$property];
+            if (!is_array($items)) {
+                continue;
+            }
+
+            $strictKeys = $this->buildStrictNestedDtoKeys($nestedRules);
+            $ignoredKeys = class_exists($itemClass)
+                ? $this->buildNestedDtoUnannotatedPropertyKeys($itemClass)
+                : [];
+            if (empty($strictKeys) && empty($ignoredKeys)) {
+                continue;
+            }
+
+            foreach ($items as $index => $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+
+                $unknownKeys = array_diff(array_keys($item), $strictKeys, $ignoredKeys);
+                if (!empty($unknownKeys)) {
+                    throw new DispatchException(sprintf(
+                        'Unknown fields `%s` in `%s[%s]`|||%s',
+                        implode(', ', $unknownKeys),
+                        $property,
+                        (string)$index,
+                        $this->requestInput->getSwooleRequest()->server['REQUEST_URI'] ?? ''
+                    ));
+                }
+
+                foreach ($nestedRules as $nestedProperty => $nestedValidationRule) {
+                    $nestedItemClass = $nestedValidationRule['item_class'] ?? '';
+                    $nestedNestedRules = $nestedValidationRule['nested_rules'] ?? [];
+                    if ($nestedItemClass === '' || empty($nestedNestedRules)) {
+                        continue;
+                    }
+
+                    if (!array_key_exists($nestedProperty, $item)) {
+                        continue;
+                    }
+
+                    $nestedItems = $item[$nestedProperty];
+                    if (!is_array($nestedItems)) {
+                        continue;
+                    }
+
+                    $nestedStrictKeys = $this->buildStrictNestedDtoKeys($nestedNestedRules);
+                    $nestedIgnoredKeys = class_exists($nestedItemClass)
+                        ? $this->buildNestedDtoUnannotatedPropertyKeys($nestedItemClass)
+                        : [];
+                    if (empty($nestedStrictKeys) && empty($nestedIgnoredKeys)) {
+                        continue;
+                    }
+
+                    foreach ($nestedItems as $nestedIndex => $nestedItem) {
+                        if (!is_array($nestedItem)) {
+                            continue;
+                        }
+
+                        $nestedUnknownKeys = array_diff(array_keys($nestedItem), $nestedStrictKeys, $nestedIgnoredKeys);
+                        if (!empty($nestedUnknownKeys)) {
+                            throw new DispatchException(sprintf(
+                                'Unknown fields `%s` in `%s[%s].%s[%s]`|||%s',
+                                implode(', ', $nestedUnknownKeys),
+                                $property,
+                                (string)$index,
+                                $nestedProperty,
+                                (string)$nestedIndex,
+                                $this->requestInput->getSwooleRequest()->server['REQUEST_URI'] ?? ''
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Only enforce unknown-field rejection for nested keys that are explicitly declared via ValidationRule.
+     *
+     * @param array $nestedRules
+     * @return array<int, string>
+     */
+    protected function buildStrictNestedDtoKeys(array $nestedRules): array
+    {
+        $keys = [];
+        foreach ($nestedRules as $nestedProperty => $nestedValidationRule) {
+            if ($this->nestedDtoFieldRequiresStrictShape($nestedValidationRule)) {
+                $keys[] = $nestedProperty;
+            }
+        }
+
+        return $keys;
+    }
+
+    /**
+     * @param array $nestedValidationRule
+     * @return bool
+     */
+    protected function nestedDtoFieldRequiresStrictShape(array $nestedValidationRule): bool
+    {
+        if (!empty($nestedValidationRule['rule'])) {
+            return true;
+        }
+
+        if (!empty($nestedValidationRule['item_rule'])) {
+            return true;
+        }
+
+        if (!empty($nestedValidationRule['item_class'])) {
+            return true;
+        }
+
+        if (!empty($nestedValidationRule['nested_rules'])) {
+            foreach ($nestedValidationRule['nested_rules'] as $childRule) {
+                if ($this->nestedDtoFieldRequiresStrictShape($childRule)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Declared class properties without ValidationRule should be ignored by strict unknown-key checks.
+     *
+     * @param string $class
+     * @return array<int, string>
+     */
+    protected function buildNestedDtoUnannotatedPropertyKeys(string $class): array
+    {
+        if (!class_exists($class)) {
+            return [];
+        }
+
+        $reflectionClass = new \ReflectionClass($class);
+        $keys = [];
+        foreach ($reflectionClass->getProperties() as $property) {
+            if ($property->isStatic()) {
+                continue;
+            }
+
+            if (!empty($property->getAttributes(ValidationRule::class))) {
+                continue;
+            }
+
+            $keys[] = $property->getName();
+        }
+
+        return $keys;
+    }
+
+    /**
      * @param string $property
      * @return string
      */
@@ -613,26 +847,242 @@ class HttpRoute extends AppDispatch
 
         $rules = $messages = [];
         foreach ($validationRules as $property => $validationRule) {
-            if (!empty($validationRule['rule'])) {
-                $rules[$property] = $validationRule['rule'];
-                $messages = array_merge(
-                    $messages,
-                    $this->normalizeValidationMessages($property, $validationRule['rule'], $validationRule['message'] ?? [])
-                );
-            }
-
-            if (!empty($validationRule['item_rule'])) {
-                $itemProperty = $property . '.*';
-                $rules[$itemProperty] = $validationRule['item_rule'];
-                $messages = array_merge(
-                    $messages,
-                    $this->normalizeValidationMessages($itemProperty, $validationRule['item_rule'], $validationRule['item_message'] ?? [])
-                );
-            }
+            $this->appendValidationRule($property, $validationRule, $rules, $messages);
         }
 
         if (!empty($rules)) {
+            $this->enforceWildcardRequiredPresence($inputParams, $rules, $messages);
             $this->requestInput->validate($inputParams, $rules, $messages);
+        }
+    }
+
+    /**
+     * Fix Validate wildcard limitation: missing nested keys may be skipped by array_column extraction.
+     *
+     * @param array $data
+     * @param array $rules
+     * @param array $messages
+     * @return void
+     */
+    protected function enforceWildcardRequiredPresence(array $data, array $rules, array $messages): void
+    {
+        foreach ($rules as $field => $rule) {
+            if (!is_string($field) || !str_contains($field, '*')) {
+                continue;
+            }
+
+            if (!$this->validationRuleRequiresPresence($rule)) {
+                continue;
+            }
+
+            $fieldKey = $field;
+            if (str_contains($fieldKey, '|')) {
+                [$fieldKey] = explode('|', $fieldKey, 2);
+            }
+
+            $segments = explode('.', $fieldKey);
+            $this->walkWildcardRequiredSegments($data, $segments, $fieldKey, $messages[$fieldKey] ?? [], []);
+        }
+    }
+
+    /**
+     * @param mixed $rule
+     * @return bool
+     */
+    protected function validationRuleRequiresPresence($rule): bool
+    {
+        if ($rule instanceof \Closure || $rule instanceof \Common\Library\Validate\ValidateRule) {
+            return false;
+        }
+
+        if (is_string($rule)) {
+            foreach (explode('|', $rule) as $item) {
+                $item = trim($item);
+                if ($item === '' || str_contains($item, ':')) {
+                    continue;
+                }
+
+                $lower = strtolower($item);
+                if ($lower === 'must' || str_starts_with($lower, 'require')) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        if (is_array($rule)) {
+            foreach ($rule as $key => $item) {
+                if (is_string($key)) {
+                    $lower = strtolower((string)$key);
+                    if ($lower === 'must' || str_starts_with($lower, 'require')) {
+                        return true;
+                    }
+                }
+
+                if (is_string($item)) {
+                    $lower = strtolower(trim($item));
+                    if ($lower === 'must' || str_starts_with($lower, 'require')) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param mixed $current
+     * @param array<int, string> $segments
+     * @param string $fieldKey
+     * @param mixed $fieldMessages
+     * @return void
+     */
+    /**
+     * @param mixed $current
+     * @param array<int, string> $segments
+     * @param string $fieldKey
+     * @param mixed $fieldMessages
+     * @param array<int, string|int> $path
+     * @return void
+     */
+    protected function walkWildcardRequiredSegments($current, array $segments, string $fieldKey, $fieldMessages, array $path): void
+    {
+        if (empty($segments)) {
+            return;
+        }
+
+        $head = $segments[0];
+        $tail = array_slice($segments, 1);
+
+        if ($head === '*') {
+            if (!is_array($current)) {
+                return;
+            }
+
+            foreach ($current as $index => $item) {
+                $nextPath = $path;
+                $nextPath[] = $index;
+                $this->walkWildcardRequiredAfterStar($item, $tail, $fieldKey, $fieldMessages, $nextPath);
+            }
+
+            return;
+        }
+
+        if (!is_array($current) || !array_key_exists($head, $current)) {
+            return;
+        }
+
+        $nextPath = $path;
+        $nextPath[] = $head;
+        $this->walkWildcardRequiredSegments($current[$head], $tail, $fieldKey, $fieldMessages, $nextPath);
+    }
+
+    /**
+     * Handle segments right after a `*` chunk.
+     *
+     * @param mixed $item
+     * @param array<int, string> $segments
+     * @param string $fieldKey
+     * @param mixed $fieldMessages
+     * @param array<int, string|int> $path
+     * @return void
+     */
+    protected function walkWildcardRequiredAfterStar($item, array $segments, string $fieldKey, $fieldMessages, array $path): void
+    {
+        if (empty($segments)) {
+            return;
+        }
+
+        $head = $segments[0];
+        $tail = array_slice($segments, 1);
+
+        if ($head === '*') {
+            $this->walkWildcardRequiredSegments($item, $tail, $fieldKey, $fieldMessages, $path);
+            return;
+        }
+
+        if (empty($tail)) {
+            if (!is_array($item) || !array_key_exists($head, $item)) {
+                throw new ValidateException($this->buildWildcardMissingKeyMessage($fieldKey, $fieldMessages, $path, $head));
+            }
+
+            return;
+        }
+
+        if ($tail[0] === '*') {
+            if (!is_array($item) || !array_key_exists($head, $item)) {
+                throw new ValidateException($this->buildWildcardMissingKeyMessage($fieldKey, $fieldMessages, $path, $head));
+            }
+
+            $this->walkWildcardRequiredSegments($item[$head], $tail, $fieldKey, $fieldMessages, $path);
+            return;
+        }
+
+        if (!is_array($item) || !array_key_exists($head, $item)) {
+            throw new ValidateException($this->buildWildcardMissingKeyMessage($fieldKey, $fieldMessages, $path, $head));
+        }
+
+        $nextPath = $path;
+        $nextPath[] = $head;
+        $this->walkWildcardRequiredSegments($item[$head], $tail, $fieldKey, $fieldMessages, $nextPath);
+    }
+
+    /**
+     * @param string $fieldKey
+     * @param mixed $fieldMessages
+     * @param array<int, string|int> $path
+     * @param string $missingKey
+     * @return string
+     */
+    protected function buildWildcardMissingKeyMessage(string $fieldKey, $fieldMessages, array $path, string $missingKey): string
+    {
+        if (is_array($fieldMessages)) {
+            foreach (['required', 'require', 'must'] as $type) {
+                $candidate = $fieldKey . '.' . $type;
+                if (isset($fieldMessages[$candidate]) && is_string($fieldMessages[$candidate])) {
+                    return $fieldMessages[$candidate];
+                }
+            }
+        }
+
+        $location = '';
+        if (!empty($path)) {
+            $location = '[' . implode('][', $path) . ']';
+        }
+
+        return sprintf('%s missing required field `%s`', $fieldKey . $location, $missingKey);
+    }
+
+    /**
+     * @param string $property
+     * @param array $validationRule
+     * @param array $rules
+     * @param array $messages
+     * @return void
+     */
+    protected function appendValidationRule(string $property, array $validationRule, array &$rules, array &$messages): void
+    {
+        if (!empty($validationRule['rule'])) {
+            $rules[$property] = $validationRule['rule'];
+            $messages = array_merge(
+                $messages,
+                $this->normalizeValidationMessages($property, $validationRule['rule'], $validationRule['message'] ?? [])
+            );
+        }
+
+        if (!empty($validationRule['item_rule'])) {
+            $itemProperty = $property . '.*';
+            $rules[$itemProperty] = $validationRule['item_rule'];
+            $messages = array_merge(
+                $messages,
+                $this->normalizeValidationMessages($itemProperty, $validationRule['item_rule'], $validationRule['item_message'] ?? [])
+            );
+        }
+
+        foreach ($validationRule['nested_rules'] ?? [] as $nestedProperty => $nestedValidationRule) {
+            $this->appendValidationRule($property . '.*.' . $nestedProperty, $nestedValidationRule, $rules, $messages);
         }
     }
 
@@ -688,8 +1138,13 @@ class HttpRoute extends AppDispatch
      * @param string $class
      * @return array
      */
-    protected function buildActionParamValidationRuleMeta(string $class): array
+    protected function buildActionParamValidationRuleMeta(string $class, array $visitedClasses = []): array
     {
+        if (isset($visitedClasses[$class])) {
+            return [];
+        }
+
+        $visitedClasses[$class] = true;
         $reflectionClass = new \ReflectionClass($class);
         $validationRules = [];
         foreach ($reflectionClass->getProperties() as $property) {
@@ -702,7 +1157,16 @@ class HttpRoute extends AppDispatch
                 $validationRule = $attribute->newInstance();
                 $rule = $validationRule->getRule();
                 $itemRule = $validationRule->getItemRule();
-                if ($rule === '' && $itemRule === '') {
+                $itemClass = $validationRule->getItemClass();
+                $nestedRules = [];
+                if ($itemClass !== '') {
+                    if (!class_exists($itemClass)) {
+                        throw new SystemException(sprintf('Validation itemClass `%s` not found', $itemClass), \Swoole\Http\Status::INTERNAL_SERVER_ERROR);
+                    }
+                    $nestedRules = $this->buildActionParamValidationRuleMeta($itemClass, $visitedClasses);
+                }
+
+                if ($rule === '' && $itemRule === '' && empty($nestedRules)) {
                     continue;
                 }
 
@@ -711,6 +1175,8 @@ class HttpRoute extends AppDispatch
                     'message' => $validationRule->getMessage(),
                     'item_rule' => $itemRule,
                     'item_message' => $validationRule->getItemMessage(),
+                    'item_class' => $itemClass,
+                    'nested_rules' => $nestedRules,
                 ];
             }
         }
