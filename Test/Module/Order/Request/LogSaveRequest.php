@@ -1,7 +1,6 @@
 <?php
 namespace Test\Module\Order\Request;
 use Doctrine\Common\Collections\ArrayCollection;
-use NeuronAI\StructuredOutput\Validation\Rules\NotBlank;
 use Swoolefy\Annotation\Validation\ValidationRule;
 use Swoolefy\Core\Dto\BaseResponseDto;
 use Swoolefy\Http\BaseRequest;
@@ -13,10 +12,20 @@ class LogSaveRequest extends BaseRequest
      */
     #[ValidationRule(
         rule: "required|array",
-        message: "日志ID不能为空"
+        message: "日志ID不能为空",
+        itemRule: "string",
+        itemMessage: "日志ID必须是整数"
     )]
     private array $logIds;
 
+    /**
+     * @var array<LogContentDto>
+     */
+    #[ValidationRule(
+        rule: "required|array",
+        message: "日志内容不能为空"
+    )]
+    private array $logContents;
 
     private $logName;
 
@@ -25,12 +34,6 @@ class LogSaveRequest extends BaseRequest
      */
     public function setLogIds(array $logIds)
     {
-//        $arrayList = new ArrayCollection($logIds);
-//        $this->logIds = $arrayList
-//            ->map(function ($logId) {
-//                return intval($logId);
-//            })
-//            ->toArray();
         $this->logIds = $logIds;
     }
 
@@ -40,5 +43,15 @@ class LogSaveRequest extends BaseRequest
     public function getLogIds(): array
     {
         return $this->logIds ?? [];
+    }
+
+    public function setLogContents(array $logContents)
+    {
+        $this->logContents = $logContents;
+    }
+
+    public function getLogContents(): array
+    {
+        return $this->logContents ?? [];
     }
 }
