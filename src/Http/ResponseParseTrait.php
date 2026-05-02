@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Http;
 
+use JsonException;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\ResponseFormatter;
 
@@ -36,20 +37,33 @@ trait ResponseParseTrait
     }
 
     /**
-     * jsonSerialize
-     * @param array $data
+     * @param mixed $result
      * @param string $formatter
      * @return void
      */
-    protected function jsonSerialize(array $data = [], string $formatter = 'json')
+    public function returnResult($result, string $formatter = 'json')
     {
+        $this->jsonSerialize(ActionResultNormalizer::normalize($result), $formatter);
+    }
+
+    /**
+     * jsonSerialize
+     * @param mixed $data
+     * @param string $formatter
+     * @return void
+     * @throws JsonException
+     */
+    protected function jsonSerialize($data = [], string $formatter = 'json')
+    {
+        $jsonEncodeFlags = JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR;
         switch (strtoupper($formatter)) {
             case 'JSON':
                 $this->swooleResponse->header('Content-Type', 'application/json; charset=utf-8');
-                $responseContent = json_encode($data, JSON_UNESCAPED_UNICODE);
+                $responseContent = json_encode($data, $jsonEncodeFlags);
                 break;
             default:
-                $responseContent = json_encode($data, JSON_UNESCAPED_UNICODE);
+                $this->swooleResponse->header('Content-Type', 'application/json; charset=utf-8');
+                $responseContent = json_encode($data, $jsonEncodeFlags);
                 break;
         }
 

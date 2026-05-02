@@ -1,6 +1,7 @@
 <?php
 namespace Test\Controller;
 
+use Common\Library\OpenTelemetry\SDK\Common\Configuration\Parser\BooleanParser;
 use GuzzleHttp\Client;
 use http\Header;
 use OpenTelemetry\SDK\Common\Http\Psr\Client\Discovery\Guzzle;
@@ -14,6 +15,8 @@ use Swoolefy\Core\Swoole;
 use Swoolefy\Http\RequestInput;
 use Test\App;
 use Test\Logger\RunLog;
+use function Common\Library\OpenTelemetry\API\Trace\trace;
+use function Psl\Type\bool;
 
 class IndexController extends BController {
 
@@ -25,8 +28,6 @@ class IndexController extends BController {
     public function index(RequestInput $request)
     {
         // todo something
-
-        var_dump($request->getClientIP());
 
         // 创建一个协程单例异步写入日志
         goApp(function () {
@@ -46,6 +47,8 @@ class IndexController extends BController {
         var_dump("这是一个测试swoole的demo");
 
         // todo something
+
+        return true;
 
         return $this->returnJson([
             'code' => 200,

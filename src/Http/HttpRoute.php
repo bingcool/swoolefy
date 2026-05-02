@@ -36,6 +36,7 @@ class HttpRoute extends AppDispatch
     const PARAM_KIND_REQUEST_INPUT = 'request_input';
     const PARAM_KIND_RESPONSE_OUTPUT = 'response_output';
     const PARAM_KIND_DTO = 'dto';
+    const PARAM_KIND_BASE_REQUEST = 'base_request';
     const PARAM_KIND_DEFAULT = 'default';
 
     /**
@@ -263,7 +264,7 @@ class HttpRoute extends AppDispatch
         }
         // reflector params handle
         $args = $this->bindActionParams($controllerInstance, $action, $this->requestInput->all());
-        $controllerInstance->{$action}(...$args);
+        $actionResult = $controllerInstance->{$action}(...$args);
         if (!SystemEnv::isPrdEnv()) {
             $traceId = '';
             if (SwooleContext::has(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID)) {
@@ -277,9 +278,25 @@ class HttpRoute extends AppDispatch
                 $traceId,
             ));
         }
+        $this->emitActionResult($actionResult);
         $controllerInstance->_afterAction($this->requestInput, $action);
         $this->handleAfterRouteMiddles();
         return true;
+    }
+
+    /**
+     * Emit non-null controller return values when the response is not finished.
+     *
+     * @param mixed $actionResult
+     * @return void
+     */
+    protected function emitActionResult($actionResult): void
+    {
+        if ($actionResult === null || $this->app->isEnd()) {
+            return;
+        }
+
+        $this->responseOutput->returnResult($actionResult);
     }
 
     /**
@@ -430,14 +447,14 @@ class HttpRoute extends AppDispatch
                 continue;
             }
 
-            if ($kind === self::PARAM_KIND_DTO) {
+            if ($kind === self::PARAM_KIND_DTO || $kind === self::PARAM_KIND_BASE_REQUEST) {
                 $dtoClass = $paramMeta['dto_class'];
                 $paramDto = new $dtoClass();
-                $inputParams = $inputParams ?? $this->requestInput->input();
-                $propertyList = get_object_vars($paramDto);
-                foreach ($propertyList as $property => $value) {
-                    $paramDto->{$property} = $inputParams[$property] ?? $value;
+                if ($kind === self::PARAM_KIND_BASE_REQUEST) {
+                    $paramDto->setRequestInput($this->requestInput);
                 }
+                $inputParams = $inputParams ?? $this->requestInput->input();
+                $this->fillActionParamObject($paramDto, $inputParams, $kind === self::PARAM_KIND_BASE_REQUEST ? ['requestInput' => true] : []);
                 $args[] = $paramDto;
                 continue;
             }
@@ -497,6 +514,56 @@ class HttpRoute extends AppDispatch
     }
 
     /**
+     * Fill DTO/request objects from request input.
+     *
+     * Typed properties without default values are not returned by get_object_vars(),
+     * so hydrate from input keys and prefer explicit setters.
+     *
+     * @param object $paramObject
+     * @param array $inputParams
+     * @param array $excludedProperties
+     * @return void
+     */
+    protected function fillActionParamObject(object $paramObject, array $inputParams, array $excludedProperties = []): void
+    {
+        foreach ($inputParams as $property => $value) {
+            if (isset($excludedProperties[$property])) {
+                continue;
+            }
+
+            $setter = $this->buildSetterName((string)$property);
+            if (method_exists($paramObject, $setter)) {
+                $method = new \ReflectionMethod($paramObject, $setter);
+                if ($method->isPublic() && $method->getNumberOfRequiredParameters() <= 1) {
+                    $paramObject->{$setter}($value);
+                    continue;
+                }
+            }
+
+            if (!property_exists($paramObject, $property)) {
+                continue;
+            }
+
+            $reflectionProperty = new \ReflectionProperty($paramObject, $property);
+            if ($reflectionProperty->isStatic() || !$reflectionProperty->isPublic()) {
+                continue;
+            }
+
+            $paramObject->{$property} = $value;
+        }
+    }
+
+    /**
+     * @param string $property
+     * @return string
+     */
+    protected function buildSetterName(string $property): string
+    {
+        $property = str_replace(['-', '_'], ' ', $property);
+        return 'set' . str_replace(' ', '', ucwords($property));
+    }
+
+    /**
      * 构建并缓存 action 参数元数据，减少每次请求反射成本
      *
      * @param string $class
@@ -520,6 +587,15 @@ class HttpRoute extends AppDispatch
                     $builtinType = $typeName;
                 }
             }
+
+            if ($typeName && class_exists($typeName) && ($typeName === BaseRequest::class || is_subclass_of($typeName, BaseRequest::class))) {
+                $paramMetas[] = [
+                    'kind' => self::PARAM_KIND_BASE_REQUEST,
+                    'dto_class' => $typeName,
+                ];
+                continue;
+            }
+
 
             if ($typeName === RequestInput::class) {
                 $paramMetas[] = ['kind' => self::PARAM_KIND_REQUEST_INPUT];
