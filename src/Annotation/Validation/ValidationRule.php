@@ -12,6 +12,8 @@ class ValidationRule extends AbstractValidationRule
     public function __construct(
         protected string $rule = '',
         protected string|array $message = [],
+        protected string $itemRule = '', // 数组item
+        protected string|array $itemMessage = [],
     ) {
     }
 
@@ -23,5 +25,15 @@ class ValidationRule extends AbstractValidationRule
     public function getMessage(): string|array
     {
         return $this->message;
+    }
+
+    public function getItemRule(): string
+    {
+        return $this->itemRule;
+    }
+
+    public function getItemMessage(): string|array
+    {
+        return $this->itemMessage;
     }
 }

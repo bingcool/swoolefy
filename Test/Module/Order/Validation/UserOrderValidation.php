@@ -87,9 +87,8 @@ class UserOrderValidation
     {
         return [
             'rules' => [
-                //'name' => 'required|int',
-//                'order_ids' => 'required|array',
-//                'order_ids.*' => 'int'
+                'order_ids' => 'required|array',
+                'order_ids.*' => 'int'
             ],
 
             'messages' => [

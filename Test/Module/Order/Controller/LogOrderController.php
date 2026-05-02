@@ -15,7 +15,6 @@ class LogOrderController extends BController
      */
     public function testLog(LogSaveRequest $request)
     {
-        var_dump($request->getRequestInput()->all());
         $logIds = $request->getLogIds();
 
         /**

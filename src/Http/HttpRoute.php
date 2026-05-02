@@ -613,15 +613,22 @@ class HttpRoute extends AppDispatch
 
         $rules = $messages = [];
         foreach ($validationRules as $property => $validationRule) {
-            if (empty($validationRule['rule'])) {
-                continue;
+            if (!empty($validationRule['rule'])) {
+                $rules[$property] = $validationRule['rule'];
+                $messages = array_merge(
+                    $messages,
+                    $this->normalizeValidationMessages($property, $validationRule['rule'], $validationRule['message'] ?? [])
+                );
             }
 
-            $rules[$property] = $validationRule['rule'];
-            $messages = array_merge(
-                $messages,
-                $this->normalizeValidationMessages($property, $validationRule['rule'], $validationRule['message'] ?? [])
-            );
+            if (!empty($validationRule['item_rule'])) {
+                $itemProperty = $property . '.*';
+                $rules[$itemProperty] = $validationRule['item_rule'];
+                $messages = array_merge(
+                    $messages,
+                    $this->normalizeValidationMessages($itemProperty, $validationRule['item_rule'], $validationRule['item_message'] ?? [])
+                );
+            }
         }
 
         if (!empty($rules)) {
@@ -694,13 +701,16 @@ class HttpRoute extends AppDispatch
             foreach ($attributes as $attribute) {
                 $validationRule = $attribute->newInstance();
                 $rule = $validationRule->getRule();
-                if ($rule == '') {
+                $itemRule = $validationRule->getItemRule();
+                if ($rule === '' && $itemRule === '') {
                     continue;
                 }
 
                 $validationRules[$property->getName()] = [
                     'rule' => $rule,
                     'message' => $validationRule->getMessage(),
+                    'item_rule' => $itemRule,
+                    'item_message' => $validationRule->getItemMessage(),
                 ];
             }
         }
