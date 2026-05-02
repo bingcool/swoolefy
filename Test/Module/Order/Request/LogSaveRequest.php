@@ -1,8 +1,6 @@
 <?php
 namespace Test\Module\Order\Request;
-use Doctrine\Common\Collections\ArrayCollection;
 use Swoolefy\Annotation\Validation\ValidationRule;
-use Swoolefy\Core\Dto\BaseResponseDto;
 use Swoolefy\Http\BaseRequest;
 
 class LogSaveRequest extends BaseRequest
@@ -13,7 +11,7 @@ class LogSaveRequest extends BaseRequest
     #[ValidationRule(
         rule: "required|array",
         message: "日志ID不能为空",
-        itemRule: "string",
+        itemRule: "int",
         itemMessage: "日志ID必须是整数"
     )]
     private array $logIds;
@@ -23,7 +21,8 @@ class LogSaveRequest extends BaseRequest
      */
     #[ValidationRule(
         rule: "required|array",
-        message: "日志内容不能为空"
+        message: "日志内容不能为空",
+        itemClass: LogContentDto::class,
     )]
     private array $logContents;
 
@@ -45,11 +44,17 @@ class LogSaveRequest extends BaseRequest
         return $this->logIds ?? [];
     }
 
+    /**
+     * @param array<int, LogContentDto|array<string,mixed>> $logContents
+     */
     public function setLogContents(array $logContents)
     {
         $this->logContents = $logContents;
     }
 
+    /**
+     * @return LogContentDto[]
+     */
     public function getLogContents(): array
     {
         return $this->logContents ?? [];
