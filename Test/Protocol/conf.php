@@ -67,7 +67,7 @@ return [
         'log_rotation'           => SWOOLE_LOG_ROTATION_DAILY,
         //开启/关闭Swoole错误信息
         'display_errors'         => true,
-        'pid_file'               => \Swoolefy\Core\SystemEnv::loadPidFile('/data/' . APP_NAME . '/log/server.pid'),
+        'pid_file'               => \Swoolefy\Core\SystemEnv::loadPidFile('/tmp/' . APP_NAME . '/log/server.pid'),
 
         'hook_flags'             => \Swoolefy\Core\SystemEnv::loadHookFlag(),
 

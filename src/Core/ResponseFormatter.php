@@ -12,6 +12,7 @@
 namespace Swoolefy\Core;
 
 use Common\Library\CurlProxy\OpentelemetryMiddleware;
+use ResponseCode;
 use Swoolefy\Core\Coroutine\Context as SwooleContext;
 use Swoolefy\Core\Dto\BaseResponseDto;
 
@@ -58,7 +59,7 @@ class ResponseFormatter
      * @return array
      */
     final public static function buildResponseData(
-        int $code = 0,
+        int $code = ResponseCode::CodeOk,
         string $msg = '',
         $data = []
     ): array

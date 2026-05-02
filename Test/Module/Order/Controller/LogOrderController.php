@@ -5,6 +5,7 @@ use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
 use Swoolefy\Http\RequestInput;
+use Test\Module\Order\Request\LogSaveRequest;
 
 class LogOrderController extends BController
 {
@@ -12,8 +13,11 @@ class LogOrderController extends BController
      * @return void
      * @see \Test\Module\Order\Validation\LogOrderValidation::testLog()
      */
-    public function testLog(RequestInput $requestInput)
+    public function testLog(LogSaveRequest $request)
     {
+        var_dump($request->getRequestInput()->all());
+        $logIds = $request->getLogIds();
+
         /**
          * @var \Swoolefy\Util\Log $log
          */
@@ -24,8 +28,9 @@ class LogOrderController extends BController
         $log->addInfo(['name' => 'bingcool','address'=>'深圳'],true, ['name'=>'bincool','sex'=>1,'address'=>'shenzhen']);
 
         $this->returnJson([
-            'Controller' => $requestInput->getControllerId(),
-            'Action' => $requestInput->getActionId().'-'.rand(1,1000)
+            'logIds' => $logIds,
+            'Controller' => $request->getRequestInput()->getControllerId(),
+            'Action' => $request->getRequestInput()->getActionId().'-'.rand(1,1000)
         ]);
     }
 }
