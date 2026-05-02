@@ -12,6 +12,7 @@
 namespace Swoolefy\Http;
 
 use Common\Library\CurlProxy\OpentelemetryMiddleware;
+use Swoolefy\Annotation\Validation\ValidationRule;
 use Swoolefy\Core\App;
 use Swoolefy\Core\AppDispatch;
 use Swoolefy\Core\Application;
@@ -223,6 +224,8 @@ class HttpRoute extends AppDispatch
             throw new SystemException('System Request End Error', \Swoole\Http\Status::INTERNAL_SERVER_ERROR);
         }
 
+        $this->validateActionParamRulesBeforeMiddlewares($class, $action);
+
         // reset app conf
         $this->app->setAppConf($this->appConf);
 
@@ -422,15 +425,7 @@ class HttpRoute extends AppDispatch
     protected function bindActionParams(BController $controllerInstance, string $action, array $params): array
     {
         $class = get_class($controllerInstance);
-        if ($this->isEnableRouteMetaCache($this->routeOption)) {
-            $cacheKey = $class . '::' . $action;
-            if (!isset(self::$actionParamMetaCache[$cacheKey])) {
-                self::$actionParamMetaCache[$cacheKey] = $this->buildActionParamMeta($class, $action);
-            }
-            $paramMetas = self::$actionParamMetaCache[$cacheKey];
-        } else {
-            $paramMetas = $this->buildActionParamMeta($class, $action);
-        }
+        $paramMetas = $this->getActionParamMetas($class, $action);
 
         $args = $missing = $actionParams = [];
         $inputParams = null;
@@ -514,6 +509,46 @@ class HttpRoute extends AppDispatch
     }
 
     /**
+     * @param string $class
+     * @param string $action
+     * @return array
+     */
+    protected function getActionParamMetas(string $class, string $action): array
+    {
+        if ($this->isEnableRouteMetaCache($this->routeOption)) {
+            $cacheKey = $class . '::' . $action;
+            if (!isset(self::$actionParamMetaCache[$cacheKey])) {
+                self::$actionParamMetaCache[$cacheKey] = $this->buildActionParamMeta($class, $action);
+            }
+
+            return self::$actionParamMetaCache[$cacheKey];
+        }
+
+        return $this->buildActionParamMeta($class, $action);
+    }
+
+    /**
+     * Validate action request object annotations before any route middleware runs.
+     *
+     * @param string $class
+     * @param string $action
+     * @return void
+     */
+    protected function validateActionParamRulesBeforeMiddlewares(string $class, string $action): void
+    {
+        $inputParams = $this->requestInput->input();
+        foreach ($this->getActionParamMetas($class, $action) as $paramMeta) {
+            $kind = $paramMeta['kind'];
+            if ($kind !== self::PARAM_KIND_DTO && $kind !== self::PARAM_KIND_BASE_REQUEST) {
+                continue;
+            }
+
+            $this->validateActionParamObjectRules($inputParams, $paramMeta['validation_rules'] ?? []);
+            $inputParams = $this->requestInput->input();
+        }
+    }
+
+    /**
      * Fill DTO/request objects from request input.
      *
      * Typed properties without default values are not returned by get_object_vars(),
@@ -564,6 +599,116 @@ class HttpRoute extends AppDispatch
     }
 
     /**
+     * Validate request/DTO attributes declared by ValidationRule annotations.
+     *
+     * @param array $inputParams
+     * @param array $validationRules
+     * @return void
+     */
+    protected function validateActionParamObjectRules(array $inputParams, array $validationRules): void
+    {
+        if (empty($validationRules)) {
+            return;
+        }
+
+        $rules = $messages = [];
+        foreach ($validationRules as $property => $validationRule) {
+            if (empty($validationRule['rule'])) {
+                continue;
+            }
+
+            $rules[$property] = $validationRule['rule'];
+            $messages = array_merge(
+                $messages,
+                $this->normalizeValidationMessages($property, $validationRule['rule'], $validationRule['message'] ?? [])
+            );
+        }
+
+        if (!empty($rules)) {
+            $this->requestInput->validate($inputParams, $rules, $messages);
+        }
+    }
+
+    /**
+     * @param string $property
+     * @param string $rule
+     * @param string|array $message
+     * @return array
+     */
+    protected function normalizeValidationMessages(string $property, string $rule, string|array $message): array
+    {
+        if ($message === '' || $message === []) {
+            return [];
+        }
+
+        if (is_string($message)) {
+            return [$property . '.' . $this->getFirstValidationRuleName($rule) => $message];
+        }
+
+        $messages = [];
+        foreach ($message as $key => $value) {
+            if (!is_string($value)) {
+                continue;
+            }
+
+            if (is_string($key) && str_contains($key, '.')) {
+                $messages[$key] = $value;
+                continue;
+            }
+
+            if (is_string($key)) {
+                $messages[$property . '.' . $key] = $value;
+            }
+        }
+
+        return $messages;
+    }
+
+    /**
+     * @param string $rule
+     * @return string
+     */
+    protected function getFirstValidationRuleName(string $rule): string
+    {
+        $ruleItems = explode('|', $rule);
+        $ruleName = $ruleItems[0] ?? $rule;
+        return explode(':', $ruleName)[0];
+    }
+
+    /**
+     * Build validation rule metadata from request object attributes.
+     *
+     * @param string $class
+     * @return array
+     */
+    protected function buildActionParamValidationRuleMeta(string $class): array
+    {
+        $reflectionClass = new \ReflectionClass($class);
+        $validationRules = [];
+        foreach ($reflectionClass->getProperties() as $property) {
+            $attributes = $property->getAttributes(ValidationRule::class);
+            if (empty($attributes)) {
+                continue;
+            }
+
+            foreach ($attributes as $attribute) {
+                $validationRule = $attribute->newInstance();
+                $rule = $validationRule->getRule();
+                if ($rule == '') {
+                    continue;
+                }
+
+                $validationRules[$property->getName()] = [
+                    'rule' => $rule,
+                    'message' => $validationRule->getMessage(),
+                ];
+            }
+        }
+
+        return $validationRules;
+    }
+
+    /**
      * 构建并缓存 action 参数元数据，减少每次请求反射成本
      *
      * @param string $class
@@ -592,6 +737,7 @@ class HttpRoute extends AppDispatch
                 $paramMetas[] = [
                     'kind' => self::PARAM_KIND_BASE_REQUEST,
                     'dto_class' => $typeName,
+                    'validation_rules' => $this->buildActionParamValidationRuleMeta($typeName),
                 ];
                 continue;
             }
@@ -611,6 +757,7 @@ class HttpRoute extends AppDispatch
                 $paramMetas[] = [
                     'kind' => self::PARAM_KIND_DTO,
                     'dto_class' => $typeName,
+                    'validation_rules' => $this->buildActionParamValidationRuleMeta($typeName),
                 ];
                 continue;
             }
