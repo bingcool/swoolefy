@@ -3,7 +3,7 @@ namespace Test\Module\Cron\Service;
 
 use Swoolefy\Core\Schedule\ScheduleEvent;
 use Swoolefy\Worker\Cron\CronProcess;
-use Swoolefy\Worker\Dto\CronUrlTaskMetaDto;
+use Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker;
 use Test\Module\Cron\CronTaskEntity;
 use Test\Module\Cron\CronTaskLogEntity;
 
@@ -89,7 +89,7 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface {
     {
         $newTaskList = [];
         foreach ($taskList as $item) {
-            $cronHttpTask = new CronUrlTaskMetaDto();
+            $cronHttpTask = new CronUrlTaskMetaDtoWorker();
             $cronHttpTask->cron_task_id = $item['id'];
             $cronHttpTask->cron_db_log_class = static::class;
             $cronHttpTask->cron_meta_origin = ScheduleEvent::CRON_META_ORIGIN_DB;
@@ -134,16 +134,16 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface {
     }
 
     /**
-     * @param ScheduleEvent|CronUrlTaskMetaDto $scheduleTask
+     * @param ScheduleEvent|CronUrlTaskMetaDtoWorker $scheduleTask
      * @param string $execBatchId
      * @param string $message
      * @return void
      */
     public function logCronTaskRuntime(
-        ScheduleEvent|CronUrlTaskMetaDto $scheduleTask,
-        string $execBatchId,
-        string $message,
-        int $pid = 0,
+        ScheduleEvent|CronUrlTaskMetaDtoWorker $scheduleTask,
+        string                                 $execBatchId,
+        string                                 $message,
+        int                                    $pid = 0,
     )
     {
         CronTaskLogEntity::query()->insert([

@@ -13,7 +13,7 @@ namespace Swoolefy\Worker;
 
 use Swoolefy\Core\CommandRunner;
 use Swoolefy\Core\SystemEnv;
-use Swoolefy\Worker\Dto\PipeMsgDto;
+use Swoolefy\Worker\Dto\PipeMsgDtoWorker;
 use Swoole\Http\Request as SwooleRequest;
 use Swoole\Http\Response as SwooleResponse;
 
@@ -323,7 +323,7 @@ class CtlApi
      */
     protected function sendPipeCommand(string $processName, string $action, int $pid = 0)
     {
-        $pipeMsgDto = new PipeMsgDto();
+        $pipeMsgDto = new PipeMsgDtoWorker();
         $pipeMsgDto->action = WORKER_CLI_SEND_MSG;
         $pipeMsgDto->targetHandler = $processName;
         $pipeMsgDto->message = json_encode([

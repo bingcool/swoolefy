@@ -13,7 +13,7 @@ namespace Swoolefy\Core;
 
 use Swoole\Coroutine\System;
 use Swoole\Process;
-use Swoolefy\Worker\Dto\RunProcessMetaDto;
+use Swoolefy\Worker\Dto\RunProcessMetaDtoWorker;
 use Swoolefy\Exception\SystemException;
 
 class CommandRunner
@@ -116,7 +116,7 @@ class CommandRunner
             $returnCode = $exec->getReturnCode();
             $pid        = $execOutput[0] ?? '';
             if ($pid) {
-                $runProcessMetaDto = new RunProcessMetaDto();
+                $runProcessMetaDto = new RunProcessMetaDtoWorker();
                 $runProcessMetaDto->pid = (int)trim($pid);
                 $runProcessMetaDto->command = $command;
                 $runProcessMetaDto->pid_file = '';
@@ -197,7 +197,7 @@ class CommandRunner
                     $status['pid'] = (int)trim(fgets($pipes[5], 10));
                 }
 
-                $runProcessMetaDto = new RunProcessMetaDto();
+                $runProcessMetaDto = new RunProcessMetaDtoWorker();
                 $runProcessMetaDto->pid = $status['pid'] ?? 0;
                 $runProcessMetaDto->command = $command;
                 $runProcessMetaDto->pid_file = '';
@@ -268,7 +268,7 @@ class CommandRunner
         if (count($this->runProcessMetaPool) >= $this->concurrent && $isNeedCheck) {
             $exitProcess = [];
             /**
-             * @var RunProcessMetaDto $runProcessMetaItem
+             * @var RunProcessMetaDtoWorker $runProcessMetaItem
              */
             foreach ($this->runProcessMetaPool as $runProcessMetaItem) {
                 $startTime  = strtotime($runProcessMetaItem->start_time);
@@ -311,7 +311,7 @@ class CommandRunner
     {
         $runningItemList = [];
         /**
-         * @var RunProcessMetaDto $runProcessMetaItem
+         * @var RunProcessMetaDtoWorker $runProcessMetaItem
          */
         foreach ($this->runProcessMetaPool as $runProcessMetaItem) {
             $pid = $runProcessMetaItem->pid;
@@ -331,7 +331,7 @@ class CommandRunner
     {
         $itemList = [];
         /**
-         * @var RunProcessMetaDto $runProcessMetaItem
+         * @var RunProcessMetaDtoWorker $runProcessMetaItem
          */
         if (count($this->runProcessMetaPool) > 0) {
             foreach ($this->runProcessMetaPool as $runProcessMetaItem) {

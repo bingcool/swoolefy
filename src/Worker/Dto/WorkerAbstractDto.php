@@ -11,13 +11,9 @@
 
 namespace Swoolefy\Worker\Dto;
 
-class AbstractDto extends \stdClass
+use Swoolefy\Core\Dto\AbstractDto;
+
+class WorkerAbstractDto extends AbstractDto
 {
-    /**
-     * toArray
-     */
-    public function toArray()
-    {
-        return (array)$this;
-    }
+
 }

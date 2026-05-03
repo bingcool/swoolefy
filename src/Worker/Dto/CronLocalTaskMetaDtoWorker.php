@@ -11,20 +11,38 @@
 
 namespace Swoolefy\Worker\Dto;
 
-class PipeMsgDto extends AbstractDto
+class CronLocalTaskMetaDtoWorker extends WorkerAbstractDto
 {
     /**
+     * 计划任务名称
+     *
      * @var string
      */
-    public $action;
+    public $cron_name = '';
 
     /**
+     * 计划任务表达式
      * @var string
      */
-    public $targetHandler;
+    public $cron_expression = '';
 
     /**
+     * 任务处理类 必须继承 \Swoolefy\Core\Crontab\AbstractCronController， 并实现doCronTask方法
      * @var string
      */
-    public $message;
+    public $handler_class = '';
+
+    /**
+     * 是否阻塞执行
+     * @var bool
+     */
+    public $with_block_lapping = false;
+
+    /**
+     * 定时任务后台运行，不受stop指令影响，正在执行的任务会继续执行，只对cron的local模式有效
+     *
+     * @var bool
+     */
+    public $run_in_background = true;
+
 }

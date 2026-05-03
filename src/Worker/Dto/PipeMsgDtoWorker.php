@@ -11,36 +11,20 @@
 
 namespace Swoolefy\Worker\Dto;
 
-class MessageDto extends AbstractDto
+class PipeMsgDtoWorker extends WorkerAbstractDto
 {
     /**
      * @var string
      */
-    public $fromProcessName;
-
-    /**
-     * @var int
-     */
-    public $fromProcessWorkerId;
+    public $action;
 
     /**
      * @var string
      */
-    public $toProcessName;
+    public $targetHandler;
 
     /**
-     * @var int
+     * @var string
      */
-    public $toProcessWorkerId;
-
-    /**
-     * @var bool
-     */
-    public $isProxy = true;
-
-    /**
-     * @var mixed
-     */
-    public $data;
-
+    public $message;
 }

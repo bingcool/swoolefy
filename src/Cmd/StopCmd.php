@@ -6,7 +6,7 @@ use Swoolefy\Core\SystemEnv;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Swoolefy\Worker\Dto\PipeMsgDto;
+use Swoolefy\Worker\Dto\PipeMsgDtoWorker;
 
 #[AsCommand(
     name: 'stop',
@@ -412,7 +412,7 @@ class StopCmd extends BaseCmd
      */
     private function sendPipeMessage(string $cliToWorkerPipe, string $action): void
     {
-        $pipeMsgDto = new PipeMsgDto();
+        $pipeMsgDto = new PipeMsgDtoWorker();
         $pipeMsgDto->action = $action;
         $pipeMsg = serialize($pipeMsgDto);
         

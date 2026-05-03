@@ -15,8 +15,8 @@ use Swoolefy\Core\Crontab\CrontabManager;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Schedule\ScheduleEvent;
 use Swoolefy\Worker\AbstractWorkerProcess;
-use Swoolefy\Worker\Dto\CronForkTaskMetaDto;
-use Swoolefy\Worker\Dto\CronUrlTaskMetaDto;
+use Swoolefy\Worker\Dto\CronForkTaskMetaDtoWorker;
+use Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker;
 
 class CronProcess extends AbstractWorkerProcess
 {
@@ -87,7 +87,7 @@ class CronProcess extends AbstractWorkerProcess
                     if ($execType == CronProcess::EXEC_FORK_TYPE) {
                         $this->logCronTaskRuntime(ScheduleEvent::load($oldCronTask),"","[Remove Cron]任务停止或删除，定时任务已暂停");
                     } else if ($execType == CronProcess::EXEC_URL_TYPE) {
-                        $this->logCronTaskRuntime(CronUrlTaskMetaDto::load($oldCronTask),"","[Remove Cron]任务停止或删除，定时任务已暂停");
+                        $this->logCronTaskRuntime(CronUrlTaskMetaDtoWorker::load($oldCronTask),"","[Remove Cron]任务停止或删除，定时任务已暂停");
                     }
                     $logger->info("Remove cron task 【{$cronTask['cron_name']}】 has stopped");
                     fmtPrintInfo("Remove cron task 【{$cronTask['cron_name']}】 has stopped");
@@ -114,7 +114,7 @@ class CronProcess extends AbstractWorkerProcess
         $firstItem = $taskList[0];
 
         // 配置是DB保存模式的才处理
-        if (isset($firstItem['cron_meta_origin']) && $firstItem['cron_meta_origin'] != CronForkTaskMetaDto::CRON_META_ORIGIN_DB) {
+        if (isset($firstItem['cron_meta_origin']) && $firstItem['cron_meta_origin'] != CronForkTaskMetaDtoWorker::CRON_META_ORIGIN_DB) {
             return;
         }
 
@@ -142,7 +142,7 @@ class CronProcess extends AbstractWorkerProcess
                         if ($execType == CronProcess::EXEC_FORK_TYPE) {
                             $this->logCronTaskRuntime(ScheduleEvent::load($newCronTask),"","[Re-register]任务配置有变动，已重新注册定时任务");
                         }else if ($execType == CronProcess::EXEC_URL_TYPE) {
-                            $this->logCronTaskRuntime(CronUrlTaskMetaDto::load($newCronTask),"","[Re-register]任务配置有变动，已重新注册定时任务");
+                            $this->logCronTaskRuntime(CronUrlTaskMetaDtoWorker::load($newCronTask),"","[Re-register]任务配置有变动，已重新注册定时任务");
                         }
                         $logger->info("Re-register cron task 【{$cronTask['cron_name']}】 has meta changed");
                         fmtPrintInfo("Re-register cron task 【{$cronTask['cron_name']}】 has meta changed");
@@ -189,10 +189,10 @@ class CronProcess extends AbstractWorkerProcess
      * @return void
      */
     protected function logCronTaskRuntime(
-        ScheduleEvent|CronUrlTaskMetaDto $scheduleTask,
-        string $execBatchId,
-        string $message,
-        int $pid = 0,
+        ScheduleEvent|CronUrlTaskMetaDtoWorker $scheduleTask,
+        string                                 $execBatchId,
+        string                                 $message,
+        int                                    $pid = 0,
     )
     {
         if (isset($scheduleTask->cron_task_id) && $scheduleTask->cron_task_id > 0 && !empty($scheduleTask->cron_db_log_class)) {

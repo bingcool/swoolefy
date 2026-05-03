@@ -14,7 +14,7 @@ namespace Swoolefy\Worker\Cron;
 use Swoolefy\Core\Crontab\CrontabManager;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Exception\SystemException;
-use Swoolefy\Worker\Dto\CronLocalTaskMetaDto;
+use Swoolefy\Worker\Dto\CronLocalTaskMetaDtoWorker;
 
 class CronLocalProcess extends CronProcess
 {
@@ -41,7 +41,7 @@ class CronLocalProcess extends CronProcess
     protected $registerLogFlag = false;
 
     /**
-     * @var CronLocalTaskMetaDto
+     * @var CronLocalTaskMetaDtoWorker
      */
     protected $cronLocalTaskMetaDto;
 
@@ -66,7 +66,7 @@ class CronLocalProcess extends CronProcess
         $this->cronExpression   = $this->getArgs()['cron_expression'];
         $this->withBlockLapping = $this->getArgs()['with_block_lapping'] ?? $this->withBlockLapping;
         $this->runInBackground  = $this->getArgs()['run_in_background'] ?? $this->runInBackground;
-        $this->cronLocalTaskMetaDto = new CronLocalTaskMetaDto();
+        $this->cronLocalTaskMetaDto = new CronLocalTaskMetaDtoWorker();
         $this->cronLocalTaskMetaDto->cron_name = $this->cronName;
         $this->cronLocalTaskMetaDto->cron_expression = $this->cronExpression;
         $this->cronLocalTaskMetaDto->handler_class = $this->handleClass;

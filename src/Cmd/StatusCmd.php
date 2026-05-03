@@ -68,7 +68,7 @@ class StatusCmd extends BaseCmd
         }
 
         $pipe = fopen($cliToWorkerPipeFile, 'r+');
-        $pipeMsgDto = new \Swoolefy\Worker\Dto\PipeMsgDto();
+        $pipeMsgDto = new \Swoolefy\Worker\Dto\PipeMsgDtoWorker();
         $pipeMsgDto->action = WORKER_CLI_STATUS;
         $pipeMsgDto->targetHandler = $workerToCliPipeFile;
         $pipeMsg = serialize($pipeMsgDto);
