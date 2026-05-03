@@ -881,7 +881,8 @@ class HttpRoute extends AppDispatch
             }
 
             $segments = explode('.', $fieldKey);
-            $this->walkWildcardRequiredSegments($data, $segments, $fieldKey, $messages[$fieldKey] ?? [], []);
+            // Messages are flattened as `{field}.{ruleName}` (see normalizeValidationMessages), not nested under $messages[$fieldKey].
+            $this->walkWildcardRequiredSegments($data, $segments, $fieldKey, $messages, []);
         }
     }
 
@@ -936,18 +937,11 @@ class HttpRoute extends AppDispatch
      * @param mixed $current
      * @param array<int, string> $segments
      * @param string $fieldKey
-     * @param mixed $fieldMessages
-     * @return void
-     */
-    /**
-     * @param mixed $current
-     * @param array<int, string> $segments
-     * @param string $fieldKey
-     * @param mixed $fieldMessages
+     * @param array<string, string> $allMessages full map from normalizeValidationMessages (`field.ruleName` => text)
      * @param array<int, string|int> $path
      * @return void
      */
-    protected function walkWildcardRequiredSegments($current, array $segments, string $fieldKey, $fieldMessages, array $path): void
+    protected function walkWildcardRequiredSegments($current, array $segments, string $fieldKey, array $allMessages, array $path): void
     {
         if (empty($segments)) {
             return;
@@ -964,7 +958,7 @@ class HttpRoute extends AppDispatch
             foreach ($current as $index => $item) {
                 $nextPath = $path;
                 $nextPath[] = $index;
-                $this->walkWildcardRequiredAfterStar($item, $tail, $fieldKey, $fieldMessages, $nextPath);
+                $this->walkWildcardRequiredAfterStar($item, $tail, $fieldKey, $allMessages, $nextPath);
             }
 
             return;
@@ -976,7 +970,7 @@ class HttpRoute extends AppDispatch
 
         $nextPath = $path;
         $nextPath[] = $head;
-        $this->walkWildcardRequiredSegments($current[$head], $tail, $fieldKey, $fieldMessages, $nextPath);
+        $this->walkWildcardRequiredSegments($current[$head], $tail, $fieldKey, $allMessages, $nextPath);
     }
 
     /**
@@ -985,11 +979,11 @@ class HttpRoute extends AppDispatch
      * @param mixed $item
      * @param array<int, string> $segments
      * @param string $fieldKey
-     * @param mixed $fieldMessages
+     * @param array<string, string> $allMessages
      * @param array<int, string|int> $path
      * @return void
      */
-    protected function walkWildcardRequiredAfterStar($item, array $segments, string $fieldKey, $fieldMessages, array $path): void
+    protected function walkWildcardRequiredAfterStar($item, array $segments, string $fieldKey, array $allMessages, array $path): void
     {
         if (empty($segments)) {
             return;
@@ -999,13 +993,13 @@ class HttpRoute extends AppDispatch
         $tail = array_slice($segments, 1);
 
         if ($head === '*') {
-            $this->walkWildcardRequiredSegments($item, $tail, $fieldKey, $fieldMessages, $path);
+            $this->walkWildcardRequiredSegments($item, $tail, $fieldKey, $allMessages, $path);
             return;
         }
 
         if (empty($tail)) {
             if (!is_array($item) || !array_key_exists($head, $item)) {
-                throw new ValidateException($this->buildWildcardMissingKeyMessage($fieldKey, $fieldMessages, $path, $head));
+                throw new ValidateException($this->buildWildcardMissingKeyMessage($fieldKey, $allMessages, $path, $head));
             }
 
             return;
@@ -1013,37 +1007,35 @@ class HttpRoute extends AppDispatch
 
         if ($tail[0] === '*') {
             if (!is_array($item) || !array_key_exists($head, $item)) {
-                throw new ValidateException($this->buildWildcardMissingKeyMessage($fieldKey, $fieldMessages, $path, $head));
+                throw new ValidateException($this->buildWildcardMissingKeyMessage($fieldKey, $allMessages, $path, $head));
             }
 
-            $this->walkWildcardRequiredSegments($item[$head], $tail, $fieldKey, $fieldMessages, $path);
+            $this->walkWildcardRequiredSegments($item[$head], $tail, $fieldKey, $allMessages, $path);
             return;
         }
 
         if (!is_array($item) || !array_key_exists($head, $item)) {
-            throw new ValidateException($this->buildWildcardMissingKeyMessage($fieldKey, $fieldMessages, $path, $head));
+            throw new ValidateException($this->buildWildcardMissingKeyMessage($fieldKey, $allMessages, $path, $head));
         }
 
         $nextPath = $path;
         $nextPath[] = $head;
-        $this->walkWildcardRequiredSegments($item[$head], $tail, $fieldKey, $fieldMessages, $nextPath);
+        $this->walkWildcardRequiredSegments($item[$head], $tail, $fieldKey, $allMessages, $nextPath);
     }
 
     /**
      * @param string $fieldKey
-     * @param mixed $fieldMessages
+     * @param array<string, string> $allMessages
      * @param array<int, string|int> $path
      * @param string $missingKey
      * @return string
      */
-    protected function buildWildcardMissingKeyMessage(string $fieldKey, $fieldMessages, array $path, string $missingKey): string
+    protected function buildWildcardMissingKeyMessage(string $fieldKey, array $allMessages, array $path, string $missingKey): string
     {
-        if (is_array($fieldMessages)) {
-            foreach (['required', 'require', 'must'] as $type) {
-                $candidate = $fieldKey . '.' . $type;
-                if (isset($fieldMessages[$candidate]) && is_string($fieldMessages[$candidate])) {
-                    return $fieldMessages[$candidate];
-                }
+        foreach (['required', 'require', 'must'] as $type) {
+            $candidate = $fieldKey . '.' . $type;
+            if (isset($allMessages[$candidate]) && is_string($allMessages[$candidate])) {
+                return $allMessages[$candidate];
             }
         }
 
