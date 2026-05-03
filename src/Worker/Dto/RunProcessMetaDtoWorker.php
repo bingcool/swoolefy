@@ -11,38 +11,46 @@
 
 namespace Swoolefy\Worker\Dto;
 
-class CronLocalTaskMetaDto extends AbstractDto
+class RunProcessMetaDtoWorker extends WorkerAbstractDto
 {
     /**
-     * 计划任务名称
-     *
+     * @var int
+     */
+    public $pid = 0;
+
+    /**
      * @var string
      */
-    public $cron_name = '';
+    public $command = "";
 
     /**
-     * 计划任务表达式
      * @var string
      */
-    public $cron_expression = '';
+    public $pid_file = '';
 
     /**
-     * 任务处理类 必须继承 \Swoolefy\Core\Crontab\AbstractCronController， 并实现doCronTask方法
+     * 总的检查次数
+     * @var int
+     */
+    public $check_total_count = 0;
+
+    /**
+     * 检查到pid不存在的次数
+     * @var int
+     */
+    public $check_pid_not_exist_count = 0;
+
+    /**
+     * 启动时间戳
+     * @var int
+     */
+    public $start_timestamp = 0;
+
+    /**
+     * 启动日期时间
      * @var string
      */
-    public $handler_class = '';
+    public $start_date_time = 0;
 
-    /**
-     * 是否阻塞执行
-     * @var bool
-     */
-    public $with_block_lapping = false;
-
-    /**
-     * 定时任务后台运行，不受stop指令影响，正在执行的任务会继续执行，只对cron的local模式有效
-     *
-     * @var bool
-     */
-    public $run_in_background = true;
 
 }

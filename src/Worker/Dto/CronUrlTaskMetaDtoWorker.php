@@ -11,20 +11,8 @@
 
 namespace Swoolefy\Worker\Dto;
 
-use Swoolefy\Core\Schedule\ScheduleEvent;
-use Swoolefy\Worker\Cron\CronForkProcess;
-
-class CronForkTaskMetaDto extends AbstractDto
+class CronUrlTaskMetaDtoWorker extends WorkerAbstractDto
 {
-
-    const RUN_TYPE = 'swoolefy';
-
-    const CRON_META_ORIGIN_DB = 'db';
-
-    const CRON_META_ORIGIN_YAML = 'yaml';
-
-    const CRON_META_ORIGIN_PHP = 'php';
-
     /**
      * db cron task Meta配置模式下的数据库的任务id
      *
@@ -40,6 +28,11 @@ class CronForkTaskMetaDto extends AbstractDto
     public $cron_db_log_class = '';
 
     /**
+     * @var string
+     */
+    public $cron_meta_origin = 'php';
+
+    /**
      * 计划任务名称
      *
      * @var string
@@ -53,93 +46,69 @@ class CronForkTaskMetaDto extends AbstractDto
     public $cron_expression = '';
 
     /**
-     * 执行的bin二进制文件
      * @var string
      */
-    public $exec_bin_file = '';
-
-    /**
-     * 执行的脚本
-     * @var string
-     */
-    public $exec_script = '';
-
-    /**
-     * swoolefy的script脚本值必须设置为swoolefy
-     *
-     * @var string
-     */
-    public $run_type = self::RUN_TYPE;
-
-    /**
-     * 是否阻塞执行
-     * @var bool
-     */
-    public $with_block_lapping = false;
-
-    /**
-     * 执行的参数
-     * @var array
-     */
-    public $argv = [];
+    public $url = '';
 
     /**
      * @var string
      */
-    public $description = '';
+    public $method = 'get';
 
     /**
-     * 扩展参数
-     * @var array
-     */
-    public $extend = [];
-
-    /**
-     * @var string
-     */
-    public $output = '/dev/null';
-
-    /**
-     * @var string
-     */
-    public $fork_type = CronForkProcess::FORK_TYPE_PROC_OPEN;
-
-    /**
-     * cron模式下固定以守护进程跑脚本
+     * 连接超时设置
      *
      * @var int
      */
-    public $daemon = 1;
+    public $connect_time_out = 30;
 
     /**
-     * @var \Closure
+     * 整个请求等待超时设置，要比connection_time_out大
+     * @var int
      */
-    public $fork_success_callback = '';
+    public $request_time_out = 60;
 
     /**
-     * 暂不support setting fork_fail_callback 闭包函数
-     * @var \Closure
+     * 请求头
      */
-    public $fork_fail_callback = '';
-
-    /**
-     * @var array
-     */
-    public $cron_between = [];
+    public $headers = [];
 
     /**
      * @var array
      */
-    public $cron_skip = [];
+    public $options = [];
+
+    /**
+     * get|post参数
+     *
+     * @var array
+     */
+    public $params = [];
+
+    /**
+     *
+     * @var callable
+     */
+    public $before_callback = '';
+
+    /**
+     * @var callable
+     */
+    public $response_callback = '';
+
+    /**
+     * @var callable
+     */
+    public $after_callback = '';
 
     /**
      *
      * @param array $taskItem
-     * @return ScheduleEvent
+     * @return self
      */
     public static function load(array $taskItem)
     {
-        $scheduleTask = new ScheduleEvent();
+        $scheduleTask = new self();
         foreach ($taskItem as $property => $value) {
             $scheduleTask->$property = $value;
         }

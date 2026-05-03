@@ -14,9 +14,13 @@ namespace Swoolefy\Http;
 use BackedEnum;
 use DateTimeInterface;
 use JsonSerializable;
+use ReflectionClass;
 use ReflectionMethod;
+use ReflectionProperty;
 use RuntimeException;
 use SplObjectStorage;
+use Swoolefy\Annotation\IntToString;
+use Swoolefy\Core\Dto\AbstractDto;
 use Swoolefy\Core\ResponseFormatter;
 use Swoolefy\Util\ArrayHelper\Arrayable;
 use UnitEnum;
@@ -31,6 +35,9 @@ class ActionResultNormalizer
      */
     public static function normalize($result): array
     {
+        if ($result instanceof BaseResponse) {
+            $result = $result->getData();
+        }
         return ResponseFormatter::buildResponseData(ResponseCode::CodeOk, '', static::normalizeData($result, new SplObjectStorage()));
     }
 
@@ -82,11 +89,20 @@ class ActionResultNormalizer
                 if (method_exists($value, 'toArray')) {
                     $method = new ReflectionMethod($value, 'toArray');
                     if ($method->isPublic() && $method->getNumberOfRequiredParameters() === 0) {
+                        $declaring = $method->getDeclaringClass()->getName();
+                        if ($declaring === AbstractDto::class && $value::class !== AbstractDto::class) {
+                            return static::normalizeData(static::readObjectPropertiesAsArray($value), $objects);
+                        }
+
                         return static::normalizeData($value->toArray(), $objects);
                     }
                 }
 
-                return static::normalizeData(get_object_vars($value), $objects);
+                if ($value instanceof \stdClass) {
+                    return static::normalizeData((array) $value, $objects);
+                }
+
+                return static::normalizeData(static::readObjectPropertiesAsArray($value), $objects);
             });
         }
 
@@ -111,5 +127,58 @@ class ActionResultNormalizer
         } finally {
             $objects->detach($object);
         }
+    }
+
+    /**
+     * Export instance properties (including private/protected from declaring class) for JSON normalization.
+     * Uninitialized typed properties are skipped.
+     *
+     * @return array<string, mixed>
+     */
+    protected static function readObjectPropertiesAsArray(object $object): array
+    {
+        $props = (new ReflectionClass($object))->getProperties(
+            ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_PROTECTED | ReflectionProperty::IS_PRIVATE
+        );
+
+        $out = [];
+        foreach ($props as $prop) {
+            if ($prop->isStatic()) {
+                continue;
+            }
+
+            $prop->setAccessible(true);
+            if (!$prop->isInitialized($object)) {
+                continue;
+            }
+
+            $exported = $prop->getValue($object);
+            if ($prop->getAttributes(IntToString::class) !== []) {
+                $exported = static::applyIntToStringOnAnnotatedValue($exported);
+            }
+
+            $out[$prop->getName()] = $exported;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param mixed $value
+     * @return mixed
+     */
+    protected static function applyIntToStringOnAnnotatedValue($value)
+    {
+        if (is_int($value)) {
+            return (string) $value;
+        }
+
+        if (is_array($value)) {
+            foreach ($value as $k => $item) {
+                $value[$k] = static::applyIntToStringOnAnnotatedValue($item);
+            }
+        }
+
+        return $value;
     }
 }

@@ -11,9 +11,9 @@
 
 namespace Swoolefy\Core\Schedule;
 
-use Swoolefy\Worker\Dto\CronForkTaskMetaDto;
+use Swoolefy\Worker\Dto\CronForkTaskMetaDtoWorker;
 
-class ScheduleEvent extends CronForkTaskMetaDto
+class ScheduleEvent extends CronForkTaskMetaDtoWorker
 {
     /**
      * @var string

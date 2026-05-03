@@ -11,10 +11,16 @@
 
 namespace Swoolefy\Http;
 
-use Swoole\FastCGI\Record\Data;
-use function Swoole\Coroutine\Http\request;
-
 class BaseResponse {
+    /**
+     * $code
+     */
+    private int $code = ResponseCode::CodeOk;
+
+    /**
+     * $message
+     */
+    private string $message = 'success';
 
     /**
      * $data
@@ -34,6 +40,6 @@ class BaseResponse {
 
     public function toArray(): array
     {
-        return (array)$this;
+        return get_object_vars($this);
     }
 }

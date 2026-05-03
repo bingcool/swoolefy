@@ -29,7 +29,7 @@ return [
     ],
     [
         'cron_name' => "swoolefy-php",
-        'run_type'  => \Swoolefy\Worker\Dto\CronForkTaskMetaDto::RUN_TYPE,
+        'run_type'  => \Swoolefy\Worker\Dto\CronForkTaskMetaDtoWorker::RUN_TYPE,
         'cron_expression' => 15,
         'exec_bin_file' => SystemEnv::PhpBinFile(),
         'exec_script' => '/home/wwwroot/swoolefy/script.php start '.APP_NAME.' --c=test:script',

@@ -1,5 +1,6 @@
 <?php
 namespace Test\Module\Order\Request;
+use Doctrine\Common\Collections\ArrayCollection;
 use Swoolefy\Annotation\Validation\ValidationRule;
 use Swoolefy\Http\BaseRequest;
 
@@ -26,8 +27,6 @@ class LogSaveRequest extends BaseRequest
     )]
     private array $logContents;
 
-    private $logName;
-
     /**
      * @param array<int> $logIds
      */
@@ -45,7 +44,7 @@ class LogSaveRequest extends BaseRequest
     }
 
     /**
-     * @param array<int, LogContentDto|array<string,mixed>> $logContents
+     * @param array<int, LogContentDto> $logContents
      */
     public function setLogContents(array $logContents)
     {

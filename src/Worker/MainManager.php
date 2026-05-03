@@ -15,7 +15,7 @@ use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Exception\WorkerException;
-use Swoolefy\Worker\Dto\MessageDto;
+use Swoolefy\Worker\Dto\MessageDtoWorker;
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Core\Memory\SysvmsgManager;
 use Swoolefy\Core\Process\AbstractProcess;
@@ -729,7 +729,7 @@ class MainManager
                     $message = $swooleProcess->read(64 * 1024);
                     if (is_string($message)) {
                         $messageDto = unserialize($message);
-                        if (!$messageDto instanceof MessageDto) {
+                        if (!$messageDto instanceof MessageDtoWorker) {
                             $this->fmtWriteError("Accept message type error");
                             return;
                         } else {
@@ -1258,7 +1258,7 @@ class MainManager
             $processWorkers = $process;
         }
 
-        $messageDto                      = new MessageDto();
+        $messageDto                      = new MessageDtoWorker();
         $messageDto->fromProcessName     = $this->getMasterWorkerName();
         $messageDto->fromProcessWorkerId = $this->getMasterWorkerId();
         $messageDto->data                = $data;
@@ -1298,7 +1298,7 @@ class MainManager
             $processWorkers = $process;
         }
 
-        $messageDto                      = new MessageDto();
+        $messageDto                      = new MessageDtoWorker();
         $messageDto->fromProcessName     = $from_process_name;
         $messageDto->fromProcessWorkerId = $from_process_worker_id;
         $messageDto->data                = $data;
@@ -1317,7 +1317,7 @@ class MainManager
      */
     public function broadcastProcessWorker(string $process_name, $data = '')
     {
-        $messageDto                      = new MessageDto();
+        $messageDto                      = new MessageDtoWorker();
         $messageDto->fromProcessName     = $this->getMasterWorkerName();
         $messageDto->fromProcessWorkerId = $this->getMasterWorkerId();
         $messageDto->data                = $data;
@@ -1411,7 +1411,7 @@ class MainManager
             try {
                 $pipeMsg = fread($this->cliPipeFd, 8192);
                 $cliPipeMsgDto = unserialize($pipeMsg);
-                if ($cliPipeMsgDto instanceof \Swoolefy\Worker\Dto\PipeMsgDto) {
+                if ($cliPipeMsgDto instanceof \Swoolefy\Worker\Dto\PipeMsgDtoWorker) {
                     switch ($cliPipeMsgDto->action) {
                         case WORKER_CLI_STATUS :
                             $this->masterStatusToCliFifoPipe($cliPipeMsgDto->targetHandler);

@@ -12,6 +12,7 @@
 namespace Swoolefy\Http;
 
 use Common\Library\Exception\ValidateException;
+use Swoolefy\Annotation\StringToInt;
 use Swoolefy\Annotation\Validation\ValidationRule;
 use Swoolefy\Exception\DispatchException;
 use Swoolefy\Exception\SystemException;
@@ -36,6 +37,98 @@ class RequestValidate
     {
         $this->validateActionParamObjectRules($inputParams, $validationRules);
         $this->validateNestedDtoStrictKeys($inputParams, $validationRules);
+    }
+
+    /**
+     * Mutates merged request params in place (nested arrays share storage with RequestInput) so validation and binding see ints.
+     *
+     * @param array<string, mixed> $params
+     */
+    public function applyStringToIntCoercion(array &$params, string $dtoClass): void
+    {
+        if ($dtoClass === '' || !class_exists($dtoClass)) {
+            return;
+        }
+
+        $this->applyStringToIntOnNode($params, $dtoClass);
+    }
+
+    /**
+     * @param array<string, mixed> $node
+     */
+    protected function applyStringToIntOnNode(array &$node, string $class): void
+    {
+        if (!class_exists($class)) {
+            return;
+        }
+
+        $reflectionClass = new \ReflectionClass($class);
+        foreach ($reflectionClass->getProperties() as $property) {
+            if ($property->isStatic()) {
+                continue;
+            }
+
+            $name = $property->getName();
+            if (!array_key_exists($name, $node)) {
+                continue;
+            }
+
+            $itemClass = '';
+            foreach ($property->getAttributes(ValidationRule::class) as $attribute) {
+                $ic = $attribute->newInstance()->getItemClass();
+                if ($ic !== '') {
+                    $itemClass = $ic;
+                    break;
+                }
+            }
+
+            if ($itemClass !== '' && is_array($node[$name])) {
+                foreach ($node[$name] as &$row) {
+                    if (is_array($row)) {
+                        $this->applyStringToIntOnNode($row, $itemClass);
+                    }
+                }
+                unset($row);
+            }
+
+            if ($property->getAttributes(StringToInt::class) === []) {
+                continue;
+            }
+
+            if ($itemClass !== '') {
+                continue;
+            }
+
+            $ref = &$node[$name];
+            if (is_array($ref)) {
+                foreach ($ref as &$element) {
+                    $element = self::coerceScalarStringToInt($element);
+                }
+                unset($element);
+            } else {
+                $ref = self::coerceScalarStringToInt($ref);
+            }
+        }
+    }
+
+    /**
+     * @param mixed $value
+     * @return mixed
+     */
+    protected static function coerceScalarStringToInt($value)
+    {
+        if (!is_string($value)) {
+            return $value;
+        }
+
+        $trimmed = trim($value);
+        if ($trimmed === '' || !preg_match('/^-?\d+$/', $trimmed)) {
+            return $value;
+        }
+
+        $int = filter_var($trimmed, FILTER_VALIDATE_INT);
+
+        return $int === false ? $value : $int;
     }
 
     /**

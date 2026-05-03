@@ -550,6 +550,7 @@ class HttpRoute extends AppDispatch
                 continue;
             }
 
+            $this->requestValidate->applyStringToIntCoercion($inputParams, $paramMeta['dto_class']);
             $this->requestValidate->validateActionParamRules($inputParams, $paramMeta['validation_rules'] ?? []);
             $inputParams = $this->requestInput->input();
         }

@@ -14,8 +14,8 @@ namespace Swoolefy\Worker\Cron;
 use Swoole\Coroutine\Channel;
 use Swoole\Coroutine\System;
 use Swoolefy\Core\Exec;
-use Swoolefy\Worker\Dto\RunProcessMetaDto;
-use Swoolefy\Worker\Dto\CronForkTaskMetaDto;
+use Swoolefy\Worker\Dto\RunProcessMetaDtoWorker;
+use Swoolefy\Worker\Dto\CronForkTaskMetaDtoWorker;
 use Swoolefy\Exception\SystemException;
 use Swoolefy\Script\AbstractKernel;
 
@@ -240,7 +240,7 @@ class CronForkRunner
         $scheduleModelOptionField = AbstractKernel::getScheduleModelOptionField();
         if (isset($extend[$scheduleModelOptionField]) && str_contains(strtolower($extend[$scheduleModelOptionField]), 'cron')) {
             $command = $execBinFile .' '.$execScript.' ' . $argvOption."\n echo $? >&3; echo $! >&4";
-            $runType = CronForkTaskMetaDto::RUN_TYPE;
+            $runType = CronForkTaskMetaDtoWorker::RUN_TYPE;
         }else {
             if (!str_starts_with($execBinFile, 'nohup')) {
                 $execScript = str_replace( '2>&1'," ", $execScript);
@@ -280,7 +280,7 @@ class CronForkRunner
                 $runProcessMetaDto = $this->createRunProcessMeta($status['pid'] ?? -1, $command);
 
                 $cronScriptPidFileOption = AbstractKernel::getCronScriptPidFileOptionField();
-                if (isset($extend[$cronScriptPidFileOption]) || $runType == CronForkTaskMetaDto::RUN_TYPE) {
+                if (isset($extend[$cronScriptPidFileOption]) || $runType == CronForkTaskMetaDtoWorker::RUN_TYPE) {
                     $cronScriptPidFile = $extend[$cronScriptPidFileOption];
                     $runProcessMetaDto->pid = 0;
                     // 稍微延迟等待脚本的pid文件写入完成
@@ -340,15 +340,15 @@ class CronForkRunner
      * @param int $pid
      * @param string $command
      * @param string $pidFile
-     * @return RunProcessMetaDto
+     * @return RunProcessMetaDtoWorker
      */
     private function createRunProcessMeta(
         int $pid,
         string $command,
         string $pidFile = ''
-    ): RunProcessMetaDto
+    ): RunProcessMetaDtoWorker
     {
-        $dto = new RunProcessMetaDto();
+        $dto = new RunProcessMetaDtoWorker();
         $dto->pid = $pid;
         $dto->command = $command;
         $dto->pid_file = $pidFile;
@@ -379,7 +379,7 @@ class CronForkRunner
         $this->gcExitProcess();
         if (count($this->runProcessMetaPool) >= $this->concurrent && $isNeedCheck) {
             /**
-             * @var RunProcessMetaDto $runProcessMetaItem
+             * @var RunProcessMetaDtoWorker $runProcessMetaItem
              */
             foreach ($this->runProcessMetaPool as $runProcessMetaItem) {
                 $startTime  = $runProcessMetaItem->start_timestamp;
@@ -459,7 +459,7 @@ class CronForkRunner
     {
         $runningItemList = [];
         /**
-         * @var RunProcessMetaDto $runProcessMetaItem
+         * @var RunProcessMetaDtoWorker $runProcessMetaItem
          */
         foreach ($this->runProcessMetaPool as $runProcessMetaItem) {
             $pid = $runProcessMetaItem->pid;
@@ -479,7 +479,7 @@ class CronForkRunner
     {
         $itemList = [];
         /**
-         * @var RunProcessMetaDto $runProcessMetaItem
+         * @var RunProcessMetaDtoWorker $runProcessMetaItem
          */
         if (count($this->runProcessMetaPool) > 0) {
             foreach ($this->runProcessMetaPool as $runProcessMetaItem) {
@@ -550,7 +550,7 @@ class CronForkRunner
                 $processList = $runner->gcExitProcess();
                 if ($processList) {
                     /**
-                     * @var RunProcessMetaDto $runProcessMetaDto
+                     * @var RunProcessMetaDtoWorker $runProcessMetaDto
                      */
                     $runProcessMetaDto = array_shift($processList);
                     if (!empty($runProcessMetaDto->pid_file)) {

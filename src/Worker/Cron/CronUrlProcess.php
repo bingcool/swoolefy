@@ -14,7 +14,7 @@ namespace Swoolefy\Worker\Cron;
 use Swoolefy\Core\Crontab\CrontabManager;
 use Common\Library\HttpClient\CurlHttpClient;
 use Swoolefy\Core\Log\LogManager;
-use Swoolefy\Worker\Dto\CronUrlTaskMetaDto;
+use Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker;
 
 class CronUrlProcess extends CronProcess
 {
@@ -80,7 +80,7 @@ class CronUrlProcess extends CronProcess
             if (!$registerAgain) {
                 $isNewAddFlag = $this->isNewAddTask($taskItem['cron_name']);
                 if ($isNewAddFlag) {
-                    $scheduleUrlTask = CronUrlTaskMetaDto::load($taskItem);
+                    $scheduleUrlTask = CronUrlTaskMetaDtoWorker::load($taskItem);
                     $startMsg = "【{$scheduleUrlTask->cron_name}】注册定时任务启动";
                     $this->logCronTaskRuntime($scheduleUrlTask, "", $startMsg);
                     fmtPrintInfo($startMsg);
@@ -90,7 +90,7 @@ class CronUrlProcess extends CronProcess
             }
             if ($isNewAddFlag) {
                 CrontabManager::getInstance()->addRule($taskItem['cron_name'], $taskItem['cron_expression'], function ($expression, $cron_name) use($taskItem) {
-                    $scheduleUrlTask = CronUrlTaskMetaDto::load($taskItem);
+                    $scheduleUrlTask = CronUrlTaskMetaDtoWorker::load($taskItem);
                     $execBatchId = uniqid();
                     $logger = LogManager::getInstance()->getLogger(LogManager::CRON_URL_LOG);
                     try {

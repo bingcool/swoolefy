@@ -5,21 +5,27 @@ use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
 use Swoolefy\Http\RequestInput;
+use Test\Module\Order\Request\LogContentDto;
 use Test\Module\Order\Request\LogSaveRequest;
+use Test\Module\Order\Response\LogCategoryDto;
+use Test\Module\Order\Response\LogItemDto;
+use Test\Module\Order\Response\LogResponse;
 
 class LogOrderController extends BController
 {
     /**
-     * @return void
+     * @return array<LogResponse>
      * @see \Test\Module\Order\Validation\LogOrderValidation::testLog()
      */
-    public function testLog(LogSaveRequest $request)
+    public function testLog(LogSaveRequest $request): LogResponse
     {
         $logIds = $request->getLogIds();
 
         $logContents = $request->getLogContents();
-
-        var_dump($logContents);
+        foreach ($logContents as $logContent) {
+            var_dump($logContent->getValue());
+            var_dump($logContent->getCategories()[0]->getSubCategories());
+        }
 
         /**
          * @var \Swoolefy\Util\Log $log
@@ -30,10 +36,22 @@ class LogOrderController extends BController
         $log->setLogFilePath($log->getLogFilePath());
         $log->addInfo(['name' => 'bingcool','address'=>'深圳'],true, ['name'=>'bincool','sex'=>1,'address'=>'shenzhen']);
 
-        $this->returnJson([
-            'logIds' => $logIds,
-            'Controller' => $request->getRequestInput()->getControllerId(),
-            'Action' => $request->getRequestInput()->getActionId().'-'.rand(1,1000)
-        ]);
+        $logResponse = new LogResponse();
+        $logItem     = new LogItemDto();
+        $logItem->setId(11);
+        $logItem->setLogName('test log');
+
+        $category = new LogCategoryDto();
+        $category->setCateType(111111111111111111);
+        $category->setCateId(34566);
+        $category->setCateName('category test');
+
+        $logItem->addCategory($category);
+
+        $logResponse->addLogItemDto($logItem);
+
+
+
+        return $logResponse;
     }
 }

@@ -2,7 +2,7 @@
 namespace Swoolefy\Worker\Cron;
 
 use Swoolefy\Core\Schedule\ScheduleEvent;
-use Swoolefy\Worker\Dto\CronUrlTaskMetaDto;
+use Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker;
 
 interface CronTaskInterface
 {
@@ -12,15 +12,15 @@ interface CronTaskInterface
     public function fetchCronTask(int $execType, $nodeId);
 
     /**
-     * @param ScheduleEvent|CronUrlTaskMetaDto $scheduleTask
+     * @param ScheduleEvent|CronUrlTaskMetaDtoWorker $scheduleTask
      * @param string $execBatchId
      * @param string $message
      * @return mixed
      */
     public function logCronTaskRuntime(
-        ScheduleEvent|CronUrlTaskMetaDto $scheduleTask,
-        string $execBatchId,
-        string $message,
-        int $pid = 0
+        ScheduleEvent|CronUrlTaskMetaDtoWorker $scheduleTask,
+        string                                 $execBatchId,
+        string                                 $message,
+        int                                    $pid = 0
     );
 }

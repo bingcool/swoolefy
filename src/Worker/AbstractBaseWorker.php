@@ -19,7 +19,7 @@ use Swoolefy\Core\Crontab\CrontabManager;
 use Swoolefy\Core\EventCtrl;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Exception\WorkerException;
-use Swoolefy\Worker\Dto\MessageDto;
+use Swoolefy\Worker\Dto\MessageDtoWorker;
 
 /**
  * Class AbstractProcess
@@ -431,12 +431,12 @@ abstract class AbstractBaseWorker
      * Decode and validate pipe message body.
      *
      * @param string $message
-     * @return MessageDto|null
+     * @return MessageDtoWorker|null
      */
-    private function decodePipeMessage(string $message): ?MessageDto
+    private function decodePipeMessage(string $message): ?MessageDtoWorker
     {
         $messageDto = unserialize($message);
-        if (!$messageDto instanceof MessageDto) {
+        if (!$messageDto instanceof MessageDtoWorker) {
             $this->fmtWriteError("Accept message type error");
             return null;
         }
@@ -815,7 +815,7 @@ abstract class AbstractBaseWorker
      * @param bool $isProxy
      * @param string|null $toProcessName
      * @param int|null $toProcessWorkerId
-     * @return MessageDto
+     * @return MessageDtoWorker
      */
     private function buildMessageDto(
         string $fromProcessName,
@@ -824,9 +824,9 @@ abstract class AbstractBaseWorker
         bool $isProxy,
         ?string $toProcessName = null,
         ?int $toProcessWorkerId = null
-    ): MessageDto
+    ): MessageDtoWorker
     {
-        $messageDto                      = new MessageDto();
+        $messageDto                      = new MessageDtoWorker();
         $messageDto->fromProcessName     = $fromProcessName;
         $messageDto->fromProcessWorkerId = $fromProcessWorkerId;
         $messageDto->data                = $data;

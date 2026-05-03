@@ -2,7 +2,7 @@
 namespace Test\WorkerCron\CurlQuery;
 
 use Common\Library\HttpClient\RawResponse;
-use Swoolefy\Worker\Dto\CronUrlTaskMetaDto;
+use Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker;
 
 class RemoteUrl {
 
@@ -12,7 +12,7 @@ class RemoteUrl {
      * @param RawResponse $response
      * @return void
      */
-    public function handle(RawResponse $response, CronUrlTaskMetaDto $taskMetaDto)
+    public function handle(RawResponse $response, CronUrlTaskMetaDtoWorker $taskMetaDto)
     {
         // 做简单的响应处理
         var_dump($response->getDecodeBody());

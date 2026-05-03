@@ -266,7 +266,7 @@ class RestartCmd extends BaseCmd
         }
 
         if (\Swoole\Process::kill($masterPid, 0)) {
-            $pipeMsgDto = new \Swoolefy\Worker\Dto\PipeMsgDto();
+            $pipeMsgDto = new \Swoolefy\Worker\Dto\PipeMsgDtoWorker();
             $pipeMsgDto->action = WORKER_CLI_STOP;
             $pipeMsg = serialize($pipeMsgDto);
 
