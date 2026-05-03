@@ -278,9 +278,108 @@ class RequestValidate
         }
 
         if (!empty($rules)) {
+            [$rules, $messages] = $this->expandMultiWildcardRulesAndMessages($inputParams, $rules, $messages);
             $this->enforceWildcardRequiredPresence($inputParams, $rules, $messages);
             $this->requestInput->validate($inputParams, $rules, $messages);
         }
+    }
+
+    /**
+     * bingcool Validate resolves at most one `*` per field path; expand `a.*.b.*.c` using real request data.
+     *
+     * @param array<string, mixed> $data
+     * @param array<string, mixed> $rules
+     * @param array<string, string> $messages
+     * @return array{0: array<string, mixed>, 1: array<string, string>}
+     */
+    protected function expandMultiWildcardRulesAndMessages(array $data, array $rules, array $messages): array
+    {
+        $newRules = [];
+        foreach ($rules as $field => $rule) {
+            if (!is_string($field)) {
+                $newRules[$field] = $rule;
+                continue;
+            }
+            $fieldKey = $field;
+            if (str_contains($fieldKey, '|')) {
+                [$fieldKey] = explode('|', $fieldKey, 2);
+            }
+            if (substr_count($fieldKey, '*') < 2) {
+                $newRules[$field] = $rule;
+                continue;
+            }
+            $paths = $this->expandWildcardFieldToConcretePaths($data, explode('.', $fieldKey));
+            foreach ($paths as $concrete) {
+                $newRules[$concrete] = $rule;
+            }
+        }
+
+        $newMessages = [];
+        foreach ($messages as $msgKey => $msgText) {
+            if (!is_string($msgKey) || substr_count($msgKey, '*') < 2) {
+                $newMessages[$msgKey] = $msgText;
+                continue;
+            }
+            $lastDot = strrpos($msgKey, '.');
+            if ($lastDot === false) {
+                $newMessages[$msgKey] = $msgText;
+                continue;
+            }
+            $fieldTpl = substr($msgKey, 0, $lastDot);
+            $suffix = substr($msgKey, $lastDot + 1);
+            if (substr_count($fieldTpl, '*') < 2) {
+                $newMessages[$msgKey] = $msgText;
+                continue;
+            }
+            foreach ($this->expandWildcardFieldToConcretePaths($data, explode('.', $fieldTpl)) as $concrete) {
+                $newMessages[$concrete . '.' . $suffix] = $msgText;
+            }
+        }
+
+        return [$newRules, $newMessages];
+    }
+
+    /**
+     * Turn `logContents.*.categories.*.cateId` into [`logContents.0.categories.0.cateId`, ...] following $data shape.
+     *
+     * @param mixed $data
+     * @param array<int, string> $segments
+     * @param array<int, string> $prefix
+     * @return array<int, string>
+     */
+    protected function expandWildcardFieldToConcretePaths($data, array $segments, array $prefix = []): array
+    {
+        if ($segments === []) {
+            return $prefix === [] ? [] : [implode('.', $prefix)];
+        }
+
+        $head = $segments[0];
+        $tail = array_slice($segments, 1);
+
+        if ($head === '*') {
+            if (!is_array($data)) {
+                return [];
+            }
+            $out = [];
+            foreach ($data as $idx => $sub) {
+                $out = array_merge(
+                    $out,
+                    $this->expandWildcardFieldToConcretePaths($sub, $tail, array_merge($prefix, [(string) $idx]))
+                );
+            }
+
+            return $out;
+        }
+
+        if ($tail === []) {
+            return [implode('.', array_merge($prefix, [$head]))];
+        }
+
+        if (!is_array($data) || !array_key_exists($head, $data)) {
+            return [];
+        }
+
+        return $this->expandWildcardFieldToConcretePaths($data[$head], $tail, array_merge($prefix, [$head]));
     }
 
     /**
