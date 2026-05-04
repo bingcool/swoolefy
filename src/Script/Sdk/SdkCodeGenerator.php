@@ -57,9 +57,7 @@ final class SdkCodeGenerator
         }
 
         $allDtoClasses = [];
-        $routeBar = new ProgressBar($output, count($routes));
-        $routeBar->setFormat(' %current%/%max% [%bar%] %percent:3s%% — %message%');
-        $routeBar->setMessage('路由');
+        $routeBar = $this->createColoredProgressBar($output, count($routes), '路由');
         $routeBar->start();
         foreach ($routes as $route) {
             foreach ($this->collectDtoClassesForAction($route['controller'], $route['action']) as $c) {
@@ -75,9 +73,7 @@ final class SdkCodeGenerator
 
         $writer = new SdkDtoWriter($this->projectRoot, $appOut, $this->sdkNamespacePrefix, $this->appNamespacePrefix);
         if ($dtoList !== []) {
-            $dtoBar = new ProgressBar($output, count($dtoList));
-            $dtoBar->setFormat(' %current%/%max% [%bar%] %percent:3s%% — %message%');
-            $dtoBar->setMessage('DTO');
+            $dtoBar = $this->createColoredProgressBar($output, count($dtoList), 'DTO');
             $dtoBar->start();
             foreach ($dtoList as $className) {
                 $writer->writeClass($className);
@@ -99,6 +95,26 @@ final class SdkCodeGenerator
             count($dtoList),
             OutputFormatter::escape($appOut)
         ));
+    }
+
+    private function createColoredProgressBar(OutputInterface $output, int $max, string $message): ProgressBar
+    {
+        $bar = new ProgressBar($output, $max);
+        $bar->setBarWidth(32);
+        $bar->setBarCharacter('<fg=green>█</>');
+        $bar->setEmptyBarCharacter('<fg=gray>░</>');
+        $bar->setProgressCharacter('<fg=green;options=bold>▓</>');
+        $bar->setFormat(
+            ' <fg=cyan;options=bold>●</> '
+            . '<info>%current%</info><comment>/</comment><info>%max%</info> '
+            . '[%bar%] '
+            . '<comment>%percent:3s%%</comment> '
+            . '<fg=magenta>—</> '
+            . '<fg=yellow;options=bold>%message%</>'
+        );
+        $bar->setMessage($message);
+
+        return $bar;
     }
 
     /**
