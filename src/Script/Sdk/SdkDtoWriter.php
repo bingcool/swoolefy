@@ -5,17 +5,16 @@ declare(strict_types=1);
 namespace Swoolefy\Script\Sdk;
 
 /**
- * Copies Test\* request/response/DTO sources into Swoolefy\GenerateSdk\Test\* with lightweight bases.
+ * Copies Test\* request/response/DTO sources into GenerateSdk\{Project}\{App}\* with lightweight bases.
  */
 final class SdkDtoWriter
 {
     private const TEST_PREFIX = 'Test\\';
 
-    private const SDK_NAMESPACE = 'Swoolefy\\GenerateSdk\\Test';
-
     public function __construct(
         private string $projectRoot,
         private string $outputTestRoot,
+        private string $sdkNamespacePrefix,
     ) {
     }
 
@@ -58,17 +57,18 @@ final class SdkDtoWriter
     {
         $php = $this->filterPhp8AttributesKeepApiProperty($php);
 
+        $ns = $this->sdkNamespacePrefix;
         $replacements = [
-            'namespace Test\\' => 'namespace ' . self::SDK_NAMESPACE . '\\',
-            'use Test\\' => 'use ' . self::SDK_NAMESPACE . '\\',
-            'use Swoolefy\\Http\\BaseRequest;' => 'use ' . self::SDK_NAMESPACE . '\\Support\\SdkBaseRequest;',
+            'namespace Test\\' => 'namespace ' . $ns . '\\',
+            'use Test\\' => 'use ' . $ns . '\\',
+            'use Swoolefy\\Http\\BaseRequest;' => 'use ' . $ns . '\\Support\\SdkBaseRequest;',
             'extends BaseRequest' => 'extends SdkBaseRequest',
-            'use Swoolefy\\Http\\BaseResponse;' => 'use ' . self::SDK_NAMESPACE . '\\Support\\SdkBaseResponse;',
+            'use Swoolefy\\Http\\BaseResponse;' => 'use ' . $ns . '\\Support\\SdkBaseResponse;',
             'extends BaseResponse' => 'extends SdkBaseResponse',
-            'use Swoolefy\\Core\\Dto\\AbstractDto;' => 'use ' . self::SDK_NAMESPACE . '\\Support\\SdkAbstractDto;',
+            'use Swoolefy\\Core\\Dto\\AbstractDto;' => 'use ' . $ns . '\\Support\\SdkAbstractDto;',
             'extends AbstractDto' => 'extends SdkAbstractDto',
             'extends \Swoolefy\Core\Dto\AbstractDto' => 'extends SdkAbstractDto',
-            'use Swoolefy\\Annotation\\ApiProperty;' => 'use ' . self::SDK_NAMESPACE . '\\Support\\ApiProperty;',
+            'use Swoolefy\\Annotation\\ApiProperty;' => 'use ' . $ns . '\\Support\\ApiProperty;',
         ];
 
         $out = str_replace(array_keys($replacements), array_values($replacements), $php);
@@ -83,8 +83,8 @@ final class SdkDtoWriter
         }
 
         if (str_contains($out, 'extends SdkAbstractDto')
-            && !str_contains($out, 'use ' . self::SDK_NAMESPACE . '\\Support\\SdkAbstractDto;')) {
-            $out = $this->mergeUseStatements($out, [self::SDK_NAMESPACE . '\\Support\\SdkAbstractDto']);
+            && !str_contains($out, 'use ' . $this->sdkNamespacePrefix . '\\Support\\SdkAbstractDto;')) {
+            $out = $this->mergeUseStatements($out, [$this->sdkNamespacePrefix . '\\Support\\SdkAbstractDto']);
         }
 
         return $out;
@@ -149,7 +149,7 @@ final class SdkDtoWriter
         $useFqcn = [];
         $methods = [];
         foreach ($specs as $spec) {
-            $sdkItemFqcn = self::SDK_NAMESPACE . '\\' . substr($spec['itemFqcn'], strlen('Test\\'));
+            $sdkItemFqcn = $this->sdkNamespacePrefix . '\\' . substr($spec['itemFqcn'], strlen('Test\\'));
             $useFqcn[$sdkItemFqcn] = true;
             $short = substr($sdkItemFqcn, strrpos($sdkItemFqcn, '\\') + 1);
             $prop = $spec['property'];

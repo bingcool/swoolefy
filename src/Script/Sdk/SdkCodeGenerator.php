@@ -11,26 +11,28 @@ use ReflectionProperty;
 use ReflectionUnionType;
 
 /**
- * Scans Test/Router, copies Test\* DTOs into Swoolefy\GenerateSdk\Test\*, emits *Api clients (Guzzle).
+ * Scans {App}/Router, copies Test\* DTOs into GenerateSdk\{Project}\{AppName}\*, emits *Api clients (Guzzle).
  */
 final class SdkCodeGenerator
 {
-    private const SDK_NAMESPACE = 'Swoolefy\\GenerateSdk\\Test';
-
     private const TEST_NAMESPACE_PREFIX = 'Test\\';
 
     public function __construct(
         private string $projectRoot,
         private string $routerDir,
         private string $outputRoot,
+        private string $sdkNamespacePrefix,
     ) {
     }
 
     public function run(): void
     {
-        $this->ensureDir($this->outputRoot . '/Test/Support');
+        $appOut = $this->outputRoot . DIRECTORY_SEPARATOR . APP_NAME;
 
-        $support = new SdkSupportWriter($this->outputRoot . '/Test/Support');
+        $this->ensureDir($appOut . '/Support');
+
+        $supportNs = $this->sdkNamespacePrefix . '\\Support';
+        $support = new SdkSupportWriter($appOut . DIRECTORY_SEPARATOR . 'Support', $supportNs);
         $support->writeAll();
 
         $routes = $this->scanRoutes($this->routerDir);
@@ -57,17 +59,43 @@ final class SdkCodeGenerator
         $dtoList = $this->expandTestDtoClosure(array_keys($allDtoClasses));
         sort($dtoList);
 
-        $writer = new SdkDtoWriter($this->projectRoot, $this->outputRoot . '/Test');
+        $writer = new SdkDtoWriter($this->projectRoot, $appOut, $this->sdkNamespacePrefix);
         foreach ($dtoList as $className) {
             $writer->writeClass($className);
         }
 
-        $apiWriter = new SdkApiWriter($this->outputRoot . '/Test', self::SDK_NAMESPACE);
+        $apiWriter = new SdkApiWriter($appOut, $this->sdkNamespacePrefix);
         foreach ($byController as $controller => $ctrlRoutes) {
             $apiWriter->writeControllerApi($controller, $ctrlRoutes);
         }
 
-        echo '[gen:sdk] Routes: ' . count($routes) . ', DTO classes: ' . count($dtoList) . ", output: {$this->outputRoot}\n";
+        $this->writePackageComposerJson();
+
+        echo '[gen:sdk] namespace: ' . $this->sdkNamespacePrefix . ', routes: ' . count($routes) . ', DTO classes: ' . count($dtoList) . ', output: ' . $appOut . "\n";
+    }
+
+    private function writePackageComposerJson(): void
+    {
+        $pkg = strtolower(preg_replace('/[^a-z0-9-]+/i', '-', basename($this->outputRoot) . '-' . APP_NAME));
+        $pkg = trim($pkg, '-');
+        $manifest = [
+            'name' => 'generatesdk/' . ($pkg !== '' ? $pkg : 'sdk'),
+            'description' => 'Auto-generated HTTP SDK (' . APP_NAME . ')',
+            'license' => 'MIT',
+            'require' => [
+                'php' => '>=8.4',
+                'guzzlehttp/guzzle' => '^7.9',
+            ],
+            'autoload' => [
+                'psr-4' => [
+                    $this->sdkNamespacePrefix . '\\' => 'Test/',
+                ],
+            ],
+        ];
+        file_put_contents(
+            $this->outputRoot . DIRECTORY_SEPARATOR . 'composer.json',
+            json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n"
+        );
     }
 
     /**
@@ -382,7 +410,7 @@ final class SdkCodeGenerator
         if (is_file($path)) {
             throw new \RuntimeException(
                 "[gen:sdk] Cannot create directory {$path}: a regular file exists at this path. "
-                . 'Use --out= to pick another directory (e.g. src/GenerateSdk).'
+                . 'Use --out= to pick the SDK package root (e.g. ../GenerateSdk/swoolefy).'
             );
         }
         if (!@mkdir($path, 0755, true) && !is_dir($path)) {
