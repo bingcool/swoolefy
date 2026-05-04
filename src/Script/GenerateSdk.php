@@ -12,6 +12,8 @@
 namespace Swoolefy\Script;
 
 use Swoolefy\Script\Sdk\SdkCodeGenerator;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Output\StreamOutput;
 
 /**
  * 生成 HTTP SDK（独立 Composer 包目录，可与 swoolefy 仓库同级）：
@@ -48,7 +50,17 @@ class GenerateSdk extends MainCliScript
         $projectPascal = self::directoryNameToPascalCase($projectDirName);
         $sdkNamespacePrefix = 'GenerateSdk\\' . $projectPascal . '\\' . APP_NAME;
 
-        (new SdkCodeGenerator($projectRoot, $routerDir, $outputRoot, $sdkNamespacePrefix))->run();
+        $consoleOutput = $this->createGenSdkConsoleOutput();
+        (new SdkCodeGenerator($projectRoot, $routerDir, $outputRoot, $sdkNamespacePrefix, $consoleOutput))->run();
+    }
+
+    /**
+     * CLI 专用输出：StreamOutput(STDOUT)，decorated 为 null 时由 Symfony 按终端能力自动决定是否使用 ANSI（颜色与进度条样式）。
+     * 若需固定开关颜色或传入自定义 Symfony OutputFormatter，在此集中调整即可。
+     */
+    private function createGenSdkConsoleOutput(): OutputInterface
+    {
+        return new StreamOutput(\STDOUT, StreamOutput::VERBOSITY_NORMAL, null);
     }
 
     /**
