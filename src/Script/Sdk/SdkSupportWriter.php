@@ -52,13 +52,13 @@ use Attribute;
 final class ApiProperty
 {
     public function __construct(
-        protected string $message = ''
+        protected string $description = ''
     ) {
     }
 
-    public function getMessage(): string
+    public function getDescription(): string
     {
-        return $this->message;
+        return $this->description;
     }
 }
 

@@ -67,11 +67,11 @@ Route::group([
         ]
     ])->enableDbDebug(false);
 
-    Route::any('/user-order/userList1', [
+    Route::any('/user-order/userList2', [
         'beforeHandle2' => [
             ValidLoginMiddleware::class
         ],
-        'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList1'],
+        'dispatch_route' => [\Test\Module\Order\Controller\UserOrderController::class, 'userList2'],
         //GroupTestMiddleware::class => GroupTestMiddleware::class
     ]);
 

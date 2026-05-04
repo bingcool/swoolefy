@@ -23,7 +23,7 @@ final class SdkApiWriter
     }
 
     /**
-     * @param list<array{methods:list<string>,path:string,controller:string,action:string}> $routes
+     * @param list<array{methods:list<string>,path:string,controller:string,action:string,source?:string}> $routes
      */
     public function writeControllerApi(string $controller, array $routes): void
     {
@@ -71,7 +71,7 @@ final class SdkApiWriter
 
             $actionRoutes = $this->dedupeActionRoutes($actionRoutes);
             $hasRequestDto = !$passParamsAsArray;
-            $sdkMethodNames = $this->assignSdkMethodNames($action, $actionRoutes, $hasRequestDto);
+            $expanded = $this->expandActionRoutesForSdk($action, $actionRoutes, $hasRequestDto);
 
             if ($reqFqcn !== null) {
                 $uses[] = $this->toSdkFqcn($reqFqcn);
@@ -95,10 +95,10 @@ final class SdkApiWriter
 
             $docBlock = $this->formatControllerActionDocblock($method);
 
-            foreach ($actionRoutes as $idx => $route) {
-                $sdkMethodName = $sdkMethodNames[$idx];
-                $httpMethod = $this->guessHttpMethod($route['methods'], $hasRequestDto);
-                $path = $route['path'];
+            foreach ($expanded as $em) {
+                $sdkMethodName = $em['sdkMethodName'];
+                $httpMethod = $em['httpMethod'];
+                $path = $em['path'];
 
                 $body = $this->emitActionBody(
                     $httpMethod,
@@ -319,10 +319,99 @@ PHP;
     }
 
     /**
+     * @return list<array{path:string,httpMethod:string,sdkMethodName:string}>
+     */
+    private function expandActionRoutesForSdk(string $action, array $actionRoutes, bool $hasRequestDto): array
+    {
+        $resolved = [];
+        $singleBuffer = [];
+
+        $flushSingles = function () use (&$resolved, &$singleBuffer, $action, $hasRequestDto): void {
+            if ($singleBuffer === []) {
+                return;
+            }
+            $names = $this->assignSdkMethodNames($action, $singleBuffer, $hasRequestDto);
+            foreach ($singleBuffer as $idx => $route) {
+                $resolved[] = [
+                    'path' => $route['path'],
+                    'httpMethod' => $this->guessHttpMethod($route['methods'], $hasRequestDto),
+                    'sdkMethodName' => $names[$idx],
+                ];
+            }
+            $singleBuffer = [];
+        };
+
+        foreach ($actionRoutes as $route) {
+            $source = $route['source'] ?? 'single';
+            if ($source === 'any') {
+                $flushSingles();
+                foreach ($this->expandAnyRoute($action, $route) as $em) {
+                    $resolved[] = $em;
+                }
+            } elseif ($source === 'match') {
+                $flushSingles();
+                foreach ($this->expandMatchRoute($action, $route) as $em) {
+                    $resolved[] = $em;
+                }
+            } else {
+                $singleBuffer[] = $route;
+            }
+        }
+        $flushSingles();
+
+        return $resolved;
+    }
+
+    /**
+     * @param array{methods:list<string>,path:string,controller:string,action:string,source?:string} $route
+     * @return list<array{path:string,httpMethod:string,sdkMethodName:string}>
+     */
+    private function expandAnyRoute(string $action, array $route): array
+    {
+        $path = $route['path'];
+        $out = [
+            ['path' => $path, 'httpMethod' => 'POST', 'sdkMethodName' => $action],
+        ];
+        foreach (['GET', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'] as $verb) {
+            $out[] = ['path' => $path, 'httpMethod' => $verb, 'sdkMethodName' => $action . 'Of' . $this->verbToPascal($verb)];
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param array{methods:list<string>,path:string,controller:string,action:string,source?:string} $route
+     * @return list<array{path:string,httpMethod:string,sdkMethodName:string}>
+     */
+    private function expandMatchRoute(string $action, array $route): array
+    {
+        $path = $route['path'];
+        $methods = array_values(array_unique(array_map('strtoupper', $route['methods'])));
+        sort($methods);
+
+        $out = [];
+        if (in_array('POST', $methods, true)) {
+            $out[] = ['path' => $path, 'httpMethod' => 'POST', 'sdkMethodName' => $action];
+            foreach ($methods as $m) {
+                if ($m === 'POST') {
+                    continue;
+                }
+                $out[] = ['path' => $path, 'httpMethod' => $m, 'sdkMethodName' => $action . 'Of' . $this->verbToPascal($m)];
+            }
+        } else {
+            foreach ($methods as $m) {
+                $out[] = ['path' => $path, 'httpMethod' => $m, 'sdkMethodName' => $action . 'Of' . $this->verbToPascal($m)];
+            }
+        }
+
+        return $out;
+    }
+
+    /**
      * Drop identical route rows (same path + same HTTP methods) so we do not emit duplicate client methods.
      *
-     * @param list<array{methods:list<string>,path:string,controller:string,action:string}> $routes
-     * @return list<array{methods:list<string>,path:string,controller:string,action:string}>
+     * @param list<array{methods:list<string>,path:string,controller:string,action:string,source?:string}> $routes
+     * @return list<array{methods:list<string>,path:string,controller:string,action:string,source?:string}>
      */
     private function dedupeActionRoutes(array $routes): array
     {
@@ -343,9 +432,9 @@ PHP;
     }
 
     /**
-     * One SDK method per route. Single route keeps the controller action name; multiple routes use {action}Of{Verb}.
+     * Naming for `Route::get/post/...` rows only: one row keeps the action name; multiple rows use {action}Of{Verb}.
      *
-     * @param list<array{methods:list<string>,path:string,controller:string,action:string}> $routes
+     * @param list<array{methods:list<string>,path:string,controller:string,action:string,source?:string}> $routes
      * @return list<string>
      */
     private function assignSdkMethodNames(string $action, array $routes, bool $hasRequestDto): array
