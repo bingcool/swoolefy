@@ -207,6 +207,9 @@ class MainCliScript extends AbstractScriptProcess
         }
 
         $rootNamespace = ROOT_NAMESPACE;
+        if (!isset(ROOT_NAMESPACE[APP_NAME])) {
+            throw new SystemException("【Error】The script.php not define const `ROOT_NAMESPACE[APP_NAME]`.");
+        }
         $nameSpace = $rootNamespace[APP_NAME];
         $nameSpace = str_replace('\\', '/', $nameSpace);
         $nameSpaceArr = explode('/', trim($nameSpace, '/'));

@@ -69,9 +69,9 @@ final class SdkApiWriter
             $retFqcn = $this->returnTestClassName($method);
             $isVoid = $this->isVoidReturn($method);
 
-            $route = $this->pickRouteForAction($actionRoutes, !$passParamsAsArray);
-            $httpMethod = $this->guessHttpMethod($route['methods'], !$passParamsAsArray);
-            $path = $route['path'];
+            $actionRoutes = $this->dedupeActionRoutes($actionRoutes);
+            $hasRequestDto = !$passParamsAsArray;
+            $sdkMethodNames = $this->assignSdkMethodNames($action, $actionRoutes, $hasRequestDto);
 
             if ($reqFqcn !== null) {
                 $uses[] = $this->toSdkFqcn($reqFqcn);
@@ -93,25 +93,31 @@ final class SdkApiWriter
                 $hydrateRegistry[$retFqcn] = true;
             }
 
-            $body = $this->emitActionBody(
-                $httpMethod,
-                $path,
-                $reqShort,
-                $passParamsAsArray,
-                $retFqcn,
-                $isVoid,
-                $this->hydrateMethodSuffix($this->toSdkFqcn($retFqcn ?? '')),
-            );
-
             $docBlock = $this->formatControllerActionDocblock($method);
 
-            $methodsPhp[] = $docBlock . <<<PHP
-    public function {$action}({$reqParam}): {$retType}
+            foreach ($actionRoutes as $idx => $route) {
+                $sdkMethodName = $sdkMethodNames[$idx];
+                $httpMethod = $this->guessHttpMethod($route['methods'], $hasRequestDto);
+                $path = $route['path'];
+
+                $body = $this->emitActionBody(
+                    $httpMethod,
+                    $path,
+                    $reqShort,
+                    $passParamsAsArray,
+                    $retFqcn,
+                    $isVoid,
+                    $this->hydrateMethodSuffix($this->toSdkFqcn($retFqcn ?? '')),
+                );
+
+                $methodsPhp[] = $docBlock . <<<PHP
+    public function {$sdkMethodName}({$reqParam}): {$retType}
     {
 {$body}
     }
 
 PHP;
+            }
         }
 
         if ($methodsPhp === []) {
@@ -312,17 +318,63 @@ PHP;
         return trim($s, '_') ?: 'x';
     }
 
-    private function pickRouteForAction(array $actionRoutes, bool $hasRequestDto): array
+    /**
+     * Drop identical route rows (same path + same HTTP methods) so we do not emit duplicate client methods.
+     *
+     * @param list<array{methods:list<string>,path:string,controller:string,action:string}> $routes
+     * @return list<array{methods:list<string>,path:string,controller:string,action:string}>
+     */
+    private function dedupeActionRoutes(array $routes): array
     {
-        if ($hasRequestDto) {
-            foreach ($actionRoutes as $r) {
-                if (in_array('POST', array_map('strtoupper', $r['methods']), true)) {
-                    return $r;
-                }
+        $seen = [];
+        $out = [];
+        foreach ($routes as $r) {
+            $mcopy = $r['methods'];
+            sort($mcopy);
+            $key = $r['path'] . "\0" . implode(',', array_map('strtoupper', $mcopy));
+            if (isset($seen[$key])) {
+                continue;
             }
+            $seen[$key] = true;
+            $out[] = $r;
         }
 
-        return $actionRoutes[0];
+        return $out;
+    }
+
+    /**
+     * One SDK method per route. Single route keeps the controller action name; multiple routes use {action}Of{Verb}.
+     *
+     * @param list<array{methods:list<string>,path:string,controller:string,action:string}> $routes
+     * @return list<string>
+     */
+    private function assignSdkMethodNames(string $action, array $routes, bool $hasRequestDto): array
+    {
+        if (\count($routes) === 1) {
+            return [$action];
+        }
+
+        $names = [];
+        foreach ($routes as $route) {
+            $verb = strtoupper($this->guessHttpMethod($route['methods'], $hasRequestDto));
+            $names[] = $action . 'Of' . $this->verbToPascal($verb);
+        }
+
+        return $names;
+    }
+
+    private function verbToPascal(string $verb): string
+    {
+        return match ($verb) {
+            'GET' => 'Get',
+            'POST' => 'Post',
+            'PUT' => 'Put',
+            'PATCH' => 'Patch',
+            'DELETE' => 'Delete',
+            'HEAD' => 'Head',
+            'OPTIONS' => 'Options',
+            default => ucfirst(strtolower($verb)),
+        };
     }
 
     private function guessHttpMethod(array $methods, bool $hasRequestDto): string
