@@ -72,6 +72,7 @@ final class SdkCodeGenerator
         sort($dtoList);
 
         $writer = new SdkDtoWriter($this->projectRoot, $appOut, $this->sdkNamespacePrefix, $this->appNamespacePrefix);
+        $writer->copyCommonConstAndEnumTrees();
         if ($dtoList !== []) {
             $dtoBar = $this->createColoredProgressBar($output, count($dtoList), 'DTO');
             $dtoBar->start();
