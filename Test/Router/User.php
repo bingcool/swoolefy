@@ -82,7 +82,7 @@ Route::group([
         ],
         'dispatch_route' => [\Test\Module\Order\Controller\LogOrderController::class, 'testLog'],
         //GroupTestMiddleware::class => GroupTestMiddleware::class
-    ]);
+    ])->enableCacheRouteMeta();
 
     Route::get('/user-order/save-order', [
         'beforeHandle' => function(RequestInput $requestInput) {

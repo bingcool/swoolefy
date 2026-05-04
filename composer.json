@@ -44,7 +44,7 @@
         "doctrine/collections": "~3.0",
         "php-standard-library/php-standard-library": "~6.1",
         "bingcool/library": "dev-library-6.x",
-        "neuron-core/neuron-ai": "^3.3"
+        "guzzlehttp/guzzle": "^7.9"
     },
     "autoload": {
         "files": ["src/Constants.php","src/Core/Func/function.php"],
