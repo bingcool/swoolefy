@@ -100,7 +100,9 @@ final class SdkApiWriter
                 $this->hydrateMethodSuffix($this->toSdkFqcn($retFqcn ?? '')),
             );
 
-            $methodsPhp[] = <<<PHP
+            $docBlock = $this->formatControllerActionDocblock($method);
+
+            $methodsPhp[] = $docBlock . <<<PHP
     public function {$action}({$reqParam}): {$retType}
     {
 {$body}
@@ -146,6 +148,48 @@ class {$shortApiName} extends BaseClientApi
 
 PHP;
         file_put_contents($file, $php);
+    }
+
+    /**
+     * Copy controller action docblock (trimmed) with 4-space indent for the generated client method.
+     */
+    private function formatControllerActionDocblock(ReflectionMethod $method): string
+    {
+        $doc = $method->getDocComment();
+        if ($doc === false) {
+            return '';
+        }
+        $doc = trim($doc);
+        if ($doc === '' || !str_starts_with($doc, '/**') || !str_ends_with($doc, '*/')) {
+            if ($doc === '') {
+                return '';
+            }
+            $lines = preg_split('/\R/', $doc);
+
+            return implode("\n", array_map(static fn (string $l) => '    ' . $l, $lines)) . "\n";
+        }
+
+        $inner = substr($doc, 3, -2);
+        $rawLines = preg_split('/\R/', $inner);
+        $bodyLines = [];
+        foreach ($rawLines as $line) {
+            $stripped = rtrim(preg_replace('/^\s*\*\s?/', '', $line) ?? $line);
+            $bodyLines[] = $stripped;
+        }
+        while ($bodyLines !== [] && $bodyLines[0] === '') {
+            array_shift($bodyLines);
+        }
+        while ($bodyLines !== [] && $bodyLines[array_key_last($bodyLines)] === '') {
+            array_pop($bodyLines);
+        }
+
+        $out = ['    /**'];
+        foreach ($bodyLines as $l) {
+            $out[] = $l === '' ? '     *' : '     * ' . $l;
+        }
+        $out[] = '     */';
+
+        return implode("\n", $out) . "\n";
     }
 
     /**
