@@ -110,7 +110,9 @@ final class SdkApiWriter
                     $this->hydrateMethodSuffix($this->toSdkFqcn($retFqcn ?? '')),
                 );
 
-                $methodsPhp[] = $docBlock . <<<PHP
+                $methodDoc = $this->appendSdkApiDocLine($docBlock, $httpMethod, $path);
+
+                $methodsPhp[] = $methodDoc . <<<PHP
     public function {$sdkMethodName}({$reqParam}): {$retType}
     {
 {$body}
@@ -204,6 +206,44 @@ PHP;
         $out[] = '     */';
 
         return implode("\n", $out) . "\n";
+    }
+
+    /**
+     * Inserts a line " * @api METHOD /path" before the closing star-slash of the indented docblock, or builds a minimal block.
+     */
+    private function appendSdkApiDocLine(string $indentedDocBlock, string $httpMethod, string $path): string
+    {
+        $verb = strtoupper($httpMethod);
+        $defaultLine = '     * @api ' . $verb . ' ' . $path;
+
+        $trimmed = rtrim($indentedDocBlock);
+        if ($trimmed === '') {
+            return "    /**\n{$defaultLine}\n     */\n";
+        }
+
+        $lines = explode("\n", $trimmed);
+        $closeIdx = null;
+        foreach ($lines as $idx => $line) {
+            if (preg_match('/^\s*\*\/\s*$/', $line)) {
+                $closeIdx = $idx;
+            }
+        }
+
+        if ($closeIdx === null) {
+            return $trimmed . "\n    /**\n{$defaultLine}\n     */\n";
+        }
+
+        $insertLine = $defaultLine;
+        if ($closeIdx > 0) {
+            $prev = $lines[$closeIdx - 1];
+            if (preg_match('/^(\s+)\*\s/', $prev, $m)) {
+                $insertLine = $m[1] . '* @api ' . $verb . ' ' . $path;
+            }
+        }
+
+        array_splice($lines, $closeIdx, 0, [$insertLine]);
+
+        return implode("\n", $lines) . "\n";
     }
 
     /**

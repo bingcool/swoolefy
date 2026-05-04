@@ -7,17 +7,17 @@ use Swoolefy\Annotation\ApiProperty;
 
 class LogCategoryDto extends \Swoolefy\Core\Dto\AbstractDto {
     #[ApiProperty(
-        desction: "分类ID"
+        description: "分类ID"
     )]
     private int $cateId;
 
     #[ApiProperty(
-        desction: "分类名称"
+        description: "分类名称"
     )]
     private string $cateName;
 
     #[ApiProperty(
-        desction: "分类类型"
+        description: "分类类型"
     )]
     #[IntToString]
     private int $cateType;
