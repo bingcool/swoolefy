@@ -11,11 +11,12 @@ use ReflectionProperty;
 use ReflectionUnionType;
 
 /**
- * Scans {App}/Router, copies Test\* DTOs into GenerateSdk\{Project}\{AppName}\*, emits *Api clients (Guzzle).
+ * Scans {App}/Router, copies {APP_NAME}\* DTOs into GenerateSdk\{ProjectName}\{AppName}\*, emits *Api clients (Guzzle).
  */
 final class SdkCodeGenerator
 {
-    private const TEST_NAMESPACE_PREFIX = 'Test\\';
+    /** e.g. Test\\ or Shop\\ — from APP_NAME */
+    private string $appNamespacePrefix;
 
     public function __construct(
         private string $projectRoot,
@@ -23,6 +24,7 @@ final class SdkCodeGenerator
         private string $outputRoot,
         private string $sdkNamespacePrefix,
     ) {
+        $this->appNamespacePrefix = APP_NAME . '\\';
     }
 
     public function run(): void
@@ -59,43 +61,17 @@ final class SdkCodeGenerator
         $dtoList = $this->expandTestDtoClosure(array_keys($allDtoClasses));
         sort($dtoList);
 
-        $writer = new SdkDtoWriter($this->projectRoot, $appOut, $this->sdkNamespacePrefix);
+        $writer = new SdkDtoWriter($this->projectRoot, $appOut, $this->sdkNamespacePrefix, $this->appNamespacePrefix);
         foreach ($dtoList as $className) {
             $writer->writeClass($className);
         }
 
-        $apiWriter = new SdkApiWriter($appOut, $this->sdkNamespacePrefix);
+        $apiWriter = new SdkApiWriter($appOut, $this->sdkNamespacePrefix, $this->appNamespacePrefix);
         foreach ($byController as $controller => $ctrlRoutes) {
             $apiWriter->writeControllerApi($controller, $ctrlRoutes);
         }
 
-        $this->writePackageComposerJson();
-
         echo '[gen:sdk] namespace: ' . $this->sdkNamespacePrefix . ', routes: ' . count($routes) . ', DTO classes: ' . count($dtoList) . ', output: ' . $appOut . "\n";
-    }
-
-    private function writePackageComposerJson(): void
-    {
-        $pkg = strtolower(preg_replace('/[^a-z0-9-]+/i', '-', basename($this->outputRoot) . '-' . APP_NAME));
-        $pkg = trim($pkg, '-');
-        $manifest = [
-            'name' => 'generatesdk/' . ($pkg !== '' ? $pkg : 'sdk'),
-            'description' => 'Auto-generated HTTP SDK (' . APP_NAME . ')',
-            'license' => 'MIT',
-            'require' => [
-                'php' => '>=8.4',
-                'guzzlehttp/guzzle' => '^7.9',
-            ],
-            'autoload' => [
-                'psr-4' => [
-                    $this->sdkNamespacePrefix . '\\' => 'Test/',
-                ],
-            ],
-        ];
-        file_put_contents(
-            $this->outputRoot . DIRECTORY_SEPARATOR . 'composer.json',
-            json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n"
-        );
     }
 
     /**
@@ -312,7 +288,7 @@ final class SdkCodeGenerator
         $queue = $seed;
         while ($queue !== []) {
             $c = array_pop($queue);
-            if (!is_string($c) || !str_starts_with($c, self::TEST_NAMESPACE_PREFIX)) {
+            if (!is_string($c) || !str_starts_with($c, $this->appNamespacePrefix)) {
                 continue;
             }
             if (isset($seen[$c])) {
@@ -328,7 +304,7 @@ final class SdkCodeGenerator
                     $queue[] = $d;
                 }
             }
-            foreach (SdkDtoReflection::collectLinkedTestClassesFromAttributes($c) as $d) {
+            foreach (SdkDtoReflection::collectLinkedTestClassesFromAttributes($c, $this->appNamespacePrefix) as $d) {
                 if (!isset($seen[$d])) {
                     $queue[] = $d;
                 }
@@ -399,7 +375,7 @@ final class SdkCodeGenerator
 
     private function isTestDtoClass(string $name): bool
     {
-        return str_starts_with($name, self::TEST_NAMESPACE_PREFIX);
+        return str_starts_with($name, $this->appNamespacePrefix);
     }
 
     private function ensureDir(string $path): void

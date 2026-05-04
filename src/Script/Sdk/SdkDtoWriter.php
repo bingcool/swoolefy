@@ -5,22 +5,21 @@ declare(strict_types=1);
 namespace Swoolefy\Script\Sdk;
 
 /**
- * Copies Test\* request/response/DTO sources into GenerateSdk\{Project}\{App}\* with lightweight bases.
+ * Copies {APP_NAME}\* request/response/DTO sources into GenerateSdk\{ProjectName}\{AppName}\* with lightweight bases.
  */
 final class SdkDtoWriter
 {
-    private const TEST_PREFIX = 'Test\\';
-
     public function __construct(
         private string $projectRoot,
         private string $outputTestRoot,
         private string $sdkNamespacePrefix,
+        private string $appNamespacePrefix,
     ) {
     }
 
     public function writeClass(string $className): void
     {
-        if (!str_starts_with($className, self::TEST_PREFIX)) {
+        if (!str_starts_with($className, $this->appNamespacePrefix)) {
             return;
         }
 
@@ -43,7 +42,7 @@ final class SdkDtoWriter
 
         $transformed = $this->transformSource($raw);
         $transformed = $this->appendCollectionAdders($className, $transformed);
-        $relativePath = str_replace('\\', DIRECTORY_SEPARATOR, substr($className, strlen('Test\\'))) . '.php';
+        $relativePath = str_replace('\\', DIRECTORY_SEPARATOR, substr($className, strlen($this->appNamespacePrefix))) . '.php';
         $dest = $this->outputTestRoot . DIRECTORY_SEPARATOR . $relativePath;
         $destDir = dirname($dest);
         if (!is_dir($destDir)) {
@@ -58,9 +57,10 @@ final class SdkDtoWriter
         $php = $this->filterPhp8AttributesKeepApiProperty($php);
 
         $ns = $this->sdkNamespacePrefix;
+        $ap = $this->appNamespacePrefix;
         $replacements = [
-            'namespace Test\\' => 'namespace ' . $ns . '\\',
-            'use Test\\' => 'use ' . $ns . '\\',
+            'namespace ' . $ap => 'namespace ' . $ns . '\\',
+            'use ' . $ap => 'use ' . $ns . '\\',
             'use Swoolefy\\Http\\BaseRequest;' => 'use ' . $ns . '\\Support\\SdkBaseRequest;',
             'extends BaseRequest' => 'extends SdkBaseRequest',
             'use Swoolefy\\Http\\BaseResponse;' => 'use ' . $ns . '\\Support\\SdkBaseResponse;',
@@ -141,7 +141,7 @@ final class SdkDtoWriter
      */
     private function appendCollectionAdders(string $testClassFqcn, string $php): string
     {
-        $specs = SdkDtoReflection::listCollectionAdderSpecs($testClassFqcn);
+        $specs = SdkDtoReflection::listCollectionAdderSpecs($testClassFqcn, $this->appNamespacePrefix);
         if ($specs === []) {
             return $php;
         }
@@ -149,7 +149,7 @@ final class SdkDtoWriter
         $useFqcn = [];
         $methods = [];
         foreach ($specs as $spec) {
-            $sdkItemFqcn = $this->sdkNamespacePrefix . '\\' . substr($spec['itemFqcn'], strlen('Test\\'));
+            $sdkItemFqcn = $this->sdkNamespacePrefix . '\\' . substr($spec['itemFqcn'], strlen($this->appNamespacePrefix));
             $useFqcn[$sdkItemFqcn] = true;
             $short = substr($sdkItemFqcn, strrpos($sdkItemFqcn, '\\') + 1);
             $prop = $spec['property'];

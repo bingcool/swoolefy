@@ -13,21 +13,21 @@ use Swoolefy\Annotation\ResponseProperty;
 use Swoolefy\Annotation\Validation\ValidationRule;
 
 /**
- * Reads ValidationRule / ResponseProperty / @var array<X> on Test\* DTOs for SDK generation.
+ * Reads ValidationRule / ResponseProperty / @var array<X> on app DTOs for SDK generation.
  */
 final class SdkDtoReflection
 {
     /**
-     * @return list<string> Test\* FQCN referenced via itemClass, ResponseProperty::class, or @var array<...> on properties
+     * @return list<string> FQCN under app namespace referenced via itemClass, ResponseProperty::class, or @var array<...>
      */
-    public static function collectLinkedTestClassesFromAttributes(string $testClassFqcn): array
+    public static function collectLinkedTestClassesFromAttributes(string $classFqcn, string $appNamespacePrefix): array
     {
-        if (!str_starts_with($testClassFqcn, 'Test\\') || !class_exists($testClassFqcn)) {
+        if (!str_starts_with($classFqcn, $appNamespacePrefix) || !class_exists($classFqcn)) {
             return [];
         }
 
         try {
-            $rc = new ReflectionClass($testClassFqcn);
+            $rc = new ReflectionClass($classFqcn);
         } catch (\ReflectionException) {
             return [];
         }
@@ -41,12 +41,12 @@ final class SdkDtoReflection
                 continue;
             }
             foreach (self::itemAndSingleClassesFromProperty($prop) as $fqcn) {
-                if (str_starts_with($fqcn, 'Test\\')) {
+                if (str_starts_with($fqcn, $appNamespacePrefix)) {
                     $found[$fqcn] = true;
                 }
             }
             foreach (self::docblockArrayItemFqcnCandidates($prop) as $fqcn) {
-                if (str_starts_with($fqcn, 'Test\\')) {
+                if (str_starts_with($fqcn, $appNamespacePrefix)) {
                     $found[$fqcn] = true;
                 }
             }
@@ -160,14 +160,14 @@ final class SdkDtoReflection
     /**
      * @return list<array{property:string, itemFqcn:string, methodName:string}>
      */
-    public static function listCollectionAdderSpecs(string $testClassFqcn): array
+    public static function listCollectionAdderSpecs(string $classFqcn, string $appNamespacePrefix): array
     {
-        if (!str_starts_with($testClassFqcn, 'Test\\') || !class_exists($testClassFqcn)) {
+        if (!str_starts_with($classFqcn, $appNamespacePrefix) || !class_exists($classFqcn)) {
             return [];
         }
 
         try {
-            $rc = new ReflectionClass($testClassFqcn);
+            $rc = new ReflectionClass($classFqcn);
         } catch (\ReflectionException) {
             return [];
         }
@@ -196,7 +196,7 @@ final class SdkDtoReflection
             }
 
             $itemFqcn = self::resolveCollectionItemFqcn($prop);
-            if ($itemFqcn === null || !str_starts_with($itemFqcn, 'Test\\')) {
+            if ($itemFqcn === null || !str_starts_with($itemFqcn, $appNamespacePrefix)) {
                 continue;
             }
             if (!self::isLikelyDtoItemClass($itemFqcn)) {

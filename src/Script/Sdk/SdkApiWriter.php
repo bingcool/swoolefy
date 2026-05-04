@@ -18,6 +18,7 @@ final class SdkApiWriter
     public function __construct(
         private string $outputTestRoot,
         private string $sdkNamespacePrefix,
+        private string $appNamespacePrefix,
     ) {
     }
 
@@ -38,8 +39,8 @@ final class SdkApiWriter
         }
 
         $apiNsTail = $apiNs;
-        if (str_starts_with($apiNsTail, 'Test\\')) {
-            $apiNsTail = substr($apiNsTail, strlen('Test\\'));
+        if (str_starts_with($apiNsTail, $this->appNamespacePrefix)) {
+            $apiNsTail = substr($apiNsTail, strlen($this->appNamespacePrefix));
         }
         $fullApiNs = $this->sdkNamespacePrefix . '\\' . $apiNsTail;
         $shortApiName = preg_replace('/Controller$/', 'Api', $rc->getShortName());
@@ -126,7 +127,12 @@ PHP;
         $methodsBlock = implode("\n", $methodsPhp);
 
         $relPath = str_replace('\\', DIRECTORY_SEPARATOR, $apiNs);
-        $relPath = preg_replace('/^Test' . preg_quote(DIRECTORY_SEPARATOR, '/') . '/', '', $relPath) ?? $relPath;
+        $appSeg = rtrim($this->appNamespacePrefix, '\\');
+        $relPath = preg_replace(
+            '/^' . preg_quote($appSeg, '/') . preg_quote(DIRECTORY_SEPARATOR, '/') . '/',
+            '',
+            $relPath
+        ) ?? $relPath;
         $dir = $this->outputTestRoot . DIRECTORY_SEPARATOR . $relPath;
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);
@@ -333,7 +339,7 @@ PHP;
     {
         foreach ($method->getParameters() as $param) {
             foreach ($this->reflectionTypesToClassNames($param->getType()) as $className) {
-                if (str_starts_with($className, 'Test\\')) {
+                if (str_starts_with($className, $this->appNamespacePrefix)) {
                     return $className;
                 }
             }
@@ -345,7 +351,7 @@ PHP;
     private function returnTestClassName(ReflectionMethod $method): ?string
     {
         foreach ($this->reflectionTypesToClassNames($method->getReturnType()) as $className) {
-            if (str_starts_with($className, 'Test\\')) {
+            if (str_starts_with($className, $this->appNamespacePrefix)) {
                 return $className;
             }
         }
@@ -394,11 +400,11 @@ PHP;
 
     private function toSdkFqcn(string $testClass): string
     {
-        if (!str_starts_with($testClass, 'Test\\')) {
+        if (!str_starts_with($testClass, $this->appNamespacePrefix)) {
             return $testClass;
         }
 
-        return $this->sdkNamespacePrefix . '\\' . substr($testClass, strlen('Test\\'));
+        return $this->sdkNamespacePrefix . '\\' . substr($testClass, strlen($this->appNamespacePrefix));
     }
 
     private function toSdkShortClassName(string $testClass): string
