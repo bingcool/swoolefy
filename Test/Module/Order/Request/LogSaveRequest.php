@@ -32,7 +32,7 @@ class LogSaveRequest extends BaseRequest
     /**
      * @param array<int> $logIds
      */
-    #[ApiProperty(desction: "日志ID集合")]
+    #[ApiProperty(description: "日志ID集合")]
     public function setLogIds(array $logIds)
     {
         $this->logIds = $logIds;

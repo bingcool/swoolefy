@@ -13,12 +13,12 @@ use Attribute;
 final class ApiProperty
 {
     public function __construct(
-        protected string $desction = ''
+        protected string $description = ''
     ) {
     }
 
-    public function getDesction(): string
+    public function getDescription(): string
     {
-        return $this->desction;
+        return $this->description;
     }
 }
