@@ -43,6 +43,7 @@ final class SdkDtoWriter
         }
 
         $transformed = $this->transformSource($raw);
+        $transformed = $this->appendCollectionAdders($className, $transformed);
         $relativePath = str_replace('\\', DIRECTORY_SEPARATOR, substr($className, strlen('Test\\'))) . '.php';
         $dest = $this->outputTestRoot . DIRECTORY_SEPARATOR . $relativePath;
         $destDir = dirname($dest);
@@ -108,5 +109,76 @@ final class SdkDtoWriter
         }
 
         return implode("\n", $out);
+    }
+
+    /**
+     * Appends add{ItemDto}(...) helpers for array-of-DTO properties (from ValidationRule/ResponseProperty itemClass or @var array<X>).
+     */
+    private function appendCollectionAdders(string $testClassFqcn, string $php): string
+    {
+        $specs = SdkDtoReflection::listCollectionAdderSpecs($testClassFqcn);
+        if ($specs === []) {
+            return $php;
+        }
+
+        $useFqcn = [];
+        $methods = [];
+        foreach ($specs as $spec) {
+            $sdkItemFqcn = self::SDK_NAMESPACE . '\\' . substr($spec['itemFqcn'], strlen('Test\\'));
+            $useFqcn[$sdkItemFqcn] = true;
+            $short = substr($sdkItemFqcn, strrpos($sdkItemFqcn, '\\') + 1);
+            $prop = $spec['property'];
+            $mn = $spec['methodName'];
+            $methods[] = <<<PHP
+    public function {$mn}({$short} \$dto): void
+    {
+        \$this->{$prop}[] = \$dto;
+    }
+PHP;
+        }
+
+        $php = $this->mergeUseStatements($php, array_keys($useFqcn));
+
+        return $this->injectBeforeClassClosingBrace($php, "\n" . implode("\n\n", $methods));
+    }
+
+    /**
+     * @param list<string> $fqcnList
+     */
+    private function mergeUseStatements(string $php, array $fqcnList): string
+    {
+        sort($fqcnList);
+        $toAdd = [];
+        foreach ($fqcnList as $fq) {
+            $line = 'use ' . $fq . ';';
+            if (str_contains($php, $line)) {
+                continue;
+            }
+            $toAdd[] = $line;
+        }
+        if ($toAdd === []) {
+            return $php;
+        }
+        if (preg_match('/^(namespace\s[^;]+;\s*\n)/m', $php, $m)) {
+            $insert = $m[0] . "\n" . implode("\n", $toAdd) . "\n";
+
+            return preg_replace('/^namespace\s[^;]+;\s*\n/m', $insert, $php, 1) ?? $php;
+        }
+
+        return $php;
+    }
+
+    private function injectBeforeClassClosingBrace(string $php, string $append): string
+    {
+        $append = trim($append);
+        if ($append === '') {
+            return $php;
+        }
+        $pos = strrpos($php, "\n}");
+        if ($pos === false) {
+            return rtrim($php) . "\n" . $append . "\n}\n";
+        }
+
+        return substr($php, 0, $pos) . "\n" . $append . substr($php, $pos);
     }
 }

@@ -24,6 +24,90 @@ final class SdkSupportWriter
         file_put_contents($this->supportDir . '/SdkBaseRequest.php', $this->baseRequest());
         file_put_contents($this->supportDir . '/SdkBaseResponse.php', $this->baseResponse());
         file_put_contents($this->supportDir . '/SdkClientException.php', $this->exception());
+        file_put_contents($this->supportDir . '/BaseClientApi.php', $this->baseClientApi());
+    }
+
+    private function baseClientApi(): string
+    {
+        return <<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace Swoolefy\GenerateSdk\Test\Support;
+
+use GuzzleHttp\ClientInterface;
+use Psr\Http\Message\ResponseInterface;
+
+abstract class BaseClientApi
+{
+    public function __construct(
+        protected ClientInterface $httpClient,
+        protected string $baseUri = '',
+    ) {
+    }
+
+    protected function uri(string $path): string
+    {
+        return rtrim($this->baseUri, '/') . '/' . ltrim($path, '/');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function parseJsonResponse(ResponseInterface $response): array
+    {
+        $raw = (string) $response->getBody();
+        if ($raw === '') {
+            return [];
+        }
+        try {
+            /** @var mixed $decoded */
+            $decoded = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            throw new SdkClientException('Invalid JSON: ' . $e->getMessage(), $response->getStatusCode(), $raw);
+        }
+        if (!is_array($decoded)) {
+            throw new SdkClientException('Expected JSON object', $response->getStatusCode(), $decoded);
+        }
+
+        return $decoded;
+    }
+
+    protected function assertBusinessOk(array $payload): void
+    {
+        $code = $payload['code'] ?? null;
+        if ($code !== 0 && $code !== '0') {
+            $msg = (string) ($payload['msg'] ?? 'error');
+            $status = is_int($code) ? $code : 0;
+            throw new SdkClientException($msg, $status, $payload);
+        }
+    }
+
+    /**
+     * JSON client defaults + per-request keys (body, query, …) + caller overrides; headers are deep-merged.
+     *
+     * @param array<string, mixed> $requestDefaults
+     * @param array<string, mixed> $options
+     * @return array<string, mixed>
+     */
+    protected function mergeClientOptions(array $requestDefaults, array $options = []): array
+    {
+        $defaults = [
+            'http_errors' => false,
+            'headers' => ['Content-Type' => 'application/json'],
+        ];
+        $defaults = array_merge($defaults, $requestDefaults);
+        $merged = array_merge($defaults, $options);
+        if (isset($defaults['headers'], $options['headers']) && is_array($defaults['headers']) && is_array($options['headers'])) {
+            $merged['headers'] = array_merge($defaults['headers'], $options['headers']);
+        }
+
+        return $merged;
+    }
+}
+
+PHP;
     }
 
     private function abstractDto(): string

@@ -54,7 +54,7 @@ final class SdkCodeGenerator
             }
         }
 
-        $dtoList = array_keys($allDtoClasses);
+        $dtoList = $this->expandTestDtoClosure(array_keys($allDtoClasses));
         sort($dtoList);
 
         $writer = new SdkDtoWriter($this->projectRoot, $this->outputRoot . '/Test');
@@ -273,6 +273,44 @@ final class SdkCodeGenerator
     }
 
     /**
+     * Breadth-first: seed DTOs plus Test\* classes referenced from properties, annotations (itemClass, ResponseProperty), and @var array<X> docblocks.
+     *
+     * @param list<string> $seed
+     * @return list<string>
+     */
+    private function expandTestDtoClosure(array $seed): array
+    {
+        $seen = [];
+        $queue = $seed;
+        while ($queue !== []) {
+            $c = array_pop($queue);
+            if (!is_string($c) || !str_starts_with($c, self::TEST_NAMESPACE_PREFIX)) {
+                continue;
+            }
+            if (isset($seen[$c])) {
+                continue;
+            }
+            if (!class_exists($c)) {
+                continue;
+            }
+            $seen[$c] = true;
+
+            foreach ($this->collectPropertyTypes($c) as $d) {
+                if (!isset($seen[$d])) {
+                    $queue[] = $d;
+                }
+            }
+            foreach (SdkDtoReflection::collectLinkedTestClassesFromAttributes($c) as $d) {
+                if (!isset($seen[$d])) {
+                    $queue[] = $d;
+                }
+            }
+        }
+
+        return array_keys($seen);
+    }
+
+    /**
      * @return list<string>
      */
     private function collectPropertyTypes(string $className): array
@@ -338,8 +376,17 @@ final class SdkCodeGenerator
 
     private function ensureDir(string $path): void
     {
-        if (!is_dir($path)) {
-            mkdir($path, 0755, true);
+        if (is_dir($path)) {
+            return;
+        }
+        if (is_file($path)) {
+            throw new \RuntimeException(
+                "[gen:sdk] Cannot create directory {$path}: a regular file exists at this path. "
+                . 'Use --out= to pick another directory (e.g. src/GenerateSdk).'
+            );
+        }
+        if (!@mkdir($path, 0755, true) && !is_dir($path)) {
+            throw new \RuntimeException("[gen:sdk] mkdir failed: {$path}");
         }
     }
 }
