@@ -11,7 +11,13 @@ final class SdkSupportWriter
 {
     public function __construct(
         private string $supportDir,
+        private string $supportNamespace,
     ) {
+    }
+
+    private function ns(string $template): string
+    {
+        return str_replace('__SDK_SUPPORT_NAMESPACE__', $this->supportNamespace, $template);
     }
 
     public function writeAll(): void
@@ -30,12 +36,12 @@ final class SdkSupportWriter
 
     private function apiProperty(): string
     {
-        return <<<'PHP'
+        return $this->ns(<<<'PHP'
 <?php
 
 declare(strict_types=1);
 
-namespace Swoolefy\GenerateSdk\Test\Support;
+namespace __SDK_SUPPORT_NAMESPACE__;
 
 use Attribute;
 
@@ -46,27 +52,27 @@ use Attribute;
 final class ApiProperty
 {
     public function __construct(
-        protected string $desction = ''
+        protected string $message = ''
     ) {
     }
 
-    public function getDesction(): string
+    public function getMessage(): string
     {
-        return $this->desction;
+        return $this->message;
     }
 }
 
-PHP;
+PHP);
     }
 
     private function baseClientApi(): string
     {
-        return <<<'PHP'
+        return $this->ns(<<<'PHP'
 <?php
 
 declare(strict_types=1);
 
-namespace Swoolefy\GenerateSdk\Test\Support;
+namespace __SDK_SUPPORT_NAMESPACE__;
 
 use GuzzleHttp\ClientInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -139,17 +145,17 @@ abstract class BaseClientApi
     }
 }
 
-PHP;
+PHP);
     }
 
     private function abstractDto(): string
     {
-        return <<<'PHP'
+        return $this->ns(<<<'PHP'
 <?php
 
 declare(strict_types=1);
 
-namespace Swoolefy\GenerateSdk\Test\Support;
+namespace __SDK_SUPPORT_NAMESPACE__;
 
 use ReflectionProperty;
 
@@ -236,17 +242,17 @@ class SdkAbstractDto extends \stdClass
     }
 }
 
-PHP;
+PHP);
     }
 
     private function baseRequest(): string
     {
-        return <<<'PHP'
+        return $this->ns(<<<'PHP'
 <?php
 
 declare(strict_types=1);
 
-namespace Swoolefy\GenerateSdk\Test\Support;
+namespace __SDK_SUPPORT_NAMESPACE__;
 
 class SdkBaseRequest extends SdkAbstractDto
 {
@@ -261,17 +267,17 @@ class SdkBaseRequest extends SdkAbstractDto
     }
 }
 
-PHP;
+PHP);
     }
 
     private function baseResponse(): string
     {
-        return <<<'PHP'
+        return $this->ns(<<<'PHP'
 <?php
 
 declare(strict_types=1);
 
-namespace Swoolefy\GenerateSdk\Test\Support;
+namespace __SDK_SUPPORT_NAMESPACE__;
 
 class SdkBaseResponse
 {
@@ -290,17 +296,17 @@ class SdkBaseResponse
     }
 }
 
-PHP;
+PHP);
     }
 
     private function exception(): string
     {
-        return <<<'PHP'
+        return $this->ns(<<<'PHP'
 <?php
 
 declare(strict_types=1);
 
-namespace Swoolefy\GenerateSdk\Test\Support;
+namespace __SDK_SUPPORT_NAMESPACE__;
 
 class SdkClientException extends \RuntimeException
 {
@@ -318,6 +324,6 @@ class SdkClientException extends \RuntimeException
     }
 }
 
-PHP;
+PHP);
     }
 }

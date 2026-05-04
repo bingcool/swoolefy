@@ -15,8 +15,6 @@ use Swoolefy\Http\BaseResponse;
  */
 final class SdkApiWriter
 {
-    private const SDK_NS = 'Swoolefy\\GenerateSdk\\Test';
-
     public function __construct(
         private string $outputTestRoot,
         private string $sdkNamespacePrefix,
@@ -39,7 +37,11 @@ final class SdkApiWriter
             $apiNs = $parentNs . '\\Client';
         }
 
-        $fullApiNs = $this->sdkNamespacePrefix . '\\' . $apiNs;
+        $apiNsTail = $apiNs;
+        if (str_starts_with($apiNsTail, 'Test\\')) {
+            $apiNsTail = substr($apiNsTail, strlen('Test\\'));
+        }
+        $fullApiNs = $this->sdkNamespacePrefix . '\\' . $apiNsTail;
         $shortApiName = preg_replace('/Controller$/', 'Api', $rc->getShortName());
 
         $byAction = [];
@@ -396,7 +398,7 @@ PHP;
             return $testClass;
         }
 
-        return self::SDK_NS . '\\' . substr($testClass, strlen('Test\\'));
+        return $this->sdkNamespacePrefix . '\\' . substr($testClass, strlen('Test\\'));
     }
 
     private function toSdkShortClassName(string $testClass): string
