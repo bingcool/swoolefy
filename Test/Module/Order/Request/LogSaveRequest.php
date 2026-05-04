@@ -52,6 +52,14 @@ class LogSaveRequest extends BaseRequest
     }
 
     /**
+     * @param LogContentDto $logContent
+     */
+    public function addLogContent(LogContentDto $logContent)
+    {
+        $this->logContents[] = $logContent;
+    }
+
+    /**
      * @return LogContentDto[]
      */
     public function getLogContents(): array

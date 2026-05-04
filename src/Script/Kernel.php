@@ -16,6 +16,7 @@ use Swoolefy\Script\GenerateMysql;
 use Swoolefy\Script\GeneratePg;
 use Swoolefy\Script\GenerateCronService;
 use Swoolefy\Script\GenerateDaemonService;
+use Swoolefy\Script\GenerateSdk;
 use Swoolefy\Script\TestScript;
 use Swoolefy\Core\Schedule\Schedule;
 use Swoolefy\Worker\Cron\CronForkProcess;
@@ -33,6 +34,7 @@ class Kernel extends AbstractKernel
         GeneratePg::command            => [GeneratePg::class, 'handle'],
         GenerateCronService::command   => [GenerateCronService::class, 'handle'],
         GenerateDaemonService::command => [GenerateDaemonService::class, 'handle'],
+        GenerateSdk::command           => [GenerateSdk::class, 'handle'],
         TestScript::command            => [TestScript::class, 'handle'],
     ];
 

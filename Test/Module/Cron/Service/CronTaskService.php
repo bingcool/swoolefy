@@ -15,18 +15,7 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface {
      * @throws \Common\Library\Exception\DbException
      */
     public function fetchCronTask(int $execType, $nodeId) {
-        $list = CronTaskEntity::query()->field([
-            'id',
-            'name',
-            'expression',
-            'exec_script',
-            'exec_type',
-            'status',
-            'with_block_lapping',
-            'cron_between',
-            'cron_skip',
-            'updated_at' // 此字段非常重要
-        ])->where([
+        $list = CronTaskEntity::query()->field('*')->where([
             'status' => 1,
             'node_id' => $nodeId,
             'exec_type' => $execType
