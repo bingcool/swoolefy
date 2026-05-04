@@ -43,8 +43,8 @@
         "zircote/swagger-php": "~4.8.0",
         "doctrine/collections": "~3.0",
         "php-standard-library/php-standard-library": "~6.1",
-        "bingcool/library": "dev-library-6.x",
-        "guzzlehttp/guzzle": "^7.9"
+        "guzzlehttp/guzzle": "~7.9",
+        "bingcool/library": "dev-library-6.x"
     },
     "autoload": {
         "files": ["src/Constants.php","src/Core/Func/function.php"],
