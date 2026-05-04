@@ -9,6 +9,10 @@ use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionProperty;
 use ReflectionUnionType;
+use Symfony\Component\Console\Formatter\OutputFormatter;
+use Symfony\Component\Console\Helper\ProgressBar;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Output\StreamOutput;
 
 /**
  * Scans {App}/Router, copies {APP_NAME}\* DTOs into GenerateSdk\{ProjectName}\{AppName}\*, emits *Api clients (Guzzle).
@@ -23,12 +27,15 @@ final class SdkCodeGenerator
         private string $routerDir,
         private string $outputRoot,
         private string $sdkNamespacePrefix,
+        private ?OutputInterface $output = null,
     ) {
         $this->appNamespacePrefix = APP_NAME . '\\';
     }
 
     public function run(): void
     {
+        $output = $this->output ?? new StreamOutput(\STDOUT);
+
         $appOut = $this->outputRoot . DIRECTORY_SEPARATOR . APP_NAME;
 
         $this->ensureDir($appOut . '/Support');
@@ -50,20 +57,34 @@ final class SdkCodeGenerator
         }
 
         $allDtoClasses = [];
-        foreach ($byController as $controller => $ctrlRoutes) {
-            foreach ($ctrlRoutes as $r) {
-                foreach ($this->collectDtoClassesForAction($controller, $r['action']) as $c) {
-                    $allDtoClasses[$c] = true;
-                }
+        $routeBar = new ProgressBar($output, count($routes));
+        $routeBar->setFormat(' %current%/%max% [%bar%] %percent:3s%% — %message%');
+        $routeBar->setMessage('路由');
+        $routeBar->start();
+        foreach ($routes as $route) {
+            foreach ($this->collectDtoClassesForAction($route['controller'], $route['action']) as $c) {
+                $allDtoClasses[$c] = true;
             }
+            $routeBar->advance();
         }
+        $routeBar->finish();
+        $output->writeln('');
 
         $dtoList = $this->expandTestDtoClosure(array_keys($allDtoClasses));
         sort($dtoList);
 
         $writer = new SdkDtoWriter($this->projectRoot, $appOut, $this->sdkNamespacePrefix, $this->appNamespacePrefix);
-        foreach ($dtoList as $className) {
-            $writer->writeClass($className);
+        if ($dtoList !== []) {
+            $dtoBar = new ProgressBar($output, count($dtoList));
+            $dtoBar->setFormat(' %current%/%max% [%bar%] %percent:3s%% — %message%');
+            $dtoBar->setMessage('DTO');
+            $dtoBar->start();
+            foreach ($dtoList as $className) {
+                $writer->writeClass($className);
+                $dtoBar->advance();
+            }
+            $dtoBar->finish();
+            $output->writeln('');
         }
 
         $apiWriter = new SdkApiWriter($appOut, $this->sdkNamespacePrefix, $this->appNamespacePrefix);
@@ -71,7 +92,13 @@ final class SdkCodeGenerator
             $apiWriter->writeControllerApi($controller, $ctrlRoutes);
         }
 
-        echo '[gen:sdk] namespace: ' . $this->sdkNamespacePrefix . ', routes: ' . count($routes) . ', DTO classes: ' . count($dtoList) . ', output: ' . $appOut . "\n";
+        $output->writeln(sprintf(
+            '<info>[gen:sdk]</info> <comment>namespace:</comment> %s, <comment>routes:</comment> %d, <comment>DTO classes:</comment> %d, <comment>output:</comment> %s',
+            OutputFormatter::escape($this->sdkNamespacePrefix),
+            count($routes),
+            count($dtoList),
+            OutputFormatter::escape($appOut)
+        ));
     }
 
     /**
