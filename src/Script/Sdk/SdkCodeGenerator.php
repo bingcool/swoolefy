@@ -123,7 +123,7 @@ final class SdkCodeGenerator
     /**
      * Warn when multiple routes target the same controller action. Each entry is shown as path(HTTP_METHODS).
      *
-     * @param list<array{methods:list<string>,path:string,controller:string,action:string}> $routes
+     * @param list<array{methods:list<string>,path:string,controller:string,action:string,source?:string}> $routes
      */
     private function writeDuplicateDispatchRouteHints(array $routes, OutputInterface $output): void
     {
@@ -179,7 +179,7 @@ final class SdkCodeGenerator
     }
 
     /**
-     * @return list<array{methods:list<string>,path:string,controller:string,action:string}>
+     * @return list<array{methods:list<string>,path:string,controller:string,action:string,source:string}>
      */
     private function scanRoutes(string $dir): array
     {
@@ -215,7 +215,7 @@ final class SdkCodeGenerator
     }
 
     /**
-     * @return list<array{methods:list<string>,path:string,controller:string,action:string}>
+     * @return list<array{methods:list<string>,path:string,controller:string,action:string,source:string}>
      */
     private function scanRouteFile(string $path): array
     {
@@ -266,6 +266,7 @@ final class SdkCodeGenerator
                             'path' => $fullPath,
                             'controller' => $controller,
                             'action' => $action,
+                            'source' => $verb === 'ANY' ? 'any' : 'single',
                         ];
                         break;
                     }
@@ -311,6 +312,7 @@ final class SdkCodeGenerator
                                 'path' => $fullPath,
                                 'controller' => $controller,
                                 'action' => $action,
+                                'source' => 'match',
                             ];
                             break;
                         }
