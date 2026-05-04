@@ -38,7 +38,7 @@ class CreateCmd extends BaseCmd
         }
 
         if ($protocol == self::HTTP_PROTOCOL) {
-            $dirs = ['Config', 'Controller', 'Model', 'Module', 'Router', 'Validation', 'Storage', 'Protocol', 'Middleware','Scripts'];
+            $dirs = ['Common', 'Config', 'Controller', 'Model', 'Module', 'Router', 'Storage', 'Protocol', 'Middleware','Scripts'];
         }
 
         $daemonFile = START_DIR_ROOT . '/daemon.php';
@@ -71,6 +71,17 @@ class CreateCmd extends BaseCmd
         foreach ($dirs as $dir) {
             @mkdir($appPathDir . '/' . $dir, 0777, true);
             switch ($dir) {
+                case 'Common':
+                {
+                    $dirPath = $appPathDir . '/' . $dir;
+                    @mkdir($dirPath, 0777, true);
+                    // 默认创建枚举类和常量类文件夹
+                    foreach (['Const','Enum'] as $itemDir) {
+                        $itemDirPath = $appPathDir . '/' . $dir . '/' . $itemDir;
+                        @mkdir($itemDirPath, 0777, true);
+                    }
+                    break;
+                }
                 case 'Config':
                 {
                     $definesFile = $appPathDir . '/' . $dir . '/constants.php';
@@ -116,19 +127,18 @@ class CreateCmd extends BaseCmd
                 }
                 case 'Module':
                 {
-                    $controllerDir = $appPathDir . '/' . $dir . '/Demo/Controller';
-                    if (!is_dir($controllerDir)) {
-                        @mkdir($controllerDir, 0777, true);
+                    $moduleName = 'Demo';
+                    foreach ([$moduleName] as $module) {
+                        $moduleDir = $appPathDir . '/' . $dir . '/' . $module;
+                        if (!is_dir($moduleDir)) {
+                            @mkdir($moduleDir, 0777, true);
+                        }
                     }
-
-                    $validationDir = $appPathDir . '/' . $dir . '/Demo/Validation';
-                    if (!is_dir($validationDir)) {
-                        @mkdir($validationDir, 0777, true);
-                    }
-
-                    $exceptionDir = $appPathDir . '/' . $dir . '/Demo/Exception';
-                    if (!is_dir($exceptionDir)) {
-                        @mkdir($exceptionDir, 0777, true);
+                    foreach (['Controller','Dto','Request','Response', 'Exception'] as $itemDir) {
+                        $itemDirPath = $appPathDir . '/' . $dir . '/' . $module . '/' . $itemDir;
+                        if (!is_dir($itemDirPath)) {
+                            @mkdir($itemDirPath, 0777, true);
+                        }
                     }
                     break;
                 }

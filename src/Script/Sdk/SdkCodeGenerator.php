@@ -50,6 +50,8 @@ final class SdkCodeGenerator
             return;
         }
 
+        $this->writeDuplicateDispatchRouteHints($routes, $output);
+
         $byController = [];
         foreach ($routes as $route) {
             $ctrl = $route['controller'];
@@ -116,6 +118,64 @@ final class SdkCodeGenerator
         $bar->setMessage($message);
 
         return $bar;
+    }
+
+    /**
+     * Warn when multiple routes target the same controller action. Each entry is shown as path(HTTP_METHODS).
+     *
+     * @param list<array{methods:list<string>,path:string,controller:string,action:string}> $routes
+     */
+    private function writeDuplicateDispatchRouteHints(array $routes, OutputInterface $output): void
+    {
+        $groups = [];
+        foreach ($routes as $route) {
+            $key = $route['controller'] . "\0" . $route['action'];
+            $groups[$key][] = $route;
+        }
+
+        foreach ($groups as $items) {
+            if (\count($items) < 2) {
+                continue;
+            }
+
+            $sample = $items[0];
+            $controller = $sample['controller'];
+            $action = $sample['action'];
+
+            $shortCtrl = str_contains($controller, '\\')
+                ? substr($controller, strrpos($controller, '\\') + 1)
+                : $controller;
+
+            usort($items, static function (array $a, array $b): int {
+                $cmp = $a['path'] <=> $b['path'];
+                if ($cmp !== 0) {
+                    return $cmp;
+                }
+                $am = $a['methods'];
+                $bm = $b['methods'];
+                sort($am);
+                sort($bm);
+
+                return implode(',', array_map('strtoupper', $am)) <=> implode(',', array_map('strtoupper', $bm));
+            });
+
+            $segments = [];
+            foreach ($items as $r) {
+                $mcopy = $r['methods'];
+                sort($mcopy);
+                $verbs = implode(',', array_map('strtoupper', $mcopy));
+                $segments[] = $r['path'] . '(' . $verbs . ')';
+            }
+            $apiList = implode(', ', $segments);
+
+            $output->writeln(sprintf(
+                '<fg=yellow>[gen:sdk] %s%s ->[%s, %s]</fg=yellow>',
+                "存在相同指向api：",
+                OutputFormatter::escape($apiList),
+                OutputFormatter::escape($shortCtrl),
+                OutputFormatter::escape($action)
+            ));
+        }
     }
 
     /**
