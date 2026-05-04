@@ -15,6 +15,7 @@ use Swoolefy\Script\Sdk\SdkCodeGenerator;
 
 /**
  * 执行命令生成 HTTP SDK： php script.php start Test --c=gen:sdk [--router=Test/Router] [--out=src/GenerateSdk]
+ * 默认输出为 src/GenerateSdk（勿使用 swoolefy/ 前缀：仓库根目录的 swoolefy 为启动文件，非目录）
  */
 class GenerateSdk extends MainCliScript
 {
@@ -32,7 +33,7 @@ class GenerateSdk extends MainCliScript
         $routerOpt = $this->getOption('router');
         $routerRel = (is_string($routerOpt) && $routerOpt !== '') ? $routerOpt : 'Test/Router';
         $outOpt = $this->getOption('out');
-        $outRel = (is_string($outOpt) && $outOpt !== '') ? $outOpt : 'swoolefy/GenerateSdk';
+        $outRel = (is_string($outOpt) && $outOpt !== '') ? $outOpt : 'GenerateSdk';
 
         $routerDir = $this->toAbsoluteUnderRoot($projectRoot, $routerRel);
         $outputRoot = $this->toAbsoluteUnderRoot($projectRoot, $outRel);

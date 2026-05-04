@@ -48,8 +48,7 @@ final class SdkApiWriter
         }
 
         $uses = [
-            'GuzzleHttp\\ClientInterface',
-            $this->sdkNamespacePrefix . '\\Support\\SdkClientException',
+            $this->sdkNamespacePrefix . '\\Support\\BaseClientApi',
         ];
 
         $hydrateRegistry = [];
@@ -62,11 +61,13 @@ final class SdkApiWriter
 
             $method = new ReflectionMethod($controller, $action);
             $reqFqcn = $this->firstTestObjectParam($method);
+            // No Test\* typed request DTO (e.g. only RequestInput, scalars, or no params): expose array $params for callers; server reads via RequestInput.
+            $passParamsAsArray = $reqFqcn === null;
             $retFqcn = $this->returnTestClassName($method);
             $isVoid = $this->isVoidReturn($method);
 
-            $route = $this->pickRouteForAction($actionRoutes, $reqFqcn !== null);
-            $httpMethod = $this->guessHttpMethod($route['methods'], $reqFqcn !== null);
+            $route = $this->pickRouteForAction($actionRoutes, !$passParamsAsArray);
+            $httpMethod = $this->guessHttpMethod($route['methods'], !$passParamsAsArray);
             $path = $route['path'];
 
             if ($reqFqcn !== null) {
@@ -76,15 +77,14 @@ final class SdkApiWriter
                 $uses[] = $this->toSdkFqcn($retFqcn);
             }
 
-            $reqParam = $reqFqcn !== null
-                ? $this->toSdkShortClassName($reqFqcn) . ' $request'
-                : '';
+            $reqParam = $passParamsAsArray
+                ? 'array $params = [], array $options = []'
+                : $this->toSdkShortClassName($reqFqcn) . ' $request, array $options = []';
             $retType = $isVoid
                 ? 'void'
                 : ($retFqcn !== null ? $this->toSdkShortClassName($retFqcn) : 'mixed');
 
             $reqShort = $reqFqcn !== null ? $this->toSdkShortClassName($reqFqcn) : null;
-            $retShort = $retFqcn !== null ? $this->toSdkShortClassName($retFqcn) : null;
 
             if ($retFqcn !== null) {
                 $hydrateRegistry[$retFqcn] = true;
@@ -94,6 +94,7 @@ final class SdkApiWriter
                 $httpMethod,
                 $path,
                 $reqShort,
+                $passParamsAsArray,
                 $retFqcn,
                 $isVoid,
                 $this->hydrateMethodSuffix($this->toSdkFqcn($retFqcn ?? '')),
@@ -119,7 +120,6 @@ PHP;
         $hydrateBlock = $this->emitHydrateMethods(array_keys($hydrateRegistry));
 
         $methodsBlock = implode("\n", $methodsPhp);
-        $decodeBlock = $this->emitDecodeEnvelope();
 
         $relPath = str_replace('\\', DIRECTORY_SEPARATOR, $apiNs);
         $relPath = preg_replace('/^Test' . preg_quote(DIRECTORY_SEPARATOR, '/') . '/', '', $relPath) ?? $relPath;
@@ -138,64 +138,14 @@ namespace {$fullApiNs};
 
 {$useBlock}
 
-class {$shortApiName}
+class {$shortApiName} extends BaseClientApi
 {
-    public function __construct(
-        private ClientInterface \$httpClient,
-        private string \$baseUri = '',
-    ) {
-    }
-
-    private function uri(string \$path): string
-    {
-        return rtrim(\$this->baseUri, '/') . '/' . ltrim(\$path, '/');
-    }
-
-{$decodeBlock}
 {$hydrateBlock}
 {$methodsBlock}
 }
 
 PHP;
         file_put_contents($file, $php);
-    }
-
-    private function emitDecodeEnvelope(): string
-    {
-        return <<<'PHP'
-    /**
-     * @return array<string, mixed>
-     */
-    private function parseJsonResponse(\Psr\Http\Message\ResponseInterface $response): array
-    {
-        $raw = (string) $response->getBody();
-        if ($raw === '') {
-            return [];
-        }
-        try {
-            /** @var mixed $decoded */
-            $decoded = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
-        } catch (\JsonException $e) {
-            throw new SdkClientException('Invalid JSON: ' . $e->getMessage(), $response->getStatusCode(), $raw);
-        }
-        if (!is_array($decoded)) {
-            throw new SdkClientException('Expected JSON object', $response->getStatusCode(), $decoded);
-        }
-
-        return $decoded;
-    }
-
-    private function assertBusinessOk(array $payload): void
-    {
-        $code = $payload['code'] ?? null;
-        if ($code !== 0 && $code !== '0') {
-            $msg = (string) ($payload['msg'] ?? 'error');
-            $status = is_int($code) ? $code : 0;
-            throw new SdkClientException($msg, $status, $payload);
-        }
-    }
-
-PHP;
     }
 
     /**
@@ -261,17 +211,27 @@ PHP;
         string $httpMethod,
         string $path,
         ?string $requestShort,
+        bool $passParamsAsArray,
         ?string $retTestFqcn,
         bool $isVoid,
         string $hydrateSuffix,
     ): string {
         $pathLiteral = var_export($path, true);
         $lines = [];
-        $lines[] = '        $options = [\'http_errors\' => false];';
-        if ($requestShort !== null) {
-            $lines[] = '        $options[\'headers\'] = [\'Content-Type\' => \'application/json\'];';
-            $lines[] = '        $options[\'body\'] = json_encode($request->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);';
+        $lines[] = '        $requestDefaults = [];';
+        if ($passParamsAsArray) {
+            $methodUpper = strtoupper($httpMethod);
+            if (in_array($methodUpper, ['GET', 'HEAD', 'DELETE', 'OPTIONS'], true)) {
+                $lines[] = '        if ($params !== []) {';
+                $lines[] = '            $requestDefaults[\'query\'] = $params;';
+                $lines[] = '        }';
+            } else {
+                $lines[] = '        $requestDefaults[\'body\'] = json_encode($params, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);';
+            }
+        } elseif ($requestShort !== null) {
+            $lines[] = '        $requestDefaults[\'body\'] = json_encode($request->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);';
         }
+        $lines[] = '        $options = $this->mergeClientOptions($requestDefaults, $options);';
         $lines[] = '        $response = $this->httpClient->request(' . var_export($httpMethod, true) . ', $this->uri(' . $pathLiteral . '), $options);';
         $lines[] = '        $payload = $this->parseJsonResponse($response);';
         $lines[] = '        $this->assertBusinessOk($payload);';
