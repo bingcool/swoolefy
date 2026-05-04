@@ -1,6 +1,8 @@
 <?php
 namespace Test\Module\Order\Request;
 use Doctrine\Common\Collections\ArrayCollection;
+use OpenApi\Attributes\Property;
+use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Annotation\Validation\ValidationRule;
 use Swoolefy\Http\BaseRequest;
 
@@ -30,6 +32,7 @@ class LogSaveRequest extends BaseRequest
     /**
      * @param array<int> $logIds
      */
+    #[ApiProperty(message: "日志ID集合")]
     public function setLogIds(array $logIds)
     {
         $this->logIds = $logIds;

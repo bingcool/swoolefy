@@ -12,6 +12,14 @@ use Test\Module\Order\OrderFormatter;
 
 class PgController extends BController
 {
+    /**
+     * @Api("保存订单")
+     * @ApiMethod("POST")
+     * @ApiParam(name="userId", type="int", required=true, description="用户ID")
+     * @ApiParam(name="receiver_user_name", type="string", required=true, description="收货人姓名")
+     * @ApiParam(name="receiver_user_phone", type="string", required=true, description="收货人手机号")
+     * @ApiParam(name="order_amount", type="float", required=true, description="订单金额")
+     */
     public function savePgOrder()
     {
         $userId = 10000;

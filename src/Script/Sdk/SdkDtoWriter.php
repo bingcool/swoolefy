@@ -56,7 +56,7 @@ final class SdkDtoWriter
 
     private function transformSource(string $php): string
     {
-        $php = $this->stripPhp8Attributes($php);
+        $php = $this->filterPhp8AttributesKeepApiProperty($php);
 
         $replacements = [
             'namespace Test\\' => 'namespace ' . self::SDK_NAMESPACE . '\\',
@@ -67,40 +67,60 @@ final class SdkDtoWriter
             'extends BaseResponse' => 'extends SdkBaseResponse',
             'use Swoolefy\\Core\\Dto\\AbstractDto;' => 'use ' . self::SDK_NAMESPACE . '\\Support\\SdkAbstractDto;',
             'extends AbstractDto' => 'extends SdkAbstractDto',
+            'extends \Swoolefy\Core\Dto\AbstractDto' => 'extends SdkAbstractDto',
+            'use Swoolefy\\Annotation\\ApiProperty;' => 'use ' . self::SDK_NAMESPACE . '\\Support\\ApiProperty;',
         ];
 
         $out = str_replace(array_keys($replacements), array_values($replacements), $php);
 
         $out = preg_replace('/^\s*use\s+Swoolefy\\\\Annotation\\\\Validation\\\\ValidationRule;\s*$/m', '', $out) ?? $out;
+        $out = preg_replace('/^\s*use\s+Swoolefy\\\\Annotation\\\\ResponseProperty;\s*$/m', '', $out) ?? $out;
+        $out = preg_replace('/^\s*use\s+Swoolefy\\\\Annotation\\\\IntToString;\s*$/m', '', $out) ?? $out;
+        $out = preg_replace('/^\s*use\s+OpenApi\\\\Attributes\\\\[^;]+;\s*$/m', '', $out) ?? $out;
 
         if (!str_contains($out, 'declare(strict_types=1);')) {
             $out = preg_replace('/^<\?php\s*\n/', "<?php\n\ndeclare(strict_types=1);\n\n", $out, 1) ?? $out;
+        }
+
+        if (str_contains($out, 'extends SdkAbstractDto')
+            && !str_contains($out, 'use ' . self::SDK_NAMESPACE . '\\Support\\SdkAbstractDto;')) {
+            $out = $this->mergeUseStatements($out, [self::SDK_NAMESPACE . '\\Support\\SdkAbstractDto']);
         }
 
         return $out;
     }
 
     /**
-     * Remove PHP 8 attributes (e.g. ValidationRule) from source; bracket depth handles multi-line.
+     * Strip framework attributes (ValidationRule, etc.) but keep #[ApiProperty(...)] for generated SDK docs.
      */
-    private function stripPhp8Attributes(string $php): string
+    private function filterPhp8AttributesKeepApiProperty(string $php): string
     {
         $lines = explode("\n", $php);
         $out = [];
         $depth = 0;
+        $keepBlock = false;
         foreach ($lines as $line) {
             if ($depth > 0) {
                 $depth += substr_count($line, '[') - substr_count($line, ']');
+                if ($keepBlock) {
+                    $out[] = $line;
+                }
                 if ($depth <= 0) {
                     $depth = 0;
+                    $keepBlock = false;
                 }
                 continue;
             }
 
             if (preg_match('/^\s*#\[/', $line)) {
+                $keepBlock = $this->attributeLineOpensApiProperty($line);
                 $depth = substr_count($line, '[') - substr_count($line, ']');
+                if ($keepBlock) {
+                    $out[] = $line;
+                }
                 if ($depth <= 0) {
-                    continue;
+                    $depth = 0;
+                    $keepBlock = false;
                 }
                 continue;
             }
@@ -109,6 +129,11 @@ final class SdkDtoWriter
         }
 
         return implode("\n", $out);
+    }
+
+    private function attributeLineOpensApiProperty(string $line): bool
+    {
+        return (bool) preg_match('/^\s*#\[.*\bApiProperty\b\s*[\(\]]/', $line);
     }
 
     /**

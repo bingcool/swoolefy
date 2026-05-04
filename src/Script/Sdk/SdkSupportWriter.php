@@ -25,6 +25,38 @@ final class SdkSupportWriter
         file_put_contents($this->supportDir . '/SdkBaseResponse.php', $this->baseResponse());
         file_put_contents($this->supportDir . '/SdkClientException.php', $this->exception());
         file_put_contents($this->supportDir . '/BaseClientApi.php', $this->baseClientApi());
+        file_put_contents($this->supportDir . '/ApiProperty.php', $this->apiProperty());
+    }
+
+    private function apiProperty(): string
+    {
+        return <<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace Swoolefy\GenerateSdk\Test\Support;
+
+use Attribute;
+
+/**
+ * SDK copy: documents a property (or method) for client-side hints; no framework dependency.
+ */
+#[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_METHOD)]
+final class ApiProperty
+{
+    public function __construct(
+        protected string $message = ''
+    ) {
+    }
+
+    public function getMessage(): string
+    {
+        return $this->message;
+    }
+}
+
+PHP;
     }
 
     private function baseClientApi(): string
