@@ -44,12 +44,75 @@ final class SdkDtoWriter
         $transformed = $this->appendCollectionAdders($className, $transformed);
         $relativePath = str_replace('\\', DIRECTORY_SEPARATOR, substr($className, strlen($this->appNamespacePrefix))) . '.php';
         $dest = $this->outputTestRoot . DIRECTORY_SEPARATOR . $relativePath;
-        $destDir = dirname($dest);
-        if (!is_dir($destDir)) {
-            mkdir($destDir, 0755, true);
-        }
+        $this->ensureParentDir($dest);
 
         file_put_contents($dest, $transformed);
+    }
+
+    /**
+     * Copies {APP_NAME}/Common/Const and Common/Enum into the SDK tree when present, applying the same
+     * namespace / use rewrites as DTOs so enums and constants stay usable from generated clients.
+     */
+    public function copyCommonConstAndEnumTrees(): void
+    {
+        $appSrcRoot = $this->projectRoot . DIRECTORY_SEPARATOR . APP_NAME;
+        if (!is_dir($appSrcRoot)) {
+            return;
+        }
+
+        foreach (['Common' . DIRECTORY_SEPARATOR . 'Const', 'Common' . DIRECTORY_SEPARATOR . 'Enum'] as $sub) {
+            $srcRoot = $appSrcRoot . DIRECTORY_SEPARATOR . $sub;
+            if (!is_dir($srcRoot)) {
+                continue;
+            }
+
+            $it = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($srcRoot, \FilesystemIterator::SKIP_DOTS)
+            );
+            foreach ($it as $file) {
+                /** @var \SplFileInfo $file */
+                if (!$file->isFile() || strtolower($file->getExtension()) !== 'php') {
+                    continue;
+                }
+
+                $fullPath = $file->getRealPath();
+                if ($fullPath === false) {
+                    continue;
+                }
+
+                $prefix = $appSrcRoot . DIRECTORY_SEPARATOR;
+                if (!str_starts_with($fullPath, $prefix)) {
+                    continue;
+                }
+
+                $relativeUnderApp = substr($fullPath, strlen($prefix));
+                $dest = $this->outputTestRoot . DIRECTORY_SEPARATOR . $relativeUnderApp;
+                $this->writeTransformedPhpFromPath($fullPath, $dest);
+            }
+        }
+    }
+
+    private function writeTransformedPhpFromPath(string $srcPath, string $destPath): void
+    {
+        $raw = file_get_contents($srcPath);
+        if ($raw === false) {
+            fwrite(STDERR, "[gen:sdk] Cannot read Common tree file: {$srcPath}\n");
+
+            return;
+        }
+
+        $transformed = $this->transformSource($raw);
+        $this->ensureParentDir($destPath);
+        file_put_contents($destPath, $transformed);
+    }
+
+    private function ensureParentDir(string $filePath): void
+    {
+        $destDir = dirname($filePath);
+        if (is_dir($destDir)) {
+            return;
+        }
+        mkdir($destDir, 0755, true);
     }
 
     private function transformSource(string $php): string
