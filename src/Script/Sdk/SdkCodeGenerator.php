@@ -57,7 +57,7 @@ final class SdkCodeGenerator
         }
 
         $allDtoClasses = [];
-        $routeBar = $this->createColoredProgressBar($output, count($routes), '路由');
+        $routeBar = $this->createColoredProgressBar($output, count($routes), '路由API');
         $routeBar->start();
         foreach ($routes as $route) {
             foreach ($this->collectDtoClassesForAction($route['controller'], $route['action']) as $c) {
