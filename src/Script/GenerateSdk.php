@@ -17,9 +17,9 @@ use Symfony\Component\Console\Output\StreamOutput;
 
 /**
  * 生成 HTTP SDK（独立 Composer 包目录，可与 swoolefy 仓库同级）：
- * php script.php start {AppName} --c=gen:sdk [--router=Test/Router] [--out=../service-generate-sdk/swoolefy]
+ * php script.php start {AppName} --c=gen:sdk [--router=Test/Router] [--out=../generate-sdk-library/swoolefy]
  *
- * - --out：项目包根目录（例如与 swoolefy 同级的 service-generate-sdk 下的 swoolefy 子目录），解析 **最后一级目录名** 作为「项目名」并转为 PascalCase 参与命名空间。
+ * - --out：项目包根目录（例如与 swoolefy 同级的 generate-sdk-library 下的 swoolefy 子目录），解析 **最后一级目录名** 作为「项目名」并转为 PascalCase 参与命名空间。
  * - 应用名来自命令中的 AppName（即常量 APP_NAME，如 Test）。
  * - 生成命名空间：GenerateSdk\\{ProjectPascal}\\{APP_NAME}\\...
  * - 文件输出：{out 绝对路径}/{APP_NAME}/...
