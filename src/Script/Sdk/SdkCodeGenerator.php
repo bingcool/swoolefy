@@ -225,6 +225,8 @@ final class SdkCodeGenerator
         }
 
         $lines = explode("\n", $content);
+        $namespace = $this->extractNamespace($content);
+        $useAliases = $this->extractUseAliases($content);
         $routes = [];
         $groupPrefix = '';
 
@@ -251,11 +253,11 @@ final class SdkCodeGenerator
                 for ($k = $i + 1; $k < min($i + 120, $n); $k++) {
                     $chunk .= "\n" . $lines[$k];
                     if (preg_match(
-                        "/['\"]dispatch_route['\"]\s*=>\s*\[\s*\\\\?([A-Za-z0-9_\\\\]+)::class\s*,\s*['\"]([A-Za-z0-9_]+)['\"]\s*\]/",
+                        "/['\"]dispatch_route['\"]\s*=>\s*\[\s*([\\\\]?[A-Za-z_][A-Za-z0-9_\\\\]*)::class\s*,\s*['\"]([A-Za-z0-9_]+)['\"]\s*\]/",
                         $chunk,
                         $dm
                     )) {
-                        $controller = $dm[1];
+                        $controller = $this->resolveClassName($dm[1], $namespace, $useAliases);
                         $action = $dm[2];
                         $fullPath = $this->joinUriPath($groupPrefix, $uriPath);
                         $methods = $verb === 'ANY'
@@ -300,11 +302,11 @@ final class SdkCodeGenerator
                     for ($k = $i; $k < min($i + 120, $n); $k++) {
                         $chunk .= ($k > $i ? "\n" . $lines[$k] : '');
                         if (preg_match(
-                            "/['\"]dispatch_route['\"]\s*=>\s*\[\s*\\\\?([A-Za-z0-9_\\\\]+)::class\s*,\s*['\"]([A-Za-z0-9_]+)['\"]\s*\]/",
+                            "/['\"]dispatch_route['\"]\s*=>\s*\[\s*([\\\\]?[A-Za-z_][A-Za-z0-9_\\\\]*)::class\s*,\s*['\"]([A-Za-z0-9_]+)['\"]\s*\]/",
                             $chunk,
                             $dm
                         )) {
-                            $controller = $dm[1];
+                            $controller = $this->resolveClassName($dm[1], $namespace, $useAliases);
                             $action = $dm[2];
                             $fullPath = $this->joinUriPath($groupPrefix, $uriPath);
                             $routes[] = [
@@ -322,6 +324,73 @@ final class SdkCodeGenerator
         }
 
         return $routes;
+    }
+
+    private function extractNamespace(string $content): string
+    {
+        if (preg_match('/^\s*namespace\s+([^;]+);/m', $content, $m)) {
+            return trim($m[1]);
+        }
+
+        return '';
+    }
+
+    /**
+     * @return array<string, string> alias => fully-qualified class name
+     */
+    private function extractUseAliases(string $content): array
+    {
+        $aliases = [];
+        if (!preg_match_all('/^\s*use\s+([^;]+);/m', $content, $matches)) {
+            return $aliases;
+        }
+
+        foreach ($matches[1] as $use) {
+            $use = trim($use);
+            if ($use === '' || str_contains($use, '{')) {
+                continue;
+            }
+            if (preg_match('/^(function|const)\s+/i', $use)) {
+                continue;
+            }
+
+            if (preg_match('/^(.+?)\s+as\s+([A-Za-z_][A-Za-z0-9_]*)$/i', $use, $m)) {
+                $class = ltrim(trim($m[1]), '\\');
+                $alias = trim($m[2]);
+            } else {
+                $class = ltrim($use, '\\');
+                $pos = strrpos($class, '\\');
+                $alias = $pos === false ? $class : substr($class, $pos + 1);
+            }
+
+            $aliases[$alias] = $class;
+        }
+
+        return $aliases;
+    }
+
+    /**
+     * Resolve `FooController::class` from router source to the class name PHP would produce at runtime.
+     *
+     * @param array<string, string> $useAliases
+     */
+    private function resolveClassName(string $className, string $namespace, array $useAliases): string
+    {
+        if (str_starts_with($className, '\\')) {
+            return ltrim($className, '\\');
+        }
+
+        if ($className === '') {
+            return $className;
+        }
+
+        $parts = explode('\\', $className, 2);
+        $head = $parts[0];
+        if (isset($useAliases[$head])) {
+            return $useAliases[$head] . (isset($parts[1]) ? '\\' . $parts[1] : '');
+        }
+
+        return $namespace === '' ? $className : $namespace . '\\' . $className;
     }
 
     private function joinUriPath(string $prefix, string $path): string

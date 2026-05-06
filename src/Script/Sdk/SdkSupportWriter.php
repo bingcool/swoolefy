@@ -32,6 +32,8 @@ final class SdkSupportWriter
         file_put_contents($this->supportDir . '/SdkClientException.php', $this->exception());
         file_put_contents($this->supportDir . '/BaseClientApi.php', $this->baseClientApi());
         file_put_contents($this->supportDir . '/ApiProperty.php', $this->apiProperty());
+        file_put_contents($this->supportDir . '/StringToInt.php', $this->stringToInt());
+        file_put_contents($this->supportDir . '/IntToString.php', $this->intToString());
     }
 
     private function apiProperty(): string
@@ -60,6 +62,50 @@ final class ApiProperty
     {
         return $this->description;
     }
+}
+
+PHP);
+    }
+
+    private function stringToInt(): string
+    {
+        return $this->ns(<<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace __SDK_SUPPORT_NAMESPACE__;
+
+use Attribute;
+
+/**
+ * SDK copy: marks request integer fields that may be supplied as numeric strings.
+ */
+#[Attribute(Attribute::TARGET_PROPERTY)]
+final class StringToInt
+{
+}
+
+PHP);
+    }
+
+    private function intToString(): string
+    {
+        return $this->ns(<<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace __SDK_SUPPORT_NAMESPACE__;
+
+use Attribute;
+
+/**
+ * SDK copy: marks response integer fields that should be treated as strings by clients.
+ */
+#[Attribute(Attribute::TARGET_PROPERTY)]
+final class IntToString
+{
 }
 
 PHP);
