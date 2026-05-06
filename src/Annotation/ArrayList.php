@@ -12,20 +12,11 @@ use Attribute;
  * Not used by ValidationRule or RequestValidate.
  */
 #[Attribute(Attribute::TARGET_PROPERTY)]
-final class ResponseProperty
+final class ArrayList
 {
     public function __construct(
-        protected string $class = '',
         protected string $itemClass = ''
     ) {
-    }
-
-    /**
-     * Class for the property.
-     */
-    public function getClass(): string
-    {
-        return $this->class;
     }
 
     /**
@@ -34,19 +25,6 @@ final class ResponseProperty
     public function getItemClass(): string
     {
         return $this->itemClass;
-    }
-
-    public function isListOfItems(): bool
-    {
-        return $this->itemClass !== '';
-    }
-
-    /**
-     * Type for the property.
-     */
-    public function getType(): string
-    {
-        return $this->isListOfItems() ? 'array' : $this->class;
     }
 
 }

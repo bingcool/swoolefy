@@ -8,7 +8,7 @@ use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionProperty;
 use ReflectionUnionType;
-use Swoolefy\Annotation\ResponseProperty;
+use Swoolefy\Annotation\ArrayList;
 use Swoolefy\Core\Dto\AbstractDto;
 use Swoolefy\Http\BaseResponse;
 
@@ -438,16 +438,13 @@ PHP;
             $classFqcn = null;
             $itemClassFqcn = null;
 
-            foreach ($property->getAttributes(ResponseProperty::class) as $attribute) {
+            foreach ($property->getAttributes(ArrayList::class) as $attribute) {
                 try {
                     $responseProperty = $attribute->newInstance();
                 } catch (\Throwable) {
                     continue;
                 }
 
-                if ($responseProperty->getClass() !== '' && class_exists($responseProperty->getClass())) {
-                    $classFqcn = $responseProperty->getClass();
-                }
                 if ($responseProperty->getItemClass() !== '' && class_exists($responseProperty->getItemClass())) {
                     $itemClassFqcn = $responseProperty->getItemClass();
                 }

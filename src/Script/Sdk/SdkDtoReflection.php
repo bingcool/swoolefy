@@ -9,16 +9,16 @@ use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionProperty;
 use ReflectionUnionType;
-use Swoolefy\Annotation\ResponseProperty;
+use Swoolefy\Annotation\ArrayList;
 use Swoolefy\Annotation\Validation\ValidationRule;
 
 /**
- * Reads ValidationRule / ResponseProperty / @var array<X> on app DTOs for SDK generation.
+ * Reads ValidationRule / ArrayList / @var array<X> on app DTOs for SDK generation.
  */
 final class SdkDtoReflection
 {
     /**
-     * @return list<string> FQCN under app namespace referenced via itemClass, ResponseProperty::class, or @var array<...>
+     * @return list<string> FQCN under app namespace referenced via itemClass, ArrayList::class, or @var array<...>
      */
     public static function collectLinkedTestClassesFromAttributes(string $classFqcn, string $appNamespacePrefix): array
     {
@@ -72,7 +72,7 @@ final class SdkDtoReflection
                 $out[] = $ic;
             }
         }
-        foreach ($prop->getAttributes(ResponseProperty::class) as $a) {
+        foreach ($prop->getAttributes(ArrayList::class) as $a) {
             try {
                 $rp = $a->newInstance();
             } catch (\Throwable) {
@@ -82,12 +82,6 @@ final class SdkDtoReflection
                 $ic = $rp->getItemClass();
                 if (class_exists($ic)) {
                     $out[] = $ic;
-                }
-            }
-            if ($rp->getClass() !== '') {
-                $cc = $rp->getClass();
-                if (class_exists($cc)) {
-                    $out[] = $cc;
                 }
             }
         }
@@ -317,7 +311,7 @@ final class SdkDtoReflection
                 return $ic;
             }
         }
-        foreach ($prop->getAttributes(ResponseProperty::class) as $a) {
+        foreach ($prop->getAttributes(ArrayList::class) as $a) {
             try {
                 $rp = $a->newInstance();
             } catch (\Throwable) {

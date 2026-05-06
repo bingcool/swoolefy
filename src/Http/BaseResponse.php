@@ -25,11 +25,6 @@ class BaseResponse extends ArrayDto
      */
     private string $message = 'success';
 
-    /**
-     * $data
-     */
-    protected $data = [];
-
     public function setData($data)
     {
         $this->data = $data;

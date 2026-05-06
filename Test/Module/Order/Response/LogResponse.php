@@ -1,17 +1,17 @@
 <?php
 namespace Test\Module\Order\Response;
 
-use Swoolefy\Annotation\ResponseProperty;
+use Swoolefy\Annotation\ArrayList;
 
 class LogResponse extends \Swoolefy\Http\BaseResponse
 {
     /**
      * @var array<LogItemDto>
      */
-    #[ResponseProperty(
+    #[ArrayList(
         itemClass: LogItemDto::class
     )]
-    protected $data = [];
+    protected array $data = [];
 
     public function addLogItemDto(LogItemDto $dto)
     {
