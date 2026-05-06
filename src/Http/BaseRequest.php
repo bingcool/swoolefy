@@ -11,7 +11,9 @@
 
 namespace Swoolefy\Http;
 
-class BaseRequest
+use Swoolefy\Core\Dto\ArrayDto;
+
+class BaseRequest extends ArrayDto
 {
     /**
      * @var RequestInput

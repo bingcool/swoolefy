@@ -90,6 +90,10 @@ class Event extends EventHandler
             // multi call 并发调用进程
             // ProcessManager::getInstance()->addProcess('multi-call', \Test\Process\TestProcess\MultiCall::class);
 
+            // multi call 并发调用进程
+            ProcessManager::getInstance()->addProcess('TestSdk', \Test\Process\TestSdk\TestRequest::class);
+
+
             // Udp服务测试
             // ProcessManager::getInstance()->addProcess('cdp-test', \Test\Process\UdpTestProcess\Udp::class);
 

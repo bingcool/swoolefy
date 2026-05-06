@@ -26,6 +26,7 @@ final class SdkSupportWriter
             mkdir($this->supportDir, 0755, true);
         }
 
+        file_put_contents($this->supportDir . '/SdkArrayDto.php', $this->arrayDto());
         file_put_contents($this->supportDir . '/SdkAbstractDto.php', $this->abstractDto());
         file_put_contents($this->supportDir . '/SdkBaseRequest.php', $this->baseRequest());
         file_put_contents($this->supportDir . '/SdkBaseResponse.php', $this->baseResponse());
@@ -194,7 +195,7 @@ abstract class BaseClientApi
 PHP);
     }
 
-    private function abstractDto(): string
+    private function arrayDto(): string
     {
         return $this->ns(<<<'PHP'
 <?php
@@ -208,7 +209,7 @@ use ReflectionProperty;
 /**
  * SDK copy of core DTO helpers (no framework deps).
  */
-class SdkAbstractDto extends \stdClass
+class SdkArrayDto extends \stdClass
 {
     public function toArray(): array
     {
@@ -236,6 +237,32 @@ class SdkAbstractDto extends \stdClass
         return $out;
     }
 
+    public function toDeepArray(): array
+    {
+        return $this->valueToDeepArray($this->toArray());
+    }
+
+    private function valueToDeepArray(mixed $value): mixed
+    {
+        if (is_array($value)) {
+            foreach ($value as $key => $item) {
+                $value[$key] = $this->valueToDeepArray($item);
+            }
+
+            return $value;
+        }
+
+        if ($value instanceof self) {
+            return $value->toDeepArray();
+        }
+
+        if (is_object($value) && method_exists($value, 'toArray')) {
+            return $this->valueToDeepArray($value->toArray());
+        }
+
+        return $value;
+    }
+
     public function copyProperty(array|self $data): void
     {
         $data = $data instanceof self ? $data->toArray() : $data;
@@ -254,6 +281,80 @@ class SdkAbstractDto extends \stdClass
             $property->setAccessible(true);
             $property->setValue($this, $value);
         }
+    }
+
+    public function copyDeepProperty(array|self $data): void
+    {
+        $data = $data instanceof self ? $data->toArray() : $data;
+        foreach ($data as $key => $value) {
+            if (!is_string($key) && !is_int($key)) {
+                continue;
+            }
+            $name = (string) $key;
+            if ($name === '') {
+                continue;
+            }
+            $property = $this->reflectionPropertyForDeclaredField($name);
+            if ($property === null || $property->isReadOnly()) {
+                continue;
+            }
+            $property->setAccessible(true);
+            $property->setValue($this, $this->valueForDeepProperty($property, $value));
+        }
+    }
+
+    private function valueForDeepProperty(ReflectionProperty $property, mixed $value): mixed
+    {
+        if ($value instanceof self) {
+            $value = $value->toArray();
+        }
+
+        if (!is_array($value)) {
+            return $value;
+        }
+
+        if ($property->isInitialized($this)) {
+            $currentValue = $property->getValue($this);
+            if ($currentValue instanceof self) {
+                $currentValue->copyDeepProperty($value);
+
+                return $currentValue;
+            }
+        }
+
+        $dto = $this->newDtoFromPropertyType($property);
+        if ($dto === null) {
+            return $value;
+        }
+
+        $dto->copyDeepProperty($value);
+
+        return $dto;
+    }
+
+    private function newDtoFromPropertyType(ReflectionProperty $property): ?self
+    {
+        $type = $property->getType();
+        if (!$type instanceof \ReflectionNamedType || $type->isBuiltin()) {
+            return null;
+        }
+
+        $className = $type->getName();
+        if (!is_a($className, self::class, true)) {
+            return null;
+        }
+
+        $class = new \ReflectionClass($className);
+        if (!$class->isInstantiable()) {
+            return null;
+        }
+
+        $constructor = $class->getConstructor();
+        if ($constructor !== null && $constructor->getNumberOfRequiredParameters() > 0) {
+            return null;
+        }
+
+        return $class->newInstance();
     }
 
     private function reflectionPropertyForDeclaredField(string $name): ?ReflectionProperty
@@ -276,6 +377,25 @@ class SdkAbstractDto extends \stdClass
 
         return null;
     }
+}
+
+PHP);
+    }
+
+    private function abstractDto(): string
+    {
+        return $this->ns(<<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace __SDK_SUPPORT_NAMESPACE__;
+
+/**
+ * SDK copy of core DTO base (no framework deps).
+ */
+class SdkAbstractDto extends SdkArrayDto
+{
 
     public function __set(string $name, $value): void
     {
@@ -300,13 +420,8 @@ declare(strict_types=1);
 
 namespace __SDK_SUPPORT_NAMESPACE__;
 
-class SdkBaseRequest extends SdkAbstractDto
+class SdkBaseRequest extends SdkArrayDto
 {
-    public function setRequestInput(mixed $requestInput): static
-    {
-        return $this;
-    }
-
     public function getRequestInput(): never
     {
         throw new \BadMethodCallException('SDK client has no RequestInput.');
@@ -325,7 +440,7 @@ declare(strict_types=1);
 
 namespace __SDK_SUPPORT_NAMESPACE__;
 
-class SdkBaseResponse
+class SdkBaseResponse extends SdkArrayDto
 {
     protected mixed $data = [];
 

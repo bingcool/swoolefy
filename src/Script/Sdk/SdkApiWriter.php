@@ -49,6 +49,7 @@ final class SdkApiWriter
         foreach ($routes as $r) {
             $byAction[$r['action']][] = $r;
         }
+        $byAction = $this->sortActionRoutesByControllerOrder($controller, $byAction);
 
         $uses = [
             $this->sdkNamespacePrefix . '\\Support\\BaseClientApi',
@@ -158,12 +159,44 @@ namespace {$fullApiNs};
 
 class {$shortApiName} extends BaseClientApi
 {
-{$hydrateBlock}
 {$methodsBlock}
+{$hydrateBlock}
 }
 
 PHP;
         file_put_contents($file, $php);
+    }
+
+    /**
+     * Keep generated action methods in the same order as the controller source.
+     *
+     * @param array<string,list<array{methods:list<string>,path:string,controller:string,action:string,source?:string}>> $byAction
+     * @return array<string,list<array{methods:list<string>,path:string,controller:string,action:string,source?:string}>>
+     */
+    private function sortActionRoutesByControllerOrder(string $controller, array $byAction): array
+    {
+        $positions = [];
+        $rc = new \ReflectionClass($controller);
+        foreach ($rc->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
+            if ($method->getDeclaringClass()->getName() !== $controller) {
+                continue;
+            }
+            $positions[$method->getName()] = $method->getStartLine();
+        }
+
+        $ordered = [];
+        foreach (array_keys($positions) as $action) {
+            if (isset($byAction[$action])) {
+                $ordered[$action] = $byAction[$action];
+                unset($byAction[$action]);
+            }
+        }
+
+        foreach ($byAction as $action => $actionRoutes) {
+            $ordered[$action] = $actionRoutes;
+        }
+
+        return $ordered;
     }
 
     /**
@@ -327,7 +360,7 @@ PHP;
                 $lines[] = '        $requestDefaults[\'body\'] = json_encode($params, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);';
             }
         } elseif ($requestShort !== null) {
-            $lines[] = '        $requestDefaults[\'body\'] = json_encode($request->toArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);';
+            $lines[] = '        $requestDefaults[\'body\'] = json_encode($request->toDeepArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);';
         }
         $lines[] = '        $options = $this->mergeClientOptions($requestDefaults, $options);';
         $lines[] = '        $response = $this->httpClient->request(' . var_export($httpMethod, true) . ', $this->uri(' . $pathLiteral . '), $options);';

@@ -29,6 +29,9 @@ class LogSaveRequest extends BaseRequest
     )]
     private array $logContents;
 
+    #[ApiProperty(description: "日志内容Dto")]
+    public LogContentDto $logContentDto;
+
     /**
      * @param array<int> $logIds
      */
@@ -68,5 +71,15 @@ class LogSaveRequest extends BaseRequest
     public function getLogContents(): array
     {
         return $this->logContents ?? [];
+    }
+
+    public function setLogContentDto(LogContentDto $logContentDto)
+    {
+        $this->logContentDto = $logContentDto;
+    }
+
+    public function getLogContentDto(): LogContentDto
+    {
+        return $this->logContentDto;
     }
 }
