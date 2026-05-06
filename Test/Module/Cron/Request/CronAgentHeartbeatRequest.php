@@ -11,6 +11,10 @@ use Swoolefy\Http\BaseRequest;
 
 class CronAgentHeartbeatRequest extends BaseRequest
 {
+    /**
+     * 节点ID
+     * @var int
+     */
     #[ApiProperty(description: '节点 ID')]
     #[ValidationRule(rule: 'required|int', message: 'node_id不能为空')]
     #[StringToInt]

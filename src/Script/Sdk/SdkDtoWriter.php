@@ -132,13 +132,14 @@ final class SdkDtoWriter
             'extends AbstractDto' => 'extends SdkAbstractDto',
             'extends \Swoolefy\Core\Dto\AbstractDto' => 'extends SdkAbstractDto',
             'use Swoolefy\\Annotation\\ApiProperty;' => 'use ' . $ns . '\\Support\\ApiProperty;',
+            'use Swoolefy\\Annotation\\StringToInt;' => 'use ' . $ns . '\\Support\\StringToInt;',
+            'use Swoolefy\\Annotation\\IntToString;' => 'use ' . $ns . '\\Support\\IntToString;',
         ];
 
         $out = str_replace(array_keys($replacements), array_values($replacements), $php);
 
         $out = preg_replace('/^\s*use\s+Swoolefy\\\\Annotation\\\\Validation\\\\ValidationRule;\s*$/m', '', $out) ?? $out;
         $out = preg_replace('/^\s*use\s+Swoolefy\\\\Annotation\\\\ResponseProperty;\s*$/m', '', $out) ?? $out;
-        $out = preg_replace('/^\s*use\s+Swoolefy\\\\Annotation\\\\IntToString;\s*$/m', '', $out) ?? $out;
         $out = preg_replace('/^\s*use\s+OpenApi\\\\Attributes\\\\[^;]+;\s*$/m', '', $out) ?? $out;
 
         if (!str_contains($out, 'declare(strict_types=1);')) {
@@ -154,37 +155,35 @@ final class SdkDtoWriter
     }
 
     /**
-     * Strip framework attributes (ValidationRule, etc.) but keep #[ApiProperty(...)] for generated SDK docs.
+     * Strip framework attributes but keep #[ApiProperty(...)] for generated SDK docs.
+     * ValidationRule attributes are preserved as PHPDoc comments so SDK users can read
+     * validation metadata without depending on framework validation attributes.
      */
     private function filterPhp8AttributesKeepApiProperty(string $php): string
     {
         $lines = explode("\n", $php);
         $out = [];
-        $depth = 0;
-        $keepBlock = false;
-        foreach ($lines as $line) {
-            if ($depth > 0) {
-                $depth += substr_count($line, '[') - substr_count($line, ']');
-                if ($keepBlock) {
-                    $out[] = $line;
-                }
-                if ($depth <= 0) {
-                    $depth = 0;
-                    $keepBlock = false;
-                }
-                continue;
-            }
-
+        $lineCount = count($lines);
+        for ($i = 0; $i < $lineCount; $i++) {
+            $line = $lines[$i];
             if (preg_match('/^\s*#\[/', $line)) {
-                $keepBlock = $this->attributeLineOpensApiProperty($line);
+                $block = [$line];
                 $depth = substr_count($line, '[') - substr_count($line, ']');
-                if ($keepBlock) {
-                    $out[] = $line;
+                while ($depth > 0 && $i + 1 < $lineCount) {
+                    $i++;
+                    $block[] = $lines[$i];
+                    $depth += substr_count($lines[$i], '[') - substr_count($lines[$i], ']');
                 }
-                if ($depth <= 0) {
-                    $depth = 0;
-                    $keepBlock = false;
+
+                $blockText = implode("\n", $block);
+                if ($this->attributeBlockOpensApiProperty($blockText)) {
+                    foreach ($block as $attributeLine) {
+                        $out[] = $attributeLine;
+                    }
+                } elseif ($this->attributeBlockOpensValidationRule($blockText)) {
+                    $this->appendValidationRuleComment($out, $block);
                 }
+
                 continue;
             }
 
@@ -194,9 +193,130 @@ final class SdkDtoWriter
         return implode("\n", $out);
     }
 
-    private function attributeLineOpensApiProperty(string $line): bool
+    private function attributeBlockOpensApiProperty(string $block): bool
     {
-        return (bool) preg_match('/^\s*#\[.*\bApiProperty\b\s*[\(\]]/', $line);
+        return (bool) preg_match('/^\s*#\[.*\bApiProperty\b\s*[\(\]]/s', $block);
+    }
+
+    private function attributeBlockOpensValidationRule(string $block): bool
+    {
+        return (bool) preg_match('/^\s*#\[.*\bValidationRule\b\s*[\(\]]/s', $block);
+    }
+
+    /**
+     * @param list<string> $out
+     * @param list<string> $attributeBlock
+     */
+    private function appendValidationRuleComment(array &$out, array $attributeBlock): void
+    {
+        $indent = $this->lineIndent($attributeBlock[0] ?? '');
+        $commentLines = $this->validationRuleAttributeToCommentLines($attributeBlock, $indent);
+        if ($commentLines === []) {
+            return;
+        }
+
+        $insertBefore = $this->findStartOfTrailingApiPropertyAttributes($out);
+        $docEnd = $insertBefore - 1;
+        while ($docEnd >= 0 && trim($out[$docEnd]) === '') {
+            $docEnd--;
+        }
+
+        if ($docEnd >= 0 && trim($out[$docEnd]) === '*/') {
+            $docStart = $docEnd;
+            while ($docStart >= 0 && trim($out[$docStart]) !== '/**') {
+                $docStart--;
+            }
+            $docIndent = $docStart >= 0 ? $this->lineIndent($out[$docStart]) : $indent;
+            if ($docIndent !== $indent) {
+                $commentLines = $this->validationRuleAttributeToCommentLines($attributeBlock, $docIndent);
+            }
+            array_splice($out, $docEnd, 0, $commentLines);
+            return;
+        }
+
+        $docblock = array_merge([$indent . '/**'], $commentLines, [$indent . ' */']);
+        array_splice($out, $insertBefore, 0, $docblock);
+    }
+
+    /**
+     * @param list<string> $out
+     */
+    private function findStartOfTrailingApiPropertyAttributes(array $out): int
+    {
+        $insertBefore = count($out);
+        while ($insertBefore > 0) {
+            $end = $insertBefore - 1;
+            while ($end >= 0 && trim($out[$end]) === '') {
+                $end--;
+            }
+            if ($end < 0) {
+                break;
+            }
+
+            $start = $end;
+            while ($start >= 0 && !preg_match('/^\s*#\[/', $out[$start])) {
+                if (trim($out[$start]) === '*/' || preg_match('/^\s*(public|protected|private)\s+/', $out[$start])) {
+                    return $insertBefore;
+                }
+                $start--;
+            }
+            if ($start < 0) {
+                break;
+            }
+
+            $block = implode("\n", array_slice($out, $start, $end - $start + 1));
+            if (!$this->attributeBlockOpensApiProperty($block)) {
+                break;
+            }
+
+            $insertBefore = $start;
+        }
+
+        return $insertBefore;
+    }
+
+    /**
+     * @param list<string> $attributeBlock
+     * @return list<string>
+     */
+    private function validationRuleAttributeToCommentLines(array $attributeBlock, string $indent): array
+    {
+        $first = array_shift($attributeBlock);
+        if ($first === null) {
+            return [];
+        }
+
+        $lines = array_merge([$first], $attributeBlock);
+        if (count($lines) === 1) {
+            $text = trim($lines[0]);
+            $text = preg_replace('/^\s*#\[\s*/', '[', $text) ?? $text;
+            return [$indent . ' * ' . $text];
+        }
+
+        $last = array_key_last($lines);
+        $comment = [];
+        foreach ($lines as $idx => $line) {
+            $text = rtrim($line);
+            if ($idx === 0) {
+                $text = preg_replace('/^\s*#\[\s*/', '[', $text) ?? $text;
+            }
+            $comment[] = $indent . ' * ' . ltrim($text);
+        }
+
+        if ($last !== null && isset($comment[$last])) {
+            $comment[$last] = preg_replace('/\]\s*$/', ']', $comment[$last]) ?? $comment[$last];
+        }
+
+        return $comment;
+    }
+
+    private function lineIndent(string $line): string
+    {
+        if (preg_match('/^(\s*)/', $line, $m)) {
+            return $m[1];
+        }
+
+        return '';
     }
 
     /**
