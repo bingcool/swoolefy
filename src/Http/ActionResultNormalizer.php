@@ -21,6 +21,7 @@ use RuntimeException;
 use SplObjectStorage;
 use Swoolefy\Annotation\IntToString;
 use Swoolefy\Core\Dto\AbstractDto;
+use Swoolefy\Core\Dto\ArrayDto;
 use Swoolefy\Core\ResponseFormatter;
 use Swoolefy\Util\ArrayHelper\Arrayable;
 use UnitEnum;
@@ -60,6 +61,31 @@ class ActionResultNormalizer
             return $value;
         }
 
+        /**
+         * @var ArrayDto $value
+         */
+        if (is_object($value)) {
+            return static::normalizeObject($value, $objects, function () use ($value, $objects) {
+                if (method_exists($value, 'toDeepArray')) {
+                    $method = new ReflectionMethod($value, 'toDeepArray');
+                    if ($method->isPublic() && $method->getNumberOfRequiredParameters() === 0) {
+                        $declaring = $method->getDeclaringClass()->getName();
+                        if ($declaring === AbstractDto::class && $value::class !== AbstractDto::class) {
+                            return static::normalizeData(static::readObjectPropertiesAsArray($value), $objects);
+                        }
+
+                        return static::normalizeData($value->toDeepArray(), $objects);
+                    }
+                }
+
+                if ($value instanceof \stdClass) {
+                    return static::normalizeData((array) $value, $objects);
+                }
+
+                return static::normalizeData(static::readObjectPropertiesAsArray($value), $objects);
+            });
+        }
+
         if ($value instanceof BackedEnum) {
             return $value->value;
         }
@@ -81,28 +107,6 @@ class ActionResultNormalizer
         if ($value instanceof Arrayable) {
             return static::normalizeObject($value, $objects, function () use ($value, $objects) {
                 return static::normalizeData($value->toArray([], [], true), $objects);
-            });
-        }
-
-        if (is_object($value)) {
-            return static::normalizeObject($value, $objects, function () use ($value, $objects) {
-                if (method_exists($value, 'toArray')) {
-                    $method = new ReflectionMethod($value, 'toArray');
-                    if ($method->isPublic() && $method->getNumberOfRequiredParameters() === 0) {
-                        $declaring = $method->getDeclaringClass()->getName();
-                        if ($declaring === AbstractDto::class && $value::class !== AbstractDto::class) {
-                            return static::normalizeData(static::readObjectPropertiesAsArray($value), $objects);
-                        }
-
-                        return static::normalizeData($value->toArray(), $objects);
-                    }
-                }
-
-                if ($value instanceof \stdClass) {
-                    return static::normalizeData((array) $value, $objects);
-                }
-
-                return static::normalizeData(static::readObjectPropertiesAsArray($value), $objects);
             });
         }
 

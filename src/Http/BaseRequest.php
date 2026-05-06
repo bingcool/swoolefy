@@ -37,11 +37,4 @@ class BaseRequest extends ArrayDto
     {
         return $this->requestInput;
     }
-
-    public function toArray(): array
-    {
-        $data = (array)$this;
-        unset($data['requestInput']);
-        return $data;
-    }
 }
