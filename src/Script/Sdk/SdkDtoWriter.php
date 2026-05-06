@@ -130,8 +130,10 @@ final class SdkDtoWriter
             'use ' . $ap => 'use ' . $ns . '\\',
             'use Swoolefy\\Http\\BaseRequest;' => 'use ' . $ns . '\\Support\\SdkBaseRequest;',
             'extends BaseRequest' => 'extends SdkBaseRequest',
+            'extends \Swoolefy\Http\BaseRequest' => 'extends SdkBaseRequest',
             'use Swoolefy\\Http\\BaseResponse;' => 'use ' . $ns . '\\Support\\SdkBaseResponse;',
             'extends BaseResponse' => 'extends SdkBaseResponse',
+            'extends \Swoolefy\Http\BaseResponse' => 'extends SdkBaseResponse',
             'use Swoolefy\\Core\\Dto\\ArrayDto;' => 'use ' . $ns . '\\Support\\SdkArrayDto;',
             'extends ArrayDto' => 'extends SdkArrayDto',
             'extends \Swoolefy\Core\Dto\ArrayDto' => 'extends SdkArrayDto',
@@ -139,6 +141,7 @@ final class SdkDtoWriter
             'extends AbstractDto' => 'extends SdkAbstractDto',
             'extends \Swoolefy\Core\Dto\AbstractDto' => 'extends SdkAbstractDto',
             'use Swoolefy\\Annotation\\ApiProperty;' => 'use ' . $ns . '\\Support\\ApiProperty;',
+            'use Swoolefy\\Annotation\\ArrayList;' => 'use ' . $ns . '\\Support\\ArrayList;',
             'use Swoolefy\\Annotation\\StringToInt;' => 'use ' . $ns . '\\Support\\StringToInt;',
             'use Swoolefy\\Annotation\\IntToString;' => 'use ' . $ns . '\\Support\\IntToString;',
         ];
@@ -146,7 +149,6 @@ final class SdkDtoWriter
         $out = str_replace(array_keys($replacements), array_values($replacements), $php);
 
         $out = preg_replace('/^\s*use\s+Swoolefy\\\\Annotation\\\\Validation\\\\ValidationRule;\s*$/m', '', $out) ?? $out;
-        $out = preg_replace('/^\s*use\s+Swoolefy\\\\Annotation\\\\ArrayList;\s*$/m', '', $out) ?? $out;
         $out = preg_replace('/^\s*use\s+OpenApi\\\\Attributes\\\\[^;]+;\s*$/m', '', $out) ?? $out;
 
         if (!str_contains($out, 'declare(strict_types=1);')) {
@@ -163,11 +165,21 @@ final class SdkDtoWriter
             $out = $this->mergeUseStatements($out, [$this->sdkNamespacePrefix . '\\Support\\SdkArrayDto']);
         }
 
+        if (str_contains($out, 'extends SdkBaseRequest')
+            && !str_contains($out, 'use ' . $this->sdkNamespacePrefix . '\\Support\\SdkBaseRequest;')) {
+            $out = $this->mergeUseStatements($out, [$this->sdkNamespacePrefix . '\\Support\\SdkBaseRequest']);
+        }
+
+        if (str_contains($out, 'extends SdkBaseResponse')
+            && !str_contains($out, 'use ' . $this->sdkNamespacePrefix . '\\Support\\SdkBaseResponse;')) {
+            $out = $this->mergeUseStatements($out, [$this->sdkNamespacePrefix . '\\Support\\SdkBaseResponse']);
+        }
+
         return $out;
     }
 
     /**
-     * Strip framework attributes but keep #[ApiProperty(...)] for generated SDK docs.
+     * Strip framework attributes but keep #[ApiProperty(...)] and #[ArrayList(...)] for generated SDK docs / metadata.
      * ValidationRule attributes are preserved as PHPDoc comments so SDK users can read
      * validation metadata without depending on framework validation attributes.
      */
@@ -188,7 +200,7 @@ final class SdkDtoWriter
                 }
 
                 $blockText = implode("\n", $block);
-                if ($this->attributeBlockOpensApiProperty($blockText)) {
+                if ($this->attributeBlockOpensKeptSdkAttribute($blockText)) {
                     foreach ($block as $attributeLine) {
                         $out[] = $attributeLine;
                     }
@@ -205,9 +217,9 @@ final class SdkDtoWriter
         return implode("\n", $out);
     }
 
-    private function attributeBlockOpensApiProperty(string $block): bool
+    private function attributeBlockOpensKeptSdkAttribute(string $block): bool
     {
-        return (bool) preg_match('/^\s*#\[.*\bApiProperty\b\s*[\(\]]/s', $block);
+        return (bool) preg_match('/^\s*#\[.*\b(ApiProperty|ArrayList)\b\s*[\(\]]/s', $block);
     }
 
     private function attributeBlockOpensValidationRule(string $block): bool
@@ -277,7 +289,7 @@ final class SdkDtoWriter
             }
 
             $block = implode("\n", array_slice($out, $start, $end - $start + 1));
-            if (!$this->attributeBlockOpensApiProperty($block)) {
+            if (!$this->attributeBlockOpensKeptSdkAttribute($block)) {
                 break;
             }
 

@@ -33,6 +33,7 @@ final class SdkSupportWriter
         file_put_contents($this->supportDir . '/SdkClientException.php', $this->exception());
         file_put_contents($this->supportDir . '/BaseClientApi.php', $this->baseClientApi());
         file_put_contents($this->supportDir . '/ApiProperty.php', $this->apiProperty());
+        file_put_contents($this->supportDir . '/ArrayList.php', $this->arrayList());
         file_put_contents($this->supportDir . '/StringToInt.php', $this->stringToInt());
         file_put_contents($this->supportDir . '/IntToString.php', $this->intToString());
     }
@@ -62,6 +63,37 @@ final class ApiProperty
     public function getDescription(): string
     {
         return $this->description;
+    }
+}
+
+PHP);
+    }
+
+    private function arrayList(): string
+    {
+        return $this->ns(<<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace __SDK_SUPPORT_NAMESPACE__;
+
+use Attribute;
+
+/**
+ * SDK copy: marks list properties and their item DTO class.
+ */
+#[Attribute(Attribute::TARGET_PROPERTY)]
+final class ArrayList
+{
+    public function __construct(
+        protected string $itemClass = ''
+    ) {
+    }
+
+    public function getItemClass(): string
+    {
+        return $this->itemClass;
     }
 }
 
@@ -442,8 +474,6 @@ namespace __SDK_SUPPORT_NAMESPACE__;
 
 class SdkBaseResponse extends SdkArrayDto
 {
-    protected mixed $data = [];
-    
     /**
      * $code
      */
