@@ -452,7 +452,7 @@ final class SdkCodeGenerator
     }
 
     /**
-     * Breadth-first: seed DTOs plus Test\* classes referenced from properties, annotations (itemClass, ResponseProperty), and @var array<X> docblocks.
+     * Breadth-first: seed DTOs plus Test\* classes referenced from properties, annotations (itemClass, ArrayList), and @var array<X> docblocks.
      *
      * @param list<string> $seed
      * @return list<string>

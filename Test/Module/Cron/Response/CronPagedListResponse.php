@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Module\Cron\Response;
 
 use Swoolefy\Annotation\ApiProperty;
-use Swoolefy\Annotation\ResponseProperty;
+use Swoolefy\Annotation\ArrayList;
 use Swoolefy\Annotation\Validation\ValidationRule;
 use Swoolefy\Http\BaseResponse;
 use Test\Module\Cron\Dto\CronItemDto;
@@ -25,7 +25,7 @@ class CronPagedListResponse extends BaseResponse
      * @var array<int, array<string, mixed>>
      */
     #[ApiProperty(description: '数据列表')]
-    #[ResponseProperty(
+    #[ArrayList(
         itemClass: CronItemDto::class
     )]
     protected array $list;

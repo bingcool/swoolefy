@@ -50,8 +50,8 @@ final class SdkDtoWriter
     }
 
     /**
-     * Copies {APP_NAME}/Common/Const and Common/Enum into the SDK tree when present, applying the same
-     * namespace / use rewrites as DTOs so enums and constants stay usable from generated clients.
+     * Copies {APP_NAME}/Common/Const, Common/Enum and Common/Dto into the SDK tree when present,
+     * applying the same namespace / use rewrites as DTOs so shared types stay usable from generated clients.
      */
     public function copyCommonConstAndEnumTrees(): void
     {
@@ -60,7 +60,11 @@ final class SdkDtoWriter
             return;
         }
 
-        foreach (['Common' . DIRECTORY_SEPARATOR . 'Const', 'Common' . DIRECTORY_SEPARATOR . 'Enum'] as $sub) {
+        foreach ([
+            'Common' . DIRECTORY_SEPARATOR . 'Const',
+            'Common' . DIRECTORY_SEPARATOR . 'Enum',
+            'Common' . DIRECTORY_SEPARATOR . 'Dto',
+        ] as $sub) {
             $srcRoot = $appSrcRoot . DIRECTORY_SEPARATOR . $sub;
             if (!is_dir($srcRoot)) {
                 continue;
@@ -142,7 +146,7 @@ final class SdkDtoWriter
         $out = str_replace(array_keys($replacements), array_values($replacements), $php);
 
         $out = preg_replace('/^\s*use\s+Swoolefy\\\\Annotation\\\\Validation\\\\ValidationRule;\s*$/m', '', $out) ?? $out;
-        $out = preg_replace('/^\s*use\s+Swoolefy\\\\Annotation\\\\ResponseProperty;\s*$/m', '', $out) ?? $out;
+        $out = preg_replace('/^\s*use\s+Swoolefy\\\\Annotation\\\\ArrayList;\s*$/m', '', $out) ?? $out;
         $out = preg_replace('/^\s*use\s+OpenApi\\\\Attributes\\\\[^;]+;\s*$/m', '', $out) ?? $out;
 
         if (!str_contains($out, 'declare(strict_types=1);')) {
@@ -328,7 +332,7 @@ final class SdkDtoWriter
     }
 
     /**
-     * Appends add{ItemDto}(...) helpers for array-of-DTO properties (from ValidationRule/ResponseProperty itemClass or @var array<X>).
+     * Appends add{ItemDto}(...) helpers for array-of-DTO properties (from ValidationRule/ArrayList itemClass or @var array<X>).
      */
     private function appendCollectionAdders(string $testClassFqcn, string $php): string
     {
