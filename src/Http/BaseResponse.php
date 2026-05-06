@@ -11,7 +11,10 @@
 
 namespace Swoolefy\Http;
 
-class BaseResponse {
+use Swoolefy\Core\Dto\ArrayDto;
+
+class BaseResponse extends ArrayDto
+{
     /**
      * $code
      */
