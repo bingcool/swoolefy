@@ -443,6 +443,16 @@ namespace __SDK_SUPPORT_NAMESPACE__;
 class SdkBaseResponse extends SdkArrayDto
 {
     protected mixed $data = [];
+    
+    /**
+     * $code
+     */
+    private int $code = 0;
+
+    /**
+     * $message
+     */
+    private string $message = 'success';
 
     public function setData(mixed $data): static
     {

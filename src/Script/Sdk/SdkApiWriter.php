@@ -6,7 +6,9 @@ namespace Swoolefy\Script\Sdk;
 
 use ReflectionMethod;
 use ReflectionNamedType;
+use ReflectionProperty;
 use ReflectionUnionType;
+use Swoolefy\Annotation\ResponseProperty;
 use Swoolefy\Core\Dto\AbstractDto;
 use Swoolefy\Http\BaseResponse;
 
@@ -293,37 +295,34 @@ PHP;
             $short = $this->toSdkShortClassName($retTestFqcn);
             $suffix = $this->hydrateMethodSuffix($sdkFqcn);
 
-            if ($this->isHttpBaseResponse($retTestFqcn)) {
-                $out .= <<<PHP
+            $out .= <<<PHP
     private function hydrate_{$suffix}(mixed \$data): {$short}
     {
-        \$o = new {$short}();
-        \$o->setData(\$data);
+        \$o = \$this->hydrateObject({$short}::class, \$data);
 
         return \$o;
     }
 
 PHP;
-            } elseif ($this->isAbstractDtoFamily($retTestFqcn)) {
-                $out .= <<<PHP
-    private function hydrate_{$suffix}(mixed \$data): {$short}
-    {
-        \$o = new {$short}();
-        if (\$data !== null && \$data !== []) {
-            \$o->copyProperty(is_array(\$data) ? \$data : []);
         }
 
-        return \$o;
-    }
+        if ($out === '') {
+            return $out;
+        }
 
-PHP;
-            } else {
-                $out .= <<<PHP
-    private function hydrate_{$suffix}(mixed \$data): {$short}
+        $map = var_export($this->buildHydratePropertyMap($retTestFqcnList), true);
+
+        $out .= <<<PHP
+    private function hydrateObject(string \$class, mixed \$data): object
     {
-        \$o = new {$short}();
-        if (method_exists(\$o, 'copyProperty') && (\$data !== null && \$data !== [])) {
-            \$o->copyProperty(is_array(\$data) ? \$data : []);
+        \$o = \$this->newHydratedObject(\$class);
+        if (is_array(\$data)) {
+            \$data = \$this->hydrateArrayForClass(\$class, \$data);
+            if (method_exists(\$o, 'copyProperty')) {
+                \$o->copyProperty(\$data);
+            } elseif (method_exists(\$o, 'setData')) {
+                \$o->setData(\$data);
+            }
         } elseif (method_exists(\$o, 'setData')) {
             \$o->setData(\$data);
         }
@@ -331,11 +330,217 @@ PHP;
         return \$o;
     }
 
+    private function hydrateArrayForClass(string \$class, array \$data): array
+    {
+        foreach ((\$this->hydratePropertyMap()[\$class] ?? []) as \$property => \$rule) {
+            if (!array_key_exists(\$property, \$data)) {
+                continue;
+            }
+            \$data[\$property] = \$this->hydratePropertyValue(
+                \$data[\$property],
+                \$rule['class'] ?? null,
+                \$rule['itemClass'] ?? null,
+            );
+        }
+
+        return \$data;
+    }
+
+    private function hydratePropertyValue(mixed \$value, ?string \$class, ?string \$itemClass): mixed
+    {
+        if (\$itemClass !== null && is_array(\$value)) {
+            foreach (\$value as \$key => \$item) {
+                \$value[\$key] = is_array(\$item) ? \$this->hydrateObject(\$itemClass, \$item) : \$item;
+            }
+
+            return \$value;
+        }
+
+        if (\$class !== null && is_array(\$value)) {
+            return \$this->hydrateObject(\$class, \$value);
+        }
+
+        return \$value;
+    }
+
+    private function newHydratedObject(string \$class): object
+    {
+        return (new \ReflectionClass(\$class))->newInstanceWithoutConstructor();
+    }
+
+    private function hydratePropertyMap(): array
+    {
+        return {$map};
+    }
+
 PHP;
+
+        return $out;
+    }
+
+    /**
+     * @param list<string|null> $rootTestFqcnList
+     * @return array<string, array<string, array{class:?string,itemClass:?string}>>
+     */
+    private function buildHydratePropertyMap(array $rootTestFqcnList): array
+    {
+        $queue = [];
+        foreach ($rootTestFqcnList as $fqcn) {
+            if (is_string($fqcn) && $fqcn !== '') {
+                $queue[] = $fqcn;
             }
         }
 
-        return $out;
+        $seen = [];
+        $map = [];
+        while ($queue !== []) {
+            $testFqcn = array_shift($queue);
+            if (!is_string($testFqcn) || isset($seen[$testFqcn]) || !class_exists($testFqcn)) {
+                continue;
+            }
+            $seen[$testFqcn] = true;
+
+            $rules = $this->hydrateRulesForClass($testFqcn);
+            if ($rules === []) {
+                continue;
+            }
+
+            $map[$this->toSdkFqcn($testFqcn)] = $rules;
+            foreach ($rules as $rule) {
+                foreach ([$rule['class'], $rule['itemClass']] as $linkedFqcn) {
+                    if (is_string($linkedFqcn) && str_starts_with($linkedFqcn, $this->sdkNamespacePrefix)) {
+                        $queue[] = $this->toTestFqcn($linkedFqcn);
+                    }
+                }
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * @return array<string, array{class:?string,itemClass:?string}>
+     */
+    private function hydrateRulesForClass(string $testFqcn): array
+    {
+        try {
+            $class = new \ReflectionClass($testFqcn);
+        } catch (\ReflectionException) {
+            return [];
+        }
+
+        $rules = [];
+        foreach ($class->getProperties() as $property) {
+            if ($property->isStatic()) {
+                continue;
+            }
+
+            $classFqcn = null;
+            $itemClassFqcn = null;
+
+            foreach ($property->getAttributes(ResponseProperty::class) as $attribute) {
+                try {
+                    $responseProperty = $attribute->newInstance();
+                } catch (\Throwable) {
+                    continue;
+                }
+
+                if ($responseProperty->getClass() !== '' && class_exists($responseProperty->getClass())) {
+                    $classFqcn = $responseProperty->getClass();
+                }
+                if ($responseProperty->getItemClass() !== '' && class_exists($responseProperty->getItemClass())) {
+                    $itemClassFqcn = $responseProperty->getItemClass();
+                }
+            }
+
+            $itemClassFqcn ??= $this->docblockArrayItemFqcn($property);
+            $classFqcn ??= $this->propertyObjectFqcn($property);
+
+            $classFqcn = $this->isSdkHydratableClass($classFqcn) ? $this->toSdkFqcn($classFqcn) : null;
+            $itemClassFqcn = $this->isSdkHydratableClass($itemClassFqcn) ? $this->toSdkFqcn($itemClassFqcn) : null;
+            if ($classFqcn === null && $itemClassFqcn === null) {
+                continue;
+            }
+
+            $rules[$property->getName()] = [
+                'class' => $classFqcn,
+                'itemClass' => $itemClassFqcn,
+            ];
+        }
+
+        return $rules;
+    }
+
+    private function docblockArrayItemFqcn(ReflectionProperty $property): ?string
+    {
+        $doc = $property->getDocComment();
+        if ($doc === false || !preg_match_all('/@var\s+array<([^>]+)>/', $doc, $matches)) {
+            return null;
+        }
+
+        foreach ($matches[1] as $inner) {
+            $parts = array_reverse(preg_split('/\s*,\s*/', trim($inner)) ?: []);
+            foreach ($parts as $part) {
+                $fqcn = $this->resolvePropertyTypeToFqcn($property, $part);
+                if ($fqcn !== null) {
+                    return $fqcn;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function propertyObjectFqcn(ReflectionProperty $property): ?string
+    {
+        foreach ($this->reflectionTypesToClassNames($property->getType()) as $fqcn) {
+            if (class_exists($fqcn)) {
+                return $fqcn;
+            }
+        }
+
+        return null;
+    }
+
+    private function resolvePropertyTypeToFqcn(ReflectionProperty $property, string $type): ?string
+    {
+        $type = trim($type, " \t\n\r\0\x0B\\");
+        if ($type === '' || in_array(strtolower($type), ['int', 'string', 'float', 'bool', 'mixed', 'array', 'object', 'callable', 'iterable', 'false', 'true', 'null'], true)) {
+            return null;
+        }
+
+        if (class_exists($type)) {
+            return $type;
+        }
+
+        $namespace = $property->getDeclaringClass()->getNamespaceName();
+        if ($namespace !== '') {
+            $candidate = $namespace . '\\' . $type;
+            if (class_exists($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private function isSdkHydratableClass(?string $testFqcn): bool
+    {
+        if ($testFqcn === null || !str_starts_with($testFqcn, $this->appNamespacePrefix) || !class_exists($testFqcn)) {
+            return false;
+        }
+
+        return is_a($testFqcn, AbstractDto::class, true)
+            || is_a($testFqcn, BaseResponse::class, true);
+    }
+
+    private function toTestFqcn(string $sdkClass): string
+    {
+        if (!str_starts_with($sdkClass, $this->sdkNamespacePrefix)) {
+            return $sdkClass;
+        }
+
+        return rtrim($this->appNamespacePrefix, '\\') . substr($sdkClass, strlen($this->sdkNamespacePrefix));
     }
 
     private function emitActionBody(

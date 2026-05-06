@@ -29,7 +29,7 @@ class ResponseFormatter
     public static function formatDataArray(int $code = 0, string $msg = '', $data = [])
     {
         $responseDto = static::formatDataDto($code, $msg, $data);
-        return $responseDto->toArray();
+        return $responseDto->toDeepArray();
     }
 
     /**

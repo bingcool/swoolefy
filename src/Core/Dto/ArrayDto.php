@@ -119,8 +119,8 @@ class ArrayDto extends \stdClass
 
     /**
      * 深度复制属性，当目标属性是DTO对象时，会递归复制到该DTO对象中
-     *
      * Assign values recursively when a declared property is another DTO object.
+     * @param array|AbstractDto $data 需要复制的数据|对象
      */
     public function copyDeepProperty(array|AbstractDto $data): void
     {
