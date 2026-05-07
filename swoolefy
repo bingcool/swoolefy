@@ -114,6 +114,6 @@ LOGO;
     $application->addCommand(new SendCmd());
     $application->addCommand(new MonitorCmd());
     $application->addCommand(new RestartCmd());
-    showLogo();
+    //showLogo();
     $application->run();
 })();

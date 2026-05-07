@@ -6,14 +6,14 @@ use Swoolefy\Annotation\ArrayList;
 class LogResponse extends \Swoolefy\Http\BaseResponse
 {
     /**
-     * @var array<LogItemDto>
+     * @var array<LogContentRespDto>
      */
     #[ArrayList(
-        itemClass: LogItemDto::class
+        itemClass: LogContentRespDto::class
     )]
     protected array $data = [];
 
-    public function addLogItemDto(LogItemDto $dto)
+    public function addLogContent(LogContentRespDto $dto)
     {
         $this->data[] = $dto;
     }

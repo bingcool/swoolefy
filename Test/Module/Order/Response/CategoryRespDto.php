@@ -1,29 +1,19 @@
 <?php
-namespace Test\Module\Order\Request;
+namespace Test\Module\Order\Response;
 
-use OpenApi\Attributes\RequestBody;
 use Swoolefy\Annotation\ArrayList;
 use Swoolefy\Annotation\Validation\ValidationRule;
 use Swoolefy\Core\Dto\AbstractDto;
+use Test\Module\Order\Request\SubCategoryDto;
 
-class CategoryDto extends AbstractDto {
+class CategoryRespDto extends AbstractDto {
 
-    #[ValidationRule(
-        rule: 'required',
-        message: 'cateId is required'
-    )]
-    private int $cateId;
+    protected int $cateId;
 
-    #[ValidationRule(
-        rule: 'required',
-        message: 'cateName is required'
-    )]
-    private string $cateName;
+    protected string $cateName;
 
-    #[ValidationRule(
-        rule: 'required',
-        message: 'subCategories is required',
-        itemClass: SubCategoryDto::class,
+    #[ArrayList(
+        itemClass: SubCategoryRespDto::class,
     )]
     private array $subCategories = [];
 
@@ -57,7 +47,7 @@ class CategoryDto extends AbstractDto {
         return $this->subCategories;
     }
 
-    public function addSubCategoryDto(SubCategoryDto $subCategoryDto)
+    public function addSubCategoryDto(SubCategoryRespDto $subCategoryDto)
     {
         $this->subCategories[] = $subCategoryDto;
     }

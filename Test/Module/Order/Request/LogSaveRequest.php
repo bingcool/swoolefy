@@ -60,9 +60,10 @@ class LogSaveRequest extends BaseRequest
     /**
      * @param LogContentDto $logContent
      */
-    public function addLogContent(LogContentDto $logContent)
+    public function addLogContent(LogContentDto $logContent): static
     {
         $this->logContents[] = $logContent;
+        return $this;
     }
 
     /**
@@ -73,12 +74,13 @@ class LogSaveRequest extends BaseRequest
         return $this->logContents ?? [];
     }
 
-    public function setLogContentDto(LogContentDto $logContentDto)
+    public function setLogContentDto(LogContentDto $logContentDto): static
     {
         $this->logContentDto = $logContentDto;
+        return $this;
     }
 
-    public function getLogContentDto(): LogContentDto
+    public function getLogContentDto(): ?LogContentDto
     {
         return $this->logContentDto;
     }

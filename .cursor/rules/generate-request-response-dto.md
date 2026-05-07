@@ -62,19 +62,19 @@ use Swoolefy\Annotation\Validation\ValidationRule;
 因此：
 
 - 若客户端传 **`node_id`**，属性应命名为 **`protected int $node_id`**（或 `?int` 等），而不是 `$nodeId`，否则校验字段会对不上。
-- **访问器仍使用 camelCase**：`$node_id` → `getNodeId()`、`setNodeId(?int $value): self`。
+- **访问器仍使用 camelCase**：`$node_id` → `getNodeId()`、`setNodeId(?int $value): static`。
 
 若某端仅使用 camelCase JSON，需与路由/前端约定一致，或单独做一层映射；**默认以 snake_case 属性名对齐常见表单与 JSON 字段。**
 
 ### 3.2 一般映射关系
 
-| 属性名 | Getter | Setter |
-|--------|--------|--------|
-| `$node_id` | `getNodeId()` | `setNodeId(?int $nodeId): self` |
-| `$page_size` | `getPageSize()` | `setPageSize(?int $pageSize): self` |
-| `$log_contents`（数组） | `getLogContents()` | `setLogContents(array $logContents): self` |
+| 属性名 | Getter | Setter                                       |
+|--------|--------|----------------------------------------------|
+| `$node_id` | `getNodeId()` | `setNodeId(?int $nodeId): static`              |
+| `$page_size` | `getPageSize()` | `setPageSize(?int $pageSize): static`          |
+| `$log_contents`（数组） | `getLogContents()` | `setLogContents(array $logContents): static` |
 
-Setter **返回类型统一为 `self`**（需要子类协变时可改为 `static`，项目内需统一风格）。
+Setter **返回类型统一为 `static`**。
 
 Getter **返回类型与属性类型一致**（含可空 `?`）。
 
@@ -85,7 +85,7 @@ Getter **返回类型与属性类型一致**（含可空 `?`）。
 对**每一个** `protected` 属性：
 
 1. 提供 **getter**：`getXxx()`，返回类型 = 属性类型。
-2. 提供 **setter**：`setXxx(...): self`，参数类型 = 属性类型；方法内赋值后 **`return $this;`**。
+2. 提供 **setter**：`setXxx(...): static`，参数类型 = 属性类型；方法内赋值后 **`return $this;`**。
 
 **示例：**
 
@@ -98,7 +98,7 @@ public function getNodeId(): ?int
     return $this->node_id;
 }
 
-public function setNodeId(?int $node_id): self
+public function setNodeId(?int $node_id): static
 {
     $this->node_id = $node_id;
 
@@ -177,12 +177,12 @@ protected array $log_contents = [];
 当属性类型为 **元素为对象的数组** 时，或者属性使用了注解 `#[ArrayList]` 时，除 `get` / `set` 外，必须增加 **类型安全的追加方法**：
 
 - 命名：`add` + **属性名的单数形式**（camelCase）。
-- 签名：`(ItemType $item): self`。
+- 签名：`(ItemType $item)`。
 
 示例（属性 `$log_contents`，元素 `LogContentDto`）：
 
 ```php
-public function addLogContent(LogContentDto $log_content): self
+public function addLogContent(LogContentDto $log_content)
 {
     $this->log_contents[] = $log_content;
 
@@ -190,7 +190,7 @@ public function addLogContent(LogContentDto $log_content): self
 }
 ```
 
-若属性名本身已是单数但语义为列表（如 `$items`），仍提供 `addItem(ItemDto $item): self`。
+若属性名本身已是单数但语义为列表（如 `$items`），仍提供 `addItem(ItemDto $item)`。
 
 ---
 
@@ -277,7 +277,7 @@ class LogSaveRequest extends BaseRequest
     /**
      * @param array<int> $log_ids
      */
-    public function setLogIds(array $log_ids): self
+    public function setLogIds(array $log_ids): static
     {
         $this->log_ids = $log_ids;
 
@@ -295,14 +295,14 @@ class LogSaveRequest extends BaseRequest
     /**
      * @param array<int, LogContentDto> $log_contents
      */
-    public function setLogContents(array $log_contents): self
+    public function setLogContents(array $log_contents): static
     {
         $this->log_contents = $log_contents;
 
         return $this;
     }
 
-    public function addLogContent(LogContentDto $log_content): self
+    public function addLogContent(LogContentDto $log_content)
     {
         $this->log_contents[] = $log_content;
 

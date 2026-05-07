@@ -12,6 +12,7 @@
 namespace Swoolefy\Core\Dto;
 
 use ReflectionProperty;
+use Swoolefy\Util\CovertProperty;
 
 class ArrayDto extends \stdClass
 {
@@ -124,88 +125,10 @@ class ArrayDto extends \stdClass
      */
     public function copyDeepProperty(array|AbstractDto $data): void
     {
-        $data = $data instanceof AbstractDto ? $data->toArray() : $data;
-        foreach ($data as $key => $value) {
-            if (!is_string($key) && !is_int($key)) {
-                continue;
-            }
-            $name = (string) $key;
-            if ($name === '') {
-                continue;
-            }
-
-            $property = $this->reflectionPropertyForDeclaredField($name);
-            if ($property === null) {
-                continue;
-            }
-
-            if ($property->isReadOnly()) {
-                continue;
-            }
-
-            $property->setAccessible(true);
-            $property->setValue($this, $this->valueForDeepProperty($property, $value));
+        $dto = CovertProperty::toCovertDeepProperty($data, static::class);
+        if (is_object($dto) && method_exists($dto, 'toArray')) {
+            $this->copyProperty($dto->toArray());
         }
-    }
-
-    /**
-     * 为深度复制准备属性值，必要时创建或复用嵌套DTO对象
-     */
-    private function valueForDeepProperty(ReflectionProperty $property, mixed $value): mixed
-    {
-        if ($value instanceof AbstractDto) {
-            $value = $value->toArray();
-        }
-
-        if (!is_array($value)) {
-            return $value;
-        }
-
-        if ($property->isInitialized($this)) {
-            $currentValue = $property->getValue($this);
-            if ($currentValue instanceof AbstractDto) {
-                $currentValue->copyDeepProperty($value);
-
-                return $currentValue;
-            }
-        }
-
-        $dto = $this->newDtoFromPropertyType($property);
-        if ($dto === null) {
-            return $value;
-        }
-
-        $dto->copyDeepProperty($value);
-
-        return $dto;
-    }
-
-    /**
-     * 根据属性类型声明创建DTO对象，无法确定或无法实例化时返回null
-     */
-    private function newDtoFromPropertyType(ReflectionProperty $property): ?AbstractDto
-    {
-        $type = $property->getType();
-        if (!$type instanceof \ReflectionNamedType || $type->isBuiltin()) {
-            return null;
-        }
-
-        $className = $type->getName();
-        if (!is_a($className, AbstractDto::class, true)) {
-            return null;
-        }
-
-        $class = new \ReflectionClass($className);
-        if (!$class->isInstantiable()) {
-            return null;
-        }
-
-        $constructor = $class->getConstructor();
-        if ($constructor !== null && $constructor->getNumberOfRequiredParameters() > 0) {
-            return null;
-        }
-
-        return $class->newInstance();
     }
 
     /**
