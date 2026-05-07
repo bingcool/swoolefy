@@ -49,7 +49,8 @@ final class CovertProperty
             }
 
             $property->setAccessible(true);
-            $property->setValue($object, self::valueForProperty($property, $value));
+            $convertedValue = self::valueForProperty($property, $value);
+            $property->setValue($object, $convertedValue);
             $filled = true;
         }
 
@@ -59,17 +60,21 @@ final class CovertProperty
     private static function valueForProperty(ReflectionProperty $property, mixed $value): mixed
     {
         $value = self::normalizeSourceData($value);
+        
+        // 检查是否有 ArrayList 注解
         $itemClass = self::arrayListItemClass($property);
         if ($itemClass !== null && is_array($value)) {
+            // 对数组中的每个元素进行递归转换
+            $convertedItems = [];
             foreach ($value as $key => $item) {
-                $value[$key] = self::toCovertDeepProperty($item, $itemClass);
+                $convertedItems[$key] = self::toCovertDeepProperty($item, $itemClass);
             }
-
-            return $value;
+            return $convertedItems;
         }
 
+        // 检查是否是单个对象类型
         $class = self::propertyObjectClass($property);
-        if ($class !== null && $value !== null) {
+        if ($class !== null && $value !== null && !is_array($value)) {
             return self::toCovertDeepProperty($value, $class);
         }
 

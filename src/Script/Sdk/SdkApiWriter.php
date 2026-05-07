@@ -304,12 +304,12 @@ PHP;
         }
 
         if ($retTestFqcn === null) {
-            $lines[] = '        return $payload[\'data\'] ?? null;';
+            $lines[] = '        return $payload ?? null;';
 
             return implode("\n", $lines);
         }
 
-        $lines[] = '        return SdkCovertProperty::toCovertDeepProperty($payload[\'data\'] ?? null, ' . $this->toSdkShortClassName($retTestFqcn) . '::class);';
+        $lines[] = '        return SdkCovertProperty::toCovertDeepProperty($payload ?? null, ' . $this->toSdkShortClassName($retTestFqcn) . '::class);';
 
         return implode("\n", $lines);
     }

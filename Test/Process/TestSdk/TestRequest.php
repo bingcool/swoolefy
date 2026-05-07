@@ -60,7 +60,17 @@ class TestRequest extends AbstractProcess
 
         $LogSaveRequest->addLogContent($logContent);
         $response = $LogOrderApi->testRequest($LogSaveRequest);
-        var_dump($response);
+        if (is_object($response)) {
+            $list = $response->getData();
+            foreach ($list as $logContentRespDto) {
+                var_dump($logContentRespDto->getCategories()[0]->getCateName());
+            }
+            var_dump($response->getTraceId());
+        }else {
+            var_dump($response);
+        }
+
+
     }
 
     protected function responseTest()
