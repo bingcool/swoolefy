@@ -67,7 +67,7 @@
     "repositories": [
         {
             "type": "path",
-            "url": "../service-generate-sdk"
+            "url": "../generate-sdk-library"
         }
     ]
 }

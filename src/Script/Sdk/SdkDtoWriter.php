@@ -362,9 +362,10 @@ final class SdkDtoWriter
             $prop = $spec['property'];
             $mn = $spec['methodName'];
             $methods[] = <<<PHP
-    public function {$mn}({$short} \$dto): void
+    public function {$mn}({$short} \$dto): static
     {
         \$this->{$prop}[] = \$dto;
+        return \$this;
     }
 PHP;
         }
@@ -402,8 +403,8 @@ PHP;
 
     private function injectBeforeClassClosingBrace(string $php, string $append): string
     {
-        $append = trim($append);
-        if ($append === '') {
+        $append = trim($append, "\r\n");
+        if (trim($append) === '') {
             return $php;
         }
         $pos = strrpos($php, "\n}");
