@@ -14,7 +14,7 @@ alwaysApply: false
 
 本文档定义 **Request 请求体**、**Response 响应体**、**DTO 数据传输对象** 三类 PHP 类的统一写法：封装、`declare(strict_types=1)`、可链式调用的访问器，以及与校验、API 文档注解的配合方式。
 
-**适用范围**：本仓库（Swoolefy）中 `Test\Module\...\Request`、`Response`、`Dto` 及同类业务代码。注解类使用：
+**适用范围**：本项目中 `{APP_NAME}\Module\...\Request`、`Response`、`Dto` 及同类业务代码。注解类使用：
 
 - `Swoolefy\Annotation\Validation\ValidationRule`
 - `Swoolefy\Annotation\ApiProperty`
@@ -122,7 +122,7 @@ public function setNodeId(?int $node_id): static
 protected string $name;
 ```
 
-属性上注解顺序建议：**先 `ApiProperty`，后 `ValidationRule`**（与现有 `LogSaveRequest` 等保持一致即可）。
+属性上注解顺序建议：**先 `ApiProperty`，后 `ValidationRule`**。
 
 ---
 
@@ -192,6 +192,19 @@ public function addLogContent(LogContentDto $log_content)
 
 若属性名本身已是单数但语义为列表（如 `$items`），仍提供 `addItem(ItemDto $item)`。
 
+同时set*()方法需要判断添加的元素是否为对象，不为空时只需要判断第一个元素为对应camelCase对象时，才进行set操作，否则抛出异常InvalidArgumentException。若为空则无需判断
+
+示例:
+```php
+public function setLogContents($logContents)
+{
+    if (isset($logContents[0]) && !$logContents[0] instanceof LogContentDto) {
+        throw new InvalidArgumentException('log_contents must be an array, item must instanceof of LogContentDto');
+    }
+    $this->log_contents[] = $log_content;
+    return $this;
+}
+```
 ---
 
 ## 8. `#[StringToInt]`（可选）
