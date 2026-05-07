@@ -65,6 +65,7 @@ final class SdkApiWriter
             // No Test\* typed request DTO (e.g. only RequestInput, scalars, or no params): expose array $params for callers; server reads via RequestInput.
             $passParamsAsArray = $reqFqcn === null;
             $retFqcn = $this->returnTestClassName($method);
+            $retScalarType = $this->returnScalarType($method);
             $isVoid = $this->isVoidReturn($method);
 
             $actionRoutes = $this->dedupeActionRoutes($actionRoutes);
@@ -82,9 +83,7 @@ final class SdkApiWriter
             $reqParam = $passParamsAsArray
                 ? 'array $params = [], array $options = []'
                 : $this->toSdkShortClassName($reqFqcn) . ' $request, array $options = []';
-            $retType = $isVoid
-                ? 'void'
-                : ($retFqcn !== null ? $this->toSdkShortClassName($retFqcn) : 'mixed');
+            $retType = $this->determineReturnType($isVoid, $retFqcn, $retScalarType);
 
             $reqShort = $reqFqcn !== null ? $this->toSdkShortClassName($reqFqcn) : null;
 
@@ -304,7 +303,7 @@ PHP;
         }
 
         if ($retTestFqcn === null) {
-            $lines[] = '        return $payload ?? null;';
+            $lines[] = '        return $payload;';
 
             return implode("\n", $lines);
         }
@@ -491,6 +490,39 @@ PHP;
             if (str_starts_with($className, $this->appNamespacePrefix)) {
                 return $className;
             }
+        }
+
+        return null;
+    }
+
+    private function determineReturnType(bool $isVoid, ?string $retFqcn, ?string $retScalarType): string
+    {
+        if ($isVoid) {
+            return 'void';
+        }
+
+        if ($retFqcn !== null) {
+            return $this->toSdkShortClassName($retFqcn);
+        }
+
+        if ($retScalarType !== null) {
+            return $retScalarType;
+        }
+
+        return 'mixed';
+    }
+
+    private function returnScalarType(ReflectionMethod $method): ?string
+    {
+        $t = $method->getReturnType();
+        if (!$t instanceof ReflectionNamedType) {
+            return null;
+        }
+
+        $typeName = $t->getName();
+        // 只返回标量类型和 array，排除 void 和对象类型
+        if (in_array($typeName, ['null','int', 'float', 'bool', 'string', 'array'], true)) {
+            return 'array';
         }
 
         return null;

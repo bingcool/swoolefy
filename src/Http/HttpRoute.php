@@ -301,10 +301,10 @@ class HttpRoute extends AppDispatch
      */
     protected function emitActionResult($actionResult): void
     {
-        if ($actionResult === null || $this->app->isEnd()) {
+        if ($this->app->isEnd()) {
             return;
         }
-
+        // $actionResult === null 也需要返回
         $this->responseOutput->returnResult($actionResult);
     }
 

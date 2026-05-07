@@ -37,7 +37,11 @@ class ActionResultNormalizer
         if ($result instanceof BaseResponse) {
             $result = $result->getData();
         }
-        return ResponseFormatter::buildResponseData(ResponseCode::CodeOk, '', static::normalizeData($result, new SplObjectStorage()));
+        return ResponseFormatter::buildResponseData(
+            ResponseCode::CodeOk,
+            ResponseCode::CodeOkText,
+            static::normalizeData($result, new SplObjectStorage())
+        );
     }
 
     /**
