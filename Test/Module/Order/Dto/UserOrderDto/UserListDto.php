@@ -5,7 +5,13 @@ use Swoolefy\Core\Dto\AbstractDto;
 
 class UserListDto extends AbstractDto
 {
-    public $name;
+    /**
+     * @var string
+     */
+    protected string $name;
 
-    public $order_ids;
+    /**
+     * @var array<int>
+     */
+    protected array $orderIds = [];
 }

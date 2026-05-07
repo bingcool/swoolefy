@@ -276,6 +276,28 @@ class ArrayString implements ArrayAccess, Countable, IteratorAggregate, JsonSeri
     }
 
     /**
+     * 获取差集（在当前数组中但不在参数数组中的元素）
+     * @access public
+     * @param array $arr 用于比较的整数数组
+     * @return static
+     */
+    public function diff(array $arr): static
+    {
+        return new static(array_diff($this->items, $this->convertToStringArray($arr)));
+    }
+
+    /**
+     * 获取交集（同时存在于当前数组和参数数组中的元素）
+     * @access public
+     * @param array $arr 用于比较的整数数组
+     * @return static
+     */
+    public function intersect(array $arr): static
+    {
+        return new static(array_intersect($this->items, $this->convertToStringArray($arr)));
+    }
+
+    /**
      * 截取数组
      *
      * @access public

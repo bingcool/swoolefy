@@ -75,6 +75,11 @@ Route::group([
         //GroupTestMiddleware::class => GroupTestMiddleware::class
     ]);
 
+    Route::get('/user-order/test-request', [
+        'dispatch_route' => [\Test\Module\Order\Controller\LogOrderController::class, 'testRequest'],
+        //GroupTestMiddleware::class => GroupTestMiddleware::class
+    ])->enableCacheRouteMeta();
+
     Route::any('/user-order/logOrder', [
         'beforeHandle2' => [
             CorsMiddleware::class,

@@ -1,6 +1,7 @@
 <?php
 namespace Test\Module\Order\Controller;
 
+use GenerateSdk\Swoolefy\Test\Support\SdkCovertProperty;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
@@ -8,6 +9,7 @@ use Swoolefy\Http\RequestInput;
 use Test\Module\Order\Request\LogContentDto;
 use Test\Module\Order\Request\LogSaveRequest;
 use Test\Module\Order\Response\LogCategoryDto;
+use Test\Module\Order\Response\LogContentRespDto;
 use Test\Module\Order\Response\LogItemDto;
 use Test\Module\Order\Response\LogResponse;
 
@@ -53,5 +55,16 @@ class LogOrderController extends BController
 
 
         return $logResponse;
+    }
+
+    public function testRequest(LogSaveRequest $request): LogResponse
+    {
+        $response = new LogResponse();
+        $logContentRespDto = new LogContentRespDto();
+        $logContentRespDto->setValue($request->getLogContents()[0]->getValue());
+        $logContentRespDto->setName($request->getLogContents()[0]->getName());
+        $logContentRespDto->setCategories($request->getLogContents()[0]->getCategories());
+        $response->addLogContent($logContentRespDto);
+        return $response;
     }
 }

@@ -3,9 +3,11 @@
 namespace Test\Process\TestSdk;
 
 use GenerateSdk\Swoolefy\Test\Module\Order\Client\LogOrderApi;
+use GenerateSdk\Swoolefy\Test\Module\Order\Request\CategoryDto;
 use GenerateSdk\Swoolefy\Test\Module\Order\Request\LogContentDto;
 use GenerateSdk\Swoolefy\Test\Module\Order\Request\LogSaveRequest;
 
+use GenerateSdk\Swoolefy\Test\Module\Order\Request\SubCategoryDto;
 use GenerateSdk\Swoolefy\Test\Module\Order\Response\LogContentRespDto;
 use GenerateSdk\Swoolefy\Test\Module\Order\Response\LogResponse;
 use GenerateSdk\Swoolefy\Test\Module\Order\Response\SmallCategoryRespDto;
@@ -22,31 +24,48 @@ class TestRequest extends AbstractProcess
 {
     public function run()
     {
-        //$this->requestTest();
-        $this->responseTest();
+        goAfter(3000, function (){
+            $this->requestTest();
+        });
+        //$this->responseTest();
     }
 
     protected function requestTest()
     {
-        $LogOrderApi = new LogOrderApi(new Client());
+        $LogOrderApi = new LogOrderApi(new Client(
+            [
+                'base_uri' => 'http://127.0.0.1:9501',
+                'timeout' => 10.0,
+            ]
+        ));
         $LogSaveRequest = new LogSaveRequest();
         $LogSaveRequest->setLogIds([1,2,3,4,5]);
 
         $logContent = new LogContentDto();
         $logContent->setName("test1");
         $logContent->setValue("value string");
-        $logContent->setCategories([2344,456]);
+
+        $categoryDto  = new CategoryDto();
+        $categoryDto->setCateId(1);
+        $categoryDto->setCateName("category 1");
+
+        $subCategoryDto = new SubCategoryDto();
+        $subCategoryDto->setSubCateId(11);
+        $subCategoryDto->setSubCateName("sub category 11");
+
+        $categoryDto->addSubCategoryDto($subCategoryDto);
+
+        $logContent->setCategories([$categoryDto, $categoryDto]);
         $LogSaveRequest->addLogContent($logContent);
 
-        $LogSaveRequest->setLogContentDto($logContent);
-        var_dump($LogSaveRequest->toDeepArray());
+        $LogSaveRequest->addLogContent($logContent);
+        $response = $LogOrderApi->testRequest($LogSaveRequest);
+        var_dump($response);
     }
 
     protected function responseTest()
     {
         $data = [
-            'code' => 0,
-            'msg' => 'ok',
             'data' => [
                 [
                     'name' => 'test1',
@@ -73,13 +92,25 @@ class TestRequest extends AbstractProcess
                 [
                     'name' => 'test2',
                     'value' => 'value string 2',
-                    'categories' => [],
+                    'categories' => [
+                        [
+                            'cateId' => 2,
+                            'cateName' => 'category 2',
+                            'subCategories' => [
+                                [
+                                    'subCateId' => 12,
+                                    'subCateName' => 'sub category 12',
+                                    //'smallCategories' => []
+                                ]
+                            ]
+                        ]
+                    ],
                 ],
             ],
         ];
 
         /** @var LogResponse $response */
-        $response = \GenerateSdk\Swoolefy\Test\Support\CovertProperty::toCovertDeepProperty($data, LogResponse::class);
+        $response = \GenerateSdk\Swoolefy\Test\Support\SdkCovertProperty::toCovertDeepProperty($data, LogResponse::class);
         $firstLogContent = $response->getData()[0] ?? null;
         var_dump($response->getCode());
         var_dump($response);

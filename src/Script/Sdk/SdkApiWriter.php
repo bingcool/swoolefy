@@ -76,7 +76,7 @@ final class SdkApiWriter
             }
             if ($retFqcn !== null) {
                 $uses[] = $this->toSdkFqcn($retFqcn);
-                $uses[] = $this->sdkNamespacePrefix . '\\Support\\CovertProperty';
+                $uses[] = $this->sdkNamespacePrefix . '\\Support\\SdkCovertProperty';
             }
 
             $reqParam = $passParamsAsArray
@@ -309,7 +309,7 @@ PHP;
             return implode("\n", $lines);
         }
 
-        $lines[] = '        return CovertProperty::toCovertDeepProperty($payload[\'data\'] ?? null, ' . $this->toSdkShortClassName($retTestFqcn) . '::class);';
+        $lines[] = '        return SdkCovertProperty::toCovertDeepProperty($payload[\'data\'] ?? null, ' . $this->toSdkShortClassName($retTestFqcn) . '::class);';
 
         return implode("\n", $lines);
     }

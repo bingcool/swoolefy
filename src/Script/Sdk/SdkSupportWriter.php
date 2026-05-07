@@ -34,7 +34,7 @@ final class SdkSupportWriter
         file_put_contents($this->supportDir . '/BaseClientApi.php', $this->baseClientApi());
         file_put_contents($this->supportDir . '/ApiProperty.php', $this->apiProperty());
         file_put_contents($this->supportDir . '/ArrayList.php', $this->arrayList());
-        file_put_contents($this->supportDir . '/CovertProperty.php', $this->covertProperty());
+        file_put_contents($this->supportDir . '/SdkCovertProperty.php', $this->covertProperty());
         file_put_contents($this->supportDir . '/StringToInt.php', $this->stringToInt());
         file_put_contents($this->supportDir . '/IntToString.php', $this->intToString());
     }
@@ -114,7 +114,7 @@ use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionProperty;
 
-final class CovertProperty
+final class SdkCovertProperty
 {
     public static function toCovertDeepProperty(mixed $data, String $tagetClass): mixed
     {
@@ -344,6 +344,10 @@ abstract class BaseClientApi
      */
     protected function parseJsonResponse(ResponseInterface $response): array
     {
+        $status = $response->getStatusCode();
+        if ($status < 200 || $status >= 300) {
+            throw new SdkClientException('Unexpected HTTP status: ' . $status, $status);
+        }
         $raw = (string) $response->getBody();
         if ($raw === '') {
             return [];
@@ -365,7 +369,7 @@ abstract class BaseClientApi
     {
         $code = $payload['code'] ?? null;
         if ($code !== 0 && $code !== '0') {
-            $msg = (string) ($payload['msg'] ?? 'error');
+            $msg = (string) ($payload['msg'] ?? 'server error');
             $status = is_int($code) ? $code : 0;
             throw new SdkClientException($msg, $status, $payload);
         }

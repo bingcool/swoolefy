@@ -7,7 +7,7 @@ use Swoolefy\Core\Dto\AbstractDto;
 class SubCategoryDto extends AbstractDto
 {
     #[ValidationRule(
-        rule: 'required',
+        rule: 'required|int',
         message: 'subCateId is required'
     )]
     private int $subCateId;

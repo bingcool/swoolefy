@@ -299,6 +299,58 @@ class ArrayInteger implements ArrayAccess, Countable, IteratorAggregate, JsonSer
     }
 
     /**
+     * 获取最小值
+     * @access public
+     * @return int|null
+     */
+    public function min(): ?int
+    {
+        return empty($this->items) ? null : min($this->items);
+    }
+
+    /**
+     * 获取最大值
+     * @access public
+     * @return int|null
+     */
+    public function max(): ?int
+    {
+        return empty($this->items) ? null : max($this->items);
+    }
+
+    /**
+     * 求和
+     * @access public
+     * @return int
+     */
+    public function sum(): int
+    {
+        return empty($this->items) ? 0 : array_sum($this->items);
+    }
+
+    /**
+     * 获取差集（在当前数组中但不在参数数组中的元素）
+     * @access public
+     * @param array $arr 用于比较的整数数组
+     * @return static
+     */
+    public function diff(array $arr): static
+    {
+        return new static(array_diff($this->items, $this->convertToIntegerArray($arr)));
+    }
+
+    /**
+     * 获取交集（同时存在于当前数组和参数数组中的元素）
+     * @access public
+     * @param array $arr 用于比较的整数数组
+     * @return static
+     */
+    public function intersect(array $arr): static
+    {
+        return new static(array_intersect($this->items, $this->convertToIntegerArray($arr)));
+    }
+
+    /**
      * 截取数组
      *
      * @access public
