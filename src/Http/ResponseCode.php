@@ -18,6 +18,8 @@ class ResponseCode {
     // 正常响应
     const CodeOk = 0;
 
+    const CodeOkText = 'success';
+
     // 响应失败
     const CodeFAIL  = -1;
 }
