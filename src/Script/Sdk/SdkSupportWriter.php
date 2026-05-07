@@ -113,6 +113,7 @@ namespace __SDK_SUPPORT_NAMESPACE__;
 use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionProperty;
+use GenerateSdk\Swoolefy\Test\Support\ArrayList;
 
 final class SdkCovertProperty
 {
@@ -154,7 +155,8 @@ final class SdkCovertProperty
             }
 
             $property->setAccessible(true);
-            $property->setValue($object, self::valueForProperty($property, $value));
+            $convertedValue = self::valueForProperty($property, $value);
+            $property->setValue($object, $convertedValue);
             $filled = true;
         }
 
@@ -164,17 +166,21 @@ final class SdkCovertProperty
     private static function valueForProperty(ReflectionProperty $property, mixed $value): mixed
     {
         $value = self::normalizeSourceData($value);
+        
+        // 检查是否有 ArrayList 注解
         $itemClass = self::arrayListItemClass($property);
         if ($itemClass !== null && is_array($value)) {
+            // 对数组中的每个元素进行递归转换
+            $convertedItems = [];
             foreach ($value as $key => $item) {
-                $value[$key] = self::toCovertDeepProperty($item, $itemClass);
+                $convertedItems[$key] = self::toCovertDeepProperty($item, $itemClass);
             }
-
-            return $value;
+            return $convertedItems;
         }
 
+        // 检查是否是单个对象类型
         $class = self::propertyObjectClass($property);
-        if ($class !== null && $value !== null) {
+        if ($class !== null && $value !== null && !is_array($value)) {
             return self::toCovertDeepProperty($value, $class);
         }
 
@@ -266,6 +272,7 @@ final class SdkCovertProperty
         return null;
     }
 }
+
 
 PHP);
     }
@@ -648,16 +655,12 @@ namespace __SDK_SUPPORT_NAMESPACE__;
 
 class SdkBaseResponse extends SdkArrayDto
 {
-    /**
-     * $code
-     */
-    private int $code = 0;
+    protected int $code = 0;
 
-    /**
-     * $message
-     */
-    private string $message = 'success';
-
+    protected string $message = 'success';
+    
+    protected string $trace_id = '';
+        
     public function setCode(int $code): static
     {
         $this->code = $code;
@@ -680,6 +683,11 @@ class SdkBaseResponse extends SdkArrayDto
     public function getMsg(): string
     {
         return $this->message;
+    }
+    
+    public function getTraceId(): string
+    {
+        return $this->trace_id;
     }
 
     public function setData(mixed $data): static
