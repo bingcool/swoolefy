@@ -6,7 +6,7 @@ use Swoolefy\Http\RequestInput;
 
 class ValidateController extends BController
 {
-    public function test1(RequestInput $requestInput)
+    public function test1(RequestInput $requestInput): array
     {
         $params = [
 //            'name'=>'bingcool',
@@ -45,7 +45,7 @@ class ValidateController extends BController
         ]
         );
 
-        $this->returnJson([]);
+        return [];
     }
 
 }

@@ -57,16 +57,14 @@ class LogOrderController extends BController
         return $logResponse;
     }
 
-    public function testRequest(LogSaveRequest $request): void
+    public function testRequest(LogSaveRequest $request): LogResponse
     {
-         return;
-
-//        $response = new LogResponse();
-//        $logContentRespDto = new LogContentRespDto();
-//        $logContentRespDto->setValue($request->getLogContents()[0]->getValue());
-//        $logContentRespDto->setName($request->getLogContents()[0]->getName());
-//        $logContentRespDto->setCategories($request->getLogContents()[0]->getCategories());
-//        $response->addLogContent($logContentRespDto);
-//        return $response;
+        $response = new LogResponse();
+        $logContentRespDto = new LogContentRespDto();
+        $logContentRespDto->setValue($request->getLogContents()[0]->getValue());
+        $logContentRespDto->setName($request->getLogContents()[0]->getName());
+        $logContentRespDto->setCategories($request->getLogContents()[0]->getCategories());
+        $response->addLogContent($logContentRespDto);
+        return $response;
     }
 }

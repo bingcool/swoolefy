@@ -218,7 +218,7 @@ class UserOrderController extends BController
         ]);
     }
 
-    public function userList1()
+    public function userList1(): array
     {
 //        $db = App::getDb();
 //        $query = $db->newQuery()->table('tbl_users')->where('user_id','>', '100')->limit(0,10);
@@ -251,10 +251,10 @@ class UserOrderController extends BController
         });
 
 
-        $this->returnJson([
+        return [
             'total' => $count ?? 0,
             'list'  => $list ?? []
-        ]);
+        ];
     }
 
     public function userList2()

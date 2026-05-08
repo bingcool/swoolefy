@@ -84,6 +84,8 @@ final class SdkApiWriter
                 ? 'array $params = [], array $options = []'
                 : $this->toSdkShortClassName($reqFqcn) . ' $request, array $options = []';
             $retType = $this->determineReturnType($isVoid, $retFqcn, $retScalarType);
+            // 构建返回类型声明，如果为空则不添加冒号
+            $retTypeDecl = $retType !== '' ? ': ' . $retType : '';
 
             $reqShort = $reqFqcn !== null ? $this->toSdkShortClassName($reqFqcn) : null;
 
@@ -106,7 +108,7 @@ final class SdkApiWriter
                 $methodDoc = $this->appendSdkApiDocLine($docBlock, $httpMethod, $path);
 
                 $methodsPhp[] = $methodDoc . <<<PHP
-    public function {$sdkMethodName}({$reqParam}): {$retType}
+    public function {$sdkMethodName}({$reqParam}){$retTypeDecl}
     {
 {$body}
     }
@@ -509,7 +511,8 @@ PHP;
             return $retScalarType;
         }
 
-        return 'mixed';
+        // 如果没有返回值类型，返回空字符串，表示不声明返回类型
+        return '';
     }
 
     private function returnScalarType(ReflectionMethod $method): ?string

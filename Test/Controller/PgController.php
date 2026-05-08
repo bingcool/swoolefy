@@ -20,7 +20,7 @@ class PgController extends BController
      * @ApiParam(name="receiver_user_phone", type="string", required=true, description="收货人手机号")
      * @ApiParam(name="order_amount", type="float", required=true, description="订单金额")
      */
-    public function savePgOrder()
+    public function savePgOrder(): array
     {
         $userId = 10000;
         /**
@@ -63,11 +63,11 @@ class PgController extends BController
         $result = json_decode($result, true);
         var_dump($result);
 
-        $this->returnJson(['id' => $id]);
+        return ['id' => $id];
 
     }
 
-    public function savePgOrder1()
+    public function savePgOrder1(): array
     {
         $userId = 10000;
 
@@ -100,8 +100,9 @@ class PgController extends BController
         $orderObject->save();
 
         if ($orderObject->isExists()) {
-            $this->returnJson($orderObject->getAttributes());
+            return $orderObject->getAttributes();
         }
+        return [];
 
     }
 
@@ -112,10 +113,10 @@ class PgController extends BController
         var_dump($uid);
     }
 
-    public function testCurl(RequestInput $requestInput)
+    public function testCurl(RequestInput $requestInput): bool
     {
         sleep(10);
-        $this->returnJson();
+        return true;
     }
 
     public function userList(RequestInput $requestInput)

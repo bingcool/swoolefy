@@ -12,7 +12,7 @@ class ObjectController extends BController
     /**
      * saveOrder
      */
-    public function saveOrder()
+    public function saveOrder(): array
     {
         $userId = 10000;
 
@@ -45,14 +45,15 @@ class ObjectController extends BController
         $orderObject->save();
 
         if ($orderObject->isExists()) {
-            $this->returnJson($orderObject->getAttributes());
+            return $orderObject->getAttributes();
         }
+        return [];
     }
 
     /**
      * @throws \Exception
      */
-    public function updateOrder()
+    public function updateOrder(): array
     {
         $userId = 10000;
 
@@ -69,7 +70,7 @@ class ObjectController extends BController
             $orderObject->remark = 'test-remark-'.rand(1,1000);
             $orderObject->save();
             $lastSql = $orderObject->getLastSql();
-            $this->returnJson($orderObject->getAttributes());
+            return $orderObject->getAttributes();
         }else {
             throw new \Exception('OrderEntity is not exist');
         }
@@ -80,7 +81,7 @@ class ObjectController extends BController
     /**
      * @throws \Exception
      */
-    public function list()
+    public function list(): array
     {
         $list = new OrderList();
         $list->setOrderStatus(1);
@@ -89,13 +90,13 @@ class ObjectController extends BController
         //$list->setOrderId(1687344505);
         $result = $list->find();
         $count = $list->total();
-        $this->returnJson([
+        return [
             'total' => $count,
             'list' => $result
-        ]);
+        ];
     }
 
-    public function addBank()
+    public function addBank(): array
     {
         /**
          * @var ClientModel $model
@@ -135,7 +136,7 @@ class ObjectController extends BController
 
         $model->save();
 
-        $this->returnJson($model->getAttributes());
+        return $model->getAttributes();
 
 //        $id = $model->getConnection()->newQuery()->table('tbl_banks')->insert([
 //            'name' => 'bank-'.rand(1, 1000),

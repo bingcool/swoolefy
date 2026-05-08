@@ -9,7 +9,7 @@ use Test\App;
 
 class UuidController extends BController
 {
-    public function getUuid(RequestInput $requestInput)
+    public function getUuid(RequestInput $requestInput): array
     {
         $ids = App::getUUid()->getIncrIds(10);
         foreach ($ids as &$id) {
@@ -28,6 +28,6 @@ class UuidController extends BController
         var_dump($is);
 
 
-        $this->returnJson($ids);
+        return $ids;
     }
 }

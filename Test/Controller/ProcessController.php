@@ -12,7 +12,7 @@ class ProcessController extends BController
     /**
      * 投递异步任务到task进程
      */
-    public function sendTaskWorker()
+    public function sendTaskWorker(): array
     {
         RunLog::info('sendTaskWorker-log-id='.rand(1,1000),['name'=>'bingcoolhuang'],true);
         // 投递异步任务到task进程
@@ -21,19 +21,19 @@ class ProcessController extends BController
         $taskMessageDto->taskAction = 'doRun';
         $taskMessageDto->taskData = ['order_id'=>123456,'user_id'=>10000];
         TaskManager::getInstance()->asyncTask($taskMessageDto);
-        $this->returnJson(['class' => __CLASS__, 'action'=>__FUNCTION__.'-'.rand(1,10000)]);
+        return ['class' => __CLASS__, 'action'=>__FUNCTION__.'-'.rand(1,10000)];
     }
 
     /**
      * worker 进程向自定义进程IPC通信
      */
-    public function sendUserWorker($name = '')
+    public function sendUserWorker($name = ''): array
     {
         $processName = 'test';
         ProcessManager::getInstance()->writeByProcessName($processName,'hello, Test Process', function ($msg) {
             var_dump($msg);
         });
-        $this->returnJson(['class' => __CLASS__, 'action'=>__FUNCTION__]);
+        return ['class' => __CLASS__, 'action'=>__FUNCTION__];
 
     }
 }

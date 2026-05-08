@@ -11,13 +11,13 @@ class DemoController extends BController
      * @see DemoValidation::test()
      * @return void
      */
-    public function test()
+    public function test(): array
     {
-        $this->returnJson(['desc' => 'this is a demo']);
+        return ['desc' => 'this is a demo'];
     }
 
-    public function test1()
+    public function test1(): array
     {
-        $this->returnJson(['desc' => 'this is a demo2-'.rand(1,10000)]);
+        return ['desc' => 'this is a demo2-'.rand(1,10000)];
     }
 }

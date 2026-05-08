@@ -6,15 +6,15 @@ use Swoolefy\Core\Controller\BController;
 
 class RateLimitController extends BController
 {
-    public function ratetest1()
+    public function ratetest1(): array
     {
         $rateLimit = App::getRateLimit();
         $rateLimit->setRateKey('rate-order-search');
         $rateLimit->setLimitParams(5, 5);
         if (!$rateLimit->isLimit()) {
-            $this->returnJson(['msg' => 'ok-'.rand(1, 1000)]);
+            return ['msg' => 'ok-'.rand(1, 1000)];
         }else {
-            $this->returnJson(['msg' => '流量过大']);
+            return ['msg' => '流量过大'];
         }
     }
 

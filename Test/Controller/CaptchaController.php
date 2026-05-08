@@ -8,15 +8,15 @@ use Common\Library\Captcha\CaptchaBuilder;
 
 class CaptchaController extends BController
 {
-    public function test(RequestInput $requestInput, ResponseOutput $responseOutput) {
+    public function test(RequestInput $requestInput, ResponseOutput $responseOutput): array {
         //$responseOutput->withHeader('Content-Type', 'image/jpeg');
         $builder = new CaptchaBuilder();
         $builder->build();
         //$phrase = $builder->getPhrase();
         //var_dump($phrase);
         $inline = $builder->inline();
-        $this->returnJson([
+        return [
             'url' => $inline
-        ]);
+        ];
     }
 }

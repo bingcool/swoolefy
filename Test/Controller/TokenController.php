@@ -18,7 +18,7 @@ use Swoolefy\Core\Controller\BController;
 
 class TokenController extends BController
 {
-    public function jwt()
+    public function jwt(): array
     {
         $key = "kkkkkkkkkkkkhyggggggggsddddddddddd";
         $tokenBuilder = (new Builder(new JoseEncoder(), ChainedFormatter::default()));
@@ -85,7 +85,7 @@ class TokenController extends BController
         // 获取过期时间，指定时区输出
         var_dump($tokenObj->claims()->get(RegisteredClaims::EXPIRATION_TIME)->setTimeZone(new \DateTimeZone(date_default_timezone_get()))->format('Y-m-d H:i:s'));
 
-        $this->returnJson(['token' =>$tokenStr]);
+        return ['token' =>$tokenStr];
 
     }
 }
