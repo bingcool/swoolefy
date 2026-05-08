@@ -256,6 +256,7 @@ docker run -d -it --security-opt seccomp=unconfined --name=swoolefy-php83-v6 swo
 #### 基础特性
 - [x] 支持架手脚一键创建项目自动生成最小项目骨架         
 - [x] 支持swagger一键生成api文档     
+- [x] 支持扫描 Route 路由配置自动生成PHP SDK，自动提取 Request/Response DTO，生成类型安全的客户端代码
 - [x] 支持分组路由, 路由中间件middleware, 前置路由组件, 后置路由组件middleware,多模块应用    
 - [x] 支持自定义注册不同根命名空间，快速多项目部署          
 - [x] 支持httpServer，实用轻量Api接口开发     
@@ -979,7 +980,133 @@ Route::group([
 
 ```
 
-### 十五、🗄️ 数据库操作
+### 十五、📦 SDK 自动生成
+
+swoolefy 提供了 **SDK 自动生成工具**，可以扫描项目的 Route 路由配置，自动提取 API 接口信息和 Request/Response DTO，生成类型安全的 PHP 客户端 SDK 代码。
+
+#### 核心特性
+
+- 🔍 **自动扫描路由**: 解析 `App/Router` 目录下的所有路由配置文件
+- 📝 **提取 DTO**: 自动识别控制器方法中的 Request 和 Response 类型声明
+- 🎯 **类型安全**: 生成的 SDK 包含完整的类型声明，IDE 智能提示友好
+- 🔄 **自动更新**: 路由变更后重新生成即可，无需手动维护
+
+#### 使用方法
+
+```bash
+# 基本用法：扫描默认 App/Router 目录，生成到 GenerateSdk 目录
+php script.php start App --c=gen:sdk
+
+# 指定路由目录
+php script.php start App --c=gen:sdk --router=App/Router
+
+# 指定输出目录 ProjectName 是具体项目名 OrderService
+php script.php start App --c=gen:sdk --out=../sdk-library/{ProjectNam}
+```
+
+#### 生成的 SDK 结构
+
+```
+GenerateSdk/
+├── {ProjectName}/
+│   └── {AppName}/
+│       ├── Support/              # SDK 基础支撑类
+│       │   ├── BaseClientApi.php
+│       │   ├── SdkArrayDto.php
+│       │   ├── SdkCovertProperty.php
+│       │   └── ...
+│       ├── Controller/
+│       │   └── Client/
+│       │       ├── IndexApi.php      # 对应 IndexController
+│       │       ├── UserApi.php       # 对应 UserController
+│       │       └── OrderApi.php      # 对应 OrderController
+│       ├── Request/              # Request DTO
+│       │   └── UserLoginRequest.php
+│       └── Response/             # Response DTO
+│           └── UserListResponse.php
+```
+
+#### 示例代码
+
+**使用生成的 API 客户端：**
+
+```php
+use GenerateSdk\MyProject\App\Controller\Client\UserApi;
+use GenerateSdk\MyProject\App\Request\UserLoginRequest;
+
+// 创建 API 客户端
+$client = new \GuzzleHttp\Client([
+    'base_uri' => 'xxxxxx',
+]);
+$api = new UserApi($client);
+
+// 方式1：使用 Request DTO（推荐）
+$request = new UserLoginRequest();
+$request->setUsername('admin');
+$request->setPassword('123456');
+/**
+* @var UserLoginResponse
+*/
+$response = $api->login($request);
+
+// 响应 IDE 会提供完整的类型提示
+var_dump($response->getToken());
+var_dump($response->getUserId());
+```
+
+**控制器返回值类型声明最佳实践：**
+
+为了让 SDK 生成更准确，建议在控制器 action 方法中添加返回值类型声明：
+
+```php
+<?php
+namespace App\Controller;
+
+use Swoolefy\Core\Controller\BController;
+use App\Request\UserLoginRequest;
+use App\Response\UserLoginResponse;
+
+class UserController extends BController
+{
+    // ✅ 有返回对象时声明具体类型
+    public function login(UserLoginRequest $request): UserLoginResponse
+    {
+        return $response;
+    }
+    
+    // ✅ 无返回值时使用 bool
+    public function delete(int $id): bool
+    {
+        return true;
+    }
+    
+    // ✅ 返回数组时使用 array
+    public function list(): array
+    {
+        return ['total' => 100, 'list' => []];
+    }
+}
+```
+
+#### 工作原理
+
+1. **扫描路由文件**: 解析 `App/Router/*.php` 中的所有路由定义
+2. **反射分析**: 通过 PHP Reflection 分析控制器方法的参数和返回类型
+3. **提取 DTO**: 识别 `Test\*` 命名空间下的 Request/Response 类
+4. **生成代码**: 
+   - 复制 DTO 类到 SDK 目录，移除框架依赖
+   - 生成 API 客户端类，每个控制器对应一个 `*Api.php` 文件
+   - 生成 Guzzle HTTP 客户端调用代码
+5. **类型转换**: 自动处理 JSON 响应到 DTO 对象的转换
+
+#### 注意事项
+
+- 控制器方法建议使用类型声明（Request/Response 类或标量类型）
+- DTO 类应位于 `App/Request`、`App/Response` 或 `App/Dto` 目录下
+- 生成的 SDK 完全独立，可在任何 PHP 项目中使用（包括传统 PHP-FPM 项目）
+- SDK 基于 Guzzle HTTP 客户端，需要安装 `guzzlehttp/guzzle` 依赖
+
+### 十六、🗄️ 数据库操作
 ```php
 
 $db = Application::getApp()->get('db');
