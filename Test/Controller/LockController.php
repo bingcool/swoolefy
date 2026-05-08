@@ -7,7 +7,7 @@ use Test\App;
 
 class LockController extends BController
 {
-    public function locktest1()
+    public function locktest1(): array
     {
 //        $lock = App::getRedisLock();
 //        $result = $lock->synchronized(function () {
@@ -26,26 +26,23 @@ class LockController extends BController
                 return 1111;
             });
             //var_dump($result);
-            $this->returnJson([$result]);
+            return [$result];
         }catch (TimeoutException $e) {
             var_dump('test 1---锁等待超时='.date('Y-m-d H:i:s'));
-            $this->returnJson(['tag' => '锁等待超时']);
+            return ['tag' => '锁等待超时'];
         }
-        $this->returnJson([
-            'tag' => '锁未获取成功'
-        ]);
     }
 
-    public function locktest2()
+    public function locktest2(): array
     {
         $lock = App::getRedisLock();
         if ($lock->acquireLock()) {
             var_dump('test 2---获取到锁='.date('Y-m-d H:i:s'));
             sleep(8);
             $lock->releaseLock();
-            return $this->returnJson(["tag" => "获取到锁",'id' =>rand(1,10000)]);
+            return ["tag" => "获取到锁",'id' =>rand(1,10000)];
         }else {
-            return $this->returnJson(["tag" => "未获取到锁", 'id' =>rand(1,10000)]);
+            return ["tag" => "未获取到锁", 'id' =>rand(1,10000)];
         }
     }
 }

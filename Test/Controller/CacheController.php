@@ -9,7 +9,7 @@ use Swoolefy\Core\Controller\BController;
 
 class CacheController extends BController
 {
-    public function test()
+    public function test(): array
     {
         var_dump("parent cid =".\Swoole\Coroutine::getCid());
         Context::set('name','kkkkkkkkkkkkkkkkkkkkkkkk');
@@ -29,13 +29,13 @@ class CacheController extends BController
         $cache->set('bing-name',['name'=>'bingcool'], 10);
         var_dump($cache->get('bing-name'));
 
-        $this->returnJson([
+        return [
             'data' => $cache->get('bing-name')
-        ]);
+        ];
     }
 
 
-    public function test1()
+    public function test1(): array
     {
         var_dump("parent cid =".\Swoole\Coroutine::getCid());
         Context::set('name','kkkkkkkkkkkkkkkkkkkkkkkk');
@@ -60,8 +60,8 @@ class CacheController extends BController
         ];
         $cache->setMultiple($data, 600, false);
         var_dump($cache->get('age'));
-        $this->returnJson([
+        return [
             'data' => $cache->get('bing-name')
-        ]);
+        ];
     }
 }

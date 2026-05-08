@@ -25,7 +25,7 @@ class IndexController extends BController {
      */
     protected $db;
 
-    public function index(RequestInput $request)
+    public function index(RequestInput $request): bool
     {
         // todo something
 
@@ -49,12 +49,6 @@ class IndexController extends BController {
         // todo something
 
         return true;
-
-        return $this->returnJson([
-            'code' => 200,
-            'msg' => 'success',
-            'data' => []
-        ]);
 
         //var_dump("root-go-cid=".\Swoole\Coroutine::getCid());
 //        goApp(function () {
@@ -161,10 +155,11 @@ class IndexController extends BController {
 
         Application::getApp()->swooleResponse->status(200);
         Application::getApp()->swooleResponse->write('<h1>Hello, Welcome to Swoolefy Framework! <h1>');
+        return true;
     }
 
 
-    public function testLog(RequestInput $requestInput)
+    public function testLog(RequestInput $requestInput): array
     {
         /**
          * @var \Swoolefy\Util\Log $log
@@ -179,27 +174,27 @@ class IndexController extends BController {
 
         LogManager::getInstance()->getLogger('sql_log')->addInfo(['name' => 'bingcoolcccccccccccccccccccccccccc','address'=>'深圳']);
 
-        $this->returnJson([
+        return [
             'Controller' => $requestInput->getControllerId(),
             'Action' => $requestInput->getActionId().'-'.rand(1,1000)
-        ]);
+        ];
     }
     public function afterSave()
     {
 
     }
 
-    public function testLog1(RequestInput $requestInput)
+    public function testLog1(RequestInput $requestInput): array
     {
         RunLog::info('test11111-log-id='.rand(1,1000));
-        $this->returnJson([
+        return [
             'Controller' => $requestInput->getControllerId(),
             'Action' => $requestInput->getActionId()
-        ]);
+        ];
     }
 
 
-    public function testAddUser()
+    public function testAddUser(): array
     {
         $db = App::getDb();
         $db->createCommand("insert into tbl_users (`user_name`,`sex`,`birthday`,`phone`) values(:user_name,:sex,:birthday,:phone)" )
@@ -227,24 +222,24 @@ class IndexController extends BController {
 
         });
 
-        $this->returnJson([
+        return [
             'row_count' => $rowCount
-        ]);
+        ];
 
 
     }
 
-    public function testUserList()
+    public function testUserList(): array
     {
         $db = App::getDb();
         $count = $db->createCommand("select count(1) as total from tbl_users")->count();
         if($count) {
             $list = $db->createCommand('select * from tbl_users')->queryAll();
         }
-        $this->returnJson([
+        return [
             'total' => $count,
             'list' => $list ?? []
-        ]);
+        ];
     }
 
     /**
@@ -252,7 +247,7 @@ class IndexController extends BController {
      * @param int $offset
      * @param int $limit
      */
-    public function testOrderList(int $uid, int $page = 1, int $limit = 20)
+    public function testOrderList(int $uid, int $page = 1, int $limit = 20): array
     {
         $db = App::getDb();
         $offset = ($page -1) * $limit;
@@ -268,13 +263,13 @@ class IndexController extends BController {
             ]);
         }
 
-        $this->returnJson([
+        return [
             'total' => $count,
             'list' => $list ?? []
-        ]);
+        ];
     }
 
-    public function testTransactionAddOrder()
+    public function testTransactionAddOrder(): array
     {
         RunLog::info("Hello");
 
@@ -362,9 +357,9 @@ class IndexController extends BController {
             }
         });
 
-        $this->returnJson([
+        return [
             'num' => rand(1,1000)
-        ]);
+        ];
 
     }
 }

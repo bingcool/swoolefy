@@ -10,7 +10,8 @@ use Swoolefy\Core\Controller\BController;
 
 class AmqpController extends BController
 {
-    public function testPublish() {
+    public function testPublish(): bool
+    {
         /**
          * @var AmqpAbstract $amqpDirect
          */
@@ -18,10 +19,11 @@ class AmqpController extends BController
         $messageBody = "amqp direct ".'-'.time();
         $message = new AMQPMessage($messageBody, array('content_type' => 'text/plain', 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT));
         $amqpDirect->publish($message);
-        $this->returnJson();
+        return true;
     }
 
-    public function testPublish1() {
+    public function testPublish1(): bool
+    {
         /**
          * @var AmqpDelayTopicQueue $amqpDelayTopicPublish
          */
@@ -36,12 +38,11 @@ class AmqpController extends BController
             )
         );
 
-
         $amqpDelayTopicPublish->publish($message, 'orderSaveEvent.send');
-        $this->returnJson();
+        return true;
     }
 
-    public function testPublish2() {
+    public function testPublish2(): bool {
         /**
          * @var AmqpDelayDirectQueue $amqpDelayDirect
          */
@@ -50,6 +51,6 @@ class AmqpController extends BController
         $message = new AMQPMessage($messageBody, array('content_type' => 'text/plain', 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT));
 
         $amqpDelayDirect->publish($message);
-        $this->returnJson();
+        return true;
     }
 }

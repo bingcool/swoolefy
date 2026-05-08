@@ -6,9 +6,9 @@ use Test\App;
 
 class QueueController extends BController
 {
-    public function push()
+    public function push(): array
     {
         App::getQueue()->push(['id' => rand(1,1000)]);
-        $this->returnJson(['id' => rand(1, 2)]);
+        return ['id' => rand(1, 2)];
     }
 }
