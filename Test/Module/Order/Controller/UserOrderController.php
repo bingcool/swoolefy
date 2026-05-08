@@ -24,10 +24,10 @@ class UserOrderController extends BController
         var_dump('_beforeAction='.$action);
     }
     /**
-     * @return void
+     * @return array
      * @see \Test\Module\Order\Validation\UserOrderValidation::userList()
      */
-    public function userList(RequestInput $requestInput, UserListDto $userListDto)
+    public function userList(RequestInput $requestInput, UserListDto $userListDto): array
     {
         $db = App::getDb();
 //
@@ -212,10 +212,10 @@ class UserOrderController extends BController
 //            'base_uri' => 'https://www.baidu.com',
 //        ]))->get('/', []);
 
-        $this->returnJson([
+        return [
             'total' => $count ?? 0,
             'list'  => []
-        ]);
+        ];
     }
 
     public function userList1(): array
