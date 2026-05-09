@@ -255,9 +255,9 @@ docker run -d -it --security-opt seccomp=unconfined --name=swoolefy-php83-v6 swo
 
 #### 基础特性
 - [x] 支持架手脚一键创建项目自动生成最小项目骨架         
-- [x] 支持swagger一键生成api文档     
+- [x] 支持swagger一键生成api文档
+- [x] 支持分组路由, 路由中间件middleware, 前置路由组件, 后置路由组件middleware,多模块应用     
 - [x] 支持扫描 Route 路由配置自动生成PHP SDK，自动提取 Request/Response DTO，生成类型安全的客户端代码
-- [x] 支持分组路由, 路由中间件middleware, 前置路由组件, 后置路由组件middleware,多模块应用    
 - [x] 支持自定义注册不同根命名空间，快速多项目部署          
 - [x] 支持httpServer，实用轻量Api接口开发     
 - [x] 支持多协议websocketServer、udpServer、mqttServer      
@@ -1001,7 +1001,7 @@ php script.php start App --c=gen:sdk
 php script.php start App --c=gen:sdk --router=App/Router
 
 # 指定输出目录 ProjectName 是具体项目名 OrderService
-php script.php start App --c=gen:sdk --out=../sdk-library/{ProjectNam}
+php script.php start App --c=gen:sdk --out=../sdk-library/{ProjectName}
 ```
 
 #### 生成的 SDK 结构

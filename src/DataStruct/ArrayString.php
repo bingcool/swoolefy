@@ -22,7 +22,7 @@ use Traversable;
  * 字符串数组集合类
  * 专门用于处理字符串类型的一维数组
  */
-class ArrayString implements ArrayAccess, Countable, IteratorAggregate, JsonSerializable
+class ArrayString implements ArrayAccess, Countable, IteratorAggregate, JsonSerializable, ArrayInterface
 {
     /**
      * 字符串数据集

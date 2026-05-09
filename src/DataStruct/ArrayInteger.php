@@ -22,7 +22,7 @@ use Traversable;
  * 整数数组集合类
  * 专门用于处理整数类型的一维数组
  */
-class ArrayInteger implements ArrayAccess, Countable, IteratorAggregate, JsonSerializable
+class ArrayInteger implements ArrayAccess, Countable, IteratorAggregate, JsonSerializable, ArrayInterface
 {
     /**
      * 整数数据集
