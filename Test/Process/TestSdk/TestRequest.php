@@ -25,7 +25,7 @@ class TestRequest extends AbstractProcess
     public function run()
     {
         goAfter(3000, function (){
-            $this->requestTest();
+            $this->requestTest1();
         });
         //$this->responseTest();
     }
@@ -71,6 +71,22 @@ class TestRequest extends AbstractProcess
         }
 
 
+    }
+
+    protected function getHttpClient()
+    {
+        return new Client(
+            [
+                'base_uri' => 'http://127.0.0.1:9501',
+                'timeout' => 10.0,
+            ]
+        );
+    }
+
+    protected function requestTest1()
+    {
+        $LogOrderApi = LogOrderApi::make($this->getHttpClient());
+        $LogOrderApi->testRequest1("bingcool", [123,345]);
     }
 
     protected function responseTest()

@@ -61,8 +61,9 @@ class LogOrderController extends BController
         return $response;
     }
 
-    public function testRequest1(): ?LogResponse
+    public function testRequest1(?string $name, array $userIds = []): ?LogResponse
     {
+        var_dump($name, $userIds);
         $response = new LogResponse();
         return $response;
     }

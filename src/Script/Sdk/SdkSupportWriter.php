@@ -29,6 +29,7 @@ final class SdkSupportWriter
         file_put_contents($this->supportDir . '/SdkArrayDto.php', $this->arrayDto());
         file_put_contents($this->supportDir . '/SdkAbstractDto.php', $this->abstractDto());
         file_put_contents($this->supportDir . '/SdkBaseRequest.php', $this->baseRequest());
+        file_put_contents($this->supportDir . '/SdkBasePageRequest.php', $this->basePageRequest());
         file_put_contents($this->supportDir . '/SdkBaseResponse.php', $this->baseResponse());
         file_put_contents($this->supportDir . '/SdkClientException.php', $this->exception());
         file_put_contents($this->supportDir . '/BaseClientApi.php', $this->baseClientApi());
@@ -335,10 +336,17 @@ use Psr\Http\Message\ResponseInterface;
 
 abstract class BaseClientApi
 {
+    protected string $baseUri = '';
+    
     public function __construct(
         protected ClientInterface $httpClient,
-        protected string $baseUri = '',
+        string $baseUri = '',
     ) {
+    }
+    
+    public static function make(ClientInterface $httpClient): static
+    {
+        return new static($httpClient);
     }
 
     protected function uri(string $path): string
@@ -638,6 +646,73 @@ class SdkBaseRequest extends SdkArrayDto
     public function getRequestInput(): never
     {
         throw new \BadMethodCallException('SDK client has no RequestInput.');
+    }
+}
+
+PHP);
+    }
+
+    private function basePageRequest(): string
+    {
+        return $this->ns(<<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace __SDK_SUPPORT_NAMESPACE__;
+
+class SdkBasePageRequest extends SdkBaseRequest
+{
+    /**
+     * @var int
+     * #[ValidationRule(
+     *   rule: 'required|int',
+     *   message: [
+     *       'required' => 'page is required',
+     *       'int' => 'page must be int'
+     *   ]
+     * )]
+     */
+    #[ApiProperty(
+        description: 'page页码'
+    )]
+    protected int $page = 1;
+
+    /**
+     * @var int
+     * #[ValidationRule(
+     *   rule: 'required|int',
+     *   message: [
+     *       'required' => 'pageSize is required',
+     *       'int' => 'pageSize must be int'
+     *   ]
+     * )]
+     */
+    #[ApiProperty(
+        description: 'pageSize每页数量'
+    )]
+    protected int $pageSize = 10;
+
+    public function setPage(int $page): static
+    {
+        $this->page = $page;
+        return $this;
+    }
+
+    public function getPage(): int
+    {
+        return $this->page;
+    }
+
+    public function setPageSize(int $pageSize): static
+    {
+        $this->pageSize = $pageSize;
+        return $this;
+    }
+
+    public function getPageSize(): int
+    {
+        return $this->pageSize;
     }
 }
 
