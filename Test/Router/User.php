@@ -80,7 +80,7 @@ Route::group([
         //GroupTestMiddleware::class => GroupTestMiddleware::class
     ])->enableCacheRouteMeta();
 
-    Route::get('/user-order/test-request1', [
+    Route::put('/user-order/test-request1', [
         'dispatch_route' => [\Test\Module\Order\Controller\LogOrderController::class, 'testRequest1'],
         //GroupTestMiddleware::class => GroupTestMiddleware::class
     ])->enableCacheRouteMeta();

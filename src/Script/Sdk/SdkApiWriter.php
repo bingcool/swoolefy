@@ -62,8 +62,12 @@ final class SdkApiWriter
 
             $method = new ReflectionMethod($controller, $action);
             $reqFqcn = $this->firstTestObjectParam($method);
-            // No Test\* typed request DTO (e.g. only RequestInput, scalars, or no params): expose array $params for callers; server reads via RequestInput.
-            $passParamsAsArray = $reqFqcn === null;
+            // 检查是否只有 RequestInput 类型的参数
+            $hasOnlyRequestInput = $this->hasOnlyRequestInputParam($method);
+            // 只有当参数是 RequestInput 时，才使用 array $params
+            $passParamsAsArray = $hasOnlyRequestInput;
+            // 获取标量参数列表
+            $scalarParams = $this->getScalarParameters($method);
             $retFqcn = $this->returnTestClassName($method);
             $retScalarType = $this->returnScalarType($method);
             $isVoid = $this->isVoidReturn($method);
@@ -82,9 +86,7 @@ final class SdkApiWriter
                 $uses[] = $this->sdkNamespacePrefix . '\\Support\\SdkCovertProperty';
             }
 
-            $reqParam = $passParamsAsArray
-                ? 'array $params = [], array $options = []'
-                : ($isReqNullable ? '?' : '') . $this->toSdkShortClassName($reqFqcn) . ' $request, array $options = []';
+            $reqParam = $this->buildRequestParam($passParamsAsArray, $reqFqcn, $isReqNullable, $scalarParams);
             $retType = $this->determineReturnType($isVoid, $retFqcn, $retScalarType, $isNullable);
             // 构建返回类型声明，如果为空则不添加冒号
             $retTypeDecl = $retType !== '' ? ': ' . $retType : '';
@@ -105,6 +107,7 @@ final class SdkApiWriter
                     $passParamsAsArray,
                     $retFqcn,
                     $isVoid,
+                    $scalarParams,
                 );
 
                 $methodDoc = $this->appendSdkApiDocLine($docBlock, $httpMethod, $path);
@@ -279,11 +282,14 @@ PHP;
         bool $passParamsAsArray,
         ?string $retTestFqcn,
         bool $isVoid,
+        array $scalarParams = [],
     ): string {
         $pathLiteral = var_export($path, true);
         $lines = [];
         $lines[] = '        $requestDefaults = [];';
+        
         if ($passParamsAsArray) {
+            // RequestInput 类型，使用 $params
             $methodUpper = strtoupper($httpMethod);
             if (in_array($methodUpper, ['GET', 'HEAD', 'DELETE', 'OPTIONS'], true)) {
                 $lines[] = '        if ($params !== []) {';
@@ -292,9 +298,42 @@ PHP;
             } else {
                 $lines[] = '        $requestDefaults[\'body\'] = json_encode($params, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);';
             }
+        } elseif (!empty($scalarParams)) {
+            // 有标量参数，构建查询或请求体
+            $methodUpper = strtoupper($httpMethod);
+            if (in_array($methodUpper, ['GET', 'HEAD', 'DELETE', 'OPTIONS'], true)) {
+                // GET 等请求，将标量参数作为 query
+                $lines[] = '        $queryParams = [];' ;
+                foreach ($scalarParams as $param) {
+                    // 提取参数名（去掉类型和默认值）
+                    preg_match('/\$(\w+)/', $param, $matches);
+                    if (!empty($matches)) {
+                        $paramName = $matches[1];
+                        $lines[] = "        if (isset(\${$paramName})) {";
+                        $lines[] = "            \$queryParams['{$paramName}'] = \${$paramName};";
+                        $lines[] = '        }';
+                    }
+                }
+                $lines[] = '        if (!empty($queryParams)) {';
+                $lines[] = '            $requestDefaults[\'query\'] = $queryParams;';
+                $lines[] = '        }';
+            } else {
+                // POST 等请求，将标量参数作为 body
+                $lines[] = '        $bodyData = [];' ;
+                foreach ($scalarParams as $param) {
+                    preg_match('/\$(\w+)/', $param, $matches);
+                    if (!empty($matches)) {
+                        $paramName = $matches[1];
+                        $lines[] = "        \$bodyData['{$paramName}'] = \${$paramName};";
+                    }
+                }
+                $lines[] = '        $requestDefaults[\'body\'] = json_encode($bodyData, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);';
+            }
         } elseif ($requestShort !== null) {
+            // Request DTO 类型
             $lines[] = '        $requestDefaults[\'body\'] = json_encode($request->toDeepArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);';
         }
+        
         $lines[] = '        $options = $this->mergeClientOptions($requestDefaults, $options);';
         $lines[] = '        $response = $this->httpClient->request(' . var_export($httpMethod, true) . ', $this->uri(' . $pathLiteral . '), $options);';
         $lines[] = '        $payload = $this->parseJsonResponse($response);';
@@ -497,6 +536,163 @@ PHP;
         }
 
         return null;
+    }
+
+    /**
+     * 构建请求参数字符串
+     */
+    private function buildRequestParam(
+        bool $passParamsAsArray,
+        ?string $reqFqcn,
+        bool $isReqNullable,
+        array $scalarParams
+    ): string {
+        if ($passParamsAsArray) {
+            return 'array $params = [], array $options = []';
+        }
+
+        $parts = [];
+        
+        // 添加 Request DTO 参数
+        if ($reqFqcn !== null) {
+            $parts[] = ($isReqNullable ? '?' : '') . $this->toSdkShortClassName($reqFqcn) . ' $request';
+        }
+        
+        // 添加标量参数
+        foreach ($scalarParams as $param) {
+            $parts[] = $param;
+        }
+        
+        // 添加 options 参数
+        $parts[] = 'array $options = []';
+        
+        return implode(', ', $parts);
+    }
+
+    /**
+     * 检查方法是否只有 RequestInput 类型的参数
+     */
+    private function hasOnlyRequestInputParam(ReflectionMethod $method): bool
+    {
+        $params = $method->getParameters();
+        if (empty($params)) {
+            return false;
+        }
+        
+        foreach ($params as $param) {
+            $type = $param->getType();
+            if ($type === null) {
+                continue;
+            }
+            
+            // 检查是否是 RequestInput 类型
+            foreach ($this->reflectionTypesToClassNames($type) as $className) {
+                if (str_ends_with($className, '\\RequestInput') || $className === 'Swoolefy\\Http\\RequestInput') {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * 获取标量参数列表
+     * @return array<string> 格式化的参数字符串数组
+     */
+    private function getScalarParameters(ReflectionMethod $method): array
+    {
+        $params = [];
+        foreach ($method->getParameters() as $param) {
+            $type = $param->getType();
+            
+            // 跳过 RequestInput 和 Test\* 类型的参数
+            if ($type !== null) {
+                $skip = false;
+                foreach ($this->reflectionTypesToClassNames($type) as $className) {
+                    if (str_ends_with($className, '\\RequestInput') || 
+                        $className === 'Swoolefy\\Http\\RequestInput' ||
+                        str_starts_with($className, $this->appNamespacePrefix)) {
+                        $skip = true;
+                        break;
+                    }
+                }
+                if ($skip) {
+                    continue;
+                }
+            }
+            
+            // 构建标量参数声明
+            $paramStr = '';
+            if ($type !== null) {
+                if ($type instanceof ReflectionNamedType) {
+                    $typeName = $type->getName();
+                    // 处理可空类型
+                    if ($type->allowsNull() && $typeName !== 'mixed') {
+                        $paramStr .= '?';
+                    }
+                    $paramStr .= $typeName . ' ';
+                } elseif ($type instanceof ReflectionUnionType) {
+                    // 联合类型，检查是否包含 null
+                    $types = [];
+                    $hasNull = false;
+                    foreach ($type->getTypes() as $t) {
+                        if ($t instanceof ReflectionNamedType) {
+                            if ($t->getName() === 'null') {
+                                $hasNull = true;
+                            } else {
+                                $types[] = $t->getName();
+                            }
+                        }
+                    }
+                    if ($hasNull && !empty($types)) {
+                        $paramStr .= '?' . $types[0] . ' ';
+                    } elseif (!empty($types)) {
+                        $paramStr .= $types[0] . ' ';
+                    }
+                }
+            }
+            
+            $paramStr .= '$' . $param->getName();
+            
+            // 添加默认值
+            if ($param->isDefaultValueAvailable()) {
+                $defaultValue = $param->getDefaultValue();
+                $paramStr .= ' = ' . $this->formatDefaultValue($defaultValue);
+            } elseif ($param->isOptional()) {
+                $paramStr .= ' = []';
+            }
+            
+            $params[] = $paramStr;
+        }
+        
+        return $params;
+    }
+
+    /**
+     * 格式化默认值
+     */
+    private function formatDefaultValue(mixed $value): string
+    {
+        if ($value === null) {
+            return 'null';
+        }
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+        if (is_int($value) || is_float($value)) {
+            return (string)$value;
+        }
+        if (is_string($value)) {
+            return var_export($value, true);
+        }
+        if (is_array($value)) {
+            if (empty($value)) {
+                return '[]';
+            }
+            return var_export($value, true);
+        }
+        return var_export($value, true);
     }
 
     /**

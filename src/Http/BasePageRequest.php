@@ -35,20 +35,21 @@ class BasePageRequest extends BaseRequest
      * @var int
      */
     #[ApiProperty(
-        description: 'page_size每页数量'
+        description: 'pageSize每页数量'
     )]
     #[ValidationRule(
         rule: 'required|int',
         message: [
-            'required' => 'page_size is required',
-            'int' => 'page_size must be int'
+            'required' => 'pageSize is required',
+            'int' => 'pageSize must be int'
         ]
     )]
-    protected int $page_size = 10;
+    protected int $pageSize = 10;
 
-    public function setPage(int $page): void
+    public function setPage(int $page): static
     {
         $this->page = $page;
+        return $this;
     }
 
     public function getPage(): int
@@ -56,12 +57,13 @@ class BasePageRequest extends BaseRequest
         return $this->page;
     }
 
-    public function setPageSize(int $page_size): void
+    public function setPageSize(int $pageSize): static
     {
-        $this->page_size = $page_size;
+        $this->pageSize = $pageSize;
+        return $this;
     }
     public function getPageSize(): int
     {
-        return $this->page_size;
+        return $this->pageSize;
     }
 }

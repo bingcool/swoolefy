@@ -131,6 +131,9 @@ final class SdkDtoWriter
             'use Swoolefy\\Http\\BaseRequest;' => 'use ' . $ns . '\\Support\\SdkBaseRequest;',
             'extends BaseRequest' => 'extends SdkBaseRequest',
             'extends \Swoolefy\Http\BaseRequest' => 'extends SdkBaseRequest',
+            'use Swoolefy\\Http\\BasePageRequest;' => 'use ' . $ns . '\\Support\\SdkBasePageRequest;',
+            'extends BasePageRequest' => 'extends SdkBasePageRequest',
+            'extends \Swoolefy\Http\BasePageRequest' => 'extends SdkBasePageRequest',
             'use Swoolefy\\Http\\BaseResponse;' => 'use ' . $ns . '\\Support\\SdkBaseResponse;',
             'extends BaseResponse' => 'extends SdkBaseResponse',
             'extends \Swoolefy\Http\BaseResponse' => 'extends SdkBaseResponse',
@@ -168,6 +171,11 @@ final class SdkDtoWriter
         if (str_contains($out, 'extends SdkBaseRequest')
             && !str_contains($out, 'use ' . $this->sdkNamespacePrefix . '\\Support\\SdkBaseRequest;')) {
             $out = $this->mergeUseStatements($out, [$this->sdkNamespacePrefix . '\\Support\\SdkBaseRequest']);
+        }
+
+        if (str_contains($out, 'extends SdkBasePageRequest')
+            && !str_contains($out, 'use ' . $this->sdkNamespacePrefix . '\\Support\\SdkBasePageRequest;')) {
+            $out = $this->mergeUseStatements($out, [$this->sdkNamespacePrefix . '\\Support\\SdkBasePageRequest']);
         }
 
         if (str_contains($out, 'extends SdkBaseResponse')

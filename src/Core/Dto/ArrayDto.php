@@ -17,6 +17,14 @@ use Swoolefy\Util\CovertProperty;
 class ArrayDto extends \stdClass
 {
     /**
+     * @return static
+     */
+    public static function builder(): static
+    {
+        return new static();
+    }
+
+    /**
      * 转成浅数组，当属性是对象时，对象不会被转换成数组，依然保留对象
      *
      * Public associative array (never `(array)`-cast mangled keys for private properties).
