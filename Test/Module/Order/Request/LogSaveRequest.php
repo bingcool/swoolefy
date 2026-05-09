@@ -17,7 +17,7 @@ class LogSaveRequest extends BaseRequest
         itemRule: "int",
         itemMessage: "日志ID必须是整数"
     )]
-    private array $logIds;
+    private ?array $logIds;
 
     /**
      * @var array<LogContentDto>

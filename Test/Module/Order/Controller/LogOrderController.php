@@ -2,6 +2,8 @@
 namespace Test\Module\Order\Controller;
 
 use GenerateSdk\Swoolefy\Test\Support\SdkCovertProperty;
+use Swoolefy\Annotation\ApiController;
+use Swoolefy\Annotation\ApiOperation;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
@@ -13,13 +15,20 @@ use Test\Module\Order\Response\LogContentRespDto;
 use Test\Module\Order\Response\LogItemDto;
 use Test\Module\Order\Response\LogResponse;
 
+#[ApiController(
+    description: '日志模块控制器'
+)]
 class LogOrderController extends BController
 {
     /**
      * @return array<LogResponse>
      * @see \Test\Module\Order\Validation\LogOrderValidation::testLog()
+     *
      */
-    public function testLog(LogSaveRequest $request): LogResponse
+    #[ApiOperation(
+        description: '测试日志'
+    )]
+    public function testLog(LogSaveRequest $request): ?LogResponse
     {
         $logIds = $request->getLogIds();
 
@@ -38,26 +47,10 @@ class LogOrderController extends BController
         $log->setLogFilePath($log->getLogFilePath());
         $log->addInfo(['name' => 'bingcool','address'=>'深圳'],true, ['name'=>'bincool','sex'=>1,'address'=>'shenzhen']);
 
-        $logResponse = new LogResponse();
-        $logItem     = new LogItemDto();
-        $logItem->setId(11);
-        $logItem->setLogName('test log');
-
-        $category = new LogCategoryDto();
-        $category->setCateType(111111111111111111);
-        $category->setCateId(34566);
-        $category->setCateName('category test');
-
-        $logItem->addCategory($category);
-
-        $logResponse->addLogItemDto($logItem);
-
-
-
-        return $logResponse;
+        return null;
     }
 
-    public function testRequest(LogSaveRequest $request): LogResponse
+    public function testRequest(?LogSaveRequest $request): ?LogResponse
     {
         $response = new LogResponse();
         $logContentRespDto = new LogContentRespDto();
@@ -65,6 +58,12 @@ class LogOrderController extends BController
         $logContentRespDto->setName($request->getLogContents()[0]->getName());
         $logContentRespDto->setCategories($request->getLogContents()[0]->getCategories());
         $response->addLogContent($logContentRespDto);
+        return $response;
+    }
+
+    public function testRequest1(): ?LogResponse
+    {
+        $response = new LogResponse();
         return $response;
     }
 }

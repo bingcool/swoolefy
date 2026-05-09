@@ -64,7 +64,7 @@ class ArrayDto extends \stdClass
     /**
      * 递归转换任意值，数组和可转数组对象会继续向下转换，标量值原样返回
      */
-    private function valueToDeepArray(mixed $value): mixed
+    public function valueToDeepArray(mixed $value): mixed
     {
         if (is_array($value)) {
             foreach ($value as $key => $item) {

@@ -7,10 +7,10 @@ namespace Swoolefy\Annotation;
 use Attribute;
 
 /**
- * Documents Description Class property for API specs (e.g. OpenAPI); not used by ValidationRule or RequestValidate.
+ * Controller Description Annotation
  */
-#[Attribute(Attribute::TARGET_PROPERTY)]
-final class ApiProperty
+#[Attribute(Attribute::TARGET_CLASS)]
+final class ApiController
 {
     public function __construct(
         protected string $description = ''
@@ -22,3 +22,4 @@ final class ApiProperty
         return $this->description;
     }
 }
+

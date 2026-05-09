@@ -67,6 +67,8 @@ final class SdkApiWriter
             $retFqcn = $this->returnTestClassName($method);
             $retScalarType = $this->returnScalarType($method);
             $isVoid = $this->isVoidReturn($method);
+            $isNullable = $this->isReturnNullable($method);
+            $isReqNullable = $this->isRequestParameterNullable($method);
 
             $actionRoutes = $this->dedupeActionRoutes($actionRoutes);
             $hasRequestDto = !$passParamsAsArray;
@@ -82,8 +84,8 @@ final class SdkApiWriter
 
             $reqParam = $passParamsAsArray
                 ? 'array $params = [], array $options = []'
-                : $this->toSdkShortClassName($reqFqcn) . ' $request, array $options = []';
-            $retType = $this->determineReturnType($isVoid, $retFqcn, $retScalarType);
+                : ($isReqNullable ? '?' : '') . $this->toSdkShortClassName($reqFqcn) . ' $request, array $options = []';
+            $retType = $this->determineReturnType($isVoid, $retFqcn, $retScalarType, $isNullable);
             // 构建返回类型声明，如果为空则不添加冒号
             $retTypeDecl = $retType !== '' ? ': ' . $retType : '';
 
@@ -497,18 +499,84 @@ PHP;
         return null;
     }
 
-    private function determineReturnType(bool $isVoid, ?string $retFqcn, ?string $retScalarType): string
+    /**
+     * 检查返回类型是否可空
+     */
+    private function isReturnNullable(ReflectionMethod $method): bool
+    {
+        $t = $method->getReturnType();
+        if ($t === null) {
+            return false;
+        }
+        
+        // 处理 ReflectionNamedType（包括可空类型如 ?LogResponse）
+        if ($t instanceof ReflectionNamedType) {
+            return $t->allowsNull() && $t->getName() !== 'mixed';
+        }
+        
+        // 处理 ReflectionUnionType（如 LogResponse|null）
+        if ($t instanceof ReflectionUnionType) {
+            foreach ($t->getTypes() as $type) {
+                if ($type instanceof ReflectionNamedType && $type->getName() === 'null') {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 检查请求参数是否可空
+     */
+    private function isRequestParameterNullable(ReflectionMethod $method): bool
+    {
+        foreach ($method->getParameters() as $param) {
+            $type = $param->getType();
+            if ($type === null) {
+                continue;
+            }
+            
+            // 只检查第一个 Test\* 类型的参数
+            foreach ($this->reflectionTypesToClassNames($type) as $className) {
+                if (str_starts_with($className, $this->appNamespacePrefix)) {
+                    // 处理 ReflectionNamedType（包括可空类型如 ?LogRequest）
+                    if ($type instanceof ReflectionNamedType) {
+                        return $type->allowsNull();
+                    }
+                    
+                    // 处理 ReflectionUnionType（如 LogRequest|null）
+                    if ($type instanceof ReflectionUnionType) {
+                        foreach ($type->getTypes() as $t) {
+                            if ($t instanceof ReflectionNamedType && $t->getName() === 'null') {
+                                return true;
+                            }
+                        }
+                    }
+                    
+                    return false;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function determineReturnType(bool $isVoid, ?string $retFqcn, ?string $retScalarType, bool $isNullable = false): string
     {
         if ($isVoid) {
             return 'void';
         }
 
         if ($retFqcn !== null) {
-            return $this->toSdkShortClassName($retFqcn);
+            $shortName = $this->toSdkShortClassName($retFqcn);
+            // 如果类型可空，添加 ? 前缀
+            return $isNullable ? '?' . $shortName : $shortName;
         }
 
         if ($retScalarType !== null) {
-            return $retScalarType;
+            // 标量类型也可以可空
+            return $isNullable ? '?' . $retScalarType : $retScalarType;
         }
 
         // 如果没有返回值类型，返回空字符串，表示不声明返回类型
