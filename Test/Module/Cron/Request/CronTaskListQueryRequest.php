@@ -5,36 +5,33 @@ declare(strict_types=1);
 namespace Test\Module\Cron\Request;
 
 use Swoolefy\Annotation\ApiProperty;
-use Swoolefy\Annotation\StringToInt;
 use Swoolefy\Http\BasePageRequest;
 
 /**
- * 任务列表查询（分页参数可省略，使用默认值）。
+ * 任务列表查询请求（分页参数由BasePageRequest提供）
  */
 class CronTaskListQueryRequest extends BasePageRequest
 {
     #[ApiProperty(description: '名称关键词')]
     protected ?string $keyword = null;
 
-    #[ApiProperty(description: '任务状态')]
+    #[ApiProperty(description: '任务状态：0=禁用, 1=启用')]
     protected ?int $status = null;
 
-    #[ApiProperty(description: '节点 ID')]
-    #[StringToInt]
-    protected ?int $node_id = null;
+    #[ApiProperty(description: '节点ID')]
+    protected ?int $nodeId = null;
 
-    #[ApiProperty(description: '执行类型：1 shell，2 http')]
-    protected ?int $exec_type = null;
+    #[ApiProperty(description: '执行类型：1=shell, 2=http')]
+    protected ?int $execType = null;
 
-    public function getKeyword(): string
+    public function getKeyword(): ?string
     {
-        return trim((string)($this->keyword ?? ''));
+        return $this->keyword;
     }
 
-    public function setKeyword(?string $keyword): self
+    public function setKeyword(?string $keyword): static
     {
         $this->keyword = $keyword;
-
         return $this;
     }
 
@@ -43,34 +40,31 @@ class CronTaskListQueryRequest extends BasePageRequest
         return $this->status;
     }
 
-    public function setStatus(?int $status): self
+    public function setStatus(?int $status): static
     {
         $this->status = $status;
-
         return $this;
     }
 
     public function getNodeId(): ?int
     {
-        return $this->node_id;
+        return $this->nodeId;
     }
 
-    public function setNodeId(?int $node_id): self
+    public function setNodeId(?int $nodeId): static
     {
-        $this->node_id = $node_id;
-
+        $this->nodeId = $nodeId;
         return $this;
     }
 
     public function getExecType(): ?int
     {
-        return $this->exec_type;
+        return $this->execType;
     }
 
-    public function setExecType(?int $exec_type): self
+    public function setExecType(?int $execType): static
     {
-        $this->exec_type = $exec_type;
-
+        $this->execType = $execType;
         return $this;
     }
 }

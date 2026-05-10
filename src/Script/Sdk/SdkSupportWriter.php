@@ -31,6 +31,7 @@ final class SdkSupportWriter
         file_put_contents($this->supportDir . '/SdkBaseRequest.php', $this->baseRequest());
         file_put_contents($this->supportDir . '/SdkBasePageRequest.php', $this->basePageRequest());
         file_put_contents($this->supportDir . '/SdkBaseResponse.php', $this->baseResponse());
+        file_put_contents($this->supportDir . '/SdkBasePageResultResponse.php', $this->basePageResultResponse());
         file_put_contents($this->supportDir . '/SdkClientException.php', $this->exception());
         file_put_contents($this->supportDir . '/BaseClientApi.php', $this->baseClientApi());
         file_put_contents($this->supportDir . '/ApiProperty.php', $this->apiProperty());
@@ -781,6 +782,26 @@ class SdkBaseResponse extends SdkArrayDto
     {
         return $this->data;
     }
+}
+
+PHP);
+    }
+
+    private function basePageResultResponse(): string
+    {
+        return $this->ns(<<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace __SDK_SUPPORT_NAMESPACE__;
+
+/**
+ * SDK copy: base page result response for pagination.
+ * Extend this class for paginated list responses.
+ */
+class SdkBasePageResultResponse extends SdkBaseResponse
+{
 }
 
 PHP);
