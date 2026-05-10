@@ -5,6 +5,7 @@ namespace Test\Process\TestSdk;
 use GenerateSdk\Swoolefy\Test\Module\Order\Client\LogOrderApi;
 use GenerateSdk\Swoolefy\Test\Module\Order\Request\CategoryDto;
 use GenerateSdk\Swoolefy\Test\Module\Order\Request\LogContentDto;
+use GenerateSdk\Swoolefy\Test\Module\Order\Request\LogContentPageRequest;
 use GenerateSdk\Swoolefy\Test\Module\Order\Request\LogSaveRequest;
 
 use GenerateSdk\Swoolefy\Test\Module\Order\Request\SubCategoryDto;
@@ -25,7 +26,11 @@ class TestRequest extends AbstractProcess
     public function run()
     {
         goAfter(3000, function (){
-            $this->requestTest1();
+            $this->testPageRequest();
+        });
+
+        goAfter(5000, function (){
+            $this->requestTest();
         });
         //$this->responseTest();
     }
@@ -86,7 +91,19 @@ class TestRequest extends AbstractProcess
     protected function requestTest1()
     {
         $LogOrderApi = LogOrderApi::make($this->getHttpClient());
-        $LogOrderApi->testRequest1("bingcool", [123,345]);
+        $response = $LogOrderApi->testRequest1("bingcool", [123,345]);
+        var_dump($response->toDeepArray());
+    }
+
+    protected function testPageRequest()
+    {
+        $LogOrderApi = LogOrderApi::make($this->getHttpClient());
+        $req = new LogContentPageRequest();
+        $req->setPage(1);
+        $req->setPageSize(10);
+        $req->setLogName('test');
+        $response = $LogOrderApi->testPageRequest($req);
+        var_dump($response->getData()->toDeepArray());
     }
 
     protected function responseTest()

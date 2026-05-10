@@ -60,19 +60,18 @@ use Swoolefy\Annotation\Validation\ValidationRule;
 框架对带 `#[ValidationRule]` 的属性做校验时，规则键来自 **反射得到的属性名**（`ReflectionProperty::getName()`），并与 `RequestInput::input()` 合并后的参数键对齐。
 
 因此：
-
-- 若客户端传 **`node_id`**，属性应命名为 **`protected int $node_id`**（或 `?int` 等），而不是 `$nodeId`，否则校验字段会对不上。
-- **访问器仍使用 camelCase**：`$node_id` → `getNodeId()`、`setNodeId(?int $value): static`。
-
-若某端仅使用 camelCase JSON，需与路由/前端约定一致，或单独做一层映射；**默认以 snake_case 属性名对齐常见表单与 JSON 字段。**
+- 属性名 **必须统一 camelCase 驼峰命名**
+- 属性名 **必须与 HTTP 参数键一致**
+- 若客户端传 **`nodeId`**，属性应命名为 **`protected int $nodeId`**（或 `?int` 等），而不是 `$node_id`，否则校验字段会对不上。
+- **访问器使用 camelCase**：`$nodeId` → `getNodeId()`、`setNodeId(?int $nodeId): static`。
 
 ### 3.2 一般映射关系
 
-| 属性名 | Getter | Setter                                       |
-|--------|--------|----------------------------------------------|
-| `$node_id` | `getNodeId()` | `setNodeId(?int $nodeId): static`              |
-| `$page_size` | `getPageSize()` | `setPageSize(?int $pageSize): static`          |
-| `$log_contents`（数组） | `getLogContents()` | `setLogContents(array $logContents): static` |
+| 属性名                   | Getter                | Setter                                             |
+|-----------------------|-----------------------|----------------------------------------------------|
+| `$nodeId`             | `getNodeId()`         | `setNodeId(?int $nodeId): static`                  |
+| `$pageSize`           | `getPageSize()`       | `setPageSize(?int $pageSize): static`              |
+| `$logContentDtos`（数组） | `getLogContentDtos()` | `setLogContentDtos(array $logContentDtos): static` |
 
 Setter **返回类型统一为 `static`**。
 
@@ -90,23 +89,22 @@ Getter **返回类型与属性类型一致**（含可空 `?`）。
 **示例：**
 
 ```php
-#[ApiProperty(description: '节点 ID')]
+#[ApiProperty(description: '节点ID')]
 protected ?int $node_id = null;
 
 public function getNodeId(): ?int
 {
-    return $this->node_id;
+    return $this->nodeId;
 }
 
-public function setNodeId(?int $node_id): static
+public function setNodeId(?int $nodeId): static
 {
-    $this->node_id = $node_id;
-
+    $this->nodeId = $nodeId;
     return $this;
 }
 ```
 
-> 说明：参数名可用 `$node_id` 与属性一致，避免与属性赋值混淆；也可用 `$nodeId`，团队内统一即可。
+> 说明：参数名用 `$nodeId` 与属性一致，团队统一风格。
 
 ---
 
@@ -117,9 +115,9 @@ public function setNodeId(?int $node_id): static
 - 数组属性可在描述中加 **「集合」「列表」** 等词，例如：`日志内容列表`、`任务 ID 集合`。
 
 ```php
-#[ApiProperty(description: '任务名称')]
-#[ValidationRule(rule: 'required|string', message: 'name 不能为空')]
-protected string $name;
+#[ApiProperty(description: '名称')]
+#[ValidationRule(rule: 'required|string', message: 'name不能为空')]
+protected string $name = '';
 ```
 
 属性上注解顺序建议：**先 `ApiProperty`，后 `ValidationRule`**。
@@ -136,14 +134,14 @@ protected string $name;
 /**
  * @var array<int>
  */
-#[ApiProperty(description: '日志 ID 集合')]
+#[ApiProperty(description: '日志ID集合')]
 #[ValidationRule(
     rule: 'required|array',
-    message: '日志 ID 不能为空',
+    message: '日志ID不能为空',
     itemRule: 'int',
-    itemMessage: '日志 ID 必须是整数'
+    itemMessage: '日志ID必须是整数'
 )]
-protected array $log_ids = [];
+protected array $logIds = [];
 ```
 
 ### 6.2 对象数组（如 `array<LogContentDto>`）
@@ -160,8 +158,10 @@ protected array $log_ids = [];
     message: '日志内容不能为空',
     itemClass: LogContentDto::class,
 )]
-protected array $log_contents = [];
+protected array $logContentDtos = [];
 ```
+
+**注意：数组的默认值自动赋值为[]**
 
 ### 6.3 默认强度（可按业务收紧/放宽）
 
@@ -179,13 +179,12 @@ protected array $log_contents = [];
 - 命名：`add` + **属性名的单数形式**（camelCase）。
 - 签名：`(ItemType $item)`。
 
-示例（属性 `$log_contents`，元素 `LogContentDto`）：
+示例（属性 `$logContentDtos`，元素 `LogContentDto`）：
 
 ```php
-public function addLogContent(LogContentDto $log_content)
+public function addLogContentDto(LogContentDto $logContent): static
 {
-    $this->log_contents[] = $log_content;
-
+    $this->logContentDtos[] = $logContent;
     return $this;
 }
 ```
@@ -199,9 +198,9 @@ public function addLogContent(LogContentDto $log_content)
 public function setLogContents($logContents)
 {
     if (isset($logContents[0]) && !$logContents[0] instanceof LogContentDto) {
-        throw new InvalidArgumentException('log_contents must be an array, item must instanceof of LogContentDto');
+        throw new InvalidArgumentException('logContentDtos must be an array, item must instanceof of LogContentDto');
     }
-    $this->log_contents[] = $log_content;
+    $this->logContentDtos = $logContents;
     return $this;
 }
 ```
@@ -213,9 +212,9 @@ public function setLogContents($logContents)
 
 ```php
 #[StringToInt]
-#[ApiProperty(description: '节点 ID')]
-#[ValidationRule(rule: 'required|int', message: 'node_id 不能为空')]
-protected int $node_id;
+#[ApiProperty(description: "nodeId")]
+#[ValidationRule(rule: 'required|int', message: "nodeId不能为空")]
+protected int $nodeId;
 ```
 
 具体行为以框架 `RequestValidate::applyStringToIntCoercion` 为准。
@@ -257,16 +256,28 @@ use Test\Module\Example\Dto\LogContentDto;
 class LogSaveRequest extends BaseRequest
 {
     /**
+    * @var array<int> 
+    */
+    #[ApiProperty(description: '日志分组ID')]
+    protected int $logCateGroupId = 0;
+    
+    /**
+    * @var array<string> 
+    */
+    #[ApiProperty(description: '日志名称')]
+    protected string $logName = '';
+    
+    /**
      * @var array<int>
      */
-    #[ApiProperty(description: '日志 ID 集合')]
+    #[ApiProperty(description: '日志ID集合')]
     #[ValidationRule(
         rule: 'required|array',
-        message: '日志 ID 不能为空',
+        message: '日志ID不能为空',
         itemRule: 'int',
-        itemMessage: '日志 ID 必须是整数'
+        itemMessage: '日志ID必须是整数'
     )]
-    protected array $log_ids = [];
+    protected array $logIds = [];
 
     /**
      * @var array<int, LogContentDto>
@@ -277,51 +288,178 @@ class LogSaveRequest extends BaseRequest
         message: '日志内容不能为空',
         itemClass: LogContentDto::class,
     )]
-    protected array $log_contents = [];
+    protected array $logContentDtos = [];
 
     /**
      * @return array<int>
      */
     public function getLogIds(): array
     {
-        return $this->log_ids;
+        return $this->logIds;
     }
 
     /**
-     * @param array<int> $log_ids
+     * @param array<int> $logIds
      */
-    public function setLogIds(array $log_ids): static
+    public function setLogIds(array $logIds): static
     {
-        $this->log_ids = $log_ids;
-
+        $this->logIds = $logIds;
         return $this;
     }
 
     /**
      * @return array<int, LogContentDto>
      */
-    public function getLogContents(): array
+    public function getLogContentDtos(): array
     {
-        return $this->log_contents;
+        return $this->logContentDtos;
     }
 
     /**
-     * @param array<int, LogContentDto> $log_contents
+     * @param array<int, LogContentDto> $logContents
      */
-    public function setLogContents(array $log_contents): static
+    public function setLogContents(array $logContents): static
     {
-        $this->log_contents = $log_contents;
-
+        $this->logContents = $logContents;
         return $this;
     }
 
-    public function addLogContent(LogContentDto $log_content)
+    public function addLogContent(LogContentDto $logContentDto)
     {
-        $this->log_contents[] = $log_content;
-
+        $this->logContentDtos[] = $logContentDto;
         return $this;
     }
 }
+```
+
+## 12. 完整示例（Response 片段, 分页日志列表）
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Test\Module\Example\Response;
+
+use Swoolefy\Annotation\ApiProperty;
+use Swoolefy\Http\BasePageResultResponse;
+use Test\Module\Example\Dto\LogContentDto;
+
+class LogContentPageResultResponse extends BasePageResultResponse
+{
+    
+    protected LogContentPageResult $data;
+
+    /**
+     * @return void
+     */
+    public function __construct()
+    {
+        $this->data = new LogContentPageResult;
+    }
+}
+```
+
+```php
+<?php
+
+namespace Test\Module\Order\Response;
+
+use Swoolefy\Annotation\ArrayList;
+use Swoolefy\Core\Dto\ArrayDto;
+use Test\Module\Order\Dto\LogContentDto;
+
+class LogContentPageResult extends ArrayDto
+{
+    /**
+     * @var int
+     */
+    protected int $total = 0;
+
+    /**
+     * @var array<LogContentDto>
+     */
+    #[ArrayList(
+        itemClass:LogContentDto::class
+    )]
+    protected array $list = [];
+
+    public function setTotal(int $total)
+    {
+        $this->total = $total;
+        return $this;
+    }
+
+    public function getTotal(): int
+    {
+        return $this->total;
+    }
+
+    public function setList(array $list)
+    {
+        $this->list = $list;
+        return $this;
+    }
+
+    public function getList(): array
+    {
+        return $this->list;
+    }
+
+    /**
+     * @param LogContentDto $logContentDto
+     * @return $this
+     */
+    public function addListItem(LogContentDto $logContentDto): static
+    {
+        $this->list[] = $logContentDto;
+        return $this;
+    }
+}
+```
+
+```php
+<?php
+namespace Test\Module\Order\Dto;
+
+use Swoolefy\Annotation\ApiProperty;
+use Swoolefy\Core\Dto\ArrayDto;
+
+class LogContentDto extends ArrayDto
+{ 
+    #[ApiProperty(
+        description: '日志标题'
+    )]
+    protected string $title = "";
+    
+    #[ApiProperty(
+        description: '日志内容'
+    )]
+    private string $content = "";
+    
+    public function setTitle(string $title): static
+    {
+        $this->title = $title;
+        return $this;
+    }
+    
+    public function getTitle(): string
+    {
+        return $this->title;
+    }
+    
+    public function setContent(string $content): static
+    {
+        $this->content = $content;
+        return $this;
+    }
+    
+    public function getContent(): string
+    {
+        return $this->content;
+    }
+}
+
 ```
 
 ---
@@ -331,8 +469,12 @@ class LogSaveRequest extends BaseRequest
 1. **新建或修改**任一 `*Request.php`、`*Response.php`、`*Dto.php` 时，默认应用本文全部适用条款。
 2. 用户只给出字段名时，根据 **Request / Response / DTO** 角色推断类型、校验强度与 `ApiProperty` 描述。
 3. **对象数组** 必须生成 **`add*()`**。
-4. 输出代码中 **不得出现 `public`/`private` 字段**，仅允许 **`protected`**。
-
+4. Request / Response / DTO类的生成输出代码中 **不得出现 `public`/`private` 字段**，仅允许 **`protected`**。
+5. 属性命名统一使用驼峰命名，禁止使用下划线。
+6. 属性的类型是类时，必须复制默认值，并加上 `= null`。
+7. 属性如果是字符串时，必须加上 `= ''`。
+8. 属性如果是数组时，必须加上 `= []`。
+9. 属性如果是array类型且元素为int|string时，必须加上phpdoc 注解array<int|string>
 ---
 
 ## 修订记录

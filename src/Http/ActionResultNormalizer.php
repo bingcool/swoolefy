@@ -55,6 +55,12 @@ class ActionResultNormalizer
             return $value;
         }
 
+        if ($value instanceof BaseResponse) {
+            return static::normalizeObject($value, $objects, function () use ($value, $objects) {
+                return static::normalizeData($value->getData(), $objects);
+            });
+        }
+
         if (is_array($value)) {
             foreach ($value as $key => $item) {
                 $value[$key] = static::normalizeData($item, $objects);
@@ -84,12 +90,6 @@ class ActionResultNormalizer
         if ($value instanceof Arrayable) {
             return static::normalizeObject($value, $objects, function () use ($value, $objects) {
                 return static::normalizeData($value->toArray([], [], true), $objects);
-            });
-        }
-
-        if ($value instanceof BaseResponse) {
-            return static::normalizeObject($value, $objects, function () use ($value, $objects) {
-                return static::normalizeData($value->getData(), $objects);
             });
         }
 

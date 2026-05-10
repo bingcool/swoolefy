@@ -9,8 +9,11 @@ use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
 use Swoolefy\Http\RequestInput;
 use Test\Module\Order\Request\LogContentDto;
+use Test\Module\Order\Request\LogContentPageRequest;
 use Test\Module\Order\Request\LogSaveRequest;
 use Test\Module\Order\Response\LogCategoryDto;
+use Test\Module\Order\Response\LogContentPageResult;
+use Test\Module\Order\Response\LogContentPageResultResponse;
 use Test\Module\Order\Response\LogContentRespDto;
 use Test\Module\Order\Response\LogItemDto;
 use Test\Module\Order\Response\LogResponse;
@@ -65,6 +68,19 @@ class LogOrderController extends BController
     {
         var_dump($name, $userIds);
         $response = new LogResponse();
+        return $response;
+    }
+
+    public function testPageRequest(LogContentPageRequest $request): LogContentPageResultResponse
+    {
+        $response = new LogContentPageResultResponse();
+        $logContentPageResult = new LogContentPageResult();
+        $logContentPageResult->setTotal(100);
+        $logContentDto = new LogContentDto();
+        $logContentDto->setValue('test');
+        $logContentDto->setName('test');
+        $logContentPageResult->addListItem($logContentDto);
+        $response->setData($logContentPageResult);
         return $response;
     }
 }
