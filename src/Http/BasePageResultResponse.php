@@ -11,28 +11,10 @@
 
 namespace Swoolefy\Http;
 
-use Swoolefy\Core\Dto\ArrayDto;
-
-class BaseResponse extends ArrayDto
+/**
+ * 分页列表响应体必须继承此类
+ */
+class BasePageResultResponse extends BaseResponse
 {
-    /**
-     * $code
-     */
-    private int $code = ResponseCode::CodeOk;
 
-    /**
-     * $msg
-     */
-    private string $msg = 'success';
-
-    public function setData($data)
-    {
-        $this->data = $data;
-        return $this;
-    }
-
-    public function getData()
-    {
-        return $this->data;
-    }
 }

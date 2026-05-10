@@ -179,9 +179,14 @@ final class SdkCovertProperty
             return $convertedItems;
         }
 
-        // 检查是否是单个对象类型
+        // 检查是否是单个对象类型（包括数组值需要转换为对象的情况）
         $class = self::propertyObjectClass($property);
-        if ($class !== null && $value !== null && !is_array($value)) {
+        if ($class !== null && $value !== null) {
+            // 如果值是数组且目标是对象，需要将数组转换为对象
+            if (is_array($value)) {
+                return self::toCovertDeepProperty($value, $class);
+            }
+            // 如果值不是数组，也尝试转换
             return self::toCovertDeepProperty($value, $class);
         }
 
@@ -732,7 +737,7 @@ class SdkBaseResponse extends SdkArrayDto
 {
     protected int $code = 0;
 
-    protected string $message = 'success';
+    protected string $msg = 'success';
     
     protected string $trace_id = '';
         
