@@ -40,8 +40,9 @@ final class SdkDtoWriter
             return;
         }
 
-        $transformed = $this->transformSource($raw);
-        $transformed = $this->appendCollectionAdders($className, $transformed);
+        $transformed = $this->normalizeNamespaceAndUses(
+            $this->appendCollectionAdders($className, $this->transformSource($raw))
+        );
         $relativePath = str_replace('\\', DIRECTORY_SEPARATOR, substr($className, strlen($this->appNamespacePrefix))) . '.php';
         $dest = $this->outputTestRoot . DIRECTORY_SEPARATOR . $relativePath;
         $this->ensureParentDir($dest);
@@ -105,7 +106,7 @@ final class SdkDtoWriter
             return;
         }
 
-        $transformed = $this->transformSource($raw);
+        $transformed = $this->normalizeNamespaceAndUses($this->transformSource($raw));
         $this->ensureParentDir($destPath);
         file_put_contents($destPath, $transformed);
     }
@@ -394,6 +395,71 @@ PHP;
         $php = $this->mergeUseStatements($php, array_keys($useFqcn));
 
         return $this->injectBeforeClassClosingBrace($php, "\n" . implode("\n\n", $methods));
+    }
+
+    /**
+     * One blank line after `namespace ...;`, all `use` lines contiguous with no blank lines between.
+     */
+    private function normalizeNamespaceAndUses(string $php): string
+    {
+        $lines = preg_split('/\r\n|\n|\r/', $php);
+        $nsIdx = null;
+        foreach ($lines as $i => $line) {
+            if (preg_match('/^\s*namespace\s+[^;]+;\s*$/', $line)) {
+                $nsIdx = $i;
+                break;
+            }
+        }
+        if ($nsIdx === null) {
+            return $php;
+        }
+
+        $n = \count($lines);
+        $j = $nsIdx + 1;
+        $uses = [];
+
+        while ($j < $n) {
+            $line = $lines[$j];
+            if (trim($line) === '') {
+                $j++;
+                continue;
+            }
+            if (preg_match('/^\s*use\s+/', $line)) {
+                $block = $lines[$j];
+                while (!preg_match('/;\s*$/', $block) && $j + 1 < $n) {
+                    $j++;
+                    $block .= "\n" . $lines[$j];
+                }
+                $uses[] = $block;
+                $j++;
+                continue;
+            }
+            break;
+        }
+
+        $before = implode("\n", \array_slice($lines, 0, $nsIdx + 1));
+        $afterLines = \array_slice($lines, $j);
+        while ($afterLines !== [] && trim($afterLines[0]) === '') {
+            array_shift($afterLines);
+        }
+        $afterNorm = implode("\n", $afterLines);
+
+        if ($uses === []) {
+            return $before . "\n\n" . $afterNorm;
+        }
+
+        $seen = [];
+        $ordered = [];
+        foreach ($uses as $u) {
+            $k = trim($u);
+            if (isset($seen[$k])) {
+                continue;
+            }
+            $seen[$k] = true;
+            $ordered[] = $u;
+        }
+
+        return $before . "\n\n" . implode("\n", $ordered) . "\n\n" . $afterNorm;
     }
 
     /**
