@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Module\Cron\Dto;
+namespace Test\Module\Cron\Dto\CronTaskManager;
 
 use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Annotation\Validation\ValidationRule;
@@ -26,7 +26,7 @@ class CronTimeRangeDto extends AbstractDto
         return $this->start;
     }
 
-    public function setStart(string $start): self
+    public function setStart(string $start): static
     {
         $this->start = $start;
 
@@ -38,7 +38,7 @@ class CronTimeRangeDto extends AbstractDto
         return $this->end;
     }
 
-    public function setEnd(string $end): self
+    public function setEnd(string $end): static
     {
         $this->end = $end;
 

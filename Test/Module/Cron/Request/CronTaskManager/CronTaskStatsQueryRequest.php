@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Module\Cron\Request;
+namespace Test\Module\Cron\Request\CronTaskManager;
 
 use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Annotation\StringToInt;
@@ -12,18 +12,18 @@ use Swoolefy\Http\BaseRequest;
 class CronTaskStatsQueryRequest extends BaseRequest
 {
     #[ApiProperty(description: '任务 ID（cron 任务主键）')]
-    #[ValidationRule(rule: 'required|int', message: 'task_id不能为空')]
+    #[ValidationRule(rule: 'required|int', message: 'taskId 不能为空')]
     #[StringToInt]
-    protected int $task_id = 0;
+    protected int $taskId = 0;
 
     public function getTaskId(): int
     {
-        return $this->task_id;
+        return $this->taskId;
     }
 
-    public function setTaskId(int $task_id): self
+    public function setTaskId(int $taskId): static
     {
-        $this->task_id = $task_id;
+        $this->taskId = $taskId;
 
         return $this;
     }

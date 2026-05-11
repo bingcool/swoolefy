@@ -2,18 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Test\Module\Cron\Request;
 
+namespace Test\Module\Cron\Request\CronTaskManager;
+
+use Test\Module\Cron\Dto\CronTaskManager\CronTimeRangeDto;
+use InvalidArgumentException;
 use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Annotation\StringToInt;
 use Swoolefy\Annotation\Validation\ValidationRule;
 use Swoolefy\Http\BaseRequest;
-use Test\Module\Cron\Dto\CronTimeRangeDto;
 
 class CronTaskUpdateRequest extends BaseRequest
 {
     #[ApiProperty(description: '任务 ID')]
-    #[ValidationRule(rule: 'required|int', message: 'id不能为空')]
+    #[ValidationRule(rule: 'required|int', message: 'id 不能为空')]
     #[StringToInt]
     protected int $id = 0;
 
@@ -31,55 +33,55 @@ class CronTaskUpdateRequest extends BaseRequest
 
     #[ApiProperty(description: '节点 ID')]
     #[StringToInt]
-    protected ?int $node_id = null;
+    protected ?int $nodeId = null;
 
     #[ApiProperty(description: '执行类型：1 shell，2 http')]
-    protected ?int $exec_type = null;
+    protected ?int $execType = null;
 
     #[ApiProperty(description: '状态：0 禁用，1 启用')]
     protected ?int $status = null;
 
     #[ApiProperty(description: '是否阻塞重叠执行')]
-    protected ?int $with_block_lapping = null;
+    protected ?int $withBlockLapping = null;
 
     #[ApiProperty(description: 'HTTP 方法')]
-    protected ?string $http_method = null;
+    protected ?string $httpMethod = null;
 
     #[ApiProperty(description: 'HTTP 超时（秒）')]
-    protected ?int $http_request_time_out = null;
+    protected ?int $httpRequestTimeOut = null;
 
     /**
      * @var array<int, CronTimeRangeDto>|null
      */
     #[ApiProperty(description: '允许执行时间段列表')]
-    #[ValidationRule(rule: 'nullable|array', message: 'cron_between 格式错误', itemClass: CronTimeRangeDto::class)]
-    protected ?array $cron_between = null;
+    #[ValidationRule(rule: 'nullable|array', message: 'cronBetween 格式错误', itemClass: CronTimeRangeDto::class)]
+    protected ?array $cronBetween = null;
 
     /**
      * @var array<int, CronTimeRangeDto>|null
      */
     #[ApiProperty(description: '需跳过的时间段列表')]
-    #[ValidationRule(rule: 'nullable|array', message: 'cron_skip 格式错误', itemClass: CronTimeRangeDto::class)]
-    protected ?array $cron_skip = null;
+    #[ValidationRule(rule: 'nullable|array', message: 'cronSkip 格式错误', itemClass: CronTimeRangeDto::class)]
+    protected ?array $cronSkip = null;
 
     /**
      * @var array<string, mixed>|null
      */
     #[ApiProperty(description: 'HTTP 请求体')]
-    protected ?array $http_body = null;
+    protected ?array $httpBody = null;
 
     /**
      * @var array<string, mixed>|null
      */
     #[ApiProperty(description: 'HTTP 请求头')]
-    protected ?array $http_headers = null;
+    protected ?array $httpHeaders = null;
 
     public function getId(): int
     {
         return $this->id;
     }
 
-    public function setId(int $id): self
+    public function setId(int $id): static
     {
         $this->id = $id;
 
@@ -91,7 +93,7 @@ class CronTaskUpdateRequest extends BaseRequest
         return $this->name;
     }
 
-    public function setName(?string $name): self
+    public function setName(?string $name): static
     {
         $this->name = $name;
 
@@ -103,7 +105,7 @@ class CronTaskUpdateRequest extends BaseRequest
         return $this->expression;
     }
 
-    public function setExpression(?string $expression): self
+    public function setExpression(?string $expression): static
     {
         $this->expression = $expression;
 
@@ -115,7 +117,7 @@ class CronTaskUpdateRequest extends BaseRequest
         return $this->command;
     }
 
-    public function setCommand(?string $command): self
+    public function setCommand(?string $command): static
     {
         $this->command = $command;
 
@@ -127,7 +129,7 @@ class CronTaskUpdateRequest extends BaseRequest
         return $this->description;
     }
 
-    public function setDescription(?string $description): self
+    public function setDescription(?string $description): static
     {
         $this->description = $description;
 
@@ -136,24 +138,24 @@ class CronTaskUpdateRequest extends BaseRequest
 
     public function getNodeId(): ?int
     {
-        return $this->node_id;
+        return $this->nodeId;
     }
 
-    public function setNodeId(?int $node_id): self
+    public function setNodeId(?int $nodeId): static
     {
-        $this->node_id = $node_id;
+        $this->nodeId = $nodeId;
 
         return $this;
     }
 
     public function getExecType(): ?int
     {
-        return $this->exec_type;
+        return $this->execType;
     }
 
-    public function setExecType(?int $exec_type): self
+    public function setExecType(?int $execType): static
     {
-        $this->exec_type = $exec_type;
+        $this->execType = $execType;
 
         return $this;
     }
@@ -163,7 +165,7 @@ class CronTaskUpdateRequest extends BaseRequest
         return $this->status;
     }
 
-    public function setStatus(?int $status): self
+    public function setStatus(?int $status): static
     {
         $this->status = $status;
 
@@ -172,36 +174,36 @@ class CronTaskUpdateRequest extends BaseRequest
 
     public function getWithBlockLapping(): ?int
     {
-        return $this->with_block_lapping;
+        return $this->withBlockLapping;
     }
 
-    public function setWithBlockLapping(?int $with_block_lapping): self
+    public function setWithBlockLapping(?int $withBlockLapping): static
     {
-        $this->with_block_lapping = $with_block_lapping;
+        $this->withBlockLapping = $withBlockLapping;
 
         return $this;
     }
 
     public function getHttpMethod(): ?string
     {
-        return $this->http_method;
+        return $this->httpMethod;
     }
 
-    public function setHttpMethod(?string $http_method): self
+    public function setHttpMethod(?string $httpMethod): static
     {
-        $this->http_method = $http_method;
+        $this->httpMethod = $httpMethod;
 
         return $this;
     }
 
     public function getHttpRequestTimeOut(): ?int
     {
-        return $this->http_request_time_out;
+        return $this->httpRequestTimeOut;
     }
 
-    public function setHttpRequestTimeOut(?int $http_request_time_out): self
+    public function setHttpRequestTimeOut(?int $httpRequestTimeOut): static
     {
-        $this->http_request_time_out = $http_request_time_out;
+        $this->httpRequestTimeOut = $httpRequestTimeOut;
 
         return $this;
     }
@@ -211,25 +213,28 @@ class CronTaskUpdateRequest extends BaseRequest
      */
     public function getCronBetween(): ?array
     {
-        return $this->cron_between;
+        return $this->cronBetween;
     }
 
     /**
-     * @param array<int, CronTimeRangeDto>|null $cron_between
+     * @param array<int, CronTimeRangeDto>|null $cronBetween
      */
-    public function setCronBetween(?array $cron_between): self
+    public function setCronBetween(?array $cronBetween): static
     {
-        $this->cron_between = $cron_between;
+        if ($cronBetween !== null && $cronBetween !== [] && !($cronBetween[0] instanceof CronTimeRangeDto)) {
+            throw new InvalidArgumentException('cronBetween items must be instances of CronTimeRangeDto');
+        }
+        $this->cronBetween = $cronBetween;
 
         return $this;
     }
 
-    public function addCronBetween(CronTimeRangeDto $cron_between): self
+    public function addCronBetween(CronTimeRangeDto $item): static
     {
-        if ($this->cron_between === null) {
-            $this->cron_between = [];
+        if ($this->cronBetween === null) {
+            $this->cronBetween = [];
         }
-        $this->cron_between[] = $cron_between;
+        $this->cronBetween[] = $item;
 
         return $this;
     }
@@ -239,25 +244,28 @@ class CronTaskUpdateRequest extends BaseRequest
      */
     public function getCronSkip(): ?array
     {
-        return $this->cron_skip;
+        return $this->cronSkip;
     }
 
     /**
-     * @param array<int, CronTimeRangeDto>|null $cron_skip
+     * @param array<int, CronTimeRangeDto>|null $cronSkip
      */
-    public function setCronSkip(?array $cron_skip): self
+    public function setCronSkip(?array $cronSkip): static
     {
-        $this->cron_skip = $cron_skip;
+        if ($cronSkip !== null && $cronSkip !== [] && !($cronSkip[0] instanceof CronTimeRangeDto)) {
+            throw new InvalidArgumentException('cronSkip items must be instances of CronTimeRangeDto');
+        }
+        $this->cronSkip = $cronSkip;
 
         return $this;
     }
 
-    public function addCronSkip(CronTimeRangeDto $cron_skip): self
+    public function addCronSkip(CronTimeRangeDto $item): static
     {
-        if ($this->cron_skip === null) {
-            $this->cron_skip = [];
+        if ($this->cronSkip === null) {
+            $this->cronSkip = [];
         }
-        $this->cron_skip[] = $cron_skip;
+        $this->cronSkip[] = $item;
 
         return $this;
     }
@@ -267,15 +275,15 @@ class CronTaskUpdateRequest extends BaseRequest
      */
     public function getHttpBody(): ?array
     {
-        return $this->http_body;
+        return $this->httpBody;
     }
 
     /**
-     * @param array<string, mixed>|null $http_body
+     * @param array<string, mixed>|null $httpBody
      */
-    public function setHttpBody(?array $http_body): self
+    public function setHttpBody(?array $httpBody): static
     {
-        $this->http_body = $http_body;
+        $this->httpBody = $httpBody;
 
         return $this;
     }
@@ -285,15 +293,15 @@ class CronTaskUpdateRequest extends BaseRequest
      */
     public function getHttpHeaders(): ?array
     {
-        return $this->http_headers;
+        return $this->httpHeaders;
     }
 
     /**
-     * @param array<string, mixed>|null $http_headers
+     * @param array<string, mixed>|null $httpHeaders
      */
-    public function setHttpHeaders(?array $http_headers): self
+    public function setHttpHeaders(?array $httpHeaders): static
     {
-        $this->http_headers = $http_headers;
+        $this->httpHeaders = $httpHeaders;
 
         return $this;
     }
@@ -316,35 +324,35 @@ class CronTaskUpdateRequest extends BaseRequest
         if ($this->description !== null) {
             $out['description'] = $this->description;
         }
-        if ($this->node_id !== null) {
-            $out['node_id'] = $this->node_id;
+        if ($this->nodeId !== null) {
+            $out['node_id'] = $this->nodeId;
         }
-        if ($this->exec_type !== null) {
-            $out['exec_type'] = $this->exec_type;
+        if ($this->execType !== null) {
+            $out['exec_type'] = $this->execType;
         }
         if ($this->status !== null) {
             $out['status'] = $this->status;
         }
-        if ($this->with_block_lapping !== null) {
-            $out['with_block_lapping'] = $this->with_block_lapping;
+        if ($this->withBlockLapping !== null) {
+            $out['with_block_lapping'] = $this->withBlockLapping;
         }
-        if ($this->http_method !== null) {
-            $out['http_method'] = $this->http_method;
+        if ($this->httpMethod !== null) {
+            $out['http_method'] = $this->httpMethod;
         }
-        if ($this->http_request_time_out !== null) {
-            $out['http_request_time_out'] = $this->http_request_time_out;
+        if ($this->httpRequestTimeOut !== null) {
+            $out['http_request_time_out'] = $this->httpRequestTimeOut;
         }
-        if ($this->cron_between !== null) {
-            $out['cron_between'] = $this->serializeTimeRanges($this->cron_between);
+        if ($this->cronBetween !== null) {
+            $out['cron_between'] = $this->serializeTimeRanges($this->cronBetween);
         }
-        if ($this->cron_skip !== null) {
-            $out['cron_skip'] = $this->serializeTimeRanges($this->cron_skip);
+        if ($this->cronSkip !== null) {
+            $out['cron_skip'] = $this->serializeTimeRanges($this->cronSkip);
         }
-        if ($this->http_body !== null) {
-            $out['http_body'] = $this->http_body;
+        if ($this->httpBody !== null) {
+            $out['http_body'] = $this->httpBody;
         }
-        if ($this->http_headers !== null) {
-            $out['http_headers'] = $this->http_headers;
+        if ($this->httpHeaders !== null) {
+            $out['http_headers'] = $this->httpHeaders;
         }
 
         return $out;

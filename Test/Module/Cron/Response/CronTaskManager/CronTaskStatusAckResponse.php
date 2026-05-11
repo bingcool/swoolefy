@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Module\Cron\Response;
+namespace Test\Module\Cron\Response\CronTaskManager;
 
 use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Http\BaseResponse;
@@ -26,7 +26,7 @@ class CronTaskStatusAckResponse extends BaseResponse
         return $this->id;
     }
 
-    public function setId(int $id): self
+    public function setId(int $id): static
     {
         $this->id = $id;
 
@@ -38,7 +38,7 @@ class CronTaskStatusAckResponse extends BaseResponse
         return $this->status;
     }
 
-    public function setStatus(int $status): self
+    public function setStatus(int $status): static
     {
         $this->status = $status;
 

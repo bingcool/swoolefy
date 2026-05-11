@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Module\Cron\Response;
+namespace Test\Module\Cron\Response\CronTaskManager;
 
 use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Http\BaseResponse;
@@ -10,7 +10,7 @@ use Swoolefy\Http\BaseResponse;
 class CronTaskStatsResponse extends BaseResponse
 {
     #[ApiProperty(description: '任务 ID')]
-    protected int $task_id;
+    protected int $taskId;
 
     #[ApiProperty(description: '样本总数')]
     protected int $total;
@@ -25,42 +25,42 @@ class CronTaskStatsResponse extends BaseResponse
     protected int $skipped;
 
     #[ApiProperty(description: '成功率（百分比）')]
-    protected float $success_rate;
+    protected float $successRate;
 
     #[ApiProperty(description: '平均耗时（毫秒）')]
-    protected float $avg_duration_ms;
+    protected float $avgDurationMs;
 
     #[ApiProperty(description: '参与耗时统计的样本数')]
     protected int $samples;
 
     public function __construct(
-        int $task_id,
+        int $taskId,
         int $total,
         int $success,
         int $failed,
         int $skipped,
-        float $success_rate,
-        float $avg_duration_ms,
+        float $successRate,
+        float $avgDurationMs,
         int $samples
     ) {
-        $this->setTaskId($task_id);
+        $this->setTaskId($taskId);
         $this->setTotal($total);
         $this->setSuccess($success);
         $this->setFailed($failed);
         $this->setSkipped($skipped);
-        $this->setSuccessRate($success_rate);
-        $this->setAvgDurationMs($avg_duration_ms);
+        $this->setSuccessRate($successRate);
+        $this->setAvgDurationMs($avgDurationMs);
         $this->setSamples($samples);
     }
 
     public function getTaskId(): int
     {
-        return $this->task_id;
+        return $this->taskId;
     }
 
-    public function setTaskId(int $task_id): self
+    public function setTaskId(int $taskId): static
     {
-        $this->task_id = $task_id;
+        $this->taskId = $taskId;
 
         return $this;
     }
@@ -70,7 +70,7 @@ class CronTaskStatsResponse extends BaseResponse
         return $this->total;
     }
 
-    public function setTotal(int $total): self
+    public function setTotal(int $total): static
     {
         $this->total = $total;
 
@@ -82,7 +82,7 @@ class CronTaskStatsResponse extends BaseResponse
         return $this->success;
     }
 
-    public function setSuccess(int $success): self
+    public function setSuccess(int $success): static
     {
         $this->success = $success;
 
@@ -94,7 +94,7 @@ class CronTaskStatsResponse extends BaseResponse
         return $this->failed;
     }
 
-    public function setFailed(int $failed): self
+    public function setFailed(int $failed): static
     {
         $this->failed = $failed;
 
@@ -106,7 +106,7 @@ class CronTaskStatsResponse extends BaseResponse
         return $this->skipped;
     }
 
-    public function setSkipped(int $skipped): self
+    public function setSkipped(int $skipped): static
     {
         $this->skipped = $skipped;
 
@@ -115,24 +115,24 @@ class CronTaskStatsResponse extends BaseResponse
 
     public function getSuccessRate(): float
     {
-        return $this->success_rate;
+        return $this->successRate;
     }
 
-    public function setSuccessRate(float $success_rate): self
+    public function setSuccessRate(float $successRate): static
     {
-        $this->success_rate = $success_rate;
+        $this->successRate = $successRate;
 
         return $this;
     }
 
     public function getAvgDurationMs(): float
     {
-        return $this->avg_duration_ms;
+        return $this->avgDurationMs;
     }
 
-    public function setAvgDurationMs(float $avg_duration_ms): self
+    public function setAvgDurationMs(float $avgDurationMs): static
     {
-        $this->avg_duration_ms = $avg_duration_ms;
+        $this->avgDurationMs = $avgDurationMs;
 
         return $this;
     }
@@ -142,7 +142,7 @@ class CronTaskStatsResponse extends BaseResponse
         return $this->samples;
     }
 
-    public function setSamples(int $samples): self
+    public function setSamples(int $samples): static
     {
         $this->samples = $samples;
 
@@ -152,13 +152,13 @@ class CronTaskStatsResponse extends BaseResponse
     public function getData(): array
     {
         return [
-            'task_id' => $this->getTaskId(),
+            'taskId' => $this->getTaskId(),
             'total' => $this->getTotal(),
             'success' => $this->getSuccess(),
             'failed' => $this->getFailed(),
             'skipped' => $this->getSkipped(),
-            'success_rate' => $this->getSuccessRate(),
-            'avg_duration_ms' => $this->getAvgDurationMs(),
+            'successRate' => $this->getSuccessRate(),
+            'avgDurationMs' => $this->getAvgDurationMs(),
             'samples' => $this->getSamples(),
         ];
     }
