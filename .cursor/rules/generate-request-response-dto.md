@@ -469,12 +469,12 @@ class LogContentDto extends ArrayDto
 1. **新建或修改**任一 `*Request.php`、`*Response.php`、`*Dto.php` 时，默认应用本文全部适用条款。
 2. 用户只给出字段名时，根据 **Request / Response / DTO** 角色推断类型、校验强度与 `ApiProperty` 描述。
 3. **对象数组** 必须生成 **`add*()`**。
-4. Request / Response / DTO类的生成输出代码中 **不得出现 `public`/`private` 字段**，仅允许 **`protected`**。
+4. Request / Response / DTO类的生成输出代码中 **不得出现 `public`/`private` 字段**，仅允许 **`protected`，必须设置setter和getter方法**。
 5. 属性命名统一使用驼峰命名，禁止使用下划线。
-6. 属性的类型是类时，必须复制默认值，并加上 `= null`。
+6. 属性的类型是类时，必须设置默认值，并加上 `= null`。
 7. 属性如果是字符串时，必须加上 `= ''`。
 8. 属性如果是数组时，必须加上 `= []`。
-9. 属性如果是array类型且元素为int|string时，必须加上phpdoc 注解array<int|string>
+9. 属性如果是array类型且元素为int|string时，必须加上phpdoc注释array<int|string>
 ---
 
 ## 修订记录
