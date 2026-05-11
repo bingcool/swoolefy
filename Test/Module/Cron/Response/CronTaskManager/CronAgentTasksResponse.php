@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Module\Cron\Response;
+namespace Test\Module\Cron\Response\CronTaskManager;
 
 use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Http\BaseResponse;
@@ -10,40 +10,40 @@ use Swoolefy\Http\BaseResponse;
 class CronAgentTasksResponse extends BaseResponse
 {
     #[ApiProperty(description: '节点 ID')]
-    protected int $node_id;
+    protected int $nodeId;
 
     #[ApiProperty(description: '任务条数')]
     protected int $total;
 
     #[ApiProperty(description: '执行类型（单类型查询时返回）')]
-    protected ?int $exec_type = null;
+    protected ?int $execType = null;
 
     /**
      * @var array<int, mixed>|null
      */
-    #[ApiProperty(description: '任务列表（指定 exec_type 时）')]
+    #[ApiProperty(description: '任务列表（指定 execType 时）')]
     protected ?array $list = null;
 
     /**
      * @var array<int, mixed>|null
      */
     #[ApiProperty(description: 'Shell 任务列表')]
-    protected ?array $shell_tasks = null;
+    protected ?array $shellTasks = null;
 
     /**
      * @var array<int, mixed>|null
      */
     #[ApiProperty(description: 'HTTP 任务列表')]
-    protected ?array $http_tasks = null;
+    protected ?array $httpTasks = null;
 
     /**
      * @param array<int, mixed> $list
      */
-    public static function forExecType(int $node_id, int $exec_type, array $list): self
+    public static function forExecType(int $nodeId, int $execType, array $list): self
     {
         $self = new self();
-        $self->setNodeId($node_id);
-        $self->setExecType($exec_type);
+        $self->setNodeId($nodeId);
+        $self->setExecType($execType);
         $self->setList($list);
         $self->setTotal(count($list));
         $self->setShellTasks(null);
@@ -53,30 +53,30 @@ class CronAgentTasksResponse extends BaseResponse
     }
 
     /**
-     * @param array<int, mixed> $shell_tasks
-     * @param array<int, mixed> $http_tasks
+     * @param array<int, mixed> $shellTasks
+     * @param array<int, mixed> $httpTasks
      */
-    public static function forAllTypes(int $node_id, array $shell_tasks, array $http_tasks): self
+    public static function forAllTypes(int $nodeId, array $shellTasks, array $httpTasks): self
     {
         $self = new self();
-        $self->setNodeId($node_id);
+        $self->setNodeId($nodeId);
         $self->setExecType(null);
         $self->setList(null);
-        $self->setShellTasks($shell_tasks);
-        $self->setHttpTasks($http_tasks);
-        $self->setTotal(count($shell_tasks) + count($http_tasks));
+        $self->setShellTasks($shellTasks);
+        $self->setHttpTasks($httpTasks);
+        $self->setTotal(count($shellTasks) + count($httpTasks));
 
         return $self;
     }
 
     public function getNodeId(): int
     {
-        return $this->node_id;
+        return $this->nodeId;
     }
 
-    public function setNodeId(int $node_id): self
+    public function setNodeId(int $nodeId): static
     {
-        $this->node_id = $node_id;
+        $this->nodeId = $nodeId;
 
         return $this;
     }
@@ -86,7 +86,7 @@ class CronAgentTasksResponse extends BaseResponse
         return $this->total;
     }
 
-    public function setTotal(int $total): self
+    public function setTotal(int $total): static
     {
         $this->total = $total;
 
@@ -95,12 +95,12 @@ class CronAgentTasksResponse extends BaseResponse
 
     public function getExecType(): ?int
     {
-        return $this->exec_type;
+        return $this->execType;
     }
 
-    public function setExecType(?int $exec_type): self
+    public function setExecType(?int $execType): static
     {
-        $this->exec_type = $exec_type;
+        $this->execType = $execType;
 
         return $this;
     }
@@ -116,7 +116,7 @@ class CronAgentTasksResponse extends BaseResponse
     /**
      * @param array<int, mixed>|null $list
      */
-    public function setList(?array $list): self
+    public function setList(?array $list): static
     {
         $this->list = $list;
 
@@ -128,15 +128,15 @@ class CronAgentTasksResponse extends BaseResponse
      */
     public function getShellTasks(): ?array
     {
-        return $this->shell_tasks;
+        return $this->shellTasks;
     }
 
     /**
-     * @param array<int, mixed>|null $shell_tasks
+     * @param array<int, mixed>|null $shellTasks
      */
-    public function setShellTasks(?array $shell_tasks): self
+    public function setShellTasks(?array $shellTasks): static
     {
-        $this->shell_tasks = $shell_tasks;
+        $this->shellTasks = $shellTasks;
 
         return $this;
     }
@@ -146,15 +146,15 @@ class CronAgentTasksResponse extends BaseResponse
      */
     public function getHttpTasks(): ?array
     {
-        return $this->http_tasks;
+        return $this->httpTasks;
     }
 
     /**
-     * @param array<int, mixed>|null $http_tasks
+     * @param array<int, mixed>|null $httpTasks
      */
-    public function setHttpTasks(?array $http_tasks): self
+    public function setHttpTasks(?array $httpTasks): static
     {
-        $this->http_tasks = $http_tasks;
+        $this->httpTasks = $httpTasks;
 
         return $this;
     }
@@ -163,18 +163,18 @@ class CronAgentTasksResponse extends BaseResponse
     {
         if ($this->getList() !== null) {
             return [
-                'node_id' => $this->getNodeId(),
-                'exec_type' => $this->getExecType(),
+                'nodeId' => $this->getNodeId(),
+                'execType' => $this->getExecType(),
                 'total' => $this->getTotal(),
                 'list' => $this->getList(),
             ];
         }
 
         return [
-            'node_id' => $this->getNodeId(),
+            'nodeId' => $this->getNodeId(),
             'total' => $this->getTotal(),
-            'shell_tasks' => $this->getShellTasks() ?? [],
-            'http_tasks' => $this->getHttpTasks() ?? [],
+            'shellTasks' => $this->getShellTasks() ?? [],
+            'httpTasks' => $this->getHttpTasks() ?? [],
         ];
     }
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Module\Cron\Request;
+namespace Test\Module\Cron\Request\CronTaskManager;
 
 use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Annotation\StringToInt;
@@ -11,23 +11,19 @@ use Swoolefy\Http\BaseRequest;
 
 class CronAgentHeartbeatRequest extends BaseRequest
 {
-    /**
-     * 节点ID
-     * @var int
-     */
     #[ApiProperty(description: '节点 ID')]
-    #[ValidationRule(rule: 'required|int', message: 'node_id不能为空')]
+    #[ValidationRule(rule: 'required|int', message: 'nodeId 不能为空')]
     #[StringToInt]
-    protected int $node_id = 0;
+    protected int $nodeId = 0;
 
     public function getNodeId(): int
     {
-        return $this->node_id;
+        return $this->nodeId;
     }
 
-    public function setNodeId(int $node_id): self
+    public function setNodeId(int $nodeId): static
     {
-        $this->node_id = $node_id;
+        $this->nodeId = $nodeId;
 
         return $this;
     }

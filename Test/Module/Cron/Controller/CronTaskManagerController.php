@@ -1,32 +1,39 @@
 <?php
+
 namespace Test\Module\Cron\Controller;
 
 use Swoolefy\Core\Controller\BController;
 use Test\Module\Cron\CronAgentNodeEntity;
 use Test\Module\Cron\CronTaskEntity;
 use Test\Module\Cron\CronTaskLogEntity;
-use Test\Module\Cron\Request\CronAgentHeartbeatRequest;
-use Test\Module\Cron\Request\CronAgentReportRequest;
-use Test\Module\Cron\Request\CronAgentTasksQueryRequest;
-use Test\Module\Cron\Request\CronNodeCreateRequest;
-use Test\Module\Cron\Request\CronNodeIdRequest;
-use Test\Module\Cron\Request\CronTaskCreateRequest;
-use Test\Module\Cron\Request\CronTaskIdRequest;
-use Test\Module\Cron\Request\CronTaskListQueryRequest;
-use Test\Module\Cron\Request\CronTaskLogsQueryRequest;
-use Test\Module\Cron\Request\CronTaskStatsQueryRequest;
-use Test\Module\Cron\Request\CronTaskStatusSwitchRequest;
-use Test\Module\Cron\Request\CronTaskUpdateRequest;
-use Test\Module\Cron\Response\CronAgentHeartbeatResponse;
-use Test\Module\Cron\Response\CronAgentReportAckResponse;
-use Test\Module\Cron\Response\CronAgentTasksResponse;
-use Test\Module\Cron\Response\CronDeleteAckResponse;
-use Test\Module\Cron\Response\CronNodeListResponse;
-use Test\Module\Cron\Response\CronNodeRowResponse;
-use Test\Module\Cron\Response\CronPagedListResponse;
-use Test\Module\Cron\Response\CronTaskRowResponse;
-use Test\Module\Cron\Response\CronTaskStatsResponse;
-use Test\Module\Cron\Response\CronTaskStatusAckResponse;
+use Test\Module\Cron\Exception\CronTaskException;
+use Test\Module\Cron\Dto\CronTaskManager\CronTaskLogRowDto;
+use Test\Module\Cron\Dto\CronTaskManager\CronTaskRowDto;
+use Test\Module\Cron\Request\CronTaskManager\CronAgentHeartbeatRequest;
+use Test\Module\Cron\Request\CronTaskManager\CronAgentReportRequest;
+use Test\Module\Cron\Request\CronTaskManager\CronAgentTasksQueryRequest;
+use Test\Module\Cron\Request\CronTaskManager\CronNodeCreateRequest;
+use Test\Module\Cron\Request\CronTaskManager\CronNodeIdRequest;
+use Test\Module\Cron\Request\CronTaskManager\CronTaskCreateRequest;
+use Test\Module\Cron\Request\CronTaskManager\CronTaskIdRequest;
+use Test\Module\Cron\Request\CronTaskManager\CronTaskStatsQueryRequest;
+use Test\Module\Cron\Request\CronTaskManager\CronTaskStatusSwitchRequest;
+use Test\Module\Cron\Request\CronTaskManager\CronTaskUpdateRequest;
+use Test\Module\Cron\Request\CronTaskManager\ListTasksRequest;
+use Test\Module\Cron\Request\CronTaskManager\TaskLogsQueryRequest;
+use Test\Module\Cron\Response\CronTaskManager\CronAgentHeartbeatResponse;
+use Test\Module\Cron\Response\CronTaskManager\CronAgentReportAckResponse;
+use Test\Module\Cron\Response\CronTaskManager\CronAgentTasksResponse;
+use Test\Module\Cron\Response\CronTaskManager\CronDeleteAckResponse;
+use Test\Module\Cron\Response\CronTaskManager\CronNodeListResponse;
+use Test\Module\Cron\Response\CronTaskManager\CronNodeRowResponse;
+use Test\Module\Cron\Response\CronTaskManager\CronTaskRowResponse;
+use Test\Module\Cron\Response\CronTaskManager\CronTaskStatsResponse;
+use Test\Module\Cron\Response\CronTaskManager\CronTaskStatusAckResponse;
+use Test\Module\Cron\Response\CronTaskManager\ListTasksPageResult;
+use Test\Module\Cron\Response\CronTaskManager\ListTasksResponse;
+use Test\Module\Cron\Response\CronTaskManager\TaskLogsPageResult;
+use Test\Module\Cron\Response\CronTaskManager\TaskLogsResponse;
 use Test\Module\Cron\Service\CronTaskService;
 
 class CronTaskManagerController extends BController
@@ -34,12 +41,12 @@ class CronTaskManagerController extends BController
     const TASK_EXEC_TYPE_SHELL = 1;
     const TASK_EXEC_TYPE_HTTP = 2;
 
-    public function listTasks(CronTaskListQueryRequest $request): CronPagedListResponse
+    public function listTasks(ListTasksRequest $request): ListTasksResponse
     {
         $page = $request->getPage();
         $pageSize = $request->getPageSize();
         $offset = ($page - 1) * $pageSize;
-        $keyword = $request->getKeyword();
+        $keyword = trim((string)($request->getKeyword() ?? ''));
         $status = $request->getStatus();
         $nodeId = $request->getNodeId();
         $execType = $request->getExecType();
@@ -66,28 +73,33 @@ class CronTaskManagerController extends BController
         if ($keyword !== '') {
             $query->where('name', 'like', '%' . $keyword . '%');
         }
-        if ($status !== null && $status !== '') {
-            $query->where('status', (int)$status);
+        if ($status !== null) {
+            $query->where('status', $status);
         }
-        if ($nodeId !== null && $nodeId !== '') {
-            $query->where('node_id', (int)$nodeId);
+        if ($nodeId !== null) {
+            $query->where('node_id', $nodeId);
         }
-        if ($execType !== null && $execType !== '') {
-            $query->where('exec_type', (int)$execType);
+        if ($execType !== null) {
+            $query->where('exec_type', $execType);
         }
 
         $total = $query->clone()->count();
         $list = $query->order('id', 'desc')->limit($offset, $pageSize)->select()->toArray();
 
-        return new CronPagedListResponse($page, $pageSize, $total, $list);
+        $pageResult = new ListTasksPageResult();
+        $pageResult->setTotal($total);
+        foreach ($list as $row) {
+            $pageResult->addListItem(CronTaskRowDto::fromEntityRow($row));
+        }
+
+        return new ListTasksResponse($pageResult);
     }
 
-    public function createTask(CronTaskCreateRequest $request): ?CronTaskRowResponse
+    public function createTask(CronTaskCreateRequest $request): CronTaskRowResponse
     {
         list($data, $error) = $this->buildTaskPayload($request->toPayloadArray(), true);
         if ($error !== null) {
-            $this->returnJson([], -1, $error);
-            return null;
+            throw CronTaskException::throw($error, -1);
         }
 
         $task = new CronTaskEntity();
@@ -97,29 +109,25 @@ class CronTaskManagerController extends BController
         return new CronTaskRowResponse($task->getAttributes());
     }
 
-    public function updateTask(CronTaskUpdateRequest $request): ?CronTaskRowResponse
+    public function updateTask(CronTaskUpdateRequest $request): CronTaskRowResponse
     {
         $id = $request->getId();
         if ($id <= 0) {
-            $this->returnJson([], -1, 'id不能为空');
-            return null;
+            throw CronTaskException::throw('id不能为空', -1);
         }
 
         $task = (new CronTaskEntity())->loadById($id);
         if (!$task) {
-            $this->returnJson([], -1, '任务不存在');
-            return null;
+            throw CronTaskException::throw('任务不存在', -1);
         }
 
         list($data, $error) = $this->buildTaskPayload($request->toPayloadArray(), false);
         if ($error !== null) {
-            $this->returnJson([], -1, $error);
-            return null;
+            throw CronTaskException::throw($error, -1, []);
         }
 
         if (empty($data)) {
-            $this->returnJson([], -1, '没有可更新字段');
-            return null;
+            throw CronTaskException::throw('没有可更新字段', -1);
         }
 
         $task->setData($data);
@@ -128,18 +136,16 @@ class CronTaskManagerController extends BController
         return new CronTaskRowResponse($task->getAttributes());
     }
 
-    public function deleteTask(CronTaskIdRequest $request): ?CronDeleteAckResponse
+    public function deleteTask(CronTaskIdRequest $request): CronDeleteAckResponse
     {
         $id = $request->getId();
         if ($id <= 0) {
-            $this->returnJson([], -1, 'id不能为空');
-            return null;
+            throw CronTaskException::throw('id不能为空', -1);
         }
 
         $task = (new CronTaskEntity())->loadById($id);
         if (!$task) {
-            $this->returnJson([], -1, '任务不存在');
-            return null;
+            throw CronTaskException::throw('任务不存在', -1);
         }
 
         $task->delete();
@@ -147,19 +153,17 @@ class CronTaskManagerController extends BController
         return new CronDeleteAckResponse($id);
     }
 
-    public function switchTaskStatus(CronTaskStatusSwitchRequest $request): ?CronTaskStatusAckResponse
+    public function switchTaskStatus(CronTaskStatusSwitchRequest $request): CronTaskStatusAckResponse
     {
         $id = $request->getId();
         $status = $request->getStatus();
         if ($id <= 0 || !in_array($status, [0, 1], true)) {
-            $this->returnJson([], -1, '参数错误');
-            return null;
+            throw CronTaskException::throw('参数错误', -1);
         }
 
         $task = (new CronTaskEntity())->loadById($id);
         if (!$task) {
-            $this->returnJson([], -1, '任务不存在');
-            return null;
+            throw CronTaskException::throw('任务不存在', -1);
         }
 
         $task->status = $status;
@@ -175,14 +179,13 @@ class CronTaskManagerController extends BController
         return new CronNodeListResponse($list);
     }
 
-    public function createNode(CronNodeCreateRequest $request): ?CronNodeRowResponse
+    public function createNode(CronNodeCreateRequest $request): CronNodeRowResponse
     {
         $nodeName = $request->getNodeName();
         $nodeIp = $request->getNodeIp();
         $remark = $request->getRemark();
         if ($nodeName === '' || $nodeIp === '') {
-            $this->returnJson([], -1, 'node_name和node_ip不能为空');
-            return null;
+            throw CronTaskException::throw('nodeName和nodeIp不能为空', -1);
         }
 
         $node = new CronAgentNodeEntity();
@@ -196,18 +199,16 @@ class CronTaskManagerController extends BController
         return new CronNodeRowResponse($node->getAttributes());
     }
 
-    public function deleteNode(CronNodeIdRequest $request): ?CronDeleteAckResponse
+    public function deleteNode(CronNodeIdRequest $request): CronDeleteAckResponse
     {
         $id = $request->getId();
         if ($id <= 0) {
-            $this->returnJson([], -1, 'id不能为空');
-            return null;
+            throw CronTaskException::throw('id不能为空', -1);
         }
 
         $node = (new CronAgentNodeEntity())->loadById($id);
         if (!$node) {
-            $this->returnJson([], -1, '节点不存在');
-            return null;
+            throw CronTaskException::throw('节点不存在', -1);
         }
 
         $node->delete();
@@ -215,15 +216,14 @@ class CronTaskManagerController extends BController
         return new CronDeleteAckResponse($id);
     }
 
-    public function taskLogs(CronTaskLogsQueryRequest $request): ?CronPagedListResponse
+    public function taskLogs(TaskLogsQueryRequest $request): TaskLogsResponse
     {
         $taskId = $request->getTaskId();
         $page = $request->getPage();
         $pageSize = $request->getPageSize();
         $offset = ($page - 1) * $pageSize;
         if ($taskId <= 0) {
-            $this->returnJson([], -1, 'task_id不能为空');
-            return null;
+            throw CronTaskException::throw('taskId不能为空', -1);
         }
 
         $query = CronTaskLogEntity::query()->where([
@@ -232,15 +232,20 @@ class CronTaskManagerController extends BController
         $total = $query->clone()->count();
         $list = $query->order('id', 'desc')->limit($offset, $pageSize)->select()->toArray();
 
-        return new CronPagedListResponse($page, $pageSize, $total, $list);
+        $pageResult = new TaskLogsPageResult();
+        $pageResult->setTotal($total);
+        foreach ($list as $row) {
+            $pageResult->addListItem(CronTaskLogRowDto::fromEntityRow($row));
+        }
+
+        return new TaskLogsResponse($pageResult);
     }
 
-    public function taskStats(CronTaskStatsQueryRequest $request): ?CronTaskStatsResponse
+    public function taskStats(CronTaskStatsQueryRequest $request): CronTaskStatsResponse
     {
         $taskId = $request->getTaskId();
         if ($taskId <= 0) {
-            $this->returnJson([], -1, 'task_id不能为空');
-            return null;
+            throw CronTaskException::throw('taskId不能为空', -1);
         }
 
         $logs = CronTaskLogEntity::query()->field(['id', 'message', 'created_at'])->where([
@@ -290,13 +295,12 @@ class CronTaskManagerController extends BController
         );
     }
 
-    public function agentTasks(CronAgentTasksQueryRequest $request): ?CronAgentTasksResponse
+    public function agentTasks(CronAgentTasksQueryRequest $request): CronAgentTasksResponse
     {
         $nodeId = $request->getNodeId();
         $execType = (int)($request->getExecType() ?? 0);
         if ($nodeId <= 0) {
-            $this->returnJson([], -1, 'node_id不能为空');
-            return null;
+            throw CronTaskException::throw('nodeId不能为空', -1, []);
         }
 
         $service = new CronTaskService();
@@ -312,24 +316,22 @@ class CronTaskManagerController extends BController
         return CronAgentTasksResponse::forAllTypes($nodeId, $shellTasks, $httpTasks);
     }
 
-    public function agentHeartbeat(CronAgentHeartbeatRequest $request): ?CronAgentHeartbeatResponse
+    public function agentHeartbeat(CronAgentHeartbeatRequest $request): CronAgentHeartbeatResponse
     {
         $nodeId = $request->getNodeId();
         if ($nodeId <= 0) {
-            $this->returnJson([], -1, 'node_id不能为空');
-            return null;
+            throw CronTaskException::throw('nodeId不能为空', -1);
         }
 
         return new CronAgentHeartbeatResponse($nodeId, date('Y-m-d H:i:s'));
     }
 
-    public function agentReport(CronAgentReportRequest $request): ?CronAgentReportAckResponse
+    public function agentReport(CronAgentReportRequest $request): CronAgentReportAckResponse
     {
         $cronId = $request->getCronId();
         $message = $request->getMessage();
         if ($cronId <= 0 || $message === '') {
-            $this->returnJson([], -1, 'cron_id和message不能为空');
-            return null;
+            throw CronTaskException::throw('cronId和message不能为空', -1);
         }
 
         $taskItem = $this->normalizeJsonField($request->getTaskItem());

@@ -2,36 +2,38 @@
 
 declare(strict_types=1);
 
-namespace Test\Module\Cron\Request;
 
+namespace Test\Module\Cron\Request\CronTaskManager;
+
+use Test\Module\Cron\Dto\CronTaskManager\CronTimeRangeDto;
+use InvalidArgumentException;
 use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Annotation\StringToInt;
 use Swoolefy\Annotation\Validation\ValidationRule;
 use Swoolefy\Http\BaseRequest;
-use Test\Module\Cron\Dto\CronTimeRangeDto;
 
 class CronTaskCreateRequest extends BaseRequest
 {
     #[ApiProperty(description: '任务名称')]
-    #[ValidationRule(rule: 'required|string', message: 'name不能为空')]
+    #[ValidationRule(rule: 'required|string', message: 'name 不能为空')]
     protected string $name = '';
 
     #[ApiProperty(description: 'Cron 表达式')]
-    #[ValidationRule(rule: 'required|string', message: 'expression不能为空')]
+    #[ValidationRule(rule: 'required|string', message: 'expression 不能为空')]
     protected string $expression = '';
 
     #[ApiProperty(description: '执行命令或 URL')]
-    #[ValidationRule(rule: 'required|string', message: 'command不能为空')]
+    #[ValidationRule(rule: 'required|string', message: 'command 不能为空')]
     protected string $command = '';
 
     #[ApiProperty(description: '执行类型：1 shell，2 http')]
-    #[ValidationRule(rule: 'required|int', message: 'exec_type不能为空')]
-    protected int $exec_type = 0;
+    #[ValidationRule(rule: 'required|int', message: 'execType 不能为空')]
+    protected int $execType = 0;
 
     #[ApiProperty(description: '节点 ID')]
-    #[ValidationRule(rule: 'required|int', message: 'node_id不能为空')]
+    #[ValidationRule(rule: 'required|int', message: 'nodeId 不能为空')]
     #[StringToInt]
-    protected int $node_id = 0;
+    protected int $nodeId = 0;
 
     #[ApiProperty(description: '描述')]
     protected ?string $description = null;
@@ -40,48 +42,46 @@ class CronTaskCreateRequest extends BaseRequest
     protected ?int $status = null;
 
     #[ApiProperty(description: '是否阻塞重叠执行：0 否，1 是')]
-    protected ?int $with_block_lapping = null;
+    protected ?int $withBlockLapping = null;
 
     #[ApiProperty(description: 'HTTP 方法')]
-    protected ?string $http_method = null;
+    protected ?string $httpMethod = null;
 
     #[ApiProperty(description: 'HTTP 超时（秒）')]
-    protected ?int $http_request_time_out = null;
+    protected ?int $httpRequestTimeOut = null;
 
     /**
      * @var array<int, CronTimeRangeDto>
      */
     #[ApiProperty(description: '允许执行时间段列表')]
-    #[ValidationRule(rule: 'nullable|array', message: 'cron_between 格式错误', itemClass: CronTimeRangeDto::class)]
-    protected array $cron_between = [];
+    #[ValidationRule(rule: 'nullable|array', message: 'cronBetween 格式错误', itemClass: CronTimeRangeDto::class)]
+    protected array $cronBetween = [];
 
     /**
      * @var array<int, CronTimeRangeDto>
      */
     #[ApiProperty(description: '需跳过的时间段列表')]
-    #[ValidationRule(rule: 'nullable|array', message: 'cron_skip 格式错误', itemClass: CronTimeRangeDto::class)]
-    protected array $cron_skip = [];
+    #[ValidationRule(rule: 'nullable|array', message: 'cronSkip 格式错误', itemClass: CronTimeRangeDto::class)]
+    protected array $cronSkip = [];
 
     /**
-     * 任意 JSON 对象（请求体），不参与嵌套 strict 校验。
-     *
      * @var array<string, mixed>|null
      */
     #[ApiProperty(description: 'HTTP 请求体（JSON 对象）')]
-    protected ?array $http_body = null;
+    protected ?array $httpBody = null;
 
     /**
      * @var array<string, mixed>|null
      */
     #[ApiProperty(description: 'HTTP 请求头（JSON 对象）')]
-    protected ?array $http_headers = null;
+    protected ?array $httpHeaders = null;
 
     public function getName(): string
     {
         return $this->name;
     }
 
-    public function setName(string $name): self
+    public function setName(string $name): static
     {
         $this->name = $name;
 
@@ -93,7 +93,7 @@ class CronTaskCreateRequest extends BaseRequest
         return $this->expression;
     }
 
-    public function setExpression(string $expression): self
+    public function setExpression(string $expression): static
     {
         $this->expression = $expression;
 
@@ -105,7 +105,7 @@ class CronTaskCreateRequest extends BaseRequest
         return $this->command;
     }
 
-    public function setCommand(string $command): self
+    public function setCommand(string $command): static
     {
         $this->command = $command;
 
@@ -114,24 +114,24 @@ class CronTaskCreateRequest extends BaseRequest
 
     public function getExecType(): int
     {
-        return $this->exec_type;
+        return $this->execType;
     }
 
-    public function setExecType(int $exec_type): self
+    public function setExecType(int $execType): static
     {
-        $this->exec_type = $exec_type;
+        $this->execType = $execType;
 
         return $this;
     }
 
     public function getNodeId(): int
     {
-        return $this->node_id;
+        return $this->nodeId;
     }
 
-    public function setNodeId(int $node_id): self
+    public function setNodeId(int $nodeId): static
     {
-        $this->node_id = $node_id;
+        $this->nodeId = $nodeId;
 
         return $this;
     }
@@ -141,7 +141,7 @@ class CronTaskCreateRequest extends BaseRequest
         return $this->description;
     }
 
-    public function setDescription(?string $description): self
+    public function setDescription(?string $description): static
     {
         $this->description = $description;
 
@@ -153,7 +153,7 @@ class CronTaskCreateRequest extends BaseRequest
         return $this->status;
     }
 
-    public function setStatus(?int $status): self
+    public function setStatus(?int $status): static
     {
         $this->status = $status;
 
@@ -162,36 +162,36 @@ class CronTaskCreateRequest extends BaseRequest
 
     public function getWithBlockLapping(): ?int
     {
-        return $this->with_block_lapping;
+        return $this->withBlockLapping;
     }
 
-    public function setWithBlockLapping(?int $with_block_lapping): self
+    public function setWithBlockLapping(?int $withBlockLapping): static
     {
-        $this->with_block_lapping = $with_block_lapping;
+        $this->withBlockLapping = $withBlockLapping;
 
         return $this;
     }
 
     public function getHttpMethod(): ?string
     {
-        return $this->http_method;
+        return $this->httpMethod;
     }
 
-    public function setHttpMethod(?string $http_method): self
+    public function setHttpMethod(?string $httpMethod): static
     {
-        $this->http_method = $http_method;
+        $this->httpMethod = $httpMethod;
 
         return $this;
     }
 
     public function getHttpRequestTimeOut(): ?int
     {
-        return $this->http_request_time_out;
+        return $this->httpRequestTimeOut;
     }
 
-    public function setHttpRequestTimeOut(?int $http_request_time_out): self
+    public function setHttpRequestTimeOut(?int $httpRequestTimeOut): static
     {
-        $this->http_request_time_out = $http_request_time_out;
+        $this->httpRequestTimeOut = $httpRequestTimeOut;
 
         return $this;
     }
@@ -201,22 +201,26 @@ class CronTaskCreateRequest extends BaseRequest
      */
     public function getCronBetween(): array
     {
-        return $this->cron_between;
+        return $this->cronBetween;
     }
 
     /**
-     * @param array<int, CronTimeRangeDto>|null $cron_between
+     * @param array<int, CronTimeRangeDto>|null $cronBetween
      */
-    public function setCronBetween(?array $cron_between): self
+    public function setCronBetween(?array $cronBetween): static
     {
-        $this->cron_between = $cron_between ?? [];
+        $cronBetween = $cronBetween ?? [];
+        if ($cronBetween !== [] && !($cronBetween[0] instanceof CronTimeRangeDto)) {
+            throw new InvalidArgumentException('cronBetween items must be instances of CronTimeRangeDto');
+        }
+        $this->cronBetween = $cronBetween;
 
         return $this;
     }
 
-    public function addCronBetween(CronTimeRangeDto $cron_between): self
+    public function addCronBetween(CronTimeRangeDto $item): static
     {
-        $this->cron_between[] = $cron_between;
+        $this->cronBetween[] = $item;
 
         return $this;
     }
@@ -226,22 +230,25 @@ class CronTaskCreateRequest extends BaseRequest
      */
     public function getCronSkip(): array
     {
-        return $this->cron_skip;
+        return $this->cronSkip;
     }
 
     /**
-     * @param array<int, CronTimeRangeDto> $cron_skip
+     * @param array<int, CronTimeRangeDto> $cronSkip
      */
-    public function setCronSkip(array $cron_skip): self
+    public function setCronSkip(array $cronSkip): static
     {
-        $this->cron_skip = $cron_skip;
+        if ($cronSkip !== [] && !($cronSkip[0] instanceof CronTimeRangeDto)) {
+            throw new InvalidArgumentException('cronSkip items must be instances of CronTimeRangeDto');
+        }
+        $this->cronSkip = $cronSkip;
 
         return $this;
     }
 
-    public function addCronSkip(CronTimeRangeDto $cron_skip): self
+    public function addCronSkip(CronTimeRangeDto $item): static
     {
-        $this->cron_skip[] = $cron_skip;
+        $this->cronSkip[] = $item;
 
         return $this;
     }
@@ -251,15 +258,15 @@ class CronTaskCreateRequest extends BaseRequest
      */
     public function getHttpBody(): ?array
     {
-        return $this->http_body;
+        return $this->httpBody;
     }
 
     /**
-     * @param array<string, mixed>|null $http_body
+     * @param array<string, mixed>|null $httpBody
      */
-    public function setHttpBody(?array $http_body): self
+    public function setHttpBody(?array $httpBody): static
     {
-        $this->http_body = $http_body;
+        $this->httpBody = $httpBody;
 
         return $this;
     }
@@ -269,15 +276,15 @@ class CronTaskCreateRequest extends BaseRequest
      */
     public function getHttpHeaders(): ?array
     {
-        return $this->http_headers;
+        return $this->httpHeaders;
     }
 
     /**
-     * @param array<string, mixed>|null $http_headers
+     * @param array<string, mixed>|null $httpHeaders
      */
-    public function setHttpHeaders(?array $http_headers): self
+    public function setHttpHeaders(?array $httpHeaders): static
     {
-        $this->http_headers = $http_headers;
+        $this->httpHeaders = $httpHeaders;
 
         return $this;
     }

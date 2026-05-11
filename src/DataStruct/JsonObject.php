@@ -17,6 +17,7 @@ use Countable;
 use IteratorAggregate;
 use JsonSerializable;
 use Swoolefy\Core\Dto\ArrayDto;
+use Swoolefy\Exception\JsonObjectException;
 use Traversable;
 
 /**
@@ -80,7 +81,7 @@ class JsonObject implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
         } elseif ($data instanceof self) {
             $this->data = $data->toArray();
         } else {
-            throw new \InvalidArgumentException('JsonObject constructor expects array, string or JsonObject instance');
+            throw JsonObjectException::throw('JsonObject constructor expects array, string or JsonObject instance');
         }
     }
 
@@ -286,7 +287,7 @@ class JsonObject implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
         } elseif (is_array($other)) {
             $otherData = $other;
         } else {
-            throw new \InvalidArgumentException('Merge expects JsonObject or array');
+            throw JsonObjectException::throw('Merge expects JsonObject or array');
         }
         
         return new static(array_merge($this->data, $otherData));
@@ -350,7 +351,7 @@ class JsonObject implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
     public function offsetSet($offset, $value): void
     {
         if (is_null($offset)) {
-            throw new \InvalidArgumentException('JsonObject does not support appending without key');
+            throw JsonObjectException::throw('JsonObject does not support appending without key');
         }
         $this->set($offset, $value);
     }

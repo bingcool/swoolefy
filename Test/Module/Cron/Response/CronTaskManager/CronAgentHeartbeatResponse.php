@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Module\Cron\Response;
+namespace Test\Module\Cron\Response\CronTaskManager;
 
 use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Http\BaseResponse;
@@ -10,29 +10,29 @@ use Swoolefy\Http\BaseResponse;
 class CronAgentHeartbeatResponse extends BaseResponse
 {
     #[ApiProperty(description: '节点 ID')]
-    protected int $node_id;
+    protected int $nodeId;
 
     #[ApiProperty(description: '是否存活')]
     protected bool $alive;
 
     #[ApiProperty(description: '服务端当前时间')]
-    protected string $server_time;
+    protected string $serverTime;
 
-    public function __construct(int $node_id, string $server_time)
+    public function __construct(int $nodeId, string $serverTime)
     {
-        $this->setNodeId($node_id);
+        $this->setNodeId($nodeId);
         $this->setAlive(true);
-        $this->setServerTime($server_time);
+        $this->setServerTime($serverTime);
     }
 
     public function getNodeId(): int
     {
-        return $this->node_id;
+        return $this->nodeId;
     }
 
-    public function setNodeId(int $node_id): self
+    public function setNodeId(int $nodeId): static
     {
-        $this->node_id = $node_id;
+        $this->nodeId = $nodeId;
 
         return $this;
     }
@@ -42,7 +42,7 @@ class CronAgentHeartbeatResponse extends BaseResponse
         return $this->alive;
     }
 
-    public function setAlive(bool $alive): self
+    public function setAlive(bool $alive): static
     {
         $this->alive = $alive;
 
@@ -51,12 +51,12 @@ class CronAgentHeartbeatResponse extends BaseResponse
 
     public function getServerTime(): string
     {
-        return $this->server_time;
+        return $this->serverTime;
     }
 
-    public function setServerTime(string $server_time): self
+    public function setServerTime(string $serverTime): static
     {
-        $this->server_time = $server_time;
+        $this->serverTime = $serverTime;
 
         return $this;
     }
@@ -64,9 +64,9 @@ class CronAgentHeartbeatResponse extends BaseResponse
     public function getData(): array
     {
         return [
-            'node_id' => $this->getNodeId(),
+            'nodeId' => $this->getNodeId(),
             'alive' => $this->getAlive(),
-            'server_time' => $this->getServerTime(),
+            'serverTime' => $this->getServerTime(),
         ];
     }
 }

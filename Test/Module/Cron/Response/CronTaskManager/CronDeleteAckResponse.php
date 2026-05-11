@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Module\Cron\Response;
+namespace Test\Module\Cron\Response\CronTaskManager;
 
 use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Http\BaseResponse;
@@ -26,7 +26,7 @@ class CronDeleteAckResponse extends BaseResponse
         return $this->id;
     }
 
-    public function setId(int $id): self
+    public function setId(int $id): static
     {
         $this->id = $id;
 
@@ -38,7 +38,7 @@ class CronDeleteAckResponse extends BaseResponse
         return $this->deleted;
     }
 
-    public function setDeleted(bool $deleted): self
+    public function setDeleted(bool $deleted): static
     {
         $this->deleted = $deleted;
 

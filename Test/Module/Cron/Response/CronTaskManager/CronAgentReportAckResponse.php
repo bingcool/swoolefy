@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Module\Cron\Response;
+namespace Test\Module\Cron\Response\CronTaskManager;
 
 use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Http\BaseResponse;
@@ -13,11 +13,11 @@ class CronAgentReportAckResponse extends BaseResponse
     protected bool $saved;
 
     #[ApiProperty(description: 'Cron 任务 ID')]
-    protected int $cron_id;
+    protected int $cronId;
 
-    public function __construct(int $cron_id, bool $saved = true)
+    public function __construct(int $cronId, bool $saved = true)
     {
-        $this->setCronId($cron_id);
+        $this->setCronId($cronId);
         $this->setSaved($saved);
     }
 
@@ -26,7 +26,7 @@ class CronAgentReportAckResponse extends BaseResponse
         return $this->saved;
     }
 
-    public function setSaved(bool $saved): self
+    public function setSaved(bool $saved): static
     {
         $this->saved = $saved;
 
@@ -35,12 +35,12 @@ class CronAgentReportAckResponse extends BaseResponse
 
     public function getCronId(): int
     {
-        return $this->cron_id;
+        return $this->cronId;
     }
 
-    public function setCronId(int $cron_id): self
+    public function setCronId(int $cronId): static
     {
-        $this->cron_id = $cron_id;
+        $this->cronId = $cronId;
 
         return $this;
     }
@@ -49,7 +49,7 @@ class CronAgentReportAckResponse extends BaseResponse
     {
         return [
             'saved' => $this->getSaved(),
-            'cron_id' => $this->getCronId(),
+            'cronId' => $this->getCronId(),
         ];
     }
 }
