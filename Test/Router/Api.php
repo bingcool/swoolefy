@@ -2,6 +2,7 @@
 
 namespace Test\Router;
 
+use Swoolefy\Annotation\ApiOperation;
 use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\Route;
@@ -10,7 +11,6 @@ use Test\Middleware\Group\GroupTestMiddleware;
 /**
  * Controller 下的控制器路由
  */
-
 Route::get('/index/index', [
     'beforeHandle' => function(RequestInput $requestInput) {
         Context::set('name', 'bingcool');
