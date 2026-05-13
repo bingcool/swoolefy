@@ -54,6 +54,7 @@ final class ApiDocGenerator
         }
 
         $this->ensureDir($this->outputDir);
+        $this->cleanGeneratedOpenApiFiles();
 
         $byModule = [];
         foreach ($routes as $route) {
@@ -75,7 +76,7 @@ final class ApiDocGenerator
     }
 
     /**
-     * @param list<array{module:string,methods:list<string>,path:string,controller:string,action:string,source:string}> $routes
+     * @param list<array{module:string,tag:string,methods:list<string>,path:string,controller:string,action:string,source:string}> $routes
      * @return array<string, mixed>
      */
     private function buildOpenApiDocument(string $module, array $routes): array
@@ -93,7 +94,7 @@ final class ApiDocGenerator
         foreach ($routes as $route) {
             foreach ($route['methods'] as $method) {
                 $verb = strtolower($method);
-                $paths[$route['path']][$verb] = $this->buildOperation($module, $route, strtoupper($method));
+                $paths[$route['path']][$verb] = $this->buildOperation($route, strtoupper($method));
             }
         }
 
@@ -109,13 +110,13 @@ final class ApiDocGenerator
     }
 
     /**
-     * @param array{module:string,methods:list<string>,path:string,controller:string,action:string,source:string} $route
+     * @param array{module:string,tag:string,methods:list<string>,path:string,controller:string,action:string,source:string} $route
      * @return array<string, mixed>
      */
-    private function buildOperation(string $module, array $route, string $method): array
+    private function buildOperation(array $route, string $method): array
     {
         $operation = [
-            'tags' => [$module],
+            'tags' => [$route['tag']],
             'summary' => $route['action'],
             'operationId' => $this->operationId($method, $route['controller'], $route['action']),
         ];
@@ -671,7 +672,7 @@ final class ApiDocGenerator
     }
 
     /**
-     * @return list<array{module:string,methods:list<string>,path:string,controller:string,action:string,source:string}>
+     * @return list<array{module:string,tag:string,methods:list<string>,path:string,controller:string,action:string,source:string}>
      */
     private function scanRoutes(string $dir): array
     {
@@ -706,7 +707,7 @@ final class ApiDocGenerator
     }
 
     /**
-     * @return list<array{module:string,methods:list<string>,path:string,controller:string,action:string,source:string}>
+     * @return list<array{module:string,tag:string,methods:list<string>,path:string,controller:string,action:string,source:string}>
      */
     private function scanRouteFile(string $path): array
     {
@@ -721,6 +722,7 @@ final class ApiDocGenerator
         $routes = [];
         $groupPrefix = '';
         $module = $this->moduleNameFromRouteFile($path);
+        $tag = $this->routeTagFromFile($path, $content);
 
         for ($i = 0, $n = count($lines); $i < $n; $i++) {
             $line = $lines[$i];
@@ -740,7 +742,7 @@ final class ApiDocGenerator
 
             if (preg_match('/Route::(get|post|put|patch|delete|any|head|options)\s*\(\s*[\'"]([^\'"]+)[\'"]/', $line, $rm)) {
                 $verb = strtoupper($rm[1]);
-                $this->appendRouteFromChunk($routes, $module, $lines, $i, $verb, $rm[2], $groupPrefix, $namespace, $useAliases, $verb === 'ANY' ? 'any' : 'single');
+                $this->appendRouteFromChunk($routes, $module, $tag, $lines, $i, $verb, $rm[2], $groupPrefix, $namespace, $useAliases, $verb === 'ANY' ? 'any' : 'single');
             }
 
             if (preg_match('/Route::match\s*\(\s*\[/', $line)) {
@@ -761,7 +763,7 @@ final class ApiDocGenerator
                     }
                 }
                 if ($methods !== [] && $uriPath !== null) {
-                    $this->appendRouteFromChunk($routes, $module, $lines, $i, $methods, $uriPath, $groupPrefix, $namespace, $useAliases, 'match');
+                    $this->appendRouteFromChunk($routes, $module, $tag, $lines, $i, $methods, $uriPath, $groupPrefix, $namespace, $useAliases, 'match');
                 }
             }
         }
@@ -770,13 +772,14 @@ final class ApiDocGenerator
     }
 
     /**
-     * @param list<array{module:string,methods:list<string>,path:string,controller:string,action:string,source:string}> $routes
+     * @param list<array{module:string,tag:string,methods:list<string>,path:string,controller:string,action:string,source:string}> $routes
      * @param string|list<string> $methodOrMethods
      * @param array<string, string> $useAliases
      */
     private function appendRouteFromChunk(
         array &$routes,
         string $module,
+        string $tag,
         array $lines,
         int $start,
         string|array $methodOrMethods,
@@ -803,6 +806,7 @@ final class ApiDocGenerator
             }
             $routes[] = [
                 'module' => $module,
+                'tag' => $tag,
                 'methods' => array_values(array_unique(array_map('strtoupper', $methods))),
                 'path' => $this->joinUriPath($groupPrefix, $uriPath),
                 'controller' => $this->resolveClassName($dm[1], $namespace, $useAliases),
@@ -823,6 +827,26 @@ final class ApiDocGenerator
         }
 
         return $first !== '' ? $first : 'Api';
+    }
+
+    private function routeTagFromFile(string $path, string $content): string
+    {
+        $fileName = pathinfo($path, PATHINFO_FILENAME);
+        $apiDescription = $this->extractFirstApiDocDescription($content);
+        if ($apiDescription !== '') {
+            return $fileName . '(' . $apiDescription . ')';
+        }
+
+        return $fileName;
+    }
+
+    private function extractFirstApiDocDescription(string $content): string
+    {
+        if (!preg_match('/\/\*\*.*?@api\s+([^\r\n*]+).*?\*\//s', $content, $match)) {
+            return '';
+        }
+
+        return trim($match[1]);
     }
 
     private function extractNamespace(string $content): string
@@ -905,6 +929,16 @@ final class ApiDocGenerator
         }
         if (!@mkdir($path, 0755, true) && !is_dir($path)) {
             throw new \RuntimeException("[gen:apidoc] mkdir failed: {$path}");
+        }
+    }
+
+    private function cleanGeneratedOpenApiFiles(): void
+    {
+        $files = glob($this->outputDir . DIRECTORY_SEPARATOR . 'openapi-*.yaml') ?: [];
+        foreach ($files as $file) {
+            if (is_file($file)) {
+                @unlink($file);
+            }
         }
     }
 }

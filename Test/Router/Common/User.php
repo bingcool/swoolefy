@@ -12,7 +12,7 @@ use Test\Middleware\Route\SendMailMiddleware;
 use Test\Middleware\Route\ValidLoginMiddleware;
 
 /**
- * Module/Controller 下的控制器路由
+ * @api 用户模块API
  */
 
 Route::group([

@@ -6,5 +6,9 @@
   "Order": {
     "title": "用户订单中心",
     "description": "用户订单模块"
+  },
+  "Common": {
+    "title": "公共Api模块",
+    "description": "公共Api模块"
   }
 }
