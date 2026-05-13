@@ -4,6 +4,7 @@ namespace Test\Module\Order\Controller;
 use GenerateSdk\Swoolefy\Test\Support\SdkCovertProperty;
 use Swoolefy\Annotation\ApiController;
 use Swoolefy\Annotation\ApiOperation;
+use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
@@ -17,12 +18,31 @@ use Test\Module\Order\Response\LogContentPageResultResponse;
 use Test\Module\Order\Response\LogContentRespDto;
 use Test\Module\Order\Response\LogItemDto;
 use Test\Module\Order\Response\LogResponse;
+use Test\Module\Order\Service\LogOrderService;
 
 #[ApiController(
     description: '日志模块控制器'
 )]
 class LogOrderController extends BController
 {
+    /**
+     * php8.4的属性hook钩子函数get拦截惰性加载获取实例
+     * @var LogOrderService
+     */
+    protected LogOrderService $logOrderService {
+        get {
+            return $this->logOrderService ??= new LogOrderService();
+        }
+    }
+
+    public function logOrder(): ?LogResponse
+    {
+        $this->logOrderService->logOrder();
+        $this->logOrderService->logOrder();
+        $response = new LogResponse();
+        return $response;
+    }
+
     /**
      * @return array<LogResponse>
      * @see \Test\Module\Order\Validation\LogOrderValidation::testLog()
@@ -73,6 +93,12 @@ class LogOrderController extends BController
 
     public function testPageRequest(LogContentPageRequest $request): LogContentPageResultResponse
     {
+        $this->logOrderService->logOrder();
+        $this->logOrderService->logId = 10;
+        var_dump(spl_object_id($this->logOrderService));
+        var_dump(spl_object_id($this->logOrderService));
+        $this->logOrderService->logOrder();
+
         $response = new LogContentPageResultResponse();
         $logContentPageResult = new LogContentPageResult();
         $logContentPageResult->setTotal(100);
