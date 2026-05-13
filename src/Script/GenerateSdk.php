@@ -23,7 +23,7 @@ use Symfony\Component\Console\Output\StreamOutput;
  * - 应用名来自命令中的 AppName（即常量 APP_NAME，如 Test）。
  * - 生成命名空间：GenerateSdk\\{ProjectPascal}\\{APP_NAME}\\...
  * - 文件输出：{out 绝对路径}/{APP_NAME}/...
- * - 若存在 {APP_NAME}/Common/Const 与 {APP_NAME}/Common/Enum，会递归复制其中 .php 并改写命名空间（与 DTO 一致）。
+ * - 若存在 {APP_NAME}/Common/Const、Common/Dto 与 {APP_NAME}/Common/Enum，会递归复制其中 .php 并改写命名空间（与 DTO 一致）。
  */
 class GenerateSdk extends MainCliScript
 {

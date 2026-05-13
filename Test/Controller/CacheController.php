@@ -2,6 +2,7 @@
 namespace Test\Controller;
 
 use Common\Library\Cache\Driver\RedisCache;
+use Swoolefy\Annotation\ApiOperation;
 use Swoolefy\Core\App;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Coroutine\Context;
@@ -9,6 +10,9 @@ use Swoolefy\Core\Controller\BController;
 
 class CacheController extends BController
 {
+    #[ApiOperation(
+        "测试缓存"
+    )]
     public function test(): array
     {
         var_dump("parent cid =".\Swoole\Coroutine::getCid());

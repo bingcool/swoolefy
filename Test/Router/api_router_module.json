@@ -1,0 +1,10 @@
+{
+  "Product": {
+    "title": "用户产品中心",
+    "description": "用户产品模块"
+  },
+  "Order": {
+    "title": "用户订单中心",
+    "description": "用户订单模块"
+  }
+}

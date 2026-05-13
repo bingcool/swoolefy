@@ -2,6 +2,7 @@
 
 namespace Test\Module\Cron\Controller;
 
+use Swoolefy\Annotation\ApiOperation;
 use Swoolefy\Core\Controller\BController;
 use Test\Module\Cron\CronAgentNodeEntity;
 use Test\Module\Cron\CronTaskEntity;
@@ -41,6 +42,9 @@ class CronTaskManagerController extends BController
     const TASK_EXEC_TYPE_SHELL = 1;
     const TASK_EXEC_TYPE_HTTP = 2;
 
+    #[ApiOperation(
+        "分页查询定时任务列表"
+    )]
     public function listTasks(ListTasksRequest $request): ListTasksResponse
     {
         $page = $request->getPage();
@@ -95,6 +99,9 @@ class CronTaskManagerController extends BController
         return new ListTasksResponse($pageResult);
     }
 
+    #[ApiOperation(
+        "创建定时任务"
+    )]
     public function createTask(CronTaskCreateRequest $request): CronTaskRowResponse
     {
         list($data, $error) = $this->buildTaskPayload($request->toPayloadArray(), true);
@@ -109,6 +116,9 @@ class CronTaskManagerController extends BController
         return new CronTaskRowResponse($task->getAttributes());
     }
 
+    #[ApiOperation(
+        "更新定时任务"
+    )]
     public function updateTask(CronTaskUpdateRequest $request): CronTaskRowResponse
     {
         $id = $request->getId();
@@ -136,6 +146,9 @@ class CronTaskManagerController extends BController
         return new CronTaskRowResponse($task->getAttributes());
     }
 
+    #[ApiOperation(
+        "删除定时任务"
+    )]
     public function deleteTask(CronTaskIdRequest $request): CronDeleteAckResponse
     {
         $id = $request->getId();
@@ -153,6 +166,9 @@ class CronTaskManagerController extends BController
         return new CronDeleteAckResponse($id);
     }
 
+    #[ApiOperation(
+        "切换定时任务启用状态"
+    )]
     public function switchTaskStatus(CronTaskStatusSwitchRequest $request): CronTaskStatusAckResponse
     {
         $id = $request->getId();
@@ -172,6 +188,9 @@ class CronTaskManagerController extends BController
         return new CronTaskStatusAckResponse($id, $status);
     }
 
+    #[ApiOperation(
+        "查询 Cron Agent 节点列表"
+    )]
     public function listNodes(): CronNodeListResponse
     {
         $list = CronAgentNodeEntity::query()->order('id', 'desc')->select()->toArray();
@@ -179,6 +198,9 @@ class CronTaskManagerController extends BController
         return new CronNodeListResponse($list);
     }
 
+    #[ApiOperation(
+        "创建 Cron Agent 节点"
+    )]
     public function createNode(CronNodeCreateRequest $request): CronNodeRowResponse
     {
         $nodeName = $request->getNodeName();
@@ -199,6 +221,9 @@ class CronTaskManagerController extends BController
         return new CronNodeRowResponse($node->getAttributes());
     }
 
+    #[ApiOperation(
+        "删除 Cron Agent 节点"
+    )]
     public function deleteNode(CronNodeIdRequest $request): CronDeleteAckResponse
     {
         $id = $request->getId();
@@ -216,6 +241,9 @@ class CronTaskManagerController extends BController
         return new CronDeleteAckResponse($id);
     }
 
+    #[ApiOperation(
+        "分页查询任务执行日志"
+    )]
     public function taskLogs(TaskLogsQueryRequest $request): TaskLogsResponse
     {
         $taskId = $request->getTaskId();
@@ -241,6 +269,9 @@ class CronTaskManagerController extends BController
         return new TaskLogsResponse($pageResult);
     }
 
+    #[ApiOperation(
+        "查询任务执行统计"
+    )]
     public function taskStats(CronTaskStatsQueryRequest $request): CronTaskStatsResponse
     {
         $taskId = $request->getTaskId();
@@ -295,6 +326,9 @@ class CronTaskManagerController extends BController
         );
     }
 
+    #[ApiOperation(
+        "Agent 拉取待执行的定时任务"
+    )]
     public function agentTasks(CronAgentTasksQueryRequest $request): CronAgentTasksResponse
     {
         $nodeId = $request->getNodeId();
@@ -316,6 +350,9 @@ class CronTaskManagerController extends BController
         return CronAgentTasksResponse::forAllTypes($nodeId, $shellTasks, $httpTasks);
     }
 
+    #[ApiOperation(
+        "Agent 心跳上报"
+    )]
     public function agentHeartbeat(CronAgentHeartbeatRequest $request): CronAgentHeartbeatResponse
     {
         $nodeId = $request->getNodeId();
@@ -326,6 +363,9 @@ class CronTaskManagerController extends BController
         return new CronAgentHeartbeatResponse($nodeId, date('Y-m-d H:i:s'));
     }
 
+    #[ApiOperation(
+        "Agent 上报任务执行结果"
+    )]
     public function agentReport(CronAgentReportRequest $request): CronAgentReportAckResponse
     {
         $cronId = $request->getCronId();
