@@ -23,7 +23,7 @@ class PoolsHandler
     /**
      * @var Channel
      */
-    protected $channel = null;
+    protected ?Channel $channel = null;
 
     /**
      * @var string
