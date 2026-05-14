@@ -258,6 +258,7 @@ docker run -d -it --security-opt seccomp=unconfined --name=swoolefy-php83-v6 swo
 - [x] 支持swagger一键生成api文档
 - [x] 支持分组路由, 路由中间件middleware, 前置路由组件, 后置路由组件middleware,多模块应用     
 - [x] 支持扫描 Route 路由配置自动生成PHP SDK，自动提取 Request/Response DTO，生成类型安全的客户端代码
+- [x] 支持按模块扫描Route路由自动生成open-api的协议的swagger文档API文档              
 - [x] 支持自定义注册不同根命名空间，快速多项目部署          
 - [x] 支持httpServer，实用轻量Api接口开发     
 - [x] 支持多协议websocketServer、udpServer、mqttServer      
@@ -1106,7 +1107,141 @@ class UserController extends BController
 - 生成的 SDK 完全独立，可在任何 PHP 项目中使用（包括传统 PHP-FPM 项目）
 - SDK 基于 Guzzle HTTP 客户端，需要安装 `guzzlehttp/guzzle` 依赖
 
-### 十六、🗄️ 数据库操作
+### 十六、📘 ApiDoc 自动生成
+
+swoolefy 提供了 **ApiDoc 自动生成工具**，可以扫描项目的 Route 路由配置，通过 `dispatch_route` 解析控制器和 action，再结合 Request/Response DTO、属性注解和类型声明生成符合 OpenAPI 3.0 协议的 YAML 文档。
+
+#### 核心特性
+
+- 🔍 **按模块生成文档**: 扫描 `App/Router` 目录，每个路由模块生成一个 `openapi-{module}.yaml`
+- 📝 **自动提取接口说明**: action 上的 `#[ApiOperation(...)]` 会作为接口 `summary/description`
+- 📦 **自动提取请求/响应结构**: 通过反射读取 Request/Response DTO 的属性类型与嵌套对象
+- ✅ **自动识别必填字段**: 读取 `#[ValidationRule(rule: 'required|...')]`、`require`、`must` 等规则
+- 🧩 **支持数组对象递归**: 支持 `ValidationRule(itemClass: XxxDto::class)` 和 `#[ArrayList(itemClass: XxxDto::class)]`
+- 🏷️ **自动生成 tags**: 默认使用路由文件名；若路由文件注释中存在 `@api`，则生成 `api内容(文件名)`
+
+#### 使用方法
+
+```bash
+# 基本用法：扫描默认 App/Router 目录，生成到 swaggerui/apidoc 目录
+php script.php start App --c=gen:apidoc
+
+# 指定路由目录
+php script.php start App --c=gen:apidoc --router=App/Router
+
+# 指定输出目录(可以到具体模块)
+php script.php start App --c=gen:apidoc --router=App/Router/Order --out=swaggerui/apidoc
+```
+
+#### 模块信息配置
+
+可以在路由目录下添加 `api_router_module.json`，用于配置每个模块 OpenAPI 文档的 `title` 和 `description`。未匹配到模块配置时，默认使用 `公共API`。
+
+```json
+{
+  "Product": {
+    "title": "用户产品中心",
+    "description": "用户产品模块"
+  },
+  "Order": {
+    "title": "用户订单中心",
+    "description": "用户订单模块"
+  }
+}
+```
+
+#### 路由文件 tags
+
+生成器会读取路由文件名作为 OpenAPI 的 `tags`。例如 `App/Router/Common/User.php` 默认生成：
+
+```yaml
+tags:
+  - User
+```
+
+如果路由文件注释中存在第一个 `@api`：
+
+```php
+/**
+ * @api 用户模块API
+ */
+```
+
+则生成：
+
+```yaml
+tags:
+  - 用户模块API(User)
+```
+
+#### 生成的 ApiDoc 结构
+
+```text
+swaggerui/apidoc/
+├── openapi-common.yaml
+├── openapi-product.yaml
+├── openapi-order.yaml
+└── openapi-user.yaml
+```
+
+#### 注解示例
+
+**控制器 action 描述：**
+
+```php
+use Swoolefy\Annotation\ApiOperation;
+
+class UserController extends BController
+{
+    #[ApiOperation(
+        "Create user"
+    )]
+    public function create(UserCreateRequest $request): UserCreateResponse
+    {
+        return $response;
+    }
+}
+```
+
+**请求 DTO 字段描述、必填和数组对象：**
+
+```php
+use Swoolefy\Annotation\ApiProperty;
+use Swoolefy\Annotation\Validation\ValidationRule;
+
+class UserCreateRequest extends BaseRequest
+{
+    #[ApiProperty(description: "Username")]
+    #[ValidationRule(rule: "required|string", message: "username is required")]
+    protected string $username = "";
+
+    #[ApiProperty(description: "Role list")]
+    #[ValidationRule(rule: "required|array", itemClass: RoleDto::class)]
+    protected array $roles = [];
+}
+```
+
+#### 工作原理
+
+1. **扫描路由文件**: 解析 `App/Router/**/*.php` 中包含 `dispatch_route` 的路由定义
+2. **按模块分组**: 根据 Router 目录下的模块文件或子目录输出 `openapi-{module}.yaml`
+3. **反射分析**: 通过 PHP Reflection 读取控制器 action 参数与返回值类型
+4. **生成 Schema**:
+   - 通过 `#[ApiProperty]` 读取字段说明
+   - 通过 `#[ValidationRule]` 判断字段是否必填和数组 item 类型
+   - 通过属性类型递归生成对象结构
+   - 通过 `#[IntToString]` / `#[StringToInt]` 修正字段类型
+5. **统一响应包装**: 生成 `code`、`msg`、`trace_id`、`data` 结构
+
+#### 注意事项
+
+- 控制器 action 建议显式声明 Request 参数类型和 Response 返回值类型
+- Request/Response/Dto 属性建议添加 `#[ApiProperty(description: "...")]`
+- 数组对象字段建议使用 `ValidationRule(itemClass: XxxDto::class)` 或 `#[ArrayList(itemClass: XxxDto::class)]`
+- 路由文件的 `@api` 注释只读取第一个匹配项，用于拼接 OpenAPI `tags`
+- 每次生成前会清理输出目录下旧的 `openapi-*.yaml`，避免遗留过期文档
+
+### 十七、🗄️ 数据库操作
 ```php
 
 $db = Application::getApp()->get('db');
@@ -1145,7 +1280,7 @@ $db->newQuery()->table('tbl_users')->where(['id', '=', 100])->field(['id', 'user
 
 ```
 
-### 十六、⚡ 协程单例
+### 十八、⚡ 协程单例
 
 *协程单例*  
 ```php
@@ -1181,7 +1316,7 @@ goApp(function() {
     (独立 Socket 连接)              (独立 Socket 连接)
 
 ```
-### 十七、⚡ 协程并发  
+### 十九、⚡ 协程并发  
 #### Parallel 并发限制器
 
 ```php

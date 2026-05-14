@@ -834,7 +834,7 @@ final class ApiDocGenerator
         $fileName = pathinfo($path, PATHINFO_FILENAME);
         $apiDescription = $this->extractFirstApiDocDescription($content);
         if ($apiDescription !== '') {
-            return $fileName . '(' . $apiDescription . ')';
+            return  $apiDescription. '(' . $fileName . ')';
         }
 
         return $fileName;
