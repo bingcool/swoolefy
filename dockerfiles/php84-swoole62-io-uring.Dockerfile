@@ -4,7 +4,7 @@ LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 
 #swoole6.2.x最高只支持到php84、php85.
 #根据实际构建来设置环境变量
-ENV MY_SWOOLE_VERSION=6.2.0 \
+ENV MY_SWOOLE_VERSION=6.2.1 \
 MY_PHP_VERSION=84 \
 SWOOLEFY_CLI_ENV=dev
 
@@ -55,13 +55,12 @@ php${MY_PHP_VERSION}-mysqlnd \
 && rm -rf /var/cache/apk/* /tmp/* /usr/share/man /usr/share/doc /usr/share/php${MY_PHP_VERSION}
 
 
-
 #运行时目标阶段：创建目标镜像
 FROM alpine:3.22.2
 LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 
 #根据实际构建来设置环境变量
-ENV MY_SWOOLE_VERSION=6.2.0 \
+ENV MY_SWOOLE_VERSION=6.2.1 \
 MY_PHP_VERSION=84 \
 SWOOLEFY_CLI_ENV=dev
 

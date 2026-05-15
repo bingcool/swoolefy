@@ -213,13 +213,8 @@ Client Response
 #### 6.x 版本 (推荐 - 最新稳定版)
 
 **最低要求:**
-- PHP >= 8.2
+- PHP >= 8.4
 - Swoole >= 6.1 (推荐使用 Swoole 6.x 最新版本)
-
-**安装命令:**
-```bash
-composer require bingcool/swoolefy:^6.1
-```
 
 #### 4.9 LTS 版本 (长期维护版)
 
@@ -227,13 +222,8 @@ composer require bingcool/swoolefy:^6.1
 - PHP 7.3 ~ 7.4
 - Swoole 4.8.x (推荐 4.8.13+)
 
-**安装命令:**
-```bash
-composer require bingcool/swoolefy:^4.9
-```
-
 **选择哪个版本?**  
-1、如果确定项目是使用php81+的，那么直接选择 ```swoole > 5.1.x，推荐直接使用 swoole-6.x.x+ 以上最新版本更好``` 安装，然后选择 ```bingcool/swoolefy:^6.1``` 作为项目分支安装最新稳定版本   
+1、如果确定项目是使用php81+的，那么直接选择 ```swoole > 6.1.x，推荐直接使用 swoole-6.x.x+ 以上最新版本更好``` 安装，然后选择 ```bingcool/swoolefy:^6.1``` 作为项目分支安装最新稳定版本   
 
 2、如果确定项目是使用 ```php7.3 ~ php7.4``` 的，那么选择 swoole-v4.8+ 版本来进行编译安装(不能直接使用 swoole-cli-v4.8+ 了, 因为其内置的是php8.1，与你的项目的php7不符合)
 所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.9``` 作为项目分支稳定版本   
@@ -243,12 +233,12 @@ composer require bingcool/swoolefy:^4.9
 4、若不希望自己编译构建，也可以直接使用本目录下的Dockerfile来构建镜像:     
 ```
 // 构建镜像
-docker build --no-cache -t swoolefy-php83-swoole61:v1 -f ./php83-swoole61.Dockerfile .   
+docker build --no-cache -t swoolefy-php84-swoole62:v1 -f ./php84-swoole62-io-uring.Dockerfile .   
 
 // 启动容器(开发环境下 --security-opt seccomp=unconfined的作用是禁用这个默认配置，让容器内的进程可以使用所有系统调用比如io_uring)   
 // 生产环境下建议使用配置文件方式 --security-opt seccomp=./seccomp_profile.json     
 // @see https://github.com/moby/moby/blob/v28.3.3/profiles/seccomp/default.json      
-docker run -d -it --security-opt seccomp=unconfined --name=swoolefy-php83-v6 swoolefy-php83-swoole61:v1
+docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v /host_mnt/Users/macbook/Documents/wwwphp:/home/wwwroot --name=swoolefy-php84-v62 swoolefy-php84-swoole62:v1
 
 ```
 ### 三、⚙️ 实现的功能特性    
@@ -257,8 +247,8 @@ docker run -d -it --security-opt seccomp=unconfined --name=swoolefy-php83-v6 swo
 - [x] 支持架手脚一键创建项目自动生成最小项目骨架         
 - [x] 支持swagger一键生成api文档
 - [x] 支持分组路由, 路由中间件middleware, 前置路由组件, 后置路由组件middleware,多模块应用     
-- [x] 支持扫描 Route 路由配置自动生成PHP SDK，自动提取 Request/Response DTO，生成类型安全的客户端代码
-- [x] 支持按模块扫描Route路由自动生成open-api的协议的swagger文档API文档              
+- [x] 支持扫描Router路由配置自动生成PHP SDK，自动提取 Request/Response DTO，生成类型安全的客户端SDK代码    
+- [x] 支持按模块扫描Router路由配置自动生成open-api协议的swagger的API文档              
 - [x] 支持自定义注册不同根命名空间，快速多项目部署          
 - [x] 支持httpServer，实用轻量Api接口开发     
 - [x] 支持多协议websocketServer、udpServer、mqttServer      
@@ -1198,6 +1188,9 @@ class UserController extends BController
     )]
     public function create(UserCreateRequest $request): UserCreateResponse
     {
+        $response = new UserCreateResponse();
+        $response->setUserId(1);
+        // todo create user
         return $response;
     }
 }
