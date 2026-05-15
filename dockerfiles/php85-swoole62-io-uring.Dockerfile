@@ -1,10 +1,10 @@
 #依赖扩展阶段：构建扩展阶段
-FROM alpine:3.22.2 as ext-build
+FROM alpine:3.23 as ext-build
 LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 
 #swoole6.2.x最高只支持到php84、php85.
 #根据实际构建来设置环境变量
-ENV MY_SWOOLE_VERSION=6.2.0 \
+ENV MY_SWOOLE_VERSION=6.2.1 \
 MY_PHP_VERSION=85 \
 SWOOLEFY_CLI_ENV=dev
 
@@ -57,11 +57,11 @@ php${MY_PHP_VERSION}-mysqlnd \
 
 
 #运行时目标阶段：创建目标镜像
-FROM alpine:3.22.2
+FROM alpine:3.23
 LABEL maintainer=bingcool<bingcoolhuang@gmail.com> version=1.0 license=MIT
 
 #根据实际构建来设置环境变量
-ENV MY_SWOOLE_VERSION=6.2.0 \
+ENV MY_SWOOLE_VERSION=6.2.1 \
 MY_PHP_VERSION=85 \
 SWOOLEFY_CLI_ENV=dev
 
