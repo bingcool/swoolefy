@@ -472,9 +472,9 @@ class LogContentDto extends ArrayDto
 4. Request / Response / DTO类的生成输出代码中 **不得出现 `public`/`private` 字段**，仅允许 **`protected`，必须设置setter和getter方法**。
 5. 属性命名统一使用驼峰命名，禁止使用下划线。
 6. 属性的类型是类时，必须设置默认值，并加上 `= null`。
-7. 属性如果是字符串时，必须加上 `= ''`。
-8. 属性如果是数组时，必须加上 `= []`。
-9. 属性如果是array类型且元素为int|string时，必须加上phpdoc注释array<int|string>
+7. 属性如果是字符串时，必须加上默认值 `= ''`。
+8. 属性如果是数组时，必须加上默认值 `= []`。
+9. 属性如果是array类型且元素为int|string时，必须加上phpdoc注释array<int|string>。
 ---
 
 ## 修订记录
