@@ -971,7 +971,165 @@ Route::group([
 
 ```
 
-### 十五、📦 SDK 自动生成
+### 十五、⚡ 协程单例
+
+*协程单例*  
+```php
+
+// 协程单例使用goApp直接调用创建, 每个协程的DB，redis,kafka,mq的socket对象相互隔离，互不影响，代码通用
+goApp(function() {
+    $db = Application::getApp()->get('db');
+    // 查询列表
+    $db->newQuery()->table('tbl_users')->where('id','>', 1)->field(['id', 'user_name'])->limit(0,10)->select();
+    // redis
+    $redis = Application::getApp()->get('redis');
+    $redis->set('name','bingcool');
+   
+    // 再开启一个协程单例
+    goApp(function() {
+        // $db1与父级协程的$db完全隔离，不是同一个对象
+        $db1 = Application::getApp()->get('db');
+    })
+})
+
+```
+
+*协程隔离示意图:*
+
+```php
+    协程 A (cid=1001)              协程 B (cid=1002)
+    ↓                              ↓
+    App Instance A                App Instance B
+    ↓                              ↓
+    containers['db'] A         containers['db'] B
+    ↓                              ↓
+    Redis Object A                Redis Object B
+    (独立 Socket 连接)              (独立 Socket 连接)
+
+```
+### 十六、⚡ 协程并发  
+#### Parallel 并发限制器
+
+```php
+use Swoolefy\Core\Coroutine\Parallel;
+
+// 场景：有 1000 个请求，限制每次并发 50 个
+$parallel = new Parallel(50);
+
+for ($i = 0; $i < 1000; $i++) {
+    $parallel->add(function() use ($i) {
+        // 协程任务
+        $result = file_get_contents("http://api.example.com/data?id={$i}");
+        return json_decode($result, true);
+    }, "key_{$i}");
+}
+
+// 长等待10s获取结果
+$results = $parallel->runWait(10.0);
+
+
+// 场景：少量的请求，通过add添加闭包
+$parallel = new Parallel();
+$parallel->add(function() {
+    return file_get_contents("http://api.example.com/data");
+}, "key1");
+
+$parallel->add(function() {
+    return file_get_contents("http://api.example.com/data");
+}, "key2");
+
+$parallel->add(function() {
+    return file_get_contents("http://api.example.com/data");
+}, "key3");
+
+// 最长等待10s获取结果
+$parallel->runWait(10.0)
+
+
+```
+
+#### Parallel::run 迭代并发
+
+```php
+use Swoolefy\Core\Coroutine\Parallel;
+
+// 分批处理大数据集(无需等待数据返回)
+$list = range(1, 10000);
+
+Parallel::run(
+    100,           // 每批 100 个协程
+    $list,         // 数据数组
+    function($item) {
+        // 处理每个元素
+        echo "Processing: {$item}\n";
+    },
+    0.01          // 每批间隔 0.01 秒
+);
+```
+
+#### GoWaitGroup
+
+```php
+use Swoolefy\Core\Coroutine\GoWaitGroup;
+
+$wg = new GoWaitGroup();
+
+for ($i = 0; $i < 10; $i++) {
+    $wg->add();
+    go(function() use ($wg, $i) {
+        try {
+            // 并发任务
+            sleep(1);
+            echo "Task {$i} done\n";
+        } finally {
+            $wg->done();
+        }
+    });
+}
+
+$wg->wait();  // 等待所有任务完成
+```
+
+### 十七、🗄️ 数据库操作
+```php
+
+$db = Application::getApp()->get('db');
+// 插入单条数据
+$db->newQuery()->table('tbl_users')->insert([
+            'user_name' => '李四-'.rand(1,9999),
+            'sex' => 0,
+            'birthday' => '1991-07-08',
+            'phone' => 12345678
+    ]);
+
+// 批量插入
+$db->newQuery()->table('tbl_users')->insertAll([
+            [
+                'user_name' => '李四-'.rand(1,9999),
+                'sex' => 0,
+                'birthday' => '1991-07-08',
+                'phone' => 12345678
+            ],
+            [
+                'user_name' => '李四-'.rand(1,9999),
+                'sex' => 0,
+                'birthday' => '1991-07-08',
+                'phone' => 12345678
+            ]
+    ]);
+
+
+// 查询列表
+$db->newQuery()->table('tbl_users')->where('id','>', 1)->field(['id', 'user_name'])->limit(0,10)->select();
+
+// 查询单条
+$db->newQuery()->table('tbl_users')->where(['id', '=', 100])->field(['id', 'user_name'])->find();
+
+.....还有很多其他链式操作
+
+```
+
+### 十八、📦 SDK 自动生成
 
 swoolefy 提供了 **SDK 自动生成工具**，可以扫描项目的 Route 路由配置，自动提取 API 接口信息和 Request/Response DTO，生成类型安全的 PHP 客户端 SDK 代码。
 
@@ -1097,7 +1255,7 @@ class UserController extends BController
 - 生成的 SDK 完全独立，可在任何 PHP 项目中使用（包括传统 PHP-FPM 项目）
 - SDK 基于 Guzzle HTTP 客户端，需要安装 `guzzlehttp/guzzle` 依赖
 
-### 十六、📘 ApiDoc 自动生成
+### 十九、📘 ApiDoc 自动生成
 
 swoolefy 提供了 **ApiDoc 自动生成工具**，可以扫描项目的 Route 路由配置，通过 `dispatch_route` 解析控制器和 action，再结合 Request/Response DTO、属性注解和类型声明生成符合 OpenAPI 3.0 协议的 YAML 文档。
 
@@ -1233,164 +1391,6 @@ class UserCreateRequest extends BaseRequest
 - 数组对象字段建议使用 `ValidationRule(itemClass: XxxDto::class)` 或 `#[ArrayList(itemClass: XxxDto::class)]`
 - 路由文件的 `@api` 注释只读取第一个匹配项，用于拼接 OpenAPI `tags`
 - 每次生成前会清理输出目录下旧的 `openapi-*.yaml`，避免遗留过期文档
-
-### 十七、🗄️ 数据库操作
-```php
-
-$db = Application::getApp()->get('db');
-// 插入单条数据
-$db->newQuery()->table('tbl_users')->insert([
-            'user_name' => '李四-'.rand(1,9999),
-            'sex' => 0,
-            'birthday' => '1991-07-08',
-            'phone' => 12345678
-    ]);
-
-// 批量插入
-$db->newQuery()->table('tbl_users')->insertAll([
-            [
-                'user_name' => '李四-'.rand(1,9999),
-                'sex' => 0,
-                'birthday' => '1991-07-08',
-                'phone' => 12345678
-            ],
-            [
-                'user_name' => '李四-'.rand(1,9999),
-                'sex' => 0,
-                'birthday' => '1991-07-08',
-                'phone' => 12345678
-            ]
-    ]);
-
-
-// 查询列表
-$db->newQuery()->table('tbl_users')->where('id','>', 1)->field(['id', 'user_name'])->limit(0,10)->select();
-
-// 查询单条
-$db->newQuery()->table('tbl_users')->where(['id', '=', 100])->field(['id', 'user_name'])->find();
-
-.....还有很多其他链式操作
-
-```
-
-### 十八、⚡ 协程单例
-
-*协程单例*  
-```php
-
-// 协程单例使用goApp直接调用创建, 每个协程的DB，redis,kafka,mq的socket对象相互隔离，互不影响，代码通用
-goApp(function() {
-    $db = Application::getApp()->get('db');
-    // 查询列表
-    $db->newQuery()->table('tbl_users')->where('id','>', 1)->field(['id', 'user_name'])->limit(0,10)->select();
-    // redis
-    $redis = Application::getApp()->get('redis');
-    $redis->set('name','bingcool');
-   
-    // 再开启一个协程单例
-    goApp(function() {
-        // $db1与父级协程的$db完全隔离，不是同一个对象
-        $db1 = Application::getApp()->get('db');
-    })
-})
-
-```
-
-*协程隔离示意图:*
-
-```php
-    协程 A (cid=1001)              协程 B (cid=1002)
-    ↓                              ↓
-    App Instance A                App Instance B
-    ↓                              ↓
-    containers['db'] A         containers['db'] B
-    ↓                              ↓
-    Redis Object A                Redis Object B
-    (独立 Socket 连接)              (独立 Socket 连接)
-
-```
-### 十九、⚡ 协程并发  
-#### Parallel 并发限制器
-
-```php
-use Swoolefy\Core\Coroutine\Parallel;
-
-// 场景：有 1000 个请求，限制每次并发 50 个
-$parallel = new Parallel(50);
-
-for ($i = 0; $i < 1000; $i++) {
-    $parallel->add(function() use ($i) {
-        // 协程任务
-        $result = file_get_contents("http://api.example.com/data?id={$i}");
-        return json_decode($result, true);
-    }, "key_{$i}");
-}
-
-// 长等待10s获取结果
-$results = $parallel->runWait(10.0);
-
-
-// 场景：少量的请求，通过add添加闭包
-$parallel = new Parallel();
-$parallel->add(function() {
-    return file_get_contents("http://api.example.com/data");
-}, "key1");
-
-$parallel->add(function() {
-    return file_get_contents("http://api.example.com/data");
-}, "key2");
-
-$parallel->add(function() {
-    return file_get_contents("http://api.example.com/data");
-}, "key3");
-
-// 最长等待10s获取结果
-$parallel->runWait(10.0)
-
-
-```
-
-#### Parallel::run 迭代并发
-
-```php
-use Swoolefy\Core\Coroutine\Parallel;
-
-// 分批处理大数据集(无需等待数据返回)
-$list = range(1, 10000);
-
-Parallel::run(
-    100,           // 每批 100 个协程
-    $list,         // 数据数组
-    function($item) {
-        // 处理每个元素
-        echo "Processing: {$item}\n";
-    },
-    0.01          // 每批间隔 0.01 秒
-);
-```
-
-#### GoWaitGroup
-
-```php
-use Swoolefy\Core\Coroutine\GoWaitGroup;
-
-$wg = new GoWaitGroup();
-
-for ($i = 0; $i < 10; $i++) {
-    $wg->add();
-    go(function() use ($wg, $i) {
-        try {
-            // 并发任务
-            sleep(1);
-            echo "Task {$i} done\n";
-        } finally {
-            $wg->done();
-        }
-    });
-}
-
-$wg->wait();  // 等待所有任务完成
-```
 
 ### License
 MIT   

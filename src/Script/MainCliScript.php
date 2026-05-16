@@ -69,7 +69,7 @@ class MainCliScript extends AbstractScriptProcess
         }
         $this->setIsCliScript();
         try {
-            $action = getenv('a');
+            $action = getenv('handle_action');
             if (in_array($action, $this->forbiddenActions)) {
                 fmtPrintError("Function action=[$action] forbidden to exec!");
                 $this->exitAll(true, 0);
@@ -231,7 +231,7 @@ class MainCliScript extends AbstractScriptProcess
         }
 
         putenv("handle_class={$class}");
-        putenv("a={$action}");
+        putenv("handle_action={$action}");
         return $class;
     }
 }

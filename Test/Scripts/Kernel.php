@@ -21,7 +21,7 @@ use Swoolefy\Script\GenerateApiDoc;
 use Swoolefy\Script\GenerateSdk;
 use Swoolefy\Script\TestScript;
 use Swoolefy\Core\Schedule\Schedule;
-use Test\Scripts\User;
+use Test\Scripts\TestScript\BingcoolTest;
 
 class Kernel extends AbstractKernel
 {
@@ -46,6 +46,16 @@ class Kernel extends AbstractKernel
         User\TestPgQuery::command => [User\TestPgQuery::class, 'handle'],
         User\TestDbQuery::command => [User\TestDbQuery::class, 'handle'],
     ];
+
+    /**
+     * 测试验证专用
+     *
+     * @var array[]
+     */
+    public static $testCommands = [
+        BingcoolTest::command => [BingcoolTest::class, 'handle'],
+    ];
+
 
     /**
      * @return Schedule

@@ -21,11 +21,21 @@ abstract class AbstractKernel {
 
     const OPTION_SCHEDULE_CRON_SCRIPT_PID_FILE = '--cron_script_pid_file';
 
+    /**
+     * commands
+     * @var array
+     */
     public static $commands = [];
+
+    /**
+     * test 脚本
+     * @var array
+     */
+    public static $testCommands = [];
 
     public static function getCommands()
     {
-        return static::$commands;
+        return array_merge(static::$commands, static::$testCommands ?? []);
     }
 
 	/**
