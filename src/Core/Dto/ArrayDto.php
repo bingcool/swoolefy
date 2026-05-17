@@ -83,8 +83,8 @@ class ArrayDto extends \stdClass implements ArrayInterface
             return $value;
         }
 
-        if ($value instanceof self) {
-            return $value->toDeepArray();
+        if ($value instanceof ArrayInterface) {
+            return $this->valueToDeepArray($value->toDeepArray());
         }
 
         if (is_object($value) && method_exists($value, 'toArray')) {

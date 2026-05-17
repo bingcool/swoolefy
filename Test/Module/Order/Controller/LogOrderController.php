@@ -1,6 +1,7 @@
 <?php
 namespace Test\Module\Order\Controller;
 
+use GenerateSdk\Swoolefy\Test\Support\SdkArrayInteger;
 use GenerateSdk\Swoolefy\Test\Support\SdkCovertProperty;
 use Swoolefy\Annotation\ApiController;
 use Swoolefy\Annotation\ApiOperation;
@@ -96,6 +97,8 @@ class LogOrderController extends BController
 
     public function testPageRequest(LogContentPageRequest $request): LogContentPageResultResponse
     {
+        var_dump($request->getUserIds());
+
         $this->logOrderService->logOrder();
         $this->logOrderService->logId = 10;
         $this->logOrderService->logOrder();
@@ -107,7 +110,7 @@ class LogOrderController extends BController
         $logContentDto->setValue('test');
         $logContentDto->setName('test');
         // 设置userIds
-        $userIds = new ArrayInteger([123456, 234567])->distinct();
+        $userIds = (new ArrayInteger([123456, 234567]))->distinct();
         $logContentDto->setUserIds($userIds);
 
         $categoryDto = new CategoryDto();

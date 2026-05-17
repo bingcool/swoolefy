@@ -151,6 +151,9 @@ final class SdkDtoWriter
             'use Swoolefy\\Annotation\\ArrayList;' => 'use ' . $ns . '\\Support\\ArrayList;',
             'use Swoolefy\\Annotation\\StringToInt;' => 'use ' . $ns . '\\Support\\StringToInt;',
             'use Swoolefy\\Annotation\\IntToString;' => 'use ' . $ns . '\\Support\\IntToString;',
+            'use Swoolefy\\DataStruct\\ArrayInteger;' => 'use ' . $ns . '\\Support\\SdkArrayInteger as ArrayInteger;',
+            'use Swoolefy\\DataStruct\\ArrayString;' => 'use ' . $ns . '\\Support\\SdkArrayString as ArrayString;',
+            'use Swoolefy\\DataStruct\\ArrayInterface;' => 'use ' . $ns . '\\Support\\SdkArrayInterface as ArrayInterface;',
         ];
 
         $out = str_replace(array_keys($replacements), array_values($replacements), $php);

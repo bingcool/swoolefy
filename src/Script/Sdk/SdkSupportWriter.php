@@ -37,6 +37,9 @@ final class SdkSupportWriter
         file_put_contents($this->supportDir . '/ApiProperty.php', $this->apiProperty());
         file_put_contents($this->supportDir . '/ArrayList.php', $this->arrayList());
         file_put_contents($this->supportDir . '/SdkCovertProperty.php', $this->covertProperty());
+        file_put_contents($this->supportDir . '/SdkArrayInterface.php', $this->arrayInterface());
+        file_put_contents($this->supportDir . '/SdkArrayInteger.php', $this->arrayInteger());
+        file_put_contents($this->supportDir . '/SdkArrayString.php', $this->arrayString());
         file_put_contents($this->supportDir . '/StringToInt.php', $this->stringToInt());
         file_put_contents($this->supportDir . '/IntToString.php', $this->intToString());
     }
@@ -115,7 +118,10 @@ namespace __SDK_SUPPORT_NAMESPACE__;
 use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionProperty;
-use GenerateSdk\Swoolefy\Test\Support\ArrayList;
+use __SDK_SUPPORT_NAMESPACE__\ArrayList;
+use __SDK_SUPPORT_NAMESPACE__\SdkArrayInteger;
+use __SDK_SUPPORT_NAMESPACE__\SdkArrayString;
+use __SDK_SUPPORT_NAMESPACE__\SdkArrayInterface;
 
 final class SdkCovertProperty
 {
@@ -126,6 +132,15 @@ final class SdkCovertProperty
         }
 
         $data = self::normalizeSourceData($data);
+
+        if (is_array($data) && (is_a($tagetClass, SdkArrayInteger::class, true) || is_a($tagetClass, SdkArrayString::class, true))) {
+            return new $tagetClass($data);
+        }
+
+        if (is_array($data) && is_a($tagetClass, SdkArrayInterface::class, true)) {
+            return new $tagetClass($data);
+        }
+
         $object = self::newObject($tagetClass);
         if (!is_array($data)) {
             if (method_exists($object, 'setData')) {
@@ -180,14 +195,8 @@ final class SdkCovertProperty
             return $convertedItems;
         }
 
-        // 检查是否是单个对象类型（包括数组值需要转换为对象的情况）
         $class = self::propertyObjectClass($property);
         if ($class !== null && $value !== null) {
-            // 如果值是数组且目标是对象，需要将数组转换为对象
-            if (is_array($value)) {
-                return self::toCovertDeepProperty($value, $class);
-            }
-            // 如果值不是数组，也尝试转换
             return self::toCovertDeepProperty($value, $class);
         }
 
@@ -479,6 +488,10 @@ class SdkArrayDto extends \stdClass
             return $value;
         }
 
+        if ($value instanceof SdkArrayInterface) {
+            return $this->valueToDeepArray($value->toDeepArray());
+        }
+
         if ($value instanceof self) {
             return $value->toDeepArray();
         }
@@ -532,6 +545,17 @@ class SdkArrayDto extends \stdClass
 
     private function valueForDeepProperty(ReflectionProperty $property, mixed $value): mixed
     {
+        if ($value instanceof SdkArrayInterface) {
+            return $value;
+        }
+
+        if (is_array($value)) {
+            $arrayStructClass = $this->arrayStructClassFromProperty($property);
+            if ($arrayStructClass !== null) {
+                return new $arrayStructClass($value);
+            }
+        }
+
         if ($value instanceof self) {
             $value = $value->toArray();
         }
@@ -557,6 +581,21 @@ class SdkArrayDto extends \stdClass
         $dto->copyDeepProperty($value);
 
         return $dto;
+    }
+
+    private function arrayStructClassFromProperty(ReflectionProperty $property): ?string
+    {
+        $type = $property->getType();
+        if (!$type instanceof \ReflectionNamedType || $type->isBuiltin()) {
+            return null;
+        }
+
+        $className = $type->getName();
+        if (!is_a($className, SdkArrayInterface::class, true)) {
+            return null;
+        }
+
+        return $className;
     }
 
     private function newDtoFromPropertyType(ReflectionProperty $property): ?self
@@ -829,6 +868,394 @@ class SdkClientException extends \RuntimeException
     public function getPayload(): mixed
     {
         return $this->payload;
+    }
+}
+
+PHP);
+    }
+
+    private function arrayInterface(): string
+    {
+        return $this->ns(<<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace __SDK_SUPPORT_NAMESPACE__;
+
+/**
+ * SDK copy: typed array collections (ArrayInteger, ArrayString, …).
+ */
+interface SdkArrayInterface
+{
+    public function toArray(): array;
+
+    public function toDeepArray(): array;
+}
+
+PHP);
+    }
+
+    private function arrayInteger(): string
+    {
+        return $this->ns(<<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace __SDK_SUPPORT_NAMESPACE__;
+
+use ArrayAccess;
+use ArrayIterator;
+use Countable;
+use IteratorAggregate;
+use JsonSerializable;
+use Traversable;
+
+/**
+ * SDK copy: int[] collection (mirrors Swoolefy\DataStruct\ArrayInteger).
+ */
+class SdkArrayInteger implements ArrayAccess, Countable, IteratorAggregate, JsonSerializable, SdkArrayInterface
+{
+    /** @var int[] */
+    protected array $items = [];
+
+    public function __construct(mixed $items = [])
+    {
+        $this->items = $this->convertToIntegerArray($items);
+    }
+
+    public static function make(mixed $items = []): static
+    {
+        return new static($items);
+    }
+
+    public function isEmpty(): bool
+    {
+        return $this->items === [];
+    }
+
+    public function add(int $value): static
+    {
+        $this->items[] = $value;
+
+        return $this;
+    }
+
+    public function toArray(): array
+    {
+        return $this->items;
+    }
+
+    public function toDeepArray(): array
+    {
+        return $this->items;
+    }
+
+    public function all(): array
+    {
+        return $this->items;
+    }
+
+    public function merge(mixed $items): static
+    {
+        return new static(array_merge($this->items, $this->convertToIntegerArray($items)));
+    }
+
+    public function distinct(): static
+    {
+        return new static(array_values(array_unique($this->items, SORT_NUMERIC)));
+    }
+
+    public function values(): static
+    {
+        return new static(array_values($this->items));
+    }
+
+    public function filter(?callable $callback = null): static
+    {
+        if ($callback) {
+            return new static(array_values(array_filter($this->items, $callback)));
+        }
+
+        return new static(array_values(array_filter($this->items)));
+    }
+
+    public function map(callable $callback): static
+    {
+        return new static(array_map($callback, $this->items));
+    }
+
+    public function first(): ?int
+    {
+        return $this->items === [] ? null : $this->items[array_key_first($this->items)];
+    }
+
+    public function last(): ?int
+    {
+        return $this->items === [] ? null : $this->items[array_key_last($this->items)];
+    }
+
+    public function count(): int
+    {
+        return count($this->items);
+    }
+
+    #[\ReturnTypeWillChange]
+    public function offsetExists($offset): bool
+    {
+        return array_key_exists($offset, $this->items);
+    }
+
+    #[\ReturnTypeWillChange]
+    public function offsetGet($offset): int
+    {
+        return $this->items[$offset];
+    }
+
+    #[\ReturnTypeWillChange]
+    public function offsetSet($offset, $value): void
+    {
+        if (!is_int($value)) {
+            throw new \InvalidArgumentException('SdkArrayInteger only accepts integer values');
+        }
+        if ($offset === null) {
+            $this->items[] = $value;
+        } else {
+            $this->items[$offset] = $value;
+        }
+    }
+
+    #[\ReturnTypeWillChange]
+    public function offsetUnset($offset): void
+    {
+        unset($this->items[$offset]);
+    }
+
+    #[\ReturnTypeWillChange]
+    public function getIterator(): Traversable
+    {
+        return new ArrayIterator($this->items);
+    }
+
+    #[\ReturnTypeWillChange]
+    public function jsonSerialize(): array
+    {
+        return $this->toArray();
+    }
+
+    public function toJson(int $options = JSON_UNESCAPED_UNICODE): string
+    {
+        return json_encode($this->toArray(), $options);
+    }
+
+    public function __toString(): string
+    {
+        return $this->toJson();
+    }
+
+    /**
+     * @return int[]
+     */
+    protected function convertToIntegerArray(mixed $items): array
+    {
+        if ($items instanceof self) {
+            return $items->all();
+        }
+
+        $items = (array) $items;
+        foreach ($items as $key => $value) {
+            if (!is_int($value)) {
+                throw new \InvalidArgumentException(
+                    "SdkArrayInteger only accepts integer values. Invalid value at key '{$key}': " . gettype($value)
+                );
+            }
+        }
+
+        return $items;
+    }
+}
+
+PHP);
+    }
+
+    private function arrayString(): string
+    {
+        return $this->ns(<<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace __SDK_SUPPORT_NAMESPACE__;
+
+use ArrayAccess;
+use ArrayIterator;
+use Countable;
+use IteratorAggregate;
+use JsonSerializable;
+use Traversable;
+
+/**
+ * SDK copy: string[] collection (mirrors Swoolefy\DataStruct\ArrayString).
+ */
+class SdkArrayString implements ArrayAccess, Countable, IteratorAggregate, JsonSerializable, SdkArrayInterface
+{
+    /** @var string[] */
+    protected array $items = [];
+
+    public function __construct(mixed $items = [])
+    {
+        $this->items = $this->convertToStringArray($items);
+    }
+
+    public static function make(mixed $items = []): static
+    {
+        return new static($items);
+    }
+
+    public function isEmpty(): bool
+    {
+        return $this->items === [];
+    }
+
+    public function add(string $value): static
+    {
+        $this->items[] = $value;
+
+        return $this;
+    }
+
+    public function toArray(): array
+    {
+        return $this->items;
+    }
+
+    public function toDeepArray(): array
+    {
+        return $this->items;
+    }
+
+    public function all(): array
+    {
+        return $this->items;
+    }
+
+    public function merge(mixed $items): static
+    {
+        return new static(array_merge($this->items, $this->convertToStringArray($items)));
+    }
+
+    public function distinct(): static
+    {
+        return new static(array_values(array_unique($this->items, SORT_STRING)));
+    }
+
+    public function values(): static
+    {
+        return new static(array_values($this->items));
+    }
+
+    public function filter(?callable $callback = null): static
+    {
+        if ($callback) {
+            return new static(array_values(array_filter($this->items, $callback)));
+        }
+
+        return new static(array_values(array_filter($this->items)));
+    }
+
+    public function map(callable $callback): static
+    {
+        return new static(array_map($callback, $this->items));
+    }
+
+    public function first(): ?string
+    {
+        return $this->items === [] ? null : $this->items[array_key_first($this->items)];
+    }
+
+    public function last(): ?string
+    {
+        return $this->items === [] ? null : $this->items[array_key_last($this->items)];
+    }
+
+    public function count(): int
+    {
+        return count($this->items);
+    }
+
+    #[\ReturnTypeWillChange]
+    public function offsetExists($offset): bool
+    {
+        return array_key_exists($offset, $this->items);
+    }
+
+    #[\ReturnTypeWillChange]
+    public function offsetGet($offset): string
+    {
+        return $this->items[$offset];
+    }
+
+    #[\ReturnTypeWillChange]
+    public function offsetSet($offset, $value): void
+    {
+        if (!is_string($value)) {
+            throw new \InvalidArgumentException('SdkArrayString only accepts string values');
+        }
+        if ($offset === null) {
+            $this->items[] = $value;
+        } else {
+            $this->items[$offset] = $value;
+        }
+    }
+
+    #[\ReturnTypeWillChange]
+    public function offsetUnset($offset): void
+    {
+        unset($this->items[$offset]);
+    }
+
+    #[\ReturnTypeWillChange]
+    public function getIterator(): Traversable
+    {
+        return new ArrayIterator($this->items);
+    }
+
+    #[\ReturnTypeWillChange]
+    public function jsonSerialize(): array
+    {
+        return $this->toArray();
+    }
+
+    public function toJson(int $options = JSON_UNESCAPED_UNICODE): string
+    {
+        return json_encode($this->toArray(), $options);
+    }
+
+    public function __toString(): string
+    {
+        return $this->toJson();
+    }
+
+    /**
+     * @return string[]
+     */
+    protected function convertToStringArray(mixed $items): array
+    {
+        if ($items instanceof self) {
+            return $items->all();
+        }
+
+        $items = (array) $items;
+        foreach ($items as $key => $value) {
+            if (!is_string($value)) {
+                throw new \InvalidArgumentException(
+                    "SdkArrayString only accepts string values. Invalid value at key '{$key}': " . gettype($value)
+                );
+            }
+        }
+
+        return $items;
     }
 }
 
