@@ -83,6 +83,7 @@ class ArrayDto extends \stdClass implements ArrayInterface
             return $value;
         }
 
+        // ArrayInteger / ArrayString 等集合类型：响应序列化时转为纯数组
         if ($value instanceof ArrayInterface) {
             return $this->valueToDeepArray($value->toDeepArray());
         }

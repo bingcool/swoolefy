@@ -24,6 +24,7 @@ use Swoolefy\Core\SystemEnv;
 use Swoolefy\Exception\CorsRespException;
 use Swoolefy\Exception\DispatchException;
 use Swoolefy\Exception\SystemException;
+use Swoolefy\Util\CovertProperty;
 use Swoolefy\Http\Middleware\CorsMiddlewareInterface;
 
 class HttpRoute extends AppDispatch
@@ -578,7 +579,10 @@ class HttpRoute extends AppDispatch
             if (method_exists($paramObject, $setter)) {
                 $method = new \ReflectionMethod($paramObject, $setter);
                 if ($method->isPublic() && $method->getNumberOfRequiredParameters() <= 1) {
-                    $paramObject->{$setter}($value);
+                    $parameters = $method->getParameters();
+                    $paramType = $parameters[0]->getType();
+                    // 按 setter 参数类型转换（如 array -> ArrayInteger），再赋值
+                    $paramObject->{$setter}(CovertProperty::coerceValueForDeclaredType($value, $paramType));
                     continue;
                 }
             }
@@ -592,7 +596,11 @@ class HttpRoute extends AppDispatch
                 continue;
             }
 
-            $paramObject->{$property} = $value;
+            // 公共属性直赋时同样做类型转换（ArrayInterface 等）
+            $paramObject->{$property} = CovertProperty::coerceValueForDeclaredType(
+                $value,
+                $reflectionProperty->getType()
+            );
         }
     }
 

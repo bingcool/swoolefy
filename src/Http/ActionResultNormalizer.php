@@ -100,6 +100,7 @@ class ActionResultNormalizer
             });
         }
 
+        // DTO 属性中的 ArrayInteger 等：输出 JSON 前调用 toDeepArray()
         if ($value instanceof ArrayInterface) {
             return static::normalizeObject($value, $objects, function () use ($value, $objects) {
                 return static::normalizeData($value->toDeepArray(), $objects);

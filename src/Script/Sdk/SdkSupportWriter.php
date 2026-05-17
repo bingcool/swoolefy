@@ -133,10 +133,12 @@ final class SdkCovertProperty
 
         $data = self::normalizeSourceData($data);
 
+        // API 响应中的数组 -> SdkArrayInteger / SdkArrayString
         if (is_array($data) && (is_a($tagetClass, SdkArrayInteger::class, true) || is_a($tagetClass, SdkArrayString::class, true))) {
             return new $tagetClass($data);
         }
 
+        // 其他实现 SdkArrayInterface 的类型
         if (is_array($data) && is_a($tagetClass, SdkArrayInterface::class, true)) {
             return new $tagetClass($data);
         }
@@ -197,6 +199,11 @@ final class SdkCovertProperty
 
         $class = self::propertyObjectClass($property);
         if ($class !== null && $value !== null) {
+            // 属性为 SdkArrayInteger 等时，数组入参包装为集合对象
+            if (is_a($class, SdkArrayInterface::class, true) && is_array($value)) {
+                return new $class($value);
+            }
+
             return self::toCovertDeepProperty($value, $class);
         }
 
@@ -488,6 +495,7 @@ class SdkArrayDto extends \stdClass
             return $value;
         }
 
+        // SdkArrayInteger / SdkArrayString：序列化前转为纯数组
         if ($value instanceof SdkArrayInterface) {
             return $this->valueToDeepArray($value->toDeepArray());
         }
@@ -549,6 +557,7 @@ class SdkArrayDto extends \stdClass
             return $value;
         }
 
+        // copyDeepProperty：JSON 数组 -> SdkArrayInteger / SdkArrayString
         if (is_array($value)) {
             $arrayStructClass = $this->arrayStructClassFromProperty($property);
             if ($arrayStructClass !== null) {
@@ -583,6 +592,7 @@ class SdkArrayDto extends \stdClass
         return $dto;
     }
 
+    /** 解析属性类型是否为 SdkArrayInteger / SdkArrayString 等集合类 */
     private function arrayStructClassFromProperty(ReflectionProperty $property): ?string
     {
         $type = $property->getType();
