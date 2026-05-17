@@ -35,13 +35,12 @@ use Test\Module\Cron\Response\CronTaskManager\ListTasksPageResult;
 use Test\Module\Cron\Response\CronTaskManager\ListTasksResponse;
 use Test\Module\Cron\Response\CronTaskManager\TaskLogsPageResult;
 use Test\Module\Cron\Response\CronTaskManager\TaskLogsResponse;
+use Test\Module\Cron\Dto\CronTaskManager\CronTaskPayloadDto;
+use Test\Module\Cron\Service\CronTaskPayloadBuilder;
 use Test\Module\Cron\Service\CronTaskService;
 
 class CronTaskManagerController extends BController
 {
-    const TASK_EXEC_TYPE_SHELL = 1;
-    const TASK_EXEC_TYPE_HTTP = 2;
-
     #[ApiOperation(
         "分页查询定时任务列表"
     )]
@@ -104,13 +103,13 @@ class CronTaskManagerController extends BController
     )]
     public function createTask(CronTaskCreateRequest $request): CronTaskRowResponse
     {
-        list($data, $error) = $this->buildTaskPayload($request->toPayloadArray(), true);
-        if ($error !== null) {
-            throw CronTaskException::throw($error, -1);
+        $result = (new CronTaskPayloadBuilder())->buildFromCreate($request);
+        if ($result->hasError()) {
+            throw CronTaskException::throw($result->getError(), -1);
         }
 
         $task = new CronTaskEntity();
-        $task->setData($data);
+        $task->setData($result->getPayload()->toEntityArray());
         $task->save();
 
         return new CronTaskRowResponse($task->getAttributes());
@@ -131,16 +130,17 @@ class CronTaskManagerController extends BController
             throw CronTaskException::throw('任务不存在', -1);
         }
 
-        list($data, $error) = $this->buildTaskPayload($request->toPayloadArray(), false);
-        if ($error !== null) {
-            throw CronTaskException::throw($error, -1, []);
+        $result = (new CronTaskPayloadBuilder())->buildFromUpdate($request);
+        if ($result->hasError()) {
+            throw CronTaskException::throw($result->getError(), -1, []);
         }
 
-        if (empty($data)) {
+        $payload = $result->getPayload();
+        if ($payload === null || $payload->isEmpty()) {
             throw CronTaskException::throw('没有可更新字段', -1);
         }
 
-        $task->setData($data);
+        $task->setData($payload->toEntityArray());
         $task->save();
 
         return new CronTaskRowResponse($task->getAttributes());
@@ -258,7 +258,7 @@ class CronTaskManagerController extends BController
             'cron_id' => $taskId,
         ]);
         $total = $query->clone()->count();
-        $list = $query->order('id', 'desc')->limit($offset, $pageSize)->select()->toArray();
+        $list  = $query->order('id', 'desc')->limit($offset, $pageSize)->select()->toArray();
 
         $pageResult = new TaskLogsPageResult();
         $pageResult->setTotal($total);
@@ -338,14 +338,14 @@ class CronTaskManagerController extends BController
         }
 
         $service = new CronTaskService();
-        if (in_array($execType, [self::TASK_EXEC_TYPE_SHELL, self::TASK_EXEC_TYPE_HTTP], true)) {
+        if (in_array($execType, [CronTaskPayloadDto::EXEC_TYPE_SHELL, CronTaskPayloadDto::EXEC_TYPE_HTTP], true)) {
             $list = $service->fetchCronTask($execType, $nodeId);
 
             return CronAgentTasksResponse::forExecType($nodeId, $execType, $list);
         }
 
-        $shellTasks = $service->fetchCronTask(self::TASK_EXEC_TYPE_SHELL, $nodeId);
-        $httpTasks = $service->fetchCronTask(self::TASK_EXEC_TYPE_HTTP, $nodeId);
+        $shellTasks = $service->fetchCronTask(CronTaskPayloadDto::EXEC_TYPE_SHELL, $nodeId);
+        $httpTasks = $service->fetchCronTask(CronTaskPayloadDto::EXEC_TYPE_HTTP, $nodeId);
 
         return CronAgentTasksResponse::forAllTypes($nodeId, $shellTasks, $httpTasks);
     }
@@ -389,86 +389,6 @@ class CronTaskManagerController extends BController
         return new CronAgentReportAckResponse($cronId);
     }
 
-    protected function buildTaskPayload(array $payload, bool $isCreate): array
-    {
-        $name = trim((string)($payload['name'] ?? ''));
-        $expression = trim((string)($payload['expression'] ?? ''));
-        $command = trim((string)($payload['command'] ?? ''));
-        $description = trim((string)($payload['description'] ?? ''));
-        $nodeId = isset($payload['node_id']) ? (int)$payload['node_id'] : null;
-        $execType = isset($payload['exec_type']) ? (int)$payload['exec_type'] : null;
-        $status = isset($payload['status']) ? (int)$payload['status'] : null;
-        $withBlockLapping = isset($payload['with_block_lapping']) ? (int)$payload['with_block_lapping'] : null;
-        $httpMethod = strtoupper(trim((string)($payload['http_method'] ?? 'GET')));
-        $httpTimeout = isset($payload['http_request_time_out']) ? (int)$payload['http_request_time_out'] : null;
-        $cronBetween = $this->normalizeTimeRanges($payload['cron_between'] ?? null);
-        $cronSkip = $this->normalizeTimeRanges($payload['cron_skip'] ?? null);
-        $httpBody = $this->normalizeJsonField($payload['http_body'] ?? null);
-        $httpHeaders = $this->normalizeJsonField($payload['http_headers'] ?? null);
-
-        if ($isCreate) {
-            if ($name === '' || $expression === '' || $command === '') {
-                return [[], 'name/expression/command为必填'];
-            }
-            if (!in_array($execType, [self::TASK_EXEC_TYPE_SHELL, self::TASK_EXEC_TYPE_HTTP], true)) {
-                return [[], 'exec_type仅支持1(shell)和2(http)'];
-            }
-            if ($nodeId <= 0) {
-                return [[], 'node_id为必填'];
-            }
-        }
-
-        $data = [];
-        if ($name !== '') {
-            $data['name'] = $name;
-        }
-        if ($expression !== '') {
-            $data['expression'] = $expression;
-        }
-        if ($command !== '') {
-            $data['command'] = $command;
-        }
-        if ($description !== '' || $isCreate) {
-            $data['description'] = $description;
-        }
-        if ($nodeId !== null && $nodeId > 0) {
-            $data['node_id'] = $nodeId;
-        }
-        if ($execType !== null && in_array($execType, [self::TASK_EXEC_TYPE_SHELL, self::TASK_EXEC_TYPE_HTTP], true)) {
-            $data['exec_type'] = $execType;
-        }
-        if ($status !== null && in_array($status, [0, 1], true)) {
-            $data['status'] = $status;
-        }
-        if ($withBlockLapping !== null && in_array($withBlockLapping, [0, 1], true)) {
-            $data['with_block_lapping'] = $withBlockLapping;
-        }
-
-        if ($httpMethod !== '' || $isCreate) {
-            $data['http_method'] = $httpMethod === '' ? 'GET' : $httpMethod;
-        }
-        if ($httpTimeout !== null && $httpTimeout >= 0) {
-            $data['http_request_time_out'] = $httpTimeout;
-        } elseif ($isCreate) {
-            $data['http_request_time_out'] = 30;
-        }
-
-        if ($cronBetween !== null || $isCreate) {
-            $data['cron_between'] = $cronBetween;
-        }
-        if ($cronSkip !== null || $isCreate) {
-            $data['cron_skip'] = $cronSkip;
-        }
-        if ($httpBody !== null || $isCreate) {
-            $data['http_body'] = $httpBody;
-        }
-        if ($httpHeaders !== null || $isCreate) {
-            $data['http_headers'] = $httpHeaders;
-        }
-
-        return [$data, null];
-    }
-
     protected function normalizeJsonField($value)
     {
         if ($value === null || $value === '') {
@@ -485,40 +405,6 @@ class CronTaskManagerController extends BController
         }
 
         return $value;
-    }
-
-    protected function normalizeTimeRanges($value)
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-        if (is_string($value)) {
-            $decoded = json_decode($value, true);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                $value = $decoded;
-            }
-        }
-        if (!is_array($value)) {
-            return null;
-        }
-
-        $ranges = [];
-        foreach ($value as $item) {
-            if (!is_array($item)) {
-                continue;
-            }
-            $start = trim((string)($item['start'] ?? ''));
-            $end = trim((string)($item['end'] ?? ''));
-            if ($start === '' || $end === '') {
-                continue;
-            }
-            $ranges[] = [
-                'start' => $start,
-                'end' => $end,
-            ];
-        }
-
-        return !empty($ranges) ? $ranges : null;
     }
 
     protected function extractDurationMs(string $message)

@@ -10,30 +10,18 @@ use Swoolefy\Http\BaseResponse;
 
 class CronNodeRowResponse extends BaseResponse
 {
-    protected CronAgentNodeRowDto $row;
+    protected CronAgentNodeRowDto $data;
 
     /**
      * @param array<string, mixed> $attributes
      */
     public function __construct(array $attributes)
     {
-        $this->row = CronAgentNodeRowDto::fromEntityRow($attributes);
+        $this->data = CronAgentNodeRowDto::fromEntityRow($attributes);
     }
 
-    public function getRow(): CronAgentNodeRowDto
+    public function getData(): CronAgentNodeRowDto
     {
-        return $this->row;
-    }
-
-    public function setRow(CronAgentNodeRowDto $row): static
-    {
-        $this->row = $row;
-
-        return $this;
-    }
-
-    public function getData(): array
-    {
-        return $this->row->toDeepArray();
+        return $this->data;
     }
 }

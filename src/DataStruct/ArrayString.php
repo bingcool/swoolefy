@@ -20,7 +20,7 @@ use Traversable;
 
 /**
  * 字符串数组集合类
- * 专门用于处理字符串类型的一维数组
+ * 专门用于处理字符串类型的一维数组string[].eg: ['a', 'b', 'c']
  */
 class ArrayString implements ArrayAccess, Countable, IteratorAggregate, JsonSerializable, ArrayInterface
 {
@@ -67,6 +67,16 @@ class ArrayString implements ArrayAccess, Countable, IteratorAggregate, JsonSeri
      * @return string[]
      */
     public function toArray(): array
+    {
+        return $this->items;
+    }
+
+    /**
+     * 递归转换为纯字符串数组。与toArray一致
+     * @access public
+     * @return string[]
+     */
+    public function toDeepArray(): array
     {
         return $this->items;
     }
