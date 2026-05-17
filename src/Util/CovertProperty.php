@@ -8,9 +8,12 @@ use Swoolefy\Annotation\ArrayList;
 use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionProperty;
+use ReflectionType;
+use ReflectionUnionType;
 use Swoolefy\DataStruct\ArrayInteger;
 use Swoolefy\DataStruct\ArrayInterface;
 use Swoolefy\DataStruct\ArrayString;
+use Swoolefy\DataStruct\JsonObject;
 
 final class CovertProperty
 {
@@ -22,10 +25,15 @@ final class CovertProperty
 
         $data = self::normalizeSourceData($data);
 
-        if (is_array($data) && (is_a($tagetClass, ArrayInteger::class, true) || is_a($tagetClass, ArrayString::class, true))) {
+        // 目标为 ArrayInteger / ArrayString /JsonObject 时，直接用数组构造集合对象
+        if (is_array($data) && (is_a($tagetClass, ArrayInteger::class, true)
+                || is_a($tagetClass, ArrayString::class, true)
+                || is_a($tagetClass, JsonObject::class, true)
+            )) {
             return new $tagetClass($data);
         }
 
+        // 其他实现 ArrayInterface 的类型（如 JsonObject）同样支持数组入参
         if (is_array($data) && is_a($tagetClass, ArrayInterface::class, true)) {
             return new $tagetClass($data);
         }
@@ -90,6 +98,96 @@ final class CovertProperty
         }
 
         return $value;
+    }
+
+    /**
+     * 按属性/setter 声明的类型转换请求入参。
+     *
+     * 典型场景：HTTP JSON 中 userIds 为 [1,2,3]，setter 签名为 setUserIds(?ArrayInteger $userIds)，
+     * 需自动 new ArrayInteger($value)，避免 array 直接传入导致类型错误。
+     *
+     * @param mixed $value 原始请求值（array、JSON 字符串或已构造的对象）
+     * @param ReflectionType|null $type setter 第一个参数或属性的反射类型
+     */
+    public static function coerceValueForDeclaredType(mixed $value, ?ReflectionType $type): mixed
+    {
+        if ($type === null) {
+            return $value;
+        }
+
+        $class = self::reflectionTypeClassName($type);
+        if ($class === null) {
+            return $value;
+        }
+
+        if ($value === null) {
+            return self::reflectionTypeAllowsNull($type) ? null : $value;
+        }
+
+        if (is_object($value) && is_a($value, $class, true)) {
+            return $value;
+        }
+
+        // ArrayInteger / ArrayString / JsonObject 等：数组或 JSON 字符串 -> 集合对象
+        if (is_a($class, ArrayInterface::class, true)) {
+            if (is_string($value)) {
+                $decoded = json_decode($value, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $value = $decoded;
+                }
+            }
+            if (is_array($value)) {
+                return new $class($value);
+            }
+        }
+
+        return $value;
+    }
+
+    /**
+     * 判断反射类型是否允许 null（含 ?Type 与 Type|null 联合类型）
+     */
+    private static function reflectionTypeAllowsNull(ReflectionType $type): bool
+    {
+        if ($type instanceof ReflectionNamedType) {
+            return $type->allowsNull();
+        }
+
+        if ($type instanceof ReflectionUnionType) {
+            foreach ($type->getTypes() as $member) {
+                if ($member instanceof ReflectionNamedType && $member->getName() === 'null') {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 从反射类型解析非内置类名（跳过 int/string 等；联合类型取第一个对象类型）
+     */
+    private static function reflectionTypeClassName(ReflectionType $type): ?string
+    {
+        if ($type instanceof ReflectionNamedType) {
+            if ($type->isBuiltin()) {
+                return null;
+            }
+            $class = $type->getName();
+
+            return class_exists($class) ? $class : null;
+        }
+
+        if ($type instanceof ReflectionUnionType) {
+            foreach ($type->getTypes() as $member) {
+                $class = self::reflectionTypeClassName($member);
+                if ($class !== null) {
+                    return $class;
+                }
+            }
+        }
+
+        return null;
     }
 
     private static function arrayListItemClass(ReflectionProperty $property): ?string
