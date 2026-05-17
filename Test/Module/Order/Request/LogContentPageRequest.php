@@ -16,6 +16,9 @@ class LogContentPageRequest extends BasePageRequest {
     )]
     protected string $logName;
 
+    /**
+     * @var ArrayInteger
+     */
     #[ApiProperty(description: '用户id列表')]
     #[ValidationRule(
         rule: 'required|array',
@@ -23,8 +26,21 @@ class LogContentPageRequest extends BasePageRequest {
     )]
     protected ?ArrayInteger $userIds = null;
 
+    /**
+     * @var CityDto
+     */
     #[ApiProperty(description: '城市信息')]
     protected CityDto $city;
+
+    /**
+     * @var array<int, CityDto>|null
+     */
+    #[ApiProperty(description: '城市列表')]
+    #[ValidationRule(
+        rule: 'nullable|array',
+        itemClass: CityDto::class
+    )]
+    protected ?array $cityList = null;
 
     public function getLogName(): string
     {
@@ -56,6 +72,32 @@ class LogContentPageRequest extends BasePageRequest {
     public function setCity(CityDto $city): static
     {
         $this->city = $city;
+        return $this;
+    }
+
+    /**
+     * @return array<int, CityDto>
+     */
+    public function getCityList(): array
+    {
+        return $this->cityList ?? [];
+    }
+
+    /**
+     * @param array<int, CityDto>|null $cityList
+     */
+    public function setCityList(?array $cityList): static
+    {
+        $this->cityList = $cityList;
+        return $this;
+    }
+
+    public function addCityListItem(CityDto $city): static
+    {
+        if ($this->cityList === null) {
+            $this->cityList = [];
+        }
+        $this->cityList[] = $city;
         return $this;
     }
 }

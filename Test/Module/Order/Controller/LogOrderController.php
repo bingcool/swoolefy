@@ -11,6 +11,7 @@ use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
 use Swoolefy\DataStruct\ArrayInteger;
 use Swoolefy\Http\RequestInput;
+use Swoolefy\Util\CovertProperty;
 use Test\Module\Order\Request\CategoryDto;
 use Test\Module\Order\Request\LogContentDto;
 use Test\Module\Order\Request\LogContentPageRequest;
@@ -97,9 +98,15 @@ class LogOrderController extends BController
 
     public function testPageRequest(LogContentPageRequest $request): LogContentPageResultResponse
     {
+        var_dump($request->getUserIds()->toDeepArray());
         var_dump($request->getCity());
+        foreach ($request->getCityList() as $cityItem) {
+            var_dump($cityItem->getProvince(), $cityItem->getCity(), $cityItem->getAddress());
+        }
 
+        $newUserIds = CovertProperty::toCovertDeepProperty($request->getUserIds(), ArrayInteger::class);
 
+        var_dump($newUserIds);
 
         $this->logOrderService->logOrder();
         $this->logOrderService->logId = 10;
@@ -127,6 +134,10 @@ class LogOrderController extends BController
         $logContentDto->addCategory($categoryDto);
         $logContentPageResult->addListItem($logContentDto);
         $response->setData($logContentPageResult);
-        return $response;
+
+        // 复制属性生成一个新类对象
+        $newResponse = CovertProperty::toCovertDeepProperty($response, LogContentPageResultResponse::class);
+
+        return $newResponse;
     }
 }

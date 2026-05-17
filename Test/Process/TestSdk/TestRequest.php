@@ -108,11 +108,17 @@ class TestRequest extends AbstractProcess
         $userIds = new SdkArrayInteger([1,2,3,4,5]);
         $req->setUserIds($userIds);
         $city = new CityDto();
-
-        $city->setProvince("广东省");
-        $city->setCity("深圳市");
+        $city->setProvince('广东省');
+        $city->setCity('深圳市');
         $city->setAddress('南山区');
         $req->setCity($city);
+
+        $city2 = new CityDto();
+        $city2->setProvince('广东省');
+        $city2->setCity('广州市');
+        $city2->setAddress('天河区');
+        $req->setCityList([$city, $city2]);
+
         $response = $LogOrderApi->testPageRequest($req);
         var_dump($response->getData()->toDeepArray());
     }

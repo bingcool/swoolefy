@@ -10,6 +10,7 @@ use ReflectionNamedType;
 use ReflectionProperty;
 use ReflectionType;
 use ReflectionUnionType;
+use Swoolefy\Core\Dto\ArrayDto;
 use Swoolefy\DataStruct\ArrayInteger;
 use Swoolefy\DataStruct\ArrayInterface;
 use Swoolefy\DataStruct\ArrayString;
@@ -124,20 +125,32 @@ final class CovertProperty
             return $value;
         }
 
-        // ArrayInteger / ArrayString / JsonObject 等：数组或 JSON 字符串 -> 集合对象
-        if (is_a($class, ArrayInterface::class, true)) {
-            if (is_string($value)) {
-                $decoded = json_decode($value, true);
-                if (json_last_error() === JSON_ERROR_NONE) {
-                    $value = $decoded;
-                }
-            }
-            if (is_array($value)) {
-                return new $class($value);
+        if (is_string($value) && (str_starts_with($value, '{') || str_starts_with($value, '['))) {
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $value = $decoded;
             }
         }
 
-        return $value;
+        if (!is_array($value)) {
+            return $value;
+        }
+
+        // 标量数组集合：构造函数接收 array
+        if (is_a($class, ArrayInteger::class, true) || is_a($class, ArrayString::class, true)) {
+            return new $class($value);
+        }
+
+        // DTO（含 CityDto）也实现 ArrayInterface，但需走属性填充而非 new Dto($array)
+        if (is_subclass_of($class, ArrayDto::class, true)) {
+            return self::toCovertDeepProperty($value, $class);
+        }
+
+        if (is_a($class, JsonObject::class, true) || is_a($class, ArrayInterface::class, true)) {
+            return new $class($value);
+        }
+
+        return self::toCovertDeepProperty($value, $class);
     }
 
     /**

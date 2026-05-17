@@ -17,6 +17,8 @@ use Swoolefy\Annotation\ArrayList;
 use Swoolefy\Annotation\IntToString;
 use Swoolefy\Annotation\StringToInt;
 use Swoolefy\Annotation\Validation\ValidationRule;
+use Swoolefy\DataStruct\ArrayInteger;
+use Swoolefy\DataStruct\ArrayString;
 use Swoolefy\Http\BaseRequest;
 use Swoolefy\Http\BaseResponse;
 use Symfony\Component\Console\Formatter\OutputFormatter;
@@ -394,6 +396,11 @@ final class ApiDocGenerator
 
         $className = $this->firstClassType($property->getType());
         if ($className !== null) {
+            $arrayStructSchema = $this->arrayStructSchema($className);
+            if ($arrayStructSchema !== null) {
+                return $this->applyNullableFlag($arrayStructSchema, $property->getType());
+            }
+
             return $this->classSchema($className, $seen);
         }
 
@@ -445,10 +452,52 @@ final class ApiDocGenerator
     private function schemaFromNamedType(ReflectionNamedType $type): array
     {
         if (!$type->isBuiltin()) {
+            $arrayStructSchema = $this->arrayStructSchema($type->getName());
+            if ($arrayStructSchema !== null) {
+                return $arrayStructSchema;
+            }
+
             return $this->classSchema($type->getName());
         }
 
         return $this->schemaFromRule($type->getName());
+    }
+
+    /**
+     * ArrayInteger / ArrayString 在 OpenAPI 中按数组描述，而非 object。
+     *
+     * @return array<string, mixed>|null
+     */
+    private function arrayStructSchema(string $className): ?array
+    {
+        if (is_a($className, ArrayInteger::class, true)) {
+            return [
+                'type' => 'array',
+                'items' => ['type' => 'integer'],
+            ];
+        }
+
+        if (is_a($className, ArrayString::class, true)) {
+            return [
+                'type' => 'array',
+                'items' => ['type' => 'string'],
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $schema
+     * @return array<string, mixed>
+     */
+    private function applyNullableFlag(array $schema, ?ReflectionType $type): array
+    {
+        if ($type !== null && $type->allowsNull()) {
+            $schema['nullable'] = true;
+        }
+
+        return $schema;
     }
 
     /**
