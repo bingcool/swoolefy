@@ -134,12 +134,9 @@ final class SdkCovertProperty
         $data = self::normalizeSourceData($data);
 
         // API 响应中的数组 -> SdkArrayInteger / SdkArrayString
-        if (is_array($data) && (is_a($tagetClass, SdkArrayInteger::class, true) || is_a($tagetClass, SdkArrayString::class, true))) {
-            return new $tagetClass($data);
-        }
-
-        // 其他实现 SdkArrayInterface 的类型
-        if (is_array($data) && is_a($tagetClass, SdkArrayInterface::class, true)) {
+        if (is_array($data) && (is_a($tagetClass, SdkArrayInteger::class, true) 
+            || is_a($tagetClass, SdkArrayString::class, true))) 
+        {
             return new $tagetClass($data);
         }
 
@@ -199,11 +196,6 @@ final class SdkCovertProperty
 
         $class = self::propertyObjectClass($property);
         if ($class !== null && $value !== null) {
-            // 属性为 SdkArrayInteger 等时，数组入参包装为集合对象
-            if (is_a($class, SdkArrayInterface::class, true) && is_array($value)) {
-                return new $class($value);
-            }
-
             return self::toCovertDeepProperty($value, $class);
         }
 

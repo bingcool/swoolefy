@@ -9,7 +9,7 @@ class CityDto extends AbstractDto
     #[ApiProperty(
         description: "省份"
     )]
-    protected string $area = "";
+    protected string $province = "";
 
     #[ApiProperty(
         description: "城市"
@@ -21,14 +21,14 @@ class CityDto extends AbstractDto
     )]
     protected string $address = "";
 
-    public function getArea(): string
+    public function getProvince(): string
     {
-        return $this->area;
+        return $this->province;
     }
 
-    public function setArea(string $area): static
+    public function setProvince(string $province): static
     {
-        $this->area = $area;
+        $this->province = $province;
         return $this;
     }
 

@@ -29,12 +29,8 @@ final class CovertProperty
         if (is_array($data) && (is_a($tagetClass, ArrayInteger::class, true)
                 || is_a($tagetClass, ArrayString::class, true)
                 || is_a($tagetClass, JsonObject::class, true)
+                || is_a($tagetClass, \Swoolefy\Core\Collection::class, true)
             )) {
-            return new $tagetClass($data);
-        }
-
-        // 其他实现 ArrayInterface 的类型（如 JsonObject）同样支持数组入参
-        if (is_array($data) && is_a($tagetClass, ArrayInterface::class, true)) {
             return new $tagetClass($data);
         }
 
