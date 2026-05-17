@@ -303,6 +303,14 @@ class JsonObject implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
     }
 
     /**
+     * 转换为深层次属性数组,递归每一层级的对象属性都会转为数组
+     */
+    public function toDeepArray(): array
+    {
+        return (new ArrayDto)->valueToDeepArray($this->data);
+    }
+
+    /**
      * 获取所有数据（别名方法）
      * @return array
      */
@@ -424,13 +432,5 @@ class JsonObject implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
             }
         }
         return $result;
-    }
-
-    /**
-     * 转换为深度属性数组,每一层级的对象属性都会转为数组
-     */
-    public function toDeepArray(): array
-    {
-        return (new ArrayDto)->valueToDeepArray($this->data);
     }
 }

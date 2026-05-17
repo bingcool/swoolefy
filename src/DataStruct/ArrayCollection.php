@@ -15,7 +15,7 @@ use Swoolefy\Core\Collection;
 
 /**
  * 关联数组集合类
- * 用于处理一维和二维的关联数组
+ * 用于处理一维和二维的关联数组.eg: [['id'=>1,'name'=>'test1'],['id'=>2,'name'=>'test2']]
  */
 class ArrayCollection extends Collection
 {

@@ -12,5 +12,7 @@
 namespace Swoolefy\DataStruct;
 
 interface ArrayInterface {
-    public function toArray();
+    public function toArray(): array;
+
+    public function toDeepArray(): array;
 }

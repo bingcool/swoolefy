@@ -20,7 +20,7 @@ use Traversable;
 
 /**
  * 整数数组集合类
- * 专门用于处理整数类型的一维数组
+ * 专门用于处理整数类型的一维数组Int[],eg: [1,2,3,4,5,6,7,8,9,10]
  */
 class ArrayInteger implements ArrayAccess, Countable, IteratorAggregate, JsonSerializable, ArrayInterface
 {
@@ -68,6 +68,16 @@ class ArrayInteger implements ArrayAccess, Countable, IteratorAggregate, JsonSer
      * @return int[]
      */
     public function toArray(): array
+    {
+        return $this->items;
+    }
+
+    /**
+     * 转换为纯整型数组.与toArray一致
+     * @access public
+     * @return int[]
+     */
+    public function toDeepArray(): array
     {
         return $this->items;
     }

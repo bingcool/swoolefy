@@ -8,10 +8,13 @@ use Swoolefy\Annotation\ApiProperty;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
+use Swoolefy\DataStruct\ArrayInteger;
 use Swoolefy\Http\RequestInput;
+use Test\Module\Order\Request\CategoryDto;
 use Test\Module\Order\Request\LogContentDto;
 use Test\Module\Order\Request\LogContentPageRequest;
 use Test\Module\Order\Request\LogSaveRequest;
+use Test\Module\Order\Request\SubCategoryDto;
 use Test\Module\Order\Response\LogCategoryDto;
 use Test\Module\Order\Response\LogContentPageResult;
 use Test\Module\Order\Response\LogContentPageResultResponse;
@@ -95,8 +98,6 @@ class LogOrderController extends BController
     {
         $this->logOrderService->logOrder();
         $this->logOrderService->logId = 10;
-        var_dump(spl_object_id($this->logOrderService));
-        var_dump(spl_object_id($this->logOrderService));
         $this->logOrderService->logOrder();
 
         $response = new LogContentPageResultResponse();
@@ -105,6 +106,20 @@ class LogOrderController extends BController
         $logContentDto = new LogContentDto();
         $logContentDto->setValue('test');
         $logContentDto->setName('test');
+        // 设置userIds
+        $userIds = new ArrayInteger([123456, 234567])->distinct();
+        $logContentDto->setUserIds($userIds);
+
+        $categoryDto = new CategoryDto();
+        $categoryDto->setCateId(1);
+        $categoryDto->setCateName('CateName');
+
+        $subCategoryDto = new SubCategoryDto();
+        $subCategoryDto->setSubCateId(22);
+        $subCategoryDto->setSubCateName('SubCateName');
+        $categoryDto->addSubCategoryDto($subCategoryDto);
+
+        $logContentDto->addCategory($categoryDto);
         $logContentPageResult->addListItem($logContentDto);
         $response->setData($logContentPageResult);
         return $response;

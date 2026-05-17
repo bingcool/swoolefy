@@ -32,19 +32,18 @@ class Kernel extends AbstractKernel
      * @var array
      */
     public static $commands = [
-        GenerateMysql::command => [GenerateMysql::class, 'handle'],
-        GeneratePg::command    => [GeneratePg::class, 'handle'],
-        GenerateCronService::command  => [GenerateCronService::class, 'handle'],
-        GenerateDaemonService::command  => [GenerateDaemonService::class, 'handle'],
-        GenerateApiDoc::command         => [GenerateApiDoc::class, 'handle'],
-        GenerateSdk::command            => [GenerateSdk::class, 'handle'],
-        TestScript::command    => [TestScript::class, 'handle'],
-        User\FixedUser::command => [User\FixedUser::class, 'handle'],
-
+        GenerateMysql::command         => [GenerateMysql::class, 'handle'],
+        GeneratePg::command            => [GeneratePg::class, 'handle'],
+        GenerateCronService::command   => [GenerateCronService::class, 'handle'],
+        GenerateDaemonService::command => [GenerateDaemonService::class, 'handle'],
+        GenerateApiDoc::command        => [GenerateApiDoc::class, 'handle'],
+        GenerateSdk::command           => [GenerateSdk::class, 'handle'],
+        TestScript::command            => [TestScript::class, 'handle'],
+        User\FixedUser::command        => [User\FixedUser::class, 'handle'],
         User\RunnerForkProcess::command => [User\RunnerForkProcess::class, 'handle'],
-        User\Purl::command => [User\Purl::class, 'handle'],
-        User\TestPgQuery::command => [User\TestPgQuery::class, 'handle'],
-        User\TestDbQuery::command => [User\TestDbQuery::class, 'handle'],
+        User\Purl::command             => [User\Purl::class, 'handle'],
+        User\TestPgQuery::command      => [User\TestPgQuery::class, 'handle'],
+        User\TestDbQuery::command      => [User\TestDbQuery::class, 'handle'],
     ];
 
     /**

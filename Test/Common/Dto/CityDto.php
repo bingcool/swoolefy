@@ -20,4 +20,37 @@ class CityDto extends AbstractDto
         description: "address"
     )]
     protected string $address = "";
+
+    public function getArea(): string
+    {
+        return $this->area;
+    }
+
+    public function setArea(string $area): static
+    {
+        $this->area = $area;
+        return $this;
+    }
+
+    public function getCity(): string
+    {
+        return $this->city;
+    }
+
+    public function setCity(string $city): static
+    {
+        $this->city = $city;
+        return $this;
+    }
+
+    public function getAddress(): string
+    {
+        return $this->address;
+    }
+
+    public function setAddress(string $address): static
+    {
+        $this->address = $address;
+        return $this;
+    }
 }
