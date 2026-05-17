@@ -29,6 +29,7 @@ class LogContentDto extends AbstractDto
     protected ?array $categories = null;
 
     /**
+     * 用户IDs
      * @var ArrayInteger
      */
     protected ?ArrayInteger $userIds = null;

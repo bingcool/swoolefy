@@ -8,6 +8,9 @@ use Swoolefy\Annotation\ArrayList;
 use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionProperty;
+use Swoolefy\DataStruct\ArrayInteger;
+use Swoolefy\DataStruct\ArrayInterface;
+use Swoolefy\DataStruct\ArrayString;
 
 final class CovertProperty
 {
@@ -18,6 +21,15 @@ final class CovertProperty
         }
 
         $data = self::normalizeSourceData($data);
+
+        if (is_array($data) && (is_a($tagetClass, ArrayInteger::class, true) || is_a($tagetClass, ArrayString::class, true))) {
+            return new $tagetClass($data);
+        }
+
+        if (is_array($data) && is_a($tagetClass, ArrayInterface::class, true)) {
+            return new $tagetClass($data);
+        }
+
         $object = self::newObject($tagetClass);
         if (!is_array($data)) {
             if (method_exists($object, 'setData')) {
@@ -72,9 +84,8 @@ final class CovertProperty
             return $convertedItems;
         }
 
-        // 检查是否是单个对象类型
         $class = self::propertyObjectClass($property);
-        if ($class !== null && $value !== null && !is_array($value)) {
+        if ($class !== null && $value !== null) {
             return self::toCovertDeepProperty($value, $class);
         }
 

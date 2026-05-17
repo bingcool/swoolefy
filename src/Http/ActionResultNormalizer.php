@@ -21,6 +21,7 @@ use SplObjectStorage;
 use Swoolefy\Annotation\IntToString;
 use Swoolefy\Core\Dto\ArrayDto;
 use Swoolefy\Core\ResponseFormatter;
+use Swoolefy\DataStruct\ArrayInterface;
 use Swoolefy\Util\ArrayHelper\Arrayable;
 use UnitEnum;
 
@@ -94,6 +95,12 @@ class ActionResultNormalizer
         }
 
         if ($value instanceof ArrayDto) {
+            return static::normalizeObject($value, $objects, function () use ($value, $objects) {
+                return static::normalizeData($value->toDeepArray(), $objects);
+            });
+        }
+
+        if ($value instanceof ArrayInterface) {
             return static::normalizeObject($value, $objects, function () use ($value, $objects) {
                 return static::normalizeData($value->toDeepArray(), $objects);
             });

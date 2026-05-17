@@ -13,11 +13,13 @@ use GenerateSdk\Swoolefy\Test\Module\Order\Response\LogContentRespDto;
 use GenerateSdk\Swoolefy\Test\Module\Order\Response\LogResponse;
 use GenerateSdk\Swoolefy\Test\Module\Order\Response\SmallCategoryRespDto;
 
+use GenerateSdk\Swoolefy\Test\Support\SdkArrayInteger;
 use GuzzleHttp\Client;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Coroutine\GoWaitGroup;
 use Swoolefy\Core\Process\AbstractProcess;
 use Swoolefy\Core\SyncPipe;
+
 use Swoolefy\Util\CovertProperty;
 use Test\App;
 
@@ -102,6 +104,8 @@ class TestRequest extends AbstractProcess
         $req->setPage(1);
         $req->setPageSize(10);
         $req->setLogName('test');
+        $userIds = new SdkArrayInteger([1,2,3,4,5]);
+        $req->setUserIds($userIds);
         $response = $LogOrderApi->testPageRequest($req);
         var_dump($response->getData()->toDeepArray());
     }
