@@ -2,6 +2,7 @@
 
 namespace Test\Process\TestSdk;
 
+use GenerateSdk\Swoolefy\Test\Common\Dto\CityDto;
 use GenerateSdk\Swoolefy\Test\Module\Order\Client\LogOrderApi;
 use GenerateSdk\Swoolefy\Test\Module\Order\Request\CategoryDto;
 use GenerateSdk\Swoolefy\Test\Module\Order\Request\LogContentDto;
@@ -106,6 +107,12 @@ class TestRequest extends AbstractProcess
         $req->setLogName('test');
         $userIds = new SdkArrayInteger([1,2,3,4,5]);
         $req->setUserIds($userIds);
+        $city = new CityDto();
+
+        $city->setProvince("广东省");
+        $city->setCity("深圳市");
+        $city->setAddress('南山区');
+        $req->setCity($city);
         $response = $LogOrderApi->testPageRequest($req);
         var_dump($response->getData()->toDeepArray());
     }

@@ -97,7 +97,9 @@ class LogOrderController extends BController
 
     public function testPageRequest(LogContentPageRequest $request): LogContentPageResultResponse
     {
-        var_dump($request->getUserIds());
+        var_dump($request->getCity());
+
+
 
         $this->logOrderService->logOrder();
         $this->logOrderService->logId = 10;

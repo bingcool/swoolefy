@@ -7,6 +7,7 @@ use Swoolefy\Annotation\Validation\ValidationRule;
 use Swoolefy\DataStruct\ArrayInteger;
 use Swoolefy\Http\BasePageRequest;
 use Swoolefy\Http\BaseRequest;
+use Test\Common\Dto\CityDto;
 
 class LogContentPageRequest extends BasePageRequest {
     #[ApiProperty(description: '日志名称')]
@@ -21,6 +22,9 @@ class LogContentPageRequest extends BasePageRequest {
         itemRule: 'int'
     )]
     protected ?ArrayInteger $userIds = null;
+
+    #[ApiProperty(description: '城市信息')]
+    protected CityDto $city;
 
     public function getLogName(): string
     {
@@ -41,6 +45,17 @@ class LogContentPageRequest extends BasePageRequest {
     public function setUserIds(?ArrayInteger $userIds): static
     {
         $this->userIds = $userIds;
+        return $this;
+    }
+
+    public function getCity(): CityDto
+    {
+        return $this->city;
+    }
+
+    public function setCity(CityDto $city): static
+    {
+        $this->city = $city;
         return $this;
     }
 }
