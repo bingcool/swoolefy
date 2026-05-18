@@ -447,7 +447,11 @@ class EventCtrl implements EventCtrlInterface
         $swoolefyVersion         = SWOOLEFY_VERSION;
         $swoolefyEnv             = defined('SWOOLEFY_ENV') ? SWOOLEFY_ENV : null;
         $cpuNum                  = swoole_cpu_num();
-        $ipList                  = json_encode(swoole_get_local_ip());
+        try {
+            $ipList = json_encode(swoole_get_local_ip());
+        } catch (\Throwable $throwable) {
+            $ipList = json_encode([]);
+        }
         $hostname                = gethostname();
 
         $consoleStyleIo = initConsoleStyleIo();

@@ -344,7 +344,7 @@ trait RequestParseTrait
      */
     public function getUploadFiles(): mixed
     {
-        return $this->swooleRequest->files;
+        return $this->swooleRequest->files ?? [];
     }
 
     /**
