@@ -19,12 +19,12 @@ class HttpInputOut
     /**
      * @var SwooleRequest
      */
-    protected $swooleRequest;
+    protected SwooleRequest $swooleRequest;
 
     /**
      * @var SwooleResponse
      */
-    protected $swooleResponse;
+    protected SwooleResponse $swooleResponse;
 
     public function __construct(SwooleRequest $swooleRequest, SwooleResponse $swooleResponse)
     {

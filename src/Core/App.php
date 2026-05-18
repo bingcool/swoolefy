@@ -26,22 +26,22 @@ class App extends \Swoolefy\Core\Component
     /**
      * @var SwooleRequest
      */
-    public $swooleRequest = null;
+    public ?SwooleRequest $swooleRequest = null;
 
     /**
      * @var SwooleResponse
      */
-    public $swooleResponse = null;
+    public ?SwooleResponse $swooleResponse = null;
 
     /**
      * @var RequestInput
      */
-    public $requestInput;
+    public ?RequestInput $requestInput = null;
 
     /**
      * @var ResponseOutput
      */
-    public $responseOutput;
+    public ?ResponseOutput $responseOutput = null;
 
     /**
      * $appConf
@@ -51,9 +51,9 @@ class App extends \Swoolefy\Core\Component
 
     /**
      * $coroutineId
-     * @var int
+     * @var int|null
      */
-    public $coroutineId;
+    public ?int $coroutineId;
 
     /**
      * $controllerInstance
@@ -64,13 +64,13 @@ class App extends \Swoolefy\Core\Component
     /**
      * @var bool
      */
-    protected $isEnd = false;
+    protected bool $isEnd = false;
 
     /**
      * $isDefer
      * @var bool
      */
-    protected $isDefer = false;
+    protected bool $isDefer = false;
 
     /**
      * __construct

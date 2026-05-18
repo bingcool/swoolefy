@@ -277,26 +277,26 @@ abstract class AbstractBaseWorker
 
     /**
      * AbstractProcess constructor.
-     * @param string $process_name
+     * @param string $processName
      * @param bool $async
      * @param array $args
-     * @param mixed $extend_data
-     * @param bool $enable_coroutine
+     * @param mixed $extendData
+     * @param bool $enableCoroutine
      * @return void
      */
     public function __construct(
-        string $process_name,
+        string $processName,
         bool   $async = true,
         array  $args = [],
-               $extend_data = null,
-        bool   $enable_coroutine = true
+               $extendData = null,
+        bool   $enableCoroutine = true
     )
     {
         $this->async           = $async;
         $this->args            = $args;
-        $this->extendData      = $extend_data;
-        $this->processName     = $process_name;
-        $this->enableCoroutine = $enable_coroutine;
+        $this->extendData      = $extendData;
+        $this->processName     = $processName;
+        $this->enableCoroutine = $enableCoroutine;
 
         if (isset($args['wait_time']) && is_numeric($args['wait_time'])) {
             $this->waitTime = $args['wait_time'];
@@ -325,7 +325,7 @@ abstract class AbstractBaseWorker
             }
             $this->args['check_master_live_tick_time'] = $checkMasterLiveTickTime;
         }
-        $this->swooleProcess = new \Swoole\Process([$this, '__start'], false, 2, $enable_coroutine);
+        $this->swooleProcess = new \Swoole\Process([$this, '__start'], false, 2, $enableCoroutine);
     }
 
     /**
@@ -842,25 +842,25 @@ abstract class AbstractBaseWorker
 
     /**
      * writeByProcessName worker send message to process
-     * @param string $process_name
+     * @param string $processName
      * @param mixed $data
-     * @param int $process_worker_id process_worker_id=-1 all process
-     * @param bool $is_use_master_proxy
+     * @param int $processWorkerId process_worker_id=-1 all process
+     * @param bool $isUseMasterProxy
      * @return bool
      */
     public function writeByProcessName(
-        string $process_name,
+        string $processName,
                $data,
-        int $process_worker_id = 0,
-        bool $is_use_master_proxy = true
+        int $processWorkerId = 0,
+        bool $isUseMasterProxy = true
     )
     {
         $processManager      = \Swoolefy\Worker\MainManager::getInstance();
-        $isMaster            = $processManager->isMaster($process_name);
+        $isMaster            = $processManager->isMaster($processName);
         $fromProcessName     = $this->getProcessName();
         $fromProcessWorkerId = $this->getProcessWorkerId();
 
-        if ($fromProcessName == $process_name && $process_worker_id == $fromProcessWorkerId) {
+        if ($fromProcessName == $processName && $processWorkerId == $fromProcessWorkerId) {
             throw new WorkerException('Process can\'t write message to myself');
         }
 
@@ -879,9 +879,9 @@ abstract class AbstractBaseWorker
         }
 
         $processWorkers = [];
-        $toTargetProcess = $processManager->getProcessByName($process_name, $process_worker_id);
+        $toTargetProcess = $processManager->getProcessByName($processName, $processWorkerId);
         if (is_object($toTargetProcess) && $toTargetProcess instanceof AbstractBaseWorker) {
-            $processWorkers = [$process_worker_id => $toTargetProcess];
+            $processWorkers = [$processWorkerId => $toTargetProcess];
         } else if (is_array($toTargetProcess)) {
             $processWorkers = $toTargetProcess;
         }
@@ -893,7 +893,7 @@ abstract class AbstractBaseWorker
                 continue;
             }
 
-            if ($is_use_master_proxy) {
+            if ($isUseMasterProxy) {
                 $messageDto = $this->buildMessageDto(
                     $fromProcessName,
                     $fromProcessWorkerId,
@@ -925,7 +925,7 @@ abstract class AbstractBaseWorker
      * @param mixed $data
      * @return bool
      */
-    public function writeToMasterProcess($data)
+    public function writeToMasterProcess(mixed $data)
     {
         if (empty($data)) {
             return false;
@@ -939,26 +939,26 @@ abstract class AbstractBaseWorker
     /**
      * writeToWorkerByMasterProxy, send message to other process by master proxy
      *
-     * @param string $process_name
+     * @param string $processName
      * @param mixed $data
-     * @param int $process_worker_id
+     * @param int $processWorkerId
      * @return void
      */
-    public function writeToWorkerByMasterProxy(string $process_name, $data, int $process_worker_id = 0)
+    public function writeToWorkerByMasterProxy(string $processName, $data, int $processWorkerId = 0)
     {
         $isUseMasterProxy = true;
-        $this->writeByProcessName($process_name, $data, $process_worker_id, $isUseMasterProxy);
+        $this->writeByProcessName($processName, $data, $processWorkerId, $isUseMasterProxy);
     }
 
     /**
      * notifyMasterCreateDynamicProcess
      *
-     * @param string $dynamic_process_name
-     * @param int $dynamic_process_num
+     * @param string $dynamicProcessName
+     * @param int $dynamicProcessNum
      * @return void
      * @throws WorkerException
      */
-    public function notifyMasterCreateDynamicProcess(string $dynamic_process_name, int $dynamic_process_num = 2)
+    public function notifyMasterCreateDynamicProcess(string $dynamicProcessName, int $dynamicProcessNum = 2)
     {
         if ($this->isDynamicDestroy) {
             $this->fmtWriteInfo("Process is destroying, forbidden dynamic create process");
@@ -971,38 +971,38 @@ abstract class AbstractBaseWorker
 
         $data = [
             'action' => MainManager::CREATE_DYNAMIC_PROCESS_WORKER,
-            'process_name' => $dynamic_process_name,
+            'process_name' => $dynamicProcessName,
             'data' =>
                 [
-                    'dynamic_process_num' => $dynamic_process_num
+                    'dynamic_process_num' => $dynamicProcessNum
                 ]
         ];
 
         $this->writeToMasterProcess($data);
         $method = self::WORKERFY_ON_EVENT_CREATE_DYNAMIC_PROCESS;
         if(method_exists(static::class, $method)) {
-            $this->$method($dynamic_process_name, $dynamic_process_num);
+            $this->$method($dynamicProcessName, $dynamicProcessNum);
         }
     }
 
     /**
      * notifyMasterDestroyDynamicProcess
      *
-     * @param string $dynamic_process_name
-     * @param int $dynamic_process_num
+     * @param string $dynamicProcessName
+     * @param int $dynamicProcessNum
      * @return void
      * @throws \Throwable
      */
-    public function notifyMasterDestroyDynamicProcess(string $dynamic_process_name, int $dynamic_process_num = -1)
+    public function notifyMasterDestroyDynamicProcess(string $dynamicProcessName, int $dynamicProcessNum = -1)
     {
         if (!$this->isDynamicDestroy) {
-            $dynamic_process_num = -1;
+            $dynamicProcessNum = -1;
             $data = [
                 'action' => MainManager::DESTROY_DYNAMIC_PROCESS_WORKER,
-                'process_name' => $dynamic_process_name,
+                'process_name' => $dynamicProcessName,
                 'data' =>
                     [
-                        'dynamic_process_num' => $dynamic_process_num
+                        'dynamic_process_num' => $dynamicProcessNum
                     ]
             ];
             $this->writeToMasterProcess($data);
@@ -1022,7 +1022,7 @@ abstract class AbstractBaseWorker
 
                 $method = self::WORKERFY_ON_EVENT_DESTROY_DYNAMIC_PROCESS;
                 if (method_exists(static::class, $method)) {
-                    $this->$method($dynamic_process_name, $dynamic_process_num);
+                    $this->$method($dynamicProcessName, $dynamicProcessNum);
                 }
 
                 // wait sleep
@@ -1059,12 +1059,12 @@ abstract class AbstractBaseWorker
 
     /**
      *
-     * @param bool $is_destroy
+     * @param bool $isDestroy
      * @return void
      */
-    public function isDynamicDestroy(bool $is_destroy)
+    public function isDynamicDestroy(bool $isDestroy)
     {
-        $this->isDynamicDestroy = $is_destroy;
+        $this->isDynamicDestroy = $isDestroy;
     }
 
     /**
@@ -1124,11 +1124,11 @@ abstract class AbstractBaseWorker
     }
 
     /**
-     * @param int $process_type
+     * @param int $processType
      */
-    public function setProcessType(int $process_type = self::PROCESS_STATIC_TYPE)
+    public function setProcessType(int $processType = self::PROCESS_STATIC_TYPE)
     {
-        $this->processType = $process_type;
+        $this->processType = $processType;
     }
 
     /**
@@ -1140,11 +1140,11 @@ abstract class AbstractBaseWorker
     }
 
     /**
-     * @param int $master_pid
+     * @param int $masterPid
      */
-    public function setMasterPid(int $master_pid)
+    public function setMasterPid(int $masterPid)
     {
-        $this->masterPid = $master_pid;
+        $this->masterPid = $masterPid;
     }
 
     /**
@@ -1156,11 +1156,11 @@ abstract class AbstractBaseWorker
     }
 
     /**
-     * @param float $wait_time
+     * @param float $waitTime
      */
-    public function setWaitTime(float $wait_time = 30)
+    public function setWaitTime(float $waitTime = 30)
     {
-        $this->waitTime = $wait_time;
+        $this->waitTime = $waitTime;
     }
 
     /**
@@ -1621,14 +1621,14 @@ abstract class AbstractBaseWorker
     /**
      * worker0 save master_pid to file, because sometime the file will be deleted
      *
-     * @param int $master_pid
+     * @param int $masterPid
      * @return void
      */
-    protected function saveMasterId(int $master_pid)
+    protected function saveMasterId(int $masterPid)
     {
-        if ($master_pid == $this->masterPid) {
-            \Swoole\Coroutine::create(function () use ($master_pid) {
-                @file_put_contents(WORKER_PID_FILE, $master_pid);
+        if ($masterPid == $this->masterPid) {
+            \Swoole\Coroutine::create(function () use ($masterPid) {
+                @file_put_contents(WORKER_PID_FILE, $masterPid);
             });
         }
     }
@@ -1825,12 +1825,12 @@ abstract class AbstractBaseWorker
      * php cron.php send Test --name=test-local-cron-worker --action=run-once-cron
      *
      * @param mixed $msg
-     * @param string $from_process_name
-     * @param int $from_process_worker_id
+     * @param string $fromProcessName
+     * @param int $fromProcessWorkerId
      * @param bool $is_proxy_by_master
      * @return mixed
      */
-    public function onPipeMsg($msg, string $from_process_name, int $from_process_worker_id, bool $is_proxy_by_master)
+    public function onPipeMsg($msg, string $fromProcessName, int $fromProcessWorkerId, bool $is_proxy_by_master)
     {
         if (is_string($msg)) {
             $msg = json_decode($msg, true) ?? $msg;
@@ -1841,10 +1841,10 @@ abstract class AbstractBaseWorker
                     list($class, $method) = $commandHandleItem;
                     if ($class == self::class || is_subclass_of($class, self::class)) {
                         if (class_exists(static::class, $method)) {
-                            $this->{$method}($msg, $from_process_name, $from_process_worker_id, $is_proxy_by_master);
+                            $this->{$method}($msg, $fromProcessName, $fromProcessWorkerId, $is_proxy_by_master);
                         }
                     }else {
-                        (new $class)->{$method}($msg, $from_process_name, $from_process_worker_id, $is_proxy_by_master);
+                        (new $class)->{$method}($msg, $fromProcessName, $fromProcessWorkerId, $is_proxy_by_master);
                     }
                 }else {
                     $this->fmtWriteError(sprintf("onPipeMsg accept msg=%s is not match property of customCommandHandle key, please check it", json_encode($msg, JSON_UNESCAPED_UNICODE)));

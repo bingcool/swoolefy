@@ -27,8 +27,8 @@ trait ResponseParseTrait
      */
     public function returnJson(
         array  $data = [],
-        int    $code = 0,
-        string $msg  = '',
+        int    $code = ResponseCode::CodeOk,
+        string $msg  = ResponseCode::CodeOkText,
         string $formatter = 'json'
     )
     {
