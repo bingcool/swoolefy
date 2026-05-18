@@ -316,7 +316,7 @@ class PoolsHandler
         $containerObjectDto->__objInitTime   = time();
         $containerObjectDto->__object        = $object;
         $containerObjectDto->__comAliasName  = $poolName;
-        $containerObjectDto->__objExpireTime = time() + ($this->lifeTime) + rand(1, 10);
+        $containerObjectDto->__objExpireTime = time() + ($this->lifeTime) + (new \Random\Randomizer())->getInt(1, 10);
         return $containerObjectDto;
     }
 

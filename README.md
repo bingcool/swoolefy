@@ -1076,7 +1076,7 @@ $wg = new GoWaitGroup();
 
 for ($i = 0; $i < 10; $i++) {
     $wg->add();
-    go(function() use ($wg, $i) {
+    goApp(function() use ($wg, $i) {
         try {
             // 并发任务
             sleep(1);

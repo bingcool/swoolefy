@@ -86,7 +86,8 @@ class Helper
         if (empty($seed)) {
             $seed = self::randString(20);
         }
-        return substr(md5($seed . mt_rand(111111, 999999) . bin2hex(random_bytes(5))), 0, $length);
+        $randNum = (new \Random\Randomizer())->getInt(111111, 999999);
+        return substr(md5($seed . $randNum . bin2hex(random_bytes(5))), 0, $length);
     }
 
     /**
@@ -115,7 +116,8 @@ class Helper
         $key = '';
         for ($i = 0; $i < $length; $i++) {
             //生成php随机数
-            $key .= $pattern[mt_rand(0, $max)];
+            $randNum = (new \Random\Randomizer())->getInt(0, $max);
+            $key .= $pattern[$randNum];
         }
         return $key;
     }

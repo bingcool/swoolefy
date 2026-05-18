@@ -100,27 +100,27 @@ abstract class AbstractBaseWorker
     /**
      * @var bool
      */
-    private $isReboot = false;
+    private bool $isReboot = false;
 
     /**
      * @var bool
      */
-    private $isExit = false;
+    private bool $isExit = false;
 
     /**
      * @var bool
      */
-    private $isForceExit = false;
+    private bool $isForceExit = false;
 
     /**
      * @var int
      */
-    private $processType = 1;// 1-静态进程，2-动态进程
+    private int $processType = 1;// 1-静态进程，2-动态进程
 
     /**
      * @var int|float
      */
-    private $waitTime = 10;
+    private int $waitTime = 10;
 
     /**
      * @var int
@@ -145,7 +145,7 @@ abstract class AbstractBaseWorker
     /**
      * @var int
      */
-    private $coroutineId;
+    private ?int $coroutineId = null;
 
     /**
      * @var string
@@ -161,56 +161,55 @@ abstract class AbstractBaseWorker
      * 动态进程正在销毁时，原则上在一定时间内不能动态创建进程，常量DYNAMIC_DESTROY_PROCESS_TIME
      * @var bool
      */
-    private $isDynamicDestroy = false;
+    private bool $isDynamicDestroy = false;
 
     /**
      * 自动重启次数
      * @var int
      */
-    private $rebootCount = 0;
+    private int $rebootCount = 0;
 
     /**
      * 接收到退出指令时，最长等待多长时间退出，最大时间达到后强制退出，不关注进程是否完成业务操作
      * @var int 最长等待时间，单位秒
      */
-    protected $maxWaitTimeOfExit = 30;
+    protected int $maxWaitTimeOfExit = 30;
 
     /**
      * @var int
      *
      */
-    protected $initSystemCoroutineNum = 2;
+    protected int $initSystemCoroutineNum = 2;
 
     /**
      * @var bool 业务正在处理中
      * 只对cron的local模式有效
      */
-    public $handing = false;
+    public bool $handing = false;
 
     /**
      * @var int $withBlockLapping = 1,表示每轮任务只能阻塞执行，必须等上一轮任务执行完毕，下一轮才能执行; $withBlockLapping = 0, 表示每轮任务时间到了，都可执行,不管上一轮任务是否已经结束,是并发非租塞的
      * 只对cron的local | fork 这两种模式有效,默认=0，可并发执行每轮任务
      */
-    protected $withBlockLapping = 0;
+    protected int $withBlockLapping = 0;
 
     /**
      * @var int 定时任务后台运行，不受stop指令影响，正在执行的任务会继续执行，只对cron的local模式有效。由于fork的模式，默认就是拉起进程在后台运行的了
      *
      */
-    protected $runInBackground = 1;
+    protected int $runInBackground = 1;
 
     /**
      * @var bool cron接收到退出指令，但因业务还在执行中，只能设置waitToExit=true,等业务处理完了再退出
      */
-    protected $waitToExit = false;
-
+    protected bool $waitToExit = false;
 
     /**
      * 是否是使用loopHandle函数业务处理
      *
      * @var bool
      */
-    protected $useLoopHandle = false;
+    protected bool $useLoopHandle = false;
 
     /**
      * static process
@@ -561,7 +560,8 @@ abstract class AbstractBaseWorker
     {
         // 定时检查到master主进程死掉的进行的检查次数
         $tickCheckMasterOffCount = 0;
-        $tickMilliseconds = ($this->args['check_master_live_tick_time'] + rand(1, 5)) * 1000;
+        $randNum = (new \Random\Randomizer())->getInt(1,5);
+        $tickMilliseconds = ($this->args['check_master_live_tick_time'] + $randNum) * 1000;
         $this->masterLiveTimerId = \Swoole\Timer::tick($tickMilliseconds, function ($timerId) use (&$tickCheckMasterOffCount) {
             $this->handleMasterLiveCheckTick((int)$timerId, $tickCheckMasterOffCount);
         });
@@ -1535,7 +1535,7 @@ abstract class AbstractBaseWorker
         }
 
         if (is_numeric($lifeTime)) {
-            $randTickTime = rand(10, 15);
+            $randTickTime = (new \Random\Randomizer())->getInt(10, 15);
             $tickTime = $randTickTime * 1000;
             // for Example reboot/600s after 600s reboot this process
             if ($lifeTime < 60) {
@@ -1549,7 +1549,7 @@ abstract class AbstractBaseWorker
                 }
             });
         } else {
-            $randSleep   = rand(5, 15);
+            $randSleep   = (new \Random\Randomizer())->getInt(5, 15);
             $isWorkerId0 = $this->isWorker0();
             // cron expression of timer to reboot this process
             CrontabManager::getInstance()->addRule(

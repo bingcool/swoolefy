@@ -131,7 +131,8 @@ trait ComponentTrait
         $appConf = BaseServer::getAppConf();
         if (!empty($appConf['component_pools']) && is_array($appConf['component_pools'])) {
             $liveTime = $appConf['component_pools'][$comAliasName]['max_life_timeout'] ?? 10;
-            $containerObjectDto->__objExpireTime = time() + $liveTime + rand(1, 10);
+            $randomizer = new \Random\Randomizer();
+            $containerObjectDto->__objExpireTime = time() + $liveTime + $randomizer->getInt(1, 10);
         }else {
             $containerObjectDto->__objExpireTime = null;
         }
