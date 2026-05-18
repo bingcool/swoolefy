@@ -265,19 +265,9 @@ class SystemEnv
      * @param string $env
      * @return array
      */
-    public static function loadDcEnv(string $env = '')
+    public static function loadDcEnv()
     {
-        if (empty($env)) {
-            $dcFile = APP_PATH . '/Config/dc.php';
-        }else {
-            $dcFile = APP_PATH . '/Config/dc-' . $env . '.php';
-        }
-
-        if (file_exists($dcFile)) {
-            return include APP_PATH . '/Config/dc.php';
-        }else {
-            return [];
-        }
+        return include APP_PATH . '/Config/dc.php';
     }
 
     /**

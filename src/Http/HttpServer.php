@@ -53,6 +53,36 @@ abstract class HttpServer extends BaseServer
     protected $webServer = null;
 
     /**
+     * Normalize HTTP header names before tracing so Swoole/client casing differences do not break propagation.
+     */
+    protected function normalizeHeaderKeys(array $headers): array
+    {
+        $normalized = [];
+        foreach ($headers as $key => $value) {
+            $normalized[strtolower((string)$key)] = $value;
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Read a header from a normalized or raw header array.
+     */
+    protected function getHeaderValue(array $headers, string $name, ?string $default = null): ?string
+    {
+        $key = strtolower($name);
+        foreach ($headers as $headerName => $value) {
+            if (strtolower((string)$headerName) !== $key) {
+                continue;
+            }
+
+            return is_scalar($value) ? (string)$value : $default;
+        }
+
+        return $default;
+    }
+
+    /**
      * __construct
      * @param array $config
      */
@@ -142,9 +172,10 @@ abstract class HttpServer extends BaseServer
                     /**
                      * @var \Common\Library\OpenTelemetry\SDK\Trace\Span $span
                      */
+                    $headers = $this->normalizeHeaderKeys($request->header ?? []);
                     list ($span, $scope, $traceId, $traceparent) = $this->startOpenTelemetry($request);
                     if (empty($traceId)) {
-                        $traceId = $request->header[OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID] ?? Helper::UUid();
+                        $traceId = $this->getHeaderValue($headers, OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID, Helper::UUid());
                     }
                     SwooleContext::set(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID, $traceId);
                     SwooleContext::set(OpentelemetryMiddleware::OPENTELEMETRY_TRACEPARENT_ID, $traceparent ?? "");

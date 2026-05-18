@@ -85,8 +85,9 @@ abstract class HttpAppServer extends HttpServer
             }
             $queryString = rtrim($queryString, "&");
         }
-        $carrier = $request->header;
+        $carrier = $this->normalizeHeaderKeys($request->header ?? []);
         $parentContext = TraceContextPropagator::getInstance()->extract($carrier);
+        $userAgent = $this->getHeaderValue($carrier, 'user-agent', 'unknown');
         $spanName = $route ? sprintf("%s %s %s (server)", "HTTP", $method, $route) : sprintf("%s %s %s (server)", "HTTP", $method, "/");
         $rootSpan = $tracer->spanBuilder($spanName)
             ->setSpanKind(SpanKind::KIND_SERVER)
@@ -96,16 +97,15 @@ abstract class HttpAppServer extends HttpServer
             ->setAttribute(TraceAttributes::HTTP_REQUEST_METHOD, $method)
             ->setAttribute(TraceAttributes::URL_PATH, $route)
             ->setAttribute(TraceAttributes::HTTP_REQUEST_BODY, json_encode($inputBody, JSON_UNESCAPED_UNICODE))
-            ->setAttribute(TraceAttributes::HTTP_REQUEST_HEADERS, json_encode($request->header, JSON_UNESCAPED_UNICODE))
+            ->setAttribute(TraceAttributes::HTTP_REQUEST_HEADERS, json_encode($carrier, JSON_UNESCAPED_UNICODE))
             ->setAttribute(TraceAttributes::HTTP_REQUEST_QUERY_PARAMS, $queryString)
-            ->setAttribute(TraceAttributes::HTTP_USER_AGENT, $carrier['User-Agent'] ?? 'unknown')
+            ->setAttribute(TraceAttributes::HTTP_USER_AGENT, $userAgent)
             ->setAttribute(TraceAttributes::SERVER_ADDRESS, gethostname())
         ;
         $scope   = $rootSpan->activate();
         $traceId = $rootSpan->getContext()->getTraceId();
-        if (isset($carrier[TraceContextPropagator::TRACEPARENT])) {
-            $traceparent = $carrier[TraceContextPropagator::TRACEPARENT];
-        } else {
+        $traceparent = $this->getHeaderValue($carrier, TraceContextPropagator::TRACEPARENT);
+        if ($traceparent === null || $traceparent === '') {
             // {version}-{trace-id}-{parent-id}-{trace-flags}
             $traceparent = join('-', ["00", $traceId, $rootSpan->getContext()->getSpanId(), $rootSpan->getContext()->getTraceFlags() ? "01" : "00"]);
         }
