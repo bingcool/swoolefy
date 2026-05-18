@@ -133,10 +133,10 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
      * registerLogComponents
      *
      * @param int $rotateDay
-     * @param string $handleClass
+     * @param string|null $handleClass
      * @return void
      */
-    public static function registerLogComponents(int $rotateDay = 2, string $handleClass = null)
+    public static function registerLogComponents(int $rotateDay = 2, ?string $handleClass = null)
     {
         // log register
         $logComponents = include CONFIG_COMPONENT_PATH.DIRECTORY_SEPARATOR.'log.php';
@@ -195,10 +195,10 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
     /**
      * CreateDynamicProcess
      *
-     * @param string $dynamic_process_name
-     * @param int $dynamic_process_num
+     * @param string $dynamicProcessName
+     * @param int $dynamicProcessNum
      */
-    protected function onCreateDynamicProcessCallback(string $dynamic_process_name, int $dynamic_process_num)
+    protected function onCreateDynamicProcessCallback(string $dynamicProcessName, int $dynamicProcessNum)
     {
 
     }
@@ -206,10 +206,10 @@ abstract class AbstractWorkerProcess extends AbstractBaseWorker
     /**
      * DestroyDynamicProcess
      *
-     * @param string $dynamic_process_name
-     * @param int $dynamic_process_num
+     * @param string $dynamicProcessName
+     * @param int $dynamicProcessNum
      */
-    protected function onDestroyDynamicProcessCallback(string $dynamic_process_name, int $dynamic_process_num)
+    protected function onDestroyDynamicProcessCallback(string $dynamicProcessName, int $dynamicProcessNum)
     {
 
     }

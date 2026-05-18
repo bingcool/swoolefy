@@ -116,7 +116,7 @@ class EventCtrl implements EventCtrlInterface
             $logger->setFormatter($formatter);
             $baseSqlPath = pathinfo(LOG_PATH)['dirname'].DIRECTORY_SEPARATOR.'Sql';
             if (!is_dir($baseSqlPath)) {
-                mkdir($baseSqlPath,0777);
+                mkdir($baseSqlPath,0755);
             }
             if (SystemEnv::isDaemonService()) {
                 $sqlLogName = 'sql_daemon.log';
@@ -151,7 +151,7 @@ class EventCtrl implements EventCtrlInterface
             $logger->setChannel('application');
             $baseCronPath = pathinfo(LOG_PATH)['dirname'].DIRECTORY_SEPARATOR.'Crontab';
             if (!is_dir($baseCronPath)) {
-                mkdir($baseCronPath,0777);
+                mkdir($baseCronPath,0766);
             }
             $cronLogName = 'cron_fork.log';
             $cronFilePath = $baseCronPath.DIRECTORY_SEPARATOR.$cronLogName;
@@ -165,7 +165,7 @@ class EventCtrl implements EventCtrlInterface
             $logger->setChannel('application');
             $baseCronPath = pathinfo(LOG_PATH)['dirname'].DIRECTORY_SEPARATOR.'Crontab';
             if (!is_dir($baseCronPath)) {
-                mkdir($baseCronPath,0777);
+                mkdir($baseCronPath,0766);
             }
             $cronLogName = 'cron_local.log';
             $cronFilePath = $baseCronPath.DIRECTORY_SEPARATOR.$cronLogName;
@@ -179,7 +179,7 @@ class EventCtrl implements EventCtrlInterface
             $logger->setChannel('application');
             $baseCronPath = pathinfo(LOG_PATH)['dirname'].DIRECTORY_SEPARATOR.'Crontab';
             if (!is_dir($baseCronPath)) {
-                mkdir($baseCronPath,0777);
+                mkdir($baseCronPath,0766);
             }
             $cronLogName = 'cron_url.log';
             $cronFilePath = $baseCronPath.DIRECTORY_SEPARATOR.$cronLogName;
@@ -203,7 +203,7 @@ class EventCtrl implements EventCtrlInterface
             $logger->setFormatter($formatter);
             $baseSqlPath = pathinfo(LOG_PATH)['dirname'].DIRECTORY_SEPARATOR.'GuzzleCurl';
             if (!is_dir($baseSqlPath)) {
-                mkdir($baseSqlPath,0777);
+                mkdir($baseSqlPath,0766);
             }
 
             if (SystemEnv::isDaemonService()) {
@@ -229,11 +229,11 @@ class EventCtrl implements EventCtrlInterface
         if (defined('SERVER_START_LOG_JSON_FILE')) {
             $pathDir = pathinfo(SERVER_START_LOG_JSON_FILE);
             if (!is_dir($pathDir['dirname'])) {
-                mkdir($pathDir['dirname'], 0777, true);
+                mkdir($pathDir['dirname'], 0755, true);
             }
             $startLog = ['app_name' => WORKER_SERVICE_NAME, 'port' => Swfy::getConf()['port'],'start_time' => date('Y-m-d H:i:s')];
             file_put_contents(SERVER_START_LOG_JSON_FILE, json_encode($startLog));
-            chmod(SERVER_START_LOG_JSON_FILE, 0777);
+            chmod(SERVER_START_LOG_JSON_FILE, 0755);
         }
     }
     /**

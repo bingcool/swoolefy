@@ -20,9 +20,9 @@ class BaseObject
 
     /**
      * $coroutineId
-     * @var int
+     * @var int|null
      */
-    public $coroutineId = null;
+    public ?int $coroutineId = null;
 
     /**
      * @var \ArrayObject
@@ -32,13 +32,13 @@ class BaseObject
     /**
      * @var array
      */
-    protected $logs = [];
+    protected array $logs = [];
 
     /**
      * $args 存放协程请求实例的临时变量数据
      * @var array
      */
-    protected $args = [];
+    protected array $args = [];
 
     /**
      * className Returns the fully qualified name of this class.

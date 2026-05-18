@@ -12,6 +12,8 @@ class CreateCmd extends BaseCmd
 {
     protected static $defaultName = 'create';
 
+    protected static $dirPermission = 0755;
+
     protected function configure()
     {
         parent::configure();
@@ -61,7 +63,7 @@ class CreateCmd extends BaseCmd
             @copy(START_DIR_ROOT . '/src/Stubs/swag.stub.php', $swagFile);
         }
 
-        @mkdir($appPathDir, 0777, true);
+        @mkdir($appPathDir, self::$dirPermission, true);
 
         $envFile = $appPathDir.'/.env';
         if (!is_file($envFile)) {
@@ -69,16 +71,16 @@ class CreateCmd extends BaseCmd
         }
 
         foreach ($dirs as $dir) {
-            @mkdir($appPathDir . '/' . $dir, 0777, true);
+            @mkdir($appPathDir . '/' . $dir, self::$dirPermission, true);
             switch ($dir) {
                 case 'Common':
                 {
                     $dirPath = $appPathDir . '/' . $dir;
-                    @mkdir($dirPath, 0777, true);
+                    @mkdir($dirPath, self::$dirPermission, true);
                     // 默认创建枚举类和常量类文件夹
                     foreach (['Const','Enum'] as $itemDir) {
                         $itemDirPath = $appPathDir . '/' . $dir . '/' . $itemDir;
-                        @mkdir($itemDirPath, 0777, true);
+                        @mkdir($itemDirPath, self::$dirPermission, true);
                     }
                     break;
                 }
@@ -91,7 +93,7 @@ class CreateCmd extends BaseCmd
 
                     $componentDir = $appPathDir . '/' . $dir . '/component';
                     if (!is_dir($componentDir)) {
-                        @mkdir($componentDir, 0777, true);
+                        @mkdir($componentDir, self::$dirPermission, true);
                         @copy(ROOT_PATH . '/src/Stubs/db.stub.php', $componentDir.'/database.php');
                         @copy(ROOT_PATH . '/src/Stubs/log.stub.php', $componentDir.'/log.php');
                         @copy(ROOT_PATH . '/src/Stubs/cache.stub.php', $componentDir.'/cache.php');
@@ -131,13 +133,13 @@ class CreateCmd extends BaseCmd
                     foreach ([$moduleName] as $module) {
                         $moduleDir = $appPathDir . '/' . $dir . '/' . $module;
                         if (!is_dir($moduleDir)) {
-                            @mkdir($moduleDir, 0777, true);
+                            @mkdir($moduleDir, self::$dirPermission, true);
                         }
                     }
                     foreach (['Controller','Dto','Request','Response', 'Exception'] as $itemDir) {
                         $itemDirPath = $appPathDir . '/' . $dir . '/' . $module . '/' . $itemDir;
                         if (!is_dir($itemDirPath)) {
-                            @mkdir($itemDirPath, 0777, true);
+                            @mkdir($itemDirPath, self::$dirPermission, true);
                         }
                     }
                     break;
@@ -194,19 +196,19 @@ class CreateCmd extends BaseCmd
                         case self::HTTP_PROTOCOL:
                             $groupDir = $appPathDir . '/' . $dir . '/Group';
                             if (!is_dir($groupDir)) {
-                                @mkdir($groupDir, 0777, true);
+                                @mkdir($groupDir, self::$dirPermission, true);
                             }
 
                             $routeDir = $appPathDir . '/' . $dir.'/Route';
                             if (!is_dir($routeDir)) {
-                                @mkdir($routeDir, 0777, true);
+                                @mkdir($routeDir, self::$dirPermission, true);
                             }
                             break;
                         case self::UDP_PROTOCOL:
                         case self::WEBSOCKET_PROTOCOL:
                             $middlewareDir = $appPathDir . '/' . $dir;
                             if (!is_dir($middlewareDir)) {
-                                @mkdir($middlewareDir, 0777, true);
+                                @mkdir($middlewareDir, self::$dirPermission, true);
                             }
                         default:
                             break;
@@ -223,7 +225,7 @@ class CreateCmd extends BaseCmd
                         case self::MQTT_PROTOCOL:
                             $serviceDir = $appPathDir . '/' . $dir;
                             if (!is_dir($serviceDir)) {
-                                @mkdir($serviceDir, 0777, true);
+                                @mkdir($serviceDir, self::$dirPermission, true);
                             }
                             break;
                         default:

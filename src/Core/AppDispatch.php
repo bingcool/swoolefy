@@ -18,7 +18,7 @@ class AppDispatch
      *
      * @var array
      */
-    protected static $routeCacheFileMap = [];
+    protected static array $routeCacheFileMap = [];
 
     /**
      * __construct

@@ -13,6 +13,7 @@ namespace Swoolefy\Worker;
 
 use Swoolefy\Core\CommandRunner;
 use Swoolefy\Core\SystemEnv;
+use Swoolefy\Http\ResponseCode;
 use Swoolefy\Worker\Dto\PipeMsgDtoWorker;
 use Swoole\Http\Request as SwooleRequest;
 use Swoole\Http\Response as SwooleResponse;
@@ -22,22 +23,22 @@ class CtlApi
     /**
      * @var SwooleRequest
      */
-    public $swooleRequest;
+    protected ?SwooleRequest $swooleRequest = null;
 
     /**
      * @var SwooleResponse
      */
-    public $swooleResponse;
+    protected ?SwooleResponse $swooleResponse = null;
 
     /**
      * @var array|mixed
      */
-    public $processRuntimeList = [];
+    protected array $processRuntimeList = [];
 
     /**
      * @var mixed
      */
-    public $reportTime;
+    protected $reportTime;
 
     const API_LIST = '/process-list';
     const API_START = '/process-start';
@@ -346,8 +347,8 @@ class CtlApi
     {
         $this->swooleResponse->header('Content-Type', 'application/json');
         return $this->swooleResponse->end(json_encode([
-            'code' => 0,
-            'msg' => 'success',
+            'code' => ResponseCode::CodeOk,
+            'msg' => ResponseCode::CodeOkText,
             'data' => $data
         ]));
     }
@@ -356,7 +357,7 @@ class CtlApi
     {
         $this->swooleResponse->header('Content-Type', 'application/json');
         return $this->swooleResponse->end(json_encode([
-            'code' => -1,
+            'code' => ResponseCode::CodeFAIL,
             'msg' => $msg,
             'data' => $data
         ]));

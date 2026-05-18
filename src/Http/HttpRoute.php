@@ -45,34 +45,34 @@ class HttpRoute extends AppDispatch
      * $appConf
      * @var array
      */
-    protected $appConf = [];
+    protected array $appConf = [];
 
     /**
      * $app
      * @var App
      */
-    protected $app = null;
+    protected ?App $app = null;
 
     /**
      * @var RequestInput
      */
-    protected $requestInput;
+    protected ?RequestInput $requestInput = null;
 
     /**
      * @var RequestValidate
      */
-    protected $requestValidate;
+    protected ?RequestValidate $requestValidate =  null;
 
     /**
      * @var ResponseOutput
      */
-    protected $responseOutput;
+    protected ?ResponseOutput $responseOutput =  null;
 
     /**
      * $routerUri
      * @var array
      */
-    protected $dispatchRoute = [];
+    protected array $dispatchRoute = [];
 
     /**
      * $extendData
@@ -83,27 +83,27 @@ class HttpRoute extends AppDispatch
     /**
      * @var array
      */
-    protected $actionParams = [];
+    protected array $actionParams = [];
 
     /**
      * @var array
      */
-    protected $groupMiddlewares = [];
+    protected array $groupMiddlewares = [];
 
     /**
      * @var array
      */
-    protected $beforeMiddlewares = [];
+    protected array $beforeMiddlewares = [];
 
     /**
      * @var array|mixed
      */
-    protected $afterMiddlewares = [];
+    protected array $afterMiddlewares = [];
 
     /**
      * @var string
      */
-    protected $httpMethod;
+    protected string $httpMethod = '';
 
     /**
      * @var array
@@ -113,32 +113,32 @@ class HttpRoute extends AppDispatch
     /**
      * @var RouteOption
      */
-    protected $routeOption;
+    protected ?RouteOption $routeOption = null;
 
     /**
      * @var array
      */
-    protected static $routeCache;
+    protected static array $routeCache;
 
     /**
      * 控制器 action 参数元数据缓存
      *
      * @var array
      */
-    protected static $actionParamMetaCache = [];
+    protected static array $actionParamMetaCache = [];
 
     /**
      * 控制器命名空间解析缓存
      *
      * @var array
      */
-    protected static $dispatchControllerMetaCache = [];
+    protected static array $dispatchControllerMetaCache = [];
 
     /**
      * $denyActions
      * @var array
      */
-    protected static $denyActions = ['__construct', '_beforeAction', '_afterAction', '__destruct'];
+    protected static array $denyActions = ['__construct', '_beforeAction', '_afterAction', '__destruct'];
 
     /**
      * @param RequestInput $requestInput

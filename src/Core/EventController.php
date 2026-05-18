@@ -31,7 +31,7 @@ class EventController extends BaseObject
     /**
      * @var array
      */
-    protected $logs = [];
+    protected array $logs = [];
 
     /**
      * $is_end

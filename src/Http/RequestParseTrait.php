@@ -40,7 +40,7 @@ trait RequestParseTrait
     /**
      * @var Validate
      */
-    protected $validator;
+    protected ?Validate $validator = null;
 
     /**
      * @var array
