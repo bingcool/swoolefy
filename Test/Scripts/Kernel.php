@@ -22,6 +22,7 @@ use Swoolefy\Script\GenerateSdk;
 use Swoolefy\Script\TestScript;
 use Swoolefy\Core\Schedule\Schedule;
 use Test\Scripts\TestScript\BingcoolTest;
+use Test\Scripts\TestScript\NacosTest;
 
 class Kernel extends AbstractKernel
 {
@@ -53,6 +54,7 @@ class Kernel extends AbstractKernel
      */
     public static $testCommands = [
         BingcoolTest::command => [BingcoolTest::class, 'handle'],
+        NacosTest::command => [NacosTest::class, 'handle'],
     ];
 
 
