@@ -81,5 +81,14 @@ return [
         $logger->enableHourly();
         $logger->setLogFilePath($logFilePath);
         return $logger;
-    }
+    },
+
+    // nacos日志
+    'nacos_log' => function($name) {
+    $logger = new \Swoolefy\Util\Log($name);
+    $logger->setChannel('application');
+    $logFilePath = LOG_PATH.'/nacos/nacos.log';
+    $logger->setLogFilePath($logFilePath);
+    return $logger;
+}
 ];
