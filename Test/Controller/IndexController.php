@@ -25,9 +25,11 @@ class IndexController extends BController {
      */
     protected $db;
 
-    public function index(RequestInput $request): bool
+    public function index(RequestInput $request): string
     {
         // todo something
+
+        var_dump(env('MY_APP_NAME'));
 
         // 创建一个协程单例异步写入日志
         goApp(function () {
@@ -48,7 +50,7 @@ class IndexController extends BController {
 
         // todo something
 
-        return true;
+        return env('MY_APP_NAME');
 
         //var_dump("root-go-cid=".\Swoole\Coroutine::getCid());
 //        goApp(function () {
