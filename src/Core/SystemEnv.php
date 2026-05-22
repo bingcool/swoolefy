@@ -260,6 +260,16 @@ class SystemEnv
         return $pidFile;
     }
 
+    public static function getPidFile()
+    {
+        $path = APP_PATH . "/Protocol";
+        $config = include $path . '/conf.php';
+        if (isset($config['setting']['pid_file'])) {
+            $pidFile = $config['setting']['pid_file'];
+        }
+        return $pidFile ?? '';
+    }
+
     /**
      * 加载环境变量文件
      * @param string $env

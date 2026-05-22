@@ -1,7 +1,7 @@
 <?php
 namespace Swoolefy\Cmd;
 
-use Swoolefy\Core\Exec;
+use Swoolefy\Cmd\Support\ProcessTreeTerminator;
 use Swoolefy\Core\SystemEnv;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\ArrayInput;
@@ -29,6 +29,8 @@ class RestartCmd extends BaseCmd
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $this->ignoreTerminationSignalsFromParentServer();
+
         $appName = $input->getArgument(self::APP_NAME);
         $force   = $input->getOption(self::FORCE);
         $lineValue = "";
@@ -76,10 +78,7 @@ class RestartCmd extends BaseCmd
         }
 
         fmtPrintInfo("-----------正在重启服务进程中，请等待-----------");
-        while (!$this->isPortReleased('127.0.0.1',WORKER_PORT)) {
-            fmtPrintInfo("-----------正在重启服务进程中，请等待-----------");
-            sleep(3);
-        }
+        $this->waitPortReleasedForRestart('127.0.0.1', (int) WORKER_PORT, $appName);
 
         // delete restart pid file
         $restartPidFile = SystemEnv::getRestartModelPidFile();
@@ -180,70 +179,94 @@ class RestartCmd extends BaseCmd
             return true;
         }
     }
+
+    /**
+     * 从 Nacos 等自定义进程内同步调用 restart 时，避免随 Master SIGTERM 一起退出。
+     */
+    protected function ignoreTerminationSignalsFromParentServer(): void
+    {
+        if (!extension_loaded('pcntl')) {
+            return;
+        }
+
+        pcntl_async_signals(true);
+        $ignore = static function (): void {
+        };
+        pcntl_signal(SIGTERM, $ignore);
+        pcntl_signal(SIGINT, $ignore);
+        pcntl_signal(SIGHUP, $ignore);
+    }
+
+    protected function waitPortReleasedForRestart(string $host, int $port, string $appName): void
+    {
+        $config = $this->loadAppProtocolConfig($appName);
+        $reusePort = (bool) ($config['setting']['enable_reuse_port'] ?? false);
+        $masterName = (string) ($config['master_process_name'] ?? 'php-swoolefy-http-master');
+        $managerName = (string) ($config['manager_process_name'] ?? 'php-swoolefy-http-manager');
+        $deadline = time() + 20;
+
+        while (time() < $deadline) {
+            if ($this->isPortReleased($host, $port)) {
+                return;
+            }
+
+            if ($reusePort) {
+                ProcessTreeTerminator::killByProcessTitle($masterName);
+                ProcessTreeTerminator::killByProcessTitle($managerName);
+                ProcessTreeTerminator::killListenersOnPort($port);
+            }
+
+            fmtPrintInfo("-----------正在重启服务进程中，请等待-----------");
+            sleep(3);
+        }
+
+        fmtPrintWarning("-----------端口 {$port} 仍被占用，将尝试强制清理后继续启动-----------");
+        ProcessTreeTerminator::killByProcessTitle($masterName);
+        ProcessTreeTerminator::killByProcessTitle($managerName);
+        ProcessTreeTerminator::killListenersOnPort($port);
+    }
+
+    protected function loadAppProtocolConfig(string $appName): array
+    {
+        $path = APP_PATH . '/Protocol/conf.php';
+        if (!is_file($path)) {
+            $path = ROOT_PATH . '/' . $appName . '/Protocol/conf.php';
+        }
+
+        return is_file($path) ? (array) include $path : [];
+    }
     /**
      * @param string $appName
      * @return void
      */
     protected function serverStop(string $appName)
     {
+        $config = $this->loadAppProtocolConfig($appName);
+        $masterName = (string) ($config['master_process_name'] ?? 'php-swoolefy-http-master');
+        $managerName = (string) ($config['manager_process_name'] ?? 'php-swoolefy-http-manager');
+
         $pidFile = $this->getPidFile($appName);
         if (!is_file($pidFile)) {
+            ProcessTreeTerminator::killByProcessTitle($masterName);
+            ProcessTreeTerminator::killByProcessTitle($managerName);
             return;
         }
 
-        $pid = intval(file_get_contents($pidFile));
-        if (!\Swoole\Process::kill($pid, 0)) {
+        $pid = (int) file_get_contents($pidFile);
+        if ($pid <= 0 || !ProcessTreeTerminator::isAlive($pid)) {
             fmtPrintInfo("Server has been stopped");
+            @unlink($pidFile);
+            ProcessTreeTerminator::killByProcessTitle($managerName);
+            ProcessTreeTerminator::killByProcessTitle($managerName);
             return;
         }
 
-        $maxWaitTime = 20;
-
-        \Swoole\Process::kill($pid, SIGTERM);
-        // if 'reload_async' => true,则默认workerStop有30s的过度期停顿这个时间稍微会比较长，设置成60过期
-        $nowTime = time();
         fmtPrintInfo("Server begin to stopping at " . date("Y-m-d H:i:s") . ", pid={$pid}. please wait a moment...");
-        while (true) {
-            sleep(1);
-            if (\Swoole\Process::kill($pid, 0) && (time() - $nowTime) > ($maxWaitTime - 5)) {
-                \Swoole\Process::kill($pid, SIGKILL);
-                sleep(1);
-            }
+        ProcessTreeTerminator::terminateHttpServerTree($pid, $masterName, $managerName);
 
-            if (!\Swoole\Process::kill($pid, 0)) {
-                fmtPrintInfo("---------------------stop info-------------------");
-                fmtPrintInfo("Server Stop  OK. server stop at " . date("Y-m-d H:i:s"));
-                @unlink($pidFile);
-                break;
-            } else {
-                if ((time() - $nowTime) > $maxWaitTime) {
-                    $exec = (new Exec())->run('pgrep -P ' . $pid);
-                    $output = $exec->getOutput();
-                    $managerProcessId = -1;
-                    $workerProcessIds = [];
-                    if (isset($output[0])) {
-                        $managerProcessId = current($output);
-                        $workerProcessIds = (new Exec())->run('pgrep -P ' . $managerProcessId)->getOutput();
-                    }
-                    $allProcessIds = [$pid, $managerProcessId, ...$workerProcessIds];
-                    foreach ($allProcessIds as $processId) {
-                        if ($processId > 0 && \Swoole\Process::kill($processId, 0)) {
-                            \Swoole\Process::kill($processId, SIGKILL);
-                        }
-                    }
-                    sleep(2);
-                    if (!\Swoole\Process::kill($pid, 0)) {
-                        fmtPrintInfo("---------------------stop info-------------------");
-                        fmtPrintInfo("Server Stop  OK. server stop at " . date("Y-m-d H:i:s"));
-                        @unlink($pidFile);
-                    }else {
-                        fmtPrintInfo("---------------------------stop info-----------------------");
-                        fmtPrintInfo("Please use 'ps -ef | grep php-swoolefy' checkout swoole whether or not stop");
-                    }
-                    break;
-                }
-            }
-        }
+        fmtPrintInfo("---------------------stop info-------------------");
+        fmtPrintInfo("Server Stop OK. server stop at " . date("Y-m-d H:i:s"));
+        @unlink($pidFile);
     }
 
     protected function workerStop($appName)

@@ -187,6 +187,14 @@ class BaseCmd extends Command
     protected function checkRunning(array &$config)
     {
         $this->resetConf($config);
+        // SO_REUSEPORT 零停机：允许在旧 Master 仍运行时拉起新 Master
+        if ('1' === getenv('SWOOLEFY_ZERO_DOWNTIME')) {
+            if ($this->isDaemon()) {
+                $config['setting']['daemonize'] = true;
+            }
+            $this->makeDirLogAndPid($config);
+            return;
+        }
         if (isset($config['setting']['pid_file'])) {
             $pidFile = $config['setting']['pid_file'];
             if (is_file($pidFile)) {
