@@ -1,0 +1,26 @@
+# Nacos 配置监听（优先于环境变量；未配置项再读 NACOS_* 环境变量）
+nacos:
+  host: 192.168.1.103
+  port: 8848
+  username: ''
+  password: ''
+  authorization_bearer: false
+  data_id: swoolefy.env
+  group: DEFAULT_GROUP
+  tenant: ''
+
+service:
+  ip: ''
+  port: 0
+  service_name: my-service
+  heartbeat_interval: 10   # 心跳间隔（秒）
+  namespace_id: ''
+  group_name: ''
+  weight: 1
+  ephemeral: true
+
+monitor:
+  env_file: ''          # 默认 APP_PATH/.env
+  lock_file: ''         # 默认 /tmp/swoolefy_{APP_NAME}_nacos_restart.lock
+  listener_timeout_ms: 30000
+  failed_wait_ms: 3000

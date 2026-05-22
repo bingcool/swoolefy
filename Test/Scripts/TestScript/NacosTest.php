@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Scripts\TestScript;
 
-use Common\Library\Nacos\Client;
-use Common\Library\Nacos\ClientConfig;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Exception\SystemException;
 use Swoolefy\Script\MainCliScript;
+use Swoolefy\Support\Nacos\ConfigFetcher;
+use Swoolefy\Support\Nacos\NacosConfig;
+use Swoolefy\Support\Nacos\ServiceRegistrar;
 
 /**
  * Nacos SDK smoke test.
@@ -33,39 +34,33 @@ class NacosTest extends MainCliScript
 
     public function testNacos(): void
     {
-        $client = new Client(new ClientConfig([
-            'host' => getenv('NACOS_HOST') ?: '127.0.0.1',
-            'port' => (int) (getenv('NACOS_PORT') ?: 8848),
-            'username' => getenv('NACOS_USERNAME') ?: '',
-            'password' => getenv('NACOS_PASSWORD') ?: '',
-            'authorizationBearer' => '' !== (getenv('NACOS_USERNAME') ?: '') && '' !== (getenv('NACOS_PASSWORD') ?: ''),
-            'useCoroutinePool' => \extension_loaded('swoole') && \Swoole\Coroutine::getCid() > 0,
-        ]), LogManager::getInstance()->getLogger('nacos_log'));
+        $nacosConfig = NacosConfig::load(defined('APP_PATH') ? APP_PATH : null);
+        $logger = LogManager::getInstance()->getLogger('nacos_log');
+        $configFetcher = new ConfigFetcher($nacosConfig, $logger);
+        $serviceRegistrar = new ServiceRegistrar($nacosConfig, $logger);
 
-        $dataId = 'app.yaml';
-        $group = 'DEFAULT_GROUP';
+        $dataId = $nacosConfig->dataId;
+        $group = $nacosConfig->group;
         $content = 'APP_NAME: Test';
 
-        $setOk = $client->config->set($dataId, $group, $content);
-        if (!$setOk) {
-            throw new \RuntimeException('Nacos config set failed');
-        }
+        $configFetcher->set($content, $dataId, $group);
         echo "config set ok: dataId={$dataId}, group={$group}\n";
 
         usleep(100_000);
-        $value = $client->config->get($dataId, $group);
+        $value = $configFetcher->get($dataId, $group);
         if ($value !== $content) {
-            throw new \RuntimeException(sprintf('config get mismatch, expected=%s, actual=%s', $content, $value));
+            throw new SystemException(sprintf('config get mismatch, expected=%s, actual=%s', $content, $value));
         }
         echo "config get ok: {$value}\n";
 
-        $registerOk = $client->instance->register('192.168.1.10', 8080, 'my-service');
-        if (!$registerOk) {
-            throw new \RuntimeException('Nacos instance register failed');
-        }
-        echo "instance register ok: 192.168.1.10:8080 -> my-service\n";
+        $registerIp = '' !== $nacosConfig->serviceIp ? $nacosConfig->serviceIp : '192.168.1.10';
+        $registerPort = $nacosConfig->servicePort > 0 ? $nacosConfig->servicePort : 8080;
+        $registerName = '' !== $nacosConfig->serviceName ? $nacosConfig->serviceName : 'my-service';
 
-        $list = $client->instance->list('my-service');
+        $serviceRegistrar->register($registerIp, $registerPort, $registerName);
+        echo "instance register ok: {$registerIp}:{$registerPort} -> {$registerName}\n";
+
+        $list = $serviceRegistrar->list($registerName);
         echo 'instance list hosts: ' . count($list->getHosts()) . "\n";
 
         echo "Nacos test passed\n";

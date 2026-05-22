@@ -14,7 +14,6 @@ use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\EventHandler;
 use Swoolefy\Core\Process\ProcessManager;
 use Swoolefy\Core\SystemEnv;
-
 class Event extends EventHandler
 {
     /**
@@ -91,7 +90,27 @@ class Event extends EventHandler
             // ProcessManager::getInstance()->addProcess('multi-call', \Test\Process\TestProcess\MultiCall::class);
 
             // multi call 并发调用进程
-            ProcessManager::getInstance()->addProcess('TestSdk', \Test\Process\TestSdk\TestRequest::class);
+            // ProcessManager::getInstance()->addProcess('TestSdk', \Test\Process\TestSdk\TestRequest::class);
+
+            // Nacos 配置变更 → reload Worker / Task 进程
+            ProcessManager::getInstance()->addProcess(
+                'nacos-config-reload',
+                \Test\Process\NacosProcess\NacosConfigReload::class,
+                true,
+                [],
+                null,
+                true,
+            );
+
+            // Nacos 服务注册与心跳保活
+            ProcessManager::getInstance()->addProcess(
+                'nacos-service-register',
+                \Test\Process\NacosProcess\NacosServiceRegister::class,
+                true,
+                [],
+                null,
+                true,
+            );
 
 
             // Udp服务测试
