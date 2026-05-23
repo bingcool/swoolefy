@@ -12,6 +12,7 @@ final class SdkSupportWriter
     public function __construct(
         private string $supportDir,
         private string $supportNamespace,
+        private string $nacosServiceName = 'my-service',
     ) {
     }
 
@@ -34,6 +35,7 @@ final class SdkSupportWriter
         file_put_contents($this->supportDir . '/SdkBasePageResultResponse.php', $this->basePageResultResponse());
         file_put_contents($this->supportDir . '/SdkClientException.php', $this->exception());
         file_put_contents($this->supportDir . '/BaseClientApi.php', $this->baseClientApi());
+        file_put_contents($this->supportDir . '/SdkNacosServiceDiscovery.php', $this->sdkNacosServiceDiscovery());
         file_put_contents($this->supportDir . '/ApiProperty.php', $this->apiProperty());
         file_put_contents($this->supportDir . '/ArrayList.php', $this->arrayList());
         file_put_contents($this->supportDir . '/SdkCovertProperty.php', $this->covertProperty());
@@ -338,34 +340,79 @@ PHP);
 
     private function baseClientApi(): string
     {
-        return $this->ns(<<<'PHP'
+        $serviceName = addcslashes($this->nacosServiceName, "'\\");
+
+        return $this->ns(str_replace(
+            '__SDK_NACOS_SERVICE_NAME__',
+            $serviceName,
+            <<<'PHP'
 <?php
 
 declare(strict_types=1);
 
 namespace __SDK_SUPPORT_NAMESPACE__;
 
+use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
 use Psr\Http\Message\ResponseInterface;
 
 abstract class BaseClientApi
 {
+    /**
+     * 本应用在 Nacos 注册的服务名（gen:sdk 时从 application.yaml → nacos.service_register.service_name 注入）。
+     */
+    protected string $serviceName = '__SDK_NACOS_SERVICE_NAME__';
+
     protected string $baseUri = '';
-    
+
+    protected ClientInterface $httpClient;
+
+    /**
+     * @param ClientInterface|null $httpClient 未传入时通过 Nacos 服务发现构造 Guzzle Client
+     */
     public function __construct(
-        protected ClientInterface $httpClient,
+        ?ClientInterface $httpClient = null,
         string $baseUri = '',
     ) {
+        if (null === $httpClient) {
+            $this->baseUri = '' !== $baseUri
+                ? rtrim($baseUri, '/') . '/'
+                : SdkNacosServiceDiscovery::resolveBaseUri($this->serviceName);
+            $this->httpClient = new Client([
+                'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+                'base_uri' => $this->baseUri,
+                'http_errors' => false,
+            ]);
+        } else {
+            $this->httpClient = $httpClient;
+            if ('' !== $baseUri) {
+                $this->baseUri = rtrim($baseUri, '/') . '/';
+            }
+        }
     }
-    
-    public static function make(ClientInterface $httpClient): static
+
+    public static function make(?ClientInterface $httpClient = null, string $baseUri = ''): static
     {
-        return new static($httpClient);
+        return new static($httpClient, $baseUri);
+    }
+
+    public function getServiceName(): string
+    {
+        return $this->serviceName;
+    }
+
+    public function getHttpClient(): ClientInterface
+    {
+        return $this->httpClient;
     }
 
     protected function uri(string $path): string
     {
-        return rtrim($this->baseUri, '/') . '/' . ltrim($path, '/');
+        if ('' !== $this->baseUri) {
+            return rtrim($this->baseUri, '/') . '/' . ltrim($path, '/');
+        }
+
+        return '/' . ltrim($path, '/');
     }
 
     /**
@@ -424,6 +471,252 @@ abstract class BaseClientApi
         }
 
         return $merged;
+    }
+}
+
+PHP
+        ));
+    }
+
+    private function sdkNacosServiceDiscovery(): string
+    {
+        return $this->ns(<<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+namespace __SDK_SUPPORT_NAMESPACE__;
+
+use GuzzleHttp\Client;
+use Symfony\Component\Yaml\Yaml;
+
+/**
+ * SDK 侧 Nacos 服务发现：读取 nacos.yaml + application.yaml，解析可用实例 base_uri。
+ */
+final class SdkNacosServiceDiscovery
+{
+    /**
+     * @throws SdkClientException
+     */
+    public static function resolveBaseUri(string $serviceName, ?string $configDir = null): string
+    {
+        if ('' === trim($serviceName)) {
+            throw new SdkClientException('Nacos service name is empty');
+        }
+
+        if (empty($configDir)) {
+            $configDir = APP_PATH;
+        }
+        $server = self::loadNacosServerConfig($configDir);
+        $discovery = self::loadDiscoveryClientConfig($configDir);
+
+        $groupName = self::pickString($discovery, 'group_name', 'NACOS_DISCOVERY_GROUP_NAME', '');
+        $namespaceId = self::pickString($discovery, 'namespace_id', 'NACOS_DISCOVERY_NAMESPACE_ID', '');
+        $healthyOnly = self::pickBool($discovery, 'healthy_only', 'NACOS_DISCOVERY_HEALTHY_ONLY', true);
+
+        $hosts = self::fetchInstanceHosts(
+            $server,
+            $serviceName,
+            $groupName,
+            $namespaceId,
+            $healthyOnly,
+        );
+
+        $instance = self::chooseInstance($hosts);
+        if (null === $instance) {
+            throw new SdkClientException(sprintf(
+                'No available Nacos instance for service [%s]',
+                $serviceName,
+            ));
+        }
+
+        return sprintf('http://%s:%d/', $instance['ip'], $instance['port']);
+    }
+
+    /**
+     * @return array{host: string, port: int, username: string, password: string}
+     */
+    private static function loadNacosServerConfig(string $configDir): array
+    {
+        $yamlFile = $configDir . '/nacos.yaml';
+        if (!is_file($yamlFile)) {
+            throw new SdkClientException('nacos.yaml not found: ' . $yamlFile);
+        }
+
+        $yaml = (array) Yaml::parseFile($yamlFile);
+        $nacos = (array) ($yaml['nacos'] ?? $yaml);
+
+        return [
+            'host' => self::pickString($nacos, 'host', 'NACOS_HOST', '127.0.0.1'),
+            'port' => self::pickInt($nacos, 'port', 'NACOS_PORT', 8848),
+            'username' => self::pickString($nacos, 'username', 'NACOS_USERNAME', ''),
+            'password' => self::pickString($nacos, 'password', 'NACOS_PASSWORD', ''),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function loadDiscoveryClientConfig(string $configDir): array
+    {
+        $yamlFile = $configDir . '/application.yaml';
+        if (!is_file($yamlFile)) {
+            return [];
+        }
+
+        $yaml = (array) Yaml::parseFile($yamlFile);
+        $nacos = (array) ($yaml['nacos'] ?? []);
+
+        return (array) ($nacos['discovery_service_client'] ?? []);
+    }
+
+    /**
+     * @param array{host: string, port: int, username: string, password: string} $server
+     * @return list<array{ip: string, port: int, weight: float, healthy: bool, enabled: bool}>
+     */
+    private static function fetchInstanceHosts(
+        array $server,
+        string $serviceName,
+        string $groupName,
+        string $namespaceId,
+        bool $healthyOnly,
+    ): array {
+        $query = [
+            'serviceName' => $serviceName,
+            'groupName' => $groupName,
+            'namespaceId' => $namespaceId,
+            'healthyOnly' => $healthyOnly ? 'true' : 'false',
+        ];
+
+        $url = sprintf(
+            'http://%s:%d/nacos/v1/ns/instance/list?%s',
+            $server['host'],
+            $server['port'],
+            http_build_query($query),
+        );
+
+        $client = new Client(['http_errors' => false, 'timeout' => 10]);
+        $options = [];
+        if ('' !== $server['username'] && '' !== $server['password']) {
+            $options['auth'] = [$server['username'], $server['password']];
+        }
+
+        $response = $client->get($url, $options);
+        if ($response->getStatusCode() < 200 || $response->getStatusCode() >= 300) {
+            throw new SdkClientException('Nacos instance list failed, HTTP ' . $response->getStatusCode());
+        }
+
+        $body = (string) $response->getBody();
+        if ('' === $body) {
+            return [];
+        }
+
+        try {
+            /** @var array<string, mixed> $decoded */
+            $decoded = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            throw new SdkClientException('Invalid Nacos list response: ' . $e->getMessage());
+        }
+
+        $hosts = [];
+        foreach ((array) ($decoded['hosts'] ?? []) as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $ip = (string) ($row['ip'] ?? '');
+            $port = (int) ($row['port'] ?? 0);
+            if ('' === $ip || $port <= 0) {
+                continue;
+            }
+            $hosts[] = [
+                'ip' => $ip,
+                'port' => $port,
+                'weight' => (float) ($row['weight'] ?? 1),
+                'healthy' => (bool) ($row['healthy'] ?? true),
+                'enabled' => (bool) ($row['enabled'] ?? true),
+            ];
+        }
+
+        return $hosts;
+    }
+
+    /**
+     * @param list<array{ip: string, port: int, weight: float, healthy: bool, enabled: bool}> $hosts
+     * @return array{ip: string, port: int}|null
+     */
+    private static function chooseInstance(array $hosts): ?array
+    {
+        $available = array_values(array_filter(
+            $hosts,
+            static fn (array $h): bool => $h['enabled'] && $h['healthy'],
+        ));
+
+        if ([] === $available) {
+            return null;
+        }
+
+        if (1 === count($available)) {
+            return $available[0];
+        }
+
+        $weightSum = 0.0;
+        foreach ($available as $host) {
+            $w = $host['weight'] > 0 ? $host['weight'] : 1.0;
+            $weightSum += $w;
+        }
+
+        $randomValue = (new \Random\Randomizer())->getInt(1, max(1, (int) round($weightSum * 1000))) / 1000;
+        foreach ($available as $host) {
+            $w = $host['weight'] > 0 ? $host['weight'] : 1.0;
+            $randomValue -= $w;
+            if ($randomValue <= 0) {
+                return $host;
+            }
+        }
+
+        return $available[array_key_last($available)];
+    }
+
+    private static function pickString(array $yaml, string $yamlKey, string $envKey, string $default): string
+    {
+        if (array_key_exists($yamlKey, $yaml) && '' !== (string) $yaml[$yamlKey]) {
+            return (string) $yaml[$yamlKey];
+        }
+
+        $env = getenv($envKey);
+        if (false !== $env && '' !== $env) {
+            return (string) $env;
+        }
+
+        return $default;
+    }
+
+    private static function pickInt(array $yaml, string $yamlKey, string $envKey, int $default): int
+    {
+        if (array_key_exists($yamlKey, $yaml) && is_numeric($yaml[$yamlKey])) {
+            return (int) $yaml[$yamlKey];
+        }
+
+        $env = getenv($envKey);
+        if (false !== $env && is_numeric($env)) {
+            return (int) $env;
+        }
+
+        return $default;
+    }
+
+    private static function pickBool(array $yaml, string $yamlKey, string $envKey, bool $default): bool
+    {
+        if (array_key_exists($yamlKey, $yaml)) {
+            return filter_var($yaml[$yamlKey], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        $env = getenv($envKey);
+        if (false !== $env) {
+            return filter_var($env, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return $default;
     }
 }
 
