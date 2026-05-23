@@ -11,9 +11,6 @@
 
 namespace Swoolefy;
 
-// 定义当前core的根路径
-defined('SWOOLEFY_CORE_ROOT_PATH') or define('SWOOLEFY_CORE_ROOT_PATH', __DIR__ . '/Core');
-
 // 定义打包检查类型
 defined('SWOOLEFY_PACK_CHECK_LENGTH') or define('SWOOLEFY_PACK_CHECK_LENGTH', 'length');
 defined('SWOOLEFY_PACK_CHECK_EOF') or define('SWOOLEFY_PACK_CHECK_EOF', 'eof');

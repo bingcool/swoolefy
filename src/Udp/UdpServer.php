@@ -38,8 +38,8 @@ abstract class UdpServer extends BaseServer
         'task_tmpdir'     => '/dev/shm',
         'daemonize'       => 0,
         'hook_flags'      => SWOOLE_HOOK_ALL,
-        'log_file'        => __DIR__ . '/log/log.txt',
-        'pid_file'        => __DIR__ . '/log/server.pid',
+        'log_file'        => APP_PATH . '/log/log.txt',
+        'pid_file'        => APP_PATH . '/log/server.pid',
     ];
 
     /**

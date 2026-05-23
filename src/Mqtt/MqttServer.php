@@ -42,8 +42,8 @@ abstract class MqttServer extends BaseServer
         'daemonize'          => 0,
         'open_mqtt_protocol' => true,
         'hook_flags'         => SWOOLE_HOOK_ALL,
-        'log_file'           => __DIR__ . '/log/log.txt',
-        'pid_file'           => __DIR__ . '/log/server.pid',
+        'log_file'           => APP_PATH . '/log/log.txt',
+        'pid_file'           => APP_PATH . '/log/server.pid',
     ];
 
     /**

@@ -8,6 +8,12 @@ $appName = ucfirst($_SERVER['argv'][2]);
 define('APP_NAME', $appName);
 // 启动目录
 defined('START_DIR_ROOT') or define('START_DIR_ROOT', __DIR__);
+
+// 直接下载使用时，定义成如下路径
+defined('SRC_DIR_ROOT') or define('SRC_DIR_ROOT', __DIR__);
+// composer安装时，必须定义成如下路径
+defined('SRC_DIR_ROOT') or define('SRC_DIR_ROOT', __DIR__."/vendor/bingcool/swoolefy/src");
+
 // 应用父目录
 defined('ROOT_PATH') or define('ROOT_PATH',__DIR__);
 // 应用目录
@@ -48,10 +54,10 @@ define('WORKER_CTL_CONF_FILE',WORKER_PID_FILE_ROOT.'/confctl.json');
 define('SERVER_START_LOG_JSON_FILE', WORKER_PID_FILE_ROOT.'/start.json');
 
 // 定义配置文件
-define('WORKER_CONF_FILE', __DIR__.'/'.$appName.'/WorkerDaemon/worker_daemon_conf.php');
+define('WORKER_CONF_FILE', APP_PATH.'/WorkerDaemon/worker_daemon_conf.php');
 // 启动前处理,比如加载.env
 $beforeFunc = function () {
 
 };
 
-include __DIR__.'/swoolefy';
+include SRC_DIR_ROOT.'/swoolefy';
