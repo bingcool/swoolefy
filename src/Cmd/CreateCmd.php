@@ -45,22 +45,22 @@ class CreateCmd extends BaseCmd
 
         $daemonFile = START_DIR_ROOT . '/daemon.php';
         if (!file_exists($daemonFile)) {
-            @copy(SRC_DIR_ROOT . '/src/Stubs/daemon.stub.php', $daemonFile);
+            @copy(SRC_DIR_ROOT.'/Stubs/daemon.stub.php', $daemonFile);
         }
 
         $cronFile = START_DIR_ROOT . '/cron.php';
         if (!file_exists($cronFile)) {
-            @copy(SRC_DIR_ROOT . '/src/Stubs/cron.stub.php', $cronFile);
+            @copy(SRC_DIR_ROOT.'/Stubs/cron.stub.php', $cronFile);
         }
 
         $scriptFile = START_DIR_ROOT . '/script.php';
         if (!file_exists($scriptFile)) {
-            @copy(SRC_DIR_ROOT . '/src/Stubs/script.stub.php', $scriptFile);
+            @copy(SRC_DIR_ROOT.'/Stubs/script.stub.php', $scriptFile);
         }
 
         $swagFile = START_DIR_ROOT . '/swag.php';
         if (!file_exists($swagFile)) {
-            @copy(SRC_DIR_ROOT . '/src/Stubs/swag.stub.php', $swagFile);
+            @copy(SRC_DIR_ROOT.'/Stubs/swag.stub.php', $swagFile);
         }
 
         @mkdir($appPathDir, self::$dirPermission, true);
@@ -99,19 +99,19 @@ class CreateCmd extends BaseCmd
                     $componentDir = $appPathDir . '/' . $dir . '/component';
                     if (!is_dir($componentDir)) {
                         @mkdir($componentDir, self::$dirPermission, true);
-                        @copy(ROOT_PATH . '/src/Stubs/db.stub.php', $componentDir.'/database.php');
-                        @copy(ROOT_PATH . '/src/Stubs/log.stub.php', $componentDir.'/log.php');
-                        @copy(ROOT_PATH . '/src/Stubs/cache.stub.php', $componentDir.'/cache.php');
+                        @copy(SRC_DIR_ROOT.'/Stubs/db.stub.php', $componentDir.'/database.php');
+                        @copy(SRC_DIR_ROOT.'/Stubs/log.stub.php', $componentDir.'/log.php');
+                        @copy(SRC_DIR_ROOT.'/Stubs/cache.stub.php', $componentDir.'/cache.php');
                     }
 
                     $confFile = $appPathDir . '/' . $dir . '/app.php';
                     if (!file_exists($confFile)) {
-                        @copy(ROOT_PATH . '/src/Stubs/app.conf.stub.php', $confFile);
+                        @copy(SRC_DIR_ROOT.'/Stubs/app.conf.stub.php', $confFile);
                     }
 
                     $dcFile = $appPathDir . '/' . $dir . '/dc.php';
                     if (!file_exists($dcFile)) {
-                        @copy(ROOT_PATH . '/src/Stubs/dc.stub.php', $dcFile);
+                        @copy(SRC_DIR_ROOT.'/Stubs/dc.stub.php', $dcFile);
                     }
 
                     break;
@@ -155,14 +155,14 @@ class CreateCmd extends BaseCmd
                         case self::HTTP_PROTOCOL:
                             $apiFile = $appPathDir . "/{$dir}/api.php";
                             if (!file_exists($apiFile)) {
-                                @copy(ROOT_PATH . '/src/Stubs/api.stub.php', $apiFile);
+                                @copy(SRC_DIR_ROOT.'/Stubs/api.stub.php', $apiFile);
                             }
                             break;
                         case self::UDP_PROTOCOL:
                         case self::WEBSOCKET_PROTOCOL:
                             $apiFile = $appPathDir . "/{$dir}/service.php";
                             if (!file_exists($apiFile)) {
-                                @copy(ROOT_PATH . '/src/Stubs/service.api.stub.php', $apiFile);
+                                @copy(SRC_DIR_ROOT.'/Stubs/service.api.stub.php', $apiFile);
                             }
                             break;
                         default:
@@ -177,19 +177,19 @@ class CreateCmd extends BaseCmd
                     if (!file_exists($confFile)) {
                         switch ($protocol) {
                             case self::HTTP_PROTOCOL:
-                                @copy(ROOT_PATH . '/src/Http/conf.stub.php', $confFile);
+                                @copy(SRC_DIR_ROOT . '/Http/conf.stub.php', $confFile);
                                 break;
                             case self::RPC_PROTOCOL:
-                                @copy(ROOT_PATH . '/src/Rpc/conf.stub.php', $confFile);
+                                @copy(SRC_DIR_ROOT . '/Rpc/conf.stub.php', $confFile);
                                 break;
                             case self::UDP_PROTOCOL:
-                                @copy(ROOT_PATH . '/src/Udp/conf.stub.php', $confFile);
+                                @copy(SRC_DIR_ROOT . '/Udp/conf.stub.php', $confFile);
                                 break;
                             case self::WEBSOCKET_PROTOCOL:
-                                @copy(ROOT_PATH . '/src/Websocket/conf.stub.php', $confFile);
+                                @copy(SRC_DIR_ROOT . '/Websocket/conf.stub.php', $confFile);
                                 break;
                             case self::MQTT_PROTOCOL:
-                                @copy(ROOT_PATH . '/src/Mqtt/conf.stub.php', $confFile);
+                                @copy(SRC_DIR_ROOT . '/Mqtt/conf.stub.php', $confFile);
                                 break;
                         }
                     }
@@ -249,7 +249,7 @@ class CreateCmd extends BaseCmd
                 case 'Scripts':
                 {
                     $scriptPath = $appPathDir . '/' . $dir;
-                    $kernelFile = ROOT_PATH.'/src/Script/Kernel.php';
+                    $kernelFile = SRC_DIR_ROOT.'/Script/Kernel.php';
                     $kernelFileContent = file_get_contents($kernelFile);
                     $kernelFileContent = str_replace('namespace Swoolefy\Script', "namespace {$appName}\\{$dir}", $kernelFileContent);
                     if (!file_exists($scriptPath.'/Kernel.php')) {
@@ -285,7 +285,7 @@ class CreateCmd extends BaseCmd
         if (!file_exists($eventServerFile)) {
             $searchStr = $namespace;
             $replaceStr = "{$appName}";
-            $fileContentString = file_get_contents(ROOT_PATH . '/src/Stubs/'.$serverName.'.stub.php');
+            $fileContentString = file_get_contents(SRC_DIR_ROOT.'/Stubs/'.$serverName.'.stub.php');
             $count = 1;
             $fileContentString = str_replace($searchStr, $replaceStr, $fileContentString, $count);
             file_put_contents($eventServerFile, $fileContentString);
@@ -364,7 +364,7 @@ EOF;
     protected function getApplicationYamlContent(string $appName): string
     {
         $workerPort = APP_META_ARR[$appName]['worker_port'] ?? 9501;
-        $stubFile = ROOT_PATH . '/src/Stubs/application.yaml.stub';
+        $stubFile = SRC_DIR_ROOT.'/Stubs/application.yaml.stub';
         $content = is_file($stubFile) ? (string) file_get_contents($stubFile) : '';
 
         return str_replace('{WORKER_PORT}', (string) $workerPort, $content);
