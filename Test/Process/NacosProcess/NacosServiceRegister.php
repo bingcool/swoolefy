@@ -8,14 +8,14 @@ use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Process\AbstractProcess;
 use Swoolefy\Exception\NacosMonitorException;
 use Swoolefy\Support\Nacos\NacosConfig;
-use Swoolefy\Support\Nacos\ServiceRegistrar;
+use Swoolefy\Support\Nacos\ServiceRegister;
 
 /**
  * 自定义进程：向 Nacos 注册当前服务实例并定时心跳保活。
  */
 class NacosServiceRegister extends AbstractProcess
 {
-    private ?ServiceRegistrar $registrar = null;
+    private ?ServiceRegister $registrar = null;
 
     public function run(): void
     {
@@ -36,7 +36,7 @@ class NacosServiceRegister extends AbstractProcess
             ? (int) $service['heartbeat_interval']
             : 10;
 
-        $this->registrar = new ServiceRegistrar($config, $logger);
+        $this->registrar = new ServiceRegister($config, $logger);
         $this->registrar->register(
             ip: $ip,
             port: $port,
