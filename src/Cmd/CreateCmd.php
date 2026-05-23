@@ -70,6 +70,11 @@ class CreateCmd extends BaseCmd
             @file_put_contents($envFile, $this->getEnvFileContent());
         }
 
+        $applicationYamlFile = $appPathDir . '/application.yaml';
+        if (!is_file($applicationYamlFile)) {
+            @file_put_contents($applicationYamlFile, $this->getApplicationYamlContent($appName));
+        }
+
         foreach ($dirs as $dir) {
             @mkdir($appPathDir . '/' . $dir, self::$dirPermission, true);
             switch ($dir) {
@@ -355,6 +360,15 @@ EOF;
         return $content;
     }
 
+
+    protected function getApplicationYamlContent(string $appName): string
+    {
+        $workerPort = APP_META_ARR[$appName]['worker_port'] ?? 9501;
+        $stubFile = ROOT_PATH . '/src/Stubs/application.yaml.stub';
+        $content = is_file($stubFile) ? (string) file_get_contents($stubFile) : '';
+
+        return str_replace('{WORKER_PORT}', (string) $workerPort, $content);
+    }
 
     protected function getEnvFileContent()
     {

@@ -21,7 +21,6 @@ class NacosServiceRegister extends AbstractProcess
     {
         $config = NacosConfig::load(defined('APP_PATH') ? APP_PATH : null);
         $logger = LogManager::getInstance()->getLogger('nacos_log');
-        $service = $config->section('service');
 
         $ip = '' !== $config->serviceIp ? $config->serviceIp : $this->resolveRegisterIp();
         $port = $config->servicePort > 0
@@ -29,12 +28,10 @@ class NacosServiceRegister extends AbstractProcess
             : (defined('WORKER_PORT') ? (int) WORKER_PORT : 0);
 
         if ($port <= 0) {
-            throw NacosMonitorException::throw('service port is required, set service.port in nacos.yaml or WORKER_PORT');
+            throw NacosMonitorException::throw('service port is required, set nacos.service_register.port in application.yaml or WORKER_PORT');
         }
 
-        $heartbeatInterval = isset($service['heartbeat_interval']) && is_numeric($service['heartbeat_interval'])
-            ? (int) $service['heartbeat_interval']
-            : 10;
+        $heartbeatInterval = $config->serviceHeartbeatInterval;
 
         $this->registrar = new ServiceRegister($config, $logger);
         $this->registrar->register(

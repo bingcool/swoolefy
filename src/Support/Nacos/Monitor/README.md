@@ -4,7 +4,7 @@
 
 1. 从 Nacos 拉取最新配置，写入 `APP_PATH/.env`
 2. 后台执行 `php cli.php restart {APP_NAME} --force=1`（`RestartCmd`，应用名/PHP/入口脚本从运行时常量读取）
-3. Nacos 连接参数由 `Swoolefy\Support\Nacos\NacosConfig` 读取 `APP_PATH/nacos.yaml`，缺失项再读环境变量
+3. Nacos 服务器连接读 `APP_PATH/nacos.yaml`，监听项读 `APP_PATH/application.yaml` → `nacos.monitor_config_change`
 
 ## 使用
 
@@ -26,7 +26,7 @@ ProcessManager::getInstance()->addProcess(
 
 ## 配置文件
 
-复制 `Test/nacos.yaml` 到各应用 `APP_PATH/nacos.yaml` 并按环境修改。
+复制 `Test/nacos.yaml` 与 `Test/application.yaml` 到各应用 `APP_PATH` 并按环境修改。
 
 ## 日志
 
