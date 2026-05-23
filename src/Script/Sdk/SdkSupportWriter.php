@@ -463,6 +463,8 @@ abstract class BaseClientApi
         $defaults = [
             'http_errors' => false,
             'headers' => ['Content-Type' => 'application/json'],
+            'connect_timeout' => 30.0,
+            'timeout' => 120.0,
         ];
         $defaults = array_merge($defaults, $requestDefaults);
         $merged = array_merge($defaults, $options);

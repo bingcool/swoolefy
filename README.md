@@ -17,12 +17,45 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/bingcool/swoolefy.svg)](https://packagist.org/packages/bingcool/swoolefy)
 
 ---
+
+## 📑 导航
+
+- [一、📖 简介](#nav-1-intro)
+- [🎯 核心特性](#nav-core)
+- [🏛️ 架构设计](#nav-arch)
+  - [进程模型](#nav-arch-process)
+  - [http 请求处理流程](#nav-arch-http)
+- [二、📦 版本选择](#nav-2-version)
+- [三、⚙️ 实现的功能特性](#nav-3-features)
+- [四、🔌 适配协程环境组件](#nav-4-components)
+- [五、📚 bingcool/library 组件库](#nav-5-library)
+- [六、📥 安装](#nav-6-install)
+- [七、📝 添加 cli.php 入口](#nav-7-cli)
+- [八、📂 创建 App 项目](#nav-8-create)
+- [九、🚀 启动 http 应用](#nav-9-start)
+- [十、🌐 访问](#nav-10-access)
+- [十一、🧩 定义组件](#nav-11-define)
+- [十二、💡 使用组件](#nav-12-use)
+- [十三、⚙️ Protocol/conf.php](#nav-13-protocol)
+- [十四、🛣️ 路由系统](#nav-14-route)
+- [十五、⚡ 协程单例](#nav-15-singleton)
+- [十六、⚡ 协程并发](#nav-16-concurrent)
+- [十七、🗄️ 数据库操作](#nav-17-db)
+- [十八、📦 SDK 自动生成](#nav-18-sdk)
+- [十九、📘 ApiDoc 自动生成](#nav-19-apidoc)
+- [二十、☁️ Nacos 微服务集成](#nav-20-nacos)
+
+---
+<a id="nav-1-intro"></a>
+
 ### 一、📖 简介    
 swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协程级应用服务框架，
 高度支持httpApi，websocket，udp服务器，以及基于tcp实现可扩展的rpc服务，worker多进程消费模型  
 同时支持composer包方式安装部署项目。基于实用主义设计出发，swoolefy抽象Event事件处理类，
 实现与底层的回调的解耦，支持协程单例调度，同步|异步调用，全局事件注册，心跳检查，异步任务，多进程(池)，连接池等，
 内置```log、session、mysql、pgsql、redis、mongodb、kafka、amqp、uuid、route midelware、cache、queue、rateLimit、traceId```等常用组件等.    
+
+<a id="nav-core"></a>
 
 ### 🎯 核心特性
 
@@ -40,9 +73,18 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
     - **GoWaitGroup**: 类似 Go 语言的 WaitGroup，优雅的协程同步等待机制
 - 📦 **组件化**:
     - **bingcool/library** 大量常用协程组件库 @see https://github.com/bingcool/library
+- ☁️ **Nacos 微服务集成**:
+    - **配置变更监听**: 长轮询 Nacos 配置，拉取最新内容写入 `APP_PATH/.env`，自动执行 `restart --force` 使 Worker 加载新配置
+    - **服务注册**: 应用实例注册到 Nacos 注册中心，支持心跳保活（`application.yaml` → `nacos.service_register`）
+    - **服务发现**: `DiscoveryClient` 拉取健康实例，内置 `random` / `round_robin` / `weight` 负载均衡
+    - **SDK 服务发现**: `gen:sdk` 生成的 API 客户端在未传入 Guzzle Client 时，自动通过 Nacos 解析目标服务 `base_uri`（`serviceName` 在生成时从 `application.yaml` 注入）
 
+
+<a id="nav-arch"></a>
 
 ### 🏛️ 架构设计
+
+<a id="nav-arch-process"></a>
 
 ### 进程模型
 
@@ -105,6 +147,8 @@ swoolefy是一个基于swoole实现的轻量级高性能的常驻内存型的协
 2. **Manager Process**: 第二层级，统一管理所有子进程
 3. **Worker/Task/User Process**: 第三层级，由 Manager 直接管理
 4. **Cron/Daemon/Script Workers**: 第四层级，由 User Process (MainProcess) 通过 `MainManager::start()` 拉起
+
+<a id="nav-arch-http"></a>
 
 ### http请求处理流程
 
@@ -209,6 +253,8 @@ Client Response
 
 ---
 
+<a id="nav-2-version"></a>
+
 ### 二、📦 版本选择
 #### 6.x 版本 (推荐 - 最新稳定版)
 
@@ -241,6 +287,8 @@ docker build --no-cache -t swoolefy-php84-swoole62:v1 -f ./php84-swoole62-io-uri
 docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v /host_mnt/Users/macbook/Documents/wwwphp:/home/wwwroot --name=swoolefy-php84-v62 swoolefy-php84-swoole62:v1
 
 ```
+<a id="nav-3-features"></a>
+
 ### 三、⚙️ 实现的功能特性    
 
 #### 基础特性
@@ -285,7 +333,50 @@ docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v
 
 - [x] 支持daemon模式.worker下后台daemon模式的多进程协程消费模型,包括进程自动拉起，进程数动态调整，进程健康状态监控     
 - [x] 支持console终端脚本模式. 跑完脚本自动退出，可用于修复数据、数据迁移等临时脚本功能      
-- [ ] 支持分布式服务注册（zk，etcd）       
+- [x] **Nacos 配置中心与服务治理**（`Swoolefy\Support\Nacos`，详见 [src/Support/Nacos/README.md](src/Support/Nacos/README.md)）
+
+    创建应用（`php cli.php create App`）时会自动生成 `APP_PATH/application.yaml` 模板；Nacos 连接信息放在 `APP_PATH/nacos.yaml`。
+
+    | 文件 | 说明 |
+    |:---|:---|
+    | `APP_PATH/nacos.yaml` | Nacos **服务器连接**（host、port、data_id、username/password 等） |
+    | `APP_PATH/application.yaml` | **应用行为**：`service_register`、`discovery_service_client`、`monitor_config_change` |
+
+    | 能力 | 说明 | 主要类 |
+    |:---|:---|:---|
+    | 配置变更监听 | 长轮询配置 → 写入 `.env` → 后台 `cli.php restart {App} --force=1` | `NacosMonitor`、`ConfigWatcher`（见 [Monitor/README.md](src/Support/Nacos/Monitor/README.md)） |
+    | 服务注册 | 注册实例到 Nacos 并定时心跳 | `ServiceRegister` |
+    | 服务发现 | 实例列表缓存 + 负载均衡选节点 | `DiscoveryClient`、`DiscoveryConfig`、`LoadBalancerFactory` |
+    | SDK 服务发现 | `gen:sdk` 生成客户端，未传 Guzzle 时自动 Nacos 发现 `base_uri` | `BaseClientApi`、`SdkNacosServiceDiscovery`（生成物） |
+
+    自定义进程示例（`Event.php` 中注册）：
+
+    ```php
+    // 配置变更监听
+    ProcessManager::getInstance()->addProcess(
+        'nacos-config-reload',
+        \App\Process\NacosProcess\NacosConfigReload::class,
+        true, [], null, true,
+    );
+    // 服务注册 + 心跳
+    ProcessManager::getInstance()->addProcess(
+        'nacos-service-register',
+        \App\Process\NacosProcess\NacosServiceRegister::class,
+        true, [], null, true,
+    );
+    ```
+
+    服务发现代码示例：
+
+    ```php
+    use Swoolefy\Support\Nacos\Discovery\DiscoveryClient;
+    use Swoolefy\Support\Nacos\NacosConfig;
+
+    $client = DiscoveryClient::create('my-service', NacosConfig::load());
+    $uri = $client->chooseUri('http'); // http://192.168.x.x:9501
+    ```
+
+<a id="nav-4-components"></a>
 
 ### 四、🔌 适配协程环境组件
 | 组件名称             | 安装                                                    | 说明                                                  |
@@ -303,6 +394,8 @@ docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v
 | oauth 2.0        | composer require league/oauth2-server                 | oauth 2.0 授权认证组件                                    |  
 | php-standard-library        | composer require php-standard-library/php-standard-library                | php标准库(推荐)                                          |
 | bingcool/library | composer require bingcool/library                     | library组件库                                          |  
+
+<a id="nav-5-library"></a>
 
 ### 五、📚 bingcool/library 是 swoolefy require 内置库，专为 swoole 协程实现的组件库        
 实现了包括：    
@@ -329,6 +422,8 @@ docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v
    
 github: https://github.com/bingcool/library    
 
+
+<a id="nav-6-install"></a>
 
 ### 六、📥 安装 
 
@@ -372,6 +467,8 @@ ENV SWOOLEFY_CLI_ENV=dev
 composer install
 
 ```
+
+<a id="nav-7-cli"></a>
 
 ### 七、📝 添加项目入口启动文件 cli.php,并定义你的项目目录，命名为 App
 
@@ -435,6 +532,8 @@ include dirname(SRC_DIR_ROOT).'/swoolefy';
 
 ```
 
+<a id="nav-8-create"></a>
+
 ### 八、📂 执行创建你定义的 App 项目
 
 ```
@@ -478,7 +577,6 @@ myproject
 |     |—— Event.php         // 事件实现类
 |     |—— HttpServer.php    // http server
 |    
-|——— src            // 源码
 |——— cli.php        // http应用启动入口文件
 |——— cron.php       // 定时 worker 任务的多进程启动入口文件
 |——— daemon.php     // 守护进程 worker 的多进程启动入口文件
@@ -486,6 +584,8 @@ myproject
 |——— swag.php       // 生成 swagger 接口文档入口文件
 
 ```
+
+<a id="nav-9-start"></a>
 
 ### 九、🚀 启动 http应用项目
 
@@ -582,6 +682,8 @@ php daemon.php stop App --force=1
 
 ```
 
+<a id="nav-10-access"></a>
+
 ### 十、🌐 访问
 
 默认端口是9502,可以通过 http://localhost:9502 访问默认控制器
@@ -609,6 +711,8 @@ class IndexController extends BController {
 
 至此一个最简单的http的服务就创建完成了，更多例子请参考项目下Test的demo
 
+
+<a id="nav-11-define"></a>
 
 ### 十一、🧩 定义组件
 
@@ -728,6 +832,8 @@ return [
     
 ```
 
+<a id="nav-12-use"></a>
+
 ### 十二、💡 使用组件
 ```php
 use Swoolefy\Core\Application;
@@ -813,6 +919,8 @@ class TestController extends BController {
 
 ```
 
+
+<a id="nav-13-protocol"></a>
 
 ### 十三、⚙️ 默认协议层全局配置文件 Protocol/conf.php
 
@@ -911,6 +1019,8 @@ return [
 ];
 
 ```
+<a id="nav-14-route"></a>
+
 ### 十四、🛣️ 路由系统
 
 支持类似 Laravel 的分组路由和中间件:
@@ -987,6 +1097,8 @@ Route::group([
 
 ```
 
+<a id="nav-15-singleton"></a>
+
 ### 十五、⚡ 协程单例
 
 *协程单例*  
@@ -1023,6 +1135,8 @@ goApp(function() {
     (独立 Socket 连接)              (独立 Socket 连接)
 
 ```
+<a id="nav-16-concurrent"></a>
+
 ### 十六、⚡ 协程并发  
 #### Parallel 并发限制器
 
@@ -1106,6 +1220,8 @@ for ($i = 0; $i < 10; $i++) {
 $wg->wait();  // 等待所有任务完成
 ```
 
+<a id="nav-17-db"></a>
+
 ### 十七、🗄️ 数据库操作
 ```php
 
@@ -1145,6 +1261,8 @@ $db->newQuery()->table('tbl_users')->where(['id', '=', 100])->field(['id', 'user
 
 ```
 
+<a id="nav-18-sdk"></a>
+
 ### 十八、📦 SDK 自动生成
 
 swoolefy 提供了 **SDK 自动生成工具**，可以扫描项目的 Route 路由配置，自动提取 API 接口信息和 Request/Response DTO，生成类型安全的 PHP 客户端 SDK 代码。
@@ -1155,6 +1273,7 @@ swoolefy 提供了 **SDK 自动生成工具**，可以扫描项目的 Route 路�
 - 📝 **提取 DTO**: 自动识别控制器方法中的 Request 和 Response 类型声明
 - 🎯 **类型安全**: 生成的 SDK 包含完整的类型声明，IDE 智能提示友好
 - 🔄 **自动更新**: 路由变更后重新生成即可，无需手动维护
+- ☁️ **Nacos 服务发现**: 生成时从 `application.yaml` → `nacos.service_register.service_name` 注入 `BaseClientApi::$serviceName`；构造 API 客户端时未传入 `ClientInterface` 则委托框架 `DiscoveryClient` 自动解析 `base_uri`（需 `APP_PATH` 或 `SDK_NACOS_CONFIG_DIR` 下存在 `nacos.yaml` / `application.yaml`）
 
 #### 使用方法
 
@@ -1176,7 +1295,8 @@ GenerateSdk/
 ├── {ProjectName}/
 │   └── {AppName}/
 │       ├── Support/              # SDK 基础支撑类
-│       │   ├── BaseClientApi.php
+│       │   ├── BaseClientApi.php           # HTTP 客户端基类（可选 Nacos 发现）
+│       │   ├── SdkNacosServiceDiscovery.php  # 委托 DiscoveryClient 解析 base_uri
 │       │   ├── SdkArrayDto.php
 │       │   ├── SdkCovertProperty.php
 │       │   └── ...
@@ -1199,10 +1319,15 @@ GenerateSdk/
 use GenerateSdk\MyProject\App\Controller\Client\UserApi;
 use GenerateSdk\MyProject\App\Request\UserLoginRequest;
 
-// 创建 API 客户端
-$client = new \GuzzleHttp\Client([
-    'base_uri' => 'xxxxxx',
-]);
+// 方式 A：Nacos 服务发现（推荐，需 APP_PATH 或 SDK_NACOS_CONFIG_DIR 下有 nacos.yaml / application.yaml）
+// serviceName 已在 gen:sdk 时从 application.yaml 注入，无需手写 base_uri
+$api = UserApi::make();
+
+// 方式 B：指定固定 base_uri（不走服务发现）
+$api = UserApi::make(null, 'http://127.0.0.1:9501');
+
+// 方式 C：自定义 Guzzle Client（完全手动）
+$client = new \GuzzleHttp\Client(['base_uri' => 'http://api.example.com/']);
 $api = new UserApi($client);
 
 // 方式1：使用 Request DTO（推荐）
@@ -1268,8 +1393,11 @@ class UserController extends BController
 
 - 控制器方法建议使用类型声明（Request/Response 类或标量类型）
 - DTO 类应位于 `App/Request`、`App/Response` 或 `App/Dto` 目录下
-- 生成的 SDK 完全独立，可在任何 PHP 项目中使用（包括传统 PHP-FPM 项目）
+- 生成的 SDK 可在 PHP-FPM 或 CLI 中使用；启用 Nacos 服务发现时需依赖 `bingcool/swoolefy`（`SdkNacosServiceDiscovery` 委托 `DiscoveryClient`）
 - SDK 基于 Guzzle HTTP 客户端，需要安装 `guzzlehttp/guzzle` 依赖
+- Nacos 发现配置目录优先级：显式传入路径 → 常量 `APP_PATH` → 环境变量 `SDK_NACOS_CONFIG_DIR` → 当前工作目录
+
+<a id="nav-19-apidoc"></a>
 
 ### 十九、📘 ApiDoc 自动生成
 
@@ -1407,6 +1535,83 @@ class UserCreateRequest extends BaseRequest
 - 数组对象字段建议使用 `ValidationRule(itemClass: XxxDto::class)` 或 `#[ArrayList(itemClass: XxxDto::class)]`
 - 路由文件的 `@api` 注释只读取第一个匹配项，用于拼接 OpenAPI `tags`
 - 每次生成前会清理输出目录下旧的 `openapi-*.yaml`，避免遗留过期文档
+
+<a id="nav-20-nacos"></a>
+
+### 二十、☁️ Nacos 微服务集成
+
+框架内置 Nacos **配置监听**、**服务注册**、**服务发现**，并与 `gen:sdk` 生成的 HTTP 客户端打通。实现位于 `src/Support/Nacos/`，应用侧参考 `Test/nacos.yaml`、`Test/application.yaml` 与 `Test/Process/NacosProcess/`。
+
+#### 配置文件
+
+| 文件 | 内容 |
+|:---|:---|
+| `APP_PATH/nacos.yaml` | Nacos 服务器连接（host、port、data_id、鉴权等） |
+| `APP_PATH/application.yaml` | `nacos.service_register`（本服务注册）、`discovery_service_client`（调用方发现）、`monitor_config_change`（配置监听） |
+
+`application.yaml` 片段示例：
+
+```yaml
+nacos:
+  service_register:
+    ip: 192.168.1.103
+    port: 9501
+    service_name: my-service
+    heartbeat_interval: 10
+  discovery_service_client:
+    load_balancer: random   # random | round_robin | weight
+    cache_ttl: 60
+    healthy_only: true
+  monitor_config_change:
+    listener_timeout_ms: 30000
+```
+
+#### 配置变更监听（自动重启）
+
+1. 长轮询 Nacos 配置变更  
+2. 拉取最新配置写入 `APP_PATH/.env`  
+3. 随机短暂延迟后执行 `php cli.php restart {APP_NAME} --force=1`，Worker 加载新环境变量  
+
+在 `Event.php` 注册自定义进程 `NacosConfigReload`，或调用 `NacosMonitor::run()`。详见 [src/Support/Nacos/Monitor/README.md](src/Support/Nacos/Monitor/README.md)。
+
+#### 服务注册
+
+`ServiceRegister` 读取 `application.yaml` → `nacos.service_register`，将当前实例（ip、port、service_name、weight 等）注册到 Nacos 并定时心跳。建议在自定义进程 `NacosServiceRegister` 中启动。
+
+```php
+use Swoolefy\Support\Nacos\NacosConfig;
+use Swoolefy\Support\Nacos\ServiceRegister;
+
+$register = new ServiceRegister(NacosConfig::load(), $logger);
+$register->register();
+```
+
+#### 服务发现
+
+`DiscoveryClient` 读取 `discovery_service_client` 配置，拉取实例列表（支持缓存 TTL），通过负载均衡器选择节点：
+
+```php
+use Swoolefy\Support\Nacos\Discovery\DiscoveryClient;
+
+$client = DiscoveryClient::create('my-service'); // 也可传 NacosConfig / DiscoveryConfig
+$instance = $client->choose();
+$uri = $client->chooseUri();
+```
+
+#### 与 gen:sdk 的关系
+
+| 步骤 | 行为 |
+|:---|:---|
+| 生成时 | 读取 `APP_PATH/application.yaml` 的 `service_register.service_name`，写入 `BaseClientApi::$serviceName` |
+| 运行时 | `UserApi::make()` 未传 Guzzle Client → `SdkNacosServiceDiscovery` → `DiscoveryClient::chooseUri()` → 设置 Guzzle `base_uri` |
+
+```bash
+php script.php start Test --c=gen:sdk --router=Test/Router --out=../generate-sdk-library/Swoolefy
+```
+
+更多 API 说明见 [src/Support/Nacos/README.md](src/Support/Nacos/README.md)。
+
+<a id="nav-license"></a>
 
 ### License
 MIT   
