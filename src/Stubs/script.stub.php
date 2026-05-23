@@ -10,7 +10,7 @@ define('APP_NAME', $appName);
 defined('START_DIR_ROOT') or define('START_DIR_ROOT', __DIR__);
 
 // 直接下载使用时，定义成如下路径
-defined('SRC_DIR_ROOT') or define('SRC_DIR_ROOT', __DIR__);
+// defined('SRC_DIR_ROOT') or define('SRC_DIR_ROOT', __DIR__);
 // composer安装时，必须定义成如下路径
 defined('SRC_DIR_ROOT') or define('SRC_DIR_ROOT', __DIR__."/vendor/bingcool/swoolefy/src");
 
@@ -22,7 +22,7 @@ defined('APP_PATH') or define('APP_PATH',__DIR__.'/'.$appName);
 registerNamespace(APP_PATH);
 
 define('APP_META_ARR', [
-    'Test' => [
+    'App' => [
         'protocol' => 'http',
         'worker_port' => get_one_free_port([9501, 9602, 9603]),
     ]
@@ -31,7 +31,7 @@ define('APP_META_ARR', [
 
 // 定义脚本文件夹的根目录
 define('ROOT_NAMESPACE', [
-    'Test' => '\\Test\\Scripts'
+    'App' => '\\Test\\Scripts'
     // todo
 ]);
 // 定义服务端口
@@ -57,4 +57,4 @@ define('WORKER_TO_CLI_PIPE',WORKER_PID_FILE_ROOT.'/ctl.pipe');
 // script 为空即可
 define('PROCESS_CLASS', []);
 
-include SRC_DIR_ROOT.'/swoolefy';
+include dirname(SRC_DIR_ROOT).'/swoolefy';

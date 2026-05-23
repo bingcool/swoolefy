@@ -243,7 +243,7 @@ class BaseCmd extends Command
         if (!file_exists($eventServerFile)) {
             $search_str = "protocol\\event";
             $replace_str = APP_NAME;
-            $file_content_string = file_get_contents(ROOT_PATH . "/src/Stubs/event_handle.stub.php");
+            $file_content_string = file_get_contents(SRC_DIR_ROOT."/Stubs/event_handle.stub.php");
             $count = 1;
             $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
             file_put_contents($eventServerFile, $file_content_string);
@@ -253,7 +253,7 @@ class BaseCmd extends Command
         if (!file_exists($autoloaderFile)) {
             $search_str = "<{APP_NAME}>";
             $replace_str = APP_NAME;
-            $file_content_string = file_get_contents(ROOT_PATH . "/autoloader.php");
+            $file_content_string = file_get_contents(dirname(SRC_DIR_ROOT) . "/autoloader.php");
             $count = 1;
             $file_content_string = str_replace($search_str, $replace_str, $file_content_string, $count);
             file_put_contents($autoloaderFile, $file_content_string);

@@ -355,8 +355,22 @@ ENV SWOOLEFY_CLI_ENV=dev
 ```
 #### 2、创建项目
 ```
-// 下载代码到到你的自定义目录，这里定义为myproject
-composer create-project bingcool/swoolefy:^6.0 myproject   
+// 下载代码到到你的自定义目录，这里定义为myproject, 新建composer.json
+
+{
+  "name": "project/order-service",
+  "description": "description",
+  "minimum-stability": "dev",
+  "license": "proprietary",
+  "require": {
+    "bingcool/swoolefy": "~6.2",
+    "bingcool/library": "dev-swoolefy-6.x"
+  }
+}
+  
+// 终端执行安装
+composer install
+
 ```
 
 ### 七、📝 添加项目入口启动文件 cli.php,并定义你的项目目录，命名为 App
@@ -373,6 +387,8 @@ $appName = ucfirst($_SERVER['argv'][2]);
 define('APP_NAME', $appName);
 // 启动目录
 defined('START_DIR_ROOT') or define('START_DIR_ROOT', __DIR__);
+// composer安装时，必须定义成如下路径
+defined('SRC_DIR_ROOT') or define('SRC_DIR_ROOT', __DIR__."/vendor/bingcool/swoolefy/src");
 // 应用父目录
 defined('ROOT_PATH') or define('ROOT_PATH',__DIR__);
 // 应用目录
@@ -414,7 +430,7 @@ define('SERVER_START_LOG_JSON_FILE', WORKER_PID_FILE_ROOT.'/start.json');
 //    }
 //};
 
-include SRC_DIR_ROOT.'/swoolefy';
+include dirname(SRC_DIR_ROOT).'/swoolefy';
 
 
 ```
