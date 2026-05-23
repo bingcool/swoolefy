@@ -487,11 +487,13 @@ declare(strict_types=1);
 
 namespace __SDK_SUPPORT_NAMESPACE__;
 
-use GuzzleHttp\Client;
-use Symfony\Component\Yaml\Yaml;
+use Swoolefy\Exception\NacosDiscoveryException;
+use Swoolefy\Support\Nacos\Discovery\DiscoveryClient;
+use Swoolefy\Support\Nacos\Discovery\DiscoveryConfig;
+use Swoolefy\Support\Nacos\NacosConfig;
 
 /**
- * SDK 侧 Nacos 服务发现：读取 nacos.yaml + application.yaml，解析可用实例 base_uri。
+ * SDK 侧 Nacos 服务发现薄封装，委托框架 DiscoveryClient（实例缓存 + 负载均衡）。
  */
 final class SdkNacosServiceDiscovery
 {
@@ -504,219 +506,43 @@ final class SdkNacosServiceDiscovery
             throw new SdkClientException('Nacos service name is empty');
         }
 
-        if (empty($configDir)) {
-            $configDir = APP_PATH;
+        try {
+            $appPath = self::resolveAppPath($configDir);
+            $nacosConfig = NacosConfig::load($appPath);
+            $discoveryConfig = DiscoveryConfig::load($nacosConfig);
+            $uri = DiscoveryClient::create($serviceName, $nacosConfig, $discoveryConfig)->chooseUri('http');
+        } catch (NacosDiscoveryException $e) {
+            throw new SdkClientException($e->getMessage());
+        } catch (\Throwable $e) {
+            throw new SdkClientException('Nacos discovery failed: ' . $e->getMessage());
         }
-        $server = self::loadNacosServerConfig($configDir);
-        $discovery = self::loadDiscoveryClientConfig($configDir);
 
-        $groupName = self::pickString($discovery, 'group_name', 'NACOS_DISCOVERY_GROUP_NAME', '');
-        $namespaceId = self::pickString($discovery, 'namespace_id', 'NACOS_DISCOVERY_NAMESPACE_ID', '');
-        $healthyOnly = self::pickBool($discovery, 'healthy_only', 'NACOS_DISCOVERY_HEALTHY_ONLY', true);
-
-        $hosts = self::fetchInstanceHosts(
-            $server,
-            $serviceName,
-            $groupName,
-            $namespaceId,
-            $healthyOnly,
-        );
-
-        $instance = self::chooseInstance($hosts);
-        if (null === $instance) {
+        if (null === $uri || '' === $uri) {
             throw new SdkClientException(sprintf(
                 'No available Nacos instance for service [%s]',
                 $serviceName,
             ));
         }
 
-        return sprintf('http://%s:%d/', $instance['ip'], $instance['port']);
+        return rtrim($uri, '/') . '/';
     }
 
-    /**
-     * @return array{host: string, port: int, username: string, password: string}
-     */
-    private static function loadNacosServerConfig(string $configDir): array
+    private static function resolveAppPath(?string $configDir): string
     {
-        $yamlFile = $configDir . '/nacos.yaml';
-        if (!is_file($yamlFile)) {
-            throw new SdkClientException('nacos.yaml not found: ' . $yamlFile);
+        if (null !== $configDir && '' !== $configDir) {
+            return rtrim($configDir, '/\\');
         }
 
-        $yaml = (array) Yaml::parseFile($yamlFile);
-        $nacos = (array) ($yaml['nacos'] ?? $yaml);
-
-        return [
-            'host' => self::pickString($nacos, 'host', 'NACOS_HOST', '127.0.0.1'),
-            'port' => self::pickInt($nacos, 'port', 'NACOS_PORT', 8848),
-            'username' => self::pickString($nacos, 'username', 'NACOS_USERNAME', ''),
-            'password' => self::pickString($nacos, 'password', 'NACOS_PASSWORD', ''),
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private static function loadDiscoveryClientConfig(string $configDir): array
-    {
-        $yamlFile = $configDir . '/application.yaml';
-        if (!is_file($yamlFile)) {
-            return [];
+        if (defined('APP_PATH') && '' !== (string) APP_PATH) {
+            return rtrim((string) APP_PATH, '/\\');
         }
 
-        $yaml = (array) Yaml::parseFile($yamlFile);
-        $nacos = (array) ($yaml['nacos'] ?? []);
-
-        return (array) ($nacos['discovery_service_client'] ?? []);
-    }
-
-    /**
-     * @param array{host: string, port: int, username: string, password: string} $server
-     * @return list<array{ip: string, port: int, weight: float, healthy: bool, enabled: bool}>
-     */
-    private static function fetchInstanceHosts(
-        array $server,
-        string $serviceName,
-        string $groupName,
-        string $namespaceId,
-        bool $healthyOnly,
-    ): array {
-        $query = [
-            'serviceName' => $serviceName,
-            'groupName' => $groupName,
-            'namespaceId' => $namespaceId,
-            'healthyOnly' => $healthyOnly ? 'true' : 'false',
-        ];
-
-        $url = sprintf(
-            'http://%s:%d/nacos/v1/ns/instance/list?%s',
-            $server['host'],
-            $server['port'],
-            http_build_query($query),
-        );
-
-        $client = new Client(['http_errors' => false, 'timeout' => 10]);
-        $options = [];
-        if ('' !== $server['username'] && '' !== $server['password']) {
-            $options['auth'] = [$server['username'], $server['password']];
-        }
-
-        $response = $client->get($url, $options);
-        if ($response->getStatusCode() < 200 || $response->getStatusCode() >= 300) {
-            throw new SdkClientException('Nacos instance list failed, HTTP ' . $response->getStatusCode());
-        }
-
-        $body = (string) $response->getBody();
-        if ('' === $body) {
-            return [];
-        }
-
-        try {
-            /** @var array<string, mixed> $decoded */
-            $decoded = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
-        } catch (\JsonException $e) {
-            throw new SdkClientException('Invalid Nacos list response: ' . $e->getMessage());
-        }
-
-        $hosts = [];
-        foreach ((array) ($decoded['hosts'] ?? []) as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
-            $ip = (string) ($row['ip'] ?? '');
-            $port = (int) ($row['port'] ?? 0);
-            if ('' === $ip || $port <= 0) {
-                continue;
-            }
-            $hosts[] = [
-                'ip' => $ip,
-                'port' => $port,
-                'weight' => (float) ($row['weight'] ?? 1),
-                'healthy' => (bool) ($row['healthy'] ?? true),
-                'enabled' => (bool) ($row['enabled'] ?? true),
-            ];
-        }
-
-        return $hosts;
-    }
-
-    /**
-     * @param list<array{ip: string, port: int, weight: float, healthy: bool, enabled: bool}> $hosts
-     * @return array{ip: string, port: int}|null
-     */
-    private static function chooseInstance(array $hosts): ?array
-    {
-        $available = array_values(array_filter(
-            $hosts,
-            static fn (array $h): bool => $h['enabled'] && $h['healthy'],
-        ));
-
-        if ([] === $available) {
-            return null;
-        }
-
-        if (1 === count($available)) {
-            return $available[0];
-        }
-
-        $weightSum = 0.0;
-        foreach ($available as $host) {
-            $w = $host['weight'] > 0 ? $host['weight'] : 1.0;
-            $weightSum += $w;
-        }
-
-        $randomValue = (new \Random\Randomizer())->getInt(1, max(1, (int) round($weightSum * 1000))) / 1000;
-        foreach ($available as $host) {
-            $w = $host['weight'] > 0 ? $host['weight'] : 1.0;
-            $randomValue -= $w;
-            if ($randomValue <= 0) {
-                return $host;
-            }
-        }
-
-        return $available[array_key_last($available)];
-    }
-
-    private static function pickString(array $yaml, string $yamlKey, string $envKey, string $default): string
-    {
-        if (array_key_exists($yamlKey, $yaml) && '' !== (string) $yaml[$yamlKey]) {
-            return (string) $yaml[$yamlKey];
-        }
-
-        $env = getenv($envKey);
+        $env = getenv('SDK_NACOS_CONFIG_DIR');
         if (false !== $env && '' !== $env) {
-            return (string) $env;
+            return rtrim($env, '/\\');
         }
 
-        return $default;
-    }
-
-    private static function pickInt(array $yaml, string $yamlKey, string $envKey, int $default): int
-    {
-        if (array_key_exists($yamlKey, $yaml) && is_numeric($yaml[$yamlKey])) {
-            return (int) $yaml[$yamlKey];
-        }
-
-        $env = getenv($envKey);
-        if (false !== $env && is_numeric($env)) {
-            return (int) $env;
-        }
-
-        return $default;
-    }
-
-    private static function pickBool(array $yaml, string $yamlKey, string $envKey, bool $default): bool
-    {
-        if (array_key_exists($yamlKey, $yaml)) {
-            return filter_var($yaml[$yamlKey], FILTER_VALIDATE_BOOLEAN);
-        }
-
-        $env = getenv($envKey);
-        if (false !== $env) {
-            return filter_var($env, FILTER_VALIDATE_BOOLEAN);
-        }
-
-        return $default;
+        return rtrim((string) getcwd(), '/\\');
     }
 }
 
