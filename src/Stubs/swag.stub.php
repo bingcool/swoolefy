@@ -12,7 +12,7 @@ if (!isset($_SERVER['argv'][1])) {
 defined('START_DIR_ROOT') or define('START_DIR_ROOT', __DIR__);
 
 // 直接下载使用时，定义成如下路径
-defined('SRC_DIR_ROOT') or define('SRC_DIR_ROOT', __DIR__);
+// defined('SRC_DIR_ROOT') or define('SRC_DIR_ROOT', __DIR__.'/src');
 // composer安装时，必须定义成如下路径
 defined('SRC_DIR_ROOT') or define('SRC_DIR_ROOT', __DIR__."/vendor/bingcool/swoolefy/src");
 

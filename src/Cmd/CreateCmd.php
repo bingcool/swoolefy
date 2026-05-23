@@ -364,7 +364,7 @@ EOF;
     protected function getApplicationYamlContent(string $appName): string
     {
         $workerPort = APP_META_ARR[$appName]['worker_port'] ?? 9501;
-        $stubFile = SRC_DIR_ROOT.'/Stubs/application.yaml.stub';
+        $stubFile = SRC_DIR_ROOT.'/Stubs/application.stub.yaml';
         $content = is_file($stubFile) ? (string) file_get_contents($stubFile) : '';
 
         return str_replace('{WORKER_PORT}', (string) $workerPort, $content);
