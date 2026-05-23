@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Swoolefy\Script\Sdk;
 
+use Swoolefy\Support\ApplicationConfig;
 use ReflectionClass;
 use ReflectionMethod;
 use ReflectionNamedType;
@@ -41,7 +42,8 @@ final class SdkCodeGenerator
         $this->ensureDir($appOut . '/Support');
 
         $supportNs = $this->sdkNamespacePrefix . '\\Support';
-        $support = new SdkSupportWriter($appOut . DIRECTORY_SEPARATOR . 'Support', $supportNs);
+        $nacosServiceName = $this->resolveNacosServiceNameForSdk();
+        $support = new SdkSupportWriter($appOut . DIRECTORY_SEPARATOR . 'Support', $supportNs, $nacosServiceName);
         $support->writeAll();
 
         $routes = $this->scanRoutes($this->routerDir);
@@ -551,6 +553,21 @@ final class SdkCodeGenerator
     private function isTestDtoClass(string $name): bool
     {
         return str_starts_with($name, $this->appNamespacePrefix);
+    }
+
+    private function resolveNacosServiceNameForSdk(): string
+    {
+        $appPath = $this->projectRoot . DIRECTORY_SEPARATOR . APP_NAME;
+        if (!is_file($appPath . '/application.yaml')) {
+            fwrite(STDERR, "[gen:sdk] application.yaml not found under {$appPath}, serviceName defaults to my-service\n");
+
+            return 'my-service';
+        }
+
+        $register = ApplicationConfig::load($appPath)->nacosSection('service_register');
+        $name = ApplicationConfig::pickString($register, 'service_name', 'NACOS_SERVICE_NAME', '');
+
+        return '' !== $name ? $name : 'my-service';
     }
 
     private function ensureDir(string $path): void
