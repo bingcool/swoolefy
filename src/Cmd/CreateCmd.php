@@ -45,22 +45,22 @@ class CreateCmd extends BaseCmd
 
         $daemonFile = START_DIR_ROOT . '/daemon.php';
         if (!file_exists($daemonFile)) {
-            @copy(START_DIR_ROOT . '/src/Stubs/daemon.stub.php', $daemonFile);
+            @copy(SRC_DIR_ROOT . '/src/Stubs/daemon.stub.php', $daemonFile);
         }
 
         $cronFile = START_DIR_ROOT . '/cron.php';
         if (!file_exists($cronFile)) {
-            @copy(START_DIR_ROOT . '/src/Stubs/cron.stub.php', $cronFile);
+            @copy(SRC_DIR_ROOT . '/src/Stubs/cron.stub.php', $cronFile);
         }
 
         $scriptFile = START_DIR_ROOT . '/script.php';
         if (!file_exists($scriptFile)) {
-            @copy(START_DIR_ROOT . '/src/Stubs/script.stub.php', $scriptFile);
+            @copy(SRC_DIR_ROOT . '/src/Stubs/script.stub.php', $scriptFile);
         }
 
         $swagFile = START_DIR_ROOT . '/swag.php';
         if (!file_exists($swagFile)) {
-            @copy(START_DIR_ROOT . '/src/Stubs/swag.stub.php', $swagFile);
+            @copy(SRC_DIR_ROOT . '/src/Stubs/swag.stub.php', $swagFile);
         }
 
         @mkdir($appPathDir, self::$dirPermission, true);

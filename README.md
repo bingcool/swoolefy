@@ -414,7 +414,7 @@ define('SERVER_START_LOG_JSON_FILE', WORKER_PID_FILE_ROOT.'/start.json');
 //    }
 //};
 
-include __DIR__.'/swoolefy';
+include SRC_DIR_ROOT.'/swoolefy';
 
 
 ```
