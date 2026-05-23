@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Nacos\Discovery;
 
+use Swoolefy\Support\ApplicationConfig;
 use Swoolefy\Support\Nacos\NacosConfig;
 
 /**
- * 服务发现配置（discovery 段，缺项回退环境变量）。
+ * 服务发现配置（application.yaml → nacos.discovery_service_client）。
  */
 final class DiscoveryConfig
 {
@@ -26,82 +27,40 @@ final class DiscoveryConfig
     ) {
     }
 
-    public static function load(?NacosConfig $nacosConfig = null): self
+    public static function load(?NacosConfig $nacosConfig = null, ?ApplicationConfig $applicationConfig = null): self
     {
         $nacosConfig ??= NacosConfig::load();
-        $discovery = $nacosConfig->section('discovery');
-        $service = $nacosConfig->section('service');
+        $applicationConfig ??= ApplicationConfig::load($nacosConfig->appPath);
+        $discovery = $applicationConfig->nacosSection('discovery_service_client');
 
-        $defaultService = self::pickString($discovery, 'service_name', 'NACOS_DISCOVERY_SERVICE_NAME', '');
+        $defaultService = ApplicationConfig::pickString($discovery, 'service_name', 'NACOS_DISCOVERY_SERVICE_NAME', '');
         if ('' === $defaultService) {
-            $defaultService = self::pickString($service, 'service_name', 'NACOS_SERVICE_NAME', '');
+            $defaultService = $nacosConfig->serviceName;
         }
 
-        $groupName = self::pickString($discovery, 'group_name', 'NACOS_DISCOVERY_GROUP_NAME', '');
+        $groupName = ApplicationConfig::pickString($discovery, 'group_name', 'NACOS_DISCOVERY_GROUP_NAME', '');
         if ('' === $groupName) {
-            $groupName = (string) $nacosConfig->serviceGroupName;
+            $groupName = $nacosConfig->serviceGroupName;
         }
 
-        $namespaceId = self::pickString($discovery, 'namespace_id', 'NACOS_DISCOVERY_NAMESPACE_ID', '');
+        $namespaceId = ApplicationConfig::pickString($discovery, 'namespace_id', 'NACOS_DISCOVERY_NAMESPACE_ID', '');
         if ('' === $namespaceId) {
-            $namespaceId = (string) $nacosConfig->serviceNamespaceId;
+            $namespaceId = $nacosConfig->serviceNamespaceId;
         }
 
         return new self(
-            cacheTtl: self::pickInt($discovery, 'cache_ttl', 'NACOS_DISCOVERY_CACHE_TTL', 60),
-            loadBalancer: strtolower(self::pickString(
+            cacheTtl: ApplicationConfig::pickInt($discovery, 'cache_ttl', 'NACOS_DISCOVERY_CACHE_TTL', 60),
+            loadBalancer: strtolower(ApplicationConfig::pickString(
                 $discovery,
                 'load_balancer',
                 'NACOS_DISCOVERY_LOAD_BALANCER',
                 self::LOAD_BALANCER_RANDOM,
             )),
-            healthyOnly: self::pickBool($discovery, 'healthy_only', 'NACOS_DISCOVERY_HEALTHY_ONLY', true),
-            clusters: self::pickString($discovery, 'clusters', 'NACOS_DISCOVERY_CLUSTERS', ''),
+            healthyOnly: ApplicationConfig::pickBool($discovery, 'healthy_only', 'NACOS_DISCOVERY_HEALTHY_ONLY', true),
+            clusters: ApplicationConfig::pickString($discovery, 'clusters', 'NACOS_DISCOVERY_CLUSTERS', ''),
             groupName: $groupName,
             namespaceId: $namespaceId,
             defaultServiceName: $defaultService,
         );
-    }
-
-    private static function pickString(array $yaml, string $yamlKey, string $envKey, string $default): string
-    {
-        if (array_key_exists($yamlKey, $yaml) && '' !== (string) $yaml[$yamlKey]) {
-            return (string) $yaml[$yamlKey];
-        }
-
-        $env = getenv($envKey);
-        if (false !== $env && '' !== $env) {
-            return (string) $env;
-        }
-
-        return $default;
-    }
-
-    private static function pickInt(array $yaml, string $yamlKey, string $envKey, int $default): int
-    {
-        if (array_key_exists($yamlKey, $yaml) && is_numeric($yaml[$yamlKey])) {
-            return (int) $yaml[$yamlKey];
-        }
-
-        $env = getenv($envKey);
-        if (false !== $env && is_numeric($env)) {
-            return (int) $env;
-        }
-
-        return $default;
-    }
-
-    private static function pickBool(array $yaml, string $yamlKey, string $envKey, bool $default): bool
-    {
-        if (array_key_exists($yamlKey, $yaml)) {
-            return filter_var($yaml[$yamlKey], FILTER_VALIDATE_BOOLEAN);
-        }
-
-        $env = getenv($envKey);
-        if (false !== $env) {
-            return filter_var($env, FILTER_VALIDATE_BOOLEAN);
-        }
-
-        return $default;
     }
 }

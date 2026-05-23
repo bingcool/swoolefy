@@ -1,0 +1,28 @@
+# 应用 Nacos 行为配置（服务注册 / 服务发现 / 配置变更监听）
+nacos:
+  # 本服务器信息注册到 Nacos
+  service_register:
+    ip: 192.168.1.103
+    port: 9501
+    service_name: my-service
+    heartbeat_interval: 10   # 心跳间隔（秒）
+    namespace_id: ''
+    group_name: ''
+    weight: 1
+    ephemeral: true
+
+  # 客户端的服务发现配置
+  discovery_service_client:
+    service_name: ''
+    load_balancer: random   # random | round_robin | weight
+    cache_ttl: 60
+    healthy_only: true
+    group_name: ''
+    namespace_id: ''
+
+  # 监控配置变化
+  monitor_config_change:
+    env_file: ''
+    lock_file: ''
+    listener_timeout_ms: 30000
+    failed_wait_ms: 3000

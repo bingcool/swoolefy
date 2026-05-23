@@ -4,19 +4,21 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Nacos;
 
+use Swoolefy\Support\ApplicationConfig;
 use Common\Library\Nacos\Client;
 use Common\Library\Nacos\ClientConfig;
 use Symfony\Component\Yaml\Yaml;
 use Swoolefy\Util\Log;
 
 /**
- * 读取 APP_PATH/nacos.yaml，未配置项再回退环境变量（nacos / service 段）。
+ * 读取 APP_PATH/nacos.yaml（服务器连接）+ application.yaml（service_register 段）。
  */
 final class NacosConfig
 {
     public function __construct(
         public readonly string $appPath,
         public readonly string $yamlFile,
+        public readonly string $applicationYamlFile,
         public readonly string $host,
         public readonly int $port,
         public readonly string $username,
@@ -32,8 +34,7 @@ final class NacosConfig
         public readonly string $serviceGroupName,
         public readonly float $serviceWeight,
         public readonly bool $serviceEphemeral,
-        /** @var array<string, mixed> */
-        private readonly array $yaml = [],
+        public readonly int $serviceHeartbeatInterval,
     ) {
     }
 
@@ -41,13 +42,15 @@ final class NacosConfig
     {
         $appPath = $appPath ?? (defined('APP_PATH') ? APP_PATH : '');
         $yamlFile = rtrim($appPath, '/') . '/nacos.yaml';
+        $applicationYamlFile = rtrim($appPath, '/') . '/application.yaml';
         $yaml = is_file($yamlFile) ? (array) Yaml::parseFile($yamlFile) : [];
         $nacos = (array) ($yaml['nacos'] ?? []);
-        $service = (array) ($yaml['service'] ?? []);
+        $serviceRegister = ApplicationConfig::load($appPath)->nacosSection('service_register');
 
         return new self(
             appPath: $appPath,
             yamlFile: $yamlFile,
+            applicationYamlFile: $applicationYamlFile,
             host: self::pickString($nacos, 'host', 'NACOS_HOST', '127.0.0.1'),
             port: self::pickInt($nacos, 'port', 'NACOS_PORT', 8848),
             username: self::pickString($nacos, 'username', 'NACOS_USERNAME', ''),
@@ -56,23 +59,15 @@ final class NacosConfig
             dataId: self::pickString($nacos, 'data_id', 'NACOS_DATA_ID', 'swoolefy.env'),
             group: self::pickString($nacos, 'group', 'NACOS_GROUP', 'DEFAULT_GROUP'),
             tenant: self::pickString($nacos, 'tenant', 'NACOS_TENANT', ''),
-            serviceIp: self::pickString($service, 'ip', 'NACOS_SERVICE_IP', ''),
-            servicePort: self::pickInt($service, 'port', 'NACOS_SERVICE_PORT', 0),
-            serviceName: self::pickString($service, 'service_name', 'NACOS_SERVICE_NAME', ''),
-            serviceNamespaceId: self::pickString($service, 'namespace_id', 'NACOS_SERVICE_NAMESPACE_ID', ''),
-            serviceGroupName: self::pickString($service, 'group_name', 'NACOS_SERVICE_GROUP_NAME', ''),
-            serviceWeight: (float) self::pickString($service, 'weight', 'NACOS_SERVICE_WEIGHT', '1'),
-            serviceEphemeral: self::pickBool($service, 'ephemeral', 'NACOS_SERVICE_EPHEMERAL', true),
-            yaml: $yaml,
+            serviceIp: ApplicationConfig::pickString($serviceRegister, 'ip', 'NACOS_SERVICE_IP', ''),
+            servicePort: ApplicationConfig::pickInt($serviceRegister, 'port', 'NACOS_SERVICE_PORT', 0),
+            serviceName: ApplicationConfig::pickString($serviceRegister, 'service_name', 'NACOS_SERVICE_NAME', ''),
+            serviceNamespaceId: ApplicationConfig::pickString($serviceRegister, 'namespace_id', 'NACOS_SERVICE_NAMESPACE_ID', ''),
+            serviceGroupName: ApplicationConfig::pickString($serviceRegister, 'group_name', 'NACOS_SERVICE_GROUP_NAME', ''),
+            serviceWeight: (float) ApplicationConfig::pickString($serviceRegister, 'weight', 'NACOS_SERVICE_WEIGHT', '1'),
+            serviceEphemeral: ApplicationConfig::pickBool($serviceRegister, 'ephemeral', 'NACOS_SERVICE_EPHEMERAL', true),
+            serviceHeartbeatInterval: ApplicationConfig::pickInt($serviceRegister, 'heartbeat_interval', 'NACOS_SERVICE_HEARTBEAT_INTERVAL', 10),
         );
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function section(string $name): array
-    {
-        return (array) ($this->yaml[$name] ?? []);
     }
 
     public function toClientConfigArray(): array
@@ -99,43 +94,16 @@ final class NacosConfig
 
     private static function pickString(array $yaml, string $yamlKey, string $envKey, string $default): string
     {
-        if (array_key_exists($yamlKey, $yaml) && '' !== (string) $yaml[$yamlKey]) {
-            return (string) $yaml[$yamlKey];
-        }
-
-        $env = getenv($envKey);
-        if (false !== $env && '' !== $env) {
-            return (string) $env;
-        }
-
-        return $default;
+        return ApplicationConfig::pickString($yaml, $yamlKey, $envKey, $default);
     }
 
     private static function pickInt(array $yaml, string $yamlKey, string $envKey, int $default): int
     {
-        if (array_key_exists($yamlKey, $yaml) && is_numeric($yaml[$yamlKey])) {
-            return (int) $yaml[$yamlKey];
-        }
-
-        $env = getenv($envKey);
-        if (false !== $env && is_numeric($env)) {
-            return (int) $env;
-        }
-
-        return $default;
+        return ApplicationConfig::pickInt($yaml, $yamlKey, $envKey, $default);
     }
 
     private static function pickBool(array $yaml, string $yamlKey, string $envKey, bool $default): bool
     {
-        if (array_key_exists($yamlKey, $yaml)) {
-            return filter_var($yaml[$yamlKey], FILTER_VALIDATE_BOOLEAN);
-        }
-
-        $env = getenv($envKey);
-        if (false !== $env) {
-            return filter_var($env, FILTER_VALIDATE_BOOLEAN);
-        }
-
-        return $default;
+        return ApplicationConfig::pickBool($yaml, $yamlKey, $envKey, $default);
     }
 }
