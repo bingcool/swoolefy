@@ -1,4 +1,4 @@
-# Nacos 配置监听（优先于环境变量；未配置项再读 NACOS_* 环境变量）
+# Nacos服务器信息 配置监听（优先于环境变量；未配置项再读 NACOS_* 环境变量）
 nacos:
   host: 192.168.1.103
   port: 8848
@@ -9,9 +9,10 @@ nacos:
   group: DEFAULT_GROUP
   tenant: ''
 
+# 本服务器信息注册到nacos
 service:
-  ip: ''
-  port: 0
+  ip: 192.168.1.103
+  port: 9501
   service_name: my-service
   heartbeat_interval: 10   # 心跳间隔（秒）
   namespace_id: ''
@@ -19,8 +20,17 @@ service:
   weight: 1
   ephemeral: true
 
+# 客户端的服务配置
+discovery:
+  service_name: ''
+  load_balancer: random   # random | round_robin | weight
+  cache_ttl: 60
+  healthy_only: true
+  group_name: ''
+  namespace_id: ''
+
 monitor:
-  env_file: ''          # 默认 APP_PATH/.env
-  lock_file: ''         # 默认 /tmp/swoolefy_{APP_NAME}_nacos_restart.lock
+  env_file: ''
+  lock_file: ''
   listener_timeout_ms: 30000
   failed_wait_ms: 3000

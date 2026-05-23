@@ -42,8 +42,6 @@ final class ServiceRestarter
         $this->logger->info('exec restart: ' . $command);
         exec($command, $output, $exitCode);
 
-        var_dump($output, $exitCode);
-
         if (0 !== $exitCode) {
             $this->logger->error(sprintf('restart command=%s exit_code=%d',$command, $exitCode));
         }

@@ -14,7 +14,7 @@ use Swoolefy\Util\Log;
 /**
  * Nacos 服务注册：实例注册、心跳保活与查询。
  */
-final class ServiceRegistrar
+final class ServiceRegister
 {
     private const HEARTBEAT_INTERVAL_SEC = 10;
 
