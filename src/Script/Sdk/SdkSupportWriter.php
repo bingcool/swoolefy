@@ -391,7 +391,7 @@ abstract class BaseClientApi
         }
     }
 
-    public static function make(?ClientInterface $httpClient = null, string $baseUri = ''): static
+    public static function makeService(?ClientInterface $httpClient = null, string $baseUri = ''): static
     {
         return new static($httpClient, $baseUri);
     }

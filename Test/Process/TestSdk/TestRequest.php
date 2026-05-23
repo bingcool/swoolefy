@@ -40,12 +40,7 @@ class TestRequest extends AbstractProcess
 
     protected function requestTest()
     {
-        $LogOrderApi = new LogOrderApi(new Client(
-            [
-                'base_uri' => 'http://127.0.0.1:9501',
-                'timeout' => 10.0,
-            ]
-        ));
+        $LogOrderApi = new LogOrderApi();
         $LogSaveRequest = new LogSaveRequest();
         $LogSaveRequest->setLogIds([1,2,3,4,5]);
 
@@ -93,14 +88,14 @@ class TestRequest extends AbstractProcess
 
     protected function requestTest1()
     {
-        $LogOrderApi = LogOrderApi::make($this->getHttpClient());
+        $LogOrderApi = LogOrderApi::makeService();
         $response = $LogOrderApi->testRequest1("bingcool", [123,345]);
         var_dump($response->toDeepArray());
     }
 
     protected function testPageRequest()
     {
-        $LogOrderApi = LogOrderApi::make($this->getHttpClient());
+        $LogOrderApi = LogOrderApi::makeService();
         $req = new LogContentPageRequest();
         $req->setPage(1);
         $req->setPageSize(10);

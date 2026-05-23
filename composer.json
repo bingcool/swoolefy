@@ -17,9 +17,6 @@
             "role": "Engineer of php"
         }
     ],
-    "bin": [
-        "bin/swoolefy"
-    ],
     "minimum-stability": "stable",
     "prefer-stable": true,
     "require": {
@@ -44,7 +41,6 @@
         "doctrine/collections": "~3.0",
         "php-standard-library/php-standard-library": "~6.1",
         "guzzlehttp/guzzle": "~7.9",
-        "bingcool/library": "dev-library-6.x",
         "bingo/generatesdk": "dev-main"
     },
     "autoload": {
@@ -57,12 +53,6 @@
         "kwn/php-rdkafka-stubs": "dev-master",
         "swoole/ide-helper": "dev-master",
         "viest/php-ext-xlswriter-ide-helper": "dev-master"
-    },
-    "config": {
-        "allow-plugins": {
-            "php-http/discovery": false,
-            "tbachert/spi": false
-        }
     },
     "repositories": [
         {
