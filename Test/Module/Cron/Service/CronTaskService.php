@@ -12,7 +12,7 @@ class CronTaskService implements \Swoolefy\Worker\Cron\CronTaskInterface {
     /**
      * @param int $execType
      * @return array
-     * @throws \Common\Library\Exception\DbException
+     * @throws \Swoolefy\Library\Exception\DbException
      */
     public function fetchCronTask(int $execType, $nodeId) {
         $list = CronTaskEntity::query()->field('*')->where([

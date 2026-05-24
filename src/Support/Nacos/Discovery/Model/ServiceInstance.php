@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Nacos\Discovery\Model;
 
-use Common\Library\Nacos\Provider\Instance\Model\Host;
+use Swoolefy\Library\Nacos\Provider\Instance\Model\Host;
 
 /**
  * 可被发现、可被负载均衡调度的服务实例。

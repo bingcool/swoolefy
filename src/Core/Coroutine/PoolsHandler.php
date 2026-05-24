@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Core\Coroutine;
 
-use Common\Library\Db\PDOConnection;
+use Swoolefy\Library\Db\PDOConnection;
 use Swoole\Coroutine;
 use Swoole\Coroutine\Channel;
 use Swoolefy\Core\Dto\ContainerObjectDto;

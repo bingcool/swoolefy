@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Http;
 
-use Common\Library\Exception\ValidateException;
+use Swoolefy\Library\Exception\ValidateException;
 use Swoolefy\Annotation\StringToInt;
 use Swoolefy\Annotation\Validation\ValidationRule;
 use Swoolefy\Exception\DispatchException;
@@ -509,7 +509,7 @@ class RequestValidate
      */
     protected function validationRuleRequiresPresence($rule): bool
     {
-        if ($rule instanceof \Closure || $rule instanceof \Common\Library\Validate\ValidateRule) {
+        if ($rule instanceof \Closure || $rule instanceof \Swoolefy\Library\Validate\ValidateRule) {
             return false;
         }
 

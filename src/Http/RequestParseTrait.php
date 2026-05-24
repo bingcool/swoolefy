@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Http;
 
-use Common\Library\Validate;
+use Swoolefy\Library\Validate;
 use Swoolefy\Util\IpUtils;
 
 trait RequestParseTrait

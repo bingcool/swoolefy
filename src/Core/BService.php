@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Core;
 
-use Common\Library\CurlProxy\OpentelemetryMiddleware;
+use Swoolefy\Library\CurlProxy\OpentelemetryMiddleware;
 use Swoolefy\Rpc\RpcServer;
 use Swoolefy\Udp\UdpHandler;
 use Swoolefy\Exception\SystemException;

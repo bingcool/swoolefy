@@ -1,8 +1,8 @@
 <?php
 namespace Test\Scripts\User;
 
-use Common\Library\HttpClient\CurlHttpClient;
-use Common\Library\Purl\Url;
+use Swoolefy\Library\HttpClient\CurlHttpClient;
+use Swoolefy\Library\Purl\Url;
 use Swoolefy\Script\MainCliScript;
 
 class Purl extends MainCliScript

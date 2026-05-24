@@ -2,7 +2,7 @@
 
 namespace Test\WorkerDaemon;
 
-use Common\Library\Db\Raw;
+use Swoolefy\Library\Db\Raw;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\EventController;
 use Swoolefy\Core\Log\LogManager;
@@ -16,7 +16,7 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
      * loopHandle 将循环处理
      *
      * @return void
-     * @throws \Common\Library\Exception\DbException
+     * @throws \Swoolefy\Library\Exception\DbException
      */
     public function loopHandle()
     {
@@ -50,11 +50,11 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
         $remark = 'test-remark-'.rand(1,1000);
 
         /**
-         * @var \Common\Library\Db\Pgsql $pg
+         * @var \Swoolefy\Library\Db\Pgsql $pg
          */
         $pg = Application::getApp()->get('pg');
         /**
-         * @var \Common\Library\Db\Query $query
+         * @var \Swoolefy\Library\Db\Query $query
          */
 
         $query = $pg->newQuery();
@@ -79,7 +79,7 @@ class PipeWorkerProcess extends \Swoolefy\Worker\AbstractWorkerProcess
 //        );
 
         /**
-         * @var \Common\Library\Db\Mysql $db
+         * @var \Swoolefy\Library\Db\Mysql $db
          */
         $db = Application::getApp()->get('db');
         $query = $db->newQuery();

@@ -1,7 +1,7 @@
 <?php
 namespace Test\WorkerCron\CurlQuery;
 
-use Common\Library\HttpClient\RawResponse;
+use Swoolefy\Library\HttpClient\RawResponse;
 use Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker;
 
 class RemoteUrl {

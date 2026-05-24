@@ -20,7 +20,7 @@ use Swoolefy\Core\SystemEnv;
 use Swoolefy\Util\Helper;
 use Swoolefy\Worker\CtlApi;
 use Swoolefy\Core\Coroutine\Context as SwooleContext;
-use Common\Library\CurlProxy\OpentelemetryMiddleware;
+use Swoolefy\Library\CurlProxy\OpentelemetryMiddleware;
 
 abstract class HttpServer extends BaseServer
 {
@@ -170,7 +170,7 @@ abstract class HttpServer extends BaseServer
             } else {
                 try {
                     /**
-                     * @var \Common\Library\OpenTelemetry\SDK\Trace\Span $span
+                     * @var \Swoolefy\Library\OpenTelemetry\SDK\Trace\Span $span
                      */
                     $headers = $this->normalizeHeaderKeys($request->header ?? []);
                     list ($span, $scope, $traceId, $traceparent) = $this->startOpenTelemetry($request);

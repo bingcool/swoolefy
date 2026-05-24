@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Core;
 
-use Common\Library\OpenTelemetry\HttpEntryInstrumentation;
+use Swoolefy\Library\OpenTelemetry\HttpEntryInstrumentation;
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Core\Memory\AtomicManager;
 use Swoolefy\Script\AbstractKernel;

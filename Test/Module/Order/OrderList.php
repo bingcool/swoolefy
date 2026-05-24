@@ -1,9 +1,9 @@
 <?php
 namespace Test\Module\Order;
 
-use Common\Library\Component\ListItemFormatter;
-use Common\Library\Db\Query;
-use Common\Library\Component\ListObject;
+use Swoolefy\Library\Component\ListItemFormatter;
+use Swoolefy\Library\Db\Query;
+use Swoolefy\Library\Component\ListObject;
 
 class OrderList extends ListObject
 {

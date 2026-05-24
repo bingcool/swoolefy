@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Core;
 
-use Common\Library\Collection as BaseCollection;
+use Swoolefy\Library\Collection as BaseCollection;
 
 class Collection extends BaseCollection
 {

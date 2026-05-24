@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Core;
 
-use Common\Library\CurlProxy\OpentelemetryMiddleware;
+use Swoolefy\Library\CurlProxy\OpentelemetryMiddleware;
 use Swoolefy\Core\Coroutine\Context as SwooleContext;
 use Swoolefy\Core\Dto\BaseResponseDto;
 use Swoolefy\Http\ResponseCode;

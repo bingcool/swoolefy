@@ -39,7 +39,7 @@ final class NacosDiscoveryDriver implements DiscoveryDriverInterface
 
         $instances = [];
         foreach ($response->getHosts() as $host) {
-            if (!$host instanceof \Common\Library\Nacos\Provider\Instance\Model\Host) {
+            if (!$host instanceof \Swoolefy\Library\Nacos\Provider\Instance\Model\Host) {
                 continue;
             }
 

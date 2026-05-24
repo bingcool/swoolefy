@@ -1,7 +1,7 @@
 <?php
 namespace Test\WorkerDaemon\Datahub;
 
-use Common\Library\Aliyun\Datahub\DatahubConfigDto;
+use Swoolefy\Library\Aliyun\Datahub\DatahubConfigDto;
 
 class OrderProcessDatahub extends \Swoolefy\Worker\AbstractWorkerProcess
 {

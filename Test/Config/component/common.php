@@ -10,7 +10,7 @@
  * +----------------------------------------------------------------------
  */
 
-use Common\Library\Amqp\AmqpStreamConnectionFactory;
+use Swoolefy\Library\Amqp\AmqpStreamConnectionFactory;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use Swoolefy\Core\Application;
 use Test\Config\AmqpConfig;
@@ -22,24 +22,24 @@ return [
 
     'uuid' => function() use($dc) {
         $redis = Application::getApp()->get('redis')->getObject();
-        return \Common\Library\Uuid\UuidManager::getInstance($redis, 'uuid-key');
+        return \Swoolefy\Library\Uuid\UuidManager::getInstance($redis, 'uuid-key');
     },
 
     'rateLimit' => function() {
         $redis = Application::getApp()->get('redis')->getObject();
-        $rateLimit =  new \Common\Library\RateLimit\DurationLimiter($redis);
+        $rateLimit =  new \Swoolefy\Library\RateLimit\DurationLimiter($redis);
         return $rateLimit;
     },
 
     'redis-order-lock' => function() {
         $redis = Application::getApp()->get('redis')->getObject();
-        $lock = new \Common\Library\Lock\PHPRedisMutex([$redis],'order_lock', 5);
+        $lock = new \Swoolefy\Library\Lock\PHPRedisMutex([$redis],'order_lock', 5);
         return $lock;
     },
 
     'predis-order-lock' => function() {
         $redis = Application::getApp()->get('predis')->getObject();
-        $lock = new \Common\Library\Lock\PredisMutex([$redis],'order_lock-1', 5);
+        $lock = new \Swoolefy\Library\Lock\PredisMutex([$redis],'order_lock-1', 5);
         return $lock;
     },
 

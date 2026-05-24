@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Websocket;
 
-use Common\Library\CurlProxy\OpentelemetryMiddleware;
+use Swoolefy\Library\CurlProxy\OpentelemetryMiddleware;
 use Swoole\WebSocket\Frame;
 use Swoolefy\Core\EventApp;
 use Swoole\Http\Request;

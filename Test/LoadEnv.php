@@ -11,7 +11,7 @@
 
 namespace Test;
 
-use Common\Library\HttpClient\CurlHttpClient;
+use Swoolefy\Library\HttpClient\CurlHttpClient;
 
 class LoadEnv
 {

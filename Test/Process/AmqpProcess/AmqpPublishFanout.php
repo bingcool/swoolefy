@@ -1,7 +1,7 @@
 <?php
 namespace Test\Process\AmqpProcess;
 
-use Common\Library\Amqp\AmqpFanoutQueue;
+use Swoolefy\Library\Amqp\AmqpFanoutQueue;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
 use PhpAmqpLib\Connection\AMQPStreamConnection;

@@ -10,7 +10,7 @@
  * +----------------------------------------------------------------------
  */
 
-use Common\Library\Amqp\AmqpStreamConnectionFactory;
+use Swoolefy\Library\Amqp\AmqpStreamConnectionFactory;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use Swoolefy\Core\Application;
 use Test\Config\AmqpConfig;
@@ -20,13 +20,13 @@ $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
 
 return [
     'redis' => function() use($dc) {
-        $redis = new \Common\Library\Redis\Redis();
+        $redis = new \Swoolefy\Library\Redis\Redis();
         $redis->connect($dc['redis']['host'], $dc['redis']['port']);
         return $redis;
     },
 
     'predis' => function() use($dc) {
-        $predis = new \Common\Library\Redis\predis([
+        $predis = new \Swoolefy\Library\Redis\predis([
             'scheme' => $dc['predis']['scheme'],
             'host'   => $dc['predis']['host'],
             'port'   => $dc['predis']['port'],
@@ -36,10 +36,10 @@ return [
 
     'cache' => function() use($dc) {
         /**
-         * @var \Common\Library\Redis\RedisConnection $redis
+         * @var \Swoolefy\Library\Redis\RedisConnection $redis
          */
         $redis = Application::getApp()->get('predis')->getObject();
-        $cache = new \Common\Library\Cache\Driver\RedisCache($redis);
+        $cache = new \Swoolefy\Library\Cache\Driver\RedisCache($redis);
         return $cache;
 
     }

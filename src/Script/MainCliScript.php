@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Script;
 
-use Common\Library\CurlProxy\OpentelemetryMiddleware;
+use Swoolefy\Library\CurlProxy\OpentelemetryMiddleware;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Exec;
 use Swoolefy\Core\Swfy;

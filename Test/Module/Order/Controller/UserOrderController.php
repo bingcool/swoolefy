@@ -1,9 +1,9 @@
 <?php
 namespace Test\Module\Order\Controller;
 
-use Common\Library\Db\Query;
-use Common\Library\Db\Raw;
-use Common\Library\Db\Sql;
+use Swoolefy\Library\Db\Query;
+use Swoolefy\Library\Db\Raw;
+use Swoolefy\Library\Db\Sql;
 use GuzzleHttp\Client;
 use malkusch\lock\mutex\PgAdvisoryLockMutex;
 use Swoolefy\Core\Controller\BController;
@@ -96,7 +96,7 @@ class UserOrderController extends BController
         $t3 = Sql::table("tbl_banks")->as('t3');
 
         /**.
-         * @var \Common\Library\Db\Query $query
+         * @var \Swoolefy\Library\Db\Query $query
          */
         $querySql = App::getDb()->newQuery()
             ->field([
@@ -111,7 +111,7 @@ class UserOrderController extends BController
         })
         ->whereExists(function ($query) use($t1, $t3) {
             /**
-             * @var \Common\Library\Db\Query $query
+             * @var \Swoolefy\Library\Db\Query $query
              */
             $query->table($t3)
                 ->field([1])
@@ -174,7 +174,7 @@ class UserOrderController extends BController
 
 //        goApp(function () {
 //            $client = new Client([
-//                'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+//                'handler' => \Swoolefy\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
 //            ]);
 //            $client->request('GET', 'http://127.0.0.1:9501/user/user-order/userList1?name=bingcool',[
 //                'headers' => [
@@ -187,7 +187,7 @@ class UserOrderController extends BController
 //        });
 
 //        $client = new Client([
-//                'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+//                'handler' => \Swoolefy\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
 //            ]);
 //        $client->request('GET', 'http://127.0.0.1:9501/user/user-order/userList1?name=bingcool',[
 //            'headers' => [
@@ -202,13 +202,13 @@ class UserOrderController extends BController
 
 //        goApp(function () {
 //            (new Client([
-//                'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+//                'handler' => \Swoolefy\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
 //                'base_uri' => 'https://www.baidu.com',
 //            ]))->get('/', []);
 //        });
 
 //       (new Client([
-//            'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+//            'handler' => \Swoolefy\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
 //            'base_uri' => 'https://www.baidu.com',
 //        ]))->get('/', []);
 

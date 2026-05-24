@@ -10,8 +10,8 @@
  */
 
 use Swoolefy\Util\Log;
-use Common\Library\Db\Mysql;
-use Common\Library\Redis\Redis;
+use Swoolefy\Library\Db\Mysql;
+use Swoolefy\Library\Redis\Redis;
 
 $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
 

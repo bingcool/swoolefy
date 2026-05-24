@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Nacos\Monitor;
 
-use Common\Library\Nacos\Client;
+use Swoolefy\Library\Nacos\Client;
 use Swoolefy\Support\Nacos\ConfigFetcher;
 use Swoolefy\Support\Nacos\ConfigFileWriter;
 use Swoolefy\Support\Nacos\NacosConfig;

@@ -1,8 +1,8 @@
 <?php
 namespace Test\Process\AmqpProcess;
 
-use Common\Library\Amqp\AmqpDelayTopicQueue;
-use Common\Library\Amqp\AmqpTopicQueue;
+use Swoolefy\Library\Amqp\AmqpDelayTopicQueue;
+use Swoolefy\Library\Amqp\AmqpTopicQueue;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
 use PhpAmqpLib\Connection\AMQPStreamConnection;

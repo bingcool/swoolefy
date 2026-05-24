@@ -1,7 +1,7 @@
 <?php
 namespace Test\Scripts\User;
 
-use Common\Library\Db\Query;
+use Swoolefy\Library\Db\Query;
 use Swoolefy\Core\Application;
 use Swoolefy\Script\MainCliScript;
 use Test\App;

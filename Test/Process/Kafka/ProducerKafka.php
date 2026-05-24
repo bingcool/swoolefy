@@ -1,7 +1,7 @@
 <?php
 namespace Test\Process\Kafka;
 
-use Common\Library\Kafka\Producer;
+use Swoolefy\Library\Kafka\Producer;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
 

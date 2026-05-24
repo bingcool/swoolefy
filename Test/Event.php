@@ -2,7 +2,7 @@
 
 namespace Test;
 
-use Common\Library\Db\PDOConnection;
+use Swoolefy\Library\Db\PDOConnection;
 use Predis\Command\Redis\CONFIG;
 use Swoole\Coroutine\WaitGroup;
 use Swoole\Server;

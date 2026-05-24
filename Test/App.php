@@ -11,13 +11,13 @@
 
 namespace Test;
 
-use Common\Library\Db\Pgsql;
-use Common\Library\RateLimit\DurationLimiter;
-use Common\Library\Redis\Redis;
-use Common\Library\Db\Mysql;
-use Common\Library\Lock\PHPRedisMutex;
-use Common\Library\PubSub\RedisPubSub;
-use Common\Library\Uuid\UuidManager;
+use Swoolefy\Library\Db\Pgsql;
+use Swoolefy\Library\RateLimit\DurationLimiter;
+use Swoolefy\Library\Redis\Redis;
+use Swoolefy\Library\Db\Mysql;
+use Swoolefy\Library\Lock\PHPRedisMutex;
+use Swoolefy\Library\PubSub\RedisPubSub;
+use Swoolefy\Library\Uuid\UuidManager;
 use Swoolefy\Core\Dto\ContainerObjectDto;
 use Symfony\Component\Translation\Translator;
 
@@ -72,7 +72,7 @@ class App
     }
 
     /**
-     * @return \Common\Library\Queues\Queue|ContainerObjectDto
+     * @return \Swoolefy\Library\Queues\Queue|ContainerObjectDto
      */
     public static function getQueue()
     {
@@ -80,7 +80,7 @@ class App
     }
 
     /**
-     * @return \Common\Library\Queues\RedisDelayQueue|ContainerObjectDto
+     * @return \Swoolefy\Library\Queues\RedisDelayQueue|ContainerObjectDto
      */
     public static function getDelayQueue()
     {
