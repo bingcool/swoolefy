@@ -41,7 +41,7 @@
         "symfony/translation": "~6.4",
         "zircote/swagger-php": "~4.8.0",
         "symfony/yaml": "~6.4",
-        "bingcool/library": "dev-library-6.x"
+        "bingcool/library": "dev-library-php82-83"
     },
     "autoload": {
         "files": ["src/Constants.php","src/Core/Func/function.php"],
