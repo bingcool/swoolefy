@@ -1,17 +1,17 @@
 <?php
 namespace Test\Controller;
 
-use Common\Library\Clock\SystemClock;
-use Common\Library\Jwt\Encoding\ChainedFormatter;
-use Common\Library\Jwt\Encoding\JoseEncoder;
-use Common\Library\Jwt\Signer\Hmac\Sha256;
-use Common\Library\Jwt\Signer\Key\InMemory;
-use Common\Library\Jwt\Token\Builder;
-use Common\Library\Jwt\Token\RegisteredClaims;
-use Common\Library\Jwt\Validation\Constraint\HasClaimWithValue;
-use Common\Library\Jwt\Validation\Constraint\RelatedTo;
-use Common\Library\Jwt\Validation\Constraint\ValidAt;
-use Common\Library\Jwt\Validation\Validator;
+use Swoolefy\Library\Clock\SystemClock;
+use Swoolefy\Library\Jwt\Encoding\ChainedFormatter;
+use Swoolefy\Library\Jwt\Encoding\JoseEncoder;
+use Swoolefy\Library\Jwt\Signer\Hmac\Sha256;
+use Swoolefy\Library\Jwt\Signer\Key\InMemory;
+use Swoolefy\Library\Jwt\Token\Builder;
+use Swoolefy\Library\Jwt\Token\RegisteredClaims;
+use Swoolefy\Library\Jwt\Validation\Constraint\HasClaimWithValue;
+use Swoolefy\Library\Jwt\Validation\Constraint\RelatedTo;
+use Swoolefy\Library\Jwt\Validation\Constraint\ValidAt;
+use Swoolefy\Library\Jwt\Validation\Validator;
 use DateTimeImmutable;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
@@ -50,7 +50,7 @@ class TokenController extends BController
 
         $tokenStr = $token->toString();
 
-        $parser = new \Common\Library\Jwt\Token\Parser(new JoseEncoder());
+        $parser = new \Swoolefy\Library\Jwt\Token\Parser(new JoseEncoder());
         $tokenObj = $parser->parse($tokenStr);
         //var_dump($tokenObj->headers()->all());
 

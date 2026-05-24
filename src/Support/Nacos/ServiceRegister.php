@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Nacos;
 
-use Common\Library\Nacos\Client;
-use Common\Library\Nacos\Provider\Instance\Model\ListResponse;
-use Common\Library\Nacos\Provider\Instance\Model\RsInfo;
+use Swoolefy\Library\Nacos\Client;
+use Swoolefy\Library\Nacos\Provider\Instance\Model\ListResponse;
+use Swoolefy\Library\Nacos\Provider\Instance\Model\RsInfo;
 use Swoolefy\Core\Coroutine\Timer as GoTimer;
 use Swoolefy\Exception\NacosMonitorException;
 use Swoolefy\Util\Log;

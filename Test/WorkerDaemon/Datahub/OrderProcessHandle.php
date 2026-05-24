@@ -1,8 +1,8 @@
 <?php
 namespace Test\WorkerDaemon\Datahub;
 
-use Common\Library\Aliyun\Datahub\AbstractBaseDatahub;
-use Common\Library\Aliyun\Datahub\DatahubConfigDto;
+use Swoolefy\Library\Aliyun\Datahub\AbstractBaseDatahub;
+use Swoolefy\Library\Aliyun\Datahub\DatahubConfigDto;
 
 class OrderProcessHandle extends AbstractBaseDatahub
 {

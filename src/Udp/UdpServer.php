@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Udp;
 
-use Common\Library\CurlProxy\OpentelemetryMiddleware;
+use Swoolefy\Library\CurlProxy\OpentelemetryMiddleware;
 use Swoole\Server;
 use Swoolefy\Core\EventApp;
 use Swoolefy\Core\BaseServer;

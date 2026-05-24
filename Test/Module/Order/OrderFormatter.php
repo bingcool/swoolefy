@@ -1,7 +1,7 @@
 <?php
 namespace Test\Module\Order;
 
-use Common\Library\Component\ListItemFormatter;
+use Swoolefy\Library\Component\ListItemFormatter;
 
 class OrderFormatter extends ListItemFormatter
 {

@@ -10,7 +10,7 @@
  * +----------------------------------------------------------------------
  */
 
-use Common\Library\Amqp\AmqpStreamConnectionFactory;
+use Swoolefy\Library\Amqp\AmqpStreamConnectionFactory;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use Swoolefy\Core\Application;
 use Symfony\Component\Translation\Loader\PhpFileLoader;

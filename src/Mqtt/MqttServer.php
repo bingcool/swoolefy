@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Mqtt;
 
-use Common\Library\CurlProxy\OpentelemetryMiddleware;
+use Swoolefy\Library\CurlProxy\OpentelemetryMiddleware;
 use Swoole\Server;
 use Swoolefy\Util\Helper;
 use Swoolefy\Core\BaseServer;

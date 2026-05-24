@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Tcp;
 
-use Common\Library\CurlProxy\OpentelemetryMiddleware;
+use Swoolefy\Library\CurlProxy\OpentelemetryMiddleware;
 use Swoolefy\Core\EventApp;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\SystemEnv;

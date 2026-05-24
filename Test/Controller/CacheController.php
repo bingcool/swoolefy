@@ -1,7 +1,7 @@
 <?php
 namespace Test\Controller;
 
-use Common\Library\Cache\Driver\RedisCache;
+use Swoolefy\Library\Cache\Driver\RedisCache;
 use Swoolefy\Annotation\ApiOperation;
 use Swoolefy\Core\App;
 use Swoolefy\Core\Application;

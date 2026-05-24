@@ -1,7 +1,7 @@
 <?php
 namespace Test\Controller;
 
-use Common\Library\Db\Sql;
+use Swoolefy\Library\Db\Sql;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Http\RequestInput;
@@ -24,7 +24,7 @@ class PgController extends BController
     {
         $userId = 10000;
         /**
-         * @var \Common\Library\Db\Pgsql $pg
+         * @var \Swoolefy\Library\Db\Pgsql $pg
          */
 
         $userId = 10000;
@@ -55,7 +55,7 @@ class PgController extends BController
         $id = $query->getLastInsID();
 
         $client = new \GuzzleHttp\Client([
-            'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(), // 只需把handler注入进来即可
+            'handler' => \Swoolefy\Library\CurlProxy\CurlProxyHandler::getStackHandler(), // 只需把handler注入进来即可
             'base_uri' => "http://127.0.0.1:9501",
         ]);
         $response = $client->get('/api/send-task-worker');

@@ -10,7 +10,7 @@
  * +----------------------------------------------------------------------
  */
 
-use Common\Library\Amqp\AmqpStreamConnectionFactory;
+use Swoolefy\Library\Amqp\AmqpStreamConnectionFactory;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use Swoolefy\Core\Application;
 use Test\Config\AmqpConfig;
@@ -21,18 +21,18 @@ $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
 return [
     'queue' => function() {
 //        $redis = Application::getApp()->get('redis')->getObject();
-//        return new \Common\Library\Queues\Queue($redis,\Test\Process\ListProcess\RedisList::queue_order_list);
+//        return new \Swoolefy\Library\Queues\Queue($redis,\Test\Process\ListProcess\RedisList::queue_order_list);
 
         $predis = Application::getApp()->get('predis')->getObject();
-        return new \Common\Library\Queues\Queue($predis,\Test\Process\QueueProcess\Queue::queue_order_list);
+        return new \Swoolefy\Library\Queues\Queue($predis,\Test\Process\QueueProcess\Queue::queue_order_list);
     },
 
     'delayQueue' => function() {
         $redis = Application::getApp()->get('redis')->getObject();
-        return new \Common\Library\Queues\RedisDelayQueue($redis,\Test\Process\QueueProcess\Queue::queue_order_list);
+        return new \Swoolefy\Library\Queues\RedisDelayQueue($redis,\Test\Process\QueueProcess\Queue::queue_order_list);
 
 //        $predis = Application::getApp()->get('predis')->getObject();
-//        return new \Common\Library\Queues\PredisDelayQueue($predis,\Test\Process\QueueProcess\Queue::queue_order_list);
+//        return new \Swoolefy\Library\Queues\PredisDelayQueue($predis,\Test\Process\QueueProcess\Queue::queue_order_list);
     }
 
 ];

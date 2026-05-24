@@ -1,8 +1,8 @@
 <?php
 namespace Test\Process\AmqpProcess;
 
-use Common\Library\Amqp\AmqpDelayDirectQueue;
-use Common\Library\Amqp\AmqpDirectQueue;
+use Swoolefy\Library\Amqp\AmqpDelayDirectQueue;
+use Swoolefy\Library\Amqp\AmqpDirectQueue;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Process\AbstractProcess;

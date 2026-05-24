@@ -15,12 +15,12 @@ use Swoole\Http\Server;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoolefy\Core\Task\TaskController;
-use Common\Library\OpenTelemetry\API\Globals;
-use Common\Library\OpenTelemetry\API\Trace\SpanKind;
-use Common\Library\OpenTelemetry\API\Trace\StatusCode;
-use Common\Library\OpenTelemetry\SemConv\TraceAttributes;
-use Common\Library\OpenTelemetry\Contrib\Context\Swoole\SwooleContextScope;
-use Common\Library\OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
+use Swoolefy\Library\OpenTelemetry\API\Globals;
+use Swoolefy\Library\OpenTelemetry\API\Trace\SpanKind;
+use Swoolefy\Library\OpenTelemetry\API\Trace\StatusCode;
+use Swoolefy\Library\OpenTelemetry\SemConv\TraceAttributes;
+use Swoolefy\Library\OpenTelemetry\Contrib\Context\Swoole\SwooleContextScope;
+use Swoolefy\Library\OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
 
 abstract class HttpAppServer extends HttpServer
 {
@@ -67,7 +67,7 @@ abstract class HttpAppServer extends HttpServer
             return [null, null, null, null];
         }
         /**
-         * @var \Common\Library\OpenTelemetry\SDK\Trace\Tracer $tracer
+         * @var \Swoolefy\Library\OpenTelemetry\SDK\Trace\Tracer $tracer
          */
         $tracer = Globals::tracerProvider()->getTracer(env('OTEL_TRACING_NAME','swoolefy-http-request'), '1.0.0');
         $route = $request->server['path_info'] ?? '';
@@ -126,7 +126,7 @@ abstract class HttpAppServer extends HttpServer
             return;
         }
         /**
-         * @var \Common\Library\OpenTelemetry\SDK\Trace\Span $span
+         * @var \Swoolefy\Library\OpenTelemetry\SDK\Trace\Span $span
          */
         $span->setStatus(StatusCode::STATUS_OK, "Successful");
         $span->end();
@@ -143,7 +143,7 @@ abstract class HttpAppServer extends HttpServer
             return;
         }
         /**
-         * @var \Common\Library\OpenTelemetry\SDK\Trace\Span $span
+         * @var \Swoolefy\Library\OpenTelemetry\SDK\Trace\Span $span
          */
         if ($exception) {
             $span->recordException($exception);

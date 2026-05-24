@@ -11,7 +11,7 @@
 
 namespace Test;
 
-use Common\Library\Db\Facade\Db;
+use Swoolefy\Library\Db\Facade\Db;
 use Swoolefy\Core\BootstrapInterface;
 use Swoolefy\Exception\SystemException;
 use Swoolefy\Http\RequestInput;

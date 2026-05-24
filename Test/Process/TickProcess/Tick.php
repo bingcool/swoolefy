@@ -1,8 +1,8 @@
 <?php
 namespace Test\Process\TickProcess;
 
-use Common\Library\Db\Mysql;
-use Common\Library\Encryption\Encrypter;
+use Swoolefy\Library\Db\Mysql;
+use Swoolefy\Library\Encryption\Encrypter;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Coroutine\Context;
 use Swoolefy\Core\Process\AbstractProcess;
@@ -60,7 +60,7 @@ class Tick extends AbstractProcess {
                     'gmt_create' =>date('Y-m-d H:i:s'),
                 ];
 
-                $query = new \Common\Library\Db\Query($db->getConnection());
+                $query = new \Swoolefy\Library\Db\Query($db->getConnection());
 
                 // 插入
                 //$query->table('tbl_users')->save($data);

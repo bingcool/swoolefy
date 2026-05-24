@@ -10,7 +10,7 @@
  * +----------------------------------------------------------------------
  */
 
-use Common\Library\Amqp\AmqpStreamConnectionFactory;
+use Swoolefy\Library\Amqp\AmqpStreamConnectionFactory;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use Swoolefy\Core\Application;
 use Test\Config\AmqpConfig;
@@ -33,7 +33,7 @@ return [
          * @var AMQPStreamConnection $connection
          */
         $connection = \Test\App::getAmqpConnection();
-        $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
+        $amqpConfig = new \Swoolefy\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_DIRECT_ORDER;
         $amqpConfig->queueName    = AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_ADD;
         $property = AmqpConfig::AMQP_DIRECT[$amqpConfig->exchangeName][$amqpConfig->queueName];
@@ -47,7 +47,7 @@ return [
         $amqpConfig->arguments  = $property['arguments'];
         //$amqpConfig->consumerTag = $property['consumer_tag'].'_pid_'.posix_getpid(); // 最好设置成唯一标志
 
-        $amqpDirect = new \Common\Library\Amqp\AmqpDirectQueue($connection, $amqpConfig);
+        $amqpDirect = new \Swoolefy\Library\Amqp\AmqpDirectQueue($connection, $amqpConfig);
         $amqpDirect->setAckHandler(function (\PhpAmqpLib\Message\AMQPMessage $message) {
             echo "Message acked with content " . $message->body . PHP_EOL;
         });
@@ -60,7 +60,7 @@ return [
          * @var AMQPStreamConnection $connection
          */
         $connection = \Test\App::getAmqpConnection();
-        $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
+        $amqpConfig = new \Swoolefy\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_DIRECT_ORDER;
         $amqpConfig->queueName    = AmqpConfig::AMQP_QUEUE_DIRECT_ORDER_EXPORT;
         $property = AmqpConfig::AMQP_DIRECT[$amqpConfig->exchangeName][$amqpConfig->queueName];
@@ -74,7 +74,7 @@ return [
         $amqpConfig->arguments  = $property['arguments'];
         $amqpConfig->consumerTag = $property['consumer_tag'].'_pid_'.posix_getpid(); // 最好设置成唯一标志
 
-        $amqpDirect = new \Common\Library\Amqp\AmqpDirectQueue($connection, $amqpConfig);
+        $amqpDirect = new \Swoolefy\Library\Amqp\AmqpDirectQueue($connection, $amqpConfig);
 
         return $amqpDirect;
     },
@@ -85,7 +85,7 @@ return [
          * @var AMQPStreamConnection $connection
          */
         $connection = \Test\App::getAmqpConnection();
-        $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
+        $amqpConfig = new \Swoolefy\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_DIRECT_ORDER;
 
         // 延迟名称
@@ -102,7 +102,7 @@ return [
         $amqpConfig->arguments = $property['arguments'];
         $amqpConfig->consumerTag = $property['consumer_tag'].'_pid_'.posix_getpid(); // 最好设置成唯一标志
 
-        $amqpDelayDirect = new \Common\Library\Amqp\AmqpDelayDirectQueue($connection, $amqpConfig);
+        $amqpDelayDirect = new \Swoolefy\Library\Amqp\AmqpDelayDirectQueue($connection, $amqpConfig);
 //            $amqpDelayDirect->setAckHandler(function (\PhpAmqpLib\Message\AMQPMessage $message) {
 //                echo "Message acked with content " . $message->body . PHP_EOL;
 //            });
@@ -116,9 +116,9 @@ return [
          * @var AMQPStreamConnection $connection
          */
         $connection = \Test\App::getAmqpConnection();
-        $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
+        $amqpConfig = new \Swoolefy\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_FANOUT_ORDER;
-        $amqpFanoutConsumer = new \Common\Library\Amqp\AmqpFanoutQueue($connection, $amqpConfig);
+        $amqpFanoutConsumer = new \Swoolefy\Library\Amqp\AmqpFanoutQueue($connection, $amqpConfig);
         $amqpFanoutConsumer->setAckHandler(function (\PhpAmqpLib\Message\AMQPMessage $message) {
             echo "Message acked with content " . $message->body . PHP_EOL;
         });
@@ -131,7 +131,7 @@ return [
          * @var AMQPStreamConnection $connection
          */
         $connection = \Test\App::getAmqpConnection();
-        $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
+        $amqpConfig = new \Swoolefy\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_FANOUT_ORDER;
         $amqpConfig->queueName = AmqpConfig::AMQP_QUEUE_FANOUT_ORDER_ADD;
 
@@ -147,7 +147,7 @@ return [
         $amqpConfig->arguments = $property['arguments'];
         $amqpConfig->consumerTag = $property['consumer_tag'].'_pid_'.posix_getpid();
 
-        $amqpFanoutConsumer = new \Common\Library\Amqp\AmqpFanoutQueue($connection, $amqpConfig);
+        $amqpFanoutConsumer = new \Swoolefy\Library\Amqp\AmqpFanoutQueue($connection, $amqpConfig);
         return $amqpFanoutConsumer;
     },
 
@@ -157,7 +157,7 @@ return [
          * @var AMQPStreamConnection $connection
          */
         $connection = \Test\App::getAmqpConnection();
-        $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
+        $amqpConfig = new \Swoolefy\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_FANOUT_ORDER;
         $amqpConfig->queueName = AmqpConfig::AMQP_QUEUE_FANOUT_ORDER_EXPORT;
 
@@ -173,7 +173,7 @@ return [
         $amqpConfig->arguments = $property['arguments'];
         $amqpConfig->consumerTag = $property['consumer_tag'].'_pid_'.posix_getpid();
 
-        $amqpFanoutConsumer = new \Common\Library\Amqp\AmqpFanoutQueue($connection, $amqpConfig);
+        $amqpFanoutConsumer = new \Swoolefy\Library\Amqp\AmqpFanoutQueue($connection, $amqpConfig);
         return $amqpFanoutConsumer;
     },
 
@@ -183,7 +183,7 @@ return [
          * @var AMQPStreamConnection $connection
          */
         $connection = \Test\App::getAmqpConnection();
-        $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
+        $amqpConfig = new \Swoolefy\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_TOPIC_ORDER;
         $amqpConfig->queueName    = AmqpConfig::AMQP_QUEUE_TOPIC_ORDER_ADD;
 
@@ -197,7 +197,7 @@ return [
         $amqpConfig->autoDelete = $property['auto_delete'];
         $amqpConfig->consumerTag = $property['consumer_tag'].'_pid_'.posix_getpid(); // 最好设置成唯一标志
 
-        $AmqpTopicPublish = new \Common\Library\Amqp\AmqpTopicQueue($connection, $amqpConfig);
+        $AmqpTopicPublish = new \Swoolefy\Library\Amqp\AmqpTopicQueue($connection, $amqpConfig);
 //            $AmqpTopicPublish->setAckHandler(function (\PhpAmqpLib\Message\AMQPMessage $message) {
 //                echo "Message acked with content " . $message->body . PHP_EOL;
 //            });
@@ -210,7 +210,7 @@ return [
          * @var AMQPStreamConnection $connection
          */
         $connection = \Test\App::getAmqpConnection();
-        $amqpConfig = new \Common\Library\Amqp\AmqpConfig();
+        $amqpConfig = new \Swoolefy\Library\Amqp\AmqpConfig();
         $amqpConfig->exchangeName = AmqpConfig::AMQP_EXCHANGE_TOPIC_ORDER;
 
         // 延迟队列
@@ -227,7 +227,7 @@ return [
         $amqpConfig->arguments = $property['arguments'];
         $amqpConfig->consumerTag = $property['consumer_tag'].'_pid_'.posix_getpid(); // 最好设置成唯一标志
 
-        $amqpTopicPublish = new \Common\Library\Amqp\AmqpDelayTopicQueue($connection, $amqpConfig);
+        $amqpTopicPublish = new \Swoolefy\Library\Amqp\AmqpDelayTopicQueue($connection, $amqpConfig);
 //            $AmqpTopicPublish->setAckHandler(function (\PhpAmqpLib\Message\AMQPMessage $message) {
 //                echo "Message acked with content " . $message->body . PHP_EOL;
 //            });

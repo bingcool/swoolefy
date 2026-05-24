@@ -379,7 +379,7 @@ abstract class BaseClientApi
                 ? rtrim($baseUri, '/') . '/'
                 : SdkNacosServiceDiscovery::resolveBaseUri($this->serviceName);
             $this->httpClient = new Client([
-                'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+                'handler' => \Swoolefy\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
                 'base_uri' => $this->baseUri,
                 'http_errors' => false,
             ]);

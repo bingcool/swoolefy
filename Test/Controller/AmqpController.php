@@ -1,9 +1,9 @@
 <?php
 namespace Test\Controller;
 
-use Common\Library\Amqp\AmqpAbstract;
-use Common\Library\Amqp\AmqpDelayDirectQueue;
-use Common\Library\Amqp\AmqpDelayTopicQueue;
+use Swoolefy\Library\Amqp\AmqpAbstract;
+use Swoolefy\Library\Amqp\AmqpDelayDirectQueue;
+use Swoolefy\Library\Amqp\AmqpDelayTopicQueue;
 use PhpAmqpLib\Message\AMQPMessage;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Controller\BController;

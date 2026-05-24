@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Swoolefy\Support\Nacos;
 
 use Swoolefy\Support\ApplicationConfig;
-use Common\Library\Nacos\Client;
-use Common\Library\Nacos\ClientConfig;
+use Swoolefy\Library\Nacos\Client;
+use Swoolefy\Library\Nacos\ClientConfig;
 use Symfony\Component\Yaml\Yaml;
 use Swoolefy\Util\Log;
 

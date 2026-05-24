@@ -12,7 +12,7 @@
 namespace Swoolefy\Worker\Cron;
 
 use Swoolefy\Core\Crontab\CrontabManager;
-use Common\Library\HttpClient\CurlHttpClient;
+use Swoolefy\Library\HttpClient\CurlHttpClient;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Worker\Dto\CronUrlTaskMetaDtoWorker;
 

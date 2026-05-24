@@ -1,7 +1,7 @@
 <?php
 namespace Test\Controller;
 
-use Common\Library\OpenTelemetry\SDK\Common\Configuration\Parser\BooleanParser;
+use Swoolefy\Library\OpenTelemetry\SDK\Common\Configuration\Parser\BooleanParser;
 use GuzzleHttp\Client;
 use http\Header;
 use OpenTelemetry\SDK\Common\Http\Psr\Client\Discovery\Guzzle;
@@ -15,13 +15,13 @@ use Swoolefy\Core\Swoole;
 use Swoolefy\Http\RequestInput;
 use Test\App;
 use Test\Logger\RunLog;
-use function Common\Library\OpenTelemetry\API\Trace\trace;
+use function Swoolefy\Library\OpenTelemetry\API\Trace\trace;
 use function Psl\Type\bool;
 
 class IndexController extends BController {
 
     /**
-     * @var \Common\Library\Db\Mysql
+     * @var \Swoolefy\Library\Db\Mysql
      */
     protected $db;
 
@@ -56,7 +56,7 @@ class IndexController extends BController {
 //        goApp(function () {
 //
 //            $client = new Client([
-//                'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+//                'handler' => \Swoolefy\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
 //            ]);
 //            $client->request('GET', 'http://127.0.0.1:9501/user/user-order/userList?name=bingcool',[
 //                'headers' => [
@@ -70,7 +70,7 @@ class IndexController extends BController {
 //            sleep(3);
 //
 //            $client = new Client([
-//                'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+//                'handler' => \Swoolefy\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
 //            ]);
 //            $client->request('GET', 'http://127.0.0.1:9501/user/user-order/userList?name=bingcool',[
 //                'headers' => [
@@ -83,7 +83,7 @@ class IndexController extends BController {
 //
 //            goApp(function () {
 //                $client = new Client([
-//                    'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+//                    'handler' => \Swoolefy\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
 //                ]);
 //                $client->request('GET', 'http://127.0.0.1:9501/user/user-order/userList?name=bingcool',[
 //                    'headers' => [
@@ -97,40 +97,40 @@ class IndexController extends BController {
 //        });
 
 //        (new Client([
-//            'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+//            'handler' => \Swoolefy\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
 //            'base_uri' => 'https://www.baidu.com',
 //        ]))->get('/', []);
 
         $client = (new Client([
-            'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+            'handler' => \Swoolefy\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
         ]))->request('GET', 'http://127.0.0.1:9501/user/user-order/userList?name=bingcool');
 
         goApp(function () {
             //sleep(1);
             $client = (new Client([
-                'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+                'handler' => \Swoolefy\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
             ]))->request('GET', 'http://127.0.0.1:9501/user/user-order/userList?name=bingcool');
 
             sleep(2);
 
             $client = (new Client([
-                'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+                'handler' => \Swoolefy\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
             ]))->request('GET', 'http://127.0.0.1:9501/user/user-order/userList1?name=bingcool');
 
             $client = (new Client([
-                'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+                'handler' => \Swoolefy\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
             ]))->request('GET', 'http://127.0.0.1:9501/user/user-order/userList1?name=bingcool');
 
             $client = (new Client([
-                'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+                'handler' => \Swoolefy\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
             ]))->request('GET', 'http://127.0.0.1:9501/user/user-order/userList1?name=bingcool');
 
             $client = (new Client([
-                'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+                'handler' => \Swoolefy\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
             ]))->request('GET', 'http://127.0.0.1:9501/user/user-order/userList1?name=bingcool');
 
             $client = (new Client([
-                'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+                'handler' => \Swoolefy\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
                 'base_uri' => 'https://www.baidu.com/',
             ]))->get('/', []);
 
@@ -139,7 +139,7 @@ class IndexController extends BController {
 //        sleep(3);
 //
 //        $client = new Client([
-//            'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+//            'handler' => \Swoolefy\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
 //        ]);
 //        $client->request('GET', 'http://127.0.0.1:9501/user/user-order/userList?name=bingcool',[
 //            'headers' => [
@@ -151,7 +151,7 @@ class IndexController extends BController {
 //        ]);
 //
 //        $client = new Client([
-//            'handler' => \Common\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+//            'handler' => \Swoolefy\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
 //            'base_uri' => 'https://www.baidu.com/',
 //        ])->get('/', []);
 

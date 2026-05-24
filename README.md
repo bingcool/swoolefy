@@ -817,14 +817,14 @@ return [
     
     // Redis Cache
     'redis' => function() use($dc) {
-        $redis = new \Common\Library\Redis\Redis();
+        $redis = new \Swoolefy\Library\Redis\Redis();
         $redis->connect($dc['redis']['host'], $dc['redis']['port']);
         return $redis;
     },
     
     // Predis Cache
     'predis' => function() use($dc) {
-        $predis = new \Common\Library\Redis\predis([
+        $predis = new \Swoolefy\Library\Redis\predis([
             'scheme' => $dc['predis']['scheme'],
             'host'   => $dc['predis']['host'],
             'port'   => $dc['predis']['port'],

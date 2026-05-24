@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Script;
 
-use Common\Library\Db\Mysql;
+use Swoolefy\Library\Db\Mysql;
 use Swoolefy\Core\Application;
 use Swoolefy\Script\MainCliScript;
 

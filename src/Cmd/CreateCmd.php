@@ -308,7 +308,7 @@ class CreateCmd extends BaseCmd
 <?php
 namespace {$appName}\Model;
 
-use Common\Library\Db\Model;
+use Swoolefy\Library\Db\Model;
 
 class DemoModel extends Model {
 

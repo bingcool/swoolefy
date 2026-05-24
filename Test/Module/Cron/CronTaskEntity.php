@@ -1,7 +1,7 @@
 <?php
 namespace Test\Module\Cron;
 
-use Common\Library\Db\Concern\SoftDelete;
+use Swoolefy\Library\Db\Concern\SoftDelete;
 use Test\Model\ClientModel;
 
 // 生成的表【cron_task】的属性

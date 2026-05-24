@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Util;
 
-use Common\Library\CurlProxy\OpentelemetryMiddleware;
+use Swoolefy\Library\CurlProxy\OpentelemetryMiddleware;
 use Swoolefy\Core\App;
 use Swoolefy\Core\Log\Formatter\JsonFormatter;
 use Swoolefy\Core\Log\Formatter\NormalizerFormatter;

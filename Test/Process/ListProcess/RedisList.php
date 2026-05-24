@@ -1,7 +1,7 @@
 <?php
 namespace Test\Process\ListProcess;
 
-use Common\Library\Queues\Queue;
+use Swoolefy\Library\Queues\Queue;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\Process\AbstractProcess;
 use Test\App;

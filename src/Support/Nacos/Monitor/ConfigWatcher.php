@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Nacos\Monitor;
 
-use Common\Library\Nacos\Client;
-use Common\Library\Nacos\Provider\Config\ConfigListener;
-use Common\Library\Nacos\Provider\Config\Model\ListenerConfig;
+use Swoolefy\Library\Nacos\Client;
+use Swoolefy\Library\Nacos\Provider\Config\ConfigListener;
+use Swoolefy\Library\Nacos\Provider\Config\Model\ListenerConfig;
 use Swoolefy\Util\Log;
 
 /**

@@ -11,7 +11,7 @@
 
 namespace Swoolefy\Http;
 
-use Common\Library\CurlProxy\OpentelemetryMiddleware;
+use Swoolefy\Library\CurlProxy\OpentelemetryMiddleware;
 use Swoolefy\Annotation\Validation\ValidationRule;
 use Swoolefy\Core\App;
 use Swoolefy\Core\AppDispatch;
