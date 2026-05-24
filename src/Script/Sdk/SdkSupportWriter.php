@@ -460,8 +460,10 @@ abstract class BaseClientApi
      */
     protected function mergeClientOptions(array $requestDefaults, array $options = []): array
     {
+        // GuzzleHttp\Exception\RequestException 或其子类 GuzzleHttp\Exception\ConnectException。
+        // 你可以使用 try-catch 来捕获它们，但这有一个重要前提：请求的 http_errors 选项必须被设置为 true（这也是该选项的默认行为）
         $defaults = [
-            'http_errors' => false,
+            'http_errors' => true,
             'headers' => ['Content-Type' => 'application/json'],
             'connect_timeout' => 30.0,
             'timeout' => 120.0,
@@ -495,10 +497,12 @@ use Swoolefy\Support\Nacos\Discovery\DiscoveryConfig;
 use Swoolefy\Support\Nacos\NacosConfig;
 
 /**
- * SDK 侧 Nacos 服务发现薄封装，委托框架 DiscoveryClient（实例缓存 + 负载均衡）。
+ * SDK 侧 Nacos 服务发现薄封装，委托框架 DiscoveryClient（进程内单例 + 负载均衡）。
  */
 final class SdkNacosServiceDiscovery
 {
+    private static ?DiscoveryClient $discoveryClient = null;
+
     /**
      * @throws SdkClientException
      */
@@ -509,10 +513,8 @@ final class SdkNacosServiceDiscovery
         }
 
         try {
-            $appPath = self::resolveAppPath($configDir);
-            $nacosConfig = NacosConfig::load($appPath);
-            $discoveryConfig = DiscoveryConfig::load($nacosConfig);
-            $uri = DiscoveryClient::create($serviceName, $nacosConfig, $discoveryConfig)->chooseUri('http');
+            $client = self::getDiscoveryClient($serviceName, $configDir);
+            $uri = $client->chooseUri('http');
         } catch (NacosDiscoveryException $e) {
             throw new SdkClientException($e->getMessage());
         } catch (\Throwable $e) {
@@ -527,6 +529,20 @@ final class SdkNacosServiceDiscovery
         }
 
         return rtrim($uri, '/') . '/';
+    }
+
+    private static function getDiscoveryClient(string $serviceName, ?string $configDir): DiscoveryClient
+    {
+        if (self::$discoveryClient instanceof DiscoveryClient) {
+            return self::$discoveryClient;
+        }
+
+        $appPath = self::resolveAppPath($configDir);
+        $nacosConfig = NacosConfig::load($appPath);
+        $discoveryConfig = DiscoveryConfig::load($nacosConfig);
+        self::$discoveryClient = DiscoveryClient::create($serviceName, $nacosConfig, $discoveryConfig);
+
+        return self::$discoveryClient;
     }
 
     private static function resolveAppPath(?string $configDir): string
