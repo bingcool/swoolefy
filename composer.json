@@ -17,9 +17,6 @@
             "role": "Engineer of php"
         }
     ],
-    "bin": [
-        "bin/swoolefy"
-    ],
     "minimum-stability": "stable",
     "prefer-stable": true,
     "require": {
