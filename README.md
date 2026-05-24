@@ -342,19 +342,19 @@ docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v
     | `APP_PATH/nacos.yaml` | Nacos **服务器连接**（host、port、data_id、username/password 等） |
     | `APP_PATH/application.yaml` | **应用行为**：`service_register`、`discovery_service_client`、`monitor_config_change` |
 
-    | 能力 | 说明 | 主要类 |
-    |:---|:---|:---|
+    | 能力 | 说明 | 主要类                                                                                        |
+    |:---|:---|:-------------------------------------------------------------------------------------------|
     | 配置变更监听 | 长轮询配置 → 写入 `.env` → 后台 `cli.php restart {App} --force=1` | `NacosMonitor`、`ConfigWatcher`（见 [Monitor/README.md](src/Support/Nacos/Monitor/README.md)） |
-    | 服务注册 | 注册实例到 Nacos 并定时心跳 | `ServiceRegister` |
-    | 服务发现 | 实例列表缓存 + 负载均衡选节点 | `DiscoveryClient`、`DiscoveryConfig`、`LoadBalancerFactory` |
-    | SDK 服务发现 | `gen:sdk` 生成客户端，未传 Guzzle 时自动 Nacos 发现 `base_uri` | `BaseClientApi`、`SdkNacosServiceDiscovery`（生成物） |
+    | 服务注册 | 注册实例到 Nacos 并定时心跳 | `ServiceRegister`                                                                          |
+    | 服务发现 | 实例列表缓存 + 负载均衡选节点 | `DiscoveryClient`、`DiscoveryConfig`、`LoadBalancerFactory`                                  |
+    | SDK 服务发现 | `gen:sdk` 生成客户端，未传 Guzzle 时自动 Nacos 发现 `base_uri` | `BaseClientApi`、`SdkNacosServiceDiscovery`（sdk自动生成）|                                        |
 
     自定义进程示例（`Event.php` 中注册）：
 
     ```php
-    // 配置变更监听
+    // 配置变更监听重启服务
     ProcessManager::getInstance()->addProcess(
-        'nacos-config-reload',
+        'nacos-config-change-reload',
         \App\Process\NacosProcess\NacosConfigReload::class,
         true, [], null, true,
     );
@@ -373,7 +373,7 @@ docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v
     use Swoolefy\Support\Nacos\NacosConfig;
 
     $client = DiscoveryClient::create('my-service', NacosConfig::load());
-    $uri = $client->chooseUri('http'); // http://192.168.x.x:9501
+    $uri = $client->chooseUri();
     ```
 
 <a id="nav-4-components"></a>
@@ -472,7 +472,7 @@ composer install
 
 <a id="nav-7-cli"></a>
 
-### 七、📝 添加项目入口启动文件 cli.php,并定义你的项目目录，命名为 App
+### 七、📝 添加项目入口启动文件 `cli.php`, 并定义你的项目目录，命名为 `App`
 
 ```php
 <?php
@@ -520,13 +520,9 @@ define('WORKER_PID_FILE_ROOT', '/tmp/workerfy/log/'.WORKER_SERVICE_NAME);
 define('WORKER_CTL_LOG_FILE',WORKER_PID_FILE_ROOT.'/ctl.log'); 
 define('SERVER_START_LOG_JSON_FILE', WORKER_PID_FILE_ROOT.'/start.json');
 
-// 启动前处理,比如加载.env
-//$beforeFunc = function () {
-//    try {
-//        \Test\LoadEnv::load('192.168.1.101:8848','swoolefy','test','nacos-test','123456');
-//    }catch (\Throwable $exception) {
-//
-//    }
+// 当使用nacos管理配置时，启动获取最新配置保存到.env
+// $beforeFunc = function () {
+//    \Swoolefy\Support\Nacos\NacosFactory::fetchConfigToEnv(APP_PATH . '/nacos.yaml');
 //};
 
 include dirname(SRC_DIR_ROOT).'/swoolefy';
@@ -1361,14 +1357,22 @@ use GenerateSdk\MyProject\Order\Request\CreateOrderRequest;
 $orderApi = OrderApi::makeService();
 
 // ② GET / PUT / DELETE 等幂等请求：Connect/Request 异常默认重试 1 次（最大可通过 options 调到 3）
-$list = $orderApi->list([
-    'connect_retry_num' => 2,   // 可选，0~3；不传则 GET 默认 1
+$orderListReq = new OrderListRequest();
+$orderListReq->setName('手机');
+$orderListReq->setPage(1);
+$orderListReq->setSize(20);
+// 可选，
+$options = [
+     // 可选，可设置 headers、connect_retry_num、timeout 等 Guzzle 选项
     'headers' => [
         'Authorization' => 'Bearer ' . $token,
         'X-Request-Id'  => uniqid('req_', true),
     ],
-    'query' => ['page' => 1, 'size' => 20],
-]);
+    'connect_retry_num' => 2, // 可选，0~3；不传则 GET 默认 1
+];
+
+$list = $orderApi->list($orderListReq, $options);
+
 
 // ③ POST 写操作：默认不重试（保证幂等由业务决定），需显式开启
 $createReq = new CreateOrderRequest();
@@ -1376,27 +1380,24 @@ $createReq->setProductId(1001);
 $createReq->setQuantity(2);
 
 $result = $orderApi->create($createReq, [
-  // POST 默认 connect_retry_num=0；仅当业务确认接口幂等时才开启
+    // POST 默认 connect_retry_num=0；仅当业务确认接口幂等时才设置connect_retry_num时开启重试机制
     'connect_retry_num' => 1,
     'headers' => [
         'Authorization' => 'Bearer ' . $token,
-        'Idempotency-Key' => 'order-create-' . $createReq->getProductId(), // 建议配合幂等键
+        'Idempotency-Key' => 'order-create-' . $createReq->getProductId(), //建议配合幂等键
     ],
 ]);
 
-// ④ 固定 base_uri（不走 Nacos，失败时退避 200ms / 500ms / 1s 后重试同一地址）
-$fixedApi = OrderApi::makeService(null, 'http://127.0.0.1:9501');
-$detail = $fixedApi->detail(10086, [
-    'connect_retry_num' => 3,
-    'headers' => ['X-Trace-Id' => 'trace-abc'],
+// ④ 固定 base_uri（不走 Nacos，指定GuzzleHttp\Client对象，失败时退避 200ms / 500ms / 1s 后重试同一地址）
+$client = new \GuzzleHttp\Client([
+    'base_uri' => 'http://api.example.com/',
 ]);
+$orderApi = OrderApi::makeService($client);
+// ⑤ GET / PUT / DELETE 等幂等请求
+$orderDetailReq = new OrderDetailRequest();
+$orderListReq->setOrderId(1001);
+$detail = $orderApi->detail($orderDetailReq);
 
-// ⑤ 透传 Guzzle 超时等选项（与 headers 一样合并进单次请求）
-$orderApi->list([
-    'connect_timeout' => 5.0,
-    'timeout'         => 30.0,
-    'headers'         => ['Accept' => 'application/json'],
-]);
 ```
 
 **重试与日志说明**

@@ -56,9 +56,9 @@ define('SERVER_START_LOG_JSON_FILE', WORKER_PID_FILE_ROOT.'/start.json');
 // 定义配置文件
 define('WORKER_CONF_FILE', APP_PATH.'/WorkerCron/worker_cron_conf.php');
 
-// 启动前处理,比如加载.env
-$beforeFunc = function () {
-    // var_dump(APP_PATH);
-};
+// 当使用nacos管理配置时，启动获取最新配置保存到.env
+// $beforeFunc = function () {
+//   \Swoolefy\Support\Nacos\NacosFactory::fetchConfigToEnv(APP_PATH . '/nacos.yaml');
+//};
 
 include dirname(SRC_DIR_ROOT).'/swoolefy';
