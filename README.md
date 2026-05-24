@@ -1315,36 +1315,102 @@ GenerateSdk/
 
 #### 示例代码
 
-**使用生成的 API 客户端：**
+**使用生成的 API 客户端（固定地址 / 自定义 Client）：**
 
 ```php
 use GenerateSdk\MyProject\App\Controller\Client\UserApi;
 use GenerateSdk\MyProject\App\Request\UserLoginRequest;
 
-// 方式 A：Nacos 服务发现（推荐，需 APP_PATH 或 SDK_NACOS_CONFIG_DIR 下有 nacos.yaml / application.yaml）
-// serviceName 已在 gen:sdk 时从 application.yaml 注入，无需手写 base_uri
-$api = UserApi::make();
+// 指定固定 base_uri（不走 Nacos 服务发现）
+$api = UserApi::makeService(null, 'http://127.0.0.1:9501');
 
-// 方式 B：指定固定 base_uri（不走服务发现）
-$api = UserApi::make(null, 'http://127.0.0.1:9501');
-
-// 方式 C：自定义 Guzzle Client（完全手动）
+// 自定义 Guzzle Client（完全手动）
 $client = new \GuzzleHttp\Client(['base_uri' => 'http://api.example.com/']);
 $api = new UserApi($client);
 
-// 方式1：使用 Request DTO（推荐）
+// 使用 Request DTO 调用
 $request = new UserLoginRequest();
 $request->setUsername('admin');
 $request->setPassword('123456');
-/**
-* @var UserLoginResponse
-*/
+/** @var UserLoginResponse $response */
 $response = $api->login($request);
 
-// 响应 IDE 会提供完整的类型提示
 var_dump($response->getToken());
 var_dump($response->getUserId());
 ```
+
+**Nacos 服务发现 SDK 详细用法：**
+
+生成 SDK 时会从 `application.yaml` → `nacos.service_register.service_name` 注入 `BaseClientApi::$serviceName`。  
+调用 `makeService()` 且**不传** `$httpClient` / `$baseUri` 时，自动通过 Nacos 发现可用实例并设置 Guzzle `base_uri`。
+
+**前置条件**
+
+| 项 | 说明 |
+|:---|:---|
+| 依赖 | SDK 包需 `composer require bingcool/swoolefy`（`SdkNacosServiceDiscovery` 委托 `DiscoveryClient`） |
+| 配置文件 | 配置目录下需存在 `nacos.yaml`（Nacos 连接）与 `application.yaml`（`discovery_service_client` 等） |
+| 配置目录优先级 | `APP_PATH` 常量 → 环境变量 `SDK_NACOS_CONFIG_DIR` → 当前工作目录 `getcwd()` |
+
+```php
+use GenerateSdk\MyProject\Order\Client\OrderApi;
+use GenerateSdk\MyProject\Order\Request\CreateOrderRequest;
+
+// ① Nacos 服务发现（推荐）
+// serviceName 已在 gen:sdk 时注入，无需手写 base_uri
+$orderApi = OrderApi::makeService();
+
+// ② GET / PUT / DELETE 等幂等请求：Connect/Request 异常默认重试 1 次（最大可通过 options 调到 3）
+$list = $orderApi->list([
+    'connect_retry_num' => 2,   // 可选，0~3；不传则 GET 默认 1
+    'headers' => [
+        'Authorization' => 'Bearer ' . $token,
+        'X-Request-Id'  => uniqid('req_', true),
+    ],
+    'query' => ['page' => 1, 'size' => 20],
+]);
+
+// ③ POST 写操作：默认不重试（保证幂等由业务决定），需显式开启
+$createReq = new CreateOrderRequest();
+$createReq->setProductId(1001);
+$createReq->setQuantity(2);
+
+$result = $orderApi->create($createReq, [
+  // POST 默认 connect_retry_num=0；仅当业务确认接口幂等时才开启
+    'connect_retry_num' => 1,
+    'headers' => [
+        'Authorization' => 'Bearer ' . $token,
+        'Idempotency-Key' => 'order-create-' . $createReq->getProductId(), // 建议配合幂等键
+    ],
+]);
+
+// ④ 固定 base_uri（不走 Nacos，失败时退避 200ms / 500ms / 1s 后重试同一地址）
+$fixedApi = OrderApi::makeService(null, 'http://127.0.0.1:9501');
+$detail = $fixedApi->detail(10086, [
+    'connect_retry_num' => 3,
+    'headers' => ['X-Trace-Id' => 'trace-abc'],
+]);
+
+// ⑤ 透传 Guzzle 超时等选项（与 headers 一样合并进单次请求）
+$orderApi->list([
+    'connect_timeout' => 5.0,
+    'timeout'         => 30.0,
+    'headers'         => ['Accept' => 'application/json'],
+]);
+```
+
+**重试与日志说明**
+
+| 场景 | 行为 |
+|:---|:---|
+| Nacos 发现 + 重试 | `RequestException` 时重新 `choose` 节点后立即重试，**无退避** |
+| 固定地址 + 重试 | 同一 `base_uri` 退避 **200ms → 500ms → 1s** 后重试 |
+| GET/HEAD/PUT/DELETE/OPTIONS | 默认重试 **1** 次 |
+| POST/PATCH 等 | 默认 **0** 次，须 `$options['connect_retry_num']` 显式指定 |
+| 重试上限 | `connect_retry_num` 最大 **3** |
+| 日志 | 重试时写入 guzzle_curl 日志（`CurlProxyHandler::buildLogChannel()`），含失败/下一跳 IP:端口及异常信息 |
+
+> `$options['connect_retry_num']` 为 SDK 专用参数，不会传给 Guzzle；自定义请求头通过 `$options['headers']` 传入，会与默认 `Content-Type: application/json` 合并。
 
 **控制器返回值类型声明最佳实践：**
 
