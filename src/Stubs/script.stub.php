@@ -57,4 +57,9 @@ define('WORKER_TO_CLI_PIPE',WORKER_PID_FILE_ROOT.'/ctl.pipe');
 // script 为空即可
 define('PROCESS_CLASS', []);
 
+// 当使用nacos管理配置时，启动获取最新配置保存到.env
+// $beforeFunc = function () {
+//   \Swoolefy\Support\Nacos\NacosFactory::fetchConfigToEnv(APP_PATH . '/nacos.yaml');
+//};
+
 include dirname(SRC_DIR_ROOT).'/swoolefy';

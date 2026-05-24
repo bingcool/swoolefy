@@ -20,6 +20,16 @@ $config = NacosConfig::load();
 $client = $config->createClient($logger);
 ```
 
+## NacosFactory
+
+一次性从 Nacos 拉取配置并写入 `APP_PATH/.env`（Guzzle 直连，不依赖 Log；内容须为合法 .env 格式）：
+
+```php
+use Swoolefy\Support\Nacos\NacosFactory;
+
+$envFile = NacosFactory::fetchConfigToEnv(APP_PATH . '/nacos.yaml');
+```
+
 ## ServiceRegister
 
 读取 `application.yaml` → `nacos.service_register`。
