@@ -32,7 +32,7 @@ class TestRequest extends AbstractProcess
             $this->testPageRequest();
         });
 
-        goAfter(5000, function (){
+        goTick(5000, function (){
             $this->requestTest();
         });
         //$this->responseTest();
@@ -40,7 +40,7 @@ class TestRequest extends AbstractProcess
 
     protected function requestTest()
     {
-        $LogOrderApi = new LogOrderApi();
+        $LogOrderApi = LogOrderApi::makeService();
         $LogSaveRequest = new LogSaveRequest();
         $LogSaveRequest->setLogIds([1,2,3,4,5]);
 
