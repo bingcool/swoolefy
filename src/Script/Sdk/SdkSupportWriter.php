@@ -354,6 +354,8 @@ namespace __SDK_SUPPORT_NAMESPACE__;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Message\ResponseInterface;
 
 abstract class BaseClientApi
@@ -367,6 +369,12 @@ abstract class BaseClientApi
 
     protected ClientInterface $httpClient;
 
+    /** 未传入 $httpClient 且未指定 $baseUri 时，通过 Nacos 发现节点，ConnectException 时可换节点重试 */
+    protected bool $nacosDiscoveryEnabled = false;
+
+    /** ConnectException 重试次数（默认 1，最大 3） */
+    protected int $connectRetryNum = 1;
+
     /**
      * @param ClientInterface|null $httpClient 未传入时通过 Nacos 服务发现构造 Guzzle Client
      */
@@ -375,14 +383,14 @@ abstract class BaseClientApi
         string $baseUri = '',
     ) {
         if (null === $httpClient) {
-            $this->baseUri = '' !== $baseUri
-                ? rtrim($baseUri, '/') . '/'
-                : SdkNacosServiceDiscovery::resolveBaseUri($this->serviceName);
-            $this->httpClient = new Client([
-                'handler' => \Swoolefy\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
-                'base_uri' => $this->baseUri,
-                'http_errors' => false,
-            ]);
+            if ('' !== $baseUri) {
+                $this->baseUri = rtrim($baseUri, '/') . '/';
+                $this->nacosDiscoveryEnabled = false;
+            } else {
+                $this->baseUri = SdkNacosServiceDiscovery::resolveBaseUri($this->serviceName);
+                $this->nacosDiscoveryEnabled = true;
+            }
+            $this->httpClient = $this->createHttpClient();
         } else {
             $this->httpClient = $httpClient;
             if ('' !== $baseUri) {
@@ -406,6 +414,18 @@ abstract class BaseClientApi
         return $this->httpClient;
     }
 
+    public function getConnectRetryNum(): int
+    {
+        return $this->connectRetryNum;
+    }
+
+    public function setConnectRetryNum(int $retryNum): static
+    {
+        $this->connectRetryNum = self::normalizeConnectRetryNum($retryNum);
+
+        return $this;
+    }
+
     protected function uri(string $path): string
     {
         if ('' !== $this->baseUri) {
@@ -413,6 +433,137 @@ abstract class BaseClientApi
         }
 
         return '/' . ltrim($path, '/');
+    }
+
+    /**
+     * 发起 HTTP 请求；Nacos 发现模式下 ConnectException 时重新 choose 节点并重试。
+     *
+     * @param int|null $retryNum 重试次数，null 时使用 {@see $connectRetryNum}（默认 1，最大 3）
+     */
+    protected function requestWithConnectRetry(
+        string $method,
+        string $uri,
+        array $options = [],
+        ?int $retryNum = null,
+    ): ResponseInterface {
+        $maxRetries = self::normalizeConnectRetryNum($retryNum ?? $this->connectRetryNum);
+        $retriesLeft = $maxRetries;
+
+        while (true) {
+            try {
+                return $this->httpClient->request($method, $uri, $options);
+            } catch (ConnectException|RequestException $e) {
+                if (!$this->nacosDiscoveryEnabled || $retriesLeft <= 0) {
+                    throw $e;
+                }
+
+                $attempt = $maxRetries - $retriesLeft + 1;
+                [$failedHost, $failedPort] = $this->parseRequestHostPort($e->getRequest());
+                $this->reconnectViaNacosDiscovery();
+                [$nextHost, $nextPort] = $this->parseBaseUriHostPort();
+                $this->logConnectRetry(
+                    $e,
+                    $method,
+                    $uri,
+                    $attempt,
+                    $maxRetries,
+                    $failedHost,
+                    $failedPort,
+                    $nextHost,
+                    $nextPort,
+                );
+                $retriesLeft--;
+            }
+        }
+    }
+
+    protected function reconnectViaNacosDiscovery(): void
+    {
+        $this->baseUri = SdkNacosServiceDiscovery::resolveBaseUri($this->serviceName);
+        $this->httpClient = $this->createHttpClient();
+    }
+
+    protected function logConnectRetry(
+        \Throwable $e,
+        string $method,
+        string $uri,
+        int $attempt,
+        int $maxRetries,
+        string $failedHost,
+        int $failedPort,
+        string $nextHost,
+        int $nextPort,
+    ): void {
+        $logger = \Swoolefy\Library\CurlProxy\CurlProxyHandler::buildLogChannel();
+        if (null === $logger) {
+            return;
+        }
+
+        $logger->error(sprintf(
+            '【sdk-connect-retry】 service=%s method=%s uri=%s attempt=%d/%d failed_host=%s failed_port=%d next_host=%s next_port=%d error=%s',
+            $this->serviceName,
+            $method,
+            $uri,
+            $attempt,
+            $maxRetries,
+            $failedHost,
+            $failedPort,
+            $nextHost,
+            $nextPort,
+            $e->getMessage(),
+        ));
+    }
+
+    /**
+     * @return array{0: string, 1: int}
+     */
+    protected function parseRequestHostPort(\Psr\Http\Message\RequestInterface $request): array
+    {
+        $host = $request->getUri()->getHost();
+        $port = $request->getUri()->getPort();
+        if (null === $port || 0 === $port) {
+            $port = 'https' === $request->getUri()->getScheme() ? 443 : 80;
+        }
+
+        return [$host, (int) $port];
+    }
+
+    /**
+     * @return array{0: string, 1: int}
+     */
+    protected function parseBaseUriHostPort(?string $baseUri = null): array
+    {
+        $baseUri ??= $this->baseUri;
+        $parts = parse_url($baseUri);
+        if (!is_array($parts)) {
+            return ['', 0];
+        }
+
+        $host = (string) ($parts['host'] ?? '');
+        $port = (int) ($parts['port'] ?? 0);
+        if ($port <= 0) {
+            $port = ('https' === ($parts['scheme'] ?? 'http')) ? 443 : 80;
+        }
+
+        return [$host, $port];
+    }
+
+    private static function normalizeConnectRetryNum(int $retryNum): int
+    {
+        if ($retryNum < 0) {
+            return 0;
+        }
+
+        return min(3, $retryNum);
+    }
+
+    protected function createHttpClient(): Client
+    {
+        return new Client([
+            'handler' => \Swoolefy\Library\CurlProxy\CurlProxyHandler::getStackHandler(),
+            'base_uri' => $this->baseUri,
+            'http_errors' => true,
+        ]);
     }
 
     /**
