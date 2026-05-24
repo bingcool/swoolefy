@@ -335,7 +335,7 @@ PHP;
         }
         
         $lines[] = '        $options = $this->mergeClientOptions($requestDefaults, $options);';
-        $lines[] = '        $response = $this->httpClient->request(' . var_export($httpMethod, true) . ', $this->uri(' . $pathLiteral . '), $options);';
+        $lines[] = '        $response = $this->requestWithConnectRetry(' . var_export($httpMethod, true) . ', $this->uri(' . $pathLiteral . '), $options);';
         $lines[] = '        $payload = $this->parseJsonResponse($response);';
         $lines[] = '        $this->assertBusinessOk($payload);';
 
