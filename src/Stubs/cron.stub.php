@@ -31,7 +31,7 @@ define('APP_META_ARR', [
 
 define('PROCESS_CLASS', [
     // 应用crom worker
-    'Test' => \Test\WorkerCron\MainCronProcess::class,
+    'App' => \App\WorkerCron\MainCronProcess::class,
     // todo
 ]);
 // 定义服务端口
