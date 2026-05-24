@@ -354,10 +354,17 @@ namespace __SDK_SUPPORT_NAMESPACE__;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Message\ResponseInterface;
 
+/**
+ * SDK HTTP 客户端基类：Nacos 服务发现、Connect 重试、JSON 解析与业务码校验。
+ *
+ * 构造模式：
+ * - makeService()                         → Nacos 发现 base_uri
+ * - makeService(null, 'http://host:port') → 固定地址
+ * - makeService($customClient)            → 完全自定义 Guzzle Client
+ */
 abstract class BaseClientApi
 {
     /**
@@ -365,18 +372,20 @@ abstract class BaseClientApi
      */
     protected string $serviceName = '__SDK_NACOS_SERVICE_NAME__';
 
+    /** Guzzle base_uri，末尾带 / */
     protected string $baseUri = '';
 
     protected ClientInterface $httpClient;
 
-    /** 未传入 $httpClient 且未指定 $baseUri 时，通过 Nacos 发现节点，ConnectException 时可换节点重试 */
+    /** 未传入 $httpClient 且未指定 $baseUri 时，通过 Nacos 发现节点，RequestException 时可换节点/退避重试 */
     protected bool $nacosDiscoveryEnabled = false;
 
-    /** ConnectException 重试次数（默认 1，最大 3） */
-    protected int $connectRetryNum = 1;
+    /** 固定地址重试退避（毫秒）：第 1/2/3 次重试分别等待 200ms / 500ms / 1s */
+    private const CONNECT_RETRY_BACKOFF_MS = [200, 500, 1000];
 
     /**
-     * @param ClientInterface|null $httpClient 未传入时通过 Nacos 服务发现构造 Guzzle Client
+     * @param ClientInterface|null $httpClient 传入则使用外部 Client，不走 Nacos 发现
+     * @param string $baseUri 固定 base_uri；与 $httpClient=null 组合时可跳过 Nacos
      */
     public function __construct(
         ?ClientInterface $httpClient = null,
@@ -384,14 +393,17 @@ abstract class BaseClientApi
     ) {
         if (null === $httpClient) {
             if ('' !== $baseUri) {
+                // 模式 B：固定地址，重试时退避但不换节点
                 $this->baseUri = rtrim($baseUri, '/') . '/';
                 $this->nacosDiscoveryEnabled = false;
             } else {
+                // 模式 A：Nacos 发现，重试时 choose 新节点
                 $this->baseUri = SdkNacosServiceDiscovery::resolveBaseUri($this->serviceName);
                 $this->nacosDiscoveryEnabled = true;
             }
             $this->httpClient = $this->createHttpClient();
         } else {
+            // 模式 C：外部注入 Client
             $this->httpClient = $httpClient;
             if ('' !== $baseUri) {
                 $this->baseUri = rtrim($baseUri, '/') . '/';
@@ -399,6 +411,7 @@ abstract class BaseClientApi
         }
     }
 
+    /** 快捷构造，等价于 new static(...) */
     public static function makeService(?ClientInterface $httpClient = null, string $baseUri = ''): static
     {
         return new static($httpClient, $baseUri);
@@ -414,18 +427,7 @@ abstract class BaseClientApi
         return $this->httpClient;
     }
 
-    public function getConnectRetryNum(): int
-    {
-        return $this->connectRetryNum;
-    }
-
-    public function setConnectRetryNum(int $retryNum): static
-    {
-        $this->connectRetryNum = self::normalizeConnectRetryNum($retryNum);
-
-        return $this;
-    }
-
+    /** 拼接相对路径与 base_uri */
     protected function uri(string $path): string
     {
         if ('' !== $this->baseUri) {
@@ -436,9 +438,14 @@ abstract class BaseClientApi
     }
 
     /**
-     * 发起 HTTP 请求；Nacos 发现模式下 ConnectException 时重新 choose 节点并重试。
+     * 发起 HTTP 请求；RequestException（含 ConnectException、4xx/5xx）时按策略重试。
      *
-     * @param int|null $retryNum 重试次数，null 时使用 {@see $connectRetryNum}（默认 1，最大 3）
+     * 重试次数优先级：$retryNum > $options['connect_retry_num'] > 方法默认值。
+     * - GET/HEAD/PUT/DELETE/OPTIONS 默认 1 次；POST/PATCH 默认 0（需业务显式开启，保证幂等）
+     * - 最大 3 次
+     * - Nacos：换节点后立即重试；固定地址：退避后重试同一节点
+     *
+     * @param int|null $retryNum 显式重试次数
      */
     protected function requestWithConnectRetry(
         string $method,
@@ -446,21 +453,37 @@ abstract class BaseClientApi
         array $options = [],
         ?int $retryNum = null,
     ): ResponseInterface {
-        $maxRetries = self::normalizeConnectRetryNum($retryNum ?? $this->connectRetryNum);
+        // connect_retry_num 为 SDK 专用项，须剥离后再传给 Guzzle
+        if (null === $retryNum && array_key_exists('connect_retry_num', $options)) {
+            $retryNum = (int) $options['connect_retry_num'];
+        }
+        unset($options['connect_retry_num']);
+
+        $maxRetries = self::normalizeConnectRetryNum($retryNum ?? self::defaultConnectRetryNumForMethod($method));
         $retriesLeft = $maxRetries;
+        $attempt = 0;
 
         while (true) {
             try {
                 return $this->httpClient->request($method, $uri, $options);
-            } catch (ConnectException|RequestException $e) {
-                if (!$this->nacosDiscoveryEnabled || $retriesLeft <= 0) {
+            } catch (RequestException $e) {
+                if ($retriesLeft <= 0) {
                     throw $e;
                 }
 
-                $attempt = $maxRetries - $retriesLeft + 1;
+                $attempt++;
                 [$failedHost, $failedPort] = $this->parseRequestHostPort($e->getRequest());
-                $this->reconnectViaNacosDiscovery();
-                [$nextHost, $nextPort] = $this->parseBaseUriHostPort();
+
+                if ($this->nacosDiscoveryEnabled) {
+                    // Nacos：重新 choose 实例，无退避
+                    $this->reconnectViaNacosDiscovery();
+                    [$nextHost, $nextPort] = $this->parseBaseUriHostPort();
+                } else {
+                    // 固定地址：指数退避后重试同一 base_uri
+                    $this->waitConnectRetryBackoff($attempt);
+                    [$nextHost, $nextPort] = [$failedHost, $failedPort];
+                }
+
                 $this->logConnectRetry(
                     $e,
                     $method,
@@ -477,14 +500,41 @@ abstract class BaseClientApi
         }
     }
 
+    /** Nacos 模式下重新发现 base_uri 并重建 Guzzle Client */
     protected function reconnectViaNacosDiscovery(): void
     {
         $this->baseUri = SdkNacosServiceDiscovery::resolveBaseUri($this->serviceName);
         $this->httpClient = $this->createHttpClient();
     }
 
+    /**
+     * 固定地址重试退避等待。
+     *
+     * @param int $attempt 当前为第几次重试（从 1 开始）
+     */
+    protected function waitConnectRetryBackoff(int $attempt): void
+    {
+        $index = max(0, min(count(self::CONNECT_RETRY_BACKOFF_MS) - 1, $attempt - 1));
+        usleep(self::CONNECT_RETRY_BACKOFF_MS[$index] * 1000);
+    }
+
+    /**
+     * 按 HTTP 方法返回默认重试次数。
+     * 幂等读/删/改默认 1；POST 等写操作默认 0。
+     */
+    private static function defaultConnectRetryNumForMethod(string $method): int
+    {
+        return match (strtoupper($method)) {
+            'GET', 'HEAD', 'PUT', 'DELETE', 'OPTIONS' => 1,
+            default => 0,
+        };
+    }
+
+    /**
+     * 记录重试日志（guzzle_curl 通道），含失败/下一跳 host:port 与异常信息。
+     */
     protected function logConnectRetry(
-        \Throwable $e,
+        RequestException $e,
         string $method,
         string $uri,
         int $attempt,
@@ -499,8 +549,10 @@ abstract class BaseClientApi
             return;
         }
 
+        $mode = $this->nacosDiscoveryEnabled ? 'nacos' : 'client';
         $logger->error(sprintf(
-            '【sdk-connect-retry】 service=%s method=%s uri=%s attempt=%d/%d failed_host=%s failed_port=%d next_host=%s next_port=%d error=%s',
+            '【sdk-connect-retry】 model=%s service=%s method=%s uri=%s attempt=%d/%d failed_host=%s failed_port=%d next_host=%s next_port=%d error=%s',
+            $mode,
             $this->serviceName,
             $method,
             $uri,
@@ -515,6 +567,8 @@ abstract class BaseClientApi
     }
 
     /**
+     * 从 Guzzle Request 解析 host:port（缺省端口按 scheme 推断 80/443）。
+     *
      * @return array{0: string, 1: int}
      */
     protected function parseRequestHostPort(\Psr\Http\Message\RequestInterface $request): array
@@ -529,6 +583,8 @@ abstract class BaseClientApi
     }
 
     /**
+     * 从 base_uri 解析 host:port。
+     *
      * @return array{0: string, 1: int}
      */
     protected function parseBaseUriHostPort(?string $baseUri = null): array
@@ -548,6 +604,7 @@ abstract class BaseClientApi
         return [$host, $port];
     }
 
+    /** 限制重试次数在 0~3 */
     private static function normalizeConnectRetryNum(int $retryNum): int
     {
         if ($retryNum < 0) {
@@ -557,6 +614,7 @@ abstract class BaseClientApi
         return min(3, $retryNum);
     }
 
+    /** 创建 Guzzle Client；http_errors=true 以便 RequestException 触发重试逻辑 */
     protected function createHttpClient(): Client
     {
         return new Client([
@@ -567,6 +625,8 @@ abstract class BaseClientApi
     }
 
     /**
+     * 解析 JSON 响应体为数组，非 2xx 或非法 JSON 抛 SdkClientException。
+     *
      * @return array<string, mixed>
      */
     protected function parseJsonResponse(ResponseInterface $response): array
@@ -592,6 +652,7 @@ abstract class BaseClientApi
         return $decoded;
     }
 
+    /** 校验业务 code 字段，非 0 抛 SdkClientException */
     protected function assertBusinessOk(array $payload): void
     {
         $code = $payload['code'] ?? null;
@@ -604,6 +665,8 @@ abstract class BaseClientApi
 
     /**
      * JSON client defaults + per-request keys (body, query, …) + caller overrides; headers are deep-merged.
+     *
+     * SDK 专用选项（不会传给 Guzzle）：connect_retry_num（0~3，POST 默认 0，GET/PUT/DELETE 等默认 1）。
      *
      * @param array<string, mixed> $requestDefaults
      * @param array<string, mixed> $options
@@ -648,13 +711,19 @@ use Swoolefy\Support\Nacos\Discovery\DiscoveryConfig;
 use Swoolefy\Support\Nacos\NacosConfig;
 
 /**
- * SDK 侧 Nacos 服务发现薄封装，委托框架 DiscoveryClient（进程内单例 + 负载均衡）。
+ * SDK 侧 Nacos 服务发现薄封装，委托框架 DiscoveryClient。
+ *
+ * - 进程内单例 DiscoveryClient，多次 choose 共享负载均衡状态（如 round_robin）
+ * - 配置目录：$configDir → APP_PATH → SDK_NACOS_CONFIG_DIR → getcwd()
  */
 final class SdkNacosServiceDiscovery
 {
+    /** 进程内复用，保证负载均衡计数器跨多次 resolveBaseUri 延续 */
     private static ?DiscoveryClient $discoveryClient = null;
 
     /**
+     * 发现可用实例并返回 Guzzle base_uri（末尾带 /）。
+     *
      * @throws SdkClientException
      */
     public static function resolveBaseUri(string $serviceName, ?string $configDir = null): string
@@ -665,6 +734,7 @@ final class SdkNacosServiceDiscovery
 
         try {
             $client = self::getDiscoveryClient($serviceName, $configDir);
+            // 每次调用 chooseUri，同一 DiscoveryClient 上负载均衡器会推进到下一节点
             $uri = $client->chooseUri('http');
         } catch (NacosDiscoveryException $e) {
             throw new SdkClientException($e->getMessage());
@@ -682,6 +752,9 @@ final class SdkNacosServiceDiscovery
         return rtrim($uri, '/') . '/';
     }
 
+    /**
+     * 获取或创建进程内 DiscoveryClient 单例。
+     */
     private static function getDiscoveryClient(string $serviceName, ?string $configDir): DiscoveryClient
     {
         if (self::$discoveryClient instanceof DiscoveryClient) {
@@ -696,6 +769,9 @@ final class SdkNacosServiceDiscovery
         return self::$discoveryClient;
     }
 
+    /**
+     * 解析 nacos.yaml / application.yaml 所在目录。
+     */
     private static function resolveAppPath(?string $configDir): string
     {
         if (null !== $configDir && '' !== $configDir) {
