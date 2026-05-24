@@ -31,7 +31,7 @@ define('APP_META_ARR', [
 
 // 定义脚本文件夹的根目录
 define('ROOT_NAMESPACE', [
-    'App' => '\\Test\\Scripts'
+    'App' => '\\App\\Scripts'
     // todo
 ]);
 // 定义服务端口

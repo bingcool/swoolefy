@@ -32,7 +32,7 @@ define('APP_META_ARR', [
 
 define('PROCESS_CLASS', [
     // 应用daemon worker
-    'Test' => \Test\WorkerDaemon\MainDaemonProcess::class,
+    'App' => \App\WorkerDaemon\MainDaemonProcess::class,
     // todo
 ]);
 // 定义服务端口

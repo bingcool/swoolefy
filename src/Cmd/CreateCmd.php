@@ -155,7 +155,9 @@ class CreateCmd extends BaseCmd
                         case self::HTTP_PROTOCOL:
                             $apiFile = $appPathDir . "/{$dir}/api.php";
                             if (!file_exists($apiFile)) {
-                                @copy(SRC_DIR_ROOT.'/Stubs/api.stub.php', $apiFile);
+                                $apiContent = (string) file_get_contents(SRC_DIR_ROOT . '/Stubs/api.stub.php');
+                                $apiContent = str_replace('\\App\\', "\\{$appName}\\", $apiContent);
+                                @file_put_contents($apiFile, $apiContent);
                             }
                             break;
                         case self::UDP_PROTOCOL:
@@ -207,6 +209,13 @@ class CreateCmd extends BaseCmd
                             $routeDir = $appPathDir . '/' . $dir.'/Route';
                             if (!is_dir($routeDir)) {
                                 @mkdir($routeDir, self::$dirPermission, true);
+                            }
+
+                            $middlewareFile = $routeDir . '/ValidLoginMiddleware.php';
+                            if (!file_exists($middlewareFile)) {
+                                $middlewareContent = (string) file_get_contents(SRC_DIR_ROOT . '/Stubs/ValidLoginMiddleware.stub.php');
+                                $middlewareContent = str_replace('MY_APP_NAME', $appName, $middlewareContent);
+                                @file_put_contents($middlewareFile, $middlewareContent);
                             }
                             break;
                         case self::UDP_PROTOCOL:

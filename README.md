@@ -269,7 +269,7 @@ Client Response
 - Swoole 4.8.x (推荐 4.8.13+)
 
 **选择哪个版本?**  
-1、如果确定项目是使用php81+的，那么直接选择 ```swoole > 6.1.x，推荐直接使用 swoole-6.x.x+ 以上最新版本更好``` 安装，然后选择 ```bingcool/swoolefy:^6.1``` 作为项目分支安装最新稳定版本   
+1、如果确定项目是使用php81+的，那么直接选择 ```swoole > 6.1.x，推荐直接使用 swoole-6.2.0+ 以上最新版本更好``` 安装，然后选择 ```bingcool/swoolefy:^6.1``` 作为项目分支安装最新稳定版本   
 
 2、如果确定项目是使用 ```php7.3 ~ php7.4``` 的，那么选择 swoole-v4.8+ 版本来进行编译安装(不能直接使用 swoole-cli-v4.8+ 了, 因为其内置的是php8.1，与你的项目的php7不符合)
 所有只能通过编译swoole源码的方式来生成swoole扩展，然后选择 ```bingcool/swoolefy:^4.9``` 作为项目分支稳定版本   
@@ -413,6 +413,7 @@ docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v
 - [x] Db、Redis、 Curl协程连接池组件
 - [x] UUid 分布式自增id组件  
 - [x] OpenTelemetry 链路追踪组件      
+- [x] nacos 服务注册、服务发现、服务配置组件
 - [x] Curl基础组件    
 - [x] Jwt 组件   
 - [x] Validate 组件    
@@ -456,10 +457,11 @@ ENV SWOOLEFY_CLI_ENV=dev
   "name": "project/order-service",
   "description": "description",
   "minimum-stability": "dev",
+  "prefer-stable": true,
   "license": "proprietary",
   "require": {
     "bingcool/swoolefy": "~6.2",
-    "bingcool/library": "dev-swoolefy-6.x"
+    "bingcool/library": "dev-library-6.x"
   }
 }
   
@@ -1606,7 +1608,7 @@ $uri = $client->chooseUri();
 | 运行时 | `UserApi::make()` 未传 Guzzle Client → `SdkNacosServiceDiscovery` → `DiscoveryClient::chooseUri()` → 设置 Guzzle `base_uri` |
 
 ```bash
-php script.php start Test --c=gen:sdk --router=Test/Router --out=../generate-sdk-library/Swoolefy
+php script.php start App --c=gen:sdk --router=App/Router --out=../generate-sdk-library/OrderService
 ```
 
 更多 API 说明见 [src/Support/Nacos/README.md](src/Support/Nacos/README.md)。
