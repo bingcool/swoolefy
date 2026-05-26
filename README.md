@@ -372,7 +372,7 @@ docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v
     use Swoolefy\Support\Nacos\Discovery\DiscoveryClient;
     use Swoolefy\Support\Nacos\NacosConfig;
 
-    $client = DiscoveryClient::create('my-service', NacosConfig::load(APP_PATH . '/nacos.yaml'));
+    $client = DiscoveryClient::create('my-service');
     $uri = $client->chooseUri();
     ```
 
@@ -520,9 +520,13 @@ define('WORKER_PID_FILE_ROOT', '/tmp/workerfy/log/'.WORKER_SERVICE_NAME);
 define('WORKER_CTL_LOG_FILE',WORKER_PID_FILE_ROOT.'/ctl.log'); 
 define('SERVER_START_LOG_JSON_FILE', WORKER_PID_FILE_ROOT.'/start.json');
 
+// nacos.yaml 完整路径（环境变量 NACOS_FILE_PATH 可覆盖，默认 APP_PATH/nacos.yaml）
+$nacosFilePath = getenv('NACOS_FILE_PATH');
+define('NACOS_FILE_PATH', (false !== $nacosFilePath && '' !== $nacosFilePath) ? $nacosFilePath : APP_PATH . '/nacos.yaml');
+
 // 当使用nacos管理配置时，启动获取最新配置保存到.env
 // $beforeFunc = function () {
-//    \Swoolefy\Support\Nacos\NacosFactory::fetchConfigToEnv(APP_PATH . '/nacos.yaml');
+//    \Swoolefy\Support\Nacos\NacosFactory::fetchConfigToEnv();
 //};
 
 include dirname(SRC_DIR_ROOT).'/swoolefy';
@@ -1271,7 +1275,7 @@ swoolefy 提供了 **SDK 自动生成工具**，可以扫描项目的 Route 路�
 - 📝 **提取 DTO**: 自动识别控制器方法中的 Request 和 Response 类型声明
 - 🎯 **类型安全**: 生成的 SDK 包含完整的类型声明，IDE 智能提示友好
 - 🔄 **自动更新**: 路由变更后重新生成即可，无需手动维护
-- ☁️ **Nacos 服务发现**: 生成时通过 `NacosServiceConfig` 注入 `BaseClientApi::$serviceName`；构造 API 客户端时未传入 `ClientInterface` 则委托框架 `DiscoveryClient` 自动解析 `base_uri`（需 `APP_PATH` 或 `SDK_NACOS_CONFIG_DIR` 下存在 `nacos.yaml` / `application.yaml`）
+- ☁️ **Nacos 服务发现**: 生成时通过 `NacosServiceConfig` 注入 `BaseClientApi::$serviceName`；构造 API 客户端时未传入 `ClientInterface` 则委托框架 `DiscoveryClient` 自动解析 `base_uri`（需 `NACOS_FILE_PATH` / `APP_PATH` 下存在 `nacos.yaml` 与 `application.yaml`）
 
 #### 使用方法
 
@@ -1346,7 +1350,7 @@ var_dump($response->getUserId());
 |:---|:---|
 | 依赖 | SDK 包需 `composer require bingcool/swoolefy`（`SdkNacosServiceDiscovery` 委托 `DiscoveryClient`） |
 | 配置文件 | 配置目录下需存在 `nacos.yaml`（Nacos 连接）与 `application.yaml`（`discovery_service_client` 等） |
-| 配置目录优先级 | `APP_PATH` 常量 → 环境变量 `SDK_NACOS_CONFIG_DIR` → 当前工作目录 `getcwd()` |
+| 配置路径 | `NACOS_FILE_PATH`（nacos.yaml）+ `APP_PATH`（application.yaml） |
 
 ```php
 use GenerateSdk\MyProject\Order\Client\OrderApi;
@@ -1464,7 +1468,7 @@ class UserController extends BController
 - DTO 类应位于 `App/Request`、`App/Response` 或 `App/Dto` 目录下
 - 生成的 SDK 可在 PHP-FPM 或 CLI 中使用；启用 Nacos 服务发现时需依赖 `bingcool/swoolefy`（`SdkNacosServiceDiscovery` 委托 `DiscoveryClient`）
 - SDK 基于 Guzzle HTTP 客户端，需要安装 `guzzlehttp/guzzle` 依赖
-- Nacos 发现配置目录优先级：显式传入路径 → 常量 `APP_PATH` → 环境变量 `SDK_NACOS_CONFIG_DIR` → 当前工作目录
+- Nacos 发现配置：`NACOS_FILE_PATH` 指定 nacos.yaml，`APP_PATH` 指定 application.yaml
 
 <a id="nav-19-apidoc"></a>
 
@@ -1651,7 +1655,7 @@ nacos:
 use Swoolefy\Support\Nacos\NacosConfig;
 use Swoolefy\Support\Nacos\ServiceRegister;
 
-$register = ServiceRegister::create($appPath, $nacosFilePath, $logger);
+$register = ServiceRegister::create();
 $register->register();
 ```
 

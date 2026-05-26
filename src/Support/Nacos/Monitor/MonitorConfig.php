@@ -21,15 +21,16 @@ final class MonitorConfig
     ) {
     }
 
-    public static function load(string $appPath, string $nacosFilePath): self
+    public static function load(): self
     {
-        $nacos = NacosConfig::load($nacosFilePath);
-        $monitor = ApplicationConfig::load($appPath)->nacosSection('monitor_config_change');
-        $appName = defined('APP_NAME') ? (string) APP_NAME : basename(rtrim($appPath, '/'));
+        $appPath = ApplicationConfig::resolveAppPath();
+        $nacos = NacosConfig::load();
+        $monitor = ApplicationConfig::load()->nacosSection('monitor_config_change');
+        $appName = defined('APP_NAME') ? (string) APP_NAME : basename($appPath);
 
         return new self(
             nacos: $nacos,
-            envFile: ApplicationConfig::pickString($monitor, 'env_file', 'NACOS_ENV_FILE', rtrim($appPath, '/') . '/.env'),
+            envFile: ApplicationConfig::pickString($monitor, 'env_file', 'NACOS_ENV_FILE', $appPath . '/.env'),
             lockFile: ApplicationConfig::pickString($monitor, 'lock_file', 'NACOS_RELOAD_LOCK', '/tmp/swoolefy_' . strtolower($appName) . '_nacos_restart.lock'),
             listenerTimeoutMs: ApplicationConfig::pickInt($monitor, 'listener_timeout_ms', 'NACOS_LISTENER_TIMEOUT_MS', 30_000),
             failedWaitMs: ApplicationConfig::pickInt($monitor, 'failed_wait_ms', 'NACOS_LISTENER_FAILED_MS', 3_000),

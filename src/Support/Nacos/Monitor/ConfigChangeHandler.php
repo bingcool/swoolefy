@@ -8,6 +8,7 @@ use Swoolefy\Library\Nacos\Client;
 use Swoolefy\Support\Nacos\ConfigFetcher;
 use Swoolefy\Support\Nacos\ConfigFileWriter;
 use Swoolefy\Support\Nacos\NacosConfig;
+use Swoolefy\Support\Nacos\NacosLogger;
 use Swoolefy\Util\Log;
 
 /**
@@ -19,16 +20,18 @@ final class ConfigChangeHandler
     private readonly ServiceRestarter $restarter;
     private readonly ConfigFetcher $configFetcher;
 
+    private readonly Log $logger;
+
     public function __construct(
         private readonly MonitorConfig $config,
-        private readonly Log $logger,
         ?ConfigFileWriter $configFileWriter = null,
         ?ServiceRestarter $restarter = null,
         ?ConfigFetcher $configFetcher = null,
     ) {
-        $this->configFileWriter = $configFileWriter ?? new ConfigFileWriter($logger);
-        $this->restarter = $restarter ?? new ServiceRestarter($logger);
-        $this->configFetcher = $configFetcher ?? new ConfigFetcher($config->nacos, $logger);
+        $this->logger = NacosLogger::get();
+        $this->configFileWriter = $configFileWriter ?? new ConfigFileWriter($this->logger);
+        $this->restarter = $restarter ?? new ServiceRestarter($this->logger);
+        $this->configFetcher = $configFetcher ?? new ConfigFetcher($config->nacos);
     }
 
     public function handle(): void
@@ -70,8 +73,8 @@ final class ConfigChangeHandler
         }
     }
 
-    public static function createClient(NacosConfig $config, Log $logger): Client
+    public static function createClient(NacosConfig $config): Client
     {
-        return $config->createClient($logger);
+        return $config->createClient();
     }
 }

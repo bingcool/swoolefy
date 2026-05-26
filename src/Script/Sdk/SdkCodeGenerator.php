@@ -564,7 +564,7 @@ final class SdkCodeGenerator
             return 'my-service';
         }
 
-        $serviceConfig = \Swoolefy\Support\Nacos\NacosServiceConfig::load($appPath);
+        $serviceConfig = \Swoolefy\Support\Nacos\NacosServiceConfig::load();
 
         return '' !== $serviceConfig->serviceName ? $serviceConfig->serviceName : 'my-service';
     }
