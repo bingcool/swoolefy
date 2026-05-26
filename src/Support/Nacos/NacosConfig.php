@@ -11,14 +11,15 @@ use Symfony\Component\Yaml\Yaml;
 use Swoolefy\Util\Log;
 
 /**
- * 读取 APP_PATH/nacos.yaml（服务器连接）+ application.yaml（service_register 段）。
+ * 读取 nacos.yaml（Nacos 服务器连接）。
+ *
+ * application.yaml 固定位于 appPath，由 NacosServiceConfig / ApplicationConfig 读取。
  */
 final class NacosConfig
 {
+
     public function __construct(
-        public readonly string $appPath,
-        public readonly string $yamlFile,
-        public readonly string $applicationYamlFile,
+        public readonly string $nacosFilePath,
         public readonly string $host,
         public readonly int $port,
         public readonly string $username,
@@ -27,30 +28,19 @@ final class NacosConfig
         public readonly string $dataId,
         public readonly string $group,
         public readonly string $tenant,
-        public readonly string $serviceIp,
-        public readonly int $servicePort,
-        public readonly string $serviceName,
-        public readonly string $serviceNamespaceId,
-        public readonly string $serviceGroupName,
-        public readonly float $serviceWeight,
-        public readonly bool $serviceEphemeral,
-        public readonly int $serviceHeartbeatInterval,
     ) {
     }
 
-    public static function load(?string $appPath = null): self
+    /**
+     * @param string $nacosFilePath nacos.yaml 完整路径（多项目可共用同一份）
+     */
+    public static function load(string $nacosFilePath): self
     {
-        $appPath = $appPath ?? (defined('APP_PATH') ? APP_PATH : '');
-        $yamlFile = rtrim($appPath, '/') . '/nacos.yaml';
-        $applicationYamlFile = rtrim($appPath, '/') . '/application.yaml';
-        $yaml = is_file($yamlFile) ? (array) Yaml::parseFile($yamlFile) : [];
+        $yaml = is_file($nacosFilePath) ? (array) Yaml::parseFile($nacosFilePath) : [];
         $nacos = (array) ($yaml['nacos'] ?? []);
-        $serviceRegister = ApplicationConfig::load($appPath)->nacosSection('service_register');
 
         return new self(
-            appPath: $appPath,
-            yamlFile: $yamlFile,
-            applicationYamlFile: $applicationYamlFile,
+            nacosFilePath: $nacosFilePath,
             host: self::pickString($nacos, 'host', 'NACOS_HOST', '127.0.0.1'),
             port: self::pickInt($nacos, 'port', 'NACOS_PORT', 8848),
             username: self::pickString($nacos, 'username', 'NACOS_USERNAME', ''),
@@ -59,14 +49,6 @@ final class NacosConfig
             dataId: self::pickString($nacos, 'data_id', 'NACOS_DATA_ID', 'swoolefy.env'),
             group: self::pickString($nacos, 'group', 'NACOS_GROUP', 'DEFAULT_GROUP'),
             tenant: self::pickString($nacos, 'tenant', 'NACOS_TENANT', ''),
-            serviceIp: ApplicationConfig::pickString($serviceRegister, 'ip', 'NACOS_SERVICE_IP', ''),
-            servicePort: ApplicationConfig::pickInt($serviceRegister, 'port', 'NACOS_SERVICE_PORT', 0),
-            serviceName: ApplicationConfig::pickString($serviceRegister, 'service_name', 'NACOS_SERVICE_NAME', ''),
-            serviceNamespaceId: ApplicationConfig::pickString($serviceRegister, 'namespace_id', 'NACOS_SERVICE_NAMESPACE_ID', ''),
-            serviceGroupName: ApplicationConfig::pickString($serviceRegister, 'group_name', 'NACOS_SERVICE_GROUP_NAME', ''),
-            serviceWeight: (float) ApplicationConfig::pickString($serviceRegister, 'weight', 'NACOS_SERVICE_WEIGHT', '1'),
-            serviceEphemeral: ApplicationConfig::pickBool($serviceRegister, 'ephemeral', 'NACOS_SERVICE_EPHEMERAL', true),
-            serviceHeartbeatInterval: ApplicationConfig::pickInt($serviceRegister, 'heartbeat_interval', 'NACOS_SERVICE_HEARTBEAT_INTERVAL', 10),
         );
     }
 

@@ -17,6 +17,7 @@ class NacosConfigReload extends AbstractProcess
     {
         NacosMonitor::run(
             defined('APP_PATH') ? APP_PATH : null,
+            APP_PATH.'/nacos.yaml',
             LogManager::getInstance()->getLogger('nacos_log'),
         );
     }

@@ -564,10 +564,9 @@ final class SdkCodeGenerator
             return 'my-service';
         }
 
-        $register = ApplicationConfig::load($appPath)->nacosSection('service_register');
-        $name = ApplicationConfig::pickString($register, 'service_name', 'NACOS_SERVICE_NAME', '');
+        $serviceConfig = \Swoolefy\Support\Nacos\NacosServiceConfig::load($appPath);
 
-        return '' !== $name ? $name : 'my-service';
+        return '' !== $serviceConfig->serviceName ? $serviceConfig->serviceName : 'my-service';
     }
 
     private function ensureDir(string $path): void

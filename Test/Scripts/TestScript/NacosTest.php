@@ -16,6 +16,7 @@ use Swoolefy\Support\Nacos\LoadBalancer\RandomLoadBalancer;
 use Swoolefy\Support\Nacos\LoadBalancer\RoundRobinLoadBalancer;
 use Swoolefy\Support\Nacos\LoadBalancer\WeightLoadBalancer;
 use Swoolefy\Support\Nacos\NacosConfig;
+use Swoolefy\Support\Nacos\NacosServiceConfig;
 use Swoolefy\Support\Nacos\ServiceRegister;
 use Swoolefy\Util\Log;
 
@@ -48,7 +49,12 @@ class NacosTest extends MainCliScript
     {
         [$nacosConfig, $logger] = $this->loadNacosContext();
         $configFetcher = new ConfigFetcher($nacosConfig, $logger);
-        $serviceRegistrar = new ServiceRegister($nacosConfig, $logger);
+        $appPath = defined('APP_PATH') ? APP_PATH : '';
+        $serviceRegistrar = new ServiceRegister(
+            $nacosConfig,
+            NacosServiceConfig::load($appPath),
+            $logger,
+        );
 
         $dataId = $nacosConfig->dataId;
         $group = $nacosConfig->group;
@@ -85,7 +91,8 @@ class NacosTest extends MainCliScript
 
         $this->ensureServiceRegistered($nacosConfig, $logger, $registerIp, $registerPort, $registerName);
 
-        $discoveryConfig = DiscoveryConfig::load($nacosConfig);
+        $appPath = defined('APP_PATH') ? APP_PATH : '';
+        $discoveryConfig = DiscoveryConfig::load(NacosServiceConfig::load($appPath));
         echo sprintf(
             "discovery config: service=%s, load_balancer=%s, cache_ttl=%ds\n",
             $registerName,
@@ -109,7 +116,8 @@ class NacosTest extends MainCliScript
      */
     private function loadNacosContext(): array
     {
-        $nacosConfig = NacosConfig::load(defined('APP_PATH') ? APP_PATH : null);
+        $appPath = defined('APP_PATH') ? APP_PATH : '';
+        $nacosConfig = NacosConfig::load(rtrim($appPath, '/') . '/nacos.yaml');
         $logger = LogManager::getInstance()->getLogger('nacos_log');
 
         return [$nacosConfig, $logger];
@@ -118,11 +126,13 @@ class NacosTest extends MainCliScript
     /**
      * @return array{0: string, 1: int, 2: string}
      */
-    private function resolveServiceRegisterParams(NacosConfig $config): array
+    private function resolveServiceRegisterParams(NacosConfig $nacosConfig): array
     {
-        $ip = '' !== $config->serviceIp ? $config->serviceIp : '192.168.1.103';
-        $port = $config->servicePort > 0 ? $config->servicePort : 9501;
-        $name = '' !== $config->serviceName ? $config->serviceName : 'my-service';
+        $appPath = defined('APP_PATH') ? APP_PATH : '';
+        $serviceConfig = NacosServiceConfig::load($appPath);
+        $ip = '' !== $serviceConfig->ip ? $serviceConfig->ip : '192.168.1.103';
+        $port = $serviceConfig->port > 0 ? $serviceConfig->port : 9501;
+        $name = '' !== $serviceConfig->serviceName ? $serviceConfig->serviceName : 'my-service';
 
         return [$ip, $port, $name];
     }
@@ -134,7 +144,12 @@ class NacosTest extends MainCliScript
         int $port,
         string $serviceName,
     ): void {
-        $registrar = new ServiceRegister($nacosConfig, $logger);
+        $appPath = defined('APP_PATH') ? APP_PATH : '';
+        $registrar = new ServiceRegister(
+            $nacosConfig,
+            NacosServiceConfig::load($appPath),
+            $logger,
+        );
         $registrar->register($ip, $port, $serviceName, startHeartbeat: false);
         usleep(100_000);
         echo "ensure instance registered: {$ip}:{$port} -> {$serviceName}\n";

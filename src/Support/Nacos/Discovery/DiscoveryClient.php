@@ -10,6 +10,7 @@ use Swoolefy\Support\Nacos\Discovery\Model\ServiceInstance;
 use Swoolefy\Support\Nacos\LoadBalancer\Contract\LoadBalancerInterface;
 use Swoolefy\Support\Nacos\LoadBalancer\LoadBalancerFactory;
 use Swoolefy\Support\Nacos\NacosConfig;
+use Swoolefy\Support\Nacos\NacosServiceConfig;
 use Swoolefy\Util\Log;
 
 /**
@@ -52,9 +53,13 @@ final class DiscoveryClient
         ?DiscoveryConfig $discoveryConfig = null,
         ?Log $logger = null,
         ?LoadBalancerInterface $loadBalancer = null,
+        ?string $appPath = null,
+        ?string $nacosFilePath = null,
     ): self {
-        $nacosConfig ??= NacosConfig::load();
-        $discoveryConfig ??= DiscoveryConfig::load($nacosConfig);
+        $appPath = $appPath ?? (defined('APP_PATH') ? APP_PATH : '');
+        $nacosFilePath = $nacosFilePath ?? rtrim($appPath, '/') . '/nacos.yaml';
+        $nacosConfig ??= NacosConfig::load($nacosFilePath);
+        $discoveryConfig ??= DiscoveryConfig::load(NacosServiceConfig::load($appPath));
         $serviceName ??= $discoveryConfig->defaultServiceName;
 
         if ('' === $serviceName) {

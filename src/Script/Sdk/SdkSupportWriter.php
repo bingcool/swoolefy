@@ -368,7 +368,7 @@ use Psr\Http\Message\ResponseInterface;
 abstract class BaseClientApi
 {
     /**
-     * 本应用在 Nacos 注册的服务名（gen:sdk 时从 application.yaml → nacos.service_register.service_name 注入）。
+     * 本应用在 Nacos 注册的服务名（gen:sdk 时由 NacosServiceConfig 注入）。
      */
     protected string $serviceName = '__SDK_NACOS_SERVICE_NAME__';
 
@@ -762,15 +762,16 @@ final class SdkNacosServiceDiscovery
         }
 
         $appPath = self::resolveAppPath($configDir);
-        $nacosConfig = NacosConfig::load($appPath);
-        $discoveryConfig = DiscoveryConfig::load($nacosConfig);
+        $nacosFilePath = self::resolveNacosFilePath($appPath);
+        $nacosConfig = NacosConfig::load($nacosFilePath);
+        $discoveryConfig = DiscoveryConfig::load(\Swoolefy\Support\Nacos\NacosServiceConfig::load($appPath));
         self::$discoveryClient = DiscoveryClient::create($serviceName, $nacosConfig, $discoveryConfig);
 
         return self::$discoveryClient;
     }
 
     /**
-     * 解析 nacos.yaml / application.yaml 所在目录。
+     * 解析 application.yaml 所在应用目录。
      */
     private static function resolveAppPath(?string $configDir): string
     {
@@ -788,6 +789,19 @@ final class SdkNacosServiceDiscovery
         }
 
         return rtrim((string) getcwd(), '/\\');
+    }
+
+    /**
+     * 解析 nacos.yaml 完整路径（可与 appPath 分离，多项目可共用）。
+     */
+    private static function resolveNacosFilePath(string $appPath): string
+    {
+        $env = getenv('SDK_NACOS_FILE');
+        if (false !== $env && '' !== $env) {
+            return $env;
+        }
+
+        return rtrim($appPath, '/\\') . '/nacos.yaml';
     }
 }
 

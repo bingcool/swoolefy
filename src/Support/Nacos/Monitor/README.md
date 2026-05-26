@@ -21,7 +21,7 @@ ProcessManager::getInstance()->addProcess(
 或代码中：
 
 ```php
-\Swoolefy\Support\Nacos\Monitor\NacosMonitor::run();
+\Swoolefy\Support\Nacos\Monitor\NacosMonitor::run($appPath, $nacosFilePath, $logger);
 ```
 
 ## 配置文件

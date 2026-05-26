@@ -13,21 +13,21 @@ use Swoolefy\Util\Log;
  */
 final class NacosMonitor
 {
-    public static function run(?string $appPath = null, ?Log $logger = null): void
+    public static function run(string $appPath, string $nacosFilePath, ?Log $logger = null): void
     {
         $logger ??= LogManager::getInstance()->getLogger('nacos_log');
         if (!$logger instanceof Log) {
             throw NacosMonitorException::throw('nacos_log logger is not registered');
         }
 
-        $config = MonitorConfig::load($appPath);
+        $config = MonitorConfig::load($appPath, $nacosFilePath);
         $handler = new ConfigChangeHandler($config, $logger);
         $watcher = new ConfigWatcher($config, $handler, $logger);
         $watcher->run();
     }
 
-    public static function loadConfig(?string $appPath = null): MonitorConfig
+    public static function loadConfig(?string $appPath = null, string $nacosFilePath, ?Log $logger = null): MonitorConfig
     {
-        return MonitorConfig::load($appPath);
+        return MonitorConfig::load($appPath, $nacosFilePath, $logger);
     }
 }
