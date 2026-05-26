@@ -35,22 +35,20 @@ final class ServiceRegister
 
     private bool $registeredEphemeral = true;
 
+    private readonly Log $logger;
+
     public function __construct(
         private readonly NacosConfig $nacosConfig,
         private readonly NacosServiceConfig $serviceConfig,
-        private readonly ?Log $logger = null,
     ) {
+        $this->logger = NacosLogger::get();
     }
 
-    public static function create(?string $appPath = null, ?string $nacosFilePath = null, ?Log $logger = null): self
+    public static function create(): self
     {
-        $appPath = $appPath ?? (defined('APP_PATH') ? APP_PATH : '');
-        $nacosFilePath = $nacosFilePath ?? rtrim($appPath, '/') . '/nacos.yaml';
-
         return new self(
-            NacosConfig::load($nacosFilePath),
-            NacosServiceConfig::load($appPath),
-            $logger,
+            NacosConfig::load(),
+            NacosServiceConfig::load(),
         );
     }
 
@@ -76,7 +74,7 @@ final class ServiceRegister
             throw NacosMonitorException::throw('service ip, port and service_name are required for register');
         }
 
-        $this->client = $this->nacosConfig->createClient($this->logger);
+        $this->client = $this->nacosConfig->createClient();
         $ok = $this->client->instance->register(
             $ip,
             $port,
@@ -107,7 +105,7 @@ final class ServiceRegister
         $this->registeredGroupName = $groupName;
         $this->registeredEphemeral = $ephemeral;
 
-        $this->logger?->info(sprintf(
+        $this->logger->info(sprintf(
             'nacos instance registered: %s:%d -> %s',
             $ip,
             $port,
@@ -131,7 +129,7 @@ final class ServiceRegister
         }
 
         if (null === $this->client) {
-            $this->client = $this->nacosConfig->createClient($this->logger);
+            $this->client = $this->nacosConfig->createClient();
         }
 
         $this->stopHeartbeat();
@@ -146,7 +144,7 @@ final class ServiceRegister
             $this->sendHeartbeat();
         }, true);
 
-        $this->logger?->info(sprintf(
+        $this->logger->info(sprintf(
             'nacos heartbeat timer started, interval=%ds, service=%s',
             $intervalSeconds,
             $this->registeredServiceName,
@@ -161,7 +159,7 @@ final class ServiceRegister
 
         GoTimer::cancel($this->heartbeatTimer);
         $this->heartbeatTimer = null;
-        $this->logger?->info('nacos heartbeat timer stopped');
+        $this->logger->info('nacos heartbeat timer stopped');
     }
 
     private function sendHeartbeat(): void
@@ -186,7 +184,7 @@ final class ServiceRegister
                 $this->registeredEphemeral,
             );
         } catch (\Throwable $e) {
-            $this->logger?->error('nacos heartbeat failed: ' . $e->getMessage());
+            $this->logger->error('nacos heartbeat failed: ' . $e->getMessage());
         }
     }
 
@@ -202,7 +200,7 @@ final class ServiceRegister
             throw NacosMonitorException::throw('service_name is required for list');
         }
 
-        $client = $this->client ?? $this->nacosConfig->createClient($this->logger);
+        $client = $this->client ?? $this->nacosConfig->createClient();
 
         return $client->instance->list(
             $serviceName,

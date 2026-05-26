@@ -4,20 +4,20 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Nacos;
 
+use Swoolefy\Exception\NacosMonitorException;
 use Swoolefy\Support\ApplicationConfig;
 use Swoolefy\Library\Nacos\Client;
 use Swoolefy\Library\Nacos\ClientConfig;
 use Symfony\Component\Yaml\Yaml;
-use Swoolefy\Util\Log;
 
 /**
- * 读取 nacos.yaml（Nacos 服务器连接）。
+ * 读取 nacos.yaml（Nacos 服务器连接）
  *
- * application.yaml 固定位于 appPath，由 NacosServiceConfig / ApplicationConfig 读取。
+ * 路径由常量 NACOS_FILE_PATH 指定（cli.php 可从环境变量注入）；未设置时回退为 APP_PATH/nacos.yaml。
+ * application.yaml 由 ApplicationConfig / NacosServiceConfig 通过 APP_PATH 读取。
  */
 final class NacosConfig
 {
-
     public function __construct(
         public readonly string $nacosFilePath,
         public readonly string $host,
@@ -31,11 +31,9 @@ final class NacosConfig
     ) {
     }
 
-    /**
-     * @param string $nacosFilePath nacos.yaml 完整路径（多项目可共用同一份）
-     */
-    public static function load(string $nacosFilePath): self
+    public static function load(): self
     {
+        $nacosFilePath = self::resolveNacosFilePath();
         $yaml = is_file($nacosFilePath) ? (array) Yaml::parseFile($nacosFilePath) : [];
         $nacos = (array) ($yaml['nacos'] ?? []);
 
@@ -50,6 +48,19 @@ final class NacosConfig
             group: self::pickString($nacos, 'group', 'NACOS_GROUP', 'DEFAULT_GROUP'),
             tenant: self::pickString($nacos, 'tenant', 'NACOS_TENANT', ''),
         );
+    }
+
+    public static function resolveNacosFilePath(): string
+    {
+        if (!defined('NACOS_FILE_PATH')) {
+            throw NacosMonitorException::throw("Please define const `NACOS_FILE_PATH`");
+        }
+        $path = NACOS_FILE_PATH;
+        if (is_string($path) && '' !== $path && is_file($path)) {
+            return $path;
+        } else {
+            throw NacosMonitorException::throw("Constant Of `NACOS_FILE_PATH` must be a nacos.yaml file");
+        }
     }
 
     public function toClientConfigArray(): array
@@ -69,9 +80,9 @@ final class NacosConfig
         return \extension_loaded('swoole') && \Swoole\Coroutine::getCid() > 0;
     }
 
-    public function createClient(?Log $logger = null): Client
+    public function createClient(): Client
     {
-        return new Client(new ClientConfig($this->toClientConfigArray()), $logger);
+        return new Client(new ClientConfig($this->toClientConfigArray()), NacosLogger::get());
     }
 
     private static function pickString(array $yaml, string $yamlKey, string $envKey, string $default): string

@@ -714,7 +714,8 @@ use Swoolefy\Support\Nacos\NacosConfig;
  * SDK 侧 Nacos 服务发现薄封装，委托框架 DiscoveryClient。
  *
  * - 进程内单例 DiscoveryClient，多次 choose 共享负载均衡状态（如 round_robin）
- * - 配置目录：$configDir → APP_PATH → SDK_NACOS_CONFIG_DIR → getcwd()
+ * - nacos.yaml：常量 NACOS_FILE_PATH（未设置时 APP_PATH/nacos.yaml）
+ * - application.yaml：常量 APP_PATH
  */
 final class SdkNacosServiceDiscovery
 {
@@ -726,14 +727,14 @@ final class SdkNacosServiceDiscovery
      *
      * @throws SdkClientException
      */
-    public static function resolveBaseUri(string $serviceName, ?string $configDir = null): string
+    public static function resolveBaseUri(string $serviceName): string
     {
         if ('' === trim($serviceName)) {
             throw new SdkClientException('Nacos service name is empty');
         }
 
         try {
-            $client = self::getDiscoveryClient($serviceName, $configDir);
+            $client = self::getDiscoveryClient($serviceName);
             // 每次调用 chooseUri，同一 DiscoveryClient 上负载均衡器会推进到下一节点
             $uri = $client->chooseUri('http');
         } catch (NacosDiscoveryException $e) {
@@ -755,53 +756,19 @@ final class SdkNacosServiceDiscovery
     /**
      * 获取或创建进程内 DiscoveryClient 单例。
      */
-    private static function getDiscoveryClient(string $serviceName, ?string $configDir): DiscoveryClient
+    private static function getDiscoveryClient(string $serviceName): DiscoveryClient
     {
         if (self::$discoveryClient instanceof DiscoveryClient) {
             return self::$discoveryClient;
         }
 
-        $appPath = self::resolveAppPath($configDir);
-        $nacosFilePath = self::resolveNacosFilePath($appPath);
-        $nacosConfig = NacosConfig::load($nacosFilePath);
-        $discoveryConfig = DiscoveryConfig::load(\Swoolefy\Support\Nacos\NacosServiceConfig::load($appPath));
-        self::$discoveryClient = DiscoveryClient::create($serviceName, $nacosConfig, $discoveryConfig);
+        self::$discoveryClient = DiscoveryClient::create(
+            $serviceName,
+            NacosConfig::load(),
+            DiscoveryConfig::load(),
+        );
 
         return self::$discoveryClient;
-    }
-
-    /**
-     * 解析 application.yaml 所在应用目录。
-     */
-    private static function resolveAppPath(?string $configDir): string
-    {
-        if (null !== $configDir && '' !== $configDir) {
-            return rtrim($configDir, '/\\');
-        }
-
-        if (defined('APP_PATH') && '' !== (string) APP_PATH) {
-            return rtrim((string) APP_PATH, '/\\');
-        }
-
-        $env = getenv('SDK_NACOS_CONFIG_DIR');
-        if (false !== $env && '' !== $env) {
-            return rtrim($env, '/\\');
-        }
-
-        return rtrim((string) getcwd(), '/\\');
-    }
-
-    /**
-     * 解析 nacos.yaml 完整路径（可与 appPath 分离，多项目可共用）。
-     */
-    private static function resolveNacosFilePath(string $appPath): string
-    {
-        $env = getenv('SDK_NACOS_FILE');
-        if (false !== $env && '' !== $env) {
-            return $env;
-        }
-
-        return rtrim($appPath, '/\\') . '/nacos.yaml';
     }
 }
 

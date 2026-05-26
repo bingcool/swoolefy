@@ -7,7 +7,7 @@ namespace Swoolefy\Support\Nacos;
 use Swoolefy\Support\ApplicationConfig;
 
 /**
- * 默认获取APP_PATH下Nacos服务注册配置（application.yaml → nacos.service_register）
+ * 本机 Nacos 服务注册配置（APP_PATH/application.yaml → nacos.service_register）。
  */
 final class NacosServiceConfig
 {
@@ -24,10 +24,10 @@ final class NacosServiceConfig
     ) {
     }
 
-    public static function load(?string $appPath = null): self
+    public static function load(): self
     {
-        $appPath = $appPath ?? (defined('APP_PATH') ? APP_PATH : '');
-        $section = ApplicationConfig::load($appPath)->nacosSection('service_register');
+        $appPath = ApplicationConfig::resolveAppPath();
+        $section = ApplicationConfig::load()->nacosSection('service_register');
 
         return new self(
             appPath: $appPath,

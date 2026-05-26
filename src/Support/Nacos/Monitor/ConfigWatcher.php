@@ -7,6 +7,7 @@ namespace Swoolefy\Support\Nacos\Monitor;
 use Swoolefy\Library\Nacos\Client;
 use Swoolefy\Library\Nacos\Provider\Config\ConfigListener;
 use Swoolefy\Library\Nacos\Provider\Config\Model\ListenerConfig;
+use Swoolefy\Support\Nacos\NacosLogger;
 use Swoolefy\Util\Log;
 
 /**
@@ -14,11 +15,13 @@ use Swoolefy\Util\Log;
  */
 final class ConfigWatcher
 {
+    private readonly Log $logger;
+
     public function __construct(
         private readonly MonitorConfig $config,
         private readonly ConfigChangeHandler $changeHandler,
-        private readonly Log $logger,
     ) {
+        $this->logger = NacosLogger::get();
     }
 
     public function run(): void
@@ -32,7 +35,7 @@ final class ConfigWatcher
             $this->config->nacos->nacosFilePath,
         ));
 
-        $client = ConfigChangeHandler::createClient($this->config->nacos, $this->logger);
+        $client = ConfigChangeHandler::createClient($this->config->nacos);
 
         $listenerConfig = new ListenerConfig([
             'timeout' => $this->config->listenerTimeoutMs,

@@ -19,13 +19,22 @@ final class ApplicationConfig
     ) {
     }
 
-    public static function load(?string $appPath = null): self
+    public static function load(): self
     {
-        $appPath = $appPath ?? (defined('APP_PATH') ? APP_PATH : '');
-        $yamlFile = rtrim($appPath, '/') . '/application.yaml';
+        $appPath = self::resolveAppPath();
+        $yamlFile = $appPath . '/application.yaml';
         $yaml = is_file($yamlFile) ? (array) Yaml::parseFile($yamlFile) : [];
 
         return new self($appPath, $yamlFile, $yaml);
+    }
+
+    public static function resolveAppPath(): string
+    {
+        if (!defined('APP_PATH') || '' === (string) APP_PATH) {
+            throw new \RuntimeException('APP_PATH is not defined');
+        }
+
+        return rtrim((string) APP_PATH, '/');
     }
 
     /**

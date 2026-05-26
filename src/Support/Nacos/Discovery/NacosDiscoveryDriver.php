@@ -8,6 +8,7 @@ use Swoolefy\Exception\NacosDiscoveryException;
 use Swoolefy\Support\Nacos\Discovery\Contract\DiscoveryDriverInterface;
 use Swoolefy\Support\Nacos\Discovery\Model\ServiceInstance;
 use Swoolefy\Support\Nacos\NacosConfig;
+use Swoolefy\Support\Nacos\NacosLogger;
 use Swoolefy\Util\Log;
 
 /**
@@ -15,11 +16,13 @@ use Swoolefy\Util\Log;
  */
 final class NacosDiscoveryDriver implements DiscoveryDriverInterface
 {
+    private readonly Log $logger;
+
     public function __construct(
         private readonly NacosConfig $nacosConfig,
         private readonly DiscoveryConfig $discoveryConfig,
-        private readonly ?Log $logger = null,
     ) {
+        $this->logger = NacosLogger::get();
     }
 
     public function getInstances(string $serviceName): array
@@ -28,7 +31,7 @@ final class NacosDiscoveryDriver implements DiscoveryDriverInterface
             throw NacosDiscoveryException::throw('service name is required for discovery');
         }
 
-        $client = $this->nacosConfig->createClient($this->logger);
+        $client = $this->nacosConfig->createClient();
         $response = $client->instance->list(
             $serviceName,
             $this->discoveryConfig->groupName,
@@ -50,7 +53,7 @@ final class NacosDiscoveryDriver implements DiscoveryDriverInterface
         }
 
         if ([] === $instances && $this->discoveryConfig->healthyOnly) {
-            $this->logger?->warning(sprintf('no healthy nacos instances for service=%s', $serviceName));
+            $this->logger->warning(sprintf('no healthy nacos instances for service=%s', $serviceName));
         }
 
         return $instances;

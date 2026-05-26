@@ -32,7 +32,7 @@ final class DiscoveryConfig
         ?ApplicationConfig $applicationConfig = null,
     ): self {
         $serviceConfig ??= NacosServiceConfig::load();
-        $applicationConfig ??= ApplicationConfig::load($serviceConfig->appPath);
+        $applicationConfig ??= ApplicationConfig::load();
         $discovery = $applicationConfig->nacosSection('discovery_service_client');
 
         $defaultService = ApplicationConfig::pickString($discovery, 'service_name', 'NACOS_DISCOVERY_SERVICE_NAME', '');

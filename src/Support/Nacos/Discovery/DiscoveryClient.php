@@ -10,8 +10,6 @@ use Swoolefy\Support\Nacos\Discovery\Model\ServiceInstance;
 use Swoolefy\Support\Nacos\LoadBalancer\Contract\LoadBalancerInterface;
 use Swoolefy\Support\Nacos\LoadBalancer\LoadBalancerFactory;
 use Swoolefy\Support\Nacos\NacosConfig;
-use Swoolefy\Support\Nacos\NacosServiceConfig;
-use Swoolefy\Util\Log;
 
 /**
  * Nacos 服务发现客户端：实例缓存 + 负载均衡选择。
@@ -51,22 +49,17 @@ final class DiscoveryClient
         ?string $serviceName = null,
         ?NacosConfig $nacosConfig = null,
         ?DiscoveryConfig $discoveryConfig = null,
-        ?Log $logger = null,
         ?LoadBalancerInterface $loadBalancer = null,
-        ?string $appPath = null,
-        ?string $nacosFilePath = null,
     ): self {
-        $appPath = $appPath ?? (defined('APP_PATH') ? APP_PATH : '');
-        $nacosFilePath = $nacosFilePath ?? rtrim($appPath, '/') . '/nacos.yaml';
-        $nacosConfig ??= NacosConfig::load($nacosFilePath);
-        $discoveryConfig ??= DiscoveryConfig::load(NacosServiceConfig::load($appPath));
+        $nacosConfig ??= NacosConfig::load();
+        $discoveryConfig ??= DiscoveryConfig::load();
         $serviceName ??= $discoveryConfig->defaultServiceName;
 
         if ('' === $serviceName) {
             throw NacosDiscoveryException::throw('discovery service_name is not configured');
         }
 
-        $driver = new NacosDiscoveryDriver($nacosConfig, $discoveryConfig, $logger);
+        $driver = new NacosDiscoveryDriver($nacosConfig, $discoveryConfig);
         $client = new self($serviceName, $driver, $discoveryConfig, $loadBalancer);
 
         if (null === $loadBalancer) {

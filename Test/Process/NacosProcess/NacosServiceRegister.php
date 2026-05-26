@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Process\NacosProcess;
 
-use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Process\AbstractProcess;
 use Swoolefy\Exception\NacosMonitorException;
+use Swoolefy\Support\Nacos\NacosLogger;
 use Swoolefy\Support\Nacos\NacosServiceConfig;
 use Swoolefy\Support\Nacos\ServiceRegister;
 
@@ -19,8 +19,8 @@ class NacosServiceRegister extends AbstractProcess
 
     public function run(): void
     {
-        $serviceConfig = NacosServiceConfig::load(defined('APP_PATH') ? APP_PATH : null);
-        $logger = LogManager::getInstance()->getLogger('nacos_log');
+        $serviceConfig = NacosServiceConfig::load();
+        $logger = NacosLogger::get();
 
         $ip = '' !== $serviceConfig->ip ? $serviceConfig->ip : $this->resolveRegisterIp();
         $port = $serviceConfig->port > 0
@@ -33,27 +33,19 @@ class NacosServiceRegister extends AbstractProcess
 
         $heartbeatInterval = $serviceConfig->heartbeatInterval;
 
-        $this->registrar = ServiceRegister::create(defined('APP_PATH') ? APP_PATH : null, APP_PATH . '/nacos.yaml', $logger);
+        $this->registrar = ServiceRegister::create();
         $this->registrar->register(
             ip: $ip,
             port: $port,
             heartbeatInterval: $heartbeatInterval,
         );
 
-        $logger?->info(sprintf(
+        $logger->info(sprintf(
             'nacos service register process running, %s:%d, heartbeat=%ds',
             $ip,
             $port,
             $heartbeatInterval,
         ));
-
-        while (true) {
-            if (\extension_loaded('swoole') && \Swoole\Coroutine::getCid() > 0) {
-                \Swoole\Coroutine::sleep(3600);
-            } else {
-                sleep(3600);
-            }
-        }
     }
 
     public function onReceive($msg, ...$args): void

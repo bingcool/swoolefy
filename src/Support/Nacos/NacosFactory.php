@@ -9,6 +9,7 @@ use Dotenv\Exception\InvalidFileException;
 use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\Exception\RequestException;
 use Swoolefy\Exception\NacosMonitorException;
+use Swoolefy\Support\ApplicationConfig;
 
 /**
  * Nacos 常用操作入口（启动阶段可用，不依赖 Log 组件注册）。
@@ -22,22 +23,19 @@ final class NacosFactory
     /**
      * 从 Nacos 配置中心拉取远程配置，校验 .env 格式后原子写入 APP_PATH/.env。
      *
-     * @param string $nacosFilePath nacos.yaml 路径（读取 Nacos 连接与 data_id/group）
+     * nacos.yaml 路径由常量 NACOS_FILE_PATH 指定。
+     *
      * @return string 写入后的 .env 绝对路径
      */
-    public static function fetchConfigToEnv(string $nacosFilePath): string
+    public static function fetchConfigToEnv(): string
     {
-        $nacosFilePath = self::resolveNacosYamlPath($nacosFilePath);
+        $nacosFilePath = NacosConfig::resolveNacosFilePath();
         if (!is_file($nacosFilePath)) {
             throw NacosMonitorException::throw('nacos.yaml not found: ' . $nacosFilePath);
         }
 
-        if (!defined('APP_PATH') || '' === APP_PATH) {
-            throw NacosMonitorException::throw('APP_PATH is not defined');
-        }
-
-        $envFile = rtrim( APP_PATH, '/') . '/.env';
-        $nacosConfig = NacosConfig::load($nacosFilePath);
+        $envFile = ApplicationConfig::resolveAppPath() . '/.env';
+        $nacosConfig = NacosConfig::load();
 
         try {
             $content = self::fetchConfigFromNacos($nacosConfig);
@@ -182,21 +180,4 @@ final class NacosFactory
         }
     }
 
-    private static function resolveNacosYamlPath(string $nacosFilePath): string
-    {
-        $path = trim($nacosFilePath);
-        if ('' === $path) {
-            throw NacosMonitorException::throw('nacosYamlFile is empty');
-        }
-
-        if (str_starts_with($path, '/')) {
-            return $path;
-        }
-
-        $base = defined('APP_PATH') && '' !== APP_PATH
-            ? APP_PATH
-            : (string) getcwd();
-
-        return rtrim($base, '/') . '/' . ltrim(str_replace('\\', '/', $path), '/');
-    }
 }
