@@ -372,28 +372,28 @@ docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v
     use Swoolefy\Support\Nacos\Discovery\DiscoveryClient;
     use Swoolefy\Support\Nacos\NacosConfig;
 
-    $client = DiscoveryClient::create('my-service', NacosConfig::load());
+    $client = DiscoveryClient::create('my-service', NacosConfig::load(APP_PATH . '/nacos.yaml'));
     $uri = $client->chooseUri();
     ```
 
 <a id="nav-4-components"></a>
 
 ### 四、🔌 适配协程环境组件
-| 组件名称             | 安装                                                    | 说明                                                  |
-|------------------|-------------------------------------------------------|-----------------------------------------------------|
-| predis           | composer require predis/predis:~1.1.7                 | predis组件、或者Phpredis扩展                               |
-| mongodb          | composer require mongodb/mongodb:~1.3                 | mongodb组件，需要使用mongodb必须安装此组件                        |
-| rpc-client       | composer require bingcool/rpc-client:dev-master       | swoolefy的rpc客户端组件，当与rpc服务端通信时，需要安装此组件，支持在php-fpm中使用 |
-| cron-expression  | composer require dragonmantank/cron-expression:~3.3.0 | crontab计划任务组件，类似Linux的crobtab                       |  
-| redis lock       | composer require malkusch/lock                        | Redis锁组件                                            |
-| amqp             | composer require php-amqplib/php-amqplib:~3.7.0       | amqp php原生实现amqp协议客户端                               |  
-| ffmpeg           | composer require php-ffmpeg/php-ffmpeg:~1.4.0         | php proc-open 调用ffmpeg处理音视频                         |  
-| image            | composer require intervention/image:~3.11.0           | php 图像处理组件                                          |    
-| validate         | composer require vlucas/valitron                      | validate数据校验组件                                      |    
-| guzzlehttp       | composer require guzzlehttp/guzzle:~7.9.0             | guzzlehttp 组件                                       | 
-| oauth 2.0        | composer require league/oauth2-server                 | oauth 2.0 授权认证组件                                    |  
-| php-standard-library        | composer require php-standard-library/php-standard-library                | php标准库(推荐)                                          |
-| bingcool/library | composer require bingcool/library                     | library组件库                                          |  
+| 组件名称             | 安装                                                         | 说明                                                  |
+|------------------|------------------------------------------------------------|-----------------------------------------------------|
+| predis           | composer require predis/predis:~3.4.0                      | predis组件、或者Phpredis扩展                               |
+| mongodb          | composer require mongodb/mongodb:~1.3                      | mongodb组件，需要使用mongodb必须安装此组件                        |
+| rpc-client       | composer require bingcool/rpc-client:dev-master            | swoolefy的rpc客户端组件，当与rpc服务端通信时，需要安装此组件，支持在php-fpm中使用 |
+| cron-expression  | composer require dragonmantank/cron-expression:~3.3.0      | crontab计划任务组件，类似Linux的crobtab                       |  
+| redis lock       | composer require malkusch/lock                             | Redis锁组件                                            |
+| amqp             | composer require php-amqplib/php-amqplib:~3.7.0            | amqp php原生实现amqp协议客户端                               |  
+| ffmpeg           | composer require php-ffmpeg/php-ffmpeg:~1.4.0              | php proc-open 调用ffmpeg处理音视频                         |  
+| image            | composer require intervention/image:~3.11.0                | php 图像处理组件                                          |    
+| validate         | composer require vlucas/valitron                           | validate数据校验组件                                      |    
+| guzzlehttp       | composer require guzzlehttp/guzzle:~7.9.0                  | guzzlehttp 组件                                       | 
+| oauth 2.0        | composer require league/oauth2-server                      | oauth 2.0 授权认证组件                                    |  
+| php-standard-library        | composer require php-standard-library/php-standard-library | php标准库(推荐)                                          |
+| bingcool/library | composer require bingcool/library                          | library组件库                                          |  
 
 <a id="nav-5-library"></a>
 
@@ -1271,7 +1271,7 @@ swoolefy 提供了 **SDK 自动生成工具**，可以扫描项目的 Route 路�
 - 📝 **提取 DTO**: 自动识别控制器方法中的 Request 和 Response 类型声明
 - 🎯 **类型安全**: 生成的 SDK 包含完整的类型声明，IDE 智能提示友好
 - 🔄 **自动更新**: 路由变更后重新生成即可，无需手动维护
-- ☁️ **Nacos 服务发现**: 生成时从 `application.yaml` → `nacos.service_register.service_name` 注入 `BaseClientApi::$serviceName`；构造 API 客户端时未传入 `ClientInterface` 则委托框架 `DiscoveryClient` 自动解析 `base_uri`（需 `APP_PATH` 或 `SDK_NACOS_CONFIG_DIR` 下存在 `nacos.yaml` / `application.yaml`）
+- ☁️ **Nacos 服务发现**: 生成时通过 `NacosServiceConfig` 注入 `BaseClientApi::$serviceName`；构造 API 客户端时未传入 `ClientInterface` 则委托框架 `DiscoveryClient` 自动解析 `base_uri`（需 `APP_PATH` 或 `SDK_NACOS_CONFIG_DIR` 下存在 `nacos.yaml` / `application.yaml`）
 
 #### 使用方法
 
@@ -1645,13 +1645,13 @@ nacos:
 
 #### 服务注册
 
-`ServiceRegister` 读取 `application.yaml` → `nacos.service_register`，将当前实例（ip、port、service_name、weight 等）注册到 Nacos 并定时心跳。建议在自定义进程 `NacosServiceRegister` 中启动。
+`ServiceRegister` 使用 `NacosConfig`（`nacos.yaml` 连接）+ `NacosServiceConfig`（`application.yaml` → `nacos.service_register`），将当前实例注册到 Nacos 并定时心跳。建议在自定义进程 `NacosServiceRegister` 中启动。
 
 ```php
 use Swoolefy\Support\Nacos\NacosConfig;
 use Swoolefy\Support\Nacos\ServiceRegister;
 
-$register = new ServiceRegister(NacosConfig::load(), $logger);
+$register = ServiceRegister::create($appPath, $nacosFilePath, $logger);
 $register->register();
 ```
 
@@ -1671,7 +1671,7 @@ $uri = $client->chooseUri();
 
 | 步骤 | 行为 |
 |:---|:---|
-| 生成时 | 读取 `APP_PATH/application.yaml` 的 `service_register.service_name`，写入 `BaseClientApi::$serviceName` |
+| 生成时 | 通过 `NacosServiceConfig` 读取 `service_register.service_name`，写入 `BaseClientApi::$serviceName` |
 | 运行时 | `UserApi::make()` 未传 Guzzle Client → `SdkNacosServiceDiscovery` → `DiscoveryClient::chooseUri()` → 设置 Guzzle `base_uri` |
 
 ```bash

@@ -7,7 +7,7 @@ namespace Test\Process\NacosProcess;
 use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Process\AbstractProcess;
 use Swoolefy\Exception\NacosMonitorException;
-use Swoolefy\Support\Nacos\NacosConfig;
+use Swoolefy\Support\Nacos\NacosServiceConfig;
 use Swoolefy\Support\Nacos\ServiceRegister;
 
 /**
@@ -19,21 +19,21 @@ class NacosServiceRegister extends AbstractProcess
 
     public function run(): void
     {
-        $config = NacosConfig::load(defined('APP_PATH') ? APP_PATH : null);
+        $serviceConfig = NacosServiceConfig::load(defined('APP_PATH') ? APP_PATH : null);
         $logger = LogManager::getInstance()->getLogger('nacos_log');
 
-        $ip = '' !== $config->serviceIp ? $config->serviceIp : $this->resolveRegisterIp();
-        $port = $config->servicePort > 0
-            ? $config->servicePort
+        $ip = '' !== $serviceConfig->ip ? $serviceConfig->ip : $this->resolveRegisterIp();
+        $port = $serviceConfig->port > 0
+            ? $serviceConfig->port
             : (defined('WORKER_PORT') ? (int) WORKER_PORT : 0);
 
         if ($port <= 0) {
             throw NacosMonitorException::throw('service port is required, set nacos.service_register.port in application.yaml or WORKER_PORT');
         }
 
-        $heartbeatInterval = $config->serviceHeartbeatInterval;
+        $heartbeatInterval = $serviceConfig->heartbeatInterval;
 
-        $this->registrar = new ServiceRegister($config, $logger);
+        $this->registrar = ServiceRegister::create(defined('APP_PATH') ? APP_PATH : null, APP_PATH . '/nacos.yaml', $logger);
         $this->registrar->register(
             ip: $ip,
             port: $port,

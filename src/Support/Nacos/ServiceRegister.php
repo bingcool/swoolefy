@@ -36,9 +36,22 @@ final class ServiceRegister
     private bool $registeredEphemeral = true;
 
     public function __construct(
-        private readonly NacosConfig $config,
+        private readonly NacosConfig $nacosConfig,
+        private readonly NacosServiceConfig $serviceConfig,
         private readonly ?Log $logger = null,
     ) {
+    }
+
+    public static function create(?string $appPath = null, ?string $nacosFilePath = null, ?Log $logger = null): self
+    {
+        $appPath = $appPath ?? (defined('APP_PATH') ? APP_PATH : '');
+        $nacosFilePath = $nacosFilePath ?? rtrim($appPath, '/') . '/nacos.yaml';
+
+        return new self(
+            NacosConfig::load($nacosFilePath),
+            NacosServiceConfig::load($appPath),
+            $logger,
+        );
     }
 
     public function register(
@@ -52,24 +65,24 @@ final class ServiceRegister
         bool $startHeartbeat = true,
         int $heartbeatInterval = 10,
     ): void {
-        $ip = $ip ?? $this->config->serviceIp;
-        $port = $port ?? $this->config->servicePort;
-        $serviceName = $serviceName ?? $this->config->serviceName;
-        $namespaceId = $namespaceId ?? $this->config->serviceNamespaceId;
-        $groupName = $groupName ?? $this->config->serviceGroupName;
-        $ephemeral = $ephemeral ?? $this->config->serviceEphemeral;
+        $ip = $ip ?? $this->serviceConfig->ip;
+        $port = $port ?? $this->serviceConfig->port;
+        $serviceName = $serviceName ?? $this->serviceConfig->serviceName;
+        $namespaceId = $namespaceId ?? $this->serviceConfig->namespaceId;
+        $groupName = $groupName ?? $this->serviceConfig->groupName;
+        $ephemeral = $ephemeral ?? $this->serviceConfig->ephemeral;
 
         if ('' === $ip || $port <= 0 || '' === $serviceName) {
             throw NacosMonitorException::throw('service ip, port and service_name are required for register');
         }
 
-        $this->client = $this->config->createClient($this->logger);
+        $this->client = $this->nacosConfig->createClient($this->logger);
         $ok = $this->client->instance->register(
             $ip,
             $port,
             $serviceName,
             $namespaceId,
-            $weight ?? $this->config->serviceWeight,
+            $weight ?? $this->serviceConfig->weight,
             true,
             true,
             '',
@@ -118,7 +131,7 @@ final class ServiceRegister
         }
 
         if (null === $this->client) {
-            $this->client = $this->config->createClient($this->logger);
+            $this->client = $this->nacosConfig->createClient($this->logger);
         }
 
         $this->stopHeartbeat();
@@ -162,7 +175,7 @@ final class ServiceRegister
             $beat->setIp($this->registeredIp);
             $beat->setPort($this->registeredPort);
             $beat->setServiceName($this->registeredServiceName);
-            $beat->setWeight($this->config->serviceWeight);
+            $beat->setWeight($this->serviceConfig->weight);
             $beat->setEphemeral($this->registeredEphemeral);
 
             $this->client->instance->beat(
@@ -184,17 +197,17 @@ final class ServiceRegister
         string $clusters = '',
         bool $healthyOnly = true,
     ): ListResponse {
-        $serviceName = $serviceName ?? $this->config->serviceName;
+        $serviceName = $serviceName ?? $this->serviceConfig->serviceName;
         if ('' === $serviceName) {
             throw NacosMonitorException::throw('service_name is required for list');
         }
 
-        $client = $this->client ?? $this->config->createClient($this->logger);
+        $client = $this->client ?? $this->nacosConfig->createClient($this->logger);
 
         return $client->instance->list(
             $serviceName,
-            $groupName ?? $this->config->serviceGroupName,
-            $namespaceId ?? $this->config->serviceNamespaceId,
+            $groupName ?? $this->serviceConfig->groupName,
+            $namespaceId ?? $this->serviceConfig->namespaceId,
             $clusters,
             $healthyOnly,
         );

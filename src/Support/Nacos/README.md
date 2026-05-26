@@ -8,16 +8,27 @@
 
 ## 配置文件
 
-| 文件 | 内容 |
-|---|---|
-| `APP_PATH/nacos.yaml` | Nacos **服务器连接**（host、port、data_id 等） |
-| `APP_PATH/application.yaml` | **应用行为**：`service_register`、`discovery_service_client`、`monitor_config_change` |
+| 文件                                                     | 内容 |
+|--------------------------------------------------------|---|
+| `nacos.yaml`（`nacosFilePath` 指定完整路径，可与 app 目录分离,多项目共用） | Nacos **服务器连接**（host、port、data_id 等） |
+| `APP_PATH/application.yaml`                            | **应用行为**：`service_register`、`discovery_service_client`、`monitor_config_change` |
 
 ## NacosConfig
 
+仅读取 `nacos.yaml`（服务器连接）。`application.yaml` 由 `appPath` 传入，经 `NacosServiceConfig` 等读取。
+
 ```php
-$config = NacosConfig::load();
+$config = NacosConfig::load(APP_PATH . '/nacos.yaml');
+// 或多项目共用：NacosConfig::load('/etc/nacos/shared.yaml');
 $client = $config->createClient($logger);
+```
+
+## NacosServiceConfig
+
+读取 `application.yaml` → `nacos.service_register`（本机注册信息）。
+
+```php
+$service = NacosServiceConfig::load();
 ```
 
 ## NacosFactory
@@ -32,10 +43,10 @@ $envFile = NacosFactory::fetchConfigToEnv(APP_PATH . '/nacos.yaml');
 
 ## ServiceRegister
 
-读取 `application.yaml` → `nacos.service_register`。
+依赖 `NacosConfig`（连接）+ `NacosServiceConfig`（注册参数）。
 
 ```php
-$registrar = new ServiceRegister(NacosConfig::load(), $logger);
+$registrar = ServiceRegister::create($appPath, $nacosFilePath, $logger);
 $registrar->register(); // 使用配置中的 ip/port/service_name
 ```
 

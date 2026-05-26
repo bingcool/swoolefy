@@ -22,14 +22,14 @@ final class NacosFactory
     /**
      * 从 Nacos 配置中心拉取远程配置，校验 .env 格式后原子写入 APP_PATH/.env。
      *
-     * @param string $nacosYamlFile nacos.yaml 路径（读取 Nacos 连接与 data_id/group）
+     * @param string $nacosFilePath nacos.yaml 路径（读取 Nacos 连接与 data_id/group）
      * @return string 写入后的 .env 绝对路径
      */
-    public static function fetchConfigToEnv(string $nacosYamlFile): string
+    public static function fetchConfigToEnv(string $nacosFilePath): string
     {
-        $nacosYamlFile = self::resolveNacosYamlPath($nacosYamlFile);
-        if (!is_file($nacosYamlFile)) {
-            throw NacosMonitorException::throw('nacos.yaml not found: ' . $nacosYamlFile);
+        $nacosFilePath = self::resolveNacosYamlPath($nacosFilePath);
+        if (!is_file($nacosFilePath)) {
+            throw NacosMonitorException::throw('nacos.yaml not found: ' . $nacosFilePath);
         }
 
         if (!defined('APP_PATH') || '' === APP_PATH) {
@@ -37,7 +37,7 @@ final class NacosFactory
         }
 
         $envFile = rtrim( APP_PATH, '/') . '/.env';
-        $nacosConfig = NacosConfig::load(dirname($nacosYamlFile));
+        $nacosConfig = NacosConfig::load($nacosFilePath);
 
         try {
             $content = self::fetchConfigFromNacos($nacosConfig);
@@ -182,9 +182,9 @@ final class NacosFactory
         }
     }
 
-    private static function resolveNacosYamlPath(string $nacosYamlFile): string
+    private static function resolveNacosYamlPath(string $nacosFilePath): string
     {
-        $path = trim($nacosYamlFile);
+        $path = trim($nacosFilePath);
         if ('' === $path) {
             throw NacosMonitorException::throw('nacosYamlFile is empty');
         }

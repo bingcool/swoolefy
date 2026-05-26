@@ -29,7 +29,7 @@ final class ConfigWatcher
             $this->config->nacos->dataId,
             $this->config->nacos->group,
             $this->config->envFile,
-            $this->config->nacos->yamlFile,
+            $this->config->nacos->nacosFilePath,
         ));
 
         $client = ConfigChangeHandler::createClient($this->config->nacos, $this->logger);
