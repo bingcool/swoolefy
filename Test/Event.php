@@ -102,17 +102,6 @@ class Event extends EventHandler
                 true,
             );
 
-            // Nacos 服务注册与心跳保活
-            ProcessManager::getInstance()->addProcess(
-                'nacos-service-register',
-                \Test\Process\NacosProcess\NacosServiceRegister::class,
-                true,
-                [],
-                null,
-                true,
-            );
-
-
             // Udp服务测试
             // ProcessManager::getInstance()->addProcess('cdp-test', \Test\Process\UdpTestProcess\Udp::class);
 

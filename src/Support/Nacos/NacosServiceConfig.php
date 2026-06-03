@@ -31,8 +31,8 @@ final class NacosServiceConfig
 
         return new self(
             appPath: $appPath,
-            ip: ApplicationConfig::pickString($section, 'ip', 'NACOS_SERVICE_IP', ''),
-            port: ApplicationConfig::pickInt($section, 'port', 'NACOS_SERVICE_PORT', 0),
+            ip: ApplicationConfig::pickString($section, 'ip', 'NACOS_SERVICE_REGISTER_HOST', ''),
+            port: ApplicationConfig::pickInt($section, 'port', 'NACOS_SERVICE_REGISTER_PORT', 0),
             serviceName: ApplicationConfig::pickString($section, 'service_name', 'NACOS_SERVICE_NAME', ''),
             namespaceId: ApplicationConfig::pickString($section, 'namespace_id', 'NACOS_SERVICE_NAMESPACE_ID', ''),
             groupName: ApplicationConfig::pickString($section, 'group_name', 'NACOS_SERVICE_GROUP_NAME', ''),
