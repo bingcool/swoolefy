@@ -162,6 +162,57 @@ final class ServiceRegister
         $this->logger->info('nacos heartbeat timer stopped');
     }
 
+    /**
+     * 注销服务实例
+     * @return void
+     */
+    public function deregister(): void
+    {
+        if ('' === $this->registeredIp || $this->registeredPort <= 0 || '' === $this->registeredServiceName) {
+            return;
+        }
+
+        $this->stopHeartbeat();
+
+        if (null === $this->client) {
+            $this->client = $this->nacosConfig->createClient();
+        }
+
+        try {
+            $ok = $this->client->instance->deregister(
+                $this->registeredIp,
+                $this->registeredPort,
+                $this->registeredServiceName,
+                $this->registeredNamespaceId,
+                '',
+                $this->registeredGroupName,
+                $this->registeredEphemeral,
+            );
+
+            if ($ok) {
+                fmtPrintNote('Server Stop!!!, Nacos service deregistered');
+                $this->logger->info(sprintf(
+                    'nacos instance deregistered: %s:%d -> %s',
+                    $this->registeredIp,
+                    $this->registeredPort,
+                    $this->registeredServiceName,
+                ));
+            } else {
+                $this->logger->error(sprintf(
+                    'nacos instance deregister failed: %s:%d -> %s',
+                    $this->registeredIp,
+                    $this->registeredPort,
+                    $this->registeredServiceName,
+                ));
+            }
+        } catch (\Throwable $e) {
+            $this->logger->error('nacos deregister failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 发送心跳
+     */
     private function sendHeartbeat(): void
     {
         if (null === $this->client) {

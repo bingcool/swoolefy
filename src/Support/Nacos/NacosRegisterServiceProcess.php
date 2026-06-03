@@ -58,7 +58,29 @@ class NacosRegisterServiceProcess extends AbstractProcess
 
     public function onShutDown(): void
     {
-        $this->registrar?->stopHeartbeat();
+        if (null === $this->registrar) {
+            return;
+        }
+
+        $logger = NacosLogger::get();
+        $masterPid = Swfy::getMasterPid();
+        $masterAlive = $masterPid > 0 && \Swoole\Process::kill($masterPid, 0);
+
+        if ($masterAlive) {
+            $logger->info(sprintf(
+                'swoole master process is alive (pid=%d), skip nacos deregister',
+                $masterPid,
+            ));
+            $this->registrar->stopHeartbeat();
+
+            return;
+        }
+
+        $logger->info(sprintf(
+            'swoole master process is not alive (pid=%d), deregistering from nacos',
+            $masterPid,
+        ));
+        $this->registrar->deregister();
     }
 
     private function resolveRegisterIp(NacosServiceConfig $serviceConfig, \Swoolefy\Util\Log $logger): string
