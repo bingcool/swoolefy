@@ -37,6 +37,41 @@ final class ApplicationConfig
         return rtrim((string) APP_PATH, '/');
     }
 
+    public static function applicationYamlPath(): string
+    {
+        return self::resolveAppPath() . '/application.yaml';
+    }
+
+    public static function hasApplicationYaml(): bool
+    {
+        if (!defined('APP_PATH') || '' === (string) APP_PATH) {
+            return false;
+        }
+
+        return is_file(self::applicationYamlPath());
+    }
+
+    public static function isEnableNacosRegister(): bool
+    {
+        if (!self::hasApplicationYaml()) {
+            return false;
+        }
+
+        $yaml = (array) Yaml::parseFile(self::applicationYamlPath());
+        $nacos = (array) ($yaml['nacos'] ?? []);
+
+        if (!array_key_exists('enable_nacos_register', $nacos)) {
+            return false;
+        }
+
+        $value = $nacos['enable_nacos_register'];
+        if ('' === $value || null === $value) {
+            return false;
+        }
+
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN);
+    }
+
     /**
      * @return array<string, mixed>
      */

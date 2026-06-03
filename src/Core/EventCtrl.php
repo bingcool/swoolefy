@@ -17,6 +17,7 @@ use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
 use Swoolefy\Core\Process\ProcessManager;
+use Swoolefy\Support\ApplicationConfig;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Helper\TableStyle;
 use Symfony\Component\Console\Output\ConsoleOutput;
@@ -60,6 +61,9 @@ class EventCtrl implements EventCtrlInterface
             }
             if (BaseServer::isEnableReload()) {
                 ProcessManager::getInstance()->addProcess('swoolefy_system_reload', \Swoolefy\AutoReload\ReloadProcess::class);
+            }
+            if (ApplicationConfig::isEnableNacosRegister()) {
+                ProcessManager::getInstance()->addProcess('swoolefy_nacos_register', \Swoolefy\Support\Nacos\NacosRegisterServiceProcess::class);
             }
         }else {
             static::onWorkerServiceInit();
@@ -429,10 +433,10 @@ class EventCtrl implements EventCtrlInterface
                 $mainServer = 'HttpServer';
         }
 
-        if(SystemEnv::isWorkerService()) {
+        if (SystemEnv::isWorkerService()) {
             $mainName = 'main worker';
             $mainServer = "【".WORKER_SERVICE_NAME."】";
-        }else {
+        } else {
             $mainName = 'main server';
         }
 

@@ -32,6 +32,12 @@ class BingcoolTest extends MainCliScript
      */
     public function testEcho()
     {
+        $a = "3.14";
+        $b = "6.18";
+        $c = (float) bcadd($a, $b, 2);
+
+        var_dump($c);
+
         echo "test order\n";
     }
 
