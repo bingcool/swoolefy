@@ -735,8 +735,10 @@ final class SdkNacosServiceDiscovery
 
         try {
             $client = self::getDiscoveryClient($serviceName);
-            // 每次调用 chooseUri，同一 DiscoveryClient 上负载均衡器会推进到下一节点
             $uri = $client->chooseUri('http');
+            if (null === $uri || '' === $uri) {
+                $uri = $client->refresh() !== [] ? $client->chooseUri('http') : null;
+            }
         } catch (NacosDiscoveryException $e) {
             throw new SdkClientException($e->getMessage());
         } catch (\Throwable $e) {
