@@ -38,8 +38,8 @@ final class ServiceRegister
     private readonly Log $logger;
 
     public function __construct(
-        private readonly NacosConfig $nacosConfig,
-        private readonly NacosServiceConfig $serviceConfig,
+        private readonly NacosConfig                $nacosConfig,
+        private readonly NacosServiceRegisterConfig $serviceRegisterConfig,
     ) {
         $this->logger = NacosLogger::get();
     }
@@ -48,7 +48,7 @@ final class ServiceRegister
     {
         return new self(
             NacosConfig::load(),
-            NacosServiceConfig::load(),
+            NacosServiceRegisterConfig::load(),
         );
     }
 
@@ -63,12 +63,12 @@ final class ServiceRegister
         bool $startHeartbeat = true,
         int $heartbeatInterval = 10,
     ): void {
-        $ip = $ip ?? $this->serviceConfig->ip;
-        $port = $port ?? $this->serviceConfig->port;
-        $serviceName = $serviceName ?? $this->serviceConfig->serviceName;
-        $namespaceId = $namespaceId ?? $this->serviceConfig->namespaceId;
-        $groupName = $groupName ?? $this->serviceConfig->groupName;
-        $ephemeral = $ephemeral ?? $this->serviceConfig->ephemeral;
+        $ip = $ip ?? $this->serviceRegisterConfig->ip;
+        $port = $port ?? $this->serviceRegisterConfig->port;
+        $serviceName = $serviceName ?? $this->serviceRegisterConfig->serviceName;
+        $namespaceId = $namespaceId ?? $this->serviceRegisterConfig->namespaceId;
+        $groupName = $groupName ?? $this->serviceRegisterConfig->groupName;
+        $ephemeral = $ephemeral ?? $this->serviceRegisterConfig->ephemeral;
 
         if ('' === $ip || $port <= 0 || '' === $serviceName) {
             throw NacosMonitorException::throw('service ip, port and service_name are required for register');
@@ -80,7 +80,7 @@ final class ServiceRegister
             $port,
             $serviceName,
             $namespaceId,
-            $weight ?? $this->serviceConfig->weight,
+            $weight ?? $this->serviceRegisterConfig->weight,
             true,
             true,
             '',
@@ -224,7 +224,7 @@ final class ServiceRegister
             $beat->setIp($this->registeredIp);
             $beat->setPort($this->registeredPort);
             $beat->setServiceName($this->registeredServiceName);
-            $beat->setWeight($this->serviceConfig->weight);
+            $beat->setWeight($this->serviceRegisterConfig->weight);
             $beat->setEphemeral($this->registeredEphemeral);
 
             $this->client->instance->beat(
@@ -246,7 +246,7 @@ final class ServiceRegister
         string $clusters = '',
         bool $healthyOnly = true,
     ): ListResponse {
-        $serviceName = $serviceName ?? $this->serviceConfig->serviceName;
+        $serviceName = $serviceName ?? $this->serviceRegisterConfig->serviceName;
         if ('' === $serviceName) {
             throw NacosMonitorException::throw('service_name is required for list');
         }
@@ -255,8 +255,8 @@ final class ServiceRegister
 
         return $client->instance->list(
             $serviceName,
-            $groupName ?? $this->serviceConfig->groupName,
-            $namespaceId ?? $this->serviceConfig->namespaceId,
+            $groupName ?? $this->serviceRegisterConfig->groupName,
+            $namespaceId ?? $this->serviceRegisterConfig->namespaceId,
             $clusters,
             $healthyOnly,
         );

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Swoolefy\Support\Nacos\Discovery;
 
 use Swoolefy\Support\ApplicationConfig;
-use Swoolefy\Support\Nacos\NacosServiceConfig;
+use Swoolefy\Support\Nacos\NacosServiceRegisterConfig;
 
 /**
  * 服务发现配置（application.yaml → nacos.discovery_service_client）。
@@ -27,21 +27,21 @@ final class DiscoveryConfig
     }
 
     public static function load(
-        ?NacosServiceConfig $serviceConfig = null,
-        ?ApplicationConfig $applicationConfig = null,
+        ?NacosServiceRegisterConfig $serviceRegisterConfig = null,
+        ?ApplicationConfig          $applicationConfig = null,
     ): self {
-        $serviceConfig ??= NacosServiceConfig::load();
+        $serviceRegisterConfig ??= NacosServiceRegisterConfig::load();
         $applicationConfig ??= ApplicationConfig::load();
         $discovery = $applicationConfig->nacosSection('discovery_service_client');
 
         $groupName = ApplicationConfig::pickString($discovery, 'group_name', 'NACOS_DISCOVERY_GROUP_NAME', '');
         if ('' === $groupName) {
-            $groupName = $serviceConfig->groupName;
+            $groupName = $serviceRegisterConfig->groupName;
         }
 
         $namespaceId = ApplicationConfig::pickString($discovery, 'namespace_id', 'NACOS_DISCOVERY_NAMESPACE_ID', '');
         if ('' === $namespaceId) {
-            $namespaceId = $serviceConfig->namespaceId;
+            $namespaceId = $serviceRegisterConfig->namespaceId;
         }
 
         return new self(

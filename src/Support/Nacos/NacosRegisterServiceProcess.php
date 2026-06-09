@@ -23,7 +23,7 @@ class NacosRegisterServiceProcess extends AbstractProcess
 
     public function run(): void
     {
-        $serviceConfig = NacosServiceConfig::load();
+        $serviceConfig = NacosServiceRegisterConfig::load();
         $logger = NacosLogger::get();
 
         $ip = $this->resolveRegisterIp($serviceConfig, $logger);
@@ -83,7 +83,7 @@ class NacosRegisterServiceProcess extends AbstractProcess
         $this->registrar->deregister();
     }
 
-    private function resolveRegisterIp(NacosServiceConfig $serviceConfig, \Swoolefy\Util\Log $logger): string
+    private function resolveRegisterIp(NacosServiceRegisterConfig $serviceConfig, \Swoolefy\Util\Log $logger): string
     {
         $envIp = getenv(self::ENV_REGISTER_HOST);
         if (false !== $envIp && '' !== $envIp) {
@@ -100,7 +100,7 @@ class NacosRegisterServiceProcess extends AbstractProcess
         return $this->resolveLocalIp();
     }
 
-    private function resolveRegisterPort(NacosServiceConfig $serviceConfig, \Swoolefy\Util\Log $logger): int
+    private function resolveRegisterPort(NacosServiceRegisterConfig $serviceConfig, \Swoolefy\Util\Log $logger): int
     {
         $envPort = getenv(self::ENV_REGISTER_PORT);
         if (false !== $envPort && is_numeric($envPort)) {

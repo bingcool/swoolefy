@@ -368,7 +368,7 @@ use Psr\Http\Message\ResponseInterface;
 abstract class BaseClientApi
 {
     /**
-     * 本应用在 Nacos 注册的服务名（gen:sdk 时由 NacosServiceConfig 注入）。
+     * 本应用在 Nacos 注册的服务名（gen:sdk 时由 NacosServiceRegisterConfig 注入）。
      */
     protected string $serviceName = '__SDK_NACOS_SERVICE_NAME__';
 
