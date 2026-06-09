@@ -23,7 +23,6 @@ final class DiscoveryConfig
         public readonly string $clusters,
         public readonly string $groupName,
         public readonly string $namespaceId,
-        public readonly string $defaultServiceName,
     ) {
     }
 
@@ -34,11 +33,6 @@ final class DiscoveryConfig
         $serviceConfig ??= NacosServiceConfig::load();
         $applicationConfig ??= ApplicationConfig::load();
         $discovery = $applicationConfig->nacosSection('discovery_service_client');
-
-        $defaultService = ApplicationConfig::pickString($discovery, 'service_name', 'NACOS_DISCOVERY_SERVICE_NAME', '');
-        if ('' === $defaultService) {
-            $defaultService = $serviceConfig->serviceName;
-        }
 
         $groupName = ApplicationConfig::pickString($discovery, 'group_name', 'NACOS_DISCOVERY_GROUP_NAME', '');
         if ('' === $groupName) {
@@ -62,7 +56,6 @@ final class DiscoveryConfig
             clusters: ApplicationConfig::pickString($discovery, 'clusters', 'NACOS_DISCOVERY_CLUSTERS', ''),
             groupName: $groupName,
             namespaceId: $namespaceId,
-            defaultServiceName: $defaultService,
         );
     }
 }

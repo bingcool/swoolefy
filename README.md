@@ -1622,19 +1622,40 @@ class UserCreateRequest extends BaseRequest
 | `APP_PATH/nacos.yaml` | Nacos 服务器连接（host、port、data_id、鉴权等） |
 | `APP_PATH/application.yaml` | `nacos.service_register`（本服务注册）、`discovery_service_client`（调用方发现）、`monitor_config_change`（配置监听） |
 
+#### 环境变量
+
+各环境变量与 YAML 键的对应关系、默认值及说明见 **[src/Support/Nacos/README.md#env-vars](src/Support/Nacos/README.md#env-vars)**。
+
+常用变量速查：
+
+| 分类 | 环境变量                                                        | 说明 |
+|:---|:------------------------------------------------------------|:---|
+| 全局 | `NACOS_FILE_PATH`                                           | `nacos.yaml` 路径 |
+| 连接 | `NACOS_HOST`、`NACOS_PORT`、`NACOS_USERNAME`、`NACOS_PASSWORD` | Nacos 服务器连接 |
+| 注册 | `NACOS_SERVICE_REGISTER_HOST`、`NACOS_SERVICE_REGISTER_PORT` | 本实例注册信息 |
+
 `application.yaml` 片段示例：
 
 ```yaml
 nacos:
+  enable_nacos_register: true
   service_register:
-    ip: 192.168.1.103
-    port: 9501
+    # 优先读取 NACOS_SERVICE_REGISTER_HOST 环境变量
+    ip: 192.168.1.102
+    # 优先读取 NACOS_SERVICE_REGISTER_PORT 环境变量。一般不需要配置，除非docker映射端口不一致。默认读取cli.php环境变量WORKER_PORT
+    # port: 9501
     service_name: my-service
-    heartbeat_interval: 10
+    heartbeat_interval: 10   # 心跳间隔（秒）
+    namespace_id: 'production'
+    group_name: 'pwa_group'
+    weight: 1
+    ephemeral: true
   discovery_service_client:
     load_balancer: random   # random | round_robin | weight
     cache_ttl: 60
     healthy_only: true
+    namespace_id: 'production'
+    group_name: 'pwa_group'
   monitor_config_change:
     listener_timeout_ms: 30000
 ```
@@ -1649,7 +1670,9 @@ nacos:
 
 #### 服务注册
 
-`ServiceRegister` 使用 `NacosConfig`（`nacos.yaml` 连接）+ `NacosServiceConfig`（`application.yaml` → `nacos.service_register`），将当前实例注册到 Nacos 并定时心跳。建议在自定义进程 `NacosServiceRegister` 中启动。
+`ServiceRegister` 使用 `NacosConfig`（`nacos.yaml` 连接）+ `NacosServiceConfig`（`application.yaml` → `nacos.service_register`），将当前实例注册到 Nacos 并定时心跳。
+
+在 `application.yaml` 设置 `enable_nacos_register: true` 时，框架会自动启动内置进程 `NacosRegisterServiceProcess`（无需在 `Event.php` 手动注册）。也可在自定义进程中调用：
 
 ```php
 use Swoolefy\Support\Nacos\NacosConfig;

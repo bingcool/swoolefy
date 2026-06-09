@@ -17,7 +17,7 @@ use Swoole\Coroutine\Channel;
  * @param array $excludePorts 排除的端口
  * @return int
  */
-function get_one_free_port(array $excludePorts = []): int
+function getOneFreePort(array $excludePorts = []): int
 {
     $isValidPort = true;
     do {
@@ -32,15 +32,15 @@ function get_one_free_port(array $excludePorts = []): int
             if (!socket_getsockname($socket, $addr, $port)) {
                 throw new \Swoolefy\Exception\SystemException("get_one_free_port call socket_getsockname() failed");
             }
-        }catch (\Throwable $exception) {
+        } catch (\Throwable $exception) {
             throw $exception;
-        }finally {
+        } finally {
             socket_close($socket);
         }
 
-        if(empty($excludePorts)) {
+        if (empty($excludePorts)) {
             $isValidPort = false;
-        }else {
+        } else {
             if(!in_array($port, $excludePorts)) {
                 $isValidPort = false;
             }
@@ -49,16 +49,6 @@ function get_one_free_port(array $excludePorts = []): int
     }while($isValidPort);
 
     return $port;
-}
-/**
- * 随机获取一个可监听的端口(php_socket模式)
- *
- * @param array $excludePorts 排除的端口
- * @return int
- */
-function getOneFreePort(array $excludePorts = []): int
-{
-    return get_one_free_port($excludePorts);
 }
 
 /**
@@ -91,7 +81,7 @@ function fmtPrintError($msg, bool $newLine = true)
 {
     if (is_array($msg)) {
         initConsoleStyleIo()->definitionList($msg);
-    }else {
+    } else {
         initConsoleStyleIo()->error($msg);
     }
 
@@ -104,7 +94,7 @@ function fmtPrintWarning($msg, bool $newLine = true)
 {
     if (is_array($msg)) {
         initConsoleStyleIo()->definitionList($msg);
-    }else {
+    } else {
         initConsoleStyleIo()->warning($msg);
     }
 
@@ -117,7 +107,7 @@ function fmtPrintNote($msg, bool $newLine = true)
 {
     if (is_array($msg)) {
         initConsoleStyleIo()->definitionList($msg);
-    }else {
+    } else {
         initConsoleStyleIo()->note($msg);
     }
 
