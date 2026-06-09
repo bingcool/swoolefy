@@ -16,6 +16,7 @@ use Swoolefy\Support\Nacos\LoadBalancer\RoundRobinLoadBalancer;
 use Swoolefy\Support\Nacos\LoadBalancer\WeightLoadBalancer;
 use Swoolefy\Support\Nacos\NacosConfig;
 use Swoolefy\Support\Nacos\NacosServiceConfig;
+use Swoolefy\Support\Nacos\ServiceConfig;
 use Swoolefy\Support\Nacos\ServiceRegister;
 
 /**
@@ -46,11 +47,12 @@ class NacosTest extends MainCliScript
     public function testNacos(): void
     {
         $nacosConfig = $this->loadNacosConfig();
-        $configFetcher = new ConfigFetcher($nacosConfig);
+        $serviceConfig = ServiceConfig::load();
+        $configFetcher = new ConfigFetcher($nacosConfig, $serviceConfig);
         $serviceRegistrar = ServiceRegister::create();
 
-        $dataId = $nacosConfig->dataId;
-        $group = $nacosConfig->group;
+        $dataId = $serviceConfig->dataId;
+        $group = $serviceConfig->group;
         $content = 'APP_NAME: Test';
 
         $configFetcher->set($content, $dataId, $group);

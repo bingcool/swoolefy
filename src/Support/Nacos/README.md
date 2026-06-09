@@ -11,7 +11,7 @@
 | 来源 | 内容 |
 |---|---|
 | 常量 `NACOS_FILE_PATH`（`cli.php` 可由环境变量 `NACOS_FILE_PATH` 注入，默认 `APP_PATH/nacos.yaml`） | Nacos **服务器连接** |
-| `APP_PATH/application.yaml` | **应用行为**：`service_register`、`discovery_service_client`、`monitor_config_change` |
+| `APP_PATH/application.yaml` | **应用行为**：`service_config`、`service_register`、`discovery_service_client`、`monitor_config_change` |
 
 配置优先级：**YAML 文件中的非空值 > 同名环境变量 > 代码默认值**。
 
@@ -36,9 +36,16 @@
 | `NACOS_USERNAME` | `nacos.username` | 登录用户名 | 空 |
 | `NACOS_PASSWORD` | `nacos.password` | 登录密码 | 空 |
 | `NACOS_AUTHORIZATION_BEARER` | `nacos.authorization_bearer` | 是否使用 Bearer 鉴权 | `false` |
-| `NACOS_DATA_ID` | `nacos.data_id` | 配置中心 dataId | `swoolefy.env` |
-| `NACOS_GROUP` | `nacos.group` | 配置中心 group | `DEFAULT_GROUP` |
-| `NACOS_TENANT` | `nacos.tenant` | 命名空间 tenant | 空 |
+
+### 配置中心（`application.yaml` → `nacos.service_config` → `ServiceConfig`）
+
+| YAML 键 | 说明 | 是否必填 |
+|:---|:---|:---|
+| `nacos.service_config.data_id` | 配置中心 dataId（按项目区分） | 是 |
+| `nacos.service_config.group` | 配置中心 group | 是 |
+| `nacos.service_config.tenant` | 命名空间 tenant | 否 |
+
+`data_id` 与 `group` 仅读取 `application.yaml`，不支持环境变量覆盖，且不能为空。
 
 ### 服务注册（`application.yaml` → `nacos.service_register` → `NacosServiceConfig`）
 
@@ -100,6 +107,12 @@ export NACOS_SERVICE_NAME=my-service
 ```php
 $config = NacosConfig::load();
 $client = $config->createClient();
+```
+
+## ServiceConfig
+
+```php
+$config = ServiceConfig::load();
 ```
 
 ## NacosServiceConfig

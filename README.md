@@ -339,8 +339,8 @@ docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v
 
     | 文件 | 说明 |
     |:---|:---|
-    | `APP_PATH/nacos.yaml` | Nacos **服务器连接**（host、port、data_id、username/password 等） |
-    | `APP_PATH/application.yaml` | **应用行为**：`service_register`、`discovery_service_client`、`monitor_config_change` |
+    | `APP_PATH/nacos.yaml` | Nacos **服务器连接**（host、port、username/password 等） |
+    | `APP_PATH/application.yaml` | **应用行为**：`service_config`、`service_register`、`discovery_service_client`、`monitor_config_change` |
 
     | 能力 | 说明 | 主要类                                                                                        |
     |:---|:---|:-------------------------------------------------------------------------------------------|
@@ -1619,8 +1619,8 @@ class UserCreateRequest extends BaseRequest
 
 | 文件 | 内容 |
 |:---|:---|
-| `APP_PATH/nacos.yaml` | Nacos 服务器连接（host、port、data_id、鉴权等） |
-| `APP_PATH/application.yaml` | `nacos.service_register`（本服务注册）、`discovery_service_client`（调用方发现）、`monitor_config_change`（配置监听） |
+| `APP_PATH/nacos.yaml` | Nacos 服务器连接（host、port、鉴权等） |
+| `APP_PATH/application.yaml` | `nacos.service_config`（配置中心 dataId）、`service_register`、`discovery_service_client`、`monitor_config_change` |
 
 #### 环境变量
 
@@ -1632,6 +1632,7 @@ class UserCreateRequest extends BaseRequest
 |:---|:------------------------------------------------------------|:---|
 | 全局 | `NACOS_FILE_PATH`                                           | `nacos.yaml` 路径 |
 | 连接 | `NACOS_HOST`、`NACOS_PORT`、`NACOS_USERNAME`、`NACOS_PASSWORD` | Nacos 服务器连接 |
+| 配置中心 | `application.yaml` → `nacos.service_config.data_id` / `group` | 项目配置 dataId（必填，不支持环境变量） |
 | 注册 | `NACOS_SERVICE_REGISTER_HOST`、`NACOS_SERVICE_REGISTER_PORT` | 本实例注册信息 |
 
 `application.yaml` 片段示例：
@@ -1639,6 +1640,10 @@ class UserCreateRequest extends BaseRequest
 ```yaml
 nacos:
   enable_nacos_register: true
+  service_config:
+    data_id: my-project.env
+    group: DEFAULT_GROUP
+    tenant: ''
   service_register:
     # 优先读取 NACOS_SERVICE_REGISTER_HOST 环境变量
     ip: 192.168.1.102

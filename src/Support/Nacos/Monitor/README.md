@@ -4,7 +4,7 @@
 
 1. 从 Nacos 拉取最新配置，写入 `APP_PATH/.env`
 2. 后台执行 `php cli.php restart {APP_NAME} --force=1`（`RestartCmd`，应用名/PHP/入口脚本从运行时常量读取）
-3. Nacos 服务器连接读 `APP_PATH/nacos.yaml`，监听项读 `APP_PATH/application.yaml` → `nacos.monitor_config_change`
+3. Nacos 服务器连接读 `APP_PATH/nacos.yaml`；配置中心 dataId 读 `application.yaml` → `nacos.service_config`；监听项读 `nacos.monitor_config_change`
 
 ## 使用
 

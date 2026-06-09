@@ -25,9 +25,6 @@ final class NacosConfig
         public readonly string $username,
         public readonly string $password,
         public readonly bool $authorizationBearer,
-        public readonly string $dataId,
-        public readonly string $group,
-        public readonly string $tenant,
     ) {
     }
 
@@ -44,9 +41,6 @@ final class NacosConfig
             username: self::pickString($nacos, 'username', 'NACOS_USERNAME', ''),
             password: self::pickString($nacos, 'password', 'NACOS_PASSWORD', ''),
             authorizationBearer: self::pickBool($nacos, 'authorization_bearer', 'NACOS_AUTHORIZATION_BEARER', false),
-            dataId: self::pickString($nacos, 'data_id', 'NACOS_DATA_ID', 'swoolefy.env'),
-            group: self::pickString($nacos, 'group', 'NACOS_GROUP', 'DEFAULT_GROUP'),
-            tenant: self::pickString($nacos, 'tenant', 'NACOS_TENANT', ''),
         );
     }
 

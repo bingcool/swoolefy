@@ -36,9 +36,10 @@ final class NacosFactory
 
         $envFile = ApplicationConfig::resolveAppPath() . '/.env';
         $nacosConfig = NacosConfig::load();
+        $serviceConfig = ServiceConfig::load();
 
         try {
-            $content = self::fetchConfigFromNacos($nacosConfig);
+            $content = self::fetchConfigFromNacos($nacosConfig, $serviceConfig);
         } catch (RequestException|\Throwable $e) {
             throw NacosMonitorException::throw('Nacos config fetch failed: ' . $e->getMessage(), 0, [], $e);
         }
@@ -52,7 +53,7 @@ final class NacosFactory
     /**
      * 使用 Guzzle 调用 Nacos Open API 拉取配置正文。
      */
-    private static function fetchConfigFromNacos(NacosConfig $config): string
+    private static function fetchConfigFromNacos(NacosConfig $config, ServiceConfig $serviceConfig): string
     {
         $client = new GuzzleClient([
             'base_uri' => sprintf('http://%s:%d/', $config->host, $config->port),
@@ -65,9 +66,9 @@ final class NacosFactory
         ]);
 
         $query = [
-            'dataId' => $config->dataId,
-            'group' => $config->group,
-            'tenant' => $config->tenant,
+            'dataId' => $serviceConfig->dataId,
+            'group' => $serviceConfig->group,
+            'tenant' => $serviceConfig->tenant,
         ];
 
         $headers = [];
@@ -97,8 +98,8 @@ final class NacosFactory
         if ('' === trim($body)) {
             throw NacosMonitorException::throw(sprintf(
                 'Nacos config content is empty: dataId=%s, group=%s',
-                $config->dataId,
-                $config->group,
+                $serviceConfig->dataId,
+                $serviceConfig->group,
             ));
         }
 
