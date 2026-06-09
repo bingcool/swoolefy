@@ -5,6 +5,3 @@ nacos:
   username: ''
   password: ''
   authorization_bearer: false
-  data_id: swoolefy.env
-  group: DEFAULT_GROUP
-  tenant: ''

@@ -29,8 +29,8 @@ final class ConfigWatcher
         $this->logger->info(sprintf(
             'watcher started, pid=%d, dataId=%s, group=%s, env=%s, yaml=%s',
             getmypid(),
-            $this->config->nacos->dataId,
-            $this->config->nacos->group,
+            $this->config->serviceConfig->dataId,
+            $this->config->serviceConfig->group,
             $this->config->envFile,
             $this->config->nacos->nacosFilePath,
         ));
@@ -46,9 +46,9 @@ final class ConfigWatcher
         $armed = false;
 
         $listener->addListener(
-            $this->config->nacos->dataId,
-            $this->config->nacos->group,
-            $this->config->nacos->tenant,
+            $this->config->serviceConfig->dataId,
+            $this->config->serviceConfig->group,
+            $this->config->serviceConfig->tenant,
             function (ConfigListener $configListener, string $dataId, string $group, string $tenant) use (&$armed): void {
                 unset($configListener, $dataId, $group, $tenant);
                 if (!$armed) {

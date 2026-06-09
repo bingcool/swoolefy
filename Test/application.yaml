@@ -2,6 +2,11 @@
 nacos:
   # 是否启用 Nacos 注册
   enable_nacos_register: true
+  # Nacos 配置中心 dataId / group / tenant（按项目区分，与 nacos.yaml 连接配置分离）
+  service_config:
+    data_id: swoolefy.env
+    group: DEFAULT_GROUP
+    tenant: ''
   # 本服务器信息注册到 Nacos
   service_register:
     # 优先读取 NACOS_SERVICE_REGISTER_HOST 环境变量

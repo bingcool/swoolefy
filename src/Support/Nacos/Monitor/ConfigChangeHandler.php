@@ -31,7 +31,7 @@ final class ConfigChangeHandler
         $this->logger = NacosLogger::get();
         $this->configFileWriter = $configFileWriter ?? new ConfigFileWriter($this->logger);
         $this->restarter = $restarter ?? new ServiceRestarter($this->logger);
-        $this->configFetcher = $configFetcher ?? new ConfigFetcher($config->nacos);
+        $this->configFetcher = $configFetcher ?? new ConfigFetcher($config->nacosConfig, $config->serviceConfig);
     }
 
     public function handle(): void
@@ -51,8 +51,8 @@ final class ConfigChangeHandler
         try {
             $this->logger->info(sprintf(
                 'config changed, dataId=%s, group=%s',
-                $this->config->nacos->dataId,
-                $this->config->nacos->group,
+                $this->config->serviceConfig->dataId,
+                $this->config->serviceConfig->group,
             ));
 
             $content = $this->configFetcher->get();
