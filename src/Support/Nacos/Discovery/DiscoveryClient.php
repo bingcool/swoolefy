@@ -46,16 +46,15 @@ final class DiscoveryClient
     }
 
     public static function create(
-        ?string $serviceName = null,
+        string $serviceName,
         ?NacosConfig $nacosConfig = null,
         ?DiscoveryConfig $discoveryConfig = null,
         ?LoadBalancerInterface $loadBalancer = null,
     ): self {
         $nacosConfig ??= NacosConfig::load();
         $discoveryConfig ??= DiscoveryConfig::load();
-        $serviceName ??= $discoveryConfig->defaultServiceName;
 
-        if ('' === $serviceName) {
+        if ($serviceName === '') {
             throw NacosDiscoveryException::throw('discovery service_name is not configured');
         }
 

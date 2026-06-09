@@ -55,7 +55,7 @@ class EventCtrl implements EventCtrlInterface
         if (!SystemEnv::isScriptService()) {
             $this->registerStartLog();
         }
-        if(!SystemEnv::isWorkerService()) {
+        if (!SystemEnv::isWorkerService()) {
             if (BaseServer::isEnableSysCollector()) {
                 ProcessManager::getInstance()->addProcess('swoolefy_system_collector', \Swoolefy\Core\SysCollector\SysProcess::class);
             }
@@ -65,7 +65,7 @@ class EventCtrl implements EventCtrlInterface
             if (ApplicationConfig::isEnableNacosRegister()) {
                 ProcessManager::getInstance()->addProcess('swoolefy_nacos_register', \Swoolefy\Support\Nacos\NacosRegisterServiceProcess::class);
             }
-        }else {
+        } else {
             static::onWorkerServiceInit();
             $this->boostrapWorkerInit();
         }
@@ -91,7 +91,7 @@ class EventCtrl implements EventCtrlInterface
         if (SystemEnv::isDaemonService() || SystemEnv::isCronService()) {
             $processClass = $processClassMap[APP_NAME];
             ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, $processClass, true,  [],null, false);
-        }else if (SystemEnv::isScriptService()) {
+        } else if (SystemEnv::isScriptService()) {
             try {
                 $class = \Swoolefy\Script\MainCliScript::parseClass();
             }catch (\Throwable $throwable) {
@@ -99,7 +99,7 @@ class EventCtrl implements EventCtrlInterface
                 exit(0);
             }
             ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, $class);
-        }else {
+        } else {
             fmtPrintError('Error Service Type');
             exit(0);
         }
@@ -124,11 +124,11 @@ class EventCtrl implements EventCtrlInterface
             }
             if (SystemEnv::isDaemonService()) {
                 $sqlLogName = 'sql_daemon.log';
-            }else if (SystemEnv::isCronService()) {
+            } else if (SystemEnv::isCronService()) {
                 $sqlLogName = 'sql_cron.log';
-            }else if (SystemEnv::isScriptService()) {
+            } else if (SystemEnv::isScriptService()) {
                 $sqlLogName = 'sql_script.log';
-            }else {
+            } else {
                 $sqlLogName = 'sql_cli.log';
             }
             $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.$sqlLogName;

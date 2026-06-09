@@ -24,7 +24,7 @@ registerNamespace(APP_PATH);
 define('APP_META_ARR', [
     'App' => [
         'protocol' => 'http',
-        'worker_port' => get_one_free_port([9501, 9602, 9603]),
+        'worker_port' => getOneFreePort([9501, 9602, 9603]),
     ]
     // todo
 ]);

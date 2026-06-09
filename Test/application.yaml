@@ -10,23 +10,21 @@ nacos:
     # port: 9501
     service_name: my-service
     heartbeat_interval: 10   # 心跳间隔（秒）
-    namespace_id: ''
-    group_name: ''
+    namespace_id: 'public'
+    group_name: 'pwa_group'
     weight: 1
     ephemeral: true
 
   # 客户端的服务发现配置
   discovery_service_client:
-    service_name: ''
     load_balancer: random   # random | round_robin | weight
     cache_ttl: 60
     healthy_only: true
-    group_name: ''
-    namespace_id: ''
+    namespace_id: 'public'
+    group_name: 'pwa_group'
 
   # 监控配置变化
+  enable_nacos_config_change_restart: true
   monitor_config_change:
-    env_file: ''
-    lock_file: ''
     listener_timeout_ms: 30000
     failed_wait_ms: 3000

@@ -61,9 +61,9 @@ class Parallel
      * @param callable $callable
      * @param string $key
      */
-    public function add(callable $callable, string $key = null)
+    public function add(callable $callable, ?string $key = null)
     {
-        if (null === $key) {
+        if (is_null($key)) {
             $this->callbacks[] = $callable;
         } else {
             $this->callbacks[$key] = $callable;

@@ -28,6 +28,8 @@ ProcessManager::getInstance()->addProcess(
 
 复制 `Test/nacos.yaml` 与 `Test/application.yaml` 到各应用 `APP_PATH` 并按环境修改。
 
+环境变量说明见 [../README.md#env-vars](../README.md#env-vars)。
+
 ## 日志
 
 使用 `LogManager::getInstance()->getLogger('nacos_log')`，默认写入 `LOG_PATH/nacos/nacos.log`（见应用 `Config/component/log.php`）。

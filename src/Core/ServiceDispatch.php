@@ -268,9 +268,9 @@ class ServiceDispatch extends AppDispatch
         }
 
         $routerHandleMiddleware = $endPointMap[$endPoint];
-        if(!isset($routerHandleMiddleware['dispatch_route'])) {
+        if (!isset($routerHandleMiddleware['dispatch_route'])) {
             throw new DispatchException('Missing dispatch_route option key');
-        }else {
+        } else {
             $dispatchRoute = $routerHandleMiddleware['dispatch_route'];
         }
 
@@ -281,7 +281,7 @@ class ServiceDispatch extends AppDispatch
                     foreach ($handle as $handleItem) {
                         $beforeMiddleware[] = $handleItem;
                     }
-                }else {
+                } else {
                     $beforeMiddleware[] = $handle;
                 }
                 unset($routerHandleMiddleware[$alias]);
@@ -297,7 +297,7 @@ class ServiceDispatch extends AppDispatch
                 foreach ($afterMiddlewareItem as $afterMiddlewareEvery) {
                     $afterMiddleware[] = $afterMiddlewareEvery;
                 }
-            }else {
+            } else {
                 $afterMiddleware[] = $afterMiddlewareItem;
             }
         }
@@ -327,7 +327,7 @@ class ServiceDispatch extends AppDispatch
                 if ($result === false) {
                     throw new DispatchException('beforeHandle route middle return false, Not Allow Coroutine To Next Middle');
                 }
-            }else if (is_string($middleware) && class_exists($middleware)) {
+            } else if (is_string($middleware) && class_exists($middleware)) {
                 $middlewareEntity = new $middleware();
                 if ($middlewareEntity instanceof DispatchMiddle) {
                     $middlewareEntity->handle($this->params);

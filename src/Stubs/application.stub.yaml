@@ -25,6 +25,7 @@ nacos:
     namespace_id: ''
 
   # 监控配置变化
+  enable_nacos_config_change_restart: true
   monitor_config_change:
     env_file: ''
     lock_file: ''

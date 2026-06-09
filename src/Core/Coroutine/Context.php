@@ -68,7 +68,7 @@ class Context
      * @param string $name
      * @return bool
      */
-    public static function delete(string $name)
+    public static function delete(string $name): bool
     {
         $context = self::getContext();
         unset($context[$name]);
