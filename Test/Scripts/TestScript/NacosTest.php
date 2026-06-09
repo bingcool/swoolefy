@@ -15,7 +15,7 @@ use Swoolefy\Support\Nacos\LoadBalancer\RandomLoadBalancer;
 use Swoolefy\Support\Nacos\LoadBalancer\RoundRobinLoadBalancer;
 use Swoolefy\Support\Nacos\LoadBalancer\WeightLoadBalancer;
 use Swoolefy\Support\Nacos\NacosConfig;
-use Swoolefy\Support\Nacos\NacosServiceConfig;
+use Swoolefy\Support\Nacos\NacosServiceRegisterConfig;
 use Swoolefy\Support\Nacos\ServiceConfig;
 use Swoolefy\Support\Nacos\ServiceRegister;
 
@@ -115,7 +115,7 @@ class NacosTest extends MainCliScript
      */
     private function resolveServiceRegisterParams(NacosConfig $nacosConfig): array
     {
-        $serviceConfig = NacosServiceConfig::load();
+        $serviceConfig = NacosServiceRegisterConfig::load();
         $ip = '' !== $serviceConfig->ip ? $serviceConfig->ip : '192.168.1.103';
         $port = $serviceConfig->port > 0 ? $serviceConfig->port : 9501;
         $name = '' !== $serviceConfig->serviceName ? $serviceConfig->serviceName : 'my-service';

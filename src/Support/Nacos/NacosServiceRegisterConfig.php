@@ -9,7 +9,7 @@ use Swoolefy\Support\ApplicationConfig;
 /**
  * 本机 Nacos 服务注册配置（APP_PATH/application.yaml → nacos.service_register）。
  */
-final class NacosServiceConfig
+final class NacosServiceRegisterConfig
 {
     public function __construct(
         public readonly string $appPath,

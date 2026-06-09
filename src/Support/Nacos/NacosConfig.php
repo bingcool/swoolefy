@@ -14,7 +14,7 @@ use Symfony\Component\Yaml\Yaml;
  * 读取 nacos.yaml（Nacos 服务器连接）
  *
  * 路径由常量 NACOS_FILE_PATH 指定（cli.php 可从环境变量注入）；未设置时回退为 APP_PATH/nacos.yaml。
- * application.yaml 由 ApplicationConfig / NacosServiceConfig 通过 APP_PATH 读取。
+ * application.yaml 由 ApplicationConfig / NacosServiceRegisterConfig 通过 APP_PATH 读取。
  */
 final class NacosConfig
 {
