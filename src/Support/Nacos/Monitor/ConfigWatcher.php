@@ -32,10 +32,10 @@ final class ConfigWatcher
             $this->config->serviceConfig->dataId,
             $this->config->serviceConfig->group,
             $this->config->envFile,
-            $this->config->nacos->nacosFilePath,
+            $this->config->nacosConfig->nacosFilePath,
         ));
 
-        $client = ConfigChangeHandler::createClient($this->config->nacos);
+        $client = ConfigChangeHandler::createClient($this->config->nacosConfig);
 
         $listenerConfig = new ListenerConfig([
             'timeout' => $this->config->listenerTimeoutMs,

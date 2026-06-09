@@ -73,8 +73,8 @@ final class ConfigChangeHandler
         }
     }
 
-    public static function createClient(NacosConfig $config): Client
+    public static function createClient(NacosConfig $nacosConfig): Client
     {
-        return $config->createClient();
+        return $nacosConfig->createClient();
     }
 }
