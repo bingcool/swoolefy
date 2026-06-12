@@ -23,11 +23,11 @@ class NacosRegisterServiceProcess extends AbstractProcess
 
     public function run(): void
     {
-        $serviceConfig = NacosServiceRegisterConfig::load();
         $logger = NacosLogger::get();
+        $servicRegistereConfig = NacosServiceRegisterConfig::load();
 
-        $ip = $this->resolveRegisterIp($serviceConfig, $logger);
-        $port = $this->resolveRegisterPort($serviceConfig, $logger);
+        $ip = $this->resolveRegisterIp($servicRegistereConfig, $logger);
+        $port = $this->resolveRegisterPort($servicRegistereConfig, $logger);
 
         if ($port <= 0) {
             throw NacosMonitorException::throw(
@@ -41,14 +41,14 @@ class NacosRegisterServiceProcess extends AbstractProcess
         $this->registrar->register(
             ip: $ip,
             port: $port,
-            heartbeatInterval: $serviceConfig->heartbeatInterval,
+            heartbeatInterval: $servicRegistereConfig->heartbeatInterval,
         );
 
         $logger->info(sprintf(
             'nacos service register process running, %s:%d, heartbeat=%ds',
             $ip,
             $port,
-            $serviceConfig->heartbeatInterval,
+            $servicRegistereConfig->heartbeatInterval,
         ));
     }
 

@@ -44,7 +44,7 @@ class Timer
                 if ($withBlockLapping) {
                     try {
                         $callable($timeChannel);
-                    }catch (\Throwable $throwable) {
+                    } catch (\Throwable $throwable) {
                         \Swoolefy\Core\BaseServer::catchException($throwable);
                     } finally {
                         $App = Application::getApp();
@@ -52,7 +52,7 @@ class Timer
                             Application::getApp()->clearComponent();
                         }
                     }
-                }else {
+                } else {
                     // no block
                     goApp(function () use($timeChannel, $callable) {
                         $callable($timeChannel);
