@@ -23,9 +23,10 @@
 
 ### 全局
 
-| 环境变量 | 对应配置 | 说明 | 默认值 |
-|:---|:---|:---|:---|
-| `NACOS_FILE_PATH` | — | `nacos.yaml` 完整路径，在 `cli.php` 中注入为常量 | `APP_PATH/nacos.yaml` |
+| 环境变量 | 对应配置 | 说明                                                                        | 默认值                                |
+|:---|:---|:--------------------------------------------------------------------------|:-----------------------------------|
+| `NACOS_FILE_PATH` | — | `nacos.yaml` 完整路径，在 `cli.php` 中注入为常量                                      | `APP_PATH/nacos.yaml`              |
+| `LOCAL_NACOS_SERVICE_AUTO_SWITCH` | — | `本地开发环境启用，可以自动切换到dev已部署服务，方便调用各个服务调试，无需都在本地启用依赖的服务。注意：本地环境要能访问dev服务注册的IP` | LOCAL_NACOS_SERVICE_AUTO_SWITCH=1  |
 
 ### 服务器连接（`nacos.yaml` → `NacosConfig`）
 

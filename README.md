@@ -1665,6 +1665,26 @@ nacos:
     listener_timeout_ms: 30000
 ```
 
+#### 开发环境
+
+本地与 dev 共用同一份 `.env`（数据库等配置相同），连接同一套 Nacos；区别在于**注册 IP** 与**分组**：本机服务注册到个人调试分组，dev 已部署服务注册在 `application.yaml` 中配置的 `group_name`（如 `frame_group`）。
+
+在本地开发环境设置环境变量，方便本地各个服务注册到个人分组与调试，互不影响：
+
+```bash
+export NACOS_SERVICE_REGISTER_HOST="127.0.0.1"
+export NACOS_SERVICE_GROUP_NAME="bingcool"
+export LOCAL_NACOS_SERVICE_AUTO_SWITCH=1
+```
+
+| 环境变量 | 说明                                                                                                                                                        |
+|:---|:----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `NACOS_SERVICE_REGISTER_HOST` | 本机注册到 Nacos 的 IP。本地开发设为 `127.0.0.1`，避免把内网 IP 注册出去                                                                                                         |
+| `NACOS_SERVICE_GROUP_NAME` | 本机注册与发现使用的分组（如个人名 `bingcool`），与 dev 环境部署的分组隔离，互不影响                                                                                                        |
+| `LOCAL_NACOS_SERVICE_AUTO_SWITCH` | 设为 `1` 时，SDK 调用依赖服务：先在当前分组（如 `bingcool`）查找实例；若无可用实例，自动回退到 `application.yaml` → `nacos.service_register.group_name`（frame_group 分组）中已部署的服务，便于本地只启动部分服务即可联调 |
+
+典型场景：本地启动 `order-service` 开发订单功能，需调用 `product-service`；本地未启动 `product-service` 时，SDK 会自动切到 dev 开发环境中已部署的 `product-service` 实例。**注意：本地网络需能访问 dev 部署实例注册的 IP。**
+
 #### 配置变更监听（自动重启）
 
 1. 长轮询 Nacos 配置变更  
