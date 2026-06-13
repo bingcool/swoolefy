@@ -36,7 +36,7 @@ final class ServiceConfig
         return new self(
             dataId: $dataId,
             group: $group,
-            tenant: ApplicationConfig::pickString($section, 'tenant', 'NACOS_TENANT', ''),
+            tenant: ApplicationConfig::pickString($section, 'tenant', NacosConst::ENV_NACOS_TENANT, ''),
         );
     }
 }

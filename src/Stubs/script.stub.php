@@ -57,8 +57,9 @@ define('WORKER_TO_CLI_PIPE',WORKER_PID_FILE_ROOT.'/ctl.pipe');
 // script 为空即可
 define('PROCESS_CLASS', []);
 
-// nacos.yaml 完整路径（环境变量 NACOS_FILE_PATH 可覆盖，默认 APP_PATH/nacos.yaml）
-//$nacosFilePath = getenv('NACOS_FILE_PATH');
+// nacos.yaml 完整路径（环境变量 NacosConst::ENV_FILE_PATH 可覆盖，默认 APP_PATH/nacos.yaml）
+//use Swoolefy\Support\Nacos\NacosConst;
+//$nacosFilePath = getenv(NacosConst::ENV_FILE_PATH);
 //define('NACOS_FILE_PATH', (false !== $nacosFilePath && '' !== $nacosFilePath) ? $nacosFilePath : APP_PATH. '/nacos.yaml');
 
 // 当使用nacos管理配置时，启动获取最新配置保存到.env

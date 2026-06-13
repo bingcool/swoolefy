@@ -31,48 +31,22 @@ final class NacosServiceRegisterConfig
 
         return new self(
             appPath: $appPath,
-            ip: ApplicationConfig::pickStringEnvFirst($section, 'ip', 'NACOS_SERVICE_REGISTER_HOST', ''),
-            port: (int) ApplicationConfig::pickStringEnvFirst($section, 'port', 'NACOS_SERVICE_REGISTER_PORT', '0'),
-            serviceName: ApplicationConfig::pickStringEnvFirst($section, 'service_name', 'NACOS_SERVICE_NAME', ''),
-            namespaceId: ApplicationConfig::pickStringEnvFirst($section, 'namespace_id', 'NACOS_SERVICE_NAMESPACE_ID', ''),
-            groupName: ApplicationConfig::pickStringEnvFirst($section, 'group_name', 'NACOS_SERVICE_GROUP_NAME', ''),
-            weight: (float) ApplicationConfig::pickStringEnvFirst($section, 'weight', 'NACOS_SERVICE_WEIGHT', '1'),
+            ip: ApplicationConfig::pickStringEnvFirst($section, 'ip', NacosConst::ENV_SERVICE_REGISTER_HOST, ''),
+            port: (int) ApplicationConfig::pickStringEnvFirst($section, 'port', NacosConst::ENV_SERVICE_REGISTER_PORT, '0'),
+            serviceName: self::getServiceName($section, 'service_name'),
+            namespaceId: ApplicationConfig::pickStringEnvFirst($section, 'namespace_id', NacosConst::ENV_SERVICE_NAMESPACE_ID, ''),
+            groupName: ApplicationConfig::pickStringEnvFirst($section, 'group_name', NacosConst::ENV_SERVICE_GROUP_NAME, ''),
+            weight: (float) ApplicationConfig::pickStringEnvFirst($section, 'weight', NacosConst::ENV_SERVICE_WEIGHT, '1'),
             ephemeral: true,
-            heartbeatInterval: (int) ApplicationConfig::pickStringEnvFirst($section, 'heartbeat_interval', 'NACOS_SERVICE_HEARTBEAT_INTERVAL', '10'),
+            heartbeatInterval: (int) ApplicationConfig::pickStringEnvFirst($section, 'heartbeat_interval', NacosConst::ENV_SERVICE_HEARTBEAT_INTERVAL, '10'),
         );
     }
 
-    /**
-     * 优先环境变量 → yaml配置 → 默认值
-     */
-    private static function pickEnvFirst(array $yaml, string $yamlKey, string $envKey, string $default): string
+    protected static function getServiceName($yaml, $yamlKey): string
     {
-        $env = getenv($envKey);
-        if (false !== $env && '' !== $env) {
-            return (string) $env;
-        }
-
         if (array_key_exists($yamlKey, $yaml) && '' !== (string) $yaml[$yamlKey]) {
-            return (string) $yaml[$yamlKey];
+            return (string)$yaml[$yamlKey] ?? '';
         }
-
-        return $default;
-    }
-
-    /**
-     * 优先环境变量 → yaml配置 → 默认值（布尔类型）
-     */
-    private static function pickEnvFirstBool(array $yaml, string $yamlKey, string $envKey, bool $default): bool
-    {
-        $env = getenv($envKey);
-        if (false !== $env) {
-            return filter_var($env, FILTER_VALIDATE_BOOLEAN);
-        }
-
-        if (array_key_exists($yamlKey, $yaml)) {
-            return filter_var($yaml[$yamlKey], FILTER_VALIDATE_BOOLEAN);
-        }
-
-        return $default;
+        throw new \InvalidArgumentException("Invalid nacos.service_register.service_name");
     }
 }

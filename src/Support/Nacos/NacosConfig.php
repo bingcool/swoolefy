@@ -36,11 +36,11 @@ final class NacosConfig
 
         return new self(
             nacosFilePath: $nacosFilePath,
-            host: self::pickString($nacos, 'host', 'NACOS_HOST', '127.0.0.1'),
-            port: self::pickInt($nacos, 'port', 'NACOS_PORT', 8848),
-            username: self::pickString($nacos, 'username', 'NACOS_USERNAME', ''),
-            password: self::pickString($nacos, 'password', 'NACOS_PASSWORD', ''),
-            authorizationBearer: self::pickBool($nacos, 'authorization_bearer', 'NACOS_AUTHORIZATION_BEARER', false),
+            host: self::pickString($nacos, 'host', NacosConst::ENV_NACOS_HOST, '127.0.0.1'),
+            port: self::pickInt($nacos, 'port', NacosConst::ENV_NACOS_PORT, 8848),
+            username: self::pickString($nacos, 'username', NacosConst::ENV_NACOS_USERNAME, ''),
+            password: self::pickString($nacos, 'password', NacosConst::ENV_NACOS_PASSWORD, ''),
+            authorizationBearer: self::pickBool($nacos, 'authorization_bearer', NacosConst::ENV_NACOS_AUTHORIZATION_BEARER, false),
         );
     }
 
