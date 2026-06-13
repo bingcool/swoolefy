@@ -757,6 +757,12 @@ final class SdkNacosServiceDiscovery
                         $serviceName,
                         self::discoveryConfigWithGroup($discoveryConfig, $fallbackGroup),
                     );
+                    
+                    if ($uri && function_exists('fmtPrintNote')) {
+                        fmtPrintNote(sprintf("调用nacos注册的服务【%s】自动切换到其开发环境调用uri=%s", $serviceName, $uri));
+                    } else if(empty($uri)) {
+                        fmtPrintNote(sprintf("调用nacos注册的服务【%s】自动切换到其开发环境, 无法获取其host+ip", $serviceName));
+                    }
                 }
             }
         } catch (NacosDiscoveryException $e) {

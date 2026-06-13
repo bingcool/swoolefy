@@ -18,6 +18,7 @@ use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
 use Swoolefy\Core\Process\ProcessManager;
 use Swoolefy\Support\ApplicationConfig;
+use Swoolefy\Support\Nacos\NacosServiceRegisterConfig;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Helper\TableStyle;
 use Symfony\Component\Console\Output\ConsoleOutput;
@@ -457,25 +458,35 @@ class EventCtrl implements EventCtrlInterface
             $ipList = json_encode([]);
         }
         $hostname                = gethostname();
+        $nacosRegisterServiceName = '无';
+        $nacosRegisterGroupName = '无';
+        try {
+            $serviceRegisterConfig = NacosServiceRegisterConfig::load();
+            $nacosRegisterServiceName = $serviceRegisterConfig->serviceName;
+            $nacosRegisterGroupName = $serviceRegisterConfig->groupName;
+        } catch (\Throwable) {
+        }
 
         $consoleStyleIo = initConsoleStyleIo();
         $line = str_repeat('-', 50);
         $consoleStyleIo->write("<info>$line</info>", true);
         $consoleStyleIo->write("<info>Main Info:</info>");
         $consoleStyleIo->write("<info>
-    {$mainName}         {$mainServer}
-    swoolefy envirment  {$swoolefyEnv}
-    daemonize           {$daemonize}
-    listen address      {$listenHost}
-    listen port         {$listenPort}
-    worker num          {$workerNum}
-    task worker num     {$taskWorkerNum}
-    cpu num             {$cpuNum}
-    swoole version      {$swooleVersion}
-    php version         {$phpVersion}
-    swoolefy version    {$swoolefyVersion}
-    ip_list             {$ipList}
-    hostname            {$hostname}
+    {$mainName}                 {$mainServer}
+    swoolefy envirment          {$swoolefyEnv}
+    daemonize                   {$daemonize}
+    listen address              {$listenHost}
+    listen port                 {$listenPort}
+    worker num                  {$workerNum}
+    task worker num             {$taskWorkerNum}
+    cpu num                     {$cpuNum}
+    swoole version              {$swooleVersion}
+    php version                 {$phpVersion}
+    swoolefy version            {$swoolefyVersion}
+    ip_list                     {$ipList}
+    hostname                    {$hostname}
+    nacos_register_service_name: {$nacosRegisterServiceName}
+    nacos_register_group_name:   {$nacosRegisterGroupName}
     tips                执行 php cli.php help 可以查看更多信息
 </info>");
 

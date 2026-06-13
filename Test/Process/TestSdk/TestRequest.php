@@ -28,12 +28,16 @@ class TestRequest extends AbstractProcess
 {
     public function run()
     {
-        goAfter(3000, function (){
-            $this->testPageRequest();
-        });
+//        goAfter(3000, function (){
+//            $this->testPageRequest();
+//        });
+//
+//        goTick(5000, function (){
+//            $this->requestTest();
+//        });
 
         goTick(5000, function (){
-            $this->requestTest();
+            $this->requestTest2();
         });
         //$this->responseTest();
     }
@@ -91,6 +95,13 @@ class TestRequest extends AbstractProcess
         $LogOrderApi = LogOrderApi::makeService();
         $response = $LogOrderApi->testRequest1("bingcool", [123,345]);
         var_dump($response->toDeepArray());
+    }
+
+    protected function requestTest2()
+    {
+        $indexApi = \GenerateSdk\Swoolefy\App\Client\IndexApi::makeService();
+        $response = $indexApi->index1();
+        var_dump($response);
     }
 
     protected function testPageRequest()
