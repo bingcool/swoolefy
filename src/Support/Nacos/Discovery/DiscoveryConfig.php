@@ -34,12 +34,14 @@ final class DiscoveryConfig
         $applicationConfig ??= ApplicationConfig::load();
         $discovery = $applicationConfig->nacosSection('discovery_service_client');
 
-        $groupName = ApplicationConfig::pickString($discovery, 'group_name', 'NACOS_DISCOVERY_GROUP_NAME', '');
+        // 优先取NACOS_DISCOVERY_GROUP_NAME值
+        $groupName = ApplicationConfig::pickStringEnvFirst($discovery, 'group_name', 'NACOS_SERVICE_GROUP_NAME', '');
         if ('' === $groupName) {
             $groupName = $serviceRegisterConfig->groupName;
         }
 
-        $namespaceId = ApplicationConfig::pickString($discovery, 'namespace_id', 'NACOS_DISCOVERY_NAMESPACE_ID', '');
+        // 优先取NACOS_DISCOVERY_NAMESPACE_ID值
+        $namespaceId = ApplicationConfig::pickStringEnvFirst($discovery, 'namespace_id', 'NACOS_SERVICE_NAMESPACE_ID', '');
         if ('' === $namespaceId) {
             $namespaceId = $serviceRegisterConfig->namespaceId;
         }

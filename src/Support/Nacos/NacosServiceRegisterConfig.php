@@ -31,14 +31,14 @@ final class NacosServiceRegisterConfig
 
         return new self(
             appPath: $appPath,
-            ip: self::pickEnvFirst($section, 'ip', 'NACOS_SERVICE_REGISTER_HOST', ''),
-            port: (int) self::pickEnvFirst($section, 'port', 'NACOS_SERVICE_REGISTER_PORT', '0'),
-            serviceName: self::pickEnvFirst($section, 'service_name', 'NACOS_SERVICE_NAME', ''),
-            namespaceId: self::pickEnvFirst($section, 'namespace_id', 'NACOS_SERVICE_NAMESPACE_ID', ''),
-            groupName: self::pickEnvFirst($section, 'group_name', 'NACOS_SERVICE_GROUP_NAME', ''),
-            weight: (float) self::pickEnvFirst($section, 'weight', 'NACOS_SERVICE_WEIGHT', '1'),
-            ephemeral: self::pickEnvFirstBool($section, 'ephemeral', 'NACOS_SERVICE_EPHEMERAL', true),
-            heartbeatInterval: (int) self::pickEnvFirst($section, 'heartbeat_interval', 'NACOS_SERVICE_HEARTBEAT_INTERVAL', '10'),
+            ip: ApplicationConfig::pickStringEnvFirst($section, 'ip', 'NACOS_SERVICE_REGISTER_HOST', ''),
+            port: (int) ApplicationConfig::pickStringEnvFirst($section, 'port', 'NACOS_SERVICE_REGISTER_PORT', '0'),
+            serviceName: ApplicationConfig::pickStringEnvFirst($section, 'service_name', 'NACOS_SERVICE_NAME', ''),
+            namespaceId: ApplicationConfig::pickStringEnvFirst($section, 'namespace_id', 'NACOS_SERVICE_NAMESPACE_ID', ''),
+            groupName: ApplicationConfig::pickStringEnvFirst($section, 'group_name', 'NACOS_SERVICE_GROUP_NAME', ''),
+            weight: (float) ApplicationConfig::pickStringEnvFirst($section, 'weight', 'NACOS_SERVICE_WEIGHT', '1'),
+            ephemeral: true,
+            heartbeatInterval: (int) ApplicationConfig::pickStringEnvFirst($section, 'heartbeat_interval', 'NACOS_SERVICE_HEARTBEAT_INTERVAL', '10'),
         );
     }
 

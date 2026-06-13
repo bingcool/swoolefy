@@ -96,6 +96,20 @@ final class ApplicationConfig
         return $default;
     }
 
+    public static function pickStringEnvFirst(array $yaml, string $yamlKey, string $envKey, string $default): string
+    {
+        $env = getenv($envKey);
+        if (false !== $env && '' !== $env) {
+            return (string) $env;
+        }
+
+        if (array_key_exists($yamlKey, $yaml) && '' !== (string) $yaml[$yamlKey]) {
+            return (string) $yaml[$yamlKey];
+        }
+
+        return $default;
+    }
+
     public static function pickInt(array $yaml, string $yamlKey, string $envKey, int $default): int
     {
         if (array_key_exists($yamlKey, $yaml) && is_numeric($yaml[$yamlKey])) {
@@ -110,6 +124,20 @@ final class ApplicationConfig
         return $default;
     }
 
+    public static function pickIntEnvFirst(array $yaml, string $yamlKey, string $envKey, int $default): int
+    {
+        $env = getenv($envKey);
+        if (false !== $env && is_numeric($env)) {
+            return (int) $env;
+        }
+
+        if (array_key_exists($yamlKey, $yaml) && is_numeric($yaml[$yamlKey])) {
+            return (int) $yaml[$yamlKey];
+        }
+
+        return $default;
+    }
+
     public static function pickBool(array $yaml, string $yamlKey, string $envKey, bool $default): bool
     {
         if (array_key_exists($yamlKey, $yaml)) {
@@ -119,6 +147,20 @@ final class ApplicationConfig
         $env = getenv($envKey);
         if (false !== $env) {
             return filter_var($env, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return $default;
+    }
+
+    public static function pickBoolEnvFirst(array $yaml, string $yamlKey, string $envKey, bool $default): bool
+    {
+        $env = getenv($envKey);
+        if (false !== $env) {
+            return filter_var($env, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        if (array_key_exists($yamlKey, $yaml)) {
+            return filter_var($yaml[$yamlKey], FILTER_VALIDATE_BOOLEAN);
         }
 
         return $default;
