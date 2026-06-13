@@ -6,6 +6,7 @@ namespace Swoolefy\Support\Nacos\Monitor;
 
 use Swoolefy\Support\ApplicationConfig;
 use Swoolefy\Support\Nacos\NacosConfig;
+use Swoolefy\Support\Nacos\NacosConst;
 use Swoolefy\Support\Nacos\ServiceConfig;
 
 /**
@@ -33,10 +34,10 @@ final class MonitorConfig
         return new self(
             nacosConfig: $nacosConfig,
             serviceConfig: ServiceConfig::load(),
-            envFile: ApplicationConfig::pickString($monitor, 'env_file', 'NACOS_ENV_FILE', $appPath . '/.env'),
-            lockFile: ApplicationConfig::pickString($monitor, 'lock_file', 'NACOS_RELOAD_LOCK', '/tmp/swoolefy_' . strtolower($appName) . '_nacos_restart.lock'),
-            listenerTimeoutMs: ApplicationConfig::pickInt($monitor, 'listener_timeout_ms', 'NACOS_LISTENER_TIMEOUT_MS', 30_000),
-            failedWaitMs: ApplicationConfig::pickInt($monitor, 'failed_wait_ms', 'NACOS_LISTENER_FAILED_MS', 3_000),
+            envFile: ApplicationConfig::pickString($monitor, 'env_file', NacosConst::ENV_ENV_FILE, $appPath . '/.env'),
+            lockFile: ApplicationConfig::pickString($monitor, 'lock_file', NacosConst::ENV_RELOAD_LOCK, '/tmp/swoolefy_' . strtolower($appName) . '_nacos_restart.lock'),
+            listenerTimeoutMs: ApplicationConfig::pickInt($monitor, 'listener_timeout_ms', NacosConst::ENV_LISTENER_TIMEOUT_MS, 30_000),
+            failedWaitMs: ApplicationConfig::pickInt($monitor, 'failed_wait_ms', NacosConst::ENV_LISTENER_FAILED_MS, 3_000),
         );
     }
 }

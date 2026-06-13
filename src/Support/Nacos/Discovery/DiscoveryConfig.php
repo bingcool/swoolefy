@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Swoolefy\Support\Nacos\Discovery;
 
 use Swoolefy\Support\ApplicationConfig;
+use Swoolefy\Support\Nacos\NacosConst;
 use Swoolefy\Support\Nacos\NacosServiceRegisterConfig;
 
 /**
@@ -34,28 +35,26 @@ final class DiscoveryConfig
         $applicationConfig ??= ApplicationConfig::load();
         $discovery = $applicationConfig->nacosSection('discovery_service_client');
 
-        // 优先取NACOS_DISCOVERY_GROUP_NAME值
-        $groupName = ApplicationConfig::pickStringEnvFirst($discovery, 'group_name', 'NACOS_SERVICE_GROUP_NAME', '');
+        $groupName = ApplicationConfig::pickStringEnvFirst($discovery, 'group_name', NacosConst::ENV_SERVICE_GROUP_NAME, '');
         if ('' === $groupName) {
             $groupName = $serviceRegisterConfig->groupName;
         }
 
-        // 优先取NACOS_DISCOVERY_NAMESPACE_ID值
-        $namespaceId = ApplicationConfig::pickStringEnvFirst($discovery, 'namespace_id', 'NACOS_SERVICE_NAMESPACE_ID', '');
+        $namespaceId = ApplicationConfig::pickStringEnvFirst($discovery, 'namespace_id', NacosConst::ENV_SERVICE_NAMESPACE_ID, '');
         if ('' === $namespaceId) {
             $namespaceId = $serviceRegisterConfig->namespaceId;
         }
 
         return new self(
-            cacheTtl: ApplicationConfig::pickInt($discovery, 'cache_ttl', 'NACOS_DISCOVERY_CACHE_TTL', 60),
+            cacheTtl: ApplicationConfig::pickInt($discovery, 'cache_ttl', NacosConst::ENV_DISCOVERY_CACHE_TTL, 60),
             loadBalancer: strtolower(ApplicationConfig::pickString(
                 $discovery,
                 'load_balancer',
-                'NACOS_DISCOVERY_LOAD_BALANCER',
+                NacosConst::ENV_DISCOVERY_LOAD_BALANCER,
                 self::LOAD_BALANCER_RANDOM,
             )),
-            healthyOnly: ApplicationConfig::pickBool($discovery, 'healthy_only', 'NACOS_DISCOVERY_HEALTHY_ONLY', true),
-            clusters: ApplicationConfig::pickString($discovery, 'clusters', 'NACOS_DISCOVERY_CLUSTERS', ''),
+            healthyOnly: ApplicationConfig::pickBool($discovery, 'healthy_only', NacosConst::ENV_DISCOVERY_HEALTHY_ONLY, true),
+            clusters: ApplicationConfig::pickString($discovery, 'clusters', NacosConst::ENV_DISCOVERY_CLUSTERS, ''),
             groupName: $groupName,
             namespaceId: $namespaceId,
         );

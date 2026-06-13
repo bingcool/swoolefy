@@ -16,10 +16,6 @@ class NacosRegisterServiceProcess extends AbstractProcess
     // 5s后开始nacos注册
     private const DEFAULT_WAIT_SECONDS = 5;
 
-    private const ENV_REGISTER_HOST = 'NACOS_SERVICE_REGISTER_HOST';
-
-    private const ENV_REGISTER_PORT = 'NACOS_SERVICE_REGISTER_PORT';
-
     private ?ServiceRegister $registrar = null;
 
     public function run(): void
@@ -32,7 +28,7 @@ class NacosRegisterServiceProcess extends AbstractProcess
 
         if ($port <= 0) {
             throw NacosMonitorException::throw(
-                'service port is required, set nacos.service_register.port in application.yaml or NACOS_SERVICE_REGISTER_PORT',
+                'service port is required, set nacos.service_register.port in application.yaml or ' . NacosConst::ENV_SERVICE_REGISTER_PORT,
             );
         }
 
@@ -91,13 +87,14 @@ class NacosRegisterServiceProcess extends AbstractProcess
 
     private function resolveRegisterIp(NacosServiceRegisterConfig $serviceConfig, \Swoolefy\Util\Log $logger): string
     {
-        $envIp = getenv(self::ENV_REGISTER_HOST);
+        $envIp = getenv(NacosConst::ENV_SERVICE_REGISTER_HOST);
+
         if (false !== $envIp && '' !== $envIp) {
-            $logger->info(sprintf('%s is set, value=%s', self::ENV_REGISTER_HOST, $envIp));
+            $logger->info(sprintf('%s is set, value=%s', NacosConst::ENV_SERVICE_REGISTER_HOST, $envIp));
             return (string) $envIp;
         }
 
-        $logger->info(sprintf('%s is not set', self::ENV_REGISTER_HOST));
+        $logger->info(sprintf('%s is not set', NacosConst::ENV_SERVICE_REGISTER_HOST));
 
         if ('' !== $serviceConfig->ip) {
             return $serviceConfig->ip;
@@ -108,24 +105,24 @@ class NacosRegisterServiceProcess extends AbstractProcess
 
     private function resolveRegisterPort(NacosServiceRegisterConfig $serviceConfig, \Swoolefy\Util\Log $logger): int
     {
-        $envPort = getenv(self::ENV_REGISTER_PORT);
+        if (defined('WORKER_PORT')) {
+            return (int) WORKER_PORT;
+        }
+
+        $envPort = getenv(NacosConst::ENV_SERVICE_REGISTER_PORT);
         if (false !== $envPort && is_numeric($envPort)) {
-            $logger->info(sprintf('%s is set, value=%s', self::ENV_REGISTER_PORT, $envPort));
+            $logger->info(sprintf('%s is set, value=%s', NacosConst::ENV_SERVICE_REGISTER_PORT, $envPort));
             return (int) $envPort;
         }
 
         if (false !== $envPort && '' !== $envPort) {
-            $logger->info(sprintf('%s is set but invalid, value=%s', self::ENV_REGISTER_PORT, $envPort));
+            $logger->info(sprintf('%s is set but invalid, value=%s', NacosConst::ENV_SERVICE_REGISTER_PORT, $envPort));
         } else {
-            $logger->info(sprintf('%s is not set', self::ENV_REGISTER_PORT));
+            $logger->info(sprintf('%s is not set', NacosConst::ENV_SERVICE_REGISTER_PORT));
         }
 
         if ($serviceConfig->port > 0) {
             return $serviceConfig->port;
-        }
-
-        if (defined('WORKER_PORT')) {
-            return (int) WORKER_PORT;
         }
 
         $conf = Swfy::getConf();
@@ -143,7 +140,7 @@ class NacosRegisterServiceProcess extends AbstractProcess
         $logger->info(sprintf('nacos register: waiting for swoole server ready on port %d, timeout=%ds', $port, $maxWaitSeconds));
 
         while (time() < $deadline) {
-            if ($this->isSwooleServerFullyStarted($port)) {
+            if ($this->isSwooleServerFullyStarted()) {
                 $logger->info(sprintf('swoole server is ready on port %d', $port));
                 return;
             }
@@ -155,22 +152,14 @@ class NacosRegisterServiceProcess extends AbstractProcess
         }
     }
 
-    private function isSwooleServerFullyStarted($port): bool
+    private function isSwooleServerFullyStarted(): bool
     {
         $masterPid = Swfy::getMasterPid();
         if ($masterPid <= 0 || !\Swoole\Process::kill($masterPid, 0)) {
             return false;
+        } else {
+            return true;
         }
-        // 判断端口是否被占用
-        $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-        try {
-            if (socket_bind($socket, "0.0.0.0", $port)) {
-                return true;
-            }
-        } finally {
-            socket_close($socket);
-        }
-        return false;
     }
 
     private function resolveLocalIp(): string
