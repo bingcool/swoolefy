@@ -13,7 +13,8 @@ use Swoolefy\Exception\NacosMonitorException;
  */
 class NacosRegisterServiceProcess extends AbstractProcess
 {
-    private const DEFAULT_WAIT_SECONDS = 120;
+    // 5s后开始nacos注册
+    private const DEFAULT_WAIT_SECONDS = 5;
 
     private const ENV_REGISTER_HOST = 'NACOS_SERVICE_REGISTER_HOST';
 
@@ -41,13 +42,18 @@ class NacosRegisterServiceProcess extends AbstractProcess
         $this->registrar->register(
             ip: $ip,
             port: $port,
+            serviceName: $servicRegistereConfig->serviceName,
+            namespaceId: $servicRegistereConfig->namespaceId,
+            groupName: $servicRegistereConfig->groupName,
             heartbeatInterval: $servicRegistereConfig->heartbeatInterval,
         );
 
         $logger->info(sprintf(
-            'nacos service register process running, %s:%d, heartbeat=%ds',
+            'nacos service register process running, %s:%d, serviceName=%s,groupName=%s, heartbeat=%ds',
             $ip,
             $port,
+            $servicRegistereConfig->serviceName,
+            $servicRegistereConfig->groupName,
             $servicRegistereConfig->heartbeatInterval,
         ));
     }
@@ -134,69 +140,37 @@ class NacosRegisterServiceProcess extends AbstractProcess
     {
         $maxWaitSeconds = self::DEFAULT_WAIT_SECONDS;
         $deadline = time() + $maxWaitSeconds;
-        $logger->info(sprintf('waiting for swoole server ready on port %d, timeout=%ds', $port, $maxWaitSeconds));
+        $logger->info(sprintf('nacos register: waiting for swoole server ready on port %d, timeout=%ds', $port, $maxWaitSeconds));
 
         while (time() < $deadline) {
             if ($this->isSwooleServerFullyStarted($port)) {
                 $logger->info(sprintf('swoole server is ready on port %d', $port));
                 return;
             }
-
             if (\Swoole\Coroutine::getCid() > 0) {
                 \Swoole\Coroutine::sleep(0.2);
             } else {
                 usleep(200_000);
             }
         }
-
-        throw NacosMonitorException::throw(sprintf(
-            'swoole server is not ready within %ds, port=%d',
-            $maxWaitSeconds,
-            $port,
-        ));
     }
 
-    private function isSwooleServerFullyStarted(int $port): bool
+    private function isSwooleServerFullyStarted($port): bool
     {
         $masterPid = Swfy::getMasterPid();
         if ($masterPid <= 0 || !\Swoole\Process::kill($masterPid, 0)) {
             return false;
         }
-
-        $server = Swfy::getServer();
-        if (is_object($server)) {
-            $stats = $server->stats();
-            if (!isset($stats['start_time']) || (int) $stats['start_time'] <= 0) {
-                return false;
+        // 判断端口是否被占用
+        $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+        try {
+            if (socket_bind($socket, "0.0.0.0", $port)) {
+                return true;
             }
-
-            $expectedWorkerNum = (int) ($server->setting['worker_num'] ?? 1);
-            $runningWorkerNum = (int) ($stats['worker_num'] ?? 0);
-            if ($runningWorkerNum < $expectedWorkerNum) {
-                return false;
-            }
+        } finally {
+            socket_close($socket);
         }
-
-        return $this->isPortListening('127.0.0.1', $port);
-    }
-
-    private function isPortListening(string $host, int $port): bool
-    {
-        $connection = @stream_socket_client(
-            "tcp://{$host}:{$port}",
-            $errno,
-            $errstr,
-            0.5,
-            STREAM_CLIENT_CONNECT,
-        );
-
-        if (false === $connection) {
-            return false;
-        }
-
-        fclose($connection);
-
-        return true;
+        return false;
     }
 
     private function resolveLocalIp(): string
@@ -215,4 +189,5 @@ class NacosRegisterServiceProcess extends AbstractProcess
 
         return '127.0.0.1';
     }
+
 }

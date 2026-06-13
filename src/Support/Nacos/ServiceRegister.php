@@ -7,7 +7,6 @@ namespace Swoolefy\Support\Nacos;
 use Swoolefy\Library\Nacos\Client;
 use Swoolefy\Library\Nacos\Provider\Instance\Model\ListResponse;
 use Swoolefy\Library\Nacos\Provider\Instance\Model\RsInfo;
-use Swoolefy\Core\Coroutine\Timer as GoTimer;
 use Swoolefy\Exception\NacosMonitorException;
 use Swoolefy\Util\Log;
 
@@ -20,8 +19,7 @@ final class ServiceRegister
 
     private ?Client $client = null;
 
-    /** @var \Swoole\Coroutine\Channel|int|null */
-    private $heartbeatTimer = null;
+    private ?int $heartbeatTimer = null;
 
     private string $registeredIp = '';
 
@@ -66,13 +64,15 @@ final class ServiceRegister
         $ip = $ip ?? $this->serviceRegisterConfig->ip;
         $port = $port ?? $this->serviceRegisterConfig->port;
         $serviceName = $serviceName ?? $this->serviceRegisterConfig->serviceName;
-        $namespaceId = $namespaceId ?? $this->serviceRegisterConfig->namespaceId;
+        $namespaceId = $this->normalizeNamespaceId($namespaceId ?? $this->serviceRegisterConfig->namespaceId);
         $groupName = $groupName ?? $this->serviceRegisterConfig->groupName;
         $ephemeral = $ephemeral ?? $this->serviceRegisterConfig->ephemeral;
 
         if ('' === $ip || $port <= 0 || '' === $serviceName) {
             throw NacosMonitorException::throw('service ip, port and service_name are required for register');
         }
+
+        var_dump($this->nacosConfig->toClientConfigArray());
 
         $this->client = $this->nacosConfig->createClient();
         $ok = $this->client->instance->register(
@@ -118,7 +118,7 @@ final class ServiceRegister
     }
 
     /**
-     * 使用 goTick 定时上报 Nacos 实例心跳。
+     * 使用进程级 Swoole Timer 定时上报 Nacos 实例心跳（自定义进程 run() 返回后仍可持续）。
      *
      * @param int $intervalSeconds 心跳间隔（秒），默认 10
      */
@@ -139,10 +139,15 @@ final class ServiceRegister
             $intervalSeconds = 5;
         }
 
+        // Nacos 临时实例默认约 15s 无心跳即下线，间隔不宜过大
+        if ($intervalSeconds > 8) {
+            $intervalSeconds = 5;
+        }
+
         $intervalMs = $intervalSeconds * 1000;
-        $this->heartbeatTimer = goTick($intervalMs, function () {
+        $this->heartbeatTimer = \Swoole\Timer::tick($intervalMs, function () {
             $this->sendHeartbeat();
-        }, true);
+        });
 
         $this->logger->info(sprintf(
             'nacos heartbeat timer started, interval=%ds, service=%s',
@@ -157,7 +162,9 @@ final class ServiceRegister
             return;
         }
 
-        GoTimer::cancel($this->heartbeatTimer);
+        if (\Swoole\Timer::exists($this->heartbeatTimer)) {
+            \Swoole\Timer::clear($this->heartbeatTimer);
+        }
         $this->heartbeatTimer = null;
         $this->logger->info('nacos heartbeat timer stopped');
     }
@@ -213,6 +220,11 @@ final class ServiceRegister
     /**
      * 发送心跳
      */
+    private function normalizeNamespaceId(string $namespaceId): string
+    {
+        return 'public' === strtolower(trim($namespaceId)) ? '' : $namespaceId;
+    }
+
     private function sendHeartbeat(): void
     {
         if (null === $this->client) {
@@ -226,7 +238,7 @@ final class ServiceRegister
             $beat->setServiceName($this->registeredServiceName);
             $beat->setWeight($this->serviceRegisterConfig->weight);
             $beat->setEphemeral($this->registeredEphemeral);
-
+            var_dump('sendHeartbeat'.date('Y-m-d H:i:s'));
             $this->client->instance->beat(
                 $this->registeredServiceName,
                 $beat,
@@ -234,6 +246,7 @@ final class ServiceRegister
                 $this->registeredNamespaceId,
                 $this->registeredEphemeral,
             );
+
         } catch (\Throwable $e) {
             $this->logger->error('nacos heartbeat failed: ' . $e->getMessage());
         }
