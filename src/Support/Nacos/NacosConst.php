@@ -37,6 +37,9 @@ final class NacosConst
     public const ENV_DISCOVERY_HEALTHY_ONLY = 'NACOS_DISCOVERY_HEALTHY_ONLY';
     public const ENV_DISCOVERY_CLUSTERS = 'NACOS_DISCOVERY_CLUSTERS';
 
+    /** 本地开发：当前分组无可用实例时，自动回退到 application.yaml → nacos.service_register.group_name */
+    public const ENV_LOCAL_NACOS_SERVICE_AUTO_SWITCH = 'LOCAL_NACOS_SERVICE_AUTO_SWITCH';
+
     // application.yaml → nacos.monitor_config_change
     public const ENV_ENV_FILE = 'NACOS_ENV_FILE';
     public const ENV_RELOAD_LOCK = 'NACOS_RELOAD_LOCK';
