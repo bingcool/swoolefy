@@ -44,9 +44,11 @@ final class NacosServiceRegisterConfig
 
     protected static function getServiceName($yaml, $yamlKey): string
     {
-        if (array_key_exists($yamlKey, $yaml) && '' !== (string) $yaml[$yamlKey]) {
-            return (string)$yaml[$yamlKey] ?? '';
+        $name = ApplicationConfig::pickString($yaml, $yamlKey, NacosConst::ENV_SERVICE_NAME, '');
+        if ('' === $name) {
+            throw new \InvalidArgumentException('Invalid nacos.service_register.service_name');
         }
-        throw new \InvalidArgumentException("Invalid nacos.service_register.service_name");
+
+        return $name;
     }
 }

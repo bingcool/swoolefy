@@ -1275,7 +1275,7 @@ swoolefy 提供了 **SDK 自动生成工具**，可以扫描项目的 Route 路�
 - 📝 **提取 DTO**: 自动识别控制器方法中的 Request 和 Response 类型声明
 - 🎯 **类型安全**: 生成的 SDK 包含完整的类型声明，IDE 智能提示友好
 - 🔄 **自动更新**: 路由变更后重新生成即可，无需手动维护
-- ☁️ **Nacos 服务发现**: 生成时通过 `NacosServiceConfig` 注入 `BaseClientApi::$serviceName`；构造 API 客户端时未传入 `ClientInterface` 则委托框架 `DiscoveryClient` 自动解析 `base_uri`（需 `NACOS_FILE_PATH` / `APP_PATH` 下存在 `nacos.yaml` 与 `application.yaml`）
+- ☁️ **Nacos 服务发现**: 生成时通过 `NacosServiceRegisterConfig` 注入 `BaseClientApi::$serviceName`；构造 API 客户端时未传入 `ClientInterface` 则委托框架 `DiscoveryClient` 自动解析 `base_uri`（需 `NACOS_FILE_PATH` / `APP_PATH` 下存在 `nacos.yaml` 与 `application.yaml`）
 
 #### 使用方法
 
@@ -1695,7 +1695,7 @@ export LOCAL_NACOS_SERVICE_AUTO_SWITCH=1
 
 #### 服务注册
 
-`ServiceRegister` 使用 `NacosConfig`（`nacos.yaml` 连接）+ `NacosServiceConfig`（`application.yaml` → `nacos.service_register`），将当前实例注册到 Nacos 并定时心跳。
+`ServiceRegister` 使用 `NacosConfig`（`nacos.yaml` 连接）+ `NacosServiceRegisterConfig`（`application.yaml` → `nacos.service_register`），将当前实例注册到 Nacos 并定时心跳。
 
 在 `application.yaml` 设置 `enable_nacos_register: true` 时，框架会自动启动内置进程 `NacosRegisterServiceProcess`（无需在 `Event.php` 手动注册）。也可在自定义进程中调用：
 
@@ -1723,7 +1723,7 @@ $uri = $client->chooseUri();
 
 | 步骤 | 行为 |
 |:---|:---|
-| 生成时 | 通过 `NacosServiceConfig` 读取 `service_register.service_name`，写入 `BaseClientApi::$serviceName` |
+| 生成时 | 通过 `NacosServiceRegisterConfig` 读取 `service_register.service_name`，写入 `BaseClientApi::$serviceName` |
 | 运行时 | `UserApi::make()` 未传 Guzzle Client → `SdkNacosServiceDiscovery` → `DiscoveryClient::chooseUri()` → 设置 Guzzle `base_uri` |
 
 ```bash

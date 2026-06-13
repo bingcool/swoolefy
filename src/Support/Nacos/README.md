@@ -48,7 +48,7 @@
 
 `data_id` 与 `group` 仅读取 `application.yaml`，不支持环境变量覆盖，且不能为空。
 
-### 服务注册（`application.yaml` → `nacos.service_register` → `NacosServiceConfig`）
+### 服务注册（`application.yaml` → `nacos.service_register` → `NacosServiceRegisterConfig`）
 
 | 环境变量 | YAML 键 | 说明 | 默认值 |
 |:---|:---|:---|:---|
@@ -116,10 +116,10 @@ $client = $config->createClient();
 $config = ServiceConfig::load();
 ```
 
-## NacosServiceConfig
+## NacosServiceRegisterConfig
 
 ```php
-$service = NacosServiceConfig::load();
+$service = NacosServiceRegisterConfig::load();
 ```
 
 ## NacosFactory

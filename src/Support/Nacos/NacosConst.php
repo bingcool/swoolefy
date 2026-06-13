@@ -26,6 +26,7 @@ final class NacosConst
     // application.yaml → nacos.service_register
     public const ENV_SERVICE_REGISTER_HOST = 'NACOS_SERVICE_REGISTER_HOST';
     public const ENV_SERVICE_REGISTER_PORT = 'NACOS_SERVICE_REGISTER_PORT';
+    public const ENV_SERVICE_NAME = 'NACOS_SERVICE_NAME';
     public const ENV_SERVICE_NAMESPACE_ID = 'NACOS_SERVICE_NAMESPACE_ID';
     public const ENV_SERVICE_GROUP_NAME = 'NACOS_SERVICE_GROUP_NAME';
     public const ENV_SERVICE_WEIGHT = 'NACOS_SERVICE_WEIGHT';
