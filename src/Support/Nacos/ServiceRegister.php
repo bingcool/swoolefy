@@ -16,6 +16,7 @@ use Swoolefy\Util\Log;
  *
  * 心跳策略：首次发送重型 beat → 解析响应中的 lightBeatEnabled/clientBeatInterval
  * → 启用轻量续约后不再携带 beat 参数，避免实例被周期性标记不健康。
+ * 失败恢复：tick 内退避重试 → 轻量连续失败回退重型 beat → 仍失败则重新 register。
  */
 final class ServiceRegister
 {
@@ -23,6 +24,18 @@ final class ServiceRegister
 
     /** Nacos 默认 15s 无心跳标记不健康，间隔上限留足余量 */
     private const MAX_HEARTBEAT_INTERVAL_MS = 8000;
+
+    /** 单次定时器触发内的立即重试次数（含退避） */
+    private const HEARTBEAT_ATTEMPTS_PER_TICK = 2;
+
+    /** 同一 tick 内重试退避（毫秒） */
+    private const HEARTBEAT_RETRY_BACKOFF_MS = [200, 500];
+
+    /** 轻量心跳连续失败达到此次数后，回退重型 beat */
+    private const LIGHT_BEAT_FAIL_FALLBACK = 2;
+
+    /** 连续失败达到此次数后，重新 register 实例 */
+    private const HEARTBEAT_FAIL_REREGISTER = 3;
 
     private ?Client $client = null;
 
@@ -34,6 +47,10 @@ final class ServiceRegister
     /** 由心跳响应 clientBeatInterval 驱动，默认 5000ms */
     private int $clientBeatIntervalMs = 5000;
 
+    /** 跨 tick 累计的连续心跳失败次数，成功一次即清零 */
+    private int $consecutiveHeartbeatFailures = 0;
+
+    /** 当前已注册实例的快照，供心跳/注销/恢复使用 */
     private string $registeredIp = '';
 
     private int $registeredPort = 0;
@@ -77,6 +94,7 @@ final class ServiceRegister
         $ip = $ip ?? $this->serviceRegisterConfig->ip;
         $port = $port ?? $this->serviceRegisterConfig->port;
         $serviceName = $serviceName ?? $this->serviceRegisterConfig->serviceName;
+        // public 命名空间在 Open API 中须传空字符串
         $namespaceId = $this->normalizeNamespaceId($namespaceId ?? $this->serviceRegisterConfig->namespaceId);
         $groupName = $groupName ?? $this->serviceRegisterConfig->groupName;
         $ephemeral = $ephemeral ?? $this->serviceRegisterConfig->ephemeral;
@@ -115,7 +133,9 @@ final class ServiceRegister
         $this->registeredNamespaceId = $namespaceId;
         $this->registeredGroupName = $groupName;
         $this->registeredEphemeral = $ephemeral;
+        // 新注册从重型心跳开始，由服务端响应再决定是否启用轻量模式
         $this->lightBeatEnabled = false;
+        $this->consecutiveHeartbeatFailures = 0;
 
         $this->logger->info(sprintf(
             'nacos instance registered: %s:%d -> %s',
@@ -125,6 +145,7 @@ final class ServiceRegister
         ));
 
         if ($startHeartbeat && $ephemeral) {
+            // 持久化实例不走心跳保活，由 Nacos 主动探测
             $this->startHeartbeat($heartbeatInterval);
         }
     }
@@ -145,6 +166,7 @@ final class ServiceRegister
 
         // 每次启动先走一次重型心跳，由服务端响应决定是否切换轻量模式
         $this->lightBeatEnabled = false;
+        $this->consecutiveHeartbeatFailures = 0;
         $this->stopHeartbeat();
         $this->sendHeartbeat();
 
@@ -182,6 +204,7 @@ final class ServiceRegister
 
         $this->stopHeartbeat();
         $this->lightBeatEnabled = false;
+        $this->consecutiveHeartbeatFailures = 0;
 
         if (null === $this->client) {
             $this->client = $this->nacosConfig->createClient();
@@ -219,44 +242,195 @@ final class ServiceRegister
         }
     }
 
+    /**
+     * 定时器单次触发入口：先 tick 内退避重试，仍失败则逐级升级恢复。
+     */
     private function sendHeartbeat(): void
     {
         if (null === $this->client) {
             return;
         }
 
+        // 阶段 1：同一 tick 内快速重试，应对瞬时网络抖动
+        for ($attempt = 1; $attempt <= self::HEARTBEAT_ATTEMPTS_PER_TICK; $attempt++) {
+            try {
+                $response = $this->dispatchHeartbeat();
+                $this->applyBeatResponse($response);
+                $this->consecutiveHeartbeatFailures = 0;
+
+                return;
+            } catch (\Throwable $e) {
+                $this->consecutiveHeartbeatFailures++;
+                $this->logger->error(sprintf(
+                    'nacos heartbeat failed (tick_attempt=%d/%d, consecutive=%d): %s',
+                    $attempt,
+                    self::HEARTBEAT_ATTEMPTS_PER_TICK,
+                    $this->consecutiveHeartbeatFailures,
+                    $e->getMessage(),
+                ));
+
+                if ($attempt < self::HEARTBEAT_ATTEMPTS_PER_TICK) {
+                    $this->waitHeartbeatBackoff($attempt);
+                }
+            }
+        }
+
+        // 阶段 2：tick 内重试耗尽后，按失败次数升级恢复策略
+        $this->escalateHeartbeatRecovery();
+    }
+
+    /** 按当前模式路由：轻量（无 beat 体）或重型（带完整 beat JSON） */
+    private function dispatchHeartbeat(): BeatResponse
+    {
+        if ($this->lightBeatEnabled) {
+            // 轻量续约：仅 serviceName/ip/port 等标识
+            return $this->client->instance->lightBeat(
+                $this->registeredServiceName,
+                $this->registeredIp,
+                $this->registeredPort,
+                $this->registeredGroupName,
+                $this->registeredNamespaceId,
+                $this->registeredEphemeral,
+            );
+        }
+
+        return $this->dispatchHeavyBeat();
+    }
+
+    /** 重型心跳：携带 beat 元数据，用于首次注册、降级恢复或服务端未启用轻量模式 */
+    private function dispatchHeavyBeat(): BeatResponse
+    {
+        $beat = $this->buildBeatInfo();
+
+        return $this->client->instance->beat(
+            $this->registeredServiceName,
+            $beat,
+            $this->registeredGroupName,
+            $this->registeredNamespaceId,
+            $this->registeredEphemeral,
+        );
+    }
+
+    /** 组装 Nacos beat 请求体（RsInfo JSON） */
+    private function buildBeatInfo(): RsInfo
+    {
+        $beat = new RsInfo();
+        $beat->setIp($this->registeredIp);
+        $beat->setPort($this->registeredPort);
+        $beat->setServiceName($this->registeredServiceName);
+        $beat->setWeight($this->serviceRegisterConfig->weight);
+        $beat->setEphemeral($this->registeredEphemeral);
+
+        return $beat;
+    }
+
+    /**
+     * 单次 tick 内重试仍失败后的升级恢复：
+     * 连续轻量失败 → 回退重型 beat；仍失败 → 重新 register（实例可能已被 Nacos 剔除）。
+     */
+    private function escalateHeartbeatRecovery(): void
+    {
+        // 阶段 2a：轻量模式连续失败，回退重型 beat 尝试重建续约
+        if ($this->lightBeatEnabled && $this->consecutiveHeartbeatFailures >= self::LIGHT_BEAT_FAIL_FALLBACK) {
+            $this->logger->warning(sprintf(
+                'nacos light beat failed %d times, fallback to heavy beat, service=%s',
+                $this->consecutiveHeartbeatFailures,
+                $this->registeredServiceName,
+            ));
+            $this->lightBeatEnabled = false;
+
+            try {
+                $response = $this->dispatchHeavyBeat();
+                $this->applyBeatResponse($response);
+                $this->consecutiveHeartbeatFailures = 0;
+
+                return;
+            } catch (\Throwable $e) {
+                $this->consecutiveHeartbeatFailures++;
+                $this->logger->error('nacos heavy beat fallback failed: ' . $e->getMessage());
+            }
+        }
+
+        // 阶段 2b：重型 beat 仍无效，说明实例可能已从注册表移除，需重新 register
+        if ($this->consecutiveHeartbeatFailures >= self::HEARTBEAT_FAIL_REREGISTER) {
+            $this->recoverByReregister();
+        }
+    }
+
+    /**
+     * 重新向 Nacos 注册实例并发送重型 beat，用于心跳长期失败后的兜底恢复。
+     */
+    private function recoverByReregister(): void
+    {
+        if ('' === $this->registeredIp || $this->registeredPort <= 0 || '' === $this->registeredServiceName) {
+            return;
+        }
+
+        if (null === $this->client) {
+            $this->client = $this->nacosConfig->createClient();
+        }
+
         try {
-            // 轻量模式：仅传 serviceName/ip/port 等标识，省略 beat 体
-            if ($this->lightBeatEnabled) {
-                $response = $this->client->instance->lightBeat(
-                    $this->registeredServiceName,
+            $this->logger->warning(sprintf(
+                'nacos heartbeat: consecutive failures=%d, re-registering %s:%d -> %s',
+                $this->consecutiveHeartbeatFailures,
+                $this->registeredIp,
+                $this->registeredPort,
+                $this->registeredServiceName,
+            ));
+
+            $ok = $this->client->instance->register(
+                $this->registeredIp,
+                $this->registeredPort,
+                $this->registeredServiceName,
+                $this->registeredNamespaceId,
+                $this->serviceRegisterConfig->weight,
+                true,
+                true,
+                '',
+                '',
+                $this->registeredGroupName,
+                $this->registeredEphemeral,
+            );
+
+            if (!$ok) {
+                $this->logger->error(sprintf(
+                    'nacos heartbeat re-register failed: %s:%d -> %s',
                     $this->registeredIp,
                     $this->registeredPort,
-                    $this->registeredGroupName,
-                    $this->registeredNamespaceId,
-                    $this->registeredEphemeral,
-                );
-            } else {
-                // 重型心跳：首次或轻量未启用时，携带完整 beat 元数据完成注册/续约
-                $beat = new RsInfo();
-                $beat->setIp($this->registeredIp);
-                $beat->setPort($this->registeredPort);
-                $beat->setServiceName($this->registeredServiceName);
-                $beat->setWeight($this->serviceRegisterConfig->weight);
-                $beat->setEphemeral($this->registeredEphemeral);
-
-                $response = $this->client->instance->beat(
                     $this->registeredServiceName,
-                    $beat,
-                    $this->registeredGroupName,
-                    $this->registeredNamespaceId,
-                    $this->registeredEphemeral,
-                );
+                ));
+
+                return;
             }
 
+            // 重新注册后从重型心跳开始，等待服务端再次下发 lightBeatEnabled
+            $this->lightBeatEnabled = false;
+            $response = $this->dispatchHeavyBeat();
             $this->applyBeatResponse($response);
+            $this->consecutiveHeartbeatFailures = 0;
+
+            $this->logger->info(sprintf(
+                'nacos heartbeat re-register succeeded: %s:%d -> %s',
+                $this->registeredIp,
+                $this->registeredPort,
+                $this->registeredServiceName,
+            ));
         } catch (\Throwable $e) {
-            $this->logger->error('nacos heartbeat failed: ' . $e->getMessage());
+            $this->logger->error('nacos heartbeat re-register failed: ' . $e->getMessage());
+        }
+    }
+
+    /** tick 内重试退避，协程环境用 Coroutine::sleep，否则 usleep */
+    private function waitHeartbeatBackoff(int $attempt): void
+    {
+        $index = max(0, min(\count(self::HEARTBEAT_RETRY_BACKOFF_MS) - 1, $attempt - 1));
+        $ms = self::HEARTBEAT_RETRY_BACKOFF_MS[$index];
+
+        if (\Swoole\Coroutine::getCid() > 0) {
+            \Swoole\Coroutine::sleep($ms / 1000);
+        } else {
+            usleep($ms * 1000);
         }
     }
 
@@ -266,6 +440,7 @@ final class ServiceRegister
     private function applyBeatResponse(BeatResponse $response): void
     {
         $interval = $response->getClientBeatInterval();
+        // 以服务端下发的间隔为准，上限 8s（Nacos 约 15s 无心跳即不健康）
         if ($interval > 0 && $interval !== $this->clientBeatIntervalMs) {
             $this->clientBeatIntervalMs = min($interval, self::MAX_HEARTBEAT_INTERVAL_MS);
             $this->rescheduleHeartbeatTimer();
@@ -284,6 +459,7 @@ final class ServiceRegister
         }
     }
 
+    /** 服务端 clientBeatInterval 变化时，重建 Timer 以匹配期望心跳频率 */
     private function rescheduleHeartbeatTimer(): void
     {
         if (null === $this->heartbeatTimer || !\Swoole\Timer::exists($this->heartbeatTimer)) {
