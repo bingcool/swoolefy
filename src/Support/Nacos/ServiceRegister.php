@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Swoolefy\Support\Nacos;
 
 use Swoolefy\Library\Nacos\Client;
+use Swoolefy\Library\Nacos\Provider\Instance\Model\BeatResponse;
 use Swoolefy\Library\Nacos\Provider\Instance\Model\ListResponse;
 use Swoolefy\Library\Nacos\Provider\Instance\Model\RsInfo;
 use Swoolefy\Exception\NacosMonitorException;
@@ -12,14 +13,26 @@ use Swoolefy\Util\Log;
 
 /**
  * Nacos 服务注册：实例注册、心跳保活与查询。
+ *
+ * 心跳策略：首次发送重型 beat → 解析响应中的 lightBeatEnabled/clientBeatInterval
+ * → 启用轻量续约后不再携带 beat 参数，避免实例被周期性标记不健康。
  */
 final class ServiceRegister
 {
-    private const HEARTBEAT_INTERVAL_SEC = 10;
+    private const HEARTBEAT_INTERVAL_SEC = 5;
+
+    /** Nacos 默认 15s 无心跳标记不健康，间隔上限留足余量 */
+    private const MAX_HEARTBEAT_INTERVAL_MS = 8000;
 
     private ?Client $client = null;
 
     private ?int $heartbeatTimer = null;
+
+    /** 服务端首次心跳返回 lightBeatEnabled=true 后，后续只发轻量心跳（不带 beat 参数） */
+    private bool $lightBeatEnabled = false;
+
+    /** 由心跳响应 clientBeatInterval 驱动，默认 5000ms */
+    private int $clientBeatIntervalMs = 5000;
 
     private string $registeredIp = '';
 
@@ -36,7 +49,7 @@ final class ServiceRegister
     private readonly Log $logger;
 
     public function __construct(
-        private readonly NacosConfig                $nacosConfig,
+        private readonly NacosConfig $nacosConfig,
         private readonly NacosServiceRegisterConfig $serviceRegisterConfig,
     ) {
         $this->logger = NacosLogger::get();
@@ -72,8 +85,6 @@ final class ServiceRegister
             throw NacosMonitorException::throw('service ip, port and service_name are required for register');
         }
 
-        var_dump($this->nacosConfig->toClientConfigArray());
-
         $this->client = $this->nacosConfig->createClient();
         $ok = $this->client->instance->register(
             $ip,
@@ -104,6 +115,7 @@ final class ServiceRegister
         $this->registeredNamespaceId = $namespaceId;
         $this->registeredGroupName = $groupName;
         $this->registeredEphemeral = $ephemeral;
+        $this->lightBeatEnabled = false;
 
         $this->logger->info(sprintf(
             'nacos instance registered: %s:%d -> %s',
@@ -118,9 +130,8 @@ final class ServiceRegister
     }
 
     /**
-     * 使用进程级 Swoole Timer 定时上报 Nacos 实例心跳（自定义进程 run() 返回后仍可持续）。
-     *
-     * @param int $intervalSeconds 心跳间隔（秒），默认 10
+     * 使用进程级 Swoole Timer 定时上报 Nacos 实例心跳。
+     * 启动时立即发送一次心跳，以便在创建定时器前拿到 lightBeatEnabled 与 clientBeatInterval。
      */
     public function startHeartbeat(int $intervalSeconds = self::HEARTBEAT_INTERVAL_SEC): void
     {
@@ -132,26 +143,20 @@ final class ServiceRegister
             $this->client = $this->nacosConfig->createClient();
         }
 
+        // 每次启动先走一次重型心跳，由服务端响应决定是否切换轻量模式
+        $this->lightBeatEnabled = false;
         $this->stopHeartbeat();
         $this->sendHeartbeat();
 
-        if ($intervalSeconds <= 3) {
-            $intervalSeconds = 5;
-        }
-
-        // Nacos 临时实例默认约 15s 无心跳即下线，间隔不宜过大
-        if ($intervalSeconds > 8) {
-            $intervalSeconds = 5;
-        }
-
-        $intervalMs = $intervalSeconds * 1000;
+        $intervalMs = $this->resolveHeartbeatIntervalMs($intervalSeconds);
         $this->heartbeatTimer = \Swoole\Timer::tick($intervalMs, function () {
             $this->sendHeartbeat();
         });
 
         $this->logger->info(sprintf(
-            'nacos heartbeat timer started, interval=%ds, service=%s',
-            $intervalSeconds,
+            'nacos heartbeat timer started, interval=%dms, lightBeat=%s, service=%s',
+            $intervalMs,
+            $this->lightBeatEnabled ? 'true' : 'false',
             $this->registeredServiceName,
         ));
     }
@@ -169,10 +174,6 @@ final class ServiceRegister
         $this->logger->info('nacos heartbeat timer stopped');
     }
 
-    /**
-     * 注销服务实例
-     * @return void
-     */
     public function deregister(): void
     {
         if ('' === $this->registeredIp || $this->registeredPort <= 0 || '' === $this->registeredServiceName) {
@@ -180,6 +181,7 @@ final class ServiceRegister
         }
 
         $this->stopHeartbeat();
+        $this->lightBeatEnabled = false;
 
         if (null === $this->client) {
             $this->client = $this->nacosConfig->createClient();
@@ -217,14 +219,6 @@ final class ServiceRegister
         }
     }
 
-    /**
-     * 发送心跳
-     */
-    private function normalizeNamespaceId(string $namespaceId): string
-    {
-        return 'public' === strtolower(trim($namespaceId)) ? '' : $namespaceId;
-    }
-
     private function sendHeartbeat(): void
     {
         if (null === $this->client) {
@@ -232,24 +226,104 @@ final class ServiceRegister
         }
 
         try {
-            $beat = new RsInfo();
-            $beat->setIp($this->registeredIp);
-            $beat->setPort($this->registeredPort);
-            $beat->setServiceName($this->registeredServiceName);
-            $beat->setWeight($this->serviceRegisterConfig->weight);
-            $beat->setEphemeral($this->registeredEphemeral);
-            var_dump('sendHeartbeat'.date('Y-m-d H:i:s'));
-            $this->client->instance->beat(
-                $this->registeredServiceName,
-                $beat,
-                $this->registeredGroupName,
-                $this->registeredNamespaceId,
-                $this->registeredEphemeral,
-            );
+            // 轻量模式：仅传 serviceName/ip/port 等标识，省略 beat 体
+            if ($this->lightBeatEnabled) {
+                $response = $this->client->instance->lightBeat(
+                    $this->registeredServiceName,
+                    $this->registeredIp,
+                    $this->registeredPort,
+                    $this->registeredGroupName,
+                    $this->registeredNamespaceId,
+                    $this->registeredEphemeral,
+                );
+            } else {
+                // 重型心跳：首次或轻量未启用时，携带完整 beat 元数据完成注册/续约
+                $beat = new RsInfo();
+                $beat->setIp($this->registeredIp);
+                $beat->setPort($this->registeredPort);
+                $beat->setServiceName($this->registeredServiceName);
+                $beat->setWeight($this->serviceRegisterConfig->weight);
+                $beat->setEphemeral($this->registeredEphemeral);
 
+                $response = $this->client->instance->beat(
+                    $this->registeredServiceName,
+                    $beat,
+                    $this->registeredGroupName,
+                    $this->registeredNamespaceId,
+                    $this->registeredEphemeral,
+                );
+            }
+
+            $this->applyBeatResponse($response);
         } catch (\Throwable $e) {
             $this->logger->error('nacos heartbeat failed: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * 解析心跳响应：同步服务端期望的间隔，并在 lightBeatEnabled=true 时切换轻量续约。
+     */
+    private function applyBeatResponse(BeatResponse $response): void
+    {
+        $interval = $response->getClientBeatInterval();
+        if ($interval > 0 && $interval !== $this->clientBeatIntervalMs) {
+            $this->clientBeatIntervalMs = min($interval, self::MAX_HEARTBEAT_INTERVAL_MS);
+            $this->rescheduleHeartbeatTimer();
+        }
+
+        // lightBeatEnabled 后若继续发送 beat 参数，服务端会判定心跳无效
+        if ($response->getLightBeatEnabled()) {
+            if (!$this->lightBeatEnabled) {
+                $this->lightBeatEnabled = true;
+                $this->logger->info(sprintf(
+                    'nacos light beat enabled, service=%s, interval=%dms',
+                    $this->registeredServiceName,
+                    $this->clientBeatIntervalMs,
+                ));
+            }
+        }
+    }
+
+    private function rescheduleHeartbeatTimer(): void
+    {
+        if (null === $this->heartbeatTimer || !\Swoole\Timer::exists($this->heartbeatTimer)) {
+            return;
+        }
+
+        \Swoole\Timer::clear($this->heartbeatTimer);
+        $this->heartbeatTimer = \Swoole\Timer::tick($this->clientBeatIntervalMs, function () {
+            $this->sendHeartbeat();
+        });
+
+        $this->logger->info(sprintf(
+            'nacos heartbeat interval updated to %dms, service=%s',
+            $this->clientBeatIntervalMs,
+            $this->registeredServiceName,
+        ));
+    }
+
+    /** 优先采用服务端 clientBeatInterval，其次回退到配置值 */
+    private function resolveHeartbeatIntervalMs(int $intervalSeconds): int
+    {
+        if ($this->clientBeatIntervalMs > 0) {
+            return min($this->clientBeatIntervalMs, self::MAX_HEARTBEAT_INTERVAL_MS);
+        }
+
+        if ($intervalSeconds <= 3) {
+            $intervalSeconds = 5;
+        }
+
+        if ($intervalSeconds > 8) {
+            $intervalSeconds = 5;
+        }
+
+        return $intervalSeconds * 1000;
+    }
+
+    /** Nacos Open API 中 public 命名空间应传空字符串 */
+    private function normalizeNamespaceId(string $namespaceId): string
+    {
+        return 'public' === strtolower(trim($namespaceId)) ? '' : $namespaceId;
     }
 
     public function list(
