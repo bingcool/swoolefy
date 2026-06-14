@@ -21,6 +21,8 @@ use Swoolefy\Util\Helper;
 use Swoolefy\Worker\CtlApi;
 use Swoolefy\Core\Coroutine\Context as SwooleContext;
 use Swoolefy\Library\CurlProxy\OpentelemetryMiddleware;
+use Swoolefy\Support\HeaderPropagation\HeaderContext;
+use Swoolefy\Support\HeaderPropagation\HeaderPropagator;
 
 abstract class HttpServer extends BaseServer
 {
@@ -179,6 +181,10 @@ abstract class HttpServer extends BaseServer
                     }
                     SwooleContext::set(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID, $traceId);
                     SwooleContext::set(OpentelemetryMiddleware::OPENTELEMETRY_TRACEPARENT_ID, $traceparent ?? "");
+                    HeaderContext::set(HeaderPropagator::captureIncoming($headers, $traceId));
+                    Coroutine::defer(static function () {
+                        HeaderContext::clear();
+                    });
                     static::onRequest($request, $response);
                     if (isset($span)) {
                         Coroutine::defer(function () use ($span) {
