@@ -1678,6 +1678,7 @@ nacos:
 export NACOS_SERVICE_REGISTER_HOST="127.0.0.1"
 export NACOS_SERVICE_GROUP_NAME="bingcool"
 export LOCAL_NACOS_SERVICE_AUTO_SWITCH=1
+export INNER_EXTERNAL_BASE_URI="http://product-service-dev.example.com:19000"
 ```
 
 | 环境变量 | 说明                                                                                                                                                        |
@@ -1685,6 +1686,7 @@ export LOCAL_NACOS_SERVICE_AUTO_SWITCH=1
 | `NACOS_SERVICE_REGISTER_HOST` | 本机注册到 Nacos 的 IP。本地开发设为 `127.0.0.1`，避免把内网 IP 注册出去                                                                                                         |
 | `NACOS_SERVICE_GROUP_NAME` | 本机注册与发现使用的分组（如个人名 `bingcool`），与 dev 环境部署的分组隔离，互不影响                                                                                                        |
 | `LOCAL_NACOS_SERVICE_AUTO_SWITCH` | 设为 `1` 时，SDK 调用依赖服务：先在当前分组（如 `bingcool`）查找实例；若无可用实例，自动回退到 `application.yaml` → `nacos.service_register.group_name`（frame_group 分组）中已部署的服务，便于本地只启动部分服务即可联调 |
+| `INNER_EXTERNAL_BASE_URI` | 内部跨环境可访问的服务 URL。服务注册时会写入 Nacos metadata 的 `inner_external_base_uri`；SDK 仅在本地自动切 dev 分组时优先用该 URL，避免本地直接访问 K8s Pod IP |
 
 典型场景：本地启动 `order-service` 开发订单功能，需调用 `product-service`；本地未启动 `product-service` 时，SDK 会自动切到 dev 开发环境中已部署的 `product-service` 实例。**注意：本地网络需能访问 dev 部署实例注册的 IP。**
 
