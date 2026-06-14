@@ -375,6 +375,9 @@ abstract class BaseClientApi
     /** Guzzle base_uri，末尾带 / */
     protected string $baseUri = '';
 
+    /** 当前 Nacos 发现选中实例的 metadata；固定地址/外部 Client 模式为空 */
+    protected array $nacosInstanceMetadata = [];
+
     protected ClientInterface $httpClient;
 
     /** 未传入 $httpClient 且未指定 $baseUri 时，通过 Nacos 发现节点，RequestException 时可换节点/退避重试 */
@@ -398,7 +401,9 @@ abstract class BaseClientApi
                 $this->nacosDiscoveryEnabled = false;
             } else {
                 // 模式 A：Nacos 发现，重试时 choose 新节点
-                $this->baseUri = SdkNacosServiceDiscovery::resolveBaseUri($this->serviceName);
+                $resolved = SdkNacosServiceDiscovery::resolveInstance($this->serviceName);
+                $this->baseUri = $resolved['base_uri'];
+                $this->nacosInstanceMetadata = $resolved['metadata'];
                 $this->nacosDiscoveryEnabled = true;
             }
             $this->httpClient = $this->createHttpClient();
@@ -425,6 +430,21 @@ abstract class BaseClientApi
     public function getHttpClient(): ClientInterface
     {
         return $this->httpClient;
+    }
+
+    /**
+     * 获取当前 SDK 客户端选中 Nacos 实例的 metadata。
+     *
+     * @return array<string, mixed>
+     */
+    public function getNacosInstanceMetadata(): array
+    {
+        return $this->nacosInstanceMetadata;
+    }
+
+    public function getNacosInstanceMetadataValue(string $key, mixed $default = null): mixed
+    {
+        return $this->nacosInstanceMetadata[$key] ?? $default;
     }
 
     /** 拼接相对路径与 base_uri */
@@ -503,7 +523,9 @@ abstract class BaseClientApi
     /** Nacos 模式下重新发现 base_uri 并重建 Guzzle Client */
     protected function reconnectViaNacosDiscovery(): void
     {
-        $this->baseUri = SdkNacosServiceDiscovery::resolveBaseUri($this->serviceName);
+        $resolved = SdkNacosServiceDiscovery::resolveInstance($this->serviceName);
+        $this->baseUri = $resolved['base_uri'];
+        $this->nacosInstanceMetadata = $resolved['metadata'];
         $this->httpClient = $this->createHttpClient();
     }
 
@@ -709,6 +731,7 @@ use Swoolefy\Exception\NacosDiscoveryException;
 use Swoolefy\Support\ApplicationConfig;
 use Swoolefy\Support\Nacos\Discovery\DiscoveryClient;
 use Swoolefy\Support\Nacos\Discovery\DiscoveryConfig;
+use Swoolefy\Support\Nacos\Discovery\Model\ServiceInstance;
 use Swoolefy\Support\Nacos\NacosConfig;
 use Swoolefy\Support\Nacos\NacosConst;
 use Swoolefy\Support\Nacos\NacosLogger;
@@ -733,17 +756,29 @@ final class SdkNacosServiceDiscovery
      */
     public static function resolveBaseUri(string $serviceName): string
     {
+        return self::resolveInstance($serviceName)['base_uri'];
+    }
+
+    /**
+     * 发现可用实例，并返回 base_uri 与 metadata。
+     *
+     * @return array{base_uri: string, metadata: array<string, mixed>}
+     *
+     * @throws SdkClientException
+     */
+    public static function resolveInstance(string $serviceName): array
+    {
         if ('' === trim($serviceName)) {
             throw new SdkClientException('Nacos service name is empty');
         }
 
         try {
             $discoveryConfig = DiscoveryConfig::load();
-            $uri = self::chooseUri($serviceName, $discoveryConfig);
+            $instance = self::chooseInstance($serviceName, $discoveryConfig);
 
             // 本地分组（如 bingcool）无实例时，回退到 yaml 中 定义的 部署分组（dev环境
             // 同时确保本地开发环境能够调通dev部署的环境，即本地开发环境能够访问dev环境各个服务注册到nacos的ip
-            if ((null === $uri || '' === $uri) && self::isLocalAutoSwitchEnabled()) {
+            if (null === $instance && self::isLocalAutoSwitchEnabled()) {
                 $fallbackGroup = self::resolveYamlRegisterGroupName();
                 $currentGroup = $discoveryConfig->groupName;
                 if ('' !== $fallbackGroup && $fallbackGroup !== $currentGroup) {
@@ -753,15 +788,17 @@ final class SdkNacosServiceDiscovery
                         $currentGroup,
                         $fallbackGroup,
                     ));
-                    $uri = self::chooseUri(
+                    $instance = self::chooseInstance(
                         $serviceName,
                         self::discoveryConfigWithGroup($discoveryConfig, $fallbackGroup),
                     );
-                    
-                    if ($uri && function_exists('fmtPrintNote')) {
-                        fmtPrintNote(sprintf("调用nacos注册的服务【%s】自动切换到其开发环境调用uri=%s", $serviceName, $uri));
-                    } else if(empty($uri)) {
-                        fmtPrintNote(sprintf("调用nacos注册的服务【%s】自动切换到其开发环境, 无法获取其host+ip", $serviceName));
+
+                    if (function_exists('fmtPrintNote')) {
+                        if ($instance instanceof ServiceInstance) {
+                            fmtPrintNote(sprintf("调用nacos注册的服务【%s】自动切换到其开发环境调用uri=%s", $serviceName, $instance->getUri('http')));
+                        } else {
+                            fmtPrintNote(sprintf("调用nacos注册的服务【%s】自动切换到其开发环境, 无法获取其host+ip", $serviceName));
+                        }
                     }
                 }
             }
@@ -771,25 +808,28 @@ final class SdkNacosServiceDiscovery
             throw new SdkClientException('Nacos discovery failed: ' . $e->getMessage());
         }
 
-        if (null === $uri || '' === $uri) {
+        if (!$instance instanceof ServiceInstance) {
             throw new SdkClientException(sprintf(
                 'No available Nacos instance for service [%s]',
                 $serviceName,
             ));
         }
 
-        return rtrim($uri, '/') . '/';
+        return [
+            'base_uri' => rtrim($instance->getUri('http'), '/') . '/',
+            'metadata' => $instance->getMetadata(),
+        ];
     }
 
-    private static function chooseUri(string $serviceName, DiscoveryConfig $discoveryConfig): ?string
+    private static function chooseInstance(string $serviceName, DiscoveryConfig $discoveryConfig): ?ServiceInstance
     {
         $client = self::getDiscoveryClient($serviceName, $discoveryConfig);
-        $uri = $client->chooseUri('http');
-        if (null === $uri || '' === $uri) {
-            $uri = $client->refresh() !== [] ? $client->chooseUri('http') : null;
+        $instance = $client->choose();
+        if (!$instance instanceof ServiceInstance) {
+            $instance = $client->refresh() !== [] ? $client->choose() : null;
         }
 
-        return $uri;
+        return $instance;
     }
 
     private static function isLocalAutoSwitchEnabled(): bool

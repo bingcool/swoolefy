@@ -55,6 +55,21 @@ final class ServiceInstance
         return $scheme . '://' . $this->getAddress();
     }
 
+    /**
+     * 获取 Nacos 实例 metadata。
+     *
+     * @return array<string, mixed>
+     */
+    public function getMetadata(): array
+    {
+        return $this->metadata;
+    }
+
+    public function getMetadataValue(string $key, mixed $default = null): mixed
+    {
+        return $this->metadata[$key] ?? $default;
+    }
+
     public function isAvailable(): bool
     {
         return '' !== $this->ip && $this->port > 0 && $this->enabled && $this->healthy;
