@@ -63,6 +63,9 @@ final class ServiceRegister
 
     private bool $registeredEphemeral = true;
 
+    /** @var array<string, mixed> 注册到 Nacos 的实例 metadata */
+    private array $registeredMetadata = [];
+
     private readonly Log $logger;
 
     public function __construct(
@@ -98,11 +101,14 @@ final class ServiceRegister
         $namespaceId = $this->normalizeNamespaceId($namespaceId ?? $this->serviceRegisterConfig->namespaceId);
         $groupName = $groupName ?? $this->serviceRegisterConfig->groupName;
         $ephemeral = $ephemeral ?? $this->serviceRegisterConfig->ephemeral;
+        $metadata = $this->serviceRegisterConfig->metadata;
 
         if ('' === $ip || $port <= 0 || '' === $serviceName) {
             throw NacosMonitorException::throw('service ip, port and service_name are required for register');
         }
 
+        // Nacos register API 的 metadata 参数是 JSON 字符串；未配置 metadata 时保持空字符串。
+        $metadataJson = $this->encodeMetadata($metadata);
         $this->client = $this->nacosConfig->createClient();
         $ok = $this->client->instance->register(
             $ip,
@@ -112,7 +118,7 @@ final class ServiceRegister
             $weight ?? $this->serviceRegisterConfig->weight,
             true,
             true,
-            '',
+            $metadataJson,
             '',
             $groupName,
             $ephemeral,
@@ -133,6 +139,7 @@ final class ServiceRegister
         $this->registeredNamespaceId = $namespaceId;
         $this->registeredGroupName = $groupName;
         $this->registeredEphemeral = $ephemeral;
+        $this->registeredMetadata = $metadata;
         // 新注册从重型心跳开始，由服务端响应再决定是否启用轻量模式
         $this->lightBeatEnabled = false;
         $this->consecutiveHeartbeatFailures = 0;
@@ -320,6 +327,9 @@ final class ServiceRegister
         $beat->setServiceName($this->registeredServiceName);
         $beat->setWeight($this->serviceRegisterConfig->weight);
         $beat->setEphemeral($this->registeredEphemeral);
+        if ([] !== $this->registeredMetadata) {
+            $beat->setMetadata($this->registeredMetadata);
+        }
 
         return $beat;
     }
@@ -387,7 +397,7 @@ final class ServiceRegister
                 $this->serviceRegisterConfig->weight,
                 true,
                 true,
-                '',
+                $this->encodeMetadata($this->registeredMetadata),
                 '',
                 $this->registeredGroupName,
                 $this->registeredEphemeral,
@@ -419,6 +429,15 @@ final class ServiceRegister
         } catch (\Throwable $e) {
             $this->logger->error('nacos heartbeat re-register failed: ' . $e->getMessage());
         }
+    }
+
+    private function encodeMetadata(array $metadata): string
+    {
+        if ([] === $metadata) {
+            return '';
+        }
+
+        return json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     }
 
     /** tick 内重试退避，协程环境用 Coroutine::sleep，否则 usleep */

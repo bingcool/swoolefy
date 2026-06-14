@@ -21,6 +21,8 @@ final class NacosServiceRegisterConfig
         public readonly float $weight,
         public readonly bool $ephemeral,
         public readonly int $heartbeatInterval,
+        /** @var array<string, mixed> */
+        public readonly array $metadata,
     ) {
     }
 
@@ -39,6 +41,7 @@ final class NacosServiceRegisterConfig
             weight: (float) ApplicationConfig::pickStringEnvFirst($section, 'weight', NacosConst::ENV_SERVICE_WEIGHT, '1'),
             ephemeral: true,
             heartbeatInterval: (int) ApplicationConfig::pickStringEnvFirst($section, 'heartbeat_interval', NacosConst::ENV_SERVICE_HEARTBEAT_INTERVAL, '10'),
+            metadata: self::getMetadata($section),
         );
     }
 
@@ -50,5 +53,25 @@ final class NacosServiceRegisterConfig
         }
 
         return $name;
+    }
+
+    /**
+     * application.yaml:
+     * nacos:
+     *   service_register:
+     *     metadata:
+     *       max_limit_request: 10000
+     *       min_limit_request: 1000
+     *
+     * Nacos Open API 的 metadata 参数要求是 JSON 字符串；这里保留数组，
+     * 由 ServiceRegister 在真正上报时统一编码，避免配置层混入传输格式。
+     */
+    private static function getMetadata(array $section): array
+    {
+        if (!array_key_exists('metadata', $section) || !is_array($section['metadata'])) {
+            return [];
+        }
+
+        return $section['metadata'];
     }
 }

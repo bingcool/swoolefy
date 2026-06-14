@@ -1655,6 +1655,9 @@ nacos:
     group_name: 'pwa_group'
     weight: 1
     ephemeral: true
+    # 非空时注册到 Nacos 的 metadata 参数会自动转为 JSON 字符串
+    metadata:
+      max_limit_request: 10000
   discovery_service_client:
     load_balancer: random   # random | round_robin | weight
     cache_ttl: 60
