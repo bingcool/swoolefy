@@ -60,8 +60,18 @@
 | `NACOS_SERVICE_WEIGHT` | `nacos.service_register.weight` | 实例权重 | `1` |
 | `NACOS_SERVICE_EPHEMERAL` | `nacos.service_register.ephemeral` | 是否临时实例 | `true` |
 | `NACOS_SERVICE_HEARTBEAT_INTERVAL` | `nacos.service_register.heartbeat_interval` | 心跳间隔（秒） | `10` |
+| — | `nacos.service_register.metadata` | 注册到 Nacos 的 metadata；非空时自动转 JSON 字符串上报 | 空数组 |
 
 内置注册进程 `NacosRegisterServiceProcess` 在 `application.yaml` 中 `enable_nacos_register: true` 时自动启动；`NACOS_SERVICE_REGISTER_HOST` / `NACOS_SERVICE_REGISTER_PORT` 会写入启动日志，便于排查。
+
+`metadata` 示例：
+
+```yaml
+nacos:
+  service_register:
+    metadata:
+      max_limit_request: 10000
+```
 
 `port` 未配置时的回退顺序：`NACOS_SERVICE_REGISTER_PORT` → YAML `port` → `WORKER_PORT`（`cli.php`）→ 服务配置 `port`。
 

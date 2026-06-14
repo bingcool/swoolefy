@@ -19,6 +19,8 @@ nacos:
     group_name: 'pwa_group'
     weight: 1
     ephemeral: true
+    metadata:
+      version: 1.0.0
 
   # 客户端的服务发现配置
   discovery_service_client:
