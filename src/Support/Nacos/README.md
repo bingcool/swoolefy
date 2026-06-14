@@ -53,6 +53,7 @@
 | 环境变量 | YAML 键 | 说明 | 默认值 |
 |:---|:---|:---|:---|
 | `NACOS_SERVICE_REGISTER_HOST` | `nacos.service_register.ip` | 注册到 Nacos 的本机 IP | 空（自动探测本机 IP） |
+| `POD_IP` | — | ACK/Kubernetes Downward API 注入的 Pod IP；优先级低于 `NACOS_SERVICE_REGISTER_HOST`，高于 YAML `ip` | 空 |
 | `NACOS_SERVICE_REGISTER_PORT` | `nacos.service_register.port` | 注册到 Nacos 的本机端口 | `0`（回退 `WORKER_PORT` 或服务 `port`） |
 | `NACOS_SERVICE_NAME` | `nacos.service_register.service_name` | 服务名 | 空 |
 | `NACOS_SERVICE_NAMESPACE_ID` | `nacos.service_register.namespace_id` | 命名空间 ID | 空 |
@@ -62,7 +63,19 @@
 | `NACOS_SERVICE_HEARTBEAT_INTERVAL` | `nacos.service_register.heartbeat_interval` | 心跳间隔（秒） | `10` |
 | — | `nacos.service_register.metadata` | 注册到 Nacos 的 metadata；非空时自动转 JSON 字符串上报 | 空数组 |
 
-内置注册进程 `NacosRegisterServiceProcess` 在 `application.yaml` 中 `enable_nacos_register: true` 时自动启动；`NACOS_SERVICE_REGISTER_HOST` / `NACOS_SERVICE_REGISTER_PORT` 会写入启动日志，便于排查。
+内置注册进程 `NacosRegisterServiceProcess` 在 `application.yaml` 中 `enable_nacos_register: true` 时自动启动；`NACOS_SERVICE_REGISTER_HOST` / `POD_IP` / `NACOS_SERVICE_REGISTER_PORT` 会写入启动日志，便于排查。
+
+注册 IP 未显式传入时的回退顺序：`NACOS_SERVICE_REGISTER_HOST` → `POD_IP` → YAML `ip` → 自动探测本机 IP。
+
+ACK/Kubernetes Deployment 可通过 Downward API 注入 Pod IP：
+
+```yaml
+env:
+  - name: POD_IP
+    valueFrom:
+      fieldRef:
+        fieldPath: status.podIP
+```
 
 `metadata` 示例：
 

@@ -8,7 +8,8 @@ use Swoolefy\Library\Captcha\CaptchaBuilder;
 
 class CaptchaController extends BController
 {
-    public function test(RequestInput $requestInput, ResponseOutput $responseOutput): array {
+    public function test(RequestInput $requestInput, ResponseOutput $responseOutput): array
+    {
         //$responseOutput->withHeader('Content-Type', 'image/jpeg');
         $builder = new CaptchaBuilder();
         $builder->build();
