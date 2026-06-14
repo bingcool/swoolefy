@@ -152,6 +152,16 @@ $registrar->register();
 ```php
 $client = DiscoveryClient::create();
 $instance = $client->choose();
+$metadata = $instance?->getMetadata() ?? [];
+$version = $instance?->getMetadataValue('version', 0);
+```
+
+`gen:sdk` 生成的客户端在 Nacos 发现时也会保存选中实例的 metadata：
+
+```php
+$api = UserApi::makeService();
+$metadata = $api->getNacosInstanceMetadata();
+$version = $api->getNacosInstanceMetadataValue('version', 0);
 ```
 
 ## Monitor

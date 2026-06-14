@@ -1657,7 +1657,7 @@ nacos:
     ephemeral: true
     # 非空时注册到 Nacos 的 metadata 参数会自动转为 JSON 字符串
     metadata:
-      max_limit_request: 10000
+      version: 1.0.0
   discovery_service_client:
     load_balancer: random   # random | round_robin | weight
     cache_ttl: 60
@@ -1720,6 +1720,7 @@ use Swoolefy\Support\Nacos\Discovery\DiscoveryClient;
 $client = DiscoveryClient::create('my-service'); // 也可传 NacosConfig / DiscoveryConfig
 $instance = $client->choose();
 $uri = $client->chooseUri();
+$metadata = $instance?->getMetadata() ?? [];
 ```
 
 #### 与 gen:sdk 的关系
@@ -1727,7 +1728,15 @@ $uri = $client->chooseUri();
 | 步骤 | 行为 |
 |:---|:---|
 | 生成时 | 通过 `NacosServiceRegisterConfig` 读取 `service_register.service_name`，写入 `BaseClientApi::$serviceName` |
-| 运行时 | `UserApi::make()` 未传 Guzzle Client → `SdkNacosServiceDiscovery` → `DiscoveryClient::chooseUri()` → 设置 Guzzle `base_uri` |
+| 运行时 | `UserApi::make()` 未传 Guzzle Client → `SdkNacosServiceDiscovery` → `DiscoveryClient::choose()` → 设置 Guzzle `base_uri`，并保存选中实例的 `metadata` |
+
+SDK 客户端可读取当前选中实例 metadata：
+
+```php
+$api = UserApi::makeService();
+$metadata = $api->getNacosInstanceMetadata();
+$version = $api->getNacosInstanceMetadataValue('version', 0);
+```
 
 ```bash
 php script.php start App --c=gen:sdk --router=App/Router --out=../generate-sdk-library/OrderService
