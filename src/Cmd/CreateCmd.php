@@ -384,7 +384,10 @@ EOF;
         $content =
 <<<EOF
 #cron service debug配置,默认开启
-CRON_DEBUG=true
+CRON_DEBUG=true 
+
+# 内部跨环境可访问的服务URL。服务注册时会写入 Nacos metadata 的 `inner_external_base_uri`
+INNER_EXTERNAL_BASE_URI='http://192.168.1.102:9501'
 
 #mysqL配置
 DB_HOST_NAME=192.168.1.101

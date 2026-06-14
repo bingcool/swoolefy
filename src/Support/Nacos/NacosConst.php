@@ -32,6 +32,10 @@ final class NacosConst
     public const ENV_SERVICE_GROUP_NAME = 'NACOS_SERVICE_GROUP_NAME';
     public const ENV_SERVICE_WEIGHT = 'NACOS_SERVICE_WEIGHT';
     public const ENV_SERVICE_HEARTBEAT_INTERVAL = 'NACOS_SERVICE_HEARTBEAT_INTERVAL';
+    public const ENV_INNER_EXTERNAL_BASE_URI = 'INNER_EXTERNAL_BASE_URI';
+
+    // Nacos instance metadata keys
+    public const METADATA_INNER_EXTERNAL_BASE_URI = 'inner_external_base_uri';
 
     // application.yaml → nacos.discovery_service_client
     public const ENV_DISCOVERY_CACHE_TTL = 'NACOS_DISCOVERY_CACHE_TTL';

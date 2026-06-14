@@ -68,10 +68,29 @@ final class NacosServiceRegisterConfig
      */
     private static function getMetadata(array $section): array
     {
-        if (!array_key_exists('metadata', $section) || !is_array($section['metadata'])) {
-            return [];
+        $metadata = [];
+        if (array_key_exists('metadata', $section) && is_array($section['metadata'])) {
+            $metadata = $section['metadata'];
         }
 
-        return $section['metadata'];
+        $innerExternalBaseUri = self::getInnerExternalBaseUri();
+        if ('' !== $innerExternalBaseUri) {
+            // 该值各环境不同，放在 .env 中；注册到 metadata 后供本地自动切 dev 分组时覆盖 Pod IP。
+            if (str_contains($innerExternalBaseUri, 'http://') || str_contains($innerExternalBaseUri, 'https://')) {
+                $metadata[NacosConst::METADATA_INNER_EXTERNAL_BASE_URI] = rtrim($innerExternalBaseUri, '/');
+            } else if (!str_contains($innerExternalBaseUri, 'https://') && !str_contains($innerExternalBaseUri, 'http://')) {
+                $metadata[NacosConst::METADATA_INNER_EXTERNAL_BASE_URI] = 'http://'.rtrim($innerExternalBaseUri, '/');
+            }
+        }
+
+        return $metadata;
+    }
+
+    private static function getInnerExternalBaseUri(): string
+    {
+        if (function_exists('env')) {
+            return (string) \env(NacosConst::ENV_INNER_EXTERNAL_BASE_URI, '');
+        }
+        return "";
     }
 }

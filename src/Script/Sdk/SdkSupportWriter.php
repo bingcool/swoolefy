@@ -775,6 +775,7 @@ final class SdkNacosServiceDiscovery
         try {
             $discoveryConfig = DiscoveryConfig::load();
             $instance = self::chooseInstance($serviceName, $discoveryConfig);
+            $useInnerExternalBaseUri = false;
 
             // 本地分组（如 bingcool）无实例时，回退到 yaml 中 定义的 部署分组（dev环境
             // 同时确保本地开发环境能够调通dev部署的环境，即本地开发环境能够访问dev环境各个服务注册到nacos的ip
@@ -792,10 +793,15 @@ final class SdkNacosServiceDiscovery
                         $serviceName,
                         self::discoveryConfigWithGroup($discoveryConfig, $fallbackGroup),
                     );
+                    $useInnerExternalBaseUri = $instance instanceof ServiceInstance;
 
                     if (function_exists('fmtPrintNote')) {
                         if ($instance instanceof ServiceInstance) {
-                            fmtPrintNote(sprintf("调用nacos注册的服务【%s】自动切换到其开发环境调用uri=%s", $serviceName, $instance->getUri('http')));
+                            fmtPrintNote(sprintf(
+                                "调用nacos注册的服务【%s】自动切换到其开发环境调用uri=%s",
+                                $serviceName,
+                                self::resolveBaseUriFromInstance($instance, $useInnerExternalBaseUri),
+                            ));
                         } else {
                             fmtPrintNote(sprintf("调用nacos注册的服务【%s】自动切换到其开发环境, 无法获取其host+ip", $serviceName));
                         }
@@ -816,9 +822,22 @@ final class SdkNacosServiceDiscovery
         }
 
         return [
-            'base_uri' => rtrim($instance->getUri('http'), '/') . '/',
+            'base_uri' => self::resolveBaseUriFromInstance($instance, $useInnerExternalBaseUri),
             'metadata' => $instance->getMetadata(),
         ];
+    }
+
+    private static function resolveBaseUriFromInstance(ServiceInstance $instance, bool $useInnerExternalBaseUri): string
+    {
+        if ($useInnerExternalBaseUri) {
+            $metadata = $instance->getMetadata();
+            $innerExternalBaseUri = (string) ($metadata[NacosConst::METADATA_INNER_EXTERNAL_BASE_URI] ?? '');
+            if ('' !== $innerExternalBaseUri) {
+                return rtrim($innerExternalBaseUri, '/') . '/';
+            }
+        }
+
+        return rtrim($instance->getUri('http'), '/') . '/';
     }
 
     private static function chooseInstance(string $serviceName, DiscoveryConfig $discoveryConfig): ?ServiceInstance
