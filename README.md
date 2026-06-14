@@ -1633,7 +1633,7 @@ class UserCreateRequest extends BaseRequest
 | 全局 | `NACOS_FILE_PATH`                                           | `nacos.yaml` 路径 |
 | 连接 | `NACOS_HOST`、`NACOS_PORT`、`NACOS_USERNAME`、`NACOS_PASSWORD` | Nacos 服务器连接 |
 | 配置中心 | `application.yaml` → `nacos.service_config.data_id` / `group` | 项目配置 dataId（必填，不支持环境变量） |
-| 注册 | `NACOS_SERVICE_REGISTER_HOST`、`NACOS_SERVICE_REGISTER_PORT` | 本实例注册信息 |
+| 注册 | `NACOS_SERVICE_REGISTER_HOST`、`POD_IP`、`NACOS_SERVICE_REGISTER_PORT` | 本实例注册信息 |
 
 `application.yaml` 片段示例：
 
@@ -1645,7 +1645,7 @@ nacos:
     group: DEFAULT_GROUP
     tenant: ''
   service_register:
-    # 优先读取 NACOS_SERVICE_REGISTER_HOST 环境变量
+    # 注册 IP 读取顺序：NACOS_SERVICE_REGISTER_HOST（本地开发）→ POD_IP（K8s/ACK）→ YAML ip → 自动探测
     ip: 192.168.1.102
     # 优先读取 NACOS_SERVICE_REGISTER_PORT 环境变量。一般不需要配置，除非docker映射端口不一致。默认读取cli.php环境变量WORKER_PORT
     # port: 9501
@@ -1687,6 +1687,20 @@ export LOCAL_NACOS_SERVICE_AUTO_SWITCH=1
 | `LOCAL_NACOS_SERVICE_AUTO_SWITCH` | 设为 `1` 时，SDK 调用依赖服务：先在当前分组（如 `bingcool`）查找实例；若无可用实例，自动回退到 `application.yaml` → `nacos.service_register.group_name`（frame_group 分组）中已部署的服务，便于本地只启动部分服务即可联调 |
 
 典型场景：本地启动 `order-service` 开发订单功能，需调用 `product-service`；本地未启动 `product-service` 时，SDK 会自动切到 dev 开发环境中已部署的 `product-service` 实例。**注意：本地网络需能访问 dev 部署实例注册的 IP。**
+
+#### ACK / Kubernetes 部署
+
+在 ACK/Kubernetes 中建议通过 Downward API 注入 Pod IP，框架注册 IP 读取顺序为：`NACOS_SERVICE_REGISTER_HOST`（本地开发显式覆盖）→ `POD_IP`（K8s/ACK）→ `application.yaml` 的 `nacos.service_register.ip` → 自动探测。
+
+Deployment 片段示例：
+
+```yaml
+env:
+  - name: POD_IP
+    valueFrom:
+      fieldRef:
+        fieldPath: status.podIP
+```
 
 #### 配置变更监听（自动重启）
 

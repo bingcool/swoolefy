@@ -90,7 +90,21 @@ class NacosRegisterServiceProcess extends AbstractProcess
             return (string) $envIp;
         }
 
-        $logger->info(sprintf('%s is not set', NacosConst::ENV_SERVICE_REGISTER_HOST));
+        $logger->info(sprintf('%s is not set， now discovery k8s|ACK POD IP', NacosConst::ENV_SERVICE_REGISTER_HOST));
+
+        // K8s/ACK 部署时建议通过 Downward API 注入 POD_IP，作为服务注册 IP。
+        // 优先级低于 NACOS_SERVICE_REGISTER_HOST，避免覆盖本地开发显式指定的 127.0.0.1。
+        $podIp = getenv(NacosConst::ENV_POD_IP);
+        if (false !== $podIp && '' !== $podIp) {
+            if (filter_var($podIp, FILTER_VALIDATE_IP)) {
+                $logger->info(sprintf('%s is set, value=%s', NacosConst::ENV_POD_IP, $podIp));
+                return (string) $podIp;
+            }
+
+            $logger->info(sprintf('%s is set but invalid, value=%s', NacosConst::ENV_POD_IP, $podIp));
+        } else {
+            $logger->info(sprintf('%s is not set', NacosConst::ENV_POD_IP));
+        }
 
         if ('' !== $serviceConfig->ip) {
             return $serviceConfig->ip;
