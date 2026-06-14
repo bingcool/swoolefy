@@ -356,6 +356,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Message\ResponseInterface;
+use Swoolefy\Support\HeaderPropagation\HeaderPropagator;
 
 /**
  * SDK HTTP 客户端基类：Nacos 服务发现、Connect 重试、JSON 解析与业务码校验。
@@ -700,7 +701,10 @@ abstract class BaseClientApi
         // 你可以使用 try-catch 来捕获它们，但这有一个重要前提：请求的 http_errors 选项必须被设置为 true（这也是该选项的默认行为）
         $defaults = [
             'http_errors' => true,
-            'headers' => ['Content-Type' => 'application/json'],
+            'headers' => array_merge(
+                HeaderPropagator::outgoingHeaders(),
+                ['Content-Type' => 'application/json'],
+            ),
             'connect_timeout' => 30.0,
             'timeout' => 120.0,
         ];

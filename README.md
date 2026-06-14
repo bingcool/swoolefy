@@ -1754,6 +1754,31 @@ $metadata = $api->getNacosInstanceMetadata();
 $version = $api->getNacosInstanceMetadataValue('version', 0);
 ```
 
+SDK 调用下游服务时会自动透传入口请求中的白名单 Header，并兼容框架已有协程级 `x-trace-id`：
+
+| Header | 说明 |
+|:---|:---|
+| `x-trace-id` | 链路追踪 ID，优先使用协程上下文中的 trace id |
+| `x-user-id` | 登录用户 ID |
+| `x-user-code` | 登录用户编码 |
+| `x-tenant-id` | 租户 ID |
+| `x-user-name` | 用户名 |
+| `x-client-ip` | 客户端 IP |
+| `x-user-agent` | SDK 下游请求固定为 `swoolefy-api-sdk` |
+
+业务显式传入 `$options['headers']` 时优先级最高，可覆盖自动透传值。
+
+业务代码可通过 `FrameworkContext` 读取当前请求上下文：
+
+```php
+use Swoolefy\Support\FrameworkContext;
+
+$userId = FrameworkContext::getUserId();
+$tenantId = FrameworkContext::getTenantId();
+$userAgent = FrameworkContext::getUserAgent();
+$userCode = FrameworkContext::get('x-user-code');
+```
+
 ```bash
 php script.php start App --c=gen:sdk --router=App/Router --out=../generate-sdk-library/OrderService
 ```
