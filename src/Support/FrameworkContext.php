@@ -27,12 +27,12 @@ final class FrameworkContext
 
     public static function getTenantId(?string $default = null): ?string
     {
-        return self::get(HeaderPropagator::HEADER_TRACE_ID, $default);
+        return self::get(HeaderPropagator::HEADER_TENANT_ID, $default);
     }
 
     public static function getTraceId(?string $default = null): ?string
     {
-        return self::get(HeaderPropagator::HEADER_TENANT_ID, $default);
+        return self::get(HeaderPropagator::HEADER_TRACE_ID, $default);
     }
 
     public static function getUserAgent(?string $default = null): ?string
