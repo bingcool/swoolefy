@@ -85,6 +85,15 @@ trait RequestParseTrait
     }
 
     /**
+     * isPatch
+     * @return bool
+     */
+    public function isPatch(): bool
+    {
+        return (strtoupper($this->swooleRequest->server['REQUEST_METHOD']) == 'PATCH') ? true : false;
+    }
+
+    /**
      * isDelete
      * @return bool
      */
@@ -146,7 +155,11 @@ trait RequestParseTrait
         if (!$this->requestParams) {
             $get  = isset($this->swooleRequest->get) ? $this->swooleRequest->get : [];
             $post = isset($this->swooleRequest->post) ? $this->swooleRequest->post : [];
-            $input = json_decode($this->swooleRequest->rawContent(), true) ?? [];
+            $input = RequestBodyParser::parseJsonPayload(
+                (string) $this->getHeaderParams('content-type', ''),
+                $this->swooleRequest->rawContent(),
+                $this->getMethod()
+            );
             $this->requestParams = array_merge($get, $post, $input);
             unset($get, $post);
         }
@@ -236,7 +249,11 @@ trait RequestParseTrait
         if (!$this->postParams) {
             $input = $this->swooleRequest->post ?? [];
             if (!$input) {
-                $input = json_decode($this->swooleRequest->rawContent(), true) ?? [];
+                $input = RequestBodyParser::parseJsonPayload(
+                    (string) $this->getHeaderParams('content-type', ''),
+                    $this->swooleRequest->rawContent(),
+                    $this->getMethod()
+                );
             }
             $this->postParams = $input;
         }
@@ -527,18 +544,6 @@ trait RequestParseTrait
     }
 
     /**
-     * sendfile
-     * @param string $filename
-     * @param int $offset
-     * @param int $length
-     * @return void
-     */
-    public function sendfile(string $filename, int $offset = 0, int $length = 0)
-    {
-        $this->swooleResponse->sendfile($filename, $offset, $length);
-    }
-
-    /**
      * parseUrl
      * @param string $url
      * @return array
@@ -691,10 +696,11 @@ trait RequestParseTrait
      * @param string $name
      * @return bool
      */
-    public function hasHeader(string $name)
+    public function hasHeader(string $name): bool
     {
-        $headers = $this->getSwooleRequest()->header;
-        return isset($headers[$name]) ? true : false;
+        $headers = $this->getSwooleRequest()->header ?? [];
+
+        return array_key_exists(strtolower($name), $headers);
     }
 
     /**
