@@ -8,6 +8,7 @@ use Dotenv\Dotenv;
 use Dotenv\Exception\InvalidFileException;
 use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\Exception\RequestException;
+use Swoole\Http\Status;
 use Swoolefy\Exception\NacosMonitorException;
 use Swoolefy\Support\ApplicationConfig;
 
@@ -87,7 +88,7 @@ final class NacosFactory
 
         $status = $response->getStatusCode();
         $body = (string) $response->getBody();
-        if ($status < 200 || $status >= 300) {
+        if ($status < Status::OK || $status >= Status::MULTIPLE_CHOICES) {
             throw NacosMonitorException::throw(sprintf(
                 'Nacos config get failed, HTTP %d: %s',
                 $status,
@@ -117,7 +118,7 @@ final class NacosFactory
 
         $status = $response->getStatusCode();
         $body = (string) $response->getBody();
-        if ($status < 200 || $status >= 300) {
+        if ($status < Status::OK || $status >= Status::MULTIPLE_CHOICES) {
             throw NacosMonitorException::throw(sprintf(
                 'Nacos auth login failed, HTTP %d: %s',
                 $status,

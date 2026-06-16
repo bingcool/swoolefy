@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Http\Middleware;
 
+use Swoole\Http\Status;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\ResponseOutput;
 use Swoolefy\Core\Coroutine\Context as SwooleContext;
@@ -137,7 +138,7 @@ class CorsMiddleware implements CorsMiddlewareInterface
 
         $method = strtoupper($requestInput->getMethod());
         if ($method == 'OPTIONS') {
-            $responseOutput->withStatus(\Swoole\Http\Status::NO_CONTENT)->getSwooleResponse()->end();
+            $responseOutput->withStatus(Status::NO_CONTENT)->getSwooleResponse()->end();
         }
         return true;
     }
@@ -151,23 +152,23 @@ class CorsMiddleware implements CorsMiddlewareInterface
      */
     protected function handlePreflight(RequestInput $requestInput, ResponseOutput $responseOutput): bool
     {
-        $forbiddenStatus403 = \Swoole\Http\Status::FORBIDDEN;
+        $forbiddenStatus = \Swoole\Http\Status::FORBIDDEN;
         if (!in_array('*', $this->options['allowedOrigins']) && !$requestInput->hasHeader('origin')) {
-            $responseOutput->withStatus($forbiddenStatus403)->getSwooleResponse()->end(
-                sprintf('%d Forbidden Of `Origin` header not present', $forbiddenStatus403));
+            $responseOutput->withStatus($forbiddenStatus)->getSwooleResponse()->end(
+                sprintf('%d Forbidden Of `Origin` header not present', $forbiddenStatus));
             return false;
         }
 
         if (!$this->isOriginAllowed($requestInput)) {
-            $responseOutput->withStatus($forbiddenStatus403)->getSwooleResponse()->end(
-                sprintf('`Origin` %d Forbidden', $forbiddenStatus403));
+            $responseOutput->withStatus($forbiddenStatus)->getSwooleResponse()->end(
+                sprintf('`Origin` %d Forbidden', $forbiddenStatus));
             return false;
         }
 
         $path = $requestInput->getRequestUri();
         if (!$this->isPathAllowed($path)) {
-            $responseOutput->withStatus($forbiddenStatus403)->getSwooleResponse()->end(
-                sprintf("api %d Forbidden, path={$path}", $forbiddenStatus403));
+            $responseOutput->withStatus($forbiddenStatus)->getSwooleResponse()->end(
+                sprintf("api %d Forbidden, path={$path}", $forbiddenStatus));
             return false;
         }
 
