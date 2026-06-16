@@ -130,6 +130,14 @@ Route::group([
     Route::get('/sse/tick', [
         'dispatch_route' => [\Test\Controller\EventStreamController::class, 'tick'],
     ]);
+
+    Route::get('/chunked/ndjson', [
+        'dispatch_route' => [\Test\Controller\ChunkedController::class, 'ndjson'],
+    ]);
+
+    Route::get('/chunked/text', [
+        'dispatch_route' => [\Test\Controller\ChunkedController::class, 'text'],
+    ]);
 });
 
 Route::match(['GET'],'/cache/test1', [
