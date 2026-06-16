@@ -115,6 +115,16 @@ class TestRequest extends AbstractProcess
         var_dump($events);
     }
 
+    /** 文件下载：返回 content / filename / contentType，可写入本地文件 */
+    protected function requestTest4()
+    {
+        $downloadApi = \GenerateSdk\Swoolefy\App\Client\DownloadApi::makeService();
+        $result = $downloadApi->file(['file' => 'demo.txt']);
+        $savePath = APP_PATH . '/Storage/Download/' . ($result['filename'] ?? 'downloaded.txt');
+        file_put_contents($savePath, $result['content']);
+        var_dump($result['filename'], $result['contentType'], strlen($result['content']));
+    }
+
     protected function testPageRequest()
     {
         $LogOrderApi = LogOrderApi::makeService();

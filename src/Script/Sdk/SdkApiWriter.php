@@ -86,7 +86,7 @@ final class SdkApiWriter
                 $uses[] = $this->sdkNamespacePrefix . '\\Support\\SdkCovertProperty';
             }
 
-            // Controller 方法体若使用 EventStream / ChunkedResponse，则按流式接口生成 SDK（不走 JSON 信封）
+            // 优先读取 #[StreamResponse] / #[ChunkedResponse] / #[DownloadResponse] 注解决定 SDK 响应类型
             $streamType = $this->detectStreamType($method);
 
             $reqParam = $this->buildRequestParam($passParamsAsArray, $reqFqcn, $isReqNullable, $scalarParams);
@@ -339,9 +339,9 @@ PHP;
             $lines[] = '        $requestDefaults[\'body\'] = json_encode($request->toDeepArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);';
         }
         
-        // 流式接口（SSE / Chunked）响应体不是 {code,msg,data} JSON 信封，需单独解析
+        // 非 JSON 响应（SSE / Chunked / 文件下载）需单独解析
         if ($streamType !== null) {
-            $lines[] = '        // 流式请求：不强制 Content-Type: application/json';
+            $lines[] = '        // 流式/下载请求：不强制 Content-Type: application/json';
             $lines[] = '        $options = $this->mergeStreamClientOptions($requestDefaults, $options);';
             if ($streamType === 'sse') {
                 $lines[] = "        // SSE 需声明 Accept，响应为 text/event-stream";
@@ -351,6 +351,9 @@ PHP;
             if ($streamType === 'sse') {
                 $lines[] = '        // 解析 SSE 事件列表，data 字段若为 JSON 会自动 decode';
                 $lines[] = '        return $this->parseSseResponse($response);';
+            } elseif ($streamType === 'download') {
+                $lines[] = '        // 文件下载：解析二进制 body 与 Content-Disposition 文件名';
+                $lines[] = '        return $this->parseDownloadResponse($response);';
             } else {
                 $lines[] = '        // Chunked 返回原始响应体（如 NDJSON 多行文本）';
                 $lines[] = '        return $this->parseStreamResponse($response);';
@@ -785,15 +788,46 @@ PHP;
     }
 
     /**
-     * 识别 Controller action 是否为流式响应。
+     * 识别 Controller action 的非 JSON 响应类型。
      *
-     * 通过扫描方法源码判断：
-     * - new EventStream( → SSE（text/event-stream）
-     * - new ChunkedResponse( → 分块流（原始 body）
+     * 优先读取方法注解：
+     * - #[StreamResponse] → SSE
+     * - #[ChunkedResponse] → 分块流
+     * - #[DownloadResponse] → 文件下载
      *
-     * @return 'sse'|'chunked'|null
+     * 未标注时回退扫描方法体（new EventStream / new HttpChunkedResponse / ->download）。
+     *
+     * @return 'sse'|'chunked'|'download'|null
      */
     private function detectStreamType(ReflectionMethod $method): ?string
+    {
+        $fromAttribute = $this->detectStreamTypeFromAttributes($method);
+        if ($fromAttribute !== null) {
+            return $fromAttribute;
+        }
+
+        return $this->detectStreamTypeFromMethodBody($method);
+    }
+
+    private function detectStreamTypeFromAttributes(ReflectionMethod $method): ?string
+    {
+        $map = [
+            \Swoolefy\Annotation\StreamResponse::class => 'sse',
+            \Swoolefy\Annotation\ChunkedResponse::class => 'chunked',
+            \Swoolefy\Annotation\DownloadResponse::class => 'download',
+        ];
+
+        foreach ($method->getAttributes() as $attribute) {
+            $type = $map[$attribute->getName()] ?? null;
+            if ($type !== null) {
+                return $type;
+            }
+        }
+
+        return null;
+    }
+
+    private function detectStreamTypeFromMethodBody(ReflectionMethod $method): ?string
     {
         $filename = $method->getFileName();
         if ($filename === false || !is_readable($filename)) {
@@ -815,8 +849,11 @@ PHP;
         if (preg_match('/new\s+EventStream\s*\(/', $body) === 1) {
             return 'sse';
         }
-        if (preg_match('/new\s+ChunkedResponse\s*\(/', $body) === 1) {
+        if (preg_match('/new\s+HttpChunkedResponse\s*\(/', $body) === 1) {
             return 'chunked';
+        }
+        if (preg_match('/->download\s*\(/', $body) === 1) {
+            return 'download';
         }
 
         return null;
@@ -829,8 +866,8 @@ PHP;
         bool $isNullable = false,
         ?string $streamType = null,
     ): string {
-        // 流式接口覆盖 Controller 的 void 声明：SSE 返回事件数组，Chunked 返回原始字符串
-        if ($streamType === 'sse') {
+        // 非 JSON 响应覆盖 Controller 的 void 声明
+        if ($streamType === 'sse' || $streamType === 'download') {
             return 'array';
         }
         if ($streamType === 'chunked') {
