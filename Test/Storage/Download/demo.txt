@@ -1,2 +1,0 @@
-Swoolefy download demo file.
-You can replace this file under Test/Storage/Download/.
