@@ -655,7 +655,7 @@ abstract class BaseClientApi
     protected function parseJsonResponse(ResponseInterface $response): array
     {
         $status = $response->getStatusCode();
-        if ($status < 200 || $status >= 300) {
+        if ($status < \Swoole\Http\Status::OK || $status >= \Swoole\Http\Status::MULTIPLE_CHOICES) {
             throw new SdkClientException('Unexpected HTTP status: ' . $status, $status);
         }
         $raw = (string) $response->getBody();
