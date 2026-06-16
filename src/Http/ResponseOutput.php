@@ -164,4 +164,22 @@ class ResponseOutput extends HttpInputOut
         $this->swooleResponse->status($code, $reasonPhrase);
         return $this;
     }
+
+    /**
+     * 通过 Swoole sendfile 发送文件响应。
+     *
+     * sendfile 会结束当前 HTTP 响应，因此需标记请求已结束，避免 App::end() 重复 end()。
+     *
+     * @param string $filename 文件绝对路径
+     * @param int $offset 起始偏移
+     * @param int $length 发送长度，0 表示发送到文件末尾
+     */
+    public function sendfile(string $filename, int $offset = 0, int $length = 0): bool
+    {
+        if (is_object(Application::getApp())) {
+            Application::getApp()->setEnd();
+        }
+
+        return $this->swooleResponse->sendfile($filename, $offset, $length);
+    }
 }

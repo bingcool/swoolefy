@@ -25,7 +25,7 @@ class CorsMiddleware implements CorsMiddlewareInterface
     private $options = [
         'allowedPath'            => ['*'],
         'allowedHeaders'         => ['*'],
-        'allowedMethods'         => ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        'allowedMethods'         => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
         'allowedOrigins'         => [],
         'allowedOriginsPatterns' => ['*.example.com'],
         'exposedHeaders'         => [],

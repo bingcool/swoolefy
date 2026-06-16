@@ -29,7 +29,7 @@ class Route
     /**
      * http methods
      */
-    const HTTP_METHODS = ['GET','POST','PUT','DELETE','HEAD','OPTIONS'];
+    const HTTP_METHODS = ['GET','POST','PUT','PATCH','DELETE','HEAD','OPTIONS'];
 
     /**
      * __CURRENT_REQUEST_GROUP_META
@@ -115,6 +115,26 @@ class Route
         self::$routeMap[$newUri]['PUT'] = [
             'group_meta' => $groupMeta,
             'method' => ['PUT'],
+            'route_meta' => $routeMeta,
+            'route_option' => &$routeOption,
+            'enable_cors_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
+        ];
+        return $routeOption;
+    }
+
+    /**
+     * @param string $uri
+     * @param array $routeMeta
+     * @return RouteOption
+     */
+    public static function patch(string $uri, array $routeMeta)
+    {
+        $groupMeta = self::getGroupMeta();
+        $routeOption = new RouteOption();
+        $newUri = self::parseUri($uri, $groupMeta);
+        self::$routeMap[$newUri]['PATCH'] = [
+            'group_meta' => $groupMeta,
+            'method' => ['PATCH'],
             'route_meta' => $routeMeta,
             'route_option' => &$routeOption,
             'enable_cors_middleware' => self::setCoresOptionMethod($groupMeta, $routeMeta, $newUri),
