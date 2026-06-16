@@ -805,8 +805,9 @@ PHP;
         if ($fromAttribute !== null) {
             return $fromAttribute;
         }
-
-        return $this->detectStreamTypeFromMethodBody($method);
+        return null;
+        // 为了sdk快速生成，暂时关闭，强烈要求使用注解，在开发测试阶段提前报错
+        // return $this->detectStreamTypeFromMethodBody($method);
     }
 
     private function detectStreamTypeFromAttributes(ReflectionMethod $method): ?string
