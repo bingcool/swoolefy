@@ -138,6 +138,14 @@ Route::group([
     Route::get('/chunked/text', [
         'dispatch_route' => [\Test\Controller\ChunkedController::class, 'text'],
     ]);
+
+    Route::get('/download/file', [
+        'dispatch_route' => [\Test\Controller\DownloadController::class, 'file'],
+    ]);
+
+    Route::get('/download/inline', [
+        'dispatch_route' => [\Test\Controller\DownloadController::class, 'inline'],
+    ]);
 });
 
 Route::match(['GET'],'/cache/test1', [

@@ -2,6 +2,7 @@
 namespace Test\Controller;
 
 use Swoole\Coroutine;
+use Swoolefy\Annotation\StreamResponse;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Http\EventStream;
 use Swoolefy\Http\RequestInput;
@@ -20,6 +21,7 @@ class EventStreamController extends BController
      * const es = new EventSource('/api/sse/stream?count=5');
      * es.onmessage = (e) => console.log(JSON.parse(e.data));
      */
+    #[StreamResponse]
     public function stream(RequestInput $requestInput, ResponseOutput $responseOutput): void
     {
         $count = max(1, (int) $requestInput->input('count', 10));
@@ -64,6 +66,7 @@ class EventStreamController extends BController
      * 访问示例：
      * GET /api/sse/tick?seconds=30
      */
+    #[StreamResponse]
     public function tick(RequestInput $requestInput, ResponseOutput $responseOutput): void
     {
         $seconds = max(1, (int) $requestInput->input('seconds', 30));

@@ -25,7 +25,7 @@ use Swoolefy\Core\Application;
  * ```php
  * public function export(ResponseOutput $response): void
  * {
- *     $stream = new ChunkedResponse($response, 'application/x-ndjson');
+ *     $stream = new HttpChunkedResponse($response, 'application/x-ndjson');
  *     foreach ($this->rows() as $row) {
  *         if (!$stream->writeJson($row) || !$stream->write("\n")) {
  *             break;
@@ -36,7 +36,7 @@ use Swoolefy\Core\Application;
  * ```
  * ```
  * // 大文件流式输出
- * $stream = new ChunkedResponse($response, 'text/csv', [
+ * $stream = new HttpChunkedResponse($response, 'text/csv', [
  *      'Content-Disposition' => 'attachment; filename="export.csv"',
  * ]);
  * $stream->write("id,name\n");
@@ -44,7 +44,7 @@ use Swoolefy\Core\Application;
  * $stream->end();
  * ```
  */
-class ChunkedResponse
+class HttpChunkedResponse
 {
     /**
      * 初始化后不允许被额外 headers 覆盖的关键响应头。

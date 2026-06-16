@@ -758,6 +758,43 @@ abstract class BaseClientApi
     }
 
     /**
+     * 文件下载响应：返回二进制内容与响应头中的文件名、MIME。
+     *
+     * @return array{content: string, filename: ?string, contentType: ?string}
+     */
+    protected function parseDownloadResponse(ResponseInterface $response): array
+    {
+        $this->assertHttpOk($response);
+
+        $contentType = $response->getHeaderLine('Content-Type');
+
+        return [
+            'content' => (string) $response->getBody(),
+            'filename' => $this->extractDownloadFilename($response->getHeaderLine('Content-Disposition')),
+            'contentType' => $contentType !== '' ? $contentType : null,
+        ];
+    }
+
+    /** 从 Content-Disposition 解析文件名（兼容 filename 与 filename*） */
+    protected function extractDownloadFilename(string $contentDisposition): ?string
+    {
+        if ($contentDisposition === '') {
+            return null;
+        }
+        if (preg_match("/filename\\*=UTF-8''([^;\\s]+)/i", $contentDisposition, $matches) === 1) {
+            return rawurldecode($matches[1]);
+        }
+        if (preg_match('/filename="([^"]+)"/', $contentDisposition, $matches) === 1) {
+            return $matches[1];
+        }
+        if (preg_match('/filename=([^;\\s]+)/', $contentDisposition, $matches) === 1) {
+            return trim($matches[1], " \t\"'");
+        }
+
+        return null;
+    }
+
+    /**
      * SSE 响应：解析 text/event-stream 为事件列表。
      *
      * @return list<array{event: string, id: ?string, data: mixed}>
