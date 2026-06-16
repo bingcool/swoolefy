@@ -122,6 +122,14 @@ Route::group([
     Route::match(['GET'],'/transaction/test', [
         'dispatch_route' => [\Test\Controller\TransactionController::class, 'test'],
     ]);
+
+    Route::get('/sse/stream', [
+        'dispatch_route' => [\Test\Controller\EventStreamController::class, 'stream'],
+    ]);
+
+    Route::get('/sse/tick', [
+        'dispatch_route' => [\Test\Controller\EventStreamController::class, 'tick'],
+    ]);
 });
 
 Route::match(['GET'],'/cache/test1', [
