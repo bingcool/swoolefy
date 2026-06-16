@@ -647,6 +647,15 @@ abstract class BaseClientApi
         ]);
     }
 
+    /** 仅校验 HTTP 2xx；流式接口不做业务 code 校验 */
+    protected function assertHttpOk(ResponseInterface $response): void
+    {
+        $status = $response->getStatusCode();
+        if ($status < \Swoole\Http\Status::OK || $status >= \Swoole\Http\Status::MULTIPLE_CHOICES) {
+            throw new SdkClientException('Unexpected HTTP status: ' . $status, $status);
+        }
+    }
+
     /**
      * 解析 JSON 响应体为数组，非 2xx 或非法 JSON 抛 SdkClientException。
      *
@@ -654,10 +663,7 @@ abstract class BaseClientApi
      */
     protected function parseJsonResponse(ResponseInterface $response): array
     {
-        $status = $response->getStatusCode();
-        if ($status < \Swoole\Http\Status::OK || $status >= \Swoole\Http\Status::MULTIPLE_CHOICES) {
-            throw new SdkClientException('Unexpected HTTP status: ' . $status, $status);
-        }
+        $this->assertHttpOk($response);
         $raw = (string) $response->getBody();
         if ($raw === '') {
             return [];
@@ -715,6 +721,123 @@ abstract class BaseClientApi
         }
 
         return $merged;
+    }
+
+    /**
+     * 流式请求默认选项：不设置 Content-Type: application/json。
+     *
+     * 用于 SSE / Chunked 等接口；普通 JSON API 请用 mergeClientOptions()。
+     *
+     * @param array<string, mixed> $requestDefaults
+     * @param array<string, mixed> $options
+     * @return array<string, mixed>
+     */
+    protected function mergeStreamClientOptions(array $requestDefaults, array $options = []): array
+    {
+        $defaults = [
+            'http_errors' => true,
+            'headers' => HeaderPropagator::outgoingHeaders(),
+            'connect_timeout' => 30.0,
+            'timeout' => 120.0,
+        ];
+        $defaults = array_merge($defaults, $requestDefaults);
+        $merged = array_merge($defaults, $options);
+        if (isset($defaults['headers'], $options['headers']) && is_array($defaults['headers']) && is_array($options['headers'])) {
+            $merged['headers'] = array_merge($defaults['headers'], $options['headers']);
+        }
+
+        return $merged;
+    }
+
+    /** 分块流响应：返回完整原始 body，调用方自行按行/格式解析 */
+    protected function parseStreamResponse(ResponseInterface $response): string
+    {
+        $this->assertHttpOk($response);
+
+        return (string) $response->getBody();
+    }
+
+    /**
+     * SSE 响应：解析 text/event-stream 为事件列表。
+     *
+     * @return list<array{event: string, id: ?string, data: mixed}>
+     */
+    protected function parseSseResponse(ResponseInterface $response): array
+    {
+        $this->assertHttpOk($response);
+
+        return $this->decodeSseEvents((string) $response->getBody());
+    }
+
+    /**
+     * 按 SSE 规范解析原始文本（event / id / data 字段，空行分隔事件）。
+     *
+     * data 若为 JSON 字符串会自动 decode 为 array；非 JSON 保持 string。
+     *
+     * @return list<array{event: string, id: ?string, data: mixed}>
+     */
+    protected function decodeSseEvents(string $raw): array
+    {
+        $events = [];
+        $current = ['event' => 'message', 'id' => null, 'data' => ''];
+
+        $flush = function () use (&$events, &$current): void {
+            if ($current['data'] === '' && $current['id'] === null && $current['event'] === 'message') {
+                return;
+            }
+
+            $data = $current['data'];
+            if ($data !== '') {
+                try {
+                    /** @var mixed $decoded */
+                    $decoded = json_decode($data, true, 512, JSON_THROW_ON_ERROR);
+                    $data = $decoded;
+                } catch (\JsonException) {
+                    // data 非 JSON 时保留原始字符串
+                }
+            }
+
+            $events[] = [
+                'event' => $current['event'],
+                'id' => $current['id'],
+                'data' => $data !== '' ? $data : null,
+            ];
+            $current = ['event' => 'message', 'id' => null, 'data' => ''];
+        };
+
+        foreach (preg_split("/\r\n|\n|\r/", $raw) ?: [] as $line) {
+            if ($line === '') {
+                $flush();
+                continue;
+            }
+            if (str_starts_with($line, ':')) {
+                // SSE comment 行（含心跳），忽略
+                continue;
+            }
+
+            $colon = strpos($line, ':');
+            if ($colon === false) {
+                continue;
+            }
+
+            $field = substr($line, 0, $colon);
+            $value = substr($line, $colon + 1);
+            if ($value !== '' && $value[0] === ' ') {
+                $value = substr($value, 1);
+            }
+
+            if ($field === 'event') {
+                $current['event'] = $value;
+            } elseif ($field === 'id') {
+                $current['id'] = $value;
+            } elseif ($field === 'data') {
+                $current['data'] .= ($current['data'] === '' ? '' : "\n") . $value;
+            }
+        }
+
+        $flush();
+
+        return $events;
     }
 }
 

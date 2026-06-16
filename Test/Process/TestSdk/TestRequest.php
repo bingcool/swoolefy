@@ -36,9 +36,9 @@ class TestRequest extends AbstractProcess
 //            $this->requestTest();
 //        });
 
-//        goTick(5000, function (){
-//            $this->requestTest2();
-//        });
+        goTick(5000, function (){
+            $this->requestTest2();
+        });
         goAfter(3000, function (){
              $this->requestTest3();
         });
@@ -107,10 +107,12 @@ class TestRequest extends AbstractProcess
         var_dump($response);
     }
 
+    /** SSE 流式接口：返回解析后的事件数组，而非 JSON 信封 */
     protected function requestTest3()
     {
         $eventStreamApi = \GenerateSdk\Swoolefy\App\Client\EventStreamApi::makeService();
-        $eventStreamApi->stream();
+        $events = $eventStreamApi->stream(['count' => 3, 'interval' => 0.2]);
+        var_dump($events);
     }
 
     protected function testPageRequest()

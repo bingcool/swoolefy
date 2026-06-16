@@ -86,8 +86,11 @@ final class SdkApiWriter
                 $uses[] = $this->sdkNamespacePrefix . '\\Support\\SdkCovertProperty';
             }
 
+            // Controller 方法体若使用 EventStream / ChunkedResponse，则按流式接口生成 SDK（不走 JSON 信封）
+            $streamType = $this->detectStreamType($method);
+
             $reqParam = $this->buildRequestParam($passParamsAsArray, $reqFqcn, $isReqNullable, $scalarParams);
-            $retType = $this->determineReturnType($isVoid, $retFqcn, $retScalarType, $isNullable);
+            $retType = $this->determineReturnType($isVoid, $retFqcn, $retScalarType, $isNullable, $streamType);
             // 构建返回类型声明，如果为空则不添加冒号
             $retTypeDecl = $retType !== '' ? ': ' . $retType : '';
 
@@ -108,6 +111,7 @@ final class SdkApiWriter
                     $retFqcn,
                     $isVoid,
                     $scalarParams,
+                    $streamType,
                 );
 
                 $methodDoc = $this->appendSdkApiDocLine($docBlock, $httpMethod, $path);
@@ -283,6 +287,7 @@ PHP;
         ?string $retTestFqcn,
         bool $isVoid,
         array $scalarParams = [],
+        ?string $streamType = null,
     ): string {
         $pathLiteral = var_export($path, true);
         $lines = [];
@@ -334,6 +339,27 @@ PHP;
             $lines[] = '        $requestDefaults[\'body\'] = json_encode($request->toDeepArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);';
         }
         
+        // 流式接口（SSE / Chunked）响应体不是 {code,msg,data} JSON 信封，需单独解析
+        if ($streamType !== null) {
+            $lines[] = '        // 流式请求：不强制 Content-Type: application/json';
+            $lines[] = '        $options = $this->mergeStreamClientOptions($requestDefaults, $options);';
+            if ($streamType === 'sse') {
+                $lines[] = "        // SSE 需声明 Accept，响应为 text/event-stream";
+                $lines[] = "        \$options['headers']['Accept'] = \$options['headers']['Accept'] ?? 'text/event-stream';";
+            }
+            $lines[] = '        $response = $this->requestWithConnectRetry(' . var_export($httpMethod, true) . ', $this->uri(' . $pathLiteral . '), $options);';
+            if ($streamType === 'sse') {
+                $lines[] = '        // 解析 SSE 事件列表，data 字段若为 JSON 会自动 decode';
+                $lines[] = '        return $this->parseSseResponse($response);';
+            } else {
+                $lines[] = '        // Chunked 返回原始响应体（如 NDJSON 多行文本）';
+                $lines[] = '        return $this->parseStreamResponse($response);';
+            }
+
+            return implode("\n", $lines);
+        }
+
+        // 普通 JSON API：解析信封并校验业务 code
         $lines[] = '        $options = $this->mergeClientOptions($requestDefaults, $options);';
         $lines[] = '        $response = $this->requestWithConnectRetry(' . var_export($httpMethod, true) . ', $this->uri(' . $pathLiteral . '), $options);';
         $lines[] = '        $payload = $this->parseJsonResponse($response);';
@@ -758,8 +784,59 @@ PHP;
         return false;
     }
 
-    private function determineReturnType(bool $isVoid, ?string $retFqcn, ?string $retScalarType, bool $isNullable = false): string
+    /**
+     * 识别 Controller action 是否为流式响应。
+     *
+     * 通过扫描方法源码判断：
+     * - new EventStream( → SSE（text/event-stream）
+     * - new ChunkedResponse( → 分块流（原始 body）
+     *
+     * @return 'sse'|'chunked'|null
+     */
+    private function detectStreamType(ReflectionMethod $method): ?string
     {
+        $filename = $method->getFileName();
+        if ($filename === false || !is_readable($filename)) {
+            return null;
+        }
+
+        $start = $method->getStartLine();
+        $end = $method->getEndLine();
+        if ($start <= 0 || $end < $start) {
+            return null;
+        }
+
+        $lines = file($filename, FILE_IGNORE_NEW_LINES);
+        if ($lines === false) {
+            return null;
+        }
+
+        $body = implode("\n", array_slice($lines, $start - 1, $end - $start + 1));
+        if (preg_match('/new\s+EventStream\s*\(/', $body) === 1) {
+            return 'sse';
+        }
+        if (preg_match('/new\s+ChunkedResponse\s*\(/', $body) === 1) {
+            return 'chunked';
+        }
+
+        return null;
+    }
+
+    private function determineReturnType(
+        bool $isVoid,
+        ?string $retFqcn,
+        ?string $retScalarType,
+        bool $isNullable = false,
+        ?string $streamType = null,
+    ): string {
+        // 流式接口覆盖 Controller 的 void 声明：SSE 返回事件数组，Chunked 返回原始字符串
+        if ($streamType === 'sse') {
+            return 'array';
+        }
+        if ($streamType === 'chunked') {
+            return 'string';
+        }
+
         if ($isVoid) {
             return 'void';
         }
