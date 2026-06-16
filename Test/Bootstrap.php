@@ -16,12 +16,14 @@ use Swoolefy\Core\BootstrapInterface;
 use Swoolefy\Exception\SystemException;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\ResponseOutput;
+use Swoolefy\Http\Middleware\SecurityHeadersMiddleware;
 use Test\Logger\RequestLog;
 
 class Bootstrap implements BootstrapInterface
 {
     public static function handle(RequestInput $requestInput, ResponseOutput $responseOutput)
     {
+          SecurityHeadersMiddleware::apply($requestInput, $responseOutput);
           \Swoolefy\Core\Coroutine\Context::set('lang_locale', 'zh_CN');
           $requestInput->setValue('name', 'boostrap');
           RequestLog::info('RequestLog RequestLog');

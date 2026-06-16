@@ -36,8 +36,11 @@ class TestRequest extends AbstractProcess
 //            $this->requestTest();
 //        });
 
-        goTick(5000, function (){
-            $this->requestTest2();
+//        goTick(5000, function (){
+//            $this->requestTest2();
+//        });
+        goAfter(3000, function (){
+             $this->requestTest3();
         });
         //$this->responseTest();
     }
@@ -102,6 +105,12 @@ class TestRequest extends AbstractProcess
         $indexApi = \GenerateSdk\Swoolefy\App\Client\IndexApi::makeService();
         $response = $indexApi->index1();
         var_dump($response);
+    }
+
+    protected function requestTest3()
+    {
+        $eventStreamApi = \GenerateSdk\Swoolefy\App\Client\EventStreamApi::makeService();
+        $eventStreamApi->stream();
     }
 
     protected function testPageRequest()
