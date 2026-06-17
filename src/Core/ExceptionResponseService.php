@@ -31,6 +31,13 @@ class ExceptionResponseService extends BService
         } else if (BaseServer::isWebsocketApp()) {
             $fd = Application::getApp()->getFd();
             $this->push($fd, $responseDataDto, $opcode = 1, $finish = true);
+        } else if (BaseServer::isUdpApp()) {
+            $serverSocket = -1;
+            $udpPacket = Application::getApp()->getUdpPacket();
+            if ($udpPacket !== null) {
+                $serverSocket = $udpPacket->getServerSocket();
+            }
+            $this->sendTo($responseDataDto, '', null, $serverSocket);
         }
         return $responseDataDto;
     }

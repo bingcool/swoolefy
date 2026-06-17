@@ -11,28 +11,27 @@
 
 namespace Swoolefy\Udp;
 
+use Swoolefy\Core\Swfy;
 use Swoolefy\Core\Swoole;
 use Swoolefy\Core\ServiceDispatch;
 use Swoolefy\Core\HandlerInterface;
+use Swoolefy\Core\ResponseFormatter;
 use Swoolefy\Core\Coroutine\Context as SwooleContent;
 
 class UdpHandler extends Swoole implements HandlerInterface
 {
-
     /**
      * 数据分隔符
      */
     const EOF = SWOOLEFY_EOF_FLAG;
 
     /**
-     * $client_info
-     * @var mixed
+     * @var array|null
      */
     protected $clientInfo = null;
 
     /**
      * __construct
-     * @param array $config
      */
     public function __construct()
     {
@@ -40,16 +39,16 @@ class UdpHandler extends Swoole implements HandlerInterface
     }
 
     /**
-     * @param $clientInfo
+     * @param array $clientInfo
      * @return void
      */
-    public function setClientInfo($clientInfo)
+    public function setClientInfo(array $clientInfo)
     {
         $this->clientInfo = $clientInfo;
     }
 
     /**
-     * @return mixed
+     * @return array|null
      */
     public function getClientInfo()
     {
@@ -71,21 +70,21 @@ class UdpHandler extends Swoole implements HandlerInterface
             parent::run(null, $payload);
             if ($this->isWorkerProcess()) {
                 $isTaskProcess = false;
-                $dataGramItems = explode(static::EOF, $payload, 2);
-                if (count($dataGramItems) == 2) {
-                    list($endPoint, $params) = $dataGramItems;
-                    if (is_string($params)) {
-                        $params = json_decode($params, true) ?? $params;
-                        if (!is_array($params)) {
-                            throw new \Exception('Udp params must be json string');
-                        }
-                    }
-                } else if (count($dataGramItems) == 1) {
-                    $endPoint = current($dataGramItems);
-                    $params   = [];
-                } else {
-                    throw new \Exception('Udp dataGramItems Parse Error, Payload: ' . $payload);
+                try {
+                    $packet = UdpPacket::parse((string) $payload, $this->clientInfo ?? []);
+                } catch (\InvalidArgumentException $exception) {
+                    $this->sendErrorResponse($exception->getMessage());
+                    return false;
                 }
+
+                $this->setUdpPacket($packet);
+                $this->setMixedParams($packet->getParams());
+                $this->setServiceHandle($packet->getEndpoint());
+
+                parent::run(null, $payload);
+
+                $endPoint = $packet->getEndpoint();
+                $params = $packet->getParams();
             } else {
                 $isTaskProcess = true;
                 foreach ($contextData as $key => $value) {
@@ -96,11 +95,14 @@ class UdpHandler extends Swoole implements HandlerInterface
 
             if (isset($endPoint) || isset($callable)) {
                 if ($isTaskProcess === false) {
-                    $endPoint = trim(str_replace('\\', DIRECTORY_SEPARATOR, $endPoint), DIRECTORY_SEPARATOR);
-                    $this->setServiceHandle($endPoint);
-                    list($beforeMiddleware, $callable, $afterMiddleware) = ServiceDispatch::getEndPointMapService($endPoint);
+                    try {
+                        list($beforeMiddleware, $callable, $afterMiddleware) = ServiceDispatch::getEndPointMapService($endPoint);
+                    } catch (\Throwable $throwable) {
+                        $this->sendErrorResponse($throwable->getMessage());
+                        return false;
+                    }
                     $dispatcher = new ServiceDispatch($callable, $params);
-                }else if ($isTaskProcess === true) {
+                } else if ($isTaskProcess === true) {
                     $dispatcher = new ServiceDispatch($callable, $params);
                     list($fromWorkerId, $taskId, $task) = $extendData;
                     $dispatcher->setFromWorkerIdAndTaskId($fromWorkerId, $taskId, $task);
@@ -117,12 +119,42 @@ class UdpHandler extends Swoole implements HandlerInterface
                 $dispatcher->dispatch();
             }
         } catch (\Throwable $throwable) {
+            ServiceDispatch::getErrorHandle()->errorMsg($throwable->getMessage(), -1);
             throw $throwable;
         } finally {
             if (!$this->isDefer) {
                 parent::end();
             }
         }
+    }
+
+    /**
+     * @param string $msg
+     * @param int $code
+     * @param array|null $clientInfo
+     * @return bool
+     */
+    protected function sendErrorResponse(string $msg, int $code = -1, ?array $clientInfo = null): bool
+    {
+        if (!Swfy::isWorkerProcess()) {
+            return false;
+        }
+
+        $clientInfo = $clientInfo ?? $this->clientInfo;
+        if (empty($clientInfo['address']) || empty($clientInfo['port'])) {
+            return false;
+        }
+
+        $responseDto = ResponseFormatter::formatDataDto($code, $msg);
+        $data = json_encode($responseDto->toArray(), JSON_UNESCAPED_UNICODE);
+        $serverSocket = (int) ($clientInfo['server_socket'] ?? -1);
+
+        return Swfy::getServer()->sendto(
+            $clientInfo['address'],
+            (int) $clientInfo['port'],
+            $data,
+            $serverSocket
+        );
     }
 
     /**

@@ -164,7 +164,9 @@ class CreateCmd extends BaseCmd
                         case self::WEBSOCKET_PROTOCOL:
                             $apiFile = $appPathDir . "/{$dir}/service.php";
                             if (!file_exists($apiFile)) {
-                                @copy(SRC_DIR_ROOT.'/Stubs/service.api.stub.php', $apiFile);
+                                $apiContent = (string) file_get_contents(SRC_DIR_ROOT.'/Stubs/service.api.stub.php');
+                                $apiContent = str_replace('__APP_NAMESPACE__', $appName, $apiContent);
+                                @file_put_contents($apiFile, $apiContent);
                             }
                             break;
                         default:
@@ -357,12 +359,24 @@ EOF;
 <?php
 namespace {$appName}\Service;
 
+use Swoolefy\Core\ResponseFormatter;
+
 class DemoService extends \Swoolefy\Core\BService
 {
-    // udp上报消息
-    public function reportMsg()
+    public function reportMsg(\$params)
     {
-        var_dump(\$this->getMixedParams());
+        \$packet = \$this->getUdpData();
+        \$msg = \$params['msg'] ?? '';
+        \$response = ResponseFormatter::formatDataDto(0, 'ok', [
+            'echo' => \$msg,
+            'from' => \$packet->getAddress() . ':' . \$packet->getPort(),
+        ]);
+        \$this->sendTo(\$response);
+    }
+
+    public function ping(\$params)
+    {
+        \$this->sendTo(ResponseFormatter::formatDataDto(0, 'pong'));
     }
 }
 EOF;

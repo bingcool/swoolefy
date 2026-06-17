@@ -13,6 +13,7 @@ namespace Swoolefy\Core;
 
 use Swoolefy\Core\Coroutine\CoroutineManager;
 use Swoolefy\Exception\SystemException;
+use Swoolefy\Udp\UdpPacket;
 
 class Swoole extends BaseObject
 {
@@ -35,6 +36,11 @@ class Swoole extends BaseObject
      * @var mixed
      */
     private $mixedParams;
+
+    /**
+     * @var UdpPacket|null
+     */
+    private ?UdpPacket $udpPacket = null;
 
     /**
      * rpc的包头数据
@@ -231,10 +237,28 @@ class Swoole extends BaseObject
     }
 
     /**
-     * getUdpData
-     * @return mixed
+     * @param UdpPacket $udpPacket
+     * @return $this
      */
-    public function getUdpData()
+    public function setUdpPacket(UdpPacket $udpPacket)
+    {
+        $this->udpPacket = $udpPacket;
+        return $this;
+    }
+
+    /**
+     * @return UdpPacket|null
+     */
+    public function getUdpPacket(): ?UdpPacket
+    {
+        return $this->udpPacket;
+    }
+
+    /**
+     * getUdpData
+     * @return UdpPacket
+     */
+    public function getUdpData(): UdpPacket
     {
         if (!$this->isWorkerProcess()) {
             throw new SystemException(sprintf("%s::getUdpData() only can use in worker process", __CLASS__));
@@ -244,7 +268,11 @@ class Swoole extends BaseObject
             throw new SystemException(sprintf("%s::getUdpData() method only can be called by UDP server", __CLASS__));
         }
 
-        return $this->mixedParams;
+        if ($this->udpPacket === null) {
+            throw new SystemException(sprintf("%s::getUdpData() udp packet is empty", __CLASS__));
+        }
+
+        return $this->udpPacket;
     }
 
     /**
