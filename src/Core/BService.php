@@ -248,8 +248,8 @@ class BService extends BaseObject
     }
 
     /**
-     * getUdpData 获取udp的数据
-     * @return mixed
+     * getUdpData 获取udp的数据包
+     * @return \Swoolefy\Udp\UdpPacket
      */
     public function getUdpData()
     {

@@ -16,6 +16,7 @@ return [
     'app_conf'                 => \Swoolefy\Core\SystemEnv::loadAppConf(),
     'application_service'      => '',
     'event_handler'            => \Swoolefy\Core\EventHandler::class,
+    'response_formatter'       => \Swoolefy\Core\ResponseFormatter::class,
     'exception_handler'        => '',
     'master_process_name'      => 'php-swoolefy-udp-master',
     'manager_process_name'     => 'php-swoolefy-udp-manager',
@@ -26,10 +27,11 @@ return [
     'time_zone'                => 'PRC',
     'runtime_enable_coroutine' => true,
 
-    //swoole setting
+    // swoole setting (UDP)
     'setting' => [
-        'reactor_num'           => 4,
-        'worker_num'            => 8,
+        'reactor_num'           => 2,
+        // UDP 无连接，worker_num 建议与 CPU 核数相当，按报文处理吞吐调整
+        'worker_num'            => 4,
         'max_request'           => 20000,
         'task_worker_num'       => 1,
         'task_tmpdir'           => '/dev/shm',
@@ -41,27 +43,18 @@ return [
         'enable_preemptive_scheduler' => 1,
         'reload_async'          => true,
         'enable_deadlock_check' => false,
-        // 参数将决定最多同时有多少个等待accept的连接,建议128~512
-        'backlog'               => 256,
-        // 在PHP ZTS下，如果使用SWOOLE_PROCESS模式，一定要设置该值为 true
+        // 在 PHP ZTS 下，如果使用 SWOOLE_PROCESS 模式，一定要设置该值为 true
         'single_thread'         => false,
         // 退出前最大等待时间
         'max_wait_time'         => 10,
-        // 最大并发连接数
-        'max_concurrency'       => 200000,
-        // 启用心跳检测，单位为秒
-        'open_tcp_keepalive'    => true,
-        // web服务可以设置稍微大点,120s没有数据传输就进行检测
-        'tcp_keepidle'          => 120,
-        // 1s探测一次
-        'tcp_keepinterval'      => 1,
-        // 探测的次数，超过5次后还没回包close此连接
-        'tcp_keepcount'         => 5,
+        // UDP 接收/发送缓冲区，默认 2MB，可按峰值报文大小调整
+        'socket_buffer_size'    => 2 * 1024 * 1024,
+        // 单包最大长度；UDP 受内核限制通常不超过 64KB，大包请改用 TCP/HTTP
+        'package_max_length'    => 65507,
         'log_file'              => \Swoolefy\Core\SystemEnv::loadLogFile('/tmp/' . APP_NAME . '/swoole.log'),
         'log_rotation'          => SWOOLE_LOG_ROTATION_DAILY,
-        //开启/关闭Swoole错误信息
         'display_errors'        => true,
-        'pid_file'              => \Swoolefy\Core\SystemEnv::loadPidFile('/data/' . APP_NAME . '/log/server.pid'),
+        'pid_file'              => \Swoolefy\Core\SystemEnv::loadPidFile('/tmp/' . APP_NAME . '/server.pid'),
         'hook_flags'            => \Swoolefy\Core\SystemEnv::loadHookFlag(),
     ],
 
@@ -71,34 +64,29 @@ return [
 
     'enable_table_tick_task' => true,
 
-    // 是否开启内存回收
     'gc_mem_cache_enable' => true,
     'gc_mem_cache_tick_time' => 10,
 
-    // 依赖于EnableSysCollector = true，否则设置没有意义,不生效
-    'enable_pv_collector'  => true,
-    'enable_sys_collector' => true,
+    'enable_pv_collector'  => false,
+    'enable_sys_collector' => false,
     'sys_collector_conf' => [
         'type'           => SWOOLEFY_SYS_COLLECTOR_UDP,
         'host'           => '127.0.0.1',
         'port'           => 9504,
-        'from_service'   => 'http-app',
+        'from_service'   => 'udp-app',
         'target_service' => 'collectorService/system',
         'event'          => 'collect',
         'tick_time'      => 2,
         'callback'       => function () {
-            $sysCollector = new \Swoolefy\Core\SysCollector\SysCollector();
-            return $sysCollector->test();
+            return [];
         }
     ],
 
-    // 热更新
     'reload_conf'=>[
         'enable_reload'     => false,
         'after_seconds'     => 3,
-        'monitor_path'      => APP_PATH, // 开发者自己定义目录
+        'monitor_path'      => APP_PATH,
         'reload_file_types' => ['.php', '.html', '.js'],
-        //'reloadFn'          => function () {}, // 定义此项，reload将被接管
         'ignore_dirs'       => [],
         'callback'          => function () {}
     ]
