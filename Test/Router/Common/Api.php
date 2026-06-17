@@ -146,6 +146,14 @@ Route::group([
     Route::get('/download/inline', [
         'dispatch_route' => [\Test\Controller\DownloadController::class, 'inline'],
     ]);
+
+    Route::post('/upload/single', [
+        'dispatch_route' => [\Test\Controller\UploadController::class, 'single'],
+    ]);
+
+    Route::post('/upload/multiple', [
+        'dispatch_route' => [\Test\Controller\UploadController::class, 'multiple'],
+    ]);
 });
 
 Route::match(['GET'],'/cache/test1', [
