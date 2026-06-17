@@ -53,6 +53,11 @@ trait RequestParseTrait
     protected $groupMeta = [];
 
     /**
+     * @var array<string, UploadedFile|list<UploadedFile>>|null
+     */
+    protected ?array $parsedUploadFiles = null;
+
+    /**
      * @var array
      */
     protected $trustedProxies = [];
@@ -356,10 +361,56 @@ trait RequestParseTrait
     }
 
     /**
-     * getFilesParam
-     * @return mixed
+     * 是否为 multipart/form-data 请求。
      */
-    public function getUploadFiles(): mixed
+    public function isMultipart(): bool
+    {
+        return str_contains(strtolower((string) $this->getHeaderParams('content-type', '')), 'multipart/form-data');
+    }
+
+    /**
+     * 指定表单字段是否包含上传文件。
+     */
+    public function hasFile(string $name): bool
+    {
+        return array_key_exists($name, $this->files());
+    }
+
+    /**
+     * 获取上传文件。
+     *
+     * @return ($name is null ? array<string, UploadedFile|list<UploadedFile>> : UploadedFile|list<UploadedFile>|null)
+     */
+    public function file(?string $name = null): UploadedFile|array|null
+    {
+        $files = $this->files();
+        if ($name === null) {
+            return $files;
+        }
+
+        return $files[$name] ?? null;
+    }
+
+    /**
+     * 获取全部上传文件（已封装为 UploadedFile）。
+     *
+     * @return array<string, UploadedFile|list<UploadedFile>>
+     */
+    public function files(): array
+    {
+        if ($this->parsedUploadFiles === null) {
+            $this->parsedUploadFiles = UploadedFile::collectFromSwoole($this->swooleRequest->files ?? []);
+        }
+
+        return $this->parsedUploadFiles;
+    }
+
+    /**
+     * 获取 Swoole 原始 files 数组（同 $_FILES 结构）。
+     *
+     * @return array<string, mixed>
+     */
+    public function getUploadFiles(): array
     {
         return $this->swooleRequest->files ?? [];
     }
