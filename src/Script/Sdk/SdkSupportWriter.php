@@ -749,6 +749,129 @@ abstract class BaseClientApi
         return $merged;
     }
 
+    /**
+     * 按注解或响应头选择解析器（优先生效 $forceType）。
+     *
+     * 无注解时根据响应头识别：
+     * - text/event-stream → SSE
+     * - Content-Disposition: attachment/inline → 文件下载
+     * - application/json → JSON 信封 + 业务 code 校验
+     * - application/xml、text/xml、*+xml → XML 解析为数组
+     * - 其他 Content-Type → 原始 body（分块流等）
+     *
+     * @param 'sse'|'chunked'|'download'|null $forceType
+     * @return array<string, mixed>|string|list<array{event: string, id: ?string, data: mixed}>
+     */
+    protected function parseResponseByHeaders(ResponseInterface $response, ?string $forceType = null): mixed
+    {
+        $type = $forceType ?? $this->detectResponseTypeFromHeaders($response);
+
+        return match ($type) {
+            'sse' => $this->parseSseResponse($response),
+            'download' => $this->parseDownloadResponse($response),
+            'chunked' => $this->parseStreamResponse($response),
+            'xml' => $this->parseXmlResponse($response),
+            default => $this->parseJsonResponseWithBusinessOk($response),
+        };
+    }
+
+    /**
+     * 根据响应头推断响应类型。
+     *
+     * @return 'sse'|'chunked'|'download'|'xml'|'json'
+     */
+    protected function detectResponseTypeFromHeaders(ResponseInterface $response): string
+    {
+        $contentType = strtolower(trim(explode(';', $response->getHeaderLine('Content-Type'))[0]));
+
+        if ($contentType === 'text/event-stream') {
+            return 'sse';
+        }
+
+        $disposition = $response->getHeaderLine('Content-Disposition');
+        if ($disposition !== '') {
+            $lower = strtolower(ltrim($disposition));
+            if (str_starts_with($lower, 'attachment') || str_starts_with($lower, 'inline')) {
+                return 'download';
+            }
+        }
+
+        if ($contentType === 'application/json' || str_ends_with($contentType, '+json')) {
+            return 'json';
+        }
+
+        if ($this->isXmlContentType($contentType)) {
+            return 'xml';
+        }
+
+        if ($contentType !== '') {
+            return 'chunked';
+        }
+
+        return 'json';
+    }
+
+    protected function isXmlContentType(string $contentType): bool
+    {
+        if ($contentType === 'application/xml' || $contentType === 'text/xml') {
+            return true;
+        }
+
+        return str_ends_with($contentType, '+xml');
+    }
+
+    /**
+     * 解析 XML 响应体为关联数组。
+     *
+     * @return array<string, mixed>
+     */
+    protected function parseXmlResponse(ResponseInterface $response): array
+    {
+        $this->assertHttpOk($response);
+        $raw = (string) $response->getBody();
+        if ($raw === '') {
+            return [];
+        }
+
+        $previous = libxml_use_internal_errors(true);
+        try {
+            $xml = simplexml_load_string($raw, 'SimpleXMLElement', LIBXML_NOCDATA);
+            if ($xml === false) {
+                $errors = libxml_get_errors();
+                libxml_clear_errors();
+                $message = $errors !== [] ? trim($errors[0]->message) : 'syntax error';
+
+                throw new SdkClientException('Invalid XML: ' . $message, $response->getStatusCode(), $raw);
+            }
+
+            $json = json_encode($xml, JSON_THROW_ON_ERROR);
+            /** @var mixed $decoded */
+            $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            throw new SdkClientException('Invalid XML: ' . $e->getMessage(), $response->getStatusCode(), $raw);
+        } finally {
+            libxml_use_internal_errors($previous);
+            libxml_clear_errors();
+        }
+
+        if (!is_array($decoded)) {
+            return ['value' => $decoded];
+        }
+
+        return $decoded;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function parseJsonResponseWithBusinessOk(ResponseInterface $response): array
+    {
+        $payload = $this->parseJsonResponse($response);
+        $this->assertBusinessOk($payload);
+
+        return $payload;
+    }
+
     /** 分块流响应：返回完整原始 body，调用方自行按行/格式解析 */
     protected function parseStreamResponse(ResponseInterface $response): string
     {
