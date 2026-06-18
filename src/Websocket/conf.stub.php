@@ -28,22 +28,10 @@ return [
     'time_zone'                => 'PRC',
     'runtime_enable_coroutine' => true,
 
-    'websocket' => [
-        // 连接表容量，生产环境按最大连接数预估后上调
-        'connection_table_size' => 65536,
-        'index_table_size'      => 131072,
-        // 框架级心跳超时清理：客户端需定期发送 ping 或业务消息刷新 last_active_at
-        'heartbeat_check_interval' => 30,
-        'heartbeat_idle_time'      => 90,
-        'auth' => [
-            'enable' => false,
-            // 示例：['dev-token']，也可配置 callback(Request $request, string $token): bool|array
-            'tokens' => [],
-            'callback' => null,
-        ],
-        // Socket.IO 配置见 Config/socketio.php
-        'socketio' => \Swoolefy\Core\SystemEnv::loadSocketIoConf(),
-    ],
+    'websocket' => array_merge(
+        \Swoolefy\Core\SystemEnv::loadWebsocketConf(),
+        ['socketio' => \Swoolefy\Core\SystemEnv::loadSocketIoConf()]
+    ),
 
     // swoole setting
     'setting'                   => [

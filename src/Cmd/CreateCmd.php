@@ -119,6 +119,12 @@ class CreateCmd extends BaseCmd
                         if (!file_exists($socketioFile)) {
                             @copy(SRC_DIR_ROOT . '/Stubs/socketio.conf.stub.php', $socketioFile);
                         }
+                        $websocketFile = $appPathDir . '/' . $dir . '/websocket.php';
+                        if (!file_exists($websocketFile)) {
+                            $websocketContent = (string) file_get_contents(SRC_DIR_ROOT . '/Stubs/websocket.conf.stub.php');
+                            $websocketContent = str_replace('__APP_NAMESPACE__', $appName, $websocketContent);
+                            @file_put_contents($websocketFile, $websocketContent);
+                        }
                     }
 
                     break;

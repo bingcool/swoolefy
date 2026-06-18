@@ -253,6 +253,40 @@ class SystemEnv
     }
 
     /**
+     * 加载 WebSocket 配置（WebSocket 应用 Config/websocket.php）
+     *
+     * @return array
+     */
+    public static function loadWebsocketConf(): array
+    {
+        $confFile = APP_PATH . '/Config/websocket.php';
+        if (!file_exists($confFile)) {
+            return [
+                'connection_table_size' => 65536,
+                'index_table_size' => 131072,
+                'heartbeat_check_interval' => 30,
+                'heartbeat_idle_time' => 90,
+                'auth' => [
+                    'enable' => false,
+                    'tokens' => [],
+                    'callback' => null,
+                ],
+                'cluster' => [
+                    'enable' => false,
+                    'server_id' => '',
+                    'redis' => [],
+                    'push' => [],
+                    'conn_ttl' => 180,
+                    'cleanup_interval' => 30,
+                    'on_redis_failure' => 'reject_open',
+                ],
+            ];
+        }
+
+        return include $confFile;
+    }
+
+    /**
      * 不同应用,logFile定义不同目录
      * @param string $logFile
      * @return string
