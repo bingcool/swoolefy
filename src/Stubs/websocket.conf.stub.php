@@ -12,6 +12,8 @@ return [
     // 框架级心跳超时清理：客户端需定期发送 ping 或业务消息刷新 last_active_at
     'heartbeat_check_interval' => 30,
     'heartbeat_idle_time'      => 90,
+    // 分片帧重组后的单条消息最大字节数，默认跟随 Protocol/conf.php 的 package_max_length
+    'max_fragment_payload'     => 0,
     'auth' => [
         'enable' => false,
         // 示例：['dev-token']，也可配置 callback(Request $request, string $token): bool|array

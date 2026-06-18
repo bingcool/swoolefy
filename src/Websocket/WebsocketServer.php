@@ -184,6 +184,23 @@ abstract class WebsocketServer extends BaseServer
             try {
                 SwooleContext::set(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID, Helper::UUid());
                 parent::beforeHandle();
+                WebsocketConnectionManager::touch((int) $frame->fd);
+
+                try {
+                    // 分片帧重组：finish=false 时缓存，收齐后再进入 Socket.IO / 原生 WS 处理
+                    $frame = WebsocketFrameAssembler::feed($frame);
+                } catch (WebsocketFrameException $exception) {
+                    WebsocketFrameAssembler::clear((int) $frame->fd);
+                    if ($server->isEstablished((int) $frame->fd)) {
+                        $server->disconnect((int) $frame->fd, 1009, 'fragmentation error');
+                    }
+                    return false;
+                }
+
+                if ($frame === null) {
+                    return true;
+                }
+
                 $websocketConfig = self::getWebsocketConfig();
                 $connection = WebsocketConnectionManager::getConnection((int) $frame->fd);
                 // 同一个 onMessage 入口按连接标记区分普通 WebSocket 与 Socket.IO 协议。
@@ -264,6 +281,7 @@ abstract class WebsocketServer extends BaseServer
          */
         $this->webServer->on('close', function (\Swoole\WebSocket\Server $server, $fd, $reactorId) {
             try {
+                WebsocketFrameAssembler::clear((int) $fd);
                 // close 回调是清理 fd/user/room 索引的唯一兜底入口。
                 WebsocketConnectionManager::close((int) $fd);
                 (new EventApp())->registerApp(function () use ($server, $fd) {

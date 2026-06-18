@@ -15,11 +15,17 @@
 | 多机集群 | Redis 全局索引 + 按 `server_id` 频道 Pub/Sub 扇出推送 |
 | 鉴权 | 握手阶段 token 校验，支持静态 token 或 callback |
 | 心跳清理 | 框架级空闲连接超时断开 |
+| 分片帧重组 | 自动合并 `finish=false` 的 WebSocket 分片（RFC 6455） |
 
 ### 架构简图
 
 ```
 客户端
+  │
+  ▼
+WebsocketServer::onMessage
+  │
+  ├─ WebsocketFrameAssembler（分片帧重组）
   │
   ├─ 原生 WebSocket JSON ──► WebsocketHandler ──► Router/service.php ──► WebSocketService
   │
@@ -82,6 +88,9 @@ SWOOLEFY_CLI_ENV=dev php cli.php start WebsocketService
 # 冒烟测试（需先启动服务）
 SWOOLEFY_CLI_ENV=dev php WebsocketService/Tests/WebsocketSmokeTest.php
 
+# 分片帧单元测试
+php WebsocketService/Tests/WebsocketFrameAssemblerTest.php
+
 # 集群单元测试
 SWOOLEFY_CLI_ENV=dev php WebsocketService/Tests/WebsocketClusterTest.php
 
@@ -102,12 +111,15 @@ src/Websocket/
 ├── WebsocketPacket.php           # 统一消息包
 ├── WebsocketResponse.php         # 统一响应格式
 ├── WebsocketConnectionManager.php # 连接表、房间、推送分发入口
+├── WebsocketFrameAssembler.php    # WebSocket 分片帧重组
 ├── WebsocketAuthenticator.php    # 握手鉴权
 ├── SocketIO/                     # Socket.IO 协议实现
 │   ├── SocketIOHandler.php
 │   ├── SocketIOPacket.php
 │   └── SocketIOClient.php        # PHP 协程客户端
 └── Cluster/                      # 多机水平扩展
+    ├── ClusterPushBus.php        # Redis 扇出总线（Worker / 外部进程共用）
+    ├── ExternalPushPublisher.php # HTTP/CLI 外部推送入口
     ├── ClusterPushDispatcher.php
     ├── RedisConnectionRegistry.php
     ├── WebsocketPushSubscriberProcess.php
@@ -147,6 +159,9 @@ return [
     'heartbeat_check_interval' => 30,  // 扫描间隔（秒）
     'heartbeat_idle_time'      => 90,  // 空闲超时（秒）
 
+    // 分片帧重组后单条消息最大字节数；0 表示使用 Protocol/conf.php 的 package_max_length
+    'max_fragment_payload'     => 0,
+
     // 握手鉴权
     'auth' => [
         'enable' => false,
@@ -182,6 +197,20 @@ return [
 ```
 
 未配置 `event_routes` 时，默认约定：`chat.send` → `chat/send`（需在 `Router/service.php` 中注册）。
+
+### 4.3 分片帧（Fragment）配置
+
+WebSocket 协议允许一条消息拆成多个帧发送（`finish=false` 的首帧 + `CONTINUATION` 续帧）。框架在 `WebsocketServer` 入口通过 `WebsocketFrameAssembler` 自动重组，**业务层和 Service 无需感知分片**。
+
+| 配置项 | 说明 |
+|--------|------|
+| `max_fragment_payload` | 重组后单条消息最大字节数；`0` 时沿用 `package_max_length`（默认 2MB） |
+
+行为说明：
+
+- 每个分片到达时刷新连接心跳（`touch`），避免长消息传输中被误判超时
+- 连接 `close` 时自动清理该 fd 的分片缓存
+- 协议错误（如孤立续帧、超长 payload）以关闭码 **1009** 断开
 
 ---
 
@@ -494,14 +523,54 @@ WS_SERVER_ID=ws-prod-02 SWOOLEFY_CLI_ENV=prod php cli.php start WebsocketService
 
 在 `Config/websocket.php` 中读取：`env('WS_SERVER_ID')`
 
+### 8.5 外部进程推送（HTTP / CLI / 队列）
+
+业务在 WebSocket Worker 外（PHP-FPM、独立脚本、队列消费者）触发推送时，使用 `ExternalPushPublisher`，**仅走 Redis 发布**，不依赖 `Swfy::getServer()`：
+
+```php
+use Swoolefy\Websocket\Cluster\ExternalPushPublisher;
+
+// 定义 APP_NAME、APP_PATH 后可直接调用
+define('APP_NAME', 'WebsocketService');
+define('APP_PATH', '/path/to/WebsocketService');
+
+ExternalPushPublisher::pushToRoom('demo', 'chat.message', ['msg' => 'hi']);
+ExternalPushPublisher::pushToUser('user-1', 'notify', ['title' => 'new']);
+ExternalPushPublisher::broadcast('system.announce', ['text' => 'maintenance']);
+```
+
+要求：
+
+1. `cluster.enable=true`
+2. 各 WebSocket 节点 `WebsocketPushSubscriberProcess` 正常运行
+3. 外部进程与 WebSocket 服务共用同一 Redis 与 `key_prefix` / `channel_prefix`
+
+示例脚本：
+
+```bash
+php WebsocketService/Scripts/push_external.php demo chat.message "hello from http"
+```
+
 ---
 
 ## 九、消息流转说明
 
-### 9.1 原生 WebSocket 一次请求
+### 9.1 分片帧重组
+
+```
+客户端发送多帧消息（finish=false ... finish=true）
+  → WebsocketServer::onMessage
+  → WebsocketFrameAssembler::feed
+       ├─ 未收齐：返回 null，等待下一帧
+       └─ 已收齐：返回完整 Frame
+  → 原生 WS / Socket.IO 业务处理
+```
+
+### 9.2 原生 WebSocket 一次请求
 
 ```
 客户端 send JSON
+  → WebsocketFrameAssembler（若为多帧则先重组）
   → WebsocketEventServer::onMessage
   → WebsocketHandler::run
   → WebsocketPacket::parse
@@ -510,10 +579,11 @@ WS_SERVER_ID=ws-prod-02 SWOOLEFY_CLI_ENV=prod php cli.php start WebsocketService
   → pushRaw / pushEvent 响应
 ```
 
-### 9.2 Socket.IO 一次 emit
+### 9.3 Socket.IO 一次 emit
 
 ```
 客户端 emit('chat.send', data)
+  → WebsocketFrameAssembler（若为多帧则先重组）
   → SocketIOHandler::onMessage
   → SocketIOPacket::parse
   → event_routes 映射 endpoint
@@ -523,7 +593,7 @@ WS_SERVER_ID=ws-prod-02 SWOOLEFY_CLI_ENV=prod php cli.php start WebsocketService
   → 返回 ack: [{ code: 0, msg: 'ok' }]
 ```
 
-### 9.3 跨节点 pushToRoom
+### 9.4 跨节点 pushToRoom
 
 ```
 Node A: ChatService::pushToRoom('public', 'chat.message', $data)
@@ -585,9 +655,13 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 
 可以。同一服务同时支持两种协议，框架根据握手路径和连接标记 `is_socketio` 自动区分。
 
+### Q: 大消息分片发送会被断开吗？
+
+不会。框架已支持 RFC 6455 分片帧自动重组；只要重组后消息不超过 `max_fragment_payload`（或 `package_max_length`）即可。若收到孤立续帧或超长消息，会以关闭码 1009 断开。
+
 ### Q: 如何从 HTTP 接口触发 WebSocket 推送？
 
-在 WebSocket worker 内直接调用 `WebSocketService` 的 push 方法。若从独立 HTTP 进程推送，需确保能访问同一 Redis 集群配置，并在 WebSocket 进程内执行推送逻辑（或通过消息队列中转）。
+启用集群后，在 HTTP/CLI 等外部进程中调用 `ExternalPushPublisher`（见 §8.5），由 Redis Pub/Sub 扇出到各 WebSocket 节点投递。若在 WebSocket Worker 内推送，直接使用 `WebSocketService::pushToRoom` 等方法即可。
 
 ---
 
@@ -599,6 +673,7 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 | 配置模板 | `src/Stubs/websocket.conf.stub.php`、`socketio.conf.stub.php` |
 | 示例应用 | `WebsocketService/` |
 | 冒烟测试 | `WebsocketService/Tests/WebsocketSmokeTest.php` |
+| 分片帧测试 | `WebsocketService/Tests/WebsocketFrameAssemblerTest.php` |
 | 集群测试 | `WebsocketService/Tests/WebsocketClusterTest.php` |
 | 浏览器测试 | `WebsocketService/Tests/socketio-client.html` |
 | Chat 示例 | `src/Stubs/ChatService.stub.php` |
@@ -613,3 +688,4 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 4. 多机部署必须配置 `server_id`，并启用 Redis 高可用（Sentinel）
 5. 房间广播前确保客户端已 `joinRoom`
 6. 大房间（万人级）考虑分层频道或专用方案，避免全量 SMEMBERS
+7. 客户端发送超大 JSON 时依赖浏览器/WebSocket 库自动分片即可，服务端会自动重组
