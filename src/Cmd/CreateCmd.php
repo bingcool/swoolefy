@@ -114,6 +114,13 @@ class CreateCmd extends BaseCmd
                         @copy(SRC_DIR_ROOT.'/Stubs/dc.stub.php', $dcFile);
                     }
 
+                    if ($protocol == self::WEBSOCKET_PROTOCOL) {
+                        $socketioFile = $appPathDir . '/' . $dir . '/socketio.php';
+                        if (!file_exists($socketioFile)) {
+                            @copy(SRC_DIR_ROOT . '/Stubs/socketio.conf.stub.php', $socketioFile);
+                        }
+                    }
+
                     break;
                 }
                 case 'Controller':
@@ -281,7 +288,10 @@ class CreateCmd extends BaseCmd
         }
         $this->copyServerFile($appName, $protocol);
         if ($protocol == self::WEBSOCKET_PROTOCOL) {
+            @mkdir($appPathDir . '/Tests', self::$dirPermission, true);
             @copy(SRC_DIR_ROOT . '/Stubs/socketio.client.stub.html', $appPathDir . '/Storage/socketio-client.html');
+            $testHtml = str_replace('__APP_NAMESPACE__', $appName, (string) file_get_contents(SRC_DIR_ROOT . '/WebsocketService/Tests/socketio-client.html'));
+            @file_put_contents($appPathDir . '/Tests/socketio-client.html', $testHtml);
         }
         fmtPrintInfo("应用创建成功啦，应用名称为：【{$appName}】，你现在可以使用命令 php cli.php start {$appName} 来启动应用");
         return 0;
@@ -371,9 +381,10 @@ EOF;
 <?php
 namespace {$appName}\Service;
 
+use Swoolefy\Websocket\WebSocketService;
 use Swoolefy\Websocket\WebsocketResponse;
 
-class DemoService extends \Swoolefy\Core\BService
+class DemoService extends WebSocketService
 {
     public function reportMsg(array \$params)
     {

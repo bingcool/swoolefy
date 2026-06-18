@@ -1,9 +1,9 @@
 <?php
 namespace __APP_NAMESPACE__\Service;
 
-use Swoolefy\Core\BService;
+use Swoolefy\Websocket\WebSocketService;
 
-class ChatService extends BService
+class ChatService extends WebSocketService
 {
     public function sendMessage(array $params)
     {
