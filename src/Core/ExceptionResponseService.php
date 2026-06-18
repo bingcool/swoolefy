@@ -11,6 +11,8 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Websocket\WebsocketResponse;
+
 class ExceptionResponseService extends BService
 {
     /**
@@ -30,7 +32,14 @@ class ExceptionResponseService extends BService
             }
         } else if (BaseServer::isWebsocketApp()) {
             $fd = Application::getApp()->getFd();
-            $this->push($fd, $responseDataDto, $opcode = 1, $finish = true);
+            $requestId = '';
+            $event = '';
+            $packet = Application::getApp()->getWebsocketPacket();
+            if ($packet !== null) {
+                $requestId = $packet->getRequestId();
+                $event = $packet->getEndpoint();
+            }
+            $this->pushRaw($fd, WebsocketResponse::error($msg, $code, $requestId, $event), $opcode = 1, $finish = true);
         } else if (BaseServer::isUdpApp()) {
             $serverSocket = -1;
             $udpPacket = Application::getApp()->getUdpPacket();

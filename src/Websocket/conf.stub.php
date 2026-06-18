@@ -28,6 +28,34 @@ return [
     'time_zone'                => 'PRC',
     'runtime_enable_coroutine' => true,
 
+    'websocket' => [
+        // 连接表容量，生产环境按最大连接数预估后上调
+        'connection_table_size' => 65536,
+        'index_table_size'      => 131072,
+        // 框架级心跳超时清理：客户端需定期发送 ping 或业务消息刷新 last_active_at
+        'heartbeat_check_interval' => 30,
+        'heartbeat_idle_time'      => 90,
+        'auth' => [
+            'enable' => false,
+            // 示例：['dev-token']，也可配置 callback(Request $request, string $token): bool|array
+            'tokens' => [],
+            'callback' => null,
+        ],
+        'socketio' => [
+            // 当前实现支持 Socket.IO v4 的 websocket transport，不支持 long-polling
+            'enable' => true,
+            'ping_interval' => 25,
+            'ping_timeout'  => 20,
+            'max_payload'   => 1000000,
+            // Socket.IO event 到 service.php endpoint 的映射；未配置时 chat.send => chat/send
+            'event_routes' => [
+                'chat.send' => 'Service/Chat/Send',
+                'room.join' => 'Service/Chat/JoinRoom',
+                'room.leave' => 'Service/Chat/LeaveRoom',
+            ],
+        ],
+    ],
+
     // swoole setting
     'setting'                   => [
         'reactor_num'           => 4,
@@ -43,6 +71,8 @@ return [
         'enable_preemptive_scheduler' => 1,
         'reload_async'          => true,
         'enable_deadlock_check' => false,
+        'open_websocket_protocol' => true,
+        'package_max_length'    => 2 * 1024 * 1024,
         // 参数将决定最多同时有多少个等待accept的连接,建议128~512
         'backlog'               => 256,
         // 在PHP ZTS下，如果使用SWOOLE_PROCESS模式，一定要设置该值为 true
@@ -63,7 +93,7 @@ return [
         'log_rotation'          => SWOOLE_LOG_ROTATION_DAILY,
         //开启/关闭Swoole错误信息
         'display_errors'        => true,
-        'pid_file'              => \Swoolefy\Core\SystemEnv::loadPidFile('/data/' . APP_NAME . '/log/server.pid'),
+        'pid_file'              => \Swoolefy\Core\SystemEnv::loadPidFile('/tmp/' . APP_NAME . '/server.pid'),
         'hook_flags'            => \Swoolefy\Core\SystemEnv::loadHookFlag(),
     ],
 

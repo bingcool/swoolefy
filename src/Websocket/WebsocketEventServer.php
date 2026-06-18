@@ -72,10 +72,10 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
         $data   = $frame->data;
         $opcode = $frame->opcode;
         $finish = $frame->finish;
+        WebsocketConnectionManager::touch((int) $fd);
 
         if ($finish) {
             if ($opcode == WEBSOCKET_OPCODE_TEXT) {
-                $appConf = \Swoolefy\Core\Swfy::getAppConf();
                 $appInstance = new WebsocketHandler();
                 $appInstance->run($fd, $data);
             } else if ($opcode == WEBSOCKET_OPCODE_BINARY) {

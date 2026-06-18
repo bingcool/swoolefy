@@ -252,7 +252,15 @@ class CreateCmd extends BaseCmd
                     if ($protocol == self::UDP_PROTOCOL || $protocol == self::WEBSOCKET_PROTOCOL) {
                         $serviceFile = $appPathDir . '/' . $dir . '/DemoService.php';
                         if (!file_exists($serviceFile)) {
-                            file_put_contents($serviceFile, $this->getDefaultService($appName));
+                            file_put_contents($serviceFile, $this->getDefaultService($appName, $protocol));
+                        }
+                        if ($protocol == self::WEBSOCKET_PROTOCOL) {
+                            $chatServiceFile = $appPathDir . '/' . $dir . '/ChatService.php';
+                            if (!file_exists($chatServiceFile)) {
+                                $chatServiceContent = (string) file_get_contents(SRC_DIR_ROOT . '/Stubs/ChatService.stub.php');
+                                $chatServiceContent = str_replace('__APP_NAMESPACE__', $appName, $chatServiceContent);
+                                file_put_contents($chatServiceFile, $chatServiceContent);
+                            }
                         }
                     }
                     break;
@@ -272,6 +280,9 @@ class CreateCmd extends BaseCmd
             }
         }
         $this->copyServerFile($appName, $protocol);
+        if ($protocol == self::WEBSOCKET_PROTOCOL) {
+            @copy(SRC_DIR_ROOT . '/Stubs/socketio.client.stub.html', $appPathDir . '/Storage/socketio-client.html');
+        }
         fmtPrintInfo("应用创建成功啦，应用名称为：【{$appName}】，你现在可以使用命令 php cli.php start {$appName} 来启动应用");
         return 0;
     }
@@ -352,8 +363,36 @@ EOF;
         return $content;
     }
 
-    protected function getDefaultService($appName)
+    protected function getDefaultService($appName, string $protocol = self::UDP_PROTOCOL)
     {
+        if ($protocol == self::WEBSOCKET_PROTOCOL) {
+            $content =
+                <<<EOF
+<?php
+namespace {$appName}\Service;
+
+use Swoolefy\Websocket\WebsocketResponse;
+
+class DemoService extends \Swoolefy\Core\BService
+{
+    public function reportMsg(array \$params)
+    {
+        \$packet = \$this->getWebsocketMsg();
+        \$this->pushRaw(\$packet->getFd(), WebsocketResponse::success(\$packet->getRequestId(), [
+            'echo' => \$params['msg'] ?? '',
+        ], \$packet->getEndpoint()));
+    }
+
+    public function ping(array \$params)
+    {
+        \$packet = \$this->getWebsocketMsg();
+        \$this->pushRaw(\$packet->getFd(), WebsocketResponse::pong(\$packet->getRequestId()));
+    }
+}
+EOF;
+            return $content;
+        }
+
         $content =
             <<<EOF
 <?php
