@@ -14,6 +14,7 @@ namespace Swoolefy\Core;
 use Swoolefy\Core\Coroutine\CoroutineManager;
 use Swoolefy\Exception\SystemException;
 use Swoolefy\Udp\UdpPacket;
+use Swoolefy\Websocket\WebsocketPacket;
 
 class Swoole extends BaseObject
 {
@@ -41,6 +42,11 @@ class Swoole extends BaseObject
      * @var UdpPacket|null
      */
     private ?UdpPacket $udpPacket = null;
+
+    /**
+     * @var WebsocketPacket|null
+     */
+    private ?WebsocketPacket $websocketPacket = null;
 
     /**
      * rpc的包头数据
@@ -277,9 +283,9 @@ class Swoole extends BaseObject
 
     /**
      * getWebsocketMsg
-     * @return mixed
+     * @return WebsocketPacket
      */
-    public function getWebsocketMsg()
+    public function getWebsocketMsg(): WebsocketPacket
     {
         if (!$this->isWorkerProcess()) {
             throw new SystemException(sprintf("%s::getWebsocketMsg() only can use in worker process", __CLASS__));
@@ -289,7 +295,29 @@ class Swoole extends BaseObject
             throw new SystemException(sprintf("%s::getWebsocketMsg() method only can be called by WEBSOCKET server", __CLASS__));
         }
 
-        return $this->mixedParams;
+        if ($this->websocketPacket === null) {
+            throw new SystemException(sprintf("%s::getWebsocketMsg() websocket packet is empty", __CLASS__));
+        }
+
+        return $this->websocketPacket;
+    }
+
+    /**
+     * @param WebsocketPacket $websocketPacket
+     * @return $this
+     */
+    public function setWebsocketPacket(WebsocketPacket $websocketPacket)
+    {
+        $this->websocketPacket = $websocketPacket;
+        return $this;
+    }
+
+    /**
+     * @return WebsocketPacket|null
+     */
+    public function getWebsocketPacket(): ?WebsocketPacket
+    {
+        return $this->websocketPacket;
     }
 
     /**

@@ -59,6 +59,12 @@ abstract class WebsocketServer extends BaseServer
     {
         self::clearCache();
         self::$config = $config;
+        $websocketConfig = self::$config['websocket'] ?? [];
+        // WebSocket 连接状态必须在 Swoole Server 启动前创建 table，才能被所有 worker 共享。
+        self::$config['table'] = array_merge(
+            self::$config['table'] ?? [],
+            WebsocketConnectionManager::tableDefinitions($websocketConfig)
+        );
         self::$setting = array_merge(self::$setting, self::$config['setting']);
         self::$config['setting'] = self::$setting;
         self::setSwooleSockType();
@@ -138,6 +144,23 @@ abstract class WebsocketServer extends BaseServer
          */
         $this->webServer->on('open', function (\Swoole\WebSocket\Server $server, $request) {
             try {
+                $websocketConfig = self::getWebsocketConfig();
+                // 握手完成后的第一道框架鉴权；失败使用 1008(policy violation) 主动断开。
+                $auth = WebsocketAuthenticator::authenticate($request, $websocketConfig);
+                if (!$auth['ok']) {
+                    $server->disconnect((int) $request->fd, 1008, (string) $auth['reason']);
+                    return false;
+                }
+
+                // Socket.IO 连接需要先发送 Engine.IO open 包；普通 WebSocket 只登记 fd。
+                if (!empty($websocketConfig['socketio']['enable']) && SocketIO\SocketIOHandler::isSocketIORequest($request)) {
+                    SocketIO\SocketIOHandler::onOpen($server, $request, $websocketConfig, (string) $auth['user_id']);
+                } else {
+                    WebsocketConnectionManager::open($server, $request, [
+                        'user_id' => (string) $auth['user_id'],
+                    ]);
+                }
+
                 (new EventApp())->registerApp(function () use ($server, $request) {
                     static::onOpen($server, $request);
                 });
@@ -154,6 +177,13 @@ abstract class WebsocketServer extends BaseServer
             try {
                 SwooleContext::set(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID, Helper::UUid());
                 parent::beforeHandle();
+                $websocketConfig = self::getWebsocketConfig();
+                $connection = WebsocketConnectionManager::getConnection((int) $frame->fd);
+                // 同一个 onMessage 入口按连接标记区分普通 WebSocket 与 Socket.IO 协议。
+                if (!empty($websocketConfig['socketio']['enable']) && !empty($connection['is_socketio'])) {
+                    SocketIO\SocketIOHandler::onMessage($server, $frame, $websocketConfig);
+                    return true;
+                }
                 static::onMessage($server, $frame);
                 return true;
             } catch (\Throwable $e) {
@@ -227,6 +257,8 @@ abstract class WebsocketServer extends BaseServer
          */
         $this->webServer->on('close', function (\Swoole\WebSocket\Server $server, $fd, $reactorId) {
             try {
+                // close 回调是清理 fd/user/room 索引的唯一兜底入口。
+                WebsocketConnectionManager::close((int) $fd);
                 (new EventApp())->registerApp(function () use ($server, $fd) {
                     static::onClose($server, $fd);
                 });
@@ -246,6 +278,14 @@ abstract class WebsocketServer extends BaseServer
                     try {
                         if ($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
                             return $response->end();
+                        }
+                        // 当前 Socket.IO 实现只支持 websocket transport，明确拒绝 polling，避免客户端误判为可降级。
+                        if (SocketIO\SocketIOHandler::isSocketIOHttpRequest($request)) {
+                            $response->status(400);
+                            return $response->end(json_encode([
+                                'code' => -1,
+                                'msg' => 'Socket.IO polling transport is not supported; use websocket transport',
+                            ], JSON_UNESCAPED_UNICODE));
                         }
                         static::onRequest($request, $response);
                         return true;
@@ -298,5 +338,25 @@ abstract class WebsocketServer extends BaseServer
         });
 
         $this->webServer->start();
+    }
+
+    protected static function getWebsocketConfig(): array
+    {
+        return self::$config['websocket'] ?? [];
+    }
+
+    protected function workerStartInit($server, $workerId)
+    {
+        parent::workerStartInit($server, $workerId);
+
+        $websocketConfig = self::getWebsocketConfig();
+        $interval = (int) ($websocketConfig['heartbeat_check_interval'] ?? 30);
+        $timeout = (int) ($websocketConfig['heartbeat_idle_time'] ?? 90);
+        if ($workerId === 0 && $interval > 0 && $timeout > 0) {
+            // 心跳扫描只放在 worker 0，所有连接状态在 Swoole\Table 中共享。
+            \Swoole\Timer::tick($interval * 1000, function () use ($server, $timeout) {
+                WebsocketConnectionManager::disconnectExpired($server, $timeout);
+            });
+        }
     }
 }

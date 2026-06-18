@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>Swoolefy Socket.IO Demo</title>
+</head>
+<body>
+<h3>Swoolefy Socket.IO Demo</h3>
+<pre id="log"></pre>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+const log = (msg) => {
+    document.getElementById('log').textContent += msg + "\n";
+};
+
+// 生产环境建议带上 token，并在 websocket.auth.callback 中校验后绑定 user_id。
+const socket = io('ws://127.0.0.1:9503', {
+    transports: ['websocket'],
+    path: '/socket.io/',
+    query: {
+        EIO: 4,
+        token: 'dev-token',
+        uid: '10001'
+    }
+});
+
+socket.on('connect', () => {
+    log('connected: ' + socket.id);
+
+    socket.emit('room.join', {room: 'public'}, (ack) => {
+        log('join ack: ' + JSON.stringify(ack));
+    });
+
+    socket.emit('chat.send', {room: 'public', message: 'hello swoolefy'}, (ack) => {
+        log('send ack: ' + JSON.stringify(ack));
+    });
+});
+
+socket.on('chat.message', (data) => {
+    log('chat.message: ' + JSON.stringify(data));
+});
+
+socket.on('disconnect', (reason) => {
+    log('disconnect: ' + reason);
+});
+
+socket.on('connect_error', (error) => {
+    log('connect_error: ' + error.message);
+});
+</script>
+</body>
+</html>
