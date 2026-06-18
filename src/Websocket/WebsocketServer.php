@@ -165,6 +165,13 @@ abstract class WebsocketServer extends BaseServer
                     static::onOpen($server, $request);
                 });
                 return true;
+            } catch (\Swoolefy\Websocket\Cluster\ClusterRedisException $e) {
+                // on_redis_failure=reject_open 时，Redis 注册失败拒绝建连
+                if ($server->isEstablished((int) $request->fd)) {
+                    $server->disconnect((int) $request->fd, 1011, 'cluster registry failed');
+                }
+                self::catchException($e);
+                return false;
             } catch (\Throwable $e) {
                 self::catchException($e);
             }
@@ -356,6 +363,14 @@ abstract class WebsocketServer extends BaseServer
             // 心跳扫描只放在 worker 0，所有连接状态在 Swoole\Table 中共享。
             \Swoole\Timer::tick($interval * 1000, function () use ($server, $timeout) {
                 WebsocketConnectionManager::disconnectExpired($server, $timeout);
+            });
+        }
+
+        $clusterInterval = (int) ($websocketConfig['cluster']['cleanup_interval'] ?? 30);
+        if ($workerId === 0 && !empty($websocketConfig['cluster']['enable']) && $clusterInterval > 0) {
+            // 集群模式：worker 0 定时清理 Redis alive ZSET 中的僵尸连接索引
+            \Swoole\Timer::tick($clusterInterval * 1000, function () use ($timeout) {
+                Cluster\ClusterConnectionCoordinator::cleanupExpired($timeout);
             });
         }
     }

@@ -50,6 +50,8 @@ class WebsocketConnectionManager
                     ['connected_at', 'int', 8],
                     ['last_active_at', 'int', 8],
                     ['is_socketio', 'int', 1],
+                    // 全局连接 ID：{server_id}:{fd}，集群模式下用于 Redis 索引
+                    ['conn_id', 'string', 160],
                 ],
             ],
             self::TABLE_USERS => [
@@ -80,8 +82,10 @@ class WebsocketConnectionManager
         $remoteAddr = (string) ($request->server['remote_addr'] ?? '');
         $userAgent = (string) ($request->header['user-agent'] ?? '');
 
+        $connId = Cluster\ClusterNodeIdentity::makeConnId($fd);
+
         // onOpen 只记录连接事实和轻量元数据，业务身份可在鉴权回调或后续消息中重新 bindUser。
-        self::setConnection($fd, [
+        $connection = [
             'fd' => $fd,
             'worker_id' => (int) $server->worker_id,
             'user_id' => $userId,
@@ -92,7 +96,18 @@ class WebsocketConnectionManager
             'connected_at' => $now,
             'last_active_at' => $now,
             'is_socketio' => $isSocketIo,
-        ]);
+            'conn_id' => $connId,
+        ];
+        self::setConnection($fd, $connection);
+
+        try {
+            // 集群模式：本地 Table 写入成功后，同步注册到 Redis 全局索引
+            Cluster\ClusterConnectionCoordinator::onOpen($fd, $connection);
+        } catch (\Throwable $throwable) {
+            // Redis 注册失败时回滚本地索引，避免本机残留脏 fd
+            self::close($fd);
+            throw $throwable;
+        }
 
         if ($userId !== '') {
             self::bindUser($fd, $userId);
@@ -107,16 +122,20 @@ class WebsocketConnectionManager
         }
 
         $userId = (string) ($connection['user_id'] ?? '');
+        $connId = (string) ($connection['conn_id'] ?? '');
         if ($userId !== '') {
             self::unbindUser($fd, $userId);
         }
 
         // 关闭连接时必须同步清理用户索引和房间索引，否则长运行服务会出现脏 fd。
         foreach (self::decodeRooms((string) ($connection['rooms'] ?? '')) as $room) {
-            self::leaveRoom($fd, $room);
+            // close 流程里 Redis 清理由 onClose 统一处理，此处只清本地 Table
+            self::leaveRoom($fd, $room, false);
         }
 
         self::tableDel(self::TABLE_CONNECTIONS, (string) $fd);
+        // 集群模式：清理 Redis 中 conn/user/room/node 索引
+        Cluster\ClusterConnectionCoordinator::onClose($connId);
     }
 
     public static function bindUser(int $fd, string $userId): void
@@ -138,6 +157,11 @@ class WebsocketConnectionManager
             'user_id' => $userId,
             'fd' => $fd,
         ]);
+        Cluster\ClusterConnectionCoordinator::onBindUser(
+            (string) ($connection['conn_id'] ?? ''),
+            $userId,
+            $oldUserId
+        );
     }
 
     public static function joinRoom(int $fd, string $room): bool
@@ -161,11 +185,19 @@ class WebsocketConnectionManager
             'fd' => $fd,
             'user_id' => (string) ($connection['user_id'] ?? ''),
         ]);
+        Cluster\ClusterConnectionCoordinator::onJoinRoom(
+            (string) ($connection['conn_id'] ?? ''),
+            $room,
+            (string) $connection['rooms']
+        );
 
         return true;
     }
 
-    public static function leaveRoom(int $fd, string $room): bool
+    /**
+     * @param bool $syncCluster close 流程传 false，避免重复写 Redis（由 onClose 统一清理）
+     */
+    public static function leaveRoom(int $fd, string $room, bool $syncCluster = true): bool
     {
         $room = trim($room);
         if ($room === '') {
@@ -183,6 +215,13 @@ class WebsocketConnectionManager
         }
 
         self::tableDel(self::TABLE_ROOMS, self::roomKey($room, $fd));
+        if ($syncCluster && $connection) {
+            Cluster\ClusterConnectionCoordinator::onLeaveRoom(
+                (string) ($connection['conn_id'] ?? ''),
+                $room,
+                (string) ($connection['rooms'] ?? '')
+            );
+        }
         return true;
     }
 
@@ -195,11 +234,35 @@ class WebsocketConnectionManager
         // 所有合法消息都会刷新 last_active_at，心跳定时器据此识别僵尸连接。
         $connection['last_active_at'] = time();
         self::setConnection($fd, $connection);
+        Cluster\ClusterConnectionCoordinator::onTouch((string) ($connection['conn_id'] ?? ''), $connection['last_active_at']);
     }
 
     public static function getConnection(int $fd): ?array
     {
         return self::tableGet(self::TABLE_CONNECTIONS, (string) $fd) ?: null;
+    }
+
+    public static function getConnIdByFd(int $fd): string
+    {
+        $connection = self::getConnection($fd);
+
+        return (string) ($connection['conn_id'] ?? '');
+    }
+
+    public static function countLocalConnections(): int
+    {
+        if (!self::tableExists(self::TABLE_CONNECTIONS)) {
+            return 0;
+        }
+
+        $count = 0;
+        foreach (TableManager::getTable(self::TABLE_CONNECTIONS) as $row) {
+            if ((int) ($row['fd'] ?? 0) > 0) {
+                $count++;
+            }
+        }
+
+        return $count;
     }
 
     public static function getFdsByUser(string $userId): array
@@ -231,6 +294,10 @@ class WebsocketConnectionManager
                 }
                 $closed++;
             }
+        }
+        if ($closed === 0) {
+            // 本机无超时时，顺带清理 Redis 中失联节点的僵尸索引
+            Cluster\ClusterConnectionCoordinator::cleanupExpired($idleTimeout);
         }
 
         return $closed;
@@ -278,6 +345,15 @@ class WebsocketConnectionManager
 
     public static function pushEventToFd(Server $server, int $fd, string $event, $data = []): bool
     {
+        // 统一走推送分发器：cluster.enable 决定单机或跨节点
+        return Cluster\PushDispatcherFactory::get()->pushEventToFd($server, $fd, $event, $data);
+    }
+
+    /**
+     * 本节点直推（集群订阅进程 / 本机投递使用，不经过 Redis）。
+     */
+    public static function deliverEventToFdLocally(Server $server, int $fd, string $event, $data = []): bool
+    {
         if ($fd <= 0 || !$server->isEstablished($fd)) {
             return false;
         }
@@ -287,38 +363,30 @@ class WebsocketConnectionManager
 
     public static function pushEventToUser(Server $server, string $userId, string $event, $data = []): int
     {
-        $count = 0;
-        foreach (array_unique(self::getFdsByUser($userId)) as $fd) {
-            if (self::pushEventToFd($server, (int) $fd, $event, $data)) {
-                $count++;
-            }
-        }
-
-        return $count;
+        return Cluster\PushDispatcherFactory::get()->pushEventToUser($server, $userId, $event, $data);
     }
 
     public static function pushEventToRoom(Server $server, string $room, string $event, $data = []): int
     {
-        $count = 0;
-        foreach (array_unique(self::getFdsByRoom($room)) as $fd) {
-            if (self::pushEventToFd($server, (int) $fd, $event, $data)) {
-                $count++;
-            }
-        }
-
-        return $count;
+        return Cluster\PushDispatcherFactory::get()->pushEventToRoom($server, $room, $event, $data);
     }
 
     public static function broadcastEvent(Server $server, string $event, $data = []): int
+    {
+        return Cluster\PushDispatcherFactory::get()->broadcastEvent($server, $event, $data);
+    }
+
+    public static function deliverBroadcastEventLocally(Server $server, string $event, $data = []): int
     {
         if (!self::tableExists(self::TABLE_CONNECTIONS)) {
             return 0;
         }
 
         $count = 0;
+        // 仅遍历本节点 Swoole\Table，不跨机
         foreach (TableManager::getTable(self::TABLE_CONNECTIONS) as $row) {
             $fd = (int) $row['fd'];
-            if (self::pushEventToFd($server, $fd, $event, $data)) {
+            if (self::deliverEventToFdLocally($server, $fd, $event, $data)) {
                 $count++;
             }
         }
