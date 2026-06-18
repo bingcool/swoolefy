@@ -3,13 +3,16 @@
 namespace Swoolefy\Websocket\Cluster;
 
 /**
- * 集群推送入口（供 WebSocket worker 内调用）。
- * 与 WebSocketService::pushToRoom 等价，内部走 PushDispatcherFactory。
+ * 集群推送入口（仅 WebSocket Worker 内）。
+ *
+ * 依赖 Swfy::getServer() 获取本机 Server 实例。
+ * HTTP/CLI 等外部进程请用 ExternalPushPublisher（不依赖 Server）。
  */
 class WebsocketClusterPublisher
 {
     public static function pushToRoom(string $room, string $event, $data = []): int
     {
+        // 必须在 WebSocket Worker 进程内调用
         $server = \Swoolefy\Core\Swfy::getServer();
         if (!$server instanceof \Swoole\WebSocket\Server) {
             throw new ClusterRedisException('WebSocket server is not available for cluster publish');

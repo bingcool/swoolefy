@@ -8,7 +8,11 @@ use Swoolefy\Core\Swfy;
 
 /**
  * 每节点 1 个专用进程，订阅本节点 Redis 频道并投递推送。
- * SUBSCRIBE 会阻塞，不能放在 worker 内执行。
+ *
+ * 外部进程（ExternalPushPublisher）与远端 Worker 的推送最终都到这里：
+ * PUBLISH ws:push:{app}:{server_id} → 本进程 SUBSCRIBE → PushDeliveryHandler → server->push()
+ *
+ * SUBSCRIBE 会阻塞协程，不能放在 worker 内执行。
  */
 class WebsocketPushSubscriberProcess extends AbstractProcess
 {
@@ -41,6 +45,7 @@ class WebsocketPushSubscriberProcess extends AbstractProcess
             return;
         }
 
+        // 订阅进程与 Worker 共享同一 Server 实例
         $server = Swfy::getServer();
         if (!$server instanceof \Swoole\WebSocket\Server) {
             return;

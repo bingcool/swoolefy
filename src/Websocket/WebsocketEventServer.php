@@ -71,29 +71,20 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
         $fd     = $frame->fd;
         $data   = $frame->data;
         $opcode = $frame->opcode;
-        $finish = $frame->finish;
-        WebsocketConnectionManager::touch((int) $fd);
 
-        if ($finish) {
-            if ($opcode == WEBSOCKET_OPCODE_TEXT) {
-                $appInstance = new WebsocketHandler();
-                $appInstance->run($fd, $data);
-            } else if ($opcode == WEBSOCKET_OPCODE_BINARY) {
-                static::onMessageFromBinary($server, $frame);
-            } else if ($opcode == WEBSOCKET_OPCODE_PING) {
-                $pingFrame = new Frame;
-                $pingFrame->opcode = WEBSOCKET_OPCODE_PONG;
-                $server->push($frame->fd, $pingFrame);
-            } else if ($opcode == WEBSOCKET_OPCODE_CLOSE) {
-                static::onMessageFromClose($server, $frame);
-            }
-        } else {
-            // close
-            if (method_exists($server, 'disconnect')) {
-                $server->disconnect($fd, $code = 1009, $reason = "");
-            }
+        // 进入此方法前，WebsocketServer 已完成分片重组，frame 必为完整消息
+        if ($opcode == WEBSOCKET_OPCODE_TEXT) {
+            $appInstance = new WebsocketHandler();
+            $appInstance->run($fd, $data);
+        } else if ($opcode == WEBSOCKET_OPCODE_BINARY) {
+            static::onMessageFromBinary($server, $frame);
+        } else if ($opcode == WEBSOCKET_OPCODE_PING) {
+            $pingFrame = new Frame;
+            $pingFrame->opcode = WEBSOCKET_OPCODE_PONG;
+            $server->push($frame->fd, $pingFrame);
+        } else if ($opcode == WEBSOCKET_OPCODE_CLOSE) {
+            static::onMessageFromClose($server, $frame);
         }
-
     }
 
     /**

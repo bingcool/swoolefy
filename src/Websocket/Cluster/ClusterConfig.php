@@ -6,14 +6,42 @@ use Swoolefy\Core\Swfy;
 
 /**
  * 读取 Config/websocket.php 中的 cluster 配置。
+ *
+ * 加载优先级（websocket()）：
+ * 1. setWebsocketOverride() — 单测注入
+ * 2. APP_PATH 已定义 — SystemEnv::loadWebsocketConf()，供 HTTP/CLI 外部推送
+ * 3. Swfy::getConf() — WebSocket Worker 运行时
  */
 class ClusterConfig
 {
+    /** @var array|null 测试或外部脚本可注入配置，绕过 Swfy */
+    private static ?array $websocketOverride = null;
+
+    public static function setWebsocketOverride(?array $conf): void
+    {
+        self::$websocketOverride = $conf;
+    }
+
     public static function websocket(): array
     {
-        $conf = Swfy::getConf();
+        if (self::$websocketOverride !== null) {
+            return self::$websocketOverride;
+        }
 
-        return is_array($conf['websocket'] ?? null) ? $conf['websocket'] : [];
+        // 外部进程（无 Swfy 容器）：直接读 APP_PATH/Config/websocket.php
+        if (defined('APP_PATH')) {
+            $conf = \Swoolefy\Core\SystemEnv::loadWebsocketConf();
+
+            return is_array($conf) ? $conf : [];
+        }
+
+        try {
+            $conf = Swfy::getConf();
+
+            return is_array($conf['websocket'] ?? null) ? $conf['websocket'] : [];
+        } catch (\Throwable $e) {
+            return [];
+        }
     }
 
     public static function cluster(): array

@@ -15,7 +15,7 @@ class RedisConnectionRegistry
 {
     public static function register(string $connId, array $connection): void
     {
-        self::execute(function (\Swoole\Coroutine\Redis $redis) use ($connId, $connection) {
+        self::execute(function ($redis) use ($connId, $connection) {
             $ttl = ClusterConfig::connTtl();
             $serverId = (string) $connection['server_id'];
             $userId = (string) ($connection['user_id'] ?? '');
@@ -46,7 +46,7 @@ class RedisConnectionRegistry
 
     public static function unregister(string $connId): void
     {
-        self::execute(function (\Swoole\Coroutine\Redis $redis) use ($connId) {
+        self::execute(function ($redis) use ($connId) {
             $meta = $redis->hGetAll(self::connKey($connId));
             if (!is_array($meta) || empty($meta)) {
                 $redis->zRem(self::aliveKey(), $connId);
@@ -80,7 +80,7 @@ class RedisConnectionRegistry
 
     public static function bindUser(string $connId, string $userId, string $oldUserId = ''): void
     {
-        self::execute(function (\Swoole\Coroutine\Redis $redis) use ($connId, $userId, $oldUserId) {
+        self::execute(function ($redis) use ($connId, $userId, $oldUserId) {
             if ($oldUserId !== '' && $oldUserId !== $userId) {
                 $redis->sRem(self::userKey($oldUserId), $connId);
             }
@@ -96,7 +96,7 @@ class RedisConnectionRegistry
 
     public static function joinRoom(string $connId, string $room, string $roomsJson): void
     {
-        self::execute(function (\Swoole\Coroutine\Redis $redis) use ($connId, $room, $roomsJson) {
+        self::execute(function ($redis) use ($connId, $room, $roomsJson) {
             $redis->hSet(self::connKey($connId), 'rooms', $roomsJson);
             $redis->expire(self::connKey($connId), ClusterConfig::connTtl());
             $redis->sAdd(self::roomKey($room), $connId);
@@ -105,7 +105,7 @@ class RedisConnectionRegistry
 
     public static function leaveRoom(string $connId, string $room, string $roomsJson): void
     {
-        self::execute(function (\Swoole\Coroutine\Redis $redis) use ($connId, $room, $roomsJson) {
+        self::execute(function ($redis) use ($connId, $room, $roomsJson) {
             $redis->hSet(self::connKey($connId), 'rooms', $roomsJson);
             $redis->expire(self::connKey($connId), ClusterConfig::connTtl());
             $redis->sRem(self::roomKey($room), $connId);
@@ -114,7 +114,7 @@ class RedisConnectionRegistry
 
     public static function touch(string $connId, int $lastActiveAt): void
     {
-        self::execute(function (\Swoole\Coroutine\Redis $redis) use ($connId, $lastActiveAt) {
+        self::execute(function ($redis) use ($connId, $lastActiveAt) {
             $redis->hSet(self::connKey($connId), 'last_active_at', $lastActiveAt);
             $redis->expire(self::connKey($connId), ClusterConfig::connTtl());
             $redis->zAdd(self::aliveKey(), $lastActiveAt, $connId);
@@ -123,7 +123,7 @@ class RedisConnectionRegistry
 
     public static function getConnIdsByUser(string $userId): array
     {
-        return self::execute(function (\Swoole\Coroutine\Redis $redis) use ($userId) {
+        return self::execute(function ($redis) use ($userId) {
             $items = $redis->sMembers(self::userKey($userId));
 
             return is_array($items) ? array_values(array_filter($items, 'is_string')) : [];
@@ -132,7 +132,7 @@ class RedisConnectionRegistry
 
     public static function getConnIdsByRoom(string $room): array
     {
-        return self::execute(function (\Swoole\Coroutine\Redis $redis) use ($room) {
+        return self::execute(function ($redis) use ($room) {
             $items = $redis->sMembers(self::roomKey($room));
 
             return is_array($items) ? array_values(array_filter($items, 'is_string')) : [];
@@ -141,7 +141,7 @@ class RedisConnectionRegistry
 
     public static function getConnectionMeta(string $connId): ?array
     {
-        return self::execute(function (\Swoole\Coroutine\Redis $redis) use ($connId) {
+        return self::execute(function ($redis) use ($connId) {
             $meta = $redis->hGetAll(self::connKey($connId));
             if (!is_array($meta) || empty($meta)) {
                 return null;
@@ -153,7 +153,7 @@ class RedisConnectionRegistry
 
     public static function getAllNodeIds(): array
     {
-        return self::execute(function (\Swoole\Coroutine\Redis $redis) {
+        return self::execute(function ($redis) {
             $items = $redis->sMembers(self::nodesKey());
 
             return is_array($items) ? array_values(array_filter($items, 'is_string')) : [];
@@ -162,7 +162,7 @@ class RedisConnectionRegistry
 
     public static function cleanupExpired(int $idleTimeout): int
     {
-        return self::execute(function (\Swoole\Coroutine\Redis $redis) use ($idleTimeout) {
+        return self::execute(function ($redis) use ($idleTimeout) {
             $deadline = time() - $idleTimeout;
             // 扫描心跳超时的 conn_id，批量清理 user/room/node 索引
             $connIds = $redis->zRangeByScore(self::aliveKey(), '0', (string) $deadline);
@@ -207,8 +207,9 @@ class RedisConnectionRegistry
 
     public static function publish(string $serverId, array $message): bool
     {
-        // 按节点频道发布：ws:push:{app}:{server_id}
-        return (bool) self::execute(function (\Swoole\Coroutine\Redis $redis) use ($serverId, $message) {
+        // 精准扇出：每节点独立频道 ws:push:{app}:{server_id}
+        // ExternalPushPublisher 与 Worker 跨节点推送均走此方法
+        return (bool) self::execute(function ($redis) use ($serverId, $message) {
             return $redis->publish(ClusterConfig::pushChannelForServer($serverId), PushMessage::encode($message));
         });
     }
