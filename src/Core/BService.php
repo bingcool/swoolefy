@@ -17,8 +17,6 @@ use Swoolefy\Udp\UdpHandler;
 use Swoolefy\Exception\SystemException;
 use Swoolefy\Core\Dto\BaseResponseDto;
 use Swoolefy\Core\Coroutine\Context as SwooleContext;
-use Swoolefy\Websocket\WebsocketConnectionManager;
-use Swoolefy\Websocket\WebsocketResponse;
 
 class BService extends BaseObject
 {
@@ -104,7 +102,7 @@ class BService extends BaseObject
     /**
      * @return string
      */
-    private function getTraceId()
+    protected function getTraceId()
     {
         if (SwooleContext::has(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID)) {
             $traceId = SwooleContext::get(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID);
@@ -177,98 +175,6 @@ class BService extends BaseObject
     }
 
     /**
-     * push websocket
-     * @param int $fd
-     * @param BaseResponseDto $dataDto
-     * @param int $opcode
-     * @param int $finish
-     * @return bool
-     */
-    public function push(
-        int $fd,
-        BaseResponseDto $dataDto,
-        int $opcode = 1,
-        int $finish = 1
-    ): bool
-    {
-        if (!BaseServer::isWebsocketApp()) {
-            throw new SystemException("BService::push() this method only can be called by websocket server!");
-        }
-
-        if (!Swfy::getServer()->isEstablished($fd)) {
-            throw new SystemException("Websocket connection closed");
-        }
-
-        if (empty($dataDto->trace_id)) {
-            $dataDto->trace_id = $this->getTraceId();
-        }
-
-        $data = json_encode($dataDto->toArray(), JSON_UNESCAPED_UNICODE);
-
-        $result = Swfy::getServer()->push($fd, $data, $opcode, (int)$finish);
-        return $result;
-
-    }
-
-    /**
-     * push websocket raw payload
-     * @param int $fd
-     * @param string $payload
-     * @param int $opcode
-     * @param int $finish
-     * @return bool
-     */
-    public function pushRaw(int $fd, string $payload, int $opcode = WEBSOCKET_OPCODE_TEXT, int $finish = 1): bool
-    {
-        if (!BaseServer::isWebsocketApp()) {
-            throw new SystemException("BService::pushRaw() this method only can be called by websocket server!");
-        }
-
-        if (!Swfy::getServer()->isEstablished($fd)) {
-            throw new SystemException("Websocket connection closed");
-        }
-
-        return Swfy::getServer()->push($fd, $payload, $opcode, (int) $finish);
-    }
-
-    /**
-     * push websocket unified event
-     * @param int $fd
-     * @param string $event
-     * @param mixed $data
-     * @return bool
-     */
-    public function pushEvent(int $fd, string $event, $data = []): bool
-    {
-        return $this->pushRaw($fd, WebsocketResponse::event($event, $data));
-    }
-
-    public function pushToUser(string $userId, string $event, $data = []): int
-    {
-        return WebsocketConnectionManager::pushToUser(Swfy::getServer(), $userId, WebsocketResponse::event($event, $data));
-    }
-
-    public function pushToRoom(string $room, string $event, $data = []): int
-    {
-        return WebsocketConnectionManager::pushToRoom(Swfy::getServer(), $room, WebsocketResponse::event($event, $data));
-    }
-
-    public function broadcast(string $event, $data = []): int
-    {
-        return WebsocketConnectionManager::broadcast(Swfy::getServer(), WebsocketResponse::event($event, $data));
-    }
-
-    public function joinWebsocketRoom(string $room): bool
-    {
-        return WebsocketConnectionManager::joinRoom((int) $this->fd, $room);
-    }
-
-    public function leaveWebsocketRoom(string $room): bool
-    {
-        return WebsocketConnectionManager::leaveRoom((int) $this->fd, $room);
-    }
-
-    /**
      * isClientPackEof  根据设置判断客户端的分包方式eof
      * @return bool
      */
@@ -315,16 +221,6 @@ class BService extends BaseObject
     {
         return Application::getApp()->getUdpData();
     }
-
-    /**
-     * getWebsocketMsg 获取websocket的信息
-     * @return \Swoolefy\Websocket\WebsocketPacket
-     */
-    public function getWebsocketMsg()
-    {
-        return Application::getApp()->getWebsocketMsg();
-    }
-
 
     /**
      * @return mixed

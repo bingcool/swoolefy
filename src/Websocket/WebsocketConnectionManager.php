@@ -15,6 +15,7 @@ use Swoole\Http\Request;
 use Swoole\WebSocket\Server;
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Table\TableManager;
+use Swoolefy\Websocket\SocketIO\SocketIOPacket;
 
 class WebsocketConnectionManager
 {
@@ -257,6 +258,72 @@ class WebsocketConnectionManager
         }
 
         return self::pushToFds($server, $fds, $payload, $opcode);
+    }
+
+    /**
+     * 按连接类型编码事件：
+     * - Socket.IO 连接：42["event",{...}]
+     * - 普通 WebSocket：统一 JSON 响应格式
+     */
+    public static function encodeEventPayload(int $fd, string $event, $data = []): string
+    {
+        $payloadData = is_array($data) ? $data : ['value' => $data];
+        $connection = self::getConnection($fd);
+        if (!empty($connection['is_socketio'])) {
+            return SocketIOPacket::event($event, [$payloadData]);
+        }
+
+        return WebsocketResponse::event($event, $payloadData);
+    }
+
+    public static function pushEventToFd(Server $server, int $fd, string $event, $data = []): bool
+    {
+        if ($fd <= 0 || !$server->isEstablished($fd)) {
+            return false;
+        }
+
+        return $server->push($fd, self::encodeEventPayload($fd, $event, $data), WEBSOCKET_OPCODE_TEXT);
+    }
+
+    public static function pushEventToUser(Server $server, string $userId, string $event, $data = []): int
+    {
+        $count = 0;
+        foreach (array_unique(self::getFdsByUser($userId)) as $fd) {
+            if (self::pushEventToFd($server, (int) $fd, $event, $data)) {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    public static function pushEventToRoom(Server $server, string $room, string $event, $data = []): int
+    {
+        $count = 0;
+        foreach (array_unique(self::getFdsByRoom($room)) as $fd) {
+            if (self::pushEventToFd($server, (int) $fd, $event, $data)) {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    public static function broadcastEvent(Server $server, string $event, $data = []): int
+    {
+        if (!self::tableExists(self::TABLE_CONNECTIONS)) {
+            return 0;
+        }
+
+        $count = 0;
+        foreach (TableManager::getTable(self::TABLE_CONNECTIONS) as $row) {
+            $fd = (int) $row['fd'];
+            if (self::pushEventToFd($server, $fd, $event, $data)) {
+                $count++;
+            }
+        }
+
+        return $count;
     }
 
     private static function pushToFds(Server $server, array $fds, string $payload, int $opcode): int

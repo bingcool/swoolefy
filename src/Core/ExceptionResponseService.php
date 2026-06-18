@@ -11,9 +11,10 @@
 
 namespace Swoolefy\Core;
 
+use Swoolefy\Websocket\WebSocketService;
 use Swoolefy\Websocket\WebsocketResponse;
 
-class ExceptionResponseService extends BService
+class ExceptionResponseService extends WebSocketService
 {
     /**
      * error response

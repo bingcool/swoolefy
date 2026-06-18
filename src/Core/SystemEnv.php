@@ -232,6 +232,27 @@ class SystemEnv
     }
 
     /**
+     * 加载 Socket.IO 配置（WebSocket 应用 Config/socketio.php）
+     *
+     * @return array
+     */
+    public static function loadSocketIoConf(): array
+    {
+        $confFile = APP_PATH . '/Config/socketio.php';
+        if (!file_exists($confFile)) {
+            return [
+                'enable' => false,
+                'ping_interval' => 25,
+                'ping_timeout' => 20,
+                'max_payload' => 1000000,
+                'event_routes' => [],
+            ];
+        }
+
+        return include $confFile;
+    }
+
+    /**
      * 不同应用,logFile定义不同目录
      * @param string $logFile
      * @return string
