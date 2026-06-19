@@ -15,6 +15,12 @@ namespace Swoolefy\Websocket\Cluster;
  * 3. 各 WebSocket 节点 WebsocketPushSubscriberProcess 已启动
  * 4. 外部进程与 WebSocket 服务共用同一 Redis 与 key_prefix / channel_prefix
  *
+ * ## 引用模式（msg_id）
+ *
+ * $data 可只传 `{ "msg_id": "m-1001" }` 等轻量引用；各 WebSocket 节点收到 Pub/Sub 后，
+ * 由 Config/websocket.php → push.enricher 在 server->push() 前查库组装完整 message。
+ * 示例：ExternalPushPublisher::pushToUser('user-b', 'chat.private', ['msg_id' => 'm-1001']);
+ *
  * 返回值：命中的连接数（或广播涉及的节点数），非「客户端 ACK」数。
  */
 class ExternalPushPublisher

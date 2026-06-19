@@ -44,4 +44,20 @@ return [
         // Redis 故障策略：reject_open 拒绝新连接；local_only 仅本机可用
         'on_redis_failure' => 'reject_open',
     ],
+    /*
+     * 推送引用模式（与 cluster.push 频道配置无关）
+     *
+     * 典型流程：
+     *   业务 push { msg_id: "m-1001" } → Redis 总线轻量传输
+     *   → 各节点 deliverEventToFdLocally → enricher 查库
+     *   → server->push({ message: { msg: "..." } })
+     *
+     * enricher 配置形式：
+     *   - [Class, 'method']  类实例方法（推荐）
+     *   - Class::class         实现 PushPayloadEnricherInterface 的类
+     *   - callable             匿名函数 function ($event, $data, $fd): ?array
+     */
+    'push' => [
+        'enricher' => [__APP_NAMESPACE__\Push\MessagePushEnricher::class, 'enrich'],
+    ],
 ];

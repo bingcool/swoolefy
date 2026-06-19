@@ -350,11 +350,29 @@ class WebsocketConnectionManager
     }
 
     /**
-     * 本节点直推（集群订阅进程 / 本机投递使用，不经过 Redis）。
+     * 本节点直推（集群订阅进程 / 本机投递使用，不经过 Redis 扇出）。
+     *
+     * ## 引用模式钩子
+     *
+     * 在 `server->push()` 之前调用 `PushPayloadResolver::resolve()`：
+     * - 业务 push 仅带 msg_id 时，由 Config/websocket.php → push.enricher 查库组装完整 message
+     * - enricher 返回 null 时跳过该 fd，不向客户端发送帧
+     *
+     * 以下路径最终都会落到本方法：
+     * - LocalPushDispatcher（单机 cluster.enable=false）
+     * - ClusterPushDispatcher 本机 leg
+     * - PushDeliveryHandler（跨节点 Pub/Sub 订阅后的本地投递）
+     * - deliverBroadcastEventLocally（逐 fd 调用，每个 fd 独立 enrich）
      */
     public static function deliverEventToFdLocally(Server $server, int $fd, string $event, $data = []): bool
     {
         if ($fd <= 0 || !$server->isEstablished($fd)) {
+            return false;
+        }
+
+        // 配置了 enricher 时每次投递前调用；返回 null 则跳过该 fd
+        $data = Push\PushPayloadResolver::resolve($event, $data, $fd);
+        if ($data === null) {
             return false;
         }
 
@@ -376,6 +394,11 @@ class WebsocketConnectionManager
         return Cluster\PushDispatcherFactory::get()->broadcastEvent($server, $event, $data);
     }
 
+    /**
+     * 本节点全量广播：遍历本地 Swoole\Table，逐 fd 投递。
+     *
+     * 每个 fd 经 deliverEventToFdLocally → PushPayloadResolver，引用模式下按 fd 独立 enrich。
+     */
     public static function deliverBroadcastEventLocally(Server $server, string $event, $data = []): int
     {
         if (!self::tableExists(self::TABLE_CONNECTIONS)) {

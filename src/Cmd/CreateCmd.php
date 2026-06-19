@@ -274,6 +274,14 @@ class CreateCmd extends BaseCmd
                                 $chatServiceContent = str_replace('__APP_NAMESPACE__', $appName, $chatServiceContent);
                                 file_put_contents($chatServiceFile, $chatServiceContent);
                             }
+                            $pushDir = $appPathDir . '/Push';
+                            @mkdir($pushDir, self::$dirPermission, true);
+                            $enricherFile = $pushDir . '/MessagePushEnricher.php';
+                            if (!file_exists($enricherFile)) {
+                                $enricherContent = (string) file_get_contents(SRC_DIR_ROOT . '/Stubs/MessagePushEnricher.stub.php');
+                                $enricherContent = str_replace('__APP_NAMESPACE__', $appName, $enricherContent);
+                                file_put_contents($enricherFile, $enricherContent);
+                            }
                         }
                     }
                     break;

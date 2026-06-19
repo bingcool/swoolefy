@@ -126,4 +126,16 @@ class ClusterConfig
             'timeout' => 2.0,
         ], $fallback, $redis);
     }
+
+    /**
+     * 推送载荷扩展配置（Config/websocket.php 顶层 push 段）。
+     *
+     * 与 cluster.push（Redis Pub/Sub 频道前缀）无关，用于 push.enricher 配置。
+     */
+    public static function pushSettings(): array
+    {
+        $push = self::websocket()['push'] ?? [];
+
+        return is_array($push) ? $push : [];
+    }
 }
