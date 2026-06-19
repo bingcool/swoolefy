@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Swoolefy WebSocket Socket.IO 测试页</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #f5f7fb;
+            color: #1f2937;
+        }
+        .wrap {
+            max-width: 980px;
+            margin: 24px auto;
+            padding: 0 16px 32px;
+        }
+        h1 { margin: 0 0 8px; font-size: 24px; }
+        .hint {
+            margin-bottom: 20px;
+            color: #4b5563;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        .panel {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+        label {
+            display: block;
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 6px;
+        }
+        input, button, textarea {
+            width: 100%;
+            font: inherit;
+        }
+        input, textarea {
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 10px 12px;
+            background: #fff;
+        }
+        textarea { min-height: 84px; resize: vertical; }
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        button {
+            border: 0;
+            border-radius: 8px;
+            padding: 10px 14px;
+            cursor: pointer;
+            background: #2563eb;
+            color: #fff;
+        }
+        button.secondary { background: #6b7280; }
+        button.danger { background: #dc2626; }
+        button:disabled {
+            opacity: .55;
+            cursor: not-allowed;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .status.connected {
+            background: #dcfce7;
+            color: #166534;
+        }
+        pre {
+            margin: 0;
+            min-height: 280px;
+            max-height: 420px;
+            overflow: auto;
+            background: #0f172a;
+            color: #e2e8f0;
+            border-radius: 10px;
+            padding: 14px;
+            font-size: 13px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        code {
+            background: #eef2ff;
+            color: #3730a3;
+            padding: 2px 6px;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <h1>Swoolefy WebSocket Socket.IO 测试页</h1>
+    <div class="hint">
+        先启动示例应用：<code>SWOOLEFY_CLI_ENV=dev php cli.php start WebsocketService</code><br>
+        本页通过 <code>socket.io-client</code> 连接后端，必须使用 <code>transports: ['websocket']</code>。<br>
+        事件映射见示例应用 <code>WebsocketService/Config/socketio.php</code>：
+        <code>group.join</code> → <code>Service/Chat/JoinGroup</code>，
+        <code>chat.send</code> → <code>Service/Chat/Send</code>。
+    </div>
+
+    <div class="panel">
+        <div class="grid">
+            <div>
+                <label for="host">Host</label>
+                <input id="host" value="127.0.0.1">
+            </div>
+            <div>
+                <label for="port">Port</label>
+                <input id="port" type="number" value="9508">
+            </div>
+            <div>
+                <label for="uid">UID</label>
+                <input id="uid" value="10001">
+            </div>
+            <div>
+                <label for="token">Token（auth.enable=true 时必填）</label>
+                <input id="token" value="dev-token">
+            </div>
+            <div>
+                <label for="group">Group</label>
+                <input id="group" value="public">
+            </div>
+        </div>
+
+        <div style="margin-top: 12px;">
+            <label for="message">Message</label>
+            <textarea id="message">hello from socket.io.js</textarea>
+        </div>
+
+        <div class="actions">
+            <button id="btnConnect">连接</button>
+            <button id="btnDisconnect" class="danger" disabled>断开</button>
+            <button id="btnJoin" class="secondary" disabled>group.join</button>
+            <button id="btnLeave" class="secondary" disabled>group.leave</button>
+            <button id="btnSend" disabled>chat.send</button>
+            <button id="btnClear" class="secondary">清空日志</button>
+            <span id="status" class="status">未连接</span>
+        </div>
+    </div>
+
+    <div class="panel">
+        <label>日志</label>
+        <pre id="log"></pre>
+    </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+(() => {
+    const $ = (id) => document.getElementById(id);
+    const logEl = $('log');
+    let socket = null;
+
+    const log = (msg, data) => {
+        const time = new Date().toLocaleTimeString();
+        const line = data === undefined ? `[${time}] ${msg}` : `[${time}] ${msg} ${JSON.stringify(data)}`;
+        logEl.textContent += line + '\n';
+        logEl.scrollTop = logEl.scrollHeight;
+    };
+
+    const setConnected = (connected) => {
+        $('status').textContent = connected ? '已连接' : '未连接';
+        $('status').classList.toggle('connected', connected);
+        $('btnConnect').disabled = connected;
+        $('btnDisconnect').disabled = !connected;
+        $('btnJoin').disabled = !connected;
+        $('btnLeave').disabled = !connected;
+        $('btnSend').disabled = !connected;
+        $('host').disabled = connected;
+        $('port').disabled = connected;
+    };
+
+    const getServerUrl = () => {
+        const host = $('host').value.trim() || '127.0.0.1';
+        const port = $('port').value.trim() || '9508';
+        return `http://${host}:${port}`;
+    };
+
+    const bindSocketEvents = () => {
+        socket.on('connect', () => {
+            setConnected(true);
+            log('connect success', { socketId: socket.id });
+        });
+
+        socket.on('disconnect', (reason) => {
+            setConnected(false);
+            log('disconnect', { reason });
+        });
+
+        socket.on('connect_error', (error) => {
+            log('connect_error', { message: error.message });
+        });
+
+        socket.on('group.joined', (data) => log('event group.joined', data));
+        socket.on('group.left', (data) => log('event group.left', data));
+        socket.on('chat.message', (data) => log('event chat.message', data));
+    };
+
+    $('btnConnect').addEventListener('click', () => {
+        if (socket) {
+            socket.disconnect();
+            socket = null;
+        }
+
+        const url = getServerUrl();
+        const query = {
+            uid: $('uid').value.trim(),
+            token: $('token').value.trim(),
+        };
+
+        log('connecting', { url, path: '/socket.io/', transports: ['websocket'], query });
+
+        socket = io(url, {
+            transports: ['websocket'],
+            path: '/socket.io/',
+            query,
+            reconnection: false,
+            timeout: 5000,
+        });
+
+        bindSocketEvents();
+    });
+
+    $('btnDisconnect').addEventListener('click', () => {
+        if (socket) {
+            socket.disconnect();
+            socket = null;
+        }
+        setConnected(false);
+    });
+
+    $('btnJoin').addEventListener('click', () => {
+        const group = $('group').value.trim() || 'public';
+        socket.emit('group.join', { group }, (ack) => {
+            log('ack group.join', ack);
+        });
+    });
+
+    $('btnLeave').addEventListener('click', () => {
+        const group = $('group').value.trim() || 'public';
+        socket.emit('group.leave', { group }, (ack) => {
+            log('ack group.leave', ack);
+        });
+    });
+
+    $('btnSend').addEventListener('click', () => {
+        const group = $('group').value.trim() || 'public';
+        const message = $('message').value.trim();
+        socket.emit('chat.send', { group, message }, (ack) => {
+            log('ack chat.send', ack);
+        });
+    });
+
+    $('btnClear').addEventListener('click', () => {
+        logEl.textContent = '';
+    });
+})();
+</script>
+</body>
+</html>

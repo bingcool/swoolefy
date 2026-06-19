@@ -41,9 +41,9 @@ class ClusterPushDispatcher implements PushDispatcherInterface
         return ClusterPushBus::publishToUser($userId, $event, $data, $server);
     }
 
-    public function pushEventToRoom(Server $server, string $room, string $event, $data = []): int
+    public function pushEventToGroup(Server $server, string $group, string $event, $data = []): int
     {
-        return ClusterPushBus::publishToRoom($room, $event, $data, $server);
+        return ClusterPushBus::publishToGroup($group, $event, $data, $server);
     }
 
     public function broadcastEvent(Server $server, string $event, $data = []): int

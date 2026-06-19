@@ -13,11 +13,11 @@ return [
         'dispatch_route' => [__APP_NAMESPACE__\Service\ChatService::class, 'sendMessage'],
     ],
 
-    'Service/Chat/JoinRoom' => [
-        'dispatch_route' => [__APP_NAMESPACE__\Service\ChatService::class, 'joinRoom'],
+    'Service/Chat/JoinGroup' => [
+        'dispatch_route' => [__APP_NAMESPACE__\Service\ChatService::class, 'joinGroup'],
     ],
 
-    'Service/Chat/LeaveRoom' => [
-        'dispatch_route' => [__APP_NAMESPACE__\Service\ChatService::class, 'leaveRoom'],
+    'Service/Chat/LeaveGroup' => [
+        'dispatch_route' => [__APP_NAMESPACE__\Service\ChatService::class, 'leaveGroup'],
     ],
 ];

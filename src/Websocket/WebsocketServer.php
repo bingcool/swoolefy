@@ -282,7 +282,7 @@ abstract class WebsocketServer extends BaseServer
         $this->webServer->on('close', function (\Swoole\WebSocket\Server $server, $fd, $reactorId) {
             try {
                 WebsocketFrameAssembler::clear((int) $fd);
-                // close 回调是清理 fd/user/room 索引的唯一兜底入口。
+                // close 回调是清理 fd/user/group 索引的唯一兜底入口。
                 WebsocketConnectionManager::close((int) $fd);
                 (new EventApp())->registerApp(function () use ($server, $fd) {
                     static::onClose($server, $fd);

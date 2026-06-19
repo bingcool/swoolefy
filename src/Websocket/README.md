@@ -10,8 +10,8 @@
 |------|------|
 | 原生 WebSocket | 统一 JSON 消息协议，路由到 `Router/service.php` |
 | Socket.IO v4 | 仅支持 **websocket transport**（不支持 long-polling） |
-| 连接管理 | 本地 `Swoole\Table` 管理 fd / user / room |
-| 业务基类 | `WebSocketService` 提供 push / 房间 / 广播等 API |
+| 连接管理 | 本地 `Swoole\Table` 管理 fd / user / group |
+| 业务基类 | `WebSocketService` 提供 push / 小组 / 广播等 API |
 | 多机集群 | Redis 全局索引 + 按 `server_id` 频道 Pub/Sub 扇出推送 |
 | 鉴权 | 握手阶段 token 校验，支持静态 token 或 callback |
 | 心跳清理 | 框架级空闲连接超时断开 |
@@ -61,7 +61,7 @@ WebsocketService/
 │   └── service.php        # endpoint 路由表
 ├── Service/
 │   ├── DemoService.php    # 原生 WebSocket 示例
-│   └── ChatService.php    # 房间/聊天示例
+│   └── ChatService.php    # 小组/聊天示例
 ├── Tests/
 │   └── socketio-client.html
 └── WebsocketEventServer.php
@@ -86,16 +86,16 @@ SWOOLEFY_CLI_ENV=dev php cli.php start WebsocketService
 
 ```bash
 # 冒烟测试（需先启动服务）
-SWOOLEFY_CLI_ENV=dev php WebsocketService/Tests/WebsocketSmokeTest.php
+SWOOLEFY_CLI_ENV=dev php src/Websocket/Tests/WebsocketSmokeTest.php
 
 # 分片帧单元测试
-php WebsocketService/Tests/WebsocketFrameAssemblerTest.php
+php src/Websocket/Tests/WebsocketFrameAssemblerTest.php
 
 # 集群单元测试
-SWOOLEFY_CLI_ENV=dev php WebsocketService/Tests/WebsocketClusterTest.php
+SWOOLEFY_CLI_ENV=dev php src/Websocket/Tests/WebsocketClusterTest.php
 
 # 浏览器测试 Socket.IO
-open WebsocketService/Tests/socketio-client.html
+open src/Websocket/Tests/socketio-client.html
 ```
 
 ---
@@ -104,19 +104,24 @@ open WebsocketService/Tests/socketio-client.html
 
 ```
 src/Websocket/
-├── WebSocketService.php          # 业务基类（推送、房间、获取消息包）
+├── WebSocketService.php          # 业务基类（推送、小组、获取消息包）
 ├── WebsocketServer.php           # Swoole WebSocket Server 封装
 ├── WebsocketEventServer.php      # 应用继承的事件服务基类
 ├── WebsocketHandler.php          # 原生 WebSocket 消息解析与路由
 ├── WebsocketPacket.php           # 统一消息包
 ├── WebsocketResponse.php         # 统一响应格式
-├── WebsocketConnectionManager.php # 连接表、房间、推送分发入口
+├── WebsocketConnectionManager.php # 连接表、小组、推送分发入口
 ├── WebsocketFrameAssembler.php    # WebSocket 分片帧重组
 ├── WebsocketAuthenticator.php    # 握手鉴权
 ├── SocketIO/                     # Socket.IO 协议实现
 │   ├── SocketIOHandler.php
 │   ├── SocketIOPacket.php
 │   └── SocketIOClient.php        # PHP 协程客户端
+├── Tests/                        # 框架级测试（冒烟 / 集群 / 分片帧 / 浏览器页）
+│   ├── WebsocketSmokeTest.php
+│   ├── WebsocketClusterTest.php
+│   ├── WebsocketFrameAssemblerTest.php
+│   └── socketio-client.html
 └── Cluster/                      # 多机水平扩展
     ├── ClusterPushBus.php        # Redis 扇出总线（Worker / 外部进程共用）
     ├── ExternalPushPublisher.php # HTTP/CLI 外部推送入口
@@ -190,8 +195,8 @@ return [
     // Socket.IO emit 事件名 → Router/service.php endpoint
     'event_routes' => [
         'chat.send'   => 'Service/Chat/Send',
-        'room.join'   => 'Service/Chat/JoinRoom',
-        'room.leave'  => 'Service/Chat/LeaveRoom',
+        'group.join'   => 'Service/Chat/JoinGroup',
+        'group.leave'  => 'Service/Chat/LeaveGroup',
     ],
 ];
 ```
@@ -245,20 +250,20 @@ class ChatService extends WebSocketService
     public function sendMessage(array $params)
     {
         $packet = $this->getWebsocketMsg();
-        $room = (string) ($params['room'] ?? 'public');
+        $group = (string) ($params['group'] ?? 'public');
 
-        $this->pushToRoom($room, 'chat.message', [
-            'room'    => $room,
+        $this->pushToGroup($group, 'chat.message', [
+            'group'    => $group,
             'message' => (string) ($params['message'] ?? ''),
             'from_fd' => $packet->getFd(),
         ]);
     }
 
-    public function joinRoom(array $params)
+    public function joinGroup(array $params)
     {
-        $room = (string) ($params['room'] ?? 'public');
-        $this->joinWebsocketRoom($room);
-        $this->pushEvent($this->getWebsocketMsg()->getFd(), 'room.joined', ['room' => $room]);
+        $group = (string) ($params['group'] ?? 'public');
+        $this->joinWebsocketGroup($group);
+        $this->pushEvent($this->getWebsocketMsg()->getFd(), 'group.joined', ['group' => $group]);
     }
 }
 ```
@@ -272,12 +277,12 @@ class ChatService extends WebSocketService
 | `push($fd, $dto)` | 推送 `BaseResponseDto` |
 | `pushEvent($fd, $event, $data)` | 向指定连接推送事件 |
 | `pushToUser($userId, $event, $data)` | 向用户所有连接推送 |
-| `pushToRoom($room, $event, $data)` | 向房间广播 |
+| `pushToGroup($group, $event, $data)` | 向小组广播 |
 | `broadcast($event, $data)` | 全服广播 |
-| `joinWebsocketRoom($room)` | 当前连接加入房间 |
-| `leaveWebsocketRoom($room)` | 当前连接离开房间 |
+| `joinWebsocketGroup($group)` | 当前连接加入小组 |
+| `leaveWebsocketGroup($group)` | 当前连接离开小组 |
 
-`cluster.enable=true` 时，`pushToUser` / `pushToRoom` / `broadcast` 自动跨节点推送，业务代码无需修改。
+`cluster.enable=true` 时，`pushToUser` / `pushToGroup` / `broadcast` 自动跨节点推送，业务代码无需修改。
 
 ---
 
@@ -331,7 +336,7 @@ class ChatService extends WebSocketService
   "event": "chat.message",
   "code": 0,
   "msg": "ok",
-  "data": { "room": "public", "message": "hi" }
+  "data": { "group": "public", "message": "hi" }
 }
 ```
 
@@ -351,14 +356,14 @@ ws.onopen = () => {
     type: 'request',
     event: 'Service/Chat/Send',
     request_id: '1',
-    data: { room: 'public', message: 'hello' }
+    data: { group: 'public', message: 'hello' }
   }));
 };
 
 ws.onmessage = (e) => {
   const msg = JSON.parse(e.data);
   if (msg.type === 'event' && msg.event === 'chat.message') {
-    console.log('收到房间消息', msg.data);
+    console.log('收到小组消息', msg.data);
   }
 };
 ```
@@ -374,10 +379,10 @@ ws.onmessage = (e) => {
 #### 事件路由链
 
 ```
-socket.emit('room.join', { room: 'public' })
+socket.emit('group.join', { group: 'public' })
   → Config/socketio.php event_routes
-  → Router/service.php Service/Chat/JoinRoom
-  → ChatService::joinRoom()
+  → Router/service.php Service/Chat/JoinGroup
+  → ChatService::joinGroup()
 ```
 
 #### JavaScript 示例
@@ -393,7 +398,7 @@ const socket = io('http://127.0.0.1:9508', {
 
 socket.on('connect', () => console.log('connected', socket.id));
 
-socket.emit('room.join', { room: 'public' }, (ack) => {
+socket.emit('group.join', { group: 'public' }, (ack) => {
   console.log('ack', ack);  // [{ code: 0, msg: 'ok' }]
 });
 
@@ -401,7 +406,7 @@ socket.on('chat.message', (data) => {
   console.log('chat.message', data);
 });
 
-socket.emit('chat.send', { room: 'public', message: 'hello' });
+socket.emit('chat.send', { group: 'public', message: 'hello' });
 </script>
 ```
 
@@ -415,8 +420,8 @@ use Swoolefy\Websocket\SocketIO\SocketIOClient;
 $client = new SocketIOClient('127.0.0.1', 9508);
 $client->connect(['uid' => 'php-user']);
 
-$ack = $client->emitWithAck('room.join', [['room' => 'public']], 3);
-$client->emitWithAck('chat.send', [['room' => 'public', 'message' => 'hi']], 3);
+$ack = $client->emitWithAck('group.join', [['group' => 'public']], 3);
+$client->emitWithAck('chat.send', [['group' => 'public', 'message' => 'hi']], 3);
 
 $client->close();
 ```
@@ -486,11 +491,106 @@ $client->close();
 | 层级 | 职责 |
 |------|------|
 | 本地 `Swoole\Table` | 管理本节点 fd，执行 `server->push()` |
-| Redis 全局索引 | `conn_id = {server_id}:{fd}`，跨节点 user/room 查询 |
+| Redis 全局索引 | `conn_id = {server_id}:{fd}`，跨节点 user/group 查询 |
 | Redis Pub/Sub | 频道 `ws:push:{app}:{server_id}`，精准扇出到目标节点 |
 | 订阅进程 | 每节点 1 个 `WebsocketPushSubscriberProcess` |
 
-### 8.3 部署清单
+### 8.3 跨机推送场景（M1 / M2）
+
+典型问题：**用户 A 的 WebSocket 连在机器 M1，用户 B 连在 M2，A 发 `hello world!`，B 能实时收到吗？**
+
+#### 默认配置：不能跨机
+
+`cluster.enable=false`（脚手架默认值）时，推送走 `LocalPushDispatcher`，`pushToGroup` 只查**本机** `Swoole\Table`。A 在 M1 发消息只会推给 M1 上的同组连接，**M2 上的 B 收不到**。
+
+#### 开启集群后：同房广播可以实时跨机
+
+`cluster.enable=true` 且 Redis、`server_id` 配置正确时，**同一小组**内的跨机推送链路已打通：
+
+```
+A (M1)  emit chat.send (group=public)
+  → M1 Worker: ChatService::pushToGroup
+  → Redis SMEMBERS group:public → [M1:fdA, M2:fdB, ...]
+  → M1 本机 conn：PushDeliveryHandler 直推
+  → M2 远端 conn：PUBLISH ws:push:{app}:ws-m2
+  → M2 WebsocketPushSubscriberProcess 收到
+  → PushDeliveryHandler → server->push(fdB)
+  → B 收到 chat.message 事件
+```
+
+**前提条件：**
+
+| 条件 | 说明 |
+|------|------|
+| `cluster.enable=true` | M1、M2 均需开启 |
+| 唯一 `server_id` | 如 M1=`ws-m1`，M2=`ws-m2`，不可重复 |
+| 共用 Redis | 同一实例，`key_prefix` / `channel_prefix` 一致 |
+| 订阅进程运行 | `cluster.enable=true` 时自动注册 `WebsocketPushSubscriberProcess` |
+| 加入同一小组 | A、B 均执行过 `group.join`（如 `public`） |
+
+示例 `ChatService` 使用 **小组广播**（`pushToGroup`），不是按用户点对点：
+
+```php
+$this->pushToGroup($group, 'chat.message', [
+    'group' => $group,
+    'message' => $message,
+    'from_fd' => $packet->getFd(),
+]);
+```
+
+因此：**A、B 都在 `public` 且集群已开启 → B 能实时收到 `hello world!`**。
+
+#### 「A 只发给 B」：需自行实现私聊
+
+若需 **A 私聊 B**（不依赖同房），应：
+
+1. 连接时绑定用户：握手 URL 带 `?uid=userA` / `?uid=userB`，或鉴权后 `bindUser`
+2. 业务中调用 `pushToUser('userB', 'chat.message', [...])`，而非 `pushToGroup`
+
+集群下 `pushToUser` 同样查 Redis 全局用户索引并扇出到目标节点，**框架已支持，示例 Chat 未演示**。
+
+#### 双机最小配置
+
+**M1** `Config/websocket.php`：
+
+```php
+'cluster' => [
+    'enable'    => true,
+    'server_id' => 'ws-m1',
+    'redis'     => ['host' => '10.0.0.10', 'port' => 6379],
+],
+```
+
+**M2** `Config/websocket.php`：
+
+```php
+'cluster' => [
+    'enable'    => true,
+    'server_id' => 'ws-m2',  // 必须与 M1 不同
+    'redis'     => ['host' => '10.0.0.10', 'port' => 6379],  // 同一 Redis
+],
+```
+
+#### 手工验证步骤
+
+1. M1、M2 分别启动 WebSocket 服务
+2. B 连接 M2 → `group.join`，group=`public`
+3. A 连接 M1 → `group.join`，group=`public`
+4. A 发送 `chat.send`，消息 `hello world!`
+5. B 应收到 `chat.message` 事件
+
+Nginx 建连需 **sticky**（`ip_hash`）；推送走 Redis，**不依赖** sticky。可用 `src/Websocket/Tests/socketio-client.html` 分别连不同 Host/Port 测试。
+
+#### 场景对照
+
+| 场景 | B 能否实时收到 |
+|------|----------------|
+| 默认 `cluster.enable=false` | 否，不能跨机 |
+| 集群开启 + 同组 `pushToGroup` | 是 |
+| 集群开启 + `pushToUser` 私聊 B | 是（需业务实现） |
+| 未 `group.join` | 否，B 不在 Redis group 索引中 |
+
+### 8.4 部署清单
 
 1. 每个实例配置唯一 `server_id`
 2. 所有实例共用同一 Redis（客户端：`cluster.redis.client`，默认 `auto` 优先 ext-redis，亦可 `predis`）
@@ -513,7 +613,7 @@ location / {
 }
 ```
 
-### 8.4 环境变量示例
+### 8.5 环境变量示例
 
 ```bash
 # 实例 1
@@ -525,7 +625,7 @@ WS_SERVER_ID=ws-prod-02 SWOOLEFY_CLI_ENV=prod php cli.php start WebsocketService
 
 在 `Config/websocket.php` 中读取：`env('WS_SERVER_ID')`
 
-### 8.5 外部进程推送（HTTP / CLI / 队列）
+### 8.6 外部进程推送（HTTP / CLI / 队列）
 
 业务在 WebSocket Worker 外（PHP-FPM、独立脚本、队列消费者）触发推送时，使用 `ExternalPushPublisher`，**仅走 Redis 发布**，不依赖 `Swfy::getServer()`：
 
@@ -536,7 +636,7 @@ use Swoolefy\Websocket\Cluster\ExternalPushPublisher;
 define('APP_NAME', 'WebsocketService');
 define('APP_PATH', '/path/to/WebsocketService');
 
-ExternalPushPublisher::pushToRoom('demo', 'chat.message', ['msg' => 'hi']);
+ExternalPushPublisher::pushToGroup('demo', 'chat.message', ['msg' => 'hi']);
 ExternalPushPublisher::pushToUser('user-1', 'notify', ['title' => 'new']);
 ExternalPushPublisher::broadcast('system.announce', ['text' => 'maintenance']);
 ```
@@ -591,15 +691,15 @@ php WebsocketService/Scripts/push_external.php demo chat.message "hello from htt
   → event_routes 映射 endpoint
   → WebsocketHandler::handlePacket
   → ChatService::sendMessage
-  → pushToRoom（集群模式下走 Redis 扇出）
+  → pushToGroup（集群模式下走 Redis 扇出）
   → 返回 ack: [{ code: 0, msg: 'ok' }]
 ```
 
-### 9.4 跨节点 pushToRoom
+### 9.4 跨节点 pushToGroup
 
 ```
-Node A: ChatService::pushToRoom('public', 'chat.message', $data)
-  → Redis SMEMBERS room:public → [conn_id...]
+Node A: ChatService::pushToGroup('public', 'chat.message', $data)
+  → Redis SMEMBERS group:public → [conn_id...]
   → 按 server_id 分组
   → 本节点 conn：直接 deliver
   → 远端 conn：PUBLISH ws:push:app:ws-prod-02
@@ -643,9 +743,9 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 
 客户端必须设置 `transports: ['websocket']`，当前实现不支持 long-polling 降级。
 
-### Q: pushToRoom 只有部分用户收到？
+### Q: pushToGroup 只有部分用户收到？
 
-- 单机：确认目标连接已 `joinWebsocketRoom`
+- 单机：确认目标连接已 `joinWebsocketGroup`
 - 集群：确认 `cluster.enable=true`、Redis 可用、各实例 `server_id` 唯一
 
 ### Q: 集群模式下 Redis 挂了怎么办？
@@ -663,7 +763,11 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 
 ### Q: 如何从 HTTP 接口触发 WebSocket 推送？
 
-启用集群后，在 HTTP/CLI 等外部进程中调用 `ExternalPushPublisher`（见 §8.5），由 Redis Pub/Sub 扇出到各 WebSocket 节点投递。若在 WebSocket Worker 内推送，直接使用 `WebSocketService::pushToRoom` 等方法即可。
+启用集群后，在 HTTP/CLI 等外部进程中调用 `ExternalPushPublisher`（见 §8.6），由 Redis Pub/Sub 扇出到各 WebSocket 节点投递。若在 WebSocket Worker 内推送，直接使用 `WebSocketService::pushToGroup` 等方法即可。
+
+### Q: A 在 M1、B 在 M2，A 发消息 B 能收到吗？
+
+见 §8.3。简要结论：`cluster.enable=false` 时不能跨机；开启集群且 A、B 在同一小组（或业务使用 `pushToUser`）时可以实时收到。
 
 ---
 
@@ -674,10 +778,10 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 | 创建应用模板 | `src/Cmd/CreateCmd.php` |
 | 配置模板 | `src/Stubs/websocket.conf.stub.php`、`socketio.conf.stub.php` |
 | 示例应用 | `WebsocketService/` |
-| 冒烟测试 | `WebsocketService/Tests/WebsocketSmokeTest.php` |
-| 分片帧测试 | `WebsocketService/Tests/WebsocketFrameAssemblerTest.php` |
-| 集群测试 | `WebsocketService/Tests/WebsocketClusterTest.php` |
-| 浏览器测试 | `WebsocketService/Tests/socketio-client.html` |
+| 冒烟测试 | `src/Websocket/Tests/WebsocketSmokeTest.php` |
+| 分片帧测试 | `src/Websocket/Tests/WebsocketFrameAssemblerTest.php` |
+| 集群测试 | `src/Websocket/Tests/WebsocketClusterTest.php` |
+| 浏览器测试 | `src/Websocket/Tests/socketio-client.html` |
 | Chat 示例 | `src/Stubs/ChatService.stub.php` |
 
 ---
@@ -688,6 +792,6 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 2. Socket.IO 事件路由维护在 `Config/socketio.php`，不散落在代码中
 3. 生产环境开启 `auth.callback`，不要仅用静态 token 列表
 4. 多机部署必须配置 `server_id`，并启用 Redis 高可用（Sentinel）
-5. 房间广播前确保客户端已 `joinRoom`
-6. 大房间（万人级）考虑分层频道或专用方案，避免全量 SMEMBERS
+5. 小组广播前确保客户端已 `joinGroup`
+6. 大小组（万人级）考虑分层频道或专用方案，避免全量 SMEMBERS
 7. 客户端发送超大 JSON 时依赖浏览器/WebSocket 库自动分片即可，服务端会自动重组

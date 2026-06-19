@@ -49,25 +49,25 @@ class ClusterConnectionCoordinator
         }, false);
     }
 
-    public static function onJoinRoom(string $connId, string $room, string $roomsJson): void
+    public static function onJoinGroup(string $connId, string $group, string $groupsJson): void
     {
-        if (!ClusterConfig::isEnabled() || $connId === '' || $room === '') {
+        if (!ClusterConfig::isEnabled() || $connId === '' || $group === '') {
             return;
         }
 
-        self::run('joinRoom', static function () use ($connId, $room, $roomsJson) {
-            RedisConnectionRegistry::joinRoom($connId, $room, $roomsJson);
+        self::run('joinGroup', static function () use ($connId, $group, $groupsJson) {
+            RedisConnectionRegistry::joinGroup($connId, $group, $groupsJson);
         }, false);
     }
 
-    public static function onLeaveRoom(string $connId, string $room, string $roomsJson): void
+    public static function onLeaveGroup(string $connId, string $group, string $groupsJson): void
     {
-        if (!ClusterConfig::isEnabled() || $connId === '' || $room === '') {
+        if (!ClusterConfig::isEnabled() || $connId === '' || $group === '') {
             return;
         }
 
-        self::run('leaveRoom', static function () use ($connId, $room, $roomsJson) {
-            RedisConnectionRegistry::leaveRoom($connId, $room, $roomsJson);
+        self::run('leaveGroup', static function () use ($connId, $group, $groupsJson) {
+            RedisConnectionRegistry::leaveGroup($connId, $group, $groupsJson);
         }, false);
     }
 

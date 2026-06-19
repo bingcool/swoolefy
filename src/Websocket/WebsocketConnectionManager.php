@@ -25,8 +25,8 @@ class WebsocketConnectionManager
     // 用户索引表：一个 user_id 允许绑定多个 fd，支持多端登录。
     public const TABLE_USERS = 'table_websocket_users';
 
-    // 房间索引表：一个 room 对应多个 fd，用于房间广播。
-    public const TABLE_ROOMS = 'table_websocket_rooms';
+    // 小组索引表：一个 group 对应多个 fd，用于小组广播。
+    public const TABLE_GROUPS = 'table_websocket_groups';
 
     /**
      * 连接表定义在 server createTables() 前注入配置，所有 worker 共享。
@@ -44,7 +44,7 @@ class WebsocketConnectionManager
                     ['worker_id', 'int', 8],
                     ['user_id', 'string', 128],
                     ['sid', 'string', 64],
-                    ['rooms', 'string', 2048],
+                    ['groups', 'string', 2048],
                     ['remote_addr', 'string', 64],
                     ['user_agent', 'string', 256],
                     ['connected_at', 'int', 8],
@@ -61,10 +61,10 @@ class WebsocketConnectionManager
                     ['fd', 'int', 8],
                 ],
             ],
-            self::TABLE_ROOMS => [
+            self::TABLE_GROUPS => [
                 'size' => $indexSize,
                 'fields' => [
-                    ['room', 'string', 128],
+                    ['group', 'string', 128],
                     ['fd', 'int', 8],
                     ['user_id', 'string', 128],
                 ],
@@ -90,7 +90,7 @@ class WebsocketConnectionManager
             'worker_id' => (int) $server->worker_id,
             'user_id' => $userId,
             'sid' => $sid,
-            'rooms' => '',
+            'groups' => '',
             'remote_addr' => $remoteAddr,
             'user_agent' => mb_substr($userAgent, 0, 256),
             'connected_at' => $now,
@@ -127,14 +127,14 @@ class WebsocketConnectionManager
             self::unbindUser($fd, $userId);
         }
 
-        // 关闭连接时必须同步清理用户索引和房间索引，否则长运行服务会出现脏 fd。
-        foreach (self::decodeRooms((string) ($connection['rooms'] ?? '')) as $room) {
+        // 关闭连接时必须同步清理用户索引和小组索引，否则长运行服务会出现脏 fd。
+        foreach (self::decodeGroups((string) ($connection['groups'] ?? '')) as $group) {
             // close 流程里 Redis 清理由 onClose 统一处理，此处只清本地 Table
-            self::leaveRoom($fd, $room, false);
+            self::leaveGroup($fd, $group, false);
         }
 
         self::tableDel(self::TABLE_CONNECTIONS, (string) $fd);
-        // 集群模式：清理 Redis 中 conn/user/room/node 索引
+        // 集群模式：清理 Redis 中 conn/user/group/node 索引
         Cluster\ClusterConnectionCoordinator::onClose($connId);
     }
 
@@ -164,31 +164,31 @@ class WebsocketConnectionManager
         );
     }
 
-    public static function joinRoom(int $fd, string $room): bool
+    public static function joinGroup(int $fd, string $group): bool
     {
-        $room = trim($room);
+        $group = trim($group);
         $connection = self::getConnection($fd);
-        if ($room === '' || !$connection) {
+        if ($group === '' || !$connection) {
             return false;
         }
 
-        // 连接表内保存 rooms 快照，close 时可以反向清理 TABLE_ROOMS 索引。
-        $rooms = self::decodeRooms((string) ($connection['rooms'] ?? ''));
-        if (!in_array($room, $rooms, true)) {
-            $rooms[] = $room;
-            $connection['rooms'] = self::encodeRooms($rooms);
+        // 连接表内保存 groups 快照，close 时可以反向清理 TABLE_GROUPS 索引。
+        $groups = self::decodeGroups((string) ($connection['groups'] ?? ''));
+        if (!in_array($group, $groups, true)) {
+            $groups[] = $group;
+            $connection['groups'] = self::encodeGroups($groups);
             self::setConnection($fd, $connection);
         }
 
-        self::tableSet(self::TABLE_ROOMS, self::roomKey($room, $fd), [
-            'room' => $room,
+        self::tableSet(self::TABLE_GROUPS, self::groupKey($group, $fd), [
+            'group' => $group,
             'fd' => $fd,
             'user_id' => (string) ($connection['user_id'] ?? ''),
         ]);
-        Cluster\ClusterConnectionCoordinator::onJoinRoom(
+        Cluster\ClusterConnectionCoordinator::onJoinGroup(
             (string) ($connection['conn_id'] ?? ''),
-            $room,
-            (string) $connection['rooms']
+            $group,
+            (string) $connection['groups']
         );
 
         return true;
@@ -197,29 +197,29 @@ class WebsocketConnectionManager
     /**
      * @param bool $syncCluster close 流程传 false，避免重复写 Redis（由 onClose 统一清理）
      */
-    public static function leaveRoom(int $fd, string $room, bool $syncCluster = true): bool
+    public static function leaveGroup(int $fd, string $group, bool $syncCluster = true): bool
     {
-        $room = trim($room);
-        if ($room === '') {
+        $group = trim($group);
+        if ($group === '') {
             return false;
         }
 
         $connection = self::getConnection($fd);
         if ($connection) {
-            $rooms = array_values(array_filter(
-                self::decodeRooms((string) ($connection['rooms'] ?? '')),
-                static fn (string $item): bool => $item !== $room
+            $groups = array_values(array_filter(
+                self::decodeGroups((string) ($connection['groups'] ?? '')),
+                static fn (string $item): bool => $item !== $group
             ));
-            $connection['rooms'] = self::encodeRooms($rooms);
+            $connection['groups'] = self::encodeGroups($groups);
             self::setConnection($fd, $connection);
         }
 
-        self::tableDel(self::TABLE_ROOMS, self::roomKey($room, $fd));
+        self::tableDel(self::TABLE_GROUPS, self::groupKey($group, $fd));
         if ($syncCluster && $connection) {
-            Cluster\ClusterConnectionCoordinator::onLeaveRoom(
+            Cluster\ClusterConnectionCoordinator::onLeaveGroup(
                 (string) ($connection['conn_id'] ?? ''),
-                $room,
-                (string) ($connection['rooms'] ?? '')
+                $group,
+                (string) ($connection['groups'] ?? '')
             );
         }
         return true;
@@ -270,9 +270,9 @@ class WebsocketConnectionManager
         return self::filterFds(self::TABLE_USERS, static fn (array $row): bool => (string) $row['user_id'] === $userId);
     }
 
-    public static function getFdsByRoom(string $room): array
+    public static function getFdsByGroup(string $group): array
     {
-        return self::filterFds(self::TABLE_ROOMS, static fn (array $row): bool => (string) $row['room'] === $room);
+        return self::filterFds(self::TABLE_GROUPS, static fn (array $row): bool => (string) $row['group'] === $group);
     }
 
     public static function disconnectExpired(Server $server, int $idleTimeout): int
@@ -308,9 +308,9 @@ class WebsocketConnectionManager
         return self::pushToFds($server, self::getFdsByUser($userId), $payload, $opcode);
     }
 
-    public static function pushToRoom(Server $server, string $room, string $payload, int $opcode = WEBSOCKET_OPCODE_TEXT): int
+    public static function pushToGroup(Server $server, string $group, string $payload, int $opcode = WEBSOCKET_OPCODE_TEXT): int
     {
-        return self::pushToFds($server, self::getFdsByRoom($room), $payload, $opcode);
+        return self::pushToFds($server, self::getFdsByGroup($group), $payload, $opcode);
     }
 
     public static function broadcast(Server $server, string $payload, int $opcode = WEBSOCKET_OPCODE_TEXT): int
@@ -366,9 +366,9 @@ class WebsocketConnectionManager
         return Cluster\PushDispatcherFactory::get()->pushEventToUser($server, $userId, $event, $data);
     }
 
-    public static function pushEventToRoom(Server $server, string $room, string $event, $data = []): int
+    public static function pushEventToGroup(Server $server, string $group, string $event, $data = []): int
     {
-        return Cluster\PushDispatcherFactory::get()->pushEventToRoom($server, $room, $event, $data);
+        return Cluster\PushDispatcherFactory::get()->pushEventToGroup($server, $group, $event, $data);
     }
 
     public static function broadcastEvent(Server $server, string $event, $data = []): int
@@ -418,20 +418,20 @@ class WebsocketConnectionManager
         return md5($userId) . ':' . $fd;
     }
 
-    private static function roomKey(string $room, int $fd): string
+    private static function groupKey(string $group, int $fd): string
     {
-        return md5($room) . ':' . $fd;
+        return md5($group) . ':' . $fd;
     }
 
-    private static function decodeRooms(string $rooms): array
+    private static function decodeGroups(string $groups): array
     {
-        $items = $rooms === '' ? [] : json_decode($rooms, true);
+        $items = $groups === '' ? [] : json_decode($groups, true);
         return is_array($items) ? array_values(array_filter($items, 'is_string')) : [];
     }
 
-    private static function encodeRooms(array $rooms): string
+    private static function encodeGroups(array $groups): string
     {
-        return json_encode(array_values(array_unique($rooms)), JSON_UNESCAPED_UNICODE);
+        return json_encode(array_values(array_unique($groups)), JSON_UNESCAPED_UNICODE);
     }
 
     private static function filterFds(string $table, callable $filter): array
