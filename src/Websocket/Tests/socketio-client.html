@@ -140,6 +140,10 @@
                 <label for="group">Group</label>
                 <input id="group" value="public">
             </div>
+            <div>
+                <label for="toUserId">To User ID（单聊）</label>
+                <input id="toUserId" value="10002">
+            </div>
         </div>
 
         <div style="margin-top: 12px;">
@@ -153,6 +157,7 @@
             <button id="btnJoin" class="secondary" disabled>group.join</button>
             <button id="btnLeave" class="secondary" disabled>group.leave</button>
             <button id="btnSend" disabled>chat.send</button>
+            <button id="btnPrivate" class="secondary" disabled>chat.private</button>
             <button id="btnClear" class="secondary">清空日志</button>
             <span id="status" class="status">未连接</span>
         </div>
@@ -186,6 +191,7 @@
         $('btnJoin').disabled = !connected;
         $('btnLeave').disabled = !connected;
         $('btnSend').disabled = !connected;
+        $('btnPrivate').disabled = !connected;
         $('host').disabled = connected;
         $('port').disabled = connected;
     };
@@ -214,6 +220,7 @@
         socket.on('group.joined', (data) => log('event group.joined', data));
         socket.on('group.left', (data) => log('event group.left', data));
         socket.on('chat.message', (data) => log('event chat.message', data));
+        socket.on('chat.private', (data) => log('event chat.private', data));
     };
 
     $('btnConnect').addEventListener('click', () => {
@@ -268,6 +275,14 @@
         const message = $('message').value.trim();
         socket.emit('chat.send', { group, message }, (ack) => {
             log('ack chat.send', ack);
+        });
+    });
+
+    $('btnPrivate').addEventListener('click', () => {
+        const toUserId = $('toUserId').value.trim();
+        const message = $('message').value.trim();
+        socket.emit('chat.private', { to_user_id: toUserId, message }, (ack) => {
+            log('ack chat.private', ack);
         });
     });
 

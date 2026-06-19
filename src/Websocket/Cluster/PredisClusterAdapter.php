@@ -85,6 +85,11 @@ class PredisClusterAdapter implements ClusterRedisAdapterInterface
         return $this->client->publish($channel, $message);
     }
 
+    public function ping()
+    {
+        return $this->client->ping();
+    }
+
     public function close(): void
     {
         $this->client->disconnect();

@@ -13,6 +13,10 @@ return [
         'dispatch_route' => [__APP_NAMESPACE__\Service\ChatService::class, 'sendMessage'],
     ],
 
+    'Service/Chat/SendPrivate' => [
+        'dispatch_route' => [__APP_NAMESPACE__\Service\ChatService::class, 'sendPrivateMessage'],
+    ],
+
     'Service/Chat/JoinGroup' => [
         'dispatch_route' => [__APP_NAMESPACE__\Service\ChatService::class, 'joinGroup'],
     ],

@@ -85,6 +85,11 @@ class PhpRedisClusterAdapter implements ClusterRedisAdapterInterface
         return $this->redis->publish($channel, $message);
     }
 
+    public function ping()
+    {
+        return $this->redis->ping();
+    }
+
     public function close(): void
     {
         $this->redis->close();

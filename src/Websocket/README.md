@@ -194,7 +194,8 @@ return [
 
     // Socket.IO emit 事件名 → Router/service.php endpoint
     'event_routes' => [
-        'chat.send'   => 'Service/Chat/Send',
+        'chat.send'    => 'Service/Chat/Send',
+        'chat.private' => 'Service/Chat/SendPrivate',
         'group.join'   => 'Service/Chat/JoinGroup',
         'group.leave'  => 'Service/Chat/LeaveGroup',
     ],
@@ -268,6 +269,8 @@ class ChatService extends WebSocketService
 }
 ```
 
+路由：`chat.private` → `Service/Chat/SendPrivate` → `sendPrivateMessage()`。
+
 ### 5.3 `WebSocketService` API
 
 | 方法 | 说明 |
@@ -281,8 +284,31 @@ class ChatService extends WebSocketService
 | `broadcast($event, $data)` | 全服广播 |
 | `joinWebsocketGroup($group)` | 当前连接加入小组 |
 | `leaveWebsocketGroup($group)` | 当前连接离开小组 |
+| `getWebsocketUserId()` | 当前连接绑定的 user_id |
 
 `cluster.enable=true` 时，`pushToUser` / `pushToGroup` / `broadcast` 自动跨节点推送，业务代码无需修改。
+
+#### 单聊（A→B）
+
+示例 `ChatService::sendPrivateMessage()` 已实现，Socket.IO 事件 `chat.private`：
+
+```php
+// 服务端（已在 ChatService 中）
+$this->pushToUser($toUserId, 'chat.private', [
+    'from_user_id' => $fromUserId,
+    'to_user_id'   => $toUserId,
+    'message'      => $message,
+]);
+```
+
+客户端需握手带 `uid`，并监听 `chat.private`：
+
+```javascript
+socket.emit('chat.private', { to_user_id: 'user-b', message: 'hi' }, (ack) => {
+  console.log(ack); // [{ code: 0, msg: 'ok' }] 或 code=-1（对方离线）
+});
+socket.on('chat.private', (data) => console.log('私聊', data));
+```
 
 ---
 
@@ -407,6 +433,9 @@ socket.on('chat.message', (data) => {
 });
 
 socket.emit('chat.send', { group: 'public', message: 'hello' });
+
+socket.emit('chat.private', { to_user_id: 'user-b', message: 'hi' });
+socket.on('chat.private', (data) => console.log('chat.private', data));
 </script>
 ```
 
@@ -540,14 +569,15 @@ $this->pushToGroup($group, 'chat.message', [
 
 因此：**A、B 都在 `public` 且集群已开启 → B 能实时收到 `hello world!`**。
 
-#### 「A 只发给 B」：需自行实现私聊
+#### 「A 只发给 B」：单聊（已内置示例）
 
-若需 **A 私聊 B**（不依赖同房），应：
+`ChatService::sendPrivateMessage()` + Socket.IO `chat.private`：
 
-1. 连接时绑定用户：握手 URL 带 `?uid=userA` / `?uid=userB`，或鉴权后 `bindUser`
-2. 业务中调用 `pushToUser('userB', 'chat.message', [...])`，而非 `pushToGroup`
+1. A、B 连接时分别带 `?uid=userA` / `?uid=userB`
+2. A 发送：`chat.private` + `{ to_user_id: 'userB', message: '...' }`
+3. B 监听事件 `chat.private` 即可收到；对方离线时 ack 返回 `code=-1`
 
-集群下 `pushToUser` 同样查 Redis 全局用户索引并扇出到目标节点，**框架已支持，示例 Chat 未演示**。
+集群下走 `pushToUser`，跨节点同样可用。
 
 #### 双机最小配置
 
@@ -587,7 +617,7 @@ Nginx 建连需 **sticky**（`ip_hash`）；推送走 Redis，**不依赖** stic
 |------|----------------|
 | 默认 `cluster.enable=false` | 否，不能跨机 |
 | 集群开启 + 同组 `pushToGroup` | 是 |
-| 集群开启 + `pushToUser` 私聊 B | 是（需业务实现） |
+| 集群开启 + `pushToUser` 私聊 B | 是（`chat.private`） |
 | 未 `group.join` | 否，B 不在 Redis group 索引中 |
 
 ### 8.4 部署清单

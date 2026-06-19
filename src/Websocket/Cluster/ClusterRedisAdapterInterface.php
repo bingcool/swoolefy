@@ -33,5 +33,7 @@ interface ClusterRedisAdapterInterface
 
     public function publish(string $channel, string $message);
 
+    public function ping();
+
     public function close(): void;
 }

@@ -109,6 +109,14 @@ class WebSocketService extends BService
         return WebsocketConnectionManager::leaveGroup((int) $this->fd, $group);
     }
 
+    /** 当前连接绑定的 user_id（握手 query uid/user_id 或鉴权 callback） */
+    public function getWebsocketUserId(): string
+    {
+        $connection = WebsocketConnectionManager::getConnection((int) $this->fd);
+
+        return (string) ($connection['user_id'] ?? '');
+    }
+
     /**
      * getWebsocketMsg 获取websocket的信息
      * @return WebsocketPacket
