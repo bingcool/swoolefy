@@ -19,6 +19,31 @@ class ChatService extends WebSocketService
         ]);
     }
 
+    /**
+     * A→B 单聊：向 to_user_id 推送 chat.private，依赖握手 uid 绑定与 pushToUser。
+     */
+    public function sendPrivateMessage(array $params)
+    {
+        $toUserId = trim((string) ($params['to_user_id'] ?? $params['to_uid'] ?? ''));
+        $message = (string) ($params['message'] ?? '');
+
+        if ($toUserId === '') {
+            throw new \InvalidArgumentException('to_user_id is required');
+        }
+
+        $fromUserId = $this->getWebsocketUserId();
+        $count = $this->pushToUser($toUserId, 'chat.private', [
+            'from_user_id' => $fromUserId,
+            'to_user_id' => $toUserId,
+            'message' => $message,
+            'ts' => time(),
+        ]);
+
+        if ($count === 0) {
+            throw new \InvalidArgumentException('recipient offline or not connected');
+        }
+    }
+
     public function joinGroup(array $params)
     {
         $group = (string) ($params['group'] ?? 'public');

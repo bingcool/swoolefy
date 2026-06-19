@@ -92,9 +92,29 @@ function testSocketIO(): void
     echo "[OK] socket.io websocket transport\n";
 }
 
+function testPrivateChat(): void
+{
+    $receiver = new SocketIOClient(WS_HOST, WS_PORT, false, 3);
+    $receiver->connect(['uid' => 'smoke-user-b']);
+
+    $sender = new SocketIOClient(WS_HOST, WS_PORT, false, 3);
+    $sender->connect(['uid' => 'smoke-user-a']);
+
+    $ack = $sender->emitWithAck('chat.private', [[
+        'to_user_id' => 'smoke-user-b',
+        'message' => 'hello private',
+    ]], 3);
+    assertTrue(($ack[0]['code'] ?? -1) === 0, 'socket.io chat.private: expected ack code=0');
+
+    $sender->close();
+    $receiver->close();
+    echo "[OK] socket.io private chat\n";
+}
+
 \Swoole\Coroutine\run(function () {
     testRawWebsocket();
     testSocketIO();
+    testPrivateChat();
 });
 
 echo "All websocket smoke tests passed.\n";

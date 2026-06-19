@@ -33,6 +33,7 @@ socket.on('connect', () => {
 socket.on('group.joined', (data) => log('event group.joined', data));
 socket.on('group.left', (data) => log('event group.left', data));
 socket.on('chat.message', (data) => log('event chat.message', data));
+socket.on('chat.private', (data) => log('event chat.private', data));
 socket.on('disconnect', (reason) => log('disconnect', { reason }));
 socket.on('connect_error', (error) => log('connect_error', { message: error.message }));
 </script>

@@ -14,6 +14,7 @@ return [
     // Socket.IO event 到 service.php endpoint 的映射；未配置时 chat.send => chat/send
     'event_routes' => [
         'chat.send' => 'Service/Chat/Send',
+        'chat.private' => 'Service/Chat/SendPrivate',
         'group.join' => 'Service/Chat/JoinGroup',
         'group.leave' => 'Service/Chat/LeaveGroup',
     ],
