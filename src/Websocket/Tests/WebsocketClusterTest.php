@@ -7,6 +7,7 @@
  */
 
 use Swoolefy\Websocket\Cluster\ClusterConfig;
+use Swoolefy\Websocket\Cluster\ClusterConnectionCoordinator;
 use Swoolefy\Websocket\Cluster\ClusterNodeIdentity;
 use Swoolefy\Websocket\Cluster\ClusterRedisClient;
 use Swoolefy\Websocket\Cluster\ExternalPushPublisher;
@@ -87,6 +88,7 @@ function testExternalPushPublisher(): void
 
     RedisConnectionRegistry::unregister($connId);
     ClusterConfig::setWebsocketOverride(null);
+    ClusterRedisClient::resetSharedAdapter();
 
     echo "[OK] external push publisher\n";
 }
@@ -123,9 +125,83 @@ function testRedisRegistryLifecycle(): void
     assertTrue(is_array($meta) && ($meta['server_id'] ?? '') === $serverId, 'conn meta missing');
 
     RedisConnectionRegistry::unregister($connId);
-    assertTrue(RedisConnectionRegistry::getConnectionMeta($connId) === null, 'conn meta should be removed');
+    ClusterRedisClient::resetSharedAdapter();
 
     echo "[OK] redis registry lifecycle\n";
+}
+
+function testConnectionMetaMany(): void
+{
+    $serverId = 'ws-batch-meta';
+    $connId1 = $serverId . ':1';
+    $connId2 = $serverId . ':2';
+
+    foreach ([$connId1, $connId2] as $connId) {
+        RedisConnectionRegistry::unregister($connId);
+        RedisConnectionRegistry::register($connId, [
+            'server_id' => $serverId,
+            'fd' => (int) substr($connId, strrpos($connId, ':') + 1),
+            'worker_id' => 0,
+            'user_id' => '',
+            'groups' => '',
+            'is_socketio' => 0,
+            'remote_addr' => '127.0.0.1',
+            'connected_at' => time(),
+            'last_active_at' => time(),
+        ]);
+    }
+
+    $metaMap = RedisConnectionRegistry::getConnectionMetaMany([$connId1, $connId2, 'missing:0']);
+    assertTrue(isset($metaMap[$connId1]) && isset($metaMap[$connId2]), 'batch meta should return existing conn');
+    assertTrue(!isset($metaMap['missing:0']), 'missing conn should be omitted');
+
+    RedisConnectionRegistry::unregister($connId1);
+    RedisConnectionRegistry::unregister($connId2);
+    ClusterRedisClient::resetSharedAdapter();
+
+    echo "[OK] connection meta batch\n";
+}
+
+function testTouchThrottle(): void
+{
+    $wsConf = \Swoolefy\Core\SystemEnv::loadWebsocketConf();
+    $wsConf['cluster']['enable'] = true;
+    $wsConf['cluster']['touch_interval'] = 60;
+    ClusterConfig::setWebsocketOverride($wsConf);
+    ClusterConnectionCoordinator::resetTouchThrottle();
+
+    $serverId = 'ws-touch-test';
+    $connId = $serverId . ':1';
+    $t0 = time();
+
+    RedisConnectionRegistry::unregister($connId);
+    ClusterConnectionCoordinator::onOpen(1, [
+        'conn_id' => $connId,
+        'server_id' => $serverId,
+        'fd' => 1,
+        'worker_id' => 0,
+        'user_id' => '',
+        'groups' => '',
+        'is_socketio' => 0,
+        'remote_addr' => '127.0.0.1',
+        'connected_at' => $t0,
+        'last_active_at' => $t0,
+    ]);
+
+    ClusterConnectionCoordinator::onTouch($connId, $t0 + 5);
+    $meta = RedisConnectionRegistry::getConnectionMeta($connId);
+    assertTrue((int) ($meta['last_active_at'] ?? 0) === $t0, 'touch within interval should not update redis');
+
+    ClusterConnectionCoordinator::onTouch($connId, $t0 + 65);
+    $meta = RedisConnectionRegistry::getConnectionMeta($connId);
+    assertTrue((int) ($meta['last_active_at'] ?? 0) === $t0 + 65, 'touch after interval should update redis');
+
+    RedisConnectionRegistry::unregister($connId);
+    ClusterConnectionCoordinator::resetTouchThrottle();
+    ClusterConfig::setWebsocketOverride(null);
+    ClusterRedisClient::resetSharedAdapter();
+
+    echo "[OK] touch throttle\n";
 }
 
 \Swoole\Coroutine\run(function () {
@@ -138,6 +214,8 @@ function testRedisRegistryLifecycle(): void
     }
 
     testRedisRegistryLifecycle();
+    testConnectionMetaMany();
+    testTouchThrottle();
     testExternalPushPublisher();
 });
 

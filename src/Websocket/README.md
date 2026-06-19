@@ -569,6 +569,7 @@ $client->close();
     ],
     'conn_ttl'         => 180,
     'cleanup_interval' => 30,
+    'touch_interval'   => 30,   // Redis touch 写间隔；本地 Table 仍每条消息刷新
     'on_redis_failure' => 'reject_open',  // 或 local_only
 ],
 ```

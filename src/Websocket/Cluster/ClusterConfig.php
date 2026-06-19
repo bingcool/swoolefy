@@ -97,6 +97,24 @@ class ClusterConfig
         return max(10, (int) (self::cluster()['cleanup_interval'] ?? 30));
     }
 
+    /**
+     * Redis touch 写间隔（秒）。
+     *
+     * 本地 Table 仍每条消息刷新 last_active_at；仅同步 Redis 全局索引时节流。
+     * 默认与 heartbeat_check_interval 对齐，应小于 conn_ttl。
+     */
+    public static function touchInterval(): int
+    {
+        $cluster = self::cluster();
+        if (array_key_exists('touch_interval', $cluster)) {
+            return max(5, (int) $cluster['touch_interval']);
+        }
+
+        $websocket = self::websocket();
+
+        return max(5, (int) ($websocket['heartbeat_check_interval'] ?? 30));
+    }
+
     public static function onRedisFailure(): string
     {
         $policy = (string) (self::cluster()['on_redis_failure'] ?? 'reject_open');

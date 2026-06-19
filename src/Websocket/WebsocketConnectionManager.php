@@ -231,7 +231,7 @@ class WebsocketConnectionManager
         if (!$connection) {
             return;
         }
-        // 所有合法消息都会刷新 last_active_at，心跳定时器据此识别僵尸连接。
+        // 所有合法消息都会刷新本地 last_active_at；Redis touch 由 ClusterConnectionCoordinator 按 touch_interval 节流
         $connection['last_active_at'] = time();
         self::setConnection($fd, $connection);
         Cluster\ClusterConnectionCoordinator::onTouch((string) ($connection['conn_id'] ?? ''), $connection['last_active_at']);

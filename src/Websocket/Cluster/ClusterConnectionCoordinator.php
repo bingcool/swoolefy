@@ -8,6 +8,9 @@ namespace Swoolefy\Websocket\Cluster;
  */
 class ClusterConnectionCoordinator
 {
+    /** @var array<string, int> conn_id => 上次写入 Redis 的 touch 时间戳（Worker 内节流） */
+    private static array $lastRedisTouchAt = [];
+
     public static function onOpen(int $fd, array $connection): void
     {
         if (!ClusterConfig::isEnabled()) {
@@ -25,6 +28,9 @@ class ClusterConnectionCoordinator
         self::run('register', static function () use ($connId, $payload) {
             RedisConnectionRegistry::register($connId, $payload);
         });
+
+        $lastActiveAt = (int) ($payload['last_active_at'] ?? time());
+        self::$lastRedisTouchAt[$connId] = $lastActiveAt;
     }
 
     public static function onClose(string $connId): void
@@ -32,6 +38,8 @@ class ClusterConnectionCoordinator
         if (!ClusterConfig::isEnabled() || $connId === '') {
             return;
         }
+
+        unset(self::$lastRedisTouchAt[$connId]);
 
         self::run('unregister', static function () use ($connId) {
             RedisConnectionRegistry::unregister($connId);
@@ -71,11 +79,25 @@ class ClusterConnectionCoordinator
         }, false);
     }
 
+    /**
+     * 刷新 Redis 全局索引心跳。
+     *
+     * 本地 Table 的 last_active_at 每条消息都会更新；写 Redis 按 touch_interval 节流，
+     * 避免高频消息导致 HSET+EXPIRE+ZADD 风暴。
+     */
     public static function onTouch(string $connId, int $lastActiveAt): void
     {
         if (!ClusterConfig::isEnabled() || $connId === '') {
             return;
         }
+
+        $interval = ClusterConfig::touchInterval();
+        $lastRedisTouch = self::$lastRedisTouchAt[$connId] ?? 0;
+        if ($lastActiveAt - $lastRedisTouch < $interval) {
+            return;
+        }
+
+        self::$lastRedisTouchAt[$connId] = $lastActiveAt;
 
         self::run('touch', static function () use ($connId, $lastActiveAt) {
             RedisConnectionRegistry::touch($connId, $lastActiveAt);
@@ -93,6 +115,12 @@ class ClusterConnectionCoordinator
         } catch (\Throwable $throwable) {
             return 0;
         }
+    }
+
+    /** 单测重置 touch 节流状态 */
+    public static function resetTouchThrottle(): void
+    {
+        self::$lastRedisTouchAt = [];
     }
 
     private static function run(string $action, callable $callback, bool $strict = true): void

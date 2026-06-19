@@ -31,6 +31,32 @@ class PredisClusterAdapter implements ClusterRedisAdapterInterface
         return is_array($result) ? $result : [];
     }
 
+    public function hGetAllMany(array $keys): array
+    {
+        if ($keys === []) {
+            return [];
+        }
+
+        $pipe = $this->client->pipeline();
+        foreach ($keys as $key) {
+            $pipe->hgetall($key);
+        }
+        $rows = $pipe->execute();
+        if (!is_array($rows)) {
+            return [];
+        }
+
+        $result = [];
+        foreach ($keys as $index => $key) {
+            $meta = $rows[$index] ?? [];
+            if (is_array($meta) && $meta !== []) {
+                $result[$key] = $meta;
+            }
+        }
+
+        return $result;
+    }
+
     public function expire(string $key, int $ttl): void
     {
         $this->client->expire($key, $ttl);
@@ -83,6 +109,19 @@ class PredisClusterAdapter implements ClusterRedisAdapterInterface
     public function publish(string $channel, string $message)
     {
         return $this->client->publish($channel, $message);
+    }
+
+    public function publishMany(array $items): void
+    {
+        if ($items === []) {
+            return;
+        }
+
+        $pipe = $this->client->pipeline();
+        foreach ($items as $item) {
+            $pipe->publish((string) $item[0], (string) $item[1]);
+        }
+        $pipe->execute();
     }
 
     public function ping()

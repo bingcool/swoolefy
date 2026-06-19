@@ -41,6 +41,8 @@ return [
         ],
         'conn_ttl' => 180,
         'cleanup_interval' => 30,
+        // Redis touch 写间隔（秒），本地 Table 仍每条消息刷新；默认跟随 heartbeat_check_interval
+        'touch_interval' => 30,
         // Redis 故障策略：reject_open 拒绝新连接；local_only 仅本机可用
         'on_redis_failure' => 'reject_open',
     ],

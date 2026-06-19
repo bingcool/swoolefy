@@ -12,21 +12,37 @@ namespace Swoolefy\Websocket\Cluster;
  *
  * Swoole 下使用 phpredis 时依赖 hook_flags（默认 SWOOLE_HOOK_ALL）协程化阻塞 IO。
  *
- * - execute()：短连接，供注册表查询/写入与推送发布
- * - subscribe()：长连接 SUBSCRIBE，供 WebsocketPushSubscriberProcess 使用
+ * - execute()：Worker 进程内复用长连接（失败自动重连），供注册表与推送发布
+ * - subscribe()：独立长连接 SUBSCRIBE，供 WebsocketPushSubscriberProcess 使用
  */
 class ClusterRedisClient
 {
     private const DRIVER_PHPREDIS = 'phpredis';
     private const DRIVER_PREDIS = 'predis';
 
+    /** @var ClusterRedisAdapterInterface|null Worker 进程内复用的 Redis 连接 */
+    private static ?ClusterRedisAdapterInterface $sharedAdapter = null;
+
+    /**
+     * 在复用连接上执行 Redis 命令；连接异常时自动重建并重试一次。
+     */
     public static function execute(callable $callback)
     {
-        $adapter = self::createAdapter();
         try {
-            return $callback($adapter);
-        } finally {
-            $adapter->close();
+            return $callback(self::getSharedAdapter());
+        } catch (\Throwable $throwable) {
+            self::resetSharedAdapter();
+
+            return $callback(self::getSharedAdapter());
+        }
+    }
+
+    /** 关闭复用连接（单测 teardown 或 Worker 退出时调用） */
+    public static function resetSharedAdapter(): void
+    {
+        if (self::$sharedAdapter !== null) {
+            self::$sharedAdapter->close();
+            self::$sharedAdapter = null;
         }
     }
 
@@ -39,6 +55,15 @@ class ClusterRedisClient
         }
 
         self::subscribePredis($channel, $onMessage);
+    }
+
+    private static function getSharedAdapter(): ClusterRedisAdapterInterface
+    {
+        if (self::$sharedAdapter === null) {
+            self::$sharedAdapter = self::createAdapter();
+        }
+
+        return self::$sharedAdapter;
     }
 
     private static function createAdapter(): ClusterRedisAdapterInterface
