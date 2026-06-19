@@ -3,90 +3,90 @@
 namespace Swoolefy\Websocket\Cluster;
 
 /**
- * ext-redis (phpredis) 适配层。
+ * Predis 适配层（纯 PHP，无 ext-redis 时可用）。
  */
-class PhpRedisClusterAdapter implements ClusterRedisAdapterInterface
+class PredisClusterAdapter implements ClusterRedisAdapterInterface
 {
-    private \Redis $redis;
+    private \Predis\Client $client;
 
-    public function __construct(\Redis $redis)
+    public function __construct(\Predis\Client $client)
     {
-        $this->redis = $redis;
+        $this->client = $client;
     }
 
     public function hMSet(string $key, array $data): void
     {
-        $this->redis->hMSet($key, $data);
+        $this->client->hmset($key, $data);
     }
 
     public function hSet(string $key, string $field, $value): void
     {
-        $this->redis->hSet($key, $field, $value);
+        $this->client->hset($key, $field, $value);
     }
 
     public function hGetAll(string $key)
     {
-        $result = $this->redis->hGetAll($key);
+        $result = $this->client->hgetall($key);
 
         return is_array($result) ? $result : [];
     }
 
     public function expire(string $key, int $ttl): void
     {
-        $this->redis->expire($key, $ttl);
+        $this->client->expire($key, $ttl);
     }
 
     public function del(string $key): void
     {
-        $this->redis->del($key);
+        $this->client->del([$key]);
     }
 
     public function sAdd(string $key, string $member): void
     {
-        $this->redis->sAdd($key, $member);
+        $this->client->sadd($key, [$member]);
     }
 
     public function sRem(string $key, string $member): void
     {
-        $this->redis->sRem($key, $member);
+        $this->client->srem($key, [$member]);
     }
 
     public function sMembers(string $key)
     {
-        $result = $this->redis->sMembers($key);
+        $result = $this->client->smembers($key);
 
         return is_array($result) ? $result : [];
     }
 
     public function sCard(string $key): int
     {
-        return (int) $this->redis->sCard($key);
+        return (int) $this->client->scard($key);
     }
 
     public function zAdd(string $key, $score, string $member): void
     {
-        $this->redis->zAdd($key, $score, $member);
+        $this->client->zadd($key, [$member => $score]);
     }
 
     public function zRem(string $key, string $member): void
     {
-        $this->redis->zRem($key, $member);
+        $this->client->zrem($key, [$member]);
     }
 
     public function zRangeByScore(string $key, string $start, string $end)
     {
-        $result = $this->redis->zRangeByScore($key, $start, $end);
+        $result = $this->client->zrangebyscore($key, $start, $end);
 
         return is_array($result) ? $result : [];
     }
 
     public function publish(string $channel, string $message)
     {
-        return $this->redis->publish($channel, $message);
+        return $this->client->publish($channel, $message);
     }
 
     public function close(): void
     {
-        $this->redis->close();
+        $this->client->disconnect();
     }
 }
