@@ -141,13 +141,46 @@ class RedisConnectionRegistry
 
     public static function getConnectionMeta(string $connId): ?array
     {
-        return self::execute(function ($redis) use ($connId) {
-            $meta = $redis->hGetAll(self::connKey($connId));
-            if (!is_array($meta) || empty($meta)) {
-                return null;
+        $many = self::getConnectionMetaMany([$connId]);
+
+        return $many[$connId] ?? null;
+    }
+
+    /**
+     * Pipeline 批量读取 conn Hash，减少 pushToGroup/pushToUser 扇出时的 Redis 往返。
+     *
+     * @param string[] $connIds
+     *
+     * @return array<string, array<string, string>>
+     */
+    public static function getConnectionMetaMany(array $connIds): array
+    {
+        $connIds = array_values(array_unique(array_filter($connIds, static function ($connId) {
+            return is_string($connId) && $connId !== '';
+        })));
+        if ($connIds === []) {
+            return [];
+        }
+
+        return self::execute(function ($redis) use ($connIds) {
+            $keyToConnId = [];
+            $keys = [];
+            foreach ($connIds as $connId) {
+                $key = self::connKey($connId);
+                $keys[] = $key;
+                $keyToConnId[$key] = $connId;
             }
 
-            return $meta;
+            $rows = $redis->hGetAllMany($keys);
+            $result = [];
+            foreach ($rows as $key => $meta) {
+                $connId = $keyToConnId[$key] ?? '';
+                if ($connId !== '') {
+                    $result[$connId] = $meta;
+                }
+            }
+
+            return $result;
         });
     }
 
@@ -211,6 +244,36 @@ class RedisConnectionRegistry
         // ExternalPushPublisher 与 Worker 跨节点推送均走此方法
         return (bool) self::execute(function ($redis) use ($serverId, $message) {
             return $redis->publish(ClusterConfig::pushChannelForServer($serverId), PushMessage::encode($message));
+        });
+    }
+
+    /**
+     * Pipeline 批量 PUBLISH（同一 Redis 连接一次往返扇出到多节点）。
+     *
+     * @param array<int, array{0: string, 1: array}> $items [serverId, message]
+     */
+    public static function publishMany(array $items): void
+    {
+        if ($items === []) {
+            return;
+        }
+
+        self::execute(function ($redis) use ($items) {
+            $payloads = [];
+            foreach ($items as $item) {
+                $serverId = (string) ($item[0] ?? '');
+                $message = $item[1] ?? null;
+                if ($serverId === '' || !is_array($message)) {
+                    continue;
+                }
+                $payloads[] = [
+                    ClusterConfig::pushChannelForServer($serverId),
+                    PushMessage::encode($message),
+                ];
+            }
+            if ($payloads !== []) {
+                $redis->publishMany($payloads);
+            }
         });
     }
 

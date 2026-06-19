@@ -21,7 +21,7 @@ class ClusterPushBus
     {
         self::assertClusterEnabled();
 
-        // group:{group} Set → conn_id 列表 → 查 meta 得 server_id/fd
+        // group:{group} Set → conn_id 列表 → pipeline 批量查 meta
         return self::fanoutByConnIds(
             RedisConnectionRegistry::getConnIdsByGroup($group),
             $event,
@@ -53,6 +53,7 @@ class ClusterPushBus
         $message = PushMessage::broadcast($event, $data, $source);
         $localServerId = $localServer ? ClusterNodeIdentity::getServerId() : '';
         $count = 0;
+        $remotePublishes = [];
 
         // nodes Set 列出所有在线节点，每节点一条 broadcast 指令（非全频道广播）
         foreach (RedisConnectionRegistry::getAllNodeIds() as $serverId) {
@@ -61,10 +62,11 @@ class ClusterPushBus
                 $count += PushDeliveryHandler::deliver($localServer, $message);
                 continue;
             }
-            // 外部进程或远端节点：仅发 Redis，由订阅进程在本机 Table 投递
-            RedisConnectionRegistry::publish($serverId, $message);
+            $remotePublishes[] = [$serverId, $message];
             $count++;
         }
+
+        RedisConnectionRegistry::publishMany($remotePublishes);
 
         return $count;
     }
@@ -144,6 +146,7 @@ class ClusterPushBus
         }
 
         $count = 0;
+        $remotePublishes = [];
         foreach ($grouped as $serverId => $serverTargets) {
             // 只传 event+data，Socket.IO 编码在投递端按 is_socketio 决定
             $message = PushMessage::event($serverTargets, $event, $data, $source);
@@ -151,22 +154,29 @@ class ClusterPushBus
                 $count += PushDeliveryHandler::deliver($localServer, $message);
                 continue;
             }
-            RedisConnectionRegistry::publish($serverId, $message);
+            $remotePublishes[] = [$serverId, $message];
             $count += count($serverTargets);
         }
+
+        RedisConnectionRegistry::publishMany($remotePublishes);
 
         return $count;
     }
 
-    /** conn_id → Redis conn Hash 取 fd/server_id，过滤已过期连接 */
+    /** conn_id → pipeline 批量读 Redis conn Hash，过滤已过期连接 */
     private static function targetsFromConnIds(array $connIds): array
     {
+        $connIds = array_values(array_unique(array_filter($connIds, static function ($connId) {
+            return is_string($connId) && $connId !== '';
+        })));
+        if ($connIds === []) {
+            return [];
+        }
+
+        $metaMap = RedisConnectionRegistry::getConnectionMetaMany($connIds);
         $targets = [];
-        foreach (array_unique($connIds) as $connId) {
-            if (!is_string($connId) || $connId === '') {
-                continue;
-            }
-            $meta = RedisConnectionRegistry::getConnectionMeta($connId);
+        foreach ($connIds as $connId) {
+            $meta = $metaMap[$connId] ?? null;
             if ($meta === null) {
                 continue;
             }

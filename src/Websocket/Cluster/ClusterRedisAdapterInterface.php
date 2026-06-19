@@ -13,6 +13,15 @@ interface ClusterRedisAdapterInterface
 
     public function hGetAll(string $key);
 
+    /**
+     * Pipeline 批量 HGETALL，返回 key => hash；不存在或空 hash 的 key 不在结果中。
+     *
+     * @param string[] $keys
+     *
+     * @return array<string, array<string, string>>
+     */
+    public function hGetAllMany(array $keys): array;
+
     public function expire(string $key, int $ttl): void;
 
     public function del(string $key): void;
@@ -32,6 +41,13 @@ interface ClusterRedisAdapterInterface
     public function zRangeByScore(string $key, string $start, string $end);
 
     public function publish(string $channel, string $message);
+
+    /**
+     * Pipeline 批量 PUBLISH。
+     *
+     * @param array<int, array{0: string, 1: string}> $items [channel, message]
+     */
+    public function publishMany(array $items): void;
 
     public function ping();
 
