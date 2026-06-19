@@ -395,10 +395,10 @@ EOF;
 <?php
 namespace {$appName}\Service;
 
-use Swoolefy\Websocket\WebSocketService;
+use Swoolefy\Websocket\WebsocketService;
 use Swoolefy\Websocket\WebsocketResponse;
 
-class DemoService extends WebSocketService
+class DemoService extends WebsocketService
 {
     public function reportMsg(array \$params)
     {
