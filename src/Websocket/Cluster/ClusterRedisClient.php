@@ -3,71 +3,26 @@
 namespace Swoolefy\Websocket\Cluster;
 
 /**
- * Redis 客户端封装，兼容：
- * - Swoole 协程内：Coroutine\Redis 短连接
- * - CLI/HTTP（无协程）：Coroutine\run 或 ext-redis
- * - 订阅进程：Coroutine\Redis 长连接 SUBSCRIBE
+ * Redis 客户端封装，支持 ext-redis (phpredis) 与 predis/predis。
+ *
+ * 驱动选择（cluster.redis.client）：
+ * - auto（默认）：优先 phpredis，否则 Predis
+ * - phpredis：强制 ext-redis
+ * - predis：强制 Predis
+ *
+ * Swoole 下使用 phpredis 时依赖 hook_flags（默认 SWOOLE_HOOK_ALL）协程化阻塞 IO。
+ *
+ * - execute()：短连接，供注册表查询/写入与推送发布
+ * - subscribe()：长连接 SUBSCRIBE，供 WebsocketPushSubscriberProcess 使用
  */
 class ClusterRedisClient
 {
+    private const DRIVER_PHPREDIS = 'phpredis';
+    private const DRIVER_PREDIS = 'predis';
+
     public static function execute(callable $callback)
     {
-        // 已在协程内（WebSocket Worker）→ 短连接 Coroutine\Redis
-        if (\Swoole\Coroutine::getCid() > 0) {
-            return self::executeCoroutine($callback);
-        }
-
-        // 有 Swoole 扩展但不在协程（如同步 CLI）→ Coroutine\run 包一层
-        if (extension_loaded('swoole')) {
-            $result = null;
-            $exception = null;
-            \Swoole\Coroutine\run(function () use ($callback, &$result, &$exception) {
-                try {
-                    $result = self::executeCoroutine($callback);
-                } catch (\Throwable $e) {
-                    $exception = $e;
-                }
-            });
-            if ($exception !== null) {
-                throw $exception;
-            }
-
-            return $result;
-        }
-
-        // PHP-FPM 等无 Swoole 环境 → ext-redis + PhpRedisClusterAdapter
-        if (class_exists(\Redis::class)) {
-            return self::executePhpRedis($callback);
-        }
-
-        throw new ClusterRedisException('Redis client unavailable: need ext-swoole or ext-redis');
-    }
-
-    public static function subscribe(string $channel, callable $onMessage): void
-    {
-        $redis = self::connectCoroutine();
-        // SUBSCRIBE 阻塞协程，timeout=-1 保持长连接
-        $redis->setOptions([
-            'timeout' => -1,
-        ]);
-        $redis->subscribe([$channel], function ($redis, $chan, $msg) use ($onMessage) {
-            $onMessage((string) $msg);
-        });
-    }
-
-    private static function executeCoroutine(callable $callback)
-    {
-        $redis = self::connectCoroutine();
-        try {
-            return $callback($redis);
-        } finally {
-            $redis->close();
-        }
-    }
-
-    private static function executePhpRedis(callable $callback)
-    {
-        $adapter = new PhpRedisClusterAdapter(self::createPhpRedis());
+        $adapter = self::createAdapter();
         try {
             return $callback($adapter);
         } finally {
@@ -75,36 +30,110 @@ class ClusterRedisClient
         }
     }
 
-    private static function connectCoroutine(): \Swoole\Coroutine\Redis
+    public static function subscribe(string $channel, callable $onMessage): void
     {
-        $config = ClusterConfig::redis();
-        $redis = new \Swoole\Coroutine\Redis();
-        $redis->setOptions([
-            'connect_timeout' => (float) ($config['timeout'] ?? 2),
-            'timeout' => (float) ($config['timeout'] ?? 2),
-            'reconnect' => 2,
-        ]);
+        if (self::resolveDriver() === self::DRIVER_PHPREDIS) {
+            self::subscribePhpRedis($channel, $onMessage);
 
-        $host = (string) ($config['host'] ?? '127.0.0.1');
-        $port = (int) ($config['port'] ?? 6379);
-        if (!$redis->connect($host, $port)) {
-            throw new ClusterRedisException('Redis connect failed: ' . $redis->errMsg);
+            return;
         }
 
-        $password = (string) ($config['password'] ?? '');
-        if ($password !== '' && !$redis->auth($password)) {
-            throw new ClusterRedisException('Redis auth failed: ' . $redis->errMsg);
-        }
-
-        $database = (int) ($config['database'] ?? 0);
-        if ($database > 0 && !$redis->select($database)) {
-            throw new ClusterRedisException('Redis select database failed: ' . $redis->errMsg);
-        }
-
-        return $redis;
+        self::subscribePredis($channel, $onMessage);
     }
 
-    private static function createPhpRedis(): \Redis
+    private static function createAdapter(): ClusterRedisAdapterInterface
+    {
+        if (self::resolveDriver() === self::DRIVER_PHPREDIS) {
+            return new PhpRedisClusterAdapter(self::connectPhpRedis());
+        }
+
+        return new PredisClusterAdapter(self::connectPredis());
+    }
+
+    private static function resolveDriver(): string
+    {
+        $preferred = strtolower((string) (ClusterConfig::redis()['client'] ?? 'auto'));
+
+        if ($preferred === self::DRIVER_PHPREDIS) {
+            self::assertPhpRedisAvailable();
+
+            return self::DRIVER_PHPREDIS;
+        }
+
+        if ($preferred === self::DRIVER_PREDIS) {
+            self::assertPredisAvailable();
+
+            return self::DRIVER_PREDIS;
+        }
+
+        if ($preferred !== 'auto' && $preferred !== '') {
+            throw new ClusterRedisException(
+                'Invalid cluster.redis.client: ' . $preferred . ' (allowed: auto, phpredis, predis)'
+            );
+        }
+
+        if (class_exists(\Redis::class)) {
+            return self::DRIVER_PHPREDIS;
+        }
+
+        if (class_exists(\Predis\Client::class)) {
+            return self::DRIVER_PREDIS;
+        }
+
+        throw new ClusterRedisException(
+            'Redis client unavailable: install ext-redis or predis/predis (composer require predis/predis)'
+        );
+    }
+
+    private static function subscribePhpRedis(string $channel, callable $onMessage): void
+    {
+        self::assertPhpRedisAvailable();
+
+        $redis = self::connectPhpRedis();
+        // SUBSCRIBE 长连接：读超时 -1，断线后由订阅进程外层循环重连
+        $redis->setOption(\Redis::OPT_READ_TIMEOUT, -1);
+        try {
+            $redis->subscribe([$channel], function (\Redis $redis, string $chan, string $message) use ($onMessage) {
+                $onMessage((string) $message);
+            });
+        } finally {
+            $redis->close();
+        }
+    }
+
+    private static function subscribePredis(string $channel, callable $onMessage): void
+    {
+        self::assertPredisAvailable();
+
+        $client = self::connectPredis(true);
+        try {
+            $pubsub = $client->pubSubLoop();
+            $pubsub->subscribe($channel);
+            foreach ($pubsub as $message) {
+                if ($message->kind === 'message') {
+                    $onMessage((string) $message->payload);
+                }
+            }
+        } finally {
+            $client->disconnect();
+        }
+    }
+
+    private static function assertPhpRedisAvailable(): void
+    {
+        if (!class_exists(\Redis::class)) {
+            throw new ClusterRedisException('ext-redis extension is required (cluster.redis.client=phpredis)');
+        }
+    }
+
+    private static function assertPredisAvailable(): void
+    {
+        if (!class_exists(\Predis\Client::class)) {
+            throw new ClusterRedisException('predis/predis is required (composer require predis/predis)');
+        }
+    }
+
+    private static function connectPhpRedis(): \Redis
     {
         $config = ClusterConfig::redis();
         $redis = new \Redis();
@@ -116,16 +145,44 @@ class ClusterRedisClient
             throw new ClusterRedisException('Redis connect failed');
         }
 
+        self::authenticatePhpRedis($redis, $config);
+        self::selectPhpRedisDatabase($redis, $config);
+
+        return $redis;
+    }
+
+    private static function connectPredis(bool $forSubscribe = false): \Predis\Client
+    {
+        $config = ClusterConfig::redis();
+        $timeout = (float) ($config['timeout'] ?? 2);
+        $parameters = [
+            'host' => (string) ($config['host'] ?? '127.0.0.1'),
+            'port' => (int) ($config['port'] ?? 6379),
+            'database' => (int) ($config['database'] ?? 0),
+            'read_write_timeout' => $forSubscribe ? 0 : $timeout,
+        ];
+
+        $password = (string) ($config['password'] ?? '');
+        if ($password !== '') {
+            $parameters['password'] = $password;
+        }
+
+        return new \Predis\Client($parameters);
+    }
+
+    private static function authenticatePhpRedis(\Redis $redis, array $config): void
+    {
         $password = (string) ($config['password'] ?? '');
         if ($password !== '' && !$redis->auth($password)) {
             throw new ClusterRedisException('Redis auth failed');
         }
+    }
 
+    private static function selectPhpRedisDatabase(\Redis $redis, array $config): void
+    {
         $database = (int) ($config['database'] ?? 0);
         if ($database > 0 && !$redis->select($database)) {
             throw new ClusterRedisException('Redis select database failed');
         }
-
-        return $redis;
     }
 }

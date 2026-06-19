@@ -26,8 +26,12 @@ return [
         // 生产环境必须为每个实例配置唯一 server_id，例如 ws-prod-01
         'server_id' => '',
         'redis' => [
-            // 默认读取 Config/dc.php 的 redis.host/port，可在此覆盖
+            // 默认读取 Config/dc.php 的 websocket_cluster_redis.host/port，可在此覆盖
+            // client: auto（优先 phpredis）| phpredis | predis
+            'client' => 'auto',
             'key_prefix' => 'ws:__APP_NAMESPACE__:',
+            'host' => '127.0.0.1',
+            'port' => 6379,
             'password' => '',
             'database' => 0,
             'timeout' => 2.0,

@@ -468,6 +468,8 @@ $client->close();
     'server_id' => 'ws-prod-01',   // 每个实例唯一！
     'redis' => [
         'key_prefix' => 'ws:WebsocketService:',
+        // client: auto（优先 ext-redis）| phpredis | predis
+        'client'     => 'auto',
         // host/port 默认读 Config/dc.php
     ],
     'push' => [
@@ -491,7 +493,7 @@ $client->close();
 ### 8.3 部署清单
 
 1. 每个实例配置唯一 `server_id`
-2. 所有实例共用同一 Redis
+2. 所有实例共用同一 Redis（客户端：`cluster.redis.client`，默认 `auto` 优先 ext-redis，亦可 `predis`）
 3. Nginx 建连配置 **sticky session**（ip_hash）
 4. 推送不依赖 sticky，走 Redis 总线
 

@@ -116,7 +116,7 @@ class ClusterConfig
         }
 
         $dc = \Swoolefy\Core\SystemEnv::loadDcEnv();
-        $fallback = is_array($dc['redis'] ?? null) ? $dc['redis'] : [];
+        $fallback = is_array($dc['websocket_cluster_redis'] ?? null) ? $dc['websocket_cluster_redis'] : [];
 
         return array_merge([
             'host' => '127.0.0.1',
