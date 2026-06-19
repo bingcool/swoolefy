@@ -26,12 +26,12 @@ const socket = io('http://127.0.0.1:9508', {
 
 socket.on('connect', () => {
     log('connected', { socketId: socket.id });
-    socket.emit('room.join', { room: 'public' }, (ack) => log('ack room.join', ack));
-    socket.emit('chat.send', { room: 'public', message: 'hello swoolefy' }, (ack) => log('ack chat.send', ack));
+    socket.emit('group.join', { group: 'public' }, (ack) => log('ack group.join', ack));
+    socket.emit('chat.send', { group: 'public', message: 'hello swoolefy' }, (ack) => log('ack chat.send', ack));
 });
 
-socket.on('room.joined', (data) => log('event room.joined', data));
-socket.on('room.left', (data) => log('event room.left', data));
+socket.on('group.joined', (data) => log('event group.joined', data));
+socket.on('group.left', (data) => log('event group.left', data));
 socket.on('chat.message', (data) => log('event chat.message', data));
 socket.on('disconnect', (reason) => log('disconnect', { reason }));
 socket.on('connect_error', (error) => log('connect_error', { message: error.message }));

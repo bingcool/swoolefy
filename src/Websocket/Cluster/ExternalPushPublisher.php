@@ -19,11 +19,11 @@ namespace Swoolefy\Websocket\Cluster;
  */
 class ExternalPushPublisher
 {
-    /** 向 Redis room 索引下的所有连接扇出（跨节点） */
-    public static function pushToRoom(string $room, string $event, $data = []): int
+    /** 向 Redis group 索引下的所有连接扇出（跨节点） */
+    public static function pushToGroup(string $group, string $event, $data = []): int
     {
         // null = 外部进程，不走本机 server->push()
-        return ClusterPushBus::publishToRoom($room, $event, $data, null);
+        return ClusterPushBus::publishToGroup($group, $event, $data, null);
     }
 
     /** 向 Redis user 索引下的所有连接扇出（同一用户多端在线） */

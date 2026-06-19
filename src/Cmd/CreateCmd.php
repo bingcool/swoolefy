@@ -296,7 +296,7 @@ class CreateCmd extends BaseCmd
         if ($protocol == self::WEBSOCKET_PROTOCOL) {
             @mkdir($appPathDir . '/Tests', self::$dirPermission, true);
             @copy(SRC_DIR_ROOT . '/Stubs/socketio.client.stub.html', $appPathDir . '/Storage/socketio-client.html');
-            $testHtml = str_replace('__APP_NAMESPACE__', $appName, (string) file_get_contents(SRC_DIR_ROOT . '/WebsocketService/Tests/socketio-client.html'));
+            $testHtml = str_replace('__APP_NAMESPACE__', $appName, (string) file_get_contents(SRC_DIR_ROOT . '/Websocket/Tests/socketio-client.html'));
             @file_put_contents($appPathDir . '/Tests/socketio-client.html', $testHtml);
         }
         fmtPrintInfo("应用创建成功啦，应用名称为：【{$appName}】，你现在可以使用命令 php cli.php start {$appName} 来启动应用");

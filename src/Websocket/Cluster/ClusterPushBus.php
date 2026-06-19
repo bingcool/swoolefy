@@ -8,7 +8,7 @@ use Swoole\WebSocket\Server;
  * 集群推送总线（Worker / 外部进程共用扇出逻辑）。
  *
  * 流程：
- * 1. 查 Redis 全局索引（room / user / conn meta）
+ * 1. 查 Redis 全局索引（group / user / conn meta）
  * 2. 按 server_id 分组 targets
  * 3. 本节点（$localServer 非空且 server_id 匹配）→ PushDeliveryHandler 直推
  * 4. 其余节点 → PUBLISH 到 ws:push:{app}:{server_id}，由 WebsocketPushSubscriberProcess 投递
@@ -17,13 +17,13 @@ use Swoole\WebSocket\Server;
  */
 class ClusterPushBus
 {
-    public static function publishToRoom(string $room, string $event, $data = [], ?Server $localServer = null): int
+    public static function publishToGroup(string $group, string $event, $data = [], ?Server $localServer = null): int
     {
         self::assertClusterEnabled();
 
-        // room:{room} Set → conn_id 列表 → 查 meta 得 server_id/fd
+        // group:{group} Set → conn_id 列表 → 查 meta 得 server_id/fd
         return self::fanoutByConnIds(
-            RedisConnectionRegistry::getConnIdsByRoom($room),
+            RedisConnectionRegistry::getConnIdsByGroup($group),
             $event,
             $data,
             $localServer,

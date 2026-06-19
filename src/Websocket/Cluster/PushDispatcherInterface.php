@@ -10,7 +10,7 @@ interface PushDispatcherInterface
 
     public function pushEventToUser(Server $server, string $userId, string $event, $data = []): int;
 
-    public function pushEventToRoom(Server $server, string $room, string $event, $data = []): int;
+    public function pushEventToGroup(Server $server, string $group, string $event, $data = []): int;
 
     public function broadcastEvent(Server $server, string $event, $data = []): int;
 }

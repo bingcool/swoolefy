@@ -89,9 +89,9 @@ class WebSocketService extends BService
         return WebsocketConnectionManager::pushEventToUser(Swfy::getServer(), $userId, $event, $data);
     }
 
-    public function pushToRoom(string $room, string $event, $data = []): int
+    public function pushToGroup(string $group, string $event, $data = []): int
     {
-        return WebsocketConnectionManager::pushEventToRoom(Swfy::getServer(), $room, $event, $data);
+        return WebsocketConnectionManager::pushEventToGroup(Swfy::getServer(), $group, $event, $data);
     }
 
     public function broadcast(string $event, $data = []): int
@@ -99,14 +99,14 @@ class WebSocketService extends BService
         return WebsocketConnectionManager::broadcastEvent(Swfy::getServer(), $event, $data);
     }
 
-    public function joinWebsocketRoom(string $room): bool
+    public function joinWebsocketGroup(string $group): bool
     {
-        return WebsocketConnectionManager::joinRoom((int) $this->fd, $room);
+        return WebsocketConnectionManager::joinGroup((int) $this->fd, $group);
     }
 
-    public function leaveWebsocketRoom(string $room): bool
+    public function leaveWebsocketGroup(string $group): bool
     {
-        return WebsocketConnectionManager::leaveRoom((int) $this->fd, $room);
+        return WebsocketConnectionManager::leaveGroup((int) $this->fd, $group);
     }
 
     /**

@@ -8,28 +8,28 @@ class ChatService extends WebSocketService
     public function sendMessage(array $params)
     {
         $packet = $this->getWebsocketMsg();
-        $room = (string) ($params['room'] ?? 'public');
+        $group = (string) ($params['group'] ?? 'public');
         $message = (string) ($params['message'] ?? '');
 
-        // room 内广播，适配普通 WebSocket 统一格式；Socket.IO 客户端会通过 ack 获得调用结果。
-        $this->pushToRoom($room, 'chat.message', [
-            'room' => $room,
+        // group 内广播，适配普通 WebSocket 统一格式；Socket.IO 客户端会通过 ack 获得调用结果。
+        $this->pushToGroup($group, 'chat.message', [
+            'group' => $group,
             'message' => $message,
             'from_fd' => $packet->getFd(),
         ]);
     }
 
-    public function joinRoom(array $params)
+    public function joinGroup(array $params)
     {
-        $room = (string) ($params['room'] ?? 'public');
-        $this->joinWebsocketRoom($room);
-        $this->pushEvent($this->getWebsocketMsg()->getFd(), 'room.joined', ['room' => $room]);
+        $group = (string) ($params['group'] ?? 'public');
+        $this->joinWebsocketGroup($group);
+        $this->pushEvent($this->getWebsocketMsg()->getFd(), 'group.joined', ['group' => $group]);
     }
 
-    public function leaveRoom(array $params)
+    public function leaveGroup(array $params)
     {
-        $room = (string) ($params['room'] ?? 'public');
-        $this->leaveWebsocketRoom($room);
-        $this->pushEvent($this->getWebsocketMsg()->getFd(), 'room.left', ['room' => $room]);
+        $group = (string) ($params['group'] ?? 'public');
+        $this->leaveWebsocketGroup($group);
+        $this->pushEvent($this->getWebsocketMsg()->getFd(), 'group.left', ['group' => $group]);
     }
 }

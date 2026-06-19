@@ -10,7 +10,7 @@ namespace Swoolefy\Websocket\Cluster;
  */
 class WebsocketClusterPublisher
 {
-    public static function pushToRoom(string $room, string $event, $data = []): int
+    public static function pushToGroup(string $group, string $event, $data = []): int
     {
         // 必须在 WebSocket Worker 进程内调用
         $server = \Swoolefy\Core\Swfy::getServer();
@@ -18,7 +18,7 @@ class WebsocketClusterPublisher
             throw new ClusterRedisException('WebSocket server is not available for cluster publish');
         }
 
-        return PushDispatcherFactory::get()->pushEventToRoom($server, $room, $event, $data);
+        return PushDispatcherFactory::get()->pushEventToGroup($server, $group, $event, $data);
     }
 
     public static function pushToUser(string $userId, string $event, $data = []): int

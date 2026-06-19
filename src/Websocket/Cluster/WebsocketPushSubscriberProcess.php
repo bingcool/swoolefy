@@ -54,7 +54,7 @@ class WebsocketPushSubscriberProcess extends AbstractProcess
         PushDeliveryHandler::deliver($server, $message);
     }
 
-    protected function onHandleException(\Throwable $throwable)
+    public function onHandleException(\Throwable $throwable, $context =[])
     {
         if (method_exists(BaseServer::class, 'catchException')) {
             BaseServer::catchException($throwable);

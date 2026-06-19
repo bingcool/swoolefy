@@ -27,10 +27,10 @@ class LocalPushDispatcher implements PushDispatcherInterface
         return $count;
     }
 
-    public function pushEventToRoom(Server $server, string $room, string $event, $data = []): int
+    public function pushEventToGroup(Server $server, string $group, string $event, $data = []): int
     {
         $count = 0;
-        foreach (array_unique(WebsocketConnectionManager::getFdsByRoom($room)) as $fd) {
+        foreach (array_unique(WebsocketConnectionManager::getFdsByGroup($group)) as $fd) {
             if ($this->pushEventToFd($server, (int) $fd, $event, $data)) {
                 $count++;
             }

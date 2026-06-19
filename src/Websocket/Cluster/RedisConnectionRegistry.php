@@ -6,7 +6,7 @@ namespace Swoolefy\Websocket\Cluster;
  * Redis 全局连接注册表（跨节点共享）：
  * - conn:{conn_id}  Hash  连接元数据 + TTL
  * - user:{user_id}  Set   用户下所有 conn_id
- * - room:{room}     Set   房间下所有 conn_id
+ * - group:{group}     Set   小组下所有 conn_id
  * - node:{server_id} Set  节点下所有 conn_id
  * - nodes           Set   在线节点列表
  * - alive           ZSET  心跳时间，用于宕机清理
@@ -26,7 +26,7 @@ class RedisConnectionRegistry
                 'fd' => (int) ($connection['fd'] ?? 0),
                 'worker_id' => (int) ($connection['worker_id'] ?? 0),
                 'user_id' => $userId,
-                'rooms' => (string) ($connection['rooms'] ?? ''),
+                'groups' => (string) ($connection['groups'] ?? ''),
                 'is_socketio' => (int) ($connection['is_socketio'] ?? 0),
                 'remote_addr' => (string) ($connection['remote_addr'] ?? ''),
                 'connected_at' => (int) ($connection['connected_at'] ?? time()),
@@ -55,7 +55,7 @@ class RedisConnectionRegistry
 
             $serverId = (string) ($meta['server_id'] ?? '');
             $userId = (string) ($meta['user_id'] ?? '');
-            $rooms = self::decodeRooms((string) ($meta['rooms'] ?? ''));
+            $groups = self::decodeGroups((string) ($meta['groups'] ?? ''));
 
             $redis->del(self::connKey($connId));
             $redis->zRem(self::aliveKey(), $connId);
@@ -64,8 +64,8 @@ class RedisConnectionRegistry
                 $redis->sRem(self::userKey($userId), $connId);
             }
 
-            foreach ($rooms as $room) {
-                $redis->sRem(self::roomKey($room), $connId);
+            foreach ($groups as $group) {
+                $redis->sRem(self::groupKey($group), $connId);
             }
 
             if ($serverId !== '') {
@@ -94,21 +94,21 @@ class RedisConnectionRegistry
         });
     }
 
-    public static function joinRoom(string $connId, string $room, string $roomsJson): void
+    public static function joinGroup(string $connId, string $group, string $groupsJson): void
     {
-        self::execute(function ($redis) use ($connId, $room, $roomsJson) {
-            $redis->hSet(self::connKey($connId), 'rooms', $roomsJson);
+        self::execute(function ($redis) use ($connId, $group, $groupsJson) {
+            $redis->hSet(self::connKey($connId), 'groups', $groupsJson);
             $redis->expire(self::connKey($connId), ClusterConfig::connTtl());
-            $redis->sAdd(self::roomKey($room), $connId);
+            $redis->sAdd(self::groupKey($group), $connId);
         });
     }
 
-    public static function leaveRoom(string $connId, string $room, string $roomsJson): void
+    public static function leaveGroup(string $connId, string $group, string $groupsJson): void
     {
-        self::execute(function ($redis) use ($connId, $room, $roomsJson) {
-            $redis->hSet(self::connKey($connId), 'rooms', $roomsJson);
+        self::execute(function ($redis) use ($connId, $group, $groupsJson) {
+            $redis->hSet(self::connKey($connId), 'groups', $groupsJson);
             $redis->expire(self::connKey($connId), ClusterConfig::connTtl());
-            $redis->sRem(self::roomKey($room), $connId);
+            $redis->sRem(self::groupKey($group), $connId);
         });
     }
 
@@ -130,10 +130,10 @@ class RedisConnectionRegistry
         });
     }
 
-    public static function getConnIdsByRoom(string $room): array
+    public static function getConnIdsByGroup(string $group): array
     {
-        return self::execute(function ($redis) use ($room) {
-            $items = $redis->sMembers(self::roomKey($room));
+        return self::execute(function ($redis) use ($group) {
+            $items = $redis->sMembers(self::groupKey($group));
 
             return is_array($items) ? array_values(array_filter($items, 'is_string')) : [];
         });
@@ -164,7 +164,7 @@ class RedisConnectionRegistry
     {
         return self::execute(function ($redis) use ($idleTimeout) {
             $deadline = time() - $idleTimeout;
-            // 扫描心跳超时的 conn_id，批量清理 user/room/node 索引
+            // 扫描心跳超时的 conn_id，批量清理 user/group/node 索引
             $connIds = $redis->zRangeByScore(self::aliveKey(), '0', (string) $deadline);
             if (!is_array($connIds) || empty($connIds)) {
                 return 0;
@@ -180,13 +180,13 @@ class RedisConnectionRegistry
                 if (is_array($meta) && !empty($meta)) {
                     $serverId = (string) ($meta['server_id'] ?? '');
                     $userId = (string) ($meta['user_id'] ?? '');
-                    $rooms = self::decodeRooms((string) ($meta['rooms'] ?? ''));
+                    $groups = self::decodeGroups((string) ($meta['groups'] ?? ''));
 
                     if ($userId !== '') {
                         $redis->sRem(self::userKey($userId), $connId);
                     }
-                    foreach ($rooms as $room) {
-                        $redis->sRem(self::roomKey($room), $connId);
+                    foreach ($groups as $group) {
+                        $redis->sRem(self::groupKey($group), $connId);
                     }
                     if ($serverId !== '') {
                         $redis->sRem(self::nodeConnsKey($serverId), $connId);
@@ -229,9 +229,9 @@ class RedisConnectionRegistry
         return ClusterConfig::keyPrefix() . 'user:' . $userId;
     }
 
-    private static function roomKey(string $room): string
+    private static function groupKey(string $group): string
     {
-        return ClusterConfig::keyPrefix() . 'room:' . $room;
+        return ClusterConfig::keyPrefix() . 'group:' . $group;
     }
 
     private static function nodeConnsKey(string $serverId): string
@@ -249,9 +249,9 @@ class RedisConnectionRegistry
         return ClusterConfig::keyPrefix() . 'alive';
     }
 
-    private static function decodeRooms(string $rooms): array
+    private static function decodeGroups(string $groups): array
     {
-        $items = $rooms === '' ? [] : json_decode($rooms, true);
+        $items = $groups === '' ? [] : json_decode($groups, true);
 
         return is_array($items) ? array_values(array_filter($items, 'is_string')) : [];
     }
