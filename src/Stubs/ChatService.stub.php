@@ -1,9 +1,9 @@
 <?php
 namespace __APP_NAMESPACE__\Service;
 
-use Swoolefy\Websocket\WebSocketService;
+use Swoolefy\Websocket\WebsocketService;
 
-class ChatService extends WebSocketService
+class ChatService extends WebsocketService
 {
     /**
      * 小组广播 chat.message。

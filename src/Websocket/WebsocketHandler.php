@@ -86,7 +86,7 @@ class WebsocketHandler extends Swoole implements HandlerInterface
     {
         try {
             parent::run($packet->getFd(), $packet->getRaw());
-            // 将当前消息挂到 Application 上，业务服务可通过 WebSocketService::getWebsocketMsg() 读取 request_id、fd 等信息。
+            // 将当前消息挂到 Application 上，业务服务可通过 WebsocketService::getWebsocketMsg() 读取 request_id、fd 等信息。
             $this->setWebsocketPacket($packet);
             $this->setMixedParams($packet->getParams());
             $this->setServiceHandle($packet->getEndpoint());

@@ -249,9 +249,9 @@ endpoint 格式：`Service/{模块}/{动作}`，与 HTTP 路由风格一致。
 ```php
 namespace WebsocketService\Service;
 
-use Swoolefy\Websocket\WebSocketService;
+use Swoolefy\Websocket\WebsocketService;
 
-class ChatService extends WebSocketService
+class ChatService extends WebsocketService
 {
     public function sendMessage(array $params)
     {

@@ -18,7 +18,7 @@ use Swoolefy\Core\Dto\BaseResponseDto;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Exception\SystemException;
 
-class WebSocketService extends BService
+class WebsocketService extends BService
 {
     /**
      * push websocket
@@ -35,7 +35,7 @@ class WebSocketService extends BService
         int $finish = 1
     ): bool {
         if (!BaseServer::isWebsocketApp()) {
-            throw new SystemException("WebSocketService::push() this method only can be called by websocket server!");
+            throw new SystemException("WebsocketService::push() this method only can be called by websocket server!");
         }
 
         if (!Swfy::getServer()->isEstablished($fd)) {
@@ -62,7 +62,7 @@ class WebSocketService extends BService
     public function pushRaw(int $fd, string $payload, int $opcode = WEBSOCKET_OPCODE_TEXT, int $finish = 1): bool
     {
         if (!BaseServer::isWebsocketApp()) {
-            throw new SystemException("WebSocketService::pushRaw() this method only can be called by websocket server!");
+            throw new SystemException("WebsocketService::pushRaw() this method only can be called by websocket server!");
         }
 
         if (!Swfy::getServer()->isEstablished($fd)) {
