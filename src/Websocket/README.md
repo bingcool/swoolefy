@@ -180,6 +180,11 @@ return [
         'server_id' => '',   // 生产必配，每实例唯一
         // ...
     ],
+
+    // 推送引用模式（详见 §5.4）
+    'push' => [
+        'enricher' => [\App\Push\MessagePushEnricher::class, 'enrich'],
+    ],
 ];
 ```
 
@@ -309,6 +314,59 @@ socket.emit('chat.private', { to_user_id: 'user-b', message: 'hi' }, (ack) => {
 });
 socket.on('chat.private', (data) => console.log('私聊', data));
 ```
+
+### 5.4 推送引用模式（msg_id → 投递前加载）
+
+业务侧（HTTP、MQ、集群 Redis）往往只推送轻量引用，例如 `{ "msg_id": "m-1001" }`；**真正推给客户端前**，由 WebSocket 节点按 `msg_id` 查持久化表组装完整 `message`，避免大 payload 在 Redis 总线上重复传输。
+
+#### 配置 `Config/websocket.php` → `push`
+
+```php
+'push' => [
+    'enricher' => [\WebsocketService\Push\MessagePushEnricher::class, 'enrich'],
+],
+```
+
+脚手架会在 `{App}/Push/MessagePushEnricher.php` 生成示例，实现 `PushPayloadEnricherInterface::enrich($event, $data, $fd)`：
+
+- 入参 `$data` 为业务 push 的原始载荷（可能只有 `msg_id`，也可能已是完整 message）
+- 有 `msg_id` 时查库组装；无 `msg_id` 时可原样返回
+- 返回 `null` 表示跳过该 fd 的投递（如消息已删除）
+
+#### 触发时机
+
+`WebsocketConnectionManager::deliverEventToFdLocally()` 在 `server->push()` 前调用 `PushPayloadResolver::resolve()`，适用于：
+
+- 本机直推、`pushToUser` / `pushToGroup` 的本地 leg
+- 集群订阅进程 `PushDeliveryHandler` 收到的跨节点指令
+- `broadcast` 逐 fd 投递
+
+#### 业务示例
+
+`ChatService::sendPrivateMessage()` 支持传入 `msg_id`（引用模式）或 `message` 文本（内联模式）：
+
+```php
+// 引用模式：Redis/集群只传 msg_id，投递前 enricher 查库
+$this->pushToUser($toUserId, 'chat.private', [
+    'msg_id' => $msgId,
+    'from_user_id' => $fromUserId,
+    'to_user_id' => $toUserId,
+]);
+
+// 内联模式：enricher 内无 msg_id 时原样透传
+$this->pushToUser($toUserId, 'chat.private', [
+    'from_user_id' => $fromUserId,
+    'message' => ['type' => 'text', 'msg' => 'hi', 'ts' => time()],
+]);
+```
+
+外部进程同样可只推引用：
+
+```php
+ExternalPushPublisher::pushToUser('user-b', 'chat.private', ['msg_id' => 'm-1001']);
+```
+
+单测：`php src/Websocket/Tests/WebsocketPushEnricherTest.php`
 
 ---
 
