@@ -4,6 +4,17 @@ namespace Swoolefy\Websocket\Cluster;
 
 /**
  * 集群 Redis 命令适配接口（phpredis / Predis 统一门面）。
+ *
+ * ClusterRedisClient 通过本接口屏蔽驱动差异；新增 Redis 能力时须两个 Adapter 同步实现。
+ *
+ * 命令分三类：
+ * - **注册表**：Hash / Set / ZSET（RedisConnectionRegistry）
+ * - **Pub/Sub + List**：publish / brPop（transport=pubsub）
+ * - **Streams**：xAdd / xReadGroup / xAck 等（transport=streams，默认）
+ *
+ * @see PhpRedisClusterAdapter
+ * @see PredisClusterAdapter
+ * @see ClusterRedisClient
  */
 interface ClusterRedisAdapterInterface
 {
