@@ -141,6 +141,103 @@ class PhpRedisClusterAdapter implements ClusterRedisAdapterInterface
         return $payload === null ? null : (string) $payload;
     }
 
+    public function xAdd(string $key, array $fields, int $maxLen = 0): string
+    {
+        $entryId = (string) $this->redis->xAdd($key, '*', $fields);
+        if ($maxLen > 0) {
+            // 近似裁剪：性能优于精确 MAXLEN，长度可能略超阈值
+            if (method_exists($this->redis, 'xTrim')) {
+                $this->redis->xTrim($key, $maxLen, true);
+            } else {
+                $this->redis->rawCommand('XTRIM', $key, 'MAXLEN', '~', (string) $maxLen);
+            }
+        }
+
+        return $entryId;
+    }
+
+    public function xGroupCreate(string $key, string $group, bool $mkStream = true): void
+    {
+        try {
+            $this->redis->xGroup('CREATE', $key, $group, '0', $mkStream);
+        } catch (\RedisException $exception) {
+            // 消费组已存在：多进程/重启时正常情况
+            if (stripos($exception->getMessage(), 'BUSYGROUP') === false) {
+                throw $exception;
+            }
+        }
+    }
+
+    public function xReadGroup(
+        string $group,
+        string $consumer,
+        string $streamKey,
+        int $count,
+        int $blockMs,
+        string $id = '>'
+    ): array {
+        $result = $this->redis->xReadGroup($group, $consumer, [$streamKey => $id], $count, $blockMs);
+        if ($result === false || !is_array($result)) {
+            return [];
+        }
+
+        return PushStreamEntry::fromXReadGroupResult($result, $streamKey);
+    }
+
+    public function xAutoClaim(
+        string $key,
+        string $group,
+        string $consumer,
+        int $minIdleMs,
+        string $start,
+        int $count
+    ): array {
+        if (!method_exists($this->redis, 'xAutoClaim')) {
+            // Redis < 6.2 无 XAUTOCLAIM，崩溃恢复能力受限，仍可读新消息
+            return [$start, []];
+        }
+
+        $result = $this->redis->xAutoClaim($key, $group, $consumer, $minIdleMs, $start, $count);
+        if (!is_array($result)) {
+            return ['0-0', []];
+        }
+
+        return PushStreamEntry::fromXAutoClaimResult($result);
+    }
+
+    public function xAck(string $key, string $group, array $entryIds): int
+    {
+        if ($entryIds === []) {
+            return 0;
+        }
+
+        return (int) $this->redis->xAck($key, $group, $entryIds);
+    }
+
+    public function xAddMany(array $items, int $maxLen = 0): void
+    {
+        if ($items === []) {
+            return;
+        }
+
+        $pipe = $this->redis->multi(\Redis::PIPELINE);
+        foreach ($items as $item) {
+            $pipe->xAdd((string) $item[0], '*', ['payload' => (string) $item[1]]);
+        }
+        $pipe->exec();
+
+        if ($maxLen > 0) {
+            $streamKeys = array_values(array_unique(array_map(static fn ($item) => (string) $item[0], $items)));
+            foreach ($streamKeys as $streamKey) {
+                if (method_exists($this->redis, 'xTrim')) {
+                    $this->redis->xTrim($streamKey, $maxLen, true);
+                } else {
+                    $this->redis->rawCommand('XTRIM', $streamKey, 'MAXLEN', '~', (string) $maxLen);
+                }
+            }
+        }
+    }
+
     public function ping()
     {
         return $this->redis->ping();

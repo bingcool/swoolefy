@@ -6,20 +6,21 @@ use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Process\AbstractProcess;
 
 /**
- * 每节点 1 个专用进程，订阅本节点 Redis 频道。
+ * Pub/Sub 订阅进程（仅 transport=pubsub 时注册）。
  *
- * delivery_process_num=1：收到消息后在本进程同步投递。
- * delivery_process_num>1：收到消息后 RPUSH 到本节点队列，由 WebsocketPushDeliveryProcess 并行消费。
+ * ## 与 Streams 的区别
  *
- * 注意：不可启动多个进程 SUBSCRIBE 同一频道，否则每条消息会被重复投递。
+ * - Pub/Sub：消息不持久化，本进程崩溃期间 PUBLISH 的消息**永久丢失**
+ * - 不可多进程 SUBSCRIBE 同一频道（会重复投递）
+ * - delivery_process_num>1 时本进程只 SUBSCRIBE + RPUSH 本地 List，由 DeliveryProcess BRPOP
  *
- * SUBSCRIBE 会阻塞协程，不能放在 worker 内执行。
+ * transport=streams（默认）时请使用 WebsocketPushStreamConsumerProcess。
  */
 class WebsocketPushSubscriberProcess extends AbstractProcess
 {
     public function run()
     {
-        if (!ClusterConfig::isEnabled()) {
+        if (!ClusterConfig::isEnabled() || ClusterConfig::usesPushStreams()) {
             return;
         }
 

@@ -5,10 +5,23 @@ namespace Swoolefy\Websocket\Cluster;
 use Swoolefy\Core\Process\ProcessManager;
 
 /**
- * 注册 WebSocket 集群推送相关自定义进程。
+ * 注册 WebSocket 集群推送自定义进程（EventCtrl::init 调用）。
  *
- * delivery_process_num=1：单进程 SUBSCRIBE + 同步投递（默认，零队列开销）
- * delivery_process_num>1：1 个 SUBSCRIBE 入队 + N 个投递进程 BRPOP 并行 server->push()
+ * ## transport=streams（默认，生产推荐）
+ *
+ * ```
+ * delivery_process_num = N
+ *   → 注册 N 个 WebsocketPushStreamConsumerProcess
+ *   → 共享 Stream + 消费组，竞争 XREADGROUP
+ *   → 无需单独 SUBSCRIBE 进程（Streams 与 Pub/Sub 不同，可多 consumer 安全并行）
+ * ```
+ *
+ * ## transport=pubsub（兼容旧版）
+ *
+ * ```
+ * 1 × WebsocketPushSubscriberProcess（SUBSCRIBE，不可多开）
+ * delivery_process_num > 1 时另注册 N 个 WebsocketPushDeliveryProcess（List BRPOP）
+ * ```
  */
 class WebsocketPushProcessRegistrar
 {
@@ -19,6 +32,21 @@ class WebsocketPushProcessRegistrar
         }
 
         $deliveryNum = ClusterConfig::pushDeliveryProcessNum();
+
+        if (ClusterConfig::usesPushStreams()) {
+            for ($i = 0; $i < $deliveryNum; $i++) {
+                ProcessManager::getInstance()->addProcess(
+                    'swoolefy_websocket_push_stream_' . $i,
+                    WebsocketPushStreamConsumerProcess::class,
+                    true,
+                    [],
+                    ['consumer_index' => $i]
+                );
+            }
+
+            return;
+        }
+
         ProcessManager::getInstance()->addProcess(
             'swoolefy_websocket_push_subscriber',
             WebsocketPushSubscriberProcess::class

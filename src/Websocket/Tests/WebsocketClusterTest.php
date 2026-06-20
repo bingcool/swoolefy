@@ -13,6 +13,8 @@ use Swoolefy\Websocket\Cluster\ClusterRedisClient;
 use Swoolefy\Websocket\Cluster\ExternalPushPublisher;
 use Swoolefy\Websocket\Cluster\PushDeliveryQueue;
 use Swoolefy\Websocket\Cluster\PushMessage;
+use Swoolefy\Websocket\Cluster\PushStreamConsumer;
+use Swoolefy\Websocket\Cluster\PushStreamPublisher;
 use Swoolefy\Websocket\Cluster\RedisConnectionRegistry;
 
 $root = dirname(__DIR__, 3);
@@ -235,6 +237,47 @@ function testPushDeliveryQueue(): void
     echo "[OK] push delivery queue\n";
 }
 
+function testPushStreamPublishConsumeAck(): void
+{
+    // 验证 Streams 全链路：XADD → XREADGROUP → 解码 → XACK
+    $wsConf = \Swoolefy\Core\SystemEnv::loadWebsocketConf();
+    $wsConf['cluster']['enable'] = true;
+    $wsConf['cluster']['push']['transport'] = 'streams';
+    ClusterConfig::setWebsocketOverride($wsConf);
+
+    assertTrue(ClusterConfig::usesPushStreams(), 'streams transport should be enabled');
+
+    $serverId = 'ws-stream-target';
+    $streamKey = ClusterConfig::pushStreamKeyForServer($serverId);
+    $group = ClusterConfig::pushStreamGroup();
+    $consumer = 'test-consumer-' . getmypid();
+
+    $message = PushMessage::event(
+        [['fd' => 9, 'conn_id' => $serverId . ':9']],
+        'chat.message',
+        ['msg' => 'stream'],
+        'test'
+    );
+
+    $entryId = PushStreamPublisher::publish($serverId, $message);
+    assertTrue($entryId !== '', 'xadd should return entry id');
+
+    ClusterRedisClient::runDedicated(static function ($redis) use ($streamKey, $group, $consumer, $entryId) {
+        PushStreamConsumer::ensureGroup($redis, $streamKey, $group);
+        $entries = $redis->xReadGroup($group, $consumer, $streamKey, 1, 2000);
+        assertTrue(count($entries) === 1, 'stream should have one pending message');
+        assertTrue(($entries[0]['id'] ?? '') === $entryId, 'entry id mismatch');
+        $decoded = PushMessage::decode($entries[0]['payload'] ?? '');
+        assertTrue(is_array($decoded) && ($decoded['event'] ?? '') === 'chat.message', 'payload decode failed');
+        $redis->xAck($streamKey, $group, [$entryId]);
+    });
+
+    ClusterConfig::setWebsocketOverride(null);
+    ClusterRedisClient::resetSharedAdapter();
+
+    echo "[OK] push stream publish consume ack\n";
+}
+
 \Swoole\Coroutine\run(function () {
     testConnIdParser();
     testPushMessageCodec();
@@ -248,6 +291,7 @@ function testPushDeliveryQueue(): void
     testConnectionMetaMany();
     testTouchThrottle();
     testPushDeliveryQueue();
+    testPushStreamPublishConsumeAck();
     testExternalPushPublisher();
 });
 

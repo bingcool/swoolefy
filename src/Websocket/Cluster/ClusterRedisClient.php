@@ -12,8 +12,9 @@ namespace Swoolefy\Websocket\Cluster;
  *
  * Swoole 下使用 phpredis 时依赖 hook_flags（默认 SWOOLE_HOOK_ALL）协程化阻塞 IO。
  *
- * - execute()：Worker 进程内复用长连接（失败自动重连），供注册表与推送发布
- * - subscribe()：独立长连接 SUBSCRIBE，供 WebsocketPushSubscriberProcess 使用
+ * - execute()：Worker 进程内复用长连接（失败自动重连），供注册表与 XADD/PUBLISH 发布
+ * - runDedicated()：独立连接，供 Stream XREADGROUP / List BRPOP 等阻塞读
+ * - subscribe()：Pub/Sub 长连接（仅 transport=pubsub）
  */
 class ClusterRedisClient
 {

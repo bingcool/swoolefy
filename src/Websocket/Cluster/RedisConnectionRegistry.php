@@ -238,23 +238,39 @@ class RedisConnectionRegistry
         });
     }
 
+    /**
+     * 跨节点推送出口：按 cluster.push.transport 选择 Streams 或 Pub/Sub。
+     *
+     * streams：XADD 到目标 server_id 的 Stream，消费进程离线时消息仍保留。
+     */
     public static function publish(string $serverId, array $message): bool
     {
-        // 精准扇出：每节点独立频道 ws:push:{app}:{server_id}
-        // ExternalPushPublisher 与 Worker 跨节点推送均走此方法
+        if (ClusterConfig::usesPushStreams()) {
+            PushStreamPublisher::publish($serverId, $message);
+
+            return true;
+        }
+
+        // Pub/Sub：精准扇出到 ws:push:{app}:{server_id}
         return (bool) self::execute(function ($redis) use ($serverId, $message) {
             return $redis->publish(ClusterConfig::pushChannelForServer($serverId), PushMessage::encode($message));
         });
     }
 
     /**
-     * Pipeline 批量 PUBLISH（同一 Redis 连接一次往返扇出到多节点）。
+     * 批量扇出到多节点（Streams XADD 或 Pub/Sub pipeline）。
      *
      * @param array<int, array{0: string, 1: array}> $items [serverId, message]
      */
     public static function publishMany(array $items): void
     {
         if ($items === []) {
+            return;
+        }
+
+        if (ClusterConfig::usesPushStreams()) {
+            PushStreamPublisher::publishMany($items);
+
             return;
         }
 

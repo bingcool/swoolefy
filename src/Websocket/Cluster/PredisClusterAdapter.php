@@ -141,6 +141,121 @@ class PredisClusterAdapter implements ClusterRedisAdapterInterface
         return $payload === null ? null : (string) $payload;
     }
 
+    public function xAdd(string $key, array $fields, int $maxLen = 0): string
+    {
+        if ($maxLen > 0) {
+            $entryId = $this->client->xadd($key, $fields, 'MAXLEN', '~', (string) $maxLen, '*');
+        } else {
+            $entryId = $this->client->xadd($key, $fields, '*');
+        }
+
+        return (string) $entryId;
+    }
+
+    public function xGroupCreate(string $key, string $group, bool $mkStream = true): void
+    {
+        try {
+            $arguments = ['CREATE', $key, $group, '0'];
+            if ($mkStream) {
+                $arguments[] = 'MKSTREAM';
+            }
+            $this->client->xgroup(...$arguments);
+        } catch (\Predis\Response\ServerException $exception) {
+            if (stripos($exception->getMessage(), 'BUSYGROUP') === false) {
+                throw $exception;
+            }
+        }
+    }
+
+    public function xReadGroup(
+        string $group,
+        string $consumer,
+        string $streamKey,
+        int $count,
+        int $blockMs,
+        string $id = '>'
+    ): array {
+        try {
+            $result = $this->client->xreadgroup(
+                'GROUP',
+                $group,
+                $consumer,
+                'COUNT',
+                (string) $count,
+                'BLOCK',
+                (string) $blockMs,
+                'STREAMS',
+                $streamKey,
+                $id
+            );
+        } catch (\Predis\Response\ServerException $exception) {
+            return [];
+        }
+
+        if (!is_array($result)) {
+            return [];
+        }
+
+        return PushStreamEntry::fromXReadGroupResult($result, $streamKey);
+    }
+
+    public function xAutoClaim(
+        string $key,
+        string $group,
+        string $consumer,
+        int $minIdleMs,
+        string $start,
+        int $count
+    ): array {
+        try {
+            $result = $this->client->xautoclaim(
+                $key,
+                $group,
+                $consumer,
+                (string) $minIdleMs,
+                $start,
+                'COUNT',
+                (string) $count
+            );
+        } catch (\Throwable $throwable) {
+            return ['0-0', []];
+        }
+
+        if (!is_array($result)) {
+            return ['0-0', []];
+        }
+
+        return PushStreamEntry::fromXAutoClaimResult($result);
+    }
+
+    public function xAck(string $key, string $group, array $entryIds): int
+    {
+        if ($entryIds === []) {
+            return 0;
+        }
+
+        return (int) $this->client->xack($key, $group, $entryIds);
+    }
+
+    public function xAddMany(array $items, int $maxLen = 0): void
+    {
+        if ($items === []) {
+            return;
+        }
+
+        $pipe = $this->client->pipeline();
+        foreach ($items as $item) {
+            $streamKey = (string) $item[0];
+            $payload = (string) $item[1];
+            if ($maxLen > 0) {
+                $pipe->xadd($streamKey, ['payload' => $payload], 'MAXLEN', '~', (string) $maxLen, '*');
+            } else {
+                $pipe->xadd($streamKey, ['payload' => $payload], '*');
+            }
+        }
+        $pipe->execute();
+    }
+
     public function ping()
     {
         return $this->client->ping();

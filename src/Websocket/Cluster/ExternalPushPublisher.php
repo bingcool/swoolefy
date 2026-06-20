@@ -12,8 +12,13 @@ namespace Swoolefy\Websocket\Cluster;
  * 前置条件：
  * 1. Config/websocket.php → cluster.enable=true
  * 2. 定义 APP_NAME / APP_PATH（或 ClusterConfig::setWebsocketOverride）
- * 3. 各 WebSocket 节点 WebsocketPushSubscriberProcess 已启动
- * 4. 外部进程与 WebSocket 服务共用同一 Redis 与 key_prefix / channel_prefix
+ * 前置条件：
+ * 1. Config/websocket.php → cluster.enable=true
+ * 2. 定义 APP_NAME / APP_PATH（或 ClusterConfig::setWebsocketOverride）
+ * 3. 各 WebSocket 节点推送消费进程已启动（streams 或 pubsub）
+ * 4. 外部进程与 WebSocket 服务共用同一 Redis 与 key_prefix
+ *
+ * 推送总线默认 Redis Streams（XADD 持久化）；transport=pubsub 时为 PUBLISH。
  *
  * ## 引用模式（msg_id）
  *

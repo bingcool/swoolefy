@@ -11,7 +11,7 @@ use Swoole\WebSocket\Server;
  * 1. 查 Redis 全局索引（group / user / conn meta）
  * 2. 按 server_id 分组 targets
  * 3. 本节点（$localServer 非空且 server_id 匹配）→ PushDeliveryHandler 直推
- * 4. 其余节点 → PUBLISH 到 ws:push:{app}:{server_id}，由 WebsocketPushSubscriberProcess 投递
+ * 4. 其余节点 → XADD Stream（默认）或 PUBLISH（pubsub），由推送消费进程投递
  *
  * $localServer=null 表示外部进程：全部走 Redis，不调用 server->push()。
  */

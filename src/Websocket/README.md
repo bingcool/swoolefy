@@ -128,7 +128,9 @@ src/Websocket/
     ├── ClusterPushDispatcher.php
     ├── RedisConnectionRegistry.php
     ├── WebsocketPushSubscriberProcess.php
-    ├── WebsocketPushDeliveryProcess.php
+    ├── WebsocketPushStreamConsumerProcess.php
+    ├── PushStreamPublisher.php
+    ├── PushStreamConsumer.php
     ├── WebsocketPushProcessRegistrar.php
     ├── PushDeliveryQueue.php
     └── ...
@@ -569,8 +571,11 @@ $client->close();
     ],
     'push' => [
         'channel_prefix' => 'ws:push:WebsocketService:',
-        // 突发推送时可增大，订阅入队 + 多进程并行投递
+        'transport' => 'streams',
         'delivery_process_num' => 1,
+        'stream_group' => 'deliver',
+        'stream_max_len' => 50000,
+        'stream_claim_idle_ms' => 30000,
     ],
     'conn_ttl'         => 180,
     'cleanup_interval' => 30,
@@ -585,31 +590,52 @@ $client->close();
 |------|------|
 | 本地 `Swoole\Table` | 管理本节点 fd，执行 `server->push()` |
 | Redis 全局索引 | `conn_id = {server_id}:{fd}`，跨节点 user/group 查询 |
-| Redis Pub/Sub | 频道 `ws:push:{app}:{server_id}`，精准扇出到目标节点 |
-| 订阅进程 | 每节点 1 个 `WebsocketPushSubscriberProcess`（SUBSCRIBE） |
-| 投递进程 | `delivery_process_num` 个 `WebsocketPushDeliveryProcess`（默认 1，与订阅同进程同步投递） |
+| Redis 推送总线 | **Streams（默认）**：`XADD` 持久化 + 消费组；或 **Pub/Sub**（`transport=pubsub`） |
+| 消费进程 | `delivery_process_num` 个 `WebsocketPushStreamConsumerProcess`（streams）或 Pub/Sub 订阅/投递进程 |
 
-#### 推送投递并行（`delivery_process_num`）
+#### 推送总线：Redis Streams（默认，`transport=streams`）
 
-突发流量时单进程在 `server->push()` 上阻塞会导致 Pub/Sub 消息堆积。可配置 `cluster.push.delivery_process_num > 1`：
+跨节点 push 使用 **Redis Streams + Consumer Group**，消息写入 Stream 后持久化，订阅进程偶发崩溃**不会丢消息**（未 ACK 的留在 PEL，由 `XAUTOCLAIM` 回收重投）。
 
 ```
-PUBLISH ws:push:{app}:{server_id}
-  → WebsocketPushSubscriberProcess（1 个）SUBSCRIBE
-  → RPUSH 本节点队列 {key_prefix}push:queue:{server_id}
-  → N × WebsocketPushDeliveryProcess 竞争 BRPOP
+XADD {key_prefix}push:stream:{server_id}
+  → N × WebsocketPushStreamConsumerProcess（同组 deliver 竞争 XREADGROUP）
   → PushDeliveryHandler → server->push()
+  → XACK
 ```
 
-**注意**：不可配置多个进程同时 SUBSCRIBE 同一频道，否则每条消息会被重复投递。
+| 配置项 | 说明 | 默认 |
+|--------|------|------|
+| `transport` | `streams` \| `pubsub` | `streams` |
+| `delivery_process_num` | Stream 消费进程数（同组并行） | `1` |
+| `stream_group` | 消费组名 | `deliver` |
+| `stream_max_len` | `MAXLEN ~` 上限 | `50000` |
+| `stream_claim_idle_ms` | 超过该毫秒未 ACK 则回收 | `30000` |
+| `stream_block_ms` | `XREADGROUP BLOCK` | `5000` |
+| `stream_read_count` | 每次拉取条数 | `10` |
 
 ```php
 'cluster' => [
     'push' => [
-        'channel_prefix' => 'ws:push:WebsocketService:',
-        'delivery_process_num' => 4,  // 4 个并行投递进程 + 1 个订阅进程
+        'transport' => 'streams',
+        'delivery_process_num' => 4,
+        'stream_claim_idle_ms' => 30000,
     ],
 ],
+```
+
+**说明**：
+- Streams 解决的是**消费进程闪断**时的消息恢复，不是用户离线必达（用户不在线仍需业务层 DB + 拉取）。
+- 整机长时间宕机期间写入该节点 Stream 的消息会堆积，恢复后消费组会继续投递（若连接已不存在则 push 失败，仍会 ACK）。
+
+#### Pub/Sub 兼容模式（`transport=pubsub`）
+
+旧版行为：不持久化，订阅进程离线期间的消息会丢失。`delivery_process_num > 1` 时使用本地 List 队列并行投递（不可多进程 SUBSCRIBE 同一频道）。
+
+```
+PUBLISH ws:push:{app}:{server_id}
+  → WebsocketPushSubscriberProcess SUBSCRIBE
+  → （可选）RPUSH 本地队列 → N 个 BRPOP 投递进程
 ```
 
 ### 8.3 跨机推送场景（M1 / M2）
