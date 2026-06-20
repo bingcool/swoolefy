@@ -6,24 +6,54 @@ use Swoole\WebSocket\Server;
 use Swoolefy\Websocket\WebsocketConnectionManager;
 
 /**
- * 本节点最终投递层：将 Redis Pub/Sub 消息转为 server->push()。
+ * 本节点最终投递层：将集群推送指令转为 `server->push()`。
  *
- * ## 与引用模式的关系
+ * ## 在推送链路中的位置
  *
- * Pub/Sub 消息中的 `data` 可以是轻量引用（仅 msg_id）。本类不直接查库，
- * 统一委托 `WebsocketConnectionManager::deliverEventToFdLocally()`，
- * 由 `PushPayloadResolver` + 业务 enricher 在投递前加载完整消息。
+ * ```
+ * 跨节点扇出（ClusterPushBus / ExternalPushPublisher）
+ *   → Redis Streams XADD 或 Pub/Sub PUBLISH
+ *   → PushStreamConsumer / WebsocketPushSubscriberProcess
+ *   → PushDeliveryWorker::deliverEncodedPayload()
+ *   → PushDeliveryHandler::deliver()（本类）
+ *   → WebsocketConnectionManager::deliverEventToFdLocally()
+ *   → PushPayloadResolver + enricher（可选）
+ *   → encodeEventPayload（Socket.IO / 原生 WS）
+ *   → server->push(fd, ...)
+ * ```
  *
- * 编码逻辑复用 WebsocketConnectionManager::encodeEventPayload（区分 Socket.IO / 原生 WS）。
+ * 本类运行在 **WebSocket Worker 或推送消费进程** 内，只处理**已路由到本节点**的 targets。
+ *
+ * ## 支持的 action
+ *
+ * | action | 行为 |
+ * |--------|------|
+ * | push_event | 向 message.targets 中的 fd 列表精准投递 |
+ * | broadcast | 遍历本节点 Swoole\Table 全部连接广播 |
+ *
+ * ## 与引用模式（msg_id）的关系
+ *
+ * 本类不直接查库。`data` 可以是 `{ "msg_id": "m-1001" }` 等轻量引用，
+ * 统一委托 `deliverEventToFdLocally()`，由 `push.enricher` 在 push 前展开完整载荷。
+ *
+ * ## 编码
+ *
+ * 不在此层区分协议；`encodeEventPayload()` 按连接 `is_socketio` 输出
+ * `42["event",{...}]` 或原生 JSON event 包。
+ *
+ * @see PushMessage
+ * @see PushDeliveryWorker
+ * @see WebsocketConnectionManager::deliverEventToFdLocally()
  */
 class PushDeliveryHandler
 {
     /**
-     * 处理一条集群推送指令。
+     * 处理一条集群推送指令（PushMessage 解码后的数组）。
      *
-     * @param array $message Pub/Sub 反序列化后的消息体，含 action / event / data / targets
+     * @param Server $server  本节点 Swoole WebSocket Server
+     * @param array  $message 含 action / event / data / targets（见 PushMessage）
      *
-     * @return int 成功推送的连接数
+     * @return int 成功 push 的连接数（fd 不存在或 enricher 返回 null 不计入）
      */
     public static function deliver(Server $server, array $message): int
     {
@@ -32,7 +62,7 @@ class PushDeliveryHandler
         $data = $message['data'] ?? [];
 
         if ($action === PushMessage::ACTION_BROADCAST) {
-            // broadcast：遍历本节点 Table，每个 fd 独立走 enricher 后 push
+            // 远端节点收到 broadcast 指令：只扫本机 Table，不再次 Redis 扇出
             return WebsocketConnectionManager::deliverBroadcastEventLocally($server, $event, $data);
         }
 
@@ -46,7 +76,7 @@ class PushDeliveryHandler
             if ($fd <= 0) {
                 continue;
             }
-            // 精准扇出到本节点 fd；data 可为 { msg_id } 引用，enricher 在此展开
+            // 连接已断开时 deliverEventToFdLocally 返回 false，不抛异常
             if (WebsocketConnectionManager::deliverEventToFdLocally($server, $fd, $event, $data)) {
                 $count++;
             }

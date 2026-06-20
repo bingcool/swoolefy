@@ -284,4 +284,47 @@ class ClusterConfig
 
         return is_array($push) ? $push : [];
     }
+
+    /**
+     * 握手鉴权配置段（Config/websocket.php → auth）。
+     *
+     * @see WebsocketAuthenticator
+     */
+    public static function authSettings(): array
+    {
+        $auth = self::websocket()['auth'] ?? [];
+
+        return is_array($auth) ? $auth : [];
+    }
+
+    /**
+     * 加组鉴权配置段（Config/websocket.php → group）。
+     *
+     * @see GroupJoinAuthorizerFactory
+     */
+    public static function groupSettings(): array
+    {
+        $group = self::websocket()['group'] ?? [];
+
+        return is_array($group) ? $group : [];
+    }
+
+    /**
+     * auth.enable=true 时是否要求非空 user_id（默认 true）。
+     *
+     * 与 pushToUser 空值校验配合，禁止匿名点对点推送。
+     */
+    public static function requireAuthUserId(): bool
+    {
+        $auth = self::authSettings();
+        if (empty($auth['enable'])) {
+            return false;
+        }
+
+        if (array_key_exists('require_user_id', $auth)) {
+            return (bool) $auth['require_user_id'];
+        }
+
+        return true;
+    }
 }

@@ -13,7 +13,6 @@ namespace Swoolefy\Websocket;
 
 use Swoole\Http\Request;
 use Swoole\WebSocket\Server;
-use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Websocket\SocketIO\SocketIOPacket;
 
@@ -27,6 +26,9 @@ class WebsocketConnectionManager
 
     // 小组索引表：一个 group 对应多个 fd，用于小组广播。
     public const TABLE_GROUPS = 'table_websocket_groups';
+
+    /** 最近一次 joinGroup 被拒绝的原因（供业务层返回错误信息） */
+    private static ?string $lastJoinDenyReason = null;
 
     /**
      * 连接表定义在 server createTables() 前注入配置，所有 worker 共享。
@@ -164,13 +166,23 @@ class WebsocketConnectionManager
         );
     }
 
-    public static function joinGroup(int $fd, string $group): bool
+    public static function joinGroup(int $fd, string $group, array $params = []): bool
     {
         $group = trim($group);
         $connection = self::getConnection($fd);
         if ($group === '' || !$connection) {
             return false;
         }
+
+        // 加组鉴权：Config/websocket.php → group.join_authorizer
+        $userId = (string) ($connection['user_id'] ?? '');
+        $denyReason = Group\GroupJoinAuthorizerFactory::authorize($fd, $userId, $group, $params);
+        if ($denyReason !== null) {
+            self::$lastJoinDenyReason = $denyReason;
+
+            return false;
+        }
+        self::$lastJoinDenyReason = null;
 
         // 连接表内保存 groups 快照，close 时可以反向清理 TABLE_GROUPS 索引。
         $groups = self::decodeGroups((string) ($connection['groups'] ?? ''));
@@ -192,6 +204,12 @@ class WebsocketConnectionManager
         );
 
         return true;
+    }
+
+    /** 最近一次 joinGroup 被拒绝的原因（供 ChatService 返回给客户端） */
+    public static function getLastJoinDenyReason(): ?string
+    {
+        return self::$lastJoinDenyReason;
     }
 
     /**
@@ -381,6 +399,8 @@ class WebsocketConnectionManager
 
     public static function pushEventToUser(Server $server, string $userId, string $event, $data = []): int
     {
+        self::assertPushUserId($userId);
+
         return Cluster\PushDispatcherFactory::get()->pushEventToUser($server, $userId, $event, $data);
     }
 
@@ -507,6 +527,14 @@ class WebsocketConnectionManager
     {
         if (self::tableExists($table)) {
             TableManager::del($table, $key);
+        }
+    }
+
+    private static function assertPushUserId(string $userId): void
+    {
+        // pushToUser 依赖 user 索引；空 user_id 在集群/单机均无意义
+        if (trim($userId) === '') {
+            throw new \InvalidArgumentException('pushToUser requires a non-empty user_id');
         }
     }
 }

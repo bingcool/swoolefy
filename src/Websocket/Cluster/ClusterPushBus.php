@@ -46,6 +46,7 @@ class ClusterPushBus
     public static function publishToUser(string $userId, string $event, $data = [], ?Server $localServer = null): int
     {
         self::assertClusterEnabled();
+        self::assertNonEmptyUserId($userId);
 
         // user:{user_id} Set → conn_id 列表（支持多端同时在线）
         return self::fanoutByConnIds(
@@ -213,5 +214,12 @@ class ClusterPushBus
     private static function resolveSource(?Server $localServer): string
     {
         return $localServer === null ? 'external' : ClusterNodeIdentity::getServerId();
+    }
+
+    private static function assertNonEmptyUserId(string $userId): void
+    {
+        if (trim($userId) === '') {
+            throw new ClusterRedisException('pushToUser requires a non-empty user_id');
+        }
     }
 }

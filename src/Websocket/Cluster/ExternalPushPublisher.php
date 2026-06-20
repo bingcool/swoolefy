@@ -45,9 +45,17 @@ class ExternalPushPublisher
         return ClusterPushBus::publishToGroup($group, $event, $data, null);
     }
 
-    /** 向 Redis user 索引下的所有连接扇出（同一用户多端在线） */
+    /**
+     * 向 Redis user 索引下的所有连接扇出（同一用户多端在线）。
+     *
+     * @throws ClusterRedisException user_id 为空时（禁止匿名 pushToUser）
+     */
     public static function pushToUser(string $userId, string $event, $data = []): int
     {
+        if (trim($userId) === '') {
+            throw new ClusterRedisException('pushToUser requires a non-empty user_id');
+        }
+
         return ClusterPushBus::publishToUser($userId, $event, $data, null);
     }
 

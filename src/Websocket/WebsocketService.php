@@ -18,6 +18,22 @@ use Swoolefy\Core\Dto\BaseResponseDto;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Exception\SystemException;
 
+/**
+ * WebSocket 业务 Service 基类。
+ *
+ * 封装推送、加组/退组、获取当前消息包等 API；集群模式下 push 方法自动跨节点扇出。
+ *
+ * ## 安全相关 API
+ *
+ * | 方法 | 说明 |
+ * |------|------|
+ * | pushToUser | 要求非空 user_id；目标须已通过 auth 绑定 user 索引 |
+ * | joinWebsocketGroup | 写入索引前经 group.join_authorizer 鉴权 |
+ * | getWebsocketUserId | 握手鉴权 callback 或 query uid 绑定的身份 |
+ *
+ * @see WebsocketConnectionManager
+ * @see WebsocketAuthenticator
+ */
 class WebsocketService extends BService
 {
     /**
@@ -84,8 +100,20 @@ class WebsocketService extends BService
         return WebsocketConnectionManager::pushEventToFd(Swfy::getServer(), $fd, $event, $data);
     }
 
+    /**
+     * 向用户所有在线连接推送（集群下跨节点）。
+     *
+     * @throws SystemException user_id 为空时（禁止匿名 pushToUser）
+     *
+     * @return int 成功投递的连接数
+     */
     public function pushToUser(string $userId, string $event, $data = []): int
     {
+        $userId = trim($userId);
+        if ($userId === '') {
+            throw new SystemException('pushToUser requires a non-empty user_id');
+        }
+
         return WebsocketConnectionManager::pushEventToUser(Swfy::getServer(), $userId, $event, $data);
     }
 
@@ -99,9 +127,16 @@ class WebsocketService extends BService
         return WebsocketConnectionManager::broadcastEvent(Swfy::getServer(), $event, $data);
     }
 
-    public function joinWebsocketGroup(string $group): bool
+    /**
+     * 当前连接加入小组（经 group.join_authorizer 鉴权后写入 Table + Redis）。
+     *
+     * @param array $params 客户端 join 参数（invite_code、password 等），透传给鉴权器
+     *
+     * @return bool 鉴权失败或参数非法时返回 false，原因见 WebsocketConnectionManager::getLastJoinDenyReason()
+     */
+    public function joinWebsocketGroup(string $group, array $params = []): bool
     {
-        return WebsocketConnectionManager::joinGroup((int) $this->fd, $group);
+        return WebsocketConnectionManager::joinGroup((int) $this->fd, $group, $params);
     }
 
     public function leaveWebsocketGroup(string $group): bool
