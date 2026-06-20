@@ -38,6 +38,10 @@ return [
         ],
         'push' => [
             'channel_prefix' => 'ws:push:__APP_NAMESPACE__:',
+            // 推送投递并行消费进程数；>1 时订阅进程入队，多进程 BRPOP 并行 server->push()
+            'delivery_process_num' => 1,
+            // 可选，自定义本节点投递队列 key；默认 {key_prefix}push:queue:{server_id}
+            // 'delivery_queue_key' => '',
         ],
         'conn_ttl' => 180,
         'cleanup_interval' => 30,

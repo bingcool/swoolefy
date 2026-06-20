@@ -67,11 +67,7 @@ class EventCtrl implements EventCtrlInterface
                 ProcessManager::getInstance()->addProcess('swoolefy_nacos_register', \Swoolefy\Support\Nacos\NacosRegisterServiceProcess::class);
             }
             if (BaseServer::isWebsocketApp() && \Swoolefy\Websocket\Cluster\ClusterConfig::isEnabled()) {
-                // 集群推送订阅进程：每节点 1 个，SUBSCRIBE ws:push:{app}:{server_id}
-                ProcessManager::getInstance()->addProcess(
-                    'swoolefy_websocket_push_subscriber',
-                    \Swoolefy\Websocket\Cluster\WebsocketPushSubscriberProcess::class
-                );
+                \Swoolefy\Websocket\Cluster\WebsocketPushProcessRegistrar::register();
             }
         } else {
             static::onWorkerServiceInit();

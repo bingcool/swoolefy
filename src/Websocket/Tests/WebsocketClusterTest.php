@@ -11,6 +11,7 @@ use Swoolefy\Websocket\Cluster\ClusterConnectionCoordinator;
 use Swoolefy\Websocket\Cluster\ClusterNodeIdentity;
 use Swoolefy\Websocket\Cluster\ClusterRedisClient;
 use Swoolefy\Websocket\Cluster\ExternalPushPublisher;
+use Swoolefy\Websocket\Cluster\PushDeliveryQueue;
 use Swoolefy\Websocket\Cluster\PushMessage;
 use Swoolefy\Websocket\Cluster\RedisConnectionRegistry;
 
@@ -204,6 +205,36 @@ function testTouchThrottle(): void
     echo "[OK] touch throttle\n";
 }
 
+function testPushDeliveryQueue(): void
+{
+    $wsConf = \Swoolefy\Core\SystemEnv::loadWebsocketConf();
+    $wsConf['cluster']['enable'] = true;
+    $wsConf['cluster']['server_id'] = 'ws-queue-test';
+    $wsConf['cluster']['push']['delivery_process_num'] = 2;
+    ClusterConfig::setWebsocketOverride($wsConf);
+
+    assertTrue(ClusterConfig::pushDeliveryProcessNum() === 2, 'delivery_process_num should be 2');
+
+    $payload = PushMessage::encode(PushMessage::event(
+        [['fd' => 1, 'conn_id' => 'ws-queue-test:1']],
+        'chat.message',
+        ['msg' => 'queue'],
+        'test'
+    ));
+
+    PushDeliveryQueue::enqueue($payload);
+
+    ClusterRedisClient::runDedicated(static function ($redis) use ($payload) {
+        $item = PushDeliveryQueue::dequeueBlocking($redis, 2);
+        assertTrue($item === $payload, 'queue dequeue payload mismatch');
+    });
+
+    ClusterConfig::setWebsocketOverride(null);
+    ClusterRedisClient::resetSharedAdapter();
+
+    echo "[OK] push delivery queue\n";
+}
+
 \Swoole\Coroutine\run(function () {
     testConnIdParser();
     testPushMessageCodec();
@@ -216,6 +247,7 @@ function testTouchThrottle(): void
     testRedisRegistryLifecycle();
     testConnectionMetaMany();
     testTouchThrottle();
+    testPushDeliveryQueue();
     testExternalPushPublisher();
 });
 

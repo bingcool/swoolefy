@@ -46,6 +46,19 @@ class ClusterRedisClient
         }
     }
 
+    /**
+     * 在独立 Redis 连接上执行阻塞消费（BRPOP / SUBSCRIBE 等），不与 execute() 复用连接混用。
+     */
+    public static function runDedicated(callable $callback): void
+    {
+        $adapter = self::createAdapter();
+        try {
+            $callback($adapter);
+        } finally {
+            $adapter->close();
+        }
+    }
+
     public static function subscribe(string $channel, callable $onMessage): void
     {
         if (self::resolveDriver() === self::DRIVER_PHPREDIS) {

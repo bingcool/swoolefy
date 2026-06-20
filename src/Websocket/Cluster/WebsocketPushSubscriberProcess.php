@@ -4,13 +4,14 @@ namespace Swoolefy\Websocket\Cluster;
 
 use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Process\AbstractProcess;
-use Swoolefy\Core\Swfy;
 
 /**
- * 每节点 1 个专用进程，订阅本节点 Redis 频道并投递推送。
+ * 每节点 1 个专用进程，订阅本节点 Redis 频道。
  *
- * 外部进程（ExternalPushPublisher）与远端 Worker 的推送最终都到这里：
- * PUBLISH ws:push:{app}:{server_id} → 本进程 SUBSCRIBE → PushDeliveryHandler → server->push()
+ * delivery_process_num=1：收到消息后在本进程同步投递。
+ * delivery_process_num>1：收到消息后 RPUSH 到本节点队列，由 WebsocketPushDeliveryProcess 并行消费。
+ *
+ * 注意：不可启动多个进程 SUBSCRIBE 同一频道，否则每条消息会被重复投递。
  *
  * SUBSCRIBE 会阻塞协程，不能放在 worker 内执行。
  */
@@ -28,7 +29,7 @@ class WebsocketPushSubscriberProcess extends AbstractProcess
                 try {
                     // 断线后自动重连，保证推送总线可用
                     ClusterRedisClient::subscribe($channel, function (string $payload) {
-                        $this->handlePayload($payload);
+                        $this->dispatchPayload($payload);
                     });
                 } catch (\Throwable $throwable) {
                     $this->onHandleException($throwable);
@@ -38,26 +39,22 @@ class WebsocketPushSubscriberProcess extends AbstractProcess
         });
     }
 
-    private function handlePayload(string $payload): void
+    private function dispatchPayload(string $payload): void
     {
-        $message = PushMessage::decode($payload);
-        if ($message === null) {
+        if (ClusterConfig::pushDeliveryProcessNum() > 1) {
+            PushDeliveryQueue::enqueue($payload);
+
             return;
         }
 
-        // 订阅进程与 Worker 共享同一 Server 实例
-        $server = Swfy::getServer();
-        if (!$server instanceof \Swoole\WebSocket\Server) {
-            return;
-        }
-
-        PushDeliveryHandler::deliver($server, $message);
+        PushDeliveryWorker::deliverEncodedPayload($payload);
     }
 
-    public function onHandleException(\Throwable $throwable, $context =[])
+    public function onHandleException(\Throwable $throwable, $context = [])
     {
         if (method_exists(BaseServer::class, 'catchException')) {
             BaseServer::catchException($throwable);
+
             return;
         }
 
