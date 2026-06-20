@@ -17,6 +17,13 @@ use Swoole\WebSocket\Server;
  */
 class ClusterPushBus
 {
+    /**
+     * 向小组下所有连接扇出推送（跨节点）。
+     *
+     * @param Server|null $localServer 非 null 时本节点 targets 直推，减少 Redis 往返
+     *
+     * @return int 命中的连接数（含远端节点上的 targets 数量）
+     */
     public static function publishToGroup(string $group, string $event, $data = [], ?Server $localServer = null): int
     {
         self::assertClusterEnabled();
@@ -31,6 +38,11 @@ class ClusterPushBus
         );
     }
 
+    /**
+     * 向用户下所有连接扇出推送（支持同一用户多端同时在线）。
+     *
+     * @return int 命中的连接数
+     */
     public static function publishToUser(string $userId, string $event, $data = [], ?Server $localServer = null): int
     {
         self::assertClusterEnabled();
@@ -45,6 +57,13 @@ class ClusterPushBus
         );
     }
 
+    /**
+     * 全集群广播：向 nodes 集合中每个在线节点发一条 broadcast 指令。
+     *
+     * 非 Redis 全频道广播，而是每节点一条 PushMessage，由目标节点遍历本地 Table 投递。
+     *
+     * @return int 涉及的节点数（或本节点实际 push 数 + 远端节点数）
+     */
     public static function publishBroadcast(string $event, $data = [], ?Server $localServer = null): int
     {
         self::assertClusterEnabled();

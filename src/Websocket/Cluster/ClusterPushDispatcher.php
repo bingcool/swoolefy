@@ -8,19 +8,35 @@ use Swoolefy\Websocket\WebsocketConnectionManager;
 /**
  * 集群模式推送分发器（WebSocket Worker 内）。
  *
- * 委托 ClusterPushBus，并传入 $server：
- * - 本节点 targets → PushDeliveryHandler 直推（少一次 Redis 往返）
- * - 远端节点 → Redis Pub/Sub 扇出
+ * ## 职责
  *
- * 外部进程请用 ExternalPushPublisher，不要走本类。
+ * 实现 PushDispatcherInterface，将业务推送请求委托给 ClusterPushBus，
+ * 并传入本机 `$server` 实例以启用本节点直推优化。
+ *
+ * ## 与 ExternalPushPublisher 的区别
+ *
+ * | 入口 | $localServer | 本节点直推 |
+ * |------|--------------|------------|
+ * | ClusterPushDispatcher | Swfy::getServer() | 是 |
+ * | ExternalPushPublisher | null | 否，全部走 Redis |
+ *
+ * ## pushEventToFd 降级
+ *
+ * conn_id 缺失或 Redis meta 已过期时，降级为 WebsocketConnectionManager 本机直推，
+ * 兼容未登记连接或集群索引短暂不一致的场景。
+ *
+ * @see ClusterPushBus
+ * @see ExternalPushPublisher
  */
 class ClusterPushDispatcher implements PushDispatcherInterface
 {
+    /**
+     * 向单个 fd 推送：查 Redis meta 后走 ClusterPushBus 扇出（通常仅本节点一条 target）。
+     */
     public function pushEventToFd(Server $server, int $fd, string $event, $data = []): bool
     {
         $connId = WebsocketConnectionManager::getConnIdByFd($fd);
         if ($connId === '') {
-            // 无 conn_id 时降级为本机直推（兼容未登记连接）
             return WebsocketConnectionManager::deliverEventToFdLocally($server, $fd, $event, $data);
         }
 

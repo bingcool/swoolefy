@@ -3,7 +3,12 @@
 namespace Swoolefy\Websocket\Cluster;
 
 /**
- * Predis 适配层（纯 PHP，无 ext-redis 时可用）。
+ * Predis 集群 Redis 适配层（纯 PHP，无 ext-redis 时可用）。
+ *
+ * 命令语义与 PhpRedisClusterAdapter 对齐，返回结构差异由 PushStreamEntry 统一解析。
+ *
+ * @see ClusterRedisClient
+ * @see PhpRedisClusterAdapter
  */
 class PredisClusterAdapter implements ClusterRedisAdapterInterface
 {

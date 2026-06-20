@@ -3,7 +3,13 @@
 namespace Swoolefy\Websocket\Cluster;
 
 /**
- * ext-redis (phpredis) 适配层。
+ * ext-redis (phpredis) 集群 Redis 适配层。
+ *
+ * 实现 ClusterRedisAdapterInterface，供 ClusterRedisClient 在 driver=phpredis 或 auto 时使用。
+ * Pipeline 批量操作（hGetAllMany / publishMany / xAddMany）减少扇出时的网络往返。
+ *
+ * @see ClusterRedisClient
+ * @see PredisClusterAdapter
  */
 class PhpRedisClusterAdapter implements ClusterRedisAdapterInterface
 {

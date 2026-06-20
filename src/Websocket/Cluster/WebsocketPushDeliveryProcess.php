@@ -6,18 +6,34 @@ use Swoolefy\Core\BaseServer;
 use Swoolefy\Core\Process\AbstractProcess;
 
 /**
- * 推送投递消费进程：从本节点 Redis List 队列 BRPOP 并执行 server->push()。
+ * Pub/Sub 模式下的推送投递消费进程（BRPOP 本地 List）。
  *
- * 与 WebsocketPushSubscriberProcess 配合：
- * - 订阅进程负责 SUBSCRIBE 频道并入队（不阻塞在投递上）
- * - 本进程可配置多个并行消费，缓解突发 push 堆积
+ * ## 适用条件
+ *
+ * 仅当 **同时满足** 以下条件时由 WebsocketPushProcessRegistrar 注册：
+ *
+ * - `cluster.enable=true`
+ * - `cluster.push.transport=pubsub`（非 streams）
+ * - `cluster.push.delivery_process_num > 1`
+ *
+ * ## 与订阅进程的分工
+ *
+ * ```
+ * WebsocketPushSubscriberProcess  SUBSCRIBE 频道 → RPUSH 本地队列（快速入队）
+ * WebsocketPushDeliveryProcess    BRPOP 队列     → server->push()（并行投递）
+ * ```
+ *
+ * streams 模式请使用 WebsocketPushStreamConsumerProcess，无需本进程。
+ *
+ * @see WebsocketPushSubscriberProcess
+ * @see PushDeliveryQueue
  */
 class WebsocketPushDeliveryProcess extends AbstractProcess
 {
     public function run()
     {
         if (!ClusterConfig::isEnabled()
-            || !ClusterConfig::usesPushStreams()
+            || ClusterConfig::usesPushStreams()
             || ClusterConfig::pushDeliveryProcessNum() <= 1) {
             return;
         }
