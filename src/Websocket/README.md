@@ -128,6 +128,9 @@ src/Websocket/
     ├── ClusterPushDispatcher.php
     ├── RedisConnectionRegistry.php
     ├── WebsocketPushSubscriberProcess.php
+    ├── WebsocketPushDeliveryProcess.php
+    ├── WebsocketPushProcessRegistrar.php
+    ├── PushDeliveryQueue.php
     └── ...
 ```
 
@@ -566,6 +569,8 @@ $client->close();
     ],
     'push' => [
         'channel_prefix' => 'ws:push:WebsocketService:',
+        // 突发推送时可增大，订阅入队 + 多进程并行投递
+        'delivery_process_num' => 1,
     ],
     'conn_ttl'         => 180,
     'cleanup_interval' => 30,
@@ -581,7 +586,31 @@ $client->close();
 | 本地 `Swoole\Table` | 管理本节点 fd，执行 `server->push()` |
 | Redis 全局索引 | `conn_id = {server_id}:{fd}`，跨节点 user/group 查询 |
 | Redis Pub/Sub | 频道 `ws:push:{app}:{server_id}`，精准扇出到目标节点 |
-| 订阅进程 | 每节点 1 个 `WebsocketPushSubscriberProcess` |
+| 订阅进程 | 每节点 1 个 `WebsocketPushSubscriberProcess`（SUBSCRIBE） |
+| 投递进程 | `delivery_process_num` 个 `WebsocketPushDeliveryProcess`（默认 1，与订阅同进程同步投递） |
+
+#### 推送投递并行（`delivery_process_num`）
+
+突发流量时单进程在 `server->push()` 上阻塞会导致 Pub/Sub 消息堆积。可配置 `cluster.push.delivery_process_num > 1`：
+
+```
+PUBLISH ws:push:{app}:{server_id}
+  → WebsocketPushSubscriberProcess（1 个）SUBSCRIBE
+  → RPUSH 本节点队列 {key_prefix}push:queue:{server_id}
+  → N × WebsocketPushDeliveryProcess 竞争 BRPOP
+  → PushDeliveryHandler → server->push()
+```
+
+**注意**：不可配置多个进程同时 SUBSCRIBE 同一频道，否则每条消息会被重复投递。
+
+```php
+'cluster' => [
+    'push' => [
+        'channel_prefix' => 'ws:push:WebsocketService:',
+        'delivery_process_num' => 4,  // 4 个并行投递进程 + 1 个订阅进程
+    ],
+],
+```
 
 ### 8.3 跨机推送场景（M1 / M2）
 

@@ -87,6 +87,34 @@ class ClusterConfig
         return self::pushChannelPrefix() . $serverId;
     }
 
+    /**
+     * 本节点推送投递并行消费进程数。
+     *
+     * 1：订阅进程内同步投递（默认）
+     * >1：订阅进程仅入队，另起 N 个 WebsocketPushDeliveryProcess BRPOP 并行投递
+     */
+    public static function pushDeliveryProcessNum(): int
+    {
+        $push = self::cluster()['push'] ?? [];
+        if (!is_array($push)) {
+            return 1;
+        }
+
+        return max(1, (int) ($push['delivery_process_num'] ?? 1));
+    }
+
+    /** 本节点推送本地队列 Redis List key */
+    public static function pushDeliveryQueueKey(): string
+    {
+        $push = self::cluster()['push'] ?? [];
+        $custom = is_array($push) ? trim((string) ($push['delivery_queue_key'] ?? '')) : '';
+        if ($custom !== '') {
+            return $custom;
+        }
+
+        return self::keyPrefix() . 'push:queue:' . self::serverId();
+    }
+
     public static function connTtl(): int
     {
         return max(30, (int) (self::cluster()['conn_ttl'] ?? 180));

@@ -49,6 +49,15 @@ interface ClusterRedisAdapterInterface
      */
     public function publishMany(array $items): void;
 
+    public function rPush(string $key, string $value): void;
+
+    /**
+     * 阻塞弹出列表尾部元素。
+     *
+     * @return string|null 超时返回 null
+     */
+    public function brPop(string $key, int $timeoutSeconds): ?string;
+
     public function ping();
 
     public function close(): void;
