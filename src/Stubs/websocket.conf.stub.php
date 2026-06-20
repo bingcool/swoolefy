@@ -38,10 +38,22 @@ return [
         ],
         'push' => [
             'channel_prefix' => 'ws:push:__APP_NAMESPACE__:',
-            // 推送投递并行消费进程数；>1 时订阅进程入队，多进程 BRPOP 并行 server->push()
+            /*
+             * 跨节点推送总线（二选一）
+             *
+             * streams（默认）：XADD 持久化 + 消费组 + XACK / XAUTOCLAIM
+             *   - 消费进程崩溃：消息留在 PEL，恢复后 reclaim
+             *   - delivery_process_num：同组多 consumer 并行，安全
+             *
+             * pubsub：PUBLISH 不持久化，仅 transport=pubsub 时兼容旧行为
+             */
+            'transport' => 'streams',
             'delivery_process_num' => 1,
-            // 可选，自定义本节点投递队列 key；默认 {key_prefix}push:queue:{server_id}
-            // 'delivery_queue_key' => '',
+            'stream_group' => 'deliver',
+            'stream_max_len' => 50000,
+            'stream_claim_idle_ms' => 30000,
+            'stream_block_ms' => 5000,
+            'stream_read_count' => 10,
         ],
         'conn_ttl' => 180,
         'cleanup_interval' => 30,

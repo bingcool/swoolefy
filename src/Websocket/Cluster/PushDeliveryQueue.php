@@ -3,12 +3,17 @@
 namespace Swoolefy\Websocket\Cluster;
 
 /**
- * 本节点推送投递本地队列（Redis List）。
+ * Pub/Sub 模式下的本节点投递缓冲队列（Redis List）。
  *
- * 多投递进程模式下：订阅进程 RPUSH，各投递进程 BRPOP 竞争消费，保证每条消息只投递一次。
+ * 仅 transport=pubsub 且 delivery_process_num>1 时使用：
+ * - WebsocketPushSubscriberProcess SUBSCRIBE 后 RPUSH
+ * - N 个 WebsocketPushDeliveryProcess BRPOP 竞争消费
+ *
+ * streams 模式不需要此队列（Stream + 消费组已提供持久化与并行）。
  */
 class PushDeliveryQueue
 {
+    /** SUBSCRIBE 回调内快速入队，避免阻塞在 server->push() 上 */
     public static function enqueue(string $payload): void
     {
         if ($payload === '') {
@@ -22,7 +27,7 @@ class PushDeliveryQueue
     }
 
     /**
-     * 阻塞弹出一条队列消息（需在独立 Redis 连接上调用）。
+     * BRPOP 阻塞出队（需在 runDedicated 独立连接上调用）。
      */
     public static function dequeueBlocking(ClusterRedisAdapterInterface $redis, int $timeoutSeconds = 5): ?string
     {

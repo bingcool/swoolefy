@@ -5,10 +5,19 @@ namespace Swoolefy\Websocket\Cluster;
 use Swoolefy\Core\Swfy;
 
 /**
- * 将 Pub/Sub 或本地队列中的 JSON 载荷投递到本节点 WebSocket 连接。
+ * 推送载荷 → 本节点 WebSocket 连接的统一投递入口。
+ *
+ * 被以下路径调用：
+ * - PushStreamConsumer（streams）
+ * - WebsocketPushSubscriberProcess / WebsocketPushDeliveryProcess（pubsub）
+ *
+ * 解码 JSON → PushDeliveryHandler::deliver → enricher → server->push()
  */
 class PushDeliveryWorker
 {
+    /**
+     * @param string $payload PushMessage::encode() 的 JSON
+     */
     public static function deliverEncodedPayload(string $payload): void
     {
         $message = PushMessage::decode($payload);

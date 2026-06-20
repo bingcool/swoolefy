@@ -16,7 +16,9 @@ class WebsocketPushDeliveryProcess extends AbstractProcess
 {
     public function run()
     {
-        if (!ClusterConfig::isEnabled() || ClusterConfig::pushDeliveryProcessNum() <= 1) {
+        if (!ClusterConfig::isEnabled()
+            || !ClusterConfig::usesPushStreams()
+            || ClusterConfig::pushDeliveryProcessNum() <= 1) {
             return;
         }
 

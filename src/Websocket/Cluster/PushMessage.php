@@ -3,8 +3,11 @@
 namespace Swoolefy\Websocket\Cluster;
 
 /**
- * Redis Pub/Sub 消息体（JSON）。
- * 注意：只传 event + data，不在发布端编码 Socket.IO 包；投递时按本节点连接的 is_socketio 编码。
+ * Redis Pub/Sub 或 Streams 消息体（JSON）。
+ *
+ * 只传 event + data，不在发布端编码 Socket.IO 包；投递时按本节点连接的 is_socketio 编码。
+ *
+ * Streams 模式下整包 JSON 存入 Stream 字段 payload；msg_id 可用于业务对账（框架内未做去重）。
  */
 class PushMessage
 {

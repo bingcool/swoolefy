@@ -103,7 +103,7 @@ class ClusterConfig
         return max(1, (int) ($push['delivery_process_num'] ?? 1));
     }
 
-    /** 本节点推送本地队列 Redis List key */
+    /** 本节点推送本地队列 Redis List key（仅 transport=pubsub 且 delivery_process_num>1） */
     public static function pushDeliveryQueueKey(): string
     {
         $push = self::cluster()['push'] ?? [];
@@ -113,6 +113,106 @@ class ClusterConfig
         }
 
         return self::keyPrefix() . 'push:queue:' . self::serverId();
+    }
+
+    /**
+     * 推送总线传输：streams（默认，持久化 + 消费组）| pubsub（兼容，不持久化）
+     *
+     * streams 解决消费进程偶发崩溃导致的消息丢失；不解决用户离线必达（需业务 DB）。
+     */
+    public static function pushTransport(): string
+    {
+        $push = self::cluster()['push'] ?? [];
+        if (!is_array($push)) {
+            return 'streams';
+        }
+
+        $transport = strtolower((string) ($push['transport'] ?? 'streams'));
+
+        return in_array($transport, ['streams', 'pubsub'], true) ? $transport : 'streams';
+    }
+
+    public static function usesPushStreams(): bool
+    {
+        return self::pushTransport() === 'streams';
+    }
+
+    /**
+     * 每节点独立 Stream：{key_prefix}push:stream:{server_id}
+     *
+     * 按节点分 Stream，避免全集群共用一个 Stream 导致无关节点竞争消费。
+     */
+    public static function pushStreamKeyForServer(string $serverId): string
+    {
+        $push = self::cluster()['push'] ?? [];
+        $prefix = is_array($push) ? trim((string) ($push['stream_key_prefix'] ?? '')) : '';
+        if ($prefix === '') {
+            $prefix = self::keyPrefix() . 'push:stream:';
+        }
+        if (!str_ends_with($prefix, ':')) {
+            $prefix .= ':';
+        }
+
+        return $prefix . $serverId;
+    }
+
+    /**
+     * 消费组名（每个 Stream 内唯一组即可，默认可共用 deliver）。
+     *
+     * 组内 delivery_process_num 个 consumer 竞争 XREADGROUP，每条消息只投递一次。
+     */
+    public static function pushStreamGroup(): string
+    {
+        $push = self::cluster()['push'] ?? [];
+
+        return (string) (is_array($push) ? ($push['stream_group'] ?? 'deliver') : 'deliver');
+    }
+
+    /** 组内 consumer 唯一标识，含进程 index 与 pid */
+    public static function pushStreamConsumerName(int $index): string
+    {
+        return sprintf('push-%d-%d', $index, getmypid());
+    }
+
+    /**
+     * XADD 后 MAXLEN ~ 裁剪上限。
+     *
+     * 消费慢于生产时防止 Stream 撑爆内存；过旧且已 ACK 的条目会被 Redis 淘汰。
+     */
+    public static function pushStreamMaxLen(): int
+    {
+        $push = self::cluster()['push'] ?? [];
+
+        return max(1000, (int) (is_array($push) ? ($push['stream_max_len'] ?? 50000) : 50000));
+    }
+
+    /**
+     * XAUTOCLAIM 最小空闲毫秒。
+     *
+     * PEL 中消息空闲超过该值视为原 consumer 崩溃，转给当前 consumer 重试。
+     * 应大于单次 push 批处理的最坏耗时，建议 30s 起。
+     */
+    public static function pushStreamClaimIdleMs(): int
+    {
+        $push = self::cluster()['push'] ?? [];
+
+        return max(1000, (int) (is_array($push) ? ($push['stream_claim_idle_ms'] ?? 30000) : 30000));
+    }
+
+    /** XREADGROUP BLOCK 毫秒 */
+    public static function pushStreamBlockMs(): int
+    {
+        $push = self::cluster()['push'] ?? [];
+
+        return max(100, (int) (is_array($push) ? ($push['stream_block_ms'] ?? 5000) : 5000));
+    }
+
+    /** 每次 XREADGROUP / XAUTOCLAIM 拉取条数 */
+    public static function pushStreamReadCount(): int
+    {
+        $push = self::cluster()['push'] ?? [];
+
+        return max(1, min(100, (int) (is_array($push) ? ($push['stream_read_count'] ?? 10) : 10)));
     }
 
     public static function connTtl(): int
