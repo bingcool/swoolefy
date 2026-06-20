@@ -66,7 +66,9 @@ function testExternalPushPublisher(): void
 {
     $wsConf = \Swoolefy\Core\SystemEnv::loadWebsocketConf();
     $wsConf['cluster']['enable'] = true;
+    $wsConf['cluster']['server_id'] = 'ws-external-push';
     ClusterConfig::setWebsocketOverride($wsConf);
+    ClusterNodeIdentity::reset();
 
     $serverId = 'ws-external-push';
     $connId = $serverId . ':2001';
@@ -91,6 +93,7 @@ function testExternalPushPublisher(): void
 
     RedisConnectionRegistry::unregister($connId);
     ClusterConfig::setWebsocketOverride(null);
+    ClusterNodeIdentity::reset();
     ClusterRedisClient::resetSharedAdapter();
 
     echo "[OK] external push publisher\n";
@@ -169,8 +172,10 @@ function testTouchThrottle(): void
 {
     $wsConf = \Swoolefy\Core\SystemEnv::loadWebsocketConf();
     $wsConf['cluster']['enable'] = true;
+    $wsConf['cluster']['server_id'] = 'ws-touch-test';
     $wsConf['cluster']['touch_interval'] = 60;
     ClusterConfig::setWebsocketOverride($wsConf);
+    ClusterNodeIdentity::reset();
     ClusterConnectionCoordinator::resetTouchThrottle();
 
     $serverId = 'ws-touch-test';
@@ -202,6 +207,7 @@ function testTouchThrottle(): void
     RedisConnectionRegistry::unregister($connId);
     ClusterConnectionCoordinator::resetTouchThrottle();
     ClusterConfig::setWebsocketOverride(null);
+    ClusterNodeIdentity::reset();
     ClusterRedisClient::resetSharedAdapter();
 
     echo "[OK] touch throttle\n";
@@ -239,11 +245,12 @@ function testPushDeliveryQueue(): void
 
 function testPushStreamPublishConsumeAck(): void
 {
-    // 验证 Streams 全链路：XADD → XREADGROUP → 解码 → XACK
     $wsConf = \Swoolefy\Core\SystemEnv::loadWebsocketConf();
     $wsConf['cluster']['enable'] = true;
+    $wsConf['cluster']['server_id'] = 'ws-stream-target';
     $wsConf['cluster']['push']['transport'] = 'streams';
     ClusterConfig::setWebsocketOverride($wsConf);
+    ClusterNodeIdentity::reset();
 
     assertTrue(ClusterConfig::usesPushStreams(), 'streams transport should be enabled');
 
@@ -273,6 +280,7 @@ function testPushStreamPublishConsumeAck(): void
     });
 
     ClusterConfig::setWebsocketOverride(null);
+    ClusterNodeIdentity::reset();
     ClusterRedisClient::resetSharedAdapter();
 
     echo "[OK] push stream publish consume ack\n";

@@ -282,6 +282,20 @@ class CreateCmd extends BaseCmd
                                 $enricherContent = str_replace('__APP_NAMESPACE__', $appName, $enricherContent);
                                 file_put_contents($enricherFile, $enricherContent);
                             }
+                            $authDir = $appPathDir . '/Auth';
+                            @mkdir($authDir, self::$dirPermission, true);
+                            $authCallbackFile = $authDir . '/WebsocketAuthCallback.php';
+                            if (!file_exists($authCallbackFile)) {
+                                $authContent = (string) file_get_contents(SRC_DIR_ROOT . '/Stubs/WebsocketAuthCallback.stub.php');
+                                $authContent = str_replace('__APP_NAMESPACE__', $appName, $authContent);
+                                file_put_contents($authCallbackFile, $authContent);
+                            }
+                            $groupAuthFile = $authDir . '/WebsocketGroupJoinAuthorizer.php';
+                            if (!file_exists($groupAuthFile)) {
+                                $groupAuthContent = (string) file_get_contents(SRC_DIR_ROOT . '/Stubs/WebsocketGroupJoinAuthorizer.stub.php');
+                                $groupAuthContent = str_replace('__APP_NAMESPACE__', $appName, $groupAuthContent);
+                                file_put_contents($groupAuthFile, $groupAuthContent);
+                            }
                         }
                     }
                     break;

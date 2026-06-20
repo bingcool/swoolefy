@@ -14,17 +14,29 @@ return [
     'heartbeat_idle_time'      => 90,
     // 分片帧重组后的单条消息最大字节数，默认跟随 Protocol/conf.php 的 package_max_length
     'max_fragment_payload'     => 0,
+    /*
+     * 握手鉴权（生产环境建议 enable=true）
+     *
+     * require_user_id：开启鉴权后必须绑定非空 user_id，禁止匿名连接与 pushToUser('')
+     * callback：校验 JWT/Session 并返回 ['user_id' => '...']
+     */
     'auth' => [
         'enable' => false,
-        // 示例：['dev-token']，也可配置 callback(Request $request, string $token): bool|array
+        'require_user_id' => true,
         'tokens' => [],
-        'callback' => null,
+        'callback' => [__APP_NAMESPACE__\Auth\WebsocketAuthCallback::class, 'authenticate'],
     ],
-    // 多机水平扩展：本地 Table 管 fd，Redis 管全局索引，按 server_id 频道扇出推送
+    /*
+     * 加组鉴权（join_authorizer 返回非空字符串表示拒绝）
+     */
+    'group' => [
+        'join_authorizer' => [__APP_NAMESPACE__\Auth\WebsocketGroupJoinAuthorizer::class, 'authorize'],
+    ],
+    // 多机水平扩展：本地 Table 管 fd，Redis 管全局索引
     'cluster' => [
         'enable' => false,
-        // 生产环境必须为每个实例配置唯一 server_id，例如 ws-prod-01
-        'server_id' => '',
+        // 生产环境必须为每个实例配置唯一 server_id（禁止 rand）；推荐 env('WS_SERVER_ID')
+        'server_id' => env('WS_SERVER_ID', ''),
         'redis' => [
             // 默认读取 Config/dc.php 的 websocket_cluster_redis.host/port，可在此覆盖
             // client: auto（优先 phpredis）| phpredis | predis
@@ -38,15 +50,6 @@ return [
         ],
         'push' => [
             'channel_prefix' => 'ws:push:__APP_NAMESPACE__:',
-            /*
-             * 跨节点推送总线（二选一）
-             *
-             * streams（默认）：XADD 持久化 + 消费组 + XACK / XAUTOCLAIM
-             *   - 消费进程崩溃：消息留在 PEL，恢复后 reclaim
-             *   - delivery_process_num：同组多 consumer 并行，安全
-             *
-             * pubsub：PUBLISH 不持久化，仅 transport=pubsub 时兼容旧行为
-             */
             'transport' => 'streams',
             'delivery_process_num' => 1,
             'stream_group' => 'deliver',
@@ -57,24 +60,9 @@ return [
         ],
         'conn_ttl' => 180,
         'cleanup_interval' => 30,
-        // Redis touch 写间隔（秒），本地 Table 仍每条消息刷新；默认跟随 heartbeat_check_interval
         'touch_interval' => 30,
-        // Redis 故障策略：reject_open 拒绝新连接；local_only 仅本机可用
         'on_redis_failure' => 'reject_open',
     ],
-    /*
-     * 推送引用模式（与 cluster.push 频道配置无关）
-     *
-     * 典型流程：
-     *   业务 push { msg_id: "m-1001" } → Redis 总线轻量传输
-     *   → 各节点 deliverEventToFdLocally → enricher 查库
-     *   → server->push({ message: { msg: "..." } })
-     *
-     * enricher 配置形式：
-     *   - [Class, 'method']  类实例方法（推荐）
-     *   - Class::class         实现 PushPayloadEnricherInterface 的类
-     *   - callable             匿名函数 function ($event, $data, $fd): ?array
-     */
     'push' => [
         'enricher' => [__APP_NAMESPACE__\Push\MessagePushEnricher::class, 'enrich'],
     ],
