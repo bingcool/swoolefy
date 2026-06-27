@@ -70,11 +70,12 @@ function testShouldNotAckFailed(): void
     echo "[OK] shouldNotAck failed\n";
 }
 
-/** 空 targets / 非法 payload ACK 丢弃；server 不可用不 ACK */
+/** 空 targets / 非法 payload / 去重命中 ACK；server 不可用不 ACK */
 function testShouldAckEmptyAndInvalid(): void
 {
     assertTrue((new PushDeliveryResult())->shouldAck(), 'empty targets should ack');
     assertTrue(PushDeliveryResult::invalidPayload()->shouldAck(), 'invalid payload should ack discard');
+    assertTrue(PushDeliveryResult::duplicateSkipped()->shouldAck(), 'duplicate skipped should ack');
     assertTrue(!PushDeliveryResult::serverUnavailable()->shouldAck(), 'server unavailable should not ack');
     echo "[OK] shouldAck empty/invalid/server\n";
 }
@@ -121,6 +122,8 @@ function testStreamConsumerHandlerIntegration(): void
         public function hGetAllMany(array $keys): array { return []; }
         public function expire(string $key, int $ttl): void {}
         public function del(string $key): void {}
+        public function setEx(string $key, int $ttl, string $value): void {}
+        public function exists(string $key): bool { return false; }
         public function sAdd(string $key, string $member): void {}
         public function sRem(string $key, string $member): void {}
         public function sMembers(string $key) { return []; }

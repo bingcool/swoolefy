@@ -18,6 +18,7 @@ use Swoolefy\Websocket\WebsocketConnectionManager;
  * | ws_push_delivered | counter | 累计 push 成功 fd 数 |
  * | ws_push_failed | counter | 累计 push 失败 fd 数 / 投递不可用 |
  * | ws_join_denied_total | counter | 加组鉴权拒绝次数 |
+ * | ws_push_dedup_skipped | counter | 去重跳过重复 msg_id 次数 |
  * | redis_stream_pending | gauge | 本节点 Stream PEL 堆积（XPENDING） |
  * | redis_stream_lag_ms | gauge | 最近观测到的推送消费延迟（ms） |
  *
@@ -35,6 +36,8 @@ class WebsocketMetrics
 
     private const FIELD_JOIN_DENIED = 'join_denied';
 
+    private const FIELD_PUSH_DEDUP_SKIPPED = 'push_dedup_skipped';
+
     private const FIELD_CONNECTIONS = 'connections_total';
 
     private const FIELD_STREAM_PENDING = 'stream_pending';
@@ -50,6 +53,7 @@ class WebsocketMetrics
                     [self::FIELD_PUSH_DELIVERED, 'int', 8],
                     [self::FIELD_PUSH_FAILED, 'int', 8],
                     [self::FIELD_JOIN_DENIED, 'int', 8],
+                    [self::FIELD_PUSH_DEDUP_SKIPPED, 'int', 8],
                     [self::FIELD_CONNECTIONS, 'int', 8],
                     [self::FIELD_STREAM_PENDING, 'int', 8],
                     [self::FIELD_STREAM_LAG_MS, 'int', 8],
@@ -86,6 +90,7 @@ class WebsocketMetrics
                 self::FIELD_PUSH_DELIVERED => 0,
                 self::FIELD_PUSH_FAILED => 0,
                 self::FIELD_JOIN_DENIED => 0,
+                self::FIELD_PUSH_DEDUP_SKIPPED => 0,
                 self::FIELD_CONNECTIONS => 0,
                 self::FIELD_STREAM_PENDING => 0,
                 self::FIELD_STREAM_LAG_MS => 0,
@@ -118,6 +123,16 @@ class WebsocketMetrics
 
         self::bootRow();
         TableManager::incr(self::TABLE, self::ROW, self::FIELD_JOIN_DENIED);
+    }
+
+    public static function recordPushDedupSkipped(int $count = 1): void
+    {
+        if (!self::isEnabled() || !self::tableReady() || $count <= 0) {
+            return;
+        }
+
+        self::bootRow();
+        TableManager::incr(self::TABLE, self::ROW, self::FIELD_PUSH_DEDUP_SKIPPED, $count);
     }
 
     /** 观测单条 Stream 消息的消费延迟（基于 PushMessage.ts） */
@@ -185,6 +200,7 @@ class WebsocketMetrics
             'ws_push_delivered' => (int) ($row[self::FIELD_PUSH_DELIVERED] ?? 0),
             'ws_push_failed' => (int) ($row[self::FIELD_PUSH_FAILED] ?? 0),
             'ws_join_denied_total' => (int) ($row[self::FIELD_JOIN_DENIED] ?? 0),
+            'ws_push_dedup_skipped' => (int) ($row[self::FIELD_PUSH_DEDUP_SKIPPED] ?? 0),
             'redis_stream_pending' => (int) ($row[self::FIELD_STREAM_PENDING] ?? 0),
             'redis_stream_lag_ms' => (int) ($row[self::FIELD_STREAM_LAG_MS] ?? 0),
             'timestamp' => time(),
@@ -202,6 +218,7 @@ class WebsocketMetrics
             self::FIELD_PUSH_DELIVERED => 0,
             self::FIELD_PUSH_FAILED => 0,
             self::FIELD_JOIN_DENIED => 0,
+            self::FIELD_PUSH_DEDUP_SKIPPED => 0,
             self::FIELD_CONNECTIONS => 0,
             self::FIELD_STREAM_PENDING => 0,
             self::FIELD_STREAM_LAG_MS => 0,

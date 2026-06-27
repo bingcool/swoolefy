@@ -40,9 +40,11 @@ namespace Swoolefy\Websocket\Cluster;
  * }
  * ```
  *
- * Streams 模式下整包 JSON 存入 Stream 字段 `payload`；`msg_id` 可用于业务对账（框架内未做去重）。
+ * Streams 模式下整包 JSON 存入 Stream 字段 `payload`。
+ * `msg_id` 用于对账；`cluster.push.dedup.enable=true` 时框架用 Redis SET+TTL 去重（防 XAUTOCLAIM 重投）。
  *
  * @see PushStreamPublisher
+ * @see PushDedupStore
  * @see PushDeliveryHandler
  */
 class PushMessage
@@ -58,11 +60,13 @@ class PushMessage
      *
      * @param array<int, array{fd: int, conn_id: string}> $targets 同一 server_id 下的 fd 列表
      * @param string                                      $source  来源 server_id 或 "external"
+     * @param string                                      $traceId 链路 trace；空则自动生成
+     * @param string                                      $msgId   推送指令 ID；空则自动生成（去重 / 对账用）
      */
-    public static function event(array $targets, string $event, $data, string $source = '', string $traceId = ''): array
+    public static function event(array $targets, string $event, $data, string $source = '', string $traceId = '', string $msgId = ''): array
     {
         return [
-            'msg_id' => self::uuid(),
+            'msg_id' => $msgId !== '' ? $msgId : self::uuid(),
             'trace_id' => $traceId !== '' ? $traceId : \Swoolefy\Websocket\Metrics\WebsocketTraceContext::currentOrNew(),
             'action' => self::ACTION_PUSH_EVENT,
             'targets' => array_values($targets),
@@ -75,10 +79,10 @@ class PushMessage
     }
 
     /** 构造 broadcast 消息（targets 为空，由目标节点本地遍历） */
-    public static function broadcast(string $event, $data, string $source = '', string $traceId = ''): array
+    public static function broadcast(string $event, $data, string $source = '', string $traceId = '', string $msgId = ''): array
     {
         return [
-            'msg_id' => self::uuid(),
+            'msg_id' => $msgId !== '' ? $msgId : self::uuid(),
             'trace_id' => $traceId !== '' ? $traceId : \Swoolefy\Websocket\Metrics\WebsocketTraceContext::currentOrNew(),
             'action' => self::ACTION_BROADCAST,
             'targets' => [],
