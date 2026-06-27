@@ -190,8 +190,29 @@ return [
     'push' => [
         'enricher' => [\App\Push\MessagePushEnricher::class, 'enrich'],
     ],
+
+    // 内置可观测性（Swoole Table 跨 Worker 累计；sys_collector 可输出 snapshot）
+    'metrics' => [
+        'enable' => true,
+        'refresh_interval' => 10,  // worker 0 刷新 gauge 间隔（秒）
+    ],
 ];
 ```
+
+**指标快照**（`WebsocketMetrics::snapshot()`）：
+
+| 字段 | 说明 |
+|------|------|
+| `ws_connections_total` | 本节点在线连接数 |
+| `ws_push_delivered` | 累计 push 成功 fd 数 |
+| `ws_push_failed` | 累计 push 失败 / 投递不可用 |
+| `ws_join_denied_total` | 加组鉴权拒绝次数 |
+| `redis_stream_pending` | 本节点 Stream PEL 堆积（XPENDING） |
+| `redis_stream_lag_ms` | 最近观测到的推送消费延迟（ms） |
+
+推送链路 `trace_id`：`onMessage` 写入协程上下文后，`PushMessage` 自动携带；消费端 `PushDeliveryWorker` 恢复上下文，便于日志串联。
+
+`conf.stub.php` 中 `sys_collector` callback 在 `metrics.enable=true` 时直接返回上述快照。
 
 ### 4.2 `Config/socketio.php`
 

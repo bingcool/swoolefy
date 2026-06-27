@@ -242,6 +242,25 @@ class PredisClusterAdapter implements ClusterRedisAdapterInterface
         return (int) $this->client->xack($key, $group, $entryIds);
     }
 
+    public function xPendingCount(string $key, string $group): int
+    {
+        try {
+            $result = $this->client->xpending($key, $group);
+        } catch (\Throwable $throwable) {
+            return 0;
+        }
+
+        if (!is_array($result)) {
+            return 0;
+        }
+
+        if (isset($result[0]) && is_numeric($result[0])) {
+            return (int) $result[0];
+        }
+
+        return (int) ($result['count'] ?? $result['pending'] ?? 0);
+    }
+
     public function xAddMany(array $items, int $maxLen = 0): void
     {
         if ($items === []) {

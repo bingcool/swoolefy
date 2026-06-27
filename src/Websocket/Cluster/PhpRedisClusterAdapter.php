@@ -220,6 +220,20 @@ class PhpRedisClusterAdapter implements ClusterRedisAdapterInterface
         return (int) $this->redis->xAck($key, $group, $entryIds);
     }
 
+    public function xPendingCount(string $key, string $group): int
+    {
+        $result = $this->redis->xPending($key, $group);
+        if (!is_array($result)) {
+            return 0;
+        }
+
+        if (isset($result[0]) && is_numeric($result[0])) {
+            return (int) $result[0];
+        }
+
+        return (int) ($result['count'] ?? $result['pending'] ?? 0);
+    }
+
     public function xAddMany(array $items, int $maxLen = 0): void
     {
         if ($items === []) {

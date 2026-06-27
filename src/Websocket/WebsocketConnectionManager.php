@@ -179,6 +179,7 @@ class WebsocketConnectionManager
         $denyReason = Group\GroupJoinAuthorizerFactory::authorize($fd, $userId, $group, $params);
         if ($denyReason !== null) {
             self::$lastJoinDenyReason = $denyReason;
+            \Swoolefy\Websocket\Metrics\WebsocketMetrics::recordJoinDenied();
 
             return false;
         }
@@ -382,19 +383,30 @@ class WebsocketConnectionManager
      * - PushDeliveryHandler（跨节点 Pub/Sub 订阅后的本地投递）
      * - deliverBroadcastEventLocally（逐 fd 调用，每个 fd 独立 enrich）
      */
-    public static function deliverEventToFdLocally(Server $server, int $fd, string $event, $data = []): bool
+    /**
+     * 本节点直推，返回细粒度投递状态（Streams ACK 决策用）。
+     *
+     * @return 'delivered'|'gone'|'skipped'|'failed'
+     */
+    public static function deliverEventToFdLocallyDetailed(Server $server, int $fd, string $event, $data = []): string
     {
         if ($fd <= 0 || !$server->isEstablished($fd)) {
-            return false;
+            return 'gone';
         }
 
-        // 配置了 enricher 时每次投递前调用；返回 null 则跳过该 fd
         $data = Push\PushPayloadResolver::resolve($event, $data, $fd);
         if ($data === null) {
-            return false;
+            return 'skipped';
         }
 
-        return $server->push($fd, self::encodeEventPayload($fd, $event, $data), WEBSOCKET_OPCODE_TEXT);
+        return $server->push($fd, self::encodeEventPayload($fd, $event, $data), WEBSOCKET_OPCODE_TEXT)
+            ? 'delivered'
+            : 'failed';
+    }
+
+    public static function deliverEventToFdLocally(Server $server, int $fd, string $event, $data = []): bool
+    {
+        return self::deliverEventToFdLocallyDetailed($server, $fd, $event, $data) === 'delivered';
     }
 
     public static function pushEventToUser(Server $server, string $userId, string $event, $data = []): int

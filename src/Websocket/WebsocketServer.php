@@ -65,6 +65,12 @@ abstract class WebsocketServer extends BaseServer
             self::$config['table'] ?? [],
             WebsocketConnectionManager::tableDefinitions($websocketConfig)
         );
+        if (!empty($websocketConfig['metrics']['enable'])) {
+            self::$config['table'] = array_merge(
+                self::$config['table'],
+                \Swoolefy\Websocket\Metrics\WebsocketMetrics::tableDefinitions()
+            );
+        }
         self::$setting = array_merge(self::$setting, self::$config['setting']);
         self::$config['setting'] = self::$setting;
         self::setSwooleSockType();
@@ -389,6 +395,14 @@ abstract class WebsocketServer extends BaseServer
             // 集群模式：worker 0 定时清理 Redis alive ZSET 中的僵尸连接索引
             \Swoole\Timer::tick($clusterInterval * 1000, function () use ($timeout) {
                 Cluster\ClusterConnectionCoordinator::cleanupExpired($timeout);
+            });
+        }
+
+        if ($workerId === 0 && !empty($websocketConfig['metrics']['enable'])) {
+            \Swoolefy\Websocket\Metrics\WebsocketMetrics::bootRow();
+            $metricsInterval = \Swoolefy\Websocket\Metrics\WebsocketMetrics::refreshInterval();
+            \Swoole\Timer::tick($metricsInterval * 1000, static function () {
+                \Swoolefy\Websocket\Metrics\WebsocketMetrics::refreshGauges();
             });
         }
     }
