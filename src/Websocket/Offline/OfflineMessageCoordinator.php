@@ -4,6 +4,10 @@ namespace Swoolefy\Websocket\Offline;
 
 use Swoole\WebSocket\Server;
 use Swoolefy\Websocket\Cluster\ClusterConfig;
+use Swoolefy\Websocket\Cluster\PushDeliveryResult;
+use Swoolefy\Websocket\Cluster\PushFanoutResult;
+use Swoolefy\Websocket\Cluster\PushMessage;
+use Swoolefy\Websocket\Cluster\RedisConnectionRegistry;
 use Swoolefy\Websocket\Metrics\WebsocketTraceContext;
 use Swoolefy\Websocket\WebsocketConnectionManager;
 
@@ -14,8 +18,9 @@ use Swoolefy\Websocket\WebsocketConnectionManager;
  *
  * ```
  * [发送] pushToUser / ExternalPushPublisher::pushToUser
- *          ↓ 查 user 索引，deliveredCount=0
- *        maybeStoreOffline() → OfflineMessageStoreInterface::store()
+ *          ↓ 索引无连接 → maybeStoreOfflineAfterPush()
+ *          ↓ 僵尸索引投递 gone → maybeStoreOfflineAfterDelivery()
+ *        store() → OfflineMessageStoreInterface
  *
  * [上线] WebsocketConnectionManager::open() / bindUser()
  *          ↓ user_id 非空
@@ -45,21 +50,72 @@ use Swoolefy\Websocket\WebsocketConnectionManager;
 class OfflineMessageCoordinator
 {
     /**
-     * pushToUser 投递后的离线落库判断。
+     * pushToUser 投递后的离线落库判断（兼容旧调用：仅 deliveredCount=0）。
      *
-     * **关键点**：以 deliveredCount 为准，而非「用户是否存在索引」——
-     * 索引过期/多端全离线时 count=0，此时才写入离线表。
-     *
-     * 集成点：
-     * - WebsocketConnectionManager::pushEventToUser
-     * - ExternalPushPublisher::pushToUser
+     * 集群模式请优先使用 {@see maybeStoreOfflineAfterPush()}。
      *
      * @return string|null 离线消息 id；未存储时 null
      */
     public static function maybeStoreOffline(string $userId, string $event, $data, int $deliveredCount): ?string
     {
-        // 已在线送达 / 功能未开 / 事件不在白名单 → 不落库
-        if (!self::isEnabled() || $deliveredCount > 0 || !self::shouldStoreEvent($event)) {
+        if ($deliveredCount > 0) {
+            return null;
+        }
+
+        return self::storeOfflineMessage($userId, $event, $data, 'pushToUser');
+    }
+
+    /**
+     * 扇出后离线落库：仅当 Redis 索引中无任何可路由连接时写入。
+     */
+    public static function maybeStoreOfflineAfterPush(
+        string $userId,
+        string $event,
+        $data,
+        PushFanoutResult $result
+    ): ?string {
+        if (!$result->shouldStoreOfflineAtPush()) {
+            return null;
+        }
+
+        return self::storeOfflineMessage($userId, $event, $data, 'pushToUser');
+    }
+
+    /**
+     * Stream/本机投递后离线回补：全部 target gone（无 delivered、无 failed 待重试）时写入。
+     */
+    public static function maybeStoreOfflineAfterDelivery(array $message, PushDeliveryResult $result): ?string
+    {
+        if ((string) ($message['action'] ?? '') !== PushMessage::ACTION_PUSH_EVENT) {
+            return null;
+        }
+
+        if ($result->delivered > 0 || $result->failed > 0) {
+            return null;
+        }
+
+        if ($result->gone === 0) {
+            return null;
+        }
+
+        $event = (string) ($message['event'] ?? '');
+        $userId = self::resolveRecipientUserId($message);
+        if ($userId === '') {
+            return null;
+        }
+
+        $data = $message['data'] ?? [];
+        $traceId = trim((string) ($message['trace_id'] ?? ''));
+        if ($traceId !== '') {
+            WebsocketTraceContext::apply($traceId);
+        }
+
+        return self::storeOfflineMessage($userId, $event, $data, 'deliveryGone');
+    }
+
+    private static function storeOfflineMessage(string $userId, string $event, $data, string $source): ?string
+    {
+        if (!self::isEnabled() || !self::shouldStoreEvent($event)) {
             return null;
         }
 
@@ -68,16 +124,58 @@ class OfflineMessageCoordinator
             return null;
         }
 
+        $userId = trim($userId);
+        if ($userId === '') {
+            return null;
+        }
+
         if (!is_array($data)) {
             $data = ['value' => $data];
         }
 
-        // 落库时带上 trace_id，补推时可恢复链路
         return $store->store($userId, $event, $data, [
             'trace_id' => WebsocketTraceContext::currentOrNew(),
-            'source' => 'pushToUser',
+            'source' => $source,
             'created_at' => time(),
         ]);
+    }
+
+    private static function resolveRecipientUserId(array $message): string
+    {
+        $userId = trim((string) ($message['recipient_user_id'] ?? ''));
+        if ($userId !== '') {
+            return $userId;
+        }
+
+        $data = is_array($message['data'] ?? null) ? $message['data'] : [];
+        $userId = trim((string) ($data['to_user_id'] ?? ''));
+        if ($userId !== '') {
+            return $userId;
+        }
+
+        $targets = is_array($message['targets'] ?? null) ? $message['targets'] : [];
+        foreach ($targets as $target) {
+            if (!is_array($target)) {
+                continue;
+            }
+
+            $connId = (string) ($target['conn_id'] ?? '');
+            if ($connId === '') {
+                continue;
+            }
+
+            $meta = RedisConnectionRegistry::getConnectionMeta($connId);
+            if (!is_array($meta)) {
+                continue;
+            }
+
+            $userId = trim((string) ($meta['user_id'] ?? ''));
+            if ($userId !== '') {
+                return $userId;
+            }
+        }
+
+        return '';
     }
 
     /**
