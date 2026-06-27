@@ -638,11 +638,13 @@ class WebsocketConnectionManager
     {
         if (Cluster\ClusterConfig::isEnabled()) {
             $result = Cluster\ClusterPushBus::publishToGroup($group, $event, $data, $server);
+            // 群内无在线 conn（targetCount=0）→ offline_user_ids；有 conn 但 gone → 投递阶段落库
             Offline\OfflineMessageCoordinator::maybeStoreOfflineAfterGroupPush($group, $event, $data, $result);
 
             return $result->reportedHitCount();
         }
 
+        // 单机：LocalPushDispatcher 内部已处理离线
         return Cluster\PushDispatcherFactory::get()->pushEventToGroup($server, $group, $event, $data);
     }
 
@@ -650,6 +652,7 @@ class WebsocketConnectionManager
     {
         if (Cluster\ClusterConfig::isEnabled()) {
             $result = Cluster\ClusterPushBus::publishBroadcast($event, $data, $server);
+            // 无在线节点（targetCount=0）→ offline_user_ids；各节点投递 gone → 按 user 落库
             Offline\OfflineMessageCoordinator::maybeStoreOfflineAfterBroadcastPush($event, $data, $result);
 
             return $result->reportedHitCount();

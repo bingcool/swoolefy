@@ -5,9 +5,20 @@ namespace Swoolefy\Websocket\Cluster;
 /**
  * pushToUser / fanout 扇出结果（用于离线落库决策与 API 返回值）。
  *
- * - delivered：本节点实际 push 成功数
- * - remoteTargetCount：已写入远端 Stream/PubSub 的 target 数（非送达确认）
- * - targetCount：Redis 索引命中的连接总数
+ * ## 字段语义
+ *
+ * - delivered：本节点 `server->push()` 成功数（真实送达）
+ * - remoteTargetCount：已写入远端 Stream 的 target 数（**排队**，非送达确认）
+ * - targetCount：Redis 索引命中的连接总数（group/user）或在线节点数（broadcast）
+ *
+ * ## 离线落库
+ *
+ * `shouldStoreOfflineAtPush()` 仅看 targetCount：为 0 表示索引中无可路由目标，
+ * 此时读 `data.offline_user_ids` 落库；>0 则等投递阶段按 user 聚合 gone 再落库。
+ *
+ * ## API 返回值
+ *
+ * `reportedHitCount()` 不再把 remoteTargetCount 当作 delivered，避免误判「用户已在线收到」。
  */
 class PushFanoutResult
 {

@@ -11,6 +11,8 @@ use Swoolefy\Websocket\WebsocketConnectionManager;
  * 本节点最终投递层：将集群推送指令转为 `server->push()`。
  *
  * 投递前经 {@see PushDedupStore} 按 msg_id 去重（XAUTOCLAIM 重投场景）。
+ * 投递后调用 {@see OfflineMessageCoordinator::maybeStoreOfflineAfterDelivery()}：
+ * 僵尸索引（Redis 有 conn、本地 fd 已 gone）按 user_id 聚合后落离线表。
  *
  * @see PushDeliveryResult  Streams XACK 决策
  * @see PushDeliveryWorker
@@ -50,6 +52,7 @@ class PushDeliveryHandler
                     continue;
                 }
                 $connId = (string) ($target['conn_id'] ?? '');
+                // 优先本地 Table（最新 bindUser），回退 Redis meta（跨节点 Stream 投递）
                 $userId = self::resolveUserIdForTarget($fd, $connId);
                 $result->recordTargetOutcome(
                     $fd,
@@ -64,6 +67,7 @@ class PushDeliveryHandler
             PushDedupStore::markProcessed($msgId);
         }
 
+        // 与推送阶段互补：targetCount>0 但 fd gone 的用户在此落库
         OfflineMessageCoordinator::maybeStoreOfflineAfterDelivery($message, $result);
 
         \Swoolefy\Websocket\Metrics\WebsocketMetrics::recordPushDelivery($result);
@@ -78,6 +82,7 @@ class PushDeliveryHandler
             return $result;
         }
 
+        // broadcast 遍历本节点全部 fd；user_id 来自 Table 行，供离线按用户聚合
         foreach (TableManager::getTable(WebsocketConnectionManager::TABLE_CONNECTIONS) as $row) {
             $fd = (int) ($row['fd'] ?? 0);
             if ($fd <= 0) {

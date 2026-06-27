@@ -36,6 +36,13 @@ use Swoolefy\Websocket\Offline\OfflineMessageCoordinator;
  *
  * **返回值**：命中的连接数（或 broadcast 涉及的节点数），非客户端 ACK 数。
  *
+ * ## 离线落库
+ *
+ * 每次 push 后调用 OfflineMessageCoordinator：
+ * - pushToUser：targetCount=0 时落库
+ * - pushToGroup / broadcast：targetCount=0 时读 data.offline_user_ids 落库
+ * - 有在线连接时由目标节点 PushDeliveryHandler 在 gone 时按 user 聚合落库
+ *
  * @see ClusterPushBus
  * @see WebsocketClusterPublisher
  */
