@@ -1,6 +1,8 @@
 <?php
 /**
- * WebSocket cluster registry/push tests.
+ * WebSocket 集群注册 / 推送单元测试。
+ *
+ * 依赖 Redis 的用例在 redisAvailable() 为 false 时整组跳过。
  *
  * Run:
  *   SWOOLEFY_CLI_ENV=dev php src/Websocket/Tests/WebsocketClusterTest.php
@@ -26,6 +28,7 @@ define('WORKER_PORT', 9508);
 
 \Swoole\Runtime::enableCoroutine(SWOOLE_HOOK_ALL);
 
+/** 断言条件为真，否则抛出 RuntimeException 并终止当前用例 */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -33,6 +36,7 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+/** 检测 Redis 是否可 ping 通（集群用例前置条件） */
 function redisAvailable(): bool
 {
     try {
@@ -45,6 +49,7 @@ function redisAvailable(): bool
     }
 }
 
+/** 验证 conn_id 解析：{server_id}:{fd} → server_id + fd */
 function testConnIdParser(): void
 {
     $parsed = ClusterNodeIdentity::parseConnId('ws-prod-01:123');
@@ -53,6 +58,7 @@ function testConnIdParser(): void
     echo "[OK] conn_id parser\n";
 }
 
+/** 验证 PushMessage JSON 编解码往返不丢字段 */
 function testPushMessageCodec(): void
 {
     $message = PushMessage::event([['fd' => 1, 'conn_id' => 'ws-01:1']], 'chat.message', ['msg' => 'hi'], 'ws-02');
@@ -62,6 +68,7 @@ function testPushMessageCodec(): void
     echo "[OK] push message codec\n";
 }
 
+/** 验证 HTTP/CLI 外部进程经 ExternalPushPublisher 扇出到 Redis group 索引 */
 function testExternalPushPublisher(): void
 {
     $wsConf = \Swoolefy\Core\SystemEnv::loadWebsocketConf();
@@ -99,6 +106,7 @@ function testExternalPushPublisher(): void
     echo "[OK] external push publisher\n";
 }
 
+/** 验证 Redis 连接注册 / group·user 索引 / 注销完整生命周期 */
 function testRedisRegistryLifecycle(): void
 {
     $serverId = 'ws-test-node';
@@ -136,6 +144,7 @@ function testRedisRegistryLifecycle(): void
     echo "[OK] redis registry lifecycle\n";
 }
 
+/** 验证 pipeline 批量读取 conn meta（getConnectionMetaMany） */
 function testConnectionMetaMany(): void
 {
     $serverId = 'ws-batch-meta';
@@ -168,6 +177,7 @@ function testConnectionMetaMany(): void
     echo "[OK] connection meta batch\n";
 }
 
+/** 验证 Redis touch 节流：touch_interval 内不写 Redis，超时后才更新 last_active_at */
 function testTouchThrottle(): void
 {
     $wsConf = \Swoolefy\Core\SystemEnv::loadWebsocketConf();
@@ -213,6 +223,7 @@ function testTouchThrottle(): void
     echo "[OK] touch throttle\n";
 }
 
+/** 验证 pubsub 模式下多进程投递本地队列 enqueue / dequeue 往返 */
 function testPushDeliveryQueue(): void
 {
     $wsConf = \Swoolefy\Core\SystemEnv::loadWebsocketConf();
@@ -243,6 +254,7 @@ function testPushDeliveryQueue(): void
     echo "[OK] push delivery queue\n";
 }
 
+/** 验证 Streams 模式 XADD → XREADGROUP → 解码 → XACK 完整链路 */
 function testPushStreamPublishConsumeAck(): void
 {
     $wsConf = \Swoolefy\Core\SystemEnv::loadWebsocketConf();

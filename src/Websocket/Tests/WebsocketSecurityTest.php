@@ -1,6 +1,6 @@
 <?php
 /**
- * WebSocket security tests (auth / group join / server_id / pushToUser).
+ * WebSocket 安全相关单元测试（鉴权 / 加组 / server_id / pushToUser）。
  *
  * Run:
  *   php src/Websocket/Tests/WebsocketSecurityTest.php
@@ -23,6 +23,7 @@ define('APP_NAME', 'WebsocketService');
 define('APP_PATH', $root . '/WebsocketService');
 define('WORKER_PORT', 9508);
 
+/** 断言条件为真，否则抛出 RuntimeException */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -30,6 +31,7 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+/** 构造模拟握手 Request（query / header） */
 function makeRequest(array $query = [], array $headers = []): Request
 {
     $request = new Request();
@@ -39,6 +41,7 @@ function makeRequest(array $query = [], array $headers = []): Request
     return $request;
 }
 
+/** auth.enable=true 且 require_user_id=true 时，无 uid 拒绝、有 uid 通过 */
 function testAuthRequiresUserIdWhenEnabled(): void
 {
     $config = [
@@ -64,6 +67,7 @@ function testAuthRequiresUserIdWhenEnabled(): void
     echo "[OK] auth require user_id\n";
 }
 
+/** auth.callback 返回的 user_id 应写入鉴权结果 */
 function testAuthCallbackReturnsUserId(): void
 {
     $config = [
@@ -88,6 +92,7 @@ function testAuthCallbackReturnsUserId(): void
     echo "[OK] auth callback user_id\n";
 }
 
+/** group.join_authorizer 应拒绝错误密码、允许正确密码 */
 function testGroupJoinAuthorizer(): void
 {
     GroupJoinAuthorizerFactory::setOverride(new CallableGroupJoinAuthorizer(
@@ -110,6 +115,7 @@ function testGroupJoinAuthorizer(): void
     echo "[OK] group join authorizer\n";
 }
 
+/** pushToUser('') 应抛出 ClusterRedisException，禁止匿名点对点推送 */
 function testPushToUserRejectsEmptyUserId(): void
 {
     ClusterConfig::setWebsocketOverride([
@@ -130,6 +136,7 @@ function testPushToUserRejectsEmptyUserId(): void
     echo "[OK] pushToUser rejects empty user_id\n";
 }
 
+/** 集群模式必须配置固定 server_id，禁止空值或 rand() */
 function testClusterRequiresStableServerId(): void
 {
     ClusterNodeIdentity::reset();

@@ -76,4 +76,19 @@ return [
         'enable' => true,
         'refresh_interval' => 10,
     ],
+    /*
+     * 用户离线必达（Streams 只保证消费进程不丢，不保证离线用户收到）
+     *
+     * pushToUser 命中 0 条连接 → 写入 offline.store
+     * 上线 → replay_on_reconnect 自动补推 + on_reconnect 钩子
+     * 客户端也可 WS/HTTP 拉取：OfflineMessageCoordinator::pullPending / ackDelivered
+     */
+    'offline' => [
+        'enable' => false,
+        'store' => [__APP_NAMESPACE__\Offline\MysqlOfflineMessageStore::class],
+        'events' => ['chat.private', 'notify.message'], // 空数组=所有 pushToUser
+        'replay_on_reconnect' => true,
+        'on_reconnect' => [__APP_NAMESPACE__\Offline\OfflineReconnectCallback::class, 'onReconnect'],
+        'replay_limit' => 100,
+    ],
 ];

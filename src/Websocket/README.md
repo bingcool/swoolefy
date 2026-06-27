@@ -316,6 +316,8 @@ class ChatService extends WebsocketService
 | `joinWebsocketGroup($group)` | 当前连接加入小组 |
 | `leaveWebsocketGroup($group)` | 当前连接离开小组 |
 | `getWebsocketUserId()` | 当前连接绑定的 user_id |
+| `pullOfflineMessages($limit, $afterId)` | 拉取当前用户待投递离线消息 |
+| `ackOfflineMessages($messageIds)` | 客户端确认已消费（拉取模式 ACK） |
 
 `cluster.enable=true` 时，`pushToUser` / `pushToGroup` / `broadcast` 自动跨节点推送，业务代码无需修改。
 
@@ -324,7 +326,6 @@ class ChatService extends WebsocketService
 示例 `ChatService::sendPrivateMessage()` 已实现，Socket.IO 事件 `chat.private`：
 
 ```php
-// 服务端（已在 ChatService 中）
 $this->pushToUser($toUserId, 'chat.private', [
     'from_user_id' => $fromUserId,
     'to_user_id'   => $toUserId,
@@ -336,12 +337,47 @@ $this->pushToUser($toUserId, 'chat.private', [
 
 ```javascript
 socket.emit('chat.private', { to_user_id: 'user-b', message: 'hi' }, (ack) => {
-  console.log(ack); // [{ code: 0, msg: 'ok' }] 或 code=-1（对方离线）
+  console.log(ack);
 });
 socket.on('chat.private', (data) => console.log('私聊', data));
 ```
 
-### 5.4 推送引用模式（msg_id → 投递前加载）
+### 5.4 用户离线必达
+
+Redis Streams 只保证「消费进程不丢」，**不保证**离线用户上线后收到。IM/通知场景需业务离线表 + 框架协调：
+
+| 能力 | 说明 |
+|------|------|
+| 自动落库 | `pushToUser` / `ExternalPushPublisher::pushToUser` 命中 0 条连接 → 写入 `offline.store` |
+| 上线补推 | `replay_on_reconnect=true` 时，连接 open / 换绑 user 后自动补推 pending |
+| `on_reconnect` 钩子 | 框架补推完成后回调，可刷新 badge、触发自定义同步 |
+| 客户端拉取 | `pullOfflineMessages()` / HTTP 调 `OfflineMessageCoordinator::pullPending()` |
+
+#### 配置 `Config/websocket.php` → `offline`
+
+```php
+'offline' => [
+    'enable' => true,
+    'store' => [\App\Offline\MysqlOfflineMessageStore::class],
+    'events' => ['chat.private', 'notify.message'], // 空数组=所有 pushToUser
+    'replay_on_reconnect' => true,
+    'on_reconnect' => [\App\Offline\OfflineReconnectCallback::class, 'onReconnect'],
+    'replay_limit' => 100,
+],
+```
+
+建表 SQL：`src/Stubs/ws_offline_messages.sql.stub`；存储实现：`OfflineMessageStoreInterface`。
+
+#### HTTP 拉取示例
+
+```php
+use Swoolefy\Websocket\Offline\OfflineMessageCoordinator;
+
+$page = OfflineMessageCoordinator::pullPending($userId, 50, $afterId);
+OfflineMessageCoordinator::ackDelivered($userId, array_column($page['messages'], 'id'));
+```
+
+### 5.5 推送引用模式（msg_id → 投递前加载）
 
 业务侧（HTTP、MQ、集群 Redis）往往只推送轻量引用，例如 `{ "msg_id": "m-1001" }`；**真正推给客户端前**，由 WebSocket 节点按 `msg_id` 查持久化表组装完整 `message`，避免大 payload 在 Redis 总线上重复传输。
 

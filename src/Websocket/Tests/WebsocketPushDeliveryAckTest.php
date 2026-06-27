@@ -1,6 +1,8 @@
 <?php
 /**
- * Streams 推送 XACK 策略单元测试。
+ * Streams 推送 XACK 智能决策单元测试。
+ *
+ * 验证 PushDeliveryResult::shouldAck() 策略及消费进程 ACK 分支。
  *
  * Run: php src/Websocket/Tests/WebsocketPushDeliveryAckTest.php
  */
@@ -13,6 +15,7 @@ use Swoolefy\Websocket\Cluster\ClusterRedisAdapterInterface;
 
 require dirname(__DIR__, 3) . '/vendor/autoload.php';
 
+/** 断言条件为真，否则抛出 RuntimeException */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -20,6 +23,7 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+/** 根据投递 outcome 列表构造 PushDeliveryResult 测试夹具 */
 function resultWithOutcomes(array $outcomes): PushDeliveryResult
 {
     $result = new PushDeliveryResult();
@@ -30,6 +34,7 @@ function resultWithOutcomes(array $outcomes): PushDeliveryResult
     return $result;
 }
 
+/** 至少一条 delivered 时应 ACK（含部分成功） */
 function testShouldAckDelivered(): void
 {
     $r = resultWithOutcomes(['delivered']);
@@ -40,6 +45,7 @@ function testShouldAckDelivered(): void
     echo "[OK] shouldAck delivered\n";
 }
 
+/** 全部 gone / skipped 时 ACK，避免 PEL 无限堆积 */
 function testShouldAckAllGoneOrSkipped(): void
 {
     $r = resultWithOutcomes(['gone', 'gone']);
@@ -53,6 +59,7 @@ function testShouldAckAllGoneOrSkipped(): void
     echo "[OK] shouldAck gone/skipped\n";
 }
 
+/** 全部 failed 或 gone+failed 无成功时不 ACK，保留 PEL 重试 */
 function testShouldNotAckFailed(): void
 {
     $r = resultWithOutcomes(['failed']);
@@ -63,6 +70,7 @@ function testShouldNotAckFailed(): void
     echo "[OK] shouldNotAck failed\n";
 }
 
+/** 空 targets / 非法 payload ACK 丢弃；server 不可用不 ACK */
 function testShouldAckEmptyAndInvalid(): void
 {
     assertTrue((new PushDeliveryResult())->shouldAck(), 'empty targets should ack');
@@ -71,6 +79,7 @@ function testShouldAckEmptyAndInvalid(): void
     echo "[OK] shouldAck empty/invalid/server\n";
 }
 
+/** 非法 JSON payload 应 ACK 丢弃，避免毒消息阻塞 Stream */
 function testDeliverWithResultInvalidPayload(): void
 {
     assertTrue(PushDeliveryWorker::shouldAckStreamPayload('not-json'), 'invalid json should ack discard');
@@ -79,6 +88,7 @@ function testDeliverWithResultInvalidPayload(): void
     echo "[OK] deliverWithResult invalid payload\n";
 }
 
+/** 非 WS Worker 环境无 Server 时不 ACK，等待进程恢复后重试 */
 function testDeliverWithResultServerUnavailable(): void
 {
     $payload = PushMessage::encode(PushMessage::event(
@@ -91,7 +101,7 @@ function testDeliverWithResultServerUnavailable(): void
     echo "[OK] deliverWithResult server unavailable\n";
 }
 
-/** 模拟 PushStreamConsumer handler 回调的 ACK 分支 */
+/** 模拟 PushStreamConsumer：handler 返回 false 不 xAck，true 才 xAck */
 function testStreamConsumerHandlerIntegration(): void
 {
     $handler = static function (string $entryId, string $payload): bool {

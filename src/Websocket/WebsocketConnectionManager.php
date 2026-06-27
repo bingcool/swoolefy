@@ -113,6 +113,8 @@ class WebsocketConnectionManager
 
         if ($userId !== '') {
             self::bindUser($fd, $userId);
+            // 离线必达：握手已带 user_id 时触发补推 + on_reconnect 钩子
+            self::notifyUserOnline($server, $fd, $userId);
         }
     }
 
@@ -164,6 +166,18 @@ class WebsocketConnectionManager
             $userId,
             $oldUserId
         );
+
+        if ($userId !== '' && $oldUserId !== $userId) {
+            // 会话中换绑 user（匿名→登录、切换账号）：对新 user 补推离线消息
+            try {
+                $server = \Swoolefy\Core\Swfy::getServer();
+                if ($server instanceof Server) {
+                    self::notifyUserOnline($server, $fd, $userId);
+                }
+            } catch (\Throwable $throwable) {
+                // 非 WS Worker 或无 Server 时跳过补推
+            }
+        }
     }
 
     public static function joinGroup(int $fd, string $group, array $params = []): bool
@@ -413,7 +427,11 @@ class WebsocketConnectionManager
     {
         self::assertPushUserId($userId);
 
-        return Cluster\PushDispatcherFactory::get()->pushEventToUser($server, $userId, $event, $data);
+        $count = Cluster\PushDispatcherFactory::get()->pushEventToUser($server, $userId, $event, $data);
+        // deliveredCount=0 时写入 offline.store（Streams 不保证用户在线必达）
+        Offline\OfflineMessageCoordinator::maybeStoreOffline($userId, $event, $data, $count);
+
+        return $count;
     }
 
     public static function pushEventToGroup(Server $server, string $group, string $event, $data = []): int
@@ -548,5 +566,15 @@ class WebsocketConnectionManager
         if (trim($userId) === '') {
             throw new \InvalidArgumentException('pushToUser requires a non-empty user_id');
         }
+    }
+
+    /**
+     * 用户上线入口：委托 OfflineMessageCoordinator（补推 + on_reconnect 钩子）。
+     *
+     * @see OfflineMessageCoordinator::onUserOnline()
+     */
+    private static function notifyUserOnline(Server $server, int $fd, string $userId): void
+    {
+        Offline\OfflineMessageCoordinator::onUserOnline($server, $fd, $userId);
     }
 }

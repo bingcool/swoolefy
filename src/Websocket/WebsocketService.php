@@ -117,6 +117,35 @@ class WebsocketService extends BService
         return WebsocketConnectionManager::pushEventToUser(Swfy::getServer(), $userId, $event, $data);
     }
 
+    /**
+     * 拉取当前用户的待投递离线消息（拉取模式，与上线自动补推可并存）。
+     *
+     * 典型 WS 路由：`Service/Offline/Pull` → `$this->pullOfflineMessages(50, $afterId)`
+     *
+     * @return array{messages: array<int, array>, next_after_id: string, pending_total: int}
+     */
+    public function pullOfflineMessages(int $limit = 50, ?string $afterId = null): array
+    {
+        return \Swoolefy\Websocket\Offline\OfflineMessageCoordinator::pullPending(
+            $this->getWebsocketUserId(),
+            $limit,
+            $afterId
+        );
+    }
+
+    /**
+     * 拉取模式 ACK：客户端展示离线消息后确认，避免重复补推。
+     *
+     * 典型 WS 路由：`Service/Offline/Ack` → `$this->ackOfflineMessages($ids)`
+     */
+    public function ackOfflineMessages(array $messageIds): int
+    {
+        return \Swoolefy\Websocket\Offline\OfflineMessageCoordinator::ackDelivered(
+            $this->getWebsocketUserId(),
+            $messageIds
+        );
+    }
+
     public function pushToGroup(string $group, string $event, $data = []): int
     {
         return WebsocketConnectionManager::pushEventToGroup(Swfy::getServer(), $group, $event, $data);
