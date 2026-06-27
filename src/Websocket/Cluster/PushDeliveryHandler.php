@@ -49,12 +49,14 @@ class PushDeliveryHandler
                 if ($fd <= 0) {
                     continue;
                 }
-                self::recordOutcome($result, WebsocketConnectionManager::deliverEventToFdLocallyDetailed(
-                    $server,
+                $connId = (string) ($target['conn_id'] ?? '');
+                $userId = self::resolveUserIdForTarget($fd, $connId);
+                $result->recordTargetOutcome(
                     $fd,
-                    $event,
-                    $data
-                ));
+                    $connId,
+                    $userId,
+                    WebsocketConnectionManager::deliverEventToFdLocallyDetailed($server, $fd, $event, $data)
+                );
             }
         }
 
@@ -81,20 +83,37 @@ class PushDeliveryHandler
             if ($fd <= 0) {
                 continue;
             }
-            self::recordOutcome($result, WebsocketConnectionManager::deliverEventToFdLocallyDetailed(
-                $server,
+
+            $connId = WebsocketConnectionManager::getConnIdByFd($fd);
+            $userId = trim((string) ($row['user_id'] ?? ''));
+            $result->recordTargetOutcome(
                 $fd,
-                $event,
-                $data
-            ));
+                $connId,
+                $userId,
+                WebsocketConnectionManager::deliverEventToFdLocallyDetailed($server, $fd, $event, $data)
+            );
         }
 
         return $result;
     }
 
-    /** @internal 供 PushDeliveryResult::recordOutcome 复用 */
-    private static function recordOutcome(PushDeliveryResult $result, string $outcome): void
+    private static function resolveUserIdForTarget(int $fd, string $connId): string
     {
-        $result->recordOutcome($outcome);
+        $connection = WebsocketConnectionManager::getConnection($fd);
+        if (is_array($connection)) {
+            $userId = trim((string) ($connection['user_id'] ?? ''));
+            if ($userId !== '') {
+                return $userId;
+            }
+        }
+
+        if ($connId !== '') {
+            $meta = RedisConnectionRegistry::getConnectionMeta($connId);
+            if (is_array($meta)) {
+                return trim((string) ($meta['user_id'] ?? ''));
+            }
+        }
+
+        return '';
     }
 }

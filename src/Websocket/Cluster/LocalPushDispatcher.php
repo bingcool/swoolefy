@@ -3,6 +3,8 @@
 namespace Swoolefy\Websocket\Cluster;
 
 use Swoole\WebSocket\Server;
+use Swoolefy\Core\Table\TableManager;
+use Swoolefy\Websocket\Offline\OfflineMessageCoordinator;
 use Swoolefy\Websocket\WebsocketConnectionManager;
 
 /**
@@ -37,10 +39,25 @@ class LocalPushDispatcher implements PushDispatcherInterface
     public function pushEventToGroup(Server $server, string $group, string $event, $data = []): int
     {
         $count = 0;
-        foreach (array_unique(WebsocketConnectionManager::getFdsByGroup($group)) as $fd) {
-            if ($this->pushEventToFd($server, (int) $fd, $event, $data)) {
+        $userOutcomes = [];
+        $fds = array_unique(WebsocketConnectionManager::getFdsByGroup($group));
+        foreach ($fds as $fd) {
+            $outcome = WebsocketConnectionManager::deliverEventToFdLocallyDetailed($server, (int) $fd, $event, $data);
+            self::recordLocalOutcome($userOutcomes, (int) $fd, $outcome);
+            if ($outcome === 'delivered') {
                 $count++;
             }
+        }
+
+        if ($fds === []) {
+            OfflineMessageCoordinator::maybeStoreOfflineAfterGroupPush(
+                $group,
+                $event,
+                $data,
+                self::emptyFanoutResult()
+            );
+        } else {
+            OfflineMessageCoordinator::maybeStoreOfflineAfterLocalFanout($event, $data, $userOutcomes, 'pushToGroup');
         }
 
         return $count;
@@ -49,6 +66,59 @@ class LocalPushDispatcher implements PushDispatcherInterface
     /** 遍历本节点全部连接广播 */
     public function broadcastEvent(Server $server, string $event, $data = []): int
     {
-        return WebsocketConnectionManager::deliverBroadcastEventLocally($server, $event, $data);
+        $count = 0;
+        $userOutcomes = [];
+        if (TableManager::isExistTable(WebsocketConnectionManager::TABLE_CONNECTIONS)) {
+            foreach (TableManager::getTable(WebsocketConnectionManager::TABLE_CONNECTIONS) as $row) {
+                $fd = (int) ($row['fd'] ?? 0);
+                if ($fd <= 0) {
+                    continue;
+                }
+
+                $outcome = WebsocketConnectionManager::deliverEventToFdLocallyDetailed($server, $fd, $event, $data);
+                $userId = trim((string) ($row['user_id'] ?? ''));
+                if ($userId !== '') {
+                    $userOutcomes[$userId][] = $outcome;
+                }
+                if ($outcome === 'delivered') {
+                    $count++;
+                }
+            }
+        }
+
+        if ($userOutcomes === []) {
+            OfflineMessageCoordinator::maybeStoreOfflineAfterBroadcastPush(
+                $event,
+                $data,
+                self::emptyFanoutResult()
+            );
+        } else {
+            OfflineMessageCoordinator::maybeStoreOfflineAfterLocalFanout($event, $data, $userOutcomes, 'broadcast');
+        }
+
+        return $count;
+    }
+
+    /**
+     * @param array<string, string[]> $userOutcomes
+     */
+    private static function recordLocalOutcome(array &$userOutcomes, int $fd, string $outcome): void
+    {
+        $connection = WebsocketConnectionManager::getConnection($fd);
+        if (!is_array($connection)) {
+            return;
+        }
+
+        $userId = trim((string) ($connection['user_id'] ?? ''));
+        if ($userId === '') {
+            return;
+        }
+
+        $userOutcomes[$userId][] = $outcome;
+    }
+
+    private static function emptyFanoutResult(): PushFanoutResult
+    {
+        return new PushFanoutResult();
     }
 }

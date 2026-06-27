@@ -70,7 +70,9 @@ class PushMessage
         string $source = '',
         string $traceId = '',
         string $msgId = '',
-        ?string $recipientUserId = null
+        ?string $recipientUserId = null,
+        ?string $fanoutGroup = null,
+        string $fanoutScope = 'targets'
     ): array {
         $message = [
             'msg_id' => $msgId !== '' ? $msgId : self::uuid(),
@@ -87,6 +89,15 @@ class PushMessage
         $recipientUserId = $recipientUserId !== null ? trim($recipientUserId) : '';
         if ($recipientUserId !== '') {
             $message['recipient_user_id'] = $recipientUserId;
+        }
+
+        $fanoutGroup = $fanoutGroup !== null ? trim($fanoutGroup) : '';
+        if ($fanoutGroup !== '') {
+            $message['fanout_group'] = $fanoutGroup;
+        }
+
+        if ($fanoutScope !== '' && $fanoutScope !== 'targets') {
+            $message['fanout_scope'] = $fanoutScope;
         }
 
         return $message;

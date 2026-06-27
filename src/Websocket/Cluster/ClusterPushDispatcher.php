@@ -59,11 +59,11 @@ class ClusterPushDispatcher implements PushDispatcherInterface
 
     public function pushEventToGroup(Server $server, string $group, string $event, $data = []): int
     {
-        return ClusterPushBus::publishToGroup($group, $event, $data, $server);
+        return ClusterPushBus::publishToGroup($group, $event, $data, $server)->reportedHitCount();
     }
 
     public function broadcastEvent(Server $server, string $event, $data = []): int
     {
-        return ClusterPushBus::publishBroadcast($event, $data, $server);
+        return ClusterPushBus::publishBroadcast($event, $data, $server)->reportedHitCount();
     }
 }

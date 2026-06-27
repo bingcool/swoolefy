@@ -20,22 +20,26 @@ class ClusterPushBus
     /**
      * 向小组下所有连接扇出推送（跨节点）。
      *
-     * @param Server|null $localServer 非 null 时本节点 targets 直推，减少 Redis 往返
-     *
-     * @return int 命中的连接数（含远端节点上的 targets 数量）
+     * @return PushFanoutResult 扇出结果（离线落库见 OfflineMessageCoordinator）
      */
-    public static function publishToGroup(string $group, string $event, $data = [], ?Server $localServer = null): int
+    public static function publishToGroup(string $group, string $event, $data = [], ?Server $localServer = null): PushFanoutResult
     {
         self::assertClusterEnabled();
 
-        // group:{group} Set → conn_id 列表 → pipeline 批量查 meta
-        return self::fanoutByConnIds(
+        $result = self::fanoutByConnIds(
             RedisConnectionRegistry::getConnIdsByGroup($group),
             $event,
             $data,
             $localServer,
-            self::resolveSource($localServer)
-        )->reportedHitCount();
+            self::resolveSource($localServer),
+            null,
+            'group',
+            $group
+        );
+        $result->fanoutScope = 'group';
+        $result->fanoutGroup = $group;
+
+        return $result;
     }
 
     /**
@@ -48,48 +52,50 @@ class ClusterPushBus
         self::assertClusterEnabled();
         self::assertNonEmptyUserId($userId);
 
-        // user:{user_id} Set → conn_id 列表（支持多端同时在线）
-        return self::fanoutByConnIds(
+        $result = self::fanoutByConnIds(
             RedisConnectionRegistry::getConnIdsByUser($userId),
             $event,
             $data,
             $localServer,
             self::resolveSource($localServer),
-            $userId
+            $userId,
+            'user'
         );
+        $result->fanoutScope = 'user';
+
+        return $result;
     }
 
     /**
      * 全集群广播：向 nodes 集合中每个在线节点发一条 broadcast 指令。
      *
-     * 非 Redis 全频道广播，而是每节点一条 PushMessage，由目标节点遍历本地 Table 投递。
-     *
-     * @return int 涉及的节点数（或本节点实际 push 数 + 远端节点数）
+     * @return PushFanoutResult targetCount 为在线节点数；无节点时可用 data.offline_user_ids 落库
      */
-    public static function publishBroadcast(string $event, $data = [], ?Server $localServer = null): int
+    public static function publishBroadcast(string $event, $data = [], ?Server $localServer = null): PushFanoutResult
     {
         self::assertClusterEnabled();
 
         $source = self::resolveSource($localServer);
         $message = PushMessage::broadcast($event, $data, $source);
         $localServerId = $localServer ? ClusterNodeIdentity::getServerId() : '';
-        $count = 0;
+        $result = new PushFanoutResult();
+        $result->fanoutScope = 'broadcast';
         $remotePublishes = [];
+        $nodeIds = RedisConnectionRegistry::getAllNodeIds();
+        $result->targetCount = count($nodeIds);
 
-        // nodes Set 列出所有在线节点，每节点一条 broadcast 指令（非全频道广播）
-        foreach (RedisConnectionRegistry::getAllNodeIds() as $serverId) {
+        foreach ($nodeIds as $serverId) {
             if ($localServer !== null && $serverId === $localServerId) {
-                // Worker 内：本节点遍历本地 Table 投递
-                $count += PushDeliveryHandler::deliver($localServer, $message)->deliveredCount();
+                $result->delivered += PushDeliveryHandler::deliver($localServer, $message)->deliveredCount();
                 continue;
             }
             $remotePublishes[] = [$serverId, $message];
-            $count++;
+            $result->remoteTargetCount++;
         }
 
         RedisConnectionRegistry::publishMany($remotePublishes);
 
-        return $count;
+        return $result;
     }
 
     /**
@@ -126,15 +132,26 @@ class ClusterPushBus
         $data,
         ?Server $localServer,
         string $source,
-        ?string $recipientUserId = null
+        ?string $recipientUserId = null,
+        string $fanoutScope = 'targets',
+        ?string $fanoutGroup = null
     ): PushFanoutResult {
         $targets = self::targetsFromConnIds($connIds);
 
-        return self::fanout($targets, $event, $data, $localServer, $source, $recipientUserId);
+        return self::fanout(
+            $targets,
+            $event,
+            $data,
+            $localServer,
+            $source,
+            $recipientUserId,
+            $fanoutScope,
+            $fanoutGroup
+        );
     }
 
     /**
-     * @param array<int, array{fd:int,conn_id:string,server_id:string}> $targets
+     * @param array<int, array{fd:int,conn_id:string,server_id:string,user_id?:string}> $targets
      */
     private static function fanout(
         array $targets,
@@ -142,21 +159,24 @@ class ClusterPushBus
         $data,
         ?Server $localServer,
         string $source,
-        ?string $recipientUserId = null
+        ?string $recipientUserId = null,
+        string $fanoutScope = 'targets',
+        ?string $fanoutGroup = null
     ): PushFanoutResult {
         $result = new PushFanoutResult();
         $result->targetCount = count($targets);
+        $result->fanoutScope = $fanoutScope;
+        $result->fanoutGroup = $fanoutGroup !== null && $fanoutGroup !== '' ? $fanoutGroup : null;
+        $result->targetUserIds = self::collectTargetUserIds($targets, $recipientUserId);
         if ($targets === []) {
             return $result;
         }
 
         $localServerId = $localServer ? ClusterNodeIdentity::getServerId() : '';
-        // 同一 server_id 合并为一条 Pub/Sub 消息，减少 Redis 往返
         $grouped = [];
         foreach ($targets as $target) {
             $serverId = (string) ($target['server_id'] ?? '');
             if ($serverId === '') {
-                // meta 缺失时从 conn_id（{server_id}:{fd}）反解
                 $parsed = ClusterNodeIdentity::parseConnId((string) ($target['conn_id'] ?? ''));
                 $serverId = $parsed['server_id'];
                 $target['server_id'] = $serverId;
@@ -172,8 +192,17 @@ class ClusterPushBus
 
         $remotePublishes = [];
         foreach ($grouped as $serverId => $serverTargets) {
-            // 只传 event+data，Socket.IO 编码在投递端按 is_socketio 决定
-            $message = PushMessage::event($serverTargets, $event, $data, $source, '', '', $recipientUserId);
+            $message = PushMessage::event(
+                $serverTargets,
+                $event,
+                $data,
+                $source,
+                '',
+                '',
+                $recipientUserId,
+                $fanoutGroup,
+                $fanoutScope
+            );
             if ($localServer !== null && $serverId === $localServerId) {
                 $result->delivered += PushDeliveryHandler::deliver($localServer, $message)->deliveredCount();
                 continue;
@@ -208,13 +237,35 @@ class ClusterPushBus
                 'fd' => (int) ($meta['fd'] ?? 0),
                 'conn_id' => $connId,
                 'server_id' => (string) ($meta['server_id'] ?? ''),
+                'user_id' => (string) ($meta['user_id'] ?? ''),
             ];
         }
 
         return $targets;
     }
 
-    /** 写入 PushMessage.source，便于日志区分 Worker 推送与 HTTP/CLI 推送 */
+    /**
+     * @param array<int, array{fd:int,conn_id:string,server_id?:string,user_id?:string}> $targets
+     *
+     * @return string[]
+     */
+    private static function collectTargetUserIds(array $targets, ?string $recipientUserId): array
+    {
+        $userIds = [];
+        if ($recipientUserId !== null && trim($recipientUserId) !== '') {
+            $userIds[] = trim($recipientUserId);
+        }
+
+        foreach ($targets as $target) {
+            $userId = trim((string) ($target['user_id'] ?? ''));
+            if ($userId !== '') {
+                $userIds[] = $userId;
+            }
+        }
+
+        return array_values(array_unique($userIds));
+    }
+
     private static function resolveSource(?Server $localServer): string
     {
         return $localServer === null ? 'external' : ClusterNodeIdentity::getServerId();

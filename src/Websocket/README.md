@@ -348,10 +348,22 @@ Redis Streams 只保证「消费进程不丢」，**不保证**离线用户上�
 
 | 能力 | 说明 |
 |------|------|
-| 自动落库 | `pushToUser` / `ExternalPushPublisher::pushToUser` 命中 0 条连接 → 写入 `offline.store` |
+| 自动落库（单用户） | `pushToUser` 命中 0 条连接 → 写入 `offline.store` |
+| 自动落库（群/广播） | 群索引为空或广播无在线节点时，对 `data.offline_user_ids` 中的用户落库；投递阶段按 **user_id** 聚合，`gone` 且无任一 fd `delivered` 时落库 |
 | 上线补推 | `replay_on_reconnect=true` 时，连接 open / 换绑 user 后自动补推 pending |
 | `on_reconnect` 钩子 | 框架补推完成后回调，可刷新 badge、触发自定义同步 |
 | 客户端拉取 | `pullOfflineMessages()` / HTTP 调 `OfflineMessageCoordinator::pullPending()` |
+
+**群/广播离线成员列表**：框架 Redis 只维护**在线** conn 索引，不保存完整群成员。业务推送时需自行带上离线成员：
+
+```php
+$manager->pushEventToGroup('room:1', 'chat.group', [
+    'msg_id' => 'm-1001',
+    'offline_user_ids' => [101, 102], // 当前不在线的群成员
+]);
+// broadcast 同理：无在线节点时对 offline_user_ids 落库
+$manager->broadcastEvent('notify.system', ['body' => '...', 'offline_user_ids' => [1, 2, 3]]);
+```
 
 #### 配置 `Config/websocket.php` → `offline`
 

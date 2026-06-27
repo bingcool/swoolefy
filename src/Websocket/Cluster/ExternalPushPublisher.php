@@ -44,7 +44,10 @@ class ExternalPushPublisher
     /** 向 Redis group 索引下的所有连接扇出（跨节点） */
     public static function pushToGroup(string $group, string $event, $data = []): int
     {
-        return ClusterPushBus::publishToGroup($group, $event, $data, null);
+        $result = ClusterPushBus::publishToGroup($group, $event, $data, null);
+        OfflineMessageCoordinator::maybeStoreOfflineAfterGroupPush($group, $event, $data, $result);
+
+        return $result->reportedHitCount();
     }
 
     /**
@@ -67,6 +70,9 @@ class ExternalPushPublisher
     /** 向 nodes 集合中每个在线节点发一条 broadcast 指令 */
     public static function broadcast(string $event, $data = []): int
     {
-        return ClusterPushBus::publishBroadcast($event, $data, null);
+        $result = ClusterPushBus::publishBroadcast($event, $data, null);
+        OfflineMessageCoordinator::maybeStoreOfflineAfterBroadcastPush($event, $data, $result);
+
+        return $result->reportedHitCount();
     }
 }

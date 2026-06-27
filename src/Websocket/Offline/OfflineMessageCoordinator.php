@@ -82,26 +82,75 @@ class OfflineMessageCoordinator
     }
 
     /**
-     * Stream/本机投递后离线回补：全部 target gone（无 delivered、无 failed 待重试）时写入。
+     * pushToGroup 扇出后离线落库（小组内无在线连接时）。
+     *
+     * 业务可在 $data['offline_user_ids'] 中传入离线成员 user_id 列表。
+     *
+     * @return int 写入条数
      */
-    public static function maybeStoreOfflineAfterDelivery(array $message, PushDeliveryResult $result): ?string
+    public static function maybeStoreOfflineAfterGroupPush(
+        string $group,
+        string $event,
+        $data,
+        PushFanoutResult $result
+    ): int {
+        if (!$result->shouldStoreOfflineAtPush()) {
+            return 0;
+        }
+
+        return self::storeOfflineForUserIds(
+            self::resolveOfflineUserIdsAtPush($data, $group),
+            $event,
+            $data,
+            'pushToGroup'
+        );
+    }
+
+    /**
+     * broadcast 扇出后离线落库（集群无在线节点时）。
+     *
+     * 业务可在 $data['offline_user_ids'] 中传入需必达的用户列表。
+     *
+     * @return int 写入条数
+     */
+    public static function maybeStoreOfflineAfterBroadcastPush(string $event, $data, PushFanoutResult $result): int
     {
-        if ((string) ($message['action'] ?? '') !== PushMessage::ACTION_PUSH_EVENT) {
-            return null;
+        if (!$result->shouldStoreOfflineAtPush()) {
+            return 0;
         }
 
-        if ($result->delivered > 0 || $result->failed > 0) {
-            return null;
-        }
+        return self::storeOfflineForUserIds(
+            self::resolveOfflineUserIdsAtPush($data, ''),
+            $event,
+            $data,
+            'broadcast'
+        );
+    }
 
-        if ($result->gone === 0) {
-            return null;
+    /**
+     * 单机 pushToGroup / broadcast 按 user 聚合投递结果后落库。
+     *
+     * @param array<string, string[]> $userOutcomes user_id => outcome 列表
+     *
+     * @return int 写入条数
+     */
+    public static function maybeStoreOfflineAfterLocalFanout(string $event, $data, array $userOutcomes, string $source): int
+    {
+        return self::storeOfflineForUserOutcomes($event, $data, $userOutcomes, $source);
+    }
+
+    /**
+     * Stream/本机投递后离线回补：按 user_id 聚合，未送达且 gone 的用户写入离线表。
+     */
+    public static function maybeStoreOfflineAfterDelivery(array $message, PushDeliveryResult $result): int
+    {
+        if ($result->failed > 0 || $result->serverUnavailable || $result->duplicateSkipped || $result->invalidPayload) {
+            return 0;
         }
 
         $event = (string) ($message['event'] ?? '');
-        $userId = self::resolveRecipientUserId($message);
-        if ($userId === '') {
-            return null;
+        if ($event === '' || !self::shouldStoreEvent($event)) {
+            return 0;
         }
 
         $data = $message['data'] ?? [];
@@ -110,7 +159,12 @@ class OfflineMessageCoordinator
             WebsocketTraceContext::apply($traceId);
         }
 
-        return self::storeOfflineMessage($userId, $event, $data, 'deliveryGone');
+        return self::storeOfflineForUserOutcomes(
+            $event,
+            $data,
+            self::aggregateOutcomesByUser($message, $result),
+            'deliveryGone'
+        );
     }
 
     private static function storeOfflineMessage(string $userId, string $event, $data, string $source): ?string
@@ -138,6 +192,130 @@ class OfflineMessageCoordinator
             'source' => $source,
             'created_at' => time(),
         ]);
+    }
+
+    /**
+     * @param string[] $userIds
+     */
+    private static function storeOfflineForUserIds(array $userIds, string $event, $data, string $source): int
+    {
+        $stored = 0;
+        foreach (array_values(array_unique(array_filter($userIds, static fn (string $id): bool => trim($id) !== ''))) as $userId) {
+            if (self::storeOfflineMessage($userId, $event, $data, $source) !== null) {
+                $stored++;
+            }
+        }
+
+        return $stored;
+    }
+
+    /**
+     * @param array<string, string[]> $userOutcomes
+     */
+    private static function storeOfflineForUserOutcomes(string $event, $data, array $userOutcomes, string $source): int
+    {
+        if (!self::isEnabled() || !self::shouldStoreEvent($event)) {
+            return 0;
+        }
+
+        $stored = 0;
+        foreach ($userOutcomes as $userId => $outcomes) {
+            if (!is_array($outcomes) || !self::shouldStoreOfflineForOutcomes($outcomes)) {
+                continue;
+            }
+
+            if (self::storeOfflineMessage((string) $userId, $event, $data, $source) !== null) {
+                $stored++;
+            }
+        }
+
+        return $stored;
+    }
+
+    /**
+     * @param string[] $outcomes
+     */
+    private static function shouldStoreOfflineForOutcomes(array $outcomes): bool
+    {
+        if ($outcomes === []) {
+            return false;
+        }
+
+        if (in_array('delivered', $outcomes, true)) {
+            return false;
+        }
+
+        if (in_array('failed', $outcomes, true)) {
+            return false;
+        }
+
+        return in_array('gone', $outcomes, true);
+    }
+
+    /**
+     * @return string[]
+     */
+    private static function resolveOfflineUserIdsAtPush($data, string $group): array
+    {
+        $userIds = self::extractOfflineUserIds($data);
+        if ($userIds !== []) {
+            return $userIds;
+        }
+
+        unset($group);
+
+        return [];
+    }
+
+    /**
+     * @return string[]
+     */
+    private static function extractOfflineUserIds($data): array
+    {
+        if (!is_array($data)) {
+            return [];
+        }
+
+        $ids = $data['offline_user_ids'] ?? [];
+        if (!is_array($ids)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(array_map(
+            static fn ($id): string => trim((string) $id),
+            $ids
+        ), static fn (string $id): bool => $id !== '')));
+    }
+
+    /**
+     * @return array<string, string[]>
+     */
+    private static function aggregateOutcomesByUser(array $message, PushDeliveryResult $result): array
+    {
+        $userOutcomes = [];
+        foreach ($result->targetDetails as $detail) {
+            $userId = trim((string) ($detail['user_id'] ?? ''));
+            if ($userId === '') {
+                continue;
+            }
+
+            $userOutcomes[$userId][] = (string) ($detail['outcome'] ?? '');
+        }
+
+        if ($userOutcomes !== []) {
+            return $userOutcomes;
+        }
+
+        if ($result->delivered > 0 || $result->failed > 0 || $result->gone === 0) {
+            return [];
+        }
+
+        $userId = self::resolveRecipientUserId($message);
+        if ($userId !== '') {
+            return [$userId => ['gone']];
+        }
+
+        return [];
     }
 
     private static function resolveRecipientUserId(array $message): string

@@ -14,7 +14,8 @@ namespace Swoolefy\Websocket\Offline;
  *
  * ## 调用时机
  *
- * - **写入**：`pushToUser` / `ExternalPushPublisher::pushToUser` 命中 0 条连接
+ * - **写入（单用户）**：`pushToUser` 命中 0 条连接
+ * - **写入（群/广播）**：推送时 target 为空 → `data['offline_user_ids']`；投递时按 user 聚合，仅 `gone` 且无同用户 `delivered` 时写入
  * - **读取**：上线补推（`replay_on_reconnect`）或客户端/HTTP 主动拉取
  * - **ACK**：补推成功 / 客户端确认消费后 `markDelivered`
  *

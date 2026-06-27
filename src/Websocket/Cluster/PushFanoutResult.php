@@ -17,6 +17,14 @@ class PushFanoutResult
 
     public int $targetCount = 0;
 
+    /** user | group | targets | broadcast */
+    public string $fanoutScope = 'targets';
+
+    public ?string $fanoutGroup = null;
+
+    /** @var string[] 扇出时索引命中的 user_id（去重） */
+    public array $targetUserIds = [];
+
     /** 推送时是否应写入离线表（索引中无任何可路由连接） */
     public function shouldStoreOfflineAtPush(): bool
     {
