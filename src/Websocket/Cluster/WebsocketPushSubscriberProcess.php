@@ -15,6 +15,8 @@ use Swoolefy\Core\Process\AbstractProcess;
  * - delivery_process_num>1 时本进程只 SUBSCRIBE + RPUSH 本地 List，由 DeliveryProcess BRPOP
  *
  * transport=streams（默认）时请使用 WebsocketPushStreamConsumerProcess。
+ *
+ * SUBSCRIBE 循环使用 goApp，RPUSH 本地队列 / 直推时 Redis 走 EventController 协程单例。
  */
 class WebsocketPushSubscriberProcess extends AbstractProcess
 {
@@ -25,7 +27,8 @@ class WebsocketPushSubscriberProcess extends AbstractProcess
         }
 
         $channel = ClusterConfig::pushChannelForServer(ClusterNodeIdentity::getServerId());
-        \Swoole\Coroutine::create(function () use ($channel) {
+        // SUBSCRIBE 回调内 enqueue/deliver 会 execute()，须 goApp 绑定 EventController
+        goApp(function () use ($channel) {
             while (true) {
                 try {
                     // 断线后自动重连，保证推送总线可用
