@@ -53,6 +53,7 @@ class WebsocketConnectionManager
                     ['last_active_at', 'int', 8],
                     ['is_socketio', 'int', 1],
                     ['is_polling', 'int', 1],
+                    ['socketio_namespaces', 'string', 512],
                     // 全局连接 ID：{server_id}:{fd}，集群模式下用于 Redis 索引
                     ['conn_id', 'string', 160],
                 ],
@@ -101,6 +102,7 @@ class WebsocketConnectionManager
             'last_active_at' => $now,
             'is_socketio' => $isSocketIo,
             'is_polling' => $isPolling,
+            'socketio_namespaces' => (string) ($options['socketio_namespaces'] ?? ''),
             'conn_id' => $connId,
         ];
         self::setConnection($fd, $connection);
@@ -123,6 +125,9 @@ class WebsocketConnectionManager
 
     /**
      * 注册 polling transport 会话（虚拟 fd，HTTP 请求结束后 fd 不持久）。
+     *
+     * 虚拟 fd ≥ 0x40000000，push 走 SocketIOSessionManager 出站队列而非 server->push。
+     * namespace 在后续 POST `40/ns,` 时写入 socketio_namespaces。
      */
     public static function openPolling(Request $request, array $options = []): void
     {
@@ -150,6 +155,7 @@ class WebsocketConnectionManager
             'last_active_at' => $now,
             'is_socketio' => 1,
             'is_polling' => 1,
+            'socketio_namespaces' => '',
             'conn_id' => $connId,
         ];
         self::setConnection($virtualFd, $connection);
@@ -383,6 +389,11 @@ class WebsocketConnectionManager
         return self::tableGet(self::TABLE_CONNECTIONS, (string) $fd) ?: null;
     }
 
+    public static function updateConnection(int $fd, array $connection): void
+    {
+        self::setConnection($fd, $connection);
+    }
+
     public static function getConnIdByFd(int $fd): string
     {
         $connection = self::getConnection($fd);
@@ -478,15 +489,32 @@ class WebsocketConnectionManager
      * - Socket.IO 连接：42["event",{...}]
      * - 普通 WebSocket：统一 JSON 响应格式
      */
-    public static function encodeEventPayload(int $fd, string $event, $data = []): string
+    public static function encodeEventPayload(int $fd, string $event, $data = [], string $namespace = '/'): string
+    {
+        $frames = self::encodeEventFrames($fd, $event, $data, $namespace);
+
+        return (string) ($frames[0][0] ?? '');
+    }
+
+    /**
+     * 编码出站帧；Socket.IO 连接自动解析 push namespace 与二进制附件。
+     *
+     * @return array<int, array{0: string, 1: int}>
+     */
+    public static function encodeEventFrames(int $fd, string $event, $data = [], string $namespace = '/'): array
     {
         $payloadData = is_array($data) ? $data : ['value' => $data];
         $connection = self::getConnection($fd);
         if (!empty($connection['is_socketio'])) {
-            return SocketIOPacket::event($event, [$payloadData]);
+            // push 可通过 data.namespace / data._socketio.namespace 指定目标 ns
+            if ($namespace === '/') {
+                $namespace = SocketIO\SocketIONamespaceRegistry::resolvePushNamespace($payloadData);
+            }
+
+            return SocketIOPacket::encodeEventFrames($event, [$payloadData], $namespace);
         }
 
-        return WebsocketResponse::event($event, $payloadData);
+        return [[WebsocketResponse::event($event, $payloadData), WEBSOCKET_OPCODE_TEXT]];
     }
 
     public static function pushEventToFd(Server $server, int $fd, string $event, $data = []): bool
@@ -518,6 +546,7 @@ class WebsocketConnectionManager
     public static function deliverEventToFdLocallyDetailed(Server $server, int $fd, string $event, $data = []): string
     {
         $connection = self::getConnection($fd);
+        // polling 虚拟 fd：无 WebSocket，写入 sid 队列由 long-poll 取走
         if (!empty($connection['is_polling'])) {
             return self::deliverEventToPollingFd($fd, $event, $data);
         }
@@ -531,9 +560,25 @@ class WebsocketConnectionManager
             return 'skipped';
         }
 
-        return $server->push($fd, self::encodeEventPayload($fd, $event, $data), WEBSOCKET_OPCODE_TEXT)
+        return self::pushEncodedFrames($server, $fd, self::encodeEventFrames($fd, $event, $data))
             ? 'delivered'
             : 'failed';
+    }
+
+    /**
+     * 二进制 event 可能多帧：逐帧 push，任一失败则整次投递失败。
+     *
+     * @param array<int, array{0: string, 1: int}> $frames
+     */
+    private static function pushEncodedFrames(Server $server, int $fd, array $frames): bool
+    {
+        foreach ($frames as [$payload, $opcode]) {
+            if (!$server->push($fd, $payload, $opcode)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -559,9 +604,12 @@ class WebsocketConnectionManager
         }
 
         $payloadData = is_array($data) ? $data : ['value' => $data];
-        $packet = SocketIOPacket::event($event, [$payloadData]);
+        $namespace = SocketIO\SocketIONamespaceRegistry::resolvePushNamespace($payloadData);
+        // polling 无法发 BINARY 帧，二进制会编码为 `b<base64>` 块拼进 batch
+        $chunks = SocketIOPacket::encodeEventPollingChunks($event, [$payloadData], $namespace);
+        $batch = SocketIOPacket::encodeBatch($chunks);
 
-        return SocketIO\SocketIOSessionManager::enqueueOutbound($sid, $packet) ? 'delivered' : 'failed';
+        return SocketIO\SocketIOSessionManager::enqueueOutbound($sid, $batch) ? 'delivered' : 'failed';
     }
 
     public static function deliverEventToFdLocally(Server $server, int $fd, string $event, $data = []): bool

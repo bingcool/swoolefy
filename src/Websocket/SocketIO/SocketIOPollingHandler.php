@@ -41,6 +41,7 @@ class SocketIOPollingHandler
         $sid = (string) ($request->get['sid'] ?? '');
         $method = strtoupper((string) ($request->server['request_method'] ?? 'GET'));
 
+        // 无 sid 的 GET：Engine 握手，分配 sid + 虚拟 fd
         if ($sid === '' && $method === 'GET') {
             self::handleHandshake($request, $response, $config);
 
@@ -62,6 +63,7 @@ class SocketIOPollingHandler
         self::reject($response, 400, 'Invalid Socket.IO polling request');
     }
 
+    /** 首次 GET：鉴权 → 虚拟 fd 注册 → 返回 `0{sid,upgrades:[websocket]}` */
     private static function handleHandshake(Request $request, Response $response, array $config): void
     {
         $auth = WebsocketAuthenticator::authenticate($request, $config);
@@ -93,6 +95,7 @@ class SocketIOPollingHandler
         );
     }
 
+    /** long-poll GET：阻塞等待出站队列，超时返回空 body（Engine.IO 正常行为） */
     private static function handlePoll(Request $request, Response $response, array $config, string $sid): void
     {
         if (!SocketIOSessionManager::hasSession($sid)) {
@@ -109,6 +112,7 @@ class SocketIOPollingHandler
         self::sendPollingResponse($response, SocketIOPacket::encodeBatch($packets));
     }
 
+    /** POST：客户端上行包（可含 `b<base64>` 二进制块），同步返回 ack/响应包 */
     private static function handlePost(Request $request, Response $response, array $config, string $sid): void
     {
         if (!SocketIOSessionManager::hasSession($sid)) {
@@ -121,11 +125,8 @@ class SocketIOPollingHandler
         WebsocketConnectionManager::touch($virtualFd);
 
         $outbound = [];
-        foreach (SocketIOPacket::decodeBatch((string) $request->rawContent()) as $raw) {
-            $outbound = array_merge(
-                $outbound,
-                SocketIOHandler::handleInbound($virtualFd, $raw, $config, null)
-            );
+        foreach (SocketIOHandler::handleInboundPollingBatch($virtualFd, (string) $request->rawContent(), $config) as $packet) {
+            $outbound[] = $packet;
         }
 
         self::sendPollingResponse($response, SocketIOPacket::encodeBatch($outbound));

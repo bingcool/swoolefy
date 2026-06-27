@@ -523,15 +523,10 @@ ws.onmessage = (e) => {
 | **websocket** | 默认；低延迟，生产推荐 |
 | **long-polling** | HTTP GET/POST；需 `accept_http=true` + `socketio.allow_polling=true` |
 | **upgrade** | polling 握手后可 `transport=websocket&sid=...` 升级到 WebSocket |
+| **多 namespace** | 同一 Engine 连接可 `40` / `40/chat,` 注册多个 namespace |
+| **二进制附件** | `451-[...]` + WebSocket BINARY 帧；polling 用 `b<base64>` |
 
-#### 限制
-
-- Engine.IO v4；默认 namespace `/`
-- **无二进制附件**（Engine.IO binary packet 未实现）
-- long-polling 多 Worker 需负载均衡 **会话粘性**（同一 sid 落到同一 Worker）
-- 弱网/大文件场景请评估是否满足需求
-
-#### 配置
+#### 配置示例
 
 ```php
 // Protocol/conf.php
@@ -539,8 +534,49 @@ ws.onmessage = (e) => {
 
 // Config/socketio.php
 'allow_polling' => true,
-'poll_timeout' => 25,
-'transports' => ['websocket', 'polling'],
+'allowed_namespaces' => ['*'],  // 或 ['/', '/chat', '/admin']
+'namespaces' => [
+    '/admin' => [
+        'event_routes' => [
+            'admin.broadcast' => 'Service/Admin/Broadcast',
+        ],
+    ],
+],
+```
+
+#### 多 namespace 用法
+
+```javascript
+const chat = io('http://127.0.0.1:9508/chat', { path: '/socket.io/' });
+const admin = io('http://127.0.0.1:9508/admin', { path: '/socket.io/' });
+chat.emit('chat.send', { group: 'public', message: 'hi' });
+admin.emit('admin.broadcast', { msg: 'system notice' });
+```
+
+服务端 push 指定 namespace：
+
+```php
+$data = ['namespace' => '/chat', 'message' => 'hello'];
+$server->pushToUser($userId, 'chat.message', $data);
+// 或 $data['_socketio']['namespace'] = '/chat';
+```
+
+`41`（namespace disconnect）仅断开该 namespace，不影响同连接其它 namespace。
+
+#### 二进制附件
+
+客户端 emit 带 `ArrayBuffer`/`Blob` 时 socket.io-client 自动走 binary event。
+服务端 push 可用显式包装：
+
+```php
+use Swoolefy\Websocket\SocketIO\SocketIOBinaryData;
+
+$data = [
+    'namespace' => '/chat',
+    'filename' => 'photo.jpg',
+    'content' => SocketIOBinaryData::wrap($rawBytes),
+];
+$server->pushToUser($userId, 'file.message', $data);
 ```
 
 #### 事件路由链

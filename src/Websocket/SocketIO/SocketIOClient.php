@@ -49,10 +49,16 @@ use Swoolefy\Exception\SystemException;
  *
  * ## 与浏览器客户端的差异
  *
- * - 仅实现 **WebSocket transport**，不走 HTTP long-polling
- * - 默认 namespace `/`；自定义 namespace 通过 `connect(..., $namespace)` 传入
- * - `recv()` / `emitWithAck()` 内自动回复 Engine.IO ping，调用方无需处理 `2`/`3`
- * - 未实现 Socket.IO 重连、二进制附件、多 namespace 并发
+ * - 仅实现 **WebSocket transport**（不走 HTTP long-polling；服务端见 SocketIOPollingHandler）
+ * - 单连接单 namespace：`connect(..., $namespace)` 发一次 `40`；多 ns 需多次 connect 或多个实例
+ * - `recv()` / `emitWithAck()` 内自动回复 Engine.IO ping
+ * - 未实现二进制 emit、Socket.IO 自动重连
+ *
+ * ## 服务端已支持（本客户端暂未封装）
+ *
+ * - 多 namespace 并发（`40/chat,` + `40/admin,`）
+ * - 二进制附件（`SocketIOBinaryData::wrap` + `encodeEventFrames`）
+ * - long-polling transport
  *
  * ## 连接参数
  *
@@ -181,7 +187,7 @@ class SocketIOClient
     public function emitWithAck(string $event, array $args = [], ?float $timeout = null): array
     {
         $id = (string) (++$this->ackSeq);
-        // 42 + ackId + JSON，例如 421["chat.send",{"group":"public"}]
+        // 421["event",{}]：Socket.IO event(2) + ackId(1) + JSON 数组
         $this->sendRaw(SocketIOPacket::ENGINE_MESSAGE . SocketIOPacket::SOCKET_EVENT . $id . json_encode(array_merge([$event], $args), JSON_UNESCAPED_UNICODE));
 
         $deadline = microtime(true) + ($timeout ?? $this->timeout);
