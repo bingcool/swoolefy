@@ -56,8 +56,24 @@ namespace Swoolefy\Websocket\Cluster;
  * - **streams（默认）**：`PushStreamPublisher` → XADD `{prefix}push:stream:{server_id}`
  * - **pubsub**：PUBLISH `ws:push:{APP}:{server_id}` 频道
  *
+ * ## 与离线必达的关系
+ *
+ * 本注册表**只维护在线连接**的反向索引，不保存群成员全量列表：
+ *
+ * - `getConnIdsByUser` / `getConnIdsByGroup` 返回空 → 仅表示 Redis 中无在线 conn
+ * - 离线用户列表需业务在 push `data.offline_user_ids` 中传入（见 OfflineMessageCoordinator）
+ * - 索引中仍有 conn 但本地 fd 已断开 → **僵尸索引**，投递 gone 后由离线协调器回补
+ *
+ * ## 索引一致性与僵尸 conn
+ *
+ * - **双写**：本地 Swoole\Table 为权威状态；Redis 供跨节点查询，由 Coordinator 同步
+ * - **TTL + alive ZSET**：conn Hash 带 EXPIRE；touch 刷新 score，cleanupExpired 扫超时 member
+ * - **unregister 幂等**：Hash 已不存在时仍 zRem alive，避免重复 onClose 遗留 ZSET 条目
+ * - **nodes 集合**：node 下 conn 清空时移除 server_id，防止 broadcast 扇出到已下线节点
+ *
  * @see ClusterConnectionCoordinator  双写协调（Table + Redis）
  * @see ClusterPushBus                读索引并扇出推送
+ * @see OfflineMessageCoordinator     索引为空 / gone 时的离线落库
  * @see ClusterConfig::keyPrefix()
  */
 class RedisConnectionRegistry
@@ -98,6 +114,7 @@ class RedisConnectionRegistry
             $redis->zAdd(self::aliveKey(), $lastActiveAt, $connId);
 
             if ($userId !== '') {
+                // user Set 仅存 conn_id；pushToUser 先 SMEMBERS 再 getConnectionMetaMany pipeline
                 $redis->sAdd(self::userKey($userId), $connId);
             }
         });
@@ -114,6 +131,7 @@ class RedisConnectionRegistry
         self::execute(function ($redis) use ($connId) {
             $meta = $redis->hGetAll(self::connKey($connId));
             if (!is_array($meta) || empty($meta)) {
+                // Hash 已被 TTL 清掉或重复 onClose：至少清理 alive，避免 ZSET 无限增长
                 $redis->zRem(self::aliveKey(), $connId);
 
                 return;
@@ -136,6 +154,7 @@ class RedisConnectionRegistry
 
             if ($serverId !== '') {
                 $redis->sRem(self::nodeConnsKey($serverId), $connId);
+                // 节点下最后一个 conn 断开 → 从 nodes 移除，broadcast 不再扇出到此节点
                 if ((int) $redis->sCard(self::nodeConnsKey($serverId)) === 0) {
                     $redis->sRem(self::nodesKey(), $serverId);
                 }
@@ -145,6 +164,9 @@ class RedisConnectionRegistry
 
     /**
      * 绑定或切换用户：更新 conn Hash 的 user_id，并维护 user Set 索引。
+     *
+     * 匿名 → 登录、换号时由 Coordinator 调用；旧 user Set 必须 sRem，否则 pushToUser
+     * 仍会扇出到已换绑用户的 conn_id。
      *
      * @param string $oldUserId 换绑前的 user_id，非空且与 $userId 不同时从旧 Set 移除
      */
@@ -167,6 +189,8 @@ class RedisConnectionRegistry
     /**
      * 加入小组：更新 conn Hash 的 groups JSON，并向 group Set 添加 conn_id。
      *
+     * group Set 与 user Set 同理，只索引**当前在线** conn；离线群成员不在此维护。
+     *
      * @param string $groupsJson 完整 groups 数组的 JSON，由调用方（Table）维护后传入
      */
     public static function joinGroup(string $connId, string $group, string $groupsJson): void
@@ -180,6 +204,8 @@ class RedisConnectionRegistry
 
     /**
      * 离开小组：更新 groups JSON，并从 group Set 移除 conn_id。
+     *
+     * groupsJson 由本地 Table 维护完整列表后传入，Redis 不单独维护 group 成员表。
      */
     public static function leaveGroup(string $connId, string $group, string $groupsJson): void
     {
@@ -207,6 +233,8 @@ class RedisConnectionRegistry
     /**
      * 查询用户下所有 conn_id（pushToUser 扇出的第一步）。
      *
+     * 返回空数组 ≠ 用户不存在，仅表示当前无在线连接；离线落库走 push 阶段或 gone 回补。
+     *
      * @return string[]
      */
     public static function getConnIdsByUser(string $userId): array
@@ -220,6 +248,8 @@ class RedisConnectionRegistry
 
     /**
      * 查询小组下所有 conn_id（pushToGroup 扇出的第一步）。
+     *
+     * 返回空数组时 pushToGroup 无法在推送阶段送达，需业务传 data.offline_user_ids。
      *
      * @return string[]
      */
@@ -276,7 +306,8 @@ class RedisConnectionRegistry
             $result = [];
             foreach ($rows as $key => $meta) {
                 $connId = $keyToConnId[$key] ?? '';
-                if ($connId !== '') {
+                // Hash 为空 = TTL 过期或已 unregister；ClusterPushBus 会跳过，不当作有效 target
+                if ($connId !== '' && is_array($meta) && $meta !== []) {
                     $result[$connId] = $meta;
                 }
             }
@@ -287,6 +318,9 @@ class RedisConnectionRegistry
 
     /**
      * 获取当前有连接的在线节点 server_id 列表（broadcast 扇出用）。
+     *
+     * 返回空 → ClusterPushBus::publishBroadcast 的 targetCount=0，
+     * 推送阶段可对 data.offline_user_ids 落库。
      *
      * @return string[]
      */
@@ -326,6 +360,7 @@ class RedisConnectionRegistry
                     continue;
                 }
 
+                // 与 unregister() 相同：先读 Hash 清理 user/group/node 反向索引，再删 conn + alive
                 $meta = $redis->hGetAll(self::connKey($connId));
                 if (is_array($meta) && !empty($meta)) {
                     $serverId = (string) ($meta['server_id'] ?? '');
@@ -416,7 +451,7 @@ class RedisConnectionRegistry
         });
     }
 
-    /** 在 Worker 复用 Redis 连接上执行命令（失败自动重连） */
+    /** 在 Worker 协程内复用 Redis 连接执行命令（ClusterRedisClient 按协程单例，失败自动重连） */
     private static function execute(callable $callback)
     {
         return ClusterRedisClient::execute($callback);
@@ -458,7 +493,7 @@ class RedisConnectionRegistry
         return ClusterConfig::keyPrefix() . 'alive';
     }
 
-    /** 将 conn Hash 中的 groups JSON 字符串解析为小组名数组 */
+    /** 将 conn Hash 中的 groups JSON 解析为数组；unregister / cleanupExpired 据此清理 group Set */
     private static function decodeGroups(string $groups): array
     {
         $items = $groups === '' ? [] : json_decode($groups, true);
