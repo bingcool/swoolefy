@@ -17,9 +17,11 @@ use Swoolefy\Websocket\WebsocketConnectionManager;
  * ## 完整链路
  *
  * ```
- * [发送] pushToUser / ExternalPushPublisher::pushToUser
- *          ↓ 索引无连接 → maybeStoreOfflineAfterPush()
- *          ↓ 僵尸索引投递 gone → maybeStoreOfflineAfterDelivery()
+ * [发送] pushToUser / pushToGroup / broadcast
+ *          ↓ targetCount=0（索引无连接/无在线节点）
+ *        maybeStoreOfflineAfter*Push() → 读 data.offline_user_ids 落库
+ *          ↓ 有连接但 Redis 索引过期（僵尸 conn）
+ *        maybeStoreOfflineAfterDelivery() → 按 user_id 聚合 gone 落库
  *        store() → OfflineMessageStoreInterface
  *
  * [上线] WebsocketConnectionManager::open() / bindUser()
@@ -32,6 +34,13 @@ use Swoolefy\Websocket\WebsocketConnectionManager;
  *          ↓ 客户端展示后
  *        ackDelivered() → markDelivered
  * ```
+ *
+ * ## 群/广播离线要点
+ *
+ * - Redis 只维护**在线** conn 索引，完整群成员由业务在 `data.offline_user_ids` 中传入
+ * - 推送阶段：`PushFanoutResult::targetCount === 0` 才落库（有在线连接则等投递结果）
+ * - 投递阶段：同一 user 多 fd 时，任一 fd `delivered` 即视为已送达，不再落库
+ * - `failed` / `serverUnavailable` 时不落库：前者可能临时故障需 PEL 重试，后者消费进程未就绪
  *
  * ## 配置项（Config/websocket.php → offline）
  *
@@ -141,9 +150,14 @@ class OfflineMessageCoordinator
 
     /**
      * Stream/本机投递后离线回补：按 user_id 聚合，未送达且 gone 的用户写入离线表。
+     *
+     * 与推送阶段互补：索引命中但 fd 已断开（僵尸 conn）时在此落库。
+     * failed/serverUnavailable 跳过：与 Streams PEL 重试策略一致，避免重复落库。
      */
     public static function maybeStoreOfflineAfterDelivery(array $message, PushDeliveryResult $result): int
     {
+        // failed：fd 在线但 push 失败，PEL 会重试，不应提前写离线表
+        // serverUnavailable：Worker 未就绪，留 PEL 重投后再判
         if ($result->failed > 0 || $result->serverUnavailable || $result->duplicateSkipped || $result->invalidPayload) {
             return 0;
         }
@@ -233,6 +247,10 @@ class OfflineMessageCoordinator
     }
 
     /**
+     * 多 fd / 多 outcome 聚合后的落库判定。
+     *
+     * 规则：有 delivered → 已送达；有 failed → 等 PEL 重试；仅 gone → 写离线表。
+     *
      * @param string[] $outcomes
      */
     private static function shouldStoreOfflineForOutcomes(array $outcomes): bool
@@ -253,6 +271,10 @@ class OfflineMessageCoordinator
     }
 
     /**
+     * 推送阶段解析离线用户列表。
+     *
+     * 框架 Redis 无群成员表，targetCount=0 时只能依赖业务传入 offline_user_ids。
+     *
      * @return string[]
      */
     private static function resolveOfflineUserIdsAtPush($data, string $group): array
@@ -268,6 +290,8 @@ class OfflineMessageCoordinator
     }
 
     /**
+     * 从 push data 解析业务传入的离线用户列表。
+     *
      * @return string[]
      */
     private static function extractOfflineUserIds($data): array
@@ -288,6 +312,11 @@ class OfflineMessageCoordinator
     }
 
     /**
+     * 将 PushDeliveryResult.targetDetails 按 user_id 分组。
+     *
+     * group/broadcast 一次推送含多个 fd，必须按用户聚合后再判是否落库。
+     * 无 targetDetails 时回退 recipient_user_id（pushToUser 单用户场景）。
+     *
      * @return array<string, string[]>
      */
     private static function aggregateOutcomesByUser(array $message, PushDeliveryResult $result): array

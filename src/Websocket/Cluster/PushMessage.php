@@ -43,6 +43,13 @@ namespace Swoolefy\Websocket\Cluster;
  * Streams 模式下整包 JSON 存入 Stream 字段 `payload`。
  * `msg_id` 用于对账；`cluster.push.dedup.enable=true` 时框架用 Redis SET+TTL 去重（防 XAUTOCLAIM 重投）。
  *
+ * ## 离线回补字段（push_event 可选）
+ *
+ * - `recipient_user_id`：pushToUser 单用户扇出，投递后 gone 时回退定位用户
+ * - `fanout_scope`：user | group | broadcast，区分扇出类型
+ * - `fanout_group`：pushToGroup 时的 group 名（日志/排查用）
+ * - `data.offline_user_ids`：推送阶段 targetCount=0 时的离线用户列表（业务传入）
+ *
  * @see PushStreamPublisher
  * @see PushDedupStore
  * @see PushDeliveryHandler
@@ -62,6 +69,9 @@ class PushMessage
      * @param string                                      $source  来源 server_id 或 "external"
      * @param string                                      $traceId 链路 trace；空则自动生成
      * @param string                                      $msgId   推送指令 ID；空则自动生成（去重 / 对账用）
+     * @param string|null                                 $recipientUserId pushToUser 时写入消息体，供投递后离线回补
+     * @param string|null                                 $fanoutGroup     pushToGroup 时的 group 标识
+     * @param string                                      $fanoutScope     user|group|broadcast|targets
      */
     public static function event(
         array $targets,
@@ -88,6 +98,7 @@ class PushMessage
 
         $recipientUserId = $recipientUserId !== null ? trim($recipientUserId) : '';
         if ($recipientUserId !== '') {
+            // pushToUser：Stream 跨节点投递时 targets 可能缺 user_id，靠此字段离线回补
             $message['recipient_user_id'] = $recipientUserId;
         }
 
@@ -97,6 +108,7 @@ class PushMessage
         }
 
         if ($fanoutScope !== '' && $fanoutScope !== 'targets') {
+            // 区分扇出类型，便于投递层日志与离线 source 追溯
             $message['fanout_scope'] = $fanoutScope;
         }
 

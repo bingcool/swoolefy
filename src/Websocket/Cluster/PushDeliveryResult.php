@@ -113,6 +113,18 @@ class PushDeliveryResult
         }
     }
 
+    /**
+     * 记录单 fd 投递结果，并写入 targetDetails 供离线按 user_id 聚合。
+     *
+     * group/broadcast 一次指令含多个 fd，OfflineMessageCoordinator 依赖此明细
+     * 判断「同一用户任一设备 delivered 则跳过落库」。
+     */
+    /**
+     * 记录单 fd 投递结果，并写入 targetDetails 供离线按 user_id 聚合。
+     *
+     * group/broadcast 一次指令含多个 fd，OfflineMessageCoordinator 依赖此明细
+     * 判断「某用户全部 gone 且无 delivered」时才落库。
+     */
     public function recordTargetOutcome(int $fd, string $connId, string $userId, string $outcome): void
     {
         $this->recordOutcome($outcome);

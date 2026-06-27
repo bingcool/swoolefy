@@ -11,6 +11,7 @@ use Swoolefy\Websocket\WebsocketConnectionManager;
  * 单机模式推送分发器（cluster.enable=false 时使用）。
  *
  * 仅查询本地 Swoole\Table，不访问 Redis，适用于单节点部署或开发环境。
+ * 群/广播离线逻辑与集群一致：无连接 → offline_user_ids；有连接 → 按 user 聚合 gone。
  *
  * @see ClusterPushDispatcher  集群模式对应实现
  */
@@ -50,6 +51,7 @@ class LocalPushDispatcher implements PushDispatcherInterface
         }
 
         if ($fds === []) {
+            // 本地无在线 fd：构造 targetCount=0 的 FanoutResult，触发 offline_user_ids 落库
             OfflineMessageCoordinator::maybeStoreOfflineAfterGroupPush(
                 $group,
                 $event,
@@ -57,6 +59,7 @@ class LocalPushDispatcher implements PushDispatcherInterface
                 self::emptyFanoutResult()
             );
         } else {
+            // 有在线 fd：按 user_id 聚合各 fd outcome，gone 且无 delivered 的用户落库
             OfflineMessageCoordinator::maybeStoreOfflineAfterLocalFanout($event, $data, $userOutcomes, 'pushToGroup');
         }
 
@@ -87,12 +90,14 @@ class LocalPushDispatcher implements PushDispatcherInterface
         }
 
         if ($userOutcomes === []) {
+            // 本节点零连接：与集群 broadcast targetCount=0 语义对齐
             OfflineMessageCoordinator::maybeStoreOfflineAfterBroadcastPush(
                 $event,
                 $data,
                 self::emptyFanoutResult()
             );
         } else {
+            // 有在线用户：仅 gone 且无同用户 delivered 的写入离线表
             OfflineMessageCoordinator::maybeStoreOfflineAfterLocalFanout($event, $data, $userOutcomes, 'broadcast');
         }
 
@@ -100,6 +105,8 @@ class LocalPushDispatcher implements PushDispatcherInterface
     }
 
     /**
+     * 将单 fd 投递 outcome 归入 userOutcomes[user_id][]，供多设备聚合判离线。
+     *
      * @param array<string, string[]> $userOutcomes
      */
     private static function recordLocalOutcome(array &$userOutcomes, int $fd, string $outcome): void

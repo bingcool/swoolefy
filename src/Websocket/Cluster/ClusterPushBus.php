@@ -14,6 +14,12 @@ use Swoole\WebSocket\Server;
  * 4. 其余节点 → XADD Stream（默认）或 PUBLISH（pubsub），由推送消费进程投递
  *
  * $localServer=null 表示外部进程：全部走 Redis，不调用 server->push()。
+ *
+ * ## 离线相关
+ *
+ * - fanout() 远端只累加 remoteTargetCount，不计入 delivered（P0-1 修复虚高）
+ * - publishBroadcast 的 targetCount = 在线节点数；为 0 时业务传 offline_user_ids
+ * - PushMessage 携带 recipient_user_id / fanout_scope / fanout_group 供投递后离线回补
  */
 class ClusterPushBus
 {
@@ -82,6 +88,7 @@ class ClusterPushBus
         $result->fanoutScope = 'broadcast';
         $remotePublishes = [];
         $nodeIds = RedisConnectionRegistry::getAllNodeIds();
+        // broadcast 的 targetCount 语义是「在线节点数」，非连接数；0 节点 → 推送阶段离线落库
         $result->targetCount = count($nodeIds);
 
         foreach ($nodeIds as $serverId) {
@@ -90,6 +97,7 @@ class ClusterPushBus
                 continue;
             }
             $remotePublishes[] = [$serverId, $message];
+            // 每节点一条 broadcast 指令，remoteTargetCount 表示已排队节点数
             $result->remoteTargetCount++;
         }
 
@@ -204,9 +212,11 @@ class ClusterPushBus
                 $fanoutScope
             );
             if ($localServer !== null && $serverId === $localServerId) {
+                // 本节点直推：delivered 为真实 push 成功数
                 $result->delivered += PushDeliveryHandler::deliver($localServer, $message)->deliveredCount();
                 continue;
             }
+            // 远端仅 XADD 排队；计入 remoteTargetCount，**不加** delivered（P0-1 修复点）
             $remotePublishes[] = [$serverId, $message];
             $result->remoteTargetCount += count($serverTargets);
         }
@@ -241,6 +251,7 @@ class ClusterPushBus
             ];
         }
 
+        // user_id 写入 target，供 fanout 统计 targetUserIds 及投递后按用户聚合离线
         return $targets;
     }
 
