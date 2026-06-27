@@ -112,7 +112,7 @@
     <h1>Swoolefy WebSocket Socket.IO 测试页</h1>
     <div class="hint">
         先启动示例应用：<code>SWOOLEFY_CLI_ENV=dev php cli.php start WebsocketService</code><br>
-        本页通过 <code>socket.io-client</code> 连接后端，必须使用 <code>transports: ['websocket']</code>。<br>
+        本页通过 <code>socket.io-client</code> 连接后端（默认 polling → websocket upgrade）。需 <code>accept_http=true</code> + <code>allow_polling=true</code>。<br>
         事件映射见示例应用 <code>WebsocketService/Config/socketio.php</code>：
         <code>group.join</code> → <code>Service/Chat/JoinGroup</code>，
         <code>chat.send</code> → <code>Service/Chat/Send</code>。
@@ -235,10 +235,9 @@
             token: $('token').value.trim(),
         };
 
-        log('connecting', { url, path: '/socket.io/', transports: ['websocket'], query });
+        log('connecting', { url, path: '/socket.io/', query });
 
         socket = io(url, {
-            transports: ['websocket'],
             path: '/socket.io/',
             query,
             reconnection: false,

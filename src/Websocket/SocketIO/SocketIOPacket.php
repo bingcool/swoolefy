@@ -186,15 +186,59 @@ class SocketIOPacket
      * @param int $pingTimeout  秒
      * @param int $maxPayload   单包最大字节
      */
-    public static function open(string $sid, int $pingInterval, int $pingTimeout, int $maxPayload): string
-    {
+    public static function open(
+        string $sid,
+        int $pingInterval,
+        int $pingTimeout,
+        int $maxPayload,
+        array $upgrades = []
+    ): string {
         return self::ENGINE_OPEN . json_encode([
             'sid' => $sid,
-            'upgrades' => [],
+            'upgrades' => array_values($upgrades),
             'pingInterval' => $pingInterval * 1000,
             'pingTimeout' => $pingTimeout * 1000,
             'maxPayload' => $maxPayload,
         ], JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * 合并多条 Engine.IO 包（polling HTTP body 使用 \\x1e 分隔）。
+     *
+     * @param string[] $packets
+     */
+    public static function encodeBatch(array $packets): string
+    {
+        $packets = array_values(array_filter($packets, static fn (string $packet): bool => $packet !== ''));
+        if ($packets === []) {
+            return '';
+        }
+
+        return implode("\x1e", $packets);
+    }
+
+    /**
+     * 解析 polling HTTP body 中的多条 Engine.IO 包。
+     *
+     * @return string[]
+     */
+    public static function decodeBatch(string $body): array
+    {
+        $body = trim($body);
+        if ($body === '') {
+            return [];
+        }
+
+        $parts = explode("\x1e", $body);
+        $packets = [];
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if ($part !== '') {
+                $packets[] = $part;
+            }
+        }
+
+        return $packets;
     }
 
     /** Engine.IO pong 响应 `3` */

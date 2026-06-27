@@ -16,7 +16,6 @@ const log = (msg, data) => {
 };
 
 const socket = io('http://127.0.0.1:9508', {
-    transports: ['websocket'],
     path: '/socket.io/',
     query: {
         uid: '10001',
