@@ -41,6 +41,13 @@ class PushDeliveryResult
     /** Redis 去重命中：同 msg_id 已投递过，跳过重复 push */
     public bool $duplicateSkipped = false;
 
+    /**
+     * 逐 target 投递明细（group / broadcast 离线回补按 user_id 聚合）。
+     *
+     * @var array<int, array{fd:int,conn_id:string,user_id:string,outcome:string}>
+     */
+    public array $targetDetails = [];
+
     public static function invalidPayload(): self
     {
         $result = new self();
@@ -104,6 +111,17 @@ class PushDeliveryResult
                 $this->recordFailed();
                 break;
         }
+    }
+
+    public function recordTargetOutcome(int $fd, string $connId, string $userId, string $outcome): void
+    {
+        $this->recordOutcome($outcome);
+        $this->targetDetails[] = [
+            'fd' => $fd,
+            'conn_id' => $connId,
+            'user_id' => trim($userId),
+            'outcome' => $outcome,
+        ];
     }
 
     public function merge(self $other): void

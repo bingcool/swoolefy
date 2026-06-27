@@ -102,7 +102,7 @@ function testAfterDeliveryGoneStoresOffline(): void
     $result->recordOutcome('gone');
 
     $id = OfflineMessageCoordinator::maybeStoreOfflineAfterDelivery($message, $result);
-    assertTrue($id === '1', 'gone delivery should store offline');
+    assertTrue($id === 1, 'gone delivery should store offline');
     assertTrue($store->countPending('user-b') === 1, 'pending after gone');
 
     teardownOfflineConfig();
@@ -128,17 +128,91 @@ function testAfterDeliveryNoStoreWhenDeliveredOrFailed(): void
     $delivered = new PushDeliveryResult();
     $delivered->recordOutcome('delivered');
     $delivered->recordOutcome('gone');
-    assertTrue(OfflineMessageCoordinator::maybeStoreOfflineAfterDelivery($message, $delivered) === null, 'partial delivered');
+    assertTrue(OfflineMessageCoordinator::maybeStoreOfflineAfterDelivery($message, $delivered) === 0, 'partial delivered');
 
     $failed = new PushDeliveryResult();
     $failed->recordOutcome('gone');
     $failed->recordOutcome('failed');
-    assertTrue(OfflineMessageCoordinator::maybeStoreOfflineAfterDelivery($message, $failed) === null, 'failed should retry');
+    assertTrue(OfflineMessageCoordinator::maybeStoreOfflineAfterDelivery($message, $failed) === 0, 'failed should retry');
 
     assertTrue($store->countPending('user-b') === 0, 'no offline stored');
 
     teardownOfflineConfig();
     echo "[OK] after delivery no store when delivered or failed\n";
+}
+
+/** pushToGroup 无在线连接时按 offline_user_ids 落库 */
+function testGroupPushOfflineUserIds(): void
+{
+    $store = new InMemoryOfflineMessageStore();
+    bootOfflineConfig($store);
+
+    $result = new PushFanoutResult();
+    $stored = OfflineMessageCoordinator::maybeStoreOfflineAfterGroupPush(
+        'room-a',
+        'chat.private',
+        ['offline_user_ids' => ['user-b', 'user-c'], 'msg' => 'hi'],
+        $result
+    );
+    assertTrue($stored === 2, 'should store for offline group members');
+    assertTrue($store->countPending('user-b') === 1, 'user-b pending');
+    assertTrue($store->countPending('user-c') === 1, 'user-c pending');
+
+    teardownOfflineConfig();
+    echo "[OK] group push offline user ids\n";
+}
+
+/** group 多用户：仅 gone 的用户落库 */
+function testGroupDeliveryGonePerUser(): void
+{
+    $store = new InMemoryOfflineMessageStore();
+    bootOfflineConfig($store);
+
+    $message = PushMessage::event(
+        [
+            ['fd' => 1, 'conn_id' => 'ws:1'],
+            ['fd' => 2, 'conn_id' => 'ws:2'],
+        ],
+        'chat.private',
+        ['msg' => 'hi'],
+        'test',
+        '',
+        '',
+        null,
+        'room-a',
+        'group'
+    );
+
+    $result = new PushDeliveryResult();
+    $result->recordTargetOutcome(1, 'ws:1', 'user-a', 'delivered');
+    $result->recordTargetOutcome(2, 'ws:2', 'user-b', 'gone');
+
+    $stored = OfflineMessageCoordinator::maybeStoreOfflineAfterDelivery($message, $result);
+    assertTrue($stored === 1, 'only gone user stored');
+    assertTrue($store->countPending('user-a') === 0, 'delivered user skip');
+    assertTrue($store->countPending('user-b') === 1, 'gone user stored');
+
+    teardownOfflineConfig();
+    echo "[OK] group delivery gone per user\n";
+}
+
+/** broadcast 无在线节点时按 offline_user_ids 落库 */
+function testBroadcastPushOfflineUserIds(): void
+{
+    $store = new InMemoryOfflineMessageStore();
+    bootOfflineConfig($store, ['events' => ['*']]);
+
+    $result = new PushFanoutResult();
+    $stored = OfflineMessageCoordinator::maybeStoreOfflineAfterBroadcastPush(
+        'system.notice',
+        ['offline_user_ids' => ['user-x'], 'text' => 'maint'],
+        $result
+    );
+    assertTrue($stored === 1, 'broadcast offline store');
+    assertTrue($store->countPending('user-x') === 1, 'user-x pending');
+
+    teardownOfflineConfig();
+    echo "[OK] broadcast push offline user ids\n";
 }
 
 /** offline.events 白名单：不在列表的事件不落库 */
@@ -225,6 +299,9 @@ testStoreWhenPushMisses();
 testAfterPushSkipsWhenRemoteQueued();
 testAfterDeliveryGoneStoresOffline();
 testAfterDeliveryNoStoreWhenDeliveredOrFailed();
+testGroupPushOfflineUserIds();
+testGroupDeliveryGonePerUser();
+testBroadcastPushOfflineUserIds();
 testEventFilter();
 testPullAndAck();
 testOnReconnectHook();

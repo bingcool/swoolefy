@@ -636,11 +636,25 @@ class WebsocketConnectionManager
 
     public static function pushEventToGroup(Server $server, string $group, string $event, $data = []): int
     {
+        if (Cluster\ClusterConfig::isEnabled()) {
+            $result = Cluster\ClusterPushBus::publishToGroup($group, $event, $data, $server);
+            Offline\OfflineMessageCoordinator::maybeStoreOfflineAfterGroupPush($group, $event, $data, $result);
+
+            return $result->reportedHitCount();
+        }
+
         return Cluster\PushDispatcherFactory::get()->pushEventToGroup($server, $group, $event, $data);
     }
 
     public static function broadcastEvent(Server $server, string $event, $data = []): int
     {
+        if (Cluster\ClusterConfig::isEnabled()) {
+            $result = Cluster\ClusterPushBus::publishBroadcast($event, $data, $server);
+            Offline\OfflineMessageCoordinator::maybeStoreOfflineAfterBroadcastPush($event, $data, $result);
+
+            return $result->reportedHitCount();
+        }
+
         return Cluster\PushDispatcherFactory::get()->broadcastEvent($server, $event, $data);
     }
 
