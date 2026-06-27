@@ -9,6 +9,8 @@ use Swoolefy\Websocket\WebsocketConnectionManager;
 /**
  * 本节点最终投递层：将集群推送指令转为 `server->push()`。
  *
+ * 投递前经 {@see PushDedupStore} 按 msg_id 去重（XAUTOCLAIM 重投场景）。
+ *
  * @see PushDeliveryResult  Streams XACK 决策
  * @see PushDeliveryWorker
  */
@@ -21,33 +23,42 @@ class PushDeliveryHandler
      */
     public static function deliver(Server $server, array $message): PushDeliveryResult
     {
+        $msgId = PushDedupStore::extractMsgId($message);
+        if ($msgId !== '' && PushDedupStore::isDuplicate($msgId)) {
+            $result = PushDeliveryResult::duplicateSkipped();
+            \Swoolefy\Websocket\Metrics\WebsocketMetrics::recordPushDedupSkipped();
+
+            return $result;
+        }
+
         $action = (string) ($message['action'] ?? PushMessage::ACTION_PUSH_EVENT);
         $event = (string) ($message['event'] ?? '');
         $data = $message['data'] ?? [];
 
         if ($action === PushMessage::ACTION_BROADCAST) {
             $result = self::deliverBroadcast($server, $event, $data);
-            \Swoolefy\Websocket\Metrics\WebsocketMetrics::recordPushDelivery($result);
-
-            return $result;
+        } else {
+            $result = new PushDeliveryResult();
+            $targets = is_array($message['targets'] ?? null) ? $message['targets'] : [];
+            foreach ($targets as $target) {
+                if (!is_array($target)) {
+                    continue;
+                }
+                $fd = (int) ($target['fd'] ?? 0);
+                if ($fd <= 0) {
+                    continue;
+                }
+                self::recordOutcome($result, WebsocketConnectionManager::deliverEventToFdLocallyDetailed(
+                    $server,
+                    $fd,
+                    $event,
+                    $data
+                ));
+            }
         }
 
-        $result = new PushDeliveryResult();
-        $targets = is_array($message['targets'] ?? null) ? $message['targets'] : [];
-        foreach ($targets as $target) {
-            if (!is_array($target)) {
-                continue;
-            }
-            $fd = (int) ($target['fd'] ?? 0);
-            if ($fd <= 0) {
-                continue;
-            }
-            self::recordOutcome($result, WebsocketConnectionManager::deliverEventToFdLocallyDetailed(
-                $server,
-                $fd,
-                $event,
-                $data
-            ));
+        if ($msgId !== '' && $result->shouldAck()) {
+            PushDedupStore::markProcessed($msgId);
         }
 
         \Swoolefy\Websocket\Metrics\WebsocketMetrics::recordPushDelivery($result);

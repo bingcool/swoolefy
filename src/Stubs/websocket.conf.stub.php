@@ -57,6 +57,14 @@ return [
             'stream_claim_idle_ms' => 30000,
             'stream_block_ms' => 5000,
             'stream_read_count' => 10,
+            /*
+             * 推送去重：Redis SET push:dedup:{msg_id} EX ttl
+             * 防止 XAUTOCLAIM / 重试导致同一条 PushMessage 重复 server->push
+             */
+            'dedup' => [
+                'enable' => true,
+                'ttl' => 86400,
+            ],
         ],
         'conn_ttl' => 180,
         'cleanup_interval' => 30,

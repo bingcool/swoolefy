@@ -16,6 +16,7 @@ namespace Swoolefy\Websocket\Cluster;
  * | 全部 fd 已断开（gone） | 是 | 连接不存在，重试无意义 |
  * | 全部 enricher 跳过（skipped） | 是 | 业务明确不投递 |
  * | 存在 established 但 push 失败（failed） | 否 | 可能缓冲区满等临时故障，留 PEL |
+ * | 去重命中（duplicateSkipped） | 是 | XAUTOCLAIM 重投同 msg_id，跳过重复 push |
  *
  * @see PushDeliveryWorker
  * @see PushStreamConsumer
@@ -37,6 +38,9 @@ class PushDeliveryResult
 
     public bool $serverUnavailable = false;
 
+    /** Redis 去重命中：同 msg_id 已投递过，跳过重复 push */
+    public bool $duplicateSkipped = false;
+
     public static function invalidPayload(): self
     {
         $result = new self();
@@ -49,6 +53,14 @@ class PushDeliveryResult
     {
         $result = new self();
         $result->serverUnavailable = true;
+
+        return $result;
+    }
+
+    public static function duplicateSkipped(): self
+    {
+        $result = new self();
+        $result->duplicateSkipped = true;
 
         return $result;
     }
@@ -102,6 +114,7 @@ class PushDeliveryResult
         $this->failed += $other->failed;
         $this->invalidPayload = $this->invalidPayload || $other->invalidPayload;
         $this->serverUnavailable = $this->serverUnavailable || $other->serverUnavailable;
+        $this->duplicateSkipped = $this->duplicateSkipped || $other->duplicateSkipped;
     }
 
     /**
@@ -109,6 +122,10 @@ class PushDeliveryResult
      */
     public function shouldAck(): bool
     {
+        if ($this->duplicateSkipped) {
+            return true;
+        }
+
         if ($this->invalidPayload) {
             return true;
         }

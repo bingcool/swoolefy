@@ -72,6 +72,16 @@ class PredisClusterAdapter implements ClusterRedisAdapterInterface
         $this->client->del([$key]);
     }
 
+    public function setEx(string $key, int $ttl, string $value): void
+    {
+        $this->client->setex($key, $ttl, $value);
+    }
+
+    public function exists(string $key): bool
+    {
+        return (bool) $this->client->exists($key);
+    }
+
     public function sAdd(string $key, string $member): void
     {
         $this->client->sadd($key, [$member]);

@@ -73,6 +73,16 @@ class PhpRedisClusterAdapter implements ClusterRedisAdapterInterface
         $this->redis->del($key);
     }
 
+    public function setEx(string $key, int $ttl, string $value): void
+    {
+        $this->redis->setex($key, $ttl, $value);
+    }
+
+    public function exists(string $key): bool
+    {
+        return (bool) $this->redis->exists($key);
+    }
+
     public function sAdd(string $key, string $member): void
     {
         $this->redis->sAdd($key, $member);

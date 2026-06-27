@@ -37,6 +37,12 @@ interface ClusterRedisAdapterInterface
 
     public function del(string $key): void;
 
+    /** SET key value EX ttl（推送去重 markProcessed） */
+    public function setEx(string $key, int $ttl, string $value): void;
+
+    /** key 是否存在（推送去重 isDuplicate） */
+    public function exists(string $key): bool;
+
     public function sAdd(string $key, string $member): void;
 
     public function sRem(string $key, string $member): void;

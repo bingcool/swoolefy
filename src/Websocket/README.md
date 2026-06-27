@@ -670,6 +670,19 @@ XADD {key_prefix}push:stream:{server_id}
 | `stream_claim_idle_ms` | 超过该毫秒未 ACK 则回收 | `30000` |
 | `stream_block_ms` | `XREADGROUP BLOCK` | `5000` |
 | `stream_read_count` | 每次拉取条数 | `10` |
+| `dedup.enable` | 按 PushMessage.msg_id Redis 去重 | `true` |
+| `dedup.ttl` | 去重 key 过期秒数 | `86400` |
+
+```php
+'cluster' => [
+    'push' => [
+        'transport' => 'streams',
+        'dedup' => ['enable' => true, 'ttl' => 86400],
+    ],
+],
+```
+
+**推送去重**：XAUTOCLAIM / 消费重试可能重复投递同一条 Stream 消息。框架在 `PushDeliveryHandler` 投递前检查 `{key_prefix}push:dedup:{msg_id}`，已存在则跳过 push 并 ACK；成功投递后 `SET EX ttl`。指标 `ws_push_dedup_skipped`。
 
 ```php
 'cluster' => [
