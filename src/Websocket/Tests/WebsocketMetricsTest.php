@@ -1,6 +1,6 @@
 <?php
 /**
- * WebSocket metrics & trace propagation tests.
+ * WebSocket 可观测性指标与 trace 传播单元测试。
  *
  * Run: php src/Websocket/Tests/WebsocketMetricsTest.php
  */
@@ -14,6 +14,7 @@ use Swoolefy\Websocket\Metrics\WebsocketTraceContext;
 
 require dirname(__DIR__, 3) . '/vendor/autoload.php';
 
+/** 断言条件为真，否则抛出 RuntimeException */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -21,6 +22,7 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+/** PushMessage 应保留显式传入的 trace_id，编解码往返不丢 */
 function testPushMessageHasTraceId(): void
 {
     $message = PushMessage::event(
@@ -37,6 +39,7 @@ function testPushMessageHasTraceId(): void
     echo "[OK] push message trace_id\n";
 }
 
+/** 消费端应从 PushMessage.trace_id 提取 trace，而非协程上下文 */
 function testTraceContextExtract(): void
 {
     WebsocketTraceContext::apply('trace-ctx-abc');
@@ -47,6 +50,7 @@ function testTraceContextExtract(): void
     echo "[OK] trace context extract\n";
 }
 
+/** Swoole Table 跨 Worker 累计：push_delivered/failed、join_denied、stream_lag */
 function testMetricsCountersWithTable(): void
 {
     if (!extension_loaded('swoole')) {
@@ -85,6 +89,7 @@ function testMetricsCountersWithTable(): void
     echo "[OK] metrics counters with table\n";
 }
 
+/** metrics.enable=false 时 snapshot 仅返回 metrics_enabled=0 */
 function testMetricsDisabledSnapshot(): void
 {
     ClusterConfig::setWebsocketOverride([

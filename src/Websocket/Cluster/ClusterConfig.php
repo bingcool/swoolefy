@@ -334,4 +334,25 @@ class ClusterConfig
 
         return is_array($metrics) ? $metrics : [];
     }
+
+    /**
+     * 离线消息配置（Config/websocket.php → offline）。
+     *
+     * | 键 | 说明 |
+     * |----|------|
+     * | enable | 总开关 |
+     * | store | OfflineMessageStoreInterface 实现类 |
+     * | events | 落库事件白名单，空=全部 pushToUser |
+     * | replay_on_reconnect | 上线自动补推 |
+     * | on_reconnect | 补推后业务钩子 |
+     * | replay_limit | 单次补推/拉取上限 |
+     *
+     * @see OfflineMessageCoordinator
+     */
+    public static function offlineSettings(): array
+    {
+        $offline = self::websocket()['offline'] ?? [];
+
+        return is_array($offline) ? $offline : [];
+    }
 }

@@ -2,6 +2,8 @@
 
 namespace Swoolefy\Websocket\Cluster;
 
+use Swoolefy\Websocket\Offline\OfflineMessageCoordinator;
+
 /**
  * 外部进程推送入口（HTTP / CLI / 队列消费者）。
  *
@@ -56,7 +58,11 @@ class ExternalPushPublisher
             throw new ClusterRedisException('pushToUser requires a non-empty user_id');
         }
 
-        return ClusterPushBus::publishToUser($userId, $event, $data, null);
+        $count = ClusterPushBus::publishToUser($userId, $event, $data, null);
+        // HTTP/CLI 推送路径：无在线连接时同样落 offline 表
+        OfflineMessageCoordinator::maybeStoreOffline($userId, $event, $data, $count);
+
+        return $count;
     }
 
     /** 向 nodes 集合中每个在线节点发一条 broadcast 指令 */

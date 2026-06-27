@@ -1,6 +1,8 @@
 <?php
 /**
- * WebSocket smoke tests（需先启动示例应用 WebsocketService）。
+ * WebSocket 冒烟测试（需先启动示例应用 WebsocketService）。
+ *
+ * 覆盖：原生 WS ping/report、Socket.IO join/send、单聊 pushToUser。
  *
  * Run after server started:
  *   SWOOLEFY_CLI_ENV=dev php src/Websocket/Tests/WebsocketSmokeTest.php
@@ -17,6 +19,7 @@ require dirname(__DIR__, 3) . '/vendor/autoload.php';
 const WS_HOST = '127.0.0.1';
 const WS_PORT = 9508;
 
+/** 断言条件为真，否则抛出 RuntimeException */
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -24,6 +27,7 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+/** 接收一帧 WebSocket 文本并解析为 JSON 数组 */
 function recvJson(Client $client, string $case): array
 {
     $frame = $client->recv();
@@ -35,13 +39,13 @@ function recvJson(Client $client, string $case): array
     return $payload;
 }
 
+/** 原生 WebSocket：ping/pong、业务 request、非法 JSON 错误响应 */
 function testRawWebsocket(): void
 {
     $client = new Client(WS_HOST, WS_PORT);
     $client->set(['timeout' => 3]);
     assertTrue($client->upgrade('/?uid=raw-user'), 'raw websocket: upgrade failed');
 
-    // 统一 JSON 消息格式，服务端会解析成 WebsocketPacket 后路由到 DemoService::ping。
     $client->push(json_encode([
         'type' => 'ping',
         'event' => 'Service/Demo/Ping',
@@ -62,7 +66,6 @@ function testRawWebsocket(): void
     assertTrue(($report['code'] ?? -1) === 0, 'raw websocket report: expected code=0');
     assertTrue(($report['data']['echo'] ?? '') === 'hello raw websocket', 'raw websocket report: echo mismatch');
 
-    // 非法 JSON 消息应返回统一错误格式，而不是静默断开。
     $client->push('Service/Demo/ReportMsg::{bad-json');
     $error = recvJson($client, 'raw websocket invalid json');
     assertTrue(($error['type'] ?? '') === 'error', 'raw websocket invalid json: expected error');
@@ -71,17 +74,16 @@ function testRawWebsocket(): void
     echo "[OK] raw websocket\n";
 }
 
+/** Socket.IO：握手、group.join、chat.send 带 ack */
 function testSocketIO(): void
 {
     $client = new SocketIOClient(WS_HOST, WS_PORT, false, 3);
     $client->connect(['uid' => 'socketio-user']);
     assertTrue($client->getSid() !== '', 'socket.io: missing sid');
 
-    // emitWithAck 会发送带 ack id 的 Socket.IO event，服务端必须返回 43{id}[...]。
     $joinAck = $client->emitWithAck('group.join', [['group' => 'public']], 3);
     assertTrue(($joinAck[0]['code'] ?? -1) === 0, 'socket.io group.join: expected ack code=0');
 
-    // chat.send 通过 conf.php 中的 event_routes 映射到 Service/Chat/Send。
     $sendAck = $client->emitWithAck('chat.send', [[
         'group' => 'public',
         'message' => 'hello socket.io',
@@ -92,6 +94,7 @@ function testSocketIO(): void
     echo "[OK] socket.io websocket transport\n";
 }
 
+/** 单聊：A 向 B pushToUser，双方握手带 uid，验证 ack 成功 */
 function testPrivateChat(): void
 {
     $receiver = new SocketIOClient(WS_HOST, WS_PORT, false, 3);

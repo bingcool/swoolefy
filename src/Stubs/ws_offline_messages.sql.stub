@@ -1,0 +1,20 @@
+-- WebSocket 用户离线消息表（业务持久化，IM/通知必达）
+--
+-- ## 与 Redis Streams 的分工
+-- Streams：保证 push 指令送达 WebSocket 消费进程（节点间不丢）
+-- 本表：保证用户不在线时消息不丢，上线后补推或客户端拉取
+--
+-- 框架写入时机：pushToUser / ExternalPushPublisher 命中 0 条在线连接
+-- 框架读取时机：replay_on_reconnect 补推 / pullOfflineMessages / HTTP pullPending
+
+CREATE TABLE IF NOT EXISTS ws_offline_messages (
+    id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    user_id      VARCHAR(64)     NOT NULL COMMENT '接收方 user_id（与握手 uid 一致）',
+    event        VARCHAR(128)    NOT NULL COMMENT 'WS/Socket.IO 事件名，如 chat.private',
+    payload      JSON            NOT NULL COMMENT 'push 原始 data（引用模式可只存 msg_id）',
+    trace_id     VARCHAR(64)     NOT NULL DEFAULT '' COMMENT '链路 trace，补推时恢复日志上下文',
+    status       TINYINT         NOT NULL DEFAULT 0 COMMENT '0=pending 1=delivered',
+    created_at   INT UNSIGNED    NOT NULL COMMENT '写入时间 Unix 秒',
+    delivered_at INT UNSIGNED    NULL COMMENT '投递/ACK 时间',
+    KEY idx_user_pending (user_id, status, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='WebSocket offline inbox';
