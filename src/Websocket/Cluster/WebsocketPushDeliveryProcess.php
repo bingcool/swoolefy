@@ -42,7 +42,7 @@ class WebsocketPushDeliveryProcess extends AbstractProcess
             while (true) {
                 try {
                     ClusterRedisClient::runDedicated(static function (ClusterRedisAdapterInterface $redis) {
-                        while (true) {
+                        while (!WebsocketShutdownCoordinator::shouldStopConsuming()) {
                             $payload = PushDeliveryQueue::dequeueBlocking($redis, 5);
                             if ($payload === null) {
                                 continue;
@@ -51,9 +51,41 @@ class WebsocketPushDeliveryProcess extends AbstractProcess
                         }
                     });
                 } catch (\Throwable $throwable) {
+                    if (WebsocketShutdownCoordinator::shouldStopConsuming()) {
+                        break;
+                    }
                     $this->onHandleException($throwable);
                     \Swoole\Coroutine::sleep(1);
                 }
+
+                if (WebsocketShutdownCoordinator::shouldStopConsuming()) {
+                    break;
+                }
+            }
+        });
+    }
+
+    /**
+     * SIGTERM 时排空本地 BRPOP 队列。
+     */
+    public function gracefulShutdownDrain(): void
+    {
+        if (!ClusterConfig::isEnabled()
+            || ClusterConfig::usesPushStreams()
+            || ClusterConfig::pushDeliveryProcessNum() <= 1) {
+            return;
+        }
+
+        WebsocketShutdownCoordinator::markShuttingDown();
+        $deadline = time() + WebsocketShutdownCoordinator::drainTimeout();
+
+        ClusterRedisClient::runDedicated(static function (ClusterRedisAdapterInterface $redis) use ($deadline) {
+            while (time() < $deadline) {
+                $payload = PushDeliveryQueue::dequeueBlocking($redis, 1);
+                if ($payload === null) {
+                    break;
+                }
+                PushDeliveryWorker::deliverEncodedPayload($payload);
             }
         });
     }

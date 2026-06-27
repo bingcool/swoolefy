@@ -17,6 +17,7 @@ use Swoolefy\Core\Process\AbstractProcess;
  * | 持久化 | 消息在 XADD 后写入 Redis，消费进程重启可继续处理 |
  * | 并行 | delivery_process_num 个进程同属一组，XREADGROUP 竞争消费 |
  * | 崩溃恢复 | 未 XACK 的消息由 PushStreamConsumer 内 XAUTOCLAIM 回收 |
+ * | 优雅停机 | SIGTERM 后 drain PEL，避免正在处理的推送丢失 |
  *
  * ## 进程注册
  *
@@ -35,6 +36,9 @@ use Swoolefy\Core\Process\AbstractProcess;
  */
 class WebsocketPushStreamConsumerProcess extends AbstractProcess
 {
+    /** @var string|null 当前进程 consumer 名，供 SIGTERM drain 复用 */
+    private ?string $consumerName = null;
+
     public function run()
     {
         if (!ClusterConfig::isEnabled() || ClusterConfig::pushTransport() !== 'streams') {
@@ -43,20 +47,68 @@ class WebsocketPushStreamConsumerProcess extends AbstractProcess
 
         $extend = $this->getExtendData();
         $index = is_array($extend) ? (int) ($extend['consumer_index'] ?? 0) : 0;
-        $consumerName = ClusterConfig::pushStreamConsumerName($index);
+        $this->consumerName = ClusterConfig::pushStreamConsumerName($index);
+        $consumerName = $this->consumerName;
+        $handler = static function (string $entryId, string $payload): bool {
+            return PushDeliveryWorker::shouldAckStreamPayload($payload);
+        };
 
-        \Swoole\Coroutine::create(function () use ($consumerName) {
+        \Swoole\Coroutine::create(function () use ($consumerName, $handler) {
             while (true) {
+                if (WebsocketShutdownCoordinator::shouldStopConsuming()) {
+                    break;
+                }
+
                 try {
-                    PushStreamConsumer::run($consumerName, static function (string $entryId, string $payload): bool {
-                        return PushDeliveryWorker::shouldAckStreamPayload($payload);
-                    });
+                    PushStreamConsumer::runControlled(
+                        $consumerName,
+                        $handler,
+                        static fn (): bool => !WebsocketShutdownCoordinator::shouldStopConsuming()
+                    );
                 } catch (\Throwable $throwable) {
+                    if (WebsocketShutdownCoordinator::shouldStopConsuming()) {
+                        break;
+                    }
                     $this->onHandleException($throwable);
                     \Swoole\Coroutine::sleep(1);
                 }
             }
+
+            if (WebsocketShutdownCoordinator::isEnabled()) {
+                $this->drainStreamConsumer($handler);
+            }
         });
+    }
+
+    /**
+     * SIGTERM 时在 Event::exit 前同步 drain PEL（协程可能来不及跑完）。
+     */
+    public function gracefulShutdownDrain(): void
+    {
+        if (!ClusterConfig::isEnabled() || !ClusterConfig::usesPushStreams() || $this->consumerName === null) {
+            return;
+        }
+
+        WebsocketShutdownCoordinator::markShuttingDown();
+
+        $handler = static function (string $entryId, string $payload): bool {
+            return PushDeliveryWorker::shouldAckStreamPayload($payload);
+        };
+        $this->drainStreamConsumer($handler);
+    }
+
+    /** @param callable(string, string): bool $handler */
+    private function drainStreamConsumer(callable $handler): void
+    {
+        if ($this->consumerName === null) {
+            return;
+        }
+
+        PushStreamConsumer::drain(
+            $this->consumerName,
+            $handler,
+            time() + WebsocketShutdownCoordinator::drainTimeout()
+        );
     }
 
     public function onHandleException(\Throwable $throwable, $context = [])
