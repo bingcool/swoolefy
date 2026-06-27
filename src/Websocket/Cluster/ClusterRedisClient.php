@@ -18,6 +18,9 @@ use Swoolefy\Core\Dto\ContainerObjectDto;
  * - execute()：协程内通过 Application::getApp()->creatObject() 单例连接；无 App 时降级
  * - runDedicated()：独立连接，供 Stream XREADGROUP / List BRPOP 等阻塞读
  * - subscribe()：Pub/Sub 长连接（仅 transport=pubsub）
+ *
+ * 自定义推送进程内凡调用 execute() 的路径（enqueue、投递后查 conn meta 等），
+ * 须在 goApp / EventApp::registerApp 协程上下文中运行，避免 phpredis socket 跨协程冲突。
  */
 class ClusterRedisClient
 {

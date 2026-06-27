@@ -3,6 +3,7 @@
 namespace Swoolefy\Websocket\Cluster;
 
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\EventApp;
 use Swoolefy\Core\Process\AbstractProcess;
 
 /**
@@ -25,6 +26,8 @@ use Swoolefy\Core\Process\AbstractProcess;
  *
  * streams 模式请使用 WebsocketPushStreamConsumerProcess，无需本进程。
  *
+ * 消费协程通过 goApp 包装，保证 ClusterRedisClient::execute() 使用协程级 Redis 单例。
+ *
  * @see WebsocketPushSubscriberProcess
  * @see PushDeliveryQueue
  */
@@ -38,7 +41,8 @@ class WebsocketPushDeliveryProcess extends AbstractProcess
             return;
         }
 
-        \Swoole\Coroutine::create(function () {
+        // 子协程须 goApp，BRPOP 循环内 deliver 会调用 ClusterRedisClient::execute()
+        goApp(function () {
             while (true) {
                 try {
                     ClusterRedisClient::runDedicated(static function (ClusterRedisAdapterInterface $redis) {
@@ -79,14 +83,16 @@ class WebsocketPushDeliveryProcess extends AbstractProcess
         WebsocketShutdownCoordinator::markShuttingDown();
         $deadline = time() + WebsocketShutdownCoordinator::drainTimeout();
 
-        ClusterRedisClient::runDedicated(static function (ClusterRedisAdapterInterface $redis) use ($deadline) {
-            while (time() < $deadline) {
-                $payload = PushDeliveryQueue::dequeueBlocking($redis, 1);
-                if ($payload === null) {
-                    break;
+        (new EventApp())->registerApp(function () use ($deadline) {
+            ClusterRedisClient::runDedicated(static function (ClusterRedisAdapterInterface $redis) use ($deadline) {
+                while (time() < $deadline) {
+                    $payload = PushDeliveryQueue::dequeueBlocking($redis, 1);
+                    if ($payload === null) {
+                        break;
+                    }
+                    PushDeliveryWorker::deliverEncodedPayload($payload);
                 }
-                PushDeliveryWorker::deliverEncodedPayload($payload);
-            }
+            });
         });
     }
 

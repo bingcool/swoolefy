@@ -3,6 +3,7 @@
 namespace Swoolefy\Websocket\Cluster;
 
 use Swoolefy\Core\BaseServer;
+use Swoolefy\Core\EventApp;
 use Swoolefy\Core\Process\AbstractProcess;
 
 /**
@@ -31,6 +32,8 @@ use Swoolefy\Core\Process\AbstractProcess;
  * - 目标 fd 均已断开 / enricher 全部跳过 → ACK（重试无意义）
  * - server 不可用 / push 失败且 fd 仍在线 → 不 ACK，留 PEL 由 XAUTOCLAIM 重试
  *
+ * 消费协程通过 goApp 包装；SIGTERM drain 通过 EventApp 同步包装。
+ *
  * @see PushStreamConsumer
  * @see ClusterConfig::pushDeliveryProcessNum()
  */
@@ -53,7 +56,8 @@ class WebsocketPushStreamConsumerProcess extends AbstractProcess
             return PushDeliveryWorker::shouldAckStreamPayload($payload);
         };
 
-        \Swoole\Coroutine::create(function () use ($consumerName, $handler) {
+        // 子协程须 goApp，否则 ClusterRedisClient::execute() 无 Application 上下文会 socket 冲突
+        goApp(function () use ($consumerName, $handler) {
             while (true) {
                 if (WebsocketShutdownCoordinator::shouldStopConsuming()) {
                     break;
@@ -94,7 +98,11 @@ class WebsocketPushStreamConsumerProcess extends AbstractProcess
         $handler = static function (string $entryId, string $payload): bool {
             return PushDeliveryWorker::shouldAckStreamPayload($payload);
         };
-        $this->drainStreamConsumer($handler);
+
+        // SIGTERM 非协程上下文：同步 registerApp，投递时 Redis 索引查询走协程单例
+        (new EventApp())->registerApp(function () use ($handler) {
+            $this->drainStreamConsumer($handler);
+        });
     }
 
     /** @param callable(string, string): bool $handler */
