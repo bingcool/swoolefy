@@ -58,11 +58,10 @@ class ExternalPushPublisher
             throw new ClusterRedisException('pushToUser requires a non-empty user_id');
         }
 
-        $count = ClusterPushBus::publishToUser($userId, $event, $data, null);
-        // HTTP/CLI 推送路径：无在线连接时同样落 offline 表
-        OfflineMessageCoordinator::maybeStoreOffline($userId, $event, $data, $count);
+        $result = ClusterPushBus::publishToUser($userId, $event, $data, null);
+        OfflineMessageCoordinator::maybeStoreOfflineAfterPush($userId, $event, $data, $result);
 
-        return $count;
+        return $result->reportedHitCount();
     }
 
     /** 向 nodes 集合中每个在线节点发一条 broadcast 指令 */

@@ -63,9 +63,16 @@ class PushMessage
      * @param string                                      $traceId 链路 trace；空则自动生成
      * @param string                                      $msgId   推送指令 ID；空则自动生成（去重 / 对账用）
      */
-    public static function event(array $targets, string $event, $data, string $source = '', string $traceId = '', string $msgId = ''): array
-    {
-        return [
+    public static function event(
+        array $targets,
+        string $event,
+        $data,
+        string $source = '',
+        string $traceId = '',
+        string $msgId = '',
+        ?string $recipientUserId = null
+    ): array {
+        $message = [
             'msg_id' => $msgId !== '' ? $msgId : self::uuid(),
             'trace_id' => $traceId !== '' ? $traceId : \Swoolefy\Websocket\Metrics\WebsocketTraceContext::currentOrNew(),
             'action' => self::ACTION_PUSH_EVENT,
@@ -76,6 +83,13 @@ class PushMessage
             'source' => $source,
             'ts' => time(),
         ];
+
+        $recipientUserId = $recipientUserId !== null ? trim($recipientUserId) : '';
+        if ($recipientUserId !== '') {
+            $message['recipient_user_id'] = $recipientUserId;
+        }
+
+        return $message;
     }
 
     /** 构造 broadcast 消息（targets 为空，由目标节点本地遍历） */

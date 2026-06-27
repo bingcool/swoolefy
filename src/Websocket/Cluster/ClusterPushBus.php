@@ -35,15 +35,15 @@ class ClusterPushBus
             $data,
             $localServer,
             self::resolveSource($localServer)
-        );
+        )->reportedHitCount();
     }
 
     /**
      * 向用户下所有连接扇出推送（支持同一用户多端同时在线）。
      *
-     * @return int 命中的连接数
+     * @return PushFanoutResult 扇出结果（离线落库请用 shouldStoreOfflineAtPush()）
      */
-    public static function publishToUser(string $userId, string $event, $data = [], ?Server $localServer = null): int
+    public static function publishToUser(string $userId, string $event, $data = [], ?Server $localServer = null): PushFanoutResult
     {
         self::assertClusterEnabled();
         self::assertNonEmptyUserId($userId);
@@ -54,7 +54,8 @@ class ClusterPushBus
             $event,
             $data,
             $localServer,
-            self::resolveSource($localServer)
+            self::resolveSource($localServer),
+            $userId
         );
     }
 
@@ -106,7 +107,7 @@ class ClusterPushBus
             $data,
             $localServer,
             self::resolveSource($localServer)
-        );
+        )->reportedHitCount();
     }
 
     /** 外部推送必须开启集群，否则无 Redis 索引与 Pub/Sub 频道 */
@@ -124,11 +125,12 @@ class ClusterPushBus
         string $event,
         $data,
         ?Server $localServer,
-        string $source
-    ): int {
+        string $source,
+        ?string $recipientUserId = null
+    ): PushFanoutResult {
         $targets = self::targetsFromConnIds($connIds);
 
-        return self::fanout($targets, $event, $data, $localServer, $source);
+        return self::fanout($targets, $event, $data, $localServer, $source, $recipientUserId);
     }
 
     /**
@@ -139,10 +141,13 @@ class ClusterPushBus
         string $event,
         $data,
         ?Server $localServer,
-        string $source
-    ): int {
-        if (empty($targets)) {
-            return 0;
+        string $source,
+        ?string $recipientUserId = null
+    ): PushFanoutResult {
+        $result = new PushFanoutResult();
+        $result->targetCount = count($targets);
+        if ($targets === []) {
+            return $result;
         }
 
         $localServerId = $localServer ? ClusterNodeIdentity::getServerId() : '';
@@ -165,22 +170,21 @@ class ClusterPushBus
             ];
         }
 
-        $count = 0;
         $remotePublishes = [];
         foreach ($grouped as $serverId => $serverTargets) {
             // 只传 event+data，Socket.IO 编码在投递端按 is_socketio 决定
-            $message = PushMessage::event($serverTargets, $event, $data, $source);
+            $message = PushMessage::event($serverTargets, $event, $data, $source, '', '', $recipientUserId);
             if ($localServer !== null && $serverId === $localServerId) {
-                $count += PushDeliveryHandler::deliver($localServer, $message)->deliveredCount();
+                $result->delivered += PushDeliveryHandler::deliver($localServer, $message)->deliveredCount();
                 continue;
             }
             $remotePublishes[] = [$serverId, $message];
-            $count += count($serverTargets);
+            $result->remoteTargetCount += count($serverTargets);
         }
 
         RedisConnectionRegistry::publishMany($remotePublishes);
 
-        return $count;
+        return $result;
     }
 
     /** conn_id → pipeline 批量读 Redis conn Hash，过滤已过期连接 */

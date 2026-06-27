@@ -621,8 +621,14 @@ class WebsocketConnectionManager
     {
         self::assertPushUserId($userId);
 
+        if (Cluster\ClusterConfig::isEnabled()) {
+            $result = Cluster\ClusterPushBus::publishToUser($userId, $event, $data, $server);
+            Offline\OfflineMessageCoordinator::maybeStoreOfflineAfterPush($userId, $event, $data, $result);
+
+            return $result->reportedHitCount();
+        }
+
         $count = Cluster\PushDispatcherFactory::get()->pushEventToUser($server, $userId, $event, $data);
-        // deliveredCount=0 时写入 offline.store（Streams 不保证用户在线必达）
         Offline\OfflineMessageCoordinator::maybeStoreOffline($userId, $event, $data, $count);
 
         return $count;

@@ -6,6 +6,9 @@
  */
 
 use Swoolefy\Websocket\Cluster\ClusterConfig;
+use Swoolefy\Websocket\Cluster\PushDeliveryResult;
+use Swoolefy\Websocket\Cluster\PushFanoutResult;
+use Swoolefy\Websocket\Cluster\PushMessage;
 use Swoolefy\Websocket\Offline\InMemoryOfflineMessageStore;
 use Swoolefy\Websocket\Offline\OfflineMessageCoordinator;
 use Swoolefy\Websocket\Offline\OfflineMessageStoreFactory;
@@ -59,6 +62,83 @@ function testStoreWhenPushMisses(): void
 
     teardownOfflineConfig();
     echo "[OK] store when push misses\n";
+}
+
+/** 索引有远端 target 时不应在 push 阶段落库（等待投递或 gone 回补） */
+function testAfterPushSkipsWhenRemoteQueued(): void
+{
+    $store = new InMemoryOfflineMessageStore();
+    bootOfflineConfig($store);
+
+    $result = new PushFanoutResult();
+    $result->targetCount = 2;
+    $result->remoteTargetCount = 2;
+
+    $id = OfflineMessageCoordinator::maybeStoreOfflineAfterPush('user-b', 'chat.private', ['msg' => 'hi'], $result);
+    assertTrue($id === null, 'remote queued should not store at push time');
+    assertTrue($store->countPending('user-b') === 0, 'no pending at push');
+
+    teardownOfflineConfig();
+    echo "[OK] after push skips when remote queued\n";
+}
+
+/** 投递全部 gone 时应回补离线表 */
+function testAfterDeliveryGoneStoresOffline(): void
+{
+    $store = new InMemoryOfflineMessageStore();
+    bootOfflineConfig($store);
+
+    $message = PushMessage::event(
+        [['fd' => 9, 'conn_id' => 'ws-m2:9']],
+        'chat.private',
+        ['to_user_id' => 'user-b', 'msg' => 'hi'],
+        'ws-m1',
+        '',
+        '',
+        'user-b'
+    );
+
+    $result = new PushDeliveryResult();
+    $result->recordOutcome('gone');
+
+    $id = OfflineMessageCoordinator::maybeStoreOfflineAfterDelivery($message, $result);
+    assertTrue($id === '1', 'gone delivery should store offline');
+    assertTrue($store->countPending('user-b') === 1, 'pending after gone');
+
+    teardownOfflineConfig();
+    echo "[OK] after delivery gone stores offline\n";
+}
+
+/** 部分 delivered 时不回补；存在 failed 时不回补（留 PEL 重试） */
+function testAfterDeliveryNoStoreWhenDeliveredOrFailed(): void
+{
+    $store = new InMemoryOfflineMessageStore();
+    bootOfflineConfig($store);
+
+    $message = PushMessage::event(
+        [['fd' => 1, 'conn_id' => 'ws:1']],
+        'chat.private',
+        ['to_user_id' => 'user-b', 'msg' => 'x'],
+        'test',
+        '',
+        '',
+        'user-b'
+    );
+
+    $delivered = new PushDeliveryResult();
+    $delivered->recordOutcome('delivered');
+    $delivered->recordOutcome('gone');
+    assertTrue(OfflineMessageCoordinator::maybeStoreOfflineAfterDelivery($message, $delivered) === null, 'partial delivered');
+
+    $failed = new PushDeliveryResult();
+    $failed->recordOutcome('gone');
+    $failed->recordOutcome('failed');
+    assertTrue(OfflineMessageCoordinator::maybeStoreOfflineAfterDelivery($message, $failed) === null, 'failed should retry');
+
+    assertTrue($store->countPending('user-b') === 0, 'no offline stored');
+
+    teardownOfflineConfig();
+    echo "[OK] after delivery no store when delivered or failed\n";
 }
 
 /** offline.events 白名单：不在列表的事件不落库 */
@@ -142,6 +222,9 @@ function testDisabledNoOp(): void
 }
 
 testStoreWhenPushMisses();
+testAfterPushSkipsWhenRemoteQueued();
+testAfterDeliveryGoneStoresOffline();
+testAfterDeliveryNoStoreWhenDeliveredOrFailed();
 testEventFilter();
 testPullAndAck();
 testOnReconnectHook();

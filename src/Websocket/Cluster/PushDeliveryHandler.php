@@ -4,6 +4,7 @@ namespace Swoolefy\Websocket\Cluster;
 
 use Swoole\WebSocket\Server;
 use Swoolefy\Core\Table\TableManager;
+use Swoolefy\Websocket\Offline\OfflineMessageCoordinator;
 use Swoolefy\Websocket\WebsocketConnectionManager;
 
 /**
@@ -60,6 +61,8 @@ class PushDeliveryHandler
         if ($msgId !== '' && $result->shouldAck()) {
             PushDedupStore::markProcessed($msgId);
         }
+
+        OfflineMessageCoordinator::maybeStoreOfflineAfterDelivery($message, $result);
 
         \Swoolefy\Websocket\Metrics\WebsocketMetrics::recordPushDelivery($result);
 
