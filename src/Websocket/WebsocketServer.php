@@ -333,12 +333,19 @@ abstract class WebsocketServer extends BaseServer
                         if ($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
                             return $response->end();
                         }
-                        // 当前 Socket.IO 实现只支持 websocket transport，明确拒绝 polling，避免客户端误判为可降级。
+                        $websocketConfig = self::getWebsocketConfig();
+                        if (!empty($websocketConfig['socketio']['enable'])
+                            && SocketIO\SocketIOHandler::isSocketIOPollingRequest($request)
+                            && SocketIO\SocketIOHandler::isPollingEnabled($websocketConfig)) {
+                            SocketIO\SocketIOPollingHandler::handleHttp($request, $response, $websocketConfig);
+
+                            return true;
+                        }
                         if (SocketIO\SocketIOHandler::isSocketIOHttpRequest($request)) {
                             $response->status(400);
                             return $response->end(json_encode([
                                 'code' => -1,
-                                'msg' => 'Socket.IO polling transport is not supported; use websocket transport',
+                                'msg' => 'Socket.IO HTTP request unsupported; enable allow_polling or use websocket transport',
                             ], JSON_UNESCAPED_UNICODE));
                         }
                         static::onRequest($request, $response);

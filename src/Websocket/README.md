@@ -516,11 +516,32 @@ ws.onmessage = (e) => {
 
 ### 6.2 Socket.IO
 
+#### Transport 支持
+
+| Transport | 说明 |
+|-----------|------|
+| **websocket** | 默认；低延迟，生产推荐 |
+| **long-polling** | HTTP GET/POST；需 `accept_http=true` + `socketio.allow_polling=true` |
+| **upgrade** | polling 握手后可 `transport=websocket&sid=...` 升级到 WebSocket |
+
 #### 限制
 
-- 仅支持 **Engine.IO v4 + websocket transport**
-- **不支持** long-polling（客户端必须配置 `transports: ['websocket']`）
-- 默认仅支持 `/` 命名空间
+- Engine.IO v4；默认 namespace `/`
+- **无二进制附件**（Engine.IO binary packet 未实现）
+- long-polling 多 Worker 需负载均衡 **会话粘性**（同一 sid 落到同一 Worker）
+- 弱网/大文件场景请评估是否满足需求
+
+#### 配置
+
+```php
+// Protocol/conf.php
+'accept_http' => true,
+
+// Config/socketio.php
+'allow_polling' => true,
+'poll_timeout' => 25,
+'transports' => ['websocket', 'polling'],
+```
 
 #### 事件路由链
 
@@ -537,9 +558,9 @@ socket.emit('group.join', { group: 'public' })
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
 const socket = io('http://127.0.0.1:9508', {
-  transports: ['websocket'],  // 必须
   path: '/socket.io/',
   query: { uid: '10001', token: 'dev-token' }
+  // 默认 transports: ['polling','websocket']，会先 polling 再 upgrade
 });
 
 socket.on('connect', () => console.log('connected', socket.id));
@@ -986,7 +1007,7 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 
 ### Q: Socket.IO 连接失败，提示 polling 不支持？
 
-客户端必须设置 `transports: ['websocket']`，当前实现不支持 long-polling 降级。
+确认 `Protocol/conf.php` 中 `accept_http=true`，且 `Config/socketio.php` 中 `allow_polling=true`。多 Worker 部署需负载均衡会话粘性。
 
 ### Q: pushToGroup 只有部分用户收到？
 

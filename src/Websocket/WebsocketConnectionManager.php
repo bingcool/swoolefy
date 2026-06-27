@@ -52,6 +52,7 @@ class WebsocketConnectionManager
                     ['connected_at', 'int', 8],
                     ['last_active_at', 'int', 8],
                     ['is_socketio', 'int', 1],
+                    ['is_polling', 'int', 1],
                     // 全局连接 ID：{server_id}:{fd}，集群模式下用于 Redis 索引
                     ['conn_id', 'string', 160],
                 ],
@@ -81,6 +82,7 @@ class WebsocketConnectionManager
         $userId = (string) ($options['user_id'] ?? self::resolveUserId($request));
         $sid = (string) ($options['sid'] ?? '');
         $isSocketIo = !empty($options['is_socketio']) ? 1 : 0;
+        $isPolling = !empty($options['is_polling']) ? 1 : 0;
         $remoteAddr = (string) ($request->server['remote_addr'] ?? '');
         $userAgent = (string) ($request->header['user-agent'] ?? '');
 
@@ -98,6 +100,7 @@ class WebsocketConnectionManager
             'connected_at' => $now,
             'last_active_at' => $now,
             'is_socketio' => $isSocketIo,
+            'is_polling' => $isPolling,
             'conn_id' => $connId,
         ];
         self::setConnection($fd, $connection);
@@ -115,6 +118,111 @@ class WebsocketConnectionManager
             self::bindUser($fd, $userId);
             // 离线必达：握手已带 user_id 时触发补推 + on_reconnect 钩子
             self::notifyUserOnline($server, $fd, $userId);
+        }
+    }
+
+    /**
+     * 注册 polling transport 会话（虚拟 fd，HTTP 请求结束后 fd 不持久）。
+     */
+    public static function openPolling(Request $request, array $options = []): void
+    {
+        $virtualFd = (int) ($options['virtual_fd'] ?? 0);
+        if ($virtualFd <= 0) {
+            throw new \InvalidArgumentException('polling session requires virtual_fd');
+        }
+
+        $now = time();
+        $userId = (string) ($options['user_id'] ?? self::resolveUserId($request));
+        $sid = (string) ($options['sid'] ?? '');
+        $remoteAddr = (string) ($request->server['remote_addr'] ?? '');
+        $userAgent = (string) ($request->header['user-agent'] ?? '');
+        $connId = Cluster\ClusterNodeIdentity::makeConnId($virtualFd);
+
+        $connection = [
+            'fd' => $virtualFd,
+            'worker_id' => 0,
+            'user_id' => $userId,
+            'sid' => $sid,
+            'groups' => '',
+            'remote_addr' => $remoteAddr,
+            'user_agent' => mb_substr($userAgent, 0, 256),
+            'connected_at' => $now,
+            'last_active_at' => $now,
+            'is_socketio' => 1,
+            'is_polling' => 1,
+            'conn_id' => $connId,
+        ];
+        self::setConnection($virtualFd, $connection);
+
+        try {
+            Cluster\ClusterConnectionCoordinator::onOpen($virtualFd, $connection);
+        } catch (\Throwable $throwable) {
+            self::closePollingVirtual($virtualFd);
+            throw $throwable;
+        }
+
+        if ($userId !== '') {
+            self::bindUser($virtualFd, $userId);
+        }
+    }
+
+    /** 关闭 polling 虚拟连接（不 disconnect WebSocket） */
+    public static function closePollingVirtual(int $virtualFd): void
+    {
+        $connection = self::getConnection($virtualFd);
+        if (!$connection) {
+            SocketIO\SocketIOSessionManager::destroyVirtualFd($virtualFd);
+
+            return;
+        }
+
+        $userId = (string) ($connection['user_id'] ?? '');
+        $connId = (string) ($connection['conn_id'] ?? '');
+        if ($userId !== '') {
+            self::unbindUser($virtualFd, $userId);
+        }
+
+        foreach (self::decodeGroups((string) ($connection['groups'] ?? '')) as $group) {
+            self::leaveGroup($virtualFd, $group, false);
+        }
+
+        self::tableDel(self::TABLE_CONNECTIONS, (string) $virtualFd);
+        Cluster\ClusterConnectionCoordinator::onClose($connId);
+        SocketIO\SocketIOSessionManager::destroyVirtualFd($virtualFd);
+    }
+
+    /** @return string[] */
+    public static function decodeGroupsPublic(string $groups): array
+    {
+        return self::decodeGroups($groups);
+    }
+
+    /**
+     * polling → websocket 升级时恢复小组索引（跳过 join 鉴权）。
+     *
+     * @param string[] $groups
+     */
+    public static function restoreGroupsWithoutAuth(int $fd, array $groups): void
+    {
+        $connection = self::getConnection($fd);
+        if (!$connection || $groups === []) {
+            return;
+        }
+
+        $connection['groups'] = self::encodeGroups($groups);
+        self::setConnection($fd, $connection);
+
+        foreach ($groups as $group) {
+            self::tableSet(self::TABLE_GROUPS, self::groupKey($group, $fd), [
+                'group' => $group,
+                'fd' => $fd,
+                'user_id' => (string) ($connection['user_id'] ?? ''),
+            ]);
+            Cluster\ClusterConnectionCoordinator::onJoinGroup(
+                (string) ($connection['conn_id'] ?? ''),
+                $group,
+                (string) $connection['groups']
+            );
         }
     }
 
@@ -321,6 +429,11 @@ class WebsocketConnectionManager
             $fd = (int) $row['fd'];
             $lastActiveAt = (int) $row['last_active_at'];
             if ($fd > 0 && $now - $lastActiveAt > $idleTimeout) {
+                if (!empty($row['is_polling'])) {
+                    self::closePollingVirtual($fd);
+                    $closed++;
+                    continue;
+                }
                 self::close($fd);
                 if ($server->isEstablished($fd)) {
                     $server->disconnect($fd, 1001, 'heartbeat timeout');
@@ -404,6 +517,11 @@ class WebsocketConnectionManager
      */
     public static function deliverEventToFdLocallyDetailed(Server $server, int $fd, string $event, $data = []): string
     {
+        $connection = self::getConnection($fd);
+        if (!empty($connection['is_polling'])) {
+            return self::deliverEventToPollingFd($fd, $event, $data);
+        }
+
         if ($fd <= 0 || !$server->isEstablished($fd)) {
             return 'gone';
         }
@@ -416,6 +534,34 @@ class WebsocketConnectionManager
         return $server->push($fd, self::encodeEventPayload($fd, $event, $data), WEBSOCKET_OPCODE_TEXT)
             ? 'delivered'
             : 'failed';
+    }
+
+    /**
+     * polling 虚拟 fd：写入 sid 出站队列，由 long-poll GET 取走。
+     *
+     * @return 'delivered'|'gone'|'skipped'|'failed'
+     */
+    private static function deliverEventToPollingFd(int $fd, string $event, $data): string
+    {
+        $connection = self::getConnection($fd);
+        if (!$connection) {
+            return 'gone';
+        }
+
+        $data = Push\PushPayloadResolver::resolve($event, $data, $fd);
+        if ($data === null) {
+            return 'skipped';
+        }
+
+        $sid = (string) ($connection['sid'] ?? '');
+        if ($sid === '') {
+            return 'gone';
+        }
+
+        $payloadData = is_array($data) ? $data : ['value' => $data];
+        $packet = SocketIOPacket::event($event, [$payloadData]);
+
+        return SocketIO\SocketIOSessionManager::enqueueOutbound($sid, $packet) ? 'delivered' : 'failed';
     }
 
     public static function deliverEventToFdLocally(Server $server, int $fd, string $event, $data = []): bool
