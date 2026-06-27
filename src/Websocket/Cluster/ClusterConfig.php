@@ -327,4 +327,11 @@ class ClusterConfig
 
         return true;
     }
+
+    public static function metricsSettings(): array
+    {
+        $metrics = self::websocket()['metrics'] ?? [];
+
+        return is_array($metrics) ? $metrics : [];
+    }
 }

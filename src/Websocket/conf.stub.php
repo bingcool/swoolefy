@@ -96,7 +96,13 @@ return [
         'event'          => 'collect',
         'tick_time'      => 2,
         'callback'       => function () {
+            $metrics = \Swoolefy\Websocket\Metrics\WebsocketMetrics::snapshot();
+            if (($metrics['metrics_enabled'] ?? 0) === 1) {
+                return $metrics;
+            }
+
             $sysCollector = new \Swoolefy\Core\SysCollector\SysCollector();
+
             return $sysCollector->test();
         }
     ],

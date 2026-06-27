@@ -66,4 +66,14 @@ return [
     'push' => [
         'enricher' => [__APP_NAMESPACE__\Push\MessagePushEnricher::class, 'enrich'],
     ],
+    /*
+     * 内置可观测性指标（Swoole\Table 跨 Worker 累计，worker 0 定时刷新 gauge）
+     *
+     * snapshot() 输出 ws_connections_total / ws_push_delivered / ws_push_failed /
+     * ws_join_denied_total / redis_stream_pending / redis_stream_lag_ms
+     */
+    'metrics' => [
+        'enable' => true,
+        'refresh_interval' => 10,
+    ],
 ];

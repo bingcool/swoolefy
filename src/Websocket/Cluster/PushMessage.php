@@ -18,6 +18,7 @@ namespace Swoolefy\Websocket\Cluster;
  * ```json
  * {
  *   "msg_id": "hex32",
+ *   "trace_id": "uuid",
  *   "action": "push_event",
  *   "targets": [{"fd": 3, "conn_id": "host:9502:3"}],
  *   "event": "chat.message",
@@ -58,10 +59,11 @@ class PushMessage
      * @param array<int, array{fd: int, conn_id: string}> $targets 同一 server_id 下的 fd 列表
      * @param string                                      $source  来源 server_id 或 "external"
      */
-    public static function event(array $targets, string $event, $data, string $source = ''): array
+    public static function event(array $targets, string $event, $data, string $source = '', string $traceId = ''): array
     {
         return [
             'msg_id' => self::uuid(),
+            'trace_id' => $traceId !== '' ? $traceId : \Swoolefy\Websocket\Metrics\WebsocketTraceContext::currentOrNew(),
             'action' => self::ACTION_PUSH_EVENT,
             'targets' => array_values($targets),
             'event' => $event,
@@ -73,10 +75,11 @@ class PushMessage
     }
 
     /** 构造 broadcast 消息（targets 为空，由目标节点本地遍历） */
-    public static function broadcast(string $event, $data, string $source = ''): array
+    public static function broadcast(string $event, $data, string $source = '', string $traceId = ''): array
     {
         return [
             'msg_id' => self::uuid(),
+            'trace_id' => $traceId !== '' ? $traceId : \Swoolefy\Websocket\Metrics\WebsocketTraceContext::currentOrNew(),
             'action' => self::ACTION_BROADCAST,
             'targets' => [],
             'event' => $event,

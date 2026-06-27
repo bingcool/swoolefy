@@ -128,10 +128,27 @@ class PushStreamConsumer
     }
 
     /**
+     * 逐条投递并 ACK（供单测 handleEntriesForTest 复用）。
+     *
+     * @param array<int, array{id: string, payload: string}> $entries
+     * @param callable(string, string): bool                   $handler
+     */
+    public static function handleEntriesForTest(
+        ClusterRedisAdapterInterface $redis,
+        string $streamKey,
+        string $group,
+        array $entries,
+        callable $handler
+    ): void {
+        self::handleEntries($redis, $streamKey, $group, $entries, $handler);
+    }
+
+    /**
      * 逐条投递并 ACK。
      *
-     * - 空 payload / 无法解析：ACK 跳过，避免毒消息无限重试
-     * - handler 抛异常：不 ACK，留在 PEL 供 XAUTOCLAIM 重试
+     * - 空 payload / 无法解析：handler 不调用，直接 ACK 丢弃
+     * - handler 返回 true：XACK
+     * - handler 返回 false 或抛异常：不 ACK，留在 PEL 供 XAUTOCLAIM 重试
      *
      * @param array<int, array{id: string, payload: string}> $entries
      * @param callable(string, string): bool                   $handler

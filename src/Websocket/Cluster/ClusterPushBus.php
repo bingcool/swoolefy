@@ -79,7 +79,7 @@ class ClusterPushBus
         foreach (RedisConnectionRegistry::getAllNodeIds() as $serverId) {
             if ($localServer !== null && $serverId === $localServerId) {
                 // Worker 内：本节点遍历本地 Table 投递
-                $count += PushDeliveryHandler::deliver($localServer, $message);
+                $count += PushDeliveryHandler::deliver($localServer, $message)->deliveredCount();
                 continue;
             }
             $remotePublishes[] = [$serverId, $message];
@@ -171,7 +171,7 @@ class ClusterPushBus
             // 只传 event+data，Socket.IO 编码在投递端按 is_socketio 决定
             $message = PushMessage::event($serverTargets, $event, $data, $source);
             if ($localServer !== null && $serverId === $localServerId) {
-                $count += PushDeliveryHandler::deliver($localServer, $message);
+                $count += PushDeliveryHandler::deliver($localServer, $message)->deliveredCount();
                 continue;
             }
             $remotePublishes[] = [$serverId, $message];

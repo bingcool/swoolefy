@@ -118,6 +118,9 @@ interface ClusterRedisAdapterInterface
     /** XACK：投递成功后确认，从 PEL 移除 */
     public function xAck(string $key, string $group, array $entryIds): int;
 
+    /** XPENDING 汇总：返回消费组 pending 条数 */
+    public function xPendingCount(string $key, string $group): int;
+
     /**
      * Pipeline 批量 XADD（跨节点扇出）。
      *
