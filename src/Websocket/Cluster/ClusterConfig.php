@@ -359,4 +359,16 @@ class ClusterConfig
 
         return is_array($offline) ? $offline : [];
     }
+
+    /**
+     * 优雅停机配置（Config/websocket.php → graceful_shutdown）。
+     *
+     * @see WebsocketShutdownCoordinator
+     */
+    public static function gracefulShutdownSettings(): array
+    {
+        $settings = self::websocket()['graceful_shutdown'] ?? [];
+
+        return is_array($settings) ? $settings : [];
+    }
 }

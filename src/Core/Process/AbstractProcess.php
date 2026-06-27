@@ -139,6 +139,15 @@ abstract class AbstractProcess
 
         Process::signal(SIGTERM, function () use ($process) {
             // destroy
+            if (method_exists($this, 'gracefulShutdownDrain')) {
+                try {
+                    $this->gracefulShutdownDrain();
+                } catch (\Throwable $throwable) {
+                    if (method_exists($this, 'onHandleException')) {
+                        $this->onHandleException($throwable);
+                    }
+                }
+            }
             if (method_exists(static::class, '__destruct') && version_compare(phpversion(), '8.0.0', '>=') ) {
                 $this->__destruct();
             }

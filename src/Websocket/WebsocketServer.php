@@ -71,6 +71,12 @@ abstract class WebsocketServer extends BaseServer
                 \Swoolefy\Websocket\Metrics\WebsocketMetrics::tableDefinitions()
             );
         }
+        if (!empty($websocketConfig['graceful_shutdown']['enable'])) {
+            self::$config['table'] = array_merge(
+                self::$config['table'],
+                Cluster\WebsocketShutdownCoordinator::tableDefinitions()
+            );
+        }
         self::$setting = array_merge(self::$setting, self::$config['setting']);
         self::$config['setting'] = self::$setting;
         self::setSwooleSockType();
@@ -91,6 +97,7 @@ abstract class WebsocketServer extends BaseServer
         $this->webServer->on('Start', function (\Swoole\WebSocket\Server $server) {
             try {
                 self::setMasterProcessName(self::$config['master_process_name']);
+                Cluster\WebsocketShutdownCoordinator::installMasterSignalHandler($server);
                 $this->startCtrl->start($server);
             } catch (\Throwable $e) {
                 self::catchException($e);
@@ -137,6 +144,12 @@ abstract class WebsocketServer extends BaseServer
         if (method_exists(static::class, 'onHandshake')) {
             $this->webServer->on('handshake', function (Request $request, Response $response) {
                 try {
+                    if (Cluster\WebsocketShutdownCoordinator::shouldRejectNewConnections()) {
+                        $response->status(503);
+                        $response->end(Cluster\WebsocketShutdownCoordinator::rejectReason());
+
+                        return false;
+                    }
                     // 自定义handshake函数
                     static::onHandshake($request, $response);
                 } catch (\Throwable $e) {
@@ -150,6 +163,16 @@ abstract class WebsocketServer extends BaseServer
          */
         $this->webServer->on('open', function (\Swoole\WebSocket\Server $server, $request) {
             try {
+                if (Cluster\WebsocketShutdownCoordinator::shouldRejectNewConnections()) {
+                    $server->disconnect(
+                        (int) $request->fd,
+                        1008,
+                        Cluster\WebsocketShutdownCoordinator::rejectReason()
+                    );
+
+                    return false;
+                }
+
                 $websocketConfig = self::getWebsocketConfig();
                 // 握手完成后的第一道框架鉴权；失败使用 1008(policy violation) 主动断开。
                 $auth = WebsocketAuthenticator::authenticate($request, $websocketConfig);

@@ -99,4 +99,14 @@ return [
         'on_reconnect' => [__APP_NAMESPACE__\Offline\OfflineReconnectCallback::class, 'onReconnect'],
         'replay_limit' => 100,
     ],
+    /*
+     * 优雅停机：SIGTERM / cli stop 时停止 accept → drain Stream PEL → 退出 Worker
+     *
+     * drain_timeout 建议 ≥ setting.max_wait_time，确保推送消费与连接处理均完成
+     */
+    'graceful_shutdown' => [
+        'enable' => true,
+        'drain_timeout' => 30,
+        'reject_reason' => 'server shutting down',
+    ],
 ];

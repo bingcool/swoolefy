@@ -698,6 +698,37 @@ XADD {key_prefix}push:stream:{server_id}
 - Streams 解决的是**消费进程闪断**时的消息恢复，不是用户离线必达（用户不在线仍需业务层 DB + 拉取）。
 - 整机长时间宕机期间写入该节点 Stream 的消息会堆积，恢复后消费组会继续投递（若连接已不存在则 push 失败，仍会 ACK）。
 
+#### 优雅停机（`graceful_shutdown`）
+
+`php cli.php stop` 或 `kill -15 MASTER_PID` 时，框架按以下顺序退出，避免 SIGTERM 直接杀进程导致正在处理的 Stream 推送丢失：
+
+```
+SIGTERM → Master 置 shutting_down + shutdown() 停止 accept
+       → open/handshake 拒绝新连接（1008 / 503）
+       → Stream 消费进程 drain PEL（XAUTOCLAIM minIdle=0 + XREADGROUP id=0）
+       → Master 轮询 XPENDING 直至清空或 drain_timeout
+       → Swoole max_wait_time 等待 Worker 内正在处理的 WebSocket 连接
+```
+
+| 配置项 | 说明 | 默认 |
+|--------|------|------|
+| `graceful_shutdown.enable` | 启用优雅停机 | `true` |
+| `graceful_shutdown.drain_timeout` | PEL 排空最长等待秒数 | `30` |
+| `graceful_shutdown.reject_reason` | 拒绝新连接时的提示文案 | `server shutting down` |
+| `setting.max_wait_time` | Worker 退出前等待已有连接完成（Swoole 原生） | `10` |
+
+建议 `drain_timeout` ≥ `max_wait_time`，确保推送 drain 完成后再杀 Worker。
+
+```php
+'graceful_shutdown' => [
+    'enable' => true,
+    'drain_timeout' => 30,
+],
+'setting' => [
+    'max_wait_time' => 10,
+],
+```
+
 #### Pub/Sub 兼容模式（`transport=pubsub`）
 
 旧版行为：不持久化，订阅进程离线期间的消息会丢失。`delivery_process_num > 1` 时使用本地 List 队列并行投递（不可多进程 SUBSCRIBE 同一频道）。

@@ -41,6 +41,16 @@ class PushStreamConsumer
      */
     public static function run(string $consumerName, callable $handler): void
     {
+        self::runControlled($consumerName, $handler, static fn (): bool => true);
+    }
+
+    /**
+     * 可控消费循环：$shouldContinue 返回 false 时退出（用于优雅停机）。
+     *
+     * @param callable(): bool $shouldContinue
+     */
+    public static function runControlled(string $consumerName, callable $handler, callable $shouldContinue): void
+    {
         $streamKey = ClusterConfig::pushStreamKeyForServer(ClusterNodeIdentity::getServerId());
         $group = ClusterConfig::pushStreamGroup();
 
@@ -48,26 +58,156 @@ class PushStreamConsumer
             $streamKey,
             $group,
             $consumerName,
-            $handler
+            $handler,
+            $shouldContinue
         ) {
-            self::ensureGroup($redis, $streamKey, $group);
-            $claimCursor = '0-0';
-
-            while (true) {
-                // 优先处理崩溃遗留的 pending，再读新消息
-                $claimCursor = self::reclaimPending($redis, $streamKey, $group, $consumerName, $handler, $claimCursor);
-
-                $entries = $redis->xReadGroup(
-                    $group,
-                    $consumerName,
-                    $streamKey,
-                    ClusterConfig::pushStreamReadCount(),
-                    ClusterConfig::pushStreamBlockMs()
-                );
-
-                self::handleEntries($redis, $streamKey, $group, $entries, $handler);
-            }
+            self::runControlledOnAdapter($redis, $streamKey, $group, $consumerName, $handler, $shouldContinue);
         });
+    }
+
+    /**
+     * 停机 drain：处理 PEL 中 pending 直至清空或 deadline，返回处理条数。
+     */
+    public static function drain(string $consumerName, callable $handler, int $deadline): int
+    {
+        $streamKey = ClusterConfig::pushStreamKeyForServer(ClusterNodeIdentity::getServerId());
+        $group = ClusterConfig::pushStreamGroup();
+        $processed = 0;
+
+        ClusterRedisClient::runDedicated(static function (ClusterRedisAdapterInterface $redis) use (
+            $streamKey,
+            $group,
+            $consumerName,
+            $handler,
+            $deadline,
+            &$processed
+        ) {
+            $processed = self::drainOnAdapter($redis, $streamKey, $group, $consumerName, $handler, $deadline);
+        });
+
+        return $processed;
+    }
+
+    /**
+     * @param callable(): bool $shouldContinue
+     */
+    public static function runControlledOnAdapterForTest(
+        ClusterRedisAdapterInterface $redis,
+        string $streamKey,
+        string $group,
+        string $consumerName,
+        callable $handler,
+        callable $shouldContinue
+    ): void {
+        self::ensureGroup($redis, $streamKey, $group);
+        self::runControlledOnAdapter($redis, $streamKey, $group, $consumerName, $handler, $shouldContinue);
+    }
+
+    public static function drainOnAdapterForTest(
+        ClusterRedisAdapterInterface $redis,
+        string $streamKey,
+        string $group,
+        string $consumerName,
+        callable $handler,
+        int $deadline
+    ): int {
+        self::ensureGroup($redis, $streamKey, $group);
+
+        return self::drainOnAdapter($redis, $streamKey, $group, $consumerName, $handler, $deadline);
+    }
+
+    /**
+     * @param callable(): bool $shouldContinue
+     */
+    private static function runControlledOnAdapter(
+        ClusterRedisAdapterInterface $redis,
+        string $streamKey,
+        string $group,
+        string $consumerName,
+        callable $handler,
+        callable $shouldContinue
+    ): void {
+        self::ensureGroup($redis, $streamKey, $group);
+        $claimCursor = '0-0';
+
+        while ($shouldContinue()) {
+            $claimCursor = self::reclaimPending($redis, $streamKey, $group, $consumerName, $handler, $claimCursor);
+            if (!$shouldContinue()) {
+                break;
+            }
+
+            $entries = $redis->xReadGroup(
+                $group,
+                $consumerName,
+                $streamKey,
+                ClusterConfig::pushStreamReadCount(),
+                self::blockMsForLoop($shouldContinue),
+                '>'
+            );
+
+            self::handleEntries($redis, $streamKey, $group, $entries, $handler);
+        }
+    }
+
+    private static function drainOnAdapter(
+        ClusterRedisAdapterInterface $redis,
+        string $streamKey,
+        string $group,
+        string $consumerName,
+        callable $handler,
+        int $deadline
+    ): int {
+        $processed = 0;
+        $claimCursor = '0-0';
+
+        while (time() < $deadline) {
+            $claimCursor = self::reclaimPending(
+                $redis,
+                $streamKey,
+                $group,
+                $consumerName,
+                $handler,
+                $claimCursor,
+                0
+            );
+
+            $pendingEntries = $redis->xReadGroup(
+                $group,
+                $consumerName,
+                $streamKey,
+                ClusterConfig::pushStreamReadCount(),
+                200,
+                '0'
+            );
+            if ($pendingEntries !== []) {
+                self::handleEntries($redis, $streamKey, $group, $pendingEntries, $handler);
+                $processed += count($pendingEntries);
+                continue;
+            }
+
+            if ((int) $redis->xPendingCount($streamKey, $group) === 0) {
+                break;
+            }
+
+            usleep(100000);
+        }
+
+        return $processed;
+    }
+
+    /** @param callable(): bool $shouldContinue */
+    private static function blockMsForLoop(callable $shouldContinue): int
+    {
+        $configured = ClusterConfig::pushStreamBlockMs();
+        if (!$shouldContinue()) {
+            return min(200, $configured);
+        }
+
+        if (WebsocketShutdownCoordinator::shouldStopConsuming()) {
+            return min(200, $configured);
+        }
+
+        return $configured;
     }
 
     /**
@@ -93,9 +233,10 @@ class PushStreamConsumer
         string $group,
         string $consumerName,
         callable $handler,
-        string $start
+        string $start,
+        ?int $minIdleMs = null
     ): string {
-        $minIdle = ClusterConfig::pushStreamClaimIdleMs();
+        $minIdle = $minIdleMs ?? ClusterConfig::pushStreamClaimIdleMs();
         $count = ClusterConfig::pushStreamReadCount();
         $cursor = $start;
         $rounds = 0;
