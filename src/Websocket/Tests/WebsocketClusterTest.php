@@ -298,6 +298,45 @@ function testPushStreamPublishConsumeAck(): void
     echo "[OK] push stream publish consume ack\n";
 }
 
+/** 多协程并发 execute() 不应触发 phpredis socket 绑定冲突 */
+function testConcurrentExecuteNoSocketConflict(): void
+{
+    $errors = [];
+    $waitGroup = new \Swoole\Coroutine\WaitGroup();
+    $waitGroup->add(2);
+
+    \Swoole\Coroutine::create(static function () use ($waitGroup, &$errors) {
+        try {
+            ClusterRedisClient::execute(static function ($redis) {
+                $redis->ping();
+                \Swoole\Coroutine::sleep(0.05);
+                $redis->zRangeByScore('ws:WebsocketService:alive', '0', (string) time());
+            });
+        } catch (\Throwable $throwable) {
+            $errors[] = $throwable->getMessage();
+        } finally {
+            $waitGroup->done();
+        }
+    });
+
+    \Swoole\Coroutine::create(static function () use ($waitGroup, &$errors) {
+        try {
+            ClusterRedisClient::execute(static function ($redis) {
+                $redis->sMembers('ws:WebsocketService:nodes');
+            });
+        } catch (\Throwable $throwable) {
+            $errors[] = $throwable->getMessage();
+        } finally {
+            $waitGroup->done();
+        }
+    });
+
+    $waitGroup->wait();
+    assertTrue($errors === [], 'concurrent execute failed: ' . implode('; ', $errors));
+
+    echo "[OK] concurrent execute per-coroutine connection\n";
+}
+
 \Swoole\Coroutine\run(function () {
     testConnIdParser();
     testPushMessageCodec();
@@ -312,6 +351,7 @@ function testPushStreamPublishConsumeAck(): void
     testTouchThrottle();
     testPushDeliveryQueue();
     testPushStreamPublishConsumeAck();
+    testConcurrentExecuteNoSocketConflict();
     testExternalPushPublisher();
 });
 

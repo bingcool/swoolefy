@@ -8,11 +8,13 @@ use Swoolefy\Core\Table\TableManager;
  * WebSocket 优雅停机协调（Master + Worker + 推送消费进程共享 Table 标志）。
  *
  * SIGTERM / cli stop 流程：
- * 1. Master 置 shutting_down + {@see \Swoole\Server::shutdown()} 停止 accept
- * 2. open / handshake 拒绝新连接（1008 / 503）
- * 3. Stream 消费进程 drain PEL（或超时）
- * 4. Master 轮询 XPENDING 直至清空或 drain_timeout
- * 5. Swoole 按 max_wait_time 等待 Worker 内正在处理的连接后退出
+ * 1. Master 收到 SIGTERM → Swoole 内置 shutdown → BeforeShutdown 回调
+ * 2. 置 shutting_down + 停止 accept（Swoole 已处理）+ 等待 Stream PEL drain
+ * 3. open / handshake 拒绝新连接（1008 / 503）
+ * 4. 自定义进程 SIGTERM → gracefulShutdownDrain → 退出
+ * 5. Swoole 按 max_wait_time 等待 Worker 后退出
+ *
+ * 注意：勿对 Master 重复 Process::signal(SIGTERM)，会与 Swoole 冲突。
  */
 class WebsocketShutdownCoordinator
 {
@@ -65,24 +67,62 @@ class WebsocketShutdownCoordinator
     }
 
     /**
-     * Master 进程 Start 后注册 SIGTERM/SIGINT，触发停机序列。
+     * 在 Server::start() 之前注册 BeforeShutdown（Swoole 生命周期事件须 start 前绑定）。
+     *
+     * `kill -15` / `cli.php stop` 走 Swoole Master 内置 SIGTERM → 本回调执行 drain。
      */
-    public static function installMasterSignalHandler(\Swoole\Server $server): void
+    public static function registerServerShutdownHook(\Swoole\Server $server): void
+    {
+        if (!self::isEnabled()) {
+            return;
+        }
+
+        $server->on('BeforeShutdown', static function (\Swoole\Server $server): void {
+            self::onBeforeShutdown($server);
+        });
+    }
+
+    /**
+     * Master Start 后注册 SIGINT（前台 Ctrl+C）。
+     *
+     * SIGTERM 由 Swoole Master 占用，此处 deliberately 不注册。
+     */
+    public static function installForegroundSignalHandler(\Swoole\Server $server): void
     {
         if (!self::isEnabled() || !extension_loaded('pcntl')) {
             return;
         }
 
         pcntl_async_signals(true);
-        $handler = static function () use ($server): void {
+        \Swoole\Process::signal(SIGINT, static function () use ($server): void {
             self::beginShutdown($server);
-        };
-        \Swoole\Process::signal(SIGTERM, $handler);
-        \Swoole\Process::signal(SIGINT, $handler);
+        });
     }
 
     /**
-     * 标记停机、停止 accept，并等待本节点 Stream PEL 排空（或超时）。
+     * Swoole 进入关机流程时调用（SIGTERM 路径）；不再调用 server->shutdown()。
+     */
+    public static function onBeforeShutdown(\Swoole\Server $server): void
+    {
+        unset($server);
+        if (!self::isEnabled() || self::isShuttingDown()) {
+            return;
+        }
+
+        self::markShuttingDown();
+        self::waitForStreamPelDrain();
+    }
+
+    /**
+     * @deprecated 使用 registerServerShutdownHook + installForegroundSignalHandler
+     */
+    public static function installMasterSignalHandler(\Swoole\Server $server): void
+    {
+        self::installForegroundSignalHandler($server);
+    }
+
+    /**
+     * 主动触发停机（SIGINT / 程序内调用）：标记 → shutdown → drain PEL。
      */
     public static function beginShutdown(\Swoole\Server $server): void
     {
