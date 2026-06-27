@@ -27,11 +27,18 @@ namespace Swoolefy\Websocket\SocketIO;
  * - `42["chat.send",{"k":"v"}]` event
  * - `431[{"code":0}]`          ack id=1 的响应
  * - `42/admin,7["evt",{}]`     非默认 namespace
+ * - `45-1-["file",{_placeholder}]` + BINARY 帧   二进制 event
+ *
+ * ## 二进制附件格式（Socket.IO v4）
+ *
+ * 文本帧：`4` + `5` + `[ns,]` + `[ackId]` + `-N-` + JSON（含 `_placeholder`）
+ * 后续 N 个 WebSocket BINARY 帧：首字节 `4`（Engine MESSAGE）+ 原始字节
+ * polling POST：文本包与 `b<base64>` 附件块用 `\x1e` 分隔
  *
  * ## 职责
  *
- * - `parse()`：入站帧 → 结构化字段（event、args、data、id）
- * - `open/event/ack/error/...`：出站帧构造
+ * - `parse()`：入站帧 → 结构化字段（event、args、data、id、attachmentCount）
+ * - `open/event/ack/error/encodeEventFrames`：出站帧构造
  *
  * 服务端处理流程见 `SocketIOHandler`；测试客户端见 `SocketIOClient`。
  *
@@ -81,6 +88,12 @@ class SocketIOPacket
     /** 错误包 */
     public const SOCKET_ERROR = '4';
 
+    /** 带二进制附件的事件 */
+    public const SOCKET_BINARY_EVENT = '5';
+
+    /** 带二进制附件的 ack */
+    public const SOCKET_BINARY_ACK = '6';
+
     // -------------------------------------------------------------------------
     // 解析结果字段
     // -------------------------------------------------------------------------
@@ -108,6 +121,9 @@ class SocketIOPacket
      * 供 WebsocketHandler 作为路由 params 使用。
      */
     public array $data = [];
+
+    /** 二进制附件数量；包体中 `-N-` 表示后续还有 N 个附件帧/块 */
+    public int $attachmentCount = 0;
 
     /**
      * 解析客户端或服务端发出的 Socket.IO 文本帧。
@@ -155,12 +171,34 @@ class SocketIOPacket
         }
 
         if (preg_match('/^(\d+)(.*)$/', $body, $matches)) {
-            // ack id 紧跟 namespace 之后、JSON 之前
-            $packet->id = $matches[1];
-            $body = $matches[2];
+            $rest = $matches[2];
+            // ackId 后接 `[`（纯 JSON）或 `-`（二进制附件计数）
+            if ($rest !== '' && ($rest[0] === '[' || $rest[0] === '-')) {
+                $packet->id = $matches[1];
+                $body = $rest;
+            }
         }
 
-        if ($packet->socketType === self::SOCKET_EVENT || $packet->socketType === self::SOCKET_ACK) {
+        // 二进制：`-N-` 双横线格式，N 为附件个数
+        if ($body !== '' && $body[0] === '-') {
+            $secondDash = strpos($body, '-', 1);
+            if ($secondDash !== false) {
+                $countPart = substr($body, 1, $secondDash - 1);
+                if ($countPart !== '' && ctype_digit($countPart)) {
+                    $packet->attachmentCount = (int) $countPart;
+                    $body = substr($body, $secondDash + 1);
+                }
+            }
+        }
+
+        $isEventType = in_array($packet->socketType, [
+            self::SOCKET_EVENT,
+            self::SOCKET_ACK,
+            self::SOCKET_BINARY_EVENT,
+            self::SOCKET_BINARY_ACK,
+        ], true);
+
+        if ($isEventType && ($packet->socketType === self::SOCKET_EVENT || $packet->socketType === self::SOCKET_BINARY_EVENT)) {
             $args = json_decode($body, true);
             if (!is_array($args) || !isset($args[0]) || !is_string($args[0])) {
                 throw new \InvalidArgumentException('Socket.IO event payload must be json array');
@@ -171,6 +209,9 @@ class SocketIOPacket
             if (!is_array($packet->data)) {
                 $packet->data = ['value' => $packet->data];
             }
+        } elseif ($isEventType && ($packet->socketType === self::SOCKET_ACK || $packet->socketType === self::SOCKET_BINARY_ACK)) {
+            $args = json_decode($body, true);
+            $packet->args = is_array($args) ? $args : [];
         } elseif ($packet->socketType === self::SOCKET_CONNECT && $body !== '') {
             $data = json_decode($body, true);
             $packet->data = is_array($data) ? $data : [];
@@ -269,6 +310,70 @@ class SocketIOPacket
             . self::SOCKET_EVENT
             . self::namespacePrefix($namespace)
             . json_encode(array_merge([$event], $args), JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * 编码出站 event：无附件 → 单 TEXT；有附件 → TEXT + 若干 BINARY。
+     *
+     * 业务 push 经 WebsocketConnectionManager::encodeEventFrames 调用。
+     *
+     * @return array<int, array{0: string, 1: int}> [payload, WEBSOCKET_OPCODE_*]
+     */
+    public static function encodeEventFrames(string $event, array $args = [], string $namespace = '/'): array
+    {
+        [$jsonArgs, $attachments] = SocketIOBinaryData::prepareArgs(array_merge([$event], $args));
+        $eventName = (string) ($jsonArgs[0] ?? $event);
+        $eventArgs = array_slice(is_array($jsonArgs) ? $jsonArgs : [], 1);
+
+        if ($attachments === []) {
+            return [[self::event($eventName, $eventArgs, $namespace), WEBSOCKET_OPCODE_TEXT]];
+        }
+
+        $text = self::binaryEvent($eventName, $eventArgs, count($attachments), $namespace);
+        $frames = [[$text, WEBSOCKET_OPCODE_TEXT]];
+        foreach ($attachments as $attachment) {
+            $frames[] = [SocketIOBinaryData::encodeAttachmentFrame($attachment), WEBSOCKET_OPCODE_BINARY];
+        }
+
+        return $frames;
+    }
+
+    /** 构造二进制 event 文本头：`45-1-[...]` 或 `451-1-[...]`（带 ackId） */
+    public static function binaryEvent(
+        string $event,
+        array $args,
+        int $attachmentCount,
+        string $namespace = '/',
+        string $ackId = ''
+    ): string {
+        return self::ENGINE_MESSAGE
+            . self::SOCKET_BINARY_EVENT
+            . self::namespacePrefix($namespace)
+            . $ackId
+            . '-' . $attachmentCount . '-'
+            . json_encode(array_merge([$event], $args), JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * polling 出站：文本包 + base64 附件块。
+     *
+     * @return string[]
+     */
+    public static function encodeEventPollingChunks(string $event, array $args = [], string $namespace = '/'): array
+    {
+        $frames = self::encodeEventFrames($event, $args, $namespace);
+        $chunks = [];
+        foreach ($frames as [$payload, $opcode]) {
+            if ($opcode === WEBSOCKET_OPCODE_BINARY) {
+                $chunks[] = SocketIOBinaryData::encodePollingAttachment(
+                    SocketIOBinaryData::decodeAttachmentFrame($payload)
+                );
+            } else {
+                $chunks[] = $payload;
+            }
+        }
+
+        return $chunks;
     }
 
     /**

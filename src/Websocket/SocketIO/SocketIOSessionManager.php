@@ -16,10 +16,10 @@ class SocketIOSessionManager
 {
     private const VIRTUAL_FD_BASE = 0x40000000;
 
-    /** @var array<string, string[]> sid → 待发送 Engine.IO 包 */
+    /** @var array<string, string[]> sid → 待 long-poll 取走的 Engine.IO 包（含 `\x1e` batch） */
     private static array $outbound = [];
 
-    /** @var array<string, Channel> sid → long-poll 等待通道 */
+    /** @var array<string, Channel> sid → 协程 Channel；push 时唤醒阻塞中的 GET poll */
     private static array $waitChannels = [];
 
     /** @var array<string, int> sid → 虚拟 fd */
@@ -79,7 +79,7 @@ class SocketIOSessionManager
     }
 
     /**
-     * long-poll 等待出站包，超时返回空数组。
+     * long-poll GET：先 drain 已有队列；空则阻塞至 push 唤醒或 poll_timeout。
      *
      * @return string[]
      */

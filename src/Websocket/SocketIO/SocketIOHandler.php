@@ -21,21 +21,32 @@ use Swoolefy\Websocket\WebsocketPacket;
 /**
  * Socket.IO v4（Engine.IO v4 + websocket / long-polling）服务端协议处理。
  *
- * ## Transport
+ * ## 职责边界
  *
- * - **websocket**：`transport=websocket` WebSocket 升级（默认）
- * - **polling**：`transport=polling` HTTP GET/POST，见 {@see SocketIOPollingHandler}
- * - **upgrade**：polling 握手后 `transport=websocket&sid=...` 可升级到 WebSocket
+ * - **Engine 层**：open / ping-pong / close（`0`~`3`）
+ * - **Socket 层**：namespace connect/disconnect / event / ack（`40`~`44`、`45`/`46` 二进制）
+ * - **业务层**：统一转 {@see WebsocketHandler} + `Config/socketio.php` 路由
+ *
+ * ## 关键流程
+ *
+ * ```
+ * onOpen → 0{sid}（或 polling→websocket upgrade 复用 sid）
+ * onMessage TEXT → parse → [BinaryAssembler 等附件] → handleParsedPacket
+ * onMessage BINARY → BinaryAssembler.feedBinary → handleParsedPacket
+ * handleParsedPacket:
+ *   40 → NamespaceRegistry.connectNamespace
+ *   41 → disconnectNamespace（仅最后一个 ns 才关 Engine）
+ *   42/45 → dispatchEvent → WebsocketHandler
+ * ```
  *
  * @see SocketIOPacket
  * @see SocketIOPollingHandler
- * @see SocketIOClient
+ * @see SocketIONamespaceRegistry
+ * @see SocketIOBinaryAssembler
  */
 class SocketIOHandler
 {
-    /**
-     * 判断 WebSocket 升级请求是否为 Socket.IO v4 + websocket transport。
-     */
+    /** WebSocket 升级：EIO=4 + transport=websocket */
     public static function isSocketIORequest(Request $request): bool
     {
         $path = (string) ($request->server['path_info'] ?? $request->server['request_uri'] ?? '');
@@ -84,11 +95,12 @@ class SocketIOHandler
     }
 
     /**
-     * WebSocket 连接建立后发送 Engine.IO open，或从 polling 升级。
+     * WebSocket 连接建立：新连接发 open；带 sid 则为 polling→websocket 升级。
      */
     public static function onOpen(Server $server, Request $request, array $config = [], string $userId = ''): void
     {
         $upgradeSid = (string) ($request->get['sid'] ?? '');
+        // upgrade 时不重复发 open，仅迁移虚拟 fd 上的会话状态
         if ($upgradeSid !== '' && SocketIOSessionManager::hasSession($upgradeSid)) {
             self::upgradePollingToWebSocket($server, $request, $config, $upgradeSid, $userId);
 
@@ -106,22 +118,26 @@ class SocketIOHandler
     }
 
     /**
-     * 处理一帧 Socket.IO 文本消息（WebSocket transport）。
+     * WebSocket 入站：TEXT 为 Engine.IO 文本包；BINARY 为二进制附件后续帧。
      */
     public static function onMessage(Server $server, Frame $frame, array $config = []): bool
     {
-        $outbound = self::handleInbound((int) $frame->fd, (string) $frame->data, $config, $server);
-        $ok = true;
-        foreach ($outbound as $packet) {
-            $ok = $server->push($frame->fd, $packet) && $ok;
+        $fd = (int) $frame->fd;
+        if ((int) $frame->opcode === WEBSOCKET_OPCODE_BINARY) {
+            // 二进制 event 的第二帧起：与上一 TEXT 包中的 attachmentCount 配对
+            $packet = SocketIOBinaryAssembler::feedBinary($fd, (string) $frame->data);
+            if ($packet === null) {
+                return true;
+            }
+            $outbound = self::handleParsedPacket($fd, $packet, $config, $server);
+        } else {
+            $outbound = self::handleInbound($fd, (string) $frame->data, $config, $server);
         }
 
-        return $ok;
+        return self::pushOutbound($server, $fd, $outbound);
     }
 
     /**
-     * 处理单条 Engine.IO 入站包，返回需回写的出站包列表。
-     *
      * @return string[]
      */
     public static function handleInbound(int $fd, string $raw, array $config, ?Server $server = null): array
@@ -134,6 +150,85 @@ class SocketIOHandler
             return [SocketIOPacket::error($throwable->getMessage())];
         }
 
+        if ($packet->engineType !== SocketIOPacket::ENGINE_MESSAGE) {
+            return self::handleParsedPacket($fd, $packet, $config, $server);
+        }
+
+        // ENGINE_MESSAGE 且带 `-N-` 后缀时，需等待 BINARY 帧收齐后再 dispatch
+        $ready = SocketIOBinaryAssembler::feedText($fd, $packet);
+        if ($ready === null) {
+            return [];
+        }
+
+        return self::handleParsedPacket($fd, $ready, $config, $server);
+    }
+
+    /**
+     * polling POST：解析 `\x1e` 分隔的文本包与 `b<base64>` 附件。
+     *
+     * @return string[]
+     */
+    public static function handleInboundPollingBatch(int $fd, string $body, array $config): array
+    {
+        $outbound = [];
+        $chunks = SocketIOPacket::decodeBatch($body);
+        $index = 0;
+        while ($index < count($chunks)) {
+            $chunk = $chunks[$index];
+            if (SocketIOBinaryData::decodePollingAttachment($chunk) !== null) {
+                $index++;
+                continue;
+            }
+
+            try {
+                $packet = SocketIOPacket::parse($chunk);
+            } catch (\Throwable $throwable) {
+                $outbound[] = SocketIOPacket::error($throwable->getMessage());
+                $index++;
+                continue;
+            }
+
+            if ($packet->attachmentCount > 0) {
+                $attachments = [];
+                for ($j = 0; $j < $packet->attachmentCount; $j++) {
+                    $nextIndex = $index + 1 + $j;
+                    if ($nextIndex >= count($chunks)) {
+                        break;
+                    }
+                    $bytes = SocketIOBinaryData::decodePollingAttachment($chunks[$nextIndex]);
+                    if ($bytes === null) {
+                        break;
+                    }
+                    $attachments[] = $bytes;
+                }
+                $index += 1 + count($attachments);
+                $packet = SocketIOBinaryAssembler::finalizeFromPolling($packet, $attachments);
+            } else {
+                $index++;
+            }
+
+            $outbound = array_merge($outbound, self::handleParsedPacket($fd, $packet, $config, null));
+        }
+
+        return $outbound;
+    }
+
+    public static function generateSidPublic(): string
+    {
+        return self::generateSid();
+    }
+
+    /**
+     * Socket.IO 包路由核心（namespace / 二进制已在入口处理完毕）。
+     *
+     * @return string[] 需回写客户端的 Engine.IO 包列表
+     */
+    private static function handleParsedPacket(
+        int $fd,
+        SocketIOPacket $packet,
+        array $config,
+        ?Server $server
+    ): array {
         if ($packet->engineType === SocketIOPacket::ENGINE_PING) {
             return [SocketIOPacket::pong()];
         }
@@ -153,6 +248,11 @@ class SocketIOHandler
         }
 
         if ($packet->socketType === SocketIOPacket::SOCKET_CONNECT) {
+            // 40/40/ns,：注册 namespace，同一 Engine 连接可多次 connect 不同 ns
+            $error = SocketIONamespaceRegistry::connectNamespace($fd, $packet->namespace, $config);
+            if ($error !== null) {
+                return [SocketIOPacket::error($error, -1, $packet->namespace)];
+            }
             $connection = WebsocketConnectionManager::getConnection($fd);
             $sid = (string) ($connection['sid'] ?? self::generateSid());
 
@@ -160,7 +260,10 @@ class SocketIOHandler
         }
 
         if ($packet->socketType === SocketIOPacket::SOCKET_DISCONNECT) {
-            self::closeConnection($fd, $server);
+            // 41：仅断开指定 namespace；全部 ns 断开后才关闭 Engine 连接
+            if (SocketIONamespaceRegistry::disconnectNamespace($fd, $packet->namespace)) {
+                self::closeConnection($fd, $server);
+            }
 
             return [];
         }
@@ -169,14 +272,19 @@ class SocketIOHandler
             return [SocketIOPacket::error('Unsupported Socket.IO packet', -1, $packet->namespace)];
         }
 
-        return self::dispatchEvent($fd, $raw, $packet, $config, $server);
+        // 未 connect 的 namespace 不允许 emit
+        if (!SocketIONamespaceRegistry::isConnected($fd, $packet->namespace)) {
+            return [SocketIOPacket::error('namespace not connected', -1, $packet->namespace)];
+        }
+
+        return self::dispatchEvent($fd, $packet, $config);
     }
 
-    public static function generateSidPublic(): string
-    {
-        return self::generateSid();
-    }
-
+    /**
+     * polling→websocket 升级：虚拟 fd 上的 user/group/namespace/出站队列 迁移到真实 fd。
+     *
+     * 注意：升级后不再发送 Engine open（客户端 polling 阶段已收到）。
+     */
     private static function upgradePollingToWebSocket(
         Server $server,
         Request $request,
@@ -195,6 +303,7 @@ class SocketIOHandler
 
         $boundUserId = (string) ($connection['user_id'] ?? $userId);
         $groups = WebsocketConnectionManager::decodeGroupsPublic((string) ($connection['groups'] ?? ''));
+        $namespaces = (string) ($connection['socketio_namespaces'] ?? '');
         $pending = SocketIOSessionManager::drainOutbound($sid);
 
         WebsocketConnectionManager::closePollingVirtual($virtualFd);
@@ -207,6 +316,12 @@ class SocketIOHandler
 
         $realFd = (int) $request->fd;
         WebsocketConnectionManager::restoreGroupsWithoutAuth($realFd, $groups);
+        if ($namespaces !== '') {
+            WebsocketConnectionManager::updateConnection($realFd, array_merge(
+                WebsocketConnectionManager::getConnection($realFd) ?? [],
+                ['socketio_namespaces' => $namespaces]
+            ));
+        }
 
         foreach ($pending as $packet) {
             $server->push($realFd, $packet);
@@ -219,21 +334,20 @@ class SocketIOHandler
         $pingInterval = (int) ($socketio['ping_interval'] ?? 25);
         $pingTimeout = (int) ($socketio['ping_timeout'] ?? 20);
         $maxPayload = (int) ($socketio['max_payload'] ?? 1000000);
+        // open 包中的 upgrades 告知客户端可升级到 WebSocket
+        $upgrades = self::isPollingEnabled($config) && self::isWebSocketTransportEnabled($config) ? ['websocket'] : [];
 
-        return SocketIOPacket::open($sid, $pingInterval, $pingTimeout, $maxPayload, []);
+        return SocketIOPacket::open($sid, $pingInterval, $pingTimeout, $maxPayload, $upgrades);
     }
 
     /**
-     * @return string[]
+     * Socket.IO event → 框架 WebsocketPacket；路由按 namespace 解析 endpoint。
+     *
+     * params 中带 `_socketio` 元数据，供业务层区分 ns / ack / 原始 args。
      */
-    private static function dispatchEvent(
-        int $fd,
-        string $raw,
-        SocketIOPacket $packet,
-        array $config,
-        ?Server $server
-    ): array {
-        $endpoint = self::resolveEndpoint($packet->event, $config);
+    private static function dispatchEvent(int $fd, SocketIOPacket $packet, array $config): array
+    {
+        $endpoint = SocketIONamespaceRegistry::resolveEndpoint($packet->event, $packet->namespace, $config);
         $params = $packet->data;
         $params['_socketio'] = [
             'event' => $packet->event,
@@ -242,6 +356,7 @@ class SocketIOHandler
             'args' => $packet->args,
         ];
 
+        $raw = SocketIOPacket::event($packet->event, $packet->args, $packet->namespace);
         $websocketPacket = new WebsocketPacket(
             $fd,
             $raw,
@@ -269,8 +384,21 @@ class SocketIOHandler
         return $outbound;
     }
 
+    /** @param string[] $outbound */
+    private static function pushOutbound(Server $server, int $fd, array $outbound): bool
+    {
+        $ok = true;
+        foreach ($outbound as $packet) {
+            $ok = $server->push($fd, $packet) && $ok;
+        }
+
+        return $ok;
+    }
+
     private static function closeConnection(int $fd, ?Server $server): void
     {
+        SocketIOBinaryAssembler::clear($fd);
+
         if (SocketIOSessionManager::isVirtualFd($fd)) {
             WebsocketConnectionManager::closePollingVirtual($fd);
 
@@ -281,16 +409,6 @@ class SocketIOHandler
         if ($server !== null && $server->isEstablished($fd)) {
             $server->disconnect($fd, 1000, 'Socket.IO close');
         }
-    }
-
-    private static function resolveEndpoint(string $event, array $config): string
-    {
-        $routes = $config['socketio']['event_routes'] ?? [];
-        if (is_array($routes) && isset($routes[$event])) {
-            return trim((string) $routes[$event], '/');
-        }
-
-        return trim(str_replace('.', '/', $event), '/');
     }
 
     private static function isSocketIOPath(string $path): bool

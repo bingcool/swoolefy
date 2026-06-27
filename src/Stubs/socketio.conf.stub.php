@@ -3,7 +3,7 @@
  * Socket.IO 配置
  *
  * 支持 Engine.IO v4 的 websocket 与 long-polling transport。
- * event_routes 将客户端 emit 的事件名映射到 Router/service.php 中的 endpoint。
+ * 支持多 namespace、二进制附件（WebSocket 分帧 / polling base64）。
  *
  * long-polling 需 Protocol/conf.php 中 accept_http=true。
  */
@@ -13,15 +13,23 @@ return [
     'ping_interval' => 25,
     'ping_timeout'  => 20,
     'max_payload'   => 1000000,
-    // 启用 HTTP long-polling（默认 socket.io-client 会先 polling 再 upgrade websocket）
     'allow_polling' => true,
     'poll_timeout' => 25,
     'transports' => ['websocket', 'polling'],
-    // Socket.IO event 到 service.php endpoint 的映射；未配置时 chat.send => chat/send
+    // `*` 允许任意 namespace；生产可改为 ['/', '/chat', '/admin']
+    'allowed_namespaces' => ['*'],
     'event_routes' => [
         'chat.send' => 'Service/Chat/Send',
         'chat.private' => 'Service/Chat/SendPrivate',
         'group.join' => 'Service/Chat/JoinGroup',
         'group.leave' => 'Service/Chat/LeaveGroup',
+    ],
+    // 按 namespace 覆盖 event 路由
+    'namespaces' => [
+        '/admin' => [
+            'event_routes' => [
+                'admin.broadcast' => 'Service/Admin/Broadcast',
+            ],
+        ],
     ],
 ];
