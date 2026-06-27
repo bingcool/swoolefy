@@ -2,6 +2,9 @@
 
 namespace Swoolefy\Websocket\Cluster;
 
+use Swoolefy\Core\Application;
+use Swoolefy\Core\Dto\ContainerObjectDto;
+
 /**
  * Redis 客户端封装，支持 ext-redis (phpredis) 与 predis/predis。
  *
@@ -12,7 +15,7 @@ namespace Swoolefy\Websocket\Cluster;
  *
  * Swoole 下使用 phpredis 时依赖 hook_flags（默认 SWOOLE_HOOK_ALL）协程化阻塞 IO。
  *
- * - execute()：Worker 进程内复用长连接（失败自动重连），供注册表与 XADD/PUBLISH 发布
+ * - execute()：协程内通过 Application::getApp()->creatObject() 单例连接；无 App 时降级
  * - runDedicated()：独立连接，供 Stream XREADGROUP / List BRPOP 等阻塞读
  * - subscribe()：Pub/Sub 长连接（仅 transport=pubsub）
  */
@@ -21,29 +24,54 @@ class ClusterRedisClient
     private const DRIVER_PHPREDIS = 'phpredis';
     private const DRIVER_PREDIS = 'predis';
 
-    /** @var ClusterRedisAdapterInterface|null Worker 进程内复用的 Redis 连接 */
-    private static ?ClusterRedisAdapterInterface $sharedAdapter = null;
+    private const COMPONENT_PHPREDIS = '__websocket_php_redis';
+
+    private const COMPONENT_PREDIS = '__websocket_predis';
+
+    /** @var ClusterRedisAdapterInterface|null 非协程 / 无 App 上下文降级连接 */
+    private static ?ClusterRedisAdapterInterface $fallbackAdapter = null;
 
     /**
-     * 在复用连接上执行 Redis 命令；连接异常时自动重建并重试一次。
+     * 在协程单例连接上执行 Redis 命令；连接异常时清组件并重试一次。
      */
     public static function execute(callable $callback)
     {
         try {
-            return $callback(self::getSharedAdapter());
+            return $callback(self::getAdapter());
         } catch (\Throwable $throwable) {
             self::resetSharedAdapter();
 
-            return $callback(self::getSharedAdapter());
+            return $callback(self::getAdapter());
         }
     }
 
-    /** 关闭复用连接（单测 teardown 或 Worker 退出时调用） */
+    /** 关闭当前上下文 Redis 连接（单测 teardown 或重连前调用） */
     public static function resetSharedAdapter(): void
     {
-        if (self::$sharedAdapter !== null) {
-            self::$sharedAdapter->close();
-            self::$sharedAdapter = null;
+        $app = Application::getApp();
+        if ($app !== null && method_exists($app, 'clearComponent')) {
+            foreach ([self::COMPONENT_PHPREDIS, self::COMPONENT_PREDIS] as $alias) {
+                if (!method_exists($app, 'has') || !$app->has($alias)) {
+                    continue;
+                }
+
+                $container = $app->getComponents($alias);
+                if ($container instanceof ContainerObjectDto) {
+                    $object = $container->getObject();
+                    if ($object instanceof ClusterRedisAdapterInterface) {
+                        $object->close();
+                    }
+                }
+
+                $app->clearComponent($alias);
+            }
+
+            return;
+        }
+
+        if (self::$fallbackAdapter !== null) {
+            self::$fallbackAdapter->close();
+            self::$fallbackAdapter = null;
         }
     }
 
@@ -71,13 +99,48 @@ class ClusterRedisClient
         self::subscribePredis($channel, $onMessage);
     }
 
-    private static function getSharedAdapter(): ClusterRedisAdapterInterface
+    private static function getAdapter(): ClusterRedisAdapterInterface
     {
-        if (self::$sharedAdapter === null) {
-            self::$sharedAdapter = self::createAdapter();
+        $app = Application::getApp();
+        if ($app !== null && method_exists($app, 'creatObject')) {
+            return self::getAdapterFromApp($app);
         }
 
-        return self::$sharedAdapter;
+        if (class_exists(\Swoole\Coroutine::class) && \Swoole\Coroutine::getCid() > 0) {
+            return self::createAdapter();
+        }
+
+        if (self::$fallbackAdapter === null) {
+            self::$fallbackAdapter = self::createAdapter();
+        }
+
+        return self::$fallbackAdapter;
+    }
+
+    /**
+     * @param object $app EventController|App 等带 ComponentTrait 的协程应用实例
+     */
+    private static function getAdapterFromApp(object $app): ClusterRedisAdapterInterface
+    {
+        if (self::resolveDriver() === self::DRIVER_PHPREDIS) {
+            $container = $app->creatObject(self::COMPONENT_PHPREDIS, static function (): PhpRedisClusterAdapter {
+                return new PhpRedisClusterAdapter(self::connectPhpRedis());
+            });
+        } else {
+            $container = $app->creatObject(self::COMPONENT_PREDIS, static function (): PredisClusterAdapter {
+                return new PredisClusterAdapter(self::connectPredis());
+            });
+        }
+
+        $object = $container instanceof ContainerObjectDto
+            ? $container->getObject()
+            : $container;
+
+        if (!$object instanceof ClusterRedisAdapterInterface) {
+            throw new ClusterRedisException('Invalid websocket redis component object');
+        }
+
+        return $object;
     }
 
     private static function createAdapter(): ClusterRedisAdapterInterface

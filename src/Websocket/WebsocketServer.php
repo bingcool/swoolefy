@@ -97,7 +97,7 @@ abstract class WebsocketServer extends BaseServer
         $this->webServer->on('Start', function (\Swoole\WebSocket\Server $server) {
             try {
                 self::setMasterProcessName(self::$config['master_process_name']);
-                Cluster\WebsocketShutdownCoordinator::installMasterSignalHandler($server);
+                Cluster\WebsocketShutdownCoordinator::installForegroundSignalHandler($server);
                 $this->startCtrl->start($server);
             } catch (\Throwable $e) {
                 self::catchException($e);
@@ -399,6 +399,10 @@ abstract class WebsocketServer extends BaseServer
             }
         });
 
+        if (!empty(self::getWebsocketConfig()['graceful_shutdown']['enable'])) {
+            Cluster\WebsocketShutdownCoordinator::registerServerShutdownHook($this->webServer);
+        }
+
         $this->webServer->start();
     }
 
@@ -416,7 +420,7 @@ abstract class WebsocketServer extends BaseServer
         $timeout = (int) ($websocketConfig['heartbeat_idle_time'] ?? 90);
         if ($workerId === 0 && $interval > 0 && $timeout > 0) {
             // 心跳扫描只放在 worker 0，所有连接状态在 Swoole\Table 中共享。
-            \Swoole\Timer::tick($interval * 1000, function () use ($server, $timeout) {
+            goTick($interval * 1000, function () use ($server, $timeout) {
                 WebsocketConnectionManager::disconnectExpired($server, $timeout);
             });
         }
@@ -424,7 +428,7 @@ abstract class WebsocketServer extends BaseServer
         $clusterInterval = (int) ($websocketConfig['cluster']['cleanup_interval'] ?? 30);
         if ($workerId === 0 && !empty($websocketConfig['cluster']['enable']) && $clusterInterval > 0) {
             // 集群模式：worker 0 定时清理 Redis alive ZSET 中的僵尸连接索引
-            \Swoole\Timer::tick($clusterInterval * 1000, function () use ($timeout) {
+            goTick($clusterInterval * 1000, function () use ($timeout) {
                 Cluster\ClusterConnectionCoordinator::cleanupExpired($timeout);
             });
         }
@@ -432,7 +436,7 @@ abstract class WebsocketServer extends BaseServer
         if ($workerId === 0 && !empty($websocketConfig['metrics']['enable'])) {
             \Swoolefy\Websocket\Metrics\WebsocketMetrics::bootRow();
             $metricsInterval = \Swoolefy\Websocket\Metrics\WebsocketMetrics::refreshInterval();
-            \Swoole\Timer::tick($metricsInterval * 1000, static function () {
+            goTick($metricsInterval * 1000, static function () {
                 \Swoolefy\Websocket\Metrics\WebsocketMetrics::refreshGauges();
             });
         }

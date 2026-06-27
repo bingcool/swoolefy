@@ -214,8 +214,21 @@ function testDrainProcessesPending(): void
     echo "[OK] drain processes pending\n";
 }
 
+/** onBeforeShutdown 应标记停机但不重复 drain 逻辑冲突 */
+function testOnBeforeShutdownMarksFlag(): void
+{
+    bootGracefulConfig();
+    WebsocketShutdownCoordinator::onBeforeShutdown(new \Swoole\Server('127.0.0.1', 0));
+    assertTrue(WebsocketShutdownCoordinator::isShuttingDown(), 'before shutdown should mark flag');
+    assertTrue(WebsocketShutdownCoordinator::shouldRejectNewConnections(), 'should reject after mark');
+
+    teardownGracefulConfig();
+    echo "[OK] onBeforeShutdown marks flag\n";
+}
+
 testShouldRejectNewConnections();
 testRunControlledStopsWhenShouldContinueFalse();
 testDrainProcessesPending();
+testOnBeforeShutdownMarksFlag();
 
 echo "All websocket graceful shutdown tests passed.\n";
