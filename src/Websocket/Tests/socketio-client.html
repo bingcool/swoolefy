@@ -173,7 +173,7 @@
             <div>
                 <label for="transport">Transport</label>
                 <select id="transport">
-                    <option value="auto">auto（polling → websocket upgrade）</option>
+                    <option value="auto">auto（websocket 优先，失败 fallback polling）</option>
                     <option value="websocket" selected>websocket（仅 WebSocket）</option>
                     <option value="polling">polling（仅 long-polling）</option>
                 </select>
@@ -251,7 +251,7 @@
             return ['polling'];
         }
 
-        return ['polling', 'websocket'];
+        return ['websocket', 'polling'];
     };
 
     const usesPolling = (transports) => transports.includes('polling');

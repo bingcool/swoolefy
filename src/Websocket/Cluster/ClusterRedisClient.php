@@ -28,9 +28,27 @@ class ClusterRedisClient
     private const DRIVER_PHPREDIS = 'phpredis';
     private const DRIVER_PREDIS = 'predis';
 
-    private const COMPONENT_PHPREDIS = '__websocket_php_redis';
+    /** @var string 协程单例 phpredis 组件别名，可在app.php 中配置连接池
+     * ClusterRedisClient::COMPONENT_PHPREDIS => [
+     * 'max_pool_num' => 5,
+     * 'max_push_timeout' => 2,
+     * 'max_pop_timeout' => 1,
+     * 'max_life_timeout' => 10,
+     * 'enable_tick_clear_pool' => 0
+     * ],
+     */
+    public const COMPONENT_PHPREDIS = '__websocket_php_redis';
 
-    private const COMPONENT_PREDIS = '__websocket_predis';
+    /** @var string 协程单例 Predis 组件别名，可在app.php 中配置连接池
+     * ClusterRedisClient::COMPONENT_PREDIS => [
+     * 'max_pool_num' => 5,
+     * 'max_push_timeout' => 2,
+     * 'max_pop_timeout' => 1,
+     * 'max_life_timeout' => 10,
+     * 'enable_tick_clear_pool' => 0
+     * ]
+    */
+    public const COMPONENT_PREDIS = '__websocket_predis';
 
     /** @var ClusterRedisAdapterInterface|null 非协程 / 无 App 上下文降级连接 */
     private static ?ClusterRedisAdapterInterface $fallbackAdapter = null;
