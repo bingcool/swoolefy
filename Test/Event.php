@@ -2,6 +2,8 @@
 
 namespace Test;
 
+use Swoolefy\Library\Db\Interceptor\TenantLineDemoHandler;
+use Swoolefy\Library\Db\Interceptor\TenantLineInterceptor;
 use Swoolefy\Library\Db\PDOConnection;
 use Predis\Command\Redis\CONFIG;
 use Swoole\Coroutine\WaitGroup;
@@ -25,6 +27,11 @@ class Event extends EventHandler
         PDOConnection::registerSlowSqlFn(1, function ($runTime, $realSql, $traceId) {
             var_dump("链路ID： $traceId, slow sql 耗时：$runTime, sql：$realSql");
         });
+
+        // 注册全局sql拦截器
+        PDOConnection::addGlobalSqlInterceptor(
+            new TenantLineInterceptor(new TenantLineDemoHandler())
+        );
 
         $waitGroup = new GoWaitGroup();
 

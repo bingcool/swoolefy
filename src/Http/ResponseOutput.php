@@ -117,11 +117,17 @@ class ResponseOutput extends HttpInputOut
     /**
      * header 使用链式作用域
      * @param string $name
-     * @param string $value
+     * @param string|int|float|bool|string[]|int[]|float[]|bool[] $value
      * @return ResponseOutput
      */
     public function withHeader(string $name, $value)
     {
+        if (is_array($value)) {
+            $value = array_map(static fn ($item): string => (string) $item, $value);
+        } else {
+            $value = (string) $value;
+        }
+
         $this->swooleResponse->header($name, $value);
         return $this;
     }

@@ -52,5 +52,11 @@
         "kwn/php-rdkafka-stubs": "dev-master",
         "swoole/ide-helper": "dev-master",
         "viest/php-ext-xlswriter-ide-helper": "dev-master"
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": false,
+            "tbachert/spi": false
+        }
     }
 }
