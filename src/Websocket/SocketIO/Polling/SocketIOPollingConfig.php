@@ -21,8 +21,9 @@ use Swoolefy\Websocket\Cluster\ClusterConfig;
  *     'shared_store' => 'auto',   // auto | memory | redis
  *     'session_ttl' => 180,       // sid / 出站队列 Redis 过期秒数
  *     'outbound_max_len' => 128,    // 每 sid 出站 List 最大条数（LTRIM 保留尾部）
- *     'short_poll_wait_sec' => 2,   // 单 sid 唯一 waiter 的 BRPOP 秒数（1~5，兼顾 QPS 与 push 延迟）
- *     'redis' => [...],           // 可选，未配置时复用 cluster.redis
+     *     'short_poll_wait_sec' => 2,   // 单 sid 唯一 waiter 的 BRPOP 秒数（1~5，兼顾 QPS 与 push 延迟）
+     *     'session_touch_interval' => 15, // Redis 会话 touch 节流秒数（Table 仍每次更新）
+     *     'redis' => [...],           // 可选，未配置时复用 cluster.redis
  * ],
  * ```
  *
@@ -145,6 +146,22 @@ class SocketIOPollingConfig
         $waitSec = $configured > 0 ? $configured : 2;
 
         return max(1, min($waitSec, 5, max(1, $pollTimeout)));
+    }
+
+    /**
+     * polling 会话 Redis touch 节流间隔（秒）。
+     *
+     * 本地 Table 每次 poll 仍更新；仅距上次 Redis touch 超过此间隔才 hSet+EXPIRE。
+     * 未配置时沿用 cluster.touch_interval，最小 5。
+     */
+    public static function sessionTouchInterval(): int
+    {
+        $polling = self::polling();
+        if (array_key_exists('session_touch_interval', $polling)) {
+            return max(5, (int) $polling['session_touch_interval']);
+        }
+
+        return ClusterConfig::touchInterval();
     }
 
     /**

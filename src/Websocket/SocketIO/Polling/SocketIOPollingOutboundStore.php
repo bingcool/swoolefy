@@ -66,6 +66,10 @@ class SocketIOPollingOutboundStore
         if (!SocketIOPollingConfig::usesSharedStore()) {
             self::$memoryQueues[$sid] ??= [];
             self::$memoryQueues[$sid][] = $packet;
+            $maxLen = SocketIOPollingConfig::outboundMaxLen();
+            if (count(self::$memoryQueues[$sid]) > $maxLen) {
+                self::$memoryQueues[$sid] = array_slice(self::$memoryQueues[$sid], -$maxLen);
+            }
             // 唤醒正在 memoryWaitChannel 上 long-poll 的协程
             self::memoryWaitChannel($sid)->push(true);
 
