@@ -26,7 +26,7 @@ use Swoolefy\Websocket\WebsocketConnectionManager;
  *
  * - 无持久 fd：用虚拟 fd + sid，push 写入 {@see SocketIOSessionManager} 出站队列
  * - **心跳**：polling 须服务端主动发 `2`（见 {@see SocketIOPollingEngineHeartbeat}）
- * - **long-poll**：无出站数据时立即空响应（禁止 BRPOP 阻塞），否则 engine.io 无法 POST `40` connect
+ * - **long-poll**：单 sid 单 waiter + 短 BRPOP（默认 2s）；无数据或未获锁立即空响应
  *
  * ## 配置
  *
@@ -124,7 +124,7 @@ class SocketIOPollingHandler
     }
 
     /**
-     * long-poll GET：drain 出站队列并立即 end；无数据返回空 body。
+     * long-poll GET：drain → 短阻塞 waitOutbound → end。
      */
     private static function handlePoll(Request $request, Response $response, array $config, string $sid): void
     {
@@ -135,6 +135,12 @@ class SocketIOPollingHandler
         }
 
         $virtualFd = SocketIOSessionManager::getVirtualFd($sid);
+        if ($virtualFd <= 0) {
+            self::reject($request, $response, 400, 'Unknown session id');
+
+            return;
+        }
+
         WebsocketConnectionManager::touch($virtualFd);
         SocketIOSessionManager::touchSession($sid);
 
@@ -158,6 +164,12 @@ class SocketIOPollingHandler
         }
 
         $virtualFd = SocketIOSessionManager::getVirtualFd($sid);
+        if ($virtualFd <= 0) {
+            self::reject($request, $response, 400, 'Unknown session id');
+
+            return;
+        }
+
         WebsocketConnectionManager::touch($virtualFd);
         SocketIOSessionManager::touchSession($sid);
 
@@ -166,12 +178,13 @@ class SocketIOPollingHandler
             $outbound[] = $packet;
         }
 
-        // connect ack 同时写入出站队列：部分客户端从 GET 读 ack，POST 响应单独丢失时仍可 connect
         foreach ($outbound as $packet) {
-            if ($packet !== '' && $packet[0] === SocketIOPacket::ENGINE_MESSAGE && isset($packet[1]) && $packet[1] === SocketIOPacket::SOCKET_CONNECT) {
-                SocketIOSessionManager::enqueueOutbound($sid, $packet);
-                SocketIOPollingEngineHeartbeat::touchSession($sid);
+            if (!SocketIOPacket::isConnectAck($packet)) {
+                continue;
             }
+            // connect ack 写入出站队列：POST 与 GET 双通道，避免客户端只读 poll 时漏 ack
+            SocketIOSessionManager::enqueueOutbound($sid, $packet);
+            SocketIOPollingEngineHeartbeat::touchSession($sid);
         }
 
         self::sendPollingResponse($request, $response, SocketIOPacket::encodeBatch($outbound));

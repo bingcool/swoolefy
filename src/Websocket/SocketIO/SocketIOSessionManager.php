@@ -7,6 +7,7 @@ use Swoolefy\Websocket\Cluster\ClusterNodeIdentity;
 use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingConfig;
 use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingOutboundStore;
 use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingSessionRegistry;
+use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingWaitCoordinator;
 use Swoolefy\Websocket\WebsocketConnectionManager;
 
 /**
@@ -129,19 +130,40 @@ class SocketIOSessionManager
     }
 
     /**
-     * long-poll GET：仅 drain 已有出站包；无数据时立即返回空 body。
+     * long-poll GET：先 drain；空则「单 sid 单 waiter + 短 BRPOP」，其余 GET 立即空响应。
      *
-     * engine.io-client 在 `_polling === true` 时不会 flush POST 写缓冲（含 Socket.IO `40` connect）。
-     * 若此处 BRPOP 阻塞 poll_timeout，并发 GET 长期占线 → POST `40` 发不出去 → 永远 connecting。
-     * 空 poll 合法，客户端会立刻发起下一条 GET；有 push/ping 时 drain 即可取到。
+     * - 短阻塞（默认 2s）：有 push/ping 时低延迟，且 Worker 可快速释放处理 POST `40`
+     * - 单 waiter：避免并发 GET 占满 Worker 导致 connecting 卡住
+     * - 未获锁的 GET 空 body：合法，客户端立即重 poll，QPS 可控（非 busy-loop 25s）
      *
      * @return string[]
      */
     public static function waitOutbound(string $sid, int $timeoutSec): array
     {
-        unset($timeoutSec);
+        $packets = SocketIOPollingOutboundStore::drain($sid);
+        if ($packets !== []) {
+            return $packets;
+        }
 
-        return SocketIOPollingOutboundStore::drain($sid);
+        $waitSec = SocketIOPollingConfig::shortPollWaitSec($timeoutSec);
+        if ($waitSec <= 0) {
+            return [];
+        }
+
+        if (!SocketIOPollingWaitCoordinator::tryAcquire($sid, $waitSec)) {
+            return [];
+        }
+
+        try {
+            $item = SocketIOPollingOutboundStore::blockingPop($sid, $waitSec);
+            if ($item === null) {
+                return [];
+            }
+
+            return array_merge([$item], SocketIOPollingOutboundStore::drain($sid));
+        } finally {
+            SocketIOPollingWaitCoordinator::release($sid);
+        }
     }
 
     /**
@@ -159,6 +181,7 @@ class SocketIOSessionManager
         }
 
         SocketIOPollingOutboundStore::clear($sid);
+        SocketIOPollingWaitCoordinator::release($sid);
 
         if (SocketIOPollingConfig::usesSharedStore()) {
             SocketIOPollingSessionRegistry::remove($sid);
@@ -188,6 +211,7 @@ class SocketIOSessionManager
         self::$nextVirtualFd = self::VIRTUAL_FD_BASE;
         SocketIOPollingOutboundStore::resetForTest();
         SocketIOPollingSessionRegistry::resetForTest();
+        SocketIOPollingWaitCoordinator::resetForTest();
         SocketIOPollingConfig::setSharedStoreOverrideForTest(null);
     }
 }

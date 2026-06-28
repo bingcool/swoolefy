@@ -21,6 +21,7 @@ use Swoolefy\Websocket\Cluster\ClusterConfig;
  *     'shared_store' => 'auto',   // auto | memory | redis
  *     'session_ttl' => 180,       // sid / 出站队列 Redis 过期秒数
  *     'outbound_max_len' => 128,    // 每 sid 出站 List 最大条数（LTRIM 保留尾部）
+ *     'short_poll_wait_sec' => 2,   // 单 sid 唯一 waiter 的 BRPOP 秒数（1~5，兼顾 QPS 与 push 延迟）
  *     'redis' => [...],           // 可选，未配置时复用 cluster.redis
  * ],
  * ```
@@ -129,6 +130,21 @@ class SocketIOPollingConfig
     public static function outboundMaxLen(): int
     {
         return max(16, (int) (self::polling()['outbound_max_len'] ?? 128));
+    }
+
+    /**
+     * long-poll 短阻塞秒数：单 sid 唯一 waiter 上 BRPOP 的时长。
+     *
+     * 过小 push 延迟高；过大占用 Worker 且拖慢 POST connect。默认 2，上限 5。
+     *
+     * @param int $pollTimeout socketio.poll_timeout，作参考上限
+     */
+    public static function shortPollWaitSec(int $pollTimeout = 25): int
+    {
+        $configured = (int) (self::polling()['short_poll_wait_sec'] ?? 2);
+        $waitSec = $configured > 0 ? $configured : 2;
+
+        return max(1, min($waitSec, 5, max(1, $pollTimeout)));
     }
 
     /**

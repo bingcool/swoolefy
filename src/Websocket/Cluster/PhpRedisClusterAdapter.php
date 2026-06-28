@@ -78,6 +78,11 @@ class PhpRedisClusterAdapter implements ClusterRedisAdapterInterface
         $this->redis->setex($key, $ttl, $value);
     }
 
+    public function setNxEx(string $key, int $ttl, string $value = '1'): bool
+    {
+        return (bool) $this->redis->set($key, $value, ['NX', 'EX' => $ttl]);
+    }
+
     public function exists(string $key): bool
     {
         return (bool) $this->redis->exists($key);

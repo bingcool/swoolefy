@@ -21,6 +21,7 @@ return [
         'shared_store' => 'auto', // auto | memory | redis
         'session_ttl' => 180,
         'outbound_max_len' => 128,
+        'short_poll_wait_sec' => 2,
     ],
     // `*` 允许任意 namespace；生产可改为 ['/', '/chat', '/admin']
     'allowed_namespaces' => ['*'],
