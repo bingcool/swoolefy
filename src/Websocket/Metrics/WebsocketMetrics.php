@@ -46,6 +46,9 @@ use Swoolefy\Websocket\WebsocketConnectionManager;
  *
  * - `enable`：总开关，false 时所有 record* 为 no-op，snapshot 返回 metrics_enabled=0
  * - `refresh_interval`：gauge 刷新间隔秒数，最小 5，默认 10
+ * - `on_snapshot`：可选指标钩子 `function (array $current, ?array $previous): void`
+ *   框架只透出埋点数据，不内置阈值；业务可据此实现
+ *   `redis_stream_pending` 持续升高、`ws_push_failed` 突增、`ws_push_dedup_skipped` 异常抬升告警
  *
  * 快照：`WebsocketMetrics::snapshot()`，可接入 sys_collector callback 或 Prometheus exporter。
  *
@@ -80,6 +83,9 @@ class WebsocketMetrics
 
     /** @var string Table 字段：gauge，最近观测到的 Stream 消费延迟（毫秒） */
     private const FIELD_STREAM_LAG_MS = 'stream_lag_ms';
+
+    /** @var array<string, int|string>|null 上次快照，供 on_snapshot 回调做趋势判断 */
+    private static ?array $previousSnapshot = null;
 
     /** Table 定义，由 WebsocketServer 合并进全局 Table 配置 */
     public static function tableDefinitions(): array
@@ -267,7 +273,7 @@ class WebsocketMetrics
 
         $row = self::tableReady() ? (TableManager::get(self::TABLE, self::ROW) ?: []) : [];
 
-        return [
+        $snapshot = [
             'metrics_enabled' => 1,
             'server_id' => ClusterConfig::isEnabled() ? ClusterNodeIdentity::getServerId() : '',
             'ws_connections_total' => (int) ($row[self::FIELD_CONNECTIONS] ?? WebsocketConnectionManager::countLocalConnections()),
@@ -279,11 +285,16 @@ class WebsocketMetrics
             'redis_stream_lag_ms' => (int) ($row[self::FIELD_STREAM_LAG_MS] ?? 0),
             'timestamp' => time(),
         ];
+
+        self::invokeSnapshotHook($snapshot);
+
+        return $snapshot;
     }
 
     /** 单测重置：清零 _global 行全部字段 */
     public static function resetForTest(): void
     {
+        self::$previousSnapshot = null;
         if (!self::tableReady()) {
             return;
         }
@@ -303,5 +314,29 @@ class WebsocketMetrics
     private static function tableReady(): bool
     {
         return TableManager::isExistTable(self::TABLE);
+    }
+
+    /**
+     * on_snapshot 钩子：框架只分发指标，阈值与告警由业务实现。
+     *
+     * 签名：function (array $current, ?array $previous): void
+     */
+    private static function invokeSnapshotHook(array $snapshot): void
+    {
+        $metrics = ClusterConfig::metricsSettings();
+        $hook = $metrics['on_snapshot'] ?? null;
+        if (!is_callable($hook)) {
+            self::$previousSnapshot = $snapshot;
+            return;
+        }
+
+        $previous = self::$previousSnapshot;
+        self::$previousSnapshot = $snapshot;
+
+        try {
+            $hook($snapshot, $previous);
+        } catch (\Throwable $throwable) {
+            // 业务告警钩子异常不影响主流程
+        }
     }
 }

@@ -207,12 +207,31 @@ return [
 | `ws_push_delivered` | 累计 push 成功 fd 数 |
 | `ws_push_failed` | 累计 push 失败 / 投递不可用 |
 | `ws_join_denied_total` | 加组鉴权拒绝次数 |
+| `ws_push_dedup_skipped` | 去重跳过重复 `msg_id` 的次数 |
 | `redis_stream_pending` | 本节点 Stream PEL 堆积（XPENDING） |
 | `redis_stream_lag_ms` | 最近观测到的推送消费延迟（ms） |
 
 推送链路 `trace_id`：`onMessage` 写入协程上下文后，`PushMessage` 自动携带；消费端 `PushDeliveryWorker` 恢复上下文，便于日志串联。
 
 `conf.stub.php` 中 `sys_collector` callback 在 `metrics.enable=true` 时直接返回上述快照。
+
+**业务告警钩子（阈值自定义）**
+
+框架在每次 `WebsocketMetrics::snapshot()` 后调用 `metrics.on_snapshot`（可选）：
+
+```php
+'metrics' => [
+    'enable' => true,
+    'refresh_interval' => 10,
+    'on_snapshot' => [\App\Metrics\WebsocketMetricsAlertHook::class, 'handle'],
+],
+```
+
+签名：`function (array $current, ?array $previous): void`。  
+框架只分发埋点，不内置阈值；业务可在钩子中自行判断并上报：
+- `redis_stream_pending` 持续升高
+- `ws_push_failed` 突增
+- `ws_push_dedup_skipped` 异常抬升
 
 ### 4.2 `Config/socketio.php`
 

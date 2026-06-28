@@ -89,6 +89,54 @@ function testMetricsCountersWithTable(): void
     echo "[OK] metrics counters with table\n";
 }
 
+/** metrics.on_snapshot 钩子应收到 current + previous，且异常不影响 snapshot */
+function testMetricsSnapshotHook(): void
+{
+    if (!extension_loaded('swoole')) {
+        echo "[SKIP] metrics snapshot hook (swoole extension unavailable)\n";
+
+        return;
+    }
+
+    $calls = 0;
+    $seenPrevious = false;
+    ClusterConfig::setWebsocketOverride([
+        'metrics' => [
+            'enable' => true,
+            'refresh_interval' => 10,
+            'on_snapshot' => static function (array $current, ?array $previous) use (&$calls, &$seenPrevious): void {
+                $calls++;
+                if (is_array($previous) && isset($previous['timestamp'])) {
+                    $seenPrevious = true;
+                }
+                if (($current['ws_push_delivered'] ?? 0) > 0) {
+                    throw new RuntimeException('hook boom');
+                }
+            },
+        ],
+    ]);
+
+    TableManager::createTable(WebsocketMetrics::tableDefinitions());
+    WebsocketMetrics::resetForTest();
+
+    // 首次 snapshot：previous 为 null
+    $first = WebsocketMetrics::snapshot();
+    assertTrue(($first['metrics_enabled'] ?? 0) === 1, 'first snapshot should work');
+
+    $delivered = new PushDeliveryResult();
+    $delivered->recordOutcome('delivered');
+    WebsocketMetrics::recordPushDelivery($delivered);
+
+    // 第二次 snapshot：hook 抛异常也不能影响返回
+    $second = WebsocketMetrics::snapshot();
+    assertTrue(($second['ws_push_delivered'] ?? 0) === 1, 'second snapshot should include delivered');
+    assertTrue($calls >= 2, 'hook should be called on each snapshot');
+    assertTrue($seenPrevious, 'hook should receive previous snapshot');
+
+    ClusterConfig::setWebsocketOverride(null);
+    echo "[OK] metrics snapshot hook\n";
+}
+
 /** metrics.enable=false 时 snapshot 仅返回 metrics_enabled=0 */
 function testMetricsDisabledSnapshot(): void
 {
@@ -104,6 +152,7 @@ function testMetricsDisabledSnapshot(): void
 testPushMessageHasTraceId();
 testTraceContextExtract();
 testMetricsCountersWithTable();
+testMetricsSnapshotHook();
 testMetricsDisabledSnapshot();
 
 echo "All websocket metrics tests passed.\n";

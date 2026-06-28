@@ -80,11 +80,22 @@ return [
      * 内置可观测性指标（Swoole\Table 跨 Worker 累计，worker 0 定时刷新 gauge）
      *
      * snapshot() 输出 ws_connections_total / ws_push_delivered / ws_push_failed /
-     * ws_join_denied_total / redis_stream_pending / redis_stream_lag_ms
+     * ws_join_denied_total / ws_push_dedup_skipped / redis_stream_pending / redis_stream_lag_ms
+     *
+     * on_snapshot：业务侧告警钩子（当前快照 + 上次快照），框架不内置阈值判断
      */
     'metrics' => [
         'enable' => true,
         'refresh_interval' => 10,
+        /*
+         * function (array $current, ?array $previous): void
+         *
+         * 业务可在此实现：
+         * - redis_stream_pending 持续升高告警
+         * - ws_push_failed 突增告警
+         * - ws_push_dedup_skipped 异常抬升告警
+         */
+        'on_snapshot' => [__APP_NAMESPACE__\Metrics\WebsocketMetricsAlertHook::class, 'handle'],
     ],
     /*
      * 用户离线必达（Streams 只保证消费进程不丢，不保证离线用户收到）
