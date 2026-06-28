@@ -47,6 +47,16 @@ function testBatchCodec(): void
     echo "[OK] batch codec\n";
 }
 
+/** polling GET 空响应必须是 noop，不能是空 body */
+function testPollingEmptyPayloadNoop(): void
+{
+    assertTrue(SocketIOPacket::encodeBatch([]) === '', 'generic batch empty remains empty');
+    assertTrue(SocketIOPacket::encodePollingPayload([]) === SocketIOPacket::ENGINE_NOOP, 'polling empty payload should be noop');
+    assertTrue(SocketIOPacket::encodePollingPayload(['40{"sid":"abc"}']) === '40{"sid":"abc"}', 'polling non-empty payload');
+
+    echo "[OK] polling empty payload noop\n";
+}
+
 /** open 包在 allow_polling 场景应可携带 websocket upgrade */
 function testOpenWithUpgrades(): void
 {
@@ -256,7 +266,7 @@ function connectAcksFromPackets(array $packets): array
  *
  * 期望时序：
  * 1. GET #1 成为唯一 waiter，短阻塞等待
- * 2. GET #2 未获锁，立即空响应（不占用 Worker）
+ * 2. GET #2 未获锁，业务层立即空包；HTTP 响应层会编码为 noop `6`
  * 3. POST `40` 返回 `ok`，同时入队 connect ack
  * 4. GET #1 返回 `40{sid}`，GET #2 为空；后续心跳由周期 ping 负责
  */
@@ -533,6 +543,7 @@ function testSessionTouchIntervalConfig(): void
 }
 
 testBatchCodec();
+testPollingEmptyPayloadNoop();
 testOpenWithUpgrades();
 testSessionOutboundQueue();
 testVirtualFdRange();

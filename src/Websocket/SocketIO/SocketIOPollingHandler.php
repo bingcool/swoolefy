@@ -25,7 +25,7 @@ use Swoolefy\Websocket\WebsocketConnectionManager;
  *
  * - 无持久 fd：用虚拟 fd + sid，push 写入 {@see SocketIOSessionManager} 出站队列
  * - **心跳**：polling 须服务端主动发 `2`（见 {@see SocketIOPollingEngineHeartbeat}）
- * - **long-poll**：单 sid 单 waiter + 短 BRPOP（默认 2s）；无数据或未获锁立即空响应
+ * - **long-poll**：单 sid 单 waiter + 短 BRPOP（默认 2s）；无数据或未获锁返回 noop `6`
  *
  * ## 配置
  *
@@ -139,7 +139,7 @@ class SocketIOPollingHandler
 
         $timeout = SocketIOHandler::pollTimeout($config);
         $packets = SocketIOSessionManager::waitOutbound($sid, $timeout);
-        self::sendPollingResponse($request, $response, SocketIOPacket::encodeBatch($packets));
+        self::sendPollingResponse($request, $response, SocketIOPacket::encodePollingPayload($packets));
     }
 
     /**
