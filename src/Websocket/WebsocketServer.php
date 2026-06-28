@@ -181,18 +181,19 @@ abstract class WebsocketServer extends BaseServer
                     return false;
                 }
 
-                // Socket.IO 连接需要先发送 Engine.IO open 包；普通 WebSocket 只登记 fd。
-                if (!empty($websocketConfig['socketio']['enable']) && SocketIO\SocketIOHandler::isSocketIORequest($request)) {
-                    SocketIO\SocketIOHandler::onOpen($server, $request, $websocketConfig, (string) $auth['user_id']);
-                } else {
-                    WebsocketConnectionManager::open($server, $request, [
-                        'user_id' => (string) $auth['user_id'],
-                    ]);
-                }
+                // 框架 Redis（register/touch 等）与业务 onOpen 均须在 goApp 内，复用协程级 Redis 单例
+                goApp(function () use ($server, $request, $websocketConfig, $auth) {
+                    if (!empty($websocketConfig['socketio']['enable']) && SocketIO\SocketIOHandler::isSocketIORequest($request)) {
+                        SocketIO\SocketIOHandler::onOpen($server, $request, $websocketConfig, (string) $auth['user_id']);
+                    } else {
+                        WebsocketConnectionManager::open($server, $request, [
+                            'user_id' => (string) $auth['user_id'],
+                        ]);
+                    }
 
-                (new EventApp())->registerApp(function () use ($server, $request) {
                     static::onOpen($server, $request);
                 });
+
                 return true;
             } catch (\Swoolefy\Websocket\Cluster\ClusterRedisException $e) {
                 // on_redis_failure=reject_open 时，Redis 注册失败拒绝建连
@@ -213,10 +214,9 @@ abstract class WebsocketServer extends BaseServer
             try {
                 SwooleContext::set(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID, Helper::UUid());
                 parent::beforeHandle();
-                WebsocketConnectionManager::touch((int) $frame->fd);
 
                 try {
-                    // 分片帧重组：finish=false 时缓存，收齐后再进入 Socket.IO / 原生 WS 处理
+                    // 分片帧重组：finish=false 时缓存，收齐后再进入 Socket.IO / 原生 WS 处理（无 Redis，留在 goApp 外）
                     $frame = WebsocketFrameAssembler::feed($frame);
                 } catch (WebsocketFrameException $exception) {
                     WebsocketFrameAssembler::clear((int) $frame->fd);
@@ -231,13 +231,7 @@ abstract class WebsocketServer extends BaseServer
                 }
 
                 $websocketConfig = self::getWebsocketConfig();
-                $connection = WebsocketConnectionManager::getConnection((int) $frame->fd);
-                // 同一个 onMessage 入口按连接标记区分普通 WebSocket 与 Socket.IO 协议。
-                if (!empty($websocketConfig['socketio']['enable']) && !empty($connection['is_socketio'])) {
-                    SocketIO\SocketIOHandler::onMessage($server, $frame, $websocketConfig);
-                    return true;
-                }
-                static::onMessage($server, $frame);
+                $this->dispatchMessageFrame($server, $frame, $websocketConfig);
                 return true;
             } catch (\Throwable $e) {
                 self::catchException($e);
@@ -312,11 +306,12 @@ abstract class WebsocketServer extends BaseServer
             try {
                 WebsocketFrameAssembler::clear((int) $fd);
                 SocketIO\SocketIOBinaryAssembler::clear((int) $fd);
-                // close 回调是清理 fd/user/group 索引的唯一兜底入口。
-                WebsocketConnectionManager::close((int) $fd);
-                (new EventApp())->registerApp(function () use ($server, $fd) {
+                goApp(function () use ($server, $fd) {
+                    // close 回调是清理 fd/user/group 索引的唯一兜底入口（含 Redis unregister）
+                    WebsocketConnectionManager::close((int) $fd);
                     static::onClose($server, $fd);
                 });
+
                 return true;
             } catch (\Throwable $e) {
                 self::catchException($e);
@@ -334,11 +329,16 @@ abstract class WebsocketServer extends BaseServer
                         if ($request->server['path_info'] == '/favicon.ico' || $request->server['request_uri'] == '/favicon.ico') {
                             return $response->end();
                         }
+                        if (self::serveSocketIoTestPage($request, $response)) {
+                            return true;
+                        }
                         $websocketConfig = self::getWebsocketConfig();
                         if (!empty($websocketConfig['socketio']['enable'])
                             && SocketIO\SocketIOHandler::isSocketIOPollingRequest($request)
                             && SocketIO\SocketIOHandler::isPollingEnabled($websocketConfig)) {
-                            SocketIO\SocketIOPollingHandler::handleHttp($request, $response, $websocketConfig);
+                            (new EventApp())->registerApp(function () use ($request, $response, $websocketConfig) {
+                                SocketIO\SocketIOPollingHandler::handleHttp($request, $response, $websocketConfig);
+                            });
 
                             return true;
                         }
@@ -409,6 +409,32 @@ abstract class WebsocketServer extends BaseServer
     protected static function getWebsocketConfig(): array
     {
         return self::$config['websocket'] ?? [];
+    }
+
+    /**
+     * 开发用：accept_http 开启时提供同源测试页，避免 file:// 打开导致 polling XHR 被浏览器拦截。
+     */
+    protected static function serveSocketIoTestPage(Request $request, Response $response): bool
+    {
+        $uri = (string) ($request->server['request_uri'] ?? '');
+        $path = explode('?', $uri, 2)[0];
+        if ($path !== '/socketio-client.html') {
+            return false;
+        }
+
+        $file = __DIR__ . '/Tests/socketio-client.html';
+        if (!is_readable($file)) {
+            $response->status(404);
+            $response->end('socketio-client.html not found');
+
+            return true;
+        }
+
+        $response->header('Content-Type', 'text/html; charset=UTF-8');
+        $response->header('Cache-Control', 'no-cache');
+        $response->end((string) file_get_contents($file));
+
+        return true;
     }
 
     protected function workerStartInit($server, $workerId)

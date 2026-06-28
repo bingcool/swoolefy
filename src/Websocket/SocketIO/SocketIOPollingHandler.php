@@ -24,8 +24,15 @@ class SocketIOPollingHandler
 {
     public static function handleHttp(Request $request, Response $response, array $config): void
     {
+        $method = strtoupper((string) ($request->server['request_method'] ?? 'GET'));
+        if ($method === 'OPTIONS') {
+            self::sendCorsPreflight($request, $response);
+
+            return;
+        }
+
         if (empty($config['socketio']['enable']) || !SocketIOHandler::isPollingEnabled($config)) {
-            self::reject($response, 400, 'Socket.IO polling is disabled');
+            self::reject($request, $response, 400, 'Socket.IO polling is disabled');
 
             return;
         }
@@ -33,7 +40,7 @@ class SocketIOPollingHandler
         $transport = (string) ($request->get['transport'] ?? '');
         $eio = (string) ($request->get['EIO'] ?? '');
         if ($transport !== 'polling' || $eio !== '4') {
-            self::reject($response, 400, 'Invalid Engine.IO polling request');
+            self::reject($request, $response, 400, 'Invalid Engine.IO polling request');
 
             return;
         }
@@ -60,7 +67,7 @@ class SocketIOPollingHandler
             return;
         }
 
-        self::reject($response, 400, 'Invalid Socket.IO polling request');
+        self::reject($request, $response, 400, 'Invalid Socket.IO polling request');
     }
 
     /** 首次 GET：鉴权 → 虚拟 fd 注册 → 返回 `0{sid,upgrades:[websocket]}` */
@@ -68,7 +75,7 @@ class SocketIOPollingHandler
     {
         $auth = WebsocketAuthenticator::authenticate($request, $config);
         if (!$auth['ok']) {
-            self::reject($response, 401, (string) $auth['reason']);
+            self::reject($request, $response, 401, (string) $auth['reason']);
 
             return;
         }
@@ -90,6 +97,7 @@ class SocketIOPollingHandler
         $upgrades = SocketIOHandler::isWebSocketTransportEnabled($config) ? ['websocket'] : [];
 
         self::sendPollingResponse(
+            $request,
             $response,
             SocketIOPacket::open($sid, $pingInterval, $pingTimeout, $maxPayload, $upgrades)
         );
@@ -99,7 +107,7 @@ class SocketIOPollingHandler
     private static function handlePoll(Request $request, Response $response, array $config, string $sid): void
     {
         if (!SocketIOSessionManager::hasSession($sid)) {
-            self::reject($response, 400, 'Unknown session id');
+            self::reject($request, $response, 400, 'Unknown session id');
 
             return;
         }
@@ -109,14 +117,14 @@ class SocketIOPollingHandler
 
         $timeout = SocketIOHandler::pollTimeout($config);
         $packets = SocketIOSessionManager::waitOutbound($sid, $timeout);
-        self::sendPollingResponse($response, SocketIOPacket::encodeBatch($packets));
+        self::sendPollingResponse($request, $response, SocketIOPacket::encodeBatch($packets));
     }
 
     /** POST：客户端上行包（可含 `b<base64>` 二进制块），同步返回 ack/响应包 */
     private static function handlePost(Request $request, Response $response, array $config, string $sid): void
     {
         if (!SocketIOSessionManager::hasSession($sid)) {
-            self::reject($response, 400, 'Unknown session id');
+            self::reject($request, $response, 400, 'Unknown session id');
 
             return;
         }
@@ -129,23 +137,48 @@ class SocketIOPollingHandler
             $outbound[] = $packet;
         }
 
-        self::sendPollingResponse($response, SocketIOPacket::encodeBatch($outbound));
+        self::sendPollingResponse($request, $response, SocketIOPacket::encodeBatch($outbound));
     }
 
-    private static function sendPollingResponse(Response $response, string $body): void
+    private static function sendPollingResponse(Request $request, Response $response, string $body): void
     {
+        self::applyCorsHeaders($request, $response);
         $response->header('Content-Type', 'text/plain; charset=UTF-8');
-        $response->header('Access-Control-Allow-Origin', '*');
-        $response->header('Access-Control-Allow-Credentials', 'true');
         $response->status(200);
         $response->end($body);
     }
 
-    private static function reject(Response $response, int $status, string $message): void
+    private static function reject(Request $request, Response $response, int $status, string $message): void
     {
+        self::applyCorsHeaders($request, $response);
         $response->header('Content-Type', 'application/json; charset=UTF-8');
-        $response->header('Access-Control-Allow-Origin', '*');
         $response->status($status);
         $response->end(json_encode(['code' => -1, 'msg' => $message], JSON_UNESCAPED_UNICODE));
+    }
+
+    /** 浏览器跨域 POST 前的 OPTIONS 预检 */
+    private static function sendCorsPreflight(Request $request, Response $response): void
+    {
+        self::applyCorsHeaders($request, $response);
+        $response->header('Access-Control-Max-Age', '86400');
+        $response->status(204);
+        $response->end('');
+    }
+
+    /**
+     * CORS：有 Origin 时回显具体域名；禁止 `*` 与 `Allow-Credentials: true` 同用（浏览器会拒 xhr）。
+     */
+    private static function applyCorsHeaders(Request $request, Response $response): void
+    {
+        $origin = trim((string) ($request->header['origin'] ?? ''));
+        if ($origin !== '') {
+            $response->header('Access-Control-Allow-Origin', $origin);
+            $response->header('Vary', 'Origin');
+        } else {
+            $response->header('Access-Control-Allow-Origin', '*');
+        }
+
+        $response->header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        $response->header('Access-Control-Allow-Headers', 'Content-Type');
     }
 }
