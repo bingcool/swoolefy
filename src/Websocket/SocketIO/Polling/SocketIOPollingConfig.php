@@ -6,23 +6,55 @@ use Swoolefy\Core\Swfy;
 use Swoolefy\Websocket\Cluster\ClusterConfig;
 
 /**
- * Socket.IO long-polling 跨 Worker / 跨节点共享存储配置。
+ * Socket.IO long-polling 共享存储配置解析器。
  *
- * shared_store：
- * - memory：单 Worker 开发模式，会话与出站队列均在进程内存
- * - redis：Redis 出站队列 + Table sid 索引（及 cluster 开启时的 Redis 会话元数据）
- * - auto（默认）：cluster.enable 或 worker_num>1 时用 redis，否则 memory
+ * ## 背景
+ *
+ * Engine.IO long-polling 使用 HTTP GET/POST 轮询，同一 sid 的握手、poll、push 可能落在
+ * Swoole 的不同 Worker 进程。若 sid 与出站队列仅存于 Worker 本地内存，会出现
+ * `Unknown session id` 或 push 丢失。本类决定何时启用「跨 Worker 共享存储」。
+ *
+ * ## 配置项（Config/socketio.php → polling）
+ *
+ * ```php
+ * 'polling' => [
+ *     'shared_store' => 'auto',   // auto | memory | redis
+ *     'session_ttl' => 180,       // sid / 出站队列 Redis 过期秒数
+ *     'outbound_max_len' => 128,    // 每 sid 出站 List 最大条数（LTRIM 保留尾部）
+ *     'redis' => [...],           // 可选，未配置时复用 cluster.redis
+ * ],
+ * ```
+ *
+ * ## shared_store 模式
+ *
+ * | 模式   | usesSharedStore() | 说明 |
+ * |--------|-------------------|------|
+ * | memory | false             | sid 与出站包均在进程内存，仅适合 worker_num=1 开发 |
+ * | redis  | true              | 强制 Table sid + Redis 出站/会话元数据 |
+ * | auto   | 见下              | 默认；生产推荐 |
+ *
+ * auto 判定：`cluster.enable === true` **或** `setting.worker_num > 1` 时启用共享存储。
+ *
+ * ## 与其它组件的关系
+ *
+ * - {@see SocketIOPollingSessionRegistry}：共享模式下写 Table + Redis Hash
+ * - {@see SocketIOPollingOutboundStore}：共享模式下用 Redis List 存 Engine.IO 出站包
+ * - {@see SocketIOSessionManager}：门面，根据 usesSharedStore() 分支 memory / 共享
  */
 class SocketIOPollingConfig
 {
-    /** @var bool|null 单测覆盖 */
+    /** @var bool|null 单测注入：覆盖 usesSharedStore() 返回值，null 表示读配置 */
     private static ?bool $sharedStoreOverride = null;
 
+    /**
+     * 单测专用：强制开启/关闭共享存储，传 null 恢复读配置。
+     */
     public static function setSharedStoreOverrideForTest(?bool $enabled): void
     {
         self::$sharedStoreOverride = $enabled;
     }
 
+    /** 读取 websocket 配置中的 socketio 段 */
     public static function socketio(): array
     {
         $conf = ClusterConfig::websocket();
@@ -31,6 +63,7 @@ class SocketIOPollingConfig
         return is_array($socketio) ? $socketio : [];
     }
 
+    /** 读取 socketio.polling 段，缺省为 [] */
     public static function polling(): array
     {
         $polling = self::socketio()['polling'] ?? [];
@@ -38,6 +71,11 @@ class SocketIOPollingConfig
         return is_array($polling) ? $polling : [];
     }
 
+    /**
+     * 原始 shared_store 字符串，非法值回退 auto。
+     *
+     * @return 'memory'|'redis'|'auto'
+     */
     public static function sharedStoreMode(): string
     {
         $mode = strtolower((string) (self::polling()['shared_store'] ?? 'auto'));
@@ -45,6 +83,11 @@ class SocketIOPollingConfig
         return in_array($mode, ['memory', 'redis', 'auto'], true) ? $mode : 'auto';
     }
 
+    /**
+     * 是否启用跨 Worker 共享存储（Table sid + Redis 出站/会话）。
+     *
+     * 业务代码与 SessionRegistry / OutboundStore 均以此为准分支。
+     */
     public static function usesSharedStore(): bool
     {
         if (self::$sharedStoreOverride !== null) {
@@ -59,9 +102,15 @@ class SocketIOPollingConfig
             return true;
         }
 
+        // auto：集群或多 Worker 即启用
         return ClusterConfig::isEnabled() || self::workerNum() > 1;
     }
 
+    /**
+     * polling 会话与 Redis 键 TTL（秒）。
+     *
+     * 优先 polling.session_ttl；未配置则沿用 cluster.conn_ttl，最小 60。
+     */
     public static function sessionTtl(): int
     {
         $ttl = (int) (self::polling()['session_ttl'] ?? 0);
@@ -74,12 +123,20 @@ class SocketIOPollingConfig
         return max(60, $clusterTtl);
     }
 
+    /**
+     * 每 sid 出站 Redis List 最大长度；超出时 LTRIM 保留最新 N 条，防止内存膨胀。
+     */
     public static function outboundMaxLen(): int
     {
         return max(16, (int) (self::polling()['outbound_max_len'] ?? 128));
     }
 
-    /** 与 cluster.redis 相同结构；未配置时复用 cluster.redis */
+    /**
+     * polling 专用 Redis 连接参数。
+     *
+     * 结构与 cluster.redis 相同（host/port/database/client 等）；
+     * polling.redis 未配置或为空时复用 cluster.redis。
+     */
     public static function redis(): array
     {
         $redis = self::polling()['redis'] ?? null;
@@ -90,6 +147,12 @@ class SocketIOPollingConfig
         return ClusterConfig::redis();
     }
 
+    /**
+     * Redis 键前缀，用于 poll:sid:* / poll:out:* 等键。
+     *
+     * - 集群开启：与 cluster 一致（ClusterConfig::keyPrefix()）
+     * - 非集群：polling.redis.key_prefix，或 ws:{APP_NAME}:
+     */
     public static function redisKeyPrefix(): string
     {
         if (ClusterConfig::isEnabled()) {
@@ -106,6 +169,7 @@ class SocketIOPollingConfig
         return str_ends_with($prefix, ':') ? $prefix : $prefix . ':';
     }
 
+    /** 从 Swoole 全局 setting 读取 worker_num，CLI/单测不可用时视为 1 */
     private static function workerNum(): int
     {
         try {
