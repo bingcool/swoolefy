@@ -12,7 +12,6 @@ use Swoolefy\Websocket\Cluster\ClusterRedisClient;
 use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingConfig;
 use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingOutboundStore;
 use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingSessionRegistry;
-use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingWaitCoordinator;
 use Swoolefy\Websocket\SocketIO\SocketIOHandler;
 use Swoolefy\Websocket\SocketIO\SocketIONamespaceRegistry;
 use Swoolefy\Websocket\SocketIO\SocketIOPacket;
@@ -235,18 +234,15 @@ function registerPollingConnection(int $virtualFd, string $sid, string $userId =
     ]);
 }
 
-/** 单测：模拟 handlePost 处理 POST `40`（含 connect ack 双写出站队列） */
-function simulatePostConnect40(int $virtualFd, string $sid, array $config): array
+/** 单测：模拟 handlePost 处理 POST `40`（POST 返回 ok，下行 ack 入队给 GET） */
+function simulatePostConnect40(int $virtualFd, string $sid, array $config): string
 {
     $outbound = SocketIOHandler::handleInboundPollingBatch($virtualFd, '40', $config);
     foreach ($outbound as $packet) {
-        if (!SocketIOPacket::isConnectAck($packet)) {
-            continue;
-        }
         SocketIOSessionManager::enqueueOutbound($sid, $packet);
     }
 
-    return $outbound;
+    return 'ok';
 }
 
 /** @return string[] */
@@ -261,8 +257,8 @@ function connectAcksFromPackets(array $packets): array
  * 期望时序：
  * 1. GET #1 成为唯一 waiter，短阻塞等待
  * 2. GET #2 未获锁，立即空响应（不占用 Worker）
- * 3. POST `40` 同步返回 ack，并 enqueue 唤醒 GET #1
- * 4. ack 仅出现在 POST 响应体 + GET #1，GET #2 始终为空
+ * 3. POST `40` 返回 `ok`，同时入队 connect ack
+ * 4. GET #1 返回 `40{sid}`，GET #2 为空；后续心跳由周期 ping 负责
  */
 function testDualGetPostConnectAckRegression(bool $useSharedStore): void
 {
@@ -321,7 +317,7 @@ function testDualGetPostConnectAckRegression(bool $useSharedStore): void
         $pollTimeout = SocketIOHandler::pollTimeout($config);
         $get1Packets = [];
         $get2Packets = [];
-        $postOutbound = [];
+        $postBody = '';
         $get1Elapsed = 0.0;
         $get2Elapsed = 0.0;
         $postElapsed = 0.0;
@@ -377,22 +373,21 @@ function testDualGetPostConnectAckRegression(bool $useSharedStore): void
 
         // POST `40`：connect 不应被双 GET 占死
         $postStartedAt = microtime(true);
-        $postOutbound = simulatePostConnect40($virtualFd, $sid, $config);
+        $postBody = simulatePostConnect40($virtualFd, $sid, $config);
         $postElapsed = microtime(true) - $postStartedAt;
         $tPostDone = microtime(true);
 
         assertTrue((bool) $get1Done->pop(3.0), "{$label}: GET #1 should receive ack after POST");
         assertTrue($postElapsed < 0.5, "{$label}: POST 40 should not be blocked by dual GET");
 
-        $postAcks = connectAcksFromPackets($postOutbound);
         $get1Acks = connectAcksFromPackets($get1Packets);
         $get2Acks = connectAcksFromPackets($get2Packets);
 
-        assertTrue(count($postAcks) === 1, "{$label}: POST should return one connect ack");
-        assertTrue(count($get1Acks) === 1, "{$label}: GET #1 should drain connect ack from outbound queue");
+        assertTrue($postBody === 'ok', "{$label}: POST should return Engine.IO ok");
+        assertTrue(count($get1Acks) === 1, "{$label}: GET #1 should carry one connect ack");
         assertTrue($get2Acks === [], "{$label}: GET #2 must not carry connect ack");
-        assertTrue($postAcks[0] === $get1Acks[0], "{$label}: POST and GET #1 ack should match");
-        assertTrue(str_contains($postAcks[0], $sid), "{$label}: connect ack should contain session sid");
+        assertTrue(!in_array(SocketIOPacket::ENGINE_PING, $get1Packets, true), "{$label}: GET #1 should not carry ping before connect ack settles");
+        assertTrue(str_contains($get1Acks[0], $sid), "{$label}: connect ack should contain session sid");
 
         // 到达顺序：GET #2 先结束 → POST 完成 → GET #1 收到 ack
         assertTrue($tGet2Done > 0 && $tGet2Done <= $tPostDone + 0.05, "{$label}: GET #2 should finish before or with POST");

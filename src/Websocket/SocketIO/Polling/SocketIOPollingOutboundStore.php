@@ -151,9 +151,12 @@ class SocketIOPollingOutboundStore
 
         if (!SocketIOPollingConfig::usesSharedStore()) {
             self::memoryWaitChannel($sid)->pop((float) $timeoutSec);
-            $packets = self::drain($sid);
 
-            return $packets[0] ?? null;
+            if (!isset(self::$memoryQueues[$sid]) || self::$memoryQueues[$sid] === []) {
+                return null;
+            }
+
+            return array_shift(self::$memoryQueues[$sid]);
         }
 
         $key = self::redisQueueKey($sid);

@@ -6,7 +6,6 @@ use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoole\WebSocket\Frame;
 use Swoole\WebSocket\Server;
-use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingEngineHeartbeat;
 use Swoolefy\Websocket\WebsocketAuthenticator;
 use Swoolefy\Websocket\WebsocketConnectionManager;
 
@@ -19,7 +18,7 @@ use Swoolefy\Websocket\WebsocketConnectionManager;
  * |------|-------|------|
  * | GET  | 无 sid | 握手 → `0{sid,...,"upgrades":["websocket"]}` |
  * | GET  | sid=… | long-poll 取服务端包（`\x1e` 分隔） |
- * | POST | sid=… | 客户端上行（`40` connect / `2` ping / `42` event）→ 同步响应 |
+ * | POST | sid=… | 客户端上行（`40` connect / `2` ping / `42` event）→ `ok` |
  * | OPTIONS | — | CORS 预检 |
  *
  * ## 与 WebSocket 的差异
@@ -114,8 +113,8 @@ class SocketIOPollingHandler
         $maxPayload = (int) ($socketio['max_payload'] ?? 1000000);
         $upgrades = SocketIOHandler::isWebSocketTransportEnabled($config) ? ['websocket'] : [];
 
-        // open 包仅含 Engine 参数；Socket.IO `40` connect ack 由客户端 POST `40` 后同步返回。
-        // 不在握手后立即 enqueue ping：首包 GET 若返回 `2`，会拖住 engine.io flush POST `40`。
+        // open 包仅含 Engine 参数；Socket.IO `40` connect ack 由客户端 POST `40` 后入队给 GET。
+        // 不在握手后立即 enqueue ping：首包 GET 若先返回 `2`，Socket.IO connect 尚未完成会 parser error。
         self::sendPollingResponse(
             $request,
             $response,
@@ -130,7 +129,7 @@ class SocketIOPollingHandler
     {
         $virtualFd = SocketIOSessionManager::resolveSession($sid);
         if ($virtualFd <= 0) {
-            self::reject($request, $response, 400, 'Unknown session id');
+            self::rejectUnknownSession($request, $response);
 
             return;
         }
@@ -147,13 +146,15 @@ class SocketIOPollingHandler
      * POST：客户端上行 Engine.IO 包（`\x1e` 批处理）。
      *
      * 典型 body：`40`（namespace connect）、`3`（pong）、`42["evt",{}]`（event）。
-     * 响应体可含 connect ack / pong / 业务 ack，与 long-poll GET 出站相互独立。
+     *
+     * Engine.IO polling 的 POST 响应必须是 `ok`；服务端下行包统一入队，由 GET long-poll 取走。
+     * namespace connect 成功后只入队 `40{sid}`；心跳由周期 ping 负责，避免 ping 抢在 connect ack 前送达。
      */
     private static function handlePost(Request $request, Response $response, array $config, string $sid): void
     {
         $virtualFd = SocketIOSessionManager::resolveSession($sid);
         if ($virtualFd <= 0) {
-            self::reject($request, $response, 400, 'Unknown session id');
+            self::rejectUnknownSession($request, $response);
 
             return;
         }
@@ -167,15 +168,10 @@ class SocketIOPollingHandler
         }
 
         foreach ($outbound as $packet) {
-            if (!SocketIOPacket::isConnectAck($packet)) {
-                continue;
-            }
-            // connect ack 写入出站队列：POST 与 GET 双通道，避免客户端只读 poll 时漏 ack
             SocketIOSessionManager::enqueueOutbound($sid, $packet);
-            SocketIOPollingEngineHeartbeat::touchSession($sid);
         }
 
-        self::sendPollingResponse($request, $response, SocketIOPacket::encodeBatch($outbound));
+        self::sendPollingResponse($request, $response, 'ok');
     }
 
     private static function sendPollingResponse(Request $request, Response $response, string $body): void
@@ -192,6 +188,20 @@ class SocketIOPollingHandler
         $response->header('Content-Type', 'application/json; charset=UTF-8');
         $response->status($status);
         $response->end(json_encode(['code' => -1, 'msg' => $message], JSON_UNESCAPED_UNICODE));
+    }
+
+    /**
+     * sid 无效时返回 Engine.IO 兼容 JSON（code/message），避免 engine.io-client parser error。
+     */
+    private static function rejectUnknownSession(Request $request, Response $response): void
+    {
+        self::applyCorsHeaders($request, $response);
+        $response->header('Content-Type', 'application/json; charset=UTF-8');
+        $response->status(400);
+        $response->end(json_encode([
+            'code' => 1,
+            'message' => 'Session ID unknown',
+        ], JSON_UNESCAPED_UNICODE));
     }
 
     /** 浏览器跨域 POST 前的 OPTIONS 预检 */
