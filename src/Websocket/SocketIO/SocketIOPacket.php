@@ -146,7 +146,11 @@ class SocketIOPacket
 
         $packet->engineType = $raw[0];
         if ($packet->engineType !== self::ENGINE_MESSAGE) {
-            // ping/pong/open/close 无 Socket.IO body
+            // `2probe` → pong 须为 `3probe`（Engine.IO upgrade 探测）
+            if (strlen($raw) > 1) {
+                $packet->data = ['engine_payload' => substr($raw, 1)];
+            }
+
             return $packet;
         }
 
@@ -282,10 +286,10 @@ class SocketIOPacket
         return $packets;
     }
 
-    /** Engine.IO pong 响应 `3` */
-    public static function pong(): string
+    /** Engine.IO pong；$payload 非空时回复 `3{payload}`（如 probe → `3probe`） */
+    public static function pong(string $payload = ''): string
     {
-        return self::ENGINE_PONG;
+        return self::ENGINE_PONG . $payload;
     }
 
     /**
