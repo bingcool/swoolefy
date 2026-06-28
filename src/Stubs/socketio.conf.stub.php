@@ -16,6 +16,12 @@ return [
     'allow_polling' => true,
     'poll_timeout' => 25,
     'transports' => ['websocket', 'polling'],
+    // polling 跨 Worker 共享：auto=cluster 或多 Worker 时用 Redis 出站队列 + Table sid 索引
+    'polling' => [
+        'shared_store' => 'auto', // auto | memory | redis
+        'session_ttl' => 180,
+        'outbound_max_len' => 128,
+    ],
     // `*` 允许任意 namespace；生产可改为 ['/', '/chat', '/admin']
     'allowed_namespaces' => ['*'],
     'event_routes' => [

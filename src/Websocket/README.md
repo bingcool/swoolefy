@@ -9,7 +9,7 @@
 | 能力 | 说明 |
 |------|------|
 | 原生 WebSocket | 统一 JSON 消息协议，路由到 `Router/service.php` |
-| Socket.IO v4 | 仅支持 **websocket transport**（不支持 long-polling） |
+| Socket.IO v4 | **websocket** + **long-polling**（`allow_polling`）；多 Worker 默认 `polling.shared_store=auto` |
 | 连接管理 | 本地 `Swoole\Table` 管理 fd / user / group |
 | 业务基类 | `WebSocketService` 提供 push / 小组 / 广播等 API |
 | 多机集群 | Redis 全局索引 + 按 `server_id` 频道 Pub/Sub 扇出推送 |
@@ -552,7 +552,8 @@ ws.onmessage = (e) => {
 | Transport | 说明 |
 |-----------|------|
 | **websocket** | 默认；低延迟，生产推荐 |
-| **long-polling** | HTTP GET/POST；需 `accept_http=true` + `socketio.allow_polling=true` |
+| **long-polling** | HTTP GET/POST；需 `accept_http=true` + `allow_polling=true` |
+| **跨 Worker polling** | `polling.shared_store=auto`：sid 索引在 Swoole Table，出站队列在 Redis List，**无需 Nginx sticky** |
 | **upgrade** | polling 握手后可 `transport=websocket&sid=...` 升级到 WebSocket |
 | **多 namespace** | 同一 Engine 连接可 `40` / `40/chat,` 注册多个 namespace |
 | **二进制附件** | `451-[...]` + WebSocket BINARY 帧；polling 用 `b<base64>` |
@@ -565,6 +566,12 @@ ws.onmessage = (e) => {
 
 // Config/socketio.php
 'allow_polling' => true,
+'poll_timeout' => 25,
+'polling' => [
+    'shared_store' => 'auto', // auto | memory | redis
+    'session_ttl' => 180,
+    'outbound_max_len' => 128,
+],
 'allowed_namespaces' => ['*'],  // 或 ['/', '/chat', '/admin']
 'namespaces' => [
     '/admin' => [
@@ -574,6 +581,23 @@ ws.onmessage = (e) => {
     ],
 ],
 ```
+
+#### 跨 Worker polling（`shared_store`）
+
+| 模式 | 行为 |
+|------|------|
+| **auto**（默认） | `cluster.enable` 或 `worker_num>1` 时启用 Redis 出站队列 + Table sid 索引 |
+| **redis** | 强制 Redis 出站 + Table sid（单 Worker 也可用，便于联调） |
+| **memory** | 仅进程内存，**仅适合单 Worker 开发** |
+
+启用共享存储后，Redis 键（前缀同 cluster，默认 `ws:{APP_NAME}:`）：
+
+| 键 | 用途 |
+|----|------|
+| `{prefix}poll:sid:{sid}` | Hash：virtual_fd、server_id、last_active_at |
+| `{prefix}poll:out:{sid}` | List：Engine.IO 出站包；long-poll 用 BRPOP 唤醒 |
+
+同节点 sid 索引在 Swoole Table `table_websocket_polling_sid`，任意 Worker 均可处理 GET/POST polling。
 
 #### 多 namespace 用法
 
@@ -1074,7 +1098,11 @@ class WebsocketEventServer extends \Swoolefy\Websocket\WebsocketEventServer
 
 ### Q: Socket.IO 连接失败，提示 polling 不支持？
 
-确认 `Protocol/conf.php` 中 `accept_http=true`，且 `Config/socketio.php` 中 `allow_polling=true`。多 Worker 部署需负载均衡会话粘性。
+确认 `Protocol/conf.php` 中 `accept_http=true`，且 `Config/socketio.php` 中 `allow_polling=true`。
+
+多 Worker 下请保持 `polling.shared_store=auto`（默认），框架会将 sid 写入共享 Table、出站包写入 Redis，**不必**再配 Nginx sticky。若显式设为 `memory`，则仅适合单 Worker 开发。
+
+测试页推荐同源访问：`http://127.0.0.1:9508/socketio-client.html`（需 `accept_http=true`）。
 
 ### Q: pushToGroup 只有部分用户收到？
 

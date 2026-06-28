@@ -144,6 +144,21 @@ class PredisClusterAdapter implements ClusterRedisAdapterInterface
         $this->client->rpush($key, [$value]);
     }
 
+    public function lPop(string $key): ?string
+    {
+        $result = $this->client->lpop($key);
+        if ($result === null) {
+            return null;
+        }
+
+        return (string) $result;
+    }
+
+    public function lTrim(string $key, int $start, int $end): void
+    {
+        $this->client->ltrim($key, $start, $end);
+    }
+
     public function brPop(string $key, int $timeoutSeconds): ?string
     {
         $result = $this->client->brpop([$key], $timeoutSeconds);

@@ -2,59 +2,106 @@
 
 namespace Swoolefy\Websocket\SocketIO;
 
-use Swoole\Coroutine\Channel;
+use Swoolefy\Core\Table\TableManager;
+use Swoolefy\Websocket\Cluster\ClusterNodeIdentity;
+use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingConfig;
+use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingOutboundStore;
+use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingSessionRegistry;
+use Swoolefy\Websocket\WebsocketConnectionManager;
 
 /**
- * Socket.IO polling 会话（sid → 出站队列 + long-poll 唤醒）。
+ * Socket.IO polling 会话（sid → 虚拟 fd + 出站队列 + long-poll 唤醒）。
  *
- * polling 连接无持久 WebSocket fd，使用虚拟 fd 写入 WebsocketConnectionManager，
- * 出站 push 写入本 Worker 内存队列，由 GET long-poll 取走。
+ * ## 存储模式（socketio.polling.shared_store）
  *
- * 多 Worker 部署需负载均衡会话粘性（同一 sid 落到同一 Worker）。
+ * | 模式 | sid 索引 | 出站队列 | 适用 |
+ * |------|----------|----------|------|
+ * | memory | 进程内存 | 进程内存 + Channel | 单 Worker 开发 |
+ * | redis（auto） | Swoole Table + Redis | Redis List + BRPOP | 多 Worker / 集群生产 |
+ *
+ * 多 Worker 下 polling 握手与 long-poll 可落在不同 Worker，共享存储保证 sid 可解析、push 可跨 Worker 送达。
  */
 class SocketIOSessionManager
 {
     private const VIRTUAL_FD_BASE = 0x40000000;
 
-    /** @var array<string, string[]> sid → 待 long-poll 取走的 Engine.IO 包（含 `\x1e` batch） */
-    private static array $outbound = [];
+    public const TABLE_POLLING_META = 'table_websocket_polling_meta';
 
-    /** @var array<string, Channel> sid → 协程 Channel；push 时唤醒阻塞中的 GET poll */
-    private static array $waitChannels = [];
-
-    /** @var array<string, int> sid → 虚拟 fd */
+    /** @var array<string, int> memory 模式：sid → virtual_fd */
     private static array $sidToVirtualFd = [];
 
-    /** @var array<int, string> 虚拟 fd → sid */
+    /** @var array<int, string> memory 模式：virtual_fd → sid */
     private static array $virtualFdToSid = [];
 
     private static int $nextVirtualFd = self::VIRTUAL_FD_BASE;
 
     public static function allocateVirtualFd(): int
     {
+        if (SocketIOPollingConfig::usesSharedStore()
+            && TableManager::isExistTable(self::TABLE_POLLING_META)) {
+            $seq = TableManager::incr(self::TABLE_POLLING_META, 'global', 'seq');
+
+            return self::VIRTUAL_FD_BASE + $seq;
+        }
+
         return self::$nextVirtualFd++;
     }
 
-    public static function bindSid(string $sid, int $virtualFd): void
+    public static function bindSid(string $sid, int $virtualFd, string $connId = ''): void
     {
-        self::$sidToVirtualFd[$sid] = $virtualFd;
-        self::$virtualFdToSid[$virtualFd] = $sid;
-        self::$outbound[$sid] = self::$outbound[$sid] ?? [];
+        if ($sid === '' || $virtualFd <= 0) {
+            return;
+        }
+
+        if (!SocketIOPollingConfig::usesSharedStore()) {
+            self::$sidToVirtualFd[$sid] = $virtualFd;
+            self::$virtualFdToSid[$virtualFd] = $sid;
+
+            return;
+        }
+
+        if ($connId === '') {
+            $connId = ClusterNodeIdentity::makeConnId($virtualFd);
+        }
+
+        SocketIOPollingSessionRegistry::register($sid, $virtualFd, $connId);
     }
 
     public static function hasSession(string $sid): bool
     {
-        return isset(self::$sidToVirtualFd[$sid]);
+        if ($sid === '') {
+            return false;
+        }
+
+        if (!SocketIOPollingConfig::usesSharedStore()) {
+            return isset(self::$sidToVirtualFd[$sid]);
+        }
+
+        return SocketIOPollingSessionRegistry::exists($sid);
     }
 
     public static function getVirtualFd(string $sid): int
     {
-        return (int) (self::$sidToVirtualFd[$sid] ?? 0);
+        if ($sid === '') {
+            return 0;
+        }
+
+        if (!SocketIOPollingConfig::usesSharedStore()) {
+            return (int) (self::$sidToVirtualFd[$sid] ?? 0);
+        }
+
+        return SocketIOPollingSessionRegistry::getVirtualFd($sid);
     }
 
     public static function getSidByVirtualFd(int $virtualFd): string
     {
-        return (string) (self::$virtualFdToSid[$virtualFd] ?? '');
+        if (!SocketIOPollingConfig::usesSharedStore()) {
+            return (string) (self::$virtualFdToSid[$virtualFd] ?? '');
+        }
+
+        $connection = WebsocketConnectionManager::getConnection($virtualFd);
+
+        return (string) ($connection['sid'] ?? '');
     }
 
     public static function isVirtualFd(int $fd): bool
@@ -62,20 +109,23 @@ class SocketIOSessionManager
         return $fd >= self::VIRTUAL_FD_BASE;
     }
 
+    public static function touchSession(string $sid): void
+    {
+        if ($sid === '') {
+            return;
+        }
+
+        if (SocketIOPollingConfig::usesSharedStore()) {
+            SocketIOPollingSessionRegistry::touch($sid);
+        }
+    }
+
     /**
      * 写入出站队列并唤醒 long-poll。
      */
     public static function enqueueOutbound(string $sid, string $packet): bool
     {
-        if ($sid === '' || $packet === '') {
-            return false;
-        }
-
-        self::$outbound[$sid] ??= [];
-        self::$outbound[$sid][] = $packet;
-        self::getWaitChannel($sid)->push(true);
-
-        return true;
+        return SocketIOPollingOutboundStore::enqueue($sid, $packet);
     }
 
     /**
@@ -85,7 +135,7 @@ class SocketIOSessionManager
      */
     public static function waitOutbound(string $sid, int $timeoutSec): array
     {
-        $packets = self::drainOutbound($sid);
+        $packets = SocketIOPollingOutboundStore::drain($sid);
         if ($packets !== []) {
             return $packets;
         }
@@ -94,9 +144,12 @@ class SocketIOSessionManager
             return [];
         }
 
-        self::getWaitChannel($sid)->pop((float) $timeoutSec);
+        $item = SocketIOPollingOutboundStore::blockingPop($sid, $timeoutSec);
+        if ($item === null) {
+            return [];
+        }
 
-        return self::drainOutbound($sid);
+        return array_merge([$item], SocketIOPollingOutboundStore::drain($sid));
     }
 
     /**
@@ -104,19 +157,22 @@ class SocketIOSessionManager
      */
     public static function drainOutbound(string $sid): array
     {
-        if (!isset(self::$outbound[$sid]) || self::$outbound[$sid] === []) {
-            return [];
-        }
-
-        $packets = self::$outbound[$sid];
-        self::$outbound[$sid] = [];
-
-        return $packets;
+        return SocketIOPollingOutboundStore::drain($sid);
     }
 
     public static function destroySession(string $sid): void
     {
-        unset(self::$outbound[$sid], self::$waitChannels[$sid]);
+        if ($sid === '') {
+            return;
+        }
+
+        SocketIOPollingOutboundStore::clear($sid);
+
+        if (SocketIOPollingConfig::usesSharedStore()) {
+            SocketIOPollingSessionRegistry::remove($sid);
+
+            return;
+        }
 
         if (isset(self::$sidToVirtualFd[$sid])) {
             $virtualFd = self::$sidToVirtualFd[$sid];
@@ -135,19 +191,11 @@ class SocketIOSessionManager
     /** 单测清理 */
     public static function resetForTest(): void
     {
-        self::$outbound = [];
-        self::$waitChannels = [];
         self::$sidToVirtualFd = [];
         self::$virtualFdToSid = [];
         self::$nextVirtualFd = self::VIRTUAL_FD_BASE;
-    }
-
-    private static function getWaitChannel(string $sid): Channel
-    {
-        if (!isset(self::$waitChannels[$sid])) {
-            self::$waitChannels[$sid] = new Channel(8);
-        }
-
-        return self::$waitChannels[$sid];
+        SocketIOPollingOutboundStore::resetForTest();
+        SocketIOPollingSessionRegistry::resetForTest();
+        SocketIOPollingConfig::setSharedStoreOverrideForTest(null);
     }
 }

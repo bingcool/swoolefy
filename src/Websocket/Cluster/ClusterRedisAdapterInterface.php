@@ -68,6 +68,12 @@ interface ClusterRedisAdapterInterface
 
     public function rPush(string $key, string $value): void;
 
+    /** LPOP：非阻塞弹出列表头元素；空列表返回 null */
+    public function lPop(string $key): ?string;
+
+    /** LTRIM：保留 [start, end] 区间元素（Redis 负数索引语义） */
+    public function lTrim(string $key, int $start, int $end): void;
+
     /**
      * 阻塞弹出列表尾部元素。
      *
