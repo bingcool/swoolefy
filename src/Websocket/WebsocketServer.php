@@ -466,5 +466,10 @@ abstract class WebsocketServer extends BaseServer
                 \Swoolefy\Websocket\Metrics\WebsocketMetrics::refreshGauges();
             });
         }
+
+        // polling：worker 0 定时向虚拟 fd 会话 enqueue Engine.IO ping（`2`）
+        if ($workerId === 0 && !empty($websocketConfig['socketio']['allow_polling'])) {
+            SocketIO\Polling\SocketIOPollingEngineHeartbeat::boot($websocketConfig);
+        }
     }
 }
