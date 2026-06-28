@@ -129,27 +129,19 @@ class SocketIOSessionManager
     }
 
     /**
-     * long-poll GET：先 drain 已有队列；空则阻塞至 push 唤醒或 poll_timeout。
+     * long-poll GET：仅 drain 已有出站包；无数据时立即返回空 body。
+     *
+     * engine.io-client 在 `_polling === true` 时不会 flush POST 写缓冲（含 Socket.IO `40` connect）。
+     * 若此处 BRPOP 阻塞 poll_timeout，并发 GET 长期占线 → POST `40` 发不出去 → 永远 connecting。
+     * 空 poll 合法，客户端会立刻发起下一条 GET；有 push/ping 时 drain 即可取到。
      *
      * @return string[]
      */
     public static function waitOutbound(string $sid, int $timeoutSec): array
     {
-        $packets = SocketIOPollingOutboundStore::drain($sid);
-        if ($packets !== []) {
-            return $packets;
-        }
+        unset($timeoutSec);
 
-        if ($timeoutSec <= 0) {
-            return [];
-        }
-
-        $item = SocketIOPollingOutboundStore::blockingPop($sid, $timeoutSec);
-        if ($item === null) {
-            return [];
-        }
-
-        return array_merge([$item], SocketIOPollingOutboundStore::drain($sid));
+        return SocketIOPollingOutboundStore::drain($sid);
     }
 
     /**

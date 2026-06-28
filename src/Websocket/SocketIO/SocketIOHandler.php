@@ -230,7 +230,9 @@ class SocketIOHandler
         ?Server $server
     ): array {
         if ($packet->engineType === SocketIOPacket::ENGINE_PING) {
-            return [SocketIOPacket::pong()];
+            $payload = (string) ($packet->data['engine_payload'] ?? '');
+
+            return [SocketIOPacket::pong($payload)];
         }
 
         if ($packet->engineType === SocketIOPacket::ENGINE_PONG) {

@@ -23,7 +23,7 @@ use Swoolefy\Websocket\WebsocketConnectionManager;
  *
  * ## 触发方式
  *
- * 1. **即时**：{@see SocketIOPollingHandler::handleHandshake} 末尾调用 touchSession()
+ * 1. **即时**：{@see SocketIOPollingHandler::handlePost} 在 namespace connect 成功后 enqueue ping
  * 2. **周期**：worker 0 上 goTick，间隔 min(ping_interval, ping_timeout - 2) 秒
  *
  * ping 写入 {@see SocketIOPollingOutboundStore}，由某 Worker 上阻塞的 GET long-poll 取走。

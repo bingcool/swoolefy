@@ -301,22 +301,21 @@
         return `http://${host}:${port}`;
     };
 
-    const bindSocketEvents = () => {
-        socket.on('connect', () => {
+    const bindSocketEvents = (s) => {
+        s.on('connect', () => {
             setConnected(true);
             log('connect success', {
-                socketId: socket.id,
+                socketId: s.id,
                 transport: getActiveTransport(),
             });
         });
 
-        socket.on('disconnect', (reason) => {
+        s.on('disconnect', (reason) => {
             setConnected(false);
             log('disconnect', { reason });
         });
 
-        // engine.io XHR 非 200 时 message 为 "server error"（含 Unknown session id 的 400）
-        socket.on('connect_error', (error) => {
+        s.on('connect_error', (error) => {
             log('connect_error', {
                 message: error.message,
                 description: error.description || '',
@@ -325,10 +324,22 @@
             });
         });
 
-        socket.on('group.joined', (data) => log('event group.joined', data));
-        socket.on('group.left', (data) => log('event group.left', data));
-        socket.on('chat.message', (data) => log('event chat.message', data));
-        socket.on('chat.private', (data) => log('event chat.private', data));
+        s.on('group.joined', (data) => log('event group.joined', data));
+        s.on('group.left', (data) => log('event group.left', data));
+        s.on('chat.message', (data) => log('event chat.message', data));
+        s.on('chat.private', (data) => log('event chat.private', data));
+
+        if (s.io && s.io.engine) {
+            s.io.engine.on('open', () => log('engine open'));
+            s.io.engine.on('packet', (packet) => {
+                if (packet.type === 'message' && packet.data) {
+                    log('engine message', { data: String(packet.data).slice(0, 120) });
+                } else {
+                    log('engine packet', packet);
+                }
+            });
+            s.io.engine.on('error', (error) => log('engine error', { message: error.message || String(error) }));
+        }
     };
 
     $('btnConnect').addEventListener('click', () => {
@@ -364,8 +375,7 @@
         }
 
         socket = io(url, ioOptions);
-
-        bindSocketEvents();
+        bindSocketEvents(socket);
     });
 
     $('btnDisconnect').addEventListener('click', () => {

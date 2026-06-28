@@ -2,7 +2,6 @@
 
 namespace Swoolefy\Websocket\SocketIO;
 
-use Swoole\Coroutine;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoole\WebSocket\Frame;
@@ -27,7 +26,7 @@ use Swoolefy\Websocket\WebsocketConnectionManager;
  *
  * - 无持久 fd：用虚拟 fd + sid，push 写入 {@see SocketIOSessionManager} 出站队列
  * - **心跳**：polling 须服务端主动发 `2`（见 {@see SocketIOPollingEngineHeartbeat}）
- * - **long-poll**：GET 可阻塞至 poll_timeout（默认 25s），须在子协程中等待，避免占满 Worker
+ * - **long-poll**：无出站数据时立即空响应（禁止 BRPOP 阻塞），否则 engine.io 无法 POST `40` connect
  *
  * ## 配置
  *
@@ -115,26 +114,17 @@ class SocketIOPollingHandler
         $maxPayload = (int) ($socketio['max_payload'] ?? 1000000);
         $upgrades = SocketIOHandler::isWebSocketTransportEnabled($config) ? ['websocket'] : [];
 
-        // open 包仅含 Engine 参数；Socket.IO `40` connect ack 由客户端 POST `40` 后同步返回
+        // open 包仅含 Engine 参数；Socket.IO `40` connect ack 由客户端 POST `40` 后同步返回。
+        // 不在握手后立即 enqueue ping：首包 GET 若返回 `2`，会拖住 engine.io flush POST `40`。
         self::sendPollingResponse(
             $request,
             $response,
             SocketIOPacket::open($sid, $pingInterval, $pingTimeout, $maxPayload, $upgrades)
         );
-
-        // polling 下服务端须主动 ping：若 long-poll 在 pingTimeout(20s) 内无任何出站包，
-        // engine.io-client 会报 transport error / server error（XHR 非 200 亦同）
-        SocketIOPollingEngineHeartbeat::touchSession($sid);
     }
 
     /**
-     * long-poll GET：在子协程内 waitOutbound，超时返回空 body（Engine.IO 合法空 poll）。
-     *
-     * 不可在 request 回调里同步 BRPOP poll_timeout 秒：
-     * - 8 Worker × 每客户端 2 条并发 long-poll 易占满进程
-     * - POST（`40` connect / `3` pong）无法及时调度 → connect_error
-     *
-     * 子协程内 end() 响应；父协程立即返回，Swoole 保持连接直至 end。
+     * long-poll GET：drain 出站队列并立即 end；无数据返回空 body。
      */
     private static function handlePoll(Request $request, Response $response, array $config, string $sid): void
     {
@@ -149,17 +139,8 @@ class SocketIOPollingHandler
         SocketIOSessionManager::touchSession($sid);
 
         $timeout = SocketIOHandler::pollTimeout($config);
-        Coroutine::create(static function () use ($request, $response, $sid, $timeout): void {
-            // 进入 long-poll 前再次校验：握手与 poll 可能落在不同 Worker（共享 Table/Redis）
-            if (!SocketIOSessionManager::hasSession($sid)) {
-                self::reject($request, $response, 400, 'Unknown session id');
-
-                return;
-            }
-
-            $packets = SocketIOSessionManager::waitOutbound($sid, $timeout);
-            self::sendPollingResponse($request, $response, SocketIOPacket::encodeBatch($packets));
-        });
+        $packets = SocketIOSessionManager::waitOutbound($sid, $timeout);
+        self::sendPollingResponse($request, $response, SocketIOPacket::encodeBatch($packets));
     }
 
     /**
@@ -183,6 +164,14 @@ class SocketIOPollingHandler
         $outbound = [];
         foreach (SocketIOHandler::handleInboundPollingBatch($virtualFd, (string) $request->rawContent(), $config) as $packet) {
             $outbound[] = $packet;
+        }
+
+        // connect ack 同时写入出站队列：部分客户端从 GET 读 ack，POST 响应单独丢失时仍可 connect
+        foreach ($outbound as $packet) {
+            if ($packet !== '' && $packet[0] === SocketIOPacket::ENGINE_MESSAGE && isset($packet[1]) && $packet[1] === SocketIOPacket::SOCKET_CONNECT) {
+                SocketIOSessionManager::enqueueOutbound($sid, $packet);
+                SocketIOPollingEngineHeartbeat::touchSession($sid);
+            }
         }
 
         self::sendPollingResponse($request, $response, SocketIOPacket::encodeBatch($outbound));
