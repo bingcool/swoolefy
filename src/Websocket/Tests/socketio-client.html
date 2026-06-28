@@ -205,6 +205,15 @@
 
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
+/**
+ * Socket.IO 测试客户端
+ *
+ * polling 注意：
+ * - 须同源 HTTP 打开（http://127.0.0.1:9508/socketio-client.html），file:// 会拦截 XHR
+ * - 勿在 io() 前额外发握手 probe：会产生多余 sid，且占用 Worker long-poll
+ * - timeout 须 > socketio.poll_timeout（默认 25s），否则 connect_error
+ * - upgrade:false 时纯 polling，便于验证 long-poll 路径
+ */
 (() => {
     const $ = (id) => document.getElementById(id);
     const logEl = $('log');
@@ -232,6 +241,7 @@
         $('transport').disabled = connected;
     };
 
+    /** 根据下拉框返回 socket.io transports 数组 */
     const getTransports = () => {
         const mode = $('transport').value;
         if (mode === 'websocket') {
@@ -246,6 +256,7 @@
 
     const usesPolling = (transports) => transports.includes('polling');
 
+    /** file:// 下浏览器禁止跨域 polling XHR，强制降为 websocket */
     const resolveTransportsForPage = () => {
         let transports = getTransports();
         if (!isFileProtocol || !usesPolling(transports)) {
@@ -255,22 +266,6 @@
         log('warn', 'file:// 无法使用 polling XHR，已自动切换为 websocket');
         $('transport').value = 'websocket';
         return ['websocket'];
-    };
-
-    const probePollingHandshake = async (url, query) => {
-        const params = new URLSearchParams({
-            EIO: '4',
-            transport: 'polling',
-            uid: query.uid,
-            token: query.token,
-        });
-        const response = await fetch(`${url}/socket.io/?${params.toString()}`, {
-            method: 'GET',
-            credentials: 'omit',
-        });
-        const body = await response.text();
-
-        return { ok: response.ok, status: response.status, body: body.slice(0, 120) };
     };
 
     const initPageContext = () => {
@@ -320,8 +315,14 @@
             log('disconnect', { reason });
         });
 
+        // engine.io XHR 非 200 时 message 为 "server error"（含 Unknown session id 的 400）
         socket.on('connect_error', (error) => {
-            log('connect_error', { message: error.message });
+            log('connect_error', {
+                message: error.message,
+                description: error.description || '',
+                context: error.context || null,
+                type: error.type || '',
+            });
         });
 
         socket.on('group.joined', (data) => log('event group.joined', data));
@@ -330,7 +331,7 @@
         socket.on('chat.private', (data) => log('event chat.private', data));
     };
 
-    $('btnConnect').addEventListener('click', async () => {
+    $('btnConnect').addEventListener('click', () => {
         if (socket) {
             socket.disconnect();
             socket = null;
@@ -343,28 +344,7 @@
         };
 
         const transports = resolveTransportsForPage();
-
-        if (usesPolling(transports)) {
-            try {
-                const probe = await probePollingHandshake(url, query);
-                log('polling probe', probe);
-                if (!probe.ok) {
-                    log('connect aborted', {
-                        reason: 'polling handshake failed',
-                        hint: '确认 accept_http=true、allow_polling=true，并用 HTTP 同源打开本页',
-                    });
-                    return;
-                }
-            } catch (error) {
-                log('polling probe failed', {
-                    message: error.message,
-                    hint: isFileProtocol
-                        ? 'file:// 下 polling 不可用，请用 http://127.0.0.1:9508/socketio-client.html'
-                        : '检查服务是否启动、CORS/网络是否可达',
-                });
-                return;
-            }
-        }
+        const pollingOnly = transports.length === 1 && transports[0] === 'polling';
 
         log('connecting', { url, path: '/socket.io/', transports, query });
 
@@ -372,11 +352,14 @@
             path: '/socket.io/',
             query,
             transports,
+            // 与 CORS 策略一致：服务端对具体 Origin 回显，不用 cookie 会话
             withCredentials: false,
             reconnection: false,
-            timeout: 5000,
+            // Manager 连接超时：polling 须覆盖 long-poll 阻塞（poll_timeout 默认 25s）
+            timeout: pollingOnly ? 35000 : 10000,
         };
-        if (transports.length === 1 && transports[0] === 'polling') {
+        // 纯 polling 测试：禁止升级到 WebSocket，否则会走 WS 路径掩盖 polling 问题
+        if (pollingOnly) {
             ioOptions.upgrade = false;
         }
 
