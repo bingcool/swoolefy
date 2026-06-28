@@ -15,12 +15,13 @@ use Swoolefy\Core\Dto\ContainerObjectDto;
  *
  * Swoole 下使用 phpredis 时依赖 hook_flags（默认 SWOOLE_HOOK_ALL）协程化阻塞 IO。
  *
- * - execute()：协程内通过 Application::getApp()->creatObject() 单例连接；无 App 时降级
+ * - execute()：优先 EventApp 内 creatObject() 单例；无 App 时在协程内按 cid 缓存连接，
+ *   协程结束时 Coroutine::defer 关闭，避免每次 execute 泄漏 TCP 连接
  * - runDedicated()：独立连接，供 Stream XREADGROUP / List BRPOP 等阻塞读
  * - subscribe()：Pub/Sub 长连接（仅 transport=pubsub）
  *
- * 自定义推送进程内凡调用 execute() 的路径（enqueue、投递后查 conn meta 等），
- * 须在 goApp / EventApp::registerApp 协程上下文中运行，避免 phpredis socket 跨协程冲突。
+ * Worker open/message/close 与 polling HTTP 的框架 Redis 须在 EventApp 内调用 execute()；
+ * 自定义推送进程同理使用 goApp / EventApp::registerApp。
  */
 class ClusterRedisClient
 {
@@ -33,6 +34,9 @@ class ClusterRedisClient
 
     /** @var ClusterRedisAdapterInterface|null 非协程 / 无 App 上下文降级连接 */
     private static ?ClusterRedisAdapterInterface $fallbackAdapter = null;
+
+    /** @var array<int, ClusterRedisAdapterInterface> 无 EventApp 时按协程 cid 缓存的连接 */
+    private static array $coroutineAdapters = [];
 
     /**
      * 在协程单例连接上执行 Redis 命令；连接异常时清组件并重试一次。
@@ -72,6 +76,10 @@ class ClusterRedisClient
             return;
         }
 
+        self::closeCoroutineAdapter(
+            class_exists(\Swoole\Coroutine::class) ? \Swoole\Coroutine::getCid() : 0
+        );
+
         if (self::$fallbackAdapter !== null) {
             self::$fallbackAdapter->close();
             self::$fallbackAdapter = null;
@@ -110,7 +118,7 @@ class ClusterRedisClient
         }
 
         if (class_exists(\Swoole\Coroutine::class) && \Swoole\Coroutine::getCid() > 0) {
-            return self::createAdapter();
+            return self::getCoroutineAdapter();
         }
 
         if (self::$fallbackAdapter === null) {
@@ -118,6 +126,33 @@ class ClusterRedisClient
         }
 
         return self::$fallbackAdapter;
+    }
+
+    /** 无 EventApp 时在协程内复用同一连接，defer 时 close 防止泄漏 */
+    private static function getCoroutineAdapter(): ClusterRedisAdapterInterface
+    {
+        $cid = \Swoole\Coroutine::getCid();
+        if (isset(self::$coroutineAdapters[$cid])) {
+            return self::$coroutineAdapters[$cid];
+        }
+
+        $adapter = self::createAdapter();
+        self::$coroutineAdapters[$cid] = $adapter;
+        \Swoole\Coroutine::defer(static function () use ($cid): void {
+            self::closeCoroutineAdapter($cid);
+        });
+
+        return $adapter;
+    }
+
+    private static function closeCoroutineAdapter(int $cid): void
+    {
+        if ($cid <= 0 || !isset(self::$coroutineAdapters[$cid])) {
+            return;
+        }
+
+        self::$coroutineAdapters[$cid]->close();
+        unset(self::$coroutineAdapters[$cid]);
     }
 
     /**

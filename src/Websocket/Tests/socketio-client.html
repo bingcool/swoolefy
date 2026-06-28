@@ -52,6 +52,14 @@
             padding: 10px 12px;
             background: #fff;
         }
+        select {
+            width: 100%;
+            font: inherit;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 10px 12px;
+            background: #fff;
+        }
         textarea { min-height: 84px; resize: vertical; }
         .actions {
             display: flex;
@@ -105,14 +113,32 @@
             padding: 2px 6px;
             border-radius: 6px;
         }
+        .alert {
+            margin-bottom: 16px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .alert.warn {
+            background: #fef3c7;
+            border: 1px solid #fcd34d;
+            color: #92400e;
+        }
+        .alert.hidden { display: none; }
     </style>
 </head>
 <body>
 <div class="wrap">
     <h1>Swoolefy WebSocket Socket.IO 测试页</h1>
+    <div id="fileProtocolAlert" class="alert warn hidden"></div>
     <div class="hint">
         先启动示例应用：<code>SWOOLEFY_CLI_ENV=dev php cli.php start WebsocketService</code><br>
-        本页通过 <code>socket.io-client</code> 连接后端（默认 polling → websocket upgrade）。需 <code>accept_http=true</code> + <code>allow_polling=true</code>。<br>
+        推荐同源访问（polling 必须）：<code>http://127.0.0.1:9508/socketio-client.html</code>
+        （需 <code>accept_http=true</code>）<br>
+        也可 <code>php -S 127.0.0.1:8888 -t src/Websocket/Tests</code> 打开
+        <code>http://127.0.0.1:8888/socketio-client.html</code>。<br>
+        <strong>勿用 <code>file://</code> 双击打开</strong>——浏览器会拦截 polling 的 XHR，仅 websocket 可用。<br>
         事件映射见示例应用 <code>WebsocketService/Config/socketio.php</code>：
         <code>group.join</code> → <code>Service/Chat/JoinGroup</code>，
         <code>chat.send</code> → <code>Service/Chat/Send</code>。
@@ -143,6 +169,14 @@
             <div>
                 <label for="toUserId">To User ID（单聊）</label>
                 <input id="toUserId" value="10002">
+            </div>
+            <div>
+                <label for="transport">Transport</label>
+                <select id="transport">
+                    <option value="auto">auto（polling → websocket upgrade）</option>
+                    <option value="websocket" selected>websocket（仅 WebSocket）</option>
+                    <option value="polling">polling（仅 long-polling）</option>
+                </select>
             </div>
         </div>
 
@@ -175,6 +209,7 @@
     const $ = (id) => document.getElementById(id);
     const logEl = $('log');
     let socket = null;
+    const isFileProtocol = window.location.protocol === 'file:';
 
     const log = (msg, data) => {
         const time = new Date().toLocaleTimeString();
@@ -194,6 +229,75 @@
         $('btnPrivate').disabled = !connected;
         $('host').disabled = connected;
         $('port').disabled = connected;
+        $('transport').disabled = connected;
+    };
+
+    const getTransports = () => {
+        const mode = $('transport').value;
+        if (mode === 'websocket') {
+            return ['websocket'];
+        }
+        if (mode === 'polling') {
+            return ['polling'];
+        }
+
+        return ['polling', 'websocket'];
+    };
+
+    const usesPolling = (transports) => transports.includes('polling');
+
+    const resolveTransportsForPage = () => {
+        let transports = getTransports();
+        if (!isFileProtocol || !usesPolling(transports)) {
+            return transports;
+        }
+
+        log('warn', 'file:// 无法使用 polling XHR，已自动切换为 websocket');
+        $('transport').value = 'websocket';
+        return ['websocket'];
+    };
+
+    const probePollingHandshake = async (url, query) => {
+        const params = new URLSearchParams({
+            EIO: '4',
+            transport: 'polling',
+            uid: query.uid,
+            token: query.token,
+        });
+        const response = await fetch(`${url}/socket.io/?${params.toString()}`, {
+            method: 'GET',
+            credentials: 'omit',
+        });
+        const body = await response.text();
+
+        return { ok: response.ok, status: response.status, body: body.slice(0, 120) };
+    };
+
+    const initPageContext = () => {
+        if (isFileProtocol) {
+            const alertEl = $('fileProtocolAlert');
+            alertEl.classList.remove('hidden');
+            alertEl.innerHTML = [
+                '当前为 <code>file://</code> 打开：浏览器会拦截对 <code>http://127.0.0.1:9508</code> 的 polling XHR。',
+                '请改用 <a href="http://127.0.0.1:9508/socketio-client.html" target="_blank" rel="noreferrer">http://127.0.0.1:9508/socketio-client.html</a>',
+                '（需服务已启动且 <code>accept_http=true</code>）。',
+            ].join(' ');
+            $('transport').value = 'websocket';
+            return;
+        }
+
+        if (window.location.port === '9508') {
+            $('host').value = window.location.hostname || '127.0.0.1';
+            $('port').value = '9508';
+        }
+    };
+
+    const getActiveTransport = () => {
+        if (!socket || !socket.io || !socket.io.engine) {
+            return '';
+        }
+
+        return socket.io.engine.transport ? socket.io.engine.transport.name : '';
     };
 
     const getServerUrl = () => {
@@ -205,7 +309,10 @@
     const bindSocketEvents = () => {
         socket.on('connect', () => {
             setConnected(true);
-            log('connect success', { socketId: socket.id });
+            log('connect success', {
+                socketId: socket.id,
+                transport: getActiveTransport(),
+            });
         });
 
         socket.on('disconnect', (reason) => {
@@ -223,7 +330,7 @@
         socket.on('chat.private', (data) => log('event chat.private', data));
     };
 
-    $('btnConnect').addEventListener('click', () => {
+    $('btnConnect').addEventListener('click', async () => {
         if (socket) {
             socket.disconnect();
             socket = null;
@@ -235,14 +342,45 @@
             token: $('token').value.trim(),
         };
 
-        log('connecting', { url, path: '/socket.io/', query });
+        const transports = resolveTransportsForPage();
 
-        socket = io(url, {
+        if (usesPolling(transports)) {
+            try {
+                const probe = await probePollingHandshake(url, query);
+                log('polling probe', probe);
+                if (!probe.ok) {
+                    log('connect aborted', {
+                        reason: 'polling handshake failed',
+                        hint: '确认 accept_http=true、allow_polling=true，并用 HTTP 同源打开本页',
+                    });
+                    return;
+                }
+            } catch (error) {
+                log('polling probe failed', {
+                    message: error.message,
+                    hint: isFileProtocol
+                        ? 'file:// 下 polling 不可用，请用 http://127.0.0.1:9508/socketio-client.html'
+                        : '检查服务是否启动、CORS/网络是否可达',
+                });
+                return;
+            }
+        }
+
+        log('connecting', { url, path: '/socket.io/', transports, query });
+
+        const ioOptions = {
             path: '/socket.io/',
             query,
+            transports,
+            withCredentials: false,
             reconnection: false,
             timeout: 5000,
-        });
+        };
+        if (transports.length === 1 && transports[0] === 'polling') {
+            ioOptions.upgrade = false;
+        }
+
+        socket = io(url, ioOptions);
 
         bindSocketEvents();
     });
@@ -288,6 +426,8 @@
     $('btnClear').addEventListener('click', () => {
         logEl.textContent = '';
     });
+
+    initPageContext();
 })();
 </script>
 </body>

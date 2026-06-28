@@ -60,6 +60,29 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
     }
 
     /**
+     * 完整消息帧（分片重组后）在 EventApp 内 dispatch：touch Redis 索引 + Socket.IO / 原生 WS。
+     *
+     * 由 WebsocketServer::on('message') 在 WebsocketFrameAssembler 收齐帧后调用；
+     * 分片重组无 Redis IO，留在 WebsocketServer 回调外层。
+     */
+    public function dispatchMessageFrame(Server $server, Frame $frame, array $websocketConfig): void
+    {
+        goApp(function () use ($server, $frame, $websocketConfig) {
+            // touch 写 Redis 全局索引，须在 EventApp 内
+            WebsocketConnectionManager::touch((int) $frame->fd);
+
+            $connection = WebsocketConnectionManager::getConnection((int) $frame->fd);
+            // 同一个 onMessage 入口按连接标记区分普通 WebSocket 与 Socket.IO 协议。
+            if (!empty($websocketConfig['socketio']['enable']) && !empty($connection['is_socketio'])) {
+                SocketIO\SocketIOHandler::onMessage($server, $frame, $websocketConfig);
+
+                return;
+            }
+            static::onMessage($server, $frame);
+        });
+    }
+
+    /**
      * onMessage
      * @param Server $server
      * @param Frame $frame
@@ -71,7 +94,6 @@ abstract class WebsocketEventServer extends WebsocketServer implements Websocket
         $fd     = $frame->fd;
         $data   = $frame->data;
         $opcode = $frame->opcode;
-
         // 进入此方法前，WebsocketServer 已完成分片重组，frame 必为完整消息
         if ($opcode == WEBSOCKET_OPCODE_TEXT) {
             $appInstance = new WebsocketHandler();
