@@ -6,18 +6,20 @@
  *
  * Run after server started:
  *   SWOOLEFY_CLI_ENV=dev php src/Websocket/Tests/WebsocketSmokeTest.php
+ *
+ * 环境变量（可选）：
+ *   WS_HOST=127.0.0.1  WS_PORT=9508  WORKER_PORT=9508
+ *   WS_SMOKE_SKIP_IF_DOWN=1  — 服务未启动时跳过而非 fatal
  */
 
 use Swoole\Coroutine\Http\Client;
 use Swoole\WebSocket\Frame;
 use Swoolefy\Websocket\SocketIO\SocketIOClient;
+use Swoolefy\Websocket\Tests\Support\SmokeTestSupport;
 
 require dirname(__DIR__, 3) . '/vendor/autoload.php';
 
 \Swoole\Runtime::enableCoroutine(SWOOLE_HOOK_ALL);
-
-const WS_HOST = '127.0.0.1';
-const WS_PORT = 9508;
 
 /** 断言条件为真，否则抛出 RuntimeException */
 function assertTrue(bool $condition, string $message): void
@@ -40,11 +42,11 @@ function recvJson(Client $client, string $case): array
 }
 
 /** 原生 WebSocket：ping/pong、业务 request、非法 JSON 错误响应 */
-function testRawWebsocket(): void
+function testRawWebsocket(string $host, int $port): void
 {
-    $client = new Client(WS_HOST, WS_PORT);
-    $client->set(['timeout' => 3]);
-    assertTrue($client->upgrade('/?uid=raw-user'), 'raw websocket: upgrade failed');
+    $client = new Client($host, $port);
+    $client->set(['timeout' => 5]);
+    SmokeTestSupport::upgrade($client, '/?uid=raw-user', 'raw websocket');
 
     $client->push(json_encode([
         'type' => 'ping',
@@ -75,19 +77,19 @@ function testRawWebsocket(): void
 }
 
 /** Socket.IO：握手、group.join、chat.send 带 ack */
-function testSocketIO(): void
+function testSocketIO(string $host, int $port): void
 {
-    $client = new SocketIOClient(WS_HOST, WS_PORT, false, 3);
+    $client = new SocketIOClient($host, $port, false, 5);
     $client->connect(['uid' => 'socketio-user']);
     assertTrue($client->getSid() !== '', 'socket.io: missing sid');
 
-    $joinAck = $client->emitWithAck('group.join', [['group' => 'public']], 3);
+    $joinAck = $client->emitWithAck('group.join', [['group' => 'public']], 5);
     assertTrue(($joinAck[0]['code'] ?? -1) === 0, 'socket.io group.join: expected ack code=0');
 
     $sendAck = $client->emitWithAck('chat.send', [[
         'group' => 'public',
         'message' => 'hello socket.io',
-    ]], 3);
+    ]], 5);
     assertTrue(($sendAck[0]['code'] ?? -1) === 0, 'socket.io chat.send: expected ack code=0');
 
     $client->close();
@@ -95,18 +97,18 @@ function testSocketIO(): void
 }
 
 /** 单聊：A 向 B pushToUser，双方握手带 uid，验证 ack 成功 */
-function testPrivateChat(): void
+function testPrivateChat(string $host, int $port): void
 {
-    $receiver = new SocketIOClient(WS_HOST, WS_PORT, false, 3);
+    $receiver = new SocketIOClient($host, $port, false, 5);
     $receiver->connect(['uid' => 'smoke-user-b']);
 
-    $sender = new SocketIOClient(WS_HOST, WS_PORT, false, 3);
+    $sender = new SocketIOClient($host, $port, false, 5);
     $sender->connect(['uid' => 'smoke-user-a']);
 
     $ack = $sender->emitWithAck('chat.private', [[
         'to_user_id' => 'smoke-user-b',
         'message' => 'hello private',
-    ]], 3);
+    ]], 5);
     assertTrue(($ack[0]['code'] ?? -1) === 0, 'socket.io chat.private: expected ack code=0');
 
     $sender->close();
@@ -114,10 +116,13 @@ function testPrivateChat(): void
     echo "[OK] socket.io private chat\n";
 }
 
-\Swoole\Coroutine\run(function () {
-    testRawWebsocket();
-    testSocketIO();
-    testPrivateChat();
+[$wsHost, $wsPort] = SmokeTestSupport::endpoint();
+SmokeTestSupport::ensureServerAvailable($wsHost, $wsPort);
+
+\Swoole\Coroutine\run(static function () use ($wsHost, $wsPort): void {
+    testRawWebsocket($wsHost, $wsPort);
+    testSocketIO($wsHost, $wsPort);
+    testPrivateChat($wsHost, $wsPort);
 });
 
-echo "All websocket smoke tests passed.\n";
+echo "All websocket smoke tests passed ({$wsHost}:{$wsPort}).\n";
