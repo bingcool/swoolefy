@@ -128,13 +128,7 @@ class SocketIOPollingHandler
      */
     private static function handlePoll(Request $request, Response $response, array $config, string $sid): void
     {
-        if (!SocketIOSessionManager::hasSession($sid)) {
-            self::reject($request, $response, 400, 'Unknown session id');
-
-            return;
-        }
-
-        $virtualFd = SocketIOSessionManager::getVirtualFd($sid);
+        $virtualFd = SocketIOSessionManager::resolveSession($sid);
         if ($virtualFd <= 0) {
             self::reject($request, $response, 400, 'Unknown session id');
 
@@ -157,13 +151,7 @@ class SocketIOPollingHandler
      */
     private static function handlePost(Request $request, Response $response, array $config, string $sid): void
     {
-        if (!SocketIOSessionManager::hasSession($sid)) {
-            self::reject($request, $response, 400, 'Unknown session id');
-
-            return;
-        }
-
-        $virtualFd = SocketIOSessionManager::getVirtualFd($sid);
+        $virtualFd = SocketIOSessionManager::resolveSession($sid);
         if ($virtualFd <= 0) {
             self::reject($request, $response, 400, 'Unknown session id');
 

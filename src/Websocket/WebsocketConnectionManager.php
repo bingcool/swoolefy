@@ -180,6 +180,52 @@ class WebsocketConnectionManager
         }
     }
 
+    /**
+     * 跨节点 poll 到达时在本机补建 polling 影子连接（不写 Redis 全局索引）。
+     *
+     * 握手节点已注册 cluster 索引；其它节点仅需本地 Table 行以支持 POST `40` / namespace 路由。
+     *
+     * @param array<string, string> $meta Redis 会话 Hash（sid / virtual_fd / user_id / conn_id 等）
+     */
+    public static function ensurePollingShadow(string $sid, int $virtualFd, array $meta = []): void
+    {
+        if ($sid === '' || $virtualFd <= 0) {
+            return;
+        }
+
+        if (self::getConnection($virtualFd) !== null) {
+            return;
+        }
+
+        if (!self::tableExists(self::TABLE_CONNECTIONS)) {
+            return;
+        }
+
+        $now = time();
+        $connId = (string) ($meta['conn_id'] ?? Cluster\ClusterNodeIdentity::makeConnId($virtualFd));
+        $userId = (string) ($meta['user_id'] ?? '');
+
+        self::setConnection($virtualFd, [
+            'fd' => $virtualFd,
+            'worker_id' => 0,
+            'user_id' => $userId,
+            'sid' => $sid,
+            'groups' => '',
+            'remote_addr' => '',
+            'user_agent' => 'polling-shadow',
+            'connected_at' => (int) ($meta['created_at'] ?? $now),
+            'last_active_at' => $now,
+            'is_socketio' => 1,
+            'is_polling' => 1,
+            'socketio_namespaces' => '',
+            'conn_id' => $connId,
+        ]);
+
+        if ($userId !== '') {
+            self::bindUser($virtualFd, $userId);
+        }
+    }
+
     /** 关闭 polling 虚拟连接（不 disconnect WebSocket） */
     public static function closePollingVirtual(int $virtualFd): void
     {

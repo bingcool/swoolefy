@@ -3,11 +3,11 @@
 namespace Swoolefy\Websocket\SocketIO\Polling;
 
 use Swoolefy\Core\Table\TableManager;
-use Swoolefy\Websocket\Cluster\ClusterConfig;
 use Swoolefy\Websocket\Cluster\ClusterNodeIdentity;
 use Swoolefy\Websocket\Cluster\ClusterRedisAdapterInterface;
 use Swoolefy\Websocket\Cluster\ClusterRedisClient;
 use Swoolefy\Websocket\SocketIO\SocketIOSessionManager;
+use Swoolefy\Websocket\WebsocketConnectionManager;
 
 /**
  * Engine.IO polling 会话注册表：sid → virtual_fd（跨 Worker 可解析）。
@@ -53,6 +53,9 @@ class SocketIOPollingSessionRegistry
     /** sid 索引表名，key = Engine.IO sid 字符串 */
     public const TABLE_POLLING_SID = 'table_websocket_polling_sid';
 
+    /** @var array<string, int> 单进程内 Redis touch 节流（sid → last unix time） */
+    private static array $lastRedisTouchAt = [];
+
     /**
      * 握手成功后注册 sid 与虚拟 fd 的映射。
      *
@@ -78,18 +81,89 @@ class SocketIOPollingSessionRegistry
             return;
         }
 
-        self::executeRedis(static function (ClusterRedisAdapterInterface $redis) use ($sid, $virtualFd, $connId, $now): void {
+        $connection = WebsocketConnectionManager::getConnection($virtualFd);
+        $userId = (string) ($connection['user_id'] ?? '');
+
+        self::executeRedis(static function (ClusterRedisAdapterInterface $redis) use ($sid, $virtualFd, $connId, $now, $userId): void {
             $key = self::redisSessionKey($sid);
             $redis->hMSet($key, [
                 'sid' => $sid,
                 'virtual_fd' => (string) $virtualFd,
                 'server_id' => ClusterNodeIdentity::getServerId(),
                 'conn_id' => $connId,
+                'user_id' => $userId,
                 'created_at' => (string) $now,
                 'last_active_at' => (string) $now,
             ]);
             $redis->expire($key, SocketIOPollingConfig::sessionTtl());
         });
+    }
+
+    /**
+     * 解析 sid 并确保本节点 Table 有映射（跨节点 poll 时从 Redis 回填）。
+     *
+     * @return int virtual_fd，未找到返回 0
+     */
+    public static function ensureLocal(string $sid): int
+    {
+        if ($sid === '') {
+            return 0;
+        }
+
+        if (TableManager::isExistTable(self::TABLE_POLLING_SID)) {
+            $row = TableManager::get(self::TABLE_POLLING_SID, $sid);
+            if (is_array($row) && !empty($row)) {
+                return (int) ($row['virtual_fd'] ?? 0);
+            }
+        }
+
+        if (!self::shouldMirrorRedis()) {
+            return 0;
+        }
+
+        $meta = self::fetchRedisMeta($sid);
+        if ($meta === null) {
+            return 0;
+        }
+
+        $virtualFd = (int) ($meta['virtual_fd'] ?? 0);
+        if ($virtualFd <= 0) {
+            return 0;
+        }
+
+        if (TableManager::isExistTable(self::TABLE_POLLING_SID)) {
+            TableManager::set(self::TABLE_POLLING_SID, $sid, [
+                'virtual_fd' => $virtualFd,
+                'last_active_at' => (int) ($meta['last_active_at'] ?? time()),
+            ]);
+        }
+
+        WebsocketConnectionManager::ensurePollingShadow($sid, $virtualFd, $meta);
+
+        return $virtualFd;
+    }
+
+    /**
+     * @return array<string, string>|null
+     */
+    public static function fetchRedisMeta(string $sid): ?array
+    {
+        if ($sid === '' || !self::shouldMirrorRedis()) {
+            return null;
+        }
+
+        try {
+            $meta = self::executeRedis(static function (ClusterRedisAdapterInterface $redis) use ($sid) {
+                return $redis->hGetAll(self::redisSessionKey($sid));
+            });
+            if (!is_array($meta) || empty($meta['virtual_fd'])) {
+                return null;
+            }
+
+            return array_map(static fn ($value): string => (string) $value, $meta);
+        } catch (\Throwable $throwable) {
+            return null;
+        }
     }
 
     /**
@@ -142,18 +216,12 @@ class SocketIOPollingSessionRegistry
             return 0;
         }
 
-        try {
-            $meta = self::executeRedis(static function (ClusterRedisAdapterInterface $redis) use ($sid) {
-                return $redis->hGetAll(self::redisSessionKey($sid));
-            });
-            if (is_array($meta) && !empty($meta['virtual_fd'])) {
-                return (int) $meta['virtual_fd'];
-            }
-        } catch (\Throwable $throwable) {
+        $meta = self::fetchRedisMeta($sid);
+        if ($meta === null) {
             return 0;
         }
 
-        return 0;
+        return (int) ($meta['virtual_fd'] ?? 0);
     }
 
     /**
@@ -180,6 +248,13 @@ class SocketIOPollingSessionRegistry
         if (!self::shouldMirrorRedis()) {
             return;
         }
+
+        $lastRedisTouch = self::$lastRedisTouchAt[$sid] ?? 0;
+        if ($now - $lastRedisTouch < SocketIOPollingConfig::sessionTouchInterval()) {
+            return;
+        }
+
+        self::$lastRedisTouchAt[$sid] = $now;
 
         try {
             self::executeRedis(static function (ClusterRedisAdapterInterface $redis) use ($sid, $now): void {
@@ -252,6 +327,8 @@ class SocketIOPollingSessionRegistry
     /** 单测 teardown：清空 sid Table 全部行 */
     public static function resetForTest(): void
     {
+        self::$lastRedisTouchAt = [];
+
         if (!TableManager::isExistTable(self::TABLE_POLLING_SID)) {
             return;
         }

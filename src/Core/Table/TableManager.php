@@ -84,7 +84,7 @@ class TableManager
      * @param string $field
      * @return mixed
      */
-    public static function get(string $table, string $key, string $field = null)
+    public static function get(string $table, string $key, ?string $field = null)
     {
         return self::getTable($table)->get($key, $field);
     }
@@ -179,7 +179,7 @@ class TableManager
      * @param string $table
      * @return int
      */
-    public static function count(string $table = null): int
+    public static function count(?string $table = null): int
     {
         $count = 0;
         $swooleTable = self::getTable($table);

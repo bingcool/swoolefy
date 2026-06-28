@@ -5,13 +5,19 @@
  * Run: php src/Websocket/Tests/WebsocketSocketIOPollingTest.php
  */
 
+use Swoolefy\Core\Table\TableManager;
 use Swoolefy\Websocket\Cluster\ClusterConfig;
+use Swoolefy\Websocket\Cluster\ClusterNodeIdentity;
 use Swoolefy\Websocket\Cluster\ClusterRedisClient;
 use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingConfig;
 use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingOutboundStore;
+use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingSessionRegistry;
 use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingWaitCoordinator;
+use Swoolefy\Websocket\SocketIO\SocketIOHandler;
+use Swoolefy\Websocket\SocketIO\SocketIONamespaceRegistry;
 use Swoolefy\Websocket\SocketIO\SocketIOPacket;
 use Swoolefy\Websocket\SocketIO\SocketIOSessionManager;
+use Swoolefy\Websocket\WebsocketConnectionManager;
 
 $root = dirname(__DIR__, 3);
 require $root . '/vendor/autoload.php';
@@ -194,6 +200,343 @@ function testConnectAckDetect(): void
     echo "[OK] connect ack detect\n";
 }
 
+/** 单测：创建 polling 回归所需的 Swoole Table */
+function setupPollingRegressionTables(): void
+{
+    if (TableManager::isExistTable(WebsocketConnectionManager::TABLE_CONNECTIONS)) {
+        return;
+    }
+
+    TableManager::createTable(WebsocketConnectionManager::tableDefinitions([
+        'connection_table_size' => 1024,
+        'index_table_size' => 2048,
+        'socketio' => ['allow_polling' => true],
+    ]));
+}
+
+/** 单测：在连接表注册 polling 虚拟 fd（绕过 openPolling 的集群副作用） */
+function registerPollingConnection(int $virtualFd, string $sid, string $userId = 'poll-test-user'): void
+{
+    setupPollingRegressionTables();
+    TableManager::set(WebsocketConnectionManager::TABLE_CONNECTIONS, (string) $virtualFd, [
+        'fd' => $virtualFd,
+        'worker_id' => 0,
+        'user_id' => $userId,
+        'sid' => $sid,
+        'groups' => '',
+        'remote_addr' => '127.0.0.1',
+        'user_agent' => 'polling-regression-test',
+        'connected_at' => time(),
+        'last_active_at' => time(),
+        'is_socketio' => 1,
+        'is_polling' => 1,
+        'socketio_namespaces' => '',
+        'conn_id' => 'test:' . $virtualFd,
+    ]);
+}
+
+/** 单测：模拟 handlePost 处理 POST `40`（含 connect ack 双写出站队列） */
+function simulatePostConnect40(int $virtualFd, string $sid, array $config): array
+{
+    $outbound = SocketIOHandler::handleInboundPollingBatch($virtualFd, '40', $config);
+    foreach ($outbound as $packet) {
+        if (!SocketIOPacket::isConnectAck($packet)) {
+            continue;
+        }
+        SocketIOSessionManager::enqueueOutbound($sid, $packet);
+    }
+
+    return $outbound;
+}
+
+/** @return string[] */
+function connectAcksFromPackets(array $packets): array
+{
+    return array_values(array_filter($packets, static fn (string $packet): bool => SocketIOPacket::isConnectAck($packet)));
+}
+
+/**
+ * 并发双 GET + POST 40 + connect ack 到达顺序（engine.io-client 最易复现的回归场景）。
+ *
+ * 期望时序：
+ * 1. GET #1 成为唯一 waiter，短阻塞等待
+ * 2. GET #2 未获锁，立即空响应（不占用 Worker）
+ * 3. POST `40` 同步返回 ack，并 enqueue 唤醒 GET #1
+ * 4. ack 仅出现在 POST 响应体 + GET #1，GET #2 始终为空
+ */
+function testDualGetPostConnectAckRegression(bool $useSharedStore): void
+{
+    $label = $useSharedStore ? 'redis' : 'memory';
+
+    if ($useSharedStore) {
+        try {
+            ClusterRedisClient::execute(static fn ($redis) => $redis->ping());
+        } catch (\Throwable $throwable) {
+            echo "[SKIP] dual get post connect ack regression (redis unavailable)\n";
+
+            return;
+        }
+    }
+
+    \Swoole\Coroutine\run(static function () use ($useSharedStore, $label): void {
+        SocketIOSessionManager::resetForTest();
+        SocketIONamespaceRegistry::resetForTest();
+        SocketIOPollingConfig::setSharedStoreOverrideForTest($useSharedStore ? null : false);
+
+        if ($useSharedStore) {
+            ClusterConfig::setWebsocketOverride([
+                'cluster' => [
+                    'enable' => true,
+                    'server_id' => 'ws-poll-regression',
+                    'redis' => ClusterConfig::redis(),
+                ],
+                'socketio' => [
+                    'poll_timeout' => 25,
+                    'allowed_namespaces' => ['*'],
+                    'polling' => [
+                        'shared_store' => 'redis',
+                        'short_poll_wait_sec' => 2,
+                    ],
+                ],
+            ]);
+            ClusterNodeIdentity::reset();
+        } else {
+            ClusterConfig::setWebsocketOverride([
+                'socketio' => [
+                    'poll_timeout' => 25,
+                    'allowed_namespaces' => ['*'],
+                    'polling' => ['short_poll_wait_sec' => 2],
+                ],
+            ]);
+        }
+
+        $config = ClusterConfig::websocket()['socketio'] ?? [];
+        $config = ['socketio' => is_array($config) ? $config : []];
+
+        $sid = 'poll-dual-' . ($useSharedStore ? 'redis-' : 'mem-') . bin2hex(random_bytes(3));
+        $virtualFd = SocketIOSessionManager::allocateVirtualFd();
+        SocketIOSessionManager::bindSid($sid, $virtualFd);
+        registerPollingConnection($virtualFd, $sid);
+
+        $pollTimeout = SocketIOHandler::pollTimeout($config);
+        $get1Packets = [];
+        $get2Packets = [];
+        $postOutbound = [];
+        $get1Elapsed = 0.0;
+        $get2Elapsed = 0.0;
+        $postElapsed = 0.0;
+        $tGet2Done = 0.0;
+        $tPostDone = 0.0;
+        $tGet1Done = 0.0;
+
+        $get1Started = new \Swoole\Coroutine\Channel(1);
+        $get2Done = new \Swoole\Coroutine\Channel(1);
+        $get1Done = new \Swoole\Coroutine\Channel(1);
+
+        // GET #1：engine.io-client 并发 long-poll 之一
+        \Swoole\Coroutine::create(static function () use (
+            $sid,
+            $pollTimeout,
+            $get1Started,
+            $get1Done,
+            &$get1Packets,
+            &$get1Elapsed,
+            &$tGet1Done
+        ): void {
+            $get1Started->push(true);
+            $startedAt = microtime(true);
+            $get1Packets = SocketIOSessionManager::waitOutbound($sid, $pollTimeout);
+            $get1Elapsed = microtime(true) - $startedAt;
+            $tGet1Done = microtime(true);
+            $get1Done->push(true);
+        });
+
+        assertTrue((bool) $get1Started->pop(1.0), "{$label}: GET #1 should start");
+        \Swoole\Coroutine::sleep(0.05);
+
+        // GET #2：第二条并发 GET，应立刻空返回
+        $get2StartedAt = microtime(true);
+        \Swoole\Coroutine::create(static function () use (
+            $sid,
+            $pollTimeout,
+            $get2Done,
+            &$get2Packets,
+            &$get2Elapsed,
+            &$tGet2Done,
+            $get2StartedAt
+        ): void {
+            $get2Packets = SocketIOSessionManager::waitOutbound($sid, $pollTimeout);
+            $get2Elapsed = microtime(true) - $get2StartedAt;
+            $tGet2Done = microtime(true);
+            $get2Done->push(true);
+        });
+
+        assertTrue((bool) $get2Done->pop(1.0), "{$label}: GET #2 should finish quickly");
+        assertTrue($get2Elapsed < 0.25, "{$label}: GET #2 should not block on short poll wait");
+        assertTrue($get2Packets === [], "{$label}: GET #2 should be immediate empty poll");
+
+        // POST `40`：connect 不应被双 GET 占死
+        $postStartedAt = microtime(true);
+        $postOutbound = simulatePostConnect40($virtualFd, $sid, $config);
+        $postElapsed = microtime(true) - $postStartedAt;
+        $tPostDone = microtime(true);
+
+        assertTrue((bool) $get1Done->pop(3.0), "{$label}: GET #1 should receive ack after POST");
+        assertTrue($postElapsed < 0.5, "{$label}: POST 40 should not be blocked by dual GET");
+
+        $postAcks = connectAcksFromPackets($postOutbound);
+        $get1Acks = connectAcksFromPackets($get1Packets);
+        $get2Acks = connectAcksFromPackets($get2Packets);
+
+        assertTrue(count($postAcks) === 1, "{$label}: POST should return one connect ack");
+        assertTrue(count($get1Acks) === 1, "{$label}: GET #1 should drain connect ack from outbound queue");
+        assertTrue($get2Acks === [], "{$label}: GET #2 must not carry connect ack");
+        assertTrue($postAcks[0] === $get1Acks[0], "{$label}: POST and GET #1 ack should match");
+        assertTrue(str_contains($postAcks[0], $sid), "{$label}: connect ack should contain session sid");
+
+        // 到达顺序：GET #2 先结束 → POST 完成 → GET #1 收到 ack
+        assertTrue($tGet2Done > 0 && $tGet2Done <= $tPostDone + 0.05, "{$label}: GET #2 should finish before or with POST");
+        assertTrue($tPostDone <= $tGet1Done + 0.05, "{$label}: GET #1 ack should arrive right after POST enqueue");
+        assertTrue($get1Elapsed >= 0.01, "{$label}: GET #1 should have waited for POST, not instant drain");
+
+        SocketIOSessionManager::resetForTest();
+        SocketIONamespaceRegistry::resetForTest();
+        if ($useSharedStore) {
+            SocketIOPollingOutboundStore::clear($sid);
+            ClusterRedisClient::resetSharedAdapter();
+            ClusterNodeIdentity::reset();
+        }
+        ClusterConfig::setWebsocketOverride(null);
+        SocketIOPollingConfig::setSharedStoreOverrideForTest(null);
+    });
+
+    echo "[OK] dual get post connect ack regression ({$label})\n";
+}
+
+/** memory 模式出站队列应 respect outbound_max_len */
+function testMemoryOutboundMaxLen(): void
+{
+    \Swoole\Coroutine\run(static function (): void {
+        SocketIOSessionManager::resetForTest();
+        ClusterConfig::setWebsocketOverride([
+            'socketio' => ['polling' => ['outbound_max_len' => 16]],
+        ]);
+        SocketIOPollingConfig::setSharedStoreOverrideForTest(false);
+
+        $sid = 'mem-max-len';
+        for ($i = 1; $i <= 20; $i++) {
+            SocketIOPollingOutboundStore::enqueue($sid, 'p' . $i);
+        }
+
+        $packets = SocketIOPollingOutboundStore::drain($sid);
+        assertTrue(count($packets) === 16, 'memory queue should trim to max len');
+        assertTrue($packets[0] === 'p5' && $packets[15] === 'p20', 'memory queue should keep newest packets');
+
+        ClusterConfig::setWebsocketOverride(null);
+        SocketIOPollingConfig::setSharedStoreOverrideForTest(null);
+        SocketIOSessionManager::resetForTest();
+    });
+
+    echo "[OK] memory outbound max len\n";
+}
+
+/** 跨节点 poll：Redis 有 sid、本机 Table 无映射时 ensureLocal 回填 */
+function testEnsureLocalFromRedis(): void
+{
+    try {
+        ClusterRedisClient::execute(static fn ($redis) => $redis->ping());
+    } catch (\Throwable $throwable) {
+        echo "[SKIP] ensure local from redis (redis unavailable)\n";
+
+        return;
+    }
+
+    setupPollingRegressionTables();
+    SocketIOSessionManager::resetForTest();
+    SocketIONamespaceRegistry::resetForTest();
+
+    ClusterConfig::setWebsocketOverride([
+        'cluster' => [
+            'enable' => true,
+            'server_id' => 'ws-poll-node-a',
+            'redis' => ClusterConfig::redis(),
+        ],
+        'socketio' => [
+            'allowed_namespaces' => ['*'],
+            'polling' => ['shared_store' => 'redis'],
+        ],
+    ]);
+    ClusterNodeIdentity::reset();
+    SocketIOPollingConfig::setSharedStoreOverrideForTest(null);
+
+    $sid = 'poll-cross-' . bin2hex(random_bytes(4));
+    $virtualFd = 1073742100;
+    $connId = 'ws-poll-node-a:' . $virtualFd;
+    $config = ['socketio' => ClusterConfig::websocket()['socketio'] ?? []];
+
+    try {
+        ClusterRedisClient::execute(static function ($redis) use ($sid, $virtualFd, $connId): void {
+            $key = SocketIOPollingConfig::redisKeyPrefix() . 'poll:sid:' . $sid;
+            $now = (string) time();
+            $redis->hMSet($key, [
+                'sid' => $sid,
+                'virtual_fd' => (string) $virtualFd,
+                'server_id' => 'ws-poll-node-a',
+                'conn_id' => $connId,
+                'user_id' => 'cross-node-user',
+                'created_at' => $now,
+                'last_active_at' => $now,
+            ]);
+            $redis->expire($key, SocketIOPollingConfig::sessionTtl());
+        });
+
+        assertTrue(!TableManager::exist(SocketIOPollingSessionRegistry::TABLE_POLLING_SID, $sid), 'local table should miss sid');
+
+        $resolved = SocketIOSessionManager::resolveSession($sid);
+        assertTrue($resolved === $virtualFd, 'resolveSession should hydrate from redis');
+        assertTrue(TableManager::exist(SocketIOPollingSessionRegistry::TABLE_POLLING_SID, $sid), 'local table should be hydrated');
+
+        $connection = WebsocketConnectionManager::getConnection($virtualFd);
+        assertTrue(is_array($connection) && (int) ($connection['is_polling'] ?? 0) === 1, 'shadow polling connection');
+        assertTrue(($connection['user_id'] ?? '') === 'cross-node-user', 'shadow connection user_id');
+
+        $postOutbound = simulatePostConnect40($virtualFd, $sid, $config);
+        assertTrue(connectAcksFromPackets($postOutbound) !== [], 'cross-node shadow should handle POST 40');
+    } finally {
+        SocketIOPollingSessionRegistry::remove($sid);
+        if (TableManager::isExistTable(WebsocketConnectionManager::TABLE_CONNECTIONS)) {
+            TableManager::del(WebsocketConnectionManager::TABLE_CONNECTIONS, (string) $virtualFd);
+        }
+        SocketIOSessionManager::resetForTest();
+        SocketIONamespaceRegistry::resetForTest();
+        ClusterRedisClient::resetSharedAdapter();
+        ClusterNodeIdentity::reset();
+        ClusterConfig::setWebsocketOverride(null);
+        SocketIOPollingConfig::setSharedStoreOverrideForTest(null);
+    }
+
+    echo "[OK] ensure local from redis\n";
+}
+
+/** session_touch_interval 配置解析 */
+function testSessionTouchIntervalConfig(): void
+{
+    ClusterConfig::setWebsocketOverride([
+        'cluster' => ['touch_interval' => 20],
+        'socketio' => ['polling' => ['session_touch_interval' => 12]],
+    ]);
+    assertTrue(SocketIOPollingConfig::sessionTouchInterval() === 12, 'polling touch interval override');
+
+    ClusterConfig::setWebsocketOverride([
+        'cluster' => ['touch_interval' => 20],
+        'socketio' => ['polling' => []],
+    ]);
+    assertTrue(SocketIOPollingConfig::sessionTouchInterval() === 20, 'fallback cluster touch interval');
+
+    ClusterConfig::setWebsocketOverride(null);
+    echo "[OK] session touch interval config\n";
+}
+
 testBatchCodec();
 testOpenWithUpgrades();
 testSessionOutboundQueue();
@@ -203,5 +546,10 @@ testSharedOutboundQueue();
 testSingleSidWaiter();
 testShortPollWaitConfig();
 testConnectAckDetect();
+testMemoryOutboundMaxLen();
+testEnsureLocalFromRedis();
+testSessionTouchIntervalConfig();
+testDualGetPostConnectAckRegression(false);
+testDualGetPostConnectAckRegression(true);
 
 echo "All websocket socket.io polling tests passed.\n";

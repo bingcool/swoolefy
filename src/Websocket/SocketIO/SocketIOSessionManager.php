@@ -94,6 +94,24 @@ class SocketIOSessionManager
         return SocketIOPollingSessionRegistry::getVirtualFd($sid);
     }
 
+    /**
+     * poll GET/POST 前置：解析 sid 并在本节点回填 Table + 影子连接。
+     *
+     * @return int virtual_fd，无效 sid 返回 0
+     */
+    public static function resolveSession(string $sid): int
+    {
+        if ($sid === '') {
+            return 0;
+        }
+
+        if (!SocketIOPollingConfig::usesSharedStore()) {
+            return self::getVirtualFd($sid);
+        }
+
+        return SocketIOPollingSessionRegistry::ensureLocal($sid);
+    }
+
     public static function getSidByVirtualFd(int $virtualFd): string
     {
         if (!SocketIOPollingConfig::usesSharedStore()) {

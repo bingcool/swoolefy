@@ -6,9 +6,9 @@
  */
 
 use Swoolefy\Websocket\Cluster\ClusterConfig;
-use Swoolefy\Websocket\Cluster\ClusterRedisAdapterInterface;
 use Swoolefy\Websocket\Cluster\PushStreamConsumer;
 use Swoolefy\Websocket\Cluster\WebsocketShutdownCoordinator;
+use Swoolefy\Websocket\Tests\Support\NoopClusterRedisAdapter;
 
 require dirname(__DIR__, 3) . '/vendor/autoload.php';
 
@@ -70,7 +70,7 @@ function testRunControlledStopsWhenShouldContinueFalse(): void
     bootGracefulConfig();
 
     $reads = 0;
-    $redis = new class($reads) implements ClusterRedisAdapterInterface {
+    $redis = new class($reads) extends NoopClusterRedisAdapter {
         private int $reads;
 
         public function __construct(int &$reads)
@@ -78,40 +78,12 @@ function testRunControlledStopsWhenShouldContinueFalse(): void
             $this->reads = &$reads;
         }
 
-        public function hMSet(string $key, array $data): void {}
-        public function hSet(string $key, string $field, $value): void {}
-        public function hGetAll(string $key) { return []; }
-        public function hGetAllMany(array $keys): array { return []; }
-        public function expire(string $key, int $ttl): void {}
-        public function del(string $key): void {}
-        public function setEx(string $key, int $ttl, string $value): void {}
-        public function exists(string $key): bool { return false; }
-        public function sAdd(string $key, string $member): void {}
-        public function sRem(string $key, string $member): void {}
-        public function sMembers(string $key) { return []; }
-        public function sCard(string $key): int { return 0; }
-        public function zAdd(string $key, $score, string $member): void {}
-        public function zRem(string $key, string $member): void {}
-        public function zRangeByScore(string $key, string $start, string $end) { return []; }
-        public function publish(string $channel, string $message) { return 0; }
-        public function publishMany(array $items): void {}
-        public function rPush(string $key, string $value): void {}
-        public function brPop(string $key, int $timeoutSeconds): ?string { return null; }
-        public function xAdd(string $key, array $fields, int $maxLen = 0): string { return '0-1'; }
-        public function xGroupCreate(string $key, string $group, bool $mkStream = true): void {}
-        public function xReadGroup(string $group, string $consumer, string $streamKey, int $count, int $blockMs, string $id = '>'): array {
+        public function xReadGroup(string $group, string $consumer, string $streamKey, int $count, int $blockMs, string $id = '>'): array
+        {
             $this->reads++;
 
             return $this->reads >= 2 ? [] : [['id' => '1-0', 'payload' => 'ok']];
         }
-        public function xAutoClaim(string $key, string $group, string $consumer, int $minIdleMs, string $start, int $count): array {
-            return ['0-0', []];
-        }
-        public function xAck(string $key, string $group, array $entryIds): int { return count($entryIds); }
-        public function xPendingCount(string $key, string $group): int { return 0; }
-        public function xAddMany(array $items, int $maxLen = 0): void {}
-        public function ping() { return true; }
-        public function close(): void {}
     };
 
     $iterations = 0;
@@ -142,7 +114,7 @@ function testDrainProcessesPending(): void
 
     $pending = 1;
     $acked = [];
-    $redis = new class($pending, $acked) implements ClusterRedisAdapterInterface {
+    $redis = new class($pending, $acked) extends NoopClusterRedisAdapter {
         private int $pending;
 
         /** @var array<int, string> */
@@ -154,28 +126,8 @@ function testDrainProcessesPending(): void
             $this->acked = &$acked;
         }
 
-        public function hMSet(string $key, array $data): void {}
-        public function hSet(string $key, string $field, $value): void {}
-        public function hGetAll(string $key) { return []; }
-        public function hGetAllMany(array $keys): array { return []; }
-        public function expire(string $key, int $ttl): void {}
-        public function del(string $key): void {}
-        public function setEx(string $key, int $ttl, string $value): void {}
-        public function exists(string $key): bool { return false; }
-        public function sAdd(string $key, string $member): void {}
-        public function sRem(string $key, string $member): void {}
-        public function sMembers(string $key) { return []; }
-        public function sCard(string $key): int { return 0; }
-        public function zAdd(string $key, $score, string $member): void {}
-        public function zRem(string $key, string $member): void {}
-        public function zRangeByScore(string $key, string $start, string $end) { return []; }
-        public function publish(string $channel, string $message) { return 0; }
-        public function publishMany(array $items): void {}
-        public function rPush(string $key, string $value): void {}
-        public function brPop(string $key, int $timeoutSeconds): ?string { return null; }
-        public function xAdd(string $key, array $fields, int $maxLen = 0): string { return '0-1'; }
-        public function xGroupCreate(string $key, string $group, bool $mkStream = true): void {}
-        public function xReadGroup(string $group, string $consumer, string $streamKey, int $count, int $blockMs, string $id = '>'): array {
+        public function xReadGroup(string $group, string $consumer, string $streamKey, int $count, int $blockMs, string $id = '>'): array
+        {
             if ($id === '0' && $this->pending > 0) {
                 $this->pending = 0;
 
@@ -184,18 +136,18 @@ function testDrainProcessesPending(): void
 
             return [];
         }
-        public function xAutoClaim(string $key, string $group, string $consumer, int $minIdleMs, string $start, int $count): array {
-            return ['0-0', []];
-        }
-        public function xAck(string $key, string $group, array $entryIds): int {
+
+        public function xAck(string $key, string $group, array $entryIds): int
+        {
             $this->acked = array_merge($this->acked, $entryIds);
 
             return count($entryIds);
         }
-        public function xPendingCount(string $key, string $group): int { return $this->pending; }
-        public function xAddMany(array $items, int $maxLen = 0): void {}
-        public function ping() { return true; }
-        public function close(): void {}
+
+        public function xPendingCount(string $key, string $group): int
+        {
+            return $this->pending;
+        }
     };
 
     $processed = PushStreamConsumer::drainOnAdapterForTest(

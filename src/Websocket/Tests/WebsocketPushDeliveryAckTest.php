@@ -11,7 +11,7 @@ use Swoolefy\Websocket\Cluster\PushDeliveryResult;
 use Swoolefy\Websocket\Cluster\PushDeliveryWorker;
 use Swoolefy\Websocket\Cluster\PushMessage;
 use Swoolefy\Websocket\Cluster\PushStreamConsumer;
-use Swoolefy\Websocket\Cluster\ClusterRedisAdapterInterface;
+use Swoolefy\Websocket\Tests\Support\NoopClusterRedisAdapter;
 
 require dirname(__DIR__, 3) . '/vendor/autoload.php';
 
@@ -55,7 +55,7 @@ function testShouldAckAllGoneOrSkipped(): void
     assertTrue($r->shouldAck(), 'all skipped should ack');
 
     $r = resultWithOutcomes(['gone', 'skipped']);
-    assertTrue($r->shouldAck(), 'gone+skipped should ack');
+    assertTrue($r->shouldAck(), 'all gone+skipped should ack');
     echo "[OK] shouldAck gone/skipped\n";
 }
 
@@ -114,39 +114,15 @@ function testStreamConsumerHandlerIntegration(): void
     };
 
     $entries = [['id' => '1-0', 'payload' => 'retry']];
-    $redis = new class() implements ClusterRedisAdapterInterface {
+    $redis = new class() extends NoopClusterRedisAdapter {
         public array $acked = [];
-        public function hMSet(string $key, array $data): void {}
-        public function hSet(string $key, string $field, $value): void {}
-        public function hGetAll(string $key) { return []; }
-        public function hGetAllMany(array $keys): array { return []; }
-        public function expire(string $key, int $ttl): void {}
-        public function del(string $key): void {}
-        public function setEx(string $key, int $ttl, string $value): void {}
-        public function exists(string $key): bool { return false; }
-        public function sAdd(string $key, string $member): void {}
-        public function sRem(string $key, string $member): void {}
-        public function sMembers(string $key) { return []; }
-        public function sCard(string $key): int { return 0; }
-        public function zAdd(string $key, $score, string $member): void {}
-        public function zRem(string $key, string $member): void {}
-        public function zRangeByScore(string $key, string $start, string $end) { return []; }
-        public function publish(string $channel, string $message) { return 0; }
-        public function publishMany(array $items): void {}
-        public function rPush(string $key, string $value): void {}
-        public function brPop(string $key, int $timeoutSeconds): ?string { return null; }
-        public function xAdd(string $key, array $fields, int $maxLen = 0): string { return '0-1'; }
-        public function xGroupCreate(string $key, string $group, bool $mkStream = true): void {}
-        public function xReadGroup(string $group, string $consumer, string $streamKey, int $count, int $blockMs, string $id = '>'): array { return []; }
-        public function xAutoClaim(string $key, string $group, string $consumer, int $minIdleMs, string $start, int $count): array { return ['0-0', []]; }
-        public function xAck(string $key, string $group, array $entryIds): int {
+
+        public function xAck(string $key, string $group, array $entryIds): int
+        {
             $this->acked = array_merge($this->acked, $entryIds);
+
             return count($entryIds);
         }
-        public function xPendingCount(string $key, string $group): int { return 0; }
-        public function xAddMany(array $items, int $maxLen = 0): void {}
-        public function ping() { return true; }
-        public function close(): void {}
     };
 
     PushStreamConsumer::handleEntriesForTest($redis, 'stream', 'group', $entries, $handler);
