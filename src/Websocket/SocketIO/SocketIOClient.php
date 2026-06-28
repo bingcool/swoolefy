@@ -52,7 +52,8 @@ use Swoolefy\Exception\SystemException;
  * - 仅实现 **WebSocket transport**（不走 HTTP long-polling；服务端见 SocketIOPollingHandler）
  * - 单连接单 namespace：`connect(..., $namespace)` 发一次 `40`；多 ns 需多次 connect 或多个实例
  * - `recv()` / `emitWithAck()` 内自动回复 Engine.IO ping
- * - 未实现二进制 emit、Socket.IO 自动重连
+ * - 支持二进制 emit（自动识别 `SocketIOBinaryData::wrap()` 或非 UTF-8 字符串）
+ * - 可选自动重连（默认开启，断线后按配置回连）
  *
  * ## 服务端已支持（本客户端暂未封装）
  *
@@ -90,6 +91,19 @@ class SocketIOClient
     /** emitWithAck 自增 ack id，对应包体中的数字前缀 */
     private int $ackSeq = 0;
 
+    /** 当前连接 namespace（用于 emit/ack 匹配） */
+    private string $namespace = '/';
+
+    /** 最近一次 connect 参数，供断线重连复用 */
+    private array $lastConnectQuery = [];
+    private array $lastConnectHeaders = [];
+    private bool $hasReconnectContext = false;
+
+    /** 自动重连开关与策略 */
+    private bool $autoReconnect = true;
+    private int $reconnectAttempts = 3;
+    private float $reconnectDelay = 0.2;
+
     /**
      * @param string $host    服务端 host
      * @param int    $port    端口
@@ -107,6 +121,27 @@ class SocketIOClient
     }
 
     /**
+     * 自动重连策略配置。
+     *
+     * @param bool  $enable   是否开启自动重连
+     * @param int   $attempts 重试次数（>=1）
+     * @param float $delay    每次重试前等待秒数（>=0）
+     *
+     * 说明：
+     * - 仅在 send/recv 发现“连接已断开”时触发（业务超时不触发）
+     * - 重连成功后会复用最近一次 connect() 的 query/header/namespace
+     * - 重连不做指数退避，保持固定 delay，便于脚本端可预测时延
+     */
+    public function withReconnect(bool $enable = true, int $attempts = 3, float $delay = 0.2): self
+    {
+        $this->autoReconnect = $enable;
+        $this->reconnectAttempts = max(1, $attempts);
+        $this->reconnectDelay = max(0.0, $delay);
+
+        return $this;
+    }
+
+    /**
      * 建立 WebSocket 并完成 Engine.IO + Socket.IO 双层握手。
      *
      * @param array  $query     附加 query 参数（uid、token 等）
@@ -117,6 +152,7 @@ class SocketIOClient
      */
     public function connect(array $query = [], array $headers = [], string $namespace = '/'): bool
     {
+        $namespace = trim($namespace) !== '' ? $namespace : '/';
         $client = new Client($this->host, $this->port, $this->ssl);
         $client->set(['timeout' => $this->timeout]);
         foreach ($headers as $name => $value) {
@@ -143,12 +179,32 @@ class SocketIOClient
             throw new SystemException('SocketIOClient missing sid in open packet');
         }
         $this->sid = (string) $handshake['sid'];
+        $this->namespace = $namespace;
+        $this->lastConnectQuery = $query;
+        $this->lastConnectHeaders = $headers;
+        $this->hasReconnectContext = true;
 
         // namespace connect：默认 `/` 发 `40`；非默认如 `/admin` 发 `40/admin,`
+        // 注意：服务端可能先发 ping 或其他系统包，这里循环直到收到目标 namespace 的 connect ack。
         $this->sendRaw(SocketIOPacket::ENGINE_MESSAGE . SocketIOPacket::SOCKET_CONNECT . ($namespace !== '/' ? $namespace . ',' : ''));
-        $connectAck = $this->recvRaw();
-        if (!str_starts_with($connectAck, SocketIOPacket::ENGINE_MESSAGE . SocketIOPacket::SOCKET_CONNECT)) {
-            throw new SystemException('SocketIOClient namespace connect failed: ' . $connectAck);
+        $deadline = microtime(true) + $this->timeout;
+        while (true) {
+            $connectAck = $this->recvRaw(max(0.1, $deadline - microtime(true)));
+            if ($connectAck === SocketIOPacket::ENGINE_PING) {
+                $this->sendRaw(SocketIOPacket::pong());
+                continue;
+            }
+
+            $packet = SocketIOPacket::parse($connectAck);
+            if ($packet->engineType === SocketIOPacket::ENGINE_MESSAGE
+                && $packet->socketType === SocketIOPacket::SOCKET_CONNECT
+                && ($packet->namespace === '/' || $packet->namespace === $namespace)) {
+                break;
+            }
+
+            if (microtime(true) >= $deadline) {
+                throw new SystemException('SocketIOClient namespace connect failed: ' . $connectAck);
+            }
         }
 
         return true;
@@ -162,10 +218,15 @@ class SocketIOClient
      * @param string     $event   事件名，对应 Config/socketio.php event_routes
      * @param array      $args    参数列表（会 JSON 编码进数组）
      * @param float|null $timeout 保留参数，当前未使用
+     *
+     * 二进制行为：
+     * - `SocketIOBinaryData::wrap($bytes)` 会编码成 binary event（45-... + BINARY 帧）
+     * - 非 UTF-8 字符串也会自动作为附件处理（见 SocketIOBinaryData::prepareArgs）
      */
     public function emit(string $event, array $args = [], ?float $timeout = null): bool
     {
-        $this->sendRaw(SocketIOPacket::event($event, $args));
+        unset($timeout);
+        $this->sendEventFrames($this->buildEventFrames($event, $args));
 
         return true;
     }
@@ -187,8 +248,7 @@ class SocketIOClient
     public function emitWithAck(string $event, array $args = [], ?float $timeout = null): array
     {
         $id = (string) (++$this->ackSeq);
-        // 421["event",{}]：Socket.IO event(2) + ackId(1) + JSON 数组
-        $this->sendRaw(SocketIOPacket::ENGINE_MESSAGE . SocketIOPacket::SOCKET_EVENT . $id . json_encode(array_merge([$event], $args), JSON_UNESCAPED_UNICODE));
+        $this->sendEventFrames($this->buildEventFrames($event, $args, $id));
 
         $deadline = microtime(true) + ($timeout ?? $this->timeout);
         while (microtime(true) <= $deadline) {
@@ -197,11 +257,14 @@ class SocketIOClient
                 $this->sendRaw(SocketIOPacket::pong());
                 continue;
             }
-            if (str_starts_with($raw, SocketIOPacket::ENGINE_MESSAGE . SocketIOPacket::SOCKET_ACK . $id)) {
-                $payload = substr($raw, 2 + strlen($id));
-                $ack = json_decode($payload, true);
 
-                return is_array($ack) ? $ack : [];
+            $packet = SocketIOPacket::parse($raw);
+            // 必须同时匹配：engine=4、socketType=ACK、ackId、namespace，避免串包误判
+            if ($packet->engineType === SocketIOPacket::ENGINE_MESSAGE
+                && in_array($packet->socketType, [SocketIOPacket::SOCKET_ACK, SocketIOPacket::SOCKET_BINARY_ACK], true)
+                && $packet->id === $id
+                && ($packet->namespace === '/' || $packet->namespace === $this->namespace)) {
+                return $packet->args;
             }
         }
 
@@ -249,13 +312,17 @@ class SocketIOClient
 
     /**
      * 发送 Engine.IO close(`1`) 并关闭底层 WebSocket。
+     *
+     * 主动 close 属业务意图，不触发自动重连。
      */
     public function close(): void
     {
         if ($this->client) {
-            $this->sendRaw(SocketIOPacket::ENGINE_CLOSE);
+            // close 主动断开不触发重连
+            $this->client->push(SocketIOPacket::ENGINE_CLOSE);
             $this->client->close();
             $this->client = null;
+            $this->sid = '';
         }
     }
 
@@ -272,6 +339,13 @@ class SocketIOClient
             throw new SystemException('SocketIOClient is not connected');
         }
         if ($this->client->push($payload) === false) {
+            if ($this->tryReconnect()) {
+                if (!$this->client || $this->client->push($payload) === false) {
+                    throw new SystemException('SocketIOClient send failed after reconnect');
+                }
+                return;
+            }
+
             throw new SystemException('SocketIOClient send failed');
         }
     }
@@ -280,6 +354,10 @@ class SocketIOClient
      * 阻塞接收一帧 WebSocket 文本数据。
      *
      * 可临时覆盖 client timeout（用于 emitWithAck 轮询剩余时间）。
+     *
+     * 设计细节：
+     * - timeout=null：认为是“长连接常规收包”，允许一次自动重连后继续 recv
+     * - timeout!=null：通常是业务侧限时等待（如 ack 轮询），不自动重连，避免扩大等待窗口
      */
     private function recvRaw(?float $timeout = null): string
     {
@@ -299,9 +377,127 @@ class SocketIOClient
         }
 
         if (!$frame instanceof Frame) {
+            if ($timeout === null && $this->tryReconnect()) {
+                $frame = $this->client?->recv();
+                if ($frame instanceof Frame) {
+                    return (string) $frame->data;
+                }
+            }
+
             throw new SystemException('SocketIOClient recv timeout or connection closed');
         }
 
         return (string) $frame->data;
+    }
+
+    /**
+     * 将 emit 参数编码为 Socket.IO 出站帧集合。
+     *
+     * 无附件：
+     * - `42[... ]`（有 ack id 时 `42{id}[...]`，含 namespace 前缀）
+     *
+     * 有附件：
+     * - 文本头：`45-<N>-[...]` / `45<id>-<N>-[...]`
+     * - 后续 N 个二进制帧：`4` + bytes（Engine MESSAGE + payload）
+     *
+     * @return array<int, array{0: string, 1: int}>
+     */
+    private function buildEventFrames(string $event, array $args = [], string $ackId = ''): array
+    {
+        [$jsonArgs, $attachments] = SocketIOBinaryData::prepareArgs(array_merge([$event], $args));
+        $eventName = (string) ($jsonArgs[0] ?? $event);
+        $eventArgs = array_slice(is_array($jsonArgs) ? $jsonArgs : [], 1);
+
+        if ($attachments === []) {
+            $prefix = SocketIOPacket::ENGINE_MESSAGE . SocketIOPacket::SOCKET_EVENT;
+            if ($this->namespace !== '/') {
+                $prefix .= $this->namespace . ',';
+            }
+            $prefix .= $ackId;
+            $payload = $prefix . json_encode(array_merge([$eventName], $eventArgs), JSON_UNESCAPED_UNICODE);
+
+            return [[$payload, WEBSOCKET_OPCODE_TEXT]];
+        }
+
+        $text = SocketIOPacket::binaryEvent($eventName, $eventArgs, count($attachments), $this->namespace, $ackId);
+        $frames = [[$text, WEBSOCKET_OPCODE_TEXT]];
+        foreach ($attachments as $attachment) {
+            $frames[] = [SocketIOBinaryData::encodeAttachmentFrame($attachment), WEBSOCKET_OPCODE_BINARY];
+        }
+
+        return $frames;
+    }
+
+    /**
+     * 发送整组事件帧（文本+附件）并保证“要么整组成功，要么重连后整组重发”。
+     *
+     * 这样可避免二进制场景中“文本头已发、附件未发”的半包状态。
+     *
+     * @param array<int, array{0: string, 1: int}> $frames
+     */
+    private function sendEventFrames(array $frames): void
+    {
+        if ($this->pushFramesNoReconnect($frames)) {
+            return;
+        }
+
+        if (!$this->tryReconnect() || !$this->pushFramesNoReconnect($frames)) {
+            throw new SystemException('SocketIOClient send frames failed');
+        }
+    }
+
+    /**
+     * 低层发送：不触发重连，返回是否完整发送成功。
+     *
+     * @internal 由 sendEventFrames / sendRaw 控制是否触发重连
+     *
+     * @param array<int, array{0: string, 1: int}> $frames
+     */
+    private function pushFramesNoReconnect(array $frames): bool
+    {
+        if (!$this->client) {
+            return false;
+        }
+
+        foreach ($frames as [$payload, $opcode]) {
+            if ($this->client->push($payload, $opcode) === false) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * 尝试重连并恢复 Socket.IO 会话上下文（namespace/query/header）。
+     *
+     * 返回 true 表示已重连且握手成功；false 表示未启用重连或缺少上下文。
+     * 重连失败会抛 SystemException（携带最后一次错误信息）。
+     */
+    private function tryReconnect(): bool
+    {
+        if (!$this->autoReconnect || !$this->hasReconnectContext) {
+            return false;
+        }
+
+        $this->client?->close();
+        $this->client = null;
+        $lastError = null;
+        for ($i = 0; $i < $this->reconnectAttempts; $i++) {
+            if ($this->reconnectDelay > 0) {
+                \Swoole\Coroutine::sleep($this->reconnectDelay);
+            }
+            try {
+                return $this->connect($this->lastConnectQuery, $this->lastConnectHeaders, $this->namespace);
+            } catch (\Throwable $throwable) {
+                $lastError = $throwable;
+            }
+        }
+
+        if ($lastError instanceof \Throwable) {
+            throw new SystemException('SocketIOClient reconnect failed: ' . $lastError->getMessage(), 0, $lastError);
+        }
+
+        return false;
     }
 }
