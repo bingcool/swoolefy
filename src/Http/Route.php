@@ -280,7 +280,7 @@ class Route
     {
         if (empty(self::$routeMap) || $force) {
             self::scanRouteFiles(self::$routeRootDir);
-            return self::$routeMap;
+            return self::$routeMap ?? [];
         }else {
             return self::$routeMap;
         }
@@ -304,7 +304,7 @@ class Route
             $filePath = $routeRootDir.DIRECTORY_SEPARATOR.$file;
             if (is_dir($filePath)) {
                 self::scanRouteFiles($filePath);
-            }else {
+            } else {
                 $fileType = pathinfo($filePath, PATHINFO_EXTENSION);
                 if (in_array($fileType, ['php'])) {
                     include $filePath;
