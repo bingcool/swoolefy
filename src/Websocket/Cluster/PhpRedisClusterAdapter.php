@@ -145,6 +145,21 @@ class PhpRedisClusterAdapter implements ClusterRedisAdapterInterface
         $this->redis->rPush($key, $value);
     }
 
+    public function lPop(string $key): ?string
+    {
+        $result = $this->redis->lPop($key);
+        if ($result === false || $result === null) {
+            return null;
+        }
+
+        return (string) $result;
+    }
+
+    public function lTrim(string $key, int $start, int $end): void
+    {
+        $this->redis->lTrim($key, $start, $end);
+    }
+
     public function brPop(string $key, int $timeoutSeconds): ?string
     {
         $result = $this->redis->brPop([$key], $timeoutSeconds);

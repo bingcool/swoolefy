@@ -5,10 +5,21 @@
  * Run: php src/Websocket/Tests/WebsocketSocketIOPollingTest.php
  */
 
+use Swoolefy\Websocket\Cluster\ClusterConfig;
+use Swoolefy\Websocket\Cluster\ClusterRedisClient;
+use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingConfig;
+use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingOutboundStore;
 use Swoolefy\Websocket\SocketIO\SocketIOPacket;
 use Swoolefy\Websocket\SocketIO\SocketIOSessionManager;
 
-require dirname(__DIR__, 3) . '/vendor/autoload.php';
+$root = dirname(__DIR__, 3);
+require $root . '/vendor/autoload.php';
+
+define('APP_NAME', 'WebsocketService');
+define('APP_PATH', $root . '/WebsocketService');
+define('WORKER_PORT', 9508);
+
+\Swoole\Runtime::enableCoroutine(SWOOLE_HOOK_ALL);
 
 /** 断言条件为真，否则抛出 RuntimeException */
 function assertTrue(bool $condition, string $message): void
@@ -44,6 +55,7 @@ function testSessionOutboundQueue(): void
 {
     \Swoole\Coroutine\run(static function (): void {
         SocketIOSessionManager::resetForTest();
+        SocketIOPollingConfig::setSharedStoreOverrideForTest(false);
         $sid = 'poll-session-1';
         $virtualFd = SocketIOSessionManager::allocateVirtualFd();
         SocketIOSessionManager::bindSid($sid, $virtualFd);
@@ -63,6 +75,7 @@ function testSessionOutboundQueue(): void
 function testVirtualFdRange(): void
 {
     SocketIOSessionManager::resetForTest();
+    SocketIOPollingConfig::setSharedStoreOverrideForTest(false);
     $fd = SocketIOSessionManager::allocateVirtualFd();
     assertTrue(SocketIOSessionManager::isVirtualFd($fd), 'allocated fd should be virtual');
     assertTrue(!SocketIOSessionManager::isVirtualFd(99), 'normal fd not virtual');
@@ -71,9 +84,68 @@ function testVirtualFdRange(): void
     echo "[OK] virtual fd range\n";
 }
 
+/** shared_store 配置解析 */
+function testSharedStoreConfig(): void
+{
+    SocketIOPollingConfig::setSharedStoreOverrideForTest(null);
+    ClusterConfig::setWebsocketOverride([
+        'cluster' => ['enable' => true],
+        'socketio' => ['polling' => ['shared_store' => 'auto']],
+    ]);
+    assertTrue(SocketIOPollingConfig::usesSharedStore(), 'auto + cluster should use shared store');
+
+    ClusterConfig::setWebsocketOverride([
+        'cluster' => ['enable' => false],
+        'socketio' => ['polling' => ['shared_store' => 'memory']],
+    ]);
+    SocketIOPollingConfig::setSharedStoreOverrideForTest(false);
+    assertTrue(!SocketIOPollingConfig::usesSharedStore(), 'memory override should disable shared store');
+
+    ClusterConfig::setWebsocketOverride(null);
+    SocketIOPollingConfig::setSharedStoreOverrideForTest(null);
+    echo "[OK] shared store config\n";
+}
+
+/** Redis 出站队列（需本机 Redis，与 WebsocketClusterTest 相同条件） */
+function testSharedOutboundQueue(): void
+{
+    try {
+        ClusterRedisClient::execute(static fn ($redis) => $redis->ping());
+    } catch (\Throwable $throwable) {
+        echo "[SKIP] shared outbound queue (redis unavailable)\n";
+
+        return;
+    }
+
+    ClusterConfig::setWebsocketOverride([
+        'cluster' => [
+            'enable' => true,
+            'redis' => ClusterConfig::redis(),
+        ],
+        'socketio' => ['polling' => ['shared_store' => 'redis']],
+    ]);
+    SocketIOPollingConfig::setSharedStoreOverrideForTest(null);
+
+    $sid = 'poll-redis-' . bin2hex(random_bytes(4));
+    try {
+        assertTrue(SocketIOPollingOutboundStore::enqueue($sid, '42["ping",{}]'), 'redis enqueue');
+        $packets = SocketIOPollingOutboundStore::drain($sid);
+        assertTrue(count($packets) === 1 && str_starts_with($packets[0], '42'), 'redis drain');
+    } finally {
+        SocketIOPollingOutboundStore::clear($sid);
+        ClusterRedisClient::resetSharedAdapter();
+        ClusterConfig::setWebsocketOverride(null);
+        SocketIOPollingConfig::setSharedStoreOverrideForTest(null);
+    }
+
+    echo "[OK] shared outbound queue\n";
+}
+
 testBatchCodec();
 testOpenWithUpgrades();
 testSessionOutboundQueue();
 testVirtualFdRange();
+testSharedStoreConfig();
+testSharedOutboundQueue();
 
 echo "All websocket socket.io polling tests passed.\n";

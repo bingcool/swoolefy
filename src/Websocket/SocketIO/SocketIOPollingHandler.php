@@ -18,7 +18,10 @@ use Swoolefy\Websocket\WebsocketConnectionManager;
  * | GET  | sid=… | long-poll 取服务端包（`\x1e` 分隔） |
  * | POST | sid=… | 客户端发包 → 可选同步响应包 |
  *
- * 需 `accept_http=true`；多 Worker 需会话粘性。
+ * 需 `accept_http=true`。
+ *
+ * 多 Worker / 集群：配置 `socketio.polling.shared_store=auto`（默认），
+ * sid 索引写入 Swoole Table、出站队列写入 Redis List，无需 Nginx sticky。
  */
 class SocketIOPollingHandler
 {
@@ -114,6 +117,7 @@ class SocketIOPollingHandler
 
         $virtualFd = SocketIOSessionManager::getVirtualFd($sid);
         WebsocketConnectionManager::touch($virtualFd);
+        SocketIOSessionManager::touchSession($sid);
 
         $timeout = SocketIOHandler::pollTimeout($config);
         $packets = SocketIOSessionManager::waitOutbound($sid, $timeout);
@@ -131,6 +135,7 @@ class SocketIOPollingHandler
 
         $virtualFd = SocketIOSessionManager::getVirtualFd($sid);
         WebsocketConnectionManager::touch($virtualFd);
+        SocketIOSessionManager::touchSession($sid);
 
         $outbound = [];
         foreach (SocketIOHandler::handleInboundPollingBatch($virtualFd, (string) $request->rawContent(), $config) as $packet) {

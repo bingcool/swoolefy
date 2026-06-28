@@ -14,6 +14,7 @@ namespace Swoolefy\Websocket;
 use Swoole\Http\Request;
 use Swoole\WebSocket\Server;
 use Swoolefy\Core\Table\TableManager;
+use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingSessionRegistry;
 use Swoolefy\Websocket\SocketIO\SocketIOPacket;
 
 class WebsocketConnectionManager
@@ -27,6 +28,9 @@ class WebsocketConnectionManager
     // 小组索引表：一个 group 对应多个 fd，用于小组广播。
     public const TABLE_GROUPS = 'table_websocket_groups';
 
+    /** polling 虚拟 fd 全局自增（跨 Worker） */
+    public const TABLE_POLLING_META = 'table_websocket_polling_meta';
+
     /** 最近一次 joinGroup 被拒绝的原因（供业务层返回错误信息） */
     private static ?string $lastJoinDenyReason = null;
 
@@ -37,8 +41,12 @@ class WebsocketConnectionManager
     {
         $size = (int) ($websocketConfig['connection_table_size'] ?? 65536);
         $indexSize = (int) ($websocketConfig['index_table_size'] ?? $size * 2);
+        $socketio = is_array($websocketConfig['socketio'] ?? null) ? $websocketConfig['socketio'] : [];
+        $pollingTables = !empty($socketio['allow_polling'])
+            ? SocketIOPollingSessionRegistry::tableDefinitions($size)
+            : [];
 
-        return [
+        return array_merge([
             self::TABLE_CONNECTIONS => [
                 'size' => $size,
                 'fields' => [
@@ -73,7 +81,7 @@ class WebsocketConnectionManager
                     ['user_id', 'string', 128],
                 ],
             ],
-        ];
+        ], $pollingTables);
     }
 
     public static function open(Server $server, Request $request, array $options = []): void
