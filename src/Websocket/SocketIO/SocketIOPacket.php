@@ -69,6 +69,9 @@ class SocketIOPacket
      */
     public const ENGINE_MESSAGE = '4';
 
+    /** polling 空响应占位；GET 无下行数据时返回 `6`，不能返回空 body */
+    public const ENGINE_NOOP = '6';
+
     // -------------------------------------------------------------------------
     // Socket.IO 包类型（出现在 ENGINE_MESSAGE 之后的首字符）
     // -------------------------------------------------------------------------
@@ -260,6 +263,20 @@ class SocketIOPacket
         }
 
         return implode("\x1e", $packets);
+    }
+
+    /**
+     * Engine.IO polling GET 响应体。
+     *
+     * GET long-poll 没有下行包时必须返回 noop `6`；空 body 会被 engine.io-client 解析成 parser error。
+     *
+     * @param string[] $packets
+     */
+    public static function encodePollingPayload(array $packets): string
+    {
+        $body = self::encodeBatch($packets);
+
+        return $body !== '' ? $body : self::ENGINE_NOOP;
     }
 
     /**
