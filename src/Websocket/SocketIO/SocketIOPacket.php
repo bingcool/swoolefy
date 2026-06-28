@@ -303,6 +303,22 @@ class SocketIOPacket
             . json_encode(['sid' => $sid], JSON_UNESCAPED_UNICODE);
     }
 
+    /** 是否为 Socket.IO namespace connect ack（`40` / `40/ns,{...}`） */
+    public static function isConnectAck(string $packet): bool
+    {
+        if ($packet === '' || $packet[0] !== self::ENGINE_MESSAGE) {
+            return false;
+        }
+
+        try {
+            $parsed = self::parse($packet);
+
+            return $parsed->socketType === self::SOCKET_CONNECT;
+        } catch (\Throwable $throwable) {
+            return false;
+        }
+    }
+
     /**
      * 服务端主动推送事件：`42["eventName", ...args]`。
      *

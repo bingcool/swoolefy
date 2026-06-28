@@ -40,6 +40,9 @@ interface ClusterRedisAdapterInterface
     /** SET key value EX ttl（推送去重 markProcessed） */
     public function setEx(string $key, int $ttl, string $value): void;
 
+    /** SET key value NX EX ttl；获锁成功 true，键已存在 false */
+    public function setNxEx(string $key, int $ttl, string $value = '1'): bool;
+
     /** key 是否存在（推送去重 isDuplicate） */
     public function exists(string $key): bool;
 

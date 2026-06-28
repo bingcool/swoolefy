@@ -215,6 +215,7 @@ class SocketIOPollingSessionRegistry
             self::executeRedis(static function (ClusterRedisAdapterInterface $redis) use ($sid): void {
                 $redis->del(self::redisSessionKey($sid));
                 $redis->del(SocketIOPollingOutboundStore::redisQueueKey($sid));
+                $redis->del(SocketIOPollingConfig::redisKeyPrefix() . 'poll:wait:' . $sid);
             });
         } catch (\Throwable $throwable) {
             // 清理失败可依赖 TTL 兜底

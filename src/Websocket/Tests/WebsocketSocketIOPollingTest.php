@@ -9,6 +9,7 @@ use Swoolefy\Websocket\Cluster\ClusterConfig;
 use Swoolefy\Websocket\Cluster\ClusterRedisClient;
 use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingConfig;
 use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingOutboundStore;
+use Swoolefy\Websocket\SocketIO\Polling\SocketIOPollingWaitCoordinator;
 use Swoolefy\Websocket\SocketIO\SocketIOPacket;
 use Swoolefy\Websocket\SocketIO\SocketIOSessionManager;
 
@@ -141,11 +142,66 @@ function testSharedOutboundQueue(): void
     echo "[OK] shared outbound queue\n";
 }
 
+/** 单 sid 单 waiter：第二条 waitOutbound 立即空，不阻塞 */
+function testSingleSidWaiter(): void
+{
+    SocketIOSessionManager::resetForTest();
+    SocketIOPollingConfig::setSharedStoreOverrideForTest(false);
+    $sid = 'poll-waiter-1';
+    SocketIOSessionManager::bindSid($sid, SocketIOSessionManager::allocateVirtualFd());
+
+    $first = null;
+    $second = null;
+    \Swoole\Coroutine\run(static function () use ($sid, &$first, &$second): void {
+        \Swoole\Coroutine::create(static function () use ($sid, &$first): void {
+            $first = SocketIOSessionManager::waitOutbound($sid, 2);
+        });
+        \Swoole\Coroutine::sleep(0.05);
+        $second = SocketIOSessionManager::waitOutbound($sid, 2);
+    });
+
+    assertTrue($first === [], 'first waiter should timeout empty');
+    assertTrue($second === [], 'second waiter should return immediately without blocking');
+
+    SocketIOSessionManager::resetForTest();
+    echo "[OK] single sid waiter\n";
+}
+
+/** short_poll_wait_sec 配置解析 */
+function testShortPollWaitConfig(): void
+{
+    ClusterConfig::setWebsocketOverride([
+        'socketio' => ['polling' => ['short_poll_wait_sec' => 3]],
+    ]);
+    assertTrue(SocketIOPollingConfig::shortPollWaitSec(25) === 3, 'short poll wait');
+
+    ClusterConfig::setWebsocketOverride([
+        'socketio' => ['polling' => ['short_poll_wait_sec' => 99]],
+    ]);
+    assertTrue(SocketIOPollingConfig::shortPollWaitSec(25) === 5, 'short poll wait capped at 5');
+
+    ClusterConfig::setWebsocketOverride(null);
+    echo "[OK] short poll wait config\n";
+}
+
+/** connect ack 识别 */
+function testConnectAckDetect(): void
+{
+    $ack = SocketIOPacket::connectAck('sid-xyz');
+    assertTrue(SocketIOPacket::isConnectAck($ack), 'connect ack');
+    assertTrue(!SocketIOPacket::isConnectAck('42["evt",{}]'), 'event not connect ack');
+
+    echo "[OK] connect ack detect\n";
+}
+
 testBatchCodec();
 testOpenWithUpgrades();
 testSessionOutboundQueue();
 testVirtualFdRange();
 testSharedStoreConfig();
 testSharedOutboundQueue();
+testSingleSidWaiter();
+testShortPollWaitConfig();
+testConnectAckDetect();
 
 echo "All websocket socket.io polling tests passed.\n";
