@@ -2,6 +2,8 @@
 
 namespace Swoolefy\Websocket\Cluster;
 
+use Swoolefy\Websocket\WebsocketConnectionManager;
+
 /**
  * 本地 Swoole\Table 与 Redis 全局索引的双写协调器。
  *
@@ -39,6 +41,9 @@ class ClusterConnectionCoordinator
     /** @var array<string, int> conn_id => 上次写入 Redis 的 touch 时间戳（Worker 内节流） */
     private static array $lastRedisTouchAt = [];
 
+    /** @var array<string, int> conn_id => 上次触发 gone 主动清理时间戳（Worker 内节流） */
+    private static array $lastGoneCleanupAt = [];
+
     /**
      * 连接建立：向 Redis 注册 conn 及索引。
      *
@@ -64,6 +69,8 @@ class ClusterConnectionCoordinator
 
         $lastActiveAt = (int) ($payload['last_active_at'] ?? time());
         self::$lastRedisTouchAt[$connId] = $lastActiveAt;
+        // fd 复用时允许新连接立即触发 gone 清理（不继承旧连接节流状态）
+        unset(self::$lastGoneCleanupAt[$connId]);
     }
 
     /** 连接关闭：从 Redis 注销 conn 及全部反向索引 */
@@ -74,6 +81,7 @@ class ClusterConnectionCoordinator
         }
 
         unset(self::$lastRedisTouchAt[$connId]);
+        unset(self::$lastGoneCleanupAt[$connId]);
 
         self::run('unregister', static function () use ($connId) {
             RedisConnectionRegistry::unregister($connId);
@@ -159,10 +167,54 @@ class ClusterConnectionCoordinator
         }
     }
 
+    /**
+     * 投递结果为 gone 时主动尝试清理 Redis 僵尸索引（带节流）。
+     *
+     * 触发来源：PushDeliveryHandler 对单 target 投递返回 gone。
+     * 与 cleanupExpired 互补：该方法是“即时收敛”，定时任务是“兜底收敛”。
+     */
+    public static function onDeliveryGone(string $connId, int $fd): void
+    {
+        if (!ClusterConfig::isEnabled() || $connId === '') {
+            return;
+        }
+
+        $now = time();
+        $lastCleanupAt = self::$lastGoneCleanupAt[$connId] ?? 0;
+        if ($now - $lastCleanupAt < ClusterConfig::goneCleanupInterval()) {
+            return;
+        }
+        self::$lastGoneCleanupAt[$connId] = $now;
+
+        // 避免 fd 已被新连接复用时误删：仅在本地不存在同 conn_id 活连接时清理
+        if (self::hasLocalAliveConnection($fd, $connId)) {
+            return;
+        }
+
+        self::run('goneUnregister', static function () use ($connId) {
+            RedisConnectionRegistry::unregister($connId);
+        }, false);
+    }
+
     /** 单测重置 touch 节流状态 */
     public static function resetTouchThrottle(): void
     {
         self::$lastRedisTouchAt = [];
+        self::$lastGoneCleanupAt = [];
+    }
+
+    private static function hasLocalAliveConnection(int $fd, string $connId): bool
+    {
+        if ($fd <= 0) {
+            return false;
+        }
+
+        $connection = WebsocketConnectionManager::getConnection($fd);
+        if (!is_array($connection)) {
+            return false;
+        }
+
+        return (string) ($connection['conn_id'] ?? '') === $connId;
     }
 
     /**

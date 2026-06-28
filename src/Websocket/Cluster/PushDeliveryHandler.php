@@ -54,12 +54,12 @@ class PushDeliveryHandler
                 $connId = (string) ($target['conn_id'] ?? '');
                 // 优先本地 Table（最新 bindUser），回退 Redis meta（跨节点 Stream 投递）
                 $userId = self::resolveUserIdForTarget($fd, $connId);
-                $result->recordTargetOutcome(
-                    $fd,
-                    $connId,
-                    $userId,
-                    WebsocketConnectionManager::deliverEventToFdLocallyDetailed($server, $fd, $event, $data)
-                );
+                $outcome = WebsocketConnectionManager::deliverEventToFdLocallyDetailed($server, $fd, $event, $data);
+                $result->recordTargetOutcome($fd, $connId, $userId, $outcome);
+                if ($connId !== '' && $outcome === 'gone') {
+                    // gone 立即触发一次节流清理，缩短僵尸索引窗口
+                    ClusterConnectionCoordinator::onDeliveryGone($connId, $fd);
+                }
             }
         }
 

@@ -69,6 +69,8 @@ return [
         'conn_ttl' => 180,
         'cleanup_interval' => 30,
         'touch_interval' => 30,
+        // 投递 outcome=gone 时主动清理 Redis 索引的节流间隔（秒）
+        'gone_cleanup_interval' => 5,
         'on_redis_failure' => 'reject_open',
     ],
     'push' => [

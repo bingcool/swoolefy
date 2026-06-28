@@ -226,6 +226,17 @@ class ClusterConfig
     }
 
     /**
+     * 投递返回 gone 时的主动索引清理节流间隔（秒）。
+     *
+     * 用于缩短“Redis 仍有 conn 索引但 fd 已断开”的窗口；
+     * 同一 conn_id 在间隔内最多触发一次 unregister，避免高并发风暴。
+     */
+    public static function goneCleanupInterval(): int
+    {
+        return max(1, (int) (self::cluster()['gone_cleanup_interval'] ?? 5));
+    }
+
+    /**
      * Redis touch 写间隔（秒）。
      *
      * 本地 Table 仍每条消息刷新 last_active_at；仅同步 Redis 全局索引时节流。

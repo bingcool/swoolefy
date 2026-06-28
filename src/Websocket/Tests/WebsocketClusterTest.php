@@ -223,6 +223,47 @@ function testTouchThrottle(): void
     echo "[OK] touch throttle\n";
 }
 
+/** 验证投递 gone 时主动清理 Redis 僵尸索引（非定时 cleanup 兜底） */
+function testGoneCleanupAfterDeliveryGone(): void
+{
+    $wsConf = \Swoolefy\Core\SystemEnv::loadWebsocketConf();
+    $wsConf['cluster']['enable'] = true;
+    $wsConf['cluster']['server_id'] = 'ws-gone-cleanup';
+    $wsConf['cluster']['gone_cleanup_interval'] = 1;
+    ClusterConfig::setWebsocketOverride($wsConf);
+    ClusterNodeIdentity::reset();
+    ClusterConnectionCoordinator::resetTouchThrottle();
+
+    $serverId = 'ws-gone-cleanup';
+    $connId = $serverId . ':101';
+    $now = time();
+
+    RedisConnectionRegistry::unregister($connId);
+    ClusterConnectionCoordinator::onOpen(101, [
+        'conn_id' => $connId,
+        'server_id' => $serverId,
+        'fd' => 101,
+        'worker_id' => 0,
+        'user_id' => '',
+        'groups' => '',
+        'is_socketio' => 0,
+        'remote_addr' => '127.0.0.1',
+        'connected_at' => $now,
+        'last_active_at' => $now,
+    ]);
+    assertTrue(RedisConnectionRegistry::getConnectionMeta($connId) !== null, 'conn should exist before gone cleanup');
+
+    ClusterConnectionCoordinator::onDeliveryGone($connId, 101);
+    assertTrue(RedisConnectionRegistry::getConnectionMeta($connId) === null, 'gone cleanup should unregister stale conn');
+
+    ClusterConnectionCoordinator::resetTouchThrottle();
+    ClusterConfig::setWebsocketOverride(null);
+    ClusterNodeIdentity::reset();
+    ClusterRedisClient::resetSharedAdapter();
+
+    echo "[OK] gone cleanup after delivery gone\n";
+}
+
 /** 验证 pubsub 模式下多进程投递本地队列 enqueue / dequeue 往返 */
 function testPushDeliveryQueue(): void
 {
@@ -349,6 +390,7 @@ function testConcurrentExecuteNoSocketConflict(): void
     testRedisRegistryLifecycle();
     testConnectionMetaMany();
     testTouchThrottle();
+    testGoneCleanupAfterDeliveryGone();
     testPushDeliveryQueue();
     testPushStreamPublishConsumeAck();
     testConcurrentExecuteNoSocketConflict();
