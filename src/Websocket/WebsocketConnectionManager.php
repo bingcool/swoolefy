@@ -236,6 +236,7 @@ class WebsocketConnectionManager
             return;
         }
 
+        $sid = (string) ($connection['sid'] ?? '');
         $userId = (string) ($connection['user_id'] ?? '');
         $connId = (string) ($connection['conn_id'] ?? '');
         if ($userId !== '') {
@@ -248,6 +249,13 @@ class WebsocketConnectionManager
 
         self::tableDel(self::TABLE_CONNECTIONS, (string) $virtualFd);
         Cluster\ClusterConnectionCoordinator::onClose($connId);
+
+        if ($sid !== '') {
+            SocketIO\SocketIOSessionManager::destroySession($sid);
+
+            return;
+        }
+
         SocketIO\SocketIOSessionManager::destroyVirtualFd($virtualFd);
     }
 

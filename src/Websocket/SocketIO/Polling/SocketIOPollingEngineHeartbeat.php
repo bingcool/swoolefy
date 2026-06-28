@@ -23,8 +23,8 @@ use Swoolefy\Websocket\WebsocketConnectionManager;
  *
  * ## 触发方式
  *
- * 1. **即时**：{@see SocketIOPollingHandler::handlePost} 在 namespace connect 成功后 enqueue ping
- * 2. **周期**：worker 0 上 goTick，间隔 min(ping_interval, ping_timeout - 2) 秒
+     * connect ack 与首包 ping 均经 POST 响应 batch 返回（`40{sid}\x1e2`），不入队 GET。
+     * 周期 ping 见 {@see sendPings()}（仅已 connect namespace 的会话）。
  *
  * ping 写入 {@see SocketIOPollingOutboundStore}，由某 Worker 上阻塞的 GET long-poll 取走。
  *
@@ -68,9 +68,10 @@ class SocketIOPollingEngineHeartbeat
         SocketIOSessionManager::enqueueOutbound($sid, SocketIOPacket::ENGINE_PING);
     }
 
-    /** 扫描连接表中 is_polling=1 的会话，逐个 enqueue ping */
+    /** 扫描已 connect namespace 的 polling 会话，enqueue 周期 ping */
     private static function sendPings(array $config): void
     {
+        unset($config);
         if (!TableManager::isExistTable(WebsocketConnectionManager::TABLE_CONNECTIONS)) {
             return;
         }
@@ -82,6 +83,10 @@ class SocketIOPollingEngineHeartbeat
 
             $sid = (string) ($row['sid'] ?? '');
             if ($sid === '') {
+                continue;
+            }
+
+            if ((string) ($row['socketio_namespaces'] ?? '') === '') {
                 continue;
             }
 
