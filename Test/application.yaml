@@ -1,7 +1,7 @@
 # 应用 Nacos 行为配置（服务注册 / 服务发现 / 配置变更监听）
 nacos:
   # 是否启用 Nacos 注册
-  enable_nacos_register: true
+  enable_nacos_register: false
   # Nacos 配置中心 dataId / group / tenant（按项目区分，与 nacos.yaml 连接配置分离）
   service_config:
     data_id: swoolefy.env

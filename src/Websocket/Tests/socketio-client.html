@@ -139,9 +139,12 @@
         也可 <code>php -S 127.0.0.1:8888 -t src/Websocket/Tests</code> 打开
         <code>http://127.0.0.1:8888/socketio-client.html</code>。<br>
         <strong>勿用 <code>file://</code> 双击打开</strong>——浏览器会拦截 polling 的 XHR，仅 websocket 可用。<br>
-        事件映射见示例应用 <code>WebsocketService/Config/socketio.php</code>：
+        事件映射见 <code>WebsocketService/Config/socketio.php</code>：
         <code>group.join</code> → <code>Service/Chat/JoinGroup</code>，
-        <code>chat.send</code> → <code>Service/Chat/Send</code>。
+        <code>chat.send</code> → <code>Service/Chat/Send</code>。<br>
+        <strong>Namespace</strong>：默认 <code>/</code>；填 <code>/chat</code> 或 <code>/admin</code> 时等价于
+        <code>io('http://host/chat', { path: '/socket.io/' })</code>，服务端按
+        <code>namespaces.{ns}.event_routes</code> 路由。
     </div>
 
     <div class="panel">
@@ -177,6 +180,10 @@
                     <option value="websocket" selected>websocket（仅 WebSocket）</option>
                     <option value="polling">polling（仅 long-polling）</option>
                 </select>
+            </div>
+            <div>
+                <label for="namespace">Namespace（如 /、/chat、/admin）</label>
+                <input id="namespace" value="/" placeholder="/">
             </div>
         </div>
 
@@ -239,6 +246,7 @@
         $('host').disabled = connected;
         $('port').disabled = connected;
         $('transport').disabled = connected;
+        $('namespace').disabled = connected;
     };
 
     /** 根据下拉框返回 socket.io transports 数组 */
@@ -301,12 +309,31 @@
         return `http://${host}:${port}`;
     };
 
+    /** 规范化 Socket.IO namespace（默认 `/`） */
+    const normalizeNamespace = (raw) => {
+        const ns = (raw || '').trim();
+        if (ns === '' || ns === '/') {
+            return '/';
+        }
+        return ns.startsWith('/') ? ns : `/${ns}`;
+    };
+
+    /** socket.io-client：非默认 ns 时 URL 为 http://host/chat */
+    const buildConnectUrl = (baseUrl, namespace) => {
+        const ns = normalizeNamespace(namespace);
+        if (ns === '/') {
+            return baseUrl.replace(/\/+$/, '');
+        }
+        return `${baseUrl.replace(/\/+$/, '')}${ns}`;
+    };
+
     const bindSocketEvents = (s) => {
         s.on('connect', () => {
             setConnected(true);
             log('connect success', {
                 socketId: s.id,
                 transport: getActiveTransport(),
+                namespace: s.nsp || normalizeNamespace($('namespace').value),
             });
         });
 
@@ -348,7 +375,9 @@
             socket = null;
         }
 
-        const url = getServerUrl();
+        const baseUrl = getServerUrl();
+        const namespace = normalizeNamespace($('namespace').value);
+        const url = buildConnectUrl(baseUrl, namespace);
         const query = {
             uid: $('uid').value.trim(),
             token: $('token').value.trim(),
@@ -357,7 +386,7 @@
         const transports = resolveTransportsForPage();
         const pollingOnly = transports.length === 1 && transports[0] === 'polling';
 
-        log('connecting', { url, path: '/socket.io/', transports, query });
+        log('connecting', { url, namespace, path: '/socket.io/', transports, query });
 
         const ioOptions = {
             path: '/socket.io/',

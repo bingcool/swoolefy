@@ -51,7 +51,7 @@ Route::group([
     ->enableCacheRouteMeta()
     ->withRateLimiterMiddleware(RateLimiterMiddleware::class,  60,60,GroupTestMiddleware::class);
 
-    Route::post('/user-order/userList1', [
+    Route::any('/user-order/userList1', [
         // 针对该接口启动sql-debug
         'beforeHandle' => function(RequestInput $requestInput) {
             Context::set('db_debug', false);
@@ -85,7 +85,7 @@ Route::group([
         //GroupTestMiddleware::class => GroupTestMiddleware::class
     ])->enableCacheRouteMeta();
 
-    Route::put('/user-order/testPageRequest', [
+    Route::get('/user-order/testPageRequest', [
         'dispatch_route' => [\Test\Module\Order\Controller\LogOrderController::class, 'testPageRequest'],
         //GroupTestMiddleware::class => GroupTestMiddleware::class
     ])->enableCacheRouteMeta();
