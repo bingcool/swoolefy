@@ -30,7 +30,7 @@ class LogContentPageRequest extends BasePageRequest {
      * @var CityDto
      */
     #[ApiProperty(description: '城市信息')]
-    protected CityDto $city;
+    protected ?CityDto $city = null;
 
     /**
      * @var array<int, CityDto>|null
@@ -64,7 +64,7 @@ class LogContentPageRequest extends BasePageRequest {
         return $this;
     }
 
-    public function getCity(): CityDto
+    public function getCity(): ?CityDto
     {
         return $this->city;
     }

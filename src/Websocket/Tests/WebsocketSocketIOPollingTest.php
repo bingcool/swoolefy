@@ -206,7 +206,52 @@ function testConnectAckDetect(): void
     assertTrue(SocketIOPacket::isConnectAck($ack), 'connect ack');
     assertTrue(!SocketIOPacket::isConnectAck('42["evt",{}]'), 'event not connect ack');
 
+    $chatAck = SocketIOPacket::connectAck('sid-xyz', '/chat');
+    assertTrue(SocketIOPacket::isConnectAck($chatAck), 'chat namespace connect ack');
+    assertTrue(str_contains($chatAck, '/chat,'), 'chat namespace prefix in ack');
+
     echo "[OK] connect ack detect\n";
+}
+
+/** polling POST `40/chat,` 注册 namespace 并返回 connect ack */
+function testNamespaceConnectViaPolling(): void
+{
+    SocketIOSessionManager::resetForTest();
+    SocketIONamespaceRegistry::resetForTest();
+    SocketIOPollingConfig::setSharedStoreOverrideForTest(false);
+    SocketIONamespaceRegistry::setConfigOverride([
+        'allowed_namespaces' => ['*'],
+    ]);
+
+    $virtualFd = 1073742200;
+    $sid = 'ns-poll-sid';
+    registerPollingConnection($virtualFd, $sid);
+
+    $config = ['socketio' => ['enable' => true, 'allowed_namespaces' => ['*']]];
+    $outbound = SocketIOHandler::handleInboundPollingBatch($virtualFd, '40/chat,', $config);
+
+    assertTrue(count($outbound) === 1, 'one connect ack packet');
+    assertTrue(SocketIOPacket::isConnectAck($outbound[0]), 'connect ack');
+    assertTrue(str_contains($outbound[0], '/chat,'), 'ack contains namespace prefix');
+
+    $connection = WebsocketConnectionManager::getConnection($virtualFd);
+    assertTrue(str_contains((string) ($connection['socketio_namespaces'] ?? ''), '/chat'), 'namespace registered');
+    assertTrue(SocketIONamespaceRegistry::isConnected($virtualFd, '/chat'), 'isConnected /chat');
+
+    SocketIONamespaceRegistry::setConfigOverride([
+        'allowed_namespaces' => ['/', '/chat'],
+    ]);
+    $virtualFd2 = 1073742201;
+    registerPollingConnection($virtualFd2, 'ns-deny-sid');
+    $denied = SocketIOHandler::handleInboundPollingBatch($virtualFd2, '40/admin,', $config);
+    assertTrue(count($denied) === 1, 'denied namespace returns one packet');
+    assertTrue(str_contains($denied[0], 'namespace not allowed'), 'admin namespace denied');
+
+    SocketIONamespaceRegistry::resetForTest();
+    SocketIOSessionManager::resetForTest();
+    SocketIOPollingConfig::setSharedStoreOverrideForTest(null);
+
+    echo "[OK] namespace connect via polling\n";
 }
 
 /** 单测：创建 polling 回归所需的 Swoole Table */
@@ -552,6 +597,7 @@ testSharedOutboundQueue();
 testSingleSidWaiter();
 testShortPollWaitConfig();
 testConnectAckDetect();
+testNamespaceConnectViaPolling();
 testMemoryOutboundMaxLen();
 testEnsureLocalFromRedis();
 testSessionTouchIntervalConfig();

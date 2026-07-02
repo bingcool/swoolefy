@@ -9,6 +9,7 @@ create table tbl_users
     `sex`         tinyint(1) not null default 0 comment '用户性别，0-男，1-女',
     `birthday`    datetime   default null comment '出生年月',
     `phone`       varchar(32) not null default '' comment '手机号',
+    `tenant_id`   varchar(64) not null default '' comment '租户id',
     `extand_json` text        default null comment '扩展数据',
     `gmt_create`  datetime    not null default current_timestamp comment '创建时间',
     `gmt_modify`  datetime    not null default current_timestamp on update current_timestamp comment '更新时间',
@@ -27,6 +28,7 @@ create table tbl_order
     `address` varchar(256) not null default '' comment '物流地址',
     `remark` varchar(1024) not null default '' comment '评论',
     `json_data`    text       default null comment '扩展数据',
+    `tenant_id`   varchar(64) not null default '0' comment '租户id',
     `gmt_create`  datetime    not null default current_timestamp comment '创建时间',
     `gmt_modify`  datetime    not null default current_timestamp on update current_timestamp comment '更新时间',
     PRIMARY KEY (`order_id`)
