@@ -1,0 +1,70 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Swoolefy\Support\Neuron;
+
+use NeuronAI\Agent\Agent;
+use Swoolefy\Support\Mcp\McpFactory;
+use Swoolefy\Support\Neuron\Memory\MemoryFactory;
+use Swoolefy\Support\Workflow\State\WorkflowState;
+
+/**
+ * Neuron Agent 工厂 —— 注入 Memory、MCP Tools 等 Swoolefy 基础设施。
+ */
+final class NeuronFactory
+{
+    /** @param (callable(class-string, WorkflowState, array): Agent)|null $agentFactory */
+    public function __construct(
+        private readonly MemoryFactory $memoryFactory,
+        private readonly ?McpFactory $mcpFactory = null,
+        private $agentFactory = null,
+    ) {
+    }
+
+    /**
+     * @param class-string<Agent> $agentClass
+     * @param array<string, mixed> $nodeConfig AINode 配置项
+     */
+    public function create(string $agentClass, WorkflowState $state, array $nodeConfig = []): Agent
+    {
+        if ($this->agentFactory !== null) {
+            return ($this->agentFactory)($agentClass, $state, $nodeConfig);
+        }
+
+        /** @var Agent $agent */
+        $agent = new $agentClass();
+
+        if (($nodeConfig['memory'] ?? false) === true) {
+            $threadKey = (string) ($nodeConfig['threadIdKey'] ?? 'sessionId');
+            $threadId = (string) ($state->get($threadKey) ?: $state->get('runId') ?: uniqid('thread-', true));
+            $contextWindow = (int) ($nodeConfig['contextWindow'] ?? 50000);
+            $agent->setChatHistory($this->memoryFactory->forThread($threadId, $contextWindow));
+        }
+
+        $this->attachMcpTools($agent, $nodeConfig);
+
+        return $agent;
+    }
+
+    /** @param array<string, mixed> $nodeConfig */
+    private function attachMcpTools(Agent $agent, array $nodeConfig): void
+    {
+        if ($this->mcpFactory === null) {
+            return;
+        }
+
+        $servers = $nodeConfig['mcpServers'] ?? $nodeConfig['mcp'] ?? null;
+        if (!is_array($servers) || $servers === []) {
+            return;
+        }
+
+        $only = is_array($nodeConfig['mcpOnly'] ?? null) ? $nodeConfig['mcpOnly'] : null;
+        $exclude = is_array($nodeConfig['mcpExclude'] ?? null) ? $nodeConfig['mcpExclude'] : null;
+
+        $tools = $this->mcpFactory->tools($servers, $only, $exclude);
+        if ($tools !== []) {
+            $agent->addTool($tools);
+        }
+    }
+}

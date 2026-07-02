@@ -154,6 +154,38 @@ Route::group([
     Route::post('/upload/multiple', [
         'dispatch_route' => [\Test\Controller\UploadController::class, 'multiple'],
     ]);
+
+    Route::post('/v1/workflow/run', [
+        'dispatch_route' => [\Test\Module\Workflow\Controller\WorkflowController::class, 'run'],
+    ]);
+
+    Route::get('/v1/workflow/run/status', [
+        'dispatch_route' => [\Test\Module\Workflow\Controller\WorkflowController::class, 'status'],
+    ]);
+
+    Route::post('/v1/workflow/run/resume', [
+        'dispatch_route' => [\Test\Module\Workflow\Controller\WorkflowController::class, 'resume'],
+    ]);
+
+    Route::get('/v1/workflow/pause/tasks', [
+        'dispatch_route' => [\Test\Module\Workflow\Controller\WorkflowController::class, 'pauseTasks'],
+    ]);
+
+    Route::get('/v1/workflow/run/events', [
+        'dispatch_route' => [\Test\Module\Workflow\Controller\WorkflowController::class, 'events'],
+    ]);
+
+    Route::get('/v1/mcp/servers', [
+        'dispatch_route' => [\Test\Module\Mcp\Controller\McpController::class, 'servers'],
+    ]);
+
+    Route::get('/v1/mcp/servers/{id}/tools', [
+        'dispatch_route' => [\Test\Module\Mcp\Controller\McpController::class, 'tools'],
+    ]);
+
+    Route::post('/v1/agent/chat', [
+        'dispatch_route' => [\Test\Module\Agent\Controller\AgentChatController::class, 'chat'],
+    ]);
 });
 
 Route::match(['GET'],'/cache/test1', [

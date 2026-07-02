@@ -1,0 +1,23 @@
+# Workflow / RAG / MCP / Neuron 模块配置（复制到 APP_PATH/config/workflow.yaml）
+
+workflow:
+  # memory | redis
+  run_store: memory
+  condition_evaluator: symfony   # symfony | jsonlogic
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    prefix: "workflow:run:"
+    ttl: 86400
+
+rag:
+  vector_store: file             # file | meilisearch
+  file_store_path: /tmp/swoolefy_rag
+  default_top_k: 5
+  embedding_model: text-embedding-3-small
+
+mcp:
+  max_local_processes: 2
+
+neuron:
+  http_client: swoole              # swoole | guzzle

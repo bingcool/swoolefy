@@ -39,13 +39,17 @@
         "symfony/yaml": "~7.4",
         "zircote/swagger-php": "~4.8.0",
         "doctrine/collections": "~3.0",
-        "php-standard-library/php-standard-library": "~6.2",
-        "guzzlehttp/guzzle": "~7.9"
+        "php-standard-library/php-standard-library": "^6.2",
+        "guzzlehttp/guzzle": "~7.9",
+        "neuron-core/neuron-ai": "^3.15",
+        "symfony/expression-language": "~7.4",
+        "bingcool/library": "dev-library-6.x"
     },
     "autoload": {
         "files": ["src/Constants.php","src/Core/Func/function.php"],
         "psr-4": {
-            "Swoolefy\\": "src/"
+            "Swoolefy\\": "src/",
+            "Test\\": "Test/"
         }
     },
     "require-dev": {
@@ -53,10 +57,25 @@
         "swoole/ide-helper": "dev-master",
         "viest/php-ext-xlswriter-ide-helper": "dev-master"
     },
+    "scripts": {
+        "test:workflow": [
+            "@php src/Support/Workflow/Tests/WorkflowPhase1Test.php",
+            "@php src/Support/Workflow/Tests/WorkflowPhase2Test.php",
+            "@php src/Support/Workflow/Tests/WorkflowPhase3Test.php",
+            "@php src/Support/Workflow/Tests/WorkflowPhase4Test.php",
+            "@php src/Support/Workflow/Tests/WorkflowIntegrationTest.php"
+        ]
+    },
     "config": {
         "allow-plugins": {
             "php-http/discovery": false,
             "tbachert/spi": false
         }
-    }
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../library"
+        }
+    ]
 }
