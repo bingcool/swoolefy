@@ -81,85 +81,127 @@ sequenceDiagram
 
 ## 3. 引擎模块设计
 
-### 3.1 包结构（建议先 `src/Workflow/` 孵化，稳定后拆 `bingcool/swoolefy-workflow`）
+### 3.1 包结构（`src/Support/` 分模块孵化，Phase 5 可选拆 `bingcool/swoolefy-*` 包）
+
+与现有 [`src/Support/Nacos/`](src/Support/Nacos/) 一致：按子域分目录、包间单向依赖。AI 编排不再使用单体 `src/Workflow/`，拆为六个独立子模块；业务示例在 `Test/Module/` 组合各模块 Node。
 
 ```
-src/Workflow/
-  Workflow.php                       # 薄 Facade：define → compile → start
-  AbstractNode.php
-  Definition/
-    WorkflowDefinition.php           # 纯声明：Node、Edge、Metadata、Version
-    WorkflowCompiler.php             # 校验 → CompiledWorkflow
-    Edge.php                         # type: always | conditional
-    EdgeCondition.php                # when() / fromCallable() / always() / fromJsonLogic()
-    ConditionalEdgeGroup.php         # 同源多分支 + default
-    CompiledWorkflow.php             # 拓扑索引、环检测、可达性（只读）
-  Condition/
-    ConditionEvaluatorInterface.php  # 可插拔条件引擎
-    SymfonyExpressionLanguageEvaluator.php  # 默认实现（Phase 1）
-    CallableConditionEvaluator.php
-    JsonLogicEvaluator.php           # Phase 2+ 可选
-  Engine/
-    DagScheduler.php
-    WorkflowEngine.php
-    NodeExecutionResult.php
-    NodeLifecycle.php               # 生命周期钩子顺序文档化
-    RetryPolicy.php
-    ...
-  Node/
-    NodeInterface.php               # 完整生命周期接口
-    AbstractNode.php                # run() 模板方法编排钩子
+src/Support/
+  Workflow/                          # 纯编排内核，零 neuron-ai 依赖
+    Workflow.php                     # Facade：define → compile → start / resume / cancel
+    Definition/
+      WorkflowDefinition.php         # 纯声明：Node、Edge、Metadata、Version
+      WorkflowCompiler.php           # 校验 → CompiledWorkflow
+      Edge.php                       # type: always | conditional
+      EdgeCondition.php              # when() / fromCallable() / always() / fromJsonLogic()
+      ConditionalEdgeGroup.php       # 同源多分支 + default
+      CompiledWorkflow.php           # 拓扑索引、环检测、可达性（只读）
+    Condition/
+      ConditionEvaluatorInterface.php
+      SymfonyExpressionLanguageEvaluator.php   # 默认（Phase 1）
+      CallableConditionEvaluator.php
+      JsonLogicEvaluator.php                 # Phase 2+ 可选
+    Engine/
+      WorkflowEngine.php
+      DagScheduler.php
+      SubWorkflowRunner.php
+      NodeExecutionResult.php
+      NodeStatus.php
+      NodeLifecycle.php
+      RetryPolicy.php
+      SagaCoordinator.php                    # Phase 4
+    State/
+      WorkflowState.php
+    Node/
+      NodeInterface.php
+      AbstractNode.php                 # run() 模板方法编排钩子
+      PauseNode.php                    # HITL 通用节点
+      SubWorkflowNode.php
+    Plugin/
+      WorkflowPluginInterface.php
+      PluginManager.php
+      PluginRegistry.php
+      Builtin/
+        RetryPlugin.php
+        MetricsPlugin.php
+        TracingPlugin.php
+        OpenTelemetryPlugin.php
+        AuditPlugin.php
+        RateLimitPlugin.php
+        PermissionPlugin.php
+
+  Neuron/                            # Neuron AI 基础设施适配（无 Workflow Node）
+    NeuronFactory.php
+    Http/
+      SwooleHttpClientAdapter.php    # CurlProxy 协程 HTTP 注入 Neuron
+    Memory/
+      MemoryFactory.php
+      RedisChatHistory.php
+      SqlChatHistoryArchive.php      # Phase 2
+    Embedding/
+      EmbeddingFactory.php
+
+  AI/                                # LLM Workflow 节点与 DSL
+    Node/
+      AINode.php
+      StructuredOutputNode.php
     Builder/
-      AINodeBuilder.php             # AINode::make()->agent()->memory()->...
+      AINodeBuilder.php              # make()->agent()->memory()->structuredOutput()->mcpServers()
+    Stream/                          # Phase 2
+      StreamBridge.php
+      SseResponse.php
+      WebSocketStreamSink.php
+
+  Rag/                               # 检索增强与向量存储
+    Factory/
+      RagFactory.php
+      VectorStoreFactory.php         # file | phpvector | meilisearch
+    Store/
+      FileVectorStore.php
+      PhpVectorStore.php
+      MeilisearchVectorStore.php     # Phase 4
+    Ingestion/
+      IngestionPipeline.php
+      Loader/
+        FileDataLoader.php
+        StringDataLoader.php
+    Retrieval/
+      RetrievalService.php
+      RetrievalTool.php              # Phase 4
+    Node/
+      RAGNode.php
+      RagRetrieveNode.php
+      RagIngestNode.php
+    Builder/
       RAGNodeBuilder.php
-    AINode.php
-    RAGNode.php
-    RagRetrieveNode.php
-    RagIngestNode.php
-    PauseNode.php
-    StructuredOutputNode.php
-    ...
-  Agent/
+    Console/
+      IngestDocumentsCommand.php     # Phase 2 CLI
+
+  Agent/                             # 多 Agent 调度与可插拔路由
     AgentScheduler.php
-    AgentRouterInterface.php        # 路由策略可插拔
+    AgentRouterInterface.php
     RouterContext.php
     Router/
-      StaticRouter.php
-      RuleRouter.php
-      LLMRouter.php                 # Phase 3
+      StaticRouter.php               # Phase 2
+      RuleRouter.php                 # Phase 2
+      LLMRouter.php                  # Phase 3
       RoundRobinRouter.php
-      CostAwareRouter.php           # Phase 4
       WeightedRouter.php
-  Plugin/
-    WorkflowPluginInterface.php
-    PluginManager.php
-    PluginRegistry.php
-    Builtin/
-      RetryPlugin.php
-      MetricsPlugin.php
-      TracingPlugin.php
-      OpenTelemetryPlugin.php
-      RateLimitPlugin.php
-      PermissionPlugin.php
-      AuditPlugin.php
-  Rag/
-    IngestionPipeline.php            # FileDataLoader / StringDataLoader 编排
-    RetrievalService.php             # SimilarityRetrieval 独立调用
-  Neuron/
-    RagFactory.php
-    VectorStoreFactory.php           # 开发 File/PHPVector + 生产 Meilisearch
-    EmbeddingFactory.php
-    MemoryFactory.php
-    RedisChatHistory.php
-    McpFactory.php                   # McpConnector 配置与构建
-    McpServerConfig.php
-    McpProcessRunner.php             # 本地 stdio MCP 子进程协程适配
-    ...
+      CostAwareRouter.php            # Phase 4
 
-Test/Module/
-  Order/ ...
+  Mcp/                               # Model Context Protocol
+    McpFactory.php
+    McpServerConfig.php
+    McpProcessRunner.php             # Phase 4 本地 stdio + 协程子进程
+    Remote/
+      HttpMcpClient.php              # Phase 2 远程 HTTP/SSE
+
+Test/Module/                         # 业务示例（组合各 Support 模块）
+  Order/
+    Workflow/OrderProcessingWorkflow.php
+    Dto/OrderDecisionDto.php
   Knowledge/
-    Agent/ProductKnowledgeRag.php    # extends RAG
+    Agent/ProductKnowledgeRag.php
     Workflow/KnowledgeQaWorkflow.php
     Console/IngestDocumentsCommand.php
   Research/
@@ -167,11 +209,56 @@ Test/Module/
     Workflow/McpResearchWorkflow.php
 ```
 
+#### 模块依赖
+
+```mermaid
+flowchart TB
+    subgraph support [src/Support]
+        Workflow[Workflow]
+        AI[AI]
+        Rag[Rag]
+        Agent[Agent]
+        Mcp[Mcp]
+        Neuron[Neuron]
+    end
+
+    Workflow -->|"NodeInterface only"| AI
+    Workflow --> Rag
+    AI --> Neuron
+    Rag --> Neuron
+    Agent --> Neuron
+    Mcp --> Neuron
+    AI --> Mcp
+```
+
+**硬约束**：
+
+- `Support/Workflow` 不依赖 `Neuron` / `AI` / `Rag` / `Agent` / `Mcp`
+- `AI` / `Rag` / `Agent` / `Mcp` 仅依赖 `Workflow\Node\NodeInterface` + `Workflow\State\WorkflowState`
+- `Neuron` 仅依赖 Swoolefy Core + `neuron-ai`；不依赖 `Workflow\Engine`
+
+**命名空间**：`Swoolefy\Support\{Workflow|Neuron|AI|Rag|Agent|Mcp}\...`
+
+| 原 `src/Workflow/` 路径 | 新路径 |
+|-------------------------|--------|
+| `Workflow/Definition/*` | `Support/Workflow/Definition/*` |
+| `Workflow/Condition/*` | `Support/Workflow/Condition/*` |
+| `Workflow/Engine/*` | `Support/Workflow/Engine/*` |
+| `Workflow/Node/AINode*` | `Support/AI/Node/*` + `Support/AI/Builder/*` |
+| `Workflow/Node/RAG*` | `Support/Rag/Node/*` + `Support/Rag/Builder/*` |
+| `Workflow/Node/PauseNode` | `Support/Workflow/Node/PauseNode` |
+| `Workflow/Agent/*` | `Support/Agent/*` |
+| `Workflow/Plugin/*` | `Support/Workflow/Plugin/*` |
+| `Workflow/Rag/*` | `Support/Rag/Ingestion/*` + `Retrieval/*` |
+| `Workflow/Neuron/*` | `Support/Neuron/*` + `Support/Mcp/*` + `Support/Rag/Factory/*` |
+
 ### 3.2 引擎内部契约
 
-**WorkflowState**（快照序列化仍用底层 array；业务优先 Typed API，见 §3.4）
+**WorkflowState**（`Swoolefy\Support\Workflow\State\WorkflowState`；快照序列化仍用底层 array；业务优先 Typed API，见 §3.4）
 
 ```php
+// namespace Swoolefy\Support\Workflow\State;
+
 final class WorkflowState
 {
     public array $data = [];
@@ -1398,7 +1485,44 @@ composer require symfony/expression-language   # ConditionEvaluator 默认实现
 
 ### 8.2 组件注册
 
+| 组件 key | 类 | 命名空间 |
+|----------|-----|----------|
+| `condition_evaluator` | `SymfonyExpressionLanguageEvaluator` 等 | `Swoolefy\Support\Workflow\Condition` |
+| `workflow_compiler` | `WorkflowCompiler` | `Swoolefy\Support\Workflow\Definition` |
+| `plugin_manager` | `PluginManager` + Builtin Plugin | `Swoolefy\Support\Workflow\Plugin` |
+| `workflow_engine` | `WorkflowEngine` | `Swoolefy\Support\Workflow\Engine` |
+| `sub_workflow_runner` | `SubWorkflowRunner` | `Swoolefy\Support\Workflow\Engine` |
+| `memory_factory` | `MemoryFactory` | `Swoolefy\Support\Neuron\Memory` |
+| `embedding_factory` | `EmbeddingFactory` | `Swoolefy\Support\Neuron\Embedding` |
+| `neuron_factory` | `NeuronFactory` | `Swoolefy\Support\Neuron` |
+| `vector_store_factory` | `VectorStoreFactory` | `Swoolefy\Support\Rag\Factory` |
+| `rag_factory` | `RagFactory` | `Swoolefy\Support\Rag\Factory` |
+| `ingestion_pipeline` | `IngestionPipeline` | `Swoolefy\Support\Rag\Ingestion` |
+| `retrieval_service` | `RetrievalService` | `Swoolefy\Support\Rag\Retrieval` |
+| `mcp_factory` | `McpFactory` | `Swoolefy\Support\Mcp` |
+| `agent_router` | `StaticRouter` 等 | `Swoolefy\Support\Agent\Router` |
+| `agent_scheduler` | `AgentScheduler` | `Swoolefy\Support\Agent` |
+
 ```php
+use Swoolefy\Support\Workflow\Condition\JsonLogicEvaluator;
+use Swoolefy\Support\Workflow\Condition\SymfonyExpressionLanguageEvaluator;
+use Swoolefy\Support\Workflow\Definition\WorkflowCompiler;
+use Swoolefy\Support\Workflow\Engine\SubWorkflowRunner;
+use Swoolefy\Support\Workflow\Engine\WorkflowEngine;
+use Swoolefy\Support\Workflow\Plugin\Builtin\RetryPlugin;
+use Swoolefy\Support\Workflow\Plugin\Builtin\TracingPlugin;
+use Swoolefy\Support\Workflow\Plugin\PluginManager;
+use Swoolefy\Support\Neuron\Embedding\EmbeddingFactory;
+use Swoolefy\Support\Neuron\Memory\MemoryFactory;
+use Swoolefy\Support\Neuron\NeuronFactory;
+use Swoolefy\Support\Rag\Factory\RagFactory;
+use Swoolefy\Support\Rag\Factory\VectorStoreFactory;
+use Swoolefy\Support\Rag\Ingestion\IngestionPipeline;
+use Swoolefy\Support\Rag\Retrieval\RetrievalService;
+use Swoolefy\Support\Mcp\McpFactory;
+use Swoolefy\Support\Agent\AgentScheduler;
+use Swoolefy\Support\Agent\Router\StaticRouter;
+
 return [
     'condition_evaluator'  => fn($app) => match (env('WORKFLOW_CONDITION_EVALUATOR', 'symfony')) {
         'jsonlogic' => new JsonLogicEvaluator(),
@@ -1431,6 +1555,7 @@ return [
         $app->get('neuron_factory'),
         $app->get('agent_router'),
     ),
+    // WorkflowEngine 不直接依赖 neuron_factory；节点 Factory 由 WorkflowDefinition 注册时注入
     'workflow_engine'      => fn($app) => new WorkflowEngine(
         $app->get('plugin_manager'),
         $app->get('workflow_compiler'),
@@ -1514,40 +1639,40 @@ id, tenant_id, name, transport, config_json, enabled, created_at, updated_at
 
 ### Phase 1 — 基础打通（2~3 周）
 
-- **`WorkflowDefinition` + `WorkflowCompiler` + `WorkflowEngine` 三层分离**；`Workflow` Facade
-- **`NodeExecutionResult` + Node 完整生命周期**；`WorkflowState` Typed API
-- **`WorkflowPlugin`（RetryPlugin + TracingPlugin）+ `PluginManager`**
-- **`AINodeBuilder` DSL**；线性 DAG + Symfony EL 条件边
-- **`order_processing` 示例**；`MemoryFactory` + `RedisChatHistory`
+- **`Support/Workflow`**：`WorkflowDefinition` + `WorkflowCompiler` + `WorkflowEngine` 三层分离；`Workflow` Facade
+- **`Support/Workflow`**：`NodeExecutionResult` + Node 完整生命周期；`WorkflowState` Typed API
+- **`Support/Workflow`**：`WorkflowPlugin`（RetryPlugin + TracingPlugin）+ `PluginManager`
+- **`Support/AI`**：`AINodeBuilder` DSL；线性 DAG + Symfony EL 条件边（`Support/Workflow/Condition`）
+- **`Support/Neuron/Memory`** + **`Test/Module/Order`**：`order_processing` 示例；`MemoryFactory` + `RedisChatHistory`
 
 ### Phase 2 — 流式、并行、Memory、RAG 入库与 MCP 基础（2~3 周）
 
-- `SseResponse` + `StreamBridge` + WebSocket
-- **`AgentRouterInterface`（StaticRouter / RuleRouter）+ `AgentScheduler` + `multi_agent_research`**
-- **`MetricsPlugin`**；`SqlChatHistoryArchive`、`StructuredOutputNode`
-- **`VectorStoreFactory`（File/PHPVector）+ `IngestionPipeline` + 离线入库 CLI**
-- **`McpFactory` + 远程 HTTP MCP + `AINode.mcpServers` 基础打通**
+- **`Support/AI/Stream`**：`SseResponse` + `StreamBridge` + WebSocket
+- **`Support/Agent`**：`AgentRouterInterface`（StaticRouter / RuleRouter）+ `AgentScheduler` + `multi_agent_research`
+- **`Support/Workflow/Plugin`** + **`Support/AI`**：`MetricsPlugin`；`SqlChatHistoryArchive`、`StructuredOutputNode`
+- **`Support/Rag`**：`VectorStoreFactory`（File/PHPVector）+ `IngestionPipeline` + 离线入库 CLI
+- **`Support/Mcp`**：`McpFactory` + 远程 HTTP MCP + `AINode.mcpServers` 基础打通
 
 ### Phase 3 — HITL、RAG 问答、MCP 多 Agent 与韧性（2~3 周）
 
-- `PauseNode` + resume + `addConditionalEdges` HITL 分支；`contract_review` 示例
-- **`RagRetrieveNode` + `RAGNode` + `KnowledgeQaWorkflow` 示例**
-- **多 Agent + `LLMRouter` / `WeightedRouter`；`McpResearchWorkflow`**
-- **`OpenTelemetryPlugin` + `AuditPlugin`**
+- **`Support/Workflow`**：`PauseNode` + resume + `addConditionalEdges` HITL 分支；`contract_review` 示例
+- **`Support/Rag`**：`RagRetrieveNode` + `RAGNode` + `KnowledgeQaWorkflow` 示例
+- **`Support/Agent`**：多 Agent + `LLMRouter` / `WeightedRouter`；`McpResearchWorkflow`
+- **`Support/Workflow/Plugin`**：`OpenTelemetryPlugin` + `AuditPlugin`
 - `RetryExecutor`、`TimeoutGuard`、DB 冷归档
 
 ### Phase 4 — RAG 生产化、MCP 生产化、Saga（2~3 周）
 
-- **`MeilisearchVectorStore` 生产配置**
-- **`RagIngestNode` + AsyncTask 大批量入库**
-- **`RetrievalTool` 按需检索 Agent**
-- **`McpProcessRunner` 本地 stdio、`mcp_server_configs` 多租户、管理 API `/mcp/servers`**
-- **`CostAwareRouter` + `RateLimitPlugin` + `PermissionPlugin`**
-- `SagaCoordinator`
+- **`Support/Rag/Store`**：`MeilisearchVectorStore` 生产配置
+- **`Support/Rag/Node`**：`RagIngestNode` + AsyncTask 大批量入库
+- **`Support/Rag`**：`RetrievalTool` 按需检索 Agent
+- **`Support/Mcp`**：`McpProcessRunner` 本地 stdio、`mcp_server_configs` 多租户、管理 API `/mcp/servers`
+- **`Support/Agent`** + **`Support/Workflow/Plugin`**：`CostAwareRouter` + `RateLimitPlugin` + `PermissionPlugin`
+- **`Support/Workflow/Engine`**：`SagaCoordinator`
 
 ### Phase 5 — 生产化（持续）
 
-- 多租户知识库/MCP 隔离、检索缓存、MCP 工具调用审计与 rate limit、拆包、文档
+- 多租户知识库/MCP 隔离、检索缓存、MCP 工具调用审计与 rate limit、按模块拆 `bingcool/swoolefy-*` Composer 包与文档
 
 ---
 
@@ -1582,67 +1707,69 @@ id, tenant_id, name, transport, config_json, enabled, created_at, updated_at
 
 | Spring AI 2.0 概念 | 本方案对应 |
 |--------------------|-----------|
-| Router / Gateway | `addConditionalEdges` + `EdgeCondition` |
-| Structured Output | `AINode` + DTO → 条件边消费 |
-| Chat Memory | `MemoryFactory` + `RedisChatHistory` |
-| Human approval gate | `PauseNode` + `resume()` + 条件边 |
-| Spring Integration Flow | `WorkflowDefinition` + `addEdge` + `addConditionalEdges` |
-| SpEL / Expression | `ConditionEvaluatorInterface` → Symfony ExpressionLanguage |
-| LangGraph State | `WorkflowState` + Typed API + Redis 快照 |
-| Temporal Run Lifecycle | `WorkflowEngine` start / resume / cancel |
-| Micrometer / Actuator | `MetricsPlugin` / `TracingPlugin` |
-| OpenTelemetry | `OpenTelemetryPlugin` |
-| Spring Plugin / Advisor | `WorkflowPlugin` + `PluginManager` |
-| Agent Routing | `AgentRouterInterface`（LLM / Rule / CostAware） |
-| VectorStore | `VectorStoreFactory` + Meilisearch/File |
-| DocumentReader | `FileDataLoader` + `IngestionPipeline` |
-| RetrievalAugmentor | `RAGNode` / `RagRetrieveNode` |
-| QuestionAnswerAdvisor | `SimilarityRetrieval` + Neuron `RAG` |
-| MCP Client / Tool Callbacks | `McpConnector` + `McpFactory` |
+| Router / Gateway | `Support/Workflow`：`addConditionalEdges` + `EdgeCondition` |
+| Structured Output | `Support/AI`：`AINode` + DTO → 条件边消费 |
+| Chat Memory | `Support/Neuron/Memory`：`MemoryFactory` + `RedisChatHistory` |
+| Human approval gate | `Support/Workflow`：`PauseNode` + `resume()` + 条件边 |
+| Spring Integration Flow | `Support/Workflow`：`WorkflowDefinition` + `addEdge` + `addConditionalEdges` |
+| SpEL / Expression | `Support/Workflow/Condition`：`ConditionEvaluatorInterface` → Symfony ExpressionLanguage |
+| LangGraph State | `Support/Workflow/State`：`WorkflowState` + Typed API + Redis 快照 |
+| Temporal Run Lifecycle | `Support/Workflow/Engine`：`WorkflowEngine` start / resume / cancel |
+| Micrometer / Actuator | `Support/Workflow/Plugin`：`MetricsPlugin` / `TracingPlugin` |
+| OpenTelemetry | `Support/Workflow/Plugin`：`OpenTelemetryPlugin` |
+| Spring Plugin / Advisor | `Support/Workflow/Plugin`：`WorkflowPlugin` + `PluginManager` |
+| Agent Routing | `Support/Agent`：`AgentRouterInterface`（LLM / Rule / CostAware） |
+| VectorStore | `Support/Rag`：`VectorStoreFactory` + Meilisearch/File |
+| DocumentReader | `Support/Rag/Ingestion`：`FileDataLoader` + `IngestionPipeline` |
+| RetrievalAugmentor | `Support/Rag/Node`：`RAGNode` / `RagRetrieveNode` |
+| QuestionAnswerAdvisor | `Support/Rag`：`SimilarityRetrieval` + Neuron `RAG` |
+| MCP Client / Tool Callbacks | `Support/Mcp`：`McpConnector` + `McpFactory` |
 | Function Calling | Neuron Tool Calling（含 MCP 发现的工具） |
 
 ---
 
 ## 14. 首期交付物（Phase 1 Done 定义）
 
-- [`src/Workflow/`](src/Workflow/)：**`WorkflowDefinition` + `WorkflowCompiler` + `CompiledWorkflow` + `WorkflowEngine`**
-- **`NodeExecutionResult` + Node 生命周期 + `ConditionEvaluatorInterface`（Symfony EL）**
-- **`WorkflowPlugin`（Retry + Tracing）+ `AINodeBuilder`**
-- [`Test/Module/Order/`](Test/Module/Order/)：`order_processing` + `OrderDecisionDto` + **`addConditionalEdges` 三分支路由**
-- API：`/workflow/run`、`/agent/chat`
+| Phase | 交付物 | 路径 |
+|-------|--------|------|
+| **Phase 1 Done** | Definition + Compiler + Engine | [`src/Support/Workflow/`](src/Support/Workflow/) |
+| | NodeExecutionResult + Condition + Plugin | `Support/Workflow/Engine` `Condition` `Plugin` |
+| | AINodeBuilder + Memory | `Support/AI/` + `Support/Neuron/Memory/` |
+| | Order 示例 | [`Test/Module/Order/`](Test/Module/Order/) |
+| | API | `/workflow/run`、`/agent/chat` |
 
-**Phase 2 Done 追加**：`AgentRouterInterface` + `MetricsPlugin` + `AINodeBuilder`；`McpFactory` + 远程 MCP
+**Phase 2 Done 追加**：`Support/Agent`（AgentRouterInterface + AgentScheduler）+ `Support/Workflow/Plugin`（MetricsPlugin）；`Support/Mcp`（McpFactory + 远程 MCP）；`Support/Rag`（VectorStore + Ingestion CLI）
 
-**Phase 3 Done 追加**：`LLMRouter` + `OpenTelemetryPlugin`；`KnowledgeQaWorkflow` + `McpResearchWorkflow`
+**Phase 3 Done 追加**：`Support/Agent/Router`（LLMRouter）+ `Support/Workflow/Plugin`（OpenTelemetryPlugin）；`Test/Module/Knowledge/` + `Research/`（KnowledgeQaWorkflow + McpResearchWorkflow）
 
-**Phase 4 Done 追加**：Meilisearch 生产入库、`RagIngestNode` + AsyncTask、`RetrievalTool`；`McpProcessRunner` + `/mcp/servers` API
+**Phase 4 Done 追加**：`Support/Rag/Store` + `Node`（Meilisearch + RagIngestNode + RetrievalTool）；`Support/Mcp`（McpProcessRunner + `/mcp/servers` API）
 
 ---
 
 ## 15. 实施 To-dos
 
-| 状态 | 阶段 | 任务 |
-|------|------|------|
-| [ ] | Phase 1 | 引入 `neuron-core/neuron-ai` + `symfony/expression-language`；`NeuronFactory` + CurlProxy 协程 HTTP 适配 |
-| [ ] | Phase 1 | **`WorkflowDefinition` + `WorkflowCompiler` + `CompiledWorkflow` + `WorkflowEngine` 三层分离** |
-| [ ] | Phase 1 | **`NodeExecutionResult` + `NodeStatus`；`WorkflowState` Typed API（dto / outputOf）** |
-| [ ] | Phase 1 | **`EdgeCondition` + `ConditionEvaluatorInterface`（Symfony EL 默认）+ `DagScheduler` 路由** |
-| [ ] | Phase 1 | **`MemoryFactory` + `RedisChatHistory`；`AINode` + `structuredOutput` + `OrderDecisionDto` + 条件边示例** |
-| [ ] | Phase 1 | **`NodeInterface` 完整生命周期 + `AbstractNode::run()` 模板方法** |
-| [ ] | Phase 1 | **`WorkflowPlugin` + `PluginManager` + `RetryPlugin` + `TracingPlugin`** |
-| [ ] | Phase 1 | **`AINodeBuilder` DSL + `OrderDecisionDto` 条件边示例** |
-| [ ] | Phase 1 | 实现 `SubWorkflowRunner`；`order_processing` 示例 + HTTP API |
-| [ ] | Phase 2 | `SseResponse` + `StreamBridge` + `WebSocketStreamSink` 流式输出 |
-| [ ] | Phase 2 | **`AgentRouterInterface`（StaticRouter / RuleRouter）+ `AgentScheduler` + `MetricsPlugin`** |
-| [ ] | Phase 2 | `addParallel` + `multi_agent_research` 示例 |
-| [ ] | Phase 2 | `SqlChatHistoryArchive` + `StructuredOutputNode` + **`VectorStoreFactory` + `IngestionPipeline` + 入库 CLI** |
-| [ ] | Phase 2 | **`McpFactory` + 远程 HTTP MCP + `AINode.mcpServers` 声明式挂载** |
-| [ ] | Phase 3 | `PauseNode` + `resume` API + HITL 条件边；**`RagRetrieveNode` + `RAGNode` + `KnowledgeQaWorkflow`** |
-| [ ] | Phase 3 | **`LLMRouter` + `OpenTelemetryPlugin` + `AuditPlugin`** |
-| [ ] | Phase 3 | **多 Agent MCP + `McpResearchWorkflow` 示例** |
-| [ ] | Phase 3 | `RetryExecutor`、`TimeoutGuard`、`AsyncTask` 长跑、DB 冷归档 |
-| [ ] | Phase 4 | **`MeilisearchVectorStore` + `RagIngestNode` + `RetrievalTool`** |
-| [ ] | Phase 4 | **`McpProcessRunner` + `mcp_server_configs` 多租户 + `/mcp/servers` 管理 API** |
-| [ ] | Phase 4 | **`CostAwareRouter` + `RateLimitPlugin` + `PermissionPlugin`** |
-| [ ] | Phase 4 | `SagaCoordinator` |
-| [ ] | Phase 5 | RAG/MCP 多租户隔离、检索缓存、MCP 审计与 rate limit、可观测性完善、拆包与文档 |
+| 状态 | 阶段 | 模块 | 任务 |
+|------|------|------|------|
+| [ ] | Phase 1 | `Support/Neuron` | 引入 `neuron-core/neuron-ai` + `symfony/expression-language`；`NeuronFactory` + CurlProxy 协程 HTTP 适配 |
+| [ ] | Phase 1 | `Support/Workflow` | **`WorkflowDefinition` + `WorkflowCompiler` + `CompiledWorkflow` + `WorkflowEngine` 三层分离** |
+| [ ] | Phase 1 | `Support/Workflow` | **`NodeExecutionResult` + `NodeStatus`；`WorkflowState` Typed API（dto / outputOf）** |
+| [ ] | Phase 1 | `Support/Workflow` | **`EdgeCondition` + `ConditionEvaluatorInterface`（Symfony EL 默认）+ `DagScheduler` 路由** |
+| [ ] | Phase 1 | `Support/Neuron` + `Support/AI` | **`MemoryFactory` + `RedisChatHistory`；`AINode` + `structuredOutput` + `OrderDecisionDto` + 条件边示例** |
+| [ ] | Phase 1 | `Support/Workflow` | **`NodeInterface` 完整生命周期 + `AbstractNode::run()` 模板方法** |
+| [ ] | Phase 1 | `Support/Workflow` | **`WorkflowPlugin` + `PluginManager` + `RetryPlugin` + `TracingPlugin`** |
+| [ ] | Phase 1 | `Support/AI` | **`AINodeBuilder` DSL + `OrderDecisionDto` 条件边示例** |
+| [ ] | Phase 1 | `Support/Workflow` + `Test/Module/Order` | 实现 `SubWorkflowRunner`；`order_processing` 示例 + HTTP API |
+| [ ] | Phase 2 | `Support/AI/Stream` | `SseResponse` + `StreamBridge` + `WebSocketStreamSink` 流式输出 |
+| [ ] | Phase 2 | `Support/Agent` | **`AgentRouterInterface`（StaticRouter / RuleRouter）+ `AgentScheduler` + `MetricsPlugin`** |
+| [ ] | Phase 2 | `Test/Module/Research` | `addParallel` + `multi_agent_research` 示例 |
+| [ ] | Phase 2 | `Support/Neuron` + `Support/AI` + `Support/Rag` | `SqlChatHistoryArchive` + `StructuredOutputNode` + **`VectorStoreFactory` + `IngestionPipeline` + 入库 CLI** |
+| [ ] | Phase 2 | `Support/Mcp` | **`McpFactory` + 远程 HTTP MCP + `AINode.mcpServers` 声明式挂载** |
+| [ ] | Phase 3 | `Support/Workflow` + `Support/Rag` | `PauseNode` + `resume` API + HITL 条件边；**`RagRetrieveNode` + `RAGNode` + `KnowledgeQaWorkflow`** |
+| [ ] | Phase 3 | `Support/Agent` + `Support/Workflow/Plugin` | **`LLMRouter` + `OpenTelemetryPlugin` + `AuditPlugin`** |
+| [ ] | Phase 3 | `Test/Module/Research` | **多 Agent MCP + `McpResearchWorkflow` 示例** |
+| [ ] | Phase 3 | `Support/Workflow` | `RetryExecutor`、`TimeoutGuard`、`AsyncTask` 长跑、DB 冷归档 |
+| [ ] | Phase 4 | `Support/Rag` | **`MeilisearchVectorStore` + `RagIngestNode` + `RetrievalTool`** |
+| [ ] | Phase 4 | `Support/Mcp` | **`McpProcessRunner` + `mcp_server_configs` 多租户 + `/mcp/servers` 管理 API** |
+| [ ] | Phase 4 | `Support/Agent` + `Support/Workflow/Plugin` | **`CostAwareRouter` + `RateLimitPlugin` + `PermissionPlugin`** |
+| [ ] | Phase 4 | `Support/Workflow/Engine` | `SagaCoordinator` |
+| [ ] | Phase 5 | 全部 | RAG/MCP 多租户隔离、检索缓存、MCP 审计与 rate limit、可观测性完善、拆 Composer 包与文档 |
