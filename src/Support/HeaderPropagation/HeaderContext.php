@@ -7,7 +7,7 @@ namespace Swoolefy\Support\HeaderPropagation;
 use Swoolefy\Core\Coroutine\Context as SwooleContext;
 
 /**
- * 请求头透传上下文。
+ * 服务之间请求头透传上下文。
  *
  * 基于 Swoole 协程上下文隔离，避免并发请求之间串 Header。
  */
