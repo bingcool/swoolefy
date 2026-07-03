@@ -43,21 +43,35 @@ return [
 ];
 ```
 
-**neuron_ai.php** — RAG、MCP、Neuron HTTP：
+**neuron_ai.php** — RAG、MCP、Neuron HTTP 与 `ai_model_providers`：
 
 ```php
-return [
-    'rag' => ['vector_store' => 'file', ...],
-    'mcp' => ['max_local_processes' => 2],
-    'neuron' => ['http_client' => 'swoole'],
-];
+use Swoolefy\Support\Neuron\NeuronAiModelEnv;
+use Swoolefy\Support\Neuron\NeuronAiProviderName;
+
+'neuron' => [
+    'default_provider' => NeuronAiProviderName::ANTHROPIC,
+    'ai_model_providers' => [
+        NeuronAiProviderName::OPENAILIKE => [
+            'provider' => \NeuronAI\Providers\OpenAILike::class,
+            'baseUri' => env(NeuronAiModelEnv::OPENAILIKE_BASE_URI, 'https://api.together.xyz/v1'),
+            'key' => env(NeuronAiModelEnv::OPENAILIKE_API_KEY),
+            'model' => env(NeuronAiModelEnv::OPENAILIKE_MODEL),
+            'parameters' => [],
+            'strict_response' => false,
+        ],
+    ],
+],
 ```
+
+除 `provider`（FQCN）外，其余键与 Provider 构造函数参数一致。Agent 未实现 `provider()` 时由 `NeuronFactory` 注入 `default_provider` 对应配置。
 
 常用环境变量：
 
 | 变量 | 说明 |
 |------|------|
 | `OPENAI_API_KEY` | LLM / Embedding |
+| `NEURON_DEFAULT_PROVIDER` | 默认 Provider 别名（`NeuronAiProviderName::*`） |
 | `WORKFLOW_RUN_STORE` | `memory` / `redis` |
 | `WORKFLOW_REDIS_COMPONENT` | Redis 组件别名（如 `redis`、`predis`，见 `component/cache.php`） |
 | `WORKFLOW_REDIS_PREFIX` | Run 快照 key 前缀 |

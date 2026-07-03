@@ -107,7 +107,7 @@ final class AINodeBuilder
     }
 
     /**
-     * 指定 Provider 名称（供 NeuronFactory / Agent 读取，Phase 2 占位）。
+     * 指定 ai_model_providers 别名（见 {@see NeuronAiProviderName}）；可选 model 等构造参数覆盖。
      */
     public function provider(string $name, ?string $model = null): self
     {
@@ -115,6 +115,18 @@ final class AINodeBuilder
         if ($model !== null) {
             $this->config['model'] = $model;
         }
+
+        return $this;
+    }
+
+    /**
+     * 节点级 Provider 构造参数覆盖（与 neuron_ai.php 中对应别名配置合并）。
+     *
+     * @param array<string, mixed> $params
+     */
+    public function providerParams(array $params): self
+    {
+        $this->config['provider_params'] = $params;
 
         return $this;
     }

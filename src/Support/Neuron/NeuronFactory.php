@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Swoolefy\Support\Neuron;
 
 use NeuronAI\Agent\Agent;
+use NeuronAI\Providers\AIProviderInterface;
 use Swoolefy\Support\Mcp\McpFactory;
 use Swoolefy\Support\Neuron\Memory\MemoryFactory;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 
 /**
- * Neuron Agent 工厂 —— 注入 Memory、MCP Tools 等 Swoolefy 基础设施。
+ * Neuron Agent 工厂 —— 注入 Memory、MCP Tools、默认 Provider 等 Swoolefy 基础设施。
  */
 final class NeuronFactory
 {
@@ -19,6 +20,7 @@ final class NeuronFactory
         private readonly MemoryFactory $memoryFactory,
         private readonly ?McpFactory $mcpFactory = null,
         private $agentFactory = null,
+        private readonly ?NeuronProviderFactory $providerFactory = null,
     ) {
     }
 
@@ -35,6 +37,8 @@ final class NeuronFactory
         /** @var Agent $agent */
         $agent = new $agentClass();
 
+        $this->applyProvider($agent, $agentClass, $nodeConfig);
+
         if (($nodeConfig['memory'] ?? false) === true) {
             $threadKey = (string) ($nodeConfig['threadIdKey'] ?? 'sessionId');
             $threadId = (string) ($state->get($threadKey) ?: $state->get('runId') ?: uniqid('thread-', true));
@@ -45,6 +49,21 @@ final class NeuronFactory
         $this->attachMcpTools($agent, $nodeConfig);
 
         return $agent;
+    }
+
+    /** @param array<string, mixed> $nodeConfig */
+    private function applyProvider(Agent $agent, string $agentClass, array $nodeConfig): void
+    {
+        $factory = $this->providerFactory ?? new NeuronProviderFactory();
+
+        $provider = $factory->createFromNodeConfig($nodeConfig);
+        if ($provider === null && !NeuronProviderFactory::agentDeclaresCustomProvider($agentClass)) {
+            $provider = $factory->createDefault();
+        }
+
+        if ($provider instanceof AIProviderInterface) {
+            $agent->setAiProvider($provider);
+        }
     }
 
     /** @param array<string, mixed> $nodeConfig */

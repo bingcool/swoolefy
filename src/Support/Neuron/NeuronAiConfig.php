@@ -25,6 +25,16 @@ final class NeuronAiConfig
         return new self(ApplicationConfig::loadPhpConfig('neuron_ai.php'));
     }
 
+    /**
+     * @param array<string, mixed> $config
+     *
+     * @internal 单测 / 脚本注入
+     */
+    public static function fromArray(array $config): self
+    {
+        return new self($config);
+    }
+
     /** @return array<string, mixed> */
     public function ragSection(): array
     {
@@ -101,5 +111,36 @@ final class NeuronAiConfig
             NeuronHttpFactory::ENV_HTTP_CLIENT,
             NeuronHttpFactory::CLIENT_SWOOLE,
         );
+    }
+
+    /** 默认 Provider 别名（ai_model_providers 的 key）。 */
+    public function defaultProviderName(): string
+    {
+        return ApplicationConfig::pickStringEnvFirst(
+            $this->neuronSection(),
+            'default_provider',
+            'NEURON_DEFAULT_PROVIDER',
+            NeuronAiProviderName::ANTHROPIC,
+        );
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    public function aiModelProviders(): array
+    {
+        $providers = $this->neuronSection()['ai_model_providers'] ?? [];
+
+        return is_array($providers) ? $providers : [];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function providerConfig(string $alias): ?array
+    {
+        $config = $this->aiModelProviders()[$alias] ?? null;
+
+        return is_array($config) ? $config : null;
     }
 }

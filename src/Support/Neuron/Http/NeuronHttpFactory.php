@@ -27,6 +27,11 @@ final class NeuronHttpFactory
     /** 创建 HTTP 客户端实例（每次新建，无全局单例）。 */
     public static function create(): HttpClientInterface
     {
+        // CLI / 单测无 APP_PATH 时 CurlProxy 不可用，回退 Guzzle
+        if (!defined('APP_PATH') || (string) APP_PATH === '') {
+            return new GuzzleHttpClient();
+        }
+
         $driver = strtolower(NeuronAiConfig::load()->httpClient());
 
         if ($driver === self::CLIENT_GUZZLE) {

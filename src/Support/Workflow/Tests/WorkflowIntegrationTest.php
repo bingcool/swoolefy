@@ -26,6 +26,10 @@ use Swoolefy\Support\Workflow\Plugin\PluginManager;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 use Swoolefy\Support\Workflow\WorkflowComponentFactory;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
+use NeuronAI\Providers\Anthropic\Anthropic;
+use Swoolefy\Support\Neuron\NeuronAiProviderName;
+use Swoolefy\Support\Neuron\NeuronProviderFactory;
+use Test\Module\Order\Agent\OrderDecisionAgent;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
@@ -167,12 +171,47 @@ function testIngestCli(): void
     pass('rag ingest cli');
 }
 
+/** Neuron 默认 Provider 工厂与 Agent 覆盖检测。 */
+function testNeuronProviderFactory(): void
+{
+    $factory = new NeuronProviderFactory();
+    $provider = $factory->createFromParams(Anthropic::class, [
+        'key' => 'sk-test-key',
+        'model' => 'claude-3-5-sonnet-20241022',
+    ]);
+    assertTrue($provider instanceof Anthropic, 'Should instantiate Anthropic provider');
+
+    assertTrue(
+        NeuronProviderFactory::agentDeclaresCustomProvider(OrderDecisionAgent::class),
+        'OrderDecisionAgent overrides provider()',
+    );
+
+    $config = \Swoolefy\Support\Neuron\NeuronAiConfig::fromArray([
+        'neuron' => [
+            'default_provider' => NeuronAiProviderName::ANTHROPIC,
+            'ai_model_providers' => [
+                NeuronAiProviderName::ANTHROPIC => [
+                    'provider' => Anthropic::class,
+                    'key' => 'sk-alias',
+                    'model' => 'claude-test',
+                ],
+            ],
+        ],
+    ]);
+    $aliasFactory = new NeuronProviderFactory($config);
+    $fromAlias = $aliasFactory->createFromAlias(NeuronAiProviderName::ANTHROPIC);
+    assertTrue($fromAlias instanceof Anthropic, 'Should create from ai_model_providers alias');
+
+    pass('neuron provider factory');
+}
+
 $tests = [
     'jsonlogic routing' => 'testJsonLogicRouting',
     'sub workflow node' => 'testSubWorkflowNode',
     'round robin router' => 'testRoundRobinRouter',
     'workflow component factory' => 'testWorkflowComponentFactory',
     'rag ingest cli' => 'testIngestCli',
+    'neuron provider factory' => 'testNeuronProviderFactory',
 ];
 
 foreach ($tests as $label => $fn) {
