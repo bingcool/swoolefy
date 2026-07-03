@@ -4,19 +4,22 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Workflow\Engine;
 
-use Redis;
+use Swoolefy\Library\Redis\Redis;
+use Swoolefy\Library\Redis\RedisConnection;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
 
 /**
  * Redis Run 快照存储 —— 跨 Worker 持久化 Run，支持 resume / HITL。
  *
+ * Redis 实例来自 Swoolefy 组件容器（{@see \Swoolefy\Support\Workflow\WorkflowRedisResolver}），
+ * phpredis / predis 包装类均继承 {@see RedisConnection}。
+ *
  * 存储格式：JSON（{@see WorkflowRunSnapshot}），key = {prefix}{runId}
- * CompiledWorkflow 不序列化，find 时通过 {@see WorkflowRegistry} 按 workflowId 重建。
  */
 final class RedisRunStore implements RunStoreInterface, PauseTaskQueryableInterface
 {
     public function __construct(
-        private readonly Redis $redis,
+        private readonly RedisConnection $redis,
         private readonly WorkflowRegistry $registry,
         private readonly string $prefix = 'workflow:run:',
         private readonly int $ttlSeconds = 86400,
@@ -80,19 +83,44 @@ final class RedisRunStore implements RunStoreInterface, PauseTaskQueryableInterf
     {
         $pattern = $this->prefix . '*';
         $ids = [];
-        $iterator = null;
 
+        if ($this->redis instanceof Redis && method_exists($this->redis, 'getRedisInstance')) {
+            $native = $this->redis->getRedisInstance();
+            if ($native instanceof \Redis) {
+                $iterator = null;
+                do {
+                    $keys = $native->scan($iterator, $pattern, 100);
+                    if ($keys === false) {
+                        break;
+                    }
+                    foreach ($keys as $key) {
+                        if (is_string($key) && str_starts_with($key, $this->prefix)) {
+                            $ids[] = substr($key, strlen($this->prefix));
+                        }
+                    }
+                } while ($iterator !== 0 && $iterator !== null);
+
+                return $ids;
+            }
+        }
+
+        $cursor = '0';
         do {
-            $keys = $this->redis->scan($iterator, $pattern, 100);
-            if ($keys === false) {
+            $result = $this->redis->scan($cursor, ['MATCH' => $pattern, 'COUNT' => 100]);
+            if (!is_array($result)) {
                 break;
             }
-            foreach ($keys as $key) {
-                if (is_string($key) && str_starts_with($key, $this->prefix)) {
-                    $ids[] = substr($key, strlen($this->prefix));
+            $nextCursor = (string) ($result[0] ?? '0');
+            $keys = $result[1] ?? [];
+            if (is_array($keys)) {
+                foreach ($keys as $key) {
+                    if (is_string($key) && str_starts_with($key, $this->prefix)) {
+                        $ids[] = substr($key, strlen($this->prefix));
+                    }
                 }
             }
-        } while ($iterator !== 0 && $iterator !== null);
+            $cursor = $nextCursor;
+        } while ($cursor !== '0' && $cursor !== '');
 
         return $ids;
     }

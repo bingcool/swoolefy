@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Mcp;
 
+use Swoolefy\Support\Neuron\NeuronAiConfig;
+
 /**
  * 本地 stdio MCP 子进程并发守卫 —— 避免 Swoole Worker 被过多子进程阻塞。
  *
@@ -31,9 +33,7 @@ final class McpProcessRunner
     /** 从环境变量 MCP_MAX_LOCAL_PROCESSES 构建（最小值 1）。 */
     public static function fromEnv(): self
     {
-        $max = (int) (getenv('MCP_MAX_LOCAL_PROCESSES') ?: 2);
-
-        return new self(max(1, $max));
+        return new self(NeuronAiConfig::load()->maxLocalProcesses());
     }
 
     /**

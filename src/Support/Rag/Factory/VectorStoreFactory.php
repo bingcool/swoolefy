@@ -7,6 +7,7 @@ namespace Swoolefy\Support\Rag\Factory;
 use NeuronAI\RAG\VectorStore\FileVectorStore;
 use NeuronAI\RAG\VectorStore\MeilisearchVectorStore;
 use NeuronAI\RAG\VectorStore\VectorStoreInterface;
+use Swoolefy\Support\Neuron\NeuronAiConfig;
 use Swoolefy\Support\Rag\Store\MeilisearchConfig;
 
 /**
@@ -47,9 +48,10 @@ final class VectorStoreFactory
      */
     public static function fromEnv(?string $basePath = null): self
     {
-        $path = $basePath ?? (string) (getenv('RAG_FILE_STORE_PATH') ?: sys_get_temp_dir() . '/swoolefy_rag');
-        $storeType = (string) (getenv('RAG_VECTOR_STORE') ?: 'file');
-        $topK = (int) (getenv('RAG_DEFAULT_TOP_K') ?: 5);
+        $config = NeuronAiConfig::load();
+        $path = $basePath ?? $config->fileStorePath();
+        $storeType = $config->vectorStoreDriver();
+        $topK = $config->defaultTopK();
 
         return new self(
             basePath: $path,

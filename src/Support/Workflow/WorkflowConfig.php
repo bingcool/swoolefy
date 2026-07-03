@@ -5,42 +5,29 @@ declare(strict_types=1);
 namespace Swoolefy\Support\Workflow;
 
 use Swoolefy\Support\ApplicationConfig;
-use Symfony\Component\Yaml\Yaml;
 
 /**
- * Workflow / RAG / MCP / Neuron 模块配置加载器。
+ * Workflow 引擎配置加载器。
  *
- * 读取 APP_PATH/config/workflow.yaml（可选），环境变量优先。
+ * 读取 APP_PATH/config/workflow.php（可选），环境变量优先。
+ * RAG / MCP / Neuron 见 {@see \Swoolefy\Support\Neuron\NeuronAiConfig}。
  */
 final class WorkflowConfig
 {
-    /** @param array<string, mixed> $yaml */
+    /** @param array<string, mixed> $config */
     private function __construct(
-        private readonly array $yaml,
+        private readonly array $config,
     ) {
     }
 
     public static function load(): self
     {
-        $yaml = [];
-        if (ApplicationConfig::hasApplicationYaml()) {
-            try {
-                $appPath = ApplicationConfig::resolveAppPath();
-                $configFile = $appPath . '/config/workflow.yaml';
-                if (is_file($configFile)) {
-                    $yaml = (array) Yaml::parseFile($configFile);
-                }
-            } catch (\Throwable) {
-                $yaml = [];
-            }
-        }
-
-        return new self($yaml);
+        return new self(ApplicationConfig::loadPhpConfig('workflow.php'));
     }
 
     public function runStoreDriver(): string
     {
-        $section = (array) ($this->yaml['workflow'] ?? []);
+        $section = (array) ($this->config['workflow'] ?? []);
 
         return ApplicationConfig::pickStringEnvFirst($section, 'run_store', 'WORKFLOW_RUN_STORE', 'memory');
     }
@@ -48,25 +35,44 @@ final class WorkflowConfig
     /** @return array<string, mixed> */
     public function redisSection(): array
     {
-        return (array) (($this->yaml['workflow']['redis'] ?? []) ?: []);
+        return (array) (($this->config['workflow']['redis'] ?? []) ?: []);
+    }
+
+    /** Redis 组件别名，对应 Config/component/cache.php 中的 key（如 redis / predis）。 */
+    public function redisComponent(): string
+    {
+        return ApplicationConfig::pickStringEnvFirst(
+            $this->redisSection(),
+            'component',
+            'WORKFLOW_REDIS_COMPONENT',
+            'redis',
+        );
+    }
+
+    public function redisPrefix(): string
+    {
+        return ApplicationConfig::pickStringEnvFirst(
+            $this->redisSection(),
+            'prefix',
+            'WORKFLOW_REDIS_PREFIX',
+            'workflow:run:',
+        );
+    }
+
+    public function redisTtl(): int
+    {
+        return ApplicationConfig::pickIntEnvFirst(
+            $this->redisSection(),
+            'ttl',
+            'WORKFLOW_REDIS_TTL',
+            86400,
+        );
     }
 
     public function conditionEvaluator(): string
     {
-        $section = (array) ($this->yaml['workflow'] ?? []);
+        $section = (array) ($this->config['workflow'] ?? []);
 
         return ApplicationConfig::pickStringEnvFirst($section, 'condition_evaluator', 'WORKFLOW_CONDITION_EVALUATOR', 'symfony');
-    }
-
-    /** @return array<string, mixed> */
-    public function ragSection(): array
-    {
-        return (array) ($this->yaml['rag'] ?? []);
-    }
-
-    /** @return array<string, mixed> */
-    public function mcpSection(): array
-    {
-        return (array) ($this->yaml['mcp'] ?? []);
     }
 }

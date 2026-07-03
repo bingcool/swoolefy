@@ -51,6 +51,31 @@ final class ApplicationConfig
         return is_file(self::applicationYamlPath());
     }
 
+    /**
+     * 加载 APP_PATH/config/{filename} 返回的 PHP 配置数组。
+     *
+     * @return array<string, mixed>
+     */
+    public static function loadPhpConfig(string $filename): array
+    {
+        if (!self::hasApplicationYaml()) {
+            return [];
+        }
+
+        try {
+            $configFile = self::resolveAppPath() . '/config/' . ltrim($filename, '/');
+            if (!is_file($configFile)) {
+                return [];
+            }
+
+            $loaded = require $configFile;
+
+            return is_array($loaded) ? $loaded : [];
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
     public static function isEnableNacosRegister(): bool
     {
         if (!self::hasApplicationYaml()) {

@@ -1813,7 +1813,8 @@ php script.php start App --c=gen:sdk --router=App/Router --out=../generate-sdk-l
 
 ```bash
 # 复制配置模板
-cp Test/config/workflow.yaml App/config/workflow.yaml
+cp Test/Config/workflow.php App/config/workflow.php
+cp Test/Config/neuron_ai.php App/config/neuron_ai.php
 ```
 
 生产环境推荐 `WorkflowComponentFactory` + `WorkflowRegistry`（支持 Redis RunStore 跨 Worker resume）：

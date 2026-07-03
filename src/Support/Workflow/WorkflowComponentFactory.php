@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Workflow;
 
-use Redis;
 use Swoolefy\Support\Workflow\Condition\ConditionEvaluatorFactory;
 use Swoolefy\Support\Workflow\Condition\ConditionEvaluatorInterface;
 use Swoolefy\Support\Workflow\Definition\WorkflowCompiler;
@@ -17,10 +16,9 @@ use Swoolefy\Support\Workflow\Engine\SubWorkflowRunner;
 use Swoolefy\Support\Workflow\Engine\WorkflowEngine;
 use Swoolefy\Support\Workflow\Engine\WorkflowEventDispatcherInterface;
 use Swoolefy\Support\Workflow\Plugin\PluginManager;
-use Swoolefy\Support\ApplicationConfig;
 
 /**
- * 生产级 Workflow 组件工厂 —— 从 workflow.yaml + env 装配 Engine / RunStore。
+ * 生产级 Workflow 组件工厂 —— 从 workflow.php + env 装配 Engine / RunStore。
  */
 final class WorkflowComponentFactory
 {
@@ -38,16 +36,16 @@ final class WorkflowComponentFactory
             return new InMemoryRunStore();
         }
 
-        $redisCfg = $config->redisSection();
-        $host = ApplicationConfig::pickStringEnvFirst($redisCfg, 'host', 'REDIS_HOST', '127.0.0.1');
-        $port = ApplicationConfig::pickIntEnvFirst($redisCfg, 'port', 'REDIS_PORT', 6379);
-        $prefix = ApplicationConfig::pickStringEnvFirst($redisCfg, 'prefix', 'WORKFLOW_REDIS_PREFIX', 'workflow:run:');
-        $ttl = ApplicationConfig::pickIntEnvFirst($redisCfg, 'ttl', 'WORKFLOW_REDIS_TTL', 86400);
+        $component = $config->redisComponent();
+        $prefix = $config->redisPrefix();
+        $ttl = $config->redisTtl();
 
-        $redis = new Redis();
-        $redis->connect($host, $port);
-
-        return new RedisRunStore($redis, $registry, $prefix, $ttl);
+        return new RedisRunStore(
+            WorkflowRedisResolver::resolve($component),
+            $registry,
+            $prefix,
+            $ttl,
+        );
     }
 
     public static function engine(

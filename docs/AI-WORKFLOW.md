@@ -23,31 +23,34 @@
 将模板复制到应用目录：
 
 ```bash
-cp vendor/bingcool/swoolefy/Test/config/workflow.yaml APP_PATH/config/workflow.yaml
+cp Test/Config/workflow.php App/config/workflow.php
+cp Test/Config/neuron_ai.php App/config/neuron_ai.php
 ```
 
-关键项（也可用环境变量覆盖）：
+**workflow.php** — 引擎 RunStore、条件求值器：
 
-```yaml
-workflow:
-  run_store: memory          # memory | redis（生产推荐 redis）
-  condition_evaluator: symfony  # symfony | jsonlogic
-  redis:
-    host: 127.0.0.1
-    port: 6379
-    prefix: "workflow:run:"
-    ttl: 86400
+```php
+return [
+    'workflow' => [
+        'run_store' => 'memory',       // memory | redis
+        'condition_evaluator' => 'symfony',
+        'redis' => [
+            'component' => 'redis',    // Config/component/cache.php 中的组件别名
+            'prefix' => 'workflow:run:',
+            'ttl' => 86400,
+        ],
+    ],
+];
+```
 
-rag:
-  vector_store: file         # file | meilisearch
-  file_store_path: /data/rag
-  default_top_k: 5
+**neuron_ai.php** — RAG、MCP、Neuron HTTP：
 
-mcp:
-  max_local_processes: 2
-
-neuron:
-  http_client: swoole          # swoole | guzzle
+```php
+return [
+    'rag' => ['vector_store' => 'file', ...],
+    'mcp' => ['max_local_processes' => 2],
+    'neuron' => ['http_client' => 'swoole'],
+];
 ```
 
 常用环境变量：
@@ -56,6 +59,9 @@ neuron:
 |------|------|
 | `OPENAI_API_KEY` | LLM / Embedding |
 | `WORKFLOW_RUN_STORE` | `memory` / `redis` |
+| `WORKFLOW_REDIS_COMPONENT` | Redis 组件别名（如 `redis`、`predis`，见 `component/cache.php`） |
+| `WORKFLOW_REDIS_PREFIX` | Run 快照 key 前缀 |
+| `WORKFLOW_REDIS_TTL` | Run 快照 TTL（秒） |
 | `WORKFLOW_CONDITION_EVALUATOR` | `symfony` / `jsonlogic` |
 | `RAG_VECTOR_STORE` | `file` / `meilisearch` |
 | `MEILISEARCH_HOST` | Meilisearch 地址 |
@@ -87,7 +93,7 @@ $compiled = $compiler->compile($registry->definition('order_processing'));
 $runId = $engine->start($compiled, ['orderId' => 10001, 'sessionId' => 's1']);
 ```
 
-`run_store: redis` 时 Run 快照跨 Worker 持久化，支持 HITL `resume()` 与 `listPauseTasks()`。
+`run_store: redis` 时通过 `Application::getApp()->get(component)->getObject()` 获取 `RedisConnection`（连接信息在 `component/cache.php` 配置），Run 快照跨 Worker 持久化。
 
 Test 项目参考：`Test/Module/Workflow/WorkflowService.php`（注册全部示例工作流）。
 

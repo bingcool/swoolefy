@@ -13,8 +13,8 @@ Swoolefy 内置的 **DAG 工作流引擎**，用于编排业务节点、AI 决�
 Workflow/
 ├── Workflow.php                 # Facade：define → compile → start / resume / cancel
 ├── WorkflowBootstrap.php        # 演示/单测协程单例装配
-├── WorkflowComponentFactory.php # 生产装配（yaml + Redis RunStore）
-├── WorkflowConfig.php           # workflow.yaml 解析
+├── WorkflowComponentFactory.php # 生产装配（workflow.php + Redis RunStore）
+├── WorkflowConfig.php           # workflow.php 解析
 ├── WorkflowRegistry.php         # workflowId → Definition 注册表
 ├── Definition/                  # 声明层（纯 DAG，无 I/O）
 ├── Engine/                      # 运行时：Engine、Scheduler、RunStore、Saga
@@ -91,7 +91,10 @@ $compiled = $compiler->compile($registry->definition('order_processing'));
 $runId    = $engine->start($compiled, $input);
 ```
 
-配置模板：`Test/config/workflow.yaml` → 复制到 `APP_PATH/config/workflow.yaml`。
+配置模板：
+
+- `Test/Config/workflow.php` → `APP_PATH/config/workflow.php`（引擎）
+- `Test/Config/neuron_ai.php` → `APP_PATH/config/neuron_ai.php`（RAG / MCP / Neuron，见 `Support/Neuron/NeuronAiConfig.php`）
 
 ---
 
@@ -163,9 +166,9 @@ $definition->addNode('call_child', new SubWorkflowNode('call_child', [
 | 驱动 | 类 | 场景 |
 |------|-----|------|
 | `memory` | `InMemoryRunStore` | 单测、单 Worker 演示 |
-| `redis` | `RedisRunStore` | 生产：跨 Worker resume、HITL 任务列表 |
+| `redis` | `RedisRunStore` | 生产：引用 `cache.php` 组件别名，跨 Worker resume、HITL 任务列表 |
 
-`RedisRunStore` 序列化 Run 快照，通过 `WorkflowRegistry` 按 `workflowId` 重建 `CompiledWorkflow`。
+`RedisRunStore` 通过 `WorkflowRedisResolver` 从 `Application::getApp()->get('redis'|'predis')` 解析 `RedisConnection`。
 
 ---
 

@@ -19,7 +19,7 @@ final class FileAuditLogWriter implements AuditLogWriterInterface
     {
         $path = $this->filePath !== ''
             ? $this->filePath
-            : (defined('RUNTIME_PATH') ? RUNTIME_PATH : sys_get_temp_dir()) . '/workflow_audit.log';
+            : (defined('LOG_PATH') ? join('/', [LOG_PATH, 'workflow', 'workflow_audit.log']) : sys_get_temp_dir()) . '/workflow_audit.log';
 
         $line = json_encode([
             'event' => $event,
