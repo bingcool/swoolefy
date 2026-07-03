@@ -5,100 +5,153 @@ declare(strict_types=1);
 namespace Swoolefy\Support\Rag\Factory;
 
 use NeuronAI\RAG\VectorStore\FileVectorStore;
+use NeuronAI\RAG\VectorStore\MariaDBVectorStore;
 use NeuronAI\RAG\VectorStore\MeilisearchVectorStore;
+use NeuronAI\RAG\VectorStore\PineconeVectorStore;
+use NeuronAI\RAG\VectorStore\QdrantVectorStore;
 use NeuronAI\RAG\VectorStore\VectorStoreInterface;
+use RuntimeException;
+use Swoolefy\Support\Neuron\Http\NeuronHttpFactory;
 use Swoolefy\Support\Neuron\NeuronAiConfig;
+use Swoolefy\Support\Neuron\NeuronAiVectorStoreName;
+use Swoolefy\Support\Rag\Resolver\RagPdoResolver;
 use Swoolefy\Support\Rag\Store\MeilisearchConfig;
 
 /**
- * 向量存储工厂 —— 按环境切换 file / meilisearch，按 knowledgeBase 隔离索引。
+ * 向量存储工厂 —— 按配置切换多种 VectorStore，按 knowledgeBase 隔离索引/目录/表。
  *
- * 技术要点：
- * - 开发/单测：FileVectorStore，零外部依赖，目录 {basePath}/{knowledgeBase}/
- * - 生产：MeilisearchVectorStore，每知识库独立 indexUid
- * - knowledgeBase 名经 sanitize 后作为 index/目录名，防止路径注入
- *
- * 环境变量：
- *   RAG_VECTOR_STORE=file|meilisearch
- *   RAG_FILE_STORE_PATH、RAG_DEFAULT_TOP_K
- *   MEILISEARCH_HOST、MEILISEARCH_KEY（meilisearch 模式）
+ * 支持：file、meilisearch、phpvector、mariadb、pinecone、qdrant
  *
  * @see swoolefyAI.md §4.10.2
  */
 final class VectorStoreFactory
 {
-    /**
-     * @param string               $basePath    File 模式根目录
-     * @param int                  $defaultTopK 默认检索 TopK
-     * @param string               $storeType   file | meilisearch
-     * @param MeilisearchConfig|null $meilisearch meilisearch 模式连接配置
-     */
     public function __construct(
-        private readonly string $basePath,
-        private readonly int $defaultTopK = 5,
-        private readonly string $storeType = 'file',
+        private readonly NeuronAiConfig $config,
+        private readonly ?string $basePathOverride = null,
         private readonly ?MeilisearchConfig $meilisearch = null,
     ) {
     }
 
-    /**
-     * 从环境变量构建工厂（推荐 HTTP / CLI 入口使用）。
-     *
-     * RAG_VECTOR_STORE=meilisearch 时自动加载 MeilisearchConfig::fromEnv()
-     */
     public static function fromEnv(?string $basePath = null): self
     {
         $config = NeuronAiConfig::load();
-        $path = $basePath ?? $config->fileStorePath();
         $storeType = $config->vectorStoreDriver();
-        $topK = $config->defaultTopK();
+        $meilisearch = $storeType === NeuronAiVectorStoreName::MEILISEARCH
+            ? MeilisearchConfig::fromNeuronAiConfig($config)
+            : null;
 
-        return new self(
-            basePath: $path,
-            defaultTopK: $topK,
-            storeType: $storeType,
-            meilisearch: $storeType === 'meilisearch' ? MeilisearchConfig::fromEnv() : null,
-        );
+        return new self($config, $basePath, $meilisearch);
     }
 
-    /**
-     * 获取指定知识库的 VectorStore 实例。
-     *
-     * 每次调用返回新实例（无进程级单例），协程安全由调用方 Context 管理。
-     */
     public function make(string $knowledgeBase, ?int $topK = null): VectorStoreInterface
     {
         $index = $this->sanitize($knowledgeBase);
-        $k = $topK ?? $this->defaultTopK;
+        $k = $topK ?? $this->config->defaultTopK();
 
-        if ($this->storeType === 'meilisearch' && $this->meilisearch !== null) {
-            // Neuron MeilisearchVectorStore：index 不存在时自动 createIndex
-            return new MeilisearchVectorStore(
-                indexUid: $index,
-                host: $this->meilisearch->host,
-                key: $this->meilisearch->apiKey,
-                embedder: $this->meilisearch->embedder,
-                topK: $k,
-                dimension: $this->meilisearch->dimension,
-            );
-        }
+        return match ($this->config->vectorStoreDriver()) {
+            NeuronAiVectorStoreName::MEILISEARCH => $this->makeMeilisearch($index, $k),
+            NeuronAiVectorStoreName::PHP_VECTOR => $this->makePhpVector($index, $k),
+            NeuronAiVectorStoreName::MARIADB => $this->makeMariaDb($index, $k),
+            NeuronAiVectorStoreName::PINECONE => $this->makePinecone($index, $k),
+            NeuronAiVectorStoreName::QDRANT => $this->makeQdrant($index, $k),
+            default => $this->makeFile($index, $k),
+        };
+    }
 
-        $directory = rtrim($this->basePath, '/') . '/' . $index;
+    public function storeType(): string
+    {
+        return $this->config->vectorStoreDriver();
+    }
+
+    private function makeFile(string $index, int $topK): FileVectorStore
+    {
+        $basePath = $this->basePathOverride ?? $this->config->fileStorePath();
+        $directory = rtrim($basePath, '/') . '/' . $index;
 
         return new FileVectorStore(
             directory: $directory,
-            topK: $k,
+            topK: $topK,
             name: $index,
         );
     }
 
-    /** 当前 store 类型（file / meilisearch），供观测与单测断言。 */
-    public function storeType(): string
+    private function makeMeilisearch(string $index, int $topK): MeilisearchVectorStore
     {
-        return $this->storeType;
+        if ($this->meilisearch === null) {
+            throw new RuntimeException('Meilisearch config is required when vector_store=meilisearch.');
+        }
+
+        return new MeilisearchVectorStore(
+            indexUid: $index,
+            host: $this->meilisearch->host,
+            key: $this->meilisearch->apiKey,
+            embedder: $this->meilisearch->embedder,
+            topK: $topK,
+            dimension: $this->meilisearch->dimension,
+        );
     }
 
-    /** 知识库名消毒：仅保留字母数字 _ -，防止目录穿越。 */
+    private function makePhpVector(string $index, int $topK): VectorStoreInterface
+    {
+        if (!class_exists(\NeuronAI\PHPVector\PHPVector::class)) {
+            throw new RuntimeException(
+                'PHPVector requires composer package neuron-core/php-vector. Run: composer require neuron-core/php-vector',
+            );
+        }
+
+        $path = rtrim($this->config->phpvectorPath(), '/') . '/' . $index;
+
+        return new \NeuronAI\PHPVector\PHPVector(
+            path: $path,
+            topK: $topK,
+        );
+    }
+
+    private function makeMariaDb(string $index, int $topK): MariaDBVectorStore
+    {
+        $tableName = $this->config->mariadbTableName() . '_' . $index;
+        $pdo = RagPdoResolver::resolve($this->config->mariadbComponent());
+
+        return new MariaDBVectorStore(
+            pdo: $pdo,
+            tableName: $tableName,
+            topK: $topK,
+        );
+    }
+
+    private function makePinecone(string $index, int $topK): PineconeVectorStore
+    {
+        $key = $this->config->pineconeKey();
+        $indexUrl = $this->config->pineconeIndexUrl();
+        if ($key === '' || $indexUrl === '') {
+            throw new RuntimeException('Pinecone vector store requires pinecone.key and pinecone.index_url.');
+        }
+
+        return new PineconeVectorStore(
+            key: $key,
+            indexUrl: $indexUrl,
+            topK: $topK,
+            version: $this->config->pineconeVersion(),
+            namespace: $index,
+            httpClient: NeuronHttpFactory::create(),
+        );
+    }
+
+    private function makeQdrant(string $index, int $topK): QdrantVectorStore
+    {
+        $collectionUrl = rtrim($this->config->qdrantBaseUrl(), '/')
+            . '/collections/' . $index . '/';
+
+        return new QdrantVectorStore(
+            collectionUrl: $collectionUrl,
+            key: $this->config->qdrantKey(),
+            topK: $topK,
+            dimension: $this->config->qdrantDimension(),
+            httpClient: NeuronHttpFactory::create(),
+        );
+    }
+
     private function sanitize(string $name): string
     {
         return preg_replace('/[^a-zA-Z0-9_\-]/', '_', $name) ?: 'default';

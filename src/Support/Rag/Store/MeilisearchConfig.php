@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Rag\Store;
 
+use Swoolefy\Support\Neuron\NeuronAiConfig;
+
 /**
  * Meilisearch 向量库连接配置 —— 供 {@see \Swoolefy\Support\Rag\Factory\VectorStoreFactory} 生产环境使用。
  *
@@ -31,19 +33,27 @@ final class MeilisearchConfig
     }
 
     /**
-     * 从环境变量构建配置。
+     * 从 neuron_ai.php + 环境变量构建配置。
+     */
+    public static function fromNeuronAiConfig(?NeuronAiConfig $config = null): self
+    {
+        $config ??= NeuronAiConfig::load();
+
+        return new self(
+            host: $config->meilisearchHost(),
+            apiKey: $config->meilisearchKey(),
+            embedder: $config->meilisearchEmbedder(),
+            dimension: $config->meilisearchDimension(),
+        );
+    }
+
+    /**
+     * 从环境变量构建配置（兼容旧用法）。
      *
      * 读取：MEILISEARCH_HOST、MEILISEARCH_KEY、MEILISEARCH_EMBEDDER、MEILISEARCH_DIMENSION
      */
     public static function fromEnv(): self
     {
-        $key = getenv('MEILISEARCH_KEY');
-
-        return new self(
-            host: (string) (getenv('MEILISEARCH_HOST') ?: 'http://localhost:7700'),
-            apiKey: $key !== false && $key !== '' ? (string) $key : null,
-            embedder: (string) (getenv('MEILISEARCH_EMBEDDER') ?: 'default'),
-            dimension: (int) (getenv('MEILISEARCH_DIMENSION') ?: 1024),
-        );
+        return self::fromNeuronAiConfig();
     }
 }

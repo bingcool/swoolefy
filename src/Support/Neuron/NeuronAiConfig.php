@@ -58,8 +58,8 @@ final class NeuronAiConfig
         return ApplicationConfig::pickStringEnvFirst(
             $this->ragSection(),
             'vector_store',
-            'RAG_VECTOR_STORE',
-            'file',
+            NeuronAiRagEnv::VECTOR_STORE,
+            NeuronAiVectorStoreName::FILE,
         );
     }
 
@@ -68,7 +68,7 @@ final class NeuronAiConfig
         return ApplicationConfig::pickStringEnvFirst(
             $this->ragSection(),
             'file_store_path',
-            'RAG_FILE_STORE_PATH',
+            NeuronAiRagEnv::FILE_STORE_PATH,
             sys_get_temp_dir() . '/swoolefy_rag',
         );
     }
@@ -78,7 +78,7 @@ final class NeuronAiConfig
         return ApplicationConfig::pickIntEnvFirst(
             $this->ragSection(),
             'default_top_k',
-            'RAG_DEFAULT_TOP_K',
+            NeuronAiRagEnv::DEFAULT_TOP_K,
             5,
         );
     }
@@ -88,8 +88,172 @@ final class NeuronAiConfig
         return ApplicationConfig::pickStringEnvFirst(
             $this->ragSection(),
             'embedding_model',
-            'RAG_EMBEDDING_MODEL',
+            NeuronAiRagEnv::EMBEDDING_MODEL,
             'text-embedding-3-small',
+        );
+    }
+
+    /** @return array<string, mixed> */
+    public function meilisearchSection(): array
+    {
+        return (array) ($this->ragSection()[NeuronAiVectorStoreName::MEILISEARCH] ?? []);
+    }
+
+    public function meilisearchHost(): string
+    {
+        return ApplicationConfig::pickStringEnvFirst(
+            $this->meilisearchSection(),
+            'host',
+            NeuronAiRagEnv::MEILISEARCH_HOST,
+            'http://localhost:7700',
+        );
+    }
+
+    public function meilisearchKey(): ?string
+    {
+        $key = ApplicationConfig::pickStringEnvFirst(
+            $this->meilisearchSection(),
+            'key',
+            NeuronAiRagEnv::MEILISEARCH_KEY,
+            '',
+        );
+
+        return $key !== '' ? $key : null;
+    }
+
+    public function meilisearchEmbedder(): string
+    {
+        return ApplicationConfig::pickStringEnvFirst(
+            $this->meilisearchSection(),
+            'embedder',
+            NeuronAiRagEnv::MEILISEARCH_EMBEDDER,
+            'default',
+        );
+    }
+
+    public function meilisearchDimension(): int
+    {
+        return ApplicationConfig::pickIntEnvFirst(
+            $this->meilisearchSection(),
+            'dimension',
+            NeuronAiRagEnv::MEILISEARCH_DIMENSION,
+            1024,
+        );
+    }
+
+    /** @return array<string, mixed> */
+    public function phpvectorSection(): array
+    {
+        return (array) ($this->ragSection()[NeuronAiVectorStoreName::PHP_VECTOR] ?? []);
+    }
+
+    public function phpvectorPath(): string
+    {
+        return ApplicationConfig::pickStringEnvFirst(
+            $this->phpvectorSection(),
+            'path',
+            NeuronAiRagEnv::PHPVECTOR_PATH,
+            sys_get_temp_dir() . '/swoolefy_phpvector',
+        );
+    }
+
+    /** @return array<string, mixed> */
+    public function mariadbSection(): array
+    {
+        return (array) ($this->ragSection()[NeuronAiVectorStoreName::MARIADB] ?? []);
+    }
+
+    public function mariadbComponent(): string
+    {
+        return ApplicationConfig::pickStringEnvFirst(
+            $this->mariadbSection(),
+            'component',
+            NeuronAiRagEnv::MARIADB_COMPONENT,
+            'db',
+        );
+    }
+
+    public function mariadbTableName(): string
+    {
+        return ApplicationConfig::pickStringEnvFirst(
+            $this->mariadbSection(),
+            'table_name',
+            NeuronAiRagEnv::MARIADB_TABLE_NAME,
+            'rag_documents',
+        );
+    }
+
+    /** @return array<string, mixed> */
+    public function pineconeSection(): array
+    {
+        return (array) ($this->ragSection()[NeuronAiVectorStoreName::PINECONE] ?? []);
+    }
+
+    public function pineconeKey(): string
+    {
+        return ApplicationConfig::pickStringEnvFirst(
+            $this->pineconeSection(),
+            'key',
+            NeuronAiRagEnv::PINECONE_KEY,
+            '',
+        );
+    }
+
+    public function pineconeIndexUrl(): string
+    {
+        return ApplicationConfig::pickStringEnvFirst(
+            $this->pineconeSection(),
+            'index_url',
+            NeuronAiRagEnv::PINECONE_INDEX_URL,
+            '',
+        );
+    }
+
+    public function pineconeVersion(): string
+    {
+        return ApplicationConfig::pickStringEnvFirst(
+            $this->pineconeSection(),
+            'version',
+            NeuronAiRagEnv::PINECONE_VERSION,
+            '2025-04',
+        );
+    }
+
+    /** @return array<string, mixed> */
+    public function qdrantSection(): array
+    {
+        return (array) ($this->ragSection()[NeuronAiVectorStoreName::QDRANT] ?? []);
+    }
+
+    public function qdrantBaseUrl(): string
+    {
+        return ApplicationConfig::pickStringEnvFirst(
+            $this->qdrantSection(),
+            'base_url',
+            NeuronAiRagEnv::QDRANT_BASE_URL,
+            'http://localhost:6333',
+        );
+    }
+
+    public function qdrantKey(): ?string
+    {
+        $key = ApplicationConfig::pickStringEnvFirst(
+            $this->qdrantSection(),
+            'key',
+            NeuronAiRagEnv::QDRANT_KEY,
+            '',
+        );
+
+        return $key !== '' ? $key : null;
+    }
+
+    public function qdrantDimension(): int
+    {
+        return ApplicationConfig::pickIntEnvFirst(
+            $this->qdrantSection(),
+            'dimension',
+            NeuronAiRagEnv::QDRANT_DIMENSION,
+            1536,
         );
     }
 

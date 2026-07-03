@@ -12,7 +12,7 @@
 | AI 节点 | `AINodeBuilder`、`StructuredOutputNode`、流式 SSE/WebSocket | `Swoolefy\Support\AI` |
 | Agent | Static / Rule / LLM / Weighted / CostAware / RoundRobin 路由 | `Swoolefy\Support\Agent` |
 | Neuron | LLM 工厂、Redis 记忆、Swoole 协程 HTTP、Embedding | `Swoolefy\Support\Neuron` |
-| RAG | 向量库（file / Meilisearch）、入库 Pipeline、检索 Tool | `Swoolefy\Support\Rag` |
+| RAG | 向量库（File / Meilisearch / PHPVector / MariaDB / Pinecone / Qdrant）、入库 Pipeline、检索 Tool | `Swoolefy\Support\Rag` |
 | MCP | 远程 HTTP、本地 stdio 进程、多租户配置 | `Swoolefy\Support\Mcp` |
 | 插件 | Retry、Tracing、Metrics、OTel、Audit、RateLimit、Permission | `Support/Workflow/Plugin` |
 
@@ -77,8 +77,15 @@ use Swoolefy\Support\Neuron\NeuronAiProviderName;
 | `WORKFLOW_REDIS_PREFIX` | Run 快照 key 前缀 |
 | `WORKFLOW_REDIS_TTL` | Run 快照 TTL（秒） |
 | `WORKFLOW_CONDITION_EVALUATOR` | `symfony` / `jsonlogic` |
-| `RAG_VECTOR_STORE` | `file` / `meilisearch` |
+| `RAG_VECTOR_STORE` | `file` / `meilisearch` / `phpvector` / `mariadb` / `pinecone` / `qdrant` |
 | `MEILISEARCH_HOST` | Meilisearch 地址 |
+| `RAG_PHPVECTOR_PATH` | PHPVector 数据目录（需 `neuron-core/php-vector`） |
+| `RAG_MARIADB_COMPONENT` | MariaDB 组件别名（如 `db`） |
+| `RAG_MARIADB_TABLE_NAME` | MariaDB 向量表名前缀 |
+| `PINECONE_API_KEY` | Pinecone API Key |
+| `PINECONE_INDEX_URL` | Pinecone Index URL |
+| `QDRANT_BASE_URL` | Qdrant HTTP 地址 |
+| `QDRANT_API_KEY` | Qdrant API Key |
 | `MCP_MAX_LOCAL_PROCESSES` | 本地 MCP 并发上限 |
 | `WORKFLOW_OTEL_ENABLED=1` | OpenTelemetry 插件 |
 | `WORKFLOW_AUDIT_ENABLED=1` | 审计日志 |
