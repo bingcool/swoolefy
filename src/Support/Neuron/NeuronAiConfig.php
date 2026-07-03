@@ -257,6 +257,88 @@ final class NeuronAiConfig
         );
     }
 
+    /**
+     * rag.milvus section (Aliyun / self-hosted Milvus).
+     *
+     * @return array<string, mixed>
+     */
+    public function milvusSection(): array
+    {
+        return (array) ($this->ragSection()[NeuronAiVectorStoreName::MILVUS] ?? []);
+    }
+
+    /** Milvus REST base URI (env MILVUS_URI overrides config). */
+    public function milvusUri(): string
+    {
+        return ApplicationConfig::pickStringEnvFirst(
+            $this->milvusSection(),
+            'uri',
+            NeuronAiRagEnv::MILVUS_URI,
+            'http://localhost:19530',
+        );
+    }
+
+    /** Username for Aliyun-style auth; null when unset. */
+    public function milvusUser(): ?string
+    {
+        $val = ApplicationConfig::pickStringEnvFirst(
+            $this->milvusSection(),
+            'user',
+            NeuronAiRagEnv::MILVUS_USER,
+            '',
+        );
+
+        return $val !== '' ? $val : null;
+    }
+
+    /** Password paired with milvusUser(); null when unset. */
+    public function milvusPassword(): ?string
+    {
+        $val = ApplicationConfig::pickStringEnvFirst(
+            $this->milvusSection(),
+            'password',
+            NeuronAiRagEnv::MILVUS_PASSWORD,
+            '',
+        );
+
+        return $val !== '' ? $val : null;
+    }
+
+    /** Optional token auth (alternative to user+password). */
+    public function milvusToken(): ?string
+    {
+        $val = ApplicationConfig::pickStringEnvFirst(
+            $this->milvusSection(),
+            'token',
+            NeuronAiRagEnv::MILVUS_TOKEN,
+            '',
+        );
+
+        return $val !== '' ? $val : null;
+    }
+
+    /** Logical database name inside the Milvus instance. */
+    public function milvusDbName(): string
+    {
+        return ApplicationConfig::pickStringEnvFirst(
+            $this->milvusSection(),
+            'db_name',
+            NeuronAiRagEnv::MILVUS_DB_NAME,
+            'default',
+        );
+    }
+
+    /** FLOAT_VECTOR dimension; must match embedding model. */
+    public function milvusDimension(): int
+    {
+        return ApplicationConfig::pickIntEnvFirst(
+            $this->milvusSection(),
+            'dimension',
+            NeuronAiRagEnv::MILVUS_DIMENSION,
+            1536,
+        );
+    }
+
     public function maxLocalProcesses(): int
     {
         return max(1, ApplicationConfig::pickIntEnvFirst(

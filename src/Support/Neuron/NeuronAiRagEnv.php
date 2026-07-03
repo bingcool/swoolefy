@@ -42,4 +42,22 @@ final class NeuronAiRagEnv
     public const QDRANT_KEY = 'QDRANT_API_KEY';
 
     public const QDRANT_DIMENSION = 'QDRANT_DIMENSION';
+
+    /** Milvus HTTP endpoint, e.g. http://c-xxxx.milvus.aliyuncs.com:19530 */
+    public const MILVUS_URI = 'MILVUS_URI';
+
+    /** Milvus username (Aliyun: pair with MILVUS_PASSWORD). */
+    public const MILVUS_USER = 'MILVUS_USER';
+
+    /** Milvus password (used with MILVUS_USER as Bearer user:password). */
+    public const MILVUS_PASSWORD = 'MILVUS_PASSWORD';
+
+    /** Optional JWT / API token; alternative to user+password. */
+    public const MILVUS_TOKEN = 'MILVUS_TOKEN';
+
+    /** Milvus database name (default: default). */
+    public const MILVUS_DB_NAME = 'MILVUS_DB_NAME';
+
+    /** Vector dimension; must match embedding model output size. */
+    public const MILVUS_DIMENSION = 'MILVUS_DIMENSION';
 }

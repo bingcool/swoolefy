@@ -16,11 +16,19 @@ use Swoolefy\Support\Neuron\NeuronAiConfig;
 use Swoolefy\Support\Neuron\NeuronAiVectorStoreName;
 use Swoolefy\Support\Rag\Resolver\RagPdoResolver;
 use Swoolefy\Support\Rag\Store\MeilisearchConfig;
+use Swoolefy\Support\Rag\Store\MilvusVectorStore;
 
 /**
  * 向量存储工厂 —— 按配置切换多种 VectorStore，按 knowledgeBase 隔离索引/目录/表。
  *
- * 支持：file、meilisearch、phpvector、mariadb、pinecone、qdrant
+ * 支持：file、meilisearch、phpvector、mariadb、pinecone、qdrant、milvus
+ *
+ * 隔离策略：
+ * - file / phpvector：子目录
+ * - meilisearch：indexUid
+ * - mariadb：表名后缀
+ * - pinecone：namespace
+ * - qdrant / milvus：独立 collection
  *
  * @see swoolefyAI.md §4.10.2
  */
@@ -55,6 +63,7 @@ final class VectorStoreFactory
             NeuronAiVectorStoreName::MARIADB => $this->makeMariaDb($index, $k),
             NeuronAiVectorStoreName::PINECONE => $this->makePinecone($index, $k),
             NeuronAiVectorStoreName::QDRANT => $this->makeQdrant($index, $k),
+            NeuronAiVectorStoreName::MILVUS => $this->makeMilvus($index, $k),
             default => $this->makeFile($index, $k),
         };
     }
@@ -150,6 +159,24 @@ final class VectorStoreFactory
             dimension: $this->config->qdrantDimension(),
             httpClient: NeuronHttpFactory::create(),
         );
+    }
+
+    /**
+     * Aliyun / self-hosted Milvus: each knowledgeBase is an isolated collection ($index).
+     */
+    private function makeMilvus(string $index, int $topK): MilvusVectorStore
+    {
+        return MilvusVectorStore::make([
+            'uri' => $this->config->milvusUri(),
+            'user' => $this->config->milvusUser(),
+            'password' => $this->config->milvusPassword(),
+            'token' => $this->config->milvusToken(),
+            'db_name' => $this->config->milvusDbName(),
+            // sanitized knowledgeBase name becomes the Milvus collection name
+            'collection_name' => $index,
+            'dimension' => $this->config->milvusDimension(),
+            'top_k' => $topK,
+        ]);
     }
 
     private function sanitize(string $name): string
