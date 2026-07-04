@@ -14,7 +14,6 @@ use Swoolefy\Support\Agent\Router\StaticRouter;
 use Swoolefy\Support\Agent\RouterContext;
 use Swoolefy\Support\AI\Stream\CollectingStreamSink;
 use Swoolefy\Support\AI\Stream\StreamBridge;
-use Swoolefy\Support\Neuron\Memory\MemoryFactory;
 use Swoolefy\Support\Neuron\NeuronFactory;
 use Swoolefy\Support\Workflow\Condition\SymfonyExpressionLanguageEvaluator;
 use Swoolefy\Support\Workflow\Definition\EdgeCondition;
@@ -102,7 +101,7 @@ function testMetricsPluginCountsNodes(): void
 
 function testMultiAgentResearchWorkflow(): void
 {
-    $scheduler = new AgentScheduler(new NeuronFactory(new MemoryFactory()));
+    $scheduler = new AgentScheduler(new NeuronFactory());
     $definition = MultiAgentResearchWorkflow::definition($scheduler);
     $compiled = WorkflowBootstrap::compiler()->compile($definition);
 

@@ -162,7 +162,6 @@ function testNeuronFactoryUsesAgentFactoryHook(): void
     };
 
     $factory = new NeuronFactory(
-        memoryFactory: new MemoryFactory(),
         agentFactory: static fn (string $class, WorkflowState $state, array $config): Agent => $marker,
     );
 
@@ -186,7 +185,6 @@ function testNeuronFactoryThrowsWhenNoProviderCredentials(): void
     ]));
 
     $factory = new NeuronFactory(
-        memoryFactory: new MemoryFactory(),
         providerFactory: $providerFactory,
     );
 

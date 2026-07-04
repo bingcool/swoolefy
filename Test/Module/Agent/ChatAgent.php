@@ -6,32 +6,22 @@ namespace Test\Module\Agent;
 
 use NeuronAI\Agent\Agent;
 use NeuronAI\Agent\SystemPrompt;
-use NeuronAI\Chat\Messages\AssistantMessage;
-use NeuronAI\Providers\AIProviderInterface;
-use NeuronAI\Testing\FakeAIProvider;
-use Swoolefy\Support\Neuron\NeuronProviderFactory;
+use NeuronAI\Chat\History\ChatHistoryInterface;
+use Swoolefy\Support\Neuron\Memory\ChatHistoryFactory;
+use Test\Module\Agent\Concerns\ResolvesDefaultProvider;
 
 /**
- * 简单对话 Agent。
+ * 简单对话 Agent —— 进程内 InMemory 记忆（由 chatHistory() 声明）。
  *
- * Provider 优先级：
- *   1. NeuronFactory 注入（请求 provider 别名 / default_provider）
- *   2. 本类 provider()：再尝试 createDefault()
- *   3. FakeAIProvider（本地无 API Key 时的演示回退）
+ * @see https://docs.neuron-ai.dev/agent/chat-history-and-memory
  */
 final class ChatAgent extends Agent
 {
-    protected function provider(): AIProviderInterface
-    {
-        $provider = (new NeuronProviderFactory())->createDefault();
-        if ($provider instanceof AIProviderInterface) {
-            return $provider;
-        }
+    use ResolvesDefaultProvider;
 
-        return FakeAIProvider::make(new AssistantMessage(
-            '你好！我是 Swoolefy 演示助手。当前未配置可用的 AI Provider（API Key / model），'
-            . '已使用本地 Fake Provider。请在 neuron_ai.php 或环境变量中配置密钥以启用真实对话。',
-        ));
+    protected function chatHistory(): ChatHistoryInterface
+    {
+        return ChatHistoryFactory::inMemory(50000);
     }
 
     protected function instructions(): string

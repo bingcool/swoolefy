@@ -93,18 +93,8 @@ final class RAGNode extends AbstractNode
         }
 
         /** @var RAG $agent */
-        $agent = new $ragClass();
-
-        if (($this->config['memory'] ?? false) === true && $this->memoryFactory !== null) {
-            $threadKey = (string) ($this->config['threadIdKey'] ?? 'sessionId');
-            $threadId = (string) ($state->get($threadKey) ?: uniqid('thread-', true));
-            $agent->setChatHistory($this->memoryFactory->forThread(
-                $threadId,
-                (int) ($this->config['contextWindow'] ?? 50000),
-            ));
-        }
-
-        return $agent;
+        // 会话记忆由 Agent/RAG::chatHistory() 决定
+        return new $ragClass();
     }
 
     private function buildPrompt(WorkflowState $state): string

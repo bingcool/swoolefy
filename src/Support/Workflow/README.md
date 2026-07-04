@@ -244,7 +244,7 @@ GET  /api/v1/mcp/servers/{id}/tools?tenantId=
 | MCP | `McpFactory`、`McpProcessRunner`、`InMemoryMcpServerConfigRepository` |
 | Agent 路由 | Static / Rule / LLM / Weighted / CostAware / **RoundRobin** |
 
-Neuron：`NeuronFactory` + `MemoryFactory` + `SwooleHttpClientAdapter`（协程 HTTP）。
+Neuron：`NeuronFactory` + Agent::`chatHistory()`（`ChatHistoryFactory`）+ `SwooleHttpClientAdapter`。
 
 ---
 

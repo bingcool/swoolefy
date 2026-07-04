@@ -5,20 +5,24 @@ declare(strict_types=1);
 namespace Swoolefy\Support\Neuron;
 
 use NeuronAI\Agent\Agent;
+use NeuronAI\Chat\History\ChatHistoryInterface;
 use NeuronAI\Providers\AIProviderInterface;
 use Swoolefy\Support\Mcp\McpFactory;
-use Swoolefy\Support\Neuron\Memory\MemoryFactoryInterface;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 
 /**
- * Neuron Agent 工厂 —— 注入 Memory、MCP Tools、默认 Provider 等 Swoolefy 基础设施。
+ * Neuron Agent 工厂 —— 注入 Provider、MCP Tools。
+ *
+ * 会话记忆由业务 Agent 自行实现 {@see Agent::chatHistory()}，工厂不再强制注入 Memory。
+ * 仅当 nodeConfig['chatHistory'] 显式传入实例时才会覆盖。
+ *
+ * @see https://docs.neuron-ai.dev/agent/chat-history-and-memory
  */
 final class NeuronFactory
 {
     /** @param (callable(class-string, WorkflowState, array): Agent)|null $agentFactory */
     public function __construct(
-        private readonly MemoryFactoryInterface $memoryFactory,
         private readonly ?McpFactory $mcpFactory = null,
         private $agentFactory = null,
         private readonly ?NeuronProviderFactory $providerFactory = null,
@@ -26,8 +30,10 @@ final class NeuronFactory
     }
 
     /**
-     * @param class-string<Agent> $agentClass
-     * @param array<string, mixed> $nodeConfig AINode 配置项
+     * 无参构造 Agent 并 boot（适用于默认 InMemory chatHistory 的 Agent）。
+     *
+     * @param class-string<Agent>  $agentClass
+     * @param array<string, mixed> $nodeConfig
      */
     public function create(string $agentClass, WorkflowState $state, array $nodeConfig = []): Agent
     {
@@ -38,13 +44,25 @@ final class NeuronFactory
         /** @var Agent $agent */
         $agent = new $agentClass();
 
+        return $this->boot($agent, $nodeConfig);
+    }
+
+    /**
+     * 对已构造的 Agent 注入 Provider / MCP（不改写 chatHistory，除非显式传入）。
+     *
+     * 业务侧示例：
+     *   $agent = new SqlPersistChatAgent($threadId, $pdo);
+     *   $factory->boot($agent, ['provider' => 'deepseek']);
+     *
+     * @param array<string, mixed> $nodeConfig
+     */
+    public function boot(Agent $agent, array $nodeConfig = []): Agent
+    {
+        $agentClass = $agent::class;
         $this->applyProvider($agent, $agentClass, $nodeConfig);
 
-        if (($nodeConfig['memory'] ?? false) === true) {
-            $threadKey = (string) ($nodeConfig['threadIdKey'] ?? 'sessionId');
-            $threadId = (string) ($state->get($threadKey) ?: $state->get('runId') ?: uniqid('thread-', true));
-            $contextWindow = (int) ($nodeConfig['contextWindow'] ?? 50000);
-            $agent->setChatHistory($this->memoryFactory->forThread($threadId, $contextWindow));
+        if (($nodeConfig['chatHistory'] ?? null) instanceof ChatHistoryInterface) {
+            $agent->setChatHistory($nodeConfig['chatHistory']);
         }
 
         $this->attachMcpTools($agent, $nodeConfig);
@@ -68,7 +86,6 @@ final class NeuronFactory
             return;
         }
 
-        // Agent 未声明 provider() 且工厂无法解析时，必须注入，否则 resolveProvider() 会访问未初始化属性
         if (!NeuronProviderFactory::agentDeclaresCustomProvider($agentClass)) {
             throw new WorkflowException(
                 'No AI provider available. Configure API key and model for neuron.default_provider '

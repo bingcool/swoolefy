@@ -8,17 +8,17 @@ use PDO;
 use PDOException;
 
 /**
- * ChatHistory SQL 冷归档 —— Redis 热存储之外的永久持久化。
+ * ChatHistory SQL 冷归档 —— 永久持久化多轮会话。
  *
  * 表结构（需自行迁移）：
  *   CREATE TABLE chat_messages (
  *     id BIGINT AUTO_INCREMENT PRIMARY KEY,
- *     user_id VARCHAR(128) NOT NULL DE,
  *     thread_id VARCHAR(128) NOT NULL,
  *     role VARCHAR(32) NOT NULL,
  *     content MEDIUMTEXT NOT NULL,
+ *     metadata_json JSON NULL,
  *     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
- *     INDEX idx_user_thread (user_id,thread_id)
+ *     INDEX idx_thread (thread_id)
  *   );
  */
 final class SqlChatHistoryArchive implements ChatHistoryArchiveInterface
@@ -62,6 +62,50 @@ final class SqlChatHistoryArchive implements ChatHistoryArchiveInterface
                 is_array($message['metadata'] ?? null) ? $message['metadata'] : [],
             );
         }
+    }
+
+    /** {@inheritdoc} */
+    public function listMessages(string $threadId, int $limit = 50): array
+    {
+        $limit = max(1, min(200, $limit));
+
+        $sql = sprintf(
+            'SELECT role, content, metadata_json FROM %s WHERE thread_id = :thread_id ORDER BY id ASC LIMIT %d',
+            $this->table,
+            $limit,
+        );
+
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(['thread_id' => $threadId]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (PDOException) {
+            // 降级：无 metadata_json 列
+            $sql = sprintf(
+                'SELECT role, content FROM %s WHERE thread_id = :thread_id ORDER BY id ASC LIMIT %d',
+                $this->table,
+                $limit,
+            );
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute(['thread_id' => $threadId]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        }
+
+        $messages = [];
+        foreach ($rows as $row) {
+            $metadata = [];
+            if (isset($row['metadata_json']) && is_string($row['metadata_json']) && $row['metadata_json'] !== '') {
+                $decoded = json_decode($row['metadata_json'], true);
+                $metadata = is_array($decoded) ? $decoded : [];
+            }
+            $messages[] = [
+                'role' => (string) ($row['role'] ?? 'unknown'),
+                'content' => (string) ($row['content'] ?? ''),
+                'metadata' => $metadata,
+            ];
+        }
+
+        return $messages;
     }
 
     private function archiveMessageSimple(string $threadId, string $role, string $content): void

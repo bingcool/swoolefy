@@ -10,7 +10,6 @@ use Swoolefy\Support\Mcp\McpFactory;
 use Swoolefy\Support\Mcp\McpProcessRunner;
 use Swoolefy\Support\Mcp\McpServerConfig;
 use Swoolefy\Support\Neuron\Embedding\EmbeddingFactory;
-use Swoolefy\Support\Neuron\Memory\MemoryFactory;
 use Swoolefy\Support\Neuron\NeuronFactory;
 use Swoolefy\Support\Rag\Factory\RagFactory;
 use Swoolefy\Support\Rag\Factory\VectorStoreFactory;
@@ -160,10 +159,8 @@ final class WorkflowService
     public static function neuronFactory(): NeuronFactory
     {
         if (self::$neuronFactory === null) {
-            self::$neuronFactory = new NeuronFactory(
-                new MemoryFactory(),
-                self::mcpFactory(),
-            );
+            // 会话记忆由各 Agent::chatHistory() 自行声明，工厂只注入 Provider / MCP
+            self::$neuronFactory = new NeuronFactory(self::mcpFactory());
         }
 
         return self::$neuronFactory;

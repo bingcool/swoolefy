@@ -24,4 +24,11 @@ interface ChatHistoryArchiveInterface
      * @param list<array{role: string, content: string, metadata?: array<string, mixed>}> $messages
      */
     public function archiveBatch(string $threadId, array $messages): void;
+
+    /**
+     * 按 threadId 读取历史消息（按时间正序，供多轮会话回放）。
+     *
+     * @return list<array{role: string, content: string, metadata: array<string, mixed>}>
+     */
+    public function listMessages(string $threadId, int $limit = 50): array;
 }

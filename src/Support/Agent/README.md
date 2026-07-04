@@ -50,11 +50,10 @@ CLI / 单测无协程时自动串行执行，不依赖 Swoole Worker。
 use Swoolefy\Support\Agent\AgentScheduler;
 use Swoolefy\Support\Agent\Router\StaticRouter;
 use Swoolefy\Support\Agent\RouterContext;
-use Swoolefy\Support\Neuron\Memory\MemoryFactory;
 use Swoolefy\Support\Neuron\NeuronFactory;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 
-$scheduler = new AgentScheduler(new NeuronFactory(new MemoryFactory()));
+$scheduler = new AgentScheduler(new NeuronFactory());
 $state = new WorkflowState(data: ['query' => 'hello']);
 $ctx = new RouterContext(runId: 'run-1', state: $state, availableAgents: ['a', 'b']);
 

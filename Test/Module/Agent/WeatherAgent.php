@@ -6,14 +6,16 @@ namespace Test\Module\Agent;
 
 use NeuronAI\Agent\Agent;
 use NeuronAI\Agent\SystemPrompt;
+use NeuronAI\Chat\History\ChatHistoryInterface;
 use NeuronAI\Chat\Messages\AssistantMessage;
 use NeuronAI\Providers\AIProviderInterface;
 use NeuronAI\Testing\FakeAIProvider;
+use Swoolefy\Support\Neuron\Memory\ChatHistoryFactory;
 use Swoolefy\Support\Neuron\NeuronProviderFactory;
 use Test\Module\Agent\Dto\WeatherDto;
 
 /**
- * 天气结构化输出 Agent —— 返回 WeatherDto。
+ * 天气结构化输出 Agent —— 无状态，使用 InMemory chatHistory。
  */
 final class WeatherAgent extends Agent
 {
@@ -30,6 +32,11 @@ final class WeatherAgent extends Agent
             'date' => date('Y-m-d'),
             'temperature' => '26°C',
         ], JSON_THROW_ON_ERROR)));
+    }
+
+    protected function chatHistory(): ChatHistoryInterface
+    {
+        return ChatHistoryFactory::inMemory(50000);
     }
 
     protected function instructions(): string

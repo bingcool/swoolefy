@@ -18,7 +18,7 @@ use Throwable;
  * Value：Neuron ChatHistory JSON 序列化
  * TTL：默认 30 天（CHAT_REDIS_TTL）
  *
- * 冷归档至 SQL 由 Phase 2 {@see SqlChatHistoryArchive} + goApp() 异步完成。
+ * 供 Agent::chatHistory() 返回；也可经 {@see ChatHistoryFactory::redis()} 创建。
  *
  * @see docs/swoolefyAI.md §4.7、§6.8
  */

@@ -153,18 +153,8 @@ final class AINode extends AbstractNode
             return $this->neuronFactory->create($agentClass, $state, $this->config);
         }
 
-        $agent = new $agentClass();
-
-        if (($this->config['memory'] ?? false) === true && $this->memoryFactory !== null) {
-            $threadKey = (string) ($this->config['threadIdKey'] ?? 'sessionId');
-            $threadId = (string) ($state->get($threadKey) ?: uniqid('thread-', true));
-            $agent->setChatHistory($this->memoryFactory->forThread(
-                $threadId,
-                (int) ($this->config['contextWindow'] ?? 50000),
-            ));
-        }
-
-        return $agent;
+        // 会话记忆由 Agent::chatHistory() 决定，不再由节点强制注入
+        return new $agentClass();
     }
 
     private function buildPrompt(WorkflowState $state): string

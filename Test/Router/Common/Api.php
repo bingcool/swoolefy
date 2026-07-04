@@ -195,6 +195,10 @@ Route::group([
         'dispatch_route' => [\Test\Module\Agent\Controller\AgentChatController::class, 'chatThinking'],
     ]);
 
+    Route::post('/v1/agent/chat-persist', [
+        'dispatch_route' => [\Test\Module\Agent\Controller\AgentChatController::class, 'chatPersist'],
+    ]);
+
     Route::post('/v1/agent/weather', [
         'dispatch_route' => [\Test\Module\Agent\Controller\AgentStructuredController::class, 'weather'],
     ]);

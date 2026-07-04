@@ -18,7 +18,6 @@ use Swoolefy\Support\Agent\Router\RuleRouter;
 use Swoolefy\Support\Agent\Router\StaticRouter;
 use Swoolefy\Support\Agent\Router\WeightedRouter;
 use Swoolefy\Support\Agent\RouterContext;
-use Swoolefy\Support\Neuron\Memory\MemoryFactory;
 use Swoolefy\Support\Neuron\NeuronFactory;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 
@@ -104,7 +103,7 @@ function testRoundRobinCycles(): void
 
 function testAgentSchedulerRunsTasksAndWritesOutputs(): void
 {
-    $scheduler = new AgentScheduler(new NeuronFactory(new MemoryFactory()));
+    $scheduler = new AgentScheduler(new NeuronFactory());
     $ctx = makeCtx();
 
     $results = $scheduler->runParallel($ctx, [
@@ -122,7 +121,7 @@ function testAgentSchedulerRunsTasksAndWritesOutputs(): void
 
 function testAgentSchedulerCapturesTaskErrors(): void
 {
-    $scheduler = new AgentScheduler(new NeuronFactory(new MemoryFactory()));
+    $scheduler = new AgentScheduler(new NeuronFactory());
     $ctx = makeCtx();
 
     $results = $scheduler->runParallel($ctx, [

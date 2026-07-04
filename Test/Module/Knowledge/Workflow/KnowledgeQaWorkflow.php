@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Module\Knowledge\Workflow;
 
-use Swoolefy\Support\Neuron\Memory\MemoryFactory;
 use Swoolefy\Support\Neuron\NeuronFactory;
 use Swoolefy\Support\Rag\Node\RagRetrieveNode;
 use Swoolefy\Support\Rag\Node\RAGNode;

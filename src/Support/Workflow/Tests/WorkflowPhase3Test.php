@@ -11,7 +11,6 @@ declare(strict_types=1);
 use Swoolefy\Support\Agent\Router\LLMRouter;
 use Swoolefy\Support\Agent\Router\WeightedRouter;
 use Swoolefy\Support\Agent\RouterContext;
-use Swoolefy\Support\Neuron\Memory\MemoryFactory;
 use Swoolefy\Support\Neuron\NeuronFactory;
 use Swoolefy\Support\Workflow\Condition\SymfonyExpressionLanguageEvaluator;
 use Swoolefy\Support\Workflow\Engine\DagScheduler;

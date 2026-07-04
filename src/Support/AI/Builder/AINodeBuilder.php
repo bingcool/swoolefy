@@ -63,7 +63,8 @@ final class AINodeBuilder
     }
 
     /**
-     * 启用会话记忆，threadId 从 state.data[threadIdKey] 读取。
+     * @deprecated 会话记忆请在业务 Agent::chatHistory() 中声明（见 ChatHistoryFactory）。
+     * 保留配置项仅作文档兼容，工厂不再据此注入 Memory。
      */
     public function memory(?string $threadIdKey = 'sessionId', int $contextWindow = 50000): self
     {
