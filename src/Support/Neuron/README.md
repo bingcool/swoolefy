@@ -1,5 +1,7 @@
 # Neuron 基础设施（LLM / 记忆 / Embedding / HTTP）
 
+api-key: sk-970e5b9eb8154051b5dbdcee4cff2fa4
+
 封装 [Neuron AI](https://docs.neuron-ai.dev/) 在 Swoolefy 中的装配：Provider 工厂、会话记忆、协程 HTTP、Embedding。上层 `AINode` / `RagFactory` 通过本模块获取能力，避免业务代码直接拼 Provider。
 
 - 配置：`Test/Config/neuron_ai.php`（复制到 `APP_PATH/config/neuron_ai.php`）

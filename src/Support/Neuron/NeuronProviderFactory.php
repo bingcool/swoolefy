@@ -26,15 +26,40 @@ final class NeuronProviderFactory
     ) {
     }
 
-    /** 使用 default_provider 别名创建；缺少 key/model 时返回 null。 */
+    /**
+     * 使用 default_provider 别名创建；缺凭证时依次尝试其他已配置 Provider。
+     * 均不可用时返回 null。
+     */
     public function createDefault(): ?AIProviderInterface
     {
-        $alias = $this->neuronConfig()->defaultProviderName();
-        if ($alias === '') {
-            return null;
+        $config = $this->neuronConfig();
+        $aliases = [];
+
+        $default = $config->defaultProviderName();
+        if ($default !== '') {
+            $aliases[] = $default;
         }
 
-        return $this->createFromAlias($alias);
+        foreach (array_keys($config->aiModelProviders()) as $name) {
+            $name = (string) $name;
+            if ($name !== '' && !in_array($name, $aliases, true)) {
+                $aliases[] = $name;
+            }
+        }
+
+        foreach ($aliases as $alias) {
+            try {
+                $provider = $this->createFromAlias($alias);
+            } catch (WorkflowException) {
+                continue;
+            }
+
+            if ($provider instanceof AIProviderInterface) {
+                return $provider;
+            }
+        }
+
+        return null;
     }
 
     /**

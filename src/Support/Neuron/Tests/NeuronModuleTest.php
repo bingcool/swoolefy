@@ -170,6 +170,37 @@ function testNeuronFactoryUsesAgentFactoryHook(): void
     assertTrue($agent === $marker, 'custom agentFactory used');
 }
 
+function testNeuronFactoryThrowsWhenNoProviderCredentials(): void
+{
+    $providerFactory = new NeuronProviderFactory(NeuronAiConfig::fromArray([
+        'neuron' => [
+            'default_provider' => NeuronAiProviderName::OPENAI,
+            'ai_model_providers' => [
+                NeuronAiProviderName::OPENAI => [
+                    'provider' => OpenAI::class,
+                    'key' => '',
+                    'model' => 'gpt-4o-mini',
+                ],
+            ],
+        ],
+    ]));
+
+    $factory = new NeuronFactory(
+        memoryFactory: new MemoryFactory(),
+        providerFactory: $providerFactory,
+    );
+
+    $agentClass = new class extends Agent {
+    };
+
+    try {
+        $factory->create($agentClass::class, new WorkflowState());
+        assertTrue(false, 'should throw when no provider credentials');
+    } catch (WorkflowException $e) {
+        assertTrue(str_contains($e->getMessage(), 'No AI provider available'), 'clear error message');
+    }
+}
+
 function testVectorStoreNameConstants(): void
 {
     assertTrue(NeuronAiVectorStoreName::FILE === 'file', 'file');
@@ -187,6 +218,7 @@ $tests = [
     'embedding fake without key' => 'testEmbeddingFactoryWithoutApiKeyUsesFake',
     'http factory cli fallback' => 'testNeuronHttpFactoryCliFallback',
     'neuron factory agent hook' => 'testNeuronFactoryUsesAgentFactoryHook',
+    'neuron factory no provider' => 'testNeuronFactoryThrowsWhenNoProviderCredentials',
     'vector store name constants' => 'testVectorStoreNameConstants',
 ];
 

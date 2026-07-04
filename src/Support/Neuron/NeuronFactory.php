@@ -8,6 +8,7 @@ use NeuronAI\Agent\Agent;
 use NeuronAI\Providers\AIProviderInterface;
 use Swoolefy\Support\Mcp\McpFactory;
 use Swoolefy\Support\Neuron\Memory\MemoryFactoryInterface;
+use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 
 /**
@@ -63,6 +64,16 @@ final class NeuronFactory
 
         if ($provider instanceof AIProviderInterface) {
             $agent->setAiProvider($provider);
+
+            return;
+        }
+
+        // Agent 未声明 provider() 且工厂无法解析时，必须注入，否则 resolveProvider() 会访问未初始化属性
+        if (!NeuronProviderFactory::agentDeclaresCustomProvider($agentClass)) {
+            throw new WorkflowException(
+                'No AI provider available. Configure API key and model for neuron.default_provider '
+                . '(or any ai_model_providers entry) in neuron_ai.php / env, or pass "provider" in the request.',
+            );
         }
     }
 
