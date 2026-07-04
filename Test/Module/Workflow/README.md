@@ -1,0 +1,257 @@
+# Workflow 模块 — 通用工作流 API
+
+本模块是 **统一入口**：通过 `workflowId` 启动已注册的示例工作流，并提供列表、DAG 探查、状态查询、HITL 恢复、取消与 SSE。
+
+与业务专用 Demo 的关系：
+
+| 入口 | 路径前缀 | 特点 |
+|------|----------|------|
+| **本模块** | `/api/v1/workflow/*` | Registry 统一调度，适合网关 / 运维 |
+| Order Demo | `/api/v1/order/workflow/*` | 可注入 `mockDecision`，绕过 registry 缓存 |
+| Research Demo | `/api/v1/research/workflow/*` | 可注入 `useMock` / `mockSummary` |
+
+默认 API 前缀：`/api`。下文假设服务监听 `http://127.0.0.1:9501`。
+
+## 目录结构
+
+```
+Workflow/
+├── Controller/WorkflowController.php   # 通用 HTTP API
+├── WorkflowService.php                 # 注册表 + RAG/MCP/Neuron 依赖装配
+└── README.md
+```
+
+## 已注册工作流
+
+| workflowId | 模块 | 说明 | 典型入参 |
+|------------|------|------|----------|
+| `order_processing` | Order | AI 风控三分支 | `orderId`, `amount` |
+| `order_saga` | Order | Saga 补偿演示 | `orderId`, `amount` |
+| `multi_agent_research` | Research | coding + finance 并行 | `query` |
+| `mcp_research` | Research | MCP 研究 → notify/archive | `query`（含 urgent 走 notify） |
+| `contract_review` | Contract | 法务 HITL 审批 | `contractBrief` |
+| `knowledge_qa` | Knowledge | RAG 检索问答 | `question` |
+
+完整目录也可通过接口获取（含 `demoInput`）。
+
+---
+
+## API 一览
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/v1/workflow/list` | 列出已注册工作流 |
+| GET | `/api/v1/workflow/describe?workflowId=` | DAG 详情（节点 / 边 / 条件） |
+| POST | `/api/v1/workflow/run` | 启动 Run |
+| GET | `/api/v1/workflow/run/status?runId=` | 查询状态 |
+| POST | `/api/v1/workflow/run/resume` | HITL 恢复 |
+| POST | `/api/v1/workflow/run/cancel` | 取消 Run |
+| GET | `/api/v1/workflow/pause/tasks?assignee=` | 暂停任务列表 |
+| GET | `/api/v1/workflow/run/events?runId=` | SSE 推送当前状态 |
+
+---
+
+## curl 示例
+
+### 1. 列出工作流
+
+```bash
+curl -s 'http://127.0.0.1:9501/api/v1/workflow/list' | jq .
+```
+
+### 2. 查看 DAG
+
+```bash
+curl -s 'http://127.0.0.1:9501/api/v1/workflow/describe?workflowId=order_processing' | jq .
+```
+
+### 3. 启动订单处理
+
+`input` 对象与顶层平铺字段均可（平铺会合并进 input，不覆盖已有键）：
+
+```bash
+curl -s -X POST 'http://127.0.0.1:9501/api/v1/workflow/run' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "workflowId": "order_processing",
+    "input": {
+      "orderId": "ORD-WF-10001",
+      "userId": "u1",
+      "amount": 199
+    }
+  }' | jq .
+```
+
+简写：
+
+```bash
+curl -s -X POST 'http://127.0.0.1:9501/api/v1/workflow/run' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "workflowId": "order_processing",
+    "orderId": "ORD-WF-10002",
+    "amount": 88
+  }' | jq .
+```
+
+### 4. 启动 Saga 补偿
+
+```bash
+curl -s -X POST 'http://127.0.0.1:9501/api/v1/workflow/run' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "workflowId": "order_saga",
+    "orderId": "ORD-WF-SAGA-1",
+    "amount": 50
+  }' | jq .
+```
+
+预期：`status` 为补偿相关终态，`data.compensatedNodes` 含 payment / reserve。
+
+### 5. 多 Agent 研究
+
+```bash
+curl -s -X POST 'http://127.0.0.1:9501/api/v1/workflow/run' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "workflowId": "multi_agent_research",
+    "query": "Analyze swoolefy workflow design"
+  }' | jq .
+```
+
+### 6. MCP 研究（紧急 → notify）
+
+```bash
+curl -s -X POST 'http://127.0.0.1:9501/api/v1/workflow/run' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "workflowId": "mcp_research",
+    "query": "urgent security patch review"
+  }' | jq .
+```
+
+### 7. 合同 HITL（暂停 → 恢复）
+
+启动后会进入 `waiting`：
+
+```bash
+curl -s -X POST 'http://127.0.0.1:9501/api/v1/workflow/run' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "workflowId": "contract_review",
+    "contractBrief": "SaaS annual subscription for Acme Corp"
+  }' | jq .
+```
+
+查看暂停任务：
+
+```bash
+curl -s 'http://127.0.0.1:9501/api/v1/workflow/pause/tasks?assignee=legal-team' | jq .
+```
+
+法务通过：
+
+```bash
+curl -s -X POST 'http://127.0.0.1:9501/api/v1/workflow/run/resume' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "runId": "<runId>",
+    "feedback": { "approved": true, "reason": "ok" }
+  }' | jq .
+```
+
+驳回修订（会回到 legal_review 再次暂停）：
+
+```bash
+curl -s -X POST 'http://127.0.0.1:9501/api/v1/workflow/run/resume' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "runId": "<runId>",
+    "feedback": { "approved": false, "reason": "need clause update" }
+  }' | jq .
+```
+
+### 8. 查询状态 / 取消
+
+```bash
+curl -s 'http://127.0.0.1:9501/api/v1/workflow/run/status?runId=<runId>' | jq .
+
+curl -s -X POST 'http://127.0.0.1:9501/api/v1/workflow/run/cancel' \
+  -H 'Content-Type: application/json' \
+  -d '{"runId":"<runId>"}' | jq .
+```
+
+### 9. SSE 启动
+
+```bash
+curl -N -X POST 'http://127.0.0.1:9501/api/v1/workflow/run' \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: text/event-stream' \
+  -d '{
+    "workflowId": "mcp_research",
+    "query": "weekly notes",
+    "stream": true
+  }'
+```
+
+### 10. SSE 查看已有 Run
+
+```bash
+curl -N 'http://127.0.0.1:9501/api/v1/workflow/run/events?runId=<runId>'
+```
+
+---
+
+## 响应字段（Run）
+
+| 字段 | 说明 |
+|------|------|
+| `runId` | 运行实例 ID |
+| `workflowId` / `version` | 定义标识 |
+| `status` | `completed` / `failed` / `waiting` / `compensated` / `cancelled` 等 |
+| `waiting` | 是否 HITL 等待中 |
+| `currentNodeId` / `pauseNodeId` | 当前 / 暂停节点 |
+| `executedNodeIds` | 已成功节点（Saga 补偿依据） |
+| `data` | 业务 state.data |
+| `nodeOutputs` / `agentOutputs` | 节点输出 / 多 Agent 输出 |
+| `error` | 失败信息 |
+
+---
+
+## 代码用法
+
+```php
+use Swoolefy\Support\Workflow\WorkflowBootstrap;
+use Test\Module\Workflow\WorkflowService;
+
+// 目录
+$catalog = WorkflowService::catalog();
+
+// 详情
+$detail = WorkflowService::describe('order_processing');
+
+// 启动
+$compiled = WorkflowService::registry()->compiled('order_saga');
+$engine = WorkflowBootstrap::engine();
+$runId = $engine->start($compiled, [
+    'orderId' => 'ORD-1',
+    'amount' => 50.0,
+]);
+$run = $engine->getRun($runId);
+```
+
+单测隔离：
+
+```php
+WorkflowService::reset();
+```
+
+---
+
+## 相关文档
+
+- Order 演示：`Test/Module/Order/README.md`
+- Research 演示：`Test/Module/Research/README.md`
+- 引擎与 Saga：`docs/swoolefyAI.md`
+- 注册表实现：`src/Support/Workflow/WorkflowRegistry.php`
+)

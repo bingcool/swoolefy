@@ -11,6 +11,11 @@ use Swoolefy\Support\Workflow\Exception\WorkflowException;
 
 /**
  * 工作流定义注册表 —— HTTP API 按 workflowId 解析 Definition / CompiledWorkflow。
+ *
+ * 典型用法：
+ *   $registry->register('order_processing', fn () => OrderProcessingWorkflow::definition());
+ *   $compiled = $registry->compiled('order_processing');
+ *   $engine->start($compiled, $input);
  */
 final class WorkflowRegistry
 {
@@ -21,18 +26,38 @@ final class WorkflowRegistry
     private array $compiledCache = [];
 
     /**
+     * 注册工作流工厂（惰性：首次 compiled/definition 时才构建 Definition）。
+     *
      * @param callable(): WorkflowDefinition $factory
      */
     public function register(string $workflowId, callable $factory): void
     {
         $this->factories[$workflowId] = $factory;
+        // 定义变更后清除旧编译缓存，避免返回过期 DAG。
+        unset($this->compiledCache[$workflowId]);
     }
 
+    /** 是否已注册指定 workflowId。 */
     public function has(string $workflowId): bool
     {
         return isset($this->factories[$workflowId]);
     }
 
+    /**
+     * 已注册的 workflowId 列表（按注册顺序）。
+     *
+     * @return list<string>
+     */
+    public function ids(): array
+    {
+        return array_keys($this->factories);
+    }
+
+    /**
+     * 获取原始 Definition（每次调用工厂，不走编译缓存）。
+     *
+     * @throws WorkflowException 未注册或工厂返回的 id 与注册键不一致
+     */
     public function definition(string $workflowId): WorkflowDefinition
     {
         $factory = $this->factories[$workflowId] ?? null;
@@ -48,6 +73,11 @@ final class WorkflowRegistry
         return $definition;
     }
 
+    /**
+     * 获取编译后的只读 DAG（带缓存）。
+     *
+     * @throws WorkflowException 未注册或编译失败
+     */
     public function compiled(string $workflowId, ?WorkflowCompiler $compiler = null): CompiledWorkflow
     {
         $cacheKey = $workflowId;
@@ -62,6 +92,7 @@ final class WorkflowRegistry
         return $compiled;
     }
 
+    /** 清空编译缓存（测试 reset 或热更新定义时调用）。 */
     public function clearCompiledCache(): void
     {
         $this->compiledCache = [];

@@ -10,27 +10,96 @@ use Swoolefy\Exception\SystemException;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\ResponseOutput;
 use Swoolefy\Support\AI\Stream\SseResponse;
+use Swoolefy\Support\Workflow\Definition\CompiledWorkflow;
 use Swoolefy\Support\Workflow\Engine\RunStatus;
 use Swoolefy\Support\Workflow\Engine\StreamWorkflowEventDispatcher;
+use Swoolefy\Support\Workflow\Engine\WorkflowEngine;
 use Swoolefy\Support\Workflow\Engine\WorkflowRun;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\WorkflowBootstrap;
 use Test\Module\Workflow\WorkflowService;
 
 /**
- * Workflow HTTP API（Phase 2）。
+ * Workflow 通用 HTTP API —— 按 workflowId 启动 / 查询 / 恢复已注册工作流。
  *
- * POST /api/v1/workflow/run
- * GET  /api/v1/workflow/run/status?runId=
- * POST /api/v1/workflow/run/resume
- * GET  /api/v1/workflow/run/events?runId=  (SSE)
+ * 与 Order / Research 专用 Demo 控制器的区别：
+ *   - 本控制器走 {@see WorkflowService::registry()}，统一入口，适合网关与运维探查
+ *   - 专用 Demo 可注入 mock、绕过 registry 缓存，适合业务场景演示
+ *
+ * 路由（见 Test/Router/Common/Api.php）：
+ *
+ *   GET  /api/v1/workflow/list
+ *        列出已注册工作流及 demoInput
+ *
+ *   GET  /api/v1/workflow/describe?workflowId=order_processing
+ *        查看节点、边、条件表达式
+ *
+ *   POST /api/v1/workflow/run
+ *        Body: { "workflowId": "...", "input": {...}, "stream": false }
+ *        也支持顶层平铺 orderId / query 等字段（会合并进 input）
+ *
+ *   GET  /api/v1/workflow/run/status?runId=
+ *   POST /api/v1/workflow/run/resume
+ *        Body: { "runId": "...", "feedback": {...} }
+ *   POST /api/v1/workflow/run/cancel
+ *        Body: { "runId": "..." }
+ *   GET  /api/v1/workflow/pause/tasks?assignee=
+ *   GET  /api/v1/workflow/run/events?runId=   （SSE 重放当前状态）
+ *
+ * @see Test\Module\Workflow\README.md
  */
 final class WorkflowController extends BController
 {
     /**
+     * 列出已注册工作流目录。
+     *
+     * GET /api/v1/workflow/list
+     *
+     * @return array<string, mixed>
+     */
+    public function list(): array
+    {
+        return [
+            'workflows' => WorkflowService::catalog(),
+            'count' => count(WorkflowService::registry()->ids()),
+        ];
+    }
+
+    /**
+     * 查看单个工作流的 DAG 详情（节点、固定边、条件边）。
+     *
+     * GET /api/v1/workflow/describe?workflowId=order_processing
+     *
+     * @return array<string, mixed>
+     */
+    public function describe(RequestInput $requestInput): array
+    {
+        $workflowId = (string) $requestInput->input('workflowId', '');
+        if ($workflowId === '') {
+            throw new SystemException('workflowId is required', 400);
+        }
+
+        try {
+            return WorkflowService::describe($workflowId);
+        } catch (WorkflowException $e) {
+            throw new SystemException($e->getMessage(), 404, $e);
+        }
+    }
+
+    /**
      * 启动工作流运行。
      *
-     * Body: { "workflowId": "order_processing", "input": {...}, "stream": false }
+     * POST /api/v1/workflow/run
+     * Body:
+     *   {
+     *     "workflowId": "order_processing",
+     *     "input": { "orderId": "ORD-1", "amount": 99 },
+     *     "stream": false
+     *   }
+     *
+     * stream=true 或 Accept: text/event-stream 时以 SSE 推送 run.start / complete。
+     *
+     * @return array<string, mixed>|null stream 模式返回 null（响应已由 SSE 写出）
      */
     public function run(RequestInput $requestInput, ResponseOutput $responseOutput): ?array
     {
@@ -44,9 +113,17 @@ final class WorkflowController extends BController
 
         try {
             $registry = WorkflowService::registry();
+            if (!$registry->has($workflowId)) {
+                throw new SystemException(
+                    "Workflow {$workflowId} is not registered. GET /api/v1/workflow/list for available ids.",
+                    404,
+                );
+            }
+
             $compiled = $registry->compiled($workflowId);
             $engine = WorkflowBootstrap::engine(events: new StreamWorkflowEventDispatcher());
 
+            // SSE：边启动边推送事件（演示用；生产可接 StreamWorkflowEventDispatcher 实时边事件）
             if ($stream) {
                 $this->runWithStream($responseOutput, $engine, $compiled, $input);
 
@@ -62,7 +139,13 @@ final class WorkflowController extends BController
         }
     }
 
-    /** GET /api/v1/workflow/run/status?runId= */
+    /**
+     * 查询 Run 状态。
+     *
+     * GET /api/v1/workflow/run/status?runId=
+     *
+     * @return array<string, mixed>
+     */
     public function status(RequestInput $requestInput): array
     {
         $runId = (string) $requestInput->input('runId', '');
@@ -79,7 +162,16 @@ final class WorkflowController extends BController
         }
     }
 
-    /** POST /api/v1/workflow/run/resume — Body: { "runId": "...", "feedback": {...} } */
+    /**
+     * HITL 恢复：对 WAITING 状态的 Run 提交 feedback 并继续执行。
+     *
+     * POST /api/v1/workflow/run/resume
+     * Body: { "runId": "...", "feedback": { "approved": true, "reason": "ok" } }
+     *
+     * 典型场景：contract_review 的 legal_review 暂停节点。
+     *
+     * @return array<string, mixed>
+     */
     public function resume(RequestInput $requestInput): array
     {
         $runId = (string) $requestInput->input('runId', '');
@@ -102,20 +194,57 @@ final class WorkflowController extends BController
         }
     }
 
-    /** GET /api/v1/workflow/pause/tasks?assignee= */
+    /**
+     * 取消 Run（标记 CANCELLED，不触发 Saga 补偿）。
+     *
+     * POST /api/v1/workflow/run/cancel
+     * Body: { "runId": "..." }
+     *
+     * @return array<string, mixed>
+     */
+    public function cancel(RequestInput $requestInput): array
+    {
+        $runId = (string) $requestInput->input('runId', '');
+        if ($runId === '') {
+            throw new SystemException('runId is required', 400);
+        }
+
+        try {
+            $engine = WorkflowBootstrap::engine();
+            $engine->cancel($runId);
+            $run = $engine->getRun($runId);
+
+            return $this->formatRun($run);
+        } catch (WorkflowException $e) {
+            throw new SystemException($e->getMessage(), 400, $e);
+        }
+    }
+
+    /**
+     * 列出 HITL 暂停任务（可选按 assignee 过滤）。
+     *
+     * GET /api/v1/workflow/pause/tasks?assignee=legal-team
+     *
+     * @return array<string, mixed>
+     */
     public function pauseTasks(RequestInput $requestInput): array
     {
         $assignee = $requestInput->input('assignee');
-        $assignee = is_string($assignee) ? $assignee : null;
+        $assignee = is_string($assignee) && $assignee !== '' ? $assignee : null;
 
         $engine = WorkflowBootstrap::engine();
 
         return [
             'tasks' => $engine->listPauseTasks($assignee),
+            'assignee' => $assignee,
         ];
     }
 
-    /** GET /api/v1/workflow/run/events?runId= — 对已存在 Run 重放边路由事件（演示 SSE）。 */
+    /**
+     * 对已存在 Run 以 SSE 推送当前状态（演示用，非历史事件回放）。
+     *
+     * GET /api/v1/workflow/run/events?runId=
+     */
     #[StreamResponse]
     public function events(RequestInput $requestInput, ResponseOutput $responseOutput): void
     {
@@ -132,6 +261,7 @@ final class WorkflowController extends BController
                 'runId' => $runId,
                 'status' => $run->status->value,
                 'lastRoutedEdge' => $run->lastRoutedEdge,
+                'currentNodeId' => $run->currentNodeId,
             ]);
             $sink->publish('complete', $this->formatRun($run));
         } catch (WorkflowException $e) {
@@ -141,17 +271,24 @@ final class WorkflowController extends BController
         }
     }
 
-    /** @param array<string, mixed> $input */
+    /**
+     * SSE 模式启动：推送 run.start → 执行 → complete。
+     *
+     * @param array<string, mixed> $input
+     */
     private function runWithStream(
         ResponseOutput $responseOutput,
-        \Swoolefy\Support\Workflow\Engine\WorkflowEngine $engine,
-        \Swoolefy\Support\Workflow\Definition\CompiledWorkflow $compiled,
+        WorkflowEngine $engine,
+        CompiledWorkflow $compiled,
         array $input,
     ): void {
         $sink = SseResponse::open($responseOutput);
 
         try {
-            $sink->publish('run.start', ['workflowId' => $compiled->workflowId()]);
+            $sink->publish('run.start', [
+                'workflowId' => $compiled->workflowId(),
+                'version' => $compiled->version(),
+            ]);
             $runId = $engine->start($compiled, $input);
             $run = $engine->getRun($runId);
             $sink->publish('complete', $this->formatRun($run));
@@ -162,7 +299,11 @@ final class WorkflowController extends BController
         }
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * 统一 Run 响应结构。
+     *
+     * @return array<string, mixed>
+     */
     private function formatRun(WorkflowRun $run): array
     {
         return [
@@ -170,18 +311,29 @@ final class WorkflowController extends BController
             'workflowId' => $run->compiled->workflowId(),
             'version' => $run->compiled->version(),
             'status' => $run->status->value,
+            'waiting' => $run->status === RunStatus::WAITING,
             'lastRoutedEdge' => $run->lastRoutedEdge,
             'currentNodeId' => $run->currentNodeId,
             'pauseNodeId' => $run->pauseNodeId,
+            'executedNodeIds' => $run->executedNodeIds,
             'error' => $run->error,
+            // 业务 state：节点 success() 合并进 data；agentOutputs / nodeOutputs 为独立属性
             'data' => $run->state->data,
             'nodeOutputs' => $run->state->nodeOutputs,
             'agentOutputs' => $run->state->agentOutputs,
-            'waiting' => $run->status === RunStatus::WAITING,
         ];
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * 规范化启动入参。
+     *
+     * 优先使用 Body.input 对象；同时允许顶层平铺常用字段，便于 curl 简写：
+     *   { "workflowId": "mcp_research", "query": "urgent fix" }
+     * 等价于
+     *   { "workflowId": "mcp_research", "input": { "query": "urgent fix" } }
+     *
+     * @return array<string, mixed>
+     */
     private function normalizeInput(RequestInput $requestInput): array
     {
         $input = $requestInput->input('input', []);
@@ -189,9 +341,20 @@ final class WorkflowController extends BController
             $input = [];
         }
 
-        foreach (['userId', 'sessionId', 'orderId', 'query'] as $key) {
+        // 顶层快捷字段：未在 input 中出现时才合并，避免覆盖显式 input
+        foreach ([
+            'userId',
+            'sessionId',
+            'orderId',
+            'amount',
+            'currency',
+            'query',
+            'question',
+            'contractBrief',
+            'items',
+        ] as $key) {
             $value = $requestInput->input($key);
-            if ($value !== null && !array_key_exists($key, $input)) {
+            if ($value !== null && $value !== '' && !array_key_exists($key, $input)) {
                 $input[$key] = $value;
             }
         }
@@ -199,6 +362,9 @@ final class WorkflowController extends BController
         return $input;
     }
 
+    /**
+     * 是否以 SSE 流式返回：Body.stream=true 或 Accept 含 text/event-stream。
+     */
     private function wantsStream(RequestInput $requestInput): bool
     {
         if (filter_var($requestInput->input('stream', false), FILTER_VALIDATE_BOOLEAN)) {
