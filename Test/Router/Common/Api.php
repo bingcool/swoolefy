@@ -206,6 +206,14 @@ Route::group([
     Route::post('/v1/agent/polish/recommendation', [
         'dispatch_route' => [\Test\Module\Agent\Controller\AgentPolishController::class, 'recommendation'],
     ]);
+
+    Route::post('/v1/agent/vision/chat', [
+        'dispatch_route' => [\Test\Module\Agent\Controller\AgentVisionController::class, 'chat'],
+    ]);
+
+    Route::post('/v1/agent/stream/chat', [
+        'dispatch_route' => [\Test\Module\Agent\Controller\AgentStreamController::class, 'chat'],
+    ]);
 });
 
 Route::match(['GET'],'/cache/test1', [
