@@ -13,11 +13,12 @@ use PDOException;
  * 表结构（需自行迁移）：
  *   CREATE TABLE chat_messages (
  *     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+ *     user_id VARCHAR(128) NOT NULL DE,
  *     thread_id VARCHAR(128) NOT NULL,
  *     role VARCHAR(32) NOT NULL,
  *     content MEDIUMTEXT NOT NULL,
  *     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
- *     INDEX idx_thread (thread_id)
+ *     INDEX idx_user_thread (user_id,thread_id)
  *   );
  */
 final class SqlChatHistoryArchive implements ChatHistoryArchiveInterface

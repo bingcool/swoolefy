@@ -191,6 +191,10 @@ Route::group([
         'dispatch_route' => [\Test\Module\Agent\Controller\AgentChatController::class, 'chat1'],
     ]);
 
+    Route::post('/v1/agent/chat-thinking', [
+        'dispatch_route' => [\Test\Module\Agent\Controller\AgentChatController::class, 'chatThinking'],
+    ]);
+
     Route::post('/v1/agent/weather', [
         'dispatch_route' => [\Test\Module\Agent\Controller\AgentStructuredController::class, 'weather'],
     ]);

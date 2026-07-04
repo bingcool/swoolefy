@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Module\Agent\Controller;
 
+use NeuronAI\Chat\Messages\Message;
 use NeuronAI\Chat\Messages\UserMessage;
 use Swoolefy\Core\Controller\BController;
 use Swoolefy\Exception\SystemException;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Support\Neuron\NeuronAiConfig;
+use Swoolefy\Support\Neuron\NeuronAiProviderName;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 use Test\Module\Agent\ChatAgent;
@@ -24,12 +26,10 @@ use Throwable;
  * POST /api/v1/agent/chat1
  *   必须指定 provider（ai_model_providers 别名）；可选 model。
  *
- * Body 公共字段：
- *   message   string  必填
- *   sessionId string  默认 default-session
- *   userId    string  默认 anonymous
- *   provider  string  chat 可选；chat1 必填
- *   model     string  可选，覆盖该 Provider 的 model
+ * POST /api/v1/agent/chat-thinking
+ *   DeepSeek 思考模式（thinking + reasoning_effort），固定 provider=deepseek。
+ *
+ * @see https://api-docs.deepseek.com/zh-cn/guides/thinking_mode
  */
 final class AgentChatController extends BController
 {
@@ -58,6 +58,91 @@ final class AgentChatController extends BController
         $model = trim((string) $requestInput->input('model', ''));
 
         return $this->runChat($requestInput, $providerAlias, $model);
+    }
+
+    /**
+     * DeepSeek 思考模式对话。
+     *
+     * POST /api/v1/agent/chat-thinking
+     * Body:
+     *   message           string  必填
+     *   thinking          string  enabled|disabled，默认 enabled
+     *   reasoning_effort  string  high|max，默认 high（仅 thinking=enabled 时生效）
+     *   model             string  默认 deepseek-chat
+     *   sessionId / userId 同 chat
+     *
+     * @see https://api-docs.deepseek.com/zh-cn/guides/thinking_mode
+     */
+    public function chatThinking(RequestInput $requestInput): array
+    {
+        $message = trim((string) $requestInput->input('message', ''));
+        if ($message === '') {
+            throw new SystemException('message is required', 400);
+        }
+
+        $thinkingType = strtolower(trim((string) $requestInput->input('thinking', 'enabled')));
+        if (!in_array($thinkingType, ['enabled', 'disabled'], true)) {
+            throw new SystemException('thinking must be enabled or disabled', 400);
+        }
+
+        $effort = strtolower(trim((string) $requestInput->input('reasoning_effort', 'high')));
+        if (!in_array($effort, ['high', 'max'], true)) {
+            throw new SystemException('reasoning_effort must be high or max', 400);
+        }
+
+        $model = trim((string) $requestInput->input('model', 'deepseek-chat'));
+        if ($model === '') {
+            $model = 'deepseek-chat';
+        }
+
+        $sessionId = (string) ($requestInput->input('sessionId') ?: $requestInput->input('threadId', 'default-session'));
+        $userId = (string) $requestInput->input('userId', 'anonymous');
+        $threadId = $userId . ':' . $sessionId;
+
+        // DeepSeek OpenAI 兼容：thinking + reasoning_effort 写入请求体 parameters
+        $parameters = [
+            'thinking' => ['type' => $thinkingType],
+        ];
+        if ($thinkingType === 'enabled') {
+            $parameters['reasoning_effort'] = $effort;
+        }
+
+        $nodeConfig = [
+            'memory' => true,
+            'threadIdKey' => 'threadId',
+            'provider' => NeuronAiProviderName::DEEPSEEK,
+            'model' => $model,
+            'parameters' => $parameters,
+        ];
+
+        $state = WorkflowState::fromInput([
+            'threadId' => $threadId,
+            'sessionId' => $sessionId,
+            'userId' => $userId,
+            'message' => $message,
+        ]);
+
+        try {
+            $agent = WorkflowService::neuronFactory()->create(ChatAgent::class, $state, $nodeConfig);
+            $assistant = $agent->chat(new UserMessage($message))->getMessage();
+        } catch (WorkflowException $e) {
+            throw new SystemException($e->getMessage(), 400, $e);
+        } catch (SystemException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            throw new SystemException('Agent chat thinking failed: ' . $e->getMessage(), 500, $e);
+        }
+
+        return [
+            'threadId' => $threadId,
+            'message' => $message,
+            'reply' => $assistant->getContent(),
+            'reasoning_content' => $this->extractReasoningContent($assistant),
+            'provider' => NeuronAiProviderName::DEEPSEEK,
+            'model' => $model,
+            'thinking' => $thinkingType,
+            'reasoning_effort' => $thinkingType === 'enabled' ? $effort : null,
+        ];
     }
 
     /**
@@ -110,5 +195,23 @@ final class AgentChatController extends BController
             'provider' => $providerAlias !== '' ? $providerAlias : NeuronAiConfig::load()->defaultProviderName(),
             'model' => $model !== '' ? $model : null,
         ];
+    }
+
+    /** 从 AssistantMessage 提取 DeepSeek reasoning_content。 */
+    private function extractReasoningContent(Message $message): ?string
+    {
+        $fromMeta = $message->getMetadata('reasoning_content');
+        if (is_string($fromMeta) && $fromMeta !== '') {
+            return $fromMeta;
+        }
+
+        $block = $message->getReasoning();
+        if ($block !== null) {
+            $content = $block->getContent();
+
+            return $content !== '' ? $content : null;
+        }
+
+        return null;
     }
 }
