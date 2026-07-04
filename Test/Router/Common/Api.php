@@ -214,6 +214,14 @@ Route::group([
     Route::post('/v1/agent/stream/chat', [
         'dispatch_route' => [\Test\Module\Agent\Controller\AgentStreamController::class, 'chat'],
     ]);
+
+    Route::post('/v1/agent/tool/weather', [
+        'dispatch_route' => [\Test\Module\Agent\Controller\AgentToolController::class, 'weather'],
+    ]);
+
+    Route::post('/v1/agent/tool/weather/stream', [
+        'dispatch_route' => [\Test\Module\Agent\Controller\AgentToolController::class, 'weatherStream'],
+    ]);
 });
 
 Route::match(['GET'],'/cache/test1', [
