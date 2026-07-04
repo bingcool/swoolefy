@@ -72,7 +72,7 @@ return [
         'max_local_processes' => 2,
     ],
     'neuron' => [
-        'http_client' => 'guzzle', // swoole | guzzle
+        'http_client' => 'swoole', // swoole | guzzle
         // Agent 未覆盖 provider() 时使用的默认别名
         'default_provider' => NeuronAiProviderName::DEEPSEEK,
         // 除 provider 外，键名与对应 Provider 构造函数参数一致

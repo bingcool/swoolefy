@@ -186,6 +186,14 @@ Route::group([
     Route::post('/v1/agent/chat', [
         'dispatch_route' => [\Test\Module\Agent\Controller\AgentChatController::class, 'chat'],
     ]);
+
+    Route::post('/v1/agent/chat1', [
+        'dispatch_route' => [\Test\Module\Agent\Controller\AgentChatController::class, 'chat1'],
+    ]);
+
+    Route::post('/v1/agent/weather', [
+        'dispatch_route' => [\Test\Module\Agent\Controller\AgentStructuredController::class, 'weather'],
+    ]);
 });
 
 Route::match(['GET'],'/cache/test1', [

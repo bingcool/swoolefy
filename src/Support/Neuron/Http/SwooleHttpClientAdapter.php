@@ -25,11 +25,11 @@ final class SwooleHttpClientAdapter extends GuzzleHttpClient
      */
     public function __construct(
         array $customHeaders = [],
-        float $timeout = 60.0,
-        float $connectTimeout = 10.0,
+        float $timeout = 120.0,
+        float $connectTimeout = 30.0,
     ) {
         $stack = HandlerStack::create(CurlProxyHandler::getStackHandler());
-
+        CurlProxyHandler::applyPsr7CompatiblePrepareBody($stack);
         parent::__construct(
             customHeaders: $customHeaders,
             timeout: $timeout,
