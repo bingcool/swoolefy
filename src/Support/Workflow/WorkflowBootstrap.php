@@ -34,7 +34,7 @@ use Swoolefy\Core\Coroutine\Context as SwooleContext;
  *
  * 生产应用应在 services.php 中注册组件，而非依赖本类。
  *
- * @see swoolefyAI.md §8.2
+ * @see docs/swoolefyAI.md §8.2
  */
 final class WorkflowBootstrap
 {

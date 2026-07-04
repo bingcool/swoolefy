@@ -20,7 +20,7 @@ use Swoolefy\Support\Neuron\NeuronFactory;
  *
  * Phase 1 测试可用 ->executor(callable) 注入 mock，无需 LLM API Key。
  *
- * @see swoolefyAI.md §4.3
+ * @see docs/swoolefyAI.md §4.3
  */
 final class AINodeBuilder
 {

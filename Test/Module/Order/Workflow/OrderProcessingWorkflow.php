@@ -29,7 +29,7 @@ use Test\Module\Order\Node\ValidateNode;
  *   - Symfony EL 条件边读 data['decision']
  *   - RetryPlugin + TracingPlugin
  *
- * @see swoolefyAI.md §4.1 order_processing 示例
+ * @see docs/swoolefyAI.md §4.1 order_processing 示例
  */
 final class OrderProcessingWorkflow
 {

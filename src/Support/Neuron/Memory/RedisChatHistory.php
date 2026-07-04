@@ -19,7 +19,7 @@ use RedisException;
  *
  * 冷归档至 SQL 由 Phase 2 SqlChatHistoryArchive + goApp() 异步完成。
  *
- * @see swoolefyAI.md §4.7、§6.8
+ * @see docs/swoolefyAI.md §4.7、§6.8
  */
 final class RedisChatHistory extends InMemoryChatHistory
 {

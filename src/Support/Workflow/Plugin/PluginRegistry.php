@@ -7,7 +7,7 @@ namespace Swoolefy\Support\Workflow\Plugin;
 /**
  * 插件钩子注册表 —— {@see WorkflowPluginInterface} 在此注册回调。
  *
- * 可用钩子点见 swoolefyAI.md §3.5 表格。
+ * 可用钩子点见 docs/swoolefyAI.md §3.5 表格。
  */
 final class PluginRegistry
 {

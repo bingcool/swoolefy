@@ -28,7 +28,7 @@ use Swoolefy\Support\Workflow\State\WorkflowState;
  *   rag.ingest.queued   — 异步模式
  *   rag.ingest.completed — 同步完成
  *
- * @see swoolefyAI.md §4.10.5
+ * @see docs/swoolefyAI.md §4.10.5
  */
 final class RagIngestNode extends AbstractNode
 {

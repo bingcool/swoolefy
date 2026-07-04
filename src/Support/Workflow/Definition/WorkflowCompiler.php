@@ -19,7 +19,7 @@ use Swoolefy\Support\Workflow\Exception\WorkflowCompileException;
  *
  * 产出物不可变，可在内存/Redis 中缓存。
  *
- * @see swoolefyAI.md §3.3、§4.9.3
+ * @see docs/swoolefyAI.md §3.3、§4.9.3
  */
 final class WorkflowCompiler
 {

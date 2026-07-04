@@ -13,7 +13,7 @@ namespace Swoolefy\Support\Mcp;
  *   config    → 原样传给 Neuron McpConnector::make()
  *   enabled   → false 时 find/list 跳过
  *
- * @see swoolefyAI.md §4.11.4 mcp_server_configs
+ * @see docs/swoolefyAI.md §4.11.4 mcp_server_configs
  */
 final class McpServerConfig
 {

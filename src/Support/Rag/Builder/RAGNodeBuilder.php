@@ -11,7 +11,7 @@ use Swoolefy\Support\Rag\Node\RAGNode;
 /**
  * RAGNode Fluent DSL。
  *
- * @see swoolefyAI.md §4.10
+ * @see docs/swoolefyAI.md §4.10
  */
 final class RAGNodeBuilder
 {

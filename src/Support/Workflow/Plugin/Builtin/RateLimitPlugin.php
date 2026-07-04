@@ -21,7 +21,7 @@ use Swoolefy\Support\Workflow\Plugin\WorkflowPluginInterface;
  * - 生产多 Worker 应换 Redis 信号量（WORKFLOW_MAX_CONCURRENT_RUNS 全局生效）
  * - 与 HTTP RateLimiterMiddleware 独立：本插件限 Workflow Run，不限普通 API
  *
- * @see swoolefyAI.md §4.12 RateLimitPlugin
+ * @see docs/swoolefyAI.md §4.12 RateLimitPlugin
  */
 final class RateLimitPlugin implements WorkflowPluginInterface
 {

@@ -1,8 +1,8 @@
 # Workflow 工作流引擎
 
-Swoolefy 内置的 **DAG 工作流引擎**，用于编排业务节点、AI 决策分支、多 Agent 并行、RAG/MCP 工具调用与人机协同（HITL）。已实现 **Phase 1–4**（Phase 5 生产化增强见 `swoolefyAI.md`）。
+Swoolefy 内置的 **DAG 工作流引擎**，用于编排业务节点、AI 决策分支、多 Agent 并行、RAG/MCP 工具调用与人机协同（HITL）。已实现 **Phase 1–4**（Phase 5 生产化增强见 `docs/swoolefyAI.md`）。
 
-- 架构设计：[swoolefyAI.md](../../../swoolefyAI.md)
+- 架构设计：[swoolefyAI.md](../../../docs/swoolefyAI.md)
 - 快速接入：[docs/AI-WORKFLOW.md](../../../docs/AI-WORKFLOW.md)
 
 ---
@@ -27,16 +27,18 @@ Workflow/
 └── Tests/                       # Phase1–4 + Integration 回归
 ```
 
-关联模块：
+关联模块（各含 README + Tests）：
 
-| 模块 | 路径 |
-|------|------|
-| AI 节点 / 流式 | `Support/AI/` |
-| Agent 路由 | `Support/Agent/` |
-| Neuron LLM / 记忆 | `Support/Neuron/` |
-| RAG | `Support/Rag/` |
-| MCP | `Support/Mcp/` |
-| HTTP 示例 | `Test/Module/Workflow/`、`Test/Module/Order/` 等 |
+| 模块 | 路径 | 测试 |
+|------|------|------|
+| AI 节点 / 流式 | [`Support/AI/`](../AI/README.md) | `composer test:ai` |
+| Agent 路由 | [`Support/Agent/`](../Agent/README.md) | `composer test:agent` |
+| Neuron LLM / 记忆 | [`Support/Neuron/`](../Neuron/README.md) | `composer test:neuron` |
+| RAG | [`Support/Rag/`](../Rag/README.md) | `composer test:rag` |
+| MCP | [`Support/Mcp/`](../Mcp/README.md) | `composer test:mcp` |
+| HTTP 示例 | `Test/Module/Workflow/`、`Test/Module/Order/` 等 | |
+
+全部 Support 模块：`composer test:support`
 
 ---
 
@@ -274,4 +276,4 @@ php src/Support/Workflow/Tests/WorkflowIntegrationTest.php  # SubWorkflow / Json
 
 ## Phase 5（未实现）
 
-RAG/MCP 多租户隔离、检索缓存、MCP 审计与 rate limit 深化、Composer 拆包等 — 见 `swoolefyAI.md` §15。
+RAG/MCP 多租户隔离、检索缓存、MCP 审计与 rate limit 深化、Composer 拆包等 — 见 `docs/swoolefyAI.md` §15。

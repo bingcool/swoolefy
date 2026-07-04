@@ -90,7 +90,7 @@ sequenceDiagram
 
 ### 3.1 包结构（`src/Support/` 分模块孵化，Phase 5 可选拆 `bingcool/swoolefy-*` 包）
 
-与现有 [`src/Support/Nacos/`](src/Support/Nacos/) 一致：按子域分目录、包间单向依赖。AI 编排不再使用单体 `src/Workflow/`，拆为六个独立子模块；业务示例在 `Test/Module/` 组合各模块 Node。
+与现有 [`src/Support/Nacos/`](../src/Support/Nacos/) 一致：按子域分目录、包间单向依赖。AI 编排不再使用单体 `src/Workflow/`，拆为六个独立子模块；业务示例在 `Test/Module/` 组合各模块 Node。
 
 ```
 src/Support/
@@ -1739,10 +1739,10 @@ id, tenant_id, name, transport, config_json, enabled, created_at, updated_at
 
 | Phase | 交付物 | 路径 |
 |-------|--------|------|
-| **Phase 1 Done** | Definition + Compiler + Engine | [`src/Support/Workflow/`](src/Support/Workflow/) |
+| **Phase 1 Done** | Definition + Compiler + Engine | [`src/Support/Workflow/`](../src/Support/Workflow/) |
 | | NodeExecutionResult + Condition + Plugin | `Support/Workflow/Engine` `Condition` `Plugin` |
 | | AINodeBuilder + Memory | `Support/AI/` + `Support/Neuron/Memory/` |
-| | Order 示例 | [`Test/Module/Order/`](Test/Module/Order/) |
+| | Order 示例 | [`Test/Module/Order/`](../Test/Module/Order/) |
 | | API | `/workflow/run`、`/agent/chat` |
 
 **Phase 2 Done 追加**：`Support/Agent`（AgentRouterInterface + AgentScheduler）+ `Support/Workflow/Plugin`（MetricsPlugin）；`Support/Mcp`（McpFactory + 远程 MCP）；`Support/Rag`（VectorStore + Ingestion CLI）

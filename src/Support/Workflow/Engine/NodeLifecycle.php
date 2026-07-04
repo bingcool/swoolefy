@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Swoolefy\Support\Workflow\Engine;
 
 /**
- * 节点生命周期钩子名称常量（文档化顺序，见 swoolefyAI.md §4.2）。
+ * 节点生命周期钩子名称常量（文档化顺序，见 docs/swoolefyAI.md §4.2）。
  */
 final class NodeLifecycle
 {

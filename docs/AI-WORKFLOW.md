@@ -1,6 +1,17 @@
 # Swoolefy AI / Workflow 快速指南
 
-本文档面向**生产接入**：如何在 Swoole 协程应用中运行 DAG 工作流、Agent 路由、RAG 与 MCP。完整架构见 [swoolefyAI.md](../swoolefyAI.md)，模块细节见 [src/Support/Workflow/README.md](../src/Support/Workflow/README.md)。
+本文档面向**生产接入**：如何在 Swoole 协程应用中运行 DAG 工作流、Agent 路由、RAG 与 MCP。完整架构见 [swoolefyAI.md](swoolefyAI.md)。
+
+各模块 README（目录结构、原理、示例、测试命令）：
+
+| 模块 | README |
+|------|--------|
+| Workflow | [src/Support/Workflow/README.md](../src/Support/Workflow/README.md) |
+| Agent | [src/Support/Agent/README.md](../src/Support/Agent/README.md) |
+| AI | [src/Support/AI/README.md](../src/Support/AI/README.md) |
+| Neuron | [src/Support/Neuron/README.md](../src/Support/Neuron/README.md) |
+| Rag | [src/Support/Rag/README.md](../src/Support/Rag/README.md) |
+| Mcp | [src/Support/Mcp/README.md](../src/Support/Mcp/README.md) |
 
 ---
 
@@ -230,13 +241,16 @@ php src/Support/Rag/Console/ingest_documents.php --kb=product_kb --text="规格�
 ## 9. 测试
 
 ```bash
+# 全部 Support 模块（Agent / AI / Mcp / Neuron / Rag / Workflow）
+composer test:support
+
+# 分模块
+composer test:agent
+composer test:ai
+composer test:mcp
+composer test:neuron
+composer test:rag
 composer test:workflow
-# 或逐项：
-php src/Support/Workflow/Tests/WorkflowPhase1Test.php
-php src/Support/Workflow/Tests/WorkflowPhase2Test.php
-php src/Support/Workflow/Tests/WorkflowPhase3Test.php
-php src/Support/Workflow/Tests/WorkflowPhase4Test.php
-php src/Support/Workflow/Tests/WorkflowIntegrationTest.php
 ```
 
 ---

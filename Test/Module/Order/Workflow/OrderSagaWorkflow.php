@@ -23,7 +23,7 @@ use Test\Module\Order\Node\ValidateNode;
  *
  * 启用方式：WorkflowDefinition::enableSaga() → metadata.saga = true
  *
- * @see swoolefyAI.md Phase 4 SagaCoordinator
+ * @see docs/swoolefyAI.md Phase 4 SagaCoordinator
  */
 final class OrderSagaWorkflow
 {

@@ -20,7 +20,7 @@ use NeuronAI\Tools\ToolInterface;
  * - 本地 stdio：tools() 前后 acquire/release，受 McpProcessRunner 并发限制
  * - only/exclude：Neuron McpConnector 白/黑名单，控制 token 与误调用风险
  *
- * @see swoolefyAI.md §4.11.2、§4.11.4
+ * @see docs/swoolefyAI.md §4.11.2、§4.11.4
  */
 final class McpFactory
 {

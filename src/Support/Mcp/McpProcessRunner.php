@@ -15,7 +15,7 @@ use Swoolefy\Support\Neuron\NeuronAiConfig;
  * - 进程内 static 计数（单 Worker 维度）；多 Worker 需 Redis 分布式信号量（Phase 5）
  * - MCP_MAX_LOCAL_PROCESSES 默认 2
  *
- * @see swoolefyAI.md §4.11.4
+ * @see docs/swoolefyAI.md §4.11.4
  */
 final class McpProcessRunner
 {

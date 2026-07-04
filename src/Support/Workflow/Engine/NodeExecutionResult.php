@@ -16,7 +16,7 @@ use Throwable;
  *   FAILED   → Run 失败，触发 onFail
  *   events   → 发布到 EventBus（对外），非 Plugin 钩子
  *
- * @see swoolefyAI.md §3.2
+ * @see docs/swoolefyAI.md §3.2
  */
 final class NodeExecutionResult
 {

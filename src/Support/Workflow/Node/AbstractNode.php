@@ -24,7 +24,7 @@ use Throwable;
  * 横切能力（Metrics、Tracing）由 WorkflowEngine 通过 PluginManager 触发，
  * 业务钩子写在本类，插件钩子写在 Plugin 中。
  *
- * @see swoolefyAI.md §4.2、NodeLifecycle
+ * @see docs/swoolefyAI.md §4.2、NodeLifecycle
  */
 abstract class AbstractNode implements NodeInterface
 {

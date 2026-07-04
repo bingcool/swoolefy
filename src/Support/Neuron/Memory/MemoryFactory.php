@@ -11,7 +11,7 @@ use Redis;
 /**
  * ChatHistory 工厂 —— 按 threadId 创建会话记忆后端。
  *
- * threadId 策略（见 swoolefyAI.md §4.7）：
+ * threadId 策略（见 docs/swoolefyAI.md §4.7）：
  *   {userId}:{agentName}           — 用户长期记忆
  *   {sessionId}                    — 匿名会话
  *   {userId}:{workflowId}:{runId}  — 单次 Run 隔离

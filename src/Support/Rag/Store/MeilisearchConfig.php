@@ -14,7 +14,7 @@ use Swoolefy\Support\Neuron\NeuronAiConfig;
  * - embedder / dimension 需与 Meilisearch 侧向量配置一致，否则检索维度不匹配
  * - apiKey 为 null 时不发送 Authorization 头（本地开发常见）
  *
- * @see swoolefyAI.md §4.10.2
+ * @see docs/swoolefyAI.md §4.10.2
  */
 final class MeilisearchConfig
 {

@@ -30,7 +30,7 @@ use Swoolefy\Support\Rag\Store\MilvusVectorStore;
  * - pinecone：namespace
  * - qdrant / milvus：独立 collection
  *
- * @see swoolefyAI.md §4.10.2
+ * @see docs/swoolefyAI.md §4.10.2
  */
 final class VectorStoreFactory
 {
