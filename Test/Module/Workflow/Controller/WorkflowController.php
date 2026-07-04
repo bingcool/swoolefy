@@ -6,6 +6,7 @@ namespace Test\Module\Workflow\Controller;
 
 use Swoolefy\Annotation\StreamResponse;
 use Swoolefy\Core\Controller\BController;
+use Swoolefy\Exception\SystemException;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Http\ResponseOutput;
 use Swoolefy\Support\AI\Stream\SseResponse;
@@ -31,11 +32,11 @@ final class WorkflowController extends BController
      *
      * Body: { "workflowId": "order_processing", "input": {...}, "stream": false }
      */
-    public function run(RequestInput $requestInput, ResponseOutput $responseOutput): array|null
+    public function run(RequestInput $requestInput, ResponseOutput $responseOutput): ?array
     {
         $workflowId = (string) $requestInput->input('workflowId', '');
         if ($workflowId === '') {
-            return $this->returnJson([], 400, 'workflowId is required');
+            throw new SystemException('workflowId is required', 400);
         }
 
         $input = $this->normalizeInput($requestInput);
@@ -55,9 +56,9 @@ final class WorkflowController extends BController
             $runId = $engine->start($compiled, $input);
             $run = $engine->getRun($runId);
 
-            return $this->returnJson($this->formatRun($run));
+            return $this->formatRun($run);
         } catch (WorkflowException $e) {
-            return $this->returnJson([], 400, $e->getMessage());
+            throw new SystemException($e->getMessage(), 400, $e);
         }
     }
 
@@ -66,15 +67,15 @@ final class WorkflowController extends BController
     {
         $runId = (string) $requestInput->input('runId', '');
         if ($runId === '') {
-            return $this->returnJson([], 400, 'runId is required');
+            throw new SystemException('runId is required', 400);
         }
 
         try {
             $run = WorkflowBootstrap::engine()->getRun($runId);
 
-            return $this->returnJson($this->formatRun($run));
+            return $this->formatRun($run);
         } catch (WorkflowException $e) {
-            return $this->returnJson([], 404, $e->getMessage());
+            throw new SystemException($e->getMessage(), 404, $e);
         }
     }
 
@@ -84,10 +85,10 @@ final class WorkflowController extends BController
         $runId = (string) $requestInput->input('runId', '');
         $feedback = $requestInput->input('feedback', []);
         if ($runId === '') {
-            return $this->returnJson([], 400, 'runId is required');
+            throw new SystemException('runId is required', 400);
         }
         if (!is_array($feedback)) {
-            return $this->returnJson([], 400, 'feedback must be an object');
+            throw new SystemException('feedback must be an object', 400);
         }
 
         try {
@@ -95,9 +96,9 @@ final class WorkflowController extends BController
             $engine->resume($runId, $feedback);
             $run = $engine->getRun($runId);
 
-            return $this->returnJson($this->formatRun($run));
+            return $this->formatRun($run);
         } catch (WorkflowException $e) {
-            return $this->returnJson([], 400, $e->getMessage());
+            throw new SystemException($e->getMessage(), 400, $e);
         }
     }
 
@@ -109,9 +110,9 @@ final class WorkflowController extends BController
 
         $engine = WorkflowBootstrap::engine();
 
-        return $this->returnJson([
+        return [
             'tasks' => $engine->listPauseTasks($assignee),
-        ]);
+        ];
     }
 
     /** GET /api/v1/workflow/run/events?runId= — 对已存在 Run 重放边路由事件（演示 SSE）。 */
@@ -123,9 +124,7 @@ final class WorkflowController extends BController
 
         try {
             if ($runId === '') {
-                $sink->publish('error', ['message' => 'runId is required']);
-
-                return;
+                throw new SystemException('runId is required', 400);
             }
 
             $run = WorkflowBootstrap::engine()->getRun($runId);
@@ -136,7 +135,7 @@ final class WorkflowController extends BController
             ]);
             $sink->publish('complete', $this->formatRun($run));
         } catch (WorkflowException $e) {
-            $sink->publish('error', ['message' => $e->getMessage()]);
+            throw new SystemException($e->getMessage(), 404, $e);
         } finally {
             SseResponse::close($sink);
         }
@@ -157,7 +156,7 @@ final class WorkflowController extends BController
             $run = $engine->getRun($runId);
             $sink->publish('complete', $this->formatRun($run));
         } catch (WorkflowException $e) {
-            $sink->publish('error', ['message' => $e->getMessage()]);
+            throw new SystemException($e->getMessage(), 400, $e);
         } finally {
             SseResponse::close($sink);
         }

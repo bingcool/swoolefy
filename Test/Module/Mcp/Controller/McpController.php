@@ -33,9 +33,9 @@ final class McpController extends BController
         $tenantId = $requestInput->input('tenantId');
         $tenantId = is_string($tenantId) && $tenantId !== '' ? $tenantId : null;
 
-        return $this->returnJson([
+        return [
             'servers' => WorkflowService::mcpFactory()->listServers($tenantId),
-        ]);
+        ];
     }
 
     /**
@@ -54,9 +54,9 @@ final class McpController extends BController
         $tenantId = $requestInput->input('tenantId');
         $tenantId = is_string($tenantId) && $tenantId !== '' ? $tenantId : null;
 
-        return $this->returnJson([
+        return [
             'serverId' => $serverId,
             'tools' => WorkflowService::mcpFactory()->listToolNames($serverId, $tenantId),
-        ]);
+        ];
     }
 }

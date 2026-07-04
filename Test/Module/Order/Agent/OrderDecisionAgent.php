@@ -8,25 +8,22 @@ use NeuronAI\Agent\Agent;
 use NeuronAI\Agent\SystemPrompt;
 use NeuronAI\Chat\Messages\AssistantMessage;
 use NeuronAI\Providers\AIProviderInterface;
-use NeuronAI\Providers\OpenAILike;
 use NeuronAI\Testing\FakeAIProvider;
+use Swoolefy\Support\Neuron\NeuronProviderFactory;
 
 /**
- * 订单决策 Agent —— 真实 LLM 接入（OPENAI_API_KEY）或 FakeAIProvider 回退。
+ * 订单决策 Agent —— 使用 neuron_ai.php 默认 Provider；无凭证时 FakeAIProvider 回退。
  */
 final class OrderDecisionAgent extends Agent
 {
     protected function provider(): AIProviderInterface
     {
-        $apiKey = (string) (getenv('OPENAI_API_KEY') ?: '');
-        if ($apiKey !== '') {
-            return new OpenAILike(
-                baseUri: (string) (getenv('OPENAI_BASE_URI') ?: 'https://api.openai.com/v1'),
-                key: $apiKey,
-                model: (string) (getenv('OPENAI_MODEL') ?: 'gpt-4o-mini'),
-            );
+        $provider = (new NeuronProviderFactory())->createDefault();
+        if ($provider instanceof AIProviderInterface) {
+            return $provider;
         }
 
+        // 结构化输出演示回退（与 OrderDecisionDto 字段一致）
         return FakeAIProvider::make(new AssistantMessage(json_encode([
             'approved' => true,
             'confidence' => 0.88,
