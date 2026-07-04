@@ -155,6 +155,22 @@ Route::group([
         'dispatch_route' => [\Test\Controller\UploadController::class, 'multiple'],
     ]);
 
+    Route::post('/v1/order/workflow/process', [
+        'dispatch_route' => [\Test\Module\Order\Controller\OrderWorkflowDemoController::class, 'process'],
+    ]);
+
+    Route::post('/v1/order/workflow/saga', [
+        'dispatch_route' => [\Test\Module\Order\Controller\OrderWorkflowDemoController::class, 'saga'],
+    ]);
+
+    Route::get('/v1/order/workflow/status', [
+        'dispatch_route' => [\Test\Module\Order\Controller\OrderWorkflowDemoController::class, 'status'],
+    ]);
+
+    Route::post('/v1/order/workflow/resume', [
+        'dispatch_route' => [\Test\Module\Order\Controller\OrderWorkflowDemoController::class, 'resume'],
+    ]);
+
     Route::post('/v1/workflow/run', [
         'dispatch_route' => [\Test\Module\Workflow\Controller\WorkflowController::class, 'run'],
     ]);

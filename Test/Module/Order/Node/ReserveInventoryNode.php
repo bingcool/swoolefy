@@ -12,26 +12,49 @@ use Swoolefy\Support\Workflow\State\WorkflowState;
 /**
  * 库存预占节点 —— Saga 演示正向动作。
  *
- * execute：设置 inventoryReserved=true
- * compensate：释放预占 inventoryReserved=false（须幂等）
+ * execute：inventoryReserved=true
+ * compensate：释放预占（幂等）
  */
 final class ReserveInventoryNode extends AbstractNode
 {
-    /** {@inheritdoc} 模拟预占库存。 */
+    /** {@inheritdoc} */
     public function execute(RunContext $ctx, WorkflowState $state): NodeExecutionResult
     {
         unset($ctx);
-        $state->set('inventoryReserved', true);
 
-        return NodeExecutionResult::success(['inventoryReserved' => true]);
+        $orderId = $state->get('orderId');
+        $reservationId = 'rsv_' . $orderId . '_' . substr(md5((string) microtime(true)), 0, 8);
+
+        $state->set('inventoryReserved', true);
+        $state->set('reservationId', $reservationId);
+        $state->set('orderStatus', 'inventory_reserved');
+        $order = $state->get('order');
+        if (is_array($order)) {
+            $order['status'] = 'inventory_reserved';
+            $order['reservationId'] = $reservationId;
+            $state->set('order', $order);
+        }
+
+        return NodeExecutionResult::success([
+            'inventoryReserved' => true,
+            'reservationId' => $reservationId,
+        ]);
     }
 
-    /** {@inheritdoc} Saga 回滚 —— 释放库存预占。 */
+    /** {@inheritdoc} */
     public function compensate(RunContext $ctx, WorkflowState $state): void
     {
         unset($ctx);
-        if ($state->get('inventoryReserved') === true) {
-            $state->set('inventoryReserved', false);
+        if ($state->get('inventoryReserved') !== true) {
+            return;
         }
+
+        $state->set('inventoryReserved', false);
+        $order = $state->get('order');
+        if (is_array($order)) {
+            $order['status'] = 'inventory_released';
+            $state->set('order', $order);
+        }
+        $state->set('orderStatus', 'inventory_released');
     }
 }

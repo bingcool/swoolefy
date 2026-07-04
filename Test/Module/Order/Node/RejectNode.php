@@ -14,11 +14,26 @@ use Swoolefy\Support\Workflow\State\WorkflowState;
  */
 final class RejectNode extends AbstractNode
 {
-    /** {@inheritdoc} 标记订单被拒绝。 */
+    /** {@inheritdoc} */
     public function execute(RunContext $ctx, WorkflowState $state): NodeExecutionResult
     {
-        $state->set('orderStatus', 'rejected');
+        unset($ctx);
 
-        return NodeExecutionResult::success(['orderStatus' => 'rejected']);
+        $decision = $state->get('decision');
+        $reason = is_array($decision) ? (string) ($decision['reason'] ?? 'rejected') : 'rejected';
+
+        $state->set('orderStatus', 'rejected');
+        $state->set('rejectReason', $reason);
+        $order = $state->get('order');
+        if (is_array($order)) {
+            $order['status'] = 'rejected';
+            $order['rejectReason'] = $reason;
+            $state->set('order', $order);
+        }
+
+        return NodeExecutionResult::success([
+            'orderStatus' => 'rejected',
+            'rejectReason' => $reason,
+        ]);
     }
 }
