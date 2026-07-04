@@ -19,16 +19,17 @@ use Swoolefy\Support\Rag\Store\MeilisearchConfig;
 use Swoolefy\Support\Rag\Store\MilvusVectorStore;
 
 /**
- * 向量存储工厂 —— 按配置切换多种 VectorStore，按 knowledgeBase 隔离索引/目录/表。
+ * 向量存储工厂 —— 按别名解析 rag.vector_stores 配置，按 knowledgeBase 隔离索引/目录/表。
  *
- * 支持：file、meilisearch、phpvector、mariadb、pinecone、qdrant、milvus
+ * 配置约定（neuron_ai.php）：
+ *   rag.default_vector_store   — 默认别名
+ *   rag.vector_stores[alias]   — 连接参数；可选 driver，缺省时别名即驱动名
  *
- * 隔离策略：
- * - file / phpvector：子目录
- * - meilisearch：indexUid
- * - mariadb：表名后缀
- * - pinecone：namespace
- * - qdrant / milvus：独立 collection
+ * 业务指定别名：
+ *   $factory->make('product_kb', storeAlias: 'milvus_prod');
+ *   null 时使用 default_vector_store。
+ *
+ * 支持驱动：file、meilisearch、phpvector、mariadb、pinecone、qdrant、milvus
  *
  * @see docs/swoolefyAI.md §4.10.2
  */
@@ -37,45 +38,55 @@ final class VectorStoreFactory
     public function __construct(
         private readonly NeuronAiConfig $config,
         private readonly ?string $basePathOverride = null,
-        private readonly ?MeilisearchConfig $meilisearch = null,
     ) {
     }
 
     public static function fromEnv(?string $basePath = null): self
     {
-        $config = NeuronAiConfig::load();
-        $storeType = $config->vectorStoreDriver();
-        $meilisearch = $storeType === NeuronAiVectorStoreName::MEILISEARCH
-            ? MeilisearchConfig::fromNeuronAiConfig($config)
-            : null;
-
-        return new self($config, $basePath, $meilisearch);
+        return new self(NeuronAiConfig::load(), $basePath);
     }
 
-    public function make(string $knowledgeBase, ?int $topK = null): VectorStoreInterface
-    {
+    /**
+     * @param string      $knowledgeBase 知识库名（映射为 index / 目录 / collection）
+     * @param int|null    $topK          检索 TopK，null 用配置 default_top_k
+     * @param string|null $storeAlias    向量库别名；null 使用 default_vector_store
+     */
+    public function make(
+        string $knowledgeBase,
+        ?int $topK = null,
+        ?string $storeAlias = null,
+    ): VectorStoreInterface {
+        $alias = $storeAlias ?? $this->config->defaultVectorStoreAlias();
+        $driver = $this->config->vectorStoreDriver($alias);
         $index = $this->sanitize($knowledgeBase);
         $k = $topK ?? $this->config->defaultTopK();
 
-        return match ($this->config->vectorStoreDriver()) {
-            NeuronAiVectorStoreName::MEILISEARCH => $this->makeMeilisearch($index, $k),
-            NeuronAiVectorStoreName::PHP_VECTOR => $this->makePhpVector($index, $k),
-            NeuronAiVectorStoreName::MARIADB => $this->makeMariaDb($index, $k),
-            NeuronAiVectorStoreName::PINECONE => $this->makePinecone($index, $k),
-            NeuronAiVectorStoreName::QDRANT => $this->makeQdrant($index, $k),
-            NeuronAiVectorStoreName::MILVUS => $this->makeMilvus($index, $k),
-            default => $this->makeFile($index, $k),
+        return match ($driver) {
+            NeuronAiVectorStoreName::MEILISEARCH => $this->makeMeilisearch($index, $k, $alias),
+            NeuronAiVectorStoreName::PHP_VECTOR => $this->makePhpVector($index, $k, $alias),
+            NeuronAiVectorStoreName::MARIADB => $this->makeMariaDb($index, $k, $alias),
+            NeuronAiVectorStoreName::PINECONE => $this->makePinecone($index, $k, $alias),
+            NeuronAiVectorStoreName::QDRANT => $this->makeQdrant($index, $k, $alias),
+            NeuronAiVectorStoreName::MILVUS => $this->makeMilvus($index, $k, $alias),
+            default => $this->makeFile($index, $k, $alias),
         };
     }
 
+    /** 当前默认别名（非驱动名；自定义别名时二者可能不同）。 */
+    public function storeAlias(): string
+    {
+        return $this->config->defaultVectorStoreAlias();
+    }
+
+    /** 当前默认别名解析出的驱动类型。 */
     public function storeType(): string
     {
         return $this->config->vectorStoreDriver();
     }
 
-    private function makeFile(string $index, int $topK): FileVectorStore
+    private function makeFile(string $index, int $topK, string $alias): FileVectorStore
     {
-        $basePath = $this->basePathOverride ?? $this->config->fileStorePath();
+        $basePath = $this->basePathOverride ?? $this->config->fileStorePath($alias);
         $directory = rtrim($basePath, '/') . '/' . $index;
 
         return new FileVectorStore(
@@ -85,23 +96,21 @@ final class VectorStoreFactory
         );
     }
 
-    private function makeMeilisearch(string $index, int $topK): MeilisearchVectorStore
+    private function makeMeilisearch(string $index, int $topK, string $alias): MeilisearchVectorStore
     {
-        if ($this->meilisearch === null) {
-            throw new RuntimeException('Meilisearch config is required when vector_store=meilisearch.');
-        }
+        $meilisearch = MeilisearchConfig::fromNeuronAiConfig($this->config, $alias);
 
         return new MeilisearchVectorStore(
             indexUid: $index,
-            host: $this->meilisearch->host,
-            key: $this->meilisearch->apiKey,
-            embedder: $this->meilisearch->embedder,
+            host: $meilisearch->host,
+            key: $meilisearch->apiKey,
+            embedder: $meilisearch->embedder,
             topK: $topK,
-            dimension: $this->meilisearch->dimension,
+            dimension: $meilisearch->dimension,
         );
     }
 
-    private function makePhpVector(string $index, int $topK): VectorStoreInterface
+    private function makePhpVector(string $index, int $topK, string $alias): VectorStoreInterface
     {
         if (!class_exists(\NeuronAI\PHPVector\PHPVector::class)) {
             throw new RuntimeException(
@@ -109,7 +118,7 @@ final class VectorStoreFactory
             );
         }
 
-        $path = rtrim($this->config->phpvectorPath(), '/') . '/' . $index;
+        $path = rtrim($this->config->phpvectorPath($alias), '/') . '/' . $index;
 
         return new \NeuronAI\PHPVector\PHPVector(
             path: $path,
@@ -117,10 +126,10 @@ final class VectorStoreFactory
         );
     }
 
-    private function makeMariaDb(string $index, int $topK): MariaDBVectorStore
+    private function makeMariaDb(string $index, int $topK, string $alias): MariaDBVectorStore
     {
-        $tableName = $this->config->mariadbTableName() . '_' . $index;
-        $pdo = RagPdoResolver::resolve($this->config->mariadbComponent());
+        $tableName = $this->config->mariadbTableName($alias) . '_' . $index;
+        $pdo = RagPdoResolver::resolve($this->config->mariadbComponent($alias));
 
         return new MariaDBVectorStore(
             pdo: $pdo,
@@ -129,34 +138,36 @@ final class VectorStoreFactory
         );
     }
 
-    private function makePinecone(string $index, int $topK): PineconeVectorStore
+    private function makePinecone(string $index, int $topK, string $alias): PineconeVectorStore
     {
-        $key = $this->config->pineconeKey();
-        $indexUrl = $this->config->pineconeIndexUrl();
+        $key = $this->config->pineconeKey($alias);
+        $indexUrl = $this->config->pineconeIndexUrl($alias);
         if ($key === '' || $indexUrl === '') {
-            throw new RuntimeException('Pinecone vector store requires pinecone.key and pinecone.index_url.');
+            throw new RuntimeException(
+                "Pinecone vector store [{$alias}] requires key and index_url.",
+            );
         }
 
         return new PineconeVectorStore(
             key: $key,
             indexUrl: $indexUrl,
             topK: $topK,
-            version: $this->config->pineconeVersion(),
+            version: $this->config->pineconeVersion($alias),
             namespace: $index,
             httpClient: NeuronHttpFactory::create(),
         );
     }
 
-    private function makeQdrant(string $index, int $topK): QdrantVectorStore
+    private function makeQdrant(string $index, int $topK, string $alias): QdrantVectorStore
     {
-        $collectionUrl = rtrim($this->config->qdrantBaseUrl(), '/')
+        $collectionUrl = rtrim($this->config->qdrantBaseUrl($alias), '/')
             . '/collections/' . $index . '/';
 
         return new QdrantVectorStore(
             collectionUrl: $collectionUrl,
-            key: $this->config->qdrantKey(),
+            key: $this->config->qdrantKey($alias),
             topK: $topK,
-            dimension: $this->config->qdrantDimension(),
+            dimension: $this->config->qdrantDimension($alias),
             httpClient: NeuronHttpFactory::create(),
         );
     }
@@ -164,17 +175,16 @@ final class VectorStoreFactory
     /**
      * Aliyun / self-hosted Milvus: each knowledgeBase is an isolated collection ($index).
      */
-    private function makeMilvus(string $index, int $topK): MilvusVectorStore
+    private function makeMilvus(string $index, int $topK, string $alias): MilvusVectorStore
     {
         return MilvusVectorStore::make([
-            'uri' => $this->config->milvusUri(),
-            'user' => $this->config->milvusUser(),
-            'password' => $this->config->milvusPassword(),
-            'token' => $this->config->milvusToken(),
-            'db_name' => $this->config->milvusDbName(),
-            // sanitized knowledgeBase name becomes the Milvus collection name
+            'uri' => $this->config->milvusUri($alias),
+            'user' => $this->config->milvusUser($alias),
+            'password' => $this->config->milvusPassword($alias),
+            'token' => $this->config->milvusToken($alias),
+            'db_name' => $this->config->milvusDbName($alias),
             'collection_name' => $index,
-            'dimension' => $this->config->milvusDimension(),
+            'dimension' => $this->config->milvusDimension($alias),
             'top_k' => $topK,
         ]);
     }

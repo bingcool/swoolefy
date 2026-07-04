@@ -36,10 +36,12 @@ function makeRagFactory(?string $basePath = null): RagFactory
     $path = $basePath ?? (sys_get_temp_dir() . '/swoolefy_rag_module_' . getmypid());
     $config = NeuronAiConfig::fromArray([
         'rag' => [
-            'vector_store' => NeuronAiVectorStoreName::FILE,
-            'file_store_path' => $path,
+            'default_vector_store' => NeuronAiVectorStoreName::FILE,
             'default_top_k' => 5,
             'embedding_model' => 'text-embedding-3-small',
+            'vector_stores' => [
+                NeuronAiVectorStoreName::FILE => ['path' => $path],
+            ],
         ],
     ]);
 
@@ -51,14 +53,17 @@ function testVectorStoreFactoryFileMode(): void
     $path = sys_get_temp_dir() . '/swoolefy_rag_vs_' . getmypid();
     $config = NeuronAiConfig::fromArray([
         'rag' => [
-            'vector_store' => NeuronAiVectorStoreName::FILE,
-            'file_store_path' => $path,
+            'default_vector_store' => NeuronAiVectorStoreName::FILE,
             'default_top_k' => 4,
+            'vector_stores' => [
+                NeuronAiVectorStoreName::FILE => ['path' => $path],
+            ],
         ],
     ]);
     $factory = new VectorStoreFactory($config, $path);
 
     assertTrue($factory->storeType() === NeuronAiVectorStoreName::FILE, 'store type file');
+    assertTrue($factory->storeAlias() === NeuronAiVectorStoreName::FILE, 'store alias file');
     $store = $factory->make('kb_demo');
     assertTrue($store instanceof FileVectorStore, 'file vector store');
 }
@@ -68,13 +73,49 @@ function testVectorStoreSanitizesKnowledgeBaseName(): void
     $path = sys_get_temp_dir() . '/swoolefy_rag_sanitize_' . getmypid();
     $config = NeuronAiConfig::fromArray([
         'rag' => [
-            'vector_store' => NeuronAiVectorStoreName::FILE,
-            'file_store_path' => $path,
+            'default_vector_store' => NeuronAiVectorStoreName::FILE,
+            'vector_stores' => [
+                NeuronAiVectorStoreName::FILE => ['path' => $path],
+            ],
         ],
     ]);
     $factory = new VectorStoreFactory($config, $path);
     $store = $factory->make('../evil/kb name!');
     assertTrue($store instanceof FileVectorStore, 'sanitized store created');
+}
+
+function testVectorStoreCustomAliasWithDriver(): void
+{
+    $path = sys_get_temp_dir() . '/swoolefy_rag_alias_' . getmypid();
+    $config = NeuronAiConfig::fromArray([
+        'rag' => [
+            'default_vector_store' => 'primary_file',
+            'vector_stores' => [
+                'primary_file' => [
+                    'driver' => NeuronAiVectorStoreName::FILE,
+                    'path' => $path . '/primary',
+                ],
+                'milvus_prod' => [
+                    'driver' => NeuronAiVectorStoreName::MILVUS,
+                    'uri' => 'http://milvus.example:19530',
+                    'user' => 'root',
+                    'password' => 'secret',
+                    'dimension' => 1024,
+                ],
+            ],
+        ],
+    ]);
+
+    assertTrue($config->defaultVectorStoreAlias() === 'primary_file', 'default alias');
+    assertTrue($config->vectorStoreDriver() === NeuronAiVectorStoreName::FILE, 'default driver');
+    assertTrue($config->vectorStoreDriver('milvus_prod') === NeuronAiVectorStoreName::MILVUS, 'alias driver');
+    assertTrue($config->milvusUri('milvus_prod') === 'http://milvus.example:19530', 'alias uri');
+
+    $factory = new VectorStoreFactory($config);
+    $store = $factory->make('kb1');
+    assertTrue($store instanceof FileVectorStore, 'default alias uses file');
+    $store2 = $factory->make('kb1', storeAlias: 'primary_file');
+    assertTrue($store2 instanceof FileVectorStore, 'explicit alias file');
 }
 
 function testIngestTextsAndRetrieve(): void
@@ -140,17 +181,20 @@ function testMilvusConfigSectionInNeuronAiConfig(): void
 {
     $config = NeuronAiConfig::fromArray([
         'rag' => [
-            'vector_store' => NeuronAiVectorStoreName::MILVUS,
-            NeuronAiVectorStoreName::MILVUS => [
-                'uri' => 'http://c-demo.milvus.aliyuncs.com:19530',
-                'user' => 'root',
-                'password' => 'secret',
-                'db_name' => 'rag',
-                'dimension' => 1024,
+            'default_vector_store' => NeuronAiVectorStoreName::MILVUS,
+            'vector_stores' => [
+                NeuronAiVectorStoreName::MILVUS => [
+                    'uri' => 'http://c-demo.milvus.aliyuncs.com:19530',
+                    'user' => 'root',
+                    'password' => 'secret',
+                    'db_name' => 'rag',
+                    'dimension' => 1024,
+                ],
             ],
         ],
     ]);
 
+    assertTrue($config->defaultVectorStoreAlias() === NeuronAiVectorStoreName::MILVUS, 'alias');
     assertTrue($config->vectorStoreDriver() === NeuronAiVectorStoreName::MILVUS, 'driver');
     assertTrue($config->milvusUri() === 'http://c-demo.milvus.aliyuncs.com:19530', 'uri');
     assertTrue($config->milvusUser() === 'root', 'user');
@@ -162,6 +206,7 @@ function testMilvusConfigSectionInNeuronAiConfig(): void
 $tests = [
     'vector store file mode' => 'testVectorStoreFactoryFileMode',
     'sanitize knowledge base' => 'testVectorStoreSanitizesKnowledgeBaseName',
+    'custom alias with driver' => 'testVectorStoreCustomAliasWithDriver',
     'ingest texts + retrieve' => 'testIngestTextsAndRetrieve',
     'ingest empty' => 'testIngestEmptyReturnsZero',
     'ingest documents' => 'testIngestDocumentsDirectly',

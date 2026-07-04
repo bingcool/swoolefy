@@ -24,6 +24,8 @@ use Test\Module\Contract\Workflow\ContractReviewWorkflow;
 use Test\Module\Knowledge\Workflow\KnowledgeQaWorkflow;
 use Test\Module\Order\Workflow\OrderProcessingWorkflow;
 use Test\Module\Order\Workflow\OrderSagaWorkflow;
+use Test\Module\Rag\RagService;
+use Test\Module\Rag\Workflow\RagQaWorkflow;
 use Test\Module\Research\Workflow\McpResearchWorkflow;
 use Test\Module\Research\Workflow\MultiAgentResearchWorkflow;
 
@@ -36,12 +38,8 @@ use Test\Module\Research\Workflow\MultiAgentResearchWorkflow;
  *   3. 提供 catalog / describe，便于演示控制器列出与探查 DAG
  *
  * 已注册 workflowId：
- *   - order_processing      订单 AI 风控三分支（Order 模块）
- *   - order_saga            订单 Saga 补偿（Order 模块）
- *   - multi_agent_research  多 Agent 并行研究（Research 模块）
- *   - mcp_research          MCP 研究 + 紧急度分支（Research 模块）
- *   - contract_review       合同法务 HITL 审批（Contract 模块）
- *   - knowledge_qa          知识库检索问答（Knowledge 模块）
+ *   order_processing、order_saga、multi_agent_research、mcp_research、
+ *   contract_review、knowledge_qa、rag_qa
  *
  * 注意：Order / Research 模块另有专用 Demo 控制器，可注入 mock；
  * 本 Registry 使用各工作流的默认 definition（适合统一入口演示）。
@@ -108,6 +106,10 @@ final class WorkflowService
         $registry->register('knowledge_qa', static fn () => KnowledgeQaWorkflow::definition(
             self::retrievalService(),
             self::neuronFactory(),
+        ));
+        // Rag 模块：retrieve → extractive answer
+        $registry->register('rag_qa', static fn () => RagQaWorkflow::definition(
+            self::retrievalService(),
         ));
     }
 
@@ -214,6 +216,10 @@ final class WorkflowService
             'knowledge_qa' => [
                 'question' => 'What is the refund policy?',
             ],
+            'rag_qa' => [
+                'question' => 'What is RAG in swoolefy?',
+                'knowledgeBase' => RagService::DEFAULT_KNOWLEDGE_BASE,
+            ],
             default => [],
         };
     }
@@ -228,6 +234,7 @@ final class WorkflowService
             'multi_agent_research', 'mcp_research' => 'Research',
             'contract_review' => 'Contract',
             'knowledge_qa' => 'Knowledge',
+            'rag_qa' => 'Rag',
             default => 'Unknown',
         };
     }

@@ -29,13 +29,14 @@ final class RetrievalToolFactory
     /**
      * 构建绑定指定知识库的 Neuron RetrievalTool。
      *
-     * @param string   $knowledgeBase 知识库名称
-     * @param int|null $topK          检索 TopK，null 使用 VectorStore 默认值
+     * @param string      $knowledgeBase 知识库名称
+     * @param int|null    $topK          检索 TopK，null 使用 VectorStore 默认值
+     * @param string|null $storeAlias    向量库别名；null 用 default_vector_store
      */
-    public function make(string $knowledgeBase, ?int $topK = null): RetrievalTool
+    public function make(string $knowledgeBase, ?int $topK = null, ?string $storeAlias = null): RetrievalTool
     {
         return new RetrievalTool(
-            $this->ragFactory->retrieval($knowledgeBase, $topK),
+            $this->ragFactory->retrieval($knowledgeBase, $topK, $storeAlias),
         );
     }
 }

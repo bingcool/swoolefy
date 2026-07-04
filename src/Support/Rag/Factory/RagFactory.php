@@ -28,10 +28,17 @@ final class RagFactory
     ) {
     }
 
-    /** 按知识库名获取 VectorStore（file 目录或 Meilisearch index）。 */
-    public function vectorStore(string $knowledgeBase, ?int $topK = null): VectorStoreInterface
-    {
-        return $this->vectorStoreFactory->make($knowledgeBase, $topK);
+    /**
+     * 按知识库名获取 VectorStore。
+     *
+     * @param string|null $storeAlias 向量库别名（rag.vector_stores 的 key）；null 用 default_vector_store
+     */
+    public function vectorStore(
+        string $knowledgeBase,
+        ?int $topK = null,
+        ?string $storeAlias = null,
+    ): VectorStoreInterface {
+        return $this->vectorStoreFactory->make($knowledgeBase, $topK, $storeAlias);
     }
 
     /** 获取 Embeddings 提供者（生产 OpenAI-like，无 key 时 FakeEmbeddings）。 */
@@ -44,11 +51,16 @@ final class RagFactory
      * 构建 SimilarityRetrieval —— RagRetrieveNode / RetrievalTool 共用。
      *
      * query 向量化 → vectorStore 相似度搜索 → TopK Document
+     *
+     * @param string|null $storeAlias 向量库别名；null 用 default_vector_store
      */
-    public function retrieval(string $knowledgeBase, ?int $topK = null): RetrievalInterface
-    {
+    public function retrieval(
+        string $knowledgeBase,
+        ?int $topK = null,
+        ?string $storeAlias = null,
+    ): RetrievalInterface {
         return new SimilarityRetrieval(
-            $this->vectorStore($knowledgeBase, $topK),
+            $this->vectorStore($knowledgeBase, $topK, $storeAlias),
             $this->embeddings(),
         );
     }

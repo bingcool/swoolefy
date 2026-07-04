@@ -46,10 +46,14 @@ function sampleNeuronConfig(): NeuronAiConfig
 {
     return NeuronAiConfig::fromArray([
         'rag' => [
-            'vector_store' => NeuronAiVectorStoreName::FILE,
-            'file_store_path' => '/tmp/swoolefy_neuron_test',
+            'default_vector_store' => NeuronAiVectorStoreName::FILE,
             'default_top_k' => 3,
             'embedding_model' => 'text-embedding-3-small',
+            'vector_stores' => [
+                NeuronAiVectorStoreName::FILE => [
+                    'path' => '/tmp/swoolefy_neuron_test',
+                ],
+            ],
         ],
         'mcp' => [
             'max_local_processes' => 3,
@@ -73,7 +77,8 @@ function sampleNeuronConfig(): NeuronAiConfig
 function testNeuronAiConfigReadsSections(): void
 {
     $config = sampleNeuronConfig();
-    assertTrue($config->vectorStoreDriver() === NeuronAiVectorStoreName::FILE, 'vector store');
+    assertTrue($config->defaultVectorStoreAlias() === NeuronAiVectorStoreName::FILE, 'default alias');
+    assertTrue($config->vectorStoreDriver() === NeuronAiVectorStoreName::FILE, 'vector store driver');
     assertTrue($config->defaultTopK() === 3, 'top k');
     assertTrue($config->embeddingModel() === 'text-embedding-3-small', 'embedding model');
     assertTrue($config->defaultProviderName() === NeuronAiProviderName::OPENAI, 'default provider');

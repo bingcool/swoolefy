@@ -73,18 +73,31 @@ TopK Document → RetrievalService / RetrievalTool / RAGNode
 ```php
 // neuron_ai.php
 'rag' => [
-    'vector_store' => NeuronAiVectorStoreName::FILE, // 或 MEILISEARCH / MILVUS ...
-    'file_store_path' => '/tmp/swoolefy_rag',
+    // 默认向量库别名（env RAG_VECTOR_STORE 可覆盖）
+    'default_vector_store' => NeuronAiVectorStoreName::FILE,
     'default_top_k' => 5,
     'embedding_model' => 'text-embedding-3-small',
-    NeuronAiVectorStoreName::MILVUS => [
-        'uri' => env(NeuronAiRagEnv::MILVUS_URI, 'http://localhost:19530'),
-        // ...
+    // 已声明的向量库表：key = 别名；可选 driver（缺省时别名即驱动名）
+    'vector_stores' => [
+        NeuronAiVectorStoreName::FILE => [
+            'path' => env(NeuronAiRagEnv::FILE_STORE_PATH, '/tmp/swoolefy_rag'),
+        ],
+        NeuronAiVectorStoreName::MILVUS => [
+            'uri' => env(NeuronAiRagEnv::MILVUS_URI, 'http://localhost:19530'),
+            // ...
+        ],
+        // 自定义别名示例：
+        // 'milvus_prod' => ['driver' => 'milvus', 'uri' => '...'],
     ],
 ],
 ```
 
-切换驱动：`RAG_VECTOR_STORE=milvus`（环境变量优先）。
+默认别名：`RAG_VECTOR_STORE=milvus`（环境变量优先）。业务指定其它别名：
+
+```php
+$factory->make('product_kb', storeAlias: 'milvus_prod');
+// 或节点配置：'vectorStore' => 'milvus_prod'
+```
 
 ### 入库与检索
 
@@ -98,9 +111,11 @@ use Swoolefy\Support\Rag\Retrieval\RetrievalService;
 
 $config = NeuronAiConfig::fromArray([
     'rag' => [
-        'vector_store' => NeuronAiVectorStoreName::FILE,
-        'file_store_path' => '/tmp/swoolefy_rag',
+        'default_vector_store' => NeuronAiVectorStoreName::FILE,
         'default_top_k' => 5,
+        'vector_stores' => [
+            NeuronAiVectorStoreName::FILE => ['path' => '/tmp/swoolefy_rag'],
+        ],
     ],
 ]);
 $rag = new RagFactory(new VectorStoreFactory($config), new EmbeddingFactory());
@@ -110,6 +125,7 @@ $rag->ingestionPipeline()->ingestTexts('product_kb', [
 ]);
 
 $hits = (new RetrievalService($rag))->retrieve('product_kb', 'coroutine framework', 3);
+// 指定别名：$rag->vectorStore('product_kb', storeAlias: 'milvus_prod');
 ```
 
 无 `OPENAI_API_KEY` 时使用 `FakeEmbeddingsProvider`（维度 64），适合本地与单测。
@@ -117,10 +133,11 @@ $hits = (new RetrievalService($rag))->retrieve('product_kb', 'coroutine framewor
 ### 工作流节点
 
 ```php
-// 入库
+// 入库（可选 vectorStore 指定别名，缺省用 default_vector_store）
 new RagIngestNode('ingest', [
     'knowledgeBase' => 'product_kb',
     'sourceKey' => 'documents', // state 中的文本列表
+    // 'vectorStore' => 'milvus_prod',
 ], $pipeline);
 
 // 检索
@@ -128,6 +145,7 @@ new RagRetrieveNode('retrieve', [
     'knowledgeBase' => 'product_kb',
     'queryKey' => 'query',
     'outputKey' => 'retrievedDocs',
+    // 'vectorStore' => 'milvus_prod',
 ], $retrievalService);
 ```
 
@@ -144,7 +162,7 @@ php src/Support/Rag/Console/ingest_documents.php --kb=product_kb --file=./docs.t
 | 变量 | 说明 |
 |------|------|
 | `RAG_VECTOR_STORE` | 驱动名 |
-| `RAG_FILE_STORE_PATH` | file 根目录 |
+| `RAG_FILE_STORE_PATH` | file 驱动 path（覆盖 vector_stores.file.path） |
 | `RAG_DEFAULT_TOP_K` | 默认 TopK |
 | `RAG_EMBEDDING_MODEL` | Embedding 模型名 |
 | `MEILISEARCH_*` / `MILVUS_*` / `PINECONE_*` / `QDRANT_*` | 见 `NeuronAiRagEnv` |

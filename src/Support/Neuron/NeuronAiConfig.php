@@ -11,6 +11,12 @@ use Swoolefy\Support\Neuron\Http\NeuronHttpFactory;
  * Neuron AI / RAG / MCP 模块配置加载器。
  *
  * 读取 APP_PATH/config/neuron_ai.php（可选），环境变量优先。
+ *
+ * RAG 向量库配置结构：
+ *   rag.default_vector_store   — 默认使用的向量库别名（env RAG_VECTOR_STORE 可覆盖）
+ *   rag.vector_stores[alias]   — 各向量库连接参数；可选 driver 字段，缺省时别名即驱动名
+ *
+ * 业务指定别名示例：VectorStoreFactory::make($kb, storeAlias: 'milvus_prod')
  */
 final class NeuronAiConfig
 {
@@ -53,21 +59,93 @@ final class NeuronAiConfig
         return (array) ($this->config['neuron'] ?? []);
     }
 
-    public function vectorStoreDriver(): string
+    /**
+     * 默认向量库别名（rag.default_vector_store）。
+     * 未配置时回退为 file；环境变量 RAG_VECTOR_STORE 可覆盖。
+     */
+    public function defaultVectorStoreAlias(): string
     {
-        return ApplicationConfig::pickStringEnvFirst(
+        $alias = ApplicationConfig::pickStringEnvFirst(
             $this->ragSection(),
-            'vector_store',
+            'default_vector_store',
             NeuronAiRagEnv::VECTOR_STORE,
-            NeuronAiVectorStoreName::FILE,
+            '',
         );
+
+        return $alias !== '' ? $alias : NeuronAiVectorStoreName::FILE;
     }
 
-    public function fileStorePath(): string
+    /**
+     * 已声明的向量库配置表（rag.vector_stores）。
+     *
+     * 键为别名；值须为数组。可选字段 driver（缺省时别名即驱动类型）。
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function vectorStores(): array
+    {
+        $raw = $this->ragSection()['vector_stores'] ?? [];
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $stores = [];
+        foreach ($raw as $alias => $section) {
+            if (!is_string($alias) || $alias === '' || !is_array($section)) {
+                continue;
+            }
+            $stores[$alias] = $section;
+        }
+
+        return $stores;
+    }
+
+    /**
+     * 解析别名对应的驱动类型（NeuronAiVectorStoreName::*）。
+     *
+     * 优先读 section.driver；否则别名本身作为驱动名。
+     *
+     * @param string|null $alias null 时使用 defaultVectorStoreAlias()
+     */
+    public function vectorStoreDriver(?string $alias = null): string
+    {
+        $alias ??= $this->defaultVectorStoreAlias();
+        $section = $this->vectorStoreSection($alias);
+        $driver = $section['driver'] ?? $alias;
+
+        return is_string($driver) && $driver !== '' ? $driver : NeuronAiVectorStoreName::FILE;
+    }
+
+    /**
+     * 指定别名的连接配置段（rag.vector_stores[alias]）。
+     *
+     * @param string|null $alias null 时使用 defaultVectorStoreAlias()
+     *
+     * @return array<string, mixed>
+     */
+    public function vectorStoreSection(?string $alias = null): array
+    {
+        $alias ??= $this->defaultVectorStoreAlias();
+        $section = $this->vectorStores()[$alias] ?? null;
+
+        return is_array($section) ? $section : [];
+    }
+
+    /** 是否已在 rag.vector_stores 中声明该别名。 */
+    public function hasVectorStoreAlias(string $alias): bool
+    {
+        return isset($this->vectorStores()[$alias]);
+    }
+
+    /**
+     * file 驱动根目录（rag.vector_stores[alias].path）。
+     * 实际路径为 {path}/{knowledgeBase}/；env RAG_FILE_STORE_PATH 可覆盖 path。
+     */
+    public function fileStorePath(?string $alias = null): string
     {
         return ApplicationConfig::pickStringEnvFirst(
-            $this->ragSection(),
-            'file_store_path',
+            $this->vectorStoreSection($alias),
+            'path',
             NeuronAiRagEnv::FILE_STORE_PATH,
             sys_get_temp_dir() . '/swoolefy_rag',
         );
@@ -94,25 +172,25 @@ final class NeuronAiConfig
     }
 
     /** @return array<string, mixed> */
-    public function meilisearchSection(): array
+    public function meilisearchSection(?string $alias = null): array
     {
-        return (array) ($this->ragSection()[NeuronAiVectorStoreName::MEILISEARCH] ?? []);
+        return $this->sectionForDriver(NeuronAiVectorStoreName::MEILISEARCH, $alias);
     }
 
-    public function meilisearchHost(): string
+    public function meilisearchHost(?string $alias = null): string
     {
         return ApplicationConfig::pickStringEnvFirst(
-            $this->meilisearchSection(),
+            $this->meilisearchSection($alias),
             'host',
             NeuronAiRagEnv::MEILISEARCH_HOST,
             'http://localhost:7700',
         );
     }
 
-    public function meilisearchKey(): ?string
+    public function meilisearchKey(?string $alias = null): ?string
     {
         $key = ApplicationConfig::pickStringEnvFirst(
-            $this->meilisearchSection(),
+            $this->meilisearchSection($alias),
             'key',
             NeuronAiRagEnv::MEILISEARCH_KEY,
             '',
@@ -121,20 +199,20 @@ final class NeuronAiConfig
         return $key !== '' ? $key : null;
     }
 
-    public function meilisearchEmbedder(): string
+    public function meilisearchEmbedder(?string $alias = null): string
     {
         return ApplicationConfig::pickStringEnvFirst(
-            $this->meilisearchSection(),
+            $this->meilisearchSection($alias),
             'embedder',
             NeuronAiRagEnv::MEILISEARCH_EMBEDDER,
             'default',
         );
     }
 
-    public function meilisearchDimension(): int
+    public function meilisearchDimension(?string $alias = null): int
     {
         return ApplicationConfig::pickIntEnvFirst(
-            $this->meilisearchSection(),
+            $this->meilisearchSection($alias),
             'dimension',
             NeuronAiRagEnv::MEILISEARCH_DIMENSION,
             1024,
@@ -142,15 +220,15 @@ final class NeuronAiConfig
     }
 
     /** @return array<string, mixed> */
-    public function phpvectorSection(): array
+    public function phpvectorSection(?string $alias = null): array
     {
-        return (array) ($this->ragSection()[NeuronAiVectorStoreName::PHP_VECTOR] ?? []);
+        return $this->sectionForDriver(NeuronAiVectorStoreName::PHP_VECTOR, $alias);
     }
 
-    public function phpvectorPath(): string
+    public function phpvectorPath(?string $alias = null): string
     {
         return ApplicationConfig::pickStringEnvFirst(
-            $this->phpvectorSection(),
+            $this->phpvectorSection($alias),
             'path',
             NeuronAiRagEnv::PHPVECTOR_PATH,
             sys_get_temp_dir() . '/swoolefy_phpvector',
@@ -158,25 +236,25 @@ final class NeuronAiConfig
     }
 
     /** @return array<string, mixed> */
-    public function mariadbSection(): array
+    public function mariadbSection(?string $alias = null): array
     {
-        return (array) ($this->ragSection()[NeuronAiVectorStoreName::MARIADB] ?? []);
+        return $this->sectionForDriver(NeuronAiVectorStoreName::MARIADB, $alias);
     }
 
-    public function mariadbComponent(): string
+    public function mariadbComponent(?string $alias = null): string
     {
         return ApplicationConfig::pickStringEnvFirst(
-            $this->mariadbSection(),
+            $this->mariadbSection($alias),
             'component',
             NeuronAiRagEnv::MARIADB_COMPONENT,
             'db',
         );
     }
 
-    public function mariadbTableName(): string
+    public function mariadbTableName(?string $alias = null): string
     {
         return ApplicationConfig::pickStringEnvFirst(
-            $this->mariadbSection(),
+            $this->mariadbSection($alias),
             'table_name',
             NeuronAiRagEnv::MARIADB_TABLE_NAME,
             'rag_documents',
@@ -184,35 +262,35 @@ final class NeuronAiConfig
     }
 
     /** @return array<string, mixed> */
-    public function pineconeSection(): array
+    public function pineconeSection(?string $alias = null): array
     {
-        return (array) ($this->ragSection()[NeuronAiVectorStoreName::PINECONE] ?? []);
+        return $this->sectionForDriver(NeuronAiVectorStoreName::PINECONE, $alias);
     }
 
-    public function pineconeKey(): string
+    public function pineconeKey(?string $alias = null): string
     {
         return ApplicationConfig::pickStringEnvFirst(
-            $this->pineconeSection(),
+            $this->pineconeSection($alias),
             'key',
             NeuronAiRagEnv::PINECONE_KEY,
             '',
         );
     }
 
-    public function pineconeIndexUrl(): string
+    public function pineconeIndexUrl(?string $alias = null): string
     {
         return ApplicationConfig::pickStringEnvFirst(
-            $this->pineconeSection(),
+            $this->pineconeSection($alias),
             'index_url',
             NeuronAiRagEnv::PINECONE_INDEX_URL,
             '',
         );
     }
 
-    public function pineconeVersion(): string
+    public function pineconeVersion(?string $alias = null): string
     {
         return ApplicationConfig::pickStringEnvFirst(
-            $this->pineconeSection(),
+            $this->pineconeSection($alias),
             'version',
             NeuronAiRagEnv::PINECONE_VERSION,
             '2025-04',
@@ -220,25 +298,25 @@ final class NeuronAiConfig
     }
 
     /** @return array<string, mixed> */
-    public function qdrantSection(): array
+    public function qdrantSection(?string $alias = null): array
     {
-        return (array) ($this->ragSection()[NeuronAiVectorStoreName::QDRANT] ?? []);
+        return $this->sectionForDriver(NeuronAiVectorStoreName::QDRANT, $alias);
     }
 
-    public function qdrantBaseUrl(): string
+    public function qdrantBaseUrl(?string $alias = null): string
     {
         return ApplicationConfig::pickStringEnvFirst(
-            $this->qdrantSection(),
+            $this->qdrantSection($alias),
             'base_url',
             NeuronAiRagEnv::QDRANT_BASE_URL,
             'http://localhost:6333',
         );
     }
 
-    public function qdrantKey(): ?string
+    public function qdrantKey(?string $alias = null): ?string
     {
         $key = ApplicationConfig::pickStringEnvFirst(
-            $this->qdrantSection(),
+            $this->qdrantSection($alias),
             'key',
             NeuronAiRagEnv::QDRANT_KEY,
             '',
@@ -247,10 +325,10 @@ final class NeuronAiConfig
         return $key !== '' ? $key : null;
     }
 
-    public function qdrantDimension(): int
+    public function qdrantDimension(?string $alias = null): int
     {
         return ApplicationConfig::pickIntEnvFirst(
-            $this->qdrantSection(),
+            $this->qdrantSection($alias),
             'dimension',
             NeuronAiRagEnv::QDRANT_DIMENSION,
             1536,
@@ -258,31 +336,27 @@ final class NeuronAiConfig
     }
 
     /**
-     * rag.milvus section (Aliyun / self-hosted Milvus).
-     *
      * @return array<string, mixed>
      */
-    public function milvusSection(): array
+    public function milvusSection(?string $alias = null): array
     {
-        return (array) ($this->ragSection()[NeuronAiVectorStoreName::MILVUS] ?? []);
+        return $this->sectionForDriver(NeuronAiVectorStoreName::MILVUS, $alias);
     }
 
-    /** Milvus REST base URI (env MILVUS_URI overrides config). */
-    public function milvusUri(): string
+    public function milvusUri(?string $alias = null): string
     {
         return ApplicationConfig::pickStringEnvFirst(
-            $this->milvusSection(),
+            $this->milvusSection($alias),
             'uri',
             NeuronAiRagEnv::MILVUS_URI,
             'http://localhost:19530',
         );
     }
 
-    /** Username for Aliyun-style auth; null when unset. */
-    public function milvusUser(): ?string
+    public function milvusUser(?string $alias = null): ?string
     {
         $val = ApplicationConfig::pickStringEnvFirst(
-            $this->milvusSection(),
+            $this->milvusSection($alias),
             'user',
             NeuronAiRagEnv::MILVUS_USER,
             '',
@@ -291,11 +365,10 @@ final class NeuronAiConfig
         return $val !== '' ? $val : null;
     }
 
-    /** Password paired with milvusUser(); null when unset. */
-    public function milvusPassword(): ?string
+    public function milvusPassword(?string $alias = null): ?string
     {
         $val = ApplicationConfig::pickStringEnvFirst(
-            $this->milvusSection(),
+            $this->milvusSection($alias),
             'password',
             NeuronAiRagEnv::MILVUS_PASSWORD,
             '',
@@ -304,11 +377,10 @@ final class NeuronAiConfig
         return $val !== '' ? $val : null;
     }
 
-    /** Optional token auth (alternative to user+password). */
-    public function milvusToken(): ?string
+    public function milvusToken(?string $alias = null): ?string
     {
         $val = ApplicationConfig::pickStringEnvFirst(
-            $this->milvusSection(),
+            $this->milvusSection($alias),
             'token',
             NeuronAiRagEnv::MILVUS_TOKEN,
             '',
@@ -317,22 +389,20 @@ final class NeuronAiConfig
         return $val !== '' ? $val : null;
     }
 
-    /** Logical database name inside the Milvus instance. */
-    public function milvusDbName(): string
+    public function milvusDbName(?string $alias = null): string
     {
         return ApplicationConfig::pickStringEnvFirst(
-            $this->milvusSection(),
+            $this->milvusSection($alias),
             'db_name',
             NeuronAiRagEnv::MILVUS_DB_NAME,
             'default',
         );
     }
 
-    /** FLOAT_VECTOR dimension; must match embedding model. */
-    public function milvusDimension(): int
+    public function milvusDimension(?string $alias = null): int
     {
         return ApplicationConfig::pickIntEnvFirst(
-            $this->milvusSection(),
+            $this->milvusSection($alias),
             'dimension',
             NeuronAiRagEnv::MILVUS_DIMENSION,
             1536,
@@ -388,5 +458,32 @@ final class NeuronAiConfig
         $config = $this->aiModelProviders()[$alias] ?? null;
 
         return is_array($config) ? $config : null;
+    }
+
+    /**
+     * 取指定驱动的配置段：优先 $alias；否则在 vector_stores 中找 driver 匹配的第一条；
+     * 再回退到以驱动名为别名的段。
+     *
+     * @return array<string, mixed>
+     */
+    private function sectionForDriver(string $driver, ?string $alias = null): array
+    {
+        if ($alias !== null && $alias !== '') {
+            return $this->vectorStoreSection($alias);
+        }
+
+        $defaultAlias = $this->defaultVectorStoreAlias();
+        if ($this->vectorStoreDriver($defaultAlias) === $driver) {
+            return $this->vectorStoreSection($defaultAlias);
+        }
+
+        foreach ($this->vectorStores() as $storeAlias => $section) {
+            $sectionDriver = $section['driver'] ?? $storeAlias;
+            if ($sectionDriver === $driver) {
+                return $section;
+            }
+        }
+
+        return $this->vectorStoreSection($driver);
     }
 }

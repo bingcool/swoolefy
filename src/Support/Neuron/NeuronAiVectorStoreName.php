@@ -5,9 +5,17 @@ declare(strict_types=1);
 namespace Swoolefy\Support\Neuron;
 
 /**
- * neuron_ai.php → rag.vector_store 驱动名常量。
+ * 向量库驱动类型常量（NeuronAiVectorStoreName::*）。
  *
- * 同时作为 rag 配置块的 key（如 rag.milvus），与 VectorStoreFactory match 分支一致。
+ * 配置约定（neuron_ai.php）：
+ *   rag.default_vector_store            — 默认别名
+ *   rag.vector_stores[alias]            — 别名对应的连接配置
+ *   rag.vector_stores[alias].driver     — 可选；缺省时别名本身即驱动名
+ *
+ * 别名可与驱动名相同（如 meilisearch），也可自定义：
+ *   'milvus_prod' => ['driver' => 'milvus', 'uri' => '...']
+ *
+ * @see VectorStoreFactory::make()
  */
 final class NeuronAiVectorStoreName
 {

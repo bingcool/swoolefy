@@ -198,6 +198,49 @@ Route::group([
     ]);
 
     // -----------------------------------------------------------------------
+    // Rag 模块 — 入库 / 检索 / 问答演示
+    // 文档：Test/Module/Rag/README.md
+    // -----------------------------------------------------------------------
+
+    // GET /api/v1/rag/config — 当前 default_vector_store、embedding、vector_stores
+    Route::get('/v1/rag/config', [
+        'dispatch_route' => [\Test\Module\Rag\Controller\RagController::class, 'config'],
+    ]);
+
+    // GET /api/v1/rag/stores — 已声明向量库别名列表
+    Route::get('/v1/rag/stores', [
+        'dispatch_route' => [\Test\Module\Rag\Controller\RagController::class, 'stores'],
+    ]);
+
+    // POST /api/v1/rag/seed — 写入演示语料
+    // Body: { "knowledgeBase": "demo_kb", "vectorStore": "file" }
+    Route::post('/v1/rag/seed', [
+        'dispatch_route' => [\Test\Module\Rag\Controller\RagController::class, 'seed'],
+    ]);
+
+    // POST /api/v1/rag/ingest — 自定义文本入库
+    // Body: { "knowledgeBase": "demo_kb", "texts": ["..."], "vectorStore": "file" }
+    Route::post('/v1/rag/ingest', [
+        'dispatch_route' => [\Test\Module\Rag\Controller\RagController::class, 'ingest'],
+    ]);
+
+    // POST /api/v1/rag/retrieve — 相似度检索
+    // Body: { "query": "...", "knowledgeBase": "demo_kb", "topK": 5, "vectorStore": "file" }
+    Route::post('/v1/rag/retrieve', [
+        'dispatch_route' => [\Test\Module\Rag\Controller\RagController::class, 'retrieve'],
+    ]);
+
+    // POST /api/v1/rag/ask — 检索增强问答（useAgent=true 走 DemoKnowledgeRag）
+    Route::post('/v1/rag/ask', [
+        'dispatch_route' => [\Test\Module\Rag\Controller\RagController::class, 'ask'],
+    ]);
+
+    // POST /api/v1/rag/workflow/qa — 工作流 retrieve → answer
+    Route::post('/v1/rag/workflow/qa', [
+        'dispatch_route' => [\Test\Module\Rag\Controller\RagController::class, 'workflowQa'],
+    ]);
+
+    // -----------------------------------------------------------------------
     // Research 模块 — 研究工作流演示
     // 文档：Test/Module/Research/README.md
     // -----------------------------------------------------------------------

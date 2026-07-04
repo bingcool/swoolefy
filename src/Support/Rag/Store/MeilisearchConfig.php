@@ -34,16 +34,18 @@ final class MeilisearchConfig
 
     /**
      * 从 neuron_ai.php + 环境变量构建配置。
+     *
+     * @param string|null $alias 向量库别名；null 使用 default_vector_store
      */
-    public static function fromNeuronAiConfig(?NeuronAiConfig $config = null): self
+    public static function fromNeuronAiConfig(?NeuronAiConfig $config = null, ?string $alias = null): self
     {
         $config ??= NeuronAiConfig::load();
 
         return new self(
-            host: $config->meilisearchHost(),
-            apiKey: $config->meilisearchKey(),
-            embedder: $config->meilisearchEmbedder(),
-            dimension: $config->meilisearchDimension(),
+            host: $config->meilisearchHost($alias),
+            apiKey: $config->meilisearchKey($alias),
+            embedder: $config->meilisearchEmbedder($alias),
+            dimension: $config->meilisearchDimension($alias),
         );
     }
 

@@ -19,11 +19,17 @@ final class RetrievalService
     }
 
     /**
+     * @param string|null $storeAlias 向量库别名；null 用 default_vector_store
+     *
      * @return list<array{content: string, score: float, metadata: array<string, mixed>}>
      */
-    public function retrieve(string $knowledgeBase, string $query, int $topK = 5): array
-    {
-        $retrieval = $this->ragFactory->retrieval($knowledgeBase, $topK);
+    public function retrieve(
+        string $knowledgeBase,
+        string $query,
+        int $topK = 5,
+        ?string $storeAlias = null,
+    ): array {
+        $retrieval = $this->ragFactory->retrieval($knowledgeBase, $topK, $storeAlias);
         /** @var list<Document> $documents */
         $documents = $retrieval->retrieve(new UserMessage($query));
 

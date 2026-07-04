@@ -44,7 +44,8 @@
         "neuron-core/neuron-ai": "^3.15",
         "symfony/expression-language": "~7.4",
         "bingcool/library": "dev-library-6.x",
-        "mathsgod/milvus-client-php": "^2.1"
+        "mathsgod/milvus-client-php": "^2.1",
+        "neuron-core/php-vector": "^1.1"
     },
     "autoload": {
         "files": ["src/Constants.php","src/Core/Func/function.php"],

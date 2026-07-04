@@ -23,6 +23,7 @@ use Swoolefy\Support\Workflow\State\WorkflowState;
  *   knowledgeBase   — 目标知识库（VectorStore index 名）
  *   sourceKey       — state.data 键，值为 string 或 list<string>
  *   asyncThreshold  — 触发异步模式的文档数阈值，默认 100
+ *   vectorStore     — 向量库别名（rag.vector_stores 的 key）；缺省用 default_vector_store
  *
  * 对外事件：
  *   rag.ingest.queued   — 异步模式
@@ -52,6 +53,7 @@ final class RagIngestNode extends AbstractNode
         $knowledgeBase = (string) ($this->config['knowledgeBase'] ?? 'default');
         $sourceKey = (string) ($this->config['sourceKey'] ?? 'documents');
         $asyncThreshold = (int) ($this->config['asyncThreshold'] ?? 100);
+        $storeAlias = $this->resolveStoreAlias();
 
         $source = $state->get($sourceKey, []);
         $texts = $this->normalizeTexts($source);
@@ -80,7 +82,7 @@ final class RagIngestNode extends AbstractNode
         }
 
         $documents = StringDocumentLoader::fromTexts($texts);
-        $result = $this->pipeline->ingest($knowledgeBase, $documents);
+        $result = $this->pipeline->ingest($knowledgeBase, $documents, $storeAlias);
         $state->set('ingestedCount', $result->documentCount);
 
         return NodeExecutionResult::success(
@@ -128,5 +130,16 @@ final class RagIngestNode extends AbstractNode
     private function shouldDeferAsync(): bool
     {
         return filter_var(getenv('RAG_INGEST_ASYNC') ?: '0', FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /** 业务指定的向量库别名；未配置时返回 null（走 default_vector_store）。 */
+    private function resolveStoreAlias(): ?string
+    {
+        $alias = $this->config['vectorStore'] ?? $this->config['vector_store'] ?? null;
+        if (!is_string($alias) || $alias === '') {
+            return null;
+        }
+
+        return $alias;
     }
 }

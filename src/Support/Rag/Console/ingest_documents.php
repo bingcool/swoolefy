@@ -9,7 +9,7 @@ declare(strict_types=1);
  *   php src/Support/Rag/Console/ingest_documents.php --kb=product_kb --path=/data/docs
  *   php src/Support/Rag/Console/ingest_documents.php --kb=product_kb --text="hello world"
  *
- * 环境：OPENAI_API_KEY（embed）、RAG_VECTOR_STORE、RAG_FILE_STORE_PATH
+ * 环境：OPENAI_API_KEY（embed）、RAG_VECTOR_STORE、RAG_FILE_STORE_PATH（覆盖 vector_stores.file.path）
  */
 
 use Swoolefy\Support\Neuron\Embedding\EmbeddingFactory;

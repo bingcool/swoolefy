@@ -13,6 +13,13 @@ use Swoolefy\Support\Workflow\State\WorkflowState;
 /**
  * RAG 检索节点 —— 仅检索，将结果写入 state.data[outputKey]。
  *
+ * 配置项：
+ *   knowledgeBase — 知识库名
+ *   queryKey      — state 中查询文本键，默认 question
+ *   outputKey     — 写入键，默认 retrievedDocs
+ *   topK          — 检索条数
+ *   vectorStore   — 向量库别名（rag.vector_stores 的 key）；缺省用 default_vector_store
+ *
  * 典型后续：条件边判断 retrievedDocs 是否为空 → AINode / RAGNode。
  */
 final class RagRetrieveNode extends AbstractNode
@@ -33,11 +40,12 @@ final class RagRetrieveNode extends AbstractNode
         $queryKey = (string) ($this->config['queryKey'] ?? 'question');
         $outputKey = (string) ($this->config['outputKey'] ?? 'retrievedDocs');
         $topK = (int) ($this->config['topK'] ?? 5);
+        $storeAlias = $this->resolveStoreAlias();
 
         $query = (string) $state->get($queryKey, '');
         $docs = $query === ''
             ? []
-            : $this->retrievalService->retrieve($knowledgeBase, $query, $topK);
+            : $this->retrievalService->retrieve($knowledgeBase, $query, $topK, $storeAlias);
 
         $state->set($outputKey, $docs);
 
@@ -51,5 +59,16 @@ final class RagRetrieveNode extends AbstractNode
             ]],
             metrics: ['nodeType' => 'rag_retrieve', 'docCount' => count($docs)],
         );
+    }
+
+    /** 业务指定的向量库别名；未配置时返回 null（走 default_vector_store）。 */
+    private function resolveStoreAlias(): ?string
+    {
+        $alias = $this->config['vectorStore'] ?? $this->config['vector_store'] ?? null;
+        if (!is_string($alias) || $alias === '') {
+            return null;
+        }
+
+        return $alias;
     }
 }
