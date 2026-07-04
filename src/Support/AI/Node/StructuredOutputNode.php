@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Swoolefy\Support\AI\Node;
 
 use Swoolefy\Support\AI\Builder\AINodeBuilder;
-use Swoolefy\Support\Neuron\Memory\MemoryFactory;
+use Swoolefy\Support\Neuron\Memory\MemoryFactoryInterface;
 use Swoolefy\Support\Neuron\NeuronFactory;
 use Swoolefy\Support\Workflow\Engine\NodeExecutionResult;
 use Swoolefy\Support\Workflow\Engine\RunContext;
@@ -29,7 +29,7 @@ final class StructuredOutputNode extends AbstractNode
         string $nodeId,
         string $dtoClass,
         array $extra = [],
-        ?MemoryFactory $memoryFactory = null,
+        ?MemoryFactoryInterface $memoryFactory = null,
         ?NeuronFactory $neuronFactory = null,
     ) {
         parent::__construct($nodeId);

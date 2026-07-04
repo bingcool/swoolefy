@@ -23,7 +23,10 @@ Neuron/
 │   ├── NeuronHttpFactory.php    # swoole | guzzle
 │   └── SwooleHttpClientAdapter.php
 ├── Memory/
-│   ├── MemoryFactory.php        # RedisConnection 热记忆 / InMemory 回退
+│   ├── MemoryFactoryInterface.php       # 工厂契约
+│   ├── HotChatHistoryInterface.php      # 热路径 ChatHistory（extends Neuron）
+│   ├── ChatHistoryArchiveInterface.php  # 冷归档契约
+│   ├── MemoryFactory.php                # InMemoryChatHistory（默认）
 │   ├── RedisChatHistory.php
 │   └── SqlChatHistoryArchive.php
 ├── Embedding/
@@ -97,7 +100,17 @@ Agent 若已实现自定义 `provider()`，且节点未指定 `provider`，则�
 | 匿名会话 | `{sessionId}` |
 | Run 隔离 | `{userId}:{workflowId}:{runId}` |
 
-注入 `Swoolefy\Library\Redis\RedisConnection`（phpredis / predis 组件均可）；未注入时回退 `InMemoryChatHistory`（仅当前进程有效）。
+默认 `MemoryFactory` 返回进程内 `InMemoryChatHistory`。跨请求热存储可直接使用 `RedisChatHistory`，或自行实现 `MemoryFactoryInterface`。
+
+契约分层（便于替换实现）：
+
+| 接口 | 实现 | 职责 |
+|------|------|------|
+| `MemoryFactoryInterface` | `MemoryFactory` | `forThread()` → InMemoryChatHistory |
+| `HotChatHistoryInterface` | `RedisChatHistory` | Redis 热存储（兼 Neuron `ChatHistoryInterface`） |
+| `ChatHistoryArchiveInterface` | `SqlChatHistoryArchive` | SQL 冷归档 |
+
+依赖注入请类型提示接口，例如 `NeuronFactory` 构造参数为 `MemoryFactoryInterface`。
 
 ### Embedding
 

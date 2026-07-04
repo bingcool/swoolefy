@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Neuron\Memory;
 
-use JsonException;
 use NeuronAI\Chat\History\InMemoryChatHistory;
 use NeuronAI\Chat\Messages\Message;
 use Swoolefy\Library\Redis\RedisConnection;
@@ -19,11 +18,11 @@ use Throwable;
  * Value：Neuron ChatHistory JSON 序列化
  * TTL：默认 30 天（CHAT_REDIS_TTL）
  *
- * 冷归档至 SQL 由 Phase 2 SqlChatHistoryArchive + goApp() 异步完成。
+ * 冷归档至 SQL 由 Phase 2 {@see SqlChatHistoryArchive} + goApp() 异步完成。
  *
  * @see docs/swoolefyAI.md §4.7、§6.8
  */
-final class RedisChatHistory extends InMemoryChatHistory
+final class RedisChatHistory extends InMemoryChatHistory implements HotChatHistoryInterface
 {
     private const DEFAULT_PREFIX = 'chat:thread:';
 
@@ -36,6 +35,12 @@ final class RedisChatHistory extends InMemoryChatHistory
     ) {
         parent::__construct($contextWindow);
         $this->hydrateFromRedis();
+    }
+
+    /** {@inheritdoc} */
+    public function threadId(): string
+    {
+        return $this->threadId;
     }
 
     /** 新消息写入时持久化到 Redis。 */
@@ -54,7 +59,12 @@ final class RedisChatHistory extends InMemoryChatHistory
     protected function clear(): void
     {
         try {
-            $this->redis->del($this->redisKey());
+            if ($this->redis instanceof \Swoolefy\Library\Redis\Redis ||
+                $this->redis instanceof \Swoolefy\Library\Redis\RedisCluster) {
+                $this->redis->del($this->redisKey());
+            } else {
+                $this->redis->del([$this->redisKey()]);
+            }
         } catch (Throwable) {
         }
     }

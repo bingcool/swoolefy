@@ -20,7 +20,7 @@ use PDOException;
  *     INDEX idx_thread (thread_id)
  *   );
  */
-final class SqlChatHistoryArchive
+final class SqlChatHistoryArchive implements ChatHistoryArchiveInterface
 {
     public function __construct(
         private readonly PDO $pdo,
@@ -28,11 +28,7 @@ final class SqlChatHistoryArchive
     ) {
     }
 
-    /**
-     * 归档单条消息。
-     *
-     * @param array<string, mixed> $metadata
-     */
+    /** {@inheritdoc} */
     public function archiveMessage(string $threadId, string $role, string $content, array $metadata = []): void
     {
         $sql = sprintf(
@@ -54,7 +50,7 @@ final class SqlChatHistoryArchive
         }
     }
 
-    /** @param list<array{role: string, content: string, metadata?: array<string, mixed>}> $messages */
+    /** {@inheritdoc} */
     public function archiveBatch(string $threadId, array $messages): void
     {
         foreach ($messages as $message) {

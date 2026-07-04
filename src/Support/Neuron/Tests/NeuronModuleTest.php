@@ -21,7 +21,11 @@ use NeuronAI\RAG\Embeddings\EmbeddingsProviderInterface;
 use NeuronAI\Testing\FakeEmbeddingsProvider;
 use Swoolefy\Support\Neuron\Embedding\EmbeddingFactory;
 use Swoolefy\Support\Neuron\Http\NeuronHttpFactory;
+use Swoolefy\Support\Neuron\Memory\ChatHistoryArchiveInterface;
+use Swoolefy\Support\Neuron\Memory\HotChatHistoryInterface;
 use Swoolefy\Support\Neuron\Memory\MemoryFactory;
+use Swoolefy\Support\Neuron\Memory\MemoryFactoryInterface;
+use Swoolefy\Support\Neuron\Memory\SqlChatHistoryArchive;
 use Swoolefy\Support\Neuron\NeuronAiConfig;
 use Swoolefy\Support\Neuron\NeuronAiProviderName;
 use Swoolefy\Support\Neuron\NeuronAiVectorStoreName;
@@ -106,8 +110,26 @@ function testProviderFactoryUnknownAliasThrows(): void
 
 function testMemoryFactoryFallsBackToInMemory(): void
 {
-    $history = (new MemoryFactory())->forThread('thread-1', 1000);
+    $factory = new MemoryFactory();
+    assertTrue($factory instanceof MemoryFactoryInterface, 'implements MemoryFactoryInterface');
+    $history = $factory->forThread('thread-1', 1000);
     assertTrue($history instanceof InMemoryChatHistory, 'in-memory fallback without redis');
+}
+
+function testMemoryInterfacesAreImplemented(): void
+{
+    assertTrue(
+        is_subclass_of(MemoryFactory::class, MemoryFactoryInterface::class),
+        'MemoryFactory implements factory interface',
+    );
+    assertTrue(
+        is_subclass_of(\Swoolefy\Support\Neuron\Memory\RedisChatHistory::class, HotChatHistoryInterface::class),
+        'RedisChatHistory implements hot history interface',
+    );
+    assertTrue(
+        is_subclass_of(SqlChatHistoryArchive::class, ChatHistoryArchiveInterface::class),
+        'SqlChatHistoryArchive implements archive interface',
+    );
 }
 
 function testEmbeddingFactoryWithoutApiKeyUsesFake(): void
@@ -161,6 +183,7 @@ $tests = [
     'provider default' => 'testProviderFactoryCreateDefault',
     'provider unknown alias' => 'testProviderFactoryUnknownAliasThrows',
     'memory in-memory fallback' => 'testMemoryFactoryFallsBackToInMemory',
+    'memory interfaces' => 'testMemoryInterfacesAreImplemented',
     'embedding fake without key' => 'testEmbeddingFactoryWithoutApiKeyUsesFake',
     'http factory cli fallback' => 'testNeuronHttpFactoryCliFallback',
     'neuron factory agent hook' => 'testNeuronFactoryUsesAgentFactoryHook',

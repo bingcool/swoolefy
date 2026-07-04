@@ -9,7 +9,7 @@ use NeuronAI\Chat\Messages\Stream\Chunks\TextChunk;
 use NeuronAI\Chat\Messages\UserMessage;
 use Swoolefy\Support\AI\Builder\AINodeBuilder;
 use Swoolefy\Support\AI\Stream\StreamBridge;
-use Swoolefy\Support\Neuron\Memory\MemoryFactory;
+use Swoolefy\Support\Neuron\Memory\MemoryFactoryInterface;
 use Swoolefy\Support\Neuron\NeuronFactory;
 use Swoolefy\Support\Workflow\Engine\NodeExecutionResult;
 use Swoolefy\Support\Workflow\Engine\RunContext;
@@ -35,7 +35,7 @@ final class AINode extends AbstractNode
     public function __construct(
         string $nodeId,
         private readonly array $config,
-        private readonly ?MemoryFactory $memoryFactory = null,
+        private readonly ?MemoryFactoryInterface $memoryFactory = null,
         ?callable $agentFactory = null,
         private readonly ?NeuronFactory $neuronFactory = null,
     ) {

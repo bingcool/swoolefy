@@ -7,7 +7,7 @@ namespace Swoolefy\Support\Neuron;
 use NeuronAI\Agent\Agent;
 use NeuronAI\Providers\AIProviderInterface;
 use Swoolefy\Support\Mcp\McpFactory;
-use Swoolefy\Support\Neuron\Memory\MemoryFactory;
+use Swoolefy\Support\Neuron\Memory\MemoryFactoryInterface;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 
 /**
@@ -17,7 +17,7 @@ final class NeuronFactory
 {
     /** @param (callable(class-string, WorkflowState, array): Agent)|null $agentFactory */
     public function __construct(
-        private readonly MemoryFactory $memoryFactory,
+        private readonly MemoryFactoryInterface $memoryFactory,
         private readonly ?McpFactory $mcpFactory = null,
         private $agentFactory = null,
         private readonly ?NeuronProviderFactory $providerFactory = null,
