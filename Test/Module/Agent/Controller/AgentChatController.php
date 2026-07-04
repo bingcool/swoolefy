@@ -34,7 +34,7 @@ use Throwable;
 final class AgentChatController extends BController
 {
     /** 默认 Provider 对话（ChatAgent → SQL）。
-     * curl -X POST http://localhost:9501/api/v1/agent/chat -H "Content-Type: application/json" -d '{"message":"你好","sessionId":"s1","userId":"u1","provider":"deepseek"}'
+     curl -X POST http://localhost:9501/api/v1/agent/chat -H "Content-Type: application/json" -d '{"message":"你好","sessionId":"s1","userId":"u1","provider":"deepseek"}'
      */
     public function chat(RequestInput $requestInput): array
     {
@@ -49,7 +49,7 @@ final class AgentChatController extends BController
      *
      * POST /api/v1/agent/chat1
      *
-     * curl -X POST http://localhost:9501/api/v1/agent/chat1 -H "Content-Type: application/json" -d '{"message":"你好","sessionId":"s1","userId":"u1","provider":"deepseek"}'
+     curl -X POST http://localhost:9501/api/v1/agent/chat1 -H "Content-Type: application/json" -d '{"message":"你好","sessionId":"s1","userId":"u1","provider":"deepseek"}'
      */
     public function chat1(RequestInput $requestInput): array
     {
@@ -135,7 +135,7 @@ final class AgentChatController extends BController
      *
      * POST /api/v1/agent/chat-persist
      *
-     *  curl -X POST http://localhost:9501/api/v1/agent/chat-persist -H "Content-Type: application/json" -d '{"message":"你好","sessionId":"s1","userId":"u1","provider":"deepseek"}'
+     curl -X POST http://localhost:9501/api/v1/agent/chat-persist -H "Content-Type: application/json" -d '{"message":"你好","sessionId":"s1","userId":"u1","provider":"deepseek"}'
      */
     public function chatPersist(RequestInput $requestInput): array
     {
