@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Neuron\Http;
 
+use GuzzleHttp\HandlerStack;
 use NeuronAI\HttpClient\GuzzleHttpClient;
 use NeuronAI\HttpClient\HttpClientInterface;
+use Swoolefy\Library\CurlProxy\CurlProxyHandler;
 use Swoolefy\Support\Neuron\NeuronAiConfig;
 
 /**
@@ -27,17 +29,28 @@ final class NeuronHttpFactory
     /** 创建 HTTP 客户端实例（每次新建，无全局单例）。 */
     public static function create(): HttpClientInterface
     {
-        // CLI / 单测无 APP_PATH 时 CurlProxy 不可用，回退 Guzzle
+        // CLI / 单测无 APP_PATH 时 CurlProxy 不可用，回退 Guzzle（仍使用兼容 prepare_body）
         if (!defined('APP_PATH') || (string) APP_PATH === '') {
-            return new GuzzleHttpClient();
+            return self::createGuzzleClient();
         }
 
         $driver = strtolower(NeuronAiConfig::load()->httpClient());
 
         if ($driver === self::CLIENT_GUZZLE) {
-            return new GuzzleHttpClient();
+            return self::createGuzzleClient();
         }
 
         return new SwooleHttpClientAdapter();
+    }
+
+    /**
+     * 标准 Guzzle Client，替换 prepare_body 以避免 Content-Length(int) 弃用异常。
+     */
+    private static function createGuzzleClient(): GuzzleHttpClient
+    {
+        $stack = HandlerStack::create();
+        CurlProxyHandler::applyPsr7CompatiblePrepareBody($stack);
+
+        return new GuzzleHttpClient(handler: $stack);
     }
 }
