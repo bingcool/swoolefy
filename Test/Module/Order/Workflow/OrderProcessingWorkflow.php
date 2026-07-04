@@ -144,4 +144,3 @@ final class OrderProcessingWorkflow
             ->addEdge('payment', 'complete');
     }
 }
-)

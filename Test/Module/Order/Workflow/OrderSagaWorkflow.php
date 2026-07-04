@@ -90,4 +90,3 @@ final class OrderSagaWorkflow
             ->addEdge('payment', 'notify_fail');
     }
 }
-)
