@@ -25,7 +25,9 @@ use Swoolefy\Support\Workflow\Node\SubWorkflowNode;
 use Swoolefy\Support\Workflow\Plugin\PluginManager;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 use Swoolefy\Support\Workflow\WorkflowComponentFactory;
+use Swoolefy\Support\Workflow\WorkflowConfig;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
+use Swoolefy\Support\Workflow\WorkflowRunStoreName;
 use NeuronAI\Providers\Anthropic\Anthropic;
 use Swoolefy\Support\Neuron\NeuronAiProviderName;
 use Swoolefy\Support\Neuron\NeuronProviderFactory;
@@ -144,15 +146,83 @@ function testRoundRobinRouter(): void
 function testWorkflowComponentFactory(): void
 {
     $registry = new WorkflowRegistry();
-    $evaluator = WorkflowComponentFactory::conditionEvaluator();
+    $config = WorkflowConfig::fromArray([
+        'workflow' => [
+            'default_run_store' => WorkflowRunStoreName::MEMORY,
+            'condition_evaluator' => 'symfony',
+            'run_stores' => [
+                WorkflowRunStoreName::MEMORY => [],
+                WorkflowRunStoreName::REDIS => ['component' => WorkflowRunStoreName::REDIS],
+                WorkflowRunStoreName::DB => ['component' => WorkflowRunStoreName::DB, 'table' => 'workflow_runs'],
+            ],
+        ],
+    ]);
+    $evaluator = WorkflowComponentFactory::conditionEvaluator($config);
     assertTrue($evaluator instanceof \Swoolefy\Support\Workflow\Condition\ConditionEvaluatorInterface, 'Evaluator created');
 
-    $store = WorkflowComponentFactory::runStore($registry);
+    $store = WorkflowComponentFactory::runStore($registry, $config);
     assertTrue($store instanceof \Swoolefy\Support\Workflow\Engine\InMemoryRunStore, 'Default store is in-memory');
 
     $factoryDriver = ConditionEvaluatorFactory::create('symfony');
     assertTrue($factoryDriver instanceof \Swoolefy\Support\Workflow\Condition\CompositeConditionEvaluator, 'Factory symfony driver');
     pass('workflow component factory');
+}
+
+/** DbRunStore：SQLite 持久化 save/find/listWaiting。 */
+function testDbRunStorePersistence(): void
+{
+    $registry = new WorkflowRegistry();
+    $registry->register('order_processing', static fn () => \Test\Module\Order\Workflow\OrderProcessingWorkflow::definition(
+        static function (): \Test\Module\Order\Dto\OrderDecisionDto {
+            $dto = new \Test\Module\Order\Dto\OrderDecisionDto();
+            $dto->approved = true;
+            $dto->confidence = 0.95;
+            $dto->reason = 'db store test';
+
+            return $dto;
+        },
+    ));
+
+    $pdo = new PDO('sqlite::memory:');
+    $store = new \Swoolefy\Support\Workflow\Engine\DbRunStore(
+        $pdo,
+        $registry,
+        'workflow_runs',
+        autoMigrate: true,
+    );
+
+    $engine = new WorkflowEngine(
+        plugins: new PluginManager([]),
+        scheduler: new DagScheduler(ConditionEvaluatorFactory::create('symfony')),
+        runStore: $store,
+    );
+
+    $compiled = WorkflowComponentFactory::compiler(
+        WorkflowConfig::fromArray([
+            'workflow' => [
+                'condition_evaluator' => 'symfony',
+                'default_run_store' => WorkflowRunStoreName::MEMORY,
+                'run_stores' => [WorkflowRunStoreName::MEMORY => []],
+            ],
+        ]),
+    )->compile($registry->definition('order_processing'));
+
+    $runId = $engine->start($compiled, ['orderId' => 'ORD-DB-1', 'amount' => 10]);
+    $run = $engine->getRun($runId);
+    assertTrue($run->status === RunStatus::COMPLETED, 'run completed');
+
+    // 新 Engine + 同一 DbRunStore：模拟跨 Worker 读取
+    $engine2 = new WorkflowEngine(
+        plugins: new PluginManager([]),
+        scheduler: new DagScheduler(ConditionEvaluatorFactory::create('symfony')),
+        runStore: $store,
+    );
+    $restored = $engine2->getRun($runId);
+    assertTrue($restored->runId === $runId, 'restored run id');
+    assertTrue($restored->status === RunStatus::COMPLETED, 'restored status');
+    assertTrue($restored->state->get('orderId') === 'ORD-DB-1', 'restored state');
+
+    pass('db run store persistence');
 }
 
 /** RAG ingest CLI（无 embedding key 时走 mock/空向量路径）。 */
@@ -210,6 +280,7 @@ $tests = [
     'sub workflow node' => 'testSubWorkflowNode',
     'round robin router' => 'testRoundRobinRouter',
     'workflow component factory' => 'testWorkflowComponentFactory',
+    'db run store persistence' => 'testDbRunStorePersistence',
     'rag ingest cli' => 'testIngestCli',
     'neuron provider factory' => 'testNeuronProviderFactory',
 ];

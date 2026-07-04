@@ -31,11 +31,11 @@
 
 ## 2. 配置
 
-将模板复制到应用目录：
+将模板复制到应用目录（`php cli.php create AppName` 会自动从 `src/Stubs/` 复制到 `Config/`）：
 
 ```bash
-cp Test/Config/workflow.php App/config/workflow.php
-cp Test/Config/neuron_ai.php App/config/neuron_ai.php
+cp src/Stubs/workflow.conf.stub.php App/Config/workflow.php
+cp src/Stubs/neuron_ai.conf.stub.php App/Config/neuron_ai.php
 ```
 
 **workflow.php** — 引擎 RunStore、条件求值器：

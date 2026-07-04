@@ -12,7 +12,7 @@ use Swoolefy\Support\Workflow\Engine\RunStatus;
 use Swoolefy\Support\Workflow\Engine\StreamWorkflowEventDispatcher;
 use Swoolefy\Support\Workflow\Engine\WorkflowRun;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
-use Swoolefy\Support\Workflow\WorkflowBootstrap;
+use Swoolefy\Support\Workflow\WorkflowComponentFactory;
 use Test\Module\Research\Workflow\McpResearchWorkflow;
 use Test\Module\Research\Workflow\MultiAgentResearchWorkflow;
 use Test\Module\Workflow\WorkflowService;
@@ -110,7 +110,7 @@ final class ResearchWorkflowDemoController extends BController
         }
 
         try {
-            $run = WorkflowBootstrap::engine()->getRun($runId);
+            $run = WorkflowService::engine()->getRun($runId);
         } catch (WorkflowException $e) {
             throw new SystemException($e->getMessage(), 404, $e);
         }
@@ -129,8 +129,8 @@ final class ResearchWorkflowDemoController extends BController
     private function startAndFormat(WorkflowDefinition $definition, array $input): array
     {
         try {
-            $compiled = WorkflowBootstrap::compiler()->compile($definition);
-            $engine = WorkflowBootstrap::engine(events: new StreamWorkflowEventDispatcher());
+            $compiled = WorkflowComponentFactory::compiler()->compile($definition);
+            $engine = WorkflowService::engine(events: new StreamWorkflowEventDispatcher());
             $runId = $engine->start($compiled, $input);
             $run = $engine->getRun($runId);
         } catch (WorkflowException $e) {

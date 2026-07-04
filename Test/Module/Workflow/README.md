@@ -2,6 +2,16 @@
 
 本模块是 **统一入口**：通过 `workflowId` 启动已注册的示例工作流，并提供列表、DAG 探查、状态查询、HITL 恢复、取消与 SSE。
 
+Run 持久化由 `Test/Config/workflow.php` 控制（`default_run_store` + `run_stores`）：
+
+| 驱动 | 说明 |
+|------|------|
+| `memory` | 默认演示；不跨 Worker |
+| `redis` | 跨 Worker，低延迟（`cache.php` 组件） |
+| `db` | 跨 Worker，可查询 HITL（`database.php` 组件，表见 `Schema/workflow_runs.sql`） |
+
+生产将 `default_run_store` 设为 `db` 或 `redis`；DB 场景须先执行 `Schema/workflow_runs.sql`。
+
 与业务专用 Demo 的关系：
 
 | 入口 | 路径前缀 | 特点 |

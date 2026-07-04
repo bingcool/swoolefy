@@ -8,18 +8,17 @@ use PDO;
 use PDOException;
 
 /**
- * ChatHistory SQL 冷归档 —— 永久持久化多轮会话。
+ * ChatHistory SQL 冷归档 —— 永久持久化多轮会话（逐条消息一行）。
  *
- * 表结构（需自行迁移）：
- *   CREATE TABLE chat_messages (
- *     id BIGINT AUTO_INCREMENT PRIMARY KEY,
- *     thread_id VARCHAR(128) NOT NULL,
- *     role VARCHAR(32) NOT NULL,
- *     content MEDIUMTEXT NOT NULL,
- *     metadata_json JSON NULL,
- *     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
- *     INDEX idx_thread (thread_id)
- *   );
+ * 使用前须先在数据库执行建表脚本：
+ *   src/Support/Neuron/Schema/chat_messages.sql
+ *
+ * 与 Neuron 原生 {@see \NeuronAI\Chat\History\SQLChatHistory}（表 chat_history）不同：
+ *   - chat_history：每个 thread_id 一行，messages 为整段 JSON（热存储，Agent 多轮对话）
+ *   - chat_messages：每条消息一行，便于审计 / 检索 / 冷归档
+ *
+ * @see Schema/chat_messages.sql
+ * @see Schema/chat_history.sql
  */
 final class SqlChatHistoryArchive implements ChatHistoryArchiveInterface
 {

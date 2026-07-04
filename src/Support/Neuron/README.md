@@ -2,7 +2,7 @@
 
 封装 [Neuron AI](https://docs.neuron-ai.dev/) 在 Swoolefy 中的装配：Provider 工厂、会话记忆、协程 HTTP、Embedding。
 
-- 配置：`Test/Config/neuron_ai.php`（复制到 `APP_PATH/config/neuron_ai.php`）
+- 配置：`Config/neuron_ai.php`（模版 `src/Stubs/neuron_ai.conf.stub.php`，`create` 命令自动复制）
 - 架构设计：[swoolefyAI.md](../../../docs/swoolefyAI.md) §4.7
 - Chat History 文档：[Neuron Chat History](https://docs.neuron-ai.dev/agent/chat-history-and-memory)
 
@@ -14,6 +14,9 @@
 Neuron/
 ├── NeuronFactory.php            # boot/create Agent：Provider + MCP（不强制 Memory）
 ├── NeuronProviderFactory.php
+├── Schema/
+│   ├── chat_history.sql         # SQLChatHistory 热存储（使用前须建表）
+│   └── chat_messages.sql        # SqlChatHistoryArchive 冷归档（使用前须建表）
 ├── Memory/
 │   ├── ChatHistoryFactory.php       # Agent::chatHistory() 选用后端
 │   ├── ChatHistoryPdoResolver.php   # 组件容器解析 PDO
@@ -60,6 +63,8 @@ final class EphemeralChatAgent extends Agent
 
 ### SQL 持久化多轮（Neuron SQLChatHistory）
 
+**使用前必须先执行** `Schema/chat_history.sql` 创建 `chat_history` 表。
+
 ```php
 final class ChatAgent extends Agent
 {
@@ -83,18 +88,23 @@ $agent = $neuronFactory->boot(new ChatAgent($threadId, $pdo), [
 ]);
 ```
 
-表结构（Neuron 原生）：
+建表脚本：`src/Support/Neuron/Schema/chat_history.sql`
 
 ```sql
-CREATE TABLE IF NOT EXISTS chat_history (
-  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  thread_id VARCHAR(255) NOT NULL,
-  messages LONGTEXT NOT NULL,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY uk_thread_id (thread_id)
-);
+-- 见 Schema/chat_history.sql（thread_id 唯一，messages 为 JSON）
 ```
+
+### SQL 冷归档（逐条消息，可选）
+
+**使用前必须先执行** `Schema/chat_messages.sql` 创建 `chat_messages` 表。
+
+```php
+$archive = new SqlChatHistoryArchive($pdo);
+$archive->archiveMessage($threadId, 'user', 'Hello');
+$messages = $archive->listMessages($threadId, 50);
+```
+
+建表脚本：`src/Support/Neuron/Schema/chat_messages.sql`
 
 ### Redis
 

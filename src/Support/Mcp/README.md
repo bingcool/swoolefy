@@ -3,7 +3,7 @@
 将外部 MCP Server 的 Tools 接入 Neuron Agent，支持**静态配置**、**多租户仓储**与**本地 stdio 进程限流**。MCP 调用由 Neuron `McpConnector` 管理，默认作为 LLM 中间上下文，不写入 `WorkflowState`（除非 Agent 再走 structured）。
 
 - 架构设计：[swoolefyAI.md](../../../docs/swoolefyAI.md) §4.11
-- 配置：`Test/Config/neuron_ai.php` → `mcp.max_local_processes`
+- 配置：`Config/neuron_ai.php`（模版 `src/Stubs/neuron_ai.conf.stub.php`）→ `mcp.max_local_processes`
 - 关联：`Support/Neuron`（`NeuronFactory` 挂载 tools）、`Support/AI`（`AINodeBuilder::mcp()`）
 
 ---

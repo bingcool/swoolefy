@@ -1812,9 +1812,9 @@ php script.php start App --c=gen:sdk --router=App/Router --out=../generate-sdk-l
 #### 配置与装配
 
 ```bash
-# 复制配置模板
-cp Test/Config/workflow.php App/config/workflow.php
-cp Test/Config/neuron_ai.php App/config/neuron_ai.php
+# 创建应用时 create 命令会自动复制；也可手动从 Stubs 复制
+cp src/Stubs/workflow.conf.stub.php App/Config/workflow.php
+cp src/Stubs/neuron_ai.conf.stub.php App/Config/neuron_ai.php
 ```
 
 生产环境推荐 `WorkflowComponentFactory` + `WorkflowRegistry`（支持 Redis RunStore 跨 Worker resume）：

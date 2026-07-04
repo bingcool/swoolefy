@@ -16,15 +16,15 @@ use Swoolefy\Support\Workflow\Engine\StreamWorkflowEventDispatcher;
 use Swoolefy\Support\Workflow\Engine\WorkflowEngine;
 use Swoolefy\Support\Workflow\Engine\WorkflowRun;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
-use Swoolefy\Support\Workflow\WorkflowBootstrap;
 use Test\Module\Workflow\WorkflowService;
 
 /**
  * Workflow 通用 HTTP API —— 按 workflowId 启动 / 查询 / 恢复已注册工作流。
  *
  * 与 Order / Research 专用 Demo 控制器的区别：
- *   - 本控制器走 {@see WorkflowService::registry()}，统一入口，适合网关与运维探查
- *   - 专用 Demo 可注入 mock、绕过 registry 缓存，适合业务场景演示
+ *   - 本控制器走 {@see WorkflowService::registry()} + {@see WorkflowService::engine()}
+ *   - Engine 按 workflow.php 的 default_run_store 持久化（memory / redis / db），跨 Worker 可用
+ *   - 专用 Demo 可注入 mock；status/resume 同样走生产级 RunStore
  *
  * 路由（见 Test/Router/Common/Api.php）：
  *
@@ -121,7 +121,7 @@ final class WorkflowController extends BController
             }
 
             $compiled = $registry->compiled($workflowId);
-            $engine = WorkflowBootstrap::engine(events: new StreamWorkflowEventDispatcher());
+            $engine = WorkflowService::engine(events: new StreamWorkflowEventDispatcher());
 
             // SSE：边启动边推送事件（演示用；生产可接 StreamWorkflowEventDispatcher 实时边事件）
             if ($stream) {
@@ -154,7 +154,7 @@ final class WorkflowController extends BController
         }
 
         try {
-            $run = WorkflowBootstrap::engine()->getRun($runId);
+            $run = WorkflowService::engine()->getRun($runId);
 
             return $this->formatRun($run);
         } catch (WorkflowException $e) {
@@ -184,7 +184,7 @@ final class WorkflowController extends BController
         }
 
         try {
-            $engine = WorkflowBootstrap::engine(events: new StreamWorkflowEventDispatcher());
+            $engine = WorkflowService::engine(events: new StreamWorkflowEventDispatcher());
             $engine->resume($runId, $feedback);
             $run = $engine->getRun($runId);
 
@@ -210,7 +210,7 @@ final class WorkflowController extends BController
         }
 
         try {
-            $engine = WorkflowBootstrap::engine();
+            $engine = WorkflowService::engine();
             $engine->cancel($runId);
             $run = $engine->getRun($runId);
 
@@ -232,7 +232,7 @@ final class WorkflowController extends BController
         $assignee = $requestInput->input('assignee');
         $assignee = is_string($assignee) && $assignee !== '' ? $assignee : null;
 
-        $engine = WorkflowBootstrap::engine();
+        $engine = WorkflowService::engine();
 
         return [
             'tasks' => $engine->listPauseTasks($assignee),
@@ -256,7 +256,7 @@ final class WorkflowController extends BController
                 throw new SystemException('runId is required', 400);
             }
 
-            $run = WorkflowBootstrap::engine()->getRun($runId);
+            $run = WorkflowService::engine()->getRun($runId);
             $sink->publish('run.status', [
                 'runId' => $runId,
                 'status' => $run->status->value,

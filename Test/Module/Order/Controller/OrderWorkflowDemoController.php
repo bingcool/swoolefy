@@ -11,10 +11,11 @@ use Swoolefy\Support\Workflow\Engine\RunStatus;
 use Swoolefy\Support\Workflow\Engine\StreamWorkflowEventDispatcher;
 use Swoolefy\Support\Workflow\Engine\WorkflowRun;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
-use Swoolefy\Support\Workflow\WorkflowBootstrap;
+use Swoolefy\Support\Workflow\WorkflowComponentFactory;
 use Test\Module\Order\Dto\OrderDecisionDto;
 use Test\Module\Order\Workflow\OrderProcessingWorkflow;
 use Test\Module\Order\Workflow\OrderSagaWorkflow;
+use Test\Module\Workflow\WorkflowService;
 
 /**
  * 订单工作流演示控制器 —— 展示 order_processing / order_saga 用法。
@@ -82,7 +83,7 @@ final class OrderWorkflowDemoController extends BController
         }
 
         try {
-            $run = WorkflowBootstrap::engine()->getRun($runId);
+            $run = WorkflowService::engine()->getRun($runId);
         } catch (WorkflowException $e) {
             throw new SystemException($e->getMessage(), 404, $e);
         }
@@ -108,7 +109,7 @@ final class OrderWorkflowDemoController extends BController
         }
 
         try {
-            $engine = WorkflowBootstrap::engine(events: new StreamWorkflowEventDispatcher());
+            $engine = WorkflowService::engine(events: new StreamWorkflowEventDispatcher());
             $engine->resume($runId, $feedback);
             $run = $engine->getRun($runId);
         } catch (WorkflowException $e) {
@@ -128,9 +129,9 @@ final class OrderWorkflowDemoController extends BController
         \Swoolefy\Support\Workflow\Definition\WorkflowDefinition $definition,
     ): array {
         try {
-            // 演示控制器直接 compile，避免与全局 registry 缓存的旧版本冲突
-            $compiled = WorkflowBootstrap::compiler()->compile($definition);
-            $engine = WorkflowBootstrap::engine(events: new StreamWorkflowEventDispatcher());
+            // 演示可注入 mock definition；Engine 走 workflow.php RunStore（跨 Worker status/resume）
+            $compiled = WorkflowComponentFactory::compiler()->compile($definition);
+            $engine = WorkflowService::engine(events: new StreamWorkflowEventDispatcher());
             $runId = $engine->start($compiled, $input);
             $run = $engine->getRun($runId);
         } catch (WorkflowException $e) {

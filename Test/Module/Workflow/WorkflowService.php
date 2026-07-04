@@ -19,6 +19,9 @@ use Swoolefy\Support\Rag\Tool\RetrievalToolFactory;
 use Swoolefy\Support\Workflow\Definition\EdgeCondition;
 use Swoolefy\Support\Workflow\Definition\WorkflowDefinition;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
+use Swoolefy\Support\Workflow\Engine\WorkflowEngine;
+use Swoolefy\Support\Workflow\Engine\WorkflowEventDispatcherInterface;
+use Swoolefy\Support\Workflow\WorkflowComponentFactory;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
 use Test\Module\Contract\Workflow\ContractReviewWorkflow;
 use Test\Module\Knowledge\Workflow\KnowledgeQaWorkflow;
@@ -78,6 +81,16 @@ final class WorkflowService
         }
 
         return self::$registry;
+    }
+
+    /**
+     * 生产级 Engine：按 workflow.php 的 default_run_store 装配 RunStore（memory/redis/db）。
+     *
+     * HTTP 控制器应使用本方法，保证 status / resume / pauseTasks 跨 Worker 一致。
+     */
+    public static function engine(?WorkflowEventDispatcherInterface $events = null): WorkflowEngine
+    {
+        return WorkflowComponentFactory::engine(self::registry(), events: $events);
     }
 
     /**

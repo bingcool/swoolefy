@@ -30,7 +30,7 @@ use Test\Module\Rag\RagService;
  *
  * 节点配置可通过 definition() 参数覆盖 knowledgeBase、topK、vectorStore 别名。
  *
- * @see Test\Module\Rag\README.md
+ * @see \Test\Module\Rag\README.md
  */
 final class RagQaWorkflow
 {

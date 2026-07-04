@@ -20,8 +20,8 @@ use Test\Module\Rag\Agent\DemoKnowledgeRag;
  * 与 WorkflowService 共用同一套 neuron_ai.php 配置，保证 Embedding / VectorStore 一致。
  * 默认知识库：demo_kb；默认向量库别名：rag.default_vector_store。
  *
- * @see Test\Module\Rag\Controller\RagController
- * @see Test\Module\Rag\README.md
+ * @see \Test\Module\Rag\Controller\RagController
+ * @see \Test\Module\Rag\README.md
  */
 final class RagService
 {

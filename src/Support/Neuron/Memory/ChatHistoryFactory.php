@@ -26,9 +26,12 @@ final class ChatHistoryFactory
     }
 
     /**
-     * Neuron 原生 SQL 会话记忆（整段 messages JSON，按 thread_id 一行）。
-     *
-     * 表结构见 {@see SQLChatHistory} 类注释（chat_history）。
+ * Neuron 原生 SQL 会话记忆（整段 messages JSON，按 thread_id 一行）。
+ *
+ * 使用前须先在数据库执行建表脚本：
+ *   src/Support/Neuron/Schema/chat_history.sql
+ *
+ * 表结构见 {@see SQLChatHistory} 与 Schema/chat_history.sql。
      */
     public static function sql(
         string $threadId,

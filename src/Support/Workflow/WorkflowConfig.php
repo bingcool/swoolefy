@@ -10,7 +10,13 @@ use Swoolefy\Support\ApplicationConfig;
  * Workflow 引擎配置加载器。
  *
  * 读取 APP_PATH/config/workflow.php（可选），环境变量优先。
- * RAG / MCP / Neuron 见 {@see \Swoolefy\Support\Neuron\NeuronAiConfig}。
+ *
+ * 结构：
+ *   workflow.default_run_store     — 默认 RunStore 别名（env WORKFLOW_RUN_STORE）
+ *   workflow.run_stores[alias]     — 各存储连接参数；可选 driver，缺省时别名即驱动名
+ *   workflow.condition_evaluator   — symfony | jsonlogic
+ *
+ * 模版：src/Stubs/workflow.conf.stub.php（create 命令复制到 Config/workflow.php）
  */
 final class WorkflowConfig
 {
@@ -25,54 +31,162 @@ final class WorkflowConfig
         return new self(ApplicationConfig::loadPhpConfig('workflow.php'));
     }
 
-    public function runStoreDriver(): string
+    /**
+     * @param array<string, mixed> $config
+     *
+     * @internal 单测注入
+     */
+    public static function fromArray(array $config): self
     {
-        $section = (array) ($this->config['workflow'] ?? []);
-
-        return ApplicationConfig::pickStringEnvFirst($section, 'run_store', 'WORKFLOW_RUN_STORE', 'memory');
+        return new self($config);
     }
 
     /** @return array<string, mixed> */
-    public function redisSection(): array
+    public function workflowSection(): array
     {
-        return (array) (($this->config['workflow']['redis'] ?? []) ?: []);
+        return (array) ($this->config['workflow'] ?? []);
     }
 
-    /** Redis 组件别名，对应 Config/component/cache.php 中的 key（如 redis / predis）。 */
-    public function redisComponent(): string
+    /**
+     * 默认 RunStore 别名（workflow.default_run_store）。
+     * 未配置时回退 memory。
+     */
+    public function defaultRunStoreAlias(): string
+    {
+        $alias = ApplicationConfig::pickStringEnvFirst(
+            $this->workflowSection(),
+            'default_run_store',
+            'WORKFLOW_RUN_STORE',
+            '',
+        );
+
+        return $alias !== '' ? $alias : WorkflowRunStoreName::MEMORY;
+    }
+
+    /**
+     * 已声明的 RunStore 配置表。
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function runStores(): array
+    {
+        $raw = $this->workflowSection()['run_stores'] ?? [];
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $stores = [];
+        foreach ($raw as $alias => $section) {
+            if (!is_string($alias) || $alias === '' || !is_array($section)) {
+                continue;
+            }
+            $stores[$alias] = $section;
+        }
+
+        return $stores;
+    }
+
+    /**
+     * @param string|null $alias null 时使用 defaultRunStoreAlias()
+     *
+     * @return array<string, mixed>
+     */
+    public function runStoreSection(?string $alias = null): array
+    {
+        $alias ??= $this->defaultRunStoreAlias();
+        $section = $this->runStores()[$alias] ?? null;
+
+        return is_array($section) ? $section : [];
+    }
+
+    /**
+     * 解析别名对应的驱动类型（memory | redis | db）。
+     *
+     * @param string|null $alias null 时使用 defaultRunStoreAlias()
+     */
+    public function runStoreDriver(?string $alias = null): string
+    {
+        $alias ??= $this->defaultRunStoreAlias();
+        $section = $this->runStoreSection($alias);
+        $driver = $section['driver'] ?? $alias;
+
+        return is_string($driver) && $driver !== '' ? $driver : WorkflowRunStoreName::MEMORY;
+    }
+
+    public function hasRunStoreAlias(string $alias): bool
+    {
+        return isset($this->runStores()[$alias])
+            || $alias === WorkflowRunStoreName::MEMORY;
+    }
+
+    public function conditionEvaluator(): string
     {
         return ApplicationConfig::pickStringEnvFirst(
-            $this->redisSection(),
-            'component',
-            'WORKFLOW_REDIS_COMPONENT',
-            'redis',
+            $this->workflowSection(),
+            'condition_evaluator',
+            'WORKFLOW_CONDITION_EVALUATOR',
+            'symfony',
         );
     }
 
-    public function redisPrefix(): string
+    // --- redis section helpers ---
+
+    public function redisComponent(?string $alias = null): string
     {
         return ApplicationConfig::pickStringEnvFirst(
-            $this->redisSection(),
+            $this->runStoreSection($alias),
+            'component',
+            'WORKFLOW_REDIS_COMPONENT',
+            WorkflowRunStoreName::REDIS,
+        );
+    }
+
+    public function redisPrefix(?string $alias = null): string
+    {
+        return ApplicationConfig::pickStringEnvFirst(
+            $this->runStoreSection($alias),
             'prefix',
             'WORKFLOW_REDIS_PREFIX',
             'workflow:run:',
         );
     }
 
-    public function redisTtl(): int
+    public function redisTtl(?string $alias = null): int
     {
         return ApplicationConfig::pickIntEnvFirst(
-            $this->redisSection(),
+            $this->runStoreSection($alias),
             'ttl',
             'WORKFLOW_REDIS_TTL',
             86400,
         );
     }
 
-    public function conditionEvaluator(): string
-    {
-        $section = (array) ($this->config['workflow'] ?? []);
+    // --- db section helpers ---
 
-        return ApplicationConfig::pickStringEnvFirst($section, 'condition_evaluator', 'WORKFLOW_CONDITION_EVALUATOR', 'symfony');
+    public function dbComponent(?string $alias = null): string
+    {
+        return ApplicationConfig::pickStringEnvFirst(
+            $this->runStoreSection($alias),
+            'component',
+            'WORKFLOW_DB_COMPONENT',
+            WorkflowRunStoreName::DB,
+        );
+    }
+
+    public function dbTable(?string $alias = null): string
+    {
+        $table = ApplicationConfig::pickStringEnvFirst(
+            $this->runStoreSection($alias),
+            'table',
+            'WORKFLOW_DB_TABLE',
+            'workflow_runs',
+        );
+
+        if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $table)) {
+            return 'workflow_runs';
+        }
+
+        return $table;
     }
 }
+

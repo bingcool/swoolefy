@@ -7,19 +7,19 @@ namespace Test\Module\Rag\Agent;
 use NeuronAI\Agent\SystemPrompt;
 use NeuronAI\Chat\Messages\AssistantMessage;
 use NeuronAI\Providers\AIProviderInterface;
-use NeuronAI\Providers\OpenAILike;
 use NeuronAI\RAG\Embeddings\EmbeddingsProviderInterface;
 use NeuronAI\RAG\RAG;
 use NeuronAI\RAG\Retrieval\RetrievalInterface;
 use NeuronAI\RAG\VectorStore\VectorStoreInterface;
 use NeuronAI\Testing\FakeAIProvider;
+use Swoolefy\Support\Neuron\NeuronProviderFactory;
 use Swoolefy\Support\Rag\Factory\RagFactory;
 
 /**
  * 演示用知识库 RAG Agent。
  *
  * 注入 RagFactory，按 knowledgeBase + 可选 vector_stores 别名绑定检索链路。
- * 无 OPENAI_API_KEY 时 FakeAIProvider 回退，保证本地可演示。
+ * Provider 使用 neuron_ai.php 的 default_provider；无凭证时 FakeAIProvider 回退。
  */
 final class DemoKnowledgeRag extends RAG
 {
@@ -34,13 +34,9 @@ final class DemoKnowledgeRag extends RAG
 
     protected function provider(): AIProviderInterface
     {
-        $apiKey = (string) (getenv('OPENAI_API_KEY') ?: '');
-        if ($apiKey !== '') {
-            return new OpenAILike(
-                baseUri: (string) (getenv('OPENAI_BASE_URI') ?: 'https://api.openai.com/v1'),
-                key: $apiKey,
-                model: (string) (getenv('OPENAI_MODEL') ?: 'gpt-4o-mini'),
-            );
+        $provider = (new NeuronProviderFactory())->createDefault();
+        if ($provider instanceof AIProviderInterface) {
+            return $provider;
         }
 
         return FakeAIProvider::make(new AssistantMessage(

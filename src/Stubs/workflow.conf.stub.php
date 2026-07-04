@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Swoolefy\Support\Workflow\WorkflowRunStoreName;
 
 /**
- * Workflow 引擎配置（模版：src/Stubs/workflow.conf.stub.php；create 命令自动复制到 Config/）
+ * Workflow 引擎配置（create 命令从 Stubs 复制到 APP_PATH/Config/workflow.php）
  *
  * RAG / MCP / Neuron 见 neuron_ai.php
  *
@@ -18,7 +18,7 @@ use Swoolefy\Support\Workflow\WorkflowRunStoreName;
  * 生产建议：
  *   - default_run_store=WorkflowRunStoreName::DB 或 REDIS
  *   - 使用 DB 前预执行 src/Support/Workflow/Schema/workflow_runs.sql
- *   - component 指向 database.php / cache.php 中已配置的高可用组件
+ *   - component 指向 Config/component/database.php / cache.php 中已配置的高可用组件
  */
 return [
     'workflow' => [

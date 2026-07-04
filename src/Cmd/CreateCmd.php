@@ -114,6 +114,16 @@ class CreateCmd extends BaseCmd
                         @copy(SRC_DIR_ROOT.'/Stubs/dc.stub.php', $dcFile);
                     }
 
+                    $workflowFile = $appPathDir . '/' . $dir . '/workflow.php';
+                    if (!file_exists($workflowFile)) {
+                        @copy(SRC_DIR_ROOT . '/Stubs/workflow.conf.stub.php', $workflowFile);
+                    }
+
+                    $neuronAiFile = $appPathDir . '/' . $dir . '/neuron_ai.php';
+                    if (!file_exists($neuronAiFile)) {
+                        @copy(SRC_DIR_ROOT . '/Stubs/neuron_ai.conf.stub.php', $neuronAiFile);
+                    }
+
                     if ($protocol == self::WEBSOCKET_PROTOCOL) {
                         $socketioFile = $appPathDir . '/' . $dir . '/socketio.php';
                         if (!file_exists($socketioFile)) {

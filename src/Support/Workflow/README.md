@@ -95,8 +95,8 @@ $runId    = $engine->start($compiled, $input);
 
 配置模板：
 
-- `Test/Config/workflow.php` → `APP_PATH/config/workflow.php`（引擎）
-- `Test/Config/neuron_ai.php` → `APP_PATH/config/neuron_ai.php`（RAG / MCP / Neuron，见 `Support/Neuron/NeuronAiConfig.php`）
+- `Config/workflow.php`（模版 `src/Stubs/workflow.conf.stub.php`，`create` 命令自动复制）
+- `Config/neuron_ai.php`（模版 `src/Stubs/neuron_ai.conf.stub.php`；RAG / MCP / Neuron，见 `Support/Neuron/NeuronAiConfig.php`）
 
 ---
 
@@ -165,12 +165,29 @@ $definition->addNode('call_child', new SubWorkflowNode('call_child', [
 
 ## Run 存储
 
+配置见 `Config/workflow.php`（模版 `src/Stubs/workflow.conf.stub.php`）：
+
+```php
+use Swoolefy\Support\Workflow\WorkflowRunStoreName;
+
+'default_run_store' => WorkflowRunStoreName::DB,
+'run_stores' => [
+    WorkflowRunStoreName::MEMORY => [],
+    WorkflowRunStoreName::REDIS => ['component' => 'redis', 'prefix' => 'workflow:run:', 'ttl' => 86400],
+    WorkflowRunStoreName::DB => ['component' => 'db', 'table' => 'workflow_runs'],
+],
+```
+
 | 驱动 | 类 | 场景 |
 |------|-----|------|
-| `memory` | `InMemoryRunStore` | 单测、单 Worker 演示 |
-| `redis` | `RedisRunStore` | 生产：引用 `cache.php` 组件别名，跨 Worker resume、HITL 任务列表 |
+| `memory` | `InMemoryRunStore` | 单测、单 Worker 演示（不跨进程） |
+| `redis` | `RedisRunStore` | 生产低延迟：跨 Worker resume / HITL |
+| `db` | `DbRunStore` | 生产可查询：跨 Worker、按 status/assignee 索引、易备份审计 |
 
-`RedisRunStore` 通过 `WorkflowRedisResolver` 从 `Application::getApp()->get('redis'|'predis')` 解析 `RedisConnection`。
+- Redis：`WorkflowRedisResolver` → `cache.php` 组件
+- DB：`WorkflowPdoResolver` → `database.php` 组件；须预执行 `Schema/workflow_runs.sql`
+- `DbRunStore` 使用事务 UPSERT，死锁自动重试
+- HTTP 入口使用 `WorkflowService::engine()` / `WorkflowComponentFactory`，保证与配置一致
 
 ---
 

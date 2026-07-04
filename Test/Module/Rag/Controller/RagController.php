@@ -9,9 +9,10 @@ use Swoolefy\Exception\SystemException;
 use Swoolefy\Http\RequestInput;
 use Swoolefy\Support\Workflow\Engine\StreamWorkflowEventDispatcher;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
-use Swoolefy\Support\Workflow\WorkflowBootstrap;
+use Swoolefy\Support\Workflow\WorkflowComponentFactory;
 use Test\Module\Rag\RagService;
 use Test\Module\Rag\Workflow\RagQaWorkflow;
+use Test\Module\Workflow\WorkflowService;
 
 /**
  * RAG 检索演示控制器 —— 入库、种子数据、相似度检索、问答与工作流。
@@ -50,7 +51,7 @@ use Test\Module\Rag\Workflow\RagQaWorkflow;
  *
  * 推荐演示顺序：seed → retrieve → ask → workflow/qa
  *
- * @see Test\Module\Rag\README.md
+ * @see \Test\Module\Rag\README.md
  */
 final class RagController extends BController
 {
@@ -195,8 +196,8 @@ final class RagController extends BController
         );
 
         try {
-            $compiled = WorkflowBootstrap::compiler()->compile($definition);
-            $engine = WorkflowBootstrap::engine(events: new StreamWorkflowEventDispatcher());
+            $compiled = WorkflowComponentFactory::compiler()->compile($definition);
+            $engine = WorkflowService::engine(events: new StreamWorkflowEventDispatcher());
             $runId = $engine->start($compiled, $input);
             $run = $engine->getRun($runId);
         } catch (WorkflowException $e) {

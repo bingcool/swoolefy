@@ -13,7 +13,7 @@ use Swoolefy\Support\Neuron\NeuronAiRagEnv;
 use Swoolefy\Support\Neuron\NeuronAiVectorStoreName;
 
 /**
- * Neuron AI / RAG / MCP 配置（模版：src/Stubs/neuron_ai.conf.stub.php；create 命令自动复制到 Config/）
+ * Neuron AI / RAG / MCP 配置（create 命令从 Stubs 复制到 APP_PATH/Config/neuron_ai.php）
  */
 return [
     'rag' => [

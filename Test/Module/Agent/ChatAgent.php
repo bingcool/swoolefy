@@ -14,7 +14,8 @@ use Test\Module\Agent\Concerns\ResolvesDefaultProvider;
 /**
  * 对话 Agent —— chatHistory() 使用 Neuron SQLChatHistory 持久化多轮会话。
  *
- * 表结构见 SQLChatHistory（chat_history：thread_id + messages JSON）。
+ * 表结构见 {@see SQLChatHistory}（chat_history：thread_id + messages JSON）。
+ * 使用前须执行 Schema/chat_history.sql 建表。
  *
  * @see https://docs.neuron-ai.dev/agent/chat-history-and-memory
  */
