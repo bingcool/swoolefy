@@ -155,6 +155,18 @@ Route::group([
         'dispatch_route' => [\Test\Controller\UploadController::class, 'multiple'],
     ]);
 
+    Route::post('/v1/research/workflow/multi-agent', [
+        'dispatch_route' => [\Test\Module\Research\Controller\ResearchWorkflowDemoController::class, 'multiAgent'],
+    ]);
+
+    Route::post('/v1/research/workflow/mcp', [
+        'dispatch_route' => [\Test\Module\Research\Controller\ResearchWorkflowDemoController::class, 'mcp'],
+    ]);
+
+    Route::get('/v1/research/workflow/status', [
+        'dispatch_route' => [\Test\Module\Research\Controller\ResearchWorkflowDemoController::class, 'status'],
+    ]);
+
     Route::post('/v1/order/workflow/process', [
         'dispatch_route' => [\Test\Module\Order\Controller\OrderWorkflowDemoController::class, 'process'],
     ]);
