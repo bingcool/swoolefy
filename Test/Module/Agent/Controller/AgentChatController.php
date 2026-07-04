@@ -13,28 +13,26 @@ use Swoolefy\Support\Neuron\Memory\ChatHistoryPdoResolver;
 use Swoolefy\Support\Neuron\NeuronAiConfig;
 use Swoolefy\Support\Neuron\NeuronAiProviderName;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
-use Swoolefy\Support\Workflow\State\WorkflowState;
 use Test\Module\Agent\ChatAgent;
-use Test\Module\Agent\SqlPersistChatAgent;
 use Test\Module\Workflow\WorkflowService;
 use Throwable;
 
 /**
  * Agent 对话 HTTP API。
  *
- * 会话记忆由各 Agent 的 chatHistory() 自行声明（InMemory / SQL / Redis / File）。
+ * ChatAgent::chatHistory() 使用 Neuron SQLChatHistory（需表 chat_history）。
  *
  * POST /api/v1/agent/chat
  * POST /api/v1/agent/chat1
  * POST /api/v1/agent/chat-thinking
- * POST /api/v1/agent/chat-persist  — SqlPersistChatAgent + Neuron SQLChatHistory
+ * POST /api/v1/agent/chat-persist
  *
  * @see https://docs.neuron-ai.dev/agent/chat-history-and-memory
  * @see https://api-docs.deepseek.com/zh-cn/guides/thinking_mode
  */
 final class AgentChatController extends BController
 {
-    /** 默认 Provider 对话（ChatAgent → InMemory）。 */
+    /** 默认 Provider 对话（ChatAgent → SQL）。 */
     public function chat(RequestInput $requestInput): array
     {
         $providerAlias = trim((string) $requestInput->input('provider', ''));
@@ -89,9 +87,7 @@ final class AgentChatController extends BController
             $model = 'deepseek-chat';
         }
 
-        $sessionId = (string) ($requestInput->input('sessionId') ?: $requestInput->input('threadId', 'default-session'));
-        $userId = (string) $requestInput->input('userId', 'anonymous');
-        $threadId = $userId . ':' . $sessionId;
+        [$threadId, $sessionId, $userId] = $this->resolveThread($requestInput);
 
         $parameters = [
             'thinking' => ['type' => $thinkingType],
@@ -106,15 +102,8 @@ final class AgentChatController extends BController
             'parameters' => $parameters,
         ];
 
-        $state = WorkflowState::fromInput([
-            'threadId' => $threadId,
-            'sessionId' => $sessionId,
-            'userId' => $userId,
-            'message' => $message,
-        ]);
-
         try {
-            $agent = WorkflowService::neuronFactory()->create(ChatAgent::class, $state, $nodeConfig);
+            $agent = $this->makeChatAgent($threadId, $nodeConfig);
             $assistant = $agent->chat(new UserMessage($message))->getMessage();
         } catch (WorkflowException $e) {
             throw new SystemException($e->getMessage(), 400, $e);
@@ -137,12 +126,9 @@ final class AgentChatController extends BController
     }
 
     /**
-     * SQL 持久化多轮会话（Agent::chatHistory() → Neuron SQLChatHistory）。
+     * SQL 持久化多轮会话（与 chat 相同记忆后端，显式返回 historyCount）。
      *
      * POST /api/v1/agent/chat-persist
-     * Body: message, sessionId, userId, provider?, model?
-     *
-     * 需表 chat_history（见 Neuron SQLChatHistory 文档）。
      */
     public function chatPersist(RequestInput $requestInput): array
     {
@@ -151,9 +137,7 @@ final class AgentChatController extends BController
             throw new SystemException('message is required', 400);
         }
 
-        $sessionId = (string) ($requestInput->input('sessionId') ?: $requestInput->input('threadId', 'default-session'));
-        $userId = (string) $requestInput->input('userId', 'anonymous');
-        $threadId = $userId . ':' . $sessionId;
+        [$threadId] = $this->resolveThread($requestInput);
 
         $providerAlias = trim((string) $requestInput->input('provider', ''));
         $model = trim((string) $requestInput->input('model', ''));
@@ -167,12 +151,7 @@ final class AgentChatController extends BController
         }
 
         try {
-            $pdo = ChatHistoryPdoResolver::resolve('db');
-            $agent = WorkflowService::neuronFactory()->boot(
-                new SqlPersistChatAgent($threadId, $pdo),
-                $nodeConfig,
-            );
-
+            $agent = $this->makeChatAgent($threadId, $nodeConfig);
             $historyCount = count($agent->getChatHistory()->getMessages());
             $reply = (string) $agent->chat(new UserMessage($message))->getMessage()->getContent();
         } catch (WorkflowException $e) {
@@ -205,9 +184,7 @@ final class AgentChatController extends BController
             throw new SystemException('message is required', 400);
         }
 
-        $sessionId = (string) ($requestInput->input('sessionId') ?: $requestInput->input('threadId', 'default-session'));
-        $userId = (string) $requestInput->input('userId', 'anonymous');
-        $threadId = $userId . ':' . $sessionId;
+        [$threadId] = $this->resolveThread($requestInput);
 
         $nodeConfig = [];
         if ($providerAlias !== '') {
@@ -217,15 +194,8 @@ final class AgentChatController extends BController
             $nodeConfig['model'] = $model;
         }
 
-        $state = WorkflowState::fromInput([
-            'threadId' => $threadId,
-            'sessionId' => $sessionId,
-            'userId' => $userId,
-            'message' => $message,
-        ]);
-
         try {
-            $agent = WorkflowService::neuronFactory()->create(ChatAgent::class, $state, $nodeConfig);
+            $agent = $this->makeChatAgent($threadId, $nodeConfig);
             $reply = $agent->chat(new UserMessage($message))->getMessage()->getContent();
         } catch (WorkflowException $e) {
             throw new SystemException($e->getMessage(), 400, $e);
@@ -242,6 +212,31 @@ final class AgentChatController extends BController
             'provider' => $providerAlias !== '' ? $providerAlias : NeuronAiConfig::load()->defaultProviderName(),
             'model' => $model !== '' ? $model : null,
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $nodeConfig
+     */
+    private function makeChatAgent(string $threadId, array $nodeConfig = []): ChatAgent
+    {
+        $pdo = ChatHistoryPdoResolver::resolve('db');
+
+        /** @var ChatAgent $agent */
+        $agent = WorkflowService::neuronFactory()->boot(
+            new ChatAgent($threadId, $pdo),
+            $nodeConfig,
+        );
+
+        return $agent;
+    }
+
+    /** @return array{0: string, 1: string, 2: string} threadId, sessionId, userId */
+    private function resolveThread(RequestInput $requestInput): array
+    {
+        $sessionId = (string) ($requestInput->input('sessionId') ?: $requestInput->input('threadId', 'default-session'));
+        $userId = (string) $requestInput->input('userId', 'anonymous');
+
+        return [$userId . ':' . $sessionId, $sessionId, $userId];
     }
 
     private function extractReasoningContent(Message $message): ?string

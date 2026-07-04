@@ -7,7 +7,6 @@ namespace Swoolefy\Support\Rag\Node;
 use NeuronAI\Chat\Messages\UserMessage;
 use NeuronAI\RAG\RAG;
 use Swoolefy\Support\AI\Stream\StreamBridge;
-use Swoolefy\Support\Neuron\Memory\MemoryFactoryInterface;
 use Swoolefy\Support\Neuron\NeuronFactory;
 use Swoolefy\Support\Rag\Builder\RAGNodeBuilder;
 use Swoolefy\Support\Workflow\Engine\NodeExecutionResult;
@@ -25,7 +24,6 @@ final class RAGNode extends AbstractNode
     public function __construct(
         string $nodeId,
         private readonly array $config,
-        private readonly ?MemoryFactoryInterface $memoryFactory = null,
         private readonly ?NeuronFactory $neuronFactory = null,
     ) {
         parent::__construct($nodeId);

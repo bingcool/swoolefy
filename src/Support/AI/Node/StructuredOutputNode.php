@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Swoolefy\Support\AI\Node;
 
 use Swoolefy\Support\AI\Builder\AINodeBuilder;
-use Swoolefy\Support\Neuron\Memory\MemoryFactoryInterface;
 use Swoolefy\Support\Neuron\NeuronFactory;
 use Swoolefy\Support\Workflow\Engine\NodeExecutionResult;
 use Swoolefy\Support\Workflow\Engine\RunContext;
@@ -29,7 +28,6 @@ final class StructuredOutputNode extends AbstractNode
         string $nodeId,
         string $dtoClass,
         array $extra = [],
-        ?MemoryFactoryInterface $memoryFactory = null,
         ?NeuronFactory $neuronFactory = null,
     ) {
         parent::__construct($nodeId);
@@ -48,7 +46,7 @@ final class StructuredOutputNode extends AbstractNode
             $builder->executor($extra['executor']);
         }
 
-        $this->delegate = $builder->build($memoryFactory, $neuronFactory);
+        $this->delegate = $builder->build($neuronFactory);
     }
 
     /** {@inheritdoc} */

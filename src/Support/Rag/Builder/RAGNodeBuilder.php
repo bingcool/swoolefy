@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Rag\Builder;
 
-use Swoolefy\Support\Neuron\Memory\MemoryFactoryInterface;
 use Swoolefy\Support\Neuron\NeuronFactory;
 use Swoolefy\Support\Rag\Node\RAGNode;
 
@@ -73,10 +72,8 @@ final class RAGNodeBuilder
         return $this;
     }
 
-    public function build(
-        ?MemoryFactoryInterface $memoryFactory = null,
-        ?NeuronFactory $neuronFactory = null,
-    ): RAGNode {
-        return new RAGNode($this->nodeId, $this->config, $memoryFactory, $neuronFactory);
+    public function build(?NeuronFactory $neuronFactory = null): RAGNode
+    {
+        return new RAGNode($this->nodeId, $this->config, $neuronFactory);
     }
 }

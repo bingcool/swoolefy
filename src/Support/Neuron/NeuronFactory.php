@@ -51,7 +51,7 @@ final class NeuronFactory
      * 对已构造的 Agent 注入 Provider / MCP（不改写 chatHistory，除非显式传入）。
      *
      * 业务侧示例：
-     *   $agent = new SqlPersistChatAgent($threadId, $pdo);
+     *   $agent = new ChatAgent($threadId, $pdo);
      *   $factory->boot($agent, ['provider' => 'deepseek']);
      *
      * @param array<string, mixed> $nodeConfig

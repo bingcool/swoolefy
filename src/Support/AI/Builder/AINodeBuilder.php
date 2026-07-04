@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Swoolefy\Support\AI\Builder;
 
 use Swoolefy\Support\AI\Node\AINode;
-use Swoolefy\Support\Neuron\Memory\MemoryFactoryInterface;
 use Swoolefy\Support\Neuron\NeuronFactory;
 
 /**
@@ -173,10 +172,8 @@ final class AINodeBuilder
     }
 
     /** 构建 AINode 实例。 */
-    public function build(
-        ?MemoryFactoryInterface $memoryFactory = null,
-        ?NeuronFactory $neuronFactory = null,
-    ): AINode {
-        return new AINode($this->nodeId, $this->config, $memoryFactory, null, $neuronFactory);
+    public function build(?NeuronFactory $neuronFactory = null): AINode
+    {
+        return new AINode($this->nodeId, $this->config, null, $neuronFactory);
     }
 }

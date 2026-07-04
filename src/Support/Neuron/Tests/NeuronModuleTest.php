@@ -5,7 +5,7 @@ declare(strict_types=1);
 /**
  * Neuron 模块回归测试。
  *
- * 覆盖：NeuronAiConfig、Provider 工厂、MemoryFactory 回退、EmbeddingFactory Fake、
+ * 覆盖：NeuronAiConfig、Provider 工厂、ChatHistoryFactory、EmbeddingFactory Fake、
  * NeuronHttpFactory CLI 回退、NeuronFactory agentFactory 注入。
  *
  * 运行：php src/Support/Neuron/Tests/NeuronModuleTest.php
@@ -23,8 +23,7 @@ use Swoolefy\Support\Neuron\Embedding\EmbeddingFactory;
 use Swoolefy\Support\Neuron\Http\NeuronHttpFactory;
 use Swoolefy\Support\Neuron\Memory\ChatHistoryArchiveInterface;
 use Swoolefy\Support\Neuron\Memory\HotChatHistoryInterface;
-use Swoolefy\Support\Neuron\Memory\MemoryFactory;
-use Swoolefy\Support\Neuron\Memory\MemoryFactoryInterface;
+use Swoolefy\Support\Neuron\Memory\ChatHistoryFactory;
 use Swoolefy\Support\Neuron\Memory\SqlChatHistoryArchive;
 use Swoolefy\Support\Neuron\NeuronAiConfig;
 use Swoolefy\Support\Neuron\NeuronAiProviderName;
@@ -108,20 +107,14 @@ function testProviderFactoryUnknownAliasThrows(): void
     }
 }
 
-function testMemoryFactoryFallsBackToInMemory(): void
+function testChatHistoryFactoryInMemory(): void
 {
-    $factory = new MemoryFactory();
-    assertTrue($factory instanceof MemoryFactoryInterface, 'implements MemoryFactoryInterface');
-    $history = $factory->forThread('thread-1', 1000);
-    assertTrue($history instanceof InMemoryChatHistory, 'in-memory fallback without redis');
+    $history = ChatHistoryFactory::inMemory(1000);
+    assertTrue($history instanceof InMemoryChatHistory, 'in-memory chat history');
 }
 
 function testMemoryInterfacesAreImplemented(): void
 {
-    assertTrue(
-        is_subclass_of(MemoryFactory::class, MemoryFactoryInterface::class),
-        'MemoryFactory implements factory interface',
-    );
     assertTrue(
         is_subclass_of(\Swoolefy\Support\Neuron\Memory\RedisChatHistory::class, HotChatHistoryInterface::class),
         'RedisChatHistory implements hot history interface',
@@ -211,7 +204,7 @@ $tests = [
     'provider from alias' => 'testProviderFactoryCreateFromAlias',
     'provider default' => 'testProviderFactoryCreateDefault',
     'provider unknown alias' => 'testProviderFactoryUnknownAliasThrows',
-    'memory in-memory fallback' => 'testMemoryFactoryFallsBackToInMemory',
+    'chat history factory in-memory' => 'testChatHistoryFactoryInMemory',
     'memory interfaces' => 'testMemoryInterfacesAreImplemented',
     'embedding fake without key' => 'testEmbeddingFactoryWithoutApiKeyUsesFake',
     'http factory cli fallback' => 'testNeuronHttpFactoryCliFallback',

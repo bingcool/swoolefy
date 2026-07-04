@@ -11,7 +11,7 @@ declare(strict_types=1);
  *   - 引擎：三条路由（payment / manual_review / reject）
  *   - Facade：Workflow::fromDefinition()->compile()->start()
  *   - 插件：TracingPlugin span 收集
- *   - Neuron：MemoryFactory 内存回退
+ *   - Neuron：ChatHistoryFactory 内存记忆
  *
  * 运行：php src/Support/Workflow/Tests/WorkflowPhase1Test.php
  */
@@ -158,12 +158,11 @@ function testWorkflowFacade(): void
     assertTrue($run->status->value === 'completed', 'Facade run should complete');
 }
 
-/** 测试：无 Redis 时 MemoryFactory 回退 InMemoryChatHistory。 */
-function testMemoryFactoryInMemoryFallback(): void
+/** 测试：ChatHistoryFactory::inMemory 返回进程内会话记忆。 */
+function testChatHistoryFactoryInMemory(): void
 {
-    $factory = new \Swoolefy\Support\Neuron\Memory\MemoryFactory();
-    $history = $factory->forThread('thread-1');
-    assertTrue($history instanceof \NeuronAI\Chat\History\ChatHistoryInterface, 'Memory factory should return chat history');
+    $history = \Swoolefy\Support\Neuron\Memory\ChatHistoryFactory::inMemory();
+    assertTrue($history instanceof \NeuronAI\Chat\History\ChatHistoryInterface, 'ChatHistoryFactory should return chat history');
 }
 
 /** 测试：Symfony EL 能正确求值 decision 分支条件。 */
@@ -186,7 +185,7 @@ function testExpressionEvaluator(): void
 $tests = [
     'compiler cycle detection' => 'testCompilerDetectsCycle',
     'expression evaluator' => 'testExpressionEvaluator',
-    'memory factory fallback' => 'testMemoryFactoryInMemoryFallback',
+    'chat history factory in-memory' => 'testChatHistoryFactoryInMemory',
     'route high confidence' => 'testConditionalRoutingHighConfidence',
     'route manual review' => 'testConditionalRoutingManualReview',
     'route reject' => 'testConditionalRoutingReject',

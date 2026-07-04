@@ -19,9 +19,7 @@ Neuron/
 │   ├── ChatHistoryPdoResolver.php   # 组件容器解析 PDO
 │   ├── RedisChatHistory.php         # Redis 热存储
 │   ├── HotChatHistoryInterface.php
-│   ├── SqlChatHistoryArchive.php    # 可选：逐条冷归档
-│   ├── MemoryFactory.php            # @deprecated
-│   └── MemoryFactoryInterface.php   # @deprecated
+│   └── SqlChatHistoryArchive.php    # 可选：逐条冷归档
 ├── Http/
 ├── Embedding/
 └── Tests/
@@ -48,14 +46,10 @@ NeuronFactory::create / boot
 
 ## 业务 Agent 示例
 
-### InMemory（默认，单次请求）
+### InMemory（单次请求，无持久化）
 
 ```php
-use NeuronAI\Agent\Agent;
-use NeuronAI\Chat\History\ChatHistoryInterface;
-use Swoolefy\Support\Neuron\Memory\ChatHistoryFactory;
-
-final class ChatAgent extends Agent
+final class EphemeralChatAgent extends Agent
 {
     protected function chatHistory(): ChatHistoryInterface
     {
@@ -67,7 +61,7 @@ final class ChatAgent extends Agent
 ### SQL 持久化多轮（Neuron SQLChatHistory）
 
 ```php
-final class SqlPersistChatAgent extends Agent
+final class ChatAgent extends Agent
 {
     public function __construct(
         private readonly string $threadId,
@@ -84,7 +78,7 @@ final class SqlPersistChatAgent extends Agent
 
 // Controller
 $pdo = ChatHistoryPdoResolver::resolve('db');
-$agent = $neuronFactory->boot(new SqlPersistChatAgent($threadId, $pdo), [
+$agent = $neuronFactory->boot(new ChatAgent($threadId, $pdo), [
     'provider' => 'deepseek',
 ]);
 ```
@@ -120,7 +114,7 @@ protected function chatHistory(): ChatHistoryInterface
 $agent = $factory->create(ChatAgent::class, $state, ['provider' => 'openai']);
 
 // 带构造参数的 Agent（自行决定 chatHistory）
-$agent = $factory->boot(new SqlPersistChatAgent($threadId, $pdo), ['provider' => 'deepseek']);
+$agent = $factory->boot(new ChatAgent($threadId, $pdo), ['provider' => 'deepseek']);
 ```
 
 ---

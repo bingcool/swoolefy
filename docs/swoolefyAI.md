@@ -48,7 +48,7 @@
 - **Node 完整生命周期**：`beforeExecute` → `execute` → `afterExecute`；以及 `onRetry` / `onTimeout` / `onPause` / `onResume` / `onFail`；**不用 EventBus 当 Hook**
 - **AINode Builder DSL**：`AINode::make()->agent()->memory()->mcp()->structured()`，避免配置数组膨胀
 - **WorkflowPlugin 插件体系**：Retry / Metrics / Tracing / OTel / RateLimit / Permission；Engine 保持瘦核心
-- **MemoryFactory**：独立 ChatHistory；HITL Pause 不切断 threadId
+- **Agent::chatHistory()** + **ChatHistoryFactory**：业务自选 InMemory/SQL/Redis/File；HITL Pause 不切断 threadId
 - **Structured Output + 条件边 + Typed State**：`$state->dto(OrderDecisionDto::class)` 驱动分支，避免 magic string
 - **NodeExecutionResult**：富结果承载 Streaming / Retry / Saga，不改 Node 接口
 - **RAG**：Neuron `RAG` 类 = Agent + 自动检索；Workflow 用 `RAGNode` / `RagRetrieveNode` 嵌入 DAG；入库走 `IngestionPipeline`
@@ -142,7 +142,7 @@ src/Support/
     Http/
       SwooleHttpClientAdapter.php    # CurlProxy 协程 HTTP 注入 Neuron
     Memory/
-      MemoryFactory.php
+      ChatHistoryFactory.php
       RedisChatHistory.php
       SqlChatHistoryArchive.php      # Phase 2
     Embedding/
@@ -1245,7 +1245,7 @@ final class WorkflowEngine
 | `McpConnector` | `McpFactory` + `AINode.mcpServers` | 远程/本地 MCP 工具自动发现 |
 | `only()` / `exclude()` | `mcpOnly` / `mcpExclude` 节点配置 | 声明式工具过滤 |
 | `Agent::structured()` | `AINode` / `RAGNode` + `addConditionalEdges` | DTO 字段驱动分支 |
-| `chatHistory()` | `MemoryFactory` + `RedisChatHistory` | 跨 Pause 连续 |
+| `chatHistory()` | `ChatHistoryFactory` + `RedisChatHistory` / `SQLChatHistory` | 跨 Pause 连续 |
 | 条件路由 | `addConditionalEdge(s)` + `EdgeCondition` | 含 RAG 有无上下文分支 |
 | Tools | `AbstractWorkflowTool` | 可嵌套子 Workflow |
 | Neuron WorkflowInterrupt | Tool 级审批 | 流程级走 `PauseNode` + 条件边 |
@@ -1499,7 +1499,7 @@ composer require symfony/expression-language   # ConditionEvaluator 默认实现
 | `plugin_manager` | `PluginManager` + Builtin Plugin | `Swoolefy\Support\Workflow\Plugin` |
 | `workflow_engine` | `WorkflowEngine` | `Swoolefy\Support\Workflow\Engine` |
 | `sub_workflow_runner` | `SubWorkflowRunner` | `Swoolefy\Support\Workflow\Engine` |
-| `memory_factory` | `MemoryFactory` | `Swoolefy\Support\Neuron\Memory` |
+| `chat_history` | `ChatHistoryFactory` | `Swoolefy\Support\Neuron\Memory` |
 | `embedding_factory` | `EmbeddingFactory` | `Swoolefy\Support\Neuron\Embedding` |
 | `neuron_factory` | `NeuronFactory` | `Swoolefy\Support\Neuron` |
 | `vector_store_factory` | `VectorStoreFactory` | `Swoolefy\Support\Rag\Factory` |
@@ -1520,7 +1520,7 @@ use Swoolefy\Support\Workflow\Plugin\Builtin\RetryPlugin;
 use Swoolefy\Support\Workflow\Plugin\Builtin\TracingPlugin;
 use Swoolefy\Support\Workflow\Plugin\PluginManager;
 use Swoolefy\Support\Neuron\Embedding\EmbeddingFactory;
-use Swoolefy\Support\Neuron\Memory\MemoryFactory;
+use Swoolefy\Support\Neuron\Memory\ChatHistoryFactory;
 use Swoolefy\Support\Neuron\NeuronFactory;
 use Swoolefy\Support\Rag\Factory\RagFactory;
 use Swoolefy\Support\Rag\Factory\VectorStoreFactory;
@@ -1551,12 +1551,9 @@ return [
         config: $app->get('config')['mcp'] ?? [],
         httpHandler: CurlProxyHandler::getStackHandler(),
     ),
-    'memory_factory'       => fn($app) => new MemoryFactory($app->get('redis'), $app->get('chat_sql_archive')),
+    // 会话记忆由 Agent::chatHistory() + ChatHistoryFactory 声明
     'neuron_factory'       => fn($app) => new NeuronFactory(
-        $app->get('memory_factory'),
-        $app->get('rag_factory'),
         $app->get('mcp_factory'),
-        CurlProxyHandler::getStackHandler(),
     ),
     'agent_scheduler'      => fn($app) => new AgentScheduler(
         $app->get('neuron_factory'),
@@ -1650,7 +1647,7 @@ id, tenant_id, name, transport, config_json, enabled, created_at, updated_at
 - **`Support/Workflow`**：`NodeExecutionResult` + Node 完整生命周期；`WorkflowState` Typed API
 - **`Support/Workflow`**：`WorkflowPlugin`（RetryPlugin + TracingPlugin）+ `PluginManager`
 - **`Support/AI`**：`AINodeBuilder` DSL；线性 DAG + Symfony EL 条件边（`Support/Workflow/Condition`）
-- **`Support/Neuron/Memory`** + **`Test/Module/Order`**：`order_processing` 示例；`MemoryFactory` + `RedisChatHistory`
+- **`Support/Neuron/Memory`** + **`Test/Module/Order`**：`order_processing` 示例；`ChatHistoryFactory` + `RedisChatHistory`
 
 ### Phase 2 — 流式、并行、Memory、RAG 入库与 MCP 基础（2~3 周）
 
@@ -1716,7 +1713,7 @@ id, tenant_id, name, transport, config_json, enabled, created_at, updated_at
 |--------------------|-----------|
 | Router / Gateway | `Support/Workflow`：`addConditionalEdges` + `EdgeCondition` |
 | Structured Output | `Support/AI`：`AINode` + DTO → 条件边消费 |
-| Chat Memory | `Support/Neuron/Memory`：`MemoryFactory` + `RedisChatHistory` |
+| Chat Memory | `Support/Neuron/Memory`：`ChatHistoryFactory` + Agent::`chatHistory()` |
 | Human approval gate | `Support/Workflow`：`PauseNode` + `resume()` + 条件边 |
 | Spring Integration Flow | `Support/Workflow`：`WorkflowDefinition` + `addEdge` + `addConditionalEdges` |
 | SpEL / Expression | `Support/Workflow/Condition`：`ConditionEvaluatorInterface` → Symfony ExpressionLanguage |
@@ -1761,7 +1758,7 @@ id, tenant_id, name, transport, config_json, enabled, created_at, updated_at
 | [x] | Phase 1 | `Support/Workflow` | **`WorkflowDefinition` + `WorkflowCompiler` + `CompiledWorkflow` + `WorkflowEngine` 三层分离** |
 | [x] | Phase 1 | `Support/Workflow` | **`NodeExecutionResult` + `NodeStatus`；`WorkflowState` Typed API（dto / outputOf）** |
 | [x] | Phase 1 | `Support/Workflow` | **`EdgeCondition` + `ConditionEvaluatorInterface`（Symfony EL 默认）+ `DagScheduler` 路由** |
-| [x] | Phase 1 | `Support/Neuron` + `Support/AI` | **`MemoryFactory` + `RedisChatHistory`；`AINode` + `structuredOutput` + `OrderDecisionDto` + 条件边示例** |
+| [x] | Phase 1 | `Support/Neuron` + `Support/AI` | **`ChatHistoryFactory` + `RedisChatHistory`；`AINode` + `structuredOutput` + `OrderDecisionDto` + 条件边示例** |
 | [x] | Phase 1 | `Support/Workflow` | **`NodeInterface` 完整生命周期 + `AbstractNode::run()` 模板方法** |
 | [x] | Phase 1 | `Support/Workflow` | **`WorkflowPlugin` + `PluginManager` + `RetryPlugin` + `TracingPlugin`** |
 | [x] | Phase 1 | `Support/AI` | **`AINodeBuilder` DSL + `OrderDecisionDto` 条件边示例** |
