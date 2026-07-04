@@ -73,7 +73,6 @@ final class AgentStructuredController extends BController
             $agent = WorkflowService::neuronFactory()->create(WeatherAgent::class, $state, $nodeConfig);
             /** @var WeatherDto $dto */
             $dto = $agent->structured(new UserMessage($prompt), WeatherDto::class);
-            var_dump($dto);
         } catch (WorkflowException $e) {
             throw new SystemException($e->getMessage(), 400, $e);
         } catch (SystemException $e) {

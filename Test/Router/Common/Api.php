@@ -202,6 +202,10 @@ Route::group([
     Route::post('/v1/agent/weather', [
         'dispatch_route' => [\Test\Module\Agent\Controller\AgentStructuredController::class, 'weather'],
     ]);
+
+    Route::post('/v1/agent/polish/recommendation', [
+        'dispatch_route' => [\Test\Module\Agent\Controller\AgentPolishController::class, 'recommendation'],
+    ]);
 });
 
 Route::match(['GET'],'/cache/test1', [

@@ -29,10 +29,13 @@ use Throwable;
  *
  * @see https://docs.neuron-ai.dev/agent/chat-history-and-memory
  * @see https://api-docs.deepseek.com/zh-cn/guides/thinking_mode
+
  */
 final class AgentChatController extends BController
 {
-    /** 默认 Provider 对话（ChatAgent → SQL）。 */
+    /** 默认 Provider 对话（ChatAgent → SQL）。
+     * curl -X POST http://localhost:9501/api/v1/agent/chat -H "Content-Type: application/json" -d '{"message":"你好","sessionId":"s1","userId":"u1","provider":"deepseek"}'
+     */
     public function chat(RequestInput $requestInput): array
     {
         $providerAlias = trim((string) $requestInput->input('provider', ''));
@@ -45,6 +48,8 @@ final class AgentChatController extends BController
      * 指定模型提供者对话（provider 必填）。
      *
      * POST /api/v1/agent/chat1
+     *
+     * curl -X POST http://localhost:9501/api/v1/agent/chat1 -H "Content-Type: application/json" -d '{"message":"你好","sessionId":"s1","userId":"u1","provider":"deepseek"}'
      */
     public function chat1(RequestInput $requestInput): array
     {
@@ -129,6 +134,8 @@ final class AgentChatController extends BController
      * SQL 持久化多轮会话（与 chat 相同记忆后端，显式返回 historyCount）。
      *
      * POST /api/v1/agent/chat-persist
+     *
+     *  curl -X POST http://localhost:9501/api/v1/agent/chat-persist -H "Content-Type: application/json" -d '{"message":"你好","sessionId":"s1","userId":"u1","provider":"deepseek"}'
      */
     public function chatPersist(RequestInput $requestInput): array
     {
