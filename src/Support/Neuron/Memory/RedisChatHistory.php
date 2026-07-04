@@ -7,11 +7,13 @@ namespace Swoolefy\Support\Neuron\Memory;
 use JsonException;
 use NeuronAI\Chat\History\InMemoryChatHistory;
 use NeuronAI\Chat\Messages\Message;
-use Redis;
-use RedisException;
+use Swoolefy\Library\Redis\RedisConnection;
+use Throwable;
 
 /**
  * Redis 热存储 ChatHistory —— 跨请求保持 LLM 对话上下文。
+ *
+ * 使用 {@see RedisConnection}（phpredis / predis 均继承该类，经 __call 转发命令）。
  *
  * Redis Key：{prefix}{threadId}（默认 chat:thread:{threadId}）
  * Value：Neuron ChatHistory JSON 序列化
@@ -26,7 +28,7 @@ final class RedisChatHistory extends InMemoryChatHistory
     private const DEFAULT_PREFIX = 'chat:thread:';
 
     public function __construct(
-        private readonly Redis $redis,
+        private readonly RedisConnection $redis,
         private readonly string $threadId,
         int $contextWindow = 50000,
         private readonly string $prefix = self::DEFAULT_PREFIX,
@@ -53,7 +55,7 @@ final class RedisChatHistory extends InMemoryChatHistory
     {
         try {
             $this->redis->del($this->redisKey());
-        } catch (RedisException) {
+        } catch (Throwable) {
         }
     }
 
@@ -62,7 +64,7 @@ final class RedisChatHistory extends InMemoryChatHistory
     {
         try {
             $raw = $this->redis->get($this->redisKey());
-        } catch (RedisException) {
+        } catch (Throwable) {
             return;
         }
 
@@ -88,7 +90,7 @@ final class RedisChatHistory extends InMemoryChatHistory
             } else {
                 $this->redis->set($this->redisKey(), $payload);
             }
-        } catch (RedisException|JsonException) {
+        } catch (Throwable) {
         }
     }
 

@@ -6,7 +6,7 @@ namespace Swoolefy\Support\Neuron\Memory;
 
 use NeuronAI\Chat\History\ChatHistoryInterface;
 use NeuronAI\Chat\History\InMemoryChatHistory;
-use Redis;
+use Swoolefy\Library\Redis\RedisConnection;
 
 /**
  * ChatHistory 工厂 —— 按 threadId 创建会话记忆后端。
@@ -16,12 +16,12 @@ use Redis;
  *   {sessionId}                    — 匿名会话
  *   {userId}:{workflowId}:{runId}  — 单次 Run 隔离
  *
- * 无 Redis 时回退 InMemoryChatHistory（单进程有效）。
+ * 注入 {@see RedisConnection}（phpredis / predis 组件均可）；未注入时回退 InMemoryChatHistory。
  */
 final class MemoryFactory
 {
     public function __construct(
-        private readonly ?Redis $redis = null,
+        private readonly ?RedisConnection $redis = null,
         private readonly string $prefix = 'chat:thread:',
         private readonly int $ttlSeconds = 2592000,
     ) {

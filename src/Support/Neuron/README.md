@@ -23,7 +23,7 @@ Neuron/
 │   ├── NeuronHttpFactory.php    # swoole | guzzle
 │   └── SwooleHttpClientAdapter.php
 ├── Memory/
-│   ├── MemoryFactory.php        # Redis 热记忆 / InMemory 回退
+│   ├── MemoryFactory.php        # RedisConnection 热记忆 / InMemory 回退
 │   ├── RedisChatHistory.php
 │   └── SqlChatHistoryArchive.php
 ├── Embedding/
@@ -97,7 +97,7 @@ Agent 若已实现自定义 `provider()`，且节点未指定 `provider`，则�
 | 匿名会话 | `{sessionId}` |
 | Run 隔离 | `{userId}:{workflowId}:{runId}` |
 
-无 Redis 时 `MemoryFactory` 回退 `InMemoryChatHistory`（仅当前进程有效）。
+注入 `Swoolefy\Library\Redis\RedisConnection`（phpredis / predis 组件均可）；未注入时回退 `InMemoryChatHistory`（仅当前进程有效）。
 
 ### Embedding
 

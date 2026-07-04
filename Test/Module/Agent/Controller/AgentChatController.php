@@ -37,12 +37,12 @@ final class AgentChatController extends BController
         $reply = $this->buildReply($message, $threadId);
         $history->addMessage(new AssistantMessage($reply));
 
-        return $this->returnJson([
+        return [
             'threadId' => $threadId,
             'message' => $message,
             'reply' => $reply,
             'mcpServers' => WorkflowService::mcpFactory()->serverNames(),
-        ]);
+        ];
     }
 
     private function buildReply(string $message, string $threadId): string
