@@ -36,6 +36,7 @@ use Swoolefy\Support\Workflow\State\WorkflowState;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
 
 require dirname(__DIR__, 3) . '/vendor/autoload.php';
+require __DIR__ . '/SwoolefyTestBootstrap.php';
 
 function assertTrue(bool $condition, string $message): void
 {

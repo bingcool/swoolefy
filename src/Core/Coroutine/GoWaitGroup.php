@@ -84,7 +84,6 @@ class GoWaitGroup
      *
      *   var_dump($result);
      *
-    /**
      * @param array<string, callable> $callBacks
      * @param float                   $maxTimeOut  总等待秒数；<=0 表示不限制
      * @param array<string, mixed>    $params
@@ -108,61 +107,40 @@ class GoWaitGroup
         $errorChannel = $failFast ? new Channel($count) : null;
 
         foreach ($callBacks as $key => $callBack) {
-            if ($failFast) {
-                self::spawnCoroutine(static function () use ($key, $callBack, $params, $goWait, $errorChannel, $failFast) {
+            if ($errorChannel) {
+                // failFast 仍走 goApp → EventApp，保证协程单例（db/redis 等）可用；
+                // 异常在闭包内捕获写入 errorChannel，不向 goApp 外层 rethrow。
+                goApp(static function () use ($key, $callBack, $params, $goWait, $errorChannel) {
                     try {
                         $goWait->initResult($key, null);
                         $param = $params[$key] ?? null;
                         $result = call_user_func($callBack, $param);
                         $goWait->done($key, $result ?? null);
                     } catch (\Throwable $throwable) {
-                        if ($failFast && $errorChannel !== null) {
+                        if ($errorChannel !== null) {
                             $errorChannel->push($throwable, 0);
                         }
                         $goWait->done($key, null);
                     }
                 });
-            }else {
-                goApp(function () use ($key, $callBack, $params, $goWait) {
+            } else {
+                goApp(static function () use ($key, $callBack, $params, $goWait, $maxTimeOut) {
                     try {
                         $goWait->initResult($key, null);
                         $param = $params[$key] ?? null;
                         $result = call_user_func($callBack, $param);
-                        $goWait->done($key, $result ?? null, 3.0);
+                        $goWait->done($key, $result ?? null, $maxTimeOut);
                     } catch (\Throwable $throwable) {
-                        $goWait->add(-1);
-                        throw $throwable;
+                        $goWait->done($key, null);
                     }
                 });
             }
         }
         // 带错误通道
-        if ($errorChannel !== null) {
+        if ($errorChannel instanceof Channel) {
             return $goWait->waitWithErrorChannel($maxTimeOut, $errorChannel);
         }
         return $goWait->wait($maxTimeOut);
-    }
-
-    /**
-     * 启动子协程并复制当前 Context（非 object 键），避免 goApp 拉起 EventApp 依赖吃掉抛出的异常。
-     */
-    private static function spawnCoroutine(callable $callback): void
-    {
-        \Swoole\Coroutine::create(static function () use ($callback) {
-            $contextData = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
-            foreach ($contextData as $key => $value) {
-                if (is_object($value)) {
-                    continue;
-                }
-                \Swoolefy\Core\Coroutine\Context::set($key, $value);
-            }
-            unset($contextData);
-            (new \Swoolefy\Core\EventApp)->registerApp(function($event) use($callback) {
-                $params = [];
-                array_push($params, $event);
-                $callback(...$params);
-            });
-        });
     }
 
     /**
@@ -247,15 +225,26 @@ class GoWaitGroup
             throw new SystemException('WaitGroup misuse: wait() called again on the same instance');
         }
 
-        if ($this->count > 0) {
+        $deadline = $maxTimeout > 0 ? microtime(true) + $maxTimeout : null;
+
+        while ($this->count > 0) {
+            if ($deadline !== null && microtime(true) >= $deadline) {
+                $this->waitCompleted = true;
+                $this->reset();
+
+                throw new SystemException(sprintf('GoWaitGroup timed out after %.2f seconds', $maxTimeout));
+            }
+
             $this->waiting = true;
-            $this->channel->pop($maxTimeout);
+            $slice = $deadline === null ? -1 : min(0.05, max(0.001, $deadline - microtime(true)));
+            $this->channel->pop($slice);
             $this->waiting = false;
         }
 
         $this->waitCompleted = true;
         $result = $this->result;
         $this->reset();
+
         return $result;
     }
 
