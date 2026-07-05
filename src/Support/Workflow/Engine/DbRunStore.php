@@ -96,6 +96,7 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
      *
      * SQL 语义：UPDATE ... WHERE run_id=? AND status=:expected_status
      * rowCount=0 表示已被其他 Worker resume/cancel，返回 false。
+     * 死锁 / 锁等待超时与 {@see save()} 相同，最多重试 3 次。
      *
      * {@inheritdoc}
      */
@@ -107,29 +108,43 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
         $driver = (string) $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
         $sql = $this->updateIfStatusSql($driver);
 
-        try {
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([
-                ':run_id' => $run->runId,
-                ':workflow_id' => $run->compiled->workflowId(),
-                ':version' => $run->compiled->version(),
-                ':status' => $run->status->value,
-                ':pause_node_id' => $run->pauseNodeId,
-                ':assignee' => $assignee,
-                ':payload' => $payload,
-                ':updated_at' => $run->updatedAt,
-                ':expected_status' => $expectedStatus->value,
-            ]);
+        $params = [
+            ':run_id' => $run->runId,
+            ':workflow_id' => $run->compiled->workflowId(),
+            ':version' => $run->compiled->version(),
+            ':status' => $run->status->value,
+            ':pause_node_id' => $run->pauseNodeId,
+            ':assignee' => $assignee,
+            ':payload' => $payload,
+            ':updated_at' => $run->updatedAt,
+            ':expected_status' => $expectedStatus->value,
+        ];
 
-            // MySQL/InnoDB：status 不匹配时 rowCount=0
-            return $stmt->rowCount() > 0;
-        } catch (Throwable $e) {
-            throw new WorkflowException(
-                'Failed to CAS persist workflow run [' . $run->runId . ']: ' . $e->getMessage(),
-                0,
-                $e,
-            );
+        $attempts = 0;
+        $lastError = null;
+        while ($attempts < 3) {
+            ++$attempts;
+            try {
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute($params);
+
+                // MySQL/InnoDB：status 不匹配时 rowCount=0
+                return $stmt->rowCount() > 0;
+            } catch (Throwable $e) {
+                $lastError = $e;
+                if ($attempts < 3 && $this->isRetryable($e)) {
+                    usleep(50_000 * $attempts);
+                    continue;
+                }
+                break;
+            }
         }
+
+        throw new WorkflowException(
+            'Failed to CAS persist workflow run [' . $run->runId . ']: ' . ($lastError?->getMessage() ?? 'unknown'),
+            0,
+            $lastError,
+        );
     }
 
     /** {@inheritdoc} */
