@@ -122,7 +122,6 @@ class GoWaitGroup
                         $goWait->done($key, null);
                     }
                 });
-                return $goWait->waitWithErrorChannel($maxTimeOut, $errorChannel);
             }else {
                 goApp(function () use ($key, $callBack, $params, $goWait) {
                     try {
@@ -135,8 +134,11 @@ class GoWaitGroup
                         throw $throwable;
                     }
                 });
-                return $goWait->wait($maxTimeOut);
             }
+        }
+        // 带错误通道
+        if ($errorChannel !== null) {
+            return $goWait->waitWithErrorChannel($maxTimeOut, $errorChannel);
         }
         return $goWait->wait($maxTimeOut);
     }
