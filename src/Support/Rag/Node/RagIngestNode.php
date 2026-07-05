@@ -12,30 +12,28 @@ use Swoolefy\Support\Workflow\Node\AbstractNode;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 
 /**
- * RAG 文档入库工作流节点 —— 从 WorkflowState 读取文本并写入 VectorStore。
+ * RAG 文档入库工作流节点。
  *
- * 三种运行模式：
- *   1. 空 source → 返回 ingestedCount=0，不报错
- *   2. 同步入库 → 调用 IngestionPipeline::ingest（单测 / 小批量）
- *   3. 异步排队 → 文档数 ≥ asyncThreshold 且 RAG_INGEST_ASYNC=1，返回 ingestJobId
+ * 从 WorkflowState 读取文本列表，经 Embedding + VectorStore 同步写入知识库。
+ *
+ * Phase A 变更：移除 RAG_INGEST_ASYNC 异步分支，所有入库均在节点内同步完成
+ * （大批量场景应使用离线 CLI：Support/Rag/Console/ingest_documents.php）。
  *
  * 配置项：
- *   knowledgeBase   — 目标知识库（VectorStore index 名）
- *   sourceKey       — state.data 键，值为 string 或 list<string>
- *   asyncThreshold  — 触发异步模式的文档数阈值，默认 100
- *   vectorStore     — 向量库别名（rag.vector_stores 的 key）；缺省用 default_vector_store
+ *   knowledgeBase — 目标知识库（VectorStore index / 目录 / collection 名）
+ *   sourceKey     — state.data 键，值为 string 或 list<string>
+ *   vectorStore   — rag.vector_stores 别名；缺省用 default_vector_store
  *
- * 对外事件：
- *   rag.ingest.queued   — 异步模式
- *   rag.ingest.completed — 同步完成
+ * 对外事件：rag.ingest.completed
  *
- * @see docs/swoolefyAI.md §4.10.5
+ * @see IngestionPipeline
+ * @see VectorStoreFactory
  */
 final class RagIngestNode extends AbstractNode
 {
     /**
-     * @param array<string, mixed> $config   节点配置
-     * @param IngestionPipeline    $pipeline 入库管线（依赖注入，便于单测 mock）
+     * @param array<string, mixed> $config   节点配置（knowledgeBase / sourceKey / vectorStore）
+     * @param IngestionPipeline    $pipeline 入库管线（Embedding + VectorStore，DI 便于单测 mock）
      */
     public function __construct(
         string $nodeId,
@@ -46,13 +44,14 @@ final class RagIngestNode extends AbstractNode
     }
 
     /**
-     * 执行入库：读 sourceKey → 归一化文本 → 同步/异步分支。
+     * 执行同步入库。
+     *
+     * 流程：读 sourceKey → normalizeTexts → IngestionPipeline::ingest → 写 ingestedCount
      */
     public function execute(RunContext $ctx, WorkflowState $state): NodeExecutionResult
     {
         $knowledgeBase = (string) ($this->config['knowledgeBase'] ?? 'default');
         $sourceKey = (string) ($this->config['sourceKey'] ?? 'documents');
-        $asyncThreshold = (int) ($this->config['asyncThreshold'] ?? 100);
         $storeAlias = $this->resolveStoreAlias();
 
         $source = $state->get($sourceKey, []);
@@ -64,7 +63,6 @@ final class RagIngestNode extends AbstractNode
             ]);
         }
 
-        // 异步入库尚未实现 Worker；大批量始终走同步 ingest
         $documents = StringDocumentLoader::fromTexts($texts);
         $result = $this->pipeline->ingest($knowledgeBase, $documents, $storeAlias);
         $state->set('ingestedCount', $result->documentCount);
@@ -83,6 +81,8 @@ final class RagIngestNode extends AbstractNode
 
     /**
      * 将 state 中的 source 归一化为非空字符串列表。
+     *
+     * 支持单字符串或字符串数组；空串与非法类型会被过滤。
      *
      * @return list<string>
      */
@@ -106,7 +106,12 @@ final class RagIngestNode extends AbstractNode
         return $texts;
     }
 
-    /** 业务指定的向量库别名；未配置时返回 null（走 default_vector_store）。 */
+    /**
+     * 解析节点级向量库别名。
+     *
+     * 未配置时返回 null，IngestionPipeline 使用 default_vector_store。
+     * 别名须在 rag.vector_stores 声明，否则 VectorStoreFactory 会 fail-fast。
+     */
     private function resolveStoreAlias(): ?string
     {
         $alias = $this->config['vectorStore'] ?? $this->config['vector_store'] ?? null;

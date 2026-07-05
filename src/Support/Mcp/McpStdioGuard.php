@@ -7,18 +7,39 @@ namespace Swoolefy\Support\Mcp;
 use RuntimeException;
 
 /**
- * 本地 stdio MCP 安全守卫 —— 生产默认禁用或命令 allowlist。
+ * 本地 stdio MCP 安全守卫。
+ *
+ * stdio 传输会启动子进程执行任意 command，生产环境默认禁用。
+ * 配置：neuron_ai.php → mcp.allow_stdio、mcp.stdio_command_allowlist。
+ *
+ * 校验逻辑（仅对本地 stdio 配置生效）：
+ *   1. allow_stdio=false → 直接拒绝
+ *   2. allow_stdio=true 但 allowlist 为空 → 拒绝（防全开）
+ *   3. command 基名不在 allowlist → 拒绝
+ *
+ * @see McpFactory::assertConfigSafe()
+ * @see McpProcessRunner::isLocalStdioConfig()
  */
 final class McpStdioGuard
 {
-    /** @param list<string> $commandAllowlist 允许的 command 基名，如 npx、node */
+    /**
+     * @param bool         $allowStdio        是否允许 stdio MCP（生产默认 false）
+     * @param list<string> $commandAllowlist  允许的 command 基名，如 npx、node、uvx
+     */
     public function __construct(
         private readonly bool $allowStdio,
         private readonly array $commandAllowlist = [],
     ) {
     }
 
-    /** @param array<string, mixed> $config */
+    /**
+     * 断言 MCP 配置允许连接；非 stdio 配置直接 return。
+     *
+     * @param array<string, mixed> $config     MCP 连接配置（含 transport / command）
+     * @param string               $serverName 服务名，用于错误信息
+     *
+     * @throws RuntimeException
+     */
     public function assertAllowed(array $config, string $serverName = 'mcp'): void
     {
         if (!McpProcessRunner::isLocalStdioConfig($config)) {

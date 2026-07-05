@@ -29,7 +29,14 @@ final class InMemoryRunStore implements RunStoreInterface, PauseTaskQueryableInt
         $this->persistedStatus[$run->runId] = $run->status;
     }
 
-    /** {@inheritdoc} */
+    /**
+     * 内存 CAS —— 比对 persistedStatus 与 expectedStatus。
+     *
+     * persistedStatus 在每次 save/saveIfStatus 成功时更新，与 Run 对象内存态解耦，
+     * 模拟 DB 层「持久化 status」语义，供单测 resume 竞态场景。
+     *
+     * {@inheritdoc}
+     */
     public function saveIfStatus(WorkflowRun $run, RunStatus $expectedStatus): bool
     {
         if (!isset($this->runs[$run->runId])) {

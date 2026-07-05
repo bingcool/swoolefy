@@ -419,6 +419,11 @@ final class WorkflowController extends BController
         return str_contains($accept, 'text/event-stream');
     }
 
+    /**
+     * 第一层 HITL 鉴权：API Key 或角色（满足其一）。
+     *
+     * @throws SystemException 403 当 WorkflowPermissionException
+     */
     private function assertHitlAuthorized(WorkflowHitlAuth $hitlAuth, RequestInput $requestInput): void
     {
         $hitlAuth->assertAuthorized(
@@ -427,6 +432,9 @@ final class WorkflowController extends BController
         );
     }
 
+    /**
+     * 解析 API Key：优先 Header X-Workflow-Api-Key，其次 Body apiKey。
+     */
     private function hitlApiKey(RequestInput $requestInput, WorkflowHitlAuth $hitlAuth): ?string
     {
         $header = (string) $requestInput->getHeaderParams(WorkflowHitlAuth::DEFAULT_API_KEY_HEADER, '');
@@ -442,6 +450,9 @@ final class WorkflowController extends BController
         return null;
     }
 
+    /**
+     * 解析角色：优先配置 role_header（默认 X-Workflow-Role），其次 Body role。
+     */
     private function hitlRole(RequestInput $requestInput, WorkflowHitlAuth $hitlAuth): ?string
     {
         $header = (string) $requestInput->getHeaderParams($hitlAuth->roleHeader(), '');
@@ -457,6 +468,11 @@ final class WorkflowController extends BController
         return null;
     }
 
+    /**
+     * 解析操作人：Body actor 优先，其次 assignee。
+     *
+     * 用于 assertCanResume / assertCanListTasks 的 assignee 归属校验。
+     */
     private function hitlActor(RequestInput $requestInput): ?string
     {
         $actor = $requestInput->input('actor');

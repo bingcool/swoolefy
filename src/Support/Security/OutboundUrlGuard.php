@@ -7,19 +7,40 @@ namespace Swoolefy\Support\Security;
 use RuntimeException;
 
 /**
- * 出站 URL 安全校验 —— MCP / LLM baseUri 等。
+ * 出站 HTTP(S) URL 安全校验器。
  *
- * 默认拒绝私网 / loopback；host 须匹配 allowlist 后缀（若配置了 allowlist）。
+ * 用于 MCP Server url、LLM Provider baseUri 等出站连接，防止 SSRF /
+ * 内网探测。配置来源：neuron_ai.php → security.outbound_url_allowlist。
+ *
+ * 校验顺序：
+ *   1. URL 非空且可解析 host
+ *   2. scheme 仅允许 http / https
+ *   3. 默认拒绝 loopback / 私网 IP（除非 allowPrivateNetworks=true）
+ *   4. 若配置了 allowlist，host 须匹配后缀白名单
+ *
+ * @see NeuronAiConfig::outboundUrlGuard()
+ * @see McpFactory::assertConfigSafe()
+ * @see NeuronProviderFactory::createFromParams()
  */
 final class OutboundUrlGuard
 {
-    /** @param list<string> $allowlistHostSuffixes 如 api.openai.com、.internal.corp */
+    /**
+     * @param list<string> $allowlistHostSuffixes host 后缀白名单，如 api.openai.com、.corp.internal
+     * @param bool         $allowPrivateNetworks  true 时允许 127.0.0.1 / 10.x / 192.168.x 等
+     */
     public function __construct(
         private readonly array $allowlistHostSuffixes = [],
         private readonly bool $allowPrivateNetworks = false,
     ) {
     }
 
+    /**
+     * 断言 URL 允许出站访问，否则抛 RuntimeException。
+     *
+     * @param string $context 错误上下文标识，如 mcp:docs、provider:OpenAI
+     *
+     * @throws RuntimeException
+     */
     public function assertAllowed(string $url, string $context = 'outbound'): void
     {
         $url = trim($url);
@@ -38,15 +59,22 @@ final class OutboundUrlGuard
             throw new RuntimeException("[{$context}] Unsupported URL scheme [{$scheme}]");
         }
 
+        // 私网 / loopback 默认禁止，避免 MCP/LLM 配置指向内网敏感服务
         if (!$this->allowPrivateNetworks && $this->isPrivateOrLoopback($host)) {
             throw new RuntimeException("[{$context}] Private or loopback host is not allowed: {$host}");
         }
 
+        // 配置了白名单时，host 必须命中至少一条后缀规则
         if ($this->allowlistHostSuffixes !== [] && !$this->matchesAllowlist($host)) {
             throw new RuntimeException("[{$context}] Host not in outbound allowlist: {$host}");
         }
     }
 
+    /**
+     * 后缀匹配：支持精确 host、.suffix 子域、无前缀 suffix。
+     *
+     * 例：allowlist 含 openai.com → api.openai.com 通过
+     */
     private function matchesAllowlist(string $host): bool
     {
         foreach ($this->allowlistHostSuffixes as $suffix) {
@@ -62,6 +90,7 @@ final class OutboundUrlGuard
         return false;
     }
 
+    /** 判断 host 是否为 localhost 或 RFC1918 / link-local / loopback IP。 */
     private function isPrivateOrLoopback(string $host): bool
     {
         if ($host === 'localhost' || str_ends_with($host, '.localhost')) {
@@ -84,6 +113,7 @@ final class OutboundUrlGuard
         return false;
     }
 
+    /** IPv4 私网段：0/8、10/8、127/8、169.254/16、172.16/12、192.168/16。 */
     private function isPrivateIpv4(string $ip): bool
     {
         if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {

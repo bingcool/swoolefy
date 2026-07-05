@@ -123,6 +123,7 @@ final class NeuronProviderFactory
 
         $baseUri = $params['baseUri'] ?? $params['base_uri'] ?? null;
         if (is_string($baseUri) && $baseUri !== '') {
+            // Phase B：Provider baseUri 须通过 OutboundUrlGuard（security.outbound_url_allowlist）
             $this->neuronConfig()->outboundUrlGuard()->assertAllowed($baseUri, 'provider:' . $class);
         }
 

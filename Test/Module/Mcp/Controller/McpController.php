@@ -68,6 +68,11 @@ final class McpController extends BController
         ];
     }
 
+    /**
+     * 解析租户 ID：Query tenantId 优先，否则 FrameworkContext（Header 透传）。
+     *
+     * 与 NeuronFactory::attachMcpTools() 的 tenantId 解析策略一致。
+     */
     private function resolveTenantId(RequestInput $requestInput): ?string
     {
         $tenantId = $requestInput->input('tenantId');

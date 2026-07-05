@@ -97,10 +97,18 @@ final class WorkflowEngine
     }
 
     /**
-     * 恢复处于 WAITING 状态的 Run（人工审批后继续）。
-     * 将 feedback 合并进 state.data，从 Pause 节点重新求值条件边。
+     * 恢复处于 WAITING 状态的 Run（HITL 人工审批后继续）。
      *
-     * @param array<string, mixed> $feedback 如 ['approved' => true]
+     * 流程：
+     *   1. 校验 Run 处于 WAITING 且 pauseNodeId 非空
+     *   2. 合并 feedback 到 state.data
+     *   3. CAS：saveIfStatus(WAITING) — 防并发 double-resume
+     *   4. 调用 PauseNode::resume + 重新求值条件边
+     *   5. 从下一节点继续 executeFromNode
+     *
+     * @param array<string, mixed> $feedback 审批结果，如 ['approved' => true, 'reason' => 'ok']
+     *
+     * @throws WorkflowException Run 非 WAITING 或 CAS 失败
      */
     public function resume(string $runId, array $feedback): void
     {
@@ -113,6 +121,7 @@ final class WorkflowEngine
         $run->status = RunStatus::RUNNING;
         $run->updatedAt = time();
 
+        // CAS：仅当持久化层仍为 WAITING 时才接受本次 resume
         if (!$this->runStore->saveIfStatus($run, RunStatus::WAITING)) {
             throw new WorkflowException(
                 "Run {$runId} is not waiting for resume (already resumed or cancelled?)",
@@ -321,6 +330,12 @@ final class WorkflowEngine
         return $result;
     }
 
+    /**
+     * 解析节点执行超时秒数。
+     *
+     * 优先级：ConfigurableTimeoutNodeInterface.configuredTimeoutSeconds() > 0
+     *        → 引擎 defaultNodeTimeoutSeconds（来自 workflow.php）
+     */
     private function resolveNodeTimeout(NodeInterface $node): float
     {
         if ($node instanceof \Swoolefy\Support\Workflow\Node\ConfigurableTimeoutNodeInterface) {

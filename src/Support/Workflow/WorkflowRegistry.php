@@ -10,10 +10,19 @@ use Swoolefy\Support\Workflow\Definition\WorkflowDefinition;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 
 /**
- * 工作流定义注册表 —— 支持 workflowId + version 多版本。
+ * 工作流定义注册表 —— workflowId + version 多版本管理。
  *
- * register() 注册最新版本并索引 version；
- * registerVersion() 仅注册历史版本（不改变 latest）。
+ * 设计要点：
+ *   - register() 注册 latest，并同步索引 Definition.version
+ *   - registerVersion() 仅追加历史版本，不改变 latest
+ *   - compiled() 按 workflowId@version 缓存 CompiledWorkflow
+ *   - Run 快照持久化 version；hydrate 时校验 Registry 中仍存在该版本
+ *
+ * 典型用法：
+ *   $registry->register('order', fn () => OrderWorkflow::definition()); // v2 latest
+ *   $registry->registerVersion('order', '1.0.0', fn () => OrderWorkflow::v1());
+ *   $registry->compiled('order');           // latest
+ *   $registry->compiled('order', '1.0.0');  // 指定版本 resume
  */
 final class WorkflowRegistry
 {
@@ -47,7 +56,10 @@ final class WorkflowRegistry
     /**
      * 注册指定历史版本（不改变 latest）。
      *
-     * @param callable(): WorkflowDefinition $factory
+     * 用于灰度 / 回滚：旧 Run 仍可按快照 version resume，
+     * 新 start() 默认走 register() 注册的 latest。
+     *
+     * @param callable(): WorkflowDefinition $factory 工厂返回的 Definition.version 须与 $version 一致
      */
     public function registerVersion(string $workflowId, string $version, callable $factory): void
     {
@@ -113,7 +125,11 @@ final class WorkflowRegistry
     }
 
     /**
-     * @throws WorkflowException
+     * 获取已编译工作流（带 workflowId@version 缓存）。
+     *
+     * @param string|null $version null 时使用 latestVersion()
+     *
+     * @throws WorkflowException 未注册
      */
     public function compiled(
         string $workflowId,

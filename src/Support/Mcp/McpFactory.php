@@ -10,13 +10,19 @@ use Swoolefy\Support\Neuron\NeuronAiConfig;
 use Swoolefy\Support\SupportLog;
 
 /**
- * MCP Server 配置工厂 —— 静态配置 + 多租户仓储 + 本地 stdio 进程限流。
+ * MCP Server 配置工厂。
  *
- * 配置解析优先级（tenantId 存在时）：
- *   1. Repository 租户专属
+ * 职责：解析配置 → 安全校验 → 创建 McpConnector → 发现 Tools。
+ *
+ * 配置解析优先级（{@see resolveConfig()}）：
+ *   1. Repository 租户专属（tenantId 非空）
  *   2. Repository 全局（tenant_id 空）
- *   3. 静态 servers map
- *   4. 均未命中 → disabled stub
+ *   3. 构造函数静态 $servers map
+ *   4. 均未命中 → disabled stub（不抛错，tools() 返回空）
+ *
+ * 安全链：McpStdioGuard（stdio 禁用/allowlist）→ OutboundUrlGuard（url 白名单）
+ *
+ * 失败策略：单个 Server 加载失败时 SupportLog::warning 并跳过，不阻断其它 Server。
  */
 final class McpFactory
 {
@@ -25,7 +31,7 @@ final class McpFactory
     private readonly ?\Swoolefy\Support\Security\OutboundUrlGuard $urlGuard;
 
     /**
-     * @param array<string, array<string, mixed>> $servers
+     * @param array<string, array<string, mixed>> $servers 静态配置 map（neuron_ai.php 或构造注入）
      */
     public function __construct(
         private readonly array $servers = [],
@@ -40,7 +46,11 @@ final class McpFactory
         $this->urlGuard = $urlGuard ?? $config->outboundUrlGuard();
     }
 
-    /** @return list<string> */
+    /**
+     * 合并静态 servers 与 Repository 中的 server_id 列表。
+     *
+     * @return list<string>
+     */
     public function serverNames(?string $tenantId = null): array
     {
         $names = array_keys($this->servers);
@@ -53,6 +63,11 @@ final class McpFactory
         return array_values(array_unique($names));
     }
 
+    /**
+     * 创建单个 MCP 连接器。
+     *
+     * 未命中配置时返回 transport=disabled 的 stub，调用方不会抛错。
+     */
     public function connector(string $name, ?string $tenantId = null): McpConnector
     {
         $config = $this->resolveConfig($name, $tenantId);
@@ -66,9 +81,14 @@ final class McpFactory
     }
 
     /**
-     * @param list<string> $names
-     * @param array<string, list<string>>|null $only
-     * @param array<string, list<string>>|null $exclude
+     * 批量加载多个 Server 的 Tools。
+     *
+     * stdio Server 会在 acquire/release 间受 McpProcessRunner 并发限制。
+     * 单个 Server 异常时记录日志并继续处理其余 Server。
+     *
+     * @param list<string>                         $names
+     * @param array<string, list<string>>|null     $only    按 server 过滤 tool 名
+     * @param array<string, list<string>>|null     $exclude 按 server 排除 tool 名
      *
      * @return list<ToolInterface>
      */
@@ -102,6 +122,7 @@ final class McpFactory
                 }
                 $tools = [...$tools, ...$connector->tools()];
             } catch (\Throwable $e) {
+                // Phase A：失败打日志，不再静默吞掉
                 SupportLog::warning('mcp', 'Failed to load MCP tools', [
                     'server' => $name,
                     'tenantId' => $tenantId,
@@ -118,7 +139,13 @@ final class McpFactory
         return $tools;
     }
 
-    /** @return list<array<string, mixed>> */
+    /**
+     * 列出 Server 公开信息（凭证脱敏）。
+     *
+     * Repository 行会覆盖静态解析结果，以 DB 中的 description/enabled 为准。
+     *
+     * @return list<array<string, mixed>>
+     */
     public function listServers(?string $tenantId = null): array
     {
         $byId = [];
@@ -142,7 +169,7 @@ final class McpFactory
         return array_values($byId);
     }
 
-    /** @return list<string> */
+    /** @return list<string> tool 名称列表 */
     public function listToolNames(string $name, ?string $tenantId = null): array
     {
         $tools = $this->tools([$name], tenantId: $tenantId);
@@ -150,7 +177,11 @@ final class McpFactory
         return array_map(static fn (ToolInterface $tool): string => $tool->getName(), $tools);
     }
 
-    /** @param array<string, mixed> $config */
+    /**
+     * 连接前安全校验：stdio 守卫 + 出站 URL 白名单。
+     *
+     * @param array<string, mixed> $config
+     */
     private function assertConfigSafe(array $config, string $serverName): void
     {
         $this->stdioGuard->assertAllowed($config, $serverName);
@@ -160,9 +191,14 @@ final class McpFactory
         }
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * 按优先级解析 MCP Server 原始配置数组。
+     *
+     * @return array<string, mixed> 空数组表示未配置
+     */
     private function resolveConfig(string $name, ?string $tenantId): array
     {
+        // 1. 租户专属 DB 行
         if ($this->repository !== null && $tenantId !== null && $tenantId !== '') {
             $row = $this->repository->find($name, $tenantId);
             if ($row !== null && $row->enabled) {
@@ -170,6 +206,7 @@ final class McpFactory
             }
         }
 
+        // 2. 全局 DB 行（tenant_id=''）
         if ($this->repository !== null) {
             $global = $this->repository->find($name, null);
             if ($global !== null && $global->enabled) {
@@ -177,6 +214,7 @@ final class McpFactory
             }
         }
 
+        // 3. 静态 neuron_ai.php / 构造注入
         if (isset($this->servers[$name]) && is_array($this->servers[$name])) {
             return $this->servers[$name];
         }

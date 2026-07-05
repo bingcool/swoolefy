@@ -8,12 +8,27 @@ use PDO;
 use RuntimeException;
 
 /**
- * DB MCP 配置仓储 —— 读 mcp_server_configs 表（须预执行 Schema/mcp_server_configs.sql）。
+ * 基于关系库的 MCP Server 配置仓储。
+ *
+ * 表结构见 Schema/mcp_server_configs.sql，主键 (server_id, tenant_id)。
+ *
+ * 租户模型：
+ *   - tenant_id 非空 — 租户专属配置，McpFactory 在 tenantId 匹配时优先使用
+ *   - tenant_id 空字符串 — 全局配置，对所有租户可见（优先级低于租户专属）
+ *
+ * list() 行为：
+ *   - 传 tenantId — 返回该租户行 + 全局行（enabled=1）
+ *   - 不传 tenantId — 返回全部 enabled 行
+ *
+ * @see McpFactory::resolveConfig()
  */
 final class DbMcpServerConfigRepository implements McpServerConfigRepositoryInterface
 {
     private bool $schemaReady = false;
 
+    /**
+     * @param bool $autoMigrate 仅单测使用；生产须预执行 Schema/mcp_server_configs.sql
+     */
     public function __construct(
         private readonly PDO $pdo,
         private readonly string $table = 'mcp_server_configs',
@@ -25,12 +40,17 @@ final class DbMcpServerConfigRepository implements McpServerConfigRepositoryInte
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
 
-    /** {@inheritdoc} */
+    /**
+     * 列出可用 MCP 配置。
+     *
+     * @return list<McpServerConfig>
+     */
     public function list(?string $tenantId = null): array
     {
         $this->ensureSchema();
 
         if ($tenantId !== null && $tenantId !== '') {
+            // 租户上下文：专属 + 全局 fallback
             $stmt = $this->pdo->prepare(
                 "SELECT server_id, tenant_id, config_json, enabled, description
                  FROM {$this->table}
@@ -55,7 +75,13 @@ final class DbMcpServerConfigRepository implements McpServerConfigRepositoryInte
         return $items;
     }
 
-    /** {@inheritdoc} */
+    /**
+     * 按 server_id + tenant 查找单条配置。
+     *
+     * 查找顺序（与 McpFactory 一致）：
+     *   1. tenantId 非空 → 查租户专属行
+     *   2. 查 tenant_id='' 的全局行
+     */
     public function find(string $id, ?string $tenantId = null): ?McpServerConfig
     {
         $this->ensureSchema();
@@ -84,7 +110,7 @@ final class DbMcpServerConfigRepository implements McpServerConfigRepositoryInte
         return is_array($row) ? $this->rowToConfig($row) : null;
     }
 
-    /** @param array<string, mixed> $row */
+    /** 将 DB 行反序列化为 McpServerConfig；JSON 非法时返回 null 跳过。 */
     private function rowToConfig(array $row): ?McpServerConfig
     {
         $json = $row['config_json'] ?? '';
@@ -114,6 +140,7 @@ final class DbMcpServerConfigRepository implements McpServerConfigRepositoryInte
         );
     }
 
+    /** 确保表存在；生产依赖预建表，autoMigrate 仅供单测 SQLite。 */
     private function ensureSchema(): void
     {
         if ($this->schemaReady) {

@@ -13,6 +13,9 @@ use Throwable;
 /**
  * Redis 热存储 ChatHistory —— 跨请求保持 LLM 对话上下文。
  *
+ * Phase A：Redis 读写失败时 SupportLog::warning 记录，不抛异常，
+ * 避免 ChatHistory 故障阻断 Agent 主流程（降级为空历史继续对话）。
+ *
  * 使用 {@see RedisConnection}（phpredis / predis 均继承该类，经 __call 转发命令）。
  *
  * Redis Key：{prefix}{threadId}（默认 chat:thread:{threadId}）
@@ -67,6 +70,7 @@ final class RedisChatHistory extends InMemoryChatHistory implements HotChatHisto
                 $this->redis->del([$this->redisKey()]);
             }
         } catch (Throwable $e) {
+            // Phase A：清除失败打日志，不向上抛（会话仍可继续，仅 Redis 残留）
             SupportLog::warning('chat_history', 'Failed to clear Redis chat history', [
                 'threadId' => $this->threadId,
                 'error' => $e->getMessage(),
@@ -80,6 +84,7 @@ final class RedisChatHistory extends InMemoryChatHistory implements HotChatHisto
         try {
             $raw = $this->redis->get($this->redisKey());
         } catch (Throwable $e) {
+            // hydrate 失败：降级为空历史，Agent 仍可发起新对话
             SupportLog::warning('chat_history', 'Failed to hydrate Redis chat history', [
                 'threadId' => $this->threadId,
                 'error' => $e->getMessage(),
@@ -111,6 +116,7 @@ final class RedisChatHistory extends InMemoryChatHistory implements HotChatHisto
                 $this->redis->set($this->redisKey(), $payload);
             }
         } catch (Throwable $e) {
+            // persist 失败：内存 history 仍有效，仅跨请求无法恢复
             SupportLog::warning('chat_history', 'Failed to persist Redis chat history', [
                 'threadId' => $this->threadId,
                 'error' => $e->getMessage(),

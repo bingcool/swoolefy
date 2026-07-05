@@ -100,7 +100,14 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
         );
     }
 
-    /** {@inheritdoc} */
+    /**
+     * CAS 条件更新 —— resume 并发安全。
+     *
+     * SQL 语义：UPDATE ... WHERE run_id=? AND status=:expected_status
+     * rowCount=0 表示已被其他 Worker resume/cancel，返回 false。
+     *
+     * {@inheritdoc}
+     */
     public function saveIfStatus(WorkflowRun $run, RunStatus $expectedStatus): bool
     {
         $this->ensureSchema();
@@ -125,6 +132,7 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
                 ':expected_status' => $expectedStatus->value,
             ]);
 
+            // MySQL/InnoDB：status 不匹配时 rowCount=0
             return $stmt->rowCount() > 0;
         } catch (Throwable $e) {
             throw new WorkflowException(

@@ -47,9 +47,16 @@ final class VectorStoreFactory
     }
 
     /**
+     * 按别名创建 VectorStore 实例。
+     *
+     * Phase A：未知 alias 直接抛 RuntimeException（fail-fast），
+     * 须在 rag.vector_stores 中显式声明，避免静默回退到错误驱动。
+     *
      * @param string      $knowledgeBase 知识库名（映射为 index / 目录 / collection）
      * @param int|null    $topK          检索 TopK，null 用配置 default_top_k
      * @param string|null $storeAlias    向量库别名；null 使用 default_vector_store
+     *
+     * @throws RuntimeException 别名未声明
      */
     public function make(
         string $knowledgeBase,

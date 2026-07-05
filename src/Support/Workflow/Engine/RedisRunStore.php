@@ -38,7 +38,13 @@ final class RedisRunStore implements RunStoreInterface, PauseTaskQueryableInterf
         }
     }
 
-    /** {@inheritdoc} */
+    /**
+     * CAS 条件更新 —— 读-改-写语义（Redis 无原生 CAS 时用 find 比对 status）。
+     *
+     * 注意：高并发下存在极小竞态窗口；生产 HITL 高并发场景优先 DbRunStore。
+     *
+     * {@inheritdoc}
+     */
     public function saveIfStatus(WorkflowRun $run, RunStatus $expectedStatus): bool
     {
         $existing = $this->find($run->runId);

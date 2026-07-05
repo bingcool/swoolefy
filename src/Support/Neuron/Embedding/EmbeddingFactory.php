@@ -11,7 +11,25 @@ use Swoolefy\Support\Neuron\NeuronAiProviderName;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 
 /**
- * Embedding 工厂 —— 生产 OpenAI-like（Swoole HTTP）；无 Key 时 fail-fast（单测可 allow_fake_embeddings）。
+ * Embedding 提供者工厂。
+ *
+ * 生产环境须配置 API Key；无 Key 且 allow_fake_embeddings=false 时 fail-fast，
+ * 避免 RAG 入库/检索在运行时静默使用错误维度向量。
+ *
+ * API Key 解析顺序：
+ *   1. 环境变量 OPENAI_API_KEY
+ *   2. neuron.ai_model_providers.openai.key
+ *   3. neuron.ai_model_providers.openailike.key
+ *
+ * baseUri 解析顺序：
+ *   1. OPENAI_BASE_URI
+ *   2. openailike.baseUri
+ *   3. 默认 https://api.openai.com/v1
+ *
+ * 向量维度统一读取 rag.embedding_dimension，须与各 vector_stores.*.dimension 一致。
+ *
+ * @see NeuronAiConfig::embeddingDimension()
+ * @see ProductionHealthCheck::checkNeuron()
  */
 final class EmbeddingFactory
 {
@@ -20,6 +38,11 @@ final class EmbeddingFactory
     ) {
     }
 
+    /**
+     * 创建 EmbeddingsProvider 实例。
+     *
+     * @throws WorkflowException 无 API Key 且未启用 allow_fake_embeddings
+     */
     public function make(): EmbeddingsProviderInterface
     {
         $config = $this->config ?? NeuronAiConfig::load();
@@ -45,6 +68,7 @@ final class EmbeddingFactory
         );
     }
 
+    /** 从 env / neuron 配置解析 Embedding API Key。 */
     private function resolveApiKey(NeuronAiConfig $config): string
     {
         $fromEnv = (string) (getenv('OPENAI_API_KEY') ?: '');
@@ -66,6 +90,7 @@ final class EmbeddingFactory
         return '';
     }
 
+    /** 解析 OpenAI-compatible Embedding API baseUri。 */
     private function resolveBaseUri(NeuronAiConfig $config): string
     {
         $fromEnv = (string) (getenv('OPENAI_BASE_URI') ?: '');

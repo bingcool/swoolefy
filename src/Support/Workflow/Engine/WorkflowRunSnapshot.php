@@ -9,12 +9,24 @@ use Swoolefy\Support\Workflow\State\WorkflowState;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
 
 /**
- * WorkflowRun Redis 持久化 DTO —— 不含 CompiledWorkflow（按 workflowId 从 Registry 恢复）。
+ * WorkflowRun 持久化 DTO（不含 CompiledWorkflow 对象）。
+ *
+ * Redis / DB RunStore 仅序列化本 DTO；恢复时通过 workflowId + version
+ * 从 {@see WorkflowRegistry} 重新 compile，保证拓扑与注册表一致。
+ *
+ * 关键字段：
+ *   - workflowId / version — 多版本 Registry 索引键
+ *   - status / pauseNodeId — HITL resume CAS 依据
+ *   - state — WorkflowState 完整数组
+ *   - executedNodeIds — Saga 补偿逆序依据
+ *
+ * @see DbRunStore
+ * @see RedisRunStore
  */
 final class WorkflowRunSnapshot
 {
     /**
-     * @param list<string> $executedNodeIds
+     * @param list<string> $executedNodeIds 已成功执行节点 ID 列表
      */
     public function __construct(
         public readonly string $runId,
@@ -32,6 +44,7 @@ final class WorkflowRunSnapshot
     ) {
     }
 
+    /** 从内存中的 WorkflowRun 构建可持久化快照。 */
     public static function fromRun(WorkflowRun $run): self
     {
         return new self(
@@ -50,6 +63,7 @@ final class WorkflowRunSnapshot
         );
     }
 
+    /** @return array<string, mixed> JSON 可序列化数组 */
     public function toArray(): array
     {
         return [
@@ -68,7 +82,7 @@ final class WorkflowRunSnapshot
         ];
     }
 
-    /** @param array<string, mixed> $payload */
+    /** 从 Redis/DB payload 反序列化。 */
     public static function fromArray(array $payload): self
     {
         return new self(
@@ -87,6 +101,14 @@ final class WorkflowRunSnapshot
         );
     }
 
+    /**
+     * 将快照恢复为可执行的 WorkflowRun。
+     *
+     * 版本校验：快照中的 version 必须在 Registry 中已注册，
+     * 防止代码升级后 resume 旧 Run 时使用错误 DAG 拓扑。
+     *
+     * @throws WorkflowException workflowId 缺失或 version 未注册
+     */
     public function hydrate(WorkflowRegistry $registry): WorkflowRun
     {
         if ($this->workflowId === '') {

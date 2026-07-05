@@ -200,8 +200,9 @@ final class WorkflowConfig
         return $table;
     }
 
-    // --- HITL auth ---
+    // --- HITL API 鉴权（resume / cancel / pause/tasks）---
 
+    /** 是否启用 HITL HTTP 鉴权（workflow.hitl.auth_enabled / WORKFLOW_HITL_AUTH_ENABLED）。 */
     public function hitlAuthEnabled(): bool
     {
         return filter_var(
@@ -215,6 +216,7 @@ final class WorkflowConfig
         );
     }
 
+    /** 共享 API Key（Header X-Workflow-Api-Key 或 Body apiKey）。 */
     public function hitlApiKey(): string
     {
         return ApplicationConfig::pickStringEnvFirst(
@@ -225,6 +227,7 @@ final class WorkflowConfig
         );
     }
 
+    /** 角色 Header 名，默认 X-Workflow-Role。 */
     public function hitlRoleHeader(): string
     {
         $header = ApplicationConfig::pickStringEnvFirst(
@@ -237,7 +240,7 @@ final class WorkflowConfig
         return $header !== '' ? $header : WorkflowHitlAuth::DEFAULT_ROLE_HEADER;
     }
 
-    /** @return list<string> */
+    /** 允许访问 HITL API 的角色列表（如 operator、admin）。 */
     public function hitlAllowedRoles(): array
     {
         $raw = $this->hitlSection()['allowed_roles'] ?? [];
@@ -255,6 +258,7 @@ final class WorkflowConfig
         return $roles;
     }
 
+    /** resume 时 actor 是否须匹配 PauseNode assignee（admin 可豁免）。 */
     public function hitlRequireAssigneeMatch(): bool
     {
         $fromConfig = $this->hitlSection()['require_assignee_match'] ?? true;
