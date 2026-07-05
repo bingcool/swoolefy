@@ -7,6 +7,7 @@ namespace Swoolefy\Support\Neuron;
 use NeuronAI\Agent\Agent;
 use NeuronAI\Chat\History\ChatHistoryInterface;
 use NeuronAI\Providers\AIProviderInterface;
+use Swoolefy\Support\FrameworkContext;
 use Swoolefy\Support\Mcp\McpFactory;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\State\WorkflowState;
@@ -108,8 +109,9 @@ final class NeuronFactory
 
         $only = is_array($nodeConfig['mcpOnly'] ?? null) ? $nodeConfig['mcpOnly'] : null;
         $exclude = is_array($nodeConfig['mcpExclude'] ?? null) ? $nodeConfig['mcpExclude'] : null;
+        $tenantId = $nodeConfig['tenantId'] ?? FrameworkContext::getTenantId();
 
-        $tools = $this->mcpFactory->tools($servers, $only, $exclude);
+        $tools = $this->mcpFactory->tools($servers, $only, $exclude, is_string($tenantId) ? $tenantId : null);
         if ($tools !== []) {
             $agent->addTool($tools);
         }

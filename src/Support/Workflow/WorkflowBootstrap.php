@@ -126,10 +126,13 @@ final class WorkflowBootstrap
         PluginManager $plugins,
         ?WorkflowEventDispatcherInterface $events = null,
     ): WorkflowEngine {
+        $config = WorkflowConfig::load();
+
         return new WorkflowEngine(
             plugins: $plugins,
             scheduler: new DagScheduler(self::conditionEvaluator()),
             events: $events ?? new StreamWorkflowEventDispatcher(),
+            defaultNodeTimeoutSeconds: $config->defaultNodeTimeoutSeconds(),
         );
     }
 

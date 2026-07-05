@@ -34,9 +34,11 @@ Rag/
 | 字段 | 说明 |
 |------|------|
 | `knowledgeBase` | 知识库名，默认 `demo_kb` |
-| `vectorStore` | `vector_stores` 别名；缺省用 `default_vector_store` |
+| `vectorStore` | `vector_stores` 别名；缺省用 `default_vector_store`；未知别名返回 400 |
 | `topK` | 检索条数；缺省用配置 `default_top_k` |
 | `query` / `question` | 查询文本（retrieve / ask / workflow 必填） |
+
+生产须配置 Embedding API Key；Test 环境可 `NEURON_ALLOW_FAKE_EMBEDDINGS=1`。`RagIngestNode` 仅同步入库。
 
 ---
 

@@ -10,6 +10,8 @@ use Swoolefy\Support\Mcp\McpFactory;
 use Swoolefy\Support\Mcp\McpProcessRunner;
 use Swoolefy\Support\Mcp\McpServerConfig;
 use Swoolefy\Support\Neuron\Embedding\EmbeddingFactory;
+use Swoolefy\Support\Neuron\NeuronAiConfig;
+use Swoolefy\Support\Neuron\NeuronAiVectorStoreName;
 use Swoolefy\Support\Neuron\NeuronFactory;
 use Swoolefy\Support\Rag\Factory\RagFactory;
 use Swoolefy\Support\Rag\Factory\VectorStoreFactory;
@@ -271,9 +273,19 @@ final class WorkflowService
     {
         if (self::$ragFactory === null) {
             $basePath = sys_get_temp_dir() . '/swoolefy_rag';
+            $config = NeuronAiConfig::fromArray([
+                'rag' => [
+                    'default_vector_store' => NeuronAiVectorStoreName::FILE,
+                    'embedding_dimension' => 1536,
+                    'allow_fake_embeddings' => true,
+                    'vector_stores' => [
+                        NeuronAiVectorStoreName::FILE => ['path' => $basePath],
+                    ],
+                ],
+            ]);
             self::$ragFactory = new RagFactory(
-                VectorStoreFactory::fromEnv($basePath),
-                new EmbeddingFactory(),
+                new VectorStoreFactory($config, $basePath),
+                new EmbeddingFactory($config),
             );
         }
 

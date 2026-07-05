@@ -18,7 +18,7 @@ final class SwooleOpenAILikeEmbeddings extends OpenAILikeEmbeddings
         string $baseUri,
         string $key,
         string $model,
-        ?int $dimensions = 1024,
+        ?int $dimensions = 1536,
     ) {
         parent::__construct($baseUri, $key, $model, $dimensions);
 

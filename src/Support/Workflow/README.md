@@ -1,6 +1,6 @@
 # Workflow 工作流引擎
 
-Swoolefy 内置的 **DAG 工作流引擎**，用于编排业务节点、AI 决策分支、多 Agent 并行、RAG/MCP 工具调用与人机协同（HITL）。已实现 **Phase 1–4**（Phase 5 生产化增强见 `docs/swoolefyAI.md`）。
+Swoolefy 内置的 **DAG 工作流引擎**，用于编排业务节点、AI 决策分支、多 Agent 并行、RAG/MCP 工具调用与人机协同（HITL）。已实现 **Phase 1–4** 及 **生产加固（Phase A/B）**：HITL API 鉴权、resume CAS、多版本 Registry、节点默认超时、启动期健康检查等。
 
 - 架构设计：[swoolefyAI.md](../../../docs/swoolefyAI.md)
 - 快速接入：[docs/AI-WORKFLOW.md](../../../docs/AI-WORKFLOW.md)
@@ -15,7 +15,8 @@ Workflow/
 ├── WorkflowBootstrap.php        # 演示/单测协程单例装配
 ├── WorkflowComponentFactory.php # 生产装配（workflow.php + Redis RunStore）
 ├── WorkflowConfig.php           # workflow.php 解析
-├── WorkflowRegistry.php         # workflowId → Definition 注册表
+├── WorkflowRegistry.php         # workflowId + version 多版本注册表
+├── WorkflowHitlAuth.php         # HITL API 鉴权（resume / cancel / pause/tasks）
 ├── Definition/                  # 声明层（纯 DAG，无 I/O）
 ├── Engine/                      # 运行时：Engine、Scheduler、RunStore、Saga
 ├── State/WorkflowState.php
@@ -145,6 +146,44 @@ $engine->resume($runId, ['approved' => true]);
 $tasks = $engine->listPauseTasks('legal-team');  // RunStore 需 PauseTaskQueryableInterface
 ```
 
+### HITL API 鉴权（Phase A）
+
+`workflow.php` → `workflow.hitl`（模版见 `src/Stubs/workflow.conf.stub.php`）：
+
+| 配置项 | 环境变量 | 说明 |
+|--------|----------|------|
+| `auth_enabled` | `WORKFLOW_HITL_AUTH_ENABLED` | 启用后 resume / cancel / pause/tasks 须鉴权 |
+| `api_key` | `WORKFLOW_HITL_API_KEY` | 共享密钥，Header `X-Workflow-Api-Key` 或 Body `apiKey` |
+| `role_header` | `WORKFLOW_HITL_ROLE_HEADER` | 角色 Header，默认 `X-Workflow-Role` |
+| `allowed_roles` | — | 允许的角色列表（如 `operator`、`admin`） |
+| `require_assignee_match` | `WORKFLOW_HITL_REQUIRE_ASSIGNEE_MATCH` | resume 时 `actor` 须匹配任务 assignee（`admin` 除外） |
+
+HTTP 示例见 `Test/Module/Workflow/README.md`。实现：`WorkflowHitlAuth`、`WorkflowController`。
+
+### resume 并发安全（Phase A）
+
+`DbRunStore` / `RedisRunStore` / `InMemoryRunStore` 实现 `saveIfStatus()`；`WorkflowEngine::resume()` 仅在 Run 仍为 `WAITING` 时 CAS 更新，避免重复 resume 竞态。
+
+---
+
+## 多版本 Registry（Phase B）
+
+```php
+$registry->register('order_processing', fn () => OrderProcessingWorkflow::definition()); // latest = 2.0.0
+$registry->registerVersion('order_processing', '1.0.0', fn () => OrderProcessingWorkflow::definitionV1());
+
+$compiled = $registry->compiled('order_processing');           // latest
+$compiled = $registry->compiled('order_processing', '1.0.0'); // 指定版本
+```
+
+Run 快照持久化 `workflowId` + `version`；`WorkflowRunSnapshot::hydrate()` 会校验版本与 Registry 一致，防止 resume 时拓扑漂移。
+
+---
+
+## 节点超时（Phase B）
+
+`workflow.default_node_timeout_seconds`（默认 120，env `WORKFLOW_DEFAULT_NODE_TIMEOUT`）作为引擎全局默认。节点实现 `ConfigurableTimeoutNodeInterface`（如 `AINode`、`AgentParallelNode`）可单独覆盖；返回 `0` 表示使用全局默认。
+
 ---
 
 ## 子工作流（SubWorkflowNode）
@@ -186,8 +225,16 @@ use Swoolefy\Support\Workflow\WorkflowRunStoreName;
 
 - Redis：`WorkflowRedisResolver` → `cache.php` 组件
 - DB：`WorkflowPdoResolver` → `database.php` 组件；须预执行 `Schema/workflow_runs.sql`
-- `DbRunStore` 使用事务 UPSERT，死锁自动重试
+- `DbRunStore` 使用事务 UPSERT + `saveIfStatus` CAS，死锁自动重试
 - HTTP 入口使用 `WorkflowService::engine()` / `WorkflowComponentFactory`，保证与配置一致
+
+### 启动期健康检查（Phase B）
+
+部署前调用 `ProductionHealthCheck::run()`（或 `check()` 收集错误列表），校验向量库别名、Embedding 凭证、`default_node_timeout_seconds`、DB RunStore 表可达性、出站 URL 白名单等。
+
+```bash
+php -r "require 'vendor/autoload.php'; Swoolefy\Support\ProductionHealthCheck::run();"
+```
 
 ---
 
@@ -277,6 +324,8 @@ Neuron：`NeuronFactory` + Agent::`chatHistory()`（`ChatHistoryFactory`）+ `Sw
 
 ```bash
 composer test:workflow
+composer test:phase-a    # HITL 鉴权、resume CAS
+composer test:phase-b    # 多版本、超时、MCP 租户、健康检查
 ```
 
 或：
@@ -286,11 +335,14 @@ php src/Support/Workflow/Tests/WorkflowPhase1Test.php   # 7 项
 php src/Support/Workflow/Tests/WorkflowPhase2Test.php   # 6 项
 php src/Support/Workflow/Tests/WorkflowPhase3Test.php   # 7 项
 php src/Support/Workflow/Tests/WorkflowPhase4Test.php   # 10 项
+php src/Support/Workflow/Tests/WorkflowHitlAuthTest.php # HITL / CAS
 php src/Support/Workflow/Tests/WorkflowIntegrationTest.php  # SubWorkflow / JsonLogic / RoundRobin / CLI
+php src/Support/Tests/PhaseAProductionTest.php
+php src/Support/Tests/PhaseBProductionTest.php
 ```
 
 ---
 
-## Phase 5（未实现）
+## Phase 5（规划中）
 
-RAG/MCP 多租户隔离、检索缓存、MCP 审计与 rate limit 深化、Composer 拆包等 — 见 `docs/swoolefyAI.md` §15。
+检索缓存、MCP 审计与 rate limit 深化、Composer 拆包等 — 见 `docs/swoolefyAI.md` §15。

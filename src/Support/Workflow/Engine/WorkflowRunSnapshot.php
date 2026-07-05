@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Workflow\Engine;
 
+use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
 
@@ -88,7 +89,17 @@ final class WorkflowRunSnapshot
 
     public function hydrate(WorkflowRegistry $registry): WorkflowRun
     {
-        $compiled = $registry->compiled($this->workflowId);
+        if ($this->workflowId === '') {
+            throw new WorkflowException('Cannot hydrate run: missing workflowId');
+        }
+
+        if (!$registry->hasVersion($this->workflowId, $this->version)) {
+            throw new WorkflowException(
+                "Cannot hydrate run {$this->runId}: workflow {$this->workflowId}@{$this->version} is not registered",
+            );
+        }
+
+        $compiled = $registry->compiled($this->workflowId, $this->version);
 
         return new WorkflowRun(
             runId: $this->runId,

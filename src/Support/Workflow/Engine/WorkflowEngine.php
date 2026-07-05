@@ -112,6 +112,13 @@ final class WorkflowEngine
         $run->state->mergeData(['feedback' => $feedback]);
         $run->status = RunStatus::RUNNING;
         $run->updatedAt = time();
+
+        if (!$this->runStore->saveIfStatus($run, RunStatus::WAITING)) {
+            throw new WorkflowException(
+                "Run {$runId} is not waiting for resume (already resumed or cancelled?)",
+            );
+        }
+
         $this->plugins->fireResume($run, $feedback);
 
         $pauseNode = $run->compiled->node($run->pauseNodeId);
@@ -168,6 +175,11 @@ final class WorkflowEngine
     public function runStore(): RunStoreInterface
     {
         return $this->runStore;
+    }
+
+    public function getDefaultNodeTimeoutSeconds(): float
+    {
+        return $this->defaultNodeTimeoutSeconds;
     }
 
     /**
@@ -311,7 +323,7 @@ final class WorkflowEngine
 
     private function resolveNodeTimeout(NodeInterface $node): float
     {
-        if ($node instanceof \Swoolefy\Support\AI\Node\AINode) {
+        if ($node instanceof \Swoolefy\Support\Workflow\Node\ConfigurableTimeoutNodeInterface) {
             $timeout = $node->configuredTimeoutSeconds();
             if ($timeout > 0) {
                 return (float) $timeout;

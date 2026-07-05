@@ -57,6 +57,12 @@ final class VectorStoreFactory
         ?string $storeAlias = null,
     ): VectorStoreInterface {
         $alias = $storeAlias ?? $this->config->defaultVectorStoreAlias();
+        if (!$this->config->hasVectorStoreAlias($alias)) {
+            throw new RuntimeException(
+                "Unknown vector store alias [{$alias}]; declare it under rag.vector_stores in neuron_ai.php",
+            );
+        }
+
         $driver = $this->config->vectorStoreDriver($alias);
         $index = $this->sanitize($knowledgeBase);
         $k = $topK ?? $this->config->defaultTopK();

@@ -17,6 +17,12 @@ final class NeuronAiRagEnv
 
     public const EMBEDDING_MODEL = 'RAG_EMBEDDING_MODEL';
 
+    /** Embedding 向量维度；须与各 vector_stores.*.dimension 一致。 */
+    public const EMBEDDING_DIMENSION = 'RAG_EMBEDDING_DIMENSION';
+
+    /** 单测 / 本地演示允许 FakeEmbeddings（生产勿开）。 */
+    public const ALLOW_FAKE_EMBEDDINGS = 'NEURON_ALLOW_FAKE_EMBEDDINGS';
+
     public const MEILISEARCH_HOST = 'MEILISEARCH_HOST';
 
     public const MEILISEARCH_KEY = 'MEILISEARCH_KEY';

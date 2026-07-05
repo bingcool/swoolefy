@@ -21,8 +21,9 @@ return [
         // 环境变量 RAG_VECTOR_STORE 可覆盖。业务可在 Node/Factory 传入其它别名覆盖默认。
         'default_vector_store' => NeuronAiVectorStoreName::FILE,
         'default_top_k' => 5,
-        // 须与下方各向量库 dimension 一致（如 text-embedding-3-small => 1536）
         'embedding_model' => 'text-embedding-3-small',
+        'embedding_dimension' => 1536,
+        'allow_fake_embeddings' => true,
         // 已声明的向量库表：key = 别名；可选 driver（缺省时别名即驱动类型 NeuronAiVectorStoreName::*）
         // 业务指定：VectorStoreFactory::make($kb, storeAlias: 'milvus') 或节点配置 vectorStore
         'vector_stores' => [
@@ -77,6 +78,12 @@ return [
     ],
     'mcp' => [
         'max_local_processes' => 2,
+        'allow_stdio' => true,
+        'stdio_command_allowlist' => ['npx', 'node', 'uvx'],
+    ],
+    'security' => [
+        'outbound_url_allowlist' => ['api.openai.com', 'localhost', '127.0.0.1'],
+        'allow_private_networks' => true,
     ],
     'neuron' => [
         'http_client' => 'swoole', // swoole | guzzle

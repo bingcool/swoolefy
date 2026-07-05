@@ -26,6 +26,7 @@ return [
         'default_run_store' => env('WORKFLOW_RUN_STORE', WorkflowRunStoreName::MEMORY),
         // 条件边求值器：symfony | jsonlogic
         'condition_evaluator' => env('WORKFLOW_CONDITION_EVALUATOR', 'symfony'),
+        'default_node_timeout_seconds' => 120,
         'run_stores' => [
             // 进程内存：单测 / 单 Worker 演示（不跨进程）
             WorkflowRunStoreName::MEMORY => [],
@@ -45,6 +46,12 @@ return [
                 'component' => env('WORKFLOW_DB_COMPONENT', 'db'),
                 'table' => env('WORKFLOW_DB_TABLE', 'workflow_runs'),
             ],
+        ],
+        'hitl' => [
+            'auth_enabled' => false,
+            'api_key' => 'test-hitl-key',
+            'allowed_roles' => ['operator', 'admin'],
+            'require_assignee_match' => true,
         ],
     ],
 ];

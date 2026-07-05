@@ -15,16 +15,17 @@
 
 ---
 
-## 1. 能力概览（Phase 1–4，Phase 5 除外）
+## 1. 能力概览（Phase 1–4 + 生产加固 A/B）
 
 | 领域 | 能力 | 主要命名空间 |
 |------|------|-------------|
-| 工作流引擎 | Definition / Compiler / Engine 三层分离；条件边；HITL；Saga | `Swoolefy\Support\Workflow` |
-| AI 节点 | `AINodeBuilder`、`StructuredOutputNode`、流式 SSE/WebSocket | `Swoolefy\Support\AI` |
+| 工作流引擎 | Definition / Compiler / Engine；条件边；HITL 鉴权；resume CAS；多版本 Registry；节点超时 | `Swoolefy\Support\Workflow` |
+| AI 节点 | `AINodeBuilder`、`StructuredOutputNode`、流式 SSE/WebSocket、`AgentParallelNode` 超时 | `Swoolefy\Support\AI` |
 | Agent | Static / Rule / LLM / Weighted / CostAware / RoundRobin 路由 | `Swoolefy\Support\Agent` |
-| Neuron | LLM 工厂、Redis 记忆、Swoole 协程 HTTP、Embedding | `Swoolefy\Support\Neuron` |
-| RAG | 向量库（File / Meilisearch / PHPVector / MariaDB / Pinecone / Qdrant / Milvus）、入库 Pipeline、检索 Tool | `Swoolefy\Support\Rag` |
-| MCP | 远程 HTTP、本地 stdio 进程、多租户配置 | `Swoolefy\Support\Mcp` |
+| Neuron | LLM 工厂、Redis/SQL 记忆、Embedding fail-fast、出站 URL 校验 | `Swoolefy\Support\Neuron` |
+| RAG | 多向量库驱动、同步入库 Pipeline、别名 fail-fast | `Swoolefy\Support\Rag` |
+| MCP | HTTP/SSE、DB 多租户仓储、stdio 生产禁用、URL 白名单 | `Swoolefy\Support\Mcp` |
+| 运维 | `ProductionHealthCheck` 启动期配置 / Schema 检查 | `Swoolefy\Support` |
 | 插件 | Retry、Tracing、Metrics、OTel、Audit、RateLimit、Permission | `Support/Workflow/Plugin` |
 
 ---
@@ -38,23 +39,26 @@ cp src/Stubs/workflow.conf.stub.php App/Config/workflow.php
 cp src/Stubs/neuron_ai.conf.stub.php App/Config/neuron_ai.php
 ```
 
-**workflow.php** — 引擎 RunStore、条件求值器：
+**workflow.php** — RunStore、条件求值器、HITL 鉴权、节点超时：
 
 ```php
 return [
     'workflow' => [
-        'run_store' => 'memory',       // memory | redis
+        'default_run_store' => 'db',   // memory | redis | db
         'condition_evaluator' => 'symfony',
-        'redis' => [
-            'component' => 'redis',    // Config/component/cache.php 中的组件别名
-            'prefix' => 'workflow:run:',
-            'ttl' => 86400,
+        'default_node_timeout_seconds' => 120,
+        'hitl' => [
+            'auth_enabled' => true,
+            'api_key' => env('WORKFLOW_HITL_API_KEY'),
+            'allowed_roles' => ['operator', 'admin'],
+            'require_assignee_match' => true,
         ],
+        'run_stores' => [ /* memory / redis / db */ ],
     ],
 ];
 ```
 
-**neuron_ai.php** — RAG、MCP、Neuron HTTP 与 `ai_model_providers`：
+**neuron_ai.php** — RAG、MCP、安全、Neuron Provider：
 
 ```php
 use Swoolefy\Support\Neuron\NeuronAiModelEnv;
@@ -83,7 +87,11 @@ use Swoolefy\Support\Neuron\NeuronAiProviderName;
 |------|------|
 | `OPENAI_API_KEY` | LLM / Embedding |
 | `NEURON_DEFAULT_PROVIDER` | 默认 Provider 别名（`NeuronAiProviderName::*`） |
-| `WORKFLOW_RUN_STORE` | `memory` / `redis` |
+| `WORKFLOW_RUN_STORE` | `memory` / `redis` / `db` |
+| `WORKFLOW_DEFAULT_NODE_TIMEOUT` | 节点默认超时秒数（默认 120） |
+| `WORKFLOW_HITL_AUTH_ENABLED` | HITL API 鉴权（`1` 启用） |
+| `WORKFLOW_HITL_API_KEY` | HITL 共享密钥 |
+| `WORKFLOW_HITL_REQUIRE_ASSIGNEE_MATCH` | resume 时校验 assignee（默认 `1`） |
 | `WORKFLOW_REDIS_COMPONENT` | Redis 组件别名（如 `redis`、`predis`，见 `component/cache.php`） |
 | `WORKFLOW_REDIS_PREFIX` | Run 快照 key 前缀 |
 | `WORKFLOW_REDIS_TTL` | Run 快照 TTL（秒） |
@@ -104,6 +112,9 @@ use Swoolefy\Support\Neuron\NeuronAiProviderName;
 | `MILVUS_DB_NAME` | Milvus 数据库名（默认 `default`） |
 | `MILVUS_DIMENSION` | Milvus 向量维度（默认 1536） |
 | `MCP_MAX_LOCAL_PROCESSES` | 本地 MCP 并发上限 |
+| `MCP_ALLOW_STDIO` | 是否允许 stdio MCP（生产默认 `0`） |
+| `NEURON_ALLOW_FAKE_EMBEDDINGS` | 本地 / 单测 Fake Embedding |
+| `RAG_EMBEDDING_DIMENSION` | Embedding 维度（默认 1536） |
 | `WORKFLOW_OTEL_ENABLED=1` | OpenTelemetry 插件 |
 | `WORKFLOW_AUDIT_ENABLED=1` | 审计日志 |
 | `WORKFLOW_RATE_LIMIT_ENABLED=1` | Run 并发限流 |
@@ -131,6 +142,12 @@ $compiled = $compiler->compile($registry->definition('order_processing'));
 $runId = $engine->start($compiled, ['orderId' => 10001, 'sessionId' => 's1']);
 ```
 
+部署前建议：
+
+```php
+\Swoolefy\Support\ProductionHealthCheck::run();
+```
+
 `run_store: redis` 时通过 `Application::getApp()->get(component)->getObject()` 获取 `RedisConnection`（连接信息在 `component/cache.php` 配置），Run 快照跨 Worker 持久化。
 
 Test 项目参考：`Test/Module/Workflow/WorkflowService.php`（注册全部示例工作流）。
@@ -145,11 +162,12 @@ Test 项目参考：`Test/Module/Workflow/WorkflowService.php`（注册全部示
 |------|------|------|
 | POST | `/v1/workflow/run` | 启动工作流 `{ workflowId, input, stream? }` |
 | GET | `/v1/workflow/run/status` | `?runId=` 查询状态 |
-| POST | `/v1/workflow/run/resume` | HITL 恢复 `{ runId, feedback }` |
-| GET | `/v1/workflow/pause/tasks` | `?assignee=` 待办列表 |
+| POST | `/v1/workflow/run/resume` | HITL 恢复 `{ runId, feedback, actor? }` + 鉴权 Header |
+| POST | `/v1/workflow/run/cancel` | 取消 Run（HITL 鉴权） |
+| GET | `/v1/workflow/pause/tasks` | `?assignee=` 待办列表（HITL 鉴权） |
 | GET | `/v1/workflow/run/events` | SSE 流式事件 |
 | POST | `/v1/agent/chat` | Agent 对话 `{ message, sessionId, userId }` |
-| GET | `/v1/mcp/servers` | MCP 服务列表 |
+| GET | `/v1/mcp/servers` | MCP 服务列表（`?tenantId=`） |
 | GET | `/v1/mcp/servers/{id}/tools` | MCP 工具发现 |
 
 ### 启动示例
@@ -234,15 +252,19 @@ php src/Support/Rag/Console/ingest_documents.php --kb=product_kb --path=/data/do
 php src/Support/Rag/Console/ingest_documents.php --kb=product_kb --text="规格说明..."
 ```
 
-需要 `OPENAI_API_KEY`（或项目配置的 Embedding 后端）。向量库默认 `file`（无需 Meilisearch）；生产可切 `meilisearch`。
+需要 `OPENAI_API_KEY`（或 `NEURON_ALLOW_FAKE_EMBEDDINGS=1` 用于本地）。向量库 alias 须在 `rag.vector_stores` 声明。
 
 ---
 
 ## 9. 测试
 
 ```bash
-# 全部 Support 模块（Agent / AI / Mcp / Neuron / Rag / Workflow）
+# 全部 Support 模块
 composer test:support
+
+# 生产加固回归
+composer test:phase-a
+composer test:phase-b
 
 # 分模块
 composer test:agent
@@ -255,6 +277,6 @@ composer test:workflow
 
 ---
 
-## 10. Phase 5（暂未实现）
+## 10. Phase 5（规划中）
 
-多租户 RAG/MCP 隔离、检索缓存、MCP 审计与限流深化、Composer 拆包等见 `swoolefyAI.md` §15 Phase 5。
+检索缓存、MCP 审计与限流深化、Composer 拆包等见 `swoolefyAI.md` §15 Phase 5。

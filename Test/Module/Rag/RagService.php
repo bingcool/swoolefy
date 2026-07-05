@@ -52,7 +52,7 @@ final class RagService
      */
     public static function boot(NeuronAiConfig $config): self
     {
-        $ragFactory = new RagFactory(new VectorStoreFactory($config), new EmbeddingFactory());
+        $ragFactory = new RagFactory(new VectorStoreFactory($config), new EmbeddingFactory($config));
         self::$instance = new self(
             $config,
             $ragFactory,

@@ -26,6 +26,8 @@ return [
         'default_run_store' => env('WORKFLOW_RUN_STORE', WorkflowRunStoreName::MEMORY),
         // 条件边求值器：symfony | jsonlogic
         'condition_evaluator' => env('WORKFLOW_CONDITION_EVALUATOR', 'symfony'),
+        // 节点默认超时秒数（0=不限制；生产建议 120）
+        'default_node_timeout_seconds' => (int) env('WORKFLOW_DEFAULT_NODE_TIMEOUT', 120),
         'run_stores' => [
             // 进程内存：单测 / 单 Worker 演示（不跨进程）
             WorkflowRunStoreName::MEMORY => [],
@@ -45,6 +47,14 @@ return [
                 'component' => env('WORKFLOW_DB_COMPONENT', 'db'),
                 'table' => env('WORKFLOW_DB_TABLE', 'workflow_runs'),
             ],
+        ],
+        // HITL API 鉴权（resume / cancel / pause/tasks）
+        'hitl' => [
+            'auth_enabled' => filter_var(env('WORKFLOW_HITL_AUTH_ENABLED', '0'), FILTER_VALIDATE_BOOLEAN),
+            'api_key' => env('WORKFLOW_HITL_API_KEY', ''),
+            'role_header' => env('WORKFLOW_HITL_ROLE_HEADER', 'X-Workflow-Role'),
+            'allowed_roles' => ['operator', 'admin'],
+            'require_assignee_match' => filter_var(env('WORKFLOW_HITL_REQUIRE_ASSIGNEE_MATCH', '1'), FILTER_VALIDATE_BOOLEAN),
         ],
     ],
 ];

@@ -39,6 +39,19 @@ final class RedisRunStore implements RunStoreInterface, PauseTaskQueryableInterf
     }
 
     /** {@inheritdoc} */
+    public function saveIfStatus(WorkflowRun $run, RunStatus $expectedStatus): bool
+    {
+        $existing = $this->find($run->runId);
+        if ($existing === null || $existing->status !== $expectedStatus) {
+            return false;
+        }
+
+        $this->save($run);
+
+        return true;
+    }
+
+    /** {@inheritdoc} */
     public function find(string $runId): ?WorkflowRun
     {
         $raw = $this->redis->get($this->key($runId));

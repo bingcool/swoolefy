@@ -57,8 +57,18 @@ function makeEngine(?PluginManager $plugins = null, ?InMemoryRunStore $store = n
 
 function testVectorStoreFactoryFileMode(): void
 {
-    $factory = VectorStoreFactory::fromEnv(sys_get_temp_dir() . '/swoolefy_rag_test');
-    assertTrue(in_array($factory->storeType(), ['file', 'meilisearch'], true), 'store type should be known');
+    $basePath = sys_get_temp_dir() . '/swoolefy_rag_test';
+    $config = \Swoolefy\Support\Neuron\NeuronAiConfig::fromArray([
+        'rag' => [
+            'default_vector_store' => \Swoolefy\Support\Neuron\NeuronAiVectorStoreName::FILE,
+            'allow_fake_embeddings' => true,
+            'vector_stores' => [
+                \Swoolefy\Support\Neuron\NeuronAiVectorStoreName::FILE => ['path' => $basePath],
+            ],
+        ],
+    ]);
+    $factory = new VectorStoreFactory($config, $basePath);
+    assertTrue($factory->storeType() === 'file', 'store type file');
     assertTrue($factory->make('test_kb') !== null, 'should create vector store');
 }
 

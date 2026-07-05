@@ -93,7 +93,11 @@ $decision = $state->dto(OrderDecisionDto::class); // 需 registerSchema('decisio
 | `provider($alias)` | `neuron_ai.php` 中 Provider 别名 |
 | `mcp($servers, $only, $exclude)` | 挂载 MCP Tools |
 | `executor($fn)` | 跳过 LLM |
-| `timeout($seconds)` | 节点超时 |
+| `timeout($seconds)` | 节点超时（0 = 使用 `workflow.default_node_timeout_seconds`） |
+
+### 节点超时（Phase B）
+
+引擎从 `workflow.php` 读取 `default_node_timeout_seconds`（默认 120s）。`AINode`、`AgentParallelNode` 实现 `ConfigurableTimeoutNodeInterface`；Builder 的 `timeout()` 可覆盖单节点。`AgentParallelNode` 对并行 Agent 调度施加相同超时上限。
 
 ### 流式输出
 
@@ -115,6 +119,7 @@ StreamBridge::unbind();
 
 ```bash
 composer test:ai
+composer test:phase-b
 # 或
 php src/Support/AI/Tests/AIModuleTest.php
 ```

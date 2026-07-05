@@ -14,6 +14,7 @@ use Swoolefy\Support\Workflow\Engine\NodeExecutionResult;
 use Swoolefy\Support\Workflow\Engine\RunContext;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\Node\AbstractNode;
+use Swoolefy\Support\Workflow\Node\ConfigurableTimeoutNodeInterface;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 
 /**
@@ -25,7 +26,7 @@ use Swoolefy\Support\Workflow\State\WorkflowState;
  *   3. structured + agent → Agent::structured()
  *   4. agent → Agent::chat()
  */
-final class AINode extends AbstractNode
+final class AINode extends AbstractNode implements ConfigurableTimeoutNodeInterface
 {
     /** @var (callable(class-string, WorkflowState, array): Agent)|null */
     private $agentFactory;

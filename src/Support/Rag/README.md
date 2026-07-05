@@ -77,6 +77,8 @@ TopK Document → RetrievalService / RetrievalTool / RAGNode
     'default_vector_store' => NeuronAiVectorStoreName::FILE,
     'default_top_k' => 5,
     'embedding_model' => 'text-embedding-3-small',
+    'embedding_dimension' => 1536,   // 须与各 vector_stores.*.dimension 一致
+    'allow_fake_embeddings' => false, // 生产 false；单测 NEURON_ALLOW_FAKE_EMBEDDINGS=1
     // 已声明的向量库表：key = 别名；可选 driver（缺省时别名即驱动名）
     'vector_stores' => [
         NeuronAiVectorStoreName::FILE => [
@@ -128,7 +130,9 @@ $hits = (new RetrievalService($rag))->retrieve('product_kb', 'coroutine framewor
 // 指定别名：$rag->vectorStore('product_kb', storeAlias: 'milvus_prod');
 ```
 
-无 `OPENAI_API_KEY` 时使用 `FakeEmbeddingsProvider`（维度 64），适合本地与单测。
+**Embedding**：生产须配置 API Key；`allow_fake_embeddings=false` 时无 Key 会 fail-fast。单测 / 本地可 `NEURON_ALLOW_FAKE_EMBEDDINGS=1`。
+
+**向量库别名**：`VectorStoreFactory::make()` 对未在 `rag.vector_stores` 声明的 alias **抛错**（不再静默回退）。
 
 ### 工作流节点
 
@@ -140,7 +144,7 @@ new RagIngestNode('ingest', [
     // 'vectorStore' => 'milvus_prod',
 ], $pipeline);
 
-// 检索
+// RagIngestNode 仅同步入库（RAG_INGEST_ASYNC 已移除）
 new RagRetrieveNode('retrieve', [
     'knowledgeBase' => 'product_kb',
     'queryKey' => 'query',
@@ -165,6 +169,8 @@ php src/Support/Rag/Console/ingest_documents.php --kb=product_kb --file=./docs.t
 | `RAG_FILE_STORE_PATH` | file 驱动 path（覆盖 vector_stores.file.path） |
 | `RAG_DEFAULT_TOP_K` | 默认 TopK |
 | `RAG_EMBEDDING_MODEL` | Embedding 模型名 |
+| `RAG_EMBEDDING_DIMENSION` | Embedding 向量维度（默认 1536） |
+| `NEURON_ALLOW_FAKE_EMBEDDINGS` | 单测 / 本地 Fake Embedding（`1` 启用） |
 | `MEILISEARCH_*` / `MILVUS_*` / `PINECONE_*` / `QDRANT_*` | 见 `NeuronAiRagEnv` |
 
 ---
@@ -173,6 +179,7 @@ php src/Support/Rag/Console/ingest_documents.php --kb=product_kb --file=./docs.t
 
 ```bash
 composer test:rag
+composer test:phase-a
 # 或
 php src/Support/Rag/Tests/RagModuleTest.php
 ```

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Swoolefy\Support\Neuron;
 
 use Swoolefy\Support\ApplicationConfig;
+use Swoolefy\Support\Mcp\McpStdioGuard;
 use Swoolefy\Support\Neuron\Http\NeuronHttpFactory;
+use Swoolefy\Support\Security\OutboundUrlGuard;
 
 /**
  * Neuron AI / RAG / MCP 模块配置加载器。
@@ -169,6 +171,47 @@ final class NeuronAiConfig
             NeuronAiRagEnv::EMBEDDING_MODEL,
             'text-embedding-3-small',
         );
+    }
+
+    /** Embedding 输出维度（rag.embedding_dimension）；默认 1536（text-embedding-3-small）。 */
+    public function embeddingDimension(): int
+    {
+        return max(1, ApplicationConfig::pickIntEnvFirst(
+            $this->ragSection(),
+            'embedding_dimension',
+            NeuronAiRagEnv::EMBEDDING_DIMENSION,
+            1536,
+        ));
+    }
+
+    /**
+     * 无 API Key 时是否允许 FakeEmbeddings（rag.allow_fake_embeddings / NEURON_ALLOW_FAKE_EMBEDDINGS）。
+     * 生产默认 false；单测显式开启。
+     */
+    public function allowFakeEmbeddings(): bool
+    {
+        $fromConfig = $this->ragSection()['allow_fake_embeddings'] ?? false;
+
+        return filter_var(
+            ApplicationConfig::pickStringEnvFirst(
+                ['allow_fake_embeddings' => $fromConfig],
+                'allow_fake_embeddings',
+                NeuronAiRagEnv::ALLOW_FAKE_EMBEDDINGS,
+                $fromConfig ? '1' : '0',
+            ),
+            FILTER_VALIDATE_BOOLEAN,
+        );
+    }
+
+    /** default_vector_store 须在 vector_stores 中声明。 */
+    public function assertDefaultVectorStoreDeclared(): void
+    {
+        $alias = $this->defaultVectorStoreAlias();
+        if (!$this->hasVectorStoreAlias($alias)) {
+            throw new \RuntimeException(
+                "Unknown default_vector_store alias [{$alias}]; declare it under rag.vector_stores",
+            );
+        }
     }
 
     /** @return array<string, mixed> */
@@ -417,6 +460,123 @@ final class NeuronAiConfig
             'MCP_MAX_LOCAL_PROCESSES',
             2,
         ));
+    }
+
+    public function mcpAllowStdio(): bool
+    {
+        return filter_var(
+            ApplicationConfig::pickStringEnvFirst(
+                $this->mcpSection(),
+                'allow_stdio',
+                'MCP_ALLOW_STDIO',
+                '0',
+            ),
+            FILTER_VALIDATE_BOOLEAN,
+        );
+    }
+
+    /** @return list<string> */
+    public function mcpStdioCommandAllowlist(): array
+    {
+        $raw = $this->mcpSection()['stdio_command_allowlist'] ?? [];
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $list = [];
+        foreach ($raw as $cmd) {
+            if (is_string($cmd) && $cmd !== '') {
+                $list[] = $cmd;
+            }
+        }
+
+        return $list;
+    }
+
+    public function mcpStdioGuard(): McpStdioGuard
+    {
+        return new McpStdioGuard(
+            allowStdio: $this->mcpAllowStdio(),
+            commandAllowlist: $this->mcpStdioCommandAllowlist(),
+        );
+    }
+
+    /** @return array<string, mixed> */
+    public function securitySection(): array
+    {
+        return (array) ($this->config['security'] ?? []);
+    }
+
+    public function allowPrivateOutboundNetworks(): bool
+    {
+        return filter_var(
+            ApplicationConfig::pickStringEnvFirst(
+                $this->securitySection(),
+                'allow_private_networks',
+                'NEURON_ALLOW_PRIVATE_NETWORKS',
+                '0',
+            ),
+            FILTER_VALIDATE_BOOLEAN,
+        );
+    }
+
+    /** @return list<string> */
+    public function outboundUrlAllowlist(): array
+    {
+        $raw = $this->securitySection()['outbound_url_allowlist'] ?? [];
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $list = [];
+        foreach ($raw as $host) {
+            if (is_string($host) && $host !== '') {
+                $list[] = $host;
+            }
+        }
+
+        return $list;
+    }
+
+    public function outboundUrlGuard(): OutboundUrlGuard
+    {
+        return new OutboundUrlGuard(
+            allowlistHostSuffixes: $this->outboundUrlAllowlist(),
+            allowPrivateNetworks: $this->allowPrivateOutboundNetworks(),
+        );
+    }
+
+    /**
+     * 启动健康检查需校验的出站 URL。
+     *
+     * @return array<string, string> label => url
+     */
+    public function outboundUrlsToValidate(): array
+    {
+        $urls = [];
+        foreach ($this->aiModelProviders() as $alias => $section) {
+            if (!is_array($section)) {
+                continue;
+            }
+            $baseUri = $section['baseUri'] ?? $section['base_uri'] ?? null;
+            if (is_string($baseUri) && $baseUri !== '') {
+                $urls['provider:' . $alias] = $baseUri;
+            }
+        }
+
+        foreach ($this->vectorStores() as $alias => $section) {
+            if (!is_array($section)) {
+                continue;
+            }
+            foreach (['host', 'base_url', 'uri', 'index_url'] as $key) {
+                $val = $section[$key] ?? null;
+                if (is_string($val) && $val !== '' && str_starts_with($val, 'http')) {
+                    $urls['vector_store:' . $alias . ':' . $key] = $val;
+                }
+            }
+        }
+
+        return $urls;
     }
 
     public function httpClient(): string

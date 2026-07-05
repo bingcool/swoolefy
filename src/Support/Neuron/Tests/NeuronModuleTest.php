@@ -49,6 +49,8 @@ function sampleNeuronConfig(): NeuronAiConfig
             'default_vector_store' => NeuronAiVectorStoreName::FILE,
             'default_top_k' => 3,
             'embedding_model' => 'text-embedding-3-small',
+            'embedding_dimension' => 1536,
+            'allow_fake_embeddings' => true,
             'vector_stores' => [
                 NeuronAiVectorStoreName::FILE => [
                     'path' => '/tmp/swoolefy_neuron_test',
@@ -81,6 +83,8 @@ function testNeuronAiConfigReadsSections(): void
     assertTrue($config->vectorStoreDriver() === NeuronAiVectorStoreName::FILE, 'vector store driver');
     assertTrue($config->defaultTopK() === 3, 'top k');
     assertTrue($config->embeddingModel() === 'text-embedding-3-small', 'embedding model');
+    assertTrue($config->embeddingDimension() === 1536, 'embedding dimension');
+    assertTrue($config->allowFakeEmbeddings() === true, 'allow fake embeddings in test config');
     assertTrue($config->defaultProviderName() === NeuronAiProviderName::OPENAI, 'default provider');
     assertTrue($config->httpClient() === NeuronHttpFactory::CLIENT_GUZZLE, 'http client');
     assertTrue($config->maxLocalProcesses() === 3, 'mcp processes');
@@ -130,14 +134,53 @@ function testMemoryInterfacesAreImplemented(): void
     );
 }
 
-function testEmbeddingFactoryWithoutApiKeyUsesFake(): void
+function testEmbeddingFactoryWithoutApiKeyFailsFast(): void
 {
     $prev = getenv('OPENAI_API_KEY');
     putenv('OPENAI_API_KEY');
     try {
-        $embedder = (new EmbeddingFactory())->make();
-        assertTrue($embedder instanceof EmbeddingsProviderInterface, 'embeddings interface');
-        assertTrue($embedder instanceof FakeEmbeddingsProvider, 'fake without key');
+        $config = NeuronAiConfig::fromArray([
+            'rag' => [
+                'default_vector_store' => NeuronAiVectorStoreName::FILE,
+                'allow_fake_embeddings' => false,
+                'vector_stores' => [
+                    NeuronAiVectorStoreName::FILE => ['path' => '/tmp/x'],
+                ],
+            ],
+            'neuron' => ['ai_model_providers' => []],
+        ]);
+        try {
+            (new EmbeddingFactory($config))->make();
+            assertTrue(false, 'should throw');
+        } catch (WorkflowException $e) {
+            assertTrue(str_contains($e->getMessage(), 'Embedding API key'), 'fail-fast message');
+        }
+    } finally {
+        if ($prev === false) {
+            putenv('OPENAI_API_KEY');
+        } else {
+            putenv('OPENAI_API_KEY=' . $prev);
+        }
+    }
+}
+
+function testEmbeddingFactoryAllowFakeUsesConfiguredDimension(): void
+{
+    $prev = getenv('OPENAI_API_KEY');
+    putenv('OPENAI_API_KEY');
+    try {
+        $config = NeuronAiConfig::fromArray([
+            'rag' => [
+                'default_vector_store' => NeuronAiVectorStoreName::FILE,
+                'embedding_dimension' => 768,
+                'allow_fake_embeddings' => true,
+                'vector_stores' => [
+                    NeuronAiVectorStoreName::FILE => ['path' => '/tmp/x'],
+                ],
+            ],
+        ]);
+        $embedder = (new EmbeddingFactory($config))->make();
+        assertTrue($embedder instanceof FakeEmbeddingsProvider, 'fake with allow flag');
     } finally {
         if ($prev === false) {
             putenv('OPENAI_API_KEY');
@@ -211,7 +254,8 @@ $tests = [
     'provider unknown alias' => 'testProviderFactoryUnknownAliasThrows',
     'chat history factory in-memory' => 'testChatHistoryFactoryInMemory',
     'memory interfaces' => 'testMemoryInterfacesAreImplemented',
-    'embedding fake without key' => 'testEmbeddingFactoryWithoutApiKeyUsesFake',
+    'embedding fail-fast without key' => 'testEmbeddingFactoryWithoutApiKeyFailsFast',
+    'embedding fake with allow flag' => 'testEmbeddingFactoryAllowFakeUsesConfiguredDimension',
     'http factory cli fallback' => 'testNeuronHttpFactoryCliFallback',
     'neuron factory agent hook' => 'testNeuronFactoryUsesAgentFactoryHook',
     'neuron factory no provider' => 'testNeuronFactoryThrowsWhenNoProviderCredentials',

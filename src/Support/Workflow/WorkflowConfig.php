@@ -129,6 +129,17 @@ final class WorkflowConfig
         );
     }
 
+    /** 节点默认超时秒数（0 表示不限制；生产建议 120）。 */
+    public function defaultNodeTimeoutSeconds(): float
+    {
+        return max(0.0, (float) ApplicationConfig::pickIntEnvFirst(
+            $this->workflowSection(),
+            'default_node_timeout_seconds',
+            'WORKFLOW_DEFAULT_NODE_TIMEOUT',
+            120,
+        ));
+    }
+
     // --- redis section helpers ---
 
     public function redisComponent(?string $alias = null): string
@@ -187,6 +198,82 @@ final class WorkflowConfig
         }
 
         return $table;
+    }
+
+    // --- HITL auth ---
+
+    public function hitlAuthEnabled(): bool
+    {
+        return filter_var(
+            ApplicationConfig::pickStringEnvFirst(
+                $this->hitlSection(),
+                'auth_enabled',
+                'WORKFLOW_HITL_AUTH_ENABLED',
+                '0',
+            ),
+            FILTER_VALIDATE_BOOLEAN,
+        );
+    }
+
+    public function hitlApiKey(): string
+    {
+        return ApplicationConfig::pickStringEnvFirst(
+            $this->hitlSection(),
+            'api_key',
+            'WORKFLOW_HITL_API_KEY',
+            '',
+        );
+    }
+
+    public function hitlRoleHeader(): string
+    {
+        $header = ApplicationConfig::pickStringEnvFirst(
+            $this->hitlSection(),
+            'role_header',
+            'WORKFLOW_HITL_ROLE_HEADER',
+            WorkflowHitlAuth::DEFAULT_ROLE_HEADER,
+        );
+
+        return $header !== '' ? $header : WorkflowHitlAuth::DEFAULT_ROLE_HEADER;
+    }
+
+    /** @return list<string> */
+    public function hitlAllowedRoles(): array
+    {
+        $raw = $this->hitlSection()['allowed_roles'] ?? [];
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $roles = [];
+        foreach ($raw as $role) {
+            if (is_string($role) && $role !== '') {
+                $roles[] = $role;
+            }
+        }
+
+        return $roles;
+    }
+
+    public function hitlRequireAssigneeMatch(): bool
+    {
+        $fromConfig = $this->hitlSection()['require_assignee_match'] ?? true;
+
+        return filter_var(
+            ApplicationConfig::pickStringEnvFirst(
+                ['require_assignee_match' => $fromConfig],
+                'require_assignee_match',
+                'WORKFLOW_HITL_REQUIRE_ASSIGNEE_MATCH',
+                $fromConfig ? '1' : '0',
+            ),
+            FILTER_VALIDATE_BOOLEAN,
+        );
+    }
+
+    /** @return array<string, mixed> */
+    private function hitlSection(): array
+    {
+        return (array) ($this->workflowSection()['hitl'] ?? []);
     }
 }
 

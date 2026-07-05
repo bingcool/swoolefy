@@ -207,7 +207,8 @@ final class WorkflowDefinition
      * @param array{
      *     router?: \Swoolefy\Support\Agent\AgentRouterInterface,
      *     scheduler: \Swoolefy\Support\Agent\AgentScheduler,
-     *     agents: array<string, callable(\Swoolefy\Support\Agent\RouterContext, \Swoolefy\Support\Neuron\NeuronFactory): mixed>
+     *     agents: array<string, callable(\Swoolefy\Support\Agent\RouterContext, \Swoolefy\Support\Neuron\NeuronFactory): mixed>,
+     *     timeout?: int
      * } $config
      */
     public function addAgentParallel(string $nodeId, array $config): self
@@ -215,6 +216,7 @@ final class WorkflowDefinition
         $scheduler = $config['scheduler'] ?? null;
         $agents = $config['agents'] ?? [];
         $router = $config['router'] ?? new \Swoolefy\Support\Agent\Router\StaticRouter(array_keys($agents));
+        $timeout = (int) ($config['timeout'] ?? 0);
 
         if (!$scheduler instanceof \Swoolefy\Support\Agent\AgentScheduler) {
             throw new \InvalidArgumentException('addAgentParallel requires scheduler instance');
@@ -225,6 +227,7 @@ final class WorkflowDefinition
             $scheduler,
             $router,
             $agents,
+            $timeout,
         );
 
         return $this->addNode($nodeId, $node);

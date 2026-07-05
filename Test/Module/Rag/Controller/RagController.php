@@ -35,6 +35,7 @@ use Test\Module\Workflow\WorkflowService;
  *   POST /api/v1/rag/retrieve
  *        相似度检索。Body:
  *        { "query": "...", "knowledgeBase": "demo_kb", "topK": 5, "vectorStore": "file" }
+ *        vectorStore 须为 rag.vector_stores 已声明别名，否则 400
  *
  *   POST /api/v1/rag/ask
  *        检索增强问答。Body:

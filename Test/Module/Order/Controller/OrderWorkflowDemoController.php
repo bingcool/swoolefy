@@ -36,7 +36,8 @@ use Test\Module\Workflow\WorkflowService;
  *   启动 Saga 补偿演示（支付后通知失败 → 退款 + 释库存）。
  *
  * GET  /api/v1/order/workflow/status?runId=
- * POST /api/v1/order/workflow/resume  Body: { "runId", "feedback": {"approved":true,"reason":"..."} }
+ * POST /api/v1/order/workflow/resume  Body: { "runId", "feedback" }
+ *   演示专用路径，不经 WorkflowController HITL 鉴权；生产请走 /api/v1/workflow/run/resume。
  */
 final class OrderWorkflowDemoController extends BController
 {

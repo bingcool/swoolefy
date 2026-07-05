@@ -81,6 +81,7 @@ final class WorkflowComponentFactory
             scheduler: new DagScheduler($evaluator),
             runStore: self::runStore($registry, $config, $storeAlias),
             events: $events ?? new StreamWorkflowEventDispatcher(),
+            defaultNodeTimeoutSeconds: $config->defaultNodeTimeoutSeconds(),
         );
     }
 

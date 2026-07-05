@@ -16,6 +16,9 @@ use Swoolefy\Support\Workflow\Engine\StreamWorkflowEventDispatcher;
 use Swoolefy\Support\Workflow\Engine\WorkflowEngine;
 use Swoolefy\Support\Workflow\Engine\WorkflowRun;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
+use Swoolefy\Support\Workflow\Exception\WorkflowPermissionException;
+use Swoolefy\Support\Workflow\WorkflowConfig;
+use Swoolefy\Support\Workflow\WorkflowHitlAuth;
 use Test\Module\Workflow\WorkflowService;
 
 /**
@@ -40,10 +43,15 @@ use Test\Module\Workflow\WorkflowService;
  *
  *   GET  /api/v1/workflow/run/status?runId=
  *   POST /api/v1/workflow/run/resume
- *        Body: { "runId": "...", "feedback": {...} }
+ *        Body: { "runId": "...", "feedback": {...}, "actor": "legal-team" }
+ *        HITL 鉴权（workflow.hitl.auth_enabled）：
+ *          Header X-Workflow-Api-Key 或 Body apiKey
+ *          Header X-Workflow-Role 或 Body role（allowed_roles）
+ *          resume 时 actor/assignee 须匹配任务 assignee（admin 除外）
  *   POST /api/v1/workflow/run/cancel
- *        Body: { "runId": "..." }
+ *        Body: { "runId": "..." } — 同样受 HITL 鉴权保护
  *   GET  /api/v1/workflow/pause/tasks?assignee=
+ *        HITL 鉴权；非 admin 只能查本人 assignee
  *   GET  /api/v1/workflow/run/events?runId=   （SSE 重放当前状态）
  *
  * @see Test\Module\Workflow\README.md
@@ -166,7 +174,10 @@ final class WorkflowController extends BController
      * HITL 恢复：对 WAITING 状态的 Run 提交 feedback 并继续执行。
      *
      * POST /api/v1/workflow/run/resume
-     * Body: { "runId": "...", "feedback": { "approved": true, "reason": "ok" } }
+     * Body: { "runId": "...", "feedback": { "approved": true }, "actor": "legal-team" }
+     *
+     * 鉴权：Header X-Workflow-Api-Key / X-Workflow-Role（或 Body apiKey / role）。
+     * require_assignee_match 时 actor 须与 PauseNode assignee 一致。
      *
      * 典型场景：contract_review 的 legal_review 暂停节点。
      *
@@ -184,11 +195,22 @@ final class WorkflowController extends BController
         }
 
         try {
+            $hitlAuth = new WorkflowHitlAuth(WorkflowConfig::load());
             $engine = WorkflowService::engine(events: new StreamWorkflowEventDispatcher());
+            $run = $engine->getRun($runId);
+            $this->assertHitlAuthorized($hitlAuth, $requestInput);
+            $hitlAuth->assertCanResume(
+                $run,
+                $this->hitlApiKey($requestInput, $hitlAuth),
+                $this->hitlActor($requestInput),
+                $this->hitlRole($requestInput, $hitlAuth),
+            );
             $engine->resume($runId, $feedback);
             $run = $engine->getRun($runId);
 
             return $this->formatRun($run);
+        } catch (WorkflowPermissionException $e) {
+            throw new SystemException($e->getMessage(), 403, $e);
         } catch (WorkflowException $e) {
             throw new SystemException($e->getMessage(), 400, $e);
         }
@@ -200,6 +222,8 @@ final class WorkflowController extends BController
      * POST /api/v1/workflow/run/cancel
      * Body: { "runId": "..." }
      *
+     * 受 HITL 鉴权保护（auth_enabled 时须 API Key 或角色）。
+     *
      * @return array<string, mixed>
      */
     public function cancel(RequestInput $requestInput): array
@@ -210,11 +234,15 @@ final class WorkflowController extends BController
         }
 
         try {
+            $hitlAuth = new WorkflowHitlAuth(WorkflowConfig::load());
+            $this->assertHitlAuthorized($hitlAuth, $requestInput);
             $engine = WorkflowService::engine();
             $engine->cancel($runId);
             $run = $engine->getRun($runId);
 
             return $this->formatRun($run);
+        } catch (WorkflowPermissionException $e) {
+            throw new SystemException($e->getMessage(), 403, $e);
         } catch (WorkflowException $e) {
             throw new SystemException($e->getMessage(), 400, $e);
         }
@@ -225,12 +253,27 @@ final class WorkflowController extends BController
      *
      * GET /api/v1/workflow/pause/tasks?assignee=legal-team
      *
+     * 受 HITL 鉴权保护；非 admin 只能列出 actor 对应 assignee 的任务。
+     *
      * @return array<string, mixed>
      */
     public function pauseTasks(RequestInput $requestInput): array
     {
         $assignee = $requestInput->input('assignee');
         $assignee = is_string($assignee) && $assignee !== '' ? $assignee : null;
+
+        try {
+            $hitlAuth = new WorkflowHitlAuth(WorkflowConfig::load());
+            $this->assertHitlAuthorized($hitlAuth, $requestInput);
+            $hitlAuth->assertCanListTasks(
+                $assignee,
+                $this->hitlApiKey($requestInput, $hitlAuth),
+                $this->hitlActor($requestInput),
+                $this->hitlRole($requestInput, $hitlAuth),
+            );
+        } catch (WorkflowPermissionException $e) {
+            throw new SystemException($e->getMessage(), 403, $e);
+        }
 
         $engine = WorkflowService::engine();
 
@@ -374,5 +417,58 @@ final class WorkflowController extends BController
         $accept = strtolower((string) $requestInput->getHeaderParams('accept', ''));
 
         return str_contains($accept, 'text/event-stream');
+    }
+
+    private function assertHitlAuthorized(WorkflowHitlAuth $hitlAuth, RequestInput $requestInput): void
+    {
+        $hitlAuth->assertAuthorized(
+            $this->hitlApiKey($requestInput, $hitlAuth),
+            $this->hitlRole($requestInput, $hitlAuth),
+        );
+    }
+
+    private function hitlApiKey(RequestInput $requestInput, WorkflowHitlAuth $hitlAuth): ?string
+    {
+        $header = (string) $requestInput->getHeaderParams(WorkflowHitlAuth::DEFAULT_API_KEY_HEADER, '');
+        if ($header !== '') {
+            return $header;
+        }
+
+        $body = $requestInput->input('apiKey');
+        if (is_string($body) && $body !== '') {
+            return $body;
+        }
+
+        return null;
+    }
+
+    private function hitlRole(RequestInput $requestInput, WorkflowHitlAuth $hitlAuth): ?string
+    {
+        $header = (string) $requestInput->getHeaderParams($hitlAuth->roleHeader(), '');
+        if ($header !== '') {
+            return $header;
+        }
+
+        $body = $requestInput->input('role');
+        if (is_string($body) && $body !== '') {
+            return $body;
+        }
+
+        return null;
+    }
+
+    private function hitlActor(RequestInput $requestInput): ?string
+    {
+        $actor = $requestInput->input('actor');
+        if (is_string($actor) && $actor !== '') {
+            return $actor;
+        }
+
+        $assignee = $requestInput->input('assignee');
+        if (is_string($assignee) && $assignee !== '') {
+            return $assignee;
+        }
+
+        return null;
     }
 }

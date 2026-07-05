@@ -328,20 +328,20 @@ Route::group([
     ]);
 
     // POST /api/v1/workflow/run/resume
-    // Body: { "runId": "...", "feedback": {...} }
-    // HITL 恢复（如 contract_review 的 legal_review）
+    // Body: { "runId", "feedback", "actor"? }
+    // HITL 恢复；auth_enabled 时须 Header X-Workflow-Api-Key 或 X-Workflow-Role
     Route::post('/v1/workflow/run/resume', [
         'dispatch_route' => [\Test\Module\Workflow\Controller\WorkflowController::class, 'resume'],
     ]);
 
     // POST /api/v1/workflow/run/cancel
-    // Body: { "runId": "..." } — 标记 Run 为 CANCELLED（不触发 Saga 补偿）
+    // Body: { "runId" } — CANCELLED（不触发 Saga）；受 HITL 鉴权保护
     Route::post('/v1/workflow/run/cancel', [
         'dispatch_route' => [\Test\Module\Workflow\Controller\WorkflowController::class, 'cancel'],
     ]);
 
     // GET /api/v1/workflow/pause/tasks?assignee=legal-team
-    // 列出 HITL 暂停任务（可按处理人过滤）
+    // HITL 暂停任务列表；auth_enabled 时须鉴权 Header
     Route::get('/v1/workflow/pause/tasks', [
         'dispatch_route' => [\Test\Module\Workflow\Controller\WorkflowController::class, 'pauseTasks'],
     ]);
@@ -356,12 +356,12 @@ Route::group([
     // MCP 模块 — MCP Server / Tools 探查
     // -----------------------------------------------------------------------
 
-    // GET /api/v1/mcp/servers — 列出已配置的 MCP Server
+    // GET /api/v1/mcp/servers?tenantId= — 列出 MCP Server（tenantId 或 FrameworkContext）
     Route::get('/v1/mcp/servers', [
         'dispatch_route' => [\Test\Module\Mcp\Controller\McpController::class, 'servers'],
     ]);
 
-    // GET /api/v1/mcp/servers/{id}/tools — 列出指定 Server 的 Tools
+    // GET /api/v1/mcp/servers/{id}/tools?tenantId= — 发现 Tools
     Route::get('/v1/mcp/servers/{id}/tools', [
         'dispatch_route' => [\Test\Module\Mcp\Controller\McpController::class, 'tools'],
     ]);

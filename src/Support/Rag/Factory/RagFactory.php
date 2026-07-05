@@ -41,7 +41,7 @@ final class RagFactory
         return $this->vectorStoreFactory->make($knowledgeBase, $topK, $storeAlias);
     }
 
-    /** 获取 Embeddings 提供者（生产 OpenAI-like，无 key 时 FakeEmbeddings）。 */
+    /** 获取 Embeddings 提供者（无 Key 时 fail-fast；单测可 rag.allow_fake_embeddings）。 */
     public function embeddings(): EmbeddingsProviderInterface
     {
         return $this->embeddingFactory->make();

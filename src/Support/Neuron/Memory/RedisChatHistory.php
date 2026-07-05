@@ -7,6 +7,7 @@ namespace Swoolefy\Support\Neuron\Memory;
 use NeuronAI\Chat\History\InMemoryChatHistory;
 use NeuronAI\Chat\Messages\Message;
 use Swoolefy\Library\Redis\RedisConnection;
+use Swoolefy\Support\SupportLog;
 use Throwable;
 
 /**
@@ -65,7 +66,11 @@ final class RedisChatHistory extends InMemoryChatHistory implements HotChatHisto
             } else {
                 $this->redis->del([$this->redisKey()]);
             }
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            SupportLog::warning('chat_history', 'Failed to clear Redis chat history', [
+                'threadId' => $this->threadId,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 
@@ -74,7 +79,12 @@ final class RedisChatHistory extends InMemoryChatHistory implements HotChatHisto
     {
         try {
             $raw = $this->redis->get($this->redisKey());
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            SupportLog::warning('chat_history', 'Failed to hydrate Redis chat history', [
+                'threadId' => $this->threadId,
+                'error' => $e->getMessage(),
+            ]);
+
             return;
         }
 
@@ -100,7 +110,11 @@ final class RedisChatHistory extends InMemoryChatHistory implements HotChatHisto
             } else {
                 $this->redis->set($this->redisKey(), $payload);
             }
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            SupportLog::warning('chat_history', 'Failed to persist Redis chat history', [
+                'threadId' => $this->threadId,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 

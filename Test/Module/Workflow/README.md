@@ -59,6 +59,22 @@ Workflow/
 | GET | `/api/v1/workflow/pause/tasks?assignee=` | 暂停任务列表 |
 | GET | `/api/v1/workflow/run/events?runId=` | SSE 推送当前状态 |
 
+### HITL 鉴权（`workflow.hitl.auth_enabled=true` 时）
+
+以下接口须携带 **API Key** 或 **角色**（满足其一即可）：
+
+| 方式 | 字段 |
+|------|------|
+| Header | `X-Workflow-Api-Key: <api_key>` |
+| Header | `X-Workflow-Role: operator`（或 `admin` 等 `allowed_roles`） |
+| Body | `apiKey` / `role` |
+
+**resume** 额外要求（`require_assignee_match=true` 时）：Body 提供 `actor` 或 `assignee`，须与暂停任务 assignee 一致；`admin` 角色可跨 assignee。
+
+**pause/tasks**：非 admin 查询他人 assignee 会被拒绝；未传 `assignee` 时须提供 `actor`。
+
+Test 环境默认 `auth_enabled=false`；生产请设 `WORKFLOW_HITL_AUTH_ENABLED=1` 与强 `WORKFLOW_HITL_API_KEY`。
+
 ---
 
 ## curl 示例
@@ -153,19 +169,22 @@ curl -s -X POST 'http://127.0.0.1:9501/api/v1/workflow/run' \
   }' | jq .
 ```
 
-查看暂停任务：
+查看暂停任务（生产环境须鉴权 Header）：
 
 ```bash
-curl -s 'http://127.0.0.1:9501/api/v1/workflow/pause/tasks?assignee=legal-team' | jq .
+curl -s 'http://127.0.0.1:9501/api/v1/workflow/pause/tasks?assignee=legal-team' \
+  -H 'X-Workflow-Api-Key: test-hitl-key' | jq .
 ```
 
-法务通过：
+法务通过（`actor` 须匹配 assignee `legal-team`，或使用 `admin` 角色）：
 
 ```bash
 curl -s -X POST 'http://127.0.0.1:9501/api/v1/workflow/run/resume' \
   -H 'Content-Type: application/json' \
+  -H 'X-Workflow-Api-Key: test-hitl-key' \
   -d '{
     "runId": "<runId>",
+    "actor": "legal-team",
     "feedback": { "approved": true, "reason": "ok" }
   }' | jq .
 ```
@@ -175,6 +194,7 @@ curl -s -X POST 'http://127.0.0.1:9501/api/v1/workflow/run/resume' \
 ```bash
 curl -s -X POST 'http://127.0.0.1:9501/api/v1/workflow/run/resume' \
   -H 'Content-Type: application/json' \
+  -H 'X-Workflow-Role: admin' \
   -d '{
     "runId": "<runId>",
     "feedback": { "approved": false, "reason": "need clause update" }

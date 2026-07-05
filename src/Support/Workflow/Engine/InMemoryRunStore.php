@@ -19,10 +19,31 @@ final class InMemoryRunStore implements RunStoreInterface, PauseTaskQueryableInt
     /** @var array<string, WorkflowRun> runId => 快照 */
     private array $runs = [];
 
+    /** @var array<string, RunStatus> runId => 上次持久化时的 status（CAS 用） */
+    private array $persistedStatus = [];
+
     /** {@inheritdoc} 覆盖写入，保留同一 runId 最新状态。 */
     public function save(WorkflowRun $run): void
     {
         $this->runs[$run->runId] = $run;
+        $this->persistedStatus[$run->runId] = $run->status;
+    }
+
+    /** {@inheritdoc} */
+    public function saveIfStatus(WorkflowRun $run, RunStatus $expectedStatus): bool
+    {
+        if (!isset($this->runs[$run->runId])) {
+            return false;
+        }
+
+        if (($this->persistedStatus[$run->runId] ?? null) !== $expectedStatus) {
+            return false;
+        }
+
+        $this->runs[$run->runId] = $run;
+        $this->persistedStatus[$run->runId] = $run->status;
+
+        return true;
     }
 
     /** {@inheritdoc} */

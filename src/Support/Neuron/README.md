@@ -1,6 +1,6 @@
 # Neuron 基础设施（LLM / 记忆 / Embedding / HTTP）
 
-封装 [Neuron AI](https://docs.neuron-ai.dev/) 在 Swoolefy 中的装配：Provider 工厂、会话记忆、协程 HTTP、Embedding。
+封装 [Neuron AI](https://docs.neuron-ai.dev/) 在 Swoolefy 中的装配：Provider 工厂、会话记忆、协程 HTTP、Embedding、出站 URL 校验。
 
 - 配置：`Config/neuron_ai.php`（模版 `src/Stubs/neuron_ai.conf.stub.php`，`create` 命令自动复制）
 - 架构设计：[swoolefyAI.md](../../../docs/swoolefyAI.md) §4.7
@@ -38,12 +38,18 @@ Neuron/
       └─ ChatHistoryFactory::inMemory() | sql() | redis() | file()
 
 NeuronFactory::create / boot
-  ├─ applyProvider（节点 provider 别名或 default）
+  ├─ applyProvider（节点 provider 别名或 default；baseUri 经 OutboundUrlGuard）
   ├─ setChatHistory（仅当 nodeConfig['chatHistory'] 显式传入）
-  └─ addTool（mcpServers）
+  └─ addTool（mcpServers + tenantId / FrameworkContext）
 ```
 
-会话记忆由 **Agent 自身** 在 `chatHistory()` 中声明，扩展性更强，与 [Neuron 官方模式](https://docs.neuron-ai.dev/agent/chat-history-and-memory) 一致。
+会话记忆由 **Agent 自身** 在 `chatHistory()` 中声明。Redis / SQL 后端连接失败会写入 `SupportLog`。
+
+### Embedding（Phase A）
+
+`rag.embedding_dimension` 须与各 `vector_stores.*.dimension` 一致。生产环境须配置 API Key；未配置且 `allow_fake_embeddings=false` 时 `EmbeddingFactory::make()` **fail-fast** 抛错。
+
+本地 / 单测可设 `NEURON_ALLOW_FAKE_EMBEDDINGS=1` 或配置 `allow_fake_embeddings: true`（使用 FakeEmbeddingsProvider，维度与 `embedding_dimension` 对齐）。
 
 ---
 
@@ -127,10 +133,27 @@ $agent = $factory->create(ChatAgent::class, $state, ['provider' => 'openai']);
 $agent = $factory->boot(new ChatAgent($threadId, $pdo), ['provider' => 'deepseek']);
 ```
 
+节点 MCP 工具加载时，`NeuronFactory` 会将 `tenantId`（节点 config 或 `FrameworkContext::getTenantId()`）传给 `McpFactory`。
+
+---
+
+## 安全与启动检查（Phase B）
+
+`neuron_ai.php` → `security`：
+
+| 配置 | 说明 |
+|------|------|
+| `outbound_url_allowlist` | LLM Provider `baseUri` 与 MCP `url` 的 host 后缀白名单 |
+| `allow_private_networks` | 是否允许指向私网 / loopback（默认 false） |
+
+部署前调用 `Swoolefy\Support\ProductionHealthCheck::run()` 校验 Embedding、向量库别名、出站 URL 等。
+
 ---
 
 ## 运行测试
 
 ```bash
 composer test:neuron
+composer test:phase-a
+composer test:phase-b
 ```

@@ -101,6 +101,41 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
     }
 
     /** {@inheritdoc} */
+    public function saveIfStatus(WorkflowRun $run, RunStatus $expectedStatus): bool
+    {
+        $this->ensureSchema();
+
+        $snapshot = WorkflowRunSnapshot::fromRun($run)->toArray();
+        $payload = json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        $assignee = $this->resolveAssignee($run);
+        $driver = (string) $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+        $sql = $this->updateIfStatusSql($driver);
+
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
+                ':run_id' => $run->runId,
+                ':workflow_id' => $run->compiled->workflowId(),
+                ':version' => $run->compiled->version(),
+                ':status' => $run->status->value,
+                ':pause_node_id' => $run->pauseNodeId,
+                ':assignee' => $assignee,
+                ':payload' => $payload,
+                ':updated_at' => $run->updatedAt,
+                ':expected_status' => $expectedStatus->value,
+            ]);
+
+            return $stmt->rowCount() > 0;
+        } catch (Throwable $e) {
+            throw new WorkflowException(
+                'Failed to CAS persist workflow run [' . $run->runId . ']: ' . $e->getMessage(),
+                0,
+                $e,
+            );
+        }
+    }
+
+    /** {@inheritdoc} */
     public function find(string $runId): ?WorkflowRun
     {
         $this->ensureSchema();
@@ -215,6 +250,33 @@ final class DbRunStore implements RunStoreInterface, PauseTaskQueryableInterface
                 assignee = VALUES(assignee),
                 payload = VALUES(payload),
                 updated_at = VALUES(updated_at)";
+    }
+
+    private function updateIfStatusSql(string $driver): string
+    {
+        $table = $this->table;
+
+        if ($driver === 'sqlite') {
+            return "UPDATE {$table} SET
+                workflow_id = :workflow_id,
+                version = :version,
+                status = :status,
+                pause_node_id = :pause_node_id,
+                assignee = :assignee,
+                payload = :payload,
+                updated_at = :updated_at
+                WHERE run_id = :run_id AND status = :expected_status";
+        }
+
+        return "UPDATE `{$table}` SET
+            workflow_id = :workflow_id,
+            version = :version,
+            status = :status,
+            pause_node_id = :pause_node_id,
+            assignee = :assignee,
+            payload = :payload,
+            updated_at = :updated_at
+            WHERE run_id = :run_id AND status = :expected_status";
     }
 
     private function ensureSchema(): void

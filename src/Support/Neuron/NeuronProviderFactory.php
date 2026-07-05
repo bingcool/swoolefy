@@ -121,6 +121,11 @@ final class NeuronProviderFactory
             return null;
         }
 
+        $baseUri = $params['baseUri'] ?? $params['base_uri'] ?? null;
+        if (is_string($baseUri) && $baseUri !== '') {
+            $this->neuronConfig()->outboundUrlGuard()->assertAllowed($baseUri, 'provider:' . $class);
+        }
+
         $params = $this->injectHttpClient($class, $params);
 
         return $this->instantiate($class, $params);

@@ -21,8 +21,11 @@ return [
         // 环境变量 RAG_VECTOR_STORE 可覆盖。业务可在 Node/Factory 传入其它别名覆盖默认。
         'default_vector_store' => NeuronAiVectorStoreName::FILE,
         'default_top_k' => 5,
-        // 须与下方各向量库 dimension 一致（如 text-embedding-3-small => 1536）
+        // 须与 embedding_dimension 及各 vector_stores.*.dimension 一致
         'embedding_model' => 'text-embedding-3-small',
+        'embedding_dimension' => (int) env('RAG_EMBEDDING_DIMENSION', 1536),
+        // 生产 false；本地单测可 NEURON_ALLOW_FAKE_EMBEDDINGS=1
+        'allow_fake_embeddings' => filter_var(env('NEURON_ALLOW_FAKE_EMBEDDINGS', '0'), FILTER_VALIDATE_BOOLEAN),
         // 已声明的向量库表：key = 别名；可选 driver（缺省时别名即驱动类型 NeuronAiVectorStoreName::*）
         // 业务指定：VectorStoreFactory::make($kb, storeAlias: 'milvus') 或节点配置 vectorStore
         'vector_stores' => [
@@ -77,6 +80,18 @@ return [
     ],
     'mcp' => [
         'max_local_processes' => 2,
+        // 生产默认禁用 stdio MCP；开发可 MCP_ALLOW_STDIO=1 + allowlist
+        'allow_stdio' => filter_var(env('MCP_ALLOW_STDIO', '0'), FILTER_VALIDATE_BOOLEAN),
+        'stdio_command_allowlist' => ['npx', 'node', 'uvx'],
+    ],
+    'security' => [
+        // 出站 URL host 后缀白名单；空数组时仅拦截私网/loopback
+        'outbound_url_allowlist' => [
+            'api.openai.com',
+            'api.deepseek.com',
+            'localhost',
+        ],
+        'allow_private_networks' => filter_var(env('NEURON_ALLOW_PRIVATE_NETWORKS', '0'), FILTER_VALIDATE_BOOLEAN),
     ],
     'neuron' => [
         'http_client' => 'swoole', // swoole | guzzle

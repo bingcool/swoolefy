@@ -39,13 +39,15 @@ function makeRagFactory(?string $basePath = null): RagFactory
             'default_vector_store' => NeuronAiVectorStoreName::FILE,
             'default_top_k' => 5,
             'embedding_model' => 'text-embedding-3-small',
+            'embedding_dimension' => 1536,
+            'allow_fake_embeddings' => true,
             'vector_stores' => [
                 NeuronAiVectorStoreName::FILE => ['path' => $path],
             ],
         ],
     ]);
 
-    return new RagFactory(new VectorStoreFactory($config, $path), new EmbeddingFactory());
+    return new RagFactory(new VectorStoreFactory($config, $path), new EmbeddingFactory($config));
 }
 
 function testVectorStoreFactoryFileMode(): void
@@ -177,6 +179,45 @@ function testMilvusVectorStoreMakeParams(): void
     assertTrue($store->getCollectionName() === 'kb_test', 'collection name');
 }
 
+function testVectorStoreUnknownAliasThrows(): void
+{
+    $path = sys_get_temp_dir() . '/swoolefy_rag_unknown_' . getmypid();
+    $config = NeuronAiConfig::fromArray([
+        'rag' => [
+            'default_vector_store' => NeuronAiVectorStoreName::FILE,
+            'vector_stores' => [
+                NeuronAiVectorStoreName::FILE => ['path' => $path],
+            ],
+        ],
+    ]);
+    $factory = new VectorStoreFactory($config, $path);
+
+    try {
+        $factory->make('kb', storeAlias: 'missing_alias');
+        assertTrue(false, 'should throw');
+    } catch (RuntimeException $e) {
+        assertTrue(str_contains($e->getMessage(), 'Unknown vector store alias'), 'unknown alias message');
+    }
+}
+
+function testVectorStoreUnknownDefaultAliasThrows(): void
+{
+    $config = NeuronAiConfig::fromArray([
+        'rag' => [
+            'default_vector_store' => 'not_declared',
+            'vector_stores' => [],
+        ],
+    ]);
+    $factory = new VectorStoreFactory($config);
+
+    try {
+        $factory->make('kb');
+        assertTrue(false, 'should throw');
+    } catch (RuntimeException $e) {
+        assertTrue(str_contains($e->getMessage(), 'Unknown vector store alias'), 'default alias message');
+    }
+}
+
 function testMilvusConfigSectionInNeuronAiConfig(): void
 {
     $config = NeuronAiConfig::fromArray([
@@ -213,6 +254,8 @@ $tests = [
     'rag factory retrieval' => 'testRagFactoryRetrievalInterface',
     'milvus make params' => 'testMilvusVectorStoreMakeParams',
     'milvus config section' => 'testMilvusConfigSectionInNeuronAiConfig',
+    'unknown vector store alias throws' => 'testVectorStoreUnknownAliasThrows',
+    'unknown default alias throws' => 'testVectorStoreUnknownDefaultAliasThrows',
 ];
 
 $passed = 0;

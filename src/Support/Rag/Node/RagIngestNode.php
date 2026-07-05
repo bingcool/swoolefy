@@ -64,23 +64,7 @@ final class RagIngestNode extends AbstractNode
             ]);
         }
 
-        // 大批量 + 异步开关：仅返回 jobId，实际入库由 AsyncTask Worker 完成（Phase 4 预留扩展点）
-        if (count($texts) >= $asyncThreshold && $this->shouldDeferAsync()) {
-            $jobId = 'ingest_' . bin2hex(random_bytes(6));
-            $state->set('ingestJobId', $jobId);
-
-            return NodeExecutionResult::success([
-                'ingestJobId' => $jobId,
-                'async' => true,
-                'pendingCount' => count($texts),
-                'knowledgeBase' => $knowledgeBase,
-            ], events: ['rag.ingest.queued' => [
-                'runId' => $ctx->runId,
-                'jobId' => $jobId,
-                'knowledgeBase' => $knowledgeBase,
-            ]]);
-        }
-
+        // 异步入库尚未实现 Worker；大批量始终走同步 ingest
         $documents = StringDocumentLoader::fromTexts($texts);
         $result = $this->pipeline->ingest($knowledgeBase, $documents, $storeAlias);
         $state->set('ingestedCount', $result->documentCount);
@@ -120,16 +104,6 @@ final class RagIngestNode extends AbstractNode
         }
 
         return $texts;
-    }
-
-    /**
-     * 是否走异步入库路径。
-     *
-     * 环境变量 RAG_INGEST_ASYNC=1 启用；CLI 单测默认同步以保证可重复断言。
-     */
-    private function shouldDeferAsync(): bool
-    {
-        return filter_var(getenv('RAG_INGEST_ASYNC') ?: '0', FILTER_VALIDATE_BOOLEAN);
     }
 
     /** 业务指定的向量库别名；未配置时返回 null（走 default_vector_store）。 */

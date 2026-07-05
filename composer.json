@@ -66,19 +66,24 @@
             "@php src/Support/Workflow/Tests/WorkflowPhase3Test.php",
             "@php src/Support/Workflow/Tests/WorkflowPhase4Test.php",
             "@php src/Support/Workflow/Tests/WorkflowIntegrationTest.php",
-            "@php src/Support/Workflow/Tests/WorkflowRunStoreTest.php"
+            "@php src/Support/Workflow/Tests/WorkflowRunStoreTest.php",
+            "@php src/Support/Workflow/Tests/WorkflowHitlAuthTest.php"
         ],
         "test:agent": "@php src/Support/Agent/Tests/AgentModuleTest.php",
         "test:ai": "@php src/Support/AI/Tests/AIModuleTest.php",
         "test:mcp": "@php src/Support/Mcp/Tests/McpModuleTest.php",
         "test:neuron": "@php src/Support/Neuron/Tests/NeuronModuleTest.php",
         "test:rag": "@php src/Support/Rag/Tests/RagModuleTest.php",
+        "test:phase-a": "@php src/Support/Tests/PhaseAProductionTest.php",
+        "test:phase-b": "@php src/Support/Tests/PhaseBProductionTest.php",
         "test:support": [
             "@test:agent",
             "@test:ai",
             "@test:mcp",
             "@test:neuron",
             "@test:rag",
+            "@test:phase-a",
+            "@test:phase-b",
             "@test:workflow"
         ]
     },

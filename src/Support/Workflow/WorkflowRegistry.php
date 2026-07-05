@@ -10,42 +10,82 @@ use Swoolefy\Support\Workflow\Definition\WorkflowDefinition;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 
 /**
- * 工作流定义注册表 —— HTTP API 按 workflowId 解析 Definition / CompiledWorkflow。
+ * 工作流定义注册表 —— 支持 workflowId + version 多版本。
  *
- * 典型用法：
- *   $registry->register('order_processing', fn () => OrderProcessingWorkflow::definition());
- *   $compiled = $registry->compiled('order_processing');
- *   $engine->start($compiled, $input);
+ * register() 注册最新版本并索引 version；
+ * registerVersion() 仅注册历史版本（不改变 latest）。
  */
 final class WorkflowRegistry
 {
-    /** @var array<string, callable(): WorkflowDefinition> */
+    /** @var array<string, callable(): WorkflowDefinition> workflowId => latest factory */
     private array $factories = [];
 
-    /** @var array<string, CompiledWorkflow> */
+    /** @var array<string, array<string, callable(): WorkflowDefinition>> workflowId => version => factory */
+    private array $versionedFactories = [];
+
+    /** @var array<string, CompiledWorkflow> cacheKey => compiled */
     private array $compiledCache = [];
 
     /**
-     * 注册工作流工厂（惰性：首次 compiled/definition 时才构建 Definition）。
+     * 注册工作流工厂（作为 latest，并按 Definition.version 建立版本索引）。
      *
      * @param callable(): WorkflowDefinition $factory
      */
     public function register(string $workflowId, callable $factory): void
     {
+        $definition = $factory();
+        if ($definition->id() !== $workflowId) {
+            throw new WorkflowException("Workflow factory returned mismatched id {$definition->id()}");
+        }
+
+        $version = $definition->version();
         $this->factories[$workflowId] = $factory;
-        // 定义变更后清除旧编译缓存，避免返回过期 DAG。
-        unset($this->compiledCache[$workflowId]);
+        $this->versionedFactories[$workflowId][$version] = $factory;
+        $this->clearCompiledCacheFor($workflowId);
     }
 
-    /** 是否已注册指定 workflowId。 */
+    /**
+     * 注册指定历史版本（不改变 latest）。
+     *
+     * @param callable(): WorkflowDefinition $factory
+     */
+    public function registerVersion(string $workflowId, string $version, callable $factory): void
+    {
+        $definition = $factory();
+        if ($definition->id() !== $workflowId) {
+            throw new WorkflowException("Workflow factory returned mismatched id {$definition->id()}");
+        }
+        if ($definition->version() !== $version) {
+            throw new WorkflowException(
+                "Workflow factory version {$definition->version()} does not match registered version {$version}",
+            );
+        }
+
+        $this->versionedFactories[$workflowId][$version] = $factory;
+        unset($this->compiledCache[$this->cacheKey($workflowId, $version)]);
+    }
+
+    /** 是否已注册指定 workflowId（任意版本 / latest）。 */
     public function has(string $workflowId): bool
     {
         return isset($this->factories[$workflowId]);
     }
 
+    /** 是否已注册指定 workflowId + version。 */
+    public function hasVersion(string $workflowId, string $version): bool
+    {
+        return isset($this->versionedFactories[$workflowId][$version]);
+    }
+
     /**
-     * 已注册的 workflowId 列表（按注册顺序）。
-     *
+     * @return list<string>
+     */
+    public function versions(string $workflowId): array
+    {
+        return array_keys($this->versionedFactories[$workflowId] ?? []);
+    }
+
+    /**
      * @return list<string>
      */
     public function ids(): array
@@ -54,47 +94,91 @@ final class WorkflowRegistry
     }
 
     /**
-     * 获取原始 Definition（每次调用工厂，不走编译缓存）。
-     *
-     * @throws WorkflowException 未注册或工厂返回的 id 与注册键不一致
+     * @throws WorkflowException
      */
-    public function definition(string $workflowId): WorkflowDefinition
+    public function definition(string $workflowId, ?string $version = null): WorkflowDefinition
     {
-        $factory = $this->factories[$workflowId] ?? null;
-        if ($factory === null) {
-            throw new WorkflowException("Workflow {$workflowId} is not registered");
-        }
-
+        $factory = $this->resolveFactory($workflowId, $version);
         $definition = $factory();
         if ($definition->id() !== $workflowId) {
             throw new WorkflowException("Workflow factory returned mismatched id {$definition->id()}");
+        }
+        if ($version !== null && $definition->version() !== $version) {
+            throw new WorkflowException(
+                "Workflow {$workflowId} factory version {$definition->version()} != requested {$version}",
+            );
         }
 
         return $definition;
     }
 
     /**
-     * 获取编译后的只读 DAG（带缓存）。
-     *
-     * @throws WorkflowException 未注册或编译失败
+     * @throws WorkflowException
      */
-    public function compiled(string $workflowId, ?WorkflowCompiler $compiler = null): CompiledWorkflow
-    {
-        $cacheKey = $workflowId;
+    public function compiled(
+        string $workflowId,
+        ?string $version = null,
+        ?WorkflowCompiler $compiler = null,
+    ): CompiledWorkflow {
+        $resolvedVersion = $version ?? $this->latestVersion($workflowId);
+        $cacheKey = $this->cacheKey($workflowId, $resolvedVersion);
         if (isset($this->compiledCache[$cacheKey])) {
             return $this->compiledCache[$cacheKey];
         }
 
         $compiler ??= WorkflowBootstrap::compiler();
-        $compiled = $compiler->compile($this->definition($workflowId));
+        $compiled = $compiler->compile($this->definition($workflowId, $resolvedVersion));
         $this->compiledCache[$cacheKey] = $compiled;
 
         return $compiled;
     }
 
-    /** 清空编译缓存（测试 reset 或热更新定义时调用）。 */
     public function clearCompiledCache(): void
     {
         $this->compiledCache = [];
+    }
+
+    /** @throws WorkflowException */
+    public function latestVersion(string $workflowId): string
+    {
+        if (!isset($this->factories[$workflowId])) {
+            throw new WorkflowException("Workflow {$workflowId} is not registered");
+        }
+
+        return $this->factories[$workflowId]()->version();
+    }
+
+    /** @throws WorkflowException */
+    private function resolveFactory(string $workflowId, ?string $version): callable
+    {
+        if ($version === null) {
+            $factory = $this->factories[$workflowId] ?? null;
+            if ($factory === null) {
+                throw new WorkflowException("Workflow {$workflowId} is not registered");
+            }
+
+            return $factory;
+        }
+
+        $factory = $this->versionedFactories[$workflowId][$version] ?? null;
+        if ($factory === null) {
+            throw new WorkflowException("Workflow {$workflowId} version {$version} is not registered");
+        }
+
+        return $factory;
+    }
+
+    private function cacheKey(string $workflowId, string $version): string
+    {
+        return $workflowId . '@' . $version;
+    }
+
+    private function clearCompiledCacheFor(string $workflowId): void
+    {
+        foreach (array_keys($this->compiledCache) as $key) {
+            if (str_starts_with($key, $workflowId . '@')) {
+                unset($this->compiledCache[$key]);
+            }
+        }
     }
 }

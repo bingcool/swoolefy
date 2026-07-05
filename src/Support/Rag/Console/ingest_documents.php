@@ -13,6 +13,8 @@ declare(strict_types=1);
  */
 
 use Swoolefy\Support\Neuron\Embedding\EmbeddingFactory;
+use Swoolefy\Support\Neuron\NeuronAiConfig;
+use Swoolefy\Support\Neuron\NeuronAiVectorStoreName;
 use Swoolefy\Support\Rag\Factory\RagFactory;
 use Swoolefy\Support\Rag\Factory\VectorStoreFactory;
 use Swoolefy\Support\Rag\Ingestion\FileDocumentLoader;
@@ -40,7 +42,22 @@ function parseArgs(array $argv): array
 $opts = parseArgs($argv);
 $kb = (string) $opts['kb'];
 
-$ragFactory = new RagFactory(VectorStoreFactory::fromEnv(), new EmbeddingFactory());
+$config = NeuronAiConfig::load();
+if ($config->vectorStores() === []) {
+    $basePath = (string) (getenv('RAG_FILE_STORE_PATH') ?: sys_get_temp_dir() . '/swoolefy_rag');
+    $config = NeuronAiConfig::fromArray([
+        'rag' => [
+            'default_vector_store' => NeuronAiVectorStoreName::FILE,
+            'embedding_dimension' => 1536,
+            'allow_fake_embeddings' => filter_var(getenv('NEURON_ALLOW_FAKE_EMBEDDINGS') ?: '0', FILTER_VALIDATE_BOOLEAN),
+            'vector_stores' => [
+                NeuronAiVectorStoreName::FILE => ['path' => $basePath],
+            ],
+        ],
+    ]);
+}
+
+$ragFactory = new RagFactory(new VectorStoreFactory($config), new EmbeddingFactory($config));
 $pipeline = new IngestionPipeline($ragFactory);
 
 if (is_string($opts['path']) && $opts['path'] !== '') {
