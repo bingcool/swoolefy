@@ -28,6 +28,7 @@ use Swoolefy\Support\Workflow\WorkflowComponentFactory;
 use Swoolefy\Support\Workflow\WorkflowConfig;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
 use Swoolefy\Support\Workflow\WorkflowRunStoreName;
+use Swoolefy\Support\Workflow\Tests\WorkflowRunsSchemaInstaller;
 use NeuronAI\Providers\Anthropic\Anthropic;
 use Swoolefy\Support\Neuron\NeuronAiProviderName;
 use Swoolefy\Support\Neuron\NeuronProviderFactory;
@@ -184,11 +185,11 @@ function testDbRunStorePersistence(): void
     ));
 
     $pdo = new PDO('sqlite::memory:');
+    WorkflowRunsSchemaInstaller::install($pdo);
     $store = new \Swoolefy\Support\Workflow\Engine\DbRunStore(
         $pdo,
         $registry,
         'workflow_runs',
-        autoMigrate: true,
     );
 
     $engine = new WorkflowEngine(

@@ -20,8 +20,8 @@ final class WorkflowRun
         public readonly CompiledWorkflow $compiled,
         public RunStatus $status,
         public WorkflowState $state,
-        public readonly int $createdAt,
-        public int $updatedAt,
+        public readonly string $createdAt,
+        public string $updatedAt,
         /** 当前正在执行的节点 id。 */
         public ?string $currentNodeId = null,
         /** WAITING 时暂停所在的节点 id。 */

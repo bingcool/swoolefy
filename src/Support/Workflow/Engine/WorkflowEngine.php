@@ -60,9 +60,9 @@ final class WorkflowEngine
      */
     public function start(CompiledWorkflow $compiled, array $input): string
     {
-        $runId = $this->generateRunId();
+        $runId = WorkflowRunTime::generateRunId();
         $state = WorkflowState::fromInput($input, $compiled->schemas());
-        $now = time();
+        $now = WorkflowRunTime::now();
 
         $run = new WorkflowRun(
             runId: $runId,
@@ -87,7 +87,7 @@ final class WorkflowEngine
         if ($run->status === RunStatus::RUNNING) {
             $run->status = RunStatus::COMPLETED;
             $run->currentNodeId = null;
-            $run->updatedAt = time();
+            $run->updatedAt = WorkflowRunTime::now();
             $this->runStore->save($run);
         }
 
@@ -121,7 +121,7 @@ final class WorkflowEngine
 
         $run->state->mergeData(['feedback' => $feedback]);
         $run->status = RunStatus::RUNNING;
-        $run->updatedAt = time();
+        $run->updatedAt = WorkflowRunTime::now();
 
         // CAS：仅当持久化层仍为 WAITING 时才接受本次 resume
         if (!$this->runStore->saveIfStatus($run, RunStatus::WAITING)) {
@@ -160,7 +160,7 @@ final class WorkflowEngine
         if ($run->status === RunStatus::RUNNING) {
             $run->status = RunStatus::COMPLETED;
             $run->currentNodeId = null;
-            $run->updatedAt = time();
+            $run->updatedAt = WorkflowRunTime::now();
             $this->runStore->save($run);
         }
 
@@ -192,7 +192,7 @@ final class WorkflowEngine
             );
         }
 
-        $run->updatedAt = time();
+        $run->updatedAt = WorkflowRunTime::now();
 
         if ($run->status === RunStatus::WAITING) {
             $run->status = RunStatus::CANCELLED;
@@ -284,7 +284,7 @@ final class WorkflowEngine
             }
 
             $run->currentNodeId = $current;
-            $run->updatedAt = time();
+            $run->updatedAt = WorkflowRunTime::now();
             $this->runStore->save($run);
 
             $result = $this->executeNode($run, $node);
@@ -293,7 +293,7 @@ final class WorkflowEngine
                 $this->persistNodeOutput($run->state, $current, $result);
                 $run->status = RunStatus::WAITING;
                 $run->pauseNodeId = $current;
-                $run->updatedAt = time();
+                $run->updatedAt = WorkflowRunTime::now();
                 $this->runStore->save($run);
                 $this->plugins->firePause($run, $node);
 
@@ -434,12 +434,6 @@ final class WorkflowEngine
         return $run;
     }
 
-    /** 生成唯一 runId。 */
-    private function generateRunId(): string
-    {
-        return 'run_' . bin2hex(random_bytes(8));
-    }
-
     /**
      * 节点 FAILED 处理：写 error，可选触发 Saga 补偿后抛 WorkflowException。
      *
@@ -449,7 +443,7 @@ final class WorkflowEngine
     {
         $message = $result->error?->getMessage() ?? 'Node failed';
         $run->error = "Node {$nodeId} failed: {$message}";
-        $run->updatedAt = time();
+        $run->updatedAt = WorkflowRunTime::now();
 
         if ($this->isSagaEnabled($run)) {
             $this->runCompensation($run);
@@ -474,7 +468,7 @@ final class WorkflowEngine
         if ($run->error === null) {
             $run->error = $e->getMessage();
         }
-        $run->updatedAt = time();
+        $run->updatedAt = WorkflowRunTime::now();
         $this->runStore->save($run);
         $this->plugins->fireRunComplete($run);
     }
@@ -498,7 +492,7 @@ final class WorkflowEngine
             $run->error = ($run->error ?? '') . ' | compensation: ' . $e->getMessage();
         }
 
-        $run->updatedAt = time();
+        $run->updatedAt = WorkflowRunTime::now();
         $this->runStore->save($run);
     }
 
@@ -525,7 +519,7 @@ final class WorkflowEngine
 
         if ($fresh->status === RunStatus::CANCELLED) {
             $run->status = RunStatus::CANCELLED;
-            $run->updatedAt = time();
+            $run->updatedAt = WorkflowRunTime::now();
             $this->runStore->save($run);
             $this->plugins->fireRunComplete($run);
 
@@ -534,7 +528,7 @@ final class WorkflowEngine
 
         if ($fresh->state->get('_cancelRequested', false)) {
             $run->status = RunStatus::CANCELLED;
-            $run->updatedAt = time();
+            $run->updatedAt = WorkflowRunTime::now();
             $this->runStore->save($run);
             $this->plugins->fireRunComplete($run);
 

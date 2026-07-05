@@ -20,6 +20,7 @@ use Swoolefy\Support\ProductionHealthCheck;
 use Swoolefy\Support\Security\OutboundUrlGuard;
 use Swoolefy\Support\Workflow\Definition\WorkflowDefinition;
 use Swoolefy\Support\Workflow\Engine\WorkflowRunSnapshot;
+use Swoolefy\Support\Workflow\Engine\WorkflowRunTime;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\Node\ClosureNode;
 use Swoolefy\Support\Workflow\Engine\NodeExecutionResult;
@@ -80,8 +81,8 @@ function testSnapshotRejectsMissingVersion(): void
         'version' => '9.9.9',
         'status' => 'waiting',
         'state' => [],
-        'createdAt' => time(),
-        'updatedAt' => time(),
+        'createdAt' => WorkflowRunTime::now(),
+        'updatedAt' => WorkflowRunTime::now(),
     ]);
 
     try {

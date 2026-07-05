@@ -224,9 +224,28 @@ use Swoolefy\Support\Workflow\WorkflowRunStoreName;
 | `db` | `DbRunStore` | 生产可查询：跨 Worker、按 status/assignee 索引、易备份审计 |
 
 - Redis：`WorkflowRedisResolver` → `cache.php` 组件
-- DB：`WorkflowPdoResolver` → `database.php` 组件；须预执行 `Schema/workflow_runs.sql`
+- DB：`WorkflowPdoResolver` → `database.php` 组件；**须预执行** `Schema/workflow_runs.sql` 建表（`DbRunStore` 不会自动建表）
+- `run_id` 由 `WorkflowRunTime::generateRunId()` 生成，格式 `run_YYYYMMDD_{16位hex}`
+- 表字段 `created_at` / `updated_at` 为 `DATETIME`；`deleted_at` 软删（查询默认过滤）
 - `DbRunStore` 使用事务 UPSERT + `saveIfStatus` CAS，死锁自动重试
 - HTTP 入口使用 `WorkflowService::engine()` / `WorkflowComponentFactory`，保证与配置一致
+
+### 单测：DbRunStore + SQLite 内存库
+
+生产 MySQL/MariaDB 须预执行 `Schema/workflow_runs.sql`；**单测**若用 `sqlite::memory:`，表结构由 `Tests/WorkflowRunsSchemaInstaller` 安装（仅支持 SQLite，与生产 SQL 字段对齐）：
+
+```php
+use PDO;
+use Swoolefy\Support\Workflow\Engine\DbRunStore;
+use Swoolefy\Support\Workflow\Tests\WorkflowRunsSchemaInstaller;
+use Swoolefy\Support\Workflow\WorkflowRegistry;
+
+$pdo = new PDO('sqlite::memory:');
+WorkflowRunsSchemaInstaller::install($pdo);
+$store = new DbRunStore($pdo, $registry, 'workflow_runs');
+```
+
+参考：`WorkflowRunStoreTest.php`、`WorkflowHitlAuthTest.php`、`WorkflowIntegrationTest.php` 中的 `testDbRunStore*`。
 
 ### 启动期健康检查（Phase B）
 

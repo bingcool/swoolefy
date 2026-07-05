@@ -14,6 +14,7 @@ use Swoolefy\Support\Workflow\Engine\InMemoryRunStore;
 use Swoolefy\Support\Workflow\Engine\NodeExecutionResult;
 use Swoolefy\Support\Workflow\Engine\RunStatus;
 use Swoolefy\Support\Workflow\Engine\WorkflowEngine;
+use Swoolefy\Support\Workflow\Engine\WorkflowRunTime;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\Exception\WorkflowPermissionException;
 use Swoolefy\Support\Workflow\Node\ClosureNode;
@@ -25,6 +26,7 @@ use Swoolefy\Support\Workflow\WorkflowComponentFactory;
 use Swoolefy\Support\Workflow\WorkflowConfig;
 use Swoolefy\Support\Workflow\WorkflowHitlAuth;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
+use Swoolefy\Support\Workflow\Tests\WorkflowRunsSchemaInstaller;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
@@ -99,7 +101,8 @@ function testHitlAssigneeMatch(): void
         ->compile($registry->definition('hitl'));
 
     $pdo = new PDO('sqlite::memory:');
-    $store = new DbRunStore($pdo, $registry, 'workflow_runs', autoMigrate: true);
+    WorkflowRunsSchemaInstaller::install($pdo);
+    $store = new DbRunStore($pdo, $registry, 'workflow_runs');
     $engine = new WorkflowEngine(
         plugins: new PluginManager([]),
         scheduler: new DagScheduler(ConditionEvaluatorFactory::create('symfony')),
@@ -149,7 +152,7 @@ function testResumeCasPreventsDoubleResume(): void
     $store->saveIfStatus($engine->getRun($runId), RunStatus::WAITING);
     $run = $engine->getRun($runId);
     $run->status = RunStatus::RUNNING;
-    $run->updatedAt = time();
+    $run->updatedAt = WorkflowRunTime::now();
     assertTrue($store->saveIfStatus($run, RunStatus::WAITING), 'first cas');
 
     $run2 = $engine->getRun($runId);
@@ -173,7 +176,8 @@ function testDbRunStoreSaveIfStatus(): void
         ->addNode('a', new ClosureNode('a', static fn () => NodeExecutionResult::success())));
 
     $pdo = new PDO('sqlite::memory:');
-    $store = new DbRunStore($pdo, $registry, 'workflow_runs', autoMigrate: true);
+    WorkflowRunsSchemaInstaller::install($pdo);
+    $store = new DbRunStore($pdo, $registry, 'workflow_runs');
     $engine = new WorkflowEngine(
         plugins: new PluginManager([]),
         scheduler: new DagScheduler(ConditionEvaluatorFactory::create('symfony')),

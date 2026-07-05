@@ -24,6 +24,7 @@ use Swoolefy\Support\Workflow\Engine\RunContext;
 use Swoolefy\Support\Workflow\Engine\RunStatus;
 use Swoolefy\Support\Workflow\Engine\WorkflowEngine;
 use Swoolefy\Support\Workflow\Engine\WorkflowRun;
+use Swoolefy\Support\Workflow\Engine\WorkflowRunTime;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\Node\ClosureNode;
 use Swoolefy\Support\Workflow\Node\PauseNode;
@@ -78,7 +79,7 @@ function testOutboundUrlRequireAllowlistEmpty(): void
 function testCancelWaitingUsesCas(): void
 {
     $store = new InMemoryRunStore();
-    $now = time();
+    $now = WorkflowRunTime::now();
     $compiled = (new WorkflowCompiler())->compile(
         WorkflowDefinition::create('demo', '1.0.0')
             ->addNode('pause', new PauseNode('pause', ['assignee' => 'legal'])),
@@ -126,7 +127,7 @@ function testCancelWaitingSuccess(): void
 function testCancelRunningSetsCooperativeFlag(): void
 {
     $store = new InMemoryRunStore();
-    $now = time();
+    $now = WorkflowRunTime::now();
     $compiled = (new WorkflowCompiler())->compile(
         WorkflowDefinition::create('demo', '1.0.0')
             ->addNode('a', new ClosureNode('a', static fn () => NodeExecutionResult::success())),

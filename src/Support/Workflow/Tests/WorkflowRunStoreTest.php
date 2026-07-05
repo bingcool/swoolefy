@@ -14,6 +14,7 @@ use Swoolefy\Support\Workflow\Engine\DbRunStore;
 use Swoolefy\Support\Workflow\Engine\InMemoryRunStore;
 use Swoolefy\Support\Workflow\Engine\RunStatus;
 use Swoolefy\Support\Workflow\Engine\WorkflowEngine;
+use Swoolefy\Support\Workflow\Engine\WorkflowRunTime;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\Node\PauseNode;
 use Swoolefy\Support\Workflow\Plugin\PluginManager;
@@ -24,6 +25,7 @@ use Swoolefy\Support\Workflow\WorkflowComponentFactory;
 use Swoolefy\Support\Workflow\WorkflowConfig;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
 use Swoolefy\Support\Workflow\WorkflowRunStoreName;
+use Swoolefy\Support\Workflow\Tests\WorkflowRunsSchemaInstaller;
 use Test\Module\Order\Dto\OrderDecisionDto;
 use Test\Module\Order\Workflow\OrderProcessingWorkflow;
 
@@ -220,6 +222,7 @@ function testMemoryRunStorePersistence(): void
     )->compile($registry->definition('order_processing'));
 
     $runId = $engine->start($compiled, ['orderId' => 'ORD-MEM-1', 'amount' => 1]);
+    assertTrue((bool) preg_match('/^run_\d{8}_[a-f0-9]{16}$/', $runId), 'run_id format');
     assertTrue($engine->getRun($runId)->status === RunStatus::COMPLETED, 'memory completed');
 
     $engine2 = makeEngine($store);
@@ -244,7 +247,8 @@ function testDbRunStorePersistenceAndListWaiting(): void
         ->addEdge('pause', 'done'));
 
     $pdo = new PDO('sqlite::memory:');
-    $store = new DbRunStore($pdo, $registry, 'workflow_runs', autoMigrate: true);
+    WorkflowRunsSchemaInstaller::install($pdo);
+    $store = new DbRunStore($pdo, $registry, 'workflow_runs');
     $engine = makeEngine($store);
 
     $config = WorkflowConfig::fromArray(sampleRunStoresConfig());
@@ -289,7 +293,8 @@ function testDbRunStoreUpsertIdempotent(): void
     $registry = new WorkflowRegistry();
     registerOrderWorkflow($registry);
     $pdo = new PDO('sqlite::memory:');
-    $store = new DbRunStore($pdo, $registry, 'workflow_runs', autoMigrate: true);
+    WorkflowRunsSchemaInstaller::install($pdo);
+    $store = new DbRunStore($pdo, $registry, 'workflow_runs');
     $engine = makeEngine($store);
     $compiled = WorkflowComponentFactory::compiler(
         WorkflowConfig::fromArray(sampleRunStoresConfig()),
