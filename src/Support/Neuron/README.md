@@ -19,6 +19,7 @@ Neuron/
 │   └── chat_messages.sql        # SqlChatHistoryArchive 冷归档（使用前须建表）
 ├── Memory/
 │   ├── ChatHistoryFactory.php       # Agent::chatHistory() 选用后端
+│   ├── SqlChatHistory.php           # SQL 热存储（tenant + thread 隔离）
 │   ├── ChatHistoryPdoResolver.php   # 组件容器解析 PDO
 │   ├── RedisChatHistory.php         # Redis 热存储
 │   ├── HotChatHistoryInterface.php
@@ -172,9 +173,9 @@ final class EphemeralChatAgent extends Agent
 }
 ```
 
-### SQL 持久化多轮（Neuron SQLChatHistory）
+### SQL 持久化多轮（SqlChatHistory）
 
-**使用前必须先执行** `Schema/chat_history.sql` 创建 `chat_history` 表。
+**使用前必须先执行** `Schema/chat_history.sql` 创建 `chat_history` 表（含 `tenant_id` / `user_id` / 软删 `deleted_at`）。
 
 ```php
 final class ChatAgent extends Agent
@@ -182,13 +183,20 @@ final class ChatAgent extends Agent
     public function __construct(
         private readonly string $threadId,
         private readonly \PDO $pdo,
+        private readonly ?string $tenantId = null, // 缺省读 x-tenant-id
+        private readonly ?string $userId = null,   // 缺省读 x-user-id
     ) {
         parent::__construct();
     }
 
     protected function chatHistory(): ChatHistoryInterface
     {
-        return ChatHistoryFactory::sql($this->threadId, $this->pdo);
+        return ChatHistoryFactory::sql(
+            threadId: $this->threadId,
+            pdo: $this->pdo,
+            tenantId: $this->tenantId,
+            userId: $this->userId,
+        );
     }
 }
 
@@ -202,7 +210,7 @@ $agent = $neuronFactory->boot(new ChatAgent($threadId, $pdo), [
 建表脚本：`src/Support/Neuron/Schema/chat_history.sql`
 
 ```sql
--- 见 Schema/chat_history.sql（thread_id 唯一，messages 为 JSON）
+-- 见 Schema/chat_history.sql（uk_tenant_thread + messages JSON）
 ```
 
 ### SQL 冷归档（逐条消息，可选）
@@ -210,7 +218,7 @@ $agent = $neuronFactory->boot(new ChatAgent($threadId, $pdo), [
 **使用前必须先执行** `Schema/chat_messages.sql` 创建 `chat_messages` 表。
 
 ```php
-$archive = new SqlChatHistoryArchive($pdo);
+$archive = ChatHistoryFactory::archive($pdo, tenantId: 'tenant_a', userId: 'user_1');
 $archive->archiveMessage($threadId, 'user', 'Hello');
 $messages = $archive->listMessages($threadId, 50);
 ```

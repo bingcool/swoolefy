@@ -13,9 +13,7 @@ use PDOException;
  * 使用前须先在数据库执行建表脚本：
  *   src/Support/Neuron/Schema/chat_messages.sql
  *
- * 与 Neuron 原生 {@see \NeuronAI\Chat\History\SQLChatHistory}（表 chat_history）不同：
- *   - chat_history：每个 thread_id 一行，messages 为整段 JSON（热存储，Agent 多轮对话）
- *   - chat_messages：每条消息一行，便于审计 / 检索 / 冷归档
+ * 与 {@see SqlChatHistory}（表 chat_history，整段 JSON 热存储）配合使用。
  *
  * @see Schema/chat_messages.sql
  * @see Schema/chat_history.sql
@@ -25,27 +23,41 @@ final class SqlChatHistoryArchive implements ChatHistoryArchiveInterface
     public function __construct(
         private readonly PDO $pdo,
         private readonly string $table = 'chat_messages',
+        private readonly string $tenantId = '',
+        private readonly string $userId = '',
     ) {
+    }
+
+    public function tenantId(): string
+    {
+        return $this->tenantId;
+    }
+
+    public function userId(): string
+    {
+        return $this->userId;
     }
 
     /** {@inheritdoc} */
     public function archiveMessage(string $threadId, string $role, string $content, array $metadata = []): void
     {
         $sql = sprintf(
-            'INSERT INTO %s (thread_id, role, content, metadata_json, created_at) VALUES (:thread_id, :role, :content, :metadata, NOW())',
+            'INSERT INTO %s (tenant_id, user_id, thread_id, role, content, metadata_json, created_at, updated_at)
+             VALUES (:tenant_id, :user_id, :thread_id, :role, :content, :metadata, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
             $this->table,
         );
 
         try {
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([
+                'tenant_id' => $this->tenantId,
+                'user_id' => $this->userId,
                 'thread_id' => $threadId,
                 'role' => $role,
                 'content' => $content,
                 'metadata' => json_encode($metadata, JSON_THROW_ON_ERROR),
             ]);
         } catch (PDOException) {
-            // 降级：尝试无 metadata_json 列的简化表结构
             $this->archiveMessageSimple($threadId, $role, $content);
         }
     }
@@ -69,24 +81,33 @@ final class SqlChatHistoryArchive implements ChatHistoryArchiveInterface
         $limit = max(1, min(200, $limit));
 
         $sql = sprintf(
-            'SELECT role, content, metadata_json FROM %s WHERE thread_id = :thread_id ORDER BY id ASC LIMIT %d',
+            'SELECT role, content, metadata_json FROM %s
+             WHERE tenant_id = :tenant_id AND thread_id = :thread_id AND deleted_at IS NULL
+             ORDER BY id ASC LIMIT %d',
             $this->table,
             $limit,
         );
 
         try {
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute(['thread_id' => $threadId]);
+            $stmt->execute([
+                'tenant_id' => $this->tenantId,
+                'thread_id' => $threadId,
+            ]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (PDOException) {
-            // 降级：无 metadata_json 列
             $sql = sprintf(
-                'SELECT role, content FROM %s WHERE thread_id = :thread_id ORDER BY id ASC LIMIT %d',
+                'SELECT role, content FROM %s
+                 WHERE tenant_id = :tenant_id AND thread_id = :thread_id AND deleted_at IS NULL
+                 ORDER BY id ASC LIMIT %d',
                 $this->table,
                 $limit,
             );
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute(['thread_id' => $threadId]);
+            $stmt->execute([
+                'tenant_id' => $this->tenantId,
+                'thread_id' => $threadId,
+            ]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         }
 
@@ -110,11 +131,14 @@ final class SqlChatHistoryArchive implements ChatHistoryArchiveInterface
     private function archiveMessageSimple(string $threadId, string $role, string $content): void
     {
         $sql = sprintf(
-            'INSERT INTO %s (thread_id, role, content, created_at) VALUES (:thread_id, :role, :content, NOW())',
+            'INSERT INTO %s (tenant_id, user_id, thread_id, role, content, created_at, updated_at)
+             VALUES (:tenant_id, :user_id, :thread_id, :role, :content, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
             $this->table,
         );
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
+            'tenant_id' => $this->tenantId,
+            'user_id' => $this->userId,
             'thread_id' => $threadId,
             'role' => $role,
             'content' => $content,

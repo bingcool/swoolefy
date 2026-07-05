@@ -7,9 +7,10 @@ namespace Swoolefy\Support\Neuron\Memory;
 use NeuronAI\Chat\History\ChatHistoryInterface;
 use NeuronAI\Chat\History\FileChatHistory;
 use NeuronAI\Chat\History\InMemoryChatHistory;
-use NeuronAI\Chat\History\SQLChatHistory;
 use PDO;
+use RuntimeException;
 use Swoolefy\Library\Redis\RedisConnection;
+use Swoolefy\Support\FrameworkContext;
 use Swoolefy\Support\Neuron\NeuronAiConfig;
 use Swoolefy\Support\TenantScope;
 
@@ -28,24 +29,50 @@ final class ChatHistoryFactory
     }
 
     /**
- * Neuron 原生 SQL 会话记忆（整段 messages JSON，按 thread_id 一行）。
- *
- * 使用前须先在数据库执行建表脚本：
- *   src/Support/Neuron/Schema/chat_history.sql
- *
- * 表结构见 {@see SQLChatHistory} 与 Schema/chat_history.sql。
+     * SQL 热存储（整段 messages JSON，按 tenant_id + thread_id 一行）。
+     *
+     * 使用前须执行 Schema/chat_history.sql。
      */
     public static function sql(
         string $threadId,
         PDO $pdo,
         string $table = 'chat_history',
         int $contextWindow = 50000,
+        ?string $tenantId = null,
+        ?string $userId = null,
+        ?NeuronAiConfig $config = null,
     ): ChatHistoryInterface {
-        return new SQLChatHistory(
-            thread_id: $threadId,
+        $config ??= NeuronAiConfig::load();
+        $tenant = self::resolveTenantId($tenantId, $config->requireTenantIsolation());
+        $user = self::resolveUserId($userId);
+
+        return new SqlChatHistory(
+            tenantId: $tenant,
+            userId: $user,
+            threadId: $threadId,
             pdo: $pdo,
             table: $table,
             contextWindow: $contextWindow,
+        );
+    }
+
+    /** SQL 冷归档（逐条消息）。使用前须执行 Schema/chat_messages.sql。 */
+    public static function archive(
+        PDO $pdo,
+        string $table = 'chat_messages',
+        ?string $tenantId = null,
+        ?string $userId = null,
+        ?NeuronAiConfig $config = null,
+    ): SqlChatHistoryArchive {
+        $config ??= NeuronAiConfig::load();
+        $tenant = self::resolveTenantId($tenantId, $config->requireTenantIsolation());
+        $user = self::resolveUserId($userId);
+
+        return new SqlChatHistoryArchive(
+            pdo: $pdo,
+            table: $table,
+            tenantId: $tenant,
+            userId: $user,
         );
     }
 
@@ -82,5 +109,35 @@ final class ChatHistoryFactory
             key: $threadId,
             contextWindow: $contextWindow,
         );
+    }
+
+    private static function resolveTenantId(?string $tenantId, bool $requireTenant): string
+    {
+        $resolved = TenantScope::resolveTenantId($tenantId);
+        if ($resolved === null || $resolved === '') {
+            if ($requireTenant) {
+                throw new RuntimeException(
+                    'tenantId is required for SQL chat history; pass tenantId or set x-tenant-id header',
+                );
+            }
+
+            return '';
+        }
+
+        return TenantScope::sanitize($resolved);
+    }
+
+    private static function resolveUserId(?string $userId): string
+    {
+        if ($userId !== null && $userId !== '') {
+            return TenantScope::sanitize($userId);
+        }
+
+        $fromContext = FrameworkContext::getUserId();
+        if ($fromContext === null || $fromContext === '') {
+            return '';
+        }
+
+        return TenantScope::sanitize($fromContext);
     }
 }

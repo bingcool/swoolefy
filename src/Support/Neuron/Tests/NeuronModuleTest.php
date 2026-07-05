@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 use NeuronAI\Agent\Agent;
 use NeuronAI\Chat\History\InMemoryChatHistory;
+use NeuronAI\Chat\Messages\UserMessage;
 use NeuronAI\HttpClient\GuzzleHttpClient;
 use NeuronAI\Providers\AIProviderInterface;
 use NeuronAI\Providers\OpenAI\OpenAI;
@@ -24,6 +25,7 @@ use Swoolefy\Support\Neuron\Http\NeuronHttpFactory;
 use Swoolefy\Support\Neuron\Memory\ChatHistoryArchiveInterface;
 use Swoolefy\Support\Neuron\Memory\HotChatHistoryInterface;
 use Swoolefy\Support\Neuron\Memory\ChatHistoryFactory;
+use Swoolefy\Support\Neuron\Memory\SqlChatHistory;
 use Swoolefy\Support\Neuron\Memory\SqlChatHistoryArchive;
 use Swoolefy\Support\Neuron\NeuronAiConfig;
 use Swoolefy\Support\Neuron\NeuronAiModelEnv;
@@ -52,6 +54,7 @@ function sampleNeuronConfig(): NeuronAiConfig
             'embedding_model' => 'text-embedding-3-small',
             'embedding_dimension' => 1536,
             'allow_fake_embeddings' => true,
+            'require_tenant_isolation' => false,
             'vector_stores' => [
                 NeuronAiVectorStoreName::FILE => [
                     'path' => '/tmp/swoolefy_neuron_test',
@@ -128,6 +131,10 @@ function testMemoryInterfacesAreImplemented(): void
     assertTrue(
         is_subclass_of(\Swoolefy\Support\Neuron\Memory\RedisChatHistory::class, HotChatHistoryInterface::class),
         'RedisChatHistory implements hot history interface',
+    );
+    assertTrue(
+        is_subclass_of(SqlChatHistory::class, HotChatHistoryInterface::class),
+        'SqlChatHistory implements hot history interface',
     );
     assertTrue(
         is_subclass_of(SqlChatHistoryArchive::class, ChatHistoryArchiveInterface::class),
@@ -241,6 +248,113 @@ function testNeuronFactoryThrowsWhenNoProviderCredentials(): void
     }
 }
 
+function createSqliteChatPdo(): PDO
+{
+    $pdo = new PDO('sqlite::memory:');
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo->exec(<<<'SQL'
+CREATE TABLE chat_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_id TEXT NOT NULL DEFAULT '',
+    user_id TEXT NOT NULL DEFAULT '',
+    thread_id TEXT NOT NULL,
+    messages TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TEXT NULL,
+    UNIQUE (tenant_id, thread_id)
+);
+CREATE TABLE chat_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_id TEXT NOT NULL DEFAULT '',
+    user_id TEXT NOT NULL DEFAULT '',
+    thread_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    content TEXT NOT NULL,
+    metadata_json TEXT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TEXT NULL
+);
+SQL);
+
+    return $pdo;
+}
+
+function testSqlChatHistoryTenantIsolation(): void
+{
+    $pdo = createSqliteChatPdo();
+    $config = sampleNeuronConfig();
+
+    $historyA = ChatHistoryFactory::sql('thread-1', $pdo, tenantId: 'tenant_a', userId: 'user_1', config: $config);
+    assertTrue($historyA instanceof SqlChatHistory, 'sql chat history instance');
+    $historyA->addMessage(new UserMessage('hello from tenant A'));
+
+    $historyB = ChatHistoryFactory::sql('thread-1', $pdo, tenantId: 'tenant_b', userId: 'user_2', config: $config);
+    assertTrue(count($historyB->getMessages()) === 0, 'other tenant should not see messages');
+
+    $historyA2 = ChatHistoryFactory::sql('thread-1', $pdo, tenantId: 'tenant_a', userId: 'user_1', config: $config);
+    assertTrue(count($historyA2->getMessages()) === 1, 'same tenant reloads messages');
+    assertTrue($historyA2->getMessages()[0]->getContent() === 'hello from tenant A', 'message content preserved');
+}
+
+function testSqlChatHistorySoftDeleteOnFlush(): void
+{
+    $pdo = createSqliteChatPdo();
+    $config = sampleNeuronConfig();
+
+    $history = ChatHistoryFactory::sql('thread-soft', $pdo, tenantId: 'tenant_a', config: $config);
+    $history->addMessage(new UserMessage('to be cleared'));
+    $history->flushAll();
+
+    $stmt = $pdo->prepare('SELECT deleted_at, messages FROM chat_history WHERE tenant_id = :tenant_id AND thread_id = :thread_id');
+    $stmt->execute(['tenant_id' => 'tenant_a', 'thread_id' => 'thread-soft']);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    assertTrue(is_array($row), 'row exists');
+    assertTrue($row['deleted_at'] !== null && $row['deleted_at'] !== '', 'soft deleted');
+    assertTrue($row['messages'] === '[]', 'messages cleared');
+
+    $history2 = ChatHistoryFactory::sql('thread-soft', $pdo, tenantId: 'tenant_a', config: $config);
+    assertTrue(count($history2->getMessages()) === 0, 'revived row starts empty');
+}
+
+function testSqlChatHistoryArchiveTenantIsolation(): void
+{
+    $pdo = createSqliteChatPdo();
+    $config = sampleNeuronConfig();
+
+    $archiveA = ChatHistoryFactory::archive($pdo, tenantId: 'tenant_a', userId: 'user_1', config: $config);
+    $archiveA->archiveMessage('thread-x', 'user', 'message for tenant A');
+
+    $archiveB = ChatHistoryFactory::archive($pdo, tenantId: 'tenant_b', userId: 'user_2', config: $config);
+    assertTrue($archiveB->listMessages('thread-x') === [], 'other tenant archive empty');
+
+    $messages = $archiveA->listMessages('thread-x');
+    assertTrue(count($messages) === 1, 'tenant A has archived message');
+    assertTrue($messages[0]['content'] === 'message for tenant A', 'archive content');
+}
+
+function testSqlChatHistoryRequiresTenantWhenConfigured(): void
+{
+    $pdo = createSqliteChatPdo();
+    $config = NeuronAiConfig::fromArray([
+        'rag' => [
+            'default_vector_store' => NeuronAiVectorStoreName::FILE,
+            'require_tenant_isolation' => true,
+            'vector_stores' => [
+                NeuronAiVectorStoreName::FILE => ['path' => '/tmp/x'],
+            ],
+        ],
+    ]);
+
+    try {
+        ChatHistoryFactory::sql('thread-1', $pdo, config: $config);
+        assertTrue(false, 'should throw without tenant');
+    } catch (RuntimeException $e) {
+        assertTrue(str_contains($e->getMessage(), 'tenantId'), 'tenant required');
+    }
+}
+
 function testVectorStoreNameConstants(): void
 {
     assertTrue(NeuronAiVectorStoreName::FILE === 'file', 'file');
@@ -254,6 +368,10 @@ $tests = [
     'provider default' => 'testProviderFactoryCreateDefault',
     'provider unknown alias' => 'testProviderFactoryUnknownAliasThrows',
     'chat history factory in-memory' => 'testChatHistoryFactoryInMemory',
+    'sql chat history tenant isolation' => 'testSqlChatHistoryTenantIsolation',
+    'sql chat history soft delete' => 'testSqlChatHistorySoftDeleteOnFlush',
+    'sql chat archive tenant isolation' => 'testSqlChatHistoryArchiveTenantIsolation',
+    'sql chat history require tenant' => 'testSqlChatHistoryRequiresTenantWhenConfigured',
     'memory interfaces' => 'testMemoryInterfacesAreImplemented',
     'embedding fail-fast without key' => 'testEmbeddingFactoryWithoutApiKeyFailsFast',
     'embedding fake with allow flag' => 'testEmbeddingFactoryAllowFakeUsesConfiguredDimension',
