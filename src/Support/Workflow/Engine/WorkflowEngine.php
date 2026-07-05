@@ -91,7 +91,9 @@ final class WorkflowEngine
             $this->runStore->save($run);
         }
 
-        $this->plugins->fireRunComplete($run);
+        if ($run->status !== RunStatus::WAITING) {
+            $this->plugins->fireRunComplete($run);
+        }
 
         return $runId;
     }
@@ -165,12 +167,56 @@ final class WorkflowEngine
         $this->plugins->fireRunComplete($run);
     }
 
-    /** 取消运行，状态设为 CANCELLED。 */
+    /**
+     * 取消运行。
+     *
+     * WAITING：CAS saveIfStatus(WAITING) → CANCELLED，与 resume 竞态互斥。
+     * RUNNING：协作式取消 —— 写入 _cancelRequested 标志并保持 RUNNING，
+     *          executeFromNode 在节点间隙检测后转为 CANCELLED。
+     *
+     * @throws WorkflowException 终态不可取消，或 CAS 失败（并发 resume/cancel）
+     */
     public function cancel(string $runId): void
     {
         $run = $this->requireRun($runId);
-        $run->status = RunStatus::CANCELLED;
+
+        if (in_array($run->status, [
+            RunStatus::COMPLETED,
+            RunStatus::FAILED,
+            RunStatus::CANCELLED,
+            RunStatus::COMPENSATED,
+            RunStatus::COMPENSATING,
+        ], true)) {
+            throw new WorkflowException(
+                "Run {$runId} cannot be cancelled in status {$run->status->value}",
+            );
+        }
+
         $run->updatedAt = time();
+
+        if ($run->status === RunStatus::WAITING) {
+            $run->status = RunStatus::CANCELLED;
+            if (!$this->runStore->saveIfStatus($run, RunStatus::WAITING)) {
+                throw new WorkflowException(
+                    "Run {$runId} cancel failed (status changed concurrently)",
+                );
+            }
+
+            return;
+        }
+
+        if ($run->status === RunStatus::RUNNING) {
+            $run->state->set('_cancelRequested', true);
+            if (!$this->runStore->saveIfStatus($run, RunStatus::RUNNING)) {
+                throw new WorkflowException(
+                    "Run {$runId} cancel failed (status changed concurrently)",
+                );
+            }
+
+            return;
+        }
+
+        $run->status = RunStatus::CANCELLED;
         $this->runStore->save($run);
     }
 
@@ -228,6 +274,10 @@ final class WorkflowEngine
         $current = $nodeId;
 
         while ($current !== null) {
+            if ($this->applyCancellationIfRequested($run)) {
+                return;
+            }
+
             $node = $run->compiled->node($current);
             if ($node === null) {
                 throw new WorkflowException("Node {$current} not found in compiled workflow");
@@ -418,7 +468,7 @@ final class WorkflowEngine
      */
     private function handleRunFailure(WorkflowRun $run, Throwable $e): void
     {
-        if (!in_array($run->status, [RunStatus::COMPENSATED, RunStatus::COMPENSATING, RunStatus::WAITING], true)) {
+        if (!in_array($run->status, [RunStatus::COMPENSATED, RunStatus::COMPENSATING, RunStatus::WAITING, RunStatus::CANCELLED], true)) {
             $run->status = RunStatus::FAILED;
         }
         if ($run->error === null) {
@@ -459,5 +509,38 @@ final class WorkflowEngine
 
         return filter_var($meta['saga'] ?? false, FILTER_VALIDATE_BOOLEAN)
             && $run->executedNodeIds !== [];
+    }
+
+    /**
+     * 检测持久化层的取消请求（协作式 cancel）。
+     *
+     * 从 RunStore 重新读取，支持跨 Worker cancel RUNNING 中的 Run。
+     */
+    private function applyCancellationIfRequested(WorkflowRun $run): bool
+    {
+        $fresh = $this->runStore->find($run->runId);
+        if ($fresh === null) {
+            return false;
+        }
+
+        if ($fresh->status === RunStatus::CANCELLED) {
+            $run->status = RunStatus::CANCELLED;
+            $run->updatedAt = time();
+            $this->runStore->save($run);
+            $this->plugins->fireRunComplete($run);
+
+            return true;
+        }
+
+        if ($fresh->state->get('_cancelRequested', false)) {
+            $run->status = RunStatus::CANCELLED;
+            $run->updatedAt = time();
+            $this->runStore->save($run);
+            $this->plugins->fireRunComplete($run);
+
+            return true;
+        }
+
+        return false;
     }
 }

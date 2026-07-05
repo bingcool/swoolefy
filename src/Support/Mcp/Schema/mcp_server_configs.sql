@@ -5,7 +5,7 @@
 
 CREATE TABLE IF NOT EXISTS `mcp_server_configs` (
     `server_id` VARCHAR(128) NOT NULL COMMENT 'MCP Server ID',
-    `tenant_id` VARCHAR(128) NOT NULL DEFAULT '' COMMENT '租户 ID；空串表示全局',
+    `tenant_id` VARCHAR(128) NOT NULL DEFAULT '' COMMENT '租户ID,空串表示全局',
     `config_json` JSON NOT NULL COMMENT 'Neuron McpConnector 配置',
     `enabled` TINYINT(1) NOT NULL DEFAULT 1 COMMENT '是否启用',
     `description` VARCHAR(255) NULL COMMENT '运维备注',

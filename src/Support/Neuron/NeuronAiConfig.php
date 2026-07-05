@@ -543,6 +543,23 @@ final class NeuronAiConfig
         return new OutboundUrlGuard(
             allowlistHostSuffixes: $this->outboundUrlAllowlist(),
             allowPrivateNetworks: $this->allowPrivateOutboundNetworks(),
+            requireAllowlist: $this->requireOutboundAllowlist(),
+        );
+    }
+
+    /** 生产默认 true：allowlist 为空时 fail-closed。 */
+    public function requireOutboundAllowlist(): bool
+    {
+        $fromConfig = $this->securitySection()['require_outbound_allowlist'] ?? true;
+
+        return filter_var(
+            ApplicationConfig::pickStringEnvFirst(
+                $this->securitySection(),
+                'require_outbound_allowlist',
+                'NEURON_REQUIRE_OUTBOUND_ALLOWLIST',
+                $fromConfig ? '1' : '0',
+            ),
+            FILTER_VALIDATE_BOOLEAN,
         );
     }
 

@@ -18,20 +18,20 @@ use function in_array;
 use function json_decode;
 
 /**
- * Aliyun Milvus / self-hosted Milvus 2.x vector store (Neuron VectorStoreInterface).
+ * 阿里云 Milvus / 自建 Milvus 2.x 向量存储（实现 Neuron VectorStoreInterface）。
  *
- * Production notes:
- * - Depends on mathsgod/milvus-client-php (REST API, works with Aliyun Milvus).
- * - One knowledgeBase => one Milvus collection (name sanitized by VectorStoreFactory).
- * - Collection is created lazily on first write/search when autoCreateCollection=true.
- * - Auth: user+password (Bearer user:password) OR token; Aliyun typically uses user/password.
- * - dimension MUST match the embedding model (e.g. text-embedding-3-small => 1536).
+ * 生产说明：
+ * - 依赖 mathsgod/milvus-client-php（REST API，兼容阿里云 Milvus 托管版）。
+ * - 一个 knowledgeBase 对应一个 Milvus Collection（名称由 VectorStoreFactory 做 sanitize）。
+ * - autoCreateCollection=true 时，首次写入/检索前懒创建 Collection + 向量索引。
+ * - 鉴权：user+password（Bearer user:password）或 token；阿里云通常用 user/password。
+ * - dimension 须与 Embedding 模型输出维度一致（如 text-embedding-3-small => 1536）。
  *
- * Collection schema:
+ * Collection 表结构：
  *   id        VARCHAR(64) PK   — Neuron Document UUID
- *   content   VARCHAR          — chunk text (truncated to maxContentLength)
- *   embedding FLOAT_VECTOR     — vector field used for ANN search
- *   metadata  JSON             — sourceType / sourceName / custom fields
+ *   content   VARCHAR          — 分块文本（截断至 maxContentLength）
+ *   embedding FLOAT_VECTOR     — 向量字段，用于 ANN 近似最近邻检索
+ *   metadata  JSON             — sourceType / sourceName / 自定义扩展字段
  *
  * @see https://help.aliyun.com/zh/milvus/
  * @see https://docs.neuron-ai.dev/rag/vector-store#implement-custom-vector-stores
@@ -39,19 +39,19 @@ use function json_decode;
  */
 class MilvusVectorStore implements VectorStoreInterface
 {
-    /** Whether collection existence has been checked (or created) in this instance. */
+    /** 本实例是否已检查（或创建）Collection，避免重复 RPC。 */
     private bool $initialized = false;
 
     /**
-     * @param Client $client                Milvus REST client (uri / user / password / token / db)
-     * @param string $collectionName        Target collection (= knowledgeBase after sanitize)
-     * @param int    $dimension             Vector dim; must match embedder output size
-     * @param int    $topK                  Default similaritySearch limit
-     * @param string $metricType            COSINE (default) | L2 | IP — COSINE returns similarity-like distance
-     * @param string $indexType             AUTOINDEX is recommended on Aliyun managed Milvus
-     * @param bool   $autoCreateCollection  Create schema+index if collection is missing
-     * @param int    $maxContentLength      VARCHAR limit for content field
-     * @param int    $batchSize             Upsert batch size (avoid oversized HTTP payloads)
+     * @param Client $client                Milvus REST 客户端（uri / user / password / token / db）
+     * @param string $collectionName        目标 Collection 名（= sanitize 后的 knowledgeBase）
+     * @param int    $dimension             向量维度，须与 Embedder 输出一致
+     * @param int    $topK                  similaritySearch 默认返回条数
+     * @param string $metricType            COSINE（默认）| L2 | IP — COSINE 返回类相似度距离
+     * @param string $indexType             阿里云托管 Milvus 推荐 AUTOINDEX
+     * @param bool   $autoCreateCollection  Collection 不存在时是否自动建表+索引
+     * @param int    $maxContentLength      content 字段 VARCHAR 上限
+     * @param int    $batchSize             upsert 分批大小，避免 HTTP 请求体过大
      */
     public function __construct(
         protected Client $client,
@@ -67,10 +67,10 @@ class MilvusVectorStore implements VectorStoreInterface
     }
 
     /**
-     * Build from neuron_ai.php / env params (used by VectorStoreFactory).
+     * 从 neuron_ai.php / 环境变量参数构建实例（VectorStoreFactory 调用入口）。
      *
-     * Expected keys: uri, user, password, token, db_name, collection_name,
-     * dimension, top_k, metric_type, index_type, auto_create_collection.
+     * 期望键：uri, user, password, token, db_name, collection_name,
+     * dimension, top_k, metric_type, index_type, auto_create_collection。
      *
      * @param array<string, mixed> $params
      */
@@ -82,8 +82,8 @@ class MilvusVectorStore implements VectorStoreInterface
             );
         }
 
-        // Aliyun: uri like http://c-xxxx.milvus.aliyuncs.com:19530, auth via user+password.
-        // Self-hosted: often http://localhost:19530 with optional token.
+        // 阿里云示例：uri 如 http://c-xxxx.milvus.aliyuncs.com:19530，鉴权用 user+password
+        // 自建示例：常见 http://localhost:19530，可选 token
         $client = new Client(
             uri: $params['uri'] ?? 'http://localhost:19530',
             user: $params['user'] ?? null,
@@ -103,13 +103,16 @@ class MilvusVectorStore implements VectorStoreInterface
         );
     }
 
+    /** {@inheritdoc} 单条写入，委托 addDocuments。 */
     public function addDocument(Document $document): VectorStoreInterface
     {
         return $this->addDocuments([$document]);
     }
 
     /**
-     * Upsert documents (idempotent by id). Documents must already have embeddings.
+     * 批量 upsert 文档（按 id 幂等：同 id 覆盖更新）。
+     *
+     * 前置条件：Document 必须已 embed（embedding 非空），否则抛 RuntimeException。
      *
      * @param Document[] $documents
      */
@@ -128,7 +131,7 @@ class MilvusVectorStore implements VectorStoreInterface
                     );
                 }
 
-                // sourceType/sourceName live in metadata JSON so deleteBy() can filter them.
+                // sourceType/sourceName 写入 metadata JSON，供 deleteBy() 按来源过滤删除
                 $metadata = [
                     'sourceType' => $document->getSourceType(),
                     'sourceName' => $document->getSourceName(),
@@ -145,7 +148,7 @@ class MilvusVectorStore implements VectorStoreInterface
                 ];
             }, $chunk);
 
-            // upsert: insert or replace by primary key (safe for re-ingest of the same chunk ids)
+            // upsert：主键存在则更新，不存在则插入（重复入库同一 chunk id 安全）
             $this->client->upsert($this->collectionName, $data);
         }
 
@@ -153,7 +156,7 @@ class MilvusVectorStore implements VectorStoreInterface
     }
 
     /**
-     * @deprecated Use deleteBy() instead.
+     * @deprecated 请使用 deleteBy()
      */
     public function deleteBySource(string $sourceType, string $sourceName): VectorStoreInterface
     {
@@ -161,9 +164,9 @@ class MilvusVectorStore implements VectorStoreInterface
     }
 
     /**
-     * Delete entities by source metadata (Milvus boolean expression on JSON field).
+     * 按 metadata 中的来源信息删除实体（Milvus JSON 字段布尔表达式）。
      *
-     * Filter syntax follows Milvus scalar filter, e.g.:
+     * 过滤语法示例：
      *   metadata["sourceType"] == "file" and metadata["sourceName"] == "readme.md"
      */
     public function deleteBy(string $sourceType, ?string $sourceName = null): VectorStoreInterface
@@ -184,9 +187,12 @@ class MilvusVectorStore implements VectorStoreInterface
     }
 
     /**
-     * ANN search; with metric COSINE, Milvus returns distance as similarity score (higher is better).
+     * 向量近似最近邻检索（ANN）。
      *
-     * @param float[] $embedding
+     * metric 为 COSINE 时，Milvus 返回的 distance 可视为相似度分数（越大越相似）。
+     *
+     * @param float[] $embedding 查询向量
+     *
      * @return Document[]
      */
     public function similaritySearch(array $embedding): iterable
@@ -204,11 +210,11 @@ class MilvusVectorStore implements VectorStoreInterface
         return array_map(function (array $item): Document {
             $document = new Document($item['content'] ?? '');
             $document->id = (string) $item['id'];
-            // COSINE: distance field is already a similarity-like score; L2 would need conversion.
+            // COSINE：distance 已是类相似度分数；L2 需另行换算
             $document->score = (float) ($item['distance'] ?? 0.0);
 
             $metadata = $item['metadata'] ?? [];
-            // Some Milvus deployments return JSON fields as encoded strings.
+            // 部分 Milvus 部署会将 JSON 字段以字符串形式返回，需二次 decode
             if (is_string($metadata)) {
                 $metadata = json_decode($metadata, true) ?: [];
             }
@@ -227,7 +233,7 @@ class MilvusVectorStore implements VectorStoreInterface
     }
 
     /**
-     * Drop the underlying Milvus collection (cleanup / tests only).
+     * 删除底层 Milvus Collection（清理 / 单测专用，生产慎用）。
      */
     public function dropCollection(): void
     {
@@ -237,14 +243,16 @@ class MilvusVectorStore implements VectorStoreInterface
         $this->initialized = false;
     }
 
+    /** 当前 Collection 名称（= knowledgeBase）。 */
     public function getCollectionName(): string
     {
         return $this->collectionName;
     }
 
     /**
-     * Ensure collection exists: hasCollection check, then create schema + vector index if needed.
-     * createCollection with indexParams loads the collection for search on managed Milvus.
+     * 确保 Collection 存在：hasCollection 检查，缺失则创建 schema + 向量索引。
+     *
+     * createCollection 传入 indexParams 后，托管 Milvus 会自动 load Collection 供检索使用。
      */
     private function ensureCollection(): void
     {
@@ -254,6 +262,7 @@ class MilvusVectorStore implements VectorStoreInterface
 
         if ($this->client->hasCollection($this->collectionName)) {
             $this->initialized = true;
+
             return;
         }
 
@@ -263,7 +272,7 @@ class MilvusVectorStore implements VectorStoreInterface
             );
         }
 
-        // auto_id=false: we supply Neuron Document UUIDs as primary keys.
+        // auto_id=false：主键使用 Neuron Document UUID，便于 upsert 幂等
         $schema = $this->client->createSchema(auto_id: false)
             ->addField('id', DataType::VARCHAR, is_primary: true, max_length: 64)
             ->addField('content', DataType::VARCHAR, max_length: $this->maxContentLength, nullable: true)

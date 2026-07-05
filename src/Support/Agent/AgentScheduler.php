@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Swoolefy\Support\Agent;
 
 use Swoolefy\Core\Coroutine\GoWaitGroup;
-use Swoolefy\Support\Agent\Router\StaticRouter;
 use Swoolefy\Support\Neuron\NeuronFactory;
 
 /**
@@ -30,6 +29,7 @@ final class AgentScheduler
      * 并行执行选中的 Agent 任务。
      *
      * @param array<string, callable(RouterContext, NeuronFactory): mixed> $tasks
+     * @param bool $failFast true 时首个 Agent 异常立即抛出，不吞掉
      *
      * @return array<string, mixed> agentId => output
      */
@@ -37,6 +37,7 @@ final class AgentScheduler
         RouterContext $ctx,
         array $tasks,
         ?AgentRouterInterface $router = null,
+        bool $failFast = false,
     ): array {
         $router ??= $this->defaultRouter ?? new StaticRouter(array_keys($tasks));
         $selectedIds = $router->route($ctx);
@@ -49,10 +50,14 @@ final class AgentScheduler
 
             $task = $tasks[$agentId];
             $factory = $this->neuronFactory;
-            $callbacks[$agentId] = static function () use ($task, $ctx, $factory, $agentId) {
+            $callbacks[$agentId] = static function () use ($task, $ctx, $factory, $agentId, $failFast) {
                 try {
                     return $task($ctx, $factory);
                 } catch (\Throwable $e) {
+                    if ($failFast) {
+                        throw $e;
+                    }
+
                     return [
                         'error' => $e->getMessage(),
                         'agentId' => $agentId,

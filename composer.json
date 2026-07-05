@@ -76,6 +76,7 @@
         "test:rag": "@php src/Support/Rag/Tests/RagModuleTest.php",
         "test:phase-a": "@php src/Support/Tests/PhaseAProductionTest.php",
         "test:phase-b": "@php src/Support/Tests/PhaseBProductionTest.php",
+        "test:phase-c": "@php src/Support/Tests/PhaseCProductionTest.php",
         "test:support": [
             "@test:agent",
             "@test:ai",
@@ -84,6 +85,7 @@
             "@test:rag",
             "@test:phase-a",
             "@test:phase-b",
+            "@test:phase-c",
             "@test:workflow"
         ]
     },

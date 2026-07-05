@@ -230,7 +230,7 @@ function testStdioCommandAllowlist(): void
 
 function testOutboundUrlBlocksPrivateNetwork(): void
 {
-    $guard = new OutboundUrlGuard(allowlistHostSuffixes: [], allowPrivateNetworks: false);
+    $guard = new OutboundUrlGuard(allowlistHostSuffixes: [], allowPrivateNetworks: false, requireAllowlist: false);
 
     try {
         $guard->assertAllowed('http://127.0.0.1:7700', 'test');

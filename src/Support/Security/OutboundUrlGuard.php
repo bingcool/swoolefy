@@ -27,10 +27,12 @@ final class OutboundUrlGuard
     /**
      * @param list<string> $allowlistHostSuffixes host 后缀白名单，如 api.openai.com、.corp.internal
      * @param bool         $allowPrivateNetworks  true 时允许 127.0.0.1 / 10.x / 192.168.x 等
+     * @param bool         $requireAllowlist      true 且 allowlist 为空时拒绝所有出站（生产 fail-closed）
      */
     public function __construct(
         private readonly array $allowlistHostSuffixes = [],
         private readonly bool $allowPrivateNetworks = false,
+        private readonly bool $requireAllowlist = false,
     ) {
     }
 
@@ -64,16 +66,21 @@ final class OutboundUrlGuard
             throw new RuntimeException("[{$context}] Private or loopback host is not allowed: {$host}");
         }
 
-        // 配置了白名单时，host 必须命中至少一条后缀规则
+        // 生产 fail-closed：须配置非空白名单，否则拒绝出站
+        if ($this->requireAllowlist && $this->allowlistHostSuffixes === []) {
+            throw new RuntimeException("[{$context}] Outbound allowlist is required but empty");
+        }
+
+        // 配置了白名单时，host 必须精确匹配或是合法子域（禁止 notopenai.com 匹配 openai.com）
         if ($this->allowlistHostSuffixes !== [] && !$this->matchesAllowlist($host)) {
             throw new RuntimeException("[{$context}] Host not in outbound allowlist: {$host}");
         }
     }
 
     /**
-     * 后缀匹配：支持精确 host、.suffix 子域、无前缀 suffix。
+     * 后缀匹配：仅精确 host 或 .suffix 子域。
      *
-     * 例：allowlist 含 openai.com → api.openai.com 通过
+     * 例：allowlist 含 openai.com → api.openai.com 通过，notopenai.com 拒绝
      */
     private function matchesAllowlist(string $host): bool
     {
@@ -82,7 +89,7 @@ final class OutboundUrlGuard
                 continue;
             }
             $suffix = strtolower(ltrim($suffix, '.'));
-            if ($host === $suffix || str_ends_with($host, '.' . $suffix) || str_ends_with($host, $suffix)) {
+            if ($host === $suffix || str_ends_with($host, '.' . $suffix)) {
                 return true;
             }
         }
