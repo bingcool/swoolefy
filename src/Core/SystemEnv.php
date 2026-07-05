@@ -433,8 +433,15 @@ class SystemEnv
             }
 
             static::$repository = $builder->immutable()->make();
-            $dotenv = \Dotenv\Dotenv::create(static::$repository, APP_PATH);
-            $dotenv->safeload();
+
+            // 单测 / 独立 CLI 可能未定义 APP_PATH；此时仅使用进程环境（不加载 .env 文件）
+            if (\defined('APP_PATH')) {
+                $appPath = (string) \constant('APP_PATH');
+                if ('' !== $appPath && is_dir($appPath)) {
+                    $dotenv = \Dotenv\Dotenv::create(static::$repository, $appPath);
+                    $dotenv->safeload();
+                }
+            }
         }
         return static::$repository;
     }

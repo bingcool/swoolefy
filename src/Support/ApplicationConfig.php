@@ -192,21 +192,15 @@ final class ApplicationConfig
     }
 
     /**
-     * 优先从 .env（env()）读取；无 APP_PATH 时回退 getenv。
+     * 从 .env / 进程环境读取（经 env()）。
      */
     private static function readEnv(string $key): mixed
     {
-        if (defined('APP_PATH') && '' !== (string) APP_PATH) {
-            $value = env($key);
-            if ($value !== null && $value !== '') {
-                return $value;
-            }
-
+        $value = env($key);
+        if ($value === null || $value === '') {
             return null;
         }
 
-        $value = getenv($key);
-
-        return false !== $value && '' !== $value ? $value : null;
+        return $value;
     }
 }

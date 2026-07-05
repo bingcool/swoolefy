@@ -217,20 +217,11 @@ final class NeuronAiRagEnv
     }
 
     /**
-     * 从 .env（env()）读取；无 APP_PATH 时回退 getenv（CLI / 单测子进程）。
+     * 从 .env / 进程环境读取（经 env()）。
      */
     private static function read(string $key, mixed $default = null): mixed
     {
-        if (defined('APP_PATH') && '' !== (string) APP_PATH) {
-            return env($key, $default);
-        }
-
-        $value = getenv($key);
-        if (false !== $value && '' !== $value) {
-            return $value;
-        }
-
-        return $default;
+        return env($key, $default);
     }
 
     private static function readString(string $key, string $default = ''): string
