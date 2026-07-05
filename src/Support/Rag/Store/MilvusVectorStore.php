@@ -173,10 +173,7 @@ class MilvusVectorStore implements VectorStoreInterface
     {
         $this->ensureCollection();
 
-        $filter = "metadata[\"sourceType\"] == \"{$sourceType}\"";
-        if ($sourceName !== null) {
-            $filter .= " and metadata[\"sourceName\"] == \"{$sourceName}\"";
-        }
+        $filter = MilvusFilterExpr::deleteBySourceFilter($sourceType, $sourceName);
 
         $this->client->delete(
             collection_name: $this->collectionName,

@@ -27,6 +27,7 @@ use Swoolefy\Support\Workflow\Engine\NodeExecutionResult;
 use Swoolefy\Support\Workflow\WorkflowComponentFactory;
 use Swoolefy\Support\Workflow\WorkflowConfig;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
+use Swoolefy\Support\Workflow\WorkflowRunStoreName;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 use Swoolefy\Support\AI\Node\AgentParallelNode;
 use Swoolefy\Support\Agent\AgentScheduler;
@@ -284,6 +285,53 @@ function testProductionHealthCheckDetectsIssues(): void
     pass('production health check detects issues');
 }
 
+function testProductionHealthCheckRejectsMemoryRunStoreInProduction(): void
+{
+    $previous = $_ENV['SWOOLEFY_ENV'] ?? getenv('SWOOLEFY_ENV');
+    $_ENV['SWOOLEFY_ENV'] = 'prd';
+    putenv('SWOOLEFY_ENV=prd');
+
+    try {
+        $errors = ProductionHealthCheck::check(
+            NeuronAiConfig::fromArray([
+                'rag' => [
+                    'default_vector_store' => 'file',
+                    'allow_fake_embeddings' => true,
+                    'require_tenant_isolation' => false,
+                    'vector_stores' => ['file' => ['path' => sys_get_temp_dir()]],
+                ],
+                'neuron' => ['ai_model_providers' => []],
+            ]),
+            WorkflowConfig::fromArray([
+                'workflow' => [
+                    'default_node_timeout_seconds' => 120,
+                    'default_run_store' => WorkflowRunStoreName::MEMORY,
+                    'run_stores' => [WorkflowRunStoreName::MEMORY => []],
+                ],
+            ]),
+        );
+
+        $found = false;
+        foreach ($errors as $error) {
+            if (str_contains($error, 'must not be memory')) {
+                $found = true;
+                break;
+            }
+        }
+        assertTrue($found, 'memory run store flagged in production');
+    } finally {
+        if ($previous === false || $previous === null || $previous === '') {
+            unset($_ENV['SWOOLEFY_ENV']);
+            putenv('SWOOLEFY_ENV');
+        } else {
+            $_ENV['SWOOLEFY_ENV'] = $previous;
+            putenv('SWOOLEFY_ENV=' . $previous);
+        }
+    }
+
+    pass('production health check rejects memory run store');
+}
+
 function testProviderFactoryValidatesOutboundUrl(): void
 {
     $config = NeuronAiConfig::fromArray([
@@ -329,6 +377,7 @@ $tests = [
     'outbound url allowlist' => 'testOutboundUrlAllowlist',
     'db mcp repository' => 'testDbMcpRepository',
     'production health check' => 'testProductionHealthCheckDetectsIssues',
+    'production health check rejects memory run store' => 'testProductionHealthCheckRejectsMemoryRunStoreInProduction',
     'provider outbound url validation' => 'testProviderFactoryValidatesOutboundUrl',
 ];
 

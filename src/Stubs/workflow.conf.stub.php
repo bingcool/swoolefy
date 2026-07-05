@@ -16,14 +16,14 @@ use Swoolefy\Support\Workflow\WorkflowRunStoreName;
  * 驱动常量：{@see WorkflowRunStoreName::MEMORY|REDIS|DB}
  *
  * 生产建议：
- *   - default_run_store=WorkflowRunStoreName::DB 或 REDIS
+ *   - 默认 default_run_store=DB（跨 Worker HITL/resume）；本地单测可 env WORKFLOW_RUN_STORE=memory
  *   - 使用 DB 前预执行 src/Support/Workflow/Schema/workflow_runs.sql
  *   - component 指向 Config/component/database.php / cache.php 中已配置的高可用组件
  */
 return [
     'workflow' => [
-        // 默认 RunStore 别名（env WORKFLOW_RUN_STORE 可覆盖）
-        'default_run_store' => env('WORKFLOW_RUN_STORE', WorkflowRunStoreName::MEMORY),
+        // 默认 RunStore 别名（env WORKFLOW_RUN_STORE 可覆盖；本地单测可设为 memory）
+        'default_run_store' => env('WORKFLOW_RUN_STORE', WorkflowRunStoreName::DB),
         // 条件边求值器：symfony | jsonlogic
         'condition_evaluator' => env('WORKFLOW_CONDITION_EVALUATOR', 'symfony'),
         // 节点默认超时秒数（0=不限制；生产建议 120）

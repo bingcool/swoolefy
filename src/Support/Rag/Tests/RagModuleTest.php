@@ -20,6 +20,7 @@ use Swoolefy\Support\Neuron\NeuronAiVectorStoreName;
 use Swoolefy\Support\Rag\Factory\RagFactory;
 use Swoolefy\Support\Rag\Factory\VectorStoreFactory;
 use Swoolefy\Support\Rag\Retrieval\RetrievalService;
+use Swoolefy\Support\Rag\Store\MilvusFilterExpr;
 use Swoolefy\Support\Rag\Store\MilvusVectorStore;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
@@ -183,6 +184,25 @@ function testMilvusVectorStoreMakeParams(): void
     assertTrue($store->getCollectionName() === 'kb_test', 'collection name');
 }
 
+function testMilvusFilterExprEscapesQuotes(): void
+{
+    $filter = MilvusFilterExpr::deleteBySourceFilter('file', 'readme "draft".md');
+    assertTrue(
+        $filter === 'metadata["sourceType"] == "file" and metadata["sourceName"] == "readme \\"draft\\".md"',
+        'quotes escaped in filter',
+    );
+
+    $onlyType = MilvusFilterExpr::deleteBySourceFilter('manual');
+    assertTrue($onlyType === 'metadata["sourceType"] == "manual"', 'sourceType only filter');
+
+    try {
+        MilvusFilterExpr::deleteBySourceFilter('file', "bad\nline");
+        assertTrue(false, 'control char should throw');
+    } catch (\InvalidArgumentException $e) {
+        assertTrue(str_contains($e->getMessage(), 'control characters'), 'control char message');
+    }
+}
+
 function testVectorStoreUnknownAliasThrows(): void
 {
     $path = sys_get_temp_dir() . '/swoolefy_rag_unknown_' . getmypid();
@@ -257,6 +277,7 @@ $tests = [
     'ingest documents' => 'testIngestDocumentsDirectly',
     'rag factory retrieval' => 'testRagFactoryRetrievalInterface',
     'milvus make params' => 'testMilvusVectorStoreMakeParams',
+    'milvus filter expr escapes quotes' => 'testMilvusFilterExprEscapesQuotes',
     'milvus config section' => 'testMilvusConfigSectionInNeuronAiConfig',
     'unknown vector store alias throws' => 'testVectorStoreUnknownAliasThrows',
     'unknown default alias throws' => 'testVectorStoreUnknownDefaultAliasThrows',

@@ -6,6 +6,7 @@ namespace Swoolefy\Support;
 
 use PDO;
 use RuntimeException;
+use Swoolefy\Core\SystemEnv;
 use Swoolefy\Support\Mcp\McpStdioGuard;
 use Swoolefy\Support\Neuron\NeuronAiConfig;
 use Swoolefy\Support\Security\OutboundUrlGuard;
@@ -21,7 +22,7 @@ use Swoolefy\Support\Workflow\WorkflowRunStoreName;
  *
  * 检查项：
  *   Neuron — default_vector_store 别名、Embedding 凭证、embedding_dimension、出站 URL
- *   Workflow — default_node_timeout_seconds、DB RunStore 表可达性
+ *   Workflow — default_node_timeout_seconds、RunStore（生产禁止 memory）、DB 表可达性
  *
  * CLI 示例：
  *   php -r "require 'vendor/autoload.php'; Swoolefy\Support\ProductionHealthCheck::run();"
@@ -116,8 +117,17 @@ final class ProductionHealthCheck
             $errors[] = 'workflow: default_node_timeout_seconds should be > 0 in production';
         }
 
+        $driver = $config->runStoreDriver();
+
+        if (self::isProductionEnvironment() && $driver === WorkflowRunStoreName::MEMORY) {
+            $errors[] = 'workflow: default_run_store must not be memory in production '
+                . '(use db or redis for cross-worker HITL/resume; set WORKFLOW_RUN_STORE=db)';
+
+            return;
+        }
+
         // 非 DB RunStore 无需检查表结构
-        if ($config->runStoreDriver() !== WorkflowRunStoreName::DB) {
+        if ($driver !== WorkflowRunStoreName::DB) {
             return;
         }
 
@@ -137,5 +147,14 @@ final class ProductionHealthCheck
             $errors[] = 'workflow: db run store check failed — ' . $e->getMessage()
                 . ' (execute Schema/workflow_runs.sql)';
         }
+    }
+
+    private static function isProductionEnvironment(): bool
+    {
+        if (\defined('SWOOLEFY_ENV') && \defined('SWOOLEFY_PRD')) {
+            return SystemEnv::isPrdEnv();
+        }
+
+        return strtolower((string) env('SWOOLEFY_ENV', '')) === 'prd';
     }
 }
