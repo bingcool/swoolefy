@@ -33,9 +33,6 @@ class Event extends EventHandler
 
         $waitGroup = new GoWaitGroup();
 
-
-        var_dump(env('DEEPSEEK_API_KEY'));
-
         if(!SystemEnv::isWorkerService()) {
             // 创建一个测试自定义进程
             // ProcessManager::getInstance()->addProcess('test', \Test\Process\TestProcess\MultiCall::class);
