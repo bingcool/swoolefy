@@ -21,6 +21,7 @@ use Swoolefy\Support\Workflow\Plugin\PluginManager;
 use Swoolefy\Support\Workflow\Definition\WorkflowDefinition;
 use Swoolefy\Support\Workflow\Engine\NodeExecutionResult;
 use Swoolefy\Support\Workflow\Node\ClosureNode;
+use Swoolefy\Support\Neuron\NeuronFactory;
 use Swoolefy\Support\Workflow\WorkflowComponentFactory;
 use Swoolefy\Support\Workflow\WorkflowConfig;
 use Swoolefy\Support\Workflow\WorkflowRegistry;
@@ -69,6 +70,7 @@ function sampleRunStoresConfig(string $default = WorkflowRunStoreName::MEMORY): 
 function registerOrderWorkflow(WorkflowRegistry $registry): void
 {
     $registry->register('order_processing', static fn () => OrderProcessingWorkflow::definition(
+        new NeuronFactory(),
         static function (): OrderDecisionDto {
             $dto = new OrderDecisionDto();
             $dto->approved = true;

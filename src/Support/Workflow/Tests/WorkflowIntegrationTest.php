@@ -174,6 +174,7 @@ function testDbRunStorePersistence(): void
 {
     $registry = new WorkflowRegistry();
     $registry->register('order_processing', static fn () => \Test\Module\Order\Workflow\OrderProcessingWorkflow::definition(
+        new \Swoolefy\Support\Neuron\NeuronFactory(),
         static function (): \Test\Module\Order\Dto\OrderDecisionDto {
             $dto = new \Test\Module\Order\Dto\OrderDecisionDto();
             $dto->approved = true;

@@ -91,7 +91,7 @@ function testMetricsPluginCountsNodes(): void
         events: new StreamWorkflowEventDispatcher(),
     );
 
-    $compiled = WorkflowBootstrap::compiler()->compile(OrderProcessingWorkflow::definition());
+    $compiled = WorkflowBootstrap::compiler()->compile(OrderProcessingWorkflow::definition(new NeuronFactory()));
     $engine->start($compiled, ['orderId' => 20001, 'sessionId' => 's-p2']);
 
     $snapshot = $metrics->snapshot();
@@ -122,7 +122,7 @@ function testMultiAgentResearchWorkflow(): void
 function testWorkflowRegistry(): void
 {
     $registry = new WorkflowRegistry();
-    $registry->register('order_processing', static fn () => OrderProcessingWorkflow::definition());
+    $registry->register('order_processing', static fn () => OrderProcessingWorkflow::definition(new NeuronFactory()));
     assertTrue($registry->has('order_processing'), 'Registry should know order_processing');
     $compiled = $registry->compiled('order_processing');
     assertTrue($compiled->workflowId() === 'order_processing', 'Compiled workflow id should match');

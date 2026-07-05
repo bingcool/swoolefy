@@ -61,6 +61,7 @@ final class OrderWorkflowDemoController extends BController
             : null;
 
         $definition = OrderProcessingWorkflow::definition(
+            WorkflowService::neuronFactory(),
             $aiExecutor,
             pauseForHumanReview: $pauseForHumanReview,
         );

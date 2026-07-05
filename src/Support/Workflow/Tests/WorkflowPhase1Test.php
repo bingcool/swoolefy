@@ -16,6 +16,7 @@ declare(strict_types=1);
  * 运行：php src/Support/Workflow/Tests/WorkflowPhase1Test.php
  */
 
+use Swoolefy\Support\Neuron\NeuronFactory;
 use Swoolefy\Support\Workflow\Condition\SymfonyExpressionLanguageEvaluator;
 use Swoolefy\Support\Workflow\Definition\EdgeCondition;
 use Swoolefy\Support\Workflow\Definition\WorkflowCompiler;
@@ -67,7 +68,7 @@ function testConditionalRoutingHighConfidence(): void
         scheduler: new DagScheduler(new SymfonyExpressionLanguageEvaluator()),
     );
 
-    $definition = OrderProcessingWorkflow::definition(static function ($ctx, $state): OrderDecisionDto {
+    $definition = OrderProcessingWorkflow::definition(new NeuronFactory(), static function ($ctx, $state): OrderDecisionDto {
         $dto = new OrderDecisionDto();
         $dto->approved = true;
         $dto->confidence = 0.95;
@@ -100,7 +101,7 @@ function testConditionalRoutingManualReview(): void
 {
     $engine = WorkflowBootstrap::engine();
 
-    $definition = OrderProcessingWorkflow::definition(static function ($ctx, $state): OrderDecisionDto {
+    $definition = OrderProcessingWorkflow::definition(new NeuronFactory(), static function ($ctx, $state): OrderDecisionDto {
         $dto = new OrderDecisionDto();
         $dto->approved = true;
         $dto->confidence = 0.55;
@@ -122,7 +123,7 @@ function testConditionalRoutingReject(): void
 {
     $engine = WorkflowBootstrap::engine();
 
-    $definition = OrderProcessingWorkflow::definition(static function ($ctx, $state): OrderDecisionDto {
+    $definition = OrderProcessingWorkflow::definition(new NeuronFactory(), static function ($ctx, $state): OrderDecisionDto {
         $dto = new OrderDecisionDto();
         $dto->approved = false;
         $dto->confidence = 0.99;
@@ -147,7 +148,7 @@ function testWorkflowFacade(): void
     // 非协程 CLI 无 Context 缓存，须显式复用同一 Engine 实例
     $engine = WorkflowBootstrap::engine();
 
-    $runId = Workflow::fromDefinition(OrderProcessingWorkflow::definition())
+    $runId = Workflow::fromDefinition(OrderProcessingWorkflow::definition(new NeuronFactory()))
         ->compile()
         ->start([
             'orderId' => 10004,

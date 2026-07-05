@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Module\Order\Workflow;
 
 use Swoolefy\Support\AI\Node\AINode;
+use Swoolefy\Support\Neuron\NeuronFactory;
 use Swoolefy\Support\Workflow\Definition\EdgeCondition;
 use Swoolefy\Support\Workflow\Definition\WorkflowDefinition;
 use Swoolefy\Support\Workflow\Plugin\Builtin\RetryPlugin;
@@ -41,14 +42,14 @@ use Test\Module\Order\Node\ValidateNode;
  *   - complete:       orderStatus=completed
  *
  * 用法示例：
- *   // 生产 / 演示：走真实 Agent（无凭证时 Fake Provider 回退）
- *   $def = OrderProcessingWorkflow::definition();
+ *   // 生产 / 演示：走 NeuronFactory → OrderDecisionAgent（Provider / MCP / 租户隔离）
+ *   $def = OrderProcessingWorkflow::definition($neuronFactory);
  *
  *   // 单测 / HTTP 演示：注入固定决策
- *   $def = OrderProcessingWorkflow::definition(static fn ($ctx, $state) => $dto);
+ *   $def = OrderProcessingWorkflow::definition($neuronFactory, static fn ($ctx, $state) => $dto);
  *
  *   // 人机协同（HITL）：在 manual_review 暂停，直到 engine->resume($runId, $feedback)
- *   $def = OrderProcessingWorkflow::definition(null, pauseForHumanReview: true);
+ *   $def = OrderProcessingWorkflow::definition($neuronFactory, null, pauseForHumanReview: true);
  *
  * @see Test\Module\Order\README.md
  * @see docs/swoolefyAI.md §4.1 order_processing 示例
@@ -60,16 +61,18 @@ final class OrderProcessingWorkflow
      *
      * 运行时入口统一为：compile() 之后调用 WorkflowEngine::start()。
      *
-     * @param callable|null $aiExecutor 可选，覆盖 ai_decision 的执行逻辑（mock）。
-     *                                  签名：function (RunContext $ctx, WorkflowState $state): OrderDecisionDto
-     *                                  为 null 时，AINode 运行 OrderDecisionAgent，
-     *                                  并将结构化结果写入 state 键 "decision"。
-     * @param bool $pauseForHumanReview 为 true 时，ManualReviewNode 返回 WAITING，
-     *                                  需通过 WorkflowEngine::resume() 恢复运行。
-     *                                  为 false（默认）时，低置信度订单自动通过复核并继续支付
-     *                                  （适合演示与单测）。
+     * @param NeuronFactory         $neuronFactory        注入 Provider / MCP / 租户隔离
+     * @param callable|null         $aiExecutor           可选，覆盖 ai_decision 的执行逻辑（mock）。
+     *                                                  签名：function (RunContext $ctx, WorkflowState $state): OrderDecisionDto
+     *                                                  为 null 时，AINode 经 NeuronFactory 创建 OrderDecisionAgent，
+     *                                                  并将结构化结果写入 state 键 "decision"。
+     * @param bool                  $pauseForHumanReview  为 true 时，ManualReviewNode 返回 WAITING，
+     *                                                  需通过 WorkflowEngine::resume() 恢复运行。
+     *                                                  为 false（默认）时，低置信度订单自动通过复核并继续支付
+     *                                                  （适合演示与单测）。
      */
     public static function definition(
+        NeuronFactory $neuronFactory,
         ?callable $aiExecutor = null,
         bool $pauseForHumanReview = false,
     ): WorkflowDefinition {
@@ -105,7 +108,7 @@ final class OrderProcessingWorkflow
             // validate：校验 orderId，规范化 userId/amount/items，写入订单快照。
             ->addNode('validate', new ValidateNode('validate'))
             // ai_decision：产出 decision{approved, confidence, reason}。
-            ->addNode('ai_decision', $aiBuilder->build())
+            ->addNode('ai_decision', $aiBuilder->build(neuronFactory: $neuronFactory))
             // payment：模拟扣款；在其他流程中可配合 Saga 补偿（退款）。
             ->addNode('payment', new PaymentNode('payment'))
             // manual_review：低置信度闸门；可选 HITL 暂停（见 $pauseForHumanReview）。

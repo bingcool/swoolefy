@@ -104,7 +104,7 @@ final class WorkflowService
     private static function registerBuiltinWorkflows(WorkflowRegistry $registry): void
     {
         // Phase 1：订单处理（AI 决策路由）
-        $registry->register('order_processing', static fn () => OrderProcessingWorkflow::definition());
+        $registry->register('order_processing', static fn () => OrderProcessingWorkflow::definition(self::neuronFactory()));
         // Phase 4：订单 Saga 补偿
         $registry->register('order_saga', static fn () => OrderSagaWorkflow::definition());
         // Phase 2：多 Agent 并行（默认走真实/Fake Agent，非 mock）
