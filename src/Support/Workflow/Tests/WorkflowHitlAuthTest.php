@@ -12,14 +12,19 @@ use Swoolefy\Support\Workflow\Definition\WorkflowDefinition;
 use Swoolefy\Support\Workflow\Engine\DbRunStore;
 use Swoolefy\Support\Workflow\Engine\InMemoryRunStore;
 use Swoolefy\Support\Workflow\Engine\NodeExecutionResult;
+use Swoolefy\Support\Workflow\Engine\PauseTaskQueryableInterface;
 use Swoolefy\Support\Workflow\Engine\RunStatus;
+use Swoolefy\Support\Workflow\Engine\RunStoreInterface;
 use Swoolefy\Support\Workflow\Engine\WorkflowEngine;
+use Swoolefy\Support\Workflow\Engine\WorkflowRun;
 use Swoolefy\Support\Workflow\Engine\WorkflowRunTime;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\Exception\WorkflowPermissionException;
 use Swoolefy\Support\Workflow\Node\ClosureNode;
 use Swoolefy\Support\Workflow\Node\PauseNode;
 use Swoolefy\Support\Workflow\Plugin\PluginManager;
+use Swoolefy\Support\Workflow\Plugin\PluginRegistry;
+use Swoolefy\Support\Workflow\Plugin\WorkflowPluginInterface;
 use Swoolefy\Support\Workflow\Condition\ConditionEvaluatorFactory;
 use Swoolefy\Support\Workflow\Engine\DagScheduler;
 use Swoolefy\Support\Workflow\WorkflowComponentFactory;
@@ -40,6 +45,54 @@ function assertTrue(bool $condition, string $message): void
 function pass(string $name): void
 {
     echo "[PASS] {$name}\n";
+}
+
+final class PauseNodeIdSpyRunStore implements RunStoreInterface, PauseTaskQueryableInterface
+{
+    public ?string $pauseNodeIdAtCas = null;
+
+    public function __construct(private readonly InMemoryRunStore $inner)
+    {
+    }
+
+    public function save(WorkflowRun $run): void
+    {
+        $this->inner->save($run);
+    }
+
+    public function saveIfStatus(WorkflowRun $run, RunStatus $expectedStatus): bool
+    {
+        $this->pauseNodeIdAtCas = $run->pauseNodeId;
+
+        return $this->inner->saveIfStatus($run, $expectedStatus);
+    }
+
+    public function find(string $runId): ?WorkflowRun
+    {
+        return $this->inner->find($runId);
+    }
+
+    public function listWaiting(?string $assignee = null): array
+    {
+        return $this->inner->listWaiting($assignee);
+    }
+}
+
+final class RunCompleteCounterPlugin implements WorkflowPluginInterface
+{
+    public int $count = 0;
+
+    public function name(): string
+    {
+        return 'run_complete_counter';
+    }
+
+    public function register(PluginRegistry $registry): void
+    {
+        $registry->onRunComplete(function (): void {
+            ++$this->count;
+        });
+    }
 }
 
 function hitlConfig(array $overrides = []): WorkflowConfig
@@ -196,6 +249,74 @@ function testDbRunStoreSaveIfStatus(): void
     pass('db run store saveIfStatus');
 }
 
+function testResumeCasPersistClearsPauseNodeId(): void
+{
+    $registry = new WorkflowRegistry();
+    $registry->register('hitl', static fn () => WorkflowDefinition::create('hitl', '1.0.0')
+        ->addNode('start', new ClosureNode('start', static fn () => NodeExecutionResult::success()))
+        ->addNode('pause', new PauseNode('pause', ['assignee' => 'ops']))
+        ->addNode('done', new ClosureNode('done', static fn () => NodeExecutionResult::success(['done' => true])))
+        ->addEdge('start', 'pause')
+        ->addEdge('pause', 'done'));
+
+    $compiled = WorkflowComponentFactory::compiler(WorkflowConfig::fromArray([]))
+        ->compile($registry->definition('hitl'));
+
+    $inner = new InMemoryRunStore();
+    $store = new PauseNodeIdSpyRunStore($inner);
+    $engine = new WorkflowEngine(
+        plugins: new PluginManager([]),
+        scheduler: new DagScheduler(ConditionEvaluatorFactory::create('symfony')),
+        runStore: $store,
+    );
+
+    $runId = $engine->start($compiled, []);
+    assertTrue($engine->getRun($runId)->status === RunStatus::WAITING, 'waiting');
+
+    $engine->resume($runId, ['approved' => true]);
+    assertTrue($store->pauseNodeIdAtCas === null, 'cas persist clears pauseNodeId');
+    assertTrue($engine->getRun($runId)->status === RunStatus::COMPLETED, 'completed after resume');
+
+    pass('resume cas persist clears pause node id');
+}
+
+function testResumeDoesNotFireRunCompleteWhileWaiting(): void
+{
+    $registry = new WorkflowRegistry();
+    $registry->register('hitl', static fn () => WorkflowDefinition::create('hitl', '1.0.0')
+        ->addNode('start', new ClosureNode('start', static fn () => NodeExecutionResult::success()))
+        ->addNode('pause1', new PauseNode('pause1', ['assignee' => 'ops']))
+        ->addNode('middle', new ClosureNode('middle', static fn () => NodeExecutionResult::success()))
+        ->addNode('pause2', new PauseNode('pause2', ['assignee' => 'ops']))
+        ->addEdge('start', 'pause1')
+        ->addEdge('pause1', 'middle')
+        ->addEdge('middle', 'pause2'));
+
+    $compiled = WorkflowComponentFactory::compiler(WorkflowConfig::fromArray([]))
+        ->compile($registry->definition('hitl'));
+
+    $counter = new RunCompleteCounterPlugin();
+    $engine = new WorkflowEngine(
+        plugins: new PluginManager([$counter]),
+        scheduler: new DagScheduler(ConditionEvaluatorFactory::create('symfony')),
+        runStore: new InMemoryRunStore(),
+    );
+
+    $runId = $engine->start($compiled, []);
+    assertTrue($engine->getRun($runId)->status === RunStatus::WAITING, 'waiting at pause1');
+    assertTrue($counter->count === 0, 'start waiting does not fire run complete');
+
+    $engine->resume($runId, ['approved' => true]);
+    assertTrue($engine->getRun($runId)->status === RunStatus::WAITING, 'waiting at pause2');
+    assertTrue($counter->count === 0, 'resume to waiting does not fire run complete');
+
+    $engine->resume($runId, ['approved' => true]);
+    assertTrue($engine->getRun($runId)->status === RunStatus::COMPLETED, 'completed');
+    assertTrue($counter->count === 1, 'run complete fires once after final resume');
+
+    pass('resume run complete aligned with start');
+}
+
 $tests = [
     'hitl auth valid api key' => 'testHitlAuthWithValidApiKey',
     'hitl auth valid role' => 'testHitlAuthWithValidRole',
@@ -203,6 +324,8 @@ $tests = [
     'hitl auth disabled allows all' => 'testHitlAuthDisabledAllowsAll',
     'hitl assignee match' => 'testHitlAssigneeMatch',
     'resume cas prevents double resume' => 'testResumeCasPreventsDoubleResume',
+    'resume cas persist clears pause node id' => 'testResumeCasPersistClearsPauseNodeId',
+    'resume run complete aligned with start' => 'testResumeDoesNotFireRunCompleteWhileWaiting',
     'db run store saveIfStatus' => 'testDbRunStoreSaveIfStatus',
 ];
 

@@ -13,7 +13,6 @@ use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\Node\AbstractNode;
 use Swoolefy\Support\Workflow\Node\ConfigurableTimeoutNodeInterface;
 use Swoolefy\Support\Workflow\State\WorkflowState;
-use Swoolefy\Support\Workflow\WorkflowConfig;
 
 /**
  * 多 Agent 并行执行节点。
@@ -34,7 +33,7 @@ final class AgentParallelNode extends AbstractNode implements ConfigurableTimeou
 {
     /**
      * @param array<string, callable(RouterContext, \Swoolefy\Support\Neuron\NeuronFactory): mixed> $tasks
-     * @param int  $timeoutSeconds 节点超时；0 = 使用引擎 defaultNodeTimeoutSeconds
+     * @param int  $timeoutSeconds 节点超时；0 = 使用引擎 RunContext.nodeTimeoutSeconds
      * @param bool $failFast       首个 Agent 异常是否立即失败
      */
     public function __construct(
@@ -59,7 +58,7 @@ final class AgentParallelNode extends AbstractNode implements ConfigurableTimeou
     {
         $timeout = $this->timeoutSeconds > 0
             ? (float) $this->timeoutSeconds
-            : WorkflowConfig::load()->defaultNodeTimeoutSeconds();
+            : $ctx->nodeTimeoutSeconds;
 
         $routerCtx = new RouterContext(
             runId: $ctx->runId,

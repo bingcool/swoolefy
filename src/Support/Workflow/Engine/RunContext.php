@@ -21,6 +21,8 @@ final class RunContext
         /** 当前重试次数，从 1 开始。 */
         public int $attempt = 1,
         public array $meta = [],
+        /** 引擎解析后的节点超时秒数；0 表示不限制。 */
+        public readonly float $nodeTimeoutSeconds = 0,
     ) {
     }
 

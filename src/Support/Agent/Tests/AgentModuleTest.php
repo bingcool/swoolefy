@@ -21,7 +21,9 @@ use Swoolefy\Support\Agent\RouterContext;
 use Swoolefy\Core\Coroutine\GoWaitGroup;
 use Swoolefy\Support\AI\Node\AgentParallelNode;
 use Swoolefy\Support\Neuron\NeuronFactory;
-use Swoolefy\Support\Workflow\WorkflowConfig;
+use Swoolefy\Support\Workflow\Definition\WorkflowCompiler;
+use Swoolefy\Support\Workflow\Definition\WorkflowDefinition;
+use Swoolefy\Support\Workflow\Engine\RunContext;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
@@ -138,18 +140,58 @@ function testAgentSchedulerCapturesTaskErrors(): void
     assertTrue(($results['a']['agentId'] ?? '') === 'a', 'agentId preserved');
 }
 
-function testAgentParallelNodeUsesWorkflowDefaultTimeout(): void
+function testAgentParallelNodeUsesEngineTimeoutFromRunContext(): void
 {
-    $default = WorkflowConfig::load()->defaultNodeTimeoutSeconds();
+    $capturedTimeout = null;
+    $scheduler = new AgentScheduler(new NeuronFactory());
     $node = new AgentParallelNode(
         'parallel',
-        new AgentScheduler(new NeuronFactory()),
+        $scheduler,
         new StaticRouter(['a']),
-        ['a' => static fn (): string => 'ok'],
+        [
+            'a' => static function (RouterContext $ctx) use (&$capturedTimeout): string {
+                $capturedTimeout = $ctx->timeoutSeconds;
+
+                return 'ok';
+            },
+        ],
     );
 
-    assertTrue($node->configuredTimeoutSeconds() === 0, 'node defers to workflow default');
-    assertTrue($default > 0, 'workflow default timeout configured');
+    $compiled = (new WorkflowCompiler())->compile(
+        WorkflowDefinition::create('demo', '1.0.0')->addNode('parallel', $node),
+    );
+    $state = WorkflowState::fromInput([], []);
+    $node->execute(new RunContext('run_1', $compiled, 1, [], 88.0), $state);
+
+    assertTrue($node->configuredTimeoutSeconds() === 0, 'node defers to engine timeout');
+    assertTrue($capturedTimeout === 88.0, 'scheduler receives engine-resolved timeout');
+}
+
+function testAgentParallelNodeExplicitTimeoutOverridesRunContext(): void
+{
+    $capturedTimeout = null;
+    $scheduler = new AgentScheduler(new NeuronFactory());
+    $node = new AgentParallelNode(
+        'parallel',
+        $scheduler,
+        new StaticRouter(['a']),
+        [
+            'a' => static function (RouterContext $ctx) use (&$capturedTimeout): string {
+                $capturedTimeout = $ctx->timeoutSeconds;
+
+                return 'ok';
+            },
+        ],
+        45,
+    );
+
+    $compiled = (new WorkflowCompiler())->compile(
+        WorkflowDefinition::create('demo', '1.0.0')->addNode('parallel', $node),
+    );
+    $state = WorkflowState::fromInput([], []);
+    $node->execute(new RunContext('run_1', $compiled, 1, [], 88.0), $state);
+
+    assertTrue($capturedTimeout === 45.0, 'node-level timeout wins over run context');
 }
 
 $tests = [
@@ -162,7 +204,8 @@ $tests = [
     'round robin cycle' => 'testRoundRobinCycles',
     'scheduler outputs' => 'testAgentSchedulerRunsTasksAndWritesOutputs',
     'scheduler errors' => 'testAgentSchedulerCapturesTaskErrors',
-    'agent parallel default timeout' => 'testAgentParallelNodeUsesWorkflowDefaultTimeout',
+    'agent parallel engine timeout' => 'testAgentParallelNodeUsesEngineTimeoutFromRunContext',
+    'agent parallel explicit timeout' => 'testAgentParallelNodeExplicitTimeoutOverridesRunContext',
 ];
 
 $passed = 0;

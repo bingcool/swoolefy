@@ -46,7 +46,7 @@ final class RetryExecutor
             }
 
             $attempt++;
-            $ctx = new RunContext($ctx->runId, $ctx->compiled, $attempt, $ctx->meta);
+            $ctx = new RunContext($ctx->runId, $ctx->compiled, $attempt, $ctx->meta, $ctx->nodeTimeoutSeconds);
         }
     }
 }
