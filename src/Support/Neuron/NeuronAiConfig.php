@@ -185,6 +185,27 @@ final class NeuronAiConfig
     }
 
     /**
+     * 是否强制多租户隔离（rag.require_tenant_isolation / RAG_REQUIRE_TENANT_ISOLATION）。
+     *
+     * 为 true 时 RAG 知识库与 Redis ChatHistory 须携带 tenantId（显式参数或 x-tenant-id 头），
+     * 否则 fail-fast。生产默认 true；单测可显式关闭。
+     */
+    public function requireTenantIsolation(): bool
+    {
+        $fromConfig = $this->ragSection()['require_tenant_isolation'] ?? true;
+
+        return filter_var(
+            ApplicationConfig::pickStringEnvFirst(
+                ['require_tenant_isolation' => $fromConfig ? '1' : '0'],
+                'require_tenant_isolation',
+                NeuronAiRagEnv::REQUIRE_TENANT_ISOLATION,
+                $fromConfig ? '1' : '0',
+            ),
+            FILTER_VALIDATE_BOOLEAN,
+        );
+    }
+
+    /**
      * 无 API Key 时是否允许 FakeEmbeddings（rag.allow_fake_embeddings / NEURON_ALLOW_FAKE_EMBEDDINGS）。
      * 生产默认 false；单测显式开启。
      */

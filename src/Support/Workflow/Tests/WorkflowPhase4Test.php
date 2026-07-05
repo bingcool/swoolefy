@@ -62,6 +62,7 @@ function testVectorStoreFactoryFileMode(): void
         'rag' => [
             'default_vector_store' => \Swoolefy\Support\Neuron\NeuronAiVectorStoreName::FILE,
             'allow_fake_embeddings' => true,
+            'require_tenant_isolation' => false,
             'vector_stores' => [
                 \Swoolefy\Support\Neuron\NeuronAiVectorStoreName::FILE => ['path' => $basePath],
             ],

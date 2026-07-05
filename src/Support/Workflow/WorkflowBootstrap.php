@@ -163,12 +163,12 @@ final class WorkflowBootstrap
         }
 
         if (self::envFlag('WORKFLOW_RATE_LIMIT_ENABLED')) {
-            $max = (int) (getenv('WORKFLOW_MAX_CONCURRENT_RUNS') ?: 50);
+            $max = (int) (env('WORKFLOW_MAX_CONCURRENT_RUNS') ?: 50);
             $plugins[] = RateLimitPlugin::make(max(1, $max));
         }
 
         if (self::envFlag('WORKFLOW_PERMISSION_ENABLED')) {
-            $roles = array_filter(array_map('trim', explode(',', (string) (getenv('WORKFLOW_ALLOWED_ROLES') ?: ''))));
+            $roles = array_filter(array_map('trim', explode(',', env('WORKFLOW_ALLOWED_ROLES',''))));
             $plugins[] = new PermissionPlugin($roles !== [] ? $roles : ['admin', 'operator']);
         }
 
@@ -178,7 +178,7 @@ final class WorkflowBootstrap
     /** 读取 env 开关（1 / true / yes 视为启用）。 */
     private static function envFlag(string $name): bool
     {
-        $value = getenv($name);
+        $value = env($name, false);
         if ($value === false || $value === '') {
             return false;
         }

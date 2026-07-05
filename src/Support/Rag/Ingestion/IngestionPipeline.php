@@ -31,9 +31,14 @@ final class IngestionPipeline
      * @param string         $knowledgeBase 知识库名称（映射为 index / 目录）
      * @param list<Document> $documents     待入库文档（content 必填）
      * @param string|null    $storeAlias    向量库别名；null 用 default_vector_store
+     * @param string|null    $tenantId      租户 ID；null 时从 FrameworkContext 读取
      */
-    public function ingest(string $knowledgeBase, array $documents, ?string $storeAlias = null): IngestResult
-    {
+    public function ingest(
+        string $knowledgeBase,
+        array $documents,
+        ?string $storeAlias = null,
+        ?string $tenantId = null,
+    ): IngestResult {
         if ($documents === []) {
             return new IngestResult(0, $knowledgeBase);
         }
@@ -43,7 +48,8 @@ final class IngestionPipeline
         $embedded = $embedder->embedDocuments($documents);
 
         // 2. 持久化：按别名解析 VectorStore（file / meilisearch / milvus ...）
-        $this->ragFactory->vectorStore($knowledgeBase, storeAlias: $storeAlias)->addDocuments($embedded);
+        $this->ragFactory->vectorStore($knowledgeBase, storeAlias: $storeAlias, tenantId: $tenantId)
+            ->addDocuments($embedded);
 
         return new IngestResult(count($embedded), $knowledgeBase);
     }
@@ -54,9 +60,14 @@ final class IngestionPipeline
      * @param string       $knowledgeBase 目标知识库
      * @param list<string> $contents      文本内容列表
      * @param string|null  $storeAlias    向量库别名；null 用 default_vector_store
+     * @param string|null  $tenantId      租户 ID；null 时从 FrameworkContext 读取
      */
-    public function ingestTexts(string $knowledgeBase, array $contents, ?string $storeAlias = null): IngestResult
-    {
+    public function ingestTexts(
+        string $knowledgeBase,
+        array $contents,
+        ?string $storeAlias = null,
+        ?string $tenantId = null,
+    ): IngestResult {
         $documents = [];
         foreach ($contents as $content) {
             if (!is_string($content) || trim($content) === '') {
@@ -65,6 +76,6 @@ final class IngestionPipeline
             $documents[] = new Document($content);
         }
 
-        return $this->ingest($knowledgeBase, $documents, $storeAlias);
+        return $this->ingest($knowledgeBase, $documents, $storeAlias, $tenantId);
     }
 }

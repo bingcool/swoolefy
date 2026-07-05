@@ -77,6 +77,7 @@
         "test:phase-a": "@php src/Support/Tests/PhaseAProductionTest.php",
         "test:phase-b": "@php src/Support/Tests/PhaseBProductionTest.php",
         "test:phase-c": "@php src/Support/Tests/PhaseCProductionTest.php",
+        "test:phase-d": "@php src/Support/Tests/PhaseDTenantIsolationTest.php",
         "test:support": [
             "@test:agent",
             "@test:ai",
@@ -86,6 +87,7 @@
             "@test:phase-a",
             "@test:phase-b",
             "@test:phase-c",
+            "@test:phase-d",
             "@test:workflow"
         ]
     },

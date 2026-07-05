@@ -26,6 +26,7 @@ use Swoolefy\Support\Neuron\Memory\HotChatHistoryInterface;
 use Swoolefy\Support\Neuron\Memory\ChatHistoryFactory;
 use Swoolefy\Support\Neuron\Memory\SqlChatHistoryArchive;
 use Swoolefy\Support\Neuron\NeuronAiConfig;
+use Swoolefy\Support\Neuron\NeuronAiModelEnv;
 use Swoolefy\Support\Neuron\NeuronAiProviderName;
 use Swoolefy\Support\Neuron\NeuronAiVectorStoreName;
 use Swoolefy\Support\Neuron\NeuronFactory;
@@ -136,7 +137,7 @@ function testMemoryInterfacesAreImplemented(): void
 
 function testEmbeddingFactoryWithoutApiKeyFailsFast(): void
 {
-    $prev = getenv('OPENAI_API_KEY');
+    $prev = env(NeuronAiModelEnv::OPENAI_API_KEY, '');
     putenv('OPENAI_API_KEY');
     try {
         $config = NeuronAiConfig::fromArray([
@@ -166,7 +167,7 @@ function testEmbeddingFactoryWithoutApiKeyFailsFast(): void
 
 function testEmbeddingFactoryAllowFakeUsesConfiguredDimension(): void
 {
-    $prev = getenv('OPENAI_API_KEY');
+    $prev = env(NeuronAiModelEnv::OPENAI_API_KEY, '');
     putenv('OPENAI_API_KEY');
     try {
         $config = NeuronAiConfig::fromArray([

@@ -230,7 +230,7 @@ function testIngestCli(): void
 {
     $script = dirname(__DIR__, 2) . '/Rag/Console/ingest_documents.php';
     $cmd = sprintf(
-        'NEURON_ALLOW_FAKE_EMBEDDINGS=1 php %s --kb=test_kb --text=%s 2>&1',
+        'NEURON_ALLOW_FAKE_EMBEDDINGS=1 NEURON_TENANT_ID=integration php %s --kb=test_kb --text=%s 2>&1',
         escapeshellarg($script),
         escapeshellarg('integration test document'),
     );

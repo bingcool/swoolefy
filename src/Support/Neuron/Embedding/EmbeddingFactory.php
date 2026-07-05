@@ -7,6 +7,7 @@ namespace Swoolefy\Support\Neuron\Embedding;
 use NeuronAI\RAG\Embeddings\EmbeddingsProviderInterface;
 use NeuronAI\Testing\FakeEmbeddingsProvider;
 use Swoolefy\Support\Neuron\NeuronAiConfig;
+use Swoolefy\Support\Neuron\NeuronAiModelEnv;
 use Swoolefy\Support\Neuron\NeuronAiProviderName;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 
@@ -71,7 +72,7 @@ final class EmbeddingFactory
     /** 从 env / neuron 配置解析 Embedding API Key。 */
     private function resolveApiKey(NeuronAiConfig $config): string
     {
-        $fromEnv = (string) (getenv('OPENAI_API_KEY') ?: '');
+        $fromEnv = env(NeuronAiModelEnv::OPENAI_API_KEY, '');
         if ($fromEnv !== '') {
             return $fromEnv;
         }
@@ -93,7 +94,7 @@ final class EmbeddingFactory
     /** 解析 OpenAI-compatible Embedding API baseUri。 */
     private function resolveBaseUri(NeuronAiConfig $config): string
     {
-        $fromEnv = (string) (getenv('OPENAI_BASE_URI') ?: '');
+        $fromEnv = env(NeuronAiModelEnv::OPENAILIKE_BASE_URI, '');
         if ($fromEnv !== '') {
             return $fromEnv;
         }

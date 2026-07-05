@@ -41,6 +41,7 @@ function makeRagFactory(?string $basePath = null): RagFactory
             'embedding_model' => 'text-embedding-3-small',
             'embedding_dimension' => 1536,
             'allow_fake_embeddings' => true,
+            'require_tenant_isolation' => false,
             'vector_stores' => [
                 NeuronAiVectorStoreName::FILE => ['path' => $path],
             ],
@@ -57,6 +58,7 @@ function testVectorStoreFactoryFileMode(): void
         'rag' => [
             'default_vector_store' => NeuronAiVectorStoreName::FILE,
             'default_top_k' => 4,
+            'require_tenant_isolation' => false,
             'vector_stores' => [
                 NeuronAiVectorStoreName::FILE => ['path' => $path],
             ],
@@ -76,6 +78,7 @@ function testVectorStoreSanitizesKnowledgeBaseName(): void
     $config = NeuronAiConfig::fromArray([
         'rag' => [
             'default_vector_store' => NeuronAiVectorStoreName::FILE,
+            'require_tenant_isolation' => false,
             'vector_stores' => [
                 NeuronAiVectorStoreName::FILE => ['path' => $path],
             ],
@@ -92,6 +95,7 @@ function testVectorStoreCustomAliasWithDriver(): void
     $config = NeuronAiConfig::fromArray([
         'rag' => [
             'default_vector_store' => 'primary_file',
+            'require_tenant_isolation' => false,
             'vector_stores' => [
                 'primary_file' => [
                     'driver' => NeuronAiVectorStoreName::FILE,

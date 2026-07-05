@@ -10,6 +10,8 @@ use NeuronAI\Chat\History\InMemoryChatHistory;
 use NeuronAI\Chat\History\SQLChatHistory;
 use PDO;
 use Swoolefy\Library\Redis\RedisConnection;
+use Swoolefy\Support\Neuron\NeuronAiConfig;
+use Swoolefy\Support\TenantScope;
 
 /**
  * ChatHistory 构建助手 —— 供 Agent::chatHistory() 选用持久化后端。
@@ -47,14 +49,19 @@ final class ChatHistoryFactory
         );
     }
 
-    /** Redis 热存储会话记忆。 */
+    /** Redis 热存储会话记忆（key：chat:{tenantId}:thread:{threadId}）。 */
     public static function redis(
         string $threadId,
         RedisConnection $redis,
         int $contextWindow = 50000,
-        string $prefix = 'chat:thread:',
+        ?string $prefix = null,
         int $ttlSeconds = 2592000,
+        ?string $tenantId = null,
+        ?NeuronAiConfig $config = null,
     ): ChatHistoryInterface {
+        $config ??= NeuronAiConfig::load();
+        $prefix ??= TenantScope::redisChatKeyPrefix($tenantId, $config->requireTenantIsolation());
+
         return new RedisChatHistory(
             redis: $redis,
             threadId: $threadId,

@@ -14,7 +14,7 @@ final class ConditionEvaluatorFactory
 {
     public static function create(?string $driver = null): ConditionEvaluatorInterface
     {
-        $driver = strtolower((string) ($driver ?? getenv('WORKFLOW_CONDITION_EVALUATOR') ?: 'symfony'));
+        $driver = strtolower(env('WORKFLOW_CONDITION_EVALUATOR','symfony') ?: 'symfony');
 
         return match ($driver) {
             'symfony', 'jsonlogic', 'composite' => new CompositeConditionEvaluator(),

@@ -113,8 +113,8 @@ final class ApplicationConfig
             return (string) $yaml[$yamlKey];
         }
 
-        $env = getenv($envKey);
-        if (false !== $env && '' !== $env) {
+        $env = self::readEnv($envKey);
+        if ($env !== null && $env !== '') {
             return (string) $env;
         }
 
@@ -123,8 +123,8 @@ final class ApplicationConfig
 
     public static function pickStringEnvFirst(array $yaml, string $yamlKey, string $envKey, string $default): string
     {
-        $env = getenv($envKey);
-        if (false !== $env && '' !== $env) {
+        $env = self::readEnv($envKey);
+        if ($env !== null && $env !== '') {
             return (string) $env;
         }
 
@@ -141,8 +141,8 @@ final class ApplicationConfig
             return (int) $yaml[$yamlKey];
         }
 
-        $env = getenv($envKey);
-        if (false !== $env && is_numeric($env)) {
+        $env = self::readEnv($envKey);
+        if ($env !== null && is_numeric($env)) {
             return (int) $env;
         }
 
@@ -151,8 +151,8 @@ final class ApplicationConfig
 
     public static function pickIntEnvFirst(array $yaml, string $yamlKey, string $envKey, int $default): int
     {
-        $env = getenv($envKey);
-        if (false !== $env && is_numeric($env)) {
+        $env = self::readEnv($envKey);
+        if ($env !== null && is_numeric($env)) {
             return (int) $env;
         }
 
@@ -169,8 +169,8 @@ final class ApplicationConfig
             return filter_var($yaml[$yamlKey], FILTER_VALIDATE_BOOLEAN);
         }
 
-        $env = getenv($envKey);
-        if (false !== $env) {
+        $env = self::readEnv($envKey);
+        if ($env !== null) {
             return filter_var($env, FILTER_VALIDATE_BOOLEAN);
         }
 
@@ -179,8 +179,8 @@ final class ApplicationConfig
 
     public static function pickBoolEnvFirst(array $yaml, string $yamlKey, string $envKey, bool $default): bool
     {
-        $env = getenv($envKey);
-        if (false !== $env) {
+        $env = self::readEnv($envKey);
+        if ($env !== null) {
             return filter_var($env, FILTER_VALIDATE_BOOLEAN);
         }
 
@@ -189,5 +189,24 @@ final class ApplicationConfig
         }
 
         return $default;
+    }
+
+    /**
+     * 优先从 .env（env()）读取；无 APP_PATH 时回退 getenv。
+     */
+    private static function readEnv(string $key): mixed
+    {
+        if (defined('APP_PATH') && '' !== (string) APP_PATH) {
+            $value = env($key);
+            if ($value !== null && $value !== '') {
+                return $value;
+            }
+
+            return null;
+        }
+
+        $value = getenv($key);
+
+        return false !== $value && '' !== $value ? $value : null;
     }
 }

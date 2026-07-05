@@ -18,7 +18,7 @@ use Throwable;
  *
  * 使用 {@see RedisConnection}（phpredis / predis 均继承该类，经 __call 转发命令）。
  *
- * Redis Key：{prefix}{threadId}（默认 chat:thread:{threadId}）
+ * Redis Key：{prefix}{threadId}（默认 chat:{tenantId}:thread:{threadId}，经 {@see TenantScope} 生成）
  * Value：Neuron ChatHistory JSON 序列化
  * TTL：默认 30 天（CHAT_REDIS_TTL）
  *
@@ -28,7 +28,7 @@ use Throwable;
  */
 final class RedisChatHistory extends InMemoryChatHistory implements HotChatHistoryInterface
 {
-    private const DEFAULT_PREFIX = 'chat:thread:';
+    private const DEFAULT_PREFIX = 'chat:_global:thread:';
 
     public function __construct(
         private readonly RedisConnection $redis,

@@ -25,7 +25,9 @@ return [
         'embedding_model' => 'text-embedding-3-small',
         'embedding_dimension' => (int) env('RAG_EMBEDDING_DIMENSION', 1536),
         // 生产 false；本地单测可 NEURON_ALLOW_FAKE_EMBEDDINGS=1
-        'allow_fake_embeddings' => filter_var(env('NEURON_ALLOW_FAKE_EMBEDDINGS', '0'), FILTER_VALIDATE_BOOLEAN),
+        'allow_fake_embeddings' => NeuronAiRagEnv::allowFakeEmbeddings(),
+        // 生产 true：RAG 知识库与 Redis ChatHistory 按 x-tenant-id 隔离；单测可 RAG_REQUIRE_TENANT_ISOLATION=0
+        'require_tenant_isolation' => NeuronAiRagEnv::requireTenantIsolation(),
         // 已声明的向量库表：key = 别名；可选 driver（缺省时别名即驱动类型 NeuronAiVectorStoreName::*）
         // 业务指定：VectorStoreFactory::make($kb, storeAlias: 'milvus') 或节点配置 vectorStore
         'vector_stores' => [

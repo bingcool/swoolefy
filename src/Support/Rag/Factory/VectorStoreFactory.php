@@ -12,6 +12,7 @@ use NeuronAI\RAG\VectorStore\QdrantVectorStore;
 use NeuronAI\RAG\VectorStore\VectorStoreInterface;
 use RuntimeException;
 use Swoolefy\Support\Neuron\Http\NeuronHttpFactory;
+use Swoolefy\Support\TenantScope;
 use Swoolefy\Support\Neuron\NeuronAiConfig;
 use Swoolefy\Support\Neuron\NeuronAiVectorStoreName;
 use Swoolefy\Support\Rag\Resolver\RagPdoResolver;
@@ -55,13 +56,15 @@ final class VectorStoreFactory
      * @param string      $knowledgeBase 知识库名（映射为 index / 目录 / collection）
      * @param int|null    $topK          检索 TopK，null 用配置 default_top_k
      * @param string|null $storeAlias    向量库别名；null 使用 default_vector_store
+     * @param string|null $tenantId      租户 ID；null 时从 FrameworkContext 读取
      *
-     * @throws RuntimeException 别名未声明
+     * @throws RuntimeException 别名未声明或 require_tenant_isolation 下 tenant 为空
      */
     public function make(
         string $knowledgeBase,
         ?int $topK = null,
         ?string $storeAlias = null,
+        ?string $tenantId = null,
     ): VectorStoreInterface {
         $alias = $storeAlias ?? $this->config->defaultVectorStoreAlias();
         if (!$this->config->hasVectorStoreAlias($alias)) {
@@ -71,7 +74,11 @@ final class VectorStoreFactory
         }
 
         $driver = $this->config->vectorStoreDriver($alias);
-        $index = $this->sanitize($knowledgeBase);
+        $index = TenantScope::scopedKnowledgeBase(
+            $knowledgeBase,
+            $tenantId,
+            $this->config->requireTenantIsolation(),
+        );
         $k = $topK ?? $this->config->defaultTopK();
 
         return match ($driver) {
@@ -202,8 +209,4 @@ final class VectorStoreFactory
         ]);
     }
 
-    private function sanitize(string $name): string
-    {
-        return preg_replace('/[^a-zA-Z0-9_\-]/', '_', $name) ?: 'default';
-    }
 }

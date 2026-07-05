@@ -278,6 +278,7 @@ final class WorkflowService
                     'default_vector_store' => NeuronAiVectorStoreName::FILE,
                     'embedding_dimension' => 1536,
                     'allow_fake_embeddings' => true,
+                    'require_tenant_isolation' => false,
                     'vector_stores' => [
                         NeuronAiVectorStoreName::FILE => ['path' => $basePath],
                     ],

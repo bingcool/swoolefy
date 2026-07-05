@@ -88,6 +88,11 @@ final class ProductionHealthCheck
             $errors[] = 'neuron: rag.embedding_dimension must be positive';
         }
 
+        // 生产环境须开启多租户隔离，避免 RAG / Redis ChatHistory 跨租户串数据
+        if (!$config->allowFakeEmbeddings() && !$config->requireTenantIsolation()) {
+            $errors[] = 'neuron: rag.require_tenant_isolation must be true in production (RAG / ChatHistory tenant isolation)';
+        }
+
         // 预校验所有已配置 Provider baseUri 与 MCP url 是否通过 OutboundUrlGuard
         $guard = $config->outboundUrlGuard();
         foreach ($config->outboundUrlsToValidate() as $label => $url) {

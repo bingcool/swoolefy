@@ -24,6 +24,8 @@ return [
         'embedding_model' => 'text-embedding-3-small',
         'embedding_dimension' => 1536,
         'allow_fake_embeddings' => true,
+        // 单测关闭租户强制，避免无 x-tenant-id 上下文时 fail-fast
+        'require_tenant_isolation' => false,
         // 已声明的向量库表：key = 别名；可选 driver（缺省时别名即驱动类型 NeuronAiVectorStoreName::*）
         // 业务指定：VectorStoreFactory::make($kb, storeAlias: 'milvus') 或节点配置 vectorStore
         'vector_stores' => [

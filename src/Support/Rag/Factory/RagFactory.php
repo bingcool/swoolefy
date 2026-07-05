@@ -37,8 +37,9 @@ final class RagFactory
         string $knowledgeBase,
         ?int $topK = null,
         ?string $storeAlias = null,
+        ?string $tenantId = null,
     ): VectorStoreInterface {
-        return $this->vectorStoreFactory->make($knowledgeBase, $topK, $storeAlias);
+        return $this->vectorStoreFactory->make($knowledgeBase, $topK, $storeAlias, $tenantId);
     }
 
     /** 获取 Embeddings 提供者（无 Key 时 fail-fast；单测可 rag.allow_fake_embeddings）。 */
@@ -58,9 +59,10 @@ final class RagFactory
         string $knowledgeBase,
         ?int $topK = null,
         ?string $storeAlias = null,
+        ?string $tenantId = null,
     ): RetrievalInterface {
         return new SimilarityRetrieval(
-            $this->vectorStore($knowledgeBase, $topK, $storeAlias),
+            $this->vectorStore($knowledgeBase, $topK, $storeAlias, $tenantId),
             $this->embeddings(),
         );
     }
