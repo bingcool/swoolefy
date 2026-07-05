@@ -46,7 +46,7 @@ use Test\Module\Workflow\WorkflowService;
  * GET /api/v1/research/workflow/status?runId=
  *   查询 Run 状态与业务字段。
  *
- * @see Test\Module\Research\README.md
+ * @see\Test\Module\Research\README.md
  */
 final class ResearchWorkflowDemoController extends BController
 {

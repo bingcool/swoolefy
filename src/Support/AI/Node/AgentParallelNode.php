@@ -13,6 +13,7 @@ use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\Node\AbstractNode;
 use Swoolefy\Support\Workflow\Node\ConfigurableTimeoutNodeInterface;
 use Swoolefy\Support\Workflow\State\WorkflowState;
+use Swoolefy\Support\Workflow\WorkflowConfig;
 
 /**
  * 多 Agent 并行执行节点。
@@ -58,7 +59,7 @@ final class AgentParallelNode extends AbstractNode implements ConfigurableTimeou
     {
         $timeout = $this->timeoutSeconds > 0
             ? (float) $this->timeoutSeconds
-            : 60.0;
+            : WorkflowConfig::load()->defaultNodeTimeoutSeconds();
 
         $routerCtx = new RouterContext(
             runId: $ctx->runId,

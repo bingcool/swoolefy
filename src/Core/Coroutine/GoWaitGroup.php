@@ -84,31 +84,83 @@ class GoWaitGroup
      *
      *   var_dump($result);
      *
-     * @param array $callBacks
-     * @param float $maxTimeOut
-     * @param array $params
-     * @return array
+    /**
+     * @param array<string, callable> $callBacks
+     * @param float                   $maxTimeOut  总等待秒数；<=0 表示不限制
+     * @param array<string, mixed>    $params
+     * @param bool                    $failFast    true 时首个子协程异常立即抛到调用方
+     *
+     * @return array<string, mixed>
      */
-    public static function batchParallelRunWait(array $callBacks, float $maxTimeOut = 3.0, array $params = []): array
-    {
-        $goWait = new static();
-        $count  = count($callBacks);
-        $goWait->add($count);
-        foreach ($callBacks as $key => $callBack) {
-            goApp(function () use ($key, $callBack, $params, $goWait, $maxTimeOut) {
-                try {
-                    $goWait->initResult($key, null);
-                    $param = $params[$key] ?? null;
-                    $result = call_user_func($callBack, $param);
-                    $goWait->done($key, $result ?? null, $maxTimeOut);
-                } catch (\Throwable $throwable) {
-                    $goWait->add(-1);
-                    throw $throwable;
-                }
-            });
+    public static function batchParallelRunWait(
+        array $callBacks,
+        float $maxTimeOut = 3.0,
+        array $params = [],
+        bool $failFast = false,
+    ): array {
+        if ($callBacks === []) {
+            return [];
         }
-        $result = $goWait->wait($maxTimeOut);
-        return $result;
+
+        $goWait = new static();
+        $count = count($callBacks);
+        $goWait->add($count);
+        $errorChannel = $failFast ? new Channel($count) : null;
+
+        foreach ($callBacks as $key => $callBack) {
+            if ($failFast) {
+                self::spawnCoroutine(static function () use ($key, $callBack, $params, $goWait, $errorChannel, $failFast) {
+                    try {
+                        $goWait->initResult($key, null);
+                        $param = $params[$key] ?? null;
+                        $result = call_user_func($callBack, $param);
+                        $goWait->done($key, $result ?? null);
+                    } catch (\Throwable $throwable) {
+                        if ($failFast && $errorChannel !== null) {
+                            $errorChannel->push($throwable, 0);
+                        }
+                        $goWait->done($key, null);
+                    }
+                });
+                return $goWait->waitWithErrorChannel($maxTimeOut, $errorChannel);
+            }else {
+                goApp(function () use ($key, $callBack, $params, $goWait) {
+                    try {
+                        $goWait->initResult($key, null);
+                        $param = $params[$key] ?? null;
+                        $result = call_user_func($callBack, $param);
+                        $goWait->done($key, $result ?? null, 3.0);
+                    } catch (\Throwable $throwable) {
+                        $goWait->add(-1);
+                        throw $throwable;
+                    }
+                });
+                return $goWait->wait($maxTimeOut);
+            }
+        }
+        return $goWait->wait($maxTimeOut);
+    }
+
+    /**
+     * 启动子协程并复制当前 Context（非 object 键），避免 goApp 拉起 EventApp 依赖吃掉抛出的异常。
+     */
+    private static function spawnCoroutine(callable $callback): void
+    {
+        \Swoole\Coroutine::create(static function () use ($callback) {
+            $contextData = \Swoolefy\Core\Coroutine\Context::getContext()->getArrayCopy();
+            foreach ($contextData as $key => $value) {
+                if (is_object($value)) {
+                    continue;
+                }
+                \Swoolefy\Core\Coroutine\Context::set($key, $value);
+            }
+            unset($contextData);
+            (new \Swoolefy\Core\EventApp)->registerApp(function($event) use($callback) {
+                $params = [];
+                array_push($params, $event);
+                $callback(...$params);
+            });
+        });
     }
 
     /**
@@ -197,6 +249,58 @@ class GoWaitGroup
             $this->waiting = true;
             $this->channel->pop($maxTimeout);
             $this->waiting = false;
+        }
+
+        $this->waitCompleted = true;
+        $result = $this->result;
+        $this->reset();
+        return $result;
+    }
+
+    /**
+     * @param float $maxTimeout  总等待秒数；<=0 表示不限制
+     * 用 errorChannel 收集首个异常，wait() 结束时 rethrow（修复 failFast 竞态：任务 done() 后仍检查 error channel）
+     * @return array<string, mixed>
+     */
+    protected function waitWithErrorChannel(float $maxTimeout = 3.0, ?Channel $errorChannel = null): array
+    {
+        if ($this->waiting) {
+            throw new SystemException('WaitGroup misuse: add called concurrently with wait');
+        }
+        if ($this->waitCompleted) {
+            throw new SystemException('WaitGroup misuse: wait() called again on the same instance');
+        }
+
+        $deadline = $maxTimeout > 0 ? microtime(true) + $maxTimeout : null;
+
+        while ($this->count > 0) {
+            if ($errorChannel !== null && $errorChannel->length() > 0) {
+                $this->waitCompleted = true;
+                $this->reset();
+                $err = $errorChannel->pop(0);
+
+                throw $err instanceof \Throwable ? $err : new SystemException('GoWaitGroup worker failed');
+            }
+
+            if ($deadline !== null && microtime(true) >= $deadline) {
+                $this->waitCompleted = true;
+                $this->reset();
+
+                throw new SystemException(sprintf('GoWaitGroup timed out after %.2f seconds', $maxTimeout));
+            }
+
+            $this->waiting = true;
+            $slice = $deadline === null ? -1 : min(0.05, max(0.001, $deadline - microtime(true)));
+            $this->channel->pop($slice);
+            $this->waiting = false;
+        }
+
+        if ($errorChannel !== null && $errorChannel->length() > 0) {
+            $this->waitCompleted = true;
+            $this->reset();
+            $err = $errorChannel->pop(0);
+
+            throw $err instanceof \Throwable ? $err : new SystemException('GoWaitGroup worker failed');
         }
 
         $this->waitCompleted = true;

@@ -18,7 +18,10 @@ use Swoolefy\Support\Agent\Router\RuleRouter;
 use Swoolefy\Support\Agent\Router\StaticRouter;
 use Swoolefy\Support\Agent\Router\WeightedRouter;
 use Swoolefy\Support\Agent\RouterContext;
+use Swoolefy\Core\Coroutine\GoWaitGroup;
+use Swoolefy\Support\AI\Node\AgentParallelNode;
 use Swoolefy\Support\Neuron\NeuronFactory;
+use Swoolefy\Support\Workflow\WorkflowConfig;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
@@ -135,6 +138,20 @@ function testAgentSchedulerCapturesTaskErrors(): void
     assertTrue(($results['a']['agentId'] ?? '') === 'a', 'agentId preserved');
 }
 
+function testAgentParallelNodeUsesWorkflowDefaultTimeout(): void
+{
+    $default = WorkflowConfig::load()->defaultNodeTimeoutSeconds();
+    $node = new AgentParallelNode(
+        'parallel',
+        new AgentScheduler(new NeuronFactory()),
+        new StaticRouter(['a']),
+        ['a' => static fn (): string => 'ok'],
+    );
+
+    assertTrue($node->configuredTimeoutSeconds() === 0, 'node defers to workflow default');
+    assertTrue($default > 0, 'workflow default timeout configured');
+}
+
 $tests = [
     'static router fixed' => 'testStaticRouterFixedList',
     'static router available fallback' => 'testStaticRouterFallsBackToAvailable',
@@ -145,6 +162,7 @@ $tests = [
     'round robin cycle' => 'testRoundRobinCycles',
     'scheduler outputs' => 'testAgentSchedulerRunsTasksAndWritesOutputs',
     'scheduler errors' => 'testAgentSchedulerCapturesTaskErrors',
+    'agent parallel default timeout' => 'testAgentParallelNodeUsesWorkflowDefaultTimeout',
 ];
 
 $passed = 0;

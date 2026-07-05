@@ -80,6 +80,7 @@ validate → ai_decision ─┬─ approved && confidence ≥ 0.8 → payment �
 | `currency` | 否 | 默认 `CNY` |
 | `items` | 否 | 默认 `[{"sku":"DEMO-SKU","qty":1}]` |
 | `mockDecision` | 否 | `{approved, confidence, reason}`，注入 mock AI |
+| `pauseForHumanReview` | 否 | 默认 `false`；为 `true` 时低置信度在 `manual_review` 暂停（`WAITING`），需 resume |
 
 ### curl：高置信度直付
 
@@ -163,18 +164,26 @@ curl -s -X POST 'http://127.0.0.1:9501/api/v1/order/workflow/process' \
 curl -s 'http://127.0.0.1:9501/api/v1/order/workflow/status?runId=<runId>' | jq .
 ```
 
-### HITL 恢复（可选）
+### HITL 恢复（pauseForHumanReview）
 
-演示 HTTP 接口默认不开启暂停。若代码侧使用：
+请求体传 `"pauseForHumanReview": true`，配合低置信度 `mockDecision`，流程会在 `manual_review` 进入 `WAITING`：
 
-```php
-OrderProcessingWorkflow::definition(
-    aiExecutor: null,
-    pauseForHumanReview: true,
-);
+```bash
+curl -s -X POST 'http://127.0.0.1:9501/api/v1/order/workflow/process' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "orderId": "ORD-10005",
+    "amount": 50,
+    "pauseForHumanReview": true,
+    "mockDecision": {
+      "approved": true,
+      "confidence": 0.6,
+      "reason": "need manual review"
+    }
+  }' | jq .
 ```
 
-低置信度会进入 `WAITING`，再用 resume：
+预期：`status=waiting`，`pauseNodeId=manual_review`，`runId` 形如 `run_YYYYMMDD_xxx`。再 resume：
 
 ```bash
 curl -s -X POST 'http://127.0.0.1:9501/api/v1/order/workflow/resume' \
@@ -236,11 +245,13 @@ curl -s 'http://127.0.0.1:9501/api/v1/order/workflow/status?runId=<runId>' | jq 
 
 | 字段 | 说明 |
 |------|------|
-| `runId` | 运行实例 ID |
+| `runId` | 运行实例 ID（`run_YYYYMMDD_xxx`） |
 | `workflowId` | `order_processing` / `order_saga` |
 | `version` | 定义版本 |
 | `status` | `completed` / `failed` / `waiting` 等 |
 | `waiting` | 是否 HITL 等待中 |
+| `createdAt` / `updatedAt` | Run 创建/更新时间（DATETIME，与 DB `workflow_runs` 一致） |
+| `pauseNodeId` | WAITING 时暂停节点 ID |
 | `orderStatus` | 业务订单状态 |
 | `order` | 订单快照 |
 | `decision` | AI 决策 DTO（approved / confidence / reason） |

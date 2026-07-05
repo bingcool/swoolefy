@@ -29,7 +29,8 @@ use Test\Module\Workflow\WorkflowService;
  *     "amount": 199.00,
  *     "currency": "CNY",
  *     "items": [{"sku":"SKU-1","qty":1}],
- *     "mockDecision": {"approved":true,"confidence":0.95,"reason":"..."}  // 可选，注入 mock AI
+ *     "mockDecision": {"approved":true,"confidence":0.95,"reason":"..."},  // 可选，注入 mock AI
+ *     "pauseForHumanReview": true  // 可选，低置信度时在 manual_review 暂停（WAITING），需 resume
  *   }
  *
  * POST /api/v1/order/workflow/saga
@@ -50,12 +51,21 @@ final class OrderWorkflowDemoController extends BController
     {
         $input = $this->normalizeOrderInput($requestInput);
         $mock = $requestInput->input('mockDecision');
+        $pauseForHumanReview = filter_var(
+            $requestInput->input('pauseForHumanReview', false),
+            FILTER_VALIDATE_BOOLEAN,
+        );
 
-        $definition = is_array($mock) && $mock !== []
-            ? OrderProcessingWorkflow::definition($this->mockDecisionExecutor($mock))
-            : OrderProcessingWorkflow::definition();
+        $aiExecutor = is_array($mock) && $mock !== []
+            ? $this->mockDecisionExecutor($mock)
+            : null;
 
-        return $this->startAndFormat($definition->id(), $input, $definition);
+        $definition = OrderProcessingWorkflow::definition(
+            $aiExecutor,
+            pauseForHumanReview: $pauseForHumanReview,
+        );
+
+        return $this->startAndFormat($input, $definition);
     }
 
     /**
@@ -68,7 +78,7 @@ final class OrderWorkflowDemoController extends BController
         $input = $this->normalizeOrderInput($requestInput);
         $definition = OrderSagaWorkflow::definition();
 
-        return $this->startAndFormat($definition->id(), $input, $definition);
+        return $this->startAndFormat($input, $definition);
     }
 
     /**
@@ -125,7 +135,6 @@ final class OrderWorkflowDemoController extends BController
      * @return array<string, mixed>
      */
     private function startAndFormat(
-        string $workflowId,
         array $input,
         \Swoolefy\Support\Workflow\Definition\WorkflowDefinition $definition,
     ): array {
@@ -139,7 +148,7 @@ final class OrderWorkflowDemoController extends BController
             throw new SystemException($e->getMessage(), 400, $e);
         }
 
-        return $this->formatRun($run, $workflowId);
+        return $this->formatRun($run);
     }
 
     /**
@@ -189,16 +198,19 @@ final class OrderWorkflowDemoController extends BController
     /**
      * @return array<string, mixed>
      */
-    private function formatRun(WorkflowRun $run, ?string $workflowId = null): array
+    private function formatRun(WorkflowRun $run): array
     {
         $decision = $run->state->get('decision');
 
         return [
             'runId' => $run->runId,
-            'workflowId' => $workflowId ?? $run->compiled->workflowId(),
+            'workflowId' => $run->compiled->workflowId(),
             'version' => $run->compiled->version(),
             'status' => $run->status->value,
             'waiting' => $run->status === RunStatus::WAITING,
+            'createdAt' => $run->createdAt,
+            'updatedAt' => $run->updatedAt,
+            'pauseNodeId' => $run->pauseNodeId,
             'orderStatus' => $run->state->get('orderStatus'),
             'order' => $run->state->get('order'),
             'decision' => $decision,

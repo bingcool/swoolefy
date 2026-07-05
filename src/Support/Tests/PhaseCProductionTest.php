@@ -10,6 +10,9 @@ declare(strict_types=1);
 
 use Swoolefy\Support\Agent\AgentScheduler;
 use Swoolefy\Support\Agent\Router\StaticRouter;
+use Swoolefy\Support\Agent\RouterContext;
+use Swoolefy\Core\Coroutine\GoWaitGroup;
+use Swoolefy\Exception\SystemException;
 use Swoolefy\Support\AI\Node\AgentParallelNode;
 use Swoolefy\Support\Neuron\NeuronFactory;
 use Swoolefy\Support\Security\OutboundUrlGuard;
@@ -212,6 +215,68 @@ function testAgentParallelFailFastThrows(): void
     pass('agent parallel fail fast throws');
 }
 
+function testAgentParallelFailFastInCoroutine(): void
+{
+    if (!extension_loaded('swoole') || !class_exists(\Swoole\Coroutine::class)) {
+        echo "[SKIP] agent parallel fail fast in coroutine (no swoole)\n";
+
+        return;
+    }
+
+    $propagated = false;
+    \Swoole\Coroutine\run(static function () use (&$propagated): void {
+        $scheduler = new AgentScheduler(new NeuronFactory());
+        $ctx = new RouterContext(
+            runId: 'run_coroutine',
+            state: WorkflowState::fromInput([], []),
+            availableAgents: ['a'],
+            timeoutSeconds: 5.0,
+        );
+
+        try {
+            $scheduler->runParallel($ctx, [
+                'a' => static function (): void {
+                    throw new RuntimeException('boom-coroutine');
+                },
+            ], new StaticRouter(['a']), failFast: true);
+        } catch (RuntimeException $e) {
+            $propagated = $e->getMessage() === 'boom-coroutine';
+        }
+    });
+
+    assertTrue($propagated, 'failFast propagates inside swoole coroutine');
+
+    pass('agent parallel fail fast in coroutine');
+}
+
+function testGoWaitGroupTimeoutInCoroutine(): void
+{
+    if (!extension_loaded('swoole') || !class_exists(\Swoole\Coroutine::class)) {
+        echo "[SKIP] go wait group timeout in coroutine (no swoole)\n";
+
+        return;
+    }
+
+    $timedOut = false;
+    \Swoole\Coroutine\run(static function () use (&$timedOut): void {
+        try {
+            GoWaitGroup::batchParallelRunWait([
+                'slow' => static function (): string {
+                    \Swoole\Coroutine::sleep(0.3);
+
+                    return 'done';
+                },
+            ], 0.05);
+        } catch (SystemException $e) {
+            $timedOut = str_contains($e->getMessage(), 'timed out');
+        }
+    });
+
+    assertTrue($timedOut, 'go wait group timeout throws');
+
+    pass('go wait group timeout in coroutine');
+}
+
 $tests = [
     'outbound url suffix bypass blocked' => 'testOutboundUrlSuffixBypassBlocked',
     'outbound url require allowlist empty' => 'testOutboundUrlRequireAllowlistEmpty',
@@ -220,6 +285,8 @@ $tests = [
     'cancel running sets cooperative flag' => 'testCancelRunningSetsCooperativeFlag',
     'agent parallel node fails on partial error' => 'testAgentParallelNodeFailsOnPartialError',
     'agent parallel fail fast throws' => 'testAgentParallelFailFastThrows',
+    'agent parallel fail fast in coroutine' => 'testAgentParallelFailFastInCoroutine',
+    'go wait group timeout in coroutine' => 'testGoWaitGroupTimeoutInCoroutine',
 ];
 
 $passed = 0;

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Swoolefy\Support\Agent;
 
 use Swoolefy\Core\Coroutine\GoWaitGroup;
+use Swoolefy\Exception\SystemException;
 use Swoolefy\Support\Neuron\NeuronFactory;
+use Swoolefy\Support\Workflow\Exception\WorkflowTimeoutException;
 
 /**
  * 多 Agent 协程并发调度器 —— 路由与执行分离。
@@ -77,7 +79,20 @@ final class AgentScheduler
                 $results[$agentId] = $callback();
             }
         } else {
-            $results = GoWaitGroup::batchParallelRunWait($callbacks, $ctx->timeoutSeconds);
+            try {
+                $results = GoWaitGroup::batchParallelRunWait(
+                    $callbacks,
+                    $ctx->timeoutSeconds,
+                    [],
+                    $failFast,
+                );
+            } catch (SystemException $e) {
+                if (str_contains($e->getMessage(), 'timed out')) {
+                    throw new WorkflowTimeoutException($e->getMessage(), 0, $e);
+                }
+
+                throw $e;
+            }
         }
 
         foreach ($results as $agentId => $output) {
