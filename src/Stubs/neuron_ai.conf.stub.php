@@ -18,7 +18,7 @@ use Swoolefy\Support\Neuron\NeuronAiVectorStoreName;
 return [
     'rag' => [
         // 默认向量库别名（须对应下方 vector_stores 的 key）。
-        // 环境变量 RAG_VECTOR_STORE 可覆盖。业务可在 Node/Factory 传入其它别名覆盖默认。
+        // 如果.env配置环境变量 RAG_VECTOR_STORE 则会优先取RAG_VECTOR_STORE配置的vector_store。业务可在 Node/Factory 传入其它别名覆盖默认。
         'default_vector_store' => NeuronAiVectorStoreName::FILE,
         'default_top_k' => 5,
         // 须与 embedding_dimension 及各 vector_stores.*.dimension 一致

@@ -70,6 +70,7 @@ NeuronFactory::create / boot
 | `RAG_EMBEDDING_DIMENSION` | Embedding 输出向量维度；须与各 `vector_stores.*.dimension` 一致 | `1536` |
 | `NEURON_ALLOW_FAKE_EMBEDDINGS` | 无 API Key 时是否允许 FakeEmbeddings（`1`/`true` 开启）；**生产须为 false** | `false` |
 | `RAG_REQUIRE_TENANT_ISOLATION` | 是否强制多租户隔离：RAG 知识库前缀 `{tenantId}_{kb}`、Redis ChatHistory key 含 tenant；无 tenant 时 fail-fast（`1`/`true` 开启）；**生产须为 true** | `true` |
+| `NEURON_TENANT_ID` | CLI 入库 / 脚本场景的 tenant（等同 HTTP `x-tenant-id`；RAG CLI 亦支持 `--tenant-id=`） | 空 |
 
 ### Meilisearch（`vector_stores.meilisearch`）
 
