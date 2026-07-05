@@ -262,24 +262,28 @@ final class WorkflowController extends BController
         $assignee = $requestInput->input('assignee');
         $assignee = is_string($assignee) && $assignee !== '' ? $assignee : null;
 
+        $hitlAuth = new WorkflowHitlAuth(WorkflowConfig::load());
+        $actor = $this->hitlActor($requestInput);
+        $role = $this->hitlRole($requestInput, $hitlAuth);
+
         try {
-            $hitlAuth = new WorkflowHitlAuth(WorkflowConfig::load());
             $this->assertHitlAuthorized($hitlAuth, $requestInput);
             $hitlAuth->assertCanListTasks(
                 $assignee,
                 $this->hitlApiKey($requestInput, $hitlAuth),
-                $this->hitlActor($requestInput),
-                $this->hitlRole($requestInput, $hitlAuth),
+                $actor,
+                $role,
             );
         } catch (WorkflowPermissionException $e) {
             throw new SystemException($e->getMessage(), 403, $e);
         }
 
+        $listAssignee = $hitlAuth->resolveListAssigneeFilter($assignee, $actor, $role);
         $engine = WorkflowService::engine();
 
         return [
-            'tasks' => $engine->listPauseTasks($assignee),
-            'assignee' => $assignee,
+            'tasks' => $engine->listPauseTasks($listAssignee),
+            'assignee' => $listAssignee,
         ];
     }
 

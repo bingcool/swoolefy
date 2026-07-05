@@ -364,6 +364,51 @@ function testProviderFactoryValidatesOutboundUrl(): void
     pass('provider factory validates outbound url');
 }
 
+function testProductionHealthCheckValidatesEmbeddingBaseUri(): void
+{
+    $errors = ProductionHealthCheck::check(
+        NeuronAiConfig::fromArray([
+            'rag' => [
+                'default_vector_store' => 'file',
+                'allow_fake_embeddings' => false,
+                'require_tenant_isolation' => true,
+                'embedding_dimension' => 1536,
+                'vector_stores' => ['file' => ['path' => sys_get_temp_dir()]],
+            ],
+            'security' => [
+                'outbound_url_allowlist' => ['api.openai.com'],
+                'allow_private_networks' => false,
+            ],
+            'neuron' => [
+                'ai_model_providers' => [
+                    'openailike' => [
+                        'key' => 'sk-test',
+                        'baseUri' => 'http://127.0.0.1/v1',
+                    ],
+                ],
+            ],
+        ]),
+        WorkflowConfig::fromArray([
+            'workflow' => [
+                'default_node_timeout_seconds' => 120,
+                'default_run_store' => WorkflowRunStoreName::DB,
+                'run_stores' => [WorkflowRunStoreName::DB => []],
+            ],
+        ]),
+    );
+
+    $found = false;
+    foreach ($errors as $error) {
+        if (str_contains($error, '127.0.0.1') || str_contains($error, 'embedding:base_uri')) {
+            $found = true;
+            break;
+        }
+    }
+    assertTrue($found, 'health check flags private embedding base uri');
+
+    pass('production health check validates embedding base uri');
+}
+
 $tests = [
     'workflow registry multi version' => 'testWorkflowRegistryMultiVersion',
     'snapshot rejects missing version' => 'testSnapshotRejectsMissingVersion',
@@ -378,6 +423,7 @@ $tests = [
     'db mcp repository' => 'testDbMcpRepository',
     'production health check' => 'testProductionHealthCheckDetectsIssues',
     'production health check rejects memory run store' => 'testProductionHealthCheckRejectsMemoryRunStoreInProduction',
+    'production health check validates embedding base uri' => 'testProductionHealthCheckValidatesEmbeddingBaseUri',
     'provider outbound url validation' => 'testProviderFactoryValidatesOutboundUrl',
 ];
 

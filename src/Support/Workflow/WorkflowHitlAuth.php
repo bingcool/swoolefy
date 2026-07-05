@@ -161,7 +161,7 @@ final class WorkflowHitlAuth
             return;
         }
 
-        // 未指定 assignee 过滤：要求 actor 自证身份，RunStore 会按 actor 过滤
+        // 未指定 assignee 过滤：要求 actor 自证身份；控制器须用 {@see resolveListAssigneeFilter()} 传给引擎
         if ($filterAssignee === null || $filterAssignee === '') {
             if (!is_string($actor) || $actor === '') {
                 throw new WorkflowPermissionException('assignee filter or actor is required');
@@ -174,6 +174,31 @@ final class WorkflowHitlAuth
         if (!is_string($actor) || $actor === '' || $actor !== $filterAssignee) {
             throw new WorkflowPermissionException('Cannot list tasks for another assignee');
         }
+    }
+
+    /**
+     * 计算传给 {@see \Swoolefy\Support\Workflow\Engine\WorkflowEngine::listPauseTasks()} 的 assignee 过滤值。
+     *
+     * 须在 {@see assertCanListTasks()} 通过后调用：
+     *   - 有 query assignee → 原样使用
+     *   - auth 关闭或 admin → null（查全部）
+     *   - 否则 → actor（仅查本人待办）
+     */
+    public function resolveListAssigneeFilter(?string $queryAssignee, ?string $actor, ?string $role): ?string
+    {
+        if ($queryAssignee !== null && $queryAssignee !== '') {
+            return $queryAssignee;
+        }
+
+        if (!$this->isEnabled()) {
+            return null;
+        }
+
+        if (is_string($role) && $role === self::ADMIN_ROLE) {
+            return null;
+        }
+
+        return $actor;
     }
 
     /**

@@ -179,6 +179,53 @@ function testHitlAssigneeMatch(): void
     pass('hitl assignee match');
 }
 
+function testResolveListAssigneeFilterScopesNonAdminToActor(): void
+{
+    $auth = new WorkflowHitlAuth(hitlConfig());
+
+    assertTrue($auth->resolveListAssigneeFilter(null, 'alice', 'operator') === 'alice', 'non-admin defaults to actor');
+    assertTrue($auth->resolveListAssigneeFilter('legal-team', 'alice', 'operator') === 'legal-team', 'query assignee preserved');
+    assertTrue($auth->resolveListAssigneeFilter(null, 'alice', WorkflowHitlAuth::ADMIN_ROLE) === null, 'admin sees all');
+    assertTrue(
+        (new WorkflowHitlAuth(hitlConfig(['hitl' => ['auth_enabled' => false]])))
+            ->resolveListAssigneeFilter(null, 'alice', 'operator') === null,
+        'auth disabled sees all',
+    );
+
+    pass('resolve list assignee filter');
+}
+
+function testListPauseTasksScopesByAssigneeFilter(): void
+{
+    $registry = new WorkflowRegistry();
+    $registry->register('hitl_a', static fn () => WorkflowDefinition::create('hitl_a', '1.0.0')
+        ->addNode('start', new ClosureNode('start', static fn () => NodeExecutionResult::success()))
+        ->addNode('pause', new PauseNode('pause', ['assignee' => 'legal-team']))
+        ->addEdge('start', 'pause'));
+    $registry->register('hitl_b', static fn () => WorkflowDefinition::create('hitl_b', '1.0.0')
+        ->addNode('start', new ClosureNode('start', static fn () => NodeExecutionResult::success()))
+        ->addNode('pause', new PauseNode('pause', ['assignee' => 'ops-team']))
+        ->addEdge('start', 'pause'));
+
+    $compiler = WorkflowComponentFactory::compiler(WorkflowConfig::fromArray([]));
+    $store = new InMemoryRunStore();
+    $engine = new WorkflowEngine(
+        plugins: new PluginManager([]),
+        scheduler: new DagScheduler(ConditionEvaluatorFactory::create('symfony')),
+        runStore: $store,
+    );
+
+    $engine->start($compiler->compile($registry->definition('hitl_a')), []);
+    $engine->start($compiler->compile($registry->definition('hitl_b')), []);
+
+    assertTrue(count($engine->listPauseTasks(null)) === 2, 'no filter returns all');
+    assertTrue(count($engine->listPauseTasks('legal-team')) === 1, 'legal-team filter');
+    assertTrue(count($engine->listPauseTasks('ops-team')) === 1, 'ops-team filter');
+    assertTrue(count($engine->listPauseTasks('unknown')) === 0, 'unknown assignee empty');
+
+    pass('list pause tasks scopes by assignee filter');
+}
+
 function testResumeCasPreventsDoubleResume(): void
 {
     $registry = new WorkflowRegistry();
@@ -323,6 +370,8 @@ $tests = [
     'hitl auth rejects missing credentials' => 'testHitlAuthRejectsMissingCredentials',
     'hitl auth disabled allows all' => 'testHitlAuthDisabledAllowsAll',
     'hitl assignee match' => 'testHitlAssigneeMatch',
+    'resolve list assignee filter' => 'testResolveListAssigneeFilterScopesNonAdminToActor',
+    'list pause tasks scopes by assignee filter' => 'testListPauseTasksScopesByAssigneeFilter',
     'resume cas prevents double resume' => 'testResumeCasPreventsDoubleResume',
     'resume cas persist clears pause node id' => 'testResumeCasPersistClearsPauseNodeId',
     'resume run complete aligned with start' => 'testResumeDoesNotFireRunCompleteWhileWaiting',

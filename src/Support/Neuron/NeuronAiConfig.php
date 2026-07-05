@@ -585,6 +585,27 @@ final class NeuronAiConfig
     }
 
     /**
+     * Embedding API 实际使用的 baseUri（env 优先，与 {@see EmbeddingFactory} 一致）。
+     */
+    public function resolvedEmbeddingBaseUri(): string
+    {
+        $fromEnv = env(NeuronAiModelEnv::OPENAILIKE_BASE_URI, '');
+        if (is_string($fromEnv) && $fromEnv !== '') {
+            return $fromEnv;
+        }
+
+        $openAiLike = $this->providerConfig(NeuronAiProviderName::OPENAILIKE);
+        if (is_array($openAiLike)) {
+            $baseUri = $openAiLike['baseUri'] ?? $openAiLike['base_uri'] ?? '';
+            if (is_string($baseUri) && $baseUri !== '') {
+                return $baseUri;
+            }
+        }
+
+        return 'https://api.openai.com/v1';
+    }
+
+    /**
      * 启动健康检查需校验的出站 URL。
      *
      * @return array<string, string> label => url
@@ -592,6 +613,8 @@ final class NeuronAiConfig
     public function outboundUrlsToValidate(): array
     {
         $urls = [];
+        $urls['embedding:base_uri'] = $this->resolvedEmbeddingBaseUri();
+
         foreach ($this->aiModelProviders() as $alias => $section) {
             if (!is_array($section)) {
                 continue;

@@ -22,10 +22,12 @@ use Swoolefy\Support\Workflow\Exception\WorkflowException;
  *   2. neuron.ai_model_providers.openai.key
  *   3. neuron.ai_model_providers.openailike.key
  *
- * baseUri 解析顺序：
- *   1. OPENAI_BASE_URI
+ * baseUri 解析顺序（{@see NeuronAiConfig::resolvedEmbeddingBaseUri()}）：
+ *   1. OPENAILIKE_BASE_URI
  *   2. openailike.baseUri
  *   3. 默认 https://api.openai.com/v1
+ *
+ * 生产环境 baseUri 须通过 {@see NeuronAiConfig::outboundUrlGuard()}。
  *
  * 向量维度统一读取 rag.embedding_dimension，须与各 vector_stores.*.dimension 一致。
  *
@@ -61,8 +63,11 @@ final class EmbeddingFactory
             );
         }
 
+        $baseUri = $config->resolvedEmbeddingBaseUri();
+        $config->outboundUrlGuard()->assertAllowed($baseUri, 'embedding:base_uri');
+
         return new SwooleOpenAILikeEmbeddings(
-            baseUri: $this->resolveBaseUri($config),
+            baseUri: $baseUri,
             key: $apiKey,
             model: $config->embeddingModel(),
             dimensions: $dimensions,
@@ -89,24 +94,5 @@ final class EmbeddingFactory
         }
 
         return '';
-    }
-
-    /** 解析 OpenAI-compatible Embedding API baseUri。 */
-    private function resolveBaseUri(NeuronAiConfig $config): string
-    {
-        $fromEnv = env(NeuronAiModelEnv::OPENAILIKE_BASE_URI, '');
-        if ($fromEnv !== '') {
-            return $fromEnv;
-        }
-
-        $openAiLike = $config->providerConfig(NeuronAiProviderName::OPENAILIKE);
-        if (is_array($openAiLike)) {
-            $baseUri = $openAiLike['baseUri'] ?? '';
-            if (is_string($baseUri) && $baseUri !== '') {
-                return $baseUri;
-            }
-        }
-
-        return 'https://api.openai.com/v1';
     }
 }

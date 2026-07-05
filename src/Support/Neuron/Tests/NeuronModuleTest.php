@@ -198,6 +198,77 @@ function testEmbeddingFactoryAllowFakeUsesConfiguredDimension(): void
     }
 }
 
+function testEmbeddingFactoryBlocksPrivateBaseUri(): void
+{
+    $prevKey = getenv('OPENAI_API_KEY');
+    putenv('OPENAI_API_KEY=sk-test');
+    putenv('OPENAILIKE_BASE_URI');
+
+    try {
+        $config = NeuronAiConfig::fromArray([
+            'rag' => [
+                'default_vector_store' => NeuronAiVectorStoreName::FILE,
+                'allow_fake_embeddings' => false,
+                'embedding_dimension' => 1536,
+                'vector_stores' => [
+                    NeuronAiVectorStoreName::FILE => ['path' => '/tmp/x'],
+                ],
+            ],
+            'security' => [
+                'outbound_url_allowlist' => ['api.openai.com'],
+                'allow_private_networks' => false,
+            ],
+            'neuron' => [
+                'ai_model_providers' => [
+                    NeuronAiProviderName::OPENAILIKE => [
+                        'key' => 'sk-test',
+                        'baseUri' => 'http://127.0.0.1/v1',
+                    ],
+                ],
+            ],
+        ]);
+
+        try {
+            (new EmbeddingFactory($config))->make();
+            assertTrue(false, 'should throw');
+        } catch (\RuntimeException $e) {
+            assertTrue(
+                str_contains($e->getMessage(), 'Private') || str_contains($e->getMessage(), 'embedding:base_uri'),
+                'private embedding baseUri blocked',
+            );
+        }
+    } finally {
+        if ($prevKey === false) {
+            putenv('OPENAI_API_KEY');
+        } else {
+            putenv('OPENAI_API_KEY=' . $prevKey);
+        }
+    }
+}
+
+function testOutboundUrlsIncludeEmbeddingBaseUri(): void
+{
+    $config = NeuronAiConfig::fromArray([
+        'neuron' => [
+            'ai_model_providers' => [
+                NeuronAiProviderName::OPENAILIKE => [
+                    'baseUri' => 'https://embed.example.com/v1',
+                ],
+            ],
+        ],
+    ]);
+
+    $urls = $config->outboundUrlsToValidate();
+    assertTrue(
+        ($urls['embedding:base_uri'] ?? '') === 'https://embed.example.com/v1',
+        'embedding base uri included for health check',
+    );
+    assertTrue(
+        $config->resolvedEmbeddingBaseUri() === 'https://embed.example.com/v1',
+        'resolved embedding base uri matches config',
+    );
+}
+
 function testNeuronHttpFactoryCliFallback(): void
 {
     // CLI / no APP_PATH → Guzzle
@@ -375,6 +446,8 @@ $tests = [
     'memory interfaces' => 'testMemoryInterfacesAreImplemented',
     'embedding fail-fast without key' => 'testEmbeddingFactoryWithoutApiKeyFailsFast',
     'embedding fake with allow flag' => 'testEmbeddingFactoryAllowFakeUsesConfiguredDimension',
+    'embedding blocks private base uri' => 'testEmbeddingFactoryBlocksPrivateBaseUri',
+    'outbound urls include embedding base uri' => 'testOutboundUrlsIncludeEmbeddingBaseUri',
     'http factory cli fallback' => 'testNeuronHttpFactoryCliFallback',
     'neuron factory agent hook' => 'testNeuronFactoryUsesAgentFactoryHook',
     'neuron factory no provider' => 'testNeuronFactoryThrowsWhenNoProviderCredentials',
