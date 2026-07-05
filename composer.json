@@ -39,13 +39,19 @@
         "symfony/yaml": "~7.4",
         "zircote/swagger-php": "~4.8.0",
         "doctrine/collections": "~3.0",
-        "php-standard-library/php-standard-library": "~6.2",
-        "guzzlehttp/guzzle": "~7.9"
+        "php-standard-library/php-standard-library": "^6.2",
+        "guzzlehttp/guzzle": "~7.9",
+        "neuron-core/neuron-ai": "^3.15",
+        "symfony/expression-language": "~7.4",
+        "bingcool/library": "dev-library-6.x",
+        "mathsgod/milvus-client-php": "^2.1",
+        "neuron-core/php-vector": "^1.1"
     },
     "autoload": {
         "files": ["src/Constants.php","src/Core/Func/function.php"],
         "psr-4": {
-            "Swoolefy\\": "src/"
+            "Swoolefy\\": "src/",
+            "Test\\": "Test/"
         }
     },
     "require-dev": {
@@ -53,10 +59,48 @@
         "swoole/ide-helper": "dev-master",
         "viest/php-ext-xlswriter-ide-helper": "dev-master"
     },
+    "scripts": {
+        "test:workflow": [
+            "@php src/Support/Workflow/Tests/WorkflowPhase1Test.php",
+            "@php src/Support/Workflow/Tests/WorkflowPhase2Test.php",
+            "@php src/Support/Workflow/Tests/WorkflowPhase3Test.php",
+            "@php src/Support/Workflow/Tests/WorkflowPhase4Test.php",
+            "@php src/Support/Workflow/Tests/WorkflowIntegrationTest.php",
+            "@php src/Support/Workflow/Tests/WorkflowRunStoreTest.php",
+            "@php src/Support/Workflow/Tests/WorkflowHitlAuthTest.php"
+        ],
+        "test:agent": "@php src/Support/Agent/Tests/AgentModuleTest.php",
+        "test:ai": "@php src/Support/AI/Tests/AIModuleTest.php",
+        "test:mcp": "@php src/Support/Mcp/Tests/McpModuleTest.php",
+        "test:neuron": "@php src/Support/Neuron/Tests/NeuronModuleTest.php",
+        "test:rag": "@php src/Support/Rag/Tests/RagModuleTest.php",
+        "test:phase-a": "@php src/Support/Tests/PhaseAProductionTest.php",
+        "test:phase-b": "@php src/Support/Tests/PhaseBProductionTest.php",
+        "test:phase-c": "@php src/Support/Tests/PhaseCProductionTest.php",
+        "test:phase-d": "@php src/Support/Tests/PhaseDTenantIsolationTest.php",
+        "test:support": [
+            "@test:agent",
+            "@test:ai",
+            "@test:mcp",
+            "@test:neuron",
+            "@test:rag",
+            "@test:phase-a",
+            "@test:phase-b",
+            "@test:phase-c",
+            "@test:phase-d",
+            "@test:workflow"
+        ]
+    },
     "config": {
         "allow-plugins": {
             "php-http/discovery": false,
             "tbachert/spi": false
         }
-    }
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../library"
+        }
+    ]
 }

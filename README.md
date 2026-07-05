@@ -44,6 +44,7 @@
 - [十八、📦 SDK 自动生成](#nav-18-sdk)
 - [十九、📘 ApiDoc 自动生成](#nav-19-apidoc)
 - [二十、☁️ Nacos 微服务集成](#nav-20-nacos)
+- [二十一、🤖 AI / Workflow 工作流](#nav-21-ai-workflow)
 
 ---
 <a id="nav-1-intro"></a>
@@ -1784,6 +1785,95 @@ php script.php start App --c=gen:sdk --router=App/Router --out=../generate-sdk-l
 ```
 
 更多 API 说明见 [src/Support/Nacos/README.md](src/Support/Nacos/README.md)。
+
+<a id="nav-21-ai-workflow"></a>
+
+### 二十一、🤖 AI / Workflow 工作流
+
+框架内置 **DAG 工作流引擎** + **Neuron AI** 集成，支持 AI 决策分支、多 Agent 并行、RAG 知识库、MCP 工具调用与人机协同（HITL）。已实现 **Phase 1–4** 及 **生产加固（Phase A/B）**：HITL API 鉴权、resume CAS、多版本 Registry、Embedding fail-fast、MCP 租户 DB、启动期 `ProductionHealthCheck` 等。
+
+| 文档 | 说明 |
+|:---|:---|
+| [docs/AI-WORKFLOW.md](docs/AI-WORKFLOW.md) | **快速接入**：配置、HTTP API、示例 curl、测试命令 |
+| [src/Support/Workflow/README.md](src/Support/Workflow/README.md) | 引擎原理、条件边、HITL、Saga、Plugin |
+| [swoolefyAI.md](docs/swoolefyAI.md) | 完整架构设计与 Phase 路线图 |
+
+#### 核心模块
+
+| 模块 | 路径 | 能力 |
+|:---|:---|:---|
+| Workflow | `src/Support/Workflow/` | Definition / Compiler / Engine、HITL 鉴权、多版本 Registry、Saga |
+| AI | `src/Support/AI/` | AINode、流式 SSE/WebSocket、StructuredOutput、节点超时 |
+| Agent | `src/Support/Agent/` | Static / Rule / LLM / CostAware / RoundRobin 路由 |
+| Neuron | `src/Support/Neuron/` | LLM 工厂、Redis/SQL 记忆、Embedding fail-fast、URL 校验 |
+| RAG | `src/Support/Rag/` | 向量库、同步入库 Pipeline、别名 fail-fast |
+| MCP | `src/Support/Mcp/` | HTTP/SSE MCP、DB 多租户、stdio 生产禁用 |
+
+#### 配置与装配
+
+```bash
+# 创建应用时 create 命令会自动复制；也可手动从 Stubs 复制
+cp src/Stubs/workflow.conf.stub.php App/Config/workflow.php
+cp src/Stubs/neuron_ai.conf.stub.php App/Config/neuron_ai.php
+```
+
+生产环境推荐 `WorkflowComponentFactory` + `WorkflowRegistry`（支持 Redis RunStore 跨 Worker resume）：
+
+```php
+use Swoolefy\Support\Workflow\WorkflowComponentFactory;
+use Swoolefy\Support\Workflow\WorkflowRegistry;
+
+$registry = new WorkflowRegistry();
+$registry->register('order_processing', fn () => OrderProcessingWorkflow::definition());
+
+$compiler = WorkflowComponentFactory::compiler();
+$engine = WorkflowComponentFactory::engine($registry);
+$compiled = $compiler->compile($registry->definition('order_processing'));
+$runId = $engine->start($compiled, ['orderId' => 10001]);
+```
+
+#### HTTP API（Test 演示）
+
+启动 Test 应用后（默认端口 9501）：
+
+```bash
+# 启动工作流
+curl -X POST http://127.0.0.1:9501/api/v1/workflow/run \
+  -H 'Content-Type: application/json' \
+  -d '{"workflowId":"order_processing","input":{"orderId":10001}}'
+
+# Agent 对话
+curl -X POST http://127.0.0.1:9501/api/v1/agent/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"message":"hello","sessionId":"s1","userId":"u1"}'
+```
+
+| 接口 | 说明 |
+|:---|:---|
+| `POST /api/v1/workflow/run` | 启动工作流 |
+| `POST /api/v1/workflow/run/resume` | HITL 恢复（须 `X-Workflow-Api-Key` 或角色，见 Workflow README） |
+| `POST /api/v1/workflow/run/cancel` | 取消 Run（HITL 鉴权） |
+| `GET /api/v1/workflow/pause/tasks` | 待审批任务（HITL 鉴权） |
+| `GET /api/v1/workflow/run/events` | SSE 流式事件 |
+| `POST /api/v1/agent/chat` | Agent 对话 |
+| `GET /api/v1/mcp/servers` | MCP 服务列表（`?tenantId=`） |
+
+示例工作流：`order_processing`、`order_saga`、`multi_agent_research`、`contract_review`、`knowledge_qa`、`mcp_research`（见 `Test/Module/`）。
+
+#### RAG 入库 CLI
+
+```bash
+php src/Support/Rag/Console/ingest_documents.php --kb=product_kb --path=/data/docs
+php src/Support/Rag/Console/ingest_documents.php --kb=product_kb --text="产品规格..."
+```
+
+#### 回归测试
+
+```bash
+composer test:workflow
+```
+
+覆盖 Phase 1–4 共 30+ 用例，含 SubWorkflow、JsonLogic、RoundRobin、RAG CLI 集成测试。
 
 <a id="nav-license"></a>
 
