@@ -66,7 +66,7 @@ final class SupportLog
 
         $logger = LogManager::getInstance()->getLogger(self::CHANNEL);
         if (!empty($logger)) {
-            $logger->{$level}("[{$channel}] {$message}", $context);
+            $logger->{$level}("[{$channel}] {$message}", false, $context);
             return;
         }
 

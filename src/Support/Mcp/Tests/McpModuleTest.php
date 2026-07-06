@@ -6,7 +6,7 @@ declare(strict_types=1);
  * MCP 模块回归测试。
  *
  * 覆盖：McpFactory 静态/仓储解析、disabled stub、listServers 脱敏、
- * InMemory 仓储租户隔离、McpProcessRunner 限流。
+ * InMemory 仓储租户隔离、McpProcessRunner 限流、Neuron MCP 传输类型推断。
  *
  * 运行：php src/Support/Mcp/Tests/McpModuleTest.php
  * 或：composer test:mcp
@@ -78,12 +78,24 @@ function testRepositoryMasksSecretsInPublicArray(): void
     $config = new McpServerConfig(
         id: 'secure',
         tenantId: null,
-        config: ['transport' => 'http', 'token' => 'super-secret', 'url' => 'http://x'],
+        config: [
+            'transport' => 'http',
+            'token' => 'super-secret',
+            'url' => 'http://x',
+            'headers' => [
+                'Authorization' => 'Bearer remote-secret',
+                'x-api-key' => 'header-secret',
+                'x-custom-header' => 'kept',
+            ],
+        ],
         description: 'prod',
     );
     $public = $config->toPublicArray();
     assertTrue(($public['config']['token'] ?? '') === '***', 'token masked');
     assertTrue(($public['config']['url'] ?? '') === 'http://x', 'url kept');
+    assertTrue(($public['config']['headers']['Authorization'] ?? '') === '***', 'authorization header masked');
+    assertTrue(($public['config']['headers']['x-api-key'] ?? '') === '***', 'api key header masked');
+    assertTrue(($public['config']['headers']['x-custom-header'] ?? '') === 'kept', 'non-sensitive header kept');
 }
 
 function testRepositoryTenantIsolation(): void
@@ -131,6 +143,39 @@ function testIsLocalStdioConfig(): void
     ]), 'http is not local');
 }
 
+function testDetectTransportCoversNeuronMcpModes(): void
+{
+    assertTrue(McpServerConfig::detectTransport([
+        'url' => 'https://mcp.example.com',
+        'token' => 'secret',
+    ]) === 'http', 'url maps to http');
+    assertTrue(McpServerConfig::detectTransport([
+        'url' => 'https://mcp.example.com',
+        'async' => true,
+    ]) === 'sse', 'url + async maps to sse');
+    assertTrue(McpServerConfig::detectTransport([
+        'command' => 'php',
+        'args' => ['/tmp/mcp_server.php'],
+    ]) === 'stdio', 'command maps to stdio');
+    assertTrue(McpServerConfig::detectTransport([
+        'transport' => 'sse',
+    ]) === 'sse', 'explicit sse transport kept');
+    assertTrue(McpServerConfig::detectTransport([
+        'transport' => 'disabled',
+    ]) === 'disabled', 'disabled transport kept');
+}
+
+function testToolFilterNormalization(): void
+{
+    $factory = new McpFactory();
+    $method = new ReflectionMethod(McpFactory::class, 'normalizeToolFilter');
+    $method->setAccessible(true);
+
+    $normalized = $method->invoke($factory, ['search', '', 'read', 'search', 123, null]);
+
+    assertTrue($normalized === ['search', 'read'], 'tool filter should keep unique non-empty strings');
+}
+
 $tests = [
     'server names merge' => 'testServerNamesMergeStaticAndRepository',
     'disabled connector stub' => 'testMissingServerReturnsDisabledConnector',
@@ -140,6 +185,8 @@ $tests = [
     'tenant isolation' => 'testRepositoryTenantIsolation',
     'process runner limit' => 'testProcessRunnerLimit',
     'local stdio detect' => 'testIsLocalStdioConfig',
+    'detect transport modes' => 'testDetectTransportCoversNeuronMcpModes',
+    'tool filter normalization' => 'testToolFilterNormalization',
 ];
 
 $passed = 0;

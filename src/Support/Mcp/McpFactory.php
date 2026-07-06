@@ -20,9 +20,17 @@ use Swoolefy\Support\SupportLog;
  *   3. 构造函数静态 $servers map
  *   4. 均未命中 → disabled stub（不抛错，tools() 返回空）
  *
+ * Neuron MCP 映射：
+ *   - command + args：本地 stdio MCP（生产默认禁用，需 allowlist）
+ *   - url + token/headers/timeout：远程 Streamable HTTP MCP
+ *   - url + async=true：远程 SSE MCP
+ *   - only/exclude：按 server 限制可暴露给 Agent 的 tool 名称
+ *
  * 安全链：McpStdioGuard（stdio 禁用/allowlist）→ OutboundUrlGuard（url 白名单）
  *
  * 失败策略：单个 Server 加载失败时 SupportLog::warning 并跳过，不阻断其它 Server。
+ *
+ * @see https://docs.neuron-ai.dev/agent/mcp-connector
  */
 final class McpFactory
 {
@@ -87,8 +95,8 @@ final class McpFactory
      * 单个 Server 异常时记录日志并继续处理其余 Server。
      *
      * @param list<string>                         $names
-     * @param array<string, list<string>>|null     $only    按 server 过滤 tool 名
-     * @param array<string, list<string>>|null     $exclude 按 server 排除 tool 名
+     * @param array<string, list<string>>|null     $only    按 server 过滤 tool 名；对应 Neuron McpConnector::only()
+     * @param array<string, list<string>>|null     $exclude 按 server 排除 tool 名；对应 Neuron McpConnector::exclude()
      *
      * @return list<ToolInterface>
      */
@@ -115,10 +123,16 @@ final class McpFactory
 
                 $connector = $this->connector($name, $tenantId);
                 if ($only !== null && isset($only[$name]) && is_array($only[$name])) {
-                    $connector = $connector->only($only[$name]);
+                    $toolNames = $this->normalizeToolFilter($only[$name]);
+                    if ($toolNames !== []) {
+                        $connector = $connector->only($toolNames);
+                    }
                 }
                 if ($exclude !== null && isset($exclude[$name]) && is_array($exclude[$name])) {
-                    $connector = $connector->exclude($exclude[$name]);
+                    $toolNames = $this->normalizeToolFilter($exclude[$name]);
+                    if ($toolNames !== []) {
+                        $connector = $connector->exclude($toolNames);
+                    }
                 }
                 $tools = [...$tools, ...$connector->tools()];
             } catch (\Throwable $e) {
@@ -189,6 +203,28 @@ final class McpFactory
         if ($this->urlGuard !== null && isset($config['url']) && is_string($config['url']) && $config['url'] !== '') {
             $this->urlGuard->assertAllowed($config['url'], 'mcp:' . $serverName);
         }
+    }
+
+    /**
+     * 归一化 only/exclude 工具名列表。
+     *
+     * Neuron Connector 期望 string[]；配置来自 DB/API 时可能混入空值或非字符串，
+     * 这里先收敛成干净的 list，避免把脏配置传入底层 SDK。
+     *
+     * @param array<mixed> $tools
+     *
+     * @return list<string>
+     */
+    private function normalizeToolFilter(array $tools): array
+    {
+        $names = [];
+        foreach ($tools as $tool) {
+            if (is_string($tool) && $tool !== '') {
+                $names[] = $tool;
+            }
+        }
+
+        return array_values(array_unique($names));
     }
 
     /**

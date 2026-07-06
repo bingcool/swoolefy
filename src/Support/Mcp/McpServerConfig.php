@@ -13,6 +13,11 @@ namespace Swoolefy\Support\Mcp;
  *   config    → 原样传给 Neuron McpConnector::make()
  *   enabled   → false 时 find/list 跳过
  *
+ * Neuron MCP 配置约定：
+ *   - 本地 stdio：['command' => 'php', 'args' => ['/path/server.php']]
+ *   - 远程 HTTP：['url' => 'https://mcp.example.com', 'token' => '...']
+ *   - 远程 SSE： ['url' => 'https://mcp.example.com', 'async' => true]
+ *
  * @see docs/swoolefyAI.md §4.11.4 mcp_server_configs
  */
 final class McpServerConfig
@@ -40,12 +45,7 @@ final class McpServerConfig
      */
     public function toPublicArray(): array
     {
-        $config = $this->config;
-        foreach (['token', 'key', 'apiKey', 'password', 'secret'] as $sensitive) {
-            if (isset($config[$sensitive]) && is_string($config[$sensitive])) {
-                $config[$sensitive] = '***';
-            }
-        }
+        $config = self::maskSensitiveConfig($this->config);
 
         return [
             'id' => $this->id,
@@ -60,10 +60,22 @@ final class McpServerConfig
     /**
      * 从 Neuron 配置推断传输类型（http / sse / stdio / disabled）。
      *
+     * Neuron 官方配置并不强制 transport 字段：
+     * command 表示本地 stdio，url 表示远程 HTTP，url + async=true 表示 SSE。
+     * 本方法也兼容本模块已有的显式 transport 标记，便于 API 列表展示。
+     *
      * @param array<string, mixed> $config
      */
     public static function detectTransport(array $config): string
     {
+        $transport = $config['transport'] ?? null;
+        if (is_string($transport) && $transport !== '') {
+            $transport = strtolower($transport);
+            if (in_array($transport, ['http', 'sse', 'stdio', 'disabled'], true)) {
+                return $transport;
+            }
+        }
+
         if (isset($config['url']) && is_string($config['url'])) {
             return filter_var($config['async'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'sse' : 'http';
         }
@@ -77,5 +89,46 @@ final class McpServerConfig
         }
 
         return 'unknown';
+    }
+
+    /**
+     * 递归脱敏配置中的凭证。
+     *
+     * 远程 MCP 常见凭证既可能是顶层 token，也可能藏在 headers.Authorization、
+     * headers.x-api-key 等嵌套字段里；公开 API 返回前必须统一遮蔽。
+     *
+     * @param array<string, mixed> $config
+     *
+     * @return array<string, mixed>
+     */
+    private static function maskSensitiveConfig(array $config): array
+    {
+        $masked = [];
+        foreach ($config as $key => $value) {
+            $keyString = is_string($key) ? $key : (string) $key;
+            if (self::isSensitiveKey($keyString)) {
+                $masked[$key] = '***';
+                continue;
+            }
+
+            $masked[$key] = is_array($value) ? self::maskSensitiveConfig($value) : $value;
+        }
+
+        return $masked;
+    }
+
+    private static function isSensitiveKey(string $key): bool
+    {
+        $normalized = strtolower(str_replace(['-', '_'], '', $key));
+
+        return in_array($normalized, [
+            'token',
+            'key',
+            'apikey',
+            'password',
+            'secret',
+            'authorization',
+            'xapikey',
+        ], true);
     }
 }
