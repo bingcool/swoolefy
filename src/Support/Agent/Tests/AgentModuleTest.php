@@ -100,10 +100,22 @@ function testCostAwareRouterFallbackWhenOverBudget(): void
 function testRoundRobinCycles(): void
 {
     $router = new RoundRobinRouter(['a', 'b', 'c']);
-    assertTrue($router->route(makeCtx()) === ['a'], 'round 1');
-    assertTrue($router->route(makeCtx()) === ['b'], 'round 2');
-    assertTrue($router->route(makeCtx()) === ['c'], 'round 3');
-    assertTrue($router->route(makeCtx()) === ['a'], 'round 4 wraps');
+    $ctx = makeCtx();
+    assertTrue($router->route($ctx) === ['a'], 'round 1');
+    assertTrue($router->route($ctx) === ['b'], 'round 2');
+    assertTrue($router->route($ctx) === ['c'], 'round 3');
+    assertTrue($router->route($ctx) === ['a'], 'round 4 wraps');
+}
+
+function testRoundRobinCursorIsScopedToWorkflowState(): void
+{
+    $router = new RoundRobinRouter(['a', 'b', 'c']);
+    $runA = makeCtx();
+    $runB = makeCtx();
+
+    assertTrue($router->route($runA) === ['a'], 'run A first route');
+    assertTrue($router->route($runA) === ['b'], 'run A second route');
+    assertTrue($router->route($runB) === ['a'], 'run B starts from first route');
 }
 
 function testAgentSchedulerRunsTasksAndWritesOutputs(): void
@@ -202,6 +214,7 @@ $tests = [
     'cost aware cheapest' => 'testCostAwareRouterPicksCheapestInBudget',
     'cost aware fallback' => 'testCostAwareRouterFallbackWhenOverBudget',
     'round robin cycle' => 'testRoundRobinCycles',
+    'round robin state scoped cursor' => 'testRoundRobinCursorIsScopedToWorkflowState',
     'scheduler outputs' => 'testAgentSchedulerRunsTasksAndWritesOutputs',
     'scheduler errors' => 'testAgentSchedulerCapturesTaskErrors',
     'agent parallel engine timeout' => 'testAgentParallelNodeUsesEngineTimeoutFromRunContext',

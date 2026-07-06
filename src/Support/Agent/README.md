@@ -77,6 +77,8 @@ $results = $scheduler->runParallel($ctx, [
 | `RoundRobinRouter` | 负载均衡 | 轮询单个 agentId |
 | `LLMRouter` | 复杂意图分流 | LLM 选出的 agentId |
 
+`RoundRobinRouter` 的游标写入当前 `WorkflowState.meta`，不是 Router 实例属性；即使 `CompiledWorkflow` 被 Worker 缓存复用，不同 Run 之间也不会共享轮询位置。
+
 **CostAwareRouter** 读取 `state.estimatedTokens`（优先）或按 `query` 长度估算；单价为每 1k token 美元。
 
 ```php
