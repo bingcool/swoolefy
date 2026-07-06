@@ -4,33 +4,34 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Workflow\Audit;
 
+use Swoolefy\Core\Log\LogManager;
+use Swoolefy\Support\Workflow\WorkflowConfig;
+
 /**
- * 文件审计日志 —— 默认写入 storage/logs/workflow_audit.log。
+ * 工作流审计日志写入器（基于框架日志组件）。
  */
 final class FileAuditLogWriter implements AuditLogWriterInterface
 {
     public function __construct(
-        private readonly string $filePath = '',
+        private readonly string $logComponent = '',
     ) {
     }
 
     /** {@inheritdoc} */
     public function write(string $event, array $context): void
     {
-        $path = $this->filePath !== ''
-            ? $this->filePath
-            : (defined('LOG_PATH') ? join('/', [LOG_PATH, 'workflow', 'workflow_audit.log']) : sys_get_temp_dir()) . '/workflow_audit.log';
-
-        $line = json_encode([
-            'event' => $event,
-            'context' => $context,
-            'at' => date('c'),
-        ], JSON_UNESCAPED_UNICODE);
-
-        if ($line === false) {
+        $loggerType = $this->logComponent !== ''
+            ? $this->logComponent
+            : WorkflowConfig::load()->logComponent();
+        $logger = LogManager::getInstance()->getLogger($loggerType);
+        if ($logger === null) {
             return;
         }
 
-        @file_put_contents($path, $line . PHP_EOL, FILE_APPEND | LOCK_EX);
+        $logger->info($event, [
+            'event' => $event,
+            'context' => $context,
+            'at' => date('c'),
+        ]);
     }
 }

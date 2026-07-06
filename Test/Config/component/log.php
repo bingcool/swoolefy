@@ -90,5 +90,14 @@ return [
         $logFilePath = LOG_PATH.'/nacos/nacos.log';
         $logger->setLogFilePath($logFilePath);
         return $logger;
+    },
+
+    // workflow_log日志
+    'workflow_log' => function($name) {
+        $logger = new \Swoolefy\Util\Log($name);
+        $logger->setChannel('application');
+        $logFilePath = LOG_PATH . '/support/workflow.log';
+        $logger->setLogFilePath($logFilePath);
+        return $logger;
     }
 ];

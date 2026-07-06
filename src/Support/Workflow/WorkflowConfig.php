@@ -140,6 +140,17 @@ final class WorkflowConfig
         ));
     }
 
+    /** 审计日志组件别名（Config/component/log.php）。 */
+    public function logComponent(): string
+    {
+        return ApplicationConfig::pickStringEnvFirst(
+            $this->workflowSection(),
+            'log_component',
+            'WORKFLOW_LOG_COMPONENT',
+            'info_log',
+        );
+    }
+
     // --- redis section helpers ---
 
     public function redisComponent(?string $alias = null): string
