@@ -53,7 +53,7 @@ LUA;
         private readonly RedisConnection $redis,
         private readonly WorkflowRegistry $registry,
         private readonly string $prefix = 'workflow:run:',
-        private readonly int $ttlSeconds = 86400,
+        private readonly int $ttlSeconds = 0,
     ) {
     }
 

@@ -23,6 +23,8 @@ use Swoolefy\Support\Workflow\State\WorkflowState;
  *   knowledgeBase — 目标知识库（VectorStore index / 目录 / collection 名）
  *   sourceKey     — state.data 键，值为 string 或 list<string>
  *   vectorStore   — rag.vector_stores 别名；缺省用 default_vector_store
+ *   tenantId      — 显式租户；缺省时从 state[tenantIdKey] 或 FrameworkContext 读取
+ *   tenantIdKey   — state 中租户字段名，默认 tenantId
  *
  * 对外事件：rag.ingest.completed
  *
@@ -53,6 +55,7 @@ final class RagIngestNode extends AbstractNode
         $knowledgeBase = (string) ($this->config['knowledgeBase'] ?? 'default');
         $sourceKey = (string) ($this->config['sourceKey'] ?? 'documents');
         $storeAlias = $this->resolveStoreAlias();
+        $tenantId = $this->resolveTenantId($state);
 
         $source = $state->get($sourceKey, []);
         $texts = $this->normalizeTexts($source);
@@ -64,7 +67,7 @@ final class RagIngestNode extends AbstractNode
         }
 
         $documents = StringDocumentLoader::fromTexts($texts);
-        $result = $this->pipeline->ingest($knowledgeBase, $documents, $storeAlias);
+        $result = $this->pipeline->ingest($knowledgeBase, $documents, $storeAlias, $tenantId);
         $state->set('ingestedCount', $result->documentCount);
 
         return NodeExecutionResult::success(
@@ -73,6 +76,7 @@ final class RagIngestNode extends AbstractNode
                 'runId' => $ctx->runId,
                 'nodeId' => $this->nodeId,
                 'knowledgeBase' => $knowledgeBase,
+                'tenantId' => $tenantId,
                 'documentCount' => $result->documentCount,
             ]],
             metrics: ['nodeType' => 'rag_ingest', 'documentCount' => $result->documentCount],
@@ -120,5 +124,23 @@ final class RagIngestNode extends AbstractNode
         }
 
         return $alias;
+    }
+
+    /** 优先使用节点显式 tenantId，其次从 WorkflowState 读取 tenantIdKey。 */
+    private function resolveTenantId(WorkflowState $state): ?string
+    {
+        $tenantId = $this->config['tenantId'] ?? $this->config['tenant_id'] ?? null;
+        if (is_string($tenantId) && $tenantId !== '') {
+            return $tenantId;
+        }
+
+        $tenantIdKey = $this->config['tenantIdKey'] ?? $this->config['tenant_id_key'] ?? 'tenantId';
+        if (!is_string($tenantIdKey) || $tenantIdKey === '') {
+            return null;
+        }
+
+        $fromState = $state->get($tenantIdKey);
+
+        return is_string($fromState) && $fromState !== '' ? $fromState : null;
     }
 }

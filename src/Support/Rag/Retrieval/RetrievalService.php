@@ -20,6 +20,7 @@ final class RetrievalService
 
     /**
      * @param string|null $storeAlias 向量库别名；null 用 default_vector_store
+     * @param string|null $tenantId   租户 ID；null 时从 FrameworkContext 读取
      *
      * @return list<array{content: string, score: float, metadata: array<string, mixed>}>
      */
@@ -28,8 +29,9 @@ final class RetrievalService
         string $query,
         int $topK = 5,
         ?string $storeAlias = null,
+        ?string $tenantId = null,
     ): array {
-        $retrieval = $this->ragFactory->retrieval($knowledgeBase, $topK, $storeAlias);
+        $retrieval = $this->ragFactory->retrieval($knowledgeBase, $topK, $storeAlias, $tenantId);
         /** @var list<Document> $documents */
         $documents = $retrieval->retrieve(new UserMessage($query));
 

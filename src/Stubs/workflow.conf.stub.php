@@ -39,7 +39,8 @@ return [
                 // 对应 Config/component/cache.php 组件别名
                 'component' => env('WORKFLOW_REDIS_COMPONENT', 'redis'),
                 'prefix' => env('WORKFLOW_REDIS_PREFIX', 'workflow:run:'),
-                'ttl' => (int) env('WORKFLOW_REDIS_TTL', 86400),
+                // 0 表示不过期；生产 HITL 任务可能跨天/跨周审批，避免默认 TTL 导致 Run 丢失
+                'ttl' => (int) env('WORKFLOW_REDIS_TTL', 0),
             ],
 
             // DB：跨 Worker，可按 status/assignee 查询，适合审计与高可用主从库
@@ -52,7 +53,7 @@ return [
         ],
         // HITL API 鉴权（resume / cancel / pause/tasks）
         'hitl' => [
-            'auth_enabled' => filter_var(env('WORKFLOW_HITL_AUTH_ENABLED', '0'), FILTER_VALIDATE_BOOLEAN),
+            'auth_enabled' => filter_var(env('WORKFLOW_HITL_AUTH_ENABLED', '1'), FILTER_VALIDATE_BOOLEAN),
             'api_key' => env('WORKFLOW_HITL_API_KEY', ''),
             'role_header' => env('WORKFLOW_HITL_ROLE_HEADER', 'X-Workflow-Role'),
             'allowed_roles' => ['operator', 'admin'],

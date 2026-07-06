@@ -17,6 +17,7 @@ use Swoolefy\Support\Workflow\Engine\RunStatus;
 use Swoolefy\Support\Workflow\Engine\RunStoreInterface;
 use Swoolefy\Support\Workflow\Engine\WorkflowEngine;
 use Swoolefy\Support\Workflow\Engine\WorkflowRun;
+use Swoolefy\Support\Workflow\Engine\WorkflowRunPresenter;
 use Swoolefy\Support\Workflow\Engine\WorkflowRunTime;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\Exception\WorkflowPermissionException;
@@ -45,6 +46,39 @@ function assertTrue(bool $condition, string $message): void
 function pass(string $name): void
 {
     echo "[PASS] {$name}\n";
+}
+
+/**
+ * @param array<string, string|null> $vars null 表示临时 unset
+ * @param callable(): void $callback
+ */
+function withHitlEnv(array $vars, callable $callback): void
+{
+    $previous = [];
+    foreach ($vars as $name => $value) {
+        $previous[$name] = $_ENV[$name] ?? getenv($name);
+        if ($value === null) {
+            unset($_ENV[$name]);
+            putenv($name);
+        } else {
+            $_ENV[$name] = $value;
+            putenv($name . '=' . $value);
+        }
+    }
+
+    try {
+        $callback();
+    } finally {
+        foreach ($previous as $name => $value) {
+            if ($value === false || $value === null || $value === '') {
+                unset($_ENV[$name]);
+                putenv($name);
+            } else {
+                $_ENV[$name] = $value;
+                putenv($name . '=' . $value);
+            }
+        }
+    }
 }
 
 final class PauseNodeIdSpyRunStore implements RunStoreInterface, PauseTaskQueryableInterface
@@ -137,8 +171,10 @@ function testHitlAuthRejectsMissingCredentials(): void
 
 function testHitlAuthDisabledAllowsAll(): void
 {
-    $auth = new WorkflowHitlAuth(hitlConfig(['hitl' => ['auth_enabled' => false]]));
-    $auth->assertAuthorized(null, null);
+    withHitlEnv(['WORKFLOW_HITL_AUTH_ENABLED' => '0'], static function (): void {
+        $auth = new WorkflowHitlAuth(hitlConfig(['hitl' => ['auth_enabled' => false]]));
+        $auth->assertAuthorized(null, null);
+    });
     pass('hitl auth disabled allows all');
 }
 
@@ -166,16 +202,18 @@ function testHitlAssigneeMatch(): void
     $run = $engine->getRun($runId);
     assertTrue($run->status === RunStatus::WAITING, 'waiting');
 
-    $auth = new WorkflowHitlAuth(hitlConfig(['hitl' => ['auth_enabled' => false, 'require_assignee_match' => true]]));
+    withHitlEnv(['WORKFLOW_HITL_AUTH_ENABLED' => '0'], static function () use ($run): void {
+        $auth = new WorkflowHitlAuth(hitlConfig(['hitl' => ['auth_enabled' => false, 'require_assignee_match' => true]]));
 
-    try {
-        $auth->assertCanResume($run, null, 'wrong-team', null);
-        assertTrue(false, 'should throw assignee mismatch');
-    } catch (WorkflowPermissionException $e) {
-        assertTrue(str_contains($e->getMessage(), 'legal-team'), 'assignee message');
-    }
+        try {
+            $auth->assertCanResume($run, null, 'wrong-team', null);
+            assertTrue(false, 'should throw assignee mismatch');
+        } catch (WorkflowPermissionException $e) {
+            assertTrue(str_contains($e->getMessage(), 'legal-team'), 'assignee message');
+        }
 
-    $auth->assertCanResume($run, null, 'legal-team', null);
+        $auth->assertCanResume($run, null, 'legal-team', null);
+    });
     pass('hitl assignee match');
 }
 
@@ -186,11 +224,13 @@ function testResolveListAssigneeFilterScopesNonAdminToActor(): void
     assertTrue($auth->resolveListAssigneeFilter(null, 'alice', 'operator') === 'alice', 'non-admin defaults to actor');
     assertTrue($auth->resolveListAssigneeFilter('legal-team', 'alice', 'operator') === 'legal-team', 'query assignee preserved');
     assertTrue($auth->resolveListAssigneeFilter(null, 'alice', WorkflowHitlAuth::ADMIN_ROLE) === null, 'admin sees all');
-    assertTrue(
-        (new WorkflowHitlAuth(hitlConfig(['hitl' => ['auth_enabled' => false]])))
-            ->resolveListAssigneeFilter(null, 'alice', 'operator') === null,
-        'auth disabled sees all',
-    );
+    withHitlEnv(['WORKFLOW_HITL_AUTH_ENABLED' => '0'], static function (): void {
+        assertTrue(
+            (new WorkflowHitlAuth(hitlConfig(['hitl' => ['auth_enabled' => false]])))
+                ->resolveListAssigneeFilter(null, 'alice', 'operator') === null,
+            'auth disabled sees all',
+        );
+    });
 
     pass('resolve list assignee filter');
 }
@@ -364,6 +404,43 @@ function testResumeDoesNotFireRunCompleteWhileWaiting(): void
     pass('resume run complete aligned with start');
 }
 
+function testWorkflowRunPresenterRedactsDetailsByDefault(): void
+{
+    $definition = WorkflowDefinition::create('secure_status', '1.0.0')
+        ->addNode('start', new ClosureNode('start', static fn () => NodeExecutionResult::success()));
+    $compiled = WorkflowComponentFactory::compiler(WorkflowConfig::fromArray([]))->compile($definition);
+    $state = new \Swoolefy\Support\Workflow\State\WorkflowState([
+        'secretInput' => 'should-not-leak',
+        'feedback' => ['approved' => true],
+    ]);
+    $state->setNodeOutput('start', ['secretOutput' => 'hidden']);
+    $state->setAgentOutput('agent-a', ['answer' => 'hidden']);
+
+    $run = new WorkflowRun(
+        runId: 'run-secure-status',
+        compiled: $compiled,
+        status: RunStatus::WAITING,
+        state: $state,
+        createdAt: WorkflowRunTime::now(),
+        updatedAt: WorkflowRunTime::now(),
+        currentNodeId: 'start',
+        pauseNodeId: 'start',
+    );
+
+    $summary = WorkflowRunPresenter::toArray($run);
+    assertTrue(!array_key_exists('data', $summary), 'summary redacts data');
+    assertTrue(!array_key_exists('nodeOutputs', $summary), 'summary redacts node outputs');
+    assertTrue(!array_key_exists('agentOutputs', $summary), 'summary redacts agent outputs');
+    assertTrue($summary['waiting'] === true, 'summary keeps status metadata');
+
+    $details = WorkflowRunPresenter::toArray($run, includeDetails: true);
+    assertTrue(($details['data']['secretInput'] ?? '') === 'should-not-leak', 'details include data');
+    assertTrue(($details['nodeOutputs']['start']['secretOutput'] ?? '') === 'hidden', 'details include node output');
+    assertTrue(($details['agentOutputs']['agent-a']['answer'] ?? '') === 'hidden', 'details include agent output');
+
+    pass('workflow run presenter redacts details by default');
+}
+
 $tests = [
     'hitl auth valid api key' => 'testHitlAuthWithValidApiKey',
     'hitl auth valid role' => 'testHitlAuthWithValidRole',
@@ -375,6 +452,7 @@ $tests = [
     'resume cas prevents double resume' => 'testResumeCasPreventsDoubleResume',
     'resume cas persist clears pause node id' => 'testResumeCasPersistClearsPauseNodeId',
     'resume run complete aligned with start' => 'testResumeDoesNotFireRunCompleteWhileWaiting',
+    'workflow run presenter redacts details' => 'testWorkflowRunPresenterRedactsDetailsByDefault',
     'db run store saveIfStatus' => 'testDbRunStoreSaveIfStatus',
 ];
 

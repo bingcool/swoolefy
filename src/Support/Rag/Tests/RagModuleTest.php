@@ -19,9 +19,18 @@ use Swoolefy\Support\Neuron\NeuronAiConfig;
 use Swoolefy\Support\Neuron\NeuronAiVectorStoreName;
 use Swoolefy\Support\Rag\Factory\RagFactory;
 use Swoolefy\Support\Rag\Factory\VectorStoreFactory;
+use Swoolefy\Support\Rag\Node\RagIngestNode;
+use Swoolefy\Support\Rag\Node\RagRetrieveNode;
 use Swoolefy\Support\Rag\Retrieval\RetrievalService;
 use Swoolefy\Support\Rag\Store\MilvusFilterExpr;
 use Swoolefy\Support\Rag\Store\MilvusVectorStore;
+use Swoolefy\Support\Workflow\Definition\WorkflowDefinition;
+use Swoolefy\Support\Workflow\Engine\NodeExecutionResult;
+use Swoolefy\Support\Workflow\Engine\RunContext;
+use Swoolefy\Support\Workflow\Node\ClosureNode;
+use Swoolefy\Support\Workflow\State\WorkflowState;
+use Swoolefy\Support\Workflow\WorkflowComponentFactory;
+use Swoolefy\Support\Workflow\WorkflowConfig;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
@@ -159,6 +168,41 @@ function testIngestDocumentsDirectly(): void
     assertTrue($result->documentCount === 2, 'document ingest count');
 }
 
+function testRagNodesPassTenantIdFromState(): void
+{
+    $path = sys_get_temp_dir() . '/swoolefy_rag_node_tenant_' . getmypid();
+    $config = NeuronAiConfig::fromArray([
+        'rag' => [
+            'default_vector_store' => NeuronAiVectorStoreName::FILE,
+            'allow_fake_embeddings' => true,
+            'require_tenant_isolation' => true,
+            'vector_stores' => [
+                NeuronAiVectorStoreName::FILE => ['path' => $path],
+            ],
+        ],
+    ]);
+    $rag = new RagFactory(new VectorStoreFactory($config, $path), new EmbeddingFactory($config));
+    $compiled = WorkflowComponentFactory::compiler(WorkflowConfig::fromArray([]))->compile(
+        WorkflowDefinition::create('rag_node_tenant', '1.0.0')
+            ->addNode('noop', new ClosureNode('noop', static fn () => NodeExecutionResult::success())),
+    );
+    $ctx = new RunContext('run-rag-node-tenant', $compiled);
+    $state = new WorkflowState([
+        'tenantId' => 'tenant_node',
+        'documents' => ['Tenant node yellow widget manual.'],
+        'question' => 'yellow widget',
+    ]);
+
+    $ingest = new RagIngestNode('ingest', ['knowledgeBase' => 'node_kb'], $rag->ingestionPipeline());
+    $ingestResult = $ingest->execute($ctx, $state);
+    assertTrue(($ingestResult->output['ingestedCount'] ?? 0) === 1, 'node ingest ok');
+
+    $retrieve = new RagRetrieveNode('retrieve', ['knowledgeBase' => 'node_kb'], new RetrievalService($rag));
+    $retrieveResult = $retrieve->execute($ctx, $state);
+    $docs = $retrieveResult->output['retrievedDocs'] ?? [];
+    assertTrue(is_array($docs) && count($docs) >= 1, 'node retrieve ok with state tenant');
+}
+
 function testRagFactoryRetrievalInterface(): void
 {
     $rag = makeRagFactory();
@@ -275,6 +319,7 @@ $tests = [
     'ingest texts + retrieve' => 'testIngestTextsAndRetrieve',
     'ingest empty' => 'testIngestEmptyReturnsZero',
     'ingest documents' => 'testIngestDocumentsDirectly',
+    'rag nodes tenant from state' => 'testRagNodesPassTenantIdFromState',
     'rag factory retrieval' => 'testRagFactoryRetrievalInterface',
     'milvus make params' => 'testMilvusVectorStoreMakeParams',
     'milvus filter expr escapes quotes' => 'testMilvusFilterExprEscapesQuotes',

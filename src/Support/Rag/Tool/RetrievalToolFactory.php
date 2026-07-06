@@ -15,7 +15,7 @@ use Swoolefy\Support\Rag\Factory\RagFactory;
  * - RetrievalTool：LLM 自主决定何时调用 context_retrieval，结果作为 Tool 返回值
  *
  * 用法：在 Agent::tools() 或 NeuronFactory 挂载：
- *   $factory->make('product_kb', topK: 5)
+ *   $factory->make('product_kb', topK: 5, tenantId: 'tenant_a')
  *
  * @see docs/swoolefyAI.md §4.10.4 模式 C
  */
@@ -32,11 +32,17 @@ final class RetrievalToolFactory
      * @param string      $knowledgeBase 知识库名称
      * @param int|null    $topK          检索 TopK，null 使用 VectorStore 默认值
      * @param string|null $storeAlias    向量库别名；null 用 default_vector_store
+     * @param string|null $tenantId      租户 ID；null 时从 FrameworkContext 读取
      */
-    public function make(string $knowledgeBase, ?int $topK = null, ?string $storeAlias = null): RetrievalTool
+    public function make(
+        string $knowledgeBase,
+        ?int $topK = null,
+        ?string $storeAlias = null,
+        ?string $tenantId = null,
+    ): RetrievalTool
     {
         return new RetrievalTool(
-            $this->ragFactory->retrieval($knowledgeBase, $topK, $storeAlias),
+            $this->ragFactory->retrieval($knowledgeBase, $topK, $storeAlias, $tenantId),
         );
     }
 }

@@ -9,10 +9,13 @@ declare(strict_types=1);
  */
 
 use NeuronAI\RAG\VectorStore\FileVectorStore;
+use Swoolefy\Support\Neuron\Embedding\EmbeddingFactory;
 use Swoolefy\Support\Neuron\NeuronAiConfig;
 use Swoolefy\Support\Neuron\NeuronAiVectorStoreName;
 use Swoolefy\Support\ProductionHealthCheck;
+use Swoolefy\Support\Rag\Factory\RagFactory;
 use Swoolefy\Support\Rag\Factory\VectorStoreFactory;
+use Swoolefy\Support\Rag\Retrieval\RetrievalService;
 use Swoolefy\Support\TenantScope;
 use Swoolefy\Support\Workflow\WorkflowConfig;
 
@@ -167,12 +170,43 @@ function testProductionHealthCheckRequiresTenantIsolation(): void
     pass('production health check requires tenant isolation');
 }
 
+function testRagRetrievalServiceUsesExplicitTenantId(): void
+{
+    $path = sys_get_temp_dir() . '/swoolefy_tenant_retrieval_' . getmypid();
+    $config = NeuronAiConfig::fromArray([
+        'rag' => [
+            'default_vector_store' => NeuronAiVectorStoreName::FILE,
+            'allow_fake_embeddings' => true,
+            'require_tenant_isolation' => true,
+            'vector_stores' => [
+                NeuronAiVectorStoreName::FILE => ['path' => $path],
+            ],
+        ],
+    ]);
+    $rag = new RagFactory(new VectorStoreFactory($config, $path), new EmbeddingFactory($config));
+    $kb = 'tenant_kb_' . getmypid();
+
+    $rag->ingestionPipeline()->ingestTexts($kb, ['Tenant A blue widget manual.'], tenantId: 'tenant_a');
+    $hits = (new RetrievalService($rag))->retrieve($kb, 'blue widget', 3, tenantId: 'tenant_a');
+    assertTrue(count($hits) >= 1, 'explicit tenant retrieval works');
+
+    try {
+        (new RetrievalService($rag))->retrieve($kb, 'blue widget', 3);
+        assertTrue(false, 'missing tenant should throw');
+    } catch (RuntimeException $e) {
+        assertTrue(str_contains($e->getMessage(), 'tenantId'), 'missing tenant fails fast');
+    }
+
+    pass('rag retrieval service uses explicit tenant id');
+}
+
 $tests = [
     'scoped knowledge base' => 'testScopedKnowledgeBaseSeparatesTenants',
     'vector store tenant prefix' => 'testVectorStoreFactoryUsesTenantPrefix',
     'require tenant throws' => 'testRequireTenantIsolationThrowsWithoutTenant',
     'redis chat key format' => 'testRedisChatKeyFormat',
     'health check tenant isolation' => 'testProductionHealthCheckRequiresTenantIsolation',
+    'rag retrieval explicit tenant' => 'testRagRetrievalServiceUsesExplicitTenantId',
 ];
 
 $passed = 0;

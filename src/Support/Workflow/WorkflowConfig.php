@@ -179,7 +179,7 @@ final class WorkflowConfig
             $this->runStoreSection($alias),
             'ttl',
             'WORKFLOW_REDIS_TTL',
-            86400,
+            0,
         );
     }
 
@@ -221,7 +221,7 @@ final class WorkflowConfig
                 $this->hitlSection(),
                 'auth_enabled',
                 'WORKFLOW_HITL_AUTH_ENABLED',
-                '0',
+                '1',
             ),
             FILTER_VALIDATE_BOOLEAN,
         );

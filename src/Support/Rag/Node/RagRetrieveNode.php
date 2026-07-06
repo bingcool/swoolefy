@@ -19,6 +19,8 @@ use Swoolefy\Support\Workflow\State\WorkflowState;
  *   outputKey     — 写入键，默认 retrievedDocs
  *   topK          — 检索条数
  *   vectorStore   — 向量库别名（rag.vector_stores 的 key）；缺省用 default_vector_store
+ *   tenantId      — 显式租户；缺省时从 state[tenantIdKey] 或 FrameworkContext 读取
+ *   tenantIdKey   — state 中租户字段名，默认 tenantId
  *
  * 典型后续：条件边判断 retrievedDocs 是否为空 → AINode / RAGNode。
  */
@@ -41,11 +43,12 @@ final class RagRetrieveNode extends AbstractNode
         $outputKey = (string) ($this->config['outputKey'] ?? 'retrievedDocs');
         $topK = (int) ($this->config['topK'] ?? 5);
         $storeAlias = $this->resolveStoreAlias();
+        $tenantId = $this->resolveTenantId($state);
 
         $query = (string) $state->get($queryKey, '');
         $docs = $query === ''
             ? []
-            : $this->retrievalService->retrieve($knowledgeBase, $query, $topK, $storeAlias);
+            : $this->retrievalService->retrieve($knowledgeBase, $query, $topK, $storeAlias, $tenantId);
 
         $state->set($outputKey, $docs);
 
@@ -55,6 +58,7 @@ final class RagRetrieveNode extends AbstractNode
                 'runId' => $ctx->runId,
                 'nodeId' => $this->nodeId,
                 'knowledgeBase' => $knowledgeBase,
+                'tenantId' => $tenantId,
                 'docCount' => count($docs),
             ]],
             metrics: ['nodeType' => 'rag_retrieve', 'docCount' => count($docs)],
@@ -70,5 +74,23 @@ final class RagRetrieveNode extends AbstractNode
         }
 
         return $alias;
+    }
+
+    /** 优先使用节点显式 tenantId，其次从 WorkflowState 读取 tenantIdKey。 */
+    private function resolveTenantId(WorkflowState $state): ?string
+    {
+        $tenantId = $this->config['tenantId'] ?? $this->config['tenant_id'] ?? null;
+        if (is_string($tenantId) && $tenantId !== '') {
+            return $tenantId;
+        }
+
+        $tenantIdKey = $this->config['tenantIdKey'] ?? $this->config['tenant_id_key'] ?? 'tenantId';
+        if (!is_string($tenantIdKey) || $tenantIdKey === '') {
+            return null;
+        }
+
+        $fromState = $state->get($tenantIdKey);
+
+        return is_string($fromState) && $fromState !== '' ? $fromState : null;
     }
 }

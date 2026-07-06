@@ -48,6 +48,59 @@ function pass(string $name): void
     echo "[PASS] {$name}\n";
 }
 
+/** @param callable(): void $callback */
+function withProductionEnv(callable $callback): void
+{
+    $previous = $_ENV['SWOOLEFY_ENV'] ?? getenv('SWOOLEFY_ENV');
+    $_ENV['SWOOLEFY_ENV'] = 'prd';
+    putenv('SWOOLEFY_ENV=prd');
+
+    try {
+        $callback();
+    } finally {
+        if ($previous === false || $previous === null || $previous === '') {
+            unset($_ENV['SWOOLEFY_ENV']);
+            putenv('SWOOLEFY_ENV');
+        } else {
+            $_ENV['SWOOLEFY_ENV'] = $previous;
+            putenv('SWOOLEFY_ENV=' . $previous);
+        }
+    }
+}
+
+/**
+ * @param array<string, string|null> $vars null 表示临时 unset
+ * @param callable(): void $callback
+ */
+function withEnvVars(array $vars, callable $callback): void
+{
+    $previous = [];
+    foreach ($vars as $name => $value) {
+        $previous[$name] = $_ENV[$name] ?? getenv($name);
+        if ($value === null) {
+            unset($_ENV[$name]);
+            putenv($name);
+        } else {
+            $_ENV[$name] = $value;
+            putenv($name . '=' . $value);
+        }
+    }
+
+    try {
+        $callback();
+    } finally {
+        foreach ($previous as $name => $value) {
+            if ($value === false || $value === null || $value === '') {
+                unset($_ENV[$name]);
+                putenv($name);
+            } else {
+                $_ENV[$name] = $value;
+                putenv($name . '=' . $value);
+            }
+        }
+    }
+}
+
 function testWorkflowRegistryMultiVersion(): void
 {
     $registry = new WorkflowRegistry();
@@ -287,11 +340,7 @@ function testProductionHealthCheckDetectsIssues(): void
 
 function testProductionHealthCheckRejectsMemoryRunStoreInProduction(): void
 {
-    $previous = $_ENV['SWOOLEFY_ENV'] ?? getenv('SWOOLEFY_ENV');
-    $_ENV['SWOOLEFY_ENV'] = 'prd';
-    putenv('SWOOLEFY_ENV=prd');
-
-    try {
+    withProductionEnv(static function (): void {
         $errors = ProductionHealthCheck::check(
             NeuronAiConfig::fromArray([
                 'rag' => [
@@ -319,17 +368,104 @@ function testProductionHealthCheckRejectsMemoryRunStoreInProduction(): void
             }
         }
         assertTrue($found, 'memory run store flagged in production');
-    } finally {
-        if ($previous === false || $previous === null || $previous === '') {
-            unset($_ENV['SWOOLEFY_ENV']);
-            putenv('SWOOLEFY_ENV');
-        } else {
-            $_ENV['SWOOLEFY_ENV'] = $previous;
-            putenv('SWOOLEFY_ENV=' . $previous);
-        }
-    }
+    });
 
     pass('production health check rejects memory run store');
+}
+
+function productionSafeNeuronConfig(): NeuronAiConfig
+{
+    return NeuronAiConfig::fromArray([
+        'rag' => [
+            'default_vector_store' => 'file',
+            'allow_fake_embeddings' => true,
+            'require_tenant_isolation' => false,
+            'vector_stores' => ['file' => ['path' => sys_get_temp_dir()]],
+        ],
+        'security' => [
+            'outbound_url_allowlist' => ['api.openai.com'],
+            'allow_private_networks' => false,
+        ],
+        'neuron' => ['ai_model_providers' => []],
+    ]);
+}
+
+function testProductionHealthCheckRequiresHitlAuthAndApiKey(): void
+{
+    withProductionEnv(static function (): void {
+        withEnvVars([
+            'WORKFLOW_HITL_AUTH_ENABLED' => '0',
+            'WORKFLOW_HITL_API_KEY' => null,
+        ], static function (): void {
+            $errors = ProductionHealthCheck::check(
+                productionSafeNeuronConfig(),
+                WorkflowConfig::fromArray([
+                    'workflow' => [
+                        'default_node_timeout_seconds' => 120,
+                        'default_run_store' => WorkflowRunStoreName::REDIS,
+                        'run_stores' => [
+                            WorkflowRunStoreName::REDIS => ['ttl' => 0],
+                        ],
+                        'hitl' => [
+                            'auth_enabled' => false,
+                            'api_key' => '',
+                        ],
+                    ],
+                ]),
+            );
+
+            assertTrue(
+                count(array_filter($errors, static fn (string $error): bool => str_contains($error, 'hitl.auth_enabled'))) === 1,
+                'hitl auth disabled flagged',
+            );
+            assertTrue(
+                count(array_filter($errors, static fn (string $error): bool => str_contains($error, 'hitl.api_key'))) === 1,
+                'hitl api key missing flagged',
+            );
+        });
+    });
+
+    pass('production health check requires hitl auth and api key');
+}
+
+function testProductionHealthCheckRejectsShortRedisRunStoreTtl(): void
+{
+    withProductionEnv(static function (): void {
+        withEnvVars([
+            'WORKFLOW_HITL_AUTH_ENABLED' => '1',
+            'WORKFLOW_HITL_API_KEY' => 'secret-key',
+            'WORKFLOW_REDIS_TTL' => '86400',
+        ], static function (): void {
+            $errors = ProductionHealthCheck::check(
+                productionSafeNeuronConfig(),
+                WorkflowConfig::fromArray([
+                    'workflow' => [
+                        'default_node_timeout_seconds' => 120,
+                        'default_run_store' => WorkflowRunStoreName::REDIS,
+                        'run_stores' => [
+                            WorkflowRunStoreName::REDIS => ['ttl' => 86400],
+                        ],
+                        'hitl' => [
+                            'auth_enabled' => true,
+                            'api_key' => 'secret-key',
+                        ],
+                    ],
+                ]),
+            );
+
+            $found = false;
+            foreach ($errors as $error) {
+                if (str_contains($error, 'redis run store ttl is too short')) {
+                    $found = true;
+                    break;
+                }
+            }
+
+            assertTrue($found, 'short redis ttl flagged');
+        });
+    });
+
+    pass('production health check rejects short redis ttl');
 }
 
 function testProviderFactoryValidatesOutboundUrl(): void
@@ -423,6 +559,8 @@ $tests = [
     'db mcp repository' => 'testDbMcpRepository',
     'production health check' => 'testProductionHealthCheckDetectsIssues',
     'production health check rejects memory run store' => 'testProductionHealthCheckRejectsMemoryRunStoreInProduction',
+    'production health check requires hitl auth and api key' => 'testProductionHealthCheckRequiresHitlAuthAndApiKey',
+    'production health check rejects short redis ttl' => 'testProductionHealthCheckRejectsShortRedisRunStoreTtl',
     'production health check validates embedding base uri' => 'testProductionHealthCheckValidatesEmbeddingBaseUri',
     'provider outbound url validation' => 'testProviderFactoryValidatesOutboundUrl',
 ];

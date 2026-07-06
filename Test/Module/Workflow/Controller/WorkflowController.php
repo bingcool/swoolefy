@@ -15,6 +15,7 @@ use Swoolefy\Support\Workflow\Engine\RunStatus;
 use Swoolefy\Support\Workflow\Engine\StreamWorkflowEventDispatcher;
 use Swoolefy\Support\Workflow\Engine\WorkflowEngine;
 use Swoolefy\Support\Workflow\Engine\WorkflowRun;
+use Swoolefy\Support\Workflow\Engine\WorkflowRunPresenter;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\Exception\WorkflowPermissionException;
 use Swoolefy\Support\Workflow\WorkflowConfig;
@@ -41,7 +42,8 @@ use Test\Module\Workflow\WorkflowService;
  *        Body: { "workflowId": "...", "input": {...}, "stream": false }
  *        也支持顶层平铺 orderId / query 等字段（会合并进 input）
  *
- *   GET  /api/v1/workflow/run/status?runId=
+     *   GET  /api/v1/workflow/run/status?runId=
+     *        受 HITL 鉴权保护；默认返回脱敏摘要，admin + detail=true 才返回完整 state
  *   POST /api/v1/workflow/run/resume
  *        Body: { "runId": "...", "feedback": {...}, "actor": "legal-team" }
  *        HITL 鉴权（workflow.hitl.auth_enabled）：
@@ -162,9 +164,13 @@ final class WorkflowController extends BController
         }
 
         try {
+            $hitlAuth = new WorkflowHitlAuth(WorkflowConfig::load());
+            $this->assertHitlAuthorized($hitlAuth, $requestInput);
             $run = WorkflowService::engine()->getRun($runId);
 
-            return $this->formatRun($run);
+            return $this->formatRun($run, $this->wantsRunDetail($requestInput, $hitlAuth));
+        } catch (WorkflowPermissionException $e) {
+            throw new SystemException($e->getMessage(), 403, $e);
         } catch (WorkflowException $e) {
             throw new SystemException($e->getMessage(), 404, $e);
         }
@@ -303,6 +309,8 @@ final class WorkflowController extends BController
                 throw new SystemException('runId is required', 400);
             }
 
+            $hitlAuth = new WorkflowHitlAuth(WorkflowConfig::load());
+            $this->assertHitlAuthorized($hitlAuth, $requestInput);
             $run = WorkflowService::engine()->getRun($runId);
             $sink->publish('run.status', [
                 'runId' => $runId,
@@ -310,7 +318,9 @@ final class WorkflowController extends BController
                 'lastRoutedEdge' => $run->lastRoutedEdge,
                 'currentNodeId' => $run->currentNodeId,
             ]);
-            $sink->publish('complete', $this->formatRun($run));
+            $sink->publish('complete', $this->formatRun($run, false));
+        } catch (WorkflowPermissionException $e) {
+            throw new SystemException($e->getMessage(), 403, $e);
         } catch (WorkflowException $e) {
             throw new SystemException($e->getMessage(), 404, $e);
         } finally {
@@ -351,24 +361,9 @@ final class WorkflowController extends BController
      *
      * @return array<string, mixed>
      */
-    private function formatRun(WorkflowRun $run): array
+    private function formatRun(WorkflowRun $run, bool $includeDetails = true): array
     {
-        return [
-            'runId' => $run->runId,
-            'workflowId' => $run->compiled->workflowId(),
-            'version' => $run->compiled->version(),
-            'status' => $run->status->value,
-            'waiting' => $run->status === RunStatus::WAITING,
-            'lastRoutedEdge' => $run->lastRoutedEdge,
-            'currentNodeId' => $run->currentNodeId,
-            'pauseNodeId' => $run->pauseNodeId,
-            'executedNodeIds' => $run->executedNodeIds,
-            'error' => $run->error,
-            // 业务 state：节点 success() 合并进 data；agentOutputs / nodeOutputs 为独立属性
-            'data' => $run->state->data,
-            'nodeOutputs' => $run->state->nodeOutputs,
-            'agentOutputs' => $run->state->agentOutputs,
-        ];
+        return WorkflowRunPresenter::toArray($run, $includeDetails);
     }
 
     /**
@@ -421,6 +416,22 @@ final class WorkflowController extends BController
         $accept = strtolower((string) $requestInput->getHeaderParams('accept', ''));
 
         return str_contains($accept, 'text/event-stream');
+    }
+
+    /**
+     * status 调试详情开关：仅 admin 且显式 detail/debug=true 时返回完整 state。
+     */
+    private function wantsRunDetail(RequestInput $requestInput, WorkflowHitlAuth $hitlAuth): bool
+    {
+        $detail = filter_var(
+            $requestInput->input('detail', $requestInput->input('debug', false)),
+            FILTER_VALIDATE_BOOLEAN,
+        );
+        if (!$detail) {
+            return false;
+        }
+
+        return $this->hitlRole($requestInput, $hitlAuth) === WorkflowHitlAuth::ADMIN_ROLE;
     }
 
     /**
