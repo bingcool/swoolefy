@@ -147,7 +147,7 @@ final class WorkflowConfig
             $this->workflowSection(),
             'log_component',
             'WORKFLOW_LOG_COMPONENT',
-            'info_log',
+            'support_log',
         );
     }
 

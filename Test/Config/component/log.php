@@ -92,11 +92,11 @@ return [
         return $logger;
     },
 
-    // workflow_log日志
-    'workflow_log' => function($name) {
+    // Support 模块统一日志
+    'support_log' => function($name) {
         $logger = new \Swoolefy\Util\Log($name);
         $logger->setChannel('application');
-        $logFilePath = LOG_PATH . '/support/workflow.log';
+        $logFilePath = LOG_PATH . '/support/support.log';
         $logger->setLogFilePath($logFilePath);
         return $logger;
     }

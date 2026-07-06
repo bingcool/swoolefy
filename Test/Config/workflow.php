@@ -27,8 +27,6 @@ return [
         // 条件边求值器：symfony | jsonlogic
         'condition_evaluator' => env('WORKFLOW_CONDITION_EVALUATOR', 'symfony'),
         'default_node_timeout_seconds' => 120,
-        // 审计日志组件别名（来自 Config/component/log.php）
-        'log_component' => env('WORKFLOW_LOG_COMPONENT', 'woorkflow_log'),
         'run_stores' => [
             // 进程内存：单测 / 单 Worker 演示（不跨进程）
             WorkflowRunStoreName::MEMORY => [],
