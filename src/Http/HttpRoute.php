@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Http;
 
+use Swoole\Http\Status as HttpStatus;
 use Swoolefy\Library\CurlProxy\OpentelemetryMiddleware;
 use Swoolefy\Annotation\Validation\ValidationRule;
 use Swoolefy\Core\App;
@@ -188,7 +189,7 @@ class HttpRoute extends AppDispatch
         // forbidden call action
         if (in_array($action, static::$denyActions, true)) {
             $errorMsg = "{$controller}::{$action} is forbidden access this action";
-            throw new DispatchException($errorMsg, \Swoole\Http\Status::FORBIDDEN);
+            throw new DispatchException($errorMsg, HttpStatus::FORBIDDEN);
         }
 
         // validate class
@@ -228,7 +229,7 @@ class HttpRoute extends AppDispatch
         }
 
         if ($this->app->isEnd()) {
-            throw new SystemException('System Request End Error', \Swoole\Http\Status::INTERNAL_SERVER_ERROR);
+            throw new SystemException('System Request End Error', HttpStatus::INTERNAL_SERVER_ERROR);
         }
 
         $this->validateActionParamRulesBeforeMiddlewares($class, $action);
@@ -270,7 +271,7 @@ class HttpRoute extends AppDispatch
                 $action
             );
 
-            throw new DispatchException($errorMsg, \Swoole\Http\Status::FORBIDDEN);
+            throw new DispatchException($errorMsg, HttpStatus::FORBIDDEN);
         }
         // reflector params handle
         $args = $this->bindActionParams($controllerInstance, $action, $this->requestInput->all());
@@ -370,7 +371,7 @@ class HttpRoute extends AppDispatch
             if ($supportClosure && $middleware instanceof \Closure) {
                 $result = $middleware($this->requestInput, $this->responseOutput);
                 if ($throwWhenClosureFalse && $result === false) {
-                    throw new SystemException('beforeHandle route middle return false, Not Allow Coroutine To Next Middle', \Swoole\Http\Status::INTERNAL_SERVER_ERROR);
+                    throw new SystemException('beforeHandle route middle return false, Not Allow Coroutine To Next Middle', HttpStatus::INTERNAL_SERVER_ERROR);
                 }
                 continue;
             }
@@ -407,7 +408,7 @@ class HttpRoute extends AppDispatch
             return [$class, $action];
         } else {
             $errorMsg = "Class `{$class}` Not Found";
-            throw new DispatchException($errorMsg, \Swoole\Http\Status::NOT_FOUND);
+            throw new DispatchException($errorMsg, HttpStatus::NOT_FOUND);
         }
     }
 
@@ -489,7 +490,7 @@ class HttpRoute extends AppDispatch
                 }
 
                 if (!$isValid) {
-                    throw new DispatchException("Invalid data received for parameter of {$name}" . '|||' . $this->requestInput->getSwooleRequest()->server['REQUEST_URI']);
+                    throw new DispatchException("Invalid data received for parameter of {$name}" . '|||' . $this->requestInput->getSwooleRequest()->server['REQUEST_URI'], HttpStatus::BAD_REQUEST);
                 }
 
                 $args[] = $actionParams[$name] = $value;
@@ -508,7 +509,7 @@ class HttpRoute extends AppDispatch
         }
 
         if (!empty($missing)) {
-            throw new DispatchException("Missing function required params [" . implode(', ', $missing) . '] |||' . $this->requestInput->getSwooleRequest()->server['REQUEST_URI'] . '|||' . json_encode($actionParams, JSON_UNESCAPED_UNICODE));
+            throw new DispatchException("Missing function required params [" . implode(', ', $missing) . '] |||' . $this->requestInput->getSwooleRequest()->server['REQUEST_URI'] . '|||' . json_encode($actionParams, JSON_UNESCAPED_UNICODE), HttpStatus::BAD_REQUEST);
         }
 
         $this->actionParams = $actionParams;
@@ -821,13 +822,13 @@ class HttpRoute extends AppDispatch
             return $routeCacheItems;
         } else {
             if (!isset($routerMap[$uri])) {
-                throw new DispatchException("Not Found Route [$uri].");
+                throw new DispatchException("Not Found Route [$uri].", HttpStatus::NOT_FOUND);
             } else if (isset($routerMap[$uri]) && !isset($routerMap[$uri][$method])) {
                 $methods = array_keys($routerMap[$uri]);
                 $methods = implode(',', $methods);
-                throw new DispatchException("Only Support Http Method=[{$methods}], But You Current Request Method={$method}, route=[$uri], Please check route config.");
+                throw new DispatchException("Only Support Http Method=[{$methods}], But You Current Request Method={$method}, route=[$uri], Please check route config.", HttpStatus::METHOD_NOT_ALLOWED);
             } else {
-                throw new DispatchException("Not Match Route [$uri].");
+                throw new DispatchException("Not Match Route [$uri].", HttpStatus::NOT_FOUND);
             }
         }
     }

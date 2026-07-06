@@ -86,8 +86,11 @@ final class SdkApiWriter
                 $uses[] = $this->sdkNamespacePrefix . '\\Support\\SdkCovertProperty';
             }
 
+            // 优先 #[StreamResponse]/#[ChunkedResponse]/#[DownloadResponse]；无注解时运行时按响应头识别
+            $streamType = $this->detectStreamType($method);
+
             $reqParam = $this->buildRequestParam($passParamsAsArray, $reqFqcn, $isReqNullable, $scalarParams);
-            $retType = $this->determineReturnType($isVoid, $retFqcn, $retScalarType, $isNullable);
+            $retType = $this->determineReturnType($isVoid, $retFqcn, $retScalarType, $isNullable, $streamType);
             // 构建返回类型声明，如果为空则不添加冒号
             $retTypeDecl = $retType !== '' ? ': ' . $retType : '';
 
@@ -108,6 +111,7 @@ final class SdkApiWriter
                     $retFqcn,
                     $isVoid,
                     $scalarParams,
+                    $streamType,
                 );
 
                 $methodDoc = $this->appendSdkApiDocLine($docBlock, $httpMethod, $path);
@@ -283,6 +287,7 @@ PHP;
         ?string $retTestFqcn,
         bool $isVoid,
         array $scalarParams = [],
+        ?string $streamType = null,
     ): string {
         $pathLiteral = var_export($path, true);
         $lines = [];
@@ -334,10 +339,25 @@ PHP;
             $lines[] = '        $requestDefaults[\'body\'] = json_encode($request->toDeepArray(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);';
         }
         
+        // 有注解：按声明类型解析；无注解：parseResponseByHeaders() 按响应头自动识别
+        if ($streamType !== null) {
+            $lines[] = '        // 流式/下载请求：不强制 Content-Type: application/json';
+            $lines[] = '        $options = $this->mergeStreamClientOptions($requestDefaults, $options);';
+            if ($streamType === 'sse') {
+                $lines[] = "        // SSE 需声明 Accept，响应为 text/event-stream";
+                $lines[] = "        \$options['headers']['Accept'] = \$options['headers']['Accept'] ?? 'text/event-stream';";
+            }
+            $lines[] = '        $response = $this->requestWithConnectRetry(' . var_export($httpMethod, true) . ', $this->uri(' . $pathLiteral . '), $options);';
+            $lines[] = '        // 注解声明响应类型：' . $streamType;
+            $lines[] = '        return $this->parseResponseByHeaders($response, ' . var_export($streamType, true) . ');';
+
+            return implode("\n", $lines);
+        }
+
+        // 无注解：请求后默认按照 Content-Type / Content-Disposition 等响应头自动选择解析器
         $lines[] = '        $options = $this->mergeClientOptions($requestDefaults, $options);';
         $lines[] = '        $response = $this->requestWithConnectRetry(' . var_export($httpMethod, true) . ', $this->uri(' . $pathLiteral . '), $options);';
-        $lines[] = '        $payload = $this->parseJsonResponse($response);';
-        $lines[] = '        $this->assertBusinessOk($payload);';
+        $lines[] = '        $result = $this->parseResponseByHeaders($response);';
 
         if ($isVoid) {
             $lines[] = '        return;';
@@ -346,12 +366,12 @@ PHP;
         }
 
         if ($retTestFqcn === null) {
-            $lines[] = '        return $payload;';
+            $lines[] = '        return $result;';
 
             return implode("\n", $lines);
         }
 
-        $lines[] = '        return SdkCovertProperty::toCovertDeepProperty($payload ?? null, ' . $this->toSdkShortClassName($retTestFqcn) . '::class);';
+        $lines[] = '        return SdkCovertProperty::toCovertDeepProperty($result ?? null, ' . $this->toSdkShortClassName($retTestFqcn) . '::class);';
 
         return implode("\n", $lines);
     }
@@ -758,8 +778,55 @@ PHP;
         return false;
     }
 
-    private function determineReturnType(bool $isVoid, ?string $retFqcn, ?string $retScalarType, bool $isNullable = false): string
+    /**
+     * 识别 Controller action 的非 JSON 响应类型（仅读取方法注解）。
+     *
+     * - #[StreamResponse] → SSE
+     * - #[ChunkedResponse] → 分块流
+     * - #[DownloadResponse] → 文件下载
+     *
+     * 未标注时返回 null，由运行时 parseResponseByHeaders() 按响应头识别。
+     *
+     * @return 'sse'|'chunked'|'download'|null
+     */
+    private function detectStreamType(ReflectionMethod $method): ?string
     {
+        return $this->detectStreamTypeFromAttributes($method);
+    }
+
+    private function detectStreamTypeFromAttributes(ReflectionMethod $method): ?string
+    {
+        $map = [
+            \Swoolefy\Annotation\StreamResponse::class => 'sse',
+            \Swoolefy\Annotation\ChunkedResponse::class => 'chunked',
+            \Swoolefy\Annotation\DownloadResponse::class => 'download',
+        ];
+
+        foreach ($method->getAttributes() as $attribute) {
+            $type = $map[$attribute->getName()] ?? null;
+            if ($type !== null) {
+                return $type;
+            }
+        }
+
+        return null;
+    }
+
+    private function determineReturnType(
+        bool $isVoid,
+        ?string $retFqcn,
+        ?string $retScalarType,
+        bool $isNullable = false,
+        ?string $streamType = null,
+    ): string {
+        // 非 JSON 响应覆盖 Controller 的 void 声明
+        if ($streamType === 'sse' || $streamType === 'download') {
+            return 'array';
+        }
+        if ($streamType === 'chunked') {
+            return 'string';
+        }
+
         if ($isVoid) {
             return 'void';
         }
@@ -773,6 +840,11 @@ PHP;
         if ($retScalarType !== null) {
             // 标量类型也可以可空
             return $isNullable ? '?' . $retScalarType : $retScalarType;
+        }
+
+        // 无注解且非 void：按响应头自动解析，返回 mixed
+        if (!$isVoid) {
+            return 'mixed';
         }
 
         // 如果没有返回值类型，返回空字符串，表示不声明返回类型

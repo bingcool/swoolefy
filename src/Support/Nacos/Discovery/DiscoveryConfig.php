@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Swoolefy\Support\Nacos\Discovery;
 
 use Swoolefy\Support\ApplicationConfig;
-use Swoolefy\Support\Nacos\NacosConfig;
+use Swoolefy\Support\Nacos\NacosConst;
+use Swoolefy\Support\Nacos\NacosServiceRegisterConfig;
 
 /**
  * 服务发现配置（application.yaml → nacos.discovery_service_client）。
@@ -23,44 +24,39 @@ final class DiscoveryConfig
         public readonly string $clusters,
         public readonly string $groupName,
         public readonly string $namespaceId,
-        public readonly string $defaultServiceName,
     ) {
     }
 
-    public static function load(?NacosConfig $nacosConfig = null, ?ApplicationConfig $applicationConfig = null): self
-    {
-        $nacosConfig ??= NacosConfig::load();
-        $applicationConfig ??= ApplicationConfig::load($nacosConfig->appPath);
+    public static function load(
+        ?NacosServiceRegisterConfig $serviceRegisterConfig = null,
+        ?ApplicationConfig          $applicationConfig = null,
+    ): self {
+        $serviceRegisterConfig ??= NacosServiceRegisterConfig::load();
+        $applicationConfig ??= ApplicationConfig::load();
         $discovery = $applicationConfig->nacosSection('discovery_service_client');
 
-        $defaultService = ApplicationConfig::pickString($discovery, 'service_name', 'NACOS_DISCOVERY_SERVICE_NAME', '');
-        if ('' === $defaultService) {
-            $defaultService = $nacosConfig->serviceName;
-        }
-
-        $groupName = ApplicationConfig::pickString($discovery, 'group_name', 'NACOS_DISCOVERY_GROUP_NAME', '');
+        $groupName = ApplicationConfig::pickStringEnvFirst($discovery, 'group_name', NacosConst::ENV_SERVICE_GROUP_NAME, '');
         if ('' === $groupName) {
-            $groupName = $nacosConfig->serviceGroupName;
+            $groupName = $serviceRegisterConfig->groupName;
         }
 
-        $namespaceId = ApplicationConfig::pickString($discovery, 'namespace_id', 'NACOS_DISCOVERY_NAMESPACE_ID', '');
+        $namespaceId = ApplicationConfig::pickStringEnvFirst($discovery, 'namespace_id', NacosConst::ENV_SERVICE_NAMESPACE_ID, '');
         if ('' === $namespaceId) {
-            $namespaceId = $nacosConfig->serviceNamespaceId;
+            $namespaceId = $serviceRegisterConfig->namespaceId;
         }
 
         return new self(
-            cacheTtl: ApplicationConfig::pickInt($discovery, 'cache_ttl', 'NACOS_DISCOVERY_CACHE_TTL', 60),
+            cacheTtl: ApplicationConfig::pickInt($discovery, 'cache_ttl', NacosConst::ENV_DISCOVERY_CACHE_TTL, 60),
             loadBalancer: strtolower(ApplicationConfig::pickString(
                 $discovery,
                 'load_balancer',
-                'NACOS_DISCOVERY_LOAD_BALANCER',
+                NacosConst::ENV_DISCOVERY_LOAD_BALANCER,
                 self::LOAD_BALANCER_RANDOM,
             )),
-            healthyOnly: ApplicationConfig::pickBool($discovery, 'healthy_only', 'NACOS_DISCOVERY_HEALTHY_ONLY', true),
-            clusters: ApplicationConfig::pickString($discovery, 'clusters', 'NACOS_DISCOVERY_CLUSTERS', ''),
+            healthyOnly: ApplicationConfig::pickBool($discovery, 'healthy_only', NacosConst::ENV_DISCOVERY_HEALTHY_ONLY, true),
+            clusters: ApplicationConfig::pickString($discovery, 'clusters', NacosConst::ENV_DISCOVERY_CLUSTERS, ''),
             groupName: $groupName,
             namespaceId: $namespaceId,
-            defaultServiceName: $defaultService,
         );
     }
 }

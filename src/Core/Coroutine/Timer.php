@@ -24,7 +24,7 @@ class Timer
      * $withBlockLapping=false 允许任务重叠执行，不管上一个任务的是否执行完毕，下一轮时间到了，任务将在一个新的协程中执行。默认false
      * @return Channel
      */
-    public static function tick(int $timeMs, callable $callable, bool $withBlockLapping = false)
+    public static function tick(int $timeMs, callable $callable, bool $withBlockLapping = false): Channel
     {
         $timeChannel = new Channel(1);
         $timeSecond = round($timeMs / 1000, 3);
@@ -44,7 +44,7 @@ class Timer
                 if ($withBlockLapping) {
                     try {
                         $callable($timeChannel);
-                    }catch (\Throwable $throwable) {
+                    } catch (\Throwable $throwable) {
                         \Swoolefy\Core\BaseServer::catchException($throwable);
                     } finally {
                         $App = Application::getApp();
@@ -52,7 +52,7 @@ class Timer
                             Application::getApp()->clearComponent();
                         }
                     }
-                }else {
+                } else {
                     // no block
                     goApp(function () use($timeChannel, $callable) {
                         $callable($timeChannel);
@@ -71,7 +71,7 @@ class Timer
      * @param Channel|int $timeChannel
      * @return bool
      */
-    public static function cancel($timeChannel): bool
+    public static function cancel(Channel|int $timeChannel): bool
     {
         if ($timeChannel instanceof Channel) {
             return $timeChannel->push(1);
@@ -82,7 +82,6 @@ class Timer
             }
             return true;
         }
-
         return false;
     }
 
@@ -91,7 +90,7 @@ class Timer
      * @param callable $callable
      * @return Channel
      */
-    public static function after(int $timeMs, callable $callable)
+    public static function after(int $timeMs, callable $callable): Channel
     {
         $timeChannel = new Channel(1);
         $timeSecond  = round($timeMs / 1000, 3);

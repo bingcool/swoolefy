@@ -42,7 +42,8 @@ class AmqpController extends BController
         return true;
     }
 
-    public function testPublish2(): bool {
+    public function testPublish2(): bool
+    {
         /**
          * @var AmqpDelayDirectQueue $amqpDelayDirect
          */

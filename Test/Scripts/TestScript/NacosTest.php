@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Scripts\TestScript;
 
-use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Exception\SystemException;
 use Swoolefy\Script\MainCliScript;
 use Swoolefy\Support\Nacos\ConfigFetcher;
@@ -16,8 +15,9 @@ use Swoolefy\Support\Nacos\LoadBalancer\RandomLoadBalancer;
 use Swoolefy\Support\Nacos\LoadBalancer\RoundRobinLoadBalancer;
 use Swoolefy\Support\Nacos\LoadBalancer\WeightLoadBalancer;
 use Swoolefy\Support\Nacos\NacosConfig;
+use Swoolefy\Support\Nacos\NacosServiceRegisterConfig;
+use Swoolefy\Support\Nacos\ServiceConfig;
 use Swoolefy\Support\Nacos\ServiceRegister;
-use Swoolefy\Util\Log;
 
 /**
  * Nacos SDK smoke test.
@@ -46,12 +46,13 @@ class NacosTest extends MainCliScript
      */
     public function testNacos(): void
     {
-        [$nacosConfig, $logger] = $this->loadNacosContext();
-        $configFetcher = new ConfigFetcher($nacosConfig, $logger);
-        $serviceRegistrar = new ServiceRegister($nacosConfig, $logger);
+        $nacosConfig = $this->loadNacosConfig();
+        $serviceConfig = ServiceConfig::load();
+        $configFetcher = new ConfigFetcher($nacosConfig, $serviceConfig);
+        $serviceRegistrar = ServiceRegister::create();
 
-        $dataId = $nacosConfig->dataId;
-        $group = $nacosConfig->group;
+        $dataId = $serviceConfig->dataId;
+        $group = $serviceConfig->group;
         $content = 'APP_NAME: Test';
 
         $configFetcher->set($content, $dataId, $group);
@@ -80,12 +81,12 @@ class NacosTest extends MainCliScript
      */
     public function testDiscovery(): void
     {
-        [$nacosConfig, $logger] = $this->loadNacosContext();
+        $nacosConfig = $this->loadNacosConfig();
         [$registerIp, $registerPort, $registerName] = $this->resolveServiceRegisterParams($nacosConfig);
 
-        $this->ensureServiceRegistered($nacosConfig, $logger, $registerIp, $registerPort, $registerName);
+        $this->ensureServiceRegistered($registerIp, $registerPort, $registerName);
 
-        $discoveryConfig = DiscoveryConfig::load($nacosConfig);
+        $discoveryConfig = DiscoveryConfig::load();
         echo sprintf(
             "discovery config: service=%s, load_balancer=%s, cache_ttl=%ds\n",
             $registerName,
@@ -93,7 +94,7 @@ class NacosTest extends MainCliScript
             $discoveryConfig->cacheTtl,
         );
 
-        $client = DiscoveryClient::create($registerName, $nacosConfig, $discoveryConfig, $logger);
+        $client = DiscoveryClient::create($registerName, $nacosConfig, $discoveryConfig);
 
         $this->assertDiscoveryInstances($client, $registerIp, $registerPort, $registerName);
         $this->assertDiscoveryRefresh($client);
@@ -104,37 +105,30 @@ class NacosTest extends MainCliScript
         echo "DiscoveryClient test passed\n";
     }
 
-    /**
-     * @return array{0: NacosConfig, 1: Log|null}
-     */
-    private function loadNacosContext(): array
+    private function loadNacosConfig(): NacosConfig
     {
-        $nacosConfig = NacosConfig::load(defined('APP_PATH') ? APP_PATH : null);
-        $logger = LogManager::getInstance()->getLogger('nacos_log');
-
-        return [$nacosConfig, $logger];
+        return NacosConfig::load();
     }
 
     /**
      * @return array{0: string, 1: int, 2: string}
      */
-    private function resolveServiceRegisterParams(NacosConfig $config): array
+    private function resolveServiceRegisterParams(NacosConfig $nacosConfig): array
     {
-        $ip = '' !== $config->serviceIp ? $config->serviceIp : '192.168.1.103';
-        $port = $config->servicePort > 0 ? $config->servicePort : 9501;
-        $name = '' !== $config->serviceName ? $config->serviceName : 'my-service';
+        $serviceConfig = NacosServiceRegisterConfig::load();
+        $ip = '' !== $serviceConfig->ip ? $serviceConfig->ip : '192.168.1.103';
+        $port = $serviceConfig->port > 0 ? $serviceConfig->port : 9501;
+        $name = '' !== $serviceConfig->serviceName ? $serviceConfig->serviceName : 'my-service';
 
         return [$ip, $port, $name];
     }
 
     private function ensureServiceRegistered(
-        NacosConfig $nacosConfig,
-        ?Log $logger,
         string $ip,
         int $port,
         string $serviceName,
     ): void {
-        $registrar = new ServiceRegister($nacosConfig, $logger);
+        $registrar = ServiceRegister::create();
         $registrar->register($ip, $port, $serviceName, startHeartbeat: false);
         usleep(100_000);
         echo "ensure instance registered: {$ip}:{$port} -> {$serviceName}\n";

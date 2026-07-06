@@ -10,7 +10,7 @@ use Swoolefy\Support\Nacos\Discovery\Model\ServiceInstance;
 use Swoolefy\Support\Nacos\LoadBalancer\Contract\LoadBalancerInterface;
 use Swoolefy\Support\Nacos\LoadBalancer\LoadBalancerFactory;
 use Swoolefy\Support\Nacos\NacosConfig;
-use Swoolefy\Util\Log;
+use Swoolefy\Support\Nacos\NacosLogger;
 
 /**
  * Nacos 服务发现客户端：实例缓存 + 负载均衡选择。
@@ -47,21 +47,19 @@ final class DiscoveryClient
     }
 
     public static function create(
-        ?string $serviceName = null,
+        string $serviceName,
         ?NacosConfig $nacosConfig = null,
         ?DiscoveryConfig $discoveryConfig = null,
-        ?Log $logger = null,
         ?LoadBalancerInterface $loadBalancer = null,
     ): self {
         $nacosConfig ??= NacosConfig::load();
-        $discoveryConfig ??= DiscoveryConfig::load($nacosConfig);
-        $serviceName ??= $discoveryConfig->defaultServiceName;
+        $discoveryConfig ??= DiscoveryConfig::load();
 
-        if ('' === $serviceName) {
+        if ($serviceName === '') {
             throw NacosDiscoveryException::throw('discovery service_name is not configured');
         }
 
-        $driver = new NacosDiscoveryDriver($nacosConfig, $discoveryConfig, $logger);
+        $driver = new NacosDiscoveryDriver($nacosConfig, $discoveryConfig);
         $client = new self($serviceName, $driver, $discoveryConfig, $loadBalancer);
 
         if (null === $loadBalancer) {
@@ -129,6 +127,13 @@ final class DiscoveryClient
 
     public function choose(): ?ServiceInstance
     {
+        $instance = $this->getLoadBalancer()->choose();
+        if (null !== $instance) {
+            return $instance;
+        }
+
+        $this->refresh();
+
         return $this->getLoadBalancer()->choose();
     }
 
@@ -144,8 +149,21 @@ final class DiscoveryClient
     {
         $this->isFetching = true;
         try {
-            $this->instances = $this->driver->getInstances($this->serviceName);
-            $this->lastFetchTime = time();
+            $fetched = $this->driver->getInstances($this->serviceName);
+            if ([] !== $fetched) {
+                $this->instances = $fetched;
+                $this->lastFetchTime = time();
+            } elseif ([] === $this->instances) {
+                $this->instances = [];
+                $this->lastFetchTime = time();
+            } else {
+                NacosLogger::get()->warning(sprintf(
+                    'nacos discovery refresh returned empty for service=%s, keep %d cached instance(s)',
+                    $this->serviceName,
+                    \count($this->instances),
+                ));
+                $this->lastFetchTime = time();
+            }
         } finally {
             $this->isFetching = false;
         }

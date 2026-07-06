@@ -7,6 +7,7 @@ namespace Swoolefy\Support\Nacos\Monitor;
 use Swoolefy\Library\Nacos\Client;
 use Swoolefy\Library\Nacos\Provider\Config\ConfigListener;
 use Swoolefy\Library\Nacos\Provider\Config\Model\ListenerConfig;
+use Swoolefy\Support\Nacos\NacosLogger;
 use Swoolefy\Util\Log;
 
 /**
@@ -14,11 +15,13 @@ use Swoolefy\Util\Log;
  */
 final class ConfigWatcher
 {
+    private readonly Log $logger;
+
     public function __construct(
         private readonly MonitorConfig $config,
         private readonly ConfigChangeHandler $changeHandler,
-        private readonly Log $logger,
     ) {
+        $this->logger = NacosLogger::get();
     }
 
     public function run(): void
@@ -26,13 +29,13 @@ final class ConfigWatcher
         $this->logger->info(sprintf(
             'watcher started, pid=%d, dataId=%s, group=%s, env=%s, yaml=%s',
             getmypid(),
-            $this->config->nacos->dataId,
-            $this->config->nacos->group,
+            $this->config->serviceConfig->dataId,
+            $this->config->serviceConfig->group,
             $this->config->envFile,
-            $this->config->nacos->yamlFile,
+            $this->config->nacosConfig->nacosFilePath,
         ));
 
-        $client = ConfigChangeHandler::createClient($this->config->nacos, $this->logger);
+        $client = ConfigChangeHandler::createClient($this->config->nacosConfig);
 
         $listenerConfig = new ListenerConfig([
             'timeout' => $this->config->listenerTimeoutMs,
@@ -43,9 +46,9 @@ final class ConfigWatcher
         $armed = false;
 
         $listener->addListener(
-            $this->config->nacos->dataId,
-            $this->config->nacos->group,
-            $this->config->nacos->tenant,
+            $this->config->serviceConfig->dataId,
+            $this->config->serviceConfig->group,
+            $this->config->serviceConfig->tenant,
             function (ConfigListener $configListener, string $dataId, string $group, string $tenant) use (&$armed): void {
                 unset($configListener, $dataId, $group, $tenant);
                 if (!$armed) {

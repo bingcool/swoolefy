@@ -4,70 +4,57 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Nacos;
 
+use Swoolefy\Exception\NacosMonitorException;
 use Swoolefy\Support\ApplicationConfig;
 use Swoolefy\Library\Nacos\Client;
 use Swoolefy\Library\Nacos\ClientConfig;
 use Symfony\Component\Yaml\Yaml;
-use Swoolefy\Util\Log;
 
 /**
- * 读取 APP_PATH/nacos.yaml（服务器连接）+ application.yaml（service_register 段）。
+ * 读取 nacos.yaml（Nacos 服务器连接）
+ *
+ * 路径由常量 NACOS_FILE_PATH 指定（cli.php 可从环境变量注入）；未设置时回退为 APP_PATH/nacos.yaml。
+ * application.yaml 由 ApplicationConfig / NacosServiceRegisterConfig 通过 APP_PATH 读取。
  */
 final class NacosConfig
 {
     public function __construct(
-        public readonly string $appPath,
-        public readonly string $yamlFile,
-        public readonly string $applicationYamlFile,
+        public readonly string $nacosFilePath,
         public readonly string $host,
         public readonly int $port,
         public readonly string $username,
         public readonly string $password,
         public readonly bool $authorizationBearer,
-        public readonly string $dataId,
-        public readonly string $group,
-        public readonly string $tenant,
-        public readonly string $serviceIp,
-        public readonly int $servicePort,
-        public readonly string $serviceName,
-        public readonly string $serviceNamespaceId,
-        public readonly string $serviceGroupName,
-        public readonly float $serviceWeight,
-        public readonly bool $serviceEphemeral,
-        public readonly int $serviceHeartbeatInterval,
     ) {
     }
 
-    public static function load(?string $appPath = null): self
+    public static function load(): self
     {
-        $appPath = $appPath ?? (defined('APP_PATH') ? APP_PATH : '');
-        $yamlFile = rtrim($appPath, '/') . '/nacos.yaml';
-        $applicationYamlFile = rtrim($appPath, '/') . '/application.yaml';
-        $yaml = is_file($yamlFile) ? (array) Yaml::parseFile($yamlFile) : [];
+        $nacosFilePath = self::resolveNacosFilePath();
+        $yaml = is_file($nacosFilePath) ? (array) Yaml::parseFile($nacosFilePath) : [];
         $nacos = (array) ($yaml['nacos'] ?? []);
-        $serviceRegister = ApplicationConfig::load($appPath)->nacosSection('service_register');
 
         return new self(
-            appPath: $appPath,
-            yamlFile: $yamlFile,
-            applicationYamlFile: $applicationYamlFile,
-            host: self::pickString($nacos, 'host', 'NACOS_HOST', '127.0.0.1'),
-            port: self::pickInt($nacos, 'port', 'NACOS_PORT', 8848),
-            username: self::pickString($nacos, 'username', 'NACOS_USERNAME', ''),
-            password: self::pickString($nacos, 'password', 'NACOS_PASSWORD', ''),
-            authorizationBearer: self::pickBool($nacos, 'authorization_bearer', 'NACOS_AUTHORIZATION_BEARER', false),
-            dataId: self::pickString($nacos, 'data_id', 'NACOS_DATA_ID', 'swoolefy.env'),
-            group: self::pickString($nacos, 'group', 'NACOS_GROUP', 'DEFAULT_GROUP'),
-            tenant: self::pickString($nacos, 'tenant', 'NACOS_TENANT', ''),
-            serviceIp: ApplicationConfig::pickString($serviceRegister, 'ip', 'NACOS_SERVICE_IP', ''),
-            servicePort: ApplicationConfig::pickInt($serviceRegister, 'port', 'NACOS_SERVICE_PORT', 0),
-            serviceName: ApplicationConfig::pickString($serviceRegister, 'service_name', 'NACOS_SERVICE_NAME', ''),
-            serviceNamespaceId: ApplicationConfig::pickString($serviceRegister, 'namespace_id', 'NACOS_SERVICE_NAMESPACE_ID', ''),
-            serviceGroupName: ApplicationConfig::pickString($serviceRegister, 'group_name', 'NACOS_SERVICE_GROUP_NAME', ''),
-            serviceWeight: (float) ApplicationConfig::pickString($serviceRegister, 'weight', 'NACOS_SERVICE_WEIGHT', '1'),
-            serviceEphemeral: ApplicationConfig::pickBool($serviceRegister, 'ephemeral', 'NACOS_SERVICE_EPHEMERAL', true),
-            serviceHeartbeatInterval: ApplicationConfig::pickInt($serviceRegister, 'heartbeat_interval', 'NACOS_SERVICE_HEARTBEAT_INTERVAL', 10),
+            nacosFilePath: $nacosFilePath,
+            host: self::pickString($nacos, 'host', NacosConst::ENV_NACOS_HOST, '127.0.0.1'),
+            port: self::pickInt($nacos, 'port', NacosConst::ENV_NACOS_PORT, 8848),
+            username: self::pickString($nacos, 'username', NacosConst::ENV_NACOS_USERNAME, ''),
+            password: self::pickString($nacos, 'password', NacosConst::ENV_NACOS_PASSWORD, ''),
+            authorizationBearer: self::pickBool($nacos, 'authorization_bearer', NacosConst::ENV_NACOS_AUTHORIZATION_BEARER, false),
         );
+    }
+
+    public static function resolveNacosFilePath(): string
+    {
+        if (!defined('NACOS_FILE_PATH')) {
+            throw NacosMonitorException::throw("Please define const `NACOS_FILE_PATH`");
+        }
+        $path = NACOS_FILE_PATH;
+        if (is_string($path) && '' !== $path && is_file($path)) {
+            return $path;
+        } else {
+            throw NacosMonitorException::throw("Constant Of `NACOS_FILE_PATH` must be a nacos.yaml file");
+        }
     }
 
     public function toClientConfigArray(): array
@@ -87,9 +74,9 @@ final class NacosConfig
         return \extension_loaded('swoole') && \Swoole\Coroutine::getCid() > 0;
     }
 
-    public function createClient(?Log $logger = null): Client
+    public function createClient(): Client
     {
-        return new Client(new ClientConfig($this->toClientConfigArray()), $logger);
+        return new Client(new ClientConfig($this->toClientConfigArray()), NacosLogger::get());
     }
 
     private static function pickString(array $yaml, string $yamlKey, string $envKey, string $default): string

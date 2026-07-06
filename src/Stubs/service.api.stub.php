@@ -1,20 +1,27 @@
 <?php
 
 return [
-    // demo服务endPoint末端
     'Service/Demo/ReportMsg' => [
-        // 前置handle
-        'beforeHandle1' => function($params) {
-
-        },
-
-        // 服务调度handle
-        'dispatch_route' => [\UdpService\Service\DemoService::class, 'reportMsg'],
-
-        // 后置handle
-        'afterHandle1' => function($params) {
-
-        },
+        'dispatch_route' => [__APP_NAMESPACE__\Service\DemoService::class, 'reportMsg'],
     ],
 
+    'Service/Demo/Ping' => [
+        'dispatch_route' => [__APP_NAMESPACE__\Service\DemoService::class, 'ping'],
+    ],
+
+    'Service/Chat/Send' => [
+        'dispatch_route' => [__APP_NAMESPACE__\Service\ChatService::class, 'sendMessage'],
+    ],
+
+    'Service/Chat/SendPrivate' => [
+        'dispatch_route' => [__APP_NAMESPACE__\Service\ChatService::class, 'sendPrivateMessage'],
+    ],
+
+    'Service/Chat/JoinGroup' => [
+        'dispatch_route' => [__APP_NAMESPACE__\Service\ChatService::class, 'joinGroup'],
+    ],
+
+    'Service/Chat/LeaveGroup' => [
+        'dispatch_route' => [__APP_NAMESPACE__\Service\ChatService::class, 'leaveGroup'],
+    ],
 ];

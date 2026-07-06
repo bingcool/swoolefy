@@ -114,6 +114,29 @@ class CreateCmd extends BaseCmd
                         @copy(SRC_DIR_ROOT.'/Stubs/dc.stub.php', $dcFile);
                     }
 
+                    $workflowFile = $appPathDir . '/' . $dir . '/workflow.php';
+                    if (!file_exists($workflowFile)) {
+                        @copy(SRC_DIR_ROOT . '/Stubs/workflow.conf.stub.php', $workflowFile);
+                    }
+
+                    $neuronAiFile = $appPathDir . '/' . $dir . '/neuron_ai.php';
+                    if (!file_exists($neuronAiFile)) {
+                        @copy(SRC_DIR_ROOT . '/Stubs/neuron_ai.conf.stub.php', $neuronAiFile);
+                    }
+
+                    if ($protocol == self::WEBSOCKET_PROTOCOL) {
+                        $socketioFile = $appPathDir . '/' . $dir . '/socketio.php';
+                        if (!file_exists($socketioFile)) {
+                            @copy(SRC_DIR_ROOT . '/Stubs/socketio.conf.stub.php', $socketioFile);
+                        }
+                        $websocketFile = $appPathDir . '/' . $dir . '/websocket.php';
+                        if (!file_exists($websocketFile)) {
+                            $websocketContent = (string) file_get_contents(SRC_DIR_ROOT . '/Stubs/websocket.conf.stub.php');
+                            $websocketContent = str_replace('__APP_NAMESPACE__', $appName, $websocketContent);
+                            @file_put_contents($websocketFile, $websocketContent);
+                        }
+                    }
+
                     break;
                 }
                 case 'Controller':
@@ -164,7 +187,9 @@ class CreateCmd extends BaseCmd
                         case self::WEBSOCKET_PROTOCOL:
                             $apiFile = $appPathDir . "/{$dir}/service.php";
                             if (!file_exists($apiFile)) {
-                                @copy(SRC_DIR_ROOT.'/Stubs/service.api.stub.php', $apiFile);
+                                $apiContent = (string) file_get_contents(SRC_DIR_ROOT.'/Stubs/service.api.stub.php');
+                                $apiContent = str_replace('__APP_NAMESPACE__', $appName, $apiContent);
+                                @file_put_contents($apiFile, $apiContent);
                             }
                             break;
                         default:
@@ -250,7 +275,37 @@ class CreateCmd extends BaseCmd
                     if ($protocol == self::UDP_PROTOCOL || $protocol == self::WEBSOCKET_PROTOCOL) {
                         $serviceFile = $appPathDir . '/' . $dir . '/DemoService.php';
                         if (!file_exists($serviceFile)) {
-                            file_put_contents($serviceFile, $this->getDefaultService($appName));
+                            file_put_contents($serviceFile, $this->getDefaultService($appName, $protocol));
+                        }
+                        if ($protocol == self::WEBSOCKET_PROTOCOL) {
+                            $chatServiceFile = $appPathDir . '/' . $dir . '/ChatService.php';
+                            if (!file_exists($chatServiceFile)) {
+                                $chatServiceContent = (string) file_get_contents(SRC_DIR_ROOT . '/Stubs/ChatService.stub.php');
+                                $chatServiceContent = str_replace('__APP_NAMESPACE__', $appName, $chatServiceContent);
+                                file_put_contents($chatServiceFile, $chatServiceContent);
+                            }
+                            $pushDir = $appPathDir . '/Push';
+                            @mkdir($pushDir, self::$dirPermission, true);
+                            $enricherFile = $pushDir . '/MessagePushEnricher.php';
+                            if (!file_exists($enricherFile)) {
+                                $enricherContent = (string) file_get_contents(SRC_DIR_ROOT . '/Stubs/MessagePushEnricher.stub.php');
+                                $enricherContent = str_replace('__APP_NAMESPACE__', $appName, $enricherContent);
+                                file_put_contents($enricherFile, $enricherContent);
+                            }
+                            $authDir = $appPathDir . '/Auth';
+                            @mkdir($authDir, self::$dirPermission, true);
+                            $authCallbackFile = $authDir . '/WebsocketAuthCallback.php';
+                            if (!file_exists($authCallbackFile)) {
+                                $authContent = (string) file_get_contents(SRC_DIR_ROOT . '/Stubs/WebsocketAuthCallback.stub.php');
+                                $authContent = str_replace('__APP_NAMESPACE__', $appName, $authContent);
+                                file_put_contents($authCallbackFile, $authContent);
+                            }
+                            $groupAuthFile = $authDir . '/WebsocketGroupJoinAuthorizer.php';
+                            if (!file_exists($groupAuthFile)) {
+                                $groupAuthContent = (string) file_get_contents(SRC_DIR_ROOT . '/Stubs/WebsocketGroupJoinAuthorizer.stub.php');
+                                $groupAuthContent = str_replace('__APP_NAMESPACE__', $appName, $groupAuthContent);
+                                file_put_contents($groupAuthFile, $groupAuthContent);
+                            }
                         }
                     }
                     break;
@@ -270,6 +325,12 @@ class CreateCmd extends BaseCmd
             }
         }
         $this->copyServerFile($appName, $protocol);
+        if ($protocol == self::WEBSOCKET_PROTOCOL) {
+            @mkdir($appPathDir . '/Tests', self::$dirPermission, true);
+            @copy(SRC_DIR_ROOT . '/Stubs/socketio.client.stub.html', $appPathDir . '/Storage/socketio-client.html');
+            $testHtml = str_replace('__APP_NAMESPACE__', $appName, (string) file_get_contents(SRC_DIR_ROOT . '/Websocket/Tests/socketio-client.html'));
+            @file_put_contents($appPathDir . '/Tests/socketio-client.html', $testHtml);
+        }
         fmtPrintInfo("应用创建成功啦，应用名称为：【{$appName}】，你现在可以使用命令 php cli.php start {$appName} 来启动应用");
         return 0;
     }
@@ -350,19 +411,60 @@ EOF;
         return $content;
     }
 
-    protected function getDefaultService($appName)
+    protected function getDefaultService($appName, string $protocol = self::UDP_PROTOCOL)
     {
+        if ($protocol == self::WEBSOCKET_PROTOCOL) {
+            $content =
+                <<<EOF
+<?php
+namespace {$appName}\Service;
+
+use Swoolefy\Websocket\WebsocketService;
+use Swoolefy\Websocket\WebsocketResponse;
+
+class DemoService extends WebsocketService
+{
+    public function reportMsg(array \$params)
+    {
+        \$packet = \$this->getWebsocketMsg();
+        \$this->pushRaw(\$packet->getFd(), WebsocketResponse::success(\$packet->getRequestId(), [
+            'echo' => \$params['msg'] ?? '',
+        ], \$packet->getEndpoint()));
+    }
+
+    public function ping(array \$params)
+    {
+        \$packet = \$this->getWebsocketMsg();
+        \$this->pushRaw(\$packet->getFd(), WebsocketResponse::pong(\$packet->getRequestId()));
+    }
+}
+EOF;
+            return $content;
+        }
+
         $content =
             <<<EOF
 <?php
 namespace {$appName}\Service;
 
+use Swoolefy\Core\ResponseFormatter;
+
 class DemoService extends \Swoolefy\Core\BService
 {
-    // udp上报消息
-    public function reportMsg()
+    public function reportMsg(\$params)
     {
-        var_dump(\$this->getMixedParams());
+        \$packet = \$this->getUdpData();
+        \$msg = \$params['msg'] ?? '';
+        \$response = ResponseFormatter::formatDataDto(0, 'ok', [
+            'echo' => \$msg,
+            'from' => \$packet->getAddress() . ':' . \$packet->getPort(),
+        ]);
+        \$this->sendTo(\$response);
+    }
+
+    public function ping(\$params)
+    {
+        \$this->sendTo(ResponseFormatter::formatDataDto(0, 'pong'));
     }
 }
 EOF;
@@ -384,7 +486,10 @@ EOF;
         $content =
 <<<EOF
 #cron service debug配置,默认开启
-CRON_DEBUG=true
+CRON_DEBUG=true 
+
+# 内部跨环境可访问的服务URL。服务注册时会写入 Nacos metadata 的 `inner_external_base_uri`
+INNER_EXTERNAL_BASE_URI='http://192.168.1.102:9501'
 
 #mysqL配置
 DB_HOST_NAME=192.168.1.101

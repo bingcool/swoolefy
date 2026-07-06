@@ -11,8 +11,10 @@
 
 namespace Swoolefy\Http;
 
+use Swoole\Http\Status;
 use Swoolefy\Core\Application;
 use Swoolefy\Core\SystemEnv;
+use Swoolefy\Exception\DispatchException;
 
 class ResponseOutput extends HttpInputOut
 {
@@ -22,10 +24,10 @@ class ResponseOutput extends HttpInputOut
      * redirect 重定向-使用这个函数后,要return,停止程序执行
      * @param string $url
      * @param array $params eg:['name'=>'ming','age'=>18]
-     * @param int $httpStatus default 301
+     * @param int $httpStatus default Status::MOVED_PERMANENTLY
      * @return void
      */
-    public function redirect(string $url, array $params = [], int $httpStatus = 301)
+    public function redirect(string $url, array $params = [], int $httpStatus = Status::MOVED_PERMANENTLY)
     {
         $queryString = '';
         $url = trim($url);
@@ -115,11 +117,17 @@ class ResponseOutput extends HttpInputOut
     /**
      * header 使用链式作用域
      * @param string $name
-     * @param string $value
+     * @param string|int|float|bool|string[]|int[]|float[]|bool[] $value
      * @return ResponseOutput
      */
     public function withHeader(string $name, $value)
     {
+        if (is_array($value)) {
+            $value = array_map(static fn ($item): string => (string) $item, $value);
+        } else {
+            $value = (string) $value;
+        }
+
         $this->swooleResponse->header($name, $value);
         return $this;
     }
@@ -163,5 +171,82 @@ class ResponseOutput extends HttpInputOut
     {
         $this->swooleResponse->status($code, $reasonPhrase);
         return $this;
+    }
+
+    /**
+     * 下载文件响应：自动设置 MIME、Content-Disposition，并通过 sendfile 发送。
+     *
+     * @param string $filePath 文件绝对路径
+     * @param string|null $downloadName 下载文件名，默认取 basename($filePath)
+     * @param bool $inline true 时浏览器内联预览，false 时作为附件下载
+     * @param int $offset sendfile 起始偏移
+     * @param int $length sendfile 发送长度，0 表示发送到文件末尾
+     */
+    public function download(
+        string $filePath,
+        ?string $downloadName = null,
+        bool $inline = false,
+        int $offset = 0,
+        int $length = 0
+    ): bool {
+        if (!is_file($filePath) || !is_readable($filePath)) {
+            throw new DispatchException(
+                sprintf('Download file not found or not readable: %s', $filePath),
+                Status::NOT_FOUND
+            );
+        }
+
+        $downloadName = $downloadName ?? basename($filePath);
+        $extension = pathinfo($downloadName, PATHINFO_EXTENSION);
+        if ($extension === '') {
+            $extension = pathinfo($filePath, PATHINFO_EXTENSION);
+        }
+
+        $mimeType = MimeType::get(strtolower((string) $extension));
+        $disposition = $inline ? 'inline' : 'attachment';
+
+        $this->withHeader('Content-Type', $mimeType);
+        $this->withHeader('Content-Disposition', $this->buildContentDisposition($downloadName, $disposition));
+
+        $fileSize = filesize($filePath);
+        if ($fileSize !== false) {
+            $contentLength = $length > 0 ? $length : max(0, $fileSize - $offset);
+            $this->withHeader('Content-Length', (string) $contentLength);
+        }
+
+        return $this->sendfile($filePath, $offset, $length);
+    }
+
+    /**
+     * 通过 Swoole sendfile 发送文件响应。
+     *
+     * sendfile 会结束当前 HTTP 响应，因此需标记请求已结束，避免 App::end() 重复 end()。
+     *
+     * @param string $filename 文件绝对路径
+     * @param int $offset 起始偏移
+     * @param int $length 发送长度，0 表示发送到文件末尾
+     */
+    public function sendfile(string $filename, int $offset = 0, int $length = 0): bool
+    {
+        if (is_object(Application::getApp())) {
+            Application::getApp()->setEnd();
+        }
+
+        return $this->swooleResponse->sendfile($filename, $offset, $length);
+    }
+
+    /**
+     * 构建 Content-Disposition，兼容中文等非 ASCII 文件名。
+     */
+    protected function buildContentDisposition(string $filename, string $disposition): string
+    {
+        $fallback = preg_replace('/[^\x20-\x7E]/', '_', $filename) ?: 'download';
+
+        return sprintf(
+            '%s; filename="%s"; filename*=UTF-8\'\'%s',
+            $disposition,
+            str_replace('"', '\\"', $fallback),
+            rawurlencode($filename)
+        );
     }
 }

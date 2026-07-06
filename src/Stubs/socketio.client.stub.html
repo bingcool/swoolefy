@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>__APP_NAMESPACE__ Socket.IO Demo</title>
+</head>
+<body>
+<h3>__APP_NAMESPACE__ Socket.IO Demo</h3>
+<p>完整交互版请打开：<code>__APP_NAMESPACE__/Tests/socketio-client.html</code></p>
+<pre id="log"></pre>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+const log = (msg, data) => {
+    const line = data === undefined ? msg : `${msg} ${JSON.stringify(data)}`;
+    document.getElementById('log').textContent += line + "\n";
+};
+
+const socket = io('http://127.0.0.1:9508', {
+    path: '/socket.io/',
+    query: {
+        uid: '10001',
+        token: 'dev-token',
+    },
+});
+
+socket.on('connect', () => {
+    log('connected', { socketId: socket.id });
+    socket.emit('group.join', { group: 'public' }, (ack) => log('ack group.join', ack));
+    socket.emit('chat.send', { group: 'public', message: 'hello swoolefy' }, (ack) => log('ack chat.send', ack));
+});
+
+socket.on('group.joined', (data) => log('event group.joined', data));
+socket.on('group.left', (data) => log('event group.left', data));
+socket.on('chat.message', (data) => log('event chat.message', data));
+socket.on('chat.private', (data) => log('event chat.private', data));
+socket.on('disconnect', (reason) => log('disconnect', { reason }));
+socket.on('connect_error', (error) => log('connect_error', { message: error.message }));
+</script>
+</body>
+</html>

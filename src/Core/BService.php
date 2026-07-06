@@ -102,7 +102,7 @@ class BService extends BaseObject
     /**
      * @return string
      */
-    private function getTraceId()
+    protected function getTraceId()
     {
         if (SwooleContext::has(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID)) {
             $traceId = SwooleContext::get(OpentelemetryMiddleware::OPENTELEMETRY_X_TRACE_ID);
@@ -175,40 +175,6 @@ class BService extends BaseObject
     }
 
     /**
-     * push websocket
-     * @param int $fd
-     * @param BaseResponseDto $dataDto
-     * @param int $opcode
-     * @param int $finish
-     * @return bool
-     */
-    public function push(
-        int $fd,
-        BaseResponseDto $dataDto,
-        int $opcode = 1,
-        int $finish = 1
-    ): bool
-    {
-        if (!BaseServer::isWebsocketApp()) {
-            throw new SystemException("BService::push() this method only can be called by websocket server!");
-        }
-
-        if (!Swfy::getServer()->isEstablished($fd)) {
-            throw new SystemException("Websocket connection closed");
-        }
-
-        if (empty($dataDto->trace_id)) {
-            $dataDto->trace_id = $this->getTraceId();
-        }
-
-        $data = json_encode($dataDto->toArray(), JSON_UNESCAPED_UNICODE);
-
-        $result = Swfy::getServer()->push($fd, $data, $opcode, (int)$finish);
-        return $result;
-
-    }
-
-    /**
      * isClientPackEof  根据设置判断客户端的分包方式eof
      * @return bool
      */
@@ -248,23 +214,13 @@ class BService extends BaseObject
     }
 
     /**
-     * getUdpData 获取udp的数据
-     * @return mixed
+     * getUdpData 获取udp的数据包
+     * @return \Swoolefy\Udp\UdpPacket
      */
     public function getUdpData()
     {
         return Application::getApp()->getUdpData();
     }
-
-    /**
-     * getWebsocketMsg 获取websocket的信息
-     * @return mixed
-     */
-    public function getWebsocketMsg()
-    {
-        return Application::getApp()->getWebsocketMsg();
-    }
-
 
     /**
      * @return mixed

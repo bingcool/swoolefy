@@ -11,6 +11,7 @@
 
 namespace Swoolefy\Http;
 
+use Swoole\Http\Status;
 use Swoolefy\Library\Exception\ValidateException;
 use Swoolefy\Annotation\StringToInt;
 use Swoolefy\Annotation\Validation\ValidationRule;
@@ -161,7 +162,7 @@ class RequestValidate
                 $nestedRules = [];
                 if ($itemClass !== '') {
                     if (!class_exists($itemClass)) {
-                        throw new SystemException(sprintf('Validation itemClass `%s` not found', $itemClass), \Swoole\Http\Status::INTERNAL_SERVER_ERROR);
+                        throw new SystemException(sprintf('Validation itemClass `%s` not found', $itemClass), Status::INTERNAL_SERVER_ERROR);
                     }
                     $nestedRules = $this->buildActionParamValidationRuleMeta($itemClass, $visitedClasses);
                 }

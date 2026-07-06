@@ -2,6 +2,8 @@
 
 namespace Test;
 
+use Swoolefy\Library\Db\Interceptor\TenantBootstrap;
+use Swoolefy\Library\Db\Interceptor\TenantLineDemoHandler;
 use Swoolefy\Library\Db\PDOConnection;
 use Predis\Command\Redis\CONFIG;
 use Swoole\Coroutine\WaitGroup;
@@ -25,6 +27,9 @@ class Event extends EventHandler
         PDOConnection::registerSlowSqlFn(1, function ($runTime, $realSql, $traceId) {
             var_dump("链路ID： $traceId, slow sql 耗时：$runTime, sql：$realSql");
         });
+
+        // 注册全局租户 SQL 拦截器（同时绑定 Model Scope Handler）
+        TenantBootstrap::register(new TenantLineDemoHandler());
 
         $waitGroup = new GoWaitGroup();
 
@@ -90,7 +95,7 @@ class Event extends EventHandler
             // ProcessManager::getInstance()->addProcess('multi-call', \Test\Process\TestProcess\MultiCall::class);
 
             // nacos|SDK调用进程
-            ProcessManager::getInstance()->addProcess('TestSdk', \Test\Process\TestSdk\TestRequest::class);
+            // ProcessManager::getInstance()->addProcess('TestSdk', \Test\Process\TestSdk\TestRequest::class);
 
             // Nacos 配置变更 → reload Worker / Task 进程
             ProcessManager::getInstance()->addProcess(
@@ -101,17 +106,6 @@ class Event extends EventHandler
                 null,
                 true,
             );
-
-            // Nacos 服务注册与心跳保活
-            ProcessManager::getInstance()->addProcess(
-                'nacos-service-register',
-                \Test\Process\NacosProcess\NacosServiceRegister::class,
-                true,
-                [],
-                null,
-                true,
-            );
-
 
             // Udp服务测试
             // ProcessManager::getInstance()->addProcess('cdp-test', \Test\Process\UdpTestProcess\Udp::class);

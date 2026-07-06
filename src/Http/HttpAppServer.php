@@ -74,9 +74,11 @@ abstract class HttpAppServer extends HttpServer
         $method = $request->server['request_method'] ?? '';
         $inputBody = [];
         $queryString = "";
-        if ($method == 'POST' || $method == 'PUT' || $method == 'DELETE') {
+        $carrier = $this->normalizeHeaderKeys($request->header ?? []);
+        $contentType = $this->getHeaderValue($carrier, 'content-type', '');
+        if (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
             $post = $request->post ?? [];
-            $input = json_decode($request->rawContent(), true) ?? [];
+            $input = RequestBodyParser::parseJsonPayload($contentType, $request->rawContent(), $method);
             $inputBody = array_merge($post, $input);
         }else if ($method == 'GET') {
             $queryParams = $request->get ?? [];
@@ -85,7 +87,6 @@ abstract class HttpAppServer extends HttpServer
             }
             $queryString = rtrim($queryString, "&");
         }
-        $carrier = $this->normalizeHeaderKeys($request->header ?? []);
         $parentContext = TraceContextPropagator::getInstance()->extract($carrier);
         $userAgent = $this->getHeaderValue($carrier, 'user-agent', 'unknown');
         $spanName = $route ? sprintf("%s %s %s (server)", "HTTP", $method, $route) : sprintf("%s %s %s (server)", "HTTP", $method, "/");

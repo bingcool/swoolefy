@@ -8,7 +8,9 @@ use Dotenv\Dotenv;
 use Dotenv\Exception\InvalidFileException;
 use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\Exception\RequestException;
+use Swoole\Http\Status;
 use Swoolefy\Exception\NacosMonitorException;
+use Swoolefy\Support\ApplicationConfig;
 
 /**
  * Nacos 常用操作入口（启动阶段可用，不依赖 Log 组件注册）。
@@ -22,25 +24,23 @@ final class NacosFactory
     /**
      * 从 Nacos 配置中心拉取远程配置，校验 .env 格式后原子写入 APP_PATH/.env。
      *
-     * @param string $nacosYamlFile nacos.yaml 路径（读取 Nacos 连接与 data_id/group）
+     * nacos.yaml 路径由常量 NACOS_FILE_PATH 指定。
+     *
      * @return string 写入后的 .env 绝对路径
      */
-    public static function fetchConfigToEnv(string $nacosYamlFile): string
+    public static function fetchConfigToEnv(): string
     {
-        $nacosYamlFile = self::resolveNacosYamlPath($nacosYamlFile);
-        if (!is_file($nacosYamlFile)) {
-            throw NacosMonitorException::throw('nacos.yaml not found: ' . $nacosYamlFile);
+        $nacosFilePath = NacosConfig::resolveNacosFilePath();
+        if (!is_file($nacosFilePath)) {
+            throw NacosMonitorException::throw('nacos.yaml not found: ' . $nacosFilePath);
         }
 
-        if (!defined('APP_PATH') || '' === APP_PATH) {
-            throw NacosMonitorException::throw('APP_PATH is not defined');
-        }
-
-        $envFile = rtrim( APP_PATH, '/') . '/.env';
-        $nacosConfig = NacosConfig::load(dirname($nacosYamlFile));
+        $envFile = ApplicationConfig::resolveAppPath() . '/.env';
+        $nacosConfig = NacosConfig::load();
+        $serviceConfig = ServiceConfig::load();
 
         try {
-            $content = self::fetchConfigFromNacos($nacosConfig);
+            $content = self::fetchConfigFromNacos($nacosConfig, $serviceConfig);
         } catch (RequestException|\Throwable $e) {
             throw NacosMonitorException::throw('Nacos config fetch failed: ' . $e->getMessage(), 0, [], $e);
         }
@@ -54,7 +54,7 @@ final class NacosFactory
     /**
      * 使用 Guzzle 调用 Nacos Open API 拉取配置正文。
      */
-    private static function fetchConfigFromNacos(NacosConfig $config): string
+    private static function fetchConfigFromNacos(NacosConfig $config, ServiceConfig $serviceConfig): string
     {
         $client = new GuzzleClient([
             'base_uri' => sprintf('http://%s:%d/', $config->host, $config->port),
@@ -67,9 +67,9 @@ final class NacosFactory
         ]);
 
         $query = [
-            'dataId' => $config->dataId,
-            'group' => $config->group,
-            'tenant' => $config->tenant,
+            'dataId' => $serviceConfig->dataId,
+            'group' => $serviceConfig->group,
+            'tenant' => $serviceConfig->tenant,
         ];
 
         $headers = [];
@@ -88,7 +88,7 @@ final class NacosFactory
 
         $status = $response->getStatusCode();
         $body = (string) $response->getBody();
-        if ($status < 200 || $status >= 300) {
+        if ($status < Status::OK || $status >= Status::MULTIPLE_CHOICES) {
             throw NacosMonitorException::throw(sprintf(
                 'Nacos config get failed, HTTP %d: %s',
                 $status,
@@ -99,8 +99,8 @@ final class NacosFactory
         if ('' === trim($body)) {
             throw NacosMonitorException::throw(sprintf(
                 'Nacos config content is empty: dataId=%s, group=%s',
-                $config->dataId,
-                $config->group,
+                $serviceConfig->dataId,
+                $serviceConfig->group,
             ));
         }
 
@@ -118,7 +118,7 @@ final class NacosFactory
 
         $status = $response->getStatusCode();
         $body = (string) $response->getBody();
-        if ($status < 200 || $status >= 300) {
+        if ($status < Status::OK || $status >= Status::MULTIPLE_CHOICES) {
             throw NacosMonitorException::throw(sprintf(
                 'Nacos auth login failed, HTTP %d: %s',
                 $status,
@@ -182,21 +182,4 @@ final class NacosFactory
         }
     }
 
-    private static function resolveNacosYamlPath(string $nacosYamlFile): string
-    {
-        $path = trim($nacosYamlFile);
-        if ('' === $path) {
-            throw NacosMonitorException::throw('nacosYamlFile is empty');
-        }
-
-        if (str_starts_with($path, '/')) {
-            return $path;
-        }
-
-        $base = defined('APP_PATH') && '' !== APP_PATH
-            ? APP_PATH
-            : (string) getcwd();
-
-        return rtrim($base, '/') . '/' . ltrim(str_replace('\\', '/', $path), '/');
-    }
 }

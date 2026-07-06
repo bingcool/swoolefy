@@ -44,6 +44,7 @@
 - [十八、📦 SDK 自动生成](#nav-18-sdk)
 - [十九、📘 ApiDoc 自动生成](#nav-19-apidoc)
 - [二十、☁️ Nacos 微服务集成](#nav-20-nacos)
+- [二十一、🤖 AI / Workflow 工作流](#nav-21-ai-workflow)
 
 ---
 <a id="nav-1-intro"></a>
@@ -339,8 +340,8 @@ docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v
 
     | 文件 | 说明 |
     |:---|:---|
-    | `APP_PATH/nacos.yaml` | Nacos **服务器连接**（host、port、data_id、username/password 等） |
-    | `APP_PATH/application.yaml` | **应用行为**：`service_register`、`discovery_service_client`、`monitor_config_change` |
+    | `APP_PATH/nacos.yaml` | Nacos **服务器连接**（host、port、username/password 等） |
+    | `APP_PATH/application.yaml` | **应用行为**：`service_config`、`service_register`、`discovery_service_client`、`monitor_config_change` |
 
     | 能力 | 说明 | 主要类                                                                                        |
     |:---|:---|:-------------------------------------------------------------------------------------------|
@@ -372,28 +373,28 @@ docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v
     use Swoolefy\Support\Nacos\Discovery\DiscoveryClient;
     use Swoolefy\Support\Nacos\NacosConfig;
 
-    $client = DiscoveryClient::create('my-service', NacosConfig::load());
+    $client = DiscoveryClient::create('my-service');
     $uri = $client->chooseUri();
     ```
 
 <a id="nav-4-components"></a>
 
 ### 四、🔌 适配协程环境组件
-| 组件名称             | 安装                                                    | 说明                                                  |
-|------------------|-------------------------------------------------------|-----------------------------------------------------|
-| predis           | composer require predis/predis:~1.1.7                 | predis组件、或者Phpredis扩展                               |
-| mongodb          | composer require mongodb/mongodb:~1.3                 | mongodb组件，需要使用mongodb必须安装此组件                        |
-| rpc-client       | composer require bingcool/rpc-client:dev-master       | swoolefy的rpc客户端组件，当与rpc服务端通信时，需要安装此组件，支持在php-fpm中使用 |
-| cron-expression  | composer require dragonmantank/cron-expression:~3.3.0 | crontab计划任务组件，类似Linux的crobtab                       |  
-| redis lock       | composer require malkusch/lock                        | Redis锁组件                                            |
-| amqp             | composer require php-amqplib/php-amqplib:~3.7.0       | amqp php原生实现amqp协议客户端                               |  
-| ffmpeg           | composer require php-ffmpeg/php-ffmpeg:~1.4.0         | php proc-open 调用ffmpeg处理音视频                         |  
-| image            | composer require intervention/image:~3.11.0           | php 图像处理组件                                          |    
-| validate         | composer require vlucas/valitron                      | validate数据校验组件                                      |    
-| guzzlehttp       | composer require guzzlehttp/guzzle:~7.9.0             | guzzlehttp 组件                                       | 
-| oauth 2.0        | composer require league/oauth2-server                 | oauth 2.0 授权认证组件                                    |  
-| php-standard-library        | composer require php-standard-library/php-standard-library                | php标准库(推荐)                                          |
-| bingcool/library | composer require bingcool/library                     | library组件库                                          |  
+| 组件名称             | 安装                                                         | 说明                                                  |
+|------------------|------------------------------------------------------------|-----------------------------------------------------|
+| predis           | composer require predis/predis:~3.4.0                      | predis组件、或者Phpredis扩展                               |
+| mongodb          | composer require mongodb/mongodb:~1.3                      | mongodb组件，需要使用mongodb必须安装此组件                        |
+| rpc-client       | composer require bingcool/rpc-client:dev-master            | swoolefy的rpc客户端组件，当与rpc服务端通信时，需要安装此组件，支持在php-fpm中使用 |
+| cron-expression  | composer require dragonmantank/cron-expression:~3.3.0      | crontab计划任务组件，类似Linux的crobtab                       |  
+| redis lock       | composer require malkusch/lock                             | Redis锁组件                                            |
+| amqp             | composer require php-amqplib/php-amqplib:~3.7.0            | amqp php原生实现amqp协议客户端                               |  
+| ffmpeg           | composer require php-ffmpeg/php-ffmpeg:~1.4.0              | php proc-open 调用ffmpeg处理音视频                         |  
+| image            | composer require intervention/image:~3.11.0                | php 图像处理组件                                          |    
+| validate         | composer require vlucas/valitron                           | validate数据校验组件                                      |    
+| guzzlehttp       | composer require guzzlehttp/guzzle:~7.9.0                  | guzzlehttp 组件                                       | 
+| oauth 2.0        | composer require league/oauth2-server                      | oauth 2.0 授权认证组件                                    |  
+| php-standard-library        | composer require php-standard-library/php-standard-library | php标准库(推荐)                                          |
+| bingcool/library | composer require bingcool/library                          | library组件库                                          |  
 
 <a id="nav-5-library"></a>
 
@@ -520,9 +521,13 @@ define('WORKER_PID_FILE_ROOT', '/tmp/workerfy/log/'.WORKER_SERVICE_NAME);
 define('WORKER_CTL_LOG_FILE',WORKER_PID_FILE_ROOT.'/ctl.log'); 
 define('SERVER_START_LOG_JSON_FILE', WORKER_PID_FILE_ROOT.'/start.json');
 
+// nacos.yaml 完整路径（环境变量 NACOS_FILE_PATH 可覆盖，默认 APP_PATH/nacos.yaml）
+$nacosFilePath = getenv('NACOS_FILE_PATH');
+define('NACOS_FILE_PATH', (false !== $nacosFilePath && '' !== $nacosFilePath) ? $nacosFilePath : APP_PATH . '/nacos.yaml');
+
 // 当使用nacos管理配置时，启动获取最新配置保存到.env
 // $beforeFunc = function () {
-//    \Swoolefy\Support\Nacos\NacosFactory::fetchConfigToEnv(APP_PATH . '/nacos.yaml');
+//    \Swoolefy\Support\Nacos\NacosFactory::fetchConfigToEnv();
 //};
 
 include dirname(SRC_DIR_ROOT).'/swoolefy';
@@ -1271,7 +1276,7 @@ swoolefy 提供了 **SDK 自动生成工具**，可以扫描项目的 Route 路�
 - 📝 **提取 DTO**: 自动识别控制器方法中的 Request 和 Response 类型声明
 - 🎯 **类型安全**: 生成的 SDK 包含完整的类型声明，IDE 智能提示友好
 - 🔄 **自动更新**: 路由变更后重新生成即可，无需手动维护
-- ☁️ **Nacos 服务发现**: 生成时从 `application.yaml` → `nacos.service_register.service_name` 注入 `BaseClientApi::$serviceName`；构造 API 客户端时未传入 `ClientInterface` 则委托框架 `DiscoveryClient` 自动解析 `base_uri`（需 `APP_PATH` 或 `SDK_NACOS_CONFIG_DIR` 下存在 `nacos.yaml` / `application.yaml`）
+- ☁️ **Nacos 服务发现**: 生成时通过 `NacosServiceRegisterConfig` 注入 `BaseClientApi::$serviceName`；构造 API 客户端时未传入 `ClientInterface` 则委托框架 `DiscoveryClient` 自动解析 `base_uri`（需 `NACOS_FILE_PATH` / `APP_PATH` 下存在 `nacos.yaml` 与 `application.yaml`）
 
 #### 使用方法
 
@@ -1346,7 +1351,7 @@ var_dump($response->getUserId());
 |:---|:---|
 | 依赖 | SDK 包需 `composer require bingcool/swoolefy`（`SdkNacosServiceDiscovery` 委托 `DiscoveryClient`） |
 | 配置文件 | 配置目录下需存在 `nacos.yaml`（Nacos 连接）与 `application.yaml`（`discovery_service_client` 等） |
-| 配置目录优先级 | `APP_PATH` 常量 → 环境变量 `SDK_NACOS_CONFIG_DIR` → 当前工作目录 `getcwd()` |
+| 配置路径 | `NACOS_FILE_PATH`（nacos.yaml）+ `APP_PATH`（application.yaml） |
 
 ```php
 use GenerateSdk\MyProject\Order\Client\OrderApi;
@@ -1464,7 +1469,7 @@ class UserController extends BController
 - DTO 类应位于 `App/Request`、`App/Response` 或 `App/Dto` 目录下
 - 生成的 SDK 可在 PHP-FPM 或 CLI 中使用；启用 Nacos 服务发现时需依赖 `bingcool/swoolefy`（`SdkNacosServiceDiscovery` 委托 `DiscoveryClient`）
 - SDK 基于 Guzzle HTTP 客户端，需要安装 `guzzlehttp/guzzle` 依赖
-- Nacos 发现配置目录优先级：显式传入路径 → 常量 `APP_PATH` → 环境变量 `SDK_NACOS_CONFIG_DIR` → 当前工作目录
+- Nacos 发现配置：`NACOS_FILE_PATH` 指定 nacos.yaml，`APP_PATH` 指定 application.yaml
 
 <a id="nav-19-apidoc"></a>
 
@@ -1615,24 +1620,89 @@ class UserCreateRequest extends BaseRequest
 
 | 文件 | 内容 |
 |:---|:---|
-| `APP_PATH/nacos.yaml` | Nacos 服务器连接（host、port、data_id、鉴权等） |
-| `APP_PATH/application.yaml` | `nacos.service_register`（本服务注册）、`discovery_service_client`（调用方发现）、`monitor_config_change`（配置监听） |
+| `APP_PATH/nacos.yaml` | Nacos 服务器连接（host、port、鉴权等） |
+| `APP_PATH/application.yaml` | `nacos.service_config`（配置中心 dataId）、`service_register`、`discovery_service_client`、`monitor_config_change` |
+
+#### 环境变量
+
+各环境变量与 YAML 键的对应关系、默认值及说明见 **[src/Support/Nacos/README.md#env-vars](src/Support/Nacos/README.md#env-vars)**。
+
+常用变量速查：
+
+| 分类 | 环境变量                                                        | 说明 |
+|:---|:------------------------------------------------------------|:---|
+| 全局 | `NACOS_FILE_PATH`                                           | `nacos.yaml` 路径 |
+| 连接 | `NACOS_HOST`、`NACOS_PORT`、`NACOS_USERNAME`、`NACOS_PASSWORD` | Nacos 服务器连接 |
+| 配置中心 | `application.yaml` → `nacos.service_config.data_id` / `group` | 项目配置 dataId（必填，不支持环境变量） |
+| 注册 | `NACOS_SERVICE_REGISTER_HOST`、`POD_IP`、`NACOS_SERVICE_REGISTER_PORT` | 本实例注册信息 |
 
 `application.yaml` 片段示例：
 
 ```yaml
 nacos:
+  enable_nacos_register: true
+  service_config:
+    data_id: my-project.env
+    group: DEFAULT_GROUP
+    tenant: ''
   service_register:
-    ip: 192.168.1.103
-    port: 9501
+    # 注册 IP 读取顺序：NACOS_SERVICE_REGISTER_HOST（本地开发）→ POD_IP（K8s/ACK）→ YAML ip → 自动探测
+    ip: 192.168.1.102
+    # 优先读取 NACOS_SERVICE_REGISTER_PORT 环境变量。一般不需要配置，除非docker映射端口不一致。默认读取cli.php环境变量WORKER_PORT
+    # port: 9501
     service_name: my-service
-    heartbeat_interval: 10
+    heartbeat_interval: 10   # 心跳间隔（秒）
+    namespace_id: 'production'
+    group_name: 'pwa_group'
+    weight: 1
+    ephemeral: true
+    # 非空时注册到 Nacos 的 metadata 参数会自动转为 JSON 字符串
+    metadata:
+      version: 1.0.0
   discovery_service_client:
     load_balancer: random   # random | round_robin | weight
     cache_ttl: 60
     healthy_only: true
+    namespace_id: 'production'
+    group_name: 'pwa_group'
   monitor_config_change:
     listener_timeout_ms: 30000
+```
+
+#### 开发环境
+
+本地与 dev 共用同一份 `.env`（数据库等配置相同），连接同一套 Nacos；区别在于**注册 IP** 与**分组**：本机服务注册到个人调试分组，dev 已部署服务注册在 `application.yaml` 中配置的 `group_name`（如 `frame_group`）。
+
+在本地开发环境设置环境变量，方便本地各个服务注册到个人分组与调试，互不影响：
+
+```bash
+export NACOS_SERVICE_REGISTER_HOST="127.0.0.1"
+export NACOS_SERVICE_GROUP_NAME="bingcool"
+export LOCAL_NACOS_SERVICE_AUTO_SWITCH=1
+export INNER_EXTERNAL_BASE_URI="http://product-service-dev.example.com:19000"
+```
+
+| 环境变量 | 说明                                                                                                                                                        |
+|:---|:----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `NACOS_SERVICE_REGISTER_HOST` | 本机注册到 Nacos 的 IP。本地开发设为 `127.0.0.1`，避免把内网 IP 注册出去                                                                                                         |
+| `NACOS_SERVICE_GROUP_NAME` | 本机注册与发现使用的分组（如个人名 `bingcool`），与 dev 环境部署的分组隔离，互不影响                                                                                                        |
+| `LOCAL_NACOS_SERVICE_AUTO_SWITCH` | 设为 `1` 时，SDK 调用依赖服务：先在当前分组（如 `bingcool`）查找实例；若无可用实例，自动回退到 `application.yaml` → `nacos.service_register.group_name`（frame_group 分组）中已部署的服务，便于本地只启动部分服务即可联调 |
+| `INNER_EXTERNAL_BASE_URI` | 内部跨环境可访问的服务 URL。服务注册时会写入 Nacos metadata 的 `inner_external_base_uri`；SDK 仅在本地自动切 dev 分组时优先用该 URL，避免本地直接访问 K8s Pod IP |
+
+典型场景：本地启动 `order-service` 开发订单功能，需调用 `product-service`；本地未启动 `product-service` 时，SDK 会自动切到 dev 开发环境中已部署的 `product-service` 实例。**注意：本地网络需能访问 dev 部署实例注册的 IP。**
+
+#### ACK / Kubernetes 部署
+
+在 ACK/Kubernetes 中建议通过 Downward API 注入 Pod IP，框架注册 IP 读取顺序为：`NACOS_SERVICE_REGISTER_HOST`（本地开发显式覆盖）→ `POD_IP`（K8s/ACK）→ `application.yaml` 的 `nacos.service_register.ip` → 自动探测。
+
+Deployment 片段示例：
+
+```yaml
+env:
+  - name: POD_IP
+    valueFrom:
+      fieldRef:
+        fieldPath: status.podIP
 ```
 
 #### 配置变更监听（自动重启）
@@ -1645,13 +1715,15 @@ nacos:
 
 #### 服务注册
 
-`ServiceRegister` 读取 `application.yaml` → `nacos.service_register`，将当前实例（ip、port、service_name、weight 等）注册到 Nacos 并定时心跳。建议在自定义进程 `NacosServiceRegister` 中启动。
+`ServiceRegister` 使用 `NacosConfig`（`nacos.yaml` 连接）+ `NacosServiceRegisterConfig`（`application.yaml` → `nacos.service_register`），将当前实例注册到 Nacos 并定时心跳。
+
+在 `application.yaml` 设置 `enable_nacos_register: true` 时，框架会自动启动内置进程 `NacosRegisterServiceProcess`（无需在 `Event.php` 手动注册）。也可在自定义进程中调用：
 
 ```php
 use Swoolefy\Support\Nacos\NacosConfig;
 use Swoolefy\Support\Nacos\ServiceRegister;
 
-$register = new ServiceRegister(NacosConfig::load(), $logger);
+$register = ServiceRegister::create();
 $register->register();
 ```
 
@@ -1665,20 +1737,143 @@ use Swoolefy\Support\Nacos\Discovery\DiscoveryClient;
 $client = DiscoveryClient::create('my-service'); // 也可传 NacosConfig / DiscoveryConfig
 $instance = $client->choose();
 $uri = $client->chooseUri();
+$metadata = $instance?->getMetadata() ?? [];
 ```
 
 #### 与 gen:sdk 的关系
 
 | 步骤 | 行为 |
 |:---|:---|
-| 生成时 | 读取 `APP_PATH/application.yaml` 的 `service_register.service_name`，写入 `BaseClientApi::$serviceName` |
-| 运行时 | `UserApi::make()` 未传 Guzzle Client → `SdkNacosServiceDiscovery` → `DiscoveryClient::chooseUri()` → 设置 Guzzle `base_uri` |
+| 生成时 | 通过 `NacosServiceRegisterConfig` 读取 `service_register.service_name`，写入 `BaseClientApi::$serviceName` |
+| 运行时 | `UserApi::make()` 未传 Guzzle Client → `SdkNacosServiceDiscovery` → `DiscoveryClient::choose()` → 设置 Guzzle `base_uri`，并保存选中实例的 `metadata` |
+
+SDK 客户端可读取当前选中实例 metadata：
+
+```php
+$api = UserApi::makeService();
+$metadata = $api->getNacosInstanceMetadata();
+$version = $api->getNacosInstanceMetadataValue('version', 0);
+```
+
+SDK 调用下游服务时会自动透传入口请求中的白名单 Header，并兼容框架已有协程级 `x-trace-id`：
+
+| Header | 说明 |
+|:---|:---|
+| `x-trace-id` | 链路追踪 ID，优先使用协程上下文中的 trace id |
+| `x-user-id` | 登录用户 ID |
+| `x-user-code` | 登录用户编码 |
+| `x-tenant-id` | 租户 ID |
+| `x-user-name` | 用户名 |
+| `x-client-ip` | 客户端 IP |
+| `x-user-agent` | SDK 下游请求固定为 `swoolefy-api-sdk` |
+
+业务显式传入 `$options['headers']` 时优先级最高，可覆盖自动透传值。
+
+业务代码可通过 `FrameworkContext` 读取当前请求上下文：
+
+```php
+use Swoolefy\Support\FrameworkContext;
+
+$userId = FrameworkContext::getUserId();
+$tenantId = FrameworkContext::getTenantId();
+$userAgent = FrameworkContext::getUserAgent();
+$userCode = FrameworkContext::get('x-user-code');
+```
 
 ```bash
 php script.php start App --c=gen:sdk --router=App/Router --out=../generate-sdk-library/OrderService
 ```
 
 更多 API 说明见 [src/Support/Nacos/README.md](src/Support/Nacos/README.md)。
+
+<a id="nav-21-ai-workflow"></a>
+
+### 二十一、🤖 AI / Workflow 工作流
+
+框架内置 **DAG 工作流引擎** + **Neuron AI** 集成，支持 AI 决策分支、多 Agent 并行、RAG 知识库、MCP 工具调用与人机协同（HITL）。已实现 **Phase 1–4** 及 **生产加固（Phase A/B）**：HITL API 鉴权、resume CAS、多版本 Registry、Embedding fail-fast、MCP 租户 DB、启动期 `ProductionHealthCheck` 等。
+
+| 文档 | 说明 |
+|:---|:---|
+| [docs/AI-WORKFLOW.md](docs/AI-WORKFLOW.md) | **快速接入**：配置、HTTP API、示例 curl、测试命令 |
+| [src/Support/Workflow/README.md](src/Support/Workflow/README.md) | 引擎原理、条件边、HITL、Saga、Plugin |
+| [swoolefyAI.md](docs/swoolefyAI.md) | 完整架构设计与 Phase 路线图 |
+
+#### 核心模块
+
+| 模块 | 路径 | 能力 |
+|:---|:---|:---|
+| Workflow | `src/Support/Workflow/` | Definition / Compiler / Engine、HITL 鉴权、多版本 Registry、Saga |
+| AI | `src/Support/AI/` | AINode、流式 SSE/WebSocket、StructuredOutput、节点超时 |
+| Agent | `src/Support/Agent/` | Static / Rule / LLM / CostAware / RoundRobin 路由 |
+| Neuron | `src/Support/Neuron/` | LLM 工厂、Redis/SQL 记忆、Embedding fail-fast、URL 校验 |
+| RAG | `src/Support/Rag/` | 向量库、同步入库 Pipeline、别名 fail-fast |
+| MCP | `src/Support/Mcp/` | HTTP/SSE MCP、DB 多租户、stdio 生产禁用 |
+
+#### 配置与装配
+
+```bash
+# 创建应用时 create 命令会自动复制；也可手动从 Stubs 复制
+cp src/Stubs/workflow.conf.stub.php App/Config/workflow.php
+cp src/Stubs/neuron_ai.conf.stub.php App/Config/neuron_ai.php
+```
+
+生产环境推荐 `WorkflowComponentFactory` + `WorkflowRegistry`（支持 Redis RunStore 跨 Worker resume）：
+
+```php
+use Swoolefy\Support\Workflow\WorkflowComponentFactory;
+use Swoolefy\Support\Workflow\WorkflowRegistry;
+
+$registry = new WorkflowRegistry();
+$registry->register('order_processing', fn () => OrderProcessingWorkflow::definition());
+
+$compiler = WorkflowComponentFactory::compiler();
+$engine = WorkflowComponentFactory::engine($registry);
+$compiled = $compiler->compile($registry->definition('order_processing'));
+$runId = $engine->start($compiled, ['orderId' => 10001]);
+```
+
+#### HTTP API（Test 演示）
+
+启动 Test 应用后（默认端口 9501）：
+
+```bash
+# 启动工作流
+curl -X POST http://127.0.0.1:9501/api/v1/workflow/run \
+  -H 'Content-Type: application/json' \
+  -d '{"workflowId":"order_processing","input":{"orderId":10001}}'
+
+# Agent 对话
+curl -X POST http://127.0.0.1:9501/api/v1/agent/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"message":"hello","sessionId":"s1","userId":"u1"}'
+```
+
+| 接口 | 说明 |
+|:---|:---|
+| `POST /api/v1/workflow/run` | 启动工作流 |
+| `POST /api/v1/workflow/run/resume` | HITL 恢复（须 `X-Workflow-Api-Key` 或角色，见 Workflow README） |
+| `POST /api/v1/workflow/run/cancel` | 取消 Run（HITL 鉴权） |
+| `GET /api/v1/workflow/pause/tasks` | 待审批任务（HITL 鉴权） |
+| `GET /api/v1/workflow/run/events` | SSE 流式事件 |
+| `POST /api/v1/agent/chat` | Agent 对话 |
+| `GET /api/v1/mcp/servers` | MCP 服务列表（`?tenantId=`） |
+
+示例工作流：`order_processing`、`order_saga`、`multi_agent_research`、`contract_review`、`knowledge_qa`、`mcp_research`（见 `Test/Module/`）。
+
+#### RAG 入库 CLI
+
+```bash
+php src/Support/Rag/Console/ingest_documents.php --kb=product_kb --path=/data/docs
+php src/Support/Rag/Console/ingest_documents.php --kb=product_kb --text="产品规格..."
+```
+
+#### 回归测试
+
+```bash
+composer test:workflow
+```
+
+覆盖 Phase 1–4 共 30+ 用例，含 SubWorkflow、JsonLogic、RoundRobin、RAG CLI 集成测试。
 
 <a id="nav-license"></a>
 

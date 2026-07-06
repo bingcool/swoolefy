@@ -28,6 +28,11 @@ return [
     'time_zone'                => 'PRC',
     'runtime_enable_coroutine' => true,
 
+    'websocket' => array_merge(
+        \Swoolefy\Core\SystemEnv::loadWebsocketConf(),
+        ['socketio' => \Swoolefy\Core\SystemEnv::loadSocketIoConf()]
+    ),
+
     // swoole setting
     'setting'                   => [
         'reactor_num'           => 4,
@@ -43,6 +48,8 @@ return [
         'enable_preemptive_scheduler' => 1,
         'reload_async'          => true,
         'enable_deadlock_check' => false,
+        'open_websocket_protocol' => true,
+        'package_max_length'    => 2 * 1024 * 1024,
         // 参数将决定最多同时有多少个等待accept的连接,建议128~512
         'backlog'               => 256,
         // 在PHP ZTS下，如果使用SWOOLE_PROCESS模式，一定要设置该值为 true
@@ -63,7 +70,7 @@ return [
         'log_rotation'          => SWOOLE_LOG_ROTATION_DAILY,
         //开启/关闭Swoole错误信息
         'display_errors'        => true,
-        'pid_file'              => \Swoolefy\Core\SystemEnv::loadPidFile('/data/' . APP_NAME . '/log/server.pid'),
+        'pid_file'              => \Swoolefy\Core\SystemEnv::loadPidFile('/tmp/' . APP_NAME . '/server.pid'),
         'hook_flags'            => \Swoolefy\Core\SystemEnv::loadHookFlag(),
     ],
 
@@ -89,7 +96,13 @@ return [
         'event'          => 'collect',
         'tick_time'      => 2,
         'callback'       => function () {
+            $metrics = \Swoolefy\Websocket\Metrics\WebsocketMetrics::snapshot();
+            if (($metrics['metrics_enabled'] ?? 0) === 1) {
+                return $metrics;
+            }
+
             $sysCollector = new \Swoolefy\Core\SysCollector\SysCollector();
+
             return $sysCollector->test();
         }
     ],

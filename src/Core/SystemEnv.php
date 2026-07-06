@@ -232,6 +232,61 @@ class SystemEnv
     }
 
     /**
+     * 加载 Socket.IO 配置（WebSocket 应用 Config/socketio.php）
+     *
+     * @return array
+     */
+    public static function loadSocketIoConf(): array
+    {
+        $confFile = APP_PATH . '/Config/socketio.php';
+        if (!file_exists($confFile)) {
+            return [
+                'enable' => false,
+                'ping_interval' => 25,
+                'ping_timeout' => 20,
+                'max_payload' => 1000000,
+                'event_routes' => [],
+            ];
+        }
+
+        return include $confFile;
+    }
+
+    /**
+     * 加载 WebSocket 配置（WebSocket 应用 Config/websocket.php）
+     *
+     * @return array
+     */
+    public static function loadWebsocketConf(): array
+    {
+        $confFile = APP_PATH . '/Config/websocket.php';
+        if (!file_exists($confFile)) {
+            return [
+                'connection_table_size' => 65536,
+                'index_table_size' => 131072,
+                'heartbeat_check_interval' => 30,
+                'heartbeat_idle_time' => 90,
+                'auth' => [
+                    'enable' => false,
+                    'tokens' => [],
+                    'callback' => null,
+                ],
+                'cluster' => [
+                    'enable' => false,
+                    'server_id' => '',
+                    'redis' => [],
+                    'push' => [],
+                    'conn_ttl' => 180,
+                    'cleanup_interval' => 30,
+                    'on_redis_failure' => 'reject_open',
+                ],
+            ];
+        }
+
+        return include $confFile;
+    }
+
+    /**
      * 不同应用,logFile定义不同目录
      * @param string $logFile
      * @return string
@@ -378,8 +433,15 @@ class SystemEnv
             }
 
             static::$repository = $builder->immutable()->make();
-            $dotenv = \Dotenv\Dotenv::create(static::$repository, APP_PATH);
-            $dotenv->safeload();
+
+            // 单测 / 独立 CLI 可能未定义 APP_PATH；此时仅使用进程环境（不加载 .env 文件）
+            if (\defined('APP_PATH')) {
+                $appPath = (string) \constant('APP_PATH');
+                if ('' !== $appPath && is_dir($appPath)) {
+                    $dotenv = \Dotenv\Dotenv::create(static::$repository, $appPath);
+                    $dotenv->safeload();
+                }
+            }
         }
         return static::$repository;
     }

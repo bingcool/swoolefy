@@ -155,7 +155,7 @@ class IndexController extends BController {
 //            'base_uri' => 'https://www.baidu.com/',
 //        ])->get('/', []);
 
-        Application::getApp()->swooleResponse->status(200);
+        Application::getApp()->swooleResponse->status(\Swoole\Http\Status::OK);
         Application::getApp()->swooleResponse->write('<h1>Hello, Welcome to Swoolefy Framework! <h1>');
         return true;
     }

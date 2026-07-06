@@ -17,6 +17,8 @@ use Swoolefy\Core\Log\LogManager;
 use Swoolefy\Core\Coroutine\CoroutinePools;
 use Swoolefy\Core\Log\Formatter\LineFormatter;
 use Swoolefy\Core\Process\ProcessManager;
+use Swoolefy\Support\ApplicationConfig;
+use Swoolefy\Support\Nacos\NacosServiceRegisterConfig;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Helper\TableStyle;
 use Symfony\Component\Console\Output\ConsoleOutput;
@@ -54,14 +56,20 @@ class EventCtrl implements EventCtrlInterface
         if (!SystemEnv::isScriptService()) {
             $this->registerStartLog();
         }
-        if(!SystemEnv::isWorkerService()) {
+        if (!SystemEnv::isWorkerService()) {
             if (BaseServer::isEnableSysCollector()) {
                 ProcessManager::getInstance()->addProcess('swoolefy_system_collector', \Swoolefy\Core\SysCollector\SysProcess::class);
             }
             if (BaseServer::isEnableReload()) {
                 ProcessManager::getInstance()->addProcess('swoolefy_system_reload', \Swoolefy\AutoReload\ReloadProcess::class);
             }
-        }else {
+            if (ApplicationConfig::isEnableNacosRegister()) {
+                ProcessManager::getInstance()->addProcess('swoolefy_nacos_register', \Swoolefy\Support\Nacos\NacosRegisterServiceProcess::class);
+            }
+            if (BaseServer::isWebsocketApp() && \Swoolefy\Websocket\Cluster\ClusterConfig::isEnabled()) {
+                \Swoolefy\Websocket\Cluster\WebsocketPushProcessRegistrar::register();
+            }
+        } else {
             static::onWorkerServiceInit();
             $this->boostrapWorkerInit();
         }
@@ -87,7 +95,7 @@ class EventCtrl implements EventCtrlInterface
         if (SystemEnv::isDaemonService() || SystemEnv::isCronService()) {
             $processClass = $processClassMap[APP_NAME];
             ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, $processClass, true,  [],null, false);
-        }else if (SystemEnv::isScriptService()) {
+        } else if (SystemEnv::isScriptService()) {
             try {
                 $class = \Swoolefy\Script\MainCliScript::parseClass();
             }catch (\Throwable $throwable) {
@@ -95,7 +103,7 @@ class EventCtrl implements EventCtrlInterface
                 exit(0);
             }
             ProcessManager::getInstance()->addProcess(WORKER_SERVICE_NAME, $class);
-        }else {
+        } else {
             fmtPrintError('Error Service Type');
             exit(0);
         }
@@ -120,11 +128,11 @@ class EventCtrl implements EventCtrlInterface
             }
             if (SystemEnv::isDaemonService()) {
                 $sqlLogName = 'sql_daemon.log';
-            }else if (SystemEnv::isCronService()) {
+            } else if (SystemEnv::isCronService()) {
                 $sqlLogName = 'sql_cron.log';
-            }else if (SystemEnv::isScriptService()) {
+            } else if (SystemEnv::isScriptService()) {
                 $sqlLogName = 'sql_script.log';
-            }else {
+            } else {
                 $sqlLogName = 'sql_cli.log';
             }
             $sqlFilePath = $baseSqlPath.DIRECTORY_SEPARATOR.$sqlLogName;
@@ -429,10 +437,10 @@ class EventCtrl implements EventCtrlInterface
                 $mainServer = 'HttpServer';
         }
 
-        if(SystemEnv::isWorkerService()) {
+        if (SystemEnv::isWorkerService()) {
             $mainName = 'main worker';
             $mainServer = "【".WORKER_SERVICE_NAME."】";
-        }else {
+        } else {
             $mainName = 'main server';
         }
 
@@ -453,25 +461,35 @@ class EventCtrl implements EventCtrlInterface
             $ipList = json_encode([]);
         }
         $hostname                = gethostname();
+        $nacosRegisterServiceName = '无';
+        $nacosRegisterGroupName = '无';
+        try {
+            $serviceRegisterConfig = NacosServiceRegisterConfig::load();
+            $nacosRegisterServiceName = $serviceRegisterConfig->serviceName;
+            $nacosRegisterGroupName = $serviceRegisterConfig->groupName;
+        } catch (\Throwable) {
+        }
 
         $consoleStyleIo = initConsoleStyleIo();
         $line = str_repeat('-', 50);
         $consoleStyleIo->write("<info>$line</info>", true);
         $consoleStyleIo->write("<info>Main Info:</info>");
         $consoleStyleIo->write("<info>
-    {$mainName}         {$mainServer}
-    swoolefy envirment  {$swoolefyEnv}
-    daemonize           {$daemonize}
-    listen address      {$listenHost}
-    listen port         {$listenPort}
-    worker num          {$workerNum}
-    task worker num     {$taskWorkerNum}
-    cpu num             {$cpuNum}
-    swoole version      {$swooleVersion}
-    php version         {$phpVersion}
-    swoolefy version    {$swoolefyVersion}
-    ip_list             {$ipList}
-    hostname            {$hostname}
+    {$mainName}                 {$mainServer}
+    swoolefy envirment          {$swoolefyEnv}
+    daemonize                   {$daemonize}
+    listen address              {$listenHost}
+    listen port                 {$listenPort}
+    worker num                  {$workerNum}
+    task worker num             {$taskWorkerNum}
+    cpu num                     {$cpuNum}
+    swoole version              {$swooleVersion}
+    php version                 {$phpVersion}
+    swoolefy version            {$swoolefyVersion}
+    ip_list                     {$ipList}
+    hostname                    {$hostname}
+    nacos_register_service_name: {$nacosRegisterServiceName}
+    nacos_register_group_name:   {$nacosRegisterGroupName}
     tips                执行 php cli.php help 可以查看更多信息
 </info>");
 

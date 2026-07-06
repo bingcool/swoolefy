@@ -28,12 +28,19 @@ class TestRequest extends AbstractProcess
 {
     public function run()
     {
-        goAfter(3000, function (){
-            $this->testPageRequest();
-        });
+//        goAfter(3000, function (){
+//            $this->testPageRequest();
+//        });
+//
+//        goTick(5000, function (){
+//            $this->requestTest();
+//        });
 
         goTick(5000, function (){
-            $this->requestTest();
+            $this->requestTest2();
+        });
+        goAfter(3000, function (){
+             $this->requestTest3();
         });
         //$this->responseTest();
     }
@@ -91,6 +98,31 @@ class TestRequest extends AbstractProcess
         $LogOrderApi = LogOrderApi::makeService();
         $response = $LogOrderApi->testRequest1("bingcool", [123,345]);
         var_dump($response->toDeepArray());
+    }
+
+    protected function requestTest2()
+    {
+        $indexApi = \GenerateSdk\Swoolefy\App\Client\IndexApi::makeService();
+        $response = $indexApi->index1();
+        var_dump($response);
+    }
+
+    /** SSE 流式接口：返回解析后的事件数组，而非 JSON 信封 */
+    protected function requestTest3()
+    {
+        $eventStreamApi = \GenerateSdk\Swoolefy\App\Client\EventStreamApi::makeService();
+        $events = $eventStreamApi->stream(['count' => 3, 'interval' => 0.2]);
+        var_dump($events);
+    }
+
+    /** 文件下载：返回 content / filename / contentType，可写入本地文件 */
+    protected function requestTest4()
+    {
+        $downloadApi = \GenerateSdk\Swoolefy\App\Client\DownloadApi::makeService();
+        $result = $downloadApi->file(['file' => 'demo.txt']);
+        $savePath = APP_PATH . '/Storage/Download/' . ($result['filename'] ?? 'downloaded.txt');
+        file_put_contents($savePath, $result['content']);
+        var_dump($result['filename'], $result['contentType'], strlen($result['content']));
     }
 
     protected function testPageRequest()

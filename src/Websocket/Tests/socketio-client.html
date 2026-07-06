@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Swoolefy WebSocket Socket.IO 测试页</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #f5f7fb;
+            color: #1f2937;
+        }
+        .wrap {
+            max-width: 980px;
+            margin: 24px auto;
+            padding: 0 16px 32px;
+        }
+        h1 { margin: 0 0 8px; font-size: 24px; }
+        .hint {
+            margin-bottom: 20px;
+            color: #4b5563;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        .panel {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+        label {
+            display: block;
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 6px;
+        }
+        input, button, textarea {
+            width: 100%;
+            font: inherit;
+        }
+        input, textarea {
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 10px 12px;
+            background: #fff;
+        }
+        select {
+            width: 100%;
+            font: inherit;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 10px 12px;
+            background: #fff;
+        }
+        textarea { min-height: 84px; resize: vertical; }
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        button {
+            border: 0;
+            border-radius: 8px;
+            padding: 10px 14px;
+            cursor: pointer;
+            background: #2563eb;
+            color: #fff;
+        }
+        button.secondary { background: #6b7280; }
+        button.danger { background: #dc2626; }
+        button:disabled {
+            opacity: .55;
+            cursor: not-allowed;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .status.connected {
+            background: #dcfce7;
+            color: #166534;
+        }
+        pre {
+            margin: 0;
+            min-height: 280px;
+            max-height: 420px;
+            overflow: auto;
+            background: #0f172a;
+            color: #e2e8f0;
+            border-radius: 10px;
+            padding: 14px;
+            font-size: 13px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        code {
+            background: #eef2ff;
+            color: #3730a3;
+            padding: 2px 6px;
+            border-radius: 6px;
+        }
+        .alert {
+            margin-bottom: 16px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .alert.warn {
+            background: #fef3c7;
+            border: 1px solid #fcd34d;
+            color: #92400e;
+        }
+        .alert.hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <h1>Swoolefy WebSocket Socket.IO 测试页</h1>
+    <div id="fileProtocolAlert" class="alert warn hidden"></div>
+    <div class="hint">
+        先启动示例应用：<code>SWOOLEFY_CLI_ENV=dev php cli.php start WebsocketService</code><br>
+        推荐同源访问（polling 必须）：<code>http://127.0.0.1:9508/socketio-client.html</code>
+        （需 <code>accept_http=true</code>）<br>
+        也可 <code>php -S 127.0.0.1:8888 -t src/Websocket/Tests</code> 打开
+        <code>http://127.0.0.1:8888/socketio-client.html</code>。<br>
+        <strong>勿用 <code>file://</code> 双击打开</strong>——浏览器会拦截 polling 的 XHR，仅 websocket 可用。<br>
+        事件映射见 <code>WebsocketService/Config/socketio.php</code>：
+        <code>group.join</code> → <code>Service/Chat/JoinGroup</code>，
+        <code>chat.send</code> → <code>Service/Chat/Send</code>。<br>
+        <strong>Namespace</strong>：默认 <code>/</code>；填 <code>/chat</code> 或 <code>/admin</code> 时等价于
+        <code>io('http://host/chat', { path: '/socket.io/' })</code>，服务端按
+        <code>namespaces.{ns}.event_routes</code> 路由。
+    </div>
+
+    <div class="panel">
+        <div class="grid">
+            <div>
+                <label for="host">Host</label>
+                <input id="host" value="127.0.0.1">
+            </div>
+            <div>
+                <label for="port">Port</label>
+                <input id="port" type="number" value="9508">
+            </div>
+            <div>
+                <label for="uid">UID</label>
+                <input id="uid" value="10001">
+            </div>
+            <div>
+                <label for="token">Token（auth.enable=true 时必填）</label>
+                <input id="token" value="dev-token">
+            </div>
+            <div>
+                <label for="group">Group</label>
+                <input id="group" value="public">
+            </div>
+            <div>
+                <label for="toUserId">To User ID（单聊）</label>
+                <input id="toUserId" value="10002">
+            </div>
+            <div>
+                <label for="transport">Transport</label>
+                <select id="transport">
+                    <option value="auto">auto（websocket 优先，失败 fallback polling）</option>
+                    <option value="websocket" selected>websocket（仅 WebSocket）</option>
+                    <option value="polling">polling（仅 long-polling）</option>
+                </select>
+            </div>
+            <div>
+                <label for="namespace">Namespace（如 /、/chat、/admin）</label>
+                <input id="namespace" value="/" placeholder="/">
+            </div>
+        </div>
+
+        <div style="margin-top: 12px;">
+            <label for="message">Message</label>
+            <textarea id="message">hello from socket.io.js</textarea>
+        </div>
+
+        <div class="actions">
+            <button id="btnConnect">连接</button>
+            <button id="btnDisconnect" class="danger" disabled>断开</button>
+            <button id="btnJoin" class="secondary" disabled>group.join</button>
+            <button id="btnLeave" class="secondary" disabled>group.leave</button>
+            <button id="btnSend" disabled>chat.send</button>
+            <button id="btnPrivate" class="secondary" disabled>chat.private</button>
+            <button id="btnClear" class="secondary">清空日志</button>
+            <span id="status" class="status">未连接</span>
+        </div>
+    </div>
+
+    <div class="panel">
+        <label>日志</label>
+        <pre id="log"></pre>
+    </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+/**
+ * Socket.IO 测试客户端
+ *
+ * polling 注意：
+ * - 须同源 HTTP 打开（http://127.0.0.1:9508/socketio-client.html），file:// 会拦截 XHR
+ * - 勿在 io() 前额外发握手 probe：会产生多余 sid，且占用 Worker long-poll
+ * - timeout 须 > socketio.poll_timeout（默认 25s），否则 connect_error
+ * - upgrade:false 时纯 polling，便于验证 long-poll 路径
+ */
+(() => {
+    const $ = (id) => document.getElementById(id);
+    const logEl = $('log');
+    let socket = null;
+    const isFileProtocol = window.location.protocol === 'file:';
+
+    const log = (msg, data) => {
+        const time = new Date().toLocaleTimeString();
+        const line = data === undefined ? `[${time}] ${msg}` : `[${time}] ${msg} ${JSON.stringify(data)}`;
+        logEl.textContent += line + '\n';
+        logEl.scrollTop = logEl.scrollHeight;
+    };
+
+    const setConnected = (connected) => {
+        $('status').textContent = connected ? '已连接' : '未连接';
+        $('status').classList.toggle('connected', connected);
+        $('btnConnect').disabled = connected;
+        $('btnDisconnect').disabled = !connected;
+        $('btnJoin').disabled = !connected;
+        $('btnLeave').disabled = !connected;
+        $('btnSend').disabled = !connected;
+        $('btnPrivate').disabled = !connected;
+        $('host').disabled = connected;
+        $('port').disabled = connected;
+        $('transport').disabled = connected;
+        $('namespace').disabled = connected;
+    };
+
+    /** 根据下拉框返回 socket.io transports 数组 */
+    const getTransports = () => {
+        const mode = $('transport').value;
+        if (mode === 'websocket') {
+            return ['websocket'];
+        }
+        if (mode === 'polling') {
+            return ['polling'];
+        }
+
+        return ['websocket', 'polling'];
+    };
+
+    const usesPolling = (transports) => transports.includes('polling');
+
+    /** file:// 下浏览器禁止跨域 polling XHR，强制降为 websocket */
+    const resolveTransportsForPage = () => {
+        let transports = getTransports();
+        if (!isFileProtocol || !usesPolling(transports)) {
+            return transports;
+        }
+
+        log('warn', 'file:// 无法使用 polling XHR，已自动切换为 websocket');
+        $('transport').value = 'websocket';
+        return ['websocket'];
+    };
+
+    const initPageContext = () => {
+        if (isFileProtocol) {
+            const alertEl = $('fileProtocolAlert');
+            alertEl.classList.remove('hidden');
+            alertEl.innerHTML = [
+                '当前为 <code>file://</code> 打开：浏览器会拦截对 <code>http://127.0.0.1:9508</code> 的 polling XHR。',
+                '请改用 <a href="http://127.0.0.1:9508/socketio-client.html" target="_blank" rel="noreferrer">http://127.0.0.1:9508/socketio-client.html</a>',
+                '（需服务已启动且 <code>accept_http=true</code>）。',
+            ].join(' ');
+            $('transport').value = 'websocket';
+            return;
+        }
+
+        if (window.location.port === '9508') {
+            $('host').value = window.location.hostname || '127.0.0.1';
+            $('port').value = '9508';
+        }
+    };
+
+    const getActiveTransport = () => {
+        if (!socket || !socket.io || !socket.io.engine) {
+            return '';
+        }
+
+        return socket.io.engine.transport ? socket.io.engine.transport.name : '';
+    };
+
+    const getServerUrl = () => {
+        const host = $('host').value.trim() || '127.0.0.1';
+        const port = $('port').value.trim() || '9508';
+        return `http://${host}:${port}`;
+    };
+
+    /** 规范化 Socket.IO namespace（默认 `/`） */
+    const normalizeNamespace = (raw) => {
+        const ns = (raw || '').trim();
+        if (ns === '' || ns === '/') {
+            return '/';
+        }
+        return ns.startsWith('/') ? ns : `/${ns}`;
+    };
+
+    /** socket.io-client：非默认 ns 时 URL 为 http://host/chat */
+    const buildConnectUrl = (baseUrl, namespace) => {
+        const ns = normalizeNamespace(namespace);
+        if (ns === '/') {
+            return baseUrl.replace(/\/+$/, '');
+        }
+        return `${baseUrl.replace(/\/+$/, '')}${ns}`;
+    };
+
+    const bindSocketEvents = (s) => {
+        s.on('connect', () => {
+            setConnected(true);
+            log('connect success', {
+                socketId: s.id,
+                transport: getActiveTransport(),
+                namespace: s.nsp || normalizeNamespace($('namespace').value),
+            });
+        });
+
+        s.on('disconnect', (reason) => {
+            setConnected(false);
+            log('disconnect', { reason });
+        });
+
+        s.on('connect_error', (error) => {
+            log('connect_error', {
+                message: error.message,
+                description: error.description || '',
+                context: error.context || null,
+                type: error.type || '',
+            });
+        });
+
+        s.on('group.joined', (data) => log('event group.joined', data));
+        s.on('group.left', (data) => log('event group.left', data));
+        s.on('chat.message', (data) => log('event chat.message', data));
+        s.on('chat.private', (data) => log('event chat.private', data));
+
+        if (s.io && s.io.engine) {
+            s.io.engine.on('open', () => log('engine open'));
+            s.io.engine.on('packet', (packet) => {
+                if (packet.type === 'message' && packet.data) {
+                    log('engine message', { data: String(packet.data).slice(0, 120) });
+                } else {
+                    log('engine packet', packet);
+                }
+            });
+            s.io.engine.on('error', (error) => log('engine error', { message: error.message || String(error) }));
+        }
+    };
+
+    $('btnConnect').addEventListener('click', () => {
+        if (socket) {
+            socket.disconnect();
+            socket = null;
+        }
+
+        const baseUrl = getServerUrl();
+        const namespace = normalizeNamespace($('namespace').value);
+        const url = buildConnectUrl(baseUrl, namespace);
+        const query = {
+            uid: $('uid').value.trim(),
+            token: $('token').value.trim(),
+        };
+
+        const transports = resolveTransportsForPage();
+        const pollingOnly = transports.length === 1 && transports[0] === 'polling';
+
+        log('connecting', { url, namespace, path: '/socket.io/', transports, query });
+
+        const ioOptions = {
+            path: '/socket.io/',
+            query,
+            transports,
+            // 与 CORS 策略一致：服务端对具体 Origin 回显，不用 cookie 会话
+            withCredentials: false,
+            reconnection: false,
+            // Manager 连接超时：polling 须覆盖 long-poll 阻塞（poll_timeout 默认 25s）
+            timeout: pollingOnly ? 35000 : 10000,
+        };
+        // 纯 polling 测试：禁止升级到 WebSocket，否则会走 WS 路径掩盖 polling 问题
+        if (pollingOnly) {
+            ioOptions.upgrade = false;
+        }
+
+        socket = io(url, ioOptions);
+        bindSocketEvents(socket);
+    });
+
+    $('btnDisconnect').addEventListener('click', () => {
+        if (socket) {
+            socket.disconnect();
+            socket = null;
+        }
+        setConnected(false);
+    });
+
+    $('btnJoin').addEventListener('click', () => {
+        const group = $('group').value.trim() || 'public';
+        socket.emit('group.join', { group }, (ack) => {
+            log('ack group.join', ack);
+        });
+    });
+
+    $('btnLeave').addEventListener('click', () => {
+        const group = $('group').value.trim() || 'public';
+        socket.emit('group.leave', { group }, (ack) => {
+            log('ack group.leave', ack);
+        });
+    });
+
+    $('btnSend').addEventListener('click', () => {
+        const group = $('group').value.trim() || 'public';
+        const message = $('message').value.trim();
+        socket.emit('chat.send', { group, message }, (ack) => {
+            log('ack chat.send', ack);
+        });
+    });
+
+    $('btnPrivate').addEventListener('click', () => {
+        const toUserId = $('toUserId').value.trim();
+        const message = $('message').value.trim();
+        socket.emit('chat.private', { to_user_id: toUserId, message }, (ack) => {
+            log('ack chat.private', ack);
+        });
+    });
+
+    $('btnClear').addEventListener('click', () => {
+        logEl.textContent = '';
+    });
+
+    initPageContext();
+})();
+</script>
+</body>
+</html>

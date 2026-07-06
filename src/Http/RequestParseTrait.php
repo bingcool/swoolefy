@@ -53,6 +53,11 @@ trait RequestParseTrait
     protected $groupMeta = [];
 
     /**
+     * @var array<string, UploadedFile|list<UploadedFile>>|null
+     */
+    protected ?array $parsedUploadFiles = null;
+
+    /**
      * @var array
      */
     protected $trustedProxies = [];
@@ -82,6 +87,15 @@ trait RequestParseTrait
     public function isPut(): bool
     {
         return (strtoupper($this->swooleRequest->server['REQUEST_METHOD']) == 'PUT') ? true : false;
+    }
+
+    /**
+     * isPatch
+     * @return bool
+     */
+    public function isPatch(): bool
+    {
+        return (strtoupper($this->swooleRequest->server['REQUEST_METHOD']) == 'PATCH') ? true : false;
     }
 
     /**
@@ -146,7 +160,11 @@ trait RequestParseTrait
         if (!$this->requestParams) {
             $get  = isset($this->swooleRequest->get) ? $this->swooleRequest->get : [];
             $post = isset($this->swooleRequest->post) ? $this->swooleRequest->post : [];
-            $input = json_decode($this->swooleRequest->rawContent(), true) ?? [];
+            $input = RequestBodyParser::parseJsonPayload(
+                (string) $this->getHeaderParams('content-type', ''),
+                $this->swooleRequest->rawContent(),
+                $this->getMethod()
+            );
             $this->requestParams = array_merge($get, $post, $input);
             unset($get, $post);
         }
@@ -236,7 +254,11 @@ trait RequestParseTrait
         if (!$this->postParams) {
             $input = $this->swooleRequest->post ?? [];
             if (!$input) {
-                $input = json_decode($this->swooleRequest->rawContent(), true) ?? [];
+                $input = RequestBodyParser::parseJsonPayload(
+                    (string) $this->getHeaderParams('content-type', ''),
+                    $this->swooleRequest->rawContent(),
+                    $this->getMethod()
+                );
             }
             $this->postParams = $input;
         }
@@ -339,10 +361,56 @@ trait RequestParseTrait
     }
 
     /**
-     * getFilesParam
-     * @return mixed
+     * 是否为 multipart/form-data 请求。
      */
-    public function getUploadFiles(): mixed
+    public function isMultipart(): bool
+    {
+        return str_contains(strtolower((string) $this->getHeaderParams('content-type', '')), 'multipart/form-data');
+    }
+
+    /**
+     * 指定表单字段是否包含上传文件。
+     */
+    public function hasFile(string $name): bool
+    {
+        return array_key_exists($name, $this->files());
+    }
+
+    /**
+     * 获取上传文件。
+     *
+     * @return ($name is null ? array<string, UploadedFile|list<UploadedFile>> : UploadedFile|list<UploadedFile>|null)
+     */
+    public function file(?string $name = null): UploadedFile|array|null
+    {
+        $files = $this->files();
+        if ($name === null) {
+            return $files;
+        }
+
+        return $files[$name] ?? null;
+    }
+
+    /**
+     * 获取全部上传文件（已封装为 UploadedFile）。
+     *
+     * @return array<string, UploadedFile|list<UploadedFile>>
+     */
+    public function files(): array
+    {
+        if ($this->parsedUploadFiles === null) {
+            $this->parsedUploadFiles = UploadedFile::collectFromSwoole($this->swooleRequest->files ?? []);
+        }
+
+        return $this->parsedUploadFiles;
+    }
+
+    /**
+     * 获取 Swoole 原始 files 数组（同 $_FILES 结构）。
+     *
+     * @return array<string, mixed>
+     */
+    public function getUploadFiles(): array
     {
         return $this->swooleRequest->files ?? [];
     }
@@ -527,18 +595,6 @@ trait RequestParseTrait
     }
 
     /**
-     * sendfile
-     * @param string $filename
-     * @param int $offset
-     * @param int $length
-     * @return void
-     */
-    public function sendfile(string $filename, int $offset = 0, int $length = 0)
-    {
-        $this->swooleResponse->sendfile($filename, $offset, $length);
-    }
-
-    /**
      * parseUrl
      * @param string $url
      * @return array
@@ -691,10 +747,11 @@ trait RequestParseTrait
      * @param string $name
      * @return bool
      */
-    public function hasHeader(string $name)
+    public function hasHeader(string $name): bool
     {
-        $headers = $this->getSwooleRequest()->header;
-        return isset($headers[$name]) ? true : false;
+        $headers = $this->getSwooleRequest()->header ?? [];
+
+        return array_key_exists(strtolower($name), $headers);
     }
 
     /**

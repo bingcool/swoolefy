@@ -14,3 +14,6 @@ swag.php
 /vendor
 /*Service
 /GenerateSdk
+.env
+Test/.env
+.DS_Store
