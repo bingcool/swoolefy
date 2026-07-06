@@ -1790,7 +1790,7 @@ php script.php start App --c=gen:sdk --router=App/Router --out=../generate-sdk-l
 
 ### 二十一、🤖 AI / Workflow 工作流
 
-框架内置 **DAG 工作流引擎** + **Neuron AI** 集成，支持 AI 决策分支、多 Agent 并行、RAG 知识库、MCP 工具调用与人机协同（HITL）。已实现 **Phase 1–4** 及 **生产加固（Phase A/B）**：HITL API 鉴权、resume CAS、多版本 Registry、Embedding fail-fast、MCP 租户 DB、启动期 `ProductionHealthCheck` 等。
+框架内置 **DAG 工作流引擎** + **Neuron AI** 集成，支持 AI 决策分支、多 Agent 并行、RAG 知识库、MCP 工具调用与人机协同（HITL）。已实现 **Phase 1–4** 及 **生产加固（Phase A/B/P0）**：HITL API 鉴权、status 脱敏、resume CAS、多版本 Registry、Embedding fail-fast、MCP 租户 DB、RAG 显式 tenantId、启动期 `ProductionHealthCheck` 等。
 
 | 文档 | 说明 |
 |:---|:---|
@@ -1806,7 +1806,7 @@ php script.php start App --c=gen:sdk --router=App/Router --out=../generate-sdk-l
 | AI | `src/Support/AI/` | AINode、流式 SSE/WebSocket、StructuredOutput、节点超时 |
 | Agent | `src/Support/Agent/` | Static / Rule / LLM / CostAware / RoundRobin 路由 |
 | Neuron | `src/Support/Neuron/` | LLM 工厂、Redis/SQL 记忆、Embedding fail-fast、URL 校验 |
-| RAG | `src/Support/Rag/` | 向量库、同步入库 Pipeline、别名 fail-fast |
+| RAG | `src/Support/Rag/` | 向量库、同步入库 Pipeline、显式 tenantId、别名 fail-fast |
 | MCP | `src/Support/Mcp/` | HTTP/SSE MCP、DB 多租户、stdio 生产禁用 |
 
 #### 配置与装配
@@ -1851,6 +1851,7 @@ curl -X POST http://127.0.0.1:9501/api/v1/agent/chat \
 | 接口 | 说明 |
 |:---|:---|
 | `POST /api/v1/workflow/run` | 启动工作流 |
+| `GET /api/v1/workflow/run/status` | 查询 Run 状态（HITL 鉴权；默认脱敏摘要，`admin + detail=true` 返回完整调试视图） |
 | `POST /api/v1/workflow/run/resume` | HITL 恢复（须 `X-Workflow-Api-Key` 或角色，见 Workflow README） |
 | `POST /api/v1/workflow/run/cancel` | 取消 Run（HITL 鉴权） |
 | `GET /api/v1/workflow/pause/tasks` | 待审批任务（HITL 鉴权） |

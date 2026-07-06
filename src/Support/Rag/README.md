@@ -53,7 +53,7 @@ Document.embedding
 TopK Document → RetrievalService / RetrievalTool / RAGNode
 ```
 
-**知识库隔离**：`knowledgeBase` 经 sanitize 后映射为子目录、indexUid、namespace、collection 或表名后缀。开启 `RAG_REQUIRE_TENANT_ISOLATION` 时物理名为 `{tenantId}_{kb}`（tenant 来自 `x-tenant-id` 或显式参数）。
+**知识库隔离**：`knowledgeBase` 经 sanitize 后映射为子目录、indexUid、namespace、collection 或表名后缀。开启 `RAG_REQUIRE_TENANT_ISOLATION` 时物理名为 `{tenantId}_{kb}`。tenant 解析顺序为显式参数 → Workflow state/config 中的 `tenantId` → HTTP 透传头 `x-tenant-id` / `FrameworkContext`。
 
 | 驱动 (`NeuronAiVectorStoreName`) | 隔离方式 |
 |----------------------------------|----------|
@@ -124,9 +124,9 @@ $rag = new RagFactory(new VectorStoreFactory($config), new EmbeddingFactory());
 
 $rag->ingestionPipeline()->ingestTexts('product_kb', [
     'Swoolefy is a PHP coroutine framework.',
-]);
+], tenantId: 'tenant_a');
 
-$hits = (new RetrievalService($rag))->retrieve('product_kb', 'coroutine framework', 3);
+$hits = (new RetrievalService($rag))->retrieve('product_kb', 'coroutine framework', 3, tenantId: 'tenant_a');
 // 指定别名：$rag->vectorStore('product_kb', storeAlias: 'milvus_prod');
 ```
 
@@ -141,6 +141,7 @@ $hits = (new RetrievalService($rag))->retrieve('product_kb', 'coroutine framewor
 new RagIngestNode('ingest', [
     'knowledgeBase' => 'product_kb',
     'sourceKey' => 'documents', // state 中的文本列表
+    'tenantIdKey' => 'tenantId', // 默认从 state.tenantId 读取；也可直接配置 tenantId
     // 'vectorStore' => 'milvus_prod',
 ], $pipeline);
 
@@ -149,8 +150,15 @@ new RagRetrieveNode('retrieve', [
     'knowledgeBase' => 'product_kb',
     'queryKey' => 'query',
     'outputKey' => 'retrievedDocs',
+    'tenantIdKey' => 'tenantId',
     // 'vectorStore' => 'milvus_prod',
 ], $retrievalService);
+```
+
+生产建议在工作流启动 input 中显式带 `tenantId`，让 `RagIngestNode` / `RagRetrieveNode` 在 CLI、AsyncTask、子工作流等没有 HTTP Header 的场景也能稳定隔离租户。`RetrievalToolFactory::make()` 同样支持 `tenantId` 参数：
+
+```php
+$tool = $retrievalToolFactory->make('product_kb', topK: 5, tenantId: 'tenant_a');
 ```
 
 ### 离线 CLI

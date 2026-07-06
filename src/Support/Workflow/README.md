@@ -158,7 +158,19 @@ $tasks = $engine->listPauseTasks('legal-team');  // RunStore 需 PauseTaskQuerya
 | `allowed_roles` | — | 允许的角色列表（如 `operator`、`admin`） |
 | `require_assignee_match` | `WORKFLOW_HITL_REQUIRE_ASSIGNEE_MATCH` | resume 时 `actor` 须匹配任务 assignee（`admin` 除外） |
 
+生产默认要求开启 HITL 鉴权，并配置强 `WORKFLOW_HITL_API_KEY`。`ProductionHealthCheck` 会在 `SWOOLEFY_ENV=prd` 时拦截 `auth_enabled=false` 或空 `api_key`，避免 `resume` / `cancel` / `pause/tasks` / `status` 误暴露。
+
 HTTP 示例见 `Test/Module/Workflow/README.md`。实现：`WorkflowHitlAuth`、`WorkflowController`。
+
+### Status 鉴权与脱敏（P0）
+
+`GET /api/v1/workflow/run/status` 与 `GET /api/v1/workflow/run/events` 同样走 HITL 鉴权。状态接口默认只返回安全摘要：
+
+- `runId`、`workflowId`、`version`、`status`、`waiting`
+- `currentNodeId`、`pauseNodeId`、`lastRoutedEdge`、`executedNodeIds`
+- `hasError`
+
+默认不会返回 `state.data`、`nodeOutputs`、`agentOutputs`、完整 `error`，避免泄露业务输入、AI 输出、HITL feedback 或 MCP/RAG 中间结果。只有 `role=admin` 且显式 `detail=true` / `debug=true` 时，控制器才返回完整调试视图。
 
 ### resume 并发安全（Phase A）
 
@@ -212,7 +224,7 @@ use Swoolefy\Support\Workflow\WorkflowRunStoreName;
 'default_run_store' => WorkflowRunStoreName::DB,
 'run_stores' => [
     WorkflowRunStoreName::MEMORY => [],
-    WorkflowRunStoreName::REDIS => ['component' => 'redis', 'prefix' => 'workflow:run:', 'ttl' => 86400],
+    WorkflowRunStoreName::REDIS => ['component' => 'redis', 'prefix' => 'workflow:run:', 'ttl' => 0],
     WorkflowRunStoreName::DB => ['component' => 'db', 'table' => 'workflow_runs'],
 ],
 ```
@@ -224,6 +236,7 @@ use Swoolefy\Support\Workflow\WorkflowRunStoreName;
 | `db` | `DbRunStore` | 生产可查询：跨 Worker、按 status/assignee 索引、易备份审计 |
 
 - Redis：`WorkflowRedisResolver` → `cache.php` 组件
+- Redis `ttl=0` 表示不过期。生产 HITL 任务可能跨天/跨周审批，不建议设置短 TTL；`SWOOLEFY_ENV=prd` 时，`ProductionHealthCheck` 会拦截小于 7 天的 Redis RunStore TTL。
 - DB：`WorkflowPdoResolver` → `database.php` 组件；**须预执行** `Schema/workflow_runs.sql` 建表（`DbRunStore` 不会自动建表）
 - `run_id` 由 `WorkflowRunTime::generateRunId()` 生成，格式 `run_YYYYMMDD_{16位hex}`
 - 表字段 `created_at` / `updated_at` 为 `DATETIME`；`deleted_at` 软删（查询默认过滤）
@@ -249,7 +262,7 @@ $store = new DbRunStore($pdo, $registry, 'workflow_runs');
 
 ### 启动期健康检查（Phase B）
 
-部署前调用 `ProductionHealthCheck::run()`（或 `check()` 收集错误列表），校验向量库别名、Embedding 凭证、`default_node_timeout_seconds`、DB RunStore 表可达性、出站 URL 白名单等。
+部署前调用 `ProductionHealthCheck::run()`（或 `check()` 收集错误列表），校验向量库别名、Embedding 凭证、`default_node_timeout_seconds`、DB RunStore 表可达性、出站 URL 白名单、生产 HITL 鉴权、Redis RunStore TTL 等。
 
 ```bash
 php -r "require 'vendor/autoload.php'; Swoolefy\Support\ProductionHealthCheck::run();"
@@ -301,6 +314,8 @@ GET  /api/v1/mcp/servers/{id}/tools?tenantId=
 控制器：`Test/Module/Workflow/Controller/WorkflowController.php`、`Test/Module/Agent/Controller/AgentChatController.php`。
 
 流式：`stream=true` 或 `Accept: text/event-stream`，经 `StreamBridge` 推送。
+
+状态查询：`status` / `events` 默认返回脱敏摘要；需携带 HITL API Key 或角色。完整 state 仅 `admin + detail=true` 返回。
 
 ---
 

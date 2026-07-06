@@ -259,7 +259,7 @@ $agent = $factory->boot(new ChatAgent($threadId, $pdo), ['provider' => 'deepseek
 | `outbound_url_allowlist` | LLM Provider `baseUri` 与 MCP `url` 的 host 后缀白名单 |
 | `allow_private_networks` | 是否允许指向私网 / loopback（默认 false） |
 
-部署前调用 `Swoolefy\Support\ProductionHealthCheck::run()` 校验 Embedding、向量库别名、出站 URL 等。
+部署前调用 `Swoolefy\Support\ProductionHealthCheck::run()` 校验 Embedding、向量库别名、出站 URL 等。该检查也覆盖 Workflow 生产安全项：`SWOOLEFY_ENV=prd` 时要求 HITL 鉴权开启、`WORKFLOW_HITL_API_KEY` 已配置，并拦截过短的 Redis RunStore TTL。
 
 ---
 

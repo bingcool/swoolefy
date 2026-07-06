@@ -53,15 +53,15 @@ Workflow/
 | GET | `/api/v1/workflow/list` | 列出已注册工作流 |
 | GET | `/api/v1/workflow/describe?workflowId=` | DAG 详情（节点 / 边 / 条件） |
 | POST | `/api/v1/workflow/run` | 启动 Run |
-| GET | `/api/v1/workflow/run/status?runId=` | 查询状态 |
+| GET | `/api/v1/workflow/run/status?runId=` | 查询状态（HITL 鉴权；默认脱敏摘要） |
 | POST | `/api/v1/workflow/run/resume` | HITL 恢复 |
 | POST | `/api/v1/workflow/run/cancel` | 取消 Run |
 | GET | `/api/v1/workflow/pause/tasks?assignee=` | 暂停任务列表 |
-| GET | `/api/v1/workflow/run/events?runId=` | SSE 推送当前状态 |
+| GET | `/api/v1/workflow/run/events?runId=` | SSE 推送当前状态（HITL 鉴权；默认脱敏摘要） |
 
-### HITL 鉴权（`workflow.hitl.auth_enabled=true` 时）
+### HITL / Status 鉴权
 
-以下接口须携带 **API Key** 或 **角色**（满足其一即可）：
+以下接口须携带 **API Key** 或 **角色**（满足其一即可）：`resume`、`cancel`、`pause/tasks`、`status`、`events`。
 
 | 方式 | 字段 |
 |------|------|
@@ -73,7 +73,9 @@ Workflow/
 
 **pause/tasks**：非 admin 查询他人 assignee 会被拒绝；未传 `assignee` 时须提供 `actor`。
 
-Test 环境默认 `auth_enabled=false`；生产请设 `WORKFLOW_HITL_AUTH_ENABLED=1` 与强 `WORKFLOW_HITL_API_KEY`。
+**status / events**：默认只返回安全摘要，不包含 `data`、`nodeOutputs`、`agentOutputs`、完整 `error`。只有 `X-Workflow-Role: admin` 且 `detail=true` / `debug=true` 时才返回完整调试视图。
+
+生产默认 `auth_enabled=true`；请配置强 `WORKFLOW_HITL_API_KEY`。若本地演示想关闭鉴权，可显式设 `WORKFLOW_HITL_AUTH_ENABLED=0`。
 
 ---
 
@@ -205,9 +207,12 @@ curl -s -X POST 'http://127.0.0.1:9501/api/v1/workflow/run/resume' \
 
 ```bash
 curl -s 'http://127.0.0.1:9501/api/v1/workflow/run/status?runId=<runId>' | jq .
+curl -s 'http://127.0.0.1:9501/api/v1/workflow/run/status?runId=<runId>&detail=true' \
+  -H 'X-Workflow-Role: admin' | jq .
 
 curl -s -X POST 'http://127.0.0.1:9501/api/v1/workflow/run/cancel' \
   -H 'Content-Type: application/json' \
+  -H 'X-Workflow-Api-Key: test-hitl-key' \
   -d '{"runId":"<runId>"}' | jq .
 ```
 
@@ -227,7 +232,8 @@ curl -N -X POST 'http://127.0.0.1:9501/api/v1/workflow/run' \
 ### 10. SSE 查看已有 Run
 
 ```bash
-curl -N 'http://127.0.0.1:9501/api/v1/workflow/run/events?runId=<runId>'
+curl -N 'http://127.0.0.1:9501/api/v1/workflow/run/events?runId=<runId>' \
+  -H 'X-Workflow-Api-Key: test-hitl-key'
 ```
 
 ---
@@ -242,9 +248,10 @@ curl -N 'http://127.0.0.1:9501/api/v1/workflow/run/events?runId=<runId>'
 | `waiting` | 是否 HITL 等待中 |
 | `currentNodeId` / `pauseNodeId` | 当前 / 暂停节点 |
 | `executedNodeIds` | 已成功节点（Saga 补偿依据） |
-| `data` | 业务 state.data |
-| `nodeOutputs` / `agentOutputs` | 节点输出 / 多 Agent 输出 |
-| `error` | 失败信息 |
+| `hasError` | 是否存在失败信息 |
+| `data` | 业务 state.data；仅 `admin + detail=true` 返回 |
+| `nodeOutputs` / `agentOutputs` | 节点输出 / 多 Agent 输出；仅 `admin + detail=true` 返回 |
+| `error` | 完整失败信息；仅 `admin + detail=true` 返回 |
 
 ---
 
