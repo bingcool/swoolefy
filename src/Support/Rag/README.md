@@ -145,7 +145,7 @@ new RagIngestNode('ingest', [
     // 'vectorStore' => 'milvus_prod',
 ], $pipeline);
 
-// RagIngestNode 仅同步入库（RAG_INGEST_ASYNC 已移除）
+// RagIngestNode 默认同步入库；rag.ingestion.mode=queue 时提交 RagIngestJob 给业务队列
 new RagRetrieveNode('retrieve', [
     'knowledgeBase' => 'product_kb',
     'queryKey' => 'query',
@@ -160,6 +160,72 @@ new RagRetrieveNode('retrieve', [
 ```php
 $tool = $retrievalToolFactory->make('product_kb', topK: 5, tenantId: 'tenant_a');
 ```
+
+### 大批量入库：队列模式
+
+`RagIngestDispatcher` 支持 `sync | queue` 两种模式：
+
+| 模式 | 行为 |
+|------|------|
+| `sync` | 默认行为，当前进程内直接 `embedDocuments()` 并写 VectorStore |
+| `queue` | 将标准 `RagIngestJob` 交给配置的 producer；后台 consumer 再调用 `IngestionPipeline` |
+
+配置示例：
+
+```php
+'rag' => [
+    'ingestion' => [
+        'mode' => env('RAG_INGEST_MODE', 'sync'),
+        'queue' => [
+            'producer' => [
+                'class' => App\Queue\RagIngestProducer::class,
+                'method' => 'push',
+            ],
+            'consumer' => [
+                'class' => App\Queue\RagIngestConsumer::class,
+                'method' => 'handle',
+            ],
+        ],
+    ],
+],
+```
+
+producer 负责把 Job 写入 Redis Queue / Kafka / RabbitMQ / DB Job 等任意队列：
+
+```php
+use Swoolefy\Support\Rag\Ingestion\RagIngestJob;
+
+final class RagIngestProducer
+{
+    public function push(RagIngestJob $job): void
+    {
+        // 示例：$queue->push('rag_ingest', $job->toArray());
+    }
+}
+```
+
+consumer 负责从队列恢复 Job，并复用 Support 的入库管线：
+
+```php
+use Swoolefy\Support\Rag\Ingestion\IngestResult;
+use Swoolefy\Support\Rag\Ingestion\IngestionPipeline;
+use Swoolefy\Support\Rag\Ingestion\RagIngestJob;
+
+final class RagIngestConsumer
+{
+    public function handle(RagIngestJob $job, IngestionPipeline $pipeline): IngestResult
+    {
+        return $pipeline->ingestTexts(
+            $job->knowledgeBase,
+            $job->texts,
+            storeAlias: $job->vectorStore,
+            tenantId: $job->tenantId,
+        );
+    }
+}
+```
+
+生产大文件 / 大批量数据不建议把全文直接塞进队列。推荐在 `RagIngestJob::sourceRef` 中放 DB id、文件路径或 OSS key，consumer 拉取源数据后分批调用 `IngestionPipeline`。
 
 ### 离线 CLI
 
@@ -186,6 +252,11 @@ php src/Support/Rag/Console/ingest_documents.php --kb=product_kb --text="..." --
 | `NEURON_ALLOW_FAKE_EMBEDDINGS` | 无 API Key 时允许 FakeEmbeddings（`1`/`true`）；**生产须 false** | `false` |
 | `RAG_REQUIRE_TENANT_ISOLATION` | 强制多租户：知识库 `{tenantId}_{kb}`；无 tenant 时 fail-fast；**生产须 true** | `true` |
 | `NEURON_TENANT_ID` | CLI 入库 / 脚本场景的 tenant（等同 HTTP `x-tenant-id`；亦可用 `--tenant-id=`） | 空 |
+| `RAG_INGEST_MODE` | 入库模式：`sync` 或 `queue` | `sync` |
+| `RAG_INGEST_PRODUCER_CLASS` | 队列模式 producer 类名，方法接收 `RagIngestJob` | 空 |
+| `RAG_INGEST_PRODUCER_METHOD` | producer 方法名 | `push` |
+| `RAG_INGEST_CONSUMER_CLASS` | 队列 consumer 类名，方法接收 `RagIngestJob, IngestionPipeline` | 空 |
+| `RAG_INGEST_CONSUMER_METHOD` | consumer 方法名 | `handle` |
 
 ### Meilisearch
 

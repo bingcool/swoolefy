@@ -13,7 +13,7 @@ use Swoolefy\Support\Rag\Factory\RagFactory;
  * 技术要点：
  * - 入库与检索共用 {@see RagFactory}，保证 VectorStore / Embeddings 一致
  * - embedDocuments 由 Neuron EmbeddingsProvider 批量向量化（内部逐条 embedDocument）
- * - 大批量场景应走 {@see RagIngestNode} + AsyncTask，避免阻塞 Swoole Worker
+ * - 大批量场景应走 {@see RagIngestDispatcher} 的 queue 模式，避免阻塞 Swoole Worker
  * - RAG 上下文写入 VectorStore，不写入 ChatHistory（与 Memory 分离）
  *
  * @see docs/swoolefyAI.md §4.10.5

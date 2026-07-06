@@ -1806,7 +1806,7 @@ php script.php start App --c=gen:sdk --router=App/Router --out=../generate-sdk-l
 | AI | `src/Support/AI/` | AINode、流式 SSE/WebSocket、StructuredOutput、节点超时 |
 | Agent | `src/Support/Agent/` | Static / Rule / LLM / CostAware / RoundRobin 路由 |
 | Neuron | `src/Support/Neuron/` | LLM 工厂、Redis/SQL 记忆、Embedding fail-fast、URL 校验 |
-| RAG | `src/Support/Rag/` | 向量库、同步入库 Pipeline、显式 tenantId、别名 fail-fast |
+| RAG | `src/Support/Rag/` | 向量库、同步/队列入库 Dispatcher、显式 tenantId、别名 fail-fast |
 | MCP | `src/Support/Mcp/` | HTTP/SSE MCP、DB 多租户、stdio 生产禁用 |
 
 #### 配置与装配

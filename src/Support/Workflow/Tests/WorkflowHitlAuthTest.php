@@ -24,6 +24,7 @@ use Swoolefy\Support\Workflow\Exception\WorkflowPermissionException;
 use Swoolefy\Support\Workflow\Node\ClosureNode;
 use Swoolefy\Support\Workflow\Node\PauseNode;
 use Swoolefy\Support\Workflow\Plugin\PluginManager;
+use Swoolefy\Support\Workflow\Plugin\Builtin\RateLimitPlugin;
 use Swoolefy\Support\Workflow\Plugin\PluginRegistry;
 use Swoolefy\Support\Workflow\Plugin\WorkflowPluginInterface;
 use Swoolefy\Support\Workflow\Condition\ConditionEvaluatorFactory;
@@ -404,6 +405,38 @@ function testResumeDoesNotFireRunCompleteWhileWaiting(): void
     pass('resume run complete aligned with start');
 }
 
+function testCancelWaitingFiresRunCompleteAndReleasesRateLimit(): void
+{
+    $registry = new WorkflowRegistry();
+    $registry->register('hitl', static fn () => WorkflowDefinition::create('hitl', '1.0.0')
+        ->addNode('start', new ClosureNode('start', static fn () => NodeExecutionResult::success()))
+        ->addNode('pause', new PauseNode('pause', ['assignee' => 'ops']))
+        ->addEdge('start', 'pause'));
+
+    $compiled = WorkflowComponentFactory::compiler(WorkflowConfig::fromArray([]))
+        ->compile($registry->definition('hitl'));
+
+    $rateLimit = RateLimitPlugin::make(1);
+    $counter = new RunCompleteCounterPlugin();
+    $engine = new WorkflowEngine(
+        plugins: new PluginManager([$rateLimit, $counter]),
+        scheduler: new DagScheduler(ConditionEvaluatorFactory::create('symfony')),
+        runStore: new InMemoryRunStore(),
+    );
+
+    $runId = $engine->start($compiled, []);
+    assertTrue($engine->getRun($runId)->status === RunStatus::WAITING, 'waiting before cancel');
+    assertTrue($rateLimit->activeRuns() === 1, 'waiting run holds rate limit slot');
+    assertTrue($counter->count === 0, 'waiting has not completed');
+
+    $engine->cancel($runId);
+    assertTrue($engine->getRun($runId)->status === RunStatus::CANCELLED, 'cancelled waiting run');
+    assertTrue($rateLimit->activeRuns() === 0, 'cancel releases rate limit slot');
+    assertTrue($counter->count === 1, 'cancel waiting fires run complete once');
+
+    pass('cancel waiting releases rate limit');
+}
+
 function testWorkflowRunPresenterRedactsDetailsByDefault(): void
 {
     $definition = WorkflowDefinition::create('secure_status', '1.0.0')
@@ -452,6 +485,7 @@ $tests = [
     'resume cas prevents double resume' => 'testResumeCasPreventsDoubleResume',
     'resume cas persist clears pause node id' => 'testResumeCasPersistClearsPauseNodeId',
     'resume run complete aligned with start' => 'testResumeDoesNotFireRunCompleteWhileWaiting',
+    'cancel waiting releases rate limit' => 'testCancelWaitingFiresRunCompleteAndReleasesRateLimit',
     'workflow run presenter redacts details' => 'testWorkflowRunPresenterRedactsDetailsByDefault',
     'db run store saveIfStatus' => 'testDbRunStoreSaveIfStatus',
 ];

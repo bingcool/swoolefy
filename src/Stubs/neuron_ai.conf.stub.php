@@ -28,6 +28,21 @@ return [
         'allow_fake_embeddings' => NeuronAiRagEnv::allowFakeEmbeddings(),
         // 生产 true：RAG 知识库与 Redis ChatHistory 按 x-tenant-id 隔离；单测可 RAG_REQUIRE_TENANT_ISOLATION=0
         'require_tenant_isolation' => NeuronAiRagEnv::requireTenantIsolation(),
+        // 大批量 RAG 入库可切换为 queue，将标准 RagIngestJob 交给业务队列 producer。
+        // consumer 侧收到 Job 后调用配置的 handler，并复用 Support 的 IngestionPipeline。
+        'ingestion' => [
+            'mode' => env('RAG_INGEST_MODE', 'sync'), // sync | queue
+            'queue' => [
+                'producer' => [
+                    'class' => env('RAG_INGEST_PRODUCER_CLASS', ''),
+                    'method' => env('RAG_INGEST_PRODUCER_METHOD', 'push'),
+                ],
+                'consumer' => [
+                    'class' => env('RAG_INGEST_CONSUMER_CLASS', ''),
+                    'method' => env('RAG_INGEST_CONSUMER_METHOD', 'handle'),
+                ],
+            ],
+        ],
         // 已声明的向量库表：key = 别名；可选 driver（缺省时别名即驱动类型 NeuronAiVectorStoreName::*）
         // 业务指定：VectorStoreFactory::make($kb, storeAlias: 'milvus') 或节点配置 vectorStore
         'vector_stores' => [

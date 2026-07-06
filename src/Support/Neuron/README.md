@@ -72,6 +72,11 @@ NeuronFactory::create / boot
 | `NEURON_ALLOW_FAKE_EMBEDDINGS` | 无 API Key 时是否允许 FakeEmbeddings（`1`/`true` 开启）；**生产须为 false** | `false` |
 | `RAG_REQUIRE_TENANT_ISOLATION` | 是否强制多租户隔离：RAG 知识库前缀 `{tenantId}_{kb}`、Redis ChatHistory key 含 tenant；无 tenant 时 fail-fast（`1`/`true` 开启）；**生产须为 true** | `true` |
 | `NEURON_TENANT_ID` | CLI 入库 / 脚本场景的 tenant（等同 HTTP `x-tenant-id`；RAG CLI 亦支持 `--tenant-id=`） | 空 |
+| `RAG_INGEST_MODE` | RAG 入库模式：`sync` 同步写入；`queue` 调配置化 producer 写队列 | `sync` |
+| `RAG_INGEST_PRODUCER_CLASS` | 队列 producer 类名，方法接收 `RagIngestJob` | 空 |
+| `RAG_INGEST_PRODUCER_METHOD` | producer 方法名 | `push` |
+| `RAG_INGEST_CONSUMER_CLASS` | 队列 consumer 类名，方法接收 `RagIngestJob, IngestionPipeline` | 空 |
+| `RAG_INGEST_CONSUMER_METHOD` | consumer 方法名 | `handle` |
 
 ### Meilisearch（`vector_stores.meilisearch`）
 

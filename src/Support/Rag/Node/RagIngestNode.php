@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Swoolefy\Support\Rag\Node;
 
 use Swoolefy\Support\Rag\Ingestion\IngestionPipeline;
-use Swoolefy\Support\Rag\Ingestion\StringDocumentLoader;
+use Swoolefy\Support\Rag\Ingestion\RagIngestDispatcher;
 use Swoolefy\Support\Workflow\Engine\NodeExecutionResult;
 use Swoolefy\Support\Workflow\Engine\RunContext;
 use Swoolefy\Support\Workflow\Node\AbstractNode;
@@ -14,10 +14,10 @@ use Swoolefy\Support\Workflow\State\WorkflowState;
 /**
  * RAG 文档入库工作流节点。
  *
- * 从 WorkflowState 读取文本列表，经 Embedding + VectorStore 同步写入知识库。
+ * 从 WorkflowState 读取文本列表，经入库 Dispatcher 处理。
  *
- * Phase A 变更：移除 RAG_INGEST_ASYNC 异步分支，所有入库均在节点内同步完成
- * （大批量场景应使用离线 CLI：Support/Rag/Console/ingest_documents.php）。
+ * 默认 mode=sync 时保持旧行为：节点内同步 embed + 写 VectorStore。
+ * mode=queue 时只提交 RagIngestJob 给配置化 producer，后台 consumer 再调用入库管线。
  *
  * 配置项：
  *   knowledgeBase — 目标知识库（VectorStore index / 目录 / collection 名）
@@ -41,6 +41,7 @@ final class RagIngestNode extends AbstractNode
         string $nodeId,
         private readonly array $config,
         private readonly IngestionPipeline $pipeline,
+        private readonly ?RagIngestDispatcher $dispatcher = null,
     ) {
         parent::__construct($nodeId);
     }
@@ -66,8 +67,10 @@ final class RagIngestNode extends AbstractNode
             ]);
         }
 
-        $documents = StringDocumentLoader::fromTexts($texts);
-        $result = $this->pipeline->ingest($knowledgeBase, $documents, $storeAlias, $tenantId);
+        $result = $this->ingestDispatcher()->ingestTexts($knowledgeBase, $texts, $storeAlias, $tenantId, [
+            'runId' => $ctx->runId,
+            'nodeId' => $this->nodeId,
+        ]);
         $state->set('ingestedCount', $result->documentCount);
 
         return NodeExecutionResult::success(
@@ -108,6 +111,12 @@ final class RagIngestNode extends AbstractNode
         }
 
         return $texts;
+    }
+
+    /** 当前节点使用的入库调度器；未显式注入时按 neuron_ai.php 配置创建。 */
+    private function ingestDispatcher(): RagIngestDispatcher
+    {
+        return $this->dispatcher ?? RagIngestDispatcher::fromConfig($this->pipeline);
     }
 
     /**

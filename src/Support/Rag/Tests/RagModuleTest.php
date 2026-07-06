@@ -19,6 +19,11 @@ use Swoolefy\Support\Neuron\NeuronAiConfig;
 use Swoolefy\Support\Neuron\NeuronAiVectorStoreName;
 use Swoolefy\Support\Rag\Factory\RagFactory;
 use Swoolefy\Support\Rag\Factory\VectorStoreFactory;
+use Swoolefy\Support\Rag\Ingestion\ConfigurableRagIngestQueue;
+use Swoolefy\Support\Rag\Ingestion\IngestResult;
+use Swoolefy\Support\Rag\Ingestion\IngestionPipeline;
+use Swoolefy\Support\Rag\Ingestion\RagIngestDispatcher;
+use Swoolefy\Support\Rag\Ingestion\RagIngestJob;
 use Swoolefy\Support\Rag\Node\RagIngestNode;
 use Swoolefy\Support\Rag\Node\RagRetrieveNode;
 use Swoolefy\Support\Rag\Retrieval\RetrievalService;
@@ -33,6 +38,30 @@ use Swoolefy\Support\Workflow\WorkflowComponentFactory;
 use Swoolefy\Support\Workflow\WorkflowConfig;
 
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
+
+final class TestRagIngestProducer
+{
+    /** @var list<array<string, mixed>> */
+    public static array $jobs = [];
+
+    public function push(RagIngestJob $job): void
+    {
+        self::$jobs[] = $job->toArray();
+    }
+}
+
+final class TestRagIngestConsumer
+{
+    public function handle(RagIngestJob $job, IngestionPipeline $pipeline): IngestResult
+    {
+        return $pipeline->ingestTexts(
+            $job->knowledgeBase,
+            $job->texts,
+            storeAlias: $job->vectorStore,
+            tenantId: $job->tenantId,
+        );
+    }
+}
 
 function assertTrue(bool $condition, string $message): void
 {
@@ -203,6 +232,62 @@ function testRagNodesPassTenantIdFromState(): void
     assertTrue(is_array($docs) && count($docs) >= 1, 'node retrieve ok with state tenant');
 }
 
+function testRagIngestDispatcherQueueMode(): void
+{
+    TestRagIngestProducer::$jobs = [];
+    $path = sys_get_temp_dir() . '/swoolefy_rag_queue_' . getmypid();
+    $config = NeuronAiConfig::fromArray([
+        'rag' => [
+            'default_vector_store' => NeuronAiVectorStoreName::FILE,
+            'allow_fake_embeddings' => true,
+            'require_tenant_isolation' => true,
+            'ingestion' => [
+                'mode' => RagIngestDispatcher::MODE_QUEUE,
+                'queue' => [
+                    'producer' => [
+                        'class' => TestRagIngestProducer::class,
+                        'method' => 'push',
+                    ],
+                    'consumer' => [
+                        'class' => TestRagIngestConsumer::class,
+                        'method' => 'handle',
+                    ],
+                ],
+            ],
+            'vector_stores' => [
+                NeuronAiVectorStoreName::FILE => ['path' => $path],
+            ],
+        ],
+    ]);
+    $rag = new RagFactory(new VectorStoreFactory($config, $path), new EmbeddingFactory($config));
+    $pipeline = $rag->ingestionPipeline();
+    $dispatcher = RagIngestDispatcher::fromConfig($pipeline, $config);
+
+    $result = $dispatcher->ingestTexts(
+        'queue_kb',
+        ['Queued RAG ingest document.'],
+        tenantId: 'tenant_queue',
+        metadata: ['traceId' => 'trace-queue-1'],
+    );
+
+    assertTrue($result->status === 'queued', 'queued result');
+    assertTrue($result->jobId !== null, 'job id returned');
+    assertTrue(count(TestRagIngestProducer::$jobs) === 1, 'producer received job');
+    assertTrue((TestRagIngestProducer::$jobs[0]['tenantId'] ?? '') === 'tenant_queue', 'tenant in job');
+    assertTrue((TestRagIngestProducer::$jobs[0]['metadata']['traceId'] ?? '') === 'trace-queue-1', 'metadata in job');
+
+    // 模拟从队列中获取job
+    $job = RagIngestJob::fromArray(TestRagIngestProducer::$jobs[0]);
+    $ingestion = (array) ($config->ragSection()['ingestion'] ?? []);
+    $queueConfig = $ingestion['queue'] ?? [];
+    // 模拟消费处理job入库
+    $consumed = (new ConfigurableRagIngestQueue(is_array($queueConfig) ? $queueConfig : []))->consume($job, $pipeline);
+    assertTrue($consumed->documentCount === 1, 'consumer ingests one document');
+
+    $hits = (new RetrievalService($rag))->retrieve('queue_kb', 'Queued RAG', 3, tenantId: 'tenant_queue');
+    assertTrue(count($hits) >= 1, 'queued document is retrievable after consume');
+}
+
 function testRagFactoryRetrievalInterface(): void
 {
     $rag = makeRagFactory();
@@ -320,6 +405,7 @@ $tests = [
     'ingest empty' => 'testIngestEmptyReturnsZero',
     'ingest documents' => 'testIngestDocumentsDirectly',
     'rag nodes tenant from state' => 'testRagNodesPassTenantIdFromState',
+    'rag ingest dispatcher queue mode' => 'testRagIngestDispatcherQueueMode',
     'rag factory retrieval' => 'testRagFactoryRetrievalInterface',
     'milvus make params' => 'testMilvusVectorStoreMakeParams',
     'milvus filter expr escapes quotes' => 'testMilvusFilterExprEscapesQuotes',

@@ -50,6 +50,33 @@ final class NeuronAiConfig
     }
 
     /** @return array<string, mixed> */
+    public function ragIngestionSection(): array
+    {
+        return (array) ($this->ragSection()['ingestion'] ?? []);
+    }
+
+    /** RAG 入库模式：sync 保持旧行为；queue 调用配置化 producer。 */
+    public function ragIngestMode(): string
+    {
+        $mode = strtolower(ApplicationConfig::pickStringEnvFirst(
+            $this->ragIngestionSection(),
+            'mode',
+            'RAG_INGEST_MODE',
+            'sync',
+        ));
+
+        return in_array($mode, ['sync', 'queue'], true) ? $mode : 'sync';
+    }
+
+    /** @return array<string, mixed> */
+    public function ragIngestQueueConfig(): array
+    {
+        $queue = $this->ragIngestionSection()['queue'] ?? [];
+
+        return is_array($queue) ? $queue : [];
+    }
+
+    /** @return array<string, mixed> */
     public function mcpSection(): array
     {
         return (array) ($this->config['mcp'] ?? []);

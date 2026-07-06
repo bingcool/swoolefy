@@ -229,6 +229,9 @@ final class WorkflowEngine
                 );
             }
 
+            // WAITING Run 在 start/resume 时不会触发 run.complete；取消后进入终态，必须释放插件资源。
+            $this->plugins->fireRunComplete($run);
+
             return;
         }
 
