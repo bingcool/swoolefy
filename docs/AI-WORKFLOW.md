@@ -168,7 +168,7 @@ Test 项目参考：`Test/Module/Workflow/WorkflowService.php`（注册全部示
 | GET | `/v1/workflow/run/events` | SSE 流式事件 |
 | POST | `/v1/agent/chat` | Agent 对话 `{ message, sessionId, userId }` |
 | GET | `/v1/mcp/servers` | MCP 服务列表（`?tenantId=`） |
-| GET | `/v1/mcp/servers/{id}/tools` | MCP 工具发现 |
+| GET | `/v1/mcp/servers/tools` | MCP 工具发现（`?server_id=&tenantId=`） |
 
 ### 启动示例
 

@@ -188,7 +188,7 @@ function testPermissionPlugin(): void
 function testMcpFactoryListServers(): void
 {
     WorkflowService::reset();
-    $servers = WorkflowService::mcpFactory()->listServers('tenant_a');
+    $servers = WorkflowService::mcpFactory()->listServers();
     assertTrue(count($servers) >= 1, 'should list mcp servers');
 }
 

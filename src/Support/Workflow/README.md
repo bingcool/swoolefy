@@ -308,7 +308,7 @@ GET  /api/v1/workflow/pause/tasks?assignee=
 GET  /api/v1/workflow/run/events?runId=     # SSE
 POST /api/v1/agent/chat
 GET  /api/v1/mcp/servers
-GET  /api/v1/mcp/servers/{id}/tools?tenantId=
+GET  /api/v1/mcp/servers/tools?server_id=&tenantId=
 ```
 
 控制器：`Test/Module/Workflow/Controller/WorkflowController.php`、`Test/Module/Agent/Controller/AgentChatController.php`。

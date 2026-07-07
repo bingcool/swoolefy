@@ -8,10 +8,10 @@ namespace Swoolefy\Support\Mcp;
  * MCP Server 配置 DTO —— 对应生产表 mcp_server_configs 一行。
  *
  * 字段映射：
- *   id        → Server 唯一标识（Agent mcpServers / API 路径参数）
- *   tenantId  → 多租户隔离；null 表示全局共享
- *   config    → 原样传给 Neuron McpConnector::make()
- *   enabled   → false 时 find/list 跳过
+ *   server_id   → Server 唯一标识（Agent mcpServers / API 路径参数）
+ *   config      → 原样传给 Neuron McpConnector::make()
+ *   enabled     → false 时 find/list 跳过
+ *   description → 运维备注
  *
  * Neuron MCP 配置约定：
  *   - 本地 stdio：['command' => 'php', 'args' => ['/path/server.php']]
@@ -23,15 +23,13 @@ namespace Swoolefy\Support\Mcp;
 final class McpServerConfig
 {
     /**
-     * @param string               $id          Server ID
-     * @param string|null          $tenantId    租户 ID，null 为全局
+     * @param string               $server_id   Server ID（对应表字段 server_id）
      * @param array<string, mixed> $config      Neuron 配置（url+token 或 command+args）
      * @param bool                 $enabled     是否启用
      * @param string|null          $description 运维备注
      */
     public function __construct(
-        public readonly string $id,
-        public readonly ?string $tenantId,
+        public readonly string $server_id,
         public readonly array $config,
         public readonly bool $enabled = true,
         public readonly ?string $description = null,
@@ -48,8 +46,7 @@ final class McpServerConfig
         $config = self::maskSensitiveConfig($this->config);
 
         return [
-            'id' => $this->id,
-            'tenantId' => $this->tenantId,
+            'server_id' => $this->server_id,
             'enabled' => $this->enabled,
             'description' => $this->description,
             'transport' => self::detectTransport($this->config),

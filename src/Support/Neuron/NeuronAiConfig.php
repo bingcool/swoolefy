@@ -523,6 +523,17 @@ final class NeuronAiConfig
         );
     }
 
+    /** MCP DB 仓储组件别名（mcp.db_component / MCP_DATABASE_COMPONENT）。 */
+    public function mcpDbComponent(): string
+    {
+        return ApplicationConfig::pickStringEnvFirst(
+            $this->mcpSection(),
+            'db_component',
+            NeuronAiMcpEnv::DATABASE_COMPONENT,
+            'db',
+        );
+    }
+
     /** @return list<string> */
     public function mcpStdioCommandAllowlist(): array
     {

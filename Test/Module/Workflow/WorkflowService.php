@@ -333,8 +333,7 @@ final class WorkflowService
         if (self::$mcpRepository === null) {
             self::$mcpRepository = new InMemoryMcpServerConfigRepository();
             self::$mcpRepository->upsert(new McpServerConfig(
-                id: 'demo_http',
-                tenantId: 'tenant_a',
+                server_id: 'demo_http',
                 config: ['transport' => 'disabled', 'name' => 'demo_http'],
                 description: 'Demo MCP server (disabled stub)',
             ));

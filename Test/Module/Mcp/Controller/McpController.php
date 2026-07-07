@@ -18,12 +18,11 @@ use Test\Module\Workflow\WorkflowService;
  *
  * 路由：
  *   GET /api/v1/mcp/servers?tenantId=
- *   GET /api/v1/mcp/servers/{id}/tools?tenantId=
+ *   GET /api/v1/mcp/servers/tools?server_id=&tenantId=
  *
- * 多租户：
- *   Query tenantId 优先；未传时使用 FrameworkContext::getTenantId()。
- *   McpFactory 解析顺序：DB 租户行 → DB 全局行 → neuron_ai.php 静态 servers。
- *   DB 仓储须预执行 Schema/mcp_server_configs.sql。
+ * MCP 配置为全局基础配置（mcp_server_configs.server_id 唯一）；
+ * Query tenantId 仅回显请求上下文，不参与 MCP 配置解析。
+ * DB 仓储须预执行 Schema/mcp_server_configs.sql。
  *
  * 安全（生产）：
  *   stdio MCP 默认禁用（MCP_ALLOW_STDIO=0）；出站 url 受 security.outbound_url_allowlist 约束。
@@ -43,28 +42,28 @@ final class McpController extends BController
 
         return [
             'tenantId' => $tenantId,
-            'servers' => WorkflowService::mcpFactory()->listServers($tenantId),
+            'servers' => WorkflowService::mcpFactory()->listServers(),
         ];
     }
 
     /**
      * 发现指定 Server 的工具名列表。
      *
-     * GET /api/v1/mcp/servers/{id}/tools?tenantId=
+     * GET /api/v1/mcp/servers/tools?server_id=&tenantId=
      */
     public function tools(RequestInput $requestInput): array
     {
-        $serverId = (string) $requestInput->input('id', '');
+        $serverId = (string) $requestInput->input('server_id', '');
         if ($serverId === '') {
-            return $this->returnJson([], 400, 'id is required');
+            return $this->returnJson([], 400, 'server_id is required');
         }
 
         $tenantId = $this->resolveTenantId($requestInput);
 
         return [
-            'serverId' => $serverId,
+            'server_id' => $serverId,
             'tenantId' => $tenantId,
-            'tools' => WorkflowService::mcpFactory()->listToolNames($serverId, $tenantId),
+            'tools' => WorkflowService::mcpFactory()->listToolNames($serverId),
         ];
     }
 

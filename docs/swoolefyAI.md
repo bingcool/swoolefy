@@ -1461,7 +1461,7 @@ Body: { "knowledgeBase": "product_kb", "query": "门框尺寸", "topK": 5 }
      → { "documents": [{ "content": "...", "score": 0.92 }] }
 
 GET  /api/v1/mcp/servers              → 已配置 Server 列表（脱敏）
-GET  /api/v1/mcp/servers/{id}/tools   → 工具发现（运维/调试，Phase 4）
+GET  /api/v1/mcp/servers/tools          → 工具发现（?server_id=，运维/调试，Phase 4）
 ```
 
 响应可含 `nodeOutputs`、**`lastRoutedEdge`**（条件边选中的 target）。

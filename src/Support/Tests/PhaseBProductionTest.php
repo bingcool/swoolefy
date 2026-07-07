@@ -184,12 +184,11 @@ function testAgentParallelNodeTimeoutInterface(): void
     pass('agent parallel node timeout');
 }
 
-function testMcpTenantRepositoryOverridesStatic(): void
+function testMcpRepositoryOverridesStatic(): void
 {
     $repo = new InMemoryMcpServerConfigRepository();
     $repo->upsert(new McpServerConfig(
-        id: 'docs',
-        tenantId: 'tenant_a',
+        server_id: 'docs',
         config: ['transport' => 'http', 'url' => 'https://api.openai.com/mcp'],
     ));
 
@@ -200,10 +199,10 @@ function testMcpTenantRepositoryOverridesStatic(): void
         stdioGuard: new McpStdioGuard(false, []),
     );
 
-    $config = $factory->connector('docs', 'tenant_a');
+    $config = $factory->connector('docs');
     assertTrue($config !== null, 'connector created');
 
-    pass('mcp tenant repository overrides static');
+    pass('mcp repository overrides static');
 }
 
 function testDbMcpRepository(): void
@@ -213,29 +212,28 @@ function testDbMcpRepository(): void
     $repo->list(); // trigger autoMigrate
 
     $stmt = $pdo->prepare(
-        "INSERT INTO mcp_server_configs (server_id, tenant_id, config_json, enabled)
-         VALUES ('db_docs', 't1', :json, 1)",
+        "INSERT INTO mcp_server_configs (server_id, config_json, enabled)
+         VALUES ('db_docs', :json, 1)",
     );
     $stmt->execute([':json' => json_encode(['transport' => 'disabled', 'name' => 'db_docs'])]);
 
-    $found = $repo->find('db_docs', 't1');
+    $found = $repo->find('db_docs');
     assertTrue($found !== null, 'found in db');
-    assertTrue($found->id === 'db_docs', 'id match');
+    assertTrue($found->server_id === 'db_docs', 'server_id match');
 
     pass('db mcp repository');
 }
 
-function testNeuronFactoryPassesTenantId(): void
+function testNeuronFactoryLoadsMcpFromRepository(): void
 {
     $repo = new InMemoryMcpServerConfigRepository();
     $repo->upsert(new McpServerConfig(
-        id: 'tenant_tool',
-        tenantId: 't99',
-        config: ['transport' => 'disabled', 'name' => 'tenant_tool'],
+        server_id: 'mcp_tool',
+        config: ['transport' => 'disabled', 'name' => 'mcp_tool'],
     ));
 
     $factory = new McpFactory(repository: $repo);
-    assertTrue(in_array('tenant_tool', $factory->serverNames('t99'), true), 'tenant server listed');
+    assertTrue(in_array('mcp_tool', $factory->serverNames(), true), 'repository server listed');
 
     $neuron = new NeuronFactory(
         mcpFactory: $factory,
@@ -245,12 +243,12 @@ function testNeuronFactoryPassesTenantId(): void
     };
 
     $booted = $neuron->create($agentClass::class, new WorkflowState(), [
-        'mcpServers' => ['tenant_tool'],
+        'mcpServers' => ['mcp_tool'],
         'tenantId' => 't99',
     ]);
-    assertTrue($booted instanceof \NeuronAI\Agent\Agent, 'agent booted with tenant mcp');
+    assertTrue($booted instanceof \NeuronAI\Agent\Agent, 'agent booted with mcp from repository');
 
-    pass('neuron factory passes tenant id');
+    pass('neuron factory loads mcp from repository');
 }
 
 function testStdioMcpDisabledInProduction(): void
@@ -550,8 +548,8 @@ $tests = [
     'snapshot rejects missing version' => 'testSnapshotRejectsMissingVersion',
     'workflow default node timeout' => 'testWorkflowDefaultNodeTimeout',
     'agent parallel node timeout' => 'testAgentParallelNodeTimeoutInterface',
-    'mcp tenant repository overrides static' => 'testMcpTenantRepositoryOverridesStatic',
-    'neuron factory passes tenant id' => 'testNeuronFactoryPassesTenantId',
+    'mcp repository overrides static' => 'testMcpRepositoryOverridesStatic',
+    'neuron factory loads mcp from repository' => 'testNeuronFactoryLoadsMcpFromRepository',
     'stdio mcp disabled' => 'testStdioMcpDisabledInProduction',
     'stdio command allowlist' => 'testStdioCommandAllowlist',
     'outbound url blocks private' => 'testOutboundUrlBlocksPrivateNetwork',

@@ -361,8 +361,8 @@ Route::group([
         'dispatch_route' => [\Test\Module\Mcp\Controller\McpController::class, 'servers'],
     ]);
 
-    // GET /api/v1/mcp/servers/{id}/tools?tenantId= — 发现 Tools
-    Route::get('/v1/mcp/servers/{id}/tools', [
+    // GET /api/v1/mcp/servers/tools?server_id=&tenantId= — 发现 Tools
+    Route::get('/v1/mcp/servers/tools', [
         'dispatch_route' => [\Test\Module\Mcp\Controller\McpController::class, 'tools'],
     ]);
 

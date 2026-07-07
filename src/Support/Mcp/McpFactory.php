@@ -15,10 +15,9 @@ use Swoolefy\Support\SupportLog;
  * 职责：解析配置 → 安全校验 → 创建 McpConnector → 发现 Tools。
  *
  * 配置解析优先级（{@see resolveConfig()}）：
- *   1. Repository 租户专属（tenantId 非空）
- *   2. Repository 全局（tenant_id 空）
- *   3. 构造函数静态 $servers map
- *   4. 均未命中 → disabled stub（不抛错，tools() 返回空）
+ *   1. Repository 行（mcp_server_configs 全局基础配置）
+ *   2. 构造函数静态 $servers map
+ *   3. 均未命中 → disabled stub（不抛错，tools() 返回空）
  *
  * Neuron MCP 映射：
  *   - command + args：本地 stdio MCP（生产默认禁用，需 allowlist）
@@ -59,12 +58,12 @@ final class McpFactory
      *
      * @return list<string>
      */
-    public function serverNames(?string $tenantId = null): array
+    public function serverNames(): array
     {
         $names = array_keys($this->servers);
         if ($this->repository !== null) {
-            foreach ($this->repository->list($tenantId) as $config) {
-                $names[] = $config->id;
+            foreach ($this->repository->list() as $config) {
+                $names[] = $config->server_id;
             }
         }
 
@@ -76,9 +75,9 @@ final class McpFactory
      *
      * 未命中配置时返回 transport=disabled 的 stub，调用方不会抛错。
      */
-    public function connector(string $name, ?string $tenantId = null): McpConnector
+    public function connector(string $name): McpConnector
     {
-        $config = $this->resolveConfig($name, $tenantId);
+        $config = $this->resolveConfig($name);
         if ($config === []) {
             return McpConnector::make(['transport' => 'disabled', 'name' => $name]);
         }
@@ -97,6 +96,7 @@ final class McpFactory
      * @param list<string>                         $names
      * @param array<string, list<string>>|null     $only    按 server 过滤 tool 名；对应 Neuron McpConnector::only()
      * @param array<string, list<string>>|null     $exclude 按 server 排除 tool 名；对应 Neuron McpConnector::exclude()
+     * @param string|null                          $tenantId 仅用于日志上下文（请求 tenant），不参与配置解析
      *
      * @return list<ToolInterface>
      */
@@ -108,7 +108,7 @@ final class McpFactory
                 continue;
             }
 
-            $config = $this->resolveConfig($name, $tenantId);
+            $config = $this->resolveConfig($name);
             $isLocal = McpProcessRunner::isLocalStdioConfig($config);
             $runner = $this->processRunner;
 
@@ -121,7 +121,7 @@ final class McpFactory
                     $runner->acquire($name);
                 }
 
-                $connector = $this->connector($name, $tenantId);
+                $connector = $this->connector($name);
                 if ($only !== null && isset($only[$name]) && is_array($only[$name])) {
                     $toolNames = $this->normalizeToolFilter($only[$name]);
                     if ($toolNames !== []) {
@@ -136,7 +136,6 @@ final class McpFactory
                 }
                 $tools = [...$tools, ...$connector->tools()];
             } catch (\Throwable $e) {
-                // Phase A：失败打日志，不再静默吞掉
                 SupportLog::warning('mcp', 'Failed to load MCP tools', [
                     'server' => $name,
                     'tenantId' => $tenantId,
@@ -160,33 +159,32 @@ final class McpFactory
      *
      * @return list<array<string, mixed>>
      */
-    public function listServers(?string $tenantId = null): array
+    public function listServers(): array
     {
-        $byId = [];
+        $byServerId = [];
 
-        foreach ($this->serverNames($tenantId) as $name) {
-            $config = $this->resolveConfig($name, $tenantId);
-            $byId[$name] = [
-                'id' => $name,
-                'tenantId' => $tenantId,
+        foreach ($this->serverNames() as $name) {
+            $config = $this->resolveConfig($name);
+            $byServerId[$name] = [
+                'server_id' => $name,
                 'transport' => McpServerConfig::detectTransport($config),
                 'enabled' => $config !== [] && (($config['transport'] ?? '') !== 'disabled'),
             ];
         }
 
         if ($this->repository !== null) {
-            foreach ($this->repository->list($tenantId) as $row) {
-                $byId[$row->id] = $row->toPublicArray();
+            foreach ($this->repository->list() as $row) {
+                $byServerId[$row->server_id] = $row->toPublicArray();
             }
         }
 
-        return array_values($byId);
+        return array_values($byServerId);
     }
 
     /** @return list<string> tool 名称列表 */
-    public function listToolNames(string $name, ?string $tenantId = null): array
+    public function listToolNames(string $name): array
     {
-        $tools = $this->tools([$name], tenantId: $tenantId);
+        $tools = $this->tools([$name]);
 
         return array_map(static fn (ToolInterface $tool): string => $tool->getName(), $tools);
     }
@@ -207,9 +205,6 @@ final class McpFactory
 
     /**
      * 归一化 only/exclude 工具名列表。
-     *
-     * Neuron Connector 期望 string[]；配置来自 DB/API 时可能混入空值或非字符串，
-     * 这里先收敛成干净的 list，避免把脏配置传入底层 SDK。
      *
      * @param array<mixed> $tools
      *
@@ -232,25 +227,15 @@ final class McpFactory
      *
      * @return array<string, mixed> 空数组表示未配置
      */
-    private function resolveConfig(string $name, ?string $tenantId): array
+    private function resolveConfig(string $name): array
     {
-        // 1. 租户专属 DB 行
-        if ($this->repository !== null && $tenantId !== null && $tenantId !== '') {
-            $row = $this->repository->find($name, $tenantId);
+        if ($this->repository !== null) {
+            $row = $this->repository->find($name);
             if ($row !== null && $row->enabled) {
                 return $row->config;
             }
         }
 
-        // 2. 全局 DB 行（tenant_id=''）
-        if ($this->repository !== null) {
-            $global = $this->repository->find($name, null);
-            if ($global !== null && $global->enabled) {
-                return $global->config;
-            }
-        }
-
-        // 3. 静态 neuron_ai.php / 构造注入
         if (isset($this->servers[$name]) && is_array($this->servers[$name])) {
             return $this->servers[$name];
         }

@@ -99,6 +99,8 @@ return [
         'max_local_processes' => 2,
         // 生产默认禁用 stdio MCP；开发可 MCP_ALLOW_STDIO=1 + allowlist
         'allow_stdio' => filter_var(env('MCP_ALLOW_STDIO', '0'), FILTER_VALIDATE_BOOLEAN),
+        // 对应 Config/component/database.php 组件别名
+        'db_component' => env(\Swoolefy\Support\Neuron\NeuronAiMcpEnv::DATABASE_COMPONENT, 'db'),
         'stdio_command_allowlist' => ['npx', 'node', 'uvx'],
     ],
     'security' => [

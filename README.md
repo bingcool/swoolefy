@@ -1858,6 +1858,7 @@ curl -X POST http://127.0.0.1:9501/api/v1/agent/chat \
 | `GET /api/v1/workflow/run/events` | SSE 流式事件 |
 | `POST /api/v1/agent/chat` | Agent 对话 |
 | `GET /api/v1/mcp/servers` | MCP 服务列表（`?tenantId=`） |
+| `GET /api/v1/mcp/servers/tools` | MCP 工具发现（`?server_id=&tenantId=`） |
 
 示例工作流：`order_processing`、`order_saga`、`multi_agent_research`、`contract_review`、`knowledge_qa`、`mcp_research`（见 `Test/Module/`）。
 

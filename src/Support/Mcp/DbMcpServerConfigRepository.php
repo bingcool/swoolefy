@@ -10,15 +10,7 @@ use RuntimeException;
 /**
  * 基于关系库的 MCP Server 配置仓储。
  *
- * 表结构见 Schema/mcp_server_configs.sql，主键 (server_id, tenant_id)。
- *
- * 租户模型：
- *   - tenant_id 非空 — 租户专属配置，McpFactory 在 tenantId 匹配时优先使用
- *   - tenant_id 空字符串 — 全局配置，对所有租户可见（优先级低于租户专属）
- *
- * list() 行为：
- *   - 传 tenantId — 返回该租户行 + 全局行（enabled=1）
- *   - 不传 tenantId — 返回全部 enabled 行
+ * 表结构见 Schema/mcp_server_configs.sql，server_id 唯一。
  *
  * @see McpFactory::resolveConfig()
  */
@@ -45,24 +37,15 @@ final class DbMcpServerConfigRepository implements McpServerConfigRepositoryInte
      *
      * @return list<McpServerConfig>
      */
-    public function list(?string $tenantId = null): array
+    public function list(): array
     {
         $this->ensureSchema();
 
-        if ($tenantId !== null && $tenantId !== '') {
-            // 租户上下文：专属 + 全局 fallback
-            $stmt = $this->pdo->prepare(
-                "SELECT server_id, tenant_id, config_json, enabled, description
-                 FROM {$this->table}
-                 WHERE enabled = 1 AND (tenant_id = :tenant_id OR tenant_id = '')",
-            );
-            $stmt->execute([':tenant_id' => $tenantId]);
-        } else {
-            $stmt = $this->pdo->query(
-                "SELECT server_id, tenant_id, config_json, enabled, description
-                 FROM {$this->table} WHERE enabled = 1",
-            );
-        }
+        $stmt = $this->pdo->query(
+            "SELECT server_id, config_json, enabled, description
+             FROM {$this->table}
+             WHERE enabled = 1 AND deleted_at IS NULL",
+        );
 
         $items = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -75,36 +58,17 @@ final class DbMcpServerConfigRepository implements McpServerConfigRepositoryInte
         return $items;
     }
 
-    /**
-     * 按 server_id + tenant 查找单条配置。
-     *
-     * 查找顺序（与 McpFactory 一致）：
-     *   1. tenantId 非空 → 查租户专属行
-     *   2. 查 tenant_id='' 的全局行
-     */
-    public function find(string $id, ?string $tenantId = null): ?McpServerConfig
+    /** 按 server_id 查找单条全局配置。 */
+    public function find(string $server_id): ?McpServerConfig
     {
         $this->ensureSchema();
 
-        if ($tenantId !== null && $tenantId !== '') {
-            $stmt = $this->pdo->prepare(
-                "SELECT server_id, tenant_id, config_json, enabled, description
-                 FROM {$this->table}
-                 WHERE server_id = :server_id AND tenant_id = :tenant_id LIMIT 1",
-            );
-            $stmt->execute([':server_id' => $id, ':tenant_id' => $tenantId]);
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            if (is_array($row)) {
-                return $this->rowToConfig($row);
-            }
-        }
-
         $stmt = $this->pdo->prepare(
-            "SELECT server_id, tenant_id, config_json, enabled, description
+            "SELECT server_id, config_json, enabled, description
              FROM {$this->table}
-             WHERE server_id = :server_id AND tenant_id = '' LIMIT 1",
+             WHERE server_id = :server_id AND deleted_at IS NULL LIMIT 1",
         );
-        $stmt->execute([':server_id' => $id]);
+        $stmt->execute([':server_id' => $server_id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         return is_array($row) ? $this->rowToConfig($row) : null;
@@ -128,12 +92,8 @@ final class DbMcpServerConfigRepository implements McpServerConfigRepositoryInte
             return null;
         }
 
-        $tenantId = (string) ($row['tenant_id'] ?? '');
-        $tenant = $tenantId === '' ? null : $tenantId;
-
         return new McpServerConfig(
-            id: (string) ($row['server_id'] ?? ''),
-            tenantId: $tenant,
+            server_id: (string) ($row['server_id'] ?? ''),
             config: $config,
             enabled: (bool) ($row['enabled'] ?? true),
             description: isset($row['description']) ? (string) $row['description'] : null,
@@ -166,23 +126,30 @@ final class DbMcpServerConfigRepository implements McpServerConfigRepositoryInte
             return [
                 "CREATE TABLE IF NOT EXISTS {$table} (
                     server_id TEXT NOT NULL,
-                    tenant_id TEXT NOT NULL DEFAULT '',
                     config_json TEXT NOT NULL,
                     enabled INTEGER NOT NULL DEFAULT 1,
                     description TEXT NULL,
-                    PRIMARY KEY (server_id, tenant_id)
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    deleted_at TEXT NULL,
+                    PRIMARY KEY (server_id)
                 )",
             ];
         }
 
         return [
             "CREATE TABLE IF NOT EXISTS `{$table}` (
+                `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
                 `server_id` VARCHAR(128) NOT NULL,
-                `tenant_id` VARCHAR(128) NOT NULL DEFAULT '',
                 `config_json` JSON NOT NULL,
                 `enabled` TINYINT(1) NOT NULL DEFAULT 1,
                 `description` VARCHAR(255) NULL,
-                PRIMARY KEY (`server_id`, `tenant_id`)
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                `deleted_at` DATETIME DEFAULT NULL,
+                PRIMARY KEY (`id`),
+                UNIQUE KEY `idx_mcp_server_configs_server_id` (`server_id`),
+                KEY `idx_mcp_server_configs_enabled_deleted` (`enabled`, `deleted_at`)
             )",
         ];
     }

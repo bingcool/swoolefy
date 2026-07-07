@@ -7,6 +7,7 @@ use NeuronAI\Providers\Deepseek\Deepseek;
 use NeuronAI\Providers\OpenAI\OpenAI;
 use NeuronAI\Providers\OpenAI\Responses\OpenAIResponses;
 use NeuronAI\Providers\OpenAILike;
+use Swoolefy\Support\Neuron\NeuronAiMcpEnv;
 use Swoolefy\Support\Neuron\NeuronAiModelEnv;
 use Swoolefy\Support\Neuron\NeuronAiProviderName;
 use Swoolefy\Support\Neuron\NeuronAiRagEnv;
@@ -95,6 +96,8 @@ return [
     'mcp' => [
         'max_local_processes' => 2,
         'allow_stdio' => true,
+        // 对应 Config/component/database.php 组件别名
+        'db_component' => env(NeuronAiMcpEnv::DATABASE_COMPONENT, 'db'),
         'stdio_command_allowlist' => ['npx', 'node', 'uvx'],
     ],
     'security' => [
