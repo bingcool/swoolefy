@@ -48,19 +48,18 @@ NeuronFactory::create / boot
 
 ### Provider Fallback
 
-默认 Provider 可配置为 Neuron 官方 `RouterProvider` fallback chain。启用后，`NeuronProviderFactory::createDefault()` 会按 `neuron.provider_fallback.order` 注册多个 Provider，并设置 `setFallbackOrder()`：
+默认 Provider 可配置为 Neuron 官方 `RouterProvider` fallback chain。`default_provider` 永远作为主用 Provider；`neuron.provider_fallback.order` 非空时启用 fallback，并只声明备用 Provider 顺序：
 
 ```php
 'neuron' => [
     'default_provider' => 'deepseek',
     'provider_fallback' => [
-        'enabled' => true,
-        'order' => ['deepseek', 'openai', 'anthropic'],
+        'order' => ['openai', 'anthropic'],
     ],
 ]
 ```
 
-环境变量 `NEURON_PROVIDER_FALLBACK_ENABLED=1` 可开启，`NEURON_PROVIDER_FALLBACK_ORDER=deepseek,openai,anthropic` 可覆盖顺序。Fallback 仅由 RouterProvider 默认策略处理瞬时错误（网络 / 超时、429、5xx）；鉴权错误、参数错误等确定性错误不会切换。`stream()` 只会在首个 chunk 输出前失败时切换，输出开始后的错误会原样抛出。子 Provider 仍通过构造参数注入 `NeuronHttpFactory::create()`；对 RouterProvider 调用 `setHttpClient()` 时，官方实现会转发给所有已注册 Provider。
+环境变量 `NEURON_PROVIDER_FALLBACK_ORDER=openai,anthropic` 可覆盖备用顺序；为空时不启用 RouterProvider。实际尝试顺序为 `default_provider` → `provider_fallback.order...`（自动去重）。Fallback 仅由 RouterProvider 默认策略处理瞬时错误（网络 / 超时、429、5xx）；鉴权错误、参数错误等确定性错误不会切换。`stream()` 只会在首个 chunk 输出前失败时切换，输出开始后的错误会原样抛出。子 Provider 仍通过构造参数注入 `NeuronHttpFactory::create()`；对 RouterProvider 调用 `setHttpClient()` 时，官方实现会转发给所有已注册 Provider。
 
 ### Embedding（Phase A）
 

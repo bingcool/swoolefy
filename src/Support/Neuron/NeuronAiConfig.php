@@ -727,19 +727,8 @@ final class NeuronAiConfig
         return is_array($section) ? $section : [];
     }
 
-    /** 是否启用 Neuron RouterProvider fallback chain。 */
-    public function providerFallbackEnabled(): bool
-    {
-        return ApplicationConfig::pickBoolEnvFirst(
-            $this->providerFallbackSection(),
-            'enabled',
-            'NEURON_PROVIDER_FALLBACK_ENABLED',
-            false,
-        );
-    }
-
     /**
-     * Provider fallback 顺序。为空且 enabled=true 时，由调用方使用 default_provider + ai_model_providers 顺序。
+     * Provider fallback 备用顺序。为空时不启用 RouterProvider。
      *
      * @return list<string>
      */

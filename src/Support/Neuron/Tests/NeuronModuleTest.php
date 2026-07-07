@@ -173,8 +173,7 @@ function sampleNeuronConfig(): NeuronAiConfig
             'http_client' => NeuronHttpFactory::CLIENT_GUZZLE,
             'default_provider' => NeuronAiProviderName::OPENAI,
             'provider_fallback' => [
-                'enabled' => false,
-                'order' => [NeuronAiProviderName::OPENAI],
+                'order' => [],
             ],
             'ai_model_providers' => [
                 NeuronAiProviderName::OPENAI => [
@@ -201,8 +200,7 @@ function testNeuronAiConfigReadsSections(): void
     assertTrue($config->defaultProviderName() === NeuronAiProviderName::OPENAI, 'default provider');
     assertTrue($config->httpClient() === NeuronHttpFactory::CLIENT_GUZZLE, 'http client');
     assertTrue($config->maxLocalProcesses() === 3, 'mcp processes');
-    assertTrue($config->providerFallbackEnabled() === false, 'provider fallback disabled');
-    assertTrue($config->providerFallbackOrder() === [NeuronAiProviderName::OPENAI], 'provider fallback order');
+    assertTrue($config->providerFallbackOrder() === [], 'provider fallback disabled by empty order');
 }
 
 function testProviderFactoryCreateFromAlias(): void
@@ -235,8 +233,7 @@ function fallbackNeuronConfig(int $primaryFailStatus = 429): NeuronAiConfig
             'http_client' => NeuronHttpFactory::CLIENT_GUZZLE,
             'default_provider' => 'primary',
             'provider_fallback' => [
-                'enabled' => true,
-                'order' => ['primary', 'secondary'],
+                'order' => ['secondary'],
             ],
             'ai_model_providers' => [
                 'primary' => [

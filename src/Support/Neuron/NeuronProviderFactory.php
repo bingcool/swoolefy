@@ -28,14 +28,15 @@ final class NeuronProviderFactory
     }
 
     /**
-     * 使用 default_provider 别名创建；缺凭证时依次尝试其他已配置 Provider。
-     * 均不可用时返回 null。
+     * 使用 default_provider 别名创建；配置 provider_fallback.order 时，以 default_provider 为主用，
+     * 瞬时错误时再按 order 交给 RouterProvider fallback。
      */
     public function createDefault(): ?AIProviderInterface
     {
         $config = $this->neuronConfig();
-        if ($config->providerFallbackEnabled()) {
-            return $this->createFallbackProvider($this->defaultProviderAliases($config));
+        $fallbackOrder = $config->providerFallbackOrder();
+        if ($fallbackOrder !== []) {
+            return $this->createFallbackProvider($this->fallbackProviderAliases($config, $fallbackOrder));
         }
 
         $aliases = $this->defaultProviderAliases($config);
@@ -62,11 +63,6 @@ final class NeuronProviderFactory
     {
         $aliases = [];
 
-        $fallbackOrder = $config->providerFallbackOrder();
-        if ($fallbackOrder !== []) {
-            return $fallbackOrder;
-        }
-
         $default = $config->defaultProviderName();
         if ($default !== '') {
             $aliases[] = $default;
@@ -76,6 +72,30 @@ final class NeuronProviderFactory
             $name = (string) $name;
             if ($name !== '' && !in_array($name, $aliases, true)) {
                 $aliases[] = $name;
+            }
+        }
+
+        return $aliases;
+    }
+
+    /**
+     * RouterProvider 候选顺序：default_provider 永远优先，order 只作为备用列表。
+     *
+     * @param list<string> $fallbackOrder
+     *
+     * @return list<string>
+     */
+    private function fallbackProviderAliases(NeuronAiConfig $config, array $fallbackOrder): array
+    {
+        $aliases = [];
+        $default = $config->defaultProviderName();
+        if ($default !== '') {
+            $aliases[] = $default;
+        }
+
+        foreach ($fallbackOrder as $alias) {
+            if ($alias !== '' && !in_array($alias, $aliases, true)) {
+                $aliases[] = $alias;
             }
         }
 
