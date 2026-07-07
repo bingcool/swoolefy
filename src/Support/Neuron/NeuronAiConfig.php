@@ -719,6 +719,51 @@ final class NeuronAiConfig
         return is_array($config) ? $config : null;
     }
 
+    /** @return array<string, mixed> */
+    public function providerFallbackSection(): array
+    {
+        $section = $this->neuronSection()['provider_fallback'] ?? [];
+
+        return is_array($section) ? $section : [];
+    }
+
+    /** 是否启用 Neuron RouterProvider fallback chain。 */
+    public function providerFallbackEnabled(): bool
+    {
+        return ApplicationConfig::pickBoolEnvFirst(
+            $this->providerFallbackSection(),
+            'enabled',
+            'NEURON_PROVIDER_FALLBACK_ENABLED',
+            false,
+        );
+    }
+
+    /**
+     * Provider fallback 顺序。为空且 enabled=true 时，由调用方使用 default_provider + ai_model_providers 顺序。
+     *
+     * @return list<string>
+     */
+    public function providerFallbackOrder(): array
+    {
+        $env = env('NEURON_PROVIDER_FALLBACK_ORDER');
+        $raw = is_string($env) && $env !== ''
+            ? preg_split('/\s*,\s*/', $env)
+            : ($this->providerFallbackSection()['order'] ?? []);
+
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $order = [];
+        foreach ($raw as $alias) {
+            if (is_string($alias) && $alias !== '' && !in_array($alias, $order, true)) {
+                $order[] = $alias;
+            }
+        }
+
+        return $order;
+    }
+
     /**
      * 取指定驱动的配置段：优先 $alias；否则在 vector_stores 中找 driver 匹配的第一条；
      * 再回退到以驱动名为别名的段。

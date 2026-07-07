@@ -14,11 +14,19 @@ declare(strict_types=1);
 
 use NeuronAI\Agent\Agent;
 use NeuronAI\Chat\History\InMemoryChatHistory;
+use NeuronAI\Chat\Messages\AssistantMessage;
+use NeuronAI\Chat\Messages\Message;
 use NeuronAI\Chat\Messages\UserMessage;
+use NeuronAI\Exceptions\HttpException;
 use NeuronAI\HttpClient\GuzzleHttpClient;
+use NeuronAI\HttpClient\HttpClientInterface;
+use NeuronAI\HttpClient\HttpResponse;
 use NeuronAI\Providers\AIProviderInterface;
+use NeuronAI\Providers\MessageMapperInterface;
 use NeuronAI\Providers\OpenAI\OpenAI;
+use NeuronAI\Providers\ToolMapperInterface;
 use NeuronAI\RAG\Embeddings\EmbeddingsProviderInterface;
+use NeuronAI\Router\RouterProvider;
 use NeuronAI\Testing\FakeEmbeddingsProvider;
 use Swoolefy\Support\Neuron\Embedding\EmbeddingFactory;
 use Swoolefy\Support\Neuron\Http\NeuronHttpFactory;
@@ -45,6 +53,103 @@ function assertTrue(bool $condition, string $message): void
     }
 }
 
+final class TestFallbackProvider implements AIProviderInterface
+{
+    /** @var list<string> */
+    public static array $calls = [];
+
+    /** @var array<string, HttpClientInterface> */
+    public static array $clients = [];
+
+    private ?string $system = null;
+
+    /** @param array<string, mixed> $parameters */
+    public function __construct(
+        private readonly string $key,
+        private readonly string $model,
+        private readonly string $name,
+        private readonly int $failStatus = 0,
+        array $parameters = [],
+        ?HttpClientInterface $httpClient = null,
+    ) {
+        if ($httpClient instanceof HttpClientInterface) {
+            $this->setHttpClient($httpClient);
+        }
+    }
+
+    public static function reset(): void
+    {
+        self::$calls = [];
+        self::$clients = [];
+    }
+
+    public function systemPrompt(?string $prompt): AIProviderInterface
+    {
+        $this->system = $prompt;
+
+        return $this;
+    }
+
+    public function setTools(array $tools): AIProviderInterface
+    {
+        return $this;
+    }
+
+    public function messageMapper(): MessageMapperInterface
+    {
+        return new class implements MessageMapperInterface {
+            public function map(array $messages): array
+            {
+                return $messages;
+            }
+        };
+    }
+
+    public function toolPayloadMapper(): ToolMapperInterface
+    {
+        return new class implements ToolMapperInterface {
+            public function map(array $tools): array
+            {
+                return $tools;
+            }
+        };
+    }
+
+    public function chat(Message ...$messages): Message
+    {
+        self::$calls[] = $this->name;
+        if ($this->failStatus > 0) {
+            throw new HttpException(
+                'provider failed',
+                response: new HttpResponse($this->failStatus, ''),
+            );
+        }
+
+        return new AssistantMessage($this->name);
+    }
+
+    public function stream(Message ...$messages): Generator
+    {
+        if (false) {
+            yield null;
+        }
+
+        return $this->chat(...$messages);
+    }
+
+    public function structured(array|Message $messages, string $class, array $response_schema): Message
+    {
+        return $this->chat(...(is_array($messages) ? $messages : [$messages]));
+    }
+
+    public function setHttpClient(HttpClientInterface $client): AIProviderInterface
+    {
+        self::$clients[$this->name] = $client;
+
+        return $this;
+    }
+}
+
 function sampleNeuronConfig(): NeuronAiConfig
 {
     return NeuronAiConfig::fromArray([
@@ -67,6 +172,10 @@ function sampleNeuronConfig(): NeuronAiConfig
         'neuron' => [
             'http_client' => NeuronHttpFactory::CLIENT_GUZZLE,
             'default_provider' => NeuronAiProviderName::OPENAI,
+            'provider_fallback' => [
+                'enabled' => false,
+                'order' => [NeuronAiProviderName::OPENAI],
+            ],
             'ai_model_providers' => [
                 NeuronAiProviderName::OPENAI => [
                     'provider' => OpenAI::class,
@@ -92,6 +201,8 @@ function testNeuronAiConfigReadsSections(): void
     assertTrue($config->defaultProviderName() === NeuronAiProviderName::OPENAI, 'default provider');
     assertTrue($config->httpClient() === NeuronHttpFactory::CLIENT_GUZZLE, 'http client');
     assertTrue($config->maxLocalProcesses() === 3, 'mcp processes');
+    assertTrue($config->providerFallbackEnabled() === false, 'provider fallback disabled');
+    assertTrue($config->providerFallbackOrder() === [NeuronAiProviderName::OPENAI], 'provider fallback order');
 }
 
 function testProviderFactoryCreateFromAlias(): void
@@ -107,6 +218,93 @@ function testProviderFactoryCreateDefault(): void
     $factory = new NeuronProviderFactory(sampleNeuronConfig());
     $provider = $factory->createDefault();
     assertTrue($provider instanceof OpenAI, 'default provider');
+}
+
+function fallbackNeuronConfig(int $primaryFailStatus = 429): NeuronAiConfig
+{
+    return NeuronAiConfig::fromArray([
+        'rag' => [
+            'default_vector_store' => NeuronAiVectorStoreName::FILE,
+            'allow_fake_embeddings' => true,
+            'require_tenant_isolation' => false,
+            'vector_stores' => [
+                NeuronAiVectorStoreName::FILE => ['path' => '/tmp/swoolefy_neuron_test'],
+            ],
+        ],
+        'neuron' => [
+            'http_client' => NeuronHttpFactory::CLIENT_GUZZLE,
+            'default_provider' => 'primary',
+            'provider_fallback' => [
+                'enabled' => true,
+                'order' => ['primary', 'secondary'],
+            ],
+            'ai_model_providers' => [
+                'primary' => [
+                    'provider' => TestFallbackProvider::class,
+                    'key' => 'primary-key',
+                    'model' => 'primary-model',
+                    'name' => 'primary',
+                    'failStatus' => $primaryFailStatus,
+                ],
+                'secondary' => [
+                    'provider' => TestFallbackProvider::class,
+                    'key' => 'secondary-key',
+                    'model' => 'secondary-model',
+                    'name' => 'secondary',
+                    'failStatus' => 0,
+                ],
+            ],
+        ],
+    ]);
+}
+
+function testProviderFactoryCreatesRouterFallback(): void
+{
+    TestFallbackProvider::reset();
+
+    $provider = (new NeuronProviderFactory(fallbackNeuronConfig()))->createDefault();
+
+    assertTrue($provider instanceof RouterProvider, 'router provider');
+    assertTrue(isset(TestFallbackProvider::$clients['primary']), 'primary http client injected');
+    assertTrue(isset(TestFallbackProvider::$clients['secondary']), 'secondary http client injected');
+    assertTrue(TestFallbackProvider::$clients['primary'] instanceof GuzzleHttpClient, 'primary guzzle client');
+    assertTrue(TestFallbackProvider::$clients['secondary'] instanceof GuzzleHttpClient, 'secondary guzzle client');
+}
+
+function testProviderFallbackRetriesTransientError(): void
+{
+    TestFallbackProvider::reset();
+
+    $provider = (new NeuronProviderFactory(fallbackNeuronConfig(429)))->createDefault();
+    $response = $provider->chat(new UserMessage('hello'));
+
+    assertTrue($response->getContent() === 'secondary', 'transient error falls back to secondary');
+    assertTrue(TestFallbackProvider::$calls === ['primary', 'secondary'], 'primary then secondary called');
+}
+
+function testProviderFallbackDoesNotRetryDeterministicError(): void
+{
+    TestFallbackProvider::reset();
+
+    $provider = (new NeuronProviderFactory(fallbackNeuronConfig(401)))->createDefault();
+    try {
+        $provider->chat(new UserMessage('hello'));
+        assertTrue(false, 'should throw without fallback');
+    } catch (HttpException) {
+        assertTrue(TestFallbackProvider::$calls === ['primary'], '401 does not call secondary');
+    }
+}
+
+function testRouterProviderSetHttpClientForwardsToChildren(): void
+{
+    TestFallbackProvider::reset();
+
+    $provider = (new NeuronProviderFactory(fallbackNeuronConfig()))->createDefault();
+    $client = new GuzzleHttpClient();
+    $provider->setHttpClient($client);
+
+    assertTrue(TestFallbackProvider::$clients['primary'] === $client, 'primary client forwarded');
+    assertTrue(TestFallbackProvider::$clients['secondary'] === $client, 'secondary client forwarded');
 }
 
 function testProviderFactoryUnknownAliasThrows(): void
@@ -437,6 +635,10 @@ $tests = [
     'config sections' => 'testNeuronAiConfigReadsSections',
     'provider from alias' => 'testProviderFactoryCreateFromAlias',
     'provider default' => 'testProviderFactoryCreateDefault',
+    'provider router fallback' => 'testProviderFactoryCreatesRouterFallback',
+    'provider fallback transient retry' => 'testProviderFallbackRetriesTransientError',
+    'provider fallback deterministic error' => 'testProviderFallbackDoesNotRetryDeterministicError',
+    'provider fallback http client forwarding' => 'testRouterProviderSetHttpClientForwardsToChildren',
     'provider unknown alias' => 'testProviderFactoryUnknownAliasThrows',
     'chat history factory in-memory' => 'testChatHistoryFactoryInMemory',
     'sql chat history tenant isolation' => 'testSqlChatHistoryTenantIsolation',

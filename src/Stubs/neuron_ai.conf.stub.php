@@ -116,6 +116,17 @@ return [
         'http_client' => 'swoole', // swoole | guzzle
         // Agent 未覆盖 provider() 时使用的默认别名
         'default_provider' => NeuronAiProviderName::DEEPSEEK,
+        // LLM Provider 运行时故障转移：仅对网络/超时、429、5xx 等瞬时错误生效。
+        // stream() 仅在首个 chunk 输出前失败时可切换；输出开始后的错误会原样抛出。
+        'provider_fallback' => [
+            'enabled' => filter_var(env('NEURON_PROVIDER_FALLBACK_ENABLED', '0'), FILTER_VALIDATE_BOOLEAN),
+            // 逗号环境变量 NEURON_PROVIDER_FALLBACK_ORDER 可覆盖，例如：deepseek,openai,anthropic
+            'order' => [
+                NeuronAiProviderName::DEEPSEEK,
+                NeuronAiProviderName::OPENAI,
+                NeuronAiProviderName::ANTHROPIC,
+            ],
+        ],
         // 除 provider 外，键名与对应 Provider 构造函数参数一致
         'ai_model_providers' => [
             NeuronAiProviderName::ANTHROPIC => [

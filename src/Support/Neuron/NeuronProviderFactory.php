@@ -8,6 +8,7 @@ use NeuronAI\Agent\Agent;
 use NeuronAI\HttpClient\HttpClientInterface;
 use NeuronAI\Providers\AIProviderInterface;
 use NeuronAI\Providers\Ollama\Ollama;
+use NeuronAI\Router\RouterProvider;
 use ReflectionClass;
 use ReflectionMethod;
 use ReflectionNamedType;
@@ -33,19 +34,11 @@ final class NeuronProviderFactory
     public function createDefault(): ?AIProviderInterface
     {
         $config = $this->neuronConfig();
-        $aliases = [];
-
-        $default = $config->defaultProviderName();
-        if ($default !== '') {
-            $aliases[] = $default;
+        if ($config->providerFallbackEnabled()) {
+            return $this->createFallbackProvider($this->defaultProviderAliases($config));
         }
 
-        foreach (array_keys($config->aiModelProviders()) as $name) {
-            $name = (string) $name;
-            if ($name !== '' && !in_array($name, $aliases, true)) {
-                $aliases[] = $name;
-            }
-        }
+        $aliases = $this->defaultProviderAliases($config);
 
         foreach ($aliases as $alias) {
             try {
@@ -60,6 +53,78 @@ final class NeuronProviderFactory
         }
 
         return null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function defaultProviderAliases(NeuronAiConfig $config): array
+    {
+        $aliases = [];
+
+        $fallbackOrder = $config->providerFallbackOrder();
+        if ($fallbackOrder !== []) {
+            return $fallbackOrder;
+        }
+
+        $default = $config->defaultProviderName();
+        if ($default !== '') {
+            $aliases[] = $default;
+        }
+
+        foreach (array_keys($config->aiModelProviders()) as $name) {
+            $name = (string) $name;
+            if ($name !== '' && !in_array($name, $aliases, true)) {
+                $aliases[] = $name;
+            }
+        }
+
+        return $aliases;
+    }
+
+    /**
+     * @param list<string> $aliases
+     */
+    private function createFallbackProvider(array $aliases): ?AIProviderInterface
+    {
+        if (!class_exists(RouterProvider::class)) {
+            throw new WorkflowException(
+                'Provider fallback requires neuron-core/router. Install it with: composer require neuron-core/router',
+            );
+        }
+
+        $router = RouterProvider::make();
+        $registered = [];
+        $singleProvider = null;
+
+        foreach ($aliases as $alias) {
+            $provider = $this->createFromAlias($alias);
+            if (!$provider instanceof AIProviderInterface) {
+                continue;
+            }
+
+            $router->addProvider($alias, $provider);
+            $registered[] = $alias;
+            $singleProvider ??= $provider;
+        }
+
+        if ($registered === []) {
+            return null;
+        }
+
+        if (count($registered) === 1) {
+            return $singleProvider;
+        }
+
+        try {
+            $router
+                ->setFallbackOrder(...$registered)
+                ->setDefaultProvider($registered[0]);
+        } catch (\Throwable $e) {
+            throw new WorkflowException('Invalid provider fallback configuration: ' . $e->getMessage(), 0, $e);
+        }
+
+        return $router;
     }
 
     /**
