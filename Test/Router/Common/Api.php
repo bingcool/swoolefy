@@ -419,6 +419,16 @@ Route::group([
     Route::post('/v1/agent/tool/weather/stream', [
         'dispatch_route' => [\Test\Module\Agent\Controller\AgentToolController::class, 'weatherStream'],
     ]);
+
+    // POST /api/v1/agent/capability/resolve — CapabilityCenter Top-K / pinned 解析演示（不请求 LLM）
+    Route::post('/v1/agent/capability/resolve', [
+        'dispatch_route' => [\Test\Module\Agent\Controller\AgentCapabilityController::class, 'resolve'],
+    ]);
+
+    // POST /api/v1/agent/capability/chat — Capability 解析后注入 Agent 并对话
+    Route::post('/v1/agent/capability/chat', [
+        'dispatch_route' => [\Test\Module\Agent\Controller\AgentCapabilityController::class, 'chat'],
+    ]);
 });
 
 // ---------------------------------------------------------------------------

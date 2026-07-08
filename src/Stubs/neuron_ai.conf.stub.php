@@ -7,6 +7,8 @@ use NeuronAI\Providers\Deepseek\Deepseek;
 use NeuronAI\Providers\OpenAI\OpenAI;
 use NeuronAI\Providers\OpenAI\Responses\OpenAIResponses;
 use NeuronAI\Providers\OpenAILike;
+use Swoolefy\Support\Neuron\NeuronAiCapabilityEnv;
+use Swoolefy\Support\Neuron\NeuronAiMcpEnv;
 use Swoolefy\Support\Neuron\NeuronAiModelEnv;
 use Swoolefy\Support\Neuron\NeuronAiProviderName;
 use Swoolefy\Support\Neuron\NeuronAiRagEnv;
@@ -107,7 +109,7 @@ return [
         // 生产默认禁用 stdio MCP；开发可 MCP_ALLOW_STDIO=1 + allowlist
         'allow_stdio' => filter_var(env('MCP_ALLOW_STDIO', '0'), FILTER_VALIDATE_BOOLEAN),
         // 对应 Config/component/database.php 组件别名
-        'db_component' => env(\Swoolefy\Support\Neuron\NeuronAiMcpEnv::DATABASE_COMPONENT, 'db'),
+        'db_component' => env(NeuronAiMcpEnv::DATABASE_COMPONENT, 'db'),
         'stdio_command_allowlist' => ['npx', 'node', 'uvx'],
     ],
     'security' => [
@@ -118,6 +120,22 @@ return [
             'localhost',
         ],
         'allow_private_networks' => filter_var(env('NEURON_ALLOW_PRIVATE_NETWORKS', '0'), FILTER_VALIDATE_BOOLEAN),
+    ],
+    'capability' => [
+        // 默认关闭：关闭时 NeuronFactory 继续使用旧的 McpFactory::tools() 全量挂载逻辑。
+        'enabled' => env(NeuronAiCapabilityEnv::ENABLED, false),
+        // 每轮动态筛选的普通候选数量；pinnedTools 不占这个 quota。
+        'default_top_k' => (int) env(NeuronAiCapabilityEnv::DEFAULT_TOP_K, 12),
+        // Phase 3 使用 policy + tag 轻量 Resolver；embedding / pgvector 留到后续阶段。
+        'resolver' => env(NeuronAiCapabilityEnv::RESOLVER, 'policy,tag'),
+        'index_store' => env(NeuronAiCapabilityEnv::INDEX_STORE, 'memory'),
+        // 开启 Capability 后，Agent boot 时从声明的 MCP server 同步轻量 tool descriptor。
+        'mcp_sync_on_boot' => env(NeuronAiCapabilityEnv::MCP_SYNC_ON_BOOT, true),
+        // 注入给 LLM schema 的最大工具数兜底，避免异常配置导致 token 暴涨。
+        'max_schema_tools' => (int) env(NeuronAiCapabilityEnv::MAX_SCHEMA_TOOLS, 20),
+        'debug' => env(NeuronAiCapabilityEnv::DEBUG, false),
+        // false 表示 CapabilityCenter 出错时 fail-open 回退旧 MCP 链路；生产严格模式可设 true。
+        'fail_closed' => env(NeuronAiCapabilityEnv::FAIL_CLOSED, false),
     ],
     'neuron' => [
         'http_client' => 'swoole', // swoole | guzzle
