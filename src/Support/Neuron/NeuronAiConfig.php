@@ -353,6 +353,52 @@ final class NeuronAiConfig
     }
 
     /** @return array<string, mixed> */
+    public function pgvectorSection(?string $alias = null): array
+    {
+        return $this->sectionForDriver(NeuronAiVectorStoreName::PGVECTOR, $alias);
+    }
+
+    public function pgvectorComponent(?string $alias = null): string
+    {
+        return ApplicationConfig::pickStringEnvFirst(
+            $this->pgvectorSection($alias),
+            'component',
+            NeuronAiRagEnv::PGVECTOR_COMPONENT,
+            'pg',
+        );
+    }
+
+    public function pgvectorTableName(?string $alias = null): string
+    {
+        return ApplicationConfig::pickStringEnvFirst(
+            $this->pgvectorSection($alias),
+            'table_name',
+            NeuronAiRagEnv::PGVECTOR_TABLE_NAME,
+            'rag_documents',
+        );
+    }
+
+    public function pgvectorDimension(?string $alias = null): int
+    {
+        return ApplicationConfig::pickIntEnvFirst(
+            $this->pgvectorSection($alias),
+            'dimension',
+            NeuronAiRagEnv::PGVECTOR_DIMENSION,
+            1536,
+        );
+    }
+
+    public function pgvectorMetric(?string $alias = null): string
+    {
+        return ApplicationConfig::pickStringEnvFirst(
+            $this->pgvectorSection($alias),
+            'metric',
+            NeuronAiRagEnv::PGVECTOR_METRIC,
+            'cosine',
+        );
+    }
+
+    /** @return array<string, mixed> */
     public function pineconeSection(?string $alias = null): array
     {
         return $this->sectionForDriver(NeuronAiVectorStoreName::PINECONE, $alias);

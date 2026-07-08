@@ -29,6 +29,7 @@ use Swoolefy\Support\Rag\Node\RagRetrieveNode;
 use Swoolefy\Support\Rag\Retrieval\RetrievalService;
 use Swoolefy\Support\Rag\Store\MilvusFilterExpr;
 use Swoolefy\Support\Rag\Store\MilvusVectorStore;
+use Swoolefy\Support\Rag\Store\PgVectorStore;
 use Swoolefy\Support\Workflow\Definition\WorkflowDefinition;
 use Swoolefy\Support\Workflow\Engine\NodeExecutionResult;
 use Swoolefy\Support\Workflow\Engine\RunContext;
@@ -147,6 +148,13 @@ function testVectorStoreCustomAliasWithDriver(): void
                     'password' => 'secret',
                     'dimension' => 1024,
                 ],
+                'pgvector_prod' => [
+                    'driver' => NeuronAiVectorStoreName::PGVECTOR,
+                    'component' => 'pg',
+                    'table_name' => 'rag_pg',
+                    'dimension' => 768,
+                    'metric' => PgVectorStore::METRIC_COSINE,
+                ],
             ],
         ],
     ]);
@@ -155,6 +163,8 @@ function testVectorStoreCustomAliasWithDriver(): void
     assertTrue($config->vectorStoreDriver() === NeuronAiVectorStoreName::FILE, 'default driver');
     assertTrue($config->vectorStoreDriver('milvus_prod') === NeuronAiVectorStoreName::MILVUS, 'alias driver');
     assertTrue($config->milvusUri('milvus_prod') === 'http://milvus.example:19530', 'alias uri');
+    assertTrue($config->vectorStoreDriver('pgvector_prod') === NeuronAiVectorStoreName::PGVECTOR, 'pgvector alias driver');
+    assertTrue($config->pgvectorComponent('pgvector_prod') === 'pg', 'pgvector component');
 
     $factory = new VectorStoreFactory($config);
     $store = $factory->make('kb1');
@@ -332,6 +342,45 @@ function testMilvusFilterExprEscapesQuotes(): void
     }
 }
 
+function testPgVectorStoreMakeParams(): void
+{
+    $store = PgVectorStore::make([
+        'pdo' => new PDO('sqlite::memory:'),
+        'table_name' => 'rag_pg_test',
+        'dimension' => 3,
+        'top_k' => 2,
+        'metric' => PgVectorStore::METRIC_COSINE,
+    ]);
+
+    assertTrue($store instanceof PgVectorStore, 'pgvector store');
+    assertTrue($store->getTableName() === 'rag_pg_test', 'pgvector table name');
+    assertTrue(PgVectorStore::embeddingLiteral([0.1, 2, -3.5]) === '[0.1,2,-3.5]', 'pgvector vector literal');
+}
+
+function testPgVectorStoreRejectsInvalidConfig(): void
+{
+    try {
+        PgVectorStore::make([
+            'pdo' => new PDO('sqlite::memory:'),
+            'table_name' => 'bad-name',
+        ]);
+        assertTrue(false, 'invalid table name should throw');
+    } catch (RuntimeException $e) {
+        assertTrue(str_contains($e->getMessage(), 'Invalid PostgreSQL identifier'), 'invalid identifier message');
+    }
+
+    try {
+        PgVectorStore::make([
+            'pdo' => new PDO('sqlite::memory:'),
+            'table_name' => 'rag_pg_test',
+            'metric' => 'unknown',
+        ]);
+        assertTrue(false, 'invalid metric should throw');
+    } catch (RuntimeException $e) {
+        assertTrue(str_contains($e->getMessage(), 'Unsupported pgvector metric'), 'invalid metric message');
+    }
+}
+
 function testVectorStoreUnknownAliasThrows(): void
 {
     $path = sys_get_temp_dir() . '/swoolefy_rag_unknown_' . getmypid();
@@ -397,6 +446,30 @@ function testMilvusConfigSectionInNeuronAiConfig(): void
     assertTrue($config->milvusDimension() === 1024, 'dimension');
 }
 
+function testPgVectorConfigSectionInNeuronAiConfig(): void
+{
+    $config = NeuronAiConfig::fromArray([
+        'rag' => [
+            'default_vector_store' => NeuronAiVectorStoreName::PGVECTOR,
+            'vector_stores' => [
+                NeuronAiVectorStoreName::PGVECTOR => [
+                    'component' => 'pg',
+                    'table_name' => 'rag_pg_documents',
+                    'dimension' => 768,
+                    'metric' => PgVectorStore::METRIC_L2,
+                ],
+            ],
+        ],
+    ]);
+
+    assertTrue($config->defaultVectorStoreAlias() === NeuronAiVectorStoreName::PGVECTOR, 'pgvector alias');
+    assertTrue($config->vectorStoreDriver() === NeuronAiVectorStoreName::PGVECTOR, 'pgvector driver');
+    assertTrue($config->pgvectorComponent() === 'pg', 'pgvector component');
+    assertTrue($config->pgvectorTableName() === 'rag_pg_documents', 'pgvector table');
+    assertTrue($config->pgvectorDimension() === 768, 'pgvector dimension');
+    assertTrue($config->pgvectorMetric() === PgVectorStore::METRIC_L2, 'pgvector metric');
+}
+
 $tests = [
     'vector store file mode' => 'testVectorStoreFactoryFileMode',
     'sanitize knowledge base' => 'testVectorStoreSanitizesKnowledgeBaseName',
@@ -409,7 +482,10 @@ $tests = [
     'rag factory retrieval' => 'testRagFactoryRetrievalInterface',
     'milvus make params' => 'testMilvusVectorStoreMakeParams',
     'milvus filter expr escapes quotes' => 'testMilvusFilterExprEscapesQuotes',
+    'pgvector make params' => 'testPgVectorStoreMakeParams',
+    'pgvector rejects invalid config' => 'testPgVectorStoreRejectsInvalidConfig',
     'milvus config section' => 'testMilvusConfigSectionInNeuronAiConfig',
+    'pgvector config section' => 'testPgVectorConfigSectionInNeuronAiConfig',
     'unknown vector store alias throws' => 'testVectorStoreUnknownAliasThrows',
     'unknown default alias throws' => 'testVectorStoreUnknownDefaultAliasThrows',
 ];

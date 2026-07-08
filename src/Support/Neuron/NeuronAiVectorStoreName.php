@@ -31,6 +31,9 @@ final class NeuronAiVectorStoreName
     /** MariaDB >= 11.7 VECTOR column. */
     public const MARIADB = 'mariadb';
 
+    /** PostgreSQL + pgvector extension. */
+    public const PGVECTOR = 'pgvector';
+
     /** Pinecone managed vector DB (namespace per knowledgeBase). */
     public const PINECONE = 'pinecone';
 

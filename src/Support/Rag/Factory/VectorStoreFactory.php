@@ -18,6 +18,7 @@ use Swoolefy\Support\Neuron\NeuronAiVectorStoreName;
 use Swoolefy\Support\Rag\Resolver\RagPdoResolver;
 use Swoolefy\Support\Rag\Store\MeilisearchConfig;
 use Swoolefy\Support\Rag\Store\MilvusVectorStore;
+use Swoolefy\Support\Rag\Store\PgVectorStore;
 
 /**
  * 向量存储工厂 —— 按别名解析 rag.vector_stores 配置，按 knowledgeBase 隔离索引/目录/表。
@@ -30,7 +31,7 @@ use Swoolefy\Support\Rag\Store\MilvusVectorStore;
  *   $factory->make('product_kb', storeAlias: 'milvus_prod');
  *   null 时使用 default_vector_store。
  *
- * 支持驱动：file、meilisearch、phpvector、mariadb、pinecone、qdrant、milvus
+ * 支持驱动：file、meilisearch、phpvector、mariadb、pgvector、pinecone、qdrant、milvus
  *
  * @see docs/swoolefyAI.md §4.10.2
  */
@@ -85,6 +86,7 @@ final class VectorStoreFactory
             NeuronAiVectorStoreName::MEILISEARCH => $this->makeMeilisearch($index, $k, $alias),
             NeuronAiVectorStoreName::PHP_VECTOR => $this->makePhpVector($index, $k, $alias),
             NeuronAiVectorStoreName::MARIADB => $this->makeMariaDb($index, $k, $alias),
+            NeuronAiVectorStoreName::PGVECTOR => $this->makePgVector($index, $k, $alias),
             NeuronAiVectorStoreName::PINECONE => $this->makePinecone($index, $k, $alias),
             NeuronAiVectorStoreName::QDRANT => $this->makeQdrant($index, $k, $alias),
             NeuronAiVectorStoreName::MILVUS => $this->makeMilvus($index, $k, $alias),
@@ -156,6 +158,23 @@ final class VectorStoreFactory
             tableName: $tableName,
             topK: $topK,
         );
+    }
+
+    /**
+     * PostgreSQL + pgvector：each knowledgeBase is an isolated table ({table_name}_{$index}).
+     */
+    private function makePgVector(string $index, int $topK, string $alias): PgVectorStore
+    {
+        $tableName = $this->config->pgvectorTableName($alias) . '_' . $index;
+        $pdo = RagPdoResolver::resolve($this->config->pgvectorComponent($alias));
+
+        return PgVectorStore::make([
+            'pdo' => $pdo,
+            'table_name' => $tableName,
+            'dimension' => $this->config->pgvectorDimension($alias),
+            'top_k' => $topK,
+            'metric' => $this->config->pgvectorMetric($alias),
+        ]);
     }
 
     private function makePinecone(string $index, int $topK, string $alias): PineconeVectorStore

@@ -65,6 +65,13 @@ return [
                 'component' => env(NeuronAiRagEnv::MARIADB_COMPONENT, 'db'),
                 'table_name' => env(NeuronAiRagEnv::MARIADB_TABLE_NAME, 'rag_documents'),
             ],
+            // PostgreSQL + pgvector；component 对应 component/database.php 别名；表名 = table_name_{kb}
+            NeuronAiVectorStoreName::PGVECTOR => [
+                'component' => env(NeuronAiRagEnv::PGVECTOR_COMPONENT, 'pg'),
+                'table_name' => env(NeuronAiRagEnv::PGVECTOR_TABLE_NAME, 'rag_documents'),
+                'dimension' => (int) env(NeuronAiRagEnv::PGVECTOR_DIMENSION, 1536),
+                'metric' => env(NeuronAiRagEnv::PGVECTOR_METRIC, 'cosine'), // cosine | l2 | ip
+            ],
             // Pinecone：全局 index_url，knowledgeBase 映射为 namespace
             NeuronAiVectorStoreName::PINECONE => [
                 'key' => env(NeuronAiRagEnv::PINECONE_KEY),

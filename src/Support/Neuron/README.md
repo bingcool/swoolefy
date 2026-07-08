@@ -121,6 +121,17 @@ NeuronFactory::create / boot
 
 需 MariaDB ≥ 11.7 且支持 VECTOR 类型。
 
+### PostgreSQL pgvector（`vector_stores.pgvector`）
+
+| 变量名 | 说明 | 未配置时的默认值 |
+|--------|------|------------------|
+| `RAG_PGVECTOR_COMPONENT` | PostgreSQL 数据库组件别名（对应 `Config/component/database.php`） | `pg` |
+| `RAG_PGVECTOR_TABLE_NAME` | 表名前缀；实际表名为 `{table_name}_{tenantId}_{knowledgeBase}` | `rag_documents` |
+| `RAG_PGVECTOR_DIMENSION` | pgvector 向量维度；须与 `RAG_EMBEDDING_DIMENSION` 一致 | `1536` |
+| `RAG_PGVECTOR_METRIC` | 距离度量：`cosine`、`l2`、`ip` | `cosine` |
+
+需 PostgreSQL 已安装 pgvector 扩展。`PgVectorStore` 运行期不会自动创建扩展、表或索引；生产上线前须由迁移脚本 / DBA 预先执行 `CREATE EXTENSION vector`、建表和 HNSW 索引。
+
 ### Pinecone（`vector_stores.pinecone`）
 
 | 变量名 | 说明 | 未配置时的默认值 |
@@ -173,6 +184,13 @@ RAG_REQUIRE_TENANT_ISOLATION=1
 # MILVUS_USER=root
 # MILVUS_PASSWORD=****
 # MILVUS_DIMENSION=1536
+
+# PostgreSQL pgvector 生产示例
+# RAG_VECTOR_STORE=pgvector
+# RAG_PGVECTOR_COMPONENT=pg
+# RAG_PGVECTOR_TABLE_NAME=rag_documents
+# RAG_PGVECTOR_DIMENSION=1536
+# RAG_PGVECTOR_METRIC=cosine
 ```
 
 CLI 入库脚本在无 HTTP 上下文时可额外设置 `NEURON_TENANT_ID`（或 `--tenant-id=`），与 `x-tenant-id` 请求头等效。

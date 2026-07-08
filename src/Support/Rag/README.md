@@ -15,11 +15,12 @@
 Rag/
 ├── Factory/
 │   ├── RagFactory.php           # VectorStore + Embeddings + Retrieval + Ingestion
-│   └── VectorStoreFactory.php   # file / meilisearch / phpvector / mariadb / pinecone / qdrant / milvus
+│   └── VectorStoreFactory.php   # file / meilisearch / phpvector / mariadb / pgvector / pinecone / qdrant / milvus
 ├── Store/
 │   ├── MeilisearchConfig.php
+│   ├── PgVectorStore.php        # 自定义：PostgreSQL + pgvector
 │   └── MilvusVectorStore.php    # 自定义：阿里云 / 自建 Milvus
-├── Resolver/RagPdoResolver.php  # MariaDB PDO 组件解析
+├── Resolver/RagPdoResolver.php  # MariaDB / PostgreSQL PDO 组件解析
 ├── Ingestion/
 │   ├── IngestionPipeline.php    # embed → addDocuments
 │   ├── StringDocumentLoader.php
@@ -60,7 +61,7 @@ TopK Document → RetrievalService / RetrievalTool / RAGNode
 | `file` | `{path}/{tenantId}_{kb}/` |
 | `meilisearch` | indexUid = `{tenantId}_{kb}` |
 | `phpvector` | `{path}/{tenantId}_{kb}/` |
-| `mariadb` | `{table}_{tenantId}_{kb}` |
+| `mariadb` / `pgvector` | `{table}_{tenantId}_{kb}` |
 | `pinecone` | namespace = `{tenantId}_{kb}` |
 | `qdrant` / `milvus` | collection = `{tenantId}_{kb}` |
 
@@ -87,6 +88,12 @@ TopK Document → RetrievalService / RetrievalTool / RAGNode
         NeuronAiVectorStoreName::MILVUS => [
             'uri' => env(NeuronAiRagEnv::MILVUS_URI, 'http://localhost:19530'),
             // ...
+        ],
+        NeuronAiVectorStoreName::PGVECTOR => [
+            'component' => env(NeuronAiRagEnv::PGVECTOR_COMPONENT, 'pg'),
+            'table_name' => env(NeuronAiRagEnv::PGVECTOR_TABLE_NAME, 'rag_documents'),
+            'dimension' => (int) env(NeuronAiRagEnv::PGVECTOR_DIMENSION, 1536),
+            'metric' => env(NeuronAiRagEnv::PGVECTOR_METRIC, 'cosine'), // cosine | l2 | ip
         ],
         // 自定义别名示例：
         // 'milvus_prod' => ['driver' => 'milvus', 'uri' => '...'],
@@ -280,6 +287,17 @@ php src/Support/Rag/Console/ingest_documents.php --kb=product_kb --text="..." --
 | `RAG_MARIADB_COMPONENT` | 数据库组件别名（`Config/component/database.php`） | `db` |
 | `RAG_MARIADB_TABLE_NAME` | 表名前缀；实际 `{table_name}_{tenantId}_{knowledgeBase}` | `rag_documents` |
 
+### PostgreSQL pgvector
+
+| 变量名 | 说明 | 未配置时的默认值 |
+|--------|------|------------------|
+| `RAG_PGVECTOR_COMPONENT` | PostgreSQL 数据库组件别名（`Config/component/database.php`） | `pg` |
+| `RAG_PGVECTOR_TABLE_NAME` | 表名前缀；实际 `{table_name}_{tenantId}_{knowledgeBase}` | `rag_documents` |
+| `RAG_PGVECTOR_DIMENSION` | pgvector 向量维度；须与 `RAG_EMBEDDING_DIMENSION` 一致 | `1536` |
+| `RAG_PGVECTOR_METRIC` | 距离度量：`cosine`、`l2`、`ip` | `cosine` |
+
+`PgVectorStore` 运行期不会自动创建 pgvector 扩展、表或索引。上线前须由迁移脚本 / DBA 预先执行 `CREATE EXTENSION vector`、创建 `{table_name}_{tenantId}_{knowledgeBase}` 表和 HNSW 索引，避免业务请求承担 DDL 成本。
+
 ### Pinecone
 
 | 变量名 | 说明 | 未配置时的默认值 |
@@ -322,6 +340,13 @@ RAG_REQUIRE_TENANT_ISOLATION=1
 # MILVUS_USER=root
 # MILVUS_PASSWORD=****
 # MILVUS_DIMENSION=1536
+
+# PostgreSQL pgvector
+# RAG_VECTOR_STORE=pgvector
+# RAG_PGVECTOR_COMPONENT=pg
+# RAG_PGVECTOR_TABLE_NAME=rag_documents
+# RAG_PGVECTOR_DIMENSION=1536
+# RAG_PGVECTOR_METRIC=cosine
 ```
 
 ---

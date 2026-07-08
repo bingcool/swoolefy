@@ -42,6 +42,14 @@ final class NeuronAiRagEnv
 
     public const MARIADB_TABLE_NAME = 'RAG_MARIADB_TABLE_NAME';
 
+    public const PGVECTOR_COMPONENT = 'RAG_PGVECTOR_COMPONENT';
+
+    public const PGVECTOR_TABLE_NAME = 'RAG_PGVECTOR_TABLE_NAME';
+
+    public const PGVECTOR_DIMENSION = 'RAG_PGVECTOR_DIMENSION';
+
+    public const PGVECTOR_METRIC = 'RAG_PGVECTOR_METRIC';
+
     public const PINECONE_KEY = 'PINECONE_API_KEY';
 
     public const PINECONE_INDEX_URL = 'PINECONE_INDEX_URL';
@@ -142,6 +150,26 @@ final class NeuronAiRagEnv
     public static function mariadbTableName(string $default = 'rag_documents'): string
     {
         return self::readString(self::MARIADB_TABLE_NAME, $default);
+    }
+
+    public static function pgvectorComponent(string $default = 'pg'): string
+    {
+        return self::readString(self::PGVECTOR_COMPONENT, $default);
+    }
+
+    public static function pgvectorTableName(string $default = 'rag_documents'): string
+    {
+        return self::readString(self::PGVECTOR_TABLE_NAME, $default);
+    }
+
+    public static function pgvectorDimension(int $default = 1536): int
+    {
+        return self::readInt(self::PGVECTOR_DIMENSION, $default);
+    }
+
+    public static function pgvectorMetric(string $default = 'cosine'): string
+    {
+        return self::readString(self::PGVECTOR_METRIC, $default);
     }
 
     public static function pineconeKey(?string $default = null): ?string
