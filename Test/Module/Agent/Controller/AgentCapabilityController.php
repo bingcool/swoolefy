@@ -112,12 +112,48 @@ final class AgentCapabilityController extends BController
 
     /**
      * @param list<string> $pinned
+     * pinnedTools 是 CapabilityCenter 的“保底注入”机制：无论 Top-K / tag 匹配有没有选中，这些工具都会强制注入给 Agent。
+     * Capability 默认按 query + profile + tags 动态筛选，只注入少量候选（topK）。问题是：关键工具可能被漏选。
+     *
+     * pinnedTools 解决的就是这个：
+     *
+     * 特性    说明
+     * 强制注入
+     * 只要在 Registry 里且通过 Policy 过滤，就一定会 materialize 并 addTool()
+     * 不占 topK
+     * topK=1 时，pinned 额外加进来，不会挤占动态名额
+     * 仍受权限约束
+     * 要经过 tenant / role / risk 等 Policy 检查
+     * 排在前面
+     * 结果里 pinned 优先，优先 materialize
+     * 适合传 pinnedTools 的场景：
+     *
+     * 核心工具不能漏
+     *
+     * RAG 检索：native:rag:query_internal_kb
+     * 安全审计、订单查询等核心业务 Tool
+     * query 很难匹配到
+     *
+     * 用户问「帮我写邮件」，但检索 Tool 的 tags 是 rag、knowledge，可能排不进 topK
+     * topK 设得很小
+     *
+     * topK=1 只动态选 1 个，但你还想保证 get_date 始终可用
+     * 演示 / 测试
+     *
+     * 你们 AgentCapabilityController 的 curl 例子里 pin 了 get_date，确保日期工具一定在，即使用户只问天气
+     *
+     * innedTools 传的是 Capability descriptor 的 ID，不是 Tool 的 name, 例如"pinnedTools": ["native:weather:get_date"]：
+     *
+     * descriptor ID                 Tool name
+     * native:weather:get_date        get_date
+     * native:weather:get_weather     get_weather
+     * ID 在注册时定义，例如 CapabilityWeatherDemo::descriptors()。
      *
      * @return list<ToolInterface>
      */
     private function resolveTools(string $message, int $topK, array $pinned): array
     {
-        return CapabilityWeatherDemo::componentFactory(self::resolveConfig($topK))
+        return CapabilityWeatherDemo::capabilityComponentFactory(self::resolveConfig($topK))
             ->capabilityCenter()
             ->resolveTools(new ToolResolveContext(
                 query: $message,

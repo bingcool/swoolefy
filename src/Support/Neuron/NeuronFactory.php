@@ -208,6 +208,16 @@ final class NeuronFactory
             $mcpServers = $this->normalizeStringList($nodeConfig['mcpServers'] ?? $nodeConfig['mcp'] ?? []);
 
             // 优先使用注入的单例 factory（生产推荐 Worker 级复用 Registry）
+            /**
+             * @see new NeuronFactory 时注入
+             * new NeuronFactory(
+             *   capabilityFactory: xxxx
+             *   config: $config,
+             * );
+             */
+            /**
+             * @var $factory CapabilityComponentFactory
+             */
             $factory = $this->capabilityFactory ?? new CapabilityComponentFactory($this->mcpFactory, $config);
             // 获取 ToolInterface[],动态筛选出可能满足的 MCP Tool
             $tools = $factory

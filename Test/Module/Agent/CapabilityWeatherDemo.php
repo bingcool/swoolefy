@@ -30,12 +30,12 @@ final class CapabilityWeatherDemo
         $config = self::capabilityConfig($topK, $debug);
 
         return new NeuronFactory(
-            capabilityFactory: self::componentFactory($config),
+            capabilityFactory: self::capabilityComponentFactory($config),
             config: $config,
         );
     }
 
-    public static function componentFactory(?NeuronAiConfig $config = null): CapabilityComponentFactory
+    public static function capabilityComponentFactory(?NeuronAiConfig $config = null): CapabilityComponentFactory
     {
         $config ??= self::capabilityConfig();
 
