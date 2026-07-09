@@ -89,8 +89,8 @@ src/Support/DocumentOcr/
   WorkDirectory.php
   DocumentOcrFactory.php
 
-Test/Config/document_ocr.php          # pandoc + deepseek_ocr 配置
-Test/Config/component/document_ocr.php # 组件注册 document_ocr
+Test/Config/document_ocr.php            # pandoc + deepseek_ocr 配置
+Test/Config/component/document_parser.php # 组件注册 document_ocr
 ```
 
 ---
@@ -137,7 +137,7 @@ return [
 
 ### 组件注册
 
-`[Test/Config/component/document_ocr.php](Test/Config/component/document_ocr.php)`：
+`[Test/Config/component/document_parser.php](Test/Config/component/document_parser.php)`：
 
 ```php
 'document_ocr' => fn () => DocumentOcrFactory::fromConfig(include APP_PATH . '/Config/document_ocr.php'),
@@ -313,8 +313,8 @@ flowchart LR
 | 文件                                                                                 | 说明                      |
 | ---------------------------------------------------------------------------------- | ----------------------- |
 | `[src/Support/DocumentOcr/](src/Support/DocumentOcr/)`                             | 模块实现                    |
-| `[Test/Config/document_ocr.php](Test/Config/document_ocr.php)`                     | Pandoc + DeepSeek 配置    |
-| `[Test/Config/component/document_ocr.php](Test/Config/component/document_ocr.php)` | DI 注册                   |
+| `[Test/Config/document_ocr.php](Test/Config/document_ocr.php)`                         | Pandoc + DeepSeek 配置 |
+| `[Test/Config/component/document_parser.php](Test/Config/component/document_parser.php)` | DI 注册                |
 | `[src/Core/CommandRunner.php](src/Core/CommandRunner.php)`                         | Pandoc 进程调用             |
 | `[pgvector.md](pgvector.md)`                                                       | RAG 向量入库                |
 | `[swoolefyAI.md](swoolefyAI.md)`                                                   | RAG / IngestionPipeline |

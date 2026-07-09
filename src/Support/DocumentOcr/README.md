@@ -4,7 +4,7 @@
 
 - 设计文档：[docs/DocumentOcr.md](../../../docs/DocumentOcr.md)
 - 配置：`Test/Config/document_ocr.php`
-- 组件：`document_ocr` → `DocumentOcrFactory`
+- 组件：`Test/Config/component/document_parser.php` → DI 名 `document_ocr` → `DocumentOcrFactory`
 
 Phase 1 **不支持 PDF**。
 

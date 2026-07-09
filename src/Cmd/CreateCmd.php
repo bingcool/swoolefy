@@ -102,6 +102,7 @@ class CreateCmd extends BaseCmd
                         @copy(SRC_DIR_ROOT.'/Stubs/db.stub.php', $componentDir.'/database.php');
                         @copy(SRC_DIR_ROOT.'/Stubs/log.stub.php', $componentDir.'/log.php');
                         @copy(SRC_DIR_ROOT.'/Stubs/cache.stub.php', $componentDir.'/cache.php');
+                        @copy(SRC_DIR_ROOT.'/Stubs/document_parser.component.stub.php', $componentDir.'/document_parser.php');
                     }
 
                     $confFile = $appPathDir . '/' . $dir . '/app.php';
@@ -122,6 +123,11 @@ class CreateCmd extends BaseCmd
                     $neuronAiFile = $appPathDir . '/' . $dir . '/neuron_ai.php';
                     if (!file_exists($neuronAiFile)) {
                         @copy(SRC_DIR_ROOT . '/Stubs/neuron_ai.conf.stub.php', $neuronAiFile);
+                    }
+
+                    $documentOcrFile = $appPathDir . '/' . $dir . '/document_ocr.php';
+                    if (!file_exists($documentOcrFile)) {
+                        @copy(SRC_DIR_ROOT . '/Stubs/document_ocr.conf.stub.php', $documentOcrFile);
                     }
 
                     if ($protocol == self::WEBSOCKET_PROTOCOL) {
