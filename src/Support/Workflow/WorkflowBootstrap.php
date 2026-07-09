@@ -28,6 +28,7 @@ use Swoolefy\Core\Coroutine\Context as SwooleContext;
  * 单例策略：**协程上下文隔离**（{@see SwooleContext}），禁止进程级 static 缓存。
  * 同一 Worker 内不同协程各自持有独立的 Engine / Compiler / Evaluator，
  * 避免 TracingPlugin span、InMemoryRunStore 等状态串协程。
+ * TracingPlugin / MetricsPlugin 另有按 run 清理 + FIFO 上限，防止 Worker 长驻涨内存。
  *
  * 非协程 CLI（无 Context）时：每次调用新建实例，不缓存；
  * 若需在同一脚本内复用 Engine，请显式传递 {@see WorkflowEngine} 实例。

@@ -68,7 +68,8 @@
             "@php src/Support/Workflow/Tests/WorkflowPhase4Test.php",
             "@php src/Support/Workflow/Tests/WorkflowIntegrationTest.php",
             "@php src/Support/Workflow/Tests/WorkflowRunStoreTest.php",
-            "@php src/Support/Workflow/Tests/WorkflowHitlAuthTest.php"
+            "@php src/Support/Workflow/Tests/WorkflowHitlAuthTest.php",
+            "@php src/Support/Workflow/Tests/WorkflowPluginMemoryTest.php"
         ],
         "test:agent": "@php src/Support/Agent/Tests/AgentModuleTest.php",
         "test:ai": "@php src/Support/AI/Tests/AIModuleTest.php",
