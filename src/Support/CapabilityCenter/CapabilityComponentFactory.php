@@ -89,20 +89,19 @@ final class CapabilityComponentFactory
     /**
      * 组装完整的 CapabilityCenter 门面。
      *
-     * @param list<string>|null $mcpServers 要同步的 MCP server 列表；null/空且开启 sync 时同步全部
+     * MCP sync 仅在显式传入非空 $mcpServers 时执行，与 NeuronFactory::attachMcpTools()
+     * 「未声明 server 则不挂载」对齐；禁止空列表回退为同步全部 server。
+     *
+     * @param list<string>|null $mcpServers 要同步的 MCP server 列表；null/空则跳过 MCP sync
      * @param string|null       $tenantId   同步时的租户上下文（写入 descriptor.tenantId）
      */
     public function capabilityCenter(?array $mcpServers = null, ?string $tenantId = null): CapabilityCenter
     {
         $config = $this->config ?? NeuronAiConfig::load();
 
-        // boot 时按配置决定是否同步 MCP 元数据到 Registry
-        if ($config->capabilityMcpSyncOnBoot()) {
-            // 未指定 server 列表时，回退为 McpFactory 已知的全部 server
-            $servers = $mcpServers === null || $mcpServers === []
-                ? ($this->mcpFactory?->serverNames() ?? [])
-                : $mcpServers;
-            $this->mcpSync()?->syncServers($servers, $tenantId);
+        // boot 时仅同步调用方显式声明的 server，避免空 mcpServers 放开全量 MCP
+        if ($config->capabilityMcpSyncOnBoot() && is_array($mcpServers) && $mcpServers !== []) {
+            $this->mcpSync()?->syncServers($mcpServers, $tenantId);
         }
 
         return new CapabilityCenter(

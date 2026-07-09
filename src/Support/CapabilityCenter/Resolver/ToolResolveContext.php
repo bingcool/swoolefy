@@ -15,7 +15,7 @@ namespace Swoolefy\Support\CapabilityCenter\Resolver;
  * - agentId        ← Agent class 或 node id
  * - tenantId       ← nodeConfig → FrameworkContext::getTenantId()
  * - roles          ← nodeConfig / header / 登录态
- * - mcpServers     ← nodeConfig['mcpServers'] 或 nodeConfig['mcp']
+ * - mcpServers     ← nodeConfig['mcpServers'] 或 nodeConfig['mcp']；空则过滤全部 MCP Tool
  * - pinnedToolIds  ← nodeConfig / Agent 配置
  * - topK           ← nodeConfig → CAPABILITY_DEFAULT_TOP_K
  */
@@ -28,7 +28,7 @@ final class ToolResolveContext
      * @param string|null                   $userId            当前用户
      * @param list<string>                  $roles             当前用户角色列表
      * @param list<string>                  $pinnedToolIds     必须注入的 descriptor ID（不占 topK）
-     * @param list<string>                  $mcpServers        限制 MCP Tool 来源 server 列表
+     * @param list<string>                  $mcpServers        MCP 白名单；空数组表示不放行任何 MCP Tool
      * @param string|null                   $capabilityProfile 场景 profile 名，参与 tag 打分
      * @param list<string>                  $profileTags       profile 关联标签
      * @param int                           $topK              普通动态候选上限

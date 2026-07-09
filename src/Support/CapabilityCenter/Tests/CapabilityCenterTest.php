@@ -152,6 +152,93 @@ function testMcpOnlyAndExcludePolicy(): void
 }
 
 /**
+ * 验证空 mcpServers 时 MCP Tool 全部被 Policy 过滤（对齐 attachMcpTools 空列表不挂载）。
+ *
+ * Native Tool 不受影响，仍可按 tag 匹配入选。
+ */
+function testEmptyMcpServersFiltersAllMcpTools(): void
+{
+    $registry = new InMemoryCapabilityRegistry();
+    $registry->registerBatch([
+        makeCapabilityDescriptor('mcp:github:search_code', ['github', 'search', 'code'], [
+            'source' => CapabilitySource::Mcp,
+            'mcpServer' => 'github',
+            'name' => 'search_code',
+            'description' => 'Search github code',
+        ]),
+        makeCapabilityDescriptor('native:weather', ['weather'], [
+            'description' => 'Get city weather',
+        ]),
+    ]);
+
+    $filtered = (new PolicyToolFilter())->filter($registry->all(), new ToolResolveContext(
+        query: 'search github code weather',
+        agentId: 'test',
+        tenantId: null,
+        userId: null,
+        mcpServers: [],
+    ));
+
+    assertTrue(count($filtered) === 1, 'empty mcpServers drops all MCP tools');
+    assertTrue($filtered[0]->id === 'native:weather', 'native tool still allowed');
+
+    $resolved = (new CompositeToolResolver($registry))->resolve(new ToolResolveContext(
+        query: 'search github code',
+        agentId: 'test',
+        tenantId: null,
+        userId: null,
+        mcpServers: [],
+        topK: 10,
+    ));
+
+    assertTrue($resolved === [], 'resolver returns no MCP tools without mcpServers');
+}
+
+/**
+ * 验证 Registry 按 (tenantId, id) 隔离，多租户 sync 同名 MCP tool 互不覆盖。
+ */
+function testRegistryTenantIsolation(): void
+{
+    $registry = new InMemoryCapabilityRegistry();
+    $registry->register(makeCapabilityDescriptor('mcp:github:search_code', ['github'], [
+        'source' => CapabilitySource::Mcp,
+        'mcpServer' => 'github',
+        'name' => 'search_code',
+        'tenantId' => 't1',
+    ]));
+    $registry->register(makeCapabilityDescriptor('mcp:github:search_code', ['github'], [
+        'source' => CapabilitySource::Mcp,
+        'mcpServer' => 'github',
+        'name' => 'search_code',
+        'tenantId' => 't2',
+        'description' => 'tenant-b copy',
+    ]));
+
+    assertTrue(count($registry->all()) === 2, 'both tenant descriptors coexist');
+    assertTrue($registry->get('mcp:github:search_code', 't1')?->tenantId === 't1', 't1 entry intact');
+    assertTrue($registry->get('mcp:github:search_code', 't2')?->description === 'tenant-b copy', 't2 entry intact');
+
+    $forT1 = (new PolicyToolFilter())->filter($registry->all(), new ToolResolveContext(
+        query: 'github',
+        agentId: 'test',
+        tenantId: 't1',
+        userId: null,
+        mcpServers: ['github'],
+    ));
+    assertTrue(count($forT1) === 1, 't1 policy sees one tool');
+    assertTrue($forT1[0]->tenantId === 't1', 't1 policy keeps own tenant');
+
+    $forT2 = (new PolicyToolFilter())->filter($registry->all(), new ToolResolveContext(
+        query: 'github',
+        agentId: 'test',
+        tenantId: 't2',
+        userId: null,
+        mcpServers: ['github'],
+    ));
+    assertTrue(count($forT2) === 1 && $forT2[0]->tenantId === 't2', 't2 policy keeps own tenant');
+}
+
+/**
  * 验证 CapabilityCenter 只 materialize 命中的 Tool，未选中不触发工厂。
  *
  * 通过 $created 数组记录实际调用 materialize 的 descriptor id。
@@ -238,6 +325,8 @@ $tests = [
     'registry and policy filter' => 'testRegistryAndPolicyFilter',
     'resolver topK and pinned' => 'testResolverTopKAndPinned',
     'mcp only exclude policy' => 'testMcpOnlyAndExcludePolicy',
+    'empty mcpServers filters MCP' => 'testEmptyMcpServersFiltersAllMcpTools',
+    'registry tenant isolation' => 'testRegistryTenantIsolation',
     'materialize selected only' => 'testCapabilityCenterMaterializesOnlyResolvedTools',
     'config and factory native descriptors' => 'testCapabilityConfigAndFactoryNativeDescriptors',
 ];

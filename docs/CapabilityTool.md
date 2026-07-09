@@ -262,6 +262,7 @@ Phase 3 使用内存 Registry：
 - Worker 级只读元数据缓存，避免每轮重新 tools/list。
 - 请求态不放入 Registry，而放入 `ToolResolveContext`。
 - MCP sync 失败时保留已有缓存，不清空。
+- 存储键为 `(tenantId, id)`，多租户 sync 同名 MCP tool 互不覆盖。
 - 当前 Worker reload 后重新 sync 即可，不引入分布式一致性。
 
 这与 Support 现有风格一致：生产装配走 ComponentFactory，运行时状态尽量用协程 Context 隔离。
@@ -366,7 +367,8 @@ Policy 阶段只做确定性过滤：
 | descriptor tenant 与 ctx tenant 不匹配 | 过滤 |
 | `requiredRoles` 不满足 | 过滤 |
 | `riskLevel=critical` | Phase 3 默认过滤，Phase 4 交给 HITL / ToolExecutor |
-| ctx 声明了 `mcpServers` | 只保留对应 server 的 MCP Tool |
+| `mcpServers` 为空 | 过滤全部 MCP Tool（对齐 `attachMcpTools` 空列表不挂载） |
+| `mcpServers` 非空 | 只保留白名单 server 的 MCP Tool |
 
 不要在 Phase 3 引入复杂 RBAC。它只读取已有 `FrameworkContext` 和 nodeConfig。
 

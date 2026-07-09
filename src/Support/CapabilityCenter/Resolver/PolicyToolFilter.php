@@ -15,7 +15,7 @@ use Swoolefy\Support\CapabilityCenter\CapabilitySource;
  * - 带 tenant 的 descriptor 必须与当前 tenant 匹配；
  * - requiredRoles 必须全部满足（array_diff 非空则过滤）；
  * - critical 风险工具在 HITL / ToolExecutor 落地前默认过滤；
- * - ctx 声明了 mcpServers 时，MCP Tool 只能来自这些 server；
+ * - MCP Tool：ctx.mcpServers 为空则全部过滤；非空时只能来自白名单 server；
  * - mcpOnly / mcpExclude 下沉自 NeuronFactory 原有静态过滤逻辑。
  */
 final class PolicyToolFilter
@@ -52,13 +52,15 @@ final class PolicyToolFilter
                 continue;
             }
 
-            // ctx 声明了 MCP server 限制时，MCP Tool 须来自白名单 server
-            if (
-                $descriptor->source === CapabilitySource::Mcp
-                && $context->mcpServers !== []
-                && ($descriptor->mcpServer === null || !in_array($descriptor->mcpServer, $context->mcpServers, true))
-            ) {
-                continue;
+            // MCP 来源：未声明 mcpServers 时一律过滤（对齐 attachMcpTools 空列表不挂载）；
+            // 已声明时仅放行白名单 server。
+            if ($descriptor->source === CapabilitySource::Mcp) {
+                if ($context->mcpServers === []) {
+                    continue;
+                }
+                if ($descriptor->mcpServer === null || !in_array($descriptor->mcpServer, $context->mcpServers, true)) {
+                    continue;
+                }
             }
 
             // MCP 静态 only / exclude（对应原 mcpOnly / mcpExclude nodeConfig）

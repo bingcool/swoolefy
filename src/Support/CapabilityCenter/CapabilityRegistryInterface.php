@@ -13,7 +13,11 @@ namespace Swoolefy\Support\CapabilityCenter;
  */
 interface CapabilityRegistryInterface
 {
-    /** 注册或覆盖单个 descriptor（以 id 为键）。 */
+    /**
+     * 注册或覆盖单个 descriptor。
+     *
+     * 实现须按 (tenantId, id) 隔离存储，避免多租户 sync 同名 MCP tool 时互相覆盖。
+     */
     public function register(CapabilityDescriptor $descriptor): void;
 
     /**
@@ -23,8 +27,13 @@ interface CapabilityRegistryInterface
      */
     public function registerBatch(array $descriptors): void;
 
-    /** 按 ID 查找 descriptor；未命中返回 null。 */
-    public function get(string $id): ?CapabilityDescriptor;
+    /**
+     * 按 ID 查找 descriptor；未命中返回 null。
+     *
+     * @param string      $id       descriptor 业务 ID（如 mcp:github:search_code）
+     * @param string|null $tenantId 租户；null 表示查找全局（无租户）条目
+     */
+    public function get(string $id, ?string $tenantId = null): ?CapabilityDescriptor;
 
     /**
      * 返回全部已注册 descriptor（顺序不保证）。

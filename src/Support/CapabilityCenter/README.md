@@ -132,6 +132,8 @@ CapabilityCenter/
 
 开启 Capability 后，在 `nodeConfig` 中声明参数；`mcpServers` 限制 MCP 来源，**不是**从配置文件自动读取，须由调用方传入。
 
+未声明或传入空 `mcpServers` 时：**不会**同步 / 放行任何 MCP Tool（与旧 `attachMcpTools()` 一致）；仅 Native / pinned（且非 MCP）仍可入选。
+
 ```php
 use Swoolefy\Support\Neuron\NeuronFactory;
 use Swoolefy\Support\Mcp\McpComponentFactory;
@@ -340,7 +342,8 @@ curl -X POST "http://localhost:9501/api/v1/agent/capability/chat" \
 2. **Worker 级单例**：将 `CapabilityComponentFactory` 注入 `NeuronFactory`，避免每次请求重复 MCP sync。
 3. **核心 Tool 用 pinned**：RAG、审计等不能依赖 tag 匹配的工具加入 `pinnedTools`。
 4. **不建表**：Phase 3 使用 `InMemoryCapabilityRegistry`，Worker reload 后重新 sync；无需数据库迁移。
-5. **mcp_sync_on_boot**：生产若每次请求都 new `CapabilityComponentFactory`，注意 sync 开销；推荐单例 + 按需 sync。
+5. **mcp_sync_on_boot**：仅对 `nodeConfig` 显式声明的非空 `mcpServers` 同步；空列表不会回退为全量 server。
+6. **多租户 Registry**：存储键为 `(tenantId, id)`，不同租户 sync 同名 MCP tool 互不覆盖。
 
 ---
 
