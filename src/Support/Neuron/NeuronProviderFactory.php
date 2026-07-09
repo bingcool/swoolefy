@@ -196,25 +196,25 @@ final class NeuronProviderFactory
     }
 
     /**
-     * 从 AINode 节点配置创建 Provider。
+     * 从 Agent 启动选项创建 Provider。
      *
-     * 节点级 `provider` / `provider_name` 是显式选择，优先级高于默认 Provider 与 fallback：
+     * 调用方 `provider` / `provider_name` 是显式选择，优先级高于默认 Provider 与 fallback：
      * - 传入 provider 时，只创建该别名对应的 Provider；
-     * - 不自动套 RouterProvider，避免业务明确指定的节点模型被隐藏改写；
-     * - `provider_params` 可覆盖构造参数；未设置时会从节点配置中提取非框架保留键作为覆盖参数。
+     * - 不自动套 RouterProvider，避免业务明确指定的模型被隐藏改写；
+     * - `provider_params` 可覆盖构造参数；未设置时会从 agentOptions 中提取非框架保留键作为覆盖参数。
      *
-     * @param array<string, mixed> $nodeConfig
+     * @param array<string, mixed> $agentOptions
      */
-    public function createFromNodeConfig(array $nodeConfig): ?AIProviderInterface
+    public function createFromAgentOptions(array $agentOptions): ?AIProviderInterface
     {
-        $alias = $nodeConfig['provider'] ?? $nodeConfig['provider_name'] ?? null;
+        $alias = $agentOptions['provider'] ?? $agentOptions['provider_name'] ?? null;
         if (!is_string($alias) || $alias === '') {
             return null;
         }
 
-        $overrides = is_array($nodeConfig['provider_params'] ?? null)
-            ? $nodeConfig['provider_params']
-            : $this->extractParamOverrides($nodeConfig);
+        $overrides = is_array($agentOptions['provider_params'] ?? null)
+            ? $agentOptions['provider_params']
+            : $this->extractParamOverrides($agentOptions);
 
         return $this->createFromAlias($alias, $overrides);
     }
@@ -224,7 +224,7 @@ final class NeuronProviderFactory
      *
      * 该方法只负责别名解析和参数合并：
      * - alias 不存在或 provider FQCN 无效时抛 `WorkflowException`；
-     * - `$overrides` 会覆盖配置中的同名构造参数，例如节点级切换 model；
+     * - `$overrides` 会覆盖配置中的同名构造参数，例如调用方覆盖 model；
      * - 实际构造、凭证校验、HTTP client 注入交给 `createFromParams()`。
      *
      * @param array<string, mixed> $overrides 覆盖构造参数（如 model）
@@ -395,16 +395,16 @@ final class NeuronProviderFactory
     }
 
     /**
-     * 从 AINode 节点配置提取可覆盖的构造参数（排除框架保留键）。
+     * 从 Agent 启动选项（常来自 AINode 配置）提取可覆盖的构造参数（排除框架保留键）。
      *
-     * 这样节点可以直接声明 `model`、`parameters`、`strict_response` 等 Provider 构造参数，
+     * 这样调用方可以直接声明 `model`、`parameters`、`strict_response` 等 Provider 构造参数，
      * 但不会把 `agent`、`memory`、`mcpServers` 等工作流/Agent 框架字段误传给 Provider。
      *
-     * @param array<string, mixed> $nodeConfig
+     * @param array<string, mixed> $agentOptions
      *
      * @return array<string, mixed>
      */
-    private function extractParamOverrides(array $nodeConfig): array
+    private function extractParamOverrides(array $agentOptions): array
     {
         $reserved = [
             'provider', 'provider_name', 'provider_params', 'agent', 'memory', 'stream',
@@ -413,7 +413,7 @@ final class NeuronProviderFactory
         ];
 
         $overrides = [];
-        foreach ($nodeConfig as $key => $value) {
+        foreach ($agentOptions as $key => $value) {
             if (!is_string($key) || in_array($key, $reserved, true)) {
                 continue;
             }

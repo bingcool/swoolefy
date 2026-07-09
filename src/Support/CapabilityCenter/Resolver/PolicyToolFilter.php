@@ -63,7 +63,7 @@ final class PolicyToolFilter
                 }
             }
 
-            // MCP 静态 only / exclude（对应原 mcpOnly / mcpExclude nodeConfig）
+            // MCP 静态 only / exclude（对应原 mcpOnly / mcpExclude agentOptions）
             if ($descriptor->source === CapabilitySource::Mcp && $descriptor->mcpServer !== null) {
                 $only = $context->mcpOnly[$descriptor->mcpServer] ?? null;
                 if (is_array($only) && $only !== [] && !in_array($descriptor->name, $only, true)) {

@@ -23,7 +23,7 @@ final class CapabilityWeatherDemo
      * 构建带 Capability 配置的 NeuronFactory。
      *
      * CapabilityToolAgent 自身不在 tools() 中全量挂载 Tool；
-     * NeuronFactory::boot() 会根据 nodeConfig 走 CapabilityCenter 解析并 addTool()。
+     * NeuronFactory::boot() 会根据 agentOptions 走 CapabilityCenter 解析并 addTool()。
      */
     public static function neuronFactory(int $topK = 12, bool $debug = false): NeuronFactory
     {
@@ -53,7 +53,7 @@ final class CapabilityWeatherDemo
         return NeuronAiConfig::fromArray([
             'neuron' => $base->neuronSection(),
             'capability' => [
-                // 全局默认仍关闭；具体请求通过 nodeConfig['capabilityEnabled']=true 开启。
+                // 全局默认仍关闭；具体请求通过 agentOptions['capabilityEnabled']=true 开启。
                 'enabled' => false,
                 'default_top_k' => $topK,
                 'max_schema_tools' => 20,
@@ -65,14 +65,14 @@ final class CapabilityWeatherDemo
     }
 
     /**
-     * 组装 Capability 解析所需的 nodeConfig。
+     * 组装 Capability 解析所需的 agentOptions。
      *
      * @param list<string>         $pinnedTools
      * @param array<string, mixed> $extra
      *
      * @return array<string, mixed>
      */
-    public static function nodeConfig(
+    public static function agentOptions(
         string $message,
         int $topK = 1,
         array $pinnedTools = [],

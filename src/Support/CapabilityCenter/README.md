@@ -63,7 +63,7 @@ CapabilityCenter/
 ## 核心原理
 
 ```
-用户消息 / nodeConfig
+用户消息 / agentOptions
         │
         ▼
  ToolResolveContext（请求态，禁止放 static）
@@ -130,7 +130,7 @@ CapabilityCenter/
 
 ### 1. 通过 NeuronFactory 接入（推荐）
 
-开启 Capability 后，在 `nodeConfig` 中声明参数；`mcpServers` 限制 MCP 来源，**不是**从配置文件自动读取，须由调用方传入。
+开启 Capability 后，在 `agentOptions` 中声明参数；`mcpServers` 限制 MCP 来源，**不是**从配置文件自动读取，须由调用方传入。
 
 未声明或传入空 `mcpServers` 时：**不会**同步 / 放行任何 MCP Tool（与旧 `attachMcpTools()` 一致）；仅 Native / pinned（且非 MCP）仍可入选。
 
@@ -212,7 +212,7 @@ foreach ($tools as $tool) {
 
 ### 3. Workflow AI 节点
 
-`AINodeBuilder::mcp()` 写入 `nodeConfig['mcpServers']`，`AINode` 执行时传给 `NeuronFactory`：
+`AINodeBuilder::mcp()` 写入 AINode 配置的 `mcpServers`，执行时作为 `agentOptions` 传给 `NeuronFactory`：
 
 ```php
 use Swoolefy\Support\AI\Builder\AINodeBuilder;
@@ -222,7 +222,7 @@ $node = AINodeBuilder::make('research')
     ->mcp(['github', 'brave_search'])
     ->build(neuronFactory: $neuronFactory);
 
-// nodeConfig 等效于：
+// agentOptions 等效于：
 // [
 //     'agent' => ResearchAgent::class,
 //     'mcpServers' => ['github', 'brave_search'],
@@ -231,7 +231,7 @@ $node = AINodeBuilder::make('research')
 
 开启 Capability 时，同样 `mcp(['github'])` 表示**限制 Resolver 的 MCP 来源**，不再全量挂载该 server 的全部 Tool。
 
-Capability 相关 nodeConfig 键（数组或 Workflow 节点扩展）：
+Capability 相关 agentOptions 键（数组或 Workflow 节点扩展）：
 
 ```php
 [
@@ -342,7 +342,7 @@ curl -X POST "http://localhost:9501/api/v1/agent/capability/chat" \
 2. **Worker 级单例**：将 `CapabilityComponentFactory` 注入 `NeuronFactory`，避免每次请求重复 MCP sync。
 3. **核心 Tool 用 pinned**：RAG、审计等不能依赖 tag 匹配的工具加入 `pinnedTools`。
 4. **不建表**：Phase 3 使用 `InMemoryCapabilityRegistry`，Worker reload 后重新 sync；无需数据库迁移。
-5. **mcp_sync_on_boot**：仅对 `nodeConfig` 显式声明的非空 `mcpServers` 同步；空列表不会回退为全量 server。
+5. **mcp_sync_on_boot**：仅对 `agentOptions` 显式声明的非空 `mcpServers` 同步；空列表不会回退为全量 server。
 6. **多租户 Registry**：存储键为 `(tenantId, id)`，不同租户 sync 同名 MCP tool 互不覆盖。
 
 ---

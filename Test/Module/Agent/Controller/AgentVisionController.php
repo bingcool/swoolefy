@@ -66,7 +66,7 @@ final class AgentVisionController extends BController
             $model = 'gpt-4o';
         }
 
-        $nodeConfig = [
+        $agentOptions = [
             'provider' => $providerAlias,
             'model' => $model,
         ];
@@ -85,7 +85,7 @@ final class AgentVisionController extends BController
             $agent = WorkflowService::neuronFactory()->create(
                 VisionChatAgent::class,
                 $state,
-                $nodeConfig,
+                $agentOptions,
             );
             $reply = $agent->chat($userMessage)->getMessage()->getContent();
         } catch (WorkflowException $e) {

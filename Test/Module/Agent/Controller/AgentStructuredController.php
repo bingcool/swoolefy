@@ -45,12 +45,12 @@ final class AgentStructuredController extends BController
         $providerAlias = trim((string) $requestInput->input('provider', ''));
         $model = trim((string) $requestInput->input('model', ''));
 
-        $nodeConfig = [];
+        $agentOptions = [];
         if ($providerAlias !== '') {
-            $nodeConfig['provider'] = $providerAlias;
+            $agentOptions['provider'] = $providerAlias;
         }
         if ($model !== '') {
-            $nodeConfig['model'] = $model;
+            $agentOptions['model'] = $model;
         }
 
         // 以 Asia/Shanghai 为准的「今天」，避免模型臆造日期
@@ -70,7 +70,7 @@ final class AgentStructuredController extends BController
         ]);
 
         try {
-            $agent = WorkflowService::neuronFactory()->create(WeatherAgent::class, $state, $nodeConfig);
+            $agent = WorkflowService::neuronFactory()->create(WeatherAgent::class, $state, $agentOptions);
             /** @var WeatherDto $dto */
             $dto = $agent->structured(new UserMessage($prompt), WeatherDto::class);
         } catch (WorkflowException $e) {

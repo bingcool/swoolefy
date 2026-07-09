@@ -11,13 +11,13 @@ namespace Swoolefy\Support\CapabilityCenter\Resolver;
  * query、tenant、roles、pinned tools、MCP 来源限制等运行时信息都必须通过它传递。
  *
  * 字段来源参考：
- * - query          ← 用户消息 / Workflow state / nodeConfig
+ * - query          ← 用户消息 / Workflow state / agentOptions
  * - agentId        ← Agent class 或 node id
- * - tenantId       ← nodeConfig → FrameworkContext::getTenantId()
- * - roles          ← nodeConfig / header / 登录态
- * - mcpServers     ← nodeConfig['mcpServers'] 或 nodeConfig['mcp']；空则过滤全部 MCP Tool
- * - pinnedToolIds  ← nodeConfig / Agent 配置
- * - topK           ← nodeConfig → CAPABILITY_DEFAULT_TOP_K
+ * - tenantId       ← agentOptions → FrameworkContext::getTenantId()
+ * - roles          ← agentOptions / header / 登录态
+ * - mcpServers     ← agentOptions['mcpServers'] 或 agentOptions['mcp']；空则过滤全部 MCP Tool
+ * - pinnedToolIds  ← agentOptions / Agent 配置
+ * - topK           ← agentOptions → CAPABILITY_DEFAULT_TOP_K
  */
 final class ToolResolveContext
 {

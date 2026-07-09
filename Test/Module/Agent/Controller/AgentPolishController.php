@@ -59,12 +59,12 @@ final class AgentPolishController extends BController
         $providerAlias = trim((string) $requestInput->input('provider', ''));
         $model = trim((string) $requestInput->input('model', ''));
 
-        $nodeConfig = [];
+        $agentOptions = [];
         if ($providerAlias !== '') {
-            $nodeConfig['provider'] = $providerAlias;
+            $agentOptions['provider'] = $providerAlias;
         }
         if ($model !== '') {
-            $nodeConfig['model'] = $model;
+            $agentOptions['model'] = $model;
         }
 
         $profileJson = json_encode($profile, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
@@ -90,7 +90,7 @@ PROMPT;
             $agent = WorkflowService::neuronFactory()->create(
                 RecommendationLetterAgent::class,
                 $state,
-                $nodeConfig,
+                $agentOptions,
             );
             /** @var RecommendationLetterDto $dto */
             $dto = $agent->structured(new UserMessage($prompt), RecommendationLetterDto::class);

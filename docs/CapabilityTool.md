@@ -348,14 +348,14 @@ final class ToolResolveContext
 
 | 字段 | 来源 |
 |------|------|
-| `query` | 当前用户消息、Workflow state 中的 prompt，或 nodeConfig 显式传入 |
+| `query` | 当前用户消息、Workflow state 中的 prompt，或 agentOptions 显式传入 |
 | `agentId` | Agent class / node id |
-| `tenantId` | `nodeConfig['tenantId']` → `FrameworkContext::getTenantId()` |
+| `tenantId` | `agentOptions['tenantId']` → `FrameworkContext::getTenantId()` |
 | `userId` | `FrameworkContext::getUserId()` |
-| `roles` | nodeConfig / header / 业务登录态 |
-| `mcpServers` | `nodeConfig['mcpServers']` 或 `nodeConfig['mcp']` |
-| `pinnedToolIds` | nodeConfig / Agent 配置 |
-| `topK` | nodeConfig → `CAPABILITY_DEFAULT_TOP_K` |
+| `roles` | agentOptions / header / 业务登录态 |
+| `mcpServers` | `agentOptions['mcpServers']` 或 `agentOptions['mcp']` |
+| `pinnedToolIds` | agentOptions / Agent 配置 |
+| `topK` | agentOptions → `CAPABILITY_DEFAULT_TOP_K` |
 
 ### PolicyToolFilter
 
@@ -370,7 +370,7 @@ Policy 阶段只做确定性过滤：
 | `mcpServers` 为空 | 过滤全部 MCP Tool（对齐 `attachMcpTools` 空列表不挂载） |
 | `mcpServers` 非空 | 只保留白名单 server 的 MCP Tool |
 
-不要在 Phase 3 引入复杂 RBAC。它只读取已有 `FrameworkContext` 和 nodeConfig。
+不要在 Phase 3 引入复杂 RBAC。它只读取已有 `FrameworkContext` 和 agentOptions。
 
 ### TagToolMatcher
 
@@ -473,11 +473,11 @@ if ($tools !== []) {
 
 ```php
 if (!$capabilityConfig->enabled()) {
-    $this->attachMcpTools($agent, $nodeConfig);
+    $this->attachMcpTools($agent, $agentOptions);
     return $agent;
 }
 
-$context = ToolResolveContextFactory::fromNodeConfig($agent, $nodeConfig);
+$context = ToolResolveContextFactory::fromAgentOptions($agent, $agentOptions);
 $tools = $capabilityCenter->resolveTools($context);
 
 if ($tools !== []) {
@@ -490,7 +490,7 @@ if ($tools !== []) {
 | 原则 | 说明 |
 |------|------|
 | 默认关闭 | 默认仍走原来的 `attachMcpTools()` |
-| 可并行灰度 | 可以按 nodeConfig / env / tenant 开启 |
+| 可并行灰度 | 可以按 agentOptions / env / tenant 开启 |
 | 保留 mcpOnly/mcpExclude | 下沉为 Policy 阶段的静态限制 |
 | 不改 Neuron 核心 | 只改变注入给 Agent 的 Tool 数组 |
 | 不破坏 Native Agent | Agent 自己 `tools()` 返回的少量工具继续保留 |

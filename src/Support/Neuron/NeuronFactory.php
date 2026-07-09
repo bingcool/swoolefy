@@ -31,10 +31,10 @@ use Throwable;
  * - Capability 出错且 fail_closed=false：fail-open 回退旧 MCP 全量挂载。
  *
  * 会话记忆由业务 Agent 自行实现 {@see Agent::chatHistory()}；
- * 仅当 nodeConfig['chatHistory'] 显式传入时才覆盖。
+ * 仅当 agentOptions['chatHistory'] 显式传入时才覆盖。
  *
  * 多租户：
- *   tenantId 解析顺序 = nodeConfig['tenantId'] → FrameworkContext::getTenantId()
+ *   tenantId 解析顺序 = agentOptions['tenantId'] → FrameworkContext::getTenantId()
  *   传给 McpFactory / CapabilityCenter，驱动 DB 仓储按租户过滤配置。
  *
  * @see https://docs.neuron-ai.dev/agent/chat-history-and-memory
@@ -61,24 +61,24 @@ final class NeuronFactory
     /**
      * 构造 Agent 并完成 boot（Provider + Tool + 可选 ChatHistory）。
      *
-     * 流程：agentFactory 注入 → new Agent → nodeConfigWithState → boot。
-     * WorkflowState 中的 message/prompt 会合并进 nodeConfig，供 Capability tag 匹配。
+     * 流程：agentFactory 注入 → new Agent → agentOptionsWithState → boot。
+     * WorkflowState 中的 message/prompt 会合并进 agentOptions，供 Capability tag 匹配。
      *
      * @param class-string<Agent>  $agentClass Agent 类名
      * @param WorkflowState        $state      工作流状态（用于提取 query）
-     * @param array<string, mixed> $nodeConfig provider / mcpServers / capabilityEnabled 等
+     * @param array<string, mixed> $agentOptions provider / mcpServers / capabilityEnabled 等
      */
-    public function create(string $agentClass, WorkflowState $state, array $nodeConfig = []): Agent
+    public function create(string $agentClass, WorkflowState $state, array $agentOptions = []): Agent
     {
         // 单测/mock 注入点：完全接管 Agent 创建，跳过真实 boot
         if ($this->agentFactory !== null) {
-            return ($this->agentFactory)($agentClass, $state, $nodeConfig);
+            return ($this->agentFactory)($agentClass, $state, $agentOptions);
         }
 
         /** @var Agent $agent */
         $agent = new $agentClass();
 
-        return $this->boot($agent, $this->nodeConfigWithState($nodeConfig, $state));
+        return $this->boot($agent, $this->agentOptionsWithState($agentOptions, $state));
     }
 
     /**
@@ -86,22 +86,22 @@ final class NeuronFactory
      *
      * boot 顺序：
      * 1. applyProvider — 注入 LLM；
-     * 2. setChatHistory — 仅 nodeConfig 显式传入时覆盖；
+     * 2. setChatHistory — 仅 agentOptions 显式传入时覆盖；
      * 3. attachTools   — MCP 全量 或 CapabilityCenter 动态筛选。
      *
-     * @param array<string, mixed> $nodeConfig
+     * @param array<string, mixed> $agentOptions
      */
-    public function boot(Agent $agent, array $nodeConfig = []): Agent
+    public function boot(Agent $agent, array $agentOptions = []): Agent
     {
         $agentClass = $agent::class;
-        $this->applyProvider($agent, $agentClass, $nodeConfig);
+        $this->applyProvider($agent, $agentClass, $agentOptions);
 
         // 显式传入 ChatHistory 时覆盖 Agent 自身 chatHistory() 声明
-        if (($nodeConfig['chatHistory'] ?? null) instanceof ChatHistoryInterface) {
-            $agent->setChatHistory($nodeConfig['chatHistory']);
+        if (($agentOptions['chatHistory'] ?? null) instanceof ChatHistoryInterface) {
+            $agent->setChatHistory($agentOptions['chatHistory']);
         }
 
-        $this->attachTools($agent, $nodeConfig);
+        $this->attachTools($agent, $agentOptions);
 
         return $agent;
     }
@@ -110,18 +110,18 @@ final class NeuronFactory
      * 注入 LLM Provider。
      *
      * 解析优先级：
-     * 1. nodeConfig['provider'] → NeuronProviderFactory::createFromNodeConfig()；
+     * 1. agentOptions['provider'] → NeuronProviderFactory::createFromAgentOptions()；
      * 2. 若 Agent 未自定义 provider() → createDefault()（含 RouterProvider fallback）；
      * 3. 仍无 Provider 且 Agent 未声明自定义 provider → 抛 WorkflowException。
      *
      * Agent 自身实现了 provider() 且无可用配置 Provider 时，保留 Agent 内置逻辑不抛错。
      */
-    private function applyProvider(Agent $agent, string $agentClass, array $nodeConfig): void
+    private function applyProvider(Agent $agent, string $agentClass, array $agentOptions): void
     {
         $factory = $this->providerFactory ?? new NeuronProviderFactory();
 
-        // 优先使用 nodeConfig 指定的 provider alias
-        $provider = $factory->createFromNodeConfig($nodeConfig);
+        // 优先使用 agentOptions 指定的 provider alias
+        $provider = $factory->createFromAgentOptions($agentOptions);
 
         // 节点未指定且 Agent 未自定义 provider() 时，使用 default_provider
         if ($provider === null && !NeuronProviderFactory::agentDeclaresCustomProvider($agentClass)) {
@@ -149,26 +149,26 @@ final class NeuronFactory
      * 当 CAPABILITY_ENABLED=false 或 Capability fail-open 回退时走此路径。
      * 通过 McpFactory::tools() 加载声明 server 的全部 Tool，再 Agent::addTool()。
      *
-     * nodeConfig 键：
+     * agentOptions 键：
      *   mcpServers / mcp   — Server 名列表
      *   mcpOnly / mcpExclude — 按 Server 静态过滤 tool
      *   tenantId           — 显式租户；缺省时读 FrameworkContext
      */
-    private function attachMcpTools(Agent $agent, array $nodeConfig): void
+    private function attachMcpTools(Agent $agent, array $agentOptions): void
     {
         if ($this->mcpFactory === null) {
             return;
         }
 
-        $servers = $nodeConfig['mcpServers'] ?? $nodeConfig['mcp'] ?? null;
+        $servers = $agentOptions['mcpServers'] ?? $agentOptions['mcp'] ?? null;
         // 未声明 MCP server 时不挂载任何 Tool
         if (!is_array($servers) || $servers === []) {
             return;
         }
 
-        $only = is_array($nodeConfig['mcpOnly'] ?? null) ? $nodeConfig['mcpOnly'] : null;
-        $exclude = is_array($nodeConfig['mcpExclude'] ?? null) ? $nodeConfig['mcpExclude'] : null;
-        $tenantId = $nodeConfig['tenantId'] ?? FrameworkContext::getTenantId();
+        $only = is_array($agentOptions['mcpOnly'] ?? null) ? $agentOptions['mcpOnly'] : null;
+        $exclude = is_array($agentOptions['mcpExclude'] ?? null) ? $agentOptions['mcpExclude'] : null;
+        $tenantId = $agentOptions['tenantId'] ?? FrameworkContext::getTenantId();
 
         // 全量加载：McpFactory 负责 stdio 守卫、URL 守卫、进程限流
         $tools = $this->mcpFactory->tools($servers, $only, $exclude, is_string($tenantId) ? $tenantId : null);
@@ -180,7 +180,7 @@ final class NeuronFactory
     /**
      * Tool 挂载总入口：CapabilityCenter 或旧 MCP 全量。
      *
-     * 开关解析：nodeConfig['capabilityEnabled'] 优先于全局 CAPABILITY_ENABLED。
+     * 开关解析：agentOptions['capabilityEnabled'] 优先于全局 CAPABILITY_ENABLED。
      *
      * Capability 路径：
      * 1. 组装 ToolResolveContext（query / topK / pinned / mcpServers 等）；
@@ -191,21 +191,21 @@ final class NeuronFactory
      * - fail_closed=true → 抛异常，Agent 创建失败；
      * - fail_closed=false → warning 日志 + 回退 attachMcpTools()。
      */
-    private function attachTools(Agent $agent, array $nodeConfig): void
+    private function attachTools(Agent $agent, array $agentOptions): void
     {
         $config = $this->config ?? NeuronAiConfig::load();
 
-        // nodeConfig 可 per-node 覆盖全局 capability 开关
-        $enabled = $this->nodeConfigBool($nodeConfig, 'capabilityEnabled', $config->capabilityEnabled());
+        // agentOptions 可 per-call 覆盖全局 capability 开关
+        $enabled = $this->agentOptionsBool($agentOptions, 'capabilityEnabled', $config->capabilityEnabled());
         if (!$enabled) {
-            $this->attachMcpTools($agent, $nodeConfig);
+            $this->attachMcpTools($agent, $agentOptions);
 
             return;
         }
 
         try {
-            $tenantId = $nodeConfig['tenantId'] ?? FrameworkContext::getTenantId();
-            $mcpServers = $this->normalizeStringList($nodeConfig['mcpServers'] ?? $nodeConfig['mcp'] ?? []);
+            $tenantId = $agentOptions['tenantId'] ?? FrameworkContext::getTenantId();
+            $mcpServers = $this->normalizeStringList($agentOptions['mcpServers'] ?? $agentOptions['mcp'] ?? []);
 
             // 优先使用注入的单例 factory（生产推荐 Worker 级复用 Registry）
             /**
@@ -222,7 +222,7 @@ final class NeuronFactory
             // 获取 ToolInterface[],动态筛选出可能满足的 MCP Tool
             $tools = $factory
                 ->capabilityCenter($mcpServers, is_string($tenantId) ? $tenantId : null)
-                ->resolveTools($this->toolResolveContext($agent, $nodeConfig, $config));
+                ->resolveTools($this->toolResolveContext($agent, $agentOptions, $config));
 
             if ($tools !== []) {
                 $agent->addTool($tools);
@@ -241,37 +241,37 @@ final class NeuronFactory
             }
 
             // fail-open：回退旧 MCP 全量挂载，保证 Agent 仍可用
-            $this->attachMcpTools($agent, $nodeConfig);
+            $this->attachMcpTools($agent, $agentOptions);
         }
     }
 
     /**
-     * 从 nodeConfig / FrameworkContext 组装 Capability 解析上下文。
+     * 从 agentOptions / FrameworkContext 组装 Capability 解析上下文。
      *
      * 该对象是请求态，携带 query、tenant、roles、pinned、mcpServers 等运行时信息，
      * 供 CompositeToolResolver 做 policy 过滤与 tag 匹配。
      */
-    private function toolResolveContext(Agent $agent, array $nodeConfig, NeuronAiConfig $config): ToolResolveContext
+    private function toolResolveContext(Agent $agent, array $agentOptions, NeuronAiConfig $config): ToolResolveContext
     {
-        $tenantId = $nodeConfig['tenantId'] ?? FrameworkContext::getTenantId();
+        $tenantId = $agentOptions['tenantId'] ?? FrameworkContext::getTenantId();
 
         return new ToolResolveContext(
-            query: $this->resolveCapabilityQuery($nodeConfig),
-            agentId: (string) ($nodeConfig['agentId'] ?? $agent::class),
+            query: $this->resolveCapabilityQuery($agentOptions),
+            agentId: (string) ($agentOptions['agentId'] ?? $agent::class),
             tenantId: is_string($tenantId) ? $tenantId : null,
             userId: FrameworkContext::getUserId(),
-            roles: $this->normalizeStringList($nodeConfig['roles'] ?? $nodeConfig['userRoles'] ?? []),
-            pinnedToolIds: $this->normalizeStringList($nodeConfig['pinnedTools'] ?? $nodeConfig['pinnedToolIds'] ?? []),
-            mcpServers: $this->normalizeStringList($nodeConfig['mcpServers'] ?? $nodeConfig['mcp'] ?? []),
-            capabilityProfile: isset($nodeConfig['capabilityProfile']) && is_string($nodeConfig['capabilityProfile'])
-                ? $nodeConfig['capabilityProfile']
+            roles: $this->normalizeStringList($agentOptions['roles'] ?? $agentOptions['userRoles'] ?? []),
+            pinnedToolIds: $this->normalizeStringList($agentOptions['pinnedTools'] ?? $agentOptions['pinnedToolIds'] ?? []),
+            mcpServers: $this->normalizeStringList($agentOptions['mcpServers'] ?? $agentOptions['mcp'] ?? []),
+            capabilityProfile: isset($agentOptions['capabilityProfile']) && is_string($agentOptions['capabilityProfile'])
+                ? $agentOptions['capabilityProfile']
                 : null,
-            profileTags: $this->normalizeStringList($nodeConfig['profileTags'] ?? $nodeConfig['capabilityTags'] ?? []),
-            // nodeConfig 可 per-node 覆盖 default_top_k
-            topK: isset($nodeConfig['capabilityTopK']) ? max(0, (int) $nodeConfig['capabilityTopK']) : $config->capabilityDefaultTopK(),
+            profileTags: $this->normalizeStringList($agentOptions['profileTags'] ?? $agentOptions['capabilityTags'] ?? []),
+            // agentOptions 可 per-call 覆盖 default_top_k
+            topK: isset($agentOptions['capabilityTopK']) ? max(0, (int) $agentOptions['capabilityTopK']) : $config->capabilityDefaultTopK(),
             // mcpOnly/mcpExclude 下沉为 Policy 阶段静态限制
-            mcpOnly: $this->normalizeToolMap($nodeConfig['mcpOnly'] ?? []),
-            mcpExclude: $this->normalizeToolMap($nodeConfig['mcpExclude'] ?? []),
+            mcpOnly: $this->normalizeToolMap($agentOptions['mcpOnly'] ?? []),
+            mcpExclude: $this->normalizeToolMap($agentOptions['mcpExclude'] ?? []),
         );
     }
 
@@ -281,10 +281,10 @@ final class NeuronFactory
      * 优先级：capabilityQuery → message → prompt → _stateMessage（来自 WorkflowState）。
      * 全部缺失时返回空字符串（Tag 匹配保留 score=0 的兜底行为）。
      */
-    private function resolveCapabilityQuery(array $nodeConfig): string
+    private function resolveCapabilityQuery(array $agentOptions): string
     {
         foreach (['capabilityQuery', 'message', 'prompt', '_stateMessage'] as $key) {
-            $value = $nodeConfig[$key] ?? null;
+            $value = $agentOptions[$key] ?? null;
             if (is_string($value) && trim($value) !== '') {
                 return trim($value);
             }
@@ -294,35 +294,35 @@ final class NeuronFactory
     }
 
     /**
-     * 将 WorkflowState 中的 message/prompt 合并进 nodeConfig。
+     * 将 WorkflowState 中的 message/prompt 合并进 agentOptions。
      *
      * 供 create() 调用：boot 前注入 _stateMessage，使 Capability 能拿到用户 query。
-     * 若 nodeConfig 已有 _stateMessage 则不覆盖。
+     * 若 agentOptions 已有 _stateMessage 则不覆盖。
      */
-    private function nodeConfigWithState(array $nodeConfig, WorkflowState $state): array
+    private function agentOptionsWithState(array $agentOptions, WorkflowState $state): array
     {
-        if (!isset($nodeConfig['_stateMessage'])) {
+        if (!isset($agentOptions['_stateMessage'])) {
             $message = $state->get('message') ?? $state->get('prompt') ?? null;
             if (is_string($message) && $message !== '') {
-                $nodeConfig['_stateMessage'] = $message;
+                $agentOptions['_stateMessage'] = $message;
             }
         }
 
-        return $nodeConfig;
+        return $agentOptions;
     }
 
     /**
-     * 读取 nodeConfig 中的布尔值。
+     * 读取 agentOptions 中的布尔值。
      *
-     * nodeConfig 未设置该 key 时返回 $default（通常来自 NeuronAiConfig 全局配置）。
+     * agentOptions 未设置该 key 时返回 $default（通常来自 NeuronAiConfig 全局配置）。
      */
-    private function nodeConfigBool(array $nodeConfig, string $key, bool $default): bool
+    private function agentOptionsBool(array $agentOptions, string $key, bool $default): bool
     {
-        if (!array_key_exists($key, $nodeConfig)) {
+        if (!array_key_exists($key, $agentOptions)) {
             return $default;
         }
 
-        return filter_var($nodeConfig[$key], FILTER_VALIDATE_BOOLEAN);
+        return filter_var($agentOptions[$key], FILTER_VALIDATE_BOOLEAN);
     }
 
     /**
@@ -358,7 +358,7 @@ final class NeuronFactory
      *
      * 格式：['github' => ['search_code', 'list_repos'], ...]
      *
-     * @param mixed $raw 原始 nodeConfig 值
+     * @param mixed $raw 原始 agentOptions 值
      *
      * @return array<string, list<string>>
      */

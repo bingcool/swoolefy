@@ -79,12 +79,12 @@ final class AgentStreamController extends BController
         $providerAlias = trim((string) $requestInput->input('provider', ''));
         $model = trim((string) $requestInput->input('model', ''));
 
-        $nodeConfig = [];
+        $agentOptions = [];
         if ($providerAlias !== '') {
-            $nodeConfig['provider'] = $providerAlias;
+            $agentOptions['provider'] = $providerAlias;
         }
         if ($model !== '') {
-            $nodeConfig['model'] = $model;
+            $agentOptions['model'] = $model;
         }
 
         $resolvedProvider = $providerAlias !== ''
@@ -101,7 +101,7 @@ final class AgentStreamController extends BController
             $pdo = ChatHistoryPdoResolver::resolve('db');
             $agent = WorkflowService::neuronFactory()->boot(
                 new ChatAgent($threadId, $pdo),
-                $nodeConfig,
+                $agentOptions,
             );
 
             $handler = $agent->stream(new UserMessage($message));

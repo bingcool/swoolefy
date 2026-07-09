@@ -55,8 +55,8 @@ final class AgentToolController extends BController
             throw new SystemException('message is required', 400);
         }
 
-        $nodeConfig = $this->resolveNodeConfig($requestInput);
-        $provider = $this->resolveProviderLabel($nodeConfig);
+        $agentOptions = $this->resolveAgentOptions($requestInput);
+        $provider = $this->resolveProviderLabel($agentOptions);
 
         $state = WorkflowState::fromInput(['message' => $message]);
 
@@ -64,7 +64,7 @@ final class AgentToolController extends BController
             $agent = WorkflowService::neuronFactory()->create(
                 WeatherToolAgent::class,
                 $state,
-                $nodeConfig,
+                $agentOptions,
             );
             $reply = (string) $agent->chat(new UserMessage($message))->getMessage()->getContent();
         } catch (WorkflowException $e) {
@@ -79,7 +79,7 @@ final class AgentToolController extends BController
             'message' => $message,
             'reply' => $reply,
             'provider' => $provider,
-            'model' => $nodeConfig['model'] ?? null,
+            'model' => $agentOptions['model'] ?? null,
             'tools' => ['get_date', 'get_weather'],
         ];
     }
@@ -116,12 +116,12 @@ final class AgentToolController extends BController
             throw new SystemException('message is required', 400);
         }
 
-        $nodeConfig = $this->resolveNodeConfig($requestInput);
-        $provider = $this->resolveProviderLabel($nodeConfig);
+        $agentOptions = $this->resolveAgentOptions($requestInput);
+        $provider = $this->resolveProviderLabel($agentOptions);
 
         $sink->publish('start', [
             'provider' => $provider,
-            'model' => $nodeConfig['model'] ?? null,
+            'model' => $agentOptions['model'] ?? null,
             'tools' => ['get_date', 'get_weather'],
         ]);
 
@@ -131,7 +131,7 @@ final class AgentToolController extends BController
             $agent = WorkflowService::neuronFactory()->create(
                 WeatherToolAgent::class,
                 $state,
-                $nodeConfig,
+                $agentOptions,
             );
 
             $handler = $agent->stream(new UserMessage($message));
@@ -176,7 +176,7 @@ final class AgentToolController extends BController
                 'message' => $message,
                 'reply' => $fullText,
                 'provider' => $provider,
-                'model' => $nodeConfig['model'] ?? null,
+                'model' => $agentOptions['model'] ?? null,
                 'tool_calls' => $toolCalls,
             ]);
         } catch (WorkflowException $e) {
@@ -191,26 +191,26 @@ final class AgentToolController extends BController
     /**
      * @return array<string, mixed>
      */
-    private function resolveNodeConfig(RequestInput $requestInput): array
+    private function resolveAgentOptions(RequestInput $requestInput): array
     {
         $providerAlias = trim((string) $requestInput->input('provider', ''));
         $model = trim((string) $requestInput->input('model', ''));
 
-        $nodeConfig = [];
+        $agentOptions = [];
         if ($providerAlias !== '') {
-            $nodeConfig['provider'] = $providerAlias;
+            $agentOptions['provider'] = $providerAlias;
         }
         if ($model !== '') {
-            $nodeConfig['model'] = $model;
+            $agentOptions['model'] = $model;
         }
 
-        return $nodeConfig;
+        return $agentOptions;
     }
 
-    /** @param array<string, mixed> $nodeConfig */
-    private function resolveProviderLabel(array $nodeConfig): string
+    /** @param array<string, mixed> $agentOptions */
+    private function resolveProviderLabel(array $agentOptions): string
     {
-        $alias = $nodeConfig['provider'] ?? '';
+        $alias = $agentOptions['provider'] ?? '';
 
         return is_string($alias) && $alias !== ''
             ? $alias

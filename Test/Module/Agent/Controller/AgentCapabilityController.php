@@ -72,13 +72,13 @@ final class AgentCapabilityController extends BController
     public function chat(RequestInput $requestInput): array
     {
         [$message, $topK, $pinned] = $this->parseRequest($requestInput);
-        $nodeConfig = CapabilityWeatherDemo::nodeConfig(
+        $agentOptions = CapabilityWeatherDemo::agentOptions(
             $message,
             $topK,
             $pinned,
-            $this->providerNodeConfig($requestInput),
+            $this->providerAgentOptions($requestInput),
         );
-        $provider = $this->resolveProviderLabel($nodeConfig);
+        $provider = $this->resolveProviderLabel($agentOptions);
 
         $state = WorkflowState::fromInput(['message' => $message]);
 
@@ -86,7 +86,7 @@ final class AgentCapabilityController extends BController
             $agent = CapabilityWeatherDemo::neuronFactory($topK)->create(
                 CapabilityToolAgent::class,
                 $state,
-                $nodeConfig,
+                $agentOptions,
             );
             $selectedTools = $this->toolNames($agent->getTools());
             $reply = (string) $agent->chat(new UserMessage($message))->getMessage()->getContent();
@@ -105,7 +105,7 @@ final class AgentCapabilityController extends BController
             'selectedTools' => $selectedTools,
             'reply' => $reply,
             'provider' => $provider,
-            'model' => $nodeConfig['model'] ?? null,
+            'model' => $agentOptions['model'] ?? null,
             'agent' => CapabilityToolAgent::class,
         ];
     }
@@ -200,26 +200,26 @@ final class AgentCapabilityController extends BController
     }
 
     /** @return array<string, mixed> */
-    private function providerNodeConfig(RequestInput $requestInput): array
+    private function providerAgentOptions(RequestInput $requestInput): array
     {
         $providerAlias = trim((string) $requestInput->input('provider', ''));
         $model = trim((string) $requestInput->input('model', ''));
 
-        $nodeConfig = [];
+        $agentOptions = [];
         if ($providerAlias !== '') {
-            $nodeConfig['provider'] = $providerAlias;
+            $agentOptions['provider'] = $providerAlias;
         }
         if ($model !== '') {
-            $nodeConfig['model'] = $model;
+            $agentOptions['model'] = $model;
         }
 
-        return $nodeConfig;
+        return $agentOptions;
     }
 
-    /** @param array<string, mixed> $nodeConfig */
-    private function resolveProviderLabel(array $nodeConfig): string
+    /** @param array<string, mixed> $agentOptions */
+    private function resolveProviderLabel(array $agentOptions): string
     {
-        $alias = $nodeConfig['provider'] ?? '';
+        $alias = $agentOptions['provider'] ?? '';
 
         return is_string($alias) && $alias !== ''
             ? $alias

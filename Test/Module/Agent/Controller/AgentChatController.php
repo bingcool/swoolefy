@@ -101,14 +101,14 @@ final class AgentChatController extends BController
             $parameters['reasoning_effort'] = $effort;
         }
 
-        $nodeConfig = [
+        $agentOptions = [
             'provider' => NeuronAiProviderName::DEEPSEEK,
             'model' => $model,
             'parameters' => $parameters,
         ];
 
         try {
-            $agent = $this->makeChatAgent($threadId, $nodeConfig);
+            $agent = $this->makeChatAgent($threadId, $agentOptions);
             $assistant = $agent->chat(new UserMessage($message))->getMessage();
         } catch (WorkflowException $e) {
             throw new SystemException($e->getMessage(), 400, $e);
@@ -149,16 +149,16 @@ final class AgentChatController extends BController
         $providerAlias = trim((string) $requestInput->input('provider', ''));
         $model = trim((string) $requestInput->input('model', ''));
 
-        $nodeConfig = [];
+        $agentOptions = [];
         if ($providerAlias !== '') {
-            $nodeConfig['provider'] = $providerAlias;
+            $agentOptions['provider'] = $providerAlias;
         }
         if ($model !== '') {
-            $nodeConfig['model'] = $model;
+            $agentOptions['model'] = $model;
         }
 
         try {
-            $agent = $this->makeChatAgent($threadId, $nodeConfig);
+            $agent = $this->makeChatAgent($threadId, $agentOptions);
             $historyCount = count($agent->getChatHistory()->getMessages());
             $reply = (string) $agent->chat(new UserMessage($message))->getMessage()->getContent();
         } catch (WorkflowException $e) {
@@ -193,16 +193,16 @@ final class AgentChatController extends BController
 
         [$threadId] = $this->resolveThread($requestInput);
 
-        $nodeConfig = [];
+        $agentOptions = [];
         if ($providerAlias !== '') {
-            $nodeConfig['provider'] = $providerAlias;
+            $agentOptions['provider'] = $providerAlias;
         }
         if ($model !== '') {
-            $nodeConfig['model'] = $model;
+            $agentOptions['model'] = $model;
         }
 
         try {
-            $agent = $this->makeChatAgent($threadId, $nodeConfig);
+            $agent = $this->makeChatAgent($threadId, $agentOptions);
             $reply = $agent->chat(new UserMessage($message))->getMessage()->getContent();
         } catch (WorkflowException $e) {
             throw new SystemException($e->getMessage(), 400, $e);
@@ -222,16 +222,16 @@ final class AgentChatController extends BController
     }
 
     /**
-     * @param array<string, mixed> $nodeConfig
+     * @param array<string, mixed> $agentOptions
      */
-    private function makeChatAgent(string $threadId, array $nodeConfig = []): ChatAgent
+    private function makeChatAgent(string $threadId, array $agentOptions = []): ChatAgent
     {
         $pdo = ChatHistoryPdoResolver::resolve('db');
 
         /** @var ChatAgent $agent */
         $agent = WorkflowService::neuronFactory()->boot(
             new ChatAgent($threadId, $pdo),
-            $nodeConfig,
+            $agentOptions,
         );
 
         return $agent;

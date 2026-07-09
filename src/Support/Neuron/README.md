@@ -40,7 +40,7 @@ Neuron/
 
 NeuronFactory::create / boot
   ├─ applyProvider（节点 provider 别名或 default；baseUri 经 OutboundUrlGuard）
-  ├─ setChatHistory（仅当 nodeConfig['chatHistory'] 显式传入）
+  ├─ setChatHistory（仅当 agentOptions['chatHistory'] 显式传入）
   └─ addTool（mcpServers + tenantId / FrameworkContext）
 ```
 

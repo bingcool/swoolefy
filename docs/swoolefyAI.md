@@ -1419,17 +1419,17 @@ public function execute(RunContext $ctx, WorkflowState $state): NodeExecutionRes
 
 ```php
 // NeuronFactory 组装 Agent MCP tools
-public function buildAgent(string $agentClass, array $nodeConfig): Agent
+public function buildAgent(string $agentClass, array $agentOptions): Agent
 {
     $agent = $this->container->make($agentClass);
-    if ($servers = $nodeConfig['mcpServers'] ?? []) {
+    if ($servers = $agentOptions['mcpServers'] ?? []) {
         $tools = [];
         foreach ($servers as $name) {
             $connector = $this->mcpFactory->connectors($name);
-            if ($only = $nodeConfig['mcpOnly'][$name] ?? null) {
+            if ($only = $agentOptions['mcpOnly'][$name] ?? null) {
                 $connector = $connector->only($only);
             }
-            if ($exclude = $nodeConfig['mcpExclude'][$name] ?? null) {
+            if ($exclude = $agentOptions['mcpExclude'][$name] ?? null) {
                 $connector = $connector->exclude($exclude);
             }
             $tools = [...$tools, ...$connector->tools()];

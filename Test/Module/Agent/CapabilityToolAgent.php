@@ -22,9 +22,9 @@ use Swoolefy\Support\Neuron\NeuronProviderFactory;
  * - CapabilityToolAgent 的 tools() 返回空数组，Tool 由 NeuronFactory + CapabilityCenter
  *   在 boot 阶段按 query / topK / pinnedTools 动态解析并 addTool() 注入。
  *
- * 典型 nodeConfig：
+ * 典型 agentOptions：
  * ```php
- * CapabilityWeatherDemo::nodeConfig('深圳天气怎么样？', topK: 1, pinnedTools: ['native:weather:get_date'])
+ * CapabilityWeatherDemo::agentOptions('深圳天气怎么样？', topK: 1, pinnedTools: ['native:weather:get_date'])
  * ```
  */
 final class CapabilityToolAgent extends Agent
