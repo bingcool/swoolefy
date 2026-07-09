@@ -86,8 +86,7 @@ src/Support/DocumentOcr/
   Exceptions/
     DocumentParseException.php
     UnsupportedDocumentTypeException.php
-  Support/
-    WorkDirectory.php
+  WorkDirectory.php
   DocumentOcrFactory.php
 
 Test/Config/document_ocr.php          # pandoc + deepseek_ocr 配置
