@@ -6,6 +6,7 @@ namespace Swoolefy\Support\Agent;
 
 use Swoolefy\Core\Coroutine\GoWaitGroup;
 use Swoolefy\Exception\SystemException;
+use Swoolefy\Support\Agent\Router\StaticRouter;
 use Swoolefy\Support\Neuron\NeuronFactory;
 use Swoolefy\Support\Workflow\Exception\WorkflowTimeoutException;
 
