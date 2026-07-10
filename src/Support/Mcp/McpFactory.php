@@ -7,6 +7,7 @@ namespace Swoolefy\Support\Mcp;
 use NeuronAI\MCP\McpConnector;
 use NeuronAI\Tools\ToolInterface;
 use Swoolefy\Support\Neuron\NeuronAiConfig;
+use Swoolefy\Support\Security\OutboundUrlGuard;
 use Swoolefy\Support\SupportLog;
 
 /**
@@ -35,7 +36,7 @@ final class McpFactory
 {
     private readonly McpStdioGuard $stdioGuard;
 
-    private readonly ?\Swoolefy\Support\Security\OutboundUrlGuard $urlGuard;
+    private readonly ?OutboundUrlGuard $urlGuard;
 
     /**
      * @param array<string, array<string, mixed>> $servers 静态配置 map（neuron_ai.php 或构造注入）
@@ -45,7 +46,7 @@ final class McpFactory
         private readonly ?McpServerConfigRepositoryInterface $repository = null,
         private readonly ?McpProcessRunner $processRunner = null,
         ?McpStdioGuard $stdioGuard = null,
-        ?\Swoolefy\Support\Security\OutboundUrlGuard $urlGuard = null,
+        ?OutboundUrlGuard $urlGuard = null,
         ?NeuronAiConfig $config = null,
     ) {
         $config ??= NeuronAiConfig::load();

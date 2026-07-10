@@ -8,7 +8,7 @@ use Swoolefy\Support\Workflow\Definition\CompiledWorkflow;
 use Swoolefy\Support\Workflow\Definition\WorkflowCompiler;
 use Swoolefy\Support\Workflow\Definition\WorkflowDefinition;
 use Swoolefy\Support\Workflow\Engine\WorkflowEngine;
-
+use Swoolefy\Support\Workflow\Engine\WorkflowRun;
 /**
  * 工作流薄门面（Facade）：封装 Definition → Compiler → Runtime 三层。
  *
@@ -116,7 +116,7 @@ final class Workflow
     }
 
     /** 查询 Run 快照。 */
-    public function getRun(string $runId, ?WorkflowEngine $engine = null): \Swoolefy\Support\Workflow\Engine\WorkflowRun
+    public function getRun(string $runId, ?WorkflowEngine $engine = null): WorkflowRun
     {
         return ($engine ?? WorkflowBootstrap::engine())->getRun($runId);
     }

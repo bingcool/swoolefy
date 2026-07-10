@@ -6,7 +6,7 @@ namespace Swoolefy\Support\Workflow\Engine;
 
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\Node\NodeInterface;
-
+use Swoolefy\Support\Workflow\State\WorkflowState;
 /**
  * 节点重试执行器 —— 统一退避策略，供 {@see WorkflowEngine} 与 {@see RetryPlugin} 复用。
  */
@@ -18,7 +18,7 @@ final class RetryExecutor
     public function execute(
         NodeInterface $node,
         RunContext $ctx,
-        \Swoolefy\Support\Workflow\State\WorkflowState $state,
+        WorkflowState $state,
         callable $runner,
         RetryPolicy $defaultPolicy,
     ): NodeExecutionResult {

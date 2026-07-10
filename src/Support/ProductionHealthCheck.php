@@ -8,11 +8,13 @@ use PDO;
 use RuntimeException;
 use Swoolefy\Core\SystemEnv;
 use Swoolefy\Support\Mcp\McpStdioGuard;
+use Swoolefy\Support\Neuron\Embedding\EmbeddingFactory;
 use Swoolefy\Support\Neuron\NeuronAiConfig;
 use Swoolefy\Support\Security\OutboundUrlGuard;
 use Swoolefy\Support\Workflow\WorkflowConfig;
 use Swoolefy\Support\Workflow\WorkflowPdoResolver;
 use Swoolefy\Support\Workflow\WorkflowRunStoreName;
+use Throwable;
 
 /**
  * 生产部署前配置 / Schema / 凭证健康检查。
@@ -82,8 +84,8 @@ final class ProductionHealthCheck
         // 生产环境须能实例化真实 Embedding；allow_fake_embeddings 仅用于本地/单测
         if (!$config->allowFakeEmbeddings()) {
             try {
-                (new \Swoolefy\Support\Neuron\Embedding\EmbeddingFactory($config))->make();
-            } catch (\Throwable $e) {
+                (new EmbeddingFactory($config))->make();
+            } catch (Throwable $e) {
                 $errors[] = 'neuron: embedding not configured — ' . $e->getMessage();
             }
         }

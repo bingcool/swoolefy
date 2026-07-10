@@ -7,6 +7,7 @@ namespace Swoolefy\Support\Workflow\Engine;
 use Swoolefy\Support\Workflow\Definition\CompiledWorkflow;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\Node\AbstractNode;
+use Swoolefy\Support\Workflow\Node\ConfigurableTimeoutNodeInterface;
 use Swoolefy\Support\Workflow\Node\NodeInterface;
 use Swoolefy\Support\Workflow\Plugin\PluginManager;
 use Swoolefy\Support\Workflow\State\WorkflowState;
@@ -437,7 +438,7 @@ final class WorkflowEngine
      */
     private function resolveNodeTimeout(NodeInterface $node): float
     {
-        if ($node instanceof \Swoolefy\Support\Workflow\Node\ConfigurableTimeoutNodeInterface) {
+        if ($node instanceof ConfigurableTimeoutNodeInterface) {
             $timeout = $node->configuredTimeoutSeconds();
             // 返回 0 表示节点未单独配置，回退引擎全局默认
             if ($timeout > 0) {

@@ -6,6 +6,8 @@ namespace Swoolefy\Support\Neuron\Memory;
 
 use NeuronAI\Chat\History\InMemoryChatHistory;
 use NeuronAI\Chat\Messages\Message;
+use Swoolefy\Library\Redis\Redis;
+use Swoolefy\Library\Redis\RedisCluster;
 use Swoolefy\Library\Redis\RedisConnection;
 use Swoolefy\Support\SupportLog;
 use Throwable;
@@ -63,8 +65,8 @@ final class RedisChatHistory extends InMemoryChatHistory implements HotChatHisto
     protected function clear(): void
     {
         try {
-            if ($this->redis instanceof \Swoolefy\Library\Redis\Redis ||
-                $this->redis instanceof \Swoolefy\Library\Redis\RedisCluster) {
+            if ($this->redis instanceof Redis ||
+                $this->redis instanceof RedisCluster) {
                 $this->redis->del($this->redisKey());
             } else {
                 $this->redis->del([$this->redisKey()]);

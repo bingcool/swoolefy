@@ -7,6 +7,7 @@ namespace Swoolefy\Support\Nacos;
 use Swoolefy\Core\Process\AbstractProcess;
 use Swoolefy\Core\Swfy;
 use Swoolefy\Exception\NacosMonitorException;
+use Swoolefy\Util\Log;
 
 /**
  * 内置进程：读取 application.yaml 的 nacos 配置，在 Swoole 服务完全启动后注册到 Nacos 并心跳保活。
@@ -81,7 +82,7 @@ class NacosRegisterServiceProcess extends AbstractProcess
         $this->registrar->deregister();
     }
 
-    private function resolveRegisterIp(NacosServiceRegisterConfig $serviceConfig, \Swoolefy\Util\Log $logger): string
+    private function resolveRegisterIp(NacosServiceRegisterConfig $serviceConfig, Log $logger): string
     {
         $envIp = getenv(NacosConst::ENV_SERVICE_REGISTER_HOST);
 
@@ -113,7 +114,7 @@ class NacosRegisterServiceProcess extends AbstractProcess
         return $this->resolveLocalIp();
     }
 
-    private function resolveRegisterPort(NacosServiceRegisterConfig $serviceConfig, \Swoolefy\Util\Log $logger): int
+    private function resolveRegisterPort(NacosServiceRegisterConfig $serviceConfig, Log $logger): int
     {
         if (defined('WORKER_PORT')) {
             return (int) WORKER_PORT;
@@ -149,7 +150,7 @@ class NacosRegisterServiceProcess extends AbstractProcess
      * 只判断 Master 进程存活还不够：reload / cold start 时 Master 可能已存在，
      * 但 Worker 监听端口尚未就绪，过早注册会让其他服务发现到一个短暂不可用的实例。
      */
-    private function waitUntilSwooleServerReady(int $port, \Swoolefy\Util\Log $logger): void
+    private function waitUntilSwooleServerReady(int $port, Log $logger): void
     {
         $maxWaitSeconds = self::DEFAULT_WAIT_SECONDS;
         $deadline = microtime(true) + $maxWaitSeconds;

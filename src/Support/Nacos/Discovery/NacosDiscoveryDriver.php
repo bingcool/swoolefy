@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Swoolefy\Support\Nacos\Discovery;
 
 use Swoolefy\Exception\NacosDiscoveryException;
+use Swoolefy\Library\Nacos\Provider\Instance\Model\Host;
 use Swoolefy\Support\Nacos\Discovery\Contract\DiscoveryDriverInterface;
 use Swoolefy\Support\Nacos\Discovery\Model\ServiceInstance;
 use Swoolefy\Support\Nacos\NacosConfig;
@@ -42,7 +43,7 @@ final class NacosDiscoveryDriver implements DiscoveryDriverInterface
 
         $instances = [];
         foreach ($response->getHosts() as $host) {
-            if (!$host instanceof \Swoolefy\Library\Nacos\Provider\Instance\Model\Host) {
+            if (!$host instanceof Host) {
                 continue;
             }
 

@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Workflow\Definition;
 
+use InvalidArgumentException;
+use Swoolefy\Support\Agent\AgentScheduler;
+use Swoolefy\Support\Agent\Router\StaticRouter;
+use Swoolefy\Support\AI\Node\AgentParallelNode;
 use Swoolefy\Support\Workflow\Node\NodeInterface;
 
 /**
@@ -216,15 +220,15 @@ final class WorkflowDefinition
     {
         $scheduler = $config['scheduler'] ?? null;
         $agents = $config['agents'] ?? [];
-        $router = $config['router'] ?? new \Swoolefy\Support\Agent\Router\StaticRouter(array_keys($agents));
+        $router = $config['router'] ?? new StaticRouter(array_keys($agents));
         $timeout = (int) ($config['timeout'] ?? 0);
         $failFast = filter_var($config['failFast'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
-        if (!$scheduler instanceof \Swoolefy\Support\Agent\AgentScheduler) {
-            throw new \InvalidArgumentException('addAgentParallel requires scheduler instance');
+        if (!$scheduler instanceof AgentScheduler) {
+            throw new InvalidArgumentException('addAgentParallel requires scheduler instance');
         }
 
-        $node = new \Swoolefy\Support\AI\Node\AgentParallelNode(
+        $node = new AgentParallelNode(
             $nodeId,
             $scheduler,
             $router,

@@ -6,6 +6,7 @@ namespace Swoolefy\Support\Workflow\Engine;
 
 use Swoolefy\Support\Workflow\Condition\ConditionEvaluatorInterface;
 use Swoolefy\Support\Workflow\Definition\CompiledWorkflow;
+use Swoolefy\Support\Workflow\Definition\ConditionalEdgeGroup;
 use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\State\WorkflowState;
 
@@ -48,7 +49,7 @@ final class DagScheduler
 
     /** 按分支顺序求值条件边组，无匹配时使用 default。 */
     private function resolveConditionalGroup(
-        \Swoolefy\Support\Workflow\Definition\ConditionalEdgeGroup $group,
+        ConditionalEdgeGroup $group,
         WorkflowState $state,
     ): ?string {
         foreach ($group->branches as $target => $condition) {

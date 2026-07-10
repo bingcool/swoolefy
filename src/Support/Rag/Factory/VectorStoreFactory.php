@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Swoolefy\Support\Rag\Factory;
 
+use NeuronAI\PHPVector\PHPVector;
 use NeuronAI\RAG\VectorStore\FileVectorStore;
 use NeuronAI\RAG\VectorStore\MariaDBVectorStore;
 use NeuronAI\RAG\VectorStore\MeilisearchVectorStore;
@@ -134,7 +135,7 @@ final class VectorStoreFactory
 
     private function makePhpVector(string $index, int $topK, string $alias): VectorStoreInterface
     {
-        if (!class_exists(\NeuronAI\PHPVector\PHPVector::class)) {
+        if (!class_exists(PHPVector::class)) {
             throw new RuntimeException(
                 'PHPVector requires composer package neuron-core/php-vector. Run: composer require neuron-core/php-vector',
             );
@@ -142,7 +143,7 @@ final class VectorStoreFactory
 
         $path = rtrim($this->config->phpvectorPath($alias), '/') . '/' . $index;
 
-        return new \NeuronAI\PHPVector\PHPVector(
+        return new PHPVector(
             path: $path,
             topK: $topK,
         );
