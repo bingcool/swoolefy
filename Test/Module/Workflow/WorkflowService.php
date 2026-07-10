@@ -31,6 +31,7 @@ use Test\Module\Order\Workflow\OrderProcessingWorkflow;
 use Test\Module\Order\Workflow\OrderSagaWorkflow;
 use Test\Module\Rag\RagService;
 use Test\Module\Rag\Workflow\RagQaWorkflow;
+use Test\Module\Outdoor\Workflow\OutdoorCyclingWorkflow;
 use Test\Module\Research\Workflow\McpResearchWorkflow;
 use Test\Module\Research\Workflow\MultiAgentResearchWorkflow;
 
@@ -44,13 +45,13 @@ use Test\Module\Research\Workflow\MultiAgentResearchWorkflow;
  *
  * 已注册 workflowId：
  *   order_processing、order_saga、multi_agent_research、mcp_research、
- *   contract_review、knowledge_qa、rag_qa
+ *   outdoor_cycling、contract_review、knowledge_qa、rag_qa
  *
  * 注意：Order / Research 模块另有专用 Demo 控制器，可注入 mock；
  * 本 Registry 使用各工作流的默认 definition（适合统一入口演示）。
  *
  * @see Test\Module\Workflow\Controller\WorkflowController
- * @see Test\Module\Workflow\README.md
+ * @see \Test\Module\Workflow\README.md
  */
 final class WorkflowService
 {
@@ -109,6 +110,10 @@ final class WorkflowService
         $registry->register('order_saga', static fn () => OrderSagaWorkflow::definition());
         // Phase 2：多 Agent 并行（默认走真实/Fake Agent，非 mock）
         $registry->register('multi_agent_research', static fn () => MultiAgentResearchWorkflow::definition(
+            self::agentScheduler(),
+        ));
+        // 多 Agent 并行：天气 + 路线 + 备车 → 天气好则骑行出发
+        $registry->register('outdoor_cycling', static fn () => OutdoorCyclingWorkflow::definition(
             self::agentScheduler(),
         ));
         // Phase 3：MCP 研究（默认 research/summarize 为 stub，可离线）
@@ -222,6 +227,10 @@ final class WorkflowService
             'multi_agent_research' => [
                 'query' => 'Analyze swoolefy workflow design',
             ],
+            'outdoor_cycling' => [
+                'destination' => '深圳湾公园',
+                'weatherHint' => 'sunny',
+            ],
             'mcp_research' => [
                 'query' => 'urgent security patch review',
             ],
@@ -247,6 +256,7 @@ final class WorkflowService
         return match ($workflowId) {
             'order_processing', 'order_saga' => 'Order',
             'multi_agent_research', 'mcp_research' => 'Research',
+            'outdoor_cycling' => 'Outdoor',
             'contract_review' => 'Contract',
             'knowledge_qa' => 'Knowledge',
             'rag_qa' => 'Rag',

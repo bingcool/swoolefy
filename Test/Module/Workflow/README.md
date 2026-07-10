@@ -19,6 +19,7 @@ Run 持久化由 `Test/Config/workflow.php` 控制（`default_run_store` + `run_
 | **本模块** | `/api/v1/workflow/*` | Registry 统一调度，适合网关 / 运维 |
 | Order Demo | `/api/v1/order/workflow/*` | 可注入 `mockDecision`，绕过 registry 缓存 |
 | Research Demo | `/api/v1/research/workflow/*` | 可注入 `useMock` / `mockSummary` |
+| Outdoor Demo | `/api/v1/outdoor/workflow/*` | 三 Agent 并行 + 天气条件边 |
 
 默认 API 前缀：`/api`。下文假设服务监听 `http://127.0.0.1:9501`。
 
@@ -38,6 +39,7 @@ Workflow/
 | `order_processing` | Order | AI 风控三分支 | `orderId`, `amount` |
 | `order_saga` | Order | Saga 补偿演示 | `orderId`, `amount` |
 | `multi_agent_research` | Research | coding + finance 并行 | `query` |
+| `outdoor_cycling` | Outdoor | 天气+路线+备车并行 → 骑行/留家 | `destination`, `weatherHint` |
 | `mcp_research` | Research | MCP 研究 → notify/archive | `query`（含 urgent 走 notify） |
 | `contract_review` | Contract | 法务 HITL 审批 | `contractBrief` |
 | `knowledge_qa` | Knowledge | RAG 检索问答 | `question` |

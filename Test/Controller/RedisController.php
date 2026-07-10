@@ -8,18 +8,18 @@ use Test\App;
 class RedisController extends BController
 {
 
-    public function testRedis()
+    public function testRedis(): array
     {
         App::getRedis()->set('name','bingcool-'.rand(1,1000));
         $value = App::getRedis()->get('name');
-        $this->returnJson(['value' => $value]);
+        return ['value' => $value];
     }
 
-    public function testPredis()
+    public function testPredis():  array
     {
         $predis = App::getPredis();
         $predis->set('predis-name','bingcool-'.rand(1,1000));
         $value = $predis->get('predis-name');
-        $this->returnJson(['value' => $value]);
+        return ['value' => $value];
     }
 }

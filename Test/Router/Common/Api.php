@@ -266,6 +266,23 @@ Route::group([
     ]);
 
     // -----------------------------------------------------------------------
+    // Outdoor 模块 — 多 Agent 并行户外骑行演示
+    // 文档：Test/Module/Outdoor/README.md
+    // -----------------------------------------------------------------------
+
+    // POST /api/v1/outdoor/workflow/cycling
+    // Body: { "destination": "深圳湾公园", "weatherHint": "sunny|rainy", "useMock": true }
+    // weather ‖ route ‖ bike → 天气好则骑自行车出发
+    Route::post('/v1/outdoor/workflow/cycling', [
+        'dispatch_route' => [\Test\Module\Outdoor\Controller\OutdoorWorkflowDemoController::class, 'cycling'],
+    ]);
+
+    // GET /api/v1/outdoor/workflow/status?runId=
+    Route::get('/v1/outdoor/workflow/status', [
+        'dispatch_route' => [\Test\Module\Outdoor\Controller\OutdoorWorkflowDemoController::class, 'status'],
+    ]);
+
+    // -----------------------------------------------------------------------
     // Order 模块 — 订单工作流演示
     // 文档：Test/Module/Order/README.md
     // -----------------------------------------------------------------------
@@ -301,6 +318,7 @@ Route::group([
     // Workflow 模块 — 通用工作流 API（按 workflowId 调度已注册定义）
     // 文档：Test/Module/Workflow/README.md
     // 已注册：order_processing / order_saga / multi_agent_research /
+    //         outdoor_cycling / mcp_research / contract_review / knowledge_qa / rag_qa
     //         mcp_research / contract_review / knowledge_qa
     // -----------------------------------------------------------------------
 

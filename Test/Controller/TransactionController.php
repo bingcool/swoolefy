@@ -6,7 +6,7 @@ use Test\App;
 
 class TransactionController extends BController
 {
-    public function test()
+    public function test(): void
     {
         $db = App::getDb();
         $db->beginTransaction();
