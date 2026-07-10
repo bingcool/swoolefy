@@ -213,7 +213,7 @@ final class DeepSeekOcrDriver implements DocumentParserInterface
             'multipart' => $multipart,
             'timeout' => $this->timeout,
             'connect_timeout' => $this->connectTimeout,
-            'http_errors' => false,
+            'http_errors' => true,
         ]);
 
         $status = $response->getStatusCode();
@@ -283,7 +283,7 @@ final class DeepSeekOcrDriver implements DocumentParserInterface
         $options = [
             'timeout' => $this->timeout,
             'connect_timeout' => $this->connectTimeout,
-            'http_errors' => false,
+            'http_errors' => true,
         ];
 
         if (class_exists(CurlProxyHandler::class) && defined('APP_PATH') && (string) APP_PATH !== '') {
