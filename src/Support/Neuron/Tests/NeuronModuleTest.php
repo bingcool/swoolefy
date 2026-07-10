@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Neuron 模块回归测试。
  *
  * 覆盖：NeuronAiConfig、Provider 工厂、ChatHistoryFactory、EmbeddingFactory Fake、
- * NeuronHttpFactory CLI 回退、NeuronFactory agentFactory 注入。
+ * NeuronHttpFactory CLI 回退、NeuronFactory agentFactory 注入、Middleware 挂载。
  *
  * 运行：php src/Support/Neuron/Tests/NeuronModuleTest.php
  * 或：composer test:neuron
@@ -514,6 +514,85 @@ function testNeuronFactoryThrowsWhenNoProviderCredentials(): void
     }
 }
 
+function testNeuronFactoryAttachesMiddlewareFromAgentOptions(): void
+{
+    $recorder = new class implements \NeuronAI\Workflow\Middleware\WorkflowMiddleware {
+        public int $beforeCount = 0;
+        public int $afterCount = 0;
+
+        public function before(
+            \NeuronAI\Workflow\NodeInterface $node,
+            \NeuronAI\Workflow\Events\Event $event,
+            \NeuronAI\Workflow\WorkflowState $state,
+        ): void {
+            $this->beforeCount++;
+        }
+
+        public function after(
+            \NeuronAI\Workflow\NodeInterface $node,
+            \NeuronAI\Workflow\Events\Event $result,
+            \NeuronAI\Workflow\WorkflowState $state,
+        ): void {
+            $this->afterCount++;
+        }
+    };
+
+    $agentClass = new class extends Agent {
+        protected function provider(): AIProviderInterface
+        {
+            return \NeuronAI\Testing\FakeAIProvider::make(new AssistantMessage('middleware-ok'));
+        }
+    };
+
+    $factory = new NeuronFactory(
+        config: NeuronAiConfig::fromArray([
+            'capability' => ['enabled' => false],
+        ]),
+    );
+
+    $agent = $factory->create($agentClass::class, new WorkflowState(), [
+        'capabilityEnabled' => false,
+        'globalMiddleware' => [$recorder],
+        'middleware' => [
+            \NeuronAI\Agent\Nodes\ChatNode::class => [
+                static function (Agent $agent) use ($recorder): \NeuronAI\Workflow\Middleware\WorkflowMiddleware {
+                    // callable 路径：返回同一 recorder，证明 factory 会解析 callable
+                    return $recorder;
+                },
+            ],
+        ],
+    ]);
+
+    $reply = (string) $agent->chat(new UserMessage('ping'))->getMessage()->getContent();
+    assertTrue($reply === 'middleware-ok', 'fake provider reply');
+    assertTrue($recorder->beforeCount > 0, 'global/node middleware before() ran');
+    assertTrue($recorder->afterCount > 0, 'global/node middleware after() ran');
+}
+
+function testNeuronFactoryRejectsInvalidMiddleware(): void
+{
+    $agentClass = new class extends Agent {
+        protected function provider(): AIProviderInterface
+        {
+            return \NeuronAI\Testing\FakeAIProvider::make(new AssistantMessage('x'));
+        }
+    };
+
+    $factory = new NeuronFactory(
+        config: NeuronAiConfig::fromArray(['capability' => ['enabled' => false]]),
+    );
+
+    try {
+        $factory->create($agentClass::class, new WorkflowState(), [
+            'capabilityEnabled' => false,
+            'globalMiddleware' => ['not-a-middleware'],
+        ]);
+        assertTrue(false, 'should reject invalid middleware');
+    } catch (WorkflowException $e) {
+        assertTrue(str_contains($e->getMessage(), 'middleware must be'), 'invalid middleware message');
+    }
+}
+
 function createSqliteChatPdo(): PDO
 {
     $pdo = new PDO('sqlite::memory:');
@@ -650,6 +729,8 @@ $tests = [
     'http factory cli fallback' => 'testNeuronHttpFactoryCliFallback',
     'neuron factory agent hook' => 'testNeuronFactoryUsesAgentFactoryHook',
     'neuron factory no provider' => 'testNeuronFactoryThrowsWhenNoProviderCredentials',
+    'neuron factory middleware attach' => 'testNeuronFactoryAttachesMiddlewareFromAgentOptions',
+    'neuron factory middleware invalid' => 'testNeuronFactoryRejectsInvalidMiddleware',
     'vector store name constants' => 'testVectorStoreNameConstants',
 ];
 

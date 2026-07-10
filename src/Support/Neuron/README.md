@@ -41,10 +41,36 @@ Neuron/
 NeuronFactory::create / boot
   ├─ applyProvider（节点 provider 别名或 default；baseUri 经 OutboundUrlGuard）
   ├─ setChatHistory（仅当 agentOptions['chatHistory'] 显式传入）
-  └─ addTool（mcpServers + tenantId / FrameworkContext）
+  ├─ addTool（mcpServers + tenantId / FrameworkContext）
+  └─ attachMiddleware（agentOptions['middleware'] / ['globalMiddleware']）
 ```
 
 会话记忆由 **Agent 自身** 在 `chatHistory()` 中声明。Redis / SQL 后端连接失败会写入 `SupportLog`。
+
+### Agent Middleware
+
+与 [Neuron Agent Middleware](https://docs.neuron-ai.dev/agent/middleware) 对齐。Agent 子类可覆盖 `middleware()` / `globalMiddleware()`；也可在 `NeuronFactory` 的 `agentOptions` 中追加：
+
+```php
+use NeuronAI\Agent\Middleware\Summarization;
+use NeuronAI\Agent\Nodes\ChatNode;
+use NeuronAI\Agent\Nodes\StreamingNode;
+use NeuronAI\Agent\Nodes\StructuredOutputNode;
+
+$agent = $factory->create(MyAgent::class, $state, [
+    'globalMiddleware' => [$recordingMiddleware],
+    'middleware' => [
+        // 实例，或 callable(Agent): WorkflowMiddleware（便于使用 boot 后的 Provider）
+        ChatNode::class => [
+            fn ($agent) => new Summarization($agent->resolveProvider(), maxTokens: 10000, messagesToKeep: 5),
+        ],
+        StreamingNode::class => [/* 同上实例 */],
+        StructuredOutputNode::class => [/* 同上实例 */],
+    ],
+]);
+```
+
+演示接口：`POST /api/v1/agent/middleware/chat`（`AgentMiddlewareController`）。
 
 ### Provider Fallback
 

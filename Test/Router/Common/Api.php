@@ -429,6 +429,11 @@ Route::group([
     Route::post('/v1/agent/capability/chat', [
         'dispatch_route' => [\Test\Module\Agent\Controller\AgentCapabilityController::class, 'chat'],
     ]);
+
+    // POST /api/v1/agent/middleware/chat — Neuron Agent Middleware（Recording + Summarization）
+    Route::post('/v1/agent/middleware/chat', [
+        'dispatch_route' => [\Test\Module\Agent\Controller\AgentMiddlewareController::class, 'chat'],
+    ]);
 });
 
 // ---------------------------------------------------------------------------

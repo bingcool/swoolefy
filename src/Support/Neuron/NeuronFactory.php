@@ -7,6 +7,7 @@ namespace Swoolefy\Support\Neuron;
 use NeuronAI\Agent\Agent;
 use NeuronAI\Chat\History\ChatHistoryInterface;
 use NeuronAI\Providers\AIProviderInterface;
+use NeuronAI\Workflow\Middleware\WorkflowMiddleware;
 use Swoolefy\Support\CapabilityCenter\CapabilityComponentFactory;
 use Swoolefy\Support\CapabilityCenter\Resolver\ToolResolveContext;
 use Swoolefy\Support\FrameworkContext;
@@ -23,12 +24,19 @@ use Throwable;
  * 1. 创建或 boot Neuron Agent 实例；
  * 2. 注入 LLM Provider（节点 alias 或 default_provider，含 RouterProvider fallback）；
  * 3. 挂载 Tool（MCP 全量 或 CapabilityCenter Top-K 动态筛选）；
- * 4. 可选覆盖 ChatHistory。
+ * 4. 可选覆盖 ChatHistory；
+ * 5. 挂载 Neuron Agent Middleware（节点级 / 全局）。
  *
  * Tool 挂载策略：
  * - CAPABILITY_ENABLED=false（默认）：走 attachMcpTools() 全量加载 MCP Tools；
  * - CAPABILITY_ENABLED=true：走 CapabilityCenter 解析 Top-K + pinned，再懒加载注入；
  * - Capability 出错且 fail_closed=false：fail-open 回退旧 MCP 全量挂载。
+ *
+ * Middleware（与 Neuron 官方一致，见 https://docs.neuron-ai.dev/agent/middleware）：
+ * - Agent 子类可覆盖 middleware() / globalMiddleware()（构造期注册）；
+ * - agentOptions['middleware'] / ['globalMiddleware'] 在 boot 阶段追加挂载，
+ *   便于 Workflow / 控制器在不改 Agent 类的情况下注入 ToolApproval、Summarization、ToolSearch 等。
+ * - 值可为 WorkflowMiddleware 实例，或 callable(Agent): WorkflowMiddleware（便于 Summarization 使用 factory 注入后的 Provider）。
  *
  * 会话记忆由业务 Agent 自行实现 {@see Agent::chatHistory()}；
  * 仅当 agentOptions['chatHistory'] 显式传入时才覆盖。
@@ -38,6 +46,7 @@ use Throwable;
  *   传给 McpFactory / CapabilityCenter，驱动 DB 仓储按租户过滤配置。
  *
  * @see https://docs.neuron-ai.dev/agent/chat-history-and-memory
+ * @see https://docs.neuron-ai.dev/agent/middleware
  * @see docs/CapabilityTool.md
  */
 final class NeuronFactory
@@ -87,7 +96,8 @@ final class NeuronFactory
      * boot 顺序：
      * 1. applyProvider — 注入 LLM；
      * 2. setChatHistory — 仅 agentOptions 显式传入时覆盖；
-     * 3. attachTools   — MCP 全量 或 CapabilityCenter 动态筛选。
+     * 3. attachTools   — MCP 全量 或 CapabilityCenter 动态筛选；
+     * 4. attachMiddleware — agentOptions 声明的节点/全局 Middleware。
      *
      * @param array<string, mixed> $agentOptions
      */
@@ -102,8 +112,86 @@ final class NeuronFactory
         }
 
         $this->attachTools($agent, $agentOptions);
+        $this->attachMiddleware($agent, $agentOptions);
 
         return $agent;
+    }
+
+    /**
+     * 将 agentOptions 中的 Middleware 挂到 Agent（Neuron Workflow API）。
+     *
+     * 支持键：
+     * - globalMiddleware: WorkflowMiddleware|callable|list（所有 Node 生效）
+     * - middleware: [NodeClass => WorkflowMiddleware|callable|list]
+     *
+     * callable 签名：fn(Agent $agent): WorkflowMiddleware
+     * 典型用途：Summarization 需要 boot 后已注入的 Provider。
+     *
+     * @param array<string, mixed> $agentOptions
+     *
+     * @see https://docs.neuron-ai.dev/agent/middleware
+     */
+    private function attachMiddleware(Agent $agent, array $agentOptions): void
+    {
+        $global = $agentOptions['globalMiddleware'] ?? [];
+        if ($global instanceof WorkflowMiddleware || is_callable($global)) {
+            $global = [$global];
+        }
+        if (is_array($global)) {
+            foreach ($global as $item) {
+                $agent->addGlobalMiddleware($this->resolveMiddlewareItem($agent, $item));
+            }
+        }
+
+        $nodeMap = $agentOptions['middleware'] ?? null;
+        if (!is_array($nodeMap) || $nodeMap === []) {
+            return;
+        }
+
+        foreach ($nodeMap as $nodeClass => $list) {
+            if (!is_string($nodeClass) || $nodeClass === '') {
+                throw new WorkflowException('agentOptions.middleware keys must be Node class-strings');
+            }
+
+            $items = ($list instanceof WorkflowMiddleware || is_callable($list)) ? [$list] : $list;
+            if (!is_array($items)) {
+                throw new WorkflowException(
+                    'agentOptions.middleware[' . $nodeClass . '] must be WorkflowMiddleware, callable, or list thereof',
+                );
+            }
+
+            $resolved = [];
+            foreach ($items as $item) {
+                $resolved[] = $this->resolveMiddlewareItem($agent, $item);
+            }
+            if ($resolved !== []) {
+                $agent->addMiddleware($nodeClass, $resolved);
+            }
+        }
+    }
+
+    /**
+     * @param mixed $item WorkflowMiddleware 或 callable(Agent): WorkflowMiddleware
+     */
+    private function resolveMiddlewareItem(Agent $agent, mixed $item): WorkflowMiddleware
+    {
+        if ($item instanceof WorkflowMiddleware) {
+            return $item;
+        }
+
+        if (is_callable($item)) {
+            $resolved = $item($agent);
+            if ($resolved instanceof WorkflowMiddleware) {
+                return $resolved;
+            }
+
+            throw new WorkflowException('middleware callable must return WorkflowMiddleware');
+        }
+
+        throw new WorkflowException(
+            'middleware must be WorkflowMiddleware or callable(Agent): WorkflowMiddleware, got '
+            . (is_object($item) ? $item::class : gettype($item)),
+        );
     }
 
     /**

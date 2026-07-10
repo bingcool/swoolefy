@@ -410,6 +410,10 @@ final class NeuronProviderFactory
             'provider', 'provider_name', 'provider_params', 'agent', 'memory', 'stream',
             'structured', 'outputKey', 'promptKey', 'threadIdKey', 'contextWindow',
             'timeout', 'executor', 'mcpServers', 'mcp', 'mcpOnly', 'mcpExclude',
+            'middleware', 'globalMiddleware', 'chatHistory',
+            'capabilityEnabled', 'capabilityQuery', 'capabilityTopK', 'capabilityProfile',
+            'capabilityTags', 'profileTags', 'pinnedTools', 'pinnedToolIds',
+            'tenantId', 'agentId', 'roles', 'userRoles', 'message', 'prompt', '_stateMessage',
         ];
 
         $overrides = [];
