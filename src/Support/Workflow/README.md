@@ -2,7 +2,7 @@
 
 Swoolefy 内置的 **DAG 工作流引擎**，用于编排业务节点、AI 决策分支、多 Agent 并行、RAG/MCP 工具调用与人机协同（HITL）。已实现 **Phase 1–4** 及 **生产加固（Phase A/B）**：HITL API 鉴权、resume CAS、多版本 Registry、节点默认超时、启动期健康检查等。
 
-- 架构设计：[swoolefyAI.md](../../../docs/swoolefyAI.md)
+- 架构设计：[SwoolefyAI.md](../../../docs/SwoolefyAI.md)
 - 快速接入：[docs/AI-WORKFLOW.md](../../../docs/AI-WORKFLOW.md)
 
 ---
@@ -379,4 +379,4 @@ php src/Support/Tests/PhaseBProductionTest.php
 
 ## Phase 5（规划中）
 
-检索缓存、MCP 审计与 rate limit 深化、Composer 拆包等 — 见 `docs/swoolefyAI.md` §15。
+检索缓存、MCP 审计与 rate limit 深化、Composer 拆包等 — 见 `docs/SwoolefyAI.md` §15。

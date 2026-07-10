@@ -1796,7 +1796,7 @@ php script.php start App --c=gen:sdk --router=App/Router --out=../generate-sdk-l
 |:---|:---|
 | [docs/AI-WORKFLOW.md](docs/AI-WORKFLOW.md) | **快速接入**：配置、HTTP API、示例 curl、测试命令 |
 | [src/Support/Workflow/README.md](src/Support/Workflow/README.md) | 引擎原理、条件边、HITL、Saga、Plugin |
-| [swoolefyAI.md](docs/swoolefyAI.md) | 完整架构设计与 Phase 路线图 |
+| [SwoolefyAI.md](docs/SwoolefyAI.md) | 完整架构设计与 Phase 路线图 |
 
 #### 核心模块
 

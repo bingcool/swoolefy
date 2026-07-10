@@ -11,7 +11,7 @@ namespace Test\Module\Order\Dto;
  *   - 条件边：data['decision']['approved']、data['decision']['confidence']
  *   - 业务节点：$state->dto(OrderDecisionDto::class)
  *
- * @see docs/swoolefyAI.md §4.8
+ * @see docs/SwoolefyAI.md §4.8
  */
 final class OrderDecisionDto
 {

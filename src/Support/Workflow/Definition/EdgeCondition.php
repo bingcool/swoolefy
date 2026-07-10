@@ -12,7 +12,7 @@ namespace Swoolefy\Support\Workflow\Definition;
  *   data['decision']['confidence'] >= 0.8
  *   feedback.approved == true（HITL resume 后）
  *
- * @see docs/swoolefyAI.md §4.9.2
+ * @see docs/SwoolefyAI.md §4.9.2
  */
 final class EdgeCondition
 {

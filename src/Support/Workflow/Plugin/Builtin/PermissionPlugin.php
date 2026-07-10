@@ -20,7 +20,7 @@ use Swoolefy\Support\Workflow\Plugin\WorkflowPluginInterface;
  *
  * 典型 input：{ "role": "operator", "tenantId": "t1", ... }
  *
- * @see docs/swoolefyAI.md §4.12 PermissionPlugin
+ * @see docs/SwoolefyAI.md §4.12 PermissionPlugin
  */
 final class PermissionPlugin implements WorkflowPluginInterface
 {

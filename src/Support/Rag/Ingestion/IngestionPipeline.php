@@ -16,7 +16,7 @@ use Swoolefy\Support\Rag\Factory\RagFactory;
  * - 大批量场景应走 {@see RagIngestDispatcher} 的 queue 模式，避免阻塞 Swoole Worker
  * - RAG 上下文写入 VectorStore，不写入 ChatHistory（与 Memory 分离）
  *
- * @see docs/swoolefyAI.md §4.10.5
+ * @see docs/SwoolefyAI.md §4.10.5
  */
 final class IngestionPipeline
 {

@@ -3,7 +3,7 @@
 封装 [Neuron AI](https://docs.neuron-ai.dev/) 在 Swoolefy 中的装配：Provider 工厂、会话记忆、协程 HTTP、Embedding、出站 URL 校验。
 
 - 配置：`Config/neuron_ai.php`（模版 `src/Stubs/neuron_ai.conf.stub.php`，`create` 命令自动复制）
-- 架构设计：[swoolefyAI.md](../../../docs/swoolefyAI.md) §4.7
+- 架构设计：[SwoolefyAI.md](../../../docs/SwoolefyAI.md) §4.4 / §4.11
 - Chat History 文档：[Neuron Chat History](https://docs.neuron-ai.dev/agent/chat-history-and-memory)
 
 ---

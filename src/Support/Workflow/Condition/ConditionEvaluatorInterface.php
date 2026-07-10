@@ -13,7 +13,7 @@ use Swoolefy\Support\Workflow\State\WorkflowState;
  * Phase 1 默认：{@see SymfonyExpressionLanguageEvaluator}
  * Phase 2+：JsonLogicEvaluator、CelEvaluator 等
  *
- * @see docs/swoolefyAI.md §4.9.2
+ * @see docs/SwoolefyAI.md §4.9.2
  */
 interface ConditionEvaluatorInterface
 {

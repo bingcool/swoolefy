@@ -836,7 +836,7 @@ AINode::make('research')
 | 协程串数据 | 请求态只放 `ToolResolveContext`，不进 static |
 | 过早复杂化 | Phase 3 禁止 pgvector / API / ToolExecutor 必选 |
 
-## 与 swoolefyAI.md 的关系
+## 与 SwoolefyAI.md 的关系
 
 | swoolefyAI 章节 | 本方案关系 |
 |-----------------|------------|
@@ -846,14 +846,14 @@ AINode::make('research')
 | Workflow Plugin | Phase 4 参考，不直接复用为 Tool 级权限 |
 | 组件注册 | 新增 `CapabilityComponentFactory`，对齐 Support Factory 风格 |
 
-建议在 `docs/swoolefyAI.md` 的 MCP / Tool 章节增加指向本文的链接，但本文本身不要求同步修改主架构文档。
+建议在 `docs/SwoolefyAI.md` 的 MCP / Tool 章节增加指向本文的链接，但本文本身不要求同步修改主架构文档。
 
 ## 相关文件
 
 | 文件 | 说明 |
 |------|------|
 | `docs/CapabilityTool.md` | 本方案 |
-| `docs/swoolefyAI.md` | 主 AI 架构文档 |
+| `docs/SwoolefyAI.md` | 主 AI 架构文档 |
 | `src/Support/Neuron/NeuronFactory.php` | Phase 3 接入点 |
 | `src/Support/Mcp/McpFactory.php` | MCP 配置、发现、安全链 |
 | `src/Support/AI/Builder/AINodeBuilder.php` | AI 节点 DSL |

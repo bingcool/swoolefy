@@ -2,7 +2,7 @@
 
 把 Neuron Agent 封装为工作流节点：普通对话、**Structured Output**、流式 token、多 Agent 并行。引擎只依赖本模块接口，不直接依赖 neuron-ai。
 
-- 架构设计：[swoolefyAI.md](../../../docs/swoolefyAI.md) §4.3、§4.8
+- 架构设计：[SwoolefyAI.md](../../../docs/SwoolefyAI.md) §4.3、§4.8
 - 关联：`Support/Agent`、`Support/Neuron`、`Support/Workflow`
 
 ---

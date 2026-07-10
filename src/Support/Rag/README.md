@@ -2,7 +2,7 @@
 
 文档入库、向量存储、相似度检索与工作流节点。入库与检索共用同一 `RagFactory`，保证 **Embedding 与 VectorStore 配置一致**。
 
-- 架构设计：[swoolefyAI.md](../../../docs/swoolefyAI.md) §4.10
+- 架构设计：[SwoolefyAI.md](../../../docs/SwoolefyAI.md) §4.10
 - 配置：`Config/neuron_ai.php`（模版 `src/Stubs/neuron_ai.conf.stub.php`）→ `rag`
 - 向量库文档：[Neuron Vector Store](https://docs.neuron-ai.dev/rag/vector-store)
 - 关联：`Support/Neuron`（Embedding）、`Support/AI`（RAG 问答节点）

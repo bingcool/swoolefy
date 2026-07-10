@@ -19,7 +19,7 @@ use Swoolefy\Support\Workflow\Node\NodeInterface;
  *   - 同一源节点不能同时有 addEdge 与 addConditionalEdges
  *   - 条件分支按声明顺序求值，首个为 true 的分支获胜
  *
- * @see docs/swoolefyAI.md §4.1
+ * @see docs/SwoolefyAI.md §4.1
  */
 final class WorkflowDefinition
 {

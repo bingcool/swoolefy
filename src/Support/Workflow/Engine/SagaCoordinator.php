@@ -27,7 +27,7 @@ use Throwable;
  * - 补偿失败汇总为 WorkflowException，Run 状态为 FAILED（非 COMPENSATED）
  * - 与 HITL / Pause 无关；WAITING 不触发补偿
  *
- * @see docs/swoolefyAI.md §4.2 onFail → compensate
+ * @see docs/SwoolefyAI.md §4.2 onFail → compensate
  */
 final class SagaCoordinator
 {

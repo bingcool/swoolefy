@@ -1,6 +1,6 @@
 # Swoolefy AI / Workflow 快速指南
 
-本文档面向**生产接入**：如何在 Swoole 协程应用中运行 DAG 工作流、Agent 路由、RAG 与 MCP。完整架构见 [swoolefyAI.md](swoolefyAI.md)。
+本文档面向**生产接入**：如何在 Swoole 协程应用中运行 DAG 工作流、Agent 路由、RAG 与 MCP。完整架构见 [SwoolefyAI.md](SwoolefyAI.md)。
 
 各模块 README（目录结构、原理、示例、测试命令）：
 
@@ -12,20 +12,24 @@
 | Neuron | [src/Support/Neuron/README.md](../src/Support/Neuron/README.md) |
 | Rag | [src/Support/Rag/README.md](../src/Support/Rag/README.md) |
 | Mcp | [src/Support/Mcp/README.md](../src/Support/Mcp/README.md) |
+| CapabilityCenter | [src/Support/CapabilityCenter/README.md](../src/Support/CapabilityCenter/README.md) |
+| DocumentOcr | [src/Support/DocumentOcr/README.md](../src/Support/DocumentOcr/README.md) |
 
 ---
 
-## 1. 能力概览（Phase 1–4 + 生产加固 A/B）
+## 1. 能力概览（Phase 1–4 + 生产加固 A–D + 增量）
 
 | 领域 | 能力 | 主要命名空间 |
 |------|------|-------------|
-| 工作流引擎 | Definition / Compiler / Engine；条件边；HITL 鉴权；resume CAS；多版本 Registry；节点超时 | `Swoolefy\Support\Workflow` |
-| AI 节点 | `AINodeBuilder`、`StructuredOutputNode`、流式 SSE/WebSocket、`AgentParallelNode` 超时 | `Swoolefy\Support\AI` |
+| 工作流引擎 | Definition / Compiler / Engine；条件边；HITL 鉴权；resume CAS；多版本 Registry；节点超时；Saga | `Swoolefy\Support\Workflow` |
+| AI 节点 | `AINodeBuilder`、`StructuredOutputNode`、流式 SSE/WebSocket、`AgentParallelNode` | `Swoolefy\Support\AI` |
 | Agent | Static / Rule / LLM / Weighted / CostAware / RoundRobin 路由 | `Swoolefy\Support\Agent` |
-| Neuron | LLM 工厂、Redis/SQL 记忆、Embedding fail-fast、出站 URL 校验 | `Swoolefy\Support\Neuron` |
-| RAG | 多向量库驱动、同步入库 Pipeline、别名 fail-fast | `Swoolefy\Support\Rag` |
-| MCP | HTTP/SSE、DB 多租户仓储、stdio 生产禁用、URL 白名单 | `Swoolefy\Support\Mcp` |
-| 运维 | `ProductionHealthCheck` 启动期配置 / Schema 检查 | `Swoolefy\Support` |
+| Neuron | LLM 工厂、Middleware、Provider Fallback、Redis/SQL 记忆、Embedding、出站 URL | `Swoolefy\Support\Neuron` |
+| RAG | 多向量库、sync/queue 入库、租户隔离 | `Swoolefy\Support\Rag` |
+| MCP | HTTP/SSE、DB 仓储、stdio 守卫、URL 白名单 | `Swoolefy\Support\Mcp` |
+| CapabilityCenter | Tool Top-K + pinned（默认关闭） | `Swoolefy\Support\CapabilityCenter` |
+| DocumentOcr | Pandoc + DeepSeek OCR（图片/PDF）→ Markdown | `Swoolefy\Support\DocumentOcr` |
+| 运维 | `ProductionHealthCheck` | `Swoolefy\Support` |
 | 插件 | Retry、Tracing、Metrics、OTel、Audit、RateLimit、Permission | `Support/Workflow/Plugin` |
 
 ---
@@ -279,4 +283,4 @@ composer test:workflow
 
 ## 10. Phase 5（规划中）
 
-检索缓存、MCP 审计与限流深化、Composer 拆包等见 `swoolefyAI.md` §15 Phase 5。
+检索缓存、MCP 审计与限流深化、Composer 拆包等见 `SwoolefyAI.md` §15 Phase 5。

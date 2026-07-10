@@ -2,7 +2,7 @@
 
 在工作流中**并行调度多个 Neuron Agent**，路由策略与执行解耦：`AgentRouterInterface` 决定跑哪些 Agent，`AgentScheduler` 负责协程并发与结果汇聚。
 
-- 架构设计：[swoolefyAI.md](../../../docs/swoolefyAI.md) §4.6
+- 架构设计：[SwoolefyAI.md](../../../docs/SwoolefyAI.md) §4.6
 - 快速接入：[docs/AI-WORKFLOW.md](../../../docs/AI-WORKFLOW.md)
 - 关联：`Support/AI`（`AgentParallelNode`）、`Support/Neuron`、`Support/Workflow`
 

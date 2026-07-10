@@ -24,7 +24,7 @@ use Throwable;
  *
  * 供 Agent::chatHistory() 返回；也可经 {@see ChatHistoryFactory::redis()} 创建。
  *
- * @see docs/swoolefyAI.md §4.7、§6.8
+ * @see docs/SwoolefyAI.md §4.7、§6.8
  */
 final class RedisChatHistory extends InMemoryChatHistory implements HotChatHistoryInterface
 {

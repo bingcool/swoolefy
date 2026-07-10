@@ -506,6 +506,6 @@ flowchart LR
 | `[Test/Config/component/document_parser.php](Test/Config/component/document_parser.php)` | DI 注册（DI 名 `document_ocr`） |
 | `[src/Core/CommandRunner.php](src/Core/CommandRunner.php)`                         | Pandoc 进程调用             |
 | `[pgvector.md](pgvector.md)`                                                       | RAG 向量入库                |
-| `[swoolefyAI.md](swoolefyAI.md)`                                                   | RAG / IngestionPipeline |
+| `[SwoolefyAI.md](SwoolefyAI.md)`                                                   | RAG / IngestionPipeline |
 
 

@@ -18,7 +18,7 @@ use Swoolefy\Support\Agent\RouterContext;
  *
  * 与 LLMRouter / WeightedRouter 可互换，均实现 {@see AgentRouterInterface}。
  *
- * @see docs/swoolefyAI.md §4.6 CostAwareRouter
+ * @see docs/SwoolefyAI.md §4.6 CostAwareRouter
  */
 final class CostAwareRouter implements AgentRouterInterface
 {

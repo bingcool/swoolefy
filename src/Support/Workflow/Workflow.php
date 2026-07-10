@@ -20,7 +20,7 @@ use Swoolefy\Support\Workflow\Engine\WorkflowEngine;
  * 快捷写法（脚本/测试）：
  *   Workflow::define('order_processing')->addNode(...)->compile()->start($input);
  *
- * @see docs/swoolefyAI.md §3.3
+ * @see docs/SwoolefyAI.md §3.3
  */
 final class Workflow
 {

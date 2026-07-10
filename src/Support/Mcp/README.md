@@ -2,7 +2,7 @@
 
 将外部 MCP Server 的 Tools 接入 Neuron Agent，支持**静态配置**、**DB 全局仓储**、**stdio 生产禁用**与**出站 URL 白名单**。MCP 调用由 Neuron `McpConnector` 管理；加载失败会写入 `SupportLog` 而非静默吞掉。
 
-- 架构设计：[swoolefyAI.md](../../../docs/swoolefyAI.md) §4.11
+- 架构设计：[SwoolefyAI.md](../../../docs/SwoolefyAI.md) §4.11
 - 配置：`Config/neuron_ai.php`（模版 `src/Stubs/neuron_ai.conf.stub.php`）
 - 关联：`Support/Neuron`（`NeuronFactory` 挂载 tools）、`Support/AI`（`AINodeBuilder::mcp()`）
 

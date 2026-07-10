@@ -33,7 +33,7 @@ use Swoolefy\Support\Rag\Store\PgVectorStore;
  *
  * 支持驱动：file、meilisearch、phpvector、mariadb、pgvector、pinecone、qdrant、milvus
  *
- * @see docs/swoolefyAI.md §4.10.2
+ * @see docs/SwoolefyAI.md §4.10.2
  */
 final class VectorStoreFactory
 {

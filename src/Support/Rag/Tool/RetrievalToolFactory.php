@@ -17,7 +17,7 @@ use Swoolefy\Support\Rag\Factory\RagFactory;
  * 用法：在 Agent::tools() 或 NeuronFactory 挂载：
  *   $factory->make('product_kb', topK: 5, tenantId: 'tenant_a')
  *
- * @see docs/swoolefyAI.md §4.10.4 模式 C
+ * @see docs/SwoolefyAI.md §4.10.4 模式 C
  */
 final class RetrievalToolFactory
 {

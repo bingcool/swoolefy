@@ -14,7 +14,7 @@ use Swoolefy\Library\CurlProxy\CurlProxyHandler;
  * 用于 LLM Provider、Embedding、Meilisearch、远程 MCP 等出站请求，
  * 在 Swoole Worker 内走协程化 Guzzle，避免阻塞进程。
  *
- * @see docs/swoolefyAI.md §8.2 Neuron/Http/SwooleHttpClientAdapter
+ * @see docs/SwoolefyAI.md §8.2 Neuron/Http/SwooleHttpClientAdapter
  */
 final class SwooleHttpClientAdapter extends GuzzleHttpClient
 {

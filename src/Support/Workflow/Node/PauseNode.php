@@ -20,7 +20,7 @@ use Swoolefy\Support\Workflow\State\WorkflowState;
  *   title       — 审批标题
  *   payloadKeys — 暴露给审批 UI 的 state.data 键列表
  *
- * @see docs/swoolefyAI.md §4.5
+ * @see docs/SwoolefyAI.md §4.5
  */
 final class PauseNode extends AbstractNode
 {

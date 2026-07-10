@@ -26,7 +26,7 @@ use Throwable;
  * 横切能力（指标、追踪、重试元数据）走 {@see PluginManager}，不走 EventBus。
  * EventBus 仅用于对外 SSE/WebSocket 广播。
  *
- * @see docs/swoolefyAI.md §6.1–§6.3
+ * @see docs/SwoolefyAI.md §6.1–§6.3
  */
 final class WorkflowEngine
 {

@@ -18,7 +18,7 @@ namespace Swoolefy\Support\Mcp;
  *   - 远程 HTTP：['url' => 'https://mcp.example.com', 'token' => '...']
  *   - 远程 SSE： ['url' => 'https://mcp.example.com', 'async' => true]
  *
- * @see docs/swoolefyAI.md §4.11.4 mcp_server_configs
+ * @see docs/SwoolefyAI.md §4.11.4 mcp_server_configs
  */
 final class McpServerConfig
 {

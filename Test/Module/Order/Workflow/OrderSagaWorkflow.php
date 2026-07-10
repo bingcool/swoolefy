@@ -50,7 +50,7 @@ use Test\Module\Order\Node\ValidateNode;
  *
  * @see Test\Module\Order\README.md
  * @see Swoolefy\Support\Workflow\Engine\SagaCoordinator
- * @see docs/swoolefyAI.md §4.2 onFail → compensate
+ * @see docs/SwoolefyAI.md §4.2 onFail → compensate
  */
 final class OrderSagaWorkflow
 {

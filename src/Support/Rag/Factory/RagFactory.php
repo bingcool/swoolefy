@@ -18,7 +18,7 @@ use Swoolefy\Support\Rag\Ingestion\IngestionPipeline;
  * - 同一 RagFactory 实例保证 embed 与 store 配置一致（避免入库/检索用不同模型）
  * - 各 Node / Service 通过构造函数注入本工厂，便于单测替换 FakeEmbeddings
  *
- * @see docs/swoolefyAI.md §4.10
+ * @see docs/SwoolefyAI.md §4.10
  */
 final class RagFactory
 {

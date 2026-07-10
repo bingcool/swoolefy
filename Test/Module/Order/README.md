@@ -304,7 +304,7 @@ $runId = $engine->start(
 
 ## 相关文档
 
-- 工作流总览：`docs/swoolefyAI.md`（order_processing 示例）
+- 工作流总览：`docs/SwoolefyAI.md`（order_processing 示例）
 - 通用工作流控制器：`Test/Module/Workflow/Controller/WorkflowController.php`
 - 单测：`src/Support/Workflow/Tests/WorkflowPhase1Test.php`、`WorkflowPhase4Test.php`
 )

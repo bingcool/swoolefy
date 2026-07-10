@@ -52,7 +52,7 @@ use Test\Module\Order\Node\ValidateNode;
  *   $def = OrderProcessingWorkflow::definition($neuronFactory, null, pauseForHumanReview: true);
  *
  * @see Test\Module\Order\README.md
- * @see docs/swoolefyAI.md §4.1 order_processing 示例
+ * @see docs/SwoolefyAI.md §4.1 order_processing 示例
  */
 final class OrderProcessingWorkflow
 {

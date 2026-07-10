@@ -17,7 +17,7 @@ use Swoolefy\Support\Workflow\State\WorkflowState;
  *   Plugin   — 引擎内部（指标、追踪、限流）
  *   EventBus — 对外 SSE/WebSocket（token 流、edge.route）
  *
- * @see docs/swoolefyAI.md §3.5
+ * @see docs/SwoolefyAI.md §3.5
  */
 final class PluginManager
 {

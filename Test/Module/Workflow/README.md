@@ -289,6 +289,6 @@ WorkflowService::reset();
 
 - Order 演示：`Test/Module/Order/README.md`
 - Research 演示：`Test/Module/Research/README.md`
-- 引擎与 Saga：`docs/swoolefyAI.md`
+- 引擎与 Saga：`docs/SwoolefyAI.md`
 - 注册表实现：`src/Support/Workflow/WorkflowRegistry.php`
 )

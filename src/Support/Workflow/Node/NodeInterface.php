@@ -15,7 +15,7 @@ use Throwable;
  * 引擎应优先调用 {@see AbstractNode::run()} 以保证钩子顺序；
  * 直接调用 execute() 会跳过部分生命周期。
  *
- * @see docs/swoolefyAI.md §4.2
+ * @see docs/SwoolefyAI.md §4.2
  */
 interface NodeInterface
 {

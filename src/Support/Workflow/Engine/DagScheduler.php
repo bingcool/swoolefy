@@ -19,7 +19,7 @@ use Swoolefy\Support\Workflow\State\WorkflowState;
  *
  * 仅在上一节点返回 SUCCESS 时求值；WAITING / FAILED 不触发路由。
  *
- * @see docs/swoolefyAI.md §6.1、§4.9.3
+ * @see docs/SwoolefyAI.md §6.1、§4.9.3
  */
 final class DagScheduler
 {

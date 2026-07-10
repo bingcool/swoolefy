@@ -22,7 +22,7 @@ use Swoolefy\Support\Workflow\Exception\WorkflowException;
  *
  * 条件边通过 Symfony EL 读 data：data['decision']['approved']
  *
- * @see docs/swoolefyAI.md §3.2、§3.4
+ * @see docs/SwoolefyAI.md §3.2、§3.4
  */
 final class WorkflowState
 {
