@@ -166,6 +166,16 @@ function testWorkflowComponentFactory(): void
 
     $factoryDriver = ConditionEvaluatorFactory::create('symfony');
     assertTrue($factoryDriver instanceof \Swoolefy\Support\Workflow\Condition\CompositeConditionEvaluator, 'Factory symfony driver');
+
+    $explicit = ConditionEvaluatorFactory::create('composite');
+    assertTrue($explicit instanceof \Swoolefy\Support\Workflow\Condition\CompositeConditionEvaluator, 'explicit driver param honored');
+
+    $fromConfig = ConditionEvaluatorFactory::create(
+        WorkflowConfig::fromArray([
+            'workflow' => ['condition_evaluator' => 'jsonlogic'],
+        ])->conditionEvaluator(),
+    );
+    assertTrue($fromConfig instanceof \Swoolefy\Support\Workflow\Condition\CompositeConditionEvaluator, 'workflow.php driver honored');
     pass('workflow component factory');
 }
 

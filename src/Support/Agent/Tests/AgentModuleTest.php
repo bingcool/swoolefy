@@ -152,6 +152,51 @@ function testAgentSchedulerCapturesTaskErrors(): void
     assertTrue(($results['a']['agentId'] ?? '') === 'a', 'agentId preserved');
 }
 
+function testAgentSchedulerRejectsUnknownSelectedIds(): void
+{
+    $scheduler = new AgentScheduler(new NeuronFactory());
+    $ctx = makeCtx(agents: ['a', 'b']);
+
+    try {
+        $scheduler->runParallel(
+            $ctx,
+            [
+                'a' => static fn (): string => 'out-a',
+            ],
+            new StaticRouter(['ghost', 'missing']),
+        );
+        assertTrue(false, 'should throw when router ids miss tasks');
+    } catch (\Swoolefy\Support\Workflow\Exception\WorkflowException $e) {
+        assertTrue(str_contains($e->getMessage(), 'no matching tasks'), 'unknown ids message');
+        assertTrue(str_contains($e->getMessage(), 'ghost'), 'includes ghost id');
+    }
+}
+
+function testAgentParallelNodeFailsWhenRouterMissesTasks(): void
+{
+    $scheduler = new AgentScheduler(new NeuronFactory());
+    $node = new AgentParallelNode(
+        'parallel',
+        $scheduler,
+        new StaticRouter(['ghost']),
+        [
+            'a' => static fn (): string => 'ok',
+        ],
+    );
+
+    $compiled = (new WorkflowCompiler())->compile(
+        WorkflowDefinition::create('demo', '1.0.0')->addNode('parallel', $node),
+    );
+    $state = WorkflowState::fromInput([], []);
+
+    try {
+        $node->execute(new RunContext('run_1', $compiled, 1, [], 30.0), $state);
+        assertTrue(false, 'should fail when selected agents miss tasks');
+    } catch (\Swoolefy\Support\Workflow\Exception\WorkflowException $e) {
+        assertTrue(str_contains($e->getMessage(), 'no matching tasks'), 'parallel node surfaces scheduler error');
+    }
+}
+
 function testAgentParallelNodeUsesEngineTimeoutFromRunContext(): void
 {
     $capturedTimeout = null;
@@ -217,6 +262,8 @@ $tests = [
     'round robin state scoped cursor' => 'testRoundRobinCursorIsScopedToWorkflowState',
     'scheduler outputs' => 'testAgentSchedulerRunsTasksAndWritesOutputs',
     'scheduler errors' => 'testAgentSchedulerCapturesTaskErrors',
+    'scheduler rejects unknown selected ids' => 'testAgentSchedulerRejectsUnknownSelectedIds',
+    'agent parallel fails on unknown router ids' => 'testAgentParallelNodeFailsWhenRouterMissesTasks',
     'agent parallel engine timeout' => 'testAgentParallelNodeUsesEngineTimeoutFromRunContext',
     'agent parallel explicit timeout' => 'testAgentParallelNodeExplicitTimeoutOverridesRunContext',
 ];

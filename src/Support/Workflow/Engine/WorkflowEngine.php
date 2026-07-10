@@ -77,36 +77,51 @@ final class WorkflowEngine
             updatedAt: $now,
         );
 
-        // 通知插件 Run 开始（Metrics / Tracing 等可在此记录起点）
-        $this->plugins->fireRunStart($run, $input);
-        // 首次落库，便于外部通过 runId 观测到「已创建」状态
-        $this->runStore->save($run);
-
+        // run.start 成功后即占用插件资源（如 RateLimit 槽位）；须保证失败路径释放
+        $runStartAcquired = false;
+        $runCompleteFired = false;
         try {
-            // Phase 1 约定单入口：编译器保证 entryNodes 至少有一个
-            $entry = $compiled->entryNodes()[0];
-            $this->executeFromNode($run, $entry);
+            // 通知插件 Run 开始（Metrics / Tracing / RateLimit 等可在此记录起点）
+            $this->plugins->fireRunStart($run, $input);
+            $runStartAcquired = true;
+            // 首次落库，便于外部通过 runId 观测到「已创建」状态
+            $this->runStore->save($run);
+
+            try {
+                // Phase 1 约定单入口：编译器保证 entryNodes 至少有一个
+                $entry = $compiled->entryNodes()[0];
+                $this->executeFromNode($run, $entry);
+            } catch (Throwable $e) {
+                // 节点异常 / Saga 补偿失败等：统一标记 FAILED 并释放 Plugin 槽位
+                $this->handleRunFailure($run, $e);
+                $runCompleteFired = true;
+                throw $e;
+            }
+
+            // executeFromNode 正常跑完 DAG 后 status 仍为 RUNNING，此处转为终态 COMPLETED
+            // 若中途进入 WAITING（HITL）或 FAILED / CANCELLED，则跳过此分支
+            if ($run->status === RunStatus::RUNNING) {
+                $run->status = RunStatus::COMPLETED;
+                $run->currentNodeId = null;
+                $run->updatedAt = WorkflowRunTime::now();
+                $this->runStore->save($run);
+            }
+
+            // WAITING 表示 Run 尚未结束，需等待 resume；此时不触发 run.complete，与 resume() 行为对齐
+            if ($run->status !== RunStatus::WAITING) {
+                $this->plugins->fireRunComplete($run);
+                $runCompleteFired = true;
+            }
+
+            return $runId;
         } catch (Throwable $e) {
-            // 节点异常 / Saga 补偿失败等：统一标记 FAILED 并释放 Plugin 槽位
-            $this->handleRunFailure($run, $e);
+            // save() 失败等：run.start 已占用资源但尚未 fireRunComplete
+            if ($runStartAcquired && !$runCompleteFired && $run->status !== RunStatus::WAITING) {
+                $this->plugins->fireRunComplete($run);
+            }
+
             throw $e;
         }
-
-        // executeFromNode 正常跑完 DAG 后 status 仍为 RUNNING，此处转为终态 COMPLETED
-        // 若中途进入 WAITING（HITL）或 FAILED / CANCELLED，则跳过此分支
-        if ($run->status === RunStatus::RUNNING) {
-            $run->status = RunStatus::COMPLETED;
-            $run->currentNodeId = null;
-            $run->updatedAt = WorkflowRunTime::now();
-            $this->runStore->save($run);
-        }
-
-        // WAITING 表示 Run 尚未结束，需等待 resume；此时不触发 run.complete，与 resume() 行为对齐
-        if ($run->status !== RunStatus::WAITING) {
-            $this->plugins->fireRunComplete($run);
-        }
-
-        return $runId;
     }
 
     /**

@@ -116,7 +116,9 @@ final class WorkflowBootstrap
             return $cached;
         }
 
-        $evaluator = ConditionEvaluatorFactory::create();
+        $evaluator = ConditionEvaluatorFactory::create(
+            WorkflowConfig::load()->conditionEvaluator(),
+        );
         self::setInContext(self::KEY_EVALUATOR, $evaluator);
 
         return $evaluator;

@@ -45,6 +45,7 @@
 - [十九、📘 ApiDoc 自动生成](#nav-19-apidoc)
 - [二十、☁️ Nacos 微服务集成](#nav-20-nacos)
 - [二十一、🤖 AI / Workflow 工作流](#nav-21-ai-workflow)
+- [二十二、🧠 AI Agent / RAG / MCP / OCR 大模型能力](#nav-22-ai-capabilities)
 
 ---
 <a id="nav-1-intro"></a>
@@ -377,6 +378,31 @@ docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v
     $uri = $client->chooseUri();
     ```
 
+- [x] **AI Agent / RAG / MCP / OCR / Workflow / LLM 大模型能力**（`Swoolefy\Support`，详见 [二十一](#nav-21-ai-workflow)、[二十二](#nav-22-ai-capabilities)）
+
+    基于 [Neuron AI](https://docs.neuron-ai.dev/) + Swoolefy 协程运行时，提供可编排的工作流与可独立使用的大模型原语。
+
+    | 能力 | 说明 | 主要路径 |
+    |:---|:---|:---|
+    | Workflow | DAG 引擎、条件边、HITL、Saga、Plugin、多版本 Registry | `src/Support/Workflow/` |
+    | Neuron / LLM | Provider 工厂、Fallback、Middleware、Embedding、ChatHistory、出站 URL 守卫 | `src/Support/Neuron/` |
+    | AI 节点 | AINode、Structured Output、SSE/WS 流式、多 Agent 并行节点 | `src/Support/AI/` |
+    | Agent | Static / Rule / Weighted / CostAware / RoundRobin / LLM 路由 + 协程调度 | `src/Support/Agent/` |
+    | RAG | 多向量库入库/检索、租户隔离、sync·queue Dispatcher | `src/Support/Rag/` |
+    | MCP | HTTP/SSE Tools、DB 多租户、stdio 生产禁用 | `src/Support/Mcp/` |
+    | DocumentOcr | Pandoc + DeepSeek OCR（图片/PDF）→ Markdown → RAG | `src/Support/DocumentOcr/` |
+    | CapabilityCenter | 百级 Tool Top-K + pinned（可选） | `src/Support/CapabilityCenter/` |
+
+    ```bash
+    # 配置模版（create 应用时自动复制）
+    cp src/Stubs/workflow.conf.stub.php App/Config/workflow.php
+    cp src/Stubs/neuron_ai.conf.stub.php App/Config/neuron_ai.php
+    cp src/Stubs/document_ocr.conf.stub.php App/Config/document_ocr.php
+
+    # 回归测试
+    composer test:support
+    ```
+
 <a id="nav-4-components"></a>
 
 ### 四、🔌 适配协程环境组件
@@ -395,6 +421,7 @@ docker run -d -it --security-opt seccomp=unconfined -p 9501:9501 -p 9502:9502 -v
 | oauth 2.0        | composer require league/oauth2-server                      | oauth 2.0 授权认证组件                                    |  
 | php-standard-library        | composer require php-standard-library/php-standard-library | php标准库(推荐)                                          |
 | bingcool/library | composer require bingcool/library                          | library组件库                                          |  
+| neuron-ai | composer require neuron-core/neuron-ai | Neuron AI 大模型 Agent / RAG / MCP 原语（框架已集成） |
 
 <a id="nav-5-library"></a>
 
@@ -1876,6 +1903,138 @@ composer test:workflow
 ```
 
 覆盖 Phase 1–4 共 30+ 用例，含 SubWorkflow、JsonLogic、RoundRobin、RAG CLI 集成测试。
+
+大模型原语（Agent / RAG / MCP / OCR）详见 [二十二、AI Agent / RAG / MCP / OCR 大模型能力](#nav-22-ai-capabilities)。
+
+<a id="nav-22-ai-capabilities"></a>
+
+### 二十二、🧠 AI Agent / RAG / MCP / OCR 大模型能力
+
+在 Workflow 编排之外，框架提供可独立使用的 **大模型能力层**：LLM 装配、多 Agent 路由、RAG 检索增强、MCP 工具协议、文档 OCR，以及可选的 CapabilityCenter 工具筛选。底层复用 [Neuron AI](https://docs.neuron-ai.dev/)，运行时由 Swoolefy 协程 / 组件容器承载。
+
+| 文档 | 说明 |
+|:---|:---|
+| [docs/SwoolefyAI.md](docs/SwoolefyAI.md) | 完整架构与模块边界 |
+| [docs/AI-WORKFLOW.md](docs/AI-WORKFLOW.md) | 生产接入快速指南 |
+| [docs/DocumentOcr.md](docs/DocumentOcr.md) | DocumentOcr 技术方案 |
+| [docs/CapabilityTool.md](docs/CapabilityTool.md) | CapabilityCenter 设计 |
+| 各模块 README | `src/Support/{Neuron,AI,Agent,Rag,Mcp,DocumentOcr,CapabilityCenter}/README.md` |
+
+#### 能力总览
+
+| 能力 | 路径 | 要点 |
+|:---|:---|:---|
+| **Neuron（LLM）** | `src/Support/Neuron/` | Provider 工厂、Fallback、Middleware、Embedding、ChatHistory（Redis/SQL）、出站 URL 守卫 |
+| **AI 节点** | `src/Support/AI/` | `AINode` / StructuredOutput / SSE·WS 流式 / `AgentParallelNode` |
+| **Agent 路由** | `src/Support/Agent/` | Static / Rule / Weighted / CostAware / RoundRobin / LLM 六种 Router + 协程并行调度 |
+| **RAG** | `src/Support/Rag/` | 入库 / 检索 / 多向量库 / 租户隔离 / sync·queue Dispatcher |
+| **MCP** | `src/Support/Mcp/` | HTTP/SSE Tools、DB 多租户配置、stdio 生产禁用、进程并发守卫 |
+| **DocumentOcr** | `src/Support/DocumentOcr/` | Pandoc（DOCX/HTML/MD）+ DeepSeek OCR（图片/PDF）→ Markdown → RAG |
+| **CapabilityCenter** | `src/Support/CapabilityCenter/` | 百级 Tool 场景 Top-K + pinned（默认关闭，按需启用） |
+
+#### 配置
+
+```bash
+# create 应用时会自动复制；也可手动从 Stubs 复制
+cp src/Stubs/neuron_ai.conf.stub.php App/Config/neuron_ai.php
+cp src/Stubs/document_ocr.conf.stub.php App/Config/document_ocr.php
+# 组件：document_parser.php → DI 名 document_ocr
+cp src/Stubs/document_parser.component.stub.php App/Config/component/document_parser.php
+```
+
+`neuron_ai.php` 覆盖：`ai_model_providers`、`neuron.default_provider` / `provider_fallback`、`rag.*`、`mcp.*`、`security.outbound_url_allowlist`。
+
+#### Neuron：装配 Agent
+
+```php
+use Swoolefy\Support\Neuron\NeuronFactory;
+
+$factory = new NeuronFactory();
+$agent = $factory->create(MyAgent::class, $state, [
+    'provider' => 'openai',           // ai_model_providers 别名
+    'mcpServers' => ['docs'],         // 挂载 MCP Tools
+    'middleware' => [/* Neuron Middleware */],
+]);
+```
+
+- 会话记忆在业务 `Agent::chatHistory()` 中声明（`ChatHistoryFactory::redis()` / `sql()` / `inMemory()`）
+- Provider 缺凭证 / 未知别名 fail-fast；`baseUri` 经 `OutboundUrlGuard`
+- 演示：`POST /api/v1/agent/chat`、`POST /api/v1/agent/middleware/chat`
+
+#### Agent：多 Agent 并行路由
+
+```php
+use Swoolefy\Support\Agent\AgentScheduler;
+use Swoolefy\Support\Agent\Router\StaticRouter;
+
+$scheduler = new AgentScheduler(new NeuronFactory());
+$results = $scheduler->runParallel($ctx, [
+    'weather' => fn ($ctx, $f) => /* ... */,
+    'route'   => fn ($ctx, $f) => /* ... */,
+], new StaticRouter(['weather', 'route']));
+```
+
+工作流内用 `Definition::addAgentParallel()` / `AgentParallelNode`；Router 选出的 id 必须落在 tasks 中，否则 fail-fast（禁止空跑 SUCCESS）。
+
+#### RAG：入库与检索
+
+| 向量库驱动 | 说明 |
+|:---|:---|
+| `file` / `phpvector` | 本地开发 |
+| `meilisearch` / `mariadb` / `pgvector` | 自建 |
+| `pinecone` / `qdrant` / `milvus` | 托管 / 云 |
+
+```bash
+# 离线入库 CLI
+php src/Support/Rag/Console/ingest_documents.php --kb=product_kb --path=/data/docs
+```
+
+开启 `RAG_REQUIRE_TENANT_ISOLATION` 时物理名为 `{tenantId}_{kb}`。未知 vector store **alias / driver** 均 fail-fast。
+
+#### MCP：外部 Tools
+
+```php
+use Swoolefy\Support\Mcp\McpComponentFactory;
+
+$tools = McpComponentFactory::factory()->tools(['docs']);
+```
+
+生产优先远程 HTTP/SSE；stdio 默认禁用（`MCP_ALLOW_STDIO=1` 可开）。DB 仓储见 `Schema/mcp_server_configs.sql`。
+
+| 接口 | 说明 |
+|:---|:---|
+| `GET /api/v1/mcp/servers` | 服务列表（凭证脱敏，`?tenantId=`） |
+| `GET /api/v1/mcp/servers/tools` | 工具发现（`?server_id=&tenantId=`） |
+
+#### DocumentOcr：文档 → Markdown
+
+```php
+/** @var \Swoolefy\Support\DocumentOcr\DocumentOcrFactory $ocr */
+$ocr = Application::getApp()->get('document_ocr');
+$result = $ocr->parseFile('/data/manual.docx'); // → $result->markdown
+```
+
+| 输入 | 驱动 |
+|:---|:---|
+| `.docx` / `.html` / `.md` / `.txt` | Pandoc |
+| `.png` / `.jpg` / `.jpeg` | DeepSeek OCR `/api/ocr` |
+| `.pdf` | DeepSeek OCR `/api/ocr/pdf` |
+
+再经 `ChunkingAdapter` 接入 `IngestionPipeline` 即可入库。
+
+#### 回归测试
+
+```bash
+composer test:support          # 全量 Support（含下列子集）
+composer test:neuron
+composer test:agent
+composer test:rag
+composer test:mcp
+composer test:document-ocr
+composer test:capability
+```
+
+生产启动前可用 `ProductionHealthCheck` 校验 Provider / Embedding / 出站 URL / HITL / RunStore 等（见 [二十一](#nav-21-ai-workflow) 与 `docs/AI-WORKFLOW.md`）。
 
 <a id="nav-license"></a>
 

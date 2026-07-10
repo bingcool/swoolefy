@@ -48,11 +48,26 @@ final class PluginManager
         return $this->registry;
     }
 
-    /** Run 开始时触发。 */
+    /**
+     * Run 开始时触发。
+     *
+     * 若某个 hook 在前序 hook 已成功后抛错（例如 RateLimit 已占槽、Permission 拒绝），
+     * 立即 fireRunComplete 回滚已占用的插件资源，避免槽位泄漏。
+     */
     public function fireRunStart(WorkflowRun $run, array $input): void
     {
-        foreach ($this->registry->hooks('run.start') as $hook) {
-            $hook($run, $input);
+        $invoked = 0;
+        try {
+            foreach ($this->registry->hooks('run.start') as $hook) {
+                $hook($run, $input);
+                $invoked++;
+            }
+        } catch (\Throwable $e) {
+            if ($invoked > 0) {
+                $this->fireRunComplete($run);
+            }
+
+            throw $e;
         }
     }
 

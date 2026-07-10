@@ -50,6 +50,7 @@ use Swoolefy\Support\Workflow\State\WorkflowState;
  *        - 返回 array<agentId, mixed>
  *   4. 扫描返回值中带 'error' 键的项 → failedAgents
  *   5. 有失败 → NodeExecutionResult::failed；否则 success
+ *   6. Router 选出的 id 全部不在 tasks 中 → Scheduler 抛 WorkflowException（禁止空跑 SUCCESS）
  *
  * ---------------------------------------------------------------------------
  * 失败策略

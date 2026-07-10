@@ -185,6 +185,32 @@ function testPermissionPlugin(): void
     assertTrue($runId !== '', 'operator should pass');
 }
 
+function testRateLimitReleasedWhenPermissionDeniedAfterAcquire(): void
+{
+    $rateLimit = RateLimitPlugin::make(maxConcurrent: 1);
+    $engine = makeEngine(new PluginManager([
+        $rateLimit,
+        new PermissionPlugin(['admin']),
+    ]));
+    $compiled = WorkflowBootstrap::compiler()->compile(
+        WorkflowDefinition::create('rl_perm')
+            ->addNode('a', new ClosureNode('a', static fn ($c, $s) => NodeExecutionResult::success())),
+    );
+
+    try {
+        $engine->start($compiled, ['role' => 'guest']);
+        assertTrue(false, 'should deny guest after rate-limit acquire');
+    } catch (WorkflowPermissionException) {
+        assertTrue(true, 'permission denied');
+    }
+
+    assertTrue($rateLimit->activeRuns() === 0, 'rate limit slot released after permission deny');
+
+    $runId = $engine->start($compiled, ['role' => 'admin']);
+    assertTrue($runId !== '', 'admin should pass after slot release');
+    assertTrue($rateLimit->activeRuns() === 0, 'slot released after successful run');
+}
+
 function testMcpFactoryListServers(): void
 {
     WorkflowService::reset();
@@ -217,6 +243,7 @@ $tests = [
     'rate limit release' => 'testRateLimitPluginRelease',
     'rate limit exceeded' => 'testRateLimitExceeded',
     'permission plugin' => 'testPermissionPlugin',
+    'rate limit released on permission deny' => 'testRateLimitReleasedWhenPermissionDeniedAfterAcquire',
     'mcp list servers' => 'testMcpFactoryListServers',
     'mcp process runner' => 'testMcpProcessRunnerLimit',
 ];

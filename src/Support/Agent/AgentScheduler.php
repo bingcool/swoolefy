@@ -8,6 +8,7 @@ use Swoolefy\Core\Coroutine\GoWaitGroup;
 use Swoolefy\Exception\SystemException;
 use Swoolefy\Support\Agent\Router\StaticRouter;
 use Swoolefy\Support\Neuron\NeuronFactory;
+use Swoolefy\Support\Workflow\Exception\WorkflowException;
 use Swoolefy\Support\Workflow\Exception\WorkflowTimeoutException;
 
 /**
@@ -46,8 +47,10 @@ final class AgentScheduler
         $selectedIds = $router->route($ctx);
 
         $callbacks = [];
+        $unknownIds = [];
         foreach ($selectedIds as $agentId) {
             if (!isset($tasks[$agentId])) {
+                $unknownIds[] = (string) $agentId;
                 continue;
             }
 
@@ -67,6 +70,13 @@ final class AgentScheduler
                     ];
                 }
             };
+        }
+
+        // Router 选出了 ID，但全部不在 tasks 中 → 空跑却 SUCCESS 的语义错误，fail-fast
+        if ($callbacks === [] && $selectedIds !== []) {
+            throw new WorkflowException(
+                'Agent router selected ids with no matching tasks: ' . implode(', ', $unknownIds),
+            );
         }
 
         if ($callbacks === []) {

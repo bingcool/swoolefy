@@ -76,6 +76,23 @@ final class VectorStoreFactory
         }
 
         $driver = $this->config->vectorStoreDriver($alias);
+        $supported = [
+            NeuronAiVectorStoreName::FILE,
+            NeuronAiVectorStoreName::MEILISEARCH,
+            NeuronAiVectorStoreName::PHP_VECTOR,
+            NeuronAiVectorStoreName::MARIADB,
+            NeuronAiVectorStoreName::PGVECTOR,
+            NeuronAiVectorStoreName::PINECONE,
+            NeuronAiVectorStoreName::QDRANT,
+            NeuronAiVectorStoreName::MILVUS,
+        ];
+        if (!in_array($driver, $supported, true)) {
+            throw new RuntimeException(
+                "Unknown vector store driver [{$driver}] for alias [{$alias}]; "
+                . 'declare a supported driver under rag.vector_stores in neuron_ai.php',
+            );
+        }
+
         $index = TenantScope::scopedKnowledgeBase(
             $knowledgeBase,
             $tenantId,
@@ -84,6 +101,7 @@ final class VectorStoreFactory
         $k = $topK ?? $this->config->defaultTopK();
 
         return match ($driver) {
+            NeuronAiVectorStoreName::FILE => $this->makeFile($index, $k, $alias),
             NeuronAiVectorStoreName::MEILISEARCH => $this->makeMeilisearch($index, $k, $alias),
             NeuronAiVectorStoreName::PHP_VECTOR => $this->makePhpVector($index, $k, $alias),
             NeuronAiVectorStoreName::MARIADB => $this->makeMariaDb($index, $k, $alias),
@@ -91,7 +109,6 @@ final class VectorStoreFactory
             NeuronAiVectorStoreName::PINECONE => $this->makePinecone($index, $k, $alias),
             NeuronAiVectorStoreName::QDRANT => $this->makeQdrant($index, $k, $alias),
             NeuronAiVectorStoreName::MILVUS => $this->makeMilvus($index, $k, $alias),
-            default => $this->makeFile($index, $k, $alias),
         };
     }
 

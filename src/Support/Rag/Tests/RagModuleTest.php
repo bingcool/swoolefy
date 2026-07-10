@@ -420,6 +420,32 @@ function testVectorStoreUnknownDefaultAliasThrows(): void
     }
 }
 
+function testVectorStoreUnknownDriverThrows(): void
+{
+    $path = sys_get_temp_dir() . '/swoolefy_rag_bad_driver_' . getmypid();
+    $config = NeuronAiConfig::fromArray([
+        'rag' => [
+            'default_vector_store' => 'typo_store',
+            'require_tenant_isolation' => false,
+            'vector_stores' => [
+                'typo_store' => [
+                    'driver' => 'milvu',
+                    'path' => $path,
+                ],
+            ],
+        ],
+    ]);
+    $factory = new VectorStoreFactory($config, $path);
+
+    try {
+        $factory->make('kb');
+        assertTrue(false, 'should throw on unknown driver');
+    } catch (RuntimeException $e) {
+        assertTrue(str_contains($e->getMessage(), 'Unknown vector store driver'), 'unknown driver message');
+        assertTrue(str_contains($e->getMessage(), 'milvu'), 'includes bad driver name');
+    }
+}
+
 function testMilvusConfigSectionInNeuronAiConfig(): void
 {
     $config = NeuronAiConfig::fromArray([
@@ -488,6 +514,7 @@ $tests = [
     'pgvector config section' => 'testPgVectorConfigSectionInNeuronAiConfig',
     'unknown vector store alias throws' => 'testVectorStoreUnknownAliasThrows',
     'unknown default alias throws' => 'testVectorStoreUnknownDefaultAliasThrows',
+    'unknown vector store driver throws' => 'testVectorStoreUnknownDriverThrows',
 ];
 
 $passed = 0;
